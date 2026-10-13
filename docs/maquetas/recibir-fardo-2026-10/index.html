@@ -33,13 +33,13 @@ iframe{flex:1;border:0;width:100%;background:var(--crema)}
 <div class="top">
   <h1>Recibir mercadería<small>Inventario ▸ Recibir mercadería · el fardo que manda Compras</small></h1>
   <nav class="tabs" role="tablist" aria-label="Maquetas">
-    <button class="tab" role="tab" data-f="a-camino.html" aria-selected="true"><b>A · Camino</b><small>Cuatro pasos, uno a la vez: qué llegó → contar → separar → cerrar</small></button>
-    <button class="tab" role="tab" data-f="b-mesa.html" aria-selected="false"><b>B · Mesa de conteo</b><small>Todo a la vista: un montón por categoría, las bandejas al lado</small></button>
-    <button class="tab" role="tab" data-f="c-hilo.html" aria-selected="false"><b>C · Hilo de la pistola</b><small>Una sola caja: cada lectura escribe una línea y suma</small></button>
+    <button class="tab" role="tab" data-f="a-camino.html?v=2" aria-selected="true"><b>A · Camino</b><small>Cuatro pasos, uno a la vez: qué llegó → contar → separar → cerrar</small></button>
+    <button class="tab" role="tab" data-f="b-mesa.html?v=2" aria-selected="false"><b>B · Mesa de conteo</b><small>Todo a la vista: un montón por categoría, las bandejas al lado</small></button>
+    <button class="tab" role="tab" data-f="c-hilo.html?v=2" aria-selected="false"><b>C · Hilo de la pistola</b><small>Una sola caja: cada lectura escribe una línea y suma</small></button>
   </nav>
   <p class="nota">Atajos: 1 · 2 · 3 cambian de maqueta. Dentro de cada una: datos (con aviso / sin aviso), tema, ancho, movimiento, «▶ Ver cómo se recibe» y «↻ Reiniciar».</p>
 </div>
-<iframe id="vista" title="Maqueta" src="a-camino.html"></iframe>
+<iframe id="vista" title="Maqueta" src="a-camino.html?v=2"></iframe>
 <script>
   const marco = document.getElementById("vista"), tabs = [...document.querySelectorAll(".tab")];
   let hashMarco = "";

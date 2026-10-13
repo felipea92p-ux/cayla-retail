@@ -6,21 +6,23 @@
 <title>Recibir mercadería · A · Camino</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="_base.css">
+<link rel="stylesheet" href="_base.css?v=2">
 </head>
 <body>
-<script src="_datos.js"></script>
-<script src="_comun.js"></script>
+<script src="_datos.js?v=3"></script>
+<script src="_comun.js?v=3"></script>
 <script>
-/* A · CAMINO. Cuatro paradas, una a la vez: ¿Qué llegó? → Contar → Separar → Cerrar. La persona nunca ve más de una pregunta.
-   El riel de arriba dice dónde está y qué falta (el punto del paso abierto late, como en Nuevo producto, ADR-0136 act. 2026-10-06);
-   cada paso entra dando vuelta la página. Contar es por categoría, con un número grande; Separar es la pistola sobre esa categoría. */
+/* A · CAMINO — versión 2 (Felipe, 2026-10-13: «me gusta la A»; nada viene etiquetado, así que no hay pistola).
+   Tres paradas: ¿Qué llegó? → Contar → Cerrar. Lo esencial es CONTAR por categoría. Separar es opcional y por nombre: «vi una Blusa
+   Aurora: llegaron 12» (y, si quieren, sus tallas y colores ahí mismo); lo nuevo se anota como cantidad. Lo que no se separe, no se
+   detalle o sea nuevo queda como PENDIENTE del fardo, con su aviso, para después: así el fardo se cuenta y se cierra sin trabas.
+   Al stock entra lo que ya tiene tallas y colores; el resto entra cuando se resuelve su pendiente. */
 let ui = null;
 Comun.iniciar({
   letra: "a",
   estilos: `
-  .rail{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:6px 0 2px}
-  .rail-linea{position:absolute;left:calc(12.5% + 18px);right:calc(12.5% + 18px);top:24px;height:2px;background:var(--sand);border-radius:2px;overflow:hidden}
+  .rail{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:6px 0 2px}
+  .rail-linea{position:absolute;left:calc(16.67% + 18px);right:calc(16.67% + 18px);top:24px;height:2px;background:var(--sand);border-radius:2px;overflow:hidden}
   .rail-linea i{display:block;height:100%;background:var(--tinta);width:calc(var(--p,0)*100%);transition:width 700ms var(--ease);transform-origin:left}
   .parada{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:2px 6px 8px;border-radius:var(--r-lg);color:var(--t55);transition:color 240ms var(--ease)}
   .parada:hover:not(:disabled){color:var(--tinta)}
@@ -65,7 +67,7 @@ Comun.iniciar({
   .otra p{font-size:13.5px;color:var(--t65);margin-top:6px}
   .provs{display:flex;flex-direction:column;gap:8px;margin-top:10px}
   .cita{display:flex;gap:10px;align-items:flex-start;background:var(--crema);border-radius:var(--r-lg);padding:10px 12px;font-size:13px;color:var(--t75);margin-top:10px}
-  /* pasos 2 y 3 */
+  /* paso 2 */
   .dos{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
   .lista-cats{display:flex;flex-direction:column;gap:6px;position:sticky;top:0}
   .cat-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-lg);border:1px solid transparent;transition:background-color 200ms var(--ease),border-color 200ms var(--ease),translate 200ms var(--ease)}
@@ -78,10 +80,10 @@ Comun.iniciar({
   .cat-item.agregar{border:1px dashed var(--t25);color:var(--t65);justify-content:center}
   .cat-item.agregar:hover{color:var(--tinta);border-color:var(--t45)}
   .elige-cat{display:flex;flex-wrap:wrap;gap:6px;padding:8px}
-  .contador,.separar{padding:24px;display:flex;flex-direction:column;gap:14px}
-  .contador h2,.separar h2{font-size:30px;line-height:1.05}
-  .instr{font-size:14.5px;color:var(--t65);max-width:560px}
-  .numero{display:flex;align-items:center;justify-content:center;gap:18px;padding:10px 0}
+  .contador{padding:24px;display:flex;flex-direction:column;gap:14px;container:contador/inline-size}
+  .contador h2{font-size:30px;line-height:1.05}
+  .instr{font-size:14.5px;color:var(--t65);max-width:600px}
+  .numero{display:flex;align-items:center;justify-content:center;gap:18px;padding:6px 0}
   .numero input{width:170px;text-align:center;font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:84px;line-height:1;background:transparent;border:0;outline:0;color:var(--tinta);-moz-appearance:textfield}
   .numero input::-webkit-inner-spin-button,.numero input::-webkit-outer-spin-button{-webkit-appearance:none}
   .numero input:focus{text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:10px;text-decoration-thickness:2px}
@@ -94,23 +96,36 @@ Comun.iniciar({
   .avance{display:flex;flex-direction:column;gap:8px;align-items:center}
   .avance .barra{width:100%;max-width:520px;height:10px}
   .pie-paso{margin-top:4px;padding-top:14px;border-top:1px solid var(--sand)}
-  .escaner{min-height:56px;border-radius:var(--r-lg);padding:0 8px 0 14px;position:relative;overflow:hidden}
-  .escaner input{font-size:17px}
-  .escaner .laser{position:absolute;top:0;bottom:0;width:2px;background:var(--verde);opacity:0;pointer-events:none;box-shadow:0 0 10px var(--verde)}
-  .escaner.leyendo .laser{animation:laser 520ms linear 1}
+  /* separar (opcional) dentro de Contar */
+  .separar-op{border-top:1px solid var(--sand);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+  .separar-op .opt{font-size:11px;letter-spacing:0;text-transform:none;font-weight:500;color:var(--t45)}
+  .buscador{min-height:48px;border-radius:var(--r-lg);position:relative}
+  .buscador input{font-size:15.5px}
   .sugerencias{display:flex;flex-direction:column;gap:4px;padding:6px;border:1px solid var(--sand);border-radius:var(--r-lg);background:var(--papel);box-shadow:var(--sh-md);animation:revelar 240ms var(--ease) both}
   .sug{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:var(--r-md);text-align:left;width:100%}
   .sug:hover,.sug[aria-selected="true"]{background:var(--hueso)}
   .sug .crece b{font-size:14px}.sug .crece small{color:var(--t55);font-size:12px;margin-left:6px}
   .sug kbd{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-family:inherit}
-  .separadas{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .grupo{display:flex;flex-direction:column;gap:6px;min-width:0}
-  .grupo .label{display:flex;align-items:center;gap:8px}
-  .barra.tres{display:flex;gap:0}.barra.tres>i{border-radius:0;width:var(--w)}.barra.tres>i:first-child{border-radius:999px 0 0 999px}.barra.tres>i.pizarra{background:var(--pizarra)}
-  .leyenda{display:flex;gap:14px;font-size:12.5px;color:var(--t65);flex-wrap:wrap}
-  .leyenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--hueso)}.leyenda i.verde{background:var(--verde)}.leyenda i.pizarra{background:var(--pizarra)}
-  .vacio-grupo{font-size:13px;color:var(--t45);padding:10px;border:1px dashed var(--sand);border-radius:var(--r-lg);text-align:center}
-  /* paso 4 */
+  .filas-sep{display:flex;flex-direction:column;gap:6px}
+  .fila-sep{display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;padding:8px 12px;border:1px solid var(--sand);border-radius:var(--r-lg);background:var(--papel)}
+  .fila-sep.nueva{border-style:dashed;border-color:color-mix(in srgb,var(--pizarra) 45%,transparent)}
+  .fila-sep .nom b{display:block;font-size:14.5px}.fila-sep .nom small{display:block;font-size:12.5px;color:var(--t55)}
+  .fila-sep .estado{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .fila-sep .estado .btn{min-height:32px;padding:0 10px;font-size:12.5px}
+  .fila-sep .paso .num{font-size:18px;min-width:30px}
+  .fila-sep .quitar{justify-self:end}
+  .resto{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--t65);padding:4px 2px}
+  .resto b{color:var(--tinta)}
+  .vacio-sep{font-size:13px;color:var(--t45);padding:8px 10px;border:1px dashed var(--sand);border-radius:var(--r-lg)}
+  @container contador (max-width:720px){.fila-sep{grid-template-columns:auto 1fr auto;grid-template-areas:"mini nom cant" "estado estado estado"}.fila-sep .estado{grid-area:estado;justify-content:flex-start}.fila-sep .mini{grid-area:mini}.fila-sep .nom{grid-area:nom}.fila-sep>.fila,.fila-sep>.paso,.fila-sep>.cant-nueva{grid-area:cant}}
+  /* hoja de tallas y colores */
+  .matriz{display:grid;gap:6px;margin-top:10px;overflow:auto}
+  .matriz .celda{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--sand);border-radius:var(--r-md);padding:6px 4px;background:var(--papel)}
+  .matriz .celda.no{border-style:dashed;opacity:.45;justify-content:center;font-size:11px;color:var(--t45)}
+  .matriz .cab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--t55);display:grid;place-items:center}
+  .matriz .color-cab{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+  .matriz .color-cab i{width:16px;height:16px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px var(--t15)}
+  /* paso 3 */
   .cierre{display:flex;flex-direction:column;gap:14px}
   table.cierre{width:100%;border-collapse:collapse;font-size:14px}
   table.cierre th{text-align:left;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t55);padding:10px 12px;border-bottom:1px solid var(--sand)}
@@ -118,252 +133,323 @@ Comun.iniciar({
   table.cierre tr:last-child td{border-bottom:0}
   table.cierre td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:16px}
   table.cierre th.n{text-align:right}
+  table.cierre td .pend{font-size:12px;color:var(--t65);line-height:1.4}
   .causas{display:flex;flex-wrap:wrap;gap:6px}
   .causa{border:1px solid var(--sand);border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600;color:var(--taupe);transition:background-color 150ms,border-color 150ms,color 150ms}
   .causa:hover{border-color:var(--t45);color:var(--tinta)}.causa[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
   .bloque-cierre{padding:16px 18px}
   .pie-cierre{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;position:sticky;bottom:0;background:var(--crema);padding:14px 0 4px;border-top:1px solid var(--sand)}
-  @container escena (max-width:900px){.llego{grid-template-columns:1fr}.fardo-card{grid-template-columns:1fr}.dos{grid-template-columns:1fr}.lista-cats{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px}.cat-item{min-width:200px}.separadas{grid-template-columns:1fr}}
-  @container escena (max-width:640px){.rail .txt small{display:none}.rail .txt b{font-size:11.5px}.rail-linea{left:calc(12.5% + 10px);right:calc(12.5% + 10px);top:18px}.parada .punto{width:28px;height:28px;font-size:12px}
-    .contador,.separar{padding:16px}.numero input{font-size:64px;width:130px}.cat-item{min-width:160px}.fardo-card h2{font-size:26px}table.cierre th:nth-child(4),table.cierre td:nth-child(4),table.cierre th:nth-child(5),table.cierre td:nth-child(5){display:none}}
+  /* cerrado: pendientes */
+  .pendientes{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+  .pend-item{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--sand);border-radius:var(--r-lg);background:var(--papel)}
+  .pend-item .cat-ic{width:36px;height:36px;border-radius:10px}
+  .pend-item .nom b{display:block;font-size:14.5px}.pend-item .nom small{display:block;font-size:12.5px;color:var(--t55)}
+  .pend-item .btn{min-height:34px;padding:0 12px;font-size:13px}
+  .pend-item[data-tipo="crear"]{border-style:dashed;border-color:color-mix(in srgb,var(--pizarra) 45%,transparent)}
+  .pend-item.hecho{opacity:.6}
+  @container escena (max-width:900px){.llego{grid-template-columns:1fr}.fardo-card{grid-template-columns:1fr}.dos{grid-template-columns:1fr}.lista-cats{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px}.cat-item{min-width:200px}}
+  @container escena (max-width:640px){.rail .txt small{display:none}.rail .txt b{font-size:11.5px}.rail-linea{left:calc(16.67% + 10px);right:calc(16.67% + 10px);top:18px}.parada .punto{width:28px;height:28px;font-size:12px}
+    .contador{padding:16px}.numero input{font-size:64px;width:130px}.cat-item{min-width:160px}.fardo-card h2{font-size:26px}table.cierre th:nth-child(4),table.cierre td:nth-child(4){display:none}}
   `,
   montar(escena, api) {
     const { modelo: m, Modelo: M, est } = api;
-    const { icono, iconoCat, mini, esc, CATS, prov, SIN_AVISO, PROVEEDORES, CAUSAS, plural, avatar } = RF;
-    let paso = 1, foco = null, ultima = null; // ultima: lo último leído, para «Deshacer»
-    const PASOS = [{ n: 1, t: "Qué llegó" }, { n: 2, t: "Contar" }, { n: 3, t: "Separar" }, { n: 4, t: "Cerrar" }];
-    const frase = "Abre el fardo, cuenta, separa lo conocido de lo nuevo y recibe. Un paso a la vez.";
-    escena.innerHTML = `<div class="pagina">${api.cabecera({ frase, der: m.fardo ? `<span class="chip pizarra punto vivo">1 fardo en camino</span>` : `<span class="chip neutro punto">Sin aviso de Compras</span>` })}
+    const { icono, iconoCat, mini, esc, CATS, prov, SIN_AVISO, PROVEEDORES, CAUSAS, plural, PERSONAS } = RF;
+    let paso = 1, foco = null;
+    const PASOS = [{ n: 1, t: "Qué llegó" }, { n: 2, t: "Contar" }, { n: 3, t: "Cerrar" }];
+    // ---------- el modelo de esta cara: separar por NOMBRE (sin etiqueta), detalle opcional, pendientes ----------
+    const prep = (l) => { l.productos ||= {}; l.nuevasSin ||= 0; l.nuevasDesc ||= []; return l; };
+    const conocidasDe = (l) => Object.values(prep(l).productos).reduce((a, p) => a + p.n, 0);
+    const nuevasDe = (l) => prep(l).nuevasSin + l.nuevasDesc.reduce((a, n) => a + n.cant, 0);
+    const separadas = (l) => conocidasDe(l) + nuevasDe(l);
+    const sinSeparar = (l) => Math.max(0, l.contadas - separadas(l));
+    const enStock = (l) => Object.values(prep(l).productos).filter((p) => p.variantes).reduce((a, p) => a + p.n, 0) + prep(l).nuevasDesc.filter((n) => n.creada).reduce((a, n) => a + n.cant, 0);
+    const sinDetalle = (l) => Object.values(prep(l).productos).filter((p) => !p.variantes);
+    const ajustar = (l) => { if (l.contadas < separadas(l)) { if (l.contadas > 0) l.corregida = true; l.contadas = separadas(l); } };
+    function agregarProducto(l, p, n = 1) { prep(l); const r = (l.productos[p.nombre] ||= { producto: p, n: 0, variantes: null }); r.n += n; if (r.variantes && Object.values(r.variantes).reduce((a, b) => a + b, 0) !== r.n) r.variantes = null; l.visitada = true; ajustar(l); return r; }
+    function fijarProductoN(l, nombre, n) { prep(l); const r = l.productos[nombre]; if (!r) return; r.n = Math.max(0, Math.floor(Number(n) || 0)); if (r.n === 0) delete l.productos[nombre]; else if (r.variantes && Object.values(r.variantes).reduce((a, b) => a + b, 0) !== r.n) r.variantes = null; ajustar(l); }
+    function detallar(l, nombre, variantes) { prep(l); const r = l.productos[nombre]; if (!r) return; const limpio = Object.fromEntries(Object.entries(variantes).filter(([, n]) => n > 0)); const total = Object.values(limpio).reduce((a, b) => a + b, 0); if (total === 0) return; r.variantes = limpio; r.n = total; ajustar(l); }
+    function nuevasSinN(l, { delta = 0, valor } = {}) { prep(l); l.nuevasSin = Math.max(0, Math.floor(valor != null ? Number(valor) || 0 : l.nuevasSin + delta)); l.visitada = true; ajustar(l); }
+    function describirNueva(l, datos) { prep(l); const cant = Object.values(datos.tallas || {}).reduce((a, b) => a + (Number(b) || 0), 0); const n = { id: `d${Date.now()}${Math.random().toString(16).slice(2, 6)}`, ...datos, cant }; l.nuevasDesc.push(n); l.nuevasSin = Math.max(0, l.nuevasSin - cant); ajustar(l); return n; }
+    function quitarNuevaDesc(l, id) { prep(l); const n = l.nuevasDesc.find((x) => x.id === id); if (!n) return; l.nuevasDesc = l.nuevasDesc.filter((x) => x.id !== id); l.nuevasSin += n.cant; }
+    /** Lo que queda para después, por línea (nada de esto frena el cierre). */
+    function pendientesDe(l) {
+      prep(l); const c = CATS[l.cat]; const out = [];
+      const s = sinSeparar(l); if (s > 0) out.push({ tipo: "separar", lineaId: l.id, n: s, titulo: `${plural(s, c.una, c.varias)} sin separar`, sub: "¿Cuáles son? Conocidas por nombre, o nuevas" });
+      for (const r of sinDetalle(l)) out.push({ tipo: "detalle", lineaId: l.id, nombre: r.producto.nombre, n: r.n, titulo: `${r.producto.nombre} · ${r.n} sin tallas ni colores`, sub: "Hasta ponerlas, esas prendas no entran al stock", hex: r.producto.hex });
+      if (l.nuevasSin > 0) out.push({ tipo: "crear", lineaId: l.id, n: l.nuevasSin, titulo: `${plural(l.nuevasSin, c.una, c.varias)} nuevas por crear`, sub: "No están en el catálogo: nombre, color, tallas y precio", hex: "#b9b2a7" });
+      for (const n of l.nuevasDesc.filter((x) => !x.creada)) out.push({ tipo: "crear", lineaId: l.id, n: n.cant, descId: n.id, titulo: `${n.desc} · ${n.cant} por crear`, sub: `Nueva, ya descrita (${n.color || "sin color"} · ${Object.entries(n.tallas).map(([t, k]) => `${t} ${k}`).join(", ")}): falta el precio y la foto`, hex: n.hex });
+      return out;
+    }
+    const pendientes = () => m.lineas.flatMap(pendientesDe).filter((p) => !(m.resueltos || []).includes(p.titulo));
+    const totalEnStock = () => m.lineas.reduce((a, l) => a + enStock(l), 0);
+    /** Lo único que frena «Cerrar»: haber contado, las causas y quién contó. Separar y detallar NO (son pendientes). */
+    function faltan() {
+      const f = [];
+      if (M.totalContadas(m) === 0) f.push({ clave: "vacio", texto: "Cuenta lo que llegó" });
+      for (const l of m.lineas) { const c = CATS[l.cat]; const d = M.diferencia(l); if (d != null && d !== 0 && l.contadas > 0 && !l.causa) f.push({ clave: "causa", lineaId: l.id, texto: d < 0 ? `Di por qué faltan ${plural(-d, c.una, c.varias)}` : `Di por qué sobran ${plural(d, c.una, c.varias)}` }); }
+      if (!m.fardo && m.dijeronTotal != null && M.totalContadas(m) > 0 && M.totalContadas(m) !== m.dijeronTotal && !m.causaTotal) { const d = M.totalContadas(m) - m.dijeronTotal; f.push({ clave: "causa-total", texto: d < 0 ? `Di por qué faltan ${-d} prendas` : `Di por qué sobran ${d} prendas` }); }
+      if (!m.responsable) f.push({ clave: "responsable", texto: "Elige quién contó" });
+      return f;
+    }
+    function faltaChips() {
+      const f = faltan(); if (!f.length) return `<div class="falta-chips listo"><span class="chip verde punto">Todo listo para cerrar</span></div>`;
+      return `<div class="falta-chips"><span class="label" style="margin-right:4px">Falta</span>${f.map((x) => `<button class="fc" data-falta="${x.clave}" ${x.lineaId ? `data-linea="${x.lineaId}"` : ""}>${icono("der")}${esc(x.texto)}</button>`).join("")}</div>`;
+    }
+    const frase = "Abre el fardo y cuenta por categoría. Separar cuáles son puede quedar para después: lo esencial es el número.";
+    function chipCabecera() { const n = m.cerrado ? pendientes().length : 0; return n ? `<span class="chip pizarra punto vivo">${n} pendientes del fardo</span>` : m.fardo ? `<span class="chip pizarra punto vivo">1 fardo en camino</span>` : `<span class="chip neutro punto">Sin aviso de Compras</span>`; }
+    escena.innerHTML = `<div class="pagina">${api.cabecera({ frase, der: `<span data-chip-cab>${chipCabecera()}</span>` })}
       <nav class="rail" aria-label="Pasos de la recepción"></nav>
       <div class="paso-caja"><section class="paso-pag" id="pag"></section></div></div>`;
     const pagina = () => escena.querySelector("#pag");
 
     // ---------- el riel ----------
-    function estadoPaso(n) {
-      if (n === paso) return "ahora";
-      if (n === 1) return m.abierto ? "hecho" : "falta";
-      if (n === 2) return m.lineas.length && m.lineas.every((l) => l.visitada && l.contadas > 0) ? "hecho" : "falta";
-      if (n === 3) return m.lineas.length && M.totalContadas(m) > 0 && m.lineas.every((l) => M.sinSeparar(l) === 0) ? "hecho" : "falta";
-      return m.cerrado ? "hecho" : "falta";
-    }
+    function estadoPaso(n) { if (n === paso) return "ahora"; if (n === 1) return m.abierto ? "hecho" : "falta"; if (n === 2) return m.lineas.length && m.lineas.every((l) => l.visitada && l.contadas > 0) ? "hecho" : "falta"; return m.cerrado ? "hecho" : "falta"; }
     function subPaso(n) {
       if (n === 1) return m.abierto ? (m.fardo ? `${m.fardo.codigo} · ${M.totalDijeron(m)} prendas` : `${prov(m.proveedor).nombre.split(" ")[0]} · sin aviso`) : "Fardo o sin aviso";
-      if (n === 2) return M.totalContadas(m) ? `${M.totalContadas(m)} contadas` : "Por categoría";
-      if (n === 3) { const c = M.totalConocidas(m), nv = M.totalNuevas(m); return c + nv ? `${c} conocidas · ${nv} nuevas` : "Conocidas o nuevas"; }
-      return m.cerrado ? "Recibido" : "Diferencias y quién recibe";
+      if (n === 2) { const t = M.totalContadas(m); if (!t) return "Por categoría"; const p = m.lineas.flatMap(pendientesDe).length; return `${t} contadas${p ? ` · ${p} para después` : ""}`; }
+      return m.cerrado ? "Cerrado" : "Lo que no cuadró y quién contó";
     }
     function pintarRail() {
-      const hechos = PASOS.filter((p) => estadoPaso(p.n) === "hecho").length;
-      const p = Math.min(1, (paso - 1) / 3);
+      const p = Math.min(1, (paso - 1) / 2);
       escena.querySelector(".rail").innerHTML = `<div class="rail-linea"><i style="--p:${p}"></i></div>` + PASOS.map((s) => {
-        const e = estadoPaso(s.n); const puede = s.n <= paso || e === "hecho" || (s.n === 2 && m.abierto) || (s.n === 3 && M.totalContadas(m) > 0) || (s.n === 4 && M.totalContadas(m) > 0);
+        const e = estadoPaso(s.n); const puede = s.n <= paso || e === "hecho" || (s.n === 2 && m.abierto) || (s.n === 3 && M.totalContadas(m) > 0);
         return `<button class="parada" data-paso="${s.n}" data-estado="${e}" ${puede && !m.cerrado ? "" : "disabled"}><span class="punto">${e === "hecho" ? `<svg viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5"/></svg>` : s.n}</span><span class="txt"><b>${s.t}</b><small>${esc(subPaso(s.n))}</small></span></button>`;
       }).join("");
+      const ch = escena.querySelector("[data-chip-cab]"); if (ch) ch.innerHTML = chipCabecera();
     }
-
-    // ---------- cambiar de paso: la página se da vuelta ----------
     async function irPaso(n, { directo = false } = {}) {
       if (n === paso && !directo) { pintarPaso(); return; }
       const atras = n < paso; paso = n;
-      if (n === 2 || n === 3) { if (!foco || !M.linea(m, foco)) foco = (m.lineas[0] || {}).id || null; }
+      if (n === 2) { if (!foco || !M.linea(m, foco)) foco = (m.lineas[0] || {}).id || null; }
       const pag = pagina();
       if (!api.quieto() && !directo) { pag.classList.remove("entra-der", "entra-izq"); pag.classList.add(atras ? "sale-der" : "sale-izq"); await api.pausa(190); }
-      pintarPaso(); pintarRail();
-      pag.classList.remove("sale-der", "sale-izq"); pag.classList.add(atras ? "entra-izq" : "entra-der");
-      escena.scrollTop = 0;
+      pintarPaso(); pag.classList.remove("sale-der", "sale-izq"); pag.classList.add(atras ? "entra-izq" : "entra-der"); escena.scrollTop = 0;
     }
     function pintarPaso() {
       const pag = pagina();
-      pag.innerHTML = paso === 1 ? pasoLlego() : paso === 2 ? pasoContar() : paso === 3 ? pasoSeparar() : m.cerrado ? api.pantallaRecibido(m, { otra: `<button class="btn pri" data-otro>${icono("caja")}Otro fardo</button>` }) : pasoCerrar();
+      pag.innerHTML = paso === 1 ? pasoLlego() : paso === 2 ? pasoContar() : m.cerrado ? pantallaCerrado() : pasoCerrar();
       pintarRail();
       if (paso === 2) { const inp = pag.querySelector(".numero input"); if (inp && !api.quieto()) setTimeout(() => { inp.focus(); inp.select(); }, 450); }
-      if (paso === 3) { const inp = pag.querySelector(".escaner input"); if (inp) setTimeout(() => inp.focus(), 450); }
     }
 
     // ---------- paso 1 · ¿qué llegó? ----------
     function cajaSvg() {
       return `<svg class="caja-svg" viewBox="0 0 200 170" aria-hidden="true">
         <g class="prendas"><rect class="prenda" x="62" y="52" width="26" height="40" rx="5" fill="#1f3a5f"/><rect class="prenda" x="90" y="46" width="26" height="46" rx="5" fill="#e8a5b0"/><rect class="prenda" x="118" y="54" width="22" height="38" rx="5" fill="#d8c3a5"/><rect class="prenda" x="76" y="60" width="18" height="32" rx="4" fill="#b0763a"/></g>
-        <path class="cuerpo" d="M40 70 100 92 160 70 160 140 100 162 40 140z"/><path class="cara" d="M100 92v70l60-22V70z"/>
-        <path class="cinta" d="M100 92v70"/>
-        <path class="tapa" d="M40 70 100 92 160 70 100 48z"/>
-      </svg>`;
+        <path class="cuerpo" d="M40 70 100 92 160 70 160 140 100 162 40 140z"/><path class="cara" d="M100 92v70l60-22V70z"/><path class="cinta" d="M100 92v70"/><path class="tapa" d="M40 70 100 92 160 70 100 48z"/></svg>`;
     }
     function pasoLlego() {
       if (m.fardo) {
         const f = m.fardo;
         return `<div class="llego cascada">
-          <article class="card fardo-card">
-            <div class="fardo-visual">${cajaSvg()}</div>
-            <div>
-              <p class="label">En camino hacia ${esc(RF.SEDE)}</p>
-              <h2 class="disp">Fardo ${esc(f.codigo)} <span class="chip pizarra punto vivo">Llega hoy</span></h2>
-              <p class="tenue" style="margin-top:4px">Lo despachó ${esc(f.por)} desde ${esc(f.desde)} · ${esc(f.cuando)} · guía ${esc(f.guia)} · ${f.ordenes.join(", ")}</p>
-              <ul class="manifiesto">${m.lineas.map((l) => `<li><span class="cat-ic">${iconoCat(l.cat)}</span><b>${esc(CATS[l.cat].nombre)}</b><span class="det">${esc(l.marca)} · ${esc(prov(l.prov).nombre)}</span><b class="num">${l.dijeron}</b></li>`).join("")}</ul>
-              <p style="margin-top:12px;font-size:14.5px">Dijeron <b class="num disp" style="font-size:22px">${M.totalDijeron(m)}</b> prendas · ${m.lineas.length} categorías · ${new Set(m.lineas.map((l) => l.prov)).size} proveedores</p>
-              <div style="margin-top:14px"><button class="btn pri grande" data-abrir>${icono("caja")}Abrir este fardo${icono("der", "flecha")}</button></div>
-            </div>
-          </article>
-          <aside class="card otra">
-            <h3 class="disp">¿Llegó algo que no está aquí?</h3>
-            <p>Si vino sin aviso de Compras (por WhatsApp, o directo del proveedor), se recibe igual: cuentas y separas lo mismo, solo que sin con qué comparar.</p>
+          <article class="card fardo-card"><div class="fardo-visual">${cajaSvg()}</div><div>
+            <p class="label">En camino hacia ${esc(RF.SEDE)}</p>
+            <h2 class="disp">Fardo ${esc(f.codigo)} <span class="chip pizarra punto vivo">Llega hoy</span></h2>
+            <p class="tenue" style="margin-top:4px">Lo despachó ${esc(f.por)} desde ${esc(f.desde)} · ${esc(f.cuando)} · guía ${esc(f.guia)} · ${f.ordenes.join(", ")}</p>
+            <ul class="manifiesto">${m.lineas.map((l) => `<li><span class="cat-ic">${iconoCat(l.cat)}</span><b>${esc(CATS[l.cat].nombre)}</b><span class="det">${esc(l.marca)} · ${esc(prov(l.prov).nombre)}</span><b class="num">${l.dijeron}</b></li>`).join("")}</ul>
+            <p style="margin-top:12px;font-size:14.5px">Dijeron <b class="num disp" style="font-size:22px">${M.totalDijeron(m)}</b> prendas · ${m.lineas.length} categorías · ${new Set(m.lineas.map((l) => l.prov)).size} proveedores · <span class="tenue">todo viene sin etiqueta</span></p>
+            <div style="margin-top:14px"><button class="btn pri grande" data-abrir>${icono("caja")}Abrir este fardo${icono("der", "flecha")}</button></div>
+          </div></article>
+          <aside class="card otra"><h3 class="disp">¿Llegó algo que no está aquí?</h3><p>Si vino sin aviso de Compras (por WhatsApp, o directo del proveedor), se recibe igual: cuentas lo mismo, solo que sin con qué comparar.</p>
             <div style="margin-top:12px"><button class="btn sec" data-sin-aviso>${icono("mensaje")}Recibir sin aviso</button></div>
-            <p style="margin-top:14px;font-size:12.5px">Lo que manda otra sede de CAYLA no entra por aquí: se recibe en <b>Traslados</b>.</p>
-          </aside>
+            <p style="margin-top:14px;font-size:12.5px">Lo que manda otra sede de CAYLA no entra por aquí: se recibe en <b>Traslados</b>.</p></aside>
         </div>`;
       }
-      const p = prov(m.proveedor);
       return `<div class="llego cascada">
-        <article class="card fardo-card">
-          <div class="fardo-visual">${cajaSvg()}</div>
-          <div>
-            <p class="label">Sin aviso de Compras</p>
-            <h2 class="disp">Llegó mercadería</h2>
-            <p class="tenue" style="margin-top:4px">Nadie la despachó desde el sistema. Dime de quién es y, si te lo dijeron, cuántas venían: con eso ya se puede comparar.</p>
-            <p class="label" style="margin-top:14px">¿De quién es?</p>
-            <div class="provs">${PROVEEDORES.map((x) => `<button class="resp" data-prov="${x.id}" aria-pressed="${x.id === m.proveedor}"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${icono("tienda")}</span><span><b>${esc(x.nombre)}</b><small>${x.marcas.join(", ")}</small></span></button>`).join("")}</div>
-            <p class="label" style="margin-top:14px">¿Cuántas dijeron que venían? <span class="tenue" style="letter-spacing:0;text-transform:none;font-weight:500">(si no sabes, deja vacío)</span></p>
-            <div class="caja" style="max-width:220px;margin-top:8px"><input type="number" inputmode="numeric" data-dijeron value="${m.dijeronTotal ?? ""}" placeholder="Ej. 64"></div>
-            <div class="cita">${icono("mensaje")}<span>${esc(SIN_AVISO.mensaje)}</span></div>
-            <div style="margin-top:14px"><button class="btn pri grande" data-abrir>${icono("caja")}Empezar a contar${icono("der", "flecha")}</button></div>
-          </div>
-        </article>
-        <aside class="card otra">
-          <h3 class="disp">Cuando Compras lo despache</h3>
-          <p>El fardo aparecerá aquí con lo que dijeron por categoría y marca, y la pantalla comparará sola. Hoy ese dato viaja por WhatsApp; el módulo de Compras lo está cambiando.</p>
-        </aside>
+        <article class="card fardo-card"><div class="fardo-visual">${cajaSvg()}</div><div>
+          <p class="label">Sin aviso de Compras</p><h2 class="disp">Llegó mercadería</h2>
+          <p class="tenue" style="margin-top:4px">Nadie la despachó desde el sistema. Dime de quién es y, si te lo dijeron, cuántas venían: con eso ya se puede comparar.</p>
+          <p class="label" style="margin-top:14px">¿De quién es?</p>
+          <div class="provs">${PROVEEDORES.map((x) => `<button class="resp" data-prov="${x.id}" aria-pressed="${x.id === m.proveedor}"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${icono("tienda")}</span><span><b>${esc(x.nombre)}</b><small>${x.marcas.join(", ")}</small></span></button>`).join("")}</div>
+          <p class="label" style="margin-top:14px">¿Cuántas dijeron que venían? <span class="tenue" style="letter-spacing:0;text-transform:none;font-weight:500">(si no sabes, deja vacío)</span></p>
+          <div class="caja" style="max-width:220px;margin-top:8px"><input type="number" inputmode="numeric" data-dijeron value="${m.dijeronTotal ?? ""}" placeholder="Ej. 64"></div>
+          <div class="cita">${icono("mensaje")}<span>${esc(SIN_AVISO.mensaje)}</span></div>
+          <div style="margin-top:14px"><button class="btn pri grande" data-abrir>${icono("caja")}Empezar a contar${icono("der", "flecha")}</button></div>
+        </div></article>
+        <aside class="card otra"><h3 class="disp">Cuando Compras lo despache</h3><p>El fardo aparecerá aquí con lo que dijeron por categoría y marca, y la pantalla comparará sola. Hoy ese dato viaja por WhatsApp; el módulo de Compras lo está cambiando.</p></aside>
       </div>`;
     }
 
-    // ---------- paso 2 · contar ----------
-    function listaCats(modo) {
+    // ---------- paso 2 · contar (y separar, si quieren) ----------
+    function listaCats() {
       const items = m.lineas.map((l) => {
-        const c = CATS[l.cat]; const d = M.diferencia(l);
-        const estado = modo === "contar" ? (l.visitada && l.contadas > 0 ? "hecho" : foco === l.id ? "ahora" : "falta") : (l.contadas > 0 && M.sinSeparar(l) === 0 ? "hecho" : foco === l.id ? "ahora" : "falta");
-        const sub = modo === "contar" ? (l.dijeron != null ? `${esc(l.marca)} · dijeron ${l.dijeron}${d != null && d !== 0 && l.contadas > 0 ? ` <span class="chip ambar" style="font-size:10.5px;padding:1px 7px">${d < 0 ? `−${-d}` : `+${d}`}</span>` : ""}` : esc(l.marca)) : (M.sinSeparar(l) ? `${M.conocidasDe(l) + M.nuevasDe(l)} separadas · <b>${M.sinSeparar(l)} por separar</b>` : l.contadas ? `${M.conocidasDe(l)} conocidas · ${M.nuevasDe(l)} nuevas` : "Sin contar");
-        const n = modo === "contar" ? l.contadas : M.identificadas(l);
-        return `<button class="cat-item" data-linea="${l.id}" aria-current="${foco === l.id}" style="position:relative"><span class="marca" data-estado="${estado}">${estado === "hecho" ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span><span class="cat-ic">${iconoCat(l.cat)}</span><span class="txt"><b>${esc(c.nombre)}</b><small>${sub}</small></span><b class="num cont">${n}${modo === "contar" && l.dijeron != null ? `<small style="color:var(--t45);font-size:12px;font-weight:500">/${l.dijeron}</small>` : ""}</b></button>`;
+        const c = CATS[l.cat]; const d = M.diferencia(l); const estado = l.visitada && l.contadas > 0 ? "hecho" : foco === l.id ? "ahora" : "falta";
+        const dif = d != null && d !== 0 && l.contadas > 0 ? ` <span class="chip ambar" style="font-size:10.5px;padding:1px 7px">${d < 0 ? `−${-d}` : `+${d}`}</span>` : "";
+        const pend = pendientesDe(l).length;
+        const sub = l.contadas === 0 ? (l.dijeron != null ? `${esc(l.marca)} · dijeron ${l.dijeron}` : esc(l.marca)) : `${separadas(l)} separadas${pend ? ` · <b>${pend} para después</b>` : " · todo al día"}${dif}`;
+        return `<button class="cat-item" data-linea="${l.id}" aria-current="${foco === l.id}" style="position:relative"><span class="marca" data-estado="${estado}">${estado === "hecho" ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span><span class="cat-ic">${iconoCat(l.cat)}</span><span class="txt"><b>${esc(c.nombre)}</b><small>${sub}</small></span><b class="num cont">${l.contadas}${l.dijeron != null ? `<small style="color:var(--t45);font-size:12px;font-weight:500">/${l.dijeron}</small>` : ""}</b></button>`;
       }).join("");
       const agregar = !m.fardo ? `<button class="cat-item agregar" data-agregar>${icono("plus")} Agregar categoría</button><div class="elige-cat" hidden>${Object.entries(CATS).filter(([k]) => !m.lineas.some((l) => l.cat === k)).map(([k, c]) => `<button class="pildora" data-cat="${k}">${iconoCat(k)}${esc(c.nombre)}</button>`).join("")}</div>` : "";
       return `<aside class="lista-cats"><p class="label" style="padding:0 12px 4px">Categorías${m.fardo ? " del fardo" : ""}</p>${items}${agregar}</aside>`;
     }
     function siguienteLinea() { const i = m.lineas.findIndex((l) => l.id === foco); return m.lineas[i + 1] || null; }
     function anteriorLinea() { const i = m.lineas.findIndex((l) => l.id === foco); return m.lineas[i - 1] || null; }
+    function veredictoDe(l) {
+      const c = CATS[l.cat]; const d = M.diferencia(l);
+      return l.dijeron == null ? (l.contadas ? `${plural(l.contadas, c.una, c.varias)} contadas` : "Sin aviso: cuenta y anota") : l.contadas === 0 ? `Dijeron ${l.dijeron}. Cuenta y escribe el número.` : d === 0 ? `Cuadra: llegaron las ${l.dijeron}.` : d < 0 ? `Faltan ${plural(-d, c.una, c.varias)}. Puedes seguir: lo explicas al cerrar.` : `Sobran ${plural(d, c.una, c.varias)}. Puedes seguir: lo explicas al cerrar.`;
+    }
+    /** El bloque «¿Qué blusas son?»: separar por nombre, detalle opcional, nuevas como cantidad. Se usa en Contar y en «Hacer ahora». */
+    function bloqueSeparar(l) {
+      prep(l); const c = CATS[l.cat]; const sin = sinSeparar(l);
+      const filas = Object.values(l.productos).map((r) => {
+        const p = r.producto; const det = r.variantes ? Object.entries(r.variantes).map(([cod, n]) => { const v = p.variantes.find((x) => x.codigo === cod); return v ? `${v.talla} ${v.color} ${n}` : `${n}`; }).join(" · ") : "";
+        return `<div class="fila-sep" data-producto="${esc(p.nombre)}">${mini(l.cat, p.hex, "chica")}<span class="nom"><b>${esc(p.nombre)}</b><small>${esc(p.marca)}${r.variantes ? ` · ${esc(det)}` : ` · ${p.variantes.length} tallas y colores en el catálogo`}</small></span>
+          <span class="estado">${r.variantes ? `<span class="chip verde punto">Entra al stock</span><button class="btn enlace" data-detallar="${esc(p.nombre)}">Cambiar</button>` : `<button class="btn sut" data-detallar="${esc(p.nombre)}">${icono("lista")}Tallas y colores ahora</button><span class="tenue" style="font-size:12px">o queda pendiente</span>`}</span>
+          <span class="fila" style="gap:6px"><span class="paso"><button data-prod-d="-1" data-nombre="${esc(p.nombre)}" aria-label="Una menos">${icono("minus")}</button><span class="num" data-prod-n>${r.n}</span><button data-prod-d="1" data-nombre="${esc(p.nombre)}" aria-label="Una más">${icono("plus")}</button></span><button class="quitar" data-quitar-prod="${esc(p.nombre)}" aria-label="Quitar">${icono("x")}</button></span></div>`;
+      }).join("");
+      const descritas = l.nuevasDesc.map((n) => `<div class="fila-sep nueva" data-nueva="${n.id}">${mini(l.cat, n.hex || "#b9b2a7", "chica")}<span class="nom"><b>${esc(n.desc)}</b> <span class="chip taupe" style="font-size:11px">${icono("chispa")}Nueva</span><small>${esc(n.color || "sin color")} · ${Object.entries(n.tallas).map(([t, k]) => `${t} ${k}`).join(", ")} · ${n.creada ? "ya creada" : "queda por crear"}</small></span><span class="estado">${n.creada ? `<span class="chip verde punto">Creada · en el stock</span>` : `<span class="chip pizarra punto">Por crear</span>`}</span><span class="fila cant-nueva" style="gap:6px"><b class="num disp" style="font-size:20px">${n.cant}</b>${n.creada ? "" : `<button class="quitar" data-quitar-nueva="${n.id}" aria-label="Quitar">${icono("x")}</button>`}</span></div>`).join("");
+      const nuevas = `<div class="fila-sep nueva"><span class="cat-ic" style="width:28px;height:34px;border-radius:6px;background:transparent;border:1.5px dashed var(--t25)">${icono("chispa")}</span><span class="nom"><b>Nuevas, no están en el catálogo</b><small>Solo cuántas; describirlas (nombre, color, tallas) puede quedar para después</small></span>
+          <span class="estado">${l.nuevasSin > 0 ? `<button class="btn sut" data-describir>${icono("lapiz")}Describir ahora</button>` : ""}<span class="chip ${l.nuevasSin > 0 ? "pizarra punto" : "neutro"}">${l.nuevasSin > 0 ? "Por crear" : "Ninguna"}</span></span>
+          <span class="paso cant-nueva"><button data-nuevas-d="-1" aria-label="Una menos">${icono("minus")}</button><span class="num" data-nuevas-n>${l.nuevasSin}</span><button data-nuevas-d="1" aria-label="Una más">${icono("plus")}</button></span></div>`;
+      return `<div class="separar-op" data-separar="${l.id}">
+        <div class="fila entre envuelve"><p class="label">¿Qué ${esc(c.varias)} son? <span class="opt">· opcional: puedes dejarlo para después</span></p>${sin > 0 && l.contadas ? `<span class="chip neutro punto">${sin} sin separar</span>` : l.contadas ? `<span class="chip verde punto">Todas separadas</span>` : ""}</div>
+        <div class="caja buscador"><span style="color:var(--t55)">${icono("buscar")}</span><input data-buscar placeholder="Busca una prenda conocida por su nombre (Ej. Blusa Aurora)" autocomplete="off"></div>
+        <div class="sugerencias" data-sugerencias hidden></div>
+        <div class="filas-sep">${filas}${descritas}${nuevas}</div>
+        ${sin > 0 && l.contadas ? `<p class="resto">${icono("info")}<span>Las <b>${sin}</b> que no separes quedan como pendiente del fardo: no frenan el cierre.</span></p>` : ""}${l.corregida ? `<p class="resto"><span class="chip ambar" style="font-size:11px">Separaste más de lo que contaste: corregimos el conteo a ${l.contadas}</span></p>` : ""}
+      </div>`;
+    }
     function pasoContar() {
       const l = M.linea(m, foco);
-      if (!l) return `<div class="dos">${listaCats("contar")}<div class="card vacio">${icono("montones")}<h3>Agrega la primera categoría</h3><p>Elige qué vas a contar primero: blusas, vestidos… Una a la vez.</p></div></div>`;
-      const c = CATS[l.cat]; const d = M.diferencia(l); const sig = siguienteLinea();
+      if (!l) return `<div class="dos">${listaCats()}<div class="card vacio">${icono("montones")}<h3>Agrega la primera categoría</h3><p>Elige qué vas a contar primero: blusas, vestidos… Una a la vez.</p></div></div>`;
+      prep(l); const c = CATS[l.cat]; const d = M.diferencia(l); const sig = siguienteLinea();
       const pct = l.dijeron ? Math.min(100, (l.contadas / l.dijeron) * 100) : (l.contadas ? 100 : 0);
       const tono = l.dijeron == null ? "" : l.contadas === 0 ? "" : d === 0 ? "verde" : "ambar";
-      const veredicto = l.dijeron == null ? (l.contadas ? `${plural(l.contadas, c.una, c.varias)} contadas` : "Sin aviso: cuenta y anota") : l.contadas === 0 ? `Dijeron ${l.dijeron}. Cuenta y escribe el número.` : d === 0 ? `Cuadra: llegaron las ${l.dijeron}.` : d < 0 ? `Faltan ${plural(-d, c.una, c.varias)}. Puedes seguir: lo explicas al cerrar.` : `Sobran ${plural(d, c.una, c.varias)}. Puedes seguir: lo explicas al cerrar.`;
       const todasVistas = m.lineas.every((x) => x.visitada && x.contadas > 0);
-      return `<div class="dos">${listaCats("contar")}
+      return `<div class="dos">${listaCats()}
         <div class="col" style="gap:14px">
         <section class="card contador luz cascada" data-estado="ahora" data-linea="${l.id}">
           <div class="fila" style="gap:14px"><span class="cat-ic" style="width:52px;height:52px;border-radius:14px">${iconoCat(l.cat)}</span><div><h2 class="disp">${esc(c.nombre)}</h2><p class="tenue">${esc(l.marca)} · ${esc(prov(l.prov).nombre)}${l.dijeron != null ? ` · Dijeron <b>${l.dijeron}</b>` : ""}</p></div><span class="sigue" style="margin-left:auto">Sigue aquí</span></div>
           <p class="instr">Cuenta ${c.art} ${c.varias} del fardo y escribe cuántas llegaron. Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué.</p>
           <div class="numero"><button class="paso-btn" data-d="-1" aria-label="Una menos">${icono("minus")}</button><input type="number" inputmode="numeric" min="0" value="${l.contadas}" data-contadas aria-label="Cuántas ${c.varias} llegaron"><button class="paso-btn" data-d="1" aria-label="Una más">${icono("plus")}</button></div>
           <div class="rapidos"><button data-d="5">+5</button><button data-d="10">+10</button>${l.dijeron != null ? `<button data-exacto>Llegaron las ${l.dijeron}</button>` : ""}<button data-cero>Volver a cero</button></div>
-          <div class="avance"><div class="barra"><i class="${tono}" style="width:${pct}%"></i></div><p class="veredicto" style="font-size:14px"><span class="chip punto ${tono || "neutro"}">${veredicto}</span></p></div>
+          <div class="avance"><div class="barra"><i class="${tono}" style="width:${pct}%"></i></div><p class="veredicto" style="font-size:14px"><span class="chip punto ${tono || "neutro"}">${veredictoDe(l)}</span></p></div>
+          ${bloqueSeparar(l)}
           <div class="fila entre pie-paso envuelve"><button class="btn sut" data-ant-linea ${anteriorLinea() ? "" : "disabled"}>${icono("izq")}Anterior</button>
-            ${sig ? `<button class="btn pri" data-sig-linea>Listo, sigue ${esc(CATS[sig.cat].nombre)}${icono("der", "flecha")}</button>` : `<button class="btn pri" data-ir-paso="3" ${todasVistas || l.contadas > 0 ? "" : "disabled"}>Pasar a separar${icono("der", "flecha")}</button>`}</div>
+            ${sig ? `<button class="btn pri" data-sig-linea>Listo, sigue ${esc(CATS[sig.cat].nombre)}${icono("der", "flecha")}</button>` : `<button class="btn pri" data-ir-paso="3" ${todasVistas || l.contadas > 0 ? "" : "disabled"}>Pasar a cerrar${icono("der", "flecha")}</button>`}</div>
         </section>
         ${api.balanza(M.totalDijeron(m), M.totalContadas(m))}
         </div></div>`;
     }
-
-    // ---------- paso 3 · separar (la pistola) ----------
-    function pasoSeparar() {
-      const l = M.linea(m, foco); if (!l) return pasoContar();
-      const c = CATS[l.cat]; const con = M.conocidasDe(l), nv = M.nuevasDe(l), sin = M.sinSeparar(l), tot = Math.max(l.contadas, 1);
-      const sig = siguienteLinea();
-      const conocidas = Object.values(l.conocidas); const quedan = M.quedanEnCaja(l);
-      return `<div class="dos">${listaCats("separar")}
-        <section class="card separar luz cascada" data-estado="ahora" data-linea="${l.id}">
-          <div class="fila" style="gap:14px"><span class="cat-ic" style="width:52px;height:52px;border-radius:14px">${iconoCat(l.cat)}</span><div><h2 class="disp">${esc(c.nombre)} <span class="tenue" style="font-size:20px;font-weight:500">· ${l.contadas} contadas</span></h2><p class="tenue">${esc(l.marca)} · pasa la pistola por cada una</p></div>${sin > 0 ? `<span class="sigue" style="margin-left:auto">Sigue aquí</span>` : `<span class="chip verde punto" style="margin-left:auto">Separadas</span>`}</div>
-          <div class="col" style="gap:6px"><div class="barra tres" style="height:10px"><i class="verde" style="--w:${(con / tot) * 100}%"></i><i class="pizarra" style="--w:${(nv / tot) * 100}%"></i></div>
-            <div class="leyenda"><span><i class="verde"></i>${con} conocidas (se etiquetan)</span><span><i class="pizarra"></i>${nv} nuevas (por crear)</span><span><i></i>${sin} por separar</span>${l.corregida ? `<span class="chip ambar" style="font-size:11px">Contaste menos de lo que separaste: corregimos el conteo a ${l.contadas}</span>` : ""}</div></div>
-          <p class="instr">Si la pistola encuentra la etiqueta, es una prenda <b>conocida</b> y se suma sola. Si no la encuentra, o no tiene etiqueta de CAYLA, es <b>nueva</b>: anótala y sigue contando.</p>
-          <div class="caja escaner" data-escaner><span class="laser"></span>${icono("scan")}<input placeholder="Escanea la etiqueta o busca por nombre" data-buscar autocomplete="off"><button class="btn sec" data-pistola title="En la pantalla real la pistola escribe el código y manda Enter; aquí lo simulamos">${icono("scan")}Leer con la pistola${quedan ? ` <span class="tenue num">(${quedan} en la caja)</span>` : ""}</button></div>
-          <div class="sugerencias" data-sugerencias hidden></div>
-          <div class="fila envuelve"><button class="btn sut" data-nueva>${icono("chispa")}Es nueva, no está en el catálogo</button><button class="btn enlace" data-deshacer ${ultima && ultima.lineaId === l.id ? "" : "disabled"}>${icono("deshacer")}Deshacer la última</button></div>
-          <div class="separadas">
-            <div class="grupo"><p class="label"><span class="marca" data-estado="${con ? "hecho" : "falta"}">${con ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span>Conocidas · ${con}</p>${conocidas.length ? conocidas.map((k) => api.fichaConocida(k, l)).join("") : `<p class="vacio-grupo">Lo que la pistola encuentre aparece aquí</p>`}</div>
-            <div class="grupo"><p class="label"><span class="marca" data-estado="${nv ? "hecho" : "opcional"}">${nv ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span>Nuevas · ${nv} · por crear</p>${l.nuevas.length ? l.nuevas.map((n) => api.fichaNueva(n, l)).join("") : `<p class="vacio-grupo">Si todo es conocido, aquí no va nada</p>`}</div>
-          </div>
-          <div class="fila entre pie-paso envuelve"><button class="btn sut" data-ant-linea ${anteriorLinea() ? "" : "disabled"}>${icono("izq")}Anterior</button>
-            ${sig ? `<button class="btn ${sin ? "sec" : "pri"}" data-sig-linea>${sin ? `Dejar ${sin} sin separar y seguir` : `Listo, sigue ${esc(CATS[sig.cat].nombre)}`}${icono("der", "flecha")}</button>` : `<button class="btn pri" data-ir-paso="4">Pasar a cerrar${icono("der", "flecha")}</button>`}</div>
-        </section></div>`;
-    }
-
-    // ---------- paso 4 · cerrar ----------
-    function pasoCerrar() {
-      const filas = m.lineas.map((l) => {
-        const c = CATS[l.cat]; const d = M.diferencia(l);
-        const causas = d == null || d === 0 ? "" : `<div class="causas">${(d < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa="${k.clave}" data-linea="${l.id}" aria-pressed="${l.causa === k.clave}" title="${esc(k.luego)}">${esc(k.texto)}</button>`).join("")}</div>`;
-        return `<tr><td><span class="fila" style="gap:10px"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${iconoCat(l.cat)}</span><span><b>${esc(c.nombre)}</b><br><span class="tenue" style="font-size:12px">${esc(l.marca)}</span></span></span></td>
-          <td class="n tenue">${l.dijeron ?? "—"}</td><td class="n">${l.contadas}</td><td class="n" style="color:var(--verde-p)">${M.conocidasDe(l)}</td><td class="n" style="color:var(--pizarra)">${M.nuevasDe(l)}</td>
-          <td>${d == null ? `<span class="chip neutro">sin aviso</span>` : d === 0 ? `<span class="chip verde punto">Cuadra</span>` : `<span class="chip ambar punto">${d < 0 ? `Faltan ${-d}` : `Sobran ${d}`}</span>`}${M.sinSeparar(l) ? `<br><span class="chip rojo punto" style="margin-top:4px">${M.sinSeparar(l)} sin separar</span>` : ""}${causas ? `<div style="margin-top:8px">${causas}</div>` : ""}</td></tr>`;
-      }).join("");
-      const totalDij = M.totalDijeron(m), totalCon = M.totalContadas(m); const difTotal = totalDij == null ? null : totalCon - totalDij;
-      const causaTotal = !m.fardo && difTotal != null && difTotal !== 0 ? `<div class="card bloque-cierre"><p class="label">¿Por qué ${difTotal < 0 ? `faltan ${-difTotal}` : `sobran ${difTotal}`} contra lo que dijeron por WhatsApp?</p><div class="causas" style="margin-top:8px">${(difTotal < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa-total="${k.clave}" aria-pressed="${m.causaTotal === k.clave}">${esc(k.texto)}</button>`).join("")}</div></div>` : "";
-      return `<div class="cierre cascada">
-        <div class="card" style="overflow:hidden"><table class="cierre"><thead><tr><th>Categoría</th><th class="n">Dijeron</th><th class="n">Contaste</th><th class="n">Conocidas</th><th class="n">Nuevas</th><th>Diferencia y por qué</th></tr></thead><tbody>${filas}</tbody></table></div>
-        ${api.balanza(totalDij, totalCon)}
-        ${causaTotal}
-        <div class="card bloque-cierre"><div class="fila" style="gap:8px"><span class="marca" data-estado="opcional"></span><p class="label">Número de guía <span style="letter-spacing:0;text-transform:none;font-weight:500;color:var(--t45)">· opcional</span></p></div><div class="caja" style="max-width:260px;margin-top:8px"><input data-guia value="${esc(m.guia)}" placeholder="Ej. T001-000342"></div></div>
-        <div class="card bloque-cierre luz" data-estado="${m.responsable ? "" : "ahora"}"><div class="fila entre"><div class="fila" style="gap:8px"><span class="marca" data-estado="${m.responsable ? "hecho" : "ahora"}">${m.responsable ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span><p class="label">Quién recibe</p></div>${m.responsable ? "" : `<span class="sigue">Sigue aquí</span>`}</div><div style="margin-top:10px">${api.responsableHtml(m)}</div></div>
-        <div class="pie-cierre">${api.faltaChips(m)}<button class="btn pri grande" data-recibir ${M.listo(m) ? "" : "disabled"}>${icono("check")}Recibir ${totalCon} prendas en ${esc(RF.SEDE)}</button></div>
-      </div>`;
-    }
-
-    // ---------- acciones ----------
     function refrescarContador(l) {
       const pag = pagina(); const inp = pag.querySelector("[data-contadas]"); if (inp && document.activeElement !== inp) inp.value = l.contadas;
-      const d = M.diferencia(l); const c = CATS[l.cat];
+      const d = M.diferencia(l);
       const pct = l.dijeron ? Math.min(100, (l.contadas / l.dijeron) * 100) : (l.contadas ? 100 : 0);
       const tono = l.dijeron == null ? "" : l.contadas === 0 ? "" : d === 0 ? "verde" : "ambar";
       const barra = pag.querySelector(".avance .barra i"); if (barra) { barra.style.width = pct + "%"; barra.className = tono; }
-      const v = pag.querySelector(".avance .veredicto"); if (v) {
-        const texto = l.dijeron == null ? (l.contadas ? `${plural(l.contadas, c.una, c.varias)} contadas` : "Sin aviso: cuenta y anota") : l.contadas === 0 ? `Dijeron ${l.dijeron}. Cuenta y escribe el número.` : d === 0 ? `Cuadra: llegaron las ${l.dijeron}.` : d < 0 ? `Faltan ${plural(-d, c.una, c.varias)}. Puedes seguir: lo explicas al cerrar.` : `Sobran ${plural(d, c.una, c.varias)}. Puedes seguir: lo explicas al cerrar.`;
-        const antes = v.textContent.trim(); v.innerHTML = `<span class="chip punto ${tono || "neutro"}">${texto}</span>`; if (antes !== texto) v.firstElementChild.classList.add("anim-asentar");
-      }
-      // la lista de la izquierda y la balanza, sin redibujar la página entera
-      const item = pag.querySelector(`.cat-item[data-linea="${l.id}"] .cont`); if (item) { item.innerHTML = `${l.contadas}${l.dijeron != null ? `<small style="color:var(--t45);font-size:12px;font-weight:500">/${l.dijeron}</small>` : ""}`; if (!api.quieto()) { item.classList.remove("rueda"); void item.offsetWidth; item.classList.add("rueda"); } }
-      const sub = pag.querySelector(`.cat-item[data-linea="${l.id}"] small`); if (sub && l.dijeron != null) sub.innerHTML = `${esc(l.marca)} · dijeron ${l.dijeron}${d != null && d !== 0 && l.contadas > 0 ? ` <span class="chip ambar" style="font-size:10.5px;padding:1px 7px">${d < 0 ? `−${-d}` : `+${d}`}</span>` : ""}`;
+      const v = pag.querySelector(".avance .veredicto"); if (v) { const texto = veredictoDe(l); const antes = v.textContent.trim(); v.innerHTML = `<span class="chip punto ${tono || "neutro"}">${texto}</span>`; if (antes !== texto) v.firstElementChild.classList.add("anim-asentar"); }
+      const sep = pag.querySelector(`[data-separar="${l.id}"]`); if (sep) { const foc = document.activeElement; const txt = foc && foc.matches("[data-buscar]") ? foc.value : null; sep.outerHTML = bloqueSeparar(l); if (txt != null) { const nb = pag.querySelector("[data-buscar]"); nb.value = txt; nb.focus(); } }
+      const item = pag.querySelector(`.cat-item[data-linea="${l.id}"]`); if (item) item.outerHTML = listaCats().match(new RegExp(`<button class="cat-item" data-linea="${l.id}"[\\s\\S]*?</button>`))[0];
       const nav = pag.querySelector("[data-ir-paso]"); if (nav) nav.disabled = !(m.lineas.every((x) => x.visitada && x.contadas > 0) || l.contadas > 0);
       const bal = pag.querySelector(".balanza"); if (bal) bal.outerHTML = api.balanza(M.totalDijeron(m), M.totalContadas(m));
       pintarRail();
     }
-    function contar(lineaId, opts) { const l = M.linea(m, lineaId); if (!l) return; M.contar(m, lineaId, opts); const inp = pagina().querySelector("[data-contadas]"); if (inp) { inp.value = l.contadas; api.rueda(inp.parentElement.querySelector("[data-rueda]"), ""); if (!api.quieto()) { inp.classList.remove("rueda"); void inp.offsetWidth; inp.classList.add("rueda"); } } refrescarContador(l); }
-    function leer(lineaId) {
-      const l = M.linea(m, lineaId); if (!l) return null;
-      const pag = pagina(); const esc_ = pag.querySelector("[data-escaner]");
-      if (esc_ && !api.quieto()) { esc_.classList.remove("leyendo"); void esc_.offsetWidth; esc_.classList.add("leyendo"); }
-      const r = M.leer(m, lineaId);
-      if (r.tipo === "vacia") { api.aviso("No queda nada por leer en esta categoría", "neutro"); return r; }
-      if (r.tipo === "conocida") { ultima = { lineaId, codigo: r.prenda.codigo }; api.flash(esc_, "verde"); pintarPaso(); const f = pagina().querySelector(`.ficha-conocida[data-codigo="${r.prenda.codigo}"]`); if (f) { f.classList.add("anim-entrada"); api.destello(f); } return r; }
-      api.flash(esc_, "ambar");
-      api.hojaNueva({ linea: l, sugerida: { ...r.modelo, codigoProv: r.unidad.codigoProv }, alGuardar: (datos) => { const n = M.anotarNueva(m, lineaId, datos); ultima = { lineaId, nuevaId: n.id }; pintarPaso(); api.aviso(`${n.cant} ${CATS[l.cat].varias} nuevas anotadas: se crean después`, "pizarra"); } });
-      return r;
-    }
-    function buscarEn(texto) {
-      const l = M.linea(m, foco); const caja = pagina().querySelector("[data-sugerencias]"); if (!caja || !l) return;
-      const r = RF.buscar(texto, l.marca);
+    function contar(lineaId, opts) { const l = M.linea(m, lineaId); if (!l) return; M.contar(m, lineaId, opts); ajustar(l); const inp = pagina().querySelector("[data-contadas]"); if (inp) { inp.value = l.contadas; if (!api.quieto()) { inp.classList.remove("rueda"); void inp.offsetWidth; inp.classList.add("rueda"); } } refrescarContador(l); }
+    function buscarEn(texto, lineaId) {
+      const l = M.linea(m, lineaId); const raiz = pagina().querySelector(`[data-separar="${lineaId}"]`) || escena.querySelector(`[data-separar="${lineaId}"]`); const caja = raiz && raiz.querySelector("[data-sugerencias]"); if (!caja || !l) return;
+      const r = RF.buscarProductos(texto, l.marca).filter((p) => p.cat === l.cat || true);
       caja.hidden = r.length === 0 && texto.trim().length < 2;
-      caja.innerHTML = r.length ? r.map((p, i) => `<button class="sug" data-codigo="${p.codigo}" aria-selected="${i === 0}">${mini(p.cat, p.hex, "chica")}<span class="crece"><b>${esc(p.nombre)}</b><small>${esc(p.talla)} · ${esc(p.color)} · ${esc(p.marca)}</small></span>${i === 0 ? `<kbd>Enter</kbd>` : ""}</button>`).join("") : `<div class="fila" style="padding:8px 10px;gap:10px;font-size:13.5px"><span class="tenue">Nada se llama «${esc(texto)}».</span><button class="btn sut" data-nueva style="min-height:32px">${icono("chispa")}Anotarla como nueva</button></div>`;
+      caja.innerHTML = r.length ? r.map((p, i) => `<button class="sug" data-sug-producto="${esc(p.nombre)}" aria-selected="${i === 0}">${mini(p.cat, p.hex, "chica")}<span class="crece"><b>${esc(p.nombre)}</b><small>${esc(p.marca)} · ${esc(CATS[p.cat].nombre)} · ${p.variantes.length} tallas y colores</small></span>${i === 0 ? `<kbd>Enter</kbd>` : ""}</button>`).join("") : `<div class="fila" style="padding:8px 10px;gap:10px;font-size:13.5px;flex-wrap:wrap"><span class="tenue">Nada se llama «${esc(texto)}».</span><button class="btn sut" data-nueva-desde-busqueda style="min-height:32px">${icono("chispa")}Es nueva: anotarla</button></div>`;
     }
-    function recibir() { M.cerrar(m); paso = 4; pintarPaso(); pintarRail(); escena.scrollTop = 0; }
+    /** Tallas y colores de un producto conocido: la matriz del catálogo. */
+    function hojaDetalle(l, nombre) {
+      const r = prep(l).productos[nombre]; if (!r) return; const p = r.producto;
+      const colores = [...new Map(p.variantes.map((v) => [v.color, v.hex])).entries()]; const tallas = [...new Set(p.variantes.map((v) => v.talla))];
+      const val = { ...(r.variantes || {}) };
+      const h = api.hoja(`<div class="fila" style="gap:12px">${mini(l.cat, p.hex, "grande")}<div><p class="label">${esc(CATS[l.cat].nombre)} · ${esc(p.marca)}</p><h2>${esc(p.nombre)} · tallas y colores</h2></div></div>
+        <p class="bajada">Contaste <b>${r.n}</b>. Reparte cuántas llegaron de cada talla y color; con eso entran al stock del almacén. Si no te alcanza ahora, déjalo para después.</p>
+        <div class="matriz" style="grid-template-columns:150px repeat(${tallas.length},1fr)"><span></span>${tallas.map((t) => `<span class="cab">${esc(t)}</span>`).join("")}
+          ${colores.map(([color, hex]) => `<span class="color-cab"><i style="--c:${hex}"></i>${esc(color)}</span>${tallas.map((t) => { const v = p.variantes.find((x) => x.color === color && x.talla === t); return v ? `<span class="celda" data-cod="${v.codigo}"><span class="paso"><button data-md="-1" aria-label="Una menos">${icono("minus")}</button><span class="num" data-mn>${val[v.codigo] || 0}</span><button data-md="1" aria-label="Una más">${icono("plus")}</button></span></span>` : `<span class="celda no">no existe</span>`; }).join("")}`).join("")}
+        </div>
+        <div class="pie-hoja"><p class="total">Total <b class="num disp" data-total>0</b> <span class="tenue" data-nota></span></p><div class="fila"><button class="btn sut" data-despues>Dejar para después</button><button class="btn pri grande" data-guardar-detalle disabled>${icono("check")}Guardar y meter al stock</button></div></div>`, { clase: "hoja-detalle" });
+      function pintar() { const t = Object.values(val).reduce((a, b) => a + b, 0); h.querySelector("[data-total]").textContent = t; h.querySelector("[data-guardar-detalle]").disabled = t === 0; h.querySelector("[data-nota]").textContent = t && t !== r.n ? `(contaste ${r.n}: la cantidad pasa a ${t})` : ""; }
+      h.querySelectorAll(".celda button").forEach((b) => b.addEventListener("click", () => { const cod = b.closest(".celda").dataset.cod; val[cod] = Math.max(0, (val[cod] || 0) + Number(b.dataset.md)); const n = b.closest(".celda").querySelector("[data-mn]"); n.textContent = val[cod]; n.classList.remove("rueda"); void n.offsetWidth; n.classList.add("rueda"); pintar(); }));
+      h.querySelector("[data-despues]").addEventListener("click", () => api.cerrarHoja());
+      h.querySelector("[data-guardar-detalle]").addEventListener("click", () => { detallar(l, nombre, val); api.cerrarHoja(); repintarTras(l); api.aviso(`${r.n} ${CATS[l.cat].varias} con tallas y colores: entran al stock`, "verde"); });
+      pintar();
+    }
+    function repintarTras(l) { if (m.cerrado) { pintarPaso(); return; } if (paso === 2) refrescarContador(l); }
 
+    // ---------- paso 3 · cerrar ----------
+    function pasoCerrar() {
+      const filas = m.lineas.map((l) => {
+        const c = CATS[l.cat]; const d = M.diferencia(l); const pend = pendientesDe(l);
+        const causas = d == null || d === 0 ? "" : `<div class="causas" style="margin-top:8px">${(d < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa="${k.clave}" data-linea="${l.id}" aria-pressed="${l.causa === k.clave}" title="${esc(k.luego)}">${esc(k.texto)}</button>`).join("")}</div>`;
+        return `<tr><td><span class="fila" style="gap:10px"><span class="cat-ic" style="width:32px;height:32px;border-radius:9px">${iconoCat(l.cat)}</span><span><b>${esc(c.nombre)}</b><br><span class="tenue" style="font-size:12px">${esc(l.marca)}</span></span></span></td>
+          <td class="n tenue">${l.dijeron ?? "—"}</td><td class="n">${l.contadas}</td><td class="n" style="color:var(--verde-p)">${enStock(l)}</td>
+          <td>${pend.length ? `<span class="chip pizarra punto">${pend.length} para después</span><div class="pend" style="margin-top:4px">${pend.map((x) => esc(x.titulo)).join("<br>")}</div>` : `<span class="chip verde punto">Nada</span>`}</td>
+          <td>${d == null ? `<span class="chip neutro">sin aviso</span>` : d === 0 ? `<span class="chip verde punto">Cuadra</span>` : `<span class="chip ambar punto">${d < 0 ? `Faltan ${-d}` : `Sobran ${d}`}</span>`}${causas}</td></tr>`;
+      }).join("");
+      const totalDij = M.totalDijeron(m), totalCon = M.totalContadas(m); const difTotal = totalDij == null ? null : totalCon - totalDij;
+      const causaTotal = !m.fardo && difTotal != null && difTotal !== 0 ? `<div class="card bloque-cierre"><p class="label">¿Por qué ${difTotal < 0 ? `faltan ${-difTotal}` : `sobran ${difTotal}`} contra lo que dijeron por WhatsApp?</p><div class="causas" style="margin-top:8px">${(difTotal < 0 ? CAUSAS.faltante : CAUSAS.sobrante).map((k) => `<button class="causa" data-causa-total="${k.clave}" aria-pressed="${m.causaTotal === k.clave}">${esc(k.texto)}</button>`).join("")}</div></div>` : "";
+      const np = pendientes().length;
+      return `<div class="cierre cascada">
+        <div class="card" style="overflow:hidden"><table class="cierre"><thead><tr><th>Categoría</th><th class="n">Dijeron</th><th class="n">Contaste</th><th class="n">Al stock</th><th>Para después</th><th>Diferencia y por qué</th></tr></thead><tbody>${filas}</tbody></table></div>
+        ${np ? `<div class="nota"><span class="i">i</span><span>Cerrar el fardo deja el conteo oficial y ${np === 1 ? "un pendiente" : `${np} pendientes`} para después (separar, poner tallas y colores, crear lo nuevo). Al stock entra hoy lo que ya tiene tallas y colores; el resto entra cuando se resuelva cada pendiente.</span></div>` : ""}
+        ${api.balanza(totalDij, totalCon)}
+        ${causaTotal}
+        <div class="card bloque-cierre"><div class="fila" style="gap:8px"><span class="marca" data-estado="opcional"></span><p class="label">Número de guía <span style="letter-spacing:0;text-transform:none;font-weight:500;color:var(--t45)">· opcional</span></p></div><div class="caja" style="max-width:260px;margin-top:8px"><input data-guia value="${esc(m.guia)}" placeholder="Ej. T001-000342"></div></div>
+        <div class="card bloque-cierre luz" data-estado="${m.responsable ? "" : "ahora"}"><div class="fila entre"><div class="fila" style="gap:8px"><span class="marca" data-estado="${m.responsable ? "hecho" : "ahora"}">${m.responsable ? `<svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>` : ""}</span><p class="label">Quién contó</p></div>${m.responsable ? "" : `<span class="sigue">Sigue aquí</span>`}</div><div style="margin-top:10px">${api.responsableHtml(m)}</div></div>
+        <div class="pie-cierre">${faltaChips()}<button class="btn pri grande" data-recibir ${faltan().length ? "disabled" : ""}>${icono("check")}Cerrar el fardo · ${totalCon} contadas en ${esc(RF.SEDE)}</button></div>
+      </div>`;
+    }
+
+    // ---------- cerrado: lo que entró y lo que queda para después ----------
+    function pantallaCerrado() {
+      const pend = pendientes(); const stock = totalEnStock(); const quien = PERSONAS.find((p) => p.id === m.responsable);
+      const difs = m.lineas.map((l) => ({ l, d: M.diferencia(l) ?? 0 })).filter((x) => x.d !== 0).map(({ l, d }) => { const c = CATS[l.cat]; const k = (d < 0 ? CAUSAS.faltante : CAUSAS.sobrante).find((x) => x.clave === l.causa); return `<li><b class="num">${d < 0 ? "−" : "+"}${Math.abs(d)}</b> ${esc(c.varias)} · ${esc(k ? k.texto : "sin causa")} <span class="tenue">→ ${esc(k ? k.luego : "")}</span></li>`; }).join("");
+      const enStockLista = m.lineas.flatMap((l) => [...Object.values(prep(l).productos).filter((p) => p.variantes).map((p) => `<span class="chip neutro">${esc(p.producto.nombre)} ×${p.n}</span>`), ...prep(l).nuevasDesc.filter((n) => n.creada).map((n) => `<span class="chip neutro">${icono("chispa")}${esc(n.desc)} ×${n.cant}</span>`)]).join(" ");
+      const iconoDe = (t) => t === "separar" ? icono("montones") : t === "detalle" ? icono("lista") : icono("chispa");
+      return `<section class="recibido cascada">
+        <div class="fila arriba" style="gap:20px">
+          <div class="sello"><span class="onda"></span><span class="onda dos"></span><svg viewBox="0 0 88 88"><circle class="aro" cx="44" cy="44" r="42"/><path class="visto" d="M27 45l11 11 23-25"/></svg></div>
+          <div><p class="label">Fardo cerrado · ${esc(RF.SEDE)} · ${m.hora || "10:58"}</p><h2 class="disp" style="font-size:36px;line-height:1.05;margin-top:4px">${M.totalContadas(m)} prendas contadas</h2>
+            <p class="tenue" style="margin-top:6px">${quien ? `Contó ${esc(quien.nombre)}.` : ""} ${m.fardo ? `Fardo ${esc(m.fardo.codigo)} · guía ${esc(m.guia)}` : `Sin aviso · ${esc(prov(m.proveedor).nombre)}`}. El conteo ya es oficial: lo que falta se hace después, sin volver a contar.</p></div>
+        </div>
+        <div class="cifras">
+          <div class="tc"><p class="label"><i></i>Dijeron</p><p class="valor num">${M.totalDijeron(m) ?? "—"}</p></div>
+          <div class="tc"><p class="label"><i class="verde"></i>Contaste</p><p class="valor num">${M.totalContadas(m)}</p></div>
+          <div class="tc"><p class="label"><i class="verde"></i>Ya en el stock</p><p class="valor num">${stock}<small>con tallas y colores</small></p></div>
+          <div class="tc"><p class="label"><i class="${pend.length ? "pizarra" : "verde"}"></i>Para después</p><p class="valor num">${pend.length}<small>${pend.length === 1 ? "pendiente" : "pendientes"}</small></p></div>
+        </div>
+        <div class="bloque">
+          <div class="fila entre envuelve"><h3 class="disp" style="font-size:22px">${stock ? `${stock} prendas ya están en el stock del almacén` : "Todavía nada entró al stock"}</h3><span class="chip ${stock ? "verde" : "neutro"} punto">${stock ? "Listas para etiquetar" : "Esperan sus pendientes"}</span></div>
+          <p class="tenue">${stock ? "Son las que ya tienen tallas y colores. Todo llegó sin etiqueta: lo que sigue es imprimir la etiqueta de precio y colgarlas." : "Al stock entra lo que tiene tallas y colores; resuelve los pendientes y entra solo."}</p>
+          ${enStockLista ? `<p class="fila envuelve" style="gap:6px;margin-top:8px">${enStockLista}</p>` : ""}
+          ${stock ? `<div class="fila envuelve" style="margin-top:10px"><button class="btn pri grande" data-accion="etiquetas">${icono("impresora")}Imprimir ${stock} etiquetas</button><button class="btn sec grande" data-accion="colgar">${icono("percha")}Colgar en el piso</button></div>` : ""}
+        </div>
+        <div class="bloque porcrear">
+          <div class="fila entre envuelve"><h3 class="disp" style="font-size:22px">${pend.length ? `Para después · ${pend.length} ${pend.length === 1 ? "pendiente" : "pendientes"}` : "Nada quedó para después"}</h3><span class="chip pizarra punto ${pend.length ? "vivo" : ""}">${pend.length ? "Avisa en Recibir y en el Inicio" : "Todo al día"}</span></div>
+          <p class="tenue">${pend.length ? `Estas prendas ya están contadas y en el almacén, pero no en el sistema: hasta resolver cada pendiente no se pueden vender ni colgar. Quedan aquí, en la cabecera de Recibir (<b>${pend.length} pendientes del fardo</b>) y en el Inicio de la encargada; puede hacerlas cualquiera que tenga Recibir, cuando pueda.` : "El fardo quedó separado y detallado al cerrarlo."}</p>
+          <div class="pendientes">${pend.map((x) => `<div class="pend-item" data-tipo="${x.tipo}"><span class="cat-ic">${iconoDe(x.tipo)}</span><span class="nom"><b>${esc(x.titulo)}</b><small>${esc(CATS[M.linea(m, x.lineaId).cat].nombre)} · ${esc(x.sub)}</small></span><button class="btn sec" data-hacer="${x.tipo}" data-linea="${x.lineaId}" ${x.nombre ? `data-nombre="${esc(x.nombre)}"` : ""} ${x.descId ? `data-desc="${x.descId}"` : ""} data-titulo="${esc(x.titulo)}">${x.tipo === "crear" ? `${icono("plus", "mas")}Crear ahora` : "Hacer ahora"}</button></div>`).join("")}</div>
+          ${pend.length ? `<div class="fila envuelve" style="margin-top:12px"><button class="btn sut" data-accion="avisar">${icono("campana")}Avisar a Lucía (encargada)</button><span class="tenue" style="font-size:12.5px">Al resolverlos, las prendas entran al stock con la cantidad ya contada.</span></div>` : ""}
+        </div>
+        ${difs ? `<div class="bloque"><h3 class="disp" style="font-size:22px">Lo que no cuadró</h3><ul class="difs">${difs}</ul><p class="tenue" style="font-size:12.5px">La sede dice qué pasó; Compras decide qué pasa con la plata.</p></div>` : `<div class="bloque"><div class="fila" style="gap:8px"><span class="chip verde punto">Cuadró</span><span class="tenue">Llegó exactamente lo que dijeron.</span></div></div>`}
+        <div class="fila envuelve" style="gap:10px"><button class="btn pri" data-otro>${icono("caja")}Otro fardo</button><button class="btn sut" data-accion="historial">${icono("lista")}Ver todo lo recibido</button></div>
+      </section>`;
+    }
+    /** «Hacer ahora» desde el fardo cerrado: separar en una hoja, detallar en su matriz, crear lo nuevo. */
+    function hacerAhora(tipo, lineaId, nombre, descId, titulo) {
+      const l = M.linea(m, lineaId); if (!l) return;
+      if (tipo === "detalle") return hojaDetalle(l, nombre);
+      if (tipo === "separar") { const h = api.hoja(`<p class="label">${esc(CATS[l.cat].nombre)} · ${l.contadas} contadas</p><h2>Separar lo que quedó</h2><p class="bajada">Busca cada prenda conocida por su nombre y pon cuántas eran; lo que no esté en el catálogo, como nuevas.</p><div style="margin-top:8px">${bloqueSeparar(l)}</div><div class="pie-hoja"><span></span><button class="btn pri" data-listo-separar>Listo</button></div>`, { clase: "hoja-separar" }); h.querySelector("[data-listo-separar]").addEventListener("click", () => { api.cerrarHoja(); pintarPaso(); }); return; }
+      if (tipo === "crear") {
+        const n = descId ? l.nuevasDesc.find((x) => x.id === descId) : null;
+        if (!n) { api.hojaNueva({ linea: l, sugerida: null, alGuardar: (d) => { describirNueva(l, d); pintarPaso(); api.aviso("Descrita: ahora sí se puede crear", "pizarra"); } }); return; }
+        // Crear = Nuevo producto con todo precargado (simulado): la prenda nace y su stock contado entra solo.
+        n.creada = true;
+        api.aviso(`Abre Nuevo producto con ${esc(n.desc)} (${n.cant}) ya puesto; al guardar, el stock entra solo`, "pizarra"); pintarPaso();
+      }
+    }
+    function cerrar() { M.cerrar(m); paso = 3; pintarPaso(); pintarRail(); escena.scrollTop = 0; }
+
+    // ---------- acciones ----------
+    function lineaDe(t) { const r = t.closest("[data-separar]"); return r ? r.dataset.separar : foco; }
     escena.addEventListener("click", (e) => {
-      const t = e.target.closest("[data-paso],[data-abrir],[data-sin-aviso],[data-prov],[data-linea].cat-item,[data-agregar],[data-cat],.paso-btn,.rapidos button,[data-sig-linea],[data-ant-linea],[data-ir-paso],[data-pistola],[data-nueva],[data-deshacer],[data-codigo].sug,[data-quitar-conocida],[data-quitar-nueva],[data-causa],[data-causa-total],[data-resp],[data-recibir],[data-falta],[data-otro],[data-accion]");
+      const t = e.target.closest("[data-paso],[data-abrir],[data-sin-aviso],[data-prov],[data-linea].cat-item,[data-agregar],[data-cat],.paso-btn,.rapidos button,[data-sig-linea],[data-ant-linea],[data-ir-paso],[data-sug-producto],[data-prod-d],[data-quitar-prod],[data-detallar],[data-nuevas-d],[data-describir],[data-nueva-desde-busqueda],[data-quitar-nueva],[data-causa],[data-causa-total],[data-resp],[data-recibir],[data-falta],[data-hacer],[data-otro],[data-accion]");
       if (!t) return;
       if (t.matches("[data-paso]")) return irPaso(Number(t.dataset.paso));
-      if (t.matches("[data-abrir]")) {
-        if (!m.fardo) { const inp = pagina().querySelector("[data-dijeron]"); m.dijeronTotal = inp && inp.value !== "" ? Number(inp.value) : null; }
-        M.abrir(m); const svg = pagina().querySelector(".caja-svg"); if (svg) svg.classList.add("abierta"); t.disabled = true;
-        setTimeout(() => irPaso(2), api.quieto() ? 0 : 820); return;
-      }
+      if (t.matches("[data-abrir]")) { if (!m.fardo) { const inp = pagina().querySelector("[data-dijeron]"); m.dijeronTotal = inp && inp.value !== "" ? Number(inp.value) : null; } M.abrir(m); const svg = pagina().querySelector(".caja-svg"); if (svg) svg.classList.add("abierta"); t.disabled = true; setTimeout(() => irPaso(2), api.quieto() ? 0 : 820); return; }
       if (t.matches("[data-sin-aviso]")) { const b = document.querySelector('.spike .op[data-g="caso"][data-v="sin"]'); if (b) b.click(); return; }
       if (t.matches("[data-prov]")) { m.proveedor = t.dataset.prov; pagina().querySelectorAll("[data-prov]").forEach((x) => x.setAttribute("aria-pressed", x === t)); return; }
       if (t.matches(".cat-item[data-linea]")) { foco = t.dataset.linea; pintarPaso(); return; }
@@ -374,78 +460,85 @@ Comun.iniciar({
       if (t.matches("[data-sig-linea]")) { const l = M.linea(m, foco); if (l) l.visitada = true; const s = siguienteLinea(); if (s) { foco = s.id; irPaso(paso, { directo: true }); } return; }
       if (t.matches("[data-ant-linea]")) { const a = anteriorLinea(); if (a) { foco = a.id; irPaso(paso, { directo: true }); } return; }
       if (t.matches("[data-ir-paso]")) { const l = M.linea(m, foco); if (l) l.visitada = true; return irPaso(Number(t.dataset.irPaso)); }
-      if (t.matches("[data-pistola]")) return leer(foco);
-      if (t.matches("[data-nueva]")) { const l = M.linea(m, foco); const txt = (pagina().querySelector("[data-buscar]") || {}).value || ""; api.hojaNueva({ linea: l, sugerida: txt.trim().length >= 3 ? { desc: txt.trim(), color: "", hex: "", tallas: {} } : null, alGuardar: (d) => { const n = M.anotarNueva(m, foco, d); ultima = { lineaId: foco, nuevaId: n.id }; pintarPaso(); } }); return; }
-      if (t.matches("[data-deshacer]")) { if (!ultima) return; if (ultima.codigo) M.quitarConocida(m, ultima.lineaId, ultima.codigo); else if (ultima.nuevaId) M.quitarNueva(m, ultima.lineaId, ultima.nuevaId); ultima = null; pintarPaso(); api.aviso("Deshecho", "neutro"); return; }
-      if (t.matches(".sug[data-codigo]")) { M.agregarConocida(m, foco, t.dataset.codigo); ultima = { lineaId: foco, codigo: t.dataset.codigo }; pintarPaso(); return; }
-      if (t.matches("[data-quitar-conocida]")) { M.quitarConocida(m, t.dataset.linea, t.dataset.quitarConocida); pintarPaso(); return; }
-      if (t.matches("[data-quitar-nueva]")) { M.quitarNueva(m, t.dataset.linea, t.dataset.quitarNueva); pintarPaso(); return; }
+      const lid = lineaDe(t); const l = M.linea(m, lid);
+      if (t.matches("[data-sug-producto]")) { const p = RF.PRODUCTOS.find((x) => x.nombre === t.dataset.sugProducto); agregarProducto(l, p, 1); repintarTras(l); if (m.cerrado || escena.querySelector(".hoja-separar")) { const h = escena.querySelector(".hoja-separar [data-separar]"); if (h) h.outerHTML = bloqueSeparar(l); } const nb = (escena.querySelector(".hoja-separar") || pagina()).querySelector("[data-buscar]"); if (nb) { nb.value = ""; nb.focus(); } return; }
+      if (t.matches("[data-prod-d]")) { const r = l.productos[t.dataset.nombre]; if (r) fijarProductoN(l, t.dataset.nombre, r.n + Number(t.dataset.prodD)); return refrescarSeparar(l); }
+      if (t.matches("[data-quitar-prod]")) { fijarProductoN(l, t.dataset.quitarProd, 0); return refrescarSeparar(l); }
+      if (t.matches("[data-detallar]")) return hojaDetalle(l, t.dataset.detallar);
+      if (t.matches("[data-nuevas-d]")) { nuevasSinN(l, { delta: Number(t.dataset.nuevasD) }); return refrescarSeparar(l); }
+      if (t.matches("[data-describir]") || t.matches("[data-nueva-desde-busqueda]")) { const txt = t.matches("[data-nueva-desde-busqueda]") ? ((escena.querySelector(".hoja-separar") || pagina()).querySelector("[data-buscar]") || {}).value || "" : ""; api.hojaNueva({ linea: l, sugerida: txt.trim().length >= 3 ? { desc: txt.trim(), color: "", hex: "", tallas: {} } : null, alGuardar: (d) => { describirNueva(l, d); refrescarSeparar(l); } }); return; }
+      if (t.matches("[data-quitar-nueva]")) { quitarNuevaDesc(l, t.dataset.quitarNueva); return refrescarSeparar(l); }
       if (t.matches("[data-causa]")) { M.ponerCausa(m, t.dataset.linea, t.dataset.causa); pintarPaso(); return; }
       if (t.matches("[data-causa-total]")) { m.causaTotal = m.causaTotal === t.dataset.causaTotal ? null : t.dataset.causaTotal; pintarPaso(); return; }
       if (t.matches("[data-resp]")) { m.responsable = t.dataset.resp; pintarPaso(); return; }
-      if (t.matches("[data-recibir]")) return recibir();
-      if (t.matches("[data-falta]")) { const k = t.dataset.falta; if (t.dataset.linea) foco = t.dataset.linea; if (k === "contar" || k === "vacio") irPaso(2); else if (k === "separar") irPaso(3); else { const el = pagina().querySelector(k === "responsable" ? ".responsables" : `[data-causa][data-linea="${t.dataset.linea}"]`); if (el) { el.scrollIntoView({ block: "center", behavior: api.quieto() ? "auto" : "smooth" }); api.destello(el.closest(".card") || el); } } return; }
+      if (t.matches("[data-recibir]")) return cerrar();
+      if (t.matches("[data-falta]")) { const k = t.dataset.falta; if (k === "vacio") return irPaso(2); const el = pagina().querySelector(k === "responsable" ? ".responsables" : `[data-causa][data-linea="${t.dataset.linea}"]`); if (el) { el.scrollIntoView({ block: "center", behavior: api.quieto() ? "auto" : "smooth" }); api.destello(el.closest(".card") || el); } return; }
+      if (t.matches("[data-hacer]")) return hacerAhora(t.dataset.hacer, t.dataset.linea, t.dataset.nombre, t.dataset.desc, t.dataset.titulo);
       if (t.matches("[data-otro]")) { document.querySelector("[data-reiniciar]").click(); return; }
-      if (t.matches("[data-accion]")) { api.aviso({ etiquetas: "Abre Etiquetas de precio con las 96 prendas cargadas", colgar: "Abre Colgar en el piso con lo recibido", crear: "Abre Nuevo producto con categoría, marca, color, tallas y stock ya puestos", avisar: "Lucía recibe el aviso en su Inicio", historial: "Abre «Todo lo recibido»" }[t.dataset.accion] || "Acción de la pantalla real", "pizarra"); }
+      if (t.matches("[data-accion]")) { api.aviso({ etiquetas: `Abre Etiquetas de precio con las ${totalEnStock()} prendas cargadas`, colgar: "Abre Colgar en el piso con lo que ya está en stock", avisar: "Lucía recibe el aviso en su Inicio", historial: "Abre «Todo lo recibido»" }[t.dataset.accion] || "Acción de la pantalla real", "pizarra"); }
     });
+    /** Redibuja solo el bloque de separar (en la página o en la hoja) y lo que depende de él. */
+    function refrescarSeparar(l) {
+      const h = escena.querySelector(`.hoja-separar [data-separar="${l.id}"]`); if (h) { h.outerHTML = bloqueSeparar(l); return; }
+      if (m.cerrado) return pintarPaso();
+      refrescarContador(l);
+    }
     escena.addEventListener("input", (e) => {
-      if (e.target.matches("[data-contadas]")) { const l = M.linea(m, foco); if (!l) return; M.contar(m, foco, { valor: e.target.value }); refrescarContador(l); }
-      if (e.target.matches("[data-buscar]")) buscarEn(e.target.value);
+      if (e.target.matches("[data-contadas]")) { const l = M.linea(m, foco); if (!l) return; M.contar(m, foco, { valor: e.target.value }); ajustar(l); refrescarContador(l); }
+      if (e.target.matches("[data-buscar]")) buscarEn(e.target.value, lineaDe(e.target));
       if (e.target.matches("[data-guia]")) m.guia = e.target.value;
     });
     escena.addEventListener("keydown", (e) => {
-      if (e.target.matches("[data-buscar]") && e.key === "Enter") { e.preventDefault(); const s = pagina().querySelector(".sug[aria-selected=true]"); if (s) s.click(); else if (e.target.value.trim()) buscarEn(e.target.value); e.target.value = ""; const c = pagina().querySelector("[data-sugerencias]"); if (c) c.hidden = true; }
-      if (e.target.matches("[data-contadas]") && e.key === "Enter") { e.preventDefault(); const b = pagina().querySelector("[data-sig-linea],[data-ir-paso]"); if (b && !b.disabled) b.click(); }
+      if (e.target.matches("[data-buscar]") && e.key === "Enter") { e.preventDefault(); const raiz = e.target.closest("[data-separar]"); const s = raiz.querySelector(".sug[aria-selected=true]"); if (s) s.click(); else if (e.target.value.trim()) buscarEn(e.target.value, lineaDe(e.target)); }
+      if (e.target.matches("[data-contadas]") && e.key === "Enter") { e.preventDefault(); e.target.blur(); }
     });
-    // «Abrir en» de la barra: la recepción ya avanzada hasta ese punto (sirve para mirar un paso sin recorrer los anteriores).
+
+    // «Abrir en» de la barra: la recepción ya avanzada hasta ese punto.
+    function separarReal(l, { detallar: det = "algunas" } = {}) {
+      const real = RF.realPorProducto(l.id);
+      real.productos.forEach((p, i) => { const prod = RF.PRODUCTOS.find((x) => x.nombre === p.nombre); if (!prod) return; const n = Object.values(p.variantes).reduce((a, b) => a + b, 0); agregarProducto(l, prod, n); if (det === "todas" || (det === "algunas" && i % 2 === 0)) detallar(l, p.nombre, p.variantes); });
+      if (real.nuevas) nuevasSinN(l, { valor: real.nuevas });
+    }
     function saltarA(en) {
       if (!en || en === "inicio") return;
       if (!m.fardo) { for (const cat of ["CMS", "VES"]) M.agregarLinea(m, cat); }
       M.abrir(m); foco = (m.lineas[0] || {}).id || null;
       if (en === "contar") { paso = 2; return; }
-      for (const l of m.lineas) { M.contarReal(m, l.id); l.visitada = true; }
-      if (en === "separar") { paso = 3; return; }
-      for (const l of m.lineas) M.separarTodo(m, l.id);
-      paso = 4; if (en === "cerrar") return;
+      m.lineas.forEach((l, i) => { M.contarReal(m, l.id); l.visitada = true; if (i !== 1) separarReal(l); }); // la segunda categoría queda sin separar, a propósito
+      if (en === "separar") { paso = 2; return; }
+      paso = 3; if (en === "cerrar") return;
       for (const l of m.lineas) if (M.diferencia(l)) M.ponerCausa(m, l.id, "proveedor");
       if (!m.fardo && m.dijeronTotal != null && M.totalContadas(m) !== m.dijeronTotal) m.causaTotal = "proveedor";
       m.responsable = "mari"; M.cerrar(m);
     }
     saltarA(est.en);
     pintarPaso();
-    ui = { m, irPaso, contar, leer, setFoco: (id) => { foco = id; }, recibir, pintar: pintarPaso, abrir: () => { const b = pagina().querySelector("[data-abrir]"); if (b) b.click(); } };
+    ui = { m, irPaso, contar, setFoco: (id) => { foco = id; }, cerrar, pintar: pintarPaso, abrir: () => { const b = pagina().querySelector("[data-abrir]"); if (b) b.click(); }, agregarProducto, detallar, nuevasSinN, refrescar: refrescarContador, separarReal };
   },
 
-  /** La demo recorre el camino completo como lo haría Mariana, de almacén, sin apuro. */
+  /** La demo: Mariana cuenta categoría por categoría; separa por nombre lo que reconoce, deja Vestidos para después y cierra. */
   async demo(api, viva) {
     const { modelo: m, Modelo: M, pausa } = api;
     await pausa(900); if (!viva()) return;
-    if (!m.fardo) { m.dijeronTotal = RF.SIN_AVISO.dijeronTotal; }
+    if (!m.fardo) m.dijeronTotal = RF.SIN_AVISO.dijeronTotal;
     ui.abrir(); await pausa(1500); if (!viva()) return;
-    if (!m.fardo) { for (const cat of ["CMS", "VES"]) { M.agregarLinea(m, cat); } ui.setFoco(m.lineas[0].id); ui.pintar(); await pausa(600); }
-    for (const l of [...m.lineas]) {
+    if (!m.fardo) { for (const cat of ["CMS", "VES"]) M.agregarLinea(m, cat); ui.setFoco(m.lineas[0].id); ui.pintar(); await pausa(600); }
+    for (const [i, l] of [...m.lineas].entries()) {
       ui.setFoco(l.id); await ui.irPaso(2, { directo: true }); await pausa(500); if (!viva()) return;
-      const real = M.identificadas(l) + l.cola.length; const pasos = Math.min(6, real);
-      for (let i = 1; i <= pasos; i++) { ui.contar(l.id, { valor: Math.round((real * i) / pasos) }); await pausa(160); if (!viva()) return; }
-      l.visitada = true; await pausa(700);
+      const real = RF.realPorProducto(l.id); const pasos = Math.min(6, real.total);
+      for (let k = 1; k <= pasos; k++) { ui.contar(l.id, { valor: Math.round((real.total * k) / pasos) }); await pausa(160); if (!viva()) return; }
+      l.visitada = true; await pausa(500);
+      if (i === 1) { api.aviso("Vestidos: solo el número; separarlos queda para después", "neutro"); await pausa(900); continue; }
+      for (const [j, p] of real.productos.entries()) { const prod = RF.PRODUCTOS.find((x) => x.nombre === p.nombre); if (!prod) continue; const n = Object.values(p.variantes).reduce((a, b) => a + b, 0); ui.agregarProducto(l, prod, n); ui.refrescar(l); await pausa(650); if (!viva()) return; if (j % 2 === 0) { ui.detallar(l, p.nombre, p.variantes); ui.refrescar(l); api.aviso(`${p.nombre}: tallas y colores puestos, entran al stock`, "verde"); await pausa(800); } }
+      if (real.nuevas) { ui.nuevasSinN(l, { valor: real.nuevas }); ui.refrescar(l); api.aviso(`${real.nuevas} ${RF.CATS[l.cat].varias} nuevas: se describen y crean después`, "pizarra"); await pausa(900); }
+      await pausa(400);
     }
-    await ui.irPaso(3); await pausa(600); if (!viva()) return;
-    for (const l of [...m.lineas]) {
-      ui.setFoco(l.id); await ui.irPaso(3, { directo: true }); await pausa(420); if (!viva()) return;
-      let lecturas = 0;
-      while (l.cola.length && viva()) {
-        const r = M.leer(m, l.id);
-        if (r.tipo === "nueva") { M.anotarNueva(m, l.id, { modelo: r.modelo.id, desc: r.modelo.desc, color: r.modelo.color, hex: r.modelo.hex, tallas: r.modelo.tallas }); ui.pintar(); api.aviso(`${r.modelo.cant} ${RF.CATS[l.cat].varias} nuevas anotadas: se crean después`, "pizarra"); await pausa(900); continue; }
-        lecturas++; if (lecturas <= 5 || lecturas % 6 === 0) { ui.pintar(); const esc_ = document.querySelector("[data-escaner]"); if (esc_) { esc_.classList.remove("leyendo"); void esc_.offsetWidth; esc_.classList.add("leyendo"); api.flash(esc_, "verde"); } await pausa(lecturas <= 5 ? 260 : 60); }
-      }
-      ui.pintar(); await pausa(500);
-    }
-    await ui.irPaso(4); await pausa(900); if (!viva()) return;
-    for (const l of m.lineas) if (M.diferencia(l) && !l.causa) { M.ponerCausa(m, l.id, M.diferencia(l) < 0 ? "proveedor" : "proveedor"); ui.pintar(); await pausa(700); }
+    await ui.irPaso(3); await pausa(900); if (!viva()) return;
+    for (const l of m.lineas) if (M.diferencia(l) && !l.causa) { M.ponerCausa(m, l.id, "proveedor"); ui.pintar(); await pausa(700); }
     if (!m.fardo && m.dijeronTotal != null && M.totalContadas(m) !== m.dijeronTotal) { m.causaTotal = "proveedor"; ui.pintar(); await pausa(600); }
     m.responsable = "mari"; ui.pintar(); await pausa(900); if (!viva()) return;
-    document.querySelector("[data-recibir]").scrollIntoView({ block: "center", behavior: "smooth" }); await pausa(700); if (!viva()) return;
-    ui.recibir();
+    const b = document.querySelector("[data-recibir]"); b && b.scrollIntoView({ block: "center", behavior: "smooth" }); await pausa(700); if (!viva()) return;
+    ui.cerrar();
   },
 });
 </script>

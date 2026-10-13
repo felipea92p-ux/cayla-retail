@@ -189,5 +189,31 @@ window.RF = (function () {
   }
   function plural(n, una, varias) { return `${n} ${n === 1 ? una : varias}`; }
 
-  return { CATS, COLORES, PROVEEDORES, PERSONAS, SEDE, FARDO, SIN_AVISO, NUEVOS, CONTENIDO, CAUSAS, CATALOGO, unidades, realDe, icono, iconoCat, mini, esOscuro, avatar, esc, prov, clave, buscar, plural };
+  // Los productos del catálogo (una prenda por NOMBRE, con sus tallas y colores): lo que se busca cuando nada viene etiquetado
+  // (Felipe, 2026-10-13). Se deducen del catálogo de variantes.
+  const PRODUCTOS = [];
+  for (const v of CATALOGO) {
+    let p = PRODUCTOS.find((x) => x.nombre === v.nombre);
+    if (!p) { p = { nombre: v.nombre, linea: v.linea, cat: v.cat, marca: v.marca, hex: v.hex, variantes: [] }; PRODUCTOS.push(p); }
+    p.variantes.push({ codigo: v.codigo, talla: v.talla, color: v.color, hex: v.hex });
+  }
+  /** Lo que el buscador encuentra por nombre; los de la marca del montón primero. */
+  function buscarProductos(texto, marca) {
+    const k = clave(texto); if (k.length < 2) return [];
+    const todos = PRODUCTOS.filter((p) => clave(`${p.nombre} ${p.marca} ${p.variantes.map((v) => v.color).join(" ")}`).includes(k));
+    const suyos = todos.filter((p) => clave(p.marca) === clave(marca || "")), otros = todos.filter((p) => clave(p.marca) !== clave(marca || ""));
+    return [...suyos, ...otros].slice(0, 6);
+  }
+  /** Lo que de verdad trae la caja de una línea, dicho por producto (para la demo y «Abrir en»). */
+  function realPorProducto(lineaId) {
+    const filas = CONTENIDO[lineaId] || []; const productos = []; let nuevas = 0;
+    for (const f of filas) {
+      if (f.nuevo) { nuevas += f.n; continue; }
+      let p = productos.find((x) => x.nombre === f.nombre); if (!p) { p = { nombre: f.nombre, variantes: {} }; productos.push(p); }
+      p.variantes[f.codigo] = (p.variantes[f.codigo] || 0) + f.n;
+    }
+    return { productos, nuevas, total: filas.reduce((a, f) => a + f.n, 0) };
+  }
+
+  return { CATS, COLORES, PROVEEDORES, PERSONAS, SEDE, FARDO, SIN_AVISO, NUEVOS, CONTENIDO, CAUSAS, CATALOGO, PRODUCTOS, unidades, realDe, realPorProducto, icono, iconoCat, mini, esOscuro, avatar, esc, prov, clave, buscar, buscarProductos, plural };
 })();

@@ -12,6 +12,40 @@ Tres maquetas para evaluar cuál es la más apta.*
 arriba no es parte de la pantalla: cambia los datos (**con aviso de Compras** / **sin aviso, por WhatsApp**), el tema, el ancho
 (escritorio o 375 px), el movimiento, y **«▶ Ver cómo se recibe»** recorre la recepción entera sola, como lo haría Mariana, de almacén.
 
+## Actualización 2026-10-13 — Felipe eligió A y corrigió el proceso
+
+Lo que dijo: *me gusta la A. Todas las prendas llegan **sin etiqueta**, así que escanear está de más. Las colaboradoras abren el fardo y
+**cuentan por categoría**; si ven una prenda conocida, buscan su **nombre** y ponen cuántas llegaron, y si quieren ahí mismo las
+variaciones, o lo dejan para cuando termine el conteo, **como un pendiente**; igual con las nuevas: un aviso de cuántas hubo y de qué
+categoría. Lo esencial es contar el fardo primero.*
+
+Lo que cambió en `a-camino.html` (versión 2; B y C quedan como referencia del 12-oct, sin actualizar):
+
+- **Sin pistola.** Tres paradas: ¿Qué llegó? → **Contar** → Cerrar. El riel y el punto que late siguen igual.
+- **Contar es lo esencial** y lo único que se exige por categoría: el número grande. Debajo, **«¿Qué blusas son?» es opcional**:
+  se busca una prenda conocida **por su nombre** y se pone cuántas; cada una ofrece «Tallas y colores ahora» (la matriz del catálogo)
+  **o queda pendiente**. Lo nuevo se anota como **cantidad** («Nuevas, no están en el catálogo: 6») y describirlo (nombre, color, tallas)
+  también puede esperar. Lo que no se separe queda como pendiente; nada de eso frena el cierre.
+- **Cerrar** pide solo lo que no cuadró (causa) y quién contó. La tabla dice, por categoría, cuánto entra al stock hoy y qué queda para después.
+- **Fardo cerrado:** el conteo es oficial; «Ya en el stock» son las prendas con tallas y colores (ahí van «Imprimir N etiquetas» —todo llegó sin
+  etiqueta— y «Colgar en el piso»); **«Para después · N pendientes»** lista cada uno con «Hacer ahora» (separar en una hoja, poner tallas y
+  colores, crear lo nuevo) y la cabecera de Recibir muestra «N pendientes del fardo». Al resolverlos, las prendas entran al stock con la
+  cantidad ya contada.
+
+**Lo que esto cambia en el contrato (y no estaba en la versión 1):**
+
+1. **El fardo se cierra sin que todo esté en el stock.** Al stock entra lo que ya tiene tallas y colores; el resto son prendas contadas que
+   están en el almacén pero no en el sistema hasta resolver su pendiente. Mientras tanto Vender no las encuentra y Colgar en el piso no las
+   ofrece: el candado es ese. La tabla nueva ya no es solo `prendas_por_crear`: es **`fardo_pendientes`** con tres tipos (`separar`,
+   `detalle`, `crear`), cada uno con su cantidad, la línea del fardo, quién lo anotó y cómo se resolvió.
+2. **El conteo por categoría es un dato propio** (`recepcion_conteos`: línea, contadas, quién, cuándo), distinto de los movimientos de stock:
+   es lo que se compara contra el despacho de Compras y lo que firma quien contó.
+3. **Separar más de lo contado corrige el conteo** (la prenda en la mano manda); el detalle por tallas corrige la cantidad del producto.
+
+**Decisiones que ya quedaron tomadas con esto:** no hay escáner; contar primero; separar y detallar son pendientes, no candados.
+**Siguen abiertas:** quién crea lo nuevo; si la sede ve el precio de la línea; dañadas a cuarentena; el «dijeron» del WhatsApp; y una nueva:
+**¿puede colgarse en el piso una prenda contada pero sin tallas?** (la maqueta dice que no, hasta resolver el pendiente).
+
 ## Qué hay hoy y qué le falta
 
 `/recibir` abre en «Llegó mercadería» (ADR-0330, 2026-10-04): se elige el proveedor, se escanea o busca cada prenda y cada lectura suma
@@ -105,7 +139,7 @@ solo lo que no cuadró como líneas más del hilo.
   una; el hilo crece (118 líneas aunque se junten) y la comparación por categoría queda en un panel lateral que en celular sube arriba;
   no sigue el orden «primero cuenta, después separa» que Felipe describió.
 
-## Lo que recomiendo
+## Lo que recomendé el 12-oct (Felipe eligió A el 13-oct)
 
 ```
 DECIDÍ:    A · Camino como estructura, con dos préstamos: de B, que el «Por crear» se vea todo el tiempo (una bandeja fija en el paso

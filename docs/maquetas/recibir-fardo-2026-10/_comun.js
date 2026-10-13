@@ -192,8 +192,11 @@ window.Comun = (function () {
     const velo = document.createElement("div"); velo.className = "velo";
     const capa = document.createElement("div"); capa.className = "capa";
     capa.innerHTML = `<div class="hoja cascada ${clase}" role="dialog" aria-modal="true"><button class="cerrar" data-sin-cascada aria-label="Cerrar">${icono("x")}</button>${html}</div>`;
+    const top = esc_.scrollTop, alto = esc_.clientHeight;
+    for (const el of [velo, capa]) { el.style.top = top + "px"; el.style.height = alto + "px"; el.style.bottom = "auto"; }
     esc_.appendChild(velo); esc_.appendChild(capa);
-    hojaAbierta = { velo, capa, alCerrar };
+    const overflowAntes = esc_.style.overflow; esc_.style.overflow = "hidden";
+    hojaAbierta = { velo, capa, alCerrar, overflowAntes };
     velo.addEventListener("click", () => cerrarHoja());
     capa.querySelector(".cerrar").addEventListener("click", () => cerrarHoja());
     const primero = capa.querySelector("input,button:not(.cerrar)"); if (primero) setTimeout(() => primero.focus(), 200);
@@ -201,8 +204,8 @@ window.Comun = (function () {
   }
   function cerrarHoja(seco = false) {
     if (!hojaAbierta) return;
-    const { velo, capa, alCerrar } = hojaAbierta; hojaAbierta = null;
-    const fin = () => { velo.remove(); capa.remove(); alCerrar && alCerrar(); };
+    const { velo, capa, alCerrar, overflowAntes } = hojaAbierta; hojaAbierta = null;
+    const fin = () => { velo.remove(); capa.remove(); const e = document.getElementById("escena"); if (e) e.style.overflow = overflowAntes || ""; alCerrar && alCerrar(); };
     if (seco || quieto()) return fin();
     velo.classList.add("cerrando"); capa.classList.add("cerrando");
     velo.style.animation = "velo-out 220ms var(--ease-salida) both"; capa.firstElementChild.style.animation = "hoja-out 220ms var(--ease-salida) both";
@@ -354,10 +357,14 @@ window.Comun = (function () {
     b.style.setProperty("--ox", e.clientX - r.left + "px"); b.style.setProperty("--oy", e.clientY - r.top + "px"); b.style.setProperty("--od", d + "px");
     b.removeAttribute("data-onda"); void b.offsetWidth; b.setAttribute("data-onda", ""); setTimeout(() => b.removeAttribute("data-onda"), 460);
   });
+  // Un <input type="number"> con foco cambia de valor con la rueda del mouse en Chrome: al desplazar la página sobre el número
+  // grande, el conteo bajaba solo. Se le quita el foco antes de que la rueda lo toque.
+  document.addEventListener("wheel", (e) => { const a = document.activeElement; if (a && a.matches && a.matches('input[type="number"]') && a.contains(e.target)) a.blur(); }, { passive: true });
   let avisoT = null;
   function aviso(texto, tono = "verde") {
     const esc_ = document.getElementById("escena"); let a = esc_.querySelector(".aviso-flotante");
     if (!a) { a = document.createElement("div"); a.className = "aviso-flotante"; esc_.appendChild(a); }
+    a.style.top = esc_.scrollTop + 14 + "px";
     a.innerHTML = `<span class="chip ${tono} punto">${esc(texto)}</span>`; a.classList.remove("ver"); void a.offsetWidth; a.classList.add("ver");
     clearTimeout(avisoT); avisoT = setTimeout(() => a.classList.remove("ver"), 3200);
   }
