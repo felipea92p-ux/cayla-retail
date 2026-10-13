@@ -1,4 +1,4 @@
-import { TRAZOS_MENU } from "@/lib/menu-iconos";
+import { ICONO_DEL_ACCESO_ALMACEN, TRAZOS_MENU } from "@/lib/menu-iconos";
 
 // Íconos del Inicio de Almacén, a 1.6 como el resto del Inicio. Los que llevan a una pantalla del menú (Stock, Traslados, Recibir,
 // Conteo) son los MISMOS trazos que dibuja el lateral (`TRAZOS_MENU`, lib/menu-iconos.ts; 2026-10-13, Felipe: «alinea los otros
@@ -18,12 +18,12 @@ const TRAZOS = {
   eye: "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6",
   // El camión que avanza por la ruta de un traslado en curso: el mismo de «Traslados» en el lateral.
   truck: TRAZOS_MENU.traslados,
-  recibir: TRAZOS_MENU.recibir,
-  stock: TRAZOS_MENU.existencias,
-  traslados: TRAZOS_MENU.traslados,
+  recibir: TRAZOS_MENU[ICONO_DEL_ACCESO_ALMACEN.recibir],
+  stock: TRAZOS_MENU[ICONO_DEL_ACCESO_ALMACEN.stock],
+  traslados: TRAZOS_MENU[ICONO_DEL_ACCESO_ALMACEN.traslados],
   tag: "M3 12V4h8l10 10-8 8zM7.5 8.5h.01",
   rotulo: "M12 3v3M12 14v7M8 21h8M4 6h13l3 4-3 4H4z",
-  conteo: TRAZOS_MENU.conteo,
+  conteo: TRAZOS_MENU[ICONO_DEL_ACCESO_ALMACEN.conteo],
   scan: "M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16",
 } as const;
 

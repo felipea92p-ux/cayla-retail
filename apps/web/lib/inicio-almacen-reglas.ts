@@ -328,7 +328,7 @@ export type AccesoDeAlmacen = {
   destacado?: boolean;
 };
 
-const ACCESOS_ALMACEN: (AccesoDeAlmacen & { modulo: ClaveModulo | null })[] = [
+export const ACCESOS_ALMACEN: (AccesoDeAlmacen & { modulo: ClaveModulo | null })[] = [
   { href: "/inventario", etiqueta: "Stock", icono: "stock", modulo: "existencias" },
   { href: "/inventario/traslados", etiqueta: "Traslados", icono: "traslados", modulo: "traslados" },
   { href: "/recibir", etiqueta: "Recibir", icono: "recibir", modulo: "recibir" },

@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { ACCESOS_ALMACEN } from "./inicio-almacen-reglas";
 import { ACCESOS } from "./inicio-avisos";
 import { ARBOL, esGrupo, type ClaveIcono, type Nodo } from "./menu";
-import { ICONO_DEL_ACCESO, iconoDeModulo, TRAZOS_MENU } from "./menu-iconos";
+import { ICONO_DEL_ACCESO, ICONO_DEL_ACCESO_ALMACEN, iconoDeModulo, TRAZOS_MENU } from "./menu-iconos";
 import { CLAVES_MODULO, type ClaveModulo } from "./modulos";
 
 // Candado de los íconos del menú (refresco retail, Felipe 2026-10-13; alineación de Roles y del Inicio, el mismo día).
@@ -12,7 +13,7 @@ import { CLAVES_MODULO, type ClaveModulo } from "./modulos";
 // (`menu.test.ts` ya impide que dos filas de un perfil repitan la CLAVE, pero dos claves distintas con el mismo trazo se verían
 // igual en pantalla: «Ventas» y «Compras» eran dos bolsas casi idénticas hasta este refresco); (3) que ningún subtrazo unido
 // con un espacio arranca con «m» minúscula; (4) que cada MÓDULO se dibuja en Roles y accesos con el ícono de su fila del menú;
-// (5) que cada acceso rápido del Inicio dibuja el ícono de la pantalla a la que lleva; (6) que los lugares que antes copiaban
+// (5) que cada acceso rápido del Inicio y del Inicio de almacén dibuja el ícono de la pantalla a la que lleva, y que un acceso nuevo no se quede fuera sin decirlo; (6) que los lugares que antes copiaban
 // un trazo del menú (la percha, el botón Actividad, el Inicio de almacén, la página de Inicio) ya no lo copian: lo leen de `TRAZOS_MENU`.
 // POR QUÉ (3): un trazo de lucide con varios elementos se pega en UN solo `d`. Solo, su «m» inicial es absoluto; unido a otro,
 // es RELATIVO al punto donde terminó el anterior y el dibujo se descuadra sin avisar (se vio, antes de pintarla, al unir los
@@ -107,6 +108,28 @@ describe("los accesos rápidos del Inicio dibujan el ícono de su pantalla (`ICO
     const acceso = ACCESOS[clave as keyof typeof ACCESOS];
     expect(acceso.modulo, `«${clave}» tiene que llevar a un módulo del menú`).not.toBeNull();
     expect(ICONO_DEL_ACCESO[clave as keyof typeof ICONO_DEL_ACCESO]).toBe(iconoDeModulo(acceso.modulo as ClaveModulo));
+  });
+});
+
+// Los accesos que NO llevan a una pantalla del menú sino que hacen algo (buscar, dar de alta, imprimir, escanear): conservan su trazo.
+// Un acceso nuevo que NO esté acá tiene que estar en el mapa de su Inicio, o la prueba falla: así no se queda dibujando otro ícono sin avisar.
+const ACCIONES_DEL_INICIO = ["buscar", "nuevoProducto"];
+const ACCIONES_DEL_ALMACEN = ["tag", "rotulo", "scan"];
+
+describe("ningún acceso rápido se queda fuera del mapa sin decirlo", () => {
+  it.each(Object.keys(ACCESOS).filter((k) => !ACCIONES_DEL_INICIO.includes(k)))("Inicio · %s", (clave) => {
+    expect(Object.keys(ICONO_DEL_ACCESO), `«${clave}» lleva a una pantalla del menú: agrégalo a ICONO_DEL_ACCESO (lib/menu-iconos.ts)`).toContain(clave);
+  });
+});
+
+describe("los accesos del Inicio de almacén dibujan el ícono de su pantalla (`ICONO_DEL_ACCESO_ALMACEN`)", () => {
+  it.each(ACCESOS_ALMACEN.filter((a) => !ACCIONES_DEL_ALMACEN.includes(a.icono)))("$etiqueta", (acceso) => {
+    expect(Object.keys(ICONO_DEL_ACCESO_ALMACEN), `«${acceso.etiqueta}» lleva a una pantalla del menú: agrégalo a ICONO_DEL_ACCESO_ALMACEN (lib/menu-iconos.ts)`).toContain(acceso.icono);
+    expect(acceso.modulo, `«${acceso.etiqueta}» tiene que llevar a un módulo del menú`).not.toBeNull();
+    expect(ICONO_DEL_ACCESO_ALMACEN[acceso.icono as keyof typeof ICONO_DEL_ACCESO_ALMACEN]).toBe(iconoDeModulo(acceso.modulo as ClaveModulo));
+  });
+  it("las acciones sin pantalla siguen siendo las tres de siempre", () => {
+    expect(ACCESOS_ALMACEN.filter((a) => !(a.icono in ICONO_DEL_ACCESO_ALMACEN)).map((a) => a.icono).sort()).toEqual([...ACCIONES_DEL_ALMACEN].sort());
   });
 });
 

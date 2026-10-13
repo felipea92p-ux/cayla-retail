@@ -7,6 +7,7 @@
 // ASUME: que un módulo NUEVO que sale en el menú hereda el ícono de su fila sin hacer nada más (el árbol ya lo declara); solo los
 // módulos que no son una entrada del menú, o que reúnen varias, se declaran a mano en `APARTE`.
 
+import type { AccesoDeAlmacen } from "./inicio-almacen-reglas";
 import type { ClaveAccesoIcono } from "./inicio-avisos";
 import { ARBOL, esGrupo, type ClaveIcono, type Nodo } from "./menu";
 import type { ClaveModulo } from "./modulos";
@@ -194,3 +195,14 @@ export const ICONO_DEL_ACCESO = {
   conteo: "conteo",
   produccion: "produccion",
 } as const satisfies Partial<Record<ClaveAccesoIcono | "vender", ClaveIcono>>;
+
+/** Lo mismo para el Inicio de almacén: Stock, Traslados, Recibir y Conteo llevan a una pantalla del menú y dibujan su ícono.
+ *  «Etiquetas», «Rótulos» y «Escanear» son acciones y conservan su trazo (`components/inicio-almacen/iconos.tsx`).
+ *  `menu-iconos.test.ts` comprueba cada uno contra el módulo al que lleva y que ningún acceso nuevo quede fuera sin decirlo. */
+export const ICONO_DEL_ACCESO_ALMACEN = {
+  stock: "existencias",
+  traslados: "traslados",
+  recibir: "recibir",
+  conteo: "conteo",
+} as const satisfies Partial<Record<AccesoDeAlmacen["icono"], ClaveIcono>>;
+
