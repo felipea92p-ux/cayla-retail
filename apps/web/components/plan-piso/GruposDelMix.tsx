@@ -11,6 +11,8 @@ import { Boton, Desplegable } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Encabezado, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -112,7 +114,7 @@ export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix
       <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Grupos del plan del piso" data-guia="plan-piso.grupos-tabla">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-sand px-5 py-4">
           <div className="min-w-0">
-            <h2 className="font-display text-xl text-tinta">Grupos del plan</h2>
+            <TituloSeccion>Grupos del plan</TituloSeccion>
             <p className="mt-0.5 max-w-xl text-[13px] text-tinta/70">
               {esLider
                 ? "Revisa a qué grupo va cada categoría. Lo que cambies o confirmes queda con tu firma."
@@ -122,9 +124,7 @@ export function GruposDelMix({ grupos, categorias, esLider }: { grupos: GrupoMix
           {esLider && (
             <div className="flex flex-wrap items-center gap-2.5" data-guia="plan-piso.grupos-acciones">
               {siguiente && (
-                <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => irA(siguiente)}>
-                  Siguiente por revisar: {siguiente.categoria} →
-                </button>
+                <EnlaceVer onClick={() => irA(siguiente)}>Siguiente por revisar: {siguiente.categoria}</EnlaceVer>
               )}
               {porConfirmar > 0 && (
                 <button type="button" className="btn-cayla btn-secundario" onClick={() => setPendientes(confirmarPropuestas(pendientes, categorias))}>
@@ -227,7 +227,7 @@ function SeccionSinGrupo({ categorias, children }: { categorias: CategoriaMix[];
   return (
     <div>
       <CabeceraDeSeccion derecha={`${categorias.length} ${categorias.length === 1 ? "categoría" : "categorías"}`}>
-        <h3 className="text-sm font-semibold text-tinta">Sin grupo</h3>
+        <h3 className="text-sm font-semibold text-tinta">{/* unificar-fijo: la banda que agrupa filas dentro de la tabla, con sus chips; no es un título de bloque */}Sin grupo</h3>
         <Chip tono="ambar">Elige uno</Chip>
       </CabeceraDeSeccion>
       <div>{children}</div>
@@ -242,7 +242,7 @@ function SeccionDeGrupo({ s, children }: { s: Seccion; children: React.ReactNode
       <CabeceraDeSeccion
         derecha={`${n} ${n === 1 ? "categoría" : "categorías"}${s.porRevisar > 0 ? ` · ${s.porRevisar} por revisar` : ""}`}
       >
-        <h3 className="text-sm font-semibold text-tinta">{s.grupo.nombre}</h3>
+        <h3 className="text-sm font-semibold text-tinta">{/* unificar-fijo: la banda que agrupa filas dentro de la tabla, con sus chips; no es un título de bloque */}{s.grupo.nombre}</h3>
         <span title={ROL_AYUDA[s.grupo.rol]}>
           <Chip tono="pizarra">{ROL_ETIQUETA[s.grupo.rol]}</Chip>
         </span>
@@ -298,7 +298,7 @@ function FilaCategoria({
       <div className={celda("izq", "flex flex-wrap items-center gap-2")}>
         {esLider ? (
           <>
-            <Desplegable
+            <Desplegable // unificar-fijo: el combo de una fila de la tabla (elige su grupo), no un filtro
               valor={preparado ?? c.grupoClave ?? ""}
               onValor={(clave) => onPreparar(conCambio(pendientes, c, clave))}
               opciones={opciones}

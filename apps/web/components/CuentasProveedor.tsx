@@ -13,6 +13,7 @@ import {
   formatoCelular,
   type DatosPagoProveedor,
 } from "@/lib/proveedores-reglas";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // «Cómo se le paga a este proveedor» (ADR-0134): cuenta, CCI, Yape/Plin y titular, cada uno con su «Copiar».
 // UNA sola fuente para la ficha del proveedor y para los modales de pago (antes eran tres copias distintas,
@@ -92,13 +93,13 @@ export function CuentasProveedor({
               type="button"
               onClick={() => setVer((v) => !v)}
               aria-pressed={ver}
-              className="label-cayla text-[11px] text-tinta/65 underline decoration-tinta/25 underline-offset-4 transition-colors hover:text-tinta"
+              className="btn-cayla btn-enlace text-xs"
             >
               {ver ? "Ocultar" : "Ver completos"}
             </button>
           )}
           {onEditar && (
-            <button type="button" onClick={onEditar} className="label-cayla text-[11px] text-tinta/65 underline decoration-tinta/25 underline-offset-4 transition-colors hover:text-rojo">
+            <button type="button" onClick={onEditar} className="btn-cayla btn-enlace text-xs">
               Editar
             </button>
           )}
@@ -124,9 +125,7 @@ export function CuentasProveedor({
           {onEditar && !cobraEnEfectivo && (
             <>
               {" "}
-              <button type="button" onClick={onEditar} className="text-rojo hover:underline">
-                Agregar →
-              </button>
+              <EnlaceVer onClick={onEditar}>Agregar</EnlaceVer>
             </>
           )}
         </p>

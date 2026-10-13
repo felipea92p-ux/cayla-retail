@@ -682,9 +682,11 @@ export function CuadrarPisoForm({
               <label htmlFor="cuadre-escaner" className="sr-only">
                 Escanear prenda guardada
               </label>
-              <div className="caja-cayla relative">
-                <ScanBarcode aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-tinta/45" />
+              {/* La caja que se enciende (ADR-0358, ronda 6), del alto de la pistola. */}
+              <div className="caja-cayla caja-campo min-h-14">
+                <ScanBarcode aria-hidden className="pointer-events-none h-5 w-5 shrink-0 text-tinta/45" />
                 <input
+                  className="self-stretch py-0 text-base disabled:cursor-not-allowed"
                   ref={escaner}
                   id="cuadre-escaner"
                   type="text"
@@ -703,7 +705,6 @@ export function CuadrarPisoForm({
                     e.currentTarget.value = "";
                     leer(texto);
                   }}
-                  className="h-14 w-full bg-transparent pl-11 pr-4 text-base text-tinta outline-none placeholder:text-tinta/45 disabled:cursor-not-allowed disabled:opacity-60"
                 />
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -779,6 +780,7 @@ export function CuadrarPisoForm({
                           <Minus aria-hidden className="h-4 w-4" />
                         </button>
                         <input
+                          className="caja-campo-input h-11 w-14 px-1 text-center text-base tabular-nums"
                           type="text"
                           inputMode="numeric"
                           aria-label={`Cantidad de ${nombre}`}
@@ -795,7 +797,6 @@ export function CuadrarPisoForm({
                             e.preventDefault();
                             volverAlEscaner();
                           }}
-                          className="caja-cayla h-11 w-14 text-center text-base tabular-nums text-tinta disabled:opacity-60"
                         />
                         <button
                           type="button"

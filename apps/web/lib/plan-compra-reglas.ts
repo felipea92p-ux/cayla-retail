@@ -23,12 +23,15 @@ import type { PreparacionSede } from "./motor-demanda-reglas";
 import type { PropuestaCategoria } from "./plan-compra-propuesta";
 import type { TiendaReparto } from "./plan-compra-reparto";
 import { compararTallas } from "./tallas";
+import { proyectarCampana } from "./plan-compra-historial";
 
 export const RPC_PLAN = "fn_plan_compra";
 export const RPC_GUARDAR_LINEA = "guardar_plan_compra_linea";
 export const RPC_GUARDAR_TOPE = "guardar_plan_compra_tope";
 export const RPC_PLANES = "fn_planes_compra";
 export const RPC_CREAR_CAMPANA = "crear_plan_compra";
+/** «Campaña nueva» (act. 2026-10-12 f): la etiqueta de campaña en Etiquetas y su plan, en una transacción. */
+export const RPC_CAMPANA_NUEVA = "crear_campana_con_plan";
 export const RPC_EDITAR_CAMPANA = "editar_plan_compra";
 export const RPC_QUITAR_CAMPANA = "quitar_plan_compra";
 export const RPC_RESTAURAR_CAMPANA = "restaurar_plan_compra";
@@ -815,8 +818,9 @@ export function segmentosDelTope(filas: readonly FilaPlan[]): SegmentoTope[] {
 /** Una campaña con plan, para el selector. `conPlan`: cuántas categorías ya tienen su plan. `archivado` y `conTope` (B5): si salió del selector y
  *  si tiene un tope fijado (con categorías o con tope, «Quitar» la archiva en vez de borrarla). */
 export type CampanaPlan = { id: string; nombre: string; desde: string; hasta: string; etiquetaId: string | null; conPlan: number; archivado: boolean; conTope: boolean };
-/** Una campaña de Catálogo ▸ Etiquetas (aprobada y con fechas). `planId`: el plan que ya tiene, o null si todavía no. */
-export type EtiquetaCampana = { id: string; nombre: string; desde: string; hasta: string; planId: string | null };
+/** Una campaña de Catálogo ▸ Etiquetas (aprobada). Sus fechas son las de un año y vuelven cada año (como en Historial); sin fechas, null.
+ *  `planes`: los planes que ya tiene, con el año en que termina cada uno (uno por año, act. 2026-10-12 f); `planId`, el del último año. */
+export type EtiquetaCampana = { id: string; nombre: string; desde: string | null; hasta: string | null; planId: string | null; planes: { id: string; anio: number }[] };
 /** `edicion` (B5): la base ya sabe editar, quitar y restaurar campañas; si no, la pantalla esconde esas opciones. */
 export type CampanasLeidas = { planes: CampanaPlan[]; etiquetas: EtiquetaCampana[]; edicion: boolean };
 
@@ -839,7 +843,13 @@ export function leerCampanas(v: unknown): CampanasLeidas | null {
     const nombre = texto(e.nombre);
     const desde = fechaIso(e.desde);
     const hasta = fechaIso(e.hasta);
-    return id && nombre && desde && hasta ? [{ id, nombre, desde, hasta, planId: texto(e.plan_id) }] : [];
+    // Sin fechas también entra (desde 2026-10-12 f): el selector le dice al líder que se las ponga en Etiquetas, en vez de esconderla.
+    const planes = lista(e.planes).flatMap((x) => {
+      const pid = texto(x.id);
+      const anio = numero(x.anio);
+      return pid && anio > 0 ? [{ id: pid, anio }] : [];
+    });
+    return id && nombre ? [{ id, nombre, desde: desde && hasta ? desde : null, hasta: desde && hasta ? hasta : null, planId: texto(e.plan_id), planes }] : [];
   });
   return { planes, etiquetas, edicion: lista(v.planes).some((p) => typeof p.archivado === "boolean") };
 }
@@ -853,41 +863,100 @@ export const fechaCortaES = (iso: string): string => {
 /** «Diciembre 2026 · 1 dic – 31 dic». */
 export const rotuloDeCampana = (c: Pick<CampanaPlan, "nombre" | "desde" | "hasta">): string => `${c.nombre} · ${fechaCortaES(c.desde)} – ${fechaCortaES(c.hasta)}`;
 
-/** El nombre con que nace el plan de una etiqueta: «Día de la Madre 2027». Lo mismo que pone la base si no se le da uno. */
-export const nombreDeLaCampana = (e: Pick<EtiquetaCampana, "nombre" | "desde">): string => `${e.nombre} ${e.desde.slice(0, 4)}`;
+/** El nombre con que nace el plan de una campaña en un año: «Día de la Madre 2027». Lo mismo que pone la base si no se le da uno (el año del fin). */
+export const nombreDeLaCampana = (e: Pick<EtiquetaCampana, "nombre">, anio: number): string => `${e.nombre} ${anio}`;
 
-export type BorradorCampana = { etiquetaId: string; nombre: string; desde: string; hasta: string };
+/** Las fechas de una campaña de Etiquetas en un año, con la misma regla que Historial (`proyectarCampana`: manda el año del fin; Día de la Madre
+ *  sigue a su segundo domingo de mayo). null si la etiqueta no tiene fechas. */
+export function fechasDelAnio(e: Pick<EtiquetaCampana, "desde" | "hasta">, anio: number): { desde: string; hasta: string } | null {
+  return e.desde && e.hasta ? proyectarCampana({ desde: e.desde, hasta: e.hasta }, anio) : null;
+}
+
+/** Una campaña del calendario que todavía no tiene plan ese año: «Black Friday 2026, del 9 al 30 nov». */
+export type RanuraCalendario = { etiquetaId: string; anio: number; nombre: string; desde: string; hasta: string };
+
+/** ¿Esa campaña ya tiene plan ese año? (también uno archivado: la base no deja otro igual). */
+const tienePlanEn = (e: Pick<EtiquetaCampana, "id" | "planes">, anio: number, planes: readonly Pick<CampanaPlan, "etiquetaId" | "hasta">[]) =>
+  e.planes.some((p) => p.anio === anio) || planes.some((p) => p.etiquetaId === e.id && Number(p.hasta.slice(0, 4)) === anio);
+
+/**
+ * El calendario sin plan (Felipe 2026-10-12, opción A): cada campaña de Etiquetas con fechas, este año y el que viene, que todavía no tiene plan
+ * ese año y no terminó. Es lo que el selector ofrece para «Armar plan».
+ */
+export function ranurasSinPlan(c: Pick<CampanasLeidas, "etiquetas" | "planes">, hoy: string): RanuraCalendario[] {
+  const anio = Number(hoy.slice(0, 4));
+  return c.etiquetas
+    .flatMap((e) =>
+      [anio, anio + 1].flatMap((a): RanuraCalendario[] => {
+        const f = fechasDelAnio(e, a);
+        if (!f || f.hasta < hoy || tienePlanEn(e, a, c.planes)) return [];
+        return [{ etiquetaId: e.id, anio: a, nombre: nombreDeLaCampana(e, a), ...f }];
+      }),
+    )
+    .sort((x, y) => x.desde.localeCompare(y.desde) || x.nombre.localeCompare(y.nombre, "es"));
+}
+
+/** Las campañas de Etiquetas sin fechas: no se pueden armar hasta que se les pongan (el selector se lo dice al líder). */
+export const campanasSinFechas = (c: Pick<CampanasLeidas, "etiquetas">): EtiquetaCampana[] => c.etiquetas.filter((e) => !e.desde || !e.hasta);
+
+/** La hoja de una campaña: la de una del calendario (`etiquetaId`, ya llena) o una campaña NUEVA que no está en Etiquetas (`etiquetaId` null). */
+export type BorradorCampana = { etiquetaId: string | null; nombre: string; desde: string; hasta: string };
 export type CampoCampana = "etiqueta" | "nombre" | "desde" | "hasta";
 
-/** El borrador que arranca al elegir una etiqueta: su nombre y sus fechas. */
-export const borradorDeCampana = (e: EtiquetaCampana | null): BorradorCampana => (e ? { etiquetaId: e.id, nombre: nombreDeLaCampana(e), desde: e.desde, hasta: e.hasta } : { etiquetaId: "", nombre: "", desde: "", hasta: "" });
+/** La hoja de una campaña del calendario: su nombre y sus fechas de ese año. */
+export const borradorDeRanura = (r: RanuraCalendario): BorradorCampana => ({ etiquetaId: r.etiquetaId, nombre: r.nombre, desde: r.desde, hasta: r.hasta });
+/** La hoja de una campaña nueva: vacía. */
+export const borradorNuevo = (): BorradorCampana => ({ etiquetaId: null, nombre: "", desde: "", hasta: "" });
+/** El nombre del plan de una campaña nueva: el de la campaña con el año en que termina, como lo pone la base. */
+export const nombreDelPlanNuevo = (b: Pick<BorradorCampana, "nombre" | "hasta">): string => `${b.nombre.replace(/\s+/g, " ").trim()} ${b.hasta.slice(0, 4)}`;
 
 /** Un nombre de plan para compararlo con otro: sin tildes, sin mayúsculas y con un solo espacio entre palabras. «Navídad  2026» y «navidad 2026»
  *  son el mismo nombre en el selector (chaos 2026-10-10: convivían). */
 export const nombreComparable = (t: string) => sinTildes(t).replace(/\s+/g, " ").trim();
 
-/** Lo que impide crear la campaña, campo por campo (vacío = se puede): lo mismo que rechaza `crear_plan_compra`. */
+/**
+ * Lo que impide crear la campaña, campo por campo (vacío = se puede): lo mismo que rechazan `crear_plan_compra` (una del calendario) y
+ * `crear_campana_con_plan` (una nueva). `nombresEnUso`: los nombres de los planes que ya existen.
+ */
 export function problemasDeLaCampana(b: BorradorCampana, etiquetas: readonly EtiquetaCampana[], nombresEnUso: readonly string[] = []): Partial<Record<CampoCampana, string>> {
   const p: Partial<Record<CampoCampana, string>> = {};
-  const e = etiquetas.find((x) => x.id === b.etiquetaId);
-  if (!e) p.etiqueta = "Elige la campaña de Etiquetas que vas a planificar.";
-  else if (e.planId) p.etiqueta = "Esa campaña ya tiene su plan: ábrelo desde el selector.";
-  const nombre = b.nombre.trim();
-  if (!nombre) p.nombre = "Ponle un nombre al plan.";
-  else if (nombresEnUso.some((n) => nombreComparable(n) === nombreComparable(nombre))) p.nombre = "Ya hay un plan con ese nombre: ponle otro.";
+  const nombre = b.nombre.replace(/\s+/g, " ").trim();
+  const anio = fechaIso(b.hasta) ? Number(b.hasta.slice(0, 4)) : null;
+  const enUso = (n: string) => nombresEnUso.some((x) => nombreComparable(x) === nombreComparable(n));
+  if (b.etiquetaId !== null) {
+    const e = etiquetas.find((x) => x.id === b.etiquetaId);
+    if (!e) p.etiqueta = "Esa campaña ya no está en Etiquetas: vuelve a elegirla en el selector.";
+    else if (anio !== null && tienePlanEn(e, anio, [])) p.etiqueta = `Esa campaña ya tiene su plan de ${anio}: ábrelo desde el selector.`;
+    if (!nombre) p.nombre = "Ponle un nombre al plan.";
+    else if (enUso(nombre)) p.nombre = "Ya hay un plan con ese nombre: ponle otro.";
+  } else if (!nombre) {
+    p.nombre = "Escribe el nombre de la campaña.";
+  } else if (etiquetas.some((e) => nombreComparable(e.nombre) === nombreComparable(nombre))) {
+    const e = etiquetas.find((x) => nombreComparable(x.nombre) === nombreComparable(nombre))!;
+    // Una sin fechas no se puede elegir en el selector (sale apagada): se le dice dónde ponérselas.
+    p.nombre = e.desde
+      ? `«${e.nombre}» ya está en el calendario: elígela en el selector.`
+      : `«${e.nombre}» ya está en Etiquetas, sin fechas: pónselas en Catálogo ▸ Etiquetas («Configurar campaña») y saldrá en el calendario.`;
+  } else if (anio !== null && enUso(nombreDelPlanNuevo(b))) {
+    p.nombre = `Ya hay un plan «${nombreDelPlanNuevo(b)}»: ponle otro nombre a la campaña.`;
+  }
   if (!fechaIso(b.desde)) p.desde = "Escribe desde cuándo empieza.";
   if (!fechaIso(b.hasta)) p.hasta = "Escribe hasta cuándo dura.";
   else if (fechaIso(b.desde) && b.hasta < b.desde) p.hasta = "La campaña no puede terminar antes de empezar.";
   return p;
 }
 
-/** Los argumentos de `crear_plan_compra`. */
+/** Los argumentos de `crear_plan_compra` (una campaña del calendario). */
 export const argsCrearCampana = (b: BorradorCampana) => ({ p_etiqueta_id: b.etiquetaId, p_nombre: b.nombre.replace(/\s+/g, " ").trim() || null, p_desde: b.desde, p_hasta: b.hasta });
+/** Los argumentos de `crear_campana_con_plan` (una campaña nueva). */
+export const argsCampanaNueva = (b: BorradorCampana) => ({ p_nombre: b.nombre.replace(/\s+/g, " ").trim(), p_desde: b.desde, p_hasta: b.hasta });
 
-/** Si las fechas del plan no son las de su etiqueta, lo dice (la diferencia nunca es silenciosa); si coinciden, null. */
+/** Si las fechas del plan no son las de su campaña ESE AÑO, lo dice (la diferencia nunca es silenciosa); si coinciden o no hay con qué comparar, null. */
 export function diferenciaConLaEtiqueta(b: Pick<BorradorCampana, "desde" | "hasta">, e: Pick<EtiquetaCampana, "nombre" | "desde" | "hasta"> | undefined): string | null {
-  if (!e || (b.desde === e.desde && b.hasta === e.hasta)) return null;
-  return `«${e.nombre}» en Etiquetas va del ${fechaCortaES(e.desde)} al ${fechaCortaES(e.hasta)}. Un plan de compra puede ser más ancho que la campaña de venta: ajusta las fechas solo si lo quieres así.`;
+  if (!e || !fechaIso(b.hasta)) return null;
+  const f = fechasDelAnio(e, Number(b.hasta.slice(0, 4)));
+  if (!f || (b.desde === f.desde && b.hasta === f.hasta)) return null;
+  return `«${e.nombre}» en Etiquetas va del ${fechaCortaES(f.desde)} al ${fechaCortaES(f.hasta)}. Un plan de compra puede ser más ancho que la campaña de venta: ajusta las fechas solo si lo quieres así.`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -986,6 +1055,43 @@ export function campanasDelSelector(planes: readonly CampanaPlan[], hoy: string)
     ...porVenir.map((campana) => ({ campana, grupo: `Por venir · ${campana.desde.slice(0, 4)}` })),
     ...terminadas.map((campana) => ({ campana, grupo: "Terminadas" })),
   ];
+}
+
+/** Una fila del selector: un plan que se abre, una campaña del calendario que se arma, o una sin fechas (solo se lee). */
+export type EntradaSelector =
+  | { tipo: "plan"; campana: CampanaPlan; grupo: string }
+  | { tipo: "calendario"; ranura: RanuraCalendario; grupo: string }
+  | { tipo: "sin-fechas"; etiqueta: EtiquetaCampana; grupo: string };
+
+/** El orden de los grupos: en curso, por venir (por año), terminadas y, al final, las que no tienen fechas. */
+function rangoDeGrupo(g: string): number {
+  if (g === "En curso") return 0;
+  const m = /^Por venir · (\d{4})$/.exec(g);
+  if (m) return Number(m[1]);
+  return g === "Terminadas" ? 99_998 : 99_999;
+}
+
+/**
+ * El selector como CALENDARIO (Felipe 2026-10-12, opción A): los planes de siempre más las campañas de Etiquetas que todavía no tienen plan este
+ * año o el que viene, cada una en su grupo, y —solo para quien puede armar— las que no tienen fechas. Los grupos quedan seguidos (el combo los
+ * dibuja con un título por tanda) y, dentro de cada uno, por fecha.
+ */
+export function calendarioDelSelector(c: Pick<CampanasLeidas, "etiquetas" | "planes">, hoy: string, conSinFechas: boolean): EntradaSelector[] {
+  const desde = (x: EntradaSelector) => (x.tipo === "plan" ? x.campana.desde : x.tipo === "calendario" ? x.ranura.desde : "9999");
+  const nombre = (x: EntradaSelector) => (x.tipo === "plan" ? x.campana.nombre : x.tipo === "calendario" ? x.ranura.nombre : x.etiqueta.nombre);
+  const enCurso = (r: RanuraCalendario) => estadoCampana(hoy, r.desde, r.hasta) === "durante";
+  const todas: EntradaSelector[] = [
+    ...campanasDelSelector(c.planes, hoy).map(({ campana, grupo }) => ({ tipo: "plan" as const, campana, grupo })),
+    ...ranurasSinPlan(c, hoy).map((ranura) => ({ tipo: "calendario" as const, ranura, grupo: enCurso(ranura) ? "En curso" : `Por venir · ${ranura.desde.slice(0, 4)}` })),
+    ...(conSinFechas ? campanasSinFechas(c).map((etiqueta) => ({ tipo: "sin-fechas" as const, etiqueta, grupo: "Sin fechas en Etiquetas" })) : []),
+  ];
+  // Las terminadas, de la más reciente a la más vieja (como antes); el resto, por fecha.
+  return todas.sort((a, b) => {
+    const r = rangoDeGrupo(a.grupo) - rangoDeGrupo(b.grupo);
+    if (r !== 0) return r;
+    const f = a.grupo === "Terminadas" ? desde(b).localeCompare(desde(a)) : desde(a).localeCompare(desde(b));
+    return f || nombre(a).localeCompare(nombre(b), "es");
+  });
 }
 
 /**

@@ -2,7 +2,7 @@ import {
   TicketPercent,
   Activity, BarChart3, Banknote, Bookmark, CalendarCheck, CalendarRange, ClipboardCheck, ClipboardList, Coins, FileMinus, FileText, Gauge, Globe, History, House,
   KeyRound, Landmark, LayoutGrid, Leaf, LineChart, ListOrdered, MessageCircle, Package, PackageOpen, Percent, Receipt, Repeat, Scissors, Settings,
-  Shirt, ShoppingCart, Store, Tag, Tags, Truck, Undo2, UserRound, Users, Wallet, type LucideIcon,
+  Shirt, ShoppingCart, Spool, Store, Tag, Tags, Truck, Undo2, UserRound, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 import type { ClaveModulo } from "@/lib/modulos";
 
@@ -38,6 +38,7 @@ const ICONOS: Record<ClaveModulo, LucideIcon> = {
   notas_credito: FileMinus,
   plan_compra: CalendarRange,
   produccion: Scissors,
+  ordenes_insumos: Spool,
   analisis: BarChart3,
   colaboradores: Users,
   roles: KeyRound,

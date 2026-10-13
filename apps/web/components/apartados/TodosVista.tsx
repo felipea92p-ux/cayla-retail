@@ -42,6 +42,8 @@ import {
   textoDelPeriodo,
   type PeriodoApartados,
 } from "@/lib/historial-apartados-reglas";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Casilla } from "@/components/ui/Casilla";
 
 type Filtro = "hoy" | "abiertos" | "cerrados" | "todos";
 // «Todos» va primero y es lo que se ve al entrar al Historial (Felipe 2026-10-10): el historial muestra todo y los
@@ -258,9 +260,9 @@ export function TodosVista({
 
       {conOtraSede && pedidos.length > 0 && (
         <section data-guia="apartados.pedidos" className="rounded-2xl border border-sand">
-          <h3 className="font-display flex items-baseline gap-2 border-b border-sand px-5 py-3 text-lg text-tinta">
-            Pedidos entre tiendas <span className="font-sans text-[11px] text-tinta/55">{pedidos.length}</span>
-          </h3>
+          <TituloSeccion nivel={3} dato={<b>{pedidos.length}</b>} className="border-b border-sand px-5 py-3">
+            Pedidos entre tiendas
+          </TituloSeccion>
           <ul className="divide-y divide-sand">
             {pedidos.map((pe) => {
               const pr = prendaDe(pe.varianteId);
@@ -332,7 +334,7 @@ export function TodosVista({
             <p className="label-cayla px-2 pt-1 pb-1.5 text-[10px] text-tinta/55">Qué ver en cada apartado</p>
             {COLUMNAS_TODOS.filter((c) => c.id !== "estante" || conEstante).map((c) => (
               <label key={c.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] hover:bg-crema">
-                <input type="checkbox" checked={ver[c.id]} onChange={(e) => cambiarVer({ ...ver, [c.id]: e.target.checked })} className="accent-tinta" />
+                <Casilla marcada={ver[c.id]} onCambio={() => cambiarVer({ ...ver, [c.id]: !ver[c.id] })} etiqueta={`Ver ${c.etiqueta}`} className="shrink-0" />
                 <span className="flex-1">{c.etiqueta}</span>
                 {COLUMNAS_DE_FABRICA[c.id] && <span className="text-[10.5px] text-tinta/45">de fábrica</span>}
               </label>
@@ -381,7 +383,7 @@ export function TodosVista({
                 type="button"
                 onClick={() => setPeriodo("todo")}
                 aria-pressed={periodo === "todo"}
-                className={`label-cayla pb-2 text-[11px] underline-offset-2 hover:text-rojo hover:underline ${periodo === "todo" ? "text-tinta" : "text-tinta/65"}`}
+                className="pildora-cayla mb-1"
               >
                 Todo el historial
               </button>
@@ -454,9 +456,9 @@ export function TodosVista({
           if (filas.length === 0) return null;
           return (
             <section key={g.titulo} data-guia="apartados.lista">
-              <h3 className="font-display mb-2.5 flex items-baseline gap-2 text-lg text-tinta">
-                {g.titulo} <span className="font-sans text-[11px] text-tinta/55">{filas.length}</span>
-              </h3>
+              <TituloSeccion nivel={3} dato={<b>{filas.length}</b>} className="mb-2.5">
+                {g.titulo}
+              </TituloSeccion>
               <ul className="divide-y divide-sand overflow-hidden rounded-2xl border border-sand">
                 {filas.map(({ a, e }, i) => (
                   <li key={a.id} style={{ ["--i" as string]: i }} className="anim-sube grid items-center gap-x-5 gap-y-2 px-5 py-3.5 hover:bg-crema/60 md:grid-cols-[minmax(190px,1.3fr)_minmax(130px,1fr)_150px_170px_auto]">

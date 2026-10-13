@@ -20,6 +20,7 @@ import type { ModeloProducible, OrdenProduccion } from "@/lib/produccion";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
 import { Scissors, Shirt } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Órdenes de producción del Taller (ADR-0133, F2): un tablero por etapa en vez de una lista plana. La etapa donde
 // está la orden ES su columna; al marcarla hecha la tarjeta viaja a la siguiente. Las muestras (otras tres
@@ -162,9 +163,10 @@ export function OrdenesTablero({
             const tarjetas = porColumna(col.clave);
             return (
               <section key={col.clave} aria-label={col.titulo} className="min-h-[9rem] min-w-0 rounded-2xl bg-sand/35 p-2.5">
-                <header className="flex items-center justify-between px-1.5 pb-2.5 pt-1.5">
-                  <h2 className="label-cayla text-[11px] text-tinta/65">{col.titulo}</h2>
-                  <span className="text-xs tabular-nums text-tinta/65">{tarjetas.length}</span>
+                <header className="px-1.5 pb-2.5 pt-1.5">
+                  <TituloGrupo nivel={2} cuenta={tarjetas.length}>
+                    {col.titulo}
+                  </TituloGrupo>
                 </header>
                 <div className="space-y-2.5">
                   {tarjetas.length === 0 ? (
@@ -186,7 +188,7 @@ export function OrdenesTablero({
       {/* ==================== muestras ==================== */}
       {muestras.length > 0 && (
         <section data-guia="prod-ordenes.muestras" className="space-y-3">
-          <h2 className="label-cayla text-[11px] text-tinta/65">Muestras en desarrollo</h2>
+          <TituloSeccion>Muestras en desarrollo</TituloSeccion>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {muestras.map((o) => (
               <OrdenTarjeta key={o.id} orden={o} esLider={esLider} hoy={hoy} indice={indice++} onAbrir={() => setAbiertaId(o.id)} />
@@ -243,7 +245,7 @@ export function OrdenesTablero({
       {/* ==================== anuladas ==================== */}
       {anuladas.length > 0 && (
         <section data-guia="prod-ordenes.anuladas" className="space-y-2">
-          <h2 className="label-cayla text-[11px] text-tinta/65">Anuladas</h2>
+          <TituloSeccion>Anuladas</TituloSeccion>
           {anuladas.map((o) => (
             <div key={o.id} className="card-cayla flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-3 text-sm text-tinta/65">
               <span className="text-tinta/80">{o.referencia}</span>

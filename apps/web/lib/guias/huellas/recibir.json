@@ -2,11 +2,10 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 129,
+  "total": 126,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «)»",
-      "Link «recibir.ver-todo»",
       "BotonEnlace «Limpiar filtros»",
       "Link «recíbela sin factura»",
       "BotonEnlace «Registrar un comprobante»",
@@ -41,12 +40,11 @@
       "Link «Ver recibidas»"
     ],
     "components/FiltrosRecibidas.tsx": [
+      "DesplegablePildora «Proveedor»",
       "button «{texto}»",
       "button «{texto}» #2",
       "button «Limpiar»",
-      "button «Proveedor»",
-      "input «Buscar proveedor»",
-      "button «{textoFechas(desde || undefined, hasta || undefined, hoy)}»",
+      "button «{activa ? `Fechas: ${textoFechas(desde || undefined, hasta || undefined, hoy)}»",
       "button «{p.etiqueta}»",
       "CampoFecha «Desde»",
       "CampoFecha «Hasta»",
@@ -62,7 +60,6 @@
       "Link «Sí, viene con la»",
       "Link «Ver las»",
       "button «No, recibir sin factura»",
-      "input «{PLACEHOLDER_BUSCADOR}»",
       "button «{p.referencia}»",
       "button «Deshacer»",
       "Link «Crearla en Nuevo producto»",
@@ -75,11 +72,8 @@
       "button «{guia.frase ?? undefined}»"
     ],
     "components/Paginacion.tsx": [
-      "Link «← Volver al inicio»",
-      "Link «Siguiente página →»",
-      "Link «‹»",
-      "Link «{n}»",
-      "Link «›»"
+      "Link «Volver al inicio»",
+      "Link «Siguiente página»"
     ],
     "components/ProveedorModal.tsx": [
       "button «Cerrar»",
@@ -148,7 +142,6 @@
     ],
     "components/RecepcionVistaRapida.tsx": [
       "button «Cerrar»",
-      "Link «Ver comprobante completo →»",
       "button «Recepción anterior»",
       "button «Recepción siguiente»"
     ],
@@ -157,13 +150,21 @@
       "button «{diaMes(hoyLima(new Date(g.fechaRecepcion)))}»"
     ],
     "components/RecepcionesRecientes.tsx": [
-      "button «recibir.reciente»",
-      "Link «Ver factura completa →»"
+      "button «recibir.reciente»"
     ],
     "components/ResumenPrevioEnvio.tsx": [
       "ComboResponsable «(sin nombre)»",
       "Volver «Confirmar y recibir»",
       "Boton «Confirmar y recibir»"
+    ],
+    "components/recepcion-envio/EnviosParaRecibir.tsx": [
+      "BotonEnlace «{e.estado === \"abierto\" ? \"Seguir recibiendo\" : \"Recibir\"}»"
+    ],
+    "components/recepcion-envio/RecibirSinGuia.tsx": [
+      "Boton «Recibir sin guía»",
+      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ]
   }
 }

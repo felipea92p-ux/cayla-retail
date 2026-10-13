@@ -223,7 +223,9 @@ select 'A · aviso: la vencida y la que vence en 3 días están; la de 25 días 
   and exists (select 1 from jsonb_array_elements(pg_temp.filas('todas', 'por_pagar')) f where f ->> 'id' = pg_temp.k('CPRONTO')::text)
   and not exists (select 1 from jsonb_array_elements(pg_temp.filas('todas', 'por_pagar')) f where f ->> 'id' = pg_temp.k('CLEJOS')::text)
   and (pg_temp.r('todas') -> 'por_pagar' ->> 'total')::numeric >= 708;
-select 'A · F4: una tienda, su parte',
+-- ADR-0387 (decisión 45, Felipe 2026-10-12): mirando una tienda, lo que se debe son las facturas que ELLA gestiona, enteras;
+-- lo que recibió de una factura ajena no es deuda suya (antes: su parte de cada factura). La cifra sigue siendo la de F4.
+select 'A · F4: una tienda, las facturas que gestiona, enteras (ADR-0387, decisión 45; antes, su parte)',
   (pg_temp.r('tru') -> 'por_pagar' ->> 'total')::numeric = (select coalesce(sum(p.saldo), 0) from retail.fn_por_pagar_consolidado(:'tru', null, false) p);
 select 'A · F4: la empresa, lo de la empresa',
   (pg_temp.r('emp') -> 'por_pagar' ->> 'n')::integer = (select count(*) from retail.fn_por_pagar_consolidado(null, null, true) p);
@@ -418,6 +420,8 @@ select 'C · flujo, IGV, lo sin cuenta y el cierre no aplican (son de CAYLA ente
   (select j -> 'flujo' = '{"no_aplica": true}' and j -> 'igv' = '{"no_aplica": true}' and j -> 'sin_cuenta' = '{"no_aplica": true}'
           and j -> 'cierre' = '{"no_aplica": true}' from rep);
 select 'C · no recibe la lista de unidades para «Ver»', (select j -> 'unidades' = '[]' and not (j ->> 'lider')::boolean from rep);
+-- «Esas partes» son las secciones del resumen. Lo que se debe de su tienda es F4 mirando su tienda: desde ADR-0387 (decisión 45,
+-- Felipe 2026-10-12), las facturas que su tienda gestiona, enteras (antes, su parte de cada factura).
 select 'C · con Cuentas y dinero y Gastos, esas partes aparecen, solo de su tienda',
   (select coalesce(bool_and(f ->> 'ubicacion_id' = :'tru'), true) from todo, jsonb_array_elements(todo.j -> 'cuentas' -> 'filas') f)
   and (select (j -> 'por_pagar' ->> 'total')::numeric from todo) = (select total from pp_tru)

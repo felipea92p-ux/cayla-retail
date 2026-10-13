@@ -1,4 +1,4 @@
-import { diasEntre, type CampanaPlan, type EstadoCampana, type FiltroPlan } from "./plan-compra-reglas";
+import { diasEntre, ranurasSinPlan, type CampanasLeidas, type EstadoCampana, type FiltroPlan, type RanuraCalendario } from "./plan-compra-reglas";
 
 // Qué pregunta responde el Plan de campaña según el MOMENTO de la campaña y cuánto plan tiene (prompt maestro, 2026-10-13). Antes de que
 // empiece, la pregunta es «¿cuánto compro?». Si ya empezó (o terminó) y nadie la planificó, ofrecer «Armar plan» en cada fila es ruido: lo
@@ -22,7 +22,28 @@ export function formaDeLaTabla(estado: EstadoCampana, conPlan: number): FormaTab
   return { venta: estado === "antes" || hayPlan, compra: hayPlan, real: estado !== "antes", leyenda: hayPlan };
 }
 
-export type Proxima = { id: string; nombre: string; dias: number };
+/** La campaña que viene y cómo se llega a ella: un plan que ya existe se abre por su URL; una del calendario de Etiquetas sin plan
+ *  (ADR-0372 act. f) se arma desde su hoja, igual que en el selector. */
+export type Proxima = {
+  nombre: string;
+  dias: number;
+  destino: { tipo: "plan"; id: string } | { tipo: "calendario"; ranura: RanuraCalendario };
+};
+
+/** La campaña que viene: la primera que todavía no empieza, tenga plan o esté en el calendario sin él. No cuenta la que se mira ni las
+ *  archivadas. A igual fecha gana la que ya tiene plan (no hay que armarla). */
+export function proximaCampana(c: Pick<CampanasLeidas, "planes" | "etiquetas">, hoy: string, actualId: string): Proxima | null {
+  const candidatas: (Proxima & { desde: string; orden: number })[] = [
+    ...c.planes
+      .filter((p) => !p.archivado && p.id !== actualId && p.desde > hoy)
+      .map((p) => ({ nombre: p.nombre, desde: p.desde, orden: 0, dias: diasEntre(hoy, p.desde), destino: { tipo: "plan" as const, id: p.id } })),
+    ...ranurasSinPlan(c, hoy)
+      .filter((r) => r.desde > hoy)
+      .map((r) => ({ nombre: r.nombre, desde: r.desde, orden: 1, dias: diasEntre(hoy, r.desde), destino: { tipo: "calendario" as const, ranura: r } })),
+  ];
+  const primera = candidatas.sort((a, b) => a.desde.localeCompare(b.desde) || a.orden - b.orden || a.nombre.localeCompare(b.nombre, "es"))[0];
+  return primera ? { nombre: primera.nombre, dias: primera.dias, destino: primera.destino } : null;
+}
 
 /** Lo que la pantalla ofrece como camino principal. */
 export type QueToca =
@@ -32,14 +53,6 @@ export type QueToca =
   | { tipo: "sin-plan"; estado: "durante" | "despues"; proxima: Proxima | null }
   /** Ya empezó o terminó con plan: la tabla misma compara lo planificado con lo vendido. */
   | { tipo: "mirar" };
-
-/** La campaña que viene: la primera que todavía no empieza, sin contar la que se mira ni las archivadas. */
-export function proximaCampana(planes: readonly CampanaPlan[], hoy: string, actualId: string): Proxima | null {
-  const siguiente = planes
-    .filter((p) => !p.archivado && p.id !== actualId && p.desde > hoy)
-    .sort((a, b) => a.desde.localeCompare(b.desde) || a.nombre.localeCompare(b.nombre, "es"))[0];
-  return siguiente ? { id: siguiente.id, nombre: siguiente.nombre, dias: diasEntre(hoy, siguiente.desde) } : null;
-}
 
 export function queTocaHoy(estado: EstadoCampana, conPlan: number, proxima: Proxima | null): QueToca {
   if (estado === "antes") return { tipo: "llenar" };

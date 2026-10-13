@@ -237,9 +237,9 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
 // Estilos de campo compartidos — el mismo patrón que ya usaba EfectivoPanel
 // (el primer modal migrado al sistema v3), para que un formulario nuevo no
 // tenga que reinventar la etiqueta/input/botón de cada modal.
-export const campoEtiqueta = "label-cayla text-[11px] text-tinta/70";
-export const campoTexto =
-  "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo";
+// Desde la ronda 6 de /unificar (ADR-0358) son la etiqueta de `Campo` y la caja que se enciende (antes, versalitas al 70 % y una raya).
+export const campoEtiqueta = "campo-etiqueta";
+export const campoTexto = "caja-campo-input";
 export const botonCancelar =
   "btn-cayla btn-secundario flex-1";
 export const botonPrimario =

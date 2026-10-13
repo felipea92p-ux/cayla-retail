@@ -290,6 +290,36 @@
   "src_table": "cuentas_dinero"
  },
  {
+  "conname": "despacho_diferencias_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_diferencias"
+ },
+ {
+  "conname": "despacho_recibidos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despacho_recibidos"
+ },
+ {
+  "conname": "despachos_abierto_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despachos"
+ },
+ {
+  "conname": "despachos_anulado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despachos"
+ },
+ {
+  "conname": "despachos_cerrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despachos"
+ },
+ {
+  "conname": "despachos_despachado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "despachos"
+ },
+ {
   "conname": "devoluciones_aprobado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "devoluciones"
@@ -608,6 +638,11 @@
   "conname": "proveedor_creditos_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "proveedor_creditos"
+ },
+ {
+  "conname": "proveedor_deuda_resoluciones_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "proveedor_deuda_resoluciones"
  },
  {
   "conname": "proveedores_produccion_creado_por_fkey",

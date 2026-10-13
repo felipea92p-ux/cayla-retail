@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { avisoSinPlan, formaDeLaTabla, pildoraVisible, proximaCampana, queTocaHoy, subtituloDelPlan } from "./plan-compra-momento";
-import type { CampanaPlan, EstadoCampana, FiltroPlan } from "./plan-compra-reglas";
+import type { CampanaPlan, EstadoCampana, EtiquetaCampana, FiltroPlan } from "./plan-compra-reglas";
 
 const ESTADOS: EstadoCampana[] = ["antes", "durante", "despues"];
 
@@ -45,22 +45,42 @@ describe("formaDeLaTabla", () => {
 
 describe("proximaCampana", () => {
   const hoy = "2026-10-13";
-  it("elige la primera que todavía no empieza", () => {
-    const p = proximaCampana([campana("navidad", "2026-12-11"), campana("halloween", "2026-10-17"), campana("diciembre", "2025-12-01")], hoy, "x");
-    expect(p).toEqual({ id: "halloween", nombre: "Campaña halloween", dias: 4 });
+  const etiqueta = (id: string, desde: string, hasta: string, extra: Partial<EtiquetaCampana> = {}): EtiquetaCampana => ({
+    id,
+    nombre: `Etiqueta ${id}`,
+    desde,
+    hasta,
+    planId: null,
+    planes: [],
+    ...extra,
+  });
+  const sinCalendario = (planes: CampanaPlan[]) => ({ planes, etiquetas: [] as EtiquetaCampana[] });
+
+  it("elige el primer plan que todavía no empieza y lleva a él", () => {
+    const p = proximaCampana(sinCalendario([campana("navidad", "2026-12-11"), campana("halloween", "2026-10-17"), campana("diciembre", "2025-12-01")]), hoy, "x");
+    expect(p).toEqual({ nombre: "Campaña halloween", dias: 4, destino: { tipo: "plan", id: "halloween" } });
   });
   it("no cuenta la que se está mirando, las archivadas ni las que ya empezaron hoy", () => {
     const planes = [campana("actual", "2026-10-20"), campana("archivada", "2026-10-15", { archivado: true }), campana("hoy", hoy), campana("sigue", "2026-11-01")];
-    expect(proximaCampana(planes, hoy, "actual")?.id).toBe("sigue");
+    expect(proximaCampana(sinCalendario(planes), hoy, "actual")?.destino).toEqual({ tipo: "plan", id: "sigue" });
+  });
+  it("una campaña del calendario sin plan que viene antes gana, y se arma desde su hoja", () => {
+    const p = proximaCampana({ planes: [campana("navidad", "2026-12-11")], etiquetas: [etiqueta("halloween", "2026-10-17", "2026-10-31")] }, hoy, "x");
+    expect(p?.dias).toBe(4);
+    expect(p?.destino.tipo).toBe("calendario");
+    expect(p?.destino.tipo === "calendario" && p.destino.ranura.etiquetaId).toBe("halloween");
+  });
+  it("una del calendario que ya empezó no es «la próxima»", () => {
+    expect(proximaCampana({ planes: [], etiquetas: [etiqueta("aniv", "2026-10-01", "2026-10-21")] }, hoy, "x")?.dias).toBeGreaterThan(300);
   });
   it("sin campañas por venir, no hay próxima", () => {
-    expect(proximaCampana([campana("vieja", "2025-12-01")], hoy, "x")).toBeNull();
-    expect(proximaCampana([], hoy, "x")).toBeNull();
+    expect(proximaCampana(sinCalendario([campana("vieja", "2025-12-01")]), hoy, "x")).toBeNull();
+    expect(proximaCampana(sinCalendario([]), hoy, "x")).toBeNull();
   });
 });
 
 describe("queTocaHoy", () => {
-  const proxima = { id: "h", nombre: "Halloween", dias: 4 };
+  const proxima = { nombre: "Halloween", dias: 4, destino: { tipo: "plan" as const, id: "h" } };
   it("antes de la campaña siempre toca llenar, con o sin planes", () => {
     expect(queTocaHoy("antes", 0, proxima)).toEqual({ tipo: "llenar" });
     expect(queTocaHoy("antes", 5, proxima)).toEqual({ tipo: "llenar" });
@@ -95,8 +115,8 @@ describe("avisoSinPlan", () => {
     expect(a.texto).not.toMatch(/próxima/);
   });
   it("con próxima, dice cuándo empieza en palabras", () => {
-    expect(avisoSinPlan({ tipo: "sin-plan", estado: "durante", proxima: { id: "h", nombre: "Halloween", dias: 4 } }).texto).toContain("Halloween, empieza en 4 días");
-    expect(avisoSinPlan({ tipo: "sin-plan", estado: "despues", proxima: { id: "h", nombre: "Halloween", dias: 1 } }).texto).toContain("empieza mañana");
+    expect(avisoSinPlan({ tipo: "sin-plan", estado: "durante", proxima: { nombre: "Halloween", dias: 4, destino: { tipo: "plan", id: "h" } } }).texto).toContain("Halloween, empieza en 4 días");
+    expect(avisoSinPlan({ tipo: "sin-plan", estado: "despues", proxima: { nombre: "Halloween", dias: 1, destino: { tipo: "plan", id: "h" } } }).texto).toContain("empieza mañana");
   });
   it("terminada: no invita a planificarla (ya pasó)", () => {
     const a = avisoSinPlan({ tipo: "sin-plan", estado: "despues", proxima: null });

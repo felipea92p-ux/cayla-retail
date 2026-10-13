@@ -40,9 +40,10 @@ export function camposDelTope(texto: string, responsable: { listo: boolean; moti
 export function camposDeLaCampana(b: BorradorCampana, etiquetas: readonly EtiquetaCampana[], nombresEnUso: readonly string[], responsable: { listo: boolean; motivo: string | null }): CampoDeGuia[] {
   const p = problemasDeLaCampana(b, etiquetas, nombresEnUso);
   const campo = (id: "etiqueta" | "nombre" | "desde" | "hasta", nombre: string): CampoDeGuia => ({ id, nombre, requerido: true, hecho: !p[id], pendiente: p[id] ?? "Falta este dato." });
+  // Una campaña del calendario ya viene elegida (act. 2026-10-12 f): solo cuenta si mientras tanto alguien le armó el plan de ese año.
   return [
-    campo("etiqueta", "Campaña de Etiquetas"),
-    campo("nombre", "Nombre del plan"),
+    ...(b.etiquetaId !== null && p.etiqueta ? [campo("etiqueta", "Campaña")] : []),
+    campo("nombre", b.etiquetaId === null ? "Nombre de la campaña" : "Nombre del plan"),
     campo("desde", "Desde"),
     campo("hasta", "Hasta"),
     { id: "responsable", nombre: "Quién crea la campaña", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién crea la campaña." },

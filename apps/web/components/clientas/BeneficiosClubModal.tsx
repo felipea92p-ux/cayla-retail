@@ -33,7 +33,6 @@ import { Aviso } from "@/components/ui/Aviso";
 // (`lib/club-beneficios-guia.ts`, probada contra `problemasBeneficios`).
 
 const ID = { pct: "beneficios-pct", compras: "beneficios-compras", monto: "beneficios-monto", dias: "beneficios-dias", escala: "beneficios-escala-1" } as const;
-const CAJA_INPUT = "h-10 w-full min-w-0 bg-transparent px-0.5 text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/55";
 
 export function BeneficiosClubModal({
   lectura,
@@ -146,7 +145,7 @@ function FormularioBeneficios({ vigentes, cerrar, onGuardado }: { vigentes: Bene
           {Array.from({ length: ANIOS_ESCALA }, (_, i) => (
             <label key={i} className="block min-w-0">
               <span className="mb-1 block text-[11px] text-taupe">{i === ANIOS_ESCALA - 1 ? `Año ${i + 1} y más` : `Año ${i + 1}`}</span>
-              <span className="caja-cayla flex items-center gap-1 px-2.5">
+              <span className="caja-cayla caja-campo gap-1 px-2.5">
                 <span className="text-xs text-taupe" aria-hidden>
                   S/
                 </span>
@@ -158,7 +157,7 @@ function FormularioBeneficios({ vigentes, cerrar, onGuardado }: { vigentes: Bene
                   value={borrador.escala[i] ?? ""}
                   onChange={ponerAnio(i)}
                   disabled={guardando}
-                  className={CAJA_INPUT}
+                  className="self-stretch py-0 text-sm tabular-nums"
                 />
               </span>
             </label>
@@ -225,13 +224,13 @@ function Caja({
   disabled?: boolean;
 }) {
   return (
-    <span className="caja-cayla flex items-center gap-1.5 px-3">
+    <span className="caja-cayla caja-campo gap-1.5">
       {inicio && (
         <span className="text-xs text-taupe" aria-hidden>
           {inicio}
         </span>
       )}
-      <input id={id} aria-label={etiqueta} inputMode={decimal ? "decimal" : "numeric"} autoComplete="off" value={valor} onChange={onChange} disabled={disabled} className={CAJA_INPUT} />
+      <input id={id} aria-label={etiqueta} inputMode={decimal ? "decimal" : "numeric"} autoComplete="off" value={valor} onChange={onChange} disabled={disabled} className="self-stretch py-0 text-sm tabular-nums" />
       {fin && (
         <span className="shrink-0 text-xs text-taupe" aria-hidden>
           {fin}

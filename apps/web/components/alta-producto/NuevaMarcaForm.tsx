@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
+import { CampoTexto } from "@/components/ui/campos";
 import { marcasParecidas, type MarcaConProveedores, type ProveedorOpcion } from "@/lib/marcas";
 import { proveedoresParecidos } from "@/lib/proveedores-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
@@ -353,37 +354,32 @@ export function NuevaMarcaForm({
         ) : provNuevo ? (
           <div className="space-y-1.5">
             <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label htmlFor="nuevo-proveedor" className="mb-1 block text-xs text-tinta/70">
-                  Razón social
-                </label>
-                <input
-                  id="nuevo-proveedor"
-                  autoFocus
-                  value={provNombre}
-                  onChange={(e) => setProvNombre(e.target.value)}
-                  onKeyDown={enter}
-                  placeholder="Textil Andina SAC" // sugerir-fijo: razón social de un proveedor nuevo; no depende de nada elegido antes
-                  autoComplete="off"
-                  className="caja-cayla h-10 w-full px-3 text-sm text-tinta placeholder:text-tinta/45"
-                />
-              </div>
-              <div>
-                <label htmlFor="nuevo-ruc" className="mb-1 block text-xs text-tinta/70">
-                  RUC <span className="text-taupe">· opcional</span>
-                </label>
-                <input
-                  id="nuevo-ruc"
-                  inputMode="numeric"
-                  maxLength={11}
-                  value={provRuc}
-                  onChange={(e) => setProvRuc(e.target.value.replace(/\D/g, ""))}
-                  onKeyDown={enter}
-                  placeholder="11 dígitos" // sugerir-fijo: formato del RUC; es el mismo para cualquier proveedor
-                  autoComplete="off"
-                  className="caja-cayla h-10 w-full px-3 text-sm tabular-nums text-tinta placeholder:text-tinta/45"
-                />
-              </div>
+              <CampoTexto
+                etiqueta="Razón social"
+                sinPie
+                id="nuevo-proveedor"
+                autoFocus
+                value={provNombre}
+                onChange={(e) => setProvNombre(e.target.value)}
+                onKeyDown={enter}
+                placeholder="Textil Andina SAC" // sugerir-fijo: razón social de un proveedor nuevo; no depende de nada elegido antes
+              />
+              <CampoTexto
+                etiqueta={
+                  <>
+                    RUC <span className="font-normal normal-case tracking-normal text-taupe">· opcional</span>
+                  </>
+                }
+                sinPie
+                id="nuevo-ruc"
+                inputMode="numeric"
+                maxLength={11}
+                value={provRuc}
+                onChange={(e) => setProvRuc(e.target.value.replace(/\D/g, ""))}
+                onKeyDown={enter}
+                placeholder="11 dígitos" // sugerir-fijo: formato del RUC; es el mismo para cualquier proveedor
+                className="tabular-nums"
+              />
             </div>
             <p className="text-xs text-taupe">
               Con esto alcanza para seguir; el contacto, el banco y el plazo se completan después en Compras.

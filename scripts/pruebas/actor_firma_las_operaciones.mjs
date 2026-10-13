@@ -179,6 +179,9 @@ const MIRAN_LA_CUENTA = [
   "fn_es_admin", "fn_es_lider", "fn_mi_perfil", "fn_persona_actual_resumen", "fn_persona_nueva_resumen",
   "fn_stock_por_sede", "fn_terminal_actual", "fn_tiene_acceso_retail", "fn_ubicacion_actual_persona",
   "liberar_apartado", "listar_apartados", "registrar_venta",
+  // ADR-0362 fase 4: «quién mira» en Recibir (la persona de la cuenta, null en una terminal) para avisar «tú hiciste la orden» antes
+  // de que la base lo frene; es identidad, no firma: quien recibe firma con fn_actor_persona_id(true).
+  "fn_recepcion_quien_mira",
 ].sort();
 // Las de roles por módulo (20260923030000) se clasifican y se vigilan en `roles_por_modulo.mjs`: `fn_mi_rol_id` mira la
 // cuenta (permiso) y sus 6 RPC firman con el actor de no-tienda, una vez cada una. Se excluyen acá para que este conteo

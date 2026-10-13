@@ -17,7 +17,7 @@
     "components/PorRegularizarLista.tsx": [
       "button «{f.texto}»",
       "button «(sin nombre)»",
-      "Desplegable «(sin nombre)»"
+      "DesplegablePildora «Vendió»"
     ],
     "components/PrendaSinRegistrarModal.tsx": [
       "button «Usar «»",
@@ -39,7 +39,7 @@
       "CampoSelect «Tienda»",
       "button «Reintentar»",
       "button «(sin nombre)»",
-      "input «Lo que anotó caja»",
+      "Casilla «{`Unir «${s.venta.descripcion}»",
       "Boton «{sugerencias.length > 0 ? \"Cancelar\" : \"Cerrar\"}»",
       "Boton «→() => void confirmar()»"
     ],

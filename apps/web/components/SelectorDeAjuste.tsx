@@ -73,7 +73,7 @@ export function SelectorDeAjuste({
                 >
                   <Minus className="h-3.5 w-3.5" aria-hidden />
                 </button>
-                <input
+                <input /* unificar-fijo: la cifra dentro del paso − / + de la talla; el paso entero es la caja */
                   // Al sumar o restar hace falta el «−»: un teclado solo numérico no lo trae.
                   inputMode={modo === "contado" ? "numeric" : "text"}
                   aria-label={`${etiquetaControl} · talla ${f.talla}`}

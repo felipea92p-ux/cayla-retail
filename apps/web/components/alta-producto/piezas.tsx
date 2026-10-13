@@ -12,60 +12,6 @@ import type { CampoAlta, EstadoCampo } from "@/lib/alta-producto-guia";
 // dice con tinta (borde y fondo oscuros suaves + marca ✓), el rojo queda para
 // lo que bloquea, y el ámbar para lo que avisa pero deja seguir.
 
-/** Un paso del recorrido. Cerrado = se ve atenuado y no se puede tocar, pero NO se oculta: la persona ve el camino completo. */
-export function Bloque({
-  numero,
-  titulo,
-  ayuda,
-  bloqueado = false,
-  bloqueadoTexto,
-  listo = false,
-  derecha,
-  children,
-}: {
-  numero: number;
-  titulo: string;
-  ayuda?: ReactNode;
-  bloqueado?: boolean;
-  /** Qué falta para abrir este paso, en la voz de la persona ("Elige primero la categoría"). */
-  bloqueadoTexto?: string;
-  listo?: boolean;
-  derecha?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section
-      aria-labelledby={`bloque-${numero}`}
-      className={`card-cayla p-5 transition-opacity ${bloqueado ? "opacity-55" : ""}`}
-    >
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span
-            aria-hidden
-            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] tabular-nums ${
-              listo ? "border-verde bg-verde text-crema" : "border-tinta/30 text-tinta/70"
-            }`}
-          >
-            {listo ? "✓" : numero}
-          </span>
-          <div>
-            <h2 id={`bloque-${numero}`} className="label-cayla text-[11px] text-tinta/80">
-              {titulo}
-            </h2>
-            {ayuda && !bloqueado && <p className="mt-1 text-xs text-tinta/60">{ayuda}</p>}
-            {bloqueado && bloqueadoTexto && <p className="mt-1 text-xs text-tinta/60">{bloqueadoTexto}</p>}
-          </div>
-        </div>
-        {derecha && !bloqueado && <div className="shrink-0">{derecha}</div>}
-      </header>
-      {/* `inert`: un bloque cerrado no recibe foco ni clics, ni con teclado. */}
-      <div className={bloqueado ? "hidden" : "mt-4"} {...(bloqueado ? { inert: true } : {})}>
-        {children}
-      </div>
-    </section>
-  );
-}
-
 /** El chip de elegir/desmarcar. `aria-pressed` para que un lector de pantalla diga "activado". */
 export function ChipOpcion({
   elegido,

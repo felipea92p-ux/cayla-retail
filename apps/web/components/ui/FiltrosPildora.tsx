@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, FunnelX, Minus, SearchX, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
-import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
+import { ALTO_CONTROL } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
@@ -94,7 +94,7 @@ export function BotonFiltros({
 export function PanelPildoras({ children, filas = false, guia }: { children: ReactNode; /** Hijos `FilaPildoras` apilados. */ filas?: boolean; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   if (filas) {
     return (
-      <div id="filtros-panel" data-guia={guia} className="anim-revelar flex flex-col divide-y divide-tinta/10 rounded-xl bg-sand/50 p-1 shadow-sm">
+      <div id="filtros-panel" data-guia={guia} className="anim-revelar flex flex-col divide-y divide-tinta/10 rounded-xl bg-sand/50 p-1.5 shadow-sm">
         {children}
       </div>
     );
@@ -103,7 +103,7 @@ export function PanelPildoras({ children, filas = false, guia }: { children: Rea
     <div
       id="filtros-panel"
       data-guia={guia}
-      className="anim-revelar scroll-cayla flex flex-nowrap items-center divide-x divide-tinta/10 overflow-x-auto rounded-xl bg-sand/50 p-1 shadow-sm sm:flex-wrap"
+      className="anim-revelar scroll-cayla flex flex-nowrap items-center gap-2 overflow-x-auto rounded-xl bg-sand/50 p-2 shadow-sm sm:flex-wrap"
     >
       {children}
     </div>
@@ -119,7 +119,7 @@ export function FilaPildoras({ titulo, children }: { titulo: string; children: R
       <span aria-hidden className="label-cayla shrink-0 px-3 pt-1 text-[10px] text-tinta/45 lg:w-[5.5rem] lg:pt-0">
         {titulo}
       </span>
-      <div className="flex min-w-0 flex-wrap items-center divide-x divide-tinta/10">{children}</div>
+      <div className="flex min-w-0 flex-wrap items-center gap-2 py-1">{children}</div>
     </div>
   );
 }
@@ -297,7 +297,16 @@ export function DesplegablePildora({
   }
 
   return (
-    <div className={`relative flex items-center ${encoger ? "min-w-0" : ""}`} ref={contenedor}>
+    // La píldora que dice su nombre (ADR-0358, ronda 6: Felipe la eligió tocándola el 2026-10-13): borde arena con su ícono y su
+    // nombre en letra normal; PUESTA (distinta de lo que vale sola), se rellena de tinta, dice lo elegido y lleva su ✕ adentro —como el
+    // filtro por clic de la ronda 1—. Abierta, el borde se afirma y la flecha gira roja. Estilos: app/estilos/campos-y-casillas.css.
+    <div
+      ref={contenedor}
+      className={`pildora-filtro ${encoger ? "min-w-0" : "shrink-0"} ${soloIconoEnCelular ? "pildora-filtro-icono-celular" : ""}`}
+      data-puesta={activa || undefined}
+      data-abierta={abierto || undefined}
+      data-quitable={puedeQuitar || undefined}
+    >
       <button
         ref={disparador}
         type="button"
@@ -307,31 +316,22 @@ export function DesplegablePildora({
         aria-controls={`${id}-lista`}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`label-cayla group relative flex h-9 min-w-0 ${encoger ? "" : "shrink-0"} items-center gap-1.5 whitespace-nowrap text-[11px] transition-colors ${
-          puedeQuitar ? "pl-3 pr-1" : "px-3"
-        } ${activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"} ${soloIconoEnCelular ? "max-sm:h-[38px] max-sm:w-[38px] max-sm:justify-center max-sm:px-0" : ""}`}
+        className="pildora-filtro-boton"
       >
-        <Icono
-          aria-hidden
-          className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"} ${
-            soloIconoEnCelular ? "max-sm:h-4 max-sm:w-4 max-sm:text-tinta/65" : ""
-          }`}
-        />
-        {soloIconoEnCelular && activa && <span aria-hidden className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-tinta sm:hidden" />}
-        {/* «Categoría ▾» sin elegir; «Categoría: Blusas» elegida (Felipe, 2026-10-02): antes decía solo «Todas» y la píldora
-            se distinguía únicamente por el ícono. El valor no se recorta a ciegas: hasta 16rem y con «…». */}
-        <span className={`${activa ? "text-tinta/55" : ""} ${soloIconoEnCelular ? "max-sm:hidden" : ""}`}>
+        <Icono aria-hidden className="pildora-filtro-icono" />
+        {soloIconoEnCelular && activa && <span aria-hidden className="pildora-filtro-punto" />}
+        {/* «Categoría ▾» sin elegir; «Categoría: Blusas» elegida (Felipe, 2026-10-02). El valor no se recorta a ciegas: hasta 16rem y con «…». */}
+        <span className="pildora-filtro-nombre">
           {etiqueta}
           {texto.valor && ":"}
         </span>
         {texto.valor && (
-          <span className={`flex min-w-0 max-w-[16rem] items-center gap-1.5 ${activa ? "text-tinta" : ""} ${soloIconoEnCelular ? "max-sm:hidden" : ""}`}>
+          <span className="pildora-filtro-valor">
             {elegida?.icono && <span className="shrink-0">{elegida.icono}</span>}
             <span className="truncate">{texto.valor}</span>
           </span>
         )}
-        {!puedeQuitar && <ChevronDown aria-hidden className={`h-3 w-3 shrink-0 text-tinta/35 ${soloIconoEnCelular ? "max-sm:hidden" : ""}`} />}
-        <Hilo activo={abierto} reposo={false} />
+        {!puedeQuitar && <ChevronDown aria-hidden className="pildora-filtro-flecha" />}
       </button>
       {puedeQuitar && (
         <button
@@ -343,9 +343,9 @@ export function DesplegablePildora({
             else onValor(valorPorDefecto);
           }}
           aria-label={`Quitar filtro ${etiqueta}`}
-          className={`${soloIconoEnCelular ? "max-sm:hidden" : ""} mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-tinta/45 transition-colors hover:bg-tinta/[0.06] hover:text-rojo`}
+          className="pildora-filtro-quitar"
         >
-          <X aria-hidden className="h-3 w-3" />
+          <X aria-hidden />
         </button>
       )}
 
@@ -421,8 +421,15 @@ export function DesplegablePildora({
                       o.hijo ? "pl-8" : "pl-3"
                     } ${o.grupo && i > 0 ? "mt-1.5 rounded-t-none border-t border-tinta/10 pt-2.5" : ""} ${
                       i === activo ? "bg-rojo/10 text-tinta" : "text-tinta"
-                    } ${!varias && o.valor === valor ? "font-semibold" : ""} ${o.grupo ? "font-medium" : ""}`}
+                    } ${!varias && o.valor === valor ? "font-medium" : ""} ${o.grupo ? "font-medium" : ""}`}
                   >
+                    {/* Una sola opción: la elegida lleva el hilo rojo de canto y su ✓, como toda lista de combo (ADR-0358, ronda 6). */}
+                    {!varias && (
+                      <span
+                        aria-hidden
+                        className={`absolute -left-1 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${o.valor === valor ? "scale-y-100" : "scale-y-0"}`}
+                      />
+                    )}
                     {varias && (
                       <span
                         aria-hidden
@@ -449,6 +456,7 @@ export function DesplegablePildora({
                         {o.cantidad}
                       </span>
                     )}
+                    {!varias && o.valor === valor && <Check aria-hidden className={`combo-tilde ${o.cantidad == null ? "ml-auto" : ""}`} />}
                   </li>
                 );
               })
