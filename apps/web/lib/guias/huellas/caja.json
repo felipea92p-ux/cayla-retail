@@ -93,7 +93,7 @@
       "CampoTexto «Serie y número»",
       "button «Usa el formulario completo»",
       "button «Retiro o depósito»",
-      "ComboResponsable «avisoSalida»",
+      "ComboResponsable «avisoSalida.pedirAccion(ce»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],

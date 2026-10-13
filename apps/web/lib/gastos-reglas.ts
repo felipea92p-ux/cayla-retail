@@ -170,6 +170,8 @@ export type GastoFila = {
   estado: "vigente" | "anulado";
   motivoAnulacion: string | null;
   registradoPor: string | null;
+  /** Cuándo se registró (la hora del gasto que no salió de un cajón, como el pagado con Yape desde Caja). */
+  creadoEn: string | null;
 };
 
 export type EgresoPorClasificar = {
@@ -245,6 +247,7 @@ export function leerGasto(g: Fila): GastoFila {
     estado: g.estado === "anulado" ? "anulado" : "vigente",
     motivoAnulacion: txt(g.motivo_anulacion),
     registradoPor: txt(g.registrado_por_nombre),
+    creadoEn: txt(g.creado_en),
   };
 }
 

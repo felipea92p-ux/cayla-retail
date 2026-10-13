@@ -24,6 +24,7 @@ export function SelectorCampana({
   onNueva,
   onEditar,
   onArchivadas,
+  estirarEnCelular = false,
 }: {
   campanas: CampanasLeidas;
   actualId: string;
@@ -37,6 +38,8 @@ export function SelectorCampana({
   onNueva: () => void;
   onEditar: () => void;
   onArchivadas: () => void;
+  /** En el celular ocupa lo que sobra de su fila y corta el nombre con «…» (la cabecera del Plan, junto a sus dos íconos). */
+  estirarEnCelular?: boolean;
 }) {
   const router = useRouter();
   const enLista = useMemo(() => campanasDelSelector(campanas.planes, hoy), [campanas.planes, hoy]);
@@ -56,7 +59,7 @@ export function SelectorCampana({
   if (opciones.length < 2) return null;
   return (
     // La caja solo lleva el ancla de la guía (ADR-0389): el desplegable no recibe atributos sueltos.
-    <div data-guia="plan.selector">
+    <div data-guia="plan.selector" className={estirarEnCelular ? "min-w-0 flex-1 sm:flex-none" : undefined}>
       <Desplegable
         valor={actual ? actualId : ""}
         onValor={(v) => {
@@ -73,7 +76,7 @@ export function SelectorCampana({
         etiquetaAccesible="Campaña"
         marcador="Campaña"
         // En la cabecera mide lo mismo que «Exportar» (40 px): la pastilla de la sede mide 30 y quedaba más baja en la misma fila.
-        className="[&>button]:h-10"
+        className={`[&>button]:h-10 ${estirarEnCelular ? "max-sm:w-full max-sm:[&>button]:w-full max-sm:[&>button]:justify-between max-sm:[&>button>span]:truncate" : ""}`}
       />
     </div>
   );
