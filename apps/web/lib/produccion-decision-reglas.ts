@@ -135,7 +135,7 @@ export function repartirFalta(d: DemandaVariante | undefined, enProduccion: numb
 
 export type CurvaSugerida = { porVariante: Map<string, Sugerencia>; total: number };
 
-export function sugerirCurva(variantes: { varianteId: string }[], demanda: Map<string, DemandaVariante>, enProduccionPorVariante: Map<string, number>, diasObjetivo: number): CurvaSugerida {
+export function sugerirCurva(variantes: readonly { varianteId: string }[], demanda: Map<string, DemandaVariante>, enProduccionPorVariante: Map<string, number>, diasObjetivo: number): CurvaSugerida {
   const porVariante = new Map<string, Sugerencia>();
   let total = 0;
   for (const v of variantes) {
@@ -153,6 +153,25 @@ export function cantidadesDeLaCurva(curva: CurvaSugerida): Record<string, string
   const cantidades: Record<string, string> = {};
   for (const [id, s] of curva.porVariante) if (s.sugerido > 0) cantidades[id] = String(s.sugerido);
   return cantidades;
+}
+
+/**
+ * Lo que trae escrito la matriz de «Nueva orden» al abrirse. Vacía, salvo que se llegue desde «Abrir orden sugerida» del Resumen (`?nueva=<modelo>&sugerida=1`): entonces trae la sugerencia de la red
+ * —la MISMA cuenta que dijo la tarjeta—, pero solo si el modelo pedido existe (nunca se llena el primero de la lista por error), si es una orden de producción (una muestra se hace aparte) y si la
+ * red respondió. Pura, y es lo que usa el formulario: así la promesa de la tarjeta se prueba contra lo que de verdad aparece en la pantalla.
+ */
+export function cantidadesInicialesDeNuevaOrden(a: {
+  sugerida: boolean;
+  tipo: "produccion" | "muestra";
+  productoInicialId: string | null;
+  modelos: readonly { productoId: string; variantes: readonly { varianteId: string }[] }[];
+  datos: { demanda: readonly DemandaVariante[]; enProduccion: Readonly<Record<string, number>> } | null;
+  diasObjetivo?: number;
+}): Record<string, string> {
+  const pedido = a.sugerida && a.tipo === "produccion" && a.productoInicialId !== null ? a.modelos.find((m) => m.productoId === a.productoInicialId) : undefined;
+  if (!pedido || !a.datos) return {};
+  const curva = sugerirCurva(pedido.variantes, new Map(a.datos.demanda.map((d) => [d.varianteId, d])), new Map(Object.entries(a.datos.enProduccion)), a.diasObjetivo ?? DIAS_OBJETIVO_PRODUCCION);
+  return cantidadesDeLaCurva(curva);
 }
 
 /** Lo que ya se está fabricando por variante: las líneas de las órdenes de producción en proceso (no muestras). */

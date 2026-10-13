@@ -22,7 +22,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { MotorEnProduccion } from "@/components/motor-demanda/MotorEnProduccion";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, cantidadesDeLaCurva, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
+import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, cantidadesDeLaCurva, cantidadesInicialesDeNuevaOrden, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
 import { costoUnitario, precioParaMargen, semaforoMargen, TEXTO_SEMAFORO, type Semaforo } from "@/lib/produccion-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -121,12 +121,9 @@ export function NuevaOrdenProduccionForm({
   const [productoId, setProductoId] = useState(modelos.find((m) => m.productoId === productoInicialId)?.productoId ?? modelos[0]?.productoId ?? "");
   // Con `sugeridaInicial` la matriz nace llena, en el estado inicial y no en un efecto: lo que trae la sugerencia es el PUNTO DE PARTIDA (`fotoAlAbrir`), así que cerrar sin tocar nada no pregunta
   // «¿salir sin guardar?». Solo si el modelo pedido existe (nunca se llena el primero de la lista por error), si es una orden de producción (la muestra se hace aparte) y si la red respondió.
-  const [cantidades, setCantidades] = useState<Record<string, string>>(() => {
-    const pedido = sugeridaInicial && tipoInicial === "produccion" ? modelos.find((m) => m.productoId === productoInicialId) : undefined;
-    const d = decision?.datos;
-    if (!pedido || !d) return {};
-    return cantidadesDeLaCurva(sugerirCurva(pedido.variantes, new Map(d.demanda.map((x) => [x.varianteId, x])), new Map(Object.entries(d.enProduccion)), DIAS_OBJETIVO_PRODUCCION));
-  });
+  const [cantidades, setCantidades] = useState<Record<string, string>>(() =>
+    cantidadesInicialesDeNuevaOrden({ sugerida: sugeridaInicial, tipo: tipoInicial, productoInicialId, modelos, datos: decision?.datos ?? null })
+  );
   // Modelo nuevo (ADR-0361): sin modelos en el catálogo, el primero nace acá.
   const [modoModelo, setModoModelo] = useState<ModoModelo>(modelos.length === 0 ? "nuevo" : "existe");
   const [nombreNuevo, setNombreNuevo] = useState("");

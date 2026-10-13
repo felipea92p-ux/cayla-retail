@@ -10,7 +10,7 @@
 //            fabricar (eso es el estado del modelo y «Nueva orden»); no lee la base ni dibuja nada.
 
 import type { FilaModelo } from "./produccion-decisiones";
-import { sugerenciaDeOrden, urlTrasladarModelo } from "./produccion-decisiones";
+import { baseDelRitmo, estadoPideFabricar, sugerenciaDeOrden, urlTrasladarModelo } from "./produccion-decisiones";
 import { DIAS_OBJETIVO_PRODUCCION } from "./produccion-decision-reglas";
 import { compararTallas } from "./tallas";
 
@@ -81,16 +81,28 @@ export function hojaDelModelo(fila: FilaModelo, coloresDelCatalogo: readonly Col
 }
 
 /**
- * Lo que falta para cubrir `dias` días de venta, dicho para quien decide: cuánto, qué parte ya está hecha en el Taller y qué parte hay que fabricar. `null` si no falta nada
- * (o no hay ritmo medido con qué decirlo). Es la misma cifra que sugiere «Nueva orden» (`repartirFalta`).
+ * Lo que falta para cubrir `dias` días de venta, dicho para quien decide: cuánto, qué parte ya está hecha en el Taller y qué parte hay que fabricar. Es la misma cifra que sugiere «Nueva orden»
+ * (`repartirFalta`). `null` si no falta nada, si el consejo del modelo no es fabricar («Alcanza», «Sobrestock», sin ritmo: `estadoPideFabricar`) o si solo hay una cantidad a fabricar con
+ * poca base (ruido, ADR-0346: lo que se traslada del Taller sí se dice, es stock que ya existe). Cuando hay órdenes abiertas lo dice solo si de verdad se descontaron (`enProduccionContada`).
  */
-export function fraseDeLaFalta(h: Pick<HojaDeModelo, "trasladar" | "producir" | "enProduccion">, dias: number = DIAS_OBJETIVO_PRODUCCION): string | null {
-  const falta = h.trasladar + h.producir;
+export function fraseDeLaFalta(h: Pick<HojaDeModelo, "estado" | "ventasBase" | "trasladar" | "producir" | "enProduccionContada">, dias: number = DIAS_OBJETIVO_PRODUCCION): string | null {
+  if (!estadoPideFabricar(h.estado)) return null;
+  const fabricar = baseDelRitmo(h.ventasBase).pocaBase ? 0 : h.producir;
+  const falta = h.trasladar + fabricar;
   if (falta <= 0) return null;
   const partes = [
     h.trasladar > 0 ? `${h.trasladar} ${h.trasladar === 1 ? "ya está en el Taller y se traslada" : "ya están en el Taller y se trasladan"}` : null,
-    h.producir > 0 ? `${h.producir} ${h.producir === 1 ? "hay que fabricarla" : "hay que fabricarlas"}` : null,
+    fabricar > 0 ? `${fabricar} ${fabricar === 1 ? "hay que fabricarla" : "hay que fabricarlas"}` : null,
   ].filter(Boolean);
-  const cuentan = h.enProduccion === 0 ? "" : h.enProduccion === 1 ? " Ya cuenta 1 de una orden abierta." : ` Ya cuentan las ${h.enProduccion} de las órdenes abiertas.`;
+  const cuentan = h.enProduccionContada > 0 ? " Ya cuenta lo que hay en órdenes abiertas." : "";
   return `Para cubrir ${dias} días de venta ${falta === 1 ? "falta 1" : `faltan ${falta}`}: ${partes.join("; ")}.${cuentan}`;
+}
+
+/**
+ * La hoja cuenta dos «ventas» que pueden no coincidir: el ritmo de arriba («se vende X por semana, N ventas») se midió solo con las tiendas donde se pudo medir, y la matriz suma las de
+ * TODAS. Si difieren, lo dice, para que quien ve «12 ventas» arriba y «15» en el total no piense que una está mal. `null` si coinciden o no hay ritmo.
+ */
+export function aclaracionDeLaBase(h: Pick<HojaDeModelo, "ritmoDia" | "ventasBase" | "total">): string | null {
+  if (!h.ritmoDia || h.total.ventas <= h.ventasBase) return null;
+  return `El ritmo de arriba se midió con ${h.ventasBase} de estas ${h.total.ventas} ventas: las de las tiendas donde se pudo medir.`;
 }

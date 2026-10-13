@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { GUIA_PROD_RESUMEN } from "./guias/pantallas/produccion";
 import { UMBRAL_POCA_BASE_VENTAS } from "./inventario-reglas";
 import type { ComprobanteProduccion } from "./comprobantes-produccion-reglas";
-import { cantidadesDeLaCurva, sugerirCurva, sugerirVariante, type DemandaVariante, type Rendimiento } from "./produccion-decision-reglas";
+import { cantidadesInicialesDeNuevaOrden, sugerirVariante, type DemandaVariante, type Rendimiento } from "./produccion-decision-reglas";
+import { fraseDeLaFalta, hojaDelModelo } from "./produccion-hoja-modelo";
 import {
   agotadasQueSeVendian,
   cifrasResumen,
@@ -11,6 +12,7 @@ import {
   filasDeTela,
   filasPorModelo,
   baseDelRitmo,
+  estadoPideFabricar,
   hrefNuevaOrden,
   nombreDeVariante,
   sugerenciaDeOrden,
@@ -340,13 +342,13 @@ describe("«Producir ya» compara lo que falta contra lo que hay y lo que ya se 
       expect(f).toMatchObject({ estado: "producir_ya", enProduccion: 1, producir: 29, trasladar: 0 });
       const t = tarjetas([f]);
       expect(t).toHaveLength(1);
-      expect(t[0].titulo).toBe("«Blusa Encaje» ya se agotó en las tiendas y la orden abierta de 1 no alcanza (faltan 29)");
+      expect(t[0].titulo).toBe("«Blusa Encaje» ya se agotó en las tiendas y lo que ya se fabrica no alcanza (faltan 29)");
       expect(t[0].titulo).not.toContain("no hay orden abierta");
     });
     it("con stock todavía en tiendas dice «se agota en ~N días» y también cuánto falta", () => {
       const f = fila([dem("v1", { stockRed: 3 })], { v1: 10 });
       expect(f.estado).toBe("producir_ya");
-      expect(tarjetas([f])[0].titulo).toBe("«Blusa Encaje» se agota en ~3 días y la orden abierta de 10 no alcanza (faltan 17)");
+      expect(tarjetas([f])[0].titulo).toBe("«Blusa Encaje» se agota en ~3 días y lo que ya se fabrica no alcanza (faltan 17)");
     });
     it("una orden que cubre lo que falta lo deja en «Ya hay orden abierta» y sin tarjeta de producir", () => {
       const f = fila([dem("v1")], { v1: 30 });
@@ -360,8 +362,76 @@ describe("«Producir ya» compara lo que falta contra lo que hay y lo que ya se 
       const xs = Array.from({ length: 4 }, (_, i) => ({ d: dem(`v${i}`, { productoId: `p${i}`, ritmoDia: 1 + i }), m: { productoId: `p${i}`, referencia: `M${i}`, variantesIds: [`v${i}`] } }));
       const f = filasPorModelo(xs.map((x) => x.d), xs.map((x) => x.m), { v0: 1, v2: 2 });
       expect(f.every((x) => x.estado === "producir_ya")).toBe(true);
-      expect(tarjetas(f)[0].titulo).toBe("4 modelos por producir y en 2 la orden abierta no alcanza");
+      expect(tarjetas(f)[0].titulo).toBe("4 modelos por producir y en 2 lo que ya se fabrica no alcanza");
       expect(tarjetas(filasPorModelo(xs.map((x) => x.d), xs.map((x) => x.m), {}))[0].titulo).toBe("4 modelos por producir y ninguno tiene orden abierta");
+    });
+  });
+
+  describe("lo que se dice de la orden: ni más ni menos de lo que se descontó (revisión independiente, 2026-10-13)", () => {
+    it("la orden no se cita por su cantidad: una orden de 200 en OTRA talla no hace creer que 200 «no alcanzan» para una falta de 30", () => {
+      const f = fila([dem("a"), dem("b", { ritmoDia: 0.1 })], { b: 200 });
+      expect(f.variantes.find((v) => v.varianteId === "a")?.producir).toBe(30);
+      const titulo = tarjetas([f])[0].titulo;
+      expect(titulo).toContain("lo que ya se fabrica no alcanza (faltan 30)");
+      expect(titulo).not.toContain("200");
+    });
+    it("una orden en una variante que no se vende no se cuenta: `enProduccionContada` queda en 0 y la hoja no dice que ya la contó", () => {
+      const f = fila([dem("a", { ritmoDia: null, ventasNetas: 0, ventasBase: 0 }), dem("b")], { a: 50 });
+      expect(f).toMatchObject({ enProduccion: 50, enProduccionContada: 0 });
+      expect(fraseDeLaFalta(hojaDelModelo(f))).not.toContain("órdenes abiertas");
+    });
+    it("con poca base («2 ventas o menos») no se dice cuánto falta: ni «faltan N» en el título ni «hay que fabricarlas» en la hoja", () => {
+      const f = fila([dem("v1", { ventasBase: 2, ventasNetas: 2 })], { v1: 1 });
+      expect(f.estado).toBe("producir_ya");
+      expect(tarjetas([f])[0].titulo).toBe("«Blusa Encaje» ya se agotó en las tiendas y lo que ya se fabrica no alcanza");
+      expect(fraseDeLaFalta(hojaDelModelo(f))).toBeNull();
+    });
+    it("con poca base lo que está en el Taller SÍ se dice: es stock que ya existe, no una cantidad a fabricar", () => {
+      const f = fila([dem("v1", { ventasBase: 2, ventasNetas: 2, stockTaller: 10 })]);
+      expect(fraseDeLaFalta(hojaDelModelo(f))).toBe("Para cubrir 30 días de venta faltan 10: 10 ya están en el Taller y se trasladan.");
+    });
+    it("la tarjeta de trasladar cuenta lo que ya viene: «cubre 30 días» no es cierto con solo lo que se lleva", () => {
+      const solo = tarjetas([fila([dem("v1", { stockTaller: 40 })])])[0];
+      expect(solo.detalle).toContain("Llevar 30 al piso cubre 30 días de venta");
+      const conOrden = tarjetas([fila([dem("v1", { stockTaller: 10 })], { v1: 20 })])[0];
+      expect(conOrden.detalle).toContain("Llevar 10 al piso, junto con lo que ya viene, cubre 30 días de venta");
+    });
+  });
+
+  describe("entre 8 y 30 días de stock una orden que no alcanza tampoco se anuncia como si resolviera", () => {
+    it("falta algo y hay una orden de 1: «Vigilar» (no «Ya hay orden abierta»), y lo que falta sigue a la vista", () => {
+      const f = fila([dem("v1", { stockRed: 10 })], { v1: 1 });
+      expect(f).toMatchObject({ estado: "vigilar", producir: 19, enProduccion: 1 });
+    });
+    it("la misma orden, si CUBRE lo que falta, sí es «Ya hay orden abierta»", () => {
+      expect(fila([dem("v1", { stockRed: 10 })], { v1: 20 })).toMatchObject({ estado: "en_produccion", producir: 0 });
+    });
+    it("el Taller cubre solo una parte: «Vigilar» con las dos cifras (la fila muestra el +5 del Taller y la hoja, el reparto)", () => {
+      expect(fila([dem("v1", { stockRed: 20, stockTaller: 5 })])).toMatchObject({ estado: "vigilar", trasladar: 5, producir: 5 });
+    });
+    it("el Taller cubre todo lo que falta, con o sin una orden que ya cubre su parte: «Trasladar al piso»", () => {
+      expect(fila([dem("v1", { stockRed: 20, stockTaller: 40 })]).estado).toBe("trasladar");
+    });
+  });
+
+  describe("un modelo que el Resumen aconseja no producir no ofrece fabricar (solo avisa la talla agotada)", () => {
+    // `a` con stock de sobra y `b` agotada con ventas: el modelo tiene ~100 días de stock («Sobrestock») pero a `b` le faltan 15.
+    const sobrestock = () => fila([dem("a", { stockRed: 100, ritmoDia: 0.5 }), dem("b", { ritmoDia: 0.5, ventasNetas: 15, ventasBase: 15 })]);
+    it("el estado sigue siendo «Sobrestock» y la cuenta de lo que falta existe", () => {
+      expect(sobrestock()).toMatchObject({ estado: "sobrestock", producir: 15 });
+    });
+    it("pero no hay cantidad sugerida, ni frase de «hay que fabricar», ni «Abrir orden sugerida» en la hoja", () => {
+      const f = sobrestock();
+      expect(sugerenciaDeOrden(f)).toBeNull();
+      expect(fraseDeLaFalta(hojaDelModelo(f))).toBeNull();
+      expect(hojaDelModelo(f).sugerida).toBe(false);
+    });
+    it("la talla agotada que se vendía sí se avisa en la fila", () => {
+      expect(textoAgotadas(agotadasQueSeVendian(sobrestock()))).toContain("Se vendían y ya no hay en tiendas");
+    });
+    it("`estadoPideFabricar`: solo los consejos que hablan de fabricar o de llevar del Taller", () => {
+      expect((["producir_ya", "trasladar", "en_produccion", "vigilar"] as const).every(estadoPideFabricar)).toBe(true);
+      expect((["alcanza", "sobrestock", "sin_ritmo"] as const).some(estadoPideFabricar)).toBe(false);
     });
   });
 
@@ -553,17 +623,34 @@ describe("«Abrir orden sugerida» dice la cantidad y la lleva (/pantalla produc
     expect(hrefNuevaOrden("p1", true)).toBe("/produccion/ordenes?nueva=p1&sugerida=1");
   });
 
-  it("LO QUE DICE LA TARJETA ES LO QUE ESCRIBE «NUEVA ORDEN»: la cantidad de cada variante y el total salen de la misma cuenta", () => {
+  describe("LO QUE DICE LA TARJETA ES LO QUE ESCRIBE «NUEVA ORDEN» (se llama a la misma función que usa el formulario al abrirse)", () => {
     const d = demandaDe({ stockRed: 1 }).map((x, i) => ({ ...x, ritmoDia: 0.1 * (i + 2), stockTaller: i % 2, enCamino: i % 3 }));
     const enProd = { "m-n": 3, "l-b": 1 };
-    const f = fila(d, enProd);
-    // Lo que hace la pantalla de «Nueva orden» al llegar con `&sugerida=1` (NuevaOrdenProduccionForm): la curva de ESAS variantes, con la misma demanda y las mismas órdenes.
-    const curva = sugerirCurva(rotulos.map((r) => ({ varianteId: r.varianteId })), new Map(d.map((x) => [x.varianteId, x])), new Map(Object.entries(enProd)), 30);
-    const escritas = cantidadesDeLaCurva(curva);
-    expect(escritas).toEqual(Object.fromEntries(f.variantes.filter((v) => v.producir > 0).map((v) => [v.varianteId, String(v.producir)])));
-    const total = Object.values(escritas).reduce((s, n) => s + Number(n), 0);
-    expect(total).toBe(curva.total);
-    expect(sugerenciaDeOrden(f)?.total ?? 0).toBe(total);
+    const modelosDeLaPantalla = [{ productoId: "p1", variantes: rotulos.map((r) => ({ varianteId: r.varianteId })) }];
+    const alAbrir = (extra: Partial<Parameters<typeof cantidadesInicialesDeNuevaOrden>[0]> = {}) =>
+      cantidadesInicialesDeNuevaOrden({ sugerida: true, tipo: "produccion", productoInicialId: "p1", modelos: modelosDeLaPantalla, datos: { demanda: d, enProduccion: enProd }, ...extra });
+
+    it("la cantidad de cada variante y el total son los de la tarjeta (`producir`, `sugerenciaDeOrden`)", () => {
+      const f = fila(d, enProd);
+      const escritas = alAbrir();
+      expect(escritas).toEqual(Object.fromEntries(f.variantes.filter((v) => v.producir > 0).map((v) => [v.varianteId, String(v.producir)])));
+      expect(Object.values(escritas).reduce((s, n) => s + Number(n), 0)).toBe(sugerenciaDeOrden(f)?.total ?? 0);
+      expect(Object.keys(escritas).length).toBeGreaterThan(0);
+    });
+    it("sin `&sugerida=1` la matriz abre vacía (el contrato de siempre: Análisis y Nuevo producto)", () => {
+      expect(alAbrir({ sugerida: false })).toEqual({});
+    });
+    it("para una muestra no se precarga: es otra cosa", () => {
+      expect(alAbrir({ tipo: "muestra" })).toEqual({});
+    });
+    it("el modelo pedido tiene que existir: con otro id (o «auto») no se llena el primero de la lista", () => {
+      expect(alAbrir({ productoInicialId: "auto" })).toEqual({});
+      expect(alAbrir({ productoInicialId: null })).toEqual({});
+      expect(alAbrir({ modelos: [{ productoId: "otro", variantes: [{ varianteId: "x" }] }, ...modelosDeLaPantalla], productoInicialId: "p1" })).toEqual(alAbrir());
+    });
+    it("si la red no respondió, la matriz abre vacía y el formulario sigue siendo el de siempre", () => {
+      expect(alAbrir({ datos: null })).toEqual({});
+    });
   });
 });
 

@@ -8,7 +8,7 @@ import { FotoPrenda } from "@/components/ui/FotoPrenda";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { DIAS_RITMO_RECIENTE, UMBRAL_POCA_BASE_VENTAS } from "@/lib/inventario-reglas";
 import { baseDelRitmo, ETIQUETA_ESTADO_MODELO, hrefNuevaOrden, porSemana, seVendioYYaNoHay, textoDiasDeStock } from "@/lib/produccion-decisiones";
-import { fraseDeLaFalta, type ColorDeHoja, type HojaDeModelo } from "@/lib/produccion-hoja-modelo";
+import { aclaracionDeLaBase, fraseDeLaFalta, type ColorDeHoja, type HojaDeModelo } from "@/lib/produccion-hoja-modelo";
 import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
 import { TONO_ESTADO_MODELO } from "./estado-modelo";
 
@@ -66,6 +66,7 @@ function CabeceraDeColor({ color, presentacion }: { color: ColorDeHoja; presenta
 export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { hoja: HojaDeModelo; presentacion?: PresentacionDeModelo; onClose: () => void; alCerrarEnfocar?: RefObject<HTMLElement | null> }) {
   const base = baseDelRitmo(hoja.ventasBase);
   const falta = fraseDeLaFalta(hoja);
+  const aclaracion = aclaracionDeLaBase(hoja);
   const traslado = hoja.estado === "trasladar" && !!hoja.hrefTrasladar;
   const hrefOrden = hrefNuevaOrden(hoja.productoId, hoja.sugerida);
   return (
@@ -103,8 +104,10 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
         {hoja.colores.length === 0 ? (
           <p className="mt-2 text-sm text-tinta/70">Este modelo no tiene tallas ni colores activos.</p>
         ) : (
-          <div data-guia="prod-resumen.hoja" className="mt-1 overflow-x-auto">
+          // `tabIndex` + `role="region"`: con muchas tallas la matriz se desplaza hacia el lado, y sin esto quien usa solo el teclado no llega a las últimas columnas ni a «Total».
+          <div data-guia="prod-resumen.hoja" role="region" aria-label={`Ventas por color y talla de ${hoja.referencia}`} tabIndex={0} className="mt-1 overflow-x-auto">
             <table /* unificar-fijo: una matriz de colores y tallas (con la foto de cada color), otra función que una lista de registros */ className="w-full border-separate border-spacing-0">
+              <caption className="sr-only">Vendido en los últimos {DIAS_RITMO_RECIENTE} días de {hoja.referencia}, por color y talla, con lo que queda en tiendas</caption>
               <thead>
                 <tr>
                   <th scope="col" className="label-cayla py-2 pr-3 text-left text-[11px] font-normal text-tinta/65">
@@ -159,6 +162,7 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
 
       <p className="nota-cayla mt-4">
         Ventas de todas las tiendas en los últimos {DIAS_RITMO_RECIENTE} días; debajo de cada cifra, lo que queda en tiendas. Las cifras en gris tienen {UMBRAL_POCA_BASE_VENTAS} ventas o menos: es poca base, no decidas por ellas. «Ya no hay» marca lo que se vendió más de {UMBRAL_POCA_BASE_VENTAS} veces y hoy no queda ninguna en tiendas.
+        {aclaracion && ` ${aclaracion}`}
       </p>
 
       <div data-guia="prod-resumen.hoja-acciones" className="pie-hoja-fijo mt-4 flex flex-wrap justify-end gap-2 pt-1">

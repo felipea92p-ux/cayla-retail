@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { filasPorModelo, seVendioYYaNoHay, sugerenciaDeOrden, type FilaModelo } from "./produccion-decisiones";
 import type { DemandaVariante } from "./produccion-decision-reglas";
-import { fraseDeLaFalta, hojaDelModelo, SIN_COLOR, SIN_TALLA } from "./produccion-hoja-modelo";
+import { aclaracionDeLaBase, fraseDeLaFalta, hojaDelModelo, SIN_COLOR, SIN_TALLA } from "./produccion-hoja-modelo";
 
 // Una variante: [id, talla, color, hex, stockRed, ventasNetas, stockTaller]
 type V = [string, string | null, string | null, string | null, number, number, number?];
@@ -146,15 +146,31 @@ describe("hojaDelModelo (la hoja «Ver el modelo» de Producción, tarea #8)", (
     });
   });
 
-  it("es serializable (va de la página al navegador): sin funciones, Map ni undefined", () => {
-    const viaJson = JSON.parse(JSON.stringify(hojaDelModelo(modelo, [{ nombre: "Negro", hex: "#000000", fotoUrl: null }], "T1")));
-    expect(viaJson).toEqual(JSON.parse(JSON.stringify(viaJson)));
-    expect(JSON.stringify(hojaDelModelo(modelo, [], "T1"))).not.toContain("undefined");
+  it("es serializable (va de la página al navegador): solo JSON plano, sin funciones, Map, Set, undefined ni números que no son números", () => {
+    const h = hojaDelModelo(modelo, [{ nombre: "Negro", hex: "#000000", fotoUrl: null }], "T1");
+    expect(esJsonPlano(h)).toBe(true);
+    expect(esJsonPlano(hojaDelModelo(modelo, [], null))).toBe(true);
+    // La propia comprobación no está ciega: rechaza lo que Next no sabe mandar al navegador.
+    expect(esJsonPlano({ a: undefined })).toBe(false);
+    expect(esJsonPlano({ a: new Map() })).toBe(false);
+    expect(esJsonPlano({ a: () => 1 })).toBe(false);
+    expect(esJsonPlano({ a: NaN })).toBe(false);
+    expect(esJsonPlano([new Set([1])])).toBe(false);
   });
 });
 
+/** ¿Es JSON plano? null, texto, booleano, número finito, listas y objetos simples de lo mismo. `JSON.stringify` descarta en silencio un `undefined` o una función, así que no sirve para saberlo. */
+function esJsonPlano(v: unknown): boolean {
+  if (v === null || typeof v === "string" || typeof v === "boolean") return true;
+  if (typeof v === "number") return Number.isFinite(v);
+  if (Array.isArray(v)) return v.every(esJsonPlano);
+  if (typeof v === "object" && Object.getPrototypeOf(v) === Object.prototype) return Object.values(v as object).every(esJsonPlano);
+  return false;
+}
+
 describe("fraseDeLaFalta", () => {
-  const f = (trasladar: number, producir: number, enProduccion = 0) => fraseDeLaFalta({ trasladar, producir, enProduccion });
+  const f = (trasladar: number, producir: number, extra: Partial<Parameters<typeof fraseDeLaFalta>[0]> = {}) =>
+    fraseDeLaFalta({ estado: "producir_ya", ventasBase: 30, trasladar, producir, enProduccionContada: 0, ...extra });
   it("lo que falta se reparte en lo que ya está en el Taller y lo que hay que fabricar", () => {
     expect(f(5, 24)).toBe("Para cubrir 30 días de venta faltan 29: 5 ya están en el Taller y se trasladan; 24 hay que fabricarlas.");
   });
@@ -166,12 +182,33 @@ describe("fraseDeLaFalta", () => {
     expect(f(0, 1)).toBe("Para cubrir 30 días de venta falta 1: 1 hay que fabricarla.");
     expect(f(1, 0)).toBe("Para cubrir 30 días de venta falta 1: 1 ya está en el Taller y se traslada.");
   });
-  it("con órdenes abiertas dice que ya las contó (para que no parezca que las ignora)", () => {
-    expect(f(0, 29, 1)).toBe("Para cubrir 30 días de venta faltan 29: 29 hay que fabricarlas. Ya cuenta 1 de una orden abierta.");
-    expect(f(0, 10, 20)).toBe("Para cubrir 30 días de venta faltan 10: 10 hay que fabricarlas. Ya cuentan las 20 de las órdenes abiertas.");
+  it("dice que ya contó las órdenes abiertas SOLO si de verdad se descontaron (en una variante que no se vende no se descuenta nada)", () => {
+    expect(f(0, 29, { enProduccionContada: 1 })).toBe("Para cubrir 30 días de venta faltan 29: 29 hay que fabricarlas. Ya cuenta lo que hay en órdenes abiertas.");
+    expect(f(0, 10, { enProduccionContada: 20 })).toContain("Ya cuenta lo que hay en órdenes abiertas.");
+    expect(f(0, 10, { enProduccionContada: 0 })).not.toContain("órdenes abiertas");
   });
   it("si no falta nada no hay frase", () => {
     expect(f(0, 0)).toBeNull();
-    expect(f(0, 0, 40)).toBeNull();
+    expect(f(0, 0, { enProduccionContada: 40 })).toBeNull();
+  });
+  it("si el consejo del modelo no es fabricar («Alcanza», «Sobrestock», sin ritmo) no dice «hay que fabricar»: sería lo contrario de lo que aconseja", () => {
+    for (const estado of ["alcanza", "sobrestock", "sin_ritmo"] as const) expect(f(5, 24, { estado })).toBeNull();
+    for (const estado of ["producir_ya", "trasladar", "en_produccion", "vigilar"] as const) expect(f(5, 24, { estado })).not.toBeNull();
+  });
+  it("con poca base no dice cuánto fabricar (ruido, ADR-0346); lo que ya está en el Taller sí", () => {
+    expect(f(0, 24, { ventasBase: 2 })).toBeNull();
+    expect(f(5, 24, { ventasBase: 2 })).toBe("Para cubrir 30 días de venta faltan 5: 5 ya están en el Taller y se trasladan.");
+    expect(f(0, 24, { ventasBase: 3 })).not.toBeNull();
+  });
+});
+
+describe("aclaracionDeLaBase (la cabecera y el total de la matriz no cuentan las mismas ventas)", () => {
+  const a = (ritmoDia: number | null, ventasBase: number, ventas: number) => aclaracionDeLaBase({ ritmoDia, ventasBase, total: { ventas, stock: 0 } });
+  it("si el ritmo se midió con menos ventas que las de la matriz, lo dice con los dos números", () => {
+    expect(a(0.4, 12, 15)).toBe("El ritmo de arriba se midió con 12 de estas 15 ventas: las de las tiendas donde se pudo medir.");
+  });
+  it("si coinciden, o no hay ritmo, no dice nada", () => {
+    expect(a(0.4, 15, 15)).toBeNull();
+    expect(a(null, 0, 15)).toBeNull();
   });
 });
