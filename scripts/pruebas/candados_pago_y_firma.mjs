@@ -134,6 +134,10 @@ caso("en un retiro de caja la hora declarada se ignora (firma quien está de tur
 caso("en un ajuste de stock la hora declarada se ignora", sinRechazoPorHora(FIRMA("/rpc/ajustar_inventario")));
 caso("en la venta sin conexión la hora declarada sigue valiendo (registrar_venta)", rechaza(FIRMA("/rpc/registrar_venta"), FUERA_DE_RANGO));
 caso("en el alta sin conexión la hora declarada sigue valiendo (crear_producto_con_stock_inicial)", rechaza(FIRMA("/rpc/crear_producto_con_stock_inicial"), FUERA_DE_RANGO));
+caso("en la recepción sin conexión la hora declarada sigue valiendo (recibir_lote, cola genérica)", rechaza(FIRMA("/rpc/recibir_lote"), FUERA_DE_RANGO));
+caso("en la recepción de un envío sin conexión también (recibir_envio)", rechaza(FIRMA("/rpc/recibir_envio"), FUERA_DE_RANGO));
+caso("con un prefijo delante de la ruta sigue reconociendo la función (se mira el final)", rechaza(FIRMA("/rest/v1/rpc/registrar_venta"), FUERA_DE_RANGO));
+caso("un nombre que solo EMPIEZA igual no cuela (registrar_venta_falsa ignora la hora)", sinRechazoPorHora(FIRMA("/rpc/registrar_venta_falsa")));
 caso("sin ruta conocida (llamada directa, no por PostgREST) queda como antes", rechaza(FIRMA(null), FUERA_DE_RANGO));
 
 // 3. Re-pegable.

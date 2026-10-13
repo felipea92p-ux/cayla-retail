@@ -21,21 +21,31 @@
 --    pensó para la venta sin conexión (Felipe, 2026-09-22: «vale la hora de la venta»), pero servía igual para un retiro de caja
 --    o un ajuste de stock: quien opera la tienda podía firmarlo a nombre de una compañera que trabajó cualquier día de esa semana.
 --    Eso anula para qué existe el responsable: saber quién fue cuando falta plata o mercadería.
---    LA SALIDA. La hora declarada solo cuenta si la llamada es a una de las dos funciones que la web encola sin conexión
---    (`registrar_venta` y `crear_producto_con_stock_inicial`; lo dicen `lib/ventas-offline.ts` y `NuevoProductoForm.tsx`). En
---    cualquier otra, se ignora y se usa la hora real: la operación sigue funcionando, solo que firma quien está de turno AHORA.
---    PostgREST dice qué función se llama en `request.path` ('/rpc/<función>', medido en local con PostgREST 16).
+--    LA SALIDA. La hora declarada solo cuenta si la llamada es a una de las funciones que la web encola sin conexión: la venta
+--    (`registrar_venta`, `lib/ventas-offline.ts`) y todo lo que pasa por la cola genérica, que le pone la hora a TODA operación
+--    encolada (`nuevaOperacion`, `lib/cola-offline.ts`): `recibir_lote` y `recibir_envio` (`RPCS_RECIBIR`,
+--    `lib/useColaRecibir.ts`), `crear_producto_con_stock_inicial` y `crear_producto_con_variantes` (`RPCS_PRODUCTOS`,
+--    `lib/useColaProductos.ts`). En cualquier otra función se ignora y se usa la hora real: la operación sigue funcionando, solo
+--    que firma quien está de turno AHORA. PostgREST dice qué función se llama en `request.path` ('/rpc/<función>', medido en local
+--    con PostgREST 16); se compara el FINAL de la ruta, por si un intermediario le antepone un prefijo.
 --    DECIDÍ: ignorar la hora en las demás funciones.
 --    DESCARTÉ: rechazar la operación, porque una función que en el futuro se encole sin conexión fallaría entera por un detalle de
 --    la firma; ignorarla la deja funcionar con la hora real (y si la persona ya no está de turno, el error es el claro de siempre).
 --    SE ROMPE SI: se encola sin conexión una función nueva que firma con responsable y no se suma a esta lista: al subir usará la
---    hora real, y si la persona ya marcó su salida se rechazará. La prueba `pnpm pruebas:candados-pago-y-firma` documenta la lista.
+--    hora real, y si la persona ya marcó su salida se rechazará. Lo vigila `apps/web/lib/cola-hora-declarada.test.ts`: falla si
+--    una función de `RPCS_RECIBIR` o `RPCS_PRODUCTOS` (o la venta) falta en la lista de esta migración.
+--    Lo que queda abierto a propósito: en esas cinco funciones la hora sigue pudiendo ser de hasta 7 días atrás (es lo que
+--    permite subir lo hecho sin internet); una venta o una recepción todavía se puede firmar a nombre de quien trabajó días antes.
 --    Si la ruta no se conoce (llamada directa, no por PostgREST), se conserva el comportamiento de antes.
 --
 -- PRODUCCIÓN. Una sola parte, re-pegable. Crear el disparador toma un candado breve sobre `venta_pagos`: con `lock_timeout = 3s`,
 -- si una venta la tiene tomada, falla sin tocar nada y se vuelve a pegar. El parche de `fn_actor_persona_id` es un reemplazo
--- anclado: si la función viva cambió desde que se escribió esto (md5 del cuerpo b95038c3f6fbd9e10acfec20959d5f0d el 2026-10-13,
--- igual en local y en producción), aborta sin tocar nada.
+-- anclado por TEXTO: si la línea de `x-momento` cambió (no aparece exactamente una vez), aborta sin tocar nada. El cuerpo vivo era
+-- el mismo en local y en producción el 2026-10-13 (md5 b95038c3…), pero el candado mira la línea, no el md5.
+-- COMPROBACIÓN EN PRODUCCIÓN (opcional, después de pegar): que `request.path` llegue de verdad. Con sesión, llamar por la API a
+-- una función que firme y NO esté en la lista, mandando el encabezado `x-momento` con una hora del año 2020. Si NO responde
+-- «La hora de la operación está fuera de rango», la hora se ignoró: la ruta llega y el candado funciona. Si lo responde, la ruta
+-- no llega (se conservó el comportamiento de antes): avisar, porque entonces el candado no hace nada.
 
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
@@ -109,7 +119,8 @@ $viejo$,
   -- trabajó cualquier día de la semana). Si la ruta no se conoce (llamada directa, no por PostgREST), queda como antes.
   if v_texto is not null
      and coalesce(current_setting('request.path', true), '') <> ''
-     and current_setting('request.path', true) not in ('/rpc/registrar_venta', '/rpc/crear_producto_con_stock_inicial') then
+     and current_setting('request.path', true)
+         !~ '/rpc/(registrar_venta|recibir_lote|recibir_envio|crear_producto_con_stock_inicial|crear_producto_con_variantes)$' then
     v_texto := null;
   end if;
 $nuevo$,
@@ -120,5 +131,5 @@ $nuevo$,
 -- es seguro volver a pegarlo completo.
 select '20261013155000 · candados del anticipo y de la hora declarada' as parte,
        case when exists (select 1 from pg_trigger where tgrelid = 'retail.venta_pagos'::regclass and tgname = 'venta_pagos_anticipo_solo_de_apartado')
-             and pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure) like '%/rpc/crear_producto_con_stock_inicial%'
+             and pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure) like '%recibir_envio|crear_producto_con_stock_inicial%'
             then 'QUEDÓ BIEN' else 'REVISAR: falta el disparador o el parche de fn_actor_persona_id' end as resultado;
