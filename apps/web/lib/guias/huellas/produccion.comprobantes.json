@@ -32,7 +32,7 @@
     ],
     "components/ComprobantesProduccionPanel.tsx": [
       "Boton «prod-facturas.nueva»",
-      "BotonEnlace «Ir a Proveedores»",
+      "BotonEnlace «(sin nombre)»",
       "Boton «Registrar la primera»",
       "button «{o.etiqueta}»",
       "DesplegablePildora «Proveedor»",

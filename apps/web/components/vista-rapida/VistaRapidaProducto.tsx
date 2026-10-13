@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { History, Info, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, SignpostBig, Trash2 } from "lucide-react";
+import { History, Info, PauseCircle, Pencil, PlayCircle, Printer, SignpostBig, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
@@ -33,6 +33,7 @@ import { useHistorialPrenda } from "@/components/historial-prenda/useHistorialPr
 import { FichaDelColor } from "@/components/ui/FichaDelColor";
 import { fichaDelColor, type ColorConFicha } from "@/lib/ficha-del-color";
 import { categoriasQueCombinan, fraseCombina, indiceDeColores, type TarjetaLook } from "@/lib/combinar-reglas";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 const SIN_COLORES: ColorConFicha[] = [];
 const SIN_TARJETAS: TarjetaLook[] = [];
@@ -370,10 +371,10 @@ export function VistaRapidaProducto({
             Historial
           </button>
           {hrefExistencias && (
-            <Link href={hrefExistencias} className="btn-cayla btn-primario min-h-10 text-[12.5px]">
-              <PackageOpen aria-hidden className="h-4 w-4" />
+            // Lleva a otra pantalla: el botón secundario con la flecha que avanza (ADR-0358, ronda 10), nunca el negro.
+            <BotonVer href={hrefExistencias} className="min-h-10 text-[12.5px]">
               Ver en Existencias
-            </Link>
+            </BotonVer>
           )}
           {/* Quien edita el catálogo. Abre una ventana que pregunta a la base qué se puede borrar; con ventas, compras o traslados explica por
               qué no y ofrece desactivarla (el botón «Desactivar» del encabezado hace lo mismo sin pasar por aquí). */}

@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 117,
+  "total": 116,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «)»",
@@ -36,8 +36,7 @@
     "components/EnvioRecibido.tsx": [
       "Link «Se reclama en Notas de crédito ↗»",
       "Link «Imprimir»",
-      "Boton «Recibir otro envío»",
-      "Link «Ver recibidas»"
+      "Boton «Recibir otro envío»"
     ],
     "components/FiltrosRecibidas.tsx": [
       "DesplegablePildora «Proveedor»",
