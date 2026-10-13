@@ -364,6 +364,26 @@
   "relkind": "r",
   "rls": true
  },
+ "despacho_diferencias": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "despacho_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "despacho_recibidos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "despachos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "devolucion_items": {
   "forzado": false,
   "relkind": "r",
@@ -705,6 +725,11 @@
   "rls": true
  },
  "proveedor_creditos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "proveedor_deuda_resoluciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true
