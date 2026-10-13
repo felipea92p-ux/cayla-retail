@@ -142,7 +142,8 @@ const SOLO_PANTALLA = {
   cambios: "registrar_cambio solo mira la sede; cambios_select deja leer a líder o a quien opera esa sede.",
   // devoluciones salió el 2026-10-09: anular_venta la exige (fn_ve_modulo, 20261009182413_anular_venta_quien_ve_devoluciones).
   facturacion: "emitir_comprobante solo comprueba la sede; comprobantes_select deja leer a líder o a la sede.",
-  recibir: "recibir_lote, recibir_compras y recibir_insumo solo comprueban la sede (fn_puede_operar_ubicacion).",
+  // recibir salió el 2026-10-12: fn_ve_costos_al_recibir lo pide para confirmar un costo fuera de lo normal al recibir
+  // (20261012202000, ADR-0387: «el módulo es la llave»); recibir_lote, recibir_compras y recibir_insumo siguen mirando solo la sede.
   produccion:
     "abrir_produccion, cerrar_produccion y set_etapa_produccion solo comprueban la sede; producciones_select es «líder o su sede». " +
     "La palabra 'produccion' de fn_por_pagar_consolidado es la etiqueta de origen de una fila, no un candado.",

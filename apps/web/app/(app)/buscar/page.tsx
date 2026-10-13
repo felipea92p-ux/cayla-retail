@@ -30,9 +30,9 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
           Búsqueda
           <Ayuda titulo="Búsqueda">
             Para responderle a un cliente sin ir al almacén a ciegas. Te dice cuánto hay de esa
-            prenda y en qué ubicación. Puedes escribir la referencia, el SKU, la talla o el
-            color, o escanear la etiqueta con la pistola: es lo mismo, la pistola solo escribe
-            el código por ti.
+            prenda para vender y en qué sede: no cuenta lo apartado ni lo que está en
+            Cuarentena. Puedes escribir la referencia, el SKU, la talla o el color, o escanear
+            la etiqueta con la pistola: es lo mismo, la pistola solo escribe el código por ti.
           </Ayuda>
         </p>
         <h1 className="font-display mt-1 text-2xl text-tinta">
@@ -85,36 +85,38 @@ async function Resultados({ term, textoOriginal }: { term: string; textoOriginal
     );
   }
 
-  // El stock por ubicación se pide SOLO para lo que ya matcheó, no para el
-  // catálogo entero: RLS acota las filas a lo que la persona puede ver
-  // (líder = todas, integrante = la suya), así que esto ya sale bien
-  // recortado sin filtrar nada a mano acá.
+  // «Cuánto hay» sale de la fórmula única de la base (`fn_existencias`, ADR-0270): lo DISPONIBLE para vender, sin lo
+  // apartado, sin Cuarentena, sin tallas retiradas ni pruebas. Antes se sumaba la tabla `stock` en crudo, y una prenda
+  // devuelta que esperaba en Cuarentena salía «en stock» (auditoría 2026-10-13, punto 19). Se piden las mismas sedes que
+  // dejaba ver la tabla: el líder, todas; los demás, la suya. Y solo los productos que ya coincidieron, no el catálogo.
   const supabase = await createClient();
-  const stockRows = exigir(
-    await supabase
-      .from("stock")
-      .select("variante_id, cantidad, ubicacion:ubicaciones ( nombre )")
-      .in(
-        "variante_id",
-        resultados.map((r) => r.varianteId)
-      )
-      // La centinela del «Monto manual» no es una prenda: sin esto, buscar
-      // «cargo» mostraba 999.999 unidades por tienda (`lib/cargo-especial.ts`).
-      .neq("variante_id", ID_CARGO_ESPECIAL)
-      .gt("cantidad", 0),
-    "el stock de estos resultados"
-  );
+  const pedidas = new Set(resultados.map((r) => r.varianteId).filter((id) => id !== ID_CARGO_ESPECIAL));
+  const [filas, ubicaciones] = await Promise.all([
+    supabase
+      .rpc("fn_existencias", {
+        ...(persona.rol === "lider" ? {} : { p_ubicacion_id: persona.ubicacionId }),
+        p_producto_ids: [...new Set(resultados.map((r) => r.productoId).filter(Boolean))],
+      })
+      // La base filtra ANTES de responder: solo las prendas que coincidieron y con algo disponible. Sin esto, 30 productos con
+      // todas sus tallas en todas las sedes pasan de 1.000 filas y la API corta en silencio: una prenda que hay diría «agotada».
+      .in("variante_id", [...pedidas])
+      .gt("disponible", 0)
+      .then((r) => exigir(r, "lo disponible de estos resultados")),
+    supabase
+      .from("ubicaciones")
+      .select("id, nombre")
+      .then((r) => exigir(r, "los nombres de las sedes")),
+  ]);
+  const nombreDe = new Map(ubicaciones.map((u) => [u.id, u.nombre]));
 
-  // Una ubicación con piso y almacén trae 2 filas para la misma variante
-  // (20260914210000_inventario_piso_almacen.sql) — acá solo importa el
-  // total por ubicación, así que se suman antes de listar; sin esto, Tienda
-  // Lima aparecería dos veces por la misma prenda.
+  // `fn_existencias` ya da una fila por prenda y sede (piso y almacén juntos): aquí solo se agrupa por prenda.
   const stockPorVariante = new Map<string, Map<string, number>>();
-  stockRows.forEach((r) => {
-    const porUbicacion = stockPorVariante.get(r.variante_id) ?? new Map<string, number>();
-    const nombre = r.ubicacion?.nombre ?? "—";
-    porUbicacion.set(nombre, (porUbicacion.get(nombre) ?? 0) + r.cantidad);
-    stockPorVariante.set(r.variante_id, porUbicacion);
+  filas.forEach((f) => {
+    if (!pedidas.has(f.variante_id) || f.disponible <= 0) return;
+    const porUbicacion = stockPorVariante.get(f.variante_id) ?? new Map<string, number>();
+    const nombre = nombreDe.get(f.ubicacion_id) ?? "—";
+    porUbicacion.set(nombre, (porUbicacion.get(nombre) ?? 0) + f.disponible);
+    stockPorVariante.set(f.variante_id, porUbicacion);
   });
 
   return (

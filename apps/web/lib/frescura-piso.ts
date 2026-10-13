@@ -249,6 +249,22 @@ export function porcentajes(c: ConteoPiso): Record<TramoPiso, number> {
   return r;
 }
 
+/**
+ * Los cuatro tramos del 100 % como tramos de `BarraApilada`: la forma en que se dibuja el piso en TODO el ERP (Frescura, «Las N tiendas» de CAYLA
+ * Global y la tarjeta del Inicio). Antes vivía copiada en `FrescuraPiso` y en `FrescuraRed`; un tercer lugar que la dibuje la importa de aquí.
+ */
+export function segmentosDelPiso(f: Pick<FamiliaPiso, "unidades">) {
+  return TRAMOS_DEL_100.map((t) => ({ clave: t, nombre: NOMBRE_TRAMO_PISO[t], valor: f.unidades[t], clase: CLASE_TRAMO_PISO[t] }));
+}
+
+/** Lo que dice la barra en palabras: «41 % fresca · 22 % vigente · 20 % envejeciendo» (solo los tramos con algo). */
+export function lineaDelPiso(f: Pick<FamiliaPiso, "unidades">): string {
+  const pct = porcentajes(f.unidades);
+  return TRAMOS_DEL_100.filter((t) => f.unidades[t] > 0)
+    .map((t) => `${pct[t]} % ${NOMBRE_TRAMO_PISO[t].toLowerCase()}`)
+    .join(" · ");
+}
+
 // ---------------------------------------------------------------------------
 // Contra el mes anterior (decisión 5 de Felipe, 2026-10-10: «la frase dice si el piso está más fresco o más viejo que hace 4 semanas»)
 // ---------------------------------------------------------------------------

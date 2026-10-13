@@ -117,7 +117,7 @@ export type ClaveIcono =
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
-  | "gestion";
+  | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender";
@@ -262,14 +262,22 @@ export const ARBOL: readonly Nodo[] = [
       // la clave que `produccion-menu.ts` ya expone (`ClaveMenuProduccion`) y no debe chocar con las de Compras. El pájaro es
       // Gallito: `aviario.mjs` le da `proveedores_produccion` y `comprobantes_produccion` (y Recibir escribe `insumo_lotes`,
       // también suyo). Orden como en Compras: proveedor → comprobante → recibir → pago.
+      // Órdenes de insumos (ADR-0362 fase 7, decisión 47; Felipe 2026-10-12) va PRIMERA: el trabajo empieza al pedir (pedir → factura →
+      // recibir → pagar). Sin `exige`: el módulo es la llave (decisiones 40 y 47) y trae sus precios sin abrir la plata del Taller. Su ruta
+      // NO cuelga de `/produccion` a propósito: ese layout pide el módulo de producción, y quien tiene solo «Órdenes de insumos» no lo
+      // necesita. Aterrizar en `/ordenes-insumos` abre igual el grupo de Producción (`grupoDe` mira las rutas de las hijas, no solo la
+      // `raiz`). Para quien la ve junto a Recibir (sin el dinero del Taller), Abastecimiento ya no se disuelve en «Recibir»: tiene dos.
+      // La `raiz` del subgrupo sigue siendo la de Proveedores: el subgrupo no tiene pantalla propia y esa ruta solo dice de qué grupo es.
+      // [provisional, revisar con Felipe: el lugar (Producción ▸ Abastecimiento) es la opción (a) de la pregunta 1 del contrato]
       {
         id: "produccion.abastecimiento", etiqueta: "Abastecimiento", estado: "viva", icono: "compras", raiz: "/produccion/proveedores", pajaro: "10 Gallito",
         hijos: [
+          { id: "produccion.ordenesInsumos", modulo: "ordenes_insumos", etiqueta: "Órdenes de insumos", estado: "viva", ruta: "/ordenes-insumos", icono: "ordenesInsumos", pajaro: "10 Gallito" },
           { id: "produccion.proveedoresProduccion", modulo: "produccion", etiqueta: "Proveedores", estado: "viva", ruta: "/produccion/proveedores", icono: "proveedores", pajaro: "10 Gallito", exige: "verDinero" },
           { id: "produccion.comprobantesProduccion", modulo: "produccion", etiqueta: "Facturas de insumos", estado: "viva", ruta: "/produccion/comprobantes", icono: "facturas", pajaro: "10 Gallito", exige: "verDinero" },
           // OJO, no es «Recibir mercadería»: aquel (`/recibir`, de Compras e Inventario) recibe prendas contra un envío; este
           // recibe tela y avíos contra un comprobante de Producción. Dos pantallas de dos módulos, una etiqueta parecida.
-          { id: "produccion.recibirProduccion", modulo: "produccion", etiqueta: "Recibir", estado: "viva", ruta: "/produccion/recibir", icono: "recibir", pajaro: "10 Gallito" },
+          { id: "produccion.recibirProduccion", modulo: "produccion", etiqueta: "Recibir", estado: "viva", ruta: "/produccion/recibir", icono: "recibirInsumos", pajaro: "10 Gallito" },
           { id: "produccion.porPagarProduccion", modulo: "produccion", etiqueta: "Por pagar", estado: "viva", ruta: "/produccion/por-pagar", icono: "porPagar", pajaro: "10 Gallito", exige: "verDinero" },
         ],
       },
@@ -299,9 +307,9 @@ export const ARBOL: readonly Nodo[] = [
       // ADR-0208 (paso 4): sin `exige`, la visibilidad la da su módulo, que nació solo para el líder.
       { id: "gestion.frescura", modulo: "frescura", etiqueta: "Frescura del piso", estado: "viva", ruta: "/gestion/frescura", icono: "frescura", pajaro: "13 Águila", conservaNombre: true },
       // ADR-0329 / ADR-0352: entrada propia, no una pestaña (una pestaña no es un módulo, ADR-0306).
-      { id: "gestion.plan_piso", modulo: "plan_piso", etiqueta: "Plan del piso", estado: "viva", ruta: "/gestion/plan-del-piso", icono: "resumen", pajaro: "13 Águila", conservaNombre: true },
+      { id: "gestion.plan_piso", modulo: "plan_piso", etiqueta: "Plan del piso", estado: "viva", ruta: "/gestion/plan-del-piso", icono: "planPiso", pajaro: "13 Águila", conservaNombre: true },
       // ADR-0219 (respuesta 20): la pantalla del equipo; la ficha de cada persona cuelga de su ruta, no del menú.
-      { id: "gestion.rendimiento", modulo: "rendimiento", etiqueta: "Rendimiento", estado: "viva", ruta: "/rendimiento", icono: "resumen", pajaro: "13 Águila", conservaNombre: true },
+      { id: "gestion.rendimiento", modulo: "rendimiento", etiqueta: "Rendimiento", estado: "viva", ruta: "/rendimiento", icono: "rendimiento", pajaro: "13 Águila", conservaNombre: true },
     ],
   },
 
@@ -372,7 +380,8 @@ export const ARBOL: readonly Nodo[] = [
   // Compras (ADR-0126): dinero de proveedores. Cada puerta exige `verDineroCompras` (quien ve Facturas de compra, Por pagar
   // o Notas de crédito, 20260923130000) Y su propio módulo; el grupo sale solo cuando no queda ninguna.
   // Proveedores es la excepción (ADR-0161 P3, 20260923140000): exige su módulo (`editarCuentasProveedor`), no el dinero —
-  // quien lo tiene sin los montos ve el directorio y la ficha sin cifras.
+  // quien lo tiene sin los montos ve el directorio y la ficha sin cifras. Plan de campaña y Órdenes de compra, también: piden solo
+  // su módulo (ADR-0387, Felipe 2026-10-12: «el módulo es la llave»; sus funciones no piden más que eso).
   // Es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21), del mismo
   // modo que Producción no se muestra en una tienda: en cada ubicación el líder ve UNO de los dos. Solo visibilidad: las
   // URLs de Compras siguen abriendo (otras pantallas enlazan a ellas) y el candado real es el de cada RPC. Consecuencia
@@ -386,7 +395,7 @@ export const ARBOL: readonly Nodo[] = [
     hijos: [
       // Plan de campaña (ADR-0349): cuánto comprar para una campaña, por categoría. Va primero: se planifica antes de comprar. Muestra
       // costos e inversión, así que pide ver el dinero de Compras como sus hermanas (ADR-0126).
-      { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "analisis", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "campana", pajaro: "09 Pelícano" },
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
       // Órdenes de compra (ADR-0362): lo que se le pide al proveedor, antes de su factura; por eso va entre las dos. Sin `exige`: el
       // módulo es la llave y trae sus precios (decisión 34). Es la 7.ª hija de Compras, TEMPORAL (decisión 38): la excepción vive en

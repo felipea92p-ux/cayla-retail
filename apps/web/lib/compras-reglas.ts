@@ -4,13 +4,18 @@
 // lo importan, y si estuviera junto con las consultas arrastraría
 // `next/headers` al navegador — Next lo rechaza en tiempo de compilación.
 
+import { hoyLima } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
-import { estadoDeMiTienda } from "./reparto-reglas";
+import { estadoDeMiTienda, nombreDeLineaSinPrenda } from "./reparto-reglas";
+
+// La etiqueta de una línea sin prenda vive junto a `etiquetaDeLinea` (reparto-reglas); las pantallas la piden desde acá.
+export { nombreDeLineaSinPrenda };
 
 export type EstadoPago = "pendiente" | "parcial" | "pagada" | "anulada";
 export type EstadoRecepcion = "sin_recibir" | "parcial" | "recibida" | "anulada";
 export type Condicion = "contado" | "credito";
-export type TipoDocumentoCompra = "factura" | "boleta" | "nota_venta";
+/** «Sin comprobante» (ADR-0362, decisión 50): una compra de una orden sin ningún papel; la base le pone el número interno SC-000001. */
+export type TipoDocumentoCompra = "factura" | "boleta" | "nota_venta" | "sin_comprobante";
 
 export type CompraResumen = {
   id: string;
@@ -92,6 +97,10 @@ export type LineaCompra = {
   talla: string | null;
   color: string | null;
   descripcion: string | null;
+  /** Solo en una línea SIN prenda (`productoId` vacío: la de un comprobante que sale de una orden de compra, ADR-0362): la
+   *  categoría y la marca con que se pidió. Con prenda no vienen: la categoría y la marca son las de la prenda. */
+  categoria?: string | null;
+  marca?: string | null;
   cantidad: number;
   costoUnitario: number;
   subtotal: number;
@@ -122,6 +131,14 @@ export type TiendaEnLinea = {
   cerrado: number;
   pendiente: number;
 };
+
+/**
+ * ¿Queda algo de este comprobante que Recibir mercadería pueda recibir? Una línea sin prenda (`productoId` vacío) no se recibe ni se
+ * cierra por ahí: llega por guía (ADR-0362, fase 4). Un comprobante hecho solo de ellas no tiene nada que recibir en Recibir.
+ */
+export function hayAlgoQueRecibir(lineas: readonly { productoId?: string | null; pendiente: number }[]): boolean {
+  return lineas.some((l) => !!l.productoId && l.pendiente > 0);
+}
 
 export type PagoCompra = {
   id: string;
@@ -203,6 +220,7 @@ export const ETIQUETA_TIPO_DOCUMENTO: Record<TipoDocumentoCompra, string> = {
   factura: "Factura",
   boleta: "Boleta",
   nota_venta: "Nota de venta",
+  sin_comprobante: "Sin comprobante",
 };
 
 export const ETIQUETA_ESTADO_PAGO: Record<EstadoPago, string> = {
@@ -275,7 +293,11 @@ export function soles(n: number): string {
 
 export function fechaCorta(iso: string | null): string {
   if (!iso) return "—";
-  const [a, m, d] = iso.slice(0, 10).split("-");
+  // Un INSTANTE (con hora: la llegada de un lote, un pago) se lee en Lima: de 7 pm a medianoche de Lima, en UTC ya es «mañana», y
+  // cortar los 10 primeros caracteres ponía la recepción de las 22:17 del 12/10 con fecha 13/10 (prueba ciega del 2026-10-12).
+  // Una FECHA sola (`aaaa-mm-dd`) se usa tal cual.
+  const dia = /^\d{4}-\d{2}-\d{2}[T ]\d/.test(iso) && !Number.isNaN(Date.parse(iso)) ? hoyLima(new Date(iso)) : iso.slice(0, 10);
+  const [a, m, d] = dia.split("-");
   return `${d}/${m}/${a}`;
 }
 
@@ -332,6 +354,30 @@ export function totalesCompra(
   }
   const igv = a2((subtotal * igvPorcentaje) / 100);
   return { subtotal, igv, total: a2(subtotal + igv) };
+}
+
+/**
+ * ¿Esta fila de la factura que se arma en pantalla se manda a `registrar_compra`? Solo la que trae prenda y una cantidad: una fila a
+ * medio llenar no se envía y, por eso mismo, tampoco se suma (`totalesDeLasLineasQueSeEnvian`).
+ */
+export function seEnviaLinea(l: { productoId?: string | null; cantidad: number }): boolean {
+  return !!l.productoId && l.cantidad > 0;
+}
+
+/**
+ * Los totales de la factura que se arma: suman EXACTAMENTE las líneas que se envían. Antes sumaban todas las filas, también las que
+ * no iban (sin prenda o sin cantidad): la pantalla mostraba un total mayor y el comprobante se registraba por menos.
+ */
+export function totalesDeLasLineasQueSeEnvian(
+  lineas: readonly { productoId?: string | null; cantidad: number; costoUnitario: string | number }[],
+  igvPorcentaje: number,
+  conIgv: boolean,
+): { subtotal: number; igv: number; total: number } {
+  return totalesCompra(
+    lineas.filter(seEnviaLinea).map((l) => ({ cantidad: l.cantidad, costoTipeado: Number(l.costoUnitario) })),
+    igvPorcentaje,
+    conIgv,
+  );
 }
 
 // ---------- Lectura operativa: recibir SIN ver dinero (ADR-0126) ----------

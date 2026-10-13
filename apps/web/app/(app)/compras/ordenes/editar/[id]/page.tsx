@@ -1,7 +1,7 @@
 import { FileX } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getDatosEditarOrden } from "@/lib/ordenes-compra";
-import { numeroOrdenCompra } from "@/lib/ordenes-compra-reglas";
+import { numeroOrdenCompra, tieneComprobante } from "@/lib/ordenes-compra-reglas";
 import { borradorDeDetalle } from "@/lib/orden-compra-alta";
 import { hoyLima } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -37,7 +37,7 @@ export default async function EditarOrdenCompraPage({ params }: { params: Promis
               icono={<FileX />}
               titulo="No encontramos esa orden"
               acciones={
-                <BotonEnlace href="/compras/ordenes" peso="primario">{/* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */}
+                <BotonEnlace href="/compras/ordenes" peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                   Ver las órdenes de compra
                 </BotonEnlace>
               }
@@ -66,6 +66,29 @@ export default async function EditarOrdenCompraPage({ params }: { params: Promis
           accion={<BotonEnlace href={`/compras/ordenes/ver/${detalle.id}`}>Ver la orden</BotonEnlace>}
         >
           Su número no vuelve a usarse. Si todavía hace falta pedir esto, crea una orden nueva.
+        </Aviso>
+      </div>
+    );
+  }
+
+  // Fase 2: una orden con algún comprobante (vigente o anulado) no se edita, porque sus líneas son el respaldo del papel (la base lo
+  // rechaza al guardar con «Esta orden ya tiene comprobante»): quien llega por un enlace viejo lo sabe antes de llenar nada.
+  if (tieneComprobante(detalle)) {
+    return (
+      <div className="space-y-6">
+        <EncabezadoPagina
+          sede={persona.ubicacionEtiqueta}
+          titulo={`Editar ${numeroOrdenCompra(detalle.numero)}`}
+          subtitulo="Corrige lo que le pediste a un proveedor."
+          volver={volver}
+        />
+        <Aviso
+          tono="atencion"
+          guia="orden-form.con-comprobante"
+          titulo="Esta orden ya tiene comprobante: no se edita"
+          accion={<BotonEnlace href={`/compras/ordenes/ver/${detalle.id}`}>Ver la orden</BotonEnlace>}
+        >
+          Si el papel está mal, anula su comprobante desde la orden y regístralo de nuevo.
         </Aviso>
       </div>
     );

@@ -10,8 +10,9 @@
  *     cabecera al centavo, ninguna parte sale negativa y ninguna tienda se aleja de su parte exacta en más de un centavo;
  *   · una factura de una sola tienda es una sola fila igual a la cabecera;
  *   · el resultado es el mismo en dos lecturas seguidas (los empates de centavos se rompen por id, no al azar);
- *   · la vista respeta los permisos de quien la lee: el líder ve todo; un comprador, solo las facturas que le abre
- *     `fn_compra_es_de_mis_tiendas`; sin fila, nada; `anon`, nada;
+ *   · la vista respeta los permisos de quien la lee: el líder ve todo; quien tiene un módulo de plata de Compras, también
+ *     todo, con o sin fila extra en `compradores_de_tienda` (ADR-0387, Felipe 2026-10-12; antes, solo las facturas que
+ *     gestionaban sus tiendas); sin módulo, nada aunque tenga fila extra; `anon`, nada;
  *   · sobre TODAS las facturas del Postgres local con líneas, la suma de partes cuadra con `compras.total`;
  *   · la migración se puede pegar dos veces.
  *
@@ -297,9 +298,10 @@ exito(
 // ===========================================================================
 
 const ESCENA = `${BASE}${compra("c3", { lineas: [{ cant: 24, costo: 50, dest: { lima: 24 } }] })}${compra("c4", { lineas: [{ cant: 24, costo: 50, dest: { lima: 12, trujillo: 12 } }] })}`;
-// ADR-0161 + ADR-0184: QUIÉN = un módulo de Compras en el rol (aquí, «integrante», el de Micaela); DÓNDE = su tienda
-// (Trujillo) más las extra de compradores_de_tienda. Una factura se ve entera si la gestiona una tienda suya (la gestora es
-// el destino de la primera línea en \`compra()\`: Lima, para c3 y c4).
+// ADR-0161 + ADR-0387 (Felipe 2026-10-12): QUIÉN = un módulo de plata de Compras en el rol (aquí, «integrante», el de Micaela);
+// DÓNDE = todas las tiendas, como el líder (antes, ADR-0184: su tienda —Trujillo— más las extra de compradores_de_tienda, y una
+// factura se veía entera solo si la gestionaba una tienda suya). La gestora es el destino de la primera línea en \`compra()\`:
+// Lima, para c3 y c4.
 const CON_MODULO = `insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'facturas_compra') on conflict do nothing;\n`;
 const EXTRA = (...tiendas) => `${tiendas.map((t) => `select retail.agregar_comprador_de_tienda(:'micaela', :'${t}');`).join("\n")}\n`;
 const COMO_MICAELA = `${cambiaA(MICAELA)}${COMO_AUTENTICADO}`;
@@ -311,7 +313,7 @@ exito(
 );
 
 exito(
-  "con el módulo y Lima como tienda extra: ve la parte de c3 y las DOS de c4 (la gestiona Lima, así que la ve entera)",
+  "con el módulo y Lima como tienda extra: ve la parte de c3 y las DOS de c4 — ADR-0387 (Felipe 2026-10-12): lo mismo que sin la fila extra, que ya no cambia nada en Compras",
   como(
     FELIPE,
     `${ESCENA}${CON_MODULO}${EXTRA("lima")}${COMO_MICAELA}select
@@ -322,9 +324,14 @@ exito(
 );
 
 exito(
-  "con el módulo y solo su tienda (Trujillo): no ve ninguna de las dos por la vista (su parte de c4 sale por fn_mis_partes_de_compras)",
-  como(FELIPE, `${ESCENA}${CON_MODULO}${COMO_MICAELA}select count(*) from retail.compra_parte_por_tienda where compra_id in (:'c3', :'c4');`),
-  ["0"]
+  "ADR-0387 (Felipe 2026-10-12): con el módulo y solo su tienda (Trujillo), ve por la vista las partes de las dos facturas que gestiona Lima, como el líder (1 + 2 filas) (antes: ninguna; su parte de c4 salía por fn_mis_partes_de_compras)",
+  como(
+    FELIPE,
+    `${ESCENA}${CON_MODULO}${COMO_MICAELA}select
+  (select count(*) from retail.compra_parte_por_tienda where compra_id = :'c3'),
+  (select count(*) from retail.compra_parte_por_tienda where compra_id = :'c4');`
+  ),
+  ["1", "2"]
 );
 
 exito(

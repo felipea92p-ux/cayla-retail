@@ -16,7 +16,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { esVersionCambiada, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { estaActiva, type Clienta, type FichaClienta } from "@/lib/clientas-reglas";
 import { deducirTallas, estadoFrecuente } from "@/lib/clienta-actividad-reglas";
-import { ajustarNumeroAlTipo, documentoLegible, problemaDocumento } from "@/lib/documento-clienta-reglas";
+import { ajustarNumeroAlTipo, contactoVisible, problemaDocumento } from "@/lib/documento-clienta-reglas";
 import { estadoClub } from "@/lib/club-reglas";
 import { cajaDelProblemaCumple, cumpleCompleto, problemaCumple, type CumpleEscrito } from "@/lib/club-cumple-reglas";
 import { avisoCambioDeCelular, cumpleLegible, faltaParaSerSocia } from "@/lib/club-clientas-reglas";
@@ -149,7 +149,19 @@ function camposDeLaGuia(
  * escaneando el cartel y ahí decide si quiere publicidad (G-12): la ficha no une al club ni marca la publicidad. Lo único del
  * club que se registra aquí es su BAJA, cuando escribe BAJA a la tienda; la historia de permisos lo muestra.
  */
-export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onClose: () => void; onCambiada: () => void }) {
+export function ClientaFichaModal({
+  id,
+  verCompleto = false,
+  onClose,
+  onCambiada,
+}: {
+  id: string;
+  /** El DNI y el celular completos (Felipe 2026-10-13: solo el líder); los demás los ven a medias. La caja de edición los
+   *  muestra completos: hace falta para corregirlos. */
+  verCompleto?: boolean;
+  onClose: () => void;
+  onCambiada: () => void;
+}) {
   const [ficha, setFicha] = useState<FichaClienta | null>(null);
   const [cargando, setCargando] = useState(true);
   const [modo, setModo] = useState<Modo>("ver");
@@ -211,9 +223,10 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
   const tallas = deducirTallas(ficha.compras);
   const frecuente = frecuenteDeLaFicha(ficha.resumenCompras ?? null, estadoFrecuente(ficha.compras, new Date()));
   const suSede = suSedeDeLaFicha(ficha.resumenCompras ?? null);
-  // Dentro de la ficha el documento se ve completo, con su tipo («DNI 71234482», «CE 001234567»): quien la abre ya la
-  // buscó a propósito. Lo que se enmascara es el mostrador del Punto de venta.
-  const documento = documentoLegible(c.documentoTipo, c.documentoNumero, false);
+  // El documento con su tipo («DNI 71234482») y el celular: completos para el líder, a medias para los demás (Felipe
+  // 2026-10-13, auditoría punto 18). Antes se veían completos para toda cuenta con el módulo.
+  const contacto = contactoVisible(c, verCompleto);
+  const documento = contacto.documento;
   const enClub = estadoClub(c);
   // Solo una miembro tiene pestaña «Club» (permisos y preferencias); una ficha anonimizada no tiene nada del club que mostrar.
   const conClub = enClub !== "no_socia" && !c.anonimizada;
@@ -362,7 +375,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
             : c.fusionadaEnId
               ? "Esta ficha se unió a otra"
               : `Ficha archivada: ${c.motivoArchivo}`
-          : [documento, c.telefonoWhatsapp, c.codigoClub].filter(Boolean).join(" · ") || "Sin documento ni celular"
+          : [documento, contacto.celular, c.codigoClub].filter(Boolean).join(" · ") || "Sin documento ni celular"
       }
       onClose={onClose}
       variante="hoja"
@@ -678,7 +691,8 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                         >
                           <span className="text-sm text-tinta">{otra.nombre ?? "Sin nombre"}</span>
                           <span className="text-xs text-tinta/65">
-                            {[documentoLegible(otra.documentoTipo, otra.documentoNumero, false), otra.telefonoWhatsapp].filter(Boolean).join(" · ")}
+                            {/* Unir no se puede deshacer: para comparar las dos fichas, el número completo a quien sea que una. */}
+                            {Object.values(contactoVisible(otra, true)).filter(Boolean).join(" · ")}
                           </span>
                         </button>
                       ))
@@ -714,7 +728,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                 cupones por WhatsApp, en las 3 tiendas. <strong>Sigue siendo miembro</strong>: su cupón de cumpleaños y su vale de aniversario
                 siguen, en tienda.
               </p>
-              <p className="text-xs text-tinta/65">Vale para toda ficha con el celular {c.telefonoWhatsapp}.</p>
+              <p className="text-xs text-tinta/65">Vale para toda ficha con el celular {contacto.celular}.</p>
               <CampoGuiado id="responsable" guia={guia}>
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>

@@ -296,6 +296,14 @@ describe("nombre de una línea", () => {
     // una línea «sin desglose» no muestra la variante aunque llegue con datos sueltos
     expect(etiquetaDeLinea({ referencia: "Blusa Emma", varianteId: null, talla: "M", color: "Arena" })).toBe("Blusa Emma");
   });
+
+  it("una línea sin prenda (la de un comprobante de orden) se nombra «categoría · marca · descripción»", () => {
+    const sinPrenda = { referencia: "", varianteId: null, talla: null, color: null };
+    expect(etiquetaDeLinea({ ...sinPrenda, categoria: "Blusas", marca: "Cayla", descripcion: "lino crudo" })).toBe("Blusas · Cayla · lino crudo");
+    expect(etiquetaDeLinea({ ...sinPrenda, categoria: "Blusas", marca: "Cayla", descripcion: null })).toBe("Blusas · Cayla");
+    // con prenda manda la prenda, aunque llegue con categoría y marca sueltas
+    expect(etiquetaDeLinea({ referencia: "Blusa Emma", varianteId: null, talla: null, color: null, categoria: "Blusas", marca: "Cayla" })).toBe("Blusa Emma");
+  });
 });
 
 describe("la tienda gestora al registrar (ADR-0184, F3)", () => {

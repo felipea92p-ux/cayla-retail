@@ -63,7 +63,7 @@
       "button «Entendido»"
     ],
     "components/MovimientosVacio.tsx": [
-      "Link «(sin nombre)»",
+      "Link «Ver los últimos 90 días»",
       "Link «Ver todo el historial»",
       "Link «Limpiar filtros»"
     ],

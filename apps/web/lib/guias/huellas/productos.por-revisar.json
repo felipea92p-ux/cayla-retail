@@ -6,7 +6,7 @@
   "controles": {
     "app/(app)/productos/por-revisar/page.tsx": [
       "Volver «(sin nombre)»",
-      "BotonEnlace «(sin nombre)»"
+      "BotonEnlace «Ir a Productos»"
     ],
     "components/Paginacion.tsx": [
       "Link «Volver al inicio»",

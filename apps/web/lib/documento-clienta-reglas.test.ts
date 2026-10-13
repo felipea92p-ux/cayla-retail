@@ -8,6 +8,7 @@ import {
   normalizarNumeroDocumento,
   problemaDocumento,
   tipoDocumentoDe,
+  contactoVisible,
 } from "./documento-clienta-reglas";
 
 describe("documento de la clienta (ADR-0288 D-2): las mismas reglas que la base", () => {
@@ -83,5 +84,25 @@ describe("documento de la clienta (ADR-0288 D-2): las mismas reglas que la base"
     expect(documentoParaComprobante("carne_extranjeria", "CE-12")).toBeNull();
     expect(documentoParaComprobante("dni", "7123448")).toBeNull();
     expect(documentoParaComprobante("pasaporte", "   ")).toBeNull();
+  });
+});
+
+describe("contactoVisible (Felipe 2026-10-13: el DNI y el celular a medias para quien no es líder)", () => {
+  const ana = { documentoTipo: "dni" as const, documentoNumero: "71234482", telefonoWhatsapp: "987654321" };
+  it("el líder los ve completos", () => {
+    expect(contactoVisible(ana, true)).toEqual({ documento: "DNI 71234482", celular: "987654321" });
+  });
+  it("los demás los ven a medias", () => {
+    expect(contactoVisible(ana, false)).toEqual({ documento: "DNI 71•••482", celular: "9•• ••• 321" });
+  });
+  it("el formato legible del celular lo pone la pantalla, solo para quien lo ve completo", () => {
+    expect(contactoVisible(ana, true, (t) => `${t.slice(0, 3)} ${t.slice(3, 6)} ${t.slice(6)}`).celular).toBe("987 654 321");
+  });
+  it("sin documento ni celular, nada que mostrar", () => {
+    expect(contactoVisible({ documentoTipo: "dni", documentoNumero: null, telefonoWhatsapp: null }, false)).toEqual({ documento: null, celular: null });
+  });
+  it("un celular con +51 o con espacios se enmascara igual; un número que no es celular no deja ver nada", () => {
+    expect(contactoVisible({ ...ana, telefonoWhatsapp: "+51 987 654 321" }, false).celular).toBe("9•• ••• 321");
+    expect(contactoVisible({ ...ana, telefonoWhatsapp: "412 3456" }, false).celular).toBe("•••");
   });
 });

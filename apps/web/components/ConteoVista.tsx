@@ -151,7 +151,7 @@ export function ConteoVista({
                     Ir a ese día
                   </Link>
                 )}
-                <Link href={hrefRecientes(null, variantes)} scroll={false} className="btn-cayla btn-primario">{/* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */}
+                <Link href={hrefRecientes(null, variantes)} scroll={false} className="btn-cayla btn-primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                   Ver todos
                 </Link>
               </div>
