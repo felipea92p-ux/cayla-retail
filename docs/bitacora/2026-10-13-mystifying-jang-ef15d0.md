@@ -42,4 +42,6 @@ rojo como en la del producto.
 Por qué así: «Descargar» se entiende antes que «Exportar»; un botón negro dice «esto es lo principal de aquí», y llevar a otra pantalla casi
 nunca lo es. Clientes a 375 px pedía sus tres botones en una fila: «Descargar» a secas y 8 px entre ellos (342 de 343 px).
 Felipe se lleva: tres familias más con una sola pieza (25 de 41), deuda 0 en todas, la firma de vacíos que ya no deja pasar una frase gris, y
-las fotos de antes y después en `docs/unificar/capturas/accion.*.jpg`.
+las fotos de antes y después en `docs/unificar/capturas/accion.*.jpg`. Verificado: modo oscuro de 15 pantallas tocadas (0 hallazgos solo en
+oscuro; los 4 heredados ya fallaban en claro), 25 guías recorridas en verde a 1440 px (las de Producción, con la cuenta del Taller) y
+Vender, Historial y Clientes a 375 px con la cuenta del mostrador; suite entera, tipos y lint en verde en cada commit.
