@@ -148,7 +148,9 @@ export function FiltrosHistorialVentas({
   return (
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div className="-mx-4 -my-1 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto px-4 py-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
+        {/* En el celular la fila se desliza y sale desde el borde izquierdo de la pantalla (`-ml-4 pl-4`); por la derecha termina
+            antes de «Filtros» (con `-mx-4` se metía 16 px debajo de la píldora). */}
+        <div className="-my-1 -ml-4 flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-1 pl-4 [scrollbar-width:none] sm:ml-0 sm:flex-wrap sm:overflow-visible sm:pl-0 [&::-webkit-scrollbar]:hidden">
         <div role="group" aria-label="Período" data-guia="historial.periodos" className="flex shrink-0 items-center gap-1.5">
           <Pastilla
             activa={!mostrarFechas && periodo === "hoy"}
