@@ -6,5 +6,5 @@
       R1 cuenta las dos funciones nuevas. **No corrida en local** (sin Docker en esta máquina): la corre el CI.
 - [x] **`20261013130000` pegada en producción** (2026-10-13, Felipe): verificado de solo lectura, las dos funciones preguntan; 46 categorías activas,
       45 en el plan, 0 sin grupo.
-- [ ] Refrescar el diccionario: `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
+- [x] Diccionario refrescado desde producción (2026-10-13, foto 13:16 UTC: 183 relaciones, 993 funciones; 19 grupos nuevos, todos de Compras y plan de compra, ajenos a este PR): `datos:generar:produccion`, `datos:comparar`, `datos:aviario` y `test diccionario-datos` en verde.
 - [ ] Mirar Plan del piso ▸ Grupos en producción después de pegar: «Categorías 45», tarjeta «Sin grupo» en 0, sin «Siguiente por revisar: Bolsas».
