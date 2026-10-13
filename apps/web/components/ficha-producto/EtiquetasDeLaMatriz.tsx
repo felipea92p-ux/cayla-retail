@@ -5,6 +5,8 @@ import { TarjetaMuestraBase } from "@/components/alta-producto/GrillaMuestras";
 import { GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, estiloConocido } from "@/lib/etiqueta-grupos";
 import { cuentaEtiqueta } from "@/lib/matriz-ficha-reglas";
 import type { FilaFicha } from "@/lib/variantes-ficha-reglas";
+import { Tag } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 /** Una etiqueta que la cuenta puede poner, con su grupo (Rotación, Artesanal, Campaña, General) para dibujarla como en Atributos. */
 export type EtiquetaMatriz = { valor: string; texto: string; estilo: string };
@@ -40,7 +42,11 @@ export function EtiquetasDeLaMatriz({
   deshabilitado: boolean;
 }) {
   if (etiquetas.length === 0) {
-    return <p className="text-[12.5px] italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>;
+    return (
+      <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Tag />}>
+        Todavía no hay etiquetas aprobadas.
+      </Vacio>
+    );
   }
   const grupos = ORDEN_GRUPOS_ETIQUETA.map((estilo) => ({
     estilo,
