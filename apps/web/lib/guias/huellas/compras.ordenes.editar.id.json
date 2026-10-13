@@ -2,12 +2,13 @@
   "guia": "compras.ordenes.editar.id",
   "ruta": "/compras/ordenes/editar/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 20,
+  "total": 21,
   "controles": {
     "app/(app)/compras/ordenes/editar/[id]/page.tsx": [
       "Volver «; if (falla || !detalle)»",
       "BotonEnlace «Ver las órdenes de compra»",
-      "BotonEnlace «Ver la orden»"
+      "BotonEnlace «Ver la orden»",
+      "BotonEnlace «Ver la orden» #2"
     ],
     "components/ordenes-compra/NuevaOrdenCompra.tsx": [
       "Volver «(sin nombre)»",

@@ -43,3 +43,8 @@
 - [x] **Plan en el celular:** resumen, campaña y Exportar en una fila (la campaña se corta con «…»); filtros en una fila que se desliza; los dos combos lado a lado.
 - [x] **Resultados e Historial arrancan en la sede de la cabecera** (Felipe 2026-10-12): Resultados la elige de entrada; Historial la pone primera y marcada, y su
   detalle abre en ella. En CAYLA Global o en el Taller, toda CAYLA (`tiendaDeLaCabecera`, `laDeLaCabeceraPrimero`).
+- [x] **El selector es el calendario de Etiquetas; un plan por campaña y por año; «Campaña nueva» queda en Etiquetas con su formato** (ADR-0372 act. f,
+  migración `20261012234000`). **EN PRODUCCIÓN (2026-10-13)**: la pegó Felipe; verificada por lectura y como líder.
+- [ ] **Etiquetas no tiene cómo crear una campaña** (toda etiqueta nueva nace en «General»): hoy solo se puede desde el Plan. Que Etiquetas use
+  `crear_campana_con_plan` (o una hermana sin plan) para su propio «Nueva campaña».
+- [ ] **El selector crece 12 campañas por año que viene**: si molesta, mostrar «Por venir · 2027» plegado hasta que falten 6 meses.

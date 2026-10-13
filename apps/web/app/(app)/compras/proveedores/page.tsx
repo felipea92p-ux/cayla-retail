@@ -1,4 +1,5 @@
 import { exigirModulo, puede } from "@/lib/persona-actual";
+import { usaModulo } from "@/lib/modulos";
 import { getMarcasPorProveedor, getProveedores, getProveedoresResumen, getProveedoresSerie } from "@/lib/proveedores";
 import { ProveedoresPanel } from "@/components/ProveedoresPanel";
 
@@ -24,9 +25,10 @@ import { ProveedoresPanel } from "@/components/ProveedoresPanel";
 // igual que la serie: si falla, la lista se pinta sin marcas.
 export default async function ProveedoresPage() {
   // La puerta del módulo Proveedores. ADR-0161 P3 (20260923140000): con el módulo se da de alta, se edita y se archiva
-  // (`fn_puede_gestionar_proveedores` en la base); lo financiero, con los montos de Compras (`verDineroCompras`).
+  // (`fn_puede_gestionar_proveedores` en la base). Los montos, desde ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»):
+  // también con el módulo, completo (`fn_ve_plata_de_proveedores` en la base); antes, solo con los montos de Compras.
   const persona = await exigirModulo("proveedores");
-  const verMontos = puede(persona, "verDineroCompras");
+  const verMontos = puede(persona, "verDineroCompras") || usaModulo(persona.rol, persona.modulos, "proveedores");
   const puedeEditar = puede(persona, "editarCuentasProveedor");
   const [proveedores, resumen, series, marcas] = await Promise.all([
     getProveedores(),

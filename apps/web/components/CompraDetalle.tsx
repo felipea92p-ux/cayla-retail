@@ -13,6 +13,8 @@ import {
   TONO_ESTADO_PAGO,
   TONO_ESTADO_RECEPCION,
   fechaCorta,
+  hayAlgoQueRecibir,
+  nombreDeLineaSinPrenda,
   soles,
   type CompraResumen,
   type LineaCompra,
@@ -79,11 +81,9 @@ export type DetalleCompra = {
   /** Cómo se le paga al proveedor (cuenta, CCI, Yape/Plin, titular, saldo a favor) para el modal de pago. Solo si el comprobante se puede pagar y la lectura salió bien. */
   datosPago?: DatosPagoProveedor;
   /** Qué puede hacer quien mira, módulo por módulo (ADR-0161 P1, 20260923140000): anular, reparto y adjuntos son de Facturas de
-   *  compra; pagar, de Por pagar; las notas, de Notas de crédito. Solo esconde lo que la base igual rechazaría. */
+   *  compra; pagar, de Por pagar; las notas, de Notas de crédito. Solo esconde lo que la base igual rechazaría. Desde ADR-0387
+   *  quien paga lo hace a nombre de la empresa, sin tienda, sea líder o no: el detalle ya no lleva «las tiendas de quien mira». */
   acciones: AccionesDeCompra;
-  /** ADR-0184 (F4-F5): las tiendas con las que paga quien mira, para que «Registrar pago» sepa con cuál (`p_ubicacion_id`).
-   *  `undefined` = líder: paga sin atarse a ninguna, como siempre. */
-  misTiendas?: { id: string; nombre: string }[];
 };
 
 /** Lo que el modal de pago muestra del proveedor. Es un complemento: si la lectura falla el detalle sigue (principio 9) y el pago funciona igual, solo sin la tarjeta «Paga por» ni el saldo a favor a la vista — la base valida igual. */
@@ -128,7 +128,6 @@ export async function cargarDetalleCompra(compraId: string): Promise<DetalleComp
     ubicaciones: ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre })),
     datosPago,
     acciones: accionesDeCompraDe(persona),
-    misTiendas: persona.rol === "lider" ? undefined : persona.tiendasCompra,
   };
 }
 
@@ -175,7 +174,7 @@ export function DatosComprobante({ compra, destino }: Pick<DetalleCompra, "compr
 }
 
 export function CompraDetalle({
-  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones, acciones: permite, misTiendas },
+  detalle: { compra, lineas, pagos, recepciones, adjuntos, notasCredito, datosPago, reparto, ubicaciones, acciones: permite },
   adjuntosFallidos = [],
   acciones = true,
 }: {
@@ -297,10 +296,21 @@ export function CompraDetalle({
                 return (
                   <div key={l.id} className={fila(PLANTILLA_LINEAS)}>
                     <span className={celda("izq", "text-sm text-tinta")}>
-                      {l.referencia} <span className="text-tinta/65">{l.varianteId ? [l.talla, l.color].filter(Boolean).join(" / ") || l.sku : "sin desglose"}</span>
-                      {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
+                      {l.productoId ? (
+                        <>
+                          {l.referencia} <span className="text-tinta/65">{l.varianteId ? [l.talla, l.color].filter(Boolean).join(" / ") || l.sku : "sin desglose"}</span>
+                          {l.descripcion && <span className="block text-xs text-tinta/55">{l.descripcion}</span>}
+                        </>
+                      ) : (
+                        <>
+                          {/* La línea de un comprobante que sale de una orden de compra se pidió por «categoría + marca» (ADR-0362):
+                              la prenda se crea cuando llega la mercadería, por guía. */}
+                          {nombreDeLineaSinPrenda(l)}
+                          <span className="block text-xs text-tinta/55">Sin prenda todavía: llega por guía</span>
+                        </>
+                      )}
                       {l.cerrado > 0 && <span className="block text-xs text-ambar-profundo">{l.cerrado.toLocaleString("es-PE")} cerradas por faltante</span>}
-                      {!anulada && l.pendiente > 0 && (
+                      {!anulada && l.pendiente > 0 && l.productoId && (
                         <BotonCerrarFaltante
                           compra={compra}
                           linea={l}
@@ -343,7 +353,7 @@ export function CompraDetalle({
           <section className="space-y-2" data-guia="factura.recepciones">
             <div className="flex items-baseline justify-between">
               <p className="label-cayla text-[11px] text-tinta/65">Recepciones</p>
-              {!anulada && compra.estadoRecepcion !== "recibida" && (
+              {!anulada && compra.estadoRecepcion !== "recibida" && hayAlgoQueRecibir(lineas) && (
                 <EnlaceVer href={`/compras/recibir?compra=${compra.id}`}>Recibir mercadería</EnlaceVer>
               )}
             </div>
@@ -385,7 +395,7 @@ export function CompraDetalle({
           (en el modal lo dibuja `ModalRuta`, con `acciones={false}` acá). */}
       {acciones && !anulada && (
         <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4" data-guia="factura.acciones">
-          <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} permite={permite} misTiendas={misTiendas} />
+          <CompraAcciones compra={compra} tieneRecepciones={recepciones.length > 0} datosPago={datosPago} permite={permite} hayQueRecibir={hayAlgoQueRecibir(lineas)} />
         </div>
       )}
     </>

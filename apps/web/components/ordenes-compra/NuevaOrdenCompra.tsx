@@ -25,6 +25,7 @@ import type { EstadoCampo } from "@/lib/guia-campos";
 import { opcionesDeMarca } from "@/lib/marca-proveedor-reglas";
 import { sugerirDescripcion } from "@/lib/sugerencias-alta-producto";
 import { soles } from "@/lib/compras-reglas";
+import { TEXTO_AVISO_ORDEN, tituloAvisoOrden } from "@/lib/nos-debe-reglas";
 import {
   POR_REPARTIR,
   TOPES,
@@ -210,6 +211,9 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
   const total = totalCentimos(orden.lineas) / 100;
   const cuantas = unidades(orden.lineas);
   const problemaEntrega = problemaDeEntrega(orden.entrega, hoy, editar?.entregaOriginal);
+  // «Nos debe» (ADR-0362, fase 5a, decisión 14): si el proveedor elegido debe prendas por reponer, se avisa antes de pedirle lo nuevo.
+  const deudaDelProveedor = orden.proveedorId ? (datos.nosDebe?.[orden.proveedorId] ?? null) : null;
+  const nombreDelProveedor = datos.proveedores.find((p) => p.id === orden.proveedorId)?.nombre ?? deudaDelProveedor?.nombre ?? "Este proveedor";
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -416,6 +420,13 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
           </CampoGuiado>
           </div>
         </section>
+
+        {/* Lo que este proveedor todavía debe de otra compra: se le puede pedir en esta orden, o marcar al recibirlo (fase 5a). */}
+        {deudaDelProveedor && deudaDelProveedor.unidades > 0 && (
+          <Aviso tono="info" guia="orden-form.nos-debe" titulo={tituloAvisoOrden(nombreDelProveedor, deudaDelProveedor)}>
+            {TEXTO_AVISO_ORDEN}
+          </Aviso>
+        )}
 
         <section data-guia="orden-form.lineas" className="@container card-cayla space-y-3 p-4 sm:p-5" aria-label="Lo que pides">
           <TituloSeccion
