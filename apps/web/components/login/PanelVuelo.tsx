@@ -126,7 +126,10 @@ export function PanelVuelo() {
     window.addEventListener("resize", alCambiarTamano);
 
     const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (quieto || !medir()) {
+    // Si el login aparece bajo la salida con el colibrí (`data-entrando`, components/login/EntradaColibri.tsx), el ave ya viene volando de vuelta:
+    // el login se pone terminado, con el ave en su lugar, y la capa aterriza sobre ella (hoy el ave se esconde con `html[data-entrando]`).
+    const llegaSaliendo = document.documentElement.hasAttribute("data-entrando");
+    if (quieto || llegaSaliendo || !medir()) {
       terminar();
       return () => window.removeEventListener("resize", alCambiarTamano);
     }

@@ -7,6 +7,7 @@ import { EsperaGlobal } from "@/components/ui/Espera";
 import { PaginaEstable } from "@/components/ui/PaginaEstable";
 import { OndaBotones } from "@/components/ui/OndaBotones";
 import { SesionEntrePestanas } from "@/components/ui/SesionEntrePestanas";
+import { EntradaColibri } from "@/components/login/EntradaColibri";
 import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
 
 // Las dos familias del sistema CAYLA (brandbook v3.0): EB Garamond es "el alma"
@@ -47,6 +48,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <OndaBotones />
         {/* Una cuenta por navegador (ADR-0309): si otra pestaña cambia de cuenta, esta se va sola al login o al inicio. */}
         <SesionEntrePestanas />
+        {/* La entrada al ERP (Felipe 2026-10-13): el colibrí que cruza al centro y se abre sobre la pantalla de destino. Una vez, acá, para que sobreviva a la navegación del login. */}
+        <EntradaColibri />
       </body>
     </html>
   );
