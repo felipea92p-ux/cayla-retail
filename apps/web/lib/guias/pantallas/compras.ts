@@ -1201,7 +1201,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.pedido",
       opcional: true,
       titulo: "Ya pedido en órdenes de compra",
-      texto: "Las órdenes de compra que llegan dentro de las fechas de la campaña, con su total. Se muestran, no se restan de «Comprar»: todavía no sabemos cuándo llegó cada una. En la tabla, cada categoría dice cuántas ya se pidieron.",
+      texto: "Las órdenes de compra que llegan dentro de las fechas de la campaña, con su total. Lo que todavía no llegó a ninguna tienda ya se resta de «Comprar»; lo que llegó está en «Hay hoy». En la tabla, cada categoría dice cuántas se pidieron y cuántas faltan llegar.",
     },
     {
       id: "recupero-cayla",

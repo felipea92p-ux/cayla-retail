@@ -71,7 +71,7 @@ export function FilaCategoria({
       {forma.venta && (
         <span className={celda("izq", "min-w-0")}>
           {linea && calculo ? (
-            <BarraRango linea={linea} calculo={calculo} vendido={forma.real ? vendido : 0} retraso={paso} />
+            <BarraRango linea={linea} calculo={calculo} vendido={forma.real ? vendido : 0} retraso={paso} enCamino={f.enCamino} />
           ) : (
             // Solo el botón: el «Sin plan» de al lado decía lo mismo 42 veces. Secundario siempre: la acción principal de la pantalla es UNA,
             // arriba («Empezar por …»), no una por fila (Formidable 2026-10-10).
@@ -88,8 +88,8 @@ export function FilaCategoria({
           <span className={celda("der", "tabular-nums font-semibold text-tinta")}>
             <span className="font-normal text-taupe-profundo sm:hidden">Comprar: </span>
             {calculo ? enteroES.format(calculo.comprar) : "—"}
-            {fraseDelPedido(f.pedido, calculo?.comprar ?? null) && (
-              <span className="block text-xs font-normal text-taupe-profundo">{fraseDelPedido(f.pedido, calculo?.comprar ?? null)}</span>
+            {fraseDelPedido(f.pedido, calculo ?? null) && (
+              <span className="block text-xs font-normal text-taupe-profundo">{fraseDelPedido(f.pedido, calculo ?? null)}</span>
             )}
           </span>
           <span className={celda("der", "tabular-nums")}>

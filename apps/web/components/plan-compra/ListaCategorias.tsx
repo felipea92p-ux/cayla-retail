@@ -166,7 +166,7 @@ export function ListaCategorias({
                 <DesplegablePildora icono={ArrowUpDown} etiqueta="Ordenar por" valor={orden} onValor={(v) => onOrden(v as OrdenPlan)} opciones={ORDENES} valorPorDefecto="ventas" encoger />
               </span>
             </div>
-            {forma.leyenda && <LeyendaRango conVendido={forma.real} />}
+            {forma.leyenda && <LeyendaRango conVendido={forma.real} conEnCamino={filas.some((f) => f.linea && f.enCamino > 0)} />}
             {avisoStock}
           </>
         )}
