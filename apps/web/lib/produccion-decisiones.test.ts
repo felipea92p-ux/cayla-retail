@@ -299,6 +299,29 @@ describe("filasPorModelo", () => {
   });
 });
 
+describe("cada tarjeta dice de qué modelos habla, para dibujar su foto (/pantalla produccion, tarea #5)", () => {
+  const ag = (i: number, ritmoDia: number) => ({
+    d: { varianteId: `v${i}`, productoId: `p${i}`, stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia, sedesConRitmo: 1, ventasNetas: 30, ventasBase: 30, cobertura: { tipo: "medida" as const, dias: 0 }, banda: "critica" as const },
+    m: { productoId: `p${i}`, referencia: `Modelo ${i}`, variantesIds: [`v${i}`] },
+  });
+  const modelosDe = (n: number) => {
+    const xs = Array.from({ length: n }, (_, i) => ag(i, 1 + i));
+    return filasPorModelo(xs.map((x) => x.d), xs.map((x) => x.m), {});
+  };
+
+  it("la tarjeta de un modelo por producir trae su productoId", () => {
+    expect(decisionesDeProduccion(contexto({ modelos: modelosDe(2) })).map((d) => d.productoIds)).toEqual([["p1"], ["p0"]]);
+  });
+  it("la tarjeta que junta varios trae los 3 que nombra, en el mismo orden", () => {
+    const d = decisionesDeProduccion(contexto({ modelos: modelosDe(9) }));
+    expect(d[0].productoIds).toEqual(["p8", "p7", "p6"]);
+  });
+  it("las tarjetas que no son de un modelo (una entrega, un pago) no traen ninguno", () => {
+    const d = decisionesDeProduccion(contexto({ ordenes: [orden("a", { fechaEntrega: "2026-09-10" })], comprobantes: [comp("1", { fechaVencimiento: "2026-09-25" })] }));
+    expect(d.map((x) => x.productoIds)).toEqual([undefined, undefined]);
+  });
+});
+
 describe("cada cifra dice su base (/pantalla produccion, tarea #4)", () => {
   const fila1 = (ventasBase: number, stockRed = 0, extra: Partial<DemandaVariante> = {}) =>
     filasPorModelo(

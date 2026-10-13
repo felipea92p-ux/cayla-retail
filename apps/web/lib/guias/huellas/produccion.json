@@ -10,7 +10,7 @@
       "BotonEnlace «+ Nueva orden»",
       "Link «{d.accion.texto}»",
       "Link «{o.cantidad}»",
-      "Link «{m.referencia}»",
+      "Link «(sin nombre)»",
       "Link «Cárgalas en Insumos»"
     ]
   }

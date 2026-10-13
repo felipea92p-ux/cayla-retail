@@ -7,6 +7,9 @@ import { getInsumosDelTaller } from "@/lib/insumos";
 import { getLineasPorRecibir } from "@/lib/recibir-produccion";
 import { getComprobantesProduccion } from "@/lib/comprobantes-produccion";
 import { getDecisionProduccion } from "@/lib/decision-produccion";
+import { getCatalogo } from "@/lib/catalogo-v2";
+import { opcional } from "@/lib/resultado";
+import { presentacionesDeModelos } from "@/lib/produccion-presentacion";
 import { hoyLima } from "@/lib/fechas-lima";
 import { cifrasResumen, resumenDeDecisiones, demandaDeInsumos, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
 import { ResumenProduccionPanel } from "@/components/ResumenProduccionPanel";
@@ -26,13 +29,17 @@ export default async function ProduccionPage() {
   if (!taller) redirect("/produccion/ordenes");
 
   const hoy = hoyLima();
-  const [ordenes, modelos, datosInsumos, lineas, comprobantes] = await Promise.all([
+  const [ordenes, modelos, datosInsumos, lineas, comprobantes, catalogo] = await Promise.all([
     getOrdenesProduccion(taller.id, { conCostos: true }),
     getModelosProducibles({ soloProducibles: true }),
     getInsumosDelTaller(taller.id, { conCostos: true, hoy }),
     getLineasPorRecibir(taller.id),
     getComprobantesProduccion(),
+    // Las fotos son un dato SECUNDARIO (la misma copia cacheada de Catálogo, ADR-0168): si no se leen, cada modelo se dibuja con el ícono de su categoría
+    // sobre su color y todo lo demás sigue en pie.
+    opcional(getCatalogo(), "las fotos de los modelos"),
   ]);
+  const presentaciones = presentacionesDeModelos(catalogo ?? []);
   const decision = await getDecisionProduccion({ modelos, ordenes, insumos: datosInsumos.insumos, consumosPorOrden: datosInsumos.consumosPorOrden, lineasPorRecibir: lineas });
 
   const ordenesParaDecidir: (OrdenParaDecidir & { costoTela: number; costoAvios: number })[] = ordenes.map((o) => ({
@@ -66,7 +73,7 @@ export default async function ProduccionPage() {
 
   return (
     <div className="space-y-6">
-      <ResumenProduccionPanel decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} telas={telas} falloRed={decision.fallo} />
+      <ResumenProduccionPanel presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} telas={telas} falloRed={decision.fallo} />
     </div>
   );
 }

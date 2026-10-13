@@ -47,6 +47,8 @@ export type Decision = {
   titulo: string;
   detalle: string;
   accion: { texto: string; href: string };
+  /** Los modelos de que habla la tarjeta (el que es, o los 3 más urgentes si junta varios), para dibujar su foto. Vacío o ausente en las que no son de un modelo. */
+  productoIds?: string[];
 };
 
 // ---------------------------------------------------------------------------
@@ -224,6 +226,7 @@ function tarjetaProducir(m: FilaModelo & { ritmoDia: number }): Decision {
         : `«${m.referencia}» se agota en ~${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)} y no hay orden abierta`,
     detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y quedan ${m.stockRed} en tiendas${m.stockTaller > 0 ? `, más ${m.stockTaller} en el Taller por trasladar` : ""}${m.enCamino > 0 ? `, ${m.enCamino} en camino` : ""}.`,
     accion: { texto: "Abrir orden sugerida", href: `/produccion/ordenes?nueva=${m.productoId}` },
+    productoIds: [m.productoId],
   };
 }
 
@@ -238,6 +241,7 @@ function tarjetaProducirAgrupada(ms: (FilaModelo & { ritmoDia: number })[]): Dec
     titulo: `${ms.length} modelos por producir y ninguno tiene orden abierta`,
     detalle: `Los más urgentes (ventas de los últimos ${DIAS_RITMO_RECIENTE} días): ${nombrados.join(", ")}${resto > 0 ? `; y ${resto} más` : ""}.`,
     accion: { texto: `Ver los ${ms.length} modelos`, href: "#produce" },
+    productoIds: ms.slice(0, NOMBRADOS_EN_GRUPO).map((m) => m.productoId),
   };
 }
 
@@ -340,6 +344,7 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
         titulo: `«${m.referencia}» tiene ${Math.round(m.diasRed ?? 0)} días de stock: no produzcas más`,
         detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y hay ${m.stockRed} en tiendas y almacenes.`,
         accion: { texto: "Ver qué producir", href: "#produce" },
+        productoIds: [m.productoId],
       });
   }
 

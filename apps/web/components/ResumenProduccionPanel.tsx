@@ -11,6 +11,8 @@ import { baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoDiasDeStock, type CifrasResu
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { FotoPrenda } from "@/components/ui/FotoPrenda";
+import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
 
 // Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
 // cuando el dato cambia. Solo hechos y cuentas sobre datos medidos. El rojo de la pantalla (máximo 2) lo lleva únicamente la cifra de «Por pagar» cuando hay algo
@@ -32,7 +34,18 @@ const ICONO: Record<Decision["tipo"], string> = {
   minimo: "M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8",
 };
 
+/** La foto de un modelo (o, sin foto, el ícono de su categoría sobre su color). Decorativa: el nombre ya está escrito al lado, así que no se lee dos veces. */
+function FotoModelo({ productoId, presentaciones, ancho, className }: { productoId: string; presentaciones: Record<string, PresentacionDeModelo>; ancho: number; className: string }) {
+  const p = presentaciones[productoId];
+  return (
+    <span aria-hidden className="block shrink-0">
+      <FotoPrenda fotoUrl={p?.fotoUrl} referencia="" ancho={ancho} colorHex={p?.colorHex} categoria={p?.categoria} categoriaPrefijo={p?.categoriaPrefijo} categoriaFamilia={p?.categoriaFamilia} className={className} />
+    </span>
+  );
+}
+
 export function ResumenProduccionPanel({
+  presentaciones,
   decisiones,
   ocultas,
   totalAsuntos,
@@ -41,6 +54,8 @@ export function ResumenProduccionPanel({
   telas,
   falloRed,
 }: {
+  /** Cómo se dibuja cada modelo (foto, o color y categoría): por `productoId`. Vacío si el catálogo no se pudo leer: se dibuja la percha. */
+  presentaciones: Record<string, PresentacionDeModelo>;
   decisiones: Decision[];
   /** Los asuntos que no cupieron, por clase: nunca se cortan en silencio. */
   ocultas: DecisionesOcultas[];
@@ -134,9 +149,17 @@ export function ResumenProduccionPanel({
           <ul className="space-y-2.5">
             {decisiones.map((d, i) => (
               <li key={d.id} data-guia={i === 0 ? "prod-resumen.asunto" : undefined} className={`card-cayla anim-entra grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3.5 gap-y-2 border-l-4 px-4 py-3.5 sm:grid-cols-[auto_minmax(0,1fr)_auto] ${BORDE_SEVERIDAD[d.severidad]}`} style={{ ["--i" as string]: Math.min(i, 8) }}>
-                <svg aria-hidden viewBox="0 0 24 24" className="h-[18px] w-[18px] fill-none stroke-tinta/70 stroke-[1.6]" strokeLinecap="round" strokeLinejoin="round">
-                  <path d={ICONO[d.tipo]} />
-                </svg>
+                {d.productoIds && d.productoIds.length > 0 ? (
+                  <span className="flex -space-x-2.5">
+                    {d.productoIds.map((id) => (
+                      <FotoModelo key={id} productoId={id} presentaciones={presentaciones} ancho={36} className="w-9 ring-2 ring-papel" />
+                    ))}
+                  </span>
+                ) : (
+                  <svg aria-hidden viewBox="0 0 24 24" className="h-[18px] w-[18px] fill-none stroke-tinta/70 stroke-[1.6]" strokeLinecap="round" strokeLinejoin="round">
+                    <path d={ICONO[d.tipo]} />
+                  </svg>
+                )}
                 <div className="min-w-0">
                   <h3 className="text-[14.5px] font-medium text-tinta">{d.titulo}</h3>
                   <p className="mt-0.5 text-[13px] text-tinta/70">{d.detalle}</p>
@@ -174,12 +197,12 @@ export function ResumenProduccionPanel({
           <p className="card-cayla p-5 text-sm text-tinta/70">No hay modelos para producir ahora. No se ofrecen los descontinuados, los pendientes de aprobación, los de prueba ni los de familias fuera de los motores (como Empaque).</p>
         ) : (
           <div className="card-cayla overflow-hidden">
-            <div className="hidden grid-cols-[minmax(0,1.4fr)_5rem_5.5rem_minmax(9rem,1.2fr)_5rem_9rem] gap-4 border-b border-tinta/10 px-4 py-2.5 md:grid">
-              <span className="label-cayla text-[11px] text-tinta/65">Modelo</span>
+            <div className="hidden grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] gap-x-3 border-b border-tinta/10 px-4 py-2.5 lg:grid xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]">
+              <span className="label-cayla pl-11 text-[11px] text-tinta/65">Modelo</span>
               <span className="label-cayla text-right text-[11px] text-tinta/65">Stock</span>
               <span className="label-cayla text-right text-[11px] text-tinta/65">Ventas/sem.</span>
               <span className="label-cayla text-[11px] text-tinta/65">Cobertura</span>
-              <span className="label-cayla text-right text-[11px] text-tinta/65">En prod.</span>
+              <span className="label-cayla hidden text-right text-[11px] text-tinta/65 xl:block">En prod.</span>
               <span className="label-cayla text-[11px] text-tinta/65">Sugerencia</span>
             </div>
             <ul>
@@ -189,16 +212,19 @@ export function ResumenProduccionPanel({
                   <li key={m.productoId} data-guia={i === 0 ? "prod-resumen.modelo" : undefined} className="border-b border-tinta/10 last:border-b-0">
                     <Link
                       href={`/produccion/ordenes?nueva=${m.productoId}`}
-                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 px-4 py-3 outline-none transition-colors hover:bg-sand/40 focus-visible:bg-sand/40 md:grid-cols-[minmax(0,1.4fr)_5rem_5.5rem_minmax(9rem,1.2fr)_5rem_9rem]"
+                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-4 py-3 transition-colors hover:bg-sand/40 focus-visible:-outline-offset-2 lg:grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]"
                     >
-                      <span className="min-w-0">
-                        <span className="block truncate text-[14px] text-tinta">{m.referencia}</span>
-                        <span className="block text-xs text-tinta/65 md:hidden">
-                          stock {m.stockRed} · {m.ritmoDia ? `${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}/sem.` : "sin ritmo"}
+                      <span className="flex min-w-0 items-center gap-3">
+                        <FotoModelo productoId={m.productoId} presentaciones={presentaciones} ancho={32} className="w-8" />
+                        <span className="min-w-0">
+                          <span className="line-clamp-2 break-words text-[14px] leading-snug text-tinta">{m.referencia}</span>
+                          <span className="block text-xs text-tinta/65 lg:hidden">
+                            stock {m.stockRed} · {m.ritmoDia ? `${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}/sem.` : "sin ritmo"}
+                          </span>
                         </span>
                       </span>
-                      <span className="hidden text-right text-[13px] tabular-nums text-tinta md:block">{m.stockRed}</span>
-                      <span className="hidden text-right text-[13px] tabular-nums text-tinta md:block">
+                      <span className="hidden text-right text-[13px] tabular-nums text-tinta lg:block">{m.stockRed}</span>
+                      <span className="hidden text-right text-[13px] tabular-nums text-tinta lg:block">
                         {m.ritmoDia ? (
                           <>
                             {(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}
@@ -207,12 +233,12 @@ export function ResumenProduccionPanel({
                             </span>
                           </>
                         ) : (
-                          <span className="text-tinta/45">—</span>
+                          <span className="text-tinta/65">—</span>
                         )}
                       </span>
-                      <span className="col-span-2 md:col-span-1">
+                      <span className="col-span-2 lg:col-span-1">
                         {m.diasRed === null ? (
-                          <span className="text-xs text-tinta/55">Sin ventas medidas</span>
+                          <span className="text-xs text-tinta/65">Sin ventas medidas</span>
                         ) : (
                           <>
                             <span className="relative block h-2 rounded-full bg-sand" role="img" aria-label={m.stockRed <= 0 ? "Agotado en las tiendas" : `${textoDiasDeStock(m.stockRed, m.diasRed)} de stock`}>
@@ -226,8 +252,8 @@ export function ResumenProduccionPanel({
                           </>
                         )}
                       </span>
-                      <span className="hidden text-right text-[13px] tabular-nums text-tinta md:block">{m.enProduccion || <span className="text-tinta/45">—</span>}</span>
-                      <span className="col-span-2 md:col-span-1">
+                      <span className="hidden text-right text-[13px] tabular-nums text-tinta xl:block">{m.enProduccion || <span className="text-tinta/65">—</span>}</span>
+                      <span className="col-span-2 lg:col-span-1">
                         <Chip tono={TONO_ESTADO[m.estado]}>{ETIQUETA_ESTADO_MODELO[m.estado]}</Chip>
                       </span>
                     </Link>
@@ -259,7 +285,7 @@ export function ResumenProduccionPanel({
                     hay {cantidadTexto(t.saldo, t.unidad)} · {t.porLlegar > 0 ? `${cantidadTexto(t.porLlegar, t.unidad)} facturados por recibir` : "nada por recibir"}
                   </span>
                 </span>
-                <span className="hidden text-right text-[13px] tabular-nums text-tinta sm:block">{t.piden > 0 ? `piden ${cantidadTexto(t.piden, t.unidad)}` : <span className="text-tinta/45">—</span>}</span>
+                <span className="hidden text-right text-[13px] tabular-nums text-tinta sm:block">{t.piden > 0 ? `piden ${cantidadTexto(t.piden, t.unidad)}` : <span className="text-tinta/65">—</span>}</span>
                 <span className="sm:justify-self-end">
                   {t.estado === "sin_demanda" ? (
                     <Chip tono="neutro">Sin demanda</Chip>
