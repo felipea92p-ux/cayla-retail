@@ -10,6 +10,7 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EditarConteo } from "@/components/conteo/EditarConteo";
 import { EstadoLinea } from "@/components/conteo/EstadoLinea";
 import { ResumenConteo } from "@/components/conteo/ResumenConteo";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 /* ====================================================================
    ResultadoConteo · «Conteo terminado» (Inventario ▸ Conteo, rediseño 2026-09-29)
@@ -83,12 +84,12 @@ export async function ResultadoConteo({ detalle, sede, volverA, puedeEditar }: {
         <ResumenConteo resumen={resumen} variante="resultado" parcial={parcial} />
         {arranque && <p className="nota-cayla">{arranque.texto}</p>}
         <div data-guia="conteo-resultado.salidas" className="flex flex-col gap-2.5 pt-1 sm:flex-row">
-          <Link href="/inventario" className="btn-cayla btn-primario h-11">
+          <BotonVer href="/inventario" className="h-11">
             Ver Existencias
-          </Link>
-          <Link href={hrefMovimientos} className="btn-cayla btn-secundario h-11">
+          </BotonVer>
+          <BotonVer href={hrefMovimientos} className="h-11">
             Ver movimientos del conteo
-          </Link>
+          </BotonVer>
           {/* Los conteos de antes del rediseño (sin foto) no se pueden reabrir: no traen confirmaciones. */}
           {conteo.fotoEn !== null && <EditarConteo conteoId={conteo.id} puedeEditar={puedeEditar} variantesCorregidas={corregidas.map((l) => l.varianteId)} />}
         </div>

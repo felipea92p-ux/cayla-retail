@@ -14,7 +14,7 @@
     "components/ConteoVista.tsx": [
       "Link «Contar todo»",
       "Link «Ir a ese día»",
-      "Link «Ver todos»",
+      "Link «(sin nombre)»",
       "Link «Ver ajustes por conteo →»"
     ],
     "components/ConteosLista.tsx": [

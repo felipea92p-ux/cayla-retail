@@ -2,7 +2,7 @@
   "guia": "inventario.movimientos",
   "ruta": "/inventario/movimientos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 56,
+  "total": 55,
   "controles": {
     "app/(app)/inventario/movimientos/page.tsx": [
       "Pestanas «);»",
@@ -52,11 +52,10 @@
       "Pastilla «Todos»",
       "Pastilla «{etiquetaProceso(p)}»",
       "button «Escanear una etiqueta»",
-      "button «movimientos.filtros-celular»",
+      "BotonFiltros «movimientos.filtros-celular»",
       "Pastilla «{p.texto}» #2",
       "Pastilla «{nombreTipo(cat)}»",
       "button «movimientos.limpiar»",
-      "a «Exportar a Excel con estos filtros»",
       "button «Limpiar»",
       "button «Ver movimientos»"
     ],
@@ -64,7 +63,7 @@
       "button «Entendido»"
     ],
     "components/MovimientosVacio.tsx": [
-      "Link «Ver los últimos 90 días»",
+      "Link «(sin nombre)»",
       "Link «Ver todo el historial»",
       "Link «Limpiar filtros»"
     ],

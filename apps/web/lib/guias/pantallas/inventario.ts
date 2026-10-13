@@ -99,7 +99,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.tabla-pie",
       opcional: true,
       titulo: "Páginas y Excel",
-      texto: "Al pie de la tabla: cuántas prendas y tallas ves, las flechas para pasar de página y «Exportar CSV» para bajarla a Excel. Abajo a la derecha, qué quiere decir cada casilla.",
+      texto: "Al pie de la tabla: cuántas prendas y tallas ves, las flechas para pasar de página y «Descargar CSV» para bajarla a Excel. Abajo a la derecha, qué quiere decir cada casilla.",
     },
     {
       id: "tabla-talla",
@@ -274,7 +274,7 @@ export const GUIA_EXISTENCIAS: Guia = {
       ancla: "existencias.pie",
       opcional: true,
       preparar: [{ tipo: "escape" }],
-      titulo: "Exportar y leer los colores",
+      titulo: "Descargar y leer los colores",
       texto: "Al final, cuántas prendas y tallas estás viendo, el botón para bajar la lista en Excel (CSV) y qué significa cada color de las tarjetas.",
     },
     {
@@ -432,7 +432,7 @@ export const GUIA_MOVIMIENTOS: Guia = {
       id: "menu",
       ancla: "movimientos.menu",
       opcional: true,
-      titulo: "Exportar o compartir",
+      titulo: "Descargar o compartir",
       texto: "En los tres puntos bajas la lista a Excel con los filtros que tienes puestos, o copias el enlace de esta misma vista.",
     },
     {

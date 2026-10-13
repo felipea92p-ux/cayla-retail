@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { Check } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { textoDeResultado, type RespuestaCuadre } from "@/lib/cuadre-piso-reglas";
 import { AntesDespues, CifrasCuadre } from "./RevisarCuadre";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 /*
  * El resultado del cuadre del piso (ADR-0328): lo que devolvió la base, sin confeti (como «Conteo terminado»). La fecha del
@@ -50,12 +50,12 @@ export function ResultadoCuadre({ respuesta, sede, otraPersona = false }: { resp
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Link href="/inventario" className="btn-cayla btn-primario h-11">
+        <BotonVer href="/inventario" className="h-11">
           Ir a Existencias
-        </Link>
-        <Link href="/inventario/movimientos" className="btn-cayla btn-secundario h-11">
+        </BotonVer>
+        <BotonVer href="/inventario/movimientos" className="h-11">
           Ver Movimientos
-        </Link>
+        </BotonVer>
       </div>
       <p className="nota-cayla">
         Desde hoy, lo que cuelgues o guardes se registra al momento con «Bajar al piso» y «Subir a almacén». Si en unos días el piso del
