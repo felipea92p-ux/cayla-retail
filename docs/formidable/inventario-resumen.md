@@ -1,4 +1,4 @@
-# Formidable · Inventario ▸ Análisis   (`/inventario/resumen`)
+# Formidable · Gestión ▸ Análisis   (`/gestion/analisis`; Inventario ▸ `/inventario/resumen` hasta el 2026-10-13, ADR-0392)
 
 - **Fecha / SHA:** 2026-10-10 · `25a7a330f` (rama `claude/core-analisis-variantes-prendas-39fd50`) · **Dispositivo que manda:** escritorio (Mac mini)
 - **Pregunta que debería resolver (1 frase):** ¿qué modelo se acaba, cuál no se mueve, cuál nadie vio y qué pido? · **Protagonista:** el modelo (la prenda)
@@ -18,7 +18,7 @@
 - **1024 × 768:** lo mismo; sin scroll horizontal; la línea nueva bajo cada nombre («2 colores · S, M, L») no se corta.
 - **375 × 812:** sin scroll horizontal; la línea de colores y tallas cabe (68 a 127 px). Los blancos bajo 44 px son del marco del ERP (menú,
   cabecera), no de Análisis.
-- **Escáneres:** `pnpm sugerir`: 0 ejemplos estáticos. `pnpm focus` marca `/inventario/resumen` «sin registro», pero el registro la tiene como
+- **Escáneres:** `pnpm sugerir`: 0 ejemplos estáticos. `pnpm focus` marca `/gestion/analisis` (entonces `/inventario/resumen`) «sin registro», pero el registro la tiene como
   `no-aplica` y `lib/guia-de-foco.test.ts` pasa: el escáner no lee esa entrada (está escrita en varias líneas). Falsa alarma del escáner.
 - **Tema (`tema:auditar --escenarios`):** Hoy, Se está acabando, No se vende, la hoja de confianza y la ficha sin hallazgos; «Qué pedir», 2
   contrastes solo en oscuro (4,09:1) en las cifras de la curva de tallas, previos a este cambio.

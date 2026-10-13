@@ -331,3 +331,15 @@ variante sin fila no aparece en el desglose aunque se haya vendido). Una familia
 En el navegador, con una página de ensayo temporal (fuera de la rama) que monta los componentes reales con datos inventados que imitan TRU y AQP: la franja, el detalle de un grupo con mouse, con foco de teclado y fijado, el desglose de una familia y de «Otras», Escape y × (con retorno de foco), sin cuadrar y
 cuadrado, sin capacidad, en claro y oscuro, a 375 px (sin desborde horizontal) y a escritorio, y la consola limpia en una pestaña nueva. **No se vio la ruta real contra su base** (no hay base local: Docker está desinstalado), **no se corrió `tema:auditar`** ni se agregó el escenario del desglose a
 `tema/escenarios/registro.mjs` (necesita sesión), **no se corrió `/formidable`** sobre la pantalla y **no lo probó una colaboradora**. **Para producción:** nada que pegar; solo publicar la web.
+
+## Actualización 2026-10-13 — «Polos, tops y blusas» se dibuja con sus tres prendas (Felipe)
+
+**Qué cambió.** El grupo tenía una sola silueta (la polera) y el riel lo leía como «solo polos». Ahora `lib/plan-piso-siluetas.ts` declara sus **variantes** (`VARIANTES_DE_SILUETA`: polo, top de tirantes, blusa de escote en V con manga acampanada, cada una un `<symbol>` de `SiluetasDelPlan.tsx` en el mismo cuadro de 40 × 60). Un grupo que no figura ahí sigue dibujando una sola silueta, la suya, o la genérica.
+
+**Cómo se reparten.** En el riel, la percha número `k` de un tramo dibuja la variante `k mod 3` (`siluetaDePrenda`): polo, top, blusa, polo… y cada tramo empieza por el polo. En el ícono de colores de las fichas y las tarjetas se dibujan SIEMPRE las tres, aunque el grupo tenga uno o dos colores (`prendasDelIcono`; los colores se reparten en rueda), y el ancho del ícono no cambia. Sin colores, el ícono sigue siendo la silueta propia del grupo (el polo).
+
+**El orden del ícono no es el del riel (`ORDEN_DEL_ICONO`).** Las prendas del ícono se superponen. Con polo, top, blusa, el top (la más angosta) quedaba tapado en medio y asomaba como una raya, sobre todo con un solo color. Se compararon las seis ordenaciones ampliadas: con el top al frente, el polo en medio y la blusa atrás se ven las tres.
+
+**Es dibujo, no dato.** La percha de un color no dice que ahí cuelgue un top: el riel reparte colores, no categorías (ver «las variantes», actualización (c)). Si Felipe quiere que la silueta diga la categoría de verdad, hay que traer la categoría de cada variante a la lectura del piso; queda en el backlog (`docs/backlog/2026-10-13-tops-blusas-visual-a9803f.md`).
+
+**Cómo se verificó y qué NO.** `tsc`, `eslint` y `vitest` (449 archivos) en verde; pruebas nuevas en `lib/plan-piso-siluetas.test.ts` (la rueda, el orden del ícono, cuántas prendas dibuja, que cada variante tenga su `<symbol>`, que no haya dibujos huérfanos y que un nombre del prototipo —«constructor»— caiga en la silueta genérica). En el navegador se renderizaron los componentes reales con su CSS real y datos inventados (sin base: Docker está desinstalado). **No se vio la ruta real, ni en oscuro, ni a 375 px, ni con `tema:auditar`.** Para producción: nada que pegar; solo publicar la web.

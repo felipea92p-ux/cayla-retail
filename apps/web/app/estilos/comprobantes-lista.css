@@ -146,8 +146,12 @@
     outline: 2px solid color-mix(in srgb, var(--color-tinta) 40%, transparent);
     outline-offset: -2px;
   }
+  /* La flecha del final de la fila (Facturas, Órdenes, Notas de crédito): un elemento GRÁFICO, así que su piso es 3:1 (WCAG
+     1.4.11), no el 4.5:1 del texto. La tinta al 50 % lo pasa en los dos temas sobre papel, la fila rayada y la recién guardada
+     (claro 3.2–3.3:1, oscuro 4.1–4.5:1; al 30 % daba 1.9 y 2.5) y queda un escalón bajo el texto de apoyo (`text-tinta/55`), para
+     no competir con él. Sin color propio en la lista que la use: una utilidad (`text-tinta/40`) le gana también al rojo del hover. */
   .cmp-flecha-fila {
-    color: color-mix(in srgb, var(--color-tinta) 30%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 50%, transparent);
     transition:
       transform 260ms var(--ease-cayla),
       color 260ms var(--ease-cayla);

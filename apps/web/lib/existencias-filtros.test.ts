@@ -187,7 +187,8 @@ describe("conteosDeFiltros — cada número es lo que trae la lista al elegir es
     // Por colgar: Evaluna S, Emma S y Carla 32 · Sin stock atrás: Evaluna M Beige · Mantener: las que conservan al menos una
     // colgada (Evaluna M azul, Lucky M y L, Emma L, Carla 30). La Evaluna M azul, con 1 colgada, ya no es «Por reponer».
     expect(c.hoy).toEqual({ por_colgar: 3, sin_stock_atras: 1, mantener: 4 });
-    expect(c.condicion).toEqual({ danadas: 2, apartadas: 1 });
+    // Colgadas y guardadas (ADR-0391): cuentan prendas con algo libre en ese lugar, con la misma clave de tarjeta que el resto.
+    expect(c.condicion).toEqual({ danadas: 2, apartadas: 1, colgadas: 4, guardadas: 4 });
     expect(c.color["familia:azul"]).toBe(3); // Evaluna y Carla (Azul marino) y Lucky (Azul claro)
   });
 
@@ -253,5 +254,19 @@ describe("condiciones del ritmo", () => {
     expect(filtrosDeUrl("condicion=se_acaban", { separa: true }).condicion).toBe("se_acaban");
     expect(filtrosDeUrl("condicion=sin_ventas", { separa: true }).condicion).toBe("sin_ventas");
     expect(filtrosDeUrl("condicion=sin_ventas", { separa: false }).condicion).toBeNull();
+  });
+});
+
+describe("condiciones «colgadas» y «guardadas» (ADR-0391: las cifras de la cabecera filtran)", () => {
+  const base = { pisoDisponible: 0, almacenDisponible: 0, disponible: 0, apartado: 0, danado: 0, enTransito: 0, talla: "M", color: "Negro", referencia: "Blazer", categoria: null, marca: null, sku: "x", codigosBarras: [], varianteId: "v", productoId: "p", planPiso: null } as unknown as Parameters<typeof tieneCondicion>[0];
+  it("colgadas: algo libre en el piso; guardadas: algo libre en el almacén", () => {
+    expect(tieneCondicion({ ...base, pisoDisponible: 1 }, "colgadas")).toBe(true);
+    expect(tieneCondicion({ ...base, almacenDisponible: 2 }, "colgadas")).toBe(false);
+    expect(tieneCondicion({ ...base, almacenDisponible: 2 }, "guardadas")).toBe(true);
+    expect(tieneCondicion({ ...base, pisoDisponible: 1 }, "guardadas")).toBe(false);
+  });
+  it("viajan por la URL como las demás, y en una sede que no separa piso y almacén se ignoran", () => {
+    expect(filtrosDeUrl("condicion=guardadas", { separa: true }).condicion).toBe("guardadas");
+    expect(filtrosDeUrl("condicion=colgadas", { separa: false }).condicion).toBeNull();
   });
 });

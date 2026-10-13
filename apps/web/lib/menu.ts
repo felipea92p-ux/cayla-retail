@@ -116,7 +116,8 @@ export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "existencias" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
-  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion";
+  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
+  | "gestion";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender";
@@ -142,7 +143,9 @@ type Comun = {
    *  casos: «Recibir mercadería» en Inventario —un rol que solo ve ese módulo veía una fila llamada «Inventario» que abría Recibir
    *  (la pantalla no se parece a Existencias): parecía que Recibir no existía hasta darle otro módulo (Felipe, 2026-10-03)— y
    *  «Frescura del piso», que en CAYLA Global es la única pantalla de Inventario (ADR-0208, act. 2026-10-10 (b)): «Inventario» hace
-   *  esperar las existencias de la empresa, que esa vista todavía no suma. */
+   *  esperar las existencias de la empresa, que esa vista todavía no suma. Desde el 2026-10-13 (ADR-0392) lo llevan también las
+   *  cuatro pantallas de «Gestión»: la Terminal de ventas ve solo Frescura y Plan, y el rol Producción solo Análisis; ninguno
+   *  debe ver una fila «Gestión» que abre otra cosa. */
   conservaNombre?: true;
   /** Tipos de ubicación donde aplica; sin esto, en todas. */
   ubicaciones?: readonly TipoUbicacion[];
@@ -205,6 +208,9 @@ export function esGrupo(n: Nodo): n is Grupo {
    Taller (`ubicaciones: ["taller"]`), así que en una tienda su puesto simplemente no existe. Único desvío de Roles y
    accesos, a propósito: allí Producción va después de Compras.
    Antes (2026-09-16) era Inicio, Catálogo, Producción, Compras, Ventas, Inventario.
+   Desde el 2026-10-13 (ADR-0392, Felipe): «Gestión» va DEBAJO de Inicio (en el Taller, después de Producción, porque allí
+   el día es fabricar): Inicio y Gestión son «mirar y decidir», todo lo demás es operar. Es el segundo desvío de Roles y
+   accesos, a propósito: allí Gestión sigue después de Producción (moverla de orden es otra migración; se dejó escrito).
    ------------------------------------------------------------------ */
 
 export const ARBOL: readonly Nodo[] = [
@@ -274,6 +280,31 @@ export const ARBOL: readonly Nodo[] = [
     ],
   },
 
+  // Gestión (ADR-0392, Felipe 2026-10-13): la puerta de «mirar y decidir», debajo de Inicio (en el Taller, después de
+  // Producción). Junta las cuatro pantallas del Águila que no son dueñas de tablas y que el líder mira para dirigir la
+  // tienda: Análisis (¿qué hago hoy?), Frescura del piso (¿mi piso está fresco?), Plan del piso (¿cuánto lugar le toca a cada
+  // grupo?) y Rendimiento (¿cómo vende cada persona?). Antes vivían repartidas: las tres del piso como filas 5.ª a 7.ª de
+  // Inventario (con el tope de hijas subido a 8 a propósito, ADR-0352) y Rendimiento suelta al final. Inventario vuelve a
+  // ser las cuatro de operar stock (ADR-0071) y el primer nivel sigue en 8 (Rendimiento deja su fila). El nombre es el del
+  // grupo de Roles y accesos donde ya vivían Análisis y Rendimiento (`MODULOS`, `grupo: "Gestión"`).
+  // Va ANTES de Inventario en el árbol a propósito: `grupoDe` asigna una ruta al primer grupo que la cubre, y la raíz
+  // `/inventario` cubriría `/gestion/frescura`; estando Gestión primero, sus hojas ganan por su ruta exacta, y desde
+  // la actividad 2 sus rutas cuelgan de `/gestion/…` (las viejas redirigen en `next.config`). Las cuatro llevan `conservaNombre`: un rol que ve una sola
+  // (la Terminal de ventas ve Frescura y Plan; el rol Producción, Análisis) ve esa fila con su nombre, nunca «Gestión».
+  {
+    id: "gestion", etiqueta: "Gestión", estado: "viva", icono: "gestion", raiz: "/gestion", pajaro: "13 Águila",
+    hijos: [
+      // Quinta pantalla de Inventario desde ADR-0101; aquí desde ADR-0392. `exige` se queda: es el permiso que su módulo da.
+      { id: "gestion.analisis", modulo: "analisis", etiqueta: "Análisis", estado: "viva", ruta: "/gestion/analisis", icono: "analisis", pajaro: "13 Águila", exige: "analizar", conservaNombre: true },
+      // ADR-0208 (paso 4): sin `exige`, la visibilidad la da su módulo, que nació solo para el líder.
+      { id: "gestion.frescura", modulo: "frescura", etiqueta: "Frescura del piso", estado: "viva", ruta: "/gestion/frescura", icono: "frescura", pajaro: "13 Águila", conservaNombre: true },
+      // ADR-0329 / ADR-0352: entrada propia, no una pestaña (una pestaña no es un módulo, ADR-0306).
+      { id: "gestion.plan_piso", modulo: "plan_piso", etiqueta: "Plan del piso", estado: "viva", ruta: "/gestion/plan-del-piso", icono: "resumen", pajaro: "13 Águila", conservaNombre: true },
+      // ADR-0219 (respuesta 20): la pantalla del equipo; la ficha de cada persona cuelga de su ruta, no del menú.
+      { id: "gestion.rendimiento", modulo: "rendimiento", etiqueta: "Rendimiento", estado: "viva", ruta: "/rendimiento", icono: "resumen", pajaro: "13 Águila", conservaNombre: true },
+    ],
+  },
+
   // «Ventas» (ADR-0057): el mostrador + lo legal del cobro. El id sigue siendo «venta» (es la clave con la que la pantalla
   // recuerda qué grupo está abierto). Facturación emite documentos ante SUNAT: es del Cuervo y exige `verDinero`.
   // En la caja del mostrador sale SUELTO (Felipe, 2026-09-25): Punto de Venta, Caja, Historial, Cambios, Devoluciones…
@@ -311,18 +342,9 @@ export const ARBOL: readonly Nodo[] = [
       // El único con insignia hoy: los traslados que esperan a quien mira (rediseño de Traslados, 2026-09-18).
       { id: "inventario.traslados", modulo: "traslados", etiqueta: "Traslados", estado: "viva", ruta: "/inventario/traslados", icono: "traslados", contador: "trasladosPorAtender", pajaro: "05 Halcón" },
       { id: "inventario.conteo", modulo: "conteos", etiqueta: "Conteo", estado: "viva", ruta: "/inventario/conteo", icono: "conteo", pajaro: "06 Lechuza" },
-      // Quinta pantalla (ADR-0101): decisión a nivel sede.
-      { id: "inventario.analisis", modulo: "analisis", etiqueta: "Análisis", estado: "viva", ruta: "/inventario/resumen", icono: "analisis", pajaro: "13 Águila", exige: "analizar" },
-      // Sexta (ADR-0208, paso 4; Felipe 2026-09-27: DIRECTO en Inventario, no en un subgrupo «Diagnóstico» que la escondía
-      // un clic más adentro). Sin `exige`: la visibilidad la da su módulo, que nace solo para el líder. El líder ve 6 filas
-      // aquí («Recibir mercadería» solo sale a quien NO ve Compras); solo un rol con Análisis, Frescura y Recibir sin
-      // Compras llega a 7, y para ese caso `menu.test.ts` tiene la excepción escrita al tope (`EXCEPCIONES_TOPE_HIJAS`).
-      { id: "inventario.frescura", modulo: "frescura", etiqueta: "Frescura del piso", estado: "viva", ruta: "/inventario/frescura", icono: "frescura", pajaro: "13 Águila", conservaNombre: true },
-      // Plan del piso (ADR-0329, ADR-0328 actividad 12; Felipe 2026-10-05: entrada propia en Inventario, no una pestaña de
-      // Existencias, porque una pestaña no es un módulo y quien ve Existencias no tendría por qué ver el plan). Nace solo para el
-      // líder. Con ella el líder ve 7 filas en Inventario (el tope de la excepción); un rol que sumara además Recibir sin Compras
-      // llegaría a 8 y ahí sí se regrupa Inventario, sin subir el tope (ver `EXCEPCIONES_TOPE_HIJAS` en `menu.test.ts`).
-      { id: "inventario.plan_piso", modulo: "plan_piso", etiqueta: "Plan del piso", estado: "viva", ruta: "/inventario/plan-del-piso", icono: "resumen", pajaro: "13 Águila" },
+      // Análisis (ADR-0101), Frescura del piso (ADR-0208) y Plan del piso (ADR-0352) vivieron aquí como filas 5.ª a 7.ª hasta el
+      // 2026-10-13: desde ADR-0392 son de «Gestión» (arriba). Inventario vuelve a las cuatro de operar stock (ADR-0071), más
+      // «Recibir mercadería» para quien no ve Compras: cabe en el tope general de 6, sin excepción.
       // Quien no ve Compras no tiene el grupo donde vive «Recibir mercadería»: su puerta está acá, donde vive el stock.
       { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", soloSinPermiso: "verDineroCompras", conservaNombre: true },
     ],
@@ -418,10 +440,8 @@ export const ARBOL: readonly Nodo[] = [
       { id: "clientas.avisos", modulo: "avisos_club", etiqueta: "Avisos", estado: "viva", ruta: "/clientas/avisos", icono: "avisos", pajaro: "07 Colibrí" },
     ],
   },
-  // Rendimiento (ADR-0219, respuesta 20): «al final del menú lateral», después de Finanzas. Nace sin rol
-  // (ADR-0161): solo la ve el líder hasta que Felipe se la da al rol de las encargadas. HOJA de primer nivel,
-  // no un grupo: hoy solo tiene la pantalla del equipo (la ficha de cada persona cuelga de su ruta, no del menú).
-  { id: "rendimiento", modulo: "rendimiento", etiqueta: "Rendimiento", estado: "viva", ruta: "/rendimiento", icono: "resumen", pajaro: "13 Águila" },
+  // Rendimiento (ADR-0219, respuesta 20) fue hoja suelta «al final del menú lateral» hasta el 2026-10-13: desde ADR-0392 es la
+  // cuarta fila de «Gestión» (arriba), y así el primer nivel sigue en 8. Nace sin rol (ADR-0161).
   {
     id: "configuracion", etiqueta: "Configuración", estado: "futura", pajaro: "01 Ganso", exige: "administrar",
     nota: "Módulo nuevo. Los nombres de las hijas son provisionales.",

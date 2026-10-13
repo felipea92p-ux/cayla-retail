@@ -1,6 +1,6 @@
 // Esqueleto de carga del panel comercial (ADR-0110). Pisa el "Cargando…" genérico de (app)/loading.tsx porque
 // acá corren tres funciones de agregación y la silueta —título, fila de cuatro tarjetas, tarjetas por tienda—
-// evita el salto de "pantalla vacía → todo de golpe". Misma receta que inventario/resumen/loading.tsx.
+// evita el salto de "pantalla vacía → todo de golpe". Misma receta que gestion/analisis/loading.tsx.
 export default function LoadingComercial() {
   return (
     <div className="animate-pulse space-y-6" aria-busy="true" aria-label="Cargando el panel comercial">

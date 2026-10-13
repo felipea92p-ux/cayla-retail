@@ -1,4 +1,4 @@
-# Formidable · Inventario ▸ Frescura del piso   (`/inventario/frescura`)
+# Formidable · Gestión ▸ Frescura del piso   (`/gestion/frescura`; Inventario ▸ `/inventario/frescura` hasta el 2026-10-13, ADR-0392)
 
 - **Fecha / SHA:** 2026-10-05 · `ab866fc82` (rama `claude/ultra-prompt-ui-ux-apple-cf045a`) · **Dispositivo que manda:** escritorio (Mac mini); 375 px solo medido en estático
 - **Pregunta que debería resolver:** «¿Qué prendas de mi tienda llevan demasiado tiempo colgadas sin venderse y qué hago con cada una?» (de ADR-0208, no de la captura)
@@ -275,7 +275,7 @@ Commit `fcd9638b` (los tres juntos: son la misma pantalla y se verifican con la 
      - La frase lleva el porqué: «Todavía no se puede saber: falta cuadrar el piso.»
      - El Aviso lleva un `<BotonEnlace>` secundario hacia lo primero que falta: «Cuadrar el piso» → `/inventario/cuadrar`, «Registrar N sin prenda» → `/inventario/por-regularizar`, «Contar el almacén» → `/inventario/conteo`. Sale solo si la cuenta ve esa pantalla: hay que sumar `cuadrar` y `regularizar` a `AccesoFrescura` (`frescura-pantalla.ts:85`).
      - La regla que hoy vive en `TodaviaNo.tsx:229-237` (un archivo de cliente) pasa a una función pura en `lib/`, con su prueba, y la usan Análisis y Frescura.
-     - Si falta más de una cosa, «Ver qué falta» → `/inventario/resumen?ver=falta`.
+     - Si falta más de una cosa, «Ver qué falta» → `/gestion/analisis?ver=falta`.
      - En CAYLA Global, cada fila usa `t.puerta.aviso`, y la frase dice qué le falta a cada tienda: «Todavía no se puede saber: a Tienda Lima le falta cuadrar el piso; Tienda Trujillo lleva 1 de 14 días cobrando con la prenda.»
    - **Leyes:** 9, 2 y 4 · **Esfuerzo:** S · **Decide:** presentación. No cambia qué abre la puerta ni qué se guarda.
    - **Cómo se verifica:**
