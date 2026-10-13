@@ -7,7 +7,7 @@ import { BotonEnlace } from "@/components/ui/campos";
 import { FotoPrenda } from "@/components/ui/FotoPrenda";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { DIAS_RITMO_RECIENTE, UMBRAL_POCA_BASE_VENTAS } from "@/lib/inventario-reglas";
-import { baseDelRitmo, ETIQUETA_ESTADO_MODELO, porSemana, seVendioYYaNoHay, textoDiasDeStock } from "@/lib/produccion-decisiones";
+import { baseDelRitmo, ETIQUETA_ESTADO_MODELO, hrefNuevaOrden, porSemana, seVendioYYaNoHay, textoDiasDeStock } from "@/lib/produccion-decisiones";
 import { fraseDeLaFalta, type ColorDeHoja, type HojaDeModelo } from "@/lib/produccion-hoja-modelo";
 import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
 import { TONO_ESTADO_MODELO } from "./estado-modelo";
@@ -67,7 +67,7 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
   const base = baseDelRitmo(hoja.ventasBase);
   const falta = fraseDeLaFalta(hoja);
   const traslado = hoja.estado === "trasladar" && !!hoja.hrefTrasladar;
-  const hrefOrden = `/produccion/ordenes?nueva=${hoja.productoId}`;
+  const hrefOrden = hrefNuevaOrden(hoja.productoId, hoja.sugerida);
   return (
     <Modal
       variante="hoja"
@@ -168,7 +168,7 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
           </BotonEnlace>
         )}
         <BotonEnlace href={hrefOrden} peso={traslado ? "fantasma" : "primario"}>
-          Abrir orden
+          {hoja.sugerida ? "Abrir orden sugerida" : "Abrir orden"}
         </BotonEnlace>
       </div>
     </Modal>

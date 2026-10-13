@@ -147,6 +147,14 @@ export function sugerirCurva(variantes: { varianteId: string }[], demanda: Map<s
   return { porVariante, total };
 }
 
+/** Lo que «Usar la sugerencia» escribe en la matriz de «Nueva orden»: la cantidad de cada variante que conviene fabricar, como texto de campo. Las que no hace falta fabricar no se escriben.
+ *  También es lo que llena la matriz al llegar desde el Resumen con «Abrir orden sugerida» (`?nueva=<modelo>&sugerida=1`): la misma cifra que decía la tarjeta. */
+export function cantidadesDeLaCurva(curva: CurvaSugerida): Record<string, string> {
+  const cantidades: Record<string, string> = {};
+  for (const [id, s] of curva.porVariante) if (s.sugerido > 0) cantidades[id] = String(s.sugerido);
+  return cantidades;
+}
+
 /** Lo que ya se está fabricando por variante: las líneas de las órdenes de producción en proceso (no muestras). */
 export function enProduccionPorVariante(ordenes: { estado: string; esMuestra: boolean; lineas: { varianteId: string; cantidadPlan: number }[] }[]): Map<string, number> {
   const m = new Map<string, number>();

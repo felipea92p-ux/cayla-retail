@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { GUIA_PROD_RESUMEN } from "./guias/pantallas/produccion";
 import { UMBRAL_POCA_BASE_VENTAS } from "./inventario-reglas";
 import type { ComprobanteProduccion } from "./comprobantes-produccion-reglas";
-import { sugerirVariante, type DemandaVariante, type Rendimiento } from "./produccion-decision-reglas";
+import { cantidadesDeLaCurva, sugerirCurva, sugerirVariante, type DemandaVariante, type Rendimiento } from "./produccion-decision-reglas";
 import {
   agotadasQueSeVendian,
   cifrasResumen,
@@ -11,8 +11,11 @@ import {
   filasDeTela,
   filasPorModelo,
   baseDelRitmo,
+  hrefNuevaOrden,
   nombreDeVariante,
+  sugerenciaDeOrden,
   textoAgotadas,
+  textoSugerencia,
   resumenDeDecisiones,
   textoDiasDeStock,
   urlTrasladarModelo,
@@ -131,7 +134,7 @@ describe("decisionesDeProduccion", () => {
     const d = decisionesDeProduccion(contexto({ modelos }));
     expect(d[0]).toMatchObject({ tipo: "producir", severidad: 3 });
     expect(d[0].titulo).toContain("se agota en ~3 días");
-    expect(d[0].accion.href).toBe("/produccion/ordenes?nueva=p1");
+    expect(d[0].accion).toEqual({ texto: "Abrir orden sugerida", href: "/produccion/ordenes?nueva=p1&sugerida=1" });
   });
 
   describe("el título de «producir» dice la verdad sobre el stock (/pantalla produccion, tarea #2)", () => {
@@ -490,6 +493,80 @@ describe("«se vendían y ya no hay»: la talla o el color que se agotó dentro 
   });
 });
 
+describe("«Abrir orden sugerida» dice la cantidad y la lleva (/pantalla produccion, tarea #9)", () => {
+  // Un modelo de 3 tallas × 2 colores, todo agotado y con ventas parejas: lo que falta sale por talla y por color.
+  const demandaDe = (extra: Partial<DemandaVariante> = {}, ids = ["m-n", "s-n", "l-n", "m-b", "s-b", "l-b"]): DemandaVariante[] =>
+    ids.map((id) => ({ varianteId: id, productoId: "p1", stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia: 0.1, sedesConRitmo: 1, ventasNetas: 3, ventasBase: 3, cobertura: { tipo: "medida", dias: 0 }, banda: "critica", ...extra }));
+  const rotulos = [
+    { varianteId: "m-n", talla: "M", color: "Negro", colorHex: null },
+    { varianteId: "s-n", talla: "S", color: "Negro", colorHex: null },
+    { varianteId: "l-n", talla: "L", color: "Negro", colorHex: null },
+    { varianteId: "m-b", talla: "M", color: "Beige", colorHex: null },
+    { varianteId: "s-b", talla: "S", color: "Beige", colorHex: null },
+    { varianteId: "l-b", talla: "L", color: "Beige", colorHex: null },
+  ];
+  const fila = (d: DemandaVariante[], enProd: Record<string, number> = {}) =>
+    filasPorModelo(d, [{ productoId: "p1", referencia: "Blusa Encaje", variantesIds: d.map((x) => x.varianteId), variantes: rotulos.filter((r) => d.some((x) => x.varianteId === r.varianteId)) }], enProd)[0];
+
+  it("con base, la tarjeta dice cuánto y por talla (en orden de curva, sumando los colores) y el botón lleva la sugerencia puesta", () => {
+    const f = fila(demandaDe()); // 0,1/día × 30 = 3 por variante → 6 por talla (2 colores), 18 en total
+    const t = decisionesDeProduccion(contexto({ modelos: [f] }));
+    expect(t).toHaveLength(1);
+    expect(t[0].detalle).toContain("Sugerido: 18 prendas (S 6 · M 6 · L 6).");
+    expect(t[0].accion).toEqual({ texto: "Abrir orden sugerida", href: "/produccion/ordenes?nueva=p1&sugerida=1" });
+  });
+  it("lo que ya está en una orden abierta o en el Taller se descuenta: la tarjeta dice solo lo que falta fabricar", () => {
+    const f = fila(demandaDe({ stockTaller: 1 }), { "m-n": 2, "m-b": 1 });
+    // por variante: 3 − 1 del Taller = 2; la M negro tiene además 2 en orden → 0; la M beige 1 → 1
+    expect(sugerenciaDeOrden(f)).toEqual({ total: 2 * 4 + 0 + 1, porTalla: [{ talla: "S", cantidad: 4 }, { talla: "M", cantidad: 1 }, { talla: "L", cantidad: 4 }] });
+  });
+  it("con poca base (2 ventas o menos) no hay cantidad: el botón dice «Abrir orden» y no promete una sugerencia", () => {
+    const f = fila(demandaDe({ ventasBase: 0, ventasNetas: 0, ritmoDia: 0.1 }, ["m-n"]).map((d) => ({ ...d, ventasBase: 2 })));
+    expect(f.ventasBase).toBe(2);
+    expect(sugerenciaDeOrden(f)).toBeNull();
+    const t = decisionesDeProduccion(contexto({ modelos: [f] }));
+    expect(t[0].accion).toEqual({ texto: "Abrir orden", href: "/produccion/ordenes?nueva=p1" });
+    expect(t[0].detalle).not.toContain("Sugerido");
+    expect(t[0].detalle).toContain("poca base");
+  });
+  it("con 3 ventas ya hay base: es la frontera (el umbral es `UMBRAL_POCA_BASE_VENTAS`)", () => {
+    expect(UMBRAL_POCA_BASE_VENTAS).toBe(2);
+    const con = (v: number) => sugerenciaDeOrden(fila(demandaDe({ ventasBase: v, ventasNetas: v }, ["m-n"])));
+    expect(con(2)).toBeNull();
+    expect(con(3)).not.toBeNull();
+  });
+  it("con una sola talla no repite la cifra entre paréntesis", () => {
+    const f = fila(demandaDe({}, ["m-n", "m-b"]));
+    expect(textoSugerencia(sugerenciaDeOrden(f)!)).toBe("Sugerido: 6 prendas");
+    expect(textoSugerencia({ total: 1, porTalla: [{ talla: "M", cantidad: 1 }] })).toBe("Sugerido: 1 prenda");
+  });
+  it("sin nada que fabricar (lo cubre una orden o el Taller) no hay sugerencia", () => {
+    expect(sugerenciaDeOrden(fila(demandaDe(), Object.fromEntries(rotulos.map((r) => [r.varianteId, 99]))))).toBeNull();
+  });
+  it("una variante sin talla no inventa una: se dice «sin talla» y va al final", () => {
+    const d = demandaDe({}, ["m-n", "x"]);
+    const f = filasPorModelo(d, [{ productoId: "p1", referencia: "M", variantesIds: ["m-n", "x"], variantes: [rotulos[0], { varianteId: "x", talla: null, color: null, colorHex: null }] }], {})[0];
+    expect(sugerenciaDeOrden(f)!.porTalla.map((t) => t.talla)).toEqual(["M", "sin talla"]);
+  });
+  it("hrefNuevaOrden: sin `sugerida` es el contrato de siempre (lo usan Análisis y Nuevo producto), con ella agrega el parámetro", () => {
+    expect(hrefNuevaOrden("p1", false)).toBe("/produccion/ordenes?nueva=p1");
+    expect(hrefNuevaOrden("p1", true)).toBe("/produccion/ordenes?nueva=p1&sugerida=1");
+  });
+
+  it("LO QUE DICE LA TARJETA ES LO QUE ESCRIBE «NUEVA ORDEN»: la cantidad de cada variante y el total salen de la misma cuenta", () => {
+    const d = demandaDe({ stockRed: 1 }).map((x, i) => ({ ...x, ritmoDia: 0.1 * (i + 2), stockTaller: i % 2, enCamino: i % 3 }));
+    const enProd = { "m-n": 3, "l-b": 1 };
+    const f = fila(d, enProd);
+    // Lo que hace la pantalla de «Nueva orden» al llegar con `&sugerida=1` (NuevaOrdenProduccionForm): la curva de ESAS variantes, con la misma demanda y las mismas órdenes.
+    const curva = sugerirCurva(rotulos.map((r) => ({ varianteId: r.varianteId })), new Map(d.map((x) => [x.varianteId, x])), new Map(Object.entries(enProd)), 30);
+    const escritas = cantidadesDeLaCurva(curva);
+    expect(escritas).toEqual(Object.fromEntries(f.variantes.filter((v) => v.producir > 0).map((v) => [v.varianteId, String(v.producir)])));
+    const total = Object.values(escritas).reduce((s, n) => s + Number(n), 0);
+    expect(total).toBe(curva.total);
+    expect(sugerenciaDeOrden(f)?.total ?? 0).toBe(total);
+  });
+});
+
 describe("cada tarjeta dice de qué modelos habla, para dibujar su foto (/pantalla produccion, tarea #5)", () => {
   const ag = (i: number, ritmoDia: number) => ({
     d: { varianteId: `v${i}`, productoId: `p${i}`, stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia, sedesConRitmo: 1, ventasNetas: 30, ventasBase: 30, cobertura: { tipo: "medida" as const, dias: 0 }, banda: "critica" as const },
@@ -540,7 +617,7 @@ describe("cada cifra dice su base (/pantalla produccion, tarea #4)", () => {
   });
   it("la tarjeta de «producir» dice en cuántas ventas se apoya: «36 ventas en 30 días»", () => {
     const d = decisionesDeProduccion(contexto({ modelos: fila1(36) }));
-    expect(d[0].detalle).toBe("Se vende 8,4 por semana (36 ventas en 30 días) y quedan 0 en tiendas.".replace("8,4", (Math.round((36 / 30) * 7 * 10) / 10).toLocaleString("es-PE")));
+    expect(d[0].detalle).toBe("Se vende 8,4 por semana (36 ventas en 30 días) y quedan 0 en tiendas. Sugerido: 36 prendas.".replace("8,4", (Math.round((36 / 30) * 7 * 10) / 10).toLocaleString("es-PE")));
   });
   it("con poca base la tarjeta lo dice con todas las letras, y sigue apareciendo (solo avisa, no esconde)", () => {
     const d = decisionesDeProduccion(contexto({ modelos: fila1(2) }));

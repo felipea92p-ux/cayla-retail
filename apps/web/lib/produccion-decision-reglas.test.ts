@@ -6,6 +6,7 @@ import {
   costoMaterialesPorPrenda,
   demandaDeLaRed,
   enProduccionPorVariante,
+  cantidadesDeLaCurva,
   productosParaRendimiento,
   rendimientoMedido,
   repartirFalta,
@@ -105,6 +106,18 @@ describe("productosParaRendimiento (una orden abierta de un modelo que ya no se 
       {}
     );
     expect(pide.get("lino")?.necesita).toBeCloseTo(100, 5); // 40 prendas × 2,5 m
+  });
+});
+
+describe("cantidadesDeLaCurva (lo que «Usar la sugerencia» escribe en la matriz)", () => {
+  const sug = (varianteId: string, sugerido: number) => ({ varianteId, sugerido, motivo: "", diasConLoQueHay: null, disponible: 0 });
+  it("escribe solo las variantes que hay que fabricar, como texto de campo", () => {
+    const curva = { porVariante: new Map([["a", sug("a", 4)], ["b", sug("b", 0)], ["c", sug("c", 12)]]), total: 16 };
+    expect(cantidadesDeLaCurva(curva)).toEqual({ a: "4", c: "12" });
+  });
+  it("sin nada que fabricar, la matriz queda vacía", () => {
+    expect(cantidadesDeLaCurva({ porVariante: new Map([["a", sug("a", 0)]]), total: 0 })).toEqual({});
+    expect(cantidadesDeLaCurva({ porVariante: new Map(), total: 0 })).toEqual({});
   });
 });
 

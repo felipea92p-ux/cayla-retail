@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filasPorModelo, seVendioYYaNoHay, type FilaModelo } from "./produccion-decisiones";
+import { filasPorModelo, seVendioYYaNoHay, sugerenciaDeOrden, type FilaModelo } from "./produccion-decisiones";
 import type { DemandaVariante } from "./produccion-decision-reglas";
 import { fraseDeLaFalta, hojaDelModelo, SIN_COLOR, SIN_TALLA } from "./produccion-hoja-modelo";
 
@@ -130,6 +130,19 @@ describe("hojaDelModelo (la hoja «Ver el modelo» de Producción, tarea #8)", (
     it("sin Taller conocido o sin nada que trasladar no hay enlace", () => {
       expect(hojaDelModelo(conTaller, [], null).hrefTrasladar).toBeNull();
       expect(hojaDelModelo(modelo, [], "T1").hrefTrasladar).toBeNull();
+    });
+  });
+
+  describe("«Abrir orden sugerida»", () => {
+    it("con base y algo que fabricar la hoja ofrece la orden sugerida; con poca base o sin nada que fabricar, la orden vacía", () => {
+      const conBase = fila([["a", "M", "Negro", null, 0, 6]]); // 6 ventas: hay base
+      expect(hojaDelModelo(conBase).sugerida).toBe(true);
+      expect(hojaDelModelo(fila([["a", "M", "Negro", null, 0, 2]])).sugerida).toBe(false); // 2 ventas: poca base
+      expect(hojaDelModelo(fila([["a", "M", "Negro", null, 90, 6]])).sugerida).toBe(false); // el stock alcanza: nada que fabricar
+    });
+    it("coincide con lo que dice la tarjeta: el mismo modelo, la misma respuesta", () => {
+      const m = fila([["a", "M", "Negro", null, 0, 6], ["b", "S", "Negro", null, 0, 4]]);
+      expect(hojaDelModelo(m).sugerida).toBe(sugerenciaDeOrden(m) !== null);
     });
   });
 

@@ -9,6 +9,7 @@ import { redondear2, type ComprobanteProduccion } from "./comprobantes-produccio
 import { cantidadTexto, type UnidadInsumo } from "./insumos-reglas";
 import { DIAS_ENTREGA_PRONTO, estadoEntrega, etapaActual, etapasDe, urlLlevarATiendas, type EtapaClave, type EstadoEtapa } from "./produccion-reglas";
 import { DIAS_OBJETIVO_PRODUCCION, repartirFalta, type DemandaVariante, type Rendimiento } from "./produccion-decision-reglas";
+import { compararTallas } from "./tallas";
 import { tramosPorPagar } from "./por-pagar-produccion-reglas";
 
 const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -259,6 +260,32 @@ export function textoAgotadas(vs: VarianteDeFila[]): string {
   return `Se vendían y ya no hay en tiendas: ${nombradas}${resto > 0 ? ` y ${resto} más` : ""}`;
 }
 
+/** La talla de una variante que no la tiene, dicha en una frase (no se inventa una). */
+const SIN_TALLA_EN_FRASE = "sin talla";
+
+/**
+ * Cuánto conviene fabricar de un modelo, y de cada talla, si hay base para decirlo. Con `UMBRAL_POCA_BASE_VENTAS` ventas o menos una cantidad por talla es ruido (ADR-0346, y el Resumen ya
+ * lo dice con «poca base»): no se muestra ni se precarga. Sin nada que fabricar tampoco. La cifra es la de `repartirFalta`: la misma que escribe «Usar la sugerencia» en «Nueva orden».
+ */
+export function sugerenciaDeOrden(m: Pick<FilaModelo, "ventasBase" | "producir" | "variantes">): { total: number; porTalla: { talla: string; cantidad: number }[] } | null {
+  if (baseDelRitmo(m.ventasBase).pocaBase || m.producir <= 0) return null;
+  const porTalla = new Map<string, number>();
+  for (const v of m.variantes) if (v.producir > 0) porTalla.set(v.talla ?? SIN_TALLA_EN_FRASE, (porTalla.get(v.talla ?? SIN_TALLA_EN_FRASE) ?? 0) + v.producir);
+  const orden = [...porTalla].sort(([a], [b]) => (a === SIN_TALLA_EN_FRASE ? 1 : b === SIN_TALLA_EN_FRASE ? -1 : compararTallas(a, b)));
+  return { total: m.producir, porTalla: orden.map(([talla, cantidad]) => ({ talla, cantidad })) };
+}
+
+/** «Sugerido: 52 prendas (S 8 · M 16 · L 16 · XL 12)». Con una sola talla el desglose repetiría la cifra («36 prendas (M 36)»): se omite. */
+export function textoSugerencia(s: NonNullable<ReturnType<typeof sugerenciaDeOrden>>): string {
+  const cuantas = s.total === 1 ? "1 prenda" : `${s.total} prendas`;
+  return s.porTalla.length < 2 ? `Sugerido: ${cuantas}` : `Sugerido: ${cuantas} (${s.porTalla.map((t) => `${t.talla} ${t.cantidad}`).join(" · ")})`;
+}
+
+/** A «Nueva orden» con el modelo elegido; con `sugerida`, además trae escritas las cantidades sugeridas. El `?nueva=` es el contrato de siempre (también lo usan Análisis y Nuevo producto): `sugerida` es opcional y quien no lo manda no cambia. */
+export function hrefNuevaOrden(productoId: string, sugerida: boolean): string {
+  return `/produccion/ordenes?nueva=${productoId}${sugerida ? "&sugerida=1" : ""}`;
+}
+
 /** A dónde lleva «Trasladar al piso»: Mover mercadería con el Taller de origen y las prendas (lo que cubre la falta de cada talla y color) ya puestas. `null` sin Taller o sin nada que llevar. */
 export function urlTrasladarModelo(m: Pick<FilaModelo, "variantes">, tallerId: string | null | undefined): string | null {
   if (!tallerId) return null;
@@ -319,6 +346,7 @@ export const porSemana = (ritmoDia: number) => (Math.round(ritmoDia * 7 * 10) / 
 const frasePorOrden = (m: FilaModelo) => (m.enProduccion > 0 ? `la orden abierta de ${m.enProduccion} no alcanza (faltan ${m.producir})` : "no hay orden abierta");
 
 function tarjetaProducir(m: FilaModelo & { ritmoDia: number }): Decision {
+  const sugerida = sugerenciaDeOrden(m);
   return {
     id: `producir-${m.productoId}`,
     severidad: 3,
@@ -327,8 +355,9 @@ function tarjetaProducir(m: FilaModelo & { ritmoDia: number }): Decision {
       m.stockRed <= 0
         ? `«${m.referencia}» ya se agotó en las tiendas y ${frasePorOrden(m)}`
         : `«${m.referencia}» se agota en ~${textoDiasDeStock(m.stockRed, m.diasRed ?? 0)} y ${frasePorOrden(m)}`,
-    detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y quedan ${m.stockRed} en tiendas${m.stockTaller > 0 ? `, más ${m.stockTaller} en el Taller por trasladar` : ""}${m.enCamino > 0 ? `, ${m.enCamino} en camino` : ""}.`,
-    accion: { texto: "Abrir orden sugerida", href: `/produccion/ordenes?nueva=${m.productoId}` },
+    detalle: `Se vende ${porSemana(m.ritmoDia)} por semana (${baseDelRitmo(m.ventasBase).largo}) y quedan ${m.stockRed} en tiendas${m.stockTaller > 0 ? `, más ${m.stockTaller} en el Taller por trasladar` : ""}${m.enCamino > 0 ? `, ${m.enCamino} en camino` : ""}.${sugerida ? ` ${textoSugerencia(sugerida)}.` : ""}`,
+    // «Sugerida» solo si de verdad hay una cantidad que decir: con poca base la orden se abre vacía y el botón no promete lo que no trae.
+    accion: sugerida ? { texto: "Abrir orden sugerida", href: hrefNuevaOrden(m.productoId, true) } : { texto: "Abrir orden", href: hrefNuevaOrden(m.productoId, false) },
     productoIds: [m.productoId],
   };
 }

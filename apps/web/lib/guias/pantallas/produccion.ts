@@ -83,7 +83,7 @@ export const GUIA_PROD_RESUMEN: Guia = {
       ancla: "prod-resumen.hoja-acciones",
       opcional: true,
       titulo: "Decidir desde la hoja",
-      texto: "«Abrir orden» te lleva a Nueva orden con este modelo ya elegido. Si lo que falta ya está en el Taller, «Trasladar al piso» te lleva a Mover mercadería con las prendas puestas. En la demo no los tocamos.",
+      texto: "«Abrir orden» te lleva a Nueva orden con este modelo ya elegido; con «Abrir orden sugerida» las cantidades llegan escritas (solo si hay base). Si lo que falta ya está en el Taller, «Trasladar al piso» te lleva a Mover mercadería con las prendas puestas. En la demo no los tocamos.",
     },
     {
       id: "tela",

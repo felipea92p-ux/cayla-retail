@@ -10,7 +10,7 @@
 //            fabricar (eso es el estado del modelo y «Nueva orden»); no lee la base ni dibuja nada.
 
 import type { FilaModelo } from "./produccion-decisiones";
-import { urlTrasladarModelo } from "./produccion-decisiones";
+import { sugerenciaDeOrden, urlTrasladarModelo } from "./produccion-decisiones";
 import { DIAS_OBJETIVO_PRODUCCION } from "./produccion-decision-reglas";
 import { compararTallas } from "./tallas";
 
@@ -40,6 +40,8 @@ export type HojaDeModelo = Omit<FilaModelo, "variantes"> & {
   total: TotalDeHoja;
   /** A Mover mercadería con el Taller de origen y lo que se traslada puesto; `null` si no hay nada que trasladar o no se conoce el Taller. */
   hrefTrasladar: string | null;
+  /** Hay una cantidad sugerida que decir (hay base y algo que fabricar): «Abrir orden sugerida» lleva la orden con la matriz ya llena; si no, «Abrir orden» la abre vacía. */
+  sugerida: boolean;
 };
 
 const suma = (a: TotalDeHoja, c: CeldaDeHoja): TotalDeHoja => ({ ventas: a.ventas + c.ventas, stock: a.stock + c.stock });
@@ -75,7 +77,7 @@ export function hojaDelModelo(fila: FilaModelo, coloresDelCatalogo: readonly Col
   const porTalla = tallas.map((_, i) => colores.reduce<TotalDeHoja>((a, c) => (c.celdas[i] ? suma(a, c.celdas[i]!) : a), vacio()));
   const total = porTalla.reduce<TotalDeHoja>((a, t) => ({ ventas: a.ventas + t.ventas, stock: a.stock + t.stock }), vacio());
 
-  return { ...resto, tallas, colores, porTalla, total, hrefTrasladar: urlTrasladarModelo(fila, tallerId) };
+  return { ...resto, tallas, colores, porTalla, total, hrefTrasladar: urlTrasladarModelo(fila, tallerId), sugerida: sugerenciaDeOrden(fila) !== null };
 }
 
 /**

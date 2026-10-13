@@ -17,7 +17,7 @@
     ],
     "components/produccion-resumen/HojaModelo.tsx": [
       "BotonEnlace «Trasladar al piso»",
-      "BotonEnlace «Abrir orden»"
+      "BotonEnlace «{hoja.sugerida ? \"Abrir orden sugerida\" : \"Abrir orden\"}»"
     ]
   }
 }
