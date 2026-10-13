@@ -20,6 +20,7 @@ import {
 } from "@/lib/insumos-reglas";
 import type { InsumoVista, InsumosDelTaller } from "@/lib/insumos";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos. Lo que hay por lote, cuánto dura y qué falta. El saldo es la suma del
 // ledger, nunca un número que alguien edite; por eso el libro de movimientos solo se agrega, no se corrige. Quien no es
@@ -116,10 +117,7 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
               if (lista.length === 0) return null;
               return (
                 <section key={t.valor} className="space-y-2.5">
-                  <h2 className="font-display flex flex-wrap items-baseline gap-x-3 text-xl text-tinta">
-                    {t.plural}
-                    <small className="font-sans text-xs text-tinta/65">{t.ayuda}</small>
-                  </h2>
+                  <TituloSeccion dato={t.ayuda}>{t.plural}</TituloSeccion>
                   {lista.map((i) => (
                     <FilaInsumo
                       key={i.id}
@@ -138,7 +136,7 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
 
           {/* ==================== libro de movimientos ==================== */}
           <aside data-guia="prod-insumos.libro" className="card-cayla anim-entra p-4" style={{ ["--i" as string]: 3 }} aria-label="Libro de movimientos">
-            <h2 className="font-display text-lg text-tinta">Libro de movimientos</h2>
+            <TituloSeccion>Libro de movimientos</TituloSeccion>
             <p className="mb-2 text-xs text-tinta/65">Solo se agrega: nada se edita ni se borra.</p>
             {libro.length === 0 ? (
               <p className="py-3 text-sm text-tinta/65">Todavía no se movió nada.</p>
