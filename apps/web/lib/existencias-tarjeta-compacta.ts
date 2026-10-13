@@ -33,7 +33,8 @@ export function celdaTarjeta(f: FilaCelda, separa: boolean): CeldaTarjeta {
 /** La línea chica bajo el número grande de cada columna (ADR-0391, Felipe 2026-10-12): el número grande es lo COLGADO (lo que el
  *  cliente puede comprar) y debajo va lo guardado, con la palabra de la cabecera («+2 guardadas»). Con 4 tallas o más en la tarjeta la
  *  palabra no cabe en los 304 px y queda solo el número («+2», «0»): la leyenda del pie la pone. Agotada: «se acabó» («acabó» apretado).
- *  `cero` = no hay nada guardado (se pinta tenue), para que un «0 guardadas» no pese lo mismo que un «+3». */
+ *  `cero` = no hay nada guardado: la línea va toda en taupe y sin negrita, para que un «0 guardadas» no pese lo mismo que un «+3»
+ *  (en taupe pleno, no atenuado: el auditor del tema midió 2,3:1 con `taupe/55` y un 0 también se tiene que leer). */
 export function lineaGuardadas(c: Pick<CeldaTarjeta, "estado" | "almacen">, tallasEnTarjeta: number): { texto: string; cero: boolean } {
   const apretada = tallasEnTarjeta >= 4;
   if (c.estado === "agotada") return { texto: apretada ? "acabó" : "se acabó", cero: false };

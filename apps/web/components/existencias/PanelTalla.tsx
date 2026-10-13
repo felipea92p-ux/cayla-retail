@@ -433,7 +433,7 @@ export function PanelTalla({
       clase === "falta"
         ? "border border-ambar/45 bg-ambar/[0.12] text-ambar-profundo"
         : valor === 0
-          ? "border border-dashed border-sand text-taupe/70"
+          ? "border border-dashed border-sand text-taupe"
           : clase === "apartada"
             ? "bg-pizarra/[0.12] text-tinta"
             : clase === "danada"
@@ -969,7 +969,7 @@ export function PanelTalla({
                                           ) : (
                                             <button type="button" aria-pressed={sel} aria-label={lectura} onClick={ir} className={`flex h-[52px] w-full flex-col overflow-hidden rounded-[9px] border bg-crema transition-colors ${sel ? "border-tinta ring-1 ring-tinta" : "border-sand hover:border-tinta/35"}`}>
                                               {verPiso && (
-                                                <span className={`flex w-full flex-1 flex-col items-center justify-center gap-0 font-bold tabular-nums ${grande ? "text-[17px]" : "text-[13.5px]"} ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.16] text-verde" : "text-taupe/70"}`}>
+                                                <span className={`flex w-full flex-1 flex-col items-center justify-center gap-0 font-bold tabular-nums ${grande ? "text-[17px]" : "text-[13.5px]"} ${celda.estado === "falta" ? "bg-ambar/[0.16] text-ambar-profundo" : celda.piso > 0 ? "bg-verde/[0.16] text-verde" : "text-taupe"}`}>
                                                   <span className="inline-flex items-center gap-1">
                                                     <IconoPercha aria-hidden className={grande ? "h-3.5 w-3.5" : "h-3 w-3"} strokeWidth={1.8} />
                                                     {celda.piso}

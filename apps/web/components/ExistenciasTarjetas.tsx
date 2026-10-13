@@ -129,11 +129,11 @@ function ColumnasTallas({
                   <i aria-hidden className={`h-1.5 w-1.5 rounded-full ${TONO_PUNTO[tono]}`} />
                 ))}
             </span>
-            <span className={`mt-0.5 text-[22px] leading-[1.05] tabular-nums ${c.estado === "agotada" ? "font-medium" : c.estado === "falta" ? "font-semibold" : c.piso === 0 ? "font-normal text-taupe/55" : "font-semibold"}`}>
+            <span className={`mt-0.5 text-[22px] leading-[1.05] tabular-nums ${c.estado === "agotada" ? "font-medium" : c.estado === "falta" ? "font-semibold" : c.piso === 0 ? "font-normal text-taupe" : "font-semibold"}`}>
               {c.estado === "agotada" ? "—" : c.piso}
             </span>
             {separa && (
-              <span className={`whitespace-nowrap text-[10.5px] tabular-nums ${c.estado !== "normal" ? "font-semibold" : linea.cero ? "text-taupe/55" : "text-taupe"}`}>
+              <span className={`whitespace-nowrap text-[10.5px] tabular-nums ${c.estado !== "normal" ? "font-semibold" : "text-taupe"}`}>
                 {c.estado === "normal" && !linea.cero ? (
                   <>
                     <b className="font-bold text-tinta">{numero}</b>
