@@ -116,7 +116,9 @@ $f$;
 do $quitar$
 declare
   v_def text := pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure);
-  v_ini integer := position('  -- Auditoría 2026-10-13, punto 17' in v_def);
+  -- La marca se busca SIN acentos («  -- Auditor…2026-10-13, punto 17»): el 2026-10-13 un pegado con el portapapeles en otra
+  -- codificación dejó «Auditor√≠a» en producción, y buscar «Auditoría» no lo habría encontrado (se habrían apilado dos bloques).
+  v_ini integer := coalesce(position(substring(v_def from '  -- Auditor[^\n]*2026-10-13, punto 17') in v_def), 0);
   v_cierre text := '    v_texto := null;' || chr(10) || '  end if;' || chr(10);
   v_fin integer;
 begin
@@ -158,6 +160,8 @@ select '20261013155000 · candados del anticipo y de la hora declarada' as parte
              and pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure) like '%recibir_envio|crear_producto_con_stock_inicial%'
              -- un solo bloque del punto 17 (ninguna versión vieja apilada)
              and (length(pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure))
-                  - length(replace(pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure), 'Auditoría 2026-10-13, punto 17', '')))
-                 = length('Auditoría 2026-10-13, punto 17')
+                  - length(replace(pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure), '2026-10-13, punto 17', '')))
+                 = length('2026-10-13, punto 17')
+             -- y sin acentos rotos por un portapapeles en otra codificación
+             and pg_get_functiondef('retail.fn_actor_persona_id(boolean)'::regprocedure) !~ '√'
             then 'QUEDÓ BIEN' else 'REVISAR: falta el disparador o el parche de fn_actor_persona_id' end as resultado;

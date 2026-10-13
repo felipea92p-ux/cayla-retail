@@ -173,7 +173,7 @@ caso("un nombre que solo EMPIEZA igual no cuela (registrar_venta_falsa ignora la
 caso("sin ruta conocida (llamada directa, no por PostgREST) queda como antes", rechaza(FIRMA(null), FUERA_DE_RANGO));
 
 // 3. Re-pegable, también sobre una versión vieja de este mismo parche.
-const PARCHE_VIEJO = `select pg_temp.reemplazar('retail.fn_actor_persona_id(boolean)', $v$  v_texto := nullif(trim(v_headers ->> 'x-momento'), '');
+const PARCHE_VIEJO_TEXTO = `select pg_temp.reemplazar('retail.fn_actor_persona_id(boolean)', $v$  v_texto := nullif(trim(v_headers ->> 'x-momento'), '');
 $v$, $n$  v_texto := nullif(trim(v_headers ->> 'x-momento'), '');
   -- Auditoría 2026-10-13, punto 17: versión vieja de prueba.
   if v_texto is not null
@@ -182,6 +182,10 @@ $v$, $n$  v_texto := nullif(trim(v_headers ->> 'x-momento'), '');
     v_texto := null;
   end if;
 $n$, 1);`;
+const PARCHE_VIEJO = PARCHE_VIEJO_TEXTO;
+// El 2026-10-13 un pegado con el portapapeles en otra codificación dejó «Auditor√≠a» en producción: la migración lo tiene que
+// reconocer como suyo y reemplazarlo, no apilar otro bloque.
+const PARCHE_ACENTOS_ROTOS = PARCHE_VIEJO_TEXTO.replace("Auditoría", "Auditor√≠a");
 caso(
   "pegada sobre una versión vieja del parche, la quita y deja un solo bloque: la recepción conserva su hora",
   rechaza(`${DESHACER}
@@ -189,6 +193,15 @@ ${MIGRACION.slice(0, MIGRACION.indexOf("select pg_temp.reemplazar("))}
 ${PARCHE_VIEJO}
 ${MIGRACION}
 ${FIRMA("/rpc/recibir_lote")}`, FUERA_DE_RANGO, { conCandado: false })
+);
+caso(
+  "pegada sobre un bloque con los acentos rotos (pegado en otra codificación), lo reemplaza: un solo bloque y sin «√»",
+  pasa(`${DESHACER}
+${MIGRACION.slice(0, MIGRACION.indexOf("select pg_temp.reemplazar("))}
+${PARCHE_ACENTOS_ROTOS}
+${MIGRACION}
+select (length(prosrc) - length(replace(prosrc, '2026-10-13, punto 17', ''))) / length('2026-10-13, punto 17') = 1 and prosrc !~ '√'
+  from pg_proc where oid = 'retail.fn_actor_persona_id'::regproc;`, { conCandado: false })
 );
 // 3. Re-pegable.
 caso("pegar la migración dos veces no cambia nada la segunda", pasa(`${MIGRACION}\nselect count(*) = 1 from pg_trigger where tgname = 'venta_pagos_anticipo_solo_de_apartado';`));
