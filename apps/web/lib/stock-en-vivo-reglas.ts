@@ -50,3 +50,13 @@ export function hayQueReleer(ultima: UltimaHuella, huella: string | null, conoci
   if (huella === null || ultima === null) return true;
   return ultima.huella !== huella || ultima.conocidos !== conocidos;
 }
+
+/**
+ * Qué huella recordar después de una lectura completa. La huella se pide ANTES de bajar las filas; si algo cambió en medio y
+ * después volvió exacto (apartar y liberar la misma prenda), la huella siguiente coincidiría con la recordada y la pantalla se
+ * quedaría con el estado intermedio. Por eso se pide otra huella DESPUÉS de las filas y solo se recuerda si las dos coinciden: si
+ * no, `null`, y la próxima vuelta relee. Sin huella (la función no existe o falló), tampoco se recuerda nada.
+ */
+export function huellaParaRecordar(antes: string | null, despues: string | null, conocidos: string): UltimaHuella {
+  return antes !== null && antes === despues ? { huella: antes, conocidos } : null;
+}

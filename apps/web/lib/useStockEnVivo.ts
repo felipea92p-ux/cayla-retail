@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { almacenReleido, apartadoReleido, conStockReleido } from "@/lib/vender-stock-local";
 import { sumarCantidades } from "@/lib/inventario-reglas";
 import { leerTodas } from "@/lib/resultado";
-import { claveDeConocidos, hayQueReleer, mismoStock, type StockReleido, type UltimaHuella } from "@/lib/stock-en-vivo-reglas";
+import { claveDeConocidos, hayQueReleer, huellaParaRecordar, mismoStock, type StockReleido, type UltimaHuella } from "@/lib/stock-en-vivo-reglas";
 
 export type { StockReleido } from "@/lib/stock-en-vivo-reglas";
 export { mismoStock } from "@/lib/stock-en-vivo-reglas";
@@ -120,9 +120,11 @@ export function useStockEnVivo(
       if (cancelado || !hayQueReleer(huellaRef.current, huella, clave)) return;
       const releido = await leerStockDeSede(ubicacionId, conocidos);
       if (!releido || cancelado) return;
-      // La huella se pidió ANTES que las filas, así que lo leído es al menos tan nuevo como ella. Si algo cambió entre
-      // las dos lecturas, la huella siguiente ya no coincide y se relee: una vuelta de más, nunca un dato viejo.
-      huellaRef.current = huella === null ? null : { huella, conocidos: clave };
+      // Se recuerda la huella solo si otra, pedida DESPUÉS de las filas, dice lo mismo (`huellaParaRecordar`): un cambio que fue y
+      // volvió entre las dos lecturas no deja a la pantalla con el estado intermedio. Cuesta un texto corto más por relectura.
+      const despues = huella === null ? null : await leerHuellaDeSede(ubicacionId);
+      if (cancelado) return;
+      huellaRef.current = huellaParaRecordar(huella, despues, clave);
       if (ultimoRef.current && mismoStock(ultimoRef.current, releido)) return;
       ultimoRef.current = releido;
       alLeerRef.current(releido.cobrable, releido.almacen, releido.apartado);
