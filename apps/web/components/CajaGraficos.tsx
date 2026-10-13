@@ -1,7 +1,5 @@
 "use client";
 
-import type { PuntoTendenciaCierres } from "@/lib/caja-panel-reglas";
-
 function money(n: number) {
   return "S/" + n.toFixed(2);
 }
@@ -37,26 +35,4 @@ function etiquetaHora(h: number): string {
   if (h === 0) return "12am";
   if (h === 12) return "12pm";
   return h < 12 ? `${h}am` : `${h - 12}pm`;
-}
-
-/** Mini-tendencia de 7 días de cierres de esta sede — barra roja si ese día no cuadró. */
-export function TendenciaCierres({ serie }: { serie: PuntoTendenciaCierres[] }) {
-  const max = Math.max(1, ...serie.map((p) => Math.abs(p.monto)));
-  return (
-    <div className="flex h-[70px] items-end gap-2" role="img" aria-label="Tendencia de cierres de los últimos 7 días">
-      {serie.map((p, i) => (
-        <div key={i} className="flex h-full flex-1 flex-col items-center justify-end" title={`${p.diaLabel}: ${money(p.monto)}${p.descuadre ? " · no cuadró" : ""}`}>
-          <div
-            className="w-full max-w-[26px] rounded-t"
-            style={{
-              height: `${Math.max(4, (Math.abs(p.monto) / max) * 100)}%`,
-              background: p.descuadre ? "var(--color-rojo)" : "var(--color-verde)",
-              opacity: p.esHoy ? 1 : 0.75,
-            }}
-          />
-          <span className="mt-1 text-[9.5px] text-tinta/55">{p.diaLabel[0]!.toUpperCase()}</span>
-        </div>
-      ))}
-    </div>
-  );
 }
