@@ -47,7 +47,12 @@ const BASE = arg("--base", "postgres");
 const SIN_MIGRACION = process.argv.includes("--sin-migracion");
 const MIGRACIONES = SIN_MIGRACION
   ? ""
-  : ["20261013170000_recepcion_un_solo_camino_de_cierre.sql", "20261013171000_conteo_de_envio.sql"]
+  : [
+      "20261013170000_recepcion_un_solo_camino_de_cierre.sql",
+      "20261013171000_conteo_de_envio.sql",
+      "20261013172000_cerrar_conteo_con_pendientes.sql",
+      "20261013173000_resolver_pendiente_de_envio.sql",
+    ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
           .replace(/^set lock_timeout.*$/m, "")

@@ -179,6 +179,7 @@
     "pruebas:ordenes-compra-sin-comprobante": "node scripts/pruebas/ordenes_compra_sin_comprobante.mjs",
     "pruebas:recepcion-de-envio": "node scripts/pruebas/recepcion_de_envio.mjs",
     "pruebas:conteo-de-envio": "node scripts/pruebas/conteo_de_envio.mjs",
+    "pruebas:pendientes-de-envio": "node scripts/pruebas/pendientes_de_envio.mjs",
     "pruebas:nos-debe": "node scripts/pruebas/nos_debe.mjs",
     "pruebas:plan-compra-historia": "node scripts/pruebas/plan_compra_historia.mjs",
     "pruebas:roles": "node scripts/pruebas/roles_por_modulo.mjs",
