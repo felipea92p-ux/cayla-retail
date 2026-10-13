@@ -380,7 +380,8 @@ caso(
   `select clave || ',' || grupo || ',' || orden || ',' || solo_lider || ',' || delegable || ',' || (select count(*) from retail.rol_modulos where modulo = 'plan_piso')
      from retail.modulos where clave = 'plan_piso';\n` +
     como(FELIPE) + `select retail.fn_ve_modulo('plan_piso')::text;\n` + como(MICAELA) + `select retail.fn_ve_modulo('plan_piso')::text;`,
-  "plan_piso,Inventario,118,false,true,0\ntrue\nfalse"
+  // Grupo «Gestión», orden 214 desde ADR-0392 (20261013134000); nació en «Inventario», 118 (20261006100000).
+  "plan_piso,Gestión,214,false,true,0\ntrue\nfalse"
 );
 caso(
   "la migración se puede pegar dos veces seguidas: mismas tablas, mismas funciones, mismas filas",
