@@ -2,7 +2,8 @@
 
 - **Fecha:** 2026-10-13 · **Estado:** construido y verificado en local (seis actividades, un commit cada una; rama
   `claude/erp-floor-management-logic-d7a466`). Migración `20261013134000_frescura_y_plan_del_piso_al_grupo_gestion.sql`
-  **sin pegar en producción** (la pega Felipe; es solo dos `update`, ver «SQL»).
+  **en producción desde el 2026-10-13** (la pegó Felipe; la comprobación devolvió analisis 210 · frescura 212 · plan_piso 214 ·
+  colaboradores 220, los tres últimos en «Gestión»). PR #1023.
 - **Número:** reservado con `pnpm reservar adr` al empezar (ADR-0381); la migración, con `pnpm reservar migracion`.
 - **Pedido:** Felipe, 2026-10-13, mirando Frescura del piso y Plan del piso una al lado de la otra: «¿fusionarlas? ¿un módulo para esas
   dos? ¿o “Gestión de piso” con Análisis, Frescura del piso y Plan del piso?». Después, con el análisis en la mano: «no deberían ir en

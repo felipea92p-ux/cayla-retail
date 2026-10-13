@@ -1,11 +1,11 @@
-## 🧭 «Gestión», grupo de primer nivel del lateral (2026-10-13, ADR-0392) — web + migración `20261013134000` **SIN PEGAR**; rama `claude/erp-floor-management-logic-d7a466`
+## 🧭 «Gestión», grupo de primer nivel del lateral (2026-10-13, ADR-0392) — web + migración `20261013134000` **en producción desde el 2026-10-13**; rama `claude/erp-floor-management-logic-d7a466`, PR #1023
 
 - [x] 1 · Árbol del menú: grupo «Gestión» debajo de Inicio (tras Producción en el Taller) con Análisis, Frescura del piso, Plan del piso y Rendimiento, las cuatro con `conservaNombre`; Inventario vuelve a 4 y se borra su excepción de tope; ícono propio (la diana); puerta `/gestion`; foto del menú cambiada a propósito con el OK de Felipe. Verificado: suites en verde, lateral mirado en el navegador con andamio sin base (líder de tienda, integrante, Terminal de ventas, líder del Taller).
 - [x] 2 · Rutas: `/gestion/analisis`, `/gestion/frescura`, `/gestion/plan-del-piso`; cuatro redirecciones en `next.config.ts` (307, conservan la query); 92 referencias reescritas; huellas de guía aceptadas (solo cambió la carpeta); «/gestion» a ancho completo. Verificado con `curl` en el dev server.
 - [x] 3 · ARQUITECTURA.md y el tablero de Formidable (y sus tres informes) en «Gestión» con la ruta vieja y la fecha al lado.
 - [x] 4 · Roles y accesos: `frescura` y `plan_piso` al grupo «Gestión» (orden 212 y 214, tras Análisis) en la migración y en `lib/modulos.ts`; `modulos.test.ts` lee el `update … set grupo, orden`. El grupo «Gestión» de Roles se queda después de Producción (desvío escrito, decisión de Felipe).
 - [x] 5 · Guías: ningún paso cambia; las cuatro viven en `lib/guias/pantallas/gestion.ts`.
-- [ ] **Para Felipe, en producción:** pegar `20261013134000_frescura_y_plan_del_piso_al_grupo_gestion.sql` (sola, a cualquier hora; comprobación: `select clave, grupo, orden from retail.modulos where clave in ('analisis','frescura','plan_piso','colaboradores') order by orden` → 210 · 212 · 214 · 220).
+- [x] **Pegada en producción el 2026-10-13 por Felipe:** `20261013134000_frescura_y_plan_del_piso_al_grupo_gestion.sql`; la comprobación dio 210 · 212 · 214 · 220, los tres últimos en «Gestión».
 - [ ] **Sin probar:** `guias:recorrer` y `tema:auditar` sobre las rutas nuevas (no hay base local en esta máquina desde el 2026-10-11); el lateral real con la cuenta de Felipe y con una terminal en producción.
 - [ ] Felipe decide el ícono de Rendimiento (hoy repite los cuatro recuadros de Plan del piso, una fila debajo de la otra).
 - [ ] Felipe decide si la Terminal de ventas conserva Frescura y Plan (ve «Gestión» encima del Punto de venta) o se los quita en Roles y accesos.
