@@ -64,7 +64,19 @@ vale la pena decidirlo antes de que la usen las tiendas.
 - Caída externa: el corte de señal dice «no sabemos si llegó: vuelve a pulsar sin cambiar nada» y el token hace seguro el reintento.
 - Persona sin contexto: ciega ✓ (arriba) · real: sin probar.
 
+## Después (2026-10-13, aprobado por Felipe: «Sí, así»)
+1. **La fila entera se toca** y el botón dice su envío («Seguir recibiendo ENV-000402»): un clic de mouse sobre el texto de la fila lleva al
+   envío (comprobado en el banco con Sandra en Tienda Trujillo). Mientras haya envíos que la persona puede recibir, la guía del formulario a mano
+   no se enciende sola (sin «Sigue aquí» ni «Falta: …»); despierta en cuanto se toca. Si todos los envíos los hizo quien mira («La recibe otra
+   persona»), la guía se enciende como siempre: no hay nada que recibir arriba.
+2. **Lo contado no se pierde: no se guarda en el navegador** (Felipe lo quitó de Recibir en ADR-0129). El aviso antes de salir ya existía en el
+   envío (`useSalidaSinGuardar`: recargar, cerrar la pestaña, «atrás» y los enlaces de adentro); la prueba ciega lo perdía porque su ventana
+   recargaba la página en cada paso. Sin cambio de código.
+3. **«Es nueva» sin tallas marcadas**: XS a Estándar arrancan sin elegir y «Tallas» está en «Falta: …» hasta marcar las que llegaron. El resumen
+   «Se crea 1 combinación: Única» ya no sale sin tallas marcadas (decía algo que no iba a pasar).
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-12 | fase 5a | 5,8 (provisional, 4 leyes) | sin medir | — |
+| 2026-10-13 | `claude/formidable-compras-oc-9b0c82` | sin volver a medir (falta una nueva prueba ciega) | sin medir | los 3 (el 2, ya resuelto) |
