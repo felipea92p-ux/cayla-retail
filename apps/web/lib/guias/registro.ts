@@ -35,6 +35,7 @@ import {
   GUIA_PLAN_DEL_PISO,
   GUIA_POR_REGULARIZAR,
   GUIA_RECIBIR,
+  GUIA_RECIBIR_ENVIO,
   GUIA_TRASLADO,
   GUIA_TRASLADOS,
 } from "./pantallas/inventario";
@@ -147,6 +148,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_TRASLADO,
   GUIA_NUEVO_TRASLADO,
   GUIA_RECIBIR,
+  GUIA_RECIBIR_ENVIO,
   GUIA_PRODUCTOS,
   GUIA_EDITAR_PRODUCTO,
   GUIA_HISTORIAL_PRENDA,
@@ -329,6 +331,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/productos/por-revisar": { estado: "aplicada", guia: GUIA_POR_REVISAR.id },
   // ---- recibir ----
   "/recibir": { estado: "aplicada", guia: GUIA_RECIBIR.id },
+  "/recibir/envio/[id]": { estado: "aplicada", guia: GUIA_RECIBIR_ENVIO.id },
   // ---- rendimiento ----
   "/rendimiento": { estado: "aplicada", guia: GUIA_RENDIMIENTO.id },
   // ---- rotulos ----

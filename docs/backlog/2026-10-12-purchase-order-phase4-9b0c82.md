@@ -5,7 +5,8 @@ ADR-0362 (decisiones 13–15, 17, 18, 21, 23, 27, 48 y 49). Va encima de la fase
 - [x] Base: `20261013001000` (esquema, alta al recibir) y `20261013002000` (abrir, recibir, sin guía, la prenda, lecturas).
 - [x] Pantalla: la tarjeta en `/recibir` y `/recibir/envio/[id]` (cuatro estados), guía de foco en la página y sus dos hojas.
 - [x] Pruebas: `pruebas:recepcion-de-envio` 28/28; puras 83; eliminar producto cuenta la tabla nueva como historia.
-- [ ] Guía interactiva de `/recibir/envio/[id]` y huella de `/recibir` (en curso).
+- [x] Guía interactiva de `/recibir/envio/[id]` (por estado del envío) y huella de `/recibir` («Lo que viene de una orden de compra»).
+- [x] Caos en la base: dos personas reciben el mismo envío a la vez → entra una sola vez (stock 4, un movimiento); la otra lee «Este envío ya se recibió».
 - [ ] Pegar en producción, EN ORDEN y ANTES de desplegar la web, después de las tres de la fase 3: `20261013001000` → `20261013002000`.
 - [ ] `/chaos` con sesiones reales (doble clic, corte de señal, dos personas recibiendo el mismo envío) y una terminal; firmar como
   integrante con su entrada marcada (el banco no tiene asistencia: hoy se probó con Sandra).

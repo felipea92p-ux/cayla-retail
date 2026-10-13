@@ -116,7 +116,8 @@ export function BloquePrenda({
           ) : (
             <div className="space-y-2.5">
               <div className="flex flex-wrap items-center gap-2">
-                <Boton type="button" onClick={() => onAbrirHoja("nueva")}>
+                {/* La demo (ADR-0389) toca este botón para mostrar la hoja de la prenda nueva; abrirla no guarda nada. */}
+                <Boton type="button" onClick={() => onAbrirHoja("nueva")} data-guia="recepcion.es-nueva">
                   <span className="inline-flex items-center gap-1.5">
                     <PackagePlus aria-hidden className="h-4 w-4" />
                     Es nueva

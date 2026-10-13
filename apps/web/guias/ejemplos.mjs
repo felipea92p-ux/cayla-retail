@@ -6,6 +6,7 @@
 // Una pantalla que no está aquí se recorre con su ruta tal cual y la cuenta de `--cuenta` (por defecto, admin).
 
 import { consultarLocal } from "../tema/motor/sesion.mjs";
+import { porClave } from "../tema/cuentas.mjs";
 
 const id = (sql) => {
   const v = consultarLocal(sql).split("\n")[0]?.trim();
@@ -51,6 +52,15 @@ const SIN_COMPROBANTE_DE_ORDEN =
 
 // Enviar una orden a una sede pide la función `crear_envio` (fase 3) y una orden generada a la que le quede algo por enviar.
 const SIN_ENVIO_DE_ORDEN = `select case when to_regclass('retail.ordenes_compra') is null or not exists (select 1 from retail.modulos where clave = 'ordenes_compra') then 'la base local no tiene el módulo ordenes_compra (faltan las migraciones 20261010214500 y siguientes): la cuenta cae en «Sin acceso»' when not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'crear_envio') then 'la base local no tiene crear_envio (migración 20261012225000, los envíos de la fase 3): la pantalla avisa que todavía no está lista' when query_to_xml(${entreComillas(`select 1 from retail.ordenes_compra o where ${CON_ALGO_POR_ENVIAR} limit 1`)}, false, true, '')::text = '' then 'no hay una orden generada con algo por enviar en la base local' end`;
+
+// Fase 4 (recibir un envío en la sede): quien hizo la orden no la recibe (decisión 17), y la cuenta `admin` del recorredor es Felipe, que hace
+// las órdenes de prueba: para él la pantalla dice «La recibe otra persona». Se recorre con `integrante` (Micaela, de Tienda Trujillo, con el
+// módulo Recibir) y se prefiere un envío a SU sede: abierto (el formulario, la cara que más enseña), si no en camino y si no ya cerrado.
+const QUIEN_RECIBE = "integrante";
+const CORREO_QUIEN_RECIBE = porClave(QUIEN_RECIBE)?.correo ?? "";
+const SEDE_DE_QUIEN_RECIBE = `(select c.ubicacion_asignada_id from retail.colaboradores c join public.personas p on p.id = c.persona_id join auth.users u on u.id = p.auth_user_id where u.email = '${CORREO_QUIEN_RECIBE}' limit 1)`;
+const ORDEN_DE_ENVIO = "case d.estado when 'abierto' then 0 when 'en_camino' then 1 when 'cerrado' then 2 else 3 end, d.despachado_en desc";
+const SIN_RECEPCION_DE_ENVIO = `select case when not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'recibir_despacho') then 'la base local no tiene recibir_despacho (migraciones 20261013001000 y 20261013002000, la recepción de la fase 4): la pantalla no puede recibir' when query_to_xml('select 1 from retail.despachos limit 1', false, true, '')::text = '' then 'no hay ningún envío de orden de compra en la base local' when not exists (select 1 from retail.rol_modulos m join retail.colaboradores c on c.rol_id = m.rol_id join public.personas p on p.id = c.persona_id join auth.users u on u.id = p.auth_user_id where u.email = '${CORREO_QUIEN_RECIBE}' and m.modulo = 'recibir') then 'la cuenta de prueba «${QUIEN_RECIBE}» no tiene el módulo Recibir en la base local: cae en «Sin acceso»' end`;
 
 export const EJEMPLOS = {
   // La factura con más que enseñar: con saldo y mercadería por llegar (así se ven «Cerrar con faltante», «Ir a recibir» y «Registrar pago»).
@@ -127,6 +137,15 @@ export const EJEMPLOS = {
     sinDatos: "select case when count(*) = 0 then 'no hay un conteo abierto (Revisar solo existe mientras se cuenta)' end from retail.conteos where estado = 'abierto'",
     url: () => `/inventario/conteo/${id("select id from retail.conteos order by created_at desc limit 1")}/revisar` },
   "/inventario/traslados/(billetera)/[id]": { url: () => `/inventario/traslados/${id("select id from retail.transferencias order by created_at desc limit 1")}` },
+  "/recibir/envio/[id]": {
+    cuenta: QUIEN_RECIBE,
+    sinDatos: SIN_RECEPCION_DE_ENVIO,
+    url: () =>
+      `/recibir/envio/${idConRespaldo(
+        `select d.id from retail.despachos d order by (d.ubicacion_destino_id = ${SEDE_DE_QUIEN_RECIBE}) desc nulls last, ${ORDEN_DE_ENVIO} limit 1`,
+        `select d.id from retail.despachos d order by ${ORDEN_DE_ENVIO} limit 1`,
+      )}`,
+  },
   // Editar producto y Familias leen columnas que entraron con las migraciones del 2026-10-10/11 (familias que entran a los
   // motores, precio de tienda): con la base local atrasada, la página no carga. No se aplican migraciones por esto.
   "/productos/familias": {
