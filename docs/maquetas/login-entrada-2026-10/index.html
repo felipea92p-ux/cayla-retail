@@ -3,11 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Entrada al ERP — el colibrí se abre</title>
+<title>Entrar y salir — el colibrí se abre</title>
 <!-- Maqueta (2026-10-13): NO está en el ERP. Idea de Felipe: al iniciar sesión, el colibrí del login se coloca en el CENTRO de la
      pantalla y se agranda hasta que, en el centro, aparece la pantalla de después del login (Inicio).
      Toda la animación es UNA función del tiempo, render(ms): por eso la barra de abajo deja arrastrar y mirar cualquier instante.
      Una sola vez, sin rebote ni bucle (ADR-0136); con prefers-reduced-motion se salta directo a Inicio.
+     SALIDA (pedido de Felipe, 2026-10-13: «¿para Salir, un efecto similar pero al revés?»): tres versiones para elegir mirando — A espejo (3,8 s),
+     B espejo rápido (2,2 s), C cortina y vuelo (1,5 s). Se cambia en el selector de abajo o con ?s=A|B|C; ?modo=salir arranca ya dentro de Inicio.
+     SALUDO (pedido de Felipe, 2026-10-13): al entrar «Bienvenido(a), <nombre>» y al salir «Hasta luego, <nombre>» (el nombre de la persona o el de la terminal), mientras el
+     colibrí flota en el centro. Se elige mirando: diseño (A una línea · B dos líneas) y cuenta (persona · terminal), con los selectores de abajo o ?sd=A|B &cuenta=terminal.
      Variantes: ?v=B (default) la ventana tiene la forma del colibrí · ?v=A la ventana es un círculo dentro del ala.  &tema=oscuro.
      Colores: solo los tokens de apps/web/app/globals.css y tema.css. TODAS las cifras y nombres de Inicio son inventados. -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -71,6 +75,18 @@
   /* El fondo se oscurece como la mitad izquierda del login: sobre él el colibrí rojo y la ventana encendida resaltan. */
   #velo { position: absolute; inset: 0; z-index: 10; background: var(--tinta-fija); opacity: 0; pointer-events: none; }
   :root[data-tema="oscuro"] #velo { background: var(--papel); }
+
+  /* La cortina de la salida C: oscurece Inicio (entera) antes de que el colibrí vuele de vuelta. */
+  #cortina { position: absolute; inset: 0; z-index: 25; background: var(--tinta-fija); opacity: 0; pointer-events: none; }
+  :root[data-tema="oscuro"] #cortina { background: var(--papel); }
+
+  /* El saludo: aparece bajo el colibrí mientras flota en el centro (al entrar y al salir). Sobre el fondo oscuro, así que va en crema fija. */
+  #saludo { position: absolute; z-index: 40; left: 50%; transform: translateX(-50%); width: min(92vw, 760px); text-align: center; opacity: 0; pointer-events: none; color: var(--crema-fija); }
+  #saludo .s-nombre { color: var(--rojo); font-style: italic; }
+  #saludo[data-sd="A"] { font: italic 400 clamp(26px, 2.6vw, 36px)/1.15 "EB Garamond", Georgia, serif; letter-spacing: -.005em; }
+  #saludo[data-sd="A"] .s-nombre { margin-left: .3em; }
+  #saludo[data-sd="B"] .s-frase { display: block; font: 600 13px/1 "DM Sans", sans-serif; letter-spacing: .22em; text-transform: uppercase; color: color-mix(in srgb, var(--crema-fija) 70%, transparent); padding-left: .22em; }
+  #saludo[data-sd="B"] .s-nombre { display: block; margin-top: 12px; font: italic 400 clamp(40px, 4.4vw, 60px)/1.02 "EB Garamond", Georgia, serif; letter-spacing: -.01em; }
 
   /* ================= EL COLIBRÍ (encima de todo, para poder cruzar la pantalla) ================= */
   #ave { position: absolute; z-index: 30; overflow: visible; pointer-events: none; will-change: transform; }
@@ -176,6 +192,8 @@
   </section>
 
   <div id="velo"></div>
+  <div id="cortina"></div>
+  <p id="saludo" data-sd="A" aria-hidden="true"><span class="s-frase"></span><em class="s-nombre"></em></p>
 
   <!-- 2 · La ventana (variante B: con la forma del colibrí; A: un círculo en el ala) y, adentro, Inicio -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -199,7 +217,7 @@
       <div class="der2">
         <div class="barra">
           <div class="busca"><svg class="ic" viewBox="0 0 24 24"><path d="M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12M20 20l-4.5-4.5"/></svg>Buscar una prenda, una venta…<kbd>/</kbd></div>
-          <span class="esp"></span><span class="pill"><i></i>Trujillo</span>
+          <span class="esp"></span><span class="pill"><i></i>Trujillo</span><button id="salir" class="pill" style="cursor:pointer;font:inherit;font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:inherit" title="Cierra la sesión: mira cómo sale">Salir</button>
           <div class="av" style="width:30px;height:30px;font-size:13px">CM</div>
         </div>
         <div class="cuerpo"><div class="pag">
@@ -242,6 +260,9 @@
   <span id="fase">Toca «Entrar»</span>
   <span class="sep solo-ancho"></span>
   <button id="vel" class="solo-ancho" title="Velocidad">1×</button>
+  <select id="saludoD" class="solo-ancho" aria-label="Diseño del saludo" title="Diseño del saludo"><option value="A">Saludo A · una línea</option><option value="B">Saludo B · dos líneas</option></select>
+  <select id="cuenta" class="solo-ancho" aria-label="Cuenta" title="Quién entra"><option value="persona">Cuenta · Camila</option><option value="terminal">Cuenta · Terminal Ventas TRU</option></select>
+  <select id="salidaV" aria-label="Efecto de la salida" title="Efecto de «Salir»"><option value="A">Salir A · espejo 3,8 s</option><option value="B">Salir B · espejo rápido 2,2 s</option><option value="C">Salir C · cortina y vuelo 1,5 s</option></select>
   <select id="vent" class="solo-ancho" aria-label="Forma de la ventana"><option value="B">Ventana: colibrí</option><option value="A">Ventana: círculo</option></select>
   <button id="tema" class="solo-ancho">◐ Oscuro</button>
 </div>
@@ -302,16 +323,24 @@
     const rel = (el) => { const r = el.getBoundingClientRect(); return { x: r.left - izq.left + r.width / 2, y: r.top - izq.top + r.height / 2 }; };
     const [T, , L] = [...document.querySelectorAll(".ojalC")].map(rel);
     const P = { x: left - izq.left + bw * 0.211, y: top - izq.top + bh * 0.973 }, y = T.y;
-    hilo.setAttribute("d", `M${T.x},${y} L${L.x + W * 0.17},${y} C${L.x + W * 0.28},${y} ${L.x + W * 0.27},${y - H * 0.09} ${L.x + W * 0.17},${y - H * 0.13}`
-      + ` C${W * 0.5},${y - H * 0.23} ${W * 0.2},${H * 0.62} ${W * 0.22},${H * 0.48} C${W * 0.24},${H * 0.36} ${P.x - W * 0.12},${P.y + H * 0.07} ${P.x},${P.y}`);
+    // La línea, alisada (Felipe 2026-10-13): la vuelta, una diagonal recta con la misma dirección y un solo arco ancho hasta la cola del ave.
+    const fin = L.x + W * 0.17, E = { x: fin, y: y - H * 0.13 }, rumbo = { x: -0.1 * W, y: -0.04 * H };
+    const en = (de, k) => ({ x: de.x + rumbo.x * k, y: de.y + rumbo.y * k }), giro = en(E, 4.2), ctl = en(giro, 2.3);
+    hilo.setAttribute("d", `M${T.x},${y} L${fin},${y} C${L.x + W * 0.28},${y} ${L.x + W * 0.27},${y - H * 0.09} ${E.x},${E.y}`
+      + ` L${giro.x},${giro.y} C${ctl.x},${ctl.y} ${P.x - W * 0.23},${P.y + H * 0.11} ${P.x},${P.y}`);
     inicio.style.width = innerWidth + "px"; inicio.style.height = innerHeight + "px";
+    // El saludo va justo bajo el colibrí cuando flota en el centro (su borde de abajo está a 85 unidades del pecho).
+    $("#saludo").style.top = (M.centro.y + 85 * M.k0 * S_VUELO + 30) + "px";
   }
 
   const FASES = [[0, "1 · Entras"], [300, "2 · Vuela al centro"], [1000, "3 · Se abre la ventana"], [1450, "4 · Se agranda"], [3050, "5 · Estás en Inicio"]];
   
-  function render(ms) {
+  let contarFijo = false; // al salir, las cifras de Inicio no se desarman: se quedan como estaban
+  function render(ms, tAl) {
     const reposo = ms < 0;
     ms = Math.max(0, ms);
+    tAl ??= ms; // el reloj del aleteo y del mecerse (en la salida C sigue hacia adelante aunque el vuelo vaya de vuelta)
+    $("#cortina").style.opacity = 0; ave.style.opacity = "";
     const pVuelo = suave(u("vuela", ms)), pAbre = suave(u("abre", ms)), pCrece = suave(u("crece", ms));
 
     // Escala: un poco al cruzar, y exponencial al agrandarse (así se ve parejo, no se dispara al final).
@@ -320,11 +349,11 @@
     const x = M.reposo.x + (M.centro.x - M.reposo.x) * pVuelo;
     const y = M.reposo.y + (M.centro.y - M.reposo.y) * pVuelo - 70 * Math.sin(Math.PI * pVuelo) * (1 - pCrece);
     // Mientras espera en el centro se mece un poco.
-    const meceo = Math.sin(ms / 1000 * 2 * Math.PI * 3.2) * 2.6 * lim(u("vuela", ms) * 4) * (1 - u("crece", ms)) * (1 - pCrece);
+    const meceo = Math.sin(tAl / 1000 * 2 * Math.PI * 3.2) * 2.6 * lim(u("vuela", ms) * 4) * (1 - u("crece", ms)) * (1 - pCrece);
 
     // Aleteo: arranca al entrar, sigue mientras vuela y se apaga hasta quedar en la pose del logo cuando ya es enorme.
     const amp = reposo ? 0 : 34 * lim(ms / 150) * (1 - Math.pow(u("crece", ms), 0.6));
-    const fase = (ms / 1000) * 8.5 * 2 * Math.PI;
+    const fase = (tAl / 1000) * 8.5 * 2 * Math.PI;
     const th = amp * Math.sin(fase), lg = 1 - 0.28 * Math.max(0, Math.sin(fase)) * (amp / 34);
     const [a, b] = ala(th, lg);
     p1.setAttribute("d", a); p2.setAttribute("d", b);
@@ -362,55 +391,123 @@
     inicio.style.opacity = lim(pAbre * 3);
 
     // Las cifras de Inicio cuentan mientras la ventana crece (la pantalla ya está entera dentro).
-    const cuenta = suave(u("cuenta", ms));
+    const cuenta = contarFijo ? 1 : suave(u("cuenta", ms));
     document.querySelectorAll("[data-cuenta]").forEach((el) => {
       const v = Math.round(+el.dataset.cuenta * cuenta), pre = el.dataset.pre || "";
       el.textContent = pre + (v >= 1000 ? Math.floor(v / 1000) + " " + String(v % 1000).padStart(3, "0") : v);
     });
     document.querySelector("[data-barra]").style.width = (61 * cuenta).toFixed(1) + "%";
-
-    const f = [...FASES].reverse().find(([desde]) => ms >= desde);
-    $("#fase").textContent = reposo ? "Toca «Entrar»" : f[1];
-    if (!suelto) $("#reloj").value = ms;
+    // El saludo: asoma mientras el colibrí llega al centro, se queda mientras flota y se va cuando la ventana se abre (o, al salir, cuando el colibrí vuela de vuelta).
+    $("#saludo").style.opacity = reposo ? 0 : suave(lim((ms - 600) / 350)) * (1 - suave(lim((ms - 1050) / 300)));
   }
 
-  // ---- reloj ----
+  // ---- Entrar y salir ----
+  // `t` es el reloj de la animación que corre (0 a su duración). Entrar: render(t). Salir A y B: el mismo vuelo al revés, render(FIN - t) (B a
+  // más velocidad). Salir C: una cortina oscurece Inicio, el colibrí aparece en el centro y vuela de vuelta al login (la primera parte del vuelo, al revés).
+  let modo = q.get("modo") === "salir" ? "salir" : "entrar", variante = ["A", "B", "C"].includes(q.get("s")) ? q.get("s") : "B";
+  let estado = modo === "salir" ? "inicio" : "login"; // dónde está parada la maqueta: «login» o «inicio»
+  $("#salidaV").value = variante;
+  const DUR = { A: FIN, B: 2200, C: 1500 };
+  // En el ERP real el colibrí flota en el centro mientras carga la pantalla de destino (o se cierra la sesión); aquí se reproduce con una pausa mínima, que es lo que
+  // deja leer el saludo. `tiempos` devuelve el momento en que llega al centro (Th) y el reloj de la animación sin la pausa (e).
+  const DWELL = 450;
+  const dur = () => (modo === "entrar" ? FIN : DUR[variante]) + DWELL;
+  function tiempos(tt) {
+    const Th = modo === "entrar" ? 1000 : variante === "C" ? 500 : (FIN - 1000) * DUR[variante] / FIN;
+    return { Th, e: tt <= Th ? tt : tt <= Th + DWELL ? Th : tt - DWELL };
+  }
+  const FASES_ENTRAR = [[0, "Entrar · 1 · Entras"], [300, "Entrar · 2 · Vuela al centro"], [1000, "Entrar · 3 · Se abre la ventana"], [1450, "Entrar · 4 · Se agranda"], [3050, "Entrar · 5 · Estás en Inicio"]];
+  const FASES_SALIR = {
+    A: [[0, "Salir · 1 · La pantalla se encoge"], [750, "Salir · 2 · Se achica el colibrí"], [2350, "Salir · 3 · La ventana se cierra"], [2800, "Salir · 4 · Vuelve volando"], [3500, "Salir · 5 · De vuelta en el login"]],
+    B: [[0, "Salir · 1 · La pantalla se encoge"], [430, "Salir · 2 · Se achica el colibrí"], [1360, "Salir · 3 · La ventana se cierra"], [1620, "Salir · 4 · Vuelve volando"], [2030, "Salir · 5 · De vuelta en el login"]],
+    C: [[0, "Salir · 1 · Cae la cortina"], [500, "Salir · 2 · Vuela de vuelta"], [1400, "Salir · 3 · De vuelta en el login"]],
+  };
+  function etiqueta(tt) {
+    const lista = modo === "entrar" ? FASES_ENTRAR : FASES_SALIR[variante];
+    return [...lista].reverse().find(([desde]) => tt >= desde)[1];
+  }
+  function pintarC(tt, reloj = tt) { // `tt`: el reloj de la animación sin pausa; `reloj`: el reloj real, que mueve el aleteo aunque el vuelo esté en pausa
+    if (tt < 500) {
+      render(1000, 1000 + reloj);                                    // el colibrí en el centro, ventana cerrada…
+      portal.style.visibility = "visible"; portal.style.clipPath = "none"; portal.style.webkitClipPath = "none"; // …pero Inicio entero a la vista
+      inicio.style.transform = "none"; inicio.style.opacity = 1;
+      $("#cortina").style.opacity = suave(lim(tt / 500));            // la cortina oscurece Inicio
+      ave.style.opacity = suave(lim((tt - 250) / 250));              // y el colibrí asoma al final de la cortina
+    } else render(1000 - (tt - 500), 1000 + reloj);                     // vuela de vuelta: la primera parte del vuelo, al revés
+  }
+  // El saludo: la frase según entre o salga, y el nombre de la persona o de la terminal (una terminal es un aparato: su nombre va completo, no solo el primero).
+  const TEXTOS = { entrar: "Bienvenido(a),", salir: "Hasta luego," }; // el texto corto que pidió Felipe
+  let sd = ["A", "B"].includes(q.get("sd")) ? q.get("sd") : "A", cuentaDe = q.get("cuenta") === "terminal" ? "terminal" : "persona";
+  $("#saludoD").value = sd; $("#cuenta").value = cuentaDe;
+  function ponerSaludo() {
+    const el = $("#saludo"), nombre = cuentaDe === "terminal" ? "Terminal Ventas TRU" : "Camila";
+    el.dataset.sd = sd;
+    el.querySelector(".s-frase").textContent = TEXTOS[modo === "entrar" ? "entrar" : "salir"].replace(/,$/, sd === "A" ? "," : "");
+    el.querySelector(".s-nombre").textContent = nombre + (sd === "A" ? "." : "");
+  }
+  function pintar(tt) {
+    ponerSaludo();
+    contarFijo = modo === "salir";
+    const { Th, e } = tiempos(tt);
+    // El segundo parámetro de render es el reloj del aleteo y del mecerse: es el REAL (tt), no el de la animación, para que el colibrí no deje de aletear en la pausa del centro.
+    if (modo === "entrar") render(e, tt);
+    else if (variante === "C") pintarC(e, tt);
+    else render(FIN - e * (FIN / DUR[variante]), tt);
+    if (modo === "salir" && tt >= dur()) render(-1); // llegó al login: queda como antes de entrar
+    // El saludo: asoma mientras el colibrí llega al centro, se queda mientras flota y se va cuando el colibrí sigue (se abre la ventana, o vuela de vuelta).
+    if (!(modo === "salir" && tt >= dur())) $("#saludo").style.opacity = suave(lim((tt - (Th - 320)) / 320)) * (1 - suave(lim((tt - (Th + DWELL)) / 300)));
+    $("#fase").textContent = etiqueta(tt);
+    if (!suelto) $("#reloj").value = tt;
+  }
+  function pintarQuieto() {
+    t = -1; contarFijo = false; jugando = false;
+    if (estado === "login") render(-1); else render(FIN);
+    $("#fase").textContent = estado === "login" ? "Toca «Entrar»" : "Toca «Salir» (arriba a la derecha)";
+    $("#reloj").value = 0;
+  }
   let t = -1, jugando = false, ultimo = 0, vel = 1, suelto = false;
   function cuadro(ahora) {
     if (jugando) {
       t += (ahora - ultimo) * vel;
-      if (t >= FIN) { t = FIN; jugando = false; }
-      render(t);
+      if (t >= dur()) { t = dur(); jugando = false; estado = modo === "entrar" ? "inicio" : "login"; }
+      pintar(t);
     }
     ultimo = ahora; requestAnimationFrame(cuadro);
   }
-  function empezar() {
-    if (quieto) { t = FIN; jugando = false; render(FIN); return; } // reduced-motion: directo a Inicio, sin vuelo
+  function empezar(m) {
+    modo = m ?? modo; $("#reloj").max = dur();
+    if (quieto) { estado = modo === "entrar" ? "inicio" : "login"; t = dur(); jugando = false; pintar(t); return; } // reduced-motion: directo al destino, sin vuelo
     t = 0; jugando = true; $("#pausa").setAttribute("aria-pressed", "false"); $("#pausa").textContent = "❚❚";
   }
-  function reiniciar() { jugando = false; t = -1; render(-1); $("#reloj").value = 0; setTimeout(empezar, 500); }
-  $("#entrar").addEventListener("click", () => { if (t < 0) empezar(); });
+  function reiniciar() { estado = modo === "entrar" ? "login" : "inicio"; pintarQuieto(); $("#reloj").max = dur(); setTimeout(empezar, 450); }
+  $("#entrar").addEventListener("click", () => { if (estado === "login" && !jugando) empezar("entrar"); });
+  $("#salir").addEventListener("click", () => { if (estado === "inicio" && !jugando) empezar("salir"); });
   $("#repetir").addEventListener("click", reiniciar);
   $("#pausa").addEventListener("click", () => {
-    if (t >= FIN) return reiniciar();
+    if (t >= dur()) return reiniciar();
+    if (t < 0) return;
     jugando = !jugando; $("#pausa").setAttribute("aria-pressed", String(!jugando)); $("#pausa").textContent = jugando ? "❚❚" : "▶";
   });
-  $("#reloj").addEventListener("input", (e) => { suelto = true; jugando = false; t = +e.target.value; $("#pausa").setAttribute("aria-pressed", "true"); $("#pausa").textContent = "▶"; render(t); });
+  $("#reloj").addEventListener("input", (e) => { suelto = true; jugando = false; t = +e.target.value; $("#pausa").setAttribute("aria-pressed", "true"); $("#pausa").textContent = "▶"; pintar(t); });
   $("#reloj").addEventListener("change", () => { suelto = false; });
   $("#vel").addEventListener("click", (e) => { vel = vel === 1 ? 0.35 : 1; e.target.textContent = vel === 1 ? "1×" : "cámara lenta"; });
-  $("#vent").addEventListener("change", (e) => { VENTANA = e.target.value; render(t); });
+  $("#vent").addEventListener("change", (e) => { VENTANA = e.target.value; if (t >= 0) pintar(t); else pintarQuieto(); });
+  const repintar = () => { if (t >= 0) pintar(t); else pintarQuieto(); };
+  $("#saludoD").addEventListener("change", (e) => { sd = e.target.value; repintar(); });
+  $("#cuenta").addEventListener("change", (e) => { cuentaDe = e.target.value; repintar(); });
+  $("#salidaV").addEventListener("change", (e) => { variante = e.target.value; modo = "salir"; $("#reloj").max = dur(); estado = "inicio"; pintarQuieto(); setTimeout(() => empezar("salir"), 350); });
   $("#tema").addEventListener("click", () => {
     const o = document.documentElement.dataset.tema === "oscuro";
     if (o) delete document.documentElement.dataset.tema; else document.documentElement.dataset.tema = "oscuro";
     $("#tema").textContent = o ? "◐ Oscuro" : "◐ Claro";
   });
-  addEventListener("resize", () => { medir(); render(t); });
+  addEventListener("resize", () => { medir(); if (t >= 0) pintar(t); else pintarQuieto(); });
 
-  // Atajo para capturas y revisión: ?t=1800 deja la maqueta quieta en ese instante.
+  // Atajos para capturas y revisión: ?t=1800 deja la maqueta quieta en ese instante (con ?modo=salir&s=C, en ese instante de la salida).
   document.fonts.ready.then(() => {
-    medir(); render(-1);
+    medir(); $("#reloj").max = dur(); pintarQuieto();
     const fijo = q.get("t");
-    if (fijo !== null) { t = +fijo; render(t); } else if (q.get("auto") === "1") setTimeout(empezar, 700);
+    if (fijo !== null) { t = +fijo; suelto = true; pintar(t); } else if (q.get("auto") === "1") setTimeout(() => empezar(), 700);
     requestAnimationFrame(cuadro);
   });
 </script>
