@@ -20,7 +20,6 @@ import {
   GUIA_SERIES,
 } from "./pantallas/ventas-posventa";
 import {
-  GUIA_ANALISIS,
   GUIA_BAJAR_AL_PISO,
   GUIA_CONTEO,
   GUIA_CONTEO_CONFIRMAR,
@@ -28,11 +27,9 @@ import {
   GUIA_CONTEO_REVISAR,
   GUIA_CUADRAR_PISO,
   GUIA_EXISTENCIAS,
-  GUIA_FRESCURA,
   GUIA_MOVIMIENTOS,
   GUIA_NUEVO_TRASLADO,
   GUIA_PEDIDOS_NO_ATENDIDOS,
-  GUIA_PLAN_DEL_PISO,
   GUIA_POR_REGULARIZAR,
   GUIA_RECIBIR,
   GUIA_RECIBIR_ENVIO,
@@ -111,8 +108,8 @@ import {
   GUIA_CONFIGURACION,
   GUIA_GLOBAL,
   GUIA_INICIO,
-  GUIA_RENDIMIENTO,
 } from "./pantallas/general";
+import { GUIA_ANALISIS, GUIA_FRESCURA, GUIA_PLAN_DEL_PISO, GUIA_RENDIMIENTO } from "./pantallas/gestion";
 import { GUIA_AVISOS_CLUB, GUIA_CLIENTES } from "./pantallas/clientes";
 import type { Guia } from "./tipos";
 
@@ -289,6 +286,8 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/finanzas/reportes/flujo": { estado: "aplicada", guia: GUIA_FIN_FLUJO.id },
   "/finanzas/reportes/presupuesto": { estado: "aplicada", guia: GUIA_FIN_PRESUPUESTO.id },
   "/finanzas/resumen": { estado: "aplicada", guia: GUIA_FIN_RESUMEN.id },
+  // ---- gestion ----
+  "/gestion": { estado: "no-aplica", motivo: "Solo redirige: la puerta del grupo «Gestión» (ADR-0392) lleva a la primera de sus cuatro pantallas que la cuenta ve (Análisis, Frescura del piso, Plan del piso o Rendimiento). La guía es la de la pantalla a la que llega." },
   // ---- global ----
   "/global": { estado: "aplicada", guia: GUIA_GLOBAL.id },
   "/global/elige-sede": { estado: "no-aplica", motivo: "Un paso de paso: pide elegir la sede y vuelve; lo explica la guía de la pantalla de donde se viene." },
@@ -300,12 +299,12 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/inventario/conteo/[id]/confirmar": { estado: "aplicada", guia: GUIA_CONTEO_CONFIRMAR.id },
   "/inventario/conteo/[id]/revisar": { estado: "aplicada", guia: GUIA_CONTEO_REVISAR.id },
   "/inventario/cuadrar": { estado: "aplicada", guia: GUIA_CUADRAR_PISO.id },
-  "/inventario/frescura": { estado: "aplicada", guia: GUIA_FRESCURA.id },
+  "/gestion/frescura": { estado: "aplicada", guia: GUIA_FRESCURA.id },
   "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a Traslados ▸ Nuevo con lo que traía la dirección vieja. La guía es la de Nuevo traslado." },
   "/inventario/movimientos": { estado: "aplicada", guia: GUIA_MOVIMIENTOS.id },
-  "/inventario/plan-del-piso": { estado: "aplicada", guia: GUIA_PLAN_DEL_PISO.id },
+  "/gestion/plan-del-piso": { estado: "aplicada", guia: GUIA_PLAN_DEL_PISO.id },
   "/inventario/por-regularizar": { estado: "aplicada", guia: GUIA_POR_REGULARIZAR.id },
-  "/inventario/resumen": { estado: "aplicada", guia: GUIA_ANALISIS.id },
+  "/gestion/analisis": { estado: "aplicada", guia: GUIA_ANALISIS.id },
   "/inventario/traslados/(billetera)": { estado: "aplicada", guia: GUIA_TRASLADOS.id },
   "/inventario/traslados/(billetera)/[id]": { estado: "aplicada", guia: GUIA_TRASLADO.id },
   "/inventario/traslados/guia/[id]": { estado: "no-aplica", motivo: "Hoja de impresión de la guía de un traslado: se imprime y viaja con la mercadería." },

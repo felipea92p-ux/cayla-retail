@@ -269,11 +269,15 @@ const TOPE_HIJAS = 6;
 // piso; Recibir mercadería sigue saliendo solo a quien no ve Compras). Llega a 8 únicamente un rol que vea Análisis, Frescura y
 // Plan del piso y reciba mercadería sin ver Compras (hoy no existe). SE ROMPE SI Inventario suma otra pantalla o ese rol aparece:
 // entonces SÍ se regrupa (el subgrupo del piso, Frescura + Plan del piso), y este número no vuelve a subir.
+// INVENTARIO, cerrado (Felipe, 2026-10-13; ADR-0392): se regrupó, pero no en un subgrupo: Análisis, Frescura del piso y Plan del
+// piso son de «Gestión», un grupo de PRIMER nivel debajo de Inicio, junto con Rendimiento (que deja su fila suelta, así el primer
+// nivel sigue en 8). Inventario vuelve a 4 (5 con Recibir para quien no ve Compras) y cabe en el tope general: la excepción se
+// borra y no vuelve.
 // COMPRAS, 7 — TEMPORAL (Felipe, 2026-10-10; ADR-0362, decisión 38): «Órdenes de compra» entra como séptima hija mientras
 // «Recibir mercadería» siga en Compras. La sesión de Recepción la muda a Inventario (la base ya la tiene en ese grupo desde el
 // 2026-10-07; falta la web, de otra sesión): ESE día se borra esta entrada y Compras vuelve a 6. No se regrupó porque las siete
 // son puertas de uso diario y la mudanza ya está decidida.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { inventario: 8, compras: 7 };
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
@@ -814,18 +818,27 @@ describe("un rol que solo ve «Recibir mercadería» la encuentra con su nombre 
   });
 });
 
-describe("en CAYLA Global, Inventario es solo Frescura del piso y se llama así (ADR-0208, act. 2026-10-10 (b))", () => {
+describe("«Gestión» con una sola pantalla se disuelve en esa pantalla, con su nombre (ADR-0392; antes ADR-0208, act. 2026-10-10 (b))", () => {
   const conModulos = (modulos: ClaveModulo[]) =>
     menuPara({ permisos: permisosDeModulos("integrante", modulos.map((clave) => ({ clave, completo: true }))), ubicacionTipo: "tienda", modulos });
 
-  it("la fila dice «Frescura del piso» y abre su pantalla, no «Inventario»", () => {
+  it("en CAYLA Global, Frescura sola dice «Frescura del piso» y abre su pantalla, nunca «Gestión»", () => {
     const riel = conModulos(["frescura"]).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso"]);
-    expect(hojasDe(riel[0]).map((h) => h.href)).toEqual(["/inventario/frescura"]);
+    expect(hojasDe(riel[0]).map((h) => h.href)).toEqual(["/gestion/frescura"]);
   });
 
-  it("con otra pantalla de Inventario al lado, el grupo sigue llamándose «Inventario»", () => {
+  it("cada una de las cuatro, sola, conserva su nombre (la Terminal de ventas ve Frescura y Plan; el rol Producción, Análisis)", () => {
+    expect(conModulos(["plan_piso"]).riel.map((f) => f.etiqueta)).toEqual(["Plan del piso"]);
+    expect(conModulos(["rendimiento"]).riel.map((f) => f.etiqueta)).toEqual(["Rendimiento"]);
+    expect(conModulos(["analisis"]).riel.map((f) => f.etiqueta)).toEqual(["Análisis"]);
+    expect(conModulos(["frescura", "plan_piso"]).riel.map((f) => f.etiqueta)).toEqual(["Gestión"]);
+  });
+
+  it("Frescura ya no es de Inventario: con Existencias al lado salen dos filas, y Gestión va antes", () => {
     const riel = conModulos(["frescura", "existencias"]).riel;
-    expect(riel.map((f) => f.etiqueta)).toEqual(["Inventario"]);
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso", "Inventario"]);
+    expect(conModulos(["frescura", "existencias"]).grupoDe("/gestion/frescura")).toBe("gestion");
+    expect(conModulos(["frescura", "existencias"]).grupoDe("/inventario")).toBe("inventario");
   });
 });

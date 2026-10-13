@@ -51,7 +51,7 @@ export const MODULOS_SOLO_DE_LA_VISTA_GLOBAL = ["cayla_global"] as const satisfi
  *  pantallas de los módulos de arriba —lo vigila la prueba contra el árbol del menú—, más dos que no son de un módulo:
  *  «Sin acceso» y el panel comercial (`/comercial`, que ya compara todas las tiendas y es solo del líder). «/» es solo el
  *  Inicio (nada «cuelga» de la raíz): la página manda a `/global` a quien no es Admin. */
-export const RUTAS_DE_LA_VISTA_GLOBAL = ["/", "/global", "/clientas", "/finanzas", "/configuracion", "/actividad", "/comercial", "/sin-acceso", "/inventario/frescura"] as const;
+export const RUTAS_DE_LA_VISTA_GLOBAL = ["/", "/global", "/clientas", "/finanzas", "/configuracion", "/actividad", "/comercial", "/sin-acceso", "/gestion/frescura"] as const;
 
 /** Las pantallas que cuelgan de una ruta de la lista de arriba pero trabajan en UNA sede: no se abren en CAYLA Global (mandan a
  *  elegir sede). Clientas ▸ Avisos (ADR-0288 act. g) manda los mensajes desde el WhatsApp de una tienda: sin tienda no hay desde

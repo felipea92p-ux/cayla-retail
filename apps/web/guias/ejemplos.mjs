@@ -182,7 +182,7 @@ export const EJEMPLOS = {
   // El buscador con una búsqueda que encuentra algo de verdad: así se ven los pasos de resultados.
   "/buscar": { url: () => `/buscar?q=${encodeURIComponent(id("select split_part(referencia, ' ', 1) from retail.productos where estado = 'activo' and referencia ~ '^[A-Za-zÁÉÍÓÚáéíóúñÑ]{3,}' and referencia not ilike 'prenda%' order by created_at limit 1"))}` },
   // Plan del piso: su módulo y sus lecturas nacen en 20261006100000/20261006110000; sin ellas la cuenta cae en «Sin acceso».
-  "/inventario/plan-del-piso": {
+  "/gestion/plan-del-piso": {
     sinDatos: "select case when count(*) = 0 then 'la base local no tiene el módulo plan_piso (faltan las migraciones 20261006100000 y 20261006110000)' end from retail.modulos where clave = 'plan_piso'",
   },
   // Rótulos con dos modelos (como llega desde Productos con dos marcados): así se ven «Cómo salen», la vista previa y las copias.
