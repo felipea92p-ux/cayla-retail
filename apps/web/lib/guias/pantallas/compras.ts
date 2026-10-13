@@ -884,7 +884,7 @@ export const GUIA_PROVEEDOR: Guia = {
       id: "modal-pie",
       ancla: "proveedor-modal.pie",
       titulo: "Guardar los cambios",
-      texto: "«Guardar cambios» deja sus datos corregidos; «Cancelar» o la ✕ cierran sin tocar nada. Si ya no le compras, abajo puedes desactivarlo: no se borra, solo deja de salir al registrar facturas. En la demo cerramos sin guardar.",
+      texto: "«Guardar cambios» deja sus datos corregidos; «Cancelar» o la ✕ cierran sin tocar nada. En la demo cerramos sin guardar.",
     },
     {
       id: "cifras",

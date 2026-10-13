@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 119,
+  "total": 118,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «)»",
@@ -91,7 +91,6 @@
       "button «{ETIQUETA_BILLETERA[b]}»",
       "button «Usar el teléfono de contacto (»",
       "CampoTexto «Titular de la cuenta»",
-      "Boton «Desactivar proveedor»",
       "Boton «Cancelar»",
       "Boton «(sin nombre)»"
     ],
