@@ -23,7 +23,8 @@ import { EditarCampanaModal } from "@/components/plan-compra/EditarCampanaModal"
 import { CampanasArchivadasModal } from "@/components/plan-compra/CampanasArchivadasModal";
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
-import { fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
+import { conHistorial, fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
+import { leerHistorial } from "@/lib/plan-compra-historial";
 import { leerPedido, numeroDeOrden } from "@/lib/plan-compra-pedido";
 import Link from "next/link";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
@@ -84,6 +85,7 @@ export function PlanCampana({
   planPedidoNoExiste = false,
   propuesta: propuestaCruda = null,
   pedido: pedidoCrudo = null,
+  historia: historiaCruda = null,
 }: {
   datos: unknown;
   falla: string | null;
@@ -102,9 +104,14 @@ export function PlanCampana({
   propuesta?: unknown;
   /** Lo ya pedido en órdenes de compra para esta campaña, crudo; null = no se pudo leer (no se muestra). */
   pedido?: unknown;
+  /** La misma campaña del año anterior en el historial (`fn_historial_ventas`), crudo: el multiplicador de las tiendas que el ERP no cubre. */
+  historia?: unknown;
 }) {
   const plan = useMemo(() => leerPlan(datos), [datos]);
-  const hechos = useMemo(() => leerPropuesta(propuestaCruda), [propuestaCruda]);
+  const hechos = useMemo(() => {
+    const leida = leerPropuesta(propuestaCruda);
+    return leida ? conHistorial(leida, leerHistorial(historiaCruda)) : null;
+  }, [propuestaCruda, historiaCruda]);
   const pedido = useMemo(() => leerPedido(pedidoCrudo), [pedidoCrudo]);
   const params = useSearchParams();
   const vista: VistaPlan = vistaDeLaUrl(params.get("vista"));
