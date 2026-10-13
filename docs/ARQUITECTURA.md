@@ -102,6 +102,7 @@ flowchart TB
 ### 3.1 Mapa por dominio (ruta → lib → componentes → RPC/tablas)
 
 **Inicio (`/`)**
+- **«Tu piso» (ADR-0395, 2026-10-13):** en el Inicio de una TIENDA (no terminal), `<Suspense>` con `components/inicio/PisoDelInicio.tsx` (Server Component async; sin módulo nuevo: cada tarjeta la ve quien ve `frescura` o `plan_piso`). Qué se dice vive en `lib/inicio-piso-reglas.ts` (`pisoQueSeVe`, `vistaFrescuraInicio`, `vistaPlanInicio`, `vistaPisoInicio`; pura, con su prueba). Lecturas que nunca lanzan (`LecturaParaElInicio`: ok / no aplica / falló): `getPisoDeFrescuraParaElInicio` (`lib/frescura.ts`: `rpcFrescura` + `armarFrescuraSede` + `puertaDelPiso`, una sola tienda, sin caché) y `getPisoDelPlanParaElInicio` (`lib/plan-piso-servidor.ts`: `armarPropuesta` + `getCapacidadPisoConEstado`). La barra y la línea de porcentajes (`segmentosDelPiso`, `lineaDelPiso`) viven en `lib/frescura-piso.ts` y las usan también `FrescuraPiso` y `FrescuraRed`. Lleva a `/gestion/frescura` y `/gestion/plan-del-piso`. Guía: paso `piso` de `GUIA_INICIO`.
 - `app/(app)/page.tsx`: aterriza según el rol (`aterrizajeDe`) y, si se queda, arma «Hoy», «Te toca», accesos y «Equipo de hoy»
   (`lib/inicio.ts`, `lib/inicio-reglas.ts`, `lib/inicio-avisos.ts`; ADR-0225). **Una cuenta de almacén** (`esPerfilAlmacen`: no vende, ve Productos,
   puede crear productos y recibe) usa su propio cuerpo: `components/inicio-almacen/InicioAlmacen.tsx` (cabina «Nuevo producto», «Te toca», «Nuevo en el

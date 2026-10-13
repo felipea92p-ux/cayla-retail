@@ -106,3 +106,26 @@ una píldora por tienda; sin ellas la lista subiría unos 60 px) y la marca de l
 |---|---|---|---|---|
 | 2026-10-10 | `b274c507` | 5,1 | 7 | — (primera medición) |
 | 2026-10-10 | rama `claude/elegant-bose-201880` (sin publicar) | 6,8 (provisional) | 9 | los 3 |
+
+## 2026-10-13 · campaña empezada sin plan (rama `claude/campaign-plan-screen-optimization-1b5890`, sin publicar)
+Disparó la corrida una captura de producción: el Aniversario 2026 iba en el día 13 de 21 con 0 de 45 categorías planificadas. Dos
+pruebas ciegas iguales (1 agente Sonnet cada una, base local, Aniversario día 13 de 14 con 0 planes). La tarea: «la campaña del
+Aniversario ya está corriendo: mira cómo vamos con las compras y dime qué te toca hacer hoy».
+
+| Medida | Antes (main `488f473b`) | Después |
+|---|---|---|
+| Lectura de 5 s | «el plan de cuánto comprar de cada categoría; sigue ver cuánto toca comprar» | «la campaña empezó sin plan; lo que sigue es presionar "Ver cómo va"» |
+| Respuesta a la líder | contar el stock, fijar el % de lo que sobra y **armar el plan de las 5 que más venden** (a 2 días del cierre); al final dudó si valía la pena | contar el stock, **no planificar el Aniversario** («el propio sistema dice que lo útil es reponer o impulsar») y **planificar Halloween 2026**, que empieza en 4 días |
+| Aviso de stock | lo encontró solo al tocar el «2» de un ícono sin texto | lo leyó en la línea sobre la tabla; «Ver qué falta» abrió el cajón |
+| Pasos | 8 | 10 (2 perdidos: Historial y un segundo «Ver qué falta») |
+
+**Lo que sigue trabando (después):**
+- «Ver qué falta» abre el cajón general: esperaba solo la lista de lo que falta.
+- «Compras de la campaña» no está en la pantalla principal: lo pedido en órdenes vive en el cajón.
+- Resultados habla de «Tienda Trujillo, hasta ayer» y el Plan de «toda CAYLA, día 13»: dudó de qué tienda y qué período miraba.
+- Volver de Historial a Plan pierde el `?plan=` en la URL. Es anterior a esta rama.
+
+**Medido:** a 1440 × 900 la primera fila queda en y = 711, bajo el aviso, que mide 109 px. A 1024 × 768 queda en y = 795, o sea bajo
+el pliegue, pero el aviso, que es la respuesta, queda arriba. A 375 px no hay scroll horizontal. En modo oscuro hay 0 hallazgos
+(`tema:auditar`). `guias:recorrer` pasa los 24 pasos. Sin nota nueva: la recalificación de las 9 leyes queda para la próxima
+`/formidable` completa. Real: sin probar.
