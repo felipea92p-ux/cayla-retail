@@ -465,7 +465,7 @@ export const GUIA_HISTORIAL: Guia = {
       ancla: "historial.herramientas",
       opcional: true,
       titulo: "Más filtros y Excel",
-      texto: "«Exportar» (solo el líder) baja en Excel lo que estás viendo, con los mismos filtros. «Filtros» abre el resto, para afinar la búsqueda (te lo abrimos en el paso siguiente).",
+      texto: "«Descargar Excel» (solo el líder) baja lo que estás viendo, con los mismos filtros. «Filtros» abre el resto, para afinar la búsqueda (te lo abrimos en el paso siguiente).",
     },
     {
       id: "filtros-panel",

@@ -39,6 +39,7 @@ import { TIPOS_DOCUMENTO_CLIENTA, documentoLegible } from "@/lib/documento-clien
 import { FunnelX, SearchX, Users } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Clientas ▸ Fichas, como el spike del club (docs/maquetas/club-clientas-spike-2026-09/, `fichasHTML` de 50-clientas.js; ADR-0288
 // «Actualización 2026-09-30 (f)»): cabecera con Exportar, «Más» y «+ Nuevo cliente» en una fila; cuatro cifras (identificadas,
@@ -151,14 +152,15 @@ export function ClientasPanel({
         titulo="Clientes"
         subtitulo="El club de CAYLA: la tienda recuerda a cada cliente y le escribe solo cuando tiene algo que le sirve."
         acciones={
-          <>
-            {/* `max-sm:px-3`: a 375 px los tres botones caben en una fila (con el padding de siempre, «+ Nuevo cliente» bajaba). */}
-            <Boton onClick={onExportar} cargando={exportando} className="max-sm:px-3" title="Solo un Admin puede exportar la lista completa" data-guia="clientas.exportar">
-              Exportar
-            </Boton>
+          // A 375 px los tres botones caben en una fila: los tres con `px-3`, 8 px entre ellos y «Descargar» a secas, sin su ícono
+          // (con el padding de siempre, o con «Descargar lista», «+ Nuevo cliente» bajaba). Más angosto, la fila se parte sola.
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-2.5 sm:gap-x-3">
+            <BotonDescargar onClick={onExportar} cargando={exportando} className="max-sm:px-3 max-sm:[&_.lucide-download]:hidden" title="Solo un Admin puede descargar la lista completa" guia="clientas.exportar">
+              Descargar<span className="max-sm:hidden"> lista</span>
+            </BotonDescargar>
             {/* Lo de vez en cuando, en el «Más» (como el de Movimientos): así las acciones caben en una fila, también a 375 px.
                 «Llegó un mensaje de WhatsApp» se fue en la tanda 1g (G-7): ella se une desde el cartel y la BAJA va en su ficha. */}
-            <span data-guia="clientas.mas">
+            <span data-guia="clientas.mas" className="max-sm:[&>button]:px-3">
               <MenuAcciones
                 etiqueta="Más acciones de Clientes"
                 texto="Más"
@@ -170,7 +172,7 @@ export function ClientasPanel({
             <Boton peso="primario" className="max-sm:px-3" onClick={() => setAbriendoAlta(true)} data-guia="clientas.nuevo">
               + Nuevo cliente
             </Boton>
-          </>
+          </div>
         }
       />
 
