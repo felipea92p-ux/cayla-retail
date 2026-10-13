@@ -1,14 +1,14 @@
 # Cómo seguir con `/unificar` desde otra sesión
 
-Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas y el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`). Es el punto de partida para la próxima sesión: qué está
+Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas y el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`, PR #1026, fusionado el mismo día) y sus herramientas de migración en el repo (rama `claude/unificar-herramientas-deuda`). Es el punto de partida para la próxima sesión: qué está
 decidido, qué falta, cómo se trabaja y lo que se aprendió en el camino. **Léelo antes de abrir la skill** (`/unificar`) y mantenlo al día
 al cerrar cada ronda: la próxima sesión no ve esta conversación.
 
 **Para arrancar, pega esto en la sesión nueva:**
 
-> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md` y `docs/unificar/README.md`. Las rondas 6, 7 y 8 están decididas y
-> migradas (deuda 258 → 4). Muéstrame las seis decisiones que quedaron abiertas (README, «La migración de las rondas 6–8») y, cuando
-> responda, ciérralas; después arma la ronda siguiente del tablero («Por analizar»).
+> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md`, `docs/unificar/README.md` y `docs/unificar/MIGRAR.md`. Las rondas 6, 7
+> y 8 están decididas y migradas (deuda 258 → 4, PR #1026 fusionado). Muéstrame las seis decisiones que quedaron abiertas (README, «La
+> migración de las rondas 6–8») y, cuando responda, ciérralas; después arma la ronda siguiente del tablero («Por analizar»).
 
 ## Dónde quedó
 
@@ -38,8 +38,8 @@ Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es 
 Felipe eligió tocando las demos: P1 en todo salvo el enlace suelto (P2, versalitas rojas con la flecha que avanza). Diez piezas nuevas o
 rehechas (la caja que se enciende, la lista de todo combo, la píldora de filtro, el título de campo, la casilla y el interruptor, la tabla
 con movimiento, `TituloSeccion` / `TituloGrupo` / `SeparadorDia`, `btn-enlace` y `EnlaceVer`, `<Paginas>`, `AvatarPersona`) y la
-migración de toda la deuda en un día: **258 archivos → 4**, en tres lotes en paralelo (dos agentes con
-`apps/web/unificar/.salida/INSTRUCCIONES-MIGRAR-R678.md` y la sesión principal), nueve commits por módulo, la suite entera en verde y
+migración de toda la deuda en un día: **258 archivos → 4**, en tres lotes en paralelo (dos agentes con la
+guía que ahora vive en [MIGRAR.md](MIGRAR.md) y la sesión principal), nueve commits por módulo, la suite entera en verde y
 Vender, el ticket, el descuento y Devoluciones probados a 375 px. Lo que quedó abierto está en el README («La migración de las rondas
 6–8»): tres combos con fotos o pistola, la tabla de Conteo, los filtros de Frescura, «Desactivar color», los conteos que pasaron a la
 derecha y las acciones chicas que dejaron de ser versalitas rojas.
@@ -239,12 +239,12 @@ variante y no pierdas ninguna al migrar.
 
 ## Lo que se aprendió (y conviene no repetir)
 
-- **Migrar en lotes paralelos funciona con un archivo de instrucciones y lotes que no se tocan.** Cada agente recibió su lista exacta
-  (`.salida/lote-A.md`, `lote-B.md`), las reglas («cambia cómo se ve, nunca qué hace») y qué NO tocar (`familias.mjs`, las piezas, las
-  huellas). La sesión principal rehace la deuda, acepta las huellas y commitea al final.
+- **Migrar en lotes paralelos funciona con un archivo de instrucciones y lotes que no se tocan.** Cada agente recibió su lista exacta,
+  las reglas («cambia cómo se ve, nunca qué hace») y qué NO tocar (`familias.mjs`, las piezas, las huellas). La sesión principal rehace
+  la deuda, acepta las huellas y commitea al final. El recorrido y la guía para cada agente: [MIGRAR.md](MIGRAR.md).
 - **Un rellenador de deuda que corta en el primer «]» rompe `familias.mjs`:** una ruta como `[compraId]` lleva «]» adentro. El cierre de
-  la lista es «]» al empezar una línea (`.salida/rellenar-deuda.mjs`, ya corregido). Prueba `node -e 'import("./unificar/familias.mjs")'`
-  después de escribirlo.
+  la lista es «]» al empezar una línea. `pnpm --filter web unificar:rellenar <familias…>` (`apps/web/unificar/rellenar-deuda.mjs`) ya lo
+  hace bien y, si el archivo queda roto o con una clave repetida, lo deja como estaba.
 - **Una clave repetida en un objeto de JS gana la última:** un `"excepciones": []` olvidado al final de la decisión borraba las
   excepciones de arriba sin error. Revisa que cada decisión tenga una sola `deuda`, `excepciones` y `firmas`.
 - **Una firma con `[^>]*` se corta en la flecha de un `onValor={(v) => …}`:** la de `filtro` dejó escapar seis. Usa `(?:[^>]|=>)*?`.
@@ -281,6 +281,9 @@ variante y no pierdas ninguna al migrar.
 | `apps/web/unificar/cli.mjs` | el censo, lo medido al pasar el mouse, el informe y la lámina |
 | `apps/web/unificar/elegir.mjs` | la página de elegir (fotos, `demo` vivas, `movimiento`) |
 | `apps/web/unificar/deuda.mjs` | la deuda (la usa `lib/unificar.test.ts`) |
+| `apps/web/unificar/ver-deuda.mjs` | `unificar:ver`: cada línea de deuda con su contexto, por familia o por archivo |
+| `apps/web/unificar/rellenar-deuda.mjs` | `unificar:rellenar`: reescribe la `deuda` de `familias.mjs` y la valida |
+| `docs/unificar/MIGRAR.md` | cómo se migra una familia en lotes paralelos, con la guía para cada agente |
 | `apps/web/components/ui/campos.tsx` | `Boton`, `BotonEnlace`, `BotonAncla` (y sus pesos) |
 | `apps/web/components/ui/OndaBotones.tsx` | la onda al clic |
 | `apps/web/app/globals.css` | `btn-cayla`, `.mov-boton`, la voz de la cabecera y `cayla-onda` |
