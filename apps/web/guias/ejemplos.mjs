@@ -62,6 +62,16 @@ const SEDE_DE_QUIEN_RECIBE = `(select c.ubicacion_asignada_id from retail.colabo
 const ORDEN_DE_ENVIO = "case d.estado when 'abierto' then 0 when 'en_camino' then 1 when 'cerrado' then 2 else 3 end, d.despachado_en desc";
 const SIN_RECEPCION_DE_ENVIO = `select case when not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'recibir_despacho') then 'la base local no tiene recibir_despacho (migraciones 20261013001000 y 20261013002000, la recepción de la fase 4): la pantalla no puede recibir' when query_to_xml('select 1 from retail.despachos limit 1', false, true, '')::text = '' then 'no hay ningún envío de orden de compra en la base local' when not exists (select 1 from retail.rol_modulos m join retail.colaboradores c on c.rol_id = m.rol_id join public.personas p on p.id = c.persona_id join auth.users u on u.id = p.auth_user_id where u.email = '${CORREO_QUIEN_RECIBE}' and m.modulo = 'recibir') then 'la cuenta de prueba «${QUIEN_RECIBE}» no tiene el módulo Recibir en la base local: cae en «Sin acceso»' end`;
 
+// Órdenes de insumos del Taller (ADR-0362, fase 7): su módulo y sus funciones nacen en 20261013035000 y 20261013040000 (y las opciones del
+// formulario, `fn_orden_insumo_opciones`, en la segunda); sin ellas la cuenta cae en «Sin acceso» o el formulario no tiene qué ofrecer.
+const SIN_MODULO_OI =
+  "select case when to_regclass('retail.ordenes_insumo') is null or not exists (select 1 from retail.modulos where clave = 'ordenes_insumos') then 'la base local no tiene el módulo ordenes_insumos (faltan las migraciones 20261013035000 y 20261013040000): la cuenta cae en «Sin acceso»' when not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_orden_insumo_opciones') then 'la base local no tiene fn_orden_insumo_opciones (migración 20261013040000 al día): el formulario no tiene qué ofrecer' end";
+const SIN_ORDEN_INSUMO =
+  "select case when to_regclass('retail.ordenes_insumo') is null or not exists (select 1 from retail.modulos where clave = 'ordenes_insumos') then 'la base local no tiene el módulo ordenes_insumos (faltan las migraciones 20261013035000 y 20261013040000): la cuenta cae en «Sin acceso»' when query_to_xml('select 1 from retail.ordenes_insumo limit 1', false, true, '')::text = '' then 'no hay ninguna orden de insumos en la base local' end";
+/** La orden de insumos que más enseña: una generada (con «Editar» y «Anular orden»), y entre ellas la que se editó (se ve «Lo que decía antes»). */
+const ORDEN_INSUMO_QUE_ENSENA =
+  "select o.id from retail.ordenes_insumo o order by (o.estado = 'generada') desc, exists (select 1 from retail.orden_insumo_versiones v where v.orden_insumo_id = o.id) desc, o.creada_en desc limit 1";
+
 export const EJEMPLOS = {
   // La factura con más que enseñar: con saldo y mercadería por llegar (así se ven «Cerrar con faltante», «Ir a recibir» y «Registrar pago»).
   "/compras/factura/[compraId]": {
@@ -187,4 +197,10 @@ export const EJEMPLOS = {
   "/produccion/proveedores": { cuenta: "admin-taller" },
   "/produccion/recibir": { cuenta: "admin-taller" },
   "/global": { cuenta: "admin-global" },
+  // Órdenes de insumos: su entrada del menú vive en Producción, que se ve parado en el Taller (la pantalla abre con su módulo desde
+  // cualquier sede; se recorre como la ve el Taller).
+  "/ordenes-insumos": { cuenta: "admin-taller", sinDatos: SIN_MODULO_OI },
+  "/ordenes-insumos/nueva": { cuenta: "admin-taller", sinDatos: SIN_MODULO_OI },
+  "/ordenes-insumos/ver/[id]": { cuenta: "admin-taller", sinDatos: SIN_ORDEN_INSUMO, url: () => `/ordenes-insumos/ver/${id(ORDEN_INSUMO_QUE_ENSENA)}` },
+  "/ordenes-insumos/editar/[id]": { cuenta: "admin-taller", sinDatos: SIN_ORDEN_INSUMO, url: () => `/ordenes-insumos/editar/${id(ORDEN_INSUMO_QUE_ENSENA)}` },
 };

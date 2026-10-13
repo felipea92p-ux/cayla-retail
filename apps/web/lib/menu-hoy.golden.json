@@ -1,5 +1,5 @@
 {
- "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-28 (ADR-0208, paso 4; Felipe: «hagámoslo»): «Frescura del piso» entra directo en Inventario, después de Análisis (o de Conteo, donde Análisis no se ve). 2026-10-01 (ADR-0288 act. g, tanda 1g): Clientas pasa de hoja a grupo al nacer su segunda pantalla, «Avisos» (módulo avisos_club): «Fichas» se queda con el corazón y la cabecera estrena la escarapela del club; quien solo ve las fichas sigue viendo la fila «Clientas» de siempre. 2026-10-02 (Felipe): «Clientas» se llama «Clientes» en todo el ERP (la ruta /clientas y la clave del módulo no cambian). 2026-10-05 (ADR-0349; Felipe: plan de compra de diciembre con tres escenarios): «Plan de campaña» entra primero en Compras, con `verDineroCompras` como sus hermanas (muestra costos). 2026-10-05 (ADR-0329, Felipe: «Subir el tope a 8»): «Plan del piso» entra directo en Inventario, después de «Frescura del piso».",
+ "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-28 (ADR-0208, paso 4; Felipe: «hagámoslo»): «Frescura del piso» entra directo en Inventario, después de Análisis (o de Conteo, donde Análisis no se ve). 2026-10-01 (ADR-0288 act. g, tanda 1g): Clientas pasa de hoja a grupo al nacer su segunda pantalla, «Avisos» (módulo avisos_club): «Fichas» se queda con el corazón y la cabecera estrena la escarapela del club; quien solo ve las fichas sigue viendo la fila «Clientas» de siempre. 2026-10-02 (Felipe): «Clientas» se llama «Clientes» en todo el ERP (la ruta /clientas y la clave del módulo no cambian). 2026-10-05 (ADR-0349; Felipe: plan de compra de diciembre con tres escenarios): «Plan de campaña» entra primero en Compras, con `verDineroCompras` como sus hermanas (muestra costos). 2026-10-05 (ADR-0329, Felipe: «Subir el tope a 8»): «Plan del piso» entra directo en Inventario, después de «Frescura del piso». 2026-10-13 (ADR-0362 fase 7, decisión 47): «Órdenes de insumos» entra PRIMERA en Producción ▸ Abastecimiento (pedir → factura → recibir → pagar), sin `exige` (el módulo es la llave): el líder del Taller ve cinco hijas en Abastecimiento, y quien trabaja en el Taller la ve junto a Recibir, así que su Abastecimiento ya no se disuelve en «Recibir». Su ruta, /ordenes-insumos, abre el grupo de Producción.",
  "capturadoDe": {
   "archivo": "apps/web/components/AppShell.tsx",
   "commit": "e14ef82c",
@@ -415,6 +415,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -984,6 +986,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -1036,9 +1040,21 @@
         "icono": "insumos"
        },
        {
-        "etiqueta": "Recibir",
-        "href": "/produccion/recibir",
-        "icono": "recibir"
+        "grupo": "produccion.abastecimiento",
+        "etiqueta": "Abastecimiento",
+        "icono": "compras",
+        "hijos": [
+         {
+          "etiqueta": "Órdenes de insumos",
+          "href": "/ordenes-insumos",
+          "icono": "ordenes"
+         },
+         {
+          "etiqueta": "Recibir",
+          "href": "/produccion/recibir",
+          "icono": "recibir"
+         }
+        ]
        }
       ]
      },
@@ -1232,9 +1248,21 @@
         "icono": "insumos"
        },
        {
-        "etiqueta": "Recibir",
-        "href": "/produccion/recibir",
-        "icono": "recibir"
+        "grupo": "produccion.abastecimiento",
+        "etiqueta": "Abastecimiento",
+        "icono": "compras",
+        "hijos": [
+         {
+          "etiqueta": "Órdenes de insumos",
+          "href": "/ordenes-insumos",
+          "icono": "ordenes"
+         },
+         {
+          "etiqueta": "Recibir",
+          "href": "/produccion/recibir",
+          "icono": "recibir"
+         }
+        ]
        }
       ]
      },
@@ -1429,6 +1457,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -1491,6 +1521,11 @@
         "icono": "compras",
         "hijos": [
          {
+          "etiqueta": "Órdenes de insumos",
+          "href": "/ordenes-insumos",
+          "icono": "ordenes"
+         },
+         {
           "etiqueta": "Proveedores",
           "href": "/produccion/proveedores",
           "icono": "proveedores"
@@ -1756,6 +1791,11 @@
         "icono": "compras",
         "hijos": [
          {
+          "etiqueta": "Órdenes de insumos",
+          "href": "/ordenes-insumos",
+          "icono": "ordenes"
+         },
+         {
           "etiqueta": "Proveedores",
           "href": "/produccion/proveedores",
           "icono": "proveedores"
@@ -2012,6 +2052,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -2447,6 +2489,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -3016,6 +3060,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
