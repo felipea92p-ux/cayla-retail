@@ -244,4 +244,35 @@ Por defecto, si no dice otra cosa: quien hizo una orden del envío no cuenta ni 
   candado ciego (1), lo que faltó medido con lo detallado (13), «Hacer ahora» sin tope (lo frena el candado diferido) y el envío tomado
   en modo compartido (el caso de dos sesiones de fuera de la guía). `conteo-de-envio` 16, `recepcion-de-envio` 28 y `nos-debe` 16
   siguen en verde con las dos migraciones cargadas dos veces.
-- **Nada de esto está en producción.** Se pega con el OK de Felipe, en orden: `170000`, `171000`, `172000`, `173000`.
+- **Nada de esto está en producción.** Se pega con el OK de Felipe, en orden: `170000`, `171000`, `172000`, `173000` (y `180000`, abajo).
+
+### Actividad 4, primera parte · reabrir (2026-10-13)
+
+- **`20261013180000_reabrir_envio.sql`.** `reabrir_envio` (cerrado → abierto con su motivo; firma el responsable; token): lo que faltó o
+  sobró deja de valer (sale de «Nos debe»), lo pendiente vuelve al borrador de su línea, lo que entró al stock no se toca y queda el
+  rastro en `despacho_cierres` (cada cierre con lo que respondió, su nota y su token; cada reapertura con su motivo). No se reabre si
+  Compras ya resolvió parte de lo que faltó, ni si lo de más del envío ya saldó otra deuda (`fn_envio_reabrir_bloqueo`, la misma regla
+  para la función y la pantalla). `fn_envio_conteos` suma el rastro y `reabrir: {se_puede, por_que_no}`.
+- **Lo que cambió del plan:**
+  - **Una diferencia deja de valer con una columna, no con un número de cierre.** `despacho_diferencias.vigente` y la vista
+    `despacho_diferencias_vigentes`; los únicos pasan a «una vigente por línea» (invariante 4). Las ocho lecturas de Compras («Nos debe»
+    y el detalle del envío) y las dos del cierre leen la vista con el MISMO cambio mecánico de su `from`, y la migración se niega a quedar
+    aplicada si alguna función sigue leyendo la tabla sin filtrar. `despachos.cierres` y `despacho_diferencias.cierre` no hicieron falta:
+    el rastro los reemplaza. Descartado: unir con `despachos` dentro de la vista (bloquear una deuda bloquearía el envío, y reabrir y
+    resolver una deuda podrían esperarse en cruz).
+  - **Reabrir borra del envío cómo se cerró** (quién, cuándo, la nota, el token): los CHECK de Compras (`despachos_cierre`,
+    `despachos_recepcion_solo_al_cerrar`) exigen que un envío abierto no los tenga. No se pierde: el rastro los guarda. Para eso
+    `fn_despachos_camino` (por ancla) deja pasar cerrado → abierto y `fn_despachos_recepcion_fija` (reescrita: es la parte de la
+    recepción, de 20261013001000) deja borrar exactamente eso, los dos solo desde `reabrir_envio`.
+  - **Reabrir rehace el borrador de TODAS las líneas** con lo que todavía no está en el stock. La prueba lo encontró: una línea cerrada
+    con todo detallado conservaba su borrador, y el segundo cierre lo habría metido dos veces al stock.
+  - **Lo contado no baja de lo que ya entró:** `guardar_conteo_envio` lo dice con palabras (`conteo_menos_que_stock`) y el candado
+    diferido de la actividad 3 se extiende a `despacho_conteos`. `recibir_despacho` (el formulario de la fase 4) no cierra un envío
+    reabierto (`envio_reabierto`): volvería a meter lo que ya entró.
+- **Pruebas:** `pruebas:reabrir-envio` (11 casos: cuadrar un faltante, pendientes que vuelven al borrador, el freno de Compras en sus dos
+  formas, lo contado bajo el stock aunque se escriba a mano, permisos y estados, doble clic, «Nos debe» y el detalle leyendo lo que vale,
+  el rastro; y **dos casos de dos sesiones reales**: reabrir y resolver la deuda a la vez, en los dos órdenes). Mutaciones detectadas:
+  el borrador solo de las líneas con pendientes, reabrir sin mirar a Compras y mirar sin tomar antes las deudas (con dos sesiones,
+  reabre un envío cuya deuda ya se resolvió). Las otras cuatro pruebas siguen en verde con `180000` cargada dos veces.
+- **Sigue en la actividad 4:** el envío sin aviso (decisión 2 del ADR).
+
