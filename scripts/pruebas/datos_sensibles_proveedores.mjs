@@ -5,8 +5,8 @@
  *     quien ve Proveedores, Por pagar o Cuentas y dinero; cada cambio de cuenta queda en un historial y avisa al líder.
  *
  * Cuentas del seed: el líder (…001) y una integrante (…003) cuyo rol ve Caja y NO ve Proveedores, Por pagar ni Cuentas y
- * dinero. Cada caso corre en una transacción que TERMINA EN ROLLBACK con las dos migraciones aplicadas dentro (o sin ellas, en
- * los controles): el Postgres local compartido no cambia.
+ * dinero. Cada caso corre en una transacción que TERMINA EN ROLLBACK con la migración aplicada dentro (o deshecha, en el
+ * control): el Postgres local compartido no cambia.
  *
  * USO: pnpm pruebas:datos-sensibles-proveedores   (necesita el stack local: `npx supabase start`)
  */

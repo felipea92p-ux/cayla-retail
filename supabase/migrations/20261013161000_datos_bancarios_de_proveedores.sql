@@ -2,10 +2,8 @@
 -- punto 18; decisiones de Felipe del mismo día). Una sola parte, sin políticas. (La política de los códigos de descuento que se
 -- pensó como parte 2 se descartó: `registrar_venta` ya no usa códigos desde 20261002100000, «descuento sin código».)
 --
--- EL PROBLEMA. El CCI, la cuenta, el Yape o Plin y el titular de cada proveedor los podía leer CUALQUIER cuenta con sesión del
--- proyecto, también las de Dynamic (planilla, asistencia): la tabla tenía `select` para `authenticated` y `fn_proveedores()`,
--- que es `security definer`, los devolvía a todo el que la llamara. Y quien tiene el módulo Proveedores podía cambiar la cuenta
--- de un proveedor justo antes de un pago sin que quedara quién ni cuándo: el fraude clásico de «la cuenta cambió».
+-- POR QUÉ. Los datos para pagar a un proveedor (CCI, cuenta, Yape o Plin, titular) son de quien paga, no de todo el ERP; y un
+-- cambio de cuenta antes de un pago tiene que dejar rastro de quién y cuándo, para poder confirmarlo con el proveedor.
 --
 -- LO QUE DECIDIÓ FELIPE (2026-10-13):
 --   · Los datos bancarios los ve solo quien ve Proveedores, Por pagar (Compras) o Cuentas y dinero (Finanzas):

@@ -204,7 +204,9 @@ caso(
      -- consulta, no por un responsable: una terminal compartida recibe 0 filas y nadie ve lo de otra persona poniéndose un responsable.
      -- fn_guia_quien (ADR-0389, 20261007180000): «ya te ofrecí esta guía» es de la cuenta que mira la pantalla (persona o
      -- terminal), nunca del responsable del combo: elegir a otra persona no le marca a ella la demo como vista.
-     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador|fn_mi_pantalla_principal|fn_mis_ventas_del_dia|fn_mi_meta|fn_mis_ventas_por_dia|regularizar_prenda|fn_guia_quien)\\('),
+     -- fn_cuentas_bancarias_cambiadas (20261013161000): el aviso «una cuenta de proveedor cambió» no se le muestra a la CUENTA que
+     -- hizo el cambio (ya lo sabe); compara con la cuenta que mira, como fn_guia_quien, nunca con un responsable del combo.
+     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador|fn_mi_pantalla_principal|fn_mis_ventas_del_dia|fn_mi_meta|fn_mis_ventas_por_dia|regularizar_prenda|fn_guia_quien|fn_cuentas_bancarias_cambiadas)\\('),
      -- regularizar_prenda (20261004204000, ADR-0328): firma con el responsable (true) y compara la CUENTA (false) con quien vendió
      -- —«nadie regulariza su propia venta»—: un permiso, como fn_alcanzo_a.
      count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1
