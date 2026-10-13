@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  MAX_LARGO_BUSQUEDA,
   actividadPreviaVenta,
   agruparPorCompra,
   agruparPorDia,
@@ -405,5 +406,16 @@ describe("tallasQueNoCalzan", () => {
   it("de más a menos, para leer primero lo más repetido", () => {
     const cambios = [emma("M", "L", 3), { ...emma("28", "30", 4), referencia: "Pantalón Carla", productoVendidoId: "p-carla", productoEntregadoId: "p-carla" }];
     expect(tallasQueNoCalzan(cambios).map((t) => t.referencia)).toEqual(["Pantalón Carla", "Blusa Emma"]);
+  });
+});
+
+// /chaos 2026-10-13: un texto pegado de miles de caracteres tumbaba Cambios y Devoluciones (la búsqueda va en la dirección de la consulta).
+describe("clasificarBusqueda — tope de largo y números que no son comprobantes", () => {
+  it("un texto larguísimo se recorta a MAX_LARGO_BUSQUEDA", () => {
+    const b = clasificarBusqueda("ñ".repeat(2000));
+    expect(b).toEqual({ tipo: "texto", texto: "ñ".repeat(MAX_LARGO_BUSQUEDA) });
+  });
+  it("«B001-12345678901» no se busca como comprobante (se busca como texto)", () => {
+    expect(clasificarBusqueda("B001-12345678901")).toEqual({ tipo: "texto", texto: "B001-12345678901" });
   });
 });

@@ -29,3 +29,13 @@ describe("parsearComprobante — lo que se escribe a mano desde el papel impreso
     expect(parsearComprobante("boleta de ayer")).toEqual({ serie: null, numero: null });
   });
 });
+
+// /chaos 2026-10-13: «B001-12345678901» tumbaba la búsqueda (`comprobantes.numero` es integer y la consulta reventaba).
+describe("parsearComprobante — un número de más de 9 dígitos no es un comprobante", () => {
+  it("con serie o solo, más de 9 dígitos no dan número; 9 sí; los ceros de adelante no cuentan", () => {
+    expect(parsearComprobante("B001-12345678901")).toEqual({ serie: "B001", numero: null });
+    expect(parsearComprobante("12345678901")).toEqual({ serie: null, numero: null });
+    expect(parsearComprobante("B001-123456789")).toEqual({ serie: "B001", numero: 123456789 });
+    expect(parsearComprobante("B001-0000000010")).toEqual({ serie: "B001", numero: 10 });
+  });
+});
