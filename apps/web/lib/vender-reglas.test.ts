@@ -13,6 +13,7 @@ import {
   esDescuentoDeCampana,
   esperaAlCargar,
   lecturaDelRecibido,
+  tiposDeComprobanteDeLaSede,
   hayDescuentoManual,
   cobroEnEfectivo,
   motivoBloqueoCobro,
@@ -1051,5 +1052,21 @@ describe("el tope del vuelto (S/ 500)", () => {
   it("bajo los billetes, un vuelto de más se marca aparte («excede»)", () => {
     expect(lecturaDelRecibido(1_000_000, 79.9, 999_920.1)).toEqual({ estado: "excede", monto: 999_920.1 });
     expect(lecturaDelRecibido(579.9, 79.9, 500)).toEqual({ estado: "vuelto", monto: 500 });
+  });
+});
+
+// /chaos 2026-10-13: «Nota de venta» se ofrecía en una sede sin su serie y, al cobrar, la base rechazaba la venta entera.
+describe("tiposDeComprobanteDeLaSede — solo los comprobantes con serie", () => {
+  it("sin serie de nota de venta, no se ofrece; con ella, sí", () => {
+    expect(tiposDeComprobanteDeLaSede([{ tipo: "boleta" }, { tipo: "factura" }])).toEqual(["boleta", "factura"]);
+    expect(tiposDeComprobanteDeLaSede([{ tipo: "boleta" }, { tipo: "factura" }, { tipo: "nota_venta" }, { tipo: "nota_credito" }])).toEqual([
+      "boleta",
+      "factura",
+      "nota_venta",
+    ]);
+  });
+  it("si la lectura falló o la sede no tiene ninguna serie, se ofrecen los tres (cobrar dice qué falta)", () => {
+    expect(tiposDeComprobanteDeLaSede(null)).toEqual(["boleta", "factura", "nota_venta"]);
+    expect(tiposDeComprobanteDeLaSede([])).toEqual(["boleta", "factura", "nota_venta"]);
   });
 });

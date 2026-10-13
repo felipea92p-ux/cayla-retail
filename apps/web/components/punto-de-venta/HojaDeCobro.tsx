@@ -79,6 +79,7 @@ export function HojaDeCobro({
   formId,
   onVolver,
   compacta = false,
+  tipos = TIPOS.map((t) => t.tipo),
 }: {
   total: number;
   prendas: number;
@@ -109,6 +110,8 @@ export function HojaDeCobro({
   onVolver: () => void;
   /** En la hoja del ticket del celular: sin cabecera propia (la hoja ya la tiene) y a una columna. */
   compacta?: boolean;
+  /** Los comprobantes que esta sede puede emitir (`tiposDeComprobanteDeLaSede`): solo los que tienen serie. */
+  tipos?: readonly TipoVenta[];
 }) {
   const cuerpoRef = useRef<HTMLDivElement>(null);
   // Al elegir el comprobante aparece el documento del cliente; en una hoja baja puede quedar bajo el pliegue. Entonces el cuerpo
@@ -327,7 +330,7 @@ export function HojaDeCobro({
             estado={!tipoComprobante ? null : comprobanteOk ? { ok: true, texto: ETIQUETA_TIPO[tipoComprobante] } : { ok: false, texto: faltaDocumento ?? "" }}
           />
           <div className="grid grid-cols-3 gap-2.5">
-            {TIPOS.map(({ tipo, icono }) => (
+            {TIPOS.filter((t) => tipos.includes(t.tipo)).map(({ tipo, icono }) => (
               <button
                 key={tipo}
                 type="button"

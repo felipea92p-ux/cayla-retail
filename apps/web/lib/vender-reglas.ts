@@ -565,3 +565,19 @@ export function textoSinStock(p: SinStockAqui, agotada = "agotada"): string {
 export function sinPrecioParaVender(v: { precio: number; fueraDeMotores?: boolean }): boolean {
   return !precioValido(v.precio, v.fueraDeMotores === true);
 }
+
+
+/** Los comprobantes que se cobran en caja. */
+export type TipoComprobanteVenta = "boleta" | "factura" | "nota_venta";
+export const TIPOS_COMPROBANTE_VENTA: readonly TipoComprobanteVenta[] = ["boleta", "factura", "nota_venta"];
+
+/**
+ * Qué comprobantes ofrece la hoja de cobro: los que la sede tiene con una serie activa (/chaos 2026-10-13: «Nota de venta» se
+ * ofrecía en una sede sin su serie y, al cobrar, la base rechazaba la venta entera). Si la lectura de las series falló (`null`) o la
+ * sede no tiene ninguna, se ofrecen los tres como antes: cobrar dice entonces qué falta, en vez de dejar la caja sin opciones.
+ */
+export function tiposDeComprobanteDeLaSede(series: readonly { tipo: string }[] | null): TipoComprobanteVenta[] {
+  if (!series) return [...TIPOS_COMPROBANTE_VENTA];
+  const conSerie = TIPOS_COMPROBANTE_VENTA.filter((t) => series.some((s) => s.tipo === t));
+  return conSerie.length > 0 ? conSerie : [...TIPOS_COMPROBANTE_VENTA];
+}
