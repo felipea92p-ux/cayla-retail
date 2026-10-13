@@ -5,9 +5,9 @@
 > «Para qué sirve», que vive en `glosario.json` y este generador respeta.
 >
 > **Origen:** `volcado de producción (retail_*.json)`
-> **Leído el:** 2026-10-12 21:26:22 UTC
+> **Leído el:** 2026-10-13 03:39:56 UTC
 > **Tablas y vistas encontradas:** 183
-> **Funciones en `retail`:** 988 (las firmas, en `funciones-produccion.txt`)
+> **Funciones en `retail`:** 993 (las firmas, en `funciones-produccion.txt`)
 >
 > El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
 > pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
@@ -217,7 +217,7 @@
 
 ### `rol_modulos`
 
-*2 columnas · ~69 filas · permisos por fila **activos***
+*2 columnas · ~70 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -235,7 +235,7 @@
 
 ### `roles_historial`
 
-*6 columnas · ~44 filas · permisos por fila **activos***
+*6 columnas · ~45 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -318,7 +318,7 @@
 
 ### `guias_vistas`
 
-*4 columnas · ~20 filas · permisos por fila **activos***
+*4 columnas · ~33 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -336,7 +336,7 @@
 
 ### `acciones_sin_responsable`
 
-*2 columnas · ~36 filas · permisos por fila **activos***
+*2 columnas · ~37 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -355,7 +355,7 @@
 
 ### `productos`
 
-*21 columnas · ~198 filas · permisos por fila **activos***
+*21 columnas · ~226 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -402,7 +402,7 @@
 
 ### `variantes`
 
-*10 columnas · ~1303 filas · permisos por fila **activos***
+*10 columnas · ~1408 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -514,7 +514,7 @@
 
 ### `producto_fotos`
 
-*7 columnas · ~274 filas · permisos por fila **activos***
+*7 columnas · ~327 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -542,7 +542,7 @@
 
 ### `historial_producto_cambios`
 
-*9 columnas · ~1020 filas · permisos por fila **activos***
+*9 columnas · ~1160 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -567,7 +567,7 @@
 
 ### `precios_sede_prenda`
 
-*11 columnas · ~3 filas · permisos por fila **activos***
+*11 columnas · ~5 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -596,7 +596,7 @@
 
 ### `marcas`
 
-*4 columnas · ~91 filas · permisos por fila **activos***
+*4 columnas · ~92 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -619,7 +619,7 @@
 
 ### `marca_proveedores`
 
-*3 columnas · ~92 filas · permisos por fila **activos***
+*3 columnas · ~93 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -639,7 +639,7 @@
 
 ### `codigos_barras`
 
-*5 columnas · ~1324 filas · permisos por fila **activos***
+*5 columnas · ~1433 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -666,7 +666,7 @@
 
 ### `codigos_correlativos`
 
-*3 columnas · ~33 filas · permisos por fila **activos***
+*3 columnas · ~34 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -766,7 +766,7 @@
 
 ### `categoria_tallas`
 
-*4 columnas · ~239 filas · permisos por fila **activos***
+*4 columnas · ~240 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -821,7 +821,7 @@
 
 ### `categoria_tejidos`
 
-*3 columnas · ~197 filas · permisos por fila **activos***
+*3 columnas · ~200 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -956,7 +956,7 @@
 
 ### `variante_etiquetas`
 
-*3 columnas · ~236 filas · permisos por fila **activos***
+*3 columnas · ~225 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1065,7 +1065,7 @@
 
 ### `producto_origen`
 
-*5 columnas · ~197 filas · permisos por fila **activos***
+*5 columnas · ~225 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1085,7 +1085,7 @@
 
 ### `movimientos`
 
-*22 columnas · ~2591 filas · permisos por fila **activos***
+*22 columnas · ~2747 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1130,7 +1130,7 @@
 
 ### `stock`
 
-*6 columnas · ~1744 filas · permisos por fila **activos***
+*6 columnas · ~1869 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1525,7 +1525,7 @@
 
 ### `bajadas_piso`
 
-*6 columnas · ~371 filas · permisos por fila **activos***
+*6 columnas · ~389 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1548,7 +1548,7 @@
 
 ### `bajada_piso_items`
 
-*4 columnas · ~732 filas · permisos por fila **activos***
+*4 columnas · ~770 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1759,7 +1759,7 @@
 
 ### `movimientos_internos_intentos`
 
-*4 columnas · ~31 filas · permisos por fila **activos***
+*4 columnas · ~33 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1780,7 +1780,7 @@
 
 ### `ajustes_inventario_intentos`
 
-*5 columnas · ~354 filas · permisos por fila **activos***
+*5 columnas · ~370 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -1952,7 +1952,7 @@
 
 ### `ventas`
 
-*20 columnas · ~560 filas · permisos por fila **activos***
+*20 columnas · ~573 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2000,7 +2000,7 @@
 
 ### `venta_items`
 
-*14 columnas · ~971 filas · permisos por fila **activos***
+*14 columnas · ~996 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2045,7 +2045,7 @@
 
 ### `venta_pagos`
 
-*7 columnas · ~584 filas · permisos por fila **activos***
+*7 columnas · ~597 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2148,7 +2148,7 @@
 
 ### `caja_movimientos`
 
-*12 columnas · ~46 filas · permisos por fila **activos***
+*12 columnas · ~51 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2689,7 +2689,7 @@
 
 ### `caja_traslados`
 
-*8 columnas · ~16 filas · permisos por fila **activos***
+*8 columnas · ~18 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -2719,7 +2719,7 @@
 
 ### `prendas_por_regularizar`
 
-*18 columnas · ~685 filas · permisos por fila **activos***
+*18 columnas · ~698 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3410,7 +3410,7 @@
 
 ### `comprobantes`
 
-*41 columnas · ~562 filas · permisos por fila **activos***
+*41 columnas · ~575 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3690,7 +3690,7 @@
 
 ### `proveedores`
 
-*16 columnas · ~86 filas · permisos por fila **activos***
+*16 columnas · ~87 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3734,7 +3734,7 @@
 
 ### `compras`
 
-*31 columnas · ~0 filas · permisos por fila **activos***
+*33 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -3769,6 +3769,8 @@
 | `anulada_por` | uuid | sí | — | — |
 | `anulada_at` | timestamp with time zone | sí | — | — |
 | `naturaleza` | text | **no** | `'mercaderia'::text` | — |
+| `orden_compra_id` | uuid | sí | — | — |
+| `huella_envio` | text | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
@@ -3787,49 +3789,56 @@
 - `compras_no_sobrerecibida` — `CHECK (((recibido_cantidad + cerrado_cantidad) <= facturado_cantidad))`
 - `compras_notas_credito_check` — `CHECK ((notas_credito >= (0)::numeric))`
 - `compras_pagado_check` — `CHECK ((pagado >= (0)::numeric))`
-- `compras_proveedor_id_serie_numero_key` — `UNIQUE (proveedor_id, serie, numero)`
 - `compras_recibido_cantidad_check` — `CHECK ((recibido_cantidad >= 0))`
 - `compras_subtotal_check` — `CHECK ((subtotal >= (0)::numeric))`
 - `compras_tipo_check` — `CHECK ((tipo = ANY (ARRAY['factura'::text, 'boleta'::text, 'nota_venta'::text, 'recibo_por_honorarios'::text])))`
 - `compras_total_check` — `CHECK ((total >= (0)::numeric))`
 - `compras_total_cuadra` — `CHECK ((total = (subtotal + igv)))`
+- `compras_papel_vigente_unico` *(único parcial)* — `retail.compras (proveedor_id, serie, numero) WHERE (estado = 'vigente'::text)`
 
-**De qué depende:** `(anulada_por) REFERENCES personas(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(ubicacion_gestion_id) REFERENCES retail.ubicaciones(id)` · `(usuario_id) REFERENCES personas(id)`
+**De qué depende:** `(anulada_por) REFERENCES personas(id)` · `(orden_compra_id) REFERENCES retail.ordenes_compra(id)` · `(proveedor_id) REFERENCES retail.proveedores(id)` · `(ubicacion_gestion_id) REFERENCES retail.ubicaciones(id)` · `(usuario_id) REFERENCES personas(id)`
 
 **Quién puede qué** (políticas de fila):
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compras_select` | SELECT | `(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))` |
+| `compras_select` | SELECT | `( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)` |
 
 
 ### `compra_items`
 
-*8 columnas · ~0 filas · permisos por fila **activos***
+*12 columnas · ~0 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `id` | uuid | **no** | `gen_random_uuid()` | — |
 | `compra_id` | uuid | **no** | — | — |
-| `producto_id` | uuid | **no** | — | — |
+| `producto_id` | uuid | sí | — | — |
 | `variante_id` | uuid | sí | — | — |
 | `descripcion` | text | sí | — | — |
 | `cantidad` | integer | **no** | — | — |
 | `costo_unitario` | numeric | **no** | — | — |
 | `subtotal` | numeric | sí | — | — |
+| `categoria_id` | uuid | sí | — | — |
+| `marca_id` | uuid | sí | — | — |
+| `orden_compra_item_id` | uuid | sí | — | — |
+| `precio_venta_sugerido` | numeric | sí | — | — |
 
 **Candados** — lo que esta tabla hace imposible:
 
 - `compra_items_cantidad_check` — `CHECK ((cantidad > 0))`
 - `compra_items_costo_unitario_check` — `CHECK ((costo_unitario >= (0)::numeric))`
+- `compra_items_precio_venta_sugerido_check` — `CHECK (((precio_venta_sugerido IS NULL) OR (precio_venta_sugerido >= (0)::numeric)))`
+- `compra_items_prenda_o_categoria_marca` — `CHECK (((producto_id IS NOT NULL) OR ((categoria_id IS NOT NULL) AND (marca_id IS NOT NULL))))`
+- `compra_items_variante_con_prenda` — `CHECK (((variante_id IS NULL) OR (producto_id IS NOT NULL)))`
 
-**De qué depende:** `(compra_id) REFERENCES retail.compras(id)` · `(producto_id) REFERENCES retail.productos(id)` · `(variante_id) REFERENCES retail.variantes(id)`
+**De qué depende:** `(categoria_id) REFERENCES retail.categorias(id)` · `(compra_id) REFERENCES retail.compras(id)` · `(marca_id) REFERENCES retail.marcas(id)` · `(orden_compra_item_id) REFERENCES retail.orden_compra_items(id)` · `(producto_id) REFERENCES retail.productos(id)` · `(variante_id) REFERENCES retail.variantes(id)`
 
 **Quién puede qué** (políticas de fila):
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_items_select` | SELECT | `(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))` |
+| `compra_items_select` | SELECT | `( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)` |
 
 
 ### `compra_pagos`
@@ -3863,7 +3872,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_pagos_select` | SELECT | `(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))` |
+| `compra_pagos_select` | SELECT | `( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)` |
 
 
 ### `compra_adjuntos`
@@ -3898,7 +3907,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_adjuntos_select` | SELECT | `(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))` |
+| `compra_adjuntos_select` | SELECT | `( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)` |
 
 
 ### `compras_resumen` *(vista)*
@@ -3946,7 +3955,7 @@
 
 ### `compra_items_resumen` *(vista)*
 
-*11 columnas*
+*13 columnas*
 
 *El volcado de producción no trae la definición de esta vista.*
 
@@ -3963,6 +3972,8 @@
 | `recibido` | bigint | sí | — | — |
 | `pendiente` | bigint | sí | — | — |
 | `cerrado` | bigint | sí | — | — |
+| `categoria_id` | uuid | sí | — | — |
+| `marca_id` | uuid | sí | — | — |
 
 
 ### `planes_compra`
@@ -4041,6 +4052,49 @@
 - `planes_compra_lineas_una_por_categoria` — `UNIQUE (plan_id, categoria_id)`
 
 **De qué depende:** `(actualizado_por) REFERENCES personas(id)` · `(categoria_id) REFERENCES retail.categorias(id)` · `(plan_id) REFERENCES retail.planes_compra(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `planes_compra_reparto`
+
+*5 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `plan_id` | uuid | **no** | — | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `minimo_pct` | integer | sí | — | — |
+| `actualizado_por` | uuid | **no** | — | — |
+| `actualizado_en` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `planes_compra_reparto_minimo_pct_check` — `CHECK (((minimo_pct IS NULL) OR ((minimo_pct >= 1) AND (minimo_pct <= 90))))`
+
+**De qué depende:** `(actualizado_por) REFERENCES personas(id)` · `(plan_id) REFERENCES retail.planes_compra(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `ventas_historicas`
+
+*5 columnas · ~3901 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `ubicacion_id` | uuid | **no** | — | — |
+| `fecha` | date | **no** | — | — |
+| `soles` | numeric | **no** | — | — |
+| `fuente` | text | **no** | — | — |
+| `cargado_en` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `ventas_historicas_fuente_check` — `CHECK ((btrim(fuente) <> ''::text))`
+- `ventas_historicas_soles_check` — `CHECK ((soles >= (0)::numeric))`
+
+**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
@@ -4201,7 +4255,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_item_cierres_select` | SELECT | `(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR (EXISTS ( SELECT 1    FROM retail.compra_items i   WHERE ((i.id = compra_item_cierres.compra_item_id) AND (i.compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[]))))))` |
+| `compra_item_cierres_select` | SELECT | `(( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras) OR COALESCE((ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false))` |
 
 
 ### `compra_notas_credito`
@@ -4243,7 +4297,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_notas_credito_select` | SELECT | `(( SELECT retail.fn_es_lider() AS fn_es_lider) OR (compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[])))` |
+| `compra_notas_credito_select` | SELECT | `( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras)` |
 
 
 ### `proveedor_creditos`
@@ -4304,7 +4358,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_item_destinos_select` | SELECT | `(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR (EXISTS ( SELECT 1    FROM retail.compra_items i   WHERE ((i.id = compra_item_destinos.compra_item_id) AND (i.compra_id = ANY (( SELECT retail.fn_compras_visibles() AS fn_compras_visibles)::uuid[]))))))` |
+| `compra_item_destinos_select` | SELECT | `(( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras) OR COALESCE((ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false))` |
 
 
 ### `compra_reasignaciones`
@@ -4335,7 +4389,7 @@
 
 | Política | Operación | Condición |
 |---|---|---|
-| `compra_reasignaciones_select` | SELECT | `(COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (desde_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false) OR COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (hacia_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))` |
+| `compra_reasignaciones_select` | SELECT | `(( SELECT retail.fn_puede_ver_dinero_de_compras() AS fn_puede_ver_dinero_de_compras) OR COALESCE((desde_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false) OR COALESCE((hacia_ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona)), false))` |
 
 
 ### `compra_item_reparto_resumen` *(vista)*
@@ -4841,7 +4895,7 @@
 
 ### `gastos`
 
-*19 columnas · ~29 filas · permisos por fila **activos***
+*19 columnas · ~34 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -5559,7 +5613,7 @@
 
 ### `actividad`
 
-*14 columnas · ~2315 filas · permisos por fila **activos***
+*14 columnas · ~2415 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -5606,57 +5660,6 @@
 
 - `huellas_llave_id_check` — `CHECK ((id = 1))`
 - `huellas_llave_llave_sha256_check` — `CHECK ((llave_sha256 ~ '^[0-9a-f]{64}$'::text))`
-
-**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
-
-
-
-## Sin módulo asignado
-
-> Estas tablas existen en la base y **no tienen pájaro** en `scripts/datos/aviario.mjs`,
-> y `pnpm datos:aviario` falla mientras sigan acá.
-> Eso siempre significa una de dos cosas: el mapa se quedó viejo, o alguien creó una
-> tabla sin decidir de quién es. Las dos hay que resolverlas, no ignorarlas.
-
-### `planes_compra_reparto`
-
-*5 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `plan_id` | uuid | **no** | — | — |
-| `ubicacion_id` | uuid | **no** | — | — |
-| `minimo_pct` | integer | sí | — | — |
-| `actualizado_por` | uuid | **no** | — | — |
-| `actualizado_en` | timestamp with time zone | **no** | `now()` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `planes_compra_reparto_minimo_pct_check` — `CHECK (((minimo_pct IS NULL) OR ((minimo_pct >= 1) AND (minimo_pct <= 90))))`
-
-**De qué depende:** `(actualizado_por) REFERENCES personas(id)` · `(plan_id) REFERENCES retail.planes_compra(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
-
-**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
-
-
-### `ventas_historicas`
-
-*5 columnas · ~3901 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `ubicacion_id` | uuid | **no** | — | — |
-| `fecha` | date | **no** | — | — |
-| `soles` | numeric | **no** | — | — |
-| `fuente` | text | **no** | — | — |
-| `cargado_en` | timestamp with time zone | **no** | `now()` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `ventas_historicas_fuente_check` — `CHECK ((btrim(fuente) <> ''::text))`
-- `ventas_historicas_soles_check` — `CHECK ((soles >= (0)::numeric))`
-
-**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
