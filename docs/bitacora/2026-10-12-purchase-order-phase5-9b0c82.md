@@ -7,7 +7,7 @@
 - **Por qué:** ADR-0362, decisiones 14, 24 y 27; Felipe pidió avanzar de corrido hasta la mañana del 2026-10-13. Contrato:
   `docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md` (con «Cambios al construir»).
 - **Cómo:** dos agentes en paralelo sobre el contrato. Migración `20261013015000` (una parte, re-ejecutable): tabla de resoluciones
-  que solo agrega filas, candado «nunca más de lo debido» (también con dos sesiones a la vez), la causa `reposicion` y tres funciones
+  que solo agrega filas, candado «nunca más de lo debido» (también con dos sesiones a la vez), la causa `reposicion_faltante` y tres funciones
   nuevas; `recibir_despacho` y `fn_envio_detalle` con reemplazos anclados. `pnpm pruebas:nos-debe` 16/16 y las vecinas en verde; web con
   90 casos puros, tsc, lint y vitest completo; de punta a punta en el banco a 1440, 1024 y 375 px, en claro y oscuro. **Sin pegar en
   producción.**
