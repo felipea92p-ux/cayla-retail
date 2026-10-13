@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { MAX_COLORES_DEL_ICONO } from "@/lib/plan-piso-colores";
-import { siluetaDe } from "@/lib/plan-piso-siluetas";
+import { prendasDelIcono, siluetaDe, siluetaDeIcono } from "@/lib/plan-piso-siluetas";
 
 // El ícono de un grupo del plan del piso: su silueta sobre el color de su grupo. Necesita que `<SiluetasDelPlan />` esté en la pantalla (dibuja los símbolos una vez)
 // y que quien lo rodea ponga el color con `estiloDeGrupo(indice)`. Sin hooks: sirve en servidor y en cliente.
@@ -17,7 +17,8 @@ const ANCHO_DE_LA_SILUETA = 32;
  * `colores`: en las fichas de «Hoy» y las tarjetas de «Cómo quedaría» el ícono muestra los colores principales de su grupo (ADR-0352 act. 2026-10-11 (c)): hasta tres
  * prendas pequeñas, una por color, superpuestas como las perchas del riel (la del color que más cuelga va al frente). Sin colores, la silueta del color del grupo.
  * El ancho del ícono con colores es siempre el de tres prendas, centrado: así las fichas no cambian de ancho —y los títulos no se desalinean— de un grupo a otro.
- * El color de las prendas es dato, no tema (`data-color-dato`).
+ * Un grupo que mezcla prendas («Polos, tops y blusas», `lib/plan-piso-siluetas.ts`) dibuja siempre las tres suyas, no solo polos. El color de las prendas es dato,
+ * no tema (`data-color-dato`).
  */
 export function IconoDeGrupo({ clave, className = "", colores }: { clave: string; className?: string; colores?: readonly string[] }) {
   const hexes = (colores ?? []).slice(0, MAX_COLORES_DEL_ICONO);
@@ -28,17 +29,19 @@ export function IconoDeGrupo({ clave, className = "", colores }: { clave: string
       </svg>
     );
   }
+  // Un grupo que mezcla prendas («Polos, tops y blusas») dibuja SIEMPRE todas las suyas, aunque tenga menos colores: los colores se reparten en rueda (con un solo color,
+  // top, polo y blusa de ese color; el orden de las prendas es `ORDEN_DEL_ICONO`). Un grupo de una sola prenda dibuja una por color, como siempre.
+  const prendas = prendasDelIcono(clave, hexes.length);
   const ancho = ANCHO_DE_LA_SILUETA + (MAX_COLORES_DEL_ICONO - 1) * SALTO;
-  const contenido = ANCHO_DE_LA_SILUETA + (hexes.length - 1) * SALTO;
+  const contenido = ANCHO_DE_LA_SILUETA + (prendas - 1) * SALTO;
   const desde = 4 - (ancho - contenido) / 2;
   return (
     <svg className={`pp-ic pp-ic-colores ${className}`.trim()} viewBox={`${desde} 15 ${ancho} 43`} aria-hidden="true" focusable="false" data-color-dato="">
       {/* De atrás hacia adelante: la última se dibuja primero y la del color principal queda encima de las demás. */}
-      {hexes
-        .map((hex, i) => ({ hex, i }))
+      {Array.from({ length: prendas }, (_, i) => ({ hex: hexes[i % hexes.length]!, i }))
         .reverse()
         .map(({ hex, i }) => (
-          <use key={`${hex}-${i}`} href={`#pp-s-${siluetaDe(clave)}`} x={i * SALTO} y={0} width={40} height={60} className="pp-sil" style={{ ["--pp-c" as string]: hex } as CSSProperties} />
+          <use key={`${hex}-${i}`} href={`#pp-s-${siluetaDeIcono(clave, i)}`} x={i * SALTO} y={0} width={40} height={60} className="pp-sil" style={{ ["--pp-c" as string]: hex } as CSSProperties} />
         ))}
     </svg>
   );

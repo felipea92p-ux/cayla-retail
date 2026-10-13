@@ -9,7 +9,7 @@ import { cifraEs, pctEs } from "@/lib/mix-piso-visual";
 import type { ColorDePercha } from "@/lib/plan-piso-colores";
 import { ariaDeLasFichasDeHoy, etiquetaDeChipHoy, leyendaDeGrupo, rotuloCabe, type BloqueDelRiel, type Libre, type PanelDelPorQue } from "@/lib/plan-piso-percha";
 import type { ColorDeLaTienda as DatosDeColor, RepartoDeGrupo } from "@/lib/plan-piso-familias";
-import { siluetaDe } from "@/lib/plan-piso-siluetas";
+import { siluetaDePrenda } from "@/lib/plan-piso-siluetas";
 
 // Los dos rieles de perchas del Plan del piso ▸ Propuesta (maqueta A «La percha», ADR-0352 act. 2026-10-11): «Hoy» y «Cómo quedaría», cada uno con las perchas
 // de sus grupos colgadas en tramos, y lo que hay para tocar: pasar por un grupo (o enfocarlo con el teclado) lo resalta en los dos rieles y en las leyendas, y
@@ -75,12 +75,13 @@ const ESPACIO_DE_LA_CABECERA = 72;
 /** El color de una percha es el de la variante que representa (dato de la prenda); «Otros colores» es un gris neutro de la interfaz; sin color, el del grupo (lo pone el tramo). */
 const colorDePercha = (c: ColorDePercha | null): Record<string, string> => (c === null ? {} : { "--pp-c": c.hex ?? "var(--pp-otros)" });
 
-function Percha({ clave, fraccion, i, color }: { clave: string; fraccion: number; i: number; color: ColorDePercha | null }) {
+/** `k` es el lugar de la percha dentro de su tramo: en un grupo que mezcla prendas («Polos, tops y blusas») decide cuál de sus siluetas cuelga (`siluetaDePrenda`). */
+function Percha({ clave, k, fraccion, i, color }: { clave: string; k: number; fraccion: number; i: number; color: ColorDePercha | null }) {
   return (
     <span className="pp-p" style={vars({ "--f": fraccion.toFixed(3), "--i": i, ...colorDePercha(color) })} data-color-dato={color?.hex ? "" : undefined}>
       <svg viewBox="0 0 40 60" preserveAspectRatio="none" aria-hidden="true" focusable="false">
         <use href="#pp-h" />
-        <use href={`#pp-s-${siluetaDe(clave)}`} className="pp-sil" />
+        <use href={`#pp-s-${siluetaDePrenda(clave, k)}`} className="pp-sil" />
       </svg>
     </span>
   );
@@ -128,8 +129,8 @@ export function TarjetaDelRiel({ grupos, hoy, propuesta, escala, mayor, cuadrado
         {bloques.map((b) => {
           const g = grupos.find((x) => x.clave === b.clave);
           const perchas = [];
-          for (let k = 0; k < b.llenas; k++) perchas.push(<Percha key={k} clave={b.clave} fraccion={1} i={i++} color={b.colores[k] ?? null} />);
-          if (b.resto > 0) perchas.push(<Percha key="resto" clave={b.clave} fraccion={b.resto} i={i++} color={b.colores[b.llenas] ?? null} />);
+          for (let k = 0; k < b.llenas; k++) perchas.push(<Percha key={k} clave={b.clave} k={k} fraccion={1} i={i++} color={b.colores[k] ?? null} />);
+          if (b.resto > 0) perchas.push(<Percha key="resto" clave={b.clave} k={b.llenas} fraccion={b.resto} i={i++} color={b.colores[b.llenas] ?? null} />);
           return (
             <div key={b.clave} className={`pp-blq${on(b.clave)}`} data-g={b.clave} style={{ ...vars({ "--n": b.perchas.toFixed(4) }), ...estiloDeGrupo(b.indice) }} onMouseEnter={() => setSobre(b.clave)} onMouseLeave={() => setSobre(null)}>
               {rotulos && g && rotuloCabe(b.perchas) && (

@@ -12,8 +12,18 @@ export function SiluetasDelPlan() {
             <path d="M20 12 L4.5 24.5 H35.5 Z" />
           </g>
         </symbol>
+        {/* «Polos, tops y blusas» dibuja tres prendas, no una (Felipe, 2026-10-13; `lib/plan-piso-siluetas.ts`): el polo (la primera, la de siempre), el top de
+            tirantes anchos y la blusa de escote en V con manga acampanada. Las tres caben en el mismo 40 × 60 y se leen a 15 px. */}
         <symbol id="pp-s-polos_tops_blusas" viewBox="0 0 40 60">
           <path d="M14.5 17.5 L4.5 22.5 L8 30 L13 27.5 L13 53.5 Q20 55.5 27 53.5 L27 27.5 L32 30 L35.5 22.5 L25.5 17.5 C24 21.2 16 21.2 14.5 17.5 Z" />
+        </symbol>
+        <symbol id="pp-s-polos_tops_blusas_top" viewBox="0 0 40 60">
+          <path d="M13.5 17 L18 17 C18.5 24 21.5 24 22 17 L26.5 17 C26.5 24 28 27.5 29.5 29.5 L28.5 51.5 Q20 53.5 11.5 51.5 L10.5 29.5 C12 27.5 13.5 24 13.5 17 Z" />
+          <path className="pp-d" d="M10.9 47.5 H29.1" />
+        </symbol>
+        <symbol id="pp-s-polos_tops_blusas_blusa" viewBox="0 0 40 60">
+          <path d="M15 17.5 L20 25.5 L25 17.5 L31.5 19.2 C34 20.5 36.4 29 37.2 38 L30.2 37 C29.8 34 29 31.5 28.2 29.5 L30.5 54 Q20 57 9.5 54 L11.8 29.5 C11 31.5 10.2 34 9.8 37 L2.8 38 C3.6 29 6 20.5 8.5 19.2 Z" />
+          <path className="pp-d" d="M16.2 19.6 L20 24 L23.8 19.6 M10.6 50.5 Q20 53.5 29.4 50.5" />
         </symbol>
         <symbol id="pp-s-jeans" viewBox="0 0 40 60">
           <path d="M12 17.5 H28 L30.8 55.5 H21.3 L20 31 L18.7 55.5 H9.2 Z" />
