@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { GUIA_PROD_RESUMEN } from "./guias/pantallas/produccion";
+import { UMBRAL_POCA_BASE_VENTAS } from "./inventario-reglas";
 import type { ComprobanteProduccion } from "./comprobantes-produccion-reglas";
 import type { DemandaVariante, Rendimiento } from "./produccion-decision-reglas";
 import {
@@ -232,6 +234,22 @@ describe("decisionesDeProduccion", () => {
       expect(r.ocultas).toEqual([]);
       expect(r.total).toBe(2);
     });
+    it("si la tarjeta que junta los modelos NO cabe en el tope, «y N más» cuenta MODELOS (9), no «1 aviso»", () => {
+      const insumos = [insumo("i1", { saldo: 10 }), insumo("i2", { saldo: 10 }), insumo("i3", { saldo: 10 })];
+      const demanda = new Map(["i1", "i2", "i3"].map((id) => [id, { insumoId: id, necesita: 100, ordenes: ["a"] }]));
+      const ordenes = Array.from({ length: 3 }, (_, i) => orden(`o${i}`, { fechaEntrega: "2026-09-10" }));
+      const r = resumenDeDecisiones(contexto({ ordenes, insumos, demanda, comprobantes: [comp("1", { vencido: true, fechaVencimiento: "2026-09-10", saldo: 500 })], modelos: conAgotados(9) }));
+      expect(r.decisiones).toHaveLength(7); // 3 entregas + 3 insumos + 1 pago llenan el tope
+      expect(r.decisiones.some((d) => d.id === "producir-grupo")).toBe(false);
+      expect(r.ocultas).toEqual([{ tipo: "producir", cantidad: 9, texto: "modelos por producir", href: "#produce" }]);
+    });
+    it("un solo modelo por producir que no cupo se dice en singular", () => {
+      const insumos = [insumo("i1", { saldo: 10 }), insumo("i2", { saldo: 10 }), insumo("i3", { saldo: 10 })];
+      const demanda = new Map(["i1", "i2", "i3"].map((id) => [id, { insumoId: id, necesita: 100, ordenes: ["a"] }]));
+      const ordenes = Array.from({ length: 3 }, (_, i) => orden(`o${i}`, { fechaEntrega: "2026-09-10" }));
+      const r = resumenDeDecisiones(contexto({ ordenes, insumos, demanda, comprobantes: [comp("1", { vencido: true, fechaVencimiento: "2026-09-10", saldo: 500 })], modelos: conAgotados(1) }));
+      expect(r.ocultas).toEqual([{ tipo: "producir", cantidad: 1, texto: "modelo por producir", href: "#produce" }]);
+    });
     it("los modelos con algo de stock se nombran con lo que queda", () => {
       const xs = [agotado(0, 3), agotado(1, 2), agotado(2, 2), agotado(3, 1)];
       xs.forEach((x) => (x.d.stockRed = 1)); // 1 en tiendas cada uno: se agota antes el que más vende (1/3 de día)
@@ -360,6 +378,13 @@ describe("cada cifra dice su base (/pantalla produccion, tarea #4)", () => {
     const d = decisionesDeProduccion(contexto({ modelos: fila1(1, 100, { ritmoDia: 1 / 30 }) }));
     expect(d[0].tipo).toBe("sobrestock");
     expect(d[0].detalle).toContain("(solo 1 venta en 30 días: poca base)");
+  });
+});
+
+describe("la guía de Producción cuenta lo mismo que la pantalla", () => {
+  it("el umbral de «poca base» que dice el paso «Cómo se lee un modelo» es el de la constante: si alguien la cambia, esta prueba pide actualizar la guía", () => {
+    const paso = GUIA_PROD_RESUMEN.pasos.find((p) => p.id === "modelo");
+    expect(paso?.texto).toContain(`«Poca base»: ${UMBRAL_POCA_BASE_VENTAS} o menos`);
   });
 });
 

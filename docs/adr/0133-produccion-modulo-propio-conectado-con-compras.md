@@ -100,6 +100,7 @@ base visible y decía más de lo que sabía. Felipe ordenó las tareas #1 a #5; 
   total sigue en 7; lo que no cabe se cuenta («10 asuntos · se ven 4», «Y 6 entregas más, que no caben aquí»). `resumenDeDecisiones` devuelve `ocultas` y `total`.
 - **Cada cifra dice su base.** «Se vende X por semana (N ventas en 30 días)»; con 2 o menos, «poca base» (`UMBRAL_POCA_BASE_VENTAS`, `lib/inventario-reglas.ts`, elegido por Felipe).
   La base cuenta solo las ventas de las sedes con las que se midió el ritmo (`DemandaVariante.ventasBase`). Solo avisa: no cambia estados ni esconde tarjetas.
+- **La tela no se subestima.** El rendimiento medido se calcula para los modelos que se ofrecen **y para todo producto con una orden** (`productosParaRendimiento`): una orden abierta de un modelo que ya no se ofrece (descontinuado, de prueba, familia apagada) igual va a cortar tela, y sin su rendimiento «¿Alcanza la tela?» habría pedido menos de lo real. Lo cazó la revisión independiente del código, no una prueba.
 - **El modelo se reconoce.** Foto de cada modelo (la del primer color con foto, como Catálogo) o, sin foto, el ícono de su categoría sobre su color (ADR-0333), en cada fila
   y tarjeta. La tabla se lee a 1024 px (nombre a dos líneas; «En prod.» entre 1024 y 1279 px solo en la insignia) y la fila tiene el anillo de foco del sistema (ADR-0351).
 

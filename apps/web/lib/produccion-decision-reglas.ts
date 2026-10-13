@@ -153,6 +153,15 @@ export type ConsumoParaRendimiento = { insumoId: string; insumo: string; unidad:
 export type Rendimiento = { insumoId: string; insumo: string; unidad: UnidadInsumo; tipo: "tela" | "avio"; porPrenda: number; ordenes: number; prendas: number };
 
 /**
+ * Los productos para los que hay que medir el rendimiento: los que se ofrecen para fabricar Y todo producto que tenga una orden, se ofrezca o no.
+ * Una orden abierta de un modelo que se dejó de ofrecer (descontinuado, de prueba, familia apagada) igual va a cortar tela y avíos: si su
+ * rendimiento no se midiera, «¿Alcanza la tela?» y «Faltan X de tela» se calcularían con menos demanda de la real y podrían esconder una falta.
+ */
+export function productosParaRendimiento(modelos: readonly { productoId: string }[], ordenes: readonly { productoId: string }[]): string[] {
+  return [...new Set([...modelos.map((m) => m.productoId), ...ordenes.map((o) => o.productoId)])];
+}
+
+/**
  * Consumo real ÷ prendas buenas de las órdenes CERRADAS del modelo, por insumo. Se pesa por prendas (un lote grande cuenta más que uno
  * chico). Un consumo devuelto resta (`cantidad` ya viene con signo). Sin órdenes cerradas con consumo registrado, no hay rendimiento.
  */

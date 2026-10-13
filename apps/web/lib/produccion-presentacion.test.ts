@@ -35,9 +35,20 @@ describe("presentacionesDeModelos (la foto de cada modelo en el Resumen de Produ
     const p = presentacionesDeModelos([v({ varianteId: "a", talla: "S", fotoUrl: null }), v({ varianteId: "b", talla: "M", fotoUrl: "https://x/negro.jpg" })]);
     expect(p.p1.fotoUrl).toBe("https://x/negro.jpg");
   });
-  it("sin ninguna foto no hay foto: queda el color del primer color y su categoría, para dibujar el ícono sobre ese color", () => {
-    const p = presentacionesDeModelos([v({ varianteId: "a", color: "Verde", colorHex: "#00aa00" }), v({ varianteId: "b", color: "Rojo", colorHex: "#aa0000" })]);
+  it("sin ninguna foto y con UN solo color: el ícono de su categoría se pinta de ese color", () => {
+    const p = presentacionesDeModelos([v({ varianteId: "a", talla: "S", color: "Verde", colorHex: "#00aa00" }), v({ varianteId: "b", talla: "M", color: "Verde", colorHex: "#00aa00" })]);
     expect(p.p1).toEqual({ fotoUrl: null, colorHex: "#00aa00", categoria: "Blusas", categoriaPrefijo: "BLU", categoriaFamilia: "indumentaria" });
+  });
+  it("sin ninguna foto y con VARIOS colores no se pinta ninguno (ADR-0333): pintar el primero afirmaría un color que el modelo no tiene", () => {
+    const p = presentacionesDeModelos([v({ varianteId: "a", color: "Verde", colorHex: "#00aa00" }), v({ varianteId: "b", color: "Rojo", colorHex: "#aa0000" })]);
+    expect(p.p1).toEqual({ fotoUrl: null, colorHex: null, categoria: "Blusas", categoriaPrefijo: "BLU", categoriaFamilia: "indumentaria" });
+  });
+  it("un color sin hex no se inventa gris: queda sin color", () => {
+    expect(presentacionesDeModelos([v({ color: "Estampado", colorHex: null })]).p1.colorHex).toBeNull();
+  });
+  it("con foto, el color queda de respaldo por si la imagen no carga", () => {
+    const p = presentacionesDeModelos([v({ varianteId: "a", color: "Rojo", colorHex: "#aa0000", fotoUrl: "https://x/rojo.jpg" }), v({ varianteId: "b", color: "Azul", colorHex: "#0000aa" })]);
+    expect(p.p1).toMatchObject({ fotoUrl: "https://x/rojo.jpg", colorHex: "#aa0000" });
   });
   it("una variante sin color pero con foto también cuenta como foto del modelo", () => {
     const p = presentacionesDeModelos([v({ color: null, colorHex: null, fotoUrl: "https://x/sola.jpg" })]);

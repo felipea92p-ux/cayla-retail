@@ -49,6 +49,8 @@ export type Decision = {
   accion: { texto: string; href: string };
   /** Los modelos de que habla la tarjeta (el que es, o los 3 más urgentes si junta varios), para dibujar su foto. Vacío o ausente en las que no son de un modelo. */
   productoIds?: string[];
+  /** Cuántos asuntos junta la tarjeta (los modelos por producir, en la que los reúne). Ausente = 1. Si no cabe en pantalla, «y N más» cuenta estos, no la tarjeta. */
+  asuntos?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -207,7 +209,7 @@ const OCULTAS: Record<Decision["tipo"], { uno: string; varios: string; href: str
   insumo: { uno: "insumo que falta", varios: "insumos que faltan", href: "/produccion/insumos" },
   recibir: { uno: "tela por recibir", varios: "telas por recibir", href: "/produccion/recibir" },
   pago: { uno: "pago", varios: "pagos", href: "/produccion/por-pagar" },
-  producir: { uno: "aviso de producir", varios: "avisos de producir", href: "#produce" },
+  producir: { uno: "modelo por producir", varios: "modelos por producir", href: "#produce" },
   sobrestock: { uno: "modelo con sobrestock", varios: "modelos con sobrestock", href: "#produce" },
   minimo: { uno: "insumo bajo el mínimo", varios: "insumos bajo el mínimo", href: "/produccion/insumos" },
 };
@@ -242,6 +244,7 @@ function tarjetaProducirAgrupada(ms: (FilaModelo & { ritmoDia: number })[]): Dec
     detalle: `Los más urgentes (ventas de los últimos ${DIAS_RITMO_RECIENTE} días): ${nombrados.join(", ")}${resto > 0 ? `; y ${resto} más` : ""}.`,
     accion: { texto: `Ver los ${ms.length} modelos`, href: "#produce" },
     productoIds: ms.slice(0, NOMBRADOS_EN_GRUPO).map((m) => m.productoId),
+    asuntos: ms.length,
   };
 }
 
@@ -371,7 +374,7 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
     if (decisiones.length < MAX_TARJETAS && n < MAX_POR_TIPO) {
       decisiones.push(d);
       porTipo.set(d.tipo, n + 1);
-    } else fuera.set(d.tipo, (fuera.get(d.tipo) ?? 0) + 1);
+    } else fuera.set(d.tipo, (fuera.get(d.tipo) ?? 0) + (d.asuntos ?? 1));
   }
   const ocultas: DecisionesOcultas[] = [...fuera].map(([tipo, cantidad]) => ({ tipo, cantidad, texto: cantidad === 1 ? OCULTAS[tipo].uno : OCULTAS[tipo].varios, href: OCULTAS[tipo].href }));
   return { decisiones, ocultas, total: ordenadas.length };

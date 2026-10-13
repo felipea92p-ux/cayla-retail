@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { FilaResumen } from "./resumen-reglas";
+import { demandaDeInsumos } from "./produccion-decisiones";
 import {
   analizarInsumos,
   costoMaterialesPorPrenda,
   demandaDeLaRed,
   enProduccionPorVariante,
+  productosParaRendimiento,
   rendimientoMedido,
   sugerirCurva,
   sugerirVariante,
   type ConsumoParaRendimiento,
   type DemandaVariante,
   type OrdenParaRendimiento,
+  type Rendimiento,
 } from "./produccion-decision-reglas";
 
 // Una fila mínima: solo lo que usan `velocidadDeFila` y la demanda.
@@ -71,6 +74,37 @@ const demanda = (extra: Partial<DemandaVariante> = {}): DemandaVariante => ({
   cobertura: { tipo: "agotado", dias: 0 },
   banda: "agotado",
   ...extra,
+});
+
+describe("productosParaRendimiento (una orden abierta de un modelo que ya no se ofrece igual necesita su tela)", () => {
+  const ordenes = [
+    { id: "c1", productoId: "viejo", estado: "terminada", esMuestra: false, cantidadBuenas: 50 },
+    { id: "a1", productoId: "viejo", estado: "en_proceso", esMuestra: false, cantidadBuenas: null },
+    { id: "c2", productoId: "vigente", estado: "terminada", esMuestra: false, cantidadBuenas: 20 },
+  ];
+  const consumos = {
+    c1: [{ insumoId: "lino", insumo: "Lino", unidad: "metro" as const, tipo: "tela" as const, cantidad: 125 }], // 2,5 m por prenda
+    c2: [{ insumoId: "lino", insumo: "Lino", unidad: "metro" as const, tipo: "tela" as const, cantidad: 40 }],
+  };
+
+  it("incluye a los modelos que se ofrecen y a todo producto con una orden, sin repetir", () => {
+    expect(productosParaRendimiento([{ productoId: "vigente" }, { productoId: "nuevo" }], ordenes).sort()).toEqual(["nuevo", "viejo", "vigente"]);
+  });
+  it("sin modelos que ofrecer, los productos de las órdenes siguen teniendo rendimiento", () => {
+    expect(productosParaRendimiento([], ordenes).sort()).toEqual(["viejo", "vigente"]);
+  });
+  it("regresión: si el modelo con la orden abierta ya no se ofrece, su rendimiento se mide igual y la orden abierta sigue pidiendo tela", () => {
+    // `modelos` ya no trae a «viejo» (descontinuado): antes el rendimiento solo se medía para `modelos` y «viejo» quedaba sin demanda.
+    const ids = productosParaRendimiento([{ productoId: "vigente" }], ordenes);
+    const rendimientoPorModelo = Object.fromEntries(ids.map((id) => [id, rendimientoMedido(id, ordenes, consumos)]).filter(([, r]) => (r as unknown[]).length > 0));
+    expect(rendimientoPorModelo.viejo?.[0].porPrenda).toBeCloseTo(2.5, 5);
+    const pide = demandaDeInsumos(
+      [{ id: "a1", referencia: "Blusa vieja", productoId: "viejo", estado: "en_proceso", esMuestra: false, fechaEntrega: null, cantidadPlan: 40, etapas: {} }],
+      rendimientoPorModelo as Record<string, Rendimiento[]>,
+      {}
+    );
+    expect(pide.get("lino")?.necesita).toBeCloseTo(100, 5); // 40 prendas × 2,5 m
+  });
 });
 
 describe("sugerirVariante", () => {
