@@ -47,11 +47,25 @@ function psql(sql) {
   ).trim();
 }
 
-/** Ventas de la base local: una que viene de un apartado, una que no, y un apartado abierto sin venta. */
+/**
+ * La escena, armada aquí (la base del CI se crea desde cero, sin apartados entregados): dos ventas mínimas, un apartado ENTREGADO
+ * enlazado a una y otro ABIERTO sin venta. Se insertan con los disparadores apagados SOLO mientras se arma la escena (los CHECK
+ * siguen valiendo) y se vuelven a encender antes de cada caso: el candado que se prueba está activo.
+ */
 const ESCENA = `
-select v.id as con_apartado from retail.ventas v where exists (select 1 from retail.separaciones s where s.venta_id = v.id) limit 1 \\gset
-select v.id as sin_apartado from retail.ventas v where not exists (select 1 from retail.separaciones s where s.venta_id = v.id) limit 1 \\gset
-select s.id as apartado_abierto from retail.separaciones s where s.venta_id is null limit 1 \\gset
+select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
+set local session_replication_role = replica;
+insert into retail.ventas (ubicacion_id) values (:'tru') returning id as con_apartado \\gset
+insert into retail.ventas (ubicacion_id) values (:'tru') returning id as sin_apartado \\gset
+insert into retail.separaciones (codigo, ubicacion_id, caja_id, clienta_nombres, clienta_apellidos, comprobante_tipo, creado_por,
+                                 total, adelanto, vence_el, devolucion_medio, devolucion_numero, estado, venta_id, entregada_en)
+  values ('APT-PRUEBA-CANDADO-1', :'tru', gen_random_uuid(), 'Ana', 'Prueba', 'boleta', gen_random_uuid(),
+          100, 20, current_date + 5, 'yape', '987111222', 'entregada', :'con_apartado', now());
+insert into retail.separaciones (codigo, ubicacion_id, caja_id, clienta_nombres, clienta_apellidos, comprobante_tipo, creado_por,
+                                 total, adelanto, vence_el, devolucion_medio, devolucion_numero)
+  values ('APT-PRUEBA-CANDADO-2', :'tru', gen_random_uuid(), 'Bea', 'Prueba', 'boleta', gen_random_uuid(),
+          100, 20, current_date + 5, 'yape', '987111333') returning id as apartado_abierto \\gset
+set local session_replication_role = origin;
 `;
 
 const dentro = (cuerpo, { conCandado = true } = {}) =>
@@ -117,11 +131,29 @@ caso("un pago «anticipo» en una venta que viene de un apartado pasa", pasa(PAG
 caso(
   "el orden de entregar_separacion pasa: el anticipo se inserta ANTES de enlazar el apartado (el candado es diferido)",
   pasa(`insert into retail.venta_pagos (venta_id, metodo, monto) values (:'sin_apartado', 'anticipo', 1);
+-- La escena usa una caja ficticia: el enlace se hace sin revisar llaves foráneas (el candado se revisa después, con todo encendido).
+set local session_replication_role = replica;
 update retail.separaciones set estado = 'entregada', venta_id = :'sin_apartado', entregada_en = now() where id = :'apartado_abierto';
+set local session_replication_role = origin;
 set constraints all immediate;
 select true;`)
 );
 caso("los demás medios no cambian: efectivo en una venta sin apartado pasa", pasa(PAGO("sin_apartado", "efectivo")));
+caso(
+  "una purga que borra el apartado y después sus pagos en la misma transacción pasa (se mira la fila como quedó)",
+  pasa(`insert into retail.venta_pagos (venta_id, metodo, monto) values (:'con_apartado', 'anticipo', 1) returning id as pago \\gset
+delete from retail.separaciones where venta_id = :'con_apartado';
+delete from retail.venta_pagos where id = :'pago';
+set constraints all immediate;
+select true;`)
+);
+caso(
+  "si se borra el apartado pero el pago «anticipo» se queda, se rechaza",
+  rechaza(`insert into retail.venta_pagos (venta_id, metodo, monto) values (:'con_apartado', 'anticipo', 1);
+delete from retail.separaciones where venta_id = :'con_apartado';
+set constraints all immediate;
+select true;`, ANTICIPO_SIN_APARTADO)
+);
 caso("cambiar a «anticipo» una fila ya guardada también se revisa", rechaza(`
 insert into retail.venta_pagos (venta_id, metodo, monto) values (:'sin_apartado', 'yape', 1) returning id as pago \\gset
 update retail.venta_pagos set metodo = 'anticipo', referencia = null where id = :'pago';

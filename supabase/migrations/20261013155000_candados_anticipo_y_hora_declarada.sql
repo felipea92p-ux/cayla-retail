@@ -50,8 +50,18 @@ language plpgsql
 security definer
 set search_path to 'retail', 'public', 'extensions'
 as $$
+declare
+  v_metodo text;
+  v_venta uuid;
 begin
-  if new.metodo = 'anticipo' and not exists (select 1 from retail.separaciones s where s.venta_id = new.venta_id) then
+  -- El candado es DIFERIDO: se revisa al confirmar, no al insertar. Para entonces la fila pudo cambiar o borrarse en la misma
+  -- transacción (una purga borra el apartado y después sus pagos): se mira la fila TAL COMO QUEDÓ, no la del momento del insert.
+  -- Si ya no existe o ya no es un anticipo, no hay nada que revisar.
+  select vp.metodo, vp.venta_id into v_metodo, v_venta from retail.venta_pagos vp where vp.id = new.id;
+  if not found or v_metodo <> 'anticipo' then
+    return null;
+  end if;
+  if not exists (select 1 from retail.separaciones s where s.venta_id = v_venta) then
     raise exception 'Un pago con anticipo solo existe al entregar un apartado: esta venta no viene de ninguno.'
       using errcode = '23514', hint = 'anticipo_sin_apartado';
   end if;
