@@ -13,6 +13,6 @@ ADR-0362 (decisiones 25, 28, 29 y 47). Va encima de la fase 5a (PR #1017). Contr
   nombre del grupo); desde una tienda no ve la entrada, aunque la pantalla abre por URL. Decidir con Felipe.
 - [ ] Parte 2 (espera a Felipe): el comprobante de la orden por el circuito del Taller (`comprobantes_produccion`) y la recepción en el
   Taller contra la orden; al llegar, editar y anular suman el candado «no con un comprobante o una recepción vivos».
-- [ ] `/chaos` completo y `/formidable` de las pantallas (hoy: dos sesiones a la vez y doble clic en la base; dos rechazos con la
-  pantalla abierta).
+- [x] Caos chico en el navegador (9 ataques, 0 hallazgos) y en la base (doble clic con el mismo id, dos sesiones editando a la vez).
+- [ ] `/chaos` completo (catálogo y semilla) y `/formidable` de las pantallas.
 - [x] En la fila de escritorio, el ejemplo de la descripción se cortaba: ahora es corto («Ej. crudo», «Ej. negro») y la cabecera dice solo «Descripción».
