@@ -33,7 +33,7 @@ import {
 
 // «Editar campaña» del plan (ADR-0372, B5): cambia el nombre y las fechas (la etiqueta de Catálogo ▸ Etiquetas a la que está ligada no cambia) y,
 // al pie, «Quitar»: si la campaña está vacía (ninguna categoría armada, sin tope) se BORRA —es irreversible, así que se confirma con el resumen—; si
-// tiene algo, se ARCHIVA —reversible: sale un «Deshacer» y se restaura desde «Campañas archivadas»— (Felipe, 2026-10-10). Solo un líder la abre (la
+// tiene algo, se ARCHIVA —reversible: sale un «Deshacer» y se restaura desde «Campañas archivadas»— (Felipe, 2026-10-10). La abre quien tiene el módulo Plan de campaña (ADR-0387; la
 // base lo exige también). Guía de foco (ADR-0284): `camposDeLaEdicion` sale de la misma regla que la base. Salir con cambios pregunta.
 
 export function EditarCampanaModal({
