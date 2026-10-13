@@ -801,7 +801,7 @@ describe("«Gestión» con una sola pantalla se disuelve en esa pantalla, con su
   it("en CAYLA Global, Frescura sola dice «Frescura del piso» y abre su pantalla, nunca «Gestión»", () => {
     const riel = conModulos(["frescura"]).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso"]);
-    expect(hojasDe(riel[0]).map((h) => h.href)).toEqual(["/inventario/frescura"]);
+    expect(hojasDe(riel[0]).map((h) => h.href)).toEqual(["/gestion/frescura"]);
   });
 
   it("cada una de las cuatro, sola, conserva su nombre (la Terminal de ventas ve Frescura y Plan; el rol Producción, Análisis)", () => {
@@ -814,7 +814,7 @@ describe("«Gestión» con una sola pantalla se disuelve en esa pantalla, con su
   it("Frescura ya no es de Inventario: con Existencias al lado salen dos filas, y Gestión va antes", () => {
     const riel = conModulos(["frescura", "existencias"]).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso", "Inventario"]);
-    expect(conModulos(["frescura", "existencias"]).grupoDe("/inventario/frescura")).toBe("gestion");
+    expect(conModulos(["frescura", "existencias"]).grupoDe("/gestion/frescura")).toBe("gestion");
     expect(conModulos(["frescura", "existencias"]).grupoDe("/inventario")).toBe("inventario");
   });
 });

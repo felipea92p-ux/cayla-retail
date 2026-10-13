@@ -288,18 +288,18 @@ export const ARBOL: readonly Nodo[] = [
   // ser las cuatro de operar stock (ADR-0071) y el primer nivel sigue en 8 (Rendimiento deja su fila). El nombre es el del
   // grupo de Roles y accesos donde ya vivían Análisis y Rendimiento (`MODULOS`, `grupo: "Gestión"`).
   // Va ANTES de Inventario en el árbol a propósito: `grupoDe` asigna una ruta al primer grupo que la cubre, y la raíz
-  // `/inventario` cubriría `/inventario/frescura`; estando Gestión primero, sus hojas ganan por su ruta exacta (las rutas
-  // se mudan a `/gestion/…` en el mismo cambio, actividad 2). Las cuatro llevan `conservaNombre`: un rol que ve una sola
+  // `/inventario` cubriría `/gestion/frescura`; estando Gestión primero, sus hojas ganan por su ruta exacta, y desde
+  // la actividad 2 sus rutas cuelgan de `/gestion/…` (las viejas redirigen en `next.config`). Las cuatro llevan `conservaNombre`: un rol que ve una sola
   // (la Terminal de ventas ve Frescura y Plan; el rol Producción, Análisis) ve esa fila con su nombre, nunca «Gestión».
   {
     id: "gestion", etiqueta: "Gestión", estado: "viva", icono: "gestion", raiz: "/gestion", pajaro: "13 Águila",
     hijos: [
       // Quinta pantalla de Inventario desde ADR-0101; aquí desde ADR-0392. `exige` se queda: es el permiso que su módulo da.
-      { id: "gestion.analisis", modulo: "analisis", etiqueta: "Análisis", estado: "viva", ruta: "/inventario/resumen", icono: "analisis", pajaro: "13 Águila", exige: "analizar", conservaNombre: true },
+      { id: "gestion.analisis", modulo: "analisis", etiqueta: "Análisis", estado: "viva", ruta: "/gestion/analisis", icono: "analisis", pajaro: "13 Águila", exige: "analizar", conservaNombre: true },
       // ADR-0208 (paso 4): sin `exige`, la visibilidad la da su módulo, que nació solo para el líder.
-      { id: "gestion.frescura", modulo: "frescura", etiqueta: "Frescura del piso", estado: "viva", ruta: "/inventario/frescura", icono: "frescura", pajaro: "13 Águila", conservaNombre: true },
+      { id: "gestion.frescura", modulo: "frescura", etiqueta: "Frescura del piso", estado: "viva", ruta: "/gestion/frescura", icono: "frescura", pajaro: "13 Águila", conservaNombre: true },
       // ADR-0329 / ADR-0352: entrada propia, no una pestaña (una pestaña no es un módulo, ADR-0306).
-      { id: "gestion.plan_piso", modulo: "plan_piso", etiqueta: "Plan del piso", estado: "viva", ruta: "/inventario/plan-del-piso", icono: "resumen", pajaro: "13 Águila", conservaNombre: true },
+      { id: "gestion.plan_piso", modulo: "plan_piso", etiqueta: "Plan del piso", estado: "viva", ruta: "/gestion/plan-del-piso", icono: "resumen", pajaro: "13 Águila", conservaNombre: true },
       // ADR-0219 (respuesta 20): la pantalla del equipo; la ficha de cada persona cuelga de su ruta, no del menú.
       { id: "gestion.rendimiento", modulo: "rendimiento", etiqueta: "Rendimiento", estado: "viva", ruta: "/rendimiento", icono: "resumen", pajaro: "13 Águila", conservaNombre: true },
     ],

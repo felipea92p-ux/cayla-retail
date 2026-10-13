@@ -1,10 +1,10 @@
 {
   "guia": "inventario.plan-del-piso",
-  "ruta": "/inventario/plan-del-piso",
+  "ruta": "/gestion/plan-del-piso",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
   "total": 22,
   "controles": {
-    "app/(app)/inventario/plan-del-piso/page.tsx": [
+    "app/(app)/gestion/plan-del-piso/page.tsx": [
       "Link «Reintentar»",
       "Link «Reintentar» #2",
       "Link «Reintentar» #3"

@@ -392,7 +392,7 @@ export const GUIA_CUADRAR_PISO: Guia = {
 
 export const GUIA_FRESCURA: Guia = {
   id: "inventario.frescura",
-  ruta: "/inventario/frescura",
+  ruta: "/gestion/frescura",
   titulo: "Frescura del piso",
   resumen: "Ver cuánto lleva colgada cada prenda y decidir qué hacer con las que no se venden.",
   pasos: [
@@ -811,7 +811,7 @@ export const GUIA_POR_REGULARIZAR: Guia = {
 
 export const GUIA_ANALISIS: Guia = {
   id: "inventario.resumen",
-  ruta: "/inventario/resumen",
+  ruta: "/gestion/analisis",
   titulo: "Análisis",
   resumen: "Qué se acaba, qué no se mueve, qué nunca salió al piso y qué pedir.",
   pasos: [
@@ -1713,7 +1713,7 @@ export const GUIA_RECIBIR: Guia = {
 // La demo recorre las tres pestañas (son estado de la pantalla, no rutas), pero nunca confirma ni cambia el grupo de una categoría.
 export const GUIA_PLAN_DEL_PISO: Guia = {
   id: "inventario.plan-del-piso",
-  ruta: "/inventario/plan-del-piso",
+  ruta: "/gestion/plan-del-piso",
   titulo: "Plan del piso",
   resumen: "Ver cuánto lugar del riel le toca a cada grupo de prendas y a qué grupo va cada categoría.",
   pasos: [

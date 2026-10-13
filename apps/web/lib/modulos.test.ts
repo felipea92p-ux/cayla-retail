@@ -133,7 +133,7 @@ const CUENTAS_DE_HOY: Cuenta[] = [
 
 const RUTAS = [
   "/", "/vender", "/caja", "/vender/historial", "/cambios", "/devoluciones", "/vender/comprobantes", "/inventario", "/inventario/movimientos",
-  "/inventario/traslados", "/inventario/conteo", "/inventario/resumen", "/inventario/frescura", "/recibir", "/productos", "/productos/categorias", "/compras",
+  "/inventario/traslados", "/inventario/conteo", "/gestion/analisis", "/gestion/frescura", "/recibir", "/productos", "/productos/categorias", "/compras",
   "/compras/proveedores", "/produccion", "/produccion/ordenes", "/produccion/recibir",
 ];
 
@@ -197,7 +197,7 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados", "/inventario/frescura", "/rendimiento", "/clientas/avisos", "/inventario/plan-del-piso", "/productos/liquidacion", "/compras/ordenes"]
+      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/gestion/plan-del-piso", "/productos/liquidacion", "/compras/ordenes"]
         .filter((h) => deAntes.includes(h))
         .sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);

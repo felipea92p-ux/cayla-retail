@@ -6,8 +6,8 @@ import { exigirModulo, veModulo } from "@/lib/persona-actual";
 // ninguna de las cuatro, `exigirModulo` lo manda a «Sin acceso» (o a elegir sede, en CAYLA Global), como cualquier módulo.
 export default async function GestionPage() {
   const persona = await exigirModulo("analisis", "frescura", "plan_piso", "rendimiento");
-  if (veModulo(persona, "analisis")) redirect("/inventario/resumen");
-  if (veModulo(persona, "frescura")) redirect("/inventario/frescura");
-  if (veModulo(persona, "plan_piso")) redirect("/inventario/plan-del-piso");
+  if (veModulo(persona, "analisis")) redirect("/gestion/analisis");
+  if (veModulo(persona, "frescura")) redirect("/gestion/frescura");
+  if (veModulo(persona, "plan_piso")) redirect("/gestion/plan-del-piso");
   redirect("/rendimiento");
 }

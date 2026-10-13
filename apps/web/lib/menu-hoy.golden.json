@@ -23,12 +23,12 @@
       "hijos": [
        {
         "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
+        "href": "/gestion/frescura",
         "icono": "frescura"
        },
        {
         "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
+        "href": "/gestion/plan-del-piso",
         "icono": "resumen"
        },
        {
@@ -209,12 +209,12 @@
       "hijos": [
        {
         "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
+        "href": "/gestion/frescura",
         "icono": "frescura"
        },
        {
         "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
+        "href": "/gestion/plan-del-piso",
         "icono": "resumen"
        },
        {
@@ -418,9 +418,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "gestion",
-    "/inventario/plan-del-piso": "gestion",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -448,17 +448,17 @@
       "hijos": [
        {
         "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
+        "href": "/gestion/analisis",
         "icono": "analisis"
        },
        {
         "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
+        "href": "/gestion/frescura",
         "icono": "frescura"
        },
        {
         "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
+        "href": "/gestion/plan-del-piso",
         "icono": "resumen"
        },
        {
@@ -713,17 +713,17 @@
       "hijos": [
        {
         "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
+        "href": "/gestion/analisis",
         "icono": "analisis"
        },
        {
         "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
+        "href": "/gestion/frescura",
         "icono": "frescura"
        },
        {
         "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
+        "href": "/gestion/plan-del-piso",
         "icono": "resumen"
        },
        {
@@ -1001,9 +1001,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "gestion",
-    "/inventario/frescura": "gestion",
-    "/inventario/plan-del-piso": "gestion",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -1053,12 +1053,12 @@
       "hijos": [
        {
         "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
+        "href": "/gestion/frescura",
         "icono": "frescura"
        },
        {
         "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
+        "href": "/gestion/plan-del-piso",
         "icono": "resumen"
        },
        {
@@ -1256,12 +1256,12 @@
       "hijos": [
        {
         "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
+        "href": "/gestion/frescura",
         "icono": "frescura"
        },
        {
         "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
+        "href": "/gestion/plan-del-piso",
         "icono": "resumen"
        },
        {
@@ -1460,9 +1460,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "gestion",
-    "/inventario/plan-del-piso": "gestion",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -1539,17 +1539,17 @@
       "hijos": [
        {
         "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
+        "href": "/gestion/analisis",
         "icono": "analisis"
        },
        {
         "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
+        "href": "/gestion/frescura",
         "icono": "frescura"
        },
        {
         "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
+        "href": "/gestion/plan-del-piso",
         "icono": "resumen"
        },
        {
@@ -1811,17 +1811,17 @@
       "hijos": [
        {
         "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
+        "href": "/gestion/analisis",
         "icono": "analisis"
        },
        {
         "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
+        "href": "/gestion/frescura",
         "icono": "frescura"
        },
        {
         "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
+        "href": "/gestion/plan-del-piso",
         "icono": "resumen"
        },
        {
@@ -2057,9 +2057,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "gestion",
-    "/inventario/frescura": "gestion",
-    "/inventario/plan-del-piso": "gestion",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -2087,12 +2087,12 @@
       "hijos": [
        {
         "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
+        "href": "/gestion/frescura",
         "icono": "frescura"
        },
        {
         "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
+        "href": "/gestion/plan-del-piso",
         "icono": "resumen"
        },
        {
@@ -2273,12 +2273,12 @@
       "hijos": [
        {
         "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
+        "href": "/gestion/frescura",
         "icono": "frescura"
        },
        {
         "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
+        "href": "/gestion/plan-del-piso",
         "icono": "resumen"
        },
        {
@@ -2482,9 +2482,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "gestion",
-    "/inventario/plan-del-piso": "gestion",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -2512,17 +2512,17 @@
       "hijos": [
        {
         "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
+        "href": "/gestion/analisis",
         "icono": "analisis"
        },
        {
         "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
+        "href": "/gestion/frescura",
         "icono": "frescura"
        },
        {
         "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
+        "href": "/gestion/plan-del-piso",
         "icono": "resumen"
        },
        {
@@ -2777,17 +2777,17 @@
       "hijos": [
        {
         "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
+        "href": "/gestion/analisis",
         "icono": "analisis"
        },
        {
         "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
+        "href": "/gestion/frescura",
         "icono": "frescura"
        },
        {
         "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
+        "href": "/gestion/plan-del-piso",
         "icono": "resumen"
        },
        {
@@ -3065,9 +3065,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "gestion",
-    "/inventario/frescura": "gestion",
-    "/inventario/plan-del-piso": "gestion",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
