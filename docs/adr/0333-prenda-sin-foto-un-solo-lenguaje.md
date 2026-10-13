@@ -74,3 +74,10 @@ Movimientos, Traslados, Cambios, Devoluciones, Compras, Resumen, Análisis y la 
 un tono neutro (ya no el isotipo): sus cargadores traen la foto y a veces el color, pero no `categorias.prefijo`. Llevarlos es un cable
 más por pantalla (Movimientos: cuatro estructuras en `lib/movimientos-cajon.ts`), no una decisión pendiente. La tarjeta de «parecidas»
 queda neutra a propósito: es una candidata, no la prenda (ver su contrato).
+
+## Actualización 2026-10-13: Producción ▸ Resumen ya dibuja la foto o la percha
+
+El Resumen de Producción mostraba el modelo solo por su nombre. Ahora cada fila de «¿Qué producir?» y cada tarjeta de «Para decidir» lleva su foto o, sin ella, el ícono de su
+categoría sobre su color. Sale de `getCatalogo()` (`lib/produccion-presentacion.ts`), con la regla de Catálogo ▸ Productos (el primer color con foto). Es un dato secundario: si el
+catálogo no se lee, se dibuja la percha. La pieza es `FotoPrenda`, que se mudó de `components/apartados/piezas.tsx` a `components/ui/FotoPrenda.tsx` sin cambiar su lógica
+(sirve la foto al tamaño en que se ve: ~5 KB en vez de ~90 KB); `piezas.tsx` la re-exporta. Quien la importaba desde Apartados no cambia.
