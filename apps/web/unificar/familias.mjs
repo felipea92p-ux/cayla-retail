@@ -773,7 +773,7 @@ export const DECISIONES = {
       // El título de Campo copiado a mano (versalitas sobre una caja): es <Campo> o la clase `campo-etiqueta`.
       "\\blabel-cayla block text-\\[11px\\] text-tinta\\/(?:6\\d|7\\d)\\b",
       // Un título de campo en letra normal hecho a mano: un <label> de 12 a 14 px con peso.
-      "<label\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:xs|sm|\\[1[234](?:\\.5)?px\\])\\b[^\"'`]*\\bfont-(?:medium|semibold)\\b"
+      "<label\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:xs|sm|\\[1[234](?:\\.5)?px\\])(?![\\w-])[^\"'`]*\\bfont-(?:medium|semibold)\\b"
     ],
     "deuda": [],
     "excepciones": []
