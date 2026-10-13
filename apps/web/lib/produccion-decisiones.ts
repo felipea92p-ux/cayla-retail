@@ -230,6 +230,32 @@ export function filasPorModelo(demanda: DemandaVariante[], modelos: ModeloParaDe
   );
 }
 
+/** Cuántas tallas y colores nombra el aviso de «se vendían y ya no hay» antes de decir «y N más». */
+const NOMBRADAS_AGOTADAS = 3;
+
+/** «S · Negro»: una talla y color como se lee en una frase. Sin ninguno de los dos, «una variante» (no se inventa un nombre). */
+export function nombreDeVariante(v: Pick<RotuloDeVariante, "talla" | "color">): string {
+  return [v.talla, v.color].filter(Boolean).join(" · ") || "una variante";
+}
+
+/**
+ * Las tallas y colores de un modelo que SÍ tiene stock en alguna otra, y que ya se agotaron en las tiendas pero se vendían (más de `UMBRAL_POCA_BASE_VENTAS` ventas
+ * en la ventana: con menos es ruido, ADR-0346). Es solo un AVISO: el consejo del modelo («Alcanza», «Sobrestock»…) no cambia por esto. Si TODO el modelo está
+ * agotado no hay aviso: su estado y su cobertura ya lo dicen. Va primero la que más se vendía.
+ */
+export function agotadasQueSeVendian(f: Pick<FilaModelo, "stockRed" | "variantes">): VarianteDeFila[] {
+  if (f.stockRed <= 0) return [];
+  return f.variantes.filter((v) => v.stockRed <= 0 && v.ventasNetas > UMBRAL_POCA_BASE_VENTAS).sort((a, b) => b.ventasNetas - a.ventasNetas);
+}
+
+/** «Se vendían y ya no hay en tiendas: S · Negro, M · Negro y 2 más». Vacío si no hay ninguna. */
+export function textoAgotadas(vs: VarianteDeFila[]): string {
+  if (vs.length === 0) return "";
+  const nombradas = vs.slice(0, NOMBRADAS_AGOTADAS).map(nombreDeVariante).join(", ");
+  const resto = vs.length - NOMBRADAS_AGOTADAS;
+  return `Se vendían y ya no hay en tiendas: ${nombradas}${resto > 0 ? ` y ${resto} más` : ""}`;
+}
+
 /** A dónde lleva «Trasladar al piso»: Mover mercadería con el Taller de origen y las prendas (lo que cubre la falta de cada talla y color) ya puestas. `null` sin Taller o sin nada que llevar. */
 export function urlTrasladarModelo(m: Pick<FilaModelo, "variantes">, tallerId: string | null | undefined): string | null {
   if (!tallerId) return null;

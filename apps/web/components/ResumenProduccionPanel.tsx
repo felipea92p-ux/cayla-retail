@@ -7,7 +7,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { BotonEnlace } from "@/components/ui/campos";
-import { baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoDiasDeStock, urlTrasladarModelo, type CifrasResumen, type Decision, type DecisionesOcultas, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
+import { agotadasQueSeVendian, baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoAgotadas, textoDiasDeStock, urlTrasladarModelo, type CifrasResumen, type Decision, type DecisionesOcultas, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -213,6 +213,7 @@ export function ResumenProduccionPanel({
             <ul>
               {modelos.map((m, i) => {
                 const pct = m.diasRed === null ? 0 : Math.min(100, (m.diasRed / maxDias) * 100);
+                const agotadas = textoAgotadas(agotadasQueSeVendian(m));
                 return (
                   <li key={m.productoId} data-guia={i === 0 ? "prod-resumen.modelo" : undefined} className="border-b border-tinta/10 last:border-b-0">
                     <Link
@@ -226,6 +227,12 @@ export function ResumenProduccionPanel({
                           <span className="block text-xs text-tinta/65 lg:hidden">
                             stock {m.stockRed} · {m.ritmoDia ? `${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}/sem. · ${baseDelRitmo(m.ventasBase).corto}` : "sin ritmo"}
                           </span>
+                          {agotadas && (
+                            <span className="mt-0.5 flex items-start gap-1.5 text-xs leading-snug text-ambar">
+                              <span aria-hidden className="mt-[5px] size-1.5 shrink-0 rounded-full bg-ambar" />
+                              <span className="min-w-0">{agotadas}</span>
+                            </span>
+                          )}
                         </span>
                       </span>
                       <span className="hidden text-right text-[13px] tabular-nums text-tinta lg:block">{m.stockRed}</span>

@@ -4,12 +4,15 @@ import { UMBRAL_POCA_BASE_VENTAS } from "./inventario-reglas";
 import type { ComprobanteProduccion } from "./comprobantes-produccion-reglas";
 import { sugerirVariante, type DemandaVariante, type Rendimiento } from "./produccion-decision-reglas";
 import {
+  agotadasQueSeVendian,
   cifrasResumen,
   decisionesDeProduccion,
   demandaDeInsumos,
   filasDeTela,
   filasPorModelo,
   baseDelRitmo,
+  nombreDeVariante,
+  textoAgotadas,
   resumenDeDecisiones,
   textoDiasDeStock,
   urlTrasladarModelo,
@@ -441,6 +444,49 @@ describe("«Producir ya» compara lo que falta contra lo que hay y lo que ya se 
     expect(f.trasladar).toBe(f.variantes.reduce((s, v) => s + v.trasladar, 0));
     expect(f.producir).toBe(f.variantes.reduce((s, v) => s + v.producir, 0));
     for (const v of f.variantes) expect(v.producir).toBe(sugerirVariante(d.find((x) => x.varianteId === v.varianteId), enProd[v.varianteId as "a" | "c"] ?? 0, 30)!.sugerido);
+  });
+});
+
+describe("«se vendían y ya no hay»: la talla o el color que se agotó dentro de un modelo que sí tiene stock (/pantalla produccion, tarea #6d)", () => {
+  const dem = (id: string, extra: Partial<DemandaVariante> = {}): DemandaVariante => ({ varianteId: id, productoId: "p1", stockRed: 10, stockTaller: 0, enCamino: 0, ritmoDia: 0.2, sedesConRitmo: 1, ventasNetas: 6, ventasBase: 6, cobertura: { tipo: "medida", dias: 50 }, banda: "saludable", ...extra });
+  const rot = (id: string, talla: string, color: string) => ({ varianteId: id, talla, color, colorHex: null });
+  const modelo = (d: DemandaVariante[], nombres: [string, string][] = d.map((_, i) => ["S", `Color ${i}`] as [string, string])) =>
+    filasPorModelo(d, [{ productoId: "p1", referencia: "Pantalón Lino", variantesIds: d.map((x) => x.varianteId), variantes: d.map((x, i) => rot(x.varianteId, nombres[i][0], nombres[i][1])) }], {})[0];
+
+  it("una talla en 0 que se vendía (3 ventas o más) en un modelo con stock en las demás: se avisa", () => {
+    const f = modelo([dem("a", { stockRed: 90 }), dem("b", { stockRed: 0, ventasNetas: 3 })], [["M", "Negro"], ["S", "Negro"]]);
+    expect(agotadasQueSeVendian(f).map((v) => v.varianteId)).toEqual(["b"]);
+    expect(textoAgotadas(agotadasQueSeVendian(f))).toBe("Se vendían y ya no hay en tiendas: S · Negro");
+  });
+  it("con 2 ventas o menos es ruido (poca base, ADR-0346): no se avisa; con 3 sí", () => {
+    expect(agotadasQueSeVendian(modelo([dem("a", { stockRed: 90 }), dem("b", { stockRed: 0, ventasNetas: 2 })]))).toEqual([]);
+    expect(agotadasQueSeVendian(modelo([dem("a", { stockRed: 90 }), dem("b", { stockRed: 0, ventasNetas: 3 })]))).toHaveLength(1);
+  });
+  it("una variante con stock, aunque venda mucho, no se avisa; una agotada que nunca se vendió, tampoco", () => {
+    expect(agotadasQueSeVendian(modelo([dem("a", { stockRed: 5, ventasNetas: 40 }), dem("b", { stockRed: 0, ventasNetas: 0 })]))).toEqual([]);
+  });
+  it("si TODO el modelo está agotado no hay aviso: su estado y su cobertura ya lo dicen", () => {
+    expect(agotadasQueSeVendian(modelo([dem("a", { stockRed: 0, ventasNetas: 9 }), dem("b", { stockRed: 0, ventasNetas: 9 })]))).toEqual([]);
+  });
+  it("es solo un aviso: el estado del modelo, su orden y sus tarjetas son los mismos con o sin la talla agotada", () => {
+    const con = modelo([dem("a", { stockRed: 90, ritmoDia: 1 }), dem("b", { stockRed: 0, ventasNetas: 12, ritmoDia: null })]);
+    const sin = modelo([dem("a", { stockRed: 90, ritmoDia: 1 }), dem("b", { stockRed: 0, ventasNetas: 0, ritmoDia: null })]);
+    expect(agotadasQueSeVendian(con)).toHaveLength(1);
+    expect(agotadasQueSeVendian(sin)).toEqual([]);
+    expect(con.estado).toBe(sin.estado);
+    expect(con.estado).toBe("sobrestock");
+    expect(decisionesDeProduccion(contexto({ modelos: [con] })).map((d) => d.tipo)).toEqual(decisionesDeProduccion(contexto({ modelos: [sin] })).map((d) => d.tipo));
+  });
+  it("nombra hasta 3, la que más se vendía primero, y cuenta el resto: «y 2 más»", () => {
+    const d = [dem("ok", { stockRed: 50 }), ...["a", "b", "c", "d", "e"].map((id, i) => dem(id, { stockRed: 0, ventasNetas: 3 + i }))];
+    const f = modelo(d, [["M", "Negro"], ["S", "Rojo"], ["S", "Azul"], ["S", "Verde"], ["S", "Crema"], ["S", "Beige"]]);
+    expect(textoAgotadas(agotadasQueSeVendian(f))).toBe("Se vendían y ya no hay en tiendas: S · Beige, S · Crema, S · Verde y 2 más");
+  });
+  it("sin talla ni color no inventa un nombre: dice «una variante»; sin ninguna agotada el texto es vacío", () => {
+    expect(nombreDeVariante({ talla: null, color: null })).toBe("una variante");
+    expect(nombreDeVariante({ talla: "M", color: null })).toBe("M");
+    expect(nombreDeVariante({ talla: null, color: "Negro" })).toBe("Negro");
+    expect(textoAgotadas([])).toBe("");
   });
 });
 
