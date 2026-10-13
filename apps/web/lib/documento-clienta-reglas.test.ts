@@ -8,7 +8,6 @@ import {
   normalizarNumeroDocumento,
   problemaDocumento,
   tipoDocumentoDe,
-  celularEnmascarado,
   contactoVisible,
 } from "./documento-clienta-reglas";
 
@@ -102,9 +101,8 @@ describe("contactoVisible (Felipe 2026-10-13: el DNI y el celular a medias para 
   it("sin documento ni celular, nada que mostrar", () => {
     expect(contactoVisible({ documentoTipo: "dni", documentoNumero: null, telefonoWhatsapp: null }, false)).toEqual({ documento: null, celular: null });
   });
-  it("un celular con +51 o con espacios se enmascara igual; un número que no es celular deja solo sus 3 últimos", () => {
-    expect(celularEnmascarado("+51 987 654 321")).toBe("9•• ••• 321");
-    expect(celularEnmascarado("044 123456")).toBe("•••456");
-    expect(celularEnmascarado("  ")).toBeNull();
+  it("un celular con +51 o con espacios se enmascara igual; un número que no es celular no deja ver nada", () => {
+    expect(contactoVisible({ ...ana, telefonoWhatsapp: "+51 987 654 321" }, false).celular).toBe("9•• ••• 321");
+    expect(contactoVisible({ ...ana, telefonoWhatsapp: "412 3456" }, false).celular).toBe("•••");
   });
 });

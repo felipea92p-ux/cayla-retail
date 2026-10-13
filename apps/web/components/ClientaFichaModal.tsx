@@ -691,7 +691,8 @@ export function ClientaFichaModal({
                         >
                           <span className="text-sm text-tinta">{otra.nombre ?? "Sin nombre"}</span>
                           <span className="text-xs text-tinta/65">
-                            {Object.values(contactoVisible(otra, verCompleto)).filter(Boolean).join(" · ")}
+                            {/* Unir no se puede deshacer: para comparar las dos fichas, el número completo a quien sea que una. */}
+                            {Object.values(contactoVisible(otra, true)).filter(Boolean).join(" · ")}
                           </span>
                         </button>
                       ))

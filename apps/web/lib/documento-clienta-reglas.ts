@@ -5,6 +5,8 @@
 // migración 20260930160000): la pantalla avisa antes de guardar, y la base es la que manda. Si una cambia, cambian las
 // dos.
 
+import { enmascararCelular } from "./proveedores-reglas";
+
 export type TipoDocumentoClienta = "dni" | "carne_extranjeria" | "pasaporte";
 
 export const TIPOS_DOCUMENTO_CLIENTA: readonly { valor: TipoDocumentoClienta; etiqueta: string; corta: string }[] = [
@@ -65,15 +67,6 @@ export function numeroEnmascarado(numero: string | null): string | null {
   return `${n.slice(0, 2)}•••${n.slice(-3)}`;
 }
 
-/** El celular a medias: «9•• ••• 321» si es un celular peruano; otro número, «•••321». null sin número. */
-export function celularEnmascarado(telefono: string | null): string | null {
-  if (!telefono || !telefono.trim()) return null;
-  const d = telefono.replace(/\D/g, "");
-  const nueve = d.length >= 9 ? d.slice(-9) : "";
-  if (nueve.startsWith("9")) return `9•• ••• ${nueve.slice(6)}`;
-  return d.length >= 4 ? `•••${d.slice(-3)}` : "•••";
-}
-
 /**
  * El DNI y el celular de un cliente como se leen en Clientes (Felipe 2026-10-13, auditoría de 20 puntos, punto 18): completos
  * para el líder, a medias para los demás. Es lo que se VE: el número completo sigue viajando a la pantalla y queda en la caja de
@@ -87,7 +80,8 @@ export function contactoVisible(
 ): { documento: string | null; celular: string | null } {
   return {
     documento: documentoLegible(c.documentoTipo, c.documentoNumero, !verCompleto),
-    celular: !c.telefonoWhatsapp ? null : verCompleto ? formatoCelular(c.telefonoWhatsapp) : celularEnmascarado(c.telefonoWhatsapp),
+    // El celular a medias con la MISMA pieza que Proveedores y los avisos del club («9•• ••• 321»; un número que no es celular, «•••»).
+    celular: !c.telefonoWhatsapp ? null : verCompleto ? formatoCelular(c.telefonoWhatsapp) : enmascararCelular(c.telefonoWhatsapp),
   };
 }
 
