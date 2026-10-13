@@ -205,12 +205,14 @@
   }
   .pildora-filtro-quitar svg { width: 12px; height: 12px; }
   .pildora-filtro-quitar:hover { background: color-mix(in srgb, var(--color-crema) 18%, transparent); color: var(--color-crema); }
+  /* «Filtros» (BotonFiltros, ronda 10): cuántos hay puestos, en el globito de los títulos, pegado al nombre. */
+  .pildora-filtro .pildora-filtro-cuenta { margin-left: -2px; }
   .pildora-filtro-punto { position: absolute; right: 6px; top: 6px; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
   /* «Ordenar» de Productos junto al buscador del celular: solo el ícono, en un círculo de 38 px, con un punto si está puesta. */
   @media (max-width: 639.98px) {
     .pildora-filtro-icono-celular { width: 38px; height: 38px; justify-content: center; }
     .pildora-filtro-icono-celular .pildora-filtro-boton { width: 100%; justify-content: center; padding: 0; }
-    .pildora-filtro-icono-celular :is(.pildora-filtro-nombre, .pildora-filtro-valor, .pildora-filtro-flecha, .pildora-filtro-quitar) { display: none; }
+    .pildora-filtro-icono-celular :is(.pildora-filtro-nombre, .pildora-filtro-valor, .pildora-filtro-flecha, .pildora-filtro-quitar, .pildora-filtro-cuenta) { display: none; }
     .pildora-filtro-icono-celular .pildora-filtro-icono { width: 16px; height: 16px; }
   }
   @media (min-width: 640px) {

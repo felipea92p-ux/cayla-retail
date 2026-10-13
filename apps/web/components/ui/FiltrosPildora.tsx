@@ -3,7 +3,6 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, FunnelX, Minus, SearchX, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
-import { ALTO_CONTROL } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
@@ -24,9 +23,10 @@ import { Vacio } from "@/components/ui/Vacio";
 
 export { TODOS };
 
-/** El botón "Filtros · N" que abre/cierra el panel — mismo alto y mismo
- *  ritmo vertical que el campo de búsqueda al lado (ver comentario en cada
- *  consumidor sobre el `<span>` de etiqueta transparente que los empareja). */
+/** El botón «Filtros» que abre y cierra el panel (ADR-0358, ronda 10: Felipe lo eligió tocándolo el 2026-10-13): una píldora más, con la
+ *  cara de las que abre —borde arena, su ícono y su nombre en letra normal; abierto, borde tinta y la flecha roja—. Cuántos filtros hay
+ *  puestos va en el globito de los títulos y las pestañas (`titulo-cuenta`), que entra subiendo con el primero. Antes eran dos caras: «FILTROS
+ *  · 1» en versalitas y, en Existencias, un cuadrado solo ícono con una cifra negra en la esquina. */
 export function BotonFiltros({
   abierto,
   activos,
@@ -39,49 +39,25 @@ export function BotonFiltros({
   onClick: () => void;
   /** Ancla de la guía (ADR-0389), en el botón mismo. */
   "data-guia"?: string;
-  /** Solo el icono, cuadrado y del alto de su fila (Existencias, 2026-10-06): el nombre va como etiqueta y al pasar el mouse, y
-   *  cuántos filtros hay puestos, en una cifra sobre la esquina. Las demás barras siguen con «Filtros · N» en texto. */
+  /** Bajo `sm`, solo el ícono en un cuadrado de 38 px con un punto si hay filtros puestos, como las demás píldoras (`soloIconoEnCelular`):
+   *  el buscador del celular conserva su ancho (Productos, Existencias). Desde `sm`, la píldora entera. */
   soloIcono?: boolean;
 }) {
-  if (soloIcono) {
-    const nombre = activos > 0 ? `Filtros · ${activos} ${activos === 1 ? "puesto" : "puestos"}` : "Filtros";
-    return (
-      <button
-        type="button"
-        data-guia={guia}
-        onClick={onClick}
-        aria-expanded={abierto}
-        aria-controls="filtros-panel"
-        aria-label={nombre}
-        title={nombre}
-        className={`relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition-colors ${
-          abierto || activos > 0 ? "border-tinta/30 bg-tinta/[0.04] text-tinta" : "border-sand bg-papel text-tinta/65 hover:border-taupe hover:text-tinta"
-        }`}
-      >
-        <SlidersHorizontal aria-hidden className="h-4 w-4" strokeWidth={1.75} />
-        {activos > 0 && (
-          <b aria-hidden className="absolute -right-1.5 -top-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-tinta px-1 text-[10.5px] font-semibold leading-none tabular-nums text-crema">
-            {activos}
-          </b>
-        )}
-      </button>
-    );
-  }
+  const nombre = activos > 0 ? `Filtros · ${activos} ${activos === 1 ? "puesto" : "puestos"}` : "Filtros";
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-expanded={abierto}
-      aria-controls="filtros-panel"
-      className={`label-cayla mt-1.5 ${ALTO_CONTROL} inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-3.5 text-[11px] transition-colors ${
-        abierto || activos > 0
-          ? "border-tinta/30 bg-tinta/[0.04] text-tinta"
-          : "border-tinta/15 text-tinta/65 hover:border-tinta/25 hover:text-tinta"
-      }`}
-    >
-      <SlidersHorizontal aria-hidden className="h-3.5 w-3.5" />
-      Filtros{activos > 0 ? ` · ${activos}` : ""}
-    </button>
+    <div className={`pildora-filtro shrink-0 ${soloIcono ? "pildora-filtro-icono-celular" : ""}`} data-abierta={abierto ? "" : undefined}>
+      <button type="button" data-guia={guia} onClick={onClick} aria-expanded={abierto} aria-controls="filtros-panel" aria-label={nombre} className="pildora-filtro-boton">
+        <SlidersHorizontal aria-hidden className="pildora-filtro-icono" />
+        {soloIcono && activos > 0 && <span aria-hidden className="pildora-filtro-punto" />}
+        <span className="pildora-filtro-nombre">Filtros</span>
+        {activos > 0 && (
+          <span aria-hidden className="titulo-cuenta pildora-filtro-cuenta">
+            {activos}
+          </span>
+        )}
+        <ChevronDown aria-hidden className="pildora-filtro-flecha" />
+      </button>
+    </div>
   );
 }
 

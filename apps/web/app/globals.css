@@ -1537,6 +1537,9 @@ html[data-buscando] [data-resultados] {
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg.lucide-arrow-right, svg.lucide-chevron-right, svg.lucide-arrow-up-right) { transition: translate 300ms var(--ease-cayla); }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) :is(svg.lucide-arrow-right, svg.lucide-chevron-right) { translate: 4px 0; }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-arrow-up-right { translate: 2px -2px; }
+  /* Descargar (ADR-0358, ronda 10): la flecha de descarga BAJA 2 px, como la que lleva a otro lado avanza. */
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) svg.lucide-download { transition: translate 300ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-download { translate: 0 2px; }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace))::before {
     content: ""; position: absolute; pointer-events: none; border-radius: 999px;
     left: var(--onda-x, 50%); top: var(--onda-y, 50%); width: var(--onda-d, 0px); height: var(--onda-d, 0px);
