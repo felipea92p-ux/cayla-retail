@@ -1570,6 +1570,11 @@
   "tabla": "retail.compra_items"
  },
  {
+  "conname": "compra_items_categoria_id_fkey",
+  "definicion": "FOREIGN KEY (categoria_id) REFERENCES retail.categorias(id)",
+  "tabla": "retail.compra_items"
+ },
+ {
   "conname": "compra_items_compra_id_fkey",
   "definicion": "FOREIGN KEY (compra_id) REFERENCES retail.compras(id)",
   "tabla": "retail.compra_items"
@@ -1580,8 +1585,28 @@
   "tabla": "retail.compra_items"
  },
  {
+  "conname": "compra_items_marca_id_fkey",
+  "definicion": "FOREIGN KEY (marca_id) REFERENCES retail.marcas(id)",
+  "tabla": "retail.compra_items"
+ },
+ {
+  "conname": "compra_items_orden_compra_item_id_fkey",
+  "definicion": "FOREIGN KEY (orden_compra_item_id) REFERENCES retail.orden_compra_items(id)",
+  "tabla": "retail.compra_items"
+ },
+ {
   "conname": "compra_items_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.compra_items"
+ },
+ {
+  "conname": "compra_items_precio_venta_sugerido_check",
+  "definicion": "CHECK (((precio_venta_sugerido IS NULL) OR (precio_venta_sugerido >= (0)::numeric)))",
+  "tabla": "retail.compra_items"
+ },
+ {
+  "conname": "compra_items_prenda_o_categoria_marca",
+  "definicion": "CHECK (((producto_id IS NOT NULL) OR ((categoria_id IS NOT NULL) AND (marca_id IS NOT NULL))))",
   "tabla": "retail.compra_items"
  },
  {
@@ -1592,6 +1617,11 @@
  {
   "conname": "compra_items_reparto_cuadra",
   "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.compra_items"
+ },
+ {
+  "conname": "compra_items_variante_con_prenda",
+  "definicion": "CHECK (((variante_id IS NULL) OR (producto_id IS NOT NULL)))",
   "tabla": "retail.compra_items"
  },
  {
@@ -1850,6 +1880,11 @@
   "tabla": "retail.compras"
  },
  {
+  "conname": "compras_orden_compra_id_fkey",
+  "definicion": "FOREIGN KEY (orden_compra_id) REFERENCES retail.ordenes_compra(id)",
+  "tabla": "retail.compras"
+ },
+ {
   "conname": "compras_pagado_check",
   "definicion": "CHECK ((pagado >= (0)::numeric))",
   "tabla": "retail.compras"
@@ -1862,11 +1897,6 @@
  {
   "conname": "compras_proveedor_id_fkey",
   "definicion": "FOREIGN KEY (proveedor_id) REFERENCES retail.proveedores(id)",
-  "tabla": "retail.compras"
- },
- {
-  "conname": "compras_proveedor_id_serie_numero_key",
-  "definicion": "UNIQUE (proveedor_id, serie, numero)",
   "tabla": "retail.compras"
  },
  {
