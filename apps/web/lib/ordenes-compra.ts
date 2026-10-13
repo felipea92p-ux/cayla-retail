@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getProveedor } from "@/lib/proveedores";
 import { getSaldosFavor } from "@/lib/saldo-favor";
+import { getNosDebeResumen } from "@/lib/nos-debe";
 import { datosPagoDe } from "@/lib/proveedores-reglas";
 import type { DatosDelComprobante, ProveedorDelComprobante } from "@/lib/comprobante-orden-reglas";
 import {
@@ -119,7 +120,7 @@ export async function getDestinosOrden(): Promise<{ id: string; nombre: string }
 // dice (principio 9): un formulario sin proveedores que parezca «no hay proveedores» haría crear uno repetido.
 export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
   const supabase = await createClient();
-  const [resProveedores, resMarcas, resVinculos, resCategorias, destinos, resSiguiente] = await Promise.all([
+  const [resProveedores, resMarcas, resVinculos, resCategorias, destinos, resSiguiente, nosDebe] = await Promise.all([
     supabase.from("proveedores").select("id, nombre, ruc").eq("activo", true).order("nombre"),
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("marca_proveedores").select("marca_id, proveedor_id"),
@@ -127,6 +128,8 @@ export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
     getDestinosOrden(),
     // La RPC es nueva y los tipos generados todavía no la conocen: se lee como `unknown` y se valida abajo.
     supabase.rpc(RPC_SIGUIENTE_ORDEN as never) as unknown as PromiseLike<{ data: unknown; error: unknown }>,
+    // Lo que cada proveedor debe por reponer (fase 5a): un adorno. Si no responde, la orden se llena igual, sin el aviso.
+    getNosDebeResumen().catch(() => null),
   ]);
   const falla =
     resProveedores.error || resMarcas.error || resVinculos.error || resCategorias.error || !destinos
@@ -148,6 +151,7 @@ export async function getDatosNuevaOrden(): Promise<DatosNuevaOrden> {
     // La vista previa es un adorno: si no responde, el formulario dice «se numera al guardar» (no se cae).
     siguiente: typeof resSiguiente.data === "number" ? resSiguiente.data : null,
     falla,
+    nosDebe,
   };
 }
 

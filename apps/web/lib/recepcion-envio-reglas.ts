@@ -22,6 +22,7 @@ import type { CampoDeGuia } from "./guia-campos";
 import type { AccionDespues } from "./llegada-reglas";
 import { aTexto, leerNumero, textoParaBase } from "./orden-compra-alta";
 import { numeroEnvio, numeroOrdenCompra, type EstadoEnvio } from "./ordenes-compra-reglas";
+import { cubrirReposiciones, deudaDe, leerDeudasDelEnvio, opcionReposicion, pendienteDe, VALOR_REPOSICION, type DeudaDelEnvio, type PedidoReposicion } from "./nos-debe-reglas";
 import { compararTallas } from "./tallas";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -60,7 +61,8 @@ export const HINT_QUIEN_COMPRO = "recibir_quien_compro";
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 export type CausaFaltante = "no_vino" | "se_perdio" | "otra_sede";
-export type CausaSobrante = "regalo" | "cobra_aparte" | "proxima_compra";
+/** `reposicion` (fase 5a): lo de más es lo que el proveedor debía de una recepción anterior. Solo se ofrece si lo debe (`opcionesSobrante`). */
+export type CausaSobrante = "regalo" | "cobra_aparte" | "proxima_compra" | typeof VALOR_REPOSICION;
 /** Una dañada con arreglo queda en cuarentena esperando; sin arreglo, en cuarentena para liquidar, regalar, desechar o devolver. */
 export type SolucionDanada = "pendiente" | "sin_solucion";
 
@@ -71,7 +73,7 @@ export const CAUSAS_FALTANTE: readonly { valor: CausaFaltante; texto: string; ay
   { valor: "otra_sede", texto: "Llegó a otra sede", ayuda: "Se cruza en el papel con la otra sede: no es deuda." },
 ];
 
-/** Qué pasa con lo que vino de más (decisión 15: lo marca quien recibe). */
+/** Qué pasa con lo que vino de más (decisión 15: lo marca quien recibe). La reposición se suma solo cuando aplica (`opcionesSobrante`). */
 export const CAUSAS_SOBRANTE: readonly { valor: CausaSobrante; texto: string; ayuda: string }[] = [
   { valor: "regalo", texto: "Regalo", ayuda: "El proveedor no lo cobra." },
   { valor: "cobra_aparte", texto: "Se cobra aparte", ayuda: "El proveedor manda otro comprobante por esto." },
@@ -84,7 +86,9 @@ export const SOLUCIONES_DANADA: readonly { valor: SolucionDanada; texto: string;
 ];
 
 export const textoCausa = (causa: string | null | undefined): string | null =>
-  [...CAUSAS_FALTANTE, ...CAUSAS_SOBRANTE].find((c) => c.valor === causa)?.texto ?? (causa ? causa.replace(/_/g, " ") : null);
+  causa === VALOR_REPOSICION
+    ? "Reposición de lo que faltó"
+    : ([...CAUSAS_FALTANTE, ...CAUSAS_SOBRANTE].find((c) => c.valor === causa)?.texto ?? (causa ? causa.replace(/_/g, " ") : null));
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Lectores tolerantes
@@ -285,6 +289,9 @@ export type DetalleEnvio = {
   recepcion: ResultadoRecepcion | null;
   /** Si la base lo dice: quien mira hizo alguna de sus órdenes (decisión 17). */
   creadoPorMi: boolean | null;
+  /** Lo que los proveedores del envío deben por reponer, por categoría y marca (fase 5a, `deudas_del_proveedor`): con esto se ofrece «Es la
+   *  reposición de lo que faltó». `null` = la base todavía no lo dice (la recepción sigue sin esa opción). */
+  deudas: DeudaDelEnvio[] | null;
 };
 
 function leerCategoria(r: Record<string, unknown>): CategoriaDeLinea | null {
@@ -418,6 +425,7 @@ export function leerDetalleEnvio(data: unknown): DetalleEnvio | null {
     ],
     recepcion,
     creadoPorMi: booleano(d.creado_por_mi),
+    deudas: leerDeudasDelEnvio(d.deudas_del_proveedor ?? d.deudas),
   };
 }
 
@@ -791,7 +799,82 @@ export type ContextoRecepcion = {
   /** Las categorías y marcas activas, para lo que no estaba en la guía. `null` = no se pudieron leer (no se juzga). */
   categoriasActivas: ReadonlySet<string> | null;
   marcasActivas: ReadonlySet<string> | null;
+  /** Lo que los proveedores del envío deben por reponer (fase 5a). Sin esto (o `null`), la reposición no se ofrece. */
+  deudas?: readonly DeudaDelEnvio[] | null;
+  /** Los nombres de las categorías y marcas (el vocabulario de la recepción): con ellos, lo que no estaba en la guía dice qué se debe
+   *  («Te debe 2 chompas CAYLA…»); sin ellos, «2 prendas». */
+  nombres?: { categorias: readonly { id: string; nombre: string }[]; marcas: readonly { id: string; nombre: string }[] } | null;
 };
+
+// ---- La reposición de lo que faltó (ADR-0362, fase 5a, decisión 14: «se cuenta en la próxima recepción de ese proveedor») ------------
+
+/** El proveedor de algo que no estaba en la guía: el elegido o, con uno solo en el envío, ese. */
+export function proveedorDelExtra(e: Pick<BorradorExtra, "proveedorId">, ctx: Pick<ContextoRecepcion, "proveedores">): string | null {
+  return ctx.proveedores.length === 1 ? ctx.proveedores[0]!.id : e.proveedorId || null;
+}
+
+/**
+ * Las opciones de «¿qué pasa con lo de más?» de una línea o de algo fuera de la guía: las de siempre y, SOLO si ese proveedor debe algo de
+ * esa categoría y marca, «Es la reposición de lo que faltó» (con lo que debe dicho en su ayuda).
+ */
+export function opcionesSobrante(
+  ctx: Pick<ContextoRecepcion, "deudas" | "proveedores">,
+  donde: { proveedorId: string | null; categoriaId: string; marcaId: string; categoria?: string | null; marca?: string | null },
+): { valor: CausaSobrante; texto: string; ayuda: string; aviso?: string }[] {
+  const pendiente = pendienteDe(ctx.deudas, donde.proveedorId, donde.categoriaId, donde.marcaId);
+  if (pendiente <= 0) return [...CAUSAS_SOBRANTE];
+  const nombre = ctx.proveedores.find((p) => p.id === donde.proveedorId)?.nombre ?? null;
+  return [...CAUSAS_SOBRANTE, opcionReposicion(pendiente, nombre, { categoria: donde.categoria, marca: donde.marca })];
+}
+
+/**
+ * El costo con que se precarga lo que no estaba en la guía cuando se marca como reposición y todavía no tiene costo: el de la deuda más
+ * antigua de ese proveedor, categoría y marca (la reposición entra al costo de la línea original: ADR-0362, «Consecuencias ya vistas»).
+ * `null` si no hay deuda o la base no dice su costo.
+ */
+export function costoDeReposicion(
+  ctx: Pick<ContextoRecepcion, "deudas">,
+  donde: { proveedorId: string | null; categoriaId: string; marcaId: string },
+): number | null {
+  return deudaDe(ctx.deudas, donde.proveedorId, donde.categoriaId, donde.marcaId)?.costoUnitario ?? null;
+}
+
+/**
+ * Los pedidos de reposición del borrador, en el orden de la pantalla (las líneas y después lo que no estaba en la guía), con cuántas puede
+ * cubrir cada uno y su problema: es el espejo de `recibir_despacho` (la acepta solo si ese proveedor debe esa categoría y marca, y rechaza lo
+ * que pase de lo debido). La clave es el id de la guía de su pregunta (`idGuia.sobrante` o `idGuia.extra(…, "sobrante")`).
+ */
+export function reposicionesDe(b: BorradorRecepcion, ctx: ContextoRecepcion): Map<string, { disponible: number; problema: string | null }> {
+  const pedidos: PedidoReposicion[] = [];
+  for (const l of ctx.lineas) {
+    const bl = lineaDelBorrador(b, l);
+    if (bl.noLlego || bl.sobranteCausa !== VALOR_REPOSICION) continue;
+    const dif = diferenciaDe(l.enviado, sumasDe(bl, bl.prenda).contado);
+    if (dif.tipo !== "sobrante") continue;
+    pedidos.push({
+      id: idGuia.sobrante(l.id),
+      proveedorId: l.proveedor?.id ?? null,
+      categoriaId: l.categoria.id,
+      marcaId: l.marca.id,
+      cantidad: dif.cantidad,
+      categoria: l.categoria.nombre,
+      marca: l.marca.nombre,
+    });
+  }
+  for (const e of b.extras) {
+    if (e.sobranteCausa !== VALOR_REPOSICION) continue;
+    pedidos.push({
+      id: idGuia.extra(e.clave, "sobrante"),
+      proveedorId: proveedorDelExtra(e, ctx),
+      categoriaId: e.categoriaId,
+      marcaId: e.marcaId,
+      cantidad: sumasDe(e, e.prenda).contado,
+      categoria: ctx.nombres?.categorias.find((c) => c.id === e.categoriaId)?.nombre ?? null,
+      marca: ctx.nombres?.marcas.find((m) => m.id === e.marcaId)?.nombre ?? null,
+    });
+  }
+  return cubrirReposiciones(ctx.deudas, pedidos);
+}
 
 /** El nombre corto de una línea en la guía: «Línea 2». */
 export const nombreLineaGuia = (i: number): string => `Línea ${i + 1}`;
@@ -833,6 +916,9 @@ export function camposDeRecepcion(
   responsable: { listo: boolean; motivo: string | null },
 ): CampoDeGuia[] {
   const campos: CampoDeGuia[] = [];
+  // «Es la reposición de lo que faltó» que la base rechazaría (el proveedor no debe eso, o vino más de lo que debe): la pregunta queda sin hacer.
+  const reposiciones = reposicionesDe(b, ctx);
+  const problemaReposicion = (id: string): string | null => reposiciones.get(id)?.problema ?? null;
   ctx.lineas.forEach((l, i) => {
     const bl = lineaDelBorrador(b, l);
     const nombre = nombreLineaGuia(i);
@@ -865,7 +951,8 @@ export function camposDeRecepcion(
     if (dif.tipo === "faltante") {
       campos.push({ id: idGuia.faltante(l.id), nombre: `${nombre} · qué pasó`, requerido: true, hecho: bl.faltanteCausa !== null, pendiente: preguntaFaltante(dif.cantidad) });
     } else if (dif.tipo === "sobrante") {
-      campos.push({ id: idGuia.sobrante(l.id), nombre: `${nombre} · de más`, requerido: true, hecho: bl.sobranteCausa !== null, pendiente: preguntaSobrante(dif.cantidad) });
+      const problema = problemaReposicion(idGuia.sobrante(l.id));
+      campos.push({ id: idGuia.sobrante(l.id), nombre: `${nombre} · de más`, requerido: true, hecho: bl.sobranteCausa !== null && problema === null, pendiente: problema ?? preguntaSobrante(dif.cantidad) });
     }
   });
 
@@ -900,7 +987,14 @@ export function camposDeRecepcion(
       });
       campos.push(...camposDeDanadas(e, s, { danadas: idGuia.extra(e.clave, "danadas"), arreglo: idGuia.extra(e.clave, "arreglo") }, nombre));
     }
-    campos.push({ id: idGuia.extra(e.clave, "sobrante"), nombre: `${nombre} · qué pasa`, requerido: true, hecho: e.sobranteCausa !== null, pendiente: "Elige qué pasa con esto: regalo, se cobra aparte o se arregla en la próxima compra." });
+    const problemaExtra = problemaReposicion(idGuia.extra(e.clave, "sobrante"));
+    campos.push({
+      id: idGuia.extra(e.clave, "sobrante"),
+      nombre: `${nombre} · qué pasa`,
+      requerido: true,
+      hecho: e.sobranteCausa !== null && problemaExtra === null,
+      pendiente: problemaExtra ?? "Elige qué pasa con esto: regalo, se cobra aparte o se arregla en la próxima compra.",
+    });
   });
 
   const problemaNota = textoParaBase(b.nota).length > TOPES_RECEPCION.nota ? `La nota va hasta ${TOPES_RECEPCION.nota} letras.` : null;

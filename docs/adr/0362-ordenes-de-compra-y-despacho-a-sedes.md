@@ -117,6 +117,13 @@ Por defecto *(provisional, revisar con Felipe)*: las causas del faltante son «N
 camino» y «Llegó a otra sede»; todo lo contado entra al costo de la línea, también un regalo; la pareja marca–proveedor se registra
 sola al crear la prenda; un costo de 0 pide confirmar; sin cola sin conexión en esta pantalla.
 
+**Fase 5a (2026-10-12, rama `claude/purchase-order-phase5-9b0c82`).** Contrato: `docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md`.
+Lo construido (no mueve plata): **la deuda** es el faltante «No vino» de una recepción (14); se ve en la ficha del proveedor («Prendas
+por reponer») y al crear o editar su próxima orden (14); se salda con **la prenda** —en la próxima recepción, «Es la reposición de lo que
+faltó», la más antigua primero, o a mano con «Llegó la reposición» y una nota (24)—, nunca más de lo debido. **Fase 5b, sin construir:**
+«Pasar a saldo a favor» y «Depositó» (24) y devolver una dañada al proveedor (27) mueven plata y tocan la contabilidad (nota de crédito
+tipo 07, IGV de lo que no llegó): esperan a Felipe y al contador; las preguntas están en el contrato.
+
 ## Fuente: el brief de Felipe
 
 «CAYLA Retail · Brief de desarrollo: Compras y LIM Taller» (7 oct 2026), https://claude.ai/artifact/2GE1cKibGDhCZFsQaY5XRV. Felipe
