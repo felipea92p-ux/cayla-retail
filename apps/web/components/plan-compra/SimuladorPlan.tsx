@@ -51,7 +51,7 @@ export function SimuladorPlan({ filas, tope, recuperoDefecto, veAnalisis }: { fi
           {tope !== null && (sim.inversion > tope ? ` Te pasarías ${solesES(sim.inversion - tope)} del tope.` : ` Te quedarían ${solesES(tope - sim.inversion)} del tope.`)}
         </p>
         {veAnalisis && (
-          <Link href="/inventario/resumen?vista=pedir" className="inline-flex items-center gap-1 text-sm text-pizarra underline-offset-2 hover:underline">
+          <Link href="/gestion/analisis?vista=pedir" className="inline-flex items-center gap-1 text-sm text-pizarra underline-offset-2 hover:underline">
             Qué pedir, prenda por prenda, en Análisis
             <ArrowRight aria-hidden className="h-3.5 w-3.5" />
           </Link>

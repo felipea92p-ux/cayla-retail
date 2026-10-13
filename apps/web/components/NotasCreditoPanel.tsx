@@ -505,7 +505,7 @@ function FilaNota({
             Registrar nota
           </button>
         )}
-        <ChevronRight aria-hidden className="cmp-flecha-fila h-4 w-4 shrink-0 text-tinta/40" />
+        <ChevronRight aria-hidden className="cmp-flecha-fila h-4 w-4 shrink-0" />
       </span>
     </div>
   );
