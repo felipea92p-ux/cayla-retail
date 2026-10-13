@@ -71,7 +71,7 @@ export function OrdenTarjeta({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="font-display break-words text-lg leading-tight text-tinta">{orden.referencia}</h3>
+          <h3 className="font-display break-words text-lg leading-tight text-tinta">{/* unificar-fijo: el nombre de la orden en su tarjeta es un dato, no un título de sección */}{orden.referencia}</h3>
           <p className="mt-0.5 text-xs text-tinta/65">
             {[orden.categoria, `${orden.cantidadPlan} prendas`].filter(Boolean).join(" · ")}
           </p>

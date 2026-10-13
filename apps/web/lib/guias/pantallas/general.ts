@@ -403,7 +403,7 @@ export const GUIA_ACTIVIDAD: Guia = {
       id: "sede",
       ancla: "actividad.sede",
       titulo: "La sede",
-      texto: "El líder elige una sede o todas. Si no eres líder, ves la tuya: la caja dice cuál.",
+      texto: "El líder elige una sede o todas. Si no eres líder, ves la tuya: el filtro dice cuál.",
     },
     {
       id: "persona",
@@ -810,7 +810,7 @@ export const GUIA_COMERCIAL: Guia = {
       ancla: "comercial.horas",
       opcional: true,
       titulo: "Ventas por hora",
-      texto: "Cuánto vendió cada tienda en cada hora de hoy, y cuál fue su hora fuerte. Sirve para repartir turnos. «Ver como tabla» muestra los mismos números en filas.",
+      texto: "Cuánto vendió cada tienda en cada hora de hoy, y cuál fue su hora fuerte. Sirve para repartir turnos.",
     },
     {
       id: "colaboradoras",

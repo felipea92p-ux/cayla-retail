@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { etiquetaDeLinea, filasDeLinea, nombresDeDestinos, tiendasConPendiente } from "@/lib/reparto-reglas";
 import { getRepartoDeCompra, type RepartoDeCompra } from "@/lib/compras-reparto";
 import { RepartoPorTienda } from "@/components/RepartoPorTienda";
@@ -42,6 +41,7 @@ import { datosPagoDe, type DatosPagoProveedor } from "@/lib/proveedores-reglas";
 import { getSaldosFavor } from "@/lib/saldo-favor";
 import { accionesDeCompraDe, requirePersonaActualV2 } from "@/lib/persona-actual";
 import type { AccionesDeCompra } from "@/lib/modulos";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // Detalle de una factura (ADR-0035): qué se compró, qué llegó y qué se pagó,
 // todo calculado desde movimientos y pagos. Desde acá se registra un pago
@@ -354,9 +354,7 @@ export function CompraDetalle({
             <div className="flex items-baseline justify-between">
               <p className="label-cayla text-[11px] text-tinta/65">Recepciones</p>
               {!anulada && compra.estadoRecepcion !== "recibida" && hayAlgoQueRecibir(lineas) && (
-                <Link href={`/compras/recibir?compra=${compra.id}`} className="label-cayla text-[11px] text-rojo hover:underline">
-                  Recibir mercadería →
-                </Link>
+                <EnlaceVer href={`/compras/recibir?compra=${compra.id}`}>Recibir mercadería</EnlaceVer>
               )}
             </div>
             {recepciones.length === 0 ? (

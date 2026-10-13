@@ -2,7 +2,7 @@
   "guia": "compras.factura.compraid",
   "ruta": "/compras/factura/[compraId]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 56,
+  "total": 53,
   "controles": {
     "app/(app)/compras/factura/[compraId]/page.tsx": [
       "Volver «(sin nombre)»"
@@ -28,8 +28,7 @@
       "button «{loading ? \"Cerrando…\" : \"Cerrar línea con faltante\"}»"
     ],
     "components/CompraDetalle.tsx": [
-      "a «Finanzas ▸ Gastos»",
-      "Link «Recibir mercadería →»"
+      "a «Finanzas ▸ Gastos»"
     ],
     "components/CompraDetallePanel.tsx": [
       "button «Anular comprobante»",
@@ -49,11 +48,9 @@
       "button «{responsable.motivo ?? undefined}»"
     ],
     "components/NotasCreditoCompra.tsx": [
-      "Link «Registrar en Notas de crédito ↗»",
       "Link «Notas de crédito»"
     ],
     "components/PagoPiezas.tsx": [
-      "Link «Agregarlo en su ficha →»",
       "button «{`Copiar ${etiqueta.toLowerCase()}»",
       "Boton «Listo»",
       "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",

@@ -1,4 +1,5 @@
 import { Chip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Encabezado, TABLA, celda, fila } from "@/components/ui/Tabla";
 import { lecturaDeGrupo, type FilaDelRiel, type PropuestaMix } from "@/lib/mix-piso";
 import { cifraEs, pctEs } from "@/lib/mix-piso-visual";
@@ -321,7 +322,7 @@ export function PropuestaDelMix({
 
       <section className="card-cayla overflow-hidden anim-sube" style={{ "--i": 2 } as React.CSSProperties} aria-label="Propuesta del mix en el riel" data-guia="plan-piso.tabla">
         <div className="border-b border-sand px-5 py-4">
-          <h3 className="font-display text-xl text-tinta">Lugar de cada grupo en el riel</h3>
+          <TituloSeccion nivel={3}>Lugar de cada grupo en el riel</TituloSeccion>
           <p className="mt-0.5 max-w-2xl text-[13px] text-tinta/70">
             La propuesta mezcla el punto de partida con lo que vendió la sede. Aquí no se guarda nada: es para mirarla y compararla con lo que cuelga.
           </p>

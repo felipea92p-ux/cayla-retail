@@ -339,6 +339,7 @@ export function MoverMercaderiaFormV2({
           <input
             id="mover-eta"
             type="datetime-local"
+            className={campoTexto}
             value={etaLocal}
             onChange={(e) => {
               setEtaLocal(e.target.value);
@@ -346,7 +347,6 @@ export function MoverMercaderiaFormV2({
             }}
             aria-invalid={errores.eta ? true : undefined}
             aria-describedby={errores.eta ? "mover-eta-error" : undefined}
-            className={campoTexto}
           />
           {errores.eta && (
             <Aviso tono="error" chico id="mover-eta-error">
@@ -399,7 +399,7 @@ export function MoverMercaderiaFormV2({
                 value={l.cantidad}
                 onChange={(e) => actualizarLinea(i, { cantidad: e.target.value })}
                 onBlur={() => normalizarCantidad(i)}
-                className="w-20 border-b border-tinta/20 bg-transparent px-1 py-2 text-center text-sm text-tinta outline-none focus:border-rojo"
+                className="caja-campo-input w-20 text-center"
               />
               {l.varianteId && <span className="text-xs text-tinta/65">de {tope}</span>}
               {lineas.length > 1 && (

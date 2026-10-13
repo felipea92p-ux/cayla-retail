@@ -21,6 +21,7 @@ import {
 } from "@/lib/proveedores-produccion-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { Casilla } from "@/components/ui/Casilla";
 
 // Proveedores de Producción (ADR-0133, F4a; D-H): quienes le venden tela, avíos y maquila al Taller. Directorio aparte del de
 // Compras. Solo se muestra lo que la base ya sabe de cada uno —lotes recibidos, total comprado, última entrega—; el saldo y el
@@ -105,7 +106,7 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
             <Buscador guia="prod-proveedores.buscador" valor={busqueda} onCambio={setBusqueda} atajo placeholder="Nombre, RUC o contacto" etiqueta="Buscar proveedor" className="ml-auto min-w-56" />
             {resumen.archivados > 0 && (
               <label data-guia="prod-proveedores.archivados" className="flex items-center gap-2 text-xs text-tinta/70">
-                <input type="checkbox" checked={verArchivados} onChange={(e) => setVerArchivados(e.target.checked)} />
+                <Casilla marcada={verArchivados} onCambio={() => setVerArchivados((v) => !v)} etiqueta="Ver archivados" />
                 Ver archivados
               </label>
             )}

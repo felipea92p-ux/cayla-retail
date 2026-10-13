@@ -407,22 +407,25 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
 
             {/* --- serie, fecha, monto ------------------------------------------------ */}
             <section className="grid gap-4 sm:grid-cols-[1.4fr_1fr_1fr]" data-guia="nc-modal.datos">
-              <label className="block">
-                <span className="label-cayla text-[11px] text-tinta/70">Serie-número</span>
-                <input
-                  ref={refSerie}
-                  value={borrador.serieNumero}
-                  onChange={(e) => setBorrador((b) => ({ ...b, serieNumero: e.target.value.toUpperCase() }))}
-                  placeholder="FC01-000018"
-                  autoComplete="off"
-                  className={`mt-1 w-full border-b bg-transparent px-0.5 py-2 font-mono text-sm uppercase tabular-nums tracking-wider text-tinta outline-none placeholder:font-sans placeholder:normal-case placeholder:tracking-normal placeholder:text-tinta/45 ${intento && v.errores.serie ? "border-rojo" : "border-tinta/20 focus:border-rojo"}`}
-                />
+              {/* La caja que se enciende (ADR-0358, ronda 6) con el título de campo de la pieza; el error sigue debajo, con su alerta. */}
+              <label className="campo block">
+                <span className="campo-etiqueta">Serie-número</span>
+                <span className="caja-cayla caja-campo mt-1.5" data-tono={intento && v.errores.serie ? "error" : undefined}>
+                  <input
+                    ref={refSerie}
+                    value={borrador.serieNumero}
+                    onChange={(e) => setBorrador((b) => ({ ...b, serieNumero: e.target.value.toUpperCase() }))}
+                    placeholder="FC01-000018"
+                    autoComplete="off"
+                    className="self-stretch py-0 font-mono uppercase tabular-nums tracking-wider placeholder:font-sans placeholder:normal-case placeholder:tracking-normal"
+                  />
+                </span>
                 {intento && v.errores.serie && <span role="alert" className="anim-revelar mt-1 block text-xs text-rojo">{v.errores.serie}</span>}
               </label>
               <CampoFecha etiqueta="Fecha de la nota" valor={borrador.fecha} onValor={(iso) => setBorrador((b) => ({ ...b, fecha: iso }))} tono={v.errores.fecha ? "error" : undefined} pie={v.errores.fecha} required />
-              <label className="block">
-                <span className="label-cayla text-[11px] text-tinta/70">Monto (con IGV)</span>
-                <span className={`mt-1 flex items-center gap-2 border-b ${(tocoMonto || intento) && v.errores.monto ? "border-rojo" : "border-tinta/20 focus-within:border-rojo"}`}>
+              <label className="campo block">
+                <span className="campo-etiqueta">Monto (con IGV)</span>
+                <span className="caja-cayla caja-campo mt-1.5" data-tono={(tocoMonto || intento) && v.errores.monto ? "error" : undefined}>
                   <span className="text-sm text-tinta/55">S/</span>
                   <input
                     ref={refMonto}
@@ -431,7 +434,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
                     placeholder="0.00"
                     value={v.montoMostrado}
                     onChange={(e) => { setBorrador((b) => ({ ...b, montoTxt: e.target.value })); setTocoMonto(true); }}
-                    className="w-full min-w-0 bg-transparent py-2 font-mono text-sm tabular-nums tracking-wider text-tinta outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-tinta/45"
+                    className="self-stretch py-0 font-mono tabular-nums tracking-wider placeholder:font-sans placeholder:tracking-normal"
                   />
                 </span>
                 <span className="mt-1 block text-xs text-tinta/55">
@@ -513,17 +516,19 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
                     </div>
                     <div className="mt-3.5 grid gap-4 sm:grid-cols-[1fr_1.4fr]">
                       <CampoFecha etiqueta="Fecha en que lo devuelve" valor={borrador.reembolsoFecha} onValor={(iso) => setBorrador((b) => ({ ...b, reembolsoFecha: iso }))} tono={v.errores.reembolsoFecha ? "error" : undefined} pie={v.errores.reembolsoFecha} required />
-                      <label className="block">
-                        <span className="label-cayla text-[11px] text-tinta/70">
+                      <label className="campo block">
+                        <span className="campo-etiqueta">
                           N.° de operación <span className="font-normal normal-case tracking-normal">(opcional)</span>
                         </span>
-                        <input
-                          value={borrador.reembolsoReferencia}
-                          onChange={(e) => setBorrador((b) => ({ ...b, reembolsoReferencia: e.target.value }))}
-                          placeholder="Op. 00881230"
-                          autoComplete="off"
-                          className="mt-1 w-full border-b border-tinta/20 bg-transparent px-0.5 py-2 font-mono text-sm tabular-nums tracking-wider text-tinta outline-none placeholder:font-sans placeholder:tracking-normal placeholder:text-tinta/45 focus:border-rojo"
-                        />
+                        <span className="caja-cayla caja-campo mt-1.5">
+                          <input
+                            value={borrador.reembolsoReferencia}
+                            onChange={(e) => setBorrador((b) => ({ ...b, reembolsoReferencia: e.target.value }))}
+                            placeholder="Op. 00881230"
+                            autoComplete="off"
+                            className="self-stretch py-0 font-mono tabular-nums tracking-wider placeholder:font-sans placeholder:tracking-normal"
+                          />
+                        </span>
                       </label>
                     </div>
                   </div>
@@ -679,7 +684,7 @@ function FichaFactura({ factura: c, filas, onCambiar }: { factura: FacturaParaNo
             {c.fechaVencimiento ? ` · vence ${diaMes(c.fechaVencimiento)}` : ""}
           </span>
         </span>
-        <button type="button" onClick={onCambiar} className="label-cayla text-[11px] text-rojo hover:underline">
+        <button type="button" onClick={onCambiar} className="btn-cayla btn-enlace text-xs">
           Cambiar
         </button>
       </div>

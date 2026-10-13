@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { FunnelX, Receipt, SearchX } from "lucide-react";
+import { FunnelX, Receipt, SearchX, Truck } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
-import { Boton, BotonEnlace, Desplegable } from "@/components/ui/campos";
+import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -15,6 +15,7 @@ import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 
 const ETIQUETA_FILTRO: Record<FiltroEstado, string> = { todos: "Todos", por_pagar: "Por pagar", vencidos: "Vencidos", pagados: "Pagados", anulados: "Anulados" };
 
@@ -136,12 +137,13 @@ export function ComprobantesProduccionPanel({
               ))}
             </div>
             <div data-guia="prod-facturas.proveedor">
-            <Desplegable
+            <DesplegablePildora
+              icono={Truck}
+              etiqueta="Proveedor"
               valor={proveedorId}
+              valorPorDefecto=""
               onValor={(v) => setProveedorId(v)}
               opciones={[{ valor: "", texto: "Todos los proveedores" }, ...todosLosProveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
-              etiquetaAccesible="Filtrar por proveedor"
-              forma="caja"
             />
             </div>
             <Buscador guia="prod-facturas.buscador" valor={busqueda} onCambio={setBusqueda} atajo placeholder="Proveedor o F001-123" etiqueta="Buscar factura" className="ml-auto min-w-52" />
