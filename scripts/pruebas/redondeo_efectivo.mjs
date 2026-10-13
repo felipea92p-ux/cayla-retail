@@ -672,6 +672,8 @@ rollback;`);
     registrar_venta: "PARCHADA (20261003130000, actividad 5): acepta la fila de redondeo y exige que sea el redondeo exacto de la ley.",
     resumen_separaciones: "Apartados: lectura de separacion_pagos.",
     separar_prendas: "Adelanto de un apartado: no se redondea (ADR-0311 §7); solo escribe separacion_pagos.",
+    trg_efectivo_de_caja:
+      "Disparador diferido del efectivo de la caja (/chaos 2026-10-13): de una fila de venta_pagos solo lee su venta para saber de qué caja es; la cuenta del cajón la hace fn_calcular_esperado_caja (que ya sabe del redondeo). No suma pagos.",
   };
   const r14 = correr(`select p.proname from pg_proc p where p.pronamespace = 'retail'::regnamespace
     and (p.prosrc ilike '%venta_pagos%' or p.prosrc ilike '%separacion_pagos%') order by 1;`);
