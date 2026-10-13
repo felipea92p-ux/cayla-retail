@@ -333,6 +333,10 @@ export const PRUEBAS = [
   // (incluida la de ayer 23:59, que ya es «hoy» en UTC) y acepta la de hoy. Cada caso: ROLLBACK.
   "pruebas:anular-venta-mismo-dia",
 
+  // Anular desde la misma tienda: anular_venta deja anular a alguien de la tienda de la venta o a un líder, igual
+  // que corregir_pagos_venta. Con control (sin el candado, sí anulaba). Cada caso: ROLLBACK.
+  "pruebas:anular-venta-misma-sede",
+
   // El panel de Actividad no muestra las ventas archivadas como prueba (ADR-0159): fn_actividad y
   // fn_actividad_personas dejan fuera la fila de una venta con es_prueba; la fila queda en la tabla.
   // Con controles (sin la migración la fila sí sale). Cada caso: ROLLBACK.
