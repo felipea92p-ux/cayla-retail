@@ -623,6 +623,9 @@ export function PanelTalla({
                   <>
                     <Pestanas
                       etiquetaAccesible="Vista"
+                      // La pieza hugs su contenido, pero como ítem de la grilla se estiraba a las 17 rem de la columna (Felipe, 2026-10-13:
+                      // «ocupa más espacio del que debería»): centrada y del ancho de sus dos pestañas.
+                      className="justify-self-center"
                       activa={vista}
                       onCambio={(k) => {
                         setVista(k as Vista);
