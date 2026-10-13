@@ -4,7 +4,8 @@ import type { NextConfig } from "next";
 // El optimizador de imágenes solo acepta fotos del Storage PÚBLICO de nuestro Supabase (las de prendas,
 // `retail-productos-fotos`), nada de otro host: sin lista cerrada, `/_next/image?url=…` serviría de proxy a
 // cualquier URL. Se arma desde `NEXT_PUBLIC_SUPABASE_URL` porque producción y local apuntan a hosts distintos.
-// Quien lo usa hoy: `FotoPrenda` de Apartados (ADR-0168). Las demás imágenes de Storage siguen `unoptimized`.
+// Quien lo usa hoy: `ImagenDePrenda` (ADR-0168), que dibujan `FotoPrenda` de Apartados, `MiniaturaPrenda` y `TilePrenda` de Análisis.
+// Las demás imágenes de Storage siguen `unoptimized`.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL) : null;
 
 const nextConfig: NextConfig = {

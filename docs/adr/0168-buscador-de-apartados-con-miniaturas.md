@@ -48,3 +48,46 @@ Se midió en producción el 2026-09-22 (bucket `retail-productos-fotos`): 31 fot
 En `/vender/apartados`, escribe «blusa»:
 - Aparece la lista con fotos y en la pestaña Red del navegador cada miniatura sale de `/_next/image?...&w=96` con pocos KB.
 - Si escribes el nombre de una prenda sin disponible en la tienda, aparece gris al final con dónde hay.
+
+---
+
+## Actualización 2026-10-13 — el optimizador llega a las miniaturas de todo el ERP
+
+**Qué cambió.** `MiniaturaPrenda` (`components/ui/PrendaCelda.tsx`, la miniatura de 27 archivos: Existencias, Catálogo ▸
+Productos, Movimientos, Conteo, Frescura, Cambios, Devoluciones…) y `TilePrenda` (Análisis) dibujaban `<Image unoptimized>`:
+bajaban el original de 1200×1500 (~90 KB) para pintarlo a 17–64 px. Ahora pasan por el optimizador de Next cuando la foto
+es de nuestro Storage público. Con el ancho del dibujo, el navegador pide: 36 y 44 px → 48/96, 48 px → 48/96, 60 px → 64/128
+(1×/2×); los tiles de 17 a 64 px → 32/48 hasta 64/128.
+
+**Una sola pieza, no tres copias (ADR-0358).** Las dos decisiones que toda foto de prenda necesita viven ahora en
+`components/ui/ImagenDePrenda.tsx`: *¿la optimiza Next o se muestra tal cual?* (`fotoOptimizable`, sin cambios) y *si no
+carga, ¿qué se dibuja?* (el mosaico de «sin foto», ADR-0333). `FotoPrenda` de Apartados, que tenía su propia copia de ambas,
+la usa también. Cada pieza conserva su caja, su recorte y su «sin foto»: `ImagenDePrenda` solo decide cómo se sirve.
+
+**Un cambio de comportamiento, a propósito.** Antes, una foto de miniatura o de tile que no cargaba (404, host caído) dejaba
+la imagen rota. Ahora cae al mismo «sin foto» de la prenda sin foto, como ya hacía `FotoPrenda`. La marca de «rota» se guarda
+por URL, así que una celda que pasa a otra foto vuelve a intentarlo.
+
+**Descartado.**
+- *Marcar `PrendaCelda.tsx` como `"use client"`* para usar un hook: cuatro archivos de servidor
+  (`ResultadoConteo`, `CabinaAlmacen`, `BloquesLaterales` y el propio) llaman `categoriaDe` desde ahí, y llamar a una función
+  exportada por un archivo cliente desde el servidor tira la pantalla. Por eso la pieza compartida es un componente cliente
+  aparte y `PrendaCelda.tsx` sigue sin marca.
+- *Tocar `FotoDePrenda`* (la foto de 176 px del costado de una hoja) y los ~24 sitios más que siguen `unoptimized`
+  (Existencias en tarjeta, Vender, Inicio de Almacén, ficha de producto…): es el mismo cambio y cabe en `ImagenDePrenda`,
+  pero no se pidió y cada pantalla se mira por separado. Quedan anotados en `docs/backlog/`.
+
+**Se rompe si.**
+- **El cupo de transformaciones de Vercel.** Este ADR descartó preocuparse por él con «~31 fotos y un puñado de anchos».
+  Con esta actualización cada foto puede pedirse a hasta unos 6 anchos distintos (32 a 128 en miniaturas y tiles, más los de
+  `FotoPrenda`) en toda la app, y el catálogo creció: una lectura de producción del 2026-10-13, de otra sesión, contó 235
+  productos aprobados, con una foto por color. Hay que mirar el consumo de «Image Optimization» en Vercel tras el primer mes;
+  la salida si molesta es la que ya se anotó arriba: generar la miniatura al subir la foto. **No se midió en esta sesión:**
+  contar las fotos de producción (`retail.producto_fotos`) no se pudo (lectura denegada), así que el número de fotos reales
+  sigue sin saberse.
+- Alguien vuelve a escribir `<Image unoptimized>` para una foto de prenda: `lib/imagen-de-prenda.test.tsx` prueba lo que sale
+  al navegador (Storage propio → `/_next/image`; otro host o sin URL de Supabase → tal cual), pero no vigila archivos nuevos.
+
+**Cómo verificarlo.** En Catálogo ▸ Productos (vista Tabla) o Existencias, con una prenda que tenga foto, la pestaña Red
+muestra `/_next/image?url=…&w=48|96|64|128` en vez del archivo completo del Storage. Para ver el respaldo, abre una prenda
+cuya foto dé 404: debe verse el ícono de su categoría sobre su color, nunca una imagen rota.
