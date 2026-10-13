@@ -125,7 +125,7 @@ describe("el menú de hoy sigue igual (línea base capturada del AppShell real)"
    entero, a cualquier profundidad (un subgrupo cuenta como hija de su padre Y como cabecera de las suyas). No atrapa la
    repetición entre DOS RAMAS del árbol que nunca se muestran juntas a la vez (Compras/Producción→Abastecimiento,
    Proveedores, Facturas, Recibir, Por pagar: mutuamente excluyentes por ubicación o permiso, a propósito — ver los
-   comentarios de esos íconos en AppShell.tsx) — esa parte queda a criterio de quien agregue una fila nueva.
+   comentarios de esos íconos en lib/menu-iconos.ts) — esa parte queda a criterio de quien agregue una fila nueva.
    ==================================================================== */
 function iconosDeSubarbol(n: Nodo): string[] {
   if (n.estado !== "viva") return [];
