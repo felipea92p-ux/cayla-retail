@@ -18,10 +18,8 @@ import { Vacio } from "@/components/ui/Vacio";
 // viven en la RPC `registrar_compra`.
 export default async function NuevaCompraPage({ searchParams }: { searchParams: Promise<{ prov?: string }> }) {
   const persona = await exigirModulo("facturas_compra"); // 20260923130000: registrar es del módulo Facturas de compra
-  // ADR-0184 (F5): un comprador de tienda registra con SU tienda como gestora (el backend lo exige: la gestora tiene
-  // que tener parte en el reparto). `tiendasCompra` son las tiendas donde compra (su tienda más las extra
-  // de `compradores_de_tienda`), que pueden no ser solo la sede donde está parado.
-  const esComprador = persona.rol !== "lider";
+  // ADR-0387 (Felipe 2026-10-12; deshace aquí ADR-0184 F5): quien tiene el módulo elige la tienda gestora entre TODAS las
+  // tiendas activas, igual que el líder. El formulario arranca en la sede de la persona y la puede cambiar.
   const { prov } = await searchParams;
   // El costo ya no viaja en el catálogo compartido (20260923193700): se pide aparte. Este módulo es de quien ve el dinero.
   const [directorio, ubicaciones, catalogo, costos, resumen, hayReparto, marcas] = await Promise.all([getProveedores(), getUbicaciones(), getCatalogo(), getCostosVariantes(), getResumenCompras(), repartoDisponible(), getMarcasPorProveedor()]);
@@ -89,11 +87,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
       ubicaciones={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
       // ADR-0139: solo se ofrece «Repartir entre tiendas» si esta base ya tiene el reparto (una base vieja ignoraría `destinos`).
       repartoDisponible={hayReparto}
-      // ADR-0184: solo para un comprador — el líder gestiona con cualquier tienda (`undefined` es «sin restricción»,
-      // el comportamiento de siempre). Si el comprador de alguna razón no tiene ninguna (no debería pasar: el layout
-      // ya lo exige), cae a la lista completa para no dejarlo sin poder elegir nada.
-      misTiendas={esComprador && persona.tiendasCompra.length > 0 ? persona.tiendasCompra : undefined}
-      ubicacionInicialId={esComprador ? (persona.tiendasCompra[0]?.id ?? persona.ubicacionId) : persona.ubicacionId}
+      ubicacionInicialId={persona.ubicacionId}
       variantes={catalogo
         .filter((v) => v.activo)
         .map((v) => ({
