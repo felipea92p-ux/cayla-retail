@@ -43,6 +43,7 @@ import type { ControlResponsable } from "@/lib/useResponsable";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 
 const ESPERA_MS = 300;
 
@@ -156,9 +157,7 @@ export function ClientaDelTicket({
         // Una sola caja: nombre, documento y estado arriba; lo del club, dentro de la misma caja (spike, `tarjeta-club`).
         <div className="overflow-hidden rounded-xl border border-sand bg-crema">
           <div className="flex items-center gap-2 px-3 py-2">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-sand font-display text-sm text-tinta" aria-hidden>
-              {iniciales(linea.titulo)}
-            </span>
+            <AvatarPersona personaId={null} nombre={soloPalabras(linea.titulo)} tamano={32} />
             <div className="min-w-0 flex-1">
               <button type="button" onClick={() => setAbierto(true)} disabled={bloqueado || fila === "elegida_fija"} className="block w-full min-w-0 text-left">
                 <span className="block truncate text-[13.5px] font-semibold text-tinta">{linea.titulo}</span>
@@ -398,13 +397,12 @@ function FilaDelCartel({ fila, revisando, onActualizar }: { fila: ReturnType<typ
   );
 }
 
-function iniciales(texto: string) {
+/** Las palabras que empiezan con letra: <AvatarPersona> saca de ahí las mismas iniciales de siempre (un DNI no da una inicial). */
+function soloPalabras(texto: string) {
   return texto
     .split(/\s+/)
     .filter((p) => /^[\p{L}]/u.test(p))
-    .slice(0, 2)
-    .map((p) => p[0]!.toUpperCase())
-    .join("");
+    .join(" ");
 }
 
 /** Una ficha de la lista del buscador, con lo que la lista dice de ella frente al club (spike: «· Miembro» / «· Identificado»). */

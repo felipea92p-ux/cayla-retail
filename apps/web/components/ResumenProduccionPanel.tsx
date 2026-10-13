@@ -9,6 +9,7 @@ import { BotonEnlace } from "@/components/ui/campos";
 import { ETIQUETA_ESTADO_MODELO, type CifrasResumen, type Decision, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
 // cuando el dato cambia. Solo hechos y cuentas sobre datos medidos. El rojo de la pantalla (máximo 2) lo lleva únicamente la cifra de «Por pagar» cuando hay algo
@@ -103,10 +104,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
       </div>
 
       <section data-guia="prod-resumen.decidir" aria-label="Para decidir" className="space-y-3">
-        <h2 className="font-display flex flex-wrap items-baseline gap-x-3 text-xl text-tinta">
-          Para decidir
-          <small className="font-sans text-xs text-tinta/65">{decisiones.length === 0 ? "nada por ahora" : plural(decisiones.length, "asunto", "asuntos")}</small>
-        </h2>
+        <TituloSeccion dato={decisiones.length === 0 ? "nada por ahora" : plural(decisiones.length, "asunto", "asuntos")}>Para decidir</TituloSeccion>
         {decisiones.length === 0 ? (
           <div className="card-cayla">
             <Vacio tamano="chico" icono={<CircleCheck />}>
@@ -137,10 +135,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
       </section>
 
       <section data-guia="prod-resumen.que-producir" id="produce" aria-label="Qué producir" className="space-y-2.5">
-        <h2 className="font-display flex flex-wrap items-baseline gap-x-3 text-xl text-tinta">
-          ¿Qué producir?
-          <small className="font-sans text-xs text-tinta/65">días que dura el stock de las tiendas al ritmo medido · marcas en 7 y 30 días</small>
-        </h2>
+        <TituloSeccion dato="días que dura el stock de las tiendas al ritmo medido · marcas en 7 y 30 días">¿Qué producir?</TituloSeccion>
         {falloRed && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{falloRed}</p>}
         {modelos.length === 0 ? (
           <p className="card-cayla p-5 text-sm text-tinta/70">Todavía no hay modelos con variantes en el catálogo para producir.</p>
@@ -201,10 +196,7 @@ export function ResumenProduccionPanel({ decisiones, cifras, modelos, telas, fal
       </section>
 
       <section data-guia="prod-resumen.tela" aria-label="Alcanza la tela" className="space-y-2.5">
-        <h2 className="font-display flex flex-wrap items-baseline gap-x-3 text-xl text-tinta">
-          ¿Alcanza la tela?
-          <small className="font-sans text-xs text-tinta/65">lo que hay y lo que viene facturado, contra lo que las órdenes abiertas todavía necesitan</small>
-        </h2>
+        <TituloSeccion dato="lo que hay y lo que viene facturado, contra lo que las órdenes abiertas todavía necesitan">¿Alcanza la tela?</TituloSeccion>
         {telas.length === 0 ? (
           <p className="card-cayla p-5 text-sm text-tinta/70">
             No hay telas en el catálogo.{" "}

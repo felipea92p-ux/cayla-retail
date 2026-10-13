@@ -16,7 +16,6 @@ import { Aviso } from "@/components/ui/Aviso";
 // 2026-09-23: va en TODA acción que guarda). El modal lo pinta encima del botón y apaga el botón mientras falte; la
 // firma y el `despues` los pone quien llama.
 
-const entrada = "card-cayla w-full px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/55 focus:border-rojo";
 
 /** Nuevo rol o Duplicar: un nombre (y, al duplicar, de dónde sale su lista de módulos). */
 export function NuevoRolModal({
@@ -53,7 +52,7 @@ export function NuevoRolModal({
           }}
         >
           <Campo etiqueta="Nombre del rol" htmlFor="rol-nombre" pie="Por ejemplo: Almacén, Finanzas, Vendedora de campaña.">
-            <input id="rol-nombre" className={entrada} value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} autoFocus autoComplete="off" />
+            <input id="rol-nombre" className="caja-campo-input" value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} autoFocus autoComplete="off" />
           </Campo>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex justify-end gap-2">
@@ -101,10 +100,10 @@ export function RenombrarRolModal({
           }}
         >
           <Campo etiqueta="Nombre" htmlFor="rol-renombre">
-            <input id="rol-renombre" className={entrada} value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} autoComplete="off" />
+            <input id="rol-renombre" className="caja-campo-input" value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} autoComplete="off" />
           </Campo>
           <Campo etiqueta="Descripción" htmlFor="rol-descripcion" pie="Opcional. Para qué es este rol, en una línea.">
-            <input id="rol-descripcion" className={entrada} value={descripcion} maxLength={200} onChange={(e) => setDescripcion(e.target.value)} autoComplete="off" />
+            <input id="rol-descripcion" className="caja-campo-input" value={descripcion} maxLength={200} onChange={(e) => setDescripcion(e.target.value)} autoComplete="off" />
           </Campo>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex justify-end gap-2">

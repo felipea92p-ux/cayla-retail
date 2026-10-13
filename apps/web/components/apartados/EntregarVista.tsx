@@ -22,8 +22,10 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
@@ -38,7 +40,8 @@ function detallePrenda(v: VarianteBusqueda | undefined, sku: string): string {
   return [v.color, v.talla, codigoPrenda(v)].filter(Boolean).join(" · ");
 }
 
-const iniciales = (a: Apartado) => `${a.nombres[0] ?? ""}${a.apellidos[0] ?? ""}`.toUpperCase();
+// La cara del cliente (<AvatarPersona>, ADR-0358 ronda 8) con las mismas iniciales de siempre: el primer nombre y el primer apellido.
+const nombreParaIniciales = (a: Apartado) => `${a.nombres.split(/\s+/)[0] ?? ""} ${a.apellidos.split(/\s+/)[0] ?? ""}`;
 
 export function EntregarVista({
   ubicacionId,
@@ -163,7 +166,7 @@ export function EntregarVista({
           <article className="anim-revelar space-y-4 rounded-2xl border border-sand p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3.5">
-                <span className="font-display grid h-12 w-12 place-items-center rounded-full bg-sand/70 text-lg text-tinta">{iniciales(a)}</span>
+                <AvatarPersona personaId={null} nombre={nombreParaIniciales(a)} />
                 <div>
                   <p className="font-display text-2xl leading-tight text-tinta">{a.nombres} {a.apellidos}</p>
                   <p className="text-[12.5px] text-tinta/60 tabular-nums">
@@ -238,7 +241,7 @@ export function EntregarVista({
                 {encontrados.map((x) => (
                   <li key={x.id}>
                     <button type="button" onClick={() => elegir(x.id)} className="anim-revelar grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border border-sand bg-papel px-4 py-3 text-left hover:border-taupe">
-                      <span className="font-display grid h-9 w-9 place-items-center rounded-full bg-sand/70 text-sm">{iniciales(x)}</span>
+                      <AvatarPersona personaId={null} nombre={nombreParaIniciales(x)} tamano={32} />
                       <span className="min-w-0">
                         <b className="font-semibold">{x.nombres} {x.apellidos}</b> <span className="font-mono text-[11px] text-tinta/55">{x.codigo}</span>
                         <span className="block truncate text-[12.5px] text-tinta/60">{x.prendas.map((pr) => `${pr.referencia} ${detallePrenda(porVariante.get(pr.varianteId), pr.sku)}`).join(" · ")}</span>
@@ -260,9 +263,11 @@ export function EntregarVista({
       {/* En el celular, sin apartado elegido el panel solo diría «Elige un apartado»: la lista de arriba ya lo dice. */}
       <aside data-guia="apartados.entregar-detalle" className={`flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
         <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
-          <h2 className="font-display flex items-center gap-2.5 text-2xl leading-none text-tinta">
-            <Wallet className="h-6 w-6 text-tinta/70" aria-hidden /> Saldo
-          </h2>
+          <TituloSeccion>
+            <span className="inline-flex items-center gap-2.5">
+              <Wallet className="h-5 w-5 text-tinta/70" aria-hidden /> Saldo
+            </span>
+          </TituloSeccion>
           {a && <span className="font-mono text-xs text-tinta/60">{a.codigo}</span>}
         </div>
         {!a ? (

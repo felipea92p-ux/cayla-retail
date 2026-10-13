@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -83,9 +84,9 @@ export function AbrirCajaFormV2({
     <form data-guia="caja.abrir" onSubmit={onSubmit} className={enHoja ? "space-y-4" : "card-cayla space-y-4 p-5"}>
       <div>
         {!enHoja && <p className="label-cayla text-[11px] text-taupe-profundo">Abrir caja</p>}
-        <h2 className="font-display mt-0.5 text-2xl text-tinta">
+        <TituloSeccion className="mt-0.5">
           {esperado === null ? `${ubicacionEtiqueta} no tiene una caja abierta` : "Antes de abrir, cuenta el cajón"}
-        </h2>
+        </TituloSeccion>
       </div>
 
       {esperado !== null && (
@@ -124,8 +125,8 @@ export function AbrirCajaFormV2({
             <label className={campoEtiqueta} htmlFor="apertura-monto">
               {esperado === null ? "Monto con el que abres (efectivo en el cajón)" : "¿Cuánto hay en el cajón?"}
             </label>
-            <div className="flex items-baseline gap-1.5 border-b border-tinta/20 focus-within:border-rojo">
-              <span className="font-display text-xl text-tinta/50">S/</span>
+            <div className="caja-cayla caja-campo caja-campo-alta">
+              <span aria-hidden className="font-display text-base leading-none text-tinta/55">S/</span>
               <input
                 id="apertura-monto"
                 inputMode="decimal"
@@ -134,7 +135,7 @@ export function AbrirCajaFormV2({
                 placeholder="0.00"
                 value={montoTexto}
                 onChange={(e) => setMontoTexto(e.target.value)}
-                className="font-display w-full bg-transparent py-1 text-2xl tabular-nums text-tinta outline-none"
+                className="font-display self-stretch py-0 text-2xl tabular-nums"
               />
             </div>
           </div>

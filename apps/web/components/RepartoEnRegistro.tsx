@@ -180,7 +180,7 @@ export function RepartoDeLinea({
               value={reparto[t.id] ? reparto[t.id] : ""}
               onChange={(e) => cambiar(t.id, e.target.value)}
               onFocus={(e) => e.target.select()}
-              className={`${NUMERO} w-16 border-b border-tinta/25 bg-transparent px-0.5 py-1 text-center text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/35 focus:border-b-2 focus:border-rojo`}
+              className={`${NUMERO} caja-campo-input w-16 text-center tabular-nums`}
             />
           </label>
         ))}
@@ -201,7 +201,7 @@ export function RepartoDeLinea({
             <button
               type="button"
               onClick={() => onReparto(repartirEnPartesIguales(cantidad, tiendas.map((t) => t.id)))}
-              className="label-cayla text-[10.5px] text-rojo hover:underline"
+              className="btn-cayla btn-enlace text-xs"
             >
               Partes iguales
             </button>

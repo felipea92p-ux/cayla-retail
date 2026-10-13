@@ -82,15 +82,13 @@ export function AjustarInicio({
                             {a.ocultable ? (
                               <button
                                 type="button"
-                                role="switch"
+                                role="switch" // unificar-fijo: la cara del interruptor del sistema, con su título a la izquierda en la fila
                                 aria-checked={activo}
                                 aria-label={a.titulo}
                                 onClick={() => guardar({ ...eleccion, [a.clave]: !activo })}
-                                className={`relative h-6 w-10 shrink-0 rounded-full transition-colors duration-200 ${activo ? "bg-verde" : "bg-tinta/30"}`}
+                                className="interruptor"
                               >
-                                <span
-                                  className={`absolute top-[3px] left-[3px] size-[18px] rounded-full bg-crema transition-transform duration-200 ease-cayla ${activo ? "translate-x-4" : ""}`}
-                                />
+                                <span aria-hidden className="interruptor-perilla" />
                               </button>
                             ) : (
                               <span className="flex shrink-0 items-center gap-1 text-xs text-rojo-profundo">

@@ -274,7 +274,7 @@ export function HojaDeCobro({
                         ))}
                         <label className={`hoja-cobro-billete es-otro ${recibido !== undefined && !enSugeridos ? "es-escrito" : ""}`}>
                           <span className="text-xs text-tinta/50">S/</span>
-                          <input
+                          <input // unificar-fijo: el billete «Otro» es una baldosa más de la hoja de cobro (hoja-cobro-billete)
                             aria-label="Otro monto recibido"
                             type="number"
                             inputMode="decimal"
@@ -392,7 +392,7 @@ function CabezaPaso({
       >
         {hecho ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : numero}
       </span>
-      <h3 className="label-cayla whitespace-nowrap text-[15px] font-bold text-tinta">{titulo}</h3>
+      <h3 className="label-cayla whitespace-nowrap text-[15px] font-bold text-tinta">{/* unificar-fijo: la cabeza numerada de un paso del cobro, con su pista y su estado */}{titulo}</h3>
       {pista && (
         <span className={`anim-revelar whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${pistaFuerte ? "bg-rojo/10 text-rojo-profundo" : "bg-hueso text-tinta"}`}>
           {pista}
