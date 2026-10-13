@@ -347,6 +347,14 @@ export const GUIA_INICIO: Guia = {
       texto: "Cada aviso con su interruptor: verde lo ves, gris no. Los del candado salen siempre, y lo que apagas igual aparece si se vuelve urgente. «Volver a lo recomendado» deshace tus cambios. Se recuerda en este aparato. En la demo no tocamos ninguno.",
     },
     {
+      id: "piso",
+      ancla: "inicio.piso",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Tu piso",
+      texto: "Cómo está el piso de tu tienda sin entrar a Gestión: cuánto de lo colgado está fresco y cuánto del riel está ocupado. Si todavía no se puede saber, te dice por qué y te da el botón que lo arregla (por ejemplo, «Cuadrar el piso»). Tocas una tarjeta y vas a su pantalla.",
+    },
+    {
       id: "accesos",
       ancla: "inicio.accesos",
       opcional: true,
