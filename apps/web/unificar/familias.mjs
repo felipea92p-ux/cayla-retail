@@ -783,6 +783,56 @@ export const DECISIONES = {
     "deuda": [],
     "excepciones": []
   },
+  "accion.exportar": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.exportar.md",
+    "elegida": "P1 · «Descargar» + qué («Descargar Excel», «Descargar CSV», «Descargar reporte del ajuste»), nunca «Exportar» ni solo un ícono: el botón secundario con el ícono de descarga que BAJA 2 px al pasar el mouse y el hilo mientras se arma el archivo; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/BotonDescargar.tsx",
+    "tambien": ["app/globals.css"],
+    "firmas": [
+      // El ícono de descarga dibujado fuera de la pieza (un botón a mano o solo un ícono): es <BotonDescargar>.
+      "<Download\\b",
+      // «Exportar» como texto de un botón, un ítem de menú o una etiqueta: el verbo es «Descargar».
+      "^\\s*Exportar\\b|>\\s*Exportar\\b|etiqueta: \"Exportar|aria-label=\"Exportar"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.filtrar": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.filtrar.md",
+    "elegida": "P1 · una píldora más: «Filtros» con la cara de las píldoras que abre (borde arena, su ícono, su nombre en letra normal; abierta, borde tinta y la flecha roja) y cuántos hay puestos en el globito de los títulos; en el celular, solo el ícono con su punto; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/FiltrosPildora.tsx",
+    "tambien": ["app/estilos/campos-y-casillas.css"],
+    "ventana": 3,
+    "firmas": [
+      // Un botón de filtros hecho a mano (el ícono de deslizadores y «Filtros» al lado): es <BotonFiltros>.
+      "\\bSlidersHorizontal\\b[^\\n]*(?:\\n[^\\n]*){0,1}?\\n\\s*Filtros\\b",
+      // El conteo escrito («Filtros · 2»): va en el globito de la pieza.
+      "Filtros\\{[^}]*·"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.ver": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.ver.md",
+    "elegida": "P1 · llevar a ver algo en otra pantalla es siempre el botón secundario con la flecha a la derecha que avanza 4 px (<BotonVer>), nunca negro ni con «→» escrito; dentro de una frase, el enlace; junto a un resumen, <EnlaceVer>; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/BotonDescargar.tsx",
+    "tambien": [],
+    "ventana": 6,
+    "firmas": [
+      // Un botón NEGRO que solo lleva a otra pantalla («Ver en Existencias», «Ir a Caja», «Abrir ficha completa»): es <BotonVer>.
+      "<(?:Link|BotonEnlace|a)\\b[^>]*?(?:\\bbtn-primario\\b|peso=\"primario\")[^>]*>\\s*\\n(?:\\s*<[^>]*\\/>\\s*\\n)?\\s*(?:Ver|Ir a|Abrir ficha)\\b",
+      // «→» escrito a mano en un botón del sistema que lleva a otro lado: la flecha la dibuja la pieza.
+      "\\bbtn-(?:primario|secundario|sutil)\\b[^\\n]*(?:\\n[^\\n]*){0,2}?\\n\\s*(?:Ver|Ir a|Abrir)\\b[^\\n]*→"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
   "grafico.barra": {
     "fecha": "2026-10-09",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",

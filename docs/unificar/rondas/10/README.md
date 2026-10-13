@@ -1,7 +1,9 @@
 # Ronda 10 de `/unificar`: descargar, filtros y ver (fuentes)
 
 Armada el 2026-10-13 (rama `claude/mystifying-jang-ef15d0`) con el censo de después de las rondas 6–9 (Admin, 252 de 277 vistas).
-**Espera la elección de Felipe.** La página vive en `apps/web/unificar/.salida/elegir-ronda10/` (fuera de git); estas son sus fuentes.
+**Decidida el mismo día: Felipe eligió las tres P1 tocando las demos, y se migraron (deuda 0).** Registros:
+[accion.exportar.md](../../accion.exportar.md), [accion.filtrar.md](../../accion.filtrar.md), [accion.ver.md](../../accion.ver.md). La página vive en
+`apps/web/unificar/.salida/elegir-ronda10/` (fuera de git); estas son sus fuentes.
 
 | # | Familia | La pregunta | Opciones |
 |---|---|---|---|

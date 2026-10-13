@@ -148,6 +148,15 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   —Cambiar, Editar, Deshacer— sigue `btn-enlace`). Migrado el mismo día: **deuda 4 → 0** en todas las familias. Registros:
   `campo-combo.md`, `tabla.md`, `boton.md`, `titulo-seccion.md`, `enlace.md`.
 
+- **2026-10-13 · ronda 10, tres botones de una sola función, tocándolos** (fuentes en `docs/unificar/rondas/10/`). Felipe eligió las tres P1:
+  **bajar un archivo es «Descargar» + qué** (`<BotonDescargar>`: el secundario con el ícono de descarga que baja 2 px y el hilo mientras se
+  arma el archivo; nunca «Exportar» ni solo un ícono); **el botón de los filtros es una píldora más** (`<BotonFiltros>` con la cara de
+  `.pildora-filtro`, cuántos hay puestos en el globito de los títulos; Existencias deja su cuadrado y en el celular queda el ícono con su
+  punto); y **llevar a ver algo en otra pantalla es el botón secundario con la flecha que avanza** (`<BotonVer>`; nunca negro ni con «→»
+  escrito; el vacío conserva su paso principal en negro, con su `unificar-fijo`). Migrado el mismo día: **deuda 0** en las tres. De paso,
+  la caja del «+» y del ícono dentro de `<Boton>` pasó de `inline-flex` a `flex`: armaba su propia línea de texto y el botón medía hasta
+  45 px junto a vecinos de 40. Registros: `accion.exportar.md`, `accion.filtrar.md`, `accion.ver.md`.
+
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en
 `docs/SESIONES-ACTIVAS.md` lo reserva para que no vuelva a chocar.

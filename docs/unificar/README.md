@@ -33,12 +33,14 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Enlaces (`enlace`) | `btn-enlace` con el hilo que se llena; `<EnlaceVer>` en versalitas rojas con la flecha que avanza | 2026-10-13 (tocando) | 0 | [enlace.md](enlace.md) |
 | Paginación (`paginacion`) | `<Paginas>`: la píldora que se desliza | 2026-10-13 (tocando) | 0 | [paginacion.md](paginacion.md) |
 | Avatares (`avatar`) | `<AvatarPersona>` en cuatro tamaños y `<PilaPersonas>` | 2026-10-13 (tocando) | 0 | [avatar.md](avatar.md) |
+| Descargar un archivo (`accion.exportar`) | `<BotonDescargar>` (`components/ui/BotonDescargar.tsx`): «Descargar» + qué, nunca «Exportar» ni solo un ícono; el secundario con el ícono de descarga que baja 2 px y el hilo mientras se arma el archivo (ronda 10) | 2026-10-13 (tocando) | 0 | [accion.exportar.md](accion.exportar.md) |
+| Abrir los filtros (`accion.filtrar`) | `<BotonFiltros>` (`components/ui/FiltrosPildora.tsx`): una píldora más, con cuántos hay puestos en el globito; en el celular, solo el ícono con su punto (ronda 10) | 2026-10-13 (tocando) | 0 | [accion.filtrar.md](accion.filtrar.md) |
+| Ver en otra pantalla (`accion.ver`) | `<BotonVer>` (`components/ui/BotonDescargar.tsx`): el secundario con la flecha que avanza, nunca negro ni con «→» escrito; en una frase, el enlace; junto a un resumen, `<EnlaceVer>` (ronda 10) | 2026-10-13 (tocando) | 0 | [accion.ver.md](accion.ver.md) |
 
 ## Propuestas esperando decisión
 
-| Familia | Propuesta | Desde | Nota |
-|---|---|---|---|
-| `accion.exportar`, `accion.filtrar`, `accion.ver` | **Ronda 10:** descargar un archivo, el botón de los filtros y llevar a ver algo en otra pantalla, en una página de elegir con demos vivas (fuentes en [rondas/10](rondas/10/README.md)) | 2026-10-13 | Espera la elección de Felipe |
+Ninguna. **La ronda 10** (descargar, filtros y ver en otra pantalla; fuentes en [rondas/10](rondas/10/README.md)) la eligió Felipe
+tocando las demos el 2026-10-13, las tres **P1**, y se migró el mismo día: deuda 0.
 
 **La migración de las rondas 6–8 (2026-10-13)** bajó la deuda de 258 archivos a 4 en un día, sin cambiar qué hace ningún botón, y dejó seis
 preguntas que no se podían decidir por regla. **La ronda 9 (el mismo día, tocando las demos) las cerró y la deuda quedó en 0 en todas las
@@ -76,7 +78,7 @@ en la página de elegir, nunca por una descripción.
 | 7 | `tabla` | Tablas | 39 sin depurar → **4 reales** + `fin-tabla` | **Decidida el 2026-10-13 (ronda 7)** |
 | 8 | `campo` + `etiqueta-campo` | Cajas de texto y sus títulos | 8 / 5 (censo parcial del 2026-10-12) + el código: 5 caras de campo en una misma hoja | **Decidida el 2026-10-13 (ronda 6)**: campo y combo en UNA pregunta |
 | 9 | `titulo-seccion` | El título de cada bloque dentro de una pantalla | 46 sin depurar → serif en 8 tamaños, versalitas en 6, sans en 5, y 4 separadores de día | **Decidida el 2026-10-13 (ronda 7)**: bloque, grupo y separador de día |
-| 10 | `accion.ver`, `accion.filtrar`, `accion.exportar` | Ver en otra pantalla, abrir los filtros, descargar un archivo | censo del 2026-10-13: 16 / 5 / 4 (depurado: 4 pesos de «ver», 2 caras de filtros, 4 caras y dos verbos de descargar) | **Ronda 10 armada el 2026-10-13: espera la elección** (`accion.eliminar` ya está decidida, ronda 4) |
+| 10 | `accion.ver`, `accion.filtrar`, `accion.exportar` | Ver en otra pantalla, abrir los filtros, descargar un archivo | censo del 2026-10-13: 16 / 5 / 4 (depurado: 4 pesos de «ver», 2 caras de filtros, 4 caras y dos verbos de descargar) | **Decidida y migrada el 2026-10-13 (ronda 10, las tres P1)** (`accion.eliminar` ya estaba decidida, ronda 4) |
 | 11 | ~~`casilla`~~ (decidida, ronda 6), ~~`enlace`~~, ~~`paginacion`~~, ~~`avatar`~~ (decididas, ronda 8), `modal`, `grafico` | Casillas e interruptores, enlaces de texto, hojas, gráficos, paginación, avatares | 6 / 9 / 5 / 5 / 2 / 2 | Pocas formas: rondas cortas. **De los gráficos, la barra apilada ya está decidida (`grafico.barra`, 2026-10-09)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357) |
 | 12 | `accion.cerrar`, `accion.cancelar`, `accion.guardar`, `accion.limpiar`, `accion.editar`, `accion.buscar`, `accion.imprimir`, `accion.menu`, `accion.copiar` | Los botones de una sola función | 1–2 cada una | Casi todas tienen ya una sola forma: se pueden cerrar juntas en una ronda |
 | 13 | `icono` | Iconos (tamaño y trazo) | 122 huellas · 73 | Las 122 son sobre todo tamaños y trazos distintos de lucide; hay que depurar mucho antes de mostrar |
