@@ -316,7 +316,7 @@ export function ResumenProduccionPanel({
             ))}
           </ul>
         )}
-        <p className="text-xs text-tinta/60">
+        <p className="text-xs text-tinta/65">
           «Piden» se calcula con el consumo real medido de las órdenes cerradas de cada modelo; un modelo sin órdenes cerradas con insumos descontados todavía no aporta demanda.
         </p>
       </section>
