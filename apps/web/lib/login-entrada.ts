@@ -134,6 +134,21 @@ export function estadoDeLaEntrada(vms: number, ms: number, medidas: MedidasDeLaE
   };
 }
 
+/**
+ * ¿El velo ya tapa toda la pantalla? (`vms`, el tiempo de `msDelVuelo`.) Recién ahí se muestra la pantalla de destino (Felipe 2026-10-13: «se ve el
+ * inicio»): el velo entra de a poco (`TIEMPOS.velo`) y una pantalla que llegara antes se vería a través de él —casi transparente en su primer medio
+ * segundo— antes de que la ventana del colibrí la abra. Se pide al servidor de inmediato, pero espera tras el velo (`EsperaAlVelo`): así carga debajo,
+ * como quiere la entrada, y solo se ve por la ventana.
+ */
+export function veloCubre(vms: number): boolean {
+  return vms >= TIEMPOS.velo[1];
+}
+/**
+ * Lo más que la pantalla de destino espera a que el velo cubra, en ms desde que empieza la entrada. Si la capa no avisa (la pestaña quedó en segundo
+ * plano y el navegador frenó el dibujo), se muestra igual: nadie está mirando y la entrada no se queda esperando.
+ */
+export const MS_TOPE_DEL_VELO = TIEMPOS.velo[1] + 500;
+
 /** Cuánto hay que esperar a que la pantalla de destino esté libre y estable antes de abrir la ventana, en ms. */
 export const ESTABLE_DURANTE = 200;
 /** Si pasado este tiempo la pantalla no llega, la entrada se deshace sola (la persona no se queda mirando un fondo oscuro). */
