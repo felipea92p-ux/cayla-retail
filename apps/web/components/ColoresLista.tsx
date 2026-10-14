@@ -32,6 +32,7 @@ import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
 import { filtrarColores } from "@/lib/atributos-buscar";
 import { Aviso } from "@/components/ui/Aviso";
+import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
@@ -504,6 +505,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   <CampoGuiado id="nombre" guia={guia}>
                   <CampoTexto
                     etiqueta={guia.etiqueta("nombre", "Nombre")}
+                    maxLength={MAX_NOMBRE_CATALOGO}
                     value={nombre}
                     onChange={(e) => {
                       setNombre(e.target.value);
@@ -573,8 +575,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>
               <PieGuia guia={guia} listo="Todo listo para guardar." />
-              <div className="flex gap-2 pt-3">
-                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+              <div className="pie-acciones pt-3">
+                <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
                 <Boton
@@ -629,13 +631,13 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoCodigo === rechazandoColor.codigo}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={rechazandoCodigo === rechazandoColor.codigo}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={rechazandoCodigo === rechazandoColor.codigo}
                   onClick={() => rechazar(rechazandoColor)}
                 >
@@ -804,7 +806,8 @@ function ColorEditarModal({
               quedaban el doble de grandes que los de Notas hacia abajo. */}
           <div data-guia="atributos.color-form" className="space-y-1">
             <CampoGuiado id="nombre" guia={guia}>
-              <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")} value={nombre} onChange={(e) => setNombre(e.target.value)} />
+              <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")}
+                    maxLength={MAX_NOMBRE_CATALOGO} value={nombre} onChange={(e) => setNombre(e.target.value)} />
             </CampoGuiado>
             <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
             <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
@@ -869,7 +872,7 @@ function ColorEditarModal({
               >
                 {desactivando ? "Desactivando…" : confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
               </Boton>
-              <div className="flex gap-2">
+              <div className="pie-acciones">
                 <Boton type="button" peso="fantasma" onClick={cerrar} disabled={ocupado}>
                   Cancelar
                 </Boton>

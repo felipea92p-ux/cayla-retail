@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
-import { diaMes } from "@/lib/fechas-lima";
+import { diaLima, diaMes } from "@/lib/fechas-lima";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { cantidadTexto, previsualizarConsumo, previsualizarDevolucion, UNIDADES_INSUMO } from "@/lib/insumos-reglas";
@@ -197,7 +197,7 @@ export function OrdenInsumos({
                     <p className="text-xs text-tinta/65">
                       {[...new Set(g.movs.filter((m) => m.lote).map((m) => `lote ${m.lote}`))].join(" · ") || "sin lote"}
                       {" · "}
-                      {diaMes(g.movs[g.movs.length - 1].creadoEn.slice(0, 10))}
+                      {diaMes(diaLima(g.movs[g.movs.length - 1].creadoEn))}
                       {g.movs.some((m) => m.cantidad < 0) && " · con devoluciones"}
                     </p>
                   </div>
@@ -320,7 +320,7 @@ export function OrdenInsumos({
                       className="rounded-full border border-tinta/15 px-3 py-1.5 text-[12.5px] text-tinta/80 outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 aria-pressed:border-tinta aria-pressed:bg-tinta aria-pressed:text-crema disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:border-tinta/15"
                     >
                       {i.nombre}
-                      <small className="ml-1.5 opacity-70 dark:opacity-85">{sinSaldo ? "sin saldo" : cantidadTexto(i.saldo, i.unidad)}</small>
+                      <small className="ml-1.5 opacity-85">{sinSaldo ? "sin saldo" : cantidadTexto(i.saldo, i.unidad)}</small>
                     </button>
                   );
                 })}

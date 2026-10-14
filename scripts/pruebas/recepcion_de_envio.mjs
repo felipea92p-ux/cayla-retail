@@ -55,7 +55,23 @@ const BASE = arg("--base", "postgres");
 const SIN_MIGRACION = process.argv.includes("--sin-migracion");
 const MIGRACIONES = SIN_MIGRACION
   ? ""
-  : ["20261013001000_recepcion_de_envio_esquema.sql", "20261013002000_recepcion_de_envio.sql"]
+  : [
+      "20261013001000_recepcion_de_envio_esquema.sql",
+      "20261013002000_recepcion_de_envio.sql",
+      // ADR-0393: el refactor que deja una sola puerta al stock (fn_recepcion_entrar). Va después: así cada caso prueba el
+      // recibir_despacho de hoy, no el de la fase 4.
+      "20261013170000_recepcion_un_solo_camino_de_cierre.sql",
+      // ADR-0393: el conteo guardado; recibir_despacho deja también el conteo de cada línea.
+      "20261013171000_conteo_de_envio.sql",
+      // ADR-0393: el cierre único (fn_recepcion_cerrar) y los pendientes; recibir_despacho cierra por él.
+      "20261013172000_cerrar_conteo_con_pendientes.sql",
+      // ADR-0393: «Hacer ahora» con lo pendiente y el número del aviso.
+      "20261013173000_resolver_pendiente_de_envio.sql",
+      // ADR-0393: reabrir un envío recibido; «Nos debe» lee lo que vale.
+      "20261013180000_reabrir_envio.sql",
+      // ADR-0393: lo que llega sin aviso, con el mismo conteo.
+      "20261013183000_envio_sin_aviso.sql",
+    ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
           .replace(/^set lock_timeout.*$/m, "")
@@ -493,7 +509,7 @@ caso(
      (select count(*) from retail.despacho_diferencias x where x.despacho_id = :'d1') || ' diferencias',
      (select ${limpio("a.descripcion")} || ':' || a.modulo || ':' || (a.persona_id = :'micaela_p') || ':' || (a.ubicacion_id = :'tru')
         from retail.actividad a where a.accion = 'despacho_recibido' and a.registro_id = :'d1'));`,
-  "buenas,danadas,despacho_id,faltan,lotes,numero,sobran,unidades / 14:14:0:0:0:1 / 6,4,6 / 30.00,30.00,38.33 / t / " +
+  "buenas,contadas,danadas,despacho_id,faltan,lotes,numero,por_detallar,sobran,unidades / 14:14:0:0:0:1 / 6,4,6 / 30.00,30.00,38.33 / t / " +
     "true@6:recepcion:true:true,true@4:recepcion:true:true,false@4:recepcion:true:true / 3 movimientos / 10:recibida / " +
     "cerrado:true:true:Llegó en dos bolsas:1:true:sin token / 6:0:30.00:true,4:0:30.00:true,4:0:45.00:false / 0 diferencias / " +
     "recibió ENV (14 prendas):recibir:true:true",

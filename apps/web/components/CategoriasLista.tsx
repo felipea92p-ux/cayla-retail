@@ -22,6 +22,7 @@ import { PUNTO_DEL_TONO, tonoDeFamilia } from "@/lib/categoria-tonos";
 import { avisoChoque, ejemploParaFamilia, prefijoDesdeNombre, quienUsaNombre, quienUsaPrefijo } from "@/lib/categoria-alta-reglas";
 import { FolderTree, Grid3x3, Layers, Ruler, Shapes } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
 /**
  * Las familias del negocio (Indumentaria, Calzado...), cada una con sus
@@ -534,6 +535,7 @@ export function CategoriasLista({
               )}
               <CampoTexto
                 etiqueta="Nombre"
+                maxLength={MAX_NOMBRE_CATALOGO}
                 value={borrador.nombre}
                 onChange={(e) => {
                   const nombre = e.target.value;
@@ -767,7 +769,7 @@ export function CategoriasLista({
             ) : (
               <span />
             )}
-            <div className="flex gap-2">
+            <div className="pie-acciones">
               <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                 Cancelar
               </Boton>

@@ -12,6 +12,7 @@ import { desdeDeParams, vueltaAProductos } from "@/lib/vuelta-productos";
 import { Volver } from "@/components/ui/Volver";
 import { Chip } from "@/components/ui/Chip";
 import { precioUnico } from "@/lib/precio-sede-reglas";
+import { esUuid } from "@/lib/club-registro-reglas";
 
 
 // Edición de producto (V2). Mismo candado de cortesía que /productos/nuevo
@@ -26,6 +27,8 @@ export default async function EditarProductoPage({
   searchParams: Promise<{ desde?: string | string[] }>;
 }) {
   const { id } = await params;
+  // Un id que no es un uuid no es ningún producto: «no existe», no la pantalla de error (/chaos 2026-10-13, #12).
+  if (!esUuid(id)) notFound();
   // Tabla o Grilla, con sus filtros: de donde se salió a editar (`lib/vuelta-productos.ts`).
   const volverA = vueltaAProductos(desdeDeParams((await searchParams).desde));
   const persona = await requirePersonaActualV2();

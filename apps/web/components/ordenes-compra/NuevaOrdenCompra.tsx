@@ -499,7 +499,7 @@ export function NuevaOrdenCompra({ datos, sede, hoy, destinoInicial, editar }: P
             </CampoGuiado>
           )}
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex flex-wrap justify-end gap-2.5">
+          <div className="pie-acciones">
             <BotonEnlace href="/compras/ordenes">Cancelar</BotonEnlace>
             <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {guardando ? "Guardando…" : editar ? "Guardar cambios" : "Guardar orden"}

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { getTrasladosDeLaSede, type TrasladoDetalle, type TrasladoResumen } from "@/lib/traslados";
+import { unidadesPorRevisar } from "@/lib/traslados-sobrantes-reglas";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getParaEnviar, getPedidosConCliente, getPedidosEntreSedes, getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
 import { contarTePiden } from "@/lib/pedidos-por-atender-reglas";
@@ -92,6 +93,7 @@ export function datosDeResumen(t: TrasladoResumen): DatosPase {
     lineas: t.lineas,
     lineasContadas: t.lineasContadas,
     cerradoConDiferencia: t.cerradoConDiferencia,
+    sobrantesPorRevisar: t.sobrantesPorRevisar,
     creadoPorNombre: t.creadoPorNombre,
     fotos: t.fotos,
     colores: t.colores,
@@ -124,6 +126,7 @@ export function datosDeDetalle(t: TrasladoDetalle): DatosPase {
     lineas: enviadas.length,
     lineasContadas: contadas.filter((l) => l.cantidadEnviada !== null).length,
     cerradoConDiferencia: t.estado === "cerrada" && t.lineas.some((l) => l.cantidadRecibida !== null && l.cantidadRecibida !== (l.cantidadEnviada ?? 0)),
+    sobrantesPorRevisar: unidadesPorRevisar(t.sobrantes),
     creadoPorNombre: t.creadoPorNombre === "—" ? null : t.creadoPorNombre,
     fotos,
     colores: Array.from(new Set(t.lineas.map((l) => l.colorHex).filter((c): c is string => !!c))).slice(0, 3),

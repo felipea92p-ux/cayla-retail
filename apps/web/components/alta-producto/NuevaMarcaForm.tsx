@@ -22,6 +22,7 @@ import {
   type ProveedorDelFormulario,
 } from "@/lib/marca-proveedor-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { MAX_NOMBRE_MARCA } from "@/lib/catalogo-topes";
 
 // El formulario «Registrar marca o proveedor» (ADR-0109; spike Nuevo producto v2, 2026-09-28): lo usan el selector de
 // Nuevo producto/censo/edición Y la pantalla Catálogo → Marcas — una sola forma de crear una marca, no dos.
@@ -195,6 +196,8 @@ export function NuevaMarcaForm({
     if (!firma.listo) return setError(firma.motivo);
     const nombre = marcaNombre.trim();
     if (!nombre) return setError("Elige la marca o escribe una nueva.");
+    // ADR-0405: el mismo tope que la base (`marcas_textos_con_tope`); la marca se escribe en el combo, que no corta solo.
+    if (nombre.length > MAX_NOMBRE_MARCA) return setError(`El nombre de la marca admite hasta ${MAX_NOMBRE_MARCA} letras.`);
     if (porResponder.length > 0) {
       return setError(
         porResponder.length === 1
@@ -438,7 +441,7 @@ export function NuevaMarcaForm({
 
       <AvisoSinIdentidad firma={firma} />
       <PieGuia guia={guia} listo="Todo listo para registrar." />
-      <div className="flex justify-end gap-2">
+      <div className="pie-acciones">
         <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-secundario">
           Cancelar
         </button>

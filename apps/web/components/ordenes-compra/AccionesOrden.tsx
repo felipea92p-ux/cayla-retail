@@ -3,7 +3,7 @@
 import { useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Ban, Printer, ReceiptText, Truck } from "lucide-react";
+import { Ban, ReceiptText, Truck } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, BotonEnlace, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
@@ -12,6 +12,7 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { BotonEditarOrden } from "@/components/ordenes-compra/BotonEditarOrden";
+import { GastoDelViaje } from "@/components/ordenes-compra/GastoDelViaje";
 import { HojaOrdenCompra, type EmpresaDeLaOrden } from "@/components/ordenes-compra/HojaOrdenCompra";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { useResponsable } from "@/lib/useResponsable";
@@ -32,6 +33,7 @@ import {
 } from "@/lib/ordenes-compra-reglas";
 import { anularOrdenCompra } from "@/lib/ordenes-compra-acciones";
 import { textoParaBase } from "@/lib/orden-compra-alta";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // Lo que se hace con una orden (ADR-0362, fase 1 · actividades 4, 5 y 6): «Imprimir o guardar PDF» siempre; «Editar» y «Anular orden»
 // solo mientras está «generada». Con papel (fase 2, actividad 4) se suma «Registrar comprobante» —la acción principal— mientras la orden esté
@@ -52,6 +54,8 @@ import { textoParaBase } from "@/lib/orden-compra-alta";
 // El PDF (decisión 1: se puede mandar al proveedor) sale del diálogo de impresión, como la guía de traslado: el papel
 // (`HojaOrdenCompra`, A4) queda montado pegado a <body> mientras la orden está a la vista —así Ctrl+P también imprime la orden y no la
 // pantalla— y el documento se llama como la orden, así el archivo se guarda como «OC-000129.pdf» (`useTituloDeImpresion`).
+//
+// «+ Gasto del viaje» (fase 6 · actividad 3): en toda orden que no esté anulada, con ESTA orden ya elegida (lo que costó traerla).
 
 const sinSuscripcion = () => () => {};
 
@@ -67,11 +71,9 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
   const puedeEnviar = puedeEnviarOrden(orden);
 
   const imprimir = (
-    <Boton onClick={() => window.print()}>
-      <span className="inline-flex items-center gap-2">
-        <Printer aria-hidden className="h-3.5 w-3.5" /> Imprimir o guardar PDF
-      </span>
-    </Boton>
+    <BotonImprimir onClick={() => window.print()} title="También sirve para guardar la orden en PDF">
+      Imprimir la orden
+    </BotonImprimir>
   );
   const registrar = puedeRegistrarComprobante(orden) && (
     <BotonEnlace href={`/compras/ordenes/comprobante/${orden.id}`} peso="primario" data-guia="orden.registrar-comprobante">
@@ -86,6 +88,12 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
         <Truck aria-hidden className="h-3.5 w-3.5" /> Enviar a una sede
       </span>
     </BotonEnlace>
+  );
+  const gastoViaje = orden.estado !== "anulada" && (
+    <GastoDelViaje
+      orden={{ id: orden.id, numero: numeroOrdenCompra(orden.numero), proveedor: orden.proveedor.nombre, total: orden.total }}
+      guia="orden.gasto-viaje"
+    />
   );
   const anular = puedeAnular && (
     <Boton
@@ -107,6 +115,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
           {anular}
           <div className="ml-auto flex flex-wrap items-center gap-3">
             {imprimir}
+            {gastoViaje}
             {puedeEditar && <BotonEditarOrden id={orden.id} />}
             {enviar}
             {registrar}
@@ -116,6 +125,7 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
         <div data-guia="orden.acciones" className="flex flex-wrap items-center gap-3">
           {anular}
           {imprimir}
+          {gastoViaje}
           {puedeEditar && <BotonEditarOrden id={orden.id} />}
           {enviar}
           {registrar}
@@ -244,7 +254,7 @@ function AnularOrdenModal({
             </CampoGuiado>
           )}
           <PieGuia guia={guia} listo="Todo listo para anular." />
-          <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
+          <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>

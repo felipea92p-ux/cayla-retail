@@ -2,7 +2,7 @@
   "guia": "inventario.conteo.id.confirmar",
   "ruta": "/inventario/conteo/[id]/confirmar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 6,
+  "total": 7,
   "controles": {
     "app/(app)/inventario/conteo/[id]/confirmar/page.tsx": [
       "Volver «(sin nombre)»"
@@ -13,6 +13,9 @@
       "Link «Ver el conteo»",
       "Volver «void cerrar()»",
       "button «{razonApagado ?? undefined}»"
+    ],
+    "components/conteo/PasosConteo.tsx": [
+      "button «{contenido}»"
     ]
   }
 }

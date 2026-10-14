@@ -36,8 +36,19 @@ export function minutosDeHora(hora: string): number {
   return (h || 0) * 60 + (m || 0);
 }
 
-export type MetodoRitmo = "efectivo" | "tarjeta" | "yape" | "transferencia" | "otro";
-export const ORDEN_METODOS: readonly MetodoRitmo[] = ["efectivo", "tarjeta", "yape", "transferencia", "otro"];
+export type MetodoRitmo = "efectivo" | "tarjeta" | "yape" | "transferencia" | "qr" | "otro";
+export const ORDEN_METODOS: readonly MetodoRitmo[] = ["efectivo", "tarjeta", "yape", "transferencia", "qr", "otro"];
+
+/** Los métodos de una venta tal como se leen en una fila: `"efectivo + qr"` → `"efectivo + QR"`. QR es una sigla y va en mayúscula;
+ *  los demás medios quedan como los manda la base. */
+export function textoMetodosDeVenta(texto: string | null): string {
+  return (texto ?? "")
+    .split("+")
+    .map((t) => t.trim())
+    .map((t) => (t.toLowerCase() === "qr" ? "QR" : t))
+    .filter(Boolean)
+    .join(" + ");
+}
 
 /** Los métodos de una venta: `"efectivo + yape"` → `["efectivo", "yape"]`. Sin repetir, y con Yape y
  *  Plin juntos, igual que la dona ("Yape / Plin"). Sin dato no inventa uno: lista vacía. */
@@ -57,7 +68,9 @@ export function metodosDe(texto: string | null): MetodoRitmo[] {
             ? "yape"
             : t.includes("transferencia")
               ? "transferencia"
-              : "otro"
+              : /\bqr\b/.test(t)
+                ? "qr"
+                : "otro"
     );
   return Array.from(new Set(claves));
 }

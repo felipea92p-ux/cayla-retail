@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 91,
+  "total": 90,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -27,9 +27,9 @@
       "CampoMonto «Tela»",
       "CampoMonto «Avíos»",
       "CampoMonto «Maquila»",
-      "Link «Ponle precio en Editar producto»",
       "CampoTexto «Fecha de entrega»",
       "CampoTexto «Nota»",
+      "Link «Ponle precio en Editar producto»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Usar ese modelo»",
       "Boton «Es otro modelo, crearlo igual»",
@@ -70,7 +70,6 @@
       "Boton «(sin nombre)»",
       "button «Reabrir»",
       "Link «Llevarlas a las tiendas»",
-      "Link «Imprimir etiquetas de precio»",
       "Boton «→() => setCerrando(true)»",
       "Boton «Anular»",
       "Boton «Volver sin cerrar»",

@@ -57,7 +57,7 @@ export const REQUISITO_POR_COLOR = 1;
 
 /** «Se vendió rápido y falta»: lo que hay en la sede no alcanza para la próxima ventana al ritmo de la última. Es la misma
  *  ventana de 14 días, no un número nuevo. */
-export const DIAS_ALCANCE_FALTA = DIAS_VENTANA;
+const DIAS_ALCANCE_FALTA = DIAS_VENTANA;
 
 /** La tabla de nombres de las tallas centrales (Felipe, 2026-10-04). Una categoría que tiene alguna de estas tallas en su curva
  *  decide por la tabla; la que no tiene ninguna (calzado 34–42, anillos 6–9) decide por el respaldo: el tercio central. */

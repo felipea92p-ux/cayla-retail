@@ -21,6 +21,7 @@
 /* Etiquetas de precio, la pantalla: filas por modelo, el paso − n +, el tacho y su movimiento (2026-10-09). */
 @import "./estilos/etiquetas-precio.css";
 @import "./estilos/caja-cerrada.css";
+@import "./estilos/pie-acciones.css";
 @import "./estilos/club-publico.css";
 @import "./estilos/recordatorio-cierre.css";
 @import "./estilos/caja-cierre.css";
@@ -44,6 +45,7 @@
 @import "./estilos/marcas.css";
 @import "./estilos/analisis.css";
 @import "./estilos/gasto-rapido.css";
+@import "./estilos/recepcion-conteo.css";
 @import "./estilos/login.css";
 @import "./estilos/analisis-hoy.css";
 @import "./estilos/analisis-acaba.css";
@@ -493,10 +495,21 @@ body {
       linear-gradient(color-mix(in srgb, var(--color-tinta) 32%, transparent), color-mix(in srgb, var(--color-tinta) 32%, transparent));
     background-size: 0% 1.5px, 100% 1px;
     background-position: 0 calc(50% + 0.7em), 0 calc(50% + 0.7em);
+    background-origin: content-box;
     background-repeat: no-repeat;
     -webkit-box-decoration-break: clone;
     box-decoration-break: clone;
     transition: background-size 300ms var(--ease-cayla), color 200ms var(--ease-cayla);
+  }
+  /* El renglón cae 0,7 em bajo el centro: en una caja del alto de la letra (un enlace dentro de una frase, un `btn-cayla btn-enlace`)
+     eso queda entre 1 y 1,5 px DEBAJO del borde, donde el navegador ya no pinta el fondo, y el subrayado no se veía (o se veía según en
+     qué píxel cayera el renglón; medido el 2026-10-14). El relleno de abajo agranda el área donde se pinta sin mover el renglón (se mide
+     desde el contenido, `background-origin` de arriba) y el margen negativo del mismo tamaño deja la caja donde estaba: nada se corre. Un
+     `btn-chico` mide 44 px y ya lo pintaba: no lo lleva (con su alto mínimo, el margen sí lo achicaría). Un `mb-*` en el mismo elemento le
+     gana al margen: ahí se descuenta a mano (FiltrosMovimientos). */
+  .btn-enlace:not(.btn-chico) {
+    padding-bottom: 0.25em;
+    margin-bottom: -0.25em;
   }
   .btn-enlace:hover:not(:disabled):not([aria-disabled="true"]) {
     background-size: 100% 1.5px, 100% 1px;
@@ -632,7 +645,7 @@ body {
     height: 14px;
     margin-top: -7px;
     background: currentColor;
-    color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 45%, transparent); /* contraste: no aplica — en reposo está apagada (opacity 0) y, cuando se ve, es tinta plena */
     -webkit-mask: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
     mask: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
     opacity: 0;
@@ -1240,6 +1253,34 @@ body {
   #comprobante-print .rt-qr {
     margin-top: 2mm;
   }
+  /* El sello de una compra ya pagada (entrega de un apartado, ADR-0399) y el recuadro de la constancia: solo trazo negro, como el resto
+     del papel; una térmica no tiene tonos. */
+  #comprobante-print .rt-cancelado {
+    display: inline-block;
+    margin: 1.2mm 0;
+    padding: 0.6mm 4mm;
+    border: 2px solid #000;
+    font-size: 10pt;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    transform: rotate(-3deg);
+  }
+  #comprobante-print .rt-sello {
+    margin: 1.5mm 2mm;
+    padding: 1mm 1.5mm;
+    border: 2px solid #000;
+    text-align: center;
+    font-size: 9pt;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+  }
+  #comprobante-print .rt-sello small {
+    display: block;
+    font-size: 6.5pt;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
   #comprobante-print .rt-pie {
     font-size: 6.5pt;
     line-height: 1.25;
@@ -1541,6 +1582,9 @@ html[data-buscando] [data-resultados] {
   /* Descargar (ADR-0358, ronda 10): la flecha de descarga BAJA 2 px, como la que lleva a otro lado avanza. */
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)) svg.lucide-download { transition: translate 300ms var(--ease-cayla); }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-download { translate: 0 2px; }
+  /* Imprimir (ADR-0358, ronda 11): la hoja SALE de la impresora (baja 2 px), como la flecha de descargar baja. */
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) svg.lucide-printer rect { transition: translate 300ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-printer rect { translate: 0 2px; }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace))::before {
     content: ""; position: absolute; pointer-events: none; border-radius: 999px;
     left: var(--onda-x, 50%); top: var(--onda-y, 50%); width: var(--onda-d, 0px); height: var(--onda-d, 0px);
@@ -2105,7 +2149,7 @@ html[data-buscando] [data-resultados] {
     justify-content: space-between;
     margin-top: 3px;
     font-size: 10px;
-    color: color-mix(in srgb, var(--color-tinta) 50%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre crema, papel */
   }
   .kpi-puntos {
     display: flex;
@@ -2507,7 +2551,7 @@ html[data-buscando] [data-resultados] {
     :is(.mov-boton, .btn-cayla:not(.btn-enlace)),
     :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover,
     :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active { translate: none !important; scale: none !important; }
-    :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg, .mov-mas) { rotate: none !important; translate: none !important; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg, svg rect, .mov-mas) { rotate: none !important; translate: none !important; }
   }
 }
 /* ==================================================================

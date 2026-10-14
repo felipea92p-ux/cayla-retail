@@ -2,7 +2,7 @@
   "guia": "inventario.cuadrar",
   "ruta": "/inventario/cuadrar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 26,
+  "total": 27,
   "controles": {
     "app/(app)/inventario/cuadrar/page.tsx": [
       "Volver «(sin nombre)»"
@@ -14,6 +14,9 @@
       "button «Una menos»",
       "button «Una más»",
       "button «Listo»"
+    ],
+    "components/conteo/PasosConteo.tsx": [
+      "button «{contenido}»"
     ],
     "components/cuadre-piso/CuadrarPisoForm.tsx": [
       "Link «Ir al conteo»",

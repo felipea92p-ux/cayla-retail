@@ -16,10 +16,12 @@ import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sella
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { hoyLima } from "@/lib/fechas-lima";
+import { diaLima } from "@/lib/fechas-lima";
 import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
+import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
+import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import {
   TEXTO_COMPROBANTE,
   TEXTO_MEDIO,
@@ -108,7 +110,7 @@ export function RegistrarGastoModal({
     ubicacion: egreso?.ubicacionId ?? (esActivo && ubicacionInicial === "empresa" ? (ubicaciones[0]?.id ?? "") : ubicacionInicial),
     categoria: "",
     descripcion: egreso?.nota ?? "",
-    fecha: egreso ? hoyLima(new Date(egreso.creadoEn)) : hoy,
+    fecha: egreso ? (diaLima(egreso.creadoEn) ?? "") : hoy,
     monto: egreso ? String(egreso.monto) : "",
     // Lo más común (la luz, el alquiler, el contador) llega con factura; lo que sale del cajón, casi nunca.
     comprobante: egreso ? "sin_comprobante" : "factura",
@@ -156,6 +158,14 @@ export function RegistrarGastoModal({
   const salida = cuentasGasto.find((c) => c.id === cuentaSalida) ?? null;
   const bancoConMedio = salida?.tipo === "banco" ? (mediosDeBanco(conComprobante).includes(medioBanco) ? medioBanco : "transferencia") : null;
   const medioSalida = salida ? (medioDeCuenta(salida.tipo) ?? bancoConMedio ?? "transferencia") : "";
+  // ADR-0362 (fase 6 · actividad 6, decisiones 56 y 70): un comprobante de S/ 2 000 o más pagado en efectivo queda «no deducible». Se
+  // deja registrar; la hoja lo avisa. Sin comprobante o a crédito (se paga después, desde Por pagar) no hay nada que avisar aquí.
+  const pagaAhora = conComprobante && !aCredito && monto.ok;
+  const avisoNoDeducible = pagaAhora
+    ? avisoBancarizacion(monto.valor, [
+        { monto: monto.valor, medio: egreso ? "efectivo" : conCuentas ? medioSalida : b.medio, tipoCuenta: egreso ? "cajon" : (salida?.tipo ?? null) },
+      ])
+    : null;
 
   function elegirComprobante(t: TipoComprobante) {
     setB((x) => {
@@ -365,11 +375,11 @@ export function RegistrarGastoModal({
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setNuevoProveedor(null)}>
+                    Cancelar
+                  </button>
                   <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>
                     Sumar proveedor
-                  </button>
-                  <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setNuevoProveedor(null)}>
-                    Cancelar
                   </button>
                   <span className="text-[12px]">Queda en el directorio; sus cuentas se completan en Compras ▸ Proveedores.</span>
                 </div>
@@ -542,6 +552,8 @@ export function RegistrarGastoModal({
             <InputFin id="gasto-referencia" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
           </CampoFin>
         )}
+
+        <AvisoNoDeducible aviso={avisoNoDeducible} reservar={pagaAhora && monto.valor >= UMBRAL_BANCARIZACION} />
 
         <ComboResponsable control={responsable} deshabilitado={guardando || intento.incierto} />
       </fieldset>

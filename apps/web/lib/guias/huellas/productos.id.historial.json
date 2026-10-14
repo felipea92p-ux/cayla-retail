@@ -2,13 +2,12 @@
   "guia": "productos.id.historial",
   "ruta": "/productos/[id]/historial",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 9,
+  "total": 8,
   "controles": {
     "app/(app)/productos/[id]/historial/page.tsx": [
       "Volver «Historial»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/historial-prenda/HistorialPrenda.tsx": [

@@ -11,7 +11,7 @@ import { codigosDeConteo, conteoResumenDesdeFila, detalleDesdeJson, type ConteoR
 // Nunca lee `stock` (la cifra de «cuánto hay» es de `fn_existencias`, ADR-0270) ni costos: el conteo no habla de plata.
 // Las escrituras (abrir, contar, recontar, confirmar, cerrar, cancelar) las hace el navegador con la firma del responsable.
 
-export type { CabeceraConteo, ConteoResumen, DetalleConteo, EstadoConteo, EstadoLinea, LineaConteo, PrendaConteo, ResumenConteo } from "@/lib/conteo-reglas";
+export type { ConteoResumen, DetalleConteo, PrendaConteo } from "@/lib/conteo-reglas";
 
 const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

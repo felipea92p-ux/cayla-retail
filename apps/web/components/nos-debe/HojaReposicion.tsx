@@ -218,7 +218,7 @@ function HojaReposicion({
             </Aviso>
           )}
           {/* Fija abajo mientras el contenido pasa por detrás: en un laptop de 768 px de alto el botón quedaba bajo el pliegue. */}
-          <div className="pie-hoja-fijo flex flex-col-reverse gap-2.5 pt-1 sm:flex-row sm:justify-end">
+          <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>

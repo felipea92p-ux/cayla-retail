@@ -80,7 +80,7 @@ export function EditorDecision({
         </Pildora>
       ))}
       {onCancelar && (
-        <button type="button" onClick={onCancelar} className="label-cayla ml-1 text-[11px] text-tinta/65 hover:text-rojo">
+        <button type="button" onClick={onCancelar} className="btn-cayla btn-secundario ml-1 h-8 px-3">
           Cancelar
         </button>
       )}

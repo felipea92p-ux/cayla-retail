@@ -15,9 +15,9 @@ import { ClientaFichaModal } from "@/components/ClientaFichaModal";
 import { BuscadorClientas } from "@/components/clientas/BuscadorClientas";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, TABLA, Tabla, type Columna } from "@/components/ui/Tabla";
-import { cumpleLegible } from "@/lib/club-clientas-reglas";
 import { celularLegible } from "@/lib/club-caja-reglas";
 import {
+  COLUMNAS_EXPORTAR,
   FILTROS_LISTA,
   POR_PAGINA,
   cuentaDelFiltro,
@@ -25,6 +25,7 @@ import {
   detallePublicidad,
   detalleSocias,
   estadoDeLaFila,
+  filaParaExportar,
   hrefLista,
   pieLista,
   publicidadDeLaFila,
@@ -35,7 +36,8 @@ import {
   type ParamsLista,
 } from "@/lib/clientas-lista-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
-import { TIPOS_DOCUMENTO_CLIENTA, contactoVisible } from "@/lib/documento-clienta-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
+import { contactoVisible } from "@/lib/documento-clienta-reglas";
 import { FunnelX, SearchX, Users } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
@@ -107,25 +109,10 @@ export function ClientasPanel({
     const { clientas, error } = await exportarClientas();
     setExportando(false);
     if (error) {
-      avisar.error(traducirError(error, "exportar la lista de clientes"));
+      avisar.error(traducirError(error, "exportar la lista de clientes", { lectura: true }));
       return;
     }
-    descargarCsv(
-      `clientes-${new Date().toISOString().slice(0, 10)}.csv`,
-      ["Tipo de documento", "Número de documento", "Nombre", "Celular", "Miembro desde", "Código de miembro", "Novedades por WhatsApp", "Cumpleaños", "Registrado", "Estado"],
-      clientas.map((c) => [
-        c.documentoNumero ? (TIPOS_DOCUMENTO_CLIENTA.find((t) => t.valor === c.documentoTipo)?.etiqueta ?? "") : "",
-        c.documentoNumero ?? "",
-        c.nombre ?? "",
-        c.telefonoWhatsapp ?? "",
-        c.clubDesde?.slice(0, 10) ?? "",
-        c.codigoClub ?? "",
-        c.publicidadDesde ? "sí" : "no",
-        c.cumpleDia && c.cumpleMes ? cumpleLegible(c.cumpleDia, c.cumpleMes, c.cumpleAnio) : "",
-        c.createdAt.slice(0, 10),
-        c.archivadaEn ? (c.anonimizada ? "anonimizado" : c.fusionadaEnId ? "unido a otra ficha" : "archivado") : "activo",
-      ]),
-    );
+    descargarCsv(`clientes-${hoyLima()}.csv`, COLUMNAS_EXPORTAR, clientas.map(filaParaExportar));
     avisar.exito("Lista exportada", { detalle: `${clientas.length} cliente${clientas.length === 1 ? "" : "s"}` });
   }
 
@@ -212,7 +199,7 @@ export function ClientasPanel({
                   aria-current={params.filtro === f.valor ? "page" : undefined}
                 >
                   {f.texto}
-                  {cifras && <span className="ml-1.5 font-medium tracking-normal tabular-nums opacity-60 dark:opacity-85">{cuentaDelFiltro(cifras, f.valor)}</span>}
+                  {cifras && <span className="ml-1.5 font-medium tracking-normal tabular-nums dark:opacity-85">{cuentaDelFiltro(cifras, f.valor)}</span>}
                 </Link>
               ))}
             </nav>

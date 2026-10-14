@@ -50,18 +50,6 @@ export function sumarDias(iso: string, n: number): string {
   return aIso({ a: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() });
 }
 
-/** «aaaa-mm-dd» de hoy en Lima, a partir de un instante. */
-export function hoyEnLima(ahora: Date): string {
-  const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Lima",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(ahora);
-  const get = (t: string) => partes.find((p) => p.type === t)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
-}
-
 // ---------------------------------------------------------------------------
 // Etiquetas
 // ---------------------------------------------------------------------------

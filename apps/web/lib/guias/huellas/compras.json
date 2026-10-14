@@ -2,7 +2,7 @@
   "guia": "compras",
   "ruta": "/compras",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 21,
+  "total": 19,
   "controles": {
     "app/(app)/compras/page.tsx": [
       "BotonEnlace «compras.registrar»",
@@ -23,8 +23,6 @@
       "DesplegablePildora «Tipo de documento»",
       "DesplegablePildora «Destino»",
       "DesplegablePildora «Vencimiento»",
-      "button «{`Quitar filtro ${c.texto}»",
-      "button «Limpiar todo»",
       "button «{texto}»",
       "CampoFecha «Emitida desde»",
       "CampoFecha «Emitida hasta»"

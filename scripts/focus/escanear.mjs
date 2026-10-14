@@ -41,7 +41,7 @@ const CAMPOS = /<(input|textarea|form|Campo\w*|Select\w*|Combo\w*|Desplegable|Se
  * El USO de las piezas de la guía —una etiqueta JSX o una llamada— o el import de una lógica `lib/<pantalla>-guia`. Ojo con lo que NO
  * es: `fin-guia` (una clase de Finanzas) y `recepcion-guia` (la guía de remisión) no son la guía de foco; por eso se exige la forma.
  */
-const GUIA = /<(MarcaCampo|ConMarca|EtiquetaAhora|FaltanDelPaso|TiraFicha|CampoGuiado|PieGuia)\b|\b(useGuiaAlta|useGuiaCampos|irAlIdCampo|useRetenerLuz)\(|\bdata-campo=|from\s*["']@\/lib\/[\w-]+-guia["']/;
+const GUIA = /<(MarcaCampo|ConMarca|EtiquetaAhora|FaltanDelPaso|CampoGuiado|PieGuia)\b|\b(useGuiaAlta|useGuiaCampos|irAlIdCampo|useRetenerLuz)\(|\bdata-campo=|from\s*["']@\/lib\/[\w-]+-guia["']/;
 
 /** Un modal: el archivo dibuja un `<Modal>` / `<ModalRuta>` (o un `Dialog.Content` propio). Con campos, pide su guía. */
 const MODAL = /<Modal\b|<ModalRuta\b|Dialog\.Content/;

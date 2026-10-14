@@ -26,9 +26,11 @@ export function teclaDePistola(l: LectorPistola, key: string, ahora: number): { 
   return { lector: { texto: seguida ? l.texto + key : key, ultimo: ahora }, codigo: null };
 }
 
-/** ¿Esta tecla es parte de una ráfaga (la pistola)? Para no tomar el primer dígito de un código como un atajo del panel. */
-export function esRafaga(l: LectorPistola, ahora: number): boolean {
-  return l.texto.length > 0 && ahora - l.ultimo < MS_ENTRE_TECLAS;
+/** ¿Esta tecla es parte de una ráfaga (la pistola)? El panel de la talla (`PanelTalla`) lo pregunta para no tomar el primer dígito
+ *  de un código como un atajo: un carácter que llega a menos de `MS_ENTRE_TECLAS` de la tecla anterior, sea cual sea esa tecla.
+ *  `antes` es el instante de la anterior (0 si todavía no hubo ninguna). */
+export function esRafaga(key: string, antes: number, ahora: number): boolean {
+  return key.length === 1 && ahora - antes < MS_ENTRE_TECLAS;
 }
 
 /** Una pistola que NO remata con Enter (depende de cómo venga programada): cuando la ráfaga se calla, lo leído es el código si

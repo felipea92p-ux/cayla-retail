@@ -13,7 +13,7 @@ import { formatearHora } from "@/components/ComprasAgrupadas";
 import { BotonPrincipal, BotonRojo, BotonSecundario } from "@/components/FlujoGuiado";
 import type { DevolucionPendiente } from "@/lib/devoluciones";
 import { DIAS_PLAZO_CAMBIO, METODOS_DIFERENCIA, estadoPlazoCambio, etiquetaDia, varianteLegible } from "@/lib/cambios-reglas";
-import { etiquetaCondicion, revisarAprobacion } from "@/lib/devoluciones-reglas";
+import { etiquetaCondicion, medioSugeridoReembolso, revisarAprobacion } from "@/lib/devoluciones-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -116,6 +116,13 @@ function TarjetaPendiente({
             Dentro del plazo · {plazo.diasRestantes === 0 ? "hoy es el último día" : `quedan ${plazo.diasRestantes} día${plazo.diasRestantes === 1 ? "" : "s"}`}
           </Chip>
         )}
+        {/* La boleta todavía no llega a SUNAT: se ve antes de abrir «Aprobar», no recién al apretarlo (20261012221000). */}
+        {d.sinAceptar && (
+          <Chip tono="ambar" versalitas={false}>
+            <Clock className="h-3.5 w-3.5" aria-hidden />
+            {d.sinAceptar.estado === "rechazado" ? "SUNAT rechazó la boleta" : "La boleta aún no llega a SUNAT"}
+          </Chip>
+        )}
       </header>
 
       <ul className="space-y-1 px-2 pt-2">
@@ -152,7 +159,11 @@ function TarjetaPendiente({
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-tinta/[0.07] px-5 py-3.5">
           {esLider ? (
             <>
-              <p className="text-xs text-tinta/70">Al aprobarla, las prendas vuelven al piso o entran a cuarentena.</p>
+              <p className="text-xs text-tinta/70">
+                {d.sinAceptar
+                  ? "Se aprueba cuando SUNAT acepte la boleta: así sale su nota de crédito."
+                  : "Al aprobarla, las prendas vuelven al piso o entran a cuarentena."}
+              </p>
               <div className="flex items-center gap-2">
                 <BotonSecundario onClick={() => setResolviendo("rechazar")}>Rechazar</BotonSecundario>
                 <BotonPrincipal onClick={() => setResolviendo("aprobar")}>Aprobar</BotonPrincipal>
@@ -193,7 +204,10 @@ function PanelResolver({
 }) {
   const router = useRouter();
   const [monto, setMonto] = useState("");
-  const [metodo, setMetodo] = useState<(typeof METODOS_DIFERENCIA)[number]["valor"]>("efectivo");
+  // Propone el medio con que se pagó la venta (Felipe 2026-10-12: «libre, con aviso»); se puede cambiar.
+  const [metodo, setMetodo] = useState<(typeof METODOS_DIFERENCIA)[number]["valor"]>(
+    () => medioSugeridoReembolso(d.pagos, METODOS_DIFERENCIA.map((m) => m.valor)) as (typeof METODOS_DIFERENCIA)[number]["valor"],
+  );
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -208,7 +222,15 @@ function PanelResolver({
   const conCuenta = hayReembolso && metodo !== "efectivo";
   const hayCuentas = cuentas.listo && hayCuentasPara(cuentas.cuentas, "cobro", metodo);
   const cuentaSale = conCuenta && hayCuentas ? cuentaEfectiva(cuentas.cuentas, "cobro", metodo, cuentaElegida) : null;
-  const revision = revisarAprobacion({ monto: montoNumero, metodo, cajaAbierta, valorPagado: d.valorPagado });
+  const revision = revisarAprobacion({
+    monto: montoNumero,
+    metodo,
+    cajaAbierta,
+    valorPagado: d.valorPagado,
+    sinAceptar: d.sinAceptar,
+    pagos: d.pagos,
+    etiquetaMedio: (m) => METODOS_DIFERENCIA.find((x) => x.valor === m)?.etiqueta ?? m,
+  });
 
   async function aprobar() {
     if (revision.bloqueo) return;
@@ -365,7 +387,7 @@ function PanelResolver({
           )}
 
           <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="pie-acciones">
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>
@@ -399,7 +421,7 @@ function PanelResolver({
             </Aviso>
           )}
           <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="pie-acciones">
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>

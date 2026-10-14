@@ -67,6 +67,7 @@ export type ListaResponsable = {
   salieron: number;
 };
 
+/** @internal Comodidad de la prueba: la lista sin nadie (la pantalla la arma desde la base). */
 export const LISTA_VACIA: ListaResponsable = { elegibles: [], enPausa: [], salieron: 0 };
 
 function aPersona(f: FilaDeTurno): PersonaDeTurno {

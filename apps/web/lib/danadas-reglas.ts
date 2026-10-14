@@ -23,8 +23,10 @@ import type { CampoDeGuia } from "./guia-campos";
 
 /** Las RPC y sus parámetros en un solo lugar: `danadas-reglas.test.ts` los fija contra la migración. */
 export const RPC_REPORTAR_DANADA = "reportar_danada";
+/** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
 export const PARAMETROS_RPC_REPORTAR = ["p_ubicacion_id", "p_variante_id", "p_cantidad", "p_desde", "p_motivo", "p_token"] as const;
 export const RPC_ARREGLAR_DANADA = "arreglar_prenda_danada";
+/** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
 export const PARAMETROS_RPC_ARREGLAR = ["p_id", "p_nota", "p_token"] as const;
 
 /** Lo que tiene la prenda y lo que se le arregló: entre 3 y 200 caracteres (la base exige lo mismo). */
@@ -49,9 +51,6 @@ export function libreEn(t: TallaReportable | null, desde: DesdeDanada | null): n
   if (!t || !desde) return 0;
   return desde === "piso" ? t.piso : t.almacen;
 }
-
-/** ¿Hay algo que reportar en esta talla? (libre en el piso o en el almacén). */
-export const tieneAlgoLibre = (t: TallaReportable) => t.piso + t.almacen > 0;
 
 /**
  * Dónde estaba: entra elegido solo si es el ÚNICO lugar posible. Con piso y almacén a la vez, la persona lo dice: el sistema no
@@ -220,7 +219,6 @@ export function tituloExitoArreglo(unidades: number): string {
   return unidades === 1 ? "Volvió al almacén" : `${unidades} prendas volvieron al almacén`;
 }
 
-export const TEXTO_REPORTE_YA_ESTABA = "Este reporte ya estaba guardado. No se repitió.";
 export const TEXTO_ARREGLO_YA_ESTABA = "Esta prenda ya había vuelto al almacén. No se repitió.";
 
 const DESTINOS_DE_DANADAS = "En el sistema pasa a Dañadas y el líder decide si se arregla y vuelve, se liquida, se bota o se dona.";

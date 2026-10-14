@@ -2,7 +2,7 @@
   "guia": "productos.marcas",
   "ruta": "/productos/marcas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 36,
+  "total": 35,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -18,9 +18,9 @@
       "input «Razón social o nombre del proveedor nuevo»",
       "input «RUC del proveedor nuevo (opcional)»",
       "ComboBuscable «(sin nombre)»",
-      "ComboResponsable «void guardar(cerrar)»",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
-      "button «Cancelar»"
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/MarcasLista.tsx": [
       "Boton «marcas.nueva»",
@@ -45,7 +45,6 @@
       "button «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/marcas/FiltrosMarcas.tsx": [

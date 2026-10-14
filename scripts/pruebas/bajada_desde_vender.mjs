@@ -371,13 +371,23 @@ ${COMO_POSTGRES}select concat_ws(',', (:'r1')::jsonb -> 'res' ->> 'ya_registrada
   (:'r1')::jsonb -> 'res' ->> 'movimiento_id' = (:'r2')::jsonb -> 'res' ->> 'movimiento_id', ${cant("va", "piso_t")}, ${INTERNOS(["va"])});`,
   "false,true,t,1,1"
 );
+// Desde ADR-0401 (20261014162000) la marca con otro contenido la frena antes la huella del token (`token_reusado`); también
+// cubre la misma prenda con otra cantidad, que antes devolvía lo del primero con `ya_registrada`.
 caso(
-  "P6 · la misma marca con OTRA prenda se rechaza (mover_interno_token_reusado) y no se mueve nada más",
+  "P6 · la misma marca con OTRA prenda se rechaza (token_reusado) y no se mueve nada más",
   `${sesion(FELIPE)}${COMO_API}select ${bajar("tru", "va", 1, ":'tok1'")} as r1 \\gset
 ${COMO_POSTGRES}select ${CONTADORES} as antes \\gset
 ${sesion(FELIPE)}${COMO_API}select ${bajar("tru", "vd", 1, ":'tok1'")} as r2 \\gset
 ${COMO_POSTGRES}select concat_ws(',', (:'r2')::jsonb ->> 'ok', (:'r2')::jsonb ->> 'hint', ${CONTADORES} = :'antes');`,
-  "false,mover_interno_token_reusado,t"
+  "false,token_reusado,t"
+);
+caso(
+  "P6 · la misma marca con la misma prenda y OTRA cantidad se rechaza (token_reusado) y no se mueve nada más",
+  `${sesion(FELIPE)}${COMO_API}select ${bajar("tru", "va", 1, ":'tok1'")} as r1 \\gset
+${COMO_POSTGRES}select ${CONTADORES} as antes \\gset
+${sesion(FELIPE)}${COMO_API}select ${bajar("tru", "va", 2, ":'tok1'")} as r2 \\gset
+${COMO_POSTGRES}select concat_ws(',', (:'r2')::jsonb ->> 'ok', (:'r2')::jsonb ->> 'hint', ${CONTADORES} = :'antes');`,
+  "false,token_reusado,t"
 );
 
 // ===========================================================================

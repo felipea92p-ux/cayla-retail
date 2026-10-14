@@ -13,7 +13,7 @@
 // cierra una deuda con la prenda («repuesta»); pasarla a saldo a favor o cobrar un depósito espera a Felipe y al contador (fase 5b).
 
 import { soles } from "./compras-reglas";
-import { hoyLima, diasEntreFechas } from "./fechas-lima";
+import { diaLima, diasEntreFechas } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
 import { textoParaBase } from "./orden-compra-alta";
 import { numeroEnvio } from "./ordenes-compra-reglas";
@@ -314,16 +314,9 @@ export function nombreDeDeuda(d: Pick<DeudaProveedor, "categoria" | "marca" | "d
 /** «2 chompas»: lo que todavía falta reponer. */
 export const queDebe = (d: Pick<DeudaProveedor, "pendiente" | "categoria">): string => cantidadDePrendas(d.pendiente, d.categoria);
 
-/** El día de Lima de un instante (o de una fecha `aaaa-mm-dd`). */
-function diaLima(iso: string): string | null {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
-  const t = Date.parse(iso);
-  return Number.isFinite(t) ? hoyLima(new Date(t)) : null;
-}
-
 /** «hoy», «ayer», «hace 3 días», «hace 2 meses». Sin fecha, nada. */
 export function cuandoFue(fecha: string | null | undefined, hoy: string): string | null {
-  const dia = fecha ? diaLima(fecha) : null;
+  const dia = diaLima(fecha);
   if (!dia) return null;
   const dias = Math.max(0, diasEntreFechas(dia, hoy));
   if (dias === 0) return "hoy";

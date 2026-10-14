@@ -152,7 +152,7 @@ export function CerrarColaArranqueModal({ sedes, inicial, onClose }: { sedes: Se
           </CampoGuiado>
 
           <PieGuia guia={guia} listo={sede ? `Todo listo para cerrar ${sede.pendientes} ${sede.pendientes === 1 ? "prenda" : "prendas"}.` : "Todo listo."} />
-          <div className="pie-hoja-fijo flex justify-end gap-3 pt-2">
+          <div className="pie-hoja-fijo pie-acciones pt-2">
             <Boton type="button" onClick={cerrar}>
               Cancelar
             </Boton>

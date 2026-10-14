@@ -173,7 +173,7 @@ export const GUIA_FRESCURA: Guia = {
       ancla: "frescura.filtros",
       opcional: true,
       titulo: "Filtra por tipo y estado",
-      texto: "Elige una categoría o un estado. «Por decidir» deja solo las que esperan tu decisión, con su número; «Decididas», las que ya la tienen. «Quitar filtros» vuelve a mostrar todo.",
+      texto: "Elige una categoría o un estado. «Por decidir» deja solo las que esperan tu decisión, con su número; «Decididas», las que ya la tienen. «Limpiar filtros» vuelve a mostrar todo.",
     },
     {
       id: "buscador",

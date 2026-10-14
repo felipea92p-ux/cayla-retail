@@ -106,7 +106,7 @@ export function DetalleMuestraModal({
         .order("referencia");
       if (!vigente) return;
       if (error) {
-        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas") });
+        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas", { lectura: true }) });
         return;
       }
       const prendas = (data ?? []).map((p) => ({
@@ -269,13 +269,13 @@ export function DetalleMuestraModal({
 
           {pendiente && (
             <div className="space-y-3 rounded-lg border border-sand bg-hueso/60 p-3">
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={() => setPendiente(null)} disabled={guardando}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={() => setPendiente(null)} disabled={guardando}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={guardando}
                   onClick={guardar}
                 >

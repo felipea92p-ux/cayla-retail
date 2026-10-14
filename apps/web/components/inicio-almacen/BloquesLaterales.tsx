@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import Link from "next/link";
 import type { CSSProperties } from "react";
@@ -174,7 +174,7 @@ export function PorColgarAlmacen({ existencias }: { existencias: Existencias | n
           <>
             {existencias.primeras.map((p, i) => (
               <Link key={p.clave} href="/inventario?hoy=por_colgar" className={`ia-it ${i === 0 ? "ia-f" : ""}`}>
-                <span className="ia-mg">{p.fotoUrl ? <Image src={p.fotoUrl} alt="" fill sizes="40px" unoptimized /> : <SinFoto tamano="h-full w-full !rounded-none" colorHex={p.colorHex} {...categoriaDe(p)} />}</span>
+                <span className="ia-mg">{p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl} alt="" fill sizes="40px" fallback={<SinFoto tamano="h-full w-full !rounded-none" colorHex={p.colorHex} {...categoriaDe(p)} />} /> : <SinFoto tamano="h-full w-full !rounded-none" colorHex={p.colorHex} {...categoriaDe(p)} />}</span>
                 <div className="min-w-0">
                   <p className="ia-nm">{p.referencia}</p>
                   {p.color && <p className="ia-cl">{p.color}</p>}

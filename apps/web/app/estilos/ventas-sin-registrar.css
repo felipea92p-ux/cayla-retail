@@ -17,12 +17,12 @@
   .vsr {
     --vsr-top: 4.25rem;
     --vsr-t65: color-mix(in srgb, var(--color-tinta) 65%, transparent);
-    --vsr-t50: color-mix(in srgb, var(--color-tinta) 52%, transparent);
-    --vsr-t35: color-mix(in srgb, var(--color-tinta) 36%, transparent);
+    --vsr-t50: color-mix(in srgb, var(--color-tinta) 52%, transparent); /* contraste: no aplica — hoy ningún selector la usa */
+    --vsr-t35: color-mix(in srgb, var(--color-tinta) 36%, transparent); /* contraste: no aplica — una raya punteada de adorno (stroke) */
   }
   :root[data-tema="oscuro"] .vsr {
-    --vsr-t50: color-mix(in srgb, var(--color-tinta) 60%, transparent);
-    --vsr-t35: color-mix(in srgb, var(--color-tinta) 52%, transparent);
+    --vsr-t50: color-mix(in srgb, var(--color-tinta) 60%, transparent); /* contraste: no aplica — hoy ningún selector la usa */
+    --vsr-t35: color-mix(in srgb, var(--color-tinta) 52%, transparent); /* contraste: no aplica — una raya punteada de adorno (stroke) */
   }
 
   /* ---- La franja de avance (reemplaza a las cuatro tarjetas y al anillo) ---- */

@@ -38,11 +38,11 @@
   .ia {
     --ia-t80: color-mix(in srgb, var(--color-tinta) 80%, transparent);
     --ia-t65: color-mix(in srgb, var(--color-tinta) 65%, transparent);
-    --ia-t50: color-mix(in srgb, var(--color-tinta) 50%, transparent);
-    --ia-t30: color-mix(in srgb, var(--color-tinta) 30%, transparent);
-    --ia-t12: color-mix(in srgb, var(--color-tinta) 12%, transparent);
-    --ia-t08: color-mix(in srgb, var(--color-tinta) 8%, transparent);
-    --ia-t05: color-mix(in srgb, var(--color-tinta) 5%, transparent);
+    --ia-t50: color-mix(in srgb, var(--color-tinta) 64%, transparent); /* contraste: texto sobre papel, crema, hueso */
+    --ia-t30: color-mix(in srgb, var(--color-tinta) 30%, transparent); /* contraste: no aplica — puntos, rayas y bordes de adorno */
+    --ia-t12: color-mix(in srgb, var(--color-tinta) 12%, transparent); /* contraste: no aplica — fondos y líneas, no es texto */
+    --ia-t08: color-mix(in srgb, var(--color-tinta) 8%, transparent); /* contraste: no aplica — fondos y líneas, no es texto */
+    --ia-t05: color-mix(in srgb, var(--color-tinta) 5%, transparent); /* contraste: no aplica — fondos y líneas, no es texto */
     container: ia / inline-size;
     display: grid;
     gap: 28px;
@@ -204,7 +204,7 @@
     --h-80: var(--ia-t80);
     --h-60: var(--ia-t65);
     --h-line: var(--ia-t12);
-    --h-grid: color-mix(in srgb, var(--color-tinta) 7%, transparent);
+    --h-grid: color-mix(in srgb, var(--color-tinta) 7%, transparent); /* contraste: no aplica — la cuadrícula de fondo de un gráfico */
     --h-edge: var(--color-sand);
     --h-glass: color-mix(in srgb, var(--color-hueso) 50%, transparent);
     --h-glass-b: var(--color-sand);
@@ -212,7 +212,7 @@
     --h-b: color-mix(in srgb, var(--color-pizarra) 16%, transparent);
     --h-btn: var(--color-tinta);
     --h-btn-fg: var(--color-crema);
-    --h-halo: color-mix(in srgb, var(--color-tinta) 8%, transparent);
+    --h-halo: color-mix(in srgb, var(--color-tinta) 8%, transparent); /* contraste: no aplica — el halo de adorno de un gráfico */
     --h-kbd: var(--ia-t05);
     position: relative;
     isolation: isolate;
@@ -760,7 +760,7 @@
     flex: none;
     width: 16px;
     height: 16px;
-    color: var(--ia-t30);
+    color: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: gráfico sobre papel, crema */
     transition: transform 300ms var(--ease-cayla), color 260ms var(--ease-cayla);
   }
   .ia-ap:hover .ia-chev {

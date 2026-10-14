@@ -8,8 +8,10 @@
 // Una unidad o un tipo que el catálogo sume mañana cae al neutro, nunca al ejemplo de otro.
 
 /** Lo más largo que entra sin cortarse en la caja de la cantidad (6 rem con su relleno) y en la de la descripción de la fila de
- * escritorio (la columna más angosta: ~7.5 rem a 1440 px; a 375 px la caja es ancha y le sobra). */
+ * escritorio (la columna más angosta: ~7.5 rem a 1440 px; a 375 px la caja es ancha y le sobra).
+ * @internal Topes que exige la prueba de las sugerencias (ADR-0290). */
 export const MAX_CANTIDAD = 9;
+/** @internal El tope de la sugerencia de descripción, que exige la prueba (ADR-0290). */
 export const MAX_DESCRIPCION = 13;
 
 /** El ejemplo de la cantidad según la unidad del insumo elegido. Sin insumo, «0». */

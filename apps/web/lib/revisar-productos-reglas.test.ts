@@ -189,8 +189,8 @@ describe("mensajeDeRevision", () => {
     expect(mensajeDeRevision({ message: msg, hint: "con_ordenes_abiertas", code: "P0001" }, "rechazar la prenda")).toBe(msg);
     expect(mensajeDeRevision({ message: "Solo quien edita el catálogo puede aprobar…", hint: "sin_permiso", code: "42501" }, "aprobar la prenda")).toBe("Solo quien edita el catálogo puede aprobar…");
   });
-  it("lo demás pasa por el traductor de siempre (red caída: no se guardó nada)", () => {
-    expect(mensajeDeRevision({ message: "Failed to fetch" }, "aprobar la prenda")).toMatch(/No se pudo aprobar la prenda: la conexión falló/);
+  it("lo demás pasa por el traductor de siempre (red caída: no se sabe si se guardó, ADR-0410)", () => {
+    expect(mensajeDeRevision({ message: "Failed to fetch" }, "aprobar la prenda")).toMatch(/mientras se intentaba aprobar la prenda: no podemos confirmar si llegó a guardarse/);
   });
   it("«ya se revisó» pide refrescar la lista; lo demás no", () => {
     expect(yaSeRevisoOtraVez({ message: "x", hint: "ya_revisada" })).toBe(true);
