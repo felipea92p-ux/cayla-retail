@@ -73,6 +73,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
 
   return (
     <ImprimirEtiquetasPrecio
+      sede={persona.ubicacionEtiqueta}
       encabezado={encabezadoDeEtiquetas(texto, cuenta, persona.ubicacionEtiqueta)}
       etiquetas={datos.etiquetas}
       sinCodigo={datos.sinCodigo}

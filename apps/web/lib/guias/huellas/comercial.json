@@ -2,10 +2,6 @@
   "guia": "comercial",
   "ruta": "/comercial",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 1,
-  "controles": {
-    "app/(app)/comercial/page.tsx": [
-      "Link «Calidad: qué se devuelve y por qué →»"
-    ]
-  }
+  "total": 0,
+  "controles": {}
 }
