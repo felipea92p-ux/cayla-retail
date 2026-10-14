@@ -91,3 +91,43 @@ por URL, así que una celda que pasa a otra foto vuelve a intentarlo.
 **Cómo verificarlo.** En Catálogo ▸ Productos (vista Tabla) o Existencias, con una prenda que tenga foto, la pestaña Red
 muestra `/_next/image?url=…&w=48|96|64|128` en vez del archivo completo del Storage. Para ver el respaldo, abre una prenda
 cuya foto dé 404: debe verse el ícono de su categoría sobre su color, nunca una imagen rota.
+
+## Actualización 2026-10-14 (b) — todas las fotos de prenda pasan por `ImagenDePrenda`, y se precargan en el tamaño en que se ven
+
+**Qué cambió.** Los ~24 sitios que quedaban con `<Image unoptimized>` (Existencias —tarjeta y panel de talla—, Vender —tarjeta y
+hoja de opciones—, Productos —grilla—, vista rápida y hoja del modelo de Producción, Inicio de Almacén, ficha de producto, historial
+de ventas, movimiento, escáner, traslados, proformas, «parecidas» del alta) ahora usan `ImagenDePrenda`. `<ImagenDePrenda>` ganó
+`alFallar` (para quien además de dibujar el respaldo debe sacar la foto de una lista: `TrasladoMiniaturas`) y el respaldo puede ser
+`null` donde la caja ya tiene su fondo. Quedan `unoptimized` a propósito (lista cerrada con su motivo en `lib/fotos-optimizadas.test.ts`):
+`FotoAmpliada` («ver en grande»: se quiere el original), los dos isotipos locales, el dibujo generado, las muestras de tejido y
+patrón y el avatar de persona.
+
+**Por qué ahora.** Medido en producción el 2026-10-14 (lectura de `storage.objects`): 919 objetos en `retail-productos-fotos`, 227 MB,
+**JPEG** con mediana de 214 KB, p90 de 415 KB, 43 de más de 500 KB y una de 2,5 MB (la cifra de «~90 KB» de la sección anterior
+era de cuando había 31 fotos). Con `sharp` (WebP calidad 75, lo que hace Next) una foto de 214 KB baja a 1,2 KB a 96 px, 3,8 KB a
+256 px y 13 KB a 640 px; una de 408 KB, a 1,9 · 6,2 · 44 KB. Una pantalla de Existencias con 60 tarjetas pasa de ~13 MB a ~72 KB.
+
+**Precarga.** Cambiar de color mostraba la caja en blanco: la foto se pedía recién al cambiar. Ahora `components/ui/precargar-miniaturas.ts`
+baja las de los otros colores (al abrir la hoja, o al entrar el mouse a la tarjeta) con el `src`, `srcset` y `sizes` EXACTOS que
+`<Image>` va a pedir (`getImageProps`); el navegador reusa esa versión y no hay petición nueva al cambiar (verificado en el navegador:
+0 peticiones tras dos cambios). En la vista rápida la capa nueva solo entra cuando su foto está lista (tope de 2,5 s), así que la
+anterior se queda a la vista en vez del blanco.
+
+**Caché a 31 días (`images.minimumCacheTTL`, `next.config.ts`).** Next 16 trae 4 horas por defecto. Las fotos se suben siempre con `upsert: false` y un uuid
+(`lib/producto-fotos.ts`), así que un archivo nunca cambia bajo su nombre y cachear largo no puede mostrar una foto vieja. Medido el 2026-10-14
+(`vercel usage`, equipo `cayla`, plan Pro): el consumo de «Image Optimization» desde el 11-jul suma US$ 0,048 (la cuenta total, US$ 187,6, es 79 % minutos de
+build): hoy no es un costo; la caché larga evita que lo sea al sumar ~900 fotos × sus anchos. Si algún día se reemplaza una foto con el mismo nombre:
+`vercel cache invalidate --srcimg <url>`. Las fotos del Storage llegan con `cache-control: no-cache` (el navegador vuelve a preguntar por cada una);
+las del optimizador salen con caché larga, y eso también explica parte de la lentitud de antes.
+
+**Se rompe si.** El cupo de «Image Optimization» de Vercel se agota (hoy muy lejos: ver arriba) (919 fotos × varios anchos: mirar el consumo el primer mes;
+salida: generar al subir una versión chica en `lib/preparar-foto.ts`). **No se midió el tiempo de la primera petición de cada foto en
+Vercel** (solo bytes). Una foto nueva vuelve a `unoptimized`: `lib/fotos-optimizadas.test.ts` lo hace fallar.
+
+**Tres ajustes más (2026-10-14).** (1) `<ImagenDePrenda fondo={colorHex}>`: mientras llega la foto, la caja muestra el color de la prenda (inline, es dato y no cambia en
+oscuro) y la foto se funde encima; antes era una caja beige vacía. (2) Adelantar la foto de la pantalla que abre cada tarjeta: Productos → vista rápida, Vender → hoja
+de opciones, Existencias → panel de talla, al entrar el mouse (`precargarMiniaturas` / `precargarFotoFija`); los tamaños de cada pantalla viven juntos en
+`lib/fotos-tamanos.ts` porque donde se pinta y donde se adelanta deben decir EXACTAMENTE lo mismo. La foto del panel de talla se declaró con su caja real (272 × 363)
+y deja de pedir el ancho de 1080 en retina. (3) `images.imageSizes: [48, 96, 256]` y `deviceSizes: [640, 1080]` en `next.config.ts`: 5 anchos por foto en vez de 16
+(verificado: el srcset de una miniatura sale `48,96,256,640,1080`). Se rompe si alguien dibuja una foto a un ancho que ningún valor cubre bien (se sirve la
+versión mayor más cercana: más pesada, nunca más borrosa) o si la precarga de una pantalla usa otro `sizes` que la pantalla.
