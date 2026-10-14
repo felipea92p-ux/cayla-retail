@@ -17,6 +17,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { camposDeEtiquetar } from "@/lib/liquidacion-guia";
 import { errorDeLiquidacion, MAX_DESCRIPCION_LIQUIDACION, piezaDeJson, precioDeTexto, soles, type PiezaLiquidacion } from "@/lib/liquidacion-reglas";
 import { sugerirDescripcionLiquidacion } from "@/lib/sugerencias-liquidacion";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 export type CategoriaLiquidacion = { id: string; nombre: string; prefijo: string | null; familia: string | null };
 
@@ -124,9 +125,9 @@ export function EtiquetarPiezaModal({
             <Boton type="button" onClick={otra}>
               + Etiquetar otra
             </Boton>
-            <Boton type="button" peso="primario" cargando={impresion.enviando} onClick={impresion.imprimir}>
+            <BotonImprimir peso="primario" cargando={impresion.enviando} onClick={impresion.imprimir}>
               Imprimir etiqueta
-            </Boton>
+            </BotonImprimir>
           </div>
           {impresion.hoja}
         </div>
@@ -154,7 +155,7 @@ export function EtiquetarPiezaModal({
           </CampoGuiado>
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo="Todo listo. Después la imprimes y la pegas en la prenda." />
-            <div className="ml-auto flex gap-3">
+            <div className="ml-auto pie-acciones">
               <Boton type="button" onClick={onClose}>
                 Cancelar
               </Boton>

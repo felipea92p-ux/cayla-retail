@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 76,
+  "total": 72,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -28,10 +28,7 @@
       "Link «{children}»"
     ],
     "components/FiltrosProductos.tsx": [
-      "button «{`Quitar filtro ${c.texto}»",
-      "button «Limpiar todo»",
       "DesplegablePildora «Ordenar por»",
-      "button «Limpiar filtros»",
       "button «Copiar enlace de esta lista»",
       "DesplegablePildora «Categoría»",
       "DesplegablePildora «Talla»",
@@ -81,7 +78,6 @@
       "SegmentoDeslizante «Tamaño de las tarjetas»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/historial-prenda/HistorialPrenda.tsx": [

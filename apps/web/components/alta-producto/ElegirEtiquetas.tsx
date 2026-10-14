@@ -560,7 +560,7 @@ function CrearEtiquetaAbierta({
         <button type="button" onClick={() => void crear()} disabled={trabajando || !firma.listo} title={firma.motivo ?? undefined} className="btn-cayla btn-primario">
           {trabajando ? "Creando…" : puedeAprobar ? "Crear y agregar" : "Proponer etiqueta"}
         </button>
-        <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-sutil">
+        <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-secundario">
           Cancelar
         </button>
       </div>

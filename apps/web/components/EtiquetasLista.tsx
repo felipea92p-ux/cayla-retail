@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import Link from "next/link";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
@@ -35,6 +34,7 @@ import { hoyLima, textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-v
 import { GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, type EstiloEtiqueta } from "@/lib/etiqueta-grupos";
 import { normalizarNombre } from "@/lib/patron-visual";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 /**
  * Vocabulario cerrado de etiquetas de catálogo (folksonomy: "Oferta",
@@ -158,12 +158,9 @@ function TarjetaEtiqueta({
           {/* ADR-0180 paso 2: con la campaña vigente se imprimen sus etiquetas (precio rebajado); al terminar, las mismas
               prendas vuelven al precio normal. Antes de empezar no hay nada que imprimir: la etiqueta diría el precio de hoy. */}
           {e.descuentoPct !== null && e.estado === "aprobado" && !apagada && vigencia?.estado !== "proxima" && (
-            <Link
-              href={urlEtiquetasDePrecio({ campana: e.id })}
-              className="label-cayla mt-0.5 self-start text-[10px] text-tinta/75 underline underline-offset-4 transition-colors hover:text-tinta"
-            >
-              {vigencia?.estado === "terminada" ? "Volver al precio normal" : "Imprimir etiquetas de precio"}
-            </Link>
+            <BotonImprimir href={urlEtiquetasDePrecio({ campana: e.id })} chico className="mt-0.5 self-start">
+              {vigencia?.estado === "terminada" ? "Imprimir con el precio normal" : "Imprimir etiquetas de precio"}
+            </BotonImprimir>
           )}
         </>
       }
@@ -544,13 +541,13 @@ export function EtiquetasLista({
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Comentario (obligatorio)" value={comentarioAprobar} onChange={(e) => setComentarioAprobar(e.target.value)} autoFocus />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={aprobandoId === aprobandoEtiqueta.id}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={aprobandoId === aprobandoEtiqueta.id}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={aprobandoId === aprobandoEtiqueta.id}
                   disabled={!comentarioAprobar.trim()}
                   onClick={() => aprobar(aprobandoEtiqueta)}
@@ -568,13 +565,13 @@ export function EtiquetasLista({
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoEtiqueta.id}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={rechazandoId === rechazandoEtiqueta.id}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={rechazandoId === rechazandoEtiqueta.id}
                   onClick={() => rechazar(rechazandoEtiqueta)}
                 >
@@ -763,11 +760,11 @@ function CampanaModal({
           </p>
 
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div data-guia="atributos.campana-pie" className="flex gap-2 pt-1">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div data-guia="atributos.campana-pie" className="pie-acciones pt-1">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton peso="primario" className="flex-1" onClick={guardar} cargando={guardando} disabled={!valido} title={guia.frase ?? undefined}>
+            <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!valido} title={guia.frase ?? undefined}>
               Guardar
             </Boton>
           </div>
@@ -811,8 +808,8 @@ function NuevaEtiquetaModal({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton

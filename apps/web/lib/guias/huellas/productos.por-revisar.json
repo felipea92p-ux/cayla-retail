@@ -2,7 +2,7 @@
   "guia": "productos.por-revisar",
   "ruta": "/productos/por-revisar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 14,
+  "total": 13,
   "controles": {
     "app/(app)/productos/por-revisar/page.tsx": [
       "Volver «(sin nombre)»",
@@ -25,7 +25,6 @@
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ]
   }
