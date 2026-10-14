@@ -110,27 +110,27 @@ Relevancia = (2·9 + 7 + 5 + 3) / 5 = **6,6 — Soporte**.
 
 ## 7 · Las 12 tareas, por importancia
 
-### #1 · [Reconstruir] Lo vendido sin prenda cuenta por tipo, talla y color
+### #1 · ✅ cerrada (`2433b6651`, `2fa97e366`) · [Reconstruir] Lo vendido sin prenda cuenta por tipo, talla y color
 - **Dónde:** `fn_analisis_sede` (migración nueva: un bloque `sin_prenda` por categoría, y por categoría × talla × color, desde `prendas_por_regularizar` con `estado in ('pendiente','cerrada_sin_prenda')`, en la misma ventana de 30 días) → `lib/analisis-sede.ts`, `lib/analisis-pedir.ts:142-169` (`alcancePorTipo` suma lo vendido sin prenda de su tipo) y `lib/analisis-reglas.ts:111-116` (`grupoDe`: un modelo cuya categoría, talla y color tienen ventas sin prenda en la ventana **no pasa a «Liquidar»**; pasa a «Puede haberse vendido sin registrar»).
 - **Por qué en este puesto:** es lo único de la lista que puede **mandar a rebajar prendas que se venden** (Shorts: 16 vendidos, 0 con prenda, 18 en stock) y que **cambia qué se compra para Navidad** (Faldas pasa de «llega» a «no llega»). Y es barato: el dato ya está, al 100 %, en las dos tiendas `[producción]`. Sin esto, todo lo demás de esta lista sigue razonando con el 46 %.
 - **Cómo lo verificas tú:** en TRU, «Qué pedir» muestra Faldas con 22 vendidas en 30 días (no 8) y la nombra entre las que no llegan; Shorts aparece en «Qué pedir» con su ritmo; ningún modelo de Shorts aparece en «No se vende» ▸ Liquidar. Consulta: `select count(*) from retail.prendas_por_regularizar where estado in ('pendiente','cerrada_sin_prenda')` debe ser igual a la suma de `sin_prenda` que devuelve la RPC.
 - **Esfuerzo / dependencias:** M · migración + RPC: **espera tu OK** (CLAUDE.md: RPC y regla de liquidación). Antes que #3.
 - **DECIDÍ:** usar `prendas_por_regularizar` solo donde la pregunta es por **tipo** («Qué pedir») o como **freno** («no la liquides todavía»), nunca para inventar el ritmo de un modelo: la venta sin prenda dice «una falda talla M negra», no cuál falda. **DESCARTÉ:** escalar el ritmo de cada modelo por el % de registro de su categoría (×1/0,36 en Faldas), porque reparte las ventas perdidas a ciegas entre modelos que quizás no se vendieron, y una prenda sin ninguna venta seguiría en cero. **SE ROMPE SI:** una tienda registra la categoría equivocada en la venta sin prenda (vende un short y anota «Faldas»): el freno protege la prenda equivocada. Hoy no hay cómo saberlo; el riesgo es menor que liquidar a ciegas.
 
-### #2 · [Corregir] Ninguna tarjeta dice «Va bien» cuando no puede saberlo
+### #2 · ✅ cerrada (`84c3a1b61`) · [Corregir] Ninguna tarjeta dice «Va bien» cuando no puede saberlo
 - **Dónde:** `components/analisis/PestanaHoy.tsx:73,203` (el estado y el texto vacío de «¿Qué no se mueve?») y la misma lógica para «¿Qué se acaba?»; regla pura nueva en `lib/analisis-hoy.ts` (`puedeJuzgarQuietas(diasDeVentas, liquidarDesde)`) con su prueba.
 - **Por qué en este puesto:** es el error que la encargada **sí** comete (escenario, paso 3) y el arreglo es solo web. Mientras la tienda lleve menos días vendiendo que el umbral, la tarjeta debe decir «Todavía no se puede saber: tu tienda lleva 14 días vendiendo en el ERP y se juzga desde los 15» con el chip «Para saber» (pizarra), nunca «Va bien». Y, mientras el aviso de datos incompletos esté arriba, ninguna tarjeta queda en verde: a lo sumo «Sin señales con lo registrado».
 - **Cómo lo verificas tú:** hoy en TRU, la tarjeta dice «Todavía no se puede saber» en pizarra; en una base local con una tienda de 40 días y datos completos, vuelve a decir «Va bien». Prueba: `analisis-hoy.test.ts` con `diasDeVentas = 14, liquidarDesde = 15`.
 - **Esfuerzo / dependencias:** S · ninguna.
 
-### #3 · [Reconstruir] Aplicar las dos decisiones del 12-oct: ritmo por los días en el piso y «liquidar» contra la vara de su categoría
+### #3 · ✅ cerrada (`685c126b1`, `f0523c9ae`) · [Reconstruir] Aplicar las dos decisiones del 12-oct: ritmo por los días en el piso y «liquidar» contra la vara de su categoría
 - **Dónde:** `lib/analisis-reglas.ts:75-76` (divisor = días que la prenda estuvo colgada, desde `salioAlPiso`, con tope 30; ya viaja en el payload, `analisis-tipos.ts`), `lib/analisis-pedir.ts:148`, `lib/analisis-reglas.ts:111-116` (`liquidar` cuando los días sin venderse pasan la p90 de su categoría según `varaQueJuzgo`, `frescura-reglas.ts:1530`, con su cascada mes → CAYLA → hoy; `liquidar_desde` queda de respaldo), `analisis-reglas.test.ts:62-71` (fija lo viejo: se reescribe), ADR-0357 (actualización nueva **antes** del código).
 - **Por qué en este puesto:** resuelve la objeción 4 (dos varas en el mismo menú) y resucita «Vigílalas» (el segundo escalón también pasa a la vara). Va después de #1 porque sin las ventas sin prenda la vara de la categoría también sale corta.
 - **Cómo lo verificas tú:** la misma prenda sale «quieta» en Frescura y en «No se vende», o en ninguna de las dos; con `liquidar_desde = 15`, el carril «Vigílalas» tiene filas cuando corresponde; un modelo colgado hace 4 días con 2 ventas muestra un ritmo de ~0,5 por día, no de 0,13.
 - **Esfuerzo / dependencias:** L · después de #1; **antes de construir, confirma que las dos decisiones siguen en pie** (son del 12-oct y no están escritas).
 - **DECIDÍ:** reusar `varaQueJuzgo` de Frescura tal cual, sin copiarla, para que las dos pantallas no puedan volver a separarse. **DESCARTÉ:** subir `liquidar_desde` a un número «más realista» (30 o 45), porque medido el 12-oct un número fijo marca **0 prendas** en las 17 categorías: nada en CAYLA tarda tanto si se va a vender. El problema no es el número, es que sea uno solo. **SE ROMPE SI:** una categoría tiene menos de `VENTAS_PARA_JUZGAR_SOLA = 10` ventas en la tienda y en CAYLA: cae a la vara de hoy, que con una tienda de 15 días es casi ruido. La cascada de Frescura ya lo dice en pantalla; Análisis tiene que decirlo igual.
 
-### #4 · [Corregir] «Ver qué falta» dice lo que se puede arreglar, y cuándo se va el aviso
+### #4 · ✅ cerrada (`2fe9ec6aa`) · [Corregir] «Ver qué falta» dice lo que se puede arreglar, y cuándo se va el aviso
 - **Dónde:** `components/analisis/TodaviaNo.tsx:30-39`, `lib/analisis-aviso.ts:39-47,85-89` (`pasoParaHablar`); el conteo de pendientes de `prendas_por_regularizar` (`estado = 'pendiente'`), ya lo lee Por regularizar.
 - **Por qué en este puesto:** hoy promete «Registrar 347» y la pantalla de destino tiene 41 (escenario, paso 5). Debe decir: «Registrar 41 pendientes · 306 ya se cerraron sin prenda: esos días no vuelven». Y la fecha honesta: «Si desde hoy cobras todo con su prenda, el aviso se va el 28 de octubre» (14 días seguidos sobre el 90 %, `motor-demanda-reglas.ts:24`). La misma regla la usa Frescura (`pasoParaHablar` es compartida): se arregla en las dos.
 - **Cómo lo verificas tú:** en TRU el botón dice 41 y Por regularizar muestra 41; la fecha cambia sola si mañana se cobra un día bajo el 90 %.
@@ -184,6 +184,13 @@ Relevancia = (2·9 + 7 + 5 + 3) / 5 = **6,6 — Soporte**.
 - **Por qué en este puesto:** al final porque no cambia nada de lo que ve la tienda; pero es lo que hace que la próxima sesión repita la investigación (como pasó el 12-oct).
 - **Cómo lo verificas tú:** `grep -n "cuatro" docs/adr/0357*.md ARQUITECTURA.md` sin coincidencias que se refieran a las pestañas; ADR-0357 sin números repetidos.
 - **Esfuerzo / dependencias:** S · ninguna. **bajo valor / opcional:** no cambia decisiones.
+
+### Cómo quedaron #1 a #4 (2026-10-14, con Felipe)
+Hechas con `/construir` en 6 actividades, sin migración. Felipe decidió los cuatro puntos abiertos: **piso de 7 días** en la ventana del ritmo,
+**Vigila en p75 y Liquidar en p90** de la vara de su tipo, **solo las ventas pendientes frenan** «Liquidar» (como Frescura) y la lista entera.
+Lo que se apartó de lo propuesto: #1 no necesitó RPC (Frescura ya lee `prendas_por_regularizar` por la RLS y el nombre de la categoría es único);
+el freno de #1 no se inventó, se toma de la cuenta de Frescura (`dudadas`); para liquidar con la vara se exige que tenga las 10 ventas con que
+Frescura juzga sola (`VENTAS_PARA_JUZGAR_SOLA`), si no manda «Liquidar desde». Detalle: ADR-0357, «Actualización 2026-10-14».
 
 ## 8 · Estrategia alternativa — «Qué pedir» (decide Felipe, tarea #5)
 | | **A · Como está** | **B · Contra la campaña** | **C · Fuera de Análisis** |
@@ -247,3 +254,4 @@ De memoria, **no verificado**:
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
 | 2026-10-14 | completo | 5,0 (prom. 5,6, tope 5) | 6,6 — Soporte | — (primer análisis de la v4; el de `/inventario/resumen` no existía en `docs/pantallas/`) |
+| 2026-10-14 (tarde) | — (construcción, no re-análisis) | — | — | #1, #2, #3 y #4 cerradas (6 commits, `2433b6651` … `2fe9ec6aa`); siguen #5 a #12 |
