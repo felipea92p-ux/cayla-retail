@@ -6,13 +6,20 @@ import {
   cuentaRendicion,
   estadoPorFondo,
   etiquetaItem,
+  detalleAprobada,
   fraseAprobar,
   fraseCuenta,
+  fraseFaltanteSinExplicar,
+  fraseFaltanteTuRendicion,
   fraseRendir,
   fraseSinFoto,
+  lecturaLista,
   leerItemsRendicion,
   leerMiFondoRendicion,
+  leerMiRendicionAbierta,
   leerRendiciones,
+  pieListaRevisar,
+  resumenItems,
   textoPapel,
   type Rendicion,
 } from "./rendicion-reglas";
@@ -98,7 +105,11 @@ describe("la cuenta de la rendición (la misma que la base)", () => {
   });
   it("lo que dice bajo el campo", () => {
     expect(fraseCuenta(cuentaRendicion(120, "120"))).toBe("Cuadra.");
-    expect(fraseCuenta(cuentaRendicion(120, "100"))).toBe("Te faltan S/ 20.00. Escribe qué pasó: si no, quedan como deuda tuya.");
+    expect(fraseCuenta(cuentaRendicion(120, "100"))).toBe("Te faltan S/ 20.00. Escribe qué pasó: si no, quedan como deuda tuya cuando la aprueben.");
+    // Con una deuda de antes, dice en qué queda (/formidable 2026-10-14, cambio 3: «¿los S/ 20 se suman a lo que ya debo?»).
+    expect(fraseCuenta(cuentaRendicion(120, "100"), 25)).toBe(
+      "Te faltan S/ 20.00. Escribe qué pasó: si no, tu deuda pasa de S/ 25.00 a S/ 45.00 cuando la aprueben.",
+    );
     expect(fraseCuenta(cuentaRendicion(120, "150"))).toMatch(/^Tienes S\/ 30\.00 más de lo que dice tu fondo/);
     expect(fraseCuenta(cuentaRendicion(120, ""))).toBeNull();
   });
@@ -144,8 +155,11 @@ describe("los textos", () => {
     expect(fraseRendir(cuentaRendicion(120, "100"))).toBe("Rendir: tengo S/ 100.00");
     expect(fraseRendir(cuentaRendicion(120, ""))).toBe("Rendir mi fondo");
     expect(fraseAprobar(R, "asume_cayla")).toBe("Aprobar: CAYLA asume S/ 20.00");
-    expect(fraseAprobar(R, "deuda_persona")).toBe("Aprobar: debe S/ 20.00");
-    expect(fraseAprobar({ ...R, explicacion: null }, "")).toBe("Aprobar: debe S/ 20.00");
+    expect(fraseAprobar(R, "deuda_persona")).toBe("Aprobar: queda debiendo S/ 20.00");
+    expect(fraseAprobar({ ...R, explicacion: null }, "")).toBe("Aprobar: queda debiendo S/ 20.00");
+    // Con una deuda de antes, el botón dice en cuánto queda (/formidable 2026-10-14, cambio 3).
+    expect(fraseAprobar({ ...R, explicacion: null }, "", 25)).toBe("Aprobar: su deuda sube a S/ 45.00");
+    expect(fraseAprobar(R, "asume_cayla", 25)).toBe("Aprobar: CAYLA asume S/ 20.00");
     expect(fraseAprobar({ ...R, faltante: 0 }, "")).toBe("Aprobar la rendición");
   });
   it("cada fila en palabras de tienda, según quién lee; su papel; cuántos sin foto", () => {
@@ -177,5 +191,61 @@ describe("el tablero de quien aprueba", () => {
       { ...R, id: "r-2", estado: "devuelta", faltante: 50 },
     ]);
     expect(e.get("f1")).toEqual({ porAprobar: expect.objectContaining({ id: "r1" }) });
+  });
+});
+
+// /formidable 2026-10-14, cambio 2: una lectura que falla no es una lista vacía, y «Aprobar» espera a que se vea lo que rindió.
+describe("la lista de lo rendido dentro de una hoja", () => {
+  it("cargando, leída o sin poder leerse; el pie dice qué esperar", () => {
+    expect(lecturaLista(null, false)).toBe("cargando");
+    expect(lecturaLista([], false)).toBe("lista");
+    expect(lecturaLista(null, true)).toBe("falla");
+    expect(lecturaLista([], true)).toBe("falla");
+    expect(pieListaRevisar("cargando")).toBe("Espera a que cargue lo que rindió.");
+    expect(pieListaRevisar("falla")).toBe("Para aprobar, primero tiene que verse lo que rindió: vuelve a intentar.");
+    expect(pieListaRevisar("lista")).toBeNull();
+  });
+});
+
+// /formidable 2026-10-14, cambio 3: la cuenta de cada persona, en una sola frase.
+describe("la cuenta de la persona, dicha entera", () => {
+  it("el faltante sin explicar dice en cuánto queda su deuda", () => {
+    expect(fraseFaltanteSinExplicar(5, 25)).toBe("No escribió qué pasó: si se aprueba así, su deuda pasa de S/ 25.00 a S/ 30.00.");
+    expect(fraseFaltanteSinExplicar(5)).toBe("No escribió qué pasó: si se aprueba así, queda debiendo S/ 5.00.");
+  });
+
+  it("el aviso al aprobar dice cómo quedó", () => {
+    expect(detalleAprobada(5, "asume_cayla", "Micaela", 25)).toBe("CAYLA asume S/ 5.00.");
+    expect(detalleAprobada(5, "deuda_persona", "Micaela", 25)).toBe("La deuda de Micaela queda en S/ 30.00.");
+    expect(detalleAprobada(5, "deuda_persona", "Micaela")).toBe("Micaela queda debiendo S/ 5.00.");
+  });
+
+  it("«Ver tu rendición» dice lo cierto: con explicación decide quien revisa; sin ella es deuda; sin leerla, las dos cosas", () => {
+    expect(fraseFaltanteTuRendicion("Pagué la propina del cargador", 5, 25)).toBe(
+      "Escribiste: «Pagué la propina del cargador». Quien la revisa decide si lo asume CAYLA o queda como deuda tuya.",
+    );
+    expect(fraseFaltanteTuRendicion(null, 5, 25)).toBe("No escribiste qué pasó: cuando la aprueben, tu deuda pasa de S/ 25.00 a S/ 30.00.");
+    expect(fraseFaltanteTuRendicion(null, 5)).toBe("No escribiste qué pasó: cuando la aprueben, queda como deuda tuya.");
+    expect(fraseFaltanteTuRendicion(undefined, 5, 25)).toBe(
+      "Si al rendir escribiste qué pasó, quien la revisa decide si lo asume CAYLA; si no, queda como deuda tuya.",
+    );
+  });
+
+  it("lo que hay en una rendición se cuenta con nombres, no en «filas»", () => {
+    const i = (tipo: "mov" | "pago" | "gasto" | "otro", monto: number) => ({ tipo, monto });
+    expect(resumenItems([i("gasto", -20), i("mov", 100)])).toBe("1 gasto y 1 entrega");
+    expect(resumenItems([i("pago", -300), i("gasto", -20), i("gasto", -10), i("mov", 500), i("mov", -120)])).toBe(
+      "1 pago a proveedor, 2 gastos, 1 entrega y 1 devolución",
+    );
+    expect(resumenItems([i("gasto", -20)])).toBe("1 gasto");
+    expect(resumenItems([])).toBe("nada");
+  });
+
+  it("la rendición abierta de quien pregunta: su explicación, o nada si no hay", () => {
+    expect(leerMiRendicionAbierta({ id: "r1", en: "2026-10-14T21:21:04Z", faltante: 5, explicacion: "Un taxi" })).toEqual({ id: "r1", explicacion: "Un taxi" });
+    expect(leerMiRendicionAbierta({ id: "r1", explicacion: null })).toEqual({ id: "r1", explicacion: null });
+    expect(leerMiRendicionAbierta(null)).toBeNull();
+    expect(leerMiRendicionAbierta([{ id: "r1" }])).toBeNull();
+    expect(leerMiRendicionAbierta({ explicacion: "sin id" })).toBeNull();
   });
 });

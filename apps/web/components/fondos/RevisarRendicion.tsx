@@ -23,9 +23,14 @@ import { primerNombre } from "@/lib/fondos-reglas";
 import {
   MAX_TEXTO_RENDICION,
   camposAprobar,
+  detalleAprobada,
   etiquetaItem,
   fraseAprobar,
+  fraseFaltanteSinExplicar,
   fraseSinFoto,
+  lecturaLista,
+  pieListaRevisar,
+  resumenItems,
   textoPapel,
   type DecisionFaltante,
   type ItemRendicion,
@@ -51,13 +56,15 @@ function rechazoDe(error: Parameters<typeof traducirError>[0], que: string): Rec
   return { titulo: "No se guardó", texto: traducirError(error, que), tono: "error" };
 }
 
-export function RevisarRendicion({ rendicion }: { rendicion: Rendicion }) {
+// `deuda`: lo que la persona ya debe por faltantes aprobados (/formidable 2026-10-14, cambio 3): el faltante de ahora dice en qué queda.
+// Quien no puede aprobar (`porQueNoAprueba`) ve «Revisar» en secundario: puede mirarla y devolverla, pero no compite con «Entregar plata».
+export function RevisarRendicion({ rendicion, deuda = 0 }: { rendicion: Rendicion; deuda?: number }) {
   const [abierta, setAbierta] = useState(false);
   const origen = useRef<HTMLElement | null>(null);
   return (
     <>
       <Boton
-        peso="primario"
+        peso={rendicion.porQueNoAprueba ? "fantasma" : "primario"}
         data-guia="fondos.revisar"
         onClick={(e) => {
           origen.current = e.currentTarget;
@@ -66,14 +73,27 @@ export function RevisarRendicion({ rendicion }: { rendicion: Rendicion }) {
       >
         Revisar
       </Boton>
-      {abierta && <RevisarRendicionModal r={rendicion} onClose={() => setAbierta(false)} volverA={origen} />}
+      {abierta && <RevisarRendicionModal r={rendicion} deuda={deuda} onClose={() => setAbierta(false)} volverA={origen} />}
     </>
   );
 }
 
-function RevisarRendicionModal({ r, onClose, volverA }: { r: Rendicion; onClose: () => void; volverA: RefObject<HTMLElement | null> }) {
+function RevisarRendicionModal({
+  r,
+  deuda,
+  onClose,
+  volverA,
+}: {
+  r: Rendicion;
+  deuda: number;
+  onClose: () => void;
+  volverA: RefObject<HTMLElement | null>;
+}) {
   const router = useRouter();
   const [items, setItems] = useState<ItemRendicion[] | null>(null);
+  // Una lectura que falla no es una lista vacía (/formidable 2026-10-14, cambio 2): lo dice, ofrece volver a intentar y «Aprobar» espera.
+  const [falla, setFalla] = useState(false);
+  const [vuelta, setVuelta] = useState(0);
   const [decision, setDecision] = useState<DecisionFaltante | "">("");
   const [nota, setNota] = useState("");
   const [devolviendo, setDevolviendo] = useState(false);
@@ -88,12 +108,20 @@ function RevisarRendicionModal({ r, onClose, volverA }: { r: Rendicion; onClose:
   useEffect(() => {
     let vigente = true;
     void leerItems(r.id).then((x) => {
-      if (vigente) setItems(x.error ? [] : x.items);
+      if (!vigente) return;
+      setFalla(Boolean(x.error));
+      setItems(x.error ? null : x.items);
     });
     return () => {
       vigente = false;
     };
-  }, [r.id]);
+  }, [r.id, vuelta]);
+  const lectura = lecturaLista(items, falla);
+  const reintentar = () => {
+    setFalla(false);
+    setItems(null);
+    setVuelta((v) => v + 1);
+  };
 
   const campos = camposAprobar(r, { decision, nota }, { esPersona, listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos);
@@ -102,7 +130,7 @@ function RevisarRendicionModal({ r, onClose, volverA }: { r: Rendicion; onClose:
   const firma = (clave: "fondo_rendicion_aprobar" | "fondo_rendicion_devolver") => (esPersona ? firmaOmitida(clave) : responsable.firma());
 
   async function aprobar() {
-    if (guardando || enVuelo.current || r.porQueNoAprueba) return;
+    if (guardando || enVuelo.current || r.porQueNoAprueba || lectura !== "lista") return;
     if (!guia.puedeConfirmar) {
       const ahora = guia.ahora ?? guia.faltan[0]?.id;
       if (ahora) guia.ir(ahora);
@@ -122,13 +150,9 @@ function RevisarRendicionModal({ r, onClose, volverA }: { r: Rendicion; onClose:
         setRechazo(rechazoDe(error, "aprobar la rendición"));
         return;
       }
-      const d = r.explicacion ? decision : "deuda_persona";
+      const d = r.explicacion && decision ? decision : "deuda_persona";
       avisar.exito(`Aprobaste la rendición de ${nombre}`, {
-        detalle: !conFaltante
-          ? "Cuadró. Su fondo sigue con lo que tiene en la mano."
-          : d === "asume_cayla"
-            ? `CAYLA asume ${soles(r.faltante)}.`
-            : `Queda como deuda de ${nombre}: ${soles(r.faltante)}.`,
+        detalle: !conFaltante ? "Cuadró. Su fondo sigue con lo que tiene en la mano." : detalleAprobada(r.faltante, d, nombre, deuda),
       });
       onClose();
       router.refresh();
@@ -169,7 +193,7 @@ function RevisarRendicionModal({ r, onClose, volverA }: { r: Rendicion; onClose:
   return (
     <Modal
       titulo={`Rendición de ${nombre}`}
-      subtitulo={`La rindió el ${r.rendidaEn ? diaYHoraLima(r.rendidaEn).dia : "—"} · ${r.items} ${r.items === 1 ? "fila" : "filas"}`}
+      subtitulo={`La rindió el ${r.rendidaEn ? diaYHoraLima(r.rendidaEn).dia : "—"}${items ? ` · ${resumenItems(items)}` : ""}`}
       onClose={onClose}
       variante="hoja"
       ancho="max-w-xl"
@@ -197,7 +221,7 @@ function RevisarRendicionModal({ r, onClose, volverA }: { r: Rendicion; onClose:
             {fila("Dice que tiene en la mano", soles(r.efectivo), "font-semibold text-tinta")}
             {conFaltante ? (
               <Aviso tono="atencion" titulo={`Faltan ${soles(r.faltante)}`} chico>
-                {r.explicacion ? `«${r.explicacion}»` : "No escribió qué pasó: queda como su deuda."}
+                {r.explicacion ? `«${r.explicacion}»` : fraseFaltanteSinExplicar(r.faltante, deuda)}
               </Aviso>
             ) : (
               <p className="text-xs font-medium text-verde-profundo">Cuadra.</p>
@@ -205,8 +229,22 @@ function RevisarRendicionModal({ r, onClose, volverA }: { r: Rendicion; onClose:
           </section>
 
           <section className="space-y-2">
-            <TituloGrupo cuenta={items ? items.length : undefined}>Lo que rindió</TituloGrupo>
-            {items === null ? (
+            {/* «Le entregaron» dentro de «Lo que rindió» confundía (prueba ciega 1): la lista es todo lo que movió su fondo. */}
+            <TituloGrupo cuenta={items ? items.length : undefined}>Lo que entró y salió de su fondo</TituloGrupo>
+            {lectura === "falla" ? (
+              <Aviso
+                tono="atencion"
+                titulo="No pude traer lo que rindió"
+                chico
+                accion={
+                  <button type="button" className="btn-cayla btn-enlace" onClick={reintentar}>
+                    Volver a intentar
+                  </button>
+                }
+              >
+                Las cifras de arriba sí están al día.
+              </Aviso>
+            ) : items === null ? (
               <div aria-hidden className="space-y-2">
                 {[0, 1, 2].map((k) => (
                   <div key={k} className="h-11 animate-pulse rounded-lg bg-tinta/5" />
@@ -306,7 +344,7 @@ function RevisarRendicionModal({ r, onClose, volverA }: { r: Rendicion; onClose:
               {rechazo.texto}
             </Aviso>
           )}
-          {!r.porQueNoAprueba && !devolviendo && <PieGuia guia={guia} listo="Todo listo para aprobar." conFrase />}
+          {!r.porQueNoAprueba && !devolviendo && <PieGuia guia={guia} listo={pieListaRevisar(lectura) ?? "Todo listo para aprobar."} conFrase />}
           <div className="pie-hoja-fijo flex flex-wrap justify-end gap-3 pt-1">
             {devolviendo ? (
               <>
@@ -323,8 +361,15 @@ function RevisarRendicionModal({ r, onClose, volverA }: { r: Rendicion; onClose:
                   Devolver para corregir
                 </Boton>
                 {!r.porQueNoAprueba && (
-                  <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-                    {guardando ? "Aprobando…" : fraseAprobar(r, decision)}
+                  <Boton
+                    type="submit"
+                    peso="primario"
+                    cargando={guardando}
+                    disabled={!guia.puedeConfirmar || lectura !== "lista"}
+                    title={pieListaRevisar(lectura) ?? guia.frase ?? undefined}
+                    className={guia.claseConfirmar}
+                  >
+                    {guardando ? "Aprobando…" : fraseAprobar(r, decision, deuda)}
                   </Boton>
                 )}
               </>
