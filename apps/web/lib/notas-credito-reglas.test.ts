@@ -9,6 +9,7 @@ import {
   cifrasTablero,
   coincideFactura,
   destinoTexto,
+  diaDelCierre,
   edadEnDias,
   filtrarFacturas,
   filtrarTablero,
@@ -119,6 +120,33 @@ describe("antigüedad y urgencia del reclamo (D4: 14 días, una constante del m�
     expect(hace(0)).toBe("Hoy");
     expect(hace(1)).toBe("Ayer");
     expect(hace(19)).toBe("Hace 19 días");
+  });
+});
+
+describe("el reloj del reclamo arranca el día de LIMA en que se cerró el faltante", () => {
+  // Como lo manda `notas_credito_tablero()`: `cerrado_en` es un instante en UTC y, en una pendiente, la fecha llega vacía.
+  // Ejemplo inventado: 2026-09-18 01:00 UTC = 17 de septiembre, 20:00 en Lima; «hoy» es el 18.
+  const deNoche = fila({ clase: "pendiente", id: "p-noche", documento: "F001-000500", montoEsperado: 120, unidadesCerradas: 3, cerradoEn: "2026-09-18T01:00:00.123456+00:00", fecha: "" });
+  const vista = armarFilas([deNoche], { hoy: HOY, saldoPorProveedor: {}, movimientos: [] })[0]!;
+
+  it("lo cerrado a las 20:00 del 17 en Lima es del 17, aunque en UTC ya sea el 18", () => {
+    expect(diaDelCierre(deNoche)).toBe("2026-09-17");
+    expect(diaDelCierre({ cerradoEn: "2026-09-18T04:59:00+00:00", fecha: "" })).toBe("2026-09-17"); // 23:59 en Lima
+    expect(diaDelCierre({ cerradoEn: "2026-09-18T05:00:00+00:00", fecha: "" })).toBe("2026-09-18"); // 00:00 en Lima
+  });
+
+  it("al día siguiente ya lleva un día: «Ayer», no «Hoy»", () => {
+    expect(vista.edadDias).toBe(1); // con el corte de UTC daba 0
+    expect(hace(vista.edadDias)).toBe("Ayer");
+  });
+
+  it("el paso «Faltante» de su línea de tiempo lleva el día de Lima", () => {
+    expect(pasosDeNota(vista)[0]).toMatchObject({ clave: "Faltante", fecha: "17/09" }); // con el corte de UTC, «18/09»
+  });
+
+  it("sin un instante que se lea, vale la fecha de la fila", () => {
+    expect(diaDelCierre({ cerradoEn: null, fecha: "2026-09-03" })).toBe("2026-09-03");
+    expect(diaDelCierre({ cerradoEn: "ayer", fecha: "2026-09-03" })).toBe("2026-09-03");
   });
 });
 

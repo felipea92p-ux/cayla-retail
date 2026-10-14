@@ -179,8 +179,8 @@ export type DatosAnalisis = {
   rinde: { categoria: string; porSol: number }[];
   /** El último conteo de mi tienda: cuántas prendas se contaron y cuántas coincidieron; null si no hay. */
   conteo: { contadas: number; coinciden: number } | null;
-  /** «Te pidieron y no había», sin resolver: qué se pidió y cuándo (YYYY-MM-DD). */
-  noHabia: { que: string; dia: string }[];
+  /** «Te pidieron y no había», sin resolver: qué se pidió y el día de Lima en que se anotó (YYYY-MM-DD; null si no se lee). */
+  noHabia: { que: string; dia: string | null }[];
   /** Lo que no se pudo leer (principio 9): cada parte que falló, en una frase. Vacío si todo respondió. */
   fallas: string[];
 };

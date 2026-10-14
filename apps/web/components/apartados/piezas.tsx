@@ -27,8 +27,10 @@ export function EstadoChip({ clave, texto }: { clave: ClaveEstado; texto: string
   );
 }
 
-/** 7 días de plazo + 2 de gracia (en rosa), con el día de hoy marcado. */
-export function BarraPlazo({ creadaEl, hoy }: { creadaEl: string; hoy: string }) {
+/** 7 días de plazo + 2 de gracia (en rosa), con el día de hoy marcado. `creadaEl` es el día de Lima en que se apartó
+ *  (`diaLima(a.creadaEn)`); sin él no se dibuja una barra que no se sabe dónde empieza. */
+export function BarraPlazo({ creadaEl, hoy }: { creadaEl: string | null; hoy: string }) {
+  if (!creadaEl) return null;
   return (
     <div aria-hidden className="grid grid-cols-9 gap-0.5">
       {tramosDelPlazo(creadaEl, hoy).map((t, i) => (
@@ -43,7 +45,10 @@ export function BarraPlazo({ creadaEl, hoy }: { creadaEl: string; hoy: string })
   );
 }
 
-export function fechaCorta(iso: string) {
+/** «lun 13 oct» de una fecha `aaaa-mm-dd`. Un instante pasa antes por `diaLima` (sus 10 primeros caracteres son el día de UTC);
+ *  sin fecha, una raya. */
+export function fechaCorta(iso: string | null) {
+  if (!iso) return "—";
   const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("es-PE", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(/\./g, "");
 }
