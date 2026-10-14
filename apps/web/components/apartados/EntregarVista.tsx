@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Pencil, Receipt, SearchX, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
@@ -11,6 +11,9 @@ import { CampoMonto } from "@/components/ui/CampoMonto";
 import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { AVISO_EFECTIVO_SIN_MONEDA, cobroDelSaldo, coincide, diasEntre, encendida, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { BarraMovil, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
@@ -76,7 +79,11 @@ export function EntregarVista({
   const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [texto, setTexto] = useState("");
   const [pagos, setPagos] = useState<PagoAdelanto[]>([]);
-  const [enviando, setEnviando] = useState(false);
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): el apartado y los pagos. Si la respuesta se pierde, la vista
+  // se congela (ni otro apartado ni otros pagos) hasta saber si la entrega quedó.
+  const envio = useIntento("entregar_separacion");
+  const enviando = envio.enviando;
+  const [revisando, setRevisando] = useState(false);
   const [abonar, setAbonar] = useState(false);
   const [editar, setEditar] = useState(false);
   const conAbonos = encendida(apagadas, "abonos");
@@ -84,13 +91,14 @@ export function EntregarVista({
   const conEstante = encendida(apagadas, "estante");
   const ubicacion = { ubicacionId, etiqueta: ubicacionEtiqueta };
   const [entregado, setEntregado] = useState<{ apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; redondeo: number } | null>(null);
-  const token = useRef<string>(crypto.randomUUID());
   // Entregar guarda en la tienda (cobra el saldo y cierra la venta): pide Responsable (ADR-0161), vacío en cada entrega
   // (módulo Punto de venta: no propone a quien inició sesión).
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta }, { modo: "atencion" });
 
   /** Cambiar de clienta es otra operación: el combo vuelve a vacío. */
   function elegir(id: string | null) {
+    // En duda no se cambia de apartado: la entrega en el aire es la del elegido.
+    if (envio.incierto) return;
     responsable.limpiar();
     onElegir(id);
   }
@@ -113,26 +121,38 @@ export function EntregarVista({
 
   async function entregar() {
     if (!a || !cobro.listo || !cajaAbierta || !responsable.listo) return;
-    setEnviando(true);
     // Con el redondeo del efectivo (ADR-0311) viaja el efectivo YA cobrado en monedas y, aparte, la fila `redondeo`: la suma sigue siendo el
     // saldo exacto, que es lo que la boleta final documenta.
     const pagosRpc = pagosParaRpcApartado(pagos, redondeoEfectivo);
-    const { error } = await firmar(
-      createClient().rpc("entregar_separacion", {
-        p_separacion_id: a.id,
-        p_pagos: pagosRpc,
-        p_token: token.current,
-      }),
-      responsable.firma(),
+    const params = { p_separacion_id: a.id, p_pagos: pagosRpc };
+    const r = await envio.enviar(huellaDe(params), (token, senal) =>
+      firmar(createClient().rpc("entregar_separacion", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
     );
-    setEnviando(false);
+    if (r.tipo === "ocupado" || r.tipo === "congelado") return;
     // Éxito → el combo vuelve a vacío; rechazo por el responsable (marcó salida) → vacía y relee la lista.
-    responsable.despues(error);
-    if (error) {
-      avisar.error(traducirError(error, "entregar el apartado", { confirmarAntesDeRepetir: true }));
+    responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: la vista lo dice arriba y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") {
+      avisar.error(traducirError(r.error, "entregar el apartado"));
       return;
     }
-    token.current = crypto.randomUUID();
+    entregadoCon(a, pagosRpc);
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho" && a) return entregadoCon(a, pagosParaRpcApartado(pagos, redondeoEfectivo));
+    if (res.tipo === "no_llego") {
+      avisar.aviso("La entrega no se registró", { detalle: "El apartado sigue abierto y no se cobró el saldo. Revisa los pagos y vuelve a entregar." });
+      return;
+    }
+    if (res.tipo === "sin_respuesta") avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  function entregadoCon(a: Apartado, pagosRpc: ReturnType<typeof pagosParaRpcApartado>) {
     const pagadoHoy = pagosRpc.flatMap((p) => (p.metodo === "redondeo" ? [] : [{ metodo: NOMBRE_METODO[p.metodo] ?? p.metodo, monto: p.monto }]));
     const redondeo = pagosRpc.find((p) => p.metodo === "redondeo")?.monto ?? 0;
     setEntregado({ apartado: a, pagadoHoy, vuelto: cobro.vuelto, redondeo });
@@ -145,6 +165,13 @@ export function EntregarVista({
 
   return (
     <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+      {envio.incierto && (
+        <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
+          <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={entregar} reintentando={enviando} />
+        </div>
+      )}
+      {/* En duda, nada se toca: otro apartado u otros pagos podrían entregar dos veces. */}
+      <fieldset disabled={envio.incierto} className="contents">
       <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
       {cabecera}
       <div className="flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0">
@@ -357,6 +384,7 @@ export function EntregarVista({
                     {cobro.excede && <Aviso tono="error" chico>Con esos medios no hay vuelto: cobra justo {money(saldo)}.</Aviso>}
                     {cobro.falta > 0 && pagos.length > 0 && <Aviso tono="error" chico>Falta {money(cobro.falta)}</Aviso>}
                     {cobro.noAlcanza && <Aviso tono="error" chico>Lo recibido no alcanza.</Aviso>}
+                    {cobro.vueltoExcede && <Aviso tono="error" chico>El vuelto pasa de S/ 500: revisa cuánto entregó.</Aviso>}
                   </fieldset>
                 )}
                 {cobro.vuelto > 0 && (
@@ -430,6 +458,7 @@ export function EntregarVista({
       {editar && a && <EditarApartadoModal apartado={a} prendas={prendas} ubicacion={ubicacion} onClose={() => setEditar(false)} />}
 
       {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} redondeo={entregado.redondeo} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
+      </fieldset>
     </div>
   );
 }
