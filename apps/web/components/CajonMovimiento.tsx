@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -127,7 +127,7 @@ function BloquePrenda({ prenda }: { prenda: NonNullable<DetalleCajon["prenda"]> 
   return (
     <div className="mt-6 flex items-center gap-4">
       {prenda.fotoUrl ? (
-        <Image src={prenda.fotoUrl} alt="" width={64} height={74} unoptimized className="h-[74px] w-16 shrink-0 rounded-[10px] border border-tinta/10 bg-hueso object-cover" />
+        <ImagenDePrenda src={prenda.fotoUrl} alt="" width={64} height={74} className="h-[74px] w-16 shrink-0 rounded-[10px] border border-tinta/10 bg-hueso object-cover" fallback={<SinFoto tamano="h-[74px] w-16" />} />
       ) : (
         <SinFoto tamano="h-[74px] w-16" />
       )}
