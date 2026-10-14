@@ -352,7 +352,7 @@ pasa con `20261013015000` después de `172000`.
 
 Probado: los dos órdenes de pegado en una transacción que se deshace (la función queda leyendo la vista y `144000` se puede pegar dos
 veces), la base hecha de cero, las seis suites de la recepción y la del Plan (`plan_compra_historia`, 18/18). **Orden de pegado completo:**
-`170000`, `171000`, `172000`, `173000`, `180000`, `183000`, `20261014144000`.
+`170000`, `171000`, `172000`, `173000`, `180000`, `183000`, `20261014144000` (y `20261014205000`, abajo).
 
 
 ### El diseño de la maqueta A, aplicado (2026-10-14)
@@ -423,3 +423,21 @@ de `pruebas:envio-sin-aviso` lo vigila para el detalle del envío; una lectura n
 Construido corrigiendo `20261013183000` en su lugar (no estaba pegada ni fusionada), con su comprobación ampliada: el orden de pegado no
 cambia. `pruebas:envio-sin-aviso` 10/10 (P1, P2, M1 y M2 nuevos) y las otras seis suites de la recepción en verde sobre una base hecha de
 cero; en el navegador, de la puerta al cierre con el proveedor elegido, y el modo oscuro del estado nuevo (escenario `recepcion.de-quien`).
+
+### Lo que la maqueta pedía a la base (Felipe, 2026-10-14)
+
+| Pieza de la maqueta | Decisión |
+|---|---|
+| «¿Cuántas dijeron que venían?» en un envío sin aviso | **No.** Lo que dijo el proveedor por WhatsApp cabe en la nota del cierre; la balanza de un envío sin aviso dice que no hay con qué comparar. |
+| «Avisar a la encargada» | **Basta el aviso del Inicio** (y el de Recibir y Productos, que cambia de color a la semana). |
+| El número de guía al cerrar | **Sí:** `20261014205000`, `corregir_guia_envio`. |
+
+DECIDÍ: corregir la guía con una función propia, con el envío abierto, que la pantalla llama antes de cerrar si el campo cambió, y cerrar con
+la versión nueva del envío (el disparador de Compras la sube).
+DESCARTÉ: un parámetro nuevo en `cerrar_conteo_envio`, porque cambiaría su firma y `180000` y `183000` la parchan por ancla con la de hoy;
+y corregirla en camino (es de Compras) o cerrado (para eso está reabrir).
+SE ROMPE SI: alguien corrige la guía mientras otra persona tiene abierta la pantalla de cierre: la versión del envío sube y ese cierre
+pide recargar (`version_cambiada`). Es lo esperado: el cierre firma lo que vio.
+
+Rastro en la actividad («corrigió la guía de ENV-000001: T001-000342 → T001-000999»). `pruebas:envio-sin-aviso` 12/12 (G1, G2). **Orden de
+pegado completo:** `170000`, `171000`, `172000`, `173000`, `180000`, `183000`, `20261014144000`, `20261014205000`.
