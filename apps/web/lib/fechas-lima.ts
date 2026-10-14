@@ -3,6 +3,9 @@
 // «vence hoy / venció hace N días / llega en N días» usa estas funciones, nunca
 // `new Date()` a secas ni `current_date` — es la contraparte de `fn_hoy_lima()`
 // en Postgres (migración 20260918200000). Fechas como texto `aaaa-mm-dd`.
+//
+// El día y la hora de Lima tienen UNA casa (2026-10-14): fuera de aquí se piden a `hoyLima`, `diaLima` u `horaLima`, nunca
+// se escriben con `Intl` en-CA (lo vigila `sin-dia-de-lima-a-mano.test.ts`) ni cortando un instante (`sin-corte-de-instante`).
 
 const MS_DIA = 86_400_000;
 /** Lima va cinco horas detrás de UTC todo el año: Perú no tiene horario de verano. */
