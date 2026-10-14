@@ -55,7 +55,8 @@ export function cargarFoto(url: string, crear: () => ImagenPrecarga | null = cre
   return promesa;
 }
 
-/** Solo para las pruebas: vacía la memoria de fotos pedidas. */
+/** Solo para las pruebas: vacía la memoria de fotos pedidas.
+ * @internal existe PARA `precargar-fotos.test.ts`: cada caso necesita empezar sin fotos ya pedidas. */
 export function olvidarFotosPedidas(): void {
   pedidas.clear();
 }
