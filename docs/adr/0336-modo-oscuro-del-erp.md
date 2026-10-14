@@ -202,7 +202,8 @@ tres piezas que lo pedían (el piso del claro, las filas suaves y el Observatori
   - **El texto de ejemplo de sus campos:** pasa a taupe pleno.
 - **Los dos pisos de `tema.css`.**
   - **En oscuro:** sube de 58 a 60 % (al 58 % daba 4.45 sobre sand), y su taupe pasa al pleno (al 82 % daba 3.89 sobre sand).
-  - **En claro (nuevo):** `text-tinta/40` a `/60` suben al 64 %, que pasa sobre crema, papel, hueso y sand.
+  - **En claro (nuevo):** `text-tinta/35` a `/60` suben al 64 %, que pasa sobre crema, papel, hueso y sand. El `/35` se sumó después de
+    la auditoría completa, igual que el taupe tenue (`text-taupe/50` a `/70`), que pasa al taupe pleno en los dos temas.
   - **Los marcadores (`placeholder:text-tinta/…`)** entran en los dos pisos. Los de `/25` y `/30` siguen siendo fantasmas a propósito.
 - **Siete textos apagados con opacidad solo en claro:** los conteos de las píldoras (Clientes, el historial de cierres de Caja), el del
   segmento, el «· N» y «en esta página» de Por pagar, «sin saldo» de Órdenes de insumos y el «S/» del cobro dividido. Ahora no se apagan
@@ -219,6 +220,16 @@ Cae si una escala vuelve al 45 % o si el piso del claro baja al 60 %.
 - **El subtítulo de una talla sin stock en Cambios** (`CambioReemplazo`, 65 % × 0,7 ≈ 2,9:1). Para probarlo a 375 px hace falta todo el
   flujo de un cambio; queda anotado con su arreglo.
 - **Los textos apagados con `opacity-*` o pintados con otra clase.** El piso no los ve; los sigue encontrando la auditoría.
+
+**Cómo se verificó.**
+- **Una auditoría completa del después:** 85 pantallas estáticas, cuenta admin, banco local `cayla-oc`, sin `/global` (que pasa la cuenta a
+  la vista de toda la empresa) y sin «Por reintentar» (que reintenta envíos a SUNAT al abrirse).
+  - En las 43 pantallas que cargaron en las dos corridas, los textos bajo el mínimo bajaron de 308 a 0 en claro y de 4 a 0 en oscuro.
+  - En el conjunto, nada falla solo en oscuro.
+  - Solo quedan los fantasmas `/25` de Nuevo producto y el dibujo de la impresora con su rótulo de ejemplo en Rótulos.
+- **En el navegador, pieza por pieza:** las escalas y Finanzas, antes y después en los dos temas, y el cobro dividido de Vender a 375 px.
+- **Lo que aprendió la corrida:** compilar ~85 pantallas en desarrollo deja ~10 GB de caché de Turbopack y llenó el disco. Para una
+  auditoría completa se apaga `turbopackFileSystemCacheForDev` mientras corre (`apps/web/tema/README.md`).
 
 **Se rompe si** un texto se apaga con opacidad o con un color escrito de otra forma: ni el piso ni el candado lo ven, solo la auditoría
 en el navegador.

@@ -329,7 +329,7 @@ describe("los pisos del texto tenue (estilos/tema.css) se leen", () => {
     return m ? { selectores: m[0], p: Number(m[1]) } : null;
   };
   const oscuroPiso = piso(/:where\(:root\[data-tema="oscuro"\]\) \.text-tinta\\\/35/);
-  const claroPiso = piso(/:where\(:root:not\(\[data-tema="oscuro"\]\)\) \.text-tinta\\\/40/);
+  const claroPiso = piso(/:where\(:root:not\(\[data-tema="oscuro"\]\)\) \.text-tinta\\\/35/);
 
   it("en oscuro, `text-tinta/35` a `/50` (y su marcador) pasan 4.5:1 sobre crema, papel, hueso y sand", () => {
     expect(oscuroPiso, "no encontré el piso del oscuro en tema.css").not.toBeNull();
@@ -340,10 +340,19 @@ describe("los pisos del texto tenue (estilos/tema.css) se leen", () => {
     for (const f of FONDOS) expect(contraste(mezcla(oscuro.tinta, oscuro[f], (oscuroPiso?.p ?? 0) / 100), oscuro[f]), `sobre ${f}`).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("en claro, `text-tinta/40` a `/60` (y el marcador de `/35` a `/60`) pasan 4.5:1 sobre crema, papel, hueso y sand", () => {
+  it("en claro, `text-tinta/35` a `/60` (y su marcador) pasan 4.5:1 sobre crema, papel, hueso y sand", () => {
     expect(claroPiso, "no encontré el piso del claro en tema.css").not.toBeNull();
-    for (const n of [40, 45, 50, 55, 60]) expect(claroPiso?.selectores).toContain(`.text-tinta\\/${n}`);
-    for (const n of [35, 40, 45, 50, 55, 60]) expect(claroPiso?.selectores).toContain(`.placeholder\\:text-tinta\\/${n}::placeholder`);
+    for (const n of [35, 40, 45, 50, 55, 60]) {
+      expect(claroPiso?.selectores).toContain(`.text-tinta\\/${n}`);
+      expect(claroPiso?.selectores).toContain(`.placeholder\\:text-tinta\\/${n}::placeholder`);
+    }
     for (const f of FONDOS) expect(contraste(mezcla(claro.tinta, claro[f], (claroPiso?.p ?? 0) / 100), claro[f]), `sobre ${f}`).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("en los dos temas, `text-taupe/50` a `/70` suben al taupe pleno, que pasa 4.5:1 sobre crema, papel, hueso y sand", () => {
+    const regla = tema.match(/:where\(:root\) \.text-taupe\\\/50[^{]*\{\s*color:\s*var\(--color-taupe\)/);
+    expect(regla, "no encontré el piso del taupe (para los dos temas) en tema.css").not.toBeNull();
+    for (const n of [50, 60, 70]) expect(regla?.[0]).toContain(`.text-taupe\\/${n}`);
+    for (const t of [claro, oscuro]) for (const f of FONDOS) expect(contraste(t.taupe, t[f]), `sobre ${f}`).toBeGreaterThanOrEqual(4.5);
   });
 });

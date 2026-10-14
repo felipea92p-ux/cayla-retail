@@ -234,9 +234,9 @@ Lo que se exige a toda pantalla, modal o pieza nueva o editada:
    escribe encima usa `--color-tinta-fija` / `--color-crema-fija` (idénticos en los dos temas), nunca `tinta`/`crema`. Una pantalla
    de cámara sobre el video es negra en los dos temas (`bg-tinta-fija` + `.papel-fijo`, como los tres visores).
 4. **Un texto tenue de Tailwind ya sube solo, en los dos temas** (dos pisos en `tema.css`, con `:where` para no ganarle a `hover:` ni a
-   `disabled:`): en oscuro, `text-tinta/35` a `/50` al 60 % y `text-taupe/50` a `/70` al taupe pleno; en claro (desde el 2026-10-14, Felipe
-   lo eligió mirando), `text-tinta/40` a `/60` al 64 %; y sus marcadores (`placeholder:text-tinta/…`) igual. `/25` y `/30` son fantasmas a
-   propósito. No escribas `dark:` por costumbre, solo donde una medida lo pida (`dark:text-tinta/55`). `dark:` sigue el atributo, no el
+   `disabled:`): en oscuro, `text-tinta/35` a `/50` al 60 %; en claro (desde el 2026-10-14, Felipe lo eligió mirando), `text-tinta/35` a
+   `/60` al 64 %; `text-taupe/50` a `/70`, al taupe pleno en los dos; y sus marcadores (`placeholder:text-tinta/…`) igual. `/25` y `/30` son
+   fantasmas a propósito. No escribas `dark:` por costumbre, solo donde una medida lo pida (`dark:text-tinta/55`). `dark:` sigue el atributo, no el
    sistema operativo. **No apagues un texto con `opacity-*` solo en claro** (`opacity-60 dark:opacity-85` en un conteo): el piso no lo ve y
    en claro se pierde; usa el tono del texto o la misma opacidad en los dos temas. **El piso tampoco alcanza al texto tenue escrito en un
    CSS** (`color:` o una variable `--x:` hecha de `color-mix(… var(--color-tinta) N%, transparent)`): desde el 64 % pasa en todo fondo y
