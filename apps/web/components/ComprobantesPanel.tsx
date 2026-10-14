@@ -32,6 +32,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { laBajaAnulaLaVenta } from "@/lib/anular-comprobante-reglas";
 
 // Los botones de la fila y el motivo que va bajo su estado. Qué botones le tocan a cada estado lo
 // decide `accionesDelComprobante` (con su prueba); esto solo los dibuja. Los handlers vienen por
@@ -489,7 +490,11 @@ function ModalAnular({ comprobante, onClose }: { comprobante: Comprobante; onClo
         return;
       }
       responsable.despues(null);
-      avisar.exito("Anulación enviada a SUNAT", { detalle: "Queda «en trámite» hasta que SUNAT confirme; consúltala desde la fila." });
+      avisar.exito(datos.ventaAnulada ? "Baja enviada a SUNAT y venta anulada" : "Anulación enviada a SUNAT", {
+        detalle: datos.ventaAnulada
+          ? "Las prendas volvieron al stock y la caja lo descontó. La baja queda «en trámite» hasta que SUNAT confirme; consúltala desde la fila."
+          : "Queda «en trámite» hasta que SUNAT confirme; consúltala desde la fila.",
+      });
       onClose();
       router.refresh();
     } catch {
@@ -517,6 +522,13 @@ function ModalAnular({ comprobante, onClose }: { comprobante: Comprobante; onClo
               ? "Las boletas se dan de baja por el resumen diario. SUNAT lo procesa después, así que queda en “Anulación en trámite” hasta que confirme — no es un error."
               : "Se envía la comunicación de baja. SUNAT también la procesa después, así que queda en “Anulación en trámite”. Si ya pasó el plazo la rechaza, y entonces toca una nota de crédito en vez de anular."}
           </p>
+          {laBajaAnulaLaVenta(comprobante.tipo, comprobante.venta_id) && (
+            <p className="border-l-2 border-ambar/50 pl-3 text-xs leading-relaxed text-tinta/75">
+              Este comprobante documenta una venta: al darlo de baja, la venta se anula en el mismo acto, sus prendas vuelven al stock y
+              la caja lo descuenta. Si la venta fue real y solo el documento estaba mal, vuelve a cobrarla después. Si su caja ya cerró
+              o es de otro día, no se puede: usa Devolución, que sale con su nota de crédito.
+            </p>
+          )}
 
           <CampoTexto
             id="anulacion-motivo"

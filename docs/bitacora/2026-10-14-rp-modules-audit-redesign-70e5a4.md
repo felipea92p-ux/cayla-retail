@@ -15,3 +15,20 @@ Felipe se lleva: el núcleo (stock = movimientos, venta = pagos = comprobante) e
 (69 % de las líneas vendidas sin prenda). Verificado: `pnpm pruebas:cierre-carga-inicial` 128/128 (casos 4d y 6c nuevos), `pnpm pruebas:cola-arranque`
 53/53, la migración pegada dos veces en local sin cambiar nada la segunda, y en producción un `select` por sede devuelve la misma fecha en
 `carga_inicial_hasta` y en `cola_arranque_plazo.hasta`. Siguen A1 (la baja de un comprobante anula la venta en el mismo acto) y A2–A6.
+
+## 2026-10-14 (A1: dar de baja un comprobante anula la venta en el mismo acto)
+Qué hice: `/api/lucode/anular` lee la venta que documenta una boleta o una factura y revisa ANTES de llamar a Lucode todo lo que `anular_venta`
+va a exigir (caja abierta, mismo día de Lima, sin cambio ni devolución, módulo Devoluciones; `motivoParaNoAnularLaVenta`, pura y probada); si la
+venta no se puede anular, la baja no se pide y manda a Devolución con nota de crédito. Tras guardar la baja, llama `anular_venta` con la misma
+firma y el motivo «Comprobante B005-000202 dado de baja: …». Migración `20261014165000` (reemplazo anclado): un comprobante aceptado cuya baja
+ya se pidió a SUNAT (en trámite) deja de sostener la venta; uno aceptado sin baja pedida sigue frenando. El modal lo explica antes de confirmar.
+ADR-0016, actualización del día.
+Por qué así: Felipe eligió la versión estricta («la anula en el mismo acto; si no se puede, se niega»): la baja ante SUNAT no se deshace, así que
+o van juntas o no va ninguna. Una RPC compuesta en una sola transacción no alcanza porque Lucode va entre las dos escrituras; lo que sí se puede es
+revisar todo antes y escribir todo después. Las guardas se repiten en la ruta con el mismo patrón que `motivoParaNoPedirBaja`.
+Felipe se lleva: nunca más una venta completada sin comprobante vivo por esta puerta; «era factura» pasa a ser anular + volver a cobrar, coherente
+en stock y caja. Verificado: `pnpm pruebas:anular-venta-comprobante` 12/12 (casos J y K nuevos; con el parche revertido dentro de la transacción,
+K cae), 21 pruebas de `lib/anular-comprobante-reglas.test.ts`, `tsc` y `eslint` limpios, y en el navegador local: una boleta aceptada de una caja ya
+cerrada responde 409 antes de Lucode («La caja de esta venta ya cerró…») y una de caja abierta pasa la revisión y recién ahí llama a Lucode. Queda
+abierto el caso raro de SUNAT rechazando la baja después (venta anulada con comprobante vigente): lo detectará la invariante de la Fase 1.
+Pendiente de aplicar en producción con OK de Felipe (la web no se publica antes que la migración).

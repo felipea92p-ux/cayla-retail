@@ -1,8 +1,10 @@
 ## Auditoría del ERP y bloque 1 «la prenda sin registrar deja de entrar sin dato» (2026-10-14)
-Aprobado por Felipe el 2026-10-14 (siete actividades, `/construir`). Hecha: **A0** (el plazo de la cola sigue a la carga inicial; en producción).
-- **A1** · Dar de baja un comprobante anula la venta en el mismo acto: `/api/lucode/anular` llama `anular_venta` tras guardar la baja; si la venta no
-  se puede anular (caja cerrada, cambio o devolución), la ruta se niega ANTES de llamar a Lucode y manda a Devolución con nota de crédito. Decisión de
-  Felipe: estricto (se niega, no avisa). Los 3 casos de producción (B005-202, -221, -236; S/ 251,70) se remedian aparte con el contador.
+Aprobado por Felipe el 2026-10-14 (siete actividades, `/construir`). Hechas: **A0** (el plazo de la cola sigue a la carga inicial; en producción)
+y **A1** (la baja de un comprobante anula la venta en el mismo acto; migración `20261014165000` lista, **pendiente de producción con OK de Felipe**:
+la web no se publica antes que la migración, o una boleta dada de baja respondería «la venta no se pudo anular»).
+- **A1, lo que queda:** los 3 casos de producción (B005-202, -221, -236; S/ 251,70) se remedian aparte con el contador. Riesgo residual: si SUNAT
+  rechaza la baja después, la venta queda anulada con comprobante vigente; la invariante «toda venta completada tiene un comprobante vivo y toda
+  anulada ninguno» (Fase 1, `fn_invariantes`) lo detecta y la salida es una nota de crédito. `consultar-anulacion` podría avisarlo al ver «no_anulado».
 - **A2** · «Es esta» en la hoja del mostrador: lectura nueva `fn_prendas_posibles(sede, categoría, talla, color)` con la misma definición de
   «posible» que `fn_candidatas_de_venta`; la prenda entra al ticket como línea normal.
 - **A3** · Precio con referencia: rango de precios de la categoría en la sede (lógica pura) y confirmación fuera de rango, como el costo atípico de
