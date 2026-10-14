@@ -549,7 +549,8 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
     expect(f).toContain("useSalidaSinGuardar");
     // Escape, clic fuera y ✕ preguntan por `antesDeCerrar` (la hoja sigue a la vista); `onClose` es solo el cierre de verdad. Pasar la pregunta por `onClose` la hacía con la hoja ya
     // cerrada y, con «Seguir editando», la pantalla dejaba de responder (/pantalla 2026-10-13; lo vigila también lib/hojas-salida-sin-guardar.test.ts).
-    expect(f).toContain('<Modal titulo="Nueva orden de producción" onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion}');
+    // La etiqueta puede ir en varias líneas (A3 le suma `variante`, `conCerrar` y el ancho): se lee sin importar los saltos.
+    expect(f).toMatch(/<Modal\s+titulo="Nueva orden de producción"\s+onClose=\{onClose\}\s+antesDeCerrar=\{avisoSalida\.pedirAccion\}/);
     expect(f).not.toContain("onClose={() => avisoSalida.pedirAccion(onClose)}");
     expect(f).toContain("onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}");
     // Elegir el tipo (Producción/Muestra), el modo (Ya existe/Modelo nuevo) o el modelo de la lista no es trabajo perdido: no cuenta como «cambios sin guardar».

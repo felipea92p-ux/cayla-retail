@@ -29,10 +29,13 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
 import { ElegirModelo, TarjetaModelo } from "@/components/orden-produccion/ElegirModelo";
 import { AgregarColor, QuitarColor } from "@/components/orden-produccion/AgregarColor";
+import { FichaOrden } from "@/components/orden-produccion/FichaOrden";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { tipoAlElegir, urgentesDeLaRed } from "@/lib/orden-modelo-reglas";
 import { cantidadesAlCambiarColores, lineasDeModeloExistente, tablaDeModeloExistente, tablaDeModeloNuevo } from "@/lib/orden-tabla-reglas";
 import { sugerirNotaDeOrden } from "@/lib/sugerencias-orden-produccion";
+import { categoriaDe } from "@/lib/categoria-de-prenda";
+import { contarQueSeFabrica, fechaCorta, nombreDeLaFicha, soles, textoColoresYTallas, textoSeVendeA } from "@/lib/orden-ficha-reglas";
 import type { ColorAlta } from "@/lib/alta-producto";
 import {
   TEXTO_FUNCION_AUSENTE,
@@ -76,6 +79,10 @@ import {
 // cada color elegido es una fila con su «×» y «+ Agregar color» suma otra. Lo que se manda a la base NO cambia: `lib/orden-tabla-reglas.ts` arma la tabla desde las mismas celdas y las mismas
 // líneas de siempre, y `lib/orden-carga-util.test.ts` lo fija con los números de antes.
 //
+// ADR-0396 (A3, «la hoja ancha con ficha viva»): la hoja mide ~1080 px y es una rejilla de dos paneles dentro del propio `<form>`: el pedido a la izquierda y, a la derecha y siempre a la vista,
+// la ficha de la orden (`FichaOrden`: la prenda, cuántas son, a cuánto se vende, para cuándo, y debajo lo que la cierra). La ficha es presentacional; el formulario sigue dueño de los números, de
+// los controles de cierre (lo que falta, el responsable, el aviso de nombre repetido, Cancelar y «Abrir orden») y del envío. Ya no hay pie pegado: lo que tapaba al responsable.
+//
 // El token de idempotencia nace con el formulario (useRef): si el Taller
 // pierde la red a mitad del clic y reintenta, la base devuelve la misma orden
 // en vez de abrir dos. Mismo mecanismo que `registrar_venta` (p_token).
@@ -98,10 +105,6 @@ const CHIP_SEMAFORO: Record<Semaforo["tono"], { tono: "verde" | "ambar" | "rojo"
   filo: { tono: "ambar", texto: TEXTO_SEMAFORO.filo },
   pierde: { tono: "rojo", texto: TEXTO_SEMAFORO.pierde },
 };
-
-function soles(n: number) {
-  return `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 
 export function NuevaOrdenProduccionForm({
   tallerId,
@@ -265,6 +268,12 @@ export function NuevaOrdenProduccionForm({
   // El margen se mide con el precio propio MÁS BAJO de una tienda, si lo hay (ADR-0370); `precio` (el de la grilla) es el que se dice en «se vende a».
   const precioMasBajo = modelo?.precioMasBajo ?? null;
   const semaforo = semaforoMargen(precioParaMargen({ precioVenta: precio, precioMasBajo }), unitario);
+
+  // ----- La ficha viva (A3): solo se arman los textos; los números son los de arriba -----
+  const hayModelo = modeloExistente !== null || esNuevo;
+  const prendaDeLaFicha = esNuevo ? { prefijo: categoriaNueva?.prefijo, familia: categoriaNueva?.familia, categoria: categoriaNueva?.nombre } : categoriaDe(modeloExistente);
+  const colorDeLaFicha = esNuevo ? (coloresDisponibles.find((c) => c.codigo === coloresNuevos[0])?.hex ?? null) : (modeloExistente?.variantes.find((v) => v.colorHex)?.colorHex ?? null);
+  const nombreDeLaFichaVista = nombreDeLaFicha({ esNuevo, hayModelo: modeloExistente !== null, nombre: esNuevo ? nombreDelModelo(borrador) : (modeloExistente?.referencia ?? "") });
 
   // La guía de foco (ADR-0284): qué está hecho, qué sigue y qué falta. Sale de la misma validación que apaga el botón.
   const guia = useGuiaCampos(camposDeGuiaOrden({ esNuevo, hayModelo: modeloExistente !== null, borrador, celdas: celdasNuevas, totalExistente: total, costos: { tela, avios, maquila } }));
@@ -455,8 +464,17 @@ export function NuevaOrdenProduccionForm({
   }
 
   return (
-    <Modal titulo="Nueva orden de producción" onClose={onClose} antesDeCerrar={avisoSalida.pedirAccion} ancho="max-w-2xl">
-      <form onSubmit={onSubmit} className="space-y-5">
+    <Modal
+      titulo="Nueva orden de producción"
+      onClose={onClose}
+      antesDeCerrar={avisoSalida.pedirAccion}
+      variante="hoja"
+      conCerrar
+      // 1080 px (A3). `scroll-pb`: bajo 980 px la ficha es una barra pegada abajo y, al llevar el cursor a un campo (la guía de foco), no debe quedar detrás de ella.
+      ancho="max-w-[1080px] scroll-pb-[calc(var(--alto-barra-ficha,10rem)+1rem)] min-[980px]:scroll-pb-0"
+    >
+      <form onSubmit={onSubmit} className="mt-3.5 grid gap-y-5 min-[980px]:grid-cols-[minmax(0,1fr)_332px] min-[980px]:items-start min-[980px]:gap-x-8">
+        <div className="min-w-0 space-y-5">
         {/* El modelo primero (ADR-0396, A1): el buscador, o la tarjeta del elegido, o los campos del modelo nuevo. El interruptor del tipo aparece cuando ya hay modelo. */}
         <div data-guia="prod-orden-nueva.modelo" className="space-y-4">
           {!esNuevo && (
@@ -684,75 +702,81 @@ export function NuevaOrdenProduccionForm({
           </div>
         </CampoGuiado>
 
-        <div data-guia="prod-orden-nueva.resumen" className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md bg-sand/60 px-3 py-2 text-sm">
-          <span className="text-tinta/70">
-            {total} prendas · costo estimado {soles(costoTotal)}
-            {precio > 0 && ` · se vende a ${soles(precio)}`}
-            {verMargen && precioMasBajo && ` (${soles(precioMasBajo.precio)} en ${precioMasBajo.sede})`}
-            {verMargen && semaforo && ` · margen ${Math.round(semaforo.margen * 100)} %`}
-          </span>
-          <span className="flex items-center gap-2.5">
-            {verMargen && semaforo && <Chip tono={CHIP_SEMAFORO[semaforo.tono].tono}>{CHIP_SEMAFORO[semaforo.tono].texto}</Chip>}
-            <span className="font-display text-lg text-tinta">{soles(unitario)} / prenda</span>
-          </span>
-        </div>
-        {modelo && !esNuevo && verMargen && precio <= 0 && (
-          <p className="-mt-2 text-xs text-tinta/65">
-            Este modelo no tiene precio en el catálogo, así que no hay margen que calcular.{" "}
-            <Link href={`/productos/${modelo.productoId}/editar`} className="btn-enlace">
-              Ponle precio en Editar producto
-            </Link>
-            .
-          </p>
-        )}
-
         <div data-guia="prod-orden-nueva.entrega" className="grid gap-4 sm:grid-cols-2">
           <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
           <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder={sugerirNotaDeOrden(tipo)} maxLength={MAX_NOTA_ORDEN_BASE} />
         </div>
 
-        <div data-guia="prod-orden-nueva.cierre" className="space-y-5">
-        <ComboResponsable control={responsable} deshabilitado={cargando} />
+        </div>
 
-        {choque && (
-          <Aviso
-            tono="atencion"
-            titulo={choque.tipo === "nombre_duplicado" ? "Ese modelo ya existe" : "Hay uno casi igual"}
-            accion={
-              choque.tipo === "nombre_duplicado" ? (
-                choque.existenteId && modelos.some((m) => m.productoId === choque.existenteId) ? (
-                  <Boton type="button" peso="fantasma" onClick={() => usarExistente(choque.existenteId as string)}>
-                    Usar ese modelo
-                  </Boton>
-                ) : null
-              ) : (
-                <Boton type="button" peso="fantasma" onClick={() => void abrirConModeloNuevo(true)} disabled={cargando}>
-                  Es otro modelo, crearlo igual
-                </Boton>
-              )
-            }
-          >
-            {choque.mensaje}
-          </Aviso>
-        )}
+        <FichaOrden
+          prenda={prendaDeLaFicha}
+          colorHex={colorDeLaFicha}
+          nombre={nombreDeLaFichaVista.texto}
+          nombreVacio={nombreDeLaFichaVista.vacio}
+          esMuestra={tipo === "muestra"}
+          esNuevo={esNuevo}
+          hayModelo={hayModelo}
+          total={total}
+          coloresYTallas={textoColoresYTallas(contarQueSeFabrica(tabla.celdas, tabla.excluidas, cantidades))}
+          seVendeA={textoSeVendeA({ precio, esNuevo, esMuestra: tipo === "muestra" })}
+          precioMasBajo={verMargen && precioMasBajo ? `${soles(precioMasBajo.precio)} en ${precioMasBajo.sede}` : null}
+          costo={costoTotal > 0 ? { total: soles(costoTotal), porPrenda: total > 0 ? soles(unitario) : null } : null}
+          margen={verMargen && semaforo ? { porcentaje: Math.round(semaforo.margen * 100), chip: CHIP_SEMAFORO[semaforo.tono] } : null}
+          entrega={fechaCorta(fechaEntrega)}
+          notaSinPrecio={
+            modelo && !esNuevo && verMargen && precio <= 0 ? (
+              <p className="text-xs text-tinta/70">
+                Este modelo no tiene precio en el catálogo, así que no hay margen que calcular.{" "}
+                <Link href={`/productos/${modelo.productoId}/editar`} className="btn-enlace">
+                  Ponle precio en Editar producto
+                </Link>
+                .
+              </p>
+            ) : null
+          }
+        >
+          <div data-guia="prod-orden-nueva.cierre" className="space-y-3">
+            <PieGuia guia={guia} listo={responsable.listo ? "Todo listo para abrir la orden." : "Solo falta elegir quién abre la orden."} conFrase />
+            <ComboResponsable control={responsable} deshabilitado={cargando} compacto />
 
-        <div className="pie-hoja-fijo space-y-2">
-          <PieGuia guia={guia} listo="Todo listo para abrir la orden." conFrase />
-          <div className="flex gap-2">
-            <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={cargando || !guia.puedeConfirmar || !responsable.listo}
-              title={guia.frase ?? responsable.motivo ?? undefined}
-              className={`${botonPrimario} ${guia.claseConfirmar}`}
-            >
-              {cargando ? "Abriendo…" : esNuevo ? "Crear y abrir orden" : "Abrir orden"}
-            </button>
+            {choque && (
+              <Aviso
+                tono="atencion"
+                titulo={choque.tipo === "nombre_duplicado" ? "Ese modelo ya existe" : "Hay uno casi igual"}
+                accion={
+                  choque.tipo === "nombre_duplicado" ? (
+                    choque.existenteId && modelos.some((m) => m.productoId === choque.existenteId) ? (
+                      <Boton type="button" peso="fantasma" onClick={() => usarExistente(choque.existenteId as string)}>
+                        Usar ese modelo
+                      </Boton>
+                    ) : null
+                  ) : (
+                    <Boton type="button" peso="fantasma" onClick={() => void abrirConModeloNuevo(true)} disabled={cargando}>
+                      Es otro modelo, crearlo igual
+                    </Boton>
+                  )
+                }
+              >
+                {choque.mensaje}
+              </Aviso>
+            )}
+
+            <div className="flex gap-2">
+              <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={cargando || !guia.puedeConfirmar || !responsable.listo}
+                title={guia.frase ?? responsable.motivo ?? undefined}
+                className={`${botonPrimario} ${guia.claseConfirmar}`}
+              >
+                {cargando ? "Abriendo…" : esNuevo ? "Crear y abrir orden" : "Abrir orden"}
+              </button>
+            </div>
           </div>
-        </div>
-        </div>
+        </FichaOrden>
       </form>
       {avisoSalida.aviso}
     </Modal>

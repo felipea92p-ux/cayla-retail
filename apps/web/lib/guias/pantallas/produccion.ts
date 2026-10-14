@@ -203,8 +203,8 @@ export const GUIA_PROD_ORDENES: Guia = {
     {
       id: "resumen",
       ancla: "prod-orden-nueva.resumen",
-      titulo: "Costo por prenda",
-      texto: "Se calcula solo: el costo de la corrida entre las prendas. Por ejemplo, 12 prendas con S/ 240 de costo salen a S/ 20 cada una. Si el modelo tiene precio, también ves a cuánto se vende y el margen que queda.",
+      titulo: "La orden, tal como va quedando",
+      texto: "A la derecha ves la orden mientras la armas: la prenda, cuántas son, a cuánto se vende, el costo y el margen que queda, y la fecha. El costo por prenda se calcula solo: 12 prendas con S/ 240 de costo salen a S/ 20 cada una.",
     },
     {
       id: "entrega",
@@ -216,7 +216,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "cierre",
       ancla: "prod-orden-nueva.cierre",
       titulo: "Quién la abre",
-      texto: "Eliges quién abre la orden y tocas «Abrir orden»: recién ahí aparece en el tablero, en «Por cortar». En la demo no la abrimos: cerramos la ventana sin guardar nada.",
+      texto: "Debajo de la ficha te dice qué falta; eliges quién abre la orden y tocas «Abrir orden»: recién ahí aparece en el tablero, en «Por cortar». En la demo no la abrimos: cerramos la ventana sin guardar nada.",
     },
     {
       id: "fin",

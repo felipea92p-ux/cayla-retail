@@ -83,6 +83,20 @@ Navegador integrado, 1440 × 900 y 1024 × 768, claro y oscuro, 0 errores de con
 
 **No verificado.** `tema:auditar` y `guias:recorrer` (el Playwright de esta máquina no tiene Chromium: se miró a mano en claro, oscuro, 1440 y 1024); ninguna colaboradora del Taller; el modo «Costos» de Nuevo producto solo por lectura del código (no entra al golden: se alcanza con un clic).
 
+## Actualización 2026-10-13 · A3 «Hoja ancha con ficha viva» (hecha)
+
+**Qué cambió.** La hoja pasa de 672 px a **1080 px** (`variante="hoja"`, con su ✕) y su `<form>` es una rejilla de dos paneles: el pedido a la izquierda y, a la derecha y fija (`sticky`), la **ficha viva** (`components/orden-produccion/FichaOrden.tsx`): la prenda (su color y el ícono de su categoría, ADR-0333), el nombre, «Lote de producción» o «Muestra · no entra al stock» y «Modelo nuevo», **cuántas prendas en grande** con «3 colores · 2 tallas» (lo que se fabrica, no lo que ofrece la tabla), «Se vende a» (y, solo el líder, «el más bajo: S/ 69.90 en Trujillo», ADR-0370), «Costo estimado», «Margen» con su palabra (solo el líder, la regla de siempre) y «Entrega». Debajo, **fuera del desplazamiento y siempre a la vista**, lo que cierra la orden: lo que falta (la guía de foco), quién la abre, el aviso de nombre repetido y los botones. **Desaparece el pie pegado** que tapaba al responsable.
+
+**Cómo se hizo sin tocar el negocio.** La ficha es **presentacional** (sin controles propios): el formulario sigue siendo dueño de los números, del estado, del `<form>` y del envío, y los controles de cierre siguen escritos en él (por eso la huella de la guía no cambió y «Abrir orden» sigue siendo hijo del formulario). Lo que se escribe en la ficha sale de funciones puras con prueba (`lib/orden-ficha-reglas.ts`: `soles`, `fechaCorta`, `contarQueSeFabrica`, `textoColoresYTallas`, `nombreDeLaFicha`, `textoSeVendeA`); `lib/orden-ficha.test.ts` fija que el botón va dentro del `<form>`, que ya no hay pie pegado ni la hoja de 672 px y que la ficha no calcula el margen. Se movieron a la ficha, sin cambiar sus reglas, la barra de «N prendas · costo estimado · se vende a · margen», la nota «este modelo no tiene precio» y el combo del responsable.
+
+**Bajo 980 px** la ficha es una barra pegada al borde de abajo de la hoja con el nombre, el total y lo que cierra; **el responsable no se esconde** (sin él no se puede abrir la orden: la maqueta lo ocultaba) y la barra publica su alto en `--alto-barra-ficha` como la de Nuevo producto. Producción es de escritorio: la barra sirve a una tablet, no se probó a 375 px.
+
+**Medido en el navegador (Chrome integrado, ERP local).** 1440 × 900: hoja de 1080 × 804, ficha de 332 px a 97 px del borde, **«Abrir orden» a la vista con la hoja desplazada hasta abajo**; 1024 × 768: hoja de 976 px, columna del pedido de 551 px, ficha fija de 453 px con el botón a 488–523, **sin desplazamiento horizontal**; 820 × 700: barra de 187 px con el responsable y los botones. Modelo existente, modelo nuevo vacío y modelo nuevo con datos: cada estado de la ficha dice lo que debe («Sin modelo todavía», «Sin nombre todavía», «Se vende a: al aprobarla» en una muestra sin precio).
+
+**Lo que se ve distinto.** La hoja ya no es crema con sombra sino papel sin sombra, con título serif de 24 px y ✕; la fila «Costo estimado» y su «S/ x / prenda» ya no salen en cero (no inventan un dato); el «Siguiente» sigue siendo el «Falta: …» tocable de siempre con su frase a la vista (`PieGuia`), y si solo falta el responsable lo dice («Solo falta elegir quién abre la orden»). Sin migración.
+
+**Todavía no (es de A4–A7).** La columna del pedido sigue larga (1.145 px para un modelo con datos de la red: el consejo y los insumos se integran en A4, y por eso «sin desplazamiento en 1440 × 900» no se cumple aún); el costo sigue visible para quien lo escribe (los permisos de A4b no se tocaron); los textos y el plazo de entrega son de A5. Tampoco se corrió `tema:auditar` (sin Chromium en esta máquina).
+
 ## Lo que sigue abierto
 
 - **Que la regla de costos sea «ve el módulo `produccion`» y no una cuenta concreta** (se confirma al escribir A4b).

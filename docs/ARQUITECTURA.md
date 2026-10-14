@@ -947,7 +947,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `/productos/nuevo?desde=produccion` queda como alta completa, y `?nueva=<producto>&tipo=muestra|produccion` abre la orden con ese modelo y ese tipo). **Desde ADR-0396 (A1–A2)
   la hoja abre con el modelo (`components/orden-produccion/ElegirModelo.tsx`, reglas en `lib/orden-modelo-reglas.ts`) y las cantidades se escriben en la MISMA tabla de Nuevo producto
   (`components/alta-producto/MatrizCantidades.tsx` con `soloCantidades`; puente puro `lib/orden-tabla-reglas.ts`; los colores de un modelo nuevo son filas de esa tabla y
-  `components/orden-produccion/AgregarColor.tsx` suma una; lo que viaja a las RPC no cambia, lo fija `lib/orden-carga-util.test.ts`).** Entra el
+  `components/orden-produccion/AgregarColor.tsx` suma una; lo que viaja a las RPC no cambia, lo fija `lib/orden-carga-util.test.ts`). **A3:** la hoja mide 1080 px y su `<form>` es una rejilla de dos paneles; a la derecha, la ficha fija `components/orden-produccion/FichaOrden.tsx` (presentacional; textos en `lib/orden-ficha-reglas.ts`) con lo que cierra la orden debajo.** Entra el
   cualquier persona —líder o integrante— parada en una ubicación con `ubicacionTipo === "taller"` (`puedeVerProduccion`, en `lib/menu.ts` y re-exportada por `lib/produccion-menu.ts`;
   un líder que llega desde otra ubicación ve un aviso, ADR-0133 nota 2026-09-20).
 - `/ordenes-insumos` («Órdenes de insumos», ADR-0362 fase 7, decisión 47; módulo `ordenes_insumos`: basta el módulo, NO pide el de
