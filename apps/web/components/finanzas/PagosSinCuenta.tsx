@@ -45,7 +45,7 @@ export function PagosSinCuentaModal({ onClose, filasIniciales }: { onClose: () =
       .rpc("fn_pagos_sin_cuenta" as never)
       .then(({ data, error }) => {
         if (!vivo) return;
-        if (error) avisar.error(traducirError(error, "leer lo que no dice su cuenta"));
+        if (error) avisar.error(traducirError(error, "leer lo que no dice su cuenta", { lectura: true }));
         setFilas(error ? [] : ((data ?? []) as Record<string, unknown>[]).map(leerPagoSinCuenta));
       });
     return () => {
