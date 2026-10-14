@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PreparacionAnalisis } from "./analisis-tipos";
-import { avisoDatosDeHoy, leerQueFalta, META_CON_PRENDA, modoAnalisis, ventasConPrendaDe100 } from "./analisis-aviso";
+import { avisoDatosDeHoy, fechaQueSeCumple, leerQueFalta, lineasDeLoQueFalta, META_CON_PRENDA, modoAnalisis, pasoParaHablar, ventasConPrendaDe100 } from "./analisis-aviso";
 import { diaAntes, preparacionDeSede, type DiaVenta, type FilaPreparacion } from "./motor-demanda-reglas";
 
 // Las tiendas de prueba pasan por el motor real (`preparacionDeSede`): el aviso se prueba contra las mismas condiciones que ve «Todavía no».
@@ -90,5 +90,50 @@ describe("el aviso dice lo PRIMERO que le falta a la tienda, como «Todavía no�
 
   it("si no se pudo leer el motor, no adivina", () => {
     expect(avisoDatosDeHoy(undefined)).toBe("No se pudo saber qué le falta a esta tienda: estas cifras pueden fallar.");
+  });
+});
+
+// Tarea #4 de docs/pantallas/gestion-analisis.md (2026-10-14): «Ver qué falta» dice lo que se puede arreglar, y cuándo.
+describe("«Registrar N sin prenda» cuenta las pendientes, no todo lo que falta", () => {
+  const TODO = { regularizar: true, cuadrar: true, conteo: true };
+  it("el número es el de las pendientes (las cerradas ya no se registran)", () => {
+    expect(pasoParaHablar("venta_identificada", 41, TODO)).toEqual({ href: "/inventario/por-regularizar", texto: "Registrar 41 sin prenda" });
+  });
+  it("sin pendientes no hay botón; sin poder contarlas, el botón va sin número; sin la pantalla, nada", () => {
+    expect(pasoParaHablar("venta_identificada", 0, TODO)).toBeNull();
+    expect(pasoParaHablar("venta_identificada", null, TODO)).toEqual({ href: "/inventario/por-regularizar", texto: "Registrar las ventas sin prenda" });
+    expect(pasoParaHablar("venta_identificada", 41, { ...TODO, regularizar: false })).toBeNull();
+    expect(pasoParaHablar("venta_identificada", null, { ...TODO, regularizar: false })).toBeNull();
+  });
+  it("lo demás no cambia", () => {
+    expect(pasoParaHablar("piso_cuadrado", 41, TODO)).toEqual({ href: "/inventario/cuadrar", texto: "Cuadrar el piso" });
+    expect(pasoParaHablar(null, 41, TODO)).toBeNull();
+  });
+});
+
+describe("desde cuándo puede cumplirse «ventas con su prenda»", () => {
+  it("hoy más los días que le faltan a la racha: con un día malo ayer, 14 días desde hoy", () => {
+    // Datos inventados: ayer (5 oct.) se vendió con el 60 % de prendas: la racha es 0.
+    const p = tienda({ dias: [dia(1, 10, 6)] });
+    expect(p.racha.dias).toBe(0);
+    expect(fechaQueSeCumple(p)).toBe("2026-10-20");
+  });
+  it("con la racha a medias, lo que le falta; cumplida, ninguna", () => {
+    const aMedias = tienda({ primeraVenta: diaAntes(HOY, 30), dias: [dia(6, 10, 5), dia(3, 10, 10)] });
+    expect(aMedias.racha.dias).toBe(5);
+    expect(fechaQueSeCumple(aMedias)).toBe(diaAntes(HOY, -9));
+    expect(fechaQueSeCumple(tienda({ dias: [dia(3, 10, 10)] }))).toBeNull();
+    expect(fechaQueSeCumple(undefined)).toBeNull();
+  });
+  it("las líneas: la fecha y cuántas se cerraron sin prenda; nada si las ventas ya cumplen", () => {
+    const p = tienda({ dias: [dia(1, 10, 6)] });
+    expect(lineasDeLoQueFalta(p, { pendientes: 41, cerradas30: 306 })).toEqual({
+      fecha: "Si desde hoy todo se cobra con su prenda, esta parte se cumple el 20 oct.",
+      cerradas: "306 ventas se cerraron sin su prenda en estos 30 días: esas ya no se pueden registrar.",
+    });
+    expect(lineasDeLoQueFalta(p, { pendientes: 41, cerradas30: 1 }).cerradas).toBe("1 venta se cerró sin su prenda en estos 30 días: esas ya no se pueden registrar.");
+    expect(lineasDeLoQueFalta(p, { pendientes: 41, cerradas30: 0 }).cerradas).toBeNull();
+    expect(lineasDeLoQueFalta(p, { pendientes: 41, cerradas30: null }).cerradas).toBeNull();
+    expect(lineasDeLoQueFalta(tienda({ dias: [dia(3, 10, 10)] }), { pendientes: 0, cerradas30: 5 })).toEqual({ fecha: null, cerradas: null });
   });
 });

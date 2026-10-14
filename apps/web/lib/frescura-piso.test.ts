@@ -473,6 +473,18 @@ describe("la puerta cerrada: por qué son aproximados y el botón que lo arregla
     });
   });
 
+  it("«Registrar N» cuenta las pendientes cuando se contaron (ADR-0357, act. 2026-10-14), no las de 30 días", () => {
+    expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta: "venta_identificada", sinPrenda: 347, pendientes: 41 }, TODO)).toEqual({
+      texto: "Registrar 41 sin prenda",
+      href: "/inventario/por-regularizar",
+    });
+    expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta: "venta_identificada", sinPrenda: 347, pendientes: 0 }, TODO)).toBeNull();
+    expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta: "venta_identificada", sinPrenda: 347, pendientes: null }, TODO)).toEqual({
+      texto: "Registrar las ventas sin prenda",
+      href: "/inventario/por-regularizar",
+    });
+  });
+
   it("nunca un botón que termina en «Sin acceso», ni uno sin nada que registrar, ni cuando la tienda pasa", () => {
     for (const falta of ["piso_cuadrado", "almacen_contado", "venta_identificada"] as const) {
       expect(pasoDeLaPuerta({ puedeHablar: false, aviso: "", falta, sinPrenda: 3 }, NADA)).toBeNull();

@@ -197,6 +197,9 @@ export type DatosAnalisis = {
    *  dice qué prenda fue pero sí de qué tipo (`lib/vendido-sin-registrar.ts`). «Qué pedir» la suma a lo vendido de su tipo (ADR-0357,
    *  act. 2026-10-14). Vacío si no se pudo leer (y se dice en `fallas`). */
   sinPrendaPorTipo: Record<string, number>;
+  /** Las ventas sin su prenda que todavía se pueden registrar (pendientes, sin tope de fechas) y las que se cerraron sin prenda en los
+   *  mismos 30 días: lo que dice «Ver qué falta» (ADR-0357, act. 2026-10-14). Null la que no se pudo leer. */
+  porRegistrar: { pendientes: number | null; cerradas30: number | null };
   /** De cada 100 líneas vendidas en mis 30 días, cuántas llevaron rebaja; null si no se vendió nada. */
   rebajaDe100: number | null;
   /** Lo que más rinde por categoría en 90 días: ganancia por cada S/ 1 que hay en ropa de esa categoría. */

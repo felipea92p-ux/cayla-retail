@@ -57,3 +57,21 @@ export function sinRegistrarPorTipo(ventas: readonly Pick<VentaSinRegistrar, "ca
   for (const v of ventas) porTipo[v.categoria] = (porTipo[v.categoria] ?? 0) + 1;
   return porTipo;
 }
+
+/**
+ * Cuántas ventas sin su prenda siguen PENDIENTES en la tienda (sin tope de fechas): las que de verdad se pueden registrar en Por
+ * regularizar. Las cerradas sin prenda ya no vuelven (ADR-0357, act. 2026-10-14: «Registrar 347» llevaba a una lista de 41). Null si no se
+ * pudo contar. Nunca lanza.
+ */
+export async function contarPendientes(supabase: Supabase, sedeId: string): Promise<number | null> {
+  try {
+    const { count, error } = await supabase
+      .from("prendas_por_regularizar")
+      .select("id", { count: "exact", head: true })
+      .eq("ubicacion_id", sedeId)
+      .eq("estado", "pendiente");
+    return error || count === null ? null : count;
+  } catch {
+    return null;
+  }
+}

@@ -15,7 +15,7 @@ import { getConteosResumen } from "@/lib/conteos";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
 import { getPedidosNoAtendidos } from "@/lib/pedidos-no-atendidos";
 import { getUbicaciones, type Ubicacion } from "@/lib/ubicaciones";
-import { leerVendidoSinRegistrar, sinRegistrarPorTipo } from "@/lib/vendido-sin-registrar";
+import { contarPendientes, leerVendidoSinRegistrar, sinRegistrarPorTipo } from "@/lib/vendido-sin-registrar";
 import { getLecturaFrescuraDeTienda } from "@/lib/frescura";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 
@@ -81,7 +81,7 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
   const sedes: SedeAnalisis[] = ordenadas.map(sedeDeAnalisis);
   const ids = sedes.map((s) => s.id);
 
-  const [motor, lectura, llegan, liquidar, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura] = await Promise.all([
+  const [motor, lectura, llegan, liquidar, rinde, conteos, pedidos, preciosPropios, sinPrenda, frescura, pendientes] = await Promise.all([
     leerPreparacionDeLaRed(),
     getPrendasPorSede(ids),
     getPorLlegar(activa.id),
@@ -107,6 +107,8 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
         return null;
       }),
     leerFrescura(activa, conFrescura),
+    // Las ventas sin prenda que todavía se pueden registrar: el número del botón «Registrar N» (las cerradas ya no vuelven).
+    createClient().then((supabase) => contarPendientes(supabase, activa.id)),
   ]);
   const preciosDeMiTienda = preciosPropios[activa.id];
 
@@ -152,6 +154,7 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
     liquidarDesde,
     sinPrendaPorTipo: sinPrenda ? sinRegistrarPorTipo(sinPrenda) : {},
     frescura: frescura.estado,
+    porRegistrar: { pendientes, cerradas30: sinPrenda ? sinPrenda.filter((v) => v.estado === "cerrada_sin_prenda").length : null },
     rebajaDe100: lectura.rebajaDe100[activa.id] ?? null,
     rinde: rinde.rinde,
     conteo: ultimoConteo ? { contadas: ultimoConteo.lineas, coinciden: Math.max(0, ultimoConteo.lineas - ultimoConteo.lineasConDiferencia) } : null,

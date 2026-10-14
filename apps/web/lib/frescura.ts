@@ -3,7 +3,7 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 import { enLaTabla } from "@/lib/frescura-pantalla";
 import { categoriasFueraDeMotores, sinCategoriasApagadas } from "@/lib/familias-motores";
-import { leerVendidoSinRegistrar } from "@/lib/vendido-sin-registrar";
+import { contarPendientes, leerVendidoSinRegistrar } from "@/lib/vendido-sin-registrar";
 import {
   armarFrescuraLider,
   armarFrescuraSede,
@@ -219,7 +219,8 @@ async function puertaDelPiso(supabase: Supabase, sedeId: string): Promise<Puerta
     if (error) return null;
     const fila = leerPreparacion(data).find((f) => f.ubicacionId === sedeId);
     if (!fila) return null;
-    return puertaDeFila(fila);
+    // Lo que «Registrar N sin prenda» puede registrar de verdad: las pendientes (la misma cuenta que Análisis).
+    return { ...puertaDeFila(fila), pendientes: await contarPendientes(supabase, sedeId) };
   } catch {
     return null;
   }
