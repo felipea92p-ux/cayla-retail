@@ -238,3 +238,29 @@ describe("modo oscuro: contraste medido", () => {
     expect(c).toBeLessThan(1.8);
   });
 });
+
+describe("títulos de sección (estilos/titulos.css): el texto hecho de tinta se lee en los dos temas", () => {
+  // La nota de <TituloGrupo> («· lo que ya salió hacia las sedes») estaba al 45 % de tinta: 2.85:1 en claro y 3.93:1 en oscuro sobre papel
+  // (auditoría del 2026-10-14). El piso del texto tenue de `tema.css` solo alcanza a las clases de Tailwind (`text-tinta/45`), no a un
+  // `color-mix` escrito en un CSS: por eso cada `color:` de titulos.css hecho de tinta y transparente se mide aquí, sobre la hoja (papel) y
+  // la página (crema), que es donde vive un título. El navegador compone la mezcla en sRGB y redondea a 8 bits, como `mezcla`.
+  const porcentajes = [
+    ...new Set(
+      [...leer("app/estilos/titulos.css").matchAll(/(?<![\w-])color:\s*color-mix\(in (?:srgb|oklab),\s*var\(--color-tinta\)\s+(\d+(?:\.\d+)?)%,\s*transparent\)/g)].map((m) => Number(m[1])),
+    ),
+  ];
+
+  it("encuentra los textos que mide (si cambia cómo se escriben, esta prueba tiene que seguirlo)", () => {
+    expect(porcentajes.length).toBeGreaterThan(0);
+  });
+
+  for (const p of porcentajes) {
+    for (const [tema, t] of [["claro", claro], ["oscuro", oscuro]] as const) {
+      for (const superficie of ["papel", "crema"] as const) {
+        it(`tinta al ${p} % sobre ${superficie}, en ${tema}: ≥ 4.5`, () => {
+          expect(contraste(mezcla(t.tinta, t[superficie], p / 100), t[superficie])).toBeGreaterThanOrEqual(4.5);
+        });
+      }
+    }
+  }
+});

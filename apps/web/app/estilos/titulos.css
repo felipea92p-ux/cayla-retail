@@ -71,7 +71,10 @@
     animation: cayla-raya-dibuja 520ms var(--ease-cayla) backwards;
     animation-delay: var(--retraso, 120ms);
   }
-  .titulo-grupo-cuenta { margin-left: -0.5rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: color-mix(in srgb, var(--color-tinta) 45%, transparent); font-variant-numeric: tabular-nums; }
+  /* La nota del grupo («· no se edita ni se borra») habla en el tono de su título: más tenue no se lee. Al 45 % de tinta daba 2.85:1 en
+     claro y 3.93:1 en oscuro sobre papel (auditoría del modo oscuro, 2026-10-14; el mínimo es 4.5), y en claro no pasa por debajo del
+     61 %, que ya es el 62 % del título. La separan del título la minúscula, el peso y el punto. Lo vigila `lib/tema-tokens.test.ts`. */
+  .titulo-grupo-cuenta { margin-left: -0.5rem; font-weight: 500; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
 
   .separador-dia {
     position: sticky;
