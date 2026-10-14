@@ -417,12 +417,36 @@ export function problemaDeCuenta(cuentaId: string, cuentas: readonly CuentaOpcio
   return null;
 }
 
-/** El monto escrito. `tope`, en la devolución: lo que la persona tiene en su fondo. */
-export function problemaDeMonto(textoMonto: string, tope?: number): string | null {
+/**
+ * Hasta cuánto se puede devolver (Felipe 2026-10-14, /formidable E2; lo mismo que exige `devolver_fondo` desde 20261014212000). Con una
+ * rendición por aprobar, el faltante que ya declaró sale del fondo recién al aprobarla: lo que de verdad tiene en la mano es el saldo menos
+ * ese faltante. Devolver «lo de los libros» y aprobar después dejaba el fondo debiendo y debido por la misma plata.
+ */
+export type TopeDevolucion = { monto: number; porRendicion: boolean };
+
+export function topeDevolucion(saldo: number, faltantePorAprobar = 0): TopeDevolucion {
+  if (faltantePorAprobar > CENTAVO) return { monto: Math.max(saldo - faltantePorAprobar, 0), porRendicion: true };
+  return { monto: saldo, porRendicion: false };
+}
+
+/** La bajada de la hoja de devolución: cuánto tiene, dicho como lo cuenta la base. */
+export function subtituloDevolver(tope: TopeDevolucion): string {
+  return tope.porRendicion
+    ? `Tiene ${soles(tope.monto)} en la mano: lo que declaró en su rendición, que espera aprobación.`
+    : `Tiene ${soles(tope.monto)} en su fondo.`;
+}
+
+/** El monto escrito. `tope`, en la devolución: lo que la persona tiene (un número, o el tope con su rendición por aprobar). */
+export function problemaDeMonto(textoMonto: string, tope?: number | TopeDevolucion): string | null {
   const m = leerMontoPlata(textoMonto);
   if (m == null) return textoMonto.trim() ? MONTO_ILEGIBLE : "Escribe cuánto.";
   if (m <= 0) return "El monto tiene que ser mayor que cero.";
-  if (tope != null && m > tope) return `Tiene ${soles(Math.max(tope, 0))} en su fondo: no puede devolver más.`;
+  const t = typeof tope === "number" ? topeDevolucion(tope) : tope;
+  if (t != null && m > t.monto + CENTAVO / 10) {
+    return t.porRendicion
+      ? `Con su rendición por aprobar, tiene ${soles(Math.max(t.monto, 0))} en la mano: no puede devolver más.`
+      : `Tiene ${soles(Math.max(t.monto, 0))} en su fondo: no puede devolver más.`;
+  }
   return null;
 }
 
@@ -461,15 +485,15 @@ export function camposEntregar(
   ];
 }
 
-/** Los campos de «Registrar lo devuelto». La nota es opcional: no cuenta como «falta». */
+/** Los campos de «Registrar lo devuelto». La nota es opcional: no cuenta como «falta». `tope`: el saldo, o el tope con una rendición por aprobar. */
 export function camposDevolver(
   v: { cuentaId: string; monto: string; nota: string },
-  saldo: number,
+  tope: number | TopeDevolucion,
   cuentas: readonly CuentaOpcion[],
   r: Omit<Responsable, "quien">,
 ): CampoDeGuia[] {
   const cuenta = problemaDeCuenta(v.cuentaId, cuentas, "vuelve");
-  const monto = problemaDeMonto(v.monto, saldo);
+  const monto = problemaDeMonto(v.monto, tope);
   const nota = problemaDeNota(v.nota);
   return [
     { id: "cuenta", nombre: "A dónde vuelve", requerido: true, hecho: cuenta === null, pendiente: cuenta ?? "" },

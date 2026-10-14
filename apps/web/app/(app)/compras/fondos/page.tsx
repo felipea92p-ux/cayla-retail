@@ -1,7 +1,7 @@
 import { Wallet } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getDatosFondos } from "@/lib/fondos";
-import { TEXTO_MOVIMIENTO_FONDO, cifrasDeFondos, type MovimientoFondo } from "@/lib/fondos-reglas";
+import { TEXTO_MOVIMIENTO_FONDO, cifrasDeFondos, topeDevolucion, type MovimientoFondo } from "@/lib/fondos-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -234,7 +234,10 @@ export default async function FondosPage() {
                       <span className="text-xs text-taupe @min-[36rem]:text-right">Tu fondo: lo mueve otra persona</span>
                     ) : (
                       <>
-                        {f.saldo > 0 && <DevolverFondo fondo={f} cuentas={opciones.cuentas} />}
+                        {/* Con su rendición por aprobar, lo que tiene en la mano es el saldo menos su faltante (Felipe 2026-10-14). */}
+                        {topeDevolucion(f.saldo, estado.get(f.cuentaId)?.porAprobar?.faltante).monto > 0.005 && (
+                          <DevolverFondo fondo={f} cuentas={opciones.cuentas} porAprobar={estado.get(f.cuentaId)?.porAprobar?.faltante ?? 0} />
+                        )}
                         {debe(f.personaId) > 0.005 && <PagarDeudaFondo deuda={deudas.get(f.personaId)!} cuentas={opciones.cuentas} />}
                       </>
                     )}

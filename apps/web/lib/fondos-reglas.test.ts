@@ -21,6 +21,8 @@ import {
   problemaDeMonto,
   problemaDeMotivo,
   problemaDePersona,
+  subtituloDevolver,
+  topeDevolucion,
   type OpcionesFondos,
   type ResumenMiFondo,
 } from "./fondos-reglas";
@@ -284,6 +286,26 @@ describe("lo que falta (las mismas reglas que la base)", () => {
     expect(faltanDe(camposDevolver({ cuentaId: "c-bcp", monto: "500", nota: "" }, 380, OPCIONES.cuentas, PERSONA)).map((c) => c.id)).toEqual([
       "monto",
     ]);
+  });
+
+  // /formidable 2026-10-14 (E2), lo mismo que exige `devolver_fondo` desde 20261014212000 (`scripts/pruebas/fondos_entradas.mjs`).
+  it("devolver con su rendición por aprobar: el tope es lo que tiene en la mano (el saldo menos su faltante), no lo de los libros", () => {
+    const tope = topeDevolucion(380, 5);
+    expect(tope).toEqual({ monto: 375, porRendicion: true });
+    expect(subtituloDevolver(tope)).toBe("Tiene S/ 375.00 en la mano: lo que declaró en su rendición, que espera aprobación.");
+    expect(problemaDeMonto("380", tope)).toBe("Con su rendición por aprobar, tiene S/ 375.00 en la mano: no puede devolver más.");
+    expect(problemaDeMonto("375", tope)).toBeNull();
+    expect(problemaDeMonto("375,00", tope)).toBeNull();
+    const campos = camposDevolver({ cuentaId: "c-fuerte", monto: "380", nota: "" }, tope, OPCIONES.cuentas, PERSONA);
+    expect(faltanDe(campos).map((c) => c.id)).toEqual(["monto"]);
+  });
+
+  it("sin rendición por aprobar (o sin faltante), el tope es el saldo de siempre; nunca es negativo", () => {
+    expect(topeDevolucion(380)).toEqual({ monto: 380, porRendicion: false });
+    expect(topeDevolucion(380, 0)).toEqual({ monto: 380, porRendicion: false });
+    expect(subtituloDevolver(topeDevolucion(380))).toBe("Tiene S/ 380.00 en su fondo.");
+    expect(topeDevolucion(5, 5)).toEqual({ monto: 0, porRendicion: true });
+    expect(topeDevolucion(3, 5)).toEqual({ monto: 0, porRendicion: true });
   });
 });
 

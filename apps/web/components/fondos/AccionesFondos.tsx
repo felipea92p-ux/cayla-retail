@@ -30,6 +30,8 @@ import {
   opcionesDeCuentas,
   opcionesDePersonas,
   primerNombre,
+  subtituloDevolver,
+  topeDevolucion,
   type CuentaOpcion,
   type FondoFila,
   type MovimientoFondo,
@@ -245,7 +247,8 @@ function EntregarFondoModal({ opciones, onClose, volverA }: { opciones: Opciones
 
 // ---------- Registrar lo que la persona devuelve ----------
 
-export function DevolverFondo({ fondo, cuentas }: { fondo: FondoFila; cuentas: CuentaOpcion[] }) {
+// `porAprobar`: el faltante de su rendición por aprobar (0 si no tiene una). Con él, el tope es lo que tiene en la mano (`topeDevolucion`).
+export function DevolverFondo({ fondo, cuentas, porAprobar = 0 }: { fondo: FondoFila; cuentas: CuentaOpcion[]; porAprobar?: number }) {
   const [abierta, setAbierta] = useState(false);
   const origen = useRef<HTMLElement | null>(null);
   return (
@@ -260,7 +263,7 @@ export function DevolverFondo({ fondo, cuentas }: { fondo: FondoFila; cuentas: C
       >
         Registrar devolución
       </Boton>
-      {abierta && <DevolverFondoModal fondo={fondo} cuentas={cuentas} onClose={() => setAbierta(false)} volverA={origen} />}
+      {abierta && <DevolverFondoModal fondo={fondo} cuentas={cuentas} porAprobar={porAprobar} onClose={() => setAbierta(false)} volverA={origen} />}
     </>
   );
 }
@@ -268,11 +271,13 @@ export function DevolverFondo({ fondo, cuentas }: { fondo: FondoFila; cuentas: C
 function DevolverFondoModal({
   fondo,
   cuentas,
+  porAprobar,
   onClose,
   volverA,
 }: {
   fondo: FondoFila;
   cuentas: CuentaOpcion[];
+  porAprobar: number;
   onClose: () => void;
   volverA: RefObject<HTMLElement | null>;
 }) {
@@ -291,7 +296,8 @@ function DevolverFondoModal({
   const responsable = useResponsable();
   const nombre = primerNombre(fondo.persona);
 
-  const guia = useGuiaCampos(camposDevolver({ cuentaId, monto, nota }, fondo.saldo, cuentas, { esPersona, listo: responsable.listo, motivo: responsable.motivo }));
+  const tope = topeDevolucion(fondo.saldo, porAprobar);
+  const guia = useGuiaCampos(camposDevolver({ cuentaId, monto, nota }, tope, cuentas, { esPersona, listo: responsable.listo, motivo: responsable.motivo }));
   const montoLeido = leerMontoPlata(monto);
 
   async function confirmar() {
@@ -331,7 +337,7 @@ function DevolverFondoModal({
   return (
     <Modal
       titulo={`Lo que devuelve ${nombre}`}
-      subtitulo={`Tiene ${soles(fondo.saldo)} en su fondo.`}
+      subtitulo={subtituloDevolver(tope)}
       onClose={onClose}
       variante="hoja"
       alCerrarEnfocar={volverA}

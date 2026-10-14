@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Prueba de lo que la base del fondo NO acepta (ADR-0362, fase 6; /chaos 2026-10-14, semilla 1014): `20261014192000` y `193000`
- * (montos y datos válidos) y `194000` (el token sigue al contenido), sobre las del fondo (181000 … 20261014170000).
+ * (montos y datos válidos), `194000` (el token sigue al contenido), `200000` (la sede del gasto del viaje) y `212000` (el tope de una
+ * devolución con la rendición por aprobar, /formidable 2026-10-14), sobre las del fondo (181000 … 20261014170000).
  *
  * QUÉ PROMETE
  *   · Un monto que no es un número (NaN, infinito) no entra a la plata: ni por las funciones del fondo (que lo dicen con
@@ -14,6 +15,8 @@
  *   · El token sigue al contenido en las cinco funciones del fondo: el mismo token con lo mismo devuelve lo mismo; con otra cosa,
  *     `token_reusado`. `fn_resolver_intento` revisa esas cinco: `hecho` a quien tiene el módulo o es la persona del fondo, `intento_ajeno`
  *     a otra, y un envío dado por no llegado ya no entra (`intento_descartado`).
+ *   · Con una rendición por aprobar, una devolución no pasa de lo que la persona tiene en la mano (el saldo menos su faltante): devolver
+ *     «lo de los libros» y aprobar después dejaba el fondo debiendo y debido por la misma plata.
  *
  * CÓMO. Como `deuda_fondo.mjs`: carga sus migraciones dentro de cada caso (dos veces: se pueden pegar dos veces), sesión simulada con
  * `request.jwt.claim.sub` y ROLLBACK siempre: nada queda escrito. `--sin-arreglo` corre los mismos casos SIN cargar las migraciones,
@@ -45,6 +48,7 @@ const MIGRACIONES = SIN_ARREGLO
       "20261014193000_fondos_montos_validos_parte2.sql",
       "20261014194000_fondos_token_sigue_al_contenido.sql",
       "20261014200000_gasto_viaje_sede_para_la_caja.sql",
+      "20261014212000_devolucion_tope_rendicion_por_aprobar.sql",
     ].map(
       (f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"),
     );
@@ -276,6 +280,35 @@ ${prueba("e_descartado", "select retail.entregar_fondo(%L, %L, 100, 'Compra B', 
       espera(s, "res_otra", /^res_otra\|42501\|intento_ajeno\|/, e, "otra persona sin el módulo no revisa una rendición ajena");
       espera(s, "res_perdido", /^res_perdido\|no_llego$/, e, "un token que nunca llegó se da por no llegado");
       espera(s, "e_descartado", /^e_descartado\|P0001\|intento_descartado\|/, e, "y ese envío ya no entra (intento_descartado)");
+      return e;
+    },
+  },
+  {
+    // /formidable 2026-10-14 (E2): devolver «lo de los libros» con la rendición por aprobar y aprobar después dejaba el fondo en −S/ 20 y,
+    // a la vez, una deuda de S/ 20: la misma plata debida en los dos sentidos.
+    nombre: "con una rendición por aprobar, la devolución no pasa de lo que la persona tiene en la mano (saldo − su faltante)",
+    sql: `${como(ANA)}${firma("fondo_rendir")}
+select retail.rendir_fondo(480, null, null) as r1 \\gset
+${como(BETO)}${firma("fondo_devolver")}
+${prueba("d_libros", "select retail.devolver_fondo(%L, %L, 500, null, null, null)::text", "ana_p", "bcp")}
+${prueba("d_mano", "select retail.devolver_fondo(%L, %L, 480, null, null, null)::text", "ana_p", "bcp")}
+select 'tras_devolver|' || retail.fn_fondo_saldo(:'fondo');
+${como(FELIPE)}${firma("fondo_rendicion_aprobar")}
+select retail.aprobar_rendicion_fondo(:'r1', null, null) \\g /dev/null
+select 'tras_aprobar|' || retail.fn_fondo_saldo(:'fondo');
+-- Sin una rendición por aprobar, el tope vuelve a ser el saldo de siempre.
+${como(BETO)}${firma("fondo_entregar")}
+select retail.entregar_fondo(:'ana_p', :'bcp', 100, 'Compra C', null, null) \\g /dev/null
+${firma("fondo_devolver")}
+${prueba("d_sin_rendicion", "select retail.devolver_fondo(%L, %L, 100, null, null, null)::text", "ana_p", "bcp")}`,
+    revisar: (s) => {
+      const e = [];
+      espera(s, "d_libros", /^d_libros\|P0001\|fondo_insuficiente\|Con su rendición por aprobar, tiene S\/ 480\.00 en la mano/, e,
+        "devolver lo de los libros (500) con S/ 480 declarados se rechaza y dice cuánto tiene en la mano");
+      espera(s, "d_mano", /^d_mano\|SIN_ERROR\|/, e, "devolver lo que tiene en la mano (480) se acepta");
+      espera(s, "tras_devolver", /^tras_devolver\|20(\.00)?$/, e, "tras devolver, el fondo guarda solo el faltante (S/ 20)");
+      espera(s, "tras_aprobar", /^tras_aprobar\|0(\.00)?$/, e, "al aprobar, el faltante sale y el fondo queda en cero: nunca en negativo");
+      espera(s, "d_sin_rendicion", /^d_sin_rendicion\|SIN_ERROR\|/, e, "sin rendición por aprobar, se devuelve hasta el saldo, como siempre");
       return e;
     },
   },
