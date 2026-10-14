@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   agruparPorDia,
-  diaLimaDe,
   diaValido,
-  horaLimaDe,
   apoyoDeResultado,
   cifraDeConteo,
   hrefRecientes,
@@ -58,15 +56,17 @@ const TODOS = [
 ].sort((a, b) => Date.parse(b.creadoEn) - Date.parse(a.creadoEn));
 
 describe("el día y la hora son los de Lima, no los de UTC", () => {
+  // El día y la hora los da fechas-lima (diaLima, horaLima); aquí se prueba que la lista de conteos los usa.
   it("un conteo de las 10:30 pm de Lima sigue siendo del mismo día aunque en UTC ya sea el siguiente", () => {
-    expect(diaLimaDe("2026-10-01T03:30:00Z")).toBe("2026-09-30");
-    expect(horaLimaDe("2026-10-01T03:30:00Z")).toBe("22:30");
-    expect(diaLimaDe("2026-09-30T16:58:00Z")).toBe("2026-09-30");
-    expect(horaLimaDe("2026-09-30T16:58:00Z")).toBe("11:58");
+    const tarde = conteo(1, "2026-10-01T03:30:00Z", { estado: "abierto", cerradoEn: null });
+    expect(agruparPorDia([tarde]).map((g) => g.dia)).toEqual(["2026-09-30"]);
+    expect(textoAperturaCierre(tarde)).toBe("Abierto 22:30");
+    expect(textoAperturaCierre(conteo(2, "2026-09-30T16:58:00Z", { estado: "abierto", cerradoEn: null }))).toBe("Abierto 11:58");
   });
   it("una hora de madrugada de Lima (00:30) es del día de Lima, no del anterior", () => {
-    expect(diaLimaDe("2026-09-30T05:30:00Z")).toBe("2026-09-30");
-    expect(horaLimaDe("2026-09-30T05:30:00Z")).toBe("00:30");
+    const madrugada = conteo(3, "2026-09-30T05:30:00Z", { estado: "abierto", cerradoEn: null });
+    expect(agruparPorDia([madrugada]).map((g) => g.dia)).toEqual(["2026-09-30"]);
+    expect(textoAperturaCierre(madrugada)).toBe("Abierto 00:30");
   });
 });
 

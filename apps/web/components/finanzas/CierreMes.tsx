@@ -14,13 +14,13 @@ import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/com
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta } from "@/lib/gastos-reglas";
+import { diaLima } from "@/lib/fechas-lima";
 import { mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import {
   avisosPendientes,
   bajadaUnidad,
   deUnidad,
   deUnidadLarga,
-  diaDe,
   enlaceChequeo,
   estadoConsolidado,
   estadoTarjeta,
@@ -130,14 +130,14 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
               {x.estado === "cerrado" && x.cierre ? (
                 <>
                   <span className="fin-unidad-sub">
-                    {fechaCorta(diaDe(x.cierre.cerradoEn))} · {primerNombre(x.cierre.cerradoPor)}
+                    {fechaCorta(diaLima(x.cierre.cerradoEn))} · {primerNombre(x.cierre.cerradoPor)}
                   </span>
                   <span className="fin-unidad-h" title={x.cierre.huella}>
                     {huellaCorta(x.cierre.huella)}
                   </span>
                 </>
               ) : x.estado === "reabierto" && x.cierre?.reabiertoEn ? (
-                <span className="fin-unidad-sub">reabierto el {fechaCorta(diaDe(x.cierre.reabiertoEn))}</span>
+                <span className="fin-unidad-sub">reabierto el {fechaCorta(diaLima(x.cierre.reabiertoEn))}</span>
               ) : null}
             </button>
           );

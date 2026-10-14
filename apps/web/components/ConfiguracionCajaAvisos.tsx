@@ -10,7 +10,7 @@ import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/com
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { validarParametrosFinanzas, type ParametrosFinanzas, type ParametrosFinanzasConCorte } from "@/lib/configuracion-reglas";
-import { hoyLima } from "@/lib/apartados-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { consecuenciaCorte, corteParaBase, fechaDelCorte, opcionesCorte, SIN_CORTE } from "@/lib/finanzas-arranque-reglas";
 
 // Configuración ▸ Caja y avisos (spike `cfgCaja`, 20260925103000): el mínimo de caja que vigilan el Flujo y el Resumen, y

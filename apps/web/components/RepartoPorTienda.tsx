@@ -3,7 +3,7 @@ import { BotonReasignar, type LineaReasignable } from "@/components/ReasignarRep
 import { fraccion, tonoDeAvance } from "@/lib/comprobante-linea-tiempo";
 import { fechaCorta, type CompraResumen, type LineaCompra } from "@/lib/compras-reglas";
 import type { RepartoDeCompra } from "@/lib/compras-reparto";
-import { hoyLima } from "@/lib/fechas-lima";
+import { diaLima } from "@/lib/fechas-lima";
 import { estaRepartido, ETIQUETA_MOTIVO_REASIGNACION, etiquetaDeLinea, filasDeLinea, resumenPorTienda, textoDeReasignacion, tiendasDelReparto } from "@/lib/reparto-reglas";
 
 // «Reparto por tienda» en el detalle de un comprobante (ADR-0139): cuánto le toca a cada tienda de cada línea y cuánto ya
@@ -67,7 +67,7 @@ export function RepartoPorTienda({
         <ul className="space-y-1 text-xs leading-relaxed text-tinta/65">
           {reasignaciones.slice(0, 5).map((r) => (
             <li key={r.id}>
-              <span className="tabular-nums">{fechaCorta(hoyLima(new Date(r.creadoEn)))}</span> · {nombreDeLinea.get(r.compraItemId) ?? "Línea del comprobante"}: {textoDeReasignacion(r, nombreDe)} ·{" "}
+              <span className="tabular-nums">{fechaCorta(diaLima(r.creadoEn))}</span> · {nombreDeLinea.get(r.compraItemId) ?? "Línea del comprobante"}: {textoDeReasignacion(r, nombreDe)} ·{" "}
               {ETIQUETA_MOTIVO_REASIGNACION[r.motivo]}
               {r.nota ? ` — «${r.nota}»` : ""}
             </li>
