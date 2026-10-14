@@ -43,6 +43,7 @@ import {
   type TipoComprobante,
   type UbicacionGastos,
 } from "@/lib/gastos-reglas";
+import { MAX_DESCRIPCION_GASTO, MAX_NOMBRE_ACTIVO } from "@/lib/finanzas-topes";
 
 // Registrar un gasto o un activo fijo (ADR-0195 F2). Una sola ventana para los casos de la vida real:
 //  · sin comprobante (mototaxi, bolsas): cómo se pagó; si fue efectivo, sale del cajón abierto de esa tienda;
@@ -399,11 +400,11 @@ export function RegistrarGastoModal({
         <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]" data-guia="fin-gastos.form-que">
           {esActivo ? (
             <CampoFin etiqueta="Qué es" htmlFor="gasto-descripcion">
-              <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Estante de exhibición en L" />
+              <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Estante de exhibición en L" maxLength={MAX_NOMBRE_ACTIVO} />
             </CampoFin>
           ) : (
             <CampoFin etiqueta="Qué se pagó" htmlFor="gasto-descripcion">
-              <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Luz de septiembre" />
+              <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Luz de septiembre" maxLength={MAX_DESCRIPCION_GASTO} />
             </CampoFin>
           )}
           <CampoFin etiqueta={conComprobante ? "Fecha del comprobante" : "Fecha"} htmlFor="gasto-fecha">

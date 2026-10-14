@@ -6,6 +6,7 @@ import { claveTexto, type MotivoParecido } from "./nombres-parecidos";
 import { proveedoresParecidos } from "./proveedores-reglas";
 import { soles } from "./compras-reglas";
 import { UMBRAL_BANCARIZACION } from "./no-deducible-reglas";
+import { MAX_MONTO_FINANZAS } from "./finanzas-topes";
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
@@ -79,6 +80,12 @@ export function parsearMonto(texto: string): Resultado<number> {
   const n = Number(limpio);
   if (n <= 0) return { ok: false, error: "El monto tiene que ser mayor que cero." };
   return { ok: true, valor: n };
+}
+
+/** Un gasto o un movimiento de dinero llega hasta S/ 1 000 000 (ADR-0412): la base lo rechaza con `<tabla>_monto_con_tope`. */
+export function montoDentroDelTope(m: Resultado<number>): Resultado<number> {
+  if (m.ok && m.valor > MAX_MONTO_FINANZAS) return { ok: false, error: "El monto pasa de S/ 1 000 000: revisa que no sobre un cero." };
+  return m;
 }
 
 /** El IGV que trae una factura por su total (18 % hoy): total − total ÷ 1.18. La base hace la misma cuenta. */
@@ -630,7 +637,7 @@ export function validarGasto(b: BorradorGasto, hoy: string): Resultado<PayloadGa
   if (!b.descripcion.trim()) return { ok: false, error: "Escribe qué se pagó." };
   if (!b.fecha) return { ok: false, error: "Falta la fecha." };
   if (b.fecha > hoy) return { ok: false, error: "La fecha no puede ser futura." };
-  const monto = parsearMonto(b.monto);
+  const monto = montoDentroDelTope(parsearMonto(b.monto));
   if (!monto.ok) return monto;
 
   const conComprobante = b.comprobante !== "sin_comprobante";

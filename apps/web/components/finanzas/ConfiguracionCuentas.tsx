@@ -30,6 +30,7 @@ import {
 import { Boton } from "@/components/ui/campos";
 import { Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { MAX_NOMBRE_CUENTA, MAX_NUMERO_CUENTA } from "@/lib/finanzas-topes";
 
 // Configuración ▸ Cuentas y cobros (ADR-0195 F3), dibujada como el spike (`vista-config.js`, `cfgCuentas`): las cuentas
 // de CAYLA (los cajones y cajas fuertes nacen con cada tienda; aquí se agregan bancos, billeteras, el POS y la tarjeta) y a
@@ -267,14 +268,14 @@ function AgregarCuentaModal({ hoy, onCerrar }: { hoy: string; onCerrar: () => vo
   return (
     <Modal variante="hoja" titulo="Agregar cuenta" subtitulo="Un banco, una billetera que no cae a un banco, el POS de tarjeta o la tarjeta de crédito de CAYLA." onClose={onCerrar} ancho="max-w-[520px]">
       <CampoFin etiqueta="Nombre" htmlFor="cta-nombre">
-        <InputFin id="cta-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="BBVA · Cta. corriente" />
+        <InputFin id="cta-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="BBVA · Cta. corriente" maxLength={MAX_NOMBRE_CUENTA} />
       </CampoFin>
       <div className="fin-dos-campos">
         <CampoFin etiqueta="Tipo" htmlFor="cta-tipo">
           <SelectFin<TipoCuenta> id="cta-tipo" valor={tipo} onValor={setTipo} opciones={TIPOS_QUE_SE_AGREGAN.map((t) => ({ valor: t.tipo, texto: t.texto }))} />
         </CampoFin>
         <CampoFin etiqueta="Número (opcional)" htmlFor="cta-numero">
-          <InputFin id="cta-numero" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="•••• 1942" />
+          <InputFin id="cta-numero" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="•••• 1942" maxLength={MAX_NUMERO_CUENTA} />
         </CampoFin>
       </div>
       <div className="fin-dos-campos">

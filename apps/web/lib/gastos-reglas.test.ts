@@ -489,3 +489,15 @@ describe("el IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76)", 
     );
   });
 });
+
+// /chaos de Finanzas 2026-10-14 (ADR-0412): un gasto llega hasta S/ 1 000 000, el mismo tope de la base (`gastos_monto_con_tope`).
+describe("el monto de un gasto tiene tope", () => {
+  it("un millón entra; un sol más, no", () => {
+    expect(validarGasto({ ...base, monto: "1,000,000" }, HOY).ok).toBe(true);
+    const r = validarGasto({ ...base, monto: "1000000.01" }, HOY);
+    expect(r).toEqual({ ok: false, error: "El monto pasa de S/ 1 000 000: revisa que no sobre un cero." });
+  });
+  it("el 9 pegado de /chaos", () => {
+    expect(validarGasto({ ...base, monto: "99999999" }, HOY).ok).toBe(false);
+  });
+});
