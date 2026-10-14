@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
+import { X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { objecionFotoElegida } from "@/lib/producto-fotos";
 import { comoArchivo } from "@/lib/preparar-foto";
@@ -74,6 +75,40 @@ export function useFotosPendientes({ fotos, onFotos }: { fotos: FotoPendiente[];
   ) : null;
 
   return { agregar, quitar, revision };
+}
+
+/** La × que va sobre la miniatura de una foto y dice, sin abrir nada, «aquí se quita». Antes «Quitar» solo vivía dentro de la
+ *  hoja que abre el enlace «1 foto» (alta) o la tarjeta (ficha), y quien se equivocaba de foto no lo encontraba (Felipe,
+ *  2026-10-14). Con una sola foto la quita; con varias, `onClick` abre la hoja donde se elige cuál. Quitar una foto no
+ *  pide confirmación (ley 7 de /formidable: perdonar antes que preguntar): en el alta todavía no se subió nada y en la
+ *  ficha no se guarda hasta «Guardar». `className` la ubica en su esquina. */
+export function BotonQuitarFoto({
+  onClick,
+  etiqueta,
+  disabled = false,
+  grande = false,
+  className = "",
+}: {
+  onClick: () => void;
+  etiqueta: string;
+  disabled?: boolean;
+  /** Sobre una tarjeta grande (la ficha) el círculo es de 28 px; sobre la miniatura de la tabla, de 20. */
+  grande?: boolean;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={etiqueta}
+      title={etiqueta}
+      // `before:` agranda el área que se toca sin agrandar el círculo (queda sobre una miniatura de 34 px).
+      className={`absolute z-[1] grid ${grande ? "h-7 w-7" : "h-5 w-5"} place-items-center rounded-full bg-tinta text-crema shadow-sm transition-colors before:absolute before:-inset-1 before:content-[''] hover:bg-rojo-profundo disabled:opacity-40 ${className}`}
+    >
+      <X aria-hidden className="h-3 w-3" strokeWidth={2.2} />
+    </button>
+  );
 }
 
 /** El botón que abre el selector de archivos. Sin `children` es la casilla «+» de siempre; la tabla de la prenda le
