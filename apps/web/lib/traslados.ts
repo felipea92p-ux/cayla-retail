@@ -7,6 +7,7 @@ import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 import { getPedidosPorAtender } from "@/lib/pedidos-entre-sedes";
 import { numeroDelMenuTraslados } from "@/lib/pedidos-por-atender-reglas";
 import type { FirmaVigente } from "@/lib/firma-heredada";
+import { esEstadoSobrante, type SobranteTraslado } from "@/lib/traslados-sobrantes-reglas";
 
 // Traslados en dos fases (20260916150000): envío → en tránsito →
 // confirmación en destino. Las RPC de escritura (iniciar_traslado,
@@ -62,6 +63,9 @@ export type TrasladoResumen = {
   /** Quién envió la caja (el pase dice «Envía Marco A.»). Solo lo trae `getTrasladosDeLaSede`; `null` en las demás lecturas o si
    *  el nombre no se pudo leer. */
   creadoPorNombre: string | null;
+  /** Unidades contadas de más que esperan revisión, fuera del stock (ADR-0404). Solo lo trae `getTrasladosDeLaSede`; 0 en las
+   *  demás lecturas o si no se pudo leer. */
+  sobrantesPorRevisar: number;
 };
 
 export type { FotoTraslado };
@@ -110,7 +114,12 @@ type FilaResumen = {
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
 
-function aResumen(f: FilaResumen, fotosPorProducto: Map<string, FotoCruda[]> = new Map(), nombres: Map<string, string> = new Map()): TrasladoResumen {
+function aResumen(
+  f: FilaResumen,
+  fotosPorProducto: Map<string, FotoCruda[]> = new Map(),
+  nombres: Map<string, string> = new Map(),
+  sobrantes: Map<string, SobrantesDeUnTraslado> = new Map()
+): TrasladoResumen {
   const items = f.transferencia_items ?? [];
   // Un producto con tres tallas en el mismo traslado se nombra una vez.
   const referencias = Array.from(new Set(items.map((i) => i.variante?.producto?.referencia).filter((r): r is string => !!r)));
@@ -154,7 +163,39 @@ function aResumen(f: FilaResumen, fotosPorProducto: Map<string, FotoCruda[]> = n
     motivoAnulacion: f.motivo_anulacion ?? null,
     unidadesRecibidas: (f.transferencia_recepciones ?? []).reduce((acc, r) => acc + r.cantidad_recibida, 0),
     creadoPorNombre: f.creado_por ? (nombres.get(f.creado_por) ?? null) : null,
+    sobrantesPorRevisar: sobrantes.get(f.id)?.unidades ?? 0,
   };
+}
+
+type SobrantesDeUnTraslado = { unidades: number; recibe: boolean };
+
+/** Lo contado de más que espera revisión en la sede (ADR-0404), por traslado. Tolerante: si la lectura falla (o la función todavía
+ *  no está en la base), vacío y el pase se lee como antes; el error queda en el log. */
+async function leerSobrantesPorRevisar(supabase: Cliente, ubicacionId: string): Promise<Map<string, SobrantesDeUnTraslado>> {
+  try {
+    const { data, error } = await supabase.rpc("fn_sobrantes_por_revisar" as never, { p_ubicacion_id: ubicacionId } as never);
+    if (error || !Array.isArray(data)) {
+      if (error) console.error("Sobrantes por revisar:", error.message);
+      return new Map();
+    }
+    return new Map(
+      (data as { transferencia_id: string; unidades: number; recibe: boolean }[]).map((r) => [r.transferencia_id, { unidades: r.unidades, recibe: r.recibe === true }] as const)
+    );
+  } catch (e) {
+    console.error("Sobrantes por revisar:", e);
+    return new Map();
+  }
+}
+
+/** Los traslados con algo por revisar que quedaron fuera del historial reciente: tienen que seguir a la vista hasta revisarse. */
+async function filasPorIds(supabase: Cliente, ids: string[]): Promise<FilaResumen[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase.from("transferencias").select(SELECT_TERMINADOS).in("id", ids.slice(0, IDS_POR_CONSULTA));
+  if (error || !data) {
+    console.error("Traslados con algo de más por revisar:", error?.message);
+    return [];
+  }
+  return data as FilaResumen[];
 }
 
 /** Los nombres de quienes enviaron. Decorativo: si la lectura falla, el pase sale sin «Envía…», nunca sin pase. */
@@ -259,16 +300,23 @@ export async function getTrasladosDeLaSede(
   limiteCerrados = 30
 ): Promise<{ enCurso: TrasladoResumen[]; cerrados: TrasladoResumen[]; vacios: number; cerradosLeidos: number }> {
   const supabase = await createClient();
-  const [abiertas, cerradas] = await Promise.all([filasEnCurso(supabase, ubicacionId), filasCerradas(supabase, ubicacionId, limiteCerrados)]);
+  const [abiertas, cerradasRecientes, sobrantes] = await Promise.all([
+    filasEnCurso(supabase, ubicacionId),
+    filasCerradas(supabase, ubicacionId, limiteCerrados),
+    leerSobrantesPorRevisar(supabase, ubicacionId),
+  ]);
+  const leidos = new Set([...abiertas, ...cerradasRecientes].map((f) => f.id));
+  const viejosPorRevisar = await filasPorIds(supabase, [...sobrantes.keys()].filter((id) => !leidos.has(id)));
+  const cerradas = [...cerradasRecientes, ...viejosPorRevisar];
   const productoIds = [...abiertas, ...cerradas].flatMap((f) => (f.transferencia_items ?? []).map((i) => i.variante?.producto_id).filter((id): id is string => !!id));
   const [fotos, nombres] = await Promise.all([
     leerFotosPorProducto(supabase, productoIds),
     leerNombres(supabase, [...abiertas, ...cerradas].flatMap((f) => (f.creado_por ? [f.creado_por] : []))),
   ]);
-  const enCurso = separarVacios(abiertas.map((f) => aResumen(f, fotos, nombres)));
-  const cerrados = separarVacios(cerradas.map((f) => aResumen(f, fotos, nombres)));
+  const enCurso = separarVacios(abiertas.map((f) => aResumen(f, fotos, nombres, sobrantes)));
+  const cerrados = separarVacios(cerradas.map((f) => aResumen(f, fotos, nombres, sobrantes)));
   // `cerradosLeidos` cuenta también los vacíos: es lo que dice si la consulta llegó al tope de `limiteCerrados`.
-  return { enCurso: enCurso.conPrendas, cerrados: cerrados.conPrendas, vacios: enCurso.vacios + cerrados.vacios, cerradosLeidos: cerradas.length };
+  return { enCurso: enCurso.conPrendas, cerrados: cerrados.conPrendas, vacios: enCurso.vacios + cerrados.vacios, cerradosLeidos: cerradasRecientes.length };
 }
 
 /** Cuántos ids viajan por consulta: van en la URL (`.in("id", …)`), y con cientos de uuid de 36 letras se pasaría del largo
@@ -362,7 +410,7 @@ export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCer
       console.error("Contador de traslados:", error?.message);
       return null;
     }
-    return contarRequierenAccion(
+    const porRecibir = contarRequierenAccion(
       (data as FilaContador[]).map((f) => ({
         estado: f.estado,
         ubicacionOrigenId: f.ubicacion_origen_id,
@@ -372,6 +420,9 @@ export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCer
       })),
       { miUbicacionId: ubicacionId, puedeCerrarDiferencia, ahoraIso: new Date().toISOString() }
     );
+    // ADR-0404: lo de más que me toca revisar (la sede que recibió y quien puede cerrar la diferencia), con la misma regla del pase.
+    const deMas = puedeCerrarDiferencia ? [...(await leerSobrantesPorRevisar(supabase, ubicacionId)).values()].filter((x) => x.recibe).length : 0;
+    return porRecibir + deMas;
   } catch (e) {
     console.error("Contador de traslados:", e);
     return null;
@@ -436,7 +487,36 @@ export type TrasladoDetalle = {
   anuladoPorNombre: string | null;
   motivoAnulacion: string | null;
   lineas: LineaTraslado[];
+  /** Lo contado de más al recibir (ADR-0404): por revisar (fuera del stock) o ya revisado. Vacío si la lectura falla. */
+  sobrantes: SobranteTraslado[];
 };
+
+type FilaSobrante = {
+  id: string;
+  variante_id: string;
+  cantidad: number;
+  estado: string;
+  creado_en: string;
+  revisado_en: string | null;
+  revisado_por: string | null;
+  nota_revision: string | null;
+};
+
+/** Los sobrantes de un traslado. Decorativo para el resto del pase: si la lectura falla, el pase sale sin la sección (nunca
+ *  sin pase) y el error queda en el log. */
+async function leerSobrantes(supabase: Cliente, id: string): Promise<FilaSobrante[]> {
+  try {
+    const { data, error } = await supabase.rpc("fn_sobrantes_de_traslado" as never, { p_transferencia_id: id } as never);
+    if (error || !Array.isArray(data)) {
+      if (error) console.error("Sobrantes del traslado:", error.message);
+      return [];
+    }
+    return data as FilaSobrante[];
+  } catch (e) {
+    console.error("Sobrantes del traslado:", e);
+    return [];
+  }
+}
 
 /**
  * La firma vigente de la recepción de un traslado (ADR-0328): quién firmó por última vez un paso de recibir, si fue hoy (lo dice la
@@ -479,9 +559,10 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
   if (!t) return null;
 
   const ids = Array.from(new Set([t.creado_por, t.confirmado_por, t.cerrado_por, t.anulado_por].filter((x): x is string => !!x)));
-  const [lineasRes, nombreRes] = await Promise.all([
+  const [lineasRes, nombreRes, filasSobrantes] = await Promise.all([
     supabase.rpc("fn_traslado_lineas", { p_transferencia_id: id }),
     ids.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: ids }) : Promise.resolve({ data: [], error: null }),
+    leerSobrantes(supabase, id),
   ]);
   const lineas = exigir(lineasRes, "las líneas del traslado");
   const nombres = exigir(nombreRes, "los nombres de quienes enviaron y recibieron");
@@ -489,6 +570,7 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
   // Color y foto de cada prenda. Decorativos: `getAparienciaVariantes` tolera el fallo y la celda cae al
   // nombre del color en texto, nunca tumba la pantalla donde se confirma una recepción.
   const apariencia = await getAparienciaVariantes(supabase, lineas.map((l) => l.variante_id));
+  const revisores = await leerNombres(supabase, filasSobrantes.map((f) => f.revisado_por).filter((x): x is string => !!x));
 
   return {
     id: t.id,
@@ -525,5 +607,17 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
       colorHex: apariencia.has(l.variante_id) ? apariencia.get(l.variante_id)!.colorHex : undefined,
       fotoUrl: apariencia.get(l.variante_id)?.fotoUrl ?? null,
     })),
+    sobrantes: filasSobrantes
+      .filter((f) => esEstadoSobrante(f.estado))
+      .map((f) => ({
+        id: f.id,
+        varianteId: f.variante_id,
+        cantidad: f.cantidad,
+        estado: f.estado as SobranteTraslado["estado"],
+        creadoEn: f.creado_en,
+        revisadoEn: f.revisado_en,
+        revisadoPorNombre: f.revisado_por ? (revisores.get(f.revisado_por) ?? null) : null,
+        nota: f.nota_revision,
+      })),
   };
 }

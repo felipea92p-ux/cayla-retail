@@ -2,7 +2,7 @@
   "guia": "inventario.traslados",
   "ruta": "/inventario/traslados/(billetera)",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 87,
+  "total": 91,
   "controles": {
     "app/(app)/inventario/traslados/(billetera)/layout.tsx": [
       "BotonEnlace «traslados.nuevo»"
@@ -114,6 +114,12 @@
       "input «{`Contado de ${nombre}»",
       "button «{`Una más de ${nombre}»",
       "button «reintentar»"
+    ],
+    "components/traslados-pases/SobrantesPase.tsx": [
+      "button «{o.titulo}»",
+      "textarea «Cómo lo supiste»",
+      "ComboResponsable «(sin nombre)»",
+      "button «{guardando ? \"Guardando…\" : \"Guardar lo que pasó\"}»"
     ]
   }
 }
