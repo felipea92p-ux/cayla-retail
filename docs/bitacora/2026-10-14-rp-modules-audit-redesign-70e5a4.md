@@ -62,3 +62,15 @@ Felipe se lleva: un precio tecleado por error (15 en vez de 65) ya no entra en s
 Verificado: vitest entero en verde, `tsc` y `eslint` limpios; en el navegador local (Faldas · L · Coral): 15 avisa y deja «Agregar» apagado,
 «Sí, cobré S/ 15.00» lo enciende y la hoja dice «Confirmado», 70 vuelve a la referencia sin aviso; a 375 px el aviso cabe (25–350 px) sin
 desborde.
+
+## 2026-10-14 (A5: la cola llega a quien vende)
+Qué hice: bajo «Cobrar», el pie del ticket dice «Hoy N sin registrar · M por regularizar en tu tienda · Regularizar» (el enlace, de frase,
+solo si la cuenta ve Existencias, donde vive la mesa; ADR-0306). Dos conteos por PostgREST sobre `prendas_por_regularizar` de la sede
+(`useSinRegistrarDeHoy`: las vendidas hoy en hora de Lima sin las anuladas, y las pendientes), releídos tras cada venta como las ventas de
+hoy; sin nada que decir, o sin poder leer, el pie no se dibuja. `lib/vender-sin-registrar-reglas.ts` (pura, 5 pruebas). La guía de Vender
+lo cuenta en el paso del pie y la huella se aceptó tras revisarla.
+Por qué así: la cola vivía en Existencias y en el «Te toca» del Inicio, que la terminal de ventas no ve (aterriza en el mostrador). Es la
+versión mínima de «lo pendiente va a la persona» (auditoría, tema 7); la insignia global «Te toca» en la cabecera es de la Fase 3.
+Felipe se lleva: quien vende ve cada día cuántas prendas entraron sin registrar y cuántas esperan, a un toque de la mesa. Verificado: vitest
+entero en verde, `tsc` y `eslint` limpios; en el navegador local (Tienda Lima, con una venta de hoy sin registrar de fixture) el pie dice
+«Hoy 1 sin registrar · 1 por regularizar en tu tienda · Regularizar» con el enlace a `/inventario/por-regularizar`.

@@ -221,6 +221,8 @@ type Props = {
   id?: string;
   /** Arriba de las líneas mientras se arma (spike 2026-09-26): la tira de tickets en espera y la fila «Clienta». */
   arriba?: ReactNode;
+  /** Lo que va bajo «Cobrar», en el pie: la frase de las prendas sin registrar de hoy (`SinRegistrarDeHoy`, A5). */
+  abajo?: ReactNode;
   /** Dentro de la hoja del celular (`<Modal variante="ticket">`): llena la hoja y ofrece volver al catálogo. */
   enHoja?: boolean;
   onCerrarHoja?: () => void;
@@ -273,6 +275,7 @@ export function PuntoDeVentaTicket({
   loading,
   onCobrar,
   arriba,
+  abajo,
   enHoja = false,
   onCerrarHoja,
 }: Props) {
@@ -973,6 +976,7 @@ export function PuntoDeVentaTicket({
               <strong className="font-display text-lg">{money(total)}</strong>
             </button>
           )}
+          {!cobrando && abajo}
         </div>
       </form>
     </aside>

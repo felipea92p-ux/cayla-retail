@@ -70,6 +70,8 @@ import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { useVentasDeHoy, type VentaDeHoy } from "@/lib/useVentasDeHoy";
+import { useSinRegistrarDeHoy } from "@/lib/useSinRegistrarDeHoy";
+import { SinRegistrarDeHoy } from "@/components/punto-de-venta/SinRegistrarDeHoy";
 import {
   ACCION_BAJAR_Y_AGREGAR,
   accionBajarYAgregar,
@@ -349,6 +351,8 @@ type Props = {
   puedeApartar: boolean;
   /** La fila «Clienta» del ticket: su rol ve Clientas (la base rechaza la búsqueda sin el módulo, ADR-0249 2026-09-28). */
   puedeBuscarClienta: boolean;
+  /** La cuenta ve Existencias, donde vive la mesa de Ventas sin registrar (ADR-0306): el pie del ticket enlaza a ella (A5). */
+  verMesaRegularizar?: boolean;
   /** El club (ADR-0288, tanda 1b): los textos vigentes y el WhatsApp de esta tienda, leídos por el servidor. Sin ellos
    *  (`CLUB_APAGADO`) no se invita ni sale QR, y la venta sigue igual (principio 9). */
   club?: ClubDeLaCaja;
@@ -396,7 +400,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, cierreAnterior = null, variantes, colores = SIN_COLORES, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, verMesaRegularizar = false, club = CLUB_APAGADO, proforma = null, avisoProforma = null, repeticion = null, qrDisponible = false, tiposComprobante, redondeoEfectivoDisponible = false, pedirAOtraSede = null, pedidosConCliente = [], ahoraIso = "" }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -635,6 +639,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // Sube tras cada venta: «Ventas de hoy» se relee sola (`useVentasDeHoy`).
   const [versionVentas, setVersionVentas] = useState(0);
   const ventasDeHoy = useVentasDeHoy(ubicacionId, ventasHoy.inicial, ventasHoy.fallo, versionVentas);
+  // A5 (auditoría 2026-10-14): cuántas sin registrar vendió esta tienda hoy y cuántas siguen por regularizar; se relee tras cada venta.
+  const sinRegistrarDeHoy = useSinRegistrarDeHoy(ubicacionId, versionVentas);
   const variantesAjustadas = useMemo(
     () =>
       conStockAjustado(
@@ -2212,6 +2218,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             responsable={responsable}
           enHoja={enHoja}
           onCerrarHoja={() => setHojaTicket(false)}
+          abajo={<SinRegistrarDeHoy conteo={sinRegistrarDeHoy} verMesa={verMesaRegularizar} />}
           arriba={
             <>
               <TiraDeEsperas enEspera={enEspera} onRetomar={retomar} bloqueado={bloqueado} />

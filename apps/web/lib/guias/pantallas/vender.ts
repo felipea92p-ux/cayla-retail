@@ -181,7 +181,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       solo: "escritorio",
       ...CAJA_ABIERTA,
       titulo: "Descuento, espera y quién atiende",
-      texto: "«Aplicar descuento» rebaja todo el ticket con su motivo. «Dejar en espera» guarda el ticket para atender a otro cliente y retomarlo después. Arriba del botón eliges quién está atendiendo.",
+      texto: "«Aplicar descuento» rebaja todo el ticket con su motivo. «Dejar en espera» guarda el ticket para atender a otro cliente y retomarlo después. Arriba del botón eliges quién está atendiendo. Debajo, cuántas prendas sin registrar vendió hoy tu tienda y cuántas siguen por regularizar.",
     },
     {
       id: "cobrar",

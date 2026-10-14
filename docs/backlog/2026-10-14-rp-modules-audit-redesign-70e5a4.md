@@ -12,7 +12,8 @@ la web no se publica antes que la migración, o una boleta dada de baja responde
   reales por categoría) en vez del catálogo cuando haya muestra.
 - **A4** · Costo estimado con su origen (`venta_items.costo_origen`); Finanzas rotula el margen. **Espera la decisión del contador** (qué estimador).
   Revisa la decisión 7 de ADR-0334 («no se inventa un costo»): hay que actualizarla con el porqué.
-- **A5** · La cola llega a quien vende: contador «Hoy: N sin registrar» al pie del ticket y la cola en «Te toca» de la terminal.
+- **A5, hecha:** el pie del ticket con «Hoy N sin registrar · M por regularizar» y el enlace a la mesa. La insignia global «Te toca» en la
+  cabecera (también para terminales, `fn_pendientes`) sigue siendo de la Fase 3 (UX-02, INT-13).
 - **A6** · Cerrar en bloque exige un cuadre del piso posterior al corte (Felipe: estricto). Hoy `cuadres_piso` = 0 en las tres tiendas.
 - Fuera del bloque, con diseño propio (`/rigor`): el «descargo pendiente» para que un conteo no cuente como pérdida lo vendido sin registrar
   (`ajustar_inventario`, `cerrar_conteo`); y el bloque 2 (RPC transaccionales `corregir_venta`, `reemitir_comprobante`, disparador diferido
