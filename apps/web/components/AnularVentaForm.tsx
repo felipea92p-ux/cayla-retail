@@ -66,7 +66,7 @@ export function AnularVentaForm({
         .eq("venta_id", linea.ventaId);
       if (cancelado) return;
       if (error) {
-        setError(traducirError(error, "cargar las líneas de la venta"));
+        setError(traducirError(error, "cargar las líneas de la venta", { lectura: true }));
         return;
       }
       const cargados: ItemVenta[] = (data ?? []).map((f) => ({

@@ -5,7 +5,7 @@ import { Camera } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { RAYADO_FUERA } from "@/components/alta-producto/rayado";
-import { BotonFoto, useFotosPendientes, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
+import { BotonFoto, BotonQuitarFoto, useFotosPendientes, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import type { CeldaAlta } from "@/lib/alta-producto";
 import { leyendaVariantes, textoFotosDeFila } from "@/lib/tabla-alta-reglas";
 
@@ -67,6 +67,12 @@ export function MatrizVariantes({
   const nombreDe = (codigo: string | null) =>
     codigo === null ? (colores.length ? "todos los colores" : "la prenda") : (colores.find((c) => c.codigo === codigo)?.nombre ?? codigo);
 
+  // La × de la miniatura: con una sola foto la quita; con varias abre la hoja para elegir cuál (no adivina cuál era el error).
+  function quitarDe(suyas: FotoPendiente[], color: string | null) {
+    if (suyas.length === 1) quitar(suyas[0].clave);
+    else setViendo(color);
+  }
+
   function alternar(clave: string) {
     const copia = new Set(excluidas);
     if (copia.has(clave)) copia.delete(clave);
@@ -112,7 +118,7 @@ export function MatrizVariantes({
                 <tr key={color ?? "sin-color"}>
                   <th scope="row" className="sticky left-0 z-[1] whitespace-nowrap border-r border-t border-sand bg-papel py-1.5 pl-2 pr-2 text-left font-medium text-tinta sm:py-2 sm:pl-3 sm:pr-2.5">
                     <div className="flex items-center gap-1.5 sm:gap-2.5">
-                      <FotosDeFila suyas={suyas} nombre={nombreDe(color)} disabled={disabled} onArchivos={(a) => agregar(a, color)} />
+                      <FotosDeFila suyas={suyas} nombre={nombreDe(color)} disabled={disabled} onArchivos={(a) => agregar(a, color)} onQuitar={() => quitarDe(suyas, color)} />
                       <div className="flex min-w-0 flex-col leading-tight">
                         <span className="flex items-center gap-1.5 text-[12.5px] font-semibold sm:text-[13.5px]">
                           {c && <Punto hex={c.hex} familia={c.familiaColor} tipo={c.tipo} />}
@@ -174,7 +180,7 @@ export function MatrizVariantes({
       {colores.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12.5px] text-tinta">
           <span className="font-medium">Una foto para todos los colores:</span>
-          <FotosDeFila suyas={generales} nombre="todos los colores" disabled={disabled} onArchivos={(a) => agregar(a, null)} />
+          <FotosDeFila suyas={generales} nombre="todos los colores" disabled={disabled} onArchivos={(a) => agregar(a, null)} onQuitar={() => quitarDe(generales, null)} />
           {generales.length > 0 && (
             <button type="button" onClick={() => setViendo(null)} aria-label="Ver o quitar las fotos de todos los colores" className="btn-cayla btn-enlace text-xs">
               {textoFotosDeFila(generales.length, false)}
@@ -230,8 +236,20 @@ export function MatrizVariantes({
   );
 }
 
-/** La foto de una fila: la miniatura (con el número si tiene varias; tocarla agrega otra) o, si no tiene, la cámara. */
-function FotosDeFila({ suyas, nombre, disabled, onArchivos }: { suyas: FotoPendiente[]; nombre: string; disabled: boolean; onArchivos: (a: File[]) => void }) {
+/** La foto de una fila: la miniatura (con el número si tiene varias; tocarla agrega otra) con su × para quitarla, o, si no tiene, la cámara. */
+function FotosDeFila({
+  suyas,
+  nombre,
+  disabled,
+  onArchivos,
+  onQuitar,
+}: {
+  suyas: FotoPendiente[];
+  nombre: string;
+  disabled: boolean;
+  onArchivos: (a: File[]) => void;
+  onQuitar: () => void;
+}) {
   if (suyas.length === 0) {
     return (
       <BotonFoto
@@ -245,17 +263,25 @@ function FotosDeFila({ suyas, nombre, disabled, onArchivos }: { suyas: FotoPendi
     );
   }
   return (
-    <BotonFoto
-      onArchivos={onArchivos}
-      disabled={disabled}
-      etiqueta={`${suyas.length} foto${suyas.length === 1 ? "" : "s"} de ${nombre} · toca para agregar otra`}
-      className="relative h-[42px] w-[34px] shrink-0 rounded-[5px] border border-sand bg-hueso disabled:opacity-40"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
-      <img src={suyas[0].vista} alt="" className="h-full w-full rounded-[4px] object-cover" />
-      {suyas.length > 1 && (
-        <span className="absolute -right-[5px] -top-1.5 rounded-full bg-tinta px-[5px] text-[9.5px] font-bold leading-[15px] tabular-nums text-crema">{suyas.length}</span>
-      )}
-    </BotonFoto>
+    <span className="relative shrink-0">
+      <BotonFoto
+        onArchivos={onArchivos}
+        disabled={disabled}
+        etiqueta={`${suyas.length} foto${suyas.length === 1 ? "" : "s"} de ${nombre} · toca para agregar otra`}
+        className="relative block h-[42px] w-[34px] rounded-[5px] border border-sand bg-hueso disabled:opacity-40"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
+        <img src={suyas[0].vista} alt="" className="h-full w-full rounded-[4px] object-cover" />
+        {suyas.length > 1 && (
+          <span className="absolute -right-[5px] -top-1.5 rounded-full bg-tinta px-[5px] text-[9.5px] font-bold leading-[15px] tabular-nums text-crema">{suyas.length}</span>
+        )}
+      </BotonFoto>
+      <BotonQuitarFoto
+        onClick={onQuitar}
+        disabled={disabled}
+        etiqueta={suyas.length === 1 ? `Quitar la foto de ${nombre}` : `Ver o quitar las ${suyas.length} fotos de ${nombre}`}
+        className="-left-1.5 -top-1.5"
+      />
+    </span>
   );
 }

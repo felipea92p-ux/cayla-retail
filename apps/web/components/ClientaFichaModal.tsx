@@ -203,7 +203,7 @@ export function ClientaFichaModal({
     const { ficha, error } = await cargarFichaClienta(id);
     setCargando(false);
     if (error || !ficha) {
-      avisar.error(traducirError(error, "abrir la ficha del cliente"));
+      avisar.error(traducirError(error, "abrir la ficha del cliente", { lectura: true }));
       onClose();
       return;
     }
@@ -323,7 +323,7 @@ export function ClientaFichaModal({
     }
     const { clientas, error } = await buscarClienta(terminoUnir);
     if (error) {
-      avisar.error(traducirError(error, "buscar la otra ficha"));
+      avisar.error(traducirError(error, "buscar la otra ficha", { lectura: true }));
       return;
     }
     setResultadosUnir(clientas.filter((otra) => otra.id !== id));

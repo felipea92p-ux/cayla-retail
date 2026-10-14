@@ -464,7 +464,7 @@ export function ApartarVista({
       const { clientas, error } = await buscarClienta(t);
       if (error) {
         setBuscandoClienta(false);
-        return avisar.error(traducirError(error, "buscar al cliente"));
+        return avisar.error(traducirError(error, "buscar al cliente", { lectura: true }));
       }
       // Con 8 dígitos se busca un DNI y con 9 un celular. Un carné o un pasaporte con esos mismos dígitos es otra persona
       // (ADR-0288 D-2): manda la coincidencia exacta con lo que se buscó.

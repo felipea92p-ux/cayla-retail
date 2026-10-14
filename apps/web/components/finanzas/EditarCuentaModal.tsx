@@ -47,7 +47,7 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
         if (!vivo) return;
         const d = error ? null : leerDetalleCuenta(data);
         if (!d) {
-          setFalla(error ? traducirError(error as never, "leer la cuenta") : "No se pudo leer la cuenta. Recarga la pantalla.");
+          setFalla(error ? traducirError(error as never, "leer la cuenta", { lectura: true }) : "No se pudo leer la cuenta. Recarga la pantalla.");
           return;
         }
         setLeido(d);

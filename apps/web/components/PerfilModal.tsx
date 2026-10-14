@@ -77,7 +77,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
       .maybeSingle()
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
-        if (errCarga) avisar.error(traducirError(errCarga, "cargar tu perfil"));
+        if (errCarga) avisar.error(traducirError(errCarga, "cargar tu perfil", { lectura: true }));
         else if (data) {
           const miPerfil = data as MiPerfil;
           setPerfil(miPerfil);

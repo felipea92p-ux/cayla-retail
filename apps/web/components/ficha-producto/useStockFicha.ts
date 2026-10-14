@@ -239,7 +239,7 @@ export function useStockFicha({
         if (!vigente) return;
         if (error) {
           setFallaEn(estaLectura);
-          return void avisar.error(traducirError(error, "leer el stock de la prenda"));
+          return void avisar.error(traducirError(error, "leer el stock de la prenda", { lectura: true }));
         }
         const vs = armarVariantesAjuste(data ?? [], pisoId, almacenId);
         setVariantes(vs);
