@@ -75,6 +75,35 @@ test("una conocida no tapa lo que se le parece: otro candado de gastos o una fun
   assert.equal(r.conocidas.length, 0);
 });
 
+test("un respaldo «respaldo_…» de un arreglo hecho en producción se aparta, pero un permiso a anon/authenticated/PUBLIC, una política o un disparador sobre él SÍ se ven (ADR-0402)", () => {
+  const quieto = leerHuellas(
+    celda(
+      ["columna", "respaldo_b002_renumeradas_20261002.comprobante_id", "1"],
+      ["candado", "respaldo_b002_renumeradas_20261002.respaldo_b002_renumeradas_20261002_pkey", "2"],
+      ["indice", "respaldo_b002_renumeradas_20261002_pkey", "3"],
+      ["rls", "respaldo_b002_renumeradas_20261002", "4"],
+      ["permiso", "respaldo_b002_renumeradas_20261002.service_role", "5"],
+    ),
+  );
+  const r = compararHuellas(new Map(), quieto);
+  assert.equal(r.soloProduccion.length, 0);
+  assert.equal(r.conocidas.length, 5);
+  const expuesto = leerHuellas(
+    celda(
+      ["permiso", "respaldo_b002_renumeradas_20261002.authenticated", "6"],
+      ["permiso", "respaldo_b002_renumeradas_20261002.anon", "7"],
+      ["permiso", "respaldo_b002_renumeradas_20261002.PUBLIC", "8"],
+      ["permiso_columna", "respaldo_b002_renumeradas_20261002.comprobante_id.authenticated", "9"],
+      ["politica", "respaldo_b002_renumeradas_20261002.todos", "a"],
+      ["disparador", "respaldo_b002_renumeradas_20261002.t", "b"],
+      ["vista", "respaldo_b002_renumeradas_20261002", "c"],
+      ["fn", "respaldo_b002_renumeradas_20261002()", "d"],
+      ["columna", "ventas_respaldo_x.id", "e"],
+    ),
+  );
+  assert.equal(compararHuellas(new Map(), expuesto).soloProduccion.length, 9);
+});
+
 test("cada conocida tiene su porqué escrito", () => {
   for (const c of CONOCIDAS) assert.ok(c.motivo.length > 40, `${c.patron} sin motivo`);
 });
@@ -103,6 +132,12 @@ test("el resumen para lo público no da nombres ni cuentas: dos derivas distinta
   assert.equal(resumen(cinco), texto);
   assert.match(texto, /^✗ /);
   assert.match(resumen(compararHuellas(new Map(), new Map())), /^✓ /);
+  // Con lo pegado (ADR-0402) la frase dice contra qué se comparó, y tampoco da nombres ni cuentas.
+  const conPegados = resumen(r, { conPegados: true });
+  assert.match(conPegados, /^✗ Producción no corre main más lo que los PR abiertos declaran pegado/);
+  assert.equal(resumen(cinco, { conPegados: true }), conPegados);
+  assert.doesNotMatch(conPegados, /\d|emitir_comprobante|fn_en_vivo/);
+  assert.match(resumen(compararHuellas(new Map(), new Map()), { conPegados: true }), /^✓ Producción corre main más lo que/);
 });
 
 test("la función de producción es la consulta de deriva.sql al pie de la letra, con el mismo search_path", () => {

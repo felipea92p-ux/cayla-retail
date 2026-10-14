@@ -74,7 +74,7 @@ export function deltaPorArchivo(antes, pasos) {
   return r;
 }
 
-function psql(args, entrada) {
+export function psql(args, entrada) {
   return execFileSync("docker", ["exec", "-i", CONTENEDOR, "psql", "-U", "postgres", "-d", "postgres", ...args], {
     input: entrada,
     encoding: "utf8",
