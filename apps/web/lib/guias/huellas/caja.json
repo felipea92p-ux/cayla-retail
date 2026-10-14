@@ -35,7 +35,7 @@
       "button «Cerrar caja»",
       "button «{on ? <Check size={13}»",
       "button «Volver a lo predeterminado»",
-      "Link «Ver»",
+      "Link «{`Ver ${p.cantidad}»",
       "SegmentoDeslizante «(predeterminada)»",
       "Link «Ver historial completo»",
       "button «Volver a la predeterminada»"
