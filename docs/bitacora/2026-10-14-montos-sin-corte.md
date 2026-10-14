@@ -1,6 +1,6 @@
 ## Un monto no se parte en todo el ERP (2026-10-14) — rama `claude/montos-sin-corte`, ADR-0413
 
-- **Qué:** «S/» y la cifra van con un espacio que no se parte (` `, como `Intl` en es-PE) en todo lo que el ERP escribe: `soles` y sus
+- **Qué:** «S/» y la cifra van con un espacio que no se parte (`\u00a0`, como `Intl` en es-PE) en todo lo que el ERP escribe: `soles` y sus
   quince copias, 173 textos en 111 archivos (plantillas, sumas y texto de JSX con `&nbsp;`). Lo que llega de la base (38 migraciones con
   `'… S/ % …'`, las descripciones de Actividad) pasa por `montosSinCorte` al mostrarse: `traducirError`, los errores de Liquidación y la
   última acción del Inicio. `solesSinCorte` (decisión 83 de ADR-0362) queda absorbido en `soles`.

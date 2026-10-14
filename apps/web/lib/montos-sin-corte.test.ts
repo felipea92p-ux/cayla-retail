@@ -10,10 +10,10 @@ import { montosSinCorte } from "./montos-sin-corte";
 // espacio normal en 173 textos de 111 archivos (y en `soles`, y en unas quince copias locales de `soles`): en una frase larga —un
 // subtítulo de hoja, un aviso, el pie de la guía— el renglón podía terminar en «S/» y dejar «25.00» al comienzo del siguiente. Se
 // vio en Fondos por rendir («su deuda pasa de S/ ⏎ 25.00», /formidable). El propio `Intl` en es-PE ya escribe el espacio que no se
-// parte (` `); desde ese día el ERP también.
+// parte (`\u00a0`); desde ese día el ERP también.
 //
 // Contrato. PROMETE: que en `app/`, `components/` y `lib/` (sin las pruebas) ningún texto que el ERP escribe trae «S/» seguido de un
-// espacio normal: en el código se escribe «S/ » (o se usa `soles`), y en el texto de JSX, «S/&nbsp;». ASUME: el monto se escribe
+// espacio normal: en el código se escribe «S/\u00a0» (o se usa `soles`), y en el texto de JSX, «S/&nbsp;». ASUME: el monto se escribe
 // con «S/» junto, como en todo el repo. NO PROMETE: el valor entre comillas de un atributo JSX (`placeholder="S/ 0.00"`: una caja de
 // una línea no se parte), lo que el código BUSCA en un texto (el primer argumento de `replace`, `split`, `includes`…), los comentarios,
 // ni lo que llega hecho desde afuera: un mensaje o una descripción de la base se pasa por `montosSinCorte` al mostrarlo (ya lo hace
@@ -57,19 +57,19 @@ function montosPartibles(ruta: string, fuente: string): number[] {
 
 describe("el monto sin corte", () => {
   it("soles escribe el espacio que no se parte, como Intl en es-PE", () => {
-    expect(soles(1234.5)).toBe("S/ 1,234.50");
+    expect(soles(1234.5)).toBe("S/\u00a01,234.50");
     expect(new Intl.NumberFormat("es-PE", { style: "currency", currency: "PEN" }).format(1234.5)).toBe(soles(1234.5));
   });
 
   it("montosSinCorte arregla lo que llega de la base, y no toca lo demás", () => {
-    expect(montosSinCorte("Debe S/ 20.00: no puede pagar S/ 30.00.")).toBe("Debe S/ 20.00: no puede pagar S/ 30.00.");
+    expect(montosSinCorte("Debe S/ 20.00: no puede pagar S/ 30.00.")).toBe("Debe S/\u00a020.00: no puede pagar S/\u00a030.00.");
     expect(montosSinCorte("Sin montos: 3 prendas.")).toBe("Sin montos: 3 prendas.");
-    expect(montosSinCorte("Ya venía bien: S/ 5.00")).toBe("Ya venía bien: S/ 5.00");
+    expect(montosSinCorte("Ya venía bien: S/\u00a05.00")).toBe("Ya venía bien: S/\u00a05.00");
   });
 
   it("el mensaje de una función de la base sale con sus montos sin corte", () => {
     expect(traducirError({ code: "P0001", message: "Debe S/ 20.00: no puede pagar S/ 30.00." }, "registrar su pago")).toBe(
-      "Debe S/ 20.00: no puede pagar S/ 30.00.",
+      "Debe S/\u00a020.00: no puede pagar S/\u00a030.00.",
     );
   });
 });

@@ -28,7 +28,7 @@ mano con un espacio normal, y otros 160 textos lo escribían directo.
 
 ## La decisión
 
-1. **Todo monto que el ERP escribe lleva el espacio que no se parte**, donde nace: `soles` devuelve «S/ 1,234.50», y lo mismo cada
+1. **Todo monto que el ERP escribe lleva el espacio que no se parte**, donde nace: `soles` devuelve `"S/\u00a01,234.50"`, y lo mismo cada
    copia local, cada plantilla y cada texto de JSX (`S/&nbsp;{precio}`). Se hizo con una transformación sobre el árbol del código (solo
    textos y JSX; nunca comentarios), revisada caso por caso.
 2. **Lo que llega hecho desde afuera se arregla al mostrarlo**, con una sola pieza: `montosSinCorte(texto)` (`lib/montos-sin-corte.ts`).
@@ -76,6 +76,6 @@ mano con un espacio normal, y otros 160 textos lo escribían directo.
 
 ## Consecuencias
 
-- Una prueba que compara un monto escrito por el ERP lo espera con ` ` («S/ 20.00»). El mensaje de la prueba guardiana lo dice.
+- Una prueba que compara un monto escrito por el ERP lo espera con el escape: `"S/\u00a020.00"`. El mensaje de la prueba guardiana lo dice.
 - El cambio toca 111 archivos, uno o dos caracteres por línea: un PR abierto que edite la misma línea tendrá un conflicto trivial. Si
   trae un «S/ » nuevo, la prueba guardiana se lo dice al fusionar.
