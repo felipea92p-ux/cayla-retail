@@ -15,8 +15,8 @@ Informes con la evidencia en `.chaos/informes/*-2026-10-13.md` (locales, fuera d
 ### Arreglos de una pantalla (sin base), listos para hacerse con el OK
 - [x] ~~Vender: recargar al cobrar pierde el aviso~~ (cerrado: el cobro en curso se resuelve al volver, ADR-0398) (guardar «cobro en curso» en `sessionStorage` y preguntar por su token al volver).
 - [x] ~~Cambios y Devoluciones: un texto largo pegado en el buscador tumba la pantalla~~ (cerrado, también «B001-12345678901» en Historial) (tope en `clasificarBusqueda` y `maxLength`).
-- [ ] Un id que no es uuid tumba Traslados `[id]`, Editar producto y Proveedor (`notFound()`).
-- [ ] Una fecha imposible en el filtro tumba Movimientos, y una combinación de filtros, Por pagar (validar la fecha en el lector de parámetros).
+- [ ] Un id que no es uuid tumba ~~Traslados `[id]`~~ (cerrado el 2026-10-14, ADR-0401), Editar producto y Proveedor (`notFound()`).
+- [ ] Una fecha imposible en el filtro tumba ~~Movimientos~~ (cerrado el 2026-10-14, ADR-0401), y una combinación de filtros, Por pagar (validar la fecha en el lector de parámetros).
 
 ### Seguridad
 - [ ] Tres hallazgos de permisos o seguridad: ver el chat del 2026-10-13 (no se versionan).
@@ -29,5 +29,5 @@ Informes con la evidencia en `.chaos/informes/*-2026-10-13.md` (locales, fuera d
 - [x] ~~**Pegar en producción M2–M9**~~ — hecho el 2026-10-13 con las cajas cerradas (versiones `20261014025824` a `20261014030230`), verificado parte por parte; el volcado de `docs/datos/generado/` quedó refrescado (foto del 2026-10-14 03:05 UTC).
 - [ ] El refresco del volcado trajo, además de `intentos_con_token`, las tablas que otras sesiones pegaron ese día sin refrescar: órdenes de insumos del Taller (asignadas a Gallito) y gastos del viaje y fondos por rendir (asignados a Garza, sus migraciones aún no están en `main`). Que Producción y Finanzas confirmen esos pájaros.
 - [ ] Purga de `intentos_con_token` a los 90 días (crece una fila por escritura con token).
-- [ ] El mismo patrón de token (`useIntento` + la llamada a `fn_intento_con_huella`) en Finanzas (`GastosPanel`, y el activo fijo de `RegistrarGastoModal`: `registrar_activo` aún no compara el contenido en la base), Traslados (`PasePedido`, `iniciar_traslado`), Inventario (`ajustar_inventario`), Compras (`registrar_compra`) y Producción (`abrir_produccion`).
+- [ ] El mismo patrón de token (`useIntento` + la llamada a `fn_intento_con_huella`) en Finanzas (`GastosPanel`, y el activo fijo de `RegistrarGastoModal`: `registrar_activo` aún no compara el contenido en la base), ~~Traslados (`PasePedido`, `iniciar_traslado`), Inventario (`ajustar_inventario`)~~ (cerrado el 2026-10-14, ADR-0401: `ajustar_inventario` ya comparaba su contenido), Compras (`registrar_compra`) y Producción (`abrir_produccion`).
 - [ ] Propuesta de regla para CLAUDE.md («el token sigue al contenido»): espera el OK de Felipe (va en el PR).
