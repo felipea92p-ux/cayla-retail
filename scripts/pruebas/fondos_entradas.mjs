@@ -2,7 +2,8 @@
 /**
  * Prueba de lo que la base del fondo NO acepta (ADR-0362, fase 6; /chaos 2026-10-14, semilla 1014): `20261014192000` y `193000`
  * (montos y datos válidos), `194000` (el token sigue al contenido), `200000` (la sede del gasto del viaje) y `212000` (el tope de una
- * devolución con la rendición por aprobar, /formidable 2026-10-14), sobre las del fondo (181000 … 20261014170000).
+ * devolución con la rendición por aprobar, /formidable 2026-10-14) y `221000` (la persona de la cuenta con `fn_persona_de_la_cuenta`: lo
+ * que responden no cambia), sobre las del fondo (181000 … 20261014170000).
  *
  * QUÉ PROMETE
  *   · Un monto que no es un número (NaN, infinito) no entra a la plata: ni por las funciones del fondo (que lo dicen con
@@ -49,6 +50,7 @@ const MIGRACIONES = SIN_ARREGLO
       "20261014194000_fondos_token_sigue_al_contenido.sql",
       "20261014200000_gasto_viaje_sede_para_la_caja.sql",
       "20261014212000_devolucion_tope_rendicion_por_aprobar.sql",
+      "20261014221000_fondos_persona_de_la_cuenta.sql",
     ].map(
       (f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"),
     );
