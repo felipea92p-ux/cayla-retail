@@ -13,7 +13,8 @@
  *   · Las columnas de las dos funciones no cambian (volver a pegar la migración que las creó sigue funcionando), y pegar esta migración
  *     dos veces deja una sola ficha unida.
  *   · Todo lo que la lista puede traer como papel (los candados de `compras.tipo` y `gastos_viaje.papel`) lo sabe decir la pantalla
- *     (`TEXTO_PAPEL_DE_GASTO` de apps/web/lib/gastos-reglas.ts). Si la base gana un valor, esta prueba dice cuál falta.
+ *     (`TEXTO_PAPEL_DE_GASTO` de lib/gastos-reglas.ts, en la web). Si la base gana un valor, esta prueba dice cuál falta. (No se escribe
+ *     la ruta completa de la web a propósito: `scripts/ci/pruebas-web.mjs` contaría esta prueba como una que lee la web, y no la lee.)
  *
  * CÓMO. Como `igv_fase6.mjs`: carga su migración dos veces dentro de cada caso, sesión simulada con `request.jwt.claim.sub` y ROLLBACK
  * siempre: nada queda escrito.
@@ -193,7 +194,7 @@ select 'papeles|' || string_agg(distinct x.v, ',' order by x.v)
         !/^una_vez\|fn_gastos_lista:1,fn_gastos_panel:1$/m.test(s) && `pegada dos veces, cada función une la ficha una sola vez — ${linea("una_vez")(s)}`,
         papeles.length === 0 && `no encontré los candados compras_tipo_check y gastos_viaje_papel_check — ${linea("papeles")(s)}`,
         faltan.length > 0 &&
-          `la base acepta ${faltan.map((p) => `«${p}»`).join(", ")} y la pantalla no sabe decirlo: súmalo a TEXTO_PAPEL_DE_GASTO (apps/web/lib/gastos-reglas.ts) y a esta lista`,
+          `la base acepta ${faltan.map((p) => `«${p}»`).join(", ")} y la pantalla no sabe decirlo: súmalo a TEXTO_PAPEL_DE_GASTO (lib/gastos-reglas.ts, en la web) y a esta lista`,
       ].filter(Boolean);
     },
   },
