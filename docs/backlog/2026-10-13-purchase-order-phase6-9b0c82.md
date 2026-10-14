@@ -31,9 +31,12 @@ fusiona).
 - [ ] Felipe y el contador (actividad 8, provisional): el IGV perdido va a la 64; el ticket no da crédito; la factura de un gasto del
   viaje va al registro sin razón social si ningún proveedor tiene su RUC; con nota de crédito, la proporción se calcula sobre el total
   original de la factura.
-- [ ] Finanzas ▸ Gastos dice «Sin comprobante» (y «Sin proveedor») en un gasto del viaje con factura, junto a su IGV: `fn_gastos_lista`
-  solo mira `compras` y el papel vive en `gastos_viaje`. Viene de la actividad 3; quedó como tarea aparte (un commit para traer con
-  cherry-pick, migración nueva con su reserva). La está haciendo la sesión «Finanzas ▸ Gastos: el papel real del gasto del viaje».
+- [x] Finanzas ▸ Gastos dice «Sin comprobante» (y «Sin proveedor») en un gasto del viaje con factura, junto a su IGV: `fn_gastos_lista`
+  solo mira `compras` y el papel vive en `gastos_viaje`. Viene de la actividad 3. Lo arregló la sesión «Finanzas ▸ Gastos: el papel real
+  del gasto del viaje» (`5ce8bb965`, traído con cherry-pick) y su migración `20261014164000` está en producción con el OK de Felipe.
+- [ ] Finanzas ▸ Gastos llama «IGV descontable» a un IGV perdido por pagar sin banco: lo está haciendo otra sesión («Decir en Gastos
+  cuándo el IGV de una factura se perdió», chip `task_9e4c3306`, migración reservada `20261014174000` a nombre de esta rama), con lo que
+  Felipe eligió el 2026-10-14; entra con cherry-pick y su decisión será la 76.
 - [x] Hoja del gasto del viaje (decisión 74, Felipe 2026-10-14): solo la orden desde la que se abrió; las demás con «+ Agregar otra
   orden» (el combo con buscador) y cada una con su «×». Probado en el banco a 1280 y 375 px, con el teclado (Enter elige, Escape vuelve
   al botón sin cerrar la hoja) y abriéndola desde la lista (ninguna orden: «+ Agregar una orden»).
@@ -42,7 +45,14 @@ fusiona).
   rechazo), igv-fase6 4/4, no-deducible 5/5 y deuda-fondo 4/4 (ahora registran sus gastos con una orden).
 - [x] Producción: `20261014170000` pegada con el OK de Felipe (2026-10-14 ~11:35, como `20261014163520`): ancla contada antes (una vez) y,
   después, `registrar_gasto_viaje` con la misma huella que el banco y los mismos permisos.
-- [ ] Actividad 9 · cierre: `tema:auditar`, `guias:recorrer`, `/chaos` con plata y `/formidable` (todavía no se corrieron).
+- [ ] Actividad 9 · cierre: `tema:auditar`, `guias:recorrer`, `/chaos` con plata y `/formidable`.
+  - [x] `tema:auditar` (2026-10-14, banco `cayla-oc`, `localhost:3048`): Fondos por rendir y sus cuatro hojas, Órdenes de compra con la hoja
+    del gasto del viaje (y su combo abierto) y «Rendir», una orden con «Traerla costó», Impuestos, Gastos, Configuración (con el tope de la
+    planilla) y el Inicio, como líder; el Inicio y Órdenes de compra como integrante. **0 hallazgos solo en oscuro.** Heredados del claro,
+    ninguno de la fase 6: las campañas pasadas de Configuración ▸ Tiendas y caja, el cargador global y la nota de un título de grupo
+    (tarea aparte `task_16231c3d`). Los escenarios nuevos quedan en `tema/escenarios/registro.mjs`; «Revisar» una rendición va solo por id
+    (necesita una por aprobar).
+  - [ ] `guias:recorrer`, `/chaos` con plata y `/formidable`.
 - [x] Tabla «Quién tiene plata» de Fondos por rendir a 1024 px con el menú abierto: la arregló otra sesión (las tres tablas deciden por
   el ancho de su tarjeta) y entró con cherry-pick (`caa9daf90`); verificado aquí a 1024 y 1280 px con el menú abierto (0 px de desborde).
 - [ ] Felipe: lo marcado *provisional* en el ADR (la acción `gasto_viaje_registrar` soltada del combo «Responsable»; cuándo se propone

@@ -1079,6 +1079,50 @@ ESCENARIOS.push(
   { id: "ordenes.anular-envio", ruta: "/compras/ordenes/ver/[id]", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Órdenes de compra · la hoja «Anular envío»", preparar: secuencia(async (pagina) => irA(`/compras/ordenes/ver/${consultarLocal("select oci.orden_compra_id from retail.despachos d join retail.despacho_items di on di.despacho_id = d.id join retail.orden_compra_items oci on oci.id = di.orden_compra_item_id where d.estado = 'en_camino' limit 1")}`)(pagina), clicRol("button", /^Anular envío$/)) },
 );
 
+// ---------- Fondo por rendir y gastos del viaje (ADR-0362, fase 6) ----------
+// Fondos por rendir (el líder): entregar, lo que devuelve, saldar la deuda de un faltante y anular un movimiento. Cada hoja necesita su
+// dato en la base local: un fondo con plata (devolver), una deuda de un faltante (su pago) y un movimiento que se pueda anular; «Revisar»
+// necesita una rendición por aprobar, así que va solo por id. En Órdenes de compra, la hoja «Gasto del viaje» (y con su combo de órdenes
+// abierto) y «Rendir» desde «Tu fondo» (quien audita tiene que tener un fondo); en una orden, «Traerla costó»; en Configuración, el tope de
+// la planilla de movilidad.
+const idDeOrdenConGastoDelViaje = () =>
+  consultarLocal(
+    "select gvo.orden_compra_id from retail.gastos_viaje_ordenes gvo join retail.gastos g on g.id = gvo.gasto_id where g.estado = 'vigente' order by g.created_at limit 1",
+  );
+ESCENARIOS.push(
+  { id: "fondos.entregar", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Entregar plata»", preparar: clicRol("button", /Entregar plata/i) },
+  { id: "fondos.devolver", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Registrar devolución»", preparar: clicRol("button", /^Registrar devolución/i) },
+  { id: "fondos.pagar-deuda", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Registrar su pago» (la deuda de un faltante)", preparar: clicRol("button", /^Registrar su pago/i) },
+  { id: "fondos.anular", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Anular» un movimiento", preparar: clicRol("button", /^Anular$/) },
+  { id: "fondos.revisar", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Revisar» una rendición (necesita una por aprobar)", preparar: clicRol("button", /^Revisar$/) },
+  { id: "ordenes.gasto-viaje", ruta: "/compras/ordenes", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Órdenes de compra · la hoja «Gasto del viaje»", preparar: clicRol("button", /Gasto del viaje/i) },
+  {
+    id: "ordenes.gasto-viaje-orden",
+    ruta: "/compras/ordenes",
+    cuentas: ["admin"],
+    abre: "[role=listbox]",
+    nombre: "Órdenes de compra · «Gasto del viaje» con «+ Agregar una orden» abierto",
+    preparar: secuencia(clicRol("button", /Gasto del viaje/i), clicRol("button", /Agregar una orden/i)),
+  },
+  { id: "ordenes.rendir", ruta: "/compras/ordenes", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Órdenes de compra · «Rendir» desde «Tu fondo»", preparar: clicRol("button", /^(Rendir|Ver tu rendición)/) },
+  {
+    id: "ordenes.traerla-costo",
+    ruta: "/compras/ordenes/ver/[id]",
+    cuentas: ["admin"],
+    abre: '[data-guia="orden.gastos-viaje"]',
+    nombre: "Órdenes de compra · una orden con «Traerla costó»",
+    preparar: async (pagina) => irA(`/compras/ordenes/ver/${idDeOrdenConGastoDelViaje()}`)(pagina),
+  },
+  {
+    id: "configuracion.tope-planilla",
+    ruta: "/configuracion",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Configuración ▸ Impuestos · «+ Tope desde una fecha» (la planilla de movilidad)",
+    preparar: secuencia(clicPestana(/^Impuestos/i), clicRol("button", /Tope desde una fecha/i)),
+  },
+);
+
 // ---------- Órdenes de insumos del Taller (ADR-0362, fase 7) ----------
 // La ventana de una orden, su hoja «Anular orden» y «Editar» necesitan una orden «generada»: la primera de la base local. Se auditan
 // parados en el Taller, donde el menú las muestra.
