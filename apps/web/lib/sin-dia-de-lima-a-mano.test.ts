@@ -27,7 +27,6 @@ const EXCEPCIONES: Readonly<Record<string, { cuantas: number; porque: string }>>
   "lib/lucode.ts": { cuantas: 1, porque: "SUNAT: la fecha de emisión que se manda a Lucode. Felipe decidió no tocarla al ordenar (2026-10-14)." },
   "lib/recibo-reglas.ts": { cuantas: 1, porque: "SUNAT: la fecha del QR del comprobante impreso. Misma decisión de Felipe." },
   "lib/traslados-reglas.ts": { cuantas: 1, porque: "PARTES_LIMA saca el día, la hora y las diferencias de una vez: se ordena aparte, no línea por línea." },
-  "components/apartados/piezas.tsx": { cuantas: 1, porque: "«COPIA · REIMPRESA EL …» está pegada a un cambio del PR #1066: se ordena cuando ese PR se fusione." },
 };
 
 const esTexto = (nodo: ts.Node | undefined, valor: string) => !!nodo && ts.isStringLiteralLike(nodo) && nodo.text === valor;
