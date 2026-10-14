@@ -294,6 +294,14 @@ export function soles(n: number): string {
   return `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+/**
+ * El monto dentro de una FRASE: «S/» y la cifra con un espacio que no se parte, para que el renglón no deje «S/» sola al final y la cifra
+ * en el siguiente («su deuda pasa de S/ ⏎ 25.00», /formidable 2026-10-14). En una celda o una cifra suelta basta `soles`.
+ */
+export function solesSinCorte(n: number): string {
+  return soles(n).replace("S/ ", "S/\u00a0");
+}
+
 export function fechaCorta(iso: string | null): string {
   if (!iso) return "—";
   // Un INSTANTE (con hora: la llegada de un lote, un pago) se lee en Lima: de 7 pm a medianoche de Lima, en UTC ya es «mañana», y

@@ -115,7 +115,7 @@ export function ConfiguracionPresupuesto({ datos, hoy }: { datos: ConfigPpto; ho
     const { data, error } = await createClient().rpc("fn_presupuesto_propuesta" as never, { p_mes: `${mes}-01`, p_origen: origen } as never);
     setProponiendo(null);
     if (error) {
-      avisar.error(traducirError(error as never, "preparar la propuesta"));
+      avisar.error(traducirError(error as never, "preparar la propuesta", { lectura: true }));
       return;
     }
     const filas = ((data ?? []) as Record<string, unknown>[]);

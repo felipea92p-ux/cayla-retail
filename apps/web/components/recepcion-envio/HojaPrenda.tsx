@@ -48,7 +48,8 @@ export type DestinoHoja = {
   /** La línea del envío; `null` = algo que no estaba en la guía (entonces van la categoría y la marca elegidas). */
   despachoItemId: string | null;
   categoriaId: string;
-  marcaId: string;
+  /** Vacío = sin marca (ADR-0393, 2026-10-14): la prenda nace sin marca y se completa en Editar producto. */
+  marcaId: string | null;
   marcaNombre: string;
   /** Lo que dice la orden de esta prenda («Chompa cuello alto»): se ofrece como nombre. */
   descripcionOrden: string | null;

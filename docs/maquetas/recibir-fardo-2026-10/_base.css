@@ -1,0 +1,273 @@
+/* ====================================================================
+   BASE COMPARTIDA de las 3 maquetas de «Recibir mercadería» (el fardo que llega de Compras).
+   Tokens = apps/web/app/globals.css (claro) y apps/web/app/estilos/tema.css (oscuro, ADR-0336): los MISMOS nombres, con tinta y
+   crema intercambiadas. Piezas = las únicas del ERP (ADR-0358): btn-cayla, Chip, pildora, TarjetaCifra, Vacio, nota-cayla,
+   EncabezadoPagina. Movimiento = ADR-0136 (--ease-cayla, sin rebote, sin bucle salvo las señales permitidas) y el de los
+   botones (.mov-boton: sube 2 px, luz que cruza, onda donde se tocó). Lo que NO es parte de la pantalla: la barra punteada (.spike).
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+  --hueso:#eae1d2;--taupe:#805c4c;--pizarra:#4c5d6e;--verde:#48603f;--verde-p:#44583a;--ambar:#74501a;--ambar-p:#734f15;
+  --sombra:#1a1a18;--vidrio:#ffffff;--tinta-fija:#1a1a18;--crema-fija:#f5f0e8;
+  --oliva:color-mix(in srgb,var(--verde) 66%,var(--ambar));
+  --ease:cubic-bezier(.32,.72,.24,1);--ease-salida:cubic-bezier(.4,0,1,1);
+  --r-sm:6px;--r-md:8px;--r-lg:12px;--r-xl:16px;--r-2xl:20px;
+  --sh-sm:0 1px 2px color-mix(in srgb,var(--sombra) 6%,transparent);
+  --sh-md:0 8px 24px -8px color-mix(in srgb,var(--sombra) 18%,transparent);
+  --sh-lg:0 18px 44px -14px color-mix(in srgb,var(--sombra) 22%,transparent);
+  --velo:35%;
+}
+:root[data-tema="oscuro"]{
+  --crema:#1a1a18;--papel:#242422;--hueso:#31302d;--sand:#3d3c38;--sombra:#000000;--vidrio:#31302d;
+  --tinta:#f5f0e8;--taupe:#c4a898;--rojo:#e8806a;--rojo-p:#f29a86;--verde:#9ccb8d;--verde-p:#a8d49a;--ambar:#e4b968;--ambar-p:#ecc676;--pizarra:#a2b8cd;
+  --sh-md:0 8px 24px -8px rgba(0,0,0,.5);--sh-lg:0 18px 44px -14px rgba(0,0,0,.6);
+  --velo:55%;
+}
+:root{
+  --t85:color-mix(in srgb,var(--tinta) 85%,transparent);--t75:color-mix(in srgb,var(--tinta) 75%,transparent);
+  --t65:color-mix(in srgb,var(--tinta) 65%,transparent);--t55:color-mix(in srgb,var(--tinta) 55%,transparent);
+  --t45:color-mix(in srgb,var(--tinta) 45%,transparent);--t35:color-mix(in srgb,var(--tinta) 35%,transparent);
+  --t25:color-mix(in srgb,var(--tinta) 25%,transparent);--t15:color-mix(in srgb,var(--tinta) 15%,transparent);
+  --t10:color-mix(in srgb,var(--tinta) 10%,transparent);--t07:color-mix(in srgb,var(--tinta) 7%,transparent);
+  --t04:color-mix(in srgb,var(--tinta) 4%,transparent);
+}
+/* En oscuro los tonos tenues suben al piso de legibilidad (ADR-0336, act. 8). */
+:root[data-tema="oscuro"]{--t45:color-mix(in srgb,var(--tinta) 58%,transparent);--t35:color-mix(in srgb,var(--tinta) 52%,transparent)}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;overflow:hidden}
+button,input,a,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer;text-align:left}
+a{text-decoration:none}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+svg.ic.cat{stroke-width:1.5}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:600;letter-spacing:-.005em}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.versal{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.tenue{color:var(--t55)}
+.taupe{color:var(--taupe)}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}
+
+/* ---------- barra de la maqueta (no es parte de la pantalla) ---------- */
+.spike{position:relative;z-index:80;background:var(--crema);padding:8px 14px;border-bottom:1px dashed var(--t25);
+  display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12px;color:var(--t55)}
+.spike .tit{font-weight:700;color:var(--tinta)}
+.spike .grupo{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.spike .grupo>span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--t45);margin-right:2px}
+.spike a.nav,.spike button.op{border:1px solid var(--t25);border-radius:8px;padding:4px 9px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--t75);background:var(--papel);cursor:pointer}
+.spike a.nav[aria-current=page],.spike button.op[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.spike button.op.rojo{border-color:color-mix(in srgb,var(--rojo) 50%,transparent);color:var(--rojo-p)}
+.spike .sep{width:1px;height:18px;background:var(--t25)}
+
+/* ---------- escena (la pantalla del ERP, sin el menú lateral) ---------- */
+#marco{position:relative;height:calc(100dvh - var(--alto-spike,52px));display:flex;justify-content:center;background:var(--crema)}
+#escena{position:relative;width:100%;height:100%;overflow:auto;container:escena/inline-size;background:var(--crema);scroll-behavior:smooth}
+.celular #marco{background:var(--hueso);padding:14px 0;align-items:flex-start}
+.celular #escena{width:375px;height:min(812px,100%);border-radius:34px;box-shadow:0 0 0 8px var(--tinta-fija)}
+.pagina{padding:28px 32px 48px;max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:24px;min-height:100%}
+@container escena (max-width:640px){.pagina{padding:18px 16px 40px;gap:18px}}
+
+/* ---------- cabecera de módulo (EncabezadoPagina, ADR-0220) ---------- */
+.cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 40px}
+.cab .sede{display:flex;align-items:center;gap:12px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--taupe)}
+.cab .sede::before{content:"";display:block;width:32px;height:1px;background:var(--taupe);transform-origin:left;animation:dibuja-x 1.1s var(--ease) 250ms backwards}
+.cab h1{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:46px;line-height:1;letter-spacing:-.01em;margin-top:12px}
+.cab .frase{margin-top:10px;max-width:460px;font-size:15px;color:var(--t65)}
+.cab .der{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.cab [data-voz="cabecera"] .btn{min-height:40px;text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+@container escena (max-width:640px){.cab h1{font-size:34px}.cab .frase{font-size:14px}}
+
+/* ---------- piezas del sistema ---------- */
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl)}
+.caja{display:flex;align-items:center;gap:8px;background:var(--hueso);border:1px solid var(--sand);border-radius:var(--r-md);padding:0 12px;min-height:44px;transition:border-color 200ms var(--ease),background-color 200ms var(--ease),box-shadow 300ms var(--ease)}
+.caja input{flex:1;min-width:0;background:transparent;border:0;outline:0;font-size:15px;padding:10px 0}
+.caja input::placeholder{color:var(--t45)}
+.caja:focus-within{border-color:var(--t45);background:var(--papel)}
+.label{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px;color:var(--t65)}
+.nota{background:color-mix(in oklab,var(--hueso) 85%,transparent);border-radius:var(--r-xl);padding:14px 18px;font-size:13px;line-height:1.6;color:var(--taupe);display:flex;gap:10px;align-items:flex-start}
+.nota .i{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font-size:11px;font-weight:700;font-family:'EB Garamond',serif;margin-top:2px}
+
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;letter-spacing:.02em;line-height:1.35;white-space:nowrap}
+.chip.punto::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.chip.verde{background:color-mix(in srgb,var(--verde) 14%,var(--papel));color:var(--verde-p)}
+.chip.ambar{background:color-mix(in srgb,var(--ambar) 14%,var(--papel));color:var(--ambar-p)}
+.chip.rojo{background:color-mix(in srgb,var(--rojo) 12%,var(--papel));color:var(--rojo-p)}
+.chip.pizarra{background:color-mix(in srgb,var(--pizarra) 14%,var(--papel));color:var(--pizarra)}
+.chip.neutro{background:var(--hueso);color:var(--t75)}
+.chip.taupe{background:color-mix(in srgb,var(--taupe) 14%,var(--papel));color:var(--taupe)}
+.chip.tinta{background:var(--tinta);color:var(--crema)}
+.chip.vivo::before{animation:pulso-vivo 2.2s var(--ease) infinite} /* el único latido permitido: señal de «pasa ahora» */
+
+.pildora{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--sand);padding:5px 14px;font-size:13px;font-weight:600;color:var(--taupe);white-space:nowrap;transition:background-color 150ms,border-color 150ms,color 150ms}
+.pildora:hover{border-color:var(--t45);color:var(--tinta)}
+.pildora[aria-pressed=true]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+
+.btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:var(--r-md);
+  font-size:13.5px;font-weight:500;line-height:1.25;white-space:nowrap;border:1px solid transparent;
+  transition:translate 260ms var(--ease),scale 120ms var(--ease),box-shadow 260ms var(--ease),background-color 200ms var(--ease),border-color 200ms var(--ease),color 200ms var(--ease)}
+.btn svg.ic{width:16px;height:16px}
+.btn.grande{min-height:48px;padding:0 22px;font-size:15px;border-radius:var(--r-lg)}
+.btn.pri{background:var(--tinta);color:var(--crema)}
+.btn.pri:hover:not(:disabled){background:var(--rojo-p);color:var(--crema-fija)}
+.btn.sec{background:var(--papel);border-color:var(--t25);color:var(--tinta)}
+.btn.sec:hover:not(:disabled){background:var(--hueso);border-color:var(--t45)}
+.btn.sut{color:var(--t75);border-color:var(--t15)}
+.btn.sut:hover:not(:disabled){background:var(--hueso);color:var(--tinta)}
+.btn.pel{background:color-mix(in srgb,var(--rojo) 10%,var(--papel));color:var(--rojo-p);border-color:color-mix(in srgb,var(--rojo) 35%,transparent)}
+.btn.pel:hover:not(:disabled){background:var(--rojo);color:var(--crema-fija)}
+.btn.enlace{min-height:32px;padding:0 8px;color:var(--t75);text-decoration:underline;text-decoration-color:var(--t25);text-underline-offset:3px;overflow:visible}
+.btn.enlace:hover{color:var(--rojo);text-decoration-color:currentColor}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+/* .mov-boton (ADR-0358): sube 2 px con sombra, una luz cruza, onda donde se tocó, el «+» gira un cuarto, la flecha avanza. */
+.btn:not(.enlace)::after{content:"";position:absolute;top:0;bottom:0;left:0;width:36%;pointer-events:none;background:linear-gradient(100deg,transparent,color-mix(in srgb,currentColor 26%,transparent),transparent);transform:translate3d(-120%,0,0) skewX(-12deg);opacity:0}
+.btn:not(.enlace):hover:not(:disabled){translate:0 -2px;box-shadow:var(--sh-md)}
+.btn:not(.enlace):hover:not(:disabled)::after{animation:brillo 650ms var(--ease)}
+.btn:not(.enlace):active:not(:disabled){translate:0 0;scale:.97;box-shadow:var(--sh-sm)}
+.btn .mas{transition:rotate 300ms var(--ease)}
+.btn:hover:not(:disabled) .mas{rotate:90deg}
+.btn .flecha{transition:translate 300ms var(--ease)}
+.btn:hover:not(:disabled) .flecha{translate:4px 0}
+.btn:not(.enlace)::before{content:"";position:absolute;pointer-events:none;border-radius:999px;left:var(--ox,50%);top:var(--oy,50%);width:var(--od,0px);height:var(--od,0px);translate:-50% -50%;background:color-mix(in srgb,currentColor 24%,transparent);opacity:0}
+.btn[data-onda]::before{animation:onda 450ms var(--ease)}
+
+/* Tarjeta de cifra (TarjetaCifra) */
+.tc{background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl);padding:14px 16px;min-width:150px;position:relative}
+.tc .label{display:flex;align-items:center;gap:7px;color:var(--taupe);font-weight:700}
+.tc .label i{width:6px;height:6px;border-radius:50%;background:var(--t35);flex:none}
+.tc .label i.verde{background:var(--verde)}.tc .label i.ambar{background:var(--ambar)}.tc .label i.rojo{background:var(--rojo)}.tc .label i.pizarra{background:var(--pizarra)}
+.tc .valor{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:34px;line-height:1.1;margin-top:4px;display:flex;align-items:baseline;gap:6px}
+.tc .valor small{font-family:'DM Sans',sans-serif;font-weight:500;font-size:13px;color:var(--t55)}
+.tc .pie{font-size:12.5px;color:var(--t55);margin-top:2px}
+
+/* Vacío (Vacio) */
+.vacio{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:40px 24px}
+.vacio svg.ic{width:34px;height:34px;color:var(--t45);stroke-width:1.4}
+.vacio h3{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:22px}
+.vacio p{font-size:14px;color:var(--t65);max-width:380px}
+
+/* Ícono de categoría sobre el color de la prenda (MosaicoPrenda / SinFoto, ADR-0333) */
+.mini{--c:#d8c3a5;width:40px;height:48px;border-radius:8px;background:var(--c);display:grid;place-items:center;flex:none;color:var(--crema-fija)}
+.mini[data-oscura="no"]{color:var(--tinta-fija)}
+.mini svg.ic{width:20px;height:20px;stroke-width:1.5}
+.mini.grande{width:56px;height:68px;border-radius:10px}.mini.grande svg.ic{width:28px;height:28px}
+.mini.chica{width:28px;height:34px;border-radius:6px}.mini.chica svg.ic{width:14px;height:14px}
+.cat-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--hueso);color:var(--tinta);flex:none}
+.cat-ic svg.ic{width:22px;height:22px;stroke-width:1.5}
+
+/* Avatar (iniciales) */
+.av{--av:30px;--tono:var(--taupe);width:var(--av);height:var(--av);border-radius:50%;display:inline-grid;place-items:center;flex:none;font-size:calc(var(--av)*.36);font-weight:700;letter-spacing:.02em;color:var(--tono);background:color-mix(in srgb,var(--tono) 16%,var(--papel));box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--tono) 45%,transparent)}
+
+/* Guía de foco (ADR-0284): marca del campo y luz del que sigue */
+.marca{position:relative;display:inline-grid;place-items:center;flex:none;width:18px;height:18px;border-radius:999px;transition:background-color 240ms var(--ease),border-color 240ms var(--ease)}
+.marca[data-estado="hecho"]{background:var(--verde);color:var(--crema)}
+.marca[data-estado="hecho"] svg{width:11px;height:11px;stroke:var(--crema-fija);stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.marca[data-estado="hecho"] svg path{stroke-dasharray:14;animation:trazo14 320ms var(--ease) 60ms backwards}
+:root[data-tema="oscuro"] .marca[data-estado="hecho"] svg{stroke:var(--tinta-fija)}
+.marca[data-estado="ahora"]{background:var(--tinta)}
+.marca[data-estado="ahora"]::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--crema)}
+.marca[data-estado="ahora"]::after{content:"";position:absolute;inset:0;border-radius:999px;border:1.5px solid var(--tinta);animation:pulso-uno 900ms var(--ease) 120ms 1 both;pointer-events:none}
+.marca[data-estado="falta"]{border:1.5px solid var(--t25)}
+.marca[data-estado="opcional"]{border:1.5px dashed var(--t25);animation:gira 8s linear infinite}
+.luz{transition:box-shadow 300ms var(--ease),background-color 300ms var(--ease)}
+.luz[data-estado="ahora"]{box-shadow:0 0 0 1.5px var(--t25),0 0 0 6px var(--t04);background:color-mix(in srgb,var(--hueso) 45%,transparent);animation:luz-llega 700ms var(--ease) 1 both}
+.sigue{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--tinta)}
+.sigue::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--tinta)}
+.falta-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.falta-chips .fc{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--t15);border-radius:999px;padding:4px 10px 4px 6px;font-size:12.5px;color:var(--t75);transition:background-color 200ms var(--ease),border-color 200ms var(--ease)}
+.falta-chips .fc:hover{background:var(--hueso);border-color:var(--t45);color:var(--tinta)}
+
+/* Barra de avance (BarraApilada, ADR-0358) */
+.barra{height:8px;border-radius:999px;background:var(--hueso);overflow:hidden;position:relative}
+.barra>i{display:block;height:100%;border-radius:999px;background:var(--tinta);width:0;transition:width 900ms var(--ease),background-color 400ms var(--ease)}
+.barra>i.verde{background:var(--verde)}.barra>i.ambar{background:var(--ambar)}.barra>i.oliva{background:var(--oliva)}
+.barra.fina{height:4px}
+
+/* Cifra que rueda al cambiar (caja-rueda) */
+.rueda{display:inline-block;animation:rueda 260ms var(--ease) both}
+
+/* ---------- movimiento (ADR-0136): entradas, respuestas; nada en bucle salvo lo señalado ---------- */
+@keyframes sube{from{opacity:0;transform:translate3d(0,16px,0)}}
+@keyframes dibuja-x{from{transform:scaleX(0)}}
+@keyframes crece-y{from{transform:scaleY(0)}}
+@keyframes pop{40%{transform:scale(1.07)}}
+@keyframes trazo14{from{stroke-dashoffset:14}}
+@keyframes trazo{from{stroke-dashoffset:var(--largo,100)}}
+@keyframes brillo{from{opacity:1;transform:translate3d(-120%,0,0) skewX(-12deg)}to{opacity:1;transform:translate3d(320%,0,0) skewX(-12deg)}}
+@keyframes onda{from{opacity:1;scale:0}to{opacity:0;scale:1}}
+@keyframes cascada{from{opacity:0;transform:translate3d(0,10px,0)}}
+@keyframes revelar{from{opacity:0;transform:translate3d(0,-3px,0)}}
+@keyframes entrada{from{opacity:0;transform:translate3d(0,8px,0) scale(.985)}}
+@keyframes asentar{from{opacity:.35;transform:translate3d(0,4px,0)}}
+@keyframes rueda{from{opacity:0;transform:translateY(.35em)}}
+@keyframes pulso-uno{from{transform:scale(1);opacity:.6}to{transform:scale(2.2);opacity:0}}
+@keyframes pulso-vivo{0%{box-shadow:0 0 0 0 color-mix(in srgb,currentColor 45%,transparent)}70%,100%{box-shadow:0 0 0 7px transparent}}
+@keyframes gira{to{transform:rotate(360deg)}}
+@keyframes luz-llega{from{box-shadow:0 0 0 1.5px var(--t25),0 0 0 0 var(--t10)}}
+@keyframes destello{0%,100%{background-color:transparent}30%{background-color:var(--hueso)}}
+@keyframes late{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.25);opacity:.75}}
+@keyframes velo-in{from{opacity:0}}
+@keyframes hoja-in{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}}
+@keyframes hoja-in-movil{from{opacity:0;transform:translate3d(0,60px,0)}}
+@keyframes hoja-out{to{opacity:0;transform:translate3d(0,10px,0) scale(.98)}}
+@keyframes velo-out{to{opacity:0}}
+@keyframes ondas-sello{from{transform:scale(.6);opacity:.55}to{transform:scale(1.9);opacity:0}}
+@keyframes verde-flash{0%,100%{box-shadow:0 0 0 0 transparent}25%{box-shadow:0 0 0 4px color-mix(in srgb,var(--verde) 35%,transparent)}}
+@keyframes ambar-flash{0%,100%{box-shadow:0 0 0 0 transparent}25%{box-shadow:0 0 0 4px color-mix(in srgb,var(--ambar) 40%,transparent)}}
+@keyframes laser{from{left:-10%;opacity:0}15%{opacity:1}85%{opacity:1}to{left:105%;opacity:0}}
+
+.anim-sube{animation:sube 850ms var(--ease) backwards;animation-delay:calc(var(--i,0)*70ms + 80ms)}
+.anim-pop{animation:pop 500ms var(--ease)}
+.anim-entrada{animation:entrada 320ms var(--ease) backwards}
+.anim-asentar{animation:asentar 420ms var(--ease) both}
+.anim-destello{animation:destello 900ms var(--ease) 1}
+.cascada>:not([data-sin-cascada]){animation:cascada 500ms var(--ease) backwards;animation-delay:calc(var(--k,0)*55ms + 120ms)}
+.cascada>:nth-child(1){--k:0}.cascada>:nth-child(2){--k:1}.cascada>:nth-child(3){--k:2}.cascada>:nth-child(4){--k:3}
+.cascada>:nth-child(5){--k:4}.cascada>:nth-child(6){--k:5}.cascada>:nth-child(7){--k:6}.cascada>:nth-child(n+8){--k:7}
+.check-trazo path{stroke-dasharray:var(--largo,24);animation:trazo 550ms var(--ease) backwards;animation-delay:var(--d,300ms)}
+.flash-verde{animation:verde-flash 700ms var(--ease) 1}
+.flash-ambar{animation:ambar-flash 700ms var(--ease) 1}
+
+/* Modal (hoja) del sistema: velo con desenfoque → hoja que sube 18 px → cascada */
+.velo{position:absolute;inset:0;z-index:50;background:color-mix(in srgb,var(--sombra) var(--velo),transparent);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);animation:velo-in 220ms var(--ease) both}
+.capa{position:absolute;inset:0;z-index:51;display:flex;justify-content:center;align-items:flex-start;padding:min(6%,48px) 24px 24px;pointer-events:none}
+.hoja{pointer-events:auto;position:relative;width:100%;max-width:560px;max-height:100%;overflow:auto;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-2xl);padding:24px;box-shadow:0 30px 80px -30px color-mix(in srgb,var(--sombra) 45%,transparent);animation:hoja-in 420ms var(--ease) backwards}
+.hoja h2{font-family:'EB Garamond',Georgia,serif;font-weight:600;font-size:26px;line-height:1.1}
+.hoja .bajada{font-size:14px;color:var(--t65);margin-top:4px}
+.hoja .cerrar{position:absolute;right:14px;top:14px;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--t25);display:grid;place-items:center;transition:background-color 220ms var(--ease),border-color 220ms var(--ease)}
+.hoja .cerrar:hover{background:var(--hueso);border-color:var(--tinta)}
+.cerrando .velo{animation:velo-out 220ms var(--ease-salida) both}
+.cerrando .hoja{animation:hoja-out 220ms var(--ease-salida) both}
+@container escena (max-width:640px){
+  .capa{align-items:flex-end;padding:0}
+  .hoja{border-radius:var(--r-2xl) var(--r-2xl) 0 0;max-height:94%;border-bottom:0;animation-name:hoja-in-movil;animation-duration:380ms}
+}
+
+/* Sello de «Recibido»: el círculo y el visto se dibujan, dos ondas salen una vez */
+.sello{position:relative;width:88px;height:88px;display:grid;place-items:center}
+.sello svg{width:88px;height:88px;position:absolute;inset:0}
+.sello .aro{fill:none;stroke:var(--verde);stroke-width:2.5;stroke-dasharray:264;animation:trazo 900ms var(--ease) 100ms backwards;--largo:264}
+.sello .visto{fill:none;stroke:var(--verde);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;animation:trazo 600ms var(--ease) 700ms backwards;--largo:60}
+.sello .onda{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--verde);animation:ondas-sello 1.3s var(--ease) 1 both;pointer-events:none}
+.sello .onda.dos{animation-delay:220ms}
+
+/* ---------- sin movimiento: prefers-reduced-motion y el botón «Sin» de la barra ---------- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important;scroll-behavior:auto!important}
+}
+.quieto *,.quieto *::before,.quieto *::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important}
+.quieto #escena{scroll-behavior:auto}
+
+/* ---------- utilidades mínimas ---------- */
+.fila{display:flex;align-items:center;gap:10px}
+.fila.entre{justify-content:space-between}
+.fila.arriba{align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:10px}
+.envuelve{flex-wrap:wrap}
+.crece{flex:1;min-width:0}
+.oculto-cel{display:initial}
+@container escena (max-width:640px){.oculto-cel{display:none!important}.solo-cel{display:initial}}
+.solo-cel{display:none}

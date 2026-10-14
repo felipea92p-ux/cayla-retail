@@ -49,6 +49,8 @@ const MIGRACION = [
   "20261013233000_gastos_viaje_fotos.sql",
   "20261013234000_gastos_viaje_fotos_bucket.sql",
   "20261013235000_rendicion_del_fondo.sql",
+  // /formidable 2026-10-14, cambio 3: quién aprueba en palabras de tienda y «Ver tu rendición» con su explicación.
+  "20261014222000_fondos_rendicion_textos.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -237,6 +239,23 @@ select 'tu|' || x.deuda || '|' || t.saldo from retail.fn_mi_fondo_resumen() t, r
       !/^r\|deuda_persona$/m.test(s) && `r — ${linea("r")(s)}`,
       !/^diario\|1413:0\.00:20\.00,1419:20\.00:0\.00$/m.test(s) && `el Diario debía ser 1419 contra 1413 — ${linea("diario")(s)}`,
       !/^tu\|20\.00\|100\.00$/m.test(s) && `«Tu fondo» debía decir que debe 20 — ${linea("tu")(s)}`,
+    ].filter(Boolean),
+  },
+  {
+    // /formidable 2026-10-14 (cambio 3): «Ver tu rendición» decía «quien la revisa decide» aunque no hubiera explicación (y sin ella es
+    // deuda, sin elegir). La hoja lee la explicación de SU rendición abierta; y quien le entregó plata lee un motivo en palabras de tienda.
+    nombre: "«Ver tu rendición» lee su explicación (solo la de quien pregunta); el motivo de no aprobar, en palabras de tienda",
+    sql: `${rinde(100, "'Se me cayó un billete'")}
+${como(ANA)}${sinFirma}
+select 'ana|' || (x ->> 'id' = :'r')::text || '|' || (x ->> 'faltante') || '|' || coalesce(x ->> 'explicacion', '-') from retail.fn_mi_rendicion_abierta() x;
+${como(BETO)}${sinFirma}
+select 'beto|' || coalesce(retail.fn_mi_rendicion_abierta()::text, 'nada');
+select 'motivo|' || retail.fn_rendicion_quien_no_aprueba(:'r', :'beto_p');`,
+    revisa: (s) => [
+      !/^ana\|true\|20\.00\|Se me cayó un billete$/m.test(s) && `la dueña lee su rendición abierta con su explicación — ${linea("ana")(s)}`,
+      !/^beto\|nada$/m.test(s) && `otra persona no lee la rendición de Ana por aquí — ${linea("beto")(s)}`,
+      !/^motivo\|Le entregaste plata en esta rendición: la aprueba otra persona que revise los fondos\. Si algo no cuadra, devuélvela para que la corrija\.$/m.test(s) &&
+        `el motivo, sin el nombre del módulo y con qué hacer — ${linea("motivo")(s)}`,
     ].filter(Boolean),
   },
   {

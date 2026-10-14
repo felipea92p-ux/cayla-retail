@@ -117,7 +117,7 @@ export async function PUT(request: Request) {
     .eq("id", id)
     .single();
   if (error) {
-    return Response.json({ error: traducirError(error, "leer la categoría editada") }, { status: 400 });
+    return Response.json({ error: traducirError(error, "leer la categoría editada", { lectura: true }) }, { status: 400 });
   }
 
   return Response.json({ categoria: { ...data, categoriaPadreId: data.categoria_padre_id } });
