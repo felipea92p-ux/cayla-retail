@@ -289,7 +289,8 @@ Por defecto, si no dice otra cosa: quien hizo una orden del envío no cuenta ni 
   - **Sin líneas de envío sin orden:** `despacho_items.orden_compra_item_id` sigue obligatorio. Lo que el ADR proponía tocaba tablas de
     Compras y una docena de lecturas suyas que unen la línea con su orden; «lo que no estaba en la guía» ya es exactamente esto.
   - **Sin «por confirmar» como proveedor:** la puerta de hoy pregunta «¿de quién?» primero, y un lote o una factura sin proveedor no se
-    unen después. Si nadie en la tienda sabe, lo elige el líder. **Decisión de negocio que Felipe puede revertir.**
+    unen después. Si nadie en la tienda sabe, lo elige el líder. **Decisión de negocio que Felipe puede revertir.** *Revertida el
+    2026-10-14: ver «Sin proveedor y sin marca», abajo.*
   - **Sin «lo que dijeron» por categoría:** sin orden no hay deuda que anotar; cabe en la nota. **Felipe puede pedirlo** (sería una
     columna en `despacho_conteos` y, si debe volverse deuda, un faltante «no vino» contra un proveedor sin orden).
 - **Pruebas:** `pruebas:envio-sin-aviso` (6 casos: abrir con permisos y token, contar y cerrar sin costo, la regla del costo, lo pendiente
@@ -387,10 +388,38 @@ SE ROMPE SI: la maqueta cambia y nadie lo trae aquí: el riel, la balanza y la c
 - **El punto del paso de hoy late una vez**, no en bucle (ADR-0136).
 - **Los títulos** son `TituloSeccion` (21 px), no los 30 px de la maqueta (ADR-0358).
 - **Se dice «Envío ENV-…»**, no «Fardo F-…»: el número es el del envío de Compras (vocabulario de este ADR).
-- **No están**, porque piden base o decisión de Felipe: «¿Cuántas dijeron que venían?» en un envío sin aviso, «Proveedor por confirmar»,
-  «Avisar a la encargada» y el número de guía al cerrar.
+- **No están**, porque piden base o decisión de Felipe: «¿Cuántas dijeron que venían?» en un envío sin aviso, «Avisar a la encargada» y
+  el número de guía al cerrar. («Proveedor por confirmar» entró el mismo día: ver abajo.)
 
 De paso: el pie fijo del cierre ya no se sale 8 px a 375 (usaba los márgenes de una hoja estando en la página); el costo dice qué es en el
 celular; el texto chico del riel sube a 4,5:1 (`tema:auditar`); «Volver a cero» pasa a «Poner en cero»; el contador ya no dice «las
 vestidos». Verificado: suite completa de vitest, `guias:recorrer` con el envío en camino y abierto, `tema:auditar` de siete escenarios
 (0 hallazgos en oscuro; uno nuevo: «Describir lo nuevo») y 375 px sin desbordes en la puerta, contar, cerrar y cerrado.
+
+### Sin proveedor y sin marca (Felipe, 2026-10-14)
+
+Felipe, al revisar la puerta: a veces Compras manda mercadería sin decir de quién es, y hay prendas que no tienen marca. Las dos cosas se
+pueden dejar así y completar después, pero no del mismo modo, y esa diferencia la eligió él entre dos opciones con su costo:
+
+- **Sin proveedor: «contar ya, proveedor al cerrar».** La puerta ofrece «No sé de quién es» (siempre a la vista, al final de la lista). Se
+  abre y se cuenta igual; el conteo avisa «Proveedor por confirmar»; al cerrar, la pantalla pide «¿De quién llegó?» y la base no cierra sin
+  él (`envio_sin_proveedor`). `poner_proveedor_envio` lo pone **una sola vez** (el mismo otra vez no hace nada; otro, no: el disparador de
+  `despachos_sin_aviso` solo deja pasar de vacío a uno) y se lo pasa a lo contado. Toma el envío en exclusiva: `guardar_conteo_envio` lo
+  toma compartido, así ninguna línea queda sin proveedor por una carrera.
+- **Sin marca: «prenda libre, paquete con dueño».** Lo que no estaba en la guía se cuenta con «Sin marca» (primera opción del combo), entra
+  al stock así y la prenda nueva nace sin marca; se completa después en Editar producto, como ya permitía el catálogo.
+  `despacho_recibidos.marca_id` y `despacho_diferencias.marca_id` dejan de ser obligatorios, el CHECK de lo contado fuera de la guía pide
+  solo la categoría, y la búsqueda de prendas (`fn_prendas_para_recibir`) encuentra las sin marca. Lo de la guía sigue trayendo la marca de
+  su orden.
+
+DECIDÍ: el proveedor puede esperar hasta el cierre, la marca puede no llegar nunca. Las lecturas que unían la marca con JOIN (el cierre,
+«Hacer ahora» y el detalle del envío) la unen con LEFT JOIN.
+DESCARTÉ: que entre al stock sin proveedor (con el lote «por confirmar»), que vendía el mismo día pero dejaba el lote, el costo, la factura
+y «Nos debe» sin dueño hasta que alguien lo completara, en tablas del núcleo (`lotes`); y una marca de mentira «Sin marca» en `marcas`,
+que daría dos maneras de decir lo mismo (el catálogo ya usa la marca vacía).
+SE ROMPE SI: una lectura nueva une lo recibido con `marcas` usando JOIN: las filas sin marca desaparecen de ella sin aviso. La prueba M1
+de `pruebas:envio-sin-aviso` lo vigila para el detalle del envío; una lectura nueva tiene que usar LEFT JOIN (o `fn_envio_conteo_json`).
+
+Construido corrigiendo `20261013183000` en su lugar (no estaba pegada ni fusionada), con su comprobación ampliada: el orden de pegado no
+cambia. `pruebas:envio-sin-aviso` 10/10 (P1, P2, M1 y M2 nuevos) y las otras seis suites de la recepción en verde sobre una base hecha de
+cero; en el navegador, de la puerta al cierre con el proveedor elegido, y el modo oscuro del estado nuevo (escenario `recepcion.de-quien`).
