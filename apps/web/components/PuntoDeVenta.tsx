@@ -7,7 +7,8 @@ import { METODOS_PAGO, METODOS_PAGO_VENTA, type MetodoPagoVenta } from "@cayla-r
 import { clasificarFalloDeSubida, esFalloDeRed, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
 import { useIntento } from "@/lib/useIntento";
-import { avisoDeResolucion, cobrosGuardados, cobrosPorResolver, conCobro, huellaDe, leerResolucion, sinCobro, TOPE_ESPERA_MS } from "@/lib/intento-reglas";
+import { avisoDeResolucion, cobrosGuardados, conCobro, huellaDe, sinCobro } from "@/lib/intento-reglas";
+import { useEnviosEnCurso } from "@/lib/useEnviosEnCurso";
 import { CobroEnDuda } from "@/components/punto-de-venta/CobroEnDuda";
 import { avisar } from "@/components/ui/Avisos";
 import { resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
@@ -493,54 +494,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // se cierra mientras se cobra, al volver Vender le pregunta a la base por ese envío y dice si la venta quedó.
   const claveCobro = claveLocal(ubicacionId, "cobro-en-curso");
   // Un cobro que quedó en el aire en una visita anterior: al montar (y al volver la conexión) se le pregunta a la base y se dice si
-  // la venta quedó. Solo los que salieron hace más del tope de espera: uno más nuevo puede seguir en camino desde otra pestaña, y
-  // preguntarlo lo daría por no llegado. El cobro en duda de ESTA pestaña lo resuelve su propia hoja (`CobroEnDuda`).
-  useEffect(() => {
-    let vivo = true;
-    let espera: number | undefined;
-    async function resolverPendientes() {
-      window.clearTimeout(espera);
-      const propio = envio.instantanea()?.marca.token;
-      const ahora = Date.now();
-      const pendientes = cobrosGuardados(leer(claveCobro, [])).filter((c) => c.token !== propio);
-      const listos = cobrosPorResolver(pendientes, ahora);
-      for (const c of listos) {
-        let res = null;
-        try {
-          const { data, error } = await createClient()
-            .rpc("fn_resolver_intento" as never, { p_operacion: "registrar_venta", p_token: c.token } as never)
-            .setHeader("x-espera", "no");
-          res = error ? null : leerResolucion(data);
-        } catch {
-          res = null;
-        }
-        if (!vivo) return;
-        // Sin respuesta: se vuelve a preguntar con la próxima conexión.
-        if (!res) continue;
-        guardar(claveCobro, sinCobro(cobrosGuardados(leer(claveCobro, [])), c.token));
-        const aviso = avisoDeResolucion(res, c);
-        if (aviso.tono === "exito") {
-          avisar.exito(aviso.titulo, { detalle: aviso.detalle, duracion: 9000 });
-          router.refresh();
-        } else avisar.aviso(aviso.titulo, { detalle: aviso.detalle, duracion: 9000 });
-      }
-      const jovenes = pendientes.filter((c) => !listos.includes(c));
-      if (vivo && jovenes.length > 0) {
-        const proximo = Math.min(...jovenes.map((c) => Date.parse(c.enviadoEn) + TOPE_ESPERA_MS - ahora));
-        espera = window.setTimeout(() => void resolverPendientes(), Math.max(1000, proximo + 500));
-      }
-    }
-    void resolverPendientes();
-    const alVolver = () => void resolverPendientes();
-    window.addEventListener("online", alVolver);
-    return () => {
-      vivo = false;
-      window.clearTimeout(espera);
-      window.removeEventListener("online", alVolver);
-    };
-    // Una vez por sede: lo demás se lee al momento de preguntar.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [claveCobro]);
+  // la venta quedó (`useEnviosEnCurso`). El cobro en duda de ESTA pestaña lo resuelve su propia hoja (`CobroEnDuda`).
+  useEnviosEnCurso({
+    clave: claveCobro,
+    operacion: "registrar_venta",
+    guardados: cobrosGuardados,
+    tokenPropio: () => envio.instantanea()?.marca.token,
+    avisoDe: avisoDeResolucion,
+    alHecho: () => router.refresh(),
+  });
   // El ticket de esta sede, al día, para `TicketPorSede`: si la sede cambia con Vender abierta, este componente se monta de
   // nuevo (su key lleva la sede) y lo que estaba armado queda en la espera de ESTA sede (Felipe, 2026-10-11).
   const reportarTicket = useReportarTicket();

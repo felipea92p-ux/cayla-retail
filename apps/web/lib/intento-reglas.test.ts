@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   avisoDeResolucion,
+  avisoDeTraslado,
   cobrosGuardados,
   cobrosPorResolver,
   conCobro,
@@ -12,9 +13,13 @@ import {
   leerResolucion,
   marcaPara,
   OPERACIONES_CON_MARCA,
+  proximaRevision,
+  REINTENTO_RESOLVER_MS,
   sinCobro,
   TOPE_ESPERA_MS,
+  trasladosGuardados,
   type CobroEnCurso,
+  type TrasladoEnCurso,
 } from "./intento-reglas";
 
 describe("huellaDe", () => {
@@ -93,19 +98,55 @@ describe("el cobro en curso de Vender", () => {
   });
 });
 
+describe("proximaRevision (cuándo volver a preguntar por un envío en el aire)", () => {
+  const ahora = Date.parse("2026-10-14T10:00:30Z");
+  it("sin jóvenes ni fallas, no se programa nada", () => {
+    expect(proximaRevision([], false, ahora)).toBeNull();
+  });
+  it("un envío joven se revisa cuando cumple el tope", () => {
+    expect(proximaRevision(["2026-10-14T10:00:25Z"], false, ahora)).toBe(TOPE_ESPERA_MS - 5000 + 500);
+  });
+  it("si una pregunta falló (la sesión aún no estaba lista al montar: 401), se vuelve a preguntar pronto, sin esperar a `online`", () => {
+    expect(proximaRevision([], true, ahora)).toBe(REINTENTO_RESOLVER_MS);
+    expect(proximaRevision(["2026-10-14T10:00:25Z"], true, ahora)).toBe(REINTENTO_RESOLVER_MS);
+  });
+  it("nunca antes de un segundo, y una fecha rota no rompe la cuenta", () => {
+    expect(proximaRevision(["2026-10-14T10:00:10Z"], false, ahora)).toBe(1000);
+    expect(proximaRevision(["no es fecha"], false, ahora)).toBeNull();
+  });
+});
+
+describe("el traslado en curso de Nuevo traslado", () => {
+  const t: TrasladoEnCurso = { token: "a", destino: "Tienda Trujillo", prendas: 3, enviadoEn: "2026-10-14T10:00:00Z" };
+  it("lo guardado se valida: lo roto (o un cobro de Vender) se descarta", () => {
+    expect(trasladosGuardados([t, { token: "b", enviadoEn: "x", total: 1, prendas: 1 }, null, "x"])).toEqual([t]);
+    expect(trasladosGuardados({})).toEqual([]);
+  });
+  it("el aviso dice si salió, con su número y lo que de verdad guardó la base", () => {
+    expect(avisoDeTraslado({ tipo: "no_llego" }, t)).toMatchObject({ tono: "info", titulo: "El traslado a Tienda Trujillo no se envió" });
+    const hecho = avisoDeTraslado({ tipo: "hecho", datos: { numero: 246, prendas: 2 } }, t);
+    expect(hecho).toMatchObject({ tono: "exito", titulo: "Tu traslado a Tienda Trujillo sí se envió" });
+    // La base dice 2 aunque la pantalla anotó 3: manda lo guardado.
+    expect(hecho.detalle).toContain("Traslado 246 · 2 prendas");
+  });
+});
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Las guardianas: la lista de la web es la de la base, y ninguna pantalla que llama a esas funciones deja el token fijo.
 // ---------------------------------------------------------------------------------------------------------------------
 const RAIZ_WEB = join(__dirname, "..");
-const PARTE1 = readFileSync(join(RAIZ_WEB, "../../supabase/migrations/20261013200000_token_sigue_al_contenido_parte1.sql"), "utf8");
-const PARTE2 = readFileSync(join(RAIZ_WEB, "../../supabase/migrations/20261013201000_token_sigue_al_contenido_parte2.sql"), "utf8");
+const MIGRACIONES = join(RAIZ_WEB, "../../supabase/migrations");
+const TODAS = readdirSync(MIGRACIONES).filter((f) => /^\d+_.*\.sql$/.test(f)).sort().map((f) => readFileSync(join(MIGRACIONES, f), "utf8"));
 
 describe("la lista de operaciones es la de la base", () => {
-  it("OPERACIONES_CON_MARCA = las que `fn_resolver_intento` sabe revisar = las que la parte 2 parcha", () => {
-    const delResolver = PARTE1.match(/if p_operacion not in \(([^)]*)\)/)?.[1].match(/'([a-z_]+)'/g)?.map((x) => x.slice(1, -1)) ?? [];
-    const parchadas = [...PARTE2.matchAll(/fn_intento_con_huella\('([a-z_]+)'\$v\$/g)].map((m) => m[1]);
+  it("OPERACIONES_CON_MARCA = las que la ÚLTIMA versión de `fn_resolver_intento` sabe revisar", () => {
+    const ultima = [...TODAS].reverse().find((m) => m.includes("create or replace function retail.fn_resolver_intento")) ?? "";
+    const delResolver = ultima.match(/if p_operacion not in \(([^)]*)\)/)?.[1].match(/'([a-z_]+)'/g)?.map((x) => x.slice(1, -1)) ?? [];
     expect([...delResolver].sort()).toEqual([...OPERACIONES_CON_MARCA].sort());
-    expect([...parchadas].sort()).toEqual([...OPERACIONES_CON_MARCA].sort());
+  });
+  it("y cada una tiene su llamada a `fn_intento_con_huella` en alguna migración (la base rechaza el token con otro contenido)", () => {
+    const parchadas = new Set(TODAS.flatMap((m) => [...m.matchAll(/fn_intento_con_huella\('([a-z_]+)'\$v\$/g)].map((x) => x[1])));
+    expect(OPERACIONES_CON_MARCA.filter((op) => !parchadas.has(op))).toEqual([]);
   });
 });
 
@@ -115,7 +156,6 @@ describe("la lista de operaciones es la de la base", () => {
  */
 const SIN_INTENTO_TODAVIA: Record<string, string> = {
   "components/GastosPanel.tsx": "Finanzas: registra cada gasto con un token nuevo por llamada; va con el /chaos de Finanzas.",
-  "components/traslados-pases/PasePedido.tsx": "Traslados: un token por pase abierto (cambiar la fecha tras un corte da token_reusado); va con el /chaos de Inventario.",
 };
 
 function archivos(dir: string, out: string[] = []): string[] {
