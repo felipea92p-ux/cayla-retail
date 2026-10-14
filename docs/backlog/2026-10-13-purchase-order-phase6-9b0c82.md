@@ -40,7 +40,8 @@ fusiona).
 - [x] Al menos una orden (decisión 75, Felipe 2026-10-14): la «×» sale solo con dos o más órdenes; abierta desde la lista, la orden es lo
   que falta; la base frena un gasto sin orden (`20261014170000`, `gasto_viaje_sin_orden`). Pruebas de base: gastos-viaje 12/12 (con el
   rechazo), igv-fase6 4/4, no-deducible 5/5 y deuda-fondo 4/4 (ahora registran sus gastos con una orden).
-- [ ] Producción: pegar `20261014170000` (espera el OK de Felipe: no es una de las 9 actividades autorizadas).
+- [x] Producción: `20261014170000` pegada con el OK de Felipe (2026-10-14 ~11:35, como `20261014163520`): ancla contada antes (una vez) y,
+  después, `registrar_gasto_viaje` con la misma huella que el banco y los mismos permisos.
 - [ ] Actividad 9 · cierre: `tema:auditar`, `guias:recorrer`, `/chaos` con plata y `/formidable` (todavía no se corrieron).
 - [x] Tabla «Quién tiene plata» de Fondos por rendir a 1024 px con el menú abierto: la arregló otra sesión (las tres tablas deciden por
   el ancho de su tarjeta) y entró con cherry-pick (`caa9daf90`); verificado aquí a 1024 y 1280 px con el menú abierto (0 px de desborde).
