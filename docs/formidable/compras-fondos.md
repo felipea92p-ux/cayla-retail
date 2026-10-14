@@ -13,14 +13,15 @@
 | «Revisar» con la lista que no se lee | «Lo que rindió» vacío con 0, y desaparecía «1 papel sin foto» | «No pude traer lo que rindió. Las cifras de arriba sí están al día.» + «Volver a intentar»; el aviso del papel sigue; «Aprobar» deshabilitado con «Para aprobar, primero tiene que verse lo que rindió» [captura `6a`] |
 | «Revisar» con la lista cargando | «Todo listo para aprobar.» y «Aprobar» activo | «Espera a que cargue lo que rindió.» y «Aprobar» espera; al reintentar, carga y se habilita [captura `6b`] |
 | «Rendir» y «Ver tu rendición» con la lista que no se lee | «No hay pagos ni gastos en esta rendición» (falso) | el aviso con «Volver a intentar» («puedes rendir igual» / «tu rendición está guardada») [captura `7c`] |
-| El faltante en «Revisar» | «No escribió qué pasó: queda como su deuda.» | «No escribió qué pasó: si se aprueba así, su deuda pasa de S/ 25.00 a S/ 30.00.» [captura `5b`] |
+| El faltante en «Revisar» | «No escribió qué pasó: queda como su deuda.» | «No escribió qué pasó: si se aprueba así, su deuda pasa de S/ 25.00 a S/ 30.00.» [captura `5d`] |
 | El botón de aprobar | «Aprobar: debe S/ 5.00» | «Aprobar: su deuda sube a S/ 30.00»; al aprobar, «La deuda de Micaela queda en S/ 30.00.» y la fila «Debe S/ 30.00» |
 | «Ver tu rendición» sin explicación | «Quien la revisa decide si lo asume CAYLA o queda como deuda tuya» (falso, decisión 54) | «No escribiste qué pasó: cuando la aprueben, tu deuda pasa de S/ 25.00 a S/ 30.00.» [captura `7a`] |
 | «Rendir» con S/ 5 de menos | «…si no, quedan como deuda tuya.» | «…si no, tu deuda pasa de S/ 25.00 a S/ 30.00 cuando la aprueben.»; y «Mientras nadie la apruebe, puedes retirarla y corregirla.» [captura `7b`] |
-| La fila de quien rindió | «S/ 380.00» | «S/ 380.00» y debajo «dice S/ 375.00 · por aprobar» [captura `5a`] |
+| La fila de quien rindió | «S/ 380.00» | «S/ 380.00» y debajo «dice S/ 375.00 · por aprobar», sin partir «por aprobar» [captura `5c`] |
 | «Revisar» para quien no aprueba | negro (dos primarias en la página) | secundario (una primaria: «Entregar plata») [Medido] |
 | Palabras | «2 filas», «Le entregaste», «Lo que rindió», «con Fondos por rendir» | «1 gasto y 1 entrega», «Entregado», «Lo que entró y salió de su fondo», «otra persona que revise los fondos» (también en la base) |
 | Oficio de «Revisar» (Sandra) | — | 0 blancos bajo 24 px, 0 textos bajo 4,5:1, 1 primaria, sin desborde [Medido] |
+| Guías y modo oscuro | — | `guias:recorrer` de Fondos, Órdenes de compra e Inicio en verde a 1440 y a 375 px (11, 11 y 20 pasos, sin escribir en la base); `tema:auditar`: 0 hallazgos en oscuro en la página, sus 4 hojas, «Revisar», «Rendir» y los dos estados nuevos de lista que no se lee (escenarios `fondos.revisar-sin-lista` y `ordenes.rendir-sin-lista`), mirando las capturas [Medido]. El paso «Revisar una rendición» decía «ve Revisar en gris» y el botón no es gris: ahora dice qué puede hacer |
 
 ### Ciega 1 repetida (la misma tarea y el mismo mapa, capturas nuevas)
 | Medida | Antes | Ahora |

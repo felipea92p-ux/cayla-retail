@@ -2086,7 +2086,7 @@ export const GUIA_FONDOS: Guia = {
       ancla: "fondos.revisar",
       opcional: true,
       titulo: "Revisar una rendición",
-      texto: "Abre cada pago y gasto con su foto. Si falta plata y explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda, y la hoja dice en cuánto queda la suya. Quien le entregó la plata no la aprueba: ve «Revisar» en gris y puede devolverla. En la demo no la aprobamos.",
+      texto: "Abre cada pago y gasto con su foto. Si falta plata y explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda, y la hoja dice en cuánto queda la suya. Quien le entregó la plata no la aprueba: puede revisarla y devolverla para que la corrija. En la demo no la aprobamos.",
     },
     {
       id: "cifras",
