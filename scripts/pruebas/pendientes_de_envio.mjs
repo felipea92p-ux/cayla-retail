@@ -58,6 +58,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261013180000_reabrir_envio.sql",
       // ADR-0393: lo que llega sin aviso, con el mismo conteo.
       "20261013183000_envio_sin_aviso.sql",
+      // ADR-0393: una prenda que la recepción usa no se ofrece para eliminar (casos E).
+      "20261014234000_recepcion_frena_eliminar_producto.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -671,6 +673,27 @@ caso(
    select ${GUARDA("d1", "di_l1", 10, SEP([["prod_p", 3]], [[2]]))} as g \\gset
    select concat_ws(':', :'g'::jsonb ->> 'en_stock', :'g'::jsonb ->> 'sin_separar', jsonb_array_length(:'g'::jsonb -> 'pendientes'));`,
   "0:5:0",
+);
+
+// E. ELIMINAR UNA PRENDA QUE LA RECEPCIÓN USA (20261014234000) -------------------------------------------------------------------
+// Renglones 23 y 24 de `fn_producto_historia`: con ellos Catálogo ▸ Productos dice por qué no se elimina, en vez de chocar con la llave.
+const HISTORIA_RECEPCION = (prod) =>
+  `coalesce((select string_agg(h.orden || ':' || h.n || ':' || h.borrable, ',' order by h.orden) ` +
+  `from retail.fn_producto_historia(:'${prod}') h where h.orden in (23, 24)), 'nada')`;
+caso(
+  "E1 una prenda separada en un envío que se está contando no se ofrece para eliminar (el borrador la nombra sin llave)",
+  `${BASE_D1}
+   select ${GUARDA("d1", "di_l1", 10, SEP([["prod_p", 3]]))} \\g /dev/null
+   reset role;
+   select ${HISTORIA_RECEPCION("prod_p")};`,
+  "24:1:false",
+);
+caso(
+  "E2 al cerrar, la prenda que quedó pendiente («detalle») frena el borrado como historia; el borrador ya no cuenta (el envío está cerrado)",
+  `${CIERRE_CON_PENDIENTES}
+   reset role;
+   select ${HISTORIA_RECEPCION("prod_p")};`,
+  "23:1:false",
 );
 
 // F. LA FORMA --------------------------------------------------------------------------------------------------------------

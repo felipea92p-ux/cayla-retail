@@ -473,3 +473,21 @@ Cómo se verificó (solo lectura):
 
 La web de `main` sigue funcionando sobre esta base (`recibir_despacho` conserva su firma y su respuesta, con dos datos más). Lo que falta:
 fusionar #1056 y, con el volcado nuevo, `pnpm datos:generar:produccion` (`docs/datos/generado/COMO-REFRESCAR.md`).
+
+### Una prenda que la recepción usa no se elimina (2026-10-14, al fusionar)
+
+Al traer `main`, la prueba de deriva de «Eliminar con historia» (ADR-0252) marcó `despacho_pendientes`: cita a `productos` y nadie había
+dicho si se borra con la ficha o frena el borrado. Lo recibido ya frenaba por su movimiento con lote (renglón 18), pero un pendiente no
+deja movimiento: con «18 Aurora sin tallas» anotadas al cerrar, Catálogo ▸ Productos habría dicho «se puede eliminar» y la llave lo habría
+frenado con un «otra parte del sistema todavía lo usa» sin decir qué. Lo mismo, sin llave, con el borrador de un envío abierto
+(`despacho_conteos.separado`): eliminar la prenda lo dejaba apuntando a nada.
+
+DECIDÍ: las dos son historia que no se borra (`borrable = false`): renglones 23 («prendas anotadas al recibir un envío») y 24 («prendas
+separadas en un envío que se está contando», solo con el envío abierto) de `fn_producto_historia`, con un reemplazo anclado
+(`20261014234000`). La prenda se desactiva, no se elimina.
+DESCARTÉ: contar solo los pendientes abiertos, porque uno resuelto o anulado igual cita la prenda con su llave; y `on delete cascade`,
+porque borraría lo que la tienda contó.
+SE ROMPE SI: nace otra tabla de la recepción que cita a `productos` o `variantes`: la prueba de deriva lo marca otra vez.
+
+Probado sobre una base hecha de cero con todo `main`: `pruebas:eliminar-producto` 40/40, `pruebas:eliminar-producto-con-historia` 66/66 y
+`pruebas:pendientes-de-envio` 25/25 (E1 y E2 nuevos).
