@@ -70,3 +70,28 @@ filtros de una barra son `<DesplegablePildora>` (Actividad, Recibidas, Por regul
 y dejaba escapar seis: ya no. **Excepciones:** el monto del gasto rápido y de Registrar ingreso (ADR-0368, ADR-0375), las celdas de las
 matrices, el billete «Otro» de la hoja de cobro, el club público, los dos filtros de Frescura (su «Estado» tiene grupos con título) y el
 combo de cada fila de Grupos del mix. **Quedan** tres combos con fotos o pistola: ver el tablero.
+
+## Ronda 9 (2026-10-13): la lista que sugiere y los filtros de Frescura
+
+Decididas tocando las demos (fuentes en [rondas/9](rondas/9/README.md)).
+
+**La lista que sugiere mientras se escribe o se escanea · P1, una lista para las tres.** `<ListaSugerencias>`
+(`components/ui/ListaSugerencias.tsx`) es la lista de todo combo con su fila rica: la miniatura de la prenda (`MiniaturaPrenda`: su foto o,
+sin foto, el ícono de su categoría sobre su color, ADR-0333), el título, el detalle debajo (talla · color · código) y un dato a la derecha
+(la factura que la trae; el total y el saldo). La **activa** —la que toma el Enter— lleva el hilo rojo de canto y la tecla «Enter». La pieza
+no escucha el teclado: el buscador ya lo hace, y `ariaDelBuscador` le da sus atributos de combobox. Llegó mercadería y Recibir contra factura
+flotan (el Enter suma la primera, así que el mouse solo tiñe); las facturas de la nota de crédito van **en línea** (`enLinea`: es la lista
+del paso), con ↑ ↓ y el mouse moviendo la activa. Llegó y Recepción dibujaban la prenda sin foto a su manera (un cuadrito de color, una camisa
+genérica): ahora es `MiniaturaPrenda`, también en las líneas de lo que llegó (en Recepción conserva su crecimiento al pasar el mouse), y la
+página les pasa la categoría que el catálogo ya traía. Movimiento: cascada de 30 ms, el hilo crece al llegar a una fila, la tecla asoma; la
+activa siempre a la vista. Al elegir, la lista se cierra y la confirmación es la de siempre (la fila que destella en Llegó, la cinta verde
+del escáner en Recepción). **Deuda de `combo` 3 → 0.**
+
+![Las tres listas](capturas/sugerencias.ronda9.jpg)
+
+**Los filtros de Frescura · P1, píldoras con apartados.** `DesplegablePildora` aprende `apartado` (el título del grupo, como el `<optgroup>`;
+se busca también por él) y dibuja el mismo título en versalitas de la lista de un combo de formulario. Frescura filtra con dos píldoras
+(«Categoría», «Estado») como Existencias, Actividad o Compras; «Estado» lista sus opciones en tres apartados («Cuánto lleva», «Otros»,
+«Temporada»). Las dos cajas exentas salen de las excepciones; los escenarios del auditor abren las píldoras.
+
+![Frescura](capturas/frescura.ronda9.jpg)

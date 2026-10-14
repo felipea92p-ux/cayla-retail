@@ -1,5 +1,5 @@
 // Qué fotos de prenda pasan por el optimizador de imágenes de Next (ADR-0168). Lógica pura: se prueba en
-// `foto-prenda-reglas.test.ts` y la usa `FotoPrenda` (cliente).
+// `foto-prenda-reglas.test.ts` y la usa `ImagenDePrenda` (cliente), la `<Image>` de `FotoPrenda`, `MiniaturaPrenda` y `TilePrenda`.
 
 /**
  * ¿Esta foto la puede achicar el optimizador? Solo si vive en el Storage PÚBLICO de nuestro propio Supabase: es lo

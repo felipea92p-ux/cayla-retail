@@ -137,7 +137,7 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
   }
 
   return (
-    <Modal titulo={esAlta ? "Nuevo proveedor" : proveedor.nombre} subtitulo={esAlta ? "Quien le vende tela, avíos o maquila al Taller" : "Proveedor de Producción"} onClose={onClose} ancho="max-w-xl">
+    <Modal titulo={esAlta ? "Nuevo proveedor" : proveedor.nombre} subtitulo={esAlta ? "Quien le vende tela, avíos o maquila al Taller" : "Proveedor de Producción"} onClose={onClose} tamano="mediana">
       <form onSubmit={guardar} className="space-y-5">
         <div data-guia="prod-proveedor-modal.nombre">
         <CampoTexto etiqueta="Nombre o razón social" placeholder="Textiles Gamarra SAC" value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus={esAlta} />
@@ -249,14 +249,14 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
           {proveedor ? (
-            <Boton peso="discreto" type="button" cargando={archivando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={cambiarEstado}>
+            <Boton textoCargando={proveedor.activo ? "Archivando…" : "Reactivando…"} peso="discreto" type="button" cargando={archivando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={cambiarEstado}>
               {proveedor.activo ? "Archivar proveedor" : "Reactivar proveedor"}
             </Boton>
           ) : (
             <span />
           )}
           <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="sm:min-w-44">
-            {cargando ? "Guardando…" : esAlta ? "Agregar al directorio" : "Guardar cambios"}
+            {esAlta ? "Agregar al directorio" : "Guardar cambios"}
           </Boton>
         </div>
         </div>

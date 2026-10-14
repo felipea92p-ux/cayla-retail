@@ -132,7 +132,7 @@ function HojaReposicion({
   }
 
   return (
-    <Modal titulo="Llegó la reposición" subtitulo={`${proveedorNombre} · ${nombreDeDeuda(deuda)}`} bloqueado={guardando} onClose={onCerrar} alCerrarEnfocar={volverA} ancho="max-w-md">
+    <Modal titulo="Llegó la reposición" subtitulo={`${proveedorNombre} · ${nombreDeDeuda(deuda)}`} bloqueado={guardando} onClose={onCerrar} alCerrarEnfocar={volverA}>
       {(cerrar) => (
         <form
           // La demo (ADR-0389) abre esta hoja para mostrarla y la cierra sin anotar nada.
@@ -218,12 +218,12 @@ function HojaReposicion({
             </Aviso>
           )}
           {/* Fija abajo mientras el contenido pasa por detrás: en un laptop de 768 px de alto el botón quedaba bajo el pliegue. */}
-          <div className="pie-hoja-fijo flex flex-col-reverse gap-2.5 pt-1 sm:flex-row sm:justify-end">
+          <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Anotando…" : textoBotonReposicion(n)}
+            <Boton textoCargando="Anotando…" type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {textoBotonReposicion(n)}
             </Boton>
           </div>
         </form>

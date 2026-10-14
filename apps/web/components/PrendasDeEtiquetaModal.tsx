@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, FunnelX } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
@@ -12,7 +12,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { firmar } from "@/lib/responsable-reglas";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { nombreBajoCosto, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
 import {
   alternarProducto,
@@ -26,6 +26,7 @@ import {
   type ProductoEtiquetable,
 } from "@/lib/etiquetar-prendas";
 import { Casilla as CasillaSistema } from "@/components/ui/Casilla";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * «Prendas de una etiqueta»: elegir qué prendas llevan, por ejemplo, «Black Friday».
@@ -94,7 +95,7 @@ export function PrendasDeEtiquetaModal({
         .order("referencia");
       if (!vigente) return;
       if (error) {
-        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas") });
+        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas", { lectura: true }) });
         return;
       }
       const iniciales = new Set<string>();
@@ -199,7 +200,7 @@ export function PrendasDeEtiquetaModal({
       : `${etiqueta.descuentoPct} % de descuento — se aplica solo en Vender a las prendas que elijas.`;
 
   return (
-    <Modal titulo={`Prendas de «${etiqueta.nombre}»`} subtitulo={subtitulo} ancho="max-w-2xl" onClose={onClose}>
+    <Modal titulo={`Prendas de «${etiqueta.nombre}»`} subtitulo={subtitulo} tamano="ancha" onClose={onClose}>
       {(cerrar) =>
         confirmando && vista ? (
           <div className="mt-5 space-y-4">
@@ -261,7 +262,7 @@ export function PrendasDeEtiquetaModal({
                 </div>
 
                 {visibles.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-tinta/60">Ningún producto coincide con ese filtro.</p>
+                  <Vacio tamano="chico" className="py-8" icono={<FunnelX />}>Ningún producto coincide con ese filtro.</Vacio>
                 ) : (
                   <ul className="max-h-[42vh] divide-y divide-tinta/10 overflow-y-auto rounded-lg border border-tinta/10">
                     {visibles.map((p) => {
@@ -337,8 +338,8 @@ export function PrendasDeEtiquetaModal({
                 </CampoGuiado>
               )}
               <PieGuia guia={guia} listo="Todo listo para aplicar." />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
                 <Boton

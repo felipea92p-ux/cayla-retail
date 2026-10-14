@@ -1,9 +1,9 @@
 // Análisis v4 (ADR-0357): las piezas chicas que comparten las cuatro pestañas y la ficha, con las clases de la maqueta
 // aprobada (`app/estilos/analisis.css`). Todo vive dentro de `.analisis` (la pantalla o la hoja), que es donde esas clases valen.
 
-import Image from "next/image";
 import type { ReactNode } from "react";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Icono, type NombreIcono } from "@/components/analisis/iconos";
 import type { PrendaAnalisis } from "@/lib/analisis-tipos";
 import { queTiene, type ModeloAnalisis } from "@/lib/analisis-modelo";
@@ -66,20 +66,7 @@ export function TipRico({ children }: { children: ReactNode }) {
 /** La prenda en miniatura: su foto o, sin foto, el ícono de su categoría sobre su color (ADR-0333). */
 export function TilePrenda({ prenda, tamano }: { prenda: Pick<PrendaAnalisis, "fotoUrl" | "colorHex" | "categoria" | "categoriaPrefijo" | "categoriaFamilia">; tamano: number }) {
   const radio = Math.round(tamano / 5);
-  if (prenda.fotoUrl) {
-    return (
-      <Image
-        src={prenda.fotoUrl}
-        alt=""
-        width={tamano}
-        height={tamano}
-        unoptimized
-        className="tile-foto shrink-0 object-cover"
-        style={{ width: tamano, height: tamano, borderRadius: radio }}
-      />
-    );
-  }
-  return (
+  const sinFoto = (
     <span className="tile-prenda shrink-0" style={{ width: tamano, height: tamano, borderRadius: radio }}>
       <MosaicoPrenda
         forma="relleno"
@@ -90,6 +77,19 @@ export function TilePrenda({ prenda, tamano }: { prenda: Pick<PrendaAnalisis, "f
         className="h-full w-full !rounded-[inherit]"
       />
     </span>
+  );
+  if (!prenda.fotoUrl) return sinFoto;
+  // Servida al tamaño en que se ve (`ImagenDePrenda`, ADR-0168): este tile mide de 17 a 64 px y bajaba el original de ~90 KB.
+  return (
+    <ImagenDePrenda
+      src={prenda.fotoUrl}
+      alt=""
+      width={tamano}
+      height={tamano}
+      className="tile-foto shrink-0 object-cover"
+      style={{ width: tamano, height: tamano, borderRadius: radio }}
+      fallback={sinFoto}
+    />
   );
 }
 

@@ -164,7 +164,7 @@ export function PieModal({
   guia?: string;
 }) {
   return (
-    <div data-guia={guia} className="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-sand pt-4">
+    <div data-guia={guia} className="mt-5 pie-acciones border-t border-sand pt-4">
       <button type="button" onClick={onCancelar} className="btn-cayla btn-secundario">
         Cancelar
       </button>

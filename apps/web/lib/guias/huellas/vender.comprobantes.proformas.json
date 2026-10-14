@@ -6,7 +6,7 @@
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «{actual?.fase === \"cargando\" ? \"Buscando…\" : \"Buscar\"}»",
+      "Boton «Buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/FacturacionPestanas.tsx": [
@@ -41,7 +41,7 @@
       "BotonCompacto «{`${p.vencida ? \"Renovar\" : \"Duplicar\"}»",
       "Link «{`Apartar ${numeroDeProforma(p.numero)}»",
       "Link «{`Cobrar ${numeroDeProforma(p.numero)}»",
-      "Boton «Imprimir o guardar en PDF»"
+      "BotonImprimir «Imprimir la proforma»"
     ],
     "components/SelectorMesFacturacion.tsx": [
       "Link «comprobantes.mes-anterior»",

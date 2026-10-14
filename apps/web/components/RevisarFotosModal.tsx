@@ -179,7 +179,7 @@ export function RevisarFotosModal({
     <Modal
       titulo={titulo}
       subtitulo="Todas quedan del mismo tamaño, sobre blanco. Elige en cada una si va sin fondo o con su fondo, y si la luz va corregida."
-      ancho="max-w-5xl"
+      ancho="max-w-5xl" /* unificar-fijo: la cuadrícula de fotos de cada color se revisa grande: es de diseño propio */
       bloqueado={guardando}
       onClose={onClose}
     >
@@ -226,12 +226,12 @@ export function RevisarFotosModal({
             ))}
           </ul>
 
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton peso="primario" className="flex-1" cargando={guardando} disabled={procesando || usadas.length === 0} onClick={() => confirmar(cerrar)}>
-              {procesando ? "Procesando…" : usadas.length === 0 ? "Nada que cambiar" : textoConfirmar(usadas.length)}
+            <Boton textoCargando="Procesando…" peso="primario" cargando={guardando} disabled={procesando || usadas.length === 0} onClick={() => confirmar(cerrar)}>
+              {usadas.length === 0 ? "Nada que cambiar" : textoConfirmar(usadas.length)}
             </Boton>
           </div>
         </div>

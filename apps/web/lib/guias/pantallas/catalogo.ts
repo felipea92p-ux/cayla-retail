@@ -46,6 +46,14 @@ export const GUIA_PRODUCTOS: Guia = {
       texto: "Las que alguien propuso en un conteo o desde el Taller esperan que quien edita el catálogo las apruebe o las rechace. Mientras tanto se pueden vender, si tienen precio. «Revisar» te lleva a la lista.",
     },
     {
+      // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene prendas nuevas por crear.
+      id: "por-crear",
+      ancla: "productos.por-crear",
+      opcional: true,
+      titulo: "Prendas recibidas por crear",
+      texto: "Llegaron a tu sede, se contaron como nuevas y están en el almacén, pero no se pueden vender hasta crearlas. Se crean desde Recibir, con «Crear ahora»: así la prenda nace con lo que ya se contó.",
+    },
+    {
       id: "sin-temporada",
       ancla: "productos.sin-temporada",
       opcional: true,

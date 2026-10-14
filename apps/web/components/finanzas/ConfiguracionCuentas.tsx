@@ -30,6 +30,7 @@ import {
 import { Boton } from "@/components/ui/campos";
 import { Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 
 // Configuración ▸ Cuentas y cobros (ADR-0195 F3), dibujada como el spike (`vista-config.js`, `cfgCuentas`): las cuentas
 // de CAYLA (los cajones y cajas fuertes nacen con cada tienda; aquí se agregan bancos, billeteras, el POS y la tarjeta) y a
@@ -113,9 +114,7 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
                         <Chip tono={c.archivada ? "apagado" : "verde"} tachado={false}>
                           {c.archivada ? "archivada" : "activa"}
                         </Chip>
-                        <button type="button" className="btn-enlace text-[12px]" disabled={guardando} onClick={() => setEditar(c)} aria-label={`Editar ${c.nombre}`}>
-                          Editar
-                        </button>
+                        <LapizEditar que={c.nombre} disabled={guardando} onClick={() => setEditar(c)} />
                       </span>
                     </td>
                   </tr>
@@ -265,7 +264,7 @@ function AgregarCuentaModal({ hoy, onCerrar }: { hoy: string; onCerrar: () => vo
   }
 
   return (
-    <Modal variante="hoja" titulo="Agregar cuenta" subtitulo="Un banco, una billetera que no cae a un banco, el POS de tarjeta o la tarjeta de crédito de CAYLA." onClose={onCerrar} ancho="max-w-[520px]">
+    <Modal variante="hoja" titulo="Agregar cuenta" subtitulo="Un banco, una billetera que no cae a un banco, el POS de tarjeta o la tarjeta de crédito de CAYLA." onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Nombre" htmlFor="cta-nombre">
         <InputFin id="cta-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="BBVA · Cta. corriente" />
       </CampoFin>
@@ -291,9 +290,9 @@ function AgregarCuentaModal({ hoy, onCerrar }: { hoy: string; onCerrar: () => vo
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={agregar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Agregando…" : "Agregar"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Agregando…" type="button" onClick={agregar} disabled={guardando || !responsable.listo}>
+          Agregar
+        </Boton>
       </div>
     </Modal>
   );

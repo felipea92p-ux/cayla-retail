@@ -3,10 +3,10 @@
 import { useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Ban, Pencil, Printer } from "lucide-react";
+import { Ban } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
-import { Boton, BotonEnlace, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
@@ -30,6 +30,8 @@ import {
   type DetalleOrdenInsumo,
 } from "@/lib/ordenes-insumo-reglas";
 import { anularOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 // Lo que se hace con una orden de insumos (ADR-0362, fase 7 · actividad 2), como en la orden de compra (fase 1): «Imprimir o guardar
 // PDF» siempre; «Editar» y «Anular orden» solo mientras está «generada». El comprobante y la recepción del Taller llegan después (esperan
@@ -54,18 +56,12 @@ export function AccionesOrdenInsumo({ orden, empresa, lugar }: { orden: DetalleO
   useTituloDeImpresion(numeroOrdenInsumo(orden.numero));
 
   const imprimir = (
-    <Boton onClick={() => window.print()} data-guia="oi.imprimir">
-      <span className="inline-flex items-center gap-2">
-        <Printer aria-hidden className="h-3.5 w-3.5" /> Imprimir o guardar PDF
-      </span>
-    </Boton>
+    <BotonImprimir onClick={() => window.print()} title="También sirve para guardar la orden en PDF" guia="oi.imprimir">
+      Imprimir la orden
+    </BotonImprimir>
   );
   const editar = puedeEditarOrdenInsumo(orden) && (
-    <BotonEnlace href={`${RUTA_ORDENES_INSUMO}/editar/${orden.id}`} data-guia="oi.editar">
-      <span className="inline-flex items-center gap-2">
-        <Pencil aria-hidden className="h-3.5 w-3.5" /> Editar
-      </span>
-    </BotonEnlace>
+    <BotonEditar href={`${RUTA_ORDENES_INSUMO}/editar/${orden.id}`} guia="oi.editar" />
   );
   const anular = puedeAnularOrdenInsumo(orden) && (
     <Boton
@@ -240,12 +236,12 @@ function AnularOrdenInsumoModal({
             </Aviso>
           )}
           <PieGuia guia={guia} listo="Todo listo para anular." />
-          <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
+          <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Anulando…" : "Anular orden"}
+            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              Anular orden
             </Boton>
           </div>
         </form>

@@ -34,8 +34,13 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
 import { getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
+import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
+import { esEnvioSinAviso, guardadoDesde, proveedorDelSinAviso, textoGuardadoEstaSemana } from "@/lib/recepcion-conteo-reglas";
+import { LlegoSinAviso } from "@/components/recepcion-conteo/LlegoSinAviso";
+import { PendientesDeRecibir } from "@/components/recepcion-conteo/PendientesDeRecibir";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Recibir mercadería (ADR-0330, 2026-10-04): la LLEGADA manda y la factura se une después. `/recibir` abre en «Llegó
 // mercadería» (`LlegoMercaderia`, motor `recibir_lote`): ¿de quién? y ¿qué llegó?, en la sede de la cabecera. Recibir contra una
@@ -92,24 +97,29 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const nombreMirada = persona.ubicacionEtiqueta;
 
   // Sin pestañas (ADR-0330): la puerta es UNA. Recibir contra una factura y el historial se abren desde ella y vuelven a ella.
-  const encabezado = (
-    <div data-voz="cabecera" className="anim-entra">
-      <p className="label-cayla text-[11px] text-tinta/65">Recibir · {nombreMirada}</p>
-      <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
-      <p className="mt-1 max-w-3xl text-sm text-tinta/65">
-        {vista === "llegada"
-          ? `Escanea lo que llegó y recíbelo: entra al almacén de ${nombreMirada}. Si no tiene factura todavía, igual se recibe.`
+  // La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): la sede donde se recibe en la línea de arriba.
+  // `fraseLlegada` reemplaza la frase de «Llegó mercadería» cuando se recibe contando (ADR-0393).
+  const conEncabezado = (fraseLlegada?: string) => (
+    <EncabezadoPagina
+      sede={nombreMirada}
+      volver={
+        vista !== "llegada" && (
+          <span data-guia="recibir.volver" className="inline-flex">
+            <Volver href="/recibir" a="Llegó mercadería" />
+          </span>
+        )
+      }
+      titulo="Recibir mercadería"
+      subtitulo={
+        vista === "llegada"
+          ? (fraseLlegada ?? `Escanea lo que llegó y recíbelo: entra al almacén de ${nombreMirada}. Si no tiene factura todavía, igual se recibe.`)
           : vista === "factura"
             ? `Marca la factura con la que vino la mercadería, cuenta lo que llegó y recibe. Solo ves lo que le toca a ${nombreMirada}; lo de otras tiendas lo recibe cada una.`
-            : `Todo lo que llegó a ${nombreMirada}: sin factura y contra factura.`}
-      </p>
-      {vista !== "llegada" && (
-        <div data-guia="recibir.volver" className="mt-3 w-fit">
-          <Volver href="/recibir" a="Llegó mercadería" />
-        </div>
-      )}
-    </div>
+            : `Todo lo que llegó a ${nombreMirada}: sin factura y contra factura.`
+      }
+    />
   );
+  const encabezado = conEncabezado();
 
   // ------------------------------------------------------------------ Recibidas
   if (vista === "recibidas") {
@@ -210,7 +220,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   if (vista === "llegada") {
     // «Llegó esta semana»: lo recibido en ESTA sede los últimos 7 días (hoy incluido, en días de Lima), con o sin factura.
     const haceUnaSemana = sumarDias(hoyLima(), -6);
-    const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos, deOrdenes] = await Promise.all([
+    const [catalogo, proveedores, marcas, rubrosEnUso, trasladosDeLaSede, porRecibir, recientes, costos, deOrdenes, contando] = await Promise.all([
       getCatalogo(),
       getProveedoresActivos(),
       // Las marcas de cada proveedor ordenan las sugerencias del buscador; si no se pudieron leer, la puerta funciona igual.
@@ -238,7 +248,66 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         console.error("Envíos de órdenes de compra en Recibir mercadería:", e);
         return null;
       }),
+      // ADR-0393: si la base ya cuenta primero (llega con sus migraciones), la puerta es «Llegó sin aviso» y avisa lo que quedó por terminar.
+      recibirContandoDisponible(persona.ubicacionId),
     ]);
+    const facturasDeLaSede = porRecibir.filas.map((c) => ({
+      id: c.id,
+      proveedorId: c.proveedorId,
+      documento: c.documento,
+      fechaEmision: c.fechaEmision,
+      // Lo que le falta a ESTA sede (ADR-0139), ya sin lo recibido ni lo cerrado por faltante.
+      pendientes: c.pendienteAqui ?? Math.max(0, c.facturadoCantidad - c.recibidoCantidad - c.cerradoCantidad),
+    }));
+    // De quién es cada envío sin aviso que alguien dejó abierto (suelen ser uno o dos): la lista de Compras no lo trae. Si no se lee, la
+    // fila dice lo de siempre.
+    const sinAvisoAbiertos = contando.disponible ? (deOrdenes?.envios ?? []).filter(esEnvioSinAviso) : [];
+    const proveedoresSinAviso = Object.fromEntries(
+      await Promise.all(sinAvisoAbiertos.map(async (e) => [e.id, proveedorDelSinAviso((await getConteosDelEnvio(e.id)).conteos)] as const)),
+    );
+    // Lo que llegó esta semana y quedó por terminar no tiene lote: sin esto, la lista diría «no llegó nada» (ADR-0393, lista aparte).
+    const guardadoSemana = textoGuardadoEstaSemana(guardadoDesde(contando.pendientes, haceUnaSemana), persona.ubicacionEtiqueta, recientes.length > 0);
+    // «Llegó esta semana» es la misma en las dos caras de la puerta (la de ADR-0393 y la de «Llegó mercadería»).
+    const llegoEstaSemana = (
+      <section data-guia="recibir.semana" className="space-y-2">
+        <TituloSeccion
+          accion={
+            <EnlaceVer href="/recibir?vista=recibidas" guia="recibir.ver-todo">
+              Ver todo lo recibido
+            </EnlaceVer>
+          }
+        >
+          Llegó esta semana · {persona.ubicacionEtiqueta}
+        </TituloSeccion>
+        <RecepcionesRecientes
+          recepciones={recientes}
+          costos={costos}
+          vacio={guardadoSemana ?? `Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`}
+        />
+        {recientes.length > 0 && guardadoSemana && <p className="nota-cayla">{guardadoSemana}</p>}
+      </section>
+    );
+    if (contando.disponible) {
+      return (
+        <div className="space-y-6">
+          {conEncabezado(`Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
+          {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} guia="recibir.pendientes" />}
+          <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
+          {deOrdenes && (
+            <EnviosParaRecibir envios={deOrdenes.envios} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} />
+          )}
+          <LlegoSinAviso
+            key={claveDeLaRecepcion(persona.ubicacionId)}
+            ubicacionId={persona.ubicacionId}
+            ubicacionEtiqueta={persona.ubicacionEtiqueta}
+            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, marcas: marcas?.[p.id] ?? [] }))}
+            facturas={facturasDeLaSede}
+            hayListaArriba={(deOrdenes?.envios.length ?? 0) + (deOrdenes?.ordenes.length ?? 0) > 0}
+          />
+          {llegoEstaSemana}
+        </div>
+      );
+    }
     return (
       // Lo escaneado es de su sede (Felipe, 2026-10-11): el selector de la cabecera cambia de sede con `router.refresh()`, sin
       // cambiar la ruta, y con la misma key React conservaba lo escaneado en una sede y lo recibía en la otra. La sede va en la key
@@ -259,14 +328,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, ruc: p.ruc, marcas: marcas?.[p.id] ?? [] }))}
             rubrosEnUso={rubrosEnUso}
             puedeAgregarProveedor={puedeAgregarProveedor}
-            facturas={porRecibir.filas.map((c) => ({
-              id: c.id,
-              proveedorId: c.proveedorId,
-              documento: c.documento,
-              fechaEmision: c.fechaEmision,
-              // Lo que le falta a ESTA sede (ADR-0139), ya sin lo recibido ni lo cerrado por faltante.
-              pendientes: c.pendienteAqui ?? Math.max(0, c.facturadoCantidad - c.recibidoCantidad - c.cerradoCantidad),
-            }))}
+            facturas={facturasDeLaSede}
             recientes={recientes.map((r) => ({ proveedorId: r.proveedorId, fecha: r.fecha, unidades: r.unidades, recibidoPor: r.recibidoPor }))}
             prendas={catalogo
               .filter((v) => v.activo && v.varianteId !== ID_CARGO_ESPECIAL)
@@ -282,20 +344,13 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
                 codigosBarras: v.codigosBarras,
                 colorHex: v.colorHex,
                 fotoUrl: v.fotoUrl,
+                // La categoría dibuja la miniatura de la prenda sin foto (ADR-0333).
+                categoria: v.categoria,
+                categoriaPrefijo: v.categoriaPrefijo,
+                categoriaFamilia: v.categoriaFamilia,
               }))}
           />
-          <section data-guia="recibir.semana" className="space-y-2">
-            <TituloSeccion
-              accion={
-                <EnlaceVer href="/recibir?vista=recibidas" guia="recibir.ver-todo">
-                  Ver todo lo recibido
-                </EnlaceVer>
-              }
-            >
-              Llegó esta semana · {persona.ubicacionEtiqueta}
-            </TituloSeccion>
-            <RecepcionesRecientes recepciones={recientes} costos={costos} vacio={`Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`} />
-          </section>
+          {llegoEstaSemana}
         </div>
       </TrabajoPorSede>
     );
@@ -391,6 +446,10 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
                 codigosBarras: v.codigosBarras,
                 colorHex: v.colorHex,
                 fotoUrl: v.fotoUrl,
+                // La categoría dibuja la miniatura de la prenda sin foto (ADR-0333).
+                categoria: v.categoria,
+                categoriaPrefijo: v.categoriaPrefijo,
+                categoriaFamilia: v.categoriaFamilia,
               }))}
             proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))}
             ubicaciones={ubicacionesPermitidas.map((u) => ({ id: u.id, nombre: u.nombre }))}

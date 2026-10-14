@@ -48,6 +48,7 @@ import {
 } from "@/lib/productos-filtros";
 import { SIN_EN_URL } from "@/lib/marcas";
 import { Buscador } from "@/components/ui/Buscador";
+import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
 // la URL, la página es un Server Component que filtra en Postgres
@@ -247,30 +248,21 @@ export function FiltrosProductos({
   const bloqueChips = chips.length > 0 && (
     <div className={`flex flex-wrap items-center gap-2 ${panelAbierto ? "md:hidden" : ""}`}>
       {chips.map((c) => (
-        <button
-          key={c.quitar.join("|")}
-          type="button"
-          onClick={() => {
+        <FiltroPuesto key={c.quitar.join("|")} onQuitar={() => {
             setTipeado((t) => sinCajas(t, c.quitar as CajaTipeada[]));
             aplicar(Object.fromEntries(c.quitar.map((k) => [k, ""])));
-          }}
-          className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
-          aria-label={`Quitar filtro ${c.texto}`}
-        >
+          }} etiqueta={`Quitar filtro ${c.texto}`}>
           {c.texto}
-          <span aria-hidden className="text-sm leading-none">×</span>
-        </button>
+        </FiltroPuesto>
       ))}
-      <button
-        type="button"
+      <BotonLimpiar
         onClick={() => {
           setTipeado({});
           navegar(consultaSinFiltros(consultaVigente()));
         }}
-        className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo"
       >
         Limpiar todo
-      </button>
+      </BotonLimpiar>
     </div>
   );
 
@@ -315,16 +307,16 @@ export function FiltrosProductos({
         </span>
         {/* Con el panel abierto los chips no se ven: «Limpiar filtros» queda aquí, a la vista. */}
         {panelAbierto && chips.length > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              setTipeado({});
-              navegar(consultaSinFiltros(consultaVigente()));
-            }}
-            className="label-cayla hidden text-[10px] text-tinta/55 hover:text-rojo md:inline"
-          >
-            Limpiar filtros
-          </button>
+          <span className="hidden md:inline-flex">
+            <BotonLimpiar
+              onClick={() => {
+                setTipeado({});
+                navegar(consultaSinFiltros(consultaVigente()));
+              }}
+            >
+              Limpiar filtros
+            </BotonLimpiar>
+          </span>
         )}
       </p>
       <div className="flex min-w-0 items-center gap-1 sm:gap-2">
@@ -547,9 +539,9 @@ export function FiltrosProductos({
       {panelAbierto && !hojaAbierta && <div data-guia="productos.panel" className="hidden md:block">{panel}</div>}
 
       {hojaAbierta && (
-        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} ancho="max-w-lg">
+        <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} tamano="mediana">
           {panel}
-          <div className="pie-hoja-fijo mt-4 flex items-center gap-2">
+          <div className="pie-hoja-fijo pie-acciones mt-4">
             {activos > 0 && (
               <button
                 type="button"
@@ -557,7 +549,7 @@ export function FiltrosProductos({
                   setTipeado({});
                   navegar(consultaSinFiltros(consultaVigente()));
                 }}
-                className="btn-cayla btn-sutil"
+                className="btn-cayla btn-secundario"
               >
                 Limpiar
               </button>

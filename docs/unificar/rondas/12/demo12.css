@@ -1,0 +1,52 @@
+/* Ronda 12 de /unificar: las demos de guardar, editar y las hojas. Solo tokens; usa demo9.css (marco) y el CSS real del ERP. */
+.r12-fila { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px; }
+.r12-col { display: flex; flex-direction: column; gap: 18px; }
+.r12-escena { display: flex; flex-direction: column; gap: 8px; flex: 1 1 320px; min-width: 0; padding: 18px; border-radius: 16px;
+  background: color-mix(in srgb, var(--color-sombra) 14%, var(--color-crema)); }
+.r12-escena > [role="dialog"] { margin: 0 auto; }
+.r12-campo { display: flex; flex-direction: column; gap: 6px; }
+.r12-caja { display: flex; align-items: center; height: 40px; padding: 0 12px; font-size: 14px; color: var(--color-tinta); }
+.r12-datos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin: 0; }
+.r12-datos dt { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--color-taupe-profundo); }
+.r12-datos dd { margin: 2px 0 0; font-size: 15px; color: var(--color-tinta); }
+/* Guardar: la palabra y «Guardando…» apiladas en una celda: el ancho no salta. */
+.r12-pila { display: inline-grid; }
+.r12-pila > * { grid-area: 1 / 1; text-align: center; }
+.r12-hoy-guardar, .r12-hoy-editar { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.r12-hoy-celda { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px; border-radius: 14px; background: var(--color-papel); border: 1px solid var(--color-sand); }
+.r12-listo { font-size: 12px; color: var(--color-verde); animation: cayla-entrada 260ms var(--ease-cayla) both; }
+/* Editar */
+.r12-cab { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 32px; padding: 20px 22px; border-radius: 16px; background: var(--color-crema); border: 1px solid var(--color-sand); }
+.r12-cab-sede { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .18em; color: var(--color-taupe-profundo); }
+.r12-hilo-sede { display: block; width: 32px; height: 1px; background: var(--color-taupe); }
+.r12-cab-h { margin: 10px 0 0; font: 400 40px/1 var(--font-serif); color: var(--color-tinta); letter-spacing: -.01em; }
+.r12-cab-frase { margin: 8px 0 0; font-size: 15px; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
+.r12-cab-acc { display: flex; flex-wrap: wrap; gap: 10px; }
+.r12-bloque { flex: 1 1 320px; display: flex; flex-direction: column; gap: 8px; }
+.r12-tabla { border: 1px solid var(--color-sand); border-radius: 14px; background: var(--color-papel); overflow: hidden; }
+.r12-tfila { display: grid; grid-template-columns: 1fr auto 40px; align-items: center; gap: 12px; padding: 8px 12px 8px 16px; border-top: 1px solid var(--color-sand); font-size: 14px; color: var(--color-tinta); }
+.r12-tfila:first-child { border-top: 0; }
+.r12-tcod { font: 12px var(--font-mono, monospace); color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
+.r12-lapiz { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; border: 0; background: none; color: color-mix(in srgb, var(--color-tinta) 60%, transparent); cursor: pointer; transition: background-color 200ms, color 200ms; }
+.r12-lapiz:hover { background: var(--color-hueso); color: var(--color-tinta); }
+.r12-lapiz-borde { border: 1px solid var(--color-sand); }
+.r12-lapiz-borde:hover { border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent); }
+.r12-lapiz-28 { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent); background: none; color: var(--color-tinta); cursor: pointer; }
+.r12-fila-btn { display: inline-flex; align-items: center; justify-content: center; height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--color-tinta) 28%, transparent); background: none; color: var(--color-tinta); cursor: pointer; }
+.r12-fila-btn:hover { background: var(--color-tinta); color: var(--color-crema); }
+.r12-frase { margin: 0; padding: 14px 16px; border-radius: 14px; background: var(--color-papel); border: 1px solid var(--color-sand); font-size: 14px; color: var(--color-tinta); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* El ancho de una hoja */
+.r12-regla { display: flex; flex-direction: column; gap: 10px; }
+.r12-ancho { display: grid; grid-template-columns: minmax(0, 800px) minmax(180px, 1fr); align-items: center; gap: 4px 16px; }
+.r12-barra { height: 34px; border-radius: 10px; border: 1px solid var(--color-sand); background: var(--color-papel); display: flex; align-items: center; padding: 0 12px;
+  animation: r12-crece 500ms var(--ease-cayla) both; transform-origin: left center; }
+.r12-barra span { font-size: 12px; font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--color-tinta) 70%, transparent); }
+.r12-ancho p { margin: 0; font-size: 13px; color: color-mix(in srgb, var(--color-tinta) 75%, transparent); }
+.r12-ancho:nth-child(2) .r12-barra { animation-delay: 55ms; } .r12-ancho:nth-child(3) .r12-barra { animation-delay: 110ms; } .r12-ancho:nth-child(n+4) .r12-barra { animation-delay: 165ms; }
+@keyframes r12-crece { from { transform: scaleX(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .r12-barra { animation: none; } }
+/* La página de elegir da estilo propio a los h2: dentro de una hoja de demo valen los de <Modal> (18 px o 24 px). */
+.r12-escena [role="dialog"] h2 { margin: 0; letter-spacing: normal; font-weight: 400; }
+.r12-escena [role="dialog"] h2.text-lg { font-size: 18px; line-height: 28px; }
+.r12-escena [role="dialog"] h2.text-2xl { font-size: 24px; line-height: 1.25; }
+.r12-escena [role="dialog"] p { margin-left: 0; margin-right: 0; }

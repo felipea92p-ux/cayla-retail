@@ -44,7 +44,7 @@ export function MovimientosVacio({
       </p>
       <div className="mt-1.5 flex flex-wrap justify-center gap-2">
         {en90 > 0 && (
-          <Link href={url({ rango: "90", desde: undefined, hasta: undefined })} className="btn-cayla btn-primario">
+          <Link href={url({ rango: "90", desde: undefined, hasta: undefined })} className="btn-cayla btn-primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
             Ver los últimos 90 días
           </Link>
         )}

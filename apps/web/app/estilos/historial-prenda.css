@@ -13,21 +13,23 @@
 @layer components {
   .hp {
     --hp-t75: color-mix(in srgb, var(--color-tinta) 75%, transparent);
-    --hp-t60: color-mix(in srgb, var(--color-tinta) 60%, transparent);
-    --hp-t55: color-mix(in srgb, var(--color-tinta) 55%, transparent);
-    --hp-t45: color-mix(in srgb, var(--color-tinta) 45%, transparent);
-    --hp-t35: color-mix(in srgb, var(--color-tinta) 35%, transparent);
-    --hp-t25: color-mix(in srgb, var(--color-tinta) 25%, transparent);
-    --hp-t15: color-mix(in srgb, var(--color-tinta) 15%, transparent);
-    --hp-t04: color-mix(in srgb, var(--color-tinta) 4%, transparent);
+    --hp-t60: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
+    --hp-t55: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
+    --hp-t45: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
+    --hp-t35: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: gráfico sobre papel, crema, hueso */
+    --hp-t25: color-mix(in srgb, var(--color-tinta) 25%, transparent); /* contraste: no aplica — borde al pasar el mouse, no es texto */
+    --hp-t15: color-mix(in srgb, var(--color-tinta) 15%, transparent); /* contraste: no aplica — bordes finos, no es texto */
+    --hp-t04: color-mix(in srgb, var(--color-tinta) 4%, transparent); /* contraste: no aplica — fondo del esqueleto de carga */
     display: flex;
     flex-direction: column;
     min-height: 0;
   }
-  /* En oscuro los tonos tenues suben al piso de legibilidad (ADR-0336, como vista-rapida.css). */
+  /* En claro, ningún escalón que pinte texto baja del 62 % (lo mínimo que se lee sobre papel, 4.5:1) y los íconos al 35 % suben al 50 %
+     (3:1): al 60, 55 y 45 % daban 4.38, 3.8 y 2.82:1 sobre crema (2026-10-14). El nombre es el escalón, no el porcentaje. En oscuro los
+     tonos tenues suben al piso de legibilidad (ADR-0336, como vista-rapida.css). */
   :root[data-tema="oscuro"] .hp {
-    --hp-t45: color-mix(in srgb, var(--color-tinta) 58%, transparent);
-    --hp-t35: color-mix(in srgb, var(--color-tinta) 52%, transparent);
+    --hp-t45: color-mix(in srgb, var(--color-tinta) 60%, transparent); /* contraste: texto sobre papel, crema */
+    --hp-t35: color-mix(in srgb, var(--color-tinta) 52%, transparent); /* contraste: gráfico sobre papel, crema, hueso */
   }
 
   /* ---- La vuelta de página dentro de la hoja ---- */

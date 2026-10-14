@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Flag, Package } from "lucide-react";
+import { Flag, Package, SearchX } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
@@ -28,6 +28,8 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    AbrirConteo · «Abrir un conteo» (Inventario ▸ Conteo). Maqueta: `docs/maquetas/conteo-abrir-2026-09/abrir-conteo.html`.
@@ -435,15 +437,15 @@ export function AbrirConteo({
           <div className="col-span-2 row-start-2 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:mt-auto">
             <PieGuia guia={guia} listo="Todo listo para empezar." />
           </div>
-          <button
+          <Boton peso="primario" cargando={abriendo} textoCargando="Abriendo…"
             type="button"
             onClick={() => void abrir()}
             disabled={!listo || abriendo}
             title={guia.frase ?? undefined}
-            className={`btn-cayla btn-primario col-start-2 row-start-1 h-11 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:h-12 @[46rem]:w-full ${guia.claseConfirmar}`}
+            className={`col-start-2 row-start-1 h-11 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:h-12 @[46rem]:w-full ${guia.claseConfirmar}`}
           >
-            {abriendo ? "Abriendo…" : "Empezar conteo"}
-          </button>
+            Empezar conteo
+          </Boton>
         </aside>
       </div>
     </section>
@@ -594,7 +596,11 @@ function ElegirCategoria({
         className="@[30rem]:max-w-sm"
       />
       <div data-guia="conteo.categoria-lista" role="radiogroup" aria-label="Categoría" className="-mx-0.5 flex max-h-40 flex-wrap gap-2 overflow-y-auto p-0.5">
-        {visibles.length === 0 && <p className="py-1.5 text-[13px] text-taupe">Ninguna categoría se llama así.</p>}
+        {visibles.length === 0 && (
+          <Vacio tamano="chico" alinear="izquierda" className="px-0 py-1.5" icono={<SearchX />}>
+            Ninguna categoría se llama así.
+          </Vacio>
+        )}
         {visibles.map((c, i) => {
           const activa = c.id === valor;
           return (

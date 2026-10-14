@@ -11,11 +11,11 @@
       "button «Reintentar»",
       "Desplegable «(sin nombre)»",
       "button «{`Quitar ${prenda?.etiqueta ?? \"esta línea\"}»",
-      "button «+ Agregar otra prenda»",
+      "Boton «+ Agregar otra prenda»",
       "input «Nota (opcional)»",
       "ComboResponsable «(sin nombre)»",
       "button «Mejor no»",
-      "button «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
     ],
     "components/analisis/AnalisisPantalla.tsx": [
       "button «→() => verConDatosDeHoy(modo === \"que-falta\")»",
@@ -27,7 +27,7 @@
     "components/analisis/FichaPrenda.tsx": [
       "Link «{principal.texto}»",
       "button «Pedir a»",
-      "Link «Ver en Existencias»",
+      "BotonVer «Ver en Existencias»",
       "Link «Movimientos»"
     ],
     "components/analisis/HojaConfianza.tsx": [
@@ -36,8 +36,8 @@
     ],
     "components/analisis/HojaLiquidarDesde.tsx": [
       "ComboResponsable «)»",
-      "button «{responsable.motivo ?? undefined}»",
-      "button «Cancelar»"
+      "button «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/analisis/PestanaAcaba.tsx": [
       "Link «Comprar todas»",

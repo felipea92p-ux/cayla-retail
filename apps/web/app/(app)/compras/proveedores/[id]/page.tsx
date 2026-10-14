@@ -24,6 +24,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Ficha de un proveedor (maqueta 09, ADR-0111): prenda terminada (vía Compras) e insumos del Taller
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
@@ -91,21 +92,22 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-6">
-      <div className="anim-entra">
-        <Volver href="/compras/proveedores" a="Proveedores" />
-        <div data-voz="cabecera" className="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-          <div className="flex min-w-0 items-start gap-4" data-guia="proveedor-ficha.cabecera">
-            <span aria-hidden className="font-display grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sand text-2xl text-tinta">
-              {proveedor.nombre.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
-            </span>
-            <div className="min-w-0">
-            <h1 className="font-display text-2xl text-tinta">{proveedor.nombre}</h1>
-            <p className="mt-1 text-sm text-tinta/65">
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): el nombre del proveedor de título, sus datos de
+          frase y lo que se sabe de él (marcas, crédito, cómo cobra) como estados bajo la frase. */}
+      <div data-guia="proveedor-ficha.cabecera">
+        <EncabezadoPagina
+          sede="Todas las tiendas"
+          volver={<Volver href="/compras/proveedores" a="Proveedores" />}
+          titulo={proveedor.nombre}
+          subtitulo={
+            <>
               {proveedor.ruc ?? "Sin RUC"} · {proveedor.contacto ?? "Sin contacto"}
               {proveedor.rubros.length > 0 && <> · {proveedor.rubros.join(", ")}</>}
               {!proveedor.activo && <> · Desactivado</>}
-            </p>
-            <div className="mt-2.5 flex flex-wrap gap-2">
+            </>
+          }
+          pie={
+            <div className="flex flex-wrap gap-2">
               {marcas.map((marca) => (
                 <Chip key={marca} versalitas={false}>
                   {marca}
@@ -118,10 +120,9 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               {proveedor.banco && <Chip>{proveedor.banco}</Chip>}
               {proveedor.telefono && <Chip>WhatsApp {proveedor.telefono}</Chip>}
             </div>
-            </div>
-          </div>
-          <ProveedorAcciones proveedor={proveedor} rubros={rubrosConConteo(directorio.filter((p) => p.activo)).map((r) => r.etiqueta)} />
-        </div>
+          }
+          acciones={<ProveedorAcciones proveedor={proveedor} rubros={rubrosConConteo(directorio.filter((p) => p.activo)).map((r) => r.etiqueta)} />}
+        />
       </div>
 
       {paso && (

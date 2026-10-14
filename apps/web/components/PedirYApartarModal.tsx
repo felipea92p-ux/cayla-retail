@@ -2,7 +2,7 @@
 
 import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { Modal, botonCancelar, botonPrimario, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -19,6 +19,7 @@ import {
   soloDigitos,
   type CandidatoPedir,
 } from "@/lib/pedidos-con-cliente-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // «Pedir y apartar para este cliente» (ADR-0328 act. 17; Felipe 2026-10-04): desde Vender, la asesora pide la prenda que
 // aquí no hay a la tienda que la tiene, para el cliente que la espera. Allá queda APARTADA al instante (nadie más la vende),
@@ -125,7 +126,6 @@ export function PedirYApartarModal({
       titulo="Pedir y apartar para el cliente"
       subtitulo={[referencia, color].filter(Boolean).join(" · ")}
       onClose={onClose}
-      ancho="max-w-md"
       bloqueado={enviando}
       alCerrarEnfocar={alCerrarEnfocar}
     >
@@ -205,19 +205,19 @@ export function PedirYApartarModal({
           </CampoGuiado>
 
           <PieGuia guia={guia} listo="Todo listo para pedir." />
-          <div className="pie-hoja-fijo flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} className={botonCancelar} disabled={enviando}>
+          <div className="pie-hoja-fijo pie-acciones pt-1">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={enviando}>
               Mejor no
             </button>
-            <button
+            <Boton peso="primario" cargando={enviando} textoCargando="Pidiendo…"
               type="button"
               disabled={enviando || !guia.puedeConfirmar}
               title={responsable.motivo ?? guia.frase ?? undefined}
               onClick={() => pedir(cerrar)}
-              className={`${botonPrimario} ${guia.claseConfirmar}`}
+              className={`flex-1 ${guia.claseConfirmar}`}
             >
-              {enviando ? "Pidiendo…" : `Pedir y apartar en ${nombreTienda}`}
-            </button>
+              {`Pedir y apartar en ${nombreTienda}`}
+            </Boton>
           </div>
         </div>
       )}

@@ -25,6 +25,7 @@ import {
   type LineaPropuesta,
   type SaldoInicial,
 } from "@/lib/balance-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Los saldos de arranque (ADR-0195 F7, ADR-0198): lo que CAYLA tenía al empezar el día de arranque. El spike no dice dónde
 // se cargan; viven aquí, en el propio Balance, en un modal hoja. La primera vez: lo que el sistema ya sabe viene calculado
@@ -146,7 +147,7 @@ export function SaldosArranqueModal({
           : "Lo que CAYLA tenía el día que empezó a usar el sistema. Lo que el sistema ya sabe viene calculado; el resto lo pones tú, con el contador. Se registra una vez."
       }
       onClose={onCerrar}
-      ancho="max-w-[680px]"
+      tamano="ancha"
     >
       {!hayArranque && (
         <CampoFin
@@ -256,9 +257,9 @@ export function SaldosArranqueModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={!puedeGuardar || !responsable.listo}>
-          {guardando ? "Guardando…" : hayArranque ? "Guardar corrección" : "Registrar saldos de arranque"}
-        </button>
+        <Boton peso="primario" cargando={guardando} type="button" onClick={guardar} disabled={!puedeGuardar || !responsable.listo}>
+          {hayArranque ? "Guardar corrección" : "Registrar saldos de arranque"}
+        </Boton>
       </div>
     </Modal>
   );

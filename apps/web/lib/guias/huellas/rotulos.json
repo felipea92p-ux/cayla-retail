@@ -18,7 +18,7 @@
       "a «Ver foto grande»"
     ],
     "components/ImprimirRotulos.tsx": [
-      "button «→mandar»",
+      "BotonImprimir «→mandar»",
       "Volver «(sin nombre)»",
       "button «Quitar todas»",
       "button «{`Quitar ${m.referencia}»",

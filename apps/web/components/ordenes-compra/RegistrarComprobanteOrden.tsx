@@ -139,7 +139,8 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
 
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
-  const cuentas = useCuentasParaElegir("pago", destino?.id ?? null, condicion === "contado");
+  // ADR-0362 fase 6: quien compra paga desde «Mi fondo» (primero en «Sale de» si tiene uno).
+  const cuentas = useCuentasParaElegir("pago", destino?.id ?? null, condicion === "contado", { conMiFondo: true });
 
   const plazoDias = datos.proveedor?.plazoCreditoDias ?? null;
   const sugerido = vencimientoSugerido(emision, plazoDias);
@@ -624,6 +625,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                 lineas={pagos}
                 onLineas={setPagos}
                 objetivo={totalSoles}
+                totalComprobante={totalSoles}
                 exacto
                 saldoFavor={datos.proveedor?.saldoFavor ?? 0}
                 datosProveedor={datos.proveedor?.datosPago ?? null}
@@ -659,10 +661,10 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
               {error.texto}
             </Aviso>
           )}
-          <div className="flex flex-wrap justify-end gap-2.5">
+          <div className="pie-acciones">
             <BotonEnlace href="/compras/ordenes">Cancelar</BotonEnlace>
-            <Boton type="submit" peso="primario" cargando={guardando} disabled={registrado} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {registrado ? "Registrado" : guardando ? "Registrando…" : palabras.boton}
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Registrando…" disabled={registrado} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {registrado ? "Registrado" : palabras.boton}
             </Boton>
           </div>
         </section>

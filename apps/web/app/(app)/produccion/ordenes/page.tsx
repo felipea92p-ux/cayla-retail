@@ -13,6 +13,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { tipoDeParametro } from "@/lib/modelo-nuevo-orden-reglas";
 import { getPreciosDeLasTiendas } from "@/lib/precios-sede-datos";
 import { conPreciosMasBajos, conPreciosMasBajosDeModelos } from "@/lib/produccion-reglas";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Órdenes de producción del Taller (restaurada 2026-09-15 sobre V2). Una sola
 // forma de producir: la orden. Se abre con costo estimado y cantidades por
@@ -28,8 +29,9 @@ import { conPreciosMasBajos, conPreciosMasBajosDeModelos } from "@/lib/produccio
 // candado real sigue siendo el de cada RPC.
 //
 // `?nueva=<modelo>&tipo=muestra|produccion` abre «Nueva orden» con ese modelo y ese tipo ya elegidos: es por donde vuelve la persona
-// que creó un modelo nuevo desde la propia orden (ADR-0361, `lib/modelo-nuevo-orden-reglas.ts`).
-export default async function OrdenesProduccionPage({ searchParams }: { searchParams: Promise<{ orden?: string; nueva?: string; tipo?: string }> }) {
+// que creó un modelo nuevo desde la propia orden (ADR-0361, `lib/modelo-nuevo-orden-reglas.ts`). `&sugerida=1` (solo lo manda el Resumen de Producción, «Abrir orden sugerida») además llena la
+// matriz con la cantidad sugerida por la red; sin él, `?nueva=` abre la orden vacía, como siempre (también lo usan Análisis y Nuevo producto).
+export default async function OrdenesProduccionPage({ searchParams }: { searchParams: Promise<{ orden?: string; nueva?: string; tipo?: string; sugerida?: string }> }) {
   const sp = await searchParams;
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {
@@ -41,7 +43,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
   if (!taller) {
     return (
       <div className="space-y-6">
-        <h1 className="font-display text-2xl text-tinta">Producción</h1>
+        <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Órdenes de producción" />
         <div className="card-cayla">
           <Vacio icono={<Factory />} titulo="No hay un Taller activo">
             Producción necesita una ubicación de tipo Taller para saber dónde entra el stock. Pídele al líder que active el Taller.
@@ -76,7 +78,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
 
   return (
     <div className="space-y-6">
-      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} vocabulario={vocabulario} />
+      <OrdenesTablero sede={persona.ubicacionEtiqueta} tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} sugeridaInicial={sp.sugerida === "1"} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} vocabulario={vocabulario} />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import Link from "next/link";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
@@ -226,6 +226,7 @@ function Racimo({ piezas, anulada }: { piezas: PrendaDeVenta[]; anulada: boolean
 /** La foto de la prenda o, sin ella, un mosaico de su color (con un filete interior para que un beige o un blanco no desaparezcan sobre el papel). */
 function Miniatura({ p }: { p: PrendaDeVenta }) {
   const base = "block h-10 w-10 rounded-lg ring-2 ring-papel";
-  if (p.fotoUrl) return <Image src={p.fotoUrl} alt="" width={40} height={40} unoptimized className={`${base} object-cover`} />;
-  return <span className={`${base} shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]`} style={{ background: p.colorHex ?? "var(--color-sand)" }} />;
+  const mosaico = <span className={`${base} shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]`} style={{ background: p.colorHex ?? "var(--color-sand)" }} />;
+  if (p.fotoUrl) return <ImagenDePrenda src={p.fotoUrl} alt="" width={40} height={40} className={`${base} object-cover`} fallback={mosaico} />;
+  return mosaico;
 }

@@ -219,7 +219,7 @@ export function CorregirPagoModal({
 
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo="Todo listo para guardar." />
-            <div className="ml-auto flex gap-3">
+            <div className="ml-auto pie-acciones">
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>

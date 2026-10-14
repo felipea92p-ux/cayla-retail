@@ -122,7 +122,7 @@
     transform: scale(0.86);
   }
   .etq-paso > button:disabled {
-    color: color-mix(in oklab, var(--color-tinta) 28%, transparent);
+    color: color-mix(in oklab, var(--color-tinta) 28%, transparent); /* contraste: no aplica — botón deshabilitado (WCAG lo exime) */
   }
   .etq-paso > button > svg {
     width: 14px;

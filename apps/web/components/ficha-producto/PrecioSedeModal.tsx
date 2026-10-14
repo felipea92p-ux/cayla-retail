@@ -168,7 +168,6 @@ export function PonerPrecioSedeModal({
       subtitulo="Todas sus tallas y colores se venden a este precio en esa tienda, en Vender y en apartados. Las otras tiendas no cambian. (Un cambio de talla o color vale lo que se pagó donde se compró.)"
       onClose={onClose}
       variante="hoja"
-      conCerrar
     >
       {(cerrar) => (
         <form onSubmit={onGuardar} className="space-y-6">
@@ -234,7 +233,7 @@ export function PonerPrecioSedeModal({
 
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo="Todo listo para guardar." />
-            <div className="ml-auto flex gap-3">
+            <div className="ml-auto pie-acciones">
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>
@@ -318,7 +317,6 @@ export function QuitarPrecioSedeModal({
       }
       onClose={onClose}
       variante="hoja"
-      conCerrar
     >
       {(cerrar) => (
         <form onSubmit={onQuitar} className="space-y-6">
@@ -341,11 +339,11 @@ export function QuitarPrecioSedeModal({
           </CampoGuiado>
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo="Listo para quitarlo." />
-            <div className="ml-auto flex gap-3">
+            <div className="ml-auto pie-acciones">
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>
-              <Boton type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={responsable.motivo ?? guia.frase ?? undefined}>
+              <Boton textoCargando="Quitando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={responsable.motivo ?? guia.frase ?? undefined}>
                 Quitar precio de {precio.sede}
               </Boton>
             </div>

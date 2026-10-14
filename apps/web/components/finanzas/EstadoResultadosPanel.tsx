@@ -30,6 +30,9 @@ import {
   type LineaDiario,
 } from "@/lib/resultados-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { CalendarX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Finanzas ▸ Reportes ▸ Estado de resultados (ADR-0195 F5), dibujado como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-reportes.js` → `vistaResultados`): cabecera «¿Ganamos?» con «Ver» → pestañas → UNA tarjeta con el mes, «Comparar» y
@@ -127,9 +130,9 @@ export function EstadoResultadosPanel({
             ) : (
               <Chip versalitas={false}>{columnas[0]?.nombre ?? "Tu tienda"}</Chip>
             )}
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!columnas.length} data-guia="fin-reportes.excel">
+            <BotonDescargar onClick={descargar} disabled={!columnas.length} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />
@@ -212,7 +215,7 @@ export function EstadoResultadosPanel({
               </table>
             </div>
           ) : (
-            <p className="px-5 py-8 text-sm text-taupe">No hay números que mostrar para este mes.</p>
+            <Vacio tamano="chico" className="py-8" icono={<CalendarX />}>No hay números que mostrar para este mes.</Vacio>
           )}
 
           {avisos.length > 0 && (
@@ -347,7 +350,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
       }
       subtitulo={`${mesTitulo(mes)} · ${solesER(Math.abs(k.valor(c)))}`}
       onClose={onCerrar}
-      ancho="max-w-[560px]"
+      tamano="mediana"
     >
       <p className="text-[13px] leading-relaxed text-taupe" data-guia="fin-resultados.origen">
         <b className="font-semibold text-tinta">Sale de</b> {fuentes.join("; ")}.

@@ -35,7 +35,7 @@ export const GUIA_FACTURAS: Guia = {
     {
       id: "exportar",
       ancla: "compras.exportar",
-      titulo: "Exportar el mes",
+      titulo: "Descargar el mes",
       texto: "Descarga un archivo con las facturas del mes, que se abre en Excel, para mandárselo al contador. No cambia nada en el sistema.",
     },
     {
@@ -870,7 +870,7 @@ export const GUIA_PROVEEDOR: Guia = {
       id: "modal-pie",
       ancla: "proveedor-modal.pie",
       titulo: "Guardar los cambios",
-      texto: "«Guardar cambios» deja sus datos corregidos; «Cancelar» o la ✕ cierran sin tocar nada. Si ya no le compras, abajo puedes desactivarlo: no se borra, solo deja de salir al registrar facturas. En la demo cerramos sin guardar.",
+      texto: "«Guardar cambios» deja sus datos corregidos; «Cancelar» o la ✕ cierran sin tocar nada. En la demo cerramos sin guardar.",
     },
     {
       id: "cifras",
@@ -1144,7 +1144,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.empezar",
       opcional: true,
       titulo: "Por dónde empezar",
-      texto: "Cuando ya hay categorías con plan, al lado sale «Exportar», para imprimirlo o bajarlo a Excel. Este botón abre la categoría que más vende y todavía no tiene plan: la que conviene llenar primero.",
+      texto: "Cuando ya hay categorías con plan, al lado sale «Descargar la lista», para imprimirla o bajarla a Excel. Este botón abre la categoría que más vende y todavía no tiene plan: la que conviene llenar primero.",
     },
     {
       id: "selector",
@@ -1201,7 +1201,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.pedido",
       opcional: true,
       titulo: "Ya pedido en órdenes de compra",
-      texto: "Las órdenes de compra que llegan dentro de las fechas de la campaña, con su total. Se muestran, no se restan de «Comprar»: todavía no sabemos cuándo llegó cada una. En la tabla, cada categoría dice cuántas ya se pidieron.",
+      texto: "Las órdenes de compra que llegan dentro de las fechas de la campaña, con su total. Lo que todavía no llegó a ninguna tienda ya se resta de «Comprar»; lo que llegó está en «Hay hoy». En la tabla, cada categoría dice cuántas se pidieron y cuántas faltan llegar.",
     },
     {
       id: "recupero-cayla",
@@ -1355,11 +1355,24 @@ export const GUIA_ORDENES: Guia = {
       texto: "Abre el formulario para pedirle algo a un proveedor: eliges al proveedor, a dónde llega y escribes lo que pides, prenda por prenda. Al guardar, vuelve aquí con la orden marcada como «Recién guardada».",
     },
     {
+      id: "gasto-viaje",
+      ancla: "ordenes.gasto-viaje",
+      titulo: "Lo que costó traer la compra",
+      texto: "«+ Gasto del viaje» anota lo que pagaste para traer la compra (flete, agencia, cargador, embalaje) o en el viaje (pasaje, hotel, comida, taxi), y a qué órdenes va. Sale de tu fondo o de una cuenta de siempre y nunca entra al costo de la prenda. En la demo no lo guardamos.",
+    },
+    {
       id: "cifras",
       ancla: "ordenes.cifras",
       opcional: true,
       titulo: "Cuánto se ha pedido",
       texto: "Lo pedido a proveedores en todas las sedes, lo que llega a la sede donde trabajas y lo que llega a Lima «por repartir» entre las tiendas. Solo cuentan las órdenes generadas: una anulada no suma. No cambian con los filtros.",
+    },
+    {
+      id: "tu-fondo",
+      ancla: "ordenes.tu-fondo",
+      opcional: true,
+      titulo: "Tu fondo",
+      texto: "La plata que CAYLA te entregó para comprar: cuánto te queda y cuánto gastaste. Baja sola al pagar o anotar un gasto desde «Mi fondo». «Rendir» abre tu rendición: cuentas tu efectivo y otra persona la revisa. Solo la ves tú.",
     },
     {
       id: "buscador",
@@ -1558,6 +1571,13 @@ export const GUIA_ORDEN: Guia = {
       texto: "Si un envío salió mal, «Anular envío» pide el motivo y lo deja sin efecto: lo que llevaba vuelve a quedar por enviar. Solo mientras va «En camino»: cuando la sede lo abre, ya no. No se borra ni se deshace. En la demo no lo tocamos.",
     },
     {
+      id: "gastos-viaje",
+      ancla: "orden.gastos-viaje",
+      opcional: true,
+      titulo: "Traerla costó",
+      texto: "Los gastos del viaje de esta orden (flete, cargador, hotel…) y lo que le tocó a ella: si un gasto se repartió entre varias órdenes, aquí ves su parte. Es lo que costó traerla, aparte del costo de las prendas.",
+    },
+    {
       id: "pie",
       ancla: "orden.pie",
       titulo: "Su estado y quién la hizo",
@@ -1567,7 +1587,14 @@ export const GUIA_ORDEN: Guia = {
       id: "acciones",
       ancla: "orden.acciones",
       titulo: "Lo que haces con ella",
-      texto: "«Imprimir o guardar PDF» saca la orden en papel A4, lista para mandársela al proveedor. «Editar» la corrige, solo mientras no tenga comprobante ni envío; «Anular orden» la deja sin efecto, con un motivo, y no se deshace. En la demo no tocamos ninguno.",
+      texto: "«Imprimir la orden» la saca en papel A4 (o en PDF), lista para mandársela al proveedor. «Editar» la corrige, solo mientras no tenga comprobante ni envío; «Anular orden» la deja sin efecto, con un motivo, y no se deshace. En la demo no tocamos ninguno.",
+    },
+    {
+      id: "gasto-viaje",
+      ancla: "orden.gasto-viaje",
+      opcional: true,
+      titulo: "Anotar un gasto del viaje",
+      texto: "«+ Gasto del viaje» abre la hoja con esta orden ya elegida: qué pagaste, cuánto, el papel que te dieron y de dónde salió la plata. Puedes sumar otras órdenes y el monto se reparte según el total de cada una. En la demo no lo guardamos.",
     },
     {
       id: "enviar",
@@ -2016,4 +2043,98 @@ export const GUIA_PLAN_HISTORIAL: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }],
+};
+
+// ---- Fondos por rendir (ADR-0362, fase 6 · actividad 1 · ADR-0389) ----
+// Es plata: la guía dice con cuidado qué cuenta como entregado, devuelto y en la mano, y nunca entrega, registra ni anula (los
+// botones se EXPLICAN con la pieza encendida). Lo que depende de que alguien ya tenga fondo (las cifras, la lista, los movimientos) es
+// opcional; sin fondos, la guía explica la tarjeta vacía.
+export const GUIA_FONDOS: Guia = {
+  id: "compras.fondos",
+  ruta: "/compras/fondos",
+  titulo: "Fondos por rendir",
+  resumen: "La plata que le entregas a quien compra, y cuánto tiene cada persona en la mano.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "La plata para comprar",
+      texto: "Quien compra para CAYLA paga al proveedor, el flete y sus gastos con plata que le entregas antes. Aquí la entregas y ves cuánto tiene cada persona en la mano. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "entregar",
+      ancla: "fondos.entregar",
+      titulo: "Entregar plata",
+      texto: "Eliges a quién, de qué banco o caja fuerte sale y para qué es («compras en Gamarra»). No es un gasto: la plata sigue siendo de CAYLA mientras la persona la tiene. Nadie se entrega plata a sí mismo.",
+    },
+    {
+      id: "vacio",
+      ancla: "fondos.vacio",
+      opcional: true,
+      titulo: "Todavía nadie tiene fondo",
+      texto: "Cuando entregues la primera plata, aquí vas a ver a esa persona: cuánto le diste, cuánto devolvió y cuánto tiene en la mano.",
+    },
+    {
+      id: "rendiciones",
+      ancla: "fondos.rendiciones",
+      opcional: true,
+      titulo: "Rendiciones por aprobar",
+      texto: "Quien compró rinde su fondo: cuenta lo que tiene en la mano y aquí ves lo que debería tener, lo que dice que tiene y si cuadra o le falta plata. Cada una se revisa con «Revisar».",
+    },
+    {
+      id: "revisar",
+      ancla: "fondos.revisar",
+      opcional: true,
+      titulo: "Revisar una rendición",
+      texto: "Abre cada pago y gasto con su foto. Si falta plata y explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda, y la hoja dice en cuánto queda la suya. Quien le entregó la plata no la aprueba: puede revisarla y devolverla para que la corrija. En la demo no la aprobamos.",
+    },
+    {
+      id: "cifras",
+      ancla: "fondos.cifras",
+      opcional: true,
+      titulo: "Toda la empresa",
+      texto: "Cuánto tienen en la mano todas las personas juntas, cuánto se entregó desde el primer fondo y cuánto devolvieron.",
+    },
+    {
+      id: "lista",
+      ancla: "fondos.lista",
+      opcional: true,
+      titulo: "Quién tiene plata",
+      texto: "Una fila por persona: su sede, para qué fue la última entrega, cuánto se le entregó, cuánto devolvió y lo que tiene en la mano. Si rindió y espera, lo que dijo tener sale bajo su cifra; si debe por un faltante, lo dice bajo su nombre.",
+    },
+    {
+      id: "devolver",
+      ancla: "fondos.devolver",
+      opcional: true,
+      titulo: "Lo que devuelve",
+      texto: "Cuando te devuelve lo que sobró, lo registra quien recibe la plata (nunca quien la devuelve): a qué banco o caja fuerte volvió y cuánto. Si su rendición espera aprobación, la hoja dice cuánto le falta y hasta cuánto puede devolver.",
+    },
+    {
+      id: "pagar-deuda",
+      ancla: "fondos.pagar-deuda",
+      opcional: true,
+      titulo: "Saldar una deuda",
+      texto: "Si alguien debe por un faltante y te devuelve la plata, aquí lo registras: cuánto pagó y a qué banco o caja fuerte entró. La deuda baja apenas se guarda. No lo registra quien debe, y no se paga más de lo que debe.",
+    },
+    {
+      id: "movimientos",
+      ancla: "fondos.movimientos",
+      opcional: true,
+      titulo: "Entregas, devoluciones y pagos de deuda",
+      texto: "Cada entrega, devolución y pago de deuda, lo más nuevo arriba: de dónde salió o a dónde llegó la plata y para qué. Lo anulado queda a la vista, tachado, con quién lo anuló y por qué.",
+    },
+    {
+      id: "anular",
+      ancla: "fondos.anular",
+      opcional: true,
+      titulo: "Anular un error",
+      texto: "Si una entrega, una devolución o un pago de deuda se anotó mal, se anula con su motivo; no se borra. Una entrega de la que ya salió plata no se anula, y nadie anula lo de su propio fondo.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes entregar plata, ver cuánto tiene cada persona y revisar sus rendiciones. Para repasarlo: Mi perfil ▸ Demo ▸ Fondos por rendir.",
+    },
+  ],
 };

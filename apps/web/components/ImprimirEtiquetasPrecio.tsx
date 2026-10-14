@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { createPortal } from "react-dom";
 import { Minus, Plus, RotateCcw, Tags, Trash2 } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Encabezado, Tabla, TABLA, type Columna } from "@/components/ui/Tabla";
 import { CapsulaColor, VARIOS_COLORES } from "@/components/ui/MuestraColor";
 import { Aviso } from "@/components/ui/Aviso";
@@ -24,6 +24,7 @@ import {
   type Encabezado as TextosPantalla,
   type EtiquetaPrecio as DatosEtiqueta,
 } from "@/lib/etiqueta-precio-reglas";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // Una fila por color y talla, juntas bajo el nombre de su prenda (Felipe, 2026-10-09: «que no se haga tan cansado de ver tantas
 // cosas»): el nombre se dice una vez por grupo y cada fila dice solo lo que cambia —el color con su cápsula, la talla, el precio— y
@@ -67,6 +68,7 @@ export function ImprimirEtiquetasPrecio({
   sinCodigo,
   impreso,
   volver,
+  sede,
 }: {
   encabezado: TextosPantalla;
   etiquetas: DatosEtiqueta[];
@@ -74,6 +76,8 @@ export function ImprimirEtiquetasPrecio({
   impreso: string;
   /** La pantalla que abrió las etiquetas (`volverDeEtiquetas`): no es del menú, así que sin esto no hay salida. */
   volver: { href: string; a: string };
+  /** La sede de la línea de arriba de la cabecera (donde se imprime). */
+  sede: string;
 }) {
   const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(etiquetas.map((e) => [e.varianteId, String(e.cantidad)])));
   // Las filas sacadas con el tacho, en el orden en que salieron (el «Deshacer» del aviso devuelve la suya). `saliendo`: las que
@@ -167,7 +171,7 @@ export function ImprimirEtiquetasPrecio({
   const imprimir = (
     <div className="flex flex-wrap items-center gap-2">
       <BotonGuiaImpresion />
-      <button type="button" className="btn-cayla btn-primario mov-boton" disabled={total === 0 || enviando} onClick={mandar}>
+      <BotonImprimir peso="primario" disabled={total === 0 || enviando} onClick={mandar}>
         {total === 0 ? (
           "Nada que imprimir"
         ) : enviando ? (
@@ -180,17 +184,14 @@ export function ImprimirEtiquetasPrecio({
             <span className="sr-only">Imprimir {plural(total, "etiqueta", "etiquetas")}</span>
           </>
         )}
-      </button>
+      </BotonImprimir>
     </div>
   );
 
   if (etiquetas.length === 0) {
     return (
       <div className="space-y-6">
-        <div>
-          <Volver {...volver} className="mb-4" />
-          <CabeceraPantalla sobretitulo={encabezado.sobretitulo} titulo={encabezado.titulo} bajada={encabezado.vacio} />
-        </div>
+        <EncabezadoPagina sede={sede} detalle={encabezado.sobretitulo} volver={<Volver {...volver} />} titulo={encabezado.titulo} subtitulo={encabezado.vacio} />
         {sinCodigo.length > 0 && <AvisoSinCodigo prendas={sinCodigo} />}
       </div>
     );
@@ -235,10 +236,16 @@ export function ImprimirEtiquetasPrecio({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Volver {...volver} className="mb-4" />
-        <CabeceraPantalla sobretitulo={encabezado.sobretitulo} titulo={encabezado.titulo} bajada={encabezado.bajada} acciones={imprimir} />
-      </div>
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): de dónde se llegó («Productos · Blusa Emma») va en
+          la línea de arriba, tras la sede y la fecha. */}
+      <EncabezadoPagina
+        sede={sede}
+        detalle={encabezado.sobretitulo}
+        volver={<Volver {...volver} />}
+        titulo={encabezado.titulo}
+        subtitulo={encabezado.bajada}
+        acciones={imprimir}
+      />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,40%)] xl:gap-8">
         <div className="min-w-0 space-y-5">

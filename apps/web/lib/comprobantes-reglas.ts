@@ -120,6 +120,9 @@ export function tipoDocumentoDeCliente(
   return tipoDocDelComprobante(tipo, clienteNumDoc, identidad);
 }
 
+/** Cuántos dígitos tiene, como mucho, el número de un comprobante (`comprobantes.numero` es `integer`). */
+const MAX_DIGITOS_COMPROBANTE = 9;
+
 /** Lo que se puede leer de "B001-000010" (o "B001-10", o solo "10") escrito a mano en
  *  Devoluciones o Cambios para encontrar una venta que ya no está entre las últimas 30.
  *  `numero` viene sin ceros a la izquierda — así vive en `comprobantes.numero`. `null`
@@ -128,11 +131,15 @@ export function parsearComprobante(texto: string): { serie: string | null; numer
   const limpio = texto.trim().toUpperCase();
   if (!limpio) return { serie: null, numero: null };
 
+  // `comprobantes.numero` es `integer`: con más de 9 dígitos no es un número de comprobante, y compararlo contra esa columna
+  // revienta la consulta («out of range»): «B001-12345678901» tumbaba Cambios, Devoluciones e Historial (/chaos 2026-10-13).
+  const numeroDe = (digitos: string) => (digitos.replace(/^0+/, "").length <= MAX_DIGITOS_COMPROBANTE ? Number(digitos) : null);
+
   const conSerie = limpio.match(/^([A-Z]+\d*)[\s-]+(\d+)$/);
-  if (conSerie) return { serie: conSerie[1], numero: Number(conSerie[2]) };
+  if (conSerie) return { serie: conSerie[1], numero: numeroDe(conSerie[2]) };
 
   const soloNumero = limpio.match(/^(\d+)$/);
-  if (soloNumero) return { serie: null, numero: Number(soloNumero[1]) };
+  if (soloNumero) return { serie: null, numero: numeroDe(soloNumero[1]) };
 
   return { serie: null, numero: null };
 }

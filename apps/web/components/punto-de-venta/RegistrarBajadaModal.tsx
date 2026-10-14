@@ -30,7 +30,7 @@ export function RegistrarBajadaModal({
 }) {
   const varias = nombres.length > 1;
   return (
-    <Modal titulo="Registrar la bajada al piso" ancho="max-w-md" onClose={onClose}>
+    <Modal titulo="Registrar la bajada al piso" onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <p className="text-sm text-tinta/80">
@@ -40,13 +40,13 @@ export function RegistrarBajadaModal({
             La bajada va a nombre de quien atiende.
           </p>
           <ComboResponsable control={responsable} />
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton
               peso="primario"
-              className="flex-1"
+             
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
               onClick={() => {

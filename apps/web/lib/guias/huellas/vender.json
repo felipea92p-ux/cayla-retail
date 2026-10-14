@@ -2,13 +2,15 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 167,
+  "total": 172,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
       "input «Ej.: se usó para vuelto antes de abrir»",
       "ComboResponsable «(sin nombre)»",
-      "button «{responsable.motivo ?? undefined}»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}» #2",
       "button «→onElegir»"
     ],
     "components/CampoDocumentoClienta.tsx": [
@@ -29,11 +31,11 @@
       "button «Cerrar igual»",
       "ComboResponsable «setPaso(\"contar\")»",
       "Volver «→() => setPaso(\"contar\")»",
-      "button «{responsable.motivo ?? invalido ?? undefined}»"
+      "Boton «{responsable.motivo ?? invalido ?? undefined}»"
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «{actual?.fase === \"cargando\" ? \"Buscando…\" : \"Buscar\"}»",
+      "Boton «Buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/EscanerCamara.tsx": [
@@ -45,14 +47,14 @@
     "components/PedidoClienteModales.tsx": [
       "ComboResponsable «Mejor no»",
       "button «Mejor no»",
-      "button «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}»",
       "ComboResponsable «(sin nombre)»",
       "button «{estado === \"hecho\" ? \"Listo\" : \"Ahora no\"}»",
-      "button «{responsable.motivo ?? undefined}» #2",
+      "Boton «{responsable.motivo ?? undefined}» #2",
       "a «{responsable.motivo ?? undefined}»",
       "ComboResponsable «(sin nombre)» #2",
-      "button «{responsable.motivo ?? undefined}» #3",
-      "button «{responsable.motivo ?? undefined}» #4"
+      "Boton «{responsable.motivo ?? undefined}» #3",
+      "Boton «{responsable.motivo ?? undefined}» #4"
     ],
     "components/PedirYApartarModal.tsx": [
       "button «{c.talla}»",
@@ -63,7 +65,7 @@
       "input «{tienda ? tienda.corto : \"La otra tienda\"}»",
       "ComboResponsable «Mejor no»",
       "button «Mejor no»",
-      "button «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/PrendaSinRegistrarModal.tsx": [
       "button «Usar «»",
@@ -74,7 +76,7 @@
       "CampoTexto «Descripción corta»",
       "input «Precio cobrado en soles»",
       "ComboResponsable «)»",
-      "button «{guia.frase ?? undefined}»"
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/PuntoDeVenta.tsx": [
       "button «Cerrar caja»",
@@ -91,8 +93,8 @@
       "button «{c}»"
     ],
     "components/PuntoDeVentaColaOffline.tsx": [
-      "button «Sí, descartar»",
       "button «Cancelar»",
+      "button «Sí, descartar»",
       "button «Descartar»"
     ],
     "components/PuntoDeVentaTicket.tsx": [
@@ -100,6 +102,9 @@
       "button «En espera ·»",
       "Volver «→onVolverATicket»",
       "button «Retomar»",
+      "SegmentoDeslizante «Cómo escribir el descuento»",
+      "button «S/»",
+      "input «Monto de descuento por prenda»",
       "button «{p}»",
       "input «Porcentaje de descuento»",
       "button «{r.etiqueta}»",
@@ -118,7 +123,7 @@
       "button «vender.cobrar»"
     ],
     "components/VentaRegistradaModal.tsx": [
-      "button «Imprimir y nueva venta»",
+      "BotonImprimir «Imprimir y nueva venta»",
       "button «Solo imprimir»",
       "button «Sin imprimir»",
       "button «Nueva venta»"
@@ -140,7 +145,7 @@
       "Link «vender.apartados»"
     ],
     "components/punto-de-venta/AnotarNoHabia.tsx": [
-      "button «→anotar»",
+      "Boton «→anotar»",
       "button «{t}»",
       "ComboResponsable «(sin nombre)»"
     ],
@@ -158,7 +163,7 @@
       "button «{ayuda}»",
       "button «Agregar cliente»",
       "button «{boton.texto}»",
-      "button «{revisando ? \"Revisando…\" : \"Actualizar\"}»",
+      "Boton «Actualizar»",
       "Boton «Registrarlo»",
       "Boton «Seguir sin cliente»",
       "button «{l.titulo}»",
@@ -221,8 +226,8 @@
     "components/punto-de-venta/ResumenDeHoy.tsx": [
       "button «{r.pctMeta !== null ? `${r.pctMeta}»",
       "button «{soles(r.total)}»",
-      "Link «Historial completo»",
-      "Link «Ir a Caja»"
+      "BotonVer «Historial completo»",
+      "BotonVer «Ir a Caja»"
     ],
     "components/punto-de-venta/TarjetaPrenda.tsx": [
       "button «vender.prenda-abrir»",

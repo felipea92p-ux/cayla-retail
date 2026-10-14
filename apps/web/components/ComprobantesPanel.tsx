@@ -59,8 +59,8 @@ function accionComprobante(
       case "reintentar": {
         const enVuelo = handlers.transmitiendoId === c.id;
         return (
-          <BotonCompacto key={accion} variante="fila-alerta" cargando={enVuelo} aria-label={`Reintentar ${numero}`} onClick={() => handlers.onTransmitir(c.id)}>
-            {enVuelo ? "Enviando…" : "Reintentar"}
+          <BotonCompacto key={accion} variante="fila-alerta" cargando={enVuelo} textoCargando="Enviando…" aria-label={`Reintentar ${numero}`} onClick={() => handlers.onTransmitir(c.id)}>
+            Reintentar
           </BotonCompacto>
         );
       }
@@ -79,8 +79,8 @@ function accionComprobante(
       case "consultar": {
         const enVuelo = handlers.consultandoId === c.id;
         return (
-          <BotonCompacto key={accion} variante="fila" cargando={enVuelo} aria-label={`Consultar la anulación de ${numero}`} onClick={() => handlers.onConsultarAnulacion(c.id)}>
-            {enVuelo ? "Consultando…" : "Consultar"}
+          <BotonCompacto key={accion} variante="fila" cargando={enVuelo} textoCargando="Consultando…" aria-label={`Consultar la anulación de ${numero}`} onClick={() => handlers.onConsultarAnulacion(c.id)}>
+            Consultar
           </BotonCompacto>
         );
       }
@@ -537,19 +537,19 @@ function ModalAnular({ comprobante, onClose }: { comprobante: Comprobante; onClo
           />
 
           <ComboResponsable control={responsable} deshabilitado={enviandoAnulacion} className="pt-2" />
-          <div className="flex gap-2 pt-3">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones pt-3">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Anulando…"
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={enviandoAnulacion}
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {enviandoAnulacion ? "Anulando…" : "Anular"}
+              Anular
             </Boton>
           </div>
         </form>
@@ -635,19 +635,19 @@ function ModalLiberar({ comprobante, onClose }: { comprobante: Comprobante; onCl
           />
 
           <ComboResponsable control={responsable} deshabilitado={enviandoLiberacion} className="pt-2" />
-          <div className="flex gap-2 pt-3">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones pt-3">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Liberando…"
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={enviandoLiberacion}
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {enviandoLiberacion ? "Liberando…" : "Liberar sin espera"}
+              Liberar sin espera
             </Boton>
           </div>
         </form>

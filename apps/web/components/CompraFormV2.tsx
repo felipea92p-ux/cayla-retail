@@ -76,7 +76,12 @@ let secuenciaLineas = 0;
 // Todo lo numérico con ancho fijo: cada línea es su propia grilla, y una
 // columna `auto` o `fr` en una cifra hacía que "S/ 300,000.00" ensanchara
 // SU fila y no las demás — se descuadraban entre sí y con el encabezado.
-const PLANTILLA_LINEAS = "sm:grid-cols-[1.4fr_1.2fr_5.5rem_7rem_8rem_3.5rem]";
+// `minmax(0, …)` en las dos columnas que crecen: sin él, el texto más largo de «Talla y color» («Sin desglose (se reparte al recibir)»)
+// fijaba el ancho mínimo de su columna y, como la caja de «Producto» sí se deja encoger (ronda 6), Producto quedaba en 78 px sin lugar
+// para escribir (encontrado por el censo de después, 2026-10-13). Así reparten el espacio en su proporción y todas las filas calzan.
+// Las columnas fijas, a la medida de su título más largo («CANTIDAD», «PRECIO C/IGV», «IMPORTE C/IGV», la ×): a 1440 px se llevaban
+// 384 de los 703 px de la tarjeta y la caja de Producto quedaba en 83 px, con su ejemplo cortado (2026-10-14).
+const PLANTILLA_LINEAS = "sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1.1fr)_5rem_6.5rem_6.5rem_2.5rem]";
 // Los <input type=number> sin las flechitas del navegador: ocupan espacio,
 // cambian de tamaño según el valor y no aportan nada al tipear una cantidad.
 const NUMERO = "w-full min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
@@ -706,7 +711,7 @@ export function CompraFormV2({
               <p className="text-xs text-tinta/55">Costo unitario tal como figura en el documento: ya es el costo.</p>
             )}
             {repartir && tiendasReparto.length > 1 && (
-              <button type="button" onClick={partesIgualesEnTodas} className="btn-cayla btn-enlace ml-auto text-xs">
+              <button type="button" onClick={partesIgualesEnTodas} className="btn-cayla btn-sutil btn-chico ml-auto">
                 Repartir todas en partes iguales
               </button>
             )}
@@ -740,7 +745,7 @@ export function CompraFormV2({
                     valor={l.varianteId}
                     onValor={(id) => elegirVariante(i, id)}
                     opciones={[
-                      { valor: "", texto: "Sin desglose (se reparte al recibir)" },
+                      { valor: "", texto: "Sin desglose (se reparte al recibir)", corto: "Sin desglose" },
                       ...(producto?.variantes.map((v) => ({ valor: v.varianteId, texto: [v.talla, v.color].filter(Boolean).join(" / ") || v.sku || "Sin talla ni color" })) ?? []),
                     ]}
                     etiquetaAccesible="Talla y color"
@@ -797,9 +802,9 @@ export function CompraFormV2({
             );
           })}
           <div className="flex items-baseline justify-between">
-            <button type="button" onClick={agregarLinea} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+            <Boton type="button" peso="discreto" onClick={agregarLinea} className="btn-chico">
               + Agregar línea
-            </button>
+            </Boton>
             <span className="text-xs text-tinta/45">Enter en el costo también agrega una línea.</span>
           </div>
         </section>
@@ -832,6 +837,7 @@ export function CompraFormV2({
                 lineas={pagos}
                 onLineas={setPagos}
                 objetivo={total}
+                totalComprobante={total}
                 exacto={condicion === "contado"}
                 saldoFavor={proveedor?.saldoFavor ?? 0}
                 datosProveedor={proveedor?.datosPago}
@@ -840,7 +846,7 @@ export function CompraFormV2({
               />
             </div>
           ) : (
-            <p className="cr-revela text-sm text-tinta/65">Sin pago por ahora: el comprobante aparecerá en Por pagar con vencimiento el {fechaVencimiento.split("-").reverse().join("/")}.</p>
+            <p className="cr-revela text-sm text-tinta/65">{/* unificar-fijo: explica qué pasará con el comprobante sin pago, no es un vacío */}Sin pago por ahora: el comprobante aparecerá en Por pagar con vencimiento el {fechaVencimiento.split("-").reverse().join("/")}.</p>
           )}
         </section>
 
@@ -949,7 +955,7 @@ export function CompraFormV2({
               {condicion === "contado" ? `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()} y pago · ${soles(total)}` : `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()}`}
             </BotonRegistrar>
           )}
-          <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir("/compras")} disabled={loading || registrada} className="w-full">
+          <Boton type="button" peso="fantasma" onClick={() => salida.pedirSalir("/compras")} disabled={loading || registrada} className="w-full">
             Cancelar
           </Boton>
         </div>

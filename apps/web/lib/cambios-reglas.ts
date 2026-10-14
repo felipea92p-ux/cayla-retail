@@ -74,8 +74,12 @@ export type Busqueda =
  *  comprobante lo que cabe. */
 const MAX_DIGITOS_NUMERO_COMPROBANTE = 9;
 
+/** Lo más largo que se busca: la búsqueda viaja en la dirección de la consulta (`ilike`) y un texto pegado de 12 000 caracteres
+ *  pasaba su límite y tumbaba Cambios y Devoluciones (/chaos 2026-10-13). Nadie busca una venta con más de 100. */
+export const MAX_LARGO_BUSQUEDA = 100;
+
 export function clasificarBusqueda(texto: string): Busqueda | null {
-  const limpio = texto.trim();
+  const limpio = texto.trim().slice(0, MAX_LARGO_BUSQUEDA).trim();
   if (!limpio) return null;
   if (/^\d+$/.test(limpio)) {
     return { tipo: "numero", texto: limpio, numero: limpio.length <= MAX_DIGITOS_NUMERO_COMPROBANTE ? Number(limpio) : null };

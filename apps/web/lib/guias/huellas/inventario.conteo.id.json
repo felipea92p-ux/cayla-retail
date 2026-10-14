@@ -2,7 +2,7 @@
   "guia": "inventario.conteo.id",
   "ruta": "/inventario/conteo/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 60,
+  "total": 61,
   "controles": {
     "app/(app)/inventario/conteo/[id]/page.tsx": [
       "Link «Contar todo»"
@@ -36,7 +36,7 @@
       "button «Mejor elijo uno que ya existe»",
       "ComboBuscable «)» #2",
       "button «Cancelar»",
-      "button «{firma.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",
@@ -49,7 +49,7 @@
       "CampoSelect «Color (si aplica)»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/conteo/AplicarTodosCompletos.tsx": [
       "button «Aplicar todos completos»",
@@ -80,16 +80,19 @@
       "button «Reintentar»"
     ],
     "components/conteo/EditarConteo.tsx": [
-      "button «{abriendo ? \"Abriendo…\" : \"Corregir conteo\"}»"
+      "BotonEditar «Corregir conteo»"
     ],
     "components/conteo/ListaConteo.tsx": [
       "button «{`Completar todo: ${nombre}»"
     ],
+    "components/conteo/PasosConteo.tsx": [
+      "button «{contenido}»"
+    ],
     "components/conteo/ResultadoConteo.tsx": [
       "Volver «:»",
       "Volver «(sin nombre)»",
-      "Link «Ver Existencias»",
-      "Link «Ver movimientos del conteo»",
+      "BotonVer «Ver Existencias»",
+      "BotonVer «Ver movimientos del conteo»",
       "Link «Míralas todas en Movimientos →»"
     ]
   }

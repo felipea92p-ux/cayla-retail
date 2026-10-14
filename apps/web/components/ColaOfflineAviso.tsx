@@ -56,6 +56,10 @@ export function ColaOfflineAviso({
           {confirmando === x.token ? (
             <span className="flex shrink-0 items-center gap-2">
               <span className="text-tinta/70">¿Descartarla? No quedó nada registrado en el sistema.</span>
+              {/* «Cancelar» antes de la acción, como en el pie de una hoja (ADR-0358, ronda 11). */}
+              <button type="button" onClick={() => setConfirmando(null)} className="btn-cayla btn-secundario h-7 px-2 text-[11px]">
+                Cancelar
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -65,9 +69,6 @@ export function ColaOfflineAviso({
                 className="btn-cayla btn-peligro h-7 px-2 text-[11px]"
               >
                 Sí, descartar
-              </button>
-              <button type="button" onClick={() => setConfirmando(null)} className="btn-cayla btn-sutil h-7 px-2 text-[11px]">
-                Cancelar
               </button>
             </span>
           ) : (

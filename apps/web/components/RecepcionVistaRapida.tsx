@@ -7,7 +7,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Chip } from "@/components/ui/Chip";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
-import { diaMes, hoyLima } from "@/lib/fechas-lima";
+import { diaLima, diaMes } from "@/lib/fechas-lima";
 import { inicialesProveedor } from "@/lib/envio-reglas";
 import type { LineaRecepcion } from "@/lib/compras-reglas";
 import type { RecepcionDeCompra } from "@/lib/compras-indicadores";
@@ -78,7 +78,7 @@ export function RecepcionVistaRapida({
                   <h2 className="font-display text-[23px] leading-tight text-tinta">{/* unificar-fijo: es el título de la hoja (Dialog.Title), no de un bloque */}{r.proveedorNombre}</h2>
                 </Dialog.Title>
                 <Dialog.Description className="mt-0.5 text-[12.5px] text-tinta/65">
-                  {diaMes(hoyLima(new Date(r.fechaRecepcion)))} · {r.numeroGuia ? `Guía ${r.numeroGuia}` : "Sin guía"} · {r.ubicacionNombre}
+                  {diaMes(diaLima(r.fechaRecepcion))} · {r.numeroGuia ? `Guía ${r.numeroGuia}` : "Sin guía"} · {r.ubicacionNombre}
                   {recibio ? (
                     <>
                       <br />

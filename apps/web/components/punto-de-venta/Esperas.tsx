@@ -69,7 +69,7 @@ export function DejarEnEsperaModal({
   const [nombre, setNombre] = useState(nombreInicial);
   const libres = sugerenciasLibresDeEspera(ocupados);
   return (
-    <Modal titulo="Dejar en espera" subtitulo="Un nombre corto para reconocerlo al volver. Opcional." variante="hoja" ancho="max-w-sm" onClose={onClose}>
+    <Modal titulo="Dejar en espera" subtitulo="Un nombre corto para reconocerlo al volver. Opcional." variante="hoja" onClose={onClose}>
       {(cerrar) => (
         <form
           onSubmit={(e) => {

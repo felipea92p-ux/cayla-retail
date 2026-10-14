@@ -9,6 +9,7 @@
 // Lo URGENTE no se puede ocultar: es el canal que no se apaga (Square, Zebra; investigación en el README del spike).
 
 import type { ClaveModulo } from "./modulos";
+import { diasDesde, type PendientesDeLaSede } from "./recepcion-conteo-reglas";
 import type { Permiso } from "./menu";
 import { DIAS_PARA_VENCER } from "./por-regularizar-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
@@ -33,6 +34,7 @@ export type ClaveAviso =
   | "regularizar"
   | "porPagar"
   | "recibir"
+  | "porTerminar"
   | "reponer"
   | "fotos"
   | "completar";
@@ -86,6 +88,8 @@ export type FuentesAvisos = {
   porPagar?: { vencidas: number; montoVencido: number; semana: number; montoSemana: number } | null;
   /** Facturas de mercadería que aún le faltan a esta sede, con la primera («F001-2231 · Confecciones Andina») para el detalle. */
   porRecibir?: { facturas: number; primera: string | null } | null;
+  /** ADR-0393 (decisión 4): lo recibido en la sede que todavía no está en el stock (por separar, por poner tallas, por crear). */
+  recibidoPorTerminar?: PendientesDeLaSede | null;
   /** Tallas «por colgar» de la sede y sus unidades guardadas: la misma cuenta que «Para hoy» de Existencias (`porColgarDeLaSede`),
    *  con la decisión del motor del piso (`lib/piso-plan.ts`). `enPausa` = cuántas tallas esperan el cuadre del piso (ADR-0328,
    *  decisión 5): con el piso sin cuadrar `tallas` es 0 y el aviso dice esa cifra, nunca «al día». */
@@ -374,6 +378,31 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       ocultable: true,
     });
   }
+  // ADR-0393 (decisión 4): lo contado al recibir que todavía no se puede vender (sin tallas, sin separar o por crear). Más de 7 días
+  // es urgente: es lo que el ADR vigila («los pendientes se vuelven el cajón donde se olvida la mercadería»).
+  if (f.recibidoPorTerminar !== undefined) {
+    const r = f.recibidoPorTerminar;
+    const n = r === null ? null : r.total;
+    const dias = r ? diasDesde(r.desde) : null;
+    const partes = r
+      ? [r.porSeparar ? `${r.porSeparar} por separar` : null, r.porDetallar ? `${r.porDetallar} por poner tallas` : null, r.porCrear ? `${r.porCrear} por crear` : null].filter(Boolean)
+      : [];
+    avisos.push({
+      clave: "porTerminar",
+      grupo: "Inventario",
+      titulo: "Recibido por terminar",
+      cantidad: n,
+      nivel: nivelDe(n, dias != null && dias > 7 ? "urgente" : "toca"),
+      ahora: n ? `Termina ${n} ${plural(n, "prenda recibida", "prendas recibidas")}` : "",
+      detalle:
+        r === null ? SIN_LEER
+          : !n ? "Todo lo recibido ya está en el stock."
+            : `Contadas y en el almacén, pero sin poder venderse: ${partes.join(", ")}${dias != null && dias > 0 ? `. Lo más antiguo, de hace ${dias === 1 ? "1 día" : `${dias} días`}` : ""}.`,
+      href: "/recibir",
+      ocultable: true,
+      urgenteSi: "Cuando lo más antiguo pasa de 7 días",
+    });
+  }
   // «Por colgar» (2026-10-04): la fila de «Para hoy» en Existencias, con su misma cifra (tallas, `porColgarDeLaSede`, con la decisión
   // del motor del piso) y su misma palabra. Antes decía «Sube N modelos al piso»: otro número (modelos, con las agotadas incluidas) y
   // el verbo al revés, porque en Existencias «Subir» es del piso al almacén y lo que se hace aquí es «Bajar al piso». Lleva a la lista
@@ -536,7 +565,7 @@ export type AccesoRapido = { href: string; etiqueta: string; icono: ClaveAccesoI
 // acción funcione al final. «Nuevo producto» pide los dos: ver Productos no basta, el rol tiene que poder ESCRIBIR en el
 // catálogo (un rol `limitado_como_hoy` lo ve pero la base rechaza el guardado, y un acceso que termina en un error es peor
 // que no tenerlo).
-const ACCESOS: Record<ClaveAccesoIcono, AccesoRapido & { modulo: ClaveModulo | null; permiso?: Permiso }> = {
+export const ACCESOS: Record<ClaveAccesoIcono, AccesoRapido & { modulo: ClaveModulo | null; permiso?: Permiso }> = {
   caja: { href: "/caja", etiqueta: "Caja", icono: "caja", modulo: "caja" },
   apartados: { href: "/vender/apartados", etiqueta: "Apartados", icono: "apartados", modulo: "apartados" },
   stock: { href: "/inventario", etiqueta: "Stock", icono: "stock", modulo: "existencias" },

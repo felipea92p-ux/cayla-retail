@@ -14,9 +14,9 @@
       "Desplegable «actualizarLinea(i,»",
       "input «Cantidad»",
       "button «Quitar»",
-      "button «+ Agregar otra prenda»",
-      "ComboResponsable «(sin nombre)»",
-      "button «nuevo-traslado.enviar»"
+      "Boton «+ Agregar otra prenda»",
+      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
+      "Boton «nuevo-traslado.enviar»"
     ],
     "components/TrasladoEnviado.tsx": [
       "textarea «{`Mensaje para ${destino}»",

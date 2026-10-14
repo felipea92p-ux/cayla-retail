@@ -5,7 +5,7 @@
   "total": 3,
   "controles": {
     "components/finanzas/EstadoResultadosPanel.tsx": [
-      "button «fin-reportes.excel»",
+      "BotonDescargar «Descargar Excel»",
       "input «Comparar con»",
       "button «{k.clave === \"ventas\" ? \"fin-resultados.celda\" : undefined}»"
     ]

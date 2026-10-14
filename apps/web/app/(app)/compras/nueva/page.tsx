@@ -11,6 +11,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Building2, Shirt } from "lucide-react";
 import { BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Registrar una factura de proveedor (ADR-0035). La página solo junta los
 // tres catálogos que el formulario necesita; las reglas (contado exige pago,
@@ -32,14 +33,12 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
 
   // Cabecera del diseño: «← Comprobantes», título y bajada. La entrega el formulario junto al avance «Listo N de 4».
   const cabecera = (
-    <div>
-      <Volver href="/compras" a="Facturas de proveedor" className="mb-4" />
-      <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-      <h1 className="font-display mt-1 text-2xl text-tinta">Registrar factura de proveedor</h1>
-      <p className="mt-1 text-sm text-tinta/65">
-        Lo que se compró queda aquí; la recepción y el pago se anotan contra ella. Copia el documento tal cual llegó: lo que el proveedor no desglosó por talla y color se reparte al recibir.
-      </p>
-    </div>
+    <EncabezadoPagina
+      sede="Todas las tiendas"
+      volver={<Volver href="/compras" a="Facturas de proveedor" />}
+      titulo="Registrar factura de proveedor"
+      subtitulo="Lo que se compró queda aquí; la recepción y el pago se anotan contra ella. Copia el documento tal cual llegó: lo que el proveedor no desglosó por talla y color se reparte al recibir."
+    />
   );
 
   // Sin proveedores o sin catálogo no hay formulario que armar: se muestra la cabecera y el motivo.
@@ -53,7 +52,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
               icono={<Building2 />}
               titulo="Todavía no hay proveedores"
               acciones={
-                <BotonEnlace href="/compras/proveedores" peso="primario">
+                <BotonEnlace href="/compras/proveedores" peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                   Ir a Proveedores
                 </BotonEnlace>
               }
@@ -65,7 +64,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
               icono={<Shirt />}
               titulo="Todavía no hay productos en el catálogo"
               acciones={
-                <BotonEnlace href="/productos" peso="primario">
+                <BotonEnlace href="/productos" peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                   Ir a Productos
                 </BotonEnlace>
               }

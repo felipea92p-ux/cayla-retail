@@ -7,10 +7,9 @@ import { diaYHoraLima } from "@/lib/fechas-lima";
 import { compararTallas } from "@/lib/tallas";
 import {
   despuesDeRecibirEnvio,
-  detalleRecibido,
   nombreDeLinea,
   textoCausa,
-  tituloRecibido,
+  textoRecibido,
   type DetalleEnvio,
   type DiferenciaEnvio,
   type RecibidoEnvio,
@@ -91,7 +90,7 @@ export function ComoSeCerro({
   return (
     <div className="space-y-6">
       <div data-guia="recepcion.cerrado" className="space-y-4">
-        <Aviso tono="exito" titulo={`${tituloRecibido(resumen)} · ${detalleRecibido(resumen)}`}>
+        <Aviso tono="exito" titulo={textoRecibido(resumen)}>
           {cuando ? `El ${cuando.dia} a las ${cuando.hora}${detalle.cerradoPor ? `, lo recibió ${detalle.cerradoPor}` : ""}.` : "Lo bueno ya está en el almacén; lo dañado, en la cuarentena de la sede."}
           {resumen.faltan > 0 || resumen.sobran > 0 ? " Lo que faltó o vino de más quedó anotado para Compras." : ""}
         </Aviso>

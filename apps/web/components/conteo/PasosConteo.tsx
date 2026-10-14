@@ -18,8 +18,6 @@ import { Check } from "lucide-react";
    el lector de pantalla. Sin estado ni efectos: sirve en Server Components.
    ==================================================================== */
 
-export type PasoConteo = "contar" | "revisar" | "confirmar";
-
 /** Un paso de una operación en tres (o más) pantallas: su clave y cómo se llama en la tienda. */
 export type PasoOperacion = { clave: string; nombre: string };
 
@@ -53,6 +51,9 @@ export function PasosConteo({
   pasos = PASOS,
   etiqueta = "Pasos del conteo",
   className = "",
+  forma = "linea",
+  subtitulos,
+  onIr,
 }: {
   /** La clave del paso de hoy (en el conteo, un `PasoConteo`). */
   actual: string;
@@ -61,8 +62,64 @@ export function PasosConteo({
   /** El nombre del indicador para el lector de pantalla. */
   etiqueta?: string;
   className?: string;
+  /**
+   * «linea» (la de siempre, de Inventario) o «riel» (Recibir mercadería, ADR-0393: la maqueta A que eligió Felipe el 2026-10-13). El
+   * riel es la MISMA pieza más grande: tres paradas repartidas a lo ancho, una línea que se llena, el paso hecho en verde con su visto
+   * y, bajo cada nombre, lo que ya pasó en él («ENV-000118 · 40 prendas», «121 contadas · 6 para después»).
+   */
+  forma?: "linea" | "riel";
+  /** Solo en el riel: la línea chica bajo cada paso, por clave. */
+  subtitulos?: Readonly<Record<string, string>>;
+  /** Solo en el riel: si viene, los pasos hechos y el de hoy se tocan para ir a ellos (los que faltan, no). */
+  onIr?: (clave: string) => void;
 }) {
   const indice = pasos.findIndex((p) => p.clave === actual);
+  if (forma === "riel") {
+    const avance = pasos.length > 1 ? Math.max(0, indice) / (pasos.length - 1) : 0;
+    return (
+      <nav aria-label={etiqueta} className={className}>
+        <ol className="rc-riel">
+          <li aria-hidden className="rc-riel-linea">
+            <i style={{ "--p": avance } as React.CSSProperties} />
+          </li>
+          {pasos.map((p, i) => {
+            const estado = i < indice ? "hecho" : i === indice ? "ahora" : "falta";
+            const contenido = (
+              <>
+                <span className="rc-punto" aria-hidden>
+                  {estado === "hecho" ? (
+                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                      <path className="rc-trazo" d="M3.5 8.4l3 3 6-6.6" />
+                    </svg>
+                  ) : (
+                    i + 1
+                  )}
+                </span>
+                <span className="rc-txt">
+                  <b>{p.nombre}</b>
+                  <small>{subtitulos?.[p.clave] ?? ""}</small>
+                </span>
+                <span className="sr-only">{LEIDO[estado === "ahora" ? "actual" : estado]}</span>
+              </>
+            );
+            return (
+              <li key={p.clave} aria-current={estado === "ahora" ? "step" : undefined} className="flex justify-center">
+                {onIr ? (
+                  <button type="button" className="rc-parada" data-estado={estado} disabled={estado === "falta"} onClick={() => onIr(p.clave)}>
+                    {contenido}
+                  </button>
+                ) : (
+                  <span className="rc-parada" data-estado={estado}>
+                    {contenido}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+    );
+  }
   return (
     <nav aria-label={etiqueta} className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-1 ${className}`}>
       <ol className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">

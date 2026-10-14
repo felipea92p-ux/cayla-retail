@@ -90,8 +90,9 @@ export function PagoJuntosModal({
   const [fecha, setFecha] = useState(hoyLima());
   // ADR-0195 F3b: «Sale de». La propuesta de cada medio sale de la tienda del comprobante más vencido. A quien no ve las
   // finanzas de todo, `fn_cuentas_para_elegir` solo le lista en efectivo los cajones y cajas fuertes de las sedes que opera:
-  // si esa tienda no es una de ellas, se le propone una suya. La base vuelve a validar la cuenta al guardar.
-  const cuentas = useCuentasParaElegir("pago", ordenados[0]?.ubicacionesDestino[0] || null);
+  // si esa tienda no es una de ellas, se le propone una suya. La base vuelve a validar la cuenta al guardar. ADR-0362 fase 6:
+  // «Mi fondo» primero, si quien paga tiene uno.
+  const cuentas = useCuentasParaElegir("pago", ordenados[0]?.ubicacionesDestino[0] || null, true, { conMiFondo: true });
   const [loading, setLoading] = useState(false);
   // Quién registra el pago (ADR-0161/0162): las dos funciones de pago firman con esa persona.
   const responsable = useResponsable();
@@ -225,7 +226,7 @@ export function PagoJuntosModal({
 
   return (
     <Modal
-      variante="papel"
+      variante="hoja"
       titulo={
         hecho ? (
           <span className="sr-only">Pago registrado</span>
@@ -237,7 +238,7 @@ export function PagoJuntosModal({
         )
       }
       subtitulo={hecho ? undefined : `${ordenados.length === 1 ? "1 comprobante" : `${ordenados.length} comprobantes`} · una sola transferencia`}
-      ancho="max-w-2xl"
+      tamano="ancha"
       onClose={() => (resultado.current ? onPagado(resultado.current) : onClose())}
     >
       {(cerrar) =>
@@ -392,7 +393,7 @@ export function PagoJuntosModal({
               <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={setFecha} required />
             </div>
           ) : (
-            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} aplicaciones={aplicaciones.map((a) => ({ total: a.c.total, monto: a.monto }))} />
           )}
 
           <div className="border-t border-tinta/10 pt-4">
@@ -428,13 +429,13 @@ export function PagoJuntosModal({
           <ComboResponsable control={responsable} deshabilitado={loading} />
 
           {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
-          <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">
+          <div className="pie-acciones -mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
             <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
             <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
               Cancelar
             </button>
-            <Boton type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman}>
-              {loading ? "Registrando…" : credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
+            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman}>
+              {credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
             </Boton>
           </div>
         </form>

@@ -29,6 +29,7 @@ const COLOR_RECIBIDO = {
   vuelto: { etiqueta: "text-tinta/70", cifra: "text-tinta" },
   falta: { etiqueta: "text-rojo-profundo", cifra: "text-rojo-profundo" },
   exacto: { etiqueta: "text-verde-profundo", cifra: "text-verde-profundo" },
+  excede: { etiqueta: "text-rojo-profundo", cifra: "text-rojo-profundo" },
 } as const;
 
 /** El monto de un medio como se muestra en un billete o en el monto dentro del cuadrado: sin «.00» si es entero. */
@@ -78,6 +79,7 @@ export function HojaDeCobro({
   formId,
   onVolver,
   compacta = false,
+  tipos = TIPOS.map((t) => t.tipo),
 }: {
   total: number;
   prendas: number;
@@ -108,6 +110,8 @@ export function HojaDeCobro({
   onVolver: () => void;
   /** En la hoja del ticket del celular: sin cabecera propia (la hoja ya la tiene) y a una columna. */
   compacta?: boolean;
+  /** Los comprobantes que esta sede puede emitir (`tiposDeComprobanteDeLaSede`): solo los que tienen serie. */
+  tipos?: readonly TipoVenta[];
 }) {
   const cuerpoRef = useRef<HTMLDivElement>(null);
   // Al elegir el comprobante aparece el documento del cliente; en una hoja baja puede quedar bajo el pliegue. Entonces el cuerpo
@@ -216,7 +220,7 @@ export function HojaDeCobro({
                     </span>
                     {varios && pago && (
                       <label className="hoja-cobro-monto">
-                        <span className="text-[11px] opacity-60 dark:opacity-85">S/</span>
+                        <span className="text-[11px] opacity-85">S/</span>
                         <CampoMonto
                           aria-label={`Monto en ${NOMBRE_METODO[m]}`}
                           data-monto-medio={m}
@@ -289,7 +293,7 @@ export function HojaDeCobro({
                         </label>
                       </div>
                       <p className={`hoja-cobro-vuelto flex items-baseline justify-between ${lectura === null ? "invisible" : ""}`} data-recibido={lectura?.estado}>
-                        <span className={`label-cayla text-[13px] ${colorLectura.etiqueta}`}>{lectura?.estado === "vuelto" ? "Vuelto" : lectura?.estado === "falta" ? "Faltan" : "Exacto"}</span>
+                        <span className={`label-cayla text-[13px] ${colorLectura.etiqueta}`}>{lectura?.estado === "vuelto" ? "Vuelto" : lectura?.estado === "falta" ? "Faltan" : lectura?.estado === "excede" ? "Vuelto de más" : "Exacto"}</span>
                         <span
                           key={`${lectura?.estado}-${lectura?.monto}`}
                           className={`hoja-cobro-vuelto-monto ${lectura?.estado === "exacto" ? "es-exacto" : ""} anim-asentar font-display leading-none tabular-nums ${colorLectura.cifra}`}
@@ -326,7 +330,7 @@ export function HojaDeCobro({
             estado={!tipoComprobante ? null : comprobanteOk ? { ok: true, texto: ETIQUETA_TIPO[tipoComprobante] } : { ok: false, texto: faltaDocumento ?? "" }}
           />
           <div className="grid grid-cols-3 gap-2.5">
-            {TIPOS.map(({ tipo, icono }) => (
+            {TIPOS.filter((t) => tipos.includes(t.tipo)).map(({ tipo, icono }) => (
               <button
                 key={tipo}
                 type="button"

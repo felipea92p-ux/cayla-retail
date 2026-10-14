@@ -1,5 +1,7 @@
 # ADR-0302 — El descuento de campaña es exacto: el % sobre el precio, al céntimo
 
+> **Reemplazado el 2026-10-14 por [ADR-0403](0403-el-descuento-en-porcentaje-deja-el-precio-sin-centimos.md):** el descuento en % deja el precio bajado al S/ 0.10 de abajo (Felipe prefirió un precio sin céntimos sueltos a un % exacto al céntimo). Lo de abajo describe la regla de ese día.
+
 **Fecha:** 2026-10-01 · **Estado:** migración `20261001161912_campana_descuento_exacto.sql` **PEGADA EN PRODUCCIÓN el
 2026-10-01 a las 11:19 (Lima)** con la orden de Felipe («pégalo ahora»), y verificada (§7); la web se publica al fusionar el
 PR #685 en la misma ventana · **Decide:**

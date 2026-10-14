@@ -509,11 +509,15 @@ describe("camposDeGuiaOrden — la guía de foco dice lo mismo que la validació
 
 describe("«Modelo nuevo»: lo obligatorio primero, el color después y cerrado (/formidable 2026-10-10, cambio 1)", () => {
   const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
-  it("el precio va ANTES de los colores (la guía ya lo pide antes: nombre, categoría, tallas, precio, cantidades) y la carta de 89 círculos arranca cerrada", () => {
+  it("los colores ya no se eligen en los campos del modelo (ADR-0396, A2): son filas de la tabla de cantidades, y la carta de 89 círculos sigue arrancando cerrada donde se abre", () => {
     const campos = leer("components/ModeloNuevoCampos.tsx");
     expect(campos.indexOf('<CampoGuiado id="precio"')).toBeGreaterThan(-1);
-    expect(campos.indexOf('<CampoGuiado id="precio"')).toBeLessThan(campos.indexOf("<ElegirColores"));
-    expect(campos).toMatch(/<ElegirColores[^>]*cartaAbierta=\{false\}/);
+    expect(campos).not.toContain("<ElegirColores");
+    // La carta la abre «+ Agregar color» (`AgregarColor`), cerrada, sin la fila de elegidos (cada color es una fila de la tabla) y con el cursor en el buscador.
+    const agregar = leer("components/orden-produccion/AgregarColor.tsx");
+    expect(agregar).toMatch(/<ElegirColores[^>]*cartaAbierta=\{false\}/);
+    expect(agregar).toMatch(/<ElegirColores[^>]*\bsinElegidos\b/);
+    expect(agregar).toMatch(/<ElegirColores[^>]*\benfocarBuscador\b/);
   });
   it("Nuevo producto y los demás siguen con la carta abierta de entrada (ADR-0312/0314): el valor por defecto de `cartaAbierta` es true", () => {
     const elegir = leer("components/alta-producto/ElegirColores.tsx");
@@ -543,8 +547,12 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
   it("#8 cerrar con datos escritos (Escape, clic fuera o Cancelar) pregunta «¿Salir sin guardar?» con el mismo hook que Registrar gasto; guardar bien cierra directo", () => {
     const f = form();
     expect(f).toContain("useSalidaSinGuardar");
-    expect(f).toContain('<Modal titulo="Nueva orden de producción" onClose={() => avisoSalida.pedirAccion(onClose)}');
-    expect(f).toContain("onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}");
+    // Escape, clic fuera y ✕ preguntan por `antesDeCerrar` (la hoja sigue a la vista); `onClose` es solo el cierre de verdad. Pasar la pregunta por `onClose` la hacía con la hoja ya
+    // cerrada y, con «Seguir editando», la pantalla dejaba de responder (/pantalla 2026-10-13; lo vigila también lib/hojas-salida-sin-guardar.test.ts).
+    // La etiqueta puede ir en varias líneas (A3 le suma `variante`, `conCerrar` y el ancho): se lee sin importar los saltos.
+    expect(f).toMatch(/<Modal\s+titulo="Nueva orden de producción"\s+onClose=\{onClose\}\s+antesDeCerrar=\{avisoSalida\.pedirAccion\}/);
+    expect(f).not.toContain("onClose={() => avisoSalida.pedirAccion(onClose)}");
+    expect(f).toContain('onClick={() => avisoSalida.pedirAccion(onClose)} className="btn-cayla btn-secundario"');
     // Elegir el tipo (Producción/Muestra), el modo (Ya existe/Modelo nuevo) o el modelo de la lista no es trabajo perdido: no cuenta como «cambios sin guardar».
     const foto = /fotoFormulario\(\{([^}]*)\}\)/.exec(f)?.[1] ?? "";
     for (const ligero of ["tipo", "modoModelo", "productoId"]) expect(foto, ligero).not.toContain(ligero);
@@ -559,18 +567,22 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
 describe("el botón principal de Nueva orden cabe a 375 px", () => {
   it("su etiqueta tiene a lo más 20 letras (a 375 px «Crear modelo y abrir orden» medía 180 px en un botón de 159 y se recortaba ~21 px)", () => {
     const fuente = readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
-    const etiquetas = [...fuente.matchAll(/cargando \? "Abriendo…" : esNuevo \? "([^"]+)" : "([^"]+)"/g)];
+    // Desde la ronda 12 de /unificar (ADR-0358) «Abriendo…» lo pone la pieza (`textoCargando`); la etiqueta es la del botón en reposo.
+    expect(fuente).toContain('textoCargando="Abriendo…"');
+    const etiquetas = [...fuente.matchAll(/\{esNuevo \? "([^"]+)" : "([^"]+)"\}/g)];
     expect(etiquetas.length).toBe(1);
     for (const e of [etiquetas[0][1], etiquetas[0][2]]) expect(e.length, e).toBeLessThanOrEqual(20);
   });
 });
 
 describe("el formulario de Nueva orden", () => {
-  it("ningún <Boton> de adentro envía el formulario sin querer: todos llevan type=\"button\" (sin él, «Usar ese modelo» volvía a crear la orden)", () => {
+  it("ningún <Boton> de adentro envía el formulario sin querer: todos llevan type=\"button\" (sin él, «Usar ese modelo» volvía a crear la orden); el único que envía lo declara", () => {
     const fuente = readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
     const aperturas = [...fuente.matchAll(/<Boton\b[^>]*>/g)].map((m) => m[0]);
     expect(aperturas.length).toBeGreaterThan(0);
-    for (const a of aperturas) expect(a, a).toContain('type="button"');
+    for (const a of aperturas) expect(a, a).toMatch(/type="(button|submit)"/);
+    // Enviar el formulario es «Abrir orden» (desde la ronda 12 un <Boton>, ADR-0358): uno solo.
+    expect(aperturas.filter((a) => a.includes('type="submit"')).length).toBe(1);
   });
 });
 

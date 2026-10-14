@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -50,6 +50,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { avisosDeLaDevolucion, type DevolucionArmada } from "@/lib/devoluciones-cambio-de-sede";
 import { Casilla } from "@/components/ui/Casilla";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 const PASOS = ["Venta", "Prendas", "Detalle", "Confirmación"] as const;
 type Paso = 2 | 3 | 4 | "exito";
@@ -429,7 +430,7 @@ export function DevolucionesFlujo({
               </fieldset>
 
               <div ref={refEstados} className="space-y-6">
-                <h3 className="text-[15px] font-semibold text-tinta">¿En qué estado vuelve cada prenda?</h3>
+                <TituloGrupo>¿En qué estado vuelve cada prenda?</TituloGrupo>
                 {lineasElegidas.map((l) => (
                   <EstadoDeLaPrenda key={l.ventaItemId} linea={l} item={elegidas[l.ventaItemId]!} onCambio={(c) => cambiarItem(l.ventaItemId, c)} />
                 ))}
@@ -518,9 +519,9 @@ export function DevolucionesFlujo({
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
               </BotonSecundario>
-              <BotonRojo onClick={registrar} disabled={enviando || !responsable.listo} monto={soles(valorTotal)}>
-                {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-                {enviando ? "Registrando…" : "Registrar devolución"}
+              <BotonRojo onClick={registrar} cargando={enviando} textoCargando="Registrando…" disabled={!responsable.listo} monto={soles(valorTotal)}>
+                <Check className="h-4 w-4" aria-hidden />
+                Registrar devolución
               </BotonRojo>
             </div>
           </PieDelPaso>

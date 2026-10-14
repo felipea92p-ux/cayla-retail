@@ -9,6 +9,7 @@
 
 import { ARBOL, rutaActiva, type Nodo } from "./menu";
 import { MODULOS, type ClaveModulo } from "./modulos";
+import { horaLima } from "./fechas-lima";
 
 /** Los módulos que ya anotan su actividad. Crece con cada migración que suma los disparadores de un módulo, y sale en el
  *  orden del catálogo (el de Roles y accesos). `actividad-reglas.test.ts` falla si una migración anota en un módulo que
@@ -159,11 +160,6 @@ export function desdeDe(periodo: Periodo, ahora: Date): string | null {
 }
 
 const FECHA_LARGA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", weekday: "long", day: "numeric", month: "long" });
-const HORA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false });
-
-export function horaLima(iso: string): string {
-  return HORA.format(new Date(iso));
-}
 
 /** «Hoy», «Ayer» o «jueves, 24 de setiembre», en hora de Lima. */
 export function etiquetaDelDia(iso: string, ahora: Date): string {
@@ -195,7 +191,7 @@ export function quien(f: Pick<FilaActividad, "persona_nombre">): string {
 
 /** La línea chica de debajo: hora, aparato, sede (solo si se miran varias) y si fue una venta de prueba. */
 export function pieDeFila(f: FilaActividad, opciones: { conSede: boolean }): string {
-  const partes = [horaLima(f.ocurrio_at)];
+  const partes = [horaLima(f.ocurrio_at) ?? "—"];
   if (f.terminal_nombre) partes.push(f.terminal_nombre);
   if (opciones.conSede && f.ubicacion_nombre) {
     partes.push(f.ubicacion_destino_nombre ? `${f.ubicacion_nombre} → ${f.ubicacion_destino_nombre}` : f.ubicacion_nombre);

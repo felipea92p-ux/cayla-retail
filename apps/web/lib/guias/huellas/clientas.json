@@ -11,7 +11,7 @@
     "components/ClientaFichaModal.tsx": [
       "Boton «Cancelar»",
       "Pestanas «(sin nombre)»",
-      "Boton «clientas.ficha-editar»",
+      "BotonEditar «)»",
       "Boton «Registrar su BAJA»",
       "button «Unir con otra ficha»",
       "button «Archivar»",
@@ -33,7 +33,7 @@
       "button «{todas ? \"Ver menos\" : `Ver las ${total}»"
     ],
     "components/ClientasPanel.tsx": [
-      "Boton «clientas.exportar»",
+      "BotonDescargar «Solo un Admin puede descargar la lista completa»",
       "Boton «clientas.nuevo»",
       "Link «{f.texto}»",
       "Link «‹ Anterior»",
@@ -42,7 +42,7 @@
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «{actual?.fase === \"cargando\" ? \"Buscando…\" : \"Buscar\"}»",
+      "Boton «Buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/NuevaClientaModal.tsx": [

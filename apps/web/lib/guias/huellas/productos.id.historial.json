@@ -8,7 +8,7 @@
       "Volver «Historial»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/historial-prenda/HistorialPrenda.tsx": [

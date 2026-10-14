@@ -2,7 +2,7 @@
   "guia": "compras.ordenes",
   "ruta": "/compras/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 12,
+  "total": 43,
   "controles": {
     "app/(app)/compras/ordenes/page.tsx": [
       "BotonEnlace «ordenes.nueva»",
@@ -19,6 +19,45 @@
     "components/Paginacion.tsx": [
       "Link «Volver al inicio»",
       "Link «Siguiente página»"
+    ],
+    "components/finanzas/CampoCuenta.tsx": [
+      "CampoSelect «{etiqueta}»"
+    ],
+    "components/fondos/FotoDelGasto.tsx": [
+      "button «{abriendo ? \"Abriendo…\" : \"Ver foto\"}»",
+      "input «);»"
+    ],
+    "components/fondos/RendirFondo.tsx": [
+      "button «Volver a intentar»",
+      "CampoMonto «¿Cuánto tienes en la mano?»",
+      "CampoTexto «¿Qué pasó con lo que falta?»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "button «Volver a intentar» #2",
+      "CampoTexto «¿Por qué la retiras?»",
+      "Boton «Retirar para corregir»",
+      "Boton «Retirar para corregir» #2"
+    ],
+    "components/ordenes-compra/GastoDelViaje.tsx": [
+      "Boton «{guia}»",
+      "SegmentoDeslizante «Para qué fue»",
+      "SegmentoDeslizante «Qué pagaste»",
+      "CampoSelect «Qué pagaste»",
+      "CampoMonto «¿Cuánto costó?»",
+      "CampoFecha «¿Cuándo?»",
+      "SegmentoDeslizante «Qué papel te dieron»",
+      "CampoSelect «Qué papel te dieron»",
+      "CampoTexto «Serie y número»",
+      "CampoTexto «RUC de quien te lo dio»",
+      "button «{`Quitar ${o.numero}»",
+      "ComboBuscable «) : disponibles !== null && ordenes.length === 0 ? (»",
+      "Boton «→() => setAgregando(true)»",
+      "SegmentoDeslizante «Cómo pagaste»",
+      "CampoSelect «Cómo pagaste»",
+      "CampoTexto «{concepto === \"otro\" ? \"¿Qué se pagó?\" : \"Nota\"}»",
+      "ComboResponsable «)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ]
   }
 }

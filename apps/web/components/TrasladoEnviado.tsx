@@ -128,7 +128,7 @@ export function TrasladoEnviado({
       <section aria-labelledby="caja-enviada" className="space-y-2">
         {/* El id va en la caja de afuera: `TituloGrupo` no lleva id, y la sección se nombra con su título entero (con la cuenta). */}
         <div id="caja-enviada">
-          <TituloGrupo cuenta={`${unidades} ${unidades === 1 ? "prenda" : "prendas"}`}>Lo que va en la caja</TituloGrupo>
+          <TituloGrupo cuenta={unidades}>Lo que va en la caja</TituloGrupo>
         </div>
         <ul className="divide-y divide-sand rounded-xl border border-sand">
           {prendas.map((p, i) => (

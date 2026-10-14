@@ -28,6 +28,7 @@ import {
   type PropuestaFila,
   type UnidadConfigPpto,
 } from "@/lib/presupuesto-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Presupuesto (ADR-0195, capa «para decidir»), dibujada como el spike (docs/maquetas/finanzas-2026-09/,
 // `cfgPresupuesto`): una tabla por unidad y rubro para el mes elegido donde CADA CASILLA SE GUARDA SOLA al salir de ella si
@@ -115,7 +116,7 @@ export function ConfiguracionPresupuesto({ datos, hoy }: { datos: ConfigPpto; ho
     const { data, error } = await createClient().rpc("fn_presupuesto_propuesta" as never, { p_mes: `${mes}-01`, p_origen: origen } as never);
     setProponiendo(null);
     if (error) {
-      avisar.error(traducirError(error as never, "preparar la propuesta"));
+      avisar.error(traducirError(error as never, "preparar la propuesta", { lectura: true }));
       return;
     }
     const filas = ((data ?? []) as Record<string, unknown>[]);
@@ -169,25 +170,25 @@ export function ConfiguracionPresupuesto({ datos, hoy }: { datos: ConfigPpto; ho
               onValor={ir}
               opciones={mesesParaPresupuestar(hoy).map((m) => ({ valor: m, texto: `${mesTitulo(m)}${m === mesDe(hoy) ? " · este mes" : ""}` }))}
             />
-            <button
+            <Boton cargando={proponiendo === "mes_anterior"} textoCargando="Preparando…"
               type="button"
-              className="btn-cayla btn-secundario btn-chico"
+              className="btn-chico"
               onClick={() => proponer("mes_anterior")}
               disabled={!!proponiendo || datos.anterior === 0}
               title={datos.anterior === 0 ? `${mesTitulo(mesAnterior(mes))} no tiene topes para copiar.` : undefined}
             >
-              {proponiendo === "mes_anterior" ? "Preparando…" : textoOrigen("mes_anterior", mes)}
-            </button>
-            <button
+              {textoOrigen("mes_anterior", mes)}
+            </Boton>
+            <Boton cargando={proponiendo === "promedio_3_meses"} textoCargando="Preparando…"
               type="button"
-              className="btn-cayla btn-secundario btn-chico"
+              className="btn-chico"
               onClick={() => proponer("promedio_3_meses")}
               disabled={!!proponiendo}
               aria-haspopup="dialog"
               data-guia="config.presupuesto-sugerir"
             >
-              {proponiendo === "promedio_3_meses" ? "Preparando…" : textoOrigen("promedio_3_meses", mes)}
-            </button>
+              {textoOrigen("promedio_3_meses", mes)}
+            </Boton>
           </div>
         </div>
         <div className="fin-tabla-wrap">
@@ -295,7 +296,8 @@ function HojaPropuesta({
         ? `Lo gastado de ${mesNombre(propuesta.desde.slice(0, 7))} a ${mesNombre(propuesta.hasta.slice(0, 7))} (sin IGV), dividido entre 3 y redondeado hacia arriba a la decena.`
         : "Lo gastado en los 3 últimos meses completos, dividido entre 3.";
   return (
-    <Modal variante="hoja" titulo={textoOrigen(propuesta.origen, datos.mes)} subtitulo={deDonde} onClose={onCerrar} ancho="max-w-[600px]">
+    // Una salida a la vista (ADR-0358, ronda 12): con cambios, «Cancelar» al pie; sin nada que cambiar, solo se lee y lleva la ×.
+    <Modal variante="hoja" conCerrar={!cambios.length} titulo={textoOrigen(propuesta.origen, datos.mes)} subtitulo={deDonde} onClose={onCerrar} tamano="mediana">
       {cambios.length ? (
         <>
           <div className="fin-tabla-wrap" data-guia="config.propuesta">
@@ -338,16 +340,16 @@ function HojaPropuesta({
               : "No hubo gastos en esos meses: no hay de dónde sugerir."}
         </p>
       )}
-      <div className="fin-botones mt-4" data-guia="config.propuesta-botones">
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
-          {cambios.length ? "Cancelar" : "Cerrar"}
-        </button>
-        {cambios.length > 0 && (
-          <button type="button" className="btn-cayla btn-primario" onClick={onAplicar} disabled={guardando}>
-            {guardando ? "Guardando…" : `Aplicar ${cambios.length} ${cambios.length === 1 ? "cambio" : "cambios"}`}
+      {cambios.length > 0 && (
+        <div className="fin-botones mt-4" data-guia="config.propuesta-botones">
+          <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
+            Cancelar
           </button>
-        )}
-      </div>
+          <Boton peso="primario" cargando={guardando} type="button" onClick={onAplicar} disabled={guardando}>
+            {`Aplicar ${cambios.length} ${cambios.length === 1 ? "cambio" : "cambios"}`}
+          </Boton>
+        </div>
+      )}
     </Modal>
   );
 }

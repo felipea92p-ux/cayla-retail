@@ -333,6 +333,44 @@ export const PRUEBAS = [
   // (incluida la de ayer 23:59, que ya es «hoy» en UTC) y acepta la de hoy. Cada caso: ROLLBACK.
   "pruebas:anular-venta-mismo-dia",
 
+  // Anular desde la misma tienda: anular_venta deja anular a alguien de la tienda de la venta o a un líder, igual
+  // que corregir_pagos_venta. Con control (sin el candado, sí anulaba). Cada caso: ROLLBACK.
+  "pruebas:anular-venta-misma-sede",
+
+  // El token sigue al contenido (/chaos 2026-10-13): en las diez funciones de Ventas y Caja con p_token, el mismo token
+  // con otro contenido se rechaza (token_reusado), el resolver dice «hecho» o «no llegó» (definitivo) y espera al envío
+  // que todavía guarda. Con controles. Cada caso: ROLLBACK (la concurrencia, dos sesiones que terminan en ROLLBACK).
+  "pruebas:token-sigue-al-contenido",
+  // ADR-0401 (/chaos de Inventario 2026-10-14): el token sigue al contenido en ocho funciones de Inventario, el resolver revisa
+  // un traslado, y los topes de notas, llegada y motivo de ajuste.
+  "pruebas:inventario-token-y-textos",
+  // ADR-0404: lo contado de más al recibir un traslado queda como sobrante a revisar, fuera del stock.
+  "pruebas:traslado-sobrantes",
+  // ADR-0405 (/chaos de Catálogo 2026-10-14): precio y costo NaN y nombres sin tope rebotan en la tabla. Con control.
+  "pruebas:catalogo-montos-y-textos",
+  // ADR-0409 (/chaos de Producción 2026-10-14): el token sigue al contenido en seis funciones del Taller, el IGV de una factura
+  // de insumos va de 0 a 18 %, y un NaN en sus montos rebota en la tabla. Con controles.
+  "pruebas:produccion-token-y-montos",
+
+  // El efectivo de una caja abierta nunca queda bajo cero (/chaos 2026-10-13): egreso, reembolso, vuelto de un cambio, anular
+  // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
+  // Con control. Disparadores diferidos: cada caso corre `set constraints all immediate` y termina en ROLLBACK.
+  "pruebas:caja-efectivo-no-negativo",
+
+  // Montos válidos en Ventas y Caja (/chaos 2026-10-13): ni NaN ni infinito en apertura, cierre (tampoco en blanco), egresos y
+  // reembolsos; el vuelto con tope de S/ 500; el reembolso de una devolución ≥ 0 y con uno de los cinco medios. Con controles.
+  // Cada caso: ROLLBACK.
+  "pruebas:ventas-montos-validos",
+
+  // El documento del comprobante (/chaos 2026-10-13, decisión de Felipe): boleta con DNI de 8 dígitos y factura con RUC de 11,
+  // en emitir_comprobante y en un disparador de respaldo; una boleta vieja sigue cambiando de estado y emitiendo su nota de
+  // crédito. Con control. Cada caso: ROLLBACK.
+  "pruebas:comprobante-documento-valido",
+
+  // Candados de Apartados y Proformas (/chaos 2026-10-13): el celular «abcdefghi» ya no se descarta en silencio, una proforma
+  // no nace vencida y no se marca con una venta de otras prendas. Con controles. Cada caso: ROLLBACK.
+  "pruebas:apartados-proformas-candados",
+
   // El panel de Actividad no muestra las ventas archivadas como prueba (ADR-0159): fn_actividad y
   // fn_actividad_personas dejan fuera la fila de una venta con es_prueba; la fila queda en la tabla.
   // Con controles (sin la migración la fila sí sale). Cada caso: ROLLBACK.
@@ -345,6 +383,14 @@ export const PRUEBAS = [
   // Cuarentena no sale hacia la clienta (PL-78): un disparador en movimientos rechaza venta, cambio y apartado
   // desde una sububicación Cuarentena; liquidar sigue. Control con el disparador deshecho. Cada caso: ROLLBACK.
   "pruebas:cuarentena-no-se-vende",
+
+  // La cuarentena no se ajusta a mano (ADR-0328 act. 10): un disparador en movimientos rechaza todo `ajuste` sobre una
+  // sububicación Cuarentena (descuadraría el stock contra prendas_danadas); sus puertas propias siguen y abrir_conteo
+  // rechaza la cuarentena. En producción desde ~2026-10-05; sin archivo en main hasta el 14-oct. Control sin el
+  // disparador. Cada caso: ROLLBACK.
+  "pruebas:cuarentena-no-se-ajusta",
+
+  "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 
   // Dañadas (ADR-0328 act. 10): reportar desde Existencias mueve lo LIBRE del piso o del almacén a la cuarentena y abre
@@ -974,6 +1020,27 @@ export const PRUEBAS = [
   // papel hasta su cupo; faltante y sobrante con causa; quien hizo la orden no la recibe; token y costo atípico. ROLLBACK siempre.
   "pruebas:recepcion-de-envio",
 
+  // El conteo guardado de un envío (ADR-0393): lo contado queda en la base línea por línea; gana el último con aviso de lo que pisó;
+  // lo separado no pasa de lo contado ni trae prendas ajenas; lo de fuera de la guía; el formulario de la fase 4 deja su conteo; un
+  // envío cerrado no se cuenta. ROLLBACK siempre.
+  "pruebas:conteo-de-envio",
+
+  // Cerrar lo contado con pendientes y «Hacer ahora» (ADR-0393, actividad 3): entra solo lo que tiene talla y color; lo demás queda
+  // pendiente («detalle», «crear») o sin separar; lo que faltó se mide con lo contado; quien cierra firma lo que vio; «Hacer ahora» entra
+  // como el cierre (costo del cierre, papel hasta su cupo), nunca más de lo que queda ni dos veces; la base no deja descuadrar una línea
+  // aunque se escriba a mano; el número del aviso por sede. ROLLBACK siempre.
+  "pruebas:pendientes-de-envio",
+
+  // Reabrir un envío recibido (ADR-0393, actividad 4; decisión 5): lo que faltó deja de valer sin borrarse y sale de «Nos debe», lo
+  // pendiente vuelve al borrador, lo que entró no se toca ni entra dos veces, y queda el rastro; no se reabre si Compras ya resolvió.
+  // ROLLBACK, salvo los dos casos de dos sesiones (reabrir y resolver la deuda a la vez): commitean un envío de prueba y lo borran.
+  "pruebas:reabrir-envio",
+
+  // El envío sin aviso (ADR-0393, actividad 4; decisiones 2 y 10): la sede lo abre al llegar, lo cuenta por categoría y lo cierra
+  // con los mismos pendientes; nada sobra ni deja deuda; el costo solo lo escribe quien ve el dinero de Compras (ADR-0330) y lo que
+  // entra sin costo no toca el de la prenda. ROLLBACK siempre.
+  "pruebas:envio-sin-aviso",
+
   // «Nos debe» (ADR-0362, fase 5a): solo un faltante «no vino» es deuda del proveedor; se salda con la prenda, a mano con nota o en la
   // próxima recepción (la más antigua primero), nunca más de lo debido (tampoco con dos sesiones a la vez); lo resuelto solo se agrega;
   // saldo a favor y depósito, «todavía no». ROLLBACK, salvo el caso de dos sesiones: commitea un envío de prueba y lo borra al terminar.
@@ -985,6 +1052,39 @@ export const PRUEBAS = [
   // anular con motivo; la firma de la decisión 39 (persona sola, terminal con combo). ROLLBACK, salvo los dos casos de dos sesiones
   // (editar a la vez y crear con el mismo id): commitean una orden de prueba y la borran al terminar.
   "pruebas:ordenes-insumo",
+
+  // Fondos por rendir (ADR-0362, fase 6 · actividad 1): el módulo es la llave; la primera entrega crea el fondo de la persona (1413) y
+  // las demás suman en el mismo; nadie se entrega plata a sí mismo, registra su propia devolución ni anula su propio fondo; lo del líder
+  // solo lo entrega el líder; no se devuelve más de lo que hay ni se anula una entrega ya usada; el validador, el registro genérico,
+  // «¿De dónde sale la plata?» y el candado de la cuenta no dejan mover un fondo por otro lado. ROLLBACK siempre.
+  "pruebas:fondos",
+
+  // Gastos del viaje (ADR-0362, fase 6 · actividad 3): con Órdenes de compra; «Traer la mercadería» (609, fletes) o «Viaje de compra» (631);
+  // desde «Mi fondo» el Diario lo saca de la 1413, desde la caja fuerte de la 101; a una o varias órdenes, repartido según su total; sin
+  // comprobante solo taxi o cargador; un anulado no cuenta y devuelve la plata al fondo; la firma de la decisión 39. ROLLBACK siempre.
+  "pruebas:gastos-viaje",
+  "pruebas:rendicion-fondo",
+  // Lo no deducible (ADR-0362, fase 6 · actividad 6): en un comprobante de S/ 2 000 o más, lo pagado en efectivo o desde un fondo; y lo
+  // que pasa el tope diario de la planilla de movilidad, por persona y por día. ROLLBACK siempre.
+  "pruebas:no-deducible",
+  // Saldar la deuda de un faltante (ADR-0362, fase 6 · actividad 7): lo registra quien recibe la plata, no más de lo que debe, la más
+  // vieja primero, anular devuelve la deuda, y la 1419 y la 1413 por dos caminos. ROLLBACK siempre.
+  "pruebas:deuda-fondo",
+  // El IGV de la fase 6 (ADR-0362, actividad 8): la factura con RUC de un gasto del viaje va al crédito fiscal; el IGV de lo pagado sin
+  // banco se pierde en el mes del PAGO (Impuestos en negativo, el aviso del panel y, en el Diario, 64 contra 4011). ROLLBACK siempre.
+  "pruebas:igv-fase6",
+  // Finanzas ▸ Gastos con los gastos del viaje (ADR-0362, fase 6): la lista y sus cifras leen el papel de su ficha (factura, boleta,
+  // ticket o planilla de movilidad, con su número y quien la dio), sin cambiar columnas ni lo de un gasto de Finanzas; y la pantalla
+  // sabe decir todo papel que la base acepta. ROLLBACK siempre.
+  "pruebas:gastos-lista-viaje",
+  // Finanzas ▸ Gastos con el IGV perdido (ADR-0362, fase 6, decisión 76): la fila dice qué gasto perdió IGV por pagar sin banco, cuánto,
+  // cuándo y cómo; la tarjeta lo resta en el mes del PAGO y se mueve igual que el crédito de gastos de Impuestos; misma visibilidad que
+  // la lista; todo origen de fn_igv_perdido llega a un gasto o está fuera a propósito. ROLLBACK siempre.
+  "pruebas:gastos-igv-perdido",
+  // Lo que la base del fondo no acepta (ADR-0362, fase 6; /chaos 2026-10-14): un monto que no es un número (en las funciones y en las
+  // tablas de plata), más de 2 decimales, diez mil millones, fechas de antes del 13/10/2026, textos invisibles, y el token que sigue al
+  // contenido en las cinco funciones del fondo con su revisión en fn_resolver_intento. ROLLBACK siempre.
+  "pruebas:fondos-entradas",
 
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y

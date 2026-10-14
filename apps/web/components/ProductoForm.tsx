@@ -123,6 +123,7 @@ import { MarcaCampo, EtiquetaAhora } from "@/components/alta-producto/guia";
 import type { EstadoCampo } from "@/lib/alta-producto-guia";
 import { pendientesDeFicha, type IdPendiente, type PendienteFicha } from "@/lib/producto-ficha-guia";
 import type { AjusteStockFicha, ContextoFicha, LecturaStockFicha } from "@/components/ficha-producto/piezas";
+import { MAX_DESCRIPCION_PRODUCTO, MAX_NOMBRE_PRODUCTO } from "@/lib/catalogo-topes";
 
 /* ====================================================================
    ProductoForm · edición de producto+variantes (V2, 2026-09-15)
@@ -1292,6 +1293,7 @@ export function ProductoForm({
             <CampoTexto
               etiqueta="Referencia"
               id="producto-referencia"
+              maxLength={MAX_NOMBRE_PRODUCTO}
               value={referencia}
               onChange={(e) => setReferencia(e.target.value)}
               placeholder="Blusa Lino"
@@ -1338,6 +1340,7 @@ export function ProductoForm({
             <div className="@lg:col-span-2">
               <CampoTexto
                 etiqueta="Descripción (opcional)"
+                maxLength={MAX_DESCRIPCION_PRODUCTO}
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
                 placeholder="Detalle interno, no se muestra al cliente"

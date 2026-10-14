@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { Campo, CampoTexto, Desplegable } from "@/components/ui/campos";
+import { Campo, CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { SelectorColor } from "@/components/SelectorColor";
 import type { ColorAlta } from "@/lib/alta-producto";
@@ -242,16 +242,15 @@ export function NuevoColorAlta({
 
       <AvisoSinIdentidad firma={firma} />
       <div className="flex flex-wrap items-center gap-2.5">
-        <button
+        <Boton peso="primario" cargando={guardando} textoCargando="Creando…"
           type="button"
           onClick={() => void crear()}
           disabled={guardando || !enLinea || mismoNombre || !firma.listo}
           title={(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}
-          className="btn-cayla btn-primario"
         >
-          {guardando ? "Creando…" : "Crear y elegir"}
-        </button>
-        <button type="button" onClick={onCerrar} disabled={guardando} className="btn-cayla btn-sutil">
+          Crear y elegir
+        </Boton>
+        <button type="button" onClick={onCerrar} disabled={guardando} className="btn-cayla btn-secundario">
           Cancelar
         </button>
       </div>

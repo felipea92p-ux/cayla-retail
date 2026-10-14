@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Lock, Plus, SearchX, ShieldCheck } from "lucide-react";
+import { ChevronDown, Lock, Plus, SearchX, ShieldCheck, Users } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Boton, Desplegable } from "@/components/ui/campos";
@@ -294,7 +294,7 @@ export function RolesPanel({
             {cuentas && (
               <div className="mt-3 flex flex-wrap items-center gap-2.5">
                 {cuentasDelElegido.length === 0 ? (
-                  <p className="text-[13px] text-tinta/60">Ninguna cuenta tiene este rol todavía.</p>
+                  <Vacio tamano="chico" alinear="izquierda" className="px-0 py-1" icono={<Users />}>Ninguna cuenta tiene este rol todavía.</Vacio>
                 ) : (
                   <>
                     <PilaPersonas mas={Math.max(0, cuentasDelElegido.length - 5)}>
@@ -500,7 +500,7 @@ export function RolesPanel({
               Descartar
             </Boton>
             <Boton type="button" peso="primario" onClick={guardar} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
-              {guardando ? "Guardando…" : "Guardar cambios"}
+              Guardar cambios
             </Boton>
           </>
         }
@@ -769,9 +769,9 @@ function CuentasDelRolModal({ rol, cuentas, onClose }: { rol: RolVista; cuentas:
   const filtradas = cuentas.filter((c) => norm(`${c.nombre} ${c.ubicacion ?? ""}`).includes(norm(q.trim())));
   return (
     <Modal
+      conCerrar
       titulo={rol.nombre}
       subtitulo={`${cuentas.length === 1 ? "1 cuenta tiene" : `${cuentas.length} cuentas tienen`} este rol. Para cambiar el de una, usa «Asignar» o su fila en Cuentas.`}
-      ancho="max-w-md"
       onClose={onClose}
     >
       <div className="mt-4 space-y-2">

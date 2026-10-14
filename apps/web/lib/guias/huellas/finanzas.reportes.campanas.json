@@ -5,7 +5,7 @@
   "total": 2,
   "controles": {
     "components/finanzas/CampanasPanel.tsx": [
-      "button «fin-reportes.excel»",
+      "BotonDescargar «Descargar Excel»",
       "Link «Configuración ▸ Tiendas y caja»"
     ]
   }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Info } from "lucide-react";
+import { Info, NotebookPen } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
@@ -13,6 +13,7 @@ import { FRASE_SIN_ELLA, QUIZA_MAS, palabraDias, type AccesoFrescura, type Detal
 import type { FrescuraPrenda, Tramo, VaraCategoria } from "@/lib/frescura-reglas";
 import { FrescuraDecidir, FrescuraQuitar } from "./FrescuraDecidir";
 import { EstadoChip, ICONO_SUGERENCIA, NivelChip, TextoConNegritas } from "./piezas";
+import { Vacio } from "@/components/ui/Vacio";
 
 // La hoja de detalle de una prenda de Frescura del piso (ADR-0208, paso 4): el porqué de su estado en palabras de tienda,
 // DÓNDE CAE entre las demás de su categoría (la regla, con cada zona escrita), cómo se vende, sus tallas y qué se puede
@@ -214,7 +215,7 @@ export function FrescuraDetalle({
       }
       onClose={onClose}
       variante="hoja"
-      ancho="sm:max-w-[40rem]"
+      tamano="mediana"
       alCerrarEnfocar={volverA}
     >
       {(cerrar) => modo === "decidir" ? (
@@ -286,7 +287,7 @@ export function FrescuraDetalle({
                 )}
               </div>
             ) : (
-              <p className="text-[13.5px] leading-relaxed text-taupe">Todavía no se anotó nada de esta prenda.</p>
+              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<NotebookPen />}>Todavía no se anotó nada de esta prenda.</Vacio>
             )}
             {modo === "quitar" && decision.vigenteId ? (
               <div className="mt-3">

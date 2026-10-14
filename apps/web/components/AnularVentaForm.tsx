@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
-import { Desplegable } from "@/components/ui/campos";
+import { Modal, campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
+import { Desplegable, Boton } from "@/components/ui/campos";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -66,7 +66,7 @@ export function AnularVentaForm({
         .eq("venta_id", linea.ventaId);
       if (cancelado) return;
       if (error) {
-        setError(traducirError(error, "cargar las líneas de la venta"));
+        setError(traducirError(error, "cargar las líneas de la venta", { lectura: true }));
         return;
       }
       const cargados: ItemVenta[] = (data ?? []).map((f) => ({
@@ -141,7 +141,6 @@ export function AnularVentaForm({
       titulo="Anular venta"
       subtitulo={`${linea.referencia} ${codigoPrenda(linea)} — esto anula la venta completa, no solo esta línea`}
       onClose={onClose}
-      ancho="max-w-md"
     >
       {(cerrar) => (
         <form onSubmit={onSubmit} className="space-y-4">
@@ -185,13 +184,13 @@ export function AnularVentaForm({
           {error && <Aviso tono="error">{error}</Aviso>}
 
           <ComboResponsable control={responsable} deshabilitado={loading} />
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} className={botonCancelar}>
+          <div className="pie-acciones pt-1">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={loading || !items || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
-              {loading ? "Anulando…" : "Anular venta"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Anulando…" type="submit" disabled={loading || !items || !responsable.listo} title={responsable.motivo ?? undefined}>
+              Anular venta
+            </Boton>
           </div>
         </form>
       )}

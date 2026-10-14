@@ -5,7 +5,7 @@
   "total": 33,
   "controles": {
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/impresion/useImpresionBrother.tsx": [
@@ -14,7 +14,7 @@
     ],
     "components/liquidacion/EtiquetarPiezaModal.tsx": [
       "Boton «+ Etiquetar otra»",
-      "Boton «Imprimir etiqueta»",
+      "BotonImprimir «Imprimir etiqueta»",
       "CampoSelect «Categoría»",
       "CampoTexto «Para reconocerla»",
       "CampoMonto «Precio»",
@@ -41,7 +41,7 @@
       "Boton «Retirar»",
       "Boton «Retirar» #2",
       "Boton «Bajar el precio»",
-      "Boton «Imprimir etiqueta»"
+      "BotonImprimir «Imprimir etiqueta»"
     ],
     "components/liquidacion/PrecioMinimoLiquidacion.tsx": [
       "button «Cambiarlo»",

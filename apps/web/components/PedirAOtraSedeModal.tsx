@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus } from "lucide-react";
-import { Modal, botonCancelar, botonPrimario, campoTexto } from "@/components/ui/Modal";
-import { Desplegable } from "@/components/ui/campos";
+import { Modal, campoTexto } from "@/components/ui/Modal";
+import { Boton, Desplegable } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -250,7 +250,6 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
       titulo={origen && !elegir ? `Pedir a ${origen.nombre}` : "Pedir a otra sede"}
       subtitulo="Para reponer: al llegar entra a tu stock."
       onClose={onCerrar}
-      ancho="max-w-md"
       bloqueado={enviando}
     >
       {(cerrar) => (
@@ -316,9 +315,9 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
                   );
                 })}
                 {catalogo.estado === "listo" && elegidas.length < Math.min(catalogo.prendas.length, TOPE_LINEAS_PEDIDO) && (
-                  <button type="button" disabled={enviando} onClick={() => setElegidas((ls) => [...ls, LINEA_ELEGIDA_VACIA])} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+                  <Boton type="button" peso="discreto" disabled={enviando} onClick={() => setElegidas((ls) => [...ls, LINEA_ELEGIDA_VACIA])} className="btn-chico self-start">
                     + Agregar otra prenda
-                  </button>
+                  </Boton>
                 )}
               </div>
             ) : (
@@ -355,19 +354,19 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
 
           <PieGuia guia={guia} listo="Todo listo para pedir." />
           {/* `pie-hoja-fijo`: «Mejor no» y «Pedir» no se van bajo el pliegue cuando la lista de prendas se alarga (globals.css). */}
-          <div className="pie-hoja-fijo flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} className={botonCancelar} disabled={enviando}>
+          <div className="pie-hoja-fijo pie-acciones pt-1">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={enviando}>
               Mejor no
             </button>
-            <button
+            <Boton peso="primario" cargando={enviando} textoCargando="Pidiendo…"
               type="button"
               disabled={enviando || !guia.puedeConfirmar || motivo !== null}
               title={responsable.motivo ?? guia.frase ?? motivo ?? undefined}
               onClick={() => pedir(cerrar)}
-              className={`${botonPrimario} ${guia.claseConfirmar}`}
+              className={`flex-1 ${guia.claseConfirmar}`}
             >
-              {enviando ? "Pidiendo…" : origen ? `Pedir a ${origen.nombre}` : "Pedir"}
-            </button>
+              {origen ? `Pedir a ${origen.nombre}` : "Pedir"}
+            </Boton>
           </div>
         </div>
       )}

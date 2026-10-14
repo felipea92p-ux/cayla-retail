@@ -17,7 +17,7 @@ export function BotonCerrarFaltante({ compra, linea, producto, tiendas }: { comp
   const [abierto, setAbierto] = useState(false);
   return (
     <>
-      <button type="button" onClick={() => setAbierto(true)} data-guia="factura.cerrar-faltante" className="btn-cayla btn-enlace mt-1 flex w-fit text-left text-xs">
+      <button type="button" onClick={() => setAbierto(true)} data-guia="factura.cerrar-faltante" className="btn-cayla btn-sutil btn-chico mt-1 w-fit">
         Cerrar con faltante
       </button>
       {abierto && <CerrarFaltanteModal compra={compra} linea={linea} producto={producto} tiendas={tiendas} onClose={() => setAbierto(false)} />}

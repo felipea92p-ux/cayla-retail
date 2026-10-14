@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Pencil } from "lucide-react";
+import { ChartColumn } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
-import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Encabezado, TABLA, Tabla, type Columna } from "@/components/ui/Tabla";
@@ -38,6 +37,8 @@ import {
 import { EditarMetaModal } from "./EditarMetaModal";
 import { GraficoVentasMeta } from "./GraficoVentasMeta";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 
 /* ====================================================================
    El panel de Rendimiento de UNA tienda (ADR-0325, spike docs/maquetas/rendimiento-meta-2026-09/)
@@ -265,7 +266,9 @@ export function PanelRendimiento({
               </p>
             </>
           ) : (
-            <p className="mt-2 text-xs text-tinta/65">Sin ventas {t.enPeriodo}: todavía no hay horas que mirar.</p>
+            <Vacio tamano="chico" alinear="izquierda" className="mt-1 px-0" icono={<ChartColumn />}>
+              Sin ventas {t.enPeriodo}: todavía no hay horas que mirar.
+            </Vacio>
           )}
         </div>
       )}
@@ -361,17 +364,13 @@ export function PanelRendimiento({
                     )}
                   </div>
                   <div className="sm:text-right">
-                    <BotonCompacto
-                      variante="fila"
-                      icono={<Pencil aria-hidden strokeWidth={1.75} />}
+                    <LapizEditar
+                      que={`la meta de ${p.nombre}`}
                       disabled={!permiso.puede}
-                      title={permiso.puede ? `Cambiar la meta de ${p.nombre}` : permiso.motivo}
-                      aria-label={`Cambiar la meta de ${p.nombre}`}
+                      title={permiso.puede ? undefined : permiso.motivo}
                       onClick={() => setEditando(p)}
-                      data-guia={permiso.puede ? "rendimiento.meta-boton" : undefined}
-                    >
-                      Meta
-                    </BotonCompacto>
+                      guia={permiso.puede ? "rendimiento.meta-boton" : undefined}
+                    />
                   </div>
                 </div>
               );

@@ -14,7 +14,7 @@
 // ya no estaba y solo lo supo la base, en vivo.
 
 import { compararTallas } from "./tallas";
-import { diaMes } from "./fechas-lima";
+import { diaLima, diaMes } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 
 /** Lo mínimo que el modal lee de cada variante. La talla llega anidada porque la columna
@@ -566,9 +566,12 @@ export function resolverHallazgos<L extends { variante: Pick<VarianteAjuste, "va
   return { enlaces, sinResponder, conExceso };
 }
 
-/** «Faltó 1 en el Conteo 13 (30/09).» — y, si ya se recuperó parte, cuánto queda. */
+/** «Faltó 1 en el Conteo 13 (30/09).» — y, si ya se recuperó parte, cuánto queda. El día es el de Lima en que se cerró el conteo:
+ *  `cerradoEn` es un instante que la base manda en UTC, y sus 10 primeros caracteres corrían al día siguiente lo cerrado de 7 pm a
+ *  medianoche. */
 export function textoFaltanteConteo(f: Pick<FaltanteConteo, "conteoNumero" | "cerradoEn" | "faltaron" | "encontradas" | "pendientes">): string {
-  const cuando = f.cerradoEn ? ` (${diaMes(f.cerradoEn)})` : "";
+  const dia = diaLima(f.cerradoEn);
+  const cuando = dia ? ` (${diaMes(dia)})` : "";
   const ya = f.encontradas > 0 ? ` Ya se encontró ${f.encontradas}: quedan ${f.pendientes} por encontrar.` : "";
   return `Faltó ${f.faltaron} en el Conteo ${f.conteoNumero}${cuando}.${ya}`;
 }

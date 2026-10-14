@@ -181,16 +181,33 @@ describe("no re-traduce lo que las RPC ya dicen bien", () => {
 });
 
 describe("los bordes de red y el fallback", () => {
-  it("si no se llegó al servidor, lo dice y aclara que no se guardó nada", () => {
-    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar la venta");
-    expect(salida).toContain("No se guardó nada");
+  // ADR-0410: «Failed to fetch» sale igual si la petición nunca salió que si la base guardó y se perdió la respuesta
+  // (/chaos de Producción: un lote de insumo entró y la pantalla dijo «No se guardó nada»).
+  it.each(["TypeError: Failed to fetch", "NetworkError when attempting to fetch resource.", "Load failed", "TypeError: fetch failed", "AbortError: signal is aborted without reason"])(
+    "una escritura cortada (%s) no promete que no se guardó: pide revisar antes de repetir",
+    (message) => {
+      const salida = traducirError({ message }, "ingresar el insumo");
+      expect(salida).toBe(
+        "Se cortó la conexión mientras se intentaba ingresar el insumo: no podemos confirmar si llegó a guardarse. Antes de volver a intentarlo, revisa si ya aparece registrado."
+      );
+      expect(salida).not.toMatch(/no se guardó/i);
+    }
+  );
+
+  it("`confirmarAntesDeRepetir` ya es lo de siempre: misma frase con o sin la opción", () => {
+    const corte = { message: "TypeError: Failed to fetch" };
+    expect(traducirError(corte, "registrar el pago", { confirmarAntesDeRepetir: true })).toBe(traducirError(corte, "registrar el pago"));
   });
 
-  it("con dinero de por medio no afirma que no se guardó: pide revisar antes de repetir", () => {
-    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar el pago", { confirmarAntesDeRepetir: true });
-    expect(salida).not.toContain("No se guardó nada");
-    expect(salida).toContain("no podemos confirmar");
-    expect(salida).toContain("registrar el pago");
+  it("una lectura cortada dice solo que se cortó la conexión: no habla de guardar", () => {
+    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "cargar las prendas", { lectura: true });
+    expect(salida).toBe("No se pudo cargar las prendas: se cortó la conexión. Revisa el internet y vuelve a intentar.");
+    expect(salida).not.toMatch(/guard/i);
+  });
+
+  it("`lectura` no cambia lo que no es corte de red: la base respondió", () => {
+    const delaRpc = "No tienes permiso para ver esa caja";
+    expect(traducirError({ message: delaRpc, code: "P0001" }, "cargar la caja", { lectura: true })).toBe(delaRpc);
   });
 
   it("lo desconocido no se traga: cae con el texto crudo detrás de «Código:»", () => {
@@ -461,6 +478,13 @@ describe("temporadas (ADR-0246): la lista cerrada y sus funciones", () => {
     const prendas = { message: "No tienes permiso para cambiar la temporada de las prendas.", code: "42501", hint: "temporada_sin_permiso" };
     expect(traducirError(calendario, "cambiar la fecha")).toBe(calendario.message);
     expect(traducirError(prendas, "guardar la temporada")).toBe(prendas.message);
+  });
+
+  it("los del fondo por rendir (ADR-0362 fase 6) también: dicen qué hacer, sin «Código:»", () => {
+    const propio = { message: "Nadie se entrega plata a sí mismo: que lo haga otra persona con el módulo Fondos por rendir.", code: "42501", hint: "fondo_propio" };
+    const ajeno = { message: "Desde tu fondo pagas tú: elige tu nombre en «Responsable».", code: "42501", hint: "fondo_ajeno" };
+    expect(traducirError(propio, "entregar la plata")).toBe(propio.message);
+    expect(traducirError(ajeno, "registrar el pago", { confirmarAntesDeRepetir: true })).toBe(ajeno.message);
   });
 
   it("un 42501 de otro origen no se cuela por la regla de temporadas", () => {
@@ -800,5 +824,31 @@ describe("regularizar la propia venta (ADR-0328)", () => {
       "regularizar la prenda",
     );
     expect(salida).toContain("las apartadas y las de Cuarentena no cuentan");
+  });
+});
+
+// /chaos 2026-10-13: los candados de montos de Ventas y Caja (20261013204000) hablan en castellano si saltan.
+describe("montos de Ventas y Caja", () => {
+  it("el vuelto de más y el monto que no es número", () => {
+    expect(
+      traducirError({ message: 'new row for relation "venta_pagos" violates check constraint "venta_pagos_recibido_con_tope"', code: "23514" }, "registrar la venta"),
+    ).toMatch(/vuelto pasa de S\/ 500/);
+    expect(
+      traducirError({ message: 'new row for relation "cajas" violates check constraint "cajas_montos_finitos"', code: "23514" }, "abrir la caja"),
+    ).toMatch(/no es un número válido/);
+  });
+});
+
+// /chaos de Catálogo 2026-10-14 (20261014182000): el precio NaN y los nombres sin tope rebotan en castellano.
+describe("montos y nombres de Catálogo", () => {
+  it("un precio o costo que no es número", () => {
+    expect(
+      traducirError({ message: 'new row for relation "variantes" violates check constraint "variantes_montos_finitos"', code: "23514" }, "guardar el producto"),
+    ).toMatch(/no es un número válido/);
+  });
+  it("un nombre demasiado largo", () => {
+    expect(
+      traducirError({ message: 'new row for relation "productos" violates check constraint "productos_textos_con_tope"', code: "23514" }, "guardar el producto"),
+    ).toMatch(/demasiado largo/);
   });
 });

@@ -8,6 +8,7 @@ import { registrarPedidoNoAtendido } from "@/lib/pedidos-no-atendidos-acciones";
 import { avisoAnotado } from "@/lib/se-probo-reglas";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { Boton } from "@/components/ui/campos";
 
 /**
  * «Anotar que no había» en el modal de talla (spike 2026-09-26, hallazgo 3): la clienta pidió una talla que no hay en
@@ -67,15 +68,19 @@ export function AnotarNoHabia({
         <span className="min-w-[12rem] flex-1">
           {estado === "anotado" ? "Anotado. Compras ya lo ve." : "¿La talla que pidió no está y no le sirve esperar? Anótalo para Compras."}
         </span>
-        <button
+        <Boton
           type="button"
+          cargando={estado === "guardando"}
+          textoCargando="Anotando…"
           onClick={anotar}
           disabled={estado !== "listo" || !responsable.listo || (tallas.length > 1 && !talla)}
-          className="btn-cayla btn-secundario ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-[12.5px]"
+          className="btn-chico ml-auto shrink-0"
         >
-          {estado === "anotado" ? <Check className="h-3.5 w-3.5" aria-hidden /> : null}
-          {estado === "guardando" ? "Anotando…" : estado === "anotado" ? "Anotado" : "Anotar que no había"}
-        </button>
+          <span className="flex items-center gap-1.5">
+            {estado === "anotado" && <Check className="-my-1 h-3.5 w-3.5" aria-hidden />}
+            {estado === "anotado" ? "Anotado" : "Anotar que no había"}
+          </span>
+        </Boton>
       </div>
       {estado === "listo" && tallas.length > 1 && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Talla que pidió">

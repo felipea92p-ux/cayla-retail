@@ -330,11 +330,22 @@ caso(
  *   · fn_colaboradores: solo la lee quien gestiona colaboradores (`fn_puede_gestionar_colaboradores`).
  *   · fn_mi_perfil: el perfil de una PERSONA; la terminal no tiene.
  *   · fn_compras_ubicaciones: la rama de la terminal la trae `fn_ubicacion_actual_persona()` (ADR-0184).
+ *   · fn_fondos, fn_fondos_opciones (ADR-0362 fase 6, 20261013182000): no son una puerta; la llave es el módulo `fondos`
+ *     (`fn_ve_modulo`). Leen a las personas del equipo (a quién se le entrega) y la cuenta solo marca cuál es el fondo de quien
+ *     mira: una terminal no tiene fondo, así que nada es «suyo».
  * Si aparece otra: o usa `fn_tiene_acceso_retail()` (lo normal), o se agrega aquí con su porqué.
  */
-const PUERTAS_PROPIAS_A_PROPOSITO = ["fn_colaboradores", "fn_compras_ubicaciones", "fn_es_admin", "fn_es_lider", "fn_mi_perfil"];
+const PUERTAS_PROPIAS_A_PROPOSITO = [
+  "fn_colaboradores",
+  "fn_compras_ubicaciones",
+  "fn_es_admin",
+  "fn_es_lider",
+  "fn_fondos",
+  "fn_fondos_opciones",
+  "fn_mi_perfil",
+];
 caso(
-  "INVENTARIO: las únicas funciones de retail con puerta propia «persona + colaborador» que no conocen la terminal son las 5 de la lista (ninguna lectura de la red)",
+  `INVENTARIO: las únicas funciones de retail con puerta propia «persona + colaborador» que no conocen la terminal son las ${PUERTAS_PROPIAS_A_PROPOSITO.length} de la lista (ninguna lectura de la red)`,
   `select coalesce(string_agg(proname, ',' order by proname), '') from pg_proc p
     where p.pronamespace = 'retail'::regnamespace and p.prokind = 'f'
       and p.prosrc ~ 'colaboradores' and p.prosrc ~ 'auth_user_id\\s*=\\s*auth\\.uid\\(\\)'

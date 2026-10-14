@@ -15,6 +15,8 @@
  * nuevas, fotos de la ficha, tejido y patrón) no aparece, y la pantalla lo dice al pie.
  */
 
+import { diaLima, horaLima } from "./fechas-lima";
+
 /** Una fila de `fn_historial_prenda` (20261006180000). */
 export type FilaHistorial = {
   id: string;
@@ -409,16 +411,8 @@ export function armarEventos(filas: readonly FilaHistorial[]): Evento[] {
   return eventos.reverse();
 }
 
-// ---------- fechas (Lima) ----------
+// ---------- fechas (Lima): el día y la hora salen de `fechas-lima`; un instante que no se lee dice «—» ----------
 
-const ZONA = "America/Lima";
-/** `aaaa-mm-dd` en Lima. */
-export function diaLima(iso: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: ZONA, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso));
-}
-export function horaLima(iso: string): string {
-  return new Intl.DateTimeFormat("es-PE", { timeZone: ZONA, hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso));
-}
 const DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const MESES_L = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -429,6 +423,7 @@ const ajusta = ([y, m, d]: [number, number, number]): [number, number, number] =
 /** «Hoy», «Ayer», «sáb 4 oct» (y el año si no es el de hoy). `hoy` = `aaaa-mm-dd` en Lima. */
 export function etiquetaDia(iso: string, hoy: string): string {
   const dia = diaLima(iso);
+  if (!dia) return "—";
   const d = diasEntre(dia, hoy);
   if (d === 0) return "Hoy";
   if (d === 1) return "Ayer";
@@ -438,14 +433,18 @@ export function etiquetaDia(iso: string, hoy: string): string {
 }
 /** «6 de octubre». */
 export function diaLargo(iso: string): string {
-  const [, m, d] = partes(diaLima(iso));
+  const dia = diaLima(iso);
+  if (!dia) return "—";
+  const [, m, d] = partes(dia);
   return `${d} de ${MESES_L[m - 1]}`;
 }
 /** «hoy, 09:20», «ayer, 16:56», «hace 3 días», «el 18 de septiembre». */
 export function haceCuanto(iso: string, hoy: string): string {
-  const d = diasEntre(diaLima(iso), hoy);
-  if (d === 0) return `hoy, ${horaLima(iso)}`;
-  if (d === 1) return `ayer, ${horaLima(iso)}`;
+  const dia = diaLima(iso);
+  if (!dia) return "—";
+  const d = diasEntre(dia, hoy);
+  if (d === 0) return `hoy, ${horaLima(iso) ?? "—"}`;
+  if (d === 1) return `ayer, ${horaLima(iso) ?? "—"}`;
   if (d < 7) return `hace ${d} días`;
   return `el ${diaLargo(iso)}`;
 }
@@ -459,7 +458,7 @@ export function resumenHistorial(eventos: readonly Evento[], hoy: string): strin
   const sinFirma = cambios.filter((e) => !e.persona).length;
   const ultimo = cambios[0]!;
   const desde = nacio ?? cambios[cambios.length - 1]!;
-  const dias = Math.max(1, diasEntre(diaLima(desde.cuando), hoy));
+  const dias = Math.max(1, diasEntre(diaLima(desde.cuando) ?? hoy, hoy));
   return [
     `${cambios.length} ${cambios.length === 1 ? "cambio" : "cambios"} en ${dias} ${dias === 1 ? "día" : "días"}`,
     personas.size ? `${personas.size} ${personas.size === 1 ? "persona" : "personas"}` : null,
