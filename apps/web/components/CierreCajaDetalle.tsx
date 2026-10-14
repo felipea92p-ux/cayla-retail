@@ -158,9 +158,9 @@ export function DetalleCierreContenido({ cierre, detalle, cargando, error }: { c
               style={{ background: "linear-gradient(90deg, color-mix(in srgb, var(--color-rojo) 55%, transparent) 0 49.5%, var(--color-verde) 49.5% 50.5%, color-mix(in srgb, var(--color-ambar) 60%, transparent) 50.5% 100%)" }}
             />
             <span className="absolute top-[6px] h-[22px] w-[22px] -translate-x-1/2 rounded-full border-4 border-tinta bg-crema" style={{ left: `${escala.pos}%` }} />
-            <span className="absolute left-0 top-6 text-[11px] text-crema/60">falta {money(escala.rango)}</span>
-            <span className="absolute left-1/2 top-6 -translate-x-1/2 text-[11px] text-crema/60">cuadra</span>
-            <span className="absolute right-0 top-6 text-[11px] text-crema/60">sobra {money(escala.rango)}</span>
+            <span className="absolute left-0 top-6 text-[11px] text-crema/70">falta {money(escala.rango)}</span>
+            <span className="absolute left-1/2 top-6 -translate-x-1/2 text-[11px] text-crema/70">cuadra</span>
+            <span className="absolute right-0 top-6 text-[11px] text-crema/70">sobra {money(escala.rango)}</span>
           </div>
         </div>
         <div className="@2xl:text-right">

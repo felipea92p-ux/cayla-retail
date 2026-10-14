@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
+import { ClipboardList } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
+import { Vacio } from "@/components/ui/Vacio";
 import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Casilla } from "@/components/ui/Casilla";
@@ -365,7 +367,9 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
               {disponibles === null && ordenes.length === 0 ? (
                 <p className="text-sm text-taupe">Buscando las órdenes…</p>
               ) : ordenes.length === 0 ? (
-                <p className="text-sm text-taupe">No hay órdenes para elegir: el gasto queda solo como gasto del viaje.</p>
+                <Vacio tamano="chico" alinear="izquierda" icono={<ClipboardList />}>
+                  No hay órdenes para elegir: el gasto queda solo como gasto del viaje.
+                </Vacio>
               ) : (
                 <ul className="max-h-56 divide-y divide-sand overflow-y-auto rounded-xl border border-sand">
                   {filtradas.map((o) => (

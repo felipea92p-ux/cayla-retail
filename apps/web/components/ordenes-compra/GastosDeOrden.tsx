@@ -18,7 +18,8 @@ export function GastosDeOrden({ gastos }: { gastos: readonly GastoDeOrden[] | nu
   const total = traerlaCosto(gastos);
   return (
     <section aria-label="Lo que costó traerla" data-guia="orden.gastos-viaje" className="space-y-2">
-      <TituloGrupo cuenta={`${soles(total)} · ${gastos.length === 1 ? "1 gasto" : `${gastos.length} gastos`}`}>Traerla costó</TituloGrupo>
+      {/* Cuántos gastos, en el globito pegado al nombre (ADR-0358, títulos de sección, ronda 9); lo que costó, en el título. */}
+      <TituloGrupo cuenta={gastos.length}>Traerla costó {soles(total)}</TituloGrupo>
       <Tabla>
         <div className="hidden @min-[40rem]:block">
           <Encabezado

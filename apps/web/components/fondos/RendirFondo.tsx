@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
+import { Receipt } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
+import { Vacio } from "@/components/ui/Vacio";
 import { MarcaNoDeducible } from "@/components/MarcaNoDeducible";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
@@ -71,7 +73,12 @@ function ListaItems({ items, alSubir, deshabilitado }: { items: ItemRendicion[] 
       </div>
     );
   }
-  if (items.length === 0) return <p className="text-sm text-taupe">No hay pagos ni gastos en esta rendición.</p>;
+  if (items.length === 0)
+    return (
+      <Vacio tamano="chico" icono={<Receipt />}>
+        No hay pagos ni gastos en esta rendición.
+      </Vacio>
+    );
   return (
     <ul className="divide-y divide-sand rounded-xl border border-sand">
       {items.map((i) => (
@@ -201,7 +208,7 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
           </section>
 
           <section className="space-y-2">
-            <TituloGrupo cuenta={items ? `${items.length}` : undefined}>Lo que entra en esta rendición</TituloGrupo>
+            <TituloGrupo cuenta={items ? items.length : undefined}>Lo que entra en esta rendición</TituloGrupo>
             {fallaLectura && (
               <Aviso tono="atencion" titulo="No se pudo leer la lista" chico>
                 Los números de arriba sí están al día. Cierra y vuelve a abrir para ver cada pago y gasto.
@@ -355,7 +362,7 @@ function RendicionAbierta({
             </Aviso>
           )}
           <section className="space-y-2">
-            <TituloGrupo cuenta={items ? `${items.length}` : undefined}>Lo que rendiste</TituloGrupo>
+            <TituloGrupo cuenta={items ? items.length : undefined}>Lo que rendiste</TituloGrupo>
             <ListaItems items={items} alSubir={cargar} deshabilitado={guardando} />
           </section>
           {retirando && (

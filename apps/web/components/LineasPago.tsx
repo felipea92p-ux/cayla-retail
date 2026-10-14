@@ -206,7 +206,7 @@ export function LineasPago({
             Tienes <b className="font-semibold">{soles(saldoFavor)}</b> a favor con este proveedor.
           </p>
           {!conFavor && (
-            <button type="button" onClick={usarSaldoFavor} className="btn-cayla btn-enlace text-xs">
+            <button type="button" onClick={usarSaldoFavor} className="btn-cayla btn-sutil btn-chico">
               Usar {soles(Math.min(saldoFavor, objetivo))}
             </button>
           )}

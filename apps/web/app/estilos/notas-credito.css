@@ -102,29 +102,6 @@
       visibility 0s linear 380ms;
   }
 
-  /* Una opción del buscador de facturas: la activa lleva el mismo filete rojo que una fila de lista. */
-  .nc-fb-op {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 2px 1rem;
-    width: 100%;
-    padding: 0.625rem 0.875rem;
-    text-align: left;
-    transition: background-color 160ms var(--ease-cayla);
-  }
-  .nc-fb-op[aria-selected="true"] { background: color-mix(in srgb, var(--color-tinta) 4%, transparent); }
-  .nc-fb-op[aria-selected="true"]::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 8px;
-    bottom: 8px;
-    width: 2px;
-    border-radius: 2px;
-    background: var(--color-rojo);
-  }
-
   /* El formulario se atenúa mientras no haya factura elegida: se ve que existe, y que todavía no toca. */
   .nc-tenue { opacity: 0.4; transition: opacity 300ms var(--ease-cayla); }
 
@@ -166,8 +143,7 @@
   .nc-radio,
   .nc-radio::after,
   .nc-colapsa,
-  .nc-tenue,
-  .nc-fb-op {
+  .nc-tenue {
     transition-duration: 1ms !important;
   }
   .nc-paso[data-hilo="true"]::after {

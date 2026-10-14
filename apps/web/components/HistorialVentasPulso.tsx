@@ -2,12 +2,13 @@
 
 import { useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ChartColumn } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { NOMBRE_METODO_HISTORIAL, agruparEnSemanas, pulsoDeVentas } from "@/lib/ventas-historial-reglas";
 import type { TotalesHistorial } from "@/lib/ventas-historial";
 import { BarraApilada } from "@/components/ui/BarraApilada";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
 
 // El pulso del período (Ventas ▸ Historial, ADR-0147), en la columna lateral: lo importante son las ventas y esto las
 // acompaña, no las tapa. Cada día es un HILO vertical —la urdimbre del textil— y una curva de tendencia lo cruza —la
@@ -142,9 +143,9 @@ export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { total
           </div>
         </>
       ) : (
-        <p className="mt-4 rounded-xl border border-dashed border-tinta/15 px-3 py-5 text-center text-xs leading-relaxed text-tinta/65">
+        <Vacio tamano="chico" className="mt-2 py-5" icono={<ChartColumn />}>
           {resumen.ventas === 0 ? "Sin ventas en este período." : "Solo hubo un día de ventas: todavía no hay dibujo."}
-        </p>
+        </Vacio>
       )}
 
       {!parcial && resumen.ventas > 0 && (

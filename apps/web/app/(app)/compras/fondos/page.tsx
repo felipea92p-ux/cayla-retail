@@ -141,7 +141,7 @@ export default async function FondosPage() {
           )}
           {porAprobar.length > 0 && (
             <section className="space-y-3">
-              <TituloSeccion dato={plural(porAprobar.length, "por revisar", "por revisar")}>Rendiciones por aprobar</TituloSeccion>
+              <TituloSeccion cuenta={porAprobar.length}>Rendiciones por aprobar</TituloSeccion>
               {/* `overflow-y-hidden`: la entrada de las filas (suben 8 px) no le pone a la tarjeta una barra vertical de paso. */}
               <Tabla guia="fondos.rendiciones" className="@container overflow-y-hidden">
                 <Encabezado
@@ -183,7 +183,7 @@ export default async function FondosPage() {
           )}
 
           <section className="space-y-3">
-            <TituloSeccion dato={plural(fondos.length, "persona", "personas")}>Quién tiene plata</TituloSeccion>
+            <TituloSeccion cuenta={fondos.length}>Quién tiene plata</TituloSeccion>
             <Tabla guia="fondos.lista" className="@container overflow-y-hidden">
               <Encabezado
                 visible={TITULOS_DESDE}
@@ -246,7 +246,8 @@ export default async function FondosPage() {
 
           {movimientos.length > 0 && (
             <section className="space-y-3">
-              <TituloSeccion dato={plural(movimientos.length, "movimiento", "movimientos")}>
+              {/* Cuántos hay, en el globito pegado al nombre (ADR-0358, títulos de sección, ronda 9). */}
+              <TituloSeccion cuenta={movimientos.length}>
                 {conPagos ? "Entregas, devoluciones y pagos de deuda" : "Entregas y devoluciones"}
               </TituloSeccion>
               <Tabla guia="fondos.movimientos" className="@container overflow-y-hidden">

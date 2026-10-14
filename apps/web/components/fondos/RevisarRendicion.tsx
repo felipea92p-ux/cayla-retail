@@ -205,7 +205,7 @@ function RevisarRendicionModal({ r, onClose, volverA }: { r: Rendicion; onClose:
           </section>
 
           <section className="space-y-2">
-            <TituloGrupo cuenta={items ? `${items.length}` : undefined}>Lo que rindió</TituloGrupo>
+            <TituloGrupo cuenta={items ? items.length : undefined}>Lo que rindió</TituloGrupo>
             {items === null ? (
               <div aria-hidden className="space-y-2">
                 {[0, 1, 2].map((k) => (

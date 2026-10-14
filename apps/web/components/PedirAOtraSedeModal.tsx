@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario, campoTexto } from "@/components/ui/Modal";
-import { Desplegable } from "@/components/ui/campos";
+import { Boton, Desplegable } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -316,9 +316,9 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
                   );
                 })}
                 {catalogo.estado === "listo" && elegidas.length < Math.min(catalogo.prendas.length, TOPE_LINEAS_PEDIDO) && (
-                  <button type="button" disabled={enviando} onClick={() => setElegidas((ls) => [...ls, LINEA_ELEGIDA_VACIA])} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+                  <Boton type="button" peso="discreto" disabled={enviando} onClick={() => setElegidas((ls) => [...ls, LINEA_ELEGIDA_VACIA])} className="btn-chico self-start">
                     + Agregar otra prenda
-                  </button>
+                  </Boton>
                 )}
               </div>
             ) : (

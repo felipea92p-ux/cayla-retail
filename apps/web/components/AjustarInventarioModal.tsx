@@ -65,6 +65,7 @@ import { useCargaInicial } from "@/lib/useCargaInicial";
 import { avisoCargaInicial, cargaAbierta, esRechazoPorCargaCerrada } from "@/lib/carga-inicial-reglas";
 import { sugerirNotaAjuste } from "@/lib/sugerencias-ajuste";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Guarda con `retail.ajustar_inventario` (ADR-0240): UNA llamada, todo o nada y con la marca del intento. Por dentro usa
 // las funciones de siempre (`registrar_movimiento` para cada ajuste, `cargar_stock_inicial` para lo nuevo): no existe una
@@ -554,9 +555,9 @@ export function AjustarInventarioModal({
           )}
 
           {lineas.length > 0 && (
-            <button type="button" onClick={descargarReporte} className="label-cayla text-[11px] text-tinta/55 hover:text-rojo">
-              Descargar reporte de este ajuste
-            </button>
+            <BotonDescargar onClick={descargarReporte} chico className="self-start">
+              Descargar reporte del ajuste
+            </BotonDescargar>
           )}
 
           <CampoGuiado id="responsable" guia={guia}>

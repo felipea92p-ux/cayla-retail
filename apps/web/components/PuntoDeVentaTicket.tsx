@@ -1,25 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import {
-  BadgePercent,
-  Banknote,
-  Cake,
-  Gift,
-  Check,
-  CirclePause,
-  CreditCard,
-  Landmark,
-  MessageSquareText,
-  Percent,
-  Play,
-  QrCode,
-  ShoppingBag,
-  StickyNote,
-  Tag,
-  Wallet,
-  X,
-} from "lucide-react";
+import { BadgePercent, Banknote, Cake, Gift, Check, CirclePause, CreditCard, Landmark, MessageSquareText, Percent, Play, QrCode, ShoppingBag, StickyNote, Tag, Wallet, X } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
@@ -46,6 +28,7 @@ import { ayudaPieCumple, textoPieCumple, ticketConCumple } from "@/lib/club-cump
 import { TEXTO_PIE_VALE, ayudaPieVale, ticketConVale } from "@/lib/club-aniversario-canje-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
  *  verdad cuenta lo calcula `registrar_venta` en el servidor. */
@@ -526,7 +509,7 @@ export function PuntoDeVentaTicket({
                 </p>
               )}
               {enEspera.length === 0 ? (
-                <p className="py-6 text-center text-sm text-tinta/60">No hay tickets en espera.</p>
+                <Vacio tamano="chico" className="py-6" icono={<CirclePause />}>No hay tickets en espera.</Vacio>
               ) : (
                 <div className="divide-y divide-sand rounded-lg border border-sand bg-crema">
                   {enEspera.map((t, i) => {

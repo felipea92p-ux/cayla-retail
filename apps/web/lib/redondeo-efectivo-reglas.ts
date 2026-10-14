@@ -20,6 +20,10 @@
 /** La moneda más chica que circula, en soles. */
 export const UNIDAD_EFECTIVO = 0.1;
 
+/** El vuelto más grande que se da en efectivo (Felipe, 2026-10-13): más que eso es un billete mal escrito (S/ 1 000 000 «recibidos» por
+ *  una venta de S/ 79.90). La base tiene el mismo tope (`venta_pagos_recibido_con_tope`, `separacion_pagos_recibido_con_tope`). */
+export const TOPE_VUELTO = 500;
+
 // Todo el cálculo es en céntimos enteros; 10 céntimos = una moneda de S/ 0.10.
 const UNIDAD_CENTIMOS = 10;
 

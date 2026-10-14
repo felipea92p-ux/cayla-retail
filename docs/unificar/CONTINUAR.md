@@ -1,19 +1,21 @@
 # Cómo seguir con `/unificar` desde otra sesión
 
-Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas y el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`). Es el punto de partida para la próxima sesión: qué está
+Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas, el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`, PR #1026, fusionado el mismo día) y sus herramientas de migración en el repo (rama `claude/unificar-herramientas-deuda`), y ese mismo día con la ronda 9 —las seis que quedaron abiertas— y la ronda 10 —descargar, filtros y ver en otra pantalla— decididas y migradas, más el censo del mostrador rastreado al código (rama `claude/mystifying-jang-ef15d0`). Es el punto de partida para la próxima sesión: qué está
 decidido, qué falta, cómo se trabaja y lo que se aprendió en el camino. **Léelo antes de abrir la skill** (`/unificar`) y mantenlo al día
 al cerrar cada ronda: la próxima sesión no ve esta conversación.
 
 **Para arrancar, pega esto en la sesión nueva:**
 
-> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md` y `docs/unificar/README.md`. Las rondas 6, 7 y 8 están decididas y
-> migradas (deuda 258 → 4). Muéstrame las seis decisiones que quedaron abiertas (README, «La migración de las rondas 6–8») y, cuando
-> responda, ciérralas; después arma la ronda siguiente del tablero («Por analizar»).
+> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md`, `docs/unificar/README.md` y `docs/unificar/MIGRAR.md`. Las rondas 1 a 10
+> están decididas y migradas (deuda 0 en todas las familias). Arma la ronda 11 del tablero («Por analizar», fila 12: los botones de una
+> sola función que quedan —`accion.cancelar`, `accion.limpiar`, `accion.imprimir`—, que todavía tienen versalitas a mano) con un censo
+> nuevo, y cierra lo que quedó de «Lo que falta, en orden».
 
 ## Dónde quedó
 
-Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas por
-`lib/unificar.test.ts`. **Las once con candado están en deuda 0** (la de la ronda 5b, `grafico.barra`, se migró entera el mismo día en que se decidió).
+Veinticinco familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas
+por `lib/unificar.test.ts`. **Todas las que tienen candado están en deuda 0** desde la ronda 9 (2026-10-13), también tras la ronda 10. La
+tabla de abajo es la de las rondas 1–5b; las de las rondas 6–10 están en el tablero (`README.md`) y en «Piezas únicas» de `CLAUDE.md`.
 
 | Ronda | Familia | La pieza | Registro |
 |---|---|---|---|
@@ -33,13 +35,67 @@ Doce familias decididas por Felipe, todas **mirando** (y de la ronda 3 en adelan
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
 
+## Ronda 10 (2026-10-13): descargar, filtros y ver en otra pantalla, decididas y migradas
+
+Una página de elegir con tres preguntas (fuentes en `rondas/10/`, que reusa el CSS y el guion de la ronda 9). Felipe eligió las tres **P1**:
+`<BotonDescargar>` («Descargar» + qué, el ícono que baja 2 px, el hilo mientras se arma el archivo), `<BotonFiltros>` como una píldora más
+con su número en el globito, y `<BotonVer>` (el secundario con la flecha que avanza; nunca negro). Migrado el mismo día: 17 descargas y
+17 «ver», deuda 0; la acción de un vacío sigue negra con su `unificar-fijo`. Registros: `accion.exportar.md`, `accion.filtrar.md`,
+`accion.ver.md`.
+
+**El censo del mostrador** (`terminal-ventas`, 61 de 133 vistas), rastreado al código, encontró **49 frases grises sueltas** en 40
+archivos que la ronda 5 ya prohibía («Sin ventas todavía.», «No hay tickets en espera.»): pasaron a `<Vacio>` y la firma de `vacio` aprendió
+a verlas (`ventana: 2`, ver `vacio.md`). Y tres «Ver … →» de Caja cuya clase iba en una constante pasaron a `<EnlaceVer>`.
+
+Lo aprendido en esta ronda:
+- **Una caja `inline-flex` dentro de `<Boton>` hace crecer el botón.** `<Boton>` envuelve su texto en un `<span>` de bloque; una caja
+  `inline-flex` adentro (el «+» de «+ Nuevo cliente», el ícono de descarga) arma su propia línea de texto y suma hasta 5 px: en Clientes
+  había 39,75 · 45,25 · 43,25 px en la misma fila. Las cajas de adentro van en `flex` (de bloque) y un ícono más alto que la letra lleva
+  `-my-1`. Mide el alto de los botones de una fila (`getBoundingClientRect().height`), no lo mires a ojo.
+- **El CSS base dibuja todo `svg` como bloque:** un ícono suelto dentro de `<Boton>` baja de línea. Siempre en una caja `flex` con el texto.
+- **Una firma que lee la clase escrita no ve una clase en una constante** (`className={enlaceVer}`). El censo sí: por eso se rastrea.
+- **Una firma atada a clases exactas deja pasar casi todo.** La de vacíos conocía seis combinaciones; el ERP tenía 49 frases con otras.
+  La nueva mira lo que la frase DICE («Sin», «No hay», «Todavía no») en un texto gris, y deja pasar «Nada se guarda todavía», que explica.
+- **El panel del navegador integrado no sirve para medir a 1440 px** (se encoge a su ancho y `sm:` no aplica): `resize_window` con
+  `width: 1440` y, para fotos, un script de Playwright con la sesión del auditor (`.salida/elegir-ronda9/vacios-foto.mjs`, `escenas.mjs`).
+
+## Ronda 9 (2026-10-13): las seis que quedaron abiertas, decididas y migradas
+
+Una página de elegir con las seis preguntas (fuentes en `rondas/9/`): **lo de hoy copiado del DOM real del ERP** (`piezas-vivas.mjs` guarda
+el `outerHTML` de cada pieza ya dibujada) y las propuestas con las clases reales; todo vivo. Felipe eligió P1 · P1 · P1 · P1 · P2 · P2 (en la
+1 tomó P1, «una lista para las tres», en vez de la recomendada). Piezas nuevas: `<ListaSugerencias>` (+ `ariaDelBuscador`), `apartado` en
+`DesplegablePildora`, `cuenta` y `nota` en los títulos (el globito de las pestañas, `titulo-cuenta`). Migrado: Llegó mercadería, Recibir
+contra factura, Registrar nota de crédito, Contar, Frescura, Colores, ocho acciones chicas y doce títulos con número. **Deuda
+4 → 0.** Firmas nuevas: desactivar escrito como enlace (`accion.eliminar`) y un conteo puesto como `dato` (`titulo-seccion`).
+
+Lo aprendido en esta ronda:
+- **Turbopack puede servir un CSS de hace una semana.** El `next dev` de esta worktree arrancó con un `.next/dev` del 6 de octubre y servía
+  el CSS sin NINGUNA pieza de las rondas 6–8 (sin `titulo-seccion`, sin `caja-campo`): la pantalla parecía rota y no lo estaba. Si una foto
+  sale con títulos en sans o cajas sin estilo, mira si el CSS servido trae la clase (`curl` del `.css` del `<link>` + `grep`); se arregla
+  tocando `app/globals.css` con el servidor arriba (sumar y quitar una línea).
+- **El `.next` crece 4 GB en media hora con un censo.** Con el disco al 96 % hay que liberarlo antes (Felipe borró el de esta worktree: 18 GB)
+  y correr el censo con un vigía que lo detenga si el disco baja de 8 GB (ver `rondas/9/README.md`). `pkill -f "unificar/cli.mjs"` mata
+  también al vigía si su línea de comandos nombra el censo: guarda el pid.
+- **`pnpm` reescribe `pnpm-lock.yaml`** al levantar el servidor y en el gancho de commit (quita `@pnpm/exe`): `git checkout -- pnpm-lock.yaml`
+  antes de cada commit, o viaja un cambio que nadie pidió.
+- **Lo que el seed no tiene se mira en una página de ensayo** con datos en memoria (`app/(app)/ensayo-r9/page.tsx` para Contar, sin un conteo
+  abierto en la base local), borrada antes del commit. No se crean datos en la base compartida para una foto.
+- **Una animación de `<tr>` que se quita vuelve a correr la de entrada:** el respiro de la fila recién contada vive en sus celdas
+  (`tr.fila-cayla[data-recien] > :is(td, th)`), y se quita el atributo solo al terminar ESE respiro (`animationName`), porque el estado de
+  adentro también anima.
+- **Una firma con `\b` después de un tamaño entre corchetes no ve nada:** entre «]» y un espacio no hay límite de palabra. La de títulos en
+  sans dejó pasar 10 archivos hasta que el censo de después, rastreado al código, los encontró. Termina un tamaño con `(?![\w-])`.
+  Rastrear el censo al código (el texto de cada variante, con `grep`) es lo que encuentra lo que las firmas no ven.
+- **Al elegir una pieza para «desactivar», busca sus gemelas:** la firma nueva encontró «Desactivar proveedor», el mismo enlace en una frase;
+  resultó inalcanzable (ninguna pantalla se lo pasaba a la hoja) y Felipe pidió quitarlo. Antes de migrar una gemela, mira si se ve.
+
 ## Rondas 6, 7 y 8: decididas el 2026-10-13 y migradas el mismo día
 
 Felipe eligió tocando las demos: P1 en todo salvo el enlace suelto (P2, versalitas rojas con la flecha que avanza). Diez piezas nuevas o
 rehechas (la caja que se enciende, la lista de todo combo, la píldora de filtro, el título de campo, la casilla y el interruptor, la tabla
 con movimiento, `TituloSeccion` / `TituloGrupo` / `SeparadorDia`, `btn-enlace` y `EnlaceVer`, `<Paginas>`, `AvatarPersona`) y la
-migración de toda la deuda en un día: **258 archivos → 4**, en tres lotes en paralelo (dos agentes con
-`apps/web/unificar/.salida/INSTRUCCIONES-MIGRAR-R678.md` y la sesión principal), nueve commits por módulo, la suite entera en verde y
+migración de toda la deuda en un día: **258 archivos → 4**, en tres lotes en paralelo (dos agentes con la
+guía que ahora vive en [MIGRAR.md](MIGRAR.md) y la sesión principal), nueve commits por módulo, la suite entera en verde y
 Vender, el ticket, el descuento y Devoluciones probados a 375 px. Lo que quedó abierto está en el README («La migración de las rondas
 6–8»): tres combos con fotos o pistola, la tabla de Conteo, los filtros de Frescura, «Desactivar color», los conteos que pasaron a la
 derecha y las acciones chicas que dejaron de ser versalitas rojas.
@@ -134,10 +190,12 @@ El orden recomendado sale del tablero `README.md` («Por analizar»): primero lo
 1. ~~`vacio`~~, ~~`aviso`~~, ~~`buscador`~~: ronda 5, decididas y migradas (deuda 0). ~~`combo`, `campo`, `etiqueta-campo`, `casilla`,
    `tabla`, `titulo-seccion`, `enlace`, `paginacion`, `avatar`~~: rondas 6–8, decididas y migradas el 2026-10-13 (deuda 258 → 4; lo
    abierto, en el README). Falta la pasada del mostrador (`terminal-ventas`).
-2. **Las seis decisiones abiertas de las rondas 6–8** (README): los tres combos con fotos o pistola, la tabla de Conteo, los filtros de
-   Frescura (grupos con título en la píldora), «Desactivar color», los conteos a la derecha y las acciones chicas.
-8. **`accion.ver`, `accion.filtrar`, `accion.exportar`** — botones de una función.
-9. **`casilla`, `enlace`, `modal`, `grafico`, `paginacion`, `avatar`** — pocas formas: rondas cortas. De los gráficos, **la barra apilada ya está decidida (ronda 5b)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357).
+2. ~~Las seis decisiones abiertas de las rondas 6–8~~: ronda 9, decididas y migradas el 2026-10-13 (deuda 0).
+8. ~~`accion.ver`, `accion.filtrar`, `accion.exportar`~~: ronda 10, decididas y migradas el 2026-10-13 (deuda 0). ~~La pasada del
+   mostrador~~: hecha (49 vacíos a mano encontrados y migrados).
+8b. **`accion.cancelar`, `accion.limpiar`, `accion.imprimir`** (y `accion.guardar`, `accion.editar`): la ronda 11. Quedan versalitas a mano
+   («Limpiar», «Limpiar todo», «Cancelar» de la decisión de faltante, «Entendido» de Movimientos) y el «Ver» de 24 px de los pendientes de Caja.
+9. ~~`casilla`, `enlace`, `paginacion`, `avatar`~~ (rondas 6 y 8) · **`modal`, `grafico`** — pocas formas: rondas cortas. De los gráficos, **la barra apilada ya está decidida (ronda 5b)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357).
 10. **`icono`** (250 huellas: casi todo tamaño y trazo de lucide; depurar mucho antes de mostrar).
 11. **`contador` y las píldoras-etiqueta** — cierran el candado de `estado` (las 7 a mano: `ExistenciasChips`, `ConfirmarCambios`, `RolesPanel`, `DevolucionesPanel`, `atributos/kit`, `ModalesApartado`, `FichaColaborador`).
 12. **`titulo-pagina`** — **no se corre** hasta que Felipe decida la cabecera de Compras, Caja, Recibir y el resto de Catálogo (ADR-0220).
@@ -239,12 +297,12 @@ variante y no pierdas ninguna al migrar.
 
 ## Lo que se aprendió (y conviene no repetir)
 
-- **Migrar en lotes paralelos funciona con un archivo de instrucciones y lotes que no se tocan.** Cada agente recibió su lista exacta
-  (`.salida/lote-A.md`, `lote-B.md`), las reglas («cambia cómo se ve, nunca qué hace») y qué NO tocar (`familias.mjs`, las piezas, las
-  huellas). La sesión principal rehace la deuda, acepta las huellas y commitea al final.
+- **Migrar en lotes paralelos funciona con un archivo de instrucciones y lotes que no se tocan.** Cada agente recibió su lista exacta,
+  las reglas («cambia cómo se ve, nunca qué hace») y qué NO tocar (`familias.mjs`, las piezas, las huellas). La sesión principal rehace
+  la deuda, acepta las huellas y commitea al final. El recorrido y la guía para cada agente: [MIGRAR.md](MIGRAR.md).
 - **Un rellenador de deuda que corta en el primer «]» rompe `familias.mjs`:** una ruta como `[compraId]` lleva «]» adentro. El cierre de
-  la lista es «]» al empezar una línea (`.salida/rellenar-deuda.mjs`, ya corregido). Prueba `node -e 'import("./unificar/familias.mjs")'`
-  después de escribirlo.
+  la lista es «]» al empezar una línea. `pnpm --filter web unificar:rellenar <familias…>` (`apps/web/unificar/rellenar-deuda.mjs`) ya lo
+  hace bien y, si el archivo queda roto o con una clave repetida, lo deja como estaba.
 - **Una clave repetida en un objeto de JS gana la última:** un `"excepciones": []` olvidado al final de la decisión borraba las
   excepciones de arriba sin error. Revisa que cada decisión tenga una sola `deuda`, `excepciones` y `firmas`.
 - **Una firma con `[^>]*` se corta en la flecha de un `onValor={(v) => …}`:** la de `filtro` dejó escapar seis. Usa `(?:[^>]|=>)*?`.
@@ -281,6 +339,9 @@ variante y no pierdas ninguna al migrar.
 | `apps/web/unificar/cli.mjs` | el censo, lo medido al pasar el mouse, el informe y la lámina |
 | `apps/web/unificar/elegir.mjs` | la página de elegir (fotos, `demo` vivas, `movimiento`) |
 | `apps/web/unificar/deuda.mjs` | la deuda (la usa `lib/unificar.test.ts`) |
+| `apps/web/unificar/ver-deuda.mjs` | `unificar:ver`: cada línea de deuda con su contexto, por familia o por archivo |
+| `apps/web/unificar/rellenar-deuda.mjs` | `unificar:rellenar`: reescribe la `deuda` de `familias.mjs` y la valida |
+| `docs/unificar/MIGRAR.md` | cómo se migra una familia en lotes paralelos, con la guía para cada agente |
 | `apps/web/components/ui/campos.tsx` | `Boton`, `BotonEnlace`, `BotonAncla` (y sus pesos) |
 | `apps/web/components/ui/OndaBotones.tsx` | la onda al clic |
 | `apps/web/app/globals.css` | `btn-cayla`, `.mov-boton`, la voz de la cabecera y `cayla-onda` |
