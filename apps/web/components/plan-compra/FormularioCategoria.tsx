@@ -138,7 +138,7 @@ export function FormularioCategoria({
   /** Al aparecer, lleva el cursor al primer campo: se pasó a la siguiente categoría y el botón que se tocó ya no existe. */
   irAlMontar?: boolean;
 }) {
-  const { c: categoria, linea, stock, ventas, ventas30, sedes, catalogo } = fila;
+  const { c: categoria, linea, stock, enCamino, ventas, ventas30, sedes, catalogo } = fila;
   const router = useRouter();
   const responsable = useResponsable();
   const tallas = useMemo(() => [...categoria.tallas].sort((a, b) => compararTallas(a.valor, b.valor)), [categoria]);
@@ -173,7 +173,8 @@ export function FormularioCategoria({
     return () => window.clearTimeout(t);
   }, [irAlMontar]);
   const lineaViva = lineaDeBorrador(b, tallas);
-  const calculo = lineaViva ? calcular(lineaViva, stock) : null;
+  // Lo que ya viene en órdenes de compra se cuenta como lo que hay: la misma cuenta que la fila de la tabla (`armarFilas`).
+  const calculo = lineaViva ? calcular(lineaViva, stock + enCamino) : null;
   const porTalla = calculo ? comprarPorTalla(calculo.comprar, tallas, lineaViva!.curva) : null;
   const sumaCurva = tallas.reduce((s, t) => s + (Number(b.curva[t.id] || "0") || 0), 0);
   const cambiar = (k: keyof Omit<Borrador, "curva">) => (v: string) => setB((x) => ({ ...x, [k]: v }));
@@ -238,6 +239,11 @@ export function FormularioCategoria({
           <span>
             Ya pedidas <b className="font-semibold text-tinta">{enteroES.format(fila.pedido.unidades)}</b>
             <span className="text-tinta/70"> en {fila.pedido.ordenes.map(numeroDeOrden).join(", ")}</span>
+            {fila.pedido.porLlegar !== null && (
+              <span className="text-tinta/70">
+                {fila.pedido.porLlegar === 0 ? " · ya llegaron" : ` · ${enteroES.format(fila.pedido.porLlegar)} por llegar`}
+              </span>
+            )}
           </span>
         )}
         {sugerida !== undefined ? (
@@ -422,11 +428,17 @@ export function FormularioCategoria({
           <>
             <p className="text-sm text-tinta/80">
               Conviene tener <b className="font-semibold text-tinta">{enteroES.format(calculo.objetivo)}</b> para la campaña; ya hay{" "}
-              <b className="font-semibold text-tinta">{enteroES.format(calculo.stock)}</b>. {porQue(calculo)}
+              <b className="font-semibold text-tinta">{enteroES.format(stock)}</b>
+              {enCamino > 0 && (
+                <>
+                  {" "}y vienen <b className="font-semibold text-tinta">{enteroES.format(enCamino)}</b> en órdenes de compra
+                </>
+              )}
+              . {porQue(calculo)}
             </p>
             {lineaViva && (
               <div className="mt-3">
-                <BarraRango viva linea={lineaViva} calculo={calculo} />
+                <BarraRango viva linea={lineaViva} calculo={calculo} enCamino={enCamino} />
               </div>
             )}
             {tope !== null && <EfectoEnElTope efecto={efectoEnElTope(inversionDeLasDemas, calculo.inversion, tope)} tope={tope} />}
