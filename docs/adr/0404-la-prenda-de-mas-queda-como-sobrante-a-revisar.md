@@ -2,7 +2,7 @@
 
 - **Fecha:** 2026-10-14 · **Estado:** construido y verificado en local (suite de base con control, vitest completo, la pantalla en un
   Chrome sin cabeza en escritorio, 375 px y oscuro, la guía interactiva recorrida y un ataque de concurrencia). **Las dos migraciones
-  NO están en producción**: esperan el OK de Felipe. Rama `claude/traslado-sobrante-5c56e1`.
+  están en producción** desde el 2026-10-14 (con el OK de Felipe), verificadas por md5. Rama `claude/traslado-sobrante-5c56e1`, PR #1076.
 - **Decisión de Felipe (2026-10-14):** «que la prenda de más entre como sobrante a revisar». Al preguntarle: tres salidas para la
   revisión, y mientras espera, la prenda queda **fuera del stock** (no se vende).
 - **Cambia:** ADR-0173 (el cierre con diferencia metía al stock todo lo contado, D-129). **Complementa:** ADR-0356 y ADR-0401 (`/chaos` de
