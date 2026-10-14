@@ -7,8 +7,11 @@ import { getInsumosDelTaller } from "@/lib/insumos";
 import { getLineasPorRecibir } from "@/lib/recibir-produccion";
 import { getComprobantesProduccion } from "@/lib/comprobantes-produccion";
 import { getDecisionProduccion } from "@/lib/decision-produccion";
+import { getCatalogo } from "@/lib/catalogo-v2";
+import { opcional } from "@/lib/resultado";
+import { presentacionesDeModelos } from "@/lib/produccion-presentacion";
 import { hoyLima } from "@/lib/fechas-lima";
-import { cifrasResumen, decisionesDeProduccion, demandaDeInsumos, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
+import { cifrasResumen, resumenDeDecisiones, demandaDeInsumos, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
 import { ResumenProduccionPanel } from "@/components/ResumenProduccionPanel";
 
 // `/produccion` es el módulo padre (ADR-0133) y, desde F6, su Resumen: «¿qué necesita mi decisión hoy?». Solo líder (ventas de la red y dinero) y, como el resto
@@ -26,13 +29,17 @@ export default async function ProduccionPage() {
   if (!taller) redirect("/produccion/ordenes");
 
   const hoy = hoyLima();
-  const [ordenes, modelos, datosInsumos, lineas, comprobantes] = await Promise.all([
+  const [ordenes, modelos, datosInsumos, lineas, comprobantes, catalogo] = await Promise.all([
     getOrdenesProduccion(taller.id, { conCostos: true }),
-    getModelosProducibles(),
+    getModelosProducibles({ soloProducibles: true }),
     getInsumosDelTaller(taller.id, { conCostos: true, hoy }),
     getLineasPorRecibir(taller.id),
     getComprobantesProduccion(),
+    // Las fotos son un dato SECUNDARIO (la misma copia cacheada de Catálogo, ADR-0168): si no se leen, cada modelo se dibuja con el ícono de su categoría
+    // sobre su color y todo lo demás sigue en pie.
+    opcional(getCatalogo(), "las fotos de los modelos"),
   ]);
+  const presentaciones = presentacionesDeModelos(catalogo ?? []);
   const decision = await getDecisionProduccion({ modelos, ordenes, insumos: datosInsumos.insumos, consumosPorOrden: datosInsumos.consumosPorOrden, lineasPorRecibir: lineas });
 
   const ordenesParaDecidir: (OrdenParaDecidir & { costoTela: number; costoAvios: number })[] = ordenes.map((o) => ({
@@ -60,13 +67,13 @@ export default async function ProduccionPage() {
     ? filasPorModelo(datos.demanda, modelos.map((m) => ({ productoId: m.productoId, referencia: m.referencia, variantesIds: m.variantes.map((v) => v.varianteId) })), datos.enProduccion)
     : [];
 
-  const decisiones = decisionesDeProduccion({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo });
+  const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo });
   const cifras = cifrasResumen({ hoy, ordenes: ordenesParaDecidir, insumos, capitalInsumos: datosInsumos.capital, comprobantes });
   const telas = filasDeTela(insumos, demandaInsumos, llegadas);
 
   return (
     <div className="space-y-6">
-      <ResumenProduccionPanel decisiones={decisiones} cifras={cifras} modelos={filasModelo} telas={telas} falloRed={decision.fallo} />
+      <ResumenProduccionPanel presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} telas={telas} falloRed={decision.fallo} />
     </div>
   );
 }

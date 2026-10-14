@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { FilaResumen } from "./resumen-reglas";
+import { demandaDeInsumos } from "./produccion-decisiones";
 import {
   analizarInsumos,
   costoMaterialesPorPrenda,
   demandaDeLaRed,
   enProduccionPorVariante,
+  productosParaRendimiento,
   rendimientoMedido,
   sugerirCurva,
   sugerirVariante,
   type ConsumoParaRendimiento,
   type DemandaVariante,
   type OrdenParaRendimiento,
+  type Rendimiento,
 } from "./produccion-decision-reglas";
 
 // Una fila mínima: solo lo que usan `velocidadDeFila` y la demanda.
@@ -42,6 +45,15 @@ describe("demandaDeLaRed", () => {
     expect(d.sedesConRitmo).toBe(2);
     expect(d.cobertura).toEqual({ tipo: "medida", dias: expect.closeTo(10 / 1.5, 5) });
   });
+  it("ventasBase cuenta solo las ventas de las sedes con las que SE MIDIÓ el ritmo; ventasNetas, las de toda la red", () => {
+    const d = demandaDeLaRed([
+      { tipo: "tienda", filas: [fila("v1", { utilizable: 6, ventas: 30 })] }, // 30 días de venta: mide ritmo
+      { tipo: "tienda", filas: [fila("v1", { utilizable: 1, ventas: 5, diasConStock: 2, diasObservables: 2 })] }, // 2 días: poco historial, sin ritmo
+    ]).get("v1")!;
+    expect(d.sedesConRitmo).toBe(1);
+    expect(d.ventasNetas).toBe(35);
+    expect(d.ventasBase).toBe(30);
+  });
   it("sin stock en la red está agotado; sin ventas medidas no hay cobertura", () => {
     const d = demandaDeLaRed([{ tipo: "tienda", filas: [fila("v1", { utilizable: 0, ventas: 20 }), fila("v2", { utilizable: 5, ventas: 0, diasConStock: 5, diasObservables: 5 })] }]);
     expect(d.get("v1")!.banda).toBe("agotado");
@@ -58,9 +70,41 @@ const demanda = (extra: Partial<DemandaVariante> = {}): DemandaVariante => ({
   ritmoDia: 1,
   sedesConRitmo: 1,
   ventasNetas: 30,
+  ventasBase: 30,
   cobertura: { tipo: "agotado", dias: 0 },
   banda: "agotado",
   ...extra,
+});
+
+describe("productosParaRendimiento (una orden abierta de un modelo que ya no se ofrece igual necesita su tela)", () => {
+  const ordenes = [
+    { id: "c1", productoId: "viejo", estado: "terminada", esMuestra: false, cantidadBuenas: 50 },
+    { id: "a1", productoId: "viejo", estado: "en_proceso", esMuestra: false, cantidadBuenas: null },
+    { id: "c2", productoId: "vigente", estado: "terminada", esMuestra: false, cantidadBuenas: 20 },
+  ];
+  const consumos = {
+    c1: [{ insumoId: "lino", insumo: "Lino", unidad: "metro" as const, tipo: "tela" as const, cantidad: 125 }], // 2,5 m por prenda
+    c2: [{ insumoId: "lino", insumo: "Lino", unidad: "metro" as const, tipo: "tela" as const, cantidad: 40 }],
+  };
+
+  it("incluye a los modelos que se ofrecen y a todo producto con una orden, sin repetir", () => {
+    expect(productosParaRendimiento([{ productoId: "vigente" }, { productoId: "nuevo" }], ordenes).sort()).toEqual(["nuevo", "viejo", "vigente"]);
+  });
+  it("sin modelos que ofrecer, los productos de las órdenes siguen teniendo rendimiento", () => {
+    expect(productosParaRendimiento([], ordenes).sort()).toEqual(["viejo", "vigente"]);
+  });
+  it("regresión: si el modelo con la orden abierta ya no se ofrece, su rendimiento se mide igual y la orden abierta sigue pidiendo tela", () => {
+    // `modelos` ya no trae a «viejo» (descontinuado): antes el rendimiento solo se medía para `modelos` y «viejo» quedaba sin demanda.
+    const ids = productosParaRendimiento([{ productoId: "vigente" }], ordenes);
+    const rendimientoPorModelo = Object.fromEntries(ids.map((id) => [id, rendimientoMedido(id, ordenes, consumos)]).filter(([, r]) => (r as unknown[]).length > 0));
+    expect(rendimientoPorModelo.viejo?.[0].porPrenda).toBeCloseTo(2.5, 5);
+    const pide = demandaDeInsumos(
+      [{ id: "a1", referencia: "Blusa vieja", productoId: "viejo", estado: "en_proceso", esMuestra: false, fechaEntrega: null, cantidadPlan: 40, etapas: {} }],
+      rendimientoPorModelo as Record<string, Rendimiento[]>,
+      {}
+    );
+    expect(pide.get("lino")?.necesita).toBeCloseTo(100, 5); // 40 prendas × 2,5 m
+  });
 });
 
 describe("sugerirVariante", () => {
