@@ -6,6 +6,8 @@ import { diaYHoraLima } from "@/lib/fechas-lima";
 import { ESTADO_ORDEN, estadoDeEnvioDeOrden, lugarDeLlegada, textoEnvioDeLinea, textoPapelDeLinea, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
 import { ComprobantesDeOrden } from "@/components/ordenes-compra/ComprobantesDeOrden";
 import { EnviosDeOrden } from "@/components/ordenes-compra/EnviosDeOrden";
+import { GastosDeOrden } from "@/components/ordenes-compra/GastosDeOrden";
+import type { GastoDeOrden } from "@/lib/gastos-viaje-reglas";
 
 // Una orden de compra por dentro (ADR-0362, fase 1 · actividad 3): lo mismo en la ventana que se abre sobre la lista y en la página
 // completa que se ve al recargar o compartir el enlace. Sin estado: lo dibuja el servidor.
@@ -20,6 +22,8 @@ import { EnviosDeOrden } from "@/components/ordenes-compra/EnviosDeOrden";
 // Con envíos (fase 3): cada línea dice cuánto salió ya hacia las sedes («Enviado: 8 de 10») y, bajo los comprobantes, van los envíos de la
 // orden con su estado y su «Anular envío». Igual de tolerante: una base que todavía no los cuenta no trae nada de esto.
 //
+// Con gastos del viaje (fase 6 · actividad 3): bajo los envíos, «Traerla costó S/ X» (`GastosDeOrden`), si la orden tiene alguno.
+//
 // # · Categoría y marca (+ descripción) · Cantidad · Precio · Descuento · Subtotal. Las columnas las decide el ANCHO DISPONIBLE
 // (`@container`), no la ventana: la misma pieza vive en una ventana de 896 px y en una página con el menú abierto, donde con una
 // ventana chica la tabla mide 400 px y la prenda se aplastaba a cero. Con menos de 40 rem no hay columnas: la cuenta de la línea va
@@ -32,7 +36,7 @@ const CIFRA = `${EN_COLUMNAS} min-w-0 whitespace-nowrap text-right tabular-nums`
 
 const porcentaje = (pct: number) => `${pct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} %`;
 
-export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
+export function DetalleOrdenCompra({ orden: d, gastos = null }: { orden: DetalleOrden; gastos?: readonly GastoDeOrden[] | null }) {
   const estado = ESTADO_ORDEN[d.estado];
   const creada = diaYHoraLima(d.creadaEn);
   const editada = d.actualizadaEn ? diaYHoraLima(d.actualizadaEn) : null;
@@ -141,6 +145,8 @@ export function DetalleOrdenCompra({ orden: d }: { orden: DetalleOrden }) {
       <ComprobantesDeOrden orden={d} />
 
       <EnviosDeOrden orden={d} />
+
+      <GastosDeOrden gastos={gastos} />
 
       {/* Con su rótulo, como en el papel: sin él, una barra gris se leía como un aviso o un estado (Formidable, 2026-10-10). */}
       {d.nota && (

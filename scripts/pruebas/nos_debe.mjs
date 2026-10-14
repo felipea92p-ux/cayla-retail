@@ -790,6 +790,8 @@ const PUBLICAS = "('fn_proveedor_nos_debe', 'fn_nos_debe_resumen', 'resolver_deu
 const INTERNAS = "('fn_nos_debe_deuda', 'fn_nos_debe_pendiente', 'fn_nos_debe_del_envio', 'fn_nos_debe_tasa_igv', " +
   "'fn_proveedor_deuda_resoluciones_candado', 'fn_reposicion_repartida')";
 const DE_RETAIL = (lista) => `from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname in ${lista}`;
+// El último valor: ninguna acción de la deuda DEL PROVEEDOR firma sin el combo «Responsable». La deuda del fondo por rendir
+// (`fondo_deuda_*`, 1419, ADR-0362 fase 6 · actividad 7) es del personal y firma sin combo por la decisión 39: no entra en la cuenta.
 caso(
   "S1 una función por nombre, security definer, authenticated sí y anon no; las internas cerradas; RLS sin políticas; nadie lee directo",
   `select concat_ws(',',
@@ -806,7 +808,7 @@ caso(
      has_table_privilege('anon', 'retail.proveedor_deuda_resoluciones', 'select'),
      (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail'
         and p.proname in ('recibir_despacho', 'fn_envio_detalle')),
-     (select count(*) from retail.acciones_sin_responsable where clave like '%deuda%' or clave like 'nos_debe%'));`,
+     (select count(*) from retail.acciones_sin_responsable where (clave like '%deuda%' and clave not like 'fondo%') or clave like 'nos_debe%'));`,
   "3,t,t,f,6,f,t,0,f,f,f,2,0",
 );
 

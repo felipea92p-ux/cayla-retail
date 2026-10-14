@@ -293,9 +293,11 @@ const TOPE_HIJAS = 6;
 // piso son de «Gestión», un grupo de PRIMER nivel debajo de Inicio, junto con Rendimiento (que deja su fila suelta, así el primer
 // nivel sigue en 8). Inventario vuelve a 5 (las cuatro de operar stock y Recibir) y cabe en el tope general: la excepción se
 // borra y no vuelve.
-// COMPRAS, cerrado (Felipe, 2026-10-14; ADR-0362, decisión 38): «Órdenes de compra» entró como séptima hija mientras «Recibir
-// mercadería» vivía en Compras. Recibir se mudó a Inventario (ADR-0393, 20261014210000) y Compras vuelve a 6: la excepción se borra.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = {};
+// COMPRAS, 7 (Felipe, 2026-10-13; ADR-0362, decisión 65): «Fondos por rendir» va DIRECTO en Compras. Se le preguntó con el subgrupo
+// «Pagos» (Por pagar + Fondos + Notas de crédito) como recomendación, y eligió no regrupar. «Órdenes de compra» entró como séptima hija
+// mientras «Recibir mercadería» vivía en Compras (decisión 38); Recibir se mudó a Inventario el 2026-10-14 (ADR-0393, 20261014210000) y
+// Compras bajó de 8 a 7: desde ese día la excepción es solo por Fondos por rendir, y no vuelve a subir.
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
@@ -455,7 +457,7 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
 });
 
 describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21, PR #219)", () => {
-  it("con `verDineroCompras` y los seis módulos ve las seis pantallas desde una tienda o un almacén, en el orden plan → proveedor → orden de compra → factura → pago → notas de crédito (Recibir vive en Inventario desde el 2026-10-14)", () => {
+  it("con `verDineroCompras` y los siete módulos ve las siete pantallas desde una tienda o un almacén, en el orden plan → proveedor → orden de compra → factura → pago → fondos → notas de crédito (Recibir vive en Inventario desde el 2026-10-14)", () => {
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toEqual([
         "compras.plan",
@@ -463,6 +465,7 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
         "compras.ordenesCompra",
         "compras.comprobantes",
         "compras.porPagar",
+        "compras.fondos",
         "compras.notasCredito",
       ]);
     }

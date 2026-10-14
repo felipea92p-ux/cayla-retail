@@ -262,7 +262,7 @@ export function CompraDetalle({
         </div>
 
         {/* ---------- pagos: cada pago nuevo entra con un desliz y un destello ---------- */}
-        <ComprobantePagos pagos={pagos.map((p) => ({ id: p.id, fecha: p.fecha, metodo: p.metodo, referencia: p.referencia, monto: p.monto }))} />
+        <ComprobantePagos pagos={pagos.map((p) => ({ id: p.id, fecha: p.fecha, metodo: p.metodo, referencia: p.referencia, monto: p.monto, noDeducible: p.noDeducible }))} />
 
         {/* Saldo pendiente: lo que falta y, si es a crédito, cuándo vence. Anulada no genera saldo. */}
         {!anulada && (

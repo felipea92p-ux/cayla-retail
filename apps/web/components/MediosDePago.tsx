@@ -6,6 +6,8 @@ import { medioNuevo, montoSugerido, repartoDeMedios, type MedioForm } from "@/li
 import { soles } from "@/lib/compras-reglas";
 import { Desplegable } from "@/components/ui/campos";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
+import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
+import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
 
 // Pagar con uno o varios medios (ADR-0133, F4b/F4c): una transferencia + un efectivo son UN pago. Se usa al registrar un comprobante al
 // contado y al pagar un saldo desde Por pagar. Muestra cuánto FALTA o SOBRA mientras se escribe; la base vuelve a exigirlo.
@@ -17,6 +19,7 @@ export function MediosDePago({
   exacto,
   etiquetaEsperado = "Total a pagar",
   cuentas,
+  totalComprobante,
 }: {
   medios: MedioForm[];
   onCambio: (m: MedioForm[]) => void;
@@ -26,8 +29,17 @@ export function MediosDePago({
   etiquetaEsperado?: string;
   /** ADR-0195 F3b: con las cuentas, cada medio dice «Sale de» (propuesta según el medio). */
   cuentas?: { lista: readonly CuentaElegible[]; listo: boolean };
+  /** ADR-0362 (fase 6 · actividad 6): el total del COMPROBANTE; de S/ 2 000 o más avisa lo que queda «no deducible». */
+  totalComprobante?: number;
 }) {
   const r = repartoDeMedios(medios, esperado, exacto);
+  // Lo que queda «no deducible»: cada medio con el tipo de la cuenta de la que sale (un fondo cuenta con cualquier medio).
+  const tipoCuentaDe = (m: MedioForm) => {
+    if (!cuentas) return null;
+    const idCuenta = cuentaEfectiva(cuentas.lista, "pago", m.metodo, m.cuentaId);
+    return cuentas.lista.find((c) => c.id === idCuenta)?.tipo ?? null;
+  };
+  const avisoNoDeducible = avisoBancarizacion(totalComprobante, medios.map((m) => ({ monto: m.monto, medio: m.metodo, tipoCuenta: tipoCuentaDe(m) })));
   const cambiar = (i: number, c: Partial<MedioForm>) => onCambio(medios.map((m, j) => (j === i ? { ...m, ...c } : m)));
 
   return (
@@ -90,6 +102,7 @@ export function MediosDePago({
         </p>
       </div>
       {r.error && <p className="text-xs text-ambar-profundo">{r.error}</p>}
+      <AvisoNoDeducible aviso={avisoNoDeducible} reservar={(totalComprobante ?? 0) >= UMBRAL_BANCARIZACION} />
     </fieldset>
   );
 }

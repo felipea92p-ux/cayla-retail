@@ -237,6 +237,9 @@ const QUE_ES: Record<string, [string, string]> = {
   "104": ["bancos", "el saldo de cada cuenta en Cuentas y dinero"],
   "105": ["tarjeta por abonar", "el POS en Cuentas y dinero"],
   "451": ["tarjeta de crédito", "la tarjeta en Cuentas y dinero"],
+  // ADR-0362 fase 6 · actividad 7.
+  "1413": ["fondos por rendir", "lo que tiene cada persona en Fondos por rendir"],
+  "1419": ["faltantes que debe el personal", "lo que falta pagar de cada rendición con deuda"],
   "201": ["mercaderías", "el stock × costo de cada prenda"],
   "33": ["activos fijos", "la suma de los activos fijos"],
   "421": ["facturas por pagar", "la suma de las facturas"],
@@ -307,6 +310,8 @@ const NOMBRE_LINEA: Record<string, string> = {
   "101": "Caja (cajones, cajas fuertes y lo entregado al líder)",
   "104": "Bancos y billeteras",
   "105": "Tarjeta por abonar",
+  "1413": "Fondos por rendir (la plata de quien compra)",
+  "1419": "Faltantes que debe el personal",
   "201": "Mercaderías",
   "211": "Productos terminados del Taller",
   "332": "Mejoras del local",
