@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoTexto } from "@/components/ui/campos";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ETIQUETA_METODO, soles } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -124,9 +124,9 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
             <button type="button" onClick={cerrar} disabled={loading} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={loading || !montoOk} className="btn-cayla btn-primario">
-              {loading ? "Registrando…" : "Registrar reembolso"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Registrando…" type="submit" disabled={loading || !montoOk}>
+              Registrar reembolso
+            </Boton>
           </div>
         </form>
       )}

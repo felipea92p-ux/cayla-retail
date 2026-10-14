@@ -25,6 +25,7 @@ import {
   type ParametroFila,
   type Regimen,
 } from "@/lib/impuestos-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Impuestos (ADR-0195 F8), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgImpuestos`): la
 // tasa de IGV con sus vigencias, la UIT de cada año y —lo que el spike dejaba para cuando el contador confirme— el
@@ -315,17 +316,16 @@ function NuevaTasa({ onCerrar, guardar, guardando, responsable }: { onCerrar: ()
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
           Cancelar
         </button>
-        <button
+        <Boton peso="primario" cargando={guardando}
           type="button"
-          className="btn-cayla btn-primario"
           disabled={!listo || guardando || !responsable.listo}
           onClick={async () => {
             if (!v.ok) return;
             if (await guardar("igv", desde, v.valor, null, `Tasa de IGV desde el ${fechaCorta(desde, true)}: ${tasa.trim()} %.`)) onCerrar();
           }}
         >
-          {guardando ? "Guardando…" : "Agregar"}
-        </button>
+          Agregar
+        </Boton>
       </div>
     </Modal>
   );

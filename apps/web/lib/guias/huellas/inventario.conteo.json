@@ -27,7 +27,7 @@
     "components/conteo/CancelarConteoModal.tsx": [
       "ComboResponsable «(sin nombre)»",
       "button «Seguir contando»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/conteo/ElegirPrendas.tsx": [
       "button «Reintentar»",

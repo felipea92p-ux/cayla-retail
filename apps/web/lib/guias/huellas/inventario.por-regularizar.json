@@ -28,7 +28,7 @@
       "CampoTexto «Descripción corta»",
       "input «Precio cobrado en soles»",
       "ComboResponsable «)»",
-      "button «{guia.frase ?? undefined}»"
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/ReabrirPrendaModal.tsx": [
       "button «{m.titulo}»",
@@ -56,7 +56,7 @@
       "button «Corregir lo anotado»",
       "button «{f === \"ya_registrada\" ? <Tag aria-hidden strokeWidth={1.6}»",
       "ComboResponsable «(sin nombre)»",
-      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/por-regularizar/ResumenResuelta.tsx": [
       "button «Corregir lo anotado»",

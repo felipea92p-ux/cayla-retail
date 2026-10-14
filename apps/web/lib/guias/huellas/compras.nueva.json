@@ -17,7 +17,7 @@
       "a «Ver»",
       "button «Quitar»",
       "button «Cancelar»",
-      "button «{loading ? \"Quitando…\" : \"Quitar\"}»"
+      "Boton «Quitar»"
     ],
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",

@@ -10,7 +10,7 @@
       "input «Por qué se anula esta venta»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/BuscadorVentas.tsx": [
       "button «Buscar»",

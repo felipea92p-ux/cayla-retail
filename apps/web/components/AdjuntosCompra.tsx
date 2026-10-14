@@ -264,9 +264,9 @@ function QuitarAdjuntoModal({ adjunto, onClose, onQuitado }: { adjunto: AdjuntoC
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={loading}>
               Cancelar
             </button>
-            <button type="button" onClick={confirmar} className="btn-cayla btn-primario" disabled={loading}>
-              {loading ? "Quitando…" : "Quitar"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Quitando…" type="button" onClick={confirmar} disabled={loading}>
+              Quitar
+            </Boton>
           </div>
         </div>
       )}

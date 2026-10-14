@@ -2,8 +2,8 @@
 
 import { useId, useMemo, useState, type ReactNode, type RefObject } from "react";
 import { Banknote, Palette, PenLine, Ruler, Tag } from "lucide-react";
-import { Modal, botonPrimario } from "@/components/ui/Modal";
-import { CampoTexto } from "@/components/ui/campos";
+import { Modal } from "@/components/ui/Modal";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -411,15 +411,17 @@ export function PrendaSinRegistrarModal({
             guia={guia}
             listo={corregir ? (cambio ? "Listo para guardar." : "Todavía no cambiaste nada.") : "Lista para el ticket. Enter en el precio también la agrega."}
           />
-          <button
+          <Boton
             type="button"
+            peso="primario"
+            cargando={corregir ? corregir.guardando : undefined}
             onClick={agregar}
             disabled={!puedeConfirmar}
             title={guia.frase ?? undefined}
-            className={`${botonPrimario} mt-3 w-full ${guia.claseConfirmar}`}
+            className={`mt-3 w-full flex-1 ${guia.claseConfirmar}`}
           >
-            {corregir ? (corregir.guardando ? "Guardando…" : "Guardar cambios") : "Agregar al ticket"}
-          </button>
+            {corregir ? "Guardar cambios" : "Agregar al ticket"}
+          </Boton>
         </div>
       </div>
     </Modal>

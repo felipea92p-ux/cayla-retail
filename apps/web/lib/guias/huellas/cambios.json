@@ -61,7 +61,7 @@
       "button «{children}» #2"
     ],
     "components/punto-de-venta/AnotarNoHabia.tsx": [
-      "button «→anotar»",
+      "Boton «→anotar»",
       "button «{t}»",
       "ComboResponsable «(sin nombre)»"
     ]

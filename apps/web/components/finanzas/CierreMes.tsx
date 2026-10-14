@@ -40,6 +40,7 @@ import {
   type PanelCierre,
   type Unidad,
 } from "@/lib/cierre-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Cierre de mes (ADR-0195 F9, ADR-0198), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-cierre.js`): cabecera con «CAYLA entera» y el mes → la matriz de unidades con su estado y su huella → los chequeos
@@ -325,9 +326,9 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={cerrar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Cerrando…" : "Cerrar el mes"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Cerrando…" type="button" onClick={cerrar} disabled={guardando || !responsable.listo}>
+          Cerrar el mes
+        </Boton>
       </div>
     </Modal>
   );
@@ -357,9 +358,9 @@ function CerrarConsolidadoModal({ mes, onCerrar }: { mes: string; onCerrar: () =
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={cerrar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Cerrando…" : "Cerrar consolidado"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Cerrando…" type="button" onClick={cerrar} disabled={guardando || !responsable.listo}>
+          Cerrar consolidado
+        </Boton>
       </div>
     </Modal>
   );

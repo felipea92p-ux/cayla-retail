@@ -60,7 +60,7 @@ export function NuevoRolModal({
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" disabled={!valido || !responsable.listo} title={responsable.motivo ?? undefined} cargando={enviando}>
-              {enviando ? "Guardando…" : "Crear rol"}
+              Crear rol
             </Boton>
           </div>
         </form>
@@ -111,7 +111,7 @@ export function RenombrarRolModal({
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" disabled={!valido || !responsable.listo} title={responsable.motivo ?? undefined} cargando={enviando}>
-              {enviando ? "Guardando…" : "Guardar"}
+              Guardar
             </Boton>
           </div>
         </form>
@@ -142,7 +142,7 @@ export function ArchivarRolModal({
             <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Archivando…"
               type="button"
               peso="primario"
               cargando={enviando}
@@ -156,7 +156,7 @@ export function ArchivarRolModal({
                 if (ok) cerrar();
               }}
             >
-              {enviando ? "Archivando…" : "Archivar rol"}
+              Archivar rol
             </Boton>
           </div>
         </div>
@@ -283,7 +283,7 @@ export function AsignarRolModal({
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} cargando={enviando}>
-              {enviando ? "Guardando…" : "Asignar rol"}
+              Asignar rol
             </Boton>
           </div>
         </form>

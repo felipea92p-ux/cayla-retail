@@ -127,8 +127,8 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
             {armado.error ?? (armado.lotes > 0 ? `Se abrirá${armado.lotes === 1 ? " 1 lote" : `n ${armado.lotes} lotes`}, uno por cada línea que llegó.` : "")}
           </p>
           <ComboResponsable control={responsable} deshabilitado={cargando} />
-          <Boton peso="primario" type="submit" cargando={cargando} disabled={!!armado.error || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-            {cargando ? "Registrando…" : "Registrar recepción"}
+          <Boton textoCargando="Registrando…" peso="primario" type="submit" cargando={cargando} disabled={!!armado.error || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
+            Registrar recepción
           </Boton>
         </div>
       </form>

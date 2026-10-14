@@ -15,7 +15,7 @@
     "components/CambiarEstadoProductosHoja.tsx": [
       "ComboResponsable «{textos.nota}»",
       "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/EliminarProductoModal.tsx": [
       "ComboResponsable «(sin nombre)»",

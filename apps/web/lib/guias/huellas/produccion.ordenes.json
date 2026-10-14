@@ -52,17 +52,17 @@
       "Link «Cárgalos en Insumos»",
       "button «{i.nombre}»",
       "input «0» #2",
-      "ComboResponsable «{cargando ? \"Descontando…\" : \"Descontar del lote\"}»",
+      "ComboResponsable «Descontar del lote»",
       "Boton «{responsable.motivo ?? undefined}» #2"
     ],
     "components/OrdenModales.tsx": [
       "input «Por qué se cancela la corrida»",
       "ComboResponsable «Volver»",
       "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}»",
       "ComboResponsable «Volver» #2",
       "button «Volver» #2",
-      "button «{responsable.motivo ?? undefined}» #2"
+      "button «{responsable.motivo ?? undefined}»"
     ],
     "components/OrdenPanel.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -113,7 +113,7 @@
       "CampoTexto «Nombre del color»",
       "Desplegable «setCodigoEscrito(normaliz»",
       "CampoTexto «Código»",
-      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
     ],

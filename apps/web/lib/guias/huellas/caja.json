@@ -56,7 +56,7 @@
       "button «Cerrar igual»",
       "ComboResponsable «setPaso(\"contar\")»",
       "Volver «→() => setPaso(\"contar\")»",
-      "button «{responsable.motivo ?? invalido ?? undefined}»"
+      "Boton «{responsable.motivo ?? invalido ?? undefined}»"
     ],
     "components/CierreCajaDetalle.tsx": [
       "button «{texto}»"
@@ -127,7 +127,7 @@
       "input «N° de operación, voucher, u otra nota»",
       "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "button «Cancelar»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/RegistrarGastoModal.tsx": [
       "button «¿No está? Súmalo»",
@@ -135,7 +135,7 @@
       "button «Sumar proveedor»",
       "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "button «Cancelar» #2",
-      "button «→guardar»"
+      "Boton «→guardar»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

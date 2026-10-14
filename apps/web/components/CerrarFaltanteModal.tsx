@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoSelect } from "@/components/ui/campos";
+import { CampoSelect, Boton } from "@/components/ui/campos";
 import { ETIQUETA_MOTIVO_CIERRE, type CompraResumen, type LineaCompra, type MotivoCierre } from "@/lib/compras-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -25,7 +25,6 @@ const MOTIVOS = Object.entries(ETIQUETA_MOTIVO_CIERRE) as [MotivoCierre, string]
 // les falta. Sin ellas (una base sin reparto) el cierre va sin tienda, como siempre, y la base infiere la única que hay.
 export type TiendaConFaltante = { ubicacionId: string; nombre: string; pendiente: number };
 
-const BTN_PRIMARIO = "btn-cayla btn-primario";
 
 export function CerrarFaltanteModal({
   compra,
@@ -164,9 +163,9 @@ export function CerrarFaltanteModal({
             <ComboResponsable control={responsable} deshabilitado={loading} />
 
             <div className="flex justify-end border-t border-tinta/10 pt-4">
-              <button type="submit" className={BTN_PRIMARIO} disabled={loading}>
-                {loading ? "Cerrando…" : "Cerrar línea con faltante"}
-              </button>
+              <Boton type="submit" peso="primario" cargando={loading} textoCargando="Cerrando…">
+                Cerrar línea con faltante
+              </Boton>
             </div>
           </div>
         </form>

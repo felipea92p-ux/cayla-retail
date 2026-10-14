@@ -5,9 +5,9 @@
   "total": 5,
   "controles": {
     "components/ImpuestosPanel.tsx": [
-      "button «fin-impuestos.registro-ventas»",
-      "button «fin-impuestos.registro-compras»",
-      "button «fin-impuestos.paquete»",
+      "Boton «fin-impuestos.registro-ventas»",
+      "Boton «fin-impuestos.registro-compras»",
+      "Boton «fin-impuestos.paquete»",
       "Link «Configurarla»",
       "BotonVer «{p.accion.texto}»"
     ]

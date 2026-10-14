@@ -984,26 +984,55 @@ function conMas(children: ReactNode): ReactNode {
   );
 }
 
+/**
+ * Mientras guarda (ADR-0358, ronda 12, Felipe eligió P1 el 2026-10-14): con `cargando`, la palabra pasa a «Guardando…» (u otro verbo,
+ * `textoCargando`: «Abriendo…», «Cerrando…»), corre el hilo de abajo y el botón se apaga para que un doble clic no guarde dos veces.
+ * Las dos palabras ocupan la MISMA celda (una invisible): el botón no cambia de ancho y nada se corre. Solo si se pasa `cargando`
+ * (un botón que no guarda no reserva el lugar de «Guardando…»). Lo usan `Boton`, `BotonCompacto` y los botones del flujo del mostrador.
+ */
+export function PalabraEnEspera({ cargando, texto = "Guardando…", children }: { cargando: boolean; texto?: string; children: ReactNode }) {
+  return (
+    <span className="relative grid">
+      <span className={`[grid-area:1/1] ${cargando ? "invisible" : ""}`}>{children}</span>
+      <span className={`[grid-area:1/1] text-center ${cargando ? "" : "invisible"}`}>{texto}</span>
+    </span>
+  );
+}
+
+/** El hilo que barre abajo mientras la base responde (el mismo en todo botón que guarda): crema sobre un botón oscuro, rojo sobre uno claro. */
+export function HiloEnEspera({ claro = false }: { claro?: boolean }) {
+  return (
+    <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
+      <span className={`block h-full w-1/3 rounded-full [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${claro ? "bg-crema" : "bg-rojo"}`} />
+    </span>
+  );
+}
+
 export function Boton({
   peso = "fantasma",
-  cargando = false,
+  cargando,
+  textoCargando = "Guardando…",
   className = "",
   children,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   peso?: keyof typeof PESO_BOTON;
+  /** Está guardando: «Guardando…», el hilo y el botón apagado. Un botón que guarda SIEMPRE lo pasa (también en `false`). */
   cargando?: boolean;
+  /** Otro verbo mientras espera, si lo que hace no es guardar («Abriendo…», «Cerrando…», «Anulando…»). */
+  textoCargando?: string;
 }) {
+  const guarda = cargando !== undefined;
   return (
-    <button {...props} disabled={props.disabled || cargando} className={claseBoton(peso, className)}>
-      <span className="relative">{conMas(children)}</span>
-      {cargando && (
-        <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
-          <span
-            className={`block h-full w-1/3 rounded-full [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${peso === "primario" ? "bg-crema" : "bg-rojo"}`}
-          />
-        </span>
+    <button {...props} disabled={props.disabled || cargando} aria-busy={cargando || undefined} className={claseBoton(peso, className)}>
+      {guarda ? (
+        <PalabraEnEspera cargando={Boolean(cargando)} texto={textoCargando}>
+          {conMas(children)}
+        </PalabraEnEspera>
+      ) : (
+        <span className="relative">{conMas(children)}</span>
       )}
+      {cargando && <HiloEnEspera claro={peso === "primario" || peso === "peligro"} />}
     </button>
   );
 }

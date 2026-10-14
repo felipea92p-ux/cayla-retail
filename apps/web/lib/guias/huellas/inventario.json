@@ -149,7 +149,7 @@
       "ComboResponsable «);»",
       "button «Cancelar»",
       "Volver «)»",
-      "button «{completo ? undefined : (guia.frase ?? responsable.motivo ?? undefined)}»"
+      "Boton «{completo ? undefined : (guia.frase ?? responsable.motivo ?? undefined)}»"
     ],
     "components/existencias/PanelTalla.tsx": [
       "button «{`${valor}»",

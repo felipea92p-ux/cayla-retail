@@ -6,14 +6,14 @@
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «(sin nombre)»",
-      "button «{guardando ? \"Guardando…\" : \"Guardar\"}»"
+      "Boton «Guardar»"
     ],
     "components/ConfiguracionCargaInicial.tsx": [
       "button «→() => setAbierta(s)»",
       "button «(sin nombre)»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/ConfiguracionImpuestos.tsx": [
       "input «{etiqueta}»",
@@ -28,7 +28,7 @@
       "Casilla «{`Pago a cuenta de renta de ${anio}»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «{guardando ? \"Guardando…\" : \"Agregar\"}»"
+      "Boton «Agregar»"
     ],
     "components/ConfiguracionTiendas.tsx": [
       "input «{etiqueta}»",
@@ -52,16 +52,16 @@
       "button «No es fijo»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «{guardando ? \"Guardando…\" : \"No es fijo\"}»",
+      "Boton «No es fijo»",
       "Boton «+ Agregar fijo»",
       "button «Editar»",
       "ComboResponsable «(sin nombre)»",
       "button «Ya no se paga: archivar»",
       "button «Cancelar» #2",
-      "button «{guardando ? \"Guardando…\" : fijo ? \"Guardar\" : \"Agregar fijo\"}»",
+      "Boton «{fijo ? \"Guardar\" : \"Agregar fijo\"}»",
       "ComboResponsable «setAccion(null)»",
       "button «Volver»",
-      "button «→confirmar»",
+      "Boton «{accion === \"baja\" ? \"Dar de baja\" : \"Anular activo\"}»",
       "button «Se registró por error…»",
       "button «Dar de baja…»"
     ],
@@ -71,27 +71,27 @@
       "button «{`Editar ${c.nombre}»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «{guardando ? \"Agregando…\" : \"Agregar\"}»"
+      "Boton «Agregar»"
     ],
     "components/finanzas/ConfiguracionPresupuesto.tsx": [
       "input «{etiqueta}»",
       "ComboResponsable «{mesTitulo(mes)}»",
       "Link «Reportes ▸ Presupuesto»",
-      "button «{datos.anterior === 0 ? `${mesTitulo(mesAnterior(mes))}»",
-      "button «config.presupuesto-sugerir»",
+      "Boton «{datos.anterior === 0 ? `${mesTitulo(mesAnterior(mes))}»",
+      "Boton «config.presupuesto-sugerir»",
       "Link «Se cambia en Tiendas y caja»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "button «{guardando ? \"Guardando…\" : `Aplicar ${cambios.length}»"
+      "Boton «{`Aplicar ${cambios.length}»"
     ],
     "components/finanzas/EditarCuentaModal.tsx": [
       "ComboResponsable «(sin nombre)»",
       "button «No, volver»",
-      "button «{guardando ? \"Eliminando…\" : \"Sí, eliminar\"}»",
+      "Boton «Sí, eliminar»",
       "button «Eliminar cuenta»",
       "button «{salida.accion === \"archivar\" ? \"Archivar\" : \"Reactivar\"}»",
       "button «Cancelar»",
-      "button «{guardando ? \"Guardando…\" : \"Guardar cambios\"}»"
+      "Boton «Guardar cambios»"
     ]
   }
 }

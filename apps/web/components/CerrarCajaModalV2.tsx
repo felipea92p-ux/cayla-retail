@@ -7,7 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { totalEfectivoEncolado, type VentaEncolada } from "@/lib/ventas-offline";
-import { CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { CampoSelect, CampoTexto, Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -562,20 +562,21 @@ export function CerrarCajaModalV2({
           <ComboResponsable control={responsable} deshabilitado={loading} />
           <div className="flex gap-2 pt-1">
             <Volver onClick={() => setPaso("contar")} a="Volver a contar" className="self-center" />
-            <button
+            <Boton
               type="submit"
-              disabled={loading || bloqueaCierre || !!invalido || !responsable.listo}
+              peso="primario"
+              cargando={loading}
+              textoCargando="Cerrando…"
+              disabled={bloqueaCierre || !!invalido || !responsable.listo}
               title={responsable.motivo ?? invalido ?? undefined}
-              className={botonPrimario}
+              className="flex-1"
             >
-              {loading
-                ? "Cerrando…"
-                : bloqueaCierre
-                  ? "Esperando ventas offline…"
-                  : trasladado > 0
-                    ? `Cerrar caja · trasladar ${money(trasladado)}`
-                    : "Cerrar caja sin trasladar"}
-            </button>
+              {bloqueaCierre
+                ? "Esperando ventas offline…"
+                : trasladado > 0
+                  ? `Cerrar caja · trasladar ${money(trasladado)}`
+                  : "Cerrar caja sin trasladar"}
+            </Boton>
           </div>
         </form>
         )

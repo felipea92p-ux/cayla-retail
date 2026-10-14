@@ -12,6 +12,7 @@ import type { ConsumoDeOrden } from "@/lib/insumos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Anular y revertir una orden (ADR-0133, F2: se conservan tal cual estaban en `OrdenesProduccionV2.tsx`; solo
 // cambió de archivo). Cada una es una RPC; ninguna escribe en las tablas directo. Si la base dice que no, el aviso
@@ -70,9 +71,9 @@ export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: Ord
           <button type="button" onClick={onClose} className="btn-cayla btn-secundario">
             Volver
           </button>
-          <button type="submit" disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
-            {cargando ? "Anulando…" : "Anular orden"}
-          </button>
+          <Boton peso="primario" cargando={cargando} textoCargando="Anulando…" type="submit" disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined}>
+            Anular orden
+          </Boton>
         </div>
       </form>
     </Modal>

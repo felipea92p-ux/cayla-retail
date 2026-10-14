@@ -24,6 +24,7 @@ import {
 } from "@/lib/cuenta-sellada-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Check } from "lucide-react";
+import { Boton } from "@/components/ui/campos";
 
 // Lo pasado (ADR-0195 F3b): lo que movió plata antes de que se sellara la cuenta —el hueco de los pagos en efectivo a
 // proveedores, sobre todo— se completa UNA vez, a mano, desde aquí. No crea salidas de caja ni toca cierres ya hechos: si
@@ -106,9 +107,9 @@ export function PagosSinCuentaModal({ onClose, filasIniciales }: { onClose: () =
                   opciones={hay ? opcionesDeCuenta(cuentas.cuentas, clase, medio) : []}
                   marcador={!cuentas.listo ? "…" : hay ? "Elige…" : "Sin cuentas para este medio"}
                 />
-                <button type="button" className="btn-cayla btn-secundario btn-chico" disabled={!elegidas[p.clave] || guardando !== null || !responsable.listo} onClick={() => guardar(p)}>
-                  {guardando === p.clave ? "Guardando…" : "Guardar"}
-                </button>
+                <Boton cargando={guardando === p.clave} type="button" className="btn-chico" disabled={!elegidas[p.clave] || guardando !== null || !responsable.listo} onClick={() => guardar(p)}>
+                  Guardar
+                </Boton>
               </li>
             );
           })}

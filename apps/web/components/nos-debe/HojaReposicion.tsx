@@ -222,8 +222,8 @@ function HojaReposicion({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Anotando…" : textoBotonReposicion(n)}
+            <Boton textoCargando="Anotando…" type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {textoBotonReposicion(n)}
             </Boton>
           </div>
         </form>

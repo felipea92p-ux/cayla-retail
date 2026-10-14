@@ -746,9 +746,9 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
                 }}
               />
             </CampoFin>
-            <button type="button" className="btn-cayla btn-primario" disabled={guardando || !responsable.listo} onClick={anotar}>
-              {guardando ? "Guardando…" : "Anotar"}
-            </button>
+            <Boton peso="primario" cargando={guardando} type="button" disabled={guardando || !responsable.listo} onClick={anotar}>
+              Anotar
+            </Boton>
           </div>
         </Superficie>
       )}
@@ -1011,9 +1011,9 @@ function RegistrarMovimientoModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Registrando…" : "Registrar"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Registrando…" type="button" onClick={guardar} disabled={guardando || !responsable.listo}>
+          Registrar
+        </Boton>
       </div>
     </Modal>
   );
@@ -1144,9 +1144,9 @@ function AnularModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Volver
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={anular} disabled={guardando || !responsable.listo}>
-          {guardando ? "Anulando…" : accion}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Anulando…" type="button" onClick={anular} disabled={guardando || !responsable.listo}>
+          {accion}
+        </Boton>
       </div>
     </Modal>
   );

@@ -442,7 +442,7 @@ export function EntregarVista({
                 onClick={entregar}
                 className={`${BOTON_PRINCIPAL} max-lg:hidden`}
               >
-                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar"}</span>
+                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(saldo)}</span>
               </button>
               <p className="text-center text-xs text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : cobro.sinMoneda ? AVISO_EFECTIVO_SIN_MONEDA : !cobro.listo ? "Elige cómo paga el saldo." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>
@@ -455,7 +455,7 @@ export function EntregarVista({
         <BarraMovil
           etiqueta={`Saldo · ${a.nombres}`}
           monto={saldo}
-          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar"}
+          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}
           icono={<ShoppingBag className="h-4 w-4" aria-hidden />}
           deshabilitado={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || cobro.noAlcanza}
           onClick={entregar}

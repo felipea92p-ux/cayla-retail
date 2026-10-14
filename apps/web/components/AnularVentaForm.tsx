@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { Modal, campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
-import { Desplegable } from "@/components/ui/campos";
+import { Desplegable, Boton } from "@/components/ui/campos";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -188,9 +188,9 @@ export function AnularVentaForm({
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={loading || !items || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
-              {loading ? "Anulando…" : "Anular venta"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Anulando…" type="submit" disabled={loading || !items || !responsable.listo} title={responsable.motivo ?? undefined}>
+              Anular venta
+            </Boton>
           </div>
         </form>
       )}

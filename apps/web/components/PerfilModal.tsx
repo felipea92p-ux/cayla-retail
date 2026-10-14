@@ -10,6 +10,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
+import { Boton } from "@/components/ui/campos";
 
 // "Mi perfil" (0014_perfil.sql, 2026-09-14): casi todo acá es de solo lectura
 // a propósito — nombres/apellidos/correo/rol/estado/ubicación son de Dynamic
@@ -364,9 +365,9 @@ function CambiarClave({ onListo }: { onListo: () => void }) {
         <button type="button" onClick={onListo} className="btn-cayla btn-secundario">
           Cancelar
         </button>
-        <button type="submit" disabled={guardando} className="btn-cayla btn-primario">
-          {guardando ? "Guardando…" : "Guardar contraseña"}
-        </button>
+        <Boton peso="primario" cargando={guardando} type="submit" disabled={guardando}>
+          Guardar contraseña
+        </Boton>
       </div>
     </form>
   );

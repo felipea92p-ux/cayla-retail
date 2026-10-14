@@ -752,7 +752,7 @@ export function CategoriasLista({
           <div data-guia="categorias.form-pie" className="mt-5 flex items-center justify-between gap-2">
             {editando ? (
               // Lo peligroso, rojo desde el principio (ADR-0358, `accion.eliminar`): `btn-peligro`, como en Familias.
-              <Boton
+              <Boton cargando={cambiandoId === borrador.id} textoCargando="Desactivando…"
                 type="button"
                 peso="peligro"
                 onClick={() => {
@@ -762,7 +762,7 @@ export function CategoriasLista({
                 disabled={cambiandoId === borrador.id || !responsable.listo}
                 title={responsable.motivo ?? undefined}
               >
-                {cambiandoId === borrador.id ? "Desactivando…" : "Desactivar categoría"}
+                Desactivar categoría
               </Boton>
             ) : (
               <span />

@@ -37,7 +37,7 @@
     "components/analisis/HojaLiquidarDesde.tsx": [
       "ComboResponsable «)»",
       "button «Cancelar»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/analisis/PestanaAcaba.tsx": [
       "Link «Comprar todas»",

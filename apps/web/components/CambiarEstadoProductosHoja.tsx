@@ -12,6 +12,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { textosCambioEstado, type EstadoProducto, type VocabularioEstado } from "@/lib/cambiar-estado-productos-reglas";
 import type { ProductoListado } from "@/lib/catalogo-v2";
+import { Boton } from "@/components/ui/campos";
 
 /**
  * Confirmar descontinuar (o desactivar) o reactivar prendas, con el combo «Responsable» (ADR-0161: cambiar el estado de una
@@ -89,15 +90,14 @@ export function CambiarEstadoProductosHoja({
             <button type="button" onClick={cerrar} disabled={guardando} className="btn-cayla btn-secundario">
               Volver
             </button>
-            <button
+            <Boton peso="primario" cargando={guardando}
               type="button"
               onClick={() => void confirmar()}
               disabled={guardando || !responsable.listo || cambian.length === 0}
               title={responsable.motivo ?? undefined}
-              className="btn-cayla btn-primario"
             >
-              {guardando ? "Guardando…" : textos.boton}
-            </button>
+              {textos.boton}
+            </Boton>
           </div>
         </div>
       )}

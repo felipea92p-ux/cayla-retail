@@ -291,9 +291,9 @@ function AgregarCuentaModal({ hoy, onCerrar }: { hoy: string; onCerrar: () => vo
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={agregar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Agregando…" : "Agregar"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Agregando…" type="button" onClick={agregar} disabled={guardando || !responsable.listo}>
+          Agregar
+        </Boton>
       </div>
     </Modal>
   );

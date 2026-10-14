@@ -41,6 +41,7 @@ import {
   type TipoComprobante,
   type UbicacionGastos,
 } from "@/lib/gastos-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Registrar un gasto o un activo fijo (ADR-0195 F2). Una sola ventana para los casos de la vida real:
 //  · sin comprobante (mototaxi, bolsas): cómo se pagó; si fue efectivo, sale del cajón abierto de esa tienda;
@@ -552,10 +553,8 @@ export function RegistrarGastoModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={() => avisoSalida.pedirAccion(onCerrar)} disabled={guardando || intento.incierto}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || revisando || !responsable.listo}>
-          {guardando
-            ? "Guardando…"
-            : intento.incierto
+        <Boton peso="primario" cargando={guardando} type="button" onClick={guardar} disabled={guardando || revisando || !responsable.listo}>
+          {intento.incierto
               ? "Volver a intentar"
               : egreso
                 ? esActivo
@@ -564,7 +563,7 @@ export function RegistrarGastoModal({
                 : esActivo
                   ? "Registrar activo"
                   : "Registrar gasto"}
-        </button>
+        </Boton>
       </div>
       {avisoSalida.aviso}
     </Modal>

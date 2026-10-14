@@ -181,7 +181,7 @@ export function NuevaTerminalModal({
             <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Creando…"
               type="submit"
               peso="primario"
              
@@ -189,7 +189,7 @@ export function NuevaTerminalModal({
               disabled={!ubicacionId || !rolId || !nombre.trim() || repetido || !roles || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {enviando ? "Creando…" : "Crear terminal"}
+              Crear terminal
             </Boton>
           </div>
         </form>
@@ -256,7 +256,7 @@ export function CambiarClaveModal({
             <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Cambiando…"
               type="button"
               peso="primario"
              
@@ -265,7 +265,7 @@ export function CambiarClaveModal({
               title={responsable.motivo ?? undefined}
               onClick={confirmar}
             >
-              {enviando ? "Cambiando…" : "Cambiar clave"}
+              Cambiar clave
             </Boton>
           </div>
         </div>

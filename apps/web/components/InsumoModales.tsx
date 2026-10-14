@@ -113,7 +113,7 @@ export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
         <div data-guia="prod-insumo-nuevo.cierre" className="space-y-4">
           <ComboResponsable control={responsable} deshabilitado={cargando} />
           <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-            {cargando ? "Guardando…" : "Agregar al catálogo"}
+            Agregar al catálogo
           </Boton>
         </div>
       </form>
@@ -212,8 +212,8 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
           <span className="font-display text-lg tabular-nums text-tinta">{listo ? soles(total) : "—"}</span>
         </div>
         <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <Boton peso="primario" type="submit" cargando={cargando} disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-          {cargando ? "Ingresando…" : "Abrir lote y sumar al saldo"}
+        <Boton textoCargando="Ingresando…" peso="primario" type="submit" cargando={cargando} disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
+          Abrir lote y sumar al saldo
         </Boton>
       </form>
     </Modal>

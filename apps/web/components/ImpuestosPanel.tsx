@@ -33,6 +33,7 @@ import {
 import { Vacio } from "@/components/ui/Vacio";
 import { Settings2 } from "lucide-react";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Impuestos (ADR-0195 F8), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, `vista-impuestos.js`):
 // cabecera con «CAYLA entera» y las descargas → cuatro cifras → el límite del régimen y lo que conviene revisar → los
@@ -114,15 +115,15 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
-            <button type="button" className="btn-cayla btn-secundario" disabled={bajando !== null} onClick={() => bajar("ventas")} data-guia="fin-impuestos.registro-ventas">
-              {bajando === "ventas" ? "Armando…" : "Registro de ventas"}
-            </button>
-            <button type="button" className="btn-cayla btn-secundario" disabled={bajando !== null} onClick={() => bajar("compras")} data-guia="fin-impuestos.registro-compras">
-              {bajando === "compras" ? "Armando…" : "Registro de compras"}
-            </button>
-            <button type="button" className="btn-cayla btn-primario" disabled={bajando !== null} onClick={() => bajar("paquete")} data-guia="fin-impuestos.paquete">
-              {bajando === "paquete" ? "Armando…" : "Paquete para el contador"}
-            </button>
+            <Boton cargando={bajando === "ventas"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("ventas")} data-guia="fin-impuestos.registro-ventas">
+              Registro de ventas
+            </Boton>
+            <Boton cargando={bajando === "compras"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("compras")} data-guia="fin-impuestos.registro-compras">
+              Registro de compras
+            </Boton>
+            <Boton peso="primario" cargando={bajando === "paquete"} textoCargando="Armando…" type="button" disabled={bajando !== null} onClick={() => bajar("paquete")} data-guia="fin-impuestos.paquete">
+              Paquete para el contador
+            </Boton>
           </>
         }
       />

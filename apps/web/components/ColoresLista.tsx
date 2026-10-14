@@ -858,7 +858,7 @@ function ColorEditarModal({
             {/* Lo peligroso, rojo desde el principio y en el pie, como en Categorías y Familias (ADR-0358, ronda 9). Sigue pidiendo dos
                 toques: el segundo, ya armado, dice «¿Seguro? Confirmar». */}
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <Boton
+              <Boton cargando={desactivando} textoCargando="Desactivando…"
                 type="button"
                 peso="peligro"
                 onClick={() => (confirmandoDesactivar ? desactivar() : setConfirmandoDesactivar(true))}
@@ -866,7 +866,7 @@ function ColorEditarModal({
                 title={responsable.motivo ?? undefined}
                 className={confirmandoDesactivar ? "font-semibold" : ""}
               >
-                {desactivando ? "Desactivando…" : confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
+                {confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
               </Boton>
               <div className="pie-acciones">
                 <Boton type="button" peso="fantasma" onClick={cerrar} disabled={ocupado}>

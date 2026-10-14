@@ -256,7 +256,7 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
             <span />
           )}
           <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="sm:min-w-44">
-            {cargando ? "Guardando…" : esAlta ? "Agregar al directorio" : "Guardar cambios"}
+            {esAlta ? "Agregar al directorio" : "Guardar cambios"}
           </Boton>
         </div>
         </div>

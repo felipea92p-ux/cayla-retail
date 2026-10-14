@@ -138,7 +138,7 @@ export function RevisarProductoHoja({
                   title={responsable.motivo ?? undefined}
                   className="flex-1"
                 >
-                  {guardando ? "Guardando…" : textos.boton}
+                  {textos.boton}
                 </Boton>
               </div>
             </>

@@ -36,7 +36,7 @@
       "button «Mejor elijo uno que ya existe»",
       "ComboBuscable «)» #2",
       "button «Cancelar»",
-      "button «{firma.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/piezas.tsx": [
       "button «→onClick»",
@@ -49,7 +49,7 @@
       "CampoSelect «Color (si aplica)»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/conteo/AplicarTodosCompletos.tsx": [
       "button «Aplicar todos completos»",

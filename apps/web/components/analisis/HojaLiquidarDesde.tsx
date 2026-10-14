@@ -20,6 +20,7 @@ import {
   type EfectoLiquidar,
   type ErrorEnTresLineas,
 } from "@/lib/analisis-liquidar-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Análisis v4 (ADR-0357): la hoja que guarda «Liquidar desde» para TODAS las tiendas y todas las personas (Felipe, 2026-10-06).
 // El control se mueve en «No se vende» y las prendas cambian de grupo en vivo; esta hoja confirma el número, muestra en dos tarjetas
@@ -137,14 +138,13 @@ export function HojaLiquidarDesde({ dias, onCerrar, onGuardado }: { dias: number
                 <button type="button" className="btn-cayla btn-secundario" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </button>
-                <button
+                <Boton peso="primario" cargando={guardando}
                   type="submit"
-                  className="btn-cayla btn-primario"
                   disabled={!responsable.listo || guardando}
                   title={responsable.motivo ?? undefined}
                 >
-                  {guardando ? "Guardando…" : "Guardar para todos"}
-                </button>
+                  Guardar para todos
+                </Boton>
               </>
             ) : null}
           </div>

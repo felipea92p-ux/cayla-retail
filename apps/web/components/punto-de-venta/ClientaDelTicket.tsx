@@ -385,9 +385,9 @@ function FilaDelCartel({ fila, revisando, onActualizar }: { fila: ReturnType<typ
         fondo
         accion={
           fila.actualizar ? (
-            <button type="button" onClick={onActualizar} disabled={revisando} className={BOTON_CHICO_SECUNDARIO}>
-              {revisando ? "Revisando…" : "Actualizar"}
-            </button>
+            <Boton type="button" onClick={onActualizar} cargando={revisando} textoCargando="Revisando…" className="h-7 shrink-0 px-2.5 text-[12.5px]">
+              Actualizar
+            </Boton>
           ) : undefined
         }
       >
@@ -734,8 +734,8 @@ function RegistrarClientaEnTicket({
           <Boton type="button" peso="fantasma" onClick={onVolver} disabled={guardando}>
             Volver
           </Boton>
-          <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-            {guardando ? "Registrando…" : "Registrar"}
+          <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            Registrar
           </Boton>
         </div>
       </div>

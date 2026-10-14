@@ -55,7 +55,7 @@
       "Link «{p.referencia}» #2"
     ],
     "components/alta-producto/ConfigurarCategoria.tsx": [
-      "button «{firma.motivo ?? undefined}»"
+      "Boton «{firma.motivo ?? undefined}»"
     ],
     "components/alta-producto/ElegirColores.tsx": [
       "button «{`Quitar ${c.nombre}»",
@@ -68,7 +68,7 @@
       "Boton «{enLinea ? undefined : \"Crear una etiqueta necesita internet\"}»",
       "Boton «+ Crear «»",
       "CampoTexto «Nombre de la etiqueta»",
-      "button «{firma.motivo ?? undefined}»",
+      "Boton «{firma.motivo ?? undefined}»",
       "button «Cancelar»"
     ],
     "components/alta-producto/ElegirMarcaProveedor.tsx": [
@@ -87,14 +87,14 @@
       "button «+ Otra talla»",
       "CampoTexto «Buscar talla»",
       "button «Cancelar»",
-      "button «{nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}»"
+      "Boton «{nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}»"
     ],
     "components/alta-producto/FichaPrevia.tsx": [
       "button «{g.bloquea ? `Siguiente: ${g.texto}»",
       "button «Cancelar»",
       "button «{datos.siguiente ?? undefined}»",
       "button «{verMovil ? \"Ocultar\" : \"Ver\"}»",
-      "button «{datos.siguiente ?? undefined}» #2"
+      "Boton «{datos.siguiente ?? undefined}»"
     ],
     "components/alta-producto/FotosAlta.tsx": [
       "input «input.current?.click()»",
@@ -137,13 +137,13 @@
       "button «Mejor elijo uno que ya existe»",
       "ComboBuscable «)» #2",
       "button «Cancelar»",
-      "button «{firma.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
       "CampoTexto «Nombre del color»",
       "Desplegable «setCodigoEscrito(normaliz»",
       "CampoTexto «Código»",
-      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
     ],
@@ -164,7 +164,7 @@
     "components/alta-producto/ProponerValor.tsx": [
       "button «{t.boton}»",
       "CampoTexto «{`Nombre ${tipo === \"tallas\" ? \"de la\" : \"del\"}»",
-      "button «{firma.motivo ?? undefined}»",
+      "Boton «{firma.motivo ?? undefined}»",
       "button «Cancelar»"
     ],
     "components/alta-producto/PuntosAvance.tsx": [

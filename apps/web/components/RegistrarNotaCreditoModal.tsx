@@ -36,6 +36,7 @@ import { Buscador } from "@/components/ui/Buscador";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada } from "@/components/ui/BarraApilada";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    Registrar una nota de crédito de compra (2026-09-19)
@@ -592,9 +593,9 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
               <button type="button" onClick={cerrar} disabled={enviando} className="btn-cayla btn-secundario">
                 Cancelar
               </button>
-              <button type="submit" disabled={enviando || buscando} className="btn-cayla btn-primario">
-                {enviando ? "Registrando…" : v.destino === "reembolso" ? "Registrar nota y reembolso" : "Registrar nota"}
-              </button>
+              <Boton peso="primario" cargando={enviando} textoCargando="Registrando…" type="submit" disabled={enviando || buscando}>
+                {v.destino === "reembolso" ? "Registrar nota y reembolso" : "Registrar nota"}
+              </Boton>
             </div>
           </div>
         </form>

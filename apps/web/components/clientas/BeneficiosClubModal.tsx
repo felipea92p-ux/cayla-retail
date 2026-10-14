@@ -195,7 +195,7 @@ function FormularioBeneficios({ vigentes, cerrar, onGuardado }: { vigentes: Bene
             title={responsable.motivo ?? guia.frase ?? (sinCambios ? "No cambiaste ningún beneficio." : undefined)}
             className={sinCambios ? "" : guia.claseConfirmar}
           >
-            {guardando ? "Guardando…" : "Guardar"}
+            Guardar
           </Boton>
         </div>
       </div>

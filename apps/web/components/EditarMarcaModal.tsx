@@ -222,7 +222,7 @@ export function EditarMarcaModal({
               Cancelar
             </Boton>
             <Boton peso="primario" onClick={() => void guardar(cerrar)} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Guardando…" : "Guardar"}
+              Guardar
             </Boton>
           </div>
         </div>

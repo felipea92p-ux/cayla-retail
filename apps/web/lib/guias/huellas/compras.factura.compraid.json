@@ -18,14 +18,14 @@
       "a «Ver»",
       "button «Quitar»",
       "button «Cancelar»",
-      "button «{loading ? \"Quitando…\" : \"Quitar\"}»"
+      "Boton «Quitar»"
     ],
     "components/CerrarFaltanteModal.tsx": [
       "CampoSelect «¿En qué tienda faltó?»",
       "input «de»",
       "button «{texto}»",
-      "ComboResponsable «{loading ? \"Cerrando…\" : \"Cerrar línea con faltante\"}»",
-      "button «{loading ? \"Cerrando…\" : \"Cerrar línea con faltante\"}»"
+      "ComboResponsable «Cerrar línea con faltante»",
+      "Boton «Cerrar línea con faltante»"
     ],
     "components/CompraDetalle.tsx": [
       "a «Finanzas ▸ Gastos»"
@@ -41,11 +41,11 @@
       "button «Todo ·»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "Boton «{loading ? \"Registrando…\" : `Registrar pago de ${soles(suma)}»",
+      "Boton «{`Registrar pago de ${soles(suma)}»",
       "CampoTexto «Motivo»",
       "ComboResponsable «Volver»",
       "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/NotasCreditoCompra.tsx": [
       "Link «Notas de crédito»"

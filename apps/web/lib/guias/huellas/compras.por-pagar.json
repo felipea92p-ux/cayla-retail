@@ -19,11 +19,11 @@
       "button «Todo ·»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "Boton «{loading ? \"Registrando…\" : `Registrar pago de ${soles(suma)}»",
+      "Boton «{`Registrar pago de ${soles(suma)}»",
       "CampoTexto «Motivo»",
       "ComboResponsable «Volver»",
       "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/DeudaPorVencimiento.tsx": [
       "button «{TITULO[f.k]}»"
@@ -57,7 +57,7 @@
       "CampoFecha «Fecha del pago»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "Boton «(sin nombre)»"
+      "Boton «{credito > 0 ? `Registrar pago de ${soles(total)}»"
     ],
     "components/PagoPiezas.tsx": [
       "button «{`Copiar ${etiqueta.toLowerCase()}»",

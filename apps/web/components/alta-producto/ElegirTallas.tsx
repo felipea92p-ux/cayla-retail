@@ -3,7 +3,7 @@
 import { useState, type KeyboardEvent } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoTexto } from "@/components/ui/campos";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { ProponerValor } from "@/components/alta-producto/ProponerValor";
@@ -301,15 +301,14 @@ function HojaTallas({
             <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button
+            <Boton peso="primario" cargando={guardando}
               type="button"
               onClick={() => void listo()}
               disabled={guardando || (nuevas.length > 0 && !firma.listo)}
               title={nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}
-              className="btn-cayla btn-primario"
             >
-              {guardando ? "Guardando…" : "Listo"}
-            </button>
+              Listo
+            </Boton>
           </div>
         </div>
       </div>

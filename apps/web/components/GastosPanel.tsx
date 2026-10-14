@@ -506,9 +506,9 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
           <button type="button" className="btn-cayla btn-secundario" onClick={() => setAnulando(false)} disabled={guardando}>
             Volver
           </button>
-          <button type="button" className="btn-cayla btn-primario" onClick={anular} disabled={guardando || !responsable.listo}>
-            {guardando ? "Anulando…" : "Anular gasto"}
-          </button>
+          <Boton peso="primario" cargando={guardando} textoCargando="Anulando…" type="button" onClick={anular} disabled={guardando || !responsable.listo}>
+            Anular gasto
+          </Boton>
         </div>
       </Modal>
     );
@@ -708,9 +708,9 @@ function ClasificarEgresoModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || (que !== "activo" && !responsable.listo)}>
-          {que === "activo" ? "Seguir: registrar el activo" : guardando ? "Guardando…" : "Guardar"}
-        </button>
+        <Boton type="button" peso="primario" cargando={guardando} onClick={guardar} disabled={que !== "activo" && !responsable.listo}>
+          {que === "activo" ? "Seguir: registrar el activo" : "Guardar"}
+        </Boton>
       </div>
     </Modal>
   );

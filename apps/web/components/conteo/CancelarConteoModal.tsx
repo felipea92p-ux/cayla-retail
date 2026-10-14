@@ -11,6 +11,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { Aviso } from "@/components/ui/Aviso";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    CancelarConteoModal · «¿Cancelar el conteo 12?» (Inventario ▸ Conteo, rediseño 2026-09-29)
@@ -81,15 +82,15 @@ export function CancelarConteoModal({
             <button type="button" onClick={cerrar} disabled={cancelando} className="btn-cayla btn-secundario h-11">
               Seguir contando
             </button>
-            <button
+            <Boton peso="peligro" cargando={cancelando} textoCargando="Cancelando…"
               type="button"
               onClick={() => void cancelar(cerrar)}
               disabled={cancelando || !responsable.listo}
               title={responsable.motivo ?? undefined}
-              className="btn-cayla btn-peligro h-11"
+              className="h-11"
             >
-              {cancelando ? "Cancelando…" : "Sí, cancelar conteo"}
-            </button>
+              Sí, cancelar conteo
+            </Boton>
           </div>
         </div>
       )}

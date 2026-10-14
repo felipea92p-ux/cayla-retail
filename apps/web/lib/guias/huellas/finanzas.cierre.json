@@ -12,10 +12,10 @@
       "button «{textoBotonCerrar(panel.mes, u)}»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «{guardando ? \"Cerrando…\" : \"Cerrar el mes\"}»",
+      "Boton «Cerrar el mes»",
       "ComboResponsable «Cancelar» #2",
       "button «Cancelar» #2",
-      "button «{guardando ? \"Cerrando…\" : \"Cerrar consolidado\"}»",
+      "Boton «Cerrar consolidado»",
       "ComboResponsable «Cancelar» #3",
       "button «Cancelar» #3",
       "button «{guardando ? \"Reabriendo…\" : \"Reabrir\"}»"

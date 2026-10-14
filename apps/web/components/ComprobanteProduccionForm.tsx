@@ -330,7 +330,7 @@ export function ComprobanteProduccionForm({
           </p>
           <ComboResponsable control={responsable} deshabilitado={cargando} />
           <Boton peso="primario" type="submit" cargando={cargando} disabled={!!error || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-            {cargando ? "Guardando…" : condicion === "contado" ? `Registrar y pagar ${soles(totalFinal)}` : "Registrar como por pagar"}
+            {condicion === "contado" ? `Registrar y pagar ${soles(totalFinal)}` : "Registrar como por pagar"}
           </Boton>
         </div>
       </form>

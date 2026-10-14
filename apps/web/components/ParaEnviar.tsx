@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Modal, botonPrimario, campoTexto } from "@/components/ui/Modal";
+import { Modal, campoTexto } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -12,6 +12,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { MAX_MOTIVO_YA_NO, etiquetaParaEnviar, motivoYaNoValido, type PrendaParaEnviar } from "@/lib/para-enviar-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // «Para enviar» en Traslados (ADR-0328 act. 17; Felipe: lo colgado se manda en DOS pasos). Lo que la sede subió al almacén
 // para mandarlo a otra queda, por sede de destino, hasta que sale en un traslado —la base lo descuenta sola, salga como salga—
@@ -67,15 +68,17 @@ export function YaNoLaEnvioModal({ prenda, ubicacion, onClose }: { prenda: Prend
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={enviando}>
               Mejor no
             </button>
-            <button
+            <Boton
               type="button"
-              disabled={enviando || !guia.puedeConfirmar}
+              peso="primario"
+              cargando={enviando}
+              disabled={!guia.puedeConfirmar}
               title={responsable.motivo ?? guia.frase ?? undefined}
               onClick={() => quitar(cerrar)}
-              className={`${botonPrimario} ${guia.claseConfirmar}`}
+              className={`flex-1 ${guia.claseConfirmar}`}
             >
-              {enviando ? "Guardando…" : "Ya no la envío"}
-            </button>
+              Ya no la envío
+            </Boton>
           </div>
         </div>
       )}

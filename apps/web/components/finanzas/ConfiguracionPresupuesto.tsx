@@ -28,6 +28,7 @@ import {
   type PropuestaFila,
   type UnidadConfigPpto,
 } from "@/lib/presupuesto-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Presupuesto (ADR-0195, capa «para decidir»), dibujada como el spike (docs/maquetas/finanzas-2026-09/,
 // `cfgPresupuesto`): una tabla por unidad y rubro para el mes elegido donde CADA CASILLA SE GUARDA SOLA al salir de ella si
@@ -169,25 +170,25 @@ export function ConfiguracionPresupuesto({ datos, hoy }: { datos: ConfigPpto; ho
               onValor={ir}
               opciones={mesesParaPresupuestar(hoy).map((m) => ({ valor: m, texto: `${mesTitulo(m)}${m === mesDe(hoy) ? " · este mes" : ""}` }))}
             />
-            <button
+            <Boton cargando={proponiendo === "mes_anterior"} textoCargando="Preparando…"
               type="button"
-              className="btn-cayla btn-secundario btn-chico"
+              className="btn-chico"
               onClick={() => proponer("mes_anterior")}
               disabled={!!proponiendo || datos.anterior === 0}
               title={datos.anterior === 0 ? `${mesTitulo(mesAnterior(mes))} no tiene topes para copiar.` : undefined}
             >
-              {proponiendo === "mes_anterior" ? "Preparando…" : textoOrigen("mes_anterior", mes)}
-            </button>
-            <button
+              {textoOrigen("mes_anterior", mes)}
+            </Boton>
+            <Boton cargando={proponiendo === "promedio_3_meses"} textoCargando="Preparando…"
               type="button"
-              className="btn-cayla btn-secundario btn-chico"
+              className="btn-chico"
               onClick={() => proponer("promedio_3_meses")}
               disabled={!!proponiendo}
               aria-haspopup="dialog"
               data-guia="config.presupuesto-sugerir"
             >
-              {proponiendo === "promedio_3_meses" ? "Preparando…" : textoOrigen("promedio_3_meses", mes)}
-            </button>
+              {textoOrigen("promedio_3_meses", mes)}
+            </Boton>
           </div>
         </div>
         <div className="fin-tabla-wrap">
@@ -344,9 +345,9 @@ function HojaPropuesta({
           <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
             Cancelar
           </button>
-          <button type="button" className="btn-cayla btn-primario" onClick={onAplicar} disabled={guardando}>
-            {guardando ? "Guardando…" : `Aplicar ${cambios.length} ${cambios.length === 1 ? "cambio" : "cambios"}`}
-          </button>
+          <Boton peso="primario" cargando={guardando} type="button" onClick={onAplicar} disabled={guardando}>
+            {`Aplicar ${cambios.length} ${cambios.length === 1 ? "cambio" : "cambios"}`}
+          </Boton>
         </div>
       )}
     </Modal>

@@ -334,7 +334,7 @@ export function NuevaProformaModal({
               disabled={filas.length === 0 || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {loading ? "Guardando…" : "Crear proforma"}
+              Crear proforma
             </Boton>
           </div>
         </form>

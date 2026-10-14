@@ -230,8 +230,8 @@ export function RevisarFotosModal({
             <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton peso="primario" cargando={guardando} disabled={procesando || usadas.length === 0} onClick={() => confirmar(cerrar)}>
-              {procesando ? "Procesando…" : usadas.length === 0 ? "Nada que cambiar" : textoConfirmar(usadas.length)}
+            <Boton textoCargando="Procesando…" peso="primario" cargando={guardando} disabled={procesando || usadas.length === 0} onClick={() => confirmar(cerrar)}>
+              {usadas.length === 0 ? "Nada que cambiar" : textoConfirmar(usadas.length)}
             </Boton>
           </div>
         </div>

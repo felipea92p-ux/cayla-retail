@@ -23,6 +23,7 @@ import {
   type LecturaCargaInicial,
   type SedeCargaInicial,
 } from "@/lib/carga-inicial-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Tiendas y caja ▸ «Carga inicial de cada sede» (ADR-0328, actividad 4). La carga inicial sin papeles (alta con
 // stock, stock inicial de una prenda nueva en la tienda) se cierra POR SEDE y SOLA en su fecha: el último día abierto. Aquí se ve
@@ -219,14 +220,14 @@ function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }: { sed
           <button type="button" className="btn-cayla btn-secundario" onClick={onClose} disabled={enviando}>
             Cancelar
           </button>
-          <button
+          <Boton peso="primario" cargando={enviando}
             type="submit"
-            className={`btn-cayla btn-primario ${guia.claseConfirmar}`}
+            className={`${guia.claseConfirmar}`}
             disabled={enviando || !guia.puedeConfirmar}
             title={responsable.motivo ?? guia.frase ?? undefined}
           >
-            {enviando ? "Guardando…" : "Guardar"}
-          </button>
+            Guardar
+          </Boton>
         </div>
       </form>
     </Modal>

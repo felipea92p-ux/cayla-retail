@@ -8,7 +8,7 @@ import { CampoMonto } from "@/components/ui/CampoMonto";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { descuentoDeCampana } from "@/lib/vender-reglas";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
-import { Modal, botonCancelar, botonPrimario, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
+import { Modal, botonCancelar, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { money } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -50,7 +50,7 @@ import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoInte
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
-import { CampoSelect } from "@/components/ui/campos";
+import { CampoSelect, Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
@@ -326,15 +326,14 @@ export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apart
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
-            <button
+            <Boton peso="primario" cargando={enviando} textoCargando="Liberando…"
               type="button"
               disabled={!motivo || enviando || !responsable.listo}
               title={!motivo ? "Elige por qué se libera." : (responsable.motivo ?? undefined)}
               onClick={() => liberar(cerrar)}
-              className="btn-cayla btn-primario"
             >
-              {enviando ? "Liberando…" : "Liberar prendas"}
-            </button>
+              Liberar prendas
+            </Boton>
           </div>
         </div>
       )}
@@ -449,9 +448,9 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Cancelar</button>
-            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => devolver(cerrar)} className="btn-cayla btn-primario">
-              {enviando ? "Registrando…" : "Registrar devolución"}
-            </button>
+            <Boton peso="primario" cargando={enviando} textoCargando="Registrando…" type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => devolver(cerrar)}>
+              Registrar devolución
+            </Boton>
           </div>
         </div>
       )}
@@ -613,15 +612,12 @@ export function RecordarModal({
                 Mejor no
               </button>
             )}
-            <button
-              type="button"
-              disabled={enviando || hechas.has(actual.id)}
-              onClick={() => escribir(cerrar)}
-              className={`${botonPrimario} flex flex-1 items-center justify-center gap-2`}
-            >
-              <MessageCircle className="h-4 w-4" aria-hidden />
-              {enviando ? "Anotando…" : varias ? "Abrir WhatsApp y seguir" : "Abrir WhatsApp"}
-            </button>
+            <Boton type="button" peso="primario" cargando={enviando} textoCargando="Anotando…" disabled={hechas.has(actual.id)} onClick={() => escribir(cerrar)} className="flex-1">
+              <span className="flex items-center justify-center gap-2">
+                <MessageCircle className="-my-1 h-4 w-4" aria-hidden />
+                {varias ? "Abrir WhatsApp y seguir" : "Abrir WhatsApp"}
+              </span>
+            </Boton>
           </div>
         </div>
       )}
@@ -758,15 +754,14 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
-            <button
+            <Boton peso="primario" cargando={enviando}
               type="button"
               disabled={!valido || enviando || revisando || !responsable.listo || !cajaAbierta}
               title={!cajaAbierta ? "Abre la caja para cobrar el abono." : (responsable.motivo ?? undefined)}
               onClick={() => abonar(cerrar)}
-              className="btn-cayla btn-primario"
             >
-              {enviando ? "Guardando…" : envio.incierto ? "Volver a intentar" : `Registrar abono · ${money(Math.max(0, monto))}`}
-            </button>
+              {envio.incierto ? "Volver a intentar" : `Registrar abono · ${money(Math.max(0, monto))}`}
+            </Boton>
           </div>
         </div>
       )}
@@ -968,15 +963,14 @@ export function EditarApartadoModal({
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
-            <button
+            <Boton peso="primario" cargando={enviando}
               type="button"
               disabled={!cambio || debajo || sinPrendas || enviando || revisando || !responsable.listo || sinId}
               title={responsable.motivo ?? undefined}
               onClick={() => guardar(cerrar)}
-              className="btn-cayla btn-primario"
             >
-              {enviando ? "Guardando…" : envio.incierto ? "Volver a intentar" : "Guardar cambios"}
-            </button>
+              {envio.incierto ? "Volver a intentar" : "Guardar cambios"}
+            </Boton>
           </div>
         </div>
       )}
@@ -1066,9 +1060,9 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
-            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => guardar(cerrar)} className="btn-cayla btn-primario">
-              {enviando ? "Guardando…" : "Guardar opciones"}
-            </button>
+            <Boton peso="primario" cargando={enviando} type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => guardar(cerrar)}>
+              Guardar opciones
+            </Boton>
           </div>
         </div>
       )}
@@ -1142,9 +1136,9 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
-            <button type="button" disabled={enviando || revisando || !responsable.listo || !llega} title={responsable.motivo ?? undefined} onClick={() => enviar(cerrar)} className="btn-cayla btn-primario">
-              {enviando ? "Enviando…" : envio.incierto ? "Volver a intentar" : "Enviar por traslado"}
-            </button>
+            <Boton peso="primario" cargando={enviando} textoCargando="Enviando…" type="button" disabled={enviando || revisando || !responsable.listo || !llega} title={responsable.motivo ?? undefined} onClick={() => enviar(cerrar)}>
+              {envio.incierto ? "Volver a intentar" : "Enviar por traslado"}
+            </Boton>
           </div>
         </div>
       )}
@@ -1180,9 +1174,9 @@ export function CancelarPedidoModal({ pedido, ubicacion, onClose }: { pedido: Pe
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
-            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => cancelar(cerrar)} className="btn-cayla btn-primario">
-              {enviando ? "Cancelando…" : "Cancelar pedido"}
-            </button>
+            <Boton peso="primario" cargando={enviando} textoCargando="Cancelando…" type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => cancelar(cerrar)}>
+              Cancelar pedido
+            </Boton>
           </div>
         </div>
       )}

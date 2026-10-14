@@ -500,7 +500,7 @@ export function RolesPanel({
               Descartar
             </Boton>
             <Boton type="button" peso="primario" onClick={guardar} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
-              {guardando ? "Guardando…" : "Guardar cambios"}
+              Guardar cambios
             </Boton>
           </>
         }

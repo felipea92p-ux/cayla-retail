@@ -31,11 +31,11 @@
       "button «Cerrar igual»",
       "ComboResponsable «setPaso(\"contar\")»",
       "Volver «→() => setPaso(\"contar\")»",
-      "button «{responsable.motivo ?? invalido ?? undefined}»"
+      "Boton «{responsable.motivo ?? invalido ?? undefined}»"
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «{actual?.fase === \"cargando\" ? \"Buscando…\" : \"Buscar\"}»",
+      "Boton «Buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/EscanerCamara.tsx": [
@@ -47,14 +47,14 @@
     "components/PedidoClienteModales.tsx": [
       "ComboResponsable «Mejor no»",
       "button «Mejor no»",
-      "button «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}»",
       "ComboResponsable «(sin nombre)»",
       "button «{estado === \"hecho\" ? \"Listo\" : \"Ahora no\"}»",
-      "button «{responsable.motivo ?? undefined}» #2",
+      "Boton «{responsable.motivo ?? undefined}» #2",
       "a «{responsable.motivo ?? undefined}»",
       "ComboResponsable «(sin nombre)» #2",
-      "button «{responsable.motivo ?? undefined}» #3",
-      "button «{responsable.motivo ?? undefined}» #4"
+      "Boton «{responsable.motivo ?? undefined}» #3",
+      "Boton «{responsable.motivo ?? undefined}» #4"
     ],
     "components/PedirYApartarModal.tsx": [
       "button «{c.talla}»",
@@ -76,7 +76,7 @@
       "CampoTexto «Descripción corta»",
       "input «Precio cobrado en soles»",
       "ComboResponsable «)»",
-      "button «{guia.frase ?? undefined}»"
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/PuntoDeVenta.tsx": [
       "button «Cerrar caja»",
@@ -142,7 +142,7 @@
       "Link «vender.apartados»"
     ],
     "components/punto-de-venta/AnotarNoHabia.tsx": [
-      "button «→anotar»",
+      "Boton «→anotar»",
       "button «{t}»",
       "ComboResponsable «(sin nombre)»"
     ],
@@ -160,7 +160,7 @@
       "button «{ayuda}»",
       "button «Agregar cliente»",
       "button «{boton.texto}»",
-      "button «{revisando ? \"Revisando…\" : \"Actualizar\"}»",
+      "Boton «Actualizar»",
       "Boton «Registrarlo»",
       "Boton «Seguir sin cliente»",
       "button «{l.titulo}»",

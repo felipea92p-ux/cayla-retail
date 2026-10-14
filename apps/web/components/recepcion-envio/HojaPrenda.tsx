@@ -364,8 +364,8 @@ export function HojaPrenda({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? (nueva ? "Creando…" : "Sumando…") : nueva ? "Crear y contar" : nuevas > 0 ? `Sumar ${nuevas} y contar` : "Sumar y contar"}
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando={nueva ? "Creando…" : "Sumando…"} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {nueva ? "Crear y contar" : nuevas > 0 ? `Sumar ${nuevas} y contar` : "Sumar y contar"}
             </Boton>
           </div>
         </form>

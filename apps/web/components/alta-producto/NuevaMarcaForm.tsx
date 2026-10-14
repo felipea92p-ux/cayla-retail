@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
-import { CampoTexto } from "@/components/ui/campos";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { marcasParecidas, type MarcaConProveedores, type ProveedorOpcion } from "@/lib/marcas";
 import { proveedoresParecidos } from "@/lib/proveedores-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
@@ -442,15 +442,15 @@ export function NuevaMarcaForm({
         <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-secundario">
           Cancelar
         </button>
-        <button
+        <Boton peso="primario" cargando={guardando}
           type="button"
           onClick={() => void guardar()}
           disabled={guardando || !listo || !firma.listo}
           title={firma.motivo ?? guia.frase ?? undefined}
-          className={`btn-cayla btn-primario ${guia.claseConfirmar}`}
+          className={`${guia.claseConfirmar}`}
         >
-          {guardando ? "Guardando…" : textoGuardar}
-        </button>
+          {textoGuardar}
+        </Boton>
       </div>
     </div>
   );

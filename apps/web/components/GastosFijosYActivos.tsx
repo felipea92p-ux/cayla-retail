@@ -239,9 +239,9 @@ export function NoEsFijoModal({ sugerido: s, onCerrar }: { sugerido: FijoSugerid
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={confirmar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Guardando…" : "No es fijo"}
-        </button>
+        <Boton peso="primario" cargando={guardando} type="button" onClick={confirmar} disabled={guardando || !responsable.listo}>
+          No es fijo
+        </Boton>
       </div>
     </Modal>
   );
@@ -479,9 +479,9 @@ export function GastoFijoModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={() => ejecutar("guardar")} disabled={guardando || !responsable.listo}>
-          {guardando ? "Guardando…" : fijo ? "Guardar" : "Agregar fijo"}
-        </button>
+        <Boton peso="primario" cargando={guardando} type="button" onClick={() => ejecutar("guardar")} disabled={guardando || !responsable.listo}>
+          {fijo ? "Guardar" : "Agregar fijo"}
+        </Boton>
       </div>
     </Modal>
   );
@@ -689,9 +689,9 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
           <button type="button" className="btn-cayla btn-secundario" onClick={() => setAccion(null)} disabled={guardando}>
             Volver
           </button>
-          <button type="button" className="btn-cayla btn-primario" onClick={confirmar} disabled={guardando || !responsable.listo}>
-            {guardando ? "Guardando…" : accion === "baja" ? "Dar de baja" : "Anular activo"}
-          </button>
+          <Boton peso="primario" cargando={guardando} type="button" onClick={confirmar} disabled={guardando || !responsable.listo}>
+            {accion === "baja" ? "Dar de baja" : "Anular activo"}
+          </Boton>
         </div>
       </Modal>
     );
