@@ -23,6 +23,8 @@ const ANOTAN: ReadonlySet<ClaveModulo> = new Set<ClaveModulo>([
   "proveedores",
   // Órdenes de insumos del Taller (ADR-0362, fase 7, 20261013040000): crear, editar y anular anotan su línea, sin montos ni cantidades.
   "ordenes_insumos",
+  // Producción (ADR-0400, 20261014154000): abrir una orden con sus fases anota su línea («abrió la OP-000012 de Blusa Marina: 50 prendas · afuera: Costura con …»), sin montos.
+  "produccion",
 ]);
 export const MODULOS_CON_ACTIVIDAD: readonly ClaveModulo[] = MODULOS.map((m) => m.clave).filter((c) => ANOTAN.has(c));
 

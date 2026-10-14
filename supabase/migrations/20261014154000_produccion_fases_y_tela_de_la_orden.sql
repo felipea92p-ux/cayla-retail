@@ -23,7 +23,8 @@
 --      por proveedor y fase, que SUGIERE; la fase copia.
 --   6. `abrir_orden_produccion(p_apertura, p_fases, p_insumos)`: envuelve a `abrir_produccion` o a `abrir_produccion_con_modelo_nuevo`
 --      (sus firmas y su carga útil NO cambian, ADR-0396) y en la misma transacción escribe las fases y la tela. Valida lo que el ADR dice
---      que se rechaza. `fn_fases_de_orden` (lectura) y `cambiar_quien_fase` (solo si la fase no empezó).
+--      que se rechaza. `fn_fases_de_orden` (lectura), `cambiar_quien_fase` (solo si la fase no empezó) y `fn_nueva_orden_opciones` (lo que
+--      la hoja ofrece elegir: proveedores de servicio con su lista de precios, consumo por modelo, tela comprometida).
 --   RLS encendido SIN políticas en todas las tablas nuevas y sin permisos para `anon` ni `authenticated`: se leen y escriben solo por
 --   funciones security definer que exigen el módulo `produccion` y estar en el Taller (ADR-0161/0306; Q1 del ADR-0400).
 --
@@ -713,15 +714,57 @@ begin
 end;
 $$;
 
--- ---------- 12. Permisos ----------
+-- ---------- 12. Lo que la hoja «Nueva orden» ofrece elegir ----------
+-- En UNA lectura: los proveedores que hacen servicios (activos, con rubro distinto de tela y avíos) con su lista de precios vigente por
+-- fase; cuánta tela lleva cada modelo (declarado o medido); y los metros de cada tela ya comprometidos por las órdenes en proceso
+-- (plan − lo ya descontado), para que dos órdenes no digan «alcanza» contra los mismos metros (ADR-0400, supuestos). Lo lee quien puede
+-- leer Producción en ese Taller (el líder o quien ve el módulo parado ahí); los datos bancarios del proveedor no viajan.
+create or replace function retail.fn_nueva_orden_opciones(p_ubicacion_id uuid) returns jsonb
+language sql stable
+security definer
+set search_path = retail, public, extensions
+as $$
+  select case when retail.fn_produccion_puede_leer(p_ubicacion_id) then jsonb_build_object(
+    'proveedores', coalesce((
+      select jsonb_agg(jsonb_build_object(
+          'id', pr.id, 'nombre', pr.nombre, 'rubro', pr.rubro, 'activo', pr.activo,
+          'tarifas', coalesce((
+            select jsonb_agg(jsonb_build_object('fase_clave', t.fase_clave, 'tarifa_prenda', t.tarifa_prenda, 'cantidad_minima', t.cantidad_minima,
+                                                'fijo_orden', t.fijo_orden, 'vigente_desde', t.vigente_desde) order by t.fase_clave, t.vigente_desde desc)
+            from retail.proveedor_tarifas t where t.proveedor_id = pr.id and t.vigente_desde <= retail.fn_hoy_lima()), '[]'::jsonb))
+        order by pr.nombre)
+      from retail.proveedores_produccion pr where pr.activo and pr.rubro not in ('tela', 'avios')), '[]'::jsonb),
+    'consumos', coalesce((
+      select jsonb_agg(jsonb_build_object('producto_id', c.producto_id, 'tela_por_prenda', c.tela_por_prenda, 'por_talla', c.por_talla, 'fuente', c.fuente))
+      from retail.producto_consumos c), '[]'::jsonb),
+    'comprometido', coalesce((
+      select jsonb_agg(jsonb_build_object('insumo_id', x.insumo_id, 'cantidad', x.cantidad))
+      from (
+        select pi.insumo_id,
+               greatest(sum(pi.cantidad_plan) - coalesce((
+                 select sum(case when mi.tipo = 'consumo' then mi.cantidad else -mi.cantidad end)
+                 from retail.movimientos_insumo mi
+                 where mi.insumo_id = pi.insumo_id and mi.tipo in ('consumo', 'devolucion')
+                   and mi.produccion_id in (select p2.id from retail.producciones p2 where p2.ubicacion_id = p_ubicacion_id and p2.estado = 'en_proceso')), 0), 0) as cantidad
+        from retail.produccion_insumos pi
+        join retail.producciones p on p.id = pi.produccion_id
+        where p.ubicacion_id = p_ubicacion_id and p.estado = 'en_proceso'
+        group by pi.insumo_id
+      ) x), '[]'::jsonb)
+  ) end
+$$;
+
+-- ---------- 13. Permisos ----------
 revoke all on function retail.abrir_orden_produccion(jsonb, jsonb, jsonb) from public, anon;
 revoke all on function retail.fn_fases_de_orden(uuid) from public, anon;
 revoke all on function retail.cambiar_quien_fase(uuid, text, uuid, numeric, numeric, integer, date) from public, anon;
 revoke all on function retail.fn_produccion_numero_texto(integer) from public, anon;
+revoke all on function retail.fn_nueva_orden_opciones(uuid) from public, anon;
 grant execute on function retail.abrir_orden_produccion(jsonb, jsonb, jsonb) to authenticated, service_role;
 grant execute on function retail.fn_fases_de_orden(uuid) to authenticated, service_role;
 grant execute on function retail.cambiar_quien_fase(uuid, text, uuid, numeric, numeric, integer, date) to authenticated, service_role;
 grant execute on function retail.fn_produccion_numero_texto(integer) to authenticated, service_role;
+grant execute on function retail.fn_nueva_orden_opciones(uuid) to authenticated, service_role;
 -- Internas: nadie las llama desde la API.
 revoke all on function retail.fn_fase_secuencia(text, text) from public, anon, authenticated;
 revoke all on function retail.fn_fase_nombre(text) from public, anon, authenticated;

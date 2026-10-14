@@ -156,19 +156,21 @@ export type VarianteLeida = {
   sku?: string | null;
   codigo?: string | null;
   talla?: { valor: string } | null;
-  color?: { nombre: string; hex: string | null } | null;
+  color?: { codigo?: string | null; nombre: string; hex: string | null } | null;
 };
 
 /** Cómo Producción nombra una prenda en pantalla. Las dos lecturas del módulo (las líneas de una orden y las variantes
  *  del formulario de nueva orden) pasan por aquí, para que ninguna vuelva a leer solo `sku` y deje un hueco.
  *  El campo se sigue llamando `sku` (lo consumen buscadores y tooltips), pero trae el CÓDIGO DE ETIQUETA con respaldo al
  *  sku legado, o `""` si la variante no tiene ninguno. Solo se MUESTRA: para identificar una prenda se compara `varianteId`. */
-export function datosDeVariante(v: VarianteLeida | null | undefined): { sku: string; talla: string | null; color: string | null; colorHex: string | null } {
+export function datosDeVariante(v: VarianteLeida | null | undefined): { sku: string; talla: string | null; color: string | null; colorHex: string | null; colorCodigo: string | null } {
   return {
     sku: v ? codigoDeEtiqueta(v) : "",
     talla: v?.talla?.valor ?? null,
     color: v?.color?.nombre ?? null,
     colorHex: v?.color?.hex ?? null,
+    // El código del vocabulario (ADR-0400): con él la orden propone la tela del mismo color. Falta en las lecturas viejas que no lo piden.
+    colorCodigo: v?.color?.codigo ?? null,
   };
 }
 

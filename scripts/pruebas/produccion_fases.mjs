@@ -22,7 +22,7 @@
  *   L  LEER: las fases con su estado derivado (entrada, hechas, afuera, actual, días), el devengado del servicio tras una vuelta.
  *   C  CAMBIAR QUIÉN: antes de empezar sí (a Taller y a servicio con tarifa); después de un avance, no.
  *   I  INMUTABLE: un avance no se edita ni se borra.
- *   S  LA FORMA: las 3 de escritura/lectura de la web son security definer con search_path, `authenticated` sí y `anon` no; las internas,
+ *   S  LA FORMA: las 4 de escritura/lectura de la web son security definer con search_path, `authenticated` sí y `anon` no; las internas,
  *      cerradas.
  *
  * USO
@@ -217,11 +217,11 @@ caso(
 );
 caso(
   "A2 sin Costura no abre (la espina es Corte · Costura · Acabado) y no gasta número ni crea la orden",
-  `select currval('retail.producciones_numero_seq') as antes \\gset
+  `select last_value as antes from retail.producciones_numero_seq \\gset
    select pg_temp.eh(pg_temp.abre(${APERTURA()}, jsonb_build_array(${TALLER("corte")}, ${TALLER("acabado")}))) as r \\gset
    select concat_ws(',', :'r',
      (select count(*) from retail.producciones where producto_id = :'prod' and created_at > now() - interval '5 seconds'),
-     currval('retail.producciones_numero_seq') = :'antes');`,
+     (select last_value = :'antes' from retail.producciones_numero_seq));`,
   "P0001|fases_espina,0,t"
 );
 caso(
@@ -405,12 +405,29 @@ caso(
   "42501,42501,SIN_ERROR,0"
 );
 
+// O. LO QUE LA HOJA OFRECE ------------------------------------------------------------------------------------------------------
+caso(
+  "O1 fn_nueva_orden_opciones: solo los proveedores de servicio activos (con su lista de precios), el consumo del modelo y la tela comprometida por las órdenes en proceso (plan − descontado); una integrante de Trujillo recibe NULL",
+  `insert into retail.proveedor_tarifas (proveedor_id, fase_clave, tarifa_prenda, cantidad_minima) values (:'maquila', 'costura', 4.20, 150);
+   select pg_temp.abre(${APERTURA()}, ${ESPINA}, ${LINO()}) as r \\gset
+   select concat_ws(',',
+     (select string_agg(p ->> 'nombre', '|' order by p ->> 'nombre') from jsonb_array_elements(o -> 'proveedores') p where p ->> 'nombre' like '%Fases Prueba'),
+     (select (p -> 'tarifas' -> 0 ->> 'tarifa_prenda') || ':' || (p -> 'tarifas' -> 0 ->> 'cantidad_minima') from jsonb_array_elements(o -> 'proveedores') p where p ->> 'nombre' = 'Confecciones Fases Prueba'),
+     (select (c ->> 'tela_por_prenda') || ':' || (c ->> 'fuente') from jsonb_array_elements(o -> 'consumos') c where (c ->> 'producto_id')::uuid = :'prod'),
+     (select c ->> 'cantidad' from jsonb_array_elements(o -> 'comprometido') c where (c ->> 'insumo_id')::uuid = :'lino'))
+   from retail.fn_nueva_orden_opciones(:'taller') o \\gset
+   select :'concat_ws' as lider \\gset
+   ${como(MICAELA)}
+   select :'lider' || ',' || coalesce(retail.fn_nueva_orden_opciones(:'taller')::text, 'NULL');`,
+  "Confecciones Fases Prueba,4.20:150,1.200:declarado,37.800,NULL"
+);
+
 // S. LA FORMA -------------------------------------------------------------------------------------------------------------------
 const DE = (nombres) => `from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname in (${nombres})`;
-const PUBLICAS = `'abrir_orden_produccion','fn_fases_de_orden','cambiar_quien_fase'`;
+const PUBLICAS = `'abrir_orden_produccion','fn_fases_de_orden','cambiar_quien_fase','fn_nueva_orden_opciones'`;
 const INTERNAS = `'fn_fase_secuencia','fn_fase_nombre','fn_produccion_exigir_operar','fn_produccion_puede_leer','fn_produccion_fases_normalizar','fn_produccion_insumos_normalizar','fn_produccion_anotado_inmutable'`;
 caso(
-  "S1 la forma: las 3 de la web son security definer con search_path, authenticated sí y anon no; las 7 internas, cerradas a la API y con search_path",
+  "S1 la forma: las 4 de la web son security definer con search_path, authenticated sí y anon no; las 7 internas, cerradas a la API y con search_path",
   `reset role;
    select concat_ws(',',
      (select count(*) ${DE(PUBLICAS)}),
@@ -420,7 +437,7 @@ caso(
      (select count(*) ${DE(INTERNAS)}),
      (select bool_or(has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute')) ${DE(INTERNAS)}),
      (select bool_and(array_to_string(p.proconfig, ',') like '%search_path%') ${DE(INTERNAS)}));`,
-  "3,t,t,f,7,f,t"
+  "4,t,t,f,7,f,t"
 );
 
 console.log(`\n${casos - fallas}/${casos} casos bien${fallas ? ` — ${fallas} en rojo` : ""} (contenedor: ${CONTENEDOR})`);

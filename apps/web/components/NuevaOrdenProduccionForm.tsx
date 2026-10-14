@@ -6,23 +6,23 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { CampoMonto, CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
+import { CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Aviso } from "@/components/ui/Aviso";
 import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { Chip } from "@/components/ui/Chip";
-import type { ModeloProducible } from "@/lib/produccion";
+import type { ModeloProducible, OpcionesNuevaOrden } from "@/lib/produccion";
+import type { InsumoVista } from "@/lib/insumos";
 import type { DecisionProduccion } from "@/lib/decision-produccion";
 import type { Tolerado } from "@/lib/resultado";
-import { cantidadTexto } from "@/lib/insumos-reglas";
 import { ETIQUETA_BANDA } from "@/lib/resumen-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { MotorEnProduccion } from "@/components/motor-demanda/MotorEnProduccion";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, cantidadesDeLaCurva, cantidadesInicialesDeNuevaOrden, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
+import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, cantidadesDeLaCurva, cantidadesInicialesDeNuevaOrden, sugerirCurva } from "@/lib/produccion-decision-reglas";
 import { costoUnitario, precioParaMargen, semaforoMargen, TEXTO_SEMAFORO, type Semaforo } from "@/lib/produccion-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -30,6 +30,10 @@ import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
 import { ElegirModelo, TarjetaModelo } from "@/components/orden-produccion/ElegirModelo";
 import { AgregarColor, QuitarColor } from "@/components/orden-produccion/AgregarColor";
 import { FichaOrden } from "@/components/orden-produccion/FichaOrden";
+import { FasesDeLaOrden } from "@/components/orden-produccion/FasesDeLaOrden";
+import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion/TelaDeLaOrden";
+import { costoServiciosEstimado, faseDe, fasesEncendidas, fasesIniciales, fasesParaRpc, problemasFases, proveedoresQueSirven, textoQuien, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
+import { coloresDeLaOrden, consumoSugerido, insumosParaRpc, metrosAPedir, problemasTela, telasSugeridas, type InsumoDelTaller, type TelaBorrador } from "@/lib/orden-tela-reglas";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { tipoAlElegir, urgentesDeLaRed } from "@/lib/orden-modelo-reglas";
 import { cantidadesAlCambiarColores, lineasDeModeloExistente, tablaDeModeloExistente, tablaDeModeloNuevo } from "@/lib/orden-tabla-reglas";
@@ -47,8 +51,8 @@ import {
   nombreDelModelo,
   paramsRpcModeloNuevo,
   precioDelBorrador,
-  problemaDeCostos,
   problemasDelModelo,
+  cantidadDeCelda,
   resumenCantidades,
   tallasHabituales,
   type BorradorModelo,
@@ -56,8 +60,9 @@ import {
   type VocabularioModeloNuevo,
 } from "@/lib/modelo-nuevo-reglas";
 
-// Abrir una orden (abrir_produccion). Lo que se decide acá: qué modelo, cuántas
-// por talla-color y el costo ESTIMADO. El costo real se corrige al cerrar.
+// Abrir una orden (`abrir_orden_produccion`, ADR-0400). Lo que se decide acá: qué modelo, cuántas por talla y color, qué fases lleva y quién hace
+// cada una (el Taller o un servicio de afuera, con su tarifa congelada), y su tela (por color, con el consumo por prenda y los metros a pedir).
+// Los tres montos tecleados de antes ya no existen: el costo estimado sale de la tela y de las tarifas, y el real se mide al cerrar.
 //
 // F5 (ADR-0133): para el líder, «Nueva orden» aconseja ANTES de abrir: la curva sugerida por talla y color (ritmo de venta y stock de TODA la red, con las
 // mismas reglas de Inventario), si alcanza la tela y los avíos (con el consumo real medido de las órdenes cerradas del modelo, D-D) y cuánto costará cada
@@ -100,6 +105,11 @@ const CONSECUENCIA_DEL_TIPO: Record<Tipo, string> = {
 /** «existe» sin `productoId` = todavía no se eligió (se muestra el buscador); «nuevo» = se está creando uno. */
 type ModoModelo = "existe" | "nuevo";
 
+// La RPC es nueva (migración 20261014154000) y los tipos generados no la conocen: se llama por su nombre, como las de Órdenes de insumos.
+const RPC_ABRIR_ORDEN = "abrir_orden_produccion";
+// Los costos ya no se teclean (ADR-0400): a la función de hoy le viajan en cero y la base los deriva.
+const SIN_COSTOS = { tela: "", avios: "", maquila: "" };
+
 const CHIP_SEMAFORO: Record<Semaforo["tono"], { tono: "verde" | "ambar" | "rojo"; texto: string }> = {
   gana: { tono: "verde", texto: TEXTO_SEMAFORO.gana },
   filo: { tono: "ambar", texto: TEXTO_SEMAFORO.filo },
@@ -117,6 +127,9 @@ export function NuevaOrdenProduccionForm({
   vocabulario = null,
   abiertas,
   recientes = [],
+  opciones = null,
+  insumos = [],
+  hoy,
   onClose,
 }: {
   tallerId: string;
@@ -137,6 +150,12 @@ export function NuevaOrdenProduccionForm({
   abiertas?: ReadonlyMap<string, number>;
   /** Los modelos de las últimas órdenes, la más reciente primero. */
   recientes?: readonly string[];
+  /** Lo que la hoja ofrece elegir (ADR-0400): servicios con su lista de precios, consumo por modelo, tela comprometida. Secundario: sin esto, fases en el Taller y sin tela. */
+  opciones?: Tolerado<OpcionesNuevaOrden> | null;
+  /** Telas y avíos del Taller con su saldo (la misma lectura de Insumos). */
+  insumos?: InsumoVista[];
+  /** `aaaa-mm-dd` de Lima: la tarifa vigente y las fechas prometidas se juzgan contra hoy. */
+  hoy: string;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -162,9 +181,10 @@ export function NuevaOrdenProduccionForm({
   const [precioNuevo, setPrecioNuevo] = useState("");
   // La base dijo «ya existe un modelo así» (o «casi igual»): se muestra con lo que se puede hacer, no como un error cualquiera.
   const [choque, setChoque] = useState<Extract<ErrorModeloNuevo, { tipo: "nombre_duplicado" | "nombre_casi_igual" }> | null>(null);
-  const [tela, setTela] = useState("");
-  const [avios, setAvios] = useState("");
-  const [maquila, setMaquila] = useState("");
+  // ADR-0400: las fases (quién hace cada una) y la tela de la orden reemplazan a los tres montos tecleados. Nacen válidas: la espina en el Taller, sin tela.
+  const [fases, setFases] = useState<FaseBorrador[]>(() => fasesIniciales());
+  // Lo que la persona eligió de tela (null = no tocó nada: manda la sugerencia). Las filas que se ven se DERIVAN de la sugerencia más esto, sin efectos.
+  const [telasManual, setTelasManual] = useState<TelaBorrador[] | null>(null);
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -223,6 +243,7 @@ export function NuevaOrdenProduccionForm({
           talla: categoriaNueva?.tallas.find((t) => t.id === celda.tallaId)?.valor ?? null,
           color: color?.nombre ?? null,
           colorHex: color?.hex ?? null,
+          colorCodigo: color?.codigo ?? null,
           precio: Number.isFinite(precioBorrador) ? precioBorrador : 0,
         };
       }),
@@ -247,9 +268,88 @@ export function NuevaOrdenProduccionForm({
   const lineas = esNuevo ? [] : lineasDeModeloExistente(modelo?.variantes ?? [], cantidades);
   // Un modelo nuevo lee las cantidades como las lee la base (enteros de 0 a 9999); uno existente, como siempre.
   const total = esNuevo ? resumenNuevo.total : lineas.reduce((s, l) => s + l.cantidad, 0);
-  const costoTotal = (Number(tela) || 0) + (Number(avios) || 0) + (Number(maquila) || 0);
+  // ----- Fases y tela de la orden (ADR-0400) -----
+  const opcionesDatos = opciones?.datos ?? null;
+  const proveedoresServicio = useMemo(() => proveedoresQueSirven(opcionesDatos?.proveedores ?? []), [opcionesDatos]);
+  const listaDePrecios = useMemo<TarifaDeLista[]>(
+    () =>
+      (opcionesDatos?.proveedores ?? []).flatMap((p) =>
+        p.tarifas.map((t) => ({ proveedorId: p.id, faseClave: t.faseClave as FaseClave, tarifa: t.tarifa, minimo: t.minimo, fijo: t.fijo, vigenteDesde: t.vigenteDesde }))
+      ),
+    [opcionesDatos]
+  );
+  const insumosDelTaller = useMemo<InsumoDelTaller[]>(
+    () => insumos.map((i) => ({ id: i.id, nombre: i.nombre, tipo: i.tipo, unidad: i.unidad, tejidoId: i.tejidoId, colorCodigo: i.colorCodigo, saldo: i.saldo, mermaPct: i.merma, archivado: false })),
+    [insumos]
+  );
+  // Los colores que la orden fabrica, con cuántas prendas: de las variantes (modelo que existe) o de las celdas del borrador (modelo nuevo).
+  const lineasDeColor = useMemo(
+    () =>
+      esNuevo
+        ? celdasNuevas.map((c) => ({ colorCodigo: c.color ?? null, cantidad: cantidadDeCelda(borrador, c.clave) ?? 0 }))
+        : lineas.map((l) => ({ colorCodigo: variantePorId.get(l.variante_id)?.colorCodigo ?? null, cantidad: l.cantidad })),
+    // `lineas` se rearma en cada render; lo que de verdad lo mueve es `cantidades`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [esNuevo, celdasNuevas, borrador, cantidades, variantePorId]
+  );
+  const coloresOrden = useMemo(() => coloresDeLaOrden(lineasDeColor), [lineasDeColor]);
+  const coloresDeLaTela = useMemo<ColorDeLaTela[]>(
+    () =>
+      coloresOrden.map((c) => {
+        const deVariante = modeloExistente?.variantes.find((v) => v.colorCodigo === c.colorCodigo);
+        const deVocab = coloresDisponibles.find((col) => col.codigo === c.colorCodigo);
+        return {
+          codigo: c.colorCodigo,
+          nombre: c.colorCodigo === null ? "Sin color" : (deVariante?.color ?? deVocab?.nombre ?? c.colorCodigo),
+          hex: deVariante?.colorHex ?? deVocab?.hex ?? null,
+          prendas: c.cantidad,
+        };
+      }),
+    [coloresOrden, modeloExistente, coloresDisponibles]
+  );
+  const consumoDeclarado = !esNuevo && modeloExistente ? (opcionesDatos?.consumos[modeloExistente.productoId] ?? null) : null;
+  const tejidoId = !esNuevo ? (modeloExistente?.tejidoId ?? null) : null;
+  // La tela sugerida sigue al modelo y a los colores; si la persona ya tocó la tela, cada color conserva lo elegido y los colores nuevos entran sugeridos.
+  const consumoDeclaradoTexto = consumoSugerido(consumoDeclarado);
+  const telasSugeridasAhora = useMemo(
+    () => telasSugeridas({ tejidoId, colores: coloresOrden, insumos: insumosDelTaller, consumo: consumoDeclaradoTexto }),
+    [tejidoId, coloresOrden, insumosDelTaller, consumoDeclaradoTexto]
+  );
+  const telasTocadas = telasManual !== null;
+  const telas = useMemo<TelaBorrador[]>(() => {
+    if (telasManual === null) return telasSugeridasAhora;
+    const porColor = telasSugeridasAhora.map((s) => telasManual.find((p) => p.colorCodigo !== null && p.colorCodigo === s.colorCodigo) ?? s);
+    const avios = telasSugeridasAhora.some((s) => s.colorCodigo === null) ? [] : telasManual.filter((p) => p.colorCodigo === null && p.insumoId);
+    return [...porColor, ...avios];
+  }, [telasManual, telasSugeridasAhora]);
+  const problemasDeFases = useMemo(() => problemasFases(fases, { hoy, proveedores: proveedoresServicio, lista: listaDePrecios }), [fases, hoy, proveedoresServicio, listaDePrecios]);
+  const problemasDeTela = useMemo(() => problemasTela(telas, { insumos: insumosDelTaller, colores: coloresOrden }), [telas, insumosDelTaller, coloresOrden]);
+  // Los costos ya no se teclean: la tela sale de los metros a pedir × el costo del lote que se usaría (solo quien ve costos), y los servicios de la tarifa congelada.
+  const conCostos = decision !== null;
+  const costoPorMetro = useMemo(
+    () =>
+      new Map(
+        insumos.flatMap((i) => {
+          const lote = i.lotes.find((l) => l.saldo > 0 && l.costoUnitario !== null);
+          return lote ? [[i.id, lote.costoUnitario as number] as const] : [];
+        })
+      ),
+    [insumos]
+  );
+  const comprometido = useMemo(() => new Map(Object.entries(opcionesDatos?.comprometido ?? {})), [opcionesDatos]);
+  const costoTelaEstimado = conCostos
+    ? telas.reduce((suma, t) => {
+        if (!t.insumoId) return suma;
+        const i = insumosDelTaller.find((x) => x.id === t.insumoId);
+        const prendas = t.colorCodigo === null ? total : (coloresOrden.find((c) => c.colorCodigo === t.colorCodigo)?.cantidad ?? 0);
+        const plan = i ? metrosAPedir(t.consumoPorPrenda, prendas, i.mermaPct) : null;
+        return suma + (plan ?? 0) * (costoPorMetro.get(t.insumoId) ?? 0);
+      }, 0)
+    : 0;
+  const costoServicios = costoServiciosEstimado(fases, total, listaDePrecios, hoy) ?? 0;
+  const costoTotal = costoTelaEstimado + costoServicios;
   // Como lo calcula la base (`producciones.costo_unitario`): costos ÷ prendas, a 2 decimales. Una sola fórmula en `produccion-reglas.ts`.
-  const unitario = costoUnitario(Number(tela) || 0, Number(avios) || 0, Number(maquila) || 0, total);
+  const unitario = costoUnitario(costoTelaEstimado, 0, costoServicios, total);
   const precio = Math.max(0, ...(modelo?.variantes ?? []).map((v) => v.precio));
 
   // ----- La decisión (solo líder) -----
@@ -264,12 +364,6 @@ export function NuevaOrdenProduccionForm({
     () => (id: string) => curva.porVariante.get(id)?.disponible ?? (enProduccion.get(id) ?? 0),
     [curva, enProduccion]
   );
-  const rendimiento = datos && modelo ? (datos.rendimientoPorModelo[modelo.productoId] ?? []) : [];
-  const saldos = useMemo(() => new Map((datos?.insumos ?? []).map((i) => [i.insumoId, i])), [datos]);
-  const analisis = analizarInsumos(rendimiento, total, saldos);
-  const materialesPorPrenda = costoMaterialesPorPrenda(rendimiento, (id) => saldos.get(id)?.costoUnitario ?? null);
-  const materialesPorTipo = { tela: 0, avio: 0 };
-  for (const r of rendimiento) materialesPorTipo[r.tipo] += r.porPrenda * total * (saldos.get(r.insumoId)?.costoUnitario ?? 0);
   // El margen es del líder (`decision` solo le llega a él), con o sin lectura de la red: si la red falla, el margen no se esconde.
   const verMargen = decision !== null;
   // El margen se mide con el precio propio MÁS BAJO de una tienda, si lo hay (ADR-0370); `precio` (el de la grilla) es el que se dice en «se vende a».
@@ -283,12 +377,23 @@ export function NuevaOrdenProduccionForm({
   const nombreDeLaFichaVista = nombreDeLaFicha({ esNuevo, hayModelo: modeloExistente !== null, nombre: esNuevo ? nombreDelModelo(borrador) : (modeloExistente?.referencia ?? "") });
 
   // La guía de foco (ADR-0284): qué está hecho, qué sigue y qué falta. Sale de la misma validación que apaga el botón.
-  const guia = useGuiaCampos(camposDeGuiaOrden({ esNuevo, hayModelo: modeloExistente !== null, borrador, celdas: celdasNuevas, totalExistente: total, costos: { tela, avios, maquila } }));
+  const guia = useGuiaCampos(
+    camposDeGuiaOrden({
+      esNuevo,
+      hayModelo: modeloExistente !== null,
+      borrador,
+      celdas: celdasNuevas,
+      totalExistente: total,
+      fases: { falta: problemasDeFases[0]?.texto ?? null },
+      tela: { falta: problemasDeTela[0]?.texto ?? null, elegida: telas.some((t) => t.insumoId !== null) },
+    })
+  );
 
   // «¿Salir sin guardar?» (2026-09-28; /chaos NAV-04, 2026-10-10). Escape, el clic fuera y «Cancelar» cerraban la hoja y TODO lo escrito (nombre, tallas, colores, la matriz
   // de cantidades) se perdía sin avisar. Mismo hook que «Registrar gasto». Escape, el clic fuera y la ✕ preguntan por `antesDeCerrar` y NO por `onClose` (que corre después de animar la salida: con «Seguir editando» la hoja quedaba invisible y la pantalla sin responder; /pantalla 2026-10-13, `lib/hojas-salida-sin-guardar.test.ts`). La foto cuenta el TRABAJO (lo escrito y lo elegido para el modelo nuevo), no el tipo, el modo ni el modelo de la
   // lista: abrir la hoja y mirar «Modelo nuevo» no es nada que perder. Guardar bien cierra directo.
-  const fotoActual = fotoFormulario({ nombreNuevo, categoriaNuevaId, tallasNuevas, coloresNuevos, precioNuevo, cantidades, tela, avios, maquila, fechaEntrega, nota });
+  // La tela sugerida por el sistema no cuenta como trabajo (entra sola al elegir el modelo): solo lo que la persona tocó.
+  const fotoActual = fotoFormulario({ nombreNuevo, categoriaNuevaId, tallasNuevas, coloresNuevos, precioNuevo, cantidades, fases, telas: telasTocadas ? telas : null, fechaEntrega, nota });
   const [fotoAlAbrir] = useState(fotoActual);
   const avisoSalida = useSalidaSinGuardar(fotoActual !== fotoAlAbrir, "Llenaste parte de esta orden y todavía no se abrió. Si cierras ahora, se pierde lo que llenaste.");
   /** Tras guardar: se retira la guardia ANTES de cerrar y de refrescar (juntos, Next podía volver a montar la pantalla de atrás: ver `useSalidaSinGuardar`). */
@@ -300,10 +405,6 @@ export function NuevaOrdenProduccionForm({
 
   function usarCurva() {
     setCantidades(cantidadesDeLaCurva(curva));
-  }
-  function usarEstimadoDeMateriales() {
-    setTela(materialesPorTipo.tela > 0 ? materialesPorTipo.tela.toFixed(2) : "");
-    setAvios(materialesPorTipo.avio > 0 ? materialesPorTipo.avio.toFixed(2) : "");
   }
 
   // Las cantidades de un modelo nuevo van por celda del borrador y las de uno existente por variante: al cambiar de modelo o de modo no se arrastran.
@@ -362,9 +463,13 @@ export function NuevaOrdenProduccionForm({
 
   /** Modelo nuevo + orden en UNA llamada. `confirmoDistinto`: la persona dijo que un nombre casi igual es otro modelo de verdad. */
   async function abrirConModeloNuevo(confirmoDistinto: boolean) {
-    const faltas = problemasDelModelo(borrador, celdasNuevas, { tela, avios, maquila });
+    const faltas = problemasDelModelo(borrador, celdasNuevas);
     if (faltas.length > 0) {
       avisar.error(faltas[0].texto);
+      return;
+    }
+    if (problemasDeFases.length > 0 || problemasDeTela.length > 0) {
+      avisar.error(problemasDeFases[0]?.texto ?? problemasDeTela[0]?.texto ?? "");
       return;
     }
     if (!responsable.listo) {
@@ -377,20 +482,27 @@ export function NuevaOrdenProduccionForm({
     setCargando(true);
     let resultado;
     try {
+      // La MISMA carga útil de siempre para `abrir_produccion_con_modelo_nuevo` (`paramsRpcModeloNuevo`, con los costos en cero), envuelta por la
+      // RPC nueva que además escribe las fases y la tela en la misma transacción (ADR-0400).
+      const p = paramsRpcModeloNuevo({ ubicacionId: tallerId, borrador, celdas: celdasNuevas, costos: SIN_COSTOS, fechaEntrega, nota, confirmoDistinto, token: token.current });
       resultado = await firmar(
-        createClient().rpc(
-          "abrir_produccion_con_modelo_nuevo",
-          paramsRpcModeloNuevo({
-            ubicacionId: tallerId,
-            borrador,
-            celdas: celdasNuevas,
-            costos: { tela, avios, maquila },
-            fechaEntrega,
-            nota,
-            confirmoDistinto,
-            token: token.current,
-          })
-        ),
+        createClient().rpc(RPC_ABRIR_ORDEN as never, {
+          p_apertura: {
+            modelo_nuevo: true,
+            ubicacion_id: p.p_ubicacion_id,
+            referencia: p.p_referencia,
+            categoria_id: p.p_categoria_id,
+            variantes: p.p_variantes,
+            precio: p.p_precio,
+            es_muestra: p.p_es_muestra,
+            fecha_entrega: p.p_fecha_entrega ?? null,
+            nota: p.p_nota ?? null,
+            confirmo_distinto: p.p_confirmo_distinto,
+            token: p.p_token,
+          },
+          p_fases: fasesParaRpc(fases, listaDePrecios, hoy),
+          p_insumos: insumosParaRpc(telas),
+        } as never),
         responsable.firma()
       );
     } finally {
@@ -427,10 +539,9 @@ export function NuevaOrdenProduccionForm({
       avisar.error("Indica cuántas prendas de al menos una talla o color.");
       return;
     }
-    // Un costo que no se lee como monto («12,50») ya no se guarda como 0 en silencio: se dice (/chaos 2026-10-10, hallazgo #3).
-    const costoMalo = problemaDeCostos({ tela, avios, maquila });
-    if (costoMalo) {
-      avisar.error(costoMalo);
+    // Una fase o una tela que la base rechazaría se dice antes de mandar (es lo mismo que apaga el botón y lo que dice la guía de foco).
+    if (problemasDeFases.length > 0 || problemasDeTela.length > 0) {
+      avisar.error(problemasDeFases[0]?.texto ?? problemasDeTela[0]?.texto ?? "");
       return;
     }
     if (!responsable.listo) {
@@ -442,18 +553,23 @@ export function NuevaOrdenProduccionForm({
     setCargando(true);
     let resultado;
     try {
-      resultado = await firmar(createClient().rpc("abrir_produccion", {
-        p_ubicacion_id: tallerId,
-        p_producto_id: modelo.productoId,
-        p_lineas: lineas,
-        p_costo_tela: Number(tela) || 0,
-        p_costo_avios: Number(avios) || 0,
-        p_costo_maquila: Number(maquila) || 0,
-        p_es_muestra: tipo === "muestra",
-        p_fecha_entrega: fechaEntrega || undefined,
-        p_nota: nota.trim() || undefined,
-        p_token: token.current,
-      }), responsable.firma());
+      // Las MISMAS líneas de siempre (`lineasDeModeloExistente`) viajan dentro de `p_apertura` a `abrir_produccion`; la RPC nueva suma las fases y la tela.
+      resultado = await firmar(
+        createClient().rpc(RPC_ABRIR_ORDEN as never, {
+          p_apertura: {
+            ubicacion_id: tallerId,
+            producto_id: modelo.productoId,
+            lineas,
+            es_muestra: tipo === "muestra",
+            fecha_entrega: fechaEntrega || null,
+            nota: nota.trim() || null,
+            token: token.current,
+          },
+          p_fases: fasesParaRpc(fases, listaDePrecios, hoy),
+          p_insumos: insumosParaRpc(telas),
+        } as never),
+        responsable.firma()
+      );
     } finally {
       enVuelo.current = false;
     }
@@ -650,62 +766,30 @@ export function NuevaOrdenProduccionForm({
           </section>
         )}
 
-        {datos && modelo && !esNuevo && (
-          <section data-guia="prod-orden-nueva.insumos" aria-label="Tela y avíos de esta orden" className="space-y-2.5 rounded-2xl border border-sand bg-crema p-3.5">
-            <p className={campoEtiqueta}>¿Alcanza la tela y los avíos?</p>
-            {rendimiento.length === 0 ? (
-              <p className="text-xs text-tinta/65">
-                Todavía no hay órdenes cerradas de este modelo con insumos descontados: el rendimiento se mide desde la primera. Mientras tanto, escribe el costo a mano.
-              </p>
-            ) : total === 0 ? (
-              <p className="text-xs text-tinta/65">Indica cuántas prendas para ver si alcanza. Por prenda, según {rendimiento[0].ordenes === 1 ? "la última orden" : "las órdenes cerradas"}: {rendimiento.map((r) => `${r.insumo} ${cantidadTexto(r.porPrenda, r.unidad)}`).join(" · ")}.</p>
-            ) : (
-              <>
-                <ul className="divide-y divide-tinta/10">
-                  {analisis.map((a) => (
-                    <li key={a.insumoId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5 text-[13px]">
-                      <span className="min-w-0">
-                        <span className="text-tinta">{a.insumo}</span>
-                        <small className="block text-xs text-tinta/65">
-                          necesita {cantidadTexto(a.necesita, a.unidad)} · hay {cantidadTexto(a.saldo, a.unidad)}
-                          {a.porLlegar > 0 ? ` · por llegar ${cantidadTexto(a.porLlegar, a.unidad)}` : ""} · con lo que hay salen {a.prendasConElSaldo} prendas
-                        </small>
-                      </span>
-                      <Chip tono={a.estado === "alcanza" ? "verde" : "ambar"}>
-                        {a.estado === "alcanza" ? "Alcanza" : a.estado === "alcanza_si_llega" ? "Alcanza si llega lo pedido" : `Faltan ${cantidadTexto(a.faltan, a.unidad)}`}
-                      </Chip>
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-xs text-tinta/60">
-                  Medido: consumo real de {rendimiento[0].ordenes === 1 ? "1 orden cerrada" : `${Math.max(...rendimiento.map((r) => r.ordenes))} órdenes cerradas`} de este modelo.
-                </p>
-                {materialesPorPrenda !== null && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-tinta/10 pt-2 text-[13px]">
-                    <span className="text-tinta/80">
-                      Materiales ≈ <b className="font-semibold tabular-nums text-tinta">{soles(materialesPorPrenda)}</b> por prenda, a costo del lote que se usaría
-                    </span>
-                    <button
-                      type="button"
-                      onClick={usarEstimadoDeMateriales}
-                      className="h-8 rounded-md border border-tinta/25 px-3 text-[13px] text-tinta outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60"
-                    >
-                      Usar como costo estimado
-                    </button>
-                  </div>
-                )}
-              </>
+        {modelo && (
+          <>
+            <FasesDeLaOrden fases={fases} onFases={setFases} proveedores={proveedoresServicio} tarifas={listaDePrecios} totalPrendas={total} hoy={hoy} guia={guia} problemas={problemasDeFases} />
+            <TelaDeLaOrden
+              telas={telas}
+              onTelas={setTelasManual}
+              insumos={insumosDelTaller}
+              tejidoId={tejidoId}
+              tejidoNombre={!esNuevo ? (modeloExistente?.tejidoNombre ?? null) : null}
+              colores={coloresDeLaTela}
+              comprometido={comprometido}
+              consumoDeclarado={consumoDeclarado}
+              conCostos={conCostos}
+              costoPorMetro={costoPorMetro}
+              guia={guia}
+              problemas={problemasDeTela}
+            />
+            {opciones?.fallo && (
+              <Aviso tono="info" chico>
+                {opciones.fallo}
+              </Aviso>
             )}
-          </section>
+          </>
         )}
-
-        <CampoGuiado id="costos" guia={guia}>
-          <div data-guia="prod-orden-nueva.costos" className="grid gap-3 sm:grid-cols-3">
-            <CampoMonto etiqueta="Tela" pie="Opcional · de toda la corrida" inputMode="decimal" placeholder="0.00" value={tela} onChange={(e) => setTela(e.target.value)} />
-            <CampoMonto etiqueta="Avíos" pie="Opcional · botones, cierres, etiquetas e hilo" inputMode="decimal" placeholder="0.00" value={avios} onChange={(e) => setAvios(e.target.value)} />
-            <CampoMonto etiqueta="Maquila" pie="Opcional · lo que se manda afuera: planchado, corte, etc." inputMode="decimal" placeholder="0.00" value={maquila} onChange={(e) => setMaquila(e.target.value)} />
-          </div>
-        </CampoGuiado>
 
         <div data-guia="prod-orden-nueva.entrega" className="grid gap-4 sm:grid-cols-2">
           <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
@@ -727,6 +811,9 @@ export function NuevaOrdenProduccionForm({
           seVendeA={textoSeVendeA({ precio, esNuevo, esMuestra: tipo === "muestra" })}
           precioMasBajo={verMargen && precioMasBajo ? `${soles(precioMasBajo.precio)} en ${precioMasBajo.sede}` : null}
           costo={costoTotal > 0 ? { total: soles(costoTotal), porPrenda: total > 0 ? soles(unitario) : null } : null}
+          afuera={fasesEncendidas(fases)
+            .filter((f) => f.quien === "servicio")
+            .map((f) => `${faseDe(f.clave).nombre}: ${textoQuien(f, proveedoresServicio, { lista: listaDePrecios, hoy }).replace(/^Afuera · /, "")}`)}
           margen={verMargen && semaforo ? { porcentaje: Math.round(semaforo.margen * 100), chip: CHIP_SEMAFORO[semaforo.tono] } : null}
           entrega={fechaCorta(fechaEntrega)}
           notaSinPrecio={

@@ -36,6 +36,9 @@ export type InsumoVista = {
   merma: number;
   minimo: number | null;
   nota: string | null;
+  /** De qué tejido y de qué color es esta tela (el vocabulario de la prenda, ADR-0400); vacíos si no se dijo. */
+  tejidoId: string | null;
+  colorCodigo: string | null;
   saldo: number;
   estado: EstadoInsumo;
   lotes: LoteConSaldo[];
@@ -82,12 +85,27 @@ export type InsumosDelTaller = {
 
 const LIMITE_LIBRO = 12;
 
+type FilaInsumo = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  tipo: string;
+  unidad_medida: string;
+  merma_pct: number | string;
+  stock_minimo: number | string | null;
+  nota: string | null;
+  tejido_id: string | null;
+  color_codigo: string | null;
+};
+
 export async function getInsumosDelTaller(tallerId: string, opciones: { conCostos: boolean; hoy: string }): Promise<InsumosDelTaller> {
   const supabase = await createClient();
   const [insumos, lotes, movs, costos] = await Promise.all([
-    supabase
-      .from("insumos")
-      .select("id, codigo, nombre, tipo, unidad_medida, merma_pct, stock_minimo, nota")
+    // `tejido_id` y `color_codigo` son nuevas (ADR-0400, migración 20261014154000) y los tipos generados aún no las traen: la consulta se tipa a mano, como `lotes` en recepcion-envio.ts.
+    (supabase.from("insumos") as unknown as {
+      select: (c: string) => { is: (col: string, v: null) => { order: (c: string) => PromiseLike<{ data: FilaInsumo[] | null; error: { message: string; code?: string } | null }> } };
+    })
+      .select("id, codigo, nombre, tipo, unidad_medida, merma_pct, stock_minimo, nota, tejido_id, color_codigo")
       .is("archivado_at", null)
       .order("nombre"),
     supabase
@@ -147,6 +165,8 @@ export async function getInsumosDelTaller(tallerId: string, opciones: { conCosto
       merma: Number(i.merma_pct),
       minimo: i.stock_minimo === null ? null : Number(i.stock_minimo),
       nota: i.nota,
+      tejidoId: i.tejido_id ?? null,
+      colorCodigo: i.color_codigo ?? null,
       saldo,
       estado: estadoInsumo(saldo, i.stock_minimo === null ? null : Number(i.stock_minimo)),
       lotes: suyosLotes,

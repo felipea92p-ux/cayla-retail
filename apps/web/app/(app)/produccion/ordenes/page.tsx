@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getTaller, getOrdenesProduccion, getModelosProducibles, getVocabularioModeloNuevo } from "@/lib/produccion";
+import { getTaller, getOrdenesProduccion, getModelosProducibles, getVocabularioModeloNuevo, getOpcionesNuevaOrden } from "@/lib/produccion";
 import { OrdenesTablero } from "@/components/OrdenesTablero";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
@@ -57,7 +57,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
   // es `fn_puede_editar_catalogo()` en la base. Los demás ven a quién pedírselo.
   const puedeEditarCatalogo = puede(persona, "editarCatalogo");
   const hoy = hoyLima();
-  const [ordenesBase, modelosBase, datosInsumos, vocabulario, preciosTiendas] = await Promise.all([
+  const [ordenesBase, modelosBase, datosInsumos, vocabulario, preciosTiendas, opcionesNuevaOrden] = await Promise.all([
     getOrdenesProduccion(taller.id, { conCostos: esLider }),
     getModelosProducibles(),
     getInsumosDelTaller(taller.id, { conCostos: esLider, hoy }),
@@ -66,6 +66,8 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
     // Solo el líder ve el margen, y el margen se mide con el precio MÁS BAJO de cualquier tienda (ADR-0370, Felipe 2026-10-11). Dato secundario: si no se lee
     // (nunca lanza), el margen se mide con el precio de la grilla, como antes.
     esLider ? getPreciosDeLasTiendas() : Promise.resolve(null),
+    // Lo que «Nueva orden» ofrece elegir (ADR-0400): servicios con su lista de precios, consumo por modelo, tela comprometida. Secundario: sin esto la orden se abre igual.
+    getOpcionesNuevaOrden(taller.id),
   ]);
   const ordenes = preciosTiendas ? conPreciosMasBajos(ordenesBase, preciosTiendas) : ordenesBase;
   const modelos = preciosTiendas ? conPreciosMasBajosDeModelos(modelosBase, preciosTiendas) : modelosBase;
@@ -77,7 +79,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
 
   return (
     <div className="space-y-6">
-      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} sugeridaInicial={sp.sugerida === "1"} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} vocabulario={vocabulario} />
+      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} sugeridaInicial={sp.sugerida === "1"} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} vocabulario={vocabulario} opcionesNuevaOrden={opcionesNuevaOrden} />
     </div>
   );
 }

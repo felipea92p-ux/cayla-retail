@@ -231,11 +231,11 @@ describe("datosDeVariante: cómo se nombra una prenda de la orden", () => {
     expect(datosDeVariante({ sku: null, codigo: null }).sku).toBe("");
   });
   it("una variante que no llegó no rompe la orden: todo vacío", () => {
-    expect(datosDeVariante(null)).toEqual({ sku: "", talla: null, color: null, colorHex: null });
+    expect(datosDeVariante(null)).toEqual({ sku: "", talla: null, color: null, colorHex: null, colorCodigo: null });
     expect(datosDeVariante(undefined).sku).toBe("");
   });
   it("sin talla o sin color deja null, para que la matriz pinte «Única» / «Sin color»", () => {
-    expect(datosDeVariante({ codigo: "X-1", talla: null, color: null })).toEqual({ sku: "X-1", talla: null, color: null, colorHex: null });
+    expect(datosDeVariante({ codigo: "X-1", talla: null, color: null })).toEqual({ sku: "X-1", talla: null, color: null, colorHex: null, colorCodigo: null });
   });
 });
 

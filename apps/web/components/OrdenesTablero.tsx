@@ -1,5 +1,7 @@
 "use client";
 
+import type { OpcionesNuevaOrden } from "@/lib/produccion";
+
 import { useMemo, useState } from "react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
@@ -43,6 +45,7 @@ export function OrdenesTablero({
   tipoInicial = "produccion",
   puedeEditarCatalogo = false,
   vocabulario = null,
+  opcionesNuevaOrden = null,
 }: {
   tallerId: string;
   ordenes: OrdenProduccion[];
@@ -64,6 +67,8 @@ export function OrdenesTablero({
   puedeEditarCatalogo?: boolean;
   /** Tallas, colores y categorías para «Modelo nuevo» dentro de la orden (ADR-0361). */
   vocabulario?: Tolerado<VocabularioModeloNuevo> | null;
+  /** Lo que «Nueva orden» ofrece elegir (ADR-0400): servicios con su lista de precios, consumo por modelo, tela comprometida. Secundario. */
+  opcionesNuevaOrden?: Tolerado<OpcionesNuevaOrden> | null;
 }) {
   const [abiertaId, setAbiertaId] = useState<string | null>(ordenInicialId && ordenes.some((o) => o.id === ordenInicialId) ? ordenInicialId : null);
   const [nuevaAbierta, setNuevaAbierta] = useState(nuevaInicial !== null);
@@ -290,6 +295,9 @@ export function OrdenesTablero({
           tipoInicial={tipoInicial}
           puedeEditarCatalogo={puedeEditarCatalogo}
           vocabulario={vocabulario}
+          opciones={opcionesNuevaOrden}
+          insumos={insumos}
+          hoy={hoy}
           abiertas={paraLaLista.abiertas}
           recientes={paraLaLista.recientes}
           onClose={() => {

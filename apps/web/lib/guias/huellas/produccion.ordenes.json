@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 91,
+  "total": 100,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -23,13 +23,9 @@
       "Link «Editar producto»",
       "Desplegable «(sin nombre)»",
       "button «{curva.total > 0 ? `Usar la sugerencia · ${curva.total}»",
-      "button «Usar como costo estimado»",
-      "CampoMonto «Tela»",
-      "CampoMonto «Avíos»",
-      "CampoMonto «Maquila»",
-      "Link «Ponle precio en Editar producto»",
       "CampoTexto «Fecha de entrega»",
       "CampoTexto «Nota»",
+      "Link «Ponle precio en Editar producto»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Usar ese modelo»",
       "Boton «Es otro modelo, crearlo igual»",
@@ -132,6 +128,23 @@
       "button «prod-orden-nueva.modelo-fila»",
       "button «→() => onCrear(escrito)»",
       "button «Cambiar»"
+    ],
+    "components/orden-produccion/FasesDeLaOrden.tsx": [
+      "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
+      "SegmentoDeslizante «{`Dónde va el ${nombreEnFrase}»",
+      "CampoSelect «Proveedor»",
+      "CampoMonto «Por prenda»",
+      "CampoTexto «Cantidad mínima»",
+      "CampoFecha «Prometido para»",
+      "CampoMonto «Fijo por orden»",
+      "button «+ fijo por orden (ponchado, matriz)»"
+    ],
+    "components/orden-produccion/TelaDeLaOrden.tsx": [
+      "CampoSelect «Tela»",
+      "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"m\"}»",
+      "CampoSelect «Avío»",
+      "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"unid.\"}»",
+      "Boton «+ Agregar avío»"
     ]
   }
 }

@@ -34,6 +34,7 @@ export function FichaOrden({
   costo,
   margen,
   entrega,
+  afuera = [],
   notaSinPrecio,
   children,
 }: {
@@ -57,6 +58,8 @@ export function FichaOrden({
   margen: FilaMargen | null;
   /** «23 oct», o `null` («sin fecha»). */
   entrega: string | null;
+  /** Las fases que salen a un servicio, ya escritas («Costura · Afuera · Confecciones del Norte · S/ 4.50 por prenda», ADR-0400); vacío = todo en el Taller. */
+  afuera?: string[];
   /** Solo líder, modelo que existe sin precio: el aviso con su enlace a Editar producto. */
   notaSinPrecio?: ReactNode;
   /** Lo que cierra la orden. */
@@ -158,6 +161,18 @@ export function FichaOrden({
             )}
             <dt className="text-taupe">Entrega</dt>
             <dd className="text-right tabular-nums text-tinta">{entrega ?? <span className="text-taupe">sin fecha</span>}</dd>
+            {afuera.length > 0 && (
+              <>
+                <dt className="text-taupe">Afuera</dt>
+                <dd className="text-right text-tinta">
+                  {afuera.map((linea) => (
+                    <span key={linea} className="block text-[12.5px] leading-snug">
+                      {linea}
+                    </span>
+                  ))}
+                </dd>
+              </>
+            )}
           </dl>
           {notaSinPrecio && <div className="max-[979px]:hidden">{notaSinPrecio}</div>}
         </div>
