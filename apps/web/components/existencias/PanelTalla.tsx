@@ -26,7 +26,7 @@ import { celdaTarjeta, tallasSinColgar } from "@/lib/existencias-tarjeta-compact
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
-import { MS_ENTRE_TECLAS } from "@/lib/existencias-pistola";
+import { esRafaga, MS_ENTRE_TECLAS } from "@/lib/existencias-pistola";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { FOTO_PANEL_TALLA } from "@/lib/fotos-tamanos";
@@ -428,7 +428,7 @@ export function PanelTalla({
   function alTeclear(e: KeyboardEventReact<HTMLDivElement>) {
     const antes = ultimaTecla.current;
     ultimaTecla.current = e.timeStamp;
-    if (e.key.length === 1 && e.timeStamp - antes < MS_ENTRE_TECLAS) return;
+    if (esRafaga(e.key, antes, e.timeStamp)) return;
     alFlecha(e);
     if (e.defaultPrevented || flujo || vista !== "talla" || escribiendo(document.activeElement) || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === "ArrowRight" || e.key === "ArrowLeft") {

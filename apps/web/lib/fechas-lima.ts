@@ -16,6 +16,10 @@ export function hoyLima(ahora: Date = new Date()): string {
   return ahora.toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 }
 
+/** El año de hoy en Lima: el `anio` de un canje del club (uno por año calendario de Lima) y el año que Configuración ▸ Impuestos
+ *  toma por actual. El 31 de diciembre desde las 19:00 el servidor ya vive en el año siguiente; esto no. */
+export const anioLima = (ahora: Date = new Date()) => Number(hoyLima(ahora).slice(0, 4));
+
 /** El día de Lima (`aaaa-mm-dd`) de un INSTANTE: un timestamptz, que la base manda en UTC («2026-10-14T01:00:00+00:00» son las
  *  20:00 del 13 en Lima). Es `hoyLima` para cualquier momento, no solo para ahora. A un instante nunca se le cortan los 10
  *  primeros caracteres: eso da el día de UTC, y lo hecho de 7 pm a medianoche de Lima cae al día siguiente (lo vigila

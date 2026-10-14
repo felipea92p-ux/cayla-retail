@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diaLima, diaMes, diasEntreFechas, diasHastaLima, diaYHoraLima, horaLima, hoyLima, hoyLimaUTC, mesActualLima, mesLimaUTC, sumarDias } from "./fechas-lima";
+import { anioLima, diaLima, diaMes, diasEntreFechas, diasHastaLima, diaYHoraLima, horaLima, hoyLima, hoyLimaUTC, mesActualLima, mesLimaUTC, sumarDias } from "./fechas-lima";
 
 describe("hoyLima", () => {
   it("a las 19:30 de Lima todavía es el mismo día (en UTC ya es mañana)", () => {
@@ -12,6 +12,15 @@ describe("hoyLima", () => {
   it("a las 23:30 de Lima todavía es ese día", () => {
     // 2026-09-18 04:30 UTC = 2026-09-17 23:30 en Lima.
     expect(hoyLima(new Date("2026-09-18T04:30:00Z"))).toBe("2026-09-17");
+  });
+});
+
+describe("anioLima", () => {
+  it("el 31 de diciembre a las 20:00 de Lima todavía es el año que termina (en UTC ya es el siguiente)", () => {
+    expect(anioLima(new Date("2027-01-01T01:00:00Z"))).toBe(2026);
+  });
+  it("desde la medianoche de Lima ya es el año nuevo", () => {
+    expect(anioLima(new Date("2027-01-01T05:00:00Z"))).toBe(2027);
   });
 });
 

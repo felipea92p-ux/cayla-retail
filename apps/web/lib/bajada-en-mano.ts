@@ -18,13 +18,15 @@ import { diaYHoraLima } from "./fechas-lima";
 
 /** La RPC y sus parámetros en un solo lugar: `bajada-en-mano.test.ts` los fija contra la migración. */
 export const RPC_EN_MANO = "bajar_en_mano";
+/** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
 export const PARAMETROS_RPC_EN_MANO = ["p_ubicacion_id", "p_variante_id", "p_nota", "p_token"] as const;
 
 /** La nota que la base pone siempre a la corrección (la misma `c_nota` de la migración; la prueba lo vigila). */
 export const NOTA_AUTOMATICA = "La tenía en la mano al bajarla";
 /** Lo más que admite la nota de la persona (`c_max_nota`). */
 export const MAX_NOTA_EN_MANO = 200;
-/** Cuántas correcciones de una misma prenda, en una tienda y un día, pasan por aquí (`c_tope_del_dia`). */
+/** @internal Cuántas correcciones de una misma prenda, en una tienda y un día, pasan por aquí (`c_tope_del_dia`). El tope lo pone la
+ *  base; esto lo lee solo la prueba, que lo cruza con la migración. */
 export const TOPE_DEL_DIA_EN_MANO = 5;
 
 /** Los rótulos del botón principal de la ventana. */

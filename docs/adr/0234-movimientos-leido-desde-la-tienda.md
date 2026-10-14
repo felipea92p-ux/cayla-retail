@@ -85,6 +85,8 @@ fórmula (=, +, -, @) van con apóstrofo, como en Historial; las cifras quedan c
 - **Celular:** una franja con las tres cifras en vez de tres tarjetas; el primer movimiento se ve sin bajar.
 - **Candado «probado = en pantalla»** (`lib/reglas-sin-uso.test.ts`): una función de `lib/*-reglas.ts` que solo usa su
   prueba hace fallar el CI. Las 26 que ya estaban así (otros módulos) quedan en una lista que solo puede achicarse.
+  *(2026-10-14: lo reemplaza `pnpm knip:produccion`, que mira lo mismo en todo el monorepo y por imports, no por nombres.
+  Su lista pasó entera a `scripts/knip/deuda-produccion.mjs`. Ver ADR-0406, actualización (b).)*
 
 ### Lo que NO se hizo, a propósito
 
