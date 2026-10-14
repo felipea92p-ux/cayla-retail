@@ -1,4 +1,4 @@
-import { leerMonto } from "./caja-cierre-reglas";
+import { leerMontoPlata, MONTO_ILEGIBLE } from "./monto-plata-reglas";
 import { soles } from "./compras-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import type { CuentaElegible } from "./cuenta-sellada-reglas";
@@ -419,8 +419,8 @@ export function problemaDeCuenta(cuentaId: string, cuentas: readonly CuentaOpcio
 
 /** El monto escrito. `tope`, en la devolución: lo que la persona tiene en su fondo. */
 export function problemaDeMonto(textoMonto: string, tope?: number): string | null {
-  const m = leerMonto(textoMonto);
-  if (m == null) return "Escribe cuánto.";
+  const m = leerMontoPlata(textoMonto);
+  if (m == null) return textoMonto.trim() ? MONTO_ILEGIBLE : "Escribe cuánto.";
   if (m <= 0) return "El monto tiene que ser mayor que cero.";
   if (tope != null && m > tope) return `Tiene ${soles(Math.max(tope, 0))} en su fondo: no puede devolver más.`;
   return null;

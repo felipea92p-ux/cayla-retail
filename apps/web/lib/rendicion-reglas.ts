@@ -1,4 +1,4 @@
-import { leerMonto } from "./caja-cierre-reglas";
+import { leerMontoPlata } from "./monto-plata-reglas";
 import { soles } from "./compras-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import type { NoDeducible } from "./no-deducible-reglas";
@@ -211,7 +211,7 @@ export function cuentaRendicion(saldo: number, textoEfectivo: string): CuentaRen
   const caylaTeDebe = redondo(Math.max(-saldo, 0));
   const base = { deberias, caylaTeDebe, faltante: 0, sobra: 0 };
   if (textoEfectivo.trim() === "") return { ...base, efectivo: null, estado: "sin_escribir" };
-  const efectivo = leerMonto(textoEfectivo);
+  const efectivo = leerMontoPlata(textoEfectivo);
   if (efectivo == null || efectivo < 0) return { ...base, efectivo: null, estado: "invalido" };
   const dif = redondo(deberias - efectivo);
   if (Math.abs(dif) <= CENTAVO) return { ...base, efectivo, estado: "cuadra" };
@@ -228,7 +228,7 @@ export function fraseCuenta(c: CuentaRendicion): string | null {
     case "sobra":
       return `Tienes ${soles(c.sobra)} más de lo que dice tu fondo: falta anotar algo (o un gasto quedó dos veces). Revísalo antes de rendir.`;
     case "invalido":
-      return "Escribe un monto válido (0 si no te queda nada).";
+      return "No se entiende el monto: escríbelo así, 375.50 o 375,50 (0 si no te queda nada).";
     default:
       return null;
   }

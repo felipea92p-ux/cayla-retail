@@ -1,4 +1,4 @@
-import { leerMonto } from "./caja-cierre-reglas";
+import { leerMontoPlata, MONTO_ILEGIBLE } from "./monto-plata-reglas";
 import { soles } from "./compras-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import { campoResponsable, problemaDeCuenta, problemaDeNota, type CuentaOpcion } from "./fondos-reglas";
@@ -90,10 +90,10 @@ export function repartoDelPago(monto: number, deudas: readonly DeudaFondo[]): { 
   return reparto;
 }
 
-/** El monto escrito contra lo que debe (`leerMonto` ya lo deja en céntimos, como lo recibe la base). */
+/** El monto escrito contra lo que debe (`leerMontoPlata`: con la coma decimal y en céntimos, como lo recibe la base). */
 export function problemaDeMontoDeuda(textoMonto: string, debe: number): string | null {
-  const m = leerMonto(textoMonto);
-  if (m == null) return "Escribe cuánto pagó.";
+  const m = leerMontoPlata(textoMonto);
+  if (m == null) return textoMonto.trim() ? MONTO_ILEGIBLE : "Escribe cuánto pagó.";
   if (m <= 0) return "El monto tiene que ser mayor que cero.";
   if (m > debe + 0.005) return `Debe ${soles(debe)}: no puede pagar más.`;
   return null;

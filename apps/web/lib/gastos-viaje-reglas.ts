@@ -1,4 +1,4 @@
-import { leerMonto } from "./caja-cierre-reglas";
+import { leerMontoPlata, MONTO_ILEGIBLE } from "./monto-plata-reglas";
 import { soles } from "./compras-reglas";
 import { igvDeFactura } from "./gastos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
@@ -217,8 +217,8 @@ export function problemaDeConcepto(v: ValoresGastoViaje): string | null {
   return v.concepto && CONCEPTOS_DE[v.tipo].some((c) => c.valor === v.concepto) ? null : "Elige qué se pagó.";
 }
 export function problemaDeMontoGasto(textoMonto: string): string | null {
-  const m = leerMonto(textoMonto);
-  if (m == null) return "Escribe cuánto costó.";
+  const m = leerMontoPlata(textoMonto);
+  if (m == null) return textoMonto.trim() ? MONTO_ILEGIBLE : "Escribe cuánto costó.";
   if (m <= 0) return "El monto tiene que ser mayor que cero.";
   return null;
 }

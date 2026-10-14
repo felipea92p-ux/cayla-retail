@@ -16,7 +16,7 @@ import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
-import { leerMonto } from "@/lib/caja-cierre-reglas";
+import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import {
@@ -110,7 +110,7 @@ function EntregarFondoModal({ opciones, onClose, volverA }: { opciones: Opciones
   });
   const guia = useGuiaCampos(campos);
   const persona = opciones.personas.find((p) => p.id === personaId) ?? null;
-  const montoLeido = leerMonto(monto);
+  const montoLeido = leerMontoPlata(monto);
   const sinCuentas = opciones.cuentas.length === 0;
 
   const limpiar = <T,>(f: (v: T) => void) => (v: T) => {
@@ -292,7 +292,7 @@ function DevolverFondoModal({
   const nombre = primerNombre(fondo.persona);
 
   const guia = useGuiaCampos(camposDevolver({ cuentaId, monto, nota }, fondo.saldo, cuentas, { esPersona, listo: responsable.listo, motivo: responsable.motivo }));
-  const montoLeido = leerMonto(monto);
+  const montoLeido = leerMontoPlata(monto);
 
   async function confirmar() {
     if (guardando) return;
@@ -609,7 +609,7 @@ function PagarDeudaFondoModal({
   const nombre = primerNombre(deuda.persona);
 
   const guia = useGuiaCampos(camposPagarDeuda({ cuentaId, monto, nota }, deuda.debe, cuentas, { esPersona, listo: responsable.listo, motivo: responsable.motivo }));
-  const montoLeido = leerMonto(monto);
+  const montoLeido = leerMontoPlata(monto);
   // Con varias deudas, cuánto paga de cada una (la más vieja primero, como la base).
   const reparto = deuda.deudas.length > 1 && montoLeido != null && montoLeido > 0 && montoLeido <= deuda.debe + 0.005 ? repartoDelPago(montoLeido, deuda.deudas) : [];
 
