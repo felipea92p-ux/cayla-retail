@@ -1632,6 +1632,16 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
 `createClient({ firma: firmaDeEncabezados(request.headers) })`. `/api/lucode/emitir` valida al responsable con
 `fn_actor_persona_id` **antes** de llamar a Lucode, para no transmitir a SUNAT algo que la base rechazaría.
 
+### 3.y La tienda online (`apps/tienda`, ADR-0408)
+
+Una app aparte del ERP, para los clientes, con su propio dominio y su propio inicio de sesión. No importa nada de
+`apps/web` ni usa sus llaves: habla con la base **solo** por funciones `retail.tienda_*`, con un usuario que hereda el rol
+`tienda_web` (sin permiso sobre ninguna tabla). Todo pasa por `apps/tienda/lib/base.ts`; lo vigila `lib/candados.test.ts`
+y, en la base, `pnpm pruebas:tienda-puerta`.
+
+- `/` (portada sin cuenta) → `lib/base.ts` `leerPortada()` → `retail.tienda_portada()`: la campaña vigente que termina
+  primero. Si la base no responde, la portada sale sin campaña.
+
 ---
 
 ## 4. Modelo de datos (schema `retail`)

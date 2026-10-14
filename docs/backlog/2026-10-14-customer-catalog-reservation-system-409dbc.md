@@ -16,7 +16,7 @@ Maqueta: `docs/maquetas/tienda-online-2026-10/` (`index.html` + `README.md`, con
 
 ### Plan de construcción (una actividad = un corte vertical demostrable, un commit; estimado en sesiones)
 
-1. **La tienda existe y se publica sola** — `apps/tienda` con la marca de la maqueta y su portada, que lee la campaña vigente por la
+1. ✅ **La tienda existe y se publica sola** (hecha 2026-10-14; ver abajo) — `apps/tienda` con la marca de la maqueta y su portada, que lee la campaña vigente por la
    puerta angosta (rol `tienda_web` + `tienda_portada`); CI, ganchos y candados extendidos a la app nueva. Demostrable: la portada en
    local con la campaña de la base; CI verde. (1)
 2. **Crear cuenta, entrar, olvidé mi contraseña y salir** — proyecto de clientes en local, `cuentas_web` + `tienda_registrar_cuenta`
@@ -52,6 +52,20 @@ Maqueta: `docs/maquetas/tienda-online-2026-10/` (`index.html` + `README.md`, con
 
 Total ≈ 14 sesiones. Las pantallas del ERP cumplen las reglas del repo (guía de foco, guía interactiva, `/chaos`, modo oscuro, piezas
 únicas); la tienda tiene sus propias pruebas.
+
+### Lo que dejó la actividad 1
+
+- [ ] **No está en producción:** `20261014220000_tienda_puerta_y_portada.sql` (rol `tienda_web` + `retail.tienda_portada()`), aplicada solo
+  en local. Se pega en la actividad 13, con el OK de Felipe, junto con el usuario con contraseña que hereda `tienda_web`.
+- [ ] **Páginas de la portada que aún no existen** (hoy abren «Esta página no está»): Entrar, Crear mi cuenta, Olvidé mi contraseña,
+  Privacidad y Términos del club van en la **actividad 2** (crear la cuenta pide aceptar los términos); Cómo separar y Cambios y
+  devoluciones, en la **5**; Nuestras tiendas (y la sección de la portada, con el nombre web de cada sede), en la **6**.
+- [ ] **Actividad 13, Vercel:** la tienda tendrá su propio proyecto, con su «Ignored Build Step»; el del ERP
+  (`scripts/ci/vercel-ignorar.mjs`) hoy reconstruye el ERP en producción aunque la fusión solo toque `apps/tienda`. No rompe nada.
+- [ ] **Dirección web (decisión de Felipe, conversada el 2026-10-14):** `cayla.pe` y `www.cayla.pe` abren hoy la tienda de Shopify, y
+  `www.cayla.pe` sale impresa en las boletas. Recomendado: el piloto en `tienda.cayla.pe` sin tocar Shopify, y `cayla.pe` pasa a la tienda
+  nueva cuando el piloto salga bien (ese día se decide qué hacer con Shopify). El ERP puede seguir en `cayla-retail.vercel.app` o pasar a
+  `erp.cayla.pe`: son proyectos separados. Antes de cambiar `cayla.pe` se le pregunta a Felipe.
 
 ### Pendientes que no son de construcción
 

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { clasificar, clasificarPush, compilaLaWeb, vieneDeUnPr } from "./alcance.mjs";
+import { clasificar, clasificarPush, compilaLaTienda, compilaLaWeb, vieneDeUnPr } from "./alcance.mjs";
 import { leeLaWeb, pruebasQueLeenLaWeb } from "./pruebas-web.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -154,4 +154,34 @@ test("ci.yml: `Compila la web` espera a «Qué toca el PR», corre `next build` 
   // `!= 'no'` y no `== 'si'`: si `alcance` falla su salida llega vacía y el job corre; nunca se salta por no saber.
   assert.match(job, /needs\.alcance\.outputs\.compilar != 'no'/);
   assert.match(job, /next build/);
+});
+
+test("compilar la tienda: la tienda y lo que comparten las dos apps; el ERP, documentos, migraciones y scripts no", () => {
+  for (const archivo of [
+    "apps/tienda/app/page.tsx",
+    "apps/tienda/package.json",
+    "packages/shared/src/index.ts",
+    "package.json",
+    "pnpm-lock.yaml",
+    ".nvmrc",
+    ".github/workflows/ci.yml",
+  ]) {
+    assert.equal(compilaLaTienda(["docs/a.md", archivo]), true, archivo);
+  }
+  for (const archivo of ["apps/web/lib/a.ts", "docs/adr/0408-x.md", "supabase/migrations/20261014220000_x.sql", "scripts/pruebas/x.mjs"]) {
+    assert.equal(compilaLaTienda([archivo]), false, archivo);
+  }
+  // La tienda no compila el ERP, pero su puerta son funciones de la base: Postgres corre entero.
+  assert.equal(compilaLaWeb(["apps/tienda/app/page.tsx"]), false);
+  assert.equal(clasificar(["apps/tienda/lib/base.ts"]), "completo");
+});
+
+test("ci.yml: `Compila la tienda` espera a «Qué toca el PR», compila apps/tienda y solo se salta con `compilar_tienda == 'no'`", () => {
+  const ci = readFileSync(join(RAIZ, ".github", "workflows", "ci.yml"), "utf8");
+  assert.match(ci, /compilar_tienda: \$\{\{ steps\.medir\.outputs\.compilar_tienda \}\}/);
+  const job = ci.slice(ci.indexOf("  compilar-tienda:"));
+  assert.ok(job.includes("name: Compila la tienda"), "falta el job «Compila la tienda»");
+  assert.match(job, /needs: alcance/);
+  assert.match(job, /needs\.alcance\.outputs\.compilar_tienda != 'no'/);
+  assert.match(job, /pnpm --filter tienda build/);
 });

@@ -169,6 +169,11 @@ export const PRUEBAS = [
   // dos veces. ROLLBACK.
   "pruebas:campana-redondeo",
 
+  // La puerta de la tienda online (ADR-0408): el rol `tienda_web` no toca ninguna tabla y solo ejecuta `retail.tienda_*`
+  // (nada más que anon), cada una security definer y cerrada a public, anon y authenticated; y la portada elige bien la
+  // campaña vigente. ROLLBACK.
+  "pruebas:tienda-puerta",
+
   // Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
   // La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.
   "pruebas:redondeo-efectivo",
