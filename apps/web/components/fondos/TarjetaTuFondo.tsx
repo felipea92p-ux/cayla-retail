@@ -9,8 +9,9 @@ import { diaMes, diaYHoraLima } from "@/lib/fechas-lima";
  * 200 letras y estiraba toda la fila de cifras; entero, en el `title`). Si pagó de su bolsillo, el número es lo que CAYLA le debe, en
  * ámbar (se salda al rendir), nunca un número negativo. Lo que dice vive en `caraTuFondo` (con su prueba).
  *
- * `href` solo en el Inicio: lleva a donde se compra. En Órdenes de compra informa y lleva su `accion` (actividad 5: «Rendir» o «Ver tu
- * rendición», `TuFondoEnOrdenes`). Una deuda por un faltante (decisión 54) va a la vista, en ámbar, bajo el contexto.
+ * Lleva su `accion` («Rendir» o «Ver tu rendición», actividad 5) en Órdenes de compra y, desde /formidable (2026-10-14), también en el
+ * Inicio: la arma `TuFondoConRendir`. `href` solo en el Inicio y solo cuando no hay nada que rendir: lleva a donde se compra. Una deuda
+ * por un faltante (decisión 54) va a la vista, en ámbar, bajo el contexto.
  */
 export function TarjetaTuFondo({
   fondo,

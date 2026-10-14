@@ -39,7 +39,7 @@ import { Etiqueta } from "@/components/inicio/TarjetasInicio";
 import { EsqueletoPiso, PisoDelInicio } from "@/components/inicio/PisoDelInicio";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/inicio/MiMeta";
-import { TarjetaTuFondo } from "@/components/fondos/TarjetaTuFondo";
+import { TuFondoConRendir } from "@/components/fondos/TuFondoConRendir";
 import { getResumenMiFondo } from "@/lib/fondos";
 import { hrefTuFondo, mostrarTuFondo } from "@/lib/fondos-reglas";
 
@@ -181,7 +181,7 @@ export default async function InicioPage() {
           datos={datosAlmacen}
           visibles={visibles}
           ajustar={ajustar}
-          tuFondo={tuFondo ? <TarjetaTuFondo fondo={tuFondo} href={hrefFondo} guia="inicio.tu-fondo" /> : null}
+          tuFondo={tuFondo ? <TuFondoConRendir fondo={tuFondo} href={hrefFondo} guia="inicio.tu-fondo" /> : null}
           accesos={accesosAlmacen(modulos)}
           veRecibir={ve("recibir")}
           puedeEditarCatalogo={puedeEditarCatalogo}
@@ -226,7 +226,7 @@ export default async function InicioPage() {
           {tuFondo && (
             // En la misma grilla que las cifras de «Tu día»: una cifra más, no una franja a todo el ancho.
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <TarjetaTuFondo fondo={tuFondo} href={hrefFondo} guia="inicio.tu-fondo" className="col-span-2 sm:col-span-1" />
+              <TuFondoConRendir fondo={tuFondo} href={hrefFondo} guia="inicio.tu-fondo" className="col-span-2 sm:col-span-1" />
             </div>
           )}
           <TeToca visibles={visibles} ajustar={ajustar} />

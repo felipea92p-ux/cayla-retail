@@ -319,7 +319,7 @@ export const GUIA_INICIO: Guia = {
       ancla: "inicio.tu-fondo",
       opcional: true,
       titulo: "Tu fondo",
-      texto: "Si CAYLA te entregó plata para comprar, aquí ves cuánto te queda, cuánto gastaste y para qué era; si pagaste de tu bolsillo, cuánto te debe CAYLA. Al tocarla vas a donde compras. Solo la ves tú.",
+      texto: "Si CAYLA te entregó plata para comprar, aquí ves cuánto te queda y cuánto gastaste; si pagaste de tu bolsillo, cuánto te debe CAYLA. «Rendir» abre tu rendición: cuentas tu efectivo y otra persona la revisa. Si no hay nada que rendir, al tocarla vas a donde compras. Solo la ves tú.",
     },
     {
       id: "vender",

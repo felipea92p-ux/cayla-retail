@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { faltanDe, sePuedeConfirmar } from "./guia-campos";
 import {
+  accionTuFondo,
   camposDevolver,
   camposEntregar,
   caraTuFondo,
@@ -209,6 +210,18 @@ describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Ini
     );
     // Una deuda por faltante: a la vista.
     expect(cara({ saldo: 100, entregado: 0, rendicion: { ...R, arrastre: 100, deuda: 20 } }).aviso).toBe("Debes S/ 20.00 de un faltante de tu rendición");
+  });
+
+  // /formidable 2026-10-14: la misma acción en Órdenes de compra y en el Inicio (sin el módulo, el Inicio era el único lugar del fondo).
+  it("la acción de la tarjeta: «Rendir» con algo nuevo, «Ver tu rendición» mientras espera y nada si no hay qué rendir", () => {
+    const R = { arrastre: 0, items: 0, sinFoto: 0, abierta: null, deuda: 0 };
+    expect(accionTuFondo(cara({ saldo: 320, entregado: 300, rendicion: { ...R, arrastre: 120, items: 2 } }))).toBe("Rendir");
+    expect(accionTuFondo(cara({ saldo: 120, rendicion: { ...R, items: 1, abierta: { id: "r1", en: "2026-10-13T22:00:00Z", faltante: 0 } } }))).toBe(
+      "Ver tu rendición",
+    );
+    expect(accionTuFondo(cara({ saldo: 120, entregado: 0, rendicion: { ...R, arrastre: 120 } }))).toBeNull();
+    // Sin la lectura de la rendición (la base todavía no la tiene), sin acción: la tarjeta sale igual.
+    expect(accionTuFondo(cara({ saldo: 200, entregado: 200, rendicion: null }))).toBeNull();
   });
 
   it("sale también con una rendición por aprobar o una deuda; rendida y en cero sin nada nuevo, no", () => {

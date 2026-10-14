@@ -33,7 +33,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { BotonEnlace } from "@/components/ui/campos";
 import { GastoDelViaje } from "@/components/ordenes-compra/GastoDelViaje";
-import { TuFondoEnOrdenes } from "@/components/fondos/TuFondoEnOrdenes";
+import { TuFondoConRendir } from "@/components/fondos/TuFondoConRendir";
 import { getResumenMiFondo } from "@/lib/fondos";
 import { mostrarTuFondo } from "@/lib/fondos-reglas";
 import { PaginacionCursor } from "@/components/Paginacion";
@@ -54,7 +54,7 @@ import { BuscadorOrdenes } from "@/components/ordenes-compra/BuscadorOrdenes";
 //
 // «Tu fondo» (fase 6 · actividad 4) es una cifra más, solo para quien tiene un fondo: lo que le queda de la plata que CAYLA le entregó
 // para comprar. No cambia con los filtros; baja sola al pagar desde «Mi fondo» o anotar un gasto del viaje (las dos hojas refrescan).
-// Desde la actividad 5 lleva «Rendir» (o «Ver tu rendición»), que abre la hoja de la rendición (`TuFondoEnOrdenes`).
+// Desde la actividad 5 lleva «Rendir» (o «Ver tu rendición»), que abre la hoja de la rendición (`TuFondoConRendir`).
 //
 // «Por enviar» (fase 3) es una píldora más, al final: las órdenes generadas que todavía tienen algo por enviar a una sede, en TODAS las
 // sedes (la cifra cuenta todas, así que elegir una sede o un estado la apaga). La base no filtra por eso: `listarOrdenesCompra` cruza la lista
@@ -138,7 +138,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
           {/* Sin órdenes todavía, el fondo igual se usa: un gasto del viaje no necesita orden. */}
           {tuFondo && (
             <div className="@container grid grid-cols-2 gap-3 @min-[40rem]:grid-cols-3">
-              <TuFondoEnOrdenes fondo={tuFondo} guia="ordenes.tu-fondo" className="col-span-2 @min-[40rem]:col-span-1" />
+              <TuFondoConRendir fondo={tuFondo} guia="ordenes.tu-fondo" className="col-span-2 @min-[40rem]:col-span-1" />
             </div>
           )}
           <div className="card-cayla">
@@ -172,7 +172,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
                     donde={["se reparte desde Lima", "se reparten desde Lima"]}
                   />
                 )}
-                {tuFondo && <TuFondoEnOrdenes fondo={tuFondo} guia="ordenes.tu-fondo" className={resumen ? "" : "col-span-2"} />}
+                {tuFondo && <TuFondoConRendir fondo={tuFondo} guia="ordenes.tu-fondo" className={resumen ? "" : "col-span-2"} />}
               </div>
             </div>
           )}

@@ -318,7 +318,17 @@ export function caraTuFondo(r: ResumenMiFondo, fecha: (iso: string) => string, i
   };
 }
 
-/** A dónde lleva la tarjeta del Inicio: a donde se compra y se paga desde el fondo, si la persona ve esa pantalla. */
+/**
+ * Lo que se hace desde la tarjeta «Tu fondo», en Órdenes de compra y en el Inicio (Felipe 2026-10-14, /formidable): rendir lo nuevo, o
+ * ver la rendición que espera aprobación. Rendir no pide módulo (`rendir_fondo`, decisión 34: toda persona puede tener un fondo), así que
+ * vive en la tarjeta: sin el módulo de Órdenes de compra, el Inicio era el único lugar donde la persona veía su fondo y no podía rendirlo.
+ */
+export function accionTuFondo(c: Pick<CaraTuFondo, "puedeRendir" | "rendicionAbierta">): "Rendir" | "Ver tu rendición" | null {
+  if (c.rendicionAbierta) return "Ver tu rendición";
+  return c.puedeRendir ? "Rendir" : null;
+}
+
+/** A dónde lleva la tarjeta del Inicio cuando no hay nada que rendir: a donde se compra y se paga desde el fondo, si la persona ve esa pantalla. */
 export function hrefTuFondo(ve: (modulo: "ordenes_compra" | "por_pagar") => boolean): string | undefined {
   if (ve("ordenes_compra")) return "/compras/ordenes";
   if (ve("por_pagar")) return "/compras/por-pagar";
