@@ -16,7 +16,7 @@ import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sella
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { hoyLima } from "@/lib/fechas-lima";
+import { diaLima } from "@/lib/fechas-lima";
 import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
@@ -108,7 +108,7 @@ export function RegistrarGastoModal({
     ubicacion: egreso?.ubicacionId ?? (esActivo && ubicacionInicial === "empresa" ? (ubicaciones[0]?.id ?? "") : ubicacionInicial),
     categoria: "",
     descripcion: egreso?.nota ?? "",
-    fecha: egreso ? hoyLima(new Date(egreso.creadoEn)) : hoy,
+    fecha: egreso ? (diaLima(egreso.creadoEn) ?? "") : hoy,
     monto: egreso ? String(egreso.monto) : "",
     // Lo más común (la luz, el alquiler, el contador) llega con factura; lo que sale del cajón, casi nunca.
     comprobante: egreso ? "sin_comprobante" : "factura",
@@ -365,11 +365,11 @@ export function RegistrarGastoModal({
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setNuevoProveedor(null)}>
+                    Cancelar
+                  </button>
                   <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>
                     Sumar proveedor
-                  </button>
-                  <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setNuevoProveedor(null)}>
-                    Cancelar
                   </button>
                   <span className="text-[12px]">Queda en el directorio; sus cuentas se completan en Compras ▸ Proveedores.</span>
                 </div>

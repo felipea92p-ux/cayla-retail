@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import type { OrdenProduccion } from "@/lib/produccion";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import type { ConsumoDeOrden } from "@/lib/insumos";
@@ -66,11 +66,11 @@ export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: Ord
           <input id="anular-motivo" type="text" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por qué se cancela la corrida" className={campoTexto} />
         </div>
         <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onClose} className={botonCancelar}>
+        <div className="pie-acciones pt-1">
+          <button type="button" onClick={onClose} className="btn-cayla btn-secundario">
             Volver
           </button>
-          <button type="submit" disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
+          <button type="submit" disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
             {cargando ? "Anulando…" : "Anular orden"}
           </button>
         </div>
@@ -111,11 +111,11 @@ export function RevertirOrdenModal({ orden, onClose }: { orden: OrdenProduccion;
             : "La muestra vuelve a \"en proceso\". No había stock que devolver."}
         </p>
         <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onClose} className={botonCancelar}>
+        <div className="pie-acciones pt-1">
+          <button type="button" onClick={onClose} className="btn-cayla btn-secundario">
             Volver
           </button>
-          <button type="button" onClick={confirmar} disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
+          <button type="button" onClick={confirmar} disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
             {cargando ? "Revirtiendo…" : "Revertir"}
           </button>
         </div>

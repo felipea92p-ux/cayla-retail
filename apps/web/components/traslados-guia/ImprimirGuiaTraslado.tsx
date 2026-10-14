@@ -2,7 +2,6 @@
 
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Printer } from "lucide-react";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { HojaGuia } from "@/components/traslados-guia/HojaGuia";
 import {
@@ -14,6 +13,7 @@ import {
   type FormatoGuia,
   type GuiaTraslado,
 } from "@/lib/traslados-guia-reglas";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 const sinSuscripcion = () => () => {};
 const formatoGuardado = (): FormatoGuia => {
@@ -54,9 +54,9 @@ export function ImprimirGuiaTraslado({ guia, sede, volver }: { guia: GuiaTraslad
         subtitulo="Pégala en la caja: quien la recibe escanea el QR y cuenta ahí mismo."
         volver={volver}
         acciones={
-          <button type="button" className="btn-cayla btn-primario" onClick={() => window.print()} disabled={!urlQr}>
-            <Printer aria-hidden strokeWidth={1.7} className="h-4 w-4" /> {textoImprimirGuia(formato)}
-          </button>
+          <BotonImprimir peso="primario" onClick={() => window.print()} disabled={!urlQr}>
+            {textoImprimirGuia(formato)}
+          </BotonImprimir>
         }
       />
 

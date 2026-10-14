@@ -360,7 +360,7 @@ export function HojaPrenda({
           )}
 
           <PieGuia guia={guia} listo={nueva ? "Todo listo para crear la prenda." : "Todo listo para sumarlas."} />
-          <div className="flex flex-col-reverse gap-2.5 pt-1 sm:flex-row sm:justify-end">
+          <div className="pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>

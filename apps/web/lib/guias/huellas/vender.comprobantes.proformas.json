@@ -2,7 +2,7 @@
   "guia": "vender.comprobantes.proformas",
   "ruta": "/vender/comprobantes/proformas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 31,
+  "total": 30,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -40,8 +40,7 @@
       "a «{`Enviar por WhatsApp ${numeroDeProforma(p.numero)}»",
       "BotonCompacto «{`${p.vencida ? \"Renovar\" : \"Duplicar\"}»",
       "Link «{`Apartar ${numeroDeProforma(p.numero)}»",
-      "Link «{`Cobrar ${numeroDeProforma(p.numero)}»",
-      "Boton «Imprimir o guardar en PDF»"
+      "Link «{`Cobrar ${numeroDeProforma(p.numero)}»"
     ],
     "components/SelectorMesFacturacion.tsx": [
       "Link «comprobantes.mes-anterior»",

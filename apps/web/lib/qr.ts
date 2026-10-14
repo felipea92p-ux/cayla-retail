@@ -55,11 +55,3 @@ export function puntosPorModuloQR(
   const total = modulosDeLado + ZONA_MUDA_MODULOS * 2;
   return ladoMm / total / (25.4 / dpi);
 }
-
-/**
- * Módulos de lado de un QR (sin zona muda), según su versión.
- * Versión 1 = 21, y cada versión suma 4.
- */
-export function modulosDeVersion(version: number): number {
-  return 17 + version * 4;
-}

@@ -77,7 +77,7 @@ export function PlanCategoriaModal({
               if (!(seguir && siguiente !== null)) cerrar();
             }}
             pie={({ guardando, puedeGuardar, motivo, claseConfirmar }) => (
-              <div className="flex flex-wrap justify-end gap-3 pt-2">
+              <div className="pie-acciones pt-2">
                 <Boton type="button" onClick={() => salida.pedirAccion(cerrar)}>
                   Cancelar
                 </Boton>

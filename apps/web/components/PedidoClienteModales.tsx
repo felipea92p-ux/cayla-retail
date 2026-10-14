@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, MessageCircle } from "lucide-react";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
@@ -65,11 +65,11 @@ export function SubirPedidoAlAlmacenModal({ pedido, ubicacion, onClose }: { pedi
           <p className="card-cayla p-4 text-sm text-tinta">{prenda}</p>
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">{textoSubirAlAlmacen(pedido.reservaEn, pedido.otraSede)}</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar} disabled={enviando}>
+          <div className="pie-acciones">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={enviando}>
               Mejor no
             </button>
-            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => subir(cerrar)} className={botonPrimario}>
+            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => subir(cerrar)} className="btn-cayla btn-primario">
               {enviando ? "Guardando…" : "Ya la subí al almacén"}
             </button>
           </div>
@@ -132,8 +132,8 @@ export function AvisarAlClienteModal({
             <p className="text-xs text-tinta/70">No dejó celular: avísale como acordaron (llamada o en persona) y deja constancia aquí.</p>
           )}
           {estado !== "hecho" && !responsable.listo && <ComboResponsable control={responsable} />}
-          <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>
+          <div className="pie-acciones">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
               {estado === "hecho" ? "Listo" : "Ahora no"}
             </button>
             {estado !== "hecho" && !enlace && (
@@ -228,11 +228,11 @@ export function SigueEnPieModal({
           <p className="card-cayla p-4 text-sm text-tinta">{pedido.lineas.map(etiquetaLinea).join(", ")}</p>
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">{explicacion}</p>
           {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={guardando !== null} />}
-          <div className="flex gap-2">
+          <div className="pie-acciones">
             <button
               type="button"
               onClick={() => responder(false, cerrar)}
-              className={botonCancelar}
+              className="btn-cayla btn-secundario"
               disabled={guardando !== null || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >
@@ -241,7 +241,7 @@ export function SigueEnPieModal({
             <button
               type="button"
               onClick={() => responder(true, cerrar)}
-              className={botonPrimario}
+              className="btn-cayla btn-primario"
               disabled={guardando !== null || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >

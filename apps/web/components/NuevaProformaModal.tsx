@@ -322,14 +322,14 @@ export function NuevaProformaModal({
 
           <ComboResponsable control={responsable} deshabilitado={loading} />
 
-          <div data-guia="proformas.modal-crear" className="flex gap-2 pt-1">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div data-guia="proformas.modal-crear" className="pie-acciones pt-1">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={loading}
               disabled={filas.length === 0 || !responsable.listo}
               title={responsable.motivo ?? undefined}

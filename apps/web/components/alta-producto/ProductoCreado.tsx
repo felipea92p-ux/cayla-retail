@@ -11,6 +11,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { hrefOrdenDesdeAlta, textoAbrirOrden, tipoDeParametro, vieneDeProduccion } from "@/lib/modelo-nuevo-orden-reglas";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 export type { SubidaSinConexion };
 
@@ -249,9 +250,9 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
                 Se abren en otra pestaña: esta pantalla te espera para las fotos o para crear otro parecido.
               </p>
             </div>
-            <Link href={etiquetas.href} target="_blank" rel="noopener" className="btn-cayla btn-secundario">
+            <BotonImprimir href={etiquetas.href} nuevaPestana peso="primario">
               Imprimir etiquetas
-            </Link>
+            </BotonImprimir>
           </div>
         )}
 

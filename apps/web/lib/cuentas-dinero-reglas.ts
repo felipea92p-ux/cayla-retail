@@ -1,5 +1,5 @@
 import { fechaCorta, parsearMonto, type Resultado } from "./gastos-reglas";
-import { diaYHoraLima, diasEntreFechas, hoyLima } from "./fechas-lima";
+import { diaLima, diasEntreFechas } from "./fechas-lima";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3, 20260925110000): lógica pura, sin servidor ni navegador. La leen las páginas
 // (servidor) y los paneles (cliente). Los saldos NO se calculan aquí: los suma la base (`fn_cuentas_dinero_saldos`); aquí
@@ -229,9 +229,9 @@ export function leerEgresoParaMovimiento(e: Fila): EgresoParaMovimiento {
  *  caracteres daba el día de UTC: lo registrado de 7 pm a medianoche de Lima salía con fecha de mañana. Sin instante, o con
  *  uno que no se puede leer, empieza por el monto: no se inventa cuándo. */
 export function textoSalida(e: EgresoParaMovimiento): string {
-  const t = Date.parse(e.creadoEn);
+  const dia = diaLima(e.creadoEn);
   const cuerpo = `${soles2(e.monto)} · ${e.motivo}${e.nota ? ` — ${e.nota}` : ""}${e.marca ? " (marcado «no es gasto»)" : ""}`;
-  return Number.isNaN(t) ? cuerpo : `${fechaCorta(hoyLima(new Date(t)))} · ${cuerpo}`;
+  return dia ? `${fechaCorta(dia)} · ${cuerpo}` : cuerpo;
 }
 
 export type ConciliacionCuenta = {
@@ -564,9 +564,4 @@ export function diaYNumero(iso: string): string {
   const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
   const lima = new Date(Date.parse(iso) - 5 * 3_600_000);
   return `${dias[lima.getUTCDay()]} ${lima.getUTCDate()}`;
-}
-
-/** «09:02» en hora de Lima. */
-export function horaLima(iso: string): string {
-  return diaYHoraLima(iso).hora;
 }

@@ -289,7 +289,7 @@ RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la li
 `fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`); si no, el loader bloqueará la pantalla mientras se busca
 o se escribe. **Un buscador que filtra por URL (`?q=`) navega con `buscar(href)` de `useBusquedaEnUrl`
 (`components/ui/BusquedaEnUrl.tsx`), nunca con `router.push` suelto:** lo tipeado no abre el loader; el campo dice «Buscando…»
-(`SenalBuscando`) y la lista marcada con `data-resultados` se atenúa (Felipe 2026-09-28). Un filtro por clic sigue con el loader.
+(`<Buscador buscando>`) y la lista marcada con `data-resultados` se atenúa (Felipe 2026-09-28). Un filtro por clic sigue con el loader.
 Análisis (v4, ADR-0357) busca en el navegador, sin URL: lo tipeado filtra las prendas ya leídas, sin loader.
 Tiempos, alternativas y verificación: `docs/adr/0149-loader-general-a-pantalla-completa.md`.
 
@@ -390,7 +390,7 @@ Lo que se exige (el mínimo; en Nuevo producto y Editar producto está hecho y e
    al completarlo la luz pasa al siguiente. Se hace con `useGuiaCampos` + `<CampoGuiado>` alrededor de cada bloque + `<PieGuia>` sobre
    el botón principal (`components/guia-de-foco/`; lógica en `lib/guia-campos.ts`; piloto: `components/NuevaClientaModal.tsx`). Una regla
    de grupo («basta uno de tres datos») es UN campo virtual que envuelve a los tres. **La guía no cambia qué se puede confirmar.**
-2. **«Falta: …» tocable** al pie del paso (`FaltanDelPaso`), o «Para completar esta ficha» (`TiraFicha`) en una ficha que se edita:
+2. **«Falta: …» tocable** al pie del paso (`FaltanDelPaso`), o «Lo que falta» en el panel derecho de una ficha que se edita (Editar producto):
    cada cosa **lleva al campo** (lo deja a la vista, lo destella una vez y, si es de texto, le pone el cursor). Los campos se
    encuentran por `data-campo` con `irAlIdCampo` / `useGuiaAlta` (`alta-producto/useGuiaAlta.ts`), **nunca por clases de estilo**.
 3. **«Siguiente: …» tocable** en el resumen o la barra fija (`FichaPrevia`); en celular, la barra de abajo.
@@ -520,6 +520,9 @@ dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y
 | Descargar un archivo (`accion.exportar`) | `<BotonDescargar href \| onClick cargando chico>` (`components/ui/BotonDescargar.tsx`): «Descargar» + qué («Descargar Excel», «Descargar el mes»), el secundario con el ícono de descarga que baja 2 px al pasar el mouse y el hilo mientras se arma el archivo; con `href`, `<a download>` (sin loader). Nunca «Exportar» ni solo un ícono | 2026-10-13 |
 | Abrir los filtros (`accion.filtrar`) | `<BotonFiltros abierto activos soloIcono>` (`components/ui/FiltrosPildora.tsx`): una píldora más («Filtros» en letra normal; abierta, borde tinta y la flecha roja), cuántos hay puestos en el globito de los títulos; `soloIcono`: en el celular, el ícono con su punto. Nunca un botón de filtros a mano ni «Filtros · 2» escrito | 2026-10-13 |
 | Ver en otra pantalla (`accion.ver`) | `<BotonVer href alNavegar \| onClick chico>` (`components/ui/BotonDescargar.tsx`): el secundario con la flecha que avanza 4 px. Nunca negro ni con «→» escrito; en una frase, el enlace; junto a un resumen, `<EnlaceVer>`; la acción de un vacío sigue negra | 2026-10-13 |
+| Cancelar y el pie de una hoja (`accion.cancelar`) | La clase `pie-acciones` (o `<PieAcciones izquierda>`, `components/ui/PieAcciones.tsx`): «Cancelar» es `<Boton peso="fantasma">` (o `btn-cayla btn-secundario`) a su medida, ANTES del botón que guarda, los dos a la derecha; lo que borra va solo a la izquierda (`izquierda` o `mr-auto`); en el celular, mitades. Combina con `pie-hoja-fijo`. Nunca un «Cancelar» a media fila en escritorio, sutil, en versalitas ni después de «Guardar» | 2026-10-14 |
+| Limpiar los filtros (`accion.limpiar`) | `<FiltroPuesto onQuitar etiqueta>` (cada filtro puesto: la píldora de los vacíos, tinta con su ✕) y `<BotonLimpiar>` («Limpiar todo» o «Limpiar filtros»: una píldora punteada con el embudo tachado), `components/ui/FiltrosPuestos.tsx`. En la hoja de filtros del celular, «Limpiar» es el secundario; en el calendario o dentro de una frase, `btn-enlace`. Nunca «Quitar filtros» ni versalitas a mano | 2026-10-14 |
+| Imprimir (`accion.imprimir`) | `<BotonImprimir href \| onClick peso chico>` (`components/ui/BotonImprimir.tsx`): la impresora a la izquierda y «Imprimir» + qué («Imprimir ticket», «Imprimir la orden»); `peso="primario"` solo si imprimir ES el paso de esa pantalla; «o guardar en PDF» va en la frase de al lado o en su `title`. Nunca un `<Printer>` a mano ni «Imprimir o guardar PDF» | 2026-10-14 |
 
 ## Guías interactivas: una demo por pantalla, siempre al día (regla — ADR-0389, Felipe 2026-10-07)
 
@@ -598,6 +601,19 @@ también en la base (ADR-0384):** la regla única es `retail.fn_categoria_admite
 (`venta_sin_precio`; la centinela de «Prenda sin registrar» queda fuera por su id), `revisar_producto_censo`, `crear_producto_con_variantes` y
 `catalogo_actualizar_producto` (`sin_precio`); en la web, `precioValido`. Toda función nueva que venda o fije un precio de catálogo la pregunta. Un parche a una de esas cinco funciones es un
 reemplazo anclado (`reemplazar_anclado`, formato que las suites de Frescura leen para deshacerlo) y se suma a sus listas `DESHACER_*`.
+
+## Código muerto: Knip en el CI (regla — ADR-0406, Felipe 2026-10-14)
+
+**El CI corre `pnpm knip` y pone el PR en rojo si hay un archivo que nadie importa, una exportación que nadie lee, una dependencia que
+nadie carga o un binario sin declarar** (en todo el monorepo, ~3 s; la configuración y el porqué de cada excepción, en `knip.ts`). Las
+pruebas cuentan como uso; una función que solo usa su prueba la vigila aparte `lib/reglas-sin-uso.test.ts` (ADR-0234). Si Knip falla:
+- **Lo que de verdad no se usa se borra** (git lo guarda). Antes de borrar una función que llama `.rpc(…)`, mira si alguien más la
+  llama: si era la única, la función de la base queda sin llamador y `pruebas:roles-cobertura` lo marca (esa limpieza lleva migración).
+- **Lo que se queda sin uso a propósito se declara, con el motivo junto al código:** una exportación con `@public` en su comentario
+  (`/** @public Sin uso hasta que … */`); un archivo entero, en `ignore` de `knip.ts`. Una pieza que nace antes que su primer uso (como
+  las de /unificar) se declara así y sale de la lista cuando la usa alguien.
+- **Un falso positivo** (un archivo que se carga por URL desde `public/`, un script que se lee como texto y se inyecta en la página, un
+  CLI que se corre a mano) va en `entry` de `knip.ts`, que es lo que es. Nunca se borra algo solo porque Knip lo diga sin entender cómo se carga.
 
 ## Vocabulario obligatorio
 

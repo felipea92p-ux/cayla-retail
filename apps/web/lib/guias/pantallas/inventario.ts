@@ -1161,7 +1161,7 @@ export const GUIA_TRASLADOS: Guia = {
       opcional: true,
       solo: "escritorio",
       titulo: "Lo que te toca",
-      texto: "El botón dice qué hacer con esta caja: contarla si te llegó, ver lo que enviaste o revisar lo que faltó. Gira el pase para mostrar las prendas (te lo giramos).",
+      texto: "El botón dice qué hacer con esta caja: contarla si te llegó, ver lo que enviaste o revisar lo que faltó o sobró. Gira el pase para mostrar las prendas (te lo giramos).",
     },
     {
       id: "pase-prendas",
@@ -1228,7 +1228,7 @@ export const GUIA_TRASLADO: Guia = {
       ancla: "pase.boton",
       opcional: true,
       titulo: "Lo que te toca",
-      texto: "El botón dice qué hacer con esta caja: contarla si te llegó, ver lo que enviaste o revisar lo que faltó. Al tocarlo, el pase gira (te lo giramos).",
+      texto: "El botón dice qué hacer con esta caja: contarla si te llegó, ver lo que enviaste o revisar lo que faltó o sobró. Al tocarlo, el pase gira (te lo giramos).",
     },
     {
       id: "reverso",
@@ -1251,6 +1251,13 @@ export const GUIA_TRASLADO: Guia = {
       opcional: true,
       titulo: "Prenda por prenda",
       texto: "Cada prenda con cuántas vinieron y cuántas contaste. Si no cuadra, se marca para que lo revises antes de terminar.",
+    },
+    {
+      id: "sobrantes",
+      ancla: "pase.sobrantes",
+      opcional: true,
+      titulo: "Llegó de más",
+      texto: "Si se contó más de lo que vino, lo de más no entra al stock ni se vende: espera aquí a que quien cierra diferencias diga qué pasó (salió de la otra sede, no se sabe de dónde, o fue un error al contar). Guardar mueve el stock: en la demo no lo tocamos.",
     },
     {
       id: "reverso-pie",

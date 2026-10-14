@@ -54,6 +54,7 @@ import { FrescuraPiso } from "./FrescuraPiso";
 import { FrescuraAguja } from "./FrescuraAguja";
 import { loQueMueveLaAguja, loQueSeLlevan, sinEstrenar } from "@/lib/frescura-aguja";
 import { conteoDeTodo, pisoDeLaTienda, pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
+import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
 // demás de su categoría, y qué hacer con lo que se queda. Maqueta aprobada: `docs/maquetas/frescura-3c-2026-09/` (colores
@@ -375,9 +376,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 </button>
               )}
               {hayFiltros(filtros) && (
-                <button type="button" className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]" onClick={() => quitarFiltros(prendaAbierta)}>
-                  Quitar filtros
-                </button>
+                <BotonLimpiar onClick={() => quitarFiltros(prendaAbierta)}>Limpiar filtros</BotonLimpiar>
               )}
               {tablero.length === 0 && <span className="ml-auto">{botonComoSeLee}</span>}
             </div>
@@ -438,14 +437,14 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                   <>
                     <b className="font-semibold text-tinta">Todavía no anotaste ninguna decisión.</b> Cuando decidas qué hacer con una prenda, la verás aquí con cómo le va.{" "}
                     <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => quitarFiltros(null)}>
-                      Quitar filtros
+                      Limpiar filtros
                     </button>
                   </>
                 ) : (
                   <>
                     Ninguna prenda con estos filtros.{" "}
                     <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => quitarFiltros(null)}>
-                      Quitar filtros
+                      Limpiar filtros
                     </button>
                   </>
                 )}

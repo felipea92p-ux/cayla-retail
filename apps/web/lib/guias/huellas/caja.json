@@ -2,7 +2,7 @@
   "guia": "caja",
   "ruta": "/caja",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 101,
+  "total": 98,
   "controles": {
     "app/(app)/caja/page.tsx": [
       "BotonEnlace «caja.historial-todas»"
@@ -57,7 +57,6 @@
       "button «{responsable.motivo ?? invalido ?? undefined}»"
     ],
     "components/CierreCajaDetalle.tsx": [
-      "button «caja-historial.ver»",
       "button «{texto}»"
     ],
     "components/CorregirPagoModal.tsx": [
@@ -70,9 +69,7 @@
     ],
     "components/DetalleVentaModal.tsx": [
       "button «Reintentar»",
-      "Boton «Corregir pago»",
-      "button «Imprimir ticket»",
-      "button «Imprimir»"
+      "Boton «Corregir pago»"
     ],
     "components/FilaMovimientoCaja.tsx": [
       "button «{`Ver el detalle de ${e.titulo}»"
@@ -130,8 +127,8 @@
     ],
     "components/RegistrarGastoModal.tsx": [
       "button «¿No está? Súmalo»",
-      "button «Sumar proveedor»",
       "button «Cancelar»",
+      "button «Sumar proveedor»",
       "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "button «Cancelar» #2",
       "button «→guardar»"

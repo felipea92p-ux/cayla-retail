@@ -24,6 +24,7 @@ import {
   type Encabezado as TextosPantalla,
   type EtiquetaPrecio as DatosEtiqueta,
 } from "@/lib/etiqueta-precio-reglas";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // Una fila por color y talla, juntas bajo el nombre de su prenda (Felipe, 2026-10-09: «que no se haga tan cansado de ver tantas
 // cosas»): el nombre se dice una vez por grupo y cada fila dice solo lo que cambia —el color con su cápsula, la talla, el precio— y
@@ -167,7 +168,7 @@ export function ImprimirEtiquetasPrecio({
   const imprimir = (
     <div className="flex flex-wrap items-center gap-2">
       <BotonGuiaImpresion />
-      <button type="button" className="btn-cayla btn-primario mov-boton" disabled={total === 0 || enviando} onClick={mandar}>
+      <BotonImprimir peso="primario" disabled={total === 0 || enviando} onClick={mandar}>
         {total === 0 ? (
           "Nada que imprimir"
         ) : enviando ? (
@@ -180,7 +181,7 @@ export function ImprimirEtiquetasPrecio({
             <span className="sr-only">Imprimir {plural(total, "etiqueta", "etiquetas")}</span>
           </>
         )}
-      </button>
+      </BotonImprimir>
     </div>
   );
 

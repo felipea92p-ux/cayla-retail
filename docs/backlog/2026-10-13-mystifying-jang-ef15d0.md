@@ -12,7 +12,7 @@
 - [x] **Guías** de las 22 pantallas tocadas (`guias:recorrer`), y Cambios, Devoluciones y Apartados a 375 px: todas en verde.
 - [ ] **Nueva compra a 1440 px sigue apretada:** la tarjeta de líneas mide 718 px; con lugar para escribir, el ejemplo de Producto se corta («Busca la prenc…») y «Talla y color» también. Pensar si la fila baja de línea o si el resumen de la derecha se angosta.
 - [ ] **Guías sin datos locales:** `compras.plan.resultados` y `compras.plan.historial` (la base local no tiene las migraciones del 2026-10-12 del plan de compra y de Sinatra). Recorrerlas cuando Felipe actualice la base local.
-- [ ] **Versalitas a mano de familias sin decidir:** «Limpiar», «Limpiar todo» (Existencias, Recibidas), «Cancelar» (decisión de faltante), «Entendido» (Movimientos): entran con las rondas de `accion.limpiar` y `accion.cancelar`. («Descargar reporte de este ajuste» ya es `<BotonDescargar>`, ronda 10.)
+- [x] **Versalitas a mano de «Limpiar» y «Cancelar»:** migradas con la ronda 11. Queda «Entendido» de Movimientos (`accion.guardar`, sin decidir).
 - [x] **Ronda 10** (descargar, filtros, ver): Felipe eligió las tres P1; `BotonDescargar`, `BotonVer` y `BotonFiltros` como píldora; 17 descargas y 17 «ver» migrados, deuda 0. Clientes a 375 px con sus tres botones en una fila. La caja del «+» de `<Boton>` pasa a `flex` (los botones con «+» medían 43 px junto a vecinos de 40).
 - [x] **Censo del mostrador** (`terminal-ventas`, 61 de 133 vistas) rastreado al código: 49 frases grises sueltas en 40 archivos pasan a `<Vacio>` con una firma nueva (`ventana: 2`); 3 «Ver … →» de Caja a `<EnlaceVer>`; «Desactivar» de la vista rápida del proveedor en rojo.
 - [x] **Verificado (ronda 10 y vacíos):** `tema:auditar` de 15 pantallas, 0 solo en oscuro; `guias:recorrer` de 25 guías a 1440 px (Producción con `admin-taller`) y de Vender, Historial y Clientes a 375 px con `terminal-ventas`, todas en verde.
@@ -20,3 +20,7 @@
 - [ ] **«Sin acceso al almacén de archivos ahora»** (Adjuntos de una compra) y el «No se pudo leer ahora» de Caja son lecturas que fallaron, no vacíos: candidatos a `<Aviso tono="atencion" chico>`.
 - [ ] **Avisar a Dany:** el vacío de Rendimiento («Sin ventas en el período») pasó a `<Vacio>` (solo cómo se ve).
 
+- [x] **Ronda 11** (cancelar, limpiar, imprimir): Felipe eligió P1 · P2 · P1; `PieAcciones` / `pie-acciones`, `FiltroPuesto` / `BotonLimpiar`, `BotonImprimir`; 116 pies, 8 filtros puestos, 11 «Limpiar», 24 imprimir; deuda 0. Verificado en claro, oscuro y a 375 px; 15 guías en verde.
+- [ ] **«Etiquetas» con dos íconos:** en Productos (tabla y vista rápida) lleva la impresora y en Existencias la etiqueta, para lo mismo (ir a imprimir etiquetas). Quedaron fuera de Imprimir con su motivo; decidir con la ronda de iconos.
+- [ ] **«Mejor no» y «Cerrar»** también salen del pie con la misma cara que «Cancelar»; si Felipe quiere un solo verbo, es una decisión de texto (no se cambió).
+- [ ] **Avisar a Dany:** «Cancelar» de Clientes y el pie de su ficha cambiaron de lugar (solo cómo se ve).

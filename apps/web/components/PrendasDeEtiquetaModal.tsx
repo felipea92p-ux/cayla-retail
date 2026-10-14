@@ -12,7 +12,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { firmar } from "@/lib/responsable-reglas";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { nombreBajoCosto, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
 import {
   alternarProducto,
@@ -338,8 +338,8 @@ export function PrendasDeEtiquetaModal({
                 </CampoGuiado>
               )}
               <PieGuia guia={guia} listo="Todo listo para aplicar." />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
                 <Boton

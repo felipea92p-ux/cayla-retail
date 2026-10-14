@@ -297,8 +297,8 @@ function HojaTallas({
           <p className="text-[12.5px] tabular-nums text-taupe">
             {marcadas.length} {marcadas.length === 1 ? "talla elegida" : "tallas elegidas"}
           </p>
-          <div className="flex gap-2">
-            <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-sutil">
+          <div className="pie-acciones">
+            <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-secundario">
               Cancelar
             </button>
             <button

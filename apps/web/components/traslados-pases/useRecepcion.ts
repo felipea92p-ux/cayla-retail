@@ -394,5 +394,3 @@ export function useRecepcion({
     firma: { comboRecibe, enPantalla, preguntarNombre, sinNombre, guiaFirma, pedirCambio: () => setAMano(true) },
   };
 }
-
-export type Recepcion = ReturnType<typeof useRecepcion>;

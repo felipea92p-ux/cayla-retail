@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Eye, Flag, FunnelX, Receipt } from "lucide-react";
+import { Flag, FunnelX, Receipt } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { getDetalleCierre, type DetalleCierre, type EventoCaja } from "@/app/actions/caja";
 import type { CierreCaja } from "@/lib/caja";
@@ -69,25 +69,6 @@ export function useDetalleCierre() {
   const { abierto, abrir, cerrar, detalle, cargando, error } = useDatosDetalleCierre();
   const modal = abierto ? <DetalleCierreModal cierre={abierto} detalle={detalle} cargando={cargando} error={error} onClose={cerrar} /> : null;
   return { abrir, modal };
-}
-
-/** El botón de ojo de cada fila de la página `/caja/historial`. */
-export function BotonVerDetalleCierre({ cierre }: { cierre: CierreCaja }) {
-  const { abrir, modal } = useDetalleCierre();
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => abrir(cierre)}
-        data-guia="caja-historial.ver"
-        aria-label={`Ver el detalle del cierre de ${cierre.ubicacionNombre} (${hora(cierre.cerradaEn)})`}
-        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-tinta/50 transition-colors hover:bg-tinta/8 hover:text-rojo"
-      >
-        <Eye className="h-4 w-4" aria-hidden />
-      </button>
-      {modal}
-    </>
-  );
 }
 
 /** El ancho de la hoja con el detalle: deja las tres tarjetas del cierre en una fila (en celular y tablet pasan a una sola columna). */
