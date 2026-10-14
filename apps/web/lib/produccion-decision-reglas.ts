@@ -119,9 +119,23 @@ export function sugerirVariante(d: DemandaVariante | undefined, enProduccion: nu
   };
 }
 
+/**
+ * Lo que falta de una variante para cubrir `diasObjetivo` días de venta, repartido en lo que se resuelve SIN gastar —prendas terminadas que ya están en el
+ * Taller y solo hay que llevar a las tiendas (`trasladar`)— y lo que de verdad hay que fabricar (`producir`). La falta cuenta lo que hay en tiendas, lo que
+ * viene en camino y lo que ya está en órdenes abiertas; lo del Taller se descuenta recién después, para poder decir «llévalo» en vez de «prodúcelo».
+ * `producir` es EXACTAMENTE el `sugerido` de `sugerirVariante` (que cuenta el Taller de una vez): una sola cifra para «Nueva orden» y para el Resumen.
+ * Sin ritmo medido no hay base para decir qué falta: 0 y 0.
+ */
+export function repartirFalta(d: DemandaVariante | undefined, enProduccion: number, diasObjetivo: number): { trasladar: number; producir: number } {
+  if (!d?.ritmoDia) return { trasladar: 0, producir: 0 };
+  const faltaSinTaller = Math.max(0, Math.ceil(d.ritmoDia * diasObjetivo - (d.stockRed + d.enCamino + enProduccion) - 1e-9));
+  const trasladar = Math.min(d.stockTaller, faltaSinTaller);
+  return { trasladar, producir: faltaSinTaller - trasladar };
+}
+
 export type CurvaSugerida = { porVariante: Map<string, Sugerencia>; total: number };
 
-export function sugerirCurva(variantes: { varianteId: string }[], demanda: Map<string, DemandaVariante>, enProduccionPorVariante: Map<string, number>, diasObjetivo: number): CurvaSugerida {
+export function sugerirCurva(variantes: readonly { varianteId: string }[], demanda: Map<string, DemandaVariante>, enProduccionPorVariante: Map<string, number>, diasObjetivo: number): CurvaSugerida {
   const porVariante = new Map<string, Sugerencia>();
   let total = 0;
   for (const v of variantes) {
@@ -131,6 +145,33 @@ export function sugerirCurva(variantes: { varianteId: string }[], demanda: Map<s
     total += s.sugerido;
   }
   return { porVariante, total };
+}
+
+/** Lo que «Usar la sugerencia» escribe en la matriz de «Nueva orden»: la cantidad de cada variante que conviene fabricar, como texto de campo. Las que no hace falta fabricar no se escriben.
+ *  También es lo que llena la matriz al llegar desde el Resumen con «Abrir orden sugerida» (`?nueva=<modelo>&sugerida=1`): la misma cifra que decía la tarjeta. */
+export function cantidadesDeLaCurva(curva: CurvaSugerida): Record<string, string> {
+  const cantidades: Record<string, string> = {};
+  for (const [id, s] of curva.porVariante) if (s.sugerido > 0) cantidades[id] = String(s.sugerido);
+  return cantidades;
+}
+
+/**
+ * Lo que trae escrito la matriz de «Nueva orden» al abrirse. Vacía, salvo que se llegue desde «Abrir orden sugerida» del Resumen (`?nueva=<modelo>&sugerida=1`): entonces trae la sugerencia de la red
+ * —la MISMA cuenta que dijo la tarjeta—, pero solo si el modelo pedido existe (nunca se llena el primero de la lista por error), si es una orden de producción (una muestra se hace aparte) y si la
+ * red respondió. Pura, y es lo que usa el formulario: así la promesa de la tarjeta se prueba contra lo que de verdad aparece en la pantalla.
+ */
+export function cantidadesInicialesDeNuevaOrden(a: {
+  sugerida: boolean;
+  tipo: "produccion" | "muestra";
+  productoInicialId: string | null;
+  modelos: readonly { productoId: string; variantes: readonly { varianteId: string }[] }[];
+  datos: { demanda: readonly DemandaVariante[]; enProduccion: Readonly<Record<string, number>> } | null;
+  diasObjetivo?: number;
+}): Record<string, string> {
+  const pedido = a.sugerida && a.tipo === "produccion" && a.productoInicialId !== null ? a.modelos.find((m) => m.productoId === a.productoInicialId) : undefined;
+  if (!pedido || !a.datos) return {};
+  const curva = sugerirCurva(pedido.variantes, new Map(a.datos.demanda.map((d) => [d.varianteId, d])), new Map(Object.entries(a.datos.enProduccion)), a.diasObjetivo ?? DIAS_OBJETIVO_PRODUCCION);
+  return cantidadesDeLaCurva(curva);
 }
 
 /** Lo que ya se está fabricando por variante: las líneas de las órdenes de producción en proceso (no muestras). */

@@ -10,7 +10,8 @@
 //   NO HACE: no lee la base ni decide si un modelo se produce (eso es `esProducible`); un modelo que el catálogo no trae simplemente no tiene
 //            presentación y quien dibuja usa la percha, nunca se cae.
 import type { VarianteCatalogo } from "./catalogo-v2";
-import { colorPrincipal, coloresDe } from "./productos-vista";
+import type { ColorParaHoja } from "./produccion-hoja-modelo";
+import { colorPrincipal, coloresDe, variantesQueSeVenden } from "./productos-vista";
 
 export type PresentacionDeModelo = {
   fotoUrl: string | null;
@@ -44,6 +45,26 @@ export function presentacionesDeModelos(catalogo: readonly VarianteCatalogo[]): 
       categoriaPrefijo: primera.categoriaPrefijo ?? null,
       categoriaFamilia: primera.categoriaFamilia ?? null,
     };
+  }
+  return salida;
+}
+
+/**
+ * Los colores de cada modelo con la foto de ESE color, para la hoja «Ver el modelo» (tarea #8): la foto de la primera variante de cada color que la tenga (una talla sin
+ * foto no le quita la foto a su color, `coloresDe`). El hex es el del catálogo tal cual: sin hex queda `null` y quien dibuja usa el mosaico de su categoría, nunca el gris de
+ * relleno de `coloresDe`, que afirmaría un color que el modelo no tiene (ADR-0333). Solo cuenta las variantes que se venden (`variantesQueSeVenden`).
+ */
+export function coloresDeModelos(catalogo: readonly VarianteCatalogo[]): Record<string, ColorParaHoja[]> {
+  const porModelo = new Map<string, VarianteCatalogo[]>();
+  for (const v of catalogo) {
+    const lista = porModelo.get(v.productoId);
+    if (lista) lista.push(v);
+    else porModelo.set(v.productoId, [v]);
+  }
+  const salida: Record<string, ColorParaHoja[]> = {};
+  for (const [productoId, variantes] of porModelo) {
+    const vendibles = variantesQueSeVenden(variantes);
+    salida[productoId] = coloresDe(variantes).map((c) => ({ nombre: c.nombre, hex: vendibles.find((v) => v.color === c.nombre && v.colorHex)?.colorHex ?? null, fotoUrl: c.fotoUrl }));
   }
   return salida;
 }

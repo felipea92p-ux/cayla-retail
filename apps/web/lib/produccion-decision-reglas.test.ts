@@ -6,8 +6,10 @@ import {
   costoMaterialesPorPrenda,
   demandaDeLaRed,
   enProduccionPorVariante,
+  cantidadesDeLaCurva,
   productosParaRendimiento,
   rendimientoMedido,
+  repartirFalta,
   sugerirCurva,
   sugerirVariante,
   type ConsumoParaRendimiento,
@@ -104,6 +106,54 @@ describe("productosParaRendimiento (una orden abierta de un modelo que ya no se 
       {}
     );
     expect(pide.get("lino")?.necesita).toBeCloseTo(100, 5); // 40 prendas × 2,5 m
+  });
+});
+
+describe("cantidadesDeLaCurva (lo que «Usar la sugerencia» escribe en la matriz)", () => {
+  const sug = (varianteId: string, sugerido: number) => ({ varianteId, sugerido, motivo: "", diasConLoQueHay: null, disponible: 0 });
+  it("escribe solo las variantes que hay que fabricar, como texto de campo", () => {
+    const curva = { porVariante: new Map([["a", sug("a", 4)], ["b", sug("b", 0)], ["c", sug("c", 12)]]), total: 16 };
+    expect(cantidadesDeLaCurva(curva)).toEqual({ a: "4", c: "12" });
+  });
+  it("sin nada que fabricar, la matriz queda vacía", () => {
+    expect(cantidadesDeLaCurva({ porVariante: new Map([["a", sug("a", 0)]]), total: 0 })).toEqual({});
+    expect(cantidadesDeLaCurva({ porVariante: new Map(), total: 0 })).toEqual({});
+  });
+});
+
+describe("repartirFalta (lo que falta: qué se traslada del Taller y qué hay que fabricar)", () => {
+  it("lo que falta ya está en el Taller: se traslada y no hace falta fabricar nada", () => {
+    // 1 por día × 30 = 30; hay 0 en tiendas y 40 en el Taller.
+    expect(repartirFalta(demanda({ ritmoDia: 1, stockRed: 0, stockTaller: 40 }), 0, 30)).toEqual({ trasladar: 30, producir: 0 });
+  });
+  it("el Taller no alcanza: se traslada todo lo que hay y se fabrica el resto", () => {
+    expect(repartirFalta(demanda({ ritmoDia: 1, stockRed: 0, stockTaller: 10 }), 0, 30)).toEqual({ trasladar: 10, producir: 20 });
+  });
+  it("una orden abierta de 1 prenda no apaga una falta de 30: faltan 29", () => {
+    expect(repartirFalta(demanda({ ritmoDia: 1, stockRed: 0, stockTaller: 0 }), 1, 30)).toEqual({ trasladar: 0, producir: 29 });
+  });
+  it("una orden que cubre lo que falta lo deja en cero", () => {
+    expect(repartirFalta(demanda({ ritmoDia: 1, stockRed: 0, stockTaller: 0 }), 30, 30)).toEqual({ trasladar: 0, producir: 0 });
+  });
+  it("lo que viene en camino y lo que hay en tiendas también se descuentan", () => {
+    expect(repartirFalta(demanda({ ritmoDia: 1, stockRed: 10, stockTaller: 0, enCamino: 5 }), 0, 30)).toEqual({ trasladar: 0, producir: 15 });
+  });
+  it("sin ritmo medido no hay base: ni se traslada ni se fabrica", () => {
+    expect(repartirFalta(demanda({ ritmoDia: null, stockRed: 0, stockTaller: 40 }), 0, 30)).toEqual({ trasladar: 0, producir: 0 });
+    expect(repartirFalta(undefined, 0, 30)).toEqual({ trasladar: 0, producir: 0 });
+  });
+  it("`producir` es EXACTAMENTE el `sugerido` de sugerirVariante en cualquier combinación (una sola cifra para Nueva orden y el Resumen)", () => {
+    for (const ritmoDia of [0.1, 0.5, 1, 2.3, 7]) for (const stockRed of [0, 1, 3, 12, 40]) for (const stockTaller of [0, 2, 9, 50]) for (const enCamino of [0, 4]) for (const enProd of [0, 5, 30]) {
+      const d = demanda({ ritmoDia, stockRed, stockTaller, enCamino });
+      expect(repartirFalta(d, enProd, 30).producir).toBe(sugerirVariante(d, enProd, 30)!.sugerido);
+    }
+  });
+  it("nunca traslada más de lo que hay en el Taller ni más de lo que falta", () => {
+    for (const stockTaller of [0, 3, 100]) {
+      const r = repartirFalta(demanda({ ritmoDia: 1, stockRed: 0, stockTaller }), 0, 30);
+      expect(r.trasladar).toBeLessThanOrEqual(stockTaller);
+      expect(r.trasladar + r.producir).toBe(30);
+    }
   });
 });
 

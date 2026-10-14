@@ -2,25 +2,26 @@ import Link from "next/link";
 import { soles } from "@/lib/compras-reglas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { DIAS_RITMO_RECIENTE } from "@/lib/inventario-reglas";
-import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { BotonEnlace } from "@/components/ui/campos";
-import { baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoDiasDeStock, type CifrasResumen, type Decision, type DecisionesOcultas, type EstadoModelo, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
+import { agotadasQueSeVendian, baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoAgotadas, textoDiasDeStock, type CifrasResumen, type Decision, type DecisionesOcultas, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { FotoPrenda } from "@/components/ui/FotoPrenda";
+import type { HojaDeModelo } from "@/lib/produccion-hoja-modelo";
 import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
+import { FilaQueAbreLaHoja } from "@/components/produccion-resumen/FilaQueAbreLaHoja";
+import { TONO_ESTADO_MODELO } from "@/components/produccion-resumen/estado-modelo";
 
 // Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
 // cuando el dato cambia. Solo hechos y cuentas sobre datos medidos. El rojo de la pantalla (máximo 2) lo lleva únicamente la cifra de «Por pagar» cuando hay algo
 // vencido; las tarjetas usan ámbar y tinta. Es un componente de servidor: no tiene estado, solo enlaces a la pantalla donde se resuelve cada cosa.
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
-
-const TONO_ESTADO: Record<EstadoModelo, TonoChip> = { producir_ya: "ambar", en_produccion: "neutro", vigilar: "neutro", alcanza: "verde", sobrestock: "neutro", sin_ritmo: "apagado" };
 
 const BORDE_SEVERIDAD: Record<Decision["severidad"], string> = { 3: "border-l-ambar", 2: "border-l-ambar/45", 1: "border-l-tinta/20" };
 
@@ -30,6 +31,7 @@ const ICONO: Record<Decision["tipo"], string> = {
   recibir: "M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8",
   pago: "M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6",
   producir: "M3 17l6-6 4 4 8-8M15 7h6v6",
+  trasladar: "M5 12h14M13 6l6 6-6 6",
   sobrestock: "M10 5v14M14 5v14",
   minimo: "M21 8l-9-5-9 5v8l9 5 9-5V8zM3 8l9 5 9-5M12 13v8",
 };
@@ -51,6 +53,7 @@ export function ResumenProduccionPanel({
   totalAsuntos,
   cifras,
   modelos,
+  hojas,
   telas,
   falloRed,
 }: {
@@ -63,6 +66,8 @@ export function ResumenProduccionPanel({
   totalAsuntos: number;
   cifras: CifrasResumen;
   modelos: FilaModelo[];
+  /** La hoja «Ver el modelo» de cada modelo (por `productoId`): lo vendido por color y talla y los enlaces a la orden y al traslado. Se arma en el servidor con lo que ya se leyó. */
+  hojas: Record<string, HojaDeModelo>;
   telas: FilaTela[];
   falloRed: string | null;
 }) {
@@ -209,11 +214,14 @@ export function ResumenProduccionPanel({
             <ul>
               {modelos.map((m, i) => {
                 const pct = m.diasRed === null ? 0 : Math.min(100, (m.diasRed / maxDias) * 100);
+                const agotadas = textoAgotadas(agotadasQueSeVendian(m));
                 return (
-                  <li key={m.productoId} data-guia={i === 0 ? "prod-resumen.modelo" : undefined} className="border-b border-tinta/10 last:border-b-0">
-                    <Link
-                      href={`/produccion/ordenes?nueva=${m.productoId}`}
-                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-4 py-3 transition-colors hover:bg-sand/40 focus-visible:-outline-offset-2 lg:grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]"
+                  <li key={m.productoId} className="border-b border-tinta/10 last:border-b-0">
+                    <FilaQueAbreLaHoja
+                      hoja={hojas[m.productoId]}
+                      presentacion={presentaciones[m.productoId]}
+                      guia={i === 0 ? "prod-resumen.modelo" : undefined}
+                      className="grid w-full cursor-pointer text-left grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-4 py-3 transition-colors hover:bg-sand/40 focus-visible:-outline-offset-2 lg:grid-cols-[minmax(0,1.6fr)_3rem_6rem_minmax(6.5rem,1.2fr)_9rem] xl:grid-cols-[minmax(0,1.5fr)_3.5rem_6rem_minmax(7rem,1.2fr)_4rem_9rem]"
                     >
                       <span className="flex min-w-0 items-center gap-3">
                         <FotoModelo productoId={m.productoId} presentaciones={presentaciones} ancho={32} className="w-8" />
@@ -222,6 +230,12 @@ export function ResumenProduccionPanel({
                           <span className="block text-xs text-tinta/65 lg:hidden">
                             stock {m.stockRed} · {m.ritmoDia ? `${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}/sem. · ${baseDelRitmo(m.ventasBase).corto}` : "sin ritmo"}
                           </span>
+                          {agotadas && (
+                            <span className="mt-0.5 flex items-start gap-1.5 text-xs leading-snug text-ambar">
+                              <span aria-hidden className="mt-[5px] size-1.5 shrink-0 rounded-full bg-ambar" />
+                              <span className="min-w-0">{agotadas}</span>
+                            </span>
+                          )}
                         </span>
                       </span>
                       <span className="hidden text-right text-[13px] tabular-nums text-tinta lg:block">{m.stockRed}</span>
@@ -255,9 +269,9 @@ export function ResumenProduccionPanel({
                       </span>
                       <span className="hidden text-right text-[13px] tabular-nums text-tinta xl:block">{m.enProduccion || <span className="text-tinta/65">—</span>}</span>
                       <span className="col-span-2 lg:col-span-1">
-                        <Chip tono={TONO_ESTADO[m.estado]}>{ETIQUETA_ESTADO_MODELO[m.estado]}</Chip>
+                        <Chip tono={TONO_ESTADO_MODELO[m.estado]}>{ETIQUETA_ESTADO_MODELO[m.estado]}</Chip>
                       </span>
-                    </Link>
+                    </FilaQueAbreLaHoja>
                   </li>
                 );
               })}
