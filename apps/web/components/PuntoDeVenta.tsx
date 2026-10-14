@@ -16,10 +16,11 @@ import { categoriasQueCombinan, claveAnotada, fraseCombina, indiceDeColores, sug
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
+  aplicarDescuentoMonto,
   atendioDelTicket,
   conCodigoDelCatalogo,
   descuentoResultante,
-  descuentoUnitarioPorPorcentaje,
+  descuentoPedido,
   esperaAlCargar,
   metodoDeAtajo,
   cobroEnEfectivo,
@@ -37,6 +38,7 @@ import {
   conDescuentoDeCampana,
   type CampanaLinea,
   type DetalleDescuento,
+  type ModoDescuento,
   type MomentoTicket,
   type PagoAplicado,
 } from "@/lib/vender-reglas";
@@ -238,12 +240,14 @@ export type ItemCarrito = {
 
 export type OrigenDeLinea = "combina_bien_con";
 
-/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el % tal cual lo
- *  escribe (solo %, Felipe 2026-09-25), a qué líneas alcanza (`null` es todo el ticket;
+/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% o S/ por
+ *  prenda; el S/ volvió el 2026-10-14, Felipe), el valor tal cual lo escribe en cada uno, a qué líneas alcanza (`null` es todo el ticket;
  *  `[]` es que todavía no eligió ninguna), el motivo (R-45) y el argumento que pide todo
  *  descuento pasado el 15 %. */
 export type DescuentoForm = {
+  modo: ModoDescuento;
   pct: string;
+  monto: string;
   elegidas: string[] | null;
   razon: string;
   razonOtro: string;
@@ -306,7 +310,7 @@ const MAX_RESULTADOS = 6;
 
 /** El apartado «Descuento» arranca así siempre: sin valor, sin líneas elegidas (salvo
  *  que `abrirDescuento` traiga unas), sin motivo. */
-const DESCUENTO_VACIO: DescuentoForm = { pct: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
+const DESCUENTO_VACIO: DescuentoForm = { modo: "porcentaje", pct: "", monto: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
 
 export const money = (n: number) => `S/${n.toFixed(2)}`;
 
@@ -1404,7 +1408,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // descuento «no entró».
     const cedieron = carrito.filter((it) => {
       if (!it.campana || (claves.length > 0 && !claves.includes(it.claveLinea))) return false;
-      const monto = descuentoUnitarioPorPorcentaje(it.precioUnitario, Number(descuento.pct));
+      const monto = descuentoPedido(descuento.modo, Number(descuento.modo === "monto" ? descuento.monto : descuento.pct), it.precioUnitario);
       return Number(monto) > 0 && descuentoResultante(it, monto).prevaleceCampana;
     });
     if (cedieron.length > 0) {
@@ -1413,7 +1417,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       );
     }
     // ADR-0379: una pieza de liquidación tiene precio final; el descuento del ticket no la toca.
-    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), claves, detalle).map((it, i) => (actual[i]?.liquidacion ? actual[i]! : it)));
+    setCarrito((actual) =>
+      (descuento.modo === "monto"
+        ? aplicarDescuentoMonto(actual, Number(descuento.monto), claves, detalle)
+        : aplicarDescuento(actual, Number(descuento.pct), claves, detalle)
+      ).map((it, i) => (actual[i]?.liquidacion ? actual[i]! : it)),
+    );
     setMomento("armar");
   }
   function quitarDescuentoDelTicket() {
