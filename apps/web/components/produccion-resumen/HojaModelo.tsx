@@ -48,6 +48,7 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
   const enFoto = vista ?? fijado;
   const colorEnFoto = hoja.colores.find((c) => c.nombre === enFoto) ?? hoja.colores[0];
   const fichaEnFoto = colorEnFoto ? fichaDeColor(colorEnFoto.nombre) : null;
+  const fotosDeLosColores = useMemo(() => hoja.colores.map((c) => c.fotoUrl), [hoja.colores]);
   const aLaFoto = colorEnFoto ? { clave: colorEnFoto.nombre, nombre: colorEnFoto.nombre, hex: colorEnFoto.hex, fotoUrl: colorEnFoto.fotoUrl } : undefined;
   const prenda = { referencia: hoja.referencia, categoria: presentacion?.categoria, categoriaPrefijo: presentacion?.categoriaPrefijo, categoriaFamilia: presentacion?.categoriaFamilia };
 
@@ -95,7 +96,7 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
       >
         <div className="vr-cuerpo vr-quieta">
           <aside data-guia="prod-resumen.hoja-foto" className="vr-lado">
-            <FotoVistaRapida producto={prenda} fila={aLaFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} />
+            <FotoVistaRapida producto={prenda} fila={aLaFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} precargar={fotosDeLosColores} />
             <div>
               <div className="vr-pie-foto">
                 <span className="vr-sw" data-color-dato style={{ background: colorEnFoto?.hex ?? undefined, width: 20, height: 20 }} />

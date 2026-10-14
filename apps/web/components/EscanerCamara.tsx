@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Flashlight, FlashlightOff, ShoppingBag, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -112,7 +112,7 @@ const iniciales = (referencia: string) =>
 function Miniatura({ prenda, lado }: { prenda: ResultadoEscaneo["prenda"]; lado: number }) {
   return (
     <span className="relative grid shrink-0 place-items-center overflow-hidden rounded-xl bg-sand font-display text-tinta/55" style={{ width: lado, height: lado, fontSize: lado * 0.34 }}>
-      {prenda?.fotoUrl ? <Image src={prenda.fotoUrl} alt="" fill sizes={`${lado}px`} className="object-cover" unoptimized /> : prenda ? iniciales(prenda.referencia) : "?"}
+      {prenda?.fotoUrl ? <ImagenDePrenda src={prenda.fotoUrl} alt="" fill sizes={`${lado}px`} className="object-cover" fallback={iniciales(prenda.referencia)} /> : prenda ? iniciales(prenda.referencia) : "?"}
     </span>
   );
 }

@@ -22,13 +22,22 @@ export function ImagenDePrenda({
   src,
   alt,
   fallback,
+  alFallar,
+  fondo,
   ...resto
 }: Omit<ImageProps, "src" | "unoptimized" | "onError"> & {
   src: string;
-  /** Lo que se dibuja si la foto no carga: la prenda sin foto de su pantalla. */
+  /** Lo que se dibuja si la foto no carga: la prenda sin foto de su pantalla. `null` si la caja ya se ve bien vacía (tiene su fondo). */
   fallback: ReactNode;
+  /** Se llama una vez cuando la foto no carga: para quien además de dibujar el fallback debe sacarla de una lista (`TrasladoMiniaturas`). */
+  alFallar?: () => void;
+  /** El color de la prenda (`#rrggbb`): es lo que se ve MIENTRAS llega la foto (en vez de una caja vacía) y la foto se funde encima. Es dato, no tema: no cambia en oscuro. */
+  fondo?: string | null;
 }) {
   const [rota, setRota] = useState<string | null>(null);
   if (rota === src) return <>{fallback}</>;
-  return <Image {...resto} src={src} alt={alt} unoptimized={!fotoOptimizable(src, process.env.NEXT_PUBLIC_SUPABASE_URL)} onError={() => setRota(src)} />;
+  return <Image {...resto} style={fondo ? { backgroundColor: fondo, ...resto.style } : resto.style} src={src} alt={alt} unoptimized={!fotoOptimizable(src, process.env.NEXT_PUBLIC_SUPABASE_URL)} onError={() => {
+    setRota(src);
+    alFallar?.();
+  }} />;
 }

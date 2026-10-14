@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact } from "react";
 import { useRouter } from "next/navigation";
@@ -29,6 +29,7 @@ import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } fr
 import { esRafaga, MS_ENTRE_TECLAS } from "@/lib/existencias-pistola";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
+import { FOTO_PANEL_TALLA } from "@/lib/fotos-tamanos";
 
 type Vista = "talla" | "todas";
 type Prenda = PrendaAgrupada<FilaExistencias>;
@@ -616,7 +617,7 @@ export function PanelTalla({
                 >
                   {prenda.fotoUrl ? (
                     <>
-                      <Image src={prenda.fotoUrl} alt="" width={408} height={544} unoptimized className="h-full w-full object-cover" />
+                      <ImagenDePrenda src={prenda.fotoUrl} alt="" width={FOTO_PANEL_TALLA.width} height={FOTO_PANEL_TALLA.height} className="h-full w-full object-cover" fondo={prenda.colorHex} fallback={<SinFoto tamano="h-full w-full" colorHex={prenda.colorHex} {...categoriaDe(prenda)} />} />
                       <span aria-hidden className="absolute bottom-2 right-2 grid h-7 w-7 place-items-center rounded-full bg-papel/90 text-tinta shadow-[0_1px_3px_color-mix(in_srgb,var(--color-sombra)_25%,transparent)]">
                         <ZoomIn className="h-3.5 w-3.5" strokeWidth={2} />
                       </span>

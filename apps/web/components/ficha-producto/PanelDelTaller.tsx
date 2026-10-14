@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { vistaDeFotos, type FotoLocal } from "@/lib/fotos-por-color-reglas";
 import { compararTallas } from "@/lib/tallas";
@@ -83,7 +83,7 @@ export function PanelDelTaller({
       <div data-guia="editar.foto" className="taller-panel-foto">
         <div className="taller-foto-grande">
           {foto ? (
-            <Image key={foto.url} src={foto.url} alt="" fill sizes="340px" className="taller-foto-img object-cover" unoptimized />
+            <ImagenDePrenda key={foto.url} src={foto.url} alt="" fill sizes="340px" className="taller-foto-img object-cover" fallback={null} />
           ) : (
             <div className="taller-foto-vacia">{colorMostrado ? `Sin foto de ${n.color(colorMostrado)} todavía` : "Sin fotos todavía"}</div>
           )}
