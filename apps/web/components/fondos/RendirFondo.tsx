@@ -27,12 +27,13 @@ import {
   cuentaRendicion,
   etiquetaItem,
   fraseCuenta,
+  fraseFaltanteTuRendicion,
   fraseRendir,
   fraseSinFoto,
   textoPapel,
   type ItemRendicion,
 } from "@/lib/rendicion-reglas";
-import { devolverRendicion, leerItems, rendirFondo } from "@/lib/rendicion-acciones";
+import { devolverRendicion, leerItems, miRendicionAbierta, rendirFondo } from "@/lib/rendicion-acciones";
 import { SubirFoto, VerFoto } from "./FotoDelGasto";
 
 // «Rendir tu fondo» (ADR-0362, fase 6 · actividad 5; decisiones 32, 54 y 69): la hoja de la DUEÑA del fondo. Arriba, lo que dice el
@@ -58,7 +59,7 @@ const montoFila = (i: ItemRendicion) => (i.monto >= 0 ? `+${soles(i.monto)}` : s
 export function RendirFondo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClose: () => void; volverA: RefObject<HTMLElement | null> }) {
   const abierta = fondo.rendicion?.abierta ?? null;
   return abierta ? (
-    <RendicionAbierta id={abierta.id} en={abierta.en} faltante={abierta.faltante} onClose={onClose} volverA={volverA} />
+    <RendicionAbierta id={abierta.id} en={abierta.en} faltante={abierta.faltante} deuda={fondo.rendicion?.deuda ?? 0} onClose={onClose} volverA={volverA} />
   ) : (
     <RendirCiclo fondo={fondo} onClose={onClose} volverA={volverA} />
   );
@@ -139,12 +140,20 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
     };
   }, [vuelta]);
   const cargar = () => setVuelta((v) => v + 1);
+  const reintentar = () => {
+    setFallaLectura(false);
+    setItems(null);
+    cargar();
+  };
 
   const arrastre = fondo.rendicion?.arrastre ?? 0;
+  // Lo que ya debe por faltantes aprobados: el faltante de ahora dice en qué queda (/formidable 2026-10-14, cambio 3).
+  const deuda = fondo.rendicion?.deuda ?? 0;
   const cuenta = cuentaRendicion(fondo.saldo, efectivo);
-  const campos = camposRendir({ efectivo, explicacion }, fondo.saldo);
+  const campos = camposRendir({ efectivo, explicacion }, fondo.saldo, deuda);
   const guia = useGuiaCampos(campos);
-  const sinFoto = items?.filter((i) => i.conFoto === false).length ?? 0;
+  // Sin la lista, los papeles sin foto salen de «Tu fondo» (lo cuenta la base): el aviso no desaparece por un corte.
+  const sinFoto = fallaLectura ? (fondo.rendicion?.sinFoto ?? 0) : (items?.filter((i) => i.conFoto === false).length ?? 0);
   const vacio = items !== null && items.length === 0 && !fallaLectura;
 
   async function confirmar() {
@@ -171,7 +180,7 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
   // Lo que se anuncia es lo que se mandó: mientras estuvo en duda, el efectivo no se pudo cambiar.
   function rendida() {
     avisar.exito(`Rendiste tu fondo con ${soles(cuenta.efectivo ?? 0)} en la mano`, {
-      detalle: "Otra persona con Fondos por rendir la revisa. Mientras, puedes seguir comprando.",
+      detalle: "Otra persona que revise los fondos la aprueba. Mientras, puedes seguir comprando.",
     });
     onClose();
     router.refresh();
@@ -222,13 +231,24 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
           </section>
 
           <section className="space-y-2">
-            <TituloGrupo cuenta={items ? items.length : undefined}>Lo que entra en esta rendición</TituloGrupo>
-            {fallaLectura && (
-              <Aviso tono="atencion" titulo="No se pudo leer la lista" chico>
-                Los números de arriba sí están al día. Cierra y vuelve a abrir para ver cada pago y gasto.
+            <TituloGrupo cuenta={items && !fallaLectura ? items.length : undefined}>Lo que entra en esta rendición</TituloGrupo>
+            {/* Una lectura que falla no es una lista vacía (/formidable 2026-10-14, cambio 2): antes salía «No hay pagos ni gastos» debajo. */}
+            {fallaLectura ? (
+              <Aviso
+                tono="atencion"
+                titulo="No pude traer la lista"
+                chico
+                accion={
+                  <button type="button" className="btn-cayla btn-enlace" onClick={reintentar}>
+                    Volver a intentar
+                  </button>
+                }
+              >
+                Los números de arriba sí están al día: puedes rendir igual.
               </Aviso>
+            ) : (
+              <ListaItems items={items} alSubir={cargar} deshabilitado={guardando} />
             )}
-            <ListaItems items={items} alSubir={cargar} deshabilitado={guardando} />
             {fraseSinFoto(sinFoto) && <p className="nota-cayla text-xs">{fraseSinFoto(sinFoto)}</p>}
           </section>
 
@@ -251,12 +271,12 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
                     setEfectivo(e.target.value);
                   }}
                 />
-                {fraseCuenta(cuenta) && (
+                {fraseCuenta(cuenta, deuda) && (
                   <p
                     className={`mt-1.5 text-xs ${cuenta.estado === "cuadra" ? "text-verde-profundo" : cuenta.estado === "falta" ? "text-ambar-profundo" : "text-tinta/75"}`}
                     role="status"
                   >
-                    {fraseCuenta(cuenta)}
+                    {fraseCuenta(cuenta, deuda)}
                   </p>
                 )}
               </CampoGuiado>
@@ -290,7 +310,8 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
               </Aviso>
             )
           )}
-          {!vacio && <PieGuia guia={guia} listo="Todo listo para rendir." conFrase />}
+          {/* «¿Después puedo corregir?» (prueba ciega 2): mientras nadie la apruebe, sí. */}
+          {!vacio && <PieGuia guia={guia} listo="Todo listo para rendir. Mientras nadie la apruebe, puedes retirarla y corregirla." conFrase />}
           <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando || congelada}>
               Cancelar
@@ -313,17 +334,25 @@ function RendicionAbierta({
   id,
   en,
   faltante,
+  deuda,
   onClose,
   volverA,
 }: {
   id: string;
   en: string;
   faltante: number;
+  /** Lo que ya debe por faltantes aprobados: «tu deuda pasa de … a …» (/formidable 2026-10-14, cambio 3). */
+  deuda: number;
   onClose: () => void;
   volverA: RefObject<HTMLElement | null>;
 }) {
   const router = useRouter();
   const [items, setItems] = useState<ItemRendicion[] | null>(null);
+  const [falla, setFalla] = useState(false);
+  // Su explicación (`fn_mi_rendicion_abierta`): sin ella el faltante es deuda sin elegir (decisión 54), y la hoja tiene que decirlo bien.
+  // `undefined` mientras llega o si no se pudo leer; `leida` dice cuál de las dos.
+  const [explicacion, setExplicacion] = useState<string | null | undefined>(undefined);
+  const [leida, setLeida] = useState(false);
   const [retirando, setRetirando] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -334,13 +363,34 @@ function RendicionAbierta({
   useEffect(() => {
     let vigente = true;
     void leerItems(id).then((r) => {
-      if (vigente) setItems(r.error ? [] : r.items);
+      if (!vigente) return;
+      setFalla(Boolean(r.error));
+      setItems(r.error ? null : r.items);
     });
     return () => {
       vigente = false;
     };
   }, [id, vuelta]);
   const cargar = () => setVuelta((v) => v + 1);
+  const reintentar = () => {
+    setFalla(false);
+    setItems(null);
+    cargar();
+  };
+
+  useEffect(() => {
+    if (faltante <= 0.005) return;
+    let vigente = true;
+    void miRendicionAbierta().then((r) => {
+      if (!vigente) return;
+      // Si la que espera ya no es esta (la retiraron en otra pantalla), no se afirma nada de su explicación.
+      setExplicacion(r === undefined || r === null || r.id !== id ? undefined : r.explicacion);
+      setLeida(true);
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [id, faltante]);
 
   async function retirar() {
     if (guardando || enVuelo.current || !motivo.trim()) return;
@@ -365,7 +415,7 @@ function RendicionAbierta({
   return (
     <Modal
       titulo={`Tu rendición del ${en ? diaYHoraLima(en).dia : ""}`}
-      subtitulo="Espera que otra persona con Fondos por rendir la revise."
+      subtitulo="Espera que otra persona que revise los fondos la apruebe."
       onClose={onClose}
       variante="hoja"
       tamano="mediana"
@@ -376,12 +426,27 @@ function RendicionAbierta({
         <div className="space-y-5">
           {faltante > 0.005 && (
             <Aviso tono="atencion" titulo={`Faltan ${soles(faltante)}`} chico>
-              Quien la revisa decide si lo asume CAYLA o queda como deuda tuya.
+              {leida ? fraseFaltanteTuRendicion(explicacion, faltante, deuda) : null}
             </Aviso>
           )}
           <section className="space-y-2">
             <TituloGrupo cuenta={items ? items.length : undefined}>Lo que rendiste</TituloGrupo>
-            <ListaItems items={items} alSubir={cargar} deshabilitado={guardando} />
+            {falla ? (
+              <Aviso
+                tono="atencion"
+                titulo="No pude traer lo que rendiste"
+                chico
+                accion={
+                  <button type="button" className="btn-cayla btn-enlace" onClick={reintentar}>
+                    Volver a intentar
+                  </button>
+                }
+              >
+                Tu rendición está guardada: solo falló la lectura.
+              </Aviso>
+            ) : (
+              <ListaItems items={items} alSubir={cargar} deshabilitado={guardando} />
+            )}
           </section>
           {retirando && (
             <CampoTexto

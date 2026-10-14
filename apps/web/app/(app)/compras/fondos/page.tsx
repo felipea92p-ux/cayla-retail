@@ -120,7 +120,7 @@ export default async function FondosPage() {
                   {plural(cifras.conDeuda, "pagó de su bolsillo", "pagaron de su bolsillo")}
                 </TarjetaCifra>
               )}
-              <TarjetaCifra etiqueta="Les entregaste" valor={soles(cifras.entregado)}>
+              <TarjetaCifra etiqueta="Entregado" valor={soles(cifras.entregado)}>
                 desde el primer fondo
               </TarjetaCifra>
               <TarjetaCifra etiqueta="Devolvieron" valor={soles(cifras.devuelto)}>
@@ -161,7 +161,7 @@ export default async function FondosPage() {
                       <span className="block truncate font-medium">{r.persona}</span>
                       {/* Se parte en vez de cortarse: «papeles sin foto» es justo lo que quien aprueba tiene que ver. */}
                       <span className="block whitespace-normal text-xs text-taupe">
-                        La rindió el {r.rendidaEn ? diaYHoraLima(r.rendidaEn).dia : "—"} · {plural(r.items, "fila", "filas")}
+                        La rindió el {r.rendidaEn ? diaYHoraLima(r.rendidaEn).dia : "—"}
                         {r.sinFoto > 0 ? ` · ${plural(r.sinFoto, "papel sin foto", "papeles sin foto")}` : ""}
                       </span>
                       <span className={SEGUNDA_LINEA}>
@@ -174,7 +174,7 @@ export default async function FondosPage() {
                       {r.faltante > 0.005 ? <Chip tono="ambar">Faltan {soles(r.faltante)}</Chip> : <Chip tono="verde">Cuadra</Chip>}
                     </span>
                     <span className={ACCION}>
-                      <RevisarRendicion rendicion={r} />
+                      <RevisarRendicion rendicion={r} deuda={debe(r.personaId)} />
                     </span>
                   </div>
                 ))}
@@ -190,7 +190,7 @@ export default async function FondosPage() {
                 plantilla={plantillaFondos}
                 columnas={[
                   { titulo: "Persona" },
-                  { titulo: "Le entregaste", alinear: "der", clase: SOLO_ANCHA },
+                  { titulo: "Entregado", alinear: "der", clase: SOLO_ANCHA },
                   { titulo: "Devolvió", alinear: "der", clase: SOLO_ANCHA },
                   ...(conGasto ? [{ titulo: "Gastó", alinear: "der" as const, clase: SOLO_ANCHA }] : []),
                   { titulo: "Tiene en la mano", alinear: "der" },
@@ -211,7 +211,7 @@ export default async function FondosPage() {
                       </span>
                     )}
                     <span className={SEGUNDA_LINEA}>
-                      Le entregaste {montoEnFrase(f.entregado)} · devolvió {montoEnFrase(f.devuelto)}
+                      Entregado {montoEnFrase(f.entregado)} · devolvió {montoEnFrase(f.devuelto)}
                       {conGasto && <> · gastó {montoEnFrase(f.gastado)}</>}
                     </span>
                   </span>
@@ -221,6 +221,13 @@ export default async function FondosPage() {
                   <span className={`${CIFRA} font-medium text-tinta`}>
                     <span className="text-xs font-normal text-taupe @min-[36rem]:hidden">Tiene en la mano </span>
                     {soles(Math.max(f.saldo, 0))}
+                    {/* Con su rendición por aprobar, lo que ella dijo tener, al lado de lo de los libros (/formidable 2026-10-14, cambio 3). */}
+                    {estado.get(f.cuentaId)?.porAprobar && (
+                      <span className="block whitespace-normal text-xs font-normal text-taupe">
+                        dice <span className="whitespace-nowrap">{soles(estado.get(f.cuentaId)!.porAprobar!.efectivo)}</span> ·{" "}
+                        <span className="whitespace-nowrap">por aprobar</span>
+                      </span>
+                    )}
                     {/* Pagó de su bolsillo (decisión 32): el negativo no es plata en la mano, es lo que CAYLA le debe. */}
                     {/* La celda de una cifra no parte su texto: esta línea sí, pero nunca dentro de la cifra. */}
                     {f.saldo < -0.005 && (

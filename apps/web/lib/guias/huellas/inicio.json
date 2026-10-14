@@ -2,7 +2,7 @@
   "guia": "inicio",
   "ruta": "/",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 57,
+  "total": 59,
   "controles": {
     "app/(app)/page.tsx": [
       "Link «inicio.vender»",
@@ -16,10 +16,12 @@
       "input «);»"
     ],
     "components/fondos/RendirFondo.tsx": [
+      "button «Volver a intentar»",
       "CampoMonto «¿Cuánto tienes en la mano?»",
       "CampoTexto «¿Qué pasó con lo que falta?»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
+      "button «Volver a intentar» #2",
       "CampoTexto «¿Por qué la retiras?»",
       "Boton «Retirar para corregir»",
       "Boton «Retirar para corregir» #2"
