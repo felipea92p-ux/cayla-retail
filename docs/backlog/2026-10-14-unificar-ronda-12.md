@@ -8,7 +8,7 @@
 - [x] Verificado en el ERP local a 1440 px en claro y oscuro y a 375 px (fotos en `docs/unificar/capturas/titulo-pagina.*.jpg`); huellas de 8 guías aceptadas tras revisar su texto; la guía del Resumen de Producción explica los botones antes que las pestañas.
 - [ ] **Familias y Editar producto sin mirar en local:** a la base local le falta `familias.entra_a_motores` (ADR-0377). Mirarlas cuando Felipe actualice la base.
 - [ ] **El «Ver» de Caja sin mirar en local:** la tarjeta de pendientes no salía con la caja de la base local (171 h abierta). El cambio es la clase `btn-enlace`, la misma de la demo que eligió Felipe.
-- [ ] **El escáner de las guías no conoce las piezas de las rondas 10 y 11** (`BotonVer`, `BotonDescargar`, `BotonImprimir`, `BotonLimpiar`, `FiltroPuesto`): un control migrado a ellas sale de la huella. Sumarlas a `CONTROLES` en `apps/web/guias/escaner.mjs` y re-aceptar las huellas que cambien.
+- [x] **El escáner de las guías no conocía las piezas de las rondas 10 y 11** (`BotonVer`, `BotonDescargar`, `BotonImprimir`, `BotonLimpiar`, `FiltroPuesto`): sumadas a `CONTROLES` en `apps/web/guias/escaner.mjs`; 92 controles vuelven a la huella de 46 guías (ninguno sale: son los botones que ya estaban antes de migrarlos).
 - [ ] **Cotizaciones de maquila** no tiene cabecera de pantalla (es una tarjeta con su título de sección): decidir si lleva `EncabezadoPagina`.
 - [ ] **Avisar a Dany:** Rendimiento cambió de cabecera (solo cómo se ve).
 - [ ] **La frase de Eficiencia del Taller** ocupa cuatro líneas bajo el título de 46 px: si Felipe la quiere más corta, es una decisión de texto.

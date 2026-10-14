@@ -55,8 +55,9 @@ Lo aprendido:
   parte», el documento) va tras la fecha en `detalle`. Sin eso, la migración habría inventado frases o perdido datos.
 - **La sede de la línea de arriba es la que se mira:** «Todas las tiendas» en Compras (ADR-0387), la de la cuenta en Recibir y el Taller en
   Producción. No es decoración: dice qué está viendo la persona.
-- **El escáner de las guías no conoce las piezas de las rondas 10 y 11** (`BotonVer`, `BotonDescargar`, `BotonImprimir`, `BotonLimpiar`,
-  `FiltroPuesto`): un control migrado a ellas sale de la huella. Se arregla en `guias/escaner.mjs` (CONTROLES) y se re-aceptan las huellas.
+- **El escáner de las guías no conocía las piezas de las rondas 10 y 11** (`BotonVer`, `BotonDescargar`, `BotonImprimir`, `BotonLimpiar`,
+  `FiltroPuesto`): un control migrado a ellas salía de la huella sin que nada avisara. Arreglado (`guias/escaner.mjs`, CONTROLES; 92 controles
+  vuelven a 46 huellas). **Una pieza nueva de `/unificar` que es un control se suma ahí en el mismo commit que la crea.**
 - **Familias y Editar producto se caen en la base local** (`familias.entra_a_motores`, ADR-0377, no aplicada): se revisó el código, no la
   pantalla. No se aplican migraciones sin que Felipe lo pida.
 

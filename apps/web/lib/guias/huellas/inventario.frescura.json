@@ -2,7 +2,7 @@
   "guia": "inventario.frescura",
   "ruta": "/gestion/frescura",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 48,
+  "total": 49,
   "controles": {
     "components/frescura/CifraSinSaber.tsx": [
       "button «¿Por qué?»"
@@ -53,6 +53,7 @@
       "DesplegablePildora «Estado»",
       "button «Por decidir»",
       "button «Decididas»",
+      "BotonLimpiar «Limpiar filtros»",
       "button «Ver todas las prendas (»",
       "button «Ver todas las prendas»",
       "button «Limpiar filtros»",

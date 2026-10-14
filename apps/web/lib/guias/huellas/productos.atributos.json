@@ -2,7 +2,7 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 159,
+  "total": 161,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «{AYUDA[tipo]}»"
@@ -54,6 +54,7 @@
       "Link «{p.referencia}»"
     ],
     "components/EtiquetasLista.tsx": [
+      "BotonImprimir «(sin nombre)»",
       "BotonFiltro «Todas»",
       "BotonFiltro «{ESTILOS[g].grupo}»",
       "BotonFiltro «Vigentes hoy»",
@@ -197,6 +198,7 @@
       "Boton «Reactivar»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ]
   }

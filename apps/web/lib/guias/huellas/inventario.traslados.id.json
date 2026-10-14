@@ -2,7 +2,7 @@
   "guia": "inventario.traslados.id",
   "ruta": "/inventario/traslados/(billetera)/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 86,
+  "total": 87,
   "controles": {
     "app/(app)/inventario/traslados/(billetera)/layout.tsx": [
       "BotonEnlace «traslados.nuevo»"
@@ -102,6 +102,7 @@
       "button «→() => void alCerrar()»",
       "button «No anular»",
       "button «{anulandoAhora ? \"Anulando…\" : \"Anular · vuelve a tu stock\"}»",
+      "BotonImprimir «Imprimir la guía»",
       "button «Avisar por WhatsApp»",
       "button «{anular.porQueNo ?? undefined}»",
       "button «Anotarla como prenda de más»",

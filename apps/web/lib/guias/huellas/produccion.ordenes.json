@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 90,
+  "total": 91,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -70,6 +70,7 @@
       "Boton «(sin nombre)»",
       "button «Reabrir»",
       "Link «Llevarlas a las tiendas»",
+      "BotonImprimir «Imprimir etiquetas de precio»",
       "Boton «→() => setCerrando(true)»",
       "Boton «Anular»",
       "Boton «Volver sin cerrar»",

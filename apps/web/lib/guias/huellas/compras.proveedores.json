@@ -2,7 +2,7 @@
   "guia": "compras.proveedores",
   "ruta": "/compras/proveedores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 39,
+  "total": 40,
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
@@ -34,7 +34,8 @@
       "Link «+ Comprobante»",
       "Boton «{p.activo ? \"Desactivar\" : \"Reactivar\"}»",
       "button «Proveedor anterior»",
-      "button «Proveedor siguiente»"
+      "button «Proveedor siguiente»",
+      "BotonVer «Abrir ficha completa»"
     ],
     "components/ProveedoresPanel.tsx": [
       "Boton «proveedores.registrar»",

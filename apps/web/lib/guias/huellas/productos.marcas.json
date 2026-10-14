@@ -2,7 +2,7 @@
   "guia": "productos.marcas",
   "ruta": "/productos/marcas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 35,
+  "total": 36,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -45,6 +45,7 @@
       "button «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/marcas/FiltrosMarcas.tsx": [

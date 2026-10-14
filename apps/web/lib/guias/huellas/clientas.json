@@ -2,7 +2,7 @@
   "guia": "clientas",
   "ruta": "/clientas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 45,
+  "total": 46,
   "controles": {
     "components/CampoDocumentoClienta.tsx": [
       "CampoSelect «{etiqueta}»",
@@ -33,6 +33,7 @@
       "button «{todas ? \"Ver menos\" : `Ver las ${total}»"
     ],
     "components/ClientasPanel.tsx": [
+      "BotonDescargar «Solo un Admin puede descargar la lista completa»",
       "Boton «clientas.nuevo»",
       "Link «{f.texto}»",
       "Link «‹ Anterior»",
