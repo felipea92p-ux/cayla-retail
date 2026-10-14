@@ -1,8 +1,9 @@
 # ADR-0409 · Producción después de /chaos: el token sigue al contenido, los montos son números de verdad y el IGV tiene rango
 
 - **Fecha:** 2026-10-14 · **Estado:** construido y verificado en local (suite de base con controles, 15 suites vecinas, vitest y la
-  pantalla en un Chrome sin cabeza). **Las dos migraciones NO están en producción:** esperan el OK de Felipe. Rama
-  `claude/chaos-produccion-5c56e1`.
+  pantalla en un Chrome sin cabeza). **Las dos migraciones están en producción** desde el 2026-10-14 (con el OK de Felipe): los 10
+  candados puestos y validados contra todas las filas, y las seis funciones con su huella (cinco con el mismo md5 que en local;
+  `recibir_insumo` difiere solo en comentarios, como antes). Rama `claude/chaos-produccion-5c56e1`, PR #1087.
 - **Pedido:** Felipe, 2026-10-14: «continúa con el siguiente módulo» después de Catálogo (con la consigna de antes: cubrir y arreglar lo
   que haga falta sin interrumpir el flujo). Compras sigue esperando a que termine su reconstrucción (#1055, #1056, #1040, #1032).
 - **Extiende:** ADR-0398 (el token sigue al contenido en Ventas; montos finitos), ADR-0401 (lo mismo en Inventario) y ADR-0405 (montos

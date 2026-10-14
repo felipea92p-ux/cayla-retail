@@ -1,7 +1,7 @@
 ## 🧨 /chaos de Producción (2026-10-14) — rama `claude/chaos-produccion-5c56e1`, ADR-0409
 
-- [ ] **Pegar en producción**, con el OK de Felipe y en este orden: `20261014214000` (solo `alter table`) y después `20261014215000` (solo
-  funciones). Antes, volver a mirar que ninguna fila tenga un monto no finito y que las anclas sigan apareciendo las veces esperadas.
+- [x] ~~**Pegar en producción** `20261014214000` y `20261014215000`~~ — hecho el 2026-10-14 con el OK de Felipe: 10 candados validados y
+  las seis funciones con su huella.
 - [ ] Refrescar el volcado de `docs/datos/generado/` (los 10 candados nuevos) junto con el de ADR-0404 y ADR-0405.
 - [ ] **Decisión de Felipe:** ¿una orden puede prometer una entrega en el pasado? (`abrir_produccion` acepta 1990, PRO-06).
 - [ ] **Decisión de Felipe:** ¿se puede cerrar una orden con más prendas buenas que las pedidas? (hoy 9 de 6 entra, PRO-08).
