@@ -45,11 +45,11 @@ if (DE_TEXTOS.length !== 3) throw new Error(`esperaba 3 candados de textos y enc
 // Se quita el bloque solo, sin mirar qué viene después: en `pedir_a_otra_sede` el de textos queda entre el del token y el ancla.
 const deshacer = (lista) => lista.map((b) => `do $d$ begin execute replace(pg_get_functiondef('${b.firma}'::regprocedure), $n$${b.bloque}$n$, ''); end $d$;`).join("\n");
 
-const BEI_L = "6e26488d-eb70-4419-8f53-9d99be23c3ef";
-const NEG_L = "545f5803-df2f-4768-9ccb-f76665477d39";
-const AZM_M = "486f859f-1e02-477b-b0f7-a55976cb8065";
-const PROV = "c5965411-2888-4ebe-9849-d8f1681e0fda";
-const j = (o) => `'${JSON.stringify(o)}'::jsonb`;
+// Las prendas y el proveedor salen del seed por su código (los ids cambian en cada base: en el CI no son los de tu máquina), y su
+// stock lo pone la propia prueba, dentro de la transacción: `vl` en el almacén de Lima (traslados, pedidos, bajar al piso) y `vm` en
+// el almacén y en el piso (apartar, dañadas, ajustes).
+/** Una línea de prendas en SQL: `vl`/`vm` son variables de psql, que no se reemplazan dentro de un texto entre comillas. */
+const linea = (v, cantidad, extra = "") => `jsonb_build_array(jsonb_build_object('variante_id', :'${v}', 'cantidad', ${cantidad}${extra}))`;
 
 function preparar({ sinToken = false, sinTextos = false } = {}) {
   return `
@@ -63,6 +63,18 @@ select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as alm from retail.sububicaciones where ubicacion_id = :'lima' and tipo = 'almacen_tienda' limit 1 \\gset
 select id as piso from retail.sububicaciones where ubicacion_id = :'lima' and tipo = 'piso_venta' limit 1 \\gset
+select id as vl from retail.variantes where sku = 'BLU-EMMA-NEG-L' \\gset
+select id as vm from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
+select id as prov from retail.proveedores where nombre = 'Textiles Andina SAC' \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'vl', :'lima', :'alm', 'entrada', 20, 'colchón de prueba') returning id as m1 \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'vm', :'lima', :'alm', 'entrada', 20, 'colchón de prueba') returning id as m2 \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'vm', :'lima', :'piso', 'entrada', 20, 'colchón de prueba') returning id as m3 \\gset
+select retail.fn_aplicar_movimiento(:'m1') as _a1, retail.fn_aplicar_movimiento(:'m2') as _a2, retail.fn_aplicar_movimiento(:'m3') as _a3 \\gset
+-- Lo que ya hay de \`vl\` en el piso: bajar desde Vender pide «que haya N en el piso», así que la prueba pide una y dos más.
+select coalesce(sum(cantidad), 0) as piso_vl from retail.stock where variante_id = :'vl' and sububicacion_id = :'piso' \\gset
 `;
 }
 
@@ -95,33 +107,33 @@ const iguales = (r) => {
 const CASOS = [
   {
     nombre: "iniciar_traslado: 2 prendas y luego 3",
-    uno: (t) => `retail.iniciar_traslado(:'lima', :'tru', ${j([{ variante_id: BEI_L, cantidad: 2 }])}, now() + interval '1 day', null, '${t}')`,
-    dos: (t) => `retail.iniciar_traslado(:'lima', :'tru', ${j([{ variante_id: BEI_L, cantidad: 3 }])}, now() + interval '1 day', null, '${t}')`,
+    uno: (t) => `retail.iniciar_traslado(:'lima', :'tru', ${linea("vl", 2)}, now() + interval '1 day', null, '${t}')`,
+    dos: (t) => `retail.iniciar_traslado(:'lima', :'tru', ${linea("vl", 3)}, now() + interval '1 day', null, '${t}')`,
   },
   {
     nombre: "recibir_lote: 2 y luego 5",
-    uno: (t) => `retail.recibir_lote(:'lima', '${PROV}', ${j([{ variante_id: BEI_L, cantidad: 2, costo_unitario: 30 }])}, null, null, '${t}')`,
-    dos: (t) => `retail.recibir_lote(:'lima', '${PROV}', ${j([{ variante_id: BEI_L, cantidad: 5, costo_unitario: 30 }])}, null, null, '${t}')`,
+    uno: (t) => `retail.recibir_lote(:'lima', :'prov', ${linea("vl", 2, ", 'costo_unitario', 30")}, null, null, '${t}')`,
+    dos: (t) => `retail.recibir_lote(:'lima', :'prov', ${linea("vl", 5, ", 'costo_unitario', 30")}, null, null, '${t}')`,
   },
   {
     nombre: "pedir_a_otra_sede: 1 y luego 3",
-    uno: (t) => `retail.pedir_a_otra_sede(:'tru', :'lima', ${j([{ variante_id: BEI_L, cantidad: 1 }])}, null, '${t}')`,
-    dos: (t) => `retail.pedir_a_otra_sede(:'tru', :'lima', ${j([{ variante_id: BEI_L, cantidad: 3 }])}, null, '${t}')`,
+    uno: (t) => `retail.pedir_a_otra_sede(:'tru', :'lima', ${linea("vl", 1)}, null, '${t}')`,
+    dos: (t) => `retail.pedir_a_otra_sede(:'tru', :'lima', ${linea("vl", 3)}, null, '${t}')`,
   },
   {
     nombre: "pedir_prenda_para_apartar: para Ana y luego para Bea",
-    uno: (t) => `retail.pedir_prenda_para_apartar(:'tru', :'lima', '${BEI_L}', 1, 'Ana', 'Lozano', '999111222', null, '${t}')`,
-    dos: (t) => `retail.pedir_prenda_para_apartar(:'tru', :'lima', '${BEI_L}', 1, 'Bea', 'Lozano', '999111222', null, '${t}')`,
+    uno: (t) => `retail.pedir_prenda_para_apartar(:'tru', :'lima', :'vl', 1, 'Ana', 'Lozano', '999111222', null, '${t}')`,
+    dos: (t) => `retail.pedir_prenda_para_apartar(:'tru', :'lima', :'vl', 1, 'Bea', 'Lozano', '999111222', null, '${t}')`,
   },
   {
     nombre: "apartar_prenda: para Ana y luego para Bea",
-    uno: (t) => `retail.apartar_prenda('${NEG_L}', :'lima', 1, 'Ana', '999111222', current_date + 3, null, :'piso', '${t}')`,
-    dos: (t) => `retail.apartar_prenda('${NEG_L}', :'lima', 1, 'Bea', '999111222', current_date + 3, null, :'piso', '${t}')`,
+    uno: (t) => `retail.apartar_prenda(:'vm', :'lima', 1, 'Ana', '999111222', current_date + 3, null, :'piso', '${t}')`,
+    dos: (t) => `retail.apartar_prenda(:'vm', :'lima', 1, 'Bea', '999111222', current_date + 3, null, :'piso', '${t}')`,
   },
   {
     nombre: "bajar_al_piso_desde_vender: 1 y luego 2",
-    uno: (t) => `retail.bajar_al_piso_desde_vender(:'lima', '${BEI_L}', 1, '${t}')`,
-    dos: (t) => `retail.bajar_al_piso_desde_vender(:'lima', '${BEI_L}', 2, '${t}')`,
+    uno: (t) => `retail.bajar_al_piso_desde_vender(:'lima', :'vl', :piso_vl + 1, '${t}')`,
+    dos: (t) => `retail.bajar_al_piso_desde_vender(:'lima', :'vl', :piso_vl + 2, '${t}')`,
     // Devuelve el mismo movimiento con `ya_registrada`: lo que cuenta es el movimiento.
     mismo: (r) => {
       const a = r.salida.match(/^uno\|.*"movimiento_id": "([^"]+)"/m)?.[1];
@@ -142,10 +154,10 @@ for (const c of CASOS) {
 
 // --- Las dañadas: dos con el mismo token y la misma nota ---
 {
-  const antes = `select retail.reportar_danada(:'lima', '${NEG_L}', 1, 'almacen', 'mancha uno', gen_random_uuid());
-select retail.reportar_danada(:'lima', '${NEG_L}', 1, 'almacen', 'mancha dos', gen_random_uuid());
-select id as d1 from retail.prendas_danadas where variante_id = '${NEG_L}' and motivo_reporte = 'mancha uno' \\gset
-select id as d2 from retail.prendas_danadas where variante_id = '${NEG_L}' and motivo_reporte = 'mancha dos' \\gset
+  const antes = `select retail.reportar_danada(:'lima', :'vm', 1, 'almacen', 'mancha uno', gen_random_uuid());
+select retail.reportar_danada(:'lima', :'vm', 1, 'almacen', 'mancha dos', gen_random_uuid());
+select id as d1 from retail.prendas_danadas where variante_id = :'vm' and motivo_reporte = 'mancha uno' \\gset
+select id as d2 from retail.prendas_danadas where variante_id = :'vm' and motivo_reporte = 'mancha dos' \\gset
 `;
   const despues = `select 'arregladas|' || count(*) || '|' || count(distinct movimiento_salida_id) from retail.prendas_danadas where id in (:'d1', :'d2') and estado = 'se_arreglo';`;
   const uno = (t) => `retail.arreglar_prenda_danada(:'d1', 'cosido', '${t}')`;
@@ -159,7 +171,7 @@ select id as d2 from retail.prendas_danadas where variante_id = '${NEG_L}' and m
 
 // --- El pase de un pedido: enviar con el mismo token y otra fecha ---
 {
-  const antes = `select retail.pedir_a_otra_sede(:'tru', :'lima', ${j([{ variante_id: BEI_L, cantidad: 1 }])}, null, gen_random_uuid()) as grupo \\gset
+  const antes = `select retail.pedir_a_otra_sede(:'tru', :'lima', ${linea("vl", 1)}, null, gen_random_uuid()) as grupo \\gset
 `;
   const uno = (t) => `retail.enviar_pedido_a_otra_sede((select grupo_id from retail.separacion_pedidos where id = :'grupo' or grupo_id = :'grupo' limit 1), now() + interval '1 day', '${t}')`;
   const dos = (t) => `retail.enviar_pedido_a_otra_sede((select grupo_id from retail.separacion_pedidos where id = :'grupo' or grupo_id = :'grupo' limit 1), now() + interval '3 days', '${t}')`;
@@ -171,19 +183,19 @@ select id as d2 from retail.prendas_danadas where variante_id = '${NEG_L}' and m
 // --- El resolver revisa un traslado ---
 {
   const r = correr(`${preparar()}
-select retail.iniciar_traslado(:'lima', :'tru', ${j([{ variante_id: BEI_L, cantidad: 2 }])}, now() + interval '1 day', null, 'c0ffee00-0000-4000-8000-000000014101') as tr \\gset
+select retail.iniciar_traslado(:'lima', :'tru', ${linea("vl", 2)}, now() + interval '1 day', null, 'c0ffee00-0000-4000-8000-000000014101') as tr \\gset
 select 'hecho|' || (retail.fn_resolver_intento('iniciar_traslado', 'c0ffee00-0000-4000-8000-000000014101') ->> 'estado') || '|' || (retail.fn_resolver_intento('iniciar_traslado', 'c0ffee00-0000-4000-8000-000000014101') ->> 'prendas');
 select 'perdido|' || (retail.fn_resolver_intento('iniciar_traslado', 'c0ffee00-0000-4000-8000-000000014102') ->> 'estado');`);
   esperar("fn_resolver_intento: un traslado guardado es «hecho» con sus prendas", r.ok && r.salida.includes("hecho|hecho|2"), r.salida || r.error);
   esperar("fn_resolver_intento: un traslado que no llegó es «no_llego»", r.ok && r.salida.includes("perdido|no_llego"), r.salida || r.error);
   const tarde = correr(`${preparar()}
 select retail.fn_resolver_intento('iniciar_traslado', 'c0ffee00-0000-4000-8000-000000014103');
-select retail.iniciar_traslado(:'lima', :'tru', ${j([{ variante_id: BEI_L, cantidad: 2 }])}, now() + interval '1 day', null, 'c0ffee00-0000-4000-8000-000000014103');`);
+select retail.iniciar_traslado(:'lima', :'tru', ${linea("vl", 2)}, now() + interval '1 day', null, 'c0ffee00-0000-4000-8000-000000014103');`);
   esperar("un traslado que llega DESPUÉS de darse por no llegado se rechaza (intento_descartado)", rechaza(tarde, "intento_descartado"), tarde.salida);
 }
 
 // --- Textos y fechas ---
-const traslado = (nota, fecha) => `select retail.iniciar_traslado(:'lima', :'tru', ${j([{ variante_id: BEI_L, cantidad: 1 }])}, ${fecha}, ${nota}, gen_random_uuid());`;
+const traslado = (nota, fecha) => `select retail.iniciar_traslado(:'lima', :'tru', ${linea("vl", 1)}, ${fecha}, ${nota}, gen_random_uuid());`;
 {
   const sin = correr(`${preparar({ sinTextos: true })}${traslado("repeat('x', 5000)", "'1990-01-01'::timestamptz")}`);
   esperar("CONTROL sin la migración: un traslado con nota de 5000 y llegada en 1990 se guardaba", sin.ok, sin.error);
@@ -193,8 +205,8 @@ esperar("una nota de traslado de 200 se guarda", correr(`${preparar()}${traslado
 esperar("una llegada en 1990 se rechaza", rechaza(correr(`${preparar()}${traslado("null", "'1990-01-01'::timestamptz")}`), "traslado_llegada_pasada"), "pasó");
 esperar("una llegada de ayer se acepta (el pase abierto antes de medianoche)", correr(`${preparar()}${traslado("null", "now() - interval '1 day'")}`).ok, "rechazada");
 esperar("una nota de pedido a otra sede de 201 se rechaza",
-  rechaza(correr(`${preparar()}select retail.pedir_a_otra_sede(:'tru', :'lima', ${j([{ variante_id: BEI_L, cantidad: 1 }])}, repeat('x', 201), gen_random_uuid());`), "pedido_nota_larga"), "pasó");
-const ajuste = (motivo, nota) => `select retail.ajustar_inventario(:'lima', :'alm', ${j([{ variante_id: AZM_M, cantidad: -1 }])}, ${motivo}, '[]'::jsonb, false, ${nota}, gen_random_uuid());`;
+  rechaza(correr(`${preparar()}select retail.pedir_a_otra_sede(:'tru', :'lima', ${linea("vl", 1)}, repeat('x', 201), gen_random_uuid());`), "pedido_nota_larga"), "pasó");
+const ajuste = (motivo, nota) => `select retail.ajustar_inventario(:'lima', :'alm', ${linea("vm", -1)}, ${motivo}, '[]'::jsonb, false, ${nota}, gen_random_uuid());`;
 {
   const sin = correr(`${preparar({ sinTextos: true })}${ajuste("'porque_si'", "null")}`);
   esperar("CONTROL sin la migración: un ajuste con motivo inventado se guardaba", sin.ok, sin.error);
@@ -203,7 +215,7 @@ esperar("un ajuste con motivo inventado se rechaza", rechaza(correr(`${preparar(
 for (const m of ["reposicion", "merma", "conteo_fisico", "otro"]) {
   // «Encontré prendas» (reposicion) suma: va con +1 y su nota.
   const sql = m === "reposicion"
-    ? `select retail.ajustar_inventario(:'lima', :'alm', ${j([{ variante_id: AZM_M, cantidad: 1 }])}, 'reposicion', '[]'::jsonb, false, 'estaba en otra caja', gen_random_uuid());`
+    ? `select retail.ajustar_inventario(:'lima', :'alm', ${linea("vm", 1)}, 'reposicion', '[]'::jsonb, false, 'estaba en otra caja', gen_random_uuid());`
     : ajuste(`'${m}'`, "'una nota'");
   const r = correr(`${preparar()}${sql}`);
   esperar(`un ajuste con el motivo «${m}» de la pantalla se guarda`, r.ok, r.error);
