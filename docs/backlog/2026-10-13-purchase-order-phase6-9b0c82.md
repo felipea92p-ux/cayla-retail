@@ -63,22 +63,21 @@ fusiona).
     informe local en `.chaos/`). Resistieron el doble clic, recargar al guardar, la red cortada, el Tab, cerrar a mitad del guardado, los
     permisos de la API y 11 carreras entre dos cuentas sobre el mismo fondo (y una ráfaga de 8 sesiones): el candado por persona los pone
     en fila y las invariantes del fondo quedan limpias. El banco quedó idéntico a su foto.
-  - [ ] Felipe: los hallazgos de `/chaos` (ninguno se arregló todavía):
-    - [ ] (g1) `entregar_fondo` y `registrar_gasto_viaje` guardan un monto «NaN» que llega por la API, y un NaN deja en NaN el fondo, la
-      caja de origen, la 1413 y el Diario. No es solo de la fase 6 (`registrar_movimiento_dinero` también). Arreglo de raíz: candado en
-      las tablas de dinero, como `ventas_montos_validos` (migración).
-    - [ ] (g1) Mismo token con otro contenido: si la respuesta se pierde y la persona corrige el monto antes de reintentar, la base guarda
-      lo primero y la hoja anuncia lo nuevo (Entregar: guardó S/ 40 y dijo S/ 90; Rendir: guardó 380 sin faltante y ella había corregido a
-      350). Las cinco funciones del fondo no usan «el token sigue al contenido» (`fn_intento_con_huella`, 20261013200000).
-    - [ ] (g2) La coma decimal: «1299,50» se lee S/ 129,950.00 y «150,5», S/ 1,505.00 en Entregar y en el gasto del viaje (`leerMonto` borra
-      las comas; también lee «1e3» y «0x10»). Decidir si se cambia para todos (Caja lo usa) o solo para el fondo.
-    - [ ] (g2) Fechas de 1900 aceptadas en entregar, devolver y el gasto del viaje (solo se frena la futura). Falta la regla del piso.
-    - [ ] (g2) Por la API: 3 decimales redondeados en silencio en entregar y devolver, un carácter invisible como texto y el motivo de
-      anular una entrega sin largo máximo.
-    - [ ] (g3) El tope de la planilla con red lenta: dos cambios seguidos pueden quedar en el orden equivocado (quedó 50 tras escribir 55,5).
-    - [ ] (g4) El gasto del viaje de una orden de otra tienda propone el cajón de la sede de arriba y la base lo rechaza con «Es de otra
-      tienda que la caja que lo paga»; y errores crudos de Postgres por la API (montos enormes).
-    - [ ] Un hallazgo de seguridad: ver el chat del 2026-10-14 (no se versiona).
+  - [x] Los hallazgos de `/chaos`, arreglados con el OK de Felipe (2026-10-14), cada uno con su prueba y repetido con la misma semilla:
+    - [x] (g1) Un monto NaN o infinito no entra a la plata: candados en las tablas (`20261014192000`) y las funciones del fondo lo dicen
+      (`193000`); INV-17 en el detector de `/chaos`. También cierra el aporte NaN de «Cuentas y dinero».
+    - [x] (g1) El token sigue al contenido en las cinco funciones del fondo (`194000`) y sus hojas usan `useIntento`: si la respuesta se
+      pierde, la hoja se congela y pregunta antes de reintentar.
+    - [x] (g2) La coma decimal en las hojas del fondo (`leerMontoPlata`, decisión 78); Caja sigue con su lector.
+    - [x] (g2) Fechas no antes del 13/10/2026 (decisión 77), 2 decimales en entregar y devolver, textos invisibles y el motivo de anular de
+      200 letras (`193000`).
+    - [x] (g3) El tope de la planilla no se edita mientras guarda.
+    - [x] (g4) El gasto del viaje propone la caja de la tienda del gasto (`fn_gasto_viaje_sede`, `200000`) y, si igual llega el rechazo,
+      dice qué elegir; los montos enormes dicen «demasiado grande».
+    - [x] Hallazgo de seguridad: cerrado (`195000`; detalle en el chat del 2026-10-14).
+    - [x] Producción: las cinco migraciones pegadas (2026-10-14, `20261014193506` … `20261014195408`), con sus anclas contadas antes y las
+      huellas de las funciones iguales a las del banco después.
+  - [ ] Felipe: ¿Caja también entiende la coma decimal? (`leerMonto` de `lib/caja-cierre-reglas.ts` sigue borrando las comas.)
   - [ ] `/formidable`.
 - [x] Tabla «Quién tiene plata» de Fondos por rendir a 1024 px con el menú abierto: la arregló otra sesión (las tres tablas deciden por
   el ancho de su tarjeta) y entró con cherry-pick (`caa9daf90`); verificado aquí a 1024 y 1280 px con el menú abierto (0 px de desborde).

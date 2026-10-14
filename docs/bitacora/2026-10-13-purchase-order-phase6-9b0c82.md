@@ -35,3 +35,10 @@
   lo viejo y la hoja anuncia lo nuevo (lo que Ventas y Caja ya cerraron el 13); y la coma decimal («1299,50») multiplica la plata por 100
   en Entregar y en el gasto del viaje. Nada se arregló: los de dinero son de base y esperan a Felipe (backlog de la rama). Semilla 1014,
   tablero en `docs/chaos/README.md`; el banco quedó idéntico a su foto.
+- **Los arreglos de /chaos (2026-10-14, con el OK de Felipe):** la base del fondo ya no acepta montos NaN ni infinitos (candados en las
+  tablas de plata, también para «Cuentas y dinero»), más de 2 decimales, fechas de antes del 13/10/2026 ni textos invisibles; el token
+  sigue al contenido en las cinco funciones del fondo y sus hojas se congelan si la respuesta se pierde (`useIntento`); las hojas entienden
+  «1299,50»; el gasto del viaje propone la caja de su tienda; el tope de la planilla espera al guardado anterior. Primero la prueba
+  (`pruebas:fondos-entradas`: 0/5 sin el arreglo, 6/6 con él), después el arreglo, y los mismos ataques con la semilla 1014 resisten en la
+  base y en el navegador. Cinco migraciones en producción (`20261014192000` … `200000`), huellas iguales al banco. Se trajo main antes de
+  tocar la lista de operaciones con marca, que main había cambiado.

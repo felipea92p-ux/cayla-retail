@@ -1558,7 +1558,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     paralelo) + `lib/fondos-reglas.ts` (lectura defensiva, cifras, opciones agrupadas, lo que falta en cada hoja = lo que rechaza la base) +
     `components/fondos/AccionesFondos.tsx` (hojas «Entregar plata», «Lo que devuelve» y «Anular», con guía de foco) →
     `lib/fondos-acciones.ts` (`entregar_fondo`, `devolver_fondo`, `anular_movimiento_fondo`; firmas `fondo_entregar`, `fondo_devolver`,
-    `fondo_anular`; token por hoja). El fondo es una cuenta de dinero de tipo `fondo` con su dueña (`cuentas_dinero.persona_id`, 1413),
+    `fondo_anular`). Desde /chaos (2026-10-14): la marca de cada envío sigue a lo que se manda (`lib/useIntento.ts`; la base rechaza el
+    mismo token con otro contenido, `token_reusado`, y `fn_resolver_intento` revisa las cinco operaciones del fondo, 20261014194000); el
+    monto con `lib/monto-plata-reglas.ts:leerMontoPlata` (coma decimal, decisión 78); y la base no acepta un monto NaN ni infinito
+    (candados `*_montos_finitos`, 20261014192000), más de 2 decimales, fechas de antes del 13/10/2026 (`fn_fondos_desde`, decisión 77)
+    ni textos hechos solo de caracteres invisibles (`fn_sin_invisibles`, 20261014193000). El fondo es una cuenta de dinero de tipo `fondo` con su dueña (`cuentas_dinero.persona_id`, 1413),
     y su saldo sale del mismo libro que «Cuentas y dinero» (`fn_dinero_libro`). Cabecera `EncabezadoPagina`.
     **Pagar desde «Mi fondo»** (actividad 2, `20261013212000`): `useCuentasParaElegir("pago", …, { conMiFondo: true })`
     (`components/finanzas/CampoCuenta.tsx`, con `useMiFondo` → `fn_mi_fondo`) en `RegistrarComprobanteOrden`, `RegistrarPagoModal`
@@ -1615,8 +1619,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     **Gastos del viaje** (ADR-0362 fase 6 · actividad 3, `20261013221000`/`222000`): «+ Gasto del viaje» en la cabecera de la lista y en
     `AccionesOrden` → `components/ordenes-compra/GastoDelViaje.tsx` (hoja con guía de foco; a la vista solo las órdenes elegidas, y las
     demás con «+ Agregar otra orden» → `ComboBuscable` con `ordenesParaAgregar`, decisión 74; al menos una, decisión 75, que también frena `registrar_gasto_viaje` —20261014170000—; órdenes por `fn_gastos_viaje_ordenes`, «Sale de»
-    con `conMiFondo`) → `lib/gastos-viaje-acciones.ts` (`registrar_gasto_viaje`, firma `gasto_viaje_registrar`); reglas y reparto en
-    `lib/gastos-viaje-reglas.ts`, ejemplos en `lib/sugerencias-gasto-viaje.ts`. «Traerla costó» en el detalle: `lib/gastos-viaje.ts:getGastosDeOrden`
+    con `conMiFondo` y de la tienda del gasto: `fn_gasto_viaje_sede`, 20261014200000, la misma regla que la base) → `lib/gastos-viaje-acciones.ts`
+    (`registrar_gasto_viaje`, firma `gasto_viaje_registrar`, con la marca de `useIntento`: si la respuesta se pierde, la hoja se congela y
+    pregunta a `fn_resolver_intento`, 20261014194000); el monto con `lib/monto-plata-reglas.ts:leerMontoPlata` (coma decimal, decisión 78);
+    reglas y reparto en `lib/gastos-viaje-reglas.ts`, ejemplos en `lib/sugerencias-gasto-viaje.ts`. «Traerla costó» en el detalle: `lib/gastos-viaje.ts:getGastosDeOrden`
     (`fn_gastos_viaje_de_orden`) + `components/ordenes-compra/GastosDeOrden.tsx`.
     «ver» va delante del id a propósito: una interceptada `ordenes/[id]` se tragaba `/compras/ordenes/nueva` (Next la modela como
     reescritura `beforeFiles`). Con la orden «generada», `components/ordenes-compra/AccionesOrden.tsx` en el pie de la ventana y en la
