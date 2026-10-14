@@ -375,6 +375,15 @@ select retail.registrar_devolucion_separacion(:'sep', 'plin', 'OP-1') as r \\gse
 select c.tipo, c.total = s.adelanto, c.comprobante_original_id = s.comprobante_anticipo_id, (:'r'::jsonb ->> 'aviso') is null
   from retail.separaciones s join retail.comprobantes c on c.id = s.nota_credito_id where s.id = :'sep';`,
   (s) => s === "nota_credito|t|t|t");
+exito("devolver un apartado VIEJO cuya boleta de anticipo se marcó «no emitida»: no intenta una nota de crédito sobre lo que nunca salió",
+  `${liberada()}
+${anticipoViejo}
+select retail.marcar_comprobante_no_emitido(:'compv', 'Nunca salió a SUNAT: se regulariza el apartado (ADR-0399)') as _m \\gset
+select retail.registrar_devolucion_separacion(:'sep', 'yape', 'OP-9') as r \\gset
+select s.estado, s.nota_credito_id is null, (:'r'::jsonb ->> 'aviso') is null,
+       (select count(*) from retail.comprobantes where separacion_id = s.id and tipo = 'nota_credito')
+  from retail.separaciones s where s.id = :'sep';`,
+  (s) => s === "devuelta|t|t|0");
 exito("devolver en efectivo: sale del cajón como egreso ligado",
   `${liberada()}
 select retail.registrar_devolucion_separacion(:'sep', 'efectivo') as r \\gset
