@@ -39,8 +39,12 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 
 ## Propuestas esperando decisión
 
-Ninguna. **La ronda 10** (descargar, filtros y ver en otra pantalla; fuentes en [rondas/10](rondas/10/README.md)) la eligió Felipe
-tocando las demos el 2026-10-13, las tres **P1**, y se migró el mismo día: deuda 0.
+| Familia | Propuesta | Desde | Nota |
+|---|---|---|---|
+| `accion.cancelar`, `accion.limpiar`, `accion.imprimir` | **Ronda 11:** cancelar en el pie de una hoja, la fila de filtros puestos con «Limpiar todo» e imprimir, en una página de elegir con demos vivas (fuentes en [rondas/11](rondas/11/README.md)) | 2026-10-14 | Espera la elección de Felipe |
+
+**La ronda 10** (descargar, filtros y ver en otra pantalla; fuentes en [rondas/10](rondas/10/README.md)) la eligió Felipe tocando las demos
+el 2026-10-13, las tres **P1**, y se migró el mismo día: deuda 0.
 
 **La migración de las rondas 6–8 (2026-10-13)** bajó la deuda de 258 archivos a 4 en un día, sin cambiar qué hace ningún botón, y dejó seis
 preguntas que no se podían decidir por regla. **La ronda 9 (el mismo día, tocando las demos) las cerró y la deuda quedó en 0 en todas las
@@ -80,7 +84,7 @@ en la página de elegir, nunca por una descripción.
 | 9 | `titulo-seccion` | El título de cada bloque dentro de una pantalla | 46 sin depurar → serif en 8 tamaños, versalitas en 6, sans en 5, y 4 separadores de día | **Decidida el 2026-10-13 (ronda 7)**: bloque, grupo y separador de día |
 | 10 | `accion.ver`, `accion.filtrar`, `accion.exportar` | Ver en otra pantalla, abrir los filtros, descargar un archivo | censo del 2026-10-13: 16 / 5 / 4 (depurado: 4 pesos de «ver», 2 caras de filtros, 4 caras y dos verbos de descargar) | **Decidida y migrada el 2026-10-13 (ronda 10, las tres P1)** (`accion.eliminar` ya estaba decidida, ronda 4) |
 | 11 | ~~`casilla`~~ (decidida, ronda 6), ~~`enlace`~~, ~~`paginacion`~~, ~~`avatar`~~ (decididas, ronda 8), `modal`, `grafico` | Casillas e interruptores, enlaces de texto, hojas, gráficos, paginación, avatares | 6 / 9 / 5 / 5 / 2 / 2 | Pocas formas: rondas cortas. **De los gráficos, la barra apilada ya está decidida (`grafico.barra`, 2026-10-09)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357) |
-| 12 | `accion.cerrar`, `accion.cancelar`, `accion.guardar`, `accion.limpiar`, `accion.editar`, `accion.buscar`, `accion.imprimir`, `accion.menu`, `accion.copiar` | Los botones de una sola función | 1–2 cada una | Casi todas tienen ya una sola forma: se pueden cerrar juntas en una ronda |
+| 12 | `accion.cerrar`, `accion.cancelar`, `accion.guardar`, `accion.limpiar`, `accion.editar`, `accion.buscar`, `accion.imprimir`, `accion.menu`, `accion.copiar` | Los botones de una sola función | 1–2 cada una | Casi todas tienen ya una sola forma: se pueden cerrar juntas en una ronda. **`accion.cancelar`, `accion.limpiar` y `accion.imprimir`: ronda 11 armada el 2026-10-14, espera la elección** |
 | 13 | `icono` | Iconos (tamaño y trazo) | 122 huellas · 73 | Las 122 son sobre todo tamaños y trazos distintos de lucide; hay que depurar mucho antes de mostrar |
 | — | `titulo-pagina` | La cabecera de cada pantalla | 8 · 97 | **No se corre** hasta que Felipe decida la cabecera de los módulos sin decidir (ADR-0220): Compras, Caja, Recibir, el resto de Catálogo |
 
@@ -102,6 +106,7 @@ Cargar más»), `accion.anterior` y `accion.deshacer` no aparecieron con la cuen
 | 2026-10-12 | `claude/unificar-componentes-animaciones-f811a1` @ `6bffcd43c`, cuenta Admin, todo el ERP con escenarios, familias `combo,tabla,titulo-seccion,campo,etiqueta-campo,casilla` (rondas 6 y 7) | **47 de 274** (incompleto) | 6 | **Se cortó a la mitad:** el disco se llenó, Docker se apagó solo (`no space left on device`) y la base local cayó; desde ahí todas las rutas mandaban al login. Las rondas 6 y 7 se armaron con este censo parcial (campo, etiqueta-campo, casilla) y con el completo del 2026-10-07 (combo, tabla, titulo-seccion). La pasada de `terminal-ventas` no alcanzó a correr (la cuenta no existía en la base local y `tema:cuentas` necesita Docker) |
 | 2026-10-13 | `claude/mystifying-jang-ef15d0` @ `3b4b888ef`, cuenta Admin, todo el ERP con escenarios (el censo de después de las rondas 6–9) | 252 de 277 | 41 familias medidas | Sin depurar, cifras altas (combo 36, tabla 39, títulos 41): son la misma pieza en otro tamaño, Finanzas y las excepciones. **Rastreado al código** (el texto de cada variante con `grep`): 10 títulos que la firma no veía (un `\b` tras `]`), 4 «Ver … →» en versalitas, 2 casillas a mano, 5 «+ Agregar» y la caja «Producto» de Nueva compra encogida a 78 px; todo migrado o arreglado ese día. Base de la ronda 10 |
 | 2026-10-13 | `claude/mystifying-jang-ef15d0` @ `ec9b81fa5`, cuenta `terminal-ventas` (el mostrador), todo el ERP con escenarios | 61 de 133 (las demás: sin acceso) | 32 familias medidas | **Rastreado al código:** las seis formas de «vacío» de Caja eran frases grises sueltas, y en todo el ERP había 49 en 40 archivos que la firma no veía (estaba atada a clases exactas). Migradas a `<Vacio>` con una firma nueva, y 3 «Ver … →» de Caja a `<EnlaceVer>` |
+| 2026-10-14 | `claude/mystifying-jang-ef15d0` @ `6b1d1e24e`, cuentas Admin y `terminal-ventas`, todo el ERP con escenarios, familias `accion.cancelar,accion.limpiar,accion.imprimir` | 253 de 280 · 61 de 133 | 3 | Cancelar: 3 formas (secundario 21, el flujo del mostrador 2, versalitas 1) y dos maneras de repartirse el pie; Limpiar: 3 (versalitas, dos enlaces); Imprimir: 4. Base de la ronda 11 |
 
 ## Cómo se agrega una fila
 
