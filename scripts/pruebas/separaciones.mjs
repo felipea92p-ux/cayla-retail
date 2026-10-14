@@ -22,8 +22,11 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 
-const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
+// `--contenedor <nombre>` apunta a una base propia (una pila aparte) en vez de la compartida del equipo.
+const iContenedor = process.argv.indexOf("--contenedor");
+const CONTENEDOR_LOCAL = iContenedor > -1 ? process.argv[iContenedor + 1] : "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora — fija a Tienda Trujillo
 
@@ -96,6 +99,12 @@ function separar({ cantidad = 1, pagosSql = pagos(["efectivo", 50, 60]), extra =
 `;
 }
 
+// Un apartado VIEJO (de antes de ADR-0399): ya tiene su boleta de anticipo con correlativo gastado. Se arma a mano para probar que
+// el camino de antes sigue entero.
+const anticipoViejo = `select retail.emitir_comprobante(:'ubic', 'boleta', round(50 / 1.18, 2), 50 - round(50 / 1.18, 2), 50, null, 'sin_documento', null,
+  'Ana Lozano Vera', jsonb_build_array(jsonb_build_object('descripcion', 'Anticipo', 'cantidad', 1, 'precio_unitario', round(50 / 1.18, 2)))) as compv \\gset
+update retail.comprobantes set separacion_id = :'sep', es_anticipo = true where id = :'compv';
+update retail.separaciones set comprobante_anticipo_id = :'compv' where id = :'sep';`;
 const CASOS = [];
 const exito = (nombre, sql, verificar) => CASOS.push({ nombre, tipo: "exito", sql, verificar });
 const error = (nombre, sql, contiene) => CASOS.push({ nombre, tipo: "error", sql, contiene });
@@ -105,16 +114,17 @@ const filas = (salida) => salida.split("\n").filter(Boolean);
 // Separar
 // ---------------------------------------------------------------------------
 exito(
-  "separar: aparta la prenda, deja el adelanto en custodia, emite la boleta de anticipo y el invariante cuadra",
+  "separar: aparta la prenda, deja el adelanto en custodia, NO emite ningún comprobante y el invariante cuadra",
   `${preparar()}${separar()}
 select s.codigo ~ '^APT-TRU-[0-9]{4}$', s.estado, s.total = :'precio'::numeric, s.adelanto, s.vence_el = retail.fn_hoy_lima() + 7,
        s.devolucion_numero, s.clienta_celular,
        (select cantidad = :cant0 and cantidad_apartada = :apart0 + 1 from retail.stock where variante_id = :'v' and ubicacion_id = :'ubic' and sububicacion_id = :'piso'),
        (select count(*) from retail.caja_movimientos where separacion_id = s.id and tipo = 'ingreso' and monto = 50),
-       (select c.tipo || ':' || c.es_anticipo || ':' || c.total || ':' || (c.venta_id is null) from retail.comprobantes c where c.id = s.comprobante_anticipo_id),
+       s.comprobante_anticipo_id is null,
+       (select count(*) from retail.comprobantes c where c.separacion_id = s.id),
        (select count(*) from retail.fn_verificar_separaciones()), (select count(*) from retail.fn_verificar_apartados())
   from retail.separaciones s where s.id = :'sep';`,
-  (s) => s === "t|abierta|t|50.00|t|987111222|987111222|t|1|boleta:true:50.00:true|0|0"
+  (s) => s === "t|abierta|t|50.00|t|987111222|987111222|t|1|t|0|0|0"
 );
 
 exito(
@@ -140,20 +150,23 @@ select (select right(codigo, 4)::int from retail.separaciones where id = :'s2') 
 );
 
 exito(
-  "idempotencia: el mismo token devuelve la misma separación, sin segundo apartado ni segunda boleta",
+  "idempotencia: el mismo token devuelve la misma separación, sin segundo apartado",
   `${preparar()}
 select gen_random_uuid() as tok \\gset
 ${separar({ extra: ", p_token => :'tok'", como: "s1" })}${separar({ extra: ", p_token => :'tok'", como: "s2" })}
 select :'s1' = :'s2', (select count(*) from retail.separacion_items where separacion_id = :'s1'),
-       (select count(*) from retail.comprobantes where separacion_id = :'s1');`,
+       (select count(*) from retail.separaciones where token_cliente = :'tok');`,
   (s) => s === "t|1|1"
 );
 
 exito(
-  "factura de anticipo: lleva RUC y razón social en el comprobante",
+  "factura: el RUC y la razón social se guardan al apartar y la factura sale al entregar, por el total",
   `${preparar()}${separar({ extra: ", p_comprobante_tipo => 'factura', p_cliente_ruc => '20123456789', p_cliente_razon_social => 'Moda Norte SAC'" })}
-select c.tipo, c.cliente_tipo_doc, c.cliente_num_doc, c.cliente_nombre from retail.comprobantes c join retail.separaciones s on s.comprobante_anticipo_id = c.id where s.id = :'sep';`,
-  (s) => s === "factura|ruc|20123456789|Moda Norte SAC"
+select retail.entregar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric - 50))) as venta \\gset
+select (select count(*) from retail.comprobantes where separacion_id = :'sep'),
+       c.tipo, c.cliente_tipo_doc, c.cliente_num_doc, c.cliente_nombre, c.total = :'precio'::numeric
+  from retail.comprobantes c where c.venta_id = :'venta';`,
+  (s) => s === "1|factura|ruc|20123456789|Moda Norte SAC|t"
 );
 
 exito(
@@ -177,9 +190,10 @@ error("transferencia sin CCI se rechaza",
   `${preparar()}${separar().replace("p_devolucion_medio => 'yape'", "p_devolucion_medio => 'transferencia'")}`, "CCI");
 error("factura sin RUC se rechaza", `${preparar()}${separar({ extra: ", p_comprobante_tipo => 'factura'" })}`, "RUC");
 error("una boleta de más de S/700 exige DNI", `${preparar(MICAELA, { colchon: 20 })}${separar({ cantidad: 10 })}`, "lleva el DNI");
-exito("con DNI, la boleta de más de S/700 sí se separa",
+exito("con DNI, la boleta de más de S/700 sí se separa, y al entregar lleva ese DNI",
   `${preparar(MICAELA, { colchon: 20 })}${separar({ cantidad: 10, extra: ", p_clienta_dni => '70124598'" })}
-select c.cliente_tipo_doc || ':' || c.cliente_num_doc from retail.comprobantes c join retail.separaciones s on s.comprobante_anticipo_id = c.id where s.id = :'sep';`,
+select retail.entregar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric * 10 - 50))) as venta \\gset
+select c.cliente_tipo_doc || ':' || c.cliente_num_doc from retail.comprobantes c where c.venta_id = :'venta';`,
   (s) => s === "dni:70124598");
 error("el precio de la caja distinto al del catálogo se rechaza",
   `${preparar()}${separar().replace("'precio_unitario', :'precio'::numeric", "'precio_unitario', 1.00")}`, "venta_precio_cambiado");
@@ -216,7 +230,7 @@ select (select cantidad - cantidad_apartada from retail.stock where variante_id 
 // Entregar
 // ---------------------------------------------------------------------------
 exito(
-  "entregar: cobra el saldo, nace la venta por el total, el apartado se cierra y sale la prenda — en una transacción",
+  "entregar: cobra el saldo, nace la venta y UNA boleta por el total sin deducir el adelanto, el apartado se cierra y sale la prenda — en una transacción",
   `${preparar()}${separar()}
 select retail.entregar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', :'precio'::numeric - 50, 'recibido', 200))) as venta \\gset
 select s.estado, s.venta_id = :'venta',
@@ -224,11 +238,25 @@ select s.estado, s.venta_id = :'venta',
        (select sum((precio_unitario - descuento_unitario) * cantidad) = :'precio'::numeric from retail.venta_items where venta_id = :'venta'),
        (select cantidad = :cant0 - 1 and cantidad_apartada = :apart0 from retail.stock where variante_id = :'v' and ubicacion_id = :'ubic' and sububicacion_id = :'piso'),
        (select a.estado || ':' || a.cierre_motivo from retail.apartados a join retail.separacion_items si on si.apartado_id = a.id where si.separacion_id = s.id),
-       (select c.total = :'precio'::numeric - 50 and c.anticipo_deducido = 50 and c.anticipo_comprobante_id = s.comprobante_anticipo_id
+       (select c.tipo = 'boleta' and c.total = :'precio'::numeric and c.anticipo_deducido = 0 and c.anticipo_comprobante_id is null
+          and not c.es_anticipo and c.separacion_id = s.id and c.estado = 'pendiente'
+          and (select sum((i ->> 'cantidad')::numeric * (i ->> 'precio_unitario')::numeric) from jsonb_array_elements(c.items) i) = :'precio'::numeric
           from retail.comprobantes c where c.venta_id = :'venta'),
+       (select count(*) from retail.comprobantes where separacion_id = s.id),
        (select count(*) from retail.fn_verificar_separaciones()), (select count(*) from retail.fn_verificar_apartados())
   from retail.separaciones s where s.id = :'sep';`,
-  (s) => /^entregada\|t\|anticipo:50\.00,efectivo:\d+\.\d+\|t\|t\|liberado:entregada\|t\|0\|0$/.test(s)
+  (s) => /^entregada\|t\|anticipo:50\.00,efectivo:\d+\.\d+\|t\|t\|liberado:entregada\|t\|1\|0\|0$/.test(s)
+);
+
+exito(
+  "entregar un apartado VIEJO (con su boleta de anticipo): sigue por el camino de antes, la boleta final por el saldo que descuenta el anticipo",
+  `${preparar()}${separar()}
+${anticipoViejo}
+select retail.entregar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric - 50))) as venta \\gset
+select c.total = :'precio'::numeric - 50, c.anticipo_deducido, c.anticipo_comprobante_id = :'compv'::uuid,
+       (select count(*) from retail.comprobantes where separacion_id = :'sep')
+  from retail.comprobantes c where c.venta_id = :'venta';`,
+  (s) => s === "t|50.00|t|2"
 );
 
 exito(
@@ -241,12 +269,14 @@ select (select precio_unitario = :'precio'::numeric from retail.venta_items wher
 );
 
 exito(
-  "adelanto del 100%: se entrega sin pagos y sin segundo comprobante",
+  "adelanto del 100%: se entrega sin pagos y sale la boleta por el total (el único comprobante de todo el apartado)",
   `${preparar()}${separar({ pagosSql: pagos(["yape", ":'precio'::numeric"]) })}
 select retail.entregar_separacion(:'sep') as venta \\gset
 select (select string_agg(metodo, ',') from retail.venta_pagos where venta_id = :'venta'),
-       (select count(*) from retail.comprobantes where venta_id = :'venta');`,
-  (s) => s === "anticipo|0"
+       (select count(*) from retail.comprobantes where venta_id = :'venta'),
+       (select count(*) from retail.comprobantes where separacion_id = :'sep'),
+       (select total = :'precio'::numeric from retail.comprobantes where venta_id = :'venta');`,
+  (s) => s === "anticipo|1|1|t"
 );
 
 error("entregar con pagos que no cuadran con el saldo se rechaza",
@@ -324,16 +354,19 @@ set local request.jwt.claim.sub = '${FELIPE}';
 select retail.registrar_devolucion_separacion(:'sep', 'yape', '123');`, "Primero libera");
 error("devolver por Yape exige el N.º de operación", `${liberada()}
 select retail.registrar_devolucion_separacion(:'sep', 'yape');`, "N.º de operación");
-exito("devolver por Yape: queda devuelta; la nota de crédito se difiere con aviso si el anticipo aún no fue aceptado",
+exito("devolver por Yape: queda devuelta, sin nota de crédito, sin aviso y sin gastar ningún correlativo",
   `${liberada()}
 select retail.registrar_devolucion_separacion(:'sep', 'yape', 'OP-778812') as r \\gset
 select s.estado, s.devolucion_medio_real, s.devolucion_operacion, s.nota_credito_id is null,
-       (:'r'::jsonb ->> 'aviso') like 'La nota de crédito queda pendiente%',
-       (select count(*) from retail.caja_movimientos where separacion_id = s.id and tipo = 'egreso')
+       (:'r'::jsonb ->> 'aviso') is null,
+       (select count(*) from retail.caja_movimientos where separacion_id = s.id and tipo = 'egreso'),
+       (select count(*) from retail.comprobantes where separacion_id = s.id),
+       (select count(*) from retail.comprobantes where created_at >= now() - interval '1 minute' and tipo <> 'nota_venta' and venta_id is null)
   from retail.separaciones s where s.id = :'sep';`,
-  (s) => s === "devuelta|yape|OP-778812|t|t|0");
-exito("con el anticipo aceptado por SUNAT y serie de notas, la devolución emite la nota de crédito",
+  (s) => s === "devuelta|yape|OP-778812|t|t|0|0|0");
+exito("devolver un apartado VIEJO (con su boleta de anticipo aceptada) sigue emitiendo la nota de crédito",
   `${liberada()}
+${anticipoViejo}
 update retail.comprobantes set estado = 'aceptado', entorno_transmision = 'sandbox'
  where id = (select comprobante_anticipo_id from retail.separaciones where id = :'sep');
 insert into retail.series_comprobantes (ubicacion_id, tipo, serie)
@@ -366,13 +399,12 @@ select retail.registrar_devolucion_separacion(:'s2', 'efectivo') as _r \\gset
 select monto_sistema - 100 = :'precio'::numeric from retail.cerrar_caja(:'caja', 0);`,
   // apertura 100 + 50 (adelanto s1) + (precio-50) (saldo s1) + 30 (adelanto s2) − 30 (devolución s2); s3 fue Yape.
   (s) => s === "t");
-exito("buscar por DNI, celular, código y boleta; el resumen suma la custodia",
+exito("buscar por DNI, celular, código y apellido; el resumen suma la custodia",
   `${preparar()}${separar({ extra: ", p_clienta_dni => '70124598'" })}
 select codigo as cod from retail.separaciones where id = :'sep' \\gset
-select comprobante_anticipo as bol from retail.buscar_separaciones(:'ubic', :'cod') \\gset
 select (select count(*) from retail.buscar_separaciones(:'ubic', '70124598') where id = :'sep'),
        (select count(*) from retail.buscar_separaciones(:'ubic', '987111222') where id = :'sep'),
-       (select count(*) from retail.buscar_separaciones(:'ubic', :'bol') where id = :'sep'),
+       (select count(*) from retail.buscar_separaciones(:'ubic', :'cod') where id = :'sep'),
        (select count(*) from retail.buscar_separaciones(:'ubic', 'lozano') where id = :'sep'),
        (select en_custodia >= 50 and en_custodia_efectivo >= 50 from retail.resumen_separaciones(:'ubic'));`,
   (s) => s === "1|1|1|1|t");
@@ -440,15 +472,16 @@ select count(*) from retail.separacion_avisos;`, "permission denied");
 // ---------------------------------------------------------------------------
 const abonar = (monto, { metodo = "yape", esperar = false, token = null, como = "ab" } = {}) =>
   `select retail.abonar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', '${metodo}', 'monto', ${monto})), ${esperar}${token ? `, '${token}'` : ""}) as ${como} \\gset\n`;
-exito("abono: sube lo pagado, deja el plazo igual, sale su boleta de anticipo y el invariante cuadra",
+exito("abono: sube lo pagado, deja el plazo igual, NO emite comprobante y el invariante cuadra",
   `${preparar(FELIPE)}${separar()}${abonar(10)}
 select s.adelanto, s.vence_el = retail.fn_hoy_lima() + 7,
        (select count(*) from retail.separacion_pagos where separacion_id = s.id and abono_id is not null),
-       (select c.es_anticipo || ':' || c.total from retail.comprobantes c where c.id = (:'ab'::jsonb ->> 'comprobante_id')::uuid),
-       (select count(*) from retail.comprobantes where separacion_id = s.id and es_anticipo),
+       (:'ab'::jsonb ->> 'comprobante_id') is null,
+       (select count(*) from retail.comprobantes where separacion_id = s.id),
+       (select count(*) from retail.separacion_abonos where separacion_id = s.id and comprobante_id is null),
        (select count(*) from retail.fn_verificar_separaciones())
   from retail.separaciones s where s.id = :'sep';`,
-  (x) => x === "60.00|t|1|true:10.00|2|0");
+  (x) => x === "60.00|t|1|t|0|1|0");
 exito("abono en efectivo: entra al cajón como ingreso del apartado",
   `${preparar(FELIPE)}${separar()}${abonar(15, { metodo: "efectivo" })}
 select count(*), sum(monto) from retail.caja_movimientos where separacion_id = :'sep' and tipo = 'ingreso';`,
@@ -471,23 +504,24 @@ error("abono: sin el módulo Apartados en su rol, no se registra",
   `${preparar(FELIPE)}${separar()}
 set local request.jwt.claim.sub = '${MICAELA}';
 select retail.abonar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 5)));`, "no tiene el módulo Apartados");
-exito("entregar tras un abono: cobra solo lo que falta y la boleta final lista LOS DOS anticipos",
+exito("entregar tras un abono: cobra solo lo que falta y sale UNA boleta por el total, que no nombra ni descuenta anticipos",
   `${preparar(FELIPE)}${separar()}${abonar(10)}
 select retail.entregar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric - 60))) as venta \\gset
 select (select c.anticipo_deducido from retail.comprobantes c where c.venta_id = :'venta'),
-       (select count(*) || ':' || sum(ca.monto) from retail.comprobante_anticipos ca join retail.comprobantes c on c.id = ca.comprobante_id where c.venta_id = :'venta'),
+       (select count(*) from retail.comprobante_anticipos ca join retail.comprobantes c on c.id = ca.comprobante_id where c.venta_id = :'venta'),
+       (select c.total = :'precio'::numeric from retail.comprobantes c where c.venta_id = :'venta'),
+       (select count(*) from retail.comprobantes where separacion_id = :'sep'),
        (select sum(monto) = :'precio'::numeric from retail.venta_pagos where venta_id = :'venta'),
        (select count(*) from retail.fn_verificar_separaciones());`,
-  (x) => x === "60.00|2:60.00|t|0");
-exito("devolver tras un abono: devuelve todo lo pagado e intenta una nota de crédito por cada anticipo",
+  (x) => x === "0.00|0|t|1|t|0");
+exito("devolver tras un abono: devuelve todo lo pagado sin nota de crédito (no hay comprobante que anular)",
   `${preparar(FELIPE)}${separar()}${abonar(10)}
 select retail.liberar_separacion(:'sep', 'vencio') as _l \\gset
 select retail.registrar_devolucion_separacion(:'sep', 'yape', 'OP-1') as r \\gset
-select s.estado, s.adelanto,
-       (select count(*) from regexp_matches(coalesce(:'r'::jsonb ->> 'aviso', ''), 'queda pendiente', 'g'))
-         + (select count(*) from retail.comprobantes where separacion_id = s.id and tipo = 'nota_credito')
+select s.estado, s.adelanto, (:'r'::jsonb ->> 'aviso') is null,
+       (select count(*) from retail.comprobantes where separacion_id = s.id)
   from retail.separaciones s where s.id = :'sep';`,
-  (x) => x === "devuelta|60.00|2");
+  (x) => x === "devuelta|60.00|t|0");
 
 // ---------------------------------------------------------------------------
 // Estante (20260927110000): un lugar por apartado abierto, el más bajo libre
@@ -666,6 +700,30 @@ delete from retail.rol_modulos where rol_id = '44444444-4444-4444-8444-000000000
 set local request.jwt.claim.sub = '${MICAELA}';
 select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 1, 'Ana', 'Lozano', '987111222');`, "no tiene Vender ni Apartados");
 
+// ---------------------------------------------------------------------------
+// Las dos migraciones de ADR-0399 (20261014150000 y 20261014151000): se pegan dos veces sin cambiar nada y no pisan a ciegas
+// ---------------------------------------------------------------------------
+const MIG_ENTREGA = readFileSync("supabase/migrations/20261014150000_apartados_entregar_boleta_por_el_total.sql", "utf8");
+const MIG_CONSTANCIA = readFileSync("supabase/migrations/20261014151000_apartados_constancia_sin_comprobante.sql", "utf8");
+const FUNCIONES_0399 = `('separar_prendas', 'abonar_separacion', 'entregar_separacion', 'fn_verificar_separaciones')`;
+const HUELLAS = `(select string_agg(p.proname || '=' || md5(p.prosrc), ',' order by p.proname) from pg_proc p
+   where p.pronamespace = 'retail'::regnamespace and p.proname in ${FUNCIONES_0399})`;
+exito("las dos migraciones de ADR-0399 son re-ejecutables: pegarlas otra vez no cambia ninguna función y no deja sobrecargas",
+  `begin;
+select ${HUELLAS} as h0 \\gset
+${MIG_ENTREGA}
+${MIG_CONSTANCIA}
+${MIG_ENTREGA}
+${MIG_CONSTANCIA}
+select :'h0' = ${HUELLAS}, (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ${FUNCIONES_0399});`,
+  (s) => s === "t|4");
+error("la migración de la constancia aborta si separar_prendas cambió (no la pisa a ciegas)",
+  `begin;
+do $x$ begin
+  execute replace(pg_get_functiondef('retail.separar_prendas(uuid,jsonb,jsonb,text,text,text,text,text,text,text,text,text,text,uuid,uuid,text,uuid)'::regprocedure),
+    'ADR-0399: el adelanto es un pacto interno', 'otra cosa');
+end $x$;
+${MIG_CONSTANCIA}`, "cambió desde que se escribió esta migración");
 // ---------------------------------------------------------------------------
 let ok = 0;
 const fallos = [];
