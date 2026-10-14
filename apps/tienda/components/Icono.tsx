@@ -9,6 +9,8 @@ const TRAZOS = {
   ticket: <><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4V7Z" /><path d="M10 7v10" /></>,
   chispa: <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" />,
   pedido: <><path d="M6 3h9l3 3v15H6z" /><path d="M9 9h6M9 13h6M9 17h3" /></>,
+  check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  sobre: <><rect x="3.5" y="5.5" width="17" height="13" rx="2" /><path d="M4 7l8 6 8-6" /></>,
 };
 
 export type NombreIcono = keyof typeof TRAZOS;

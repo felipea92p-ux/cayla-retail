@@ -1,0 +1,105 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA (ADR-0408) · actividad 2: la cuenta (crear, entrar, olvidé mi contraseña, la contraseña nueva,
+   «Mi cuenta», la privacidad y los términos) y el aviso «Listo: …».
+   Sale de la maqueta aprobada (docs/maquetas/tienda-online-2026-10: `.w-ficha`, `.w-campo`, `.w-caja`, `.w-res`…).
+   Solo los tokens de app/globals.css: en oscuro se invierten solos.
+   ===================================================================================================== */
+
+/* ---- La ficha de un formulario ---- */
+.w-pagina-form { padding-block: 8px 28px; }
+.w-ficha { padding: 18px 20px 26px; display: flex; flex-direction: column; gap: 20px; }
+.w-ficha-centro { align-items: center; text-align: center; padding-top: 34px; }
+.w-titulo { font-family: var(--serif); font-size: 30px; font-weight: 500; line-height: 1.04; margin: 6px 0 0; text-wrap: balance; }
+.w-titulo em { font-style: italic; }
+.w-texto { margin: 0; font-size: 14px; color: var(--tinta); line-height: 1.5; }
+.w-texto-sec { margin: 0; font-size: 13px; color: var(--tinta-60); line-height: 1.5; }
+.w-ficha > div > .w-texto-sec { margin-top: 8px; }
+.w-ficha-centro .w-texto-sec { max-width: 38ch; }
+.w-correo { overflow-wrap: anywhere; }
+
+/* ---- Cada campo: su título, su marca (✓ Listo · Sigue aquí · Revisa) y lo que dice debajo ---- */
+.w-campo { display: flex; flex-direction: column; gap: 6px; }
+.w-campo > label { font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.w-marca { font-size: 11.5px; font-weight: 600; color: var(--tinta-60); }
+.w-campo[data-estado="hecho"] .w-marca { color: var(--verde); }
+.w-campo[data-estado="sigue"] .w-marca { color: var(--ambar); }
+.w-campo[data-estado="error"] .w-marca { color: var(--rojo-profundo); }
+.w-caja { height: 52px; border-radius: 12px; border: 1.5px solid var(--sand); background: var(--papel); color: var(--tinta); padding: 0 14px; font: inherit; font-size: 16px; width: 100%; transition: border-color .15s, box-shadow .15s; }
+.w-caja::placeholder { color: var(--tinta-60); }
+.w-caja:focus { border-color: var(--tinta); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--tinta) 10%, transparent); }
+.w-caja.num { font-variant-numeric: tabular-nums; }
+.w-campo[data-estado="sigue"] .w-caja { border-color: color-mix(in srgb, var(--ambar) 55%, var(--sand)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ambar) 14%, transparent); }
+.w-campo[data-estado="sigue"] .w-caja:focus { border-color: var(--tinta); }
+.w-campo[data-estado="error"] .w-caja { border-color: color-mix(in srgb, var(--rojo) 55%, var(--sand)); }
+.w-caja-pref { display: flex; align-items: center; }
+.w-caja-pref span { height: 52px; display: grid; place-items: center; padding: 0 12px; border: 1.5px solid var(--sand); border-right: 0; border-radius: 12px 0 0 12px; background: var(--hueso); font-weight: 600; }
+.w-caja-pref .w-caja { border-radius: 0 12px 12px 0; }
+.w-caja-clave { position: relative; }
+.w-caja-clave .w-caja { padding-right: 84px; }
+.w-ver { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: none; padding: 8px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--taupe); cursor: pointer; }
+/* El año, más ancho: «Año (opcional)» tiene que caber entero a 375 px. */
+.w-cumple { display: grid; grid-template-columns: 1fr 1fr 2.1fr; gap: 8px; }
+.w-cumple .w-caja { min-width: 0; padding-inline: 12px; }
+.w-ayuda { font-size: 12px; color: var(--tinta-60); margin: 0; line-height: 1.45; }
+.w-res { font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
+.w-res:empty { display: none; }
+.w-res-ok { color: var(--verde); font-weight: 600; display: flex; gap: 6px; align-items: center; }
+.w-res-ok .ic { width: 16px; height: 16px; }
+.w-res-error { color: var(--rojo-profundo); font-weight: 600; font-size: 12.5px; }
+.w-res-aviso { color: var(--ambar); font-weight: 600; font-size: 12.5px; }
+.w-res-acc { display: flex; gap: 16px; flex-wrap: wrap; }
+.w-club { display: inline-flex; gap: 6px; align-items: center; width: fit-content; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--hueso); }
+.w-club img { width: 16px; height: auto; }
+.w-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.5; cursor: pointer; }
+.w-check input { width: 20px; height: 20px; accent-color: var(--tinta); margin: 1px 0 0; flex: none; }
+.w-check a { color: var(--tinta); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--taupe); }
+.w-check a:hover { color: var(--rojo-profundo); }
+.w-campo[data-estado="sigue"] .w-check input { outline: 3px solid color-mix(in srgb, var(--ambar) 30%, transparent); outline-offset: 2px; }
+
+/* ---- Enlaces y el pie del formulario ---- */
+.w-enlace { border: 0; background: none; padding: 6px 0; font: inherit; color: var(--rojo-profundo); text-decoration: underline; text-underline-offset: 2px; font-size: 13.5px; font-weight: 500; align-self: center; cursor: pointer; }
+.w-enlace:hover { color: var(--tinta); }
+.w-res .w-enlace { align-self: flex-start; padding: 2px 0; }
+.w-enlace-izq { align-self: flex-start; }
+.w-texto-sec .w-enlace { padding: 0; }
+.w-faltan { font-size: 12.5px; color: var(--tinta-60); text-align: center; margin: 0; }
+.w-faltan b { color: var(--ambar); font-weight: 600; }
+.w-error-general { margin: 0; font-size: 13px; font-weight: 600; color: var(--rojo-profundo); text-align: center; }
+/* En el celular, «Falta…» y el botón quedan a la vista abajo mientras se baja (la maqueta los pone fijos). */
+.w-pie-form { position: sticky; bottom: 0; z-index: 4; display: flex; flex-direction: column; gap: 10px; margin-inline: -20px; padding: 12px 20px 16px; background: var(--crema); border-top: 1px solid var(--sand); }
+.w-sobre { width: 64px; height: 64px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; }
+.w-sobre .ic { width: 30px; height: 30px; }
+
+/* ---- «Mi cuenta» ---- */
+.t-cuenta-pag { display: grid; gap: 22px; padding-block: 20px 28px; }
+.t-cuenta-cab { display: grid; gap: 18px; }
+.t-cuenta-cab h1 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 8cqi, 54px); line-height: .95; }
+.t-cuenta-cab h1 em { font-style: italic; color: var(--rojo); }
+.t-cuenta-cab .t-tarjeta-club { justify-self: start; max-width: 340px; }
+.t-cuenta-cab .t-enlace { justify-self: start; }
+.t-cuenta-cab form { display: contents; }
+
+/* ---- La privacidad y los términos ---- */
+.w-borrador { display: inline-flex; align-items: center; gap: 6px; width: fit-content; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ambar); padding: 4px 10px; border-radius: 999px; border: 1px dashed var(--ambar); }
+.w-legal { display: flex; flex-direction: column; gap: 18px; }
+.w-legal h2 { margin: 0; font-family: var(--serif); font-size: 22px; font-weight: 500; }
+.w-legal p, .w-legal li { margin: 0; font-size: 14px; line-height: 1.6; }
+.w-legal ul, .w-legal ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.w-legal section { display: flex; flex-direction: column; gap: 8px; }
+.w-legal .w-texto-sec { margin: 0; }
+
+/* ---- El aviso «Listo: …» (vive fuera de la tienda, en el layout: por eso con @media y no con @container) ---- */
+.w-aviso { position: fixed; left: 14px; right: 14px; bottom: 24px; z-index: 30; background: var(--tinta); color: var(--crema); border-radius: 14px; padding: 12px 14px; font-size: 13px; display: flex; gap: 10px; align-items: center; box-shadow: 0 16px 30px -16px var(--sombra); animation: aviso-breve 3.4s var(--ease) both; pointer-events: none; }
+.w-aviso .ic { width: 18px; height: 18px; flex: none; }
+@keyframes aviso-breve { 0% { opacity: 0; transform: translateY(10px); } 8%, 86% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-4px); } }
+
+@container tienda (min-width: 960px) {
+  .w-ficha { padding-inline: 0; }
+  .w-pagina-form { padding-block: 24px 48px; }
+  .w-titulo { font-size: 36px; }
+  .w-pie-form { position: static; margin-inline: 0; padding: 6px 0 0; border-top: 0; background: none; }
+  .t-cuenta-pag { padding-block: 32px 44px; }
+}
+@media (min-width: 960px) {
+  .w-aviso { left: auto; right: 24px; max-width: 400px; }
+}
