@@ -290,6 +290,11 @@
   "src_table": "cuentas_dinero"
  },
  {
+  "conname": "cuentas_dinero_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuentas_dinero"
+ },
+ {
   "conname": "despacho_diferencias_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "despacho_diferencias"
@@ -368,6 +373,16 @@
   "conname": "frescura_decisiones_persona_id_fkey",
   "ref_table": "public.personas",
   "src_table": "frescura_decisiones"
+ },
+ {
+  "conname": "gasto_viaje_fotos_archivada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gasto_viaje_fotos"
+ },
+ {
+  "conname": "gasto_viaje_fotos_subida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gasto_viaje_fotos"
  },
  {
   "conname": "gastos_anulado_por_fkey",
@@ -450,6 +465,11 @@
   "src_table": "orden_compra_versiones"
  },
  {
+  "conname": "orden_insumo_versiones_reemplazada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "orden_insumo_versiones"
+ },
+ {
   "conname": "ordenes_compra_actualizada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "ordenes_compra"
@@ -463,6 +483,21 @@
   "conname": "ordenes_compra_creada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "ordenes_compra"
+ },
+ {
+  "conname": "ordenes_insumo_actualizada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_anulada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_insumo"
+ },
+ {
+  "conname": "ordenes_insumo_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "ordenes_insumo"
  },
  {
   "conname": "parametros_liquidacion_actualizado_por_fkey",
@@ -653,6 +688,26 @@
   "conname": "proveedores_produccion_modificado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "proveedores_produccion"
+ },
+ {
+  "conname": "rendiciones_fondo_aprobada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "rendiciones_fondo"
+ },
+ {
+  "conname": "rendiciones_fondo_devuelta_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "rendiciones_fondo"
+ },
+ {
+  "conname": "rendiciones_fondo_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "rendiciones_fondo"
+ },
+ {
+  "conname": "rendiciones_fondo_rendida_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "rendiciones_fondo"
  },
  {
   "conname": "roles_archivado_por_fkey",

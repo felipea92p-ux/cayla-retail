@@ -77,11 +77,25 @@ describe("problemaDocumentoComprobante — lo que frena el cobro (la base rechaz
     expect(problemaDocumentoComprobante("boleta", "carne_extranjeria", "001234567")).toBeNull();
     expect(problemaDocumentoComprobante("boleta", "pasaporte", "ab 123 456")).toBeNull();
   });
-  it("vacío no frena (sale sin documento); el DNI y la factura con dígitos siguen como antes", () => {
+  it("vacío no frena (sale sin documento); un DNI de 8 y un RUC de 11 tampoco", () => {
     expect(problemaDocumentoComprobante("boleta", "pasaporte", "")).toBeNull();
-    expect(problemaDocumentoComprobante("boleta", "dni", "123")).toBeNull();
-    expect(problemaDocumentoComprobante("factura", "pasaporte", "12")).toBeNull();
+    expect(problemaDocumentoComprobante("boleta", "dni", "71234482")).toBeNull();
     expect(problemaDocumentoComprobante("factura", "dni", "20100070970")).toBeNull();
+  });
+  // /chaos 2026-10-13: una factura con un RUC de 10 y una boleta con un DNI de 7 salían (la pantalla avisaba y dejaba emitir).
+  it("una boleta con un DNI que no es de 8 dígitos no se cobra, y dice cuántos faltan o sobran", () => {
+    expect(problemaDocumentoComprobante("boleta", "dni", "1234567")).toBe("Al DNI le falta 1 dígito: tiene 8.");
+    expect(problemaDocumentoComprobante("boleta", "dni", "123")).toBe("Al DNI le faltan 5 dígitos: tiene 8.");
+    expect(problemaDocumentoComprobante("boleta", "dni", "123456789")).toBe("El DNI tiene 8 dígitos: sobra 1.");
+    expect(problemaDocumentoComprobante("boleta", "dni", "1234567A")).toBe("El DNI lleva solo dígitos.");
+  });
+  it("una factura con un RUC que no es de 11 dígitos no se cobra", () => {
+    expect(problemaDocumentoComprobante("factura", "dni", "2012345678")).toBe("Al RUC le falta 1 dígito: tiene 11.");
+    expect(problemaDocumentoComprobante("factura", "pasaporte", "12")).toBe("Al RUC le faltan 9 dígitos: tiene 11.");
+    expect(problemaDocumentoComprobante("factura", "dni", "201234567890")).toBe("El RUC tiene 11 dígitos: sobra 1.");
+  });
+  it("la nota de venta no va a SUNAT: su DNI no frena el cobro", () => {
+    expect(problemaDocumentoComprobante("nota_venta", "dni", "123")).toBeNull();
   });
   it("una factura con letras (un carné que quedó escrito al pasar de boleta a factura) no se cobra: saldría como un RUC que no existe", () => {
     expect(problemaDocumentoComprobante("factura", "carne_extranjeria", "CE12A3456")).toBe(

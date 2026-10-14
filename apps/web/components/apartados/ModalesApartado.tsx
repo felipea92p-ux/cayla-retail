@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, MessageCircle, Minus, Plus, Printer, Trash2 } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
@@ -42,6 +42,9 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { firmar } from "@/lib/responsable-reglas";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
@@ -619,8 +622,11 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
   const [metodo, setMetodo] = useState<MetodoPago>("yape");
   const [monto, setMonto] = useState(0);
   const [esperar, setEsperar] = useState(false);
-  const [enviando, setEnviando] = useState(false);
-  const token = useRef<string>(crypto.randomUUID());
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): si la respuesta se pierde, la hoja se congela hasta saber si
+  // el abono quedó; cambiar el monto y reenviar con la marca vieja devolvía el abono anterior.
+  const envio = useIntento("abonar_separacion");
+  const enviando = envio.enviando;
+  const [revisando, setRevisando] = useState(false);
   const responsable = useResponsable(ubicacion, { modo: "atencion" });
   const saldo = apartado.saldo;
   const dias = diasEsperaPorAbono(monto, saldo);
@@ -630,20 +636,33 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
 
   async function abonar(cerrar: () => void) {
     if (!valido || !responsable.listo || !cajaAbierta) return;
-    setEnviando(true);
-    const { data, error } = await firmar(
-      createClient().rpc("abonar_separacion", {
-        p_separacion_id: apartado.id,
-        p_pagos: [{ metodo, monto }],
-        p_esperar: esperar,
-        p_token: token.current,
-      }),
-      responsable.firma(),
+    const params = { p_separacion_id: apartado.id, p_pagos: [{ metodo, monto }], p_esperar: esperar };
+    const res = await envio.enviar(huellaDe(params), (token, senal) =>
+      firmar(createClient().rpc("abonar_separacion", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
     );
-    setEnviando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "registrar el abono", { confirmarAntesDeRepetir: true }));
-    const r = (data ?? {}) as { vence_el?: string; saldo?: number };
+    if (res.tipo === "ocupado") return;
+    if (res.tipo === "congelado") return avisarCongelado(avisar);
+    responsable.despues(res.tipo === "error" || res.tipo === "incierto" ? res.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (res.tipo === "incierto") return;
+    if (res.tipo === "error") return avisar.error(traducirError(res.error, "registrar el abono"));
+    abonado((res.tipo === "ok" ? res.data : res.datos) as { vence_el?: string; saldo?: number } | null, cerrar);
+  }
+
+  async function revisar(cerrar: () => void) {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return abonado(res.datos as { vence_el?: string; saldo?: number }, cerrar);
+    if (res.tipo === "no_llego") {
+      avisar.aviso("El abono no se registró", { detalle: "No se cobró nada. Revisa el monto y vuelve a registrarlo." });
+      return;
+    }
+    if (res.tipo === "sin_respuesta") avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  function abonado(datos: { vence_el?: string; saldo?: number } | null, cerrar: () => void) {
+    const r = datos ?? {};
     avisar.exito(`Abono de ${money(monto)} anotado`, {
       detalle: `${apartado.nombres}: ${Number(r.saldo ?? saldo - monto) > 0 ? `falta ${money(Number(r.saldo ?? saldo - monto))}` : "ya pagó todo"}${esperar && r.vence_el ? ` · recoge hasta el ${fechaCorta(r.vence_el)}` : ""}. Sale su boleta de anticipo.`,
     });
@@ -652,9 +671,11 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
   }
 
   return (
-    <Modal titulo="Abonar a cuenta" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la prenda sigue guardada`} onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Abonar a cuenta" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la prenda sigue guardada`} onClose={onClose} ancho="max-w-md" bloqueado={enviando || envio.incierto}>
       {(cerrar) => (
         <div className="space-y-4">
+          {/* En duda, nada se toca: otro monto reenviado podría cobrar el abono dos veces. */}
+          <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
           <div className="card-cayla flex items-baseline justify-between p-4">
             <span className="text-sm text-tinta/70">Falta pagar hoy</span>
             <span className="font-display text-2xl tabular-nums">{money(saldo)}</span>
@@ -709,16 +730,18 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
           </label>
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
+          </fieldset>
+          {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
           <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
+            <button type="button" onClick={cerrar} disabled={envio.incierto} className={botonCancelar}>Mejor no</button>
             <button
               type="button"
-              disabled={!valido || enviando || !responsable.listo || !cajaAbierta}
+              disabled={!valido || enviando || revisando || !responsable.listo || !cajaAbierta}
               title={!cajaAbierta ? "Abre la caja para cobrar el abono." : (responsable.motivo ?? undefined)}
               onClick={() => abonar(cerrar)}
               className={botonPrimario}
             >
-              {enviando ? "Guardando…" : `Registrar abono · ${money(Math.max(0, monto))}`}
+              {enviando ? "Guardando…" : envio.incierto ? "Volver a intentar" : `Registrar abono · ${money(Math.max(0, monto))}`}
             </button>
           </div>
         </div>
@@ -748,8 +771,11 @@ export function EditarApartadoModal({
   const [quitar, setQuitar] = useState<ReadonlySet<string>>(() => new Set());
   const [sumar, setSumar] = useState<{ varianteId: string; cantidad: number }[]>([]);
   const [texto, setTexto] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const token = useRef<string>(crypto.randomUUID());
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): si la respuesta se pierde, la hoja se congela hasta saber si
+  // la edición quedó.
+  const envio = useIntento("editar_separacion");
+  const enviando = envio.enviando;
+  const [revisando, setRevisando] = useState(false);
   const responsable = useResponsable(ubicacion, { modo: "atencion" });
 
   const quedan = apartado.prendas.filter((p) => !quitar.has(p.itemId));
@@ -785,31 +811,50 @@ export function EditarApartadoModal({
 
   async function guardar(cerrar: () => void) {
     if (!cambio || debajo || sinPrendas || !responsable.listo) return;
-    setEnviando(true);
-    const { error } = await firmar(
-      createClient().rpc("editar_separacion", {
-        p_separacion_id: apartado.id,
-        p_quitar: [...quitar],
-        p_agregar: sumar.map((l) => {
-          const p = porId.get(l.varianteId)!;
-          return { variante_id: l.varianteId, cantidad: l.cantidad, precio_unitario: p.precio, descuento_unitario: descuentoHoy(p) };
-        }),
-        p_token: token.current,
+    const params = {
+      p_separacion_id: apartado.id,
+      p_quitar: [...quitar],
+      p_agregar: sumar.map((l) => {
+        const p = porId.get(l.varianteId)!;
+        return { variante_id: l.varianteId, cantidad: l.cantidad, precio_unitario: p.precio, descuento_unitario: descuentoHoy(p) };
       }),
-      responsable.firma(),
+    };
+    const res = await envio.enviar(huellaDe(params), (token, senal) =>
+      firmar(createClient().rpc("editar_separacion", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
     );
-    setEnviando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "editar el apartado", { confirmarAntesDeRepetir: true }));
+    if (res.tipo === "ocupado") return;
+    if (res.tipo === "congelado") return avisarCongelado(avisar);
+    responsable.despues(res.tipo === "error" || res.tipo === "incierto" ? res.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (res.tipo === "incierto") return;
+    if (res.tipo === "error") return avisar.error(traducirError(res.error, "editar el apartado"));
+    editado(cerrar);
+  }
+
+  async function revisar(cerrar: () => void) {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return editado(cerrar);
+    if (res.tipo === "no_llego") {
+      avisar.aviso("La edición no se guardó", { detalle: "El apartado sigue como estaba. Revisa los cambios y vuelve a guardar." });
+      return;
+    }
+    if (res.tipo === "sin_respuesta") avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  function editado(cerrar: () => void) {
     avisar.exito("Apartado editado", { detalle: `${apartado.codigo}: total ${money(totalNuevo)} · saldo ${money(totalNuevo - apartado.adelanto)}. La fecha no cambia.` });
     router.refresh();
     cerrar();
   }
 
   return (
-    <Modal titulo="Editar prendas del apartado" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la fecha límite no cambia`} onClose={onClose} ancho="max-w-xl">
+    <Modal titulo="Editar prendas del apartado" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la fecha límite no cambia`} onClose={onClose} ancho="max-w-xl" bloqueado={enviando || envio.incierto}>
       {(cerrar) => (
         <div className="space-y-4">
+          {/* En duda, nada se toca: otra edición reenviada podría mover prendas dos veces. */}
+          <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
           {sinId && <Aviso tono="atencion" chico>Para editar hace falta la actualización de la base de este paso: todavía no está aplicada.</Aviso>}
           <ul className="divide-y divide-sand overflow-hidden rounded-xl border border-sand">
             {apartado.prendas.map((pr) => {
@@ -895,16 +940,18 @@ export function EditarApartadoModal({
           {sinPrendas && <Aviso tono="error" chico>El apartado no puede quedarse sin prendas: si ya no quiere nada, libéralo.</Aviso>}
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy. El anticipo ya emitido sigue valiendo.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
+          </fieldset>
+          {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
           <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
+            <button type="button" onClick={cerrar} disabled={envio.incierto} className={botonCancelar}>Mejor no</button>
             <button
               type="button"
-              disabled={!cambio || debajo || sinPrendas || enviando || !responsable.listo || sinId}
+              disabled={!cambio || debajo || sinPrendas || enviando || revisando || !responsable.listo || sinId}
               title={responsable.motivo ?? undefined}
               onClick={() => guardar(cerrar)}
               className={botonPrimario}
             >
-              {enviando ? "Guardando…" : "Guardar cambios"}
+              {enviando ? "Guardando…" : envio.incierto ? "Volver a intentar" : "Guardar cambios"}
             </button>
           </div>
         </div>
@@ -1010,29 +1057,52 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
   const router = useRouter();
   const manana = sumarDiasIso(new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }), 1);
   const [llega, setLlega] = useState(manana);
-  const [enviando, setEnviando] = useState(false);
-  const token = useRef<string>(crypto.randomUUID());
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): el pedido y la fecha. Si la respuesta se pierde, la hoja se
+  // congela hasta saber si el traslado salió.
+  const envio = useIntento("enviar_pedido_para_apartar");
+  const enviando = envio.enviando;
+  const [revisando, setRevisando] = useState(false);
   const responsable = useResponsable(ubicacion, { modo: "atencion" });
 
   async function enviar(cerrar: () => void) {
     if (!responsable.listo || !llega) return;
-    setEnviando(true);
-    const { error } = await firmar(
-      createClient().rpc("enviar_pedido_para_apartar", { p_pedido_id: pedido.id, p_fecha_estimada_llegada: `${llega}T12:00:00-05:00`, p_token: token.current }),
-      responsable.firma(),
+    const params = { p_pedido_id: pedido.id, p_fecha_estimada_llegada: `${llega}T12:00:00-05:00` };
+    const res = await envio.enviar(huellaDe(params), (token, senal) =>
+      firmar(createClient().rpc("enviar_pedido_para_apartar", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
     );
-    setEnviando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "enviar la prenda", { confirmarAntesDeRepetir: true }));
+    if (res.tipo === "ocupado") return;
+    if (res.tipo === "congelado") return avisarCongelado(avisar);
+    responsable.despues(res.tipo === "error" || res.tipo === "incierto" ? res.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (res.tipo === "incierto") return;
+    if (res.tipo === "error") return avisar.error(traducirError(res.error, "enviar la prenda"));
+    enviado(cerrar);
+  }
+
+  async function revisar(cerrar: () => void) {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return enviado(cerrar);
+    if (res.tipo === "no_llego") {
+      avisar.aviso("La prenda no salió", { detalle: "No se armó ningún traslado. Revisa la fecha y vuelve a enviarla." });
+      return;
+    }
+    if (res.tipo === "sin_respuesta") avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  function enviado(cerrar: () => void) {
     avisar.exito(`Enviado a ${pedido.otraSede}`, { detalle: "Salió como traslado: sepárala y mándala con la nota del cliente." });
     router.refresh();
     cerrar();
   }
 
   return (
-    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={paraQuienPedido(pedido)} onClose={onClose} ancho="max-w-md">
+    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={paraQuienPedido(pedido)} onClose={onClose} ancho="max-w-md" bloqueado={enviando || envio.incierto}>
       {(cerrar) => (
         <div className="space-y-4">
+          {/* En duda, nada se toca: otra fecha reenviada podría armar dos traslados. */}
+          <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
           <div className="card-cayla p-4 text-sm">
             <p className="font-semibold">{prenda?.referencia ?? "Prenda"} · {pedido.cantidad} u.</p>
             <p className="text-xs text-tinta/60">{prenda ? detalleVariante(prenda) : ""}</p>
@@ -1044,10 +1114,12 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
           </label>
           <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Sale de tu almacén como un traslado más; Traslados lo muestra en camino hasta que {pedido.otraSede} lo reciba.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
+          </fieldset>
+          {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
           <div className="flex gap-2">
-            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
-            <button type="button" disabled={enviando || !responsable.listo || !llega} title={responsable.motivo ?? undefined} onClick={() => enviar(cerrar)} className={botonPrimario}>
-              {enviando ? "Enviando…" : "Enviar por traslado"}
+            <button type="button" onClick={cerrar} disabled={envio.incierto} className={botonCancelar}>Mejor no</button>
+            <button type="button" disabled={enviando || revisando || !responsable.listo || !llega} title={responsable.motivo ?? undefined} onClick={() => enviar(cerrar)} className={botonPrimario}>
+              {enviando ? "Enviando…" : envio.incierto ? "Volver a intentar" : "Enviar por traslado"}
             </button>
           </div>
         </div>

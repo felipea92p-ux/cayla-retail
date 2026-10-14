@@ -55,6 +55,9 @@ export type ErrorEscritura = {
 type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
+  // Montos de Ventas y Caja (/chaos 2026-10-13, 20261013204000): el respaldo de la tabla cuando una pantalla no lo frenó antes.
+  { marca: "recibido_con_tope", frase: "El vuelto pasa de S/ 500: revisa con cuánto paga el cliente y vuelve a intentar." },
+  { marca: "_montos_finitos", frase: "Uno de los montos no es un número válido. Revísalo y vuelve a intentar." },
   // Costo atípico (20260930120000 y siguientes): un costo por prenda fuera de lo normal (sin costo, mayor que el precio,
   // más del doble o menos de dos tercios del vigente) no entra al costo de la prenda sin que un líder lo confirme.
   // ORDEN: `costo_atipico_sin_lider` va ANTES que `costo_atipico`, porque la búsqueda es por «contiene» y la segunda marca

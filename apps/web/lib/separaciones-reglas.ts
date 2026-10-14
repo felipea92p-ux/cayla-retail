@@ -5,7 +5,7 @@
 
 import type { MetodoPago } from "@cayla-retail/shared";
 import { filtrarPrendasV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
-import { UNIDAD_EFECTIVO, efectivoACobrar, redondeoDelEfectivo } from "./redondeo-efectivo-reglas";
+import { TOPE_VUELTO, UNIDAD_EFECTIVO, efectivoACobrar, redondeoDelEfectivo } from "./redondeo-efectivo-reglas";
 import type { ReservaEnOrigen } from "./pedidos-con-cliente-reglas";
 import { diaLima } from "./fechas-lima";
 
@@ -223,6 +223,7 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
   else if (f.pagos.some((p) => !(p.monto > 0))) e.pago = "Cada medio lleva un monto mayor a cero.";
   else if (adelanto > total) e.pago = "El adelanto no puede pasar el total.";
   else if (f.pagos.some((p) => p.metodo === "efectivo" && p.recibido !== undefined && p.recibido < p.monto)) e.pago = "Lo recibido en efectivo no alcanza.";
+  else if (vueltoDelAdelanto(f.pagos) > TOPE_VUELTO) e.pago = `El vuelto pasa de S/ ${TOPE_VUELTO}: revisa cuánto entregó.`;
   if (f.devolucionMedio === "transferencia") {
     if (soloDigitos(f.devolucionCci).length !== 20) e.devolucion = "El CCI tiene 20 dígitos.";
   } else {
@@ -282,6 +283,8 @@ export type CobroDelSaldo = {
   sinMoneda: boolean;
   /** Lo recibido en efectivo no alcanza a lo que se cobra. */
   noAlcanza: boolean;
+  /** El vuelto pasa del tope (S/ 500): es un billete mal escrito y la base no lo acepta. */
+  vueltoExcede: boolean;
 };
 
 /** El saldo al entregar: con Yape/tarjeta se cobra justo; solo el efectivo da vuelto. Con `redondear` (ADR-0311) el efectivo se cobra
@@ -301,7 +304,17 @@ export function cobroDelSaldo(pagos: readonly PagoAdelanto[], saldo: number, red
   const excede = pagado > saldo + 0.001;
   const sinMoneda = redondear && efectivo !== null && efectivo.deuda > 0 && efectivo.aCobrar <= 0;
   const noAlcanza = efectivo !== null && pagoEfectivo?.recibido !== undefined && pagoEfectivo.recibido < efectivo.aCobrar;
-  return { falta, vuelto, excede, listo: saldo === 0 || (falta === 0 && !excede && pagos.length > 0 && !sinMoneda), efectivo, sinMoneda, noAlcanza };
+  const vueltoExcede = vuelto > TOPE_VUELTO;
+  return {
+    falta,
+    vuelto,
+    excede,
+    listo: saldo === 0 || (falta === 0 && !excede && pagos.length > 0 && !sinMoneda && !vueltoExcede),
+    efectivo,
+    sinMoneda,
+    noAlcanza,
+    vueltoExcede,
+  };
 }
 
 /** Lo que se le dice a quien cobra cuando el efectivo del saldo no llega a una moneda de S/ 0.10 (los 0.07 que sobran tras un Yape). */
