@@ -12,7 +12,6 @@ import {
   coincide,
   colaPorAvisar,
   encendida,
-  diaLima,
   estadoVisible,
   formatoCelular,
   paraQuienPedido,
@@ -23,6 +22,7 @@ import {
   type AvisoApartado,
   type ClaveEstado,
 } from "@/lib/separaciones-reglas";
+import { diaLima } from "@/lib/fechas-lima";
 import { BarraPlazo, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { CancelarPedidoModal, DevolverModal, EnviarPedidoModal, ExtenderModal, LiberarModal, RecordarModal, ReimprimirApartadoModal } from "@/components/apartados/ModalesApartado";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
@@ -494,7 +494,7 @@ export function TodosVista({
                     </div>
                     <div className="space-y-1">
                       <EstadoChip {...e} />
-                      {a.estado === "abierta" && <BarraPlazo creadaEl={a.creadaEn.slice(0, 10)} hoy={hoy} />}
+                      {a.estado === "abierta" && <BarraPlazo creadaEl={diaLima(a.creadaEn)} hoy={hoy} />}
                       <p className="text-[11.5px] text-tinta/60">
                         {a.estado === "abierta" ? `vence ${fechaCorta(a.venceEl)}${a.extensiones ? " · extendido" : ""}` : a.estado === "liberada" ? (a.liberadaSola ? "se liberó solo" : "liberado") : a.estado === "entregada" ? `boleta ${a.comprobanteFinal ?? a.comprobanteAnticipo ?? ""}` : a.notaCredito ? `NC ${a.notaCredito}` : "devuelto"}
                       </p>

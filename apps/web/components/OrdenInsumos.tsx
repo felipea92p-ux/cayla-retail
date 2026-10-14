@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
-import { diaMes } from "@/lib/fechas-lima";
+import { diaLima, diaMes } from "@/lib/fechas-lima";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { cantidadTexto, previsualizarConsumo, previsualizarDevolucion, UNIDADES_INSUMO } from "@/lib/insumos-reglas";
@@ -197,7 +197,7 @@ export function OrdenInsumos({
                     <p className="text-xs text-tinta/65">
                       {[...new Set(g.movs.filter((m) => m.lote).map((m) => `lote ${m.lote}`))].join(" · ") || "sin lote"}
                       {" · "}
-                      {diaMes(g.movs[g.movs.length - 1].creadoEn.slice(0, 10))}
+                      {diaMes(diaLima(g.movs[g.movs.length - 1].creadoEn))}
                       {g.movs.some((m) => m.cantidad < 0) && " · con devoluciones"}
                     </p>
                   </div>

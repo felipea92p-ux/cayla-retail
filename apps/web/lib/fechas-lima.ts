@@ -9,6 +9,18 @@ export function hoyLima(ahora: Date = new Date()): string {
   return ahora.toLocaleDateString("en-CA", { timeZone: "America/Lima" });
 }
 
+/** El día de Lima (`aaaa-mm-dd`) de un INSTANTE: un timestamptz, que la base manda en UTC («2026-10-14T01:00:00+00:00» son las
+ *  20:00 del 13 en Lima). Es `hoyLima` para cualquier momento, no solo para ahora. A un instante nunca se le cortan los 10
+ *  primeros caracteres: eso da el día de UTC, y lo hecho de 7 pm a medianoche de Lima cae al día siguiente (lo vigila
+ *  `sin-corte-de-instante.test.ts`). Una fecha sola (`aaaa-mm-dd`, un `date` de la base) ya es un día y vuelve tal cual; sin
+ *  instante, o con uno que no se lee, `null`: no se inventa un día. */
+export function diaLima(instante: string | null | undefined): string | null {
+  if (!instante) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(instante)) return instante;
+  const t = Date.parse(instante);
+  return Number.isNaN(t) ? null : hoyLima(new Date(t));
+}
+
 const MS_DIA = 86_400_000;
 
 /** Días de calendario entre dos fechas `aaaa-mm-dd` (positivo si `hasta` es posterior). */
