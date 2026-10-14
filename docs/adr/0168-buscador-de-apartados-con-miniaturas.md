@@ -115,8 +115,8 @@ anterior se queda a la vista en vez del blanco.
 
 **Caché a 31 días (`images.minimumCacheTTL`, `next.config.ts`).** Next 16 trae 4 horas por defecto. Las fotos se suben siempre con `upsert: false` y un uuid
 (`lib/producto-fotos.ts`), así que un archivo nunca cambia bajo su nombre y cachear largo no puede mostrar una foto vieja. Medido el 2026-10-14
-(`vercel usage`, equipo `cayla`, plan Pro): el consumo de «Image Optimization» desde el 11-jul suma US$ 0,048 (la cuenta total, US$ 187,6, es 79 % minutos de
-build): hoy no es un costo; la caché larga evita que lo sea al sumar ~900 fotos × sus anchos. Si algún día se reemplaza una foto con el mismo nombre:
+(`vercel usage`): el consumo de «Image Optimization» desde el 11-jul son centavos de dólar (menos de US$ 0,05; lo que pesa en la cuenta de Vercel son los
+minutos de build, no las fotos): hoy no es un costo; la caché larga evita que lo sea al sumar ~900 fotos × sus anchos. Si algún día se reemplaza una foto con el mismo nombre:
 `vercel cache invalidate --srcimg <url>`. Las fotos del Storage llegan con `cache-control: no-cache` (el navegador vuelve a preguntar por cada una);
 las del optimizador salen con caché larga, y eso también explica parte de la lentitud de antes.
 
