@@ -441,3 +441,35 @@ pide recargar (`version_cambiada`). Es lo esperado: el cierre firma lo que vio.
 
 Rastro en la actividad («corrigió la guía de ENV-000001: T001-000342 → T001-000999»). `pruebas:envio-sin-aviso` 12/12 (G1, G2). **Orden de
 pegado completo:** `170000`, `171000`, `172000`, `173000`, `180000`, `183000`, `20261014144000`, `20261014205000`.
+
+### «Recibir mercadería» vive en Inventario (Felipe, 2026-10-14)
+
+Recibir aparecía en dos lugares del menú según quién mirara (ADR-0113): en Compras para quien ve el dinero de Compras y en Inventario para
+quien no; el líder parado en el Taller no lo tenía en ninguno. Felipe pidió que esté en Inventario, también en el menú lateral.
+
+DECIDÍ: una sola fila, en Inventario y para todos, después de Conteo (`lib/menu.ts`), y el módulo al grupo «Inventario» con orden 115 en la
+base (`20261014210000`; `lib/modulos.ts` lo espeja). Compras vuelve a 6 hijas y pierde la excepción temporal que esperaba esta mudanza
+(ADR-0362, decisión 38).
+DESCARTÉ: dejarlo en los dos lugares, porque la misma pantalla con dos direcciones según el rol es la que hacía que el líder no la
+encontrara; y solo mover la fila del menú sin la base, porque Roles y accesos la habría seguido mostrando en Compras en una base nueva
+(producción ya la tenía en «Inventario» desde el 2026-10-07 sin que el repo lo dijera).
+SE ROMPE SI: alguien vuelve a poner `soloSinPermiso` o una fila de Recibir en Compras: `lib/menu-hoy.golden.json` y `lib/menu.test.ts` lo
+frenan.
+
+### En producción (2026-10-14, con el OK de Felipe)
+
+Pegadas en este orden, cada una en su transacción, sin errores: `170000`, `171000`, `172000`, `173000`, `180000`, `183000`,
+`20261014144000` (en producción no hizo nada: `180000` ya le había cambiado la lectura al Plan), `20261014205000` y `20261014210000`.
+
+Cómo se verificó (solo lectura):
+- Antes de pegar: las anclas de cada reemplazo contadas en las funciones vivas (las 11 lecturas de las diferencias y las 10 de «sin marca»
+  calzaban), y ninguna otra función de producción leía `despacho_diferencias x`.
+- Después de cada una: la huella (`md5(prosrc)`) de cada función creada, contra el cuerpo del archivo.
+- Al final: las **41 funciones** que toca la cadena tienen la misma huella en producción y en la base hecha de cero con la rama (incluidas
+  las que se parchan por ancla: la base de producción era la misma). Las 5 tablas nuevas existen con RLS y sin políticas; las 17 RPC que
+  llama la web existen; `retail.modulos`: `recibir` = Inventario · 115. 0 envíos en producción.
+- Asesor de seguridad: lo nuevo sale como «RLS sin políticas» (a propósito) y «security definer ejecutable por authenticated» (el patrón del
+  ERP); nada más.
+
+La web de `main` sigue funcionando sobre esta base (`recibir_despacho` conserva su firma y su respuesta, con dos datos más). Lo que falta:
+fusionar #1056 y, con el volcado nuevo, `pnpm datos:generar:produccion` (`docs/datos/generado/COMO-REFRESCAR.md`).
