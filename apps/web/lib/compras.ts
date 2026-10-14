@@ -22,6 +22,7 @@ import {
   type TipoDocumentoCompra,
 } from "@/lib/compras-reglas";
 import { lineaEnMiTienda, otrasTiendasDeJson } from "@/lib/reparto-reglas";
+import { leerNoDeduciblesCon } from "@/lib/no-deducible";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
 // importan SOLO `compras-reglas.ts`.
@@ -525,7 +526,9 @@ export async function getPagosCompra(compraId: string): Promise<PagoCompra[]> {
       .order("created_at", { ascending: false }),
     "los pagos de la factura"
   );
-  return filas.map((p) => ({ id: p.id, fecha: p.fecha, monto: Number(p.monto), metodo: p.metodo, referencia: p.referencia }));
+  // Cada pago con lo que la base dice no deducible (ADR-0362, fase 6 · actividad 6): si esa lectura falla, se ven sin la marca.
+  const nd = await leerNoDeduciblesCon(supabase, filas.map((p) => `pago:${p.id}`));
+  return filas.map((p) => ({ id: p.id, fecha: p.fecha, monto: Number(p.monto), metodo: p.metodo, referencia: p.referencia, noDeducible: nd.get(`pago:${p.id}`) ?? null }));
 }
 
 /**
@@ -547,8 +550,17 @@ export async function getPagosDeCompras(compraIds: string[]): Promise<Record<str
     console.error("Pagos de los comprobantes de Por pagar:", error?.message ?? "la consulta no devolvió datos");
     return {};
   }
+  const nd = await leerNoDeduciblesCon(supabase, data.map((p) => `pago:${p.id}`));
   const porCompra: Record<string, PagoCompra[]> = {};
-  for (const p of data) (porCompra[p.compra_id] ??= []).push({ id: p.id, fecha: p.fecha, monto: Number(p.monto), metodo: p.metodo, referencia: p.referencia });
+  for (const p of data)
+    (porCompra[p.compra_id] ??= []).push({
+      id: p.id,
+      fecha: p.fecha,
+      monto: Number(p.monto),
+      metodo: p.metodo,
+      referencia: p.referencia,
+      noDeducible: nd.get(`pago:${p.id}`) ?? null,
+    });
   return porCompra;
 }
 

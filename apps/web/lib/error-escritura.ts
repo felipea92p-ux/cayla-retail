@@ -483,8 +483,12 @@ const HUELLAS: Huella[] = [
  * `hint` de las RPC de temporadas (ADR-0246) cuyo mensaje ya viene en castellano de CAYLA. Casi todos llegan como
  * `P0001` y pasarían igual; los de PERMISO (`temporada_sin_permiso`, `calendario_sin_permiso`) llevan `42501`, y sin
  * esto caían al genérico «No se pudo… Código: …» en vez de decir «Solo el líder puede cambiar el calendario».
+ * Lo mismo los del fondo por rendir (ADR-0362 fase 6): `fondo_propio` («Nadie se entrega plata a sí mismo…») y `fondo_ajeno`
+ * («Desde tu fondo pagas tú: elige tu nombre en «Responsable».») llegan con `42501` y una frase que dice qué hacer; y los de la rendición
+ * (actividad 5): `rendicion_quien_aprueba` («Le entregaste plata en esta rendición…», `42501`), `rendicion_abierta`, `rendicion_sobra`,
+ * `rendicion_cambio`, `rendicion_sin_explicacion` y `en_rendicion` («Ese gasto ya está en una rendición…»).
  */
-const HINT_EN_CASTELLANO = /^(temporada|calendario)_[a-z_]+$/;
+const HINT_EN_CASTELLANO = /^((temporada|calendario|fondo|rendicion)_[a-z_]+|en_rendicion)$/;
 
 /**
  * `hint` de la corrección de color y talla de una variante (ADR-0263, 20260929045000). Su mensaje ya viene en castellano

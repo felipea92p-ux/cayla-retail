@@ -1554,6 +1554,60 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `AvisoStock`, `CifrasPlan` y `ListaCategorias` (con `FilaCategoria` y `BarraRango`); la hoja de una categoría es
     `PlanCategoriaModal.tsx` y el paso a paso `PasoAPaso.tsx`, los dos con `FormularioCategoria.tsx` (`guardar_plan_compra_linea`);
     `ExportarPlan.tsx` baja la lista en CSV (`lib/exportar-csv.ts`) o la imprime (`app/estilos/lista-compra.css`). Tope de inversión (B2): `TopeModal.tsx` → `guardar_plan_compra_tope` (módulo y líder). Varias campañas (B3): `SelectorCampana.tsx` + `NuevaCampanaModal.tsx` → `fn_planes_compra` (lectura) y `crear_plan_compra` (módulo y líder), con `planes_compra.etiqueta_id` ligando el plan a su etiqueta de Catálogo ▸ Etiquetas. `fn_plan_compra` suma `catalogo`, `stock_sedes`, `vendido_30` y `plan.tope_inversion` (todo opcional para la web: `leerPlan` deja `null` lo que la base no manda). B4 (ADR-0372, act. 2026-10-10 b): cada línea trae su `version` y la lectura `con_version`; `guardar_plan_compra_linea` recibe `p_version_esperada` (0 = la hoja abrió sin plan) y rechaza con PT409 si otra persona guardó otra cosa entre medio. La vista «Paso a paso» vive en `?vista=paso`; una `?plan=` que no existe lee la más reciente (`planPedidoNoExiste`). B5 (act. c): `EditarCampanaModal.tsx` → `editar_plan_compra` y `quitar_plan_compra` (vacía se borra, con algo se archiva); `CampanasArchivadasModal.tsx` → `restaurar_plan_compra`; `fn_planes_compra` dice `archivado` y `con_tope`, y `fn_plan_compra` no abre por defecto una archivada. C1–C6 (act. 2026-10-12): sin `?plan=` se abre la campaña que toca hoy (`campanaQueAbre`); pestañas `PestanasPlan.tsx` (Plan · Resultados · Historial); la propuesta de flojo/normal/bueno sale de `fn_plan_compra_propuesta` + `lib/plan-compra-propuesta.ts` (`FormularioCategoria` «Proponer los tres»); `RecuperoModal.tsx` → `guardar_plan_compra_recupero` (lo que sobra de CAYLA, solo líder). Act. f (2026-10-12): el selector es el calendario (`calendarioDelSelector`); `NuevaCampanaModal.tsx` arma el plan de una campaña del calendario (`crear_plan_compra`) o crea una nueva en Etiquetas con su plan (`crear_campana_con_plan`); un plan por campaña y por año.
+  - `/compras/fondos` («Fondos por rendir», ADR-0362 fase 6 · actividad 1, decisiones 26, 29, 30, 34, 35 y 65; módulo `fondos`: basta el
+    módulo, 8.ª entrada de Compras) → `lib/fondos.ts:getDatosFondos` (`fn_fondos`, `fn_fondos_movimientos`, `fn_fondos_opciones`, en
+    paralelo) + `lib/fondos-reglas.ts` (lectura defensiva, cifras, opciones agrupadas, lo que falta en cada hoja = lo que rechaza la base) +
+    `components/fondos/AccionesFondos.tsx` (hojas «Entregar plata», «Lo que devuelve» y «Anular», con guía de foco) →
+    `lib/fondos-acciones.ts` (`entregar_fondo`, `devolver_fondo`, `anular_movimiento_fondo`; firmas `fondo_entregar`, `fondo_devolver`,
+    `fondo_anular`). Desde /chaos (2026-10-14): la marca de cada envío sigue a lo que se manda (`lib/useIntento.ts`; la base rechaza el
+    mismo token con otro contenido, `token_reusado`, y `fn_resolver_intento` revisa las cinco operaciones del fondo, 20261014194000); el
+    monto con `lib/monto-plata-reglas.ts:leerMontoPlata` (coma decimal, decisión 78); y la base no acepta un monto NaN ni infinito
+    (candados `*_montos_finitos`, 20261014192000), más de 2 decimales, fechas de antes del 13/10/2026 (`fn_fondos_desde`, decisión 77)
+    ni textos hechos solo de caracteres invisibles (`fn_sin_invisibles`, 20261014193000). Desde /formidable (2026-10-14, decisión 79): con
+    una rendición por aprobar, la devolución no pasa del saldo menos su faltante (`topeDevolucion` en la hoja, `devolver_fondo` en la
+    base, 20261014212000). El fondo es una cuenta de dinero de tipo `fondo` con su dueña (`cuentas_dinero.persona_id`, 1413),
+    y su saldo sale del mismo libro que «Cuentas y dinero» (`fn_dinero_libro`). Cabecera `EncabezadoPagina`.
+    **Pagar desde «Mi fondo»** (actividad 2, `20261013212000`): `useCuentasParaElegir("pago", …, { conMiFondo: true })`
+    (`components/finanzas/CampoCuenta.tsx`, con `useMiFondo` → `fn_mi_fondo`) en `RegistrarComprobanteOrden`, `RegistrarPagoModal`
+    (`CompraDetallePanel`) y `PagoJuntosModal`; `conMiFondo`/`leerMiFondo` en `lib/fondos-reglas.ts`, y en `lib/cuenta-sellada-reglas.ts`
+    el tipo `fondo`, `ayudaDelFondo` («CAYLA te debe») y `usadoDelFondo` (lo pasan `LineasPago` y `MediosDePago`). En la base, el sello de
+    los pagos (`fn_compra_pagos_sellar`) deriva el fondo a `fn_fondo_para_pagar` (solo su dueña, con su cuenta) y `fn_asientos` lo saca de
+    la 1413.
+    **«Tu fondo»** (actividad 4, `20261013231000`): `components/fondos/TarjetaTuFondo.tsx` (la pieza de cifra, con `caraTuFondo`,
+    `mostrarTuFondo` y `hrefTuFondo` de `lib/fondos-reglas.ts`) ← `lib/fondos.ts:getResumenMiFondo` (`fn_mi_fondo_resumen`: saldo,
+    entregado, devuelto, pagado, gastos, desde y para qué, en una pasada por `fn_dinero_libro`). La dibujan `/compras/ordenes` (en la fila
+    de cifras) y el Inicio (`app/(app)/page.tsx`, después de «Tu día»; en el de almacén, `InicioAlmacen` → arriba de la columna derecha).
+    **La rendición** (actividad 5, `20261013233000`, `234000` y `235000`): en Órdenes de compra y, desde /formidable (2026-10-14, decisión
+    80), también en el Inicio, `components/fondos/TuFondoConRendir.tsx` («Rendir» / «Ver tu rendición», `accionTuFondo`) → `RendirFondo.tsx` (`fn_mi_ciclo_fondo` o `fn_rendicion_fondo_items`; `rendir_fondo`, firma
+    `fondo_rendir`; retirar con `devolver_rendicion_fondo`); en Fondos por rendir, «Rendiciones por aprobar» (`fn_rendiciones_fondo`, en
+    `getDatosFondos`) → `RevisarRendicion.tsx` (`aprobar_rendicion_fondo` / `devolver_rendicion_fondo`). Reglas en `lib/rendicion-reglas.ts`,
+    llamadas en `lib/rendicion-acciones.ts`. La tarjeta suma `fn_mi_fondo_rendicion`. Fotos de un gasto del viaje: `FotoDelGasto.tsx` +
+    `lib/gastos-viaje-fotos.ts` (bucket `retail-gastos-viaje`, `registrar_foto_gasto_viaje`, `fn_fotos_gasto_viaje`).
+    **Lo no deducible** (actividad 6, `20261014002000`): la regla es `fn_pago_no_bancarizado` (y el tope de la planilla, el parámetro
+    tributario `tope_planilla_movilidad`); `fn_no_deducibles(claves del libro)` ← `lib/no-deducible.ts:leerNoDeduciblesCon` (servidor o
+    navegador) ← `getPagosCompra`/`getPagosDeCompras` (`lib/compras.ts`), `getGastosDeOrden` (`lib/gastos-viaje.ts`) y `leerItems`
+    (`lib/rendicion-acciones.ts`); se dibuja con `components/MarcaNoDeducible.tsx` en `ComprobantePagos`, `PorPagarVistaRapida`,
+    `GastosDeOrden`, `RendirFondo` y `RevisarRendicion`. El aviso al pagar es `components/AvisoNoDeducible.tsx` con `avisoBancarizacion` /
+    `avisoBancarizacionLote` (`lib/no-deducible-reglas.ts`), en `LineasPago`, `MediosDePago` (de `PagoPiezas` y la del Taller),
+    `GastoDelViaje`, `RegistrarGastoModal` y `GastoRapidoModal`. El tope se fija en Configuración ▸ Impuestos (`ConfiguracionImpuestos`,
+    `guardar_parametro_tributario`).
+    **Saldar la deuda de un faltante** (actividad 7, `20261014145000`): en Fondos por rendir, «Registrar su pago» (`PagarDeudaFondo`,
+    `components/fondos/AccionesFondos.tsx`, con `camposPagarDeuda` de `lib/deuda-fondo-reglas.ts`) → `pagar_deuda_fondo`; «Anular» de
+    un pago → `anular_pago_deuda_fondo` (llamadas en `lib/fondos-acciones.ts`). Lo que se debe: `fn_deudas_fondo` (en `getDatosFondos`) y,
+    adentro, `fn_deudas_fondo_de`, que también usan `fn_mi_fondo_rendicion` («Tu fondo») y `fn_bal_otro_camino` (la 1419 del Balance);
+    `fn_conciliacion_contable` suma las filas de la 1413 y la 1419 (sus nombres, en `lib/balance-reglas.ts`).
+    **El IGV** (actividad 8, `20261014153000`): `registrar_gasto_viaje` separa el IGV de una factura con RUC (`gastos.igv`; la hoja lo
+    anticipa con `pistaDelPapel`, `lib/gastos-viaje-reglas.ts`). El IGV perdido por pagar sin banco es UNA lectura, `fn_igv_perdido(desde,
+    hasta)` (en el mes del pago; usa `fn_pago_no_bancarizado`), que leen `fn_impuestos_compras` (fila negativa `igv_perdido`, y las
+    facturas y boletas de los gastos del viaje), `fn_impuestos_panel` (`revisar.igv_perdido` → `PanelImpuestos.revisar.igvPerdido`: la
+    tarjeta del crédito y «Para revisar» de `ImpuestosPanel.tsx`, y su línea en `csvResumenIgv`) y `fn_asientos_igv_perdido` (64 contra
+    4011, sumada a `fn_asientos`). `fn_impuestos_registro_compras` suma las facturas y boletas de los gastos del viaje
+    (`FilaRegistroCompras.origen = 'gasto_viaje'`). Finanzas ▸ Gastos (decisión 76, `20261014174000`) también le pregunta: la interna
+    `fn_igv_perdido_de_gastos` une cada pago perdido a su gasto, y la leen `fn_gastos_igv_perdido` (← `lib/gastos.ts:getGastos`, que la une a
+    la lista con `conIgvPerdido`; la fila y el detalle con `igvBajoElMonto`, `textoIgvPerdido`, `notaIgvPerdido` —su enlace a Impuestos solo con
+    `puedeVerImpuestos`— e `igvEnRiesgo`, `lib/gastos-reglas.ts`) y `fn_gastos_panel` (clave `igv_perdido`, en el mes del pago →
+    `PanelGastos.igvPerdido` / `igvDescontable`; la tarjeta con `igvParaLaTarjeta`, que nunca es negativa, y `bajadaIgvDelMes`, que con
+    `perdidoEnOtroMes` dice el IGV de la lista que se pierde en otro mes).
   - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`.
   - `/compras/plan/historial` (ADR-0372 C3) → `getHistorialPlan` → `fn_historial_ventas` (Sinatra en `retail.ventas_historicas` antes del ERP) + `lib/plan-compra-historial.ts`; pantalla `components/plan-compra/HistorialCampanas.tsx`.
   - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;
@@ -1565,6 +1619,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     Recibir pase a Inventario (la sesión de Recepción; ver ADR-0362, «Contrato con»).
   - `/compras/ordenes/ver/[id]` (una orden; página completa al recargar) y `/compras/@modal/(.)ordenes/ver/[id]` (la misma, como ventana
     sobre la lista) → `lib/ordenes-compra.ts:getDetalleOrden` (`fn_orden_compra_detalle`) + `components/ordenes-compra/DetalleOrdenCompra.tsx`.
+    **Gastos del viaje** (ADR-0362 fase 6 · actividad 3, `20261013221000`/`222000`): «+ Gasto del viaje» en la cabecera de la lista y en
+    `AccionesOrden` → `components/ordenes-compra/GastoDelViaje.tsx` (hoja con guía de foco; a la vista solo las órdenes elegidas, y las
+    demás con «+ Agregar otra orden» → `ComboBuscable` con `ordenesParaAgregar`, decisión 74; al menos una, decisión 75, que también frena `registrar_gasto_viaje` —20261014170000—; órdenes por `fn_gastos_viaje_ordenes`, «Sale de»
+    con `conMiFondo` y de la tienda del gasto: `fn_gasto_viaje_sede`, 20261014200000, la misma regla que la base) → `lib/gastos-viaje-acciones.ts`
+    (`registrar_gasto_viaje`, firma `gasto_viaje_registrar`, con la marca de `useIntento`: si la respuesta se pierde, la hoja se congela y
+    pregunta a `fn_resolver_intento`, 20261014194000); el monto con `lib/monto-plata-reglas.ts:leerMontoPlata` (coma decimal, decisión 78);
+    reglas y reparto en `lib/gastos-viaje-reglas.ts`, ejemplos en `lib/sugerencias-gasto-viaje.ts`. «Traerla costó» en el detalle: `lib/gastos-viaje.ts:getGastosDeOrden`
+    (`fn_gastos_viaje_de_orden`) + `components/ordenes-compra/GastosDeOrden.tsx`.
     «ver» va delante del id a propósito: una interceptada `ordenes/[id]` se tragaba `/compras/ordenes/nueva` (Next la modela como
     reescritura `beforeFiles`). Con la orden «generada», `components/ordenes-compra/AccionesOrden.tsx` en el pie de la ventana y en la
     cabecera de la página: «Anular orden» (hoja con el motivo → `lib/ordenes-compra-acciones.ts:anularOrdenCompra`, `anular_orden_compra`,

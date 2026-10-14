@@ -1029,6 +1029,39 @@ export const PRUEBAS = [
   // (editar a la vez y crear con el mismo id): commitean una orden de prueba y la borran al terminar.
   "pruebas:ordenes-insumo",
 
+  // Fondos por rendir (ADR-0362, fase 6 · actividad 1): el módulo es la llave; la primera entrega crea el fondo de la persona (1413) y
+  // las demás suman en el mismo; nadie se entrega plata a sí mismo, registra su propia devolución ni anula su propio fondo; lo del líder
+  // solo lo entrega el líder; no se devuelve más de lo que hay ni se anula una entrega ya usada; el validador, el registro genérico,
+  // «¿De dónde sale la plata?» y el candado de la cuenta no dejan mover un fondo por otro lado. ROLLBACK siempre.
+  "pruebas:fondos",
+
+  // Gastos del viaje (ADR-0362, fase 6 · actividad 3): con Órdenes de compra; «Traer la mercadería» (609, fletes) o «Viaje de compra» (631);
+  // desde «Mi fondo» el Diario lo saca de la 1413, desde la caja fuerte de la 101; a una o varias órdenes, repartido según su total; sin
+  // comprobante solo taxi o cargador; un anulado no cuenta y devuelve la plata al fondo; la firma de la decisión 39. ROLLBACK siempre.
+  "pruebas:gastos-viaje",
+  "pruebas:rendicion-fondo",
+  // Lo no deducible (ADR-0362, fase 6 · actividad 6): en un comprobante de S/ 2 000 o más, lo pagado en efectivo o desde un fondo; y lo
+  // que pasa el tope diario de la planilla de movilidad, por persona y por día. ROLLBACK siempre.
+  "pruebas:no-deducible",
+  // Saldar la deuda de un faltante (ADR-0362, fase 6 · actividad 7): lo registra quien recibe la plata, no más de lo que debe, la más
+  // vieja primero, anular devuelve la deuda, y la 1419 y la 1413 por dos caminos. ROLLBACK siempre.
+  "pruebas:deuda-fondo",
+  // El IGV de la fase 6 (ADR-0362, actividad 8): la factura con RUC de un gasto del viaje va al crédito fiscal; el IGV de lo pagado sin
+  // banco se pierde en el mes del PAGO (Impuestos en negativo, el aviso del panel y, en el Diario, 64 contra 4011). ROLLBACK siempre.
+  "pruebas:igv-fase6",
+  // Finanzas ▸ Gastos con los gastos del viaje (ADR-0362, fase 6): la lista y sus cifras leen el papel de su ficha (factura, boleta,
+  // ticket o planilla de movilidad, con su número y quien la dio), sin cambiar columnas ni lo de un gasto de Finanzas; y la pantalla
+  // sabe decir todo papel que la base acepta. ROLLBACK siempre.
+  "pruebas:gastos-lista-viaje",
+  // Finanzas ▸ Gastos con el IGV perdido (ADR-0362, fase 6, decisión 76): la fila dice qué gasto perdió IGV por pagar sin banco, cuánto,
+  // cuándo y cómo; la tarjeta lo resta en el mes del PAGO y se mueve igual que el crédito de gastos de Impuestos; misma visibilidad que
+  // la lista; todo origen de fn_igv_perdido llega a un gasto o está fuera a propósito. ROLLBACK siempre.
+  "pruebas:gastos-igv-perdido",
+  // Lo que la base del fondo no acepta (ADR-0362, fase 6; /chaos 2026-10-14): un monto que no es un número (en las funciones y en las
+  // tablas de plata), más de 2 decimales, diez mil millones, fechas de antes del 13/10/2026, textos invisibles, y el token que sigue al
+  // contenido en las cinco funciones del fondo con su revisión en fn_resolver_intento. ROLLBACK siempre.
+  "pruebas:fondos-entradas",
+
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
   // terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160

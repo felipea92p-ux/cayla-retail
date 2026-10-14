@@ -34,6 +34,12 @@ export const OPERACIONES_CON_MARCA = [
   "separar_pedido_para_apartar",
   "iniciar_traslado",
   "enviar_pedido_a_otra_sede",
+  // Los fondos por rendir y el gasto del viaje (ADR-0362 fase 6, /chaos 2026-10-14; 20261014194000).
+  "entregar_fondo",
+  "devolver_fondo",
+  "pagar_deuda_fondo",
+  "registrar_gasto_viaje",
+  "rendir_fondo",
 ] as const;
 export type OperacionConMarca = (typeof OPERACIONES_CON_MARCA)[number];
 

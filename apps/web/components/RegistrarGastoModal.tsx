@@ -20,6 +20,8 @@ import { diaLima } from "@/lib/fechas-lima";
 import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
+import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
+import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import {
   TEXTO_COMPROBANTE,
   TEXTO_MEDIO,
@@ -156,6 +158,14 @@ export function RegistrarGastoModal({
   const salida = cuentasGasto.find((c) => c.id === cuentaSalida) ?? null;
   const bancoConMedio = salida?.tipo === "banco" ? (mediosDeBanco(conComprobante).includes(medioBanco) ? medioBanco : "transferencia") : null;
   const medioSalida = salida ? (medioDeCuenta(salida.tipo) ?? bancoConMedio ?? "transferencia") : "";
+  // ADR-0362 (fase 6 · actividad 6, decisiones 56 y 70): un comprobante de S/ 2 000 o más pagado en efectivo queda «no deducible». Se
+  // deja registrar; la hoja lo avisa. Sin comprobante o a crédito (se paga después, desde Por pagar) no hay nada que avisar aquí.
+  const pagaAhora = conComprobante && !aCredito && monto.ok;
+  const avisoNoDeducible = pagaAhora
+    ? avisoBancarizacion(monto.valor, [
+        { monto: monto.valor, medio: egreso ? "efectivo" : conCuentas ? medioSalida : b.medio, tipoCuenta: egreso ? "cajon" : (salida?.tipo ?? null) },
+      ])
+    : null;
 
   function elegirComprobante(t: TipoComprobante) {
     setB((x) => {
@@ -542,6 +552,8 @@ export function RegistrarGastoModal({
             <InputFin id="gasto-referencia" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
           </CampoFin>
         )}
+
+        <AvisoNoDeducible aviso={avisoNoDeducible} reservar={pagaAhora && monto.valor >= UMBRAL_BANCARIZACION} />
 
         <ComboResponsable control={responsable} deshabilitado={guardando || intento.incierto} />
       </fieldset>

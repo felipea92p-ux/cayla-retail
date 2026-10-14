@@ -106,8 +106,8 @@ export async function subirAdjuntosCompra(
 
 // Los mensajes de Storage vienen en inglés técnico; se traducen los que una
 // colaboradora puede encontrarse. El resto se muestra tal cual, pero con
-// contexto.
-function leerErrorStorage(mensaje: string): string {
+// contexto. (Lo usan también las fotos de los gastos del viaje.)
+export function leerErrorStorage(mensaje: string): string {
   const m = mensaje.toLowerCase();
   if (m.includes("bucket not found")) return "El almacén de adjuntos no está configurado en este entorno.";
   if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("load failed"))
