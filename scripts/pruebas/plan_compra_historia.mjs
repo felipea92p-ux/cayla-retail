@@ -30,6 +30,9 @@ const REPARTO = leer("20261012164000_plan_compra_reparto_por_tienda.sql");
 const POR_TIENDA = leer("20261012212000_plan_compra_resultados_por_tienda.sql");
 const PRECIO_LLENO = leer("20261012223000_plan_compra_precio_lleno_al_vender.sql");
 const PEDIDO = leer("20261012224000_plan_compra_lo_pedido_en_ordenes.sql");
+// Lo que falta llegar (ADR-0372 act. 2026-10-13 b): necesita las tablas de envíos, recepción y «Nos debe» (fases 3 a 5a de ADR-0362). Se carga
+// solo en su caso (O2): el resto de los casos sigue corriendo en una base local que todavía no las tiene.
+const LO_QUE_FALTA = leer("20261013213000_plan_compra_lo_que_falta_llegar.sql");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -304,6 +307,82 @@ caso(
      (select g->>'unidades' from jsonb_array_elements(:'r'::jsonb->'categorias') g where g->>'c' = :'cat'),
      (select g->>'soles' from jsonb_array_elements(:'r'::jsonb->'categorias') g where g->>'c' = :'cat'));`,
   "2,25,875.00"
+);
+
+caso(
+  "O2 lo que falta llegar de una línea: lo que no salió + lo que va en un envío sin recibir + lo que el proveedor debe reponer; no lo recibido, lo perdido ni lo de un envío anulado",
+  `reset role;
+   set local search_path = retail, public, extensions;
+   ${LO_QUE_FALTA}
+   set local search_path = retail, public, extensions;
+   select desde as f_desde from retail.planes_compra where id = :'futura' \\gset
+   select id as prov from retail.proveedores limit 1 \\gset
+   select id as marca from retail.marcas limit 1 \\gset
+   set local session_replication_role = replica;
+   insert into retail.ordenes_compra (id, proveedor_id, fecha_emision, fecha_entrega_estimada, estado, creada_por)
+   values ('11111111-0000-4000-8000-000000000011', :'prov', :'f_desde'::date - 20, :'f_desde'::date + 1, 'generada', gen_random_uuid());
+   insert into retail.orden_compra_items (id, orden_compra_id, posicion, categoria_id, marca_id, cantidad, precio_unitario)
+   values ('22222222-0000-4000-8000-000000000011', '11111111-0000-4000-8000-000000000011', 1, :'cat', :'marca', 30, 35);
+   -- Envío 1, ya recibido: salieron 20; llegaron 17 y faltaron 3 «No vino» (el proveedor debe; ya repuso 1). Envío 4, ya recibido:
+   -- salieron 2 y se perdieron (una diferencia por línea y envío: la base no deja dos). Envío 2, en camino: 6. Envío 3, anulado: 50
+   -- que no cuentan.
+   insert into retail.despachos (id, ubicacion_destino_id, estado, despachado_por, abierto_por, abierto_en, cerrado_por, cerrado_en)
+   values ('33333333-0000-4000-8000-000000000001', :'tienda', 'cerrado', gen_random_uuid(), gen_random_uuid(), now(), gen_random_uuid(), now());
+   insert into retail.despachos (id, ubicacion_destino_id, estado, despachado_por)
+   values ('33333333-0000-4000-8000-000000000002', :'tienda', 'en_camino', gen_random_uuid());
+   insert into retail.despachos (id, ubicacion_destino_id, estado, despachado_por, anulado_por, anulado_en, motivo_anulacion)
+   values ('33333333-0000-4000-8000-000000000003', :'tienda', 'anulado', gen_random_uuid(), gen_random_uuid(), now(), 'prueba');
+   insert into retail.despachos (id, ubicacion_destino_id, estado, despachado_por, abierto_por, abierto_en, cerrado_por, cerrado_en)
+   values ('33333333-0000-4000-8000-000000000005', :'tienda', 'cerrado', gen_random_uuid(), gen_random_uuid(), now(), gen_random_uuid(), now());
+   insert into retail.despacho_items (id, despacho_id, orden_compra_item_id, cantidad, categoria_id, marca_id, precio_unitario)
+   values ('44444444-0000-4000-8000-000000000001', '33333333-0000-4000-8000-000000000001', '22222222-0000-4000-8000-000000000011', 20, :'cat', :'marca', 35),
+          ('44444444-0000-4000-8000-000000000002', '33333333-0000-4000-8000-000000000002', '22222222-0000-4000-8000-000000000011', 6, :'cat', :'marca', 35),
+          ('44444444-0000-4000-8000-000000000003', '33333333-0000-4000-8000-000000000003', '22222222-0000-4000-8000-000000000011', 50, :'cat', :'marca', 35),
+          ('44444444-0000-4000-8000-000000000005', '33333333-0000-4000-8000-000000000005', '22222222-0000-4000-8000-000000000011', 2, :'cat', :'marca', 35);
+   insert into retail.despacho_recibidos (despacho_id, despacho_item_id, proveedor_id, categoria_id, marca_id, variante_id, cantidad, costo_unitario, movimiento_id, creado_por)
+   values ('33333333-0000-4000-8000-000000000001', '44444444-0000-4000-8000-000000000001', :'prov', :'cat', :'marca', :'v', 17, 35, gen_random_uuid(), gen_random_uuid());
+   insert into retail.despacho_diferencias (id, despacho_id, despacho_item_id, proveedor_id, categoria_id, marca_id, tipo, causa, cantidad, costo_unitario, creado_por)
+   values ('55555555-0000-4000-8000-000000000001', '33333333-0000-4000-8000-000000000001', '44444444-0000-4000-8000-000000000001', :'prov', :'cat', :'marca', 'faltante', 'no_vino', 3, 35, gen_random_uuid()),
+          ('55555555-0000-4000-8000-000000000002', '33333333-0000-4000-8000-000000000005', '44444444-0000-4000-8000-000000000005', :'prov', :'cat', :'marca', 'faltante', 'se_perdio', 2, 35, gen_random_uuid());
+   insert into retail.proveedor_deuda_resoluciones (diferencia_id, forma, cantidad, nota, creado_por)
+   values ('55555555-0000-4000-8000-000000000001', 'repuesta', 1, 'prueba', gen_random_uuid());
+   set local session_replication_role = origin;
+   ${como(FELIPE)}
+   select retail.fn_plan_compra_pedido(:'futura') as r \\gset
+   -- 30 pedidas: 2 sin salir (salieron 20 + 2 + 6) + 6 en camino + 2 que todavía debe = 10 por llegar.
+   select concat_ws(',',
+     (select g->>'unidades' from jsonb_array_elements(:'r'::jsonb->'categorias') g where g->>'c' = :'cat'),
+     (select g->>'por_llegar' from jsonb_array_elements(:'r'::jsonb->'categorias') g where g->>'c' = :'cat'),
+     (select o->>'por_llegar' from jsonb_array_elements(:'r'::jsonb->'ordenes') o where o->>'id' = '11111111-0000-4000-8000-000000000011'));`,
+  "30,10,10"
+);
+caso(
+  "O3 todo lo que salió ya se recibió y no hay deuda: por llegar es 0 (lo recibido ya está en el stock y no se cuenta dos veces)",
+  `reset role;
+   set local search_path = retail, public, extensions;
+   ${LO_QUE_FALTA}
+   set local search_path = retail, public, extensions;
+   select desde as f_desde from retail.planes_compra where id = :'futura' \\gset
+   select id as prov from retail.proveedores limit 1 \\gset
+   select id as marca from retail.marcas limit 1 \\gset
+   set local session_replication_role = replica;
+   insert into retail.ordenes_compra (id, proveedor_id, fecha_emision, fecha_entrega_estimada, estado, creada_por)
+   values ('11111111-0000-4000-8000-000000000012', :'prov', :'f_desde'::date - 20, :'f_desde'::date + 1, 'generada', gen_random_uuid());
+   insert into retail.orden_compra_items (id, orden_compra_id, posicion, categoria_id, marca_id, cantidad, precio_unitario)
+   values ('22222222-0000-4000-8000-000000000012', '11111111-0000-4000-8000-000000000012', 1, :'cat', :'marca', 10, 35);
+   insert into retail.despachos (id, ubicacion_destino_id, estado, despachado_por, abierto_por, abierto_en, cerrado_por, cerrado_en)
+   values ('33333333-0000-4000-8000-000000000004', :'tienda', 'cerrado', gen_random_uuid(), gen_random_uuid(), now(), gen_random_uuid(), now());
+   insert into retail.despacho_items (id, despacho_id, orden_compra_item_id, cantidad, categoria_id, marca_id, precio_unitario)
+   values ('44444444-0000-4000-8000-000000000004', '33333333-0000-4000-8000-000000000004', '22222222-0000-4000-8000-000000000012', 10, :'cat', :'marca', 35);
+   insert into retail.despacho_recibidos (despacho_id, despacho_item_id, proveedor_id, categoria_id, marca_id, variante_id, cantidad, costo_unitario, movimiento_id, creado_por)
+   values ('33333333-0000-4000-8000-000000000004', '44444444-0000-4000-8000-000000000004', :'prov', :'cat', :'marca', :'v', 10, 35, gen_random_uuid(), gen_random_uuid());
+   set local session_replication_role = origin;
+   ${como(FELIPE)}
+   select retail.fn_plan_compra_pedido(:'futura') as r \\gset
+   select concat_ws(',',
+     (select g->>'unidades' from jsonb_array_elements(:'r'::jsonb->'categorias') g where g->>'c' = :'cat'),
+     (select g->>'por_llegar' from jsonb_array_elements(:'r'::jsonb->'categorias') g where g->>'c' = :'cat'));`,
+  "10,0"
 );
 
 // D. REPARTO POR TIENDA ---------------------------------------------------------------------------------------------------

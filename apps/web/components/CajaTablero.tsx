@@ -22,6 +22,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { Encabezado, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { claveLocal, guardar, leer } from "@/lib/almacen-local";
 import {
@@ -43,6 +44,7 @@ import {
 } from "@/lib/caja-tablero-reglas";
 import type { CierreCaja } from "@/lib/caja";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
+import { TEXTO_MEDIO } from "@/lib/gastos-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada } from "@/components/ui/BarraApilada";
 
@@ -445,7 +447,13 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
       <div className="card-cayla anim-sube p-5">
         <CabeceraPanel
           titulo="Gastos del turno"
-          bajada={g ? `Salieron del cajón · ${soles(g.total)}` : "Lo que salió del cajón como gasto"}
+          bajada={
+            !g
+              ? "Lo que salió del cajón como gasto"
+              : g.totalApp > 0
+                ? `Del cajón ${soles(g.total)} · con Yape o Plin ${soles(g.totalApp)}`
+                : `Salieron del cajón · ${soles(g.total)}`
+          }
           derecha={
             <Link href="/finanzas/gastos" className={enlaceVer}>
               Ver en Finanzas →
@@ -455,7 +463,7 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
         {!g ? (
           <SinLectura />
         ) : g.lista.length === 0 ? (
-          <p className="py-3 text-xs text-tinta/50">Todavía no salió ningún gasto de este cajón.</p>
+          <p className="py-3 text-xs text-tinta/50">Todavía no hay gastos en este turno.</p>
         ) : (
           <div>
             {g.lista.map((x) => (
@@ -463,7 +471,8 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
                 <span className="min-w-0">
                   <span className="block truncate">{x.descripcion}</span>
                   <span className="block text-[11.5px] text-tinta/50">
-                    {x.hora} · {x.conComprobante ? "con comprobante" : "sin comprobante"}
+                    {x.hora}
+                    {x.medio && ` · con ${TEXTO_MEDIO[x.medio]}`} · {x.conComprobante ? "con comprobante" : "sin comprobante"}
                   </span>
                 </span>
                 <b className="whitespace-nowrap font-semibold text-rojo-profundo tabular-nums">−{soles(x.monto)}</b>
@@ -679,6 +688,15 @@ function VistaSemaforo({ cierres }: { cierres: CierreCaja[] }) {
   );
 }
 
+const PLANTILLA_CIERRES = "sm:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_5.5rem_5.5rem_minmax(0,7.5rem)]";
+const COLUMNAS_CIERRES: Columna[] = [
+  { titulo: "Turno" },
+  { titulo: "Cerró" },
+  { titulo: "Esperado", alinear: "der" },
+  { titulo: "Contó", alinear: "der" },
+  { titulo: "Resultado" },
+];
+
 function VistaTabla({ cierres }: { cierres: CierreCaja[] }) {
   return (
     <>
@@ -700,35 +718,26 @@ function VistaTabla({ cierres }: { cierres: CierreCaja[] }) {
           );
         })}
       </div>
-      <table className="hidden w-full text-[12.5px] tabular-nums sm:table">
-        <thead>
-          <tr className="border-b border-sand text-left">
-            {["Turno", "Cerró", "Esperado", "Contó", "Resultado"].map((h, i) => (
-              <th key={h} className={`label-cayla px-2.5 py-2 text-[10px] text-tinta/60 ${i === 2 || i === 3 ? "text-right" : ""}`}>
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {cierres.map((c) => {
-            const q = cuadreDe(c.diferencia);
-            return (
-              <tr key={c.id} className="border-b border-sand even:bg-hueso/45">
-                <td className="px-2.5 py-2">
-                  {diaCorto(c.cerradaEn)} · {FORMATO_HORA.format(new Date(c.cerradaEn))}
-                </td>
-                <td className="px-2.5 py-2">{c.cerradaPorNombre ?? "—"}</td>
-                <td className="px-2.5 py-2 text-right">{soles(c.montoCierreSistema)}</td>
-                <td className="px-2.5 py-2 text-right">{soles(c.montoCierreReal)}</td>
-                <td className="px-2.5 py-2">
-                  <Chip tono={TONO_CUADRE[q.clave]}>{q.texto}</Chip>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {/* La tabla del sistema (ADR-0358, ronda 7), sangrada hasta el borde de su tarjeta; en celular, la lista de arriba. */}
+      <div className="-mx-5 hidden divide-y divide-sand border-y border-sand text-[12.5px] tabular-nums sm:block">
+        <Encabezado columnas={COLUMNAS_CIERRES} plantilla={PLANTILLA_CIERRES} />
+        {cierres.map((c) => {
+          const q = cuadreDe(c.diferencia);
+          return (
+            <div key={c.id} className={fila(PLANTILLA_CIERRES, "sm:items-center")}>
+              <span className={celda()}>
+                {diaCorto(c.cerradaEn)} · {FORMATO_HORA.format(new Date(c.cerradaEn))}
+              </span>
+              <span className={celda()}>{c.cerradaPorNombre ?? "—"}</span>
+              <span className={celda("der")}>{soles(c.montoCierreSistema)}</span>
+              <span className={celda("der")}>{soles(c.montoCierreReal)}</span>
+              <span className={celda()}>
+                <Chip tono={TONO_CUADRE[q.clave]}>{q.texto}</Chip>
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </>
   );
 }

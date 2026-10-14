@@ -15,6 +15,15 @@
     background: var(--color-metodo-efectivo);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-metodo-efectivo) 22%, transparent);
   }
+  /* Con Yape o Plin el punto toma el color de ese medio (el mismo de la dona de Caja y de Cobrar): la plata no sale del cajón. */
+  .gr-punto[data-medio="yape"] {
+    background: var(--color-metodo-yape);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-metodo-yape) 22%, transparent);
+  }
+  .gr-punto[data-medio="plin"] {
+    background: var(--color-metodo-plin);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-metodo-plin) 22%, transparent);
+  }
 
   /* ---- El mosaico ---- */
   .gr-mosaico {

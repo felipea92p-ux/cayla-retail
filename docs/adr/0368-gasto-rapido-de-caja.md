@@ -53,3 +53,41 @@ paso.
   la ★ y los montos habituales; la coma del monto es decimal («0,80» no son S/ 80); y la guía igual a `validarGasto`.
 - `lib/guia-de-foco-pantallas.ts`: el modal está `aplicada`.
 - El movimiento es una excepción de ADR-0136 (actualización 2026-10-09).
+
+## Actualización 2026-10-12 — también con el Yape o el Plin de la tienda
+
+**Lo que pasó.** Las tiendas cuentan que el mototaxi, las bolsas o el baño muchas veces no salen del cajón: se pagan con el Yape (o el Plin)
+de la tienda, el mismo donde pagan las clientas. La hoja solo registraba efectivo (punto 3 de arriba), así que ese gasto quedaba sin anotar o,
+peor, se anotaba como efectivo: el cierre esperaba menos plata de la que había y salía un sobrante que no existía.
+
+**Decisión.** Bajo el monto, **«¿Cómo lo pagaste?»: Efectivo · Yape · Plin**, con Efectivo de fábrica (es lo que pasa casi siempre).
+- **Se dibuja con las fichas de medio de la hoja de cobro de Vender, acostadas** (`hoja-cobro-medio es-acostada`, 50 px): el mismo ícono de
+  Yape y Plin, la franja del color del medio arriba (el de la dona de Caja) y la ficha que se rellena con su color al elegir. Felipe lo eligió
+  mirando una lámina el 2026-10-12: primero pidió algo «más visual» que el segmento de texto, y de cuatro versiones compactas de las fichas de
+  Cobrar se quedó con la acostada con franja arriba («similar al de cobrar, sin ocupar tanto espacio»). Descartadas: la ficha de Cobrar tal
+  cual (96 px, demasiado alta bajo el monto), tarjetas con la consecuencia escrita (una pieza nueva), las baldosas del mosaico (el medio
+  parecía otro concepto y perdía su color) y píldoras (poco visuales). Si la ficha se angosta (375 px), el ícono vuelve arriba del nombre
+  por una regla de contenedor de la ficha.
+- **Efectivo:** igual que antes: sale del cajón abierto, su egreso descuenta el cierre.
+- **Yape o Plin:** se guarda con ese medio, **sin caja y sin cuenta elegida**. La base ya sabía qué hacer (ADR-0195 F3b, `fn_cuenta_sellada`):
+  sella la cuenta donde cae el Yape o el Plin de esa tienda según Configuración ▸ Cuentas y cobros. Si la tienda no lo configuró, el gasto
+  queda «sin cuenta» y el líder la dice en Cuentas y dinero; nunca se pierde. **El cajón no cambia** y el cierre no lo cuenta (el cierre ya
+  cuenta solo efectivo). Sin migración: `registrar_gasto` aceptaba Yape y Plin desde el 2026-09-24 (Finanzas ▸ Gastos los usaba).
+- **La guía de foco lo pasa como «sugerido»** (ADR-0284 act. h: un valor de fábrica que importa): la luz va al medio después del monto y el
+  pie dice «Sin elegir: Cómo lo pagaste» sin bloquear. Equivocarse aquí descuadra la caja, así que conviene que se mire.
+- **Lo que la hoja dice sigue al medio** (ADR-0290, `textosDelMedio`): la bajada («Se paga con el Yape de Tienda Trujillo: el cajón no
+  cambia»), el punto (color de Yape de la dona de Caja), el pie y el «listo». Nunca promete «la caja lo descuenta» con Yape o Plin.
+- **«Gastos del turno» los muestra** junto a los del cajón, con «con Yape» o «con Plin» en la fila y su total aparte («Del cajón S/ 12.00 ·
+  con Yape o Plin S/ 5.80»). Sin eso, quien registra un gasto por Yape no lo ve en Caja y cree que no se guardó. La hora sale de cuándo se
+  registró (`fn_gastos_lista.creado_en`); un gasto con factura dice su medio por su pago, como ya lo hacía esa lectura.
+
+**Descarté** transferencia y tarjeta en esta hoja: no son lo que pasa en el mostrador y siguen en el formulario completo. **Descarté** mostrar
+el banco de destino («cae en BCP ···1234»): a la colaboradora no le dice nada y obligaba a leer las cuentas al abrir la hoja.
+
+**De paso:** «Cancelar» con algo escrito preguntaba «¿Salir sin guardar?» DOS veces (al confirmar, la hoja se cerraba con su animación y su
+`onClose` volvía a preguntar). Ahora el «Salir sin guardar» suelta el aviso antes de cerrar. La hoja hermana, «Registrar ingreso», tiene el
+mismo patrón y queda anotada en el backlog.
+
+**Se vigila:** `lib/gasto-rapido-reglas.test.ts` (Yape y Plin van sin caja ni cuenta, la guía sigue igual a `validarGasto` en 20 escenarios,
+el medio es sugerido y nunca bloquea, los textos siguen al medio A → B → A) y `scripts/pruebas/gastos.mjs` caso 9 (contra Postgres: con la
+caja abierta, un gasto por Yape o Plin no cambia lo esperado del cajón ni crea un movimiento, y cae en la cuenta de ese medio en la tienda).

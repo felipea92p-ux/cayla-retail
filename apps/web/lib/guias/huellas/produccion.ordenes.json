@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 80,
+  "total": 91,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -12,14 +12,14 @@
       "input «{`Buenas de ${c.nombre}»"
     ],
     "components/ModeloNuevoCampos.tsx": [
-      "Link «Créalo en Productos»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del modelo\")}»",
       "CampoSelect «{guia.etiqueta(\"categoria\", \"Categoría\")}»",
-      "CampoMonto «{guia.etiqueta(\"precio\", \"Precio a tienda (c/u)\")}»"
+      "CampoMonto «{guia.etiqueta(\"precio\", \"Precio a tienda (c/u)\")}»",
+      "button «Mejor elegir uno que ya existe»",
+      "Link «Créalo en Productos»"
     ],
     "components/NuevaOrdenProduccionForm.tsx": [
-      "CampoSelect «{guia.etiqueta(\"modelo\", \"Modelo\")}»",
-      "input «{`${color}»",
+      "SegmentoDeslizante «Tipo de orden»",
       "Link «Editar producto»",
       "Desplegable «(sin nombre)»",
       "button «{curva.total > 0 ? `Usar la sugerencia · ${curva.total}»",
@@ -101,10 +101,18 @@
       "ComboResponsable «);»",
       "button «Ir a elegir»"
     ],
+    "components/alta-producto/MatrizCantidades.tsx": [
+      "SegmentoDeslizante «Qué escribes en la tabla»",
+      "input «1»",
+      "button «{`Restar a ${etiqueta}»",
+      "input «{`${preguntaCelda}»",
+      "button «{`Sumar a ${etiqueta}»",
+      "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
+    ],
     "components/alta-producto/NuevoColorAlta.tsx": [
-      "input «{ejemplo.nombre.texto}»",
-      "Desplegable «Código»",
-      "input «{ejemplo.codigo.texto}»",
+      "CampoTexto «Nombre del color»",
+      "Desplegable «setCodigoEscrito(normaliz»",
+      "CampoTexto «Código»",
       "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
@@ -115,6 +123,15 @@
     ],
     "components/motor-demanda/MotorEnProduccion.tsx": [
       "button «{curva.total > 0 ? `Usar la del motor · ${curva.total}»"
+    ],
+    "components/orden-produccion/AgregarColor.tsx": [
+      "button «{`Quitar ${nombre}»",
+      "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
+    ],
+    "components/orden-produccion/ElegirModelo.tsx": [
+      "button «prod-orden-nueva.modelo-fila»",
+      "button «→() => onCrear(escrito)»",
+      "button «Cambiar»"
     ]
   }
 }

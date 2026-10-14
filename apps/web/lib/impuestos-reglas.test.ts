@@ -7,6 +7,7 @@ import {
   csvRegistroVentas,
   csvResumenIgv,
   delAnio,
+  diaDelRegistro,
   estadoMes,
   fechaPle,
   leerFilaCompras,
@@ -169,6 +170,29 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(vigenteEnAnio(ps, "uit", 2025)?.valor).toBe(5350);
     expect(vigenteEnAnio(ps, "uit", 2024)).toBeNull();
     expect(aniosDeRegimen(ps, 2026, [2027])).toEqual([2027, 2026]);
+  });
+});
+
+describe("quién puso cada vigencia, y qué día (Configuración ▸ Impuestos)", () => {
+  it("el día es el de Lima: lo puesto a las 20:00 del 13 de octubre es del 13, aunque en UTC ya sea el 14", () => {
+    // Como lo manda la base (timestamptz en UTC, con microsegundos): 2026-10-14 01:00 UTC = 2026-10-13 20:00 en Lima.
+    const p = leerParametro({ nombre: "igv", vigente_desde: "2011-03-01", valor: 0.18, registrado_por: "Felipe Alvarez", registrado_en: "2026-10-14T01:00:00.123456+00:00", correcciones: 1 });
+    expect(diaDelRegistro(p.registradoEn)).toBe("13 oct 2026");
+    // Lo que se vio en la pantalla el 2026-10-13 a las 19:50 de Lima: decía «14 oct 2026».
+    expect(diaDelRegistro("2026-10-14T00:50:00+00:00")).toBe("13 oct 2026");
+  });
+
+  it("el día cambia a la medianoche de Lima, no a la de UTC; el año también", () => {
+    expect(diaDelRegistro("2026-10-14T04:59:00+00:00")).toBe("13 oct 2026"); // 23:59 en Lima
+    expect(diaDelRegistro("2026-10-14T05:00:00+00:00")).toBe("14 oct 2026"); // 00:00 en Lima
+    expect(diaDelRegistro("2027-01-01T01:00:00+00:00")).toBe("31 dic 2026"); // 20:00 del 31 de diciembre en Lima
+    expect(diaDelRegistro("2026-10-13T20:00:00-05:00")).toBe("13 oct 2026"); // con la hora de Lima escrita
+  });
+
+  it("sin instante, o con uno que no se lee, no inventa un día", () => {
+    expect(diaDelRegistro(null)).toBeNull();
+    expect(diaDelRegistro("")).toBeNull();
+    expect(diaDelRegistro("ayer")).toBeNull();
   });
 });
 

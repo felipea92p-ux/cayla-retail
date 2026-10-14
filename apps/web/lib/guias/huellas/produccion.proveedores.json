@@ -26,7 +26,7 @@
       "Boton «prod-proveedores.nuevo»",
       "Boton «Agregar el primero»",
       "button «{r.etiqueta}»",
-      "input «Ver archivados»",
+      "Casilla «Ver archivados»",
       "Boton «Borrar la búsqueda»",
       "Boton «Limpiar filtros»",
       "button «{p.nombre}»"

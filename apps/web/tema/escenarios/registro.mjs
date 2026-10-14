@@ -796,14 +796,17 @@ const tipoDeMovimiento = (nombre) => async (pagina) => {
 };
 ESCENARIOS.push(
   { id: "existencias.filtros", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · el panel «Filtros»", preparar: clicRol("button", /^Filtros/i) },
-  { id: "existencias.detalle", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · «Ver detalle» (cada talla con su piso y su almacén)", preparar: clicRol("button", /Ver detalle/i) },
+  { id: "existencias.detalle", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · «Ver detalle» (cada talla con su piso y su almacén)", abre: "[data-guia='existencias.tabla'] [role=button]", preparar: secuencia(clicRol("button", /^Filtros/i), clicRol("button", /^Tabla$/)) },
   { id: "existencias.danadas", ruta: "/inventario", cuentas: INVENTARIO, nombre: "Existencias · el filtro «Dañadas»", preparar: clicRol("button", /^Dañadas/i) },
   { id: "existencias.ordenar", ruta: "/inventario", cuentas: ["admin"], abre: "text=Nombre (A–Z)", nombre: "Existencias · «Ordenar por»", preparar: clicRol("button", /^Ordenar por/i) },
   // La tarjeta compacta (2026-10-07): «Colgar en el piso» del pie abre la tabla de Colgar varias; «Más ⌄» es un menú; la tarjeta abre el
   // cajón y «Todas» es la tabla de celdas piso/almacén.
   { id: "existencias.acciones", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] table", nombre: "Existencias · «Colgar en el piso» (la tabla de Colgar varias)", preparar: clicRol("button", /^Colgar en el piso/i) },
   { id: "existencias.mas", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=menu]", nombre: "Existencias · el menú «Más» de una tarjeta", preparar: clicRol("button", /^Más acciones de/i) },
-  { id: "existencias.todas", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] table", nombre: "Existencias · el cajón en «Todas» (piso y almacén por talla)", preparar: secuencia(async (pagina) => { await pagina.locator("article.card-cayla").first().click({ position: { x: 12, y: 12 }, timeout: 8000 }); await esperar(pagina, 1100); }, clicRol("button", /^Todas$/)) },
+  // El detalle de la prenda es un modal desde el 2026-10-12 (ADR-0391): la foto grande, la fila de la prenda, «Dónde está» y «Qué hago».
+  { id: "existencias.modal", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] [data-guia='existencias.cajon-donde']", nombre: "Existencias · el modal de la prenda («Esta talla»)", preparar: async (pagina) => { await pagina.locator("article.card-cayla").first().click({ position: { x: 12, y: 12 }, timeout: 8000 }); await esperar(pagina, 1100); } },
+  { id: "existencias.todas", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] table", nombre: "Existencias · el modal en «Todas» (colgadas y guardadas por talla, con totales)", preparar: secuencia(async (pagina) => { await pagina.locator("article.card-cayla").first().click({ position: { x: 12, y: 12 }, timeout: 8000 }); await esperar(pagina, 1100); }, clicRol("tab", /^Todas$/)) },
+  { id: "existencias.todas.capa", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog] button[aria-pressed=true]:has-text('En piso')", nombre: "Existencias · «Todas» con el filtro «En piso» puesto", preparar: secuencia(async (pagina) => { await pagina.locator("article.card-cayla").first().click({ position: { x: 12, y: 12 }, timeout: 8000 }); await esperar(pagina, 1100); }, clicRol("tab", /^Todas$/), clicRol("button", /^\d+\s*En piso$/i)) },
   { id: "existencias.pendientes", ruta: "/inventario", cuentas: INVENTARIO, abre: "[role=dialog]:has-text('Pendientes de hoy')", nombre: "Existencias · la ventana «Pendientes de hoy»", preparar: abrirPendientes },
   { id: "existencias.resumen", ruta: "/inventario", cuentas: ["admin"], abre: "[role=dialog]:has-text('Resumen del stock')", nombre: "Existencias · «Resumen por categoría»", preparar: secuencia(abrirPendientes, clicRol("button", /^Resumen por categoría/i)) },
   // Necesita una prenda dañada sin resolver en la sede (en la base local, una en Tienda Lima): sin ella, «Pendientes» no trae «Decidir».
@@ -939,14 +942,14 @@ ESCENARIOS.push(
   { id: "cuadrar.buscar", ruta: "/inventario/cuadrar", cuentas: INVENTARIO, nombre: "Cuadrar el piso · una prenda buscada", preparar: llenar(/Escanea o escribe el código/i, "Vestido") },
   { id: "cuadrar.guardado", ruta: "/inventario/cuadrar", cuentas: INVENTARIO, nombre: "Cuadrar el piso · «Lo guardado»", preparar: clicRol("button", /Lo guardado/i) },
   { id: "cuadrar.camara", ruta: "/inventario/cuadrar", cuentas: INVENTARIO, ancho: "celular", abre: "[role=dialog]", nombre: "Cuadrar el piso (celular) · la cámara", preparar: clicRol("button", /Escanear con la cámara/i) },
-  { id: "frescura.categoria", ruta: "/inventario/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Categoría»", preparar: clicRol("combobox", /^Categoría/i) },
-  { id: "frescura.estado", ruta: "/inventario/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Estado»", preparar: clicRol("combobox", /^Estado/i) },
+  { id: "frescura.categoria", ruta: "/gestion/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Categoría»", preparar: clicRol("combobox", /^Categoría/i) },
+  { id: "frescura.estado", ruta: "/gestion/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Estado»", preparar: clicRol("combobox", /^Estado/i) },
   // ADR-0208 (act. 2026-10-07): el tablero por categoría; una fila tocada queda «elegida» (arena) y filtra la lista.
-  { id: "frescura.tablero", ruta: "/inventario/frescura", cuentas: ["admin"], abre: "[aria-pressed=true]", nombre: "Frescura · una categoría del tablero elegida", preparar: clicRol("button", /^Camisas y Blusas/i) },
+  { id: "frescura.tablero", ruta: "/gestion/frescura", cuentas: ["admin"], abre: "[aria-pressed=true]", nombre: "Frescura · una categoría del tablero elegida", preparar: clicRol("button", /^Camisas y Blusas/i) },
   // ADR-0208 (Formidable 2026-10-10 (c)): el «¿Por qué?» de «Aún no se sabe», con su lista flotando sobre la tarjeta de la tienda.
   {
     id: "frescura.porque-no-se-sabe",
-    ruta: "/inventario/frescura",
+    ruta: "/gestion/frescura",
     cuentas: ["admin"],
     abre: 'section[aria-labelledby="frescura-piso-titulo"] [aria-expanded="true"]',
     nombre: "Frescura · el porqué de «Aún no se sabe»",
@@ -987,18 +990,18 @@ ESCENARIOS.push(
       await esperar(pagina, 1000);
     },
   },
-  { id: "analisis.acaba", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «Se está acabando»", preparar: clicRol("tab", /Se está acabando/i) },
-  { id: "analisis.nose", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «No se vende»", preparar: clicRol("tab", /No se vende/i) },
-  { id: "analisis.pedir", ruta: "/inventario/resumen", cuentas: ["admin"], nombre: "Análisis · «Qué pedir»", preparar: clicRol("tab", /Qué pedir/i) },
-  { id: "analisis.confianza", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · la hoja «Datos incompletos / confiables»", preparar: clicRol("button", /Datos (incompletos|confiables)/i) },
+  { id: "analisis.acaba", ruta: "/gestion/analisis", cuentas: ["admin"], nombre: "Análisis · «Se está acabando»", preparar: clicRol("tab", /Se está acabando/i) },
+  { id: "analisis.nose", ruta: "/gestion/analisis", cuentas: ["admin"], nombre: "Análisis · «No se vende»", preparar: clicRol("tab", /No se vende/i) },
+  { id: "analisis.pedir", ruta: "/gestion/analisis", cuentas: ["admin"], nombre: "Análisis · «Qué pedir»", preparar: clicRol("tab", /Qué pedir/i) },
+  { id: "analisis.confianza", ruta: "/gestion/analisis", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · la hoja «Datos incompletos / confiables»", preparar: clicRol("button", /Datos (incompletos|confiables)/i) },
   // «Ver qué falta» (ADR-0357, decisión 2, act. 2026-10-06): mientras la tienda no cumple, la pantalla abre con los datos de hoy y su
   // aviso fijo (lo mide la visita de la ruta); este botón del aviso lleva a «Todavía no», con su propio aviso arriba. Con
   // ANALISIS_SIN_CANDADO=1 en local la pantalla ya recomienda y no hay aviso ni botón.
-  { id: "analisis.que-falta", ruta: "/inventario/resumen", cuentas: ["admin"], abre: ".todavia", nombre: "Análisis · «Ver qué falta» («Todavía no»), con su aviso", preparar: clicRol("button", /Ver qué falta/i) },
+  { id: "analisis.que-falta", ruta: "/gestion/analisis", cuentas: ["admin"], abre: ".todavia", nombre: "Análisis · «Ver qué falta» («Todavía no»), con su aviso", preparar: clicRol("button", /Ver qué falta/i) },
   // La ficha de una prenda: se abre desde la primera prenda que haya a la vista (las listas de Hoy; si no traen nada, el ranking de
   // «Qué pedir»). Sin ventas con su prenda en la tienda no hay de dónde abrirla.
   {
-    id: "analisis.ficha", ruta: "/inventario/resumen", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · la ficha de una prenda",
+    id: "analisis.ficha", ruta: "/gestion/analisis", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Análisis · la ficha de una prenda",
     preparar: async (pagina) => {
       const enHoy = pagina.locator(".analisis .top-f, .analisis .l5");
       if ((await enHoy.count()) > 0) await enHoy.first().click({ timeout: 8000 });
@@ -1048,6 +1051,13 @@ ESCENARIOS.push(
   { id: "factura.detalle", ruta: "/compras/factura/[compraId]", cuentas: ["admin"], abre: "h1", nombre: "Factura de proveedor · el comprobante", preparar: async (pagina) => irA(`/compras/factura/${idDeCompra()}`)(pagina) },
   { id: "parte.detalle", ruta: "/compras/parte/[compraId]", cuentas: ["admin"], abre: "h1", nombre: "Parte de recepción · el documento", preparar: async (pagina) => irA(`/compras/parte/${idDeCompra()}`)(pagina) },
   { id: "produccion.orden-nueva", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva orden»", preparar: clicRol("button", /Nueva orden/i) },
+  // ADR-0396, A2: la tabla única de cantidades de «Nueva orden». `abre` exige la raíz de la tabla con teclado (`data-matriz-mover`), no solo la hoja: sin modelos elegidos el escenario no pasa en verde sin haberla abierto.
+  { id: "produccion.orden-nueva-tabla", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: "[data-matriz-mover]", nombre: "Producción · «Nueva orden» con un modelo que existe: la tabla de cantidades", preparar: secuencia(clicRol("button", /Nueva orden/i), async (pagina) => { await pagina.locator('[data-guia="prod-orden-nueva.modelo-fila"]').first().click({ timeout: 8000 }); await esperar(pagina, 1000); }) },
+  // ADR-0396, A3: la ficha viva a la derecha de la hoja ancha (con un modelo ya elegido, para que no sea la ficha vacía).
+  { id: "produccion.orden-nueva-ficha", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: 'aside[aria-label="La orden, tal como va a quedar"]', nombre: "Producción · «Nueva orden»: la ficha viva de la orden con un modelo elegido", preparar: secuencia(clicRol("button", /Nueva orden/i), async (pagina) => { await pagina.locator('[data-guia="prod-orden-nueva.modelo-fila"]').first().click({ timeout: 8000 }); await esperar(pagina, 1000); }) },
+  { id: "produccion.orden-nueva-color", ruta: "/produccion/ordenes", cuentas: ["admin-taller"], abre: '[data-guia="prod-orden-nueva.matriz"] [role="combobox"]', nombre: "Producción · «Nueva orden» con un modelo nuevo: «+ Agregar color» abierto sobre la tabla", preparar: secuencia(clicRol("button", /Nueva orden/i), clicRol("button", /Crear un modelo nuevo/i), async (pagina) => { await pagina.getByRole("combobox", { name: /^Categoría/ }).first().click({ timeout: 8000 }); await esperar(pagina, 600); await pagina.getByRole("option").first().click({ timeout: 8000 }); await esperar(pagina, 800); }, clicRol("button", /Agregar color/i)) },
+  // La hoja «Ver el modelo» del Resumen: se abre tocando la primera fila de «¿Qué producir?» (si la tienda no tiene modelos que producir, no hay fila y el escenario lo dice).
+  { id: "produccion.ver-modelo", ruta: "/produccion", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · Resumen · «Ver el modelo» (la hoja de un modelo)", async preparar(pagina) { await pagina.locator("#produce li button").first().click(); await esperar(pagina, 900); } },
   { id: "produccion.insumo-nuevo", ruta: "/produccion/insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nuevo insumo»", preparar: clicRol("button", /Nuevo insumo/i) },
   { id: "produccion.cotizacion", ruta: "/produccion/cotizaciones-maquila", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva cotización» de maquila", preparar: clicRol("button", /Nueva cotización/i) },
   { id: "produccion.factura-nueva", ruta: "/produccion/comprobantes", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Producción · «Nueva factura»", preparar: clicRol("button", /Nueva factura/i) },
@@ -1064,6 +1074,54 @@ ESCENARIOS.push(
   { id: "ordenes.llega-a", ruta: "/compras/ordenes/nueva", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Nueva orden de compra · la lista de «Llega a»", preparar: async (pagina) => { await pagina.locator("#oc-destino").click({ timeout: 8000 }); await esperar(pagina, 800); } },
   { id: "ordenes.anular", ruta: "/compras/ordenes/ver/[id]", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Órdenes de compra · la hoja «Anular orden»", preparar: secuencia(async (pagina) => irA(`/compras/ordenes/ver/${idDeOrdenCompra()}`)(pagina), clicRol("button", /^Anular orden$/)) },
   { id: "ordenes.editar", ruta: "/compras/ordenes/editar/[id]", cuentas: ["admin"], abre: "h1", nombre: "Órdenes de compra · «Editar OC-…»", preparar: async (pagina) => irA(`/compras/ordenes/editar/${idDeOrdenCompra()}`)(pagina) },
+  // Fase 3: «Enviar a una sede» y la hoja «Anular envío» (necesita una orden con un envío en camino en la base local).
+  { id: "ordenes.enviar", ruta: "/compras/ordenes/envio/[id]", cuentas: ["admin"], abre: "h1", nombre: "Órdenes de compra · «Enviar OC-…» a una sede", preparar: async (pagina) => irA(`/compras/ordenes/envio/${idDeOrdenCompra()}`)(pagina) },
+  { id: "ordenes.anular-envio", ruta: "/compras/ordenes/ver/[id]", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Órdenes de compra · la hoja «Anular envío»", preparar: secuencia(async (pagina) => irA(`/compras/ordenes/ver/${consultarLocal("select oci.orden_compra_id from retail.despachos d join retail.despacho_items di on di.despacho_id = d.id join retail.orden_compra_items oci on oci.id = di.orden_compra_item_id where d.estado = 'en_camino' limit 1")}`)(pagina), clicRol("button", /^Anular envío$/)) },
+);
+
+// ---------- Órdenes de insumos del Taller (ADR-0362, fase 7) ----------
+// La ventana de una orden, su hoja «Anular orden» y «Editar» necesitan una orden «generada»: la primera de la base local. Se auditan
+// parados en el Taller, donde el menú las muestra.
+const idDeOrdenInsumo = () => consultarLocal("select id from retail.ordenes_insumo where estado = 'generada' order by numero limit 1");
+ESCENARIOS.push(
+  { id: "oi.ventana", ruta: "/ordenes-insumos", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Órdenes de insumos · la orden abierta sobre la lista", preparar: async (pagina) => { await pagina.locator('main a[href*="/ordenes-insumos/ver/"]').first().click({ timeout: 8000 }); await esperar(pagina, 1500); } },
+  { id: "oi.calendario", ruta: "/ordenes-insumos/nueva", cuentas: ["admin-taller"], abre: '[role=dialog][aria-label="Calendario"]', nombre: "Nueva orden de insumos · el calendario de «Entrega estimada»", preparar: clicRol("button", /Abrir calendario/i) },
+  { id: "oi.insumo", ruta: "/ordenes-insumos/nueva", cuentas: ["admin-taller"], abre: "[role=listbox]", nombre: "Nueva orden de insumos · la lista de «Insumo» (código y unidad)", preparar: async (pagina) => { await pagina.getByLabel("Insumo de la línea 1").click({ timeout: 8000 }); await esperar(pagina, 800); } },
+  { id: "oi.anular", ruta: "/ordenes-insumos/ver/[id]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Órdenes de insumos · la hoja «Anular orden»", preparar: secuencia(async (pagina) => irA(`/ordenes-insumos/ver/${idDeOrdenInsumo()}`)(pagina), clicRol("button", /^Anular orden$/)) },
+  { id: "oi.editar", ruta: "/ordenes-insumos/editar/[id]", cuentas: ["admin-taller"], abre: "h1", nombre: "Órdenes de insumos · «Editar OI-…»", preparar: async (pagina) => irA(`/ordenes-insumos/editar/${idDeOrdenInsumo()}`)(pagina) },
+);
+
+// ---------- «Nos debe» (ADR-0362, fase 5a) ----------
+// Un proveedor que todavía debe prendas por reponer (un faltante «No vino» sin saldar). Con una base sin la fase 5 (sin la tabla de lo
+// resuelto), el primero con un faltante «No vino»; sin ninguno, Textiles Andina (el escenario no encontrará el botón y lo dirá).
+const idDeProveedorQueDebe = () => {
+  const consultas = [
+    "select x.proveedor_id from retail.despacho_diferencias x where x.tipo = 'faltante' and x.causa = 'no_vino' and x.cantidad > coalesce((select sum(r.cantidad) from retail.proveedor_deuda_resoluciones r where r.diferencia_id = x.id), 0) order by x.creado_en limit 1",
+    "select proveedor_id from retail.despacho_diferencias where tipo = 'faltante' and causa = 'no_vino' order by creado_en limit 1",
+  ];
+  for (const sql of consultas) {
+    try {
+      const id = consultarLocal(sql);
+      if (id) return id;
+    } catch {
+      // La base todavía no tiene esa tabla: la siguiente consulta.
+    }
+  }
+  return idDeProveedor();
+};
+const elegirProveedorQueDebe = async (pagina) => {
+  const nombre = consultarLocal(`select nombre from retail.proveedores where id = '${idDeProveedorQueDebe()}'`);
+  await pagina.getByRole("combobox", { name: /^Proveedor/ }).first().click({ timeout: 8000 });
+  await esperar(pagina, 500);
+  await pagina.keyboard.type(nombre.split(" ")[0] ?? "");
+  await esperar(pagina, 800);
+  await pagina.getByRole("option", { name: new RegExp(nombre.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) }).first().click({ timeout: 8000 });
+  await esperar(pagina, 1100);
+};
+ESCENARIOS.push(
+  { id: "proveedores.nos-debe", ruta: "/compras/proveedores/[id]", cuentas: ["admin"], abre: "#nos-debe", nombre: "Proveedores · «Nos debe» con prendas por reponer", preparar: async (pagina) => irA(`/compras/proveedores/${idDeProveedorQueDebe()}#nos-debe`)(pagina) },
+  { id: "proveedores.reposicion", ruta: "/compras/proveedores/[id]", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Proveedores · la hoja «Llegó la reposición»", preparar: secuencia(async (pagina) => irA(`/compras/proveedores/${idDeProveedorQueDebe()}`)(pagina), clicRol("button", /^Llegó la reposición$/)) },
+  { id: "ordenes.nos-debe", ruta: "/compras/ordenes/nueva", cuentas: ["admin"], abre: '[data-guia="orden-form.nos-debe"]', nombre: "Nueva orden de compra · el aviso «te debe … por reponer» al elegir el proveedor", preparar: elegirProveedorQueDebe },
 );
 
 // ---------- Finanzas (actividad 12) ----------

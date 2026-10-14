@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 125,
+  "total": 123,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «:»",
@@ -51,7 +51,7 @@
     "components/alta-producto/AvisoParecidos.tsx": [
       "Link «Abrir»",
       "Link «{p.referencia}»",
-      "input «Es otro producto distinto, créalo igual.»",
+      "Casilla «Es otro producto distinto, créalo igual.»",
       "Link «{p.referencia}» #2"
     ],
     "components/alta-producto/ConfigurarCategoria.tsx": [
@@ -66,9 +66,8 @@
     ],
     "components/alta-producto/ElegirEtiquetas.tsx": [
       "Boton «{enLinea ? undefined : \"Crear una etiqueta necesita internet\"}»",
-      "input «Buscar o crear una etiqueta…»",
       "Boton «+ Crear «»",
-      "input «(sin nombre)»",
+      "CampoTexto «Nombre de la etiqueta»",
       "button «{firma.motivo ?? undefined}»",
       "button «Cancelar»"
     ],
@@ -107,7 +106,6 @@
       "button «Ver todos»"
     ],
     "components/alta-producto/HojaParecidas.tsx": [
-      "input «{TEXTO.buscadorAria}»",
       "button «{a.accion.etiqueta}»",
       "button «{vista.pie.boton}»"
     ],
@@ -119,7 +117,7 @@
       "SegmentoDeslizante «Qué escribes en la tabla»",
       "input «1»",
       "button «{`Restar a ${etiqueta}»",
-      "input «{`Cuántas tienes de ${etiqueta}»",
+      "input «{`${preguntaCelda}»",
       "button «{`Sumar a ${etiqueta}»",
       "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
     ],
@@ -135,17 +133,17 @@
       "ComboBuscable «)»",
       "button «+ Proveedor nuevo»",
       "button «Cambiar» #2",
-      "input «Textil Andina SAC»",
-      "input «11 dígitos»",
+      "CampoTexto «Razón social»",
+      "CampoTexto «11 dígitos»",
       "button «Mejor elijo uno que ya existe»",
       "ComboBuscable «)» #2",
       "button «Cancelar»",
       "button «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
-      "input «{ejemplo.nombre.texto}»",
-      "Desplegable «Código»",
-      "input «{ejemplo.codigo.texto}»",
+      "CampoTexto «Nombre del color»",
+      "Desplegable «setCodigoEscrito(normaliz»",
+      "CampoTexto «Código»",
       "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
@@ -166,7 +164,7 @@
     ],
     "components/alta-producto/ProponerValor.tsx": [
       "button «{t.boton}»",
-      "input «{sugerirValorNuevo(tipo, familia, universo).texto}»",
+      "CampoTexto «{`Nombre ${tipo === \"tallas\" ? \"de la\" : \"del\"}»",
       "button «{firma.motivo ?? undefined}»",
       "button «Cancelar»"
     ],

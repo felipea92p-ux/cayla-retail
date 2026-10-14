@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -6,6 +7,7 @@ import { getNumeroDelMenuTraslados } from "@/lib/traslados";
 import { getAperturasPorRevisar } from "@/lib/caja";
 import { getEquipoDeHoy, getFuentesAvisos, getHoyDeLaSede, getMiMeta, type HoyDeLaSede } from "@/lib/inicio";
 import { mostrarHoy, resumirHoy } from "@/lib/inicio-reglas";
+import { pisoQueSeVe } from "@/lib/inicio-piso-reglas";
 import type { MiMeta } from "@/lib/mi-meta-reglas";
 import {
   accesosRapidos,
@@ -22,6 +24,7 @@ import {
   type NivelAviso,
 } from "@/lib/inicio-avisos";
 import { aterrizajeDe } from "@/lib/menu";
+import { ICONO_DEL_ACCESO, TRAZOS_MENU } from "@/lib/menu-iconos";
 import { formatoSoles } from "@/lib/resumen-formato";
 import { contarVencidas } from "@/lib/por-regularizar";
 import { contarComprobantesAtascados } from "@/lib/comprobantes";
@@ -33,6 +36,7 @@ import { getInicioAlmacen } from "@/lib/inicio-almacen";
 import { getAvisosObservatorio, getDatosObservatorio, getDatosTienda, getTallerObservatorio } from "@/lib/observatorio";
 import { Observatorio } from "@/components/observatorio/Observatorio";
 import { Etiqueta } from "@/components/inicio/TarjetasInicio";
+import { EsqueletoPiso, PisoDelInicio } from "@/components/inicio/PisoDelInicio";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/inicio/MiMeta";
 
@@ -61,9 +65,17 @@ export default async function InicioPage() {
   const persona = await requirePersonaActualV2();
   // Una terminal cuyo ROL ve el Punto de Venta aterriza ahí (pedido de Felipe, 2026-09-21; sin tipo desde 2026-09-22): su
   // menú no tiene «Inicio», su casa es el mostrador. Una persona aterriza en la pantalla principal de su rol, o en la
-  // primera que ve (20260925220000). Es un aterrizaje, no un candado. La regla vive en `aterrizajeDe`.
+  // primera que ve (20260925220000); en CAYLA Global, en el tablero, salvo el Admin. Es un aterrizaje, no un candado. La
+  // regla vive en `aterrizajeDe`, la misma que usa el login para entrar directo (2026-10-13): esta redirección queda para
+  // quien abre `/` a mano o desde el menú.
   const modulos = persona.modulos.map((m) => m.clave);
-  const destino = aterrizajeDe({ terminal: persona.terminal, modulos, pantallaPrincipal: persona.pantallaPrincipal });
+  const destino = aterrizajeDe({
+    terminal: persona.terminal,
+    modulos,
+    pantallaPrincipal: persona.pantallaPrincipal,
+    esAdmin: persona.esAdmin,
+    vista: persona.vista,
+  });
   if (destino !== "/") redirect(destino);
   if (persona.esAdmin) {
     const datos = await getDatosObservatorio();
@@ -81,12 +93,17 @@ export default async function InicioPage() {
     }
   }
   // En CAYLA Global el Inicio de una sede no tiene sentido (mostraría la sede donde trabaja bajo «CAYLA Global»): al tablero.
+  // A quien no es Admin ya lo mandó `aterrizajeDe`; aquí llega solo el Admin cuyo Observatorio no se pudo leer.
   if (persona.vista === "global") redirect("/global");
   const esLider = persona.rol === "lider";
   const ve = (m: (typeof modulos)[number]) => modulos.includes(m);
   const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos };
   const vende = persona.ubicacionTipo === "tienda" && ve("vender") && !persona.terminal;
   const puedeEditarCatalogo = puede(persona, "editarCatalogo");
+  // «Tu piso» (ADR-0395): solo en una tienda y a quien ve Frescura o el Plan del piso; cada mitad, solo si ve SU módulo (`pisoQueSeVe`, con su prueba). No va
+  // en el `Promise.all` de abajo: leer Frescura es lo más lento del Inicio y va en un `Suspense`, para que «Hoy» y «Te toca» no esperen en una carga en frío
+  // (en una navegación interna el velo del loader espera la respuesta completa: ver `PisoDelInicio.tsx`).
+  const piso = pisoQueSeVe({ ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos });
   const esAlmacen = esPerfilAlmacen({ ubicacionTipo: persona.ubicacionTipo, modulos, puedeEditarCatalogo });
 
   const [hoy, miMeta, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo, datosAlmacen] = await Promise.all([
@@ -194,6 +211,18 @@ export default async function InicioPage() {
             </>
           )}
           <TeToca visibles={visibles} ajustar={ajustar} />
+          {piso.alguno && (
+            // Es un estado, no una urgencia: va DESPUÉS de «Te toca», que trae plazos legales y lo que no puede esperar.
+            <Suspense fallback={<EsqueletoPiso mitades={Number(piso.frescura) + Number(piso.plan)} />}>
+              <PisoDelInicio
+                ubicacionId={persona.ubicacionId}
+                ubicacionEtiqueta={persona.ubicacionEtiqueta}
+                ubicacionTipo={persona.ubicacionTipo}
+                terminal={persona.terminal}
+                modulos={modulos}
+              />
+            </Suspense>
+          )}
         </div>
         <div className="space-y-6">
           {accesos.length > 0 && <Accesos accesos={accesos} />}
@@ -435,18 +464,21 @@ function EquipoDeHoy({ equipo, esLider }: { equipo: MiembroEquipo[] | null; esLi
   );
 }
 
-// ── Íconos (trazo 1.6, como el lateral; los de AppShell son privados de ese archivo) ────────────────────────────────
+// ── Íconos (trazo 1.6) ───────────────────────────────────────────────────────────────────────────────────────────────
+// Un acceso que lleva a una pantalla del menú dibuja el MISMO ícono que esa pantalla en el lateral (`ICONO_DEL_ACCESO`,
+// lib/menu-iconos.ts; 2026-10-13, Felipe: «alinea los otros dos lugares de íconos»). «Buscar» y «Nuevo producto» son acciones,
+// no pantallas: conservan su trazo propio.
 
 const TRAZOS: Record<ClaveAccesoIcono | "vender" | "chevron" | "check", string> = {
-  vender: "M6 7h12l1 14H5zM9 7a3 3 0 0 1 6 0",
-  caja: "M12 3v18M16 7c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 2.6 4 3 4 1.3 4 3-1.8 3-4 3-4-1.3-4-3",
-  apartados: "M7 3h10v18l-5-4-5 4z",
-  stock: "M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9",
-  traslados: "M5 12h14M13 6l6 6-6 6",
-  cambios: "M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3",
-  recibir: "M3 7h13v10H3zM16 10h3l2 3v4h-5M7 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3M18 19.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3",
-  conteo: "M9 4h6v3H9zM6 5h3M15 5h3v16H6V5M9 13l2 2 4-4",
-  produccion: "M4 20V9l5 3V9l5 3V6l6 3v11z",
+  vender: TRAZOS_MENU[ICONO_DEL_ACCESO.vender],
+  caja: TRAZOS_MENU[ICONO_DEL_ACCESO.caja],
+  apartados: TRAZOS_MENU[ICONO_DEL_ACCESO.apartados],
+  stock: TRAZOS_MENU[ICONO_DEL_ACCESO.stock],
+  traslados: TRAZOS_MENU[ICONO_DEL_ACCESO.traslados],
+  cambios: TRAZOS_MENU[ICONO_DEL_ACCESO.cambios],
+  recibir: TRAZOS_MENU[ICONO_DEL_ACCESO.recibir],
+  conteo: TRAZOS_MENU[ICONO_DEL_ACCESO.conteo],
+  produccion: TRAZOS_MENU[ICONO_DEL_ACCESO.produccion],
   buscar: "M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12M20 20l-4.5-4.5",
   nuevoProducto: "M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM12 8v8M8 12h8",
   chevron: "M9 6l6 6-6 6",

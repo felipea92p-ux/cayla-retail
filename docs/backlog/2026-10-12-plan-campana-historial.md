@@ -38,3 +38,13 @@
   verificadas como líder.
 - [ ] **Que lo pedido reste de «Comprar»** cuando Órdenes de compra reciba contra la orden (su fase 4, ADR-0362): hoy solo se muestra.
 - [ ] **Dos campañas que se pisan** (Diciembre y Navidad) muestran la misma orden en las dos: decidir si una orden puede ser de una sola.
+- [x] **Años de Historial en UNA fila** (Felipe 2026-10-12, maqueta `docs/maquetas/plan-historial-anios-2026-10/`, opción 2): los que caben, seguidos y con el
+  elegido al medio; el resto en «Más años», por década y con buscador (`ventanaDeAnios`, `aniosQueCaben`).
+- [x] **Plan en el celular:** resumen, campaña y Exportar en una fila (la campaña se corta con «…»); filtros en una fila que se desliza; los dos combos lado a lado.
+- [x] **Resultados e Historial arrancan en la sede de la cabecera** (Felipe 2026-10-12): Resultados la elige de entrada; Historial la pone primera y marcada, y su
+  detalle abre en ella. En CAYLA Global o en el Taller, toda CAYLA (`tiendaDeLaCabecera`, `laDeLaCabeceraPrimero`).
+- [x] **El selector es el calendario de Etiquetas; un plan por campaña y por año; «Campaña nueva» queda en Etiquetas con su formato** (ADR-0372 act. f,
+  migración `20261012234000`). **EN PRODUCCIÓN (2026-10-13)**: la pegó Felipe; verificada por lectura y como líder.
+- [ ] **Etiquetas no tiene cómo crear una campaña** (toda etiqueta nueva nace en «General»): hoy solo se puede desde el Plan. Que Etiquetas use
+  `crear_campana_con_plan` (o una hermana sin plan) para su propio «Nueva campaña».
+- [ ] **El selector crece 12 campañas por año que viene**: si molesta, mostrar «Por venir · 2027» plegado hasta que falten 6 meses.

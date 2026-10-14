@@ -1,10 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { Desplegable } from "@/components/ui/campos";
+import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { LayoutGrid } from "lucide-react";
+import { TRAZOS_MENU } from "@/lib/menu-iconos";
 import { ListaActividad, useActividad } from "@/components/actividad/ListaActividad";
 import {
   MODULOS_CON_ACTIVIDAD,
@@ -22,7 +24,8 @@ import type { ClaveModulo } from "@/lib/modulos";
 // pantalla más, es el historial de la pantalla donde uno está—. Al abrirlo muestra la actividad del módulo de esa
 // ruta, en la sede activa del selector. Solo lo pinta quien lo ve (`veActividad`); el alcance lo pone la base.
 
-const RUTA_HISTORIAL = "M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2";
+// El reloj con la flecha que vuelve: el mismo trazo del «Historial» del menú (`TRAZOS_MENU.historial`) y el de «Actividad» en Roles y accesos.
+const RUTA_HISTORIAL = TRAZOS_MENU.historial;
 
 export function BotonActividad({ ubicacionId, ubicacionEtiqueta, esLider }: { ubicacionId: string | null; ubicacionEtiqueta: string; esLider: boolean }) {
   const pathname = usePathname();
@@ -88,16 +91,15 @@ function PanelActividad({
       {(cerrar) => (
         <div>
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            {/* El combo de las barras de filtros (caja hundida, lista propia), como los demás: no el <select> del navegador. */}
-            <div className="w-full sm:w-56">
-              <Desplegable
-                forma="caja"
-                etiquetaAccesible="Módulo"
-                valor={modulo ?? ""}
-                onValor={(v) => setModulo(v || null)}
-                opciones={opcionesDeModulo(modulo)}
-              />
-            </div>
+            {/* La píldora de filtro del sistema (ADR-0358, ronda 6): dice su nombre y, puesta, lo elegido con su ✕. */}
+            <DesplegablePildora
+              icono={LayoutGrid}
+              etiqueta="Módulo"
+              valor={modulo ?? ""}
+              valorPorDefecto=""
+              onValor={(v) => setModulo((v || null) as ClaveModulo | null)}
+              opciones={opcionesDeModulo(modulo)}
+            />
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Periodo">
               {PERIODOS.map((p) => (
                 <button key={p.clave} type="button" className="pildora-cayla" aria-pressed={periodo === p.clave} onClick={() => setPeriodo(p.clave)}>
@@ -119,9 +121,9 @@ function PanelActividad({
 
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-sand/70 pt-4">
             <p className="text-xs text-taupe">{esLider ? "Ves la sede elegida arriba." : "Ves solo la actividad de tu tienda."}</p>
-            <Link href={verTodo} onClick={cerrar} className="btn-cayla btn-enlace">
-              Ver todo el historial →
-            </Link>
+            <EnlaceVer href={verTodo} alNavegar={cerrar}>
+              Ver todo el historial
+            </EnlaceVer>
           </div>
         </div>
       )}

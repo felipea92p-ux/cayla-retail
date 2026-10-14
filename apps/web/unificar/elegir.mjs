@@ -17,7 +17,8 @@
  *   «Repetir» de la demo vuelve a correr sus animaciones de entrada (ronda 5). La barra trae «Ver en oscuro»: cambia `data-tema` del
  *   <html>, así las demos y la página se ven con los tokens del modo oscuro del ERP (ADR-0336).
  *   `fotosAlFinal: true` pone las fotos después de la demo y del movimiento (cuando la demo viva es lo principal).
- *   `vista` es un recorte para la tarjeta (la foto completa se abre con «Ver grande»); `ancha` hace que la tarjeta ocupe dos columnas.
+ *   `vista` es un recorte para la tarjeta (la foto completa se abre con «Ver grande»); `ancha` hace que la tarjeta ocupe dos columnas y
+ *   `entera`, todo el ancho (una tabla viva no cabe en media pantalla; ronda 7).
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -31,13 +32,13 @@ const TIPO = { hoy: "Existe hoy", aplicada: "Lo aplicado ahora", propuesta: "Pro
 const fotos = (o) => `<span class="op-fotos">${o.imagenes
     .map((im) => `<span class="op-foto"><img src="${esc(im.vista ?? im.src)}" alt="${esc(o.nombre)}${im.pie ? ` en ${esc(im.pie)}` : ""}"></span><span class="op-pie">${im.pie ? esc(im.pie) : ""}<button type="button" class="op-ver" data-grande="${esc(im.src)}">Ver grande</button></span>`)
     .join("")}</span>`;
-const tarjeta = (f, g, o) => `<label class="op op-${esc(o.tipo)}${o.ancha ? " op-ancha" : ""}" data-op="${esc(o.id)}">
+const tarjeta = (f, g, o) => `<label class="op op-${esc(o.tipo)}${o.ancha ? " op-ancha" : ""}${o.entera ? " op-entera" : ""}" data-op="${esc(o.id)}">
   <input type="radio" name="${esc(f.id)}::${esc(g.id)}" value="${esc(o.id)}" data-nombre="${esc(o.nombre)}">
   <span class="op-cabeza"><span class="op-tipo">${esc(TIPO[o.tipo] ?? o.tipo)}</span><span class="op-marca" aria-hidden="true">Elegida</span></span>
   ${spec.fotosAlFinal ? "" : fotos(o)}
   <span class="op-nombre">${esc(o.nombre)}</span>
   <span class="op-detalle">${esc(o.detalle)}</span>
-  ${o.demo ? `<span class="op-demo" onclick="event.preventDefault()"><span class="op-demo-et">Pruébalo: pasa el mouse y presiona</span><span class="op-demo-fila">${o.demo}</span></span>` : ""}
+  ${o.demo ? `<span class="op-demo" onclick="if(!event.target.closest('input,textarea,select'))event.preventDefault()"><span class="op-demo-et">Pruébalo: pasa el mouse y presiona</span><span class="op-demo-fila">${o.demo}</span></span>` : ""}
   ${o.movimiento ? `<span class="op-mov"><b>Movimiento:</b> ${esc(o.movimiento)}</span>` : ""}
   ${o.donde ? `<span class="op-donde">${esc(o.donde)}</span>` : ""}
   ${spec.fotosAlFinal && o.imagenes.length ? `<span class="op-fotos-et">En las pantallas reales</span>${fotos(o)}` : ""}
@@ -84,7 +85,7 @@ legend { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; pa
 .ops { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
 .op { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 16px; border: 2px solid var(--color-sand, #e8e0d0); background: var(--color-papel, #fbf8f2); cursor: pointer; transition: border-color .15s, box-shadow .15s; }
 .op:hover { border-color: var(--color-taupe, #805c4c); }
-.op-ancha { grid-column: span 2; } @media (max-width: 760px) { .op-ancha { grid-column: auto; } }
+.op-ancha { grid-column: span 2; } .op-entera { grid-column: 1 / -1; } @media (max-width: 760px) { .op-ancha { grid-column: auto; } }
 .op > input { position: absolute; opacity: 0; pointer-events: none; }
 .op:has(> input:focus-visible) { outline: 2px solid var(--color-tinta, #1a1a18); outline-offset: 3px; }
 .op:has(> input:checked) { border-color: var(--color-tinta, #1a1a18); box-shadow: inset 0 0 0 1px var(--color-tinta, #1a1a18); }

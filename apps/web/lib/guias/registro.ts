@@ -20,7 +20,6 @@ import {
   GUIA_SERIES,
 } from "./pantallas/ventas-posventa";
 import {
-  GUIA_ANALISIS,
   GUIA_BAJAR_AL_PISO,
   GUIA_CONTEO,
   GUIA_CONTEO_CONFIRMAR,
@@ -28,13 +27,12 @@ import {
   GUIA_CONTEO_REVISAR,
   GUIA_CUADRAR_PISO,
   GUIA_EXISTENCIAS,
-  GUIA_FRESCURA,
   GUIA_MOVIMIENTOS,
   GUIA_NUEVO_TRASLADO,
   GUIA_PEDIDOS_NO_ATENDIDOS,
-  GUIA_PLAN_DEL_PISO,
   GUIA_POR_REGULARIZAR,
   GUIA_RECIBIR,
+  GUIA_RECIBIR_ENVIO,
   GUIA_TRASLADO,
   GUIA_TRASLADOS,
 } from "./pantallas/inventario";
@@ -52,7 +50,9 @@ import {
   GUIA_ROTULOS,
 } from "./pantallas/catalogo";
 import {
+  GUIA_COMPROBANTE_ORDEN,
   GUIA_EDITAR_ORDEN,
+  GUIA_ENVIO_ORDEN,
   GUIA_FACTURA,
   GUIA_FACTURAS,
   GUIA_MI_PARTE,
@@ -94,6 +94,10 @@ import {
   GUIA_PROD_PROVEEDORES,
   GUIA_PROD_RECIBIR,
   GUIA_PROD_RESUMEN,
+  GUIA_ORDENES_INSUMO,
+  GUIA_NUEVA_ORDEN_INSUMO,
+  GUIA_ORDEN_INSUMO,
+  GUIA_EDITAR_ORDEN_INSUMO,
 } from "./pantallas/produccion";
 import {
   GUIA_ACTIVIDAD,
@@ -104,8 +108,8 @@ import {
   GUIA_CONFIGURACION,
   GUIA_GLOBAL,
   GUIA_INICIO,
-  GUIA_RENDIMIENTO,
 } from "./pantallas/general";
+import { GUIA_ANALISIS, GUIA_FRESCURA, GUIA_PLAN_DEL_PISO, GUIA_RENDIMIENTO } from "./pantallas/gestion";
 import { GUIA_AVISOS_CLUB, GUIA_CLIENTES } from "./pantallas/clientes";
 import type { Guia } from "./tipos";
 
@@ -145,6 +149,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_TRASLADO,
   GUIA_NUEVO_TRASLADO,
   GUIA_RECIBIR,
+  GUIA_RECIBIR_ENVIO,
   GUIA_PRODUCTOS,
   GUIA_EDITAR_PRODUCTO,
   GUIA_HISTORIAL_PRENDA,
@@ -171,6 +176,8 @@ export const GUIAS: readonly Guia[] = [
   GUIA_NUEVA_ORDEN,
   GUIA_ORDEN,
   GUIA_EDITAR_ORDEN,
+  GUIA_COMPROBANTE_ORDEN,
+  GUIA_ENVIO_ORDEN,
   GUIA_FIN_RESUMEN,
   GUIA_FIN_GASTOS,
   GUIA_FIN_CUENTAS,
@@ -194,6 +201,10 @@ export const GUIAS: readonly Guia[] = [
   GUIA_PROD_POR_PAGAR,
   GUIA_PROD_COTIZACIONES,
   GUIA_PROD_EFICIENCIA,
+  GUIA_ORDENES_INSUMO,
+  GUIA_NUEVA_ORDEN_INSUMO,
+  GUIA_ORDEN_INSUMO,
+  GUIA_EDITAR_ORDEN_INSUMO,
   GUIA_INICIO,
   GUIA_ACTIVIDAD,
   GUIA_BUSCAR,
@@ -241,7 +252,9 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/compras/notas-credito": { estado: "aplicada", guia: GUIA_NOTAS_CREDITO.id },
   "/compras/nueva": { estado: "aplicada", guia: GUIA_NUEVA_FACTURA.id },
   "/compras/ordenes": { estado: "aplicada", guia: GUIA_ORDENES.id },
+  "/compras/ordenes/comprobante/[id]": { estado: "aplicada", guia: GUIA_COMPROBANTE_ORDEN.id },
   "/compras/ordenes/editar/[id]": { estado: "aplicada", guia: GUIA_EDITAR_ORDEN.id },
+  "/compras/ordenes/envio/[id]": { estado: "aplicada", guia: GUIA_ENVIO_ORDEN.id },
   "/compras/ordenes/nueva": { estado: "aplicada", guia: GUIA_NUEVA_ORDEN.id },
   "/compras/ordenes/ver/[id]": { estado: "aplicada", guia: GUIA_ORDEN.id },
   "/compras/parte/[compraId]": { estado: "aplicada", guia: GUIA_MI_PARTE.id },
@@ -273,6 +286,8 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/finanzas/reportes/flujo": { estado: "aplicada", guia: GUIA_FIN_FLUJO.id },
   "/finanzas/reportes/presupuesto": { estado: "aplicada", guia: GUIA_FIN_PRESUPUESTO.id },
   "/finanzas/resumen": { estado: "aplicada", guia: GUIA_FIN_RESUMEN.id },
+  // ---- gestion ----
+  "/gestion": { estado: "no-aplica", motivo: "Solo redirige: la puerta del grupo «Gestión» (ADR-0392) lleva a la primera de sus cuatro pantallas que la cuenta ve (Análisis, Frescura del piso, Plan del piso o Rendimiento). La guía es la de la pantalla a la que llega." },
   // ---- global ----
   "/global": { estado: "aplicada", guia: GUIA_GLOBAL.id },
   "/global/elige-sede": { estado: "no-aplica", motivo: "Un paso de paso: pide elegir la sede y vuelve; lo explica la guía de la pantalla de donde se viene." },
@@ -284,18 +299,25 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/inventario/conteo/[id]/confirmar": { estado: "aplicada", guia: GUIA_CONTEO_CONFIRMAR.id },
   "/inventario/conteo/[id]/revisar": { estado: "aplicada", guia: GUIA_CONTEO_REVISAR.id },
   "/inventario/cuadrar": { estado: "aplicada", guia: GUIA_CUADRAR_PISO.id },
-  "/inventario/frescura": { estado: "aplicada", guia: GUIA_FRESCURA.id },
+  "/gestion/frescura": { estado: "aplicada", guia: GUIA_FRESCURA.id },
   "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a Traslados ▸ Nuevo con lo que traía la dirección vieja. La guía es la de Nuevo traslado." },
   "/inventario/movimientos": { estado: "aplicada", guia: GUIA_MOVIMIENTOS.id },
-  "/inventario/plan-del-piso": { estado: "aplicada", guia: GUIA_PLAN_DEL_PISO.id },
+  "/gestion/plan-del-piso": { estado: "aplicada", guia: GUIA_PLAN_DEL_PISO.id },
   "/inventario/por-regularizar": { estado: "aplicada", guia: GUIA_POR_REGULARIZAR.id },
-  "/inventario/resumen": { estado: "aplicada", guia: GUIA_ANALISIS.id },
+  "/gestion/analisis": { estado: "aplicada", guia: GUIA_ANALISIS.id },
   "/inventario/traslados/(billetera)": { estado: "aplicada", guia: GUIA_TRASLADOS.id },
   "/inventario/traslados/(billetera)/[id]": { estado: "aplicada", guia: GUIA_TRASLADO.id },
   "/inventario/traslados/guia/[id]": { estado: "no-aplica", motivo: "Hoja de impresión de la guía de un traslado: se imprime y viaja con la mercadería." },
   "/inventario/traslados/nuevo": { estado: "aplicada", guia: GUIA_NUEVO_TRASLADO.id },
   // ---- movimientos ----
   "/movimientos": { estado: "no-aplica", motivo: "Solo redirige a Inventario ▸ Movimientos (la dirección vieja). La guía es la de esa pantalla." },
+  // ---- ordenes-insumos ----
+  "/ordenes-insumos": { estado: "aplicada", guia: GUIA_ORDENES_INSUMO.id },
+  "/ordenes-insumos/@modal/(.)ver/[id]": { estado: "no-aplica", motivo: "La misma vista que /ordenes-insumos/ver/[id] abierta como hoja sobre la lista: comparte su guía." },
+  "/ordenes-insumos/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar la ventana, no dibuja nada." },
+  "/ordenes-insumos/editar/[id]": { estado: "aplicada", guia: GUIA_EDITAR_ORDEN_INSUMO.id },
+  "/ordenes-insumos/nueva": { estado: "aplicada", guia: GUIA_NUEVA_ORDEN_INSUMO.id },
+  "/ordenes-insumos/ver/[id]": { estado: "aplicada", guia: GUIA_ORDEN_INSUMO.id },
   // ---- pedidos-no-atendidos ----
   "/pedidos-no-atendidos": { estado: "aplicada", guia: GUIA_PEDIDOS_NO_ATENDIDOS.id },
   // ---- produccion ----
@@ -323,6 +345,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/productos/por-revisar": { estado: "aplicada", guia: GUIA_POR_REVISAR.id },
   // ---- recibir ----
   "/recibir": { estado: "aplicada", guia: GUIA_RECIBIR.id },
+  "/recibir/envio/[id]": { estado: "aplicada", guia: GUIA_RECIBIR_ENVIO.id },
   // ---- rendimiento ----
   "/rendimiento": { estado: "aplicada", guia: GUIA_RENDIMIENTO.id },
   // ---- rotulos ----

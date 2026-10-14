@@ -649,6 +649,8 @@ rollback;`);
       "ADR-0365: reparte lo cobrado (con el redondeo de antes) y vuelve a calcular el redondeo con fn_redondeo_efectivo si queda efectivo y la caja redondea; sin efectivo, la fila de redondeo desaparece. La suma de filas no cambia.",
     entregar_separacion: "PARCHADA (20261003135000, actividad 6): el saldo en efectivo al entregar acepta la fila de redondeo y exige que sea el redondeo exacto de la ley.",
     fn_acepta_redondeo_efectivo: "La bandera del despliegue (20261003140000): solo mira el catálogo para saber si la base ya recibe el redondeo; no suma pagos.",
+    fn_anticipo_solo_de_apartado:
+      "Candado diferido del anticipo (20261013155000): relee UNA fila de venta_pagos para saber si sigue siendo 'anticipo'; no suma pagos y el redondeo no le toca.",
     fn_asientos: "Cada fila de venta_pagos genera su Debe, así que el asiento cuadra solo; el medio redondeo va a la cuenta 6598 por fn_asiento_cuenta_de_medio (20261003120000, actividad 3) y la anulación lo revierte. No se parchó.",
     fn_bal_causas_dinero: "Solo lee separacion_pagos.",
     fn_calcular_esperado_caja: "Suma el monto de la fila de EFECTIVO: ya es lo físico (múltiplo de 0.10). No se toca.",

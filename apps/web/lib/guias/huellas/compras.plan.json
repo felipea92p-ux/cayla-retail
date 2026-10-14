@@ -2,13 +2,14 @@
   "guia": "compras.plan",
   "ruta": "/compras/plan",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 82,
+  "total": 87,
   "controles": {
     "components/colaboradores/CajonFicha.tsx": [
       "button «Cerrar»"
     ],
     "components/plan-compra/AvisoStock.tsx": [
-      "BotonEnlace «Ir a Conteo»"
+      "BotonEnlace «Ir a Conteo»",
+      "Boton «Ver qué falta»"
     ],
     "components/plan-compra/CampanasArchivadasModal.tsx": [
       "BotonEnlace «Ver»",
@@ -51,18 +52,16 @@
     "components/plan-compra/ListaCategorias.tsx": [
       "SegmentoDeslizante «Cómo llenar el plan»",
       "BotonFiltro «{p.texto}»",
-      "Desplegable «)»",
-      "Desplegable «)» #2",
+      "DesplegablePildora «Familia»",
+      "DesplegablePildora «Ordenar por»",
       "Boton «{q.trim() ? \"Borrar la búsqueda\" : \"Quitar los filtros\"}»",
       "button «{plegadas.length}»"
     ],
     "components/plan-compra/NuevaCampanaModal.tsx": [
-      "BotonEnlace «Ir a Etiquetas»",
-      "CampoSelect «Nombre del plan»",
-      "CampoTexto «{<span className=\"sr-only\">Nombre del plan</span>}»",
+      "CampoTexto «{<span className=\"sr-only\">{nueva ? \"Nombre de la campaña\" : \"Nombre del plan\"}»",
       "CampoFecha «{<span className=\"sr-only\">Desde</span>}»",
       "CampoFecha «{<span className=\"sr-only\">Hasta</span>}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -79,12 +78,18 @@
       "Pestanas «);»"
     ],
     "components/plan-compra/PlanCampana.tsx": [
-      "Boton «Nueva campaña»",
+      "Boton «Armar el plan de»",
+      "Boton «Campaña nueva»",
+      "Boton «Campaña nueva» #2",
       "Boton «Ver campañas archivadas»",
       "Boton «plan.resumen»",
       "Boton «Exportar»",
       "Boton «plan.empezar»",
       "Boton «Restaurar…»",
+      "BotonEnlace «{aviso.verResultados}»",
+      "BotonEnlace «Planificar»",
+      "Boton «Planificar»",
+      "Boton «Campaña nueva» #3",
       "Link «{numeroDeOrden(o.numero)}»",
       "Boton «→() => setEditandoRecupero(true)»",
       "Boton «→() => setEditandoReparto(true)»"

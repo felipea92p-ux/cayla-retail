@@ -17,7 +17,7 @@ import { RPC_GUARDAR_RECUPERO, argsGuardarRecupero } from "@/lib/plan-compra-pro
 
 // «Lo que sobra» de CAYLA para una campaña (ADR-0372, C5 · Felipe 2026-10-12): a qué % del precio se vende en la liquidación lo que queda sin
 // vender. Es el punto de partida de cada categoría nueva del plan; cada una puede cambiarlo (un jean se recupera mejor que un polo de temporada).
-// Solo un líder lo fija (la base lo exige también). No cambia las categorías ya guardadas: esas tienen el suyo.
+// Lo fija quien tiene el módulo Plan de campaña (la base lo exige también; ADR-0387: ya no solo un líder). No cambia las categorías ya guardadas: esas tienen el suyo.
 
 export function RecuperoModal({ planId, planNombre, actual, heredado, onClose }: { planId: string; planNombre: string; actual: number | null; heredado: boolean; onClose: () => void }) {
   const router = useRouter();

@@ -2,10 +2,9 @@
   "guia": "compras.notas-credito",
   "ruta": "/compras/notas-credito",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 46,
+  "total": 44,
   "controles": {
     "components/NotaCreditoDetalle.tsx": [
-      "Link «Ver comprobante»",
       "button «→copiar»",
       "Boton «Registrar la nota»"
     ],
@@ -49,7 +48,6 @@
       "button «Cambiar»"
     ],
     "components/SaldoFavorAcciones.tsx": [
-      "button «Registrar reembolso →»",
       "CampoTexto «Monto devuelto»",
       "CampoFecha «Fecha»",
       "button «{t}»",

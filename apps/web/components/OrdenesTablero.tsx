@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { Boton } from "@/components/ui/campos";
@@ -15,11 +15,13 @@ import { OrdenTarjeta, semaforoDeOrden } from "@/components/OrdenTarjeta";
 import { useFlipCajas } from "@/lib/useFlipCajas";
 import { COLUMNAS_TABLERO, etapaActual, resumenTablero } from "@/lib/produccion-reglas";
 import type { TipoOrden } from "@/lib/modelo-nuevo-orden-reglas";
+import { ordenesParaLaLista } from "@/lib/orden-modelo-reglas";
 import type { VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
 import type { ModeloProducible, OrdenProduccion } from "@/lib/produccion";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
 import { Scissors, Shirt } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Órdenes de producción del Taller (ADR-0133, F2): un tablero por etapa en vez de una lista plana. La etapa donde
 // está la orden ES su columna; al marcarla hecha la tarjeta viaja a la siguiente. Las muestras (otras tres
@@ -37,6 +39,7 @@ export function OrdenesTablero({
   decision,
   ordenInicialId = null,
   nuevaInicial = null,
+  sugeridaInicial = false,
   tipoInicial = "produccion",
   puedeEditarCatalogo = false,
   vocabulario = null,
@@ -53,6 +56,8 @@ export function OrdenesTablero({
   /** Enlaces del Resumen (F6): `?orden=<id>` abre esa orden; `?nueva=<modelo>` abre «Nueva orden» con el modelo elegido (`auto` = el primero). */
   ordenInicialId?: string | null;
   nuevaInicial?: string | null;
+  /** `&sugerida=1` (solo desde «Abrir orden sugerida» del Resumen): «Nueva orden» llega con la matriz ya llena con la sugerencia de la red. */
+  sugeridaInicial?: boolean;
   /** `?tipo=muestra` (ADR-0361): el tipo con que se abre «Nueva orden» al volver de crear un modelo nuevo. */
   tipoInicial?: TipoOrden;
   /** Quien edita el catálogo puede crear el modelo que falta desde aquí (`fn_puede_editar_catalogo`, ADR-0361). */
@@ -62,6 +67,8 @@ export function OrdenesTablero({
 }) {
   const [abiertaId, setAbiertaId] = useState<string | null>(ordenInicialId && ordenes.some((o) => o.id === ordenInicialId) ? ordenInicialId : null);
   const [nuevaAbierta, setNuevaAbierta] = useState(nuevaInicial !== null);
+  // La sugerencia del Resumen se aplica UNA vez, a la apertura que vino por la URL: la URL no cambia al cerrar ni al guardar, así que sin esto cada «+ Nueva orden» la volvería a escribir.
+  const [sugeridaPendiente, setSugeridaPendiente] = useState(sugeridaInicial);
   const [anulando, setAnulando] = useState<OrdenProduccion | null>(null);
   const [revirtiendo, setRevirtiendo] = useState<OrdenProduccion | null>(null);
   const [verTerminadas, setVerTerminadas] = useState(false);
@@ -72,6 +79,8 @@ export function OrdenesTablero({
   const terminadas = ordenes.filter((o) => o.estado === "terminada");
   const anuladas = ordenes.filter((o) => o.estado === "anulada");
   const resumen = resumenTablero(ordenes, hoy);
+  // Para la lista de «Nueva orden»: cuántas órdenes abiertas tiene cada modelo y cuáles fueron los últimos (ADR-0396).
+  const paraLaLista = useMemo(() => ordenesParaLaLista(ordenes), [ordenes]);
 
   const porColumna = (clave: string) => produccion.filter((o) => etapaActual(o.etapas, false) === clave);
   // Firma de «qué tarjeta está en qué columna»: solo cuando cambia se anima el viaje.
@@ -162,9 +171,10 @@ export function OrdenesTablero({
             const tarjetas = porColumna(col.clave);
             return (
               <section key={col.clave} aria-label={col.titulo} className="min-h-[9rem] min-w-0 rounded-2xl bg-sand/35 p-2.5">
-                <header className="flex items-center justify-between px-1.5 pb-2.5 pt-1.5">
-                  <h2 className="label-cayla text-[11px] text-tinta/65">{col.titulo}</h2>
-                  <span className="text-xs tabular-nums text-tinta/65">{tarjetas.length}</span>
+                <header className="px-1.5 pb-2.5 pt-1.5">
+                  <TituloGrupo nivel={2} cuenta={tarjetas.length}>
+                    {col.titulo}
+                  </TituloGrupo>
                 </header>
                 <div className="space-y-2.5">
                   {tarjetas.length === 0 ? (
@@ -186,7 +196,7 @@ export function OrdenesTablero({
       {/* ==================== muestras ==================== */}
       {muestras.length > 0 && (
         <section data-guia="prod-ordenes.muestras" className="space-y-3">
-          <h2 className="label-cayla text-[11px] text-tinta/65">Muestras en desarrollo</h2>
+          <TituloSeccion>Muestras en desarrollo</TituloSeccion>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {muestras.map((o) => (
               <OrdenTarjeta key={o.id} orden={o} esLider={esLider} hoy={hoy} indice={indice++} onAbrir={() => setAbiertaId(o.id)} />
@@ -243,7 +253,7 @@ export function OrdenesTablero({
       {/* ==================== anuladas ==================== */}
       {anuladas.length > 0 && (
         <section data-guia="prod-ordenes.anuladas" className="space-y-2">
-          <h2 className="label-cayla text-[11px] text-tinta/65">Anuladas</h2>
+          <TituloSeccion>Anuladas</TituloSeccion>
           {anuladas.map((o) => (
             <div key={o.id} className="card-cayla flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-3 text-sm text-tinta/65">
               <span className="text-tinta/80">{o.referencia}</span>
@@ -276,10 +286,16 @@ export function OrdenesTablero({
           modelos={modelos}
           decision={decision}
           productoInicialId={nuevaInicial}
+          sugeridaInicial={sugeridaPendiente}
           tipoInicial={tipoInicial}
           puedeEditarCatalogo={puedeEditarCatalogo}
           vocabulario={vocabulario}
-          onClose={() => setNuevaAbierta(false)}
+          abiertas={paraLaLista.abiertas}
+          recientes={paraLaLista.recientes}
+          onClose={() => {
+            setNuevaAbierta(false);
+            setSugeridaPendiente(false);
+          }}
         />
       )}
       {anulando && <AnularOrdenModal orden={anulando} consumos={consumosPorOrden[anulando.id] ?? []} onClose={() => setAnulando(null)} />}

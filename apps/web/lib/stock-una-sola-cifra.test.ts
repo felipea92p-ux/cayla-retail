@@ -27,7 +27,6 @@ const LEGADO: Record<string, string> = {
   "components/useStockEnSede.ts":
     "Catálogo (main, 2026-09-28): stock por talla de la ficha y el candado de Etiquetas (físico, la misma lectura que Etiquetas). Pendiente: pasar a fn_existencias (tarea #4).",
   "lib/etiquetas-precio.ts": "Etiquetas de precio: cuántas imprimir = prendas físicas colgadas. Pendiente: sin Cuarentena.",
-  "app/(app)/buscar/page.tsx": "Buscar: «en stock / agotada». Pendiente de pasar a fn_existencias (tarea #4): hoy suma Cuarentena.",
   "components/AjustarInventarioModal.tsx":
     "Ajustar: la cantidad actual de cada talla en la sububicación que se va a ajustar (físico). La valida la base (registrar_movimiento).",
 };

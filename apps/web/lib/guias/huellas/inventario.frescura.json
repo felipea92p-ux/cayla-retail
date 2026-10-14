@@ -1,8 +1,8 @@
 {
   "guia": "inventario.frescura",
-  "ruta": "/inventario/frescura",
+  "ruta": "/gestion/frescura",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 51,
+  "total": 49,
   "controles": {
     "components/frescura/CifraSinSaber.tsx": [
       "button «¿Por qué?»"
@@ -49,8 +49,6 @@
     ],
     "components/frescura/FrescuraPanel.tsx": [
       "button «frescura.como-se-lee»",
-      "input «Buscar prenda, color o código»",
-      "button «Borrar la búsqueda»",
       "Desplegable «cambiar(»",
       "Desplegable «(sin nombre)»",
       "button «Por decidir»",

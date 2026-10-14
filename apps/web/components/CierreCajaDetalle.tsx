@@ -13,6 +13,7 @@ import { filaDeMovimiento } from "@/lib/caja-movimiento-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 function money(n: number) {
   return (n >= 0 ? "S/ " : "-S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -107,6 +108,7 @@ const COLOR_MEDIO: Record<MetodoCobrado["clave"], string> = {
   tarjeta: "var(--color-metodo-tarjeta)",
   yape: "var(--color-metodo-yape)",
   transferencia: "var(--color-metodo-transferencia)",
+  qr: "var(--color-metodo-qr)",
   otro: "var(--color-taupe)",
 };
 const COLOR_ESTADO = { cuadro: "var(--color-verde)", sobro: "var(--color-ambar)", falto: "var(--color-rojo)" } as const;
@@ -314,14 +316,13 @@ export function DetalleCierreContenido({ cierre, detalle, cargando, error }: { c
   );
 }
 
-/** Una tarjeta del detalle: título en versalitas taupe y, a la derecha, una nota corta. */
+/** Una tarjeta del detalle: su título de bloque (`TituloSeccion`, ADR-0358) con una nota corta a la derecha. */
 function Tarjeta({ titulo, nota, children }: { titulo: string; nota?: ReactNode; children: ReactNode }) {
   return (
     <section aria-label={titulo} className="min-w-0 rounded-2xl border border-sand bg-papel px-[18px] py-4">
-      <div className="mb-2.5 flex items-baseline justify-between gap-3">
-        <h3 className="label-cayla shrink-0 text-[10.5px] text-taupe">{titulo}</h3>
-        {nota && <div className="min-w-0 text-xs text-tinta/60">{nota}</div>}
-      </div>
+      <TituloSeccion nivel={3} dato={nota} className="mb-2.5">
+        {titulo}
+      </TituloSeccion>
       {children}
     </section>
   );

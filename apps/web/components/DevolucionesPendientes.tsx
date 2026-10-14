@@ -23,6 +23,7 @@ import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 /**
  * «Por aprobar» (2026-09-18): las devoluciones que una colaboradora registró y un líder
@@ -302,14 +303,14 @@ function PanelResolver({
       {modo === "aprobar" && (
         <div className="anim-revelar space-y-4 border-t border-tinta/[0.07] px-5 py-4">
           <div>
-            <h3 className="text-sm font-semibold text-tinta">¿Se le reembolsa algo?</h3>
+            <TituloGrupo>¿Se le reembolsa algo?</TituloGrupo>
             <p className="mt-0.5 text-xs text-tinta/70">
               Opcional, y es la última opción: primero un cambio, después una nota de crédito. Déjalo vacío si no hay reembolso.
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label htmlFor={`monto-${d.id}`} className="text-xs font-semibold text-tinta/70">
+            <div className="campo">
+              <label htmlFor={`monto-${d.id}`} className="campo-etiqueta">
                 Monto
               </label>
               <div className="mt-1 flex items-center gap-2">
@@ -323,7 +324,7 @@ function PanelResolver({
                   value={monto}
                   onChange={(e) => setMonto(e.target.value)}
                   placeholder="S/ 0.00"
-                  className="h-10 w-36 rounded-lg border border-tinta/15 bg-papel px-3 text-sm tabular-nums text-tinta outline-none transition-colors duration-200 placeholder:text-tinta/55 focus:border-tinta"
+                  className="caja-campo-input w-36 text-sm tabular-nums"
                 />
                 <button
                   type="button"
@@ -400,8 +401,8 @@ function PanelResolver({
 
       {modo === "rechazar" && (
         <div className="anim-revelar space-y-4 border-t border-tinta/[0.07] px-5 py-4">
-          <div>
-            <label htmlFor={`rechazo-${d.id}`} className="text-sm font-semibold text-tinta">
+          <div className="campo">
+            <label htmlFor={`rechazo-${d.id}`} className="campo-etiqueta">
               ¿Por qué se rechaza?
             </label>
             <p className="mt-0.5 text-xs text-tinta/70">Queda escrito en la devolución. El stock no cambia.</p>
@@ -411,7 +412,7 @@ function PanelResolver({
               autoFocus
               value={motivoRechazo}
               onChange={(e) => setMotivoRechazo(e.target.value)}
-              className="mt-2 h-10 w-full max-w-lg rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta"
+              className="caja-campo-input mt-2 w-full max-w-lg text-sm"
             />
           </div>
           {error && (

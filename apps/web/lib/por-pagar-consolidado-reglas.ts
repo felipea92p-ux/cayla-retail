@@ -37,8 +37,8 @@ export type FilaPorPagar = {
   ubicacionId: string | null;
   /** La unidad de la fila, o todas las que tienen parte en el comprobante entero. `null` = de la empresa. */
   unidades: string | null;
-  /** `true` = la fila es la parte de una tienda en el comprobante, no el comprobante entero. */
-  parte: boolean;
+  // Sin `parte` (ADR-0387, decisión 45 de Felipe, 2026-10-12): la deuda de una factura es toda de la tienda que la pidió, así que
+  // cada fila es el comprobante entero. La base sigue mandando la columna `parte` (siempre falsa) y aquí ya no se lee.
   total: number;
   /** Lo que ya no se debe de esa fila (pagos y notas de crédito): `total − saldo`. */
   pagado: number;
@@ -68,7 +68,6 @@ export function leerFilaPorPagar(f: Fila): FilaPorPagar {
     vence,
     ubicacionId: txt(f.ubicacion_id),
     unidades: txt(f.unidades),
-    parte: f.parte === true,
     total: num(f.total),
     pagado: num(f.pagado),
     saldo: num(f.saldo),

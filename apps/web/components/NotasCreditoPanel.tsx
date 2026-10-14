@@ -505,7 +505,7 @@ function FilaNota({
             Registrar nota
           </button>
         )}
-        <ChevronRight aria-hidden className="cmp-flecha-fila h-4 w-4 shrink-0 text-tinta/40" />
+        <ChevronRight aria-hidden className="cmp-flecha-fila h-4 w-4 shrink-0" />
       </span>
     </div>
   );
@@ -621,7 +621,7 @@ function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar 
           <section key={p.id} className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 3 + i }} aria-label={`Saldo a favor de ${p.nombre}`}>
             <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-4">
               <div className="min-w-0 flex-1 basis-[18rem]">
-                <Link href={`/compras/proveedores/${p.id}#saldo-a-favor`} className="text-[15px] text-tinta hover:text-rojo hover:underline">
+                <Link href={`/compras/proveedores/${p.id}#saldo-a-favor`} className="btn-enlace text-[15px]">
                   {p.nombre}
                 </Link>
                 <p className="text-xs text-tinta/65">

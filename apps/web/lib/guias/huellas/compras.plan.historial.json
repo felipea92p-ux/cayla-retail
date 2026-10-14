@@ -2,7 +2,7 @@
   "guia": "compras.plan.historial",
   "ruta": "/compras/plan/historial",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 8,
+  "total": 9,
   "controles": {
     "components/plan-compra/BarraCifras.tsx": [
       "button «{cuerpo}»"
@@ -13,7 +13,8 @@
     ],
     "components/plan-compra/HistorialCampanas.tsx": [
       "Link «{a}»",
-      "Desplegable «Campaña ·»",
+      "Desplegable «)»",
+      "DesplegablePildora «Ordenar por»",
       "button «Borrar la búsqueda»",
       "button «plan-historial.fila»"
     ],

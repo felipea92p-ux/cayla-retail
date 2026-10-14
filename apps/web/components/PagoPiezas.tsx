@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import Link from "next/link";
 import { Copy, X } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { BarraApilada } from "@/components/ui/BarraApilada";
@@ -13,6 +12,7 @@ import { sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
 import { cuentaEfectiva, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 // Piezas que comparten los dos modales de pago de Por pagar (spike 2026-09-19, ADR-0131): «Pagar juntos»
 // (`PagoJuntosModal`, varios comprobantes de un proveedor) y el pago de UN comprobante (`RegistrarPagoModal`, el botón
@@ -128,9 +128,9 @@ export function DatosDelMedio({ medio, datos, saldoFavor = 0 }: { medio: string;
     <p className="text-sm text-tinta/75">
       Todavía no se cargó {que} de este proveedor.{" "}
       {ficha && (
-        <Link href={ficha} target="_blank" className="label-cayla text-[11px] text-rojo hover:underline">
-          Agregarlo en su ficha →
-        </Link>
+        <EnlaceVer href={ficha} target="_blank">
+          Agregarlo en su ficha
+        </EnlaceVer>
       )}
     </p>
   );
@@ -446,8 +446,8 @@ export function MediosDePago({
           <div className="card-cayla divide-y divide-tinta/10 overflow-hidden">
             {lineas.map((l, i) => (
               <div key={i} className="anim-revelar relative grid items-start gap-x-4 gap-y-2 px-4 py-3 sm:grid-cols-[7.5rem_1fr_9.5rem_1.75rem]">
-                <label className="block">
-                  <span className="label-cayla mb-1 block text-[10px] text-tinta/55">{`Monto ${i + 1}`}</span>
+                <label className="campo block">
+                  <span className="campo-etiqueta mb-1">{`Monto ${i + 1}`}</span>
                   <input
                     id={`${id}-monto-${i}`}
                     inputMode="decimal"
@@ -456,7 +456,7 @@ export function MediosDePago({
                     onFocus={(e) => e.target.select()}
                     placeholder="0.00"
                     aria-label={`Monto del medio ${i + 1}`}
-                    className="w-full rounded-lg border border-tinta/25 bg-papel px-2.5 py-1.5 text-right text-sm tabular-nums text-tinta outline-none transition-colors duration-200 focus:border-rojo"
+                    className="caja-campo-input text-right tabular-nums"
                   />
                 </label>
                 <div>

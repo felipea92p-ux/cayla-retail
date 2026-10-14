@@ -1,17 +1,19 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import { ChevronDown, SearchX } from "lucide-react";
+import { ArrowUpDown, ChevronDown, Layers, SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
-import { Desplegable, Boton, type Opcion } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import { Encabezado, Tabla } from "@/components/ui/Tabla";
 import { Vacio, type FiltroVacio } from "@/components/ui/Vacio";
 import { FilaCategoria, columnasDelPlan, plantillaDelPlan } from "@/components/plan-compra/FilaCategoria";
+import { pildoraVisible, type FormaTabla } from "@/lib/plan-compra-momento";
 import { LeyendaRango } from "@/components/plan-compra/BarraRango";
 import { aplicarFiltro, conteosDeFiltros, filtrarFilas, ordenarFilas, plegarSinMovimiento, type EstadoCampana, type FilaPlan, type FiltroPlan, type OrdenPlan } from "@/lib/plan-compra-reglas";
 import type { FamiliaPlan } from "@/lib/plan-compra";
+import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 
 // La tarjeta de las categorías del plan de campaña (ADR-0349): el buscador, las píldoras, la familia y el orden, la leyenda de la barra
 // y la tabla, todo en UNA tarjeta (la `Tabla`). Con lo que dicen la familia y el buscador se cuentan las píldoras; la píldora elegida
@@ -26,7 +28,7 @@ const PILDORAS: { clave: FiltroPlan; texto: string }[] = [
   { clave: "agotadas", texto: "Se agotaron" },
 ];
 
-const ORDENES: Opcion<OrdenPlan>[] = [
+const ORDENES: { valor: OrdenPlan; texto: string }[] = [
   { valor: "ventas", texto: "Las que más venden" },
   { valor: "inversion", texto: "Mayor inversión" },
   { valor: "nombre", texto: "A–Z" },
@@ -40,6 +42,8 @@ const ponerNombre = (codigo: string) => codigo.charAt(0).toUpperCase() + codigo.
 export function ListaCategorias({
   filas,
   estado,
+  forma,
+  avisoStock,
   familias,
   filtro,
   onFiltro,
@@ -59,6 +63,10 @@ export function ListaCategorias({
 }: {
   filas: readonly FilaPlan[];
   estado: EstadoCampana;
+  /** Qué columnas tienen algo que decir (`formaDeLaTabla`). */
+  forma: FormaTabla;
+  /** Una línea sobre la tabla cuando el «Hay hoy» no es confiable: el aviso que más condiciona la compra no puede vivir solo en un cajón. */
+  avisoStock?: ReactNode;
   familias: readonly FamiliaPlan[];
   filtro: FiltroPlan;
   onFiltro: (f: FiltroPlan) => void;
@@ -79,9 +87,8 @@ export function ListaCategorias({
   /** Lo que se dibuja en vez de la tabla cuando la vista es «Paso a paso». */
   pasoAPaso: ReactNode;
 }) {
-  const verReal = estado !== "antes";
   const nombreDe = useMemo(() => new Map(familias.map((f) => [f.codigo, f.nombre])), [familias]);
-  const opcionesFamilia = useMemo((): Opcion<string>[] => {
+  const opcionesFamilia = useMemo((): { valor: string; texto: string }[] => {
     const codigos = [...new Set(filas.map((f) => f.c.familia).filter((c): c is string => !!c))];
     return [
       { valor: "todas", texto: "Todas las familias" },
@@ -89,6 +96,8 @@ export function ListaCategorias({
     ];
   }, [filas, nombreDe]);
 
+  // Qué píldoras se ven se decide con TODAS las categorías (no con la búsqueda), para que no aparezcan y desaparezcan mientras se escribe.
+  const conteosTotales = useMemo(() => conteosDeFiltros(filas), [filas]);
   const { conteos, aplicadas } = useMemo(() => {
     const porBuscador = filtrarFilas(filas, { familia, q });
     return { conteos: conteosDeFiltros(porBuscador), aplicadas: ordenarFilas(aplicarFiltro(porBuscador, filtro), orden) };
@@ -131,19 +140,34 @@ export function ListaCategorias({
         {vista === "tabla" && (
           <>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar categorías">
-                {PILDORAS.map((p) => (
+              {/* En el celular, los filtros en UNA fila que se desliza (Felipe 2026-10-12: eran tres filas de píldoras antes de la tabla). */}
+              <span
+                className="flex flex-wrap items-center gap-2 max-sm:-mx-5 max-sm:min-w-0 max-sm:basis-full max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:px-5 max-sm:[scrollbar-width:none] max-sm:[&>*]:shrink-0"
+                role="group"
+                aria-label="Filtrar categorías"
+              >
+                {PILDORAS.filter((p) => pildoraVisible(p.clave, conteosTotales, filtro)).map((p) => (
                   <BotonFiltro key={p.clave} activo={filtro === p.clave} cuenta={conteos[p.clave]} onClick={() => onFiltro(filtro === p.clave && p.clave !== "todas" ? "todas" : p.clave)}>
                     {p.texto}
                   </BotonFiltro>
                 ))}
               </span>
-              <span className="ml-auto flex flex-wrap items-center gap-2">
-                <Desplegable valor={familia} onValor={onFamilia} opciones={opcionesFamilia} forma="cajaBaja" etiquetaAccesible="Familia" className="w-52" />
-                <Desplegable valor={orden} onValor={onOrden} opciones={ORDENES} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="w-52" />
+              {/* Las píldoras de filtro (ADR-0358, ronda 6). «Todas las familias» es el valor de fábrica de la píldora (`TODOS`): sin
+                  elegir, dice solo «Familia»; la lista sigue recibiendo «todas». */}
+              <span className="ml-auto flex min-w-0 flex-wrap items-center gap-2">
+                <DesplegablePildora
+                  icono={Layers}
+                  etiqueta="Familia"
+                  valor={familia === "todas" ? TODOS : familia}
+                  onValor={(v) => onFamilia(v === TODOS ? "todas" : v)}
+                  opciones={opcionesFamilia.map((o) => (o.valor === "todas" ? { ...o, valor: TODOS } : o))}
+                  encoger
+                />
+                <DesplegablePildora icono={ArrowUpDown} etiqueta="Ordenar por" valor={orden} onValor={(v) => onOrden(v as OrdenPlan)} opciones={ORDENES} valorPorDefecto="ventas" encoger />
               </span>
             </div>
-            <LeyendaRango conVendido={verReal} />
+            {forma.leyenda && <LeyendaRango conVendido={forma.real} conEnCamino={filas.some((f) => f.linea && f.enCamino > 0)} />}
+            {avisoStock}
           </>
         )}
       </div>
@@ -152,7 +176,7 @@ export function ListaCategorias({
         pasoAPaso
       ) : (
       <>
-      <Encabezado columnas={columnasDelPlan(estado)} plantilla={plantillaDelPlan(verReal)} />
+      <Encabezado columnas={columnasDelPlan(estado, forma)} plantilla={plantillaDelPlan(forma)} />
 
       {filas.length === 0 ? (
         <Vacio tamano="chico" icono={<SearchX />} accion={{ texto: "Ir a Categorías", href: "/productos/categorias" }}>
@@ -174,7 +198,7 @@ export function ListaCategorias({
       ) : (
         <>
           {visibles.map((f, i) => (
-            <FilaCategoria key={f.c.id} f={f} estado={estado} indice={i} recienGuardada={recientes.has(f.c.id)} onAbrir={() => onAbrir(f)} />
+            <FilaCategoria key={f.c.id} f={f} forma={forma} indice={i} recienGuardada={recientes.has(f.c.id)} onAbrir={() => onAbrir(f)} />
           ))}
           {plegadas.length > 0 && (
             <>
@@ -189,7 +213,7 @@ export function ListaCategorias({
                   <b className="font-semibold text-tinta">{plegadas.length}</b> {plegadas.length === 1 ? "categoría sin ventas ni stock" : "categorías sin ventas ni stock"} · no hace falta plan ahora
                 </span>
               </button>
-              {sinMovAbiertas && plegadas.map((f, i) => <FilaCategoria key={f.c.id} f={f} estado={estado} indice={i} recienGuardada={recientes.has(f.c.id)} onAbrir={() => onAbrir(f)} />)}
+              {sinMovAbiertas && plegadas.map((f, i) => <FilaCategoria key={f.c.id} f={f} forma={forma} indice={i} recienGuardada={recientes.has(f.c.id)} onAbrir={() => onAbrir(f)} />)}
             </>
           )}
         </>

@@ -135,7 +135,7 @@ export function DarAccesoModal({
                           marcada ? "border-tinta bg-hueso" : "border-sand hover:border-taupe"
                         }`}
                       >
-                        <AvatarPersona personaId={d.persona_id} nombre={d.nombre} className="h-9 w-9 text-sm" />
+                        <AvatarPersona personaId={d.persona_id} nombre={d.nombre} />
                         <span className="min-w-0">
                           <span className="block truncate text-[14px] font-semibold text-tinta">{d.nombre}</span>
                           <span className="block truncate text-xs text-tinta/60">{[d.sede, d.correo].filter(Boolean).join(" · ")}</span>

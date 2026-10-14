@@ -125,7 +125,7 @@ describe("el menú de hoy sigue igual (línea base capturada del AppShell real)"
    entero, a cualquier profundidad (un subgrupo cuenta como hija de su padre Y como cabecera de las suyas). No atrapa la
    repetición entre DOS RAMAS del árbol que nunca se muestran juntas a la vez (Compras/Producción→Abastecimiento,
    Proveedores, Facturas, Recibir, Por pagar: mutuamente excluyentes por ubicación o permiso, a propósito — ver los
-   comentarios de esos íconos en AppShell.tsx) — esa parte queda a criterio de quien agregue una fila nueva.
+   comentarios de esos íconos en lib/menu-iconos.ts) — esa parte queda a criterio de quien agregue una fila nueva.
    ==================================================================== */
 function iconosDeSubarbol(n: Nodo): string[] {
   if (n.estado !== "viva") return [];
@@ -242,6 +242,26 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
   });
 });
 
+// Ningún ícono se repite en el lateral de un mismo perfil (Felipe, 2026-10-13, ADR-0394): «los más referenciales, directos, más
+// entendibles, y que ninguno se repita». Plan del piso y Rendimiento compartían «resumen», y Plan de campaña (Compras) compartía
+// «analisis» con Análisis, dos pantallas que el líder ve a la vez. Se mira POR PERFIL, no en el árbol: Compras y Producción
+// (Abastecimiento) reusan íconos a propósito porque nunca salen juntas (Compras no se ve parado en el Taller, Producción solo
+// ahí), y «Recibir mercadería» sale en Compras o en Inventario, nunca en las dos. Lo que esta prueba cuida es que un perfil
+// real no vea dos filas con el mismo dibujo. La lectura visual (dos íconos distintos que se parecen) se mira en el navegador.
+describe("ningún ícono se repite en el lateral de un mismo perfil", () => {
+  const iconosDe = (f: FilaMenu): { id: string; icono: string }[] => [{ id: f.id, icono: f.icono }, ...(esGrupoMenu(f) ? f.hijos.flatMap(iconosDe) : [])];
+
+  it("ni en las cabeceras ni en las pantallas, a cualquier profundidad", () => {
+    const repetidos = new Map<string, Set<string>>();
+    for (const { menu } of MENUS) {
+      const porIcono = new Map<string, string[]>();
+      for (const { id, icono } of menu.riel.flatMap(iconosDe)) porIcono.set(icono, [...(porIcono.get(icono) ?? []), id]);
+      for (const [icono, ids] of porIcono) if (ids.length > 1) repetidos.set(`${icono}: ${[...ids].sort().join(" + ")}`, new Set());
+    }
+    expect([...repetidos.keys()].sort()).toEqual([]);
+  });
+});
+
 describe("las rutas del menú existen", () => {
   it("toda ruta viva del árbol (pantallas y puertas de módulo) tiene su page.tsx", () => {
     const rutas = VIVOS.flatMap((n) => (n.estado === "viva" && "ruta" in n ? [n.ruta] : n.estado === "viva" && esGrupo(n) ? [n.raiz] : []));
@@ -269,11 +289,15 @@ const TOPE_HIJAS = 6;
 // piso; Recibir mercadería sigue saliendo solo a quien no ve Compras). Llega a 8 únicamente un rol que vea Análisis, Frescura y
 // Plan del piso y reciba mercadería sin ver Compras (hoy no existe). SE ROMPE SI Inventario suma otra pantalla o ese rol aparece:
 // entonces SÍ se regrupa (el subgrupo del piso, Frescura + Plan del piso), y este número no vuelve a subir.
+// INVENTARIO, cerrado (Felipe, 2026-10-13; ADR-0392): se regrupó, pero no en un subgrupo: Análisis, Frescura del piso y Plan del
+// piso son de «Gestión», un grupo de PRIMER nivel debajo de Inicio, junto con Rendimiento (que deja su fila suelta, así el primer
+// nivel sigue en 8). Inventario vuelve a 4 (5 con Recibir para quien no ve Compras) y cabe en el tope general: la excepción se
+// borra y no vuelve.
 // COMPRAS, 7 — TEMPORAL (Felipe, 2026-10-10; ADR-0362, decisión 38): «Órdenes de compra» entra como séptima hija mientras
 // «Recibir mercadería» siga en Compras. La sesión de Recepción la muda a Inventario (la base ya la tiene en ese grupo desde el
 // 2026-10-07; falta la web, de otra sesión): ESE día se borra esta entrada y Compras vuelve a 6. No se regrupó porque las siete
 // son puertas de uso diario y la mudanza ya está decidida.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { inventario: 8, compras: 7 };
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope
@@ -355,8 +379,9 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
     ]);
   });
 
-  it("Abastecimiento, adentro, tiene las cuatro que antes eran hijas sueltas: Proveedores, Comprobantes, Recibir y Por pagar", () => {
+  it("Abastecimiento, adentro, tiene Órdenes de insumos primero (ADR-0362 fase 7: pedir → factura → recibir → pagar) y las cuatro que antes eran hijas sueltas: Proveedores, Comprobantes, Recibir y Por pagar", () => {
     expect(hijosDeSubgrupo({ permisos: LIDER, ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual([
+      "produccion.ordenesInsumos",
       "produccion.proveedoresProduccion",
       "produccion.comprobantesProduccion",
       "produccion.recibirProduccion",
@@ -364,22 +389,27 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
     ]);
   });
 
-  it("en el Taller, quien trabaja ahí ve Órdenes, Insumos y Recibir, pero no el Resumen ni las pantallas con datos bancarios y montos (D-G)", () => {
-    const operativas = ["produccion.ordenes", "produccion.insumos", "produccion.recibirProduccion"];
-    // Sin `verDinero`, Abastecimiento se queda con una sola hija visible (Recibir) y se disuelve: sube con su propio
-    // nombre (no como «Abastecimiento») — por eso el resultado es idéntico al de antes de D-84, sin el subgrupo de por medio.
-    expect(hijosDeGrupo({ permisos: INTEGRANTE, ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
-    // Administrar no abre nada de esto.
-    expect(hijosDeGrupo({ permisos: ["administrar"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
+  // Con la regla fija de antes (un perfil SIN módulos: la fotografía) toda fila que solo depende de su módulo sale; «Órdenes de insumos» no
+  // pide el dinero del Taller (decisión 47), así que Abastecimiento ya no se disuelve en «Recibir»: le quedan dos. Lo que sigue en pie
+  // desde D-G: sin `verDinero` no se ve el Resumen ni ninguna pantalla con datos bancarios y montos del Taller.
+  const OPERATIVAS = ["produccion.ordenes", "produccion.insumos", "produccion.abastecimiento"];
+  const ABASTECIMIENTO_OPERATIVO = ["produccion.ordenesInsumos", "produccion.recibirProduccion"];
+
+  it("en el Taller, quien trabaja ahí ve Órdenes, Insumos y, en Abastecimiento, Órdenes de insumos y Recibir, pero no el Resumen ni las pantallas con datos bancarios y montos (D-G)", () => {
+    for (const permisos of [INTEGRANTE, ["administrar"] as Permiso[]]) {
+      expect(hijosDeGrupo({ permisos, ubicacionTipo: "taller" }, "produccion")).toEqual(OPERATIVAS);
+      expect(hijosDeSubgrupo({ permisos, ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual(ABASTECIMIENTO_OPERATIVO);
+    }
   });
 
-  it("`analizar` (el módulo Análisis, 20260923130000) y `verDineroCompras` NO abren nada del Taller: Abastecimiento se disuelve en «Recibir»", () => {
-    const operativas = ["produccion.ordenes", "produccion.insumos", "produccion.recibirProduccion"];
-    expect(hijosDeGrupo({ permisos: ["analizar"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
-    expect(hijosDeGrupo({ permisos: ["verDineroCompras"], ubicacionTipo: "taller" }, "produccion")).toEqual(operativas);
+  it("`analizar` (el módulo Análisis, 20260923130000) y `verDineroCompras` NO abren nada del dinero del Taller", () => {
+    for (const permiso of ["analizar", "verDineroCompras"] as const) {
+      expect(hijosDeGrupo({ permisos: [permiso], ubicacionTipo: "taller" }, "produccion")).toEqual(OPERATIVAS);
+      expect(hijosDeSubgrupo({ permisos: [permiso], ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual(ABASTECIMIENTO_OPERATIVO);
+    }
   });
 
-  it("`verDinero` (solo el líder) abre el Resumen —ventas de la red y dinero— y Abastecimiento como subgrupo: Proveedores, Comprobantes, Recibir y Por pagar", () => {
+  it("`verDinero` (solo el líder) abre el Resumen —ventas de la red y dinero— y Abastecimiento como subgrupo: Órdenes de insumos, Proveedores, Comprobantes, Recibir y Por pagar", () => {
     expect(hijosDeGrupo({ permisos: ["verDinero"], ubicacionTipo: "taller" }, "produccion")).toEqual([
       "produccion.resumenProduccion",
       "produccion.ordenes",
@@ -387,11 +417,29 @@ describe("Producción se ve solo parado en un Taller (Felipe, 2026-09-20), líde
       "produccion.abastecimiento",
     ]);
     expect(hijosDeSubgrupo({ permisos: ["verDinero"], ubicacionTipo: "taller" }, "produccion", "produccion.abastecimiento")).toEqual([
+      "produccion.ordenesInsumos",
       "produccion.proveedoresProduccion",
       "produccion.comprobantesProduccion",
       "produccion.recibirProduccion",
       "produccion.porPagarProduccion",
     ]);
+  });
+
+  // Órdenes de insumos (ADR-0362 fase 7, decisión 47): con los módulos de la cuenta, la abre SU módulo y nada más. No necesita el de
+  // Órdenes de producción (su ruta, `/ordenes-insumos`, no cuelga del layout de `/produccion`), ni el dinero del Taller.
+  it("con módulos: «Órdenes de insumos» sale solo con su módulo; sin él, Abastecimiento se disuelve en «Recibir» como siempre; con él solo, la fila del Taller lleva a la orden", () => {
+    const integrante = (modulos: ClaveModulo[]): PerfilDelMenu => ({ permisos: INTEGRANTE, ubicacionTipo: "taller", modulos });
+    expect(hijosDeGrupo(integrante(["produccion"]), "produccion")).toEqual(["produccion.ordenes", "produccion.insumos", "produccion.recibirProduccion"]);
+    expect(hijosDeGrupo(integrante(["produccion", "ordenes_insumos"]), "produccion")).toEqual(OPERATIVAS);
+    expect(hijosDeSubgrupo(integrante(["produccion", "ordenes_insumos"]), "produccion", "produccion.abastecimiento")).toEqual(ABASTECIMIENTO_OPERATIVO);
+    const sola = menuPara(integrante(["ordenes_insumos"])).riel.find((f) => f.id === "produccion");
+    expect(sola ? hojasDe(sola).map((h) => h.href) : []).toEqual(["/ordenes-insumos"]);
+    // En una tienda o un almacén, Producción no se muestra: tampoco con este módulo.
+    for (const ubicacionTipo of ["tienda", "almacen"] as const) {
+      expect(menuPara({ permisos: LIDER, ubicacionTipo, modulos: ["ordenes_insumos"] }).riel.some((f) => f.id === "produccion")).toBe(false);
+    }
+    // Aterrizar en la orden abre Producción, aunque la ruta no cuelgue de `/produccion`.
+    expect(menuPara({ permisos: LIDER, ubicacionTipo: "taller" }).grupoDe("/ordenes-insumos/ver/x")).toBe("produccion");
   });
 
   it("desde una tienda o un almacén no lo ve nadie, ni el líder", () => {
@@ -726,6 +774,30 @@ describe("terminales sin tipo: el rol manda", () => {
     expect(aterrizajeDe({ modulos: ["inicio", "vender", "caja"], pantallaPrincipal: "caja" })).toBe("/caja");
     expect(aterrizajeDe({ modulos: ["inicio", "vender"], pantallaPrincipal: "caja" })).toBe("/"); // ya no tiene «caja»: vuelve al default
   });
+
+  it("en CAYLA Global, quien iba a quedarse en el Inicio va al tablero; el Admin no, porque su Inicio es el Observatorio (ADR-0275, ADR-0322)", () => {
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "global" })).toBe("/global");
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "global", esAdmin: true })).toBe("/");
+    // Parado en una sede, el Inicio es el Inicio, sea o no Admin.
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "sede" })).toBe("/");
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "sede", esAdmin: true })).toBe("/");
+    // Una pantalla principal que no es el Inicio manda igual en CAYLA Global, y sin ninguna pantalla sigue siendo «Sin acceso».
+    expect(aterrizajeDe({ modulos: ["inicio", "clientas", "cayla_global"], pantallaPrincipal: "clientas", vista: "global" })).toBe("/clientas");
+    expect(aterrizajeDe({ modulos: [], vista: "global" })).toBe("/sin-acceso");
+  });
+
+  it("parada en una sede, la vista y el Admin no le cambian el destino a nadie: es la regla de siempre", () => {
+    const perfiles: { terminal?: boolean; modulos: ClaveModulo[]; pantallaPrincipal?: string }[] = [
+      { modulos: ["inicio", "vender"] },
+      { modulos: ["vender"] },
+      { modulos: ["inicio", "vender", "caja"], pantallaPrincipal: "caja" },
+      { terminal: true, modulos: ["vender", "caja"] },
+      { terminal: true, modulos: ["existencias"] },
+    ];
+    for (const perfil of perfiles) {
+      for (const esAdmin of [false, true]) expect(aterrizajeDe({ ...perfil, vista: "sede", esAdmin })).toBe(aterrizajeDe(perfil));
+    }
+  });
 });
 
 describe("falla cerrado: una terminal solo ve lo que su rol nombra", () => {
@@ -790,18 +862,27 @@ describe("un rol que solo ve «Recibir mercadería» la encuentra con su nombre 
   });
 });
 
-describe("en CAYLA Global, Inventario es solo Frescura del piso y se llama así (ADR-0208, act. 2026-10-10 (b))", () => {
+describe("«Gestión» con una sola pantalla se disuelve en esa pantalla, con su nombre (ADR-0392; antes ADR-0208, act. 2026-10-10 (b))", () => {
   const conModulos = (modulos: ClaveModulo[]) =>
     menuPara({ permisos: permisosDeModulos("integrante", modulos.map((clave) => ({ clave, completo: true }))), ubicacionTipo: "tienda", modulos });
 
-  it("la fila dice «Frescura del piso» y abre su pantalla, no «Inventario»", () => {
+  it("en CAYLA Global, Frescura sola dice «Frescura del piso» y abre su pantalla, nunca «Gestión»", () => {
     const riel = conModulos(["frescura"]).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso"]);
-    expect(hojasDe(riel[0]).map((h) => h.href)).toEqual(["/inventario/frescura"]);
+    expect(hojasDe(riel[0]).map((h) => h.href)).toEqual(["/gestion/frescura"]);
   });
 
-  it("con otra pantalla de Inventario al lado, el grupo sigue llamándose «Inventario»", () => {
+  it("cada una de las cuatro, sola, conserva su nombre (la Terminal de ventas ve Frescura y Plan; el rol Producción, Análisis)", () => {
+    expect(conModulos(["plan_piso"]).riel.map((f) => f.etiqueta)).toEqual(["Plan del piso"]);
+    expect(conModulos(["rendimiento"]).riel.map((f) => f.etiqueta)).toEqual(["Rendimiento"]);
+    expect(conModulos(["analisis"]).riel.map((f) => f.etiqueta)).toEqual(["Análisis"]);
+    expect(conModulos(["frescura", "plan_piso"]).riel.map((f) => f.etiqueta)).toEqual(["Gestión"]);
+  });
+
+  it("Frescura ya no es de Inventario: con Existencias al lado salen dos filas, y Gestión va antes", () => {
     const riel = conModulos(["frescura", "existencias"]).riel;
-    expect(riel.map((f) => f.etiqueta)).toEqual(["Inventario"]);
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Frescura del piso", "Inventario"]);
+    expect(conModulos(["frescura", "existencias"]).grupoDe("/gestion/frescura")).toBe("gestion");
+    expect(conModulos(["frescura", "existencias"]).grupoDe("/inventario")).toBe("inventario");
   });
 });

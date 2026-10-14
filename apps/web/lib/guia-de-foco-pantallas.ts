@@ -61,7 +61,10 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/compras/notas-credito": PENDIENTE,
   "/compras/nueva": PENDIENTE,
   "/compras/ordenes": { estado: "no-aplica", motivo: "Lista de órdenes de compra (ADR-0362): se mira y se filtra, no se llena. Lo que se llena (proveedor, destino, líneas) vive en «Nueva orden de compra», con su guía." },
+  "/compras/ordenes/comprobante/[id]": { estado: "aplicada", evidencia: ["components/ordenes-compra/RegistrarComprobanteOrden.tsx"] },
   "/compras/ordenes/editar/[id]": { estado: "aplicada", evidencia: ["components/ordenes-compra/NuevaOrdenCompra.tsx"] },
+  // ADR-0362 (fase 3): «Enviar a una sede». Falta lo que `crear_envio` rechazaría: la sede (en una «Por repartir»), al menos una prenda con cantidad y, desde una terminal, quién envía.
+  "/compras/ordenes/envio/[id]": { estado: "aplicada", evidencia: ["components/ordenes-compra/EnviarOrdenASede.tsx"] },
   "/compras/ordenes/nueva": { estado: "aplicada", evidencia: ["components/ordenes-compra/NuevaOrdenCompra.tsx"] },
   "/compras/ordenes/ver/[id]": { estado: "no-aplica", motivo: "Una orden de compra en página completa (ADR-0362), lo que se ve al recargar la ventana: se lee, no se llena." },
   "/compras/parte/[compraId]": PENDIENTE,
@@ -97,6 +100,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/finanzas/reportes/presupuesto": PENDIENTE,
   "/finanzas/resumen": PENDIENTE,
   // ---- global ----
+  "/gestion": { estado: "no-aplica", motivo: "Solo redirige: la puerta del grupo «Gestión» (ADR-0392) manda a la primera de sus cuatro pantallas que la cuenta ve; no hay campos ni pasos." },
   "/global": PENDIENTE,
   "/global/elige-sede": PENDIENTE,
   // ---- inventario ----
@@ -113,12 +117,12 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/inventario/conteo/[id]/revisar": PENDIENTE,
   // «Ya decidí» (ADR-0208, paso 4b): el formulario de la hoja lleva la guía (qué hiciste, el traslado si es «La trasladé», quién anota;
   // la nota es opcional). Lo que cuenta como «falta» es lo mismo que apaga «Anotar»; la guía no agrega ninguna regla de negocio.
-  "/inventario/frescura": { estado: "aplicada", evidencia: ["components/frescura/FrescuraDecidir.tsx"] },
+  "/gestion/frescura": { estado: "aplicada", evidencia: ["components/frescura/FrescuraDecidir.tsx"] },
   // ADR-0379: la pantalla tiene un solo control propio (el buscador); lo que se llena vive en sus dos hojas, que traen su guía.
   "/productos/liquidacion": { estado: "aplicada", evidencia: ["components/liquidacion/EtiquetarPiezaModal.tsx", "components/liquidacion/PiezaLiquidacionModal.tsx"] },
   // Plan del piso (ADR-0329, actividad 12): la lista de categorías dice cuáles están confirmadas, por revisar o sin grupo, y «Siguiente por
   // revisar» lleva a la fila; la hoja de guardado dice que lo único que falta es quién lo hace.
-  "/inventario/plan-del-piso": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
+  "/gestion/plan-del-piso": { estado: "aplicada", evidencia: ["components/plan-piso/GruposDelMix.tsx"] },
   // Mudó a `/inventario/traslados/nuevo` (ADR-0242 D-4, 2026-10-03): esta ruta solo redirige, no tiene campos.
   "/inventario/mover": { estado: "no-aplica", motivo: "Solo redirige a /inventario/traslados/nuevo con los mismos parámetros: no tiene campos ni pasos." },
   "/inventario/movimientos": PENDIENTE,
@@ -127,7 +131,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/inventario/por-regularizar": { estado: "aplicada", evidencia: ["components/por-regularizar/MesaRegularizar.tsx", "components/por-regularizar/PuenteUnion.tsx", "components/por-regularizar/PanelPrendas.tsx"] },
   // Análisis v4 (ADR-0357): se lee, no se llena. El buscador filtra lo que se ve y los botones abren el flujo de cada acción en su
   // pantalla (ADR-0245), con su propia guía.
-  "/inventario/resumen": {
+  "/gestion/analisis": {
     estado: "no-aplica",
     motivo: "Pantalla de lectura (Análisis v4, ADR-0357): no se llena ningún campo ni se avanza por pasos; cada botón abre el flujo de su acción en su propia pantalla.",
   },
@@ -143,6 +147,17 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/inventario/traslados/guia/[id]": { estado: "no-aplica", motivo: "Hoja de impresión de la guía de una caja (ADR-0242 D-3): se elige la hoja (térmica o A4, con valor de fábrica) y se imprime; no hay campos que completar ni pasos." },
   // ---- movimientos ----
   "/movimientos": PENDIENTE,
+  // ---- ordenes-insumos ----
+  // ADR-0362 fase 7: las órdenes de insumos del Taller, gemelas de las de compra. «Falta» = lo que `fn_orden_insumo_validar` rechazaría:
+  // el proveedor, el taller (solo si hay varios para elegir o el puesto ya no vale), cada línea (insumo, cantidad en su unidad con hasta
+  // tres decimales, precio con hasta cuatro, descuento que no pase de la línea), la entrega solo si se escribió fuera de rango, la nota
+  // solo si se pasa de 500 letras y, desde una terminal, quién la hace. La entrega vacía es sugerida: nunca bloquea.
+  "/ordenes-insumos": { estado: "no-aplica", motivo: "Lista de órdenes de insumos (ADR-0362, fase 7): se mira, se busca y se filtra, no se llena. Lo que se llena (proveedor, taller, líneas) vive en «Nueva orden de insumos», con su guía." },
+  "/ordenes-insumos/@modal/(.)ver/[id]": { estado: "no-aplica", motivo: "Una orden de insumos abierta sobre la lista: se lee, no se llena. Anularla es una hoja con su propia guía (registro de modales)." },
+  "/ordenes-insumos/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar la ventana, no dibuja nada." },
+  "/ordenes-insumos/editar/[id]": { estado: "aplicada", evidencia: ["components/ordenes-insumo/NuevaOrdenInsumo.tsx"] },
+  "/ordenes-insumos/nueva": { estado: "aplicada", evidencia: ["components/ordenes-insumo/NuevaOrdenInsumo.tsx"] },
+  "/ordenes-insumos/ver/[id]": { estado: "no-aplica", motivo: "Una orden de insumos en página completa, lo que se ve al recargar la ventana: se lee, no se llena." },
   // ---- pedidos-no-atendidos ----
   "/pedidos-no-atendidos": PENDIENTE,
   // ---- produccion ----
@@ -171,6 +186,11 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ADR-0330: la puerta «Llegó mercadería» trae su guía (proveedor → prendas → quién recibe). La rama «contra factura»
   // (`RecepcionEnvio`) sigue declarada como modal pendiente más abajo.
   "/recibir": { estado: "aplicada", evidencia: ["components/LlegoMercaderia.tsx"] },
+  // ADR-0362 (fase 4): recibir un envío de orden de compra. Falta lo que `abrir_despacho` y `recibir_despacho` rechazarían: quién recibe, y
+  // por línea qué prenda es (o que no llegó), el costo bien escrito, las cantidades, las dañadas con su arreglo y la causa de lo que faltó o
+  // vino de más; en lo que no estaba en la guía, además categoría, marca, costo y (con dos proveedores) de cuál. Contar es lo que SIGUE, pero
+  // no bloquea: la base acepta una línea con todo faltante si dice por qué.
+  "/recibir/envio/[id]": { estado: "aplicada", evidencia: ["components/recepcion-envio/FormularioRecepcion.tsx", "components/recepcion-envio/EmpezarARecibir.tsx"] },
   // ---- rendimiento ----
   "/rendimiento": { estado: "no-aplica", motivo: "La pantalla solo lee: cifras, tabla, gráfico y rankings, sin campos ni pasos. El único formulario es el modal «Meta de…», que sí trae su guía." },
   // ---- sin-acceso ----
@@ -196,7 +216,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 56;
+export const MODALES_PENDIENTES_HOY = 55;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -228,7 +248,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/ColaboradoresModales.tsx": { estado: "no-aplica", motivo: "Confirmación de desactivar o reactivar una terminal: lo único que pide es quién lo hace (el combo de toda la pantalla) y un botón." },
   "components/ColoresLista.tsx": { estado: "aplicada", evidencia: ["components/ColoresLista.tsx"] },
   "components/ComboResponsable.tsx": PENDIENTE, // 2 controles
-  "components/CompraDetallePanel.tsx": PENDIENTE, // 8 controles
+  "components/CompraDetallePanel.tsx": PENDIENTE, // 7 controles
   "components/ComprobanteProduccionDetalle.tsx": PENDIENTE, // 2 controles
   "components/ComprobanteProduccionForm.tsx": PENDIENTE, // 13 controles
   "components/ComprobantesPanel.tsx": PENDIENTE, // 6 controles
@@ -271,7 +291,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/OrdenModales.tsx": PENDIENTE, // 4 controles
   "components/OrdenPanel.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles
-  "components/PagoJuntosModal.tsx": PENDIENTE, // 6 controles
+  "components/PagoJuntosModal.tsx": PENDIENTE, // 5 controles
   "components/PatronesLista.tsx": { estado: "aplicada", evidencia: ["components/PatronesLista.tsx"] },
   // ADR-0328 act. 17: «Para enviar» en Traslados. Su ventana «Ya no la envío»: «falta» = el porqué (la base lo exige) y quién lo hace.
   "components/ParaEnviar.tsx": { estado: "aplicada", evidencia: ["components/ParaEnviar.tsx"] },
@@ -314,7 +334,6 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/TejidosLista.tsx": { estado: "aplicada", evidencia: ["components/TejidosLista.tsx"] },
   "components/TemporadasLista.tsx": { estado: "aplicada", evidencia: ["components/TemporadasLista.tsx"] },
   "components/TerminalesModales.tsx": PENDIENTE, // 6 controles
-  "components/actividad/BotonActividad.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   // ADR-0288 act. g (tanda 1g): «Beneficios del club», del líder, desde Clientas ▸ Avisos. Llega con lo vigente: la guía se mueve cuando algo
   // se borra o se escribe mal (`lib/club-beneficios-guia.ts`, la misma regla que apaga «Guardar»).
   // ADR-0341: Dar acceso en una hoja. Falta = lo mismo que apaga el botón: a quién, la sede, el rol (si se leyeron los roles) y quién lo da.
@@ -346,4 +365,19 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/punto-de-venta/RegistrarBajadaModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién atiende, el mismo combo del ticket) antes de registrar desde Vender la bajada al piso que se olvidó (ADR-0321): el texto dice qué prenda entra y dónde queda; el botón se apaga hasta elegir y dice por qué." },
   // ADR-0362 (actividad 5): «Anular orden». Falta lo que la base rechazaría: el motivo y, desde una terminal, quién la anula.
   "components/ordenes-compra/AccionesOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/AccionesOrden.tsx"] },
+  "components/ordenes-compra/ComprobantesDeOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/ComprobantesDeOrden.tsx"] },
+  // ADR-0362 (fase 3): «Anular envío». Falta lo que `anular_envio` rechazaría: el motivo y, desde una terminal, quién lo anula.
+  "components/ordenes-compra/EnviosDeOrden.tsx": { estado: "aplicada", evidencia: ["components/ordenes-compra/EnviosDeOrden.tsx"] },
+  // ADR-0362 (fase 7): «Anular orden» de una orden de insumos. Falta lo que `anular_orden_insumo` rechazaría: el motivo (hasta 300 letras)
+  // y, desde una terminal, quién la anula.
+  "components/ordenes-insumo/AccionesOrdenInsumo.tsx": { estado: "aplicada", evidencia: ["components/ordenes-insumo/AccionesOrdenInsumo.tsx"] },
+  // ADR-0362 (fase 4): la hoja de la prenda al recibir («Es nueva» y «+ talla o color»). Falta lo que `crear_producto_con_variantes` rechazaría
+  // (nombre con una letra o un número, precio mayor que 0, tejido y patrón si la familia los pide) más lo que Nuevo producto exige (al menos
+  // una talla si la categoría las tiene); al sumar, que haya algo nuevo que crear. Los colores son opcionales.
+  "components/recepcion-envio/HojaPrenda.tsx": { estado: "aplicada", evidencia: ["components/recepcion-envio/HojaPrenda.tsx"] },
+  // ADR-0362 (fase 4, decisión 48): «Recibir sin guía». Lo único que falta es quién recibe (lo mismo que apaga el botón).
+  "components/recepcion-envio/RecibirSinGuia.tsx": { estado: "aplicada", evidencia: ["components/recepcion-envio/RecibirSinGuia.tsx"] },
+  // ADR-0362 (fase 5a): «Llegó la reposición» en la ficha del proveedor. Falta lo que `resolver_deuda_proveedor` rechazaría: cuántas (de 1 a lo
+  // que debe; viene puesto todo, «sugerido» hasta que se toca, y con una sola no se pregunta), cómo llegó (la nota, obligatoria) y quién lo anota.
+  "components/nos-debe/HojaReposicion.tsx": { estado: "aplicada", evidencia: ["components/nos-debe/HojaReposicion.tsx"] },
 };

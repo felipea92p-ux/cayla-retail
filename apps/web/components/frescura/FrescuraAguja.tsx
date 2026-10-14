@@ -2,6 +2,7 @@ import { Gauge, Sparkles } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { enlaceBajar, pct, type SenalCategoria, type SinEstrenar } from "@/lib/frescura-aguja";
 
 // Lo que mueve la aguja (ADR-0208, act. 2026-10-10 (b)): hasta tres categorías —las que se quedan y la que se lleva más—, cada una con lo que
@@ -88,9 +89,7 @@ export function FrescuraAguja({
   if (!pisoCuadrado && seLlevan.length === 0) return null;
   return (
     <section aria-labelledby="frescura-aguja-titulo" data-guia="frescura.aguja" className="card-cayla px-4 py-4 sm:px-5">
-      <h2 id="frescura-aguja-titulo" className="font-display text-[20px] leading-tight sm:text-[22px]">
-        {pisoCuadrado ? "Lo que mueve la aguja" : "Lo que más se llevan"}
-      </h2>
+      <TituloSeccion id="frescura-aguja-titulo">{pisoCuadrado ? "Lo que mueve la aguja" : "Lo que más se llevan"}</TituloSeccion>
       {!pisoCuadrado ? (
         <>
           <p className="mt-1 text-[13.5px] leading-snug">

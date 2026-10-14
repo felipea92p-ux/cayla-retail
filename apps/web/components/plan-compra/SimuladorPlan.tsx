@@ -12,7 +12,8 @@ import { simular } from "@/lib/plan-compra-propuesta";
 // Abajo, el acceso a Análisis ▸ Qué pedir para la prenda exacta (eso ya existe: no se repite aquí).
 
 export function SimuladorPlan({ filas, tope, recuperoDefecto, veAnalisis }: { filas: readonly FilaPlan[]; tope: number | null; recuperoDefecto: number | null; veAnalisis: boolean }) {
-  const lineas = filas.flatMap((f) => (f.linea ? [{ ...f.linea, stock: f.stock }] : []));
+  // Con lo que ya hay y lo que ya viene en órdenes: la misma cuenta que «Comprar» en la tabla.
+  const lineas = filas.flatMap((f) => (f.linea ? [{ ...f.linea, stock: f.stock + f.enCamino }] : []));
   const [mult, setMult] = useState(30);
   const [rec, setRec] = useState(recuperoDefecto ?? 40);
   if (lineas.length === 0) return null;
@@ -51,7 +52,7 @@ export function SimuladorPlan({ filas, tope, recuperoDefecto, veAnalisis }: { fi
           {tope !== null && (sim.inversion > tope ? ` Te pasarías ${solesES(sim.inversion - tope)} del tope.` : ` Te quedarían ${solesES(tope - sim.inversion)} del tope.`)}
         </p>
         {veAnalisis && (
-          <Link href="/inventario/resumen?vista=pedir" className="inline-flex items-center gap-1 text-sm text-pizarra underline-offset-2 hover:underline">
+          <Link href="/gestion/analisis?vista=pedir" className="inline-flex items-center gap-1 text-sm text-pizarra underline-offset-2 hover:underline">
             Qué pedir, prenda por prenda, en Análisis
             <ArrowRight aria-hidden className="h-3.5 w-3.5" />
           </Link>

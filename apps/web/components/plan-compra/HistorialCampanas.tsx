@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, History, SearchX } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowUpDown, ChevronRight, History, SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
 import { Desplegable } from "@/components/ui/campos";
 import { DetalleCampanaHistorial } from "@/components/plan-compra/DetalleCampanaHistorial";
@@ -11,12 +12,14 @@ import { Chip } from "@/components/ui/Chip";
 import { Ayuda } from "@/components/Ayuda";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BarraCifras } from "@/components/plan-compra/BarraCifras";
-import { Tabla, celda } from "@/components/ui/Tabla";
+import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
-import { fechaCortaES, type CampanaPlan } from "@/lib/plan-compra-reglas";
+import { fechaCortaES, laDeLaCabeceraPrimero, tiendaDeLaCabecera, type CampanaPlan } from "@/lib/plan-compra-reglas";
 import {
   aniosConHistoria,
+  aniosQueCaben,
+  decadaDe,
   faltaEnElCalendario,
   filasDelAnio,
   filtrarYOrdenar,
@@ -28,14 +31,20 @@ import {
   textoMultiplicador,
   totalDeCayla,
   totalDelAnio,
+  ventanaDeAnios,
   type CeldaHistorial,
   type EtiquetaHistorial,
   type LecturaHistorial,
 } from "@/lib/plan-compra-historial";
+import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 
 // Plan de campaña ▸ Historial (ADR-0372, C3): un año a la vez (píldoras de año), una fila por campaña, una columna por tienda. Cada celda
 // dice cuánto se vendió, cuántas veces lo de un día normal y cuánto creció contra el año anterior. Solo lee: no hay nada que guardar.
 // Las cifras de antes del ERP salen de Sinatra (C2) y son solo soles: la nota del pie lo dice.
+
+// La plantilla de la tabla (<Tabla>, ADR-0358): la campaña y una columna por tienda. Cuántas tiendas hay se sabe al dibujar, así que
+// las columnas viajan en una variable que pone la <Tabla> (`--columnas-historial`); en celular también (cada celda dice su tienda).
+const PLANTILLA_HISTORIAL = "grid-cols-[var(--columnas-historial)]";
 
 const solesSinCentimos = (n: number) => `S/ ${Math.round(n).toLocaleString("es-PE")}`;
 
@@ -60,18 +69,78 @@ function Celda({ c, anio }: { c: CeldaHistorial; anio: number }) {
   );
 }
 
+/**
+ * La fila de años (Felipe 2026-10-12: «¿qué pasa si hay 30 años?»): siempre UNA fila. Si no caben todos, se ven los que caben, seguidos y con el
+ * elegido al medio —a sus costados, los que le siguen—, y la última píldora, «Más años», abre el resto por década, con buscador (regla de combos).
+ * Se mide la fila, no la ventana: la primera pintura supone una laptop y se corrige apenas se mide.
+ */
+const SEPARACION_ANIOS = 8;
+function FilaDeAnios({ anios, anio }: { anios: number[]; anio: number }) {
+  const router = useRouter();
+  const fila = useRef<HTMLElement>(null);
+  const [medidas, setMedidas] = useState<{ ancho: number; pildora: number; mas: number } | null>(null);
+
+  useEffect(() => {
+    const el = fila.current;
+    if (!el) return;
+    const medir = () => {
+      const pildoras = [...el.querySelectorAll<HTMLElement>("[data-anio]")].map((p) => p.offsetWidth);
+      const mas = el.querySelector<HTMLElement>("[data-mas-anios]")?.offsetWidth ?? 0;
+      setMedidas((m) => {
+        const pildora = pildoras.length ? Math.max(...pildoras) : (m?.pildora ?? 0);
+        // «Más años · 12» crece un dígito al cambiar la cuenta: se guarda el más ancho medido, con 8 px de holgura (132 antes de medirlo).
+        const nuevo = { ancho: el.clientWidth, pildora, mas: mas ? Math.max(mas + 8, m?.mas ?? 0) : (m?.mas ?? 132) };
+        return m && m.ancho === nuevo.ancho && m.pildora === nuevo.pildora && m.mas === nuevo.mas ? m : nuevo;
+      });
+    };
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const caben = medidas ? aniosQueCaben(anios.length, { ...medidas, separacion: SEPARACION_ANIOS }) : 9;
+  const { visibles, resto } = ventanaDeAnios(anios, anio, caben);
+
+  return (
+    <nav ref={fila} aria-label="Año" data-guia="plan-historial.anios" className="flex flex-nowrap items-center gap-2 overflow-x-clip">
+      {visibles.map((a) => (
+        <Link key={a} data-anio href={`/compras/plan/historial?anio=${a}`} className="pildora-cayla shrink-0" aria-current={a === anio ? "page" : undefined}>
+          {a}
+        </Link>
+      ))}
+      {resto.length > 0 && (
+        <span data-mas-anios data-guia="plan-historial.mas-anios" className="shrink-0">
+          <Desplegable
+            valor=""
+            onValor={(v) => v && router.push(`/compras/plan/historial?anio=${v}`)}
+            opciones={resto.map((a) => ({ valor: String(a), texto: String(a), grupo: decadaDe(a) }))}
+            marcador={`Más años · ${resto.length}`}
+            forma="pildora"
+            alineacion="derecha"
+            etiquetaAccesible={`Más años: ${resto.length} años más con historia`}
+          />
+        </span>
+      )}
+    </nav>
+  );
+}
+
 export function HistorialCampanas({
   anio,
   historial: crudo,
   etiquetas,
   planes,
   falla,
+  sedeDeLaCabecera = null,
 }: {
   anio: number;
   historial: unknown;
   etiquetas: EtiquetaHistorial[];
   planes: CampanaPlan[];
   falla: string | null;
+  /** La sede elegida en la cabecera (null en CAYLA Global): su tienda va primero y se marca, y el detalle abre en ella. */
+  sedeDeLaCabecera?: string | null;
 }) {
   const historial: LecturaHistorial | null = useMemo(() => leerHistorial(crudo), [crudo]);
   // La fila abierta: su hoja muestra el día a día y la misma campaña año por año (Felipe 2026-10-12).
@@ -134,7 +203,9 @@ export function HistorialCampanas({
 
   const filas = filasDelAnio(historial, etiquetas, anio);
   const visibles = filtrarYOrdenar(filas, q, orden, historial.hoy);
-  const tiendas = historial.tiendas;
+  // La sede en la que estás, primero y marcada (Felipe 2026-10-12).
+  const miTienda = tiendaDeLaCabecera(sedeDeLaCabecera, historial.tiendas);
+  const tiendas = laDeLaCabeceraPrimero(historial.tiendas, miTienda);
   const columnas = `minmax(0,1.2fr) repeat(${tiendas.length}, minmax(0,1fr))`;
   const anioEnCurso = anio === Number(historial.hoy.slice(0, 4));
 
@@ -143,13 +214,7 @@ export function HistorialCampanas({
       {cabecera}
       <PestanasPlan activa="historial" />
 
-      <nav aria-label="Año" data-guia="plan-historial.anios" className="flex flex-wrap gap-2">
-        {aniosConHistoria(historial).map((a) => (
-          <Link key={a} href={`/compras/plan/historial?anio=${a}`} className="pildora-cayla" aria-current={a === anio ? "page" : undefined}>
-            {a}
-          </Link>
-        ))}
-      </nav>
+      <FilaDeAnios anios={aniosConHistoria(historial)} anio={anio} />
 
       {/* Las cifras del año en UNA barra, como Resultados (Felipe 2026-10-12): primero toda CAYLA, después cada tienda. */}
       <BarraCifras
@@ -168,6 +233,7 @@ export function HistorialCampanas({
             const total = totalDelAnio(historial, t.id, anio);
             return {
               clave: t.id,
+              activa: t.id === miTienda,
               etiqueta: t.nombre,
               valor: total.soles > 0 ? solesSinCentimos(total.soles) : null,
               bajo:
@@ -185,22 +251,17 @@ export function HistorialCampanas({
         ]}
       />
 
-      <Tabla guia="plan-historial.tabla">
+      {/* Las columnas dependen de cuántas tiendas hay: la plantilla de <Tabla> (ADR-0358) las lee de esta variable, la misma para el
+          encabezado y cada fila. */}
+      <Tabla guia="plan-historial.tabla" style={{ ["--columnas-historial" as string]: columnas }}>
         {/* Buscar y ordenar (Felipe 2026-10-12): en la misma tarjeta que la tabla, como el Plan. De entrada, la de ahora y las que vienen. */}
         <div data-guia="plan-historial.buscar" className="flex flex-wrap items-center gap-3 px-5 py-3">
           <Buscador valor={q} onCambio={setQ} placeholder="Buscar una campaña" etiqueta="Buscar una campaña" atajo conteo={q ? `${visibles.length} de ${filas.length}` : undefined} className="min-w-0 flex-1 sm:max-w-sm" />
-          <Desplegable valor={orden} onValor={(v) => setOrden(v as OrdenHistorial)} opciones={ORDENES_HISTORIAL} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="ml-auto w-56" />
+          <div className="ml-auto">
+            <DesplegablePildora icono={ArrowUpDown} etiqueta="Ordenar por" valor={orden} onValor={(v) => setOrden(v as OrdenHistorial)} opciones={ORDENES_HISTORIAL} valorPorDefecto="ahora" />
+          </div>
         </div>
-        <div className="encabezado-tabla-cayla hidden gap-x-4 px-5 py-2 sm:grid" role="row" style={{ gridTemplateColumns: columnas }}>
-          <span className="text-xs font-normal text-taupe" role="columnheader">
-            Campaña · {anio}
-          </span>
-          {tiendas.map((t) => (
-            <span key={t.id} className="text-xs font-normal text-taupe" role="columnheader">
-              {t.nombre}
-            </span>
-          ))}
-        </div>
+        <Encabezado plantilla={PLANTILLA_HISTORIAL} columnas={[{ titulo: `Campaña · ${anio}` }, ...tiendas.map((t) => ({ titulo: t.nombre }))]} />
         {visibles.length === 0 && (
           <Vacio tamano="chico" icono={<SearchX />} titulo={`Ninguna campaña de ${anio} se llama «${q.trim()}»`} acciones={<button type="button" className="btn-cayla btn-enlace" onClick={() => setQ("")}>Borrar la búsqueda</button>}>
             Prueba con otra palabra o borra la búsqueda.
@@ -213,9 +274,9 @@ export function HistorialCampanas({
             type="button"
             onClick={() => setAbierta(campana)}
             data-guia="plan-historial.fila"
-            className="fila-cayla grid w-full cursor-pointer gap-x-4 gap-y-1 px-5 py-3 text-left transition-colors hover:bg-hueso sm:items-baseline"
-            style={{ gridTemplateColumns: columnas }}
+            className={fila(PLANTILLA_HISTORIAL, "w-full cursor-pointer text-left transition-colors hover:bg-hueso")}
             aria-label={`Ver el detalle de ${campana.nombre} ${anio}`}
+            aria-current={abierta?.clave === campana.clave ? "true" : undefined}
           >
             <span className={celda("izq", "col-span-full sm:col-span-1")}>
               <span className="flex items-center gap-1.5 font-semibold text-tinta">
@@ -228,7 +289,8 @@ export function HistorialCampanas({
                 {fechaCortaES(campana.desde)} – {fechaCortaES(campana.hasta)}
               </span>
             </span>
-            {celdas.map((c) => (
+            {/* En el orden de las columnas (la tienda de la cabecera primero), no en el de la base. */}
+            {tiendas.flatMap((t) => celdas.filter((c) => c.tienda.id === t.id)).map((c) => (
               <span key={c.tienda.id} className="min-w-0">
                 <span className="block text-[11px] text-taupe sm:hidden">{c.tienda.nombre}</span>
                 <Celda c={c} anio={anio} />
@@ -245,6 +307,7 @@ export function HistorialCampanas({
           historial={historial}
           etiquetas={etiquetas}
           anios={aniosConHistoria(historial)}
+          tiendaInicial={miTienda}
           planDeResultados={planes.find((p) => !p.archivado && p.etiquetaId === abierta.clave && p.desde.slice(0, 4) === String(anio))?.id ?? null}
           onClose={() => setAbierta(null)}
         />

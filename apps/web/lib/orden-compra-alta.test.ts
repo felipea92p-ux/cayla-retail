@@ -290,12 +290,18 @@ describe("editar: la orden guardada vuelve al formulario y viaja con su versión
     anuladaEn: null,
     motivoAnulacion: null,
     lineas: [
-      { posicion: 1, categoriaId: "cat", categoria: "Chompas", marcaId: "marca", marca: "CAYLA", descripcion: "Cuello alto", cantidad: 30, precioUnitario: 42, descuento: 0, descuentoPct: null, subtotal: 1260 },
-      { posicion: 2, categoriaId: "cat", categoria: "Tops", marcaId: "marca", marca: "CAYLA", descripcion: null, cantidad: 12, precioUnitario: 25.5, descuento: 15.3, descuentoPct: 5, subtotal: 290.7 },
-      { posicion: 3, categoriaId: "cat", categoria: "Tops", marcaId: "marca", marca: "CAYLA", descripcion: null, cantidad: 2, precioUnitario: 10, descuento: 2.5, descuentoPct: null, subtotal: 17.5 },
+      { id: null, facturado: null, pendiente: null, enviado: null, porEnviar: null, posicion: 1, categoriaId: "cat", categoria: "Chompas", marcaId: "marca", marca: "CAYLA", descripcion: "Cuello alto", cantidad: 30, precioUnitario: 42, descuento: 0, descuentoPct: null, subtotal: 1260 },
+      { id: null, facturado: null, pendiente: null, enviado: null, porEnviar: null, posicion: 2, categoriaId: "cat", categoria: "Tops", marcaId: "marca", marca: "CAYLA", descripcion: null, cantidad: 12, precioUnitario: 25.5, descuento: 15.3, descuentoPct: 5, subtotal: 290.7 },
+      { id: null, facturado: null, pendiente: null, enviado: null, porEnviar: null, posicion: 3, categoriaId: "cat", categoria: "Tops", marcaId: "marca", marca: "CAYLA", descripcion: null, cantidad: 2, precioUnitario: 10, descuento: 2.5, descuentoPct: null, subtotal: 17.5 },
     ],
     unidades: 44,
     total: 1568.2,
+    // Fase 2: una base que todavía no cuenta comprobantes (la orden se edita igual).
+    comprobantes: [],
+    papel: null,
+    // Fase 3: una base que todavía no cuenta envíos (la orden se edita igual).
+    envios: null,
+    deudaDe: null,
   };
 
   it("el descuento vuelve como se escribió: en % si la línea lo recuerda, si no en soles; sin descuento, en % y vacío", () => {

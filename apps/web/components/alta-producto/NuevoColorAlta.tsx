@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { Desplegable } from "@/components/ui/campos";
+import { Campo, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { SelectorColor } from "@/components/SelectorColor";
 import type { ColorAlta } from "@/lib/alta-producto";
@@ -158,20 +158,17 @@ export function NuevoColorAlta({
         }`}
       >
         <div className={enModal ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-1"}>
-          <label htmlFor={`${id}-nombre`} className="mb-1 block text-xs font-semibold text-tinta">
-            Nombre del color
-          </label>
-          <input
+          <CampoTexto
+            etiqueta="Nombre del color"
+            sinPie
             id={`${id}-nombre`}
             autoFocus
-            autoComplete="off"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             onBlur={() => setNombre((n) => nombreDeColor(n))}
             onKeyDown={teclas}
             placeholder={ejemplo.nombre.texto}
             disabled={guardando}
-            className="caja-cayla h-10 w-full px-3 text-sm text-tinta placeholder:text-tinta/45"
           />
         </div>
 
@@ -182,27 +179,25 @@ export function NuevoColorAlta({
         </div>
 
         <div>
-          <span id={`${id}-familia`} className="mb-1 block text-xs font-semibold text-tinta">
-            Familia
-          </span>
-          <Desplegable
-            forma="caja"
-            idEtiqueta={`${id}-familia`}
-            valor={familia}
-            onValor={setFamiliaElegida}
-            opciones={FAMILIAS_COLOR.map((f) => ({ valor: f.valor, texto: f.texto }))}
-            marcador={hex ? "Elige…" : "Sale del tono"}
-            deshabilitado={guardando}
-          />
+          <Campo etiqueta="Familia" idEtiqueta={`${id}-familia`} sinPie>
+            <Desplegable
+              forma="campo"
+              idEtiqueta={`${id}-familia`}
+              valor={familia}
+              onValor={setFamiliaElegida}
+              opciones={FAMILIAS_COLOR.map((f) => ({ valor: f.valor, texto: f.texto }))}
+              marcador={hex ? "Elige…" : "Sale del tono"}
+              deshabilitado={guardando}
+            />
+          </Campo>
         </div>
 
-        <div>
-          <label htmlFor={`${id}-codigo`} className="mb-1 block text-xs font-semibold text-tinta">
-            Código
-          </label>
-          <input
+        <div className="w-[5.5rem]">
+          <CampoTexto
+            etiqueta="Código"
+            sinPie
+            mono
             id={`${id}-codigo`}
-            autoComplete="off"
             value={codigo}
             maxLength={3}
             onChange={(e) => setCodigoEscrito(normalizarCodigo(e.target.value))}
@@ -210,7 +205,7 @@ export function NuevoColorAlta({
             placeholder={ejemplo.codigo.texto}
             disabled={guardando}
             aria-describedby={`${id}-codigo-ayuda`}
-            className="caja-cayla h-10 w-[5.5rem] px-3 font-mono text-sm uppercase tracking-wider text-tinta tabular-nums placeholder:text-tinta/45"
+            className="uppercase"
           />
           <p id={`${id}-codigo-ayuda`} className="mt-1 text-[11px] text-taupe">
             Va en el SKU

@@ -1,14 +1,13 @@
 "use client";
 
 import { useMemo, useRef, useState, type CSSProperties } from "react";
-import { CalendarArrowDown, CalendarArrowUp } from "lucide-react";
+import { CalendarArrowDown, CalendarArrowUp, UserRound } from "lucide-react";
 import { cifrasPorRegularizar, coincideConBusqueda, estaVencida, ordenarVentas, ORDEN_INICIAL, VENTAS_POR_PAGINA, type Orden } from "@/lib/por-regularizar-reglas";
 import { paginar } from "@/lib/paginacion";
 import { avisosDePlazo, diaMes as diaMesDe, sedesParaCerrar } from "@/lib/cola-arranque-reglas";
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import type { PrendaParaRegularizar } from "@/lib/por-regularizar-mesa";
 import type { LibroPorVenta } from "@/lib/por-regularizar-deduccion";
-import { Desplegable } from "@/components/ui/campos";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { CerrarColaArranqueModal } from "@/components/CerrarColaArranqueModal";
@@ -19,6 +18,7 @@ import { SugerenciasColaModal } from "@/components/SugerenciasColaModal";
 import { FranjaAvance } from "@/components/por-regularizar/FranjaAvance";
 import { MesaRegularizar } from "@/components/por-regularizar/MesaRegularizar";
 import { Buscador } from "@/components/ui/Buscador";
+import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 
 /** Lo mínimo de cada prenda del catálogo para reconocerla y dibujarla (sin costo: esta pantalla la ve almacén). */
 export type { PrendaParaRegularizar };
@@ -206,9 +206,14 @@ export function PorRegularizarLista({
                 {orden.dir === "asc" ? <CalendarArrowUp aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" /> : <CalendarArrowDown aria-hidden strokeWidth={1.75} className="h-3.5 w-3.5 shrink-0" />}
                 <span className="hidden md:inline">{orden.dir === "desc" ? "Recientes" : "Antiguas"}</span>
               </button>
-              <div className="w-52 shrink-0">
-                <Desplegable valor={quien} onValor={setQuien} opciones={[{ valor: "", texto: "Todas las colaboradoras" }, ...vendedoras.map((v) => ({ valor: v, texto: v }))]} forma="caja" etiquetaAccesible="Quién vendió" />
-              </div>
+              <DesplegablePildora
+                icono={UserRound}
+                etiqueta="Vendió"
+                valor={quien}
+                valorPorDefecto=""
+                onValor={setQuien}
+                opciones={[{ valor: "", texto: "Todas las colaboradoras" }, ...vendedoras.map((v) => ({ valor: v, texto: v }))]}
+              />
               {accionesDeLider.length > 0 && <MenuAcciones etiqueta="Más acciones" texto="Más" items={accionesDeLider} />}
             </div>
           </div>

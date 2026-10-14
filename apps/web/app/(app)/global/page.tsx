@@ -13,6 +13,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 
 // CAYLA Global ▸ Salud del negocio (ADR-0275, paso 1: la puerta). La pregunta de esta pantalla es «¿qué tan sano está
@@ -77,7 +78,7 @@ export default async function SaludDelNegocioPage() {
       {!cobertura.falla && (
         <section aria-labelledby="cobertura-titulo" className="space-y-3" data-guia="global.cobertura">
           <div>
-            <h2 id="cobertura-titulo" className="font-display text-xl text-tinta">Con qué datos cuenta esta vista</h2>
+            <TituloSeccion id="cobertura-titulo">Con qué datos cuenta esta vista</TituloSeccion>
             <p className="mt-1 text-sm text-tinta/75">
               Una sede que todavía no opera en el ERP dice eso, no «vendió cero»: sus cifras siguen en Alegra.
             </p>
@@ -120,7 +121,7 @@ export default async function SaludDelNegocioPage() {
       {/* Motor de demanda, etapa 0 (ADR-0346): antes de recomendar nada, si los datos de cada tienda ya dicen la verdad. */}
       <section aria-labelledby="motor-titulo" className="space-y-3">
         <div data-guia="global.motor">
-          <h2 id="motor-titulo" className="font-display text-xl text-tinta">¿El sistema ya puede recomendar?</h2>
+          <TituloSeccion id="motor-titulo">¿El sistema ya puede recomendar?</TituloSeccion>
           <p className="mt-1 text-sm text-tinta/75">
             Para sugerir qué colgar, trasladar, producir o comprar, cada tienda necesita tres cosas: que al menos 9 de cada 10
             prendas vendidas se registren con su prenda durante 14 días seguidos, el piso cuadrado y el almacén contado.
@@ -135,7 +136,7 @@ export default async function SaludDelNegocioPage() {
 
       {accesos.length > 0 && (
         <section aria-labelledby="accesos-titulo" className="space-y-3" data-guia="global.accesos">
-          <h2 id="accesos-titulo" className="font-display text-xl text-tinta">Lo que ya puedes ver de toda CAYLA</h2>
+          <TituloSeccion id="accesos-titulo">Lo que ya puedes ver de toda CAYLA</TituloSeccion>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {accesos.map((a) => (
               <Link key={a.href} href={a.href} className="card-cayla alza-cayla block p-5 hover:bg-sand/30">

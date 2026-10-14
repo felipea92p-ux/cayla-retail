@@ -1,5 +1,5 @@
 {
- "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-28 (ADR-0208, paso 4; Felipe: «hagámoslo»): «Frescura del piso» entra directo en Inventario, después de Análisis (o de Conteo, donde Análisis no se ve). 2026-10-01 (ADR-0288 act. g, tanda 1g): Clientas pasa de hoja a grupo al nacer su segunda pantalla, «Avisos» (módulo avisos_club): «Fichas» se queda con el corazón y la cabecera estrena la escarapela del club; quien solo ve las fichas sigue viendo la fila «Clientas» de siempre. 2026-10-02 (Felipe): «Clientas» se llama «Clientes» en todo el ERP (la ruta /clientas y la clave del módulo no cambian). 2026-10-05 (ADR-0349; Felipe: plan de compra de diciembre con tres escenarios): «Plan de campaña» entra primero en Compras, con `verDineroCompras` como sus hermanas (muestra costos). 2026-10-05 (ADR-0329, Felipe: «Subir el tope a 8»): «Plan del piso» entra directo en Inventario, después de «Frescura del piso».",
+ "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-28 (ADR-0208, paso 4; Felipe: «hagámoslo»): «Frescura del piso» entra directo en Inventario, después de Análisis (o de Conteo, donde Análisis no se ve). 2026-10-01 (ADR-0288 act. g, tanda 1g): Clientas pasa de hoja a grupo al nacer su segunda pantalla, «Avisos» (módulo avisos_club): «Fichas» se queda con el corazón y la cabecera estrena la escarapela del club; quien solo ve las fichas sigue viendo la fila «Clientas» de siempre. 2026-10-02 (Felipe): «Clientas» se llama «Clientes» en todo el ERP (la ruta /clientas y la clave del módulo no cambian). 2026-10-05 (ADR-0349; Felipe: plan de compra de diciembre con tres escenarios): «Plan de campaña» entra primero en Compras, con `verDineroCompras` como sus hermanas (muestra costos). 2026-10-05 (ADR-0329, Felipe: «Subir el tope a 8»): «Plan del piso» entra directo en Inventario, después de «Frescura del piso». 2026-10-13 (ADR-0392; Felipe, preguntado con las opciones): «Gestión» es un grupo de PRIMER nivel debajo de Inicio (en el Taller, después de Producción) con Análisis, Frescura del piso, Plan del piso y Rendimiento; las tres salen de Inventario (que vuelve a 4) y Rendimiento deja su fila suelta. Aterrizar en sus rutas abre «gestion». 2026-10-13 (ADR-0362 fase 7, decisión 47): «Órdenes de insumos» entra PRIMERA en Producción ▸ Abastecimiento (pedir → factura → recibir → pagar), sin `exige` (el módulo es la llave): el líder del Taller ve cinco hijas en Abastecimiento, y quien trabaja en el Taller la ve junto a Recibir, así que su Abastecimiento ya no se disuelve en «Recibir». Su ruta, /ordenes-insumos, abre el grupo de Producción.",
  "capturadoDe": {
   "archivo": "apps/web/components/AppShell.tsx",
   "commit": "e14ef82c",
@@ -15,6 +15,28 @@
       "etiqueta": "Inicio",
       "href": "/",
       "icono": "inicio"
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       }
+      ]
      },
      {
       "grupo": "venta",
@@ -87,16 +109,6 @@
         "icono": "conteo"
        },
        {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
-        "icono": "resumen"
-       },
-       {
         "etiqueta": "Recibir mercadería",
         "href": "/recibir",
         "icono": "recibir"
@@ -137,9 +149,21 @@
       ]
      },
      {
+      "grupo": "compras",
       "etiqueta": "Compras",
-      "href": "/compras/ordenes",
-      "icono": "ordenes"
+      "icono": "compras",
+      "hijos": [
+       {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "campana"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
+       }
+      ]
      },
      {
       "grupo": "clientas",
@@ -157,11 +181,6 @@
         "icono": "avisos"
        }
       ]
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -194,6 +213,28 @@
       "etiqueta": "Inicio",
       "href": "/",
       "icono": "inicio"
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       }
+      ]
      },
      {
       "grupo": "venta",
@@ -265,16 +306,6 @@
         "icono": "conteo"
        },
        {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
-        "icono": "resumen"
-       },
-       {
         "etiqueta": "Recibir mercadería",
         "href": "/recibir",
         "icono": "recibir"
@@ -314,9 +345,21 @@
       ]
      },
      {
+      "grupo": "compras",
       "etiqueta": "Compras",
-      "href": "/compras/ordenes",
-      "icono": "ordenes"
+      "icono": "compras",
+      "hijos": [
+       {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "campana"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
+       }
+      ]
      },
      {
       "grupo": "clientas",
@@ -334,11 +377,6 @@
         "icono": "avisos"
        }
       ]
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -391,6 +429,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -404,9 +444,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "inventario",
-    "/inventario/plan-del-piso": "inventario",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -428,6 +468,33 @@
       "icono": "inicio"
      },
      {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Análisis",
+        "href": "/gestion/analisis",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       }
+      ]
+     },
+     {
       "grupo": "venta",
       "etiqueta": "Ventas",
       "icono": "venta",
@@ -501,21 +568,6 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
-       },
-       {
-        "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
-        "icono": "analisis"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
-        "icono": "resumen"
        }
       ],
       "insignia": 3
@@ -560,7 +612,7 @@
        {
         "etiqueta": "Plan de campaña",
         "href": "/compras/plan",
-        "icono": "analisis"
+        "icono": "campana"
        },
        {
         "etiqueta": "Proveedores",
@@ -647,11 +699,6 @@
         "icono": "avisos"
        }
       ]
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -684,6 +731,33 @@
       "etiqueta": "Inicio",
       "href": "/",
       "icono": "inicio"
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Análisis",
+        "href": "/gestion/analisis",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       }
+      ]
      },
      {
       "grupo": "venta",
@@ -758,21 +832,6 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
-       },
-       {
-        "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
-        "icono": "analisis"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
-        "icono": "resumen"
        }
       ]
      },
@@ -816,7 +875,7 @@
        {
         "etiqueta": "Plan de campaña",
         "href": "/compras/plan",
-        "icono": "analisis"
+        "icono": "campana"
        },
        {
         "etiqueta": "Proveedores",
@@ -903,11 +962,6 @@
         "icono": "avisos"
        }
       ]
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -960,6 +1014,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -973,9 +1029,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "inventario",
-    "/inventario/plan-del-piso": "inventario",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -1012,9 +1068,43 @@
         "icono": "insumos"
        },
        {
-        "etiqueta": "Recibir",
-        "href": "/produccion/recibir",
-        "icono": "recibir"
+        "grupo": "produccion.abastecimiento",
+        "etiqueta": "Abastecimiento",
+        "icono": "compras",
+        "hijos": [
+         {
+          "etiqueta": "Órdenes de insumos",
+          "href": "/ordenes-insumos",
+          "icono": "ordenesInsumos"
+         },
+         {
+          "etiqueta": "Recibir",
+          "href": "/produccion/recibir",
+          "icono": "recibirInsumos"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
        }
       ]
      },
@@ -1089,16 +1179,6 @@
         "icono": "conteo"
        },
        {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
-        "icono": "resumen"
-       },
-       {
         "etiqueta": "Recibir mercadería",
         "href": "/recibir",
         "icono": "recibir"
@@ -1154,11 +1234,6 @@
         "icono": "avisos"
        }
       ]
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -1208,9 +1283,43 @@
         "icono": "insumos"
        },
        {
-        "etiqueta": "Recibir",
-        "href": "/produccion/recibir",
-        "icono": "recibir"
+        "grupo": "produccion.abastecimiento",
+        "etiqueta": "Abastecimiento",
+        "icono": "compras",
+        "hijos": [
+         {
+          "etiqueta": "Órdenes de insumos",
+          "href": "/ordenes-insumos",
+          "icono": "ordenesInsumos"
+         },
+         {
+          "etiqueta": "Recibir",
+          "href": "/produccion/recibir",
+          "icono": "recibirInsumos"
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
        }
       ]
      },
@@ -1284,16 +1393,6 @@
         "icono": "conteo"
        },
        {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
-        "icono": "resumen"
-       },
-       {
         "etiqueta": "Recibir mercadería",
         "href": "/recibir",
         "icono": "recibir"
@@ -1348,11 +1447,6 @@
         "icono": "avisos"
        }
       ]
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -1405,6 +1499,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -1418,9 +1514,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "inventario",
-    "/inventario/plan-del-piso": "inventario",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -1467,6 +1563,11 @@
         "icono": "compras",
         "hijos": [
          {
+          "etiqueta": "Órdenes de insumos",
+          "href": "/ordenes-insumos",
+          "icono": "ordenesInsumos"
+         },
+         {
           "etiqueta": "Proveedores",
           "href": "/produccion/proveedores",
           "icono": "proveedores"
@@ -1479,7 +1580,7 @@
          {
           "etiqueta": "Recibir",
           "href": "/produccion/recibir",
-          "icono": "recibir"
+          "icono": "recibirInsumos"
          },
          {
           "etiqueta": "Por pagar",
@@ -1487,6 +1588,33 @@
           "icono": "porPagar"
          }
         ]
+       }
+      ]
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Análisis",
+        "href": "/gestion/analisis",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
        }
       ]
      },
@@ -1564,21 +1692,6 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
-       },
-       {
-        "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
-        "icono": "analisis"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
-        "icono": "resumen"
        }
       ],
       "insignia": 3
@@ -1668,11 +1781,6 @@
         "icono": "avisos"
        }
       ]
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -1732,6 +1840,11 @@
         "icono": "compras",
         "hijos": [
          {
+          "etiqueta": "Órdenes de insumos",
+          "href": "/ordenes-insumos",
+          "icono": "ordenesInsumos"
+         },
+         {
           "etiqueta": "Proveedores",
           "href": "/produccion/proveedores",
           "icono": "proveedores"
@@ -1744,7 +1857,7 @@
          {
           "etiqueta": "Recibir",
           "href": "/produccion/recibir",
-          "icono": "recibir"
+          "icono": "recibirInsumos"
          },
          {
           "etiqueta": "Por pagar",
@@ -1752,6 +1865,33 @@
           "icono": "porPagar"
          }
         ]
+       }
+      ]
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Análisis",
+        "href": "/gestion/analisis",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
        }
       ]
      },
@@ -1828,21 +1968,6 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
-       },
-       {
-        "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
-        "icono": "analisis"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
-        "icono": "resumen"
        }
       ]
      },
@@ -1931,11 +2056,6 @@
         "icono": "avisos"
        }
       ]
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -1988,6 +2108,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -2001,9 +2123,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "inventario",
-    "/inventario/plan-del-piso": "inventario",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -2025,6 +2147,28 @@
       "icono": "inicio"
      },
      {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       }
+      ]
+     },
+     {
       "grupo": "venta",
       "etiqueta": "Ventas",
       "icono": "venta",
@@ -2095,16 +2239,6 @@
         "icono": "conteo"
        },
        {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
-        "icono": "resumen"
-       },
-       {
         "etiqueta": "Recibir mercadería",
         "href": "/recibir",
         "icono": "recibir"
@@ -2145,9 +2279,21 @@
       ]
      },
      {
+      "grupo": "compras",
       "etiqueta": "Compras",
-      "href": "/compras/ordenes",
-      "icono": "ordenes"
+      "icono": "compras",
+      "hijos": [
+       {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "campana"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
+       }
+      ]
      },
      {
       "grupo": "clientas",
@@ -2165,11 +2311,6 @@
         "icono": "avisos"
        }
       ]
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -2202,6 +2343,28 @@
       "etiqueta": "Inicio",
       "href": "/",
       "icono": "inicio"
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       }
+      ]
      },
      {
       "grupo": "venta",
@@ -2273,16 +2436,6 @@
         "icono": "conteo"
        },
        {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
-        "icono": "resumen"
-       },
-       {
         "etiqueta": "Recibir mercadería",
         "href": "/recibir",
         "icono": "recibir"
@@ -2322,9 +2475,21 @@
       ]
      },
      {
+      "grupo": "compras",
       "etiqueta": "Compras",
-      "href": "/compras/ordenes",
-      "icono": "ordenes"
+      "icono": "compras",
+      "hijos": [
+       {
+        "etiqueta": "Plan de campaña",
+        "href": "/compras/plan",
+        "icono": "campana"
+       },
+       {
+        "etiqueta": "Órdenes de compra",
+        "href": "/compras/ordenes",
+        "icono": "ordenes"
+       }
+      ]
      },
      {
       "grupo": "clientas",
@@ -2342,11 +2507,6 @@
         "icono": "avisos"
        }
       ]
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -2399,6 +2559,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -2412,9 +2574,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "inventario",
-    "/inventario/plan-del-piso": "inventario",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,
@@ -2436,6 +2598,33 @@
       "icono": "inicio"
      },
      {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Análisis",
+        "href": "/gestion/analisis",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       }
+      ]
+     },
+     {
       "grupo": "venta",
       "etiqueta": "Ventas",
       "icono": "venta",
@@ -2509,21 +2698,6 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
-       },
-       {
-        "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
-        "icono": "analisis"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
-        "icono": "resumen"
        }
       ],
       "insignia": 3
@@ -2568,7 +2742,7 @@
        {
         "etiqueta": "Plan de campaña",
         "href": "/compras/plan",
-        "icono": "analisis"
+        "icono": "campana"
        },
        {
         "etiqueta": "Proveedores",
@@ -2655,11 +2829,6 @@
         "icono": "avisos"
        }
       ]
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -2692,6 +2861,33 @@
       "etiqueta": "Inicio",
       "href": "/",
       "icono": "inicio"
+     },
+     {
+      "grupo": "gestion",
+      "etiqueta": "Gestión",
+      "icono": "gestion",
+      "hijos": [
+       {
+        "etiqueta": "Análisis",
+        "href": "/gestion/analisis",
+        "icono": "analisis"
+       },
+       {
+        "etiqueta": "Frescura del piso",
+        "href": "/gestion/frescura",
+        "icono": "frescura"
+       },
+       {
+        "etiqueta": "Plan del piso",
+        "href": "/gestion/plan-del-piso",
+        "icono": "planPiso"
+       },
+       {
+        "etiqueta": "Rendimiento",
+        "href": "/rendimiento",
+        "icono": "rendimiento"
+       }
+      ]
      },
      {
       "grupo": "venta",
@@ -2766,21 +2962,6 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
-       },
-       {
-        "etiqueta": "Análisis",
-        "href": "/inventario/resumen",
-        "icono": "analisis"
-       },
-       {
-        "etiqueta": "Frescura del piso",
-        "href": "/inventario/frescura",
-        "icono": "frescura"
-       },
-       {
-        "etiqueta": "Plan del piso",
-        "href": "/inventario/plan-del-piso",
-        "icono": "resumen"
        }
       ]
      },
@@ -2824,7 +3005,7 @@
        {
         "etiqueta": "Plan de campaña",
         "href": "/compras/plan",
-        "icono": "analisis"
+        "icono": "campana"
        },
        {
         "etiqueta": "Proveedores",
@@ -2911,11 +3092,6 @@
         "icono": "avisos"
        }
       ]
-     },
-     {
-      "etiqueta": "Rendimiento",
-      "href": "/rendimiento",
-      "icono": "resumen"
      }
     ],
     "movil": [
@@ -2968,6 +3144,8 @@
     "/produccion/ordenes/abc": "produccion",
     "/produccion/proveedores/x": "produccion",
     "/produccion/nueva": "produccion",
+    "/ordenes-insumos": "produccion",
+    "/ordenes-insumos/ver/abc": "produccion",
     "/compras": "compras",
     "/compras/proveedores": "compras",
     "/compras/por-pagar": "compras",
@@ -2981,9 +3159,9 @@
     "/inventario/traslados": "inventario",
     "/inventario/traslados/abc": "inventario",
     "/inventario/conteo": "inventario",
-    "/inventario/resumen": "inventario",
-    "/inventario/frescura": "inventario",
-    "/inventario/plan-del-piso": "inventario",
+    "/gestion/analisis": "gestion",
+    "/gestion/frescura": "gestion",
+    "/gestion/plan-del-piso": "gestion",
     "/inventario/mover": "inventario",
     "/inventario/recibir": "inventario",
     "/colaboradores": null,

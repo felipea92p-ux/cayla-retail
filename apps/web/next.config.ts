@@ -4,7 +4,8 @@ import type { NextConfig } from "next";
 // El optimizador de imágenes solo acepta fotos del Storage PÚBLICO de nuestro Supabase (las de prendas,
 // `retail-productos-fotos`), nada de otro host: sin lista cerrada, `/_next/image?url=…` serviría de proxy a
 // cualquier URL. Se arma desde `NEXT_PUBLIC_SUPABASE_URL` porque producción y local apuntan a hosts distintos.
-// Quien lo usa hoy: `FotoPrenda` de Apartados (ADR-0168). Las demás imágenes de Storage siguen `unoptimized`.
+// Quien lo usa hoy: `ImagenDePrenda` (ADR-0168), que dibujan `FotoPrenda` de Apartados, `MiniaturaPrenda` y `TilePrenda` de Análisis.
+// Las demás imágenes de Storage siguen `unoptimized`.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL) : null;
 
 const nextConfig: NextConfig = {
@@ -76,6 +77,12 @@ const nextConfig: NextConfig = {
       { source: "/inventario/recibir", destination: "/recibir", permanent: false },
       // ADR-0113: Recibir mercadería salió de Compras (solo líder) para que cuente cualquier colaborador de la sede.
       { source: "/compras/recibir", destination: "/recibir", permanent: false },
+      // ADR-0392 (2026-10-13): Análisis, Frescura del piso y Plan del piso salieron de Inventario al grupo «Gestión»; los marcadores
+      // y enlaces viejos siguen llegando, con su query (`?vista=`, `?cat=`) intacta. `permanent: false` por la misma razón que arriba.
+      { source: "/inventario/resumen", destination: "/gestion/analisis", permanent: false },
+      { source: "/inventario/frescura", destination: "/gestion/frescura", permanent: false },
+      { source: "/inventario/frescura/tienda", destination: "/gestion/frescura/tienda", permanent: false },
+      { source: "/inventario/plan-del-piso", destination: "/gestion/plan-del-piso", permanent: false },
       // Consolidación de Catálogo (2026-09-17, pedido de Felipe): Colores/
       // Tallas/Tejidos/Patrones/Etiquetas eran 5 pantallas y 5 filas de menú
       // separadas para lo que en el fondo es un solo tipo de pantalla

@@ -49,14 +49,14 @@ export function MediosDePago({
               placeholder="S/ monto"
               value={m.monto}
               onChange={(e) => cambiar(i, { monto: e.target.value })}
-              className="h-9 rounded-md border border-tinta/25 bg-papel px-2 text-right text-sm tabular-nums text-tinta outline-none focus:border-rojo"
+              className="caja-campo-input text-right tabular-nums"
             />
             <input
               aria-label={`Referencia del medio ${i + 1}`}
               placeholder="N.° de operación"
               value={m.referencia}
               onChange={(e) => cambiar(i, { referencia: e.target.value })}
-              className="h-9 rounded-md border border-tinta/25 bg-papel px-2 font-mono text-sm text-tinta outline-none focus:border-rojo max-sm:col-span-2 max-sm:col-start-1 max-sm:row-start-2"
+              className="caja-campo-input font-mono max-sm:col-span-2 max-sm:col-start-1 max-sm:row-start-2"
             />
             <button
               type="button"
@@ -75,7 +75,7 @@ export function MediosDePago({
         <button
           type="button"
           onClick={() => onCambio([...medios, medioNuevo("efectivo", montoSugerido(medios, esperado))])}
-          className="inline-flex items-center gap-1.5 text-[13px] text-tinta/75 underline-offset-2 outline-none hover:text-rojo hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60"
+          className="btn-cayla btn-enlace gap-1.5 text-[13px]"
         >
           <Plus size={14} aria-hidden /> Agregar otro medio
         </button>
@@ -103,7 +103,7 @@ function SaleDeCompacto({ cuentas, medio: m, i, onCuenta }: { cuentas: { lista: 
       <span className="text-tinta/65">Sale de</span>
       <span className="grid gap-0.5">
         <Desplegable
-          forma="caja"
+          forma="campo"
           etiquetaAccesible={`De qué cuenta sale el medio ${i + 1}`}
           valor={valor}
           onValor={onCuenta}

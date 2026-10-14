@@ -13,11 +13,11 @@ import { PERMISOS, type Permiso } from "./menu";
 export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas", "avisos_club",
-  "existencias", "conteos", "traslados", "movimientos", "frescura", "plan_piso",
+  "existencias", "conteos", "traslados", "movimientos",
   "productos", "atributos", "etiquetas", "liquidacion",
   "ordenes_compra", "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito", "plan_compra",
-  "produccion",
-  "analisis", "colaboradores", "roles",
+  "produccion", "ordenes_insumos",
+  "analisis", "frescura", "plan_piso", "colaboradores", "roles",
   "configuracion",
   "gastos", "cuentas_dinero", "reportes_financieros", "impuestos", "cierre_mes",
   "actividad",
@@ -68,15 +68,6 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "conteos", grupo: "Inventario", nombre: "Conteos", incluye: "Iniciar, registrar y cerrar conteos" },
   { clave: "traslados", grupo: "Inventario", nombre: "Traslados", incluye: "Enviar, recibir, cancelar y cerrar con diferencia" },
   { clave: "movimientos", grupo: "Inventario", nombre: "Movimientos", incluye: "Consultar y exportar" },
-  // Frescura del piso (ADR-0208 paso 4, 20260929100000): cuánto lleva colgada cada prenda contra las demás de su categoría
-  // en su sede, y qué hacer con lo que se queda. Nace SIN rol (solo el líder) y delegable: por el ADR-0253 sus tres
-  // lecturas piden «el líder, o este módulo, en una sede que opera». Quien lo tiene sin ser líder ve SU sede entera; el
-  // registro al colgar, «Las 3 tiendas» y la referencia de CAYLA (que leen las otras sedes) siguen siendo del líder.
-  { clave: "frescura", grupo: "Inventario", nombre: "Frescura del piso", incluye: "Ver cuánto lleva colgada cada prenda de su tienda contra las demás de su categoría, y qué conviene hacer con la que se queda" },
-  // Plan del piso (ADR-0329 + ADR-0328, actividad 12; 20261006100000): cuánto lugar tiene cada grupo de prendas en el riel de su
-  // tienda. Primera entrega, solo lectura: la propuesta y los grupos del mix. Nace SIN rol (solo el líder) y delegable (ADR-0253).
-  // Quien lo recibe sin ser líder VE la propuesta y los grupos; decidir a qué grupo va cada categoría sigue siendo del líder.
-  { clave: "plan_piso", grupo: "Inventario", nombre: "Plan del piso", incluye: "Ver la propuesta de cuánto lugar tiene cada grupo de prendas en el piso de su tienda y contra qué se compara" },
   { clave: "productos", grupo: "Catálogo", nombre: "Productos", incluye: "Crear, editar y archivar prendas; precios, fotos y códigos" },
   { clave: "atributos", grupo: "Catálogo", nombre: "Categorías, marcas y atributos", incluye: "Crear, editar, desactivar y aprobar propuestas" },
   { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar, aprobar y archivar etiquetas, configurar su campaña y descuento, y ponérselas a las prendas" },
@@ -96,7 +87,23 @@ export const MODULOS: readonly Modulo[] = [
   // escenarios, y compararlo después con lo vendido. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo.
   { clave: "plan_compra", grupo: "Compras", nombre: "Plan de campaña", incluye: "Armar por categoría cuánto comprar para una campaña (tres escenarios, precio, costo, curva de tallas) y compararlo después con lo que se vendió" },
   { clave: "produccion", grupo: "Producción", nombre: "Órdenes de producción", incluye: "Crear, editar y cancelar órdenes; registrar avance" },
+  // Órdenes de insumos (ADR-0362 fase 7, decisión 47; 20261013035000): lo que el Taller le pide a cada proveedor de tela y avíos, aparte
+  // de la orden de tienda (decisiones 25 y 28). Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo y nada más.
+  // Quien lo tiene ve y hace todo en esas órdenes, con sus precios, sin ver el resto de la plata del Taller; no necesita «Órdenes de
+  // producción» (la pantalla vive en /ordenes-insumos, fuera del layout de /produccion).
+  { clave: "ordenes_insumos", grupo: "Producción", nombre: "Órdenes de insumos", incluye: "Crear, ver, editar y anular las órdenes de compra de insumos del Taller, con sus precios, y descargar su PDF" },
   { clave: "analisis", grupo: "Gestión", nombre: "Análisis", incluye: "Reportes de ventas e inventario" },
+  // Frescura del piso y Plan del piso viven en «Gestión» desde ADR-0392 (2026-10-13, migración 20261013134000: orden 212 y 214,
+  // justo después de Análisis). Nacieron en «Inventario» (20260929100000 y 20261006100000); el lateral los muestra en «Gestión».
+  // Frescura del piso (ADR-0208 paso 4, 20260929100000): cuánto lleva colgada cada prenda contra las demás de su categoría
+  // en su sede, y qué hacer con lo que se queda. Nace SIN rol (solo el líder) y delegable: por el ADR-0253 sus tres
+  // lecturas piden «el líder, o este módulo, en una sede que opera». Quien lo tiene sin ser líder ve SU sede entera; el
+  // registro al colgar, «Las 3 tiendas» y la referencia de CAYLA (que leen las otras sedes) siguen siendo del líder.
+  { clave: "frescura", grupo: "Gestión", nombre: "Frescura del piso", incluye: "Ver cuánto lleva colgada cada prenda de su tienda contra las demás de su categoría, y qué conviene hacer con la que se queda" },
+  // Plan del piso (ADR-0329 + ADR-0328, actividad 12; 20261006100000): cuánto lugar tiene cada grupo de prendas en el riel de su
+  // tienda. Primera entrega, solo lectura: la propuesta y los grupos del mix. Nace SIN rol (solo el líder) y delegable (ADR-0253).
+  // Quien lo recibe sin ser líder VE la propuesta y los grupos; decidir a qué grupo va cada categoría sigue siendo del líder.
+  { clave: "plan_piso", grupo: "Gestión", nombre: "Plan del piso", incluye: "Ver la propuesta de cuánto lugar tiene cada grupo de prendas en el piso de su tienda y contra qué se compara" },
   { clave: "colaboradores", grupo: "Gestión", nombre: "Colaboradores", incluye: "Dar y quitar accesos, suspender, cambiar ubicación" },
   { clave: "roles", grupo: "Gestión", nombre: "Roles y accesos", incluye: "Crear roles y asignarlos" },
   // ADR-0195 F1 (20260924210000): nació sin rol y «solo líder por ahora». Delegable desde el ADR-0253 (20260928220000):

@@ -1,13 +1,16 @@
 import { Aviso } from "@/components/ui/Aviso";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { Chip } from "@/components/ui/Chip";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { BotonEnlace } from "@/components/ui/campos";
 import { CifraSinSaber } from "./CifraSinSaber";
 import {
   avisoDeLaPuerta,
+  lineaDelPiso,
   CLASE_TRAMO_PISO,
   NOMBRE_TRAMO_PISO,
   pasoDeLaPuerta,
+  segmentosDelPiso,
   TRAMOS_DEL_100,
   porcentajes,
   solesEnteros,
@@ -29,18 +32,6 @@ const tramosConNumero = (f: FamiliaPiso): TramoPiso[] => TRAMOS_DEL_100.filter((
 
 const unidades = (n: number) => `${n} ${n === 1 ? "unidad" : "unidades"}`;
 const colgadas = (n: number) => `${n} ${n === 1 ? "unidad colgada" : "unidades colgadas"}`;
-
-function segmentos(f: FamiliaPiso) {
-  return TRAMOS_DEL_100.map((t) => ({ clave: t, nombre: NOMBRE_TRAMO_PISO[t], valor: f.unidades[t], clase: CLASE_TRAMO_PISO[t] }));
-}
-
-/** «58 % fresca · 20 % envejeciendo»: lo que dice una familia, en una línea (sin los estados vacíos). */
-function lineaDeFamilia(f: FamiliaPiso): string {
-  const pct = porcentajes(f.unidades);
-  return TRAMOS_DEL_100.filter((t) => f.unidades[t] > 0)
-    .map((t) => `${pct[t]} % ${NOMBRE_TRAMO_PISO[t].toLowerCase()}`)
-    .join(" · ");
-}
 
 export function FrescuraPiso({
   tienda,
@@ -75,19 +66,26 @@ export function FrescuraPiso({
   const paso = pasoDeLaPuerta(puerta, acceso);
   return (
     <section aria-labelledby="frescura-piso-titulo" data-guia="frescura.piso" className="card-cayla px-4 py-4 sm:px-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 id="frescura-piso-titulo" className="flex items-center gap-2 font-display text-[22px] leading-tight">
-          {principal.nombre}
-          {(cerrada || pocasVentas) && <Chip tono="pizarra">Aproximado</Chip>}
-        </h2>
-        <span className="text-[13px] tabular-nums text-taupe">
-          {colgadas(principal.total)} · {principal.prendas} {principal.prendas === 1 ? "prenda" : "prendas"}
-          {/* Los soles van en la misma línea (antes, una franja propia de 45 px): el total arriba, lo que envejece en su cifra. */}
-          {principal.soles && <> · {solesEnteros(TRAMOS_DEL_100.reduce((s, t) => s + principal.soles![t], 0))} a precio de venta</>}
-        </span>
-      </div>
+      <TituloSeccion
+        id="frescura-piso-titulo"
+        dato={
+          <>
+            {colgadas(principal.total)} · {principal.prendas} {principal.prendas === 1 ? "prenda" : "prendas"}
+            {/* Los soles van en la misma línea (antes, una franja propia de 45 px): el total arriba, lo que envejece en su cifra. */}
+            {principal.soles && <> · {solesEnteros(TRAMOS_DEL_100.reduce((s, t) => s + principal.soles![t], 0))} a precio de venta</>}
+          </>
+        }
+      >
+        {principal.nombre}
+        {(cerrada || pocasVentas) && (
+          <>
+            {" "}
+            <Chip tono="pizarra">Aproximado</Chip>
+          </>
+        )}
+      </TituloSeccion>
 
-      <BarraApilada segmentos={segmentos(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
+      <BarraApilada segmentos={segmentosDelPiso(principal)} alto={12} unidad="unidades colgadas" className="mt-3" />
 
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
         {tramosConNumero(principal).map((t) =>
@@ -126,8 +124,8 @@ export function FrescuraPiso({
               <span className="text-[14px] font-semibold leading-tight">
                 {f.nombre} <span className="text-[12.5px] font-normal tabular-nums text-taupe">· {unidades(f.total)}</span>
               </span>
-              <BarraApilada segmentos={segmentos(f)} alto={8} unidad="unidades colgadas" />
-              <span className="text-[12.5px] leading-snug tabular-nums text-taupe">{lineaDeFamilia(f)}</span>
+              <BarraApilada segmentos={segmentosDelPiso(f)} alto={8} unidad="unidades colgadas" />
+              <span className="text-[12.5px] leading-snug tabular-nums text-taupe">{lineaDelPiso(f)}</span>
             </li>
           ))}
         </ul>

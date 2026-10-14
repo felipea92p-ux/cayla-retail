@@ -1,19 +1,18 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { ChartColumn, ChevronRight, SearchX } from "lucide-react";
+import { ArrowUpDown, ChartColumn, ChevronRight, SearchX } from "lucide-react";
 import { Buscador } from "@/components/ui/Buscador";
-import { Desplegable } from "@/components/ui/campos";
 import { DetalleCategoriaResultados } from "@/components/plan-compra/DetalleCategoriaResultados";
 import { Aviso } from "@/components/ui/Aviso";
 import { Ayuda } from "@/components/Ayuda";
 import { Chip } from "@/components/ui/Chip";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { Tabla, celda } from "@/components/ui/Tabla";
+import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
-import { enteroES, fechaCortaES, solesES, type CampanasLeidas } from "@/lib/plan-compra-reglas";
+import { enteroES, fechaCortaES, solesES, tiendaDeLaCabecera, type CampanasLeidas } from "@/lib/plan-compra-reglas";
 import {
   cierre,
   coloresQueMasVendieron,
@@ -40,6 +39,8 @@ import { leerHistorial, textoMultiplicador } from "@/lib/plan-compra-historial";
 import { CeldaComoVa } from "@/components/plan-compra/ComoVaCampana";
 import { BarraCifras } from "@/components/plan-compra/BarraCifras";
 import { CierreCampana } from "@/components/plan-compra/CierreCampana";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 
 // Plan de campaña ▸ Resultados (ADR-0372, C6 · Felipe 2026-10-12): lo que se vendió de verdad en una campaña, por tienda, familia, categoría,
 // prenda y color; el multiplicador real de cada tienda; qué se agotó; y a qué % se vendió lo que sobró. Solo lee. Las píldoras de tienda
@@ -59,6 +60,7 @@ export function ResultadosCampana({
   anterior = null,
   propuesta = null,
   veAnalisis = false,
+  sedeDeLaCabecera = null,
 }: {
   datos: unknown;
   campanas: CampanasLeidas | null;
@@ -69,6 +71,8 @@ export function ResultadosCampana({
   propuesta?: unknown;
   /** Quien ve Análisis recibe los accesos a la prenda exacta (Se está acabando, No se vende). */
   veAnalisis?: boolean;
+  /** La sede elegida en la cabecera (null en CAYLA Global): si es una de las tiendas, se arranca en ella. */
+  sedeDeLaCabecera?: string | null;
 }) {
   const r = useMemo(() => leerResultados(datos), [datos]);
   // La forma de cada día de la campaña: los soles por día de la misma campaña el año pasado (todas las tiendas); sin historia, parejos.
@@ -80,7 +84,8 @@ export function ResultadosCampana({
     const p = pesosDeLosDias(r.plan.desde, r.plan.hasta, porDia.size > 0 ? porDia : null);
     return { pesos: p, conForma: new Set(p).size > 1 };
   }, [r, anterior]);
-  const [tienda, setTienda] = useState<string | null>(null);
+  // Arranca en la sede en la que estás (Felipe 2026-10-12); «Toda CAYLA» vuelve a todas.
+  const [tienda, setTienda] = useState<string | null>(() => tiendaDeLaCabecera(sedeDeLaCabecera, r?.tiendas ?? []));
   const [abierta, setAbierta] = useState<FilaCategoria | null>(null);
   const [q, setQ] = useState("");
   const [soloAtencion, setSoloAtencion] = useState(false);
@@ -92,7 +97,7 @@ export function ResultadosCampana({
     <Ayuda titulo="Resultados">
       <span className="block">
         «×2.0 un día normal» quiere decir que la tienda vendió, por día, el doble de prendas que en los 60 días anteriores a la campaña. El año que
-        viene, la propuesta del Plan usa ese número en vez de × 3.
+        viene, la propuesta del Plan usa ese número.
       </span>
       <span className="mt-2 block">
         «Se agotó» es una categoría que quedó en cero en esa tienda antes de terminar: lo vendido ahí quedó corto por falta de stock, y la propuesta
@@ -126,7 +131,7 @@ export function ResultadosCampana({
           <span className="max-sm:hidden">{ayuda}</span>
         </>
       }
-      acciones={r && campanas ? <SelectorCampana campanas={campanas} actualId={r.plan.id} hoy={r.hoy} ruta="/compras/plan/resultados" puedeCrear={false} onNueva={() => {}} onEditar={() => {}} onArchivadas={() => {}} /> : undefined}
+      acciones={r && campanas ? <SelectorCampana estirarEnCelular campanas={campanas} actualId={r.plan.id} hoy={r.hoy} ruta="/compras/plan/resultados" puedeCrear={false} onNueva={() => {}} onEditar={() => {}} onArchivadas={() => {}} /> : undefined}
     />
   );
 
@@ -140,7 +145,7 @@ export function ResultadosCampana({
         ) : (
           <div className="card-cayla">
             <Vacio icono={<ChartColumn />} titulo="Todavía no hay campañas">
-              Cuando un líder cree una campaña en la pestaña Plan, aquí ves lo que se vendió en ella.
+              Cuando se cree una campaña en la pestaña Plan, aquí ves lo que se vendió en ella.
             </Vacio>
           </div>
         )}
@@ -251,24 +256,21 @@ export function ResultadosCampana({
               </button>
             </div>
           )}
-          <Desplegable valor={orden} onValor={(v) => setOrden(v as OrdenResultados)} opciones={ORDENES_RESULTADOS} forma="cajaBaja" etiquetaAccesible="Ordenar por" className="ml-auto w-56" />
+          <div className="ml-auto">
+            <DesplegablePildora icono={ArrowUpDown} etiqueta="Ordenar por" valor={orden} onValor={(v) => setOrden(v as OrdenResultados)} opciones={ORDENES_RESULTADOS} valorPorDefecto="mas" />
+          </div>
         </div>
-        <div className={`encabezado-tabla-cayla hidden gap-x-6 px-5 py-2 sm:grid ${plantilla}`} role="row">
-          {/* Cada título se alinea como su columna (Tabla, «celda»): las cifras y su título a la derecha, el texto a la izquierda. */}
-          {(
-            [
-              ["Categoría", "izq"],
-              ["Vendidas", "der"],
-              ["Soles", "der"],
-              [tienda === null ? "Contra el plan" : enfoque?.parte ? "Contra su parte del plan" : "Contra el plan (todas las tiendas)", "izq"],
-              ...(enCurso ? ([["Qué hacer", "izq"], ["Alcanza para", "der"]] as const) : ([["Lo que sobró", "der"]] as const)),
-            ] as const
-          ).map(([t, alinear]) => (
-            <span key={t} className={`text-xs font-normal text-taupe ${alinear === "der" ? "text-right" : ""}`} role="columnheader">
-              {t}
-            </span>
-          ))}
-        </div>
+        {/* Cada título se alinea como su columna (Tabla, «celda»): las cifras y su título a la derecha, el texto a la izquierda. */}
+        <Encabezado
+          plantilla={plantilla}
+          columnas={[
+            { titulo: "Categoría" },
+            { titulo: "Vendidas", alinear: "der" },
+            { titulo: "Soles", alinear: "der" },
+            { titulo: tienda === null ? "Contra el plan" : enfoque?.parte ? "Contra su parte del plan" : "Contra el plan (todas las tiendas)" },
+            ...(enCurso ? [{ titulo: "Qué hacer" }, { titulo: "Alcanza para", alinear: "der" as const }] : [{ titulo: "Lo que sobró", alinear: "der" as const }]),
+          ]}
+        />
         {todasLasCategorias.length === 0 ? (
           <Vacio tamano="chico" icono={<ChartColumn />} titulo="Sin ventas todavía">
             En estas fechas no se vendió ninguna categoría{tienda ? " en esta tienda" : ""}.
@@ -287,7 +289,8 @@ export function ResultadosCampana({
               onClick={() => setAbierta(c)}
               data-guia="plan-resultados.fila"
               aria-label={`Ver el detalle de ${c.nombre}`}
-              className={`fila-cayla grid w-full cursor-pointer gap-x-6 gap-y-1 px-5 py-3 text-left transition-colors hover:bg-hueso sm:items-baseline ${plantilla}`}
+              aria-current={abierta?.id === c.id ? "true" : undefined}
+              className={fila(plantilla, "w-full cursor-pointer text-left transition-colors hover:bg-hueso")}
             >
               <span className={celda("izq")}>
                 <span className="flex items-center gap-1.5 font-semibold text-tinta">
@@ -345,7 +348,7 @@ export function ResultadosCampana({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section data-guia="plan-resultados.prendas" className="card-cayla p-5">
-          <h2 className="font-serif text-lg text-tinta">Las prendas que más vendieron</h2>
+          <TituloSeccion>Las prendas que más vendieron</TituloSeccion>
           {prendas.length === 0 ? (
             <p className="mt-2 text-sm text-taupe">Todavía ninguna.</p>
           ) : (
@@ -364,7 +367,7 @@ export function ResultadosCampana({
           )}
         </section>
         <section data-guia="plan-resultados.colores" className="card-cayla p-5">
-          <h2 className="font-serif text-lg text-tinta">Por color y por familia</h2>
+          <TituloSeccion>Por color y por familia</TituloSeccion>
           {colores.length === 0 ? (
             <p className="mt-2 text-sm text-taupe">Todavía ninguno.</p>
           ) : (
@@ -388,7 +391,7 @@ export function ResultadosCampana({
       {conMultiplicador.length > 0 && momento === "terminada" && (
         <p className="nota-cayla" data-guia="plan-resultados.proxima">
           Para la próxima: {conMultiplicador.map((x) => `${x.t.nombre} ${textoMultiplicador(x.m!)}`).join(", ")}
-          {recupero !== null ? `, y lo que sobró se vendió al ${recupero} % del precio` : ""}. La propuesta del Plan usa estos números en vez de × 3.
+          {recupero !== null ? `, y lo que sobró se vendió al ${recupero} % del precio` : ""}. La propuesta del Plan usa estos números.
         </p>
       )}
     </div>

@@ -46,7 +46,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
     <article className="px-5 py-2.5">
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1" title={f.titulo}>
-          <h3 className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{nombre}</h3>
+          <h3 className="line-clamp-2 text-sm leading-snug font-semibold text-tinta">{/* unificar-fijo: el nombre de la prenda en el ticket es un dato */}{nombre}</h3>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] leading-snug text-tinta/65">
             <span>{f.detalle}</span>
             {f.stock && (
@@ -58,8 +58,9 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
           </p>
         </div>
 
+        {/* La caja del sistema (ADR-0358, ronda 6) con el − y el + adentro. */}
         {f.conPaso && (
-          <div className="flex h-8 shrink-0 items-center rounded-lg border border-sand bg-crema has-[input:focus]:border-rojo">
+          <div className="caja-cayla caja-campo h-8 min-h-8 shrink-0 gap-0 px-0">
             <button
               type="button"
               aria-label="Reducir cantidad"
@@ -76,7 +77,7 @@ export function LineaDelTicket({ linea, detalle, bloqueado, onQuitar, onCantidad
               max={linea.stockAqui}
               value={linea.cantidad}
               onChange={(e) => onCantidad(linea.claveLinea, Number(e.target.value))}
-              className={`w-6 bg-transparent text-center text-sm font-semibold text-tinta tabular-nums outline-none ${SIN_FLECHAS}`}
+              className={`self-stretch w-6 flex-none py-0 text-center text-sm font-semibold tabular-nums ${SIN_FLECHAS}`}
             />
             <button
               type="button"

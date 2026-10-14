@@ -260,6 +260,35 @@ export function aniosConHistoria(l: Pick<LecturaHistorial, "meses" | "hoy">): nu
   return [...anios].sort((a, b) => b - a);
 }
 
+/**
+ * Cuántas píldoras de año caben en una fila de `ancho` px (Felipe 2026-10-12: «¿qué pasa si hay 30 años?»). Si caben todas, todas; si no, las
+ * que caben dejando lugar a «Más años». Nunca menos de una: el año elegido siempre se ve.
+ */
+export function aniosQueCaben(total: number, medidas: { ancho: number; pildora: number; separacion: number; mas: number }): number {
+  const { ancho, pildora, separacion, mas } = medidas;
+  if (pildora <= 0) return total;
+  const sinMas = Math.floor((ancho + separacion) / (pildora + separacion));
+  if (total <= sinMas) return total;
+  return Math.max(1, Math.floor((ancho - mas) / (pildora + separacion)));
+}
+
+/**
+ * La fila de años cuando no caben todos (Felipe 2026-10-12): se ven `caben` años SEGUIDOS con el elegido al medio —a sus costados, los que le
+ * siguen y los que le preceden— y el resto va a «Más años». En los extremos la ventana se apoya en el borde (el más nuevo o el más viejo). `anios`
+ * viene del más nuevo al más viejo, como `aniosConHistoria`.
+ */
+export function ventanaDeAnios(anios: readonly number[], elegido: number, caben: number): { visibles: number[]; resto: number[] } {
+  if (anios.length <= caben) return { visibles: [...anios], resto: [] };
+  const n = Math.max(1, caben);
+  const i = Math.max(0, anios.indexOf(elegido));
+  const desde = Math.min(Math.max(0, i - Math.floor((n - 1) / 2)), anios.length - n);
+  const visibles = anios.slice(desde, desde + n);
+  return { visibles, resto: anios.filter((a) => !visibles.includes(a)) };
+}
+
+/** La década de un año, para agrupar «Más años»: «2030–2039». */
+export const decadaDe = (anio: number) => `${Math.floor(anio / 10) * 10}–${Math.floor(anio / 10) * 10 + 9}`;
+
 /** El rango de días que hay que leer para un año: ese año y el anterior entero (para comparar), más la base de su primera campaña. */
 export function rangoDelAnio(anio: number): { desde: string; hasta: string } {
   return { desde: sumarDias(`${anio - 1}-01-01`, -DIAS_BASE - 31), hasta: `${anio}-12-31` };

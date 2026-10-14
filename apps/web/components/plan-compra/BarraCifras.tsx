@@ -49,7 +49,8 @@ export function BarraCifras({ celdas, primero, guia }: { celdas: readonly CeldaB
                   {cuerpo}
                 </button>
               ) : (
-                <div className="flex h-full min-w-0 flex-col justify-center px-3 py-1.5">{cuerpo}</div>
+                // Sin clic, `activa` marca la tienda en la que estás (Historial, Felipe 2026-10-12): la misma arena que la elegida en Resultados.
+                <div className={`flex h-full min-w-0 flex-col justify-center px-3 py-1.5 ${x.activa ? "rounded-xl bg-hueso" : ""}`}>{cuerpo}</div>
               )}
             </div>
           );

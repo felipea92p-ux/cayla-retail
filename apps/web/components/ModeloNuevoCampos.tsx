@@ -6,10 +6,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
-import type { ColorAlta } from "@/lib/alta-producto";
-import { agruparPorFamilia } from "@/lib/colores-familias";
 import { sugerirNombre } from "@/lib/sugerencias-alta-producto";
 import { hrefAltaDesdeProduccion } from "@/lib/modelo-nuevo-orden-reglas";
 import { MAX_NOMBRE_MODELO, type CategoriaDeModelo, type VocabularioModeloNuevo } from "@/lib/modelo-nuevo-reglas";
@@ -19,49 +16,43 @@ import { MAX_NOMBRE_MODELO, type CategoriaDeModelo, type VocabularioModeloNuevo 
 // escritos a mano: «Negro»/«negro» fue el problema de V1). El resto del modelo —marca, proveedor, tejido, patrón, fotos— lo completa quien edita el catálogo.
 //
 // No tiene estado propio: el formulario de la orden es el dueño de todo (así la matriz de cantidades, el costo por prenda y el margen lo tratan como a cualquier
-// otro modelo). Cada campo está envuelto en `CampoGuiado` con el mismo id que usa `problemasDelModelo`, así «Falta: …» lleva a su campo.
+// otro modelo). Los COLORES ya no se eligen aquí (ADR-0396, A2): cada color es una fila de la tabla de cantidades y se suma con «+ Agregar color» (`orden-produccion/AgregarColor`). Cada campo está envuelto en `CampoGuiado` con el mismo id que usa `problemasDelModelo`, así «Falta: …» lleva a su campo.
 
 export function ModeloNuevoCampos({
   guia,
   vocabulario,
   fallo,
-  colores,
   nombre,
   onNombre,
   categoria,
   onCategoria,
   tallaIds,
   onTallas,
-  colorCodigos,
-  onAlternarColor,
-  onColorCreado,
   precio,
   onPrecio,
   esMuestra,
   puedeEditarCatalogo,
   tipo,
+  onElegirExistente,
 }: {
   guia: GuiaCampos;
   /** `null` = no se pudieron leer las tallas y los colores. */
   vocabulario: VocabularioModeloNuevo | null;
   fallo: string | null;
-  colores: ColorAlta[];
   nombre: string;
   onNombre: (v: string) => void;
   categoria: CategoriaDeModelo | null;
   onCategoria: (id: string) => void;
   tallaIds: string[];
   onTallas: (ids: string[]) => void;
-  colorCodigos: string[];
-  onAlternarColor: (codigo: string) => void;
-  onColorCreado: (color: ColorAlta) => void;
   precio: string;
   onPrecio: (v: string) => void;
   esMuestra: boolean;
   puedeEditarCatalogo: boolean;
   tipo: "produccion" | "muestra";
+  /** «Mejor elegir uno que ya existe»: vuelve al buscador (ADR-0396). Sin él (el catálogo está vacío) no se ofrece. */
+  onElegirExistente?: () => void;
 }) {
-  const grupos = useMemo(() => agruparPorFamilia(colores, (c) => c.familiaColor), [colores]);
   const nombreDeFamilia = useMemo(() => new Map((vocabulario?.familias ?? []).map((f) => [f.codigo, f.nombre])), [vocabulario]);
 
   if (!vocabulario) {
@@ -77,20 +68,6 @@ export function ModeloNuevoCampos({
 
   return (
     <section aria-label="Modelo nuevo" className="space-y-4 rounded-2xl border border-sand bg-crema p-3.5">
-      <Aviso tono="info" chico>
-        Se crea en el catálogo al abrir la orden, con su código y su precio. Marca, proveedor, tejido, patrón y fotos los completa quien edita el catálogo.
-        {puedeEditarCatalogo && (
-          <>
-            {" "}
-            ¿Prefieres cargarlo completo, con fotos?{" "}
-            <Link href={hrefAltaDesdeProduccion(tipo)} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
-              Créalo en Productos
-            </Link>{" "}
-            y vuelves aquí con la orden lista.
-          </>
-        )}
-      </Aviso>
-
       <div className="grid gap-3 sm:grid-cols-2">
         <CampoGuiado id="nombre" guia={guia}>
           <CampoTexto
@@ -147,13 +124,23 @@ export function ModeloNuevoCampos({
         />
       </CampoGuiado>
 
-      <div className="space-y-1.5">
-        <p className="flex flex-wrap items-baseline gap-x-2 text-[13px] font-semibold text-tinta">
-          Colores
-          <span className="text-[12px] font-normal text-taupe">{colorCodigos.length > 0 ? `${colorCodigos.length} elegido${colorCodigos.length === 1 ? "" : "s"}` : "opcional: si no tiene color, déjalo vacío"}</span>
+      {(onElegirExistente || puedeEditarCatalogo) && (
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-tinta/70">
+          {onElegirExistente && (
+            <button type="button" onClick={onElegirExistente} className="btn-cayla btn-enlace text-[12.5px]">
+              Mejor elegir uno que ya existe
+            </button>
+          )}
+          {puedeEditarCatalogo && (
+            <span>
+              ¿Cargarlo completo, con fotos?{" "}
+              <Link href={hrefAltaDesdeProduccion(tipo)} className="btn-enlace">
+                Créalo en Productos
+              </Link>
+            </span>
+          )}
         </p>
-        <ElegirColores colores={colores} grupos={grupos} elegidos={colorCodigos} onAlternar={onAlternarColor} onCreado={onColorCreado} cartaAbierta={false} />
-      </div>
+      )}
     </section>
   );
 }
