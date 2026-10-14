@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { horaLima, ritmoDelMes, ordenarPorExcepcion, type NumerosSede, type RitmoMes } from "@/lib/comercial-reglas";
 
 // Panel comercial (ADR-0110). Tres fuentes, ninguna inventada acá:
