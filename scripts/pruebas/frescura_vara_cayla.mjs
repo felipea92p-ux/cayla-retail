@@ -10,6 +10,9 @@
  *     nivel inventado (23514), y una fila sin categoría (22023).
  *   · LA LECTURA. El líder lee la vara con sus cifras y sus observaciones (`fn_frescura_vara_cayla`); una cuenta de afuera
  *     recibe la pista `frescura_sin_permiso`, nunca cero filas; la tabla no se lee directo, ni el líder.
+ *   · ANÁLISIS TAMBIÉN LA LEE (`20261014172000`, la versión que rige en producción desde el 2026-10-13): una integrante con el
+ *     módulo «Análisis» y sin «Frescura del piso» la lee; con solo «Vender», no (y el mensaje nombra los dos módulos). El control
+ *     vuelve al candado de `20261008120000` y la misma integrante queda afuera: la diferencia con aquel `main` era real.
  *   · EL PARCHE. `fn_frescura_sede` deja pasar a la llave de servicio (el cron lee Trujillo sin persona) y sigue cerrada sin
  *     claims y para una cuenta de afuera; su cuerpo queda con uno de los dos md5 calculados. Re-pegar la migración es inofensivo.
  *
@@ -20,7 +23,7 @@
  * USO
  *   pnpm pruebas:frescura-vara-cayla              → contra la base `postgres` del stack local (la del CI)
  *   … --base otra                                 → contra otra base del mismo contenedor
- *   … --en-seco                                   → carga la migración dentro de cada caso (base sin ella)
+ *   … --en-seco                                   → carga las dos migraciones dentro de cada caso (base sin ellas)
  */
 
 import { execFileSync } from "node:child_process";
@@ -34,6 +37,14 @@ const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const EN_SECO = process.argv.includes("--en-seco");
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261008120000_frescura_vara_cayla.sql"), "utf8");
+// La versión de producción (2026-10-13): la vara también para quien ve Análisis.
+const MIGRACION_ANALISIS = readFileSync(
+  join(RAIZ, "supabase", "migrations", "20261014172000_frescura_vara_cayla_tambien_para_analisis.sql"),
+  "utf8",
+);
+// El candado de antes (solo Frescura), sacado del archivo de 20261008120000: el control de los casos de Análisis.
+const CANDADO_SOLO_FRESCURA = MIGRACION.match(/create or replace function retail\.fn_frescura_vara_cayla\(\)[\s\S]*?end \$fn\$;/)?.[0];
+if (!CANDADO_SOLO_FRESCURA) throw new Error("No encontré fn_frescura_vara_cayla en 20261008120000: el control no puede armarse.");
 
 // Bolsas de despacho (2026-10-10, 20261010233000): fn_frescura_sede deja fuera una familia apagada por un reemplazo anclado POSTERIOR a la vara. La
 // guarda de esta migración vigila el md5 del cuerpo que ELLA deja, así que cada caso empieza deshaciendo ese parche (sus anclas, leídas del archivo, en
@@ -51,6 +62,10 @@ const DESHACER_FAMILIAS_APAGADAS = deshacer(
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 // Creada en cada caso: cuenta de Auth sin persona, sin colaborador, sin terminal.
 const AFUERA = "33333333-3333-4333-8333-0000000000d2";
+// Seed local: Micaela (integrante de Trujillo). Su rol se cambia DENTRO del caso por uno de prueba.
+const MICAELA = "22222222-2222-4222-8222-000000000003";
+const ROL_SOLO_ANALISIS = "44444444-4444-4444-8444-0000000000e1";
+const ROL_SOLO_VENDER = "44444444-4444-4444-8444-0000000000e2";
 
 const MD5_DESPUES = ["2b9fde71c6e4ff7a55ca4f45e8a19935", "6ac58e3c841a724dc1ae4853d805ccf0"];
 
@@ -74,7 +89,7 @@ function correr(sql) {
 const PRELUDIO = `
 begin;
 ${DESHACER_FAMILIAS_APAGADAS}
-${EN_SECO ? MIGRACION : ""}
+${EN_SECO ? `${MIGRACION}\n${MIGRACION_ANALISIS}` : ""}
 set local search_path = retail, public, extensions;
 create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
 declare v_estado text; v_hint text; v_msg text;
@@ -173,6 +188,44 @@ caso(
   COMO_CRON + guardar(fila("cat1")) + "\n" + como(AFUERA) + `select split_part(pg_temp.intento('select * from retail.fn_frescura_vara_cayla()'), '|', 2);\n` +
     como(FELIPE) + `set local role authenticated;\nselect split_part(pg_temp.intento('select count(*) from retail.frescura_vara_cayla'), '|', 1);`,
   "1\nfrescura_sin_permiso\n42501"
+);
+
+// ---------- Análisis también la lee (20261014172000, lo que rige en producción desde el 2026-10-13) ----------
+
+/** Micaela pasa a un rol de prueba con un solo módulo (como postgres; todo dentro de la transacción del caso). */
+const micaelaCon = (rolId, modulo) =>
+  `reset role;\ninsert into retail.roles (id, nombre, descripcion) values ('${rolId}', 'Solo ${modulo} (prueba vara)', 'temporal');\n` +
+  `insert into retail.rol_modulos (rol_id, modulo) values ('${rolId}', '${modulo}');\n` +
+  `update retail.colaboradores set rol_id = '${rolId}' where persona_id = (select id from public.personas where auth_user_id = '${MICAELA}');\n`;
+/** Lo que ve Micaela: si es líder, si ve Frescura, si ve Análisis (para que un verde no venga de otro permiso). */
+const PERMISOS = `select concat_ws(',', fn_es_lider(), fn_ve_modulo('frescura'), fn_ve_modulo('analisis'));`;
+
+caso(
+  "una integrante con «Análisis» y sin «Frescura del piso» lee la vara",
+  micaelaCon(ROL_SOLO_ANALISIS, "analisis") + COMO_CRON + guardar(fila("cat1")) + "\n" + como(MICAELA) + PERMISOS + "\n" +
+    `select count(*) from retail.fn_frescura_vara_cayla();`,
+  "1\nf,f,t\n1"
+);
+caso(
+  "una integrante con solo «Vender» no la lee: la pista frescura_sin_permiso, y el mensaje nombra «Frescura del piso» y «Análisis»",
+  micaelaCon(ROL_SOLO_VENDER, "vender") + COMO_CRON + guardar(fila("cat1")) + "\n" + como(MICAELA) + PERMISOS + "\n" +
+    `select split_part(pg_temp.intento('select * from retail.fn_frescura_vara_cayla()'), '|', 2);\n` +
+    `select pg_temp.intento('select * from retail.fn_frescura_vara_cayla()') like '%«Frescura del piso» o «Análisis»%';`,
+  "1\nf,f,f\nfrescura_sin_permiso\nt"
+);
+caso(
+  "CONTROL: con el candado de 20261008120000 (solo Frescura), la integrante con «Análisis» queda afuera: la diferencia con aquel main era real",
+  micaelaCon(ROL_SOLO_ANALISIS, "analisis") + CANDADO_SOLO_FRESCURA + "\n" + COMO_CRON + guardar(fila("cat1")) + "\n" + como(MICAELA) +
+    `select split_part(pg_temp.intento('select * from retail.fn_frescura_vara_cayla()'), '|', 2);`,
+  "1\nfrescura_sin_permiso"
+);
+caso(
+  "el cuerpo que queda es el de producción, carácter por carácter (md5 46a4fdf5…), y re-pegar la migración lo deja igual",
+  `select md5(prosrc) from pg_proc where oid = 'retail.fn_frescura_vara_cayla()'::regprocedure;\n` +
+    MIGRACION_ANALISIS + "\n" +
+    `select md5(prosrc) from pg_proc where oid = 'retail.fn_frescura_vara_cayla()'::regprocedure;\n` +
+    `select has_function_privilege('anon', 'retail.fn_frescura_vara_cayla()', 'execute')::text || ',' || has_function_privilege('authenticated', 'retail.fn_frescura_vara_cayla()', 'execute');`,
+  "46a4fdf53ad9ed7231fcb6eb9e96c51a\n46a4fdf53ad9ed7231fcb6eb9e96c51a\nfalse,true"
 );
 
 // ===========================================================================
