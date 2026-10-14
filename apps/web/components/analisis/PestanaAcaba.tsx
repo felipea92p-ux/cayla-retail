@@ -7,8 +7,9 @@ import { useAnalisis } from "@/components/analisis/contexto";
 import { Icono } from "@/components/analisis/iconos";
 import { nombreLargo, TipRico } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
-import { diasQueQuedan, otraSedeQueLaTiene, plural, porLlegar } from "@/lib/analisis-reglas";
+import { diasQueQuedan, otraSedeQueLaTiene, porLlegar } from "@/lib/analisis-reglas";
 import { hrefComprar, hrefComprarTodas } from "@/lib/analisis-acciones";
+import { textoRitmo } from "@/lib/analisis-pedir";
 import {
   cuentasFiltroAcaba,
   EJE_ACABA,
@@ -69,7 +70,7 @@ export function PestanaAcaba() {
   return (
     <Carril
       titulo="Cuántos días te quedan"
-      nota={`Al ritmo de los últimos ${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`}
+      nota={textoRitmo(diasDeVentas)}
       herramienta={<Filtros filtro={filtroAcaba} cuentas={cuentasFiltroAcaba(seAcaban)} onFiltro={setFiltroAcaba} />}
       eje={[...EJE_ACABA]}
       grupos={[grupo]}

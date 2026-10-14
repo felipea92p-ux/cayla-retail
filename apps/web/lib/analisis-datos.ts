@@ -4,7 +4,7 @@ import type { DatosAnalisis, PreparacionAnalisis, SedeAnalisis } from "@/lib/ana
 import { armarPrendas, conPreciosDeMiTienda } from "@/lib/analisis-armado";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { armarModelos, FALLA_ULTIMA_VENTA } from "@/lib/analisis-modelo";
-import { diasDeVentas, liquidarDesdeValido, noHabiaDe, sedeDeAnalisis, VENTANA_VENTAS } from "@/lib/analisis-reglas";
+import { conVentanaDeRitmo, diasDeVentas, liquidarDesdeValido, noHabiaDe, sedeDeAnalisis, VENTANA_VENTAS } from "@/lib/analisis-reglas";
 import { FALLA_PISO } from "@/lib/analisis-piso";
 import { getPrendasPorSede } from "@/lib/analisis-sede";
 import { getPorLlegar } from "@/lib/analisis-por-llegar";
@@ -112,11 +112,11 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
   const filasDe = (id: string) => lectura.porSede[id] ?? [];
   const otrasDe = (id: string) => sedes.filter((s) => s.id !== id).map((sede) => ({ sede, filas: filasDe(sede.id) }));
   const hoy = motor.filas[0]?.hoy ?? hoyLima();
-  // El ritmo de todo Análisis: lo vendido entre los días de ventas que mi tienda tiene en el ERP, hasta 30 (cada prenda lo lleva).
+  // Los días de ventas que mi tienda tiene en el ERP, hasta 30: el techo del ritmo de cada prenda y de qué días habla «Vendiste».
   const ventana = diasDeVentas(prepDe(activa.id)?.primeraVenta, hoy);
-  const tallas = armarPrendas(conPreciosDeMiTienda(filasDe(activa.id), preciosDeMiTienda), otrasDe(activa.id), llegan.porVariante).map((p) => ({
+  // Cada talla mide su ritmo en los días que estuvo colgada, de 7 a los días de ventas de mi tienda (2026-10-14, `ventanaDeRitmo`).
+  const tallas = conVentanaDeRitmo(armarPrendas(conPreciosDeMiTienda(filasDe(activa.id), preciosDeMiTienda), otrasDe(activa.id), llegan.porVariante), hoy, ventana).map((p) => ({
     ...p,
-    diasDeVentas: ventana,
     ...(frescura.estado === "ok" ? { enDuda: frescura.dudas.get(p.varianteId) ?? 0 } : {}),
   }));
   // Lo que miden y listan las pestañas: el MODELO entero, con todas sus tallas y colores (ADR-0357, decisión 12).

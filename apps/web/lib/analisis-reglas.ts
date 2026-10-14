@@ -2,7 +2,8 @@
 // servidor (el resumen de cada tienda) y cada pestaña, así una prenda cae en el mismo grupo en Hoy, en su carril y en su ficha.
 //
 // Las cifras son las de la maqueta aprobada por Felipe (2026-10-06, artifact TBSFBD1nikBu8FeShiKMMp): se acaba lo que dura dos
-// semanas o menos al ritmo de lo vendido en los días de ventas que tiene la tienda, hasta 30 (2026-10-07: antes siempre entre 30); se vigila lo que lleva un mes quieto; se liquida desde el umbral que eligió la tienda
+// semanas o menos al ritmo de lo vendido desde que la prenda se colgó (2026-10-14; antes, los días de ventas de la tienda, y antes
+// siempre 30), nunca en menos de una semana; se vigila lo que lleva un mes quieto; se liquida desde el umbral que eligió la tienda
 // (60 días por defecto, uno para todos); en rojo, lo de más de 3 meses. El sistema NO decide si pedirla a otra tienda o
 // comprarla (decisión 7): todo lo que se acaba aparece para comprar y, si otra tienda la tiene, se dice cuántas tiene.
 
@@ -42,6 +43,28 @@ export function diasDeVentas(primeraVenta: string | null | undefined, hoy: strin
   return Math.min(VENTANA_VENTAS, Math.max(1, diasEntreFechas(primeraVenta, hoy) + 1));
 }
 
+/**
+ * El ritmo de una prenda se mide en los días que estuvo COLGADA (Felipe 2026-10-12, decidido el 2026-10-14 con su piso): una blusa
+ * colgada hace 4 días que vendió 2 vende ~0,5 por día, no 2 entre los 15 días de la tienda. Nunca en menos de una semana (una venta
+ * suelta de ayer no dice «1 por día») ni en más de los días de ventas de la tienda (hasta 30: lo que mide `vendidas30`).
+ */
+export const DIAS_MINIMOS_RITMO = 7;
+
+/**
+ * Entre cuántos días se divide lo vendido de una prenda: desde que salió al piso (`salioAlPiso`, hoy incluido), con el piso de
+ * `DIAS_MINIMOS_RITMO` y el techo de los días de ventas de la tienda. Sin saber cuándo salió, los de la tienda (como antes).
+ */
+export function ventanaDeRitmo(salioAlPiso: string | null | undefined, hoy: string, diasTienda: number): number {
+  const tienda = Math.min(VENTANA_VENTAS, Math.max(1, Math.round(diasTienda)));
+  if (!salioAlPiso) return tienda;
+  return Math.min(tienda, Math.max(DIAS_MINIMOS_RITMO, diasEntreFechas(salioAlPiso, hoy) + 1));
+}
+
+/** Cada talla con su ventana de ritmo (`ventanaDeRitmo`), y los días de la tienda para rearmarla en el modelo. */
+export function conVentanaDeRitmo<T extends Pick<PrendaAnalisis, "salioAlPiso">>(tallas: readonly T[], hoy: string, diasTienda: number): (T & { diasDeVentas: number; diasDeVentasTienda: number })[] {
+  return tallas.map((t) => ({ ...t, diasDeVentas: ventanaDeRitmo(t.salioAlPiso, hoy, diasTienda), diasDeVentasTienda: diasTienda }));
+}
+
 /** Cuántas prendas muestran las listas cortas de Hoy. */
 export const PRENDAS_EN_LISTA = 5;
 
@@ -66,9 +89,9 @@ export const totalEnTienda = (p: Pick<PrendaAnalisis, "piso" | "almacen">): numb
 export const porLlegar = (p: Pick<PrendaAnalisis, "llega">): number => p.llega.reduce((s, x) => s + x.cantidad, 0);
 
 /**
- * Cuántos días le quedan al ritmo de lo vendido en los días de ventas de la tienda (`diasDeVentas`, hasta 30; Felipe 2026-10-07:
- * una tienda con 8 días en el ERP no divide entre 30): 0 si ya no hay; al menos 1 si queda algo; null si no se vendió (no se
- * acaba: no tiene ritmo).
+ * Cuántos días le quedan al ritmo de lo vendido en su ventana (`diasDeVentas`: los días que estuvo colgada, de 7 a los días de ventas
+ * de la tienda, `ventanaDeRitmo`; si falta, 30): 0 si ya no hay; al menos 1 si queda algo; null si no se vendió (no se acaba: no tiene
+ * ritmo).
  */
 export function diasQueQuedan(p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasDeVentas">): number | null {
   if (p.vendidas30 <= 0) return null;

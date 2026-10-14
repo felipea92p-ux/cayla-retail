@@ -174,6 +174,19 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
     expect(textoAlcance(0)).toBe("Ya no hay");
   });
 
+  it("cada prenda suma su ritmo en su propia ventana (2026-10-14): una colgada hace poco no se diluye en los días de la tienda", () => {
+    // Datos inventados: tienda de 15 días; una blusa colgada hace 4 (ventana 7) vendió 2, otra colgada desde el primer día vendió 3.
+    const tipo = [
+      prenda({ categoria: "Tops", categoriaPrefijo: "TOP", vendidas30: 2, piso: 4, almacen: 6, diasDeVentas: 7 }),
+      prenda({ categoria: "Tops", categoriaPrefijo: "TOP", vendidas30: 3, piso: 3, almacen: 7, diasDeVentas: 15 }),
+    ];
+    const a = alcancePorTipo(tipo, 15, 72, true)[0]!;
+    // 2/7 + 3/15 = 0,486 por día → 20 unidades duran 41 días (entre los 15 de la tienda serían 60 y «llegaría» a Navidad).
+    expect(Math.round(a.dias!)).toBe(41);
+    expect(a.pide).toBe(true);
+    expect(Math.round(alcancePorTipo(tipo.map((p) => ({ ...p, diasDeVentas: undefined })), 15, 72, true)[0]!.dias!)).toBe(60);
+  });
+
   // ADR-0357, act. 2026-10-14: lo vendido sin registrar (anotado en caja con su tipo) cuenta en el ritmo de su tipo.
   describe("con lo vendido sin registrar", () => {
     // Datos inventados: un tipo que se registra poco (8 de 22 ventas con su prenda), en una tienda de 15 días con Navidad a 72.
@@ -242,7 +255,9 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
     expect(textoAlcance(181)).toBe("26 semanas");
     expect(textoAlcance(DIAS_ALCANZA_MAX)).toBe("Más de 6 meses");
     expect(textoAlcance(null)).toBe("No se vendió");
-    expect(textoRitmo(8)).toBe("Al ritmo de los últimos 8 días");
+    // 2026-10-14: cada prenda mide su ritmo desde que se colgó (de 7 días hasta los de la tienda); con una semana o menos es lo mismo.
+    expect(textoRitmo(8)).toBe("Al ritmo desde que se colgó · hasta 8 días");
+    expect(textoRitmo(7)).toBe("Al ritmo de los últimos 7 días");
     expect(textoRitmo(1)).toBe("Al ritmo de los últimos 1 día");
   });
 

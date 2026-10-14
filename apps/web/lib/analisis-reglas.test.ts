@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis } from "./analisis-tipos";
 import {
   coincideBusqueda,
+  conVentanaDeRitmo,
+  DIAS_MINIMOS_RITMO,
+  ventanaDeRitmo,
   diasQueQuedan,
   edadDelInventario,
   esTallaUnica,
@@ -69,6 +72,25 @@ describe("cuántos días quedan", () => {
     // Fuera de 1 a 30, se lleva al borde.
     expect(diasQueQuedan(prenda({ piso: 3, vendidas30: 2, diasDeVentas: 60 }))).toBe(45);
     expect(diasQueQuedan(prenda({ piso: 3, vendidas30: 3, diasDeVentas: 0 }))).toBe(1);
+  });
+  it("la ventana del ritmo: los días que estuvo colgada, de 7 a los de la tienda (Felipe 2026-10-12 y 2026-10-14)", () => {
+    // Datos inventados: hoy 14 de octubre, la tienda vende en el ERP hace 15 días.
+    expect(ventanaDeRitmo("2026-10-11", "2026-10-14", 15)).toBe(7); // colgada 4 días: el piso de una semana
+    expect(ventanaDeRitmo("2026-10-04", "2026-10-14", 15)).toBe(11); // colgada 11 días
+    expect(ventanaDeRitmo("2026-09-20", "2026-10-14", 15)).toBe(15); // antes de que la tienda vendiera: el techo
+    expect(ventanaDeRitmo("2026-08-01", "2026-10-14", 30)).toBe(30);
+    expect(ventanaDeRitmo("2026-10-12", "2026-10-14", 3)).toBe(3); // una tienda de 3 días no se mide en 7
+    expect(ventanaDeRitmo(null, "2026-10-14", 15)).toBe(15); // sin saber cuándo salió, la de la tienda
+    expect(DIAS_MINIMOS_RITMO).toBe(7);
+  });
+  it("con su ventana, lo colgado hace poco que vende se ve acabar; entre los días de la tienda, no", () => {
+    // 4 en la tienda, 2 vendidas en los 4 días que lleva colgada (ventana 7): duran 14 días y se acaba. Entre 15, duraban 30.
+    const [t] = conVentanaDeRitmo([prenda({ piso: 4, vendidas30: 2, salioAlPiso: "2026-10-11" })], "2026-10-14", 15);
+    expect(t.diasDeVentas).toBe(7);
+    expect(t.diasDeVentasTienda).toBe(15);
+    expect(diasQueQuedan(t)).toBe(14);
+    expect(seEstaAcabando(t)).toBe(true);
+    expect(seEstaAcabando(prenda({ piso: 4, vendidas30: 2, diasDeVentas: 15 }))).toBe(false);
   });
   it("si queda algo, al menos 1 día", () => {
     expect(diasQueQuedan(prenda({ piso: 1, vendidas30: 300 }))).toBe(1);

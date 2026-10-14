@@ -5,7 +5,7 @@
 // `analisis-rinde.ts` (servidor); la cuenta, aquí, para poder probarla.
 
 import type { PrendaAnalisis } from "./analisis-tipos";
-import { esTallaUnica, nuncaSalio, plural, totalEnTienda } from "./analisis-reglas";
+import { DIAS_MINIMOS_RITMO, esTallaUnica, nuncaSalio, plural, totalEnTienda } from "./analisis-reglas";
 import { compararTallas, tipoDeTalla, type TipoTalla } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
 
@@ -142,13 +142,17 @@ export type AlcanceTipo = {
  * cuenta solo lo del modelo del que nada se colgó: la talla guardada de un modelo colgado ya está presentada.
  */
 export function alcancePorTipo(
-  prendas: readonly Pick<PrendaAnalisis, "categoria" | "categoriaPrefijo" | "categoriaFamilia" | "vendidas30" | "piso" | "almacen" | "salioAlPiso">[],
+  prendas: readonly Pick<PrendaAnalisis, "categoria" | "categoriaPrefijo" | "categoriaFamilia" | "vendidas30" | "piso" | "almacen" | "salioAlPiso" | "diasDeVentas">[],
   diasDeVentas: number,
   hastaNavidad: number,
   sabePiso: boolean,
   sinPrenda: Readonly<Record<string, number>> = {},
 ): AlcanceTipo[] {
+  // El ritmo del tipo es la suma del de sus prendas, cada una en su ventana (2026-10-14: los días que estuvo colgada, `ventanaDeRitmo`);
+  // lo vendido sin registrar no tiene prenda ni ventana propia: va en los días de ventas de la tienda. Sin ventana propia, la de la tienda.
   const ventana = Math.min(30, Math.max(1, Math.round(diasDeVentas)));
+  const ventanaDe = (p: { diasDeVentas?: number }) => Math.min(30, Math.max(1, Math.round(p.diasDeVentas ?? ventana)));
+  const ritmo = new Map<string, number>();
   const porTipo = new Map<string, AlcanceTipo>();
   const nuevo = (c: string, p: (typeof prendas)[number]): AlcanceTipo =>
     ({ categoria: c, prefijo: p.categoriaPrefijo, familia: p.categoriaFamilia, vendidas: 0, sinPrenda: 0, tiene: 0, nunca: sabePiso ? 0 : null, dias: null, pide: false });
@@ -162,6 +166,7 @@ export function alcancePorTipo(
     if (vend === 0 && tiene === 0) continue;
     const a = porTipo.get(c) ?? nuevo(c, p);
     a.vendidas += vend;
+    ritmo.set(c, (ritmo.get(c) ?? 0) + vend / ventanaDe(p));
     a.tiene += tiene;
     if (a.nunca !== null && nuncaSalio(p)) a.nunca += p.almacen;
     porTipo.set(c, a);
@@ -177,11 +182,13 @@ export function alcancePorTipo(
     const a = porTipo.get(c) ?? nuevo(c, muestra);
     a.vendidas += n;
     a.sinPrenda += n;
+    ritmo.set(c, (ritmo.get(c) ?? 0) + n / ventana);
     porTipo.set(c, a);
   }
   return [...porTipo.values()]
     .map((a) => {
-      const dias = a.vendidas > 0 ? a.tiene / (a.vendidas / ventana) : null;
+      const porDia = ritmo.get(a.categoria) ?? 0;
+      const dias = a.vendidas > 0 && porDia > 0 ? a.tiene / porDia : null;
       return { ...a, dias, pide: dias !== null && dias < hastaNavidad };
     })
     .sort((a, b) => (a.dias ?? Infinity) - (b.dias ?? Infinity) || b.tiene - a.tiene || a.categoria.localeCompare(b.categoria, "es"));
@@ -248,8 +255,14 @@ export const tipoCorto = (categoria: string): string => categoria.split(" y ")[0
 /** Dónde termina el eje de «¿Para cuánto te alcanza?»: 6 meses, o más si Navidad queda más lejos (para que su línea se vea). */
 export const finEjeAlcance = (hastaNavidad: number): number => Math.max(DIAS_ALCANZA_MAX, Math.ceil(hastaNavidad * 1.15));
 
-/** «Al ritmo de los últimos 8 días»: de qué días habla todo lo de «Qué pedir». */
-export const textoRitmo = (diasDeVentas: number): string => `Al ritmo de los últimos ${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`;
+/**
+ * De qué días habla el ritmo de todo Análisis: desde que cada prenda se colgó, nunca menos de una semana y hasta los días de ventas de la
+ * tienda (2026-10-14, `ventanaDeRitmo`). Con una semana o menos de ventas, es lo mismo que «los últimos N días» y se dice así.
+ */
+export const textoRitmo = (diasDeVentas: number): string =>
+  diasDeVentas <= DIAS_MINIMOS_RITMO
+    ? `Al ritmo de los últimos ${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`
+    : `Al ritmo desde que se colgó · hasta ${diasDeVentas} días`;
 
 /* ───────── «Las tallas que se llevan» ───────── */
 

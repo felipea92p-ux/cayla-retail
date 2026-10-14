@@ -79,10 +79,13 @@ export type PrendaAnalisis = {
   almacen: number;
   /** Vendidas con su prenda en mis últimos 30 días. */
   vendidas30: number;
-  /** Cuántos días de ventas tiene MI tienda en el ERP, hasta 30 (`diasDeVentas`): el ritmo es `vendidas30` entre esto. Lo pone el
-   *  cargador, igual en todas las prendas de la tienda; si falta, 30. Ejemplo inventado: una tienda que vende en el ERP hace 8 días
-   *  mide su ritmo entre 8, no entre 30 (si no, cada prenda «dura» casi 4 veces más de lo que dura). */
+  /** Entre cuántos días se mide su ritmo: `vendidas30` entre esto. Desde el 2026-10-14, los días que estuvo colgada, de 7 a los días de
+   *  ventas de mi tienda (`ventanaDeRitmo`); lo pone el cargador. Si falta, 30. Ejemplo inventado: una blusa colgada hace 4 días en una
+   *  tienda que vende en el ERP hace 15 mide su ritmo entre 7, no entre 15 (si no, «dura» el doble de lo que dura). */
   diasDeVentas?: number;
+  /** Los días de ventas de MI tienda en el ERP, hasta 30 (`diasDeVentas` de `analisis-reglas`): el techo de la ventana de cada prenda,
+   *  para rearmarla en el modelo. Si falta, el modelo usa la ventana de su primera talla (como antes del 2026-10-14). */
+  diasDeVentasTienda?: number;
   /** Vendidas por semana en mi tienda: 8 semanas, de la más vieja a la actual. La semana k (0 a 7) son los 7 días que terminan
    *  hoy − 7·(7−k) (`fn_analisis_sede`, 20261006214000): la última termina hoy. Las fechas de la ficha dependen de esto. */
   semanas: number[];
