@@ -118,8 +118,6 @@ export function ticketConCumple<L extends LineaParaCumple>(lineas: readonly L[],
 /** El mes (1–12) de hoy en Lima: el mismo corte que `fn_hoy_lima()` (de 7 pm a medianoche de Lima, el servidor ya vive en
  *  «mañana»). */
 export const mesLima = (ahora: Date = new Date()) => Number(hoyLima(ahora).slice(5, 7));
-/** El año de hoy en Lima: el `anio` del canje (un canje por año calendario de Lima). */
-export const anioLima = (ahora: Date = new Date()) => Number(hoyLima(ahora).slice(0, 4));
 
 /** Lo que `resumen_clienta_caja` dice del cumpleaños (los campos de la tanda 1c, ya en camelCase). */
 export type ResumenCumple = {

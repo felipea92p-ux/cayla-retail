@@ -11,12 +11,15 @@
  *   · si la respuesta no trae el veredicto de la base (un corte, un 502), el formulario queda INCIERTO: no se cambia nada
  *     hasta saber qué pasó, y solo se puede reenviar lo mismo o preguntarle a la base (`fn_resolver_intento`);
  *   · la base hace cumplir lo mismo del otro lado: el mismo token con otro contenido es `token_reusado`.
- * Lo usan `useIntento` (los modales de Caja, Apartados y Cambios) y Vender.
+ * Lo usan `useIntento` (los modales de Caja, Apartados y Cambios, Nuevo traslado y el pase de un pedido) y Vender.
  */
 
 import { esRespuestaIncierta, type ErrorEscritura } from "./error-escritura";
 
-/** Las operaciones cuya función de la base anota la huella de su token (la lista de la migración 20261013200000). */
+/**
+ * Las operaciones que la pantalla manda con `useIntento`: su función de la base anota la huella de su token y
+ * `fn_resolver_intento` sabe revisarlas (migraciones 20261013200000 y, desde /chaos de Inventario, 20261014162000).
+ */
 export const OPERACIONES_CON_MARCA = [
   "registrar_venta",
   "entregar_separacion",
@@ -29,6 +32,8 @@ export const OPERACIONES_CON_MARCA = [
   "enviar_pedido_para_apartar",
   "registrar_cambio",
   "separar_pedido_para_apartar",
+  "iniciar_traslado",
+  "enviar_pedido_a_otra_sede",
 ] as const;
 export type OperacionConMarca = (typeof OPERACIONES_CON_MARCA)[number];
 
@@ -97,45 +102,87 @@ export function leerResolucion(json: unknown): Resolucion | null {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Vender: el cobro en curso (NAV-03). Si la página se recarga o se cae mientras se cobra, al volver la pantalla pregunta
-// por ese token y dice si la venta quedó o no. Vive en el almacén local de la sede (`claveLocal(sede, "cobro-en-curso")`).
+// El envío en curso (NAV-03). Si la página se recarga o se cae mientras se guarda, al volver la pantalla pregunta por ese
+// token y dice si quedó o no. Vive en el almacén local de la sede (`claveLocal(sede, "cobro-en-curso")` en Vender,
+// `claveLocal(sede, "traslado-en-curso")` en Nuevo traslado).
 // ---------------------------------------------------------------------------------------------------------------------
 
-export type CobroEnCurso = { token: string; total: number; prendas: number; enviadoEn: string };
+/** Lo mínimo de un envío en curso: su marca y cuándo salió. */
+export type EnvioEnCurso = { token: string; enviadoEn: string };
 
-/** Lo leído del almacén, validado: lo que no tiene la forma de un cobro se descarta (un almacén viejo o roto no rompe Vender). */
-export function cobrosGuardados(crudo: unknown): CobroEnCurso[] {
+/** Lo leído del almacén, validado con `esValido`: lo que no tiene la forma se descarta (un almacén viejo o roto no rompe nada). */
+export function enviosGuardados<T extends EnvioEnCurso>(crudo: unknown, esValido: (x: Record<string, unknown>) => boolean): T[] {
   if (!Array.isArray(crudo)) return [];
   return crudo.filter(
-    (c): c is CobroEnCurso =>
-      !!c &&
-      typeof c === "object" &&
-      typeof (c as CobroEnCurso).token === "string" &&
-      typeof (c as CobroEnCurso).total === "number" &&
-      typeof (c as CobroEnCurso).prendas === "number" &&
-      typeof (c as CobroEnCurso).enviadoEn === "string",
+    (c): c is T =>
+      !!c && typeof c === "object" && typeof (c as EnvioEnCurso).token === "string" && typeof (c as EnvioEnCurso).enviadoEn === "string" && esValido(c as Record<string, unknown>),
   );
 }
 
-/** La lista con este cobro (si el token ya estaba, se reemplaza). */
-export function conCobro(lista: readonly CobroEnCurso[], cobro: CobroEnCurso): CobroEnCurso[] {
-  return [...lista.filter((c) => c.token !== cobro.token), cobro];
+/** La lista con este envío (si el token ya estaba, se reemplaza). */
+export function conEnvio<T extends EnvioEnCurso>(lista: readonly T[], envio: T): T[] {
+  return [...lista.filter((c) => c.token !== envio.token), envio];
 }
 
 /** La lista sin ese token. */
-export function sinCobro(lista: readonly CobroEnCurso[], token: string): CobroEnCurso[] {
+export function sinEnvio<T extends EnvioEnCurso>(lista: readonly T[], token: string): T[] {
   return lista.filter((c) => c.token !== token);
 }
 
 /**
- * Los cobros que ya se pueden preguntar: los que salieron hace más que el tope de espera. Uno más nuevo puede seguir en
+ * Los envíos que ya se pueden preguntar: los que salieron hace más que el tope de espera. Uno más nuevo puede seguir en
  * camino desde OTRA pestaña, y preguntarlo lo daría por no llegado (la base rechazaría ese envío al llegar).
  */
-export function cobrosPorResolver(lista: readonly CobroEnCurso[], ahora: number, tope = TOPE_ESPERA_MS): CobroEnCurso[] {
+export function enviosPorResolver<T extends EnvioEnCurso>(lista: readonly T[], ahora: number, tope = TOPE_ESPERA_MS): T[] {
   return lista.filter((c) => {
     const t = Date.parse(c.enviadoEn);
     return Number.isNaN(t) || ahora - t >= tope;
   });
+}
+
+/** Cuánto se espera para volver a preguntar tras una pregunta que falló. */
+export const REINTENTO_RESOLVER_MS = 5_000;
+
+/** Cuándo volver a mirar: el primer envío joven que cumple el tope o, si una pregunta falló, en `REINTENTO_RESOLVER_MS`. */
+export function proximaRevision(jovenesEnviadoEn: readonly string[], huboFallo: boolean, ahora: number): number | null {
+  const plazos = jovenesEnviadoEn.map((e) => Date.parse(e) + TOPE_ESPERA_MS - ahora + 500).filter((n) => Number.isFinite(n));
+  if (huboFallo) plazos.push(REINTENTO_RESOLVER_MS);
+  return plazos.length > 0 ? Math.max(1000, Math.min(...plazos)) : null;
+}
+
+// Vender: el cobro en curso.
+export type CobroEnCurso = EnvioEnCurso & { total: number; prendas: number };
+
+export const cobrosGuardados = (crudo: unknown): CobroEnCurso[] =>
+  enviosGuardados<CobroEnCurso>(crudo, (c) => typeof c.total === "number" && typeof c.prendas === "number");
+export const conCobro = (lista: readonly CobroEnCurso[], cobro: CobroEnCurso): CobroEnCurso[] => conEnvio(lista, cobro);
+export const sinCobro = (lista: readonly CobroEnCurso[], token: string): CobroEnCurso[] => sinEnvio(lista, token);
+export const cobrosPorResolver = (lista: readonly CobroEnCurso[], ahora: number, tope = TOPE_ESPERA_MS): CobroEnCurso[] =>
+  enviosPorResolver(lista, ahora, tope);
+
+// Nuevo traslado: el traslado en curso.
+export type TrasladoEnCurso = EnvioEnCurso & { destino: string; prendas: number };
+
+export const trasladosGuardados = (crudo: unknown): TrasladoEnCurso[] =>
+  enviosGuardados<TrasladoEnCurso>(crudo, (c) => typeof c.destino === "string" && typeof c.prendas === "number");
+
+/** El aviso que da Nuevo traslado al resolver un envío que quedó en el aire. */
+export function avisoDeTraslado(res: Resolucion, t: TrasladoEnCurso): { tono: "exito" | "info"; titulo: string; detalle: string } {
+  const prendas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
+  if (res.tipo === "no_llego") {
+    return {
+      tono: "info",
+      titulo: `El traslado a ${t.destino} no se envió`,
+      detalle: `No salió nada de tu almacén (${prendas(t.prendas)}). Si todavía no despachaste la caja, vuelve a armarlo.`,
+    };
+  }
+  const numero = typeof res.datos.numero === "number" ? res.datos.numero : null;
+  const cuantas = typeof res.datos.prendas === "number" ? res.datos.prendas : t.prendas;
+  return {
+    tono: "exito",
+    titulo: `Tu traslado a ${t.destino} sí se envió`,
+    detalle: `${numero ? `Traslado ${numero}` : "El traslado"} · ${prendas(cuantas)}. Está en Traslados; no lo envíes de nuevo.`,
+  };
 }
 
 const soles = (n: number) => `S/ ${n.toFixed(2)}`;

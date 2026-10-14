@@ -25,7 +25,8 @@ export const ROTULO_TAMANO_GRILLA: Record<TamanoGrilla, string> = {
 /** Ancho MÍNIMO de una tarjeta en pantallas medianas y grandes (px). Las columnas que caben las decide el ancho DISPONIBLE
  *  (`auto-fill`), no el de la ventana: con el menú lateral abierto, una ventana de 1024 px deja ~550 px para las tarjetas, y
  *  contar columnas por ventana las dejaba de 100 px y con el texto cortado. Grande cabe 4 en una pantalla de 2000 px, como
- *  la grilla de siempre. */
+ *  la grilla de siempre.
+ *  @internal La prueba lo cruza con `CLASES_GRILLA`, que es lo que dibuja la pantalla. */
 export const ANCHO_MINIMO_TARJETA: Record<TamanoGrilla, number> = { grande: 340, mediano: 250, pequeno: 180 };
 
 /** Columnas: en el celular, un número fijo (grande 1 · mediano 2 · pequeño 3); desde `sm`, las que quepan a su ancho mínimo.

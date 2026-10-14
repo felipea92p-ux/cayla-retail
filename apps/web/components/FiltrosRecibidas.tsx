@@ -20,6 +20,7 @@ import {
   type ResultadoRecibidas,
 } from "@/lib/recibidas-filtros-reglas";
 import { Buscador } from "@/components/ui/Buscador";
+import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
 
 // Filtros de «Recibidas recientemente» tal como los dibuja la maqueta 06: el buscador y, en la
 // misma línea, dos pastillas —«Proveedor: Todos ⌄» y «Fechas»— sin el botón «Filtros» ni su
@@ -162,9 +163,7 @@ export function FiltrosRecibidas({
       </div>
 
       {hayActivos && (
-        <button type="button" onClick={limpiarTodo} className="label-cayla px-1 text-[10px] text-tinta/55 transition-colors hover:text-rojo">
-          Limpiar
-        </button>
+        <BotonLimpiar onClick={limpiarTodo}>Limpiar todo</BotonLimpiar>
       )}
     </div>
   );

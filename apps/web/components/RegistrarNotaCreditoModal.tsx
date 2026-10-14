@@ -587,7 +587,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
           {/* `pie-hoja-fijo` (globals.css): la fila de acciones se queda pegada abajo de la hoja en un laptop de 768 px de alto.
               La línea de arriba vive en la caja de adentro para no correrse hasta el borde de la hoja. */}
           <div className="pie-hoja-fijo" data-guia="nc-modal.pie">
-            <div className="flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
+            <div className="pie-acciones border-t border-tinta/10 pt-4">
               <p className="hidden flex-1 text-xs text-tinta/55 sm:block">Queda como un registro nuevo: no se edita ni se borra. El IGV de la nota resta del crédito fiscal del mes.</p>
               <button type="button" onClick={cerrar} disabled={enviando} className="btn-cayla btn-secundario">
                 Cancelar

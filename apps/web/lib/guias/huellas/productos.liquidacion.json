@@ -2,10 +2,9 @@
   "guia": "productos.liquidacion",
   "ruta": "/productos/liquidacion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 33,
+  "total": 30,
   "controles": {
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/impresion/useImpresionBrother.tsx": [
@@ -14,7 +13,6 @@
     ],
     "components/liquidacion/EtiquetarPiezaModal.tsx": [
       "Boton «+ Etiquetar otra»",
-      "Boton «Imprimir etiqueta»",
       "CampoSelect «Categoría»",
       "CampoTexto «Para reconocerla»",
       "CampoMonto «Precio»",
@@ -40,8 +38,7 @@
       "Boton «Cancelar» #2",
       "Boton «Retirar»",
       "Boton «Retirar» #2",
-      "Boton «Bajar el precio»",
-      "Boton «Imprimir etiqueta»"
+      "Boton «Bajar el precio»"
     ],
     "components/liquidacion/PrecioMinimoLiquidacion.tsx": [
       "button «Cambiarlo»",

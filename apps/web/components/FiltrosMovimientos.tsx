@@ -25,6 +25,7 @@ import {
 import { grupoPorId } from "@/lib/movimientos-tipos";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { BotonFiltros } from "@/components/ui/FiltrosPildora";
+import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
 
 // Filtros de Movimientos. Viven en la URL (?q=…&cat=…&proc=…&sub=…&rango=…), igual que en
 // Compras: la página es un Server Component que filtra en Postgres, el enlace se puede
@@ -248,7 +249,9 @@ export function FiltrosMovimientos({
         type="button"
         onClick={() => aplicar({ rango: "todo", desde: "", hasta: "" })}
         aria-pressed={periodo === "todo"}
-        className={`btn-cayla btn-enlace mb-2 text-[12.5px] ${periodo === "todo" ? "font-semibold" : ""}`}
+        // `btn-enlace` agranda su caja 0,25 em hacia abajo para pintar el subrayado y lo devuelve con un margen negativo; aquí `mb-2`
+        // le gana a ese margen, así que se descuenta para que «Todo el historial» quede donde estaba.
+        className={`btn-cayla btn-enlace mb-[calc(0.5rem_-_0.25em)] text-[12.5px] ${periodo === "todo" ? "font-semibold" : ""}`}
       >
         Todo el historial
       </button>
@@ -349,9 +352,9 @@ export function FiltrosMovimientos({
           {procesoSueltoPildora}
           {zona}
           {hayFiltros && (
-            <button type="button" data-guia="movimientos.limpiar" onClick={limpiar} className="btn-cayla btn-enlace text-xs">
+            <BotonLimpiar onClick={limpiar} guia="movimientos.limpiar">
               Limpiar filtros
-            </button>
+            </BotonLimpiar>
           )}
         </div>
         {procesos}
@@ -379,8 +382,8 @@ export function FiltrosMovimientos({
                   Descargar Excel con estos filtros
                 </BotonDescargar>
               )}
-              <div className="flex gap-2 pt-1">
-                <button type="button" onClick={limpiar} className="btn-cayla btn-secundario flex-1">
+              <div className="pie-acciones pt-1">
+                <button type="button" onClick={limpiar} className="btn-cayla btn-secundario">
                   Limpiar
                 </button>
                 <button type="button" onClick={cerrar} className="btn-cayla btn-primario flex-1">

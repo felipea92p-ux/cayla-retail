@@ -166,6 +166,7 @@ export function motivoYaNoValido(motivo: string): boolean {
 
 /** La RPC y sus parámetros cuando la subida es para enviar (`subir_para_enviar`): la misma subida + la lista. */
 export const RPC_SUBIR_PARA_ENVIAR = "subir_para_enviar";
+/** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración. */
 export const PARAMETROS_RPC_SUBIR_PARA_ENVIAR = ["p_ubicacion_id", "p_destino_id", "p_items", "p_nota", "p_token"] as const;
 
 /** A qué sedes se puede mandar desde aquí: todas las otras activas (un traslado va de una sede a cualquier otra). */

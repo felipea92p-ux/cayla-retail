@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Shirt, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -322,14 +322,14 @@ export function NuevaProformaModal({
 
           <ComboResponsable control={responsable} deshabilitado={loading} />
 
-          <div data-guia="proformas.modal-crear" className="flex gap-2 pt-1">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div data-guia="proformas.modal-crear" className="pie-acciones pt-1">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={loading}
               disabled={filas.length === 0 || !responsable.listo}
               title={responsable.motivo ?? undefined}
@@ -348,7 +348,7 @@ export function Foto({ prenda }: { prenda: { fotoUrl: string | null; colorHex: s
   if (prenda.fotoUrl) {
     return (
       <span className="relative h-12 w-10 shrink-0 overflow-hidden rounded-[4px] bg-sand/40">
-        <Image src={prenda.fotoUrl} alt={prenda.referencia} fill sizes="40px" className="object-cover" unoptimized />
+        <ImagenDePrenda src={prenda.fotoUrl} alt={prenda.referencia} fill sizes="40px" className="object-cover" fallback={<span aria-hidden className="absolute inset-0" style={{ background: prenda.colorHex ?? "var(--color-hueso)" }} />} />
       </span>
     );
   }

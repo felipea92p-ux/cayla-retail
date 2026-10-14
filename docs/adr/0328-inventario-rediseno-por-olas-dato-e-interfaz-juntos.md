@@ -475,3 +475,31 @@ contó en papel y se registró días después, o cuando una venta sin conexión 
 respuesta y la persona, que sí sabe, no podría corregirla.
 **SE ROMPE SI** una llegada se registra días después de colgar la prenda (el saldo a la venta sale de menos y sugiere «Llegó nueva»
 de una que sí estaba contada) o si alguien cambia `fn_ledger_puntos` y su cubeta `total` deja de ser «todo menos Cuarentena».
+
+## Actualización 2026-10-14 — «La cuarentena no se ajusta a mano» llega a `main` (estaba en producción sin archivo)
+
+**El hecho:** producción tiene desde ~2026-10-05 la función `retail.fn_movimiento_no_ajusta_cuarentena()` y el disparador
+`movimientos_no_se_ajusta_la_cuarentena` (`before insert on retail.movimientos`), y ningún archivo de `main` los creaba. La revisión
+de deriva del 2026-10-14 (solo lectura) los encontró como huérfanos. Su única fuente era el commit `021def2a6` («la cuarentena no se
+ajusta a mano», actividad 10, 2026-10-04), en una rama local que nunca se subió: #796 (Dañadas) se fusionó el 5-oct sin él. El cuerpo
+vivo es idéntico al del archivo (md5 del cuerpo normalizado como en `deriva.sql`: `d14f8102b614bbfbb9e79c714d931296` en los dos).
+
+**La regla, que ya regía en las tiendas:** un movimiento `ajuste` cuyo lugar es una sububicación `cuarentena` se rechaza («La
+cuarentena no se ajusta a mano…», pista `cuarentena_no_se_ajusta`). Lo que hay en la cuarentena y lo que dice `prendas_danadas` son la
+misma cosa, y `ajustar_inventario` aceptaba cualquier sububicación: un ajuste ahí movía el stock sin tocar la lista de Dañadas, y desde
+ese momento Existencias y Dañadas decían cantidades distintas. Las puertas propias de la cuarentena (devolución, cambio, reportar,
+resolver, liquidar, «Se arregló») no son `ajuste` y siguen; el Conteo no llega porque `abrir_conteo` ya rechaza la cuarentena.
+
+**Qué entró a `main`:** la migración tal cual, con otra versión (`20261014171000_cuarentena_no_se_ajusta_a_mano.sql`, reservada con
+`pnpm reservar migracion`; antes `20261005150000`) y una cabecera que dice que ya está pegada; su prueba `pnpm
+pruebas:cuarentena-no-se-ajusta` (12 casos, con control sin el disparador), ahora en la lista `PRUEBAS` del CI. No se pega de nuevo en
+producción (si alguien la pega, es idempotente).
+
+**DECIDÍ:** traer el archivo con una versión nueva reservada, sin cambiar una línea de SQL.
+**DESCARTÉ:** conservar `20261005150000`, porque una versión en medio de la historia no se puede reservar (la reserva solo da la
+siguiente libre) y quedaría avisada como «sin reserva»; se pegó en el SQL Editor y producción no guarda el nombre del archivo (0 filas
+con `20261005150000` ni con su nombre en `supabase_migrations.schema_migrations`, consultado el 2026-10-14), así que la fecha vieja no
+protegía nada, y con la nueva el CI la corre después de todas las de `main`, igual que en producción.
+**SE ROMPE SI** alguien recrea `fn_movimiento_no_ajusta_cuarentena` o el disparador en otra migración sin partir de este archivo, o si
+una función nueva necesita escribir un `ajuste` en la cuarentena a propósito: el disparador la rechaza entera (todo o nada) y
+`pruebas:cuarentena-no-se-ajusta` lo dice.

@@ -341,6 +341,13 @@ export const PRUEBAS = [
   // con otro contenido se rechaza (token_reusado), el resolver dice «hecho» o «no llegó» (definitivo) y espera al envío
   // que todavía guarda. Con controles. Cada caso: ROLLBACK (la concurrencia, dos sesiones que terminan en ROLLBACK).
   "pruebas:token-sigue-al-contenido",
+  // ADR-0401 (/chaos de Inventario 2026-10-14): el token sigue al contenido en ocho funciones de Inventario, el resolver revisa
+  // un traslado, y los topes de notas, llegada y motivo de ajuste.
+  "pruebas:inventario-token-y-textos",
+  // ADR-0404: lo contado de más al recibir un traslado queda como sobrante a revisar, fuera del stock.
+  "pruebas:traslado-sobrantes",
+  // ADR-0405 (/chaos de Catálogo 2026-10-14): precio y costo NaN y nombres sin tope rebotan en la tabla. Con control.
+  "pruebas:catalogo-montos-y-textos",
 
   // El efectivo de una caja abierta nunca queda bajo cero (/chaos 2026-10-13): egreso, reembolso, vuelto de un cambio, anular
   // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
@@ -373,6 +380,13 @@ export const PRUEBAS = [
   // Cuarentena no sale hacia la clienta (PL-78): un disparador en movimientos rechaza venta, cambio y apartado
   // desde una sububicación Cuarentena; liquidar sigue. Control con el disparador deshecho. Cada caso: ROLLBACK.
   "pruebas:cuarentena-no-se-vende",
+
+  // La cuarentena no se ajusta a mano (ADR-0328 act. 10): un disparador en movimientos rechaza todo `ajuste` sobre una
+  // sububicación Cuarentena (descuadraría el stock contra prendas_danadas); sus puertas propias siguen y abrir_conteo
+  // rechaza la cuarentena. En producción desde ~2026-10-05; sin archivo en main hasta el 14-oct. Control sin el
+  // disparador. Cada caso: ROLLBACK.
+  "pruebas:cuarentena-no-se-ajusta",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

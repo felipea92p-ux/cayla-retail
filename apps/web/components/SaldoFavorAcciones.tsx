@@ -120,11 +120,11 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
             <CampoTexto etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Devolvió la diferencia…" />
           </div>
           <ComboResponsable control={responsable} deshabilitado={loading} />
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={cerrar} disabled={loading} className="btn-cayla btn-secundario flex-1">
+          <div className="pie-acciones pt-1">
+            <button type="button" onClick={cerrar} disabled={loading} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={loading || !montoOk} className="btn-cayla btn-primario flex-1">
+            <button type="submit" disabled={loading || !montoOk} className="btn-cayla btn-primario">
               {loading ? "Registrando…" : "Registrar reembolso"}
             </button>
           </div>

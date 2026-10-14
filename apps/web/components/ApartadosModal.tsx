@@ -11,12 +11,12 @@ import { Chip } from "@/components/ui/Chip";
 import {
   MOTIVOS_LIBERACION,
   estadoVencimiento,
-  hoyLima,
   resumirApartados,
   textoVencimiento,
   type Apartado,
   type MotivoLiberacion,
 } from "@/lib/apartados-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";

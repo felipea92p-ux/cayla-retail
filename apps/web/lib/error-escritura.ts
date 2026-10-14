@@ -58,6 +58,8 @@ const HUELLAS: Huella[] = [
   // Montos de Ventas y Caja (/chaos 2026-10-13, 20261013204000): el respaldo de la tabla cuando una pantalla no lo frenó antes.
   { marca: "recibido_con_tope", frase: "El vuelto pasa de S/ 500: revisa con cuánto paga el cliente y vuelve a intentar." },
   { marca: "_montos_finitos", frase: "Uno de los montos no es un número válido. Revísalo y vuelve a intentar." },
+  // Nombres con tope en Catálogo (/chaos 2026-10-14, 20261014182000): la pantalla ya corta antes; esto es el respaldo.
+  { marca: "_textos_con_tope", frase: "Un nombre o una descripción es demasiado largo. Acórtalo y vuelve a intentar." },
   // Costo atípico (20260930120000 y siguientes): un costo por prenda fuera de lo normal (sin costo, mayor que el precio,
   // más del doble o menos de dos tercios del vigente) no entra al costo de la prenda sin que un líder lo confirme.
   // ORDEN: `costo_atipico_sin_lider` va ANTES que `costo_atipico`, porque la búsqueda es por «contiene» y la segunda marca

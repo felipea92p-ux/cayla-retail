@@ -9,6 +9,7 @@ import { soles } from "@/lib/compras-reglas";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import type { MovimientoDelEnvio } from "@/lib/envio-reglas";
 import { BotonVer } from "@/components/ui/BotonDescargar";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // «Envío recibido»: lo que queda después de confirmar (spike de Recibir, 2026-09-19). No es solo «61 unidades»:
 // muestra QUÉ entró, prenda por prenda, colgando de un hilo — la idea de que cada prenda entra como un
@@ -117,9 +118,9 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
       )}
 
       {ok.unidades > 0 && ok.lotes.length > 0 && (
-        <Link href={urlEtiquetasDePrecio({ lotes: ok.lotes })} className="btn-cayla btn-primario mt-4">
+        <BotonImprimir href={urlEtiquetasDePrecio({ lotes: ok.lotes })} peso="primario" className="mt-4">
           Imprimir {ok.unidades === 1 ? "la etiqueta" : `${ok.unidades} etiquetas`} de precio
-        </Link>
+        </BotonImprimir>
       )}
 
       <div className="flex flex-wrap justify-center gap-3 pt-4">

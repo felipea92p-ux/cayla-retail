@@ -215,7 +215,7 @@ export function AltaAlVuelo({
           {error && (
             <Aviso tono="error">{error}</Aviso>
           )}
-          <div className="flex flex-col-reverse gap-2.5 pt-1 sm:flex-row sm:justify-end">
+          <div className="pie-acciones pt-1">
             <button type="button" onClick={cerrar} disabled={guardando} className="btn-cayla btn-secundario h-11">
               Cancelar
             </button>

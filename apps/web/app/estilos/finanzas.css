@@ -155,7 +155,7 @@
     color: color-mix(in oklab, var(--color-tinta) 70%, transparent);
   }
   .fin-control::placeholder {
-    color: color-mix(in oklab, var(--color-taupe) 80%, transparent);
+    color: var(--color-taupe); /* taupe pleno: al 80 % daba 3.18:1 sobre el hueso de la caja (2026-10-14) */
   }
   /* El combo (2026-09-26, ADR-0209): `SelectFin` es un `Desplegable` del sistema que cerrado se ve como el <select> del
      spike —esta flecha, este relleno— y abierto es la lista de todo el ERP. El botón lleva `fin-control fin-desplegable`;
@@ -391,8 +391,11 @@
     text-decoration: line-through;
     font-weight: 500;
   }
+  /* La fila que ya pasó (una campaña vencida, un mes cerrado): se atenúa solo su texto de tinta, al 64 %. Hasta el 2026-10-14 era toda la
+     fila al 60 % de opacidad, y lo que ya era taupe (el «—», el «%», el «pasó») caía a 2.3–2.5:1; Felipe eligió esto mirando el antes y
+     después (ADR-0336, act. 2026-10-14). Las cajas, el chip y el taupe se ven enteros. */
   .fin-tabla tr.fin-suave td {
-    opacity: 0.6;
+    color: color-mix(in srgb, var(--color-tinta) 64%, transparent);
   }
   .fin-tabla input.fin-control {
     min-height: 32px;

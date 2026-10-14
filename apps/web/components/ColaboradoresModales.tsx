@@ -49,8 +49,8 @@ export function AlternarTerminalModal({
         <div className="mt-5 space-y-4">
           <p className="text-sm leading-relaxed text-tinta/85">{texto}</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton
