@@ -648,7 +648,6 @@ export const DECISIONES = {
       { "archivo": "components/ficha-producto/piezas.tsx", "motivo": "una matriz de tallas y colores (o de tiendas): otra función, no una lista de registros" },
       { "archivo": "components/ExistenciasTarjetas.tsx", "motivo": "una matriz de tallas y colores (o de tiendas): otra función, no una lista de registros" },
       { "archivo": "components/RecepcionEnvio.tsx", "motivo": "una matriz de tallas y colores (o de tiendas): otra función, no una lista de registros" },
-      { "archivo": "components/NuevaOrdenProduccionForm.tsx", "motivo": "una matriz de tallas y colores (o de tiendas): otra función, no una lista de registros" },
       { "archivo": "components/RepartoPorTienda.tsx", "motivo": "una matriz de tallas y colores (o de tiendas): otra función, no una lista de registros" },
       { "archivo": "components/plan-compra/RepartoTiendas.tsx", "motivo": "una matriz de tallas y colores (o de tiendas): otra función, no una lista de registros" },
       { "archivo": "components/ProductosTabla.tsx", "motivo": "ADR-0254: la tabla de Catálogo ▸ Productos tiene su diseño aprobado; Felipe no la unió en la ronda 7" },

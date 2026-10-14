@@ -1,7 +1,7 @@
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getFilasRecientesDeSede } from "@/lib/resumen-inventario";
 import { loteMasAntiguoConSaldo } from "@/lib/insumos-reglas";
-import { demandaDeLaRed, enProduccionPorVariante, rendimientoMedido, type DemandaVariante, type Rendimiento } from "@/lib/produccion-decision-reglas";
+import { demandaDeLaRed, enProduccionPorVariante, productosParaRendimiento, rendimientoMedido, type DemandaVariante, type Rendimiento } from "@/lib/produccion-decision-reglas";
 import type { InsumoVista, ConsumoDeOrden } from "@/lib/insumos";
 import type { LineaPorRecibir } from "@/lib/recibir-produccion-reglas";
 import type { ModeloProducible, OrdenProduccion } from "@/lib/produccion";
@@ -48,9 +48,11 @@ export async function getDecisionProduccion(args: {
     const demanda = [...demandaDeLaRed(conFilas).values()].filter((d) => variantesDeModelos.has(d.varianteId));
 
     const rendimientoPorModelo: Record<string, Rendimiento[]> = {};
-    for (const m of args.modelos) {
-      const r = rendimientoMedido(m.productoId, args.ordenes, args.consumosPorOrden);
-      if (r.length > 0) rendimientoPorModelo[m.productoId] = r;
+    // Los modelos que se ofrecen más todo producto con una orden: el Resumen ofrece solo lo producible, pero una orden abierta de un modelo que dejó de
+    // ofrecerse igual necesita su tela (ver `productosParaRendimiento`).
+    for (const productoId of productosParaRendimiento(args.modelos, args.ordenes)) {
+      const r = rendimientoMedido(productoId, args.ordenes, args.consumosPorOrden);
+      if (r.length > 0) rendimientoPorModelo[productoId] = r;
     }
 
     const porLlegar = new Map<string, number>();
