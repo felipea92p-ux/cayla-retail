@@ -32,6 +32,7 @@ import {
   adelantoDe,
   apartadoDeFila,
   erroresDelApartado,
+  esConstancia,
   moverActivo,
   encendida,
   resultadosDelBuscador,
@@ -541,7 +542,7 @@ export function ApartarVista({
       avisar.error(traducirError(error, "registrar el apartado", { confirmarAntesDeRepetir: true }));
       return;
     }
-    // Lo que se muestra en el modal es lo que quedó en la base (código, boleta, fecha), no lo que se mandó.
+    // Lo que se muestra en el modal es lo que quedó en la base (código, fecha), no lo que se mandó.
     const leido = await supabase.rpc("buscar_separaciones", { p_ubicacion_id: ubicacionId, p_texto: id });
     setEnviando(false);
     const fila = leido.data?.[0];
@@ -549,7 +550,7 @@ export function ApartarVista({
     if (fila) {
       const a = apartadoDeFila(fila as unknown as Record<string, unknown>);
       setRegistrado({ apartado: a, vuelto });
-      avisar.exito(`Apartado de ${money(a.adelanto)} registrado`, { detalle: `${a.comprobanteAnticipo ?? ""} · ${a.codigo}` });
+      avisar.exito(`Apartado de ${money(a.adelanto)} registrado`, { detalle: esConstancia(a) ? `Constancia ${a.codigo}` : `${a.comprobanteAnticipo} · ${a.codigo}` });
     } else {
       avisar.exito("Apartado registrado");
     }
@@ -892,6 +893,7 @@ export function ApartarVista({
                       </button>
                     ))}
                   </div>
+                  <p className="-mt-1 text-xs text-tinta/60">Se emite al entregar, por el total. Ahora el cliente se lleva una constancia, no un comprobante.</p>
                   {f.comprobante === "factura" && (
                     <div className="grid gap-3.5 sm:grid-cols-2">
                       <Campo etiqueta="RUC" error={ver("ruc")} onBlur={tocar("ruc")}><input value={f.ruc} onChange={(e) => cambiar("ruc", e.target.value)} inputMode="numeric" className="caja-campo-input mt-1.5 font-mono" /></Campo>
@@ -978,7 +980,7 @@ export function ApartarVista({
                 <label className={`flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
                   <Casilla marcada={f.acepta} onCambio={() => cambiar("acepta", !f.acepta)} etiqueta="Le leí las condiciones del apartado" className="mt-0.5 shrink-0" />
                   <span>
-                    Le leí las condiciones: recoge hasta el <b>{fechaCorta(vence)}</b> con su boleta o DNI; si no, vuelve a tienda y se le devuelve el 100% por {f.devolucionMedio === "transferencia" ? "transferencia" : f.devolucionMedio === "yape" ? "Yape" : "Plin"}.
+                    Le leí las condiciones: recoge hasta el <b>{fechaCorta(vence)}</b> con su constancia o DNI; si no, vuelve a tienda y se le devuelve el 100% por {f.devolucionMedio === "transferencia" ? "transferencia" : f.devolucionMedio === "yape" ? "Yape" : "Plin"}.
                     {ver("acepta") && <span className="block text-xs text-rojo-profundo">{ver("acepta")}</span>}
                   </span>
                 </label>

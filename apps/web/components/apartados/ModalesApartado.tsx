@@ -25,6 +25,7 @@ import {
   type PedidoApartado,
   PLAZO_DIAS,
   enlaceWhatsapp,
+  esConstancia,
   estadoVisible,
   formatoCelular,
   mensajeWhatsapp,
@@ -98,8 +99,10 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
   const pasos = [
     `Pega la etiqueta «APARTADO · ${a.codigo}» en la prenda.`,
     a.estante ? `Guárdala en el estante ${a.estante} de Apartados, no en el piso.` : "Guárdala en «Apartados» del almacén, no en el piso.",
-    // Sin celular (ADR-0367) no hay a dónde enviarla: la boleta impresa es la que se lleva.
-    ...(a.celular ? [`Envía la boleta por WhatsApp al ${a.celular}.`] : ["Entrégale la boleta impresa: no dejó celular."]),
+    // Sin celular (ADR-0367) no hay a dónde enviarla: la constancia impresa es la que se lleva. Un apartado viejo sigue con su boleta.
+    ...(a.celular
+      ? [`Envía ${esConstancia(a) ? "la constancia" : "la boleta"} por WhatsApp al ${a.celular}.`]
+      : [`Entrégale ${esConstancia(a) ? "la constancia impresa" : "la boleta impresa"}: no dejó celular.`]),
   ];
   const [mes, dia, semana] = [
     new Date(`${a.venceEl}T12:00:00Z`).toLocaleDateString("es-PE", { month: "short", timeZone: "UTC" }).replace(".", "").toUpperCase(),
@@ -144,10 +147,21 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
           </div>
           <div className="card-cayla space-y-2.5 p-4 text-sm">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="text-tinta">
-                Boleta <span className="font-mono">{a.comprobanteAnticipo}</span> · anticipo
-              </span>
-              <span className="text-[11px] text-tinta/60">Pendiente de enviar</span>
+              {esConstancia(a) ? (
+                <>
+                  <span className="text-tinta">
+                    Constancia <span className="font-mono">{a.codigo}</span>
+                  </span>
+                  <span className="text-[11px] text-tinta/60">No es comprobante de pago</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-tinta">
+                    Boleta <span className="font-mono">{a.comprobanteAnticipo}</span> · anticipo
+                  </span>
+                  <span className="text-[11px] text-tinta/60">Pendiente de enviar</span>
+                </>
+              )}
             </div>
             <div className="space-y-0.5 border-t border-sand pt-2.5 text-xs text-tinta/80">
               {a.pagos.map((p, i) => (
@@ -190,7 +204,7 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
             <p className="label-cayla text-[11px] text-verde-profundo">Liquidado</p>
             <p className="font-display mt-2 text-3xl text-tinta">{money(a.total)}</p>
             <p className="mt-1 text-sm text-tinta/70">
-              {money(a.adelanto)} de anticipo + {money(a.total - a.adelanto)} hoy · {a.nombres}
+              {money(a.adelanto)} de adelanto + {money(a.total - a.adelanto)} hoy · {a.nombres}
             </p>
           </div>
           {vuelto > 0 && (
@@ -201,14 +215,14 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
           )}
           <div className="card-cayla space-y-2 p-4 text-xs text-tinta/80">
             <p className="flex justify-between tabular-nums"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
-            <p className="flex justify-between tabular-nums"><span>(−) {a.pagos.some((p) => p.abono) ? "Anticipos (apartado y abonos)" : `Anticipo ${a.comprobanteAnticipo}`}</span><span>−{money(a.adelanto)}</span></p>
+            <p className="flex justify-between tabular-nums"><span>(−) {esConstancia(a) ? "Adelanto" : a.pagos.some((p) => p.abono) ? "Anticipos (apartado y abonos)" : `Anticipo ${a.comprobanteAnticipo}`}</span><span>−{money(a.adelanto)}</span></p>
             {pagadoHoy.map((p, i) => (
               <p key={i} className="flex justify-between tabular-nums text-tinta"><span>Hoy · {p.metodo}</span><span>{money(p.monto)}</span></p>
             ))}
             {redondeo > 0 && (
               <p className="flex justify-between tabular-nums text-tinta/70" data-redondeo><span>{TEXTO_REDONDEO}</span><span>{money(redondeo)}</span></p>
             )}
-            <p className="border-t border-sand pt-2 text-tinta/70">La venta de {money(a.total)} entra hoy a ingresos y sale de «En custodia».</p>
+            <p className="border-t border-sand pt-2 text-tinta/70">La venta de {money(a.total)} entra hoy a ingresos y sale de «En custodia».{esConstancia(a) && " La boleta o factura sale por el total, sin nombrar el adelanto."}</p>
           </div>
           <Botones cerrar={cerrar} principal="Imprimir y entregar" />
           <ReciboApartado apartado={a} tipo="final" sede={sede} pagadoHoy={pagadoHoy} redondeo={redondeo} />
@@ -226,8 +240,9 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
 export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado: Apartado; sede: string; onClose: () => void }) {
   const a = apartado;
   const conFinal = a.estado === "entregada" && !!a.comprobanteFinal;
+  const constancia = esConstancia(a);
   const [cual, setCual] = useState<"anticipo" | "final">(conFinal ? "final" : "anticipo");
-  const numero = cual === "final" ? a.comprobanteFinal : a.comprobanteAnticipo;
+  const numero = cual === "final" ? a.comprobanteFinal : constancia ? a.codigo : a.comprobanteAnticipo;
   useTituloDeImpresion(`${a.codigo}${cual === "final" ? "-final" : ""}`);
   return (
     <Modal titulo="Reimprimir ticket" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-sm" conCerrar>
@@ -235,16 +250,16 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
         <div className="space-y-4">
           {conFinal && (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Qué ticket imprimir">
-              <button type="button" aria-pressed={cual === "final"} onClick={() => setCual("final")} className="pildora-cayla">Boleta final</button>
-              <button type="button" aria-pressed={cual === "anticipo"} onClick={() => setCual("anticipo")} className="pildora-cayla">Anticipo</button>
+              <button type="button" aria-pressed={cual === "final"} onClick={() => setCual("final")} className="pildora-cayla">{constancia ? "Boleta o factura" : "Boleta final"}</button>
+              <button type="button" aria-pressed={cual === "anticipo"} onClick={() => setCual("anticipo")} className="pildora-cayla">{constancia ? "Constancia" : "Anticipo"}</button>
             </div>
           )}
           <div className="card-cayla space-y-1.5 p-4 text-sm">
             <p className="flex items-baseline justify-between gap-3">
               <span className="text-tinta">
-                Boleta <span className="font-mono">{numero ?? "—"}</span>
+                {cual === "anticipo" && constancia ? "Constancia" : "Boleta"} <span className="font-mono">{numero ?? "—"}</span>
               </span>
-              <span className="text-[11px] text-tinta/60">{cual === "final" ? "final" : "anticipo"}</span>
+              <span className="text-[11px] text-tinta/60">{cual === "final" ? (constancia ? "por el total" : "final") : constancia ? "no es comprobante de pago" : "anticipo"}</span>
             </p>
             <p className="text-xs text-tinta/70">
               {a.nombres} {a.apellidos} · {cual === "final" ? `total ${money(a.total)}` : `adelanto ${money(a.adelanto)} de ${money(a.total)}`}
@@ -419,7 +434,11 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
               </div>
             </div>
           )}
-          <p className="text-xs text-tinta/60">Se intentará la nota de crédito sobre la boleta {apartado.comprobanteAnticipo}; si SUNAT aún no la aceptó, queda pendiente con aviso.</p>
+          <p className="text-xs text-tinta/60">
+            {esConstancia(apartado)
+              ? "Solo se registra que el dinero volvió al cliente: no hay comprobante que anular, así que no se gasta ningún correlativo."
+              : `Se intentará la nota de crédito sobre la boleta ${apartado.comprobanteAnticipo}; si SUNAT aún no la aceptó, queda pendiente con aviso.`}
+          </p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">
             <button type="button" onClick={cerrar} className={botonCancelar}>Cancelar</button>
@@ -609,8 +628,9 @@ const detalleVariante = (p: { color: string | null; talla: string | null; codigo
   [p.color, p.talla, codigoPrenda(p)].filter(Boolean).join(" · ");
 
 /**
- * Abonar a cuenta (Apartados v2, paso 2 — 20260927100000): la clienta paga una parte y la prenda sigue guardada. Sale su
- * boleta de anticipo; al recoger, la boleta final descuenta todos. El plazo no cambia solo: se puede elegir esperarla
+ * Abonar a cuenta (Apartados v2, paso 2 — 20260927100000): la clienta paga una parte y la prenda sigue guardada. Desde ADR-0399 el abono
+ * no emite comprobante (antes sacaba su boleta de anticipo y la final los descontaba); al recoger sale una boleta o factura por el total.
+ * El plazo no cambia solo: se puede elegir esperarla
  * 2 días más, o 3 si el abono cubre la mitad o más de lo que le faltaba (Felipe, 2026-09-26).
  */
 export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; cajaAbierta: boolean; onClose: () => void }) {
@@ -706,7 +726,7 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
               <span className="block text-xs text-tinta/55">{dias === 3 ? "Abona la mitad o más de lo que le faltaba: 3 días." : "Con la mitad o más de lo que le falta serían 3 días."} Sin marcar, la fecha sigue el {fechaCorta(apartado.venceEl)}.</span>
             </span>
           </label>
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos.</p>
+          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">{esConstancia(apartado) ? "El abono se suma al adelanto y no emite comprobante. Al recoger, sale una sola boleta o factura por el total." : "Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos."}</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">
             <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
@@ -728,7 +748,7 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
 
 /**
  * Editar las prendas de un apartado abierto (paso 4 — 20260927120000): quitar, sumar o cambiar la talla, todo o nada.
- * Lo nuevo entra con el precio y la campaña de HOY; el anticipo ya emitido no cambia. Si el nuevo total quedara por
+ * Lo nuevo entra con el precio y la campaña de HOY; el adelanto ya recibido no cambia. Si el nuevo total quedara por
  * debajo de lo que ya pagó, la base lo rechaza (qué hacer con esa diferencia lo decide Felipe).
  */
 export function EditarApartadoModal({
@@ -892,7 +912,7 @@ export function EditarApartadoModal({
           </div>
           {debajo && !sinPrendas && <Aviso tono="error" chico>El nuevo total queda por debajo de lo que ya pagó ({money(apartado.adelanto)}): suma otra prenda o libera el apartado.</Aviso>}
           {sinPrendas && <Aviso tono="error" chico>El apartado no puede quedarse sin prendas: si ya no quiere nada, libéralo.</Aviso>}
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy. El anticipo ya emitido sigue valiendo.</p>
+          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Se guarda todo junto o nada: lo que sale vuelve a la tienda, lo nuevo se aparta con el precio de hoy. El adelanto ya recibido sigue valiendo.</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="flex gap-2">
             <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>

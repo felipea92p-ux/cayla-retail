@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { EMISOR } from "@/lib/emisor";
 import { LEY_REDONDEO_TICKET, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { money } from "@/components/PuntoDeVenta";
-import { tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
+import { esConstancia, tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
 
 export { FotoPrenda } from "@/components/ui/FotoPrenda";
 
@@ -53,13 +53,17 @@ export function fechaNumerica(iso: string) {
 }
 
 /**
- * El ticket de 80 mm del apartado (anticipo al apartar, final al entregar). Mismo mecanismo que `ReciboTermico`: un
+ * El ticket de 80 mm del apartado (al apartar, y el final al entregar). Mismo mecanismo que `ReciboTermico`: un
  * `#comprobante-print` pegado a `<body>`; en pantalla no se ve y al imprimir es lo único que sale (globals.css).
- * Mientras el envío de anticipos a SUNAT no esté activo (ADR-0166) no lleva QR: dice que la boleta electrónica queda
- * registrada y se envía después.
+ *
+ * Desde ADR-0399 (Felipe, 2026-10-14) un apartado NUEVO no tiene boleta de anticipo: al apartar el ticket es una CONSTANCIA DE DEPÓSITO
+ * (su número es el código APT-…, no un correlativo de SUNAT) y dice en claro que no es comprobante de pago; al entregar sale la boleta o
+ * factura por el TOTAL, que no nombra el adelanto (es un pacto interno). Un apartado VIEJO, con su boleta de anticipo, conserva el
+ * ticket de antes (`esConstancia(a)` decide). Todavía sin QR: dice que el comprobante queda registrado y se envía a SUNAT después.
  */
 export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, copia = false }: { apartado: Apartado; tipo: "anticipo" | "final"; sede: string; pagadoHoy?: { metodo: string; monto: number }[]; /** Lo que no se cobró por redondear el efectivo del saldo (ADR-0311); el comprobante sigue por el saldo exacto. */ redondeo?: number; /** Reimpresión desde el historial (ADR-0367): dice «COPIA» y, en la final, el saldo en una línea (no se sabe con qué medios se pagó). */ copia?: boolean }) {
   const a = apartado;
+  const constancia = esConstancia(a);
   const cuerpo = (
     <div id="comprobante-print">
       <header className="rt-centro">
@@ -69,9 +73,10 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
         </p>
         <p className="rt-tienda">{sede}</p>
       </header>
-      <p className="rt-centro rt-titulo">{tipo === "anticipo" ? "BOLETA DE VENTA ELECTRÓNICA — ANTICIPO" : "BOLETA DE VENTA ELECTRÓNICA"}</p>
-      <p className="rt-centro rt-numero">{tipo === "anticipo" ? a.comprobanteAnticipo : (a.comprobanteFinal ?? "")}</p>
-      <p className="rt-centro rt-negrita">APARTADO {a.codigo}{tipo === "final" ? " · ENTREGADO" : ""}</p>
+      <p className="rt-centro rt-titulo">{tipo === "anticipo" ? (constancia ? "CONSTANCIA DE DEPÓSITO" : "BOLETA DE VENTA ELECTRÓNICA — ANTICIPO") : "BOLETA DE VENTA ELECTRÓNICA"}</p>
+      <p className="rt-centro rt-numero">{tipo === "anticipo" ? (constancia ? a.codigo : a.comprobanteAnticipo) : (a.comprobanteFinal ?? "")}</p>
+      {(tipo === "final" || !constancia) && <p className="rt-centro rt-negrita">APARTADO {a.codigo}{tipo === "final" ? " · ENTREGADO" : ""}</p>}
+      {tipo === "anticipo" && constancia && <p className="rt-centro rt-negrita">NO ES COMPROBANTE DE PAGO</p>}
       {copia && <p className="rt-centro rt-negrita">COPIA · REIMPRESA EL {fechaNumerica(new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }))}</p>}
       <div className="rt-datos">
         <p>Cliente: {a.nombres} {a.apellidos}{a.dni ? ` · DNI ${a.dni}` : ""}</p>
@@ -86,21 +91,22 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
       <p className="rt-fila rt-negrita"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
       {tipo === "anticipo" ? (
         <>
-          <p className="rt-fila"><span>Anticipo (incluye IGV)</span><span>{money(a.adelanto)}</span></p>
+          <p className="rt-fila"><span>{constancia ? "Depósito recibido" : "Anticipo (incluye IGV)"}</span><span>{money(a.adelanto)}</span></p>
           <p className="rt-fila rt-total"><span>SALDO AL RECOGER</span><span>{money(a.total - a.adelanto)}</span></p>
           <p className="rt-fila rt-negrita"><span>RECOGER HASTA</span><span>{fechaNumerica(a.venceEl)}</span></p>
           <div className="rt-pie">
             <p className="rt-negrita">CONDICIONES DE TU APARTADO</p>
             <p>1. Tus prendas quedan guardadas hasta el {fechaNumerica(a.venceEl)}.</p>
-            <p>2. Para recogerlas trae este comprobante o tu DNI.</p>
+            <p>2. Para recogerlas trae {constancia ? "esta constancia" : "este comprobante"} o tu DNI.</p>
             <p>3. Si no las recoges a tiempo vuelven a la tienda y te devolvemos el 100% por {textoDevolucion(a)}, sin que tengas que venir.</p>
             <p>4. El precio queda congelado. Cambios y devoluciones: desde el día que recoges.</p>
+            {constancia && <p>5. Tu boleta o factura se emite cuando recoges tus prendas, por el total de la compra.</p>}
           </div>
         </>
       ) : (
         <>
-          <p className="rt-fila"><span>(−) Anticipo {a.comprobanteAnticipo}</span><span>−{money(a.adelanto)}</span></p>
-          {pagadoHoy ? (
+          {!constancia && <p className="rt-fila"><span>(−) Anticipo {a.comprobanteAnticipo}</span><span>−{money(a.adelanto)}</span></p>}
+          {constancia ? null : pagadoHoy ? (
             pagadoHoy.map((p, i) => (
               <p key={i} className="rt-fila"><span>Pagado hoy · {p.metodo}</span><span>{money(p.monto)}</span></p>
             ))
@@ -116,7 +122,11 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
           <p className="rt-fila rt-total"><span>APARTADO LIQUIDADO</span><span>{money(a.total)}</span></p>
         </>
       )}
-      <p className="rt-centro rt-lema">Comprobante electrónico registrado: su envío a SUNAT se completa después.</p>
+      <p className="rt-centro rt-lema">
+        {tipo === "anticipo" && constancia
+          ? "Esta constancia no es un comprobante de pago: tu boleta o factura se emite al recoger."
+          : "Comprobante electrónico registrado: su envío a SUNAT se completa después."}
+      </p>
     </div>
   );
   return typeof document === "undefined" ? null : createPortal(cuerpo, document.body);

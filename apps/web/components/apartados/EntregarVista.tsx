@@ -11,8 +11,9 @@ import { CampoMonto } from "@/components/ui/CampoMonto";
 import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { enviarVentaASunat } from "@/lib/envio-sunat";
 import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
-import { AVISO_EFECTIVO_SIN_MONEDA, cobroDelSaldo, coincide, diasEntre, encendida, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
+import { AVISO_EFECTIVO_SIN_MONEDA, cobroDelSaldo, coincide, diasEntre, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { BarraMovil, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal } from "@/components/apartados/ModalesApartado";
@@ -115,9 +116,9 @@ export function EntregarVista({
     if (!a || !cobro.listo || !cajaAbierta || !responsable.listo) return;
     setEnviando(true);
     // Con el redondeo del efectivo (ADR-0311) viaja el efectivo YA cobrado en monedas y, aparte, la fila `redondeo`: la suma sigue siendo el
-    // saldo exacto, que es lo que la boleta final documenta.
+    // saldo exacto. La boleta o factura sale por el TOTAL del apartado y no nombra el adelanto (ADR-0399).
     const pagosRpc = pagosParaRpcApartado(pagos, redondeoEfectivo);
-    const { error } = await firmar(
+    const { data: ventaId, error } = await firmar(
       createClient().rpc("entregar_separacion", {
         p_separacion_id: a.id,
         p_pagos: pagosRpc,
@@ -133,6 +134,9 @@ export function EntregarVista({
       return;
     }
     token.current = crypto.randomUUID();
+    // Como cualquier venta: la boleta o factura se declara a SUNAT en segundo plano; si Lucode no responde queda en la cola de reintento.
+    // Un apartado VIEJO (con su boleta de anticipo) no se envía solo: la ruta lo frena hasta que se pruebe el anticipo con Lucode.
+    if (esConstancia(a) && typeof ventaId === "string") enviarVentaASunat(ventaId);
     const pagadoHoy = pagosRpc.flatMap((p) => (p.metodo === "redondeo" ? [] : [{ metodo: NOMBRE_METODO[p.metodo] ?? p.metodo, monto: p.monto }]));
     const redondeo = pagosRpc.find((p) => p.metodo === "redondeo")?.monto ?? 0;
     setEntregado({ apartado: a, pagadoHoy, vuelto: cobro.vuelto, redondeo });
@@ -158,7 +162,7 @@ export function EntregarVista({
             elegir(null);
             setPagos([]);
           }}
-          placeholder="Nombre, DNI, celular o N.º de boleta"
+          placeholder="Nombre, DNI, celular o código APT-"
           etiqueta="Buscar apartado"
         />
 
@@ -176,7 +180,7 @@ export function EntregarVista({
               </div>
               <div className="text-right">
                 <EstadoChip {...estadoVisible(a, hoy)} />
-                <p className="mt-1 font-mono text-[11px] text-tinta/55">{a.codigo} · {a.comprobanteAnticipo}</p>
+                <p className="mt-1 font-mono text-[11px] text-tinta/55">{a.codigo}{a.comprobanteAnticipo ? ` · ${a.comprobanteAnticipo}` : ""}</p>
                 {conEstante && a.estante && (
                   <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-[11px]"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
                 )}
@@ -209,7 +213,7 @@ export function EntregarVista({
             <p className="flex items-start gap-2 rounded-xl border border-sand bg-crema px-3 py-2.5 text-[12.5px] text-tinta/80">
               <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
               <span>
-                Antes de entregar: la prenda está en {conEstante && a.estante ? <>el estante <b>{a.estante}</b></> : "«Apartados»"} con la etiqueta {a.codigo}, y el DNI o la boleta del cliente coinciden.
+                Antes de entregar: la prenda está en {conEstante && a.estante ? <>el estante <b>{a.estante}</b></> : "«Apartados»"} con la etiqueta {a.codigo}, y el DNI o la {esConstancia(a) ? "constancia" : "boleta"} del cliente coinciden.
               </span>
             </p>
           </article>
@@ -378,11 +382,13 @@ export function EntregarVista({
                 )}
                 <p className="flex items-start gap-1.5 text-xs text-tinta/60">
                   <Receipt className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {saldo > 0
-                    ? a.pagos.some((p) => p.abono)
-                      ? "Sale la boleta final por el saldo, que descuenta todos los anticipos (el del apartado y los abonos)."
-                      : `Sale la boleta final por el saldo, que descuenta el anticipo ${a.comprobanteAnticipo}.`
-                    : "Ya pagó todo: se entrega sin cobrar nada más."} No se piden datos otra vez.
+                  {esConstancia(a)
+                    ? `Sale la boleta o factura por el total (${money(a.total)}), sin nombrar el adelanto.${saldo > 0 ? "" : " Ya pagó todo: no se cobra nada más."}`
+                    : saldo > 0
+                      ? a.pagos.some((p) => p.abono)
+                        ? "Sale la boleta final por el saldo, que descuenta todos los anticipos (el del apartado y los abonos)."
+                        : `Sale la boleta final por el saldo, que descuenta el anticipo ${a.comprobanteAnticipo}.`
+                      : "Ya pagó todo: se entrega sin cobrar nada más."} No se piden datos otra vez.
                 </p>
               </div>
             </div>

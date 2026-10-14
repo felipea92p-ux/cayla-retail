@@ -106,6 +106,11 @@ export function tramosDelPlazo(creadaEl: string, hoy: string): TramoPlazo[] {
 
 export const soloDigitos = (s: string) => s.replace(/\D/g, "");
 
+/** ¿El apartado se hizo CON constancia (sin boleta de anticipo)? Es todo apartado nuevo (ADR-0399, Felipe 2026-10-14): el adelanto es un pacto
+ *  interno, la clienta se lleva el código APT-… como constancia y la boleta o factura sale una sola vez, al entregar, por el total. Un apartado
+ *  VIEJO, de antes, ya tiene su boleta de anticipo con el correlativo gastado: conserva su ticket y su texto de siempre. */
+export const esConstancia = (a: Pick<Apartado, "comprobanteAnticipo">): boolean => a.comprobanteAnticipo === null;
+
 /** Lo que se busca en «Entregar» y en «Todos»: código, nombre, DNI, celular o comprobante. */
 export function coincide(a: Apartado, texto: string): boolean {
   const t = texto.trim().toLowerCase();
