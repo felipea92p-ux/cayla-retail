@@ -146,6 +146,9 @@ export type ModeloProducible = {
   categoria: string | null;
   /** Para leer lo que el motor de demanda dice de su categoría (ADR-0347). */
   categoriaId: string | null;
+  /** Lo que su miniatura necesita cuando no hay foto (ADR-0333): el ícono sale del prefijo, nunca del nombre visible. Faltan en un modelo virtual (un borrador de «Modelo nuevo»). */
+  categoriaPrefijo?: string | null;
+  categoriaFamilia?: string | null;
   variantes: VarianteDeModelo[];
   /** Solo el líder (`conPreciosMasBajosDeModelos`): el precio propio más bajo de una tienda, si queda bajo la grilla (ADR-0370). */
   precioMasBajo?: PrecioMasBajo;
@@ -167,7 +170,7 @@ export async function getModelosProducibles(opciones: { soloProducibles?: boolea
       supabase
         .from("productos")
         .select(
-          `id, referencia, categoria_id, estado, estado_alta, es_prueba, categoria:categorias ( nombre ),
+          `id, referencia, categoria_id, estado, estado_alta, es_prueba, categoria:categorias ( nombre, prefijo, familia ),
            variantes ( id, sku, codigo, talla:tallas ( valor ), precio, activo, color:colores ( nombre, hex ) )`
         )
         .order("referencia")
@@ -186,6 +189,8 @@ export async function getModelosProducibles(opciones: { soloProducibles?: boolea
       referencia: p.referencia,
       categoria: p.categoria?.nombre ?? null,
       categoriaId: p.categoria_id ?? null,
+      categoriaPrefijo: p.categoria?.prefijo ?? null,
+      categoriaFamilia: p.categoria?.familia ?? null,
       variantes: (p.variantes ?? [])
         .filter((v) => v.activo)
         .map((v) => ({

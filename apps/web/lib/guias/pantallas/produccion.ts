@@ -161,30 +161,25 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Empiezas aquí cuando decides fabricar un modelo. Se abre una ventana para armar la corrida (te la abrimos para mostrarte sus partes, sin abrir ninguna orden).",
     },
     {
-      id: "tipo",
-      ancla: "prod-orden-nueva.tipo",
-      preparar: [{ tipo: "clic", ancla: "prod-ordenes.nueva" }],
-      titulo: "¿Producción o muestra?",
-      texto: "«Producción» fabrica el lote y, al cerrar, entra al stock del Taller. «Muestra» es para desarrollar un modelo: patrón y prototipo, sin stock.",
-    },
-    {
-      id: "modo",
-      ancla: "prod-orden-nueva.modo",
-      titulo: "¿Ya existe o es nuevo?",
-      texto: "«Ya existe» toma un modelo del catálogo. «Modelo nuevo» lo crea aquí mismo: su nombre, categoría, tallas, colores y precio, y entra al catálogo recién al abrir la orden.",
-    },
-    {
       id: "modelo",
       ancla: "prod-orden-nueva.modelo",
+      preparar: [{ tipo: "clic", ancla: "prod-ordenes.nueva" }],
+      titulo: "Primero, el modelo",
+      texto: "Busca el modelo que se va a fabricar. Si eres líder, arriba salen los que se están acabando. Elegido, «Cambiar» vuelve a la lista. ¿No existe? «Crear un modelo nuevo» lo arma aquí mismo, con su orden (te elegimos uno para mostrártelo).",
+      demostrar: [{ tipo: "clic", ancla: "prod-orden-nueva.modelo-fila" }],
+    },
+    {
+      id: "tipo",
+      ancla: "prod-orden-nueva.tipo",
       opcional: true,
-      titulo: "Qué modelo",
-      texto: "Elige el modelo del catálogo que se va a fabricar. Al cambiarlo, la tabla de tallas y colores de abajo se arma con las suyas.",
+      titulo: "¿Lote o muestra?",
+      texto: "Se elige solo: un modelo que ya existe se fabrica como «Lote de producción» y, al cerrar, entra al stock del Taller; uno nuevo arranca como «Muestra», para desarrollarlo (patrón y prototipo) sin stock. Si hace falta, lo cambias aquí.",
     },
     {
       id: "matriz",
       ancla: "prod-orden-nueva.matriz",
       titulo: "Cuántas por talla y color",
-      texto: "Escribe cuántas prendas de cada talla en cada color. El número gris es lo que sugiere la red; una raya es una talla que ese color no tiene. Si falta una talla o un color, se agrega en Productos, no aquí.",
+      texto: "Escribe cuántas prendas van de cada talla y color: Enter baja a la celda siguiente y «Llenar todas con» repite un número en toda la tabla. El número gris es lo que sugiere la red. En un modelo nuevo, «+ Agregar color» suma una fila. Una raya (—) es una combinación que el modelo no tiene.",
     },
     {
       id: "red",
@@ -231,8 +226,8 @@ export const GUIA_PROD_ORDENES: Guia = {
     {
       id: "resumen",
       ancla: "prod-orden-nueva.resumen",
-      titulo: "Costo por prenda",
-      texto: "Se calcula solo: el costo de la corrida entre las prendas. Por ejemplo, 12 prendas con S/ 240 de costo salen a S/ 20 cada una. Si el modelo tiene precio, también ves a cuánto se vende y el margen que queda.",
+      titulo: "La orden, tal como va quedando",
+      texto: "A la derecha ves la orden mientras la armas: la prenda, cuántas son, a cuánto se vende, el costo y el margen que queda, y la fecha. El costo por prenda se calcula solo: 12 prendas con S/ 240 de costo salen a S/ 20 cada una.",
     },
     {
       id: "entrega",
@@ -244,7 +239,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "cierre",
       ancla: "prod-orden-nueva.cierre",
       titulo: "Quién la abre",
-      texto: "Eliges quién abre la orden y tocas «Abrir orden»: recién ahí aparece en el tablero, en «Por cortar». En la demo no la abrimos: cerramos la ventana sin guardar nada.",
+      texto: "Debajo de la ficha te dice qué falta; eliges quién abre la orden y tocas «Abrir orden»: recién ahí aparece en el tablero, en «Por cortar». En la demo no la abrimos: cerramos la ventana sin guardar nada.",
     },
     {
       id: "fin",

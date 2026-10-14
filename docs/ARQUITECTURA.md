@@ -856,6 +856,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`ProductoCreado.tsx`) ofrece «Abrir la orden» → `/produccion/ordenes?nueva=<producto>&tipo=…`. Los enlaces de ida y vuelta son puros: `lib/modelo-nuevo-orden-reglas.ts`.
   Es el camino de la **alta completa** (con fotos, tejido y patrón); el modelo que el Taller necesita de inmediato se crea dentro de «Nueva orden ▸ Modelo nuevo»
   (`abrir_produccion_con_modelo_nuevo`, ADR-0361 segunda parte) y nace `pendiente` si quien lo crea no edita el catálogo.
+  **«Nueva orden» abre con el modelo (ADR-0396, A1, 2026-10-13):** `components/orden-produccion/ElegirModelo.tsx` (buscador con `Buscador`, la prenda de cada modelo, «Se están acabando»
+  para el líder y «Crear un modelo nuevo» fija al pie) y su tarjeta; las reglas puras —lista, tipo deducido, «se acaba en N días» con la MISMA regla del Resumen
+  (`filasPorModelo`) y órdenes abiertas/recientes— viven en `lib/orden-modelo-reglas.ts`. `OrdenesTablero` le pasa a la hoja las órdenes abiertas y recientes; `getModelosProducibles`
+  trae ahora el prefijo y la familia de la categoría para la prenda sin foto (ADR-0333).
   **Quién firma (ADR-0285):** un solo combo «Responsable», el recuadro `QuienRegistra` arriba de los pasos
   (`components/alta-producto/IdentidadAlta.tsx`); esa identidad firma la prenda y los guardados de mitad de formulario (marca,
   talla, tejido, color, etiqueta, muestra, valor, categoría) vía `useFirmaDeMitad` (reglas puras en `lib/identidad-alta-reglas.ts`).
@@ -946,7 +950,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `NuevaOrdenProduccionForm.tsx` (RPC `abrir_produccion` con `p_token`; con el selector «Ya existe / Modelo nuevo» y la opción «Modelo nuevo» llama en cambio a
   `abrir_produccion_con_modelo_nuevo`, que crea el modelo, sus variantes y la orden en una transacción con el mismo `p_token`, ADR-0361: reglas puras en
   `lib/modelo-nuevo-reglas.ts`, campos en `ModeloNuevoCampos.tsx`, tallas y colores desde `getVocabularioModeloNuevo` en `lib/produccion.ts`; el enlace a
-  `/productos/nuevo?desde=produccion` queda como alta completa, y `?nueva=<producto>&tipo=muestra|produccion` abre la orden con ese modelo y ese tipo). Entra el
+  `/productos/nuevo?desde=produccion` queda como alta completa, y `?nueva=<producto>&tipo=muestra|produccion` abre la orden con ese modelo y ese tipo). **Desde ADR-0396 (A1–A2)
+  la hoja abre con el modelo (`components/orden-produccion/ElegirModelo.tsx`, reglas en `lib/orden-modelo-reglas.ts`) y las cantidades se escriben en la MISMA tabla de Nuevo producto
+  (`components/alta-producto/MatrizCantidades.tsx` con `soloCantidades`; puente puro `lib/orden-tabla-reglas.ts`; los colores de un modelo nuevo son filas de esa tabla y
+  `components/orden-produccion/AgregarColor.tsx` suma una; lo que viaja a las RPC no cambia, lo fija `lib/orden-carga-util.test.ts`). **A3:** la hoja mide 1080 px y su `<form>` es una rejilla de dos paneles; a la derecha, la ficha fija `components/orden-produccion/FichaOrden.tsx` (presentacional; textos en `lib/orden-ficha-reglas.ts`) con lo que cierra la orden debajo.** Entra el
   cualquier persona —líder o integrante— parada en una ubicación con `ubicacionTipo === "taller"` (`puedeVerProduccion`, en `lib/menu.ts` y re-exportada por `lib/produccion-menu.ts`;
   un líder que llega desde otra ubicación ve un aviso, ADR-0133 nota 2026-09-20).
 - `/ordenes-insumos` («Órdenes de insumos», ADR-0362 fase 7, decisión 47; módulo `ordenes_insumos`: basta el módulo, NO pide el de
