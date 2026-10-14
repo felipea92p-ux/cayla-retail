@@ -1,7 +1,7 @@
 ## 🗓️ Vercel: sin vistas previas, el CI compila la web (2026-10-14) — solo CI y ajuste de Vercel, sin migración; rama `claude/build-cpu-minutes-billing-1a79fb`
 
 - [x] **Job `Compila la web` en `ci.yml`** + salida `compilar` en `scripts/ci/alcance.mjs` (ADR-0407). Pruebas en `scripts/ci/alcance.test.mjs`. Medido en un runner: `next build` 92 s.
-- [ ] **Apagar «Preview Deployments» en el proyecto `cayla-retail` de Vercel** (PATCH `previewDeploymentsDisabled: true`), después de ver `Compila la web` en verde en el PR. Verificar con `vercel api /v9/projects/cayla-retail?slug=cayla`.
+- [x] **Apagar «Preview Deployments» en el proyecto `cayla-retail` de Vercel** (PATCH `previewDeploymentsDisabled: true`), después de ver `Compila la web` en verde en el PR. Verificar con `vercel api /v9/projects/cayla-retail?slug=cayla`. — hecho el 2026-10-14 (`previewDeploymentsDisabled: true`, verificado); `Compila la web` corrió verde en el PR #1084 (98 s).
 - [ ] **Decidir (Felipe): ¿`Compila la web` pasa a ser check obligatorio de `main-protegida`?** Ganas: un build roto no se fusiona. Pagas: un cambio del ruleset, y un runner caído o un build flojo detiene todos los PR de web. Hoy avisa y no bloquea, igual que la vista previa.
 - [ ] **Producciones que no cambian la web:** 198 de 1.011 fusiones a `main` desde el 14-sep no tocaron `apps/web` ni `packages` y aun así reconstruyeron producción (~290 min, ~5 % de la factura). Se arregla ampliando `scripts/ci/vercel-ignorar.mjs` para saltar también producción cuando el cambio no toca la web. PR aparte y con cuidado: un error ahí dejaría código sin publicar.
 - [ ] **Revisar la factura a fin de mes** (`Build CPU Minutes` de octubre contra los US$ 148): la cifra de ahorro es proporcional, no leída de la factura.
