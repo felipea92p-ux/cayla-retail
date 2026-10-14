@@ -159,7 +159,7 @@ export function NuevaProformaModal({
   const titulo = !inicial ? "Nueva proforma" : inicial.vencida ? `Renovar ${numeroDeProforma(inicial.numero)}` : `Copia de ${numeroDeProforma(inicial.numero)}`;
 
   return (
-    <Modal titulo={titulo} subtitulo={inicial ? "Con los precios de hoy. Revisa y guarda como una proforma nueva." : undefined} ancho="max-w-3xl" onClose={onCerrar}>
+    <Modal titulo={titulo} subtitulo={inicial ? "Con los precios de hoy. Revisa y guarda como una proforma nueva." : undefined} tamano="ancha" onClose={onCerrar}>
       {(cerrar) => (
         <form onSubmit={onCrear} className="mt-5 space-y-4">
           {noCopiadas.length > 0 && (

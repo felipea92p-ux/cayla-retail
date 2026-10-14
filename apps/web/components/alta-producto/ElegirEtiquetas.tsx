@@ -137,7 +137,7 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
       {hoja && (
         <Modal
           variante="hoja"
-          ancho="max-w-[680px]"
+          tamano="ancha"
           titulo="Elige las etiquetas"
           subtitulo={`${total} en el catálogo.`}
           onClose={() => setHoja(false)}
@@ -454,7 +454,7 @@ function NuevaEtiquetaModal({
           ? FRASE_ETIQUETA_INVALIDA
           : null;
   return (
-    <Modal variante="hoja" ancho="max-w-md" titulo="Nueva etiqueta" subtitulo="Escribe cómo se va a llamar." onClose={onCerrar}>
+    <Modal variante="hoja" titulo="Nueva etiqueta" subtitulo="Escribe cómo se va a llamar." onClose={onCerrar}>
       {(cerrar) => (
         <div className="space-y-3">
           <CampoTexto

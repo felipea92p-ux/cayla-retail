@@ -74,7 +74,7 @@ export function PagosSinCuentaModal({ onClose, filasIniciales }: { onClose: () =
       titulo="Decir de qué cuenta fue"
       subtitulo="Lo que se guardó antes de que cada pago dijera su cuenta. Se dice una sola vez: no crea salidas de caja ni toca cierres ya hechos."
       onClose={onClose}
-      ancho="max-w-[680px]"
+      tamano="ancha"
     >
       {filas === null ? (
         <p className="fin-ayuda">Buscando…</p>

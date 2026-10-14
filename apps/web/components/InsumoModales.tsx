@@ -81,7 +81,7 @@ export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal titulo="Nuevo insumo" subtitulo="Tela o avío que el Taller compra" onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Nuevo insumo" subtitulo="Tela o avío que el Taller compra" onClose={onClose}>
       <form onSubmit={guardar} className="space-y-4">
         <div data-guia="prod-insumo-nuevo.tipo" className="grid grid-cols-2 gap-3">
           <CampoSelect etiqueta="Tipo" valor={tipo} onValor={(v) => cambiarTipo(v)} opciones={TIPOS_INSUMO.map((t) => ({ valor: t.valor, texto: t.etiqueta }))} />
@@ -177,7 +177,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
   }
 
   return (
-    <Modal titulo="Ingresar insumo" subtitulo="Cada ingreso abre un lote con su propio costo" onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Ingresar insumo" subtitulo="Cada ingreso abre un lote con su propio costo" onClose={onClose}>
       <form onSubmit={guardar} className="space-y-4">
         <CampoSelect
           etiqueta="¿Qué llegó?"

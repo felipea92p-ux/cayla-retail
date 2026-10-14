@@ -122,7 +122,7 @@ export function ElegirTallas({ deLaCategoria, universo, elegidas, onElegidas, ha
       {hoja && (
         <Modal
           variante="hoja"
-          ancho="max-w-[680px]"
+          tamano="ancha"
           titulo="Agrega otra talla"
           subtitulo={`${todas.length} tallas en el catálogo. Las que elijas se suman a esta prenda.`}
           onClose={() => setHoja(false)}

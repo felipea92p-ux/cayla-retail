@@ -225,7 +225,7 @@ export function AsignarRolModal({
     <Modal
       titulo={cuentaFija ? `Rol de ${cuentaFija.nombre}` : `Asignar «${rolFijo?.nombre ?? ""}»`}
       subtitulo="Una cuenta tiene un solo rol. El cambio se aplica en su próxima pantalla: el menú y lo que puede hacer salen de su rol."
-      ancho="max-w-lg"
+      tamano="mediana"
       onClose={onClose}
     >
       {(cerrar) => (

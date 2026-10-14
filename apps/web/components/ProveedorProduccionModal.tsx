@@ -137,7 +137,7 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
   }
 
   return (
-    <Modal titulo={esAlta ? "Nuevo proveedor" : proveedor.nombre} subtitulo={esAlta ? "Quien le vende tela, avíos o maquila al Taller" : "Proveedor de Producción"} onClose={onClose} ancho="max-w-xl">
+    <Modal titulo={esAlta ? "Nuevo proveedor" : proveedor.nombre} subtitulo={esAlta ? "Quien le vende tela, avíos o maquila al Taller" : "Proveedor de Producción"} onClose={onClose} tamano="mediana">
       <form onSubmit={guardar} className="space-y-5">
         <div data-guia="prod-proveedor-modal.nombre">
         <CampoTexto etiqueta="Nombre o razón social" placeholder="Textiles Gamarra SAC" value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus={esAlta} />

@@ -16,7 +16,7 @@ export default async function OrdenCompraModal({ params }: { params: Promise<{ i
 
   if (falla || !detalle) {
     return (
-      <ModalRuta titulo={falla ? "No se pudo leer la orden" : "No encontramos esa orden"} ancho="max-w-sm">
+      <ModalRuta titulo={falla ? "No se pudo leer la orden" : "No encontramos esa orden"} tamano="angosta">
         <p className="text-sm text-tinta/75">{falla ?? "El enlace no corresponde a ninguna orden de compra."}</p>
       </ModalRuta>
     );

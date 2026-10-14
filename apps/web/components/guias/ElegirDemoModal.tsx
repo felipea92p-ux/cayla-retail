@@ -36,10 +36,11 @@ export function ElegirDemoModal({ filas, onClose }: { filas: readonly FilaMenu[]
 
   return (
     <Modal
+      conCerrar
       titulo="Demo del sistema"
       subtitulo={`Elige qué quieres ver y te lo mostramos paso a paso, en la pantalla de verdad. No se guarda nada.${conGuia === 0 ? "" : ` ${conGuia === 1 ? "1 demo" : `${conGuia} demos`} en tu menú.`}`}
       variante="hoja"
-      ancho="max-w-lg"
+      tamano="mediana"
       onClose={onClose}
     >
       {(cerrar) => (

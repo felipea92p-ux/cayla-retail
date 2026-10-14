@@ -40,7 +40,7 @@
       "button «Reintentar»",
       "button «(sin nombre)»",
       "Casilla «{`Unir «${s.venta.descripcion}»",
-      "Boton «{sugerencias.length > 0 ? \"Cancelar\" : \"Cerrar\"}»",
+      "Boton «Cancelar»",
       "Boton «→() => void confirmar()»"
     ],
     "components/por-regularizar/FranjaAvance.tsx": [

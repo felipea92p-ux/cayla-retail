@@ -80,7 +80,7 @@ export function ComprobanteProduccionDetalle({ comprobante: c, hoy, tallerId, on
   }
 
   return (
-    <Modal titulo={`${etiquetaTipo(c.tipo)} ${c.serie}-${c.numero}`} subtitulo={c.proveedor} onClose={onClose} ancho="max-w-xl">
+    <Modal conCerrar titulo={`${etiquetaTipo(c.tipo)} ${c.serie}-${c.numero}`} subtitulo={c.proveedor} onClose={onClose} tamano="mediana">
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
           <Chip tono={estado.tono}>{estado.texto}</Chip>

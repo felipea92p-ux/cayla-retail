@@ -137,7 +137,7 @@ export function EditarCampanaModal({
       antesDeCerrar={salida.pedirAccion}
       bloqueado={trabajando}
       variante="hoja"
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) => (
         <form

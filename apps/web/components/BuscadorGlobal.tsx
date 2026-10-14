@@ -167,7 +167,7 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
           subtitulo={mostrarEquipo ? "Pantallas del menú y quién está de turno ahora." : "Pantallas del menú."}
           onClose={cerrar}
           variante="papel"
-          ancho="sm:max-w-xl"
+          tamano="mediana"
         >
           <div className="relative mb-4">
             <svg

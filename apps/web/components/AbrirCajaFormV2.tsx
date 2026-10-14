@@ -13,6 +13,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { diferenciaApertura, leerMonto, motivoAperturaValido } from "@/lib/caja-cierre-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { Boton } from "@/components/ui/campos";
 
 function money(n: number) {
   return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -33,11 +34,14 @@ export function AbrirCajaFormV2({
   ubicacionEtiqueta,
   esperado,
   enHoja = false,
+  onCancelar,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
   esperado: number | null;
   enHoja?: boolean;
+  /** Dentro de la hoja de Vender: «Cancelar» antes de «Abrir caja», la salida a la vista de toda hoja que guarda (ADR-0358, ronda 12). */
+  onCancelar?: () => void;
 }) {
   const router = useRouter();
   const [opcion, setOpcion] = useState<"igual" | "otro" | null>(esperado === null ? "otro" : null);
@@ -168,14 +172,25 @@ export function AbrirCajaFormV2({
       )}
 
       <ComboResponsable control={responsable} deshabilitado={loading} />
-      <button
-        type="submit"
-        disabled={loading || !listo || !responsable.listo}
-        title={responsable.motivo ?? undefined}
-        className={`${botonPrimario} w-full`}
-      >
-        {loading ? "Abriendo…" : monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
-      </button>
+      {enHoja && onCancelar ? (
+        <div className="pie-acciones">
+          <Boton type="button" onClick={onCancelar} disabled={loading}>
+            Cancelar
+          </Boton>
+          <button type="submit" disabled={loading || !listo || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
+            {loading ? "Abriendo…" : monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="submit"
+          disabled={loading || !listo || !responsable.listo}
+          title={responsable.motivo ?? undefined}
+          className={`${botonPrimario} w-full`}
+        >
+          {loading ? "Abriendo…" : monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
+        </button>
+      )}
     </form>
   );
 }

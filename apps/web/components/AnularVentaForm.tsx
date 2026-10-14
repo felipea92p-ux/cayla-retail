@@ -141,7 +141,6 @@ export function AnularVentaForm({
       titulo="Anular venta"
       subtitulo={`${linea.referencia} ${codigoPrenda(linea)} — esto anula la venta completa, no solo esta línea`}
       onClose={onClose}
-      ancho="max-w-md"
     >
       {(cerrar) => (
         <form onSubmit={onSubmit} className="space-y-4">

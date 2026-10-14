@@ -168,7 +168,7 @@ function CierreCargaInicialModal({ sede, hoy, esLider, esAdmin, onClose }: { sed
   const aviso = avisoCargaInicial({ sede: sede.nombre, hasta: sede.hasta, hoy });
 
   return (
-    <Modal variante="hoja" titulo="Cierre de la carga inicial" subtitulo={sede.nombre} onClose={onClose} ancho="max-w-[480px]" bloqueado={enviando}>
+    <Modal variante="hoja" titulo="Cierre de la carga inicial" subtitulo={sede.nombre} onClose={onClose} bloqueado={enviando}>
       <form onSubmit={guardar} className="space-y-4" noValidate>
         <p className="text-[13px] text-taupe">{aviso ?? `${sede.nombre} todavía no tiene fecha: la carga inicial sigue abierta.`}</p>
 

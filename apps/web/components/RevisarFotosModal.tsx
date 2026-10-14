@@ -179,7 +179,7 @@ export function RevisarFotosModal({
     <Modal
       titulo={titulo}
       subtitulo="Todas quedan del mismo tamaño, sobre blanco. Elige en cada una si va sin fondo o con su fondo, y si la luz va corregida."
-      ancho="max-w-5xl"
+      ancho="max-w-5xl" /* unificar-fijo: la cuadrícula de fotos de cada color se revisa grande: es de diseño propio */
       bloqueado={guardando}
       onClose={onClose}
     >

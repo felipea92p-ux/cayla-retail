@@ -151,7 +151,7 @@ export function ComprobanteProduccionForm({
   }
 
   return (
-    <Modal titulo="Nueva factura de insumos" subtitulo="La factura de quien le vende al Taller" onClose={onClose} ancho="max-w-2xl">
+    <Modal titulo="Nueva factura de insumos" subtitulo="La factura de quien le vende al Taller" onClose={onClose} tamano="ancha">
       <form onSubmit={guardar} className="space-y-5">
         <div data-guia="prod-factura-nueva.proveedor">
         <CampoSelect

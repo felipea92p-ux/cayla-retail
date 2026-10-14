@@ -86,7 +86,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
       titulo={prenda.referencia}
       subtitulo={`${prenda.categoria ?? "Sin categoría"} · ${resumenDePrenda(prenda)} · ${ubicacionEtiqueta}`}
       variante="hoja"
-      ancho="max-w-3xl"
+      tamano="ancha"
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
       // El foco inicial en la hoja, no en el primer control (Formidable 2026-10-10): Radix enfocaba el primer círculo de «Combina bien

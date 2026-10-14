@@ -133,7 +133,7 @@ export function DetalleVentaModal({
       titulo="Detalle de la venta"
       subtitulo={ubicacionNombre}
       onClose={onClose}
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) => {
         if (carga.fase === "cargando")

@@ -90,7 +90,7 @@ export function DarAccesoModal({
     <Modal
       titulo="Dar acceso"
       subtitulo={soyLider ? "Entra en cuanto confirmes." : "Queda esperando el ok de un líder."}
-      ancho="max-w-xl"
+      tamano="mediana"
       variante="hoja"
       onClose={onClose}
     >

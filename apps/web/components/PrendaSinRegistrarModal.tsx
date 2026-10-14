@@ -257,7 +257,7 @@ export function PrendaSinRegistrarModal({
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
       variante="hoja"
-      ancho="max-w-4xl"
+      ancho="max-w-4xl" /* unificar-fijo: la mesa de Ventas sin registrar es de diseño propio (ADR-0360) */
       bloqueado={corregir?.guardando ?? false}
       // Al corregir todo viene lleno: el foco va a la hoja y ninguna lista se abre sola (en Vender sí: se empieza por la categoría).
       focoEnLaHoja={Boolean(corregir)}

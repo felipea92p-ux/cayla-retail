@@ -61,7 +61,7 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
   }
 
   return (
-    <Modal titulo="Recibir mercadería" subtitulo={`${c.proveedor} · ${etiquetaTipo(c.tipo, true)} ${c.documento} · ${diaMes(c.fechaEmision)}`} onClose={onClose} ancho="max-w-xl">
+    <Modal titulo="Recibir mercadería" subtitulo={`${c.proveedor} · ${etiquetaTipo(c.tipo, true)} ${c.documento} · ${diaMes(c.fechaEmision)}`} onClose={onClose} tamano="mediana">
       <form onSubmit={recibir} className="space-y-4">
         <ul className="space-y-3">
           {c.pendientes.map((l) => {

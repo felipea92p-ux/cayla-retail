@@ -125,7 +125,6 @@ export function PedirYApartarModal({
       titulo="Pedir y apartar para el cliente"
       subtitulo={[referencia, color].filter(Boolean).join(" · ")}
       onClose={onClose}
-      ancho="max-w-md"
       bloqueado={enviando}
       alCerrarEnfocar={alCerrarEnfocar}
     >

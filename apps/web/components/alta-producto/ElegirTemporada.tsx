@@ -53,7 +53,7 @@ export function ElegirTemporada({ temporadas, clave, onElegir }: Props) {
       </GrillaMuestras>
 
       {hoja && (
-        <Modal variante="hoja" ancho="max-w-[680px]" titulo="Elige la temporada" subtitulo={`${temporadas.length} temporadas en el catálogo.`} onClose={() => setHoja(false)}>
+        <Modal variante="hoja" tamano="ancha" titulo="Elige la temporada" subtitulo={`${temporadas.length} temporadas en el catálogo.`} onClose={() => setHoja(false)}>
           {(cerrar) => (
             <GrillaMuestras>
               {lista.map((t) => (

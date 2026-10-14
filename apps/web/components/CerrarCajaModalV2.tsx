@@ -336,7 +336,7 @@ export function CerrarCajaModalV2({
           : "Escribe cuánto vas a trasladar. Lo que no traslades se queda en el cajón para el próximo turno."
       }
       onClose={onClose}
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) =>
         paso === "contar" ? (

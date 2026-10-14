@@ -240,9 +240,8 @@ export function VistaRapidaProducto({
         )
       }
       onClose={onClose}
-      ancho="max-w-4xl"
+      ancho="max-w-4xl" /* unificar-fijo: la vista rápida de un producto es de diseño propio (ADR-0136 act. 2026-10-05) */
       conCerrar
-      tituloGrande
     >
       {pagina === "historial" ? (
         <div className={paso}>

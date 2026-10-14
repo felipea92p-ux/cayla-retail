@@ -49,7 +49,7 @@ export function BeneficiosClubModal({
       subtitulo="El cupón de cumpleaños y el vale de aniversario de cada miembro, para las 3 tiendas."
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) =>
         lectura.valores ? (

@@ -170,7 +170,7 @@ function ReasignarRepartoModal({
         </>
       }
       subtitulo={`Comprobante ${compra.documento} · ${compra.proveedorNombre}`}
-      ancho="max-w-xl"
+      tamano="mediana"
       onClose={onClose}
     >
       {() =>

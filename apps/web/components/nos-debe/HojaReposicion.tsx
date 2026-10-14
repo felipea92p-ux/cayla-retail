@@ -132,7 +132,7 @@ function HojaReposicion({
   }
 
   return (
-    <Modal titulo="Llegó la reposición" subtitulo={`${proveedorNombre} · ${nombreDeDeuda(deuda)}`} bloqueado={guardando} onClose={onCerrar} alCerrarEnfocar={volverA} ancho="max-w-md">
+    <Modal titulo="Llegó la reposición" subtitulo={`${proveedorNombre} · ${nombreDeDeuda(deuda)}`} bloqueado={guardando} onClose={onCerrar} alCerrarEnfocar={volverA}>
       {(cerrar) => (
         <form
           // La demo (ADR-0389) abre esta hoja para mostrarla y la cierra sin anotar nada.

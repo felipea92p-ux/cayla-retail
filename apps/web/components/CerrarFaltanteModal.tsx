@@ -91,7 +91,7 @@ export function CerrarFaltanteModal({
         </>
       }
       subtitulo={`Comprobante ${compra.documento} · ${compra.proveedorNombre}`}
-      ancho="max-w-xl"
+      tamano="mediana"
       onClose={onClose}
     >
       {() => (

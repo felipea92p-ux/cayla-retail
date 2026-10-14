@@ -312,7 +312,7 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
       titulo={titulo}
       subtitulo={`Desde ahora nadie podrá registrar ni cambiar gastos, facturas, pagos ni movimientos ${deUnidad(unidad)} con fecha de ese mes. Se guarda el diario con su huella.`}
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       {avisos.length > 0 && (
         <div className="nota-cayla mb-4">
@@ -350,7 +350,7 @@ function CerrarConsolidadoModal({ mes, onCerrar }: { mes: string; onCerrar: () =
       titulo={`Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} de CAYLA entera`}
       subtitulo="Todas las unidades ya cerraron. El consolidado queda congelado con su huella y es el que se le entrega al contador."
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       <ComboResponsable control={responsable} deshabilitado={guardando} />
       <div className="fin-botones mt-4">
@@ -387,7 +387,7 @@ function ReabrirModal({ mes, unidad, onCerrar }: { mes: string; unidad: Unidad; 
       titulo={`Reabrir ${nombreMes(mes)} ${mes.slice(0, 4)} ${deUnidadLarga(unidad)}`}
       subtitulo="Los números de ese mes pueden volver a cambiar. Queda en la historia quién, cuándo y por qué; CAYLA entera también se reabre."
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       <CampoFin etiqueta="Motivo (obligatorio)" htmlFor="reabrir-motivo" ayuda={tocado && error ? error : undefined} tono={tocado && error ? "aviso" : undefined}>
         <InputFin id="reabrir-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder={`Ej. llegó una factura de ${nombreMes(mes)} tarde`} />

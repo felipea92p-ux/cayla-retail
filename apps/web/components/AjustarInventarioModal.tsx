@@ -438,7 +438,6 @@ export function AjustarInventarioModal({
       subtitulo="Corrige lo que hay de cada talla"
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
-      ancho="max-w-md"
       bloqueado={enviando}
       lateral={prenda && prenda.fotoUrl !== undefined ? <FotoDePrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} {...categoriaDe(prenda)} /> : undefined}
     >

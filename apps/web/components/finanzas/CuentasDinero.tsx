@@ -883,7 +883,7 @@ function RegistrarMovimientoModal({
   const conSaldo = (c: CuentaDinero) => (c.saldo === null ? c.nombre : `${c.nombre} · ${solesRedondo(c.saldo)}`);
 
   return (
-    <Modal variante="hoja" titulo="Registrar movimiento" subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} ancho="max-w-[580px]">
+    <Modal variante="hoja" titulo="Registrar movimiento" subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Qué pasó" htmlFor="mov-que" guia="fin-dinero.mov-que">
         <SelectFin<QuePaso> id="mov-que" valor={b.que} onValor={elegirQue} opciones={opciones} />
       </CampoFin>
@@ -1069,7 +1069,7 @@ function MovimientoDetalleModal({ movimiento: m, onCerrar }: { movimiento: Movim
       titulo={TEXTO_MOVIMIENTO[m.tipo]}
       subtitulo={[fechaCorta(m.fecha, true), m.referencia].filter(Boolean).join(" · ")}
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       <ListaDatos
         guia="fin-dinero.movimiento-detalle"
@@ -1135,7 +1135,7 @@ function AnularModal({
   }
 
   return (
-    <Modal variante="hoja" titulo={titulo} subtitulo={subtitulo} onClose={onCerrar} ancho="max-w-[520px]">
+    <Modal variante="hoja" titulo={titulo} subtitulo={subtitulo} onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Motivo" htmlFor="anular-motivo">
         <InputFin id="anular-motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Ej. se registró dos veces" />
       </CampoFin>

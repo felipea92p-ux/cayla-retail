@@ -97,7 +97,7 @@ export function DetalleCampanaHistorial({
   const maxDia = Math.max(1, ...(detalle?.dias ?? []).map((d) => d.soles), detalle?.diaNormal ?? 0);
 
   return (
-    <Modal titulo={`${campana.nombre} ${anio}`} subtitulo={`Del ${fechaCortaES(campana.desde)} al ${fechaCortaES(campana.hasta)}: día a día y la misma campaña en cada año.`} onClose={onClose} variante="hoja" ancho="max-w-2xl" conCerrar>
+    <Modal titulo={`${campana.nombre} ${anio}`} subtitulo={`Del ${fechaCortaES(campana.desde)} al ${fechaCortaES(campana.hasta)}: día a día y la misma campaña en cada año.`} onClose={onClose} variante="hoja" tamano="ancha" conCerrar>
       <div className="space-y-6">
         {historial.tiendas.length > 1 && (
           <div role="group" aria-label="Tienda" className="flex flex-wrap gap-2">

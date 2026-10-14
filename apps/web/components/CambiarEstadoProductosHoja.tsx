@@ -67,7 +67,7 @@ export function CambiarEstadoProductosHoja({
   }
 
   return (
-    <Modal variante="hoja" ancho="max-w-lg" bloqueado={guardando} titulo={textos.titulo} subtitulo={textos.subtitulo} onClose={onClose}>
+    <Modal variante="hoja" tamano="mediana" bloqueado={guardando} titulo={textos.titulo} subtitulo={textos.subtitulo} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <ul className="max-h-60 divide-y divide-sand overflow-y-auto border-y border-sand">

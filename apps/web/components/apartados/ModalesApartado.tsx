@@ -115,7 +115,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
     new Date(`${a.venceEl}T12:00:00Z`).toLocaleDateString("es-PE", { weekday: "short", timeZone: "UTC" }).replace(".", ""),
   ];
   return (
-    <Modal titulo="Apartado registrado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Apartado registrado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-5 text-center">
@@ -204,7 +204,7 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
   // Un apartado nuevo imprime LA boleta o factura de siempre (con su QR y su número); uno viejo, su ticket de antes (ADR-0399).
   const recibo = useReciboDeApartado(a, sede, redondeo, esConstancia(a));
   return (
-    <Modal titulo="Apartado entregado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Apartado entregado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-5 text-center">
@@ -253,7 +253,7 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
   const numero = cual === "final" ? a.comprobanteFinal : constancia ? a.codigo : a.comprobanteAnticipo;
   useTituloDeImpresion(`${a.codigo}${cual === "final" ? "-final" : ""}`);
   return (
-    <Modal titulo="Reimprimir ticket" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-sm" conCerrar>
+    <Modal titulo="Reimprimir ticket" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} conCerrar>
       {() => (
         <div className="space-y-4">
           {conFinal && (
@@ -387,7 +387,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
 
   const medios: MedioDevolucionReal[] = ["yape", "plin", "transferencia", "efectivo", "tarjeta"];
   return (
-    <Modal titulo="Devolver el adelanto" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`} onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Devolver el adelanto" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-4 text-center">
@@ -565,7 +565,7 @@ export function RecordarModal({
         if (hechas.size) router.refresh();
         onClose();
       }}
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) => (
         <div className="space-y-4">
@@ -695,7 +695,7 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
   }
 
   return (
-    <Modal titulo="Abonar a cuenta" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la prenda sigue guardada`} onClose={onClose} ancho="max-w-md" bloqueado={enviando || envio.incierto}>
+    <Modal titulo="Abonar a cuenta" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la prenda sigue guardada`} onClose={onClose} bloqueado={enviando || envio.incierto}>
       {(cerrar) => (
         <div className="space-y-4">
           {/* En duda, nada se toca: otro monto reenviado podría cobrar el abono dos veces. */}
@@ -874,7 +874,7 @@ export function EditarApartadoModal({
   }
 
   return (
-    <Modal titulo="Editar prendas del apartado" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la fecha límite no cambia`} onClose={onClose} ancho="max-w-xl" bloqueado={enviando || envio.incierto}>
+    <Modal titulo="Editar prendas del apartado" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la fecha límite no cambia`} onClose={onClose} tamano="mediana" bloqueado={enviando || envio.incierto}>
       {(cerrar) => (
         <div className="space-y-4">
           {/* En duda, nada se toca: otra edición reenviada podría mover prendas dos veces. */}
@@ -1012,7 +1012,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
   }
 
   return (
-    <Modal titulo="Opciones de Apartados" subtitulo={`${ubicacion.etiqueta} · elige un punto de partida y ajusta función por función`} onClose={onClose} ancho="max-w-lg">
+    <Modal titulo="Opciones de Apartados" subtitulo={`${ubicacion.etiqueta} · elige un punto de partida y ajusta función por función`} onClose={onClose} tamano="mediana">
       {(cerrar) => (
         <div className="space-y-4">
           <div className="grid gap-2" role="radiogroup" aria-label="Punto de partida">
@@ -1122,7 +1122,7 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
   }
 
   return (
-    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={paraQuienPedido(pedido)} onClose={onClose} ancho="max-w-md" bloqueado={enviando || envio.incierto}>
+    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={paraQuienPedido(pedido)} onClose={onClose} bloqueado={enviando || envio.incierto}>
       {(cerrar) => (
         <div className="space-y-4">
           {/* En duda, nada se toca: otra fecha reenviada podría armar dos traslados. */}

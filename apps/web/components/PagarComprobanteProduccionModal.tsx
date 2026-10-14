@@ -62,7 +62,7 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
   }
 
   return (
-    <Modal titulo="Pagar comprobante" subtitulo={`${c.proveedor} · ${etiquetaTipo(c.tipo, true)} ${c.serie}-${c.numero}`} onClose={onClose} ancho="max-w-lg">
+    <Modal titulo="Pagar comprobante" subtitulo={`${c.proveedor} · ${etiquetaTipo(c.tipo, true)} ${c.serie}-${c.numero}`} onClose={onClose} tamano="mediana">
       <form onSubmit={pagar} className="space-y-4">
         <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
           <div className="flex justify-between gap-3 px-3 py-2">

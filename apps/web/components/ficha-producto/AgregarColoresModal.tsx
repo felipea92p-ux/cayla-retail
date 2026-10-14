@@ -155,7 +155,7 @@ export function AgregarColoresModal({
   }
 
   return (
-    <Modal titulo="Agregar color" subtitulo="Llegó un color que la prenda no tenía" onClose={onClose} ancho="max-w-2xl">
+    <Modal titulo="Agregar color" subtitulo="Llegó un color que la prenda no tenía" onClose={onClose} tamano="ancha">
       {(cerrar) => (
         <div className="space-y-5">
           {eraSinColor && (

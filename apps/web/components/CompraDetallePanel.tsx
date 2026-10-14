@@ -307,7 +307,7 @@ export function RegistrarPagoModal({
 
   return (
     <Modal
-      variante="papel"
+      variante="hoja"
       titulo={
         hecho ? (
           <span className="sr-only">Pago registrado</span>
@@ -319,7 +319,7 @@ export function RegistrarPagoModal({
         )
       }
       subtitulo={hecho ? undefined : `1 comprobante · ${compra.documento}`}
-      ancho="max-w-2xl"
+      tamano="ancha"
       onClose={terminar}
     >
       {(cerrar) =>

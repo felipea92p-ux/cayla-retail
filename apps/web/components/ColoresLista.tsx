@@ -493,7 +493,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         <Modal
           titulo="Nuevo color del vocabulario"
           subtitulo="Queda disponible de inmediato para cualquier prenda nueva o existente."
-          ancho="max-w-md"
           onClose={() => setAgregando(false)}
         >
           {(cerrar) => (
@@ -625,7 +624,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       )}
 
       {rechazandoColor && (
-        <Modal titulo={`Rechazar «${rechazandoColor.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+        <Modal titulo={`Rechazar «${rechazandoColor.nombre}»`} onClose={() => setRechazandoAbierto(null)}>
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
@@ -797,7 +796,7 @@ function ColorEditarModal({
   const ocupado = guardando || desactivando;
 
   return (
-    <Modal titulo={`Editar «${color.nombre}»`} ancho="max-w-md" onClose={onClose}>
+    <Modal titulo={`Editar «${color.nombre}»`} onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           {/* Cada campo ya reserva su línea de pie; con space-y-4 encima los huecos

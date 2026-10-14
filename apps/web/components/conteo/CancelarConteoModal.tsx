@@ -69,7 +69,7 @@ export function CancelarConteoModal({
   }
 
   return (
-    <Modal titulo={`¿Cancelar el conteo ${numero}?`} subtitulo="Se pierde lo contado. Las existencias no cambian." ancho="max-w-md" bloqueado={cancelando} onClose={onClose} alCerrarEnfocar={alCerrarEnfocar}>
+    <Modal titulo={`¿Cancelar el conteo ${numero}?`} subtitulo="Se pierde lo contado. Las existencias no cambian." bloqueado={cancelando} onClose={onClose} alCerrarEnfocar={alCerrarEnfocar}>
       {(cerrar) => (
         <div className="space-y-4">
           {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={cancelando} />}

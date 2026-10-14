@@ -212,7 +212,7 @@ export function ClientaFichaModal({
 
   if (cargando || !ficha) {
     return (
-      <Modal titulo="Cliente" subtitulo="Cargando…" onClose={onClose} variante="hoja">
+      <Modal conCerrar titulo="Cliente" subtitulo="Cargando…" onClose={onClose} variante="hoja">
         <p className="text-sm text-tinta/65">Un momento…</p>
       </Modal>
     );
@@ -379,7 +379,9 @@ export function ClientaFichaModal({
       }
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-2xl"
+      tamano="ancha"
+      // Una salida a la vista (ADR-0358, ronda 12): mirando la ficha, la ×; editando, archivando o uniendo, «Cancelar».
+      conCerrar={modo === "ver"}
     >
       {() => (
         <div ref={raiz} className="space-y-5">

@@ -19,7 +19,7 @@
     ],
     "components/EliminarProductoModal.tsx": [
       "ComboResponsable «(sin nombre)»",
-      "Boton «{puede ? \"Cancelar\" : \"Cerrar\"}»",
+      "Boton «Cancelar»",
       "Link «Editar»",
       "Boton «Desactivar»",
       "Boton «{responsable.motivo ?? undefined}»"

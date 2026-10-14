@@ -78,7 +78,7 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
   }
 
   return (
-    <Modal titulo="Registrar reembolso" subtitulo={`${proveedorNombre} · saldo a favor ${soles(saldoFavor)}`} onClose={onClose} ancho="max-w-lg">
+    <Modal titulo="Registrar reembolso" subtitulo={`${proveedorNombre} · saldo a favor ${soles(saldoFavor)}`} onClose={onClose} tamano="mediana">
       {(cerrar) => (
         <form onSubmit={onSubmit} className="space-y-4">
           <p className="text-sm leading-relaxed text-tinta/75">Úsalo cuando el proveedor te devolvió el dinero en vez de dejarlo como saldo a favor. Es un registro: baja tu saldo a favor y queda en su historial.</p>

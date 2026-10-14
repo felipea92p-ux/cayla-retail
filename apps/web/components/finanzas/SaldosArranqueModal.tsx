@@ -146,7 +146,7 @@ export function SaldosArranqueModal({
           : "Lo que CAYLA tenía el día que empezó a usar el sistema. Lo que el sistema ya sabe viene calculado; el resto lo pones tú, con el contador. Se registra una vez."
       }
       onClose={onCerrar}
-      ancho="max-w-[680px]"
+      tamano="ancha"
     >
       {!hayArranque && (
         <CampoFin

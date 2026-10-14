@@ -186,7 +186,7 @@ export function HojaPrenda({
     : "Elige las tallas y los colores que llegaron: se crean las combinaciones que la prenda todavía no tiene.";
 
   return (
-    <Modal titulo={titulo} subtitulo={subtitulo} ancho="max-w-xl" bloqueado={guardando} onClose={onCerrar}>
+    <Modal titulo={titulo} subtitulo={subtitulo} tamano="mediana" bloqueado={guardando} onClose={onCerrar}>
       {(cerrar) => (
         <form
           data-guia="recepcion.hoja-prenda"

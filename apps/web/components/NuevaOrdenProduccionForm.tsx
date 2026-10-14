@@ -476,7 +476,6 @@ export function NuevaOrdenProduccionForm({
       onClose={onClose}
       antesDeCerrar={avisoSalida.pedirAccion}
       variante="hoja"
-      conCerrar
       // 1080 px (A3). `scroll-pb`: bajo 980 px la ficha es una barra pegada abajo y, al llevar el cursor a un campo (la guía de foco), no debe quedar detrás de ella.
       ancho="max-w-[1080px] scroll-pb-[calc(var(--alto-barra-ficha,10rem)+1rem)] min-[980px]:scroll-pb-0"
     >

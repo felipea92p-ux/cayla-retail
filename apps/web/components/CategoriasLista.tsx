@@ -493,7 +493,7 @@ export function CategoriasLista({
                 : "El prefijo ya no se puede cambiar si hay productos con esta categoría."
               : "Queda disponible de inmediato en Productos."
           }
-          ancho="max-w-xl"
+          tamano="mediana"
           onClose={() => abrirBorrador(null)}
         >
           {(cerrar) => (
@@ -901,7 +901,7 @@ function VistaRapidaCategoria({
   onEditar: () => void;
 }) {
   return (
-    <Modal conCerrar titulo={categoria.nombre} subtitulo={familia ? (nombreFamilia ?? familia) : "Sin familia asignada"} onClose={onClose} ancho="max-w-lg">
+    <Modal conCerrar titulo={categoria.nombre} subtitulo={familia ? (nombreFamilia ?? familia) : "Sin familia asignada"} onClose={onClose} tamano="mediana">
       <div className="mt-1 grid gap-5 sm:grid-cols-[auto_1fr]">
         <div className="flex items-center gap-3 sm:flex-col sm:items-start sm:gap-2">
           <div

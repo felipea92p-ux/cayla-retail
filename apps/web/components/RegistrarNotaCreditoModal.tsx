@@ -262,7 +262,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
 
   if (exito) {
     return (
-      <Modal titulo={exito.titulo} variante="papel" ancho="max-w-xl" onClose={onCerrar}>
+      <Modal titulo={exito.titulo} variante="papel" tamano="mediana" onClose={onCerrar}>
         {(cerrar) => (
           <div className="pt-2 text-center" data-sin-cascada>
             <svg aria-hidden viewBox="0 0 64 64" className="mx-auto mb-3 h-16 w-16 fill-none stroke-verde" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -290,7 +290,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
   const bajada = !factura || cambiando ? "Busca la factura contra la que el proveedor emitió la nota." : compraIdInicial ? "Viene de una nota por reclamar: la factura, el motivo y el monto ya están puestos." : "Revisa la factura y completa la nota.";
 
   return (
-    <Modal titulo="Registrar nota de crédito" subtitulo={bajada} variante="papel" ancho="max-w-3xl" onClose={onCerrar}>
+    <Modal titulo="Registrar nota de crédito" subtitulo={bajada} variante="hoja" tamano="ancha" onClose={onCerrar}>
       {(cerrar) => (
         <form onSubmit={registrar} noValidate className="mt-4 space-y-5">
           {/* --- factura de origen: ficha o buscador ------------------------------------ */}

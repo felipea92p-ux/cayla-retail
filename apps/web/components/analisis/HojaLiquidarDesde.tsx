@@ -83,12 +83,12 @@ export function HojaLiquidarDesde({ dias, onCerrar, onGuardado }: { dias: number
   }
 
   return (
-    <Modal conCerrar
+    // Una salida a la vista (ADR-0358, ronda 12): si hay algo que guardar, «Cancelar»; si solo dice cómo está, la ×.
+    <Modal conCerrar={!efecto.cambia}
       titulo={`Liquidar desde ${efecto.dias} días`}
       subtitulo={efecto.cambia ? "Para todas las tiendas y todo el equipo." : "Así está para todas las tiendas."}
       onClose={onCerrar}
       variante="hoja"
-      ancho="max-w-md"
       bloqueado={guardando}
       focoEnLaHoja
     >

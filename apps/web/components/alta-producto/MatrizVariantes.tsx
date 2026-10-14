@@ -192,7 +192,6 @@ export function MatrizVariantes({
         <Modal
           titulo={`Fotos de ${nombreDe(viendo)}`}
           subtitulo="Se suben al crear el producto. Para agregar otra, toca la foto en la tabla."
-          ancho="max-w-md"
           onClose={() => setViendo(undefined)}
         >
           {(cerrar) => {

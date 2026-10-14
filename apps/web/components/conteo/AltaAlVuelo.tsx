@@ -152,7 +152,7 @@ export function AltaAlVuelo({
           La etiqueta <span className="font-mono text-[12px]">{codigoBarras}</span> no es de ninguna prenda del catálogo. Se registra y se cuenta enseguida.
         </>
       }
-      ancho="max-w-lg"
+      tamano="mediana"
       bloqueado={guardando}
       onClose={onCancelar}
     >

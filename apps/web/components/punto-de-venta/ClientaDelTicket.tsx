@@ -484,7 +484,6 @@ function BuscarClientaModal({
           : "Opcional. Sus datos pasan solos al comprobante y la compra queda en su ficha."
       }
       variante="hoja"
-      ancho="max-w-md"
       onClose={onClose}
       // Registrar no lleva token: cerrar y reabrir a mitad de camino podría enviarlo dos veces.
       bloqueado={guardando}

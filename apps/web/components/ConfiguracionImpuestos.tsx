@@ -301,7 +301,7 @@ function NuevaTasa({ onCerrar, guardar, guardando, responsable }: { onCerrar: ()
   const v = parsearParametro("igv", tasa);
   const listo = /^\d{4}-\d{2}-\d{2}$/.test(desde) && v.ok;
   return (
-    <Modal variante="hoja" titulo="Nueva tasa de IGV" subtitulo="Desde esa fecha, los gastos con factura calculan su IGV con esta tasa. Lo registrado antes no cambia." onClose={onCerrar} ancho="max-w-[480px]">
+    <Modal variante="hoja" titulo="Nueva tasa de IGV" subtitulo="Desde esa fecha, los gastos con factura calculan su IGV con esta tasa. Lo registrado antes no cambia." onClose={onCerrar}>
       <div className="fin-dos-campos" data-guia="config.nueva-tasa-campos">
         <CampoFin etiqueta="Desde" htmlFor="tasa-desde">
           <InputFin id="tasa-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />

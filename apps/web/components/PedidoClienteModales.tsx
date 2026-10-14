@@ -59,7 +59,7 @@ export function SubirPedidoAlAlmacenModal({ pedido, ubicacion, onClose }: { pedi
   }
 
   return (
-    <Modal titulo="Subir al almacén" subtitulo={`Pedido de ${pedido.otraSede} para un cliente`} onClose={onClose} ancho="max-w-md" bloqueado={enviando}>
+    <Modal titulo="Subir al almacén" subtitulo={`Pedido de ${pedido.otraSede} para un cliente`} onClose={onClose} bloqueado={enviando}>
       {(cerrar) => (
         <div className="space-y-4">
           <p className="card-cayla p-4 text-sm text-tinta">{prenda}</p>
@@ -124,7 +124,7 @@ export function AvisarAlClienteModal({
   }
 
   return (
-    <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose} ancho="max-w-md">
+    <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <p className="rounded-xl bg-hueso px-3.5 py-3 text-sm text-tinta/85">{mensaje}</p>
@@ -222,7 +222,7 @@ export function SigueEnPieModal({
   }
 
   return (
-    <Modal titulo={`¿Sigue en pie el pedido de ${cliente}?`} subtitulo={espera} onClose={onClose} ancho="max-w-md" bloqueado={guardando !== null}>
+    <Modal titulo={`¿Sigue en pie el pedido de ${cliente}?`} subtitulo={espera} onClose={onClose} bloqueado={guardando !== null}>
       {(cerrar) => (
         <div className="space-y-4">
           <p className="card-cayla p-4 text-sm text-tinta">{pedido.lineas.map(etiquetaLinea).join(", ")}</p>

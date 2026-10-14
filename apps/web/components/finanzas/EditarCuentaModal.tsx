@@ -93,7 +93,7 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
   const bloqueado = guardando || !detalle;
 
   return (
-    <Modal variante="hoja" titulo="Editar cuenta" subtitulo={subtitulo(detalle, cuenta)} onClose={onCerrar} ancho="max-w-[520px]">
+    <Modal variante="hoja" titulo="Editar cuenta" subtitulo={subtitulo(detalle, cuenta)} onClose={onCerrar} tamano="mediana">
       {falla && <p className="nota-cayla mb-4">{falla}</p>}
 
       <CampoFin etiqueta="Nombre" htmlFor="ed-cta-nombre">

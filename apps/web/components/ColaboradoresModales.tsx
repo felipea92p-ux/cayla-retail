@@ -44,7 +44,7 @@ export function AlternarTerminalModal({
   }
 
   return (
-    <Modal titulo={titulo} ancho="max-w-md" onClose={onClose}>
+    <Modal titulo={titulo} onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <p className="text-sm leading-relaxed text-tinta/85">{texto}</p>

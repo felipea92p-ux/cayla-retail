@@ -106,7 +106,7 @@ export function EditarMarcaModal({
   const accion = "label-cayla shrink-0 text-[10.5px] text-tinta/60 underline underline-offset-4 hover:text-rojo";
 
   return (
-    <Modal titulo="Editar marca" subtitulo={marca.nombre} onClose={onClose} ancho="max-w-lg">
+    <Modal titulo="Editar marca" subtitulo={marca.nombre} onClose={onClose} tamano="mediana">
       {(cerrar) => (
         <div data-guia="marcas.form" className="mt-4 space-y-4">
           <CampoGuiado id="nombre" guia={guia}>

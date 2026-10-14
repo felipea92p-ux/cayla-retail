@@ -81,7 +81,7 @@
       "button «config.presupuesto-sugerir»",
       "Link «Se cambia en Tiendas y caja»",
       "ComboResponsable «(sin nombre)»",
-      "button «{cambios.length ? \"Cancelar\" : \"Cerrar\"}»",
+      "button «Cancelar»",
       "button «{guardando ? \"Guardando…\" : `Aplicar ${cambios.length}»"
     ],
     "components/finanzas/EditarCuentaModal.tsx": [

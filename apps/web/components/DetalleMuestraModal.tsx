@@ -194,7 +194,7 @@ export function DetalleMuestraModal({
     <Modal
       titulo={muestra.nombre}
       subtitulo={cantidad === null ? (tipo === "tejido" ? "Tejido" : "Patrón") : `${tipo === "tejido" ? "Tejido" : "Patrón"} · ${textoPrendas(cantidad)}`}
-      ancho="max-w-lg"
+      tamano="mediana"
       bloqueado={guardando}
       onClose={onClose}
     >

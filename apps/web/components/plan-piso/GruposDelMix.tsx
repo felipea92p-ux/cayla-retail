@@ -395,7 +395,7 @@ function HojaGuardarGrupos({
       titulo="Guardar los grupos"
       subtitulo={cambios.length === 1 ? "1 categoría" : `${cambios.length} categorías`}
       onClose={onClose}
-      ancho="max-w-[520px]"
+      tamano="mediana"
       bloqueado={enviando}
     >
       <form onSubmit={guardar} className="space-y-4" noValidate>

@@ -45,7 +45,7 @@ export function YaNoLaEnvioModal({ prenda, ubicacion, onClose }: { prenda: Prend
   }
 
   return (
-    <Modal titulo="¿Ya no la envías?" subtitulo={`${etiquetaParaEnviar(prenda)} · a ${prenda.destino}`} onClose={onClose} ancho="max-w-md" bloqueado={enviando}>
+    <Modal titulo="¿Ya no la envías?" subtitulo={`${etiquetaParaEnviar(prenda)} · a ${prenda.destino}`} onClose={onClose} bloqueado={enviando}>
       {(cerrar) => (
         <div className="space-y-4">
           <CampoGuiado id="motivo" guia={guia} titulo="Por qué ya no la envías">

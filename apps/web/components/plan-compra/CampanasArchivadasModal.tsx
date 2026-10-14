@@ -40,7 +40,7 @@ export function CampanasArchivadasModal({ archivadas, onClose }: { archivadas: r
   }
 
   return (
-    <Modal titulo="Campañas archivadas" subtitulo="Las que se quitaron teniendo categorías armadas o un tope: no se borran. Restaurar las devuelve al selector." onClose={onClose} variante="hoja" ancho="max-w-lg">
+    <Modal conCerrar titulo="Campañas archivadas" subtitulo="Las que se quitaron teniendo categorías armadas o un tope: no se borran. Restaurar las devuelve al selector." onClose={onClose} variante="hoja" tamano="mediana">
       {(cerrar) =>
         archivadas.length === 0 ? (
           <Vacio tamano="chico" icono={<Archive />}>

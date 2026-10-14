@@ -333,7 +333,7 @@ function HojaDeFotos({
       : "Se ven en los colores que no tienen la suya. ¿Es de un solo color? Pásala a ese color."
     : "Con una foto alcanza. La principal es la que representa a toda la prenda en Productos.";
   return (
-    <Modal titulo={`Fotos de ${general ? titulo.toLowerCase() : titulo}`} subtitulo={subtitulo} onClose={onClose} ancho="max-w-xl">
+    <Modal titulo={`Fotos de ${general ? titulo.toLowerCase() : titulo}`} subtitulo={subtitulo} onClose={onClose} tamano="mediana">
       {(cerrar) => (
         <div className="space-y-4">
           {fotos.length === 0 && <p className="text-sm text-taupe">Ya no quedan fotos aquí. Agrega otra con el rectángulo de abajo.</p>}

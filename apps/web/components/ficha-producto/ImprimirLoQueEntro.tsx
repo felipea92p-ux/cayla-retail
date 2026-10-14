@@ -75,7 +75,7 @@ export function ImprimirLoQueEntro({
   return (
     <Modal
       variante="hoja"
-      ancho="max-w-2xl"
+      tamano="ancha"
       titulo="Etiquetas de lo que entró"
       subtitulo={`${prenda} quedó guardado. Imprime una etiqueta por cada prenda que entró: las que ya estaban en la tienda ya tienen la suya.`}
       onClose={onDespues}

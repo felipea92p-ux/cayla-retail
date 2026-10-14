@@ -71,7 +71,6 @@ export function ProponerValor(props: Props) {
       {abierto && (
         <Modal
           variante="hoja"
-          ancho="max-w-md"
           titulo={t.titulo}
           subtitulo="¿No está? Agrégalo. Si no eres Líder, queda pendiente hasta que un Líder lo apruebe."
           onClose={() => setAbierto(false)}

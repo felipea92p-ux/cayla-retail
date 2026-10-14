@@ -295,7 +295,8 @@ function HojaPropuesta({
         ? `Lo gastado de ${mesNombre(propuesta.desde.slice(0, 7))} a ${mesNombre(propuesta.hasta.slice(0, 7))} (sin IGV), dividido entre 3 y redondeado hacia arriba a la decena.`
         : "Lo gastado en los 3 últimos meses completos, dividido entre 3.";
   return (
-    <Modal variante="hoja" titulo={textoOrigen(propuesta.origen, datos.mes)} subtitulo={deDonde} onClose={onCerrar} ancho="max-w-[600px]">
+    // Una salida a la vista (ADR-0358, ronda 12): con cambios, «Cancelar» al pie; sin nada que cambiar, solo se lee y lleva la ×.
+    <Modal variante="hoja" conCerrar={!cambios.length} titulo={textoOrigen(propuesta.origen, datos.mes)} subtitulo={deDonde} onClose={onCerrar} tamano="mediana">
       {cambios.length ? (
         <>
           <div className="fin-tabla-wrap" data-guia="config.propuesta">
@@ -338,16 +339,16 @@ function HojaPropuesta({
               : "No hubo gastos en esos meses: no hay de dónde sugerir."}
         </p>
       )}
-      <div className="fin-botones mt-4" data-guia="config.propuesta-botones">
-        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
-          {cambios.length ? "Cancelar" : "Cerrar"}
-        </button>
-        {cambios.length > 0 && (
+      {cambios.length > 0 && (
+        <div className="fin-botones mt-4" data-guia="config.propuesta-botones">
+          <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
+            Cancelar
+          </button>
           <button type="button" className="btn-cayla btn-primario" onClick={onAplicar} disabled={guardando}>
             {guardando ? "Guardando…" : `Aplicar ${cambios.length} ${cambios.length === 1 ? "cambio" : "cambios"}`}
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </Modal>
   );
 }

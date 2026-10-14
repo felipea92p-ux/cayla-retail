@@ -37,7 +37,7 @@
       "CampoTexto «{guia.etiqueta(\"nota\", \"¿De dónde salió? (opcional)\")}»",
       "button «{texto}»",
       "ComboResponsable «(sin nombre)»",
-      "Boton «{congelado ? \"Cerrar\" : \"Cancelar\"}»",
+      "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/EscanerConteo.tsx": [

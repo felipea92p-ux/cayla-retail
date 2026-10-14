@@ -250,7 +250,6 @@ function PedirAOtraSedeHoja(props: PedirAOtraSedeModalProps) {
       titulo={origen && !elegir ? `Pedir a ${origen.nombre}` : "Pedir a otra sede"}
       subtitulo="Para reponer: al llegar entra a tu stock."
       onClose={onCerrar}
-      ancho="max-w-md"
       bloqueado={enviando}
     >
       {(cerrar) => (
