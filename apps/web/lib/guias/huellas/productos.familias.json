@@ -5,7 +5,7 @@
   "total": 13,
   "controles": {
     "app/(app)/productos/familias/page.tsx": [
-      "Volver «Familias»"
+      "Volver «(sin nombre)»"
     ],
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «(sin nombre)»",

@@ -5,7 +5,7 @@
   "total": 139,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
-      "Volver «{producto.referencia}»"
+      "Volver «(sin nombre)»"
     ],
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
