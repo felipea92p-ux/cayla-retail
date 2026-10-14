@@ -31,7 +31,10 @@ export type DemandaVariante = {
   /** Suma del ritmo de cada sede con ritmo medido (unidades por día); `null` si ninguna lo tiene. */
   ritmoDia: number | null;
   sedesConRitmo: number;
+  /** Ventas netas de TODAS las sedes de la red en la ventana (sostengan o no el ritmo). */
   ventasNetas: number;
+  /** Las ventas netas de las sedes con las que SE MIDIÓ el ritmo: es la base honesta de «se vende X por semana». Menor o igual a `ventasNetas`. */
+  ventasBase: number;
   cobertura: Cobertura;
   banda: BandaCobertura;
 };
@@ -43,7 +46,7 @@ export function demandaDeLaRed(sedes: FilasDeSede[]): Map<string, DemandaVariant
     for (const f of s.filas) {
       const d =
         mapa.get(f.varianteId) ??
-        ({ varianteId: f.varianteId, productoId: f.productoId, stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia: null, sedesConRitmo: 0, ventasNetas: 0 } as DemandaVariante);
+        ({ varianteId: f.varianteId, productoId: f.productoId, stockRed: 0, stockTaller: 0, enCamino: 0, ritmoDia: null, sedesConRitmo: 0, ventasNetas: 0, ventasBase: 0 } as DemandaVariante);
       if (s.tipo === "taller") d.stockTaller += f.utilizable;
       else {
         d.stockRed += f.utilizable;
@@ -53,6 +56,7 @@ export function demandaDeLaRed(sedes: FilasDeSede[]): Map<string, DemandaVariant
         if (v.estado === "ok" && v.unidadesDia) {
           d.ritmoDia = (d.ritmoDia ?? 0) + v.unidadesDia;
           d.sedesConRitmo++;
+          d.ventasBase += v.ventasNetas;
         }
       }
       mapa.set(f.varianteId, d);
@@ -147,6 +151,15 @@ export type OrdenParaRendimiento = { id: string; productoId: string; estado: str
 export type ConsumoParaRendimiento = { insumoId: string; insumo: string; unidad: UnidadInsumo; tipo: "tela" | "avio"; cantidad: number };
 
 export type Rendimiento = { insumoId: string; insumo: string; unidad: UnidadInsumo; tipo: "tela" | "avio"; porPrenda: number; ordenes: number; prendas: number };
+
+/**
+ * Los productos para los que hay que medir el rendimiento: los que se ofrecen para fabricar Y todo producto que tenga una orden, se ofrezca o no.
+ * Una orden abierta de un modelo que se dejó de ofrecer (descontinuado, de prueba, familia apagada) igual va a cortar tela y avíos: si su
+ * rendimiento no se midiera, «¿Alcanza la tela?» y «Faltan X de tela» se calcularían con menos demanda de la real y podrían esconder una falta.
+ */
+export function productosParaRendimiento(modelos: readonly { productoId: string }[], ordenes: readonly { productoId: string }[]): string[] {
+  return [...new Set([...modelos.map((m) => m.productoId), ...ordenes.map((o) => o.productoId)])];
+}
 
 /**
  * Consumo real ÷ prendas buenas de las órdenes CERRADAS del modelo, por insumo. Se pesa por prendas (un lote grande cuenta más que uno

@@ -88,3 +88,22 @@ otra pregunta («¿alcanza para cortar?»).
   Producción, Insumos e Inventario juntos.
 - **Sin decidir:** D-I (consolidado de deuda e IGV); cuándo se reconstruye Finanzas (migrar `gastos_taller`); si algún día un colaborador del Taller registra
   comprobantes (hoy solo el líder).
+
+## Actualización 2026-10-13: el Resumen dice la verdad sobre lo que decide
+
+El análisis de `/pantalla` sobre `/produccion` (`docs/pantallas/produccion.md`, cumple su finalidad 5,0/10) encontró que el Resumen decidía por modelo con un ritmo sin
+base visible y decía más de lo que sabía. Felipe ordenó las tareas #1 a #5; quedaron construidas sin migración:
+
+- **Qué se ofrece para fabricar.** Solo lo activo, aprobado, no de prueba y de una familia que entra a los motores (`esProducible`; ADR-0270, ADR-0377 act. 2026-10-13).
+- **La urgencia no miente.** Con 0 en tiendas dice «ya se agotó» (no «se agota en ~1 día»), «1 día» en singular, y entre agotados va primero el que más se vende.
+- **El tope no corta en silencio.** Hasta 3 modelos por producir tienen tarjeta; con más, UNA los junta y nombra a los 3 más urgentes. Ninguna clase pasa de 3 tarjetas y el
+  total sigue en 7; lo que no cabe se cuenta («10 asuntos · se ven 4», «Y 6 entregas más, que no caben aquí»). `resumenDeDecisiones` devuelve `ocultas` y `total`.
+- **Cada cifra dice su base.** «Se vende X por semana (N ventas en 30 días)»; con 2 o menos, «poca base» (`UMBRAL_POCA_BASE_VENTAS`, `lib/inventario-reglas.ts`, elegido por Felipe).
+  La base cuenta solo las ventas de las sedes con las que se midió el ritmo (`DemandaVariante.ventasBase`). Solo avisa: no cambia estados ni esconde tarjetas.
+- **La tela no se subestima.** El rendimiento medido se calcula para los modelos que se ofrecen **y para todo producto con una orden** (`productosParaRendimiento`): una orden abierta de un modelo que ya no se ofrece (descontinuado, de prueba, familia apagada) igual va a cortar tela, y sin su rendimiento «¿Alcanza la tela?» habría pedido menos de lo real. Lo cazó la revisión independiente del código, no una prueba.
+- **El modelo se reconoce.** Foto de cada modelo (la del primer color con foto, como Catálogo) o, sin foto, el ícono de su categoría sobre su color (ADR-0333), en cada fila
+  y tarjeta. La tabla se lee a 1024 px (nombre a dos líneas; «En prod.» entre 1024 y 1279 px solo en la insignia) y la fila tiene el anillo de foco del sistema (ADR-0351).
+
+**Lo que sigue sin hacerse** (el análisis lo ordena, falta el OK de Felipe): que «Producir ya» compare lo que falta contra lo que hay y lo que se fabrica y distinga «trasladar» de
+«producir» (#6); decidir si la unidad es el modelo o el hueco categoría × talla × familia de color (#7, `Replantear`); la hoja «Ver el modelo» con foto por color y lo vendido por
+talla y color (#8); que «Abrir orden sugerida» lleve la cantidad (#9); y el «% de ventas sin prenda», que exige leer la cola de ventas sin registrar de otro módulo.

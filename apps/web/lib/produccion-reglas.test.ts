@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { conPreciosMasBajos, conPreciosMasBajosDeModelos, costoUnitario, parsearLineasPrellenadas, precioParaMargen, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION, LEYENDA_SEMAFORO, TEXTO_SEMAFORO } from "./produccion-reglas";
+import { conPreciosMasBajos, esProducible, conPreciosMasBajosDeModelos, costoUnitario, parsearLineasPrellenadas, precioParaMargen, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION, LEYENDA_SEMAFORO, TEXTO_SEMAFORO } from "./produccion-reglas";
 
 describe("semaforoMargen", () => {
   it("gana con 60% o más de margen", () => {
@@ -318,5 +318,35 @@ describe("llevar las prendas a las tiendas (F8)", () => {
     expect(parsearLineasPrellenadas("")).toEqual([]);
     expect(parsearLineasPrellenadas("v1,v2:0,v3:-4,v4:2.5,:9,v5:x")).toEqual([]);
     expect(parsearLineasPrellenadas("v1:3,v1:4,v2:1")).toEqual([{ varianteId: "v1", cantidad: 7 }, { varianteId: "v2", cantidad: 1 }]);
+  });
+});
+
+describe("esProducible (Resumen de Producción: qué se le ofrece a la líder para fabricar)", () => {
+  const sano = { estado: "activo", estado_alta: "aprobado", es_prueba: false, categoria_id: "blusas" };
+  const apagadas = new Set(["bolsas"]);
+
+  it("un modelo activo, aprobado, real y de una familia que entra a los motores se ofrece", () => {
+    expect(esProducible(sano, apagadas)).toBe(true);
+  });
+  it("un descontinuado no se produce (ADR-0270)", () => {
+    expect(esProducible({ ...sano, estado: "descontinuado" }, apagadas)).toBe(false);
+  });
+  it("un alta pendiente de aprobación o rechazada todavía no es mercadería", () => {
+    expect(esProducible({ ...sano, estado_alta: "pendiente" }, apagadas)).toBe(false);
+    expect(esProducible({ ...sano, estado_alta: "rechazado" }, apagadas)).toBe(false);
+  });
+  it("un producto de prueba no se ofrece", () => {
+    expect(esProducible({ ...sano, es_prueba: true }, apagadas)).toBe(false);
+  });
+  it("una bolsa (familia fuera de los motores, ADR-0377) no se ofrece, y una categoría hermana sí", () => {
+    expect(esProducible({ ...sano, categoria_id: "bolsas" }, apagadas)).toBe(false);
+    expect(esProducible({ ...sano, categoria_id: "polos" }, apagadas)).toBe(true);
+  });
+  it("lo que no se sabe sigue contando: sin categoría, o sin ninguna familia apagada leída, se ofrece", () => {
+    expect(esProducible({ ...sano, categoria_id: null }, apagadas)).toBe(true);
+    expect(esProducible({ ...sano, categoria_id: "bolsas" }, new Set())).toBe(true);
+  });
+  it("cualquiera de los motivos basta: un descontinuado de prueba y de bolsas sigue fuera", () => {
+    expect(esProducible({ estado: "descontinuado", estado_alta: "pendiente", es_prueba: true, categoria_id: "bolsas" }, apagadas)).toBe(false);
   });
 });

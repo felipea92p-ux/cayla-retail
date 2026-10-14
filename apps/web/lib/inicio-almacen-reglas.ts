@@ -323,15 +323,15 @@ export function siglaSede(nombre: string): string {
 export type AccesoDeAlmacen = {
   href: string;
   etiqueta: string;
-  icono: "stock" | "traslados" | "truck" | "tag" | "rotulo" | "conteo" | "scan";
+  icono: "stock" | "traslados" | "recibir" | "tag" | "rotulo" | "conteo" | "scan";
   /** El botón oscuro de la fila (Escanear). */
   destacado?: boolean;
 };
 
-const ACCESOS_ALMACEN: (AccesoDeAlmacen & { modulo: ClaveModulo | null })[] = [
+export const ACCESOS_ALMACEN: (AccesoDeAlmacen & { modulo: ClaveModulo | null })[] = [
   { href: "/inventario", etiqueta: "Stock", icono: "stock", modulo: "existencias" },
   { href: "/inventario/traslados", etiqueta: "Traslados", icono: "traslados", modulo: "traslados" },
-  { href: "/recibir", etiqueta: "Recibir", icono: "truck", modulo: "recibir" },
+  { href: "/recibir", etiqueta: "Recibir", icono: "recibir", modulo: "recibir" },
   // Etiquetas de precio no es de un módulo propio: se llega desde Existencias, así que la ve quien ve Existencias.
   { href: "/etiquetas-de-precio", etiqueta: "Etiquetas", icono: "tag", modulo: "existencias" },
   // Rótulos de anaquel (ADR-0366): tampoco es un módulo; quien acomoda el almacén es quien ve Existencias.
