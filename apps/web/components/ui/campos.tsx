@@ -293,6 +293,9 @@ export type Opcion<T extends string> = {
   grupo?: string;
   /** Se ve pero no se elige (un cajón con la caja cerrada): ni con el mouse ni con el teclado. Solo `Desplegable`/`CampoSelect`. */
   deshabilitada?: boolean;
+  /** Cómo se lee con el combo CERRADO, cuando la caja es angosta (una columna de una tabla): la lista sigue mostrando `texto`.
+   *  Nueva compra: «Sin desglose» en la fila, «Sin desglose (se reparte al recibir)» en la lista. Solo `Desplegable`/`CampoSelect`. */
+  corto?: string;
 };
 
 /* ------------------------------------------------------------------
@@ -756,8 +759,8 @@ export function Desplegable<T extends string>({
           // control el ancho de la más larga —cerrado mide igual que el del spike y no baila al elegir otra—; en una
           // columna angosta, lo elegido se corta con «…» y lo invisible no desborda (`overflow-hidden`).
           <span className="grid min-w-0 overflow-hidden">
-            <span className={`col-start-1 row-start-1 truncate ${elegida ? "" : "text-tinta/65"}`}>{elegida?.texto ?? marcador}</span>
-            {[marcador, ...opciones.map((o) => o.texto)].map((t, k) => (
+            <span className={`col-start-1 row-start-1 truncate ${elegida ? "" : "text-tinta/65"}`}>{elegida?.corto ?? elegida?.texto ?? marcador}</span>
+            {[marcador, ...opciones.map((o) => o.corto ?? o.texto)].map((t, k) => (
               <span key={k} aria-hidden className="invisible col-start-1 row-start-1 h-0 whitespace-nowrap">
                 {t}
               </span>
@@ -765,7 +768,7 @@ export function Desplegable<T extends string>({
           </span>
         ) : (
           <span key={cambio} className={`combo-valor ${cambio ? "combo-valor-entra" : ""} ${elegida || f.marcadorComoTexto ? "" : "text-tinta/65"}`}>
-            {elegida?.texto ?? marcador}
+            {elegida?.corto ?? elegida?.texto ?? marcador}
           </span>
         )}
         {f.flecha &&
