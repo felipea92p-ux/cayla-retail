@@ -45,3 +45,15 @@ Felipe se lleva: tres familias más con una sola pieza (25 de 41), deuda 0 en to
 las fotos de antes y después en `docs/unificar/capturas/accion.*.jpg`. Verificado: modo oscuro de 15 pantallas tocadas (0 hallazgos solo en
 oscuro; los 4 heredados ya fallaban en claro), 25 guías recorridas en verde a 1440 px (las de Producción, con la cuenta del Taller) y
 Vender, Historial y Clientes a 375 px con la cuenta del mostrador; suite entera, tipos y lint en verde en cada commit.
+
+## 2026-10-14 (/unificar: ronda 11 — cancelar, limpiar e imprimir — armada, decidida y migrada)
+Qué hice: un censo nuevo de las tres familias (Admin y el terminal del mostrador) rastreado al código, y una página de elegir con demos vivas.
+Felipe eligió P1 · P2 · P1. Construí el pie de una hoja (`pie-acciones` / `<PieAcciones>`: «Cancelar» a su medida antes del botón que guarda,
+los dos a la derecha, lo que borra a la izquierda, mitades en el celular), `<FiltroPuesto>` y `<BotonLimpiar>` (la píldora de los vacíos y
+«Limpiar todo» punteado) y `<BotonImprimir>` (la impresora, «Imprimir» + qué, la hoja que sale al pasar el mouse). Migré 116 pies en 86
+archivos, 8 filtros puestos, 11 «Limpiar» y 24 botones de imprimir; tres «Cancelar» que iban después de «Guardar» pasaron antes; «Cancelar
+conteo» pasó a rojo (anula); el secundario del flujo del mostrador habla en letra normal con sus 48 px.
+Por qué así: la colaboradora busca «Cancelar» siempre en el mismo lugar; un pie a media fila hacía que «Cancelar» pesara tanto como guardar.
+La regla del pie va sin `@layer` para mandar sobre los `flex-1` de antes: la migración cambió cajas, no cientos de botones.
+Felipe se lleva: tres familias más con una pieza (28 de 41), deuda 0, y verificado en claro, oscuro y a 375 px (Vender, Historial, Cambios,
+Devoluciones, Apartados), 15 guías en verde y la suite entera (475 archivos).

@@ -36,12 +36,14 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Descargar un archivo (`accion.exportar`) | `<BotonDescargar>` (`components/ui/BotonDescargar.tsx`): «Descargar» + qué, nunca «Exportar» ni solo un ícono; el secundario con el ícono de descarga que baja 2 px y el hilo mientras se arma el archivo (ronda 10) | 2026-10-13 (tocando) | 0 | [accion.exportar.md](accion.exportar.md) |
 | Abrir los filtros (`accion.filtrar`) | `<BotonFiltros>` (`components/ui/FiltrosPildora.tsx`): una píldora más, con cuántos hay puestos en el globito; en el celular, solo el ícono con su punto (ronda 10) | 2026-10-13 (tocando) | 0 | [accion.filtrar.md](accion.filtrar.md) |
 | Ver en otra pantalla (`accion.ver`) | `<BotonVer>` (`components/ui/BotonDescargar.tsx`): el secundario con la flecha que avanza, nunca negro ni con «→» escrito; en una frase, el enlace; junto a un resumen, `<EnlaceVer>` (ronda 10) | 2026-10-13 (tocando) | 0 | [accion.ver.md](accion.ver.md) |
+| Cancelar y el pie de una hoja (`accion.cancelar`) | `pie-acciones` / `<PieAcciones izquierda>` (`components/ui/PieAcciones.tsx`): «Cancelar» es el secundario a su medida, ANTES del botón que guarda, los dos a la derecha; lo que borra, a la izquierda; en el celular, mitades (ronda 11) | 2026-10-14 (tocando) | 0 | [accion.cancelar.md](accion.cancelar.md) |
+| Limpiar los filtros (`accion.limpiar`) | `<FiltroPuesto>` (la píldora de los vacíos) y `<BotonLimpiar>` (la píldora punteada con el embudo tachado), `components/ui/FiltrosPuestos.tsx`; «Limpiar» + qué; en la hoja del celular, el secundario; en el calendario y «Pagar juntos», el enlace (ronda 11) | 2026-10-14 (tocando) | 0 | [accion.limpiar.md](accion.limpiar.md) |
+| Imprimir (`accion.imprimir`) | `<BotonImprimir>` (`components/ui/BotonImprimir.tsx`): la impresora a la izquierda y «Imprimir» + qué; negro solo si imprimir ES el paso; la hoja sale de la impresora al pasar el mouse (ronda 11) | 2026-10-14 (tocando) | 0 | [accion.imprimir.md](accion.imprimir.md) |
 
 ## Propuestas esperando decisión
 
-| Familia | Propuesta | Desde | Nota |
-|---|---|---|---|
-| `accion.cancelar`, `accion.limpiar`, `accion.imprimir` | **Ronda 11:** cancelar en el pie de una hoja, la fila de filtros puestos con «Limpiar todo» e imprimir, en una página de elegir con demos vivas (fuentes en [rondas/11](rondas/11/README.md)) | 2026-10-14 | Espera la elección de Felipe |
+Ninguna. **La ronda 11** (cancelar, limpiar e imprimir; fuentes en [rondas/11](rondas/11/README.md)) la eligió Felipe tocando las demos
+el 2026-10-14 —P1, P2 y P1— y se migró el mismo día: deuda 0.
 
 **La ronda 10** (descargar, filtros y ver en otra pantalla; fuentes en [rondas/10](rondas/10/README.md)) la eligió Felipe tocando las demos
 el 2026-10-13, las tres **P1**, y se migró el mismo día: deuda 0.
@@ -61,7 +63,7 @@ familias:**
 
 ## Por analizar (las próximas rondas)
 
-El motor (`apps/web/unificar/familias.mjs`) reconoce **41 familias**: 25 decididas y 16 por analizar (el 2026-10-13, tras la ronda 10). Las cifras son del censo del 2026-10-06 **sin
+El motor (`apps/web/unificar/familias.mjs`) reconoce **41 familias**: 28 decididas y 13 por analizar (el 2026-10-14, tras la ronda 11). Las cifras son del censo del 2026-10-06 **sin
 depurar**: en la ronda 1 la depuración las bajó mucho (pestañas, de 25 formas a 18 reales; cifras, de 17 a 7), así que sirven para ordenar,
 no como veredicto. El orden es la recomendación de Claude: primero lo que la colaboradora lee o toca en más pantallas.
 
@@ -84,7 +86,7 @@ en la página de elegir, nunca por una descripción.
 | 9 | `titulo-seccion` | El título de cada bloque dentro de una pantalla | 46 sin depurar → serif en 8 tamaños, versalitas en 6, sans en 5, y 4 separadores de día | **Decidida el 2026-10-13 (ronda 7)**: bloque, grupo y separador de día |
 | 10 | `accion.ver`, `accion.filtrar`, `accion.exportar` | Ver en otra pantalla, abrir los filtros, descargar un archivo | censo del 2026-10-13: 16 / 5 / 4 (depurado: 4 pesos de «ver», 2 caras de filtros, 4 caras y dos verbos de descargar) | **Decidida y migrada el 2026-10-13 (ronda 10, las tres P1)** (`accion.eliminar` ya estaba decidida, ronda 4) |
 | 11 | ~~`casilla`~~ (decidida, ronda 6), ~~`enlace`~~, ~~`paginacion`~~, ~~`avatar`~~ (decididas, ronda 8), `modal`, `grafico` | Casillas e interruptores, enlaces de texto, hojas, gráficos, paginación, avatares | 6 / 9 / 5 / 5 / 2 / 2 | Pocas formas: rondas cortas. **De los gráficos, la barra apilada ya está decidida (`grafico.barra`, 2026-10-09)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357) |
-| 12 | `accion.cerrar`, `accion.cancelar`, `accion.guardar`, `accion.limpiar`, `accion.editar`, `accion.buscar`, `accion.imprimir`, `accion.menu`, `accion.copiar` | Los botones de una sola función | 1–2 cada una | Casi todas tienen ya una sola forma: se pueden cerrar juntas en una ronda. **`accion.cancelar`, `accion.limpiar` y `accion.imprimir`: ronda 11 armada el 2026-10-14, espera la elección** |
+| 12 | `accion.cerrar`, `accion.cancelar`, `accion.guardar`, `accion.limpiar`, `accion.editar`, `accion.buscar`, `accion.imprimir`, `accion.menu`, `accion.copiar` | Los botones de una sola función | 1–2 cada una | Casi todas tienen ya una sola forma: se pueden cerrar juntas en una ronda. **`accion.cancelar`, `accion.limpiar` y `accion.imprimir`: decididas y migradas el 2026-10-14 (ronda 11)** |
 | 13 | `icono` | Iconos (tamaño y trazo) | 122 huellas · 73 | Las 122 son sobre todo tamaños y trazos distintos de lucide; hay que depurar mucho antes de mostrar |
 | — | `titulo-pagina` | La cabecera de cada pantalla | 8 · 97 | **No se corre** hasta que Felipe decida la cabecera de los módulos sin decidir (ADR-0220): Compras, Caja, Recibir, el resto de Catálogo |
 

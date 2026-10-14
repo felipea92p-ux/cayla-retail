@@ -1,7 +1,8 @@
 # Ronda 11 de `/unificar`: cancelar, limpiar e imprimir (fuentes)
 
 Armada el 2026-10-14 (rama `claude/mystifying-jang-ef15d0`) con un censo nuevo de las tres familias (Admin, 253 de 280 vistas, y el terminal
-de ventas, con escenarios) y el código rastreado a mano. **Espera la elección de Felipe.** La página vive en
+de ventas, con escenarios) y el código rastreado a mano. **Decidida el mismo día: Felipe eligió P1 · P2 · P1 tocando las demos, y se migró (deuda 0).** Registros:
+[accion.cancelar.md](../../accion.cancelar.md), [accion.limpiar.md](../../accion.limpiar.md), [accion.imprimir.md](../../accion.imprimir.md). La página vive en
 `apps/web/unificar/.salida/elegir-ronda11/` (fuera de git); estas son sus fuentes.
 
 | # | Familia | La pregunta | Opciones |
