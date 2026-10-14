@@ -266,8 +266,9 @@ $function$;
 revoke all on function retail.fn_sobrantes_de_traslado(uuid) from public, anon;
 grant execute on function retail.fn_sobrantes_de_traslado(uuid) to authenticated;
 
+-- `recibe`: la sede que mira es la que recibió (la que revisa). La que envió también los ve, para saber que algo suyo quedó en duda.
 create or replace function retail.fn_sobrantes_por_revisar(p_ubicacion_id uuid)
-returns table(transferencia_id uuid, unidades integer)
+returns table(transferencia_id uuid, unidades integer, recibe boolean)
 language plpgsql
 stable
 security definer
@@ -278,7 +279,7 @@ begin
     return;
   end if;
   return query
-    select s.transferencia_id, sum(s.cantidad)::integer
+    select s.transferencia_id, sum(s.cantidad)::integer, bool_or(s.ubicacion_id = p_ubicacion_id)
       from traslado_sobrantes s
      where s.estado = 'por_revisar' and p_ubicacion_id in (s.ubicacion_id, s.ubicacion_origen_id)
      group by s.transferencia_id;

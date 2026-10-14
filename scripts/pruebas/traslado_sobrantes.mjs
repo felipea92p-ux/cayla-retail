@@ -126,14 +126,14 @@ select 'inv08|' || count(*) from (
     join retail.transferencia_items ti on ti.transferencia_id = tr.transferencia_id and ti.variante_id = tr.variante_id
     join retail.movimientos m on m.transferencia_recepcion_id = tr.id and m.tipo = 'entrada'
    where tr.transferencia_id = :'tr' group by tr.id, ti.cantidad having sum(m.cantidad) > ti.cantidad) x;
-select 'por_revisar_tru|' || coalesce((select unidades from retail.fn_sobrantes_por_revisar(:'tru') where transferencia_id = :'tr'), 0);
-select 'por_revisar_lima|' || coalesce((select unidades from retail.fn_sobrantes_por_revisar(:'lima') where transferencia_id = :'tr'), 0);
+select 'por_revisar_tru|' || coalesce((select unidades || ':' || recibe from retail.fn_sobrantes_por_revisar(:'tru') where transferencia_id = :'tr'), '0');
+select 'por_revisar_lima|' || coalesce((select unidades || ':' || recibe from retail.fn_sobrantes_por_revisar(:'lima') where transferencia_id = :'tr'), '0');
 select 'del_traslado|' || count(*) from retail.fn_sobrantes_de_traslado(:'tr');`);
   esperar("al cerrar entra solo lo enviado: Trujillo +2 de la blusa, +0 de la que no venía", r.ok && valor(r, "delta") === "0|0|2|0", ver(r));
   esperar("el cierre devuelve lo que ENTRÓ (1 línea, 2 unidades) y deja el traslado cerrado", r.ok && valor(r, "cierre") === "1|2|cerrada", ver(r));
   esperar("lo de más queda como sobrante por revisar: 1 de la blusa y 1 de la que no venía", r.ok && valor(r, "sobrantes") === "vl:1:por_revisar,vm:1:por_revisar", ver(r));
   esperar("INV-08: lo que entró por el traslado no pasa de lo enviado", r.ok && valor(r, "inv08") === "0", ver(r));
-  esperar("fn_sobrantes_por_revisar: la sede que recibió y la que envió ven 2 unidades por revisar", r.ok && valor(r, "por_revisar_tru") === "2" && valor(r, "por_revisar_lima") === "2", ver(r));
+  esperar("fn_sobrantes_por_revisar: las dos sedes ven 2 unidades por revisar, y solo la que recibió es la que revisa", r.ok && valor(r, "por_revisar_tru") === "2:true" && valor(r, "por_revisar_lima") === "2:false", ver(r));
   esperar("fn_sobrantes_de_traslado: el pase ve los dos sobrantes", r.ok && valor(r, "del_traslado") === "2", ver(r));
 }
 
