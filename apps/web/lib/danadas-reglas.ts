@@ -23,8 +23,10 @@ import type { CampoDeGuia } from "./guia-campos";
 
 /** Las RPC y sus parámetros en un solo lugar: `danadas-reglas.test.ts` los fija contra la migración. */
 export const RPC_REPORTAR_DANADA = "reportar_danada";
+/** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
 export const PARAMETROS_RPC_REPORTAR = ["p_ubicacion_id", "p_variante_id", "p_cantidad", "p_desde", "p_motivo", "p_token"] as const;
 export const RPC_ARREGLAR_DANADA = "arreglar_prenda_danada";
+/** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
 export const PARAMETROS_RPC_ARREGLAR = ["p_id", "p_nota", "p_token"] as const;
 
 /** Lo que tiene la prenda y lo que se le arregló: entre 3 y 200 caracteres (la base exige lo mismo). */

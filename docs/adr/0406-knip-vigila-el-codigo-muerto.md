@@ -5,7 +5,8 @@
 **Decide:** Felipe pidió sumar Knip «para quitar el código muerto» (chat, 2026-10-14). Que sea un paso obligatorio del CI, la
 configuración y qué se borró: este documento.
 **Complementa:** [ADR-0234](0234-movimientos-leido-desde-la-tienda.md) (`lib/reglas-sin-uso.test.ts`, «probado = en
-pantalla»). No lo reemplaza: miran mitades distintas del código muerto (abajo).
+pantalla»). Desde la actualización del 2026-10-14 (b), al final, lo **reemplaza**: `knip --production` mira esa misma mitad en
+todo el monorepo.
 
 ## El problema primero
 
@@ -114,3 +115,58 @@ Tarda unos 3 segundos sobre el monorepo entero.
 - `tsc` limpio, eslint limpio en lo tocado, `vitest` entero en verde (las huellas de las guías de Caja, Nuevo producto y Editar
   producto se aceptaron después de revisar que ningún paso hablaba de los controles borrados) y las pruebas de los escáneres de
   `/focus` y `/sugerir` en verde.
+
+## Actualización 2026-10-14 (b): la otra mitad, lo que solo usan las pruebas
+
+**Decide:** Felipe, en el chat del 2026-10-14, eligió la opción 2 del informe
+[`docs/investigacion/2026-10-14-codigo-que-solo-usan-las-pruebas.md`](../investigacion/2026-10-14-codigo-que-solo-usan-las-pruebas.md)
+(`knip --production` en el CI) y pidió conectar las cuatro pantallas cuya prueba vigilaba una copia. Esto **reemplaza** el candado de
+ADR-0234 (`lib/reglas-sin-uso.test.ts`, que se retira) y deja sin efecto los dos «Descarté» de arriba sobre el modo producción y la lista
+de deuda: el modo producción ya anda, y ahora sí hay deuda que listar.
+
+**El problema.** `pnpm knip` cuenta las pruebas como uso. El 2026-10-14 había 109 piezas de `apps/web/lib` que solo usaban sus pruebas
+(103 exportaciones y 6 archivos, unas 1.750 líneas). `reglas-sin-uso.test.ts` veía 21: miraba solo las funciones de `lib/*-reglas.ts`, y
+contaba identificadores en vez de imports. Extenderlo a todo `lib/` habría dejado pasar 15 de las 103: las que comparten nombre con
+otra variable (`progreso`, `unidades`) y las que «usa» un archivo que a su vez está muerto. Seguían apareciendo: 6 en los tres primeros
+días de esta semana, entre ellas `decisionesDeProduccion`, que dejó de usarse ese mismo día.
+
+**Por qué no andaba el modo producción.** No era el plugin de Next, que sí entrega las rutas. Con `--production`, Knip solo **analiza**
+los archivos de `project` marcados con `!` (`getProductionProjectFilePatterns`, `walkAndAnalyze` en 6.41.0): de los demás sigue los
+imports, pero no anota qué usan. Además vuelve negación todo patrón sin `!`. Nuestro `**/*` sin `!` dejaba el proyecto vacío, y así
+cada dependencia salía «sin uso».
+
+**Qué se construyó:**
+- `knip.ts`: lo que llega a la tienda lleva `!` (`{app,components,lib}/**`, `public/**/*.js`, los archivos de la raíz de la web, los
+  dos workers de `public/` en `entry` y `packages/*/src`). Las herramientas (`tema`, `unificar`, `guias`, `responsive`) no lo llevan.
+  Los registros de deuda y los datos de prueba compartidos van en `ignoreFiles`, **solo** con `--production` (en la corrida normal
+  sus pruebas los importan, y perdonarlos ahí haría que Knip avisara de un `ignoreFiles` de más). La corrida normal da lo mismo que
+  antes.
+- **`@internal` + motivo** en las 22 exportaciones que existen PARA su prueba: las `PARAMETROS_RPC_*` que la prueba cruza con la
+  migración, los topes de un placeholder (ADR-0290), las listas de todos los valores de un tipo, `CAMPOS_CUBIERTOS` (no compila si
+  falta un campo), el gancho que reinicia la caché del padrón y el tablero de las guías. Knip las perdona solo con `--production`; en
+  la corrida normal sigue exigiendo que la prueba las use.
+- `pnpm knip:produccion` (`scripts/knip/produccion.mjs`, con su prueba): corre `knip --production --reporter json` y lo compara con
+  `DEUDA` (`scripts/knip/deuda-produccion.mjs`, 78 líneas con la fecha y el PR en que cada una perdió su pantalla). Falla si aparece
+  una pieza nueva y si una de la deuda ya no aparece. Es la mecánica de `SIN_USO_CONOCIDAS`, cuyas 21 líneas están todas dentro.
+  Un paso «Código que solo usan las pruebas» del job «Tipos, lint y pruebas», ~1 s.
+- **Las cuatro copias, conectadas:** «Guardar» de la ventana Campaña usa `campanaValida`, «Cómo se cerró» usa `textoRecibido`,
+  Configuración ▸ Impuestos usa `anioLima` (mudada a `fechas-lima.ts`) y el panel de la talla usa `esRafaga` (reescrita con la regla
+  del panel, que es la que vive la tienda).
+
+**Descarté:**
+- **Extender `reglas-sin-uso.test.ts`:** sin paso nuevo en el CI, pero ciego a 15 de las 103, y habría que enseñarle a leer
+  `export const`, `export { a as b }` y `export *`.
+- **Marcar la deuda con `@internal`:** la escondería para siempre. `@internal` dice «existe para su prueba», no «lo arreglo después».
+- **Borrar ahora las 78:** cada borrado va con el OK de Felipe, módulo por módulo, y achica la lista.
+
+**Se rompe si:**
+- **Nace una carpeta nueva en `apps/web`** con código: hay que sumarla a uno de los dos grupos de `project`, o la corrida de
+  producción no la mira.
+- **Alguien quiere dejar algo «para cuando llegue la pantalla»:** el CI sale rojo. Esa es justo la idea.
+- **El aviso llega tarde:** `reglas-sin-uso` corría dentro de vitest y avisaba en el hook de commit; Knip corre solo en el CI. Si
+  hiciera falta antes, `pnpm knip && pnpm knip:produccion` se suma a `.githooks/pre-commit` (~4 s).
+
+**Cómo se verifica:** `pnpm knip` (sale 0) y `pnpm knip:produccion` («Nada nuevo… deuda de antes: 78»). Lo probé al revés: un archivo
+y una exportación que solo usa una prueba, más una línea quitada de la deuda, salen los tres y el script sale con 1. Una línea de
+deuda que ya no existe sale como «ya no existe» y también sale con 1. `node --test scripts/knip/produccion.test.mjs`, `tsc`, eslint y
+`vitest` entero en verde.

@@ -61,6 +61,9 @@ export function notaCapacidadPiso(capacidad: CapacidadPiso | null): string | und
  * Entre las dos listas están TODAS las familias que trae una base nueva: `capacidad-piso.test.ts` las lee de las migraciones y del
  * seed, así que una familia nueva por migración no entra sin decidir de qué lado va. Una que un líder cree después sin deploy (o un
  * producto sin familia) cuenta en el riel: la cifra queda como era antes de separar, y nunca se esconde ropa como si fuera accesorio.
+ *
+ * @internal La pantalla pregunta por `FAMILIAS_FUERA_DEL_RIEL`; esta otra mitad la lee la prueba para exigir que cada familia
+ * sembrada tenga exactamente un lado.
  */
 export const FAMILIAS_DEL_RIEL: ReadonlySet<string> = new Set(["indumentaria"]);
 export const FAMILIAS_FUERA_DEL_RIEL: ReadonlySet<string> = new Set(["calzado", "accesorios", "bisuteria", "belleza", "papeleria"]);

@@ -1,12 +1,21 @@
 import type { KnipConfig } from "knip";
 
 // Knip (ADR-0406): busca el código que nadie usa —archivos que nadie importa, exportaciones que nadie lee, dependencias que nadie
-// carga— en las tres piezas del monorepo y en los scripts de la raíz. Corre en el CI (`pnpm knip`) y falla si aparece código muerto
-// nuevo. Lo que está aquí abajo es lo único que se le enseña o se le perdona, cada cosa con su porqué.
+// carga— en las tres piezas del monorepo y en los scripts de la raíz. Corre dos veces en el CI y cada una falla si aparece código
+// muerto nuevo. Lo que está aquí abajo es lo único que se le enseña o se le perdona, cada cosa con su porqué.
 //
-// Qué cuenta como «usado». Las pruebas cuentan (Knip toma cada `*.test.ts` como punto de entrada): una función que solo usa su
-// propia prueba NO sale aquí. Esa otra mitad del código muerto la vigila `apps/web/lib/reglas-sin-uso.test.ts` (ADR-0234), solo
-// para `lib/*-reglas.ts`.
+// Las dos corridas. `pnpm knip` cuenta las pruebas como uso (toma cada `*.test.ts` como punto de entrada): ve lo que no usa NADIE.
+// `pnpm knip:produccion` corre `knip --production`, que no cuenta las pruebas y parte solo de lo que llega a la tienda (las rutas de
+// Next, `proxy.ts`, los dos archivos de `public/`): ve lo que SOLO usan las pruebas, la otra mitad (ADR-0406, actualización del
+// 2026-10-14; antes la miraba `reglas-sin-uso.test.ts`, solo en `lib/*-reglas.ts`). Su deuda de antes vive en
+// `scripts/knip/deuda-produccion.mjs` y solo baja. Una exportación que existe PARA su prueba (la constante que la prueba cruza con
+// la migración, el tope de un placeholder, la lista de todos los valores de un tipo) se declara con `@internal` y el motivo en su
+// comentario: Knip la perdona solo en la corrida de producción, y en la otra sigue exigiendo que la prueba la use.
+//
+// El `!` de los patrones. Con `--production`, Knip solo ANALIZA los archivos de `project` marcados con `!` (de los demás sigue los
+// imports, pero no anota qué usan) y vuelve negación todo patrón sin `!`. Por eso lo que llega a la tienda lleva `!` y las
+// herramientas no: sin el `!`, la corrida de producción daba por sobrantes todas las dependencias. Una carpeta nueva en
+// `apps/web` se suma a uno de los dos grupos.
 //
 // Una exportación que se usa dentro de su propio archivo tampoco sale (`ignoreExportsUsedInFile`). No es código muerto —el valor
 // se usa—, solo una puerta abierta de más: cerrarla tocaría ~150 archivos sin cambiar nada de lo que hace el ERP, y chocaría con
@@ -19,6 +28,8 @@ import type { KnipConfig } from "knip";
 // sobrantes `tailwindcss` y `tw-animate-css`. De paso, un `.css` de `app/estilos/` que ya nadie importe sale como archivo sin uso.
 const importsDelCss = (texto: string) =>
   [...texto.matchAll(/@import\s+(?:url\(\s*)?["']([^"']+)["']/g)].map(([, ruta]) => `import "${ruta}";`).join("\n");
+
+const produccion = process.argv.includes("--production");
 
 const config: KnipConfig = {
   compilers: { css: importsDelCss },
@@ -41,16 +52,34 @@ const config: KnipConfig = {
       // Las rutas de Next (`app/**`, `proxy.ts`), las pruebas de Vitest y los CLI de `package.json` los encuentra Knip solo. Estos no:
       entry: [
         // Se cargan por URL desde el navegador: `navigator.serviceWorker.register("/sw.js")` (ADR-0210) y
-        // `new Worker("/quitar-fondo.worker.js")` (ADR-0228).
-        "public/sw.js",
-        "public/quitar-fondo.worker.js",
+        // `new Worker("/quitar-fondo.worker.js")` (ADR-0228). Llegan a la tienda: llevan `!`.
+        "public/sw.js!",
+        "public/quitar-fondo.worker.js!",
         // Se leen como texto y se inyectan en la página que se mide (`tema/cli.mjs`, `unificar/cli.mjs`, `unificar/fotos.mjs`).
         "tema/motor/escaner-en-pagina.js",
         "unificar/motor/censo-en-pagina.js",
         // CLI de /unificar que se corre a mano (`node unificar/elegir.mjs <especificacion.json>`).
         "unificar/elegir.mjs",
       ],
-      project: ["**/*.{ts,tsx,mjs,js,css}"],
+      project: [
+        // Lo que llega a la tienda.
+        "{app,components,lib}/**/*.{ts,tsx,css}!",
+        "public/**/*.js!",
+        "*.{ts,mjs,js}!",
+        // Las herramientas de desarrollo (/tema, /unificar, /guia, /multi-view-responsive): solo en la corrida normal.
+        "{tema,unificar,guias,responsive}/**/*.{ts,tsx,mjs,js,css}",
+      ],
+      // Archivos que existen PARA las pruebas: los registros de deuda que leen sus candados y los datos de prueba compartidos. En
+      // producción no son sobrantes; en la corrida normal no hace falta perdonarlos (los importan sus pruebas), y perdonarlos ahí
+      // haría que Knip avisara de un `ignoreFiles` de más.
+      ...(produccion
+        ? {
+            ignoreFiles: [
+              "lib/{guia-de-foco-pantallas,sugerir-archivos,tema-colores-archivos}.ts",
+              "lib/*-fixture{,s}.ts",
+            ],
+          }
+        : {}),
       ignore: [
         // La pieza de «Cancelar y el pie de una hoja», elegida por Felipe el 2026-10-14 (ronda 11 de /unificar, ADR-0358): nace
         // antes que sus primeros usos. Sale de aquí cuando la use la primera hoja.
@@ -63,7 +92,7 @@ const config: KnipConfig = {
       ],
     },
     "packages/*": {
-      project: ["src/**/*.{ts,css}"],
+      project: ["src/**/*.{ts,css}!"],
     },
   },
 };

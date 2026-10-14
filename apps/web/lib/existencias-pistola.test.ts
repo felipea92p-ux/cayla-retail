@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esRafaga, LECTOR_VACIO, lecturaSinEnter, teclaDePistola, type LectorPistola } from "./existencias-pistola";
+import { esRafaga, LECTOR_VACIO, lecturaSinEnter, MS_ENTRE_TECLAS, teclaDePistola, type LectorPistola } from "./existencias-pistola";
 
 /** Escribe `texto` con `ms` entre teclas y termina con Enter; devuelve el código leído. */
 function escribir(texto: string, ms: number): string | null {
@@ -31,10 +31,15 @@ describe("la pistola de códigos", () => {
     const l = teclaDePistola({ texto: "abc", ultimo: 0 }, "ArrowRight", 10).lector;
     expect(l).toEqual(LECTOR_VACIO);
   });
-  it("sabe si una tecla viene en ráfaga", () => {
-    expect(esRafaga({ texto: "7", ultimo: 100 }, 120)).toBe(true);
-    expect(esRafaga({ texto: "7", ultimo: 100 }, 400)).toBe(false);
-    expect(esRafaga(LECTOR_VACIO, 10)).toBe(false);
+  it("sabe si una tecla viene en ráfaga (la regla con la que el panel de la talla ignora los dígitos de un código)", () => {
+    expect(esRafaga("7", 100, 120)).toBe(true);
+    expect(esRafaga("7", 100, 100 + MS_ENTRE_TECLAS)).toBe(false);
+    expect(esRafaga("7", 100, 400)).toBe(false);
+    // Una flecha o un Enter no son caracteres: nunca se ignoran, aunque lleguen seguidos.
+    expect(esRafaga("ArrowRight", 100, 120)).toBe(false);
+    expect(esRafaga("Enter", 100, 120)).toBe(false);
+    // La primera tecla de la página (antes = 0) llega sola.
+    expect(esRafaga("7", 0, 10_000)).toBe(false);
   });
 });
 
