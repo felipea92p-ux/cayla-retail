@@ -1,5 +1,5 @@
 ## Auditoría del ERP y bloque 1 «la prenda sin registrar deja de entrar sin dato» (2026-10-14)
-Aprobado por Felipe el 2026-10-14 (siete actividades, `/construir`). Hechas: **A0** (el plazo de la cola sigue a la carga inicial; en producción)
+Aprobado por Felipe el 2026-10-14 (siete actividades, `/construir`). [PR #1094](https://github.com/felipea92p-ux/cayla-retail/pull/1094), en borrador. Hechas: **A0** (el plazo de la cola sigue a la carga inicial; en producción)
 y **A1** (la baja de un comprobante anula la venta en el mismo acto; migración `20261014165000` lista, **pendiente de producción con OK de Felipe**:
 la web no se publica antes que la migración, o una boleta dada de baja respondería «la venta no se pudo anular»).
 - **A1, lo que queda:** los 3 casos de producción (B005-202, -221, -236; S/ 251,70) se remedian aparte con el contador. Riesgo residual: si SUNAT
@@ -22,3 +22,5 @@ la web no se publica antes que la migración, o una boleta dada de baja responde
 - `docs/datos/generado/` no tiene todavía `20261014161000` (entra con el próximo volcado; en producción la versión es `20261014161821`).
 - La auditoría completa (233 hallazgos, menú propuesto, hoja de ruta de 5 fases, 8 decisiones) vive en un artefacto privado de Felipe; la lista de
   seguridad (64 observaciones, 5 altas, sin verificar por el escéptico) se entregó aparte y no se versiona.
+- **Pendientes de esta rama, dichos a Felipe:** `/chaos` y `/formidable` sobre «Prenda sin registrar» y «Anular comprobante» (pantallas que guardan); el volcado de
+  `docs/datos/generado/` con las tres migraciones; y, al fusionar, mover esta fila de Sesiones activas a «Cerradas hoy».
