@@ -153,7 +153,7 @@
 .tp-ruta .tp-sede { display: block; margin-top: 6px; font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-ruta .tp-der { text-align: right; }
 .tp-letra { display: inline-block; min-width: 0.55em; text-align: center; }
-.tp-letra[data-gira] { color: color-mix(in srgb, var(--color-tinta) 36%, transparent); }
+.tp-letra[data-gira] { color: color-mix(in srgb, var(--color-tinta) 36%, transparent); } /* contraste: no aplica — la letra mientras gira (aria-hidden): dura un instante y se detiene en tinta plena */
 .tp-campos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 18px 24px 6px; }
 .tp-campos small { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
 .tp-campos b { display: block; margin-top: 4px; font-family: var(--font-serif); font-weight: 400; font-size: 22px; line-height: 1.15; color: var(--color-tinta); }
@@ -230,7 +230,7 @@
 .tp-contador button:hover:not(:disabled) { background: var(--color-papel); }
 .tp-contador button:disabled { opacity: 0.45; }
 .tp-contador input { width: 40px; background: transparent; text-align: center; font-family: var(--font-serif); font-size: 20px; line-height: 1; color: var(--color-tinta); outline: none; font-variant-numeric: tabular-nums; }
-.tp-contador input::placeholder { color: color-mix(in srgb, var(--color-tinta) 35%, transparent); }
+.tp-contador input::placeholder { color: color-mix(in srgb, var(--color-tinta) 64%, transparent); } /* contraste: texto sobre hueso */
 .tp-contador input:focus { box-shadow: 0 0 0 2px var(--color-pizarra); border-radius: 6px; }
 @media (pointer: coarse) { .tp-contador button { width: 40px; height: 40px; } }
 .tp-guardado { display: flex; align-items: center; justify-content: flex-end; gap: 4px; height: 16px; margin-top: 3px; font-size: 11px; line-height: 16px; }
@@ -292,3 +292,18 @@
   .tp-linea .tp-camion { opacity: 1; left: calc(var(--tp-p, 0) * (100% - 26px)); }
   .tp-pase3d, .tp-mini, .tp-pestanas-ind, .tp-prendas, .tp-anillo-valor, .tp-aro-valor { transition: none !important; }
 }
+
+/* Llegó de más (ADR-0404): la lista de lo que sobró y la revisión, de a una prenda. Las tres salidas tienen la cara de `.tp-lugar`
+   (borde arena; elegida, borde tinta sobre hueso), en columna porque cada una dice qué pasa con el stock. */
+.tp-sobrantes { display: grid; gap: 12px; }
+.tp-sobrantes-lista { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.tp-sobrantes-lista li { display: grid; gap: 4px; }
+.tp-sobrante-nombre { font-size: 14px; font-weight: 600; color: var(--color-tinta); }
+.tp-sobrante-revision { display: grid; gap: 12px; }
+.tp-decision { display: grid; gap: 8px; }
+.tp-decision button { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--color-sand); transition: border-color 0.2s, background 0.2s; }
+.tp-decision button b { font-size: 13.5px; font-weight: 600; color: var(--color-tinta); }
+.tp-decision button small { font-size: 12px; color: color-mix(in srgb, var(--color-tinta) 66%, transparent); }
+.tp-decision button:hover:not(:disabled) { border-color: var(--color-taupe); }
+.tp-decision button[aria-pressed="true"] { border-color: var(--color-tinta); background: var(--color-hueso); }
+.tp-decision button:disabled { cursor: not-allowed; opacity: 0.6; }

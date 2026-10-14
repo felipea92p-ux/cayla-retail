@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { clasificar, clasificarPush, vieneDeUnPr } from "./alcance.mjs";
+import { clasificar, clasificarPush, compilaLaWeb, vieneDeUnPr } from "./alcance.mjs";
 import { leeLaWeb, pruebasQueLeenLaWeb } from "./pruebas-web.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -117,4 +117,41 @@ test("ci.yml: `Tipos, lint y pruebas` espera a «Qué toca el PR» y solo se sal
   // `!cancelled()` y `!= 'no'`: si «Qué toca el PR» falla, su salida llega vacía y el job corre. Nunca se salta por no saber.
   assert.match(verificar, /if: \$\{\{ !cancelled\(\) && needs\.alcance\.outputs\.verificar != 'no' \}\}/);
   assert.match(yml, /verificar: \$\{\{ steps\.medir\.outputs\.verificar \}\}/);
+});
+
+test("compilar: la web, los paquetes, el lockfile y la versión de Node cambian `next build`; documentos, migraciones y scripts no", () => {
+  for (const archivo of [
+    "apps/web/lib/a.ts",
+    "apps/web/next.config.ts",
+    "packages/shared/src/index.ts",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "turbo.json",
+    ".nvmrc",
+    ".github/workflows/ci.yml", // quien edite el job de compilar lo ve correr en su PR
+  ]) {
+    assert.equal(compilaLaWeb(["docs/a.md", archivo]), true, archivo);
+  }
+  for (const archivo of [
+    "docs/adr/0407-x.md",
+    "supabase/migrations/20261014000000_x.sql",
+    "scripts/pruebas/x.mjs",
+    ".github/workflows/sql-pegado.yml",
+    "CLAUDE.md",
+    "apps/webhooks/x.ts", // no es apps/web/
+  ]) {
+    assert.equal(compilaLaWeb([archivo]), false, archivo);
+  }
+  assert.equal(compilaLaWeb([]), false);
+});
+
+test("ci.yml: `Compila la web` espera a «Qué toca el PR», corre `next build` y solo se salta con `compilar == 'no'`", () => {
+  const ci = readFileSync(join(RAIZ, ".github", "workflows", "ci.yml"), "utf8");
+  const job = ci.slice(ci.indexOf("  compilar-web:"));
+  assert.ok(job.includes("name: Compila la web"), "falta el job «Compila la web»");
+  assert.match(job, /needs: alcance/);
+  // `!= 'no'` y no `== 'si'`: si `alcance` falla su salida llega vacía y el job corre; nunca se salta por no saber.
+  assert.match(job, /needs\.alcance\.outputs\.compilar != 'no'/);
+  assert.match(job, /next build/);
 });

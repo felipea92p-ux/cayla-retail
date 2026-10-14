@@ -141,6 +141,7 @@ export function VistaRapidaProducto({
 
   const sedeCorta = corta(sede) || "tu sede";
   const detalleOtras = existencias ? lineasDeStock(existencias).detalle : null;
+  const fotosDeLosColores = useMemo(() => matriz.filas.map((f) => f.fotoUrl), [matriz.filas]);
   const claveEnFoto = vista ?? fijado;
   const filaEnFoto = matriz.filas.find((f) => f.clave === claveEnFoto) ?? matriz.filas[0];
   // La ficha del color que está en la foto: la fila de la matriz lleva el NOMBRE del color (único en el vocabulario, `colores_clave_unica`),
@@ -258,7 +259,7 @@ export function VistaRapidaProducto({
       <div className={paso}>
       <div className="vr-cuerpo">
         <aside data-guia="vista-rapida.foto" className="vr-lado">
-          <FotoVistaRapida producto={producto} fila={filaEnFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} />
+          <FotoVistaRapida producto={producto} fila={filaEnFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} precargar={fotosDeLosColores} />
           <div>
             <div className="vr-pie-foto">
               <span className="vr-sw" style={{ background: filaEnFoto?.hex, width: 20, height: 20 }} />

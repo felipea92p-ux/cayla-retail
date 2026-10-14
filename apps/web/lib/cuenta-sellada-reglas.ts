@@ -2,8 +2,14 @@
 // «¿A qué banco?». Todo cobro y pago guarda el MEDIO (cómo) y la CUENTA (dónde), y la cuenta se sella al guardar.
 // Aquí solo se decide qué cuentas mostrar para un medio y cuál proponer; la base vuelve a validar todo
 // (`retail.fn_cuenta_sirve`, `retail.fn_cuenta_sellada`). Si cambias `sirveParaMedio`, cambia también la función de la base.
+//
+// El fondo por rendir (ADR-0362 fase 6) es la excepción: `fn_cuentas_para_elegir` no lo lista ni `fn_cuenta_sirve` lo acepta. Solo
+// los pagos de Compras lo suman («Mi fondo», `conMiFondo` en `fondos-reglas.ts`) y su regla es la de `retail.fn_fondo_para_pagar`
+// (`MEDIOS_DEL_FONDO`): si cambias una, cambia la otra.
 
-export type TipoCuentaElegible = "cajon" | "caja_fuerte" | "por_rendir" | "banco" | "por_abonar" | "tarjeta_credito";
+import { soles } from "./compras-reglas";
+
+export type TipoCuentaElegible = "cajon" | "caja_fuerte" | "por_rendir" | "banco" | "por_abonar" | "tarjeta_credito" | "fondo";
 /** «cobro»: la plata de las clientas (entra por la tienda y, si se devuelve, sale por el mismo camino). «pago»: sale hacia
  *  un proveedor o un gasto. «reembolso»: un proveedor le devuelve plata a CAYLA. */
 export type ClaseMovimiento = "cobro" | "pago" | "reembolso";
@@ -18,7 +24,12 @@ export type CuentaElegible = {
   cajaAbierta: boolean;
   /** Los medios para los que la base propone esta cuenta en la tienda pedida. */
   propuestaPara: string[];
+  /** Solo el fondo por rendir: lo que su dueña tiene en la mano (en negativo, lo que CAYLA le debe). */
+  saldo?: number;
 };
+
+/** Con qué se paga desde un fondo: lo que acepta `retail.fn_fondo_para_pagar` (con tarjeta, la plata es de CAYLA, no del fondo). */
+export const MEDIOS_DEL_FONDO: readonly string[] = ["efectivo", "yape", "plin", "transferencia", "deposito", "otro"];
 
 type Fila = Record<string, unknown>;
 const texto = (v: unknown) => (v === null || v === undefined || v === "" ? null : String(v));
@@ -35,8 +46,10 @@ export function leerCuentaElegible(f: Fila): CuentaElegible {
   };
 }
 
-/** Si una cuenta de ese tipo sirve para ese medio. El mismo cuadro que `retail.fn_cuenta_sirve`. */
+/** Si una cuenta de ese tipo sirve para ese medio. El mismo cuadro que `retail.fn_cuenta_sirve`; el fondo, el de
+ *  `retail.fn_fondo_para_pagar` (solo para pagar). */
 export function sirveParaMedio(clase: ClaseMovimiento, medio: string, tipo: TipoCuentaElegible): boolean {
+  if (tipo === "fondo") return clase === "pago" && MEDIOS_DEL_FONDO.includes(medio);
   if (medio === "efectivo") return clase === "cobro" ? tipo === "cajon" : tipo === "cajon" || tipo === "caja_fuerte" || tipo === "por_rendir";
   if (medio === "tarjeta" && clase === "pago") return tipo === "tarjeta_credito" || tipo === "banco";
   if (medio === "tarjeta" && clase === "cobro") return tipo === "por_abonar" || tipo === "banco";
@@ -60,7 +73,10 @@ export function cuentaPropuesta(cuentas: readonly CuentaElegible[], clase: Clase
   const sirven = cuentasParaMedio(cuentas, clase, medio).filter(usable);
   const dicha = sirven.find((c) => c.propuestaPara.includes(medio));
   if (dicha) return dicha.id;
-  const primera = medio === "efectivo" ? (sirven.find((c) => c.tipo !== "cajon") ?? sirven[0]) : sirven[0];
+  // El fondo de quien paga se propone solo cuando él mismo lo dice (efectivo, con plata): nunca por ser «la primera que sirve».
+  // Sin banco cargado, una transferencia no sale sola del bolsillo de quien paga: queda por elegir, como antes del fondo.
+  const otras = sirven.filter((c) => c.tipo !== "fondo");
+  const primera = medio === "efectivo" ? (otras.find((c) => c.tipo !== "cajon") ?? otras[0]) : otras[0];
   return primera?.id ?? null;
 }
 
@@ -113,8 +129,10 @@ export function medioDeCuenta(tipo: TipoCuentaElegible): "efectivo" | "tarjeta" 
   return null;
 }
 
-/** Los grupos del combo, en el orden del spike (`vista-dinero.js` · «Pagar facturas»). */
+/** Los grupos del combo, en el orden del spike (`vista-dinero.js` · «Pagar facturas»). El fondo de quien paga va primero
+ *  (contrato de la fase 6: «Mi fondo» se le ofrece primero a su dueña). */
 export const GRUPOS_CUENTA: readonly { tipo: TipoCuentaElegible; titulo: string }[] = [
+  { tipo: "fondo", titulo: "Tu fondo por rendir" },
   { tipo: "banco", titulo: "Bancos y billeteras" },
   { tipo: "caja_fuerte", titulo: "Cajas fuertes" },
   { tipo: "por_rendir", titulo: "Efectivo por rendir" },
@@ -127,9 +145,46 @@ export function agruparCuentas(cuentas: readonly CuentaElegible[]): { tipo: Tipo
   return GRUPOS_CUENTA.map((g) => ({ ...g, cuentas: cuentas.filter((c) => c.tipo === g.tipo) })).filter((g) => g.cuentas.length > 0);
 }
 
-/** Cómo se lee una cuenta en el combo: un cajón con la caja cerrada lo dice. */
+/** Cómo se lee una cuenta en el combo: un cajón con la caja cerrada lo dice; el fondo, lo que tiene (o lo que CAYLA le debe). */
 export function etiquetaCuenta(c: CuentaElegible): string {
+  if (c.tipo === "fondo") {
+    const saldo = c.saldo ?? 0;
+    if (saldo > 0.005) return `${c.nombre} · tienes ${soles(saldo)}`;
+    return saldo < -0.005 ? `${c.nombre} · CAYLA te debe ${soles(-saldo)}` : `${c.nombre} · sin plata`;
+  }
   return c.tipo === "cajon" && !c.cajaAbierta ? `${c.nombre} (caja cerrada)` : c.nombre;
+}
+
+/**
+ * La frase bajo «Sale de» cuando sale del fondo (decisión 32): lo que le queda en la mano o, si no alcanza, que la diferencia la
+ * pone ella y CAYLA se la devuelve al rendir. Nunca frena: el pago se registra igual. `usado` es lo que sale del fondo con este
+ * pago hasta esa línea (`usadoDelFondo`).
+ */
+export function ayudaDelFondo(saldo: number, usado: number): string {
+  if (usado <= 0.005) {
+    if (saldo > 0.005) return `Sale de tu fondo por rendir (tienes ${soles(saldo)}): no toca ninguna caja.`;
+    return saldo < -0.005
+      ? `CAYLA ya te debe ${soles(-saldo)}: lo que pagues lo pones tú y se suma a lo que te debe.`
+      : "Tu fondo no tiene plata: lo que pagues lo pones tú y CAYLA te lo devuelve al rendir.";
+  }
+  if (usado <= saldo + 0.005) return `Sale de tu fondo: te quedan ${soles(saldo - usado)} en la mano.`;
+  if (saldo > 0.005) return `Tu fondo tiene ${soles(saldo)}: los ${soles(usado - saldo)} que faltan los pones tú y CAYLA te los devuelve al rendir.`;
+  return `Lo pones tú: CAYLA te deberá ${soles(usado - saldo)} y te lo devuelve al rendir.`;
+}
+
+/** Lo que sale del fondo en las líneas de un pago hasta `hasta` (inclusive): la suma de las que van a una cuenta tipo fondo. */
+export function usadoDelFondo(
+  lineas: readonly { monto: string; metodo: string; cuentaId?: string }[],
+  cuentas: readonly CuentaElegible[],
+  hasta: number,
+): number {
+  let suma = 0;
+  lineas.forEach((l, i) => {
+    if (i > hasta) return;
+    const id = cuentaEfectiva(cuentas, "pago", l.metodo, l.cuentaId);
+    if (id && cuentas.some((c) => c.id === id && c.tipo === "fondo")) suma += Number(l.monto) || 0;
+  });
+  return Math.round(suma * 100) / 100;
 }
 
 /** Las opciones del combo de cuentas («Sale de», «Entra a», «Salió de»), agrupadas como el spike: con `medio`, solo las
@@ -154,6 +209,7 @@ export function ayudaCuenta(c: CuentaElegible | null, sentido: "sale" | "entra",
   }
   if (c.tipo === "caja_fuerte") return sentido === "sale" ? "Sale de la caja fuerte: no toca el cierre del cajón." : "Entra a la caja fuerte: no toca el cierre del cajón.";
   if (c.tipo === "por_rendir") return sentido === "sale" ? "Sale del efectivo que tiene el líder." : "Queda en el efectivo que tiene el líder.";
+  if (c.tipo === "fondo") return ayudaDelFondo(c.saldo ?? 0, 0);
   if (c.tipo === "tarjeta_credito") return "Con la tarjeta de crédito de CAYLA: sube lo que se le debe.";
   // Lo que se le devuelve a una clienta por Yape, transferencia o tarjeta nunca sale del cajón: sale de esa cuenta.
   if (clase === "cobro") return "Sale de esa cuenta: queda sellada y la conciliación lo encuentra.";

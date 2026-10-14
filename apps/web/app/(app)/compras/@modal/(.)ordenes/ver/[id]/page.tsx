@@ -1,5 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { getDetalleOrden, getEmpresaParaOrden } from "@/lib/ordenes-compra";
+import { getGastosDeOrden } from "@/lib/gastos-viaje";
 import { numeroOrdenCompra } from "@/lib/ordenes-compra-reglas";
 import { ModalRuta } from "@/components/ui/ModalRuta";
 import { DetalleOrdenCompra } from "@/components/ordenes-compra/DetalleOrdenCompra";
@@ -12,7 +13,7 @@ import { AccionesOrden } from "@/components/ordenes-compra/AccionesOrden";
 export default async function OrdenCompraModal({ params }: { params: Promise<{ id: string }> }) {
   await exigirModulo("ordenes_compra");
   const { id } = await params;
-  const [{ detalle, falla }, empresa] = await Promise.all([getDetalleOrden(id), getEmpresaParaOrden()]);
+  const [{ detalle, falla }, empresa, gastos] = await Promise.all([getDetalleOrden(id), getEmpresaParaOrden(), getGastosDeOrden(id)]);
 
   if (falla || !detalle) {
     return (
@@ -30,7 +31,7 @@ export default async function OrdenCompraModal({ params }: { params: Promise<{ i
       // terminar de leer.
       acciones={<AccionesOrden lugar="pie" orden={detalle} empresa={empresa} />}
     >
-      <DetalleOrdenCompra orden={detalle} />
+      <DetalleOrdenCompra orden={detalle} gastos={gastos} />
     </ModalRuta>
   );
 }

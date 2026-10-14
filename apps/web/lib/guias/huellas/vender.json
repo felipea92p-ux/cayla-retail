@@ -2,7 +2,7 @@
   "guia": "vender",
   "ruta": "/vender",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 169,
+  "total": 172,
   "controles": {
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
@@ -102,6 +102,9 @@
       "button «En espera ·»",
       "Volver «→onVolverATicket»",
       "button «Retomar»",
+      "SegmentoDeslizante «Cómo escribir el descuento»",
+      "button «S/»",
+      "input «Monto de descuento por prenda»",
       "button «{p}»",
       "input «Porcentaje de descuento»",
       "button «{r.etiqueta}»",

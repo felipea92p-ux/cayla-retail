@@ -837,6 +837,7 @@ export function CompraFormV2({
                 lineas={pagos}
                 onLineas={setPagos}
                 objetivo={total}
+                totalComprobante={total}
                 exacto={condicion === "contado"}
                 saldoFavor={proveedor?.saldoFavor ?? 0}
                 datosProveedor={proveedor?.datosPago}

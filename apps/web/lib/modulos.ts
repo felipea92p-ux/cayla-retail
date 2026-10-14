@@ -15,7 +15,7 @@ export const CLAVES_MODULO = [
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas", "avisos_club",
   "existencias", "conteos", "traslados", "movimientos",
   "productos", "atributos", "etiquetas", "liquidacion",
-  "ordenes_compra", "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito", "plan_compra",
+  "ordenes_compra", "facturas_compra", "recibir", "por_pagar", "fondos", "proveedores", "notas_credito", "plan_compra",
   "produccion", "ordenes_insumos",
   "analisis", "frescura", "plan_piso", "colaboradores", "roles",
   "configuracion",
@@ -81,6 +81,9 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "facturas_compra", grupo: "Compras", nombre: "Facturas de compra", incluye: "Registrar, corregir y anular facturas" },
   { clave: "recibir", grupo: "Compras", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
+  // Fondos por rendir (ADR-0362, fase 6; 20261013181000): la plata que se le entrega a quien compra. Nace SIN rol (solo el líder) y
+  // delegable: sus funciones piden este módulo, no al líder (decisión 35).
+  { clave: "fondos", grupo: "Compras", nombre: "Fondos por rendir", incluye: "Entregar plata a una persona para que compre, registrar lo que devuelve y ver cuánto tiene cada una en la mano" },
   { clave: "proveedores", grupo: "Compras", nombre: "Proveedores", incluye: "Crear, editar y archivar; cuentas bancarias, Yape y Plin" },
   { clave: "notas_credito", grupo: "Compras", nombre: "Notas de crédito", incluye: "Registrar y anular notas" },
   // Plan de campaña (ADR-0349, 20261005220000): cuánto comprar por categoría para una campaña (diciembre 2026 primero), con tres

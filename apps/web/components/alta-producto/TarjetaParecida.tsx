@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import Link from "next/link";
 import { Chip } from "@/components/ui/Chip";
 import { SinFoto } from "@/components/ui/PrendaCelda";
@@ -59,7 +59,7 @@ export function TarjetaParecida({ tarjeta: t, revisada, resaltar = "", llamada =
         {/* Foto grande o la miniatura neutra: el diseño es lo que se compara, y sin foto no se puede comparar a la vista (y se dice). */}
         <figure className="parecidas-foto">
           {t.fotoUrl ? (
-            <Image src={t.fotoUrl} alt={FRASE.fotoAlt(t.nombre)} fill unoptimized sizes="116px" className="parecidas-foto-img" />
+            <ImagenDePrenda src={t.fotoUrl} alt={FRASE.fotoAlt(t.nombre)} fill sizes="116px" className="parecidas-foto-img" fallback={null} />
           ) : (
             <>
               <SinFoto tamano="h-full w-full" />

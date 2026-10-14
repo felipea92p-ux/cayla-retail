@@ -55,6 +55,7 @@ import {
   GUIA_ENVIO_ORDEN,
   GUIA_FACTURA,
   GUIA_FACTURAS,
+  GUIA_FONDOS,
   GUIA_MI_PARTE,
   GUIA_NOTAS_CREDITO,
   GUIA_NUEVA_FACTURA,
@@ -178,6 +179,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_EDITAR_ORDEN,
   GUIA_COMPROBANTE_ORDEN,
   GUIA_ENVIO_ORDEN,
+  GUIA_FONDOS,
   GUIA_FIN_RESUMEN,
   GUIA_FIN_GASTOS,
   GUIA_FIN_CUENTAS,
@@ -218,10 +220,12 @@ export const GUIAS: readonly Guia[] = [
   GUIA_RENDIMIENTO,
 ];
 
-/** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. */
+/** @internal Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. Lo leen las pruebas y
+ *  `scripts/focus/escanear.mjs`, no la tienda. */
 export const PENDIENTES_HOY = 0;
 
-/** La ruta es la de la carpeta bajo `app/(app)`: «/» es Inicio y `[id]` se escribe tal cual. */
+/** @internal El tablero de las guías (ADR-0389): lo leen `guias.test.ts` y `scripts/focus/escanear.mjs`, no la tienda. La ruta es la de
+ *  la carpeta bajo `app/(app)`: «/» es Inicio y `[id]` se escribe tal cual. */
 export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- inicio ----
   "/": { estado: "aplicada", guia: GUIA_INICIO.id },
@@ -249,6 +253,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/compras/@modal/(.)ordenes/ver/[id]": { estado: "no-aplica", motivo: "La misma vista que /compras/ordenes/ver/[id] abierta como hoja sobre la lista: comparte su guía." },
   "/compras/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
   "/compras/factura/[compraId]": { estado: "aplicada", guia: GUIA_FACTURA.id },
+  "/compras/fondos": { estado: "aplicada", guia: GUIA_FONDOS.id },
   "/compras/notas-credito": { estado: "aplicada", guia: GUIA_NOTAS_CREDITO.id },
   "/compras/nueva": { estado: "aplicada", guia: GUIA_NUEVA_FACTURA.id },
   "/compras/ordenes": { estado: "aplicada", guia: GUIA_ORDENES.id },

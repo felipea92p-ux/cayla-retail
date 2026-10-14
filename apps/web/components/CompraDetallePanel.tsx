@@ -225,8 +225,8 @@ export function RegistrarPagoModal({
   // ADR-0195 F3b: «Sale de». La propuesta sale de la primera tienda del comprobante. A quien no ve las finanzas de todo
   // (`fn_ve_finanzas_de_todo`: líder, Configuración o Cierre de mes), `fn_cuentas_para_elegir` solo le lista en efectivo los
   // cajones y cajas fuertes de las sedes que opera: si la del comprobante no es una de ellas, se le propone una suya. La base
-  // vuelve a validar la cuenta al guardar (`fn_cuenta_sellada`).
-  const cuentas = useCuentasParaElegir("pago", compra.ubicacionesDestino[0] || null);
+  // vuelve a validar la cuenta al guardar (`fn_cuenta_sellada`). ADR-0362 fase 6: «Mi fondo» primero, si quien paga tiene uno.
+  const cuentas = useCuentasParaElegir("pago", compra.ubicacionesDestino[0] || null, true, { conMiFondo: true });
   const [loading, setLoading] = useState(false);
   // Quién registra el pago (ADR-0161/0162): `registrar_pagos_compra` firma con esa persona.
   const responsable = useResponsable();
@@ -425,7 +425,7 @@ export function RegistrarPagoModal({
               )}
             </section>
 
-            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} totalComprobante={compra.total} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
 
             <div className="border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta">

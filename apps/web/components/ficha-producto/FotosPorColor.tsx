@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Camera } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
@@ -219,7 +219,7 @@ function PuntoTodos({ hexes }: { hexes: (string | null)[] }) {
 function Miniatura({ foto, ancho }: { foto: FotoLocal; ancho: string }) {
   return (
     <span className={`relative block aspect-[4/5] ${ancho} shrink-0 overflow-hidden rounded-md border border-sand bg-papel`}>
-      <Image src={foto.url} alt="" fill sizes="120px" className="object-cover" unoptimized />
+      <ImagenDePrenda src={foto.url} alt="" fill sizes="120px" className="object-cover" fallback={null} />
     </span>
   );
 }
@@ -265,7 +265,7 @@ function Tarjeta({
           aria-label={`Ver o cambiar las fotos de ${titulo} (${fotos.length})`}
           className={`relative block aspect-[4/5] w-full overflow-hidden rounded-xl border bg-papel transition-colors hover:border-tinta/40 ${pendiente ? "border-ambar ring-1 ring-ambar" : "border-sand"}`}
         >
-          <Image src={portada.url} alt="" fill sizes="220px" className="object-cover" unoptimized />
+          <ImagenDePrenda src={portada.url} alt="" fill sizes="220px" className="object-cover" fallback={null} />
           {fotos.some((f) => f.esPrincipal) && <span className={INSIGNIA_PRINCIPAL}>Principal</span>}
           {pendiente && <span className={INSIGNIA_NUEVA}>{pendiente === "nueva" ? "Nueva" : "Movida"}</span>}
           <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-crema/95 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-tinta shadow-sm">
@@ -343,7 +343,7 @@ function HojaDeFotos({
               return (
                 <div key={f.clientKey} className="space-y-2">
                   <div className={`relative aspect-[4/5] overflow-hidden rounded-xl border bg-papel ${pendiente ? "border-ambar ring-1 ring-ambar" : "border-sand"}`}>
-                    <Image src={f.url} alt={`Foto de ${titulo}`} fill sizes="200px" className="object-cover" unoptimized />
+                    <ImagenDePrenda src={f.url} alt={`Foto de ${titulo}`} fill sizes="200px" className="object-cover" fallback={null} />
                     {f.esPrincipal && <span className={INSIGNIA_PRINCIPAL}>Principal</span>}
                     {pendiente && <span className={INSIGNIA_NUEVA}>{pendiente === "nueva" ? "Nueva" : "Movida"}</span>}
                   </div>

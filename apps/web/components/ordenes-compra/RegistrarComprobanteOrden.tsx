@@ -139,7 +139,8 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
 
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
-  const cuentas = useCuentasParaElegir("pago", destino?.id ?? null, condicion === "contado");
+  // ADR-0362 fase 6: quien compra paga desde «Mi fondo» (primero en «Sale de» si tiene uno).
+  const cuentas = useCuentasParaElegir("pago", destino?.id ?? null, condicion === "contado", { conMiFondo: true });
 
   const plazoDias = datos.proveedor?.plazoCreditoDias ?? null;
   const sugerido = vencimientoSugerido(emision, plazoDias);
@@ -617,6 +618,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                 lineas={pagos}
                 onLineas={setPagos}
                 objetivo={totalSoles}
+                totalComprobante={totalSoles}
                 exacto
                 saldoFavor={datos.proveedor?.saldoFavor ?? 0}
                 datosProveedor={datos.proveedor?.datosPago ?? null}

@@ -23,6 +23,7 @@ import { avisoChoque, ejemploParaFamilia, prefijoDesdeNombre, quienUsaNombre, qu
 import { FolderTree, Grid3x3, Layers, Ruler, Shapes } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEditar } from "@/components/ui/BotonEditar";
+import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
 /**
  * Las familias del negocio (Indumentaria, Calzado...), cada una con sus
@@ -535,6 +536,7 @@ export function CategoriasLista({
               )}
               <CampoTexto
                 etiqueta="Nombre"
+                maxLength={MAX_NOMBRE_CATALOGO}
                 value={borrador.nombre}
                 onChange={(e) => {
                   const nombre = e.target.value;

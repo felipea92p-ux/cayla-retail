@@ -55,6 +55,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { Volver } from "@/components/ui/Volver";
 import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { Boton } from "@/components/ui/campos";
+import { SobrantesPase } from "@/components/traslados-pases/SobrantesPase";
 
 // El reverso del pase (ADR-0355, maqueta D): lo que se hace con la caja al darle vuelta.
 //  · Te llega: cuentas a ciegas (− / +, la pistola o la cámara; lo contado se guarda solo). «Terminé de contar» destapa lo que
@@ -385,6 +386,7 @@ export function ReversoPase({
           </blockquote>
         )}
         {modo === "llegada" && lugarRecibido && <p className="tp-dato">Entró {lugarTexto(lugarRecibido, t.ubicacionDestinoNombre)}.</p>}
+        {modo === "llegada" && <SobrantesPase traslado={t} puedeRevisar={esDestino && puedeCerrarDiferencia} />}
         {modo === "anulada" && (
           <blockquote className="tp-cita">
             “{t.motivoAnulacion ?? "Sin motivo escrito"}”<cite>{t.anuladoPorNombre ? `${t.anuladoPorNombre}, al anularla` : "Al anularla"}</cite>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Camera } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { BotonFoto } from "@/components/alta-producto/FotosAlta";
@@ -223,7 +223,7 @@ export function AgregarColoresModal({
                     <li key={codigo} className="flex items-center gap-3 rounded-xl border border-sand p-2.5">
                       {url ? (
                         <span className="relative block aspect-[4/5] w-10 shrink-0 overflow-hidden rounded-md border border-sand bg-papel">
-                          <Image src={url} alt={`Foto de ${n.color(codigo)}`} fill sizes="40px" className="object-cover" unoptimized />
+                          <ImagenDePrenda src={url} alt={`Foto de ${n.color(codigo)}`} fill sizes="40px" className="object-cover" fallback={null} />
                         </span>
                       ) : (
                         <BotonFoto

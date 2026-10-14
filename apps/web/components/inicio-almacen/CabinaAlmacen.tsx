@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import Link from "next/link";
 import type { CSSProperties } from "react";
@@ -97,7 +97,7 @@ export function CabinaAlmacen({
 function FilaReciente({ p }: { p: NuevoProducto }) {
   return (
     <Link href={hrefFichaProducto(p.id)} className="ia-rs">
-      <span className="ia-th">{p.fotoUrl ? <Image src={p.fotoUrl} alt="" fill sizes="44px" unoptimized /> : <SinFoto tamano="h-full w-full !rounded-none" colorHex={colorUnico(p.colores)} {...categoriaDe(p)} />}</span>
+      <span className="ia-th">{p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl} alt="" fill sizes="44px" fallback={<SinFoto tamano="h-full w-full !rounded-none" colorHex={colorUnico(p.colores)} {...categoriaDe(p)} />} /> : <SinFoto tamano="h-full w-full !rounded-none" colorHex={colorUnico(p.colores)} {...categoriaDe(p)} />}</span>
       <div className="ia-mtx">
         <p className="ia-nm">{p.referencia}</p>
         <p className="ia-mt">

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { useState } from "react";
 import type { FotoTraslado } from "@/lib/producto-fotos-reglas";
 
@@ -11,9 +11,7 @@ import type { FotoTraslado } from "@/lib/producto-fotos-reglas";
 // fotos ni colores (Estampado, Multicolor) no se dibuja nada.
 // Si una URL da 404 (el archivo se borró a mano, cambió el host) esa foto se
 // descarta; si no queda ninguna, tampoco se dibuja nada: nunca una imagen rota.
-// `unoptimized`: el repo no declara dominios remotos para el optimizador de
-// imágenes (igual que las otras 8 imágenes de Storage), y una miniatura de
-// 32 px no lo necesita.
+// Pasa por `ImagenDePrenda` (el optimizador de Next): una foto real pesa ~200 KB y aquí se ve a 32 px.
 export function TrasladoMiniaturas({ fotos, colores = [] }: { fotos: FotoTraslado[]; colores?: string[] }) {
   const [rotas, setRotas] = useState<Set<string>>(new Set());
   const buenas = fotos.filter((f) => !rotas.has(f.url));
@@ -30,15 +28,15 @@ export function TrasladoMiniaturas({ fotos, colores = [] }: { fotos: FotoTraslad
   return (
     <span aria-hidden className="flex shrink-0 -space-x-2">
       {buenas.map((f) => (
-        <Image
+        <ImagenDePrenda
           key={f.url}
           src={f.url}
           alt=""
           title={f.referencia}
           width={32}
           height={32}
-          unoptimized
-          onError={() => setRotas((actual) => new Set(actual).add(f.url))}
+          fallback={null}
+          alFallar={() => setRotas((actual) => new Set(actual).add(f.url))}
           className="h-8 w-8 shrink-0 rounded-md border border-tinta/10 object-cover ring-2 ring-papel"
         />
       ))}

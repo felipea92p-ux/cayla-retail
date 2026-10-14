@@ -33,6 +33,7 @@ import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
 import { filtrarColores } from "@/lib/atributos-buscar";
 import { Aviso } from "@/components/ui/Aviso";
 import { LapizEditar } from "@/components/ui/BotonEditar";
+import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
@@ -504,6 +505,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   <CampoGuiado id="nombre" guia={guia}>
                   <CampoTexto
                     etiqueta={guia.etiqueta("nombre", "Nombre")}
+                    maxLength={MAX_NOMBRE_CATALOGO}
                     value={nombre}
                     onChange={(e) => {
                       setNombre(e.target.value);
@@ -804,7 +806,8 @@ function ColorEditarModal({
               quedaban el doble de grandes que los de Notas hacia abajo. */}
           <div data-guia="atributos.color-form" className="space-y-1">
             <CampoGuiado id="nombre" guia={guia}>
-              <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")} value={nombre} onChange={(e) => setNombre(e.target.value)} />
+              <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")}
+                    maxLength={MAX_NOMBRE_CATALOGO} value={nombre} onChange={(e) => setNombre(e.target.value)} />
             </CampoGuiado>
             <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
             <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />

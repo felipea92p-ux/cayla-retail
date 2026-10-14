@@ -463,6 +463,13 @@ describe("temporadas (ADR-0246): la lista cerrada y sus funciones", () => {
     expect(traducirError(prendas, "guardar la temporada")).toBe(prendas.message);
   });
 
+  it("los del fondo por rendir (ADR-0362 fase 6) también: dicen qué hacer, sin «Código:»", () => {
+    const propio = { message: "Nadie se entrega plata a sí mismo: que lo haga otra persona con el módulo Fondos por rendir.", code: "42501", hint: "fondo_propio" };
+    const ajeno = { message: "Desde tu fondo pagas tú: elige tu nombre en «Responsable».", code: "42501", hint: "fondo_ajeno" };
+    expect(traducirError(propio, "entregar la plata")).toBe(propio.message);
+    expect(traducirError(ajeno, "registrar el pago", { confirmarAntesDeRepetir: true })).toBe(ajeno.message);
+  });
+
   it("un 42501 de otro origen no se cuela por la regla de temporadas", () => {
     const salida = traducirError({ message: "permission denied for table temporadas", code: "42501", hint: null }, "guardar la temporada");
     expect(salida).toContain("Código:");
@@ -812,5 +819,19 @@ describe("montos de Ventas y Caja", () => {
     expect(
       traducirError({ message: 'new row for relation "cajas" violates check constraint "cajas_montos_finitos"', code: "23514" }, "abrir la caja"),
     ).toMatch(/no es un número válido/);
+  });
+});
+
+// /chaos de Catálogo 2026-10-14 (20261014182000): el precio NaN y los nombres sin tope rebotan en castellano.
+describe("montos y nombres de Catálogo", () => {
+  it("un precio o costo que no es número", () => {
+    expect(
+      traducirError({ message: 'new row for relation "variantes" violates check constraint "variantes_montos_finitos"', code: "23514" }, "guardar el producto"),
+    ).toMatch(/no es un número válido/);
+  });
+  it("un nombre demasiado largo", () => {
+    expect(
+      traducirError({ message: 'new row for relation "productos" violates check constraint "productos_textos_con_tope"', code: "23514" }, "guardar el producto"),
+    ).toMatch(/demasiado largo/);
   });
 });

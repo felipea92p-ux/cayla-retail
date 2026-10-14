@@ -13,7 +13,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
-import { camposDeCampana } from "@/lib/etiqueta-campana-guia";
+import { campanaValida, camposDeCampana } from "@/lib/etiqueta-campana-guia";
 import {
   AccionTarjeta,
   BarraAtributos,
@@ -619,14 +619,15 @@ function CampanaModal({
   const [elegidas, setElegidas] = useState(() => new Set(etiqueta.categoriaIds));
   const [guardando, setGuardando] = useState(false);
 
-  // Guía de foco: sale de la misma regla que apaga «Guardar» (`valido`); todo es opcional, así que solo «sigue» lo mal escrito.
+  // Guía de foco: sale de la misma regla que apaga «Guardar» (`campanaValida`, y su prueba exige que coincidan); todo es opcional,
+  // así que solo «sigue» lo mal escrito.
   const guia = useGuiaCampos(camposDeCampana({ descuento, desde, hasta, categorias: elegidas.size, puedeDarDescuento }));
 
   const pct = parsearDescuento(descuento);
   const fDesde = parsearFecha(desde);
   const fHasta = parsearFecha(hasta);
   const objecion = fDesde.ok && fHasta.ok ? objecionVigencia(fDesde.valor, fHasta.valor) : null;
-  const valido = pct.ok && fDesde.ok && fHasta.ok && !objecion;
+  const valido = campanaValida({ descuento, desde, hasta });
   // La campaña no se bloquea por bajar del costo (puede ser una liquidación a propósito),
   // pero quien la configura se entera: número en rojo y cuántas prendas serían.
   const bajoCosto = prendasBajoCosto(pct.ok ? pct.valor : null, prendasConCosto, elegidas, new Set(variantesManuales));
