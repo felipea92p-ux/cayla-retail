@@ -22,7 +22,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { MotorEnProduccion } from "@/components/motor-demanda/MotorEnProduccion";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
+import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, cantidadesDeLaCurva, cantidadesInicialesDeNuevaOrden, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
 import { costoUnitario, precioParaMargen, semaforoMargen, TEXTO_SEMAFORO, type Semaforo } from "@/lib/produccion-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -111,6 +111,7 @@ export function NuevaOrdenProduccionForm({
   modelos,
   decision,
   productoInicialId = null,
+  sugeridaInicial = false,
   tipoInicial = "produccion",
   puedeEditarCatalogo = false,
   vocabulario = null,
@@ -124,6 +125,8 @@ export function NuevaOrdenProduccionForm({
   decision: Tolerado<DecisionProduccion> | null;
   /** Modelo que llega elegido desde el Resumen; si no existe, se usa el primero. */
   productoInicialId?: string | null;
+  /** Llegó desde «Abrir orden sugerida» del Resumen: la matriz abre ya con la cantidad sugerida por la red (la misma que dijo la tarjeta). Solo para el modelo pedido y una orden de producción. */
+  sugeridaInicial?: boolean;
   /** Con qué tipo se abre (al volver de crear un modelo nuevo se conserva el que la persona había elegido). */
   tipoInicial?: Tipo;
   /** Puede crear el modelo que falta y agregarle tallas o colores (`fn_puede_editar_catalogo`); si no, ve a quién pedírselo. */
@@ -143,7 +146,11 @@ export function NuevaOrdenProduccionForm({
   const [tipo, setTipo] = useState<Tipo>(() => tipoAlElegir({ eleccion: modelos.length === 0 ? "nuevo" : "existente", tipoActual: tipoInicial, aMano: tipoInicial === "muestra" }));
   // Sin modelo elegido (`""`) se ve el buscador: ya no se preselecciona «el primero» (ADR-0396).
   const [productoId, setProductoId] = useState(modelos.find((m) => m.productoId === productoInicialId)?.productoId ?? "");
-  const [cantidades, setCantidades] = useState<Record<string, string>>({});
+  // Con `sugeridaInicial` la matriz nace llena, en el estado inicial y no en un efecto: lo que trae la sugerencia es el PUNTO DE PARTIDA (`fotoAlAbrir`), así que cerrar sin tocar nada no pregunta
+  // «¿salir sin guardar?». Solo si el modelo pedido existe (nunca se llena el primero de la lista por error), si es una orden de producción (la muestra se hace aparte) y si la red respondió.
+  const [cantidades, setCantidades] = useState<Record<string, string>>(() =>
+    cantidadesInicialesDeNuevaOrden({ sugerida: sugeridaInicial, tipo: tipoInicial, productoInicialId, modelos, datos: decision?.datos ?? null })
+  );
   // Modelo nuevo (ADR-0361): sin modelos en el catálogo, el primero nace acá.
   const [modoModelo, setModoModelo] = useState<ModoModelo>(modelos.length === 0 ? "nuevo" : "existe");
   const [nombreNuevo, setNombreNuevo] = useState("");
@@ -292,9 +299,7 @@ export function NuevaOrdenProduccionForm({
   }
 
   function usarCurva() {
-    const nuevas: Record<string, string> = {};
-    for (const [id, s] of curva.porVariante) if (s.sugerido > 0) nuevas[id] = String(s.sugerido);
-    setCantidades(nuevas);
+    setCantidades(cantidadesDeLaCurva(curva));
   }
   function usarEstimadoDeMateriales() {
     setTela(materialesPorTipo.tela > 0 ? materialesPorTipo.tela.toFixed(2) : "");

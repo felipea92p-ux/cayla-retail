@@ -345,6 +345,7 @@ export const PRUEBAS = [
   // Cuarentena no sale hacia la clienta (PL-78): un disparador en movimientos rechaza venta, cambio y apartado
   // desde una sububicación Cuarentena; liquidar sigue. Control con el disparador deshecho. Cada caso: ROLLBACK.
   "pruebas:cuarentena-no-se-vende",
+  "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 
   // Dañadas (ADR-0328 act. 10): reportar desde Existencias mueve lo LIBRE del piso o del almacén a la cuarentena y abre

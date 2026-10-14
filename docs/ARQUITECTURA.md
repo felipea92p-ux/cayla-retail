@@ -918,8 +918,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - `/produccion/eficiencia` (solo líder; F7) → `app/(app)/produccion/eficiencia/page.tsx` junta órdenes cerradas (`getOrdenesProduccion`), la planilla del Taller (`lib/eficiencia.ts:getPlanillaDelTaller` → vista puente
   `retail.planilla_por_sede`, security_invoker sobre `public.v_planilla_pagada` de Dynamic: solo importes agregados, D-33) y los gastos del Taller (`gastos`, Finanzas ADR-0117) y calcula con `lib/eficiencia-reglas.ts`
   (puro: ventanas de período 29–28, costo por prenda, reparto del gasto) → `EficienciaTallerPanel.tsx`.
-- `/produccion` (Resumen, solo líder; F6) → `app/(app)/produccion/page.tsx` junta órdenes, insumos, lo por recibir, comprobantes y la decisión de la red (`getDecisionProduccion`) y calcula con `lib/produccion-decisiones.ts`
-  (puro: tarjetas, demanda de insumos de las órdenes abiertas, filas por modelo y por tela, cifras) → `ResumenProduccionPanel.tsx` (componente de servidor: enlaces a `?orden=` / `?nueva=` de Órdenes).
+- `/produccion` (Resumen, solo líder; F6) → `app/(app)/produccion/page.tsx` junta órdenes, insumos, lo por recibir, comprobantes, los modelos que se pueden fabricar (`getModelosProducibles({ soloProducibles: true })`:
+  `esProducible` de `lib/produccion-reglas.ts` + `categoriasFueraDeMotores` de `lib/familias-motores.ts`, ADR-0377 act. 2026-10-13), la decisión de la red (`getDecisionProduccion`) y, como dato secundario, las fotos
+  (`getCatalogo()` → `lib/produccion-presentacion.ts:presentacionesDeModelos`), y calcula con `lib/produccion-decisiones.ts` (puro: `resumenDeDecisiones` = tarjetas con tope por clase y lo que no cupo, demanda de insumos
+  de las órdenes abiertas, filas por modelo con su base de ventas y su detalle por talla y color —lo que falta se reparte en «trasladar» y «producir», `repartirFalta` en `lib/produccion-decision-reglas.ts`—, filas por tela,
+  cifras) → `ResumenProduccionPanel.tsx` (componente de servidor: enlaces a `?orden=` de Órdenes; dibuja cada modelo con `components/ui/FotoPrenda.tsx`, ADR-0333). Cada fila de «¿Qué producir?» es un botón
+  (`components/produccion-resumen/FilaQueAbreLaHoja.tsx`) que abre la hoja «Ver el modelo» (`HojaModelo.tsx`, `<Modal variante="hoja">`): su dato lo arma la página con lo que ya leyó
+  (`lib/produccion-hoja-modelo.ts:hojaDelModelo` + `lib/produccion-presentacion.ts:coloresDeModelos`) y viaja con ella, sin una lectura más; la orden (`?nueva=<modelo>`, con `&sugerida=1` si hay base: `NuevaOrdenProduccionForm` llega con la matriz llena) y el traslado (`/inventario/mover`) salen de la hoja.
+  El análisis y las tareas que siguen: `docs/pantallas/produccion.md`.
 - **Nueva orden con decisión (F5, solo líder):** `app/(app)/produccion/ordenes/page.tsx` → `lib/decision-produccion.ts:getDecisionProduccion` (ritmo y stock de cada sede por `getFilasRecientesDeSede` →
   `fn_resumen_variantes`; consumo real de órdenes cerradas; saldo de Insumos; lo facturado por llegar) + `lib/produccion-decision-reglas.ts` (puro: demanda de la red, curva sugerida, rendimiento medido, ¿alcanza?) →
   `OrdenesTablero.tsx` → `NuevaOrdenProduccionForm.tsx`. Sin esquema nuevo.
@@ -1534,7 +1540,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `registrar_pedido_no_atendido` (`lib/se-probo-reglas.ts` → `argsRegistrarPedido`); `fn_demanda_sede` la suma a su grupo.
   - `/compras/plan` («Plan de campaña», ADR-0349 y ADR-0372, módulo `plan_compra`; desde ADR-0387 pide solo su módulo, también para crear, editar, quitar, restaurar y el tope) → `lib/plan-compra.ts`
     (`fn_plan_compra` + la tabla `familias` para el nombre del filtro + `getPreparacionMotor` para el aviso de stock; los tres leen en
-    paralelo y solo el plan es obligatorio) + `lib/plan-compra-reglas.ts` (cuantil crítico, triangular, curva sugerida, validación;
+    paralelo y solo el plan es obligatorio; después, `fn_plan_compra_propuesta` y, con sus fechas `previa`, `fn_historial_ventas`: el
+    multiplicador de cada tienda que el ERP todavía no cubre, `conHistorial` en `lib/plan-compra-propuesta.ts`, ADR-0372 act. 2026-10-13); y `fn_plan_compra_pedido` (lo pedido en órdenes de compra y `por_llegar`, lo que todavía no está en ninguna tienda, que `armarFilas` resta de «Comprar»; `lib/plan-compra-pedido.ts`, ADR-0372 act. 2026-10-13 b) + `lib/plan-compra-reglas.ts` (cuantil crítico, triangular, curva sugerida, validación;
     desde ADR-0372 también filas, las que más venden, filtros, plegado, momento de la campaña, escala de la barra, paso a paso,
     confianza del stock y lista de compra) + `lib/plan-compra-guia.ts`. Pantalla: `components/plan-compra/PlanCampana.tsx` arma
     `AvisoStock`, `CifrasPlan` y `ListaCategorias` (con `FilaCategoria` y `BarraRango`); la hoja de una categoría es

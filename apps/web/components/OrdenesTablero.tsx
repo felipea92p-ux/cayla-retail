@@ -39,6 +39,7 @@ export function OrdenesTablero({
   decision,
   ordenInicialId = null,
   nuevaInicial = null,
+  sugeridaInicial = false,
   tipoInicial = "produccion",
   puedeEditarCatalogo = false,
   vocabulario = null,
@@ -55,6 +56,8 @@ export function OrdenesTablero({
   /** Enlaces del Resumen (F6): `?orden=<id>` abre esa orden; `?nueva=<modelo>` abre «Nueva orden» con el modelo elegido (`auto` = el primero). */
   ordenInicialId?: string | null;
   nuevaInicial?: string | null;
+  /** `&sugerida=1` (solo desde «Abrir orden sugerida» del Resumen): «Nueva orden» llega con la matriz ya llena con la sugerencia de la red. */
+  sugeridaInicial?: boolean;
   /** `?tipo=muestra` (ADR-0361): el tipo con que se abre «Nueva orden» al volver de crear un modelo nuevo. */
   tipoInicial?: TipoOrden;
   /** Quien edita el catálogo puede crear el modelo que falta desde aquí (`fn_puede_editar_catalogo`, ADR-0361). */
@@ -64,6 +67,8 @@ export function OrdenesTablero({
 }) {
   const [abiertaId, setAbiertaId] = useState<string | null>(ordenInicialId && ordenes.some((o) => o.id === ordenInicialId) ? ordenInicialId : null);
   const [nuevaAbierta, setNuevaAbierta] = useState(nuevaInicial !== null);
+  // La sugerencia del Resumen se aplica UNA vez, a la apertura que vino por la URL: la URL no cambia al cerrar ni al guardar, así que sin esto cada «+ Nueva orden» la volvería a escribir.
+  const [sugeridaPendiente, setSugeridaPendiente] = useState(sugeridaInicial);
   const [anulando, setAnulando] = useState<OrdenProduccion | null>(null);
   const [revirtiendo, setRevirtiendo] = useState<OrdenProduccion | null>(null);
   const [verTerminadas, setVerTerminadas] = useState(false);
@@ -281,12 +286,16 @@ export function OrdenesTablero({
           modelos={modelos}
           decision={decision}
           productoInicialId={nuevaInicial}
+          sugeridaInicial={sugeridaPendiente}
           tipoInicial={tipoInicial}
           puedeEditarCatalogo={puedeEditarCatalogo}
           vocabulario={vocabulario}
           abiertas={paraLaLista.abiertas}
           recientes={paraLaLista.recientes}
-          onClose={() => setNuevaAbierta(false)}
+          onClose={() => {
+            setNuevaAbierta(false);
+            setSugeridaPendiente(false);
+          }}
         />
       )}
       {anulando && <AnularOrdenModal orden={anulando} consumos={consumosPorOrden[anulando.id] ?? []} onClose={() => setAnulando(null)} />}

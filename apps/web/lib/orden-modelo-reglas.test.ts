@@ -30,6 +30,7 @@ const demanda = (m: ModeloParaLista, stockRed: number, ritmoDia: number | null):
     ritmoDia: ritmoDia === null ? null : ritmoDia / m.variantes.length,
     sedesConRitmo: ritmoDia === null ? 0 : 1,
     ventasNetas: 0,
+    ventasBase: 0,
     cobertura: undefined as never,
     banda: undefined as never,
   }));
@@ -58,9 +59,11 @@ describe("urgentesDeLaRed", () => {
     expect([...r.keys()]).toEqual(["falda"]);
     expect(r.get("falda")).toEqual({ dias: 6 });
   });
-  it("uno que ya tiene una orden abierta no es urgente (el Resumen no le sugiere otra)", () => {
-    const r = urgentesDeLaRed({ modelos: [short], demanda: demanda(short, 3, 1), enProduccion: { "short-v1": 12 } });
-    expect(r.size).toBe(0);
+  it("sigue la regla del Resumen: una orden abierta que NO alcanza no apaga la urgencia (una de 12 no cubre una falta de 27), una que CUBRE todo sí", () => {
+    const noAlcanza = urgentesDeLaRed({ modelos: [short], demanda: demanda(short, 3, 1), enProduccion: { "short-v1": 12 } });
+    expect([...noAlcanza.keys()]).toEqual(["short"]);
+    const cubre = urgentesDeLaRed({ modelos: [short], demanda: demanda(short, 3, 1), enProduccion: { "short-v1": 100, "short-v2": 100 } });
+    expect(cubre.size).toBe(0);
   });
   it("sin ritmo medido no se opina", () => {
     expect(urgentesDeLaRed({ modelos: [casaca], demanda: demanda(casaca, 0, null), enProduccion: {} }).size).toBe(0);

@@ -23,7 +23,8 @@ import { EditarCampanaModal } from "@/components/plan-compra/EditarCampanaModal"
 import { CampanasArchivadasModal } from "@/components/plan-compra/CampanasArchivadasModal";
 import { SelectorCampana } from "@/components/plan-compra/SelectorCampana";
 import { PestanasPlan } from "@/components/plan-compra/PestanasPlan";
-import { fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
+import { conHistorial, fraseDelRecupero, leerPropuesta, proponer } from "@/lib/plan-compra-propuesta";
+import { leerHistorial } from "@/lib/plan-compra-historial";
 import { leerPedido, numeroDeOrden } from "@/lib/plan-compra-pedido";
 import Link from "next/link";
 import { RecuperoModal } from "@/components/plan-compra/RecuperoModal";
@@ -84,6 +85,7 @@ export function PlanCampana({
   planPedidoNoExiste = false,
   propuesta: propuestaCruda = null,
   pedido: pedidoCrudo = null,
+  historia: historiaCruda = null,
 }: {
   datos: unknown;
   falla: string | null;
@@ -102,9 +104,14 @@ export function PlanCampana({
   propuesta?: unknown;
   /** Lo ya pedido en órdenes de compra para esta campaña, crudo; null = no se pudo leer (no se muestra). */
   pedido?: unknown;
+  /** La misma campaña del año anterior en el historial (`fn_historial_ventas`), crudo: el multiplicador de las tiendas que el ERP no cubre. */
+  historia?: unknown;
 }) {
   const plan = useMemo(() => leerPlan(datos), [datos]);
-  const hechos = useMemo(() => leerPropuesta(propuestaCruda), [propuestaCruda]);
+  const hechos = useMemo(() => {
+    const leida = leerPropuesta(propuestaCruda);
+    return leida ? conHistorial(leida, leerHistorial(historiaCruda)) : null;
+  }, [propuestaCruda, historiaCruda]);
   const pedido = useMemo(() => leerPedido(pedidoCrudo), [pedidoCrudo]);
   const params = useSearchParams();
   const vista: VistaPlan = vistaDeLaUrl(params.get("vista"));
@@ -137,8 +144,8 @@ export function PlanCampana({
   // Cada fila lleva lo que propone el sistema (C4) y el % de lo que sobra de la campaña (C5), si la base los manda para ESTA campaña.
   const filas = useMemo(() => {
     if (!plan) return [];
-    // Lo ya pedido en órdenes va en cada fila haya o no propuesta (ADR-0372 act. (e)).
-    const base = armarFilas(plan).map((f) => ({ ...f, pedido: pedido?.porCategoria.get(f.c.id) }));
+    // Lo ya pedido en órdenes va en cada fila haya o no propuesta, y lo que falta llegar se resta de «Comprar» (ADR-0372 act. (e) y 2026-10-13 b).
+    const base = armarFilas(plan, pedido?.porCategoria);
     if (!hechos || hechos.planId !== plan.plan.id) return base;
     return base.map((f) => ({
       ...f,
@@ -274,7 +281,7 @@ export function PlanCampana({
                 </span>
                 <span className="mt-2 block">
                   Si lo que sobra se vende casi al mismo precio, conviene cubrir el escenario bueno; si se pierde, conviene quedarse más cerca del flojo.
-                  Comprar = lo que conviene tener − lo que ya hay hoy.
+                  Comprar = lo que conviene tener − lo que ya hay hoy − lo que ya viene en órdenes de compra y todavía no llega.
                 </span>
                 <span className="mt-2 block">Son tus supuestos (o los que propone el sistema): al terminar la campaña, Resultados los compara con lo que pasó.</span>
               </Ayuda>
@@ -427,8 +434,8 @@ export function PlanCampana({
           <CifrasPlan totales={totales} estado={momento.estado} filas={filas} filtro={filtro} onFiltro={setFiltro} onSeguirLlenando={() => irAVista("guiado")} tope={plan.tope} onTope={() => setEditandoTope(true)} />
 
           {pedido && (
-            // Lo ya pedido en órdenes de compra que llegan dentro de las fechas de la campaña (Felipe 2026-10-12). Se muestra, no se resta de
-            // «Comprar»: las órdenes todavía no saben cuándo llegó la mercadería, y restarlo contaría dos veces lo que ya está en el stock.
+            // Lo ya pedido en órdenes de compra que llegan dentro de las fechas de la campaña (Felipe 2026-10-12). Lo que todavía no llegó a ninguna
+            // tienda se resta de «Comprar»; lo que llegó ya está en «Hay hoy» (Felipe 2026-10-13). Con una base que no manda `porLlegar`, solo se muestra.
             <section data-guia="plan.pedido" className="space-y-2 rounded-xl bg-hueso px-4 py-3 text-[13px] text-tinta/80">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">Ya pedido en órdenes de compra</p>
               {pedido.ordenes.length === 0 ? (
@@ -438,6 +445,7 @@ export function PlanCampana({
                   <p>
                     <b className="font-display text-xl text-tinta">{solesES(pedido.total)}</b> · {enteroES.format(pedido.unidades)} prendas en {pedido.ordenes.length}{" "}
                     {pedido.ordenes.length === 1 ? "orden" : "órdenes"}
+                    {pedido.porLlegar !== null ? ` · ${enteroES.format(pedido.porLlegar)} todavía por llegar` : ""}
                     {totales.inversion > 0 ? ` (el plan pide ${solesES(totales.inversion)})` : ""}
                   </p>
                   <ul className="divide-y divide-sand/80">
@@ -446,13 +454,20 @@ export function PlanCampana({
                         <Link href={`/compras/ordenes/ver/${o.id}`} className="min-w-0 truncate underline-offset-2 hover:underline">
                           <b className="font-semibold text-tinta">{numeroDeOrden(o.numero)}</b> · {o.proveedor} · {o.destino}
                         </Link>
-                        <span className="whitespace-nowrap tabular-nums">{enteroES.format(o.unidades)} · {solesES(o.total)}</span>
+                        <span className="whitespace-nowrap tabular-nums">
+                          {enteroES.format(o.unidades)}
+                          {o.porLlegar !== null ? (o.porLlegar === 0 ? " · ya llegaron" : ` · ${enteroES.format(o.porLlegar)} por llegar`) : ""} · {solesES(o.total)}
+                        </span>
                       </li>
                     ))}
                   </ul>
                 </>
               )}
-              <p className="text-xs text-tinta/65">Cuentan las órdenes que llegan dentro de las fechas de la campaña. No se restan de «Comprar» hasta que la orden sepa que ya llegó.</p>
+              <p className="text-xs text-tinta/65">
+                {pedido.porLlegar !== null
+                  ? "Cuentan las órdenes que llegan dentro de las fechas de la campaña. Lo que todavía no llegó a ninguna tienda ya se resta de «Comprar»; lo que llegó está en «Hay hoy»."
+                  : "Cuentan las órdenes que llegan dentro de las fechas de la campaña. No se restan de «Comprar» hasta que la orden sepa que ya llegó."}
+              </p>
             </section>
           )}
 
