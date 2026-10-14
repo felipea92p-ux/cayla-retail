@@ -235,7 +235,10 @@ Lo que se exige a toda pantalla, modal o pieza nueva o editada:
    de cámara sobre el video es negra en los dos temas (`bg-tinta-fija` + `.papel-fijo`, como los tres visores).
 4. **Un texto tenue (`text-tinta/35` a `/50`, `text-taupe/50` a `/70`) ya sube solo en oscuro** (una regla de `tema.css`, con `:where`
    para no ganarle a `hover:`); no escribas `dark:` por costumbre, solo donde una medida lo pida (`dark:text-tinta/55`,
-   `dark:opacity-85` en un conteo junto a un filtro). `dark:` sigue el atributo, no el sistema operativo.
+   `dark:opacity-85` en un conteo junto a un filtro). `dark:` sigue el atributo, no el sistema operativo. **Ese piso no alcanza al texto
+   tenue escrito en un CSS** (`color: color-mix(… var(--color-tinta) N%, transparent)`): desde el 64 % pasa en todo fondo y tema; por
+   debajo, la línea lleva en la misma línea `/* contraste: texto|texto grande|gráfico sobre <fondos> */` o `no aplica — <motivo>`, y
+   `lib/tema-tokens.test.ts` la mide en los dos temas (ADR-0336, act. 2026-10-14).
 5. **Un token de color nuevo** va en el `@theme` de `globals.css`, en el bloque oscuro de `tema.css` y en `.papel-fijo` (si es de papel);
    `lib/tema-tokens.test.ts` falla si no coinciden, mide el contraste de cada texto sobre cada superficie y exige que toda
    `var(--color-…)` del código exista (Tailwind v4 solo emite un token que ve usado en CSS: el bloque de la paleta es `@theme static`).

@@ -334,7 +334,7 @@
 .o-cat b { text-align: right; color: var(--o-tx); font-weight: 600; }
 .o-prods { display: grid; gap: 10px; }
 .o-prod { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 12px; }
-.o-sw { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; font-family: var(--font-serif); font-size: 15px; color: color-mix(in oklab, var(--color-tinta) 40%, transparent); background: var(--o-sup2); position: relative; overflow: hidden; }
+.o-sw { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; font-family: var(--font-serif); font-size: 15px; color: color-mix(in oklab, var(--color-tinta) 64%, transparent); background: var(--o-sup2); position: relative; overflow: hidden; } /* contraste: texto sobre hueso */
 .o-sw i { position: absolute; inset: auto 0 0 0; height: 30%; }
 .o-prod b { display: block; font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .o-prod small { display: block; font-size: 12px; color: var(--o-tx3); }

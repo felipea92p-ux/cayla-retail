@@ -510,7 +510,7 @@
 .parecidas-sepa::before {
   content: "·";
   margin-right: 10px;
-  color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+  color: color-mix(in srgb, var(--color-tinta) 45%, transparent); /* contraste: no aplica — un «·» de adorno entre datos, y hoy ningún componente lo pinta */
 }
 .parecidas-colores {
   display: inline-flex;
@@ -551,7 +551,7 @@
   color: var(--color-tinta);
 }
 .parecidas-sep {
-  color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+  color: color-mix(in srgb, var(--color-tinta) 45%, transparent); /* contraste: no aplica — separador de adorno, y hoy ningún componente lo pinta */
 }
 .parecidas-cargada {
   font-size: 13px;

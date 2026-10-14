@@ -67,7 +67,7 @@
   .vr-meta .vr-sep {
     padding-left: 12px;
     border-left: 1px solid var(--color-sand);
-    color: color-mix(in srgb, var(--color-tinta) 60%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel */
   }
   .vr-meta .vr-sep b {
     font-weight: 600;

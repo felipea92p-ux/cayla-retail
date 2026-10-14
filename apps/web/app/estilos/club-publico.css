@@ -676,7 +676,7 @@
 .club-input::placeholder {
   font-size: 16px;
   letter-spacing: normal;
-  color: color-mix(in srgb, var(--color-tinta) 50%, transparent);
+  color: color-mix(in srgb, var(--color-tinta) 64%, transparent); /* contraste: texto sobre hueso */
 }
 .club-input:focus {
   border-color: var(--color-taupe);

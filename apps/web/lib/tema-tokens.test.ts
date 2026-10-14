@@ -239,28 +239,75 @@ describe("modo oscuro: contraste medido", () => {
   });
 });
 
-describe("títulos de sección (estilos/titulos.css): el texto hecho de tinta se lee en los dos temas", () => {
-  // La nota de <TituloGrupo> («· lo que ya salió hacia las sedes») estaba al 45 % de tinta: 2.85:1 en claro y 3.93:1 en oscuro sobre papel
-  // (auditoría del 2026-10-14). El piso del texto tenue de `tema.css` solo alcanza a las clases de Tailwind (`text-tinta/45`), no a un
-  // `color-mix` escrito en un CSS: por eso cada `color:` de titulos.css hecho de tinta y transparente se mide aquí, sobre la hoja (papel) y
-  // la página (crema), que es donde vive un título. El navegador compone la mezcla en sRGB y redondea a 8 bits, como `mezcla`.
-  const porcentajes = [
-    ...new Set(
-      [...leer("app/estilos/titulos.css").matchAll(/(?<![\w-])color:\s*color-mix\(in (?:srgb|oklab),\s*var\(--color-tinta\)\s+(\d+(?:\.\d+)?)%,\s*transparent\)/g)].map((m) => Number(m[1])),
-    ),
-  ];
+describe("texto hecho de tinta en los CSS: por debajo del 64 % dice qué es y sobre qué fondo vive, y se mide", () => {
+  // Nació el 2026-10-14: la nota de <TituloGrupo> y otros 18 textos escritos a mano en un CSS (`color: color-mix(in srgb,
+  // var(--color-tinta) N%, transparent)`) no llegaban al mínimo y nada los medía, porque el piso del texto tenue de `tema.css` solo sube
+  // las clases de Tailwind (`text-tinta/45`). Desde el 64 % un texto de tinta pasa 4.5:1 sobre crema, papel, hueso y sand en los dos temas.
+  // Por debajo, la línea lleva su etiqueta y aquí se mide sobre cada fondo que nombra, en claro y en oscuro:
+  //   /* contraste: texto sobre papel, crema */            → 4.5:1
+  //   /* contraste: texto grande sobre hueso */            → 3:1 (24 px, o 18.7 px en negrita)
+  //   /* contraste: gráfico sobre hueso, papel */          → 3:1 (un ícono o una flecha, WCAG 1.4.11)
+  //   /* contraste: no aplica — <por qué, en 10 letras o más> */   (deshabilitado, adorno, sin uso, transitorio)
+  // `tema.css` queda fuera: es el piso del oscuro. El navegador compone la mezcla en sRGB y redondea a 8 bits, como `mezcla`.
+  const raiz = join(__dirname, "..");
+  const hojas: string[] = [];
+  const recorrer = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const ruta = join(dir, e.name);
+      if (e.isDirectory()) recorrer(ruta);
+      else if (e.name.endsWith(".css") && !ruta.endsWith(join("estilos", "tema.css"))) hojas.push(ruta);
+    }
+  };
+  recorrer(join(raiz, "app"));
 
-  it("encuentra los textos que mide (si cambia cómo se escriben, esta prueba tiene que seguirlo)", () => {
-    expect(porcentajes.length).toBeGreaterThan(0);
+  const TINTA = /(?<![\w-])color:\s*color-mix\(in (?:srgb|oklab),\s*var\(--color-tinta\)\s+(\d+(?:\.\d+)?)%,\s*transparent\)/g;
+  const lineas: { donde: string; p: number; etiqueta: string | null }[] = [];
+  for (const hoja of hojas) {
+    const css = readFileSync(hoja, "utf8");
+    const comentarios = [...css.matchAll(/\/\*[\s\S]*?\*\//g)].map((m) => [m.index ?? 0, (m.index ?? 0) + m[0].length]);
+    for (const m of css.matchAll(TINTA)) {
+      const i = m.index ?? 0;
+      const p = Number(m[1]);
+      if (p >= 64 || comentarios.some(([a, b]) => i >= a && i < b)) continue;
+      const fin = css.indexOf("\n", i);
+      const linea = css.slice(css.lastIndexOf("\n", i) + 1, fin < 0 ? undefined : fin);
+      const etiqueta = linea.match(/\/\*\s*contraste:\s*([\s\S]+?)\s*\*\//)?.[1] ?? null;
+      lineas.push({ donde: `${hoja.slice(raiz.length + 1)}:${css.slice(0, i).split("\n").length}`, p, etiqueta });
+    }
+  }
+
+  it("encuentra las líneas que mide (si cambia cómo se escriben, esta prueba tiene que seguirlo)", () => {
+    expect(lineas.length).toBeGreaterThan(0);
   });
 
-  for (const p of porcentajes) {
+  it("desde el 64 % la tinta pasa 4.5:1 sobre crema, papel, hueso y sand en los dos temas (por eso ahí no pide etiqueta)", () => {
     for (const [tema, t] of [["claro", claro], ["oscuro", oscuro]] as const) {
-      for (const superficie of ["papel", "crema"] as const) {
-        it(`tinta al ${p} % sobre ${superficie}, en ${tema}: ≥ 4.5`, () => {
-          expect(contraste(mezcla(t.tinta, t[superficie], p / 100), t[superficie])).toBeGreaterThanOrEqual(4.5);
-        });
-      }
+      for (const f of ["crema", "papel", "hueso", "sand"]) expect(contraste(mezcla(t.tinta, t[f], 0.64), t[f]), `${tema}, sobre ${f}`).toBeGreaterThanOrEqual(4.5);
     }
+  });
+
+  it("toda línea por debajo del 64 % lleva su etiqueta `/* contraste: … */` en la misma línea", () => {
+    const sinEtiqueta = lineas.filter((l) => !l.etiqueta).map((l) => `${l.donde} (tinta al ${l.p} %)`);
+    expect(sinEtiqueta, "ponle /* contraste: texto sobre <fondos> */ (o «texto grande …», «gráfico …», «no aplica — <motivo>») o sube el tono").toEqual([]);
+  });
+
+  const UMBRAL = { texto: 4.5, "texto grande": 3, gráfico: 3 } as const;
+  const FONDOS = ["crema", "papel", "hueso", "sand"];
+  for (const l of lineas.filter((x) => x.etiqueta !== null)) {
+    it(`${l.donde} · tinta al ${l.p} % · ${l.etiqueta}`, () => {
+      const e = l.etiqueta ?? "";
+      if (e.startsWith("no aplica")) {
+        expect(e.replace(/^no aplica\s*[—–-]?\s*/, "").length, "el motivo de «no aplica»").toBeGreaterThanOrEqual(10);
+        return;
+      }
+      const m = e.match(/^(texto grande|texto|gráfico) sobre (.+)$/);
+      expect(m, `etiqueta que no se entiende: «${e}»`).not.toBeNull();
+      const umbral = UMBRAL[(m?.[1] ?? "texto") as keyof typeof UMBRAL];
+      const fondos = (m?.[2] ?? "").split(/\s*,\s*/);
+      for (const f of fondos) expect(FONDOS, `fondo «${f}»`).toContain(f);
+      for (const [tema, t] of [["claro", claro], ["oscuro", oscuro]] as const) {
+        for (const f of fondos) expect(contraste(mezcla(t.tinta, t[f], l.p / 100), t[f]), `${tema}, sobre ${f}`).toBeGreaterThanOrEqual(umbral);
+      }
+    });
   }
 });

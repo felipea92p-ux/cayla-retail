@@ -59,7 +59,7 @@
     letter-spacing: 0.13em;
     text-transform: uppercase;
     line-height: 1.3;
-    color: color-mix(in srgb, var(--color-tinta) 62%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
   }
   .titulo-grupo-texto { display: flex; align-items: center; gap: 0.75rem; }
   .titulo-grupo-texto::after {
@@ -95,7 +95,7 @@
     letter-spacing: 0.13em;
     text-transform: uppercase;
     line-height: 1.3;
-    color: color-mix(in srgb, var(--color-tinta) 62%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
   }
   .separador-dia-hoy { color: var(--color-tinta); }
   .separador-dia-texto { display: inline-flex; align-items: center; gap: 0.5rem; }

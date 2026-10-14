@@ -138,6 +138,46 @@ excepciones. Con el criterio final, en local (cuentas admin, admin en CAYLA Glob
 **Se rompe si** una librería de modales oculta la página de atrás sin la marca `data-aria-hidden`: los símbolos de atrás volverían a
 contar como gráficos mientras el modal esté abierto. Radix, la que usa el ERP, la pone: estaba en cada modal medido.
 
+## Actualización 2026-10-14 — el texto tenue escrito en un CSS se mide en el CI y dice qué es
+
+**Qué pasó.** La auditoría marcó la nota de `<TituloGrupo>`: 45 % de tinta, 2.85:1 en claro y 3.93:1 en oscuro sobre papel. Ahora toma el
+tono de su título. Detrás había una causa más ancha: el piso del texto tenue de `tema.css` (regla 4 de «Modo oscuro» en CLAUDE.md) solo
+sube las clases de Tailwind, y un `color: color-mix(in srgb, var(--color-tinta) N%, transparent)` escrito a mano en un CSS no lo recibe ni
+lo medía nada en el CI. Había 37 líneas así por debajo del 64 %, en 19 archivos de `app/` (`globals.css` y `estilos/`).
+
+**Qué se hizo.** Solo cambió el tono de tinta; el tamaño, el lugar y el texto siguen iguales.
+- **19 no pasaban y se subieron** al mínimo que pasa sobre su fondo real. El texto quedó en 62 % sobre papel o crema y en 64 % sobre hueso
+  o sand (4.5:1). Son las horas del gráfico de tramos, la hora de la comparativa de Caja, el número y el título de la ficha del taller, los
+  datos de la hoja del modelo, la opción del segmento, la tecla «/» del buscador, las iniciales del Observatorio y los ejemplos dentro de
+  los campos, los buscadores, la lista y el club. El monto grande del gasto rápido quedó en 50 % (texto grande, 3:1), y en 50 % también la
+  × de un aviso, la flecha de la ficha del taller, el ícono de un paso pendiente y el «…» de la paginación (gráficos, 3:1). Se midieron en
+  el navegador, antes y después, en claro y en oscuro, con el banco local de pruebas; cinco que no estaban a mano se calcularon sobre su
+  fondo fijo.
+- **18 se quedan, cada una con su motivo en la línea:**
+  - 8 íconos que ya pasan 3:1;
+  - la «›» de una fila, apagada en reposo y en tinta plena cuando se ve;
+  - 2 botones deshabilitados, que WCAG exime;
+  - 2 reglas de `alta-parecidas.css` que ningún componente pinta;
+  - la letra mientras gira en el pase de traslado, que dura un instante;
+  - 4 textos al 62 % que ya pasaban: el título de grupo, el separador de día, la etiqueta de un campo y el pie de los rótulos.
+
+**La regla y su candado.** Desde el 64 %, la tinta pasa 4.5:1 sobre crema, papel, hueso y sand en los dos temas. Por debajo, la línea lleva
+su etiqueta en la misma línea: `/* contraste: texto sobre papel, crema */` (4.5:1), `texto grande sobre …` o `gráfico sobre …` (3:1), o
+`no aplica — <motivo>`. `lib/tema-tokens.test.ts` recorre todos los CSS de `app/` salvo `tema.css` y falla si una línea bajo el 64 % no
+trae etiqueta. Mide cada etiquetada sobre los fondos que nombra, en claro y en oscuro, y comprueba la premisa del 64 %. Con los tonos de
+antes, cae exactamente en las 19.
+
+**Lo que queda fuera (anotado en el backlog).**
+- **Escalas propias hechas con variables:** `--vr-t45` de la vista rápida, `--hp-t45` del historial de la prenda, `--vsr-t50` de Ventas
+  sin registrar, y `--pp-poste` y `--grupo-fuera` del plan del piso.
+- **Las mezclas de taupe:** `finanzas.css` y `rotulos-brother.css`.
+- **Las clases de Tailwind que fallan en claro:** `text-tinta/50` sobre crema, como el «Ctrl K» del buscador de la cabecera.
+- **El piso de `tema.css`:** su 58 % da 4.45:1 sobre sand en oscuro, no 4.5 como dice su comentario.
+
+**Se rompe si** el color de un texto tenue se escribe de otra forma: una variable propia, `opacity` sobre el texto u otra mezcla. El
+candado solo reconoce `color: color-mix(… var(--color-tinta) N%, transparent)`; lo demás lo sigue viendo solo la auditoría en el
+navegador.
+
 ## Cómo se verificó (actividad 13)
 
 `tsc` sin errores y las pruebas del tema en verde. Con la herramienta, contra el `next dev` local de esta rama: las 12 rutas con 6 cuentas a 1440 px (72 visitas), 24 escenarios con Admin, Integrante y Terminal de ventas a 1440 px (58 visitas) y a 375 px (58 visitas): **0 hallazgos solo en oscuro**. Mirando las capturas: la ficha de una clienta, Roles y accesos, el cartel (ahora rojo como saldrá impreso) y las etiquetas (papel blanco, como salen) se leen bien. Los escenarios que no abren algo son por el rol.
