@@ -1,6 +1,6 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { getCatalogo } from "@/lib/catalogo-v2";
-import { getPlazosColaArranque, getPorRegularizar } from "@/lib/por-regularizar";
+import { getPlazosColaArranque, getPorRegularizar, getUltimoCuadrePorSede } from "@/lib/por-regularizar";
 import { getDisponiblePorSede } from "@/lib/por-regularizar-stock";
 import { getLibroPorVenta } from "@/lib/por-regularizar-libro";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -37,6 +37,8 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
   // Cuántas unidades libres hay de cada prenda en la tienda de cada venta pendiente (para «3 en TRU» y la sugerida). Es lo accesorio:
   // si no se puede leer, la pantalla sigue y se regulariza igual (`getDisponiblePorSede` nunca lanza).
   const sedesPendientes = filas.filter((f) => f.estado === "pendiente").map((f) => f.ubicacionId);
+  // A6 (ADR-0334 act. 2026-10-14): cerrar en bloque exige un cuadre del piso después de la última venta; el líder ve qué tiendas lo tienen.
+  const cuadres = esLider ? await getUltimoCuadrePorSede(sedesPendientes) : {};
   // El precio OFICIAL de cada venta es el de su tienda (precio propio, Felipe 2026-10-09): así lo guarda `regularizar_prenda`.
   // Y lo que dice el libro de cada prenda a la hora de cada venta: de ahí la mesa sugiere «¿Cómo estaba?» (ADR-0328 act. 5). También es
   // lo accesorio: `getLibroPorVenta` nunca lanza y, si falla, la mesa sigue sin esa sugerencia.
@@ -83,6 +85,7 @@ export default async function PorRegularizarPage({ searchParams }: { searchParam
         variasSedes={esLider && !unaSede}
         esLider={esLider}
         plazos={plazos}
+        cuadres={cuadres}
         sedeInicial={unaSede?.id ?? null}
         abrirItemId={item ?? null}
         listas={armarListasPrendaLibre(listasLeidas, catalogo)}

@@ -14,7 +14,8 @@ la web no se publica antes que la migración, o una boleta dada de baja responde
   Revisa la decisión 7 de ADR-0334 («no se inventa un costo»): hay que actualizarla con el porqué.
 - **A5, hecha:** el pie del ticket con «Hoy N sin registrar · M por regularizar» y el enlace a la mesa. La insignia global «Te toca» en la
   cabecera (también para terminales, `fn_pendientes`) sigue siendo de la Fase 3 (UX-02, INT-13).
-- **A6** · Cerrar en bloque exige un cuadre del piso posterior al corte (Felipe: estricto). Hoy `cuadres_piso` = 0 en las tres tiendas.
+- **A6, hecha:** migración `20261015004000` (**pendiente de producción con OK de Felipe**, después de `20261014165000`). Hoy `cuadres_piso` = 0 en
+  las tres tiendas: el día que entre, nadie podrá cerrar en bloque hasta cuadrar el piso (Existencias ▸ Cuadrar el piso), que es lo decidido.
 - Fuera del bloque, con diseño propio (`/rigor`): el «descargo pendiente» para que un conteo no cuente como pérdida lo vendido sin registrar
   (`ajustar_inventario`, `cerrar_conteo`); y el bloque 2 (RPC transaccionales `corregir_venta`, `reemitir_comprobante`, disparador diferido
   «toda venta completada tiene un comprobante vivo»).

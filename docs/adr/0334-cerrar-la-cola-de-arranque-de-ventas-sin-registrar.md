@@ -192,3 +192,19 @@ el rango de su categoría (A3); el costo de lo cerrado sin prenda deja de ser 0 
 también sin fila previa) y 6c (las cuatro migraciones pegadas dos veces dejan el enlace una sola vez y la sede con fecha con ese plazo).
 En producción, después de aplicar: `select u.nombre, u.carga_inicial_hasta, p.hasta from retail.ubicaciones u join retail.cola_arranque_plazo
 p on p.ubicacion_id = u.id` devuelve la misma fecha en cada tienda.
+
+## Actualización 2026-10-14 (b): cerrar en bloque exige un cuadre del piso (migración `20261015004000`, A6)
+
+**Decisión (Felipe, 2026-10-14, estricta).** `cerrar_cola_arranque` exige un cuadre del piso de esa sede (`cuadres_piso`, ADR-0328)
+**guardado después de la última venta que se cierra** (`created_at >= p_hasta`); si no, `cola_sin_cuadre` con la salida en el hint
+(«Primero cuadra el piso de esta tienda…»). Lo que queda abierto arriba («cerrar TRU después de cuadrar su piso») pasa de consejo a
+candado: lo que sí estaba en el sistema queda cuadrado antes de dar el resto por perdido. Regularizar una por una, identificar con
+sugerencias y reabrir una cerrada no piden cuadre. La pantalla lo dice antes de ofrecer el botón: lee `fn_cuadre_piso_estado.cuadrado_en`
+de cada tienda con pendientes (`getUltimoCuadrePorSede`) y `sedesParaCerrar` marca `sinCuadre`; una tienda cuyo cuadre no se pudo leer
+no se juzga y la base lo vuelve a exigir.
+DESCARTÉ: medir contra `escaneo_desde` (cuándo empezó el escaneo) en vez de `created_at`: es más estricto, pero la pantalla solo puede
+leer `cuadrado_en`, y base y pantalla tienen que decir lo mismo. Y exigir el cuadre solo desde el segundo cierre de una sede: regla con
+dos caras que hay que explicar (opción C de la pregunta).
+**Cómo se verifica.** `pnpm pruebas:cola-arranque` (56 casos: sin cuadre no cierra; un cuadre anterior a la última venta no vale; con
+el cuadre después, cierra, y regularizar y reabrir no lo piden), `lib/cola-arranque-reglas.test.ts` (33), y en el navegador local la
+mesa dice «primero cuadra el piso» en vez de ofrecer «Cerrar la cola de arranque».

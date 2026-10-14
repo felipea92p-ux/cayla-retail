@@ -74,3 +74,15 @@ versión mínima de «lo pendiente va a la persona» (auditoría, tema 7); la in
 Felipe se lleva: quien vende ve cada día cuántas prendas entraron sin registrar y cuántas esperan, a un toque de la mesa. Verificado: vitest
 entero en verde, `tsc` y `eslint` limpios; en el navegador local (Tienda Lima, con una venta de hoy sin registrar de fixture) el pie dice
 «Hoy 1 sin registrar · 1 por regularizar en tu tienda · Regularizar» con el enlace a `/inventario/por-regularizar`.
+
+## 2026-10-14 (A6: cerrar la cola en bloque exige un cuadre del piso)
+Qué hice: migración `20261015004000` (reemplazo anclado a `cerrar_cola_arranque`): sin un cuadre del piso de la sede guardado después de la
+última venta que se cierra, `cola_sin_cuadre` con la salida en el hint. La mesa de Ventas sin registrar lee el último cuadre de cada tienda
+con pendientes (`getUltimoCuadrePorSede` sobre `fn_cuadre_piso_estado`) y, si falta, no ofrece el cierre y dice «primero cuadra el piso»
+(`sedesParaCerrar` con `cuadres`, `faltaCuadre`). ADR-0334, actualización (b).
+Por qué así: Felipe eligió la versión estricta: lo que sí está en el sistema queda cuadrado antes de dar el resto por perdido. Se mide con
+`created_at` porque es lo único que la pantalla puede leer: base y pantalla dicen lo mismo. Los cuadres son inmutables (las pruebas insertan
+uno viejo en vez de editarlo).
+Felipe se lleva: cerrar en bloque deja de enterrar sin contar; TRU, AQP y LIM tienen que cuadrar el piso al menos una vez antes del 18, 21 y
+31. Verificado: `pnpm pruebas:cola-arranque` 56/56 (3 casos nuevos), `lib/cola-arranque-reglas.test.ts` 33, `tsc` y vitest entero en verde;
+en el navegador local la mesa muestra el aviso en vez del botón. **Pendiente de producción con OK de Felipe** (después de A1).
