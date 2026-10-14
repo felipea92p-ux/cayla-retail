@@ -78,7 +78,7 @@ select pg_temp.insertar_antes(
 $v$,
   $v$hint = 'pedido_nota_larga'$v$);
 
--- 3. El ajuste: uno de los cuatro motivos de la pantalla y la nota hasta 200.
+-- 3. El ajuste: uno de los cuatro motivos de la pantalla y la nota hasta 300.
 select pg_temp.insertar_antes(
   'retail.ajustar_inventario(uuid, uuid, jsonb, text, jsonb, boolean, text, uuid)',
   $v$  if jsonb_array_length(v_ajustes) > 0 and nullif(btrim(p_motivo), '') is null then$v$, 1,
