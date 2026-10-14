@@ -38,6 +38,7 @@ import {
 } from "@/lib/separaciones-reglas";
 import { NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { EstadoChip, FotoPrenda, ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
+import { TicketDeEntrega, useReciboDeApartado } from "@/components/apartados/useReciboDeApartado";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
@@ -199,6 +200,8 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
 export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo = 0, sede, onClose }: { apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; /** Lo que no se cobró por llevar el efectivo del saldo a S/ 0.10 (ADR-0311). */ redondeo?: number; sede: string; onClose: () => void }) {
   const a = apartado;
   useTituloDeImpresion(a.codigo);
+  // Un apartado nuevo imprime LA boleta o factura de siempre (con su QR y su número); uno viejo, su ticket de antes (ADR-0399).
+  const recibo = useReciboDeApartado(a, sede, redondeo, esConstancia(a));
   return (
     <Modal titulo="Apartado entregado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-md">
       {(cerrar) => (
@@ -228,7 +231,7 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
             <p className="border-t border-sand pt-2 text-tinta/70">La venta de {money(a.total)} entra hoy a ingresos y sale de «En custodia».{esConstancia(a) && " La boleta o factura sale por el total, sin nombrar el adelanto."}</p>
           </div>
           <Botones cerrar={cerrar} principal="Imprimir y entregar" />
-          <ReciboApartado apartado={a} tipo="final" sede={sede} pagadoHoy={pagadoHoy} redondeo={redondeo} />
+          {recibo ? <TicketDeEntrega recibo={recibo} codigo={a.codigo} /> : <ReciboApartado apartado={a} tipo="final" sede={sede} pagadoHoy={pagadoHoy} redondeo={redondeo} />}
         </div>
       )}
     </Modal>
@@ -245,6 +248,7 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
   const conFinal = a.estado === "entregada" && !!a.comprobanteFinal;
   const constancia = esConstancia(a);
   const [cual, setCual] = useState<"anticipo" | "final">(conFinal ? "final" : "anticipo");
+  const reciboFinal = useReciboDeApartado(a, sede, 0, constancia && conFinal);
   const numero = cual === "final" ? a.comprobanteFinal : constancia ? a.codigo : a.comprobanteAnticipo;
   useTituloDeImpresion(`${a.codigo}${cual === "final" ? "-final" : ""}`);
   return (
@@ -273,7 +277,7 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
             <Printer className="h-4 w-4" aria-hidden />
             Imprimir
           </button>
-          <ReciboApartado key={cual} apartado={a} tipo={cual} sede={sede} copia />
+          {cual === "final" && reciboFinal ? <TicketDeEntrega recibo={reciboFinal} codigo={a.codigo} /> : <ReciboApartado key={cual} apartado={a} tipo={cual} sede={sede} copia />}
         </div>
       )}
     </Modal>

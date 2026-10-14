@@ -76,6 +76,13 @@ Las tres migraciones son **reemplazos anclados por tramo** y no reescrituras: el
 en silencio. Cada reemplazo falla sin tocar nada si la función viva no es la revisada y es re-ejecutable.
 Web y SQL no dependen del orden de salida con una excepción: la web nueva envía la boleta final a SUNAT, y eso solo tiene sentido con la parte 1 ya pegada.
 
+## El papel (Felipe, 2026-10-14)
+
+Al apartar sale una **constancia** («CONSTANCIA DE APARTADO», con el código `APT-…` y un sello «NO ES BOLETA NI FACTURA · no sirve para cambios ni como pago»; sin IGV, sin QR). Al
+entregar sale **la misma boleta o factura de cualquier venta** (`ReciboTermico`: número real, QR de SUNAT) por el total, con un sello «CANCELADO» en vez de la forma de pago (que
+mostraría el adelanto) y una línea «Prendas apartadas · ref. APT-…». Antes la entrega imprimía un ticket con título de boleta pero sin QR y con el número del apartado: parecía un
+comprobante y no lo era. Capturas en `docs/maquetas/apartados-ticket-2026-10/`; lógica en `lib/recibo-apartado-reglas.ts`. Un apartado viejo conserva su ticket de antes.
+
 ## Pruebas
 
 `pnpm pruebas:separaciones` (84 casos: apartar/abonar/entregar/devolver sin comprobante, el camino viejo de un apartado con anticipo, re-ejecución de las migraciones y que aborten si la

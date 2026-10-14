@@ -73,15 +73,38 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
         </p>
         <p className="rt-tienda">{sede}</p>
       </header>
-      <p className="rt-centro rt-titulo">{tipo === "anticipo" ? (constancia ? "CONSTANCIA DE DEPÓSITO" : "BOLETA DE VENTA ELECTRÓNICA — ANTICIPO") : "BOLETA DE VENTA ELECTRÓNICA"}</p>
+      <p className="rt-centro rt-titulo">{tipo === "anticipo" ? (constancia ? "CONSTANCIA DE APARTADO" : "BOLETA DE VENTA ELECTRÓNICA — ANTICIPO") : "BOLETA DE VENTA ELECTRÓNICA"}</p>
       <p className="rt-centro rt-numero">{tipo === "anticipo" ? (constancia ? a.codigo : a.comprobanteAnticipo) : (a.comprobanteFinal ?? "")}</p>
       {(tipo === "final" || !constancia) && <p className="rt-centro rt-negrita">APARTADO {a.codigo}{tipo === "final" ? " · ENTREGADO" : ""}</p>}
-      {tipo === "anticipo" && constancia && <p className="rt-centro rt-negrita">NO ES COMPROBANTE DE PAGO</p>}
+      {tipo === "anticipo" && constancia && (
+        <p className="rt-sello">
+          NO ES BOLETA NI FACTURA
+          <small>no sirve para cambios ni como pago</small>
+        </p>
+      )}
       {copia && <p className="rt-centro rt-negrita">COPIA · REIMPRESA EL {fechaNumerica(new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }))}</p>}
-      <div className="rt-datos">
-        <p>Cliente: {a.nombres} {a.apellidos}{a.dni ? ` · DNI ${a.dni}` : ""}</p>
-        {(a.celular || a.asesora) && <p>{[a.celular && `Cel.: ${a.celular}`, a.asesora && `Atendió: ${a.asesora}`].filter(Boolean).join(" · ")}</p>}
-      </div>
+      <dl className="rt-datos">
+        <dt>Cliente</dt>
+        <dd>{a.nombres} {a.apellidos}</dd>
+        {a.dni && (
+          <>
+            <dt>DNI</dt>
+            <dd>{a.dni}</dd>
+          </>
+        )}
+        {a.celular && (
+          <>
+            <dt>Celular</dt>
+            <dd>{a.celular}</dd>
+          </>
+        )}
+        {a.asesora && (
+          <>
+            <dt>Atendió</dt>
+            <dd>{a.asesora}</dd>
+          </>
+        )}
+      </dl>
       {a.prendas.map((p) => (
         <p key={p.varianteId} className="rt-fila">
           <span>{p.cantidad} {p.referencia} {p.sku}</span>
@@ -91,16 +114,15 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
       <p className="rt-fila rt-negrita"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
       {tipo === "anticipo" ? (
         <>
-          <p className="rt-fila"><span>{constancia ? "Depósito recibido" : "Anticipo (incluye IGV)"}</span><span>{money(a.adelanto)}</span></p>
-          <p className="rt-fila rt-total"><span>SALDO AL RECOGER</span><span>{money(a.total - a.adelanto)}</span></p>
+          <p className="rt-fila"><span>{constancia ? "Dejaste" : "Anticipo (incluye IGV)"}</span><span>{money(a.adelanto)}</span></p>
+          <p className="rt-fila rt-total"><span>{constancia ? "FALTA PAGAR" : "SALDO AL RECOGER"}</span><span>{money(a.total - a.adelanto)}</span></p>
           <p className="rt-fila rt-negrita"><span>RECOGER HASTA</span><span>{fechaNumerica(a.venceEl)}</span></p>
           <div className="rt-pie">
             <p className="rt-negrita">CONDICIONES DE TU APARTADO</p>
-            <p>1. Tus prendas quedan guardadas hasta el {fechaNumerica(a.venceEl)}.</p>
+            <p>1. Guardamos tus prendas hasta el {fechaNumerica(a.venceEl)}.</p>
             <p>2. Para recogerlas trae {constancia ? "esta constancia" : "este comprobante"} o tu DNI.</p>
             <p>3. Si no las recoges a tiempo vuelven a la tienda y te devolvemos el 100% por {textoDevolucion(a)}, sin que tengas que venir.</p>
             <p>4. El precio queda congelado. Cambios y devoluciones: desde el día que recoges.</p>
-            {constancia && <p>5. Tu boleta o factura se emite cuando recoges tus prendas, por el total de la compra.</p>}
           </div>
         </>
       ) : (
@@ -124,7 +146,7 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
       )}
       <p className="rt-centro rt-lema">
         {tipo === "anticipo" && constancia
-          ? "Esta constancia no es un comprobante de pago: tu boleta o factura se emite al recoger."
+          ? "Tu boleta o factura se emite cuando recoges, por el total de la compra."
           : "Comprobante electrónico registrado: su envío a SUNAT se completa después."}
       </p>
     </div>
