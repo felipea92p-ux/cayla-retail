@@ -28,8 +28,6 @@ import {
   type ResumenMiFondo,
 } from "./fondos-reglas";
 
-/** El monto en una frase va con un espacio que no se parte (`solesSinCorte`): así se escribe lo esperado sin ese carácter invisible. */
-const nb = (s: string) => s.replaceAll("S/ ", "S/\u00a0");
 
 // Fondos por rendir (ADR-0362, fase 6 · actividad 1). Lo que falta en cada hoja tiene que ser lo MISMO que rechaza la base
 // (20261013182000, `scripts/pruebas/fondos.mjs`): estos casos son los suyos, del lado de la pantalla.
@@ -155,10 +153,10 @@ describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Ini
 
   it("con todo en la mano: lo que le entregaron y que aún no gasta", () => {
     expect(cara({})).toEqual({
-      valor: "S/ 500.00",
+      valor: "S/\u00a0500.00",
       unidad: "te queda",
       debe: false,
-      contexto: "Te entregaron S/ 500.00; aún no gastas nada",
+      contexto: "Te entregaron S/\u00a0500.00; aún no gastas nada",
       pie: "Desde el 13/10 · para «Compras Gamarra»",
       aviso: null,
       puedeRendir: false,
@@ -168,16 +166,16 @@ describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Ini
 
   it("después de pagar y anotar gastos: «te queda» y cuánto gastó de lo entregado (proveedores y viaje juntos)", () => {
     const c = cara({ saldo: 200, pagado: 220, gastos: 80 });
-    expect([c.valor, c.unidad, c.contexto]).toEqual(["S/ 200.00", "te queda", "Gastaste S/ 300.00 de S/ 500.00"]);
-    expect(cara({ saldo: 100, devuelto: 100, pagado: 300 }).contexto).toBe("Gastaste S/ 300.00 y devolviste S/ 100.00 de S/ 500.00");
-    expect(cara({ saldo: 0, devuelto: 500 }).contexto).toBe("Devolviste S/ 500.00 de S/ 500.00");
-    expect(cara({ saldo: 0, pagado: 500 })).toMatchObject({ valor: "S/ 0.00", unidad: "te queda", contexto: "Gastaste S/ 500.00 de S/ 500.00" });
+    expect([c.valor, c.unidad, c.contexto]).toEqual(["S/\u00a0200.00", "te queda", "Gastaste S/\u00a0300.00 de S/\u00a0500.00"]);
+    expect(cara({ saldo: 100, devuelto: 100, pagado: 300 }).contexto).toBe("Gastaste S/\u00a0300.00 y devolviste S/\u00a0100.00 de S/\u00a0500.00");
+    expect(cara({ saldo: 0, devuelto: 500 }).contexto).toBe("Devolviste S/\u00a0500.00 de S/\u00a0500.00");
+    expect(cara({ saldo: 0, pagado: 500 })).toMatchObject({ valor: "S/\u00a00.00", unidad: "te queda", contexto: "Gastaste S/\u00a0500.00 de S/\u00a0500.00" });
   });
 
   it("si pagó de su bolsillo, el número es lo que CAYLA le debe (nunca negativo), en ámbar, y el contexto lo dice", () => {
     const c = cara({ saldo: -194.4, entregado: 300, pagado: 414.4, gastos: 80 });
-    expect(c).toMatchObject({ valor: "S/ 194.40", unidad: null, debe: true });
-    expect(c.contexto).toBe("CAYLA te debe: gastaste S/ 494.40 de S/ 300.00");
+    expect(c).toMatchObject({ valor: "S/\u00a0194.40", unidad: null, debe: true });
+    expect(c.contexto).toBe("CAYLA te debe: gastaste S/\u00a0494.40 de S/\u00a0300.00");
   });
 
   it("el pie dice desde cuándo y para qué, con lo que haya", () => {
@@ -190,17 +188,17 @@ describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Ini
     const R = { arrastre: 0, items: 0, sinFoto: 0, abierta: null, deuda: 0 };
     // Rendida y aprobada con S/ 120 en la mano; el ciclo nuevo aún sin nada.
     expect(cara({ saldo: 120, entregado: 0, rendicion: { ...R, arrastre: 120 } })).toMatchObject({
-      contexto: "Te quedaron S/ 120.00 de tu rendición; aún no gastas nada",
+      contexto: "Te quedaron S/\u00a0120.00 de tu rendición; aún no gastas nada",
       puedeRendir: false,
     });
     // Con S/ 120 de antes, le entregan 300 y paga 100: gastó 100 de 420.
     expect(cara({ saldo: 320, entregado: 300, rendicion: { ...R, arrastre: 120, items: 2 } })).toMatchObject({
-      contexto: "Gastaste S/ 100.00 de S/ 420.00",
+      contexto: "Gastaste S/\u00a0100.00 de S/\u00a0420.00",
       puedeRendir: true,
     });
     // CAYLA le debía 280 de la rendición anterior y no hay nada nuevo: lo dice, en ámbar.
     expect(cara({ saldo: -280, entregado: 0, rendicion: { ...R, arrastre: -280 } })).toMatchObject({
-      valor: "S/ 280.00",
+      valor: "S/\u00a0280.00",
       debe: true,
       contexto: "CAYLA te debe: viene de tu rendición: se te devuelve con una entrega",
     });
@@ -212,7 +210,7 @@ describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Ini
       "Desde que rendiste, aún no gastas nada",
     );
     // Una deuda por faltante: a la vista.
-    expect(cara({ saldo: 100, entregado: 0, rendicion: { ...R, arrastre: 100, deuda: 20 } }).aviso).toBe("Debes S/ 20.00 de un faltante de tu rendición");
+    expect(cara({ saldo: 100, entregado: 0, rendicion: { ...R, arrastre: 100, deuda: 20 } }).aviso).toBe("Debes S/\u00a020.00 de un faltante de tu rendición");
   });
 
   // /formidable 2026-10-14: la misma acción en Órdenes de compra y en el Inicio (sin el módulo, el Inicio era el único lugar del fondo).
@@ -271,7 +269,7 @@ describe("lo que falta (las mismas reglas que la base)", () => {
     expect(problemaDeMonto("0")).toBe("El monto tiene que ser mayor que cero.");
     expect(problemaDeMonto("-5")).toBe("El monto tiene que ser mayor que cero.");
     expect(problemaDeMonto("1,500.50")).toBeNull();
-    expect(problemaDeMonto("400", 380)).toBe("Tiene S/ 380.00 en su fondo: no puede devolver más.");
+    expect(problemaDeMonto("400", 380)).toBe("Tiene S/\u00a0380.00 en su fondo: no puede devolver más.");
     expect(problemaDeMonto("380", 380)).toBeNull();
   });
 
@@ -309,8 +307,8 @@ describe("lo que falta (las mismas reglas que la base)", () => {
     const tope = topeDevolucion(380, 5);
     expect(tope).toEqual({ monto: 375, porRendicion: true, libros: 380, faltante: 5 });
     // Decisión 83: las dos cifras en la hoja (la tabla dice S/ 380.00, los libros), y lo que falta para pasar de una a otra.
-    expect(subtituloDevolver(tope)).toBe(nb("Los libros dicen S/ 380.00, pero a su rendición por aprobar le faltan S/ 5.00: puede devolver hasta S/ 375.00."));
-    expect(problemaDeMonto("380", tope)).toBe(nb("Puede devolver hasta S/ 375.00: a su rendición por aprobar le faltan S/ 5.00."));
+    expect(subtituloDevolver(tope)).toBe("Los libros dicen S/\u00a0380.00, pero a su rendición por aprobar le faltan S/\u00a05.00: puede devolver hasta S/\u00a0375.00.");
+    expect(problemaDeMonto("380", tope)).toBe("Puede devolver hasta S/\u00a0375.00: a su rendición por aprobar le faltan S/\u00a05.00.");
     expect(problemaDeMonto("375", tope)).toBeNull();
     expect(problemaDeMonto("375,00", tope)).toBeNull();
     const campos = camposDevolver({ cuentaId: "c-fuerte", monto: "380", nota: "" }, tope, OPCIONES.cuentas, PERSONA);
@@ -320,7 +318,7 @@ describe("lo que falta (las mismas reglas que la base)", () => {
   it("sin rendición por aprobar (o sin faltante), el tope es el saldo de siempre; nunca es negativo", () => {
     expect(topeDevolucion(380)).toEqual({ monto: 380, porRendicion: false, libros: 380, faltante: 0 });
     expect(topeDevolucion(380, 0)).toEqual({ monto: 380, porRendicion: false, libros: 380, faltante: 0 });
-    expect(subtituloDevolver(topeDevolucion(380))).toBe("Tiene S/ 380.00 en su fondo.");
+    expect(subtituloDevolver(topeDevolucion(380))).toBe("Tiene S/\u00a0380.00 en su fondo.");
     expect(topeDevolucion(5, 5)).toEqual({ monto: 0, porRendicion: true, libros: 5, faltante: 5 });
     expect(topeDevolucion(3, 5)).toEqual({ monto: 0, porRendicion: true, libros: 3, faltante: 5 });
   });
@@ -328,17 +326,17 @@ describe("lo que falta (las mismas reglas que la base)", () => {
   it("si después de rendir le entregaron más, la hoja sigue diciendo la verdad: los libros, lo que falta y el tope", () => {
     // Rindió con S/ 375 en la mano (le faltaban S/ 5) y después le entregaron S/ 100: los libros dicen S/ 480 y puede devolver S/ 475.
     expect(subtituloDevolver(topeDevolucion(480, 5))).toBe(
-      nb("Los libros dicen S/ 480.00, pero a su rendición por aprobar le faltan S/ 5.00: puede devolver hasta S/ 475.00."),
+      "Los libros dicen S/\u00a0480.00, pero a su rendición por aprobar le faltan S/\u00a05.00: puede devolver hasta S/\u00a0475.00.",
     );
   });
 });
 
 describe("lo que dicen los botones", () => {
   it("dicen cuánto y a quién, con lo que ya se sabe", () => {
-    expect(fraseEntregar(500, "Micaela Vendedora")).toBe("Entregar S/ 500.00 a Micaela");
+    expect(fraseEntregar(500, "Micaela Vendedora")).toBe("Entregar S/\u00a0500.00 a Micaela");
     expect(fraseEntregar(null, "Micaela Vendedora")).toBe("Entregar a Micaela");
     expect(fraseEntregar(null, null)).toBe("Entregar plata");
-    expect(fraseDevolver(120)).toBe("Registrar S/ 120.00 devueltos");
+    expect(fraseDevolver(120)).toBe("Registrar S/\u00a0120.00 devueltos");
     expect(fraseDevolver(null)).toBe("Registrar lo devuelto");
   });
 });

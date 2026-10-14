@@ -292,7 +292,7 @@ function Limite({ panel }: { panel: PanelImpuestos }) {
         <i style={{ width: `${Math.min(1, avance) * 100}%` }} />
       </div>
       <div className="fin-marcas">
-        <span>S/ 0</span>
+        <span>S/&nbsp;0</span>
         <span>
           Vendido en 12 meses: <b>{solesRedondo(umbral.ventas12m)}</b>
         </span>
@@ -345,7 +345,7 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
     puntos.push({
       tono: "ambar",
       titulo: `${solesRedondo(r.igvPerdido.igv)} de IGV que no se descuenta`,
-      detalle: `${plural(r.igvPerdido.n, "pago", "pagos")} en efectivo o desde un fondo de facturas de S/ 2,000 o más. SUNAT pide pagarlas por el banco: ese IGV ya está restado de lo que descuentas.`,
+      detalle: `${plural(r.igvPerdido.n, "pago", "pagos")} en efectivo o desde un fondo de facturas de S/\u00a02,000 o más. SUNAT pide pagarlas por el banco: ese IGV ya está restado de lo que descuentas.`,
     });
   }
   if (r.rechazados.n > 0) {
@@ -374,7 +374,7 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
   puntos.push({
     tono: "pizarra",
     titulo: "Recibos por honorarios: retención del 8 %",
-    detalle: `${r.honorarios.n > 0 ? `${plural(r.honorarios.n, "recibo", "recibos")} este mes${r.honorarios.mayores ? `, ${r.honorarios.mayores} de más de S/ 1,500` : ""}. ` : ""}El contador define si CAYLA debe retener. Mientras tanto, se paga el total.`,
+    detalle: `${r.honorarios.n > 0 ? `${plural(r.honorarios.n, "recibo", "recibos")} este mes${r.honorarios.mayores ? `, ${r.honorarios.mayores} de más de S/\u00a01,500` : ""}. ` : ""}El contador define si CAYLA debe retener. Mientras tanto, se paga el total.`,
   });
   return (
     <Superficie pad className="anim-sube" guia="fin-impuestos.revisar">

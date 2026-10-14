@@ -132,7 +132,7 @@ describe("cantidadDePrendas: el nombre de la categoría en plural, y en singular
 
 describe("una deuda en palabras de tienda", () => {
   it("el texto exacto del contrato: «2 chompas · S/ 84.00 · ENV-000061 · Tienda Trujillo · hace 3 días»", () => {
-    expect(textoDeDeuda(deuda(), HOY)).toBe("2 chompas · S/ 84.00 · ENV-000061 · Tienda Trujillo · hace 3 días");
+    expect(textoDeDeuda(deuda(), HOY)).toBe("2 chompas · S/\u00a084.00 · ENV-000061 · Tienda Trujillo · hace 3 días");
     expect(queDebe(deuda())).toBe("2 chompas");
     expect(nombreDeDeuda(deuda())).toBe("Chompas · CAYLA · Chompa cuello alto");
     expect(dondeFalto(deuda(), HOY)).toBe("ENV-000061 · Tienda Trujillo · hace 3 días");
@@ -229,7 +229,7 @@ describe("leerNosDebe: tolerante a la forma", () => {
     const n = leerNosDebe(real)!;
     expect(n).toMatchObject({ unidadesPendientes: 2, montoPendiente: 84, montoConIgv: null, cerradas: [] });
     expect(n.abiertas[0]).toMatchObject({ diferenciaId: "82d5f1f7", envio: "ENV-000061", sede: "Tienda Trujillo", orden: "OC-000129", categoria: "Chompas", categoriaId: "e7572f6f", marca: "CAYLA", pendiente: 2, conIgv: false });
-    expect(textoDeDeuda(n.abiertas[0]!, HOY)).toBe("2 chompas · S/ 84.00 · ENV-000061 · Tienda Trujillo · hace 3 días");
+    expect(textoDeDeuda(n.abiertas[0]!, HOY)).toBe("2 chompas · S/\u00a084.00 · ENV-000061 · Tienda Trujillo · hace 3 días");
   });
 
   it("con alguna factura con IGV, el total con IGV se dice; sin ninguna, no", () => {
@@ -307,12 +307,12 @@ describe("leerResumenNosDebe y el aviso de la orden nueva", () => {
       { categoria: "Chompas", unidades: 2 },
       { categoria: "Polos", unidades: 2 },
     ]);
-    expect(tituloAvisoOrden("Textiles Andina SAC", r.p1!)).toBe("Textiles Andina SAC te debe 2 chompas y 2 polos (S/ 120.00) por reponer");
+    expect(tituloAvisoOrden("Textiles Andina SAC", r.p1!)).toBe("Textiles Andina SAC te debe 2 chompas y 2 polos (S/\u00a0120.00) por reponer");
   });
 
   it("el texto del contrato: «Textiles Andina te debe 2 polos (S/ 50.00) por reponer»", () => {
     expect(tituloAvisoOrden("Textiles Andina", { unidades: 2, monto: 50, detalle: [{ categoria: "Polos", unidades: 2 }] })).toBe(
-      "Textiles Andina te debe 2 polos (S/ 50.00) por reponer",
+      "Textiles Andina te debe 2 polos (S/\u00a050.00) por reponer",
     );
   });
 

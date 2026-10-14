@@ -18,7 +18,7 @@ import { EnlaceVer } from "@/components/ui/EnlaceVer";
 const claveMes = ({ anio, mes }: Mes) => `${anio}-${mes}`;
 
 function money(n: number) {
-  return (n >= 0 ? "S/ " : "-S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n >= 0 ? "S/\u00a0" : "-S/\u00a0") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function hora(iso: string) {

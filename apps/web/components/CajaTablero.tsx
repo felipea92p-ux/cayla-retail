@@ -50,8 +50,8 @@ import { Vacio } from "@/components/ui/Vacio";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { BarraApilada } from "@/components/ui/BarraApilada";
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const soles0 = (n: number) => `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const soles0 = (n: number) => `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 
 const COLOR_METODO: Record<string, string> = {
   efectivo: "var(--color-metodo-efectivo)",
@@ -773,7 +773,7 @@ function Leyenda() {
       {(["ok", "poco", "mal"] as const).map((k) => (
         <span key={k} className="inline-flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full" style={{ background: COLOR_CUADRE[k] }} />
-          {k === "ok" ? "Cuadró" : k === "poco" ? "Hasta S/ 5" : "Más de S/ 5"}
+          {k === "ok" ? "Cuadró" : k === "poco" ? "Hasta S/\u00a05" : "Más de S/\u00a05"}
         </span>
       ))}
     </p>

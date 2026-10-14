@@ -46,9 +46,9 @@ describe("productos-facetas — opciones con su número", () => {
 
 describe("productos-facetas — tramos de precio", () => {
   it("cada tramo dice lo que pide como filtro", () => {
-    expect(textoTramo({ desde: null, hasta: 70, n: 2 })).toBe("Hasta S/ 70");
-    expect(textoTramo({ desde: 70, hasta: 100, n: 3 })).toBe("S/ 70 – S/ 100");
-    expect(textoTramo({ desde: 150, hasta: null, n: 2 })).toBe("Desde S/ 150");
+    expect(textoTramo({ desde: null, hasta: 70, n: 2 })).toBe("Hasta S/\u00a070");
+    expect(textoTramo({ desde: 70, hasta: 100, n: 3 })).toBe("S/\u00a070 – S/\u00a0100");
+    expect(textoTramo({ desde: 150, hasta: null, n: 2 })).toBe("Desde S/\u00a0150");
   });
 
   it("se marca el tramo que es justo el filtro puesto", () => {

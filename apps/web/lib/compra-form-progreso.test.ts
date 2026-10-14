@@ -116,9 +116,9 @@ describe("requisitosDeCompra", () => {
   describe("pago", () => {
     it("al contado el pago debe sumar el total: faltan o sobran, con el detalle", () => {
       const corto = requisitosDeCompra(con({ sumaPagos: 100 }))[3];
-      expect(corto).toMatchObject({ ok: false, texto: "Pago por el total", falta: "Faltan S/ 18.00 para el total", error: { enfocar: "compra-pagos-monto-0" } });
+      expect(corto).toMatchObject({ ok: false, texto: "Pago por el total", falta: "Faltan S/\u00a018.00 para el total", error: { enfocar: "compra-pagos-monto-0" } });
       expect(corto.error?.mensaje).toContain("Al contado el pago debe sumar el total");
-      expect(requisitosDeCompra(con({ sumaPagos: 130 }))[3].falta).toBe("Sobran S/ 12.00 sobre el total");
+      expect(requisitosDeCompra(con({ sumaPagos: 130 }))[3].falta).toBe("Sobran S/\u00a012.00 sobre el total");
     });
 
     it("una diferencia de medio centavo se tolera (redondeo)", () => {
@@ -134,7 +134,7 @@ describe("requisitosDeCompra", () => {
       const base = con({ condicion: "credito", pagarAhora: true });
       expect(requisitosDeCompra({ ...base, sumaPagos: 50 })[3]).toMatchObject({ ok: true, texto: "Monto del pago de ahora" });
       const pasado = requisitosDeCompra({ ...base, sumaPagos: 200 })[3];
-      expect(pasado).toMatchObject({ ok: false, falta: "Sobran S/ 82.00 sobre el total" });
+      expect(pasado).toMatchObject({ ok: false, falta: "Sobran S/\u00a082.00 sobre el total" });
       expect(pasado.error?.mensaje).toContain("supera el total");
     });
 

@@ -77,7 +77,7 @@ describe("el precio de MI tienda (Felipe 2026-10-10)", () => {
   });
   it("de punta a punta: «Ganas por cada una» y el precio del modelo salen con el precio de la tienda", () => {
     const prendas = armarPrendas(conPreciosDeMiTienda(mias, { s: 69.9, m: 69.9, l: 69.9 }), [], {});
-    expect(dineroDe(prendas[0]!).ganas).toBe("S/ 29.90");
+    expect(dineroDe(prendas[0]!).ganas).toBe("S/\u00a029.90");
     const [modelo] = armarModelos(prendas, "2026-10-11");
     expect(modelo!.precio).toBe(69.9);
     expect(subtituloFicha({ color: "Terracota", talla: "S", precio: prendas[0]!.precio })).toContain("69.90");

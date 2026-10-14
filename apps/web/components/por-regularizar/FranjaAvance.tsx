@@ -59,7 +59,7 @@ export function FranjaAvance({
         </PorQue>
       )}
       <p className="vsr-f-mes">
-        Este mes: <b>S/ {descuentoMes.toFixed(2)}</b> de descuento · <b>S/ {sobreprecioMes.toFixed(2)}</b> de sobreprecio
+        Este mes: <b>S/&nbsp;{descuentoMes.toFixed(2)}</b> de descuento · <b>S/&nbsp;{sobreprecioMes.toFixed(2)}</b> de sobreprecio
       </p>
     </section>
   );

@@ -26,7 +26,7 @@ export function pasoDePrecio(limites: LimitesPrecio): number {
 
 /** «S/ 40» o «S/ 39.90»: el rango es de números redondos, pero quien escribe puede pedir céntimos. */
 export function solesFiltro(n: number): string {
-  return Number.isInteger(n) ? `S/ ${n}` : `S/ ${n.toFixed(2)}`;
+  return Number.isInteger(n) ? `S/\u00a0${n}` : `S/\u00a0${n.toFixed(2)}`;
 }
 
 /** Lo que dice el filtro aplicado (chip y control). Nunca un tope inventado: sin desde ni hasta no hay texto. */

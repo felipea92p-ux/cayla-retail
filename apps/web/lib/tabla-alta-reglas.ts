@@ -105,7 +105,7 @@ export function precioDistinto(valor: string | undefined, precioBase: string): b
 /** El precio de venta como se lee en la tabla: «S/ 89.90». Sin precio todavía, «el precio de venta». */
 export function textoPrecioBase(precioBase: string): string {
   const n = Number(precioBase);
-  return Number.isFinite(n) && n > 0 ? `S/ ${n.toFixed(2)}` : "el precio de venta";
+  return Number.isFinite(n) && n > 0 ? `S/\u00a0${n.toFixed(2)}` : "el precio de venta";
 }
 
 /** El costo de arriba leído como número: es opcional, así que vacío (o algo que no es un número) es 0, como lo guarda el alta. */
@@ -126,7 +126,7 @@ export function costoDistinto(valor: string | undefined, costoBase: string): boo
 /** El costo de arriba como se lee en la tabla: «S/ 12.50». Sin costo (es opcional), las vacías quedan «sin costo». */
 export function textoCostoBase(costoBase: string): string {
   const n = costoDeArriba(costoBase);
-  return n > 0 ? `S/ ${n.toFixed(2)}` : "sin costo";
+  return n > 0 ? `S/\u00a0${n.toFixed(2)}` : "sin costo";
 }
 
 /** Lo que vale una celda de «Precios» o «Costos» al crear: lo escrito en ella o, vacía, el monto de todas. Un texto que no es

@@ -40,7 +40,7 @@ export function PrecioMinimoLiquidacion({ minimo, esLider }: { minimo: number; e
       avisar.error(traducirError(error, "cambiar el precio mínimo"));
       return;
     }
-    avisar.exito("Precio mínimo cambiado", { detalle: `Desde ahora, bajo S/ ${soles(nuevo)} solo un líder etiqueta.` });
+    avisar.exito("Precio mínimo cambiado", { detalle: `Desde ahora, bajo S/\u00a0${soles(nuevo)} solo un líder etiqueta.` });
     setEditando(false);
     router.refresh();
   }
@@ -48,7 +48,7 @@ export function PrecioMinimoLiquidacion({ minimo, esLider }: { minimo: number; e
   if (!esLider || !editando) {
     return (
       <p>
-        El precio mínimo es <b>S/ {soles(minimo)}</b>: por debajo, la prenda la etiqueta un líder.{" "}
+        El precio mínimo es <b>S/&nbsp;{soles(minimo)}</b>: por debajo, la prenda la etiqueta un líder.{" "}
         {esLider && (
           <button type="button" className="btn-cayla btn-enlace" onClick={() => setEditando(true)}>
             Cambiarlo

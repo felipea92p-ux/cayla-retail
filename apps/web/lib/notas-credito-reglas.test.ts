@@ -157,7 +157,7 @@ describe("qué pasa con el dinero — los tres casos del spike", () => {
     const r = repartoDestino(847.24, 3923.6, "a_favor");
     expect(r).toEqual({ baja: 847.24, devuelve: 0, aFavor: 0, deudaDespues: 3076.36 });
     expect(textoDestino(r, { documento: "F001-000482", proveedor: "Tejidos Rímac SAC", saldo: 3923.6, destino: "a_favor" })).toBe(
-      "La nota baja lo que se debe de F001-000482 de S/ 3,923.60 a S/ 3,076.36. No sobra dinero.",
+      "La nota baja lo que se debe de F001-000482 de S/\u00a03,923.60 a S/\u00a03,076.36. No sobra dinero.",
     );
   });
 
@@ -173,7 +173,7 @@ describe("qué pasa con el dinero — los tres casos del spike", () => {
   it("factura PAGADA: el texto dice que la factura ya estaba pagada, no que baja una deuda", () => {
     const r = repartoDestino(188.8, 0, "reembolso");
     expect(textoDestino(r, { documento: "F004-000129", proveedor: "Botones y Avíos Lima", saldo: 0, destino: "reembolso" })).toBe(
-      "F004-000129 ya estaba pagado, así que todo el monto es dinero de más. Los S/ 188.80 que sobran te los devuelve Botones y Avíos Lima ahora: se registra el reembolso junto con la nota.",
+      "F004-000129 ya estaba pagado, así que todo el monto es dinero de más. Los S/\u00a0188.80 que sobran te los devuelve Botones y Avíos Lima ahora: se registra el reembolso junto con la nota.",
     );
   });
 
@@ -185,7 +185,7 @@ describe("qué pasa con el dinero — los tres casos del spike", () => {
   it("caso MIXTO: el texto cuenta las dos cosas en orden — primero la deuda, después el sobrante", () => {
     const r = repartoDestino(1180, 1128, "a_favor");
     expect(textoDestino(r, { documento: "F001-000401", proveedor: "Tejidos Rímac SAC", saldo: 1128, destino: "a_favor" })).toBe(
-      "La nota primero baja lo que se debe de F001-000401 de S/ 1,128.00 a S/ 0.00. Los S/ 52.00 que sobran quedan a tu favor con Tejidos Rímac SAC, para otra compra.",
+      "La nota primero baja lo que se debe de F001-000401 de S/\u00a01,128.00 a S/\u00a00.00. Los S/\u00a052.00 que sobran quedan a tu favor con Tejidos Rímac SAC, para otra compra.",
     );
   });
 
@@ -279,13 +279,13 @@ describe("armarFilas: el estado que se ve", () => {
   it("una nota que solo bajó deuda dice «Aplicada» y lo explica", () => {
     expect(chipEstado(por("n2"))).toEqual({ tono: "neutro", texto: "Aplicada" });
     expect(destinoTexto(por("n2"))).toBe("bajó la deuda");
-    expect(siguientePaso(por("n2")).texto).toContain("bajó la deuda de F001-000377 en S/ 354.00");
+    expect(siguientePaso(por("n2")).texto).toContain("bajó la deuda de F001-000377 en S/\u00a0354.00");
   });
 
   it("una nota con saldo vivo es «Emitida» y dice cuánto queda", () => {
     const conSaldo = armarFilas([filas[2]], { hoy: HOY, saldoPorProveedor: { [SUR]: 354 }, movimientos: [] })[0];
     expect(chipEstado(conSaldo)).toEqual({ tono: "verde", texto: "Emitida" });
-    expect(destinoTexto(conSaldo)).toBe("A favor S/ 354.00");
+    expect(destinoTexto(conSaldo)).toBe("A favor S/\u00a0354.00");
   });
 
   it("el reclamo más viejo pide llamar, no escribir otra vez", () => {
@@ -305,7 +305,7 @@ describe("armarFilas: el estado que se ve", () => {
     const m = mensajeParaProveedor(por("p1"));
     expect(m).toContain("F002-000087");
     expect(m).toContain("10 unidades");
-    expect(m).toContain("S/ 330.40");
+    expect(m).toContain("S/\u00a0330.40");
   });
 });
 
@@ -340,7 +340,7 @@ describe("pestañas, bandas, búsqueda y agrupación", () => {
   it("agrupada por urgencia, lo más urgente va primero y cada banda dice cuánto suma", () => {
     const g = agruparTablero(filas, "urgencia");
     expect(g.map((x) => x.clave)).toEqual(["banda:urgente", "banda:medio", "banda:aplicadas"]);
-    expect(g[0].total).toBe("1 nota · S/ 330.40");
+    expect(g[0].total).toBe("1 nota · S/\u00a0330.40");
   });
   it("agrupada por proveedor, el que más tiene por reclamar va primero", () => {
     const g = agruparTablero(filas, "proveedor");
@@ -419,9 +419,9 @@ describe("validarNota: el espejo de lo que exige la base", () => {
       seriesUsadas: [],
       hoy: HOY,
     });
-    expect(v.errores.monto).toBe("No puede pasar de S/ 848.24.");
+    expect(v.errores.monto).toBe("No puede pasar de S/\u00a0848.24.");
     expect(v.topeSugerido).toBe(847.24);
-    expect(v.explicacionMonto).toContain("S/ 847.24");
+    expect(v.explicacionMonto).toContain("S/\u00a0847.24");
     expect(v.reparto).toBeNull();
   });
 
@@ -435,7 +435,7 @@ describe("validarNota: el espejo de lo que exige la base", () => {
       hoy: HOY,
     });
     expect(v.tope).toBe(5423.6);
-    expect(v.errores.monto).toBe("Como máximo S/ 5,423.60.");
+    expect(v.errores.monto).toBe("Como máximo S/\u00a05,423.60.");
     expect(v.explicacionMonto).toContain("más que el comprobante");
   });
 

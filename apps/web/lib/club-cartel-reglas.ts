@@ -33,7 +33,7 @@ function rangoDelVale(escala: readonly number[]): string {
   const menor = Math.min(...escala);
   const mayor = Math.max(...escala);
   if (menor === mayor) return formatoSoles(menor);
-  return `${formatoSoles(menor)} a ${formatoSoles(mayor).replace(/^S\/ /, "")}`;
+  return `${formatoSoles(menor)} a ${formatoSoles(mayor).replace(/^S\/\s/, "")}`;
 }
 
 /**

@@ -6,9 +6,9 @@ import { contarQueSeFabrica, fechaCorta, nombreDeLaFicha, soles, textoColoresYTa
 
 describe("soles", () => {
   it("dos decimales y miles con coma, como el resto de Producción", () => {
-    expect(soles(0)).toBe("S/ 0.00");
-    expect(soles(89.9)).toBe("S/ 89.90");
-    expect(soles(1234.5)).toBe("S/ 1,234.50");
+    expect(soles(0)).toBe("S/\u00a00.00");
+    expect(soles(89.9)).toBe("S/\u00a089.90");
+    expect(soles(1234.5)).toBe("S/\u00a01,234.50");
   });
 });
 
@@ -68,8 +68,8 @@ describe("nombreDeLaFicha", () => {
 
 describe("textoSeVendeA", () => {
   it("con precio, el precio", () => {
-    expect(textoSeVendeA({ precio: 79.9, esNuevo: false, esMuestra: false })).toBe("S/ 79.90");
-    expect(textoSeVendeA({ precio: 40, esNuevo: true, esMuestra: true })).toBe("S/ 40.00");
+    expect(textoSeVendeA({ precio: 79.9, esNuevo: false, esMuestra: false })).toBe("S/\u00a079.90");
+    expect(textoSeVendeA({ precio: 40, esNuevo: true, esMuestra: true })).toBe("S/\u00a040.00");
   });
   it("modelo nuevo sin precio: una muestra dice «al aprobarla» y un lote, «—»", () => {
     expect(textoSeVendeA({ precio: 0, esNuevo: true, esMuestra: true })).toBe("al aprobarla");

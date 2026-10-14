@@ -121,7 +121,7 @@ describe("decisionesDeProduccion", () => {
   it("plata: vencido en severidad 3, por vencer en 2; sin deuda no hay tarjeta", () => {
     const venc = decisionesDeProduccion(contexto({ comprobantes: [comp("1", { vencido: true, fechaVencimiento: "2026-09-10", saldo: 500 })] }));
     expect(venc[0]).toMatchObject({ tipo: "pago", severidad: 3 });
-    expect(venc[0].titulo).toContain("S/ 500.00 vencidos");
+    expect(venc[0].titulo).toContain("S/\u00a0500.00 vencidos");
     const pronto = decisionesDeProduccion(contexto({ comprobantes: [comp("2", { fechaVencimiento: "2026-09-25" })] }));
     expect(pronto[0]).toMatchObject({ severidad: 2 });
     expect(decisionesDeProduccion(contexto({ comprobantes: [comp("3", { estadoPago: "pagada", saldo: 0 })] }))).toEqual([]);

@@ -21,7 +21,7 @@ import {
 // él se recalcula TODO: el titular, el anillo, el punto del gráfico y la hora en curso. Movimiento (ADR-0136): cada efecto
 // responde a algo (cifras que cuentan al cambiar, línea que se revela al abrir, barras que crecen); nada en bucle.
 
-const soles = (n: number) => "S/ " + Math.round(n).toLocaleString("es-PE");
+const soles = (n: number) => "S/\u00a0" + Math.round(n).toLocaleString("es-PE");
 const COLOR_METODO: Record<string, string> = {
   efectivo: "var(--color-metodo-efectivo)",
   yape: "var(--color-metodo-yape)",

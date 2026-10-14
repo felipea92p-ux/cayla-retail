@@ -766,7 +766,7 @@ export function leerCosto(t: string): { centimos: number | null; problema: strin
   const limpio = t.replace(/\s+/g, "");
   const n = leerNumero(limpio, 2);
   if (n.tipo === "vacio") return { centimos: null, problema: "Escribe el costo por unidad." };
-  if (n.tipo === "ok") return n.escalado > COSTO_MAXIMO_CENTIMOS ? { centimos: null, problema: "El costo va hasta S/ 99,999.99." } : { centimos: n.escalado, problema: null };
+  if (n.tipo === "ok") return n.escalado > COSTO_MAXIMO_CENTIMOS ? { centimos: null, problema: "El costo va hasta S/\u00a099,999.99." } : { centimos: n.escalado, problema: null };
   switch (n.motivo) {
     case "negativo":
       return { centimos: null, problema: "El costo no puede ser negativo." };
@@ -1474,8 +1474,8 @@ export function leerPrecioVenta(t: string, obligatorio: boolean): { centimos: nu
     if (n.motivo === "ambiguo") return { centimos: null, problema: `¿«${limpio}» son ${limpio.replace(".", "")} soles? Escríbelo sin el punto de miles.` };
     return { centimos: null, problema: "Escribe el precio con punto decimal, por ejemplo 59.90." };
   }
-  if (n.escalado <= 0) return { centimos: null, problema: "El precio de venta tiene que ser mayor que S/ 0." };
-  if (n.escalado > PRECIO_MAXIMO_CENTIMOS) return { centimos: null, problema: "El precio va hasta S/ 99,999.99." };
+  if (n.escalado <= 0) return { centimos: null, problema: "El precio de venta tiene que ser mayor que S/\u00a00." };
+  if (n.escalado > PRECIO_MAXIMO_CENTIMOS) return { centimos: null, problema: "El precio va hasta S/\u00a099,999.99." };
   return { centimos: n.escalado, problema: null };
 }
 
