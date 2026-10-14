@@ -137,7 +137,7 @@
       "button «¿No está? Súmalo»",
       "button «Sumar proveedor»",
       "button «Cancelar»",
-      "ComboResponsable «avisoSalida.pedirAccion(onCerrar)»",
+      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "button «Cancelar» #2",
       "button «→guardar»"
     ],

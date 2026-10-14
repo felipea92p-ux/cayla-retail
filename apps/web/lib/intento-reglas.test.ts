@@ -128,11 +128,48 @@ function archivos(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-describe("ninguna pantalla deja fijo el token de una operación con marca", () => {
-  const llamadores = [...archivos("components"), ...archivos("app")].filter((f) => {
-    const texto = readFileSync(join(RAIZ_WEB, f), "utf8");
-    return OPERACIONES_CON_MARCA.some((op) => new RegExp(`rpc\\(\\s*["'\`]${op}["'\`]`).test(texto));
+/**
+ * Una pantalla que usa `useIntento` para una operación y guarda OTRA con una marca por apertura (que la base todavía no compara por
+ * contenido). Deuda de otro módulo, con su motivo; solo baja.
+ */
+const TOKEN_FIJO_TODAVIA: Record<string, string> = {
+  "components/RegistrarGastoModal.tsx":
+    "El gasto ya va con useIntento; el activo fijo (`registrar_activo`, solo Finanzas) sigue con una marca por apertura porque la base aún no compara su contenido. Va con el /chaos de Finanzas.",
+};
+
+const TOKEN_FIJO = /useRef<string>\(crypto\.randomUUID\(\)\)|useState\(\(\) => crypto\.randomUUID\(\)\)/;
+
+/** El código sin comentarios: una operación nombrada en un comentario no es una llamada. */
+function sinComentarios(texto: string): string {
+  return texto.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+}
+
+/**
+ * ¿El archivo llama a una operación con marca? Cuenta también la llamada indirecta (el nombre elegido con un ternario,
+ * `rpc((esActivo ? "registrar_activo" : "registrar_gasto") as never, …)`): leer solo `rpc("registrar_gasto"` dejó afuera
+ * Registrar gasto hasta el 2026-10-13.
+ */
+function llamaAOperacionConMarca(texto: string): boolean {
+  const codigo = sinComentarios(texto);
+  return /\brpc\s*\(/.test(codigo) && OPERACIONES_CON_MARCA.some((op) => new RegExp(`["'\`]${op}["'\`]`).test(codigo));
+}
+
+describe("el detector de llamadas", () => {
+  it("ve la llamada directa y la que elige el nombre con un ternario", () => {
+    expect(llamaAOperacionConMarca(`supabase.rpc("registrar_gasto", { p_token: t })`)).toBe(true);
+    expect(llamaAOperacionConMarca(`createClient().rpc((esActivo ? "registrar_activo" : "registrar_gasto") as never, v)`)).toBe(true);
   });
+  it("no confunde una mención en un comentario con una llamada", () => {
+    expect(llamaAOperacionConMarca(`// lo valida \`registrar_venta\`\nsupabase.rpc("fn_otra")`)).toBe(false);
+    expect(llamaAOperacionConMarca(`/* \`registrar_cambio\` */ supabase.rpc("fn_otra")`)).toBe(false);
+  });
+  it("sin ninguna llamada a la base, nombrar la operación no cuenta", () => {
+    expect(llamaAOperacionConMarca(`const que = "registrar_venta";`)).toBe(false);
+  });
+});
+
+describe("ninguna pantalla deja fijo el token de una operación con marca", () => {
+  const llamadores = [...archivos("components"), ...archivos("app")].filter((f) => llamaAOperacionConMarca(readFileSync(join(RAIZ_WEB, f), "utf8")));
   it("cada archivo que llama a una de ellas usa `useIntento` (o está en la deuda con su motivo)", () => {
     const sinIntento = llamadores.filter((f) => !readFileSync(join(RAIZ_WEB, f), "utf8").includes("useIntento(") && !(f in SIN_INTENTO_TODAVIA));
     expect(sinIntento, "Usa `useIntento` (lib/useIntento.ts): la marca de un envío tiene que seguir a lo que se manda.").toEqual([]);
@@ -143,11 +180,15 @@ describe("ninguna pantalla deja fijo el token de una operación con marca", () =
     );
     expect(sobran).toEqual([]);
   });
-  it("quien usa `useIntento` no guarda además un token fijo por apertura", () => {
+  it("quien usa `useIntento` no guarda además un token fijo por apertura (o está en la deuda con su motivo)", () => {
     const conTokenFijo = llamadores.filter((f) => {
       const texto = readFileSync(join(RAIZ_WEB, f), "utf8");
-      return texto.includes("useIntento(") && /useRef<string>\(crypto\.randomUUID\(\)\)|useState\(\(\) => crypto\.randomUUID\(\)\)/.test(texto);
+      return texto.includes("useIntento(") && TOKEN_FIJO.test(texto) && !(f in TOKEN_FIJO_TODAVIA);
     });
     expect(conTokenFijo).toEqual([]);
+  });
+  it("esa deuda también solo baja", () => {
+    const sobran = Object.keys(TOKEN_FIJO_TODAVIA).filter((f) => !llamadores.includes(f) || !TOKEN_FIJO.test(readFileSync(join(RAIZ_WEB, f), "utf8")));
+    expect(sobran).toEqual([]);
   });
 });

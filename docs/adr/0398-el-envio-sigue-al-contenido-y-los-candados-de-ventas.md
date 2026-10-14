@@ -36,7 +36,11 @@ nueva tras una respuesta perdida puede cobrar dos veces.
   venta en la pestaña (`primeraVez`).
 - **Lo vigila:** `pruebas:token-sigue-al-contenido` (33 casos, con controles y concurrencia) y la guardiana de `intento-reglas.test.ts`:
   toda pantalla que llama a una de esas funciones usa `useIntento` (la deuda, con su motivo: `GastosPanel` de Finanzas y `PasePedido` de
-  Traslados, que van con el `/chaos` de su módulo).
+  Traslados, que van con el `/chaos` de su módulo). La guardiana lee el código sin comentarios y cuenta también la llamada que elige el
+  nombre con un ternario: hasta el 2026-10-13 solo veía `rpc("registrar_gasto"` y se le escapaba **Registrar gasto** (el formulario
+  completo que Caja abre desde el gasto rápido, `RegistrarGastoModal`), que ya usa `useIntento` para el gasto. Su activo fijo
+  (`registrar_activo`, solo Finanzas) sigue con una marca por apertura porque la base aún no compara su contenido: deuda declarada
+  (`TOKEN_FIJO_TODAVIA`).
 
 **Descartado:** comparar el contenido solo en la web. Un cliente viejo (una pestaña sin recargar, la cola sin conexión de una versión
 anterior) seguiría mandando la marca vieja con otro contenido; la base es la única que ve todos los caminos.

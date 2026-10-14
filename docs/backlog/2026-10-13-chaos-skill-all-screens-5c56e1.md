@@ -28,5 +28,5 @@ Informes con la evidencia en `.chaos/informes/*-2026-10-13.md` (locales, fuera d
 ### Después de los arreglos de Ventas (ADR-0398)
 - [ ] **Pegar en producción M2–M9** (`20261013200000`…`20261013211000`), una parte por llamada, **con todas las cajas cerradas** (M1 ya está).
 - [ ] Purga de `intentos_con_token` a los 90 días (crece una fila por escritura con token).
-- [ ] El mismo patrón de token (`useIntento` + la llamada a `fn_intento_con_huella`) en Finanzas (`GastosPanel`), Traslados (`PasePedido`, `iniciar_traslado`), Inventario (`ajustar_inventario`), Compras (`registrar_compra`) y Producción (`abrir_produccion`).
+- [ ] El mismo patrón de token (`useIntento` + la llamada a `fn_intento_con_huella`) en Finanzas (`GastosPanel`, y el activo fijo de `RegistrarGastoModal`: `registrar_activo` aún no compara el contenido en la base), Traslados (`PasePedido`, `iniciar_traslado`), Inventario (`ajustar_inventario`), Compras (`registrar_compra`) y Producción (`abrir_produccion`).
 - [ ] Propuesta de regla para CLAUDE.md («el token sigue al contenido»): espera el OK de Felipe (va en el PR).
