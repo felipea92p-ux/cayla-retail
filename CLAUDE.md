@@ -281,7 +281,10 @@ pantalla nueva no tiene que hacer nada para tenerlo. Los botones conservan su gi
 loader dice «espera, se está procesando» y el aviso dice «listo, se guardó bien». Mientras haya una petición en curso o el
 loader esté a la vista, ningún aviso se pinta; al liberarse aparecen. Nadie tiene que coordinarlos: se llama
 `avisar.exito(...)` en el mismo instante en que responde la base y el aviso sale solo. Un guardado tan rápido que el loader ni
-llega a verse (< 200 ms) muestra su aviso apenas termina. Detalle en la «Actualización 2026-09-21» del ADR-0149.
+llega a verse (< 200 ms) muestra su aviso apenas termina. **Un aviso que ya se vio no vuelve** si otra petición ocupa la
+pantalla (volvería con reloj nuevo y un «Deshacer» viejo), **un aviso con botón dura 7 s como mínimo**, y **un clic en un aviso no cierra la hoja
+ni el cajón abierto**: la pila es rama (`DismissableLayer.Branch`) de toda capa de Radix, sin que ninguna hoja haga nada
+(`lib/avisos-reglas.ts`, `lib/hojas-avisos.test.ts`; ADR-0146 act. 2026-10-14). Detalle en la «Actualización 2026-09-21» del ADR-0149.
 
 Para lo que no pasa por `fetch`: `useEsperando(activo, mensaje?)` (hook), `esperar(mensaje?) → fin()` (imperativo) y
 `<EsperaPantalla />` en cada `loading.tsx`. Una petición que no debe bloquear lleva el header `x-espera: no`. **Al agregar una
