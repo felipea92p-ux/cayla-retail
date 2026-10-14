@@ -6,7 +6,7 @@ import { Icono, type NombreIcono } from "@/components/Icono";
 import { Isotipo } from "@/components/Isotipo";
 import { Pie } from "@/components/Pie";
 import { TarjetaClub } from "@/components/TarjetaClub";
-import { leerPortada } from "@/lib/base";
+import { leerPortada } from "@/lib/portada-servidor";
 import { anioLima, anuncios, fechaCorta, fechaLarga, partirTitulo, pctTexto, type Campana } from "@/lib/portada";
 
 // La campaña sale de la base y la página se guarda 5 minutos: lo que se cambia en el ERP aparece solo, sin volver a

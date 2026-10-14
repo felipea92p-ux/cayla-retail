@@ -44,22 +44,27 @@ describe("candados de la tienda", () => {
     expect(usos).toEqual([]);
   });
 
-  it("solo lib/base.ts habla con la base, solo desde el servidor y solo con funciones retail.tienda_*", () => {
+  it("solo lib/base.ts carga el driver, y cada archivo que lee la base es del servidor", () => {
     const conDriver = FUENTES.filter(({ texto }) => importaciones(texto).some((imp) => imp === "postgres")).map((f) => f.ruta);
     expect(conDriver).toEqual(["lib/base.ts"]);
+    const delServidor = FUENTES.filter((f) => f.ruta === "lib/base.ts" || /-servidor\.ts$/.test(f.ruta));
+    expect(delServidor.map((f) => f.ruta)).toContain("lib/portada-servidor.ts");
+    expect(delServidor.filter(({ texto }) => !texto.trimStart().startsWith('import "server-only";')).map((f) => f.ruta)).toEqual([]);
+  });
 
-    const base = FUENTES.find((f) => f.ruta === "lib/base.ts")!.texto;
-    expect(base.trimStart().startsWith('import "server-only";')).toBe(true);
-    const nombres = [...base.matchAll(/\bretail\.([a-z_][a-z0-9_]*)/g)].map((m) => m[1]);
+  it("en toda la tienda, la base solo se nombra por sus funciones retail.tienda_* (nunca una tabla a mano)", () => {
+    const nombres = FUENTES.flatMap(({ ruta, texto }) => [...texto.matchAll(/\bretail\.([a-z_][a-z0-9_]*)/g)].map((m) => `${ruta}: ${m[1]}`));
     expect(nombres.length).toBeGreaterThan(0);
-    expect(nombres.filter((n) => !n.startsWith("tienda_"))).toEqual([]);
+    expect(nombres.filter((n) => !n.split(": ")[1].startsWith("tienda_"))).toEqual([]);
     // Nada de leer o escribir tablas a mano: la base decide en cada función qué devuelve.
-    expect(base).not.toMatch(/\b(from|into|update|join|delete\s+from)\s+retail\./i);
+    expect(FUENTES.filter(({ texto }) => /\b(from|into|update|join|delete\s+from)\s+retail\./i.test(texto)).map((f) => f.ruta)).toEqual([]);
   });
 
   it("ningún componente del navegador importa la conexión a la base", () => {
     const delNavegador = FUENTES.filter(({ texto }) => /^\s*["']use client["']/.test(texto));
-    const malos = delNavegador.filter(({ texto }) => importaciones(texto).some((imp) => /lib\/base$/.test(imp))).map((f) => f.ruta);
+    const malos = delNavegador
+      .filter(({ texto }) => importaciones(texto).some((imp) => /(^|\/)(base|[a-z-]+-servidor)$/.test(imp)))
+      .map((f) => f.ruta);
     expect(malos).toEqual([]);
   });
 });
