@@ -1,7 +1,8 @@
 # ADR-0405 · Catálogo después de /chaos: el precio y el costo son números de verdad, y los nombres tienen tope
 
 - **Fecha:** 2026-10-14 · **Estado:** construido y verificado en local (suite de base con control, vitest y la pantalla en un Chrome sin
-  cabeza). **La migración NO está en producción**: espera el OK de Felipe. Rama `claude/chaos-catalogo-5c56e1`.
+  cabeza). **La migración está en producción** desde el 2026-10-14 (con el OK de Felipe): los 11 candados puestos y validados contra todas
+  las filas. Rama `claude/chaos-catalogo-5c56e1`, PR #1078.
 - **Pedido:** Felipe, 2026-10-14: «continúa con otro módulo» después de Inventario (con la consigna de antes: cubrir y arreglar lo que
   haga falta sin interrumpir el flujo). Compras quedó para después porque otra sesión lo está reconstruyendo hoy (#1055, #1056, #1040,
   #1032): atacarlo ahora era probar código que va a cambiar.
