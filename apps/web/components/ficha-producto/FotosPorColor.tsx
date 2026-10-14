@@ -6,7 +6,7 @@ import { Camera } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Desplegable, type Opcion } from "@/components/ui/campos";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { BotonFoto } from "@/components/alta-producto/FotosAlta";
+import { BotonFoto, BotonQuitarFoto } from "@/components/alta-producto/FotosAlta";
 import type { ColorAlta } from "@/lib/alta-producto";
 import {
   comoPrincipal,
@@ -100,6 +100,8 @@ export function FotosPorColor({
       ...(actual !== null ? [{ valor: TODOS, texto: vista.general.sinColores ? "La prenda (sin color)" : "Todos los colores" }] : []),
     ];
   }
+  // La × de la tarjeta: con una sola foto la quita (se guarda con «Guardar», como cualquier cambio de la ficha); con varias abre la hoja para elegir cuál.
+  const quitarDe = (delColor: FotoLocal[], hoja: string | null) => (delColor.length === 1 ? onFotos(sinLaFoto(fotos, delColor[0].clientKey)) : setViendo(hoja));
   const pasar = (clientKey: string, destino: string) => onFotos(pasadaAColor(fotos, clientKey, destino === TODOS ? null : destino));
 
   return (
@@ -129,6 +131,7 @@ export function FotosPorColor({
               subVacio="JPG, PNG o WebP"
               bloqueado={bloqueado}
               onAbrir={() => setViendo(t.codigo)}
+              onQuitar={() => quitarDe(t.fotos, t.codigo)}
               onElegir={(archivos) => elegir(archivos, t.codigo)}
             />
           </li>
@@ -146,6 +149,7 @@ export function FotosPorColor({
               subVacio={vista.general.sinColores ? "JPG, PNG o WebP" : "Opcional"}
               bloqueado={bloqueado}
               onAbrir={() => setViendo(null)}
+              onQuitar={() => quitarDe(vista.general.fotos, null)}
               onElegir={(archivos) => elegir(archivos, null)}
             />
           </li>
@@ -239,6 +243,7 @@ function Tarjeta({
   subVacio,
   bloqueado,
   onAbrir,
+  onQuitar,
   onElegir,
 }: {
   titulo: string;
@@ -253,26 +258,37 @@ function Tarjeta({
   subVacio: string;
   bloqueado: boolean;
   onAbrir: () => void;
+  /** La × sobre la portada: quita la foto si es una sola; con varias, abre la hoja. */
+  onQuitar: () => void;
   onElegir: (archivos: File[]) => void;
 }) {
   const portada = fotos[0];
   return (
     <div className="space-y-2">
       {portada ? (
-        <button
-          type="button"
-          onClick={onAbrir}
-          aria-label={`Ver o cambiar las fotos de ${titulo} (${fotos.length})`}
-          className={`relative block aspect-[4/5] w-full overflow-hidden rounded-xl border bg-papel transition-colors hover:border-tinta/40 ${pendiente ? "border-ambar ring-1 ring-ambar" : "border-sand"}`}
-        >
-          <Image src={portada.url} alt="" fill sizes="220px" className="object-cover" unoptimized />
-          {fotos.some((f) => f.esPrincipal) && <span className={INSIGNIA_PRINCIPAL}>Principal</span>}
-          {pendiente && <span className={INSIGNIA_NUEVA}>{pendiente === "nueva" ? "Nueva" : "Movida"}</span>}
-          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-crema/95 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-tinta shadow-sm">
-            <Camera aria-hidden className="h-3 w-3" strokeWidth={1.8} />
-            {fotos.length}
-          </span>
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={onAbrir}
+            aria-label={`Ver o cambiar las fotos de ${titulo} (${fotos.length})`}
+            className={`relative block aspect-[4/5] w-full overflow-hidden rounded-xl border bg-papel transition-colors hover:border-tinta/40 ${pendiente ? "border-ambar ring-1 ring-ambar" : "border-sand"}`}
+          >
+            <Image src={portada.url} alt="" fill sizes="220px" className="object-cover" unoptimized />
+            {fotos.some((f) => f.esPrincipal) && <span className={INSIGNIA_PRINCIPAL}>Principal</span>}
+            {pendiente && <span className={INSIGNIA_NUEVA}>{pendiente === "nueva" ? "Nueva" : "Movida"}</span>}
+            <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-full bg-crema/95 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-tinta shadow-sm">
+              <Camera aria-hidden className="h-3 w-3" strokeWidth={1.8} />
+              {fotos.length}
+            </span>
+          </button>
+          <BotonQuitarFoto
+            onClick={onQuitar}
+            disabled={bloqueado}
+            etiqueta={fotos.length === 1 ? `Quitar la foto de ${titulo}` : `Ver o quitar las ${fotos.length} fotos de ${titulo}`}
+            grande
+            className="bottom-2 left-2"
+          />
+        </div>
       ) : (
         <BotonFoto
           onArchivos={onElegir}
