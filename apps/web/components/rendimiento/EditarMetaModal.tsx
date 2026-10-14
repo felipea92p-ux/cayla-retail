@@ -134,7 +134,7 @@ export function EditarMetaModal({
   }
 
   return (
-    <Modal titulo={`Meta de ${persona.nombre}`} subtitulo={`${mesEtiqueta} · ${ubicacionNombre}`} onClose={onClose} ancho="max-w-md" bloqueado={enviando}>
+    <Modal titulo={`Meta de ${persona.nombre}`} subtitulo={`${mesEtiqueta} · ${ubicacionNombre}`} onClose={onClose} bloqueado={enviando}>
       {(cerrar) => (
         <form onSubmit={guardar} className="mt-2 space-y-4">
           <dl className="space-y-1 text-sm" data-guia="rendimiento.meta-actual">

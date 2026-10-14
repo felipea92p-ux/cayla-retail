@@ -20,7 +20,7 @@ export function MovimientosCajaModal({
   onClose: () => void;
 }) {
   return (
-    <Modal titulo="Movimientos de la caja" subtitulo={`${ubicacionNombre} · ${eventos.length} en total`} onClose={onClose} ancho="max-w-2xl">
+    <Modal conCerrar titulo="Movimientos de la caja" subtitulo={`${ubicacionNombre} · ${eventos.length} en total`} onClose={onClose} tamano="ancha">
       {/* El scroll es de la lista, no del modal: el título se queda a la vista. */}
       <div className="scroll-cayla mt-3 max-h-[62vh] divide-y divide-sand overflow-y-auto pr-1">
         {eventos.map((e) => (

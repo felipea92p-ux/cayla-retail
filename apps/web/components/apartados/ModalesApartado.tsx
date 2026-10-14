@@ -8,7 +8,7 @@ import { CampoMonto } from "@/components/ui/CampoMonto";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { descuentoDeCampana } from "@/lib/vender-reglas";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
-import { Modal, botonCancelar, botonPrimario, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
+import { Modal, botonCancelar, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { money } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -50,7 +50,7 @@ import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoInte
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
-import { CampoSelect } from "@/components/ui/campos";
+import { CampoSelect, Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
 import { Casilla } from "@/components/ui/Casilla";
@@ -115,7 +115,7 @@ export function ApartadoRegistradoModal({ apartado, vuelto, sede, onClose }: { a
     new Date(`${a.venceEl}T12:00:00Z`).toLocaleDateString("es-PE", { weekday: "short", timeZone: "UTC" }).replace(".", ""),
   ];
   return (
-    <Modal titulo="Apartado registrado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Apartado registrado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-5 text-center">
@@ -204,7 +204,7 @@ export function ApartadoEntregadoModal({ apartado, pagadoHoy, vuelto, redondeo =
   // Un apartado nuevo imprime LA boleta o factura de siempre (con su QR y su número); uno viejo, su ticket de antes (ADR-0399).
   const recibo = useReciboDeApartado(a, sede, redondeo, esConstancia(a));
   return (
-    <Modal titulo="Apartado entregado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Apartado entregado" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-5 text-center">
@@ -253,7 +253,7 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
   const numero = cual === "final" ? a.comprobanteFinal : constancia ? a.codigo : a.comprobanteAnticipo;
   useTituloDeImpresion(`${a.codigo}${cual === "final" ? "-final" : ""}`);
   return (
-    <Modal titulo="Reimprimir ticket" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} ancho="max-w-sm" conCerrar>
+    <Modal titulo="Reimprimir ticket" subtitulo={`${sede} · ${a.codigo}`} onClose={onClose} conCerrar>
       {() => (
         <div className="space-y-4">
           {conFinal && (
@@ -326,15 +326,14 @@ export function LiberarModal({ apartado, ubicacion, onClose }: { apartado: Apart
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
-            <button
+            <Boton peso="primario" cargando={enviando} textoCargando="Liberando…"
               type="button"
               disabled={!motivo || enviando || !responsable.listo}
               title={!motivo ? "Elige por qué se libera." : (responsable.motivo ?? undefined)}
               onClick={() => liberar(cerrar)}
-              className="btn-cayla btn-primario"
             >
-              {enviando ? "Liberando…" : "Liberar prendas"}
-            </button>
+              Liberar prendas
+            </Boton>
           </div>
         </div>
       )}
@@ -387,7 +386,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
 
   const medios: MedioDevolucionReal[] = ["yape", "plin", "transferencia", "efectivo", "tarjeta"];
   return (
-    <Modal titulo="Devolver el adelanto" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`} onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Devolver el adelanto" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           <div className="card-cayla p-4 text-center">
@@ -449,9 +448,9 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Cancelar</button>
-            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => devolver(cerrar)} className="btn-cayla btn-primario">
-              {enviando ? "Registrando…" : "Registrar devolución"}
-            </button>
+            <Boton peso="primario" cargando={enviando} textoCargando="Registrando…" type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => devolver(cerrar)}>
+              Registrar devolución
+            </Boton>
           </div>
         </div>
       )}
@@ -489,15 +488,14 @@ export function ExtenderModal({ apartado, ubicacion, onClose }: { apartado: Apar
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
-            <button
+            <Boton peso="primario" cargando={enviando} textoCargando="Extendiendo…"
               type="button"
               disabled={enviando || agotado || !responsable.listo}
               title={agotado ? "Ya se extendió una vez." : (responsable.motivo ?? undefined)}
               onClick={() => extender(cerrar)}
-              className="btn-cayla btn-primario"
             >
-              {enviando ? "Extendiendo…" : "Extender 7 días"}
-            </button>
+              Extender 7 días
+            </Boton>
           </div>
         </div>
       )}
@@ -565,7 +563,7 @@ export function RecordarModal({
         if (hechas.size) router.refresh();
         onClose();
       }}
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) => (
         <div className="space-y-4">
@@ -613,15 +611,12 @@ export function RecordarModal({
                 Mejor no
               </button>
             )}
-            <button
-              type="button"
-              disabled={enviando || hechas.has(actual.id)}
-              onClick={() => escribir(cerrar)}
-              className={`${botonPrimario} flex flex-1 items-center justify-center gap-2`}
-            >
-              <MessageCircle className="h-4 w-4" aria-hidden />
-              {enviando ? "Anotando…" : varias ? "Abrir WhatsApp y seguir" : "Abrir WhatsApp"}
-            </button>
+            <Boton type="button" peso="primario" cargando={enviando} textoCargando="Anotando…" disabled={hechas.has(actual.id)} onClick={() => escribir(cerrar)} className="flex-1">
+              <span className="flex items-center justify-center gap-2">
+                <MessageCircle className="-my-1 h-4 w-4" aria-hidden />
+                {varias ? "Abrir WhatsApp y seguir" : "Abrir WhatsApp"}
+              </span>
+            </Boton>
           </div>
         </div>
       )}
@@ -695,7 +690,7 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
   }
 
   return (
-    <Modal titulo="Abonar a cuenta" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la prenda sigue guardada`} onClose={onClose} ancho="max-w-md" bloqueado={enviando || envio.incierto}>
+    <Modal titulo="Abonar a cuenta" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la prenda sigue guardada`} onClose={onClose} bloqueado={enviando || envio.incierto}>
       {(cerrar) => (
         <div className="space-y-4">
           {/* En duda, nada se toca: otro monto reenviado podría cobrar el abono dos veces. */}
@@ -758,15 +753,14 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
-            <button
+            <Boton peso="primario" cargando={enviando}
               type="button"
               disabled={!valido || enviando || revisando || !responsable.listo || !cajaAbierta}
               title={!cajaAbierta ? "Abre la caja para cobrar el abono." : (responsable.motivo ?? undefined)}
               onClick={() => abonar(cerrar)}
-              className="btn-cayla btn-primario"
             >
-              {enviando ? "Guardando…" : envio.incierto ? "Volver a intentar" : `Registrar abono · ${money(Math.max(0, monto))}`}
-            </button>
+              {envio.incierto ? "Volver a intentar" : `Registrar abono · ${money(Math.max(0, monto))}`}
+            </Boton>
           </div>
         </div>
       )}
@@ -874,7 +868,7 @@ export function EditarApartadoModal({
   }
 
   return (
-    <Modal titulo="Editar prendas del apartado" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la fecha límite no cambia`} onClose={onClose} ancho="max-w-xl" bloqueado={enviando || envio.incierto}>
+    <Modal titulo="Editar prendas del apartado" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la fecha límite no cambia`} onClose={onClose} tamano="mediana" bloqueado={enviando || envio.incierto}>
       {(cerrar) => (
         <div className="space-y-4">
           {/* En duda, nada se toca: otra edición reenviada podría mover prendas dos veces. */}
@@ -968,15 +962,14 @@ export function EditarApartadoModal({
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
-            <button
+            <Boton peso="primario" cargando={enviando}
               type="button"
               disabled={!cambio || debajo || sinPrendas || enviando || revisando || !responsable.listo || sinId}
               title={responsable.motivo ?? undefined}
               onClick={() => guardar(cerrar)}
-              className="btn-cayla btn-primario"
             >
-              {enviando ? "Guardando…" : envio.incierto ? "Volver a intentar" : "Guardar cambios"}
-            </button>
+              {envio.incierto ? "Volver a intentar" : "Guardar cambios"}
+            </Boton>
           </div>
         </div>
       )}
@@ -1012,7 +1005,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
   }
 
   return (
-    <Modal titulo="Opciones de Apartados" subtitulo={`${ubicacion.etiqueta} · elige un punto de partida y ajusta función por función`} onClose={onClose} ancho="max-w-lg">
+    <Modal titulo="Opciones de Apartados" subtitulo={`${ubicacion.etiqueta} · elige un punto de partida y ajusta función por función`} onClose={onClose} tamano="mediana">
       {(cerrar) => (
         <div className="space-y-4">
           <div className="grid gap-2" role="radiogroup" aria-label="Punto de partida">
@@ -1066,9 +1059,9 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
-            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => guardar(cerrar)} className="btn-cayla btn-primario">
-              {enviando ? "Guardando…" : "Guardar opciones"}
-            </button>
+            <Boton peso="primario" cargando={enviando} type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => guardar(cerrar)}>
+              Guardar opciones
+            </Boton>
           </div>
         </div>
       )}
@@ -1122,7 +1115,7 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
   }
 
   return (
-    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={paraQuienPedido(pedido)} onClose={onClose} ancho="max-w-md" bloqueado={enviando || envio.incierto}>
+    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={paraQuienPedido(pedido)} onClose={onClose} bloqueado={enviando || envio.incierto}>
       {(cerrar) => (
         <div className="space-y-4">
           {/* En duda, nada se toca: otra fecha reenviada podría armar dos traslados. */}
@@ -1142,9 +1135,9 @@ export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedi
           {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
-            <button type="button" disabled={enviando || revisando || !responsable.listo || !llega} title={responsable.motivo ?? undefined} onClick={() => enviar(cerrar)} className="btn-cayla btn-primario">
-              {enviando ? "Enviando…" : envio.incierto ? "Volver a intentar" : "Enviar por traslado"}
-            </button>
+            <Boton peso="primario" cargando={enviando} textoCargando="Enviando…" type="button" disabled={enviando || revisando || !responsable.listo || !llega} title={responsable.motivo ?? undefined} onClick={() => enviar(cerrar)}>
+              {envio.incierto ? "Volver a intentar" : "Enviar por traslado"}
+            </Boton>
           </div>
         </div>
       )}
@@ -1180,9 +1173,9 @@ export function CancelarPedidoModal({ pedido, ubicacion, onClose }: { pedido: Pe
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
-            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => cancelar(cerrar)} className="btn-cayla btn-primario">
-              {enviando ? "Cancelando…" : "Cancelar pedido"}
-            </button>
+            <Boton peso="primario" cargando={enviando} textoCargando="Cancelando…" type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => cancelar(cerrar)}>
+              Cancelar pedido
+            </Boton>
           </div>
         </div>
       )}

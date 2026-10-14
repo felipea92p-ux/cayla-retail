@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { CampoSelect, CampoTexto, Boton } from "@/components/ui/campos";
 import type { CompraResumen } from "@/lib/compras-reglas";
 import {
   errorDeReasignacion,
@@ -32,7 +32,6 @@ import { firmar } from "@/lib/responsable-reglas";
 type Tienda = { id: string; nombre: string };
 export type LineaReasignable = { id: string; producto: string };
 
-const BTN_PRIMARIO = "btn-cayla btn-primario";
 
 export function BotonReasignar({
   compra,
@@ -170,7 +169,7 @@ function ReasignarRepartoModal({
         </>
       }
       subtitulo={`Comprobante ${compra.documento} · ${compra.proveedorNombre}`}
-      ancho="max-w-xl"
+      tamano="mediana"
       onClose={onClose}
     >
       {() =>
@@ -282,9 +281,9 @@ function ReasignarRepartoModal({
               <ComboResponsable control={responsable} deshabilitado={loading} />
 
               <div className="flex justify-end border-t border-tinta/10 pt-4">
-                <button type="submit" className={BTN_PRIMARIO} disabled={loading || error !== null} title={error ?? undefined}>
-                  {loading ? "Moviendo…" : cantidadOk && haciaId ? `Mover ${n} ${n === 1 ? "unidad" : "unidades"} a ${nombreDe(haciaId)}` : "Mover mercadería"}
-                </button>
+                <Boton peso="primario" cargando={loading} textoCargando="Moviendo…" type="submit" disabled={loading || error !== null} title={error ?? undefined}>
+                  {cantidadOk && haciaId ? `Mover ${n} ${n === 1 ? "unidad" : "unidades"} a ${nombreDe(haciaId)}` : "Mover mercadería"}
+                </Boton>
               </div>
             </div>
           </form>

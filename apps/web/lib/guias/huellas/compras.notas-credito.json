@@ -42,7 +42,7 @@
       "button «Usar»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "button «(sin nombre)»",
+      "Boton «(sin nombre)»",
       "button «{titulo}»",
       "button «Cambiar»"
     ],
@@ -54,7 +54,7 @@
       "CampoTexto «Nota (opcional)»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «{loading ? \"Registrando…\" : \"Registrar reembolso\"}»"
+      "Boton «Registrar reembolso»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

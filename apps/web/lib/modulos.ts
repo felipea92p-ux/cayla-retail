@@ -13,9 +13,9 @@ import { PERMISOS, type Permiso } from "./menu";
 export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas", "avisos_club",
-  "existencias", "conteos", "traslados", "movimientos",
+  "existencias", "conteos", "traslados", "movimientos", "recibir",
   "productos", "atributos", "etiquetas", "liquidacion",
-  "ordenes_compra", "facturas_compra", "recibir", "por_pagar", "fondos", "proveedores", "notas_credito", "plan_compra",
+  "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "notas_credito", "plan_compra",
   "produccion", "ordenes_insumos",
   "analisis", "frescura", "plan_piso", "colaboradores", "roles",
   "configuracion",
@@ -68,6 +68,8 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "conteos", grupo: "Inventario", nombre: "Conteos", incluye: "Iniciar, registrar y cerrar conteos" },
   { clave: "traslados", grupo: "Inventario", nombre: "Traslados", incluye: "Enviar, recibir, cancelar y cerrar con diferencia" },
   { clave: "movimientos", grupo: "Inventario", nombre: "Movimientos", incluye: "Consultar y exportar" },
+  // ADR-0393 (Felipe, 2026-10-14): Recibir vive en Inventario, para todos (20261014210000; la base de producción ya lo tenía ahí).
+  { clave: "recibir", grupo: "Inventario", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
   { clave: "productos", grupo: "Catálogo", nombre: "Productos", incluye: "Crear, editar y archivar prendas; precios, fotos y códigos" },
   { clave: "atributos", grupo: "Catálogo", nombre: "Categorías, marcas y atributos", incluye: "Crear, editar, desactivar y aprobar propuestas" },
   { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar, aprobar y archivar etiquetas, configurar su campaña y descuento, y ponérselas a las prendas" },
@@ -79,7 +81,6 @@ export const MODULOS: readonly Modulo[] = [
   // (decisiones 34 y 37): no pasa por la regla de Compras por tienda (ADR-0184).
   { clave: "ordenes_compra", grupo: "Compras", nombre: "Órdenes de compra", incluye: "Crear, ver, editar y anular las órdenes de compra a proveedores de todas las sedes, con sus precios, y descargar su PDF" },
   { clave: "facturas_compra", grupo: "Compras", nombre: "Facturas de compra", incluye: "Registrar, corregir y anular facturas" },
-  { clave: "recibir", grupo: "Compras", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
   // Fondos por rendir (ADR-0362, fase 6; 20261013181000): la plata que se le entrega a quien compra. Nace SIN rol (solo el líder) y
   // delegable: sus funciones piden este módulo, no al líder (decisión 35).

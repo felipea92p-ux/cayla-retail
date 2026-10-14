@@ -23,8 +23,8 @@
       "Boton «{guia.frase ?? undefined}»",
       "button «Volver a intentar» #2",
       "CampoTexto «¿Por qué la retiras?»",
-      "Boton «{guardando ? \"Retirando…\" : \"Retirar para corregir\"}»",
-      "Boton «Retirar para corregir»"
+      "Boton «Retirar para corregir»",
+      "Boton «Retirar para corregir» #2"
     ],
     "components/inicio-almacen/BloquesLaterales.tsx": [
       "Link «{v.de.sigla}»",

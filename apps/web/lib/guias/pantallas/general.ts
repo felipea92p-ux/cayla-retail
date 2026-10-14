@@ -1080,7 +1080,7 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.propuesta-botones",
       opcional: true,
       titulo: "Aplicar o dejarlo",
-      texto: "«Aplicar» guarda esos topes de una vez, a nombre del responsable; «Cancelar» (o «Cerrar», si no hay nada que cambiar) no toca nada. En la demo no aplicamos: cerramos la ventana.",
+      texto: "«Aplicar» guarda esos topes de una vez, a nombre del responsable; «Cancelar» no toca nada (si no hay nada que cambiar, la ventana se cierra con la × de arriba). En la demo no aplicamos: cerramos la ventana.",
     },
     {
       id: "impuestos-igv",

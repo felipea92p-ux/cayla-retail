@@ -109,7 +109,7 @@ export function ResumenStockOverlay({
       titulo="Resumen del stock"
       subtitulo={`${sedeNombre} · lo que hay hoy y lo vendido ${mes ? `desde el ${mes.desdeTexto}` : "este mes"}.`}
       onClose={onClose}
-      ancho="max-w-2xl"
+      tamano="ancha"
       variante="papel"
     >
       <div className="space-y-6">

@@ -48,7 +48,7 @@ export function TopeModal({ planId, planNombre, topeActual, onClose }: { planId:
   }
 
   return (
-    <Modal titulo="Tope de inversión" subtitulo={`Cuánto invertir al costo en ${planNombre}. Te avisamos si el plan se pasa; nunca te impide guardarlo.`} onClose={onClose} variante="hoja" ancho="max-w-md">
+    <Modal titulo="Tope de inversión" subtitulo={`Cuánto invertir al costo en ${planNombre}. Te avisamos si el plan se pasa; nunca te impide guardarlo.`} onClose={onClose} variante="hoja">
       {(cerrar) => (
         <form
           onSubmit={(e) => {

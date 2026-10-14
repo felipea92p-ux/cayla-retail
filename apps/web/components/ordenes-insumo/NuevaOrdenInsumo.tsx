@@ -534,7 +534,7 @@ export function NuevaOrdenInsumo({ datos, sede, hoy, destinoInicial, editar }: P
           <div className="pie-acciones">
             <BotonEnlace href={RUTA_ORDENES_INSUMO}>Cancelar</BotonEnlace>
             <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Guardando…" : editar ? "Guardar cambios" : "Guardar orden"}
+              {editar ? "Guardar cambios" : "Guardar orden"}
             </Boton>
           </div>
         </section>

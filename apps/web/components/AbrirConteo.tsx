@@ -29,6 +29,7 @@ import { Buscador } from "@/components/ui/Buscador";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    AbrirConteo · «Abrir un conteo» (Inventario ▸ Conteo). Maqueta: `docs/maquetas/conteo-abrir-2026-09/abrir-conteo.html`.
@@ -436,15 +437,15 @@ export function AbrirConteo({
           <div className="col-span-2 row-start-2 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:mt-auto">
             <PieGuia guia={guia} listo="Todo listo para empezar." />
           </div>
-          <button
+          <Boton peso="primario" cargando={abriendo} textoCargando="Abriendo…"
             type="button"
             onClick={() => void abrir()}
             disabled={!listo || abriendo}
             title={guia.frase ?? undefined}
-            className={`btn-cayla btn-primario col-start-2 row-start-1 h-11 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:h-12 @[46rem]:w-full ${guia.claseConfirmar}`}
+            className={`col-start-2 row-start-1 h-11 @[46rem]:col-auto @[46rem]:row-auto @[46rem]:h-12 @[46rem]:w-full ${guia.claseConfirmar}`}
           >
-            {abriendo ? "Abriendo…" : "Empezar conteo"}
-          </button>
+            Empezar conteo
+          </Boton>
         </aside>
       </div>
     </section>

@@ -93,7 +93,7 @@ export function ReabrirPrendaModal({ fila, onClose }: { fila: FilaPorRegularizar
             <Boton type="button" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            <Boton textoCargando="Reabriendo…" type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               Reabrir
             </Boton>
           </div>

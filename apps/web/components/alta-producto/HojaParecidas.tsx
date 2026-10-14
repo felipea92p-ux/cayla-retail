@@ -5,7 +5,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
 import { TextoConPartes } from "@/components/alta-producto/AlertaParecidas";
 import { TarjetaParecida } from "@/components/alta-producto/TarjetaParecida";
-import { Modal } from "@/components/ui/Modal";
+import { ANCHO_HOJA, Modal } from "@/components/ui/Modal";
 import type { ResultadoParecidas } from "@/lib/parecidas-alta-tipos";
 import { armarHoja, TEXTO, tituloHoja, type AlcanceHoja, type BuscarEnHoja, type RotuloTiempo } from "@/lib/parecidas-alta-vista";
 
@@ -114,7 +114,7 @@ export function HojaParecidas(p: Props) {
       titulo={tituloHoja(p.resultado.ambito, alcance, p.marca, p.categoria)}
       subtitulo={TEXTO.bajadaHoja}
       // `parecidas-hoja` (app/estilos/alta-parecidas.css): el contenedor de consulta de las tarjetas y la pantalla completa bajo 1024 px.
-      ancho="max-w-[680px] parecidas-hoja"
+      ancho={`${ANCHO_HOJA.ancha} parecidas-hoja`} /* unificar-fijo: la ancha con la clase de su contenedor (alta-parecidas.css) */
       onClose={p.onCerrar}
       alCerrarEnfocar={alCerrarEnfocar}
       focoEnLaHoja={tactil}

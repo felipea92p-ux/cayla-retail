@@ -36,6 +36,7 @@ import { estadoVisiblePedido } from "@/lib/pedidos-entre-sedes-reglas";
 import { avisoNoEstaCompleta, esperaParaEnviar, etiquetaParaEnviar, noEstaCompleta, urlArmarEnvio, type GrupoParaEnviar, type PrendaParaEnviar } from "@/lib/para-enviar-reglas";
 import { camposDelPedido } from "@/lib/traslados-pedidos-pases-reglas";
 import type { VistaPase } from "@/lib/traslados-pases-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Un pedido entre sedes como pase (ADR-0355, actividad 4; maqueta D: «LIM te pide una prenda»). Al frente, de quién a quién y
 // los botones de siempre (`accionesDe`): «No la tengo» y «Enviar», «Subir al almacén», «Avisar al cliente», «¿Sigue en pie?». Al
@@ -303,23 +304,18 @@ function ReversoPedido({ pedido: p, modo, sede, onModo }: { pedido: PedidoEntreS
             <button type="button" onClick={() => (mePiden || modo === "enviar" ? pase.girar(false) : onModo("ver"))} disabled={ocupado} className="btn-cayla btn-secundario">
               Mejor no
             </button>
-            <button
+            <Boton
               type="button"
+              peso={modo === "enviar" ? "primario" : "peligro"}
+              cargando={Boolean(trabajando || intento.enviando)}
+              textoCargando={modo === "enviar" ? "Enviando…" : "Cancelando…"}
               onClick={() => void (modo === "enviar" ? enviar() : cancelar())}
-              disabled={trabajando || intento.enviando || revisando || !guia.puedeConfirmar}
+              disabled={revisando || !guia.puedeConfirmar}
               title={guia.frase ?? undefined}
-              className={`btn-cayla ${modo === "enviar" ? "btn-primario" : "btn-peligro"} tp-grande ${guia.claseConfirmar}`}
+              className={`tp-grande ${guia.claseConfirmar}`}
             >
-              {trabajando || intento.enviando
-                ? modo === "enviar"
-                  ? "Enviando…"
-                  : "Cancelando…"
-                : modo === "enviar"
-                  ? intento.incierto
-                    ? "Volver a intentar"
-                    : "Enviar por traslado"
-                  : motivo}
-            </button>
+              {modo === "enviar" ? (intento.incierto ? "Volver a intentar" : "Enviar por traslado") : motivo}
+            </Boton>
           </div>
         </div>
       )}

@@ -165,6 +165,23 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   la hoja sale de la impresora al pasar el mouse). Migrado el mismo día: 116 pies en 86 archivos (también los «Mejor no»), 8 filtros puestos y
   11 «Limpiar», 24 botones de imprimir; deuda 0 en las tres. Registros: `accion.cancelar.md`, `accion.limpiar.md`, `accion.imprimir.md`.
 
+- **2026-10-14 · los pendientes antes de la ronda 12, mirando las fotos y tocando las demos** (fuentes en `docs/unificar/rondas/pendientes/`).
+  Felipe eligió: **la cabecera de Inventario en todas las pantallas menos Finanzas** (P1: `<EncabezadoPagina>`; cierra lo que ADR-0220 dejaba
+  «sin decidir» —Compras, Recibir, Producción, el resto de Catálogo— y también Configuración, Rendimiento, Etiquetas de precio, Actividad,
+  Inicio, Comercial y Buscar, que usaban la de Finanzas o una a mano; Finanzas conserva `<CabeceraPantalla>`, su spike de ADR-0195); **«Etiquetas»
+  lleva la etiqueta** en Productos y en Existencias (P1: la impresora es solo de lo que imprime ya); y **el «Ver» de una fila es el enlace del
+  sistema** (P1: los pendientes del turno en Caja). Migrado el mismo día: 31 pantallas en 33 archivos (la frase de la pieza pasó a ser opcional
+  y lo que decía el sobretítulo va tras la fecha, en `detalle`), 5 íconos y 1 enlace; deuda 0. Registro nuevo: `titulo-pagina.md`.
+
+- **2026-10-14 · ronda 12, guardar, editar y las hojas, tocándolos** (fuentes en `docs/unificar/rondas/12/`). Felipe eligió P1 en las cinco
+  preguntas: **mientras guarda, «Guardando…» y el hilo sin cambiar de ancho** (lo hace la pieza con `cargando`, también `BotonCompacto` y los
+  botones del flujo del mostrador; cada acción que no es guardar dice su verbo con `textoCargando`); **«Editar» es el secundario con el
+  lápiz y, en una fila o tarjeta de una lista, el lápiz solo** (`<BotonEditar>`, `<LapizEditar>`); y **las hojas tienen una cara** (papel,
+  sin sombra, título de 24 px), **tres anchos con nombre** (`tamano`: angosta 448, mediana 576, ancha 768) **y una salida a la vista** (la ×
+  si solo se lee, «Cancelar» si guarda, nunca las dos). Migrado el mismo día: 140 botones que esperaban a mano (dos codemods), 22 «Editar»,
+  146 anchos y unas 30 salidas; deuda 0 en las tres. La salida no tiene firma (depende de si la hoja guarda). Registros: `accion.guardar.md`,
+  `accion.editar.md`, `modal.md`.
+
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en
 `docs/SESIONES-ACTIVAS.md` lo reserva para que no vuelva a chocar.

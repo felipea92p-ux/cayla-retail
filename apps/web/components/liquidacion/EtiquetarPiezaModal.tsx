@@ -108,10 +108,9 @@ export function EtiquetarPiezaModal({
       }
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-md"
       // La ✕ arriba (/formidable, 2.ª prueba ciega): en «Lista para imprimir» los dos botones son «Etiquetar otra» e «Imprimir», y no
-      // se veía cómo terminar sin hacer ninguna de las dos.
-      conCerrar
+      // se veía cómo terminar sin hacer ninguna de las dos. Mientras se llena, la salida es «Cancelar» (ADR-0358, ronda 12: una sola).
+      conCerrar={Boolean(lista?.codigo)}
     >
       {lista?.codigo ? (
         <div className="space-y-4">

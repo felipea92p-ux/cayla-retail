@@ -2410,7 +2410,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
       {apilado && hojaTicket && (
-        <Modal titulo="Ticket actual" variante="ticket" ancho="max-w-xl" onClose={() => setHojaTicket(false)} alCerrarEnfocar={buscador}>
+        <Modal titulo="Ticket actual" variante="ticket" tamano="mediana" onClose={() => setHojaTicket(false)} alCerrarEnfocar={buscador}>
           {ticketNodo(true)}
         </Modal>
       )}
@@ -2554,8 +2554,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
       {modalAbrirVisible && (
         // Ancha (`max-w-xl`): angosta, con el aviso «Nadie de turno» pasaba los 800 px de alto (Felipe 2026-10-01).
-        <Modal titulo="Abrir caja" ancho="max-w-xl" onClose={() => setModalCaja(null)} alCerrarEnfocar={focoTrasAbrirCaja}>
-          <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} esperado={fondoUltimoCierre} enHoja />
+        <Modal titulo="Abrir caja" tamano="mediana" onClose={() => setModalCaja(null)} alCerrarEnfocar={focoTrasAbrirCaja}>
+          {(cerrar) => <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} esperado={fondoUltimoCierre} enHoja onCancelar={cerrar} />}
         </Modal>
       )}
       {modalCerrarVisible && cajaId && (

@@ -20,16 +20,16 @@ export const GUIA_PROD_RESUMEN: Guia = {
       texto: "Esta es la mirada del líder sobre el Taller: qué está urgente, qué modelos conviene producir y si alcanza la tela. Todo sale de las órdenes, los insumos y las ventas de las tiendas. Es una demo: no se abre ni se paga nada.",
     },
     {
-      id: "miradas",
-      ancla: "produccion.miradas",
-      titulo: "Hoy y Eficiencia",
-      texto: "«Hoy» es esta pantalla: lo que hay que decidir. «Eficiencia» te lleva a cuánto cuesta de verdad cada prenda que sale del Taller, período a período.",
-    },
-    {
       id: "acciones",
       ancla: "prod-resumen.acciones",
       titulo: "Ir a las órdenes",
       texto: "«Ver órdenes» abre el tablero de lo que se está fabricando; «Nueva orden» te lleva ahí mismo con la ventana para abrir una corrida. Te llevan a otra pantalla, así que en la demo no los tocamos.",
+    },
+    {
+      id: "miradas",
+      ancla: "produccion.miradas",
+      titulo: "Hoy y Eficiencia",
+      texto: "«Hoy» es esta pantalla: lo que hay que decidir. «Eficiencia» te lleva a cuánto cuesta de verdad cada prenda que sale del Taller, período a período.",
     },
     {
       id: "cifras",

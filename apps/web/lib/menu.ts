@@ -137,9 +137,8 @@ type Comun = {
   pajaro: Pajaro;
   /** Se muestra solo a quien tiene este permiso. */
   exige?: Permiso;
-  /** Se muestra solo a quien NO lo tiene. Existe por UN caso: «Recibir mercadería» vive en Compras para quien ve el dinero
-   *  de compras y en Inventario para quien no (ADR-0113); las dos filas apuntan a `/recibir` y nunca salen a la vez (parado en
-   *  el Taller, quien ve el dinero no tiene ninguna: allí Compras no se muestra). */
+  /** Se muestra solo a quien NO lo tiene. Lo usó «Recibir mercadería» mientras vivía en Compras para quien ve el dinero y en
+   *  Inventario para quien no (ADR-0113, hasta el 2026-10-14); hoy ninguna fila lo usa, y queda para un caso igual. */
   soloSinPermiso?: Permiso;
   /** Si esta fila queda SOLA bajo su grupo de primer nivel, conserva su propio nombre en vez de tomar el del grupo. Existe por dos
    *  casos: «Recibir mercadería» en Inventario —un rol que solo ve ese módulo veía una fila llamada «Inventario» que abría Recibir
@@ -354,9 +353,11 @@ export const ARBOL: readonly Nodo[] = [
       { id: "inventario.conteo", modulo: "conteos", etiqueta: "Conteo", estado: "viva", ruta: "/inventario/conteo", icono: "conteo", pajaro: "06 Lechuza" },
       // Análisis (ADR-0101), Frescura del piso (ADR-0208) y Plan del piso (ADR-0352) vivieron aquí como filas 5.ª a 7.ª hasta el
       // 2026-10-13: desde ADR-0392 son de «Gestión» (arriba). Inventario vuelve a las cuatro de operar stock (ADR-0071), más
-      // «Recibir mercadería» para quien no ve Compras: cabe en el tope general de 6, sin excepción.
-      // Quien no ve Compras no tiene el grupo donde vive «Recibir mercadería»: su puerta está acá, donde vive el stock.
-      { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", soloSinPermiso: "verDineroCompras", conservaNombre: true },
+      // «Recibir mercadería»: cabe en el tope general de 6, sin excepción.
+      // Recibir vive AQUÍ para todos (Felipe, 2026-10-14; ADR-0393 y ADR-0362, decisión 38): es donde entra el stock. Hasta ese día
+      // vivía en Compras para quien ve el dinero de Compras y aquí solo para quien no (ADR-0113): dos lugares según quién mirara, y el
+      // líder parado en el Taller no lo tenía en ningún menú. Lo que muestra (con o sin montos) lo sigue decidiendo la pantalla.
+      { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", conservaNombre: true },
     ],
   },
 
@@ -400,14 +401,12 @@ export const ARBOL: readonly Nodo[] = [
       { id: "compras.plan", modulo: "plan_compra", etiqueta: "Plan de campaña", estado: "viva", ruta: "/compras/plan", icono: "campana", pajaro: "09 Pelícano" },
       { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
       // Órdenes de compra (ADR-0362): lo que se le pide al proveedor, antes de su factura; por eso va entre las dos. Sin `exige`: el
-      // módulo es la llave y trae sus precios (decisión 34). Es la 7.ª hija de Compras, TEMPORAL (decisión 38): la excepción vive en
-      // `menu.test.ts` y se quita cuando «Recibir mercadería» pase a Inventario (sesión de Recepción, ADR-0362 «Contrato con»). El
-      // id termina en «Compra» a propósito: Producción ya tiene `produccion.ordenes` (sus órdenes de producción) y ninguna pantalla
+      // módulo es la llave y trae sus precios (decisión 34). Fue la 7.ª hija de Compras mientras «Recibir mercadería» vivía aquí
+      // (decisión 38); desde el 2026-10-14 Recibir está en Inventario y Compras queda en 7 con «Fondos por rendir» (decisión 65). El id termina en «Compra» a propósito: Producción ya tiene `produccion.ordenes` (sus órdenes de producción) y ninguna pantalla
       // puede llamarse igual en los dos módulos.
       { id: "compras.ordenesCompra", modulo: "ordenes_compra", etiqueta: "Órdenes de compra", estado: "viva", ruta: "/compras/ordenes", icono: "ordenes", pajaro: "09 Pelícano" },
       { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Facturas de proveedor", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
-      // ADR-0111/0113: recibir es una sola puerta (`/recibir`). El dato es del Halcón (envíos y lotes), no del Pelícano.
-      { id: "compras.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", exige: "verDineroCompras" },
+      // «Recibir mercadería» ya no vive aquí: desde el 2026-10-14 es una sola fila, en Inventario (ver allí).
       { id: "compras.porPagar", modulo: "por_pagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDineroCompras" },
       // Fondos por rendir (ADR-0362, fase 6; Felipe 2026-10-13, decisión 65: «Compras, directo», como octava entrada). Solo pide su módulo.
       { id: "compras.fondos", modulo: "fondos", etiqueta: "Fondos por rendir", estado: "viva", ruta: "/compras/fondos", icono: "fondos", pajaro: "09 Pelícano" },

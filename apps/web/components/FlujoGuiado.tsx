@@ -7,6 +7,7 @@ import { Volver } from "@/components/ui/Volver";
 import { ImpactoVista, ListaValidaciones } from "@/components/CambioResumen";
 import type { ImpactoOperacion, Validacion } from "@/lib/cambios-reglas";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { HiloEnEspera, PalabraEnEspera } from "@/components/ui/campos";
 
 // Las piezas que Cambios y Devoluciones comparten (2026-09-18): las dos son un flujo
 // guiado en la misma página —sin modal, ADR-0044— con "Paso X de N", validaciones en vivo
@@ -248,25 +249,39 @@ export function PieDelPaso({ aviso, children, guia }: { aviso: string | null; ch
 // la etiqueta en mayúsculas chicas con aire entre las letras (`label-cayla`) y, si hay un
 // monto, a la derecha y en la serif de la casa — la etiqueta dice qué se hace; el monto,
 // cuánto. Sin monto, la etiqueta va centrada.
-function ContenidoBoton({ children, monto }: { children: ReactNode; monto?: string }) {
+// Mientras espera (ADR-0358, ronda 12): la etiqueta pasa a `textoCargando` sin cambiar el ancho, corre el hilo y el botón se apaga, como en
+// todo botón que guarda (`Boton`); el monto se queda a la vista.
+type Espera = { cargando?: boolean; textoCargando?: string };
+function ContenidoBoton({ children, monto, cargando, textoCargando }: { children: ReactNode; monto?: string } & Espera) {
+  const etiqueta = <span className="label-cayla flex items-center gap-2 text-[11px]">{children}</span>;
   return (
     <>
-      <span className="label-cayla flex items-center gap-2 text-[11px]">{children}</span>
+      {cargando !== undefined ? (
+        <PalabraEnEspera cargando={cargando} texto={textoCargando}>
+          {etiqueta}
+        </PalabraEnEspera>
+      ) : (
+        etiqueta
+      )}
       {monto && <strong className="font-display text-lg">{monto}</strong>}
+      {cargando && <HiloEnEspera claro />}
     </>
   );
 }
 
-export function BotonPrincipal({ onClick, children, disabled = false, monto, guia }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
+export function BotonPrincipal({ onClick, children, disabled = false, monto, guia, cargando, textoCargando }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string; /** Ancla de la guía (ADR-0389). */ guia?: string } & Espera) {
   return (
     <button
       type="button"
       data-guia={guia}
       onClick={onClick}
-      disabled={disabled}
-      className={`mov-boton flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema hover:bg-rojo-profundo disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
+      disabled={disabled || cargando}
+      aria-busy={cargando || undefined}
+      className={`mov-boton relative flex h-12 items-center gap-8 rounded-md bg-tinta px-6 text-crema hover:bg-rojo-profundo disabled:opacity-60 ${monto ? "justify-between" : "justify-center"}`}
     >
-      <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
+      <ContenidoBoton monto={monto} cargando={cargando} textoCargando={textoCargando}>
+        {children}
+      </ContenidoBoton>
     </button>
   );
 }
@@ -286,15 +301,18 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
 }
 
 /** El único rojo del flujo: la acción que mueve stock o plata de verdad. */
-export function BotonRojo({ onClick, children, disabled = false, monto }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string }) {
+export function BotonRojo({ onClick, children, disabled = false, monto, cargando, textoCargando }: { onClick: () => void; children: ReactNode; disabled?: boolean; monto?: string } & Espera) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
-      className={`mov-boton flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
+      disabled={disabled || cargando}
+      aria-busy={cargando || undefined}
+      className={`mov-boton relative flex h-12 items-center gap-8 rounded-md bg-rojo px-6 text-crema hover:bg-rojo-profundo disabled:opacity-70 ${monto ? "justify-between" : "justify-center"}`}
     >
-      <ContenidoBoton monto={monto}>{children}</ContenidoBoton>
+      <ContenidoBoton monto={monto} cargando={cargando} textoCargando={textoCargando}>
+        {children}
+      </ContenidoBoton>
     </button>
   );
 }

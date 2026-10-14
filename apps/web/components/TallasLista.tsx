@@ -331,7 +331,6 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
         <Modal
           titulo={`Aprobar «${aprobandoTalla.valor}»`}
           subtitulo="A qué categoría aplica, por qué es distinta de las que ya existen — queda de referencia."
-          ancho="max-w-sm"
           onClose={() => setAprobandoAbierto(null)}
         >
           {(cerrar) => (
@@ -357,7 +356,7 @@ export function TallasLista({ tallasIniciales, puedeEditar }: { tallasIniciales:
       )}
 
       {rechazandoTalla && (
-        <Modal titulo={`Rechazar «${rechazandoTalla.valor}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+        <Modal titulo={`Rechazar «${rechazandoTalla.valor}»`} onClose={() => setRechazandoAbierto(null)}>
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
@@ -408,7 +407,7 @@ function NuevaTallaModal({
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
-    <Modal titulo="Nueva talla" subtitulo="Queda disponible de inmediato para cualquier prenda nueva." ancho="max-w-sm" onClose={onClose}>
+    <Modal titulo="Nueva talla" subtitulo="Queda disponible de inmediato para cualquier prenda nueva." onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <CampoGuiado id="valor" guia={guia}>

@@ -50,7 +50,7 @@ export function BotonDescargar(
     );
   }
   return (
-    <Boton type="button" onClick={props.onClick} cargando={props.cargando} disabled={props.disabled} peso={peso} className={clase} title={title} data-guia={guia}>
+    <Boton type="button" onClick={props.onClick} cargando={props.cargando} textoCargando="Preparando…" disabled={props.disabled} peso={peso} className={clase} title={title} data-guia={guia}>
       {contenido}
     </Boton>
   );

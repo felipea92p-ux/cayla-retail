@@ -9,6 +9,7 @@ import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { Aviso } from "@/components/ui/Aviso";
 import { Tags } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 // Una categoría sin tallas (o sin tejidos/patrones, si su familia los exige)
 // no tiene con qué armar un producto. En vez de mandar a la Líder a otra
@@ -116,15 +117,14 @@ export function ConfigurarCategoria({
       {error && <Aviso tono="error">{error}</Aviso>}
 
       <AvisoSinIdentidad firma={firma} />
-      <button
+      <Boton peso="primario" cargando={guardando}
         type="button"
         onClick={() => void guardar()}
         disabled={elegidos.length === 0 || guardando || !firma.listo}
         title={firma.motivo ?? undefined}
-        className="btn-cayla btn-primario"
       >
-        {guardando ? "Guardando…" : `Guardar en ${categoriaNombre}`}
-      </button>
+        {`Guardar en ${categoriaNombre}`}
+      </Boton>
     </div>
   );
 }

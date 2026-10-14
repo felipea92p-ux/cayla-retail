@@ -3,6 +3,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getPanelCalidad } from "@/lib/calidad";
 import { PanelCalidadVista } from "@/components/PanelCalidadVista";
 import { Volver } from "@/components/ui/Volver";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Calidad (ADR-0214): "¿qué talla, qué proveedor o qué producto genera devoluciones?". Subpágina del panel
 // comercial, solo Líder: es la pregunta de quien decide compras y producción, no la del mostrador. El candado real
@@ -16,11 +17,13 @@ export default async function CalidadPage() {
   return (
     <div className="space-y-6">
       <div data-guia="calidad.cabecera">
-        <Volver href="/comercial" a="Comercial" className="mb-2" />
-        <h1 className="font-display mt-1 text-2xl text-tinta">Qué se devuelve y por qué</h1>
-        <p className="mt-1 text-sm text-tinta/65">
-          Devoluciones, prendas dañadas y cambios por talla, proveedor, categoría y producto, para ver dónde está el problema.
-        </p>
+        {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+        <EncabezadoPagina
+          sede="Todas las tiendas"
+          volver={<Volver href="/comercial" a="Comercial" />}
+          titulo="Qué se devuelve y por qué"
+          subtitulo="Devoluciones, prendas dañadas y cambios por talla, proveedor, categoría y producto, para ver dónde está el problema."
+        />
       </div>
 
       <PanelCalidadVista panel={panel} />

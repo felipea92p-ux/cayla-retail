@@ -40,7 +40,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { avisoConteoGuardado, avisoConteoRetomado, llegadaContada, mensajeDeSalida, unidadesDeLaLlegada } from "@/lib/recibir-cambio-de-sede";
-import { Desplegable } from "@/components/ui/campos";
+import { Desplegable, Boton } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -587,9 +587,9 @@ export function LlegoMercaderia({
                 onConfirmar={() => recibir(atipicos.flatMap((a) => (a.linea === null ? [] : [a.linea])))}
               />
             ) : (
-              <button type="submit" disabled={loading} title={guia.frase ?? undefined} className={`btn-cayla btn-primario w-full sm:w-auto ${guia.claseConfirmar}`}>
-                {loading ? "Recibiendo…" : unidades > 0 ? `Recibir ${unidades} ${unidades === 1 ? "prenda" : "prendas"} en ${ubicacionEtiqueta}` : `Recibir en ${ubicacionEtiqueta}`}
-              </button>
+              <Boton peso="primario" cargando={loading} textoCargando="Recibiendo…" type="submit" disabled={loading} title={guia.frase ?? undefined} className={`w-full sm:w-auto ${guia.claseConfirmar}`}>
+                {unidades > 0 ? `Recibir ${unidades} ${unidades === 1 ? "prenda" : "prendas"} en ${ubicacionEtiqueta}` : `Recibir en ${ubicacionEtiqueta}`}
+              </Boton>
             )}
           </div>
         </form>

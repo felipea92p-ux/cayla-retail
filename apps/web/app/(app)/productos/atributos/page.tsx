@@ -20,6 +20,7 @@ import {
   type DatosPestanaTemporadas,
   type ProductoParaTemporadas,
 } from "@/lib/temporadas-pantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -277,17 +278,24 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   return (
     <div className="space-y-6">
       <div data-guia="atributos.cabecera">
-        <p className="label-cayla text-[11px] text-tinta/65">Productos · Catálogo</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">
-          Atributos
-          <Ayuda titulo="Atributos">
-            Los vocabularios cerrados que describen una prenda además de su categoría: color,
-            talla, tejido, patrón, etiqueta libre y temporada. En los cinco primeros, cualquiera
-            con sesión propone un valor nuevo y lo puede usar de inmediato; un Líder lo aprueba o
-            lo rechaza después. La temporada es una lista fija de nueve: en su pestaña se ve el
-            calendario y se completan las prendas que todavía no la tienen.
-          </Ayuda>
-        </h1>
+        <EncabezadoPagina
+          sede={persona.ubicacionEtiqueta}
+          titulo={
+            <>
+              Atributos
+              {/* Letra y altura de la frase dentro del título: el globo no hereda la serif de 46 px (como Marcas). */}
+              <span className="ml-2.5 inline-block align-middle font-sans text-[15px] leading-normal tracking-normal">
+                <Ayuda titulo="Atributos">
+                  Los vocabularios cerrados que describen una prenda además de su categoría: color,
+                  talla, tejido, patrón, etiqueta libre y temporada. En los cinco primeros, cualquiera
+                  con sesión propone un valor nuevo y lo puede usar de inmediato; un Líder lo aprueba o
+                  lo rechaza después. La temporada es una lista fija de nueve: en su pestaña se ve el
+                  calendario y se completan las prendas que todavía no la tienen.
+                </Ayuda>
+              </span>
+            </>
+          }
+        />
       </div>
 
       <AtributosHub
