@@ -105,8 +105,8 @@ jobs:
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: pnpm --filter web exec next typegen
 
-      # Los tres corren SIEMPRE aunque uno falle, pero solo si la instalación funcionó
-      # (si no hay node_modules, los tres fallarían por la misma razón y el informe sería
+      # Los cuatro corren SIEMPRE aunque uno falle, pero solo si la instalación funcionó
+      # (si no hay node_modules, los cuatro fallarían por la misma razón y el informe sería
       # ruido). Un push malo devuelve así el diagnóstico completo en una vuelta: sin esto,
       # arreglar el lint solo sirve para descubrir que además fallaban las pruebas.
       - name: Tipos
@@ -120,6 +120,14 @@ jobs:
       - name: Pruebas
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: pnpm test
+
+      # Código muerto (ADR-0406): un archivo que nadie importa, una exportación que nadie lee o una dependencia que nadie carga
+      # ponen el PR en rojo. Lee todo el monorepo en ~3 s; lo que se queda sin uso a propósito se declara en `knip.ts` o con
+      # `@public` junto al código, con su motivo. NO ve una función que solo usa su propia prueba: eso lo vigila
+      # `lib/reglas-sin-uso.test.ts` (ADR-0234), dentro de «Pruebas».
+      - name: Código muerto
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: pnpm knip --no-progress
 
       # El aviario (ADR-0104): ninguna tabla de producción sin pájaro, ninguna con dos, y
       # `docs/datos/generado/AVIARIO.md` al día. Tampoco toca base de datos: lee el volcado
