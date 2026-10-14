@@ -13,7 +13,8 @@
 --   · `<tabla>_montos_finitos`: el precio y el costo de una prenda, el precio por sede (de la prenda y del producto) y los de
 --     Liquidación no son `NaN` ni infinitos. La frase en castellano ya existe para todo candado con ese nombre (`error-escritura.ts`).
 --   · `<tabla>_textos_con_tope`: el nombre de un producto hasta 80 letras (el mismo tope del modelo nuevo de Producción) y su
---     descripción hasta 500; el nombre de una marca hasta 80; el de una categoría, un color o una familia hasta 60. En producción, lo
+--     descripción hasta 500; el nombre de una marca, una categoría, un color o una familia, también hasta 80 (una migración vieja,
+--     20260927200000, escribe un nombre de categoría de 73 letras al pegarse de nuevo). En producción, lo
 --     más largo guardado mide 38, 128, 43, 22, 20 y 25 (2026-10-14): nada queda fuera.
 --
 -- CONTRATO (Liskov)
@@ -56,6 +57,6 @@ select pg_temp.candado('piezas_liquidacion_etiquetas', 'piezas_liquidacion_etiqu
 -- 2. Los nombres con tope (en letras, no en bytes: una «ñ» cuenta una).
 select pg_temp.candado('productos', 'productos_textos_con_tope', $c$char_length(referencia) <= 80 and char_length(descripcion) <= 500$c$);
 select pg_temp.candado('marcas', 'marcas_textos_con_tope', $c$char_length(nombre) <= 80$c$);
-select pg_temp.candado('categorias', 'categorias_textos_con_tope', $c$char_length(nombre) <= 60$c$);
-select pg_temp.candado('colores', 'colores_textos_con_tope', $c$char_length(nombre) <= 60$c$);
-select pg_temp.candado('familias', 'familias_textos_con_tope', $c$char_length(nombre) <= 60$c$);
+select pg_temp.candado('categorias', 'categorias_textos_con_tope', $c$char_length(nombre) <= 80$c$);
+select pg_temp.candado('colores', 'colores_textos_con_tope', $c$char_length(nombre) <= 80$c$);
+select pg_temp.candado('familias', 'familias_textos_con_tope', $c$char_length(nombre) <= 80$c$);

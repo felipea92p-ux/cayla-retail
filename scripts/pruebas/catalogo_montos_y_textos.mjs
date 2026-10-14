@@ -71,9 +71,9 @@ const ATAQUES = [
   ["un nombre de producto de 81 letras", `update retail.productos set referencia = repeat('x', 81) where id = :'p';`, "productos_textos_con_tope"],
   ["una descripción de 501 letras", `update retail.productos set descripcion = repeat('x', 501) where id = :'p';`, "productos_textos_con_tope"],
   ["un nombre de marca de 81 letras", `update retail.marcas set nombre = repeat('x', 81) where id = :'marca';`, "marcas_textos_con_tope"],
-  ["un nombre de categoría de 61 letras", `update retail.categorias set nombre = repeat('x', 61) where id = :'cat';`, "categorias_textos_con_tope"],
-  ["un nombre de color de 61 letras", `update retail.colores set nombre = repeat('x', 61) where codigo = :'color';`, "colores_textos_con_tope"],
-  ["un nombre de familia de 61 letras", `update retail.familias set nombre = repeat('x', 61) where codigo = :'familia';`, "familias_textos_con_tope"],
+  ["un nombre de categoría de 81 letras", `update retail.categorias set nombre = repeat('x', 81) where id = :'cat';`, "categorias_textos_con_tope"],
+  ["un nombre de color de 81 letras", `update retail.colores set nombre = repeat('x', 81) where codigo = :'color';`, "colores_textos_con_tope"],
+  ["un nombre de familia de 81 letras", `update retail.familias set nombre = repeat('x', 81) where codigo = :'familia';`, "familias_textos_con_tope"],
 ];
 
 for (const [nombre, sql, candado] of ATAQUES) {
@@ -88,9 +88,9 @@ for (const [nombre, sql, candado] of ATAQUES) {
 update retail.variantes set precio = 59.90, costo = 20 where id = :'v';
 update retail.productos set referencia = repeat('y', 80), descripcion = repeat('y', 500) where id = :'p';
 update retail.marcas set nombre = repeat('z', 80) where id = :'marca';
-update retail.categorias set nombre = repeat('z', 60) where id = :'cat';
+update retail.categorias set nombre = repeat('z', 80) where id = :'cat';
 select 'ok|bordes';`);
-  esperar("lo válido entra igual: precio y costo normales, 80 y 500 letras en el producto, 80 en la marca, 60 en la categoría", r.ok && r.salida.includes("ok|bordes"), r.error);
+  esperar("lo válido entra igual: precio y costo normales, 80 y 500 letras en el producto, 80 en la marca y en la categoría", r.ok && r.salida.includes("ok|bordes"), r.error);
 }
 
 // Se puede pegar dos veces, y cada candado queda validado.

@@ -22,7 +22,8 @@
 - **Base** (`20261014182000`, solo `alter table`):
   - `<tabla>_montos_finitos` en `variantes` (precio y costo), `precios_sede`, `precios_sede_prenda` y las tres de Liquidación. La
     frase en castellano ya existía para todo candado con ese nombre.
-  - `<tabla>_textos_con_tope` en `productos` (nombre 80, descripción 500), `marcas` (80), `categorias`, `colores` y `familias` (60).
+  - `<tabla>_textos_con_tope` en `productos` (nombre 80, descripción 500), `marcas`, `categorias`, `colores` y `familias` (80; una migración vieja, `20260927200000`, escribe un nombre de categoría de 73
+    letras si se vuelve a pegar).
     En producción, lo más largo guardado mide 38, 128, 43, 22, 20 y 25 (2026-10-14), y ninguna fila tiene un monto no finito.
   - Cada candado nace `not valid` y se valida si nada viejo lo viola. En las columnas con precisión (`numeric(12,2)`) el infinito ya no
     entraba por el tipo: ahí el candado frena el `NaN`.

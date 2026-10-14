@@ -7,5 +7,5 @@
 export const MAX_NOMBRE_PRODUCTO = 80;
 export const MAX_DESCRIPCION_PRODUCTO = 500;
 export const MAX_NOMBRE_MARCA = 80;
-/** Categorías, colores y familias. */
-export const MAX_NOMBRE_CATALOGO = 60;
+/** Categorías, colores y familias (80: una migración vieja, 20260927200000, escribe un nombre de categoría de 73 letras). */
+export const MAX_NOMBRE_CATALOGO = 80;
