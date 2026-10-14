@@ -106,7 +106,7 @@ export function DetalleMuestraModal({
         .order("referencia");
       if (!vigente) return;
       if (error) {
-        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas") });
+        setCarga({ estado: "error", mensaje: traducirError(error, "cargar las prendas", { lectura: true }) });
         return;
       }
       const prendas = (data ?? []).map((p) => ({

@@ -186,7 +186,7 @@ export function AjustarInventarioModal({
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
         if (errCarga) {
-          avisar.error(traducirError(errCarga, "cargar las variantes del producto"));
+          avisar.error(traducirError(errCarga, "cargar las variantes del producto", { lectura: true }));
           setCargando(false);
           return;
         }

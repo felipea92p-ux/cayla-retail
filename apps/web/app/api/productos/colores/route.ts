@@ -222,7 +222,7 @@ export async function PATCH(request: Request) {
         .eq("color_codigo", codigo)
         .eq("activo", true);
       if (errorConteo) {
-        return Response.json({ error: traducirError(errorConteo, "revisar las variantes de este color") }, { status: 400 });
+        return Response.json({ error: traducirError(errorConteo, "revisar las variantes de este color", { lectura: true }) }, { status: 400 });
       }
       if ((count ?? 0) > 0) {
         const n = count ?? 0;

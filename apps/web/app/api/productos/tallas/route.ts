@@ -78,7 +78,7 @@ export async function PATCH(request: Request) {
         .eq("talla_id", id)
         .eq("activo", true);
       if (errorConteo) {
-        return Response.json({ error: traducirError(errorConteo, "revisar las variantes de esta talla") }, { status: 400 });
+        return Response.json({ error: traducirError(errorConteo, "revisar las variantes de esta talla", { lectura: true }) }, { status: 400 });
       }
       if ((count ?? 0) > 0) {
         const n = count ?? 0;
