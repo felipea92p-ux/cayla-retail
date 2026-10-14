@@ -114,7 +114,7 @@ export async function PATCH(request: Request) {
         .select("variante_id", { count: "exact", head: true })
         .eq("etiqueta_id", id);
       if (errorConteo) {
-        return Response.json({ error: traducirError(errorConteo, "revisar las variantes con esta etiqueta") }, { status: 400 });
+        return Response.json({ error: traducirError(errorConteo, "revisar las variantes con esta etiqueta", { lectura: true }) }, { status: 400 });
       }
       if ((count ?? 0) > 0) {
         const n = count ?? 0;

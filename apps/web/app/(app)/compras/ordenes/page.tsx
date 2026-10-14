@@ -32,6 +32,10 @@ import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { BotonEnlace } from "@/components/ui/campos";
+import { GastoDelViaje } from "@/components/ordenes-compra/GastoDelViaje";
+import { TuFondoConRendir } from "@/components/fondos/TuFondoConRendir";
+import { getResumenMiFondo } from "@/lib/fondos";
+import { mostrarTuFondo } from "@/lib/fondos-reglas";
 import { PaginacionCursor } from "@/components/Paginacion";
 import { BuscadorOrdenes } from "@/components/ordenes-compra/BuscadorOrdenes";
 
@@ -47,6 +51,10 @@ import { BuscadorOrdenes } from "@/components/ordenes-compra/BuscadorOrdenes";
 //
 // Cada fila abre la orden en una ventana sobre la lista (ruta interceptada `@modal/(.)ordenes/ver/[id]`): la lista no se desmonta y al
 // cerrar se vuelve donde se estaba. La «›» del final dice que se abre.
+//
+// «Tu fondo» (fase 6 · actividad 4) es una cifra más, solo para quien tiene un fondo: lo que le queda de la plata que CAYLA le entregó
+// para comprar. No cambia con los filtros; baja sola al pagar desde «Mi fondo» o anotar un gasto del viaje (las dos hojas refrescan).
+// Desde la actividad 5 lleva «Rendir» (o «Ver tu rendición»), que abre la hoja de la rendición (`TuFondoConRendir`).
 //
 // «Por enviar» (fase 3) es una píldora más, al final: las órdenes generadas que todavía tienen algo por enviar a una sede, en TODAS las
 // sedes (la cifra cuenta todas, así que elegir una sede o un estado la apaga). La base no filtra por eso: `listarOrdenesCompra` cruza la lista
@@ -74,7 +82,14 @@ const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("
 
 export default async function OrdenesCompraPage({ searchParams }: { searchParams: Promise<ParamsLista> }) {
   const persona = await exigirModulo("ordenes_compra");
-  const [params, destinosLeidos, resumen, porEnviar] = await Promise.all([searchParams, getDestinosOrden(), getResumenOrdenes(), getOrdenesPorEnviar()]);
+  const [params, destinosLeidos, resumen, porEnviar, fondo] = await Promise.all([
+    searchParams,
+    getDestinosOrden(),
+    getResumenOrdenes(),
+    getOrdenesPorEnviar(),
+    getResumenMiFondo(),
+  ]);
+  const tuFondo = mostrarTuFondo(fondo) ? fondo : null;
   const destinos = destinosLeidos ?? [];
   // Una sede inactiva que todavía tiene órdenes también se puede elegir (sale en las píldoras).
   const idsElegibles = [...destinos.map((d) => d.id), ...(resumen ?? []).flatMap((r) => (r.destinoId ? [r.destinoId] : []))];
@@ -94,6 +109,8 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
   const nombreDe = (id: string) => destinos.find((d) => d.id === id)?.nombre ?? resumen?.find((r) => r.destinoId === id)?.destinoNombre ?? null;
   const miSede = destinos.find((d) => d.id === persona.ubicacionId) ?? null;
   const pildoras = pildorasDeDestino(destinos, resumen, filtros.estado);
+  // Cuántas cifras hay arriba: las de las órdenes (2, o 3 con la sede donde se trabaja) y «Tu fondo».
+  const nCifras = (resumen ? (miSede ? 3 : 2) : 0) + (tuFondo ? 1 : 0);
   // La orden que se acaba de guardar (Nueva o Editar vuelven aquí con `?recien=`): se marca para que se vea que quedó.
   const recien = recienDe(params);
 
@@ -103,7 +120,13 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
         sede={persona.ubicacionEtiqueta}
         titulo="Órdenes de compra"
         subtitulo="Lo que le pides a cada proveedor: qué, a cuánto y a qué tienda llega."
-        acciones={nuevaOrden}
+        acciones={
+          // «+ Gasto del viaje» (fase 6 · actividad 3): lo que costó traer la compra o el viaje, a una o varias órdenes.
+          <div className="flex flex-wrap items-center gap-3">
+            <GastoDelViaje guia="ordenes.gasto-viaje" />
+            {nuevaOrden}
+          </div>
+        }
       />
 
       {falla ? (
@@ -111,32 +134,45 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
           {falla}
         </Aviso>
       ) : primeraVez ? (
-        <div className="card-cayla">
-          <Vacio icono={<ClipboardList />} titulo="Todavía no hay órdenes de compra" acciones={nuevaOrden}>
-            Crea la primera con lo que le vas a pedir a un proveedor: aquí vas a ver su número, a qué tienda llega y cuánto suma.
-          </Vacio>
-        </div>
+        <>
+          {/* Sin órdenes todavía, el fondo igual se usa: un gasto del viaje no necesita orden. */}
+          {tuFondo && (
+            <div className="@container grid grid-cols-2 gap-3 @min-[40rem]:grid-cols-3">
+              <TuFondoConRendir fondo={tuFondo} guia="ordenes.tu-fondo" className="col-span-2 @min-[40rem]:col-span-1" />
+            </div>
+          )}
+          <div className="card-cayla">
+            <Vacio icono={<ClipboardList />} titulo="Todavía no hay órdenes de compra" acciones={nuevaOrden}>
+              Crea la primera con lo que le vas a pedir a un proveedor: aquí vas a ver su número, a qué tienda llega y cuánto suma.
+            </Vacio>
+          </div>
+        </>
       ) : (
         <>
           {/* En fila desde 40 rem de ANCHO DISPONIBLE (no de ventana). Más angosto (celular, o el menú abierto en una ventana chica),
               en dos filas: el total arriba, a lo ancho, y las otras dos lado a lado; una debajo de otra empujaban la lista fuera de
               la primera pantalla. */}
-          {resumen && (
+          {(resumen || tuFondo) && (
             <div className="@container" data-guia="ordenes.cifras">
-              <div className={`grid grid-cols-2 gap-3 ${miSede ? "@min-[40rem]:grid-cols-3" : ""}`}>
-                <CifraGeneradas
-                  etiqueta="Pedido a proveedores"
-                  {...generadasDe(resumen, TODAS)}
-                  donde={["en todas las sedes", "en todas las sedes"]}
-                  className={miSede ? "col-span-2 @min-[40rem]:col-span-1" : ""}
-                />
+              <div className={`grid grid-cols-2 gap-3 ${COLUMNAS_CIFRAS[nCifras] ?? ""}`}>
+                {resumen && (
+                  <CifraGeneradas
+                    etiqueta="Pedido a proveedores"
+                    {...generadasDe(resumen, TODAS)}
+                    donde={["en todas las sedes", "en todas las sedes"]}
+                    className={nCifras === 3 ? "col-span-2 @min-[40rem]:col-span-1" : ""}
+                  />
+                )}
                 {/* El nombre completo («Tienda Lima»): «Llega a Lima» a secas se confundía con lo que llega a Lima para repartir. */}
-                {miSede && <CifraGeneradas etiqueta={`Llega a ${miSede.nombre}`} {...generadasDe(resumen, miSede.id)} />}
-                <CifraGeneradas
-                  etiqueta="Por repartir"
-                  {...generadasDe(resumen, POR_REPARTIR_LISTA)}
-                  donde={["se reparte desde Lima", "se reparten desde Lima"]}
-                />
+                {resumen && miSede && <CifraGeneradas etiqueta={`Llega a ${miSede.nombre}`} {...generadasDe(resumen, miSede.id)} />}
+                {resumen && (
+                  <CifraGeneradas
+                    etiqueta="Por repartir"
+                    {...generadasDe(resumen, POR_REPARTIR_LISTA)}
+                    donde={["se reparte desde Lima", "se reparten desde Lima"]}
+                  />
+                )}
+                {tuFondo && <TuFondoConRendir fondo={tuFondo} guia="ordenes.tu-fondo" className={resumen ? "" : "col-span-2"} />}
               </div>
             </div>
           )}
@@ -291,6 +327,10 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
     </div>
   );
 }
+
+/** Las columnas de la fila de cifras según cuántas hay. Tres: la primera a lo ancho en lo angosto y en fila desde 40 rem. Cuatro (con
+ *  «Tu fondo»): dos y dos en lo angosto, en fila recién desde 56 rem (en 40 rem, cuatro cifras de 150 px partían los montos). */
+const COLUMNAS_CIFRAS: Record<number, string> = { 3: "@min-[40rem]:grid-cols-3", 4: "@min-[56rem]:grid-cols-4" };
 
 /** Una cifra de arriba: el monto de las órdenes generadas (las anuladas no suman) y cuántas son. Informa: no filtra ni lleva.
  *  `donde`, en singular y plural, sigue a la cantidad («1 orden generada · se reparte desde Lima»). */

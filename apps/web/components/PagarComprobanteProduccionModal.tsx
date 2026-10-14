@@ -79,7 +79,7 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
           </div>
         </dl>
 
-        <MediosDePago medios={medios} onCambio={setMedios} esperado={c.saldo} exacto={false} etiquetaEsperado="Saldo" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+        <MediosDePago medios={medios} onCambio={setMedios} esperado={c.saldo} totalComprobante={c.total} exacto={false} etiquetaEsperado="Saldo" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
 
         <CampoTexto etiqueta="Fecha del pago" type="date" value={fecha} min={c.fechaEmision} max={hoy} onChange={(e) => setFecha(e.target.value)} tono={errorFecha ? "error" : "neutro"} pie={errorFecha ?? undefined} />
 

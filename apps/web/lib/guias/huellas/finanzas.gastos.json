@@ -2,7 +2,7 @@
   "guia": "finanzas.gastos",
   "ruta": "/finanzas/gastos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 41,
+  "total": 42,
   "controles": {
     "components/GastosFijosYActivos.tsx": [
       "Link «Editar fijos»",
@@ -33,6 +33,7 @@
       "ComboResponsable «setAnulando(false)»",
       "button «Volver»",
       "button «{guardando ? \"Anulando…\" : \"Anular gasto\"}»",
+      "Link «Impuestos»",
       "button «Anular…»",
       "button «Regístralo con su comprobante»",
       "ComboResponsable «(sin nombre)»",

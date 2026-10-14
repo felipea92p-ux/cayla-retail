@@ -90,8 +90,9 @@ export function PagoJuntosModal({
   const [fecha, setFecha] = useState(hoyLima());
   // ADR-0195 F3b: «Sale de». La propuesta de cada medio sale de la tienda del comprobante más vencido. A quien no ve las
   // finanzas de todo, `fn_cuentas_para_elegir` solo le lista en efectivo los cajones y cajas fuertes de las sedes que opera:
-  // si esa tienda no es una de ellas, se le propone una suya. La base vuelve a validar la cuenta al guardar.
-  const cuentas = useCuentasParaElegir("pago", ordenados[0]?.ubicacionesDestino[0] || null);
+  // si esa tienda no es una de ellas, se le propone una suya. La base vuelve a validar la cuenta al guardar. ADR-0362 fase 6:
+  // «Mi fondo» primero, si quien paga tiene uno.
+  const cuentas = useCuentasParaElegir("pago", ordenados[0]?.ubicacionesDestino[0] || null, true, { conMiFondo: true });
   const [loading, setLoading] = useState(false);
   // Quién registra el pago (ADR-0161/0162): las dos funciones de pago firman con esa persona.
   const responsable = useResponsable();
@@ -392,7 +393,7 @@ export function PagoJuntosModal({
               <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={setFecha} required />
             </div>
           ) : (
-            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} aplicaciones={aplicaciones.map((a) => ({ total: a.c.total, monto: a.monto }))} />
           )}
 
           <div className="border-t border-tinta/10 pt-4">

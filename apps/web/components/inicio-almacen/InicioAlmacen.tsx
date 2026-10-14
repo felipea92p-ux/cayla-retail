@@ -25,6 +25,7 @@ export function InicioAlmacen({
   datos,
   visibles,
   ajustar,
+  tuFondo,
   accesos,
   veRecibir,
   puedeEditarCatalogo,
@@ -32,6 +33,8 @@ export function InicioAlmacen({
   datos: DatosInicioAlmacen;
   visibles: AvisosVisibles;
   ajustar: ReactNode;
+  /** «Tu fondo» (ADR-0362, fase 6 · actividad 4), si quien entra tiene plata de CAYLA para comprar: arriba de la columna derecha. */
+  tuFondo?: ReactNode;
   accesos: AccesoAlmacen[];
   veRecibir: boolean;
   puedeEditarCatalogo: boolean;
@@ -61,6 +64,7 @@ export function InicioAlmacen({
             <NuevoEnOtrasSedes items={datos.nuevos} titulo={TITULO_NUEVOS} puedeEditar={puedeEditarCatalogo} />
           </div>
           <div className="ia-cR">
+            {tuFondo}
             {(datos.existencias !== undefined || datos.hoy !== undefined) && <PulsoAlmacen existencias={datos.existencias} hoy={datos.hoy} fotos={datos.fotos} />}
             {datos.enCamino !== undefined && <EnCaminoAlmacen viajes={datos.enCamino} />}
             <PorColgarAlmacen existencias={datos.existencias} />

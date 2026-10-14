@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 72,
+  "total": 74,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -23,6 +23,8 @@
       "button «config.nueva-tasa»",
       "Casilla «{`UIT de ${anio}»",
       "button «+ UIT de un año nuevo»",
+      "Casilla «{`Tope de la planilla desde el ${fechaCorta(t.vigenteDesde, true)}»",
+      "button «config.nuevo-tope»",
       "button «+ Año nuevo»",
       "Casilla «{`Límite de ventas de ${anio}»",
       "Casilla «{`Pago a cuenta de renta de ${anio}»",
