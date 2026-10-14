@@ -53,7 +53,7 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      avisar.error(traducirError(error, "registrar el pago"));
+      avisar.error(traducirError(error, "registrar el pago", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(`${soles(reparto.suma)} pagados a ${c.proveedor}`, { detalle: quedaria > 0 ? `Quedan ${soles(quedaria)} por pagar de ${c.serie}-${c.numero}.` : `${c.serie}-${c.numero} quedó pagada.` });

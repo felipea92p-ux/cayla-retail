@@ -51,7 +51,7 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      avisar.error(traducirError(error, "registrar la recepción"));
+      avisar.error(traducirError(error, "registrar la recepción", { confirmarAntesDeRepetir: true }));
       return;
     }
     const partes = [armado.lotes > 0 ? `${armado.lotes === 1 ? "Se abrió 1 lote" : `Se abrieron ${armado.lotes} lotes`}` : null, armado.cierres.length > 0 ? `${armado.cierres.length === 1 ? "1 línea cerrada" : `${armado.cierres.length} líneas cerradas`}` : null].filter(Boolean);
