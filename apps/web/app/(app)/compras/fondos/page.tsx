@@ -38,17 +38,38 @@ import { diaYHoraLima } from "@/lib/fechas-lima";
 // lo registra quien recibe la plata. Lo que debe sale de `fn_deudas_fondo` (el faltante menos lo pagado); cada pago va a la lista de abajo,
 // con su «Anular».
 
-const PLANTILLA_FONDOS_BASE = "sm:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem_8.5rem_11rem]";
-const PLANTILLA_FONDOS_GASTO = "sm:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem_7.5rem_8.5rem_11rem]";
-const PLANTILLA_MOVIMIENTOS = "sm:grid-cols-[4rem_minmax(0,0.9fr)_7rem_minmax(0,1.1fr)_7.5rem_6.5rem]";
-const PLANTILLA_RENDICIONES = "sm:grid-cols-[minmax(0,1fr)_8.5rem_8.5rem_minmax(0,0.8fr)_7rem]";
-// En celular cada fila se apila: lo que en escritorio es columna aparte va en la segunda línea de la primera celda (que puede partirse:
-// con «gastó» ya no cabe en una sola a 375 px).
-const SOLO_ESCRITORIO = "hidden sm:block";
-const SEGUNDA_LINEA = "block whitespace-normal text-xs text-taupe sm:hidden";
+// Las tres tablas deciden su forma por el ancho de SU tarjeta (`@container` en <Tabla>, como Órdenes de compra y Clientes), no por el
+// de la ventana: con el lateral abierto la tarjeta mide ~370 px menos que la ventana, y a 1024 px las columnas fijas de «Quién tiene
+// plata» (672 px con «Gastó») dejaban a la persona en 0 px y cortaban «Registrar devolución» con un scroll de lado (2026-10-14). Las tres
+// cambian en los mismos dos cortes, así la página se reacomoda entera de una vez:
+//   · desde 60 rem de tarjeta, todas las columnas;
+//   · desde 36 rem, lo que explica la cifra de la fila baja a la segunda línea de la persona (le entregaste · devolvió · gastó; debería
+//     tener · dice que tiene; qué fue y de dónde) y quedan la persona, la cifra y la acción;
+//   · más angosta (celular, o una ventana chica con el lateral), cada fila apila sus datos.
+// «Qué» mide 10,5 rem: el chip más largo, «Pago de deuda anulado», ocupa 163 px y en 7 rem se montaba sobre «De dónde».
+const PLANTILLA_FONDOS_BASE =
+  "@min-[36rem]:grid-cols-[minmax(0,1fr)_8.5rem_11rem] @min-[60rem]:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem_8.5rem_11rem]";
+const PLANTILLA_FONDOS_GASTO =
+  "@min-[36rem]:grid-cols-[minmax(0,1fr)_8.5rem_11rem] @min-[60rem]:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem_7.5rem_8.5rem_11rem]";
+const PLANTILLA_MOVIMIENTOS =
+  "@min-[36rem]:grid-cols-[4rem_minmax(0,1fr)_7.5rem_6.5rem] @min-[60rem]:grid-cols-[4rem_minmax(0,0.9fr)_10.5rem_minmax(0,1.1fr)_7.5rem_6.5rem]";
+const PLANTILLA_RENDICIONES =
+  "@min-[36rem]:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_7rem] @min-[60rem]:grid-cols-[minmax(0,1fr)_8.5rem_8.5rem_minmax(0,0.8fr)_7rem]";
+// Los títulos, solo con la tabla en columnas (desde 36 rem): apilada, cada dato lleva su propio rótulo.
+const TITULOS_DESDE = "hidden @min-[36rem]:grid";
+// Una celda que solo es columna propia en la tabla ancha.
+const SOLO_ANCHA = "hidden @min-[60rem]:block";
+// Lo que en una tabla menos ancha va en la segunda línea de la primera celda (que puede partirse: con «gastó» no cabe en una sola).
+const SEGUNDA_LINEA = "block whitespace-normal text-xs text-taupe @min-[60rem]:hidden";
+// Una cifra que se ve en toda forma: a la derecha cuando hay columnas; apilada, a la izquierda como el resto.
+const CIFRA = "min-w-0 whitespace-nowrap tabular-nums @min-[36rem]:text-right";
+// La acción de la fila: al borde derecho cuando hay columnas; apilada, bajo lo demás.
+const ACCION = "flex min-w-0 justify-start @min-[36rem]:justify-end";
 
 const TONO_MOVIMIENTO: Record<MovimientoFondo["tipo"], TonoChip> = { entrega_fondo: "pizarra", devolucion_fondo: "neutro", pago_deuda_fondo: "verde" };
 const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? uno : varios}`;
+// Un monto dentro de una frase que se parte (la segunda línea): «S/» y el número nunca quedan en líneas distintas, o se leen como dos cifras.
+const montoEnFrase = (n: number) => <span className="whitespace-nowrap">{soles(n)}</span>;
 
 export default async function FondosPage() {
   const persona = await exigirModulo("fondos");
@@ -121,13 +142,15 @@ export default async function FondosPage() {
           {porAprobar.length > 0 && (
             <section className="space-y-3">
               <TituloSeccion dato={plural(porAprobar.length, "por revisar", "por revisar")}>Rendiciones por aprobar</TituloSeccion>
-              <Tabla guia="fondos.rendiciones">
+              {/* `overflow-y-hidden`: la entrada de las filas (suben 8 px) no le pone a la tarjeta una barra vertical de paso. */}
+              <Tabla guia="fondos.rendiciones" className="@container overflow-y-hidden">
                 <Encabezado
+                  visible={TITULOS_DESDE}
                   plantilla={PLANTILLA_RENDICIONES}
                   columnas={[
                     { titulo: "Persona" },
-                    { titulo: "Debería tener", alinear: "der" },
-                    { titulo: "Dice que tiene", alinear: "der" },
+                    { titulo: "Debería tener", alinear: "der", clase: SOLO_ANCHA },
+                    { titulo: "Dice que tiene", alinear: "der", clase: SOLO_ANCHA },
                     { titulo: "Cómo quedó" },
                     { titulo: "" },
                   ]}
@@ -135,21 +158,22 @@ export default async function FondosPage() {
                 {porAprobar.map((r) => (
                   <div key={r.id} className={fila(PLANTILLA_RENDICIONES)}>
                     <span className={celda("izq", "text-tinta")}>
-                      <span className="font-medium">{r.persona}</span>
-                      <span className="block text-xs text-taupe">
+                      <span className="block truncate font-medium">{r.persona}</span>
+                      {/* Se parte en vez de cortarse: «papeles sin foto» es justo lo que quien aprueba tiene que ver. */}
+                      <span className="block whitespace-normal text-xs text-taupe">
                         La rindió el {r.rendidaEn ? diaYHoraLima(r.rendidaEn).dia : "—"} · {plural(r.items, "fila", "filas")}
                         {r.sinFoto > 0 ? ` · ${plural(r.sinFoto, "papel sin foto", "papeles sin foto")}` : ""}
                       </span>
                       <span className={SEGUNDA_LINEA}>
-                        Debería tener {soles(Math.max(r.saldo, 0))} · dice que tiene {soles(r.efectivo)}
+                        Debería tener {montoEnFrase(Math.max(r.saldo, 0))} · dice que tiene {montoEnFrase(r.efectivo)}
                       </span>
                     </span>
-                    <span className={celda("der", `${SOLO_ESCRITORIO} text-tinta/80`)}>{soles(Math.max(r.saldo, 0))}</span>
-                    <span className={celda("der", `${SOLO_ESCRITORIO} text-tinta/80`)}>{soles(r.efectivo)}</span>
+                    <span className={celda("der", `${SOLO_ANCHA} text-tinta/80`)}>{soles(Math.max(r.saldo, 0))}</span>
+                    <span className={celda("der", `${SOLO_ANCHA} text-tinta/80`)}>{soles(r.efectivo)}</span>
                     <span className="min-w-0">
                       {r.faltante > 0.005 ? <Chip tono="ambar">Faltan {soles(r.faltante)}</Chip> : <Chip tono="verde">Cuadra</Chip>}
                     </span>
-                    <span className="flex min-w-0 justify-start sm:justify-end">
+                    <span className={ACCION}>
                       <RevisarRendicion rendicion={r} />
                     </span>
                   </div>
@@ -160,14 +184,15 @@ export default async function FondosPage() {
 
           <section className="space-y-3">
             <TituloSeccion dato={plural(fondos.length, "persona", "personas")}>Quién tiene plata</TituloSeccion>
-            <Tabla guia="fondos.lista">
+            <Tabla guia="fondos.lista" className="@container overflow-y-hidden">
               <Encabezado
+                visible={TITULOS_DESDE}
                 plantilla={plantillaFondos}
                 columnas={[
                   { titulo: "Persona" },
-                  { titulo: "Le entregaste", alinear: "der" },
-                  { titulo: "Devolvió", alinear: "der" },
-                  ...(conGasto ? [{ titulo: "Gastó", alinear: "der" as const }] : []),
+                  { titulo: "Le entregaste", alinear: "der", clase: SOLO_ANCHA },
+                  { titulo: "Devolvió", alinear: "der", clase: SOLO_ANCHA },
+                  ...(conGasto ? [{ titulo: "Gastó", alinear: "der" as const, clase: SOLO_ANCHA }] : []),
                   { titulo: "Tiene en la mano", alinear: "der" },
                   { titulo: "" },
                 ]}
@@ -175,7 +200,7 @@ export default async function FondosPage() {
               {fondos.map((f) => (
                 <div key={f.cuentaId} className={fila(plantillaFondos)}>
                   <span className={celda("izq", "text-tinta")}>
-                    <span className="font-medium">{f.persona}</span>
+                    <span className="block truncate font-medium">{f.persona}</span>
                     <span className="block truncate text-xs text-taupe">
                       {[f.sede, f.ultimoMotivo ? `«${f.ultimoMotivo}»` : null].filter(Boolean).join(" · ") || "—"}
                     </span>
@@ -186,15 +211,15 @@ export default async function FondosPage() {
                       </span>
                     )}
                     <span className={SEGUNDA_LINEA}>
-                      Le entregaste {soles(f.entregado)} · devolvió {soles(f.devuelto)}
-                      {conGasto ? ` · gastó ${soles(f.gastado)}` : ""}
+                      Le entregaste {montoEnFrase(f.entregado)} · devolvió {montoEnFrase(f.devuelto)}
+                      {conGasto && <> · gastó {montoEnFrase(f.gastado)}</>}
                     </span>
                   </span>
-                  <span className={celda("der", `${SOLO_ESCRITORIO} text-tinta/80`)}>{soles(f.entregado)}</span>
-                  <span className={celda("der", `${SOLO_ESCRITORIO} text-tinta/80`)}>{soles(f.devuelto)}</span>
-                  {conGasto && <span className={celda("der", `${SOLO_ESCRITORIO} text-tinta/80`)}>{soles(f.gastado)}</span>}
-                  <span className={celda("der", "font-medium text-tinta")}>
-                    <span className="text-xs font-normal text-taupe sm:hidden">Tiene en la mano </span>
+                  <span className={celda("der", `${SOLO_ANCHA} text-tinta/80`)}>{soles(f.entregado)}</span>
+                  <span className={celda("der", `${SOLO_ANCHA} text-tinta/80`)}>{soles(f.devuelto)}</span>
+                  {conGasto && <span className={celda("der", `${SOLO_ANCHA} text-tinta/80`)}>{soles(f.gastado)}</span>}
+                  <span className={`${CIFRA} font-medium text-tinta`}>
+                    <span className="text-xs font-normal text-taupe @min-[36rem]:hidden">Tiene en la mano </span>
                     {soles(Math.max(f.saldo, 0))}
                     {/* Pagó de su bolsillo (decisión 32): el negativo no es plata en la mano, es lo que CAYLA le debe. */}
                     {/* La celda de una cifra no parte su texto: esta línea sí, pero nunca dentro de la cifra. */}
@@ -204,9 +229,9 @@ export default async function FondosPage() {
                       </span>
                     )}
                   </span>
-                  <span className="flex min-w-0 flex-wrap justify-start gap-2 sm:justify-end">
+                  <span className={`${ACCION} flex-wrap gap-2`}>
                     {f.esMio ? (
-                      <span className="text-xs text-taupe">Tu fondo: lo mueve otra persona</span>
+                      <span className="text-xs text-taupe @min-[36rem]:text-right">Tu fondo: lo mueve otra persona</span>
                     ) : (
                       <>
                         {f.saldo > 0 && <DevolverFondo fondo={f} cuentas={opciones.cuentas} />}
@@ -224,42 +249,51 @@ export default async function FondosPage() {
               <TituloSeccion dato={plural(movimientos.length, "movimiento", "movimientos")}>
                 {conPagos ? "Entregas, devoluciones y pagos de deuda" : "Entregas y devoluciones"}
               </TituloSeccion>
-              <Tabla guia="fondos.movimientos">
+              <Tabla guia="fondos.movimientos" className="@container overflow-y-hidden">
                 <Encabezado
+                  visible={TITULOS_DESDE}
                   plantilla={PLANTILLA_MOVIMIENTOS}
                   columnas={[
                     { titulo: "Fecha" },
                     { titulo: "Persona" },
-                    { titulo: "Qué" },
-                    { titulo: "De dónde o a dónde", subtitulo: "y para qué" },
+                    { titulo: "Qué", clase: SOLO_ANCHA },
+                    { titulo: "De dónde o a dónde", subtitulo: "y para qué", clase: SOLO_ANCHA },
                     { titulo: "Monto", alinear: "der" },
                     { titulo: "" },
                   ]}
                 />
                 {movimientos.map((m) => {
                   const anulado = m.estado === "anulado";
+                  // Qué fue, de dónde y su anulación: columnas propias en la tabla ancha; más angosta, bajo la persona.
+                  const que = (
+                    <Chip tono={anulado ? "apagado" : TONO_MOVIMIENTO[m.tipo]}>
+                      {anulado ? `${TEXTO_MOVIMIENTO_FONDO[m.tipo]} ${m.tipo === "pago_deuda_fondo" ? "anulado" : "anulada"}` : TEXTO_MOVIMIENTO_FONDO[m.tipo]}
+                    </Chip>
+                  );
+                  const cuenta = m.tipo === "entrega_fondo" ? `De ${m.cuenta}` : `A ${m.cuenta}`;
+                  const anulacion = anulado
+                    ? `${m.tipo === "pago_deuda_fondo" ? "Anulado" : "Anulada"}${m.anuladoPor ? ` por ${m.anuladoPor}` : ""}${m.motivoAnulacion ? `: ${m.motivoAnulacion}` : ""}`
+                    : null;
                   return (
                     <div key={m.id} className={fila(PLANTILLA_MOVIMIENTOS)}>
                       <span className={celda("izq", "tabular-nums text-tinta/80")}>{diaMes(m.fecha)}</span>
-                      <span className={celda("izq", "text-tinta")}>{m.persona}</span>
-                      <span className="min-w-0">
-                        <Chip tono={anulado ? "apagado" : TONO_MOVIMIENTO[m.tipo]}>
-                          {anulado ? `${TEXTO_MOVIMIENTO_FONDO[m.tipo]} ${m.tipo === "pago_deuda_fondo" ? "anulado" : "anulada"}` : TEXTO_MOVIMIENTO_FONDO[m.tipo]}
-                        </Chip>
+                      <span className={celda("izq", "text-tinta")}>
+                        <span className="block truncate">{m.persona}</span>
+                        {/* El chip va en la misma línea que la cuenta y el motivo: la frase sigue a su lado y se parte después. */}
+                        <span className={`${SEGUNDA_LINEA} mt-1`}>
+                          {que} {cuenta}
+                          {m.motivo ? ` · «${m.motivo}»` : ""}
+                        </span>
+                        {anulacion && <span className={SEGUNDA_LINEA}>{anulacion}</span>}
                       </span>
-                      <span className={celda("izq", "text-tinta/80")}>
-                        {m.tipo === "entrega_fondo" ? `De ${m.cuenta}` : `A ${m.cuenta}`}
+                      <span className={`min-w-0 ${SOLO_ANCHA}`}>{que}</span>
+                      <span className={celda("izq", `${SOLO_ANCHA} text-tinta/80`)}>
+                        {cuenta}
                         {m.motivo && <span className="block truncate text-xs text-taupe">«{m.motivo}»</span>}
-                        {anulado && (
-                          <span className="block truncate text-xs text-taupe">
-                            {m.tipo === "pago_deuda_fondo" ? "Anulado" : "Anulada"}
-                            {m.anuladoPor ? ` por ${m.anuladoPor}` : ""}
-                            {m.motivoAnulacion ? `: ${m.motivoAnulacion}` : ""}
-                          </span>
-                        )}
+                        {anulacion && <span className="block truncate text-xs text-taupe">{anulacion}</span>}
                       </span>
-                      <span className={celda("der", anulado ? "text-tinta/45 line-through" : "font-medium text-tinta")}>{soles(m.monto)}</span>
-                      <span className="flex min-w-0 justify-start sm:justify-end">{m.puedeAnular && <AnularMovimientoFondo movimiento={m} />}</span>
+                      <span className={`${CIFRA} ${anulado ? "text-tinta/45 line-through" : "font-medium text-tinta"}`}>{soles(m.monto)}</span>
+                      <span className={ACCION}>{m.puedeAnular && <AnularMovimientoFondo movimiento={m} />}</span>
                     </div>
                   );
                 })}
