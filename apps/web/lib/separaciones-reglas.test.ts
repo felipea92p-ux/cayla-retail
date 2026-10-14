@@ -3,6 +3,7 @@ import {
   adelantoDe,
   AVISO_EFECTIVO_SIN_MONEDA,
   apartadoDeFila,
+  avanceDelPlazo,
   cobroDelSaldo,
   coincide,
   enlaceWhatsapp,
@@ -30,6 +31,7 @@ import {
   paraQuienPedido,
 } from "./separaciones-reglas";
 import { totalDeLineas } from "./vender-reglas";
+import { diaLima } from "./fechas-lima";
 
 const formulario = (extra: Partial<FormularioApartado> = {}): FormularioApartado => ({
   nombres: "Ana",
@@ -78,6 +80,36 @@ describe("tramosDelPlazo", () => {
     expect(t).toHaveLength(9);
     expect(t.filter((x) => x.tipo === "gracia")).toHaveLength(2);
     expect(t.map((x) => x.momento).slice(0, 4)).toEqual(["pasado", "pasado", "hoy", "futuro"]);
+  });
+});
+
+describe("el plazo cuenta desde el día de LIMA en que se apartó", () => {
+  // Como lo manda `buscar_separaciones`: `creada_en` es un instante en UTC. Ejemplo inventado: apartado el 13 de octubre a las
+  // 20:00 de Lima (2026-10-14 01:00 UTC); la base le puso `vence_el` = 13 + 7 = 20 de octubre.
+  const apartoEl = diaLima("2026-10-14T01:00:00.123456+00:00");
+
+  it("lo apartado a las 20:00 del 13 es del 13, aunque en UTC ya sea el 14", () => {
+    expect(apartoEl).toBe("2026-10-13");
+  });
+
+  it("al día siguiente, la barra marca el segundo tramo", () => {
+    const t = tramosDelPlazo(apartoEl!, "2026-10-14");
+    expect(t.map((x) => x.momento).slice(0, 3)).toEqual(["pasado", "hoy", "futuro"]); // con el corte de UTC, «hoy» caía en el primero
+  });
+
+  it("la línea de tiempo de Entregar tiene los 7 días del plazo y ya pasó uno", () => {
+    expect(avanceDelPlazo(apartoEl, "2026-10-14", "2026-10-20")).toEqual({ total: 7, pasados: 1 }); // con el corte de UTC, 6 y 0
+    expect(avanceDelPlazo(apartoEl, "2026-10-25", "2026-10-20")).toEqual({ total: 7, pasados: 7 }); // vencido: la línea llega al final
+  });
+
+  it("sin un día de apartado que se lea, la línea no avanza", () => {
+    expect(avanceDelPlazo(diaLima("ayer"), "2026-10-14", "2026-10-20")).toEqual({ total: 1, pasados: 0 });
+  });
+
+  it("un aviso de las 20:00 de Lima es de ese día para la tienda", () => {
+    const aviso = { avisos: 1, ultimoEn: "2026-10-14T01:00:00Z", ultimoPor: "Rosa" };
+    expect(avisadaHoy(aviso, "2026-10-13")).toBe(true);
+    expect(avisadaHoy(aviso, "2026-10-14")).toBe(false);
   });
 });
 

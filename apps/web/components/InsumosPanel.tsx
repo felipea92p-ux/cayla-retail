@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ChevronRight, Layers, ArrowLeftRight } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
-import { diaMes } from "@/lib/fechas-lima";
+import { diaLima, diaMes } from "@/lib/fechas-lima";
 import { Boton } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -149,7 +149,7 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
                       <div className="min-w-0">
                         <p className="text-tinta">{textoDeMovimiento(m)}</p>
                         <p className="truncate text-xs text-tinta/65">
-                          {[m.insumo, m.orden, m.lote].filter(Boolean).join(" · ")} · {diaMes(m.creadoEn.slice(0, 10))}
+                          {[m.insumo, m.orden, m.lote].filter(Boolean).join(" · ")} · {diaMes(diaLima(m.creadoEn))}
                         </p>
                       </div>
                       <span className={`self-start font-medium tabular-nums ${entra ? "text-verde-profundo" : "text-tinta"}`}>

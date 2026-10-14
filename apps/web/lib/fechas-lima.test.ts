@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diaMes, diasEntreFechas, diasHastaLima, diaYHoraLima, hoyLima, sumarDias } from "./fechas-lima";
+import { diaLima, diaMes, diasEntreFechas, diasHastaLima, diaYHoraLima, hoyLima, sumarDias } from "./fechas-lima";
 
 describe("hoyLima", () => {
   it("a las 19:30 de Lima todavía es el mismo día (en UTC ya es mañana)", () => {
@@ -8,6 +8,41 @@ describe("hoyLima", () => {
   });
   it("a las 00:10 de Lima ya es el día siguiente", () => {
     expect(hoyLima(new Date("2026-09-19T05:10:00Z"))).toBe("2026-09-19");
+  });
+});
+
+describe("diaLima: el día de Lima de un instante", () => {
+  it("lo hecho a las 20:00 del 13 en Lima es del 13, aunque en UTC ya sea el 14", () => {
+    // Como lo manda la base: timestamptz en UTC, con microsegundos. Cortarle los 10 primeros caracteres daba «2026-10-14».
+    expect(diaLima("2026-10-14T01:00:00.123456+00:00")).toBe("2026-10-13");
+    expect(diaLima("2026-10-14T01:00:00Z")).toBe("2026-10-13");
+  });
+
+  it("el día cambia a la medianoche de Lima, no a la de UTC", () => {
+    expect(diaLima("2026-10-14T04:59:59+00:00")).toBe("2026-10-13"); // 23:59:59 en Lima
+    expect(diaLima("2026-10-14T05:00:00+00:00")).toBe("2026-10-14"); // 00:00 en Lima
+    expect(diaLima("2026-10-13T23:59:00+00:00")).toBe("2026-10-13"); // 18:59 en Lima: el mismo día en los dos relojes
+  });
+
+  it("cruza el fin de mes y de año en Lima", () => {
+    expect(diaLima("2026-11-01T02:30:00+00:00")).toBe("2026-10-31"); // 21:30 del 31 de octubre en Lima
+    expect(diaLima("2026-03-01T04:00:00+00:00")).toBe("2026-02-28"); // 23:00 del 28 de febrero
+    expect(diaLima("2027-01-01T03:00:00+00:00")).toBe("2026-12-31"); // 22:00 del 31 de diciembre
+  });
+
+  it("lee el instante con la hora de Lima escrita", () => {
+    expect(diaLima("2026-10-13T20:00:00-05:00")).toBe("2026-10-13");
+  });
+
+  it("una fecha sola ya es un día: vuelve tal cual, sin correrse al día anterior", () => {
+    expect(diaLima("2026-10-13")).toBe("2026-10-13");
+  });
+
+  it("sin instante, o con uno que no se lee, no inventa un día", () => {
+    expect(diaLima(null)).toBeNull();
+    expect(diaLima(undefined)).toBeNull();
+    expect(diaLima("")).toBeNull();
+    expect(diaLima("ayer")).toBeNull();
   });
 });
 

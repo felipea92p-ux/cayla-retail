@@ -9,7 +9,7 @@ import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
-import { ETIQUETA_MOTIVO_NOTA, chipEstado, hace, pasosDeNota, siguientePaso, type FilaVista } from "@/lib/notas-credito-reglas";
+import { ETIQUETA_MOTIVO_NOTA, chipEstado, diaDelCierre, hace, pasosDeNota, siguientePaso, type FilaVista } from "@/lib/notas-credito-reglas";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
@@ -74,7 +74,7 @@ export function NotaCreditoVistaRapida({
     f.clase === "pendiente"
       ? [
           { titulo: "Comprobante", valor: f.documento, pie: `debes ${soles(f.compraSaldo)}` },
-          { titulo: "Antigüedad", valor: `${f.edadDias} ${f.edadDias === 1 ? "día" : "días"}`, pie: `cerrado el ${diaMes(f.cerradoEn?.slice(0, 10) ?? f.fecha)}` },
+          { titulo: "Antigüedad", valor: `${f.edadDias} ${f.edadDias === 1 ? "día" : "días"}`, pie: `cerrado el ${diaMes(diaDelCierre(f))}` },
           { titulo: "Unidades", valor: f.unidadesCerradas.toLocaleString("es-PE"), pie: "cerradas sin llegar" },
         ]
       : [

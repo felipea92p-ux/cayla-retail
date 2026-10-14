@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { soles } from "@/lib/compras-reglas";
-import { diaMes } from "@/lib/fechas-lima";
+import { diaLima, diaMes } from "@/lib/fechas-lima";
 import { Boton } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
@@ -233,7 +233,7 @@ export function OrdenesTablero({
                       <span className="text-tinta/65">
                         {o.cantidadBuenas} buenas de {o.cantidadPlan}
                       </span>
-                      {o.inventariadoEn ? <span className="text-xs text-tinta/65">en stock desde el {diaMes(o.inventariadoEn.slice(0, 10))}</span> : o.esMuestra ? <span className="text-xs text-tinta/65">muestra · no entra al stock</span> : null}
+                      {o.inventariadoEn ? <span className="text-xs text-tinta/65">en stock desde el {diaMes(diaLima(o.inventariadoEn))}</span> : o.esMuestra ? <span className="text-xs text-tinta/65">muestra · no entra al stock</span> : null}
                       {esLider && (
                         <span className="ml-auto inline-flex items-center gap-2 tabular-nums text-tinta">
                           {soles(o.costoUnitario)}
@@ -260,7 +260,7 @@ export function OrdenesTablero({
               <span>× {o.cantidadPlan}</span>
               {o.esMuestra && <span className="label-cayla text-[10px]">muestra</span>}
               {o.nota && <span className="truncate">— {o.nota}</span>}
-              <span className="ml-auto text-xs">{diaMes(o.creadoEn.slice(0, 10))}</span>
+              <span className="ml-auto text-xs">{diaMes(diaLima(o.creadoEn))}</span>
             </div>
           ))}
         </section>

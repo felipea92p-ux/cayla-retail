@@ -16,7 +16,7 @@ import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
-import { AVISO_EFECTIVO_SIN_MONEDA, cobroDelSaldo, coincide, diasEntre, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
+import { AVISO_EFECTIVO_SIN_MONEDA, avanceDelPlazo, cobroDelSaldo, coincide, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { BarraMovil, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal } from "@/components/apartados/ModalesApartado";
@@ -24,6 +24,7 @@ import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { diaLima } from "@/lib/fechas-lima";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
@@ -217,7 +218,7 @@ export function EntregarVista({
                 </button>
               </div>
             </div>
-            <LineaDeTiempo creadaEl={a.creadaEn.slice(0, 10)} hoy={hoy} venceEl={a.venceEl} />
+            <LineaDeTiempo creadaEl={diaLima(a.creadaEn)} hoy={hoy} venceEl={a.venceEl} />
             <ul className="divide-y divide-sand border-t border-sand">
               {a.prendas.map((pr) => (
                 <li key={pr.varianteId} className="flex items-center gap-3 py-2.5">
@@ -317,7 +318,7 @@ export function EntregarVista({
                   <p className="flex justify-between"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
                   {a.pagos.map((p, i) => (
                     <p key={i} className="flex justify-between">
-                      <span>{p.abono ? "Abonó" : "Adelantó"} con {NOMBRE_METODO[p.metodo] ?? p.metodo} · {fechaCorta(p.fecha ?? a.creadaEn)}</span>
+                      <span>{p.abono ? "Abonó" : "Adelantó"} con {NOMBRE_METODO[p.metodo] ?? p.metodo} · {fechaCorta(diaLima(p.fecha ?? a.creadaEn))}</span>
                       <span>−{money(p.monto)}</span>
                     </p>
                   ))}
@@ -470,9 +471,8 @@ export function EntregarVista({
   );
 }
 
-function LineaDeTiempo({ creadaEl, hoy, venceEl }: { creadaEl: string; hoy: string; venceEl: string }) {
-  const total = Math.max(1, diasEntre(creadaEl, venceEl));
-  const pasados = Math.min(total, Math.max(0, diasEntre(creadaEl, hoy)));
+function LineaDeTiempo({ creadaEl, hoy, venceEl }: { creadaEl: string | null; hoy: string; venceEl: string }) {
+  const { total, pasados } = avanceDelPlazo(creadaEl, hoy, venceEl);
   return (
     <div className="relative grid grid-cols-3 pt-5 text-xs text-tinta/60">
       <span aria-hidden className="absolute top-[7px] right-2 left-2 h-0.5 bg-sand" />
