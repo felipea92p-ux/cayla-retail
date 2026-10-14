@@ -8,6 +8,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck --continue",
     "test": "turbo run test",
+    "knip": "knip",
+    "knip:produccion": "node scripts/knip/produccion.mjs",
     "migraciones:verificar": "node scripts/migraciones/verificar.mjs",
     "migraciones:versiones": "node scripts/migraciones/versiones.mjs",
     "migraciones:sin-drop-trigger": "node scripts/migraciones/sin-drop-trigger.mjs",
@@ -219,6 +221,8 @@
     "pruebas:anular-venta-misma-sede": "node scripts/pruebas/anular_venta_misma_sede.mjs",
     "pruebas:token-sigue-al-contenido": "node scripts/pruebas/token_sigue_al_contenido.mjs",
     "pruebas:inventario-token-y-textos": "node scripts/pruebas/inventario_token_y_textos.mjs",
+    "pruebas:traslado-sobrantes": "node scripts/pruebas/traslado_sobrantes.mjs",
+    "pruebas:catalogo-montos-y-textos": "node scripts/pruebas/catalogo_montos_y_textos.mjs",
     "pruebas:caja-efectivo-no-negativo": "node scripts/pruebas/caja_efectivo_no_negativo.mjs",
     "pruebas:ventas-montos-validos": "node scripts/pruebas/ventas_montos_validos.mjs",
     "pruebas:comprobante-documento-valido": "node scripts/pruebas/comprobante_documento_valido.mjs",
@@ -258,6 +262,7 @@
     "carga:correr": "node scripts/carga/carga.mjs correr"
   },
   "devDependencies": {
+    "knip": "^6.41.0",
     "turbo": "^2.5.0",
     "typescript": "^5.6.0"
   }

@@ -26,7 +26,7 @@
     ],
     "components/inicio-almacen/BloquesLaterales.tsx": [
       "Link «{v.de.sigla}»",
-      "Link «{p.fotoUrl ? <Image src={p.fotoUrl}»",
+      "Link «{p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl}»",
       "Link «Bajar al piso»",
       "Link «{a.etiqueta}»"
     ],
@@ -34,7 +34,7 @@
       "Link «Crear producto»",
       "Link «Colgar en tandas»",
       "a «Ver los»",
-      "Link «{p.fotoUrl ? <Image src={p.fotoUrl}»",
+      "Link «{p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl}»",
       "Link «{a.titulo}»",
       "Link «Empezar»",
       "Link «{a.titulo}» #2"

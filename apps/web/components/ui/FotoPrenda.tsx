@@ -45,7 +45,7 @@ export function FotoPrenda({
   );
   return (
     <div className={`relative aspect-[4/5] shrink-0 overflow-hidden rounded-lg ${className}`}>
-      {fotoUrl ? <ImagenDePrenda src={fotoUrl} alt={referencia} fill sizes={`${ancho}px`} className="bg-sand/40 object-cover" fallback={sinFoto} /> : sinFoto}
+      {fotoUrl ? <ImagenDePrenda src={fotoUrl} alt={referencia} fill sizes={`${ancho}px`} className="bg-sand/40 object-cover" fondo={colorHex} fallback={sinFoto} /> : sinFoto}
     </div>
   );
 }

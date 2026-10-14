@@ -28,6 +28,11 @@
  *                                    un camino que el detector no ve).
  *   · el push NO viene de un PR (commit directo) → `completo` y `verificar`: nadie lo revisó antes.
  * Escribe además `verificar=si|no` (si el job «Tipos, lint y pruebas» hace falta). Ante la duda, `si`.
+ *
+ * `compilar=si|no` (ADR-0407): si hace falta `next build` en el CI. Vercel construía una vista previa por rama y era el
+ * único build antes de fusionar; al apagarlas, el CI toma ese lugar, pero solo cuando el PR puede cambiar lo que se
+ * compila (la web, `packages/`, el lockfile, la versión de Node, el propio `ci.yml`). En un push a `main` es `no`: Vercel construye producción.
+ * Ante la duda, `si`.
  */
 import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
@@ -35,6 +40,14 @@ import { pathToFileURL } from "node:url";
 
 const SOLO_DOCUMENTOS = [/^docs\//, /\.md$/, /^\.claude\//, /^\.agents\//, /^graphify-out\//];
 const WEB = /^apps\/web\//;
+// Lo que cambia el resultado de `next build`: la web, los paquetes que importa, el lockfile y la versión de Node. Y el propio
+// `ci.yml`: quien edite el job de compilar lo ve correr en su PR.
+const COMPILA_LA_WEB = [WEB, /^packages\//, /^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|turbo\.json|\.nvmrc)$/, /^\.github\/workflows\/ci\.yml$/];
+
+/** ¿Alguno de estos archivos puede cambiar lo que compila `next build`? */
+export function compilaLaWeb(archivos) {
+  return archivos.some((archivo) => COMPILA_LA_WEB.some((r) => r.test(archivo)));
+}
 
 /** `archivos` = rutas relativas a la raíz del repo, como las da `git diff --name-only`. */
 export function clasificar(archivos) {
@@ -93,17 +106,20 @@ function git(...args) {
 function main() {
   let alcance = "completo";
   let verificar = "si";
+  let compilar = "si";
   let ultimoMotivo = "";
   if (process.env.GITHUB_EVENT_NAME === "pull_request") {
     const archivos = archivosDelPr();
     alcance = clasificar(archivos);
-    console.log(`${archivos.length} archivo(s) cambiados contra main → alcance «${alcance}»`);
+    compilar = compilaLaWeb(archivos) ? "si" : "no";
+    console.log(`${archivos.length} archivo(s) cambiados contra main → alcance «${alcance}», compilar «${compilar}»`);
     if (alcance === "completo") {
       const motivo = archivos.find((a) => !SOLO_DOCUMENTOS.some((r) => r.test(a)) && !WEB.test(a));
       console.log(`  corre todo por: ${motivo}`);
     }
   } else if (process.env.GITHUB_EVENT_NAME === "push") {
     // Si algo falla al leer git (clon corto, sin padre), se queda en `completo` + `si`: nunca se salta por no saber.
+    compilar = "no"; // Vercel construye producción en cada push a main; el CI no lo repite.
     try {
       const asunto = git("log", "-1", "--format=%s").trim();
       const archivos = git("diff", "--name-only", "HEAD^1", "HEAD").split("\n").filter(Boolean);
@@ -116,7 +132,7 @@ function main() {
   } else {
     console.log(`evento «${process.env.GITHUB_EVENT_NAME ?? "local"}» → alcance «completo»`);
   }
-  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `alcance=${alcance}\nverificar=${verificar}\n`);
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `alcance=${alcance}\nverificar=${verificar}\ncompilar=${compilar}\n`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();

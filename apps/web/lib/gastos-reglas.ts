@@ -138,12 +138,6 @@ export function leerVer(param: string | undefined, ubicaciones: readonly Ubicaci
   return { clave: "todas", ubicacionId: null, soloEmpresa: false };
 }
 
-export function nombreVer(ver: Ver, ubicaciones: readonly UbicacionGastos[]): string {
-  if (ver.soloEmpresa) return "de la empresa";
-  if (!ver.ubicacionId) return "de todas las tiendas";
-  return `de ${ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "la tienda"}`;
-}
-
 // ---- Lo que devuelve la base → tipos de la pantalla ---------------------------------------------------------------------
 
 export type CategoriaGasto = { codigo: string; nombre: string; ejemplos: string; cuenta: string; cuentaNombre: string };
@@ -904,11 +898,6 @@ export function puedeAnularActivo(a: Pick<ActivoFila, "estado" | "compraId" | "t
 // ---- F2b: gastos fijos ------------------------------------------------------------------------------------------------
 
 export type EstadoFijo = "registrado" | "por_llegar" | "falta";
-export const TEXTO_ESTADO_FIJO: Record<EstadoFijo, { texto: string; tono: "verde" | "pizarra" | "ambar" }> = {
-  registrado: { texto: "Registrado", tono: "verde" },
-  por_llegar: { texto: "Viene", tono: "pizarra" },
-  falta: { texto: "Falta registrar", tono: "ambar" },
-};
 
 export type GastoFijoMes = {
   id: string;

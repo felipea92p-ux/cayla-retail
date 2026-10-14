@@ -86,15 +86,6 @@ function armarRankings(filas: FilaEquipoCruda[], esEncargadaDe?: Map<string, boo
   });
 }
 
-/**
- * El rendimiento del mes, agrupado por sede — una entrada por cada tienda que
- * `fn_rendimiento_ubicaciones` le da a la cuenta (el Admin ve varias; el resto, como mucho una).
- * `mes`: el primer día del mes calendario (Lima) a mirar; sin fecha, el mes de hoy.
- */
-export async function leerRendimientoEquipo(mes?: string): Promise<RendimientoDeSede[]> {
-  return armarRankings(await leerEquipoCrudo(mes));
-}
-
 // ───────────────────────── el panel de la meta (ADR-0325) ─────────────────────────
 
 /** Una fila cruda de `fn_metas_equipo`. */

@@ -821,3 +821,17 @@ describe("montos de Ventas y Caja", () => {
     ).toMatch(/no es un número válido/);
   });
 });
+
+// /chaos de Catálogo 2026-10-14 (20261014182000): el precio NaN y los nombres sin tope rebotan en castellano.
+describe("montos y nombres de Catálogo", () => {
+  it("un precio o costo que no es número", () => {
+    expect(
+      traducirError({ message: 'new row for relation "variantes" violates check constraint "variantes_montos_finitos"', code: "23514" }, "guardar el producto"),
+    ).toMatch(/no es un número válido/);
+  });
+  it("un nombre demasiado largo", () => {
+    expect(
+      traducirError({ message: 'new row for relation "productos" violates check constraint "productos_textos_con_tope"', code: "23514" }, "guardar el producto"),
+    ).toMatch(/demasiado largo/);
+  });
+});

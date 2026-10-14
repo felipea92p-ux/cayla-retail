@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Shirt, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -348,7 +348,7 @@ export function Foto({ prenda }: { prenda: { fotoUrl: string | null; colorHex: s
   if (prenda.fotoUrl) {
     return (
       <span className="relative h-12 w-10 shrink-0 overflow-hidden rounded-[4px] bg-sand/40">
-        <Image src={prenda.fotoUrl} alt={prenda.referencia} fill sizes="40px" className="object-cover" unoptimized />
+        <ImagenDePrenda src={prenda.fotoUrl} alt={prenda.referencia} fill sizes="40px" className="object-cover" fallback={<span aria-hidden className="absolute inset-0" style={{ background: prenda.colorHex ?? "var(--color-hueso)" }} />} />
       </span>
     );
   }

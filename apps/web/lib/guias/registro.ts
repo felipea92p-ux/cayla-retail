@@ -220,10 +220,12 @@ export const GUIAS: readonly Guia[] = [
   GUIA_RENDIMIENTO,
 ];
 
-/** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. */
+/** @internal Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. Lo leen las pruebas y
+ *  `scripts/focus/escanear.mjs`, no la tienda. */
 export const PENDIENTES_HOY = 0;
 
-/** La ruta es la de la carpeta bajo `app/(app)`: «/» es Inicio y `[id]` se escribe tal cual. */
+/** @internal El tablero de las guías (ADR-0389): lo leen `guias.test.ts` y `scripts/focus/escanear.mjs`, no la tienda. La ruta es la de
+ *  la carpeta bajo `app/(app)`: «/» es Inicio y `[id]` se escribe tal cual. */
 export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- inicio ----
   "/": { estado: "aplicada", guia: GUIA_INICIO.id },

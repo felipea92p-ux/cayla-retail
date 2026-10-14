@@ -34,6 +34,7 @@ export type BorradorModelo = {
   cantidades: Record<string, string>;
 };
 
+/** @internal Comodidad de las pruebas de Modelo nuevo: un borrador sin nada (la pantalla arma el suyo). */
 export const BORRADOR_VACIO: BorradorModelo = { nombre: "", categoria: null, tallaIds: [], colorCodigos: [], precio: "", esMuestra: false, cantidades: {} };
 
 type TallaEmbebida = { id: string; valor: string; activo: boolean };
