@@ -8,8 +8,9 @@
 -- QUÉ HACE (una sola parte, re-pegable).
 --   1. `despacho_diferencias.vigente` y la vista `despacho_diferencias_vigentes`: al reabrir, lo que faltó o sobró deja de valer (no se
 --      borra: queda como historia) y el nuevo cierre escribe lo suyo. Los únicos «una diferencia por línea» pasan a «una VIGENTE por
---      línea» (invariante 4 del ADR). Las ocho lecturas de «Nos debe» y del detalle del envío (de Compras, REEMPLAZOS ANCLADOS) y las dos
---      del cierre leen la vista: el mismo cambio mecánico en todas (`from retail.despacho_diferencias x` → `…_vigentes x`).
+--      línea» (invariante 4 del ADR). Las ocho lecturas de «Nos debe» y del detalle del envío (de Compras, REEMPLAZOS ANCLADOS), las dos
+--      del cierre y, si ya existe, la del Plan de campaña (`fn_plan_compra_pedido`, ADR-0372) leen la vista: el mismo cambio mecánico en
+--      todas (`from retail.despacho_diferencias x` → `…_vigentes x`). En una base nueva el Plan llega después: lo cambia 20261014144000.
 --   2. `despacho_cierres`: el rastro de cada cierre (con lo que respondió) y de cada reapertura (quién, cuándo y por qué).
 --   3. `reabrir_envio`: cerrado → abierto, con su motivo, mientras ninguna diferencia vigente tenga una resolución en «Nos debe» y lo de
 --      más del envío no haya saldado otra deuda (invariante 5). Lo pendiente vuelve al borrador de su línea; lo que entró no se toca.
@@ -153,6 +154,13 @@ begin
   loop
     perform pg_temp.reemplazar(v_f.firma, 'from retail.despacho_diferencias x', 'from retail.despacho_diferencias_vigentes x', v_f.veces);
   end loop;
+  -- El Plan de campaña (ADR-0372, 20261013213000) también lee lo que faltó para «lo que falta llegar». Donde ya existe con esa lectura
+  -- (producción, donde se pegó antes que esta), el mismo cambio; donde todavía no (una base nueva, donde va después), lo hace
+  -- 20261014144000. Sin esto, un envío reabierto le contaría al Plan dos veces lo que el proveedor debe.
+  if to_regprocedure('retail.fn_plan_compra_pedido(uuid)') is not null
+     and position('from retail.despacho_diferencias x' in pg_get_functiondef('retail.fn_plan_compra_pedido(uuid)'::regprocedure)) > 0 then
+    perform pg_temp.reemplazar('retail.fn_plan_compra_pedido(uuid)', 'from retail.despacho_diferencias x', 'from retail.despacho_diferencias_vigentes x', 1);
+  end if;
 end;
 $do$;
 

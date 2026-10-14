@@ -333,3 +333,23 @@ y no podría cerrar. Por eso el orden de pegado es uno solo y completo.
   cerrar (rastro cierre → reapertura → cierre, una sola diferencia vigente), el envío sin aviso de punta a punta, los avisos de Recibir,
   Inicio (cuenta de integrante) y Productos, 375 px sin desbordes y las guías interactivas de `/recibir`, `/recibir/envio/[id]` y
   `/productos` con `guias:recorrer`. 0 errores de consola.
+
+### El Plan de campaña lee solo lo que faltó y todavía vale (2026-10-14)
+
+Al traer `main` llegó `20261013213000` (ADR-0372): el Plan de campaña resta de «Comprar» lo que el proveedor debe reponer, leyendo los
+faltantes «No vino» de `despacho_diferencias` directamente. Con la reapertura de ADR-0393, un envío reabierto y vuelto a cerrar guarda
+su faltante viejo como no vigente: el Plan lo habría contado dos veces y restado de más. La prueba F1 de `pruebas:reabrir-envio`
+(ninguna función lee la tabla sin filtrar) lo habría frenado en el CI; con el control negativo, sin el arreglo, cuenta una lectura.
+
+DECIDÍ: el mismo reemplazo anclado que ya leen «Nos debe» y el detalle del envío, en dos lugares: `20261013180000` se lo aplica a
+`fn_plan_compra_pedido` si ya existe (producción, donde el Plan se pegó antes) y `20261014144000` (nueva) en una base hecha de cero, donde
+el Plan llega después.
+DESCARTÉ: reescribir la función del Plan, porque pisaría su trabajo y sus parches; y un `and x.vigente` en su consulta, porque sería la
+única lectura distinta de las otras diez.
+SE ROMPE SI: alguien re-pega `20261013213000` después: su propio candado («no se pisa sin mirar», por md5) lo rechaza a propósito, como
+pasa con `20261013015000` después de `172000`.
+
+Probado: los dos órdenes de pegado en una transacción que se deshace (la función queda leyendo la vista y `144000` se puede pegar dos
+veces), la base hecha de cero, las seis suites de la recepción y la del Plan (`plan_compra_historia`, 18/18). **Orden de pegado completo:**
+`170000`, `171000`, `172000`, `173000`, `180000`, `183000`, `20261014144000`.
+
