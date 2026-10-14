@@ -37,6 +37,7 @@ import {
   opcionQuePaso,
   otrosDelCajon,
   resumenConciliacion,
+  textoSalida,
   tipoDeMovimiento,
   validarMovimiento,
   type BorradorMovimiento,
@@ -972,10 +973,7 @@ function RegistrarMovimientoModal({
                 valor={b.egresoId}
                 onValor={(egresoId) => cambiar({ egresoId })}
                 marcador="Elige…"
-                opciones={egresosDelTipo.map((e) => ({
-                  valor: e.id,
-                  texto: `${fechaCorta(e.creadoEn.slice(0, 10))} · ${soles(e.monto)} · ${e.motivo}${e.nota ? ` — ${e.nota}` : ""}${e.marca ? " (marcado «no es gasto»)" : ""}`,
-                }))}
+                opciones={egresosDelTipo.map((e) => ({ valor: e.id, texto: textoSalida(e) }))}
               />
             </CampoFin>
           )}
