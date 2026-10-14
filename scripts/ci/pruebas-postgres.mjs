@@ -333,6 +333,34 @@ export const PRUEBAS = [
   // (incluida la de ayer 23:59, que ya es «hoy» en UTC) y acepta la de hoy. Cada caso: ROLLBACK.
   "pruebas:anular-venta-mismo-dia",
 
+  // Anular desde la misma tienda: anular_venta deja anular a alguien de la tienda de la venta o a un líder, igual
+  // que corregir_pagos_venta. Con control (sin el candado, sí anulaba). Cada caso: ROLLBACK.
+  "pruebas:anular-venta-misma-sede",
+
+  // El token sigue al contenido (/chaos 2026-10-13): en las diez funciones de Ventas y Caja con p_token, el mismo token
+  // con otro contenido se rechaza (token_reusado), el resolver dice «hecho» o «no llegó» (definitivo) y espera al envío
+  // que todavía guarda. Con controles. Cada caso: ROLLBACK (la concurrencia, dos sesiones que terminan en ROLLBACK).
+  "pruebas:token-sigue-al-contenido",
+
+  // El efectivo de una caja abierta nunca queda bajo cero (/chaos 2026-10-13): egreso, reembolso, vuelto de un cambio, anular
+  // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
+  // Con control. Disparadores diferidos: cada caso corre `set constraints all immediate` y termina en ROLLBACK.
+  "pruebas:caja-efectivo-no-negativo",
+
+  // Montos válidos en Ventas y Caja (/chaos 2026-10-13): ni NaN ni infinito en apertura, cierre (tampoco en blanco), egresos y
+  // reembolsos; el vuelto con tope de S/ 500; el reembolso de una devolución ≥ 0 y con uno de los cinco medios. Con controles.
+  // Cada caso: ROLLBACK.
+  "pruebas:ventas-montos-validos",
+
+  // El documento del comprobante (/chaos 2026-10-13, decisión de Felipe): boleta con DNI de 8 dígitos y factura con RUC de 11,
+  // en emitir_comprobante y en un disparador de respaldo; una boleta vieja sigue cambiando de estado y emitiendo su nota de
+  // crédito. Con control. Cada caso: ROLLBACK.
+  "pruebas:comprobante-documento-valido",
+
+  // Candados de Apartados y Proformas (/chaos 2026-10-13): el celular «abcdefghi» ya no se descarta en silencio, una proforma
+  // no nace vencida y no se marca con una venta de otras prendas. Con controles. Cada caso: ROLLBACK.
+  "pruebas:apartados-proformas-candados",
+
   // El panel de Actividad no muestra las ventas archivadas como prueba (ADR-0159): fn_actividad y
   // fn_actividad_personas dejan fuera la fila de una venta con es_prueba; la fila queda en la tabla.
   // Con controles (sin la migración la fila sí sale). Cada caso: ROLLBACK.
@@ -345,6 +373,13 @@ export const PRUEBAS = [
   // Cuarentena no sale hacia la clienta (PL-78): un disparador en movimientos rechaza venta, cambio y apartado
   // desde una sububicación Cuarentena; liquidar sigue. Control con el disparador deshecho. Cada caso: ROLLBACK.
   "pruebas:cuarentena-no-se-vende",
+
+  // La cuarentena no se ajusta a mano (ADR-0328 act. 10): un disparador en movimientos rechaza todo `ajuste` sobre una
+  // sububicación Cuarentena (descuadraría el stock contra prendas_danadas); sus puertas propias siguen y abrir_conteo
+  // rechaza la cuarentena. En producción desde ~2026-10-05; sin archivo en main hasta el 14-oct. Control sin el
+  // disparador. Cada caso: ROLLBACK.
+  "pruebas:cuarentena-no-se-ajusta",
+
   "pruebas:stock-huella",
   "pruebas:candados-pago-y-firma",
 

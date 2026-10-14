@@ -952,8 +952,8 @@ ESCENARIOS.push(
   { id: "cuadrar.buscar", ruta: "/inventario/cuadrar", cuentas: INVENTARIO, nombre: "Cuadrar el piso · una prenda buscada", preparar: llenar(/Escanea o escribe el código/i, "Vestido") },
   { id: "cuadrar.guardado", ruta: "/inventario/cuadrar", cuentas: INVENTARIO, nombre: "Cuadrar el piso · «Lo guardado»", preparar: clicRol("button", /Lo guardado/i) },
   { id: "cuadrar.camara", ruta: "/inventario/cuadrar", cuentas: INVENTARIO, ancho: "celular", abre: "[role=dialog]", nombre: "Cuadrar el piso (celular) · la cámara", preparar: clicRol("button", /Escanear con la cámara/i) },
-  { id: "frescura.categoria", ruta: "/gestion/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Categoría»", preparar: clicRol("combobox", /^Categoría/i) },
-  { id: "frescura.estado", ruta: "/gestion/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Estado»", preparar: clicRol("combobox", /^Estado/i) },
+  { id: "frescura.categoria", ruta: "/gestion/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Categoría»", preparar: clicRol("button", /^Categoría/i) },
+  { id: "frescura.estado", ruta: "/gestion/frescura", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Frescura · la lista «Estado» (sus tres apartados)", preparar: clicRol("button", /^Estado/i) },
   // ADR-0208 (act. 2026-10-07): el tablero por categoría; una fila tocada queda «elegida» (arena) y filtra la lista.
   { id: "frescura.tablero", ruta: "/gestion/frescura", cuentas: ["admin"], abre: "[aria-pressed=true]", nombre: "Frescura · una categoría del tablero elegida", preparar: clicRol("button", /^Camisas y Blusas/i) },
   // ADR-0208 (Formidable 2026-10-10 (c)): el «¿Por qué?» de «Aún no se sabe», con su lista flotando sobre la tarjeta de la tienda.

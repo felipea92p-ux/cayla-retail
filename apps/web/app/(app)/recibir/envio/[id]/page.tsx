@@ -45,7 +45,7 @@ export default async function RecibirEnvioPage({ params }: { params: Promise<{ i
               icono={<PackageX />}
               titulo="No encontramos ese envío"
               acciones={
-                <BotonEnlace href="/recibir" peso="primario">
+                <BotonEnlace href="/recibir" peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                   Ir a Recibir mercadería
                 </BotonEnlace>
               }

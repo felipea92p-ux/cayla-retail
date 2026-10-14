@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { diaLima, esCopiaGuardada, hayRedReal, PANTALLAS_SIN_CONEXION, pantallaSinConexion, pruebaRed, VENTANA_RED_MS } from "./sin-conexion-reglas";
+import { esCopiaGuardada, hayRedReal, PANTALLAS_SIN_CONEXION, pantallaSinConexion, pruebaRed, VENTANA_RED_MS } from "./sin-conexion-reglas";
+import { hoyLima } from "./fechas-lima";
 
 // Qué pantallas abren sin internet (ADR-0210, paso 3) y cómo se reconoce una copia guardada.
 
@@ -36,10 +37,17 @@ describe("public/sw.js repite la MISMA lista (no puede importar este archivo)", 
   });
 });
 
-describe("diaLima", () => {
+describe("public/sw.js repite el día de Lima y da el mismo que hoyLima (la copia «solo de hoy» de Vender se decide con él)", () => {
+  const sw = readFileSync(join(__dirname, "..", "public", "sw.js"), "utf8");
+  const fuente = sw.match(/^function diaLima\(fecha\) \{\n[\s\S]*?\n\}$/m)?.[0];
+
   it("las 23:30 de Lima siguen siendo ese día aunque en UTC ya sea el siguiente", () => {
-    expect(diaLima(new Date("2026-09-26T04:30:00.000Z"))).toBe("2026-09-25");
-    expect(diaLima(new Date("2026-09-26T05:30:00.000Z"))).toBe("2026-09-26");
+    expect(fuente, "public/sw.js ya no tiene `function diaLima(fecha) { … }`: si cambió de nombre, actualiza esta prueba").toBeTruthy();
+    const diaLimaDelSw = new Function(`${fuente}\nreturn diaLima;`)() as (fecha: Date) => string;
+    expect(diaLimaDelSw(new Date("2026-09-26T04:30:00.000Z"))).toBe("2026-09-25");
+    for (const x of ["2026-09-26T04:30:00.000Z", "2026-09-26T05:30:00.000Z", "2026-10-14T01:00:00+00:00", "2027-01-01T03:00:00Z"]) {
+      expect(diaLimaDelSw(new Date(x))).toBe(hoyLima(new Date(x)));
+    }
   });
 });
 

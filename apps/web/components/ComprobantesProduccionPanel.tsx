@@ -103,7 +103,7 @@ export function ComprobantesProduccionPanel({
             titulo="Todavía no hay facturas de insumos"
             acciones={
               todosLosProveedores.length === 0 ? (
-                <BotonEnlace href="/produccion/proveedores" peso="primario">
+                <BotonEnlace href="/produccion/proveedores" peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                   Ir a Proveedores
                 </BotonEnlace>
               ) : (

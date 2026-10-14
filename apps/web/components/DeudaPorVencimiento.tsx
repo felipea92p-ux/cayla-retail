@@ -6,6 +6,8 @@ import { usePorPagar } from "@/components/PorPagarContexto";
 import { soles } from "@/lib/compras-reglas";
 import type { DeudaPorVencimiento as Tramo, TramoVencimiento } from "@/lib/compras-indicadores";
 import { tramoVencimientoDe } from "@/lib/por-pagar-reglas";
+import { Receipt } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // «Deuda por vencimiento» (maqueta 02): cuánto de lo que se debe ya venció, cuánto vence esta semana, este mes y después — la barra
 // apilada da la proporción, la leyenda el monto y el %. Las cifras vienen de la base sobre TODA la deuda (`deuda_por_vencimiento()`),
@@ -51,7 +53,7 @@ export function DeudaPorVencimiento({ tramos, indice = 0 }: { tramos: Tramo[]; /
         {total > 0 && <span className="text-[12px] font-normal normal-case tracking-normal text-tinta/55">clic para filtrar la lista</span>}
       </p>
       {total <= 0 ? (
-        <p className="mt-4 text-sm text-tinta/65">No hay deuda pendiente con proveedores.</p>
+        <Vacio tamano="chico" alinear="izquierda" className="mt-2 px-0" icono={<Receipt />}>No hay deuda pendiente con proveedores.</Vacio>
       ) : (
         <>
           <BarraApilada

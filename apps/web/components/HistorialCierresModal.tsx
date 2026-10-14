@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { CalendarX, CircleCheck, Clock } from "lucide-react";
 import { leerCierresDelMes } from "@/app/actions/caja";
 import { Aviso } from "@/components/ui/Aviso";
@@ -14,6 +13,7 @@ import { GraficoCierresDelMes } from "@/components/GraficoCierresDelMes";
 import type { CierreCaja } from "@/lib/caja";
 import { NOMBRES_MES, esMismoMes, type Mes } from "@/lib/facturacion-reglas";
 import { bloqueFecha, diaDeLima, duracionTurno, estadoCierre, filtrarCierres, mesDeLima, resumirCierres, type EstadoCierre, type FiltroCierres } from "@/lib/historial-cierres-reglas";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
 const claveMes = ({ anio, mes }: Mes) => `${anio}-${mes}`;
 
@@ -220,9 +220,7 @@ export function HistorialCierresModal({
         )}
         <div data-guia="caja.historial-pie" className="flex items-center justify-between gap-3 pt-3">
           <p className="text-xs text-tinta/60">{cierres.length > 0 ? "Toca un ticket o una barra para ver su detalle" : ""}</p>
-          <Link href="/caja/historial" className="label-cayla text-[11px] text-rojo hover:text-rojo-profundo">
-            Ver todas las sedes →
-          </Link>
+          <EnlaceVer href="/caja/historial">Ver todas las sedes</EnlaceVer>
         </div>
       </div>
       {abierto && <DetalleCierreContenido cierre={abierto} detalle={detalle} cargando={cargando} error={error} />}

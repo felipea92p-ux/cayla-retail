@@ -10,7 +10,8 @@ import {
   type TemporadasCatalogo,
   type ValorVocabulario,
 } from "@/lib/catalogo-v2";
-import { hoyLima, vigenciaDe } from "@/lib/etiqueta-vigencia";
+import { vigenciaDe } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { getCatalogoMarcas, type CatalogoMarcas } from "@/lib/marcas-datos";
 

@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, CircleHelp, PackageOpen, Store } from "lucide-react";
+import { ArrowRight, Check, CircleHelp, PackageOpen, SearchX, Store } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
+import { Vacio } from "@/components/ui/Vacio";
 import { CajaFardo } from "./piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -100,7 +101,7 @@ export function LlegoSinAviso({
           className="min-w-0 space-y-4"
         >
           <div>
-            <p className="label-cayla text-[11px] text-taupe">Sin aviso de Compras</p>
+            <p className="label-cayla text-[11px] text-taupe">Sin aviso de Compras</p> {/* unificar-fijo: la ceja de la tarjeta (de dónde viene el paquete), no un vacío */}
             <TituloSeccion>¿Llegó algo sin aviso?</TituloSeccion>
             <p className="mt-1 text-[15px] text-taupe">
               Nadie lo despachó desde el sistema. Dime de quién es y se cuenta igual, por categoría: solo que sin con qué comparar.
@@ -133,7 +134,13 @@ export function LlegoSinAviso({
                   </button>
                 </li>
               ))}
-              {aLaVista.length === 0 && <li className="px-1 text-[13px] text-taupe">Ningún proveedor coincide con «{buscar}».</li>}
+              {aLaVista.length === 0 && (
+                <li>
+                  <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />} accion={{ texto: "Borrar la búsqueda", onClick: () => setBuscar("") }}>
+                    Ningún proveedor coincide con «{buscar}».
+                  </Vacio>
+                </li>
+              )}
               {coinciden.length > primeros.length && <li className="px-1 text-xs text-taupe">Escribe para encontrar a los demás ({coinciden.length - primeros.length} más).</li>}
               {/* Siempre a la vista, al final: no depende de lo que se busque. */}
               <li>

@@ -29,9 +29,9 @@
       "CampoTexto «Sinónimos» #2",
       "button «Cambiar color»",
       "ComboResponsable «(sin nombre)»",
+      "Boton «{responsable.motivo ?? undefined}»",
       "Boton «Cancelar» #3",
-      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
     ],
     "components/CombinaConCampo.tsx": [
       "button «{`Quitar ${nombre}»",

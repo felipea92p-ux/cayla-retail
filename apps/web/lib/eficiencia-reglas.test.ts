@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eficienciaDePeriodo, etiquetaPeriodo, fechaLimaDe, repartoDelGasto, variacion, ventanasDePeriodos, type GastoTaller, type OrdenParaEficiencia, type PlanillaPeriodo } from "./eficiencia-reglas";
+import { eficienciaDePeriodo, etiquetaPeriodo, repartoDelGasto, variacion, ventanasDePeriodos, type GastoTaller, type OrdenParaEficiencia, type PlanillaPeriodo } from "./eficiencia-reglas";
 
 const planilla = (ini: string, fin: string, costo: number): PlanillaPeriodo => ({ periodoId: `p-${ini}`, ini, fin, personas: 5, pagado: costo * 0.85, provisiones: costo * 0.15, costoTotal: costo });
 const orden = (id: string, extra: Partial<OrdenParaEficiencia> = {}): OrdenParaEficiencia => ({
@@ -30,10 +30,8 @@ describe("ventanasDePeriodos", () => {
     expect(v.map((x) => [x.ini, x.fin])).toEqual([["2026-09-01", "2026-09-30"], ["2026-08-01", "2026-08-31"], ["2026-07-01", "2026-07-31"]]);
     expect(v.every((x) => x.planilla === null)).toBe(true);
   });
-  it("etiquetas y fecha de Lima", () => {
+  it("etiquetas", () => {
     expect(etiquetaPeriodo("2026-06-28", "2026-07-28")).toBe("28 jun – 28 jul");
-    expect(fechaLimaDe("2026-08-11T03:30:00Z")).toBe("2026-08-10"); // 22:30 del día 10 en Lima
-    expect(fechaLimaDe(null)).toBeNull();
   });
 });
 

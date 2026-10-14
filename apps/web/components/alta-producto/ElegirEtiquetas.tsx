@@ -11,7 +11,7 @@ import { proponerEtiqueta, type ValorCreado } from "@/lib/alta-producto-ejes";
 import type { EtiquetaAlta } from "@/lib/alta-producto-datos";
 import { ayudaDeEtiqueta } from "@/lib/etiqueta-ayuda";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
   agruparEtiquetas,
   coincideConTexto,
@@ -26,6 +26,8 @@ import { AvisoSinIdentidad, useFirmaDeMitad } from "@/components/alta-producto/I
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Aviso } from "@/components/ui/Aviso";
+import { Tag } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    ElegirEtiquetas · el campo «Etiquetas» del alta, con el mismo molde que Tejido, Patrón y Temporada (2026-09-29)
@@ -96,7 +98,9 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
     <TooltipProvider delayDuration={250}>
       <div className="space-y-2.5">
         {etiquetas.length === 0 ? (
-          <p className="text-sm text-taupe">{enLinea ? "Todavía no hay etiquetas. Ábrelas desde «Ver todos» para crear la primera." : "Todavía no hay etiquetas."}</p>
+          <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Tag />}>
+            {enLinea ? "Todavía no hay etiquetas. Ábrelas desde «Ver todos» para crear la primera." : "Todavía no hay etiquetas."}
+          </Vacio>
         ) : (
           <GrillaMuestras>
             {visibles.map((et) => (

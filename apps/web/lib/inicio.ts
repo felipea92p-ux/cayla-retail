@@ -3,7 +3,7 @@ import { recibirContandoDisponible } from "@/lib/recepcion-conteo";
 import { getCajaAbierta, getVentasMismaHoraSemanaAnterior } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getParametrosCaja } from "@/lib/configuracion";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { fuenteVentasDeHoy, nombreDiaLima } from "@/lib/inicio-reglas";
 import { armarEquipo, resumirApartados, type FuentesAvisos, type MiembroEquipo } from "@/lib/inicio-avisos";
 import { armarMiMeta, rangoDeMiLectura, type MiMeta } from "@/lib/mi-meta-reglas";

@@ -49,8 +49,8 @@
     ],
     "components/frescura/FrescuraPanel.tsx": [
       "button «frescura.como-se-lee»",
-      "Desplegable «cambiar(»",
-      "Desplegable «(sin nombre)»",
+      "DesplegablePildora «Categoría»",
+      "DesplegablePildora «Estado»",
       "button «Por decidir»",
       "button «Decididas»",
       "button «Quitar filtros»",

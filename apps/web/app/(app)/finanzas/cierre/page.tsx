@@ -2,7 +2,7 @@ import { exigirModulo } from "@/lib/persona-actual";
 import { esMes, mesDe } from "@/lib/gastos-reglas";
 import { getPanelCierre } from "@/lib/cierre";
 import { getParametrosFinanzas } from "@/lib/configuracion";
-import { hoyLima } from "@/lib/apartados-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { avisoAntesDelCorte, mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import { mesAnterior } from "@/lib/resultados-reglas";
 import { CierreMes } from "@/components/finanzas/CierreMes";

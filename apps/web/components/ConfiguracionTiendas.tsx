@@ -16,6 +16,7 @@ import { DIAS_CORTOS, DIAS_SEMANA, TEXTO_ESTADO, estadoCampana, ordenarCampanas,
 import { ajustarCelular, celularValido } from "@/lib/club-reglas";
 import type { CampanaConfig, ConfiguracionTiendas as Datos, TiendaConfig } from "@/lib/configuracion-reglas";
 import { BotonEnlace } from "@/components/ui/campos";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 // Configuración ▸ Tiendas y caja (ADR-0195 F1), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgTiendas`):
 // dos tablas —lo normal de cada tienda (meta por día y fondo) y lo que cambia cada campaña— donde CADA CASILLA SE GUARDA
@@ -341,9 +342,9 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
           titulo="WhatsApp de cada tienda"
           bajada="El número al que los clientes le escriben desde el QR del club (el cartel del mostrador). Sin número, esa tienda no muestra QR y el club sigue, sin novedades por WhatsApp."
         >
-          <Link href="/clientas/cartel" className="btn-cayla btn-secundario btn-chico">
+          <BotonVer href="/clientas/cartel" chico>
             Ver el cartel del club
-          </Link>
+          </BotonVer>
         </TituloDeTarjeta>
         <div className="fin-tabla-wrap">
           <table className="fin-tabla fin-tabla-apretada">

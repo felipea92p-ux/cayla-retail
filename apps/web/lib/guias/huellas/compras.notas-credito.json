@@ -2,7 +2,7 @@
   "guia": "compras.notas-credito",
   "ruta": "/compras/notas-credito",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 44,
+  "total": 43,
   "controles": {
     "components/NotaCreditoDetalle.tsx": [
       "button «→copiar»",
@@ -32,7 +32,6 @@
     "components/RegistrarNotaCreditoModal.tsx": [
       "button «Listo»",
       "button «{f.etiqueta}»",
-      "button «→() => elegirFactura(f.id)»",
       "button «{ETIQUETA_MOTIVO_NOTA[m]}»",
       "input «FC01-000018»",
       "CampoFecha «Fecha de la nota»",

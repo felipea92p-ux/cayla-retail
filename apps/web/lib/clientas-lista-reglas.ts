@@ -11,8 +11,10 @@
 //   NO HACE: no pide nada a la base ni lee el reloj (el «hoy» de Lima llega de afuera).
 
 import { COMPRAS_PARA_FRECUENTE, type EstadoFrecuente } from "./clienta-actividad-reglas";
-import { tipoDocumentoDe, type TipoDocumentoClienta } from "./documento-clienta-reglas";
-import { diasEntreFechas } from "./fechas-lima";
+import { TIPOS_DOCUMENTO_CLIENTA, tipoDocumentoDe, type TipoDocumentoClienta } from "./documento-clienta-reglas";
+import { diaLima, diasEntreFechas } from "./fechas-lima";
+import { cumpleLegible } from "./club-clientas-reglas";
+import type { Clienta } from "./clientas-reglas";
 import { nombreCortoSede } from "./stock-por-sede";
 import type { TonoChip } from "@/components/ui/Chip";
 
@@ -176,15 +178,10 @@ export function suSedeLegible(suSede: string | null): string {
 
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
-/** El día de un instante en Lima (`aaaa-mm-dd`): Lima va 5 h detrás de UTC todo el año. */
-function diaLima(iso: string): string {
-  return new Date(Date.parse(iso) - 5 * 3600 * 1000).toISOString().slice(0, 10);
-}
-
-/** La columna «Última compra» (spike: «12 sep · hace 18 d»): la fecha corta y cuánto hace, contado en días de Lima. */
+/** La columna «Última compra» (spike: «12 sep · hace 18 d»): la fecha corta y cuánto hace, contado en días de Lima (`diaLima`). */
 export function ultimaCompraLegible(iso: string | null, hoy: string): { fecha: string; hace: string } | null {
-  if (!iso) return null;
   const dia = diaLima(iso);
+  if (!dia) return null;
   const [, m, d] = dia.split("-");
   const dias = diasEntreFechas(dia, hoy);
   return {
@@ -332,4 +329,33 @@ export function frecuenteDeLaFicha(r: ResumenCompras | null, respaldo: EstadoFre
     faltanParaFrecuente: r.esFrecuente ? 0 : Math.max(0, COMPRAS_PARA_FRECUENTE - r.compras6m),
     comprasEnVentana: r.compras6m,
   };
+}
+
+/* ------------------------------------------------------------------
+   Exportar la lista (solo Admin, D-109/G.4): el CSV
+   ------------------------------------------------------------------ */
+
+export const COLUMNAS_EXPORTAR = ["Tipo de documento", "Número de documento", "Nombre", "Celular", "Miembro desde", "Código de miembro", "Novedades por WhatsApp", "Cumpleaños", "Registrado", "Estado"];
+
+type ClientaParaExportar = Pick<
+  Clienta,
+  "documentoTipo" | "documentoNumero" | "nombre" | "telefonoWhatsapp" | "clubDesde" | "codigoClub" | "publicidadDesde" | "cumpleDia" | "cumpleMes" | "cumpleAnio" | "createdAt" | "archivadaEn" | "anonimizada" | "fusionadaEnId"
+>;
+
+/** Una fila del CSV, en el orden de `COLUMNAS_EXPORTAR`. «Miembro desde» y «Registrado» son el día de Lima de su instante
+ *  (`club_desde` y `created_at`, que la base manda en UTC): con sus 10 primeros caracteres, quien entró de 7 pm a medianoche salía
+ *  con el día siguiente. */
+export function filaParaExportar(c: ClientaParaExportar): string[] {
+  return [
+    c.documentoNumero ? (TIPOS_DOCUMENTO_CLIENTA.find((t) => t.valor === c.documentoTipo)?.etiqueta ?? "") : "",
+    c.documentoNumero ?? "",
+    c.nombre ?? "",
+    c.telefonoWhatsapp ?? "",
+    diaLima(c.clubDesde) ?? "",
+    c.codigoClub ?? "",
+    c.publicidadDesde ? "sí" : "no",
+    c.cumpleDia && c.cumpleMes ? cumpleLegible(c.cumpleDia, c.cumpleMes, c.cumpleAnio) : "",
+    diaLima(c.createdAt) ?? "",
+    c.archivadaEn ? (c.anonimizada ? "anonimizado" : c.fusionadaEnId ? "unido a otra ficha" : "archivado") : "activo",
+  ];
 }

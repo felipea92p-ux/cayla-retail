@@ -15,9 +15,9 @@ import { ClientaFichaModal } from "@/components/ClientaFichaModal";
 import { BuscadorClientas } from "@/components/clientas/BuscadorClientas";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, TABLA, Tabla, type Columna } from "@/components/ui/Tabla";
-import { cumpleLegible } from "@/lib/club-clientas-reglas";
 import { celularLegible } from "@/lib/club-caja-reglas";
 import {
+  COLUMNAS_EXPORTAR,
   FILTROS_LISTA,
   POR_PAGINA,
   cuentaDelFiltro,
@@ -25,6 +25,7 @@ import {
   detallePublicidad,
   detalleSocias,
   estadoDeLaFila,
+  filaParaExportar,
   hrefLista,
   pieLista,
   publicidadDeLaFila,
@@ -35,10 +36,12 @@ import {
   type ParamsLista,
 } from "@/lib/clientas-lista-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
-import { TIPOS_DOCUMENTO_CLIENTA, contactoVisible } from "@/lib/documento-clienta-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
+import { contactoVisible } from "@/lib/documento-clienta-reglas";
 import { FunnelX, SearchX, Users } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Clientas ▸ Fichas, como el spike del club (docs/maquetas/club-clientas-spike-2026-09/, `fichasHTML` de 50-clientas.js; ADR-0288
 // «Actualización 2026-09-30 (f)»): cabecera con Exportar, «Más» y «+ Nuevo cliente» en una fila; cuatro cifras (identificadas,
@@ -109,22 +112,7 @@ export function ClientasPanel({
       avisar.error(traducirError(error, "exportar la lista de clientes"));
       return;
     }
-    descargarCsv(
-      `clientes-${new Date().toISOString().slice(0, 10)}.csv`,
-      ["Tipo de documento", "Número de documento", "Nombre", "Celular", "Miembro desde", "Código de miembro", "Novedades por WhatsApp", "Cumpleaños", "Registrado", "Estado"],
-      clientas.map((c) => [
-        c.documentoNumero ? (TIPOS_DOCUMENTO_CLIENTA.find((t) => t.valor === c.documentoTipo)?.etiqueta ?? "") : "",
-        c.documentoNumero ?? "",
-        c.nombre ?? "",
-        c.telefonoWhatsapp ?? "",
-        c.clubDesde?.slice(0, 10) ?? "",
-        c.codigoClub ?? "",
-        c.publicidadDesde ? "sí" : "no",
-        c.cumpleDia && c.cumpleMes ? cumpleLegible(c.cumpleDia, c.cumpleMes, c.cumpleAnio) : "",
-        c.createdAt.slice(0, 10),
-        c.archivadaEn ? (c.anonimizada ? "anonimizado" : c.fusionadaEnId ? "unido a otra ficha" : "archivado") : "activo",
-      ]),
-    );
+    descargarCsv(`clientes-${hoyLima()}.csv`, COLUMNAS_EXPORTAR, clientas.map(filaParaExportar));
     avisar.exito("Lista exportada", { detalle: `${clientas.length} cliente${clientas.length === 1 ? "" : "s"}` });
   }
 
@@ -154,14 +142,15 @@ export function ClientasPanel({
         titulo="Clientes"
         subtitulo="El club de CAYLA: la tienda recuerda a cada cliente y le escribe solo cuando tiene algo que le sirve."
         acciones={
-          <>
-            {/* `max-sm:px-3`: a 375 px los tres botones caben en una fila (con el padding de siempre, «+ Nuevo cliente» bajaba). */}
-            <Boton onClick={onExportar} cargando={exportando} className="max-sm:px-3" title="Solo un Admin puede exportar la lista completa" data-guia="clientas.exportar">
-              Exportar
-            </Boton>
+          // A 375 px los tres botones caben en una fila: los tres con `px-3`, 8 px entre ellos y «Descargar» a secas, sin su ícono
+          // (con el padding de siempre, o con «Descargar lista», «+ Nuevo cliente» bajaba). Más angosto, la fila se parte sola.
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-2.5 sm:gap-x-3">
+            <BotonDescargar onClick={onExportar} cargando={exportando} className="max-sm:px-3 max-sm:[&_.lucide-download]:hidden" title="Solo un Admin puede descargar la lista completa" guia="clientas.exportar">
+              Descargar<span className="max-sm:hidden"> lista</span>
+            </BotonDescargar>
             {/* Lo de vez en cuando, en el «Más» (como el de Movimientos): así las acciones caben en una fila, también a 375 px.
                 «Llegó un mensaje de WhatsApp» se fue en la tanda 1g (G-7): ella se une desde el cartel y la BAJA va en su ficha. */}
-            <span data-guia="clientas.mas">
+            <span data-guia="clientas.mas" className="max-sm:[&>button]:px-3">
               <MenuAcciones
                 etiqueta="Más acciones de Clientes"
                 texto="Más"
@@ -173,7 +162,7 @@ export function ClientasPanel({
             <Boton peso="primario" className="max-sm:px-3" onClick={() => setAbriendoAlta(true)} data-guia="clientas.nuevo">
               + Nuevo cliente
             </Boton>
-          </>
+          </div>
         }
       />
 

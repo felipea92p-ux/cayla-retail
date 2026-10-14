@@ -10,6 +10,7 @@ import { etiquetasDelAlta } from "@/lib/etiqueta-precio-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { hrefOrdenDesdeAlta, textoAbrirOrden, tipoDeParametro, vieneDeProduccion } from "@/lib/modelo-nuevo-orden-reglas";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 export type { SubidaSinConexion };
 
@@ -277,12 +278,7 @@ export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }:
             <TituloSeccion nivel={3}>Ir a productos</TituloSeccion>
             <p className="text-sm text-tinta/70">Vuelve a la lista. Las fotos se pueden agregar después desde el producto.</p>
           </div>
-          <Link
-            href="/productos"
-            className="btn-cayla btn-secundario text-center"
-          >
-            Ir a productos
-          </Link>
+          <BotonVer href="/productos">Ir a productos</BotonVer>
         </div>
       </div>
     </div>

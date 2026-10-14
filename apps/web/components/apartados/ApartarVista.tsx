@@ -17,6 +17,9 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe, type InstantaneaIntento } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
 import { conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
@@ -32,6 +35,7 @@ import {
   adelantoDe,
   apartadoDeFila,
   erroresDelApartado,
+  esConstancia,
   moverActivo,
   encendida,
   resultadosDelBuscador,
@@ -90,7 +94,8 @@ const descuentoCampana = (p: VarianteBusqueda) => (p.campana ? descuentoDeCampan
 const precioFinal = (p: VarianteBusqueda) => totalDeLineas([{ cantidad: 1, precioUnitario: p.precio, descuentoUnitario: descuentoCampana(p) }]);
 
 /** Lo que queda guardado al cambiar de sede y vuelve al regresar (Felipe, 2026-10-11): lo escaneado, los datos del cliente, el
- *  adelanto, la nota y el paso. El token viaja con él: es el mismo apartado, y reintentarlo no lo duplica. */
+ *  adelanto, la nota y el paso. La marca del envío viaja con él (y si quedó en duda, sigue en duda): es el mismo apartado, y
+ *  reintentarlo no lo duplica. */
 type ApartadoArmado = {
   lineas: Linea[];
   f: typeof FORMULARIO_VACIO;
@@ -99,7 +104,7 @@ type ApartadoArmado = {
   clientaQ: string;
   clientaId: string | null;
   sinFicha: null | "padron" | "nada";
-  token: string;
+  intento: InstantaneaIntento | null;
 };
 
 const FORMULARIO_VACIO = {
@@ -228,9 +233,13 @@ export function ApartarVista({
   useEffect(() => {
     if (esTelefono) precargarLectorQR();
   }, [esTelefono]);
-  const [enviando, setEnviando] = useState(false);
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): si la respuesta se pierde, la vista se congela hasta saber si
+  // el apartado quedó; cambiar algo y reenviar con la marca vieja devolvía el apartado anterior.
+  const envio = useIntento(pedido ? "separar_pedido_para_apartar" : "separar_prendas", guardado?.intento ?? null);
+  const [leyendo, setLeyendo] = useState(false);
+  const [revisando, setRevisando] = useState(false);
+  const enviando = envio.enviando || leyendo;
   const [registrado, setRegistrado] = useState<{ apartado: Apartado; vuelto: number } | null>(null);
-  const token = useRef<string>(guardado?.token ?? crypto.randomUUID());
   const escaner = useRef<HTMLInputElement>(null);
   // Apartar guarda en la tienda (cobra un adelanto y deja las prendas no disponibles): pide Responsable (ADR-0161).
   // Viene vacío en cada apartado —como todo el módulo Punto de venta, no propone a quien inició sesión—; el elegido
@@ -250,6 +259,9 @@ export function ApartarVista({
     nota,
     buscado: clientaQ,
   });
+  // La marca del envío viaja con lo guardado (y si quedó en duda, sigue en duda al volver).
+  const instantaneaDelEnvio = envio.instantanea;
+  const faseDelEnvio = envio.fase;
   useEffect(() => {
     const prendas = lineas.reduce((a, l) => a + l.cantidad, 0);
     reportarApartado(
@@ -257,12 +269,12 @@ export function ApartarVista({
         ? {
             etiqueta: ubicacionEtiqueta,
             unidades: prendas,
-            trabajo: { lineas, f, nota, paso, clientaQ, clientaId, sinFicha, token: token.current },
+            trabajo: { lineas, f, nota, paso, clientaQ, clientaId, sinFicha, intento: instantaneaDelEnvio() },
             ...avisosDelApartado({ etiqueta: ubicacionEtiqueta, nombres: f.nombres, apellidos: f.apellidos, prendas }),
           }
         : null,
     );
-  }, [reportarApartado, pedido, armado, ubicacionEtiqueta, lineas, f, nota, paso, clientaQ, clientaId, sinFicha]);
+  }, [reportarApartado, pedido, armado, ubicacionEtiqueta, lineas, f, nota, paso, clientaQ, clientaId, sinFicha, faseDelEnvio, instantaneaDelEnvio]);
 
   const total = totalDeLineas(
     lineas.map((l) => {
@@ -504,7 +516,6 @@ export function ApartarVista({
   async function confirmar() {
     setIntento(true);
     if (Object.keys(errores).length > 0 || !cajaAbierta || !responsable.listo) return;
-    setEnviando(true);
     const supabase = createClient();
     const args = {
       p_ubicacion_id: ubicacionId,
@@ -526,30 +537,55 @@ export function ApartarVista({
       p_asesora_id: responsable.elegidoId ?? undefined,
       p_clienta_id: clientaId ?? undefined,
       p_nota: nota.trim() || undefined,
-      p_token: token.current,
     };
-    const { data: id, error } = await firmar(
-      pedido
-        ? supabase.rpc("separar_pedido_para_apartar", { p_pedido_id: pedido.id, p_datos: args })
-        : supabase.rpc("separar_prendas", args),
-      responsable.firma(),
+    const r = await envio.enviar(huellaDe(pedido ? [pedido.id, args] : args), (token, senal) =>
+      firmar(
+        pedido
+          ? supabase.rpc("separar_pedido_para_apartar", { p_pedido_id: pedido.id, p_datos: { ...args, p_token: token } })
+          : supabase.rpc("separar_prendas", { ...args, p_token: token }),
+        responsable.firma(),
+      ).abortSignal(senal),
     );
+    if (r.tipo === "ocupado" || r.tipo === "congelado") return;
     // Éxito → el combo vuelve a vacío; rechazo por el responsable (marcó salida) → vacía y relee la lista.
-    responsable.despues(error);
-    if (error || !id) {
-      setEnviando(false);
-      avisar.error(traducirError(error, "registrar el apartado", { confirmarAntesDeRepetir: true }));
+    responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: la vista lo dice arriba y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") {
+      avisar.error(traducirError(r.error, "registrar el apartado"));
       return;
     }
-    // Lo que se muestra en el modal es lo que quedó en la base (código, boleta, fecha), no lo que se mandó.
+    const id = r.tipo === "ok" ? r.data : typeof r.datos.id === "string" ? r.datos.id : null;
+    if (!id) {
+      avisar.error("No se pudo leer el apartado recién guardado. Búscalo en la lista de apartados antes de volver a apartar.");
+      return;
+    }
+    await registradoCon(id);
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho" && typeof res.datos.id === "string") return registradoCon(res.datos.id);
+    if (res.tipo === "no_llego") {
+      avisar.aviso("El apartado no se registró", { detalle: "No quedó nada guardado ni se cobró el adelanto. Revisa los datos y vuelve a confirmar." });
+      return;
+    }
+    if (res.tipo === "sin_respuesta") avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  async function registradoCon(id: string) {
+    const supabase = createClient();
+    // Lo que se muestra en el modal es lo que quedó en la base (código, fecha), no lo que se mandó.
+    setLeyendo(true);
     const leido = await supabase.rpc("buscar_separaciones", { p_ubicacion_id: ubicacionId, p_texto: id });
-    setEnviando(false);
+    setLeyendo(false);
     const fila = leido.data?.[0];
-    token.current = crypto.randomUUID();
     if (fila) {
       const a = apartadoDeFila(fila as unknown as Record<string, unknown>);
       setRegistrado({ apartado: a, vuelto });
-      avisar.exito(`Apartado de ${money(a.adelanto)} registrado`, { detalle: `${a.comprobanteAnticipo ?? ""} · ${a.codigo}` });
+      avisar.exito(`Apartado de ${money(a.adelanto)} registrado`, { detalle: esConstancia(a) ? `Constancia ${a.codigo}` : `${a.comprobanteAnticipo} · ${a.codigo}` });
     } else {
       avisar.exito("Apartado registrado");
     }
@@ -580,6 +616,13 @@ export function ApartarVista({
 
   return (
     <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+      {envio.incierto && (
+        <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
+          <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={confirmar} reintentando={enviando} />
+        </div>
+      )}
+      {/* En duda, nada se toca: cambiar una prenda o el adelanto y reenviar podría apartar dos veces. */}
+      <fieldset disabled={envio.incierto} className="contents">
       {/* Izquierda: la cabecera de la hoja y, debajo, solo lo escaneado, nunca el catálogo entero. En el celular, en los
           pasos de la clienta y el adelanto se esconde lo escaneado, no la cabecera. */}
       <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
@@ -892,6 +935,7 @@ export function ApartarVista({
                       </button>
                     ))}
                   </div>
+                  <p className="-mt-1 text-xs text-tinta/60">Se emite al entregar, por el total. Ahora el cliente se lleva una constancia, no un comprobante.</p>
                   {f.comprobante === "factura" && (
                     <div className="grid gap-3.5 sm:grid-cols-2">
                       <Campo etiqueta="RUC" error={ver("ruc")} onBlur={tocar("ruc")}><input value={f.ruc} onChange={(e) => cambiar("ruc", e.target.value)} inputMode="numeric" className="caja-campo-input mt-1.5 font-mono" /></Campo>
@@ -978,7 +1022,7 @@ export function ApartarVista({
                 <label className={`flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85 ${paso === "clienta" ? "max-lg:hidden" : ""}`}>
                   <Casilla marcada={f.acepta} onCambio={() => cambiar("acepta", !f.acepta)} etiqueta="Le leí las condiciones del apartado" className="mt-0.5 shrink-0" />
                   <span>
-                    Le leí las condiciones: recoge hasta el <b>{fechaCorta(vence)}</b> con su boleta o DNI; si no, vuelve a tienda y se le devuelve el 100% por {f.devolucionMedio === "transferencia" ? "transferencia" : f.devolucionMedio === "yape" ? "Yape" : "Plin"}.
+                    Le leí las condiciones: recoge hasta el <b>{fechaCorta(vence)}</b> con su constancia o DNI; si no, vuelve a tienda y se le devuelve el 100% por {f.devolucionMedio === "transferencia" ? "transferencia" : f.devolucionMedio === "yape" ? "Yape" : "Plin"}.
                     {ver("acepta") && <span className="block text-xs text-rojo-profundo">{ver("acepta")}</span>}
                   </span>
                 </label>
@@ -1091,6 +1135,7 @@ export function ApartarVista({
           }}
         />
       )}
+      </fieldset>
     </div>
   );
 }

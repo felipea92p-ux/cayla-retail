@@ -17,12 +17,12 @@ import { PiezaLiquidacionModal } from "@/components/liquidacion/PiezaLiquidacion
 import { PrecioMinimoLiquidacion } from "@/components/liquidacion/PrecioMinimoLiquidacion";
 import { createClient } from "@/lib/supabase/client";
 import { normalizarBusqueda } from "@/lib/combo-reglas";
+import { diaLima } from "@/lib/fechas-lima";
 import {
   cifrasDe,
   codigoDeLiquidacion,
   diasALaVenta,
   tiempoALaVenta,
-  fechaLima,
   filtrar,
   piezaLeidaDeJson,
   soles,
@@ -267,7 +267,7 @@ export function LiquidacionPantalla({
                 <span className="text-[13px] text-taupe">
                   {p.estado === "disponible"
                     ? tiempoALaVenta(diasALaVenta(p, hoy))
-                    : (fechaLima(p.estado === "vendida" ? p.vendidaEn : p.retiradaEn) ?? "—")}
+                    : (diaLima(p.estado === "vendida" ? p.vendidaEn : p.retiradaEn) ?? "—")}
                 </span>
                 <span className="text-right">
                   <Chip tono={p.estado === "disponible" ? (p.etiquetas > 1 ? "ambar" : "verde") : p.estado === "vendida" ? "pizarra" : "apagado"}>

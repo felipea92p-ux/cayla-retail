@@ -394,16 +394,6 @@ export function ProveedoresPanel({
             }
             router.refresh();
           }}
-          onDesactivar={
-            borrador.id
-              ? async () => {
-                  const p = proveedores.find((x) => x.id === borrador.id);
-                  if (!p) return;
-                  await onCambiarEstado(p);
-                  setBorrador(null);
-                }
-              : undefined
-          }
         />
       )}
     </div>

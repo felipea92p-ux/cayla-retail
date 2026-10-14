@@ -23,10 +23,8 @@ import {
   FAMILIAS,
   alcance,
   diaLargo,
-  diaLima,
   etiquetaDia,
   filtrarEventos,
-  horaLima,
   nombreVariante,
   personasDe,
   resumenHistorial,
@@ -37,6 +35,7 @@ import {
   type Persona,
 } from "@/lib/historial-prenda-reglas";
 import { FotoDePrenda } from "@/components/ui/FotoDePrenda";
+import { horaLima, hoyLima } from "@/lib/fechas-lima";
 import type { LecturaHistorial } from "@/lib/historial-prenda-reglas";
 
 /**
@@ -107,7 +106,7 @@ export function HistorialPrenda({
   onVolver?: () => void;
   onReintentar?: () => void;
 }) {
-  const hoy = diaLima(new Date().toISOString());
+  const hoy = hoyLima();
   const eventos = useMemo(() => (lectura.estado === "ok" ? lectura.eventos : []), [lectura]);
   const [familia, setFamilia] = useState<Familia | "todo">("todo");
   const [persona, setPersona] = useState<string | null>(null);

@@ -13,7 +13,7 @@
 
 import { MESES_DEL_ANIO } from "./club-cumple-reglas";
 import { formatoPct, formatoSoles, type PaginaClub } from "./club-registro-reglas";
-import { hoyLima } from "./fechas-lima";
+import { diaLima } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
 
 /* ------------------------------------------------------------------ Paso 1: al escanear */
@@ -171,14 +171,8 @@ const MESES_CORTOS = ["ene.", "feb.", "mar.", "abr.", "may.", "jun.", "jul.", "a
  * setiembre en Lima ya son 1 de octubre para el servidor). Acepta `aaaa-mm-dd` o un instante con zona. null si no se entiende.
  */
 export function sociaDesde(valor: string | null | undefined): string | null {
-  if (!valor) return null;
-  const limpio = valor.trim();
-  let iso: string | null = /^\d{4}-\d{2}-\d{2}$/.test(limpio) ? limpio : null;
-  if (!iso) {
-    const t = Date.parse(limpio);
-    if (Number.isNaN(t)) return null;
-    iso = hoyLima(new Date(t));
-  }
+  const iso = diaLima(valor?.trim());
+  if (!iso) return null;
   const mes = MESES_CORTOS[Number(iso.slice(5, 7)) - 1];
   return mes ? `Miembro desde ${mes} ${iso.slice(0, 4)}` : null;
 }

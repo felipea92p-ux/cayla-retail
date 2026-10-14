@@ -18,6 +18,16 @@
       "autoPort": true
     },
     {
+      "name": "cayla-retail-dev-local-bin",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "PATH=\"$HOME/.local/bin:$HOME/.local/lib/node/bin:$PATH\" PORT=${PORT:-3010} pnpm --filter web dev"
+      ],
+      "port": 3010,
+      "autoPort": true
+    },
+    {
       "name": "cayla-retail-dev-libre",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [

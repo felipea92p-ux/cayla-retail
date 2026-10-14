@@ -321,6 +321,10 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
                 codigosBarras: v.codigosBarras,
                 colorHex: v.colorHex,
                 fotoUrl: v.fotoUrl,
+                // La categoría dibuja la miniatura de la prenda sin foto (ADR-0333).
+                categoria: v.categoria,
+                categoriaPrefijo: v.categoriaPrefijo,
+                categoriaFamilia: v.categoriaFamilia,
               }))}
           />
           {llegoEstaSemana}
@@ -419,6 +423,10 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
                 codigosBarras: v.codigosBarras,
                 colorHex: v.colorHex,
                 fotoUrl: v.fotoUrl,
+                // La categoría dibuja la miniatura de la prenda sin foto (ADR-0333).
+                categoria: v.categoria,
+                categoriaPrefijo: v.categoriaPrefijo,
+                categoriaFamilia: v.categoriaFamilia,
               }))}
             proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))}
             ubicaciones={ubicacionesPermitidas.map((u) => ({ id: u.id, nombre: u.nombre }))}

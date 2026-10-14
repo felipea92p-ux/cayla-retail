@@ -43,7 +43,7 @@ import {
 } from "@/lib/alta-producto-guia";
 import { nombreTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
 import { temporadaParaAlta } from "@/lib/temporada-ficha-reglas";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { descuentoDeCampana } from "@/lib/vender-reglas";
 import { campanaDelAlta, repartirEtiquetas, unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
 import { useResponsable } from "@/lib/useResponsable";

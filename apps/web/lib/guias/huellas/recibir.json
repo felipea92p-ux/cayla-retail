@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 133,
+  "total": 128,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «)»",
@@ -36,8 +36,7 @@
     "components/EnvioRecibido.tsx": [
       "Link «Se reclama en Notas de crédito ↗»",
       "Link «Imprimir»",
-      "Boton «Recibir otro envío»",
-      "Link «Ver recibidas»"
+      "Boton «Recibir otro envío»"
     ],
     "components/FiltrosRecibidas.tsx": [
       "DesplegablePildora «Proveedor»",
@@ -60,7 +59,6 @@
       "Link «Sí, viene con la»",
       "Link «Ver las»",
       "button «No, recibir sin factura»",
-      "button «{p.referencia}»",
       "button «Deshacer»",
       "Link «Crearla en Nuevo producto»",
       "button «Una menos»",
@@ -92,7 +90,6 @@
       "button «{ETIQUETA_BILLETERA[b]}»",
       "button «Usar el teléfono de contacto (»",
       "CampoTexto «Titular de la cuenta»",
-      "button «Desactivar proveedor»",
       "Boton «Cancelar»",
       "Boton «(sin nombre)»"
     ],
@@ -109,11 +106,10 @@
       "CampoTexto «Guía del envío»",
       "CampoSelect «Entra al almacén de»",
       "CampoTexto «Entra al almacén de»",
-      "button «+ Agregar comprobante»",
+      "Boton «+ Agregar comprobante»",
       "button «{c.proveedorNombre}»",
       "button «{`Quitar ${c.documento}»",
       "Pestanas «(sin nombre)»",
-      "button «{l.referencia}»",
       "button «Deshacer»",
       "button «Agregar»",
       "button «→() => setAbiertos((a) => ({ ...a, [c.id]: !abierto»",
@@ -125,11 +121,10 @@
       "ComboBuscable «actualizarExtra(i,»",
       "Desplegable «(sin nombre)»",
       "input «Cantidad»",
-      "Desplegable «actualizarExtra(i,»",
-      "input «(sin nombre)»",
+      "Desplegable «(sin nombre)» #2",
       "input «Costo unitario»",
       "button «Quitar»",
-      "button «+ Agregar prenda fuera de comprobante»",
+      "Boton «+ Agregar prenda fuera de comprobante»",
       "Link «Traslados»",
       "textarea «Llegó una caja abierta, el transportista dejó dos bultos menos…»",
       "button «{f}»",
@@ -147,7 +142,7 @@
     ],
     "components/RecepcionesCompraLista.tsx": [
       "button «recibidas.fila»",
-      "button «{diaMes(hoyLima(new Date(g.fechaRecepcion)))}»"
+      "button «{diaMes(diaLima(g.fechaRecepcion))}»"
     ],
     "components/RecepcionesRecientes.tsx": [
       "button «recibir.reciente»"

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, CalendarDays, Download, PanelRightOpen } from "lucide-react";
+import { ArrowRight, CalendarDays, PanelRightOpen } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Ayuda } from "@/components/Ayuda";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -57,6 +57,7 @@ import {
 import type { FamiliaPlan } from "@/lib/plan-compra";
 import { avisoSinPlan, formaDeLaTabla, proximaCampana, queTocaHoy, subtituloDelPlan } from "@/lib/plan-compra-momento";
 import type { LecturaMotor } from "@/lib/motor-demanda";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Compras ▸ Plan de campaña (ADR-0349). Una fila por categoría: su barra de rango (los tres escenarios contra lo que ya hay y lo que hay
 // que comprar), cuánto cuesta; al abrirla, su ventana para armar o corregir el plan. Durante y después de la campaña, lo que se vendió de
@@ -335,14 +336,8 @@ export function PlanCampana({
               />
             )}
               {totales.conPlan > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Boton peso="fantasma" className="w-10 justify-center px-0!" onClick={() => setExportando(true)} aria-label="Exportar">
-                      <Download aria-hidden className="h-[18px] w-[18px]" />
-                    </Boton>
-                  </TooltipTrigger>
-                  <TooltipContent sideOffset={6}>Exportar</TooltipContent>
-                </Tooltip>
+                // La lista de compra para imprimir o bajar (abre su hoja): la pieza de descargar con su texto, nunca solo un ícono (ADR-0358, ronda 10).
+                <BotonDescargar onClick={() => setExportando(true)}>Descargar la lista</BotonDescargar>
               )}
               </div>
             </TooltipProvider>

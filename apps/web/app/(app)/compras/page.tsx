@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { Download } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
 import { listarCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, ETIQUETA_TIPO_DOCUMENTO, soles, type ParamsCompras } from "@/lib/compras";
 import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indicadores";
@@ -16,11 +15,12 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { BotonAncla, BotonEnlace } from "@/components/ui/campos";
+import { BotonEnlace } from "@/components/ui/campos";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { ComprobantesListaFilas } from "@/components/ComprobantesListaFilas";
 import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 // Comprobantes de proveedores (ADR-0035, rediseño ADR-0111): la lista de lo que se compró. Cada
 // fila dice los dos estados que importan —cuánto falta pagar y cuánto falta llegar— con su cifra
@@ -110,11 +110,11 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           <p className="mt-1 text-sm text-tinta/65">Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella.</p>
         </div>
         <div className="flex flex-wrap gap-2.5">
-          {/* El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien exporta: desde ADR-0387,
-              quien tiene el módulo exporta las facturas de todas las tiendas, como el líder. */}
-          <BotonAncla href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} data-guia="compras.exportar">
-            <Download aria-hidden className="h-3.5 w-3.5" /> Exportar mes
-          </BotonAncla>
+          {/* El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien lo descarga: desde ADR-0387,
+              quien tiene el módulo descarga las facturas de todas las tiendas, como el líder. */}
+          <BotonDescargar href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} guia="compras.exportar">
+            Descargar el mes
+          </BotonDescargar>
           <BotonEnlace href="/compras/nueva" peso="primario" data-guia="compras.registrar">
             + Registrar factura
           </BotonEnlace>

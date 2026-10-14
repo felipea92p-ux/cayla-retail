@@ -31,7 +31,8 @@ import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
 import { nombreBajoCosto, objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
-import { hoyLima, textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
+import { textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, type EstiloEtiqueta } from "@/lib/etiqueta-grupos";
 import { normalizarNombre } from "@/lib/patron-visual";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
@@ -154,7 +155,7 @@ function TarjetaEtiqueta({
               {prendas === 0 ? "Sin prendas etiquetadas" : `${prendas} ${prendas === 1 ? "prenda etiquetada" : "prendas etiquetadas"} a mano`}
             </p>
           )}
-          {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>}
+          {e.descuentoPct !== null && !DESCUENTO_YA_SE_APLICA && <p className="text-[10.5px] text-tinta/50">Aún no se aplica en Vender</p>} {/* unificar-fijo: dice el estado del descuento, no que falte algo */}
           {/* ADR-0180 paso 2: con la campaña vigente se imprimen sus etiquetas (precio rebajado); al terminar, las mismas
               prendas vuelven al precio normal. Antes de empezar no hay nada que imprimir: la etiqueta diría el precio de hoy. */}
           {e.descuentoPct !== null && e.estado === "aprobado" && !apagada && vigencia?.estado !== "proxima" && (

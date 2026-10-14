@@ -27,6 +27,31 @@
   .titulo-seccion-dato { font-size: 13px; color: var(--color-taupe); font-variant-numeric: tabular-nums; }
   .titulo-seccion-dato :is(b, strong) { color: var(--color-tinta); font-weight: 600; }
 
+  /* Cuántos hay, pegado al nombre del bloque o del grupo (ronda 9): el globito de las pestañas (`.pestana-cayla__cuenta`), con sus mismas
+     medidas. Entra subiendo con su título, una vez. */
+  .titulo-cuenta {
+    display: inline-grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    margin-left: 0.5rem;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-tinta) 10%, transparent);
+    font-family: var(--font-sans);
+    font-size: 10.5px;
+    font-weight: 600;
+    font-style: normal;
+    letter-spacing: 0;
+    line-height: 1;
+    text-transform: none;
+    color: var(--color-tinta);
+    font-variant-numeric: tabular-nums;
+    vertical-align: 0.2em;
+    animation: cayla-entrada 320ms var(--ease-cayla) 120ms backwards;
+  }
+  .titulo-grupo .titulo-cuenta { margin-left: -0.25rem; vertical-align: 0; }
+
   .titulo-grupo {
     margin: 0;
     font-size: 11px;
@@ -76,7 +101,8 @@
   .separador-dia-total :is(b, strong) { color: var(--color-tinta); font-weight: 600; }
 
   @media (prefers-reduced-motion: reduce) {
-    .titulo-grupo-texto::after { animation-duration: 1ms; animation-delay: 0ms; }
+    .titulo-grupo-texto::after,
+    .titulo-cuenta { animation-duration: 1ms; animation-delay: 0ms; }
   }
 }
 

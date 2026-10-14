@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 142,
+  "total": 141,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{producto.referencia}»"
@@ -11,7 +11,6 @@
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
       "button «{o.texto}»",
       "CampoTexto «{guia.etiqueta(\"nota\", ayudaNota.etiqueta)}»",
-      "button «Descargar reporte de este ajuste»",
       "ComboResponsable «{error && ( <Aviso tono=\"error\">{error}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"

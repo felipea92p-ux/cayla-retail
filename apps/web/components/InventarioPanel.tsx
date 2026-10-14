@@ -24,7 +24,8 @@ import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
 import { ResumenStockOverlay } from "@/components/ResumenStockOverlay";
 import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
-import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
+import { resumirApartados, type Apartado } from "@/lib/apartados-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { ExistenciasVacio } from "@/components/ExistenciasVacio";
 import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
@@ -58,6 +59,7 @@ import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/in
 // Solo el TIPO: `lib/sububicaciones.ts` importa el cliente de servidor (`next/headers`) y este archivo es "use client";
 // importar un valor de ahí rompe el build de Vercel (Turbopack lo rechaza aunque `tsc` y vitest pasen).
 import type { Sububicacion } from "@/lib/sububicaciones";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
 
 const TODAS = "__todas__";
 
@@ -1000,9 +1002,9 @@ export function InventarioPanel({
                 {conteo.total} {conteo.total === 1 ? conteo.unidad.uno : conteo.unidad.varios} · {tallasEnTarjetas} {tallasEnTarjetas === 1 ? "talla" : "tallas"}
               </span>
               <PaginacionLocal pagina={paginaTarjetas.pagina} totalPaginas={paginaTarjetas.totalPaginas} onPagina={irAPagina} />
-              <button type="button" onClick={exportarCsv} className="btn-cayla btn-secundario btn-chico">
-                Exportar CSV
-              </button>
+              <BotonDescargar onClick={exportarCsv} chico>
+                Descargar CSV
+              </BotonDescargar>
             </span>
             {/* La leyenda de las columnas de las tarjetas (ADR-0391): el número grande, la línea chica y sus dos tonos. */}
             {separa && (
@@ -1047,9 +1049,9 @@ export function InventarioPanel({
                 {prendas.length} {prendas.length === 1 ? "prenda" : "prendas"} · {filtradas.length} {filtradas.length === 1 ? "talla" : "tallas"}
               </span>
               <PaginacionLocal pagina={paginaPrendas.pagina} totalPaginas={paginaPrendas.totalPaginas} onPagina={irAPagina} />
-              <button type="button" onClick={exportarCsv} className="btn-cayla btn-secundario btn-chico">
-                Exportar CSV
-              </button>
+              <BotonDescargar onClick={exportarCsv} chico>
+                Descargar CSV
+              </BotonDescargar>
             </span>
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -1281,9 +1283,9 @@ export function InventarioPanel({
             <span className="flex flex-wrap items-center gap-3">
               <span>{textoMostrando(paginaActual, filtradas.length, stock.length)}</span>
               <PaginacionLocal pagina={paginaActual.pagina} totalPaginas={paginaActual.totalPaginas} onPagina={irAPagina} />
-              <button type="button" onClick={exportarCsv} className="btn-cayla btn-secundario btn-chico">
-                Exportar CSV
-              </button>
+              <BotonDescargar onClick={exportarCsv} chico>
+                Descargar CSV
+              </BotonDescargar>
             </span>
             {separa && (
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1">

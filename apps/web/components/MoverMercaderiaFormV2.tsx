@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar, enfocar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
-import { CampoSelect, Desplegable } from "@/components/ui/campos";
+import { Boton, CampoSelect, Desplegable } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -416,9 +416,10 @@ export function MoverMercaderiaFormV2({
             </div>
           );
         })}
-        <button type="button" onClick={agregarLinea} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+        {/* Una acción chica que agrega algo: botón chico (ADR-0358, ronda 9); el «+» lo dibuja la pieza y da su cuarto de vuelta. */}
+        <Boton type="button" peso="discreto" onClick={agregarLinea} className="btn-chico self-start">
           + Agregar otra prenda
-        </button>
+        </Boton>
       </div>
 
       <div data-guia="nuevo-traslado.responsable">

@@ -5,6 +5,7 @@ import { Tabla, Encabezado, TABLA } from "@/components/ui/Tabla";
 import { useDetalleCierre } from "@/components/CierreCajaDetalle";
 import type { CierreCaja } from "@/lib/caja";
 import { agruparPorDia, estadoCierre, horaLima, quienAtendio, textoResultado, type EstadoCierre } from "@/lib/historial-cierres-reglas";
+import { SeparadorDia } from "@/components/ui/TituloSeccion";
 
 function money(n: number) {
   return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -47,7 +48,7 @@ export function HistorialCierresTabla({ cierres, pie }: { cierres: CierreCaja[];
         />
         {grupos.map((g) => (
           <section key={g.clave} aria-label={g.etiqueta}>
-            <h3 className="px-5 pb-2 pt-4 text-[13.5px] font-semibold text-tinta">{g.etiqueta}</h3>
+            <SeparadorDia>{g.etiqueta}</SeparadorDia>
             <ul className="divide-y divide-sand border-t border-sand">
               {g.cierres.map((c) => {
                 const estado = estadoCierre(c.diferencia);
