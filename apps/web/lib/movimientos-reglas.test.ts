@@ -497,6 +497,13 @@ describe("filtrosDesdeParams", () => {
     expect(f.hasta).toBeUndefined();
   });
 
+  it("una fecha con la forma correcta pero que no existe (31 de febrero, mes 13) se descarta (/chaos 2026-10-14: tumbaba la pantalla)", () => {
+    expect(resolver({ desde: "2026-02-31" })).toMatchObject({ periodo: "30", desde: "2026-08-21" });
+    expect(resolver({ desde: "2026-13-01", hasta: "0000-00-00" })).toMatchObject({ periodo: "30" });
+    expect(resolver({ desde: "2026-02-28", hasta: "2026-02-31" })).toMatchObject({ periodo: "personalizado", desde: "2026-02-28", hasta: undefined });
+    expect(resolver({ desde: "2024-02-29" })).toMatchObject({ periodo: "personalizado", desde: "2024-02-29" });
+  });
+
   it("las fechas de «Personalizado» mandan sobre el período rápido, y una inválida se descarta", () => {
     expect(resolver({ desde: "2026-09-01", hasta: "2026-09-10", rango: "7" })).toMatchObject({ periodo: "personalizado", desde: "2026-09-01", hasta: "2026-09-10" });
     expect(resolver({ hasta: "2026-09-10" })).toMatchObject({ periodo: "personalizado", desde: undefined, hasta: "2026-09-10" });

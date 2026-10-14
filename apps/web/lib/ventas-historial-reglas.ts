@@ -10,6 +10,7 @@ import {
   type PeriodoMovimientos,
 } from "./movimientos-reglas";
 import { NOMBRE_METODO, textoNumeroRecibo } from "./recibo-reglas";
+import { diaLima, horaLima, hoyLima } from "./fechas-lima";
 import { fotoDeVariante } from "./producto-fotos-reglas";
 
 // Historial de ventas (Ventas ▸ Historial, ADR-0147): reglas puras — lo que decide qué se
@@ -136,8 +137,6 @@ export function filtrosDesdeParams(
     conClienta: p.clienta === "1",
   };
 }
-
-const hoyLima = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" }).format(new Date());
 
 /** El período en palabras. «Hoy» no existe en Movimientos: se dice aquí. */
 export function textoPeriodoHistorial(periodo: PeriodoHistorial, desde?: string, hasta?: string): string {
@@ -359,12 +358,6 @@ export function posventaDeVenta(v: Pick<VentaCruda, "venta_items" | "devolucione
   return [...cambios, ...devoluciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
 }
 
-const FORMATO_DIA = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" });
-const FORMATO_HORA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-
-/** El día de Lima de un instante, `aaaa-mm-dd`. */
-export const diaDeLima = (iso: string): string => FORMATO_DIA.format(new Date(iso));
-
 /** Quién vendió: quien atendió (`asesora_id`) y, si no se eligió a nadie, la sesión que cobró (`usuario_id`). */
 export const quienVendio = (v: { asesora_id?: string | null; usuario_id: string | null }): string | null => v.asesora_id ?? v.usuario_id;
 
@@ -383,12 +376,11 @@ export function itemsPorRegularizar(items: Pick<ItemCrudo, "id" | "por_regulariz
 }
 
 export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): FilaHistorial {
-  const instante = new Date(v.created_at);
   return {
     id: v.id,
     creadoEn: v.created_at,
-    fecha: diaDeLima(v.created_at),
-    hora: FORMATO_HORA.format(instante),
+    fecha: diaLima(v.created_at) ?? "",
+    hora: horaLima(v.created_at) ?? "",
     ubicacionId: v.ubicacion?.id ?? "",
     ubicacion: v.ubicacion?.nombre ?? "—",
     vendedor: nombreDeQuienVendio(v, nombres),

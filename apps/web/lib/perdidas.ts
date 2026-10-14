@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { hoyEnLima, restarDias } from "@/lib/movimientos-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
+import { restarDias } from "@/lib/movimientos-reglas";
 import {
   DIAS_VENTANA_REPETICION,
   avisoPerdidas,
@@ -44,7 +45,7 @@ export async function getResumenPerdidas(
 /** El aviso «se repite» del Inicio del líder: los últimos 30 días de la sede pasados por la regla pura. `null` = no se
  *  pudo leer (el aviso lo dice; no es «al día»). */
 export async function getAvisoPerdidas(ubicacionId: string): Promise<AvisoPerdidas | null> {
-  const hoy = hoyEnLima();
+  const hoy = hoyLima();
   const resumen = await getResumenPerdidas(ubicacionId, restarDias(hoy, DIAS_VENTANA_REPETICION - 1), hoy);
   if (!resumen) return null;
   return avisoPerdidas(perdidasQueSeRepiten(resumen.hechos, hoy));

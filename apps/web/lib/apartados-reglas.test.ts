@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   diasHasta,
   estadoVencimiento,
-  hoyLima,
   resumirApartados,
   textoVencimiento,
   type Apartado,
@@ -30,15 +29,6 @@ function apartado(parcial: Partial<Apartado> = {}): Apartado {
     ...parcial,
   };
 }
-
-describe("hoyLima", () => {
-  it("a las 8 p. m. de Lima todavía es el mismo día (en UTC ya sería el siguiente)", () => {
-    expect(hoyLima(new Date("2026-09-21T01:00:00Z"))).toBe("2026-09-20");
-  });
-  it("a las 5 a. m. de Lima ya es el día nuevo", () => {
-    expect(hoyLima(new Date("2026-09-21T10:00:00Z"))).toBe("2026-09-21");
-  });
-});
 
 describe("diasHasta", () => {
   it("cuenta días de calendario, con signo", () => {

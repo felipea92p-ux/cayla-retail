@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hoyLima, vigenciaDe } from "./etiqueta-vigencia";
+import { vigenciaDe } from "./etiqueta-vigencia";
 
 describe("vigenciaDe", () => {
   it("sin fechas es permanente: no hay temporada", () => {
@@ -24,16 +24,5 @@ describe("vigenciaDe", () => {
     expect(vigenciaDe("2026-09-01", null, "2026-09-18")?.estado).toBe("vigente");
     expect(vigenciaDe(null, "2026-12-31", "2026-09-18")?.estado).toBe("vigente");
     expect(vigenciaDe(null, "2026-09-01", "2026-09-18")?.estado).toBe("terminada");
-  });
-});
-
-describe("hoyLima", () => {
-  it("a las 8 pm de Lima todavía es el mismo día (en UTC ya es el siguiente)", () => {
-    // 2026-09-19 01:00 UTC = 2026-09-18 20:00 en Lima (UTC-5, sin horario de verano).
-    expect(hoyLima(new Date("2026-09-19T01:00:00Z"))).toBe("2026-09-18");
-  });
-
-  it("a las 8 am de Lima es el día calendario normal", () => {
-    expect(hoyLima(new Date("2026-09-18T13:00:00Z"))).toBe("2026-09-18");
   });
 });
