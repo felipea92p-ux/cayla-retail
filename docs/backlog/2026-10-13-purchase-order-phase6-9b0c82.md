@@ -1,6 +1,6 @@
 ## Compras ▸ fase 6 de las órdenes de compra: fondo por rendir y gastos del viaje (2026-10-13) — rama `claude/purchase-order-phase6-9b0c82`
 
-ADR-0362 (decisiones 16, 20, 26, 29, 30, 32–35, 46, 54–57 y 65–75). Lista de 8 actividades aprobada por Felipe el 2026-10-13; el
+ADR-0362 (decisiones 16, 20, 26, 29, 30, 32–35, 46, 54–57 y 65–76). Lista de 8 actividades aprobada por Felipe el 2026-10-13; el
 2026-10-14 la de contabilidad se partió en dos y quedaron 9 (decisión 73). PR #1055
 (borrador). Con la autorización de Felipe de esa noche, cada actividad se sube y sus migraciones se pegan en producción al cerrarla (no se
 fusiona).
@@ -34,9 +34,12 @@ fusiona).
 - [x] Finanzas ▸ Gastos dice «Sin comprobante» (y «Sin proveedor») en un gasto del viaje con factura, junto a su IGV: `fn_gastos_lista`
   solo mira `compras` y el papel vive en `gastos_viaje`. Viene de la actividad 3. Lo arregló la sesión «Finanzas ▸ Gastos: el papel real
   del gasto del viaje» (`5ce8bb965`, traído con cherry-pick) y su migración `20261014164000` está en producción con el OK de Felipe.
-- [ ] Finanzas ▸ Gastos llama «IGV descontable» a un IGV perdido por pagar sin banco: lo está haciendo otra sesión («Decir en Gastos
-  cuándo el IGV de una factura se perdió», chip `task_9e4c3306`, migración reservada `20261014174000` a nombre de esta rama), con lo que
-  Felipe eligió el 2026-10-14; entra con cherry-pick y su decisión será la 76.
+- [x] Finanzas ▸ Gastos llamaba «IGV descontable» a un IGV perdido por pagar sin banco: lo hizo la sesión «Decir en Gastos cuándo el IGV
+  de una factura se perdió» (chip `task_9e4c3306`) con lo que Felipe eligió el 2026-10-14, y entró con cherry-pick (`a079c035d`): la
+  decisión 76 del ADR, la migración `20261014174000` y `pruebas:gastos-igv-perdido`.
+- [ ] Producción: pegar `20261014174000` (después de `20261014153000` y `20261014164000`) con el OK de Felipe, contando antes su ancla en
+  `fn_gastos_panel`. Esperan también a Felipe los 3 cambios de `/formidable` de Gastos y una decisión de dinero que dejó esa sesión
+  (`docs/backlog/2026-10-14-cool-fermi-e58891.md`).
 - [x] Hoja del gasto del viaje (decisión 74, Felipe 2026-10-14): solo la orden desde la que se abrió; las demás con «+ Agregar otra
   orden» (el combo con buscador) y cada una con su «×». Probado en el banco a 1280 y 375 px, con el teclado (Enter elige, Escape vuelve
   al botón sin cerrar la hoja) y abriéndola desde la lista (ninguna orden: «+ Agregar una orden»).
