@@ -112,3 +112,26 @@ llave de servicio del ERP.
 
 La lista de 13 actividades, cada una un corte vertical demostrable, está en el backlog de la rama. Felipe la aprobó en ese orden el
 2026-10-14.
+
+## Actualización 2026-10-14 (b): lo que se decidió al construir las actividades 2 y 6
+
+Felipe pidió acelerar con agentes en paralelo: las actividades 2 (cuentas), 3 (Vitrina), 6 (Configuración ▸ Tienda web) y el motor del
+pedido web se construyen a la vez, cada una en su rama, y se integran en la rama de la tienda. Al integrar la 2 y la 6 decidió:
+
+- **El correo se verifica con un código** de 6 cifras al crear la cuenta (actividad 2b): sin el código no hay usuario ni cuenta, y el correo
+  no queda tomado por alguien que nunca confirmó. Así nadie crea una cuenta con el correo de otra persona, y «olvidé mi contraseña» llega
+  siempre a su dueño.
+- **Dos casillas al crear la cuenta:** «Soy mayor de 18 años», obligatoria y exigida por la base, como en el cartel del Club; y «Avisos del
+  Club por WhatsApp», opcional, que queda como permiso del Club con origen web (sin ella, la regla del Club trata esos avisos como publicidad).
+- **Configuración ▸ Tienda web la cambia quien ya cambia Configuración** (el líder o a quien le dio ese módulo, `fn_puede_configurar`), no
+  solo el líder como decía la maqueta.
+- **Las tiendas se muestran en orden alfabético** por su nombre web: no hay un campo de orden que mantener.
+
+Y quedó así, por decisión técnica (cada una en su migración o su prueba):
+- Los datos de cada sede para la web viven en `ubicacion_datos_web` y los plazos (24 h, 48 h, 7 días, «quedan pocas» desde 3) en
+  `configuracion_tienda_web`, tablas propias: no se tocan `ubicaciones` ni `configuracion_empresa`, que lee cada venta. El WhatsApp es
+  `ubicaciones.whatsapp_numero`, el mismo del QR del Club: una sola fuente. Las actividades 4, 7, 9 y 10 leen los plazos de ahí.
+- El nombre por DNI (ADR-0008) pasó a `packages/shared`, para que la tienda y el ERP usen la misma consulta.
+- La sesión del cliente se valida contra el proyecto de clientes (`getUser()`), no solo con la cookie; la cookie se llama `tienda-sesion`
+  para no pisar la del ERP.
+

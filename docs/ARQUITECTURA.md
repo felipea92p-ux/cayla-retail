@@ -1712,15 +1712,22 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
 
 Una app aparte del ERP, para los clientes, con su propio dominio y su propio inicio de sesión. No importa nada de
 `apps/web` ni usa sus llaves: habla con la base **solo** por funciones `retail.tienda_*`, con un usuario que hereda el rol
-`tienda_web` (sin permiso sobre ninguna tabla). Todo pasa por `apps/tienda/lib/base.ts`; lo vigila `lib/candados.test.ts`
-y, en la base, `pnpm pruebas:tienda-puerta`.
+`tienda_web` (sin permiso sobre ninguna tabla). La conexión vive en `apps/tienda/lib/base.ts` y cada tema la usa desde su
+`lib/<tema>-servidor.ts`; lo vigila `lib/candados.test.ts` y, en la base, `pnpm pruebas:tienda-puerta`.
 
-- `/` (portada sin cuenta) → `lib/base.ts` `leerPortada()` → `retail.tienda_portada()`: la campaña vigente que termina
-  primero. Si la base no responde, la portada sale sin campaña.
+- `/` (portada sin cuenta) → `lib/portada-servidor.ts` `leerPortada()` → `retail.tienda_portada()`: la campaña vigente que
+  termina primero. Si la base no responde, la portada sale sin campaña.
 - `/` («Nuestras tiendas», después del Club) y `/tiendas` (actividad 6) → `lib/tiendas-servidor.ts` `leerSedes()` →
   `retail.tienda_sedes()`: las tiendas encendidas en Configuración ▸ Tienda web, abiertas y con nombre web, dirección y WhatsApp
   (el del QR del club, `ubicaciones.whatsapp_numero`), por nombre web; el enlace abre un chat sin mensaje. Sin base, la portada sale
   sin la sección y `/tiendas` lo dice en una línea. Prueba en la base: `pnpm pruebas:tienda-web-configuracion`.
+- Cuentas de clientes (actividad 2): `/crear-cuenta`, `/entrar`, `/olvide-mi-contrasena`, `/nueva-contrasena`, `/cuenta`,
+  `/privacidad` y `/terminos-del-club`. El inicio de sesión es el de un proyecto de autenticación PROPIO de los clientes (en local,
+  la pila de `apps/tienda/supabase/`), nunca el del ERP: `lib/sesion-servidor.ts` valida a la persona con `getUser()` y la cookie se
+  llama `tienda-sesion`; `proxy.ts` refresca la sesión. La base: `lib/cuentas-servidor.ts` → `retail.tienda_consultar_correo`,
+  `tienda_consultar_documento`, `tienda_revisar_registro`, `tienda_registrar_cuenta` (une la cuenta a su ficha del Club o la crea con
+  origen `web`), `tienda_mi_cuenta` y `tienda_club_beneficios`; los topes, con `club_intento` (`lib/intentos-servidor.ts`). El nombre por
+  DNI sale de `packages/shared` (`padron.ts`), el mismo que usa el ERP. Prueba en la base: `pnpm pruebas:tienda-cuentas`.
 
 ---
 

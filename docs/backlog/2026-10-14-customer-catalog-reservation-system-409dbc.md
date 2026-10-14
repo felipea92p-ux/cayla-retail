@@ -19,7 +19,7 @@ Maqueta: `docs/maquetas/tienda-online-2026-10/` (`index.html` + `README.md`, con
 1. ✅ **La tienda existe y se publica sola** (hecha 2026-10-14; ver abajo) — `apps/tienda` con la marca de la maqueta y su portada, que lee la campaña vigente por la
    puerta angosta (rol `tienda_web` + `tienda_portada`); CI, ganchos y candados extendidos a la app nueva. Demostrable: la portada en
    local con la campaña de la base; CI verde. (1)
-2. **Crear cuenta, entrar, olvidé mi contraseña y salir** — proyecto de clientes en local, `cuentas_web` + `tienda_registrar_cuenta`
+2. ✅ **Crear cuenta, entrar, olvidé mi contraseña y salir** (integrada 2026-10-14; falta la 2b, ver abajo) — proyecto de clientes en local, `cuentas_web` + `tienda_registrar_cuenta`
    (correo y DNI únicos, entra al Club con origen web, cumpleaños como `clientas`), nombre por DNI compartido, topes por IP y documento.
    Demostrable: crear cuenta, ver rechazado un DNI o correo repetido, entrar, recuperar la contraseña con el correo de prueba local y
    salir. (1,5)
@@ -30,7 +30,7 @@ Maqueta: `docs/maquetas/tienda-online-2026-10/` (`index.html` + `README.md`, con
    en Vender y ver cambiar el nivel en la ficha. (0,5)
 5. **Inicio completo y buscador** — Lo nuevo (primer ingreso a una tienda), Ofertas por campaña, Más vendidos sin cifras, categorías,
    buscador y menú. Demostrable: el inicio de la maqueta con datos de la base local. (1)
-6. **Configuración ▸ Tienda web** — WhatsApp, dirección y horario por sede; plazos y umbrales. Demostrable: cambiar el WhatsApp de una sede
+6. ✅ **Configuración ▸ Tienda web** (integrada 2026-10-14) — WhatsApp, dirección y horario por sede; plazos y umbrales. Demostrable: cambiar el WhatsApp de una sede
    en el ERP y verlo en la tienda. (0,5)
 7. **Bolsa y «Separar»** — `pedidos_web` y sus líneas; separar sin tocar el stock; «¡Listo, lo separaste!»; WhatsApp con el mensaje armado;
    Mi cuenta con sus pedidos; cierre a las 24 horas por ruta cron. Demostrable: separar crea el pedido sin cambiar el stock y se cierra
@@ -66,6 +66,30 @@ Total ≈ 14 sesiones. Las pantallas del ERP cumplen las reglas del repo (guía 
   `www.cayla.pe` sale impresa en las boletas. Recomendado: el piloto en `tienda.cayla.pe` sin tocar Shopify, y `cayla.pe` pasa a la tienda
   nueva cuando el piloto salga bien (ese día se decide qué hacer con Shopify). El ERP puede seguir en `cayla-retail.vercel.app` o pasar a
   `erp.cayla.pe`: son proyectos separados. Antes de cambiar `cayla.pe` se le pregunta a Felipe.
+
+### Lo que dejaron las actividades 2 y 6 (integradas el 2026-10-14, construidas por agentes en paralelo)
+
+- [ ] **Actividad 2b (en curso):** código de 6 cifras al correo para crear la cuenta, y las casillas «Soy mayor de 18 años» (obligatoria)
+  y «Avisos del Club por WhatsApp» (opcional, permiso del Club con origen web). Decisión de Felipe, ADR-0408 act. 2026-10-14 (b).
+- [ ] **No están en producción:** `20261014223000_tienda_cuentas_parte1_clientas.sql` (altera `clientas`: va SOLA, sin políticas),
+  `20261014224000_tienda_cuentas_parte2_cuentas_web.sql` y `20261014231000_tienda_web_sedes_y_plazos.sql`. Van en la actividad 13, en
+  orden y después de `20261014220000`, con el OK de Felipe; recién entonces se refresca el diccionario.
+- [ ] **Actividad 13, proyecto de clientes:** crearlo con los ajustes de `apps/tienda/supabase/config.toml`, la plantilla del correo
+  (`plantillas/recuperar.html`) y las direcciones permitidas; registro público cerrado (la cuenta la crea el servidor). Variables:
+  `NEXT_PUBLIC_TIENDA_AUTH_URL`, `NEXT_PUBLIC_TIENDA_AUTH_ANON_KEY`, `TIENDA_AUTH_SERVICE_KEY`, `TIENDA_INTENTOS_SAL` y, si se quiere el
+  respaldo de pago del padrón, `TIENDA_PADRON_*`. Un **proveedor de correo propio**: con el del servicio, al llegar a su tope la persona ve
+  «Revisa tu correo» y el correo no sale.
+- [ ] **Textos legales en borrador:** `/privacidad` y `/terminos-del-club` dicen «Borrador: lo revisa CAYLA». Felipe los revisa antes de
+  producción; después conviene pasarlos a `club_textos` con su versión (hoy lo aceptado queda en `cuentas_web.textos_aceptados`).
+- [ ] **Por definir (actividad 12, el Club en la cuenta):** qué pasa con la cuenta web cuando su ficha se anonimiza a los 3 años o la persona
+  se da de baja del Club; y si al unir dos fichas la cuenta web se mueve a la que queda.
+- [ ] **Topes de registro:** 5 por IP y hora (los del cartel). Si una tienda ayuda a crear cuentas desde su wifi, puede frenarse; se mira
+  con el piloto.
+- [ ] **Configuración ▸ Tienda web:** Actividad muestra estos cambios con el texto genérico (darle uno propio obliga a reescribir
+  `fn_actividad_configuracion` desde su definición de producción); falta `/chaos` completo y `/formidable` de la pestaña; `/configuracion`
+  sigue «pendiente» en la guía de foco porque sus otras pestañas no la tienen (la nueva sí).
+- [ ] **Base local:** le faltan `fn_sobrantes_por_revisar` y `guias_vistas` de `main` (sale un error en la consola del ERP local); no es de
+  esta rama.
 
 ### Pendientes que no son de construcción
 
