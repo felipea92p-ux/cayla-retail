@@ -91,6 +91,8 @@ export function barrasCode128(texto: string): Barras | null {
 /**
  * Puntos de impresora por módulo si el código se ESTIRA para llenar un ancho dado.
  * Se conserva para explicar por qué eso está mal, no para dibujar así.
+ *
+ * @public Sin uso a propósito, por lo de arriba: Knip no lo reporta por esta marca.
  */
 export function puntosPorModulo(modulos: number, anchoUtilMm = 50, dpi = 300): number {
   const mmPorPunto = 25.4 / dpi;

@@ -168,8 +168,3 @@ export function totalEstimado(pasos: readonly PasoGuia[], presentes: ReadonlySet
   });
   return n;
 }
-
-/** «Paso 3 de 9», contando solo los pasos que aplican ahora. */
-export function textoAvance(indice: number, total: number): string {
-  return `Paso ${indice + 1} de ${total}`;
-}

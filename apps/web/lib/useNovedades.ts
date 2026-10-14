@@ -3,25 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { nuevosPorId } from "@/lib/caja-en-vivo";
 
-/**
- * Sube cada vez que `valor` AUMENTA —nunca en el primer render ni cuando baja— y dice cuánto subió.
- * Para que una cifra que crece (una tarjeta de ventas) avise que creció: `pulso` sirve de `key` para
- * reiniciar una animación y `delta` para mostrar "+S/337.00".
- */
-export function useAumento(valor: number): { pulso: number; delta: number } {
-  const previo = useRef(valor);
-  const [estado, setEstado] = useState({ pulso: 0, delta: 0 });
-  useEffect(() => {
-    const delta = valor - previo.current;
-    previo.current = valor;
-    if (delta < 0.005) return; // solo aumentos reales, no ruido de redondeo
-    // Diferido: el efecto no escribe estado de forma síncrona (regla de React para no encadenar renders).
-    const id = window.setTimeout(() => setEstado((e) => ({ pulso: e.pulso + 1, delta })), 0);
-    return () => window.clearTimeout(id);
-  }, [valor]);
-  return estado;
-}
-
 const VACIO: ReadonlySet<string> = new Set();
 
 /**
