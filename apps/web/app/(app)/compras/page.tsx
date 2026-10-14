@@ -248,14 +248,14 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                   >
                     <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta")}>
                       <span className="block">{diaMes(c.fechaEmision)}</span>
-                      <span className={`block text-xs ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/55"}`}>{subEmision(c)}</span>
+                      <span className={`block text-xs ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/70"}`}>{subEmision(c)}</span>
                     </span>
                     <span className={celda()} data-guia="compras.proveedor">
                       <span className={`block text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>
                         <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
                       </span>
                       {c.proveedorRuc && (
-                        <span className="block text-xs tabular-nums text-tinta/55">
+                        <span className="block text-xs tabular-nums text-tinta/70">
                           RUC <Resaltado texto={c.proveedorRuc} busqueda={busqueda} />
                         </span>
                       )}
@@ -264,14 +264,14 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       <span className="block">
                         <Resaltado texto={c.documento} busqueda={busqueda} />
                       </span>
-                      <span className="block text-xs text-tinta/55">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
+                      <span className="block text-xs text-tinta/70">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
                     </span>
                     <span className={celda("izq", "overflow-visible whitespace-normal")} data-guia="compras.recepcion">
                       <Chip tono={recepcion.tono}>{recepcion.texto}</Chip>
-                      <span className="mt-0.5 block text-xs text-tinta/55">{recepcion.sub}</span>
+                      <span className="mt-0.5 block text-xs text-tinta/70">{recepcion.sub}</span>
                       {/* Repartido entre varias tiendas (ADR-0139): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
                       {c.ubicacionesDestino.length > 1 && (
-                        <span className="mt-0.5 block text-xs text-tinta/55">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
+                        <span className="mt-0.5 block text-xs text-tinta/70">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
                       )}
                       {/* Avance real de lo recibido: solo si hay recepción parcial (`pct` es null si no). */}
                       <AvanceFino pct={recepcion.pct} />
@@ -281,7 +281,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       <Chip tono={pago.tono} vivo={pago.tono === "rojo"}>
                         {pago.texto}
                       </Chip>
-                      <span className="mt-0.5 block text-xs tabular-nums text-tinta/55">{pago.sub}</span>
+                      <span className="mt-0.5 block text-xs tabular-nums text-tinta/70">{pago.sub}</span>
                       <AvanceFino pct={pago.pct} />
                       {/* Junto al saldo: lo que el proveedor todavía debe acreditar por un faltante cerrado. */}
                       <ChipNotaPendiente nota={notas[c.id]} saldo={c.saldo} className="mt-1" />

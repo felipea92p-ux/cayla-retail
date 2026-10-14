@@ -154,7 +154,7 @@
   .buscador input::-webkit-search-cancel-button { display: none; }
   .buscador-atajo {
     pointer-events: none; margin-right: 6px; border-radius: 5px; border: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent);
-    padding: 0 6px; font-size: 10.5px; line-height: 18px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 55%, transparent);
+    padding: 0 6px; font-size: 10.5px; line-height: 18px; font-weight: 600; color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
     transition: opacity 200ms;
   }
   .buscador:focus-within .buscador-atajo, .buscador[data-con-texto] .buscador-atajo { opacity: 0; }

@@ -215,7 +215,8 @@
     letter-spacing: 0.13em;
     text-transform: uppercase;
     line-height: 1;
-    color: color-mix(in srgb, var(--color-tinta) 60%, transparent);
+    /* Al 70 %: al 60 % daba 4,1:1 sobre la caja arena (auditoría de contraste, 2026-10-14). */
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
     white-space: nowrap;
     text-decoration: none;
     cursor: pointer;

@@ -391,8 +391,11 @@
     text-decoration: line-through;
     font-weight: 500;
   }
+  /* Una fila que ya pasó, cerrada o archivada se atenúa sin dejar de leerse: su texto baja a tinta al 70 % y lo que trae color
+     propio (el chip, lo tenue en taupe) lo conserva. Con `opacity: 0.6` todo bajaba de 4,5:1 y el «pasó» del chip quedaba en
+     2,3:1 (auditoría de contraste, 2026-10-14). */
   .fin-tabla tr.fin-suave td {
-    opacity: 0.6;
+    color: color-mix(in srgb, var(--color-tinta) 70%, transparent);
   }
   .fin-tabla input.fin-control {
     min-height: 32px;

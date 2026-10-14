@@ -134,7 +134,7 @@ export default async function CategoriasPage() {
             no hereda la del padre.
           </Ayuda>
         </h1>
-        <p className="mt-1 text-xs text-tinta/55">
+        <p className="mt-1 text-xs text-tinta/70">
           {totalCategorias.toLocaleString("es-PE")} {totalCategorias === 1 ? "categoría activa" : "categorías activas"}
           {totalSubcategorias > 0 && ` (${totalSubcategorias.toLocaleString("es-PE")} ${totalSubcategorias === 1 ? "subcategoría" : "subcategorías"})`} ·{" "}
           {totalProductos.toLocaleString("es-PE")} {totalProductos === 1 ? "producto activo clasificado" : "productos activos clasificados"}

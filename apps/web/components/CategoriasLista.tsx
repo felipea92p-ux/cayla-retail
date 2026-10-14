@@ -700,7 +700,7 @@ export function CategoriasLista({
                 {ejesDraft.tallaIds.length > 0 && (
                   <div className="mt-3">
                     <p className="label-cayla text-[11px] text-tinta/65">Curva habitual</p>
-                    <p className="mt-0.5 text-xs text-tinta/60">Las que vienen marcadas de antemano al crear un producto de esta categoría.</p>
+                    <p className="mt-0.5 text-xs text-tinta/70">Las que vienen marcadas de antemano al crear un producto de esta categoría.</p>
                     <div className="mt-1.5">
                       <SelectorMultiple
                         opciones={universo.tallas.filter((v) => ejesDraft.tallaIds.includes(v.id)).map((v) => ({ valor: v.id, texto: v.texto }))}
@@ -744,7 +744,7 @@ export function CategoriasLista({
 
                 )}
               </div>
-              {puedeEditar && <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>}
+              {puedeEditar && <p className="text-xs text-tinta/70">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>}
             </div>
           )}
 
@@ -788,9 +788,9 @@ export function CategoriasLista({
             {desactivadasVisibles.map((c) => (
               <span
                 key={c.id}
-                className="flex items-center gap-2 rounded-lg border border-tinta/10 bg-papel py-1.5 pl-2 pr-3 text-sm text-tinta/60"
+                className="flex items-center gap-2 rounded-lg border border-tinta/10 bg-papel py-1.5 pl-2 pr-3 text-sm text-tinta/70"
               >
-                <span className="rounded bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/50">{c.prefijo ?? "—"}</span>
+                <span className="rounded bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
                 {c.nombre}
                 {/* Sin familia o sin prefijo no hay nada que reactivar: quedaría activa, sin código y fuera de toda
                     sección. La base lo rechaza igual (`fn_categorias_vigencia_candados`); acá no se ofrece el botón. */}
@@ -849,7 +849,7 @@ function TarjetaCategoria({
       detalle={
         <>
           <p className="text-xs tabular-nums text-tinta/65">
-            <span className="mr-1.5 font-mono text-[10.5px] font-semibold text-tinta/55">{c.prefijo ?? "—"}</span>
+            <span className="mr-1.5 font-mono text-[10.5px] font-semibold text-tinta/70">{c.prefijo ?? "—"}</span>
             {subcategorias > 0 ? `${subcategorias} sub · ` : ""}
             {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
           </p>
@@ -922,7 +922,7 @@ function VistaRapidaCategoria({
             <span className="text-sm text-tinta">
               {productos === 0 ? "Sin productos todavía" : `${productos} ${productos === 1 ? "producto activo" : "productos activos"}`}
             </span>
-            <span className="label-cayla text-[10px] text-tinta/55 group-hover:text-rojo">{/* unificar-fijo: el rótulo de una tarjeta que ya es enlace (no se anida un <EnlaceVer> en un <Link>) */}Ver en Productos →</span>
+            <span className="label-cayla text-[10px] text-tinta/70 group-hover:text-rojo">{/* unificar-fijo: el rótulo de una tarjeta que ya es enlace (no se anida un <EnlaceVer> en un <Link>) */}Ver en Productos →</span>
           </Link>
 
           {padre && (
@@ -933,7 +933,7 @@ function VistaRapidaCategoria({
 
           {hijas.length > 0 && (
             <div>
-              <p className="label-cayla text-[10.5px] text-tinta/55">Subcategorías</p>
+              <p className="label-cayla text-[10.5px] text-tinta/70">Subcategorías</p>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {hijas.map((h) => (
                   <button
@@ -958,9 +958,9 @@ function VistaRapidaCategoria({
 
           {temporada && (
             <div data-guia="categorias.vista-temporada">
-              <p className="label-cayla text-[10.5px] text-tinta/55">Temporada por defecto</p>
+              <p className="label-cayla text-[10.5px] text-tinta/70">Temporada por defecto</p>
               <p className="mt-1 text-sm text-tinta">{temporada.nombre ?? "Sin temporada"}</p>
-              <p className="mt-0.5 text-xs text-tinta/60">
+              <p className="mt-0.5 text-xs text-tinta/70">
                 La heredan sus prendas que no tienen la suya.
                 {puedeEditar && (
                   <>
@@ -976,7 +976,7 @@ function VistaRapidaCategoria({
 
           {categoria.notas && (
             <div>
-              <p className="label-cayla text-[10.5px] text-tinta/55">Notas internas</p>
+              <p className="label-cayla text-[10.5px] text-tinta/70">Notas internas</p>
               <p className="mt-1 text-xs text-tinta/70">{categoria.notas}</p>
             </div>
           )}
@@ -999,7 +999,7 @@ function GrupoEjes({ titulo, valores, marcados }: { titulo: string; valores: Val
   const hayMarcados = !!marcados && marcados.length > 0;
   return (
     <div>
-      <p className="label-cayla text-[10.5px] text-tinta/55">{titulo}{hayMarcados && " · ✓ = curva habitual"}</p>
+      <p className="label-cayla text-[10.5px] text-tinta/70">{titulo}{hayMarcados && " · ✓ = curva habitual"}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {valores.map((v) => (
           <Chip key={v.id} tono="neutro">
