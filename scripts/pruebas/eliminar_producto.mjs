@@ -327,6 +327,10 @@ select pg_temp.huella(:'va');`);
     "precios_sede_prenda",
     // ADR-0362 fase 4: lo que una sede contó al recibir un envío de orden de compra (talla por talla) es historia de la prenda.
     "despacho_recibidos",
+    // ADR-0408: una prenda que un cliente pidió por la web (con su precio, y quizá su pago) es historia: frena el borrado aunque
+    // nunca haya movido stock (se puede separar algo que está por conseguir). Las líneas no se borran (pedido_web_lineas_sin_borrar);
+    // hoy la frena su llave a variantes con el aviso genérico. Que `fn_producto_se_puede_eliminar` lo diga con nombre es pendiente.
+    "pedido_web_lineas",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.

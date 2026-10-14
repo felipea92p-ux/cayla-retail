@@ -162,6 +162,11 @@ const DEL_SERVIDOR = ["fn_club_anonimizar_inactivas", "registrarse_en_el_club"];
 // para mandarle la boleta, SOLO si no tenía uno. Con el candado del módulo, como las demás (la prueba a fondo es
 // scripts/pruebas/agregar_celular_clienta.mjs).
 const DEL_COBRO = ["agregar_celular_clienta"];
+// Las de los pedidos web (ADR-0408, 20261014235000) que muestran al cliente de un pedido: el detalle y la lista de una tienda.
+// Con el candado de SU módulo, `pedidos_web` (`fn_pedido_web_exigir`), como las de Avisos: quien atiende el pedido ve solo lo que
+// necesita para coordinarlo por WhatsApp —nombre, celular, el DNI a medias (••••1234) y si es del club, como la maqueta
+// aprobada—, nunca la ficha entera. Las prueba a fondo scripts/pruebas/pedidos_web_motor.mjs.
+const DE_PEDIDOS_WEB = ["fn_pedido_web", "fn_pedidos_web_sede"];
 
 // Seed local: Felipe (líder y admin), Micaela (integrante de Trujillo, con Clientas por su rol).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
@@ -659,9 +664,15 @@ caso(
 // «DECIDÍ»): el id solo sale de buscar_clienta, que sí lo exige, y exigirlo aquí haría fallar una venta entera encolada sin
 // conexión si al rol le quitaron el módulo en el camino.
 const LISTA_BLANCA = ["fn_ventas_del_dia", "separar_prendas", "bajar_al_piso", "retirar_del_piso", "fn_aplicar_movimiento", "fn_conciliacion_contable", "registrar_venta"];
+// Y desde los pedidos web (ADR-0408, 20261014235000), tres que nombran la ficha sin ser una puerta a ella: crear_pedido_web solo
+// pregunta si la ficha existe y no está archivada (como separar_prendas); fn_pedidos_web_de_clienta devuelve los PEDIDOS de una
+// ficha («Mis pedidos»), sin ninguna columna de ella; y fn_pedido_web_reglas (el disparador del pedido) solo lee fusionada_en_id
+// para dejar que el pedido siga a su ficha cuando se une a otra. Las dos primeras no las ejecuta nadie de la API.
+LISTA_BLANCA.push("crear_pedido_web", "fn_pedidos_web_de_clienta", "fn_pedido_web_reglas");
 /** La condición del vigilante: sin el candado del módulo (en el código, no en un comentario), salvo las de la página. */
 const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.proname not in (${[...DE_LA_PAGINA, ...DEL_SERVIDOR].map((n) => `'${n}'`).join(", ")})
-  and not (x.proname in (${DE_AVISOS.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''avisos_club''\\)')`;
+  and not (x.proname in (${DE_AVISOS.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''avisos_club''\\)')
+  and not (x.proname in (${DE_PEDIDOS_WEB.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_pedido_web_exigir\\(')`;
 const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' order by x.proname), 'ninguna')
   from (select p.proname, ${SIN_COMENTARIOS} as src, pg_get_function_result(p.oid) as retorna
           from pg_proc p
@@ -670,9 +681,9 @@ const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' orde
  where (x.proname ~ 'clienta' or x.retorna ~* 'clientas' or x.src ~* '(\\mclientas\\M|telefono_whatsapp|whatsapp_consentimiento_en|cumple_dia|cumple_mes)')
    and ${condicion};\n`;
 caso(
-  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g y la 1 del cobro (agregar_celular_clienta), y todas llevan el candado del módulo salvo las 2 de la página y las 2 del servidor (las de Avisos, el de su módulo)",
+  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g, la 1 del cobro (agregar_celular_clienta) y las 2 de los pedidos web, y todas llevan el candado del módulo salvo las 2 de la página y las 2 del servidor (las de Avisos y las de los pedidos web, el de su módulo)",
   VIGILANTE("true") + VIGILANTE(SIN_EL_CANDADO),
-  `${[...LAS_11, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO].sort().join(",")}\nninguna`
+  `${[...LAS_11, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_PEDIDOS_WEB].sort().join(",")}\nninguna`
 );
 caso(
   "(5) el vigilante muerde: una función NUEVA que devuelve el DNI sin el candado (o con el candado solo en un comentario) sale nombrada",
