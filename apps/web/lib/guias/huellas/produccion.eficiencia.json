@@ -5,7 +5,7 @@
   "total": 3,
   "controles": {
     "components/EficienciaTallerPanel.tsx": [
-      "Pestanas «Producción»",
+      "Pestanas «(sin nombre)»",
       "button «{p.ventana.etiqueta}»",
       "Link «el Resumen»"
     ]

@@ -21,6 +21,7 @@ import {
 import type { InsumoVista, InsumosDelTaller } from "@/lib/insumos";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Insumos del Taller (ADR-0133, F3): tela y avíos. Lo que hay por lote, cuánto dura y qué falta. El saldo es la suma del
 // ledger, nunca un número que alguien edite; por eso el libro de movimientos solo se agrega, no se corrige. Quien no es
@@ -31,7 +32,7 @@ const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno
 const TONO_ESTADO: Record<EstadoInsumo["tono"], TonoChip> = { sin_saldo: "rojo", bajo: "ambar", bien: "verde", sin_minimo: "neutro" };
 const COLOR_RIEL: Record<EstadoInsumo["tono"], string> = { sin_saldo: "bg-rojo", bajo: "bg-ambar", bien: "bg-verde", sin_minimo: "bg-tinta/40" };
 
-export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTaller; tallerId: string; esLider: boolean }) {
+export function InsumosPanel({ datos, tallerId, esLider, sede }: { datos: InsumosDelTaller; tallerId: string; esLider: boolean; /** La sede de la línea de arriba de la cabecera (el Taller). */ sede: string }) {
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
   const [nuevo, setNuevo] = useState(false);
   const [ingresando, setIngresando] = useState<{ insumoId: string | null } | null>(null);
@@ -42,26 +43,24 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
 
   return (
     <div className="space-y-6">
-      {/* Cabecera del spike: el título a la izquierda y las acciones arriba a la derecha. */}
-      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Insumos</h1>
-          <p className="mt-1 max-w-xl text-sm text-tinta/65">
-            Tela y avíos del Taller: lo que hay por lote, cuánto dura y qué pedir. El saldo siempre es la suma de sus movimientos.
-          </p>
-        </div>
-        {esLider && (
-          <div className="flex flex-wrap gap-2">
-            <Boton peso="fantasma" data-guia="prod-insumos.nuevo" onClick={() => setNuevo(true)}>
-              + Nuevo insumo
-            </Boton>
-            <Boton peso="primario" data-guia="prod-insumos.ingresar" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
-              Ingresar insumo
-            </Boton>
-          </div>
-        )}
-      </div>
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Insumos"
+        subtitulo="Tela y avíos del Taller: lo que hay por lote, cuánto dura y qué pedir. El saldo siempre es la suma de sus movimientos."
+        acciones={
+          esLider && (
+            <>
+              <Boton peso="fantasma" data-guia="prod-insumos.nuevo" onClick={() => setNuevo(true)}>
+                + Nuevo insumo
+              </Boton>
+              <Boton peso="primario" data-guia="prod-insumos.ingresar" onClick={() => setIngresando({ insumoId: null })} disabled={insumos.length === 0}>
+                Ingresar insumo
+              </Boton>
+            </>
+          )
+        }
+      />
 
       {/* ==================== cifras ==================== */}
       <div data-guia="prod-insumos.cifras" className={`grid gap-3 sm:grid-cols-2 ${esLider ? "xl:grid-cols-3" : ""}`}>
