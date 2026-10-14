@@ -96,8 +96,6 @@ export function tituloDeExitoRetiro(unidades: number): string {
   return unidades === 1 ? "1 prenda subida al almacén" : `${unidades} prendas subidas al almacén`;
 }
 
-export const TEXTO_YA_ESTABA_SUBIDA = "Esta subida ya estaba registrada. No se repitió.";
-
 /** Lo que Existencias va a decir de una talla que se quede sin ninguna colgada (y que el piso pide: del centro o vendida ayer u
  *  hoy): se avisa ANTES de confirmar (ADR-0208, bloque 3). Decía «las que queden con poco» hasta que «Por reponer» se fundió en
  *  «Por colgar» (basta 1 por color: lo único que vuelve a pedir bajar es quedarse sin ninguna). */

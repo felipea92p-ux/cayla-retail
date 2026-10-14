@@ -342,7 +342,7 @@ export function CajaAbiertaPanel({
                     onClick={() => setFiltroMov(elegirMetodo(filtroMov, clave))}
                     className="pildora-cayla"
                   >
-                    <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: METODO_RITMO[clave].color }} />
+                    <span aria-hidden className={`h-2 w-2 rounded-full ${filtroMov.metodo === clave ? ARO_PUNTO_ELEGIDO : ""}`} style={{ background: METODO_RITMO[clave].color }} />
                     {METODO_RITMO[clave].texto}
                     <span className="pildora-cayla__n">{ventas}</span>
                   </button>
@@ -649,6 +649,9 @@ function EstadoSync({ pendientes }: { pendientes: number }) {
     </span>
   );
 }
+
+// El QR se pinta en tinta, igual que la píldora elegida: sin este aro (del color del texto de la píldora) su punto desaparecería.
+const ARO_PUNTO_ELEGIDO = "ring-1 ring-current";
 
 // Cada método con su etiqueta y su color: los mismos de la dona (`ETIQUETA_METODO`), una sola fuente.
 // "otro" no tiene color de dato propio y cae al taupe neutro, como ya hace `colorDeMetodo`.

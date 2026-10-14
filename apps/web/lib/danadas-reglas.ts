@@ -50,9 +50,6 @@ export function libreEn(t: TallaReportable | null, desde: DesdeDanada | null): n
   return desde === "piso" ? t.piso : t.almacen;
 }
 
-/** ¿Hay algo que reportar en esta talla? (libre en el piso o en el almacén). */
-export const tieneAlgoLibre = (t: TallaReportable) => t.piso + t.almacen > 0;
-
 /**
  * Dónde estaba: entra elegido solo si es el ÚNICO lugar posible. Con piso y almacén a la vez, la persona lo dice: el sistema no
  * sabe de dónde la sacó, y un lugar marcado de fábrica descuadraría el piso (ADR-0328, decisión técnica 3, el mismo motivo).
@@ -220,7 +217,6 @@ export function tituloExitoArreglo(unidades: number): string {
   return unidades === 1 ? "Volvió al almacén" : `${unidades} prendas volvieron al almacén`;
 }
 
-export const TEXTO_REPORTE_YA_ESTABA = "Este reporte ya estaba guardado. No se repitió.";
 export const TEXTO_ARREGLO_YA_ESTABA = "Esta prenda ya había vuelto al almacén. No se repitió.";
 
 const DESTINOS_DE_DANADAS = "En el sistema pasa a Dañadas y el líder decide si se arregla y vuelve, se liquida, se bota o se dona.";

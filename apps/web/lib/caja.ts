@@ -260,7 +260,7 @@ const COLUMNA_INEXISTENTE = "42703";
 
 /**
  * Historial de cajas ya cerradas, más recientes primero. Sin filtro de ubicación a
- * propósito — mismo criterio que Facturación (`getVentasDeHoy`): mientras "control
+ * propósito — mismo criterio que las ventas del día (`fn_ventas_del_dia`): mientras "control
  * total temporal" (0012_control_total_temporal.sql) siga vigente, cualquiera puede
  * operar cualquier sede y `cajas_select` ya deja ver todas; filtrar acá sería una
  * frontera que la base no hace cumplir. Cada fila lleva el nombre de la sede para

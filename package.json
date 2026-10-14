@@ -8,6 +8,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck --continue",
     "test": "turbo run test",
+    "knip": "knip",
     "migraciones:verificar": "node scripts/migraciones/verificar.mjs",
     "migraciones:versiones": "node scripts/migraciones/versiones.mjs",
     "migraciones:sin-drop-trigger": "node scripts/migraciones/sin-drop-trigger.mjs",
@@ -250,6 +251,7 @@
     "carga:correr": "node scripts/carga/carga.mjs correr"
   },
   "devDependencies": {
+    "knip": "^6.41.0",
     "turbo": "^2.5.0",
     "typescript": "^5.6.0"
   }

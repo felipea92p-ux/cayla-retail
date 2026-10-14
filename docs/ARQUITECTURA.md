@@ -1110,8 +1110,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `lib/devoluciones-reglas.ts`. `?item=` abre el flujo sobre una prenda (desde y hacia Cambios).
 - `/clientas` (2026-09-22, ADR-0154, D-76/D-77; paso 2 del acta CONSTRUIDO 2026-09-27,
   ADR-0249, **migraciones `20260928140000` a `180000` sin pegar en producción** — el nodo
-  `clientas` del menú pasó de `futura` a `viva`) → `lib/clientas.ts:getClientas`/
-  `getFichaClienta` (lectura server) → `ClientasPanel.tsx` (lista + buscador + alta) +
+  `clientas` del menú pasó de `futura` a `viva`) → `lib/clientas.ts:getListaClientas`
+  (lectura server; la ficha la lee el navegador, `cargarFichaClienta`) → `ClientasPanel.tsx` (lista + buscador + alta) +
   `ClientaFichaModal.tsx` (ver/editar/archivar/unir, `<Modal variante="hoja">`) +
   `NuevaClientaModal.tsx` → `lib/clientas-acciones.ts` → RPC `buscar_clienta`,
   `registrar_clienta`, `editar_clienta` (documento con tipo: `p_documento_tipo` + `p_documento_numero`, ADR-0288; al fijar el documento ligan sus compras anteriores con `fn_ligar_ventas_por_documento`; candado optimista `version`, ADR-0193 reusado),

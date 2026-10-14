@@ -30,9 +30,6 @@ export const TEXTO_RAZON: Record<RazonSeProbo, string> = {
   lo_piensa: "Lo piensa",
 };
 
-/** El toque opcional que aparece en Cobrar al quitar una prenda del ticket (ADR-0288 D-6). */
-export const PREGUNTA_SE_PROBO = "¿Se la probó y no la llevó?";
-
 /** Las razones en el orden en que se muestran, listas para chips o un combo. */
 export const OPCIONES_RAZON: readonly { valor: RazonSeProbo; texto: string }[] = RAZONES_SE_PROBO.map((valor) => ({
   valor,

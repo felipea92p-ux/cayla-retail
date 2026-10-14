@@ -44,7 +44,6 @@ test("tieneCampos: un control en JSX cuenta; un comentario o un texto no", () =>
 
 test("tieneGuia: cuenta el USO de las piezas, no clases ni nombres parecidos", () => {
   assert.equal(tieneGuia("<FaltanDelPaso faltan={f} />"), true);
-  assert.equal(tieneGuia("<TiraFicha pendientes={p} />"), true);
   assert.equal(tieneGuia("<EtiquetaAhora />"), true);
   assert.equal(tieneGuia("const g = useGuiaAlta();"), true);
   assert.equal(tieneGuia("irAlIdCampo(id)"), true);

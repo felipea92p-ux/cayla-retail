@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -30,7 +30,18 @@ import { Aviso } from "@/components/ui/Aviso";
    Los errores se dicen en el mismo modal, con la frase de `traducirError`: un rechazo por el responsable (asistencia)
    o por un conteo que otro ya cerró se lee y se corrige sin salir de la hoja.
    ==================================================================== */
-export function CancelarConteoModal({ conteoId, numero, onClose }: { conteoId: string; numero: number; onClose: () => void }) {
+export function CancelarConteoModal({
+  conteoId,
+  numero,
+  onClose,
+  alCerrarEnfocar,
+}: {
+  conteoId: string;
+  numero: number;
+  onClose: () => void;
+  /** El botón que lo abrió: al cerrar, el foco vuelve ahí (`<Modal alCerrarEnfocar>`). */
+  alCerrarEnfocar?: RefObject<HTMLElement | null>;
+}) {
   const router = useRouter();
   // El responsable se eligió al abrir el conteo: cancelar lo reutiliza y solo pregunta si ya no hay uno vigente.
   const responsable = useResponsable(undefined, { recordarEn: claveResponsableConteo(conteoId) });
@@ -58,7 +69,7 @@ export function CancelarConteoModal({ conteoId, numero, onClose }: { conteoId: s
   }
 
   return (
-    <Modal titulo={`¿Cancelar el conteo ${numero}?`} subtitulo="Se pierde lo contado. Las existencias no cambian." ancho="max-w-md" bloqueado={cancelando} onClose={onClose}>
+    <Modal titulo={`¿Cancelar el conteo ${numero}?`} subtitulo="Se pierde lo contado. Las existencias no cambian." ancho="max-w-md" bloqueado={cancelando} onClose={onClose} alCerrarEnfocar={alCerrarEnfocar}>
       {(cerrar) => (
         <div className="space-y-4">
           {!responsable.listo && <ComboResponsable control={responsable} deshabilitado={cancelando} />}
