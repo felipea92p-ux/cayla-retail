@@ -174,6 +174,12 @@ export const PRUEBAS = [
   // campaña vigente. ROLLBACK.
   "pruebas:tienda-puerta",
 
+  // La Vitrina web y el catálogo de la tienda online (ADR-0408, actividad 3): el módulo nace sin rol y sin él no se lee ni guarda;
+  // el precio web nunca bajo el costo, la versión frena a la segunda persona, los lotes son todo o nada y cada cambio deja su
+  // línea en la Actividad; `tienda_catalogo` (solo de `tienda_web`) da solo lo publicado, con el precio de campaña de la caja
+  // (ADR-0403) sobre el precio web, sus colores activos y las fotos del almacén público. ROLLBACK.
+  "pruebas:vitrina-web",
+
   // Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
   // La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.
   "pruebas:redondeo-efectivo",

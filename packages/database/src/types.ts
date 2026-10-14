@@ -5821,6 +5821,27 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: Json
       }
+      // Vitrina web (ADR-0408, actividad 3; 20261014225000).
+      fn_vitrina_modelos: { Args: never; Returns: Json }
+      vitrina_guardar_modelo: {
+        Args: {
+          p_producto_id: string
+          p_publicado: boolean
+          p_precio_web: number
+          p_en_lo_nuevo: string
+          p_descripcion_web: string | null
+          p_version: number | null
+        }
+        Returns: Json
+      }
+      vitrina_mostrar: {
+        Args: { p_producto_ids: string[]; p_publicado: boolean }
+        Returns: Json
+      }
+      vitrina_cambiar_precios: {
+        Args: { p_cambios: Json }
+        Returns: Json
+      }
       unirse_al_club: {
         Args: {
           p_clienta_id: string

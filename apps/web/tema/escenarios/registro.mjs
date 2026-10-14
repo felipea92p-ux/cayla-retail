@@ -1173,6 +1173,34 @@ ESCENARIOS.push(
   { id: "etiquetas.previa", ruta: "/etiquetas-de-precio", cuentas: ["admin"], abre: "input[aria-label^='Etiquetas de']", nombre: "Etiquetas de precio · la vista previa (papel fijo)", preparar: async (pagina) => { await irA(`/etiquetas-de-precio?producto=${idDeProductoCualquiera()}`)(pagina); await esperar(pagina, 2500); } },
 );
 
+// Catálogo ▸ Vitrina web (ADR-0408, actividad 3): la hoja de un modelo y la del lote (se elige el primer modelo de la lista).
+ESCENARIOS.push(
+  {
+    id: "vitrina.hoja-modelo",
+    ruta: "/productos/vitrina",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Vitrina web · la hoja de un modelo (precio web, Lo nuevo y lo que ve el cliente)",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="vitrina.abrir"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+  {
+    id: "vitrina.lote-precio",
+    ruta: "/productos/vitrina",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Vitrina web · cambiar el precio web de los elegidos",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="vitrina.casilla"] input').first().check({ timeout: 8000 });
+      await esperar(pagina, 600);
+      await pagina.locator('[data-guia="vitrina.lote-precio"]').click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+);
+
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
 // Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
 ESCENARIOS.push(

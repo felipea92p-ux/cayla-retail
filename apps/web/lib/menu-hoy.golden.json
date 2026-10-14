@@ -127,6 +127,11 @@
         "icono": "productos"
        },
        {
+        "etiqueta": "Vitrina web",
+        "href": "/productos/vitrina",
+        "icono": "vitrina"
+       },
+       {
         "etiqueta": "Categorías",
         "href": "/productos/categorias",
         "icono": "categorias"
@@ -321,6 +326,11 @@
         "etiqueta": "Productos",
         "href": "/productos",
         "icono": "productos"
+       },
+       {
+        "etiqueta": "Vitrina web",
+        "href": "/productos/vitrina",
+        "icono": "vitrina"
        },
        {
         "etiqueta": "Categorías",
@@ -581,6 +591,11 @@
         "etiqueta": "Productos",
         "href": "/productos",
         "icono": "productos"
+       },
+       {
+        "etiqueta": "Vitrina web",
+        "href": "/productos/vitrina",
+        "icono": "vitrina"
        },
        {
         "etiqueta": "Categorías",
@@ -844,6 +859,11 @@
         "etiqueta": "Productos",
         "href": "/productos",
         "icono": "productos"
+       },
+       {
+        "etiqueta": "Vitrina web",
+        "href": "/productos/vitrina",
+        "icono": "vitrina"
        },
        {
         "etiqueta": "Categorías",
@@ -1197,6 +1217,11 @@
         "icono": "productos"
        },
        {
+        "etiqueta": "Vitrina web",
+        "href": "/productos/vitrina",
+        "icono": "vitrina"
+       },
+       {
         "etiqueta": "Categorías",
         "href": "/productos/categorias",
         "icono": "categorias"
@@ -1408,6 +1433,11 @@
         "etiqueta": "Productos",
         "href": "/productos",
         "icono": "productos"
+       },
+       {
+        "etiqueta": "Vitrina web",
+        "href": "/productos/vitrina",
+        "icono": "vitrina"
        },
        {
         "etiqueta": "Categorías",
@@ -1707,6 +1737,11 @@
         "icono": "productos"
        },
        {
+        "etiqueta": "Vitrina web",
+        "href": "/productos/vitrina",
+        "icono": "vitrina"
+       },
+       {
         "etiqueta": "Categorías",
         "href": "/productos/categorias",
         "icono": "categorias"
@@ -1980,6 +2015,11 @@
         "etiqueta": "Productos",
         "href": "/productos",
         "icono": "productos"
+       },
+       {
+        "etiqueta": "Vitrina web",
+        "href": "/productos/vitrina",
+        "icono": "vitrina"
        },
        {
         "etiqueta": "Categorías",
@@ -2257,6 +2297,11 @@
         "icono": "productos"
        },
        {
+        "etiqueta": "Vitrina web",
+        "href": "/productos/vitrina",
+        "icono": "vitrina"
+       },
+       {
         "etiqueta": "Categorías",
         "href": "/productos/categorias",
         "icono": "categorias"
@@ -2451,6 +2496,11 @@
         "etiqueta": "Productos",
         "href": "/productos",
         "icono": "productos"
+       },
+       {
+        "etiqueta": "Vitrina web",
+        "href": "/productos/vitrina",
+        "icono": "vitrina"
        },
        {
         "etiqueta": "Categorías",
@@ -2711,6 +2761,11 @@
         "etiqueta": "Productos",
         "href": "/productos",
         "icono": "productos"
+       },
+       {
+        "etiqueta": "Vitrina web",
+        "href": "/productos/vitrina",
+        "icono": "vitrina"
        },
        {
         "etiqueta": "Categorías",
@@ -2974,6 +3029,11 @@
         "etiqueta": "Productos",
         "href": "/productos",
         "icono": "productos"
+       },
+       {
+        "etiqueta": "Vitrina web",
+        "href": "/productos/vitrina",
+        "icono": "vitrina"
        },
        {
         "etiqueta": "Categorías",
