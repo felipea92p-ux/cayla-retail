@@ -336,7 +336,7 @@ export function EnviarOrdenASede({ orden, sedes, sede }: Props) {
               {error.texto}
             </Aviso>
           )}
-          <div className="flex flex-wrap justify-end gap-2.5">
+          <div className="pie-acciones">
             <BotonEnlace href="/compras/ordenes">Cancelar</BotonEnlace>
             <Boton type="submit" peso="primario" cargando={guardando} disabled={enviado} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
               {enviado ? "Enviado" : guardando ? "Enviando…" : "Enviar"}

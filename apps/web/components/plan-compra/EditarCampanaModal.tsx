@@ -197,7 +197,7 @@ export function EditarCampanaModal({
 
           <div className="pie-hoja-fijo">
             <PieGuia guia={guia} listo={cambio ? "Todo listo para guardar." : "Sin cambios todavía."} />
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="pie-acciones pt-2">
               <Boton type="button" onClick={() => salida.pedirAccion(cerrar)}>
                 Cancelar
               </Boton>
