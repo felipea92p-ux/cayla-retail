@@ -15,6 +15,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { borradorCambia, problemaEdicionMarca, sePuedeQuitar, sinTildes, type BorradorMarca, type ProveedorOpcion } from "@/lib/marcas";
 import type { MarcaFila } from "@/components/MarcasLista";
 import { Aviso } from "@/components/ui/Aviso";
+import { MAX_NOMBRE_MARCA } from "@/lib/catalogo-topes";
 
 /**
  * Catálogo ▸ Marcas ▸ Editar (Felipe, 2026-09-25): el nombre y quién la trae en UNA ventana y UN guardado
@@ -112,6 +113,7 @@ export function EditarMarcaModal({
           <CampoGuiado id="nombre" guia={guia}>
             <CampoTexto
               etiqueta={guia.etiqueta("nombre", "Nombre de la marca")}
+              maxLength={MAX_NOMBRE_MARCA}
               value={nombre}
               onChange={(e) => cambiar(() => setNombre(e.target.value))}
               disabled={guardando}
