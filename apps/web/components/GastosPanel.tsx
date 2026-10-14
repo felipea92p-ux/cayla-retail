@@ -20,9 +20,13 @@ import { hoyLima } from "@/lib/fechas-lima";
 import {
   TEXTO_ESTADO_GASTO,
   TEXTO_NO_GASTO,
+  bajadaIgvDelMes,
   estadoGasto,
   fechaCorta,
+  igvBajoElMonto,
+  igvDelGasto,
   mesesRecientes,
+  notaIgvPerdido,
   papelDelGasto,
   papelEnUnaLinea,
   puedeAnular,
@@ -30,6 +34,7 @@ import {
   resumenFijos,
   solesRedondo,
   sugerenciaParaEgreso,
+  textoIgvPerdido,
   textoMes,
   textoPago,
   validarGasto,
@@ -179,8 +184,9 @@ export function GastosPanel({
         <TarjetaCifra etiqueta="Gastado en el mes" valor={panel ? solesRedondo(panel.total) : null} noSePudoLeer={!panel} {...entra(1)}>
           {panel ? `${panel.n} ${panel.n === 1 ? "gasto vigente" : "gastos vigentes"} · ${nombreCorto}` : "Sin datos"}
         </TarjetaCifra>
-        <TarjetaCifra etiqueta="IGV que puedes descontar" valor={panel ? solesRedondo(panel.igv) : null} noSePudoLeer={!panel} {...entra(2)}>
-          {panel ? `Solo de facturas. ${panel.boletas} ${panel.boletas === 1 ? "boleta" : "boletas"} sin IGV descontable.` : ""}
+        {/* ADR-0362, fase 6 (decisión 76): lo perdido por pagar sin banco se resta en el mes del pago, como Impuestos. */}
+        <TarjetaCifra etiqueta="IGV que puedes descontar" valor={panel ? solesRedondo(panel.igvDescontable) : null} noSePudoLeer={!panel} {...entra(2)}>
+          {panel ? bajadaIgvDelMes(panel) : ""}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Por pagar de gastos" tono={panel?.porPagar ? "text-ambar" : undefined} valor={panel ? solesRedondo(panel.porPagar) : null} noSePudoLeer={!panel} {...entra(3)}>
           {panel ? (panel.nPorPagar ? `${panel.nPorPagar} con factura a crédito` : "Nada a crédito") : ""}
@@ -410,6 +416,7 @@ function TablaGastos({
                   const e = TEXTO_ESTADO_GASTO[estadoGasto(g)];
                   const pago = textoPago(g, (iso) => fechaCorta(iso));
                   const papel = papelDelGasto(g);
+                  const igvFila = igvBajoElMonto(g);
                   return (
                     <tr
                       key={g.id}
@@ -443,7 +450,13 @@ function TablaGastos({
                       </td>
                       <td className="fin-num" data-l="Monto">
                         <b>{soles(g.montoTotal)}</b>
-                        {g.igv > 0 && <span className="fin-sub">IGV {soles(g.igv)}</span>}
+                        {igvFila && (
+                          <span className="fin-sub">
+                            {igvFila.igv}
+                            {igvFila.igv && igvFila.perdido && " · "}
+                            {igvFila.perdido && <span className="text-ambar-profundo">{igvFila.perdido}</span>}
+                          </span>
+                        )}
                       </td>
                       <td data-l="Estado">
                         <Chip tono={e.tono}>{e.texto}</Chip>
@@ -496,6 +509,10 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
 
   const pendiente = g.compraId && g.estado === "vigente" && (g.saldo ?? 0) > 0;
   const bajada = [g.ubicacionNombre ?? "De la empresa", fechaCorta(g.fecha, true), papelEnUnaLinea(g), g.proveedorNombre].filter(Boolean).join(" · ");
+  // ADR-0362, fase 6 (decisión 76): el IGV que se perdió por pagar sin banco no se llama «descontable».
+  const igv = igvDelGasto(g);
+  const perdido = textoIgvPerdido(g);
+  const notaPerdido = notaIgvPerdido(g);
 
   if (anulando) {
     return (
@@ -535,7 +552,12 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
         guia="fin-gastos.detalle"
         filas={[
           { dato: "Total", valor: soles(g.montoTotal) },
-          { dato: "IGV descontable", valor: soles(g.igv) },
+          { dato: "IGV descontable", valor: soles(igv.descontable) },
+          // El valor puede ser largo («… · 3 pagos en efectivo (3 oct, 9 oct y 14 oct)»): se parte en renglones en vez de salirse de la
+          // hoja (a 375 px se cortaba), y el título no se parte.
+          ...(perdido
+            ? [{ dato: <span className="whitespace-nowrap">IGV perdido</span>, valor: <span className="whitespace-normal text-ambar-profundo">{perdido}</span> }]
+            : []),
           { dato: "Pago", valor: pendiente ? `A crédito, vence ${fechaCorta(g.fechaVencimiento)}` : textoPago(g, (iso) => fechaCorta(iso)) },
           ...(pendiente && g.saldo !== g.montoTotal ? [{ dato: "Falta pagar", valor: soles(g.saldo ?? 0) }] : []),
           { dato: "Estado", valor: <Chip tono={e.tono}>{e.texto}</Chip> },
@@ -543,6 +565,7 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
           ...(g.motivoAnulacion ? [{ dato: "Anulado", valor: g.motivoAnulacion, tenue: true }] : []),
         ]}
       />
+      {notaPerdido && <p className="nota-cayla mb-4">{notaPerdido}</p>}
       {pendiente && <p className="nota-cayla mb-4">Se paga desde <b>Compras ▸ Por pagar</b>, como cualquier factura de proveedor.</p>}
       <div className="fin-botones" data-guia="fin-gastos.detalle-botones">
         {g.estado === "vigente" && !puedeAnular(g) && <p className="mr-auto self-center text-[12.5px] text-taupe">Su factura ya tiene pagos: no se anula (como en Compras).</p>}

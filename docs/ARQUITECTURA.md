@@ -1594,7 +1594,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     facturas y boletas de los gastos del viaje), `fn_impuestos_panel` (`revisar.igv_perdido` → `PanelImpuestos.revisar.igvPerdido`: la
     tarjeta del crédito y «Para revisar» de `ImpuestosPanel.tsx`, y su línea en `csvResumenIgv`) y `fn_asientos_igv_perdido` (64 contra
     4011, sumada a `fn_asientos`). `fn_impuestos_registro_compras` suma las facturas y boletas de los gastos del viaje
-    (`FilaRegistroCompras.origen = 'gasto_viaje'`).
+    (`FilaRegistroCompras.origen = 'gasto_viaje'`). Finanzas ▸ Gastos (decisión 76, `20261014174000`) también le pregunta: la interna
+    `fn_igv_perdido_de_gastos` une cada pago perdido a su gasto, y la leen `fn_gastos_igv_perdido` (← `lib/gastos.ts:getGastos`, que la une a
+    la lista con `conIgvPerdido`; la fila y el detalle con `igvBajoElMonto`, `textoIgvPerdido` y `notaIgvPerdido`, `lib/gastos-reglas.ts`) y
+    `fn_gastos_panel` (clave `igv_perdido`, en el mes del pago → `PanelGastos.igvPerdido` / `igvDescontable`; la tarjeta con `bajadaIgvDelMes`).
   - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`.
   - `/compras/plan/historial` (ADR-0372 C3) → `getHistorialPlan` → `fn_historial_ventas` (Sinatra en `retail.ventas_historicas` antes del ERP) + `lib/plan-compra-historial.ts`; pantalla `components/plan-compra/HistorialCampanas.tsx`.
   - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;

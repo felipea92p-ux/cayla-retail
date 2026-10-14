@@ -1039,6 +1039,10 @@ export const PRUEBAS = [
   // ticket o planilla de movilidad, con su número y quien la dio), sin cambiar columnas ni lo de un gasto de Finanzas; y la pantalla
   // sabe decir todo papel que la base acepta. ROLLBACK siempre.
   "pruebas:gastos-lista-viaje",
+  // Finanzas ▸ Gastos con el IGV perdido (ADR-0362, fase 6, decisión 76): la fila dice qué gasto perdió IGV por pagar sin banco, cuánto,
+  // cuándo y cómo; la tarjeta lo resta en el mes del PAGO y se mueve igual que el crédito de gastos de Impuestos; misma visibilidad que
+  // la lista; todo origen de fn_igv_perdido llega a un gasto o está fuera a propósito. ROLLBACK siempre.
+  "pruebas:gastos-igv-perdido",
 
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y

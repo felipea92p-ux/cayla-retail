@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import {
+  conIgvPerdido,
   leerActivo,
   leerEgreso,
   leerFijoMes,
@@ -69,9 +70,16 @@ export async function getPanelGastos(desde: string, hasta: string, ver: Ver): Pr
 
 export async function getGastos(desde: string, hasta: string, ver: Ver): Promise<Lectura<GastoFila[]>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_gastos_lista" as never, { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ver.ubicacionId, p_solo_empresa: ver.soloEmpresa, p_limite: 500 } as never);
-  if (error) return { datos: [], falla: falla("los gastos", error) };
-  return { datos: ((data ?? []) as Record<string, unknown>[]).map(leerGasto), falla: null };
+  const rango = { p_desde: desde, p_hasta: hasta, p_ubicacion_id: ver.ubicacionId, p_solo_empresa: ver.soloEmpresa };
+  const [lista, perdido] = await Promise.all([
+    supabase.rpc("fn_gastos_lista" as never, { ...rango, p_limite: 500 } as never),
+    // ADR-0362, fase 6 (decisión 76): qué gasto perdió IGV por pagarse sin banco. Si no se puede leer, la lista sale igual y lo dice.
+    supabase.rpc("fn_gastos_igv_perdido" as never, rango as never),
+  ]);
+  if (lista.error) return { datos: [], falla: falla("los gastos", lista.error) };
+  const gastos = ((lista.data ?? []) as Record<string, unknown>[]).map(leerGasto);
+  if (perdido.error) return { datos: gastos, falla: falla("el IGV perdido por pagar sin banco", perdido.error) };
+  return { datos: conIgvPerdido(gastos, (perdido.data ?? []) as Record<string, unknown>[]), falla: null };
 }
 
 export async function getEgresosPorClasificar(ver: Ver): Promise<Lectura<EgresoPorClasificar[]>> {

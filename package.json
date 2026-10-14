@@ -187,6 +187,7 @@
     "pruebas:deuda-fondo": "node scripts/pruebas/deuda_fondo.mjs",
     "pruebas:igv-fase6": "node scripts/pruebas/igv_fase6.mjs",
     "pruebas:gastos-lista-viaje": "node scripts/pruebas/gastos_lista_viaje.mjs",
+    "pruebas:gastos-igv-perdido": "node scripts/pruebas/gastos_igv_perdido.mjs",
     "pruebas:plan-compra-historia": "node scripts/pruebas/plan_compra_historia.mjs",
     "pruebas:roles": "node scripts/pruebas/roles_por_modulo.mjs",
     "pruebas:roles-cobertura": "node scripts/pruebas/roles_cobertura_modulos.mjs",
