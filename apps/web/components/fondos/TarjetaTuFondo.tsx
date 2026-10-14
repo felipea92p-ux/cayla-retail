@@ -1,6 +1,6 @@
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { TarjetaCifra, type PropsTarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { caraTuFondo, type ResumenMiFondo } from "@/lib/fondos-reglas";
-import { diaMes } from "@/lib/fechas-lima";
+import { diaMes, diaYHoraLima } from "@/lib/fechas-lima";
 
 /**
  * «Tu fondo» (ADR-0362, fase 6 · actividad 4; decisiones 26 y 32): la plata que CAYLA le entregó a quien compra, a la vista donde compra
@@ -9,10 +9,23 @@ import { diaMes } from "@/lib/fechas-lima";
  * 200 letras y estiraba toda la fila de cifras; entero, en el `title`). Si pagó de su bolsillo, el número es lo que CAYLA le debe, en
  * ámbar (se salda al rendir), nunca un número negativo. Lo que dice vive en `caraTuFondo` (con su prueba).
  *
- * `href` solo en el Inicio: lleva a donde se compra. En Órdenes de compra informa (la actividad 5 le suma «Rendir»).
+ * `href` solo en el Inicio: lleva a donde se compra. En Órdenes de compra informa y lleva su `accion` (actividad 5: «Rendir» o «Ver tu
+ * rendición», `TuFondoEnOrdenes`). Una deuda por un faltante (decisión 54) va a la vista, en ámbar, bajo el contexto.
  */
-export function TarjetaTuFondo({ fondo, href, guia, className = "" }: { fondo: ResumenMiFondo; href?: string; guia: string; className?: string }) {
-  const c = caraTuFondo(fondo, diaMes);
+export function TarjetaTuFondo({
+  fondo,
+  href,
+  accion,
+  guia,
+  className = "",
+}: {
+  fondo: ResumenMiFondo;
+  href?: string;
+  accion?: PropsTarjetaCifra["accion"];
+  guia: string;
+  className?: string;
+}) {
+  const c = caraTuFondo(fondo, diaMes, (iso) => diaYHoraLima(iso).dia);
   return (
     // La pieza no recibe atributos sueltos: el ancla de la guía va en la caja que la ubica (y le da el alto de su fila).
     <div data-guia={guia} className={`flex ${className}`}>
@@ -31,10 +44,12 @@ export function TarjetaTuFondo({ fondo, href, guia, className = "" }: { fondo: R
           ) : undefined
         }
         href={href}
+        accion={href ? undefined : accion}
         className="w-full"
       >
         {/* Un monto no se parte entre «S/» y la cifra al bajar de renglón. */}
         {c.contexto.replaceAll("S/ ", "S/\u00a0")}
+        {c.aviso && <span className="mt-0.5 block text-ambar-profundo">{c.aviso.replaceAll("S/ ", "S/\u00a0")}</span>}
       </TarjetaCifra>
     </div>
   );

@@ -178,10 +178,14 @@ caso(
 // `orden_insumo_editar` y `orden_insumo_anular`, 20261013040000; ADR-0362 fase 7): la decisión 39 extendida a la orden del Taller.
 // Y tres más de Fondos por rendir (`fondo_entregar`, `fondo_devolver` y `fondo_anular`, 20261013182000; ADR-0362 fase 6): el mismo trato.
 // Y una más: el gasto del viaje (`gasto_viaje_registrar`, 20261013222000; ADR-0362 fase 6 · actividad 3), que se anota lejos de la tienda.
-const TOTAL = EN_SECO ? "28" : "44";
+// Y cuatro de la rendición (ADR-0362 fase 6 · actividad 5): la foto del papel de un gasto del viaje (`gasto_viaje_foto`, 20261013233000),
+// rendir el propio fondo y aprobar o devolver una rendición (`fondo_rendir`, `fondo_rendicion_aprobar`, `fondo_rendicion_devolver`,
+// 20261013235000).
+const TOTAL = EN_SECO ? "28" : "48";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
-// El gasto del viaje es la excepción con motivo: se anota en Gamarra, donde nadie marca entrada (ADR-0362 fase 6, provisional).
-caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)' and clave <> 'gasto_viaje_registrar';`, "0");
+// El gasto del viaje es la excepción con motivo: se anota en Gamarra, donde nadie marca entrada (ADR-0362 fase 6, provisional). Sumarle
+// la foto de su papel no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`).
+caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)' and clave not in ('gasto_viaje_registrar', 'gasto_viaje_foto');`, "0");
 caso(
   "la API no lee ni escribe la lista (RLS sin políticas, sin permisos)",
   `set local role authenticated;\nselect pg_temp.intento('select * from retail.acciones_sin_responsable') || ',' || pg_temp.intento($$delete from retail.acciones_sin_responsable$$);`,

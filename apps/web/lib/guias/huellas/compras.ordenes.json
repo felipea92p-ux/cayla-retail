@@ -2,7 +2,7 @@
   "guia": "compras.ordenes",
   "ruta": "/compras/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 28,
+  "total": 37,
   "controles": {
     "app/(app)/compras/ordenes/page.tsx": [
       "BotonEnlace «ordenes.nueva»",
@@ -20,6 +20,19 @@
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"
+    ],
+    "components/fondos/FotoDelGasto.tsx": [
+      "button «{abriendo ? \"Abriendo…\" : \"Ver foto\"}»",
+      "input «);»"
+    ],
+    "components/fondos/RendirFondo.tsx": [
+      "CampoMonto «¿Cuánto tienes en la mano?»",
+      "CampoTexto «¿Qué pasó con lo que falta?»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "CampoTexto «¿Por qué la retiras?»",
+      "Boton «{guardando ? \"Retirando…\" : \"Retirar para corregir\"}»",
+      "Boton «Retirar para corregir»"
     ],
     "components/ordenes-compra/GastoDelViaje.tsx": [
       "Boton «{guia}»",

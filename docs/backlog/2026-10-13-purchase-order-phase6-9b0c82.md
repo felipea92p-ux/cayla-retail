@@ -8,7 +8,10 @@ fusiona).
 - [x] Actividad 2 · pagar desde «Mi fondo» (`20261013212000`). En producción.
 - [x] Actividad 3 · gastos del viaje (`20261013221000`, `20261013222000`). En producción.
 - [x] Actividad 4 · «Tu fondo» en Órdenes de compra y en el Inicio (`20261013231000`).
-- [ ] Actividad 5 · rendición (decisiones 54 y 69; fotos opcionales con aviso).
+- [x] Actividad 5 · rendición (`20261013233000`, `234000` —bucket y políticas, solas— y `235000`): rendir, aprobar (faltante asumido →
+  6599 o deuda → 1419), devolver o retirar, lo rendido congelado y las fotos de los gastos del viaje.
+- [ ] Felipe (actividad 5, provisional): un sobrante no se rinde; 1419 y 6599 hasta el contador; la dueña puede retirar su rendición; el
+  tablero cuenta el faltante dentro de «Gastó». La deuda se ve pero todavía no se cobra (actividad 7).
 - [ ] Actividad 6 · efectivo de S/ 2 000 o más «no deducible» (decisiones 56 y 70) y el tope de la planilla cuando el contador lo fije (68).
 - [ ] Actividad 7 · contabilidad (faltante como cuenta por cobrar a la persona; IGV de las facturas de gastos del viaje; la 1413 por dos caminos).
 - [ ] Actividad 8 · cierre: `tema:auditar`, `guias:recorrer`, `/chaos` con plata y `/formidable` (todavía no se corrieron).

@@ -2,7 +2,7 @@
   "guia": "compras.fondos",
   "ruta": "/compras/fondos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 20,
+  "total": 31,
   "controles": {
     "components/fondos/AccionesFondos.tsx": [
       "Boton «fondos.entregar»",
@@ -25,6 +25,21 @@
       "ComboResponsable «)» #3",
       "Boton «Cancelar» #3",
       "Boton «{guia.frase ?? undefined}» #3"
+    ],
+    "components/fondos/FotoDelGasto.tsx": [
+      "button «{abriendo ? \"Abriendo…\" : \"Ver foto\"}»",
+      "input «);»"
+    ],
+    "components/fondos/RevisarRendicion.tsx": [
+      "Boton «fondos.revisar»",
+      "SegmentoDeslizante «Quién asume lo que falta»",
+      "CampoTexto «Nota · opcional»",
+      "ComboResponsable «)»",
+      "CampoTexto «¿Qué tiene que corregir?»",
+      "Boton «Cancelar»",
+      "Boton «{guardando ? \"Devolviendo…\" : \"Devolver para corregir\"}»",
+      "Boton «Devolver para corregir»",
+      "Boton «{guia.frase ?? undefined}»"
     ]
   }
 }

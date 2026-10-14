@@ -997,6 +997,7 @@ export const PRUEBAS = [
   // desde «Mi fondo» el Diario lo saca de la 1413, desde la caja fuerte de la 101; a una o varias órdenes, repartido según su total; sin
   // comprobante solo taxi o cargador; un anulado no cuenta y devuelve la plata al fondo; la firma de la decisión 39. ROLLBACK siempre.
   "pruebas:gastos-viaje",
+  "pruebas:rendicion-fondo",
 
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y

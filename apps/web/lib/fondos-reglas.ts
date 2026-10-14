@@ -3,6 +3,7 @@ import { soles } from "./compras-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import type { CuentaElegible } from "./cuenta-sellada-reglas";
 import type { Opcion } from "../components/ui/campos";
+import type { RendicionDeMiFondo } from "./rendicion-reglas";
 
 // Fondos por rendir (ADR-0362, fase 6 · actividad 1): las reglas puras de la pantalla. Leer lo que manda la base (que puede venir de una
 // versión vieja o rota: nunca se cae, descarta lo ilegible), sumar las cifras de arriba, armar las opciones de los combos y decir qué
@@ -10,6 +11,7 @@ import type { Opcion } from "../components/ui/campos";
 // (20261013182000): la guía no agrega reglas (ADR-0284). Sin Supabase: lo importan el servidor y las hojas.
 // Actividad 2 (20261013212000): «Mi fondo» en los pagos de Compras (`leerMiFondo`, `conMiFondo`) y lo que CAYLA debe en el tablero.
 // Actividad 4 (20261013231000): la tarjeta «Tu fondo» de Órdenes de compra y del Inicio (`leerResumenMiFondo`, `caraTuFondo`).
+// Actividad 5 (20261013235000): la tarjeta cuenta el ciclo abierto y suma la rendición (`ResumenMiFondo.rendicion`, `rendicion-reglas.ts`).
 
 export const RUTA_FONDOS = "/compras/fondos";
 // Cada llamada nombra su constante (`.rpc(RPC_X as never, …)`): así la lee la prueba de cobertura de roles.
@@ -185,7 +187,9 @@ export function conMiFondo(cuentas: readonly CuentaElegible[], fondo: MiFondo | 
 
 // ---------- «Tu fondo» (actividad 4, 20261013231000) ----------
 
-/** La fila de `fn_mi_fondo_resumen`: todo sale del mismo libro que el saldo, así que el desglose cuadra con él. */
+/** La fila de `fn_mi_fondo_resumen`: todo sale del mismo libro que el saldo, así que el desglose cuadra con él. Desde la rendición
+ *  (actividad 5), los montos son del ciclo abierto —lo que todavía no está en una rendición vigente— y `rendicion` dice lo que se trajo
+ *  de la anterior, la rendición por aprobar y la deuda (`fn_mi_fondo_rendicion`; null si la base no la tiene todavía). */
 export type ResumenMiFondo = {
   cuentaId: string;
   /** Lo que tiene en la mano. Negativo = CAYLA le debe (pagó de su bolsillo, decisión 32). */
@@ -203,6 +207,7 @@ export type ResumenMiFondo = {
   /** El «para qué» de la última entrega. */
   paraQue: string | null;
   ultimaEntrega: string | null;
+  rendicion: RendicionDeMiFondo | null;
 };
 
 /** La fila de `fn_mi_fondo_resumen`, o nada si no tiene fondo, si es una terminal o si la base no la mandó entera. */
@@ -221,14 +226,22 @@ export function leerResumenMiFondo(data: unknown): ResumenMiFondo | null {
     desde: texto(f.desde),
     paraQue: texto(f.para_que),
     ultimaEntrega: texto(f.ultima_entrega),
+    rendicion: null,
   };
 }
 
 const CENTAVO = 0.005;
 
-/** Si la tarjeta sale: con un fondo que tiene o tuvo plata en este ciclo. Un fondo cuya única entrega se anuló no dice nada. */
+/** Si la tarjeta sale: con un fondo que tiene o tuvo plata en este ciclo, una rendición por aprobar o una deuda. Un fondo cuya única
+ *  entrega se anuló, o rendido y en cero sin nada nuevo, no dice nada. */
 export function mostrarTuFondo(r: ResumenMiFondo | null): r is ResumenMiFondo {
-  return r !== null && (Math.abs(r.saldo) > CENTAVO || r.entregado > CENTAVO);
+  if (r === null) return false;
+  const x = r.rendicion;
+  return (
+    Math.abs(r.saldo) > CENTAVO ||
+    r.entregado > CENTAVO ||
+    (x !== null && (x.items > 0 || x.abierta !== null || x.deuda > CENTAVO))
+  );
 }
 
 /** Lo que dice la tarjeta «Tu fondo» (la misma en Órdenes de compra y en el Inicio). Medida en la fila de cuatro cifras de Órdenes
@@ -243,34 +256,64 @@ export type CaraTuFondo = {
   debe: boolean;
   /** De dónde sale ese número: «Gastaste S/ 300.00 de S/ 500.00»; con deuda, «CAYLA te debe: gastaste S/ 574.40 de S/ 300.00». */
   contexto: string;
-  /** Desde cuándo y para qué: «Desde el 13/10 · para «Compras Gamarra»» (en un renglón: el «para qué» admite 200 letras). */
+  /** Desde cuándo y para qué: «Desde el 13/10 · para «Compras Gamarra»» (en un renglón: el «para qué» admite 200 letras). Con una
+   *  rendición por aprobar, eso: «Rendiste el 13/10: espera aprobación». */
   pie: string | null;
+  /** Lo que la persona debe por faltantes (decisión 54), en ámbar y a la vista hasta que se salde. */
+  aviso: string | null;
+  /** Hay algo nuevo que rendir y ninguna rendición abierta: la tarjeta de Órdenes de compra ofrece «Rendir». */
+  puedeRendir: boolean;
+  rendicionAbierta: boolean;
 };
 
-/** `fecha` escribe un día (`diaMes` de `fechas-lima`): se recibe para que esta lógica no dependa del reloj ni del formato. */
-export function caraTuFondo(r: ResumenMiFondo, fecha: (iso: string) => string): CaraTuFondo {
+/** `fecha` escribe un día (`diaMes` de `fechas-lima`) e `instante` el día de un momento en hora de Lima (cuándo se rindió): se reciben
+ *  para que esta lógica no dependa del reloj ni del formato. */
+export function caraTuFondo(r: ResumenMiFondo, fecha: (iso: string) => string, instante: (iso: string) => string = fecha): CaraTuFondo {
   const debe = r.saldo < -CENTAVO;
-  // Lo que salió del fondo: le entregaron − devolvió − tiene (como el tablero de Fondos). Cuadra siempre con el saldo, aunque «otros»
-  // no fuera 0 algún día.
-  const gastado = Math.max(redondo(r.entregado - r.devuelto - r.saldo), 0);
+  const x = r.rendicion;
+  const arrastre = x?.arrastre ?? 0;
+  // Lo que tuvo para gastar en este ciclo: lo que se trajo de la rendición anterior más lo que le entregaron. Lo que salió del fondo es
+  // eso − lo que devolvió − lo que tiene: cuadra siempre con el saldo, aunque «otros» no fuera 0 algún día.
+  const tuvo = redondo(Math.max(arrastre + r.entregado, 0));
+  const gastado = Math.max(redondo(arrastre + r.entregado - r.devuelto - r.saldo), 0);
   const devolvio = r.devuelto > CENTAVO;
+  const conArrastre = Math.abs(arrastre) > CENTAVO;
   let contexto: string;
-  if (gastado <= CENTAVO) {
-    contexto = devolvio ? `Devolviste ${soles(r.devuelto)} de ${soles(r.entregado)}` : `Te entregaron ${soles(r.entregado)}; aún no gastas nada`;
+  if (gastado > CENTAVO) {
+    contexto =
+      tuvo > CENTAVO
+        ? `Gastaste ${soles(gastado)}${devolvio ? ` y devolviste ${soles(r.devuelto)}` : ""} de ${soles(tuvo)}`
+        : `Gastaste ${soles(gastado)} de tu bolsillo`;
+  } else if (devolvio) {
+    contexto = `Devolviste ${soles(r.devuelto)} de ${soles(tuvo)}`;
+  } else if (x?.abierta && r.entregado <= CENTAVO) {
+    // Mientras la rendición espera, lo que se trajo todavía no es «lo que te quedó»: quien revisa puede cambiarlo.
+    contexto = "Desde que rendiste, aún no gastas nada";
+  } else if (!conArrastre) {
+    contexto = `Te entregaron ${soles(r.entregado)}; aún no gastas nada`;
+  } else if (arrastre > 0 && r.entregado <= CENTAVO) {
+    contexto = `Te quedaron ${soles(arrastre)} de tu rendición; aún no gastas nada`;
+  } else if (tuvo > CENTAVO) {
+    contexto = `Aún no gastas nada de ${soles(tuvo)}`;
   } else {
-    contexto = devolvio
-      ? `Gastaste ${soles(gastado)} y devolviste ${soles(r.devuelto)} de ${soles(r.entregado)}`
-      : `Gastaste ${soles(gastado)} de ${soles(r.entregado)}`;
+    contexto = "Viene de tu rendición: se te devuelve con una entrega";
   }
   if (debe) contexto = `CAYLA te debe: ${contexto.charAt(0).toLowerCase()}${contexto.slice(1)}`;
   const partes = [r.desde ? `desde el ${fecha(r.desde)}` : null, r.paraQue ? `para «${r.paraQue}»` : null].filter((p): p is string => p !== null);
-  const pie = partes.length ? partes.join(" · ") : null;
+  const pie = x?.abierta
+    ? `Rendiste el ${instante(x.abierta.en)}: espera aprobación`
+    : partes.length
+      ? partes.join(" · ")
+      : null;
   return {
     valor: soles(debe ? -r.saldo : Math.max(r.saldo, 0)),
     unidad: debe ? null : "te queda",
     debe,
     contexto,
     pie: pie ? pie.charAt(0).toUpperCase() + pie.slice(1) : null,
+    aviso: x && x.deuda > CENTAVO ? `Debes ${soles(x.deuda)} de un faltante de tu rendición` : null,
+    puedeRendir: x !== null && x.abierta === null && x.items > 0,
+    rendicionAbierta: Boolean(x?.abierta),
   };
 }
 

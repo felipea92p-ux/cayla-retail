@@ -257,6 +257,33 @@ la base, pero la tarjeta los muestra juntos («Gastaste»): el detalle, pago por
 «Lo recibí»** (la compradora confirma la entrega en su tarjeta, del mapa de módulos): no está en la lista de 8 actividades aprobada y
 pediría guardar algo nuevo; queda anotado en el backlog para que Felipe decida.
 
+**Fase 6 · actividad 5 (2026-10-13, noche): la rendición** (decisiones 32–35, 54 y 69). Migraciones `20261013233000` (fotos de los gastos
+del viaje), `20261013234000` (su bucket y sus políticas, SOLAS: ADR-0195) y `20261013235000` (la rendición); prueba `pnpm pruebas:rendicion-fondo`
+(11 casos).
+
+```
+DECIDÍ: rendir CONGELA lo que dijo el sistema (tenías, te entregaron, devolviste, pagaste, gastos, deberías tener), lo que la persona
+        contó en la mano, el faltante y su explicación, y qué filas del libro del fondo entran (`rendicion_fondo_items`, por su clave): el
+        ciclo se corta por QUÉ filas se rindieron, no por la hora, así que lo que se anota mientras tanto va al ciclo siguiente. Aprueba otra
+        persona con Fondos por rendir; nunca la dueña (33), ni quien le entregó plata en esa rendición (35); la de un líder, un Admin (33).
+        Un faltante con explicación lo decide quien aprueba; sin explicación, deuda (54, 69). Al aprobar, el faltante SALE del fondo con un
+        movimiento propio sin destino (`faltante_fondo_asumido` → 6599, el mismo «Diferencias de caja» de un faltante de caja;
+        `faltante_fondo_deuda` → 1419, cuenta nueva por cobrar al personal) y el fondo queda con lo que la persona de verdad tiene. Lo
+        rendido queda congelado: un gasto o una entrega en una rendición vigente no se anula (toma el candado del fondo para no cruzarse).
+        Las fotos de los gastos del viaje viven en su bucket propio, con una fila por foto; la rendición cuenta los papeles sin foto (69).
+DESCARTÉ: cortar el ciclo por fecha u hora (un pago guardado a la vez quedaría contado dos veces o ninguna); una cuenta de dinero para la
+        deuda («Cuentas y dinero» la sumaría como plata de CAYLA); y aceptar un sobrante (plata que el sistema no sabe de dónde salió).
+SE ROMPE SI: una migración nueva cambia (en vez de SUMAR) el texto que dejó otra en un reemplazo anclado: volver a pegar la anterior ya no
+        encuentra su texto. Le pasó a esta antes de publicarla y se rehízo para que solo sume (la prueba carga todas dos veces y lo vigila).
+```
+
+Por defecto *(provisional, revisar con Felipe)*: más plata en la mano de la que dice el fondo **no se rinde** (la hoja pide revisar: falta
+anotar algo); las cuentas 1419 y 6599 hasta que el contador diga; la deuda queda **a la vista** en «Tu fondo» y en Fondos por rendir, y
+**cobrarla** (que la persona la devuelva, o se le descuente con su autorización escrita) es de la actividad 7; la dueña puede **retirar** su
+rendición para corregirla antes de que la revisen; una foto se puede sumar aunque el gasto ya se haya rendido (completa la evidencia); el
+tablero de Fondos cuenta un faltante dentro de «Gastó». `fn_mi_fondo_resumen` conserva sus columnas y ahora cuenta solo el ciclo abierto;
+lo de la rendición viene en `fn_mi_fondo_rendicion`. Una sola pieza dice quién es la cuenta: `fn_persona_de_la_cuenta`.
+
 ## Fuente: el brief de Felipe
 
 «CAYLA Retail · Brief de desarrollo: Compras y LIM Taller» (7 oct 2026), https://claude.ai/artifact/2GE1cKibGDhCZFsQaY5XRV. Felipe

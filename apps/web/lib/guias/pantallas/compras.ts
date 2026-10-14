@@ -1372,7 +1372,7 @@ export const GUIA_ORDENES: Guia = {
       ancla: "ordenes.tu-fondo",
       opcional: true,
       titulo: "Tu fondo",
-      texto: "La plata que CAYLA te entregó para comprar: cuánto te queda, cuánto gastaste y para qué era. Baja sola cuando pagas a un proveedor o anotas un gasto del viaje desde «Mi fondo». Si pagaste de tu bolsillo, dice cuánto te debe CAYLA. Solo la ves tú.",
+      texto: "La plata que CAYLA te entregó para comprar: cuánto te queda y cuánto gastaste. Baja sola al pagar o anotar un gasto desde «Mi fondo». «Rendir» abre tu rendición: cuentas tu efectivo y otra persona la revisa. Solo la ves tú.",
     },
     {
       id: "buscador",
@@ -2075,6 +2075,20 @@ export const GUIA_FONDOS: Guia = {
       texto: "Cuando entregues la primera plata, aquí vas a ver a esa persona: cuánto le diste, cuánto devolvió y cuánto tiene en la mano.",
     },
     {
+      id: "rendiciones",
+      ancla: "fondos.rendiciones",
+      opcional: true,
+      titulo: "Rendiciones por aprobar",
+      texto: "Quien compró rinde su fondo: cuenta lo que tiene en la mano y aquí ves lo que debería tener, lo que dice que tiene y si cuadra o le falta plata. Cada una se revisa con «Revisar».",
+    },
+    {
+      id: "revisar",
+      ancla: "fondos.revisar",
+      opcional: true,
+      titulo: "Revisar una rendición",
+      texto: "Abre cada pago y gasto con su foto. Si falta plata y la persona explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda. No aprueba quien le entregó la plata ni la dueña. En la demo no la aprobamos.",
+    },
+    {
       id: "cifras",
       ancla: "fondos.cifras",
       opcional: true,
@@ -2086,7 +2100,7 @@ export const GUIA_FONDOS: Guia = {
       ancla: "fondos.lista",
       opcional: true,
       titulo: "Quién tiene plata",
-      texto: "Una fila por persona: su sede, para qué fue la última entrega, cuánto le entregaste, cuánto devolvió y lo que tiene en la mano, que es lo que tiene que rendir.",
+      texto: "Una fila por persona: su sede, para qué fue la última entrega, cuánto le entregaste, cuánto devolvió y lo que tiene en la mano. Si rindió y espera, o si debe por un faltante, lo dice debajo de su nombre.",
     },
     {
       id: "devolver",
@@ -2113,7 +2127,7 @@ export const GUIA_FONDOS: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes entregar plata y ver cuánto tiene cada persona. Para repasarlo: Mi perfil ▸ Demo ▸ Fondos por rendir.",
+      texto: "Ya sabes entregar plata, ver cuánto tiene cada persona y revisar sus rendiciones. Para repasarlo: Mi perfil ▸ Demo ▸ Fondos por rendir.",
     },
   ],
 };

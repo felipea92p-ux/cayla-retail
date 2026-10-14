@@ -123,6 +123,7 @@ describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Ini
     desde: "2026-10-13",
     paraQue: "Compras Gamarra",
     ultimaEntrega: "2026-10-13",
+    rendicion: null,
   };
   const cara = (r: Partial<ResumenMiFondo>) => caraTuFondo({ ...BASE, ...r }, fecha);
 
@@ -131,8 +132,8 @@ describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Ini
       leerResumenMiFondo([
         { cuenta_id: "f1", saldo: "-194.40", entregado: "300.00", devuelto: "0", pagado: "414.40", gastos: "80.00", otros: "0", desde: "2026-10-13", para_que: "Gamarra", ultima_entrega: "2026-10-13" },
       ]),
-    ).toEqual({ cuentaId: "f1", saldo: -194.4, entregado: 300, devuelto: 0, pagado: 414.4, gastos: 80, otros: 0, desde: "2026-10-13", paraQue: "Gamarra", ultimaEntrega: "2026-10-13" });
-    expect(leerResumenMiFondo([{ cuenta_id: "f1" }])).toEqual({ cuentaId: "f1", saldo: 0, entregado: 0, devuelto: 0, pagado: 0, gastos: 0, otros: 0, desde: null, paraQue: null, ultimaEntrega: null });
+    ).toEqual({ cuentaId: "f1", saldo: -194.4, entregado: 300, devuelto: 0, pagado: 414.4, gastos: 80, otros: 0, desde: "2026-10-13", paraQue: "Gamarra", ultimaEntrega: "2026-10-13", rendicion: null });
+    expect(leerResumenMiFondo([{ cuenta_id: "f1" }])).toEqual({ cuentaId: "f1", saldo: 0, entregado: 0, devuelto: 0, pagado: 0, gastos: 0, otros: 0, desde: null, paraQue: null, ultimaEntrega: null, rendicion: null });
     expect(leerResumenMiFondo([])).toBeNull();
     expect(leerResumenMiFondo([{ saldo: 10 }])).toBeNull();
     expect(leerResumenMiFondo("basura")).toBeNull();
@@ -153,6 +154,9 @@ describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Ini
       debe: false,
       contexto: "Te entregaron S/ 500.00; aún no gastas nada",
       pie: "Desde el 13/10 · para «Compras Gamarra»",
+      aviso: null,
+      puedeRendir: false,
+      rendicionAbierta: false,
     });
   });
 
@@ -174,6 +178,42 @@ describe("«Tu fondo» (actividad 4): la tarjeta de Órdenes de compra y del Ini
     expect(cara({ paraQue: null }).pie).toBe("Desde el 13/10");
     expect(cara({ desde: null }).pie).toBe("Para «Compras Gamarra»");
     expect(cara({ paraQue: null, desde: null }).pie).toBeNull();
+  });
+
+  it("con la rendición (actividad 5): cuenta lo que se trajo de la anterior, ofrece «Rendir», dice la que espera y la deuda", () => {
+    const R = { arrastre: 0, items: 0, sinFoto: 0, abierta: null, deuda: 0 };
+    // Rendida y aprobada con S/ 120 en la mano; el ciclo nuevo aún sin nada.
+    expect(cara({ saldo: 120, entregado: 0, rendicion: { ...R, arrastre: 120 } })).toMatchObject({
+      contexto: "Te quedaron S/ 120.00 de tu rendición; aún no gastas nada",
+      puedeRendir: false,
+    });
+    // Con S/ 120 de antes, le entregan 300 y paga 100: gastó 100 de 420.
+    expect(cara({ saldo: 320, entregado: 300, rendicion: { ...R, arrastre: 120, items: 2 } })).toMatchObject({
+      contexto: "Gastaste S/ 100.00 de S/ 420.00",
+      puedeRendir: true,
+    });
+    // CAYLA le debía 280 de la rendición anterior y no hay nada nuevo: lo dice, en ámbar.
+    expect(cara({ saldo: -280, entregado: 0, rendicion: { ...R, arrastre: -280 } })).toMatchObject({
+      valor: "S/ 280.00",
+      debe: true,
+      contexto: "CAYLA te debe: viene de tu rendición: se te devuelve con una entrega",
+    });
+    // Una rendición por aprobar: el pie lo dice y no se ofrece otra.
+    const abierta = cara({ saldo: 120, rendicion: { ...R, items: 1, abierta: { id: "r1", en: "2026-10-13T22:00:00Z", faltante: 0 } } });
+    expect([abierta.pie, abierta.puedeRendir, abierta.rendicionAbierta]).toEqual(["Rendiste el 13/10: espera aprobación", false, true]);
+    // Recién rendida, sin nada nuevo: no dice «te quedaron» (quien revisa todavía puede cambiarlo).
+    expect(cara({ saldo: 350, entregado: 0, rendicion: { ...R, arrastre: 350, abierta: { id: "r1", en: "2026-10-13T22:00:00Z", faltante: 10 } } }).contexto).toBe(
+      "Desde que rendiste, aún no gastas nada",
+    );
+    // Una deuda por faltante: a la vista.
+    expect(cara({ saldo: 100, entregado: 0, rendicion: { ...R, arrastre: 100, deuda: 20 } }).aviso).toBe("Debes S/ 20.00 de un faltante de tu rendición");
+  });
+
+  it("sale también con una rendición por aprobar o una deuda; rendida y en cero sin nada nuevo, no", () => {
+    const R = { arrastre: 0, items: 0, sinFoto: 0, abierta: null, deuda: 0 };
+    expect(mostrarTuFondo({ ...BASE, saldo: 0, entregado: 0, rendicion: R })).toBe(false);
+    expect(mostrarTuFondo({ ...BASE, saldo: 0, entregado: 0, rendicion: { ...R, deuda: 20 } })).toBe(true);
+    expect(mostrarTuFondo({ ...BASE, saldo: 0, entregado: 0, rendicion: { ...R, abierta: { id: "r", en: "2026-10-13", faltante: 0 } } })).toBe(true);
   });
 
   it("lleva a Órdenes de compra si la ve; si no, a Por pagar; si no ve ninguna, no lleva", () => {

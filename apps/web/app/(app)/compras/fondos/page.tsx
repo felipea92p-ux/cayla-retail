@@ -12,6 +12,9 @@ import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { AnularMovimientoFondo, DevolverFondo, EntregarFondo } from "@/components/fondos/AccionesFondos";
+import { RevisarRendicion } from "@/components/fondos/RevisarRendicion";
+import { estadoPorFondo } from "@/lib/rendicion-reglas";
+import { diaYHoraLima } from "@/lib/fechas-lima";
 
 // Compras ▸ Fondos por rendir (ADR-0362, fase 6 · actividad 1; decisiones 26, 29, 30, 34, 35 y 65): la plata que CAYLA le entrega a
 // quien compra, y cuánto tiene cada persona en la mano. Es el control contra el fraude que pidió Felipe: al final tiene que verse cuánto
@@ -25,10 +28,15 @@ import { AnularMovimientoFondo, DevolverFondo, EntregarFondo } from "@/component
 //
 // Lo que la persona no puede hacer con su propio fondo (entregárselo, registrar su devolución, anularlo) no se le ofrece; la base igual
 // lo impide (20261013182000).
+//
+// La rendición (actividad 5, 20261013235000): arriba de todo, «Rendiciones por aprobar», cada una con «Revisar» (la hoja dice si quien
+// mira no puede aprobarla: es su fondo, le entregó plata en esa rendición, o es la de un líder y no es Admin). En la fila de cada persona,
+// si rindió y espera, y lo que debe por un faltante (decisión 54: a la vista hasta que se salde; cobrarlo es de la actividad 7).
 
 const PLANTILLA_FONDOS_BASE = "sm:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem_8.5rem_11rem]";
 const PLANTILLA_FONDOS_GASTO = "sm:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem_7.5rem_8.5rem_11rem]";
 const PLANTILLA_MOVIMIENTOS = "sm:grid-cols-[4rem_minmax(0,0.9fr)_7rem_minmax(0,1.1fr)_7.5rem_6.5rem]";
+const PLANTILLA_RENDICIONES = "sm:grid-cols-[minmax(0,1fr)_8.5rem_8.5rem_minmax(0,0.8fr)_7rem]";
 // En celular cada fila se apila: lo que en escritorio es columna aparte va en la segunda línea de la primera celda (que puede partirse:
 // con «gastó» ya no cabe en una sola a 375 px).
 const SOLO_ESCRITORIO = "hidden sm:block";
@@ -39,7 +47,9 @@ const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("
 
 export default async function FondosPage() {
   const persona = await exigirModulo("fondos");
-  const { fondos, movimientos, opciones, falla } = await getDatosFondos();
+  const { fondos, movimientos, opciones, rendiciones, rendicionesFalla, falla } = await getDatosFondos();
+  const porAprobar = rendiciones.filter((r) => r.estado === "por_aprobar");
+  const estado = estadoPorFondo(rendiciones);
   const cifras = cifrasDeFondos(fondos);
   const conGasto = cifras.gastado !== 0;
   const conDeuda = cifras.teDebe > 0;
@@ -90,6 +100,51 @@ export default async function FondosPage() {
             </div>
           </div>
 
+          {rendicionesFalla && (
+            <Aviso tono="atencion" titulo="No se pudieron leer las rendiciones" chico>
+              Lo demás de esta pantalla sí está al día. Vuelve a intentarlo en un momento.
+            </Aviso>
+          )}
+          {porAprobar.length > 0 && (
+            <section className="space-y-3">
+              <TituloSeccion dato={plural(porAprobar.length, "por revisar", "por revisar")}>Rendiciones por aprobar</TituloSeccion>
+              <Tabla guia="fondos.rendiciones">
+                <Encabezado
+                  plantilla={PLANTILLA_RENDICIONES}
+                  columnas={[
+                    { titulo: "Persona" },
+                    { titulo: "Debería tener", alinear: "der" },
+                    { titulo: "Dice que tiene", alinear: "der" },
+                    { titulo: "Cómo quedó" },
+                    { titulo: "" },
+                  ]}
+                />
+                {porAprobar.map((r) => (
+                  <div key={r.id} className={fila(PLANTILLA_RENDICIONES)}>
+                    <span className={celda("izq", "text-tinta")}>
+                      <span className="font-medium">{r.persona}</span>
+                      <span className="block text-xs text-taupe">
+                        La rindió el {r.rendidaEn ? diaYHoraLima(r.rendidaEn).dia : "—"} · {plural(r.items, "fila", "filas")}
+                        {r.sinFoto > 0 ? ` · ${plural(r.sinFoto, "papel sin foto", "papeles sin foto")}` : ""}
+                      </span>
+                      <span className={SEGUNDA_LINEA}>
+                        Debería tener {soles(Math.max(r.saldo, 0))} · dice que tiene {soles(r.efectivo)}
+                      </span>
+                    </span>
+                    <span className={celda("der", `${SOLO_ESCRITORIO} text-tinta/80`)}>{soles(Math.max(r.saldo, 0))}</span>
+                    <span className={celda("der", `${SOLO_ESCRITORIO} text-tinta/80`)}>{soles(r.efectivo)}</span>
+                    <span className="min-w-0">
+                      {r.faltante > 0.005 ? <Chip tono="ambar">Faltan {soles(r.faltante)}</Chip> : <Chip tono="verde">Cuadra</Chip>}
+                    </span>
+                    <span className="flex min-w-0 justify-start sm:justify-end">
+                      <RevisarRendicion rendicion={r} />
+                    </span>
+                  </div>
+                ))}
+              </Tabla>
+            </section>
+          )}
+
           <section className="space-y-3">
             <TituloSeccion dato={plural(fondos.length, "persona", "personas")}>Quién tiene plata</TituloSeccion>
             <Tabla guia="fondos.lista">
@@ -111,6 +166,12 @@ export default async function FondosPage() {
                     <span className="block truncate text-xs text-taupe">
                       {[f.sede, f.ultimoMotivo ? `«${f.ultimoMotivo}»` : null].filter(Boolean).join(" · ") || "—"}
                     </span>
+                    {(estado.get(f.cuentaId)?.porAprobar || (estado.get(f.cuentaId)?.deuda ?? 0) > 0.005) && (
+                      <span className="mt-1 flex flex-wrap gap-1.5">
+                        {estado.get(f.cuentaId)?.porAprobar && <Chip tono="pizarra">Rindió: por aprobar</Chip>}
+                        {(estado.get(f.cuentaId)?.deuda ?? 0) > 0.005 && <Chip tono="ambar">Debe {soles(estado.get(f.cuentaId)?.deuda ?? 0)}</Chip>}
+                      </span>
+                    )}
                     <span className={SEGUNDA_LINEA}>
                       Le entregaste {soles(f.entregado)} · devolvió {soles(f.devuelto)}
                       {conGasto ? ` · gastó ${soles(f.gastado)}` : ""}
