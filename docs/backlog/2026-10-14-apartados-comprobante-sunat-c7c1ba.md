@@ -1,0 +1,8 @@
+## 🗓️ Apartados sin comprobante de anticipo (2026-10-14) — ADR-0399; rama `claude/apartados-comprobante-sunat-c7c1ba`
+
+- [x] **Apartar y abonar sin comprobante; entregar con boleta o factura por el total enviada a SUNAT; devolver sin nota de crédito.** Construido y probado en local (`pnpm pruebas:separaciones` 84/84, `redondeo-efectivo` 90/90, `purgar-producto` 93/93) y en el navegador (apartar → 0 comprobantes; entregar → 1 por S/ 79.90, a la cola de reintento sin credenciales locales).
+- [ ] **POR PEGAR en producción, EN ORDEN** (una por una, con huella antes y después): `20261014150000_apartados_entregar_boleta_por_el_total.sql` → `20261014151000_apartados_constancia_sin_comprobante.sql` → `20261014152000_apartados_devolver_ignora_anticipos_no_emitidos.sql`. Antes de publicar la web: la parte 1 ya pegada.
+- [ ] **El contador confirma** que un adelanto 100 % reembolsable no exige comprobante hasta entregar (ADR-0399, «DECIDÍ 1»). Si dijera que sí, se revierte en una migración: el camino viejo sigue entero.
+- [ ] **Regularizar `APT-TRU-0006`** (boleta de anticipo B005-273, `pendiente`, nunca enviada, 2026-10-14): con OK de Felipe, marcarla «no emitida» en Comprobantes y correr `scripts/apartados/regularizar-anticipo-viejo.sql`.
+- [ ] **Poner `guias:recorrer` a correr** para `vender.apartados` (en esta máquina faltaba el Chromium de Playwright; se verificó a mano con Chrome en escritorio y a 375 px).
+- [ ] **Si la rama `chaos-skill-all-screens-5c56e1` (token que sigue al contenido) se fusiona antes:** nada que hacer, los reemplazos anclados ya conviven con su parche; verificar con `pnpm pruebas:separaciones` tras el merge.
