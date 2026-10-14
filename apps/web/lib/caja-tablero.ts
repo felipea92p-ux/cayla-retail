@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { apartadoDeFila, estadoVisible, ORDEN_ESTADO, type ClaveEstado } from "@/lib/separaciones-reglas";
 import { getGastosDeUbicacion } from "@/lib/gastos";
+import { tieneComprobante } from "@/lib/gastos-reglas";
 import { getDevolucionesPendientes } from "@/lib/devoluciones";
 import { getTrasladosPorAtender } from "@/lib/traslados";
 import { diaYHoraLima } from "@/lib/fechas-lima";
@@ -131,7 +132,8 @@ async function leerGastos(ubicacionId: string, hoy: string, movimientos: readonl
       categoria: g.categoriaNombre,
       hora: delCajon(g) ? (horaDe.get(g.cajaMovimientoId!) ?? "") : g.creadoEn ? diaYHoraLima(g.creadoEn).hora : "",
       monto: g.montoTotal,
-      conComprobante: g.comprobanteTipo !== "sin_comprobante",
+      // Un gasto del viaje trae su papel de su ficha: la planilla de movilidad es «sin comprobante»; un ticket, no.
+      conComprobante: tieneComprobante(g.comprobanteTipo),
       medio: delCajon(g) ? null : (g.medioPago as "yape" | "plin"),
     }));
   const suma = (filas: GastoCaja[]) => Math.round(filas.reduce((s, g) => s + g.monto, 0) * 100) / 100;

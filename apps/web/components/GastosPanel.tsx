@@ -18,12 +18,13 @@ import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import {
-  TEXTO_COMPROBANTE,
   TEXTO_ESTADO_GASTO,
   TEXTO_NO_GASTO,
   estadoGasto,
   fechaCorta,
   mesesRecientes,
+  papelDelGasto,
+  papelEnUnaLinea,
   puedeAnular,
   resumenActivosPorSede,
   resumenFijos,
@@ -408,6 +409,7 @@ function TablaGastos({
                 {visibles.map((g) => {
                   const e = TEXTO_ESTADO_GASTO[estadoGasto(g)];
                   const pago = textoPago(g, (iso) => fechaCorta(iso));
+                  const papel = papelDelGasto(g);
                   return (
                     <tr
                       key={g.id}
@@ -433,8 +435,8 @@ function TablaGastos({
                       </td>
                       {verTodas && <td data-l="Unidad">{g.ubicacionNombre ?? "De la empresa"}</td>}
                       <td data-l="Comprobante">
-                        {TEXTO_COMPROBANTE[g.comprobanteTipo]}
-                        {g.comprobante && <span className="fin-sub">{g.comprobante}</span>}
+                        {papel.tipo}
+                        {papel.detalle && <span className="fin-sub">{papel.detalle}</span>}
                       </td>
                       <td data-l="Pago" className={pago.startsWith("vence") ? "fin-tenue" : undefined}>
                         {pago}
@@ -493,7 +495,7 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
   }
 
   const pendiente = g.compraId && g.estado === "vigente" && (g.saldo ?? 0) > 0;
-  const bajada = [g.ubicacionNombre ?? "De la empresa", fechaCorta(g.fecha, true), g.comprobante ? `${TEXTO_COMPROBANTE[g.comprobanteTipo]} ${g.comprobante}` : "Sin comprobante", g.proveedorNombre].filter(Boolean).join(" · ");
+  const bajada = [g.ubicacionNombre ?? "De la empresa", fechaCorta(g.fecha, true), papelEnUnaLinea(g), g.proveedorNombre].filter(Boolean).join(" · ");
 
   if (anulando) {
     return (
