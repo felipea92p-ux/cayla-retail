@@ -1,67 +1,32 @@
 "use client";
 
-import type { RefObject } from "react";
+import { useMemo, useRef, useState, type RefObject } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { BotonEnlace } from "@/components/ui/campos";
-import { FotoPrenda } from "@/components/ui/FotoPrenda";
-import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { FichaDelColor } from "@/components/ui/FichaDelColor";
+import { FotoAmpliada } from "@/components/existencias/FotoAmpliada";
+import { FotoVistaRapida } from "@/components/vista-rapida/FotoVistaRapida";
 import { DIAS_RITMO_RECIENTE, UMBRAL_POCA_BASE_VENTAS } from "@/lib/inventario-reglas";
-import { baseDelRitmo, ETIQUETA_ESTADO_MODELO, hrefNuevaOrden, porSemana, seVendioYYaNoHay, textoDiasDeStock } from "@/lib/produccion-decisiones";
-import { aclaracionDeLaBase, fraseDeLaFalta, type ColorDeHoja, type HojaDeModelo } from "@/lib/produccion-hoja-modelo";
+import { baseDelRitmo, ETIQUETA_ESTADO_MODELO, hrefNuevaOrden, porSemana, textoDiasDeStock } from "@/lib/produccion-decisiones";
+import { aclaracionDeLaBase, fraseDeLaFalta, hrefVerEnExistencias, matrizDeLaHoja, type HojaDeModelo } from "@/lib/produccion-hoja-modelo";
 import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
+import { rangoSoles } from "@/lib/productos-vista";
+import { Dato } from "./CifrasDeLaHoja";
+import { useFichaDeColor } from "./FichasDeColor";
+import { FichaDelModelo } from "./FichaDelModelo";
+import { MatrizDelModelo } from "./MatrizDelModelo";
+import { OrdenesDelModelo, TelaDelModelo } from "./OrdenesYTelaDelModelo";
+import { TiendasDelModelo } from "./TiendasDelModelo";
 import { TONO_ESTADO_MODELO } from "./estado-modelo";
 
-// «Ver el modelo» (Resumen de Producción, tarea #8 del análisis docs/pantallas/produccion.md): la hoja que se abre al tocar un modelo de «¿Qué producir?». Muestra el modelo con
-// su foto y, por color y talla, lo que se vendió en los últimos 30 días y qué se vendió y ya no hay. Es solo de lectura: lo que decide —abrir la orden, trasladar— sale de aquí, no se
-// guarda nada. Todo el movimiento es el de `<Modal>` (ADR-0136): esta hoja no agrega ninguno. Lo que cuenta cada cifra vive en `lib/produccion-hoja-modelo.ts` y `lib/produccion-decisiones.ts`.
-
-/** Un dato suelto de la cabecera: la etiqueta, la cifra y, debajo, lo que la explica. */
-function Dato({ etiqueta, valor, nota }: { etiqueta: string; valor: number | string; nota?: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="label-cayla text-[11px] text-tinta/65">{etiqueta}</dt>
-      <dd className="mt-0.5 text-xl leading-tight tabular-nums text-tinta">{valor}</dd>
-      {nota && <dd className="text-xs text-tinta/65">{nota}</dd>}
-    </div>
-  );
-}
-
-/**
- * Lo vendido y, debajo, lo que queda en tiendas (solo si queda algo: repetir «sin stock» en cada cifra de un modelo agotado es ruido). En gris, con 2 ventas o menos (poca base). En una
- * CELDA (`celda`), lo que se vendió y ya no hay lleva su aviso en ámbar con su punto (el color no es lo único que lo dice); un total no lo lleva: habla de varias tallas o colores.
- */
-function Cifras({ ventas, stock, fuerte = false, celda = false }: { ventas: number; stock: number; fuerte?: boolean; celda?: boolean }) {
-  const yaNoHay = celda && seVendioYYaNoHay(ventas, stock);
-  const pocaBase = ventas <= UMBRAL_POCA_BASE_VENTAS;
-  return (
-    <span className="flex flex-col items-end leading-tight">
-      <span className={`text-sm tabular-nums ${pocaBase ? "text-tinta/65" : "font-medium text-tinta"} ${fuerte ? "font-semibold" : ""}`}>{ventas}</span>
-      {yaNoHay ? (
-        <span className="mt-0.5 text-[11px] text-ambar">
-          <span aria-hidden className="mr-1 inline-block size-1.5 rounded-full bg-ambar align-middle" />
-          ya no hay
-        </span>
-      ) : (
-        stock > 0 && <span className="mt-0.5 text-[11px] text-tinta/65">hay {stock}</span>
-      )}
-    </span>
-  );
-}
-
-function CabeceraDeColor({ color, presentacion }: { color: ColorDeHoja; presentacion?: PresentacionDeModelo }) {
-  return (
-    <span className="flex items-center gap-3">
-      <span aria-hidden className="block shrink-0">
-        <FotoPrenda fotoUrl={color.fotoUrl} referencia="" ancho={56} colorHex={color.hex} categoria={presentacion?.categoria} categoriaPrefijo={presentacion?.categoriaPrefijo} categoriaFamilia={presentacion?.categoriaFamilia} className="w-14" />
-      </span>
-      <span className="flex min-w-0 items-center gap-1.5 text-[13.5px] leading-snug text-tinta">
-        {color.hex && <span aria-hidden data-color-dato className="size-2.5 shrink-0 rounded-full border border-tinta/20" style={{ backgroundColor: color.hex }} />}
-        <span className="min-w-0 break-words">{color.nombre}</span>
-      </span>
-    </span>
-  );
-}
+// «Ver el modelo» (Resumen de Producción, tarea #8 del análisis docs/pantallas/produccion.md): la hoja que se abre al tocar un modelo de «¿Qué producir?».
+//
+// Es la ficha COMPLETA del modelo, con el mismo diseño que la vista rápida de Catálogo ▸ Productos (Felipe 2026-10-13: «tiene que dejarme ver todo: proveedor, marca, qué tienda lo vende…
+// son datos que ya existen»): a la izquierda la foto grande, que sigue al color que se mira, con su ficha de color y la descripción; a la derecha, lo que hay y lo que falta, QUÉ TIENDA lo
+// vende (y qué le queda a cada una), la matriz color × talla de toda la red o de una tienda, la ficha (marca, proveedor, material, patrón), las órdenes abiertas del modelo y la tela y los
+// avíos que lleva contra su saldo. Es de solo lectura: lo que decide —abrir la orden, trasladar— sale de aquí, no se guarda nada. Todo el movimiento es el de `<Modal>` (ADR-0136) y el de
+// la foto de la vista rápida (su excepción escrita); esta hoja no agrega ninguno. Lo que cuenta cada cifra vive en `lib/produccion-hoja-modelo.ts` y `lib/produccion-decisiones.ts`.
 
 export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { hoja: HojaDeModelo; presentacion?: PresentacionDeModelo; onClose: () => void; alCerrarEnfocar?: RefObject<HTMLElement | null> }) {
   const base = baseDelRitmo(hoja.ventasBase);
@@ -69,112 +34,156 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
   const aclaracion = aclaracionDeLaBase(hoja);
   const traslado = hoja.estado === "trasladar" && !!hoja.hrefTrasladar;
   const hrefOrden = hrefNuevaOrden(hoja.productoId, hoja.sugerida);
+  const ficha = hoja.ficha;
+
+  // La foto: arranca en el color de la foto de la fila (el que ya se ve en la lista), o en el primero que tenga foto, o en el primero.
+  const [fijado, setFijado] = useState<string>(() => (hoja.colores.find((c) => c.fotoUrl && c.fotoUrl === presentacion?.fotoUrl) ?? hoja.colores.find((c) => c.fotoUrl) ?? hoja.colores[0])?.nombre ?? "");
+  const [vista, setVista] = useState<string | null>(null);
+  const [tiendaId, setTiendaId] = useState<string | null>(null);
+  const [fotoGrande, setFotoGrande] = useState<{ fotoUrl: string; color: string } | null>(null);
+  const botonAmpliar = useRef<HTMLButtonElement>(null);
+  const fichaDeColor = useFichaDeColor();
+
+  const matriz = useMemo(() => matrizDeLaHoja(hoja, tiendaId), [hoja, tiendaId]);
+  const enFoto = vista ?? fijado;
+  const colorEnFoto = hoja.colores.find((c) => c.nombre === enFoto) ?? hoja.colores[0];
+  const fichaEnFoto = colorEnFoto ? fichaDeColor(colorEnFoto.nombre) : null;
+  const aLaFoto = colorEnFoto ? { clave: colorEnFoto.nombre, nombre: colorEnFoto.nombre, hex: colorEnFoto.hex, fotoUrl: colorEnFoto.fotoUrl } : undefined;
+  const prenda = { referencia: hoja.referencia, categoria: presentacion?.categoria, categoriaPrefijo: presentacion?.categoriaPrefijo, categoriaFamilia: presentacion?.categoriaFamilia };
+
+  const hrefCatalogo = `/productos?q=${encodeURIComponent(ficha?.codigo ?? hoja.referencia)}`;
+  // Existencias abre la sede en la que estás (aquí, el Taller): el enlace lleva la tienda que tiene prendas del color de la foto y su primera talla con stock; sin stock en ninguna, la lista.
+  const hrefExistencias = hrefVerEnExistencias(colorEnFoto?.dondeVerlo ?? null);
+  const tiendaElegida = tiendaId === null ? null : (hoja.tiendas.find((t) => t.id === tiendaId) ?? null);
+  const precio = hoja.precioMin === null ? null : rangoSoles([hoja.precioMin, hoja.precioMax]);
+
   return (
-    <Modal
-      variante="hoja"
-      conCerrar
-      ancho="max-w-2xl"
-      titulo={hoja.referencia}
-      subtitulo={
-        <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-          <Chip tono={TONO_ESTADO_MODELO[hoja.estado]}>{ETIQUETA_ESTADO_MODELO[hoja.estado]}</Chip>
-          <span>{hoja.ritmoDia ? `Se vende ${porSemana(hoja.ritmoDia)} por semana (${base.largo})` : `Sin ventas medidas en los últimos ${DIAS_RITMO_RECIENTE} días`}</span>
-        </span>
-      }
-      onClose={onClose}
-      alCerrarEnfocar={alCerrarEnfocar}
-    >
-      <div className="flex gap-4">
-        <span aria-hidden className="block shrink-0">
-          <FotoPrenda fotoUrl={presentacion?.fotoUrl} referencia="" ancho={112} colorHex={presentacion?.colorHex} categoria={presentacion?.categoria} categoriaPrefijo={presentacion?.categoriaPrefijo} categoriaFamilia={presentacion?.categoriaFamilia} className="w-28" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-            <Dato etiqueta="En tiendas" valor={hoja.stockRed} nota={hoja.diasRed === null ? "sin ventas medidas" : textoDiasDeStock(hoja.stockRed, hoja.diasRed)} />
-            <Dato etiqueta="En el Taller" valor={hoja.stockTaller} nota={hoja.stockTaller > 0 ? "por trasladar" : undefined} />
-            <Dato etiqueta="En camino" valor={hoja.enCamino} nota={hoja.enCamino > 0 ? "a las tiendas" : undefined} />
-            <Dato etiqueta="En órdenes abiertas" valor={hoja.enProduccion} />
-          </dl>
-          {falta && <p className="mt-3 text-[13.5px] leading-relaxed text-tinta">{falta}</p>}
-        </div>
-      </div>
+    <>
+      <Modal
+        variante="hoja"
+        conCerrar
+        tituloGrande
+        ancho="max-w-4xl"
+        titulo={hoja.referencia}
+        subtitulo={
+          <span className="vr-meta">
+            {ficha?.codigo && (
+              <span className="vr-cod">{ficha.codigo}</span>
+            )}
+            {presentacion?.categoria && (
+              <span>{presentacion.categoria}</span>
+            )}
+            <Chip tono={TONO_ESTADO_MODELO[hoja.estado]}>{ETIQUETA_ESTADO_MODELO[hoja.estado]}</Chip>
+            <span className="vr-sep">
+              {hoja.ritmoDia ? `Se vende ${porSemana(hoja.ritmoDia)} por semana (${base.largo})` : `Sin ventas medidas en los últimos ${DIAS_RITMO_RECIENTE} días`}
+            </span>
+            {precio && (
+              <span className="vr-sep">
+                <b className="tabular-nums">{precio}</b>
+              </span>
+            )}
+            {ficha?.temporada && (
+              <span className="vr-sep">{ficha.temporada}</span>
+            )}
+            <span className="vr-sep">
+              <b>{hoja.colores.length}</b> {hoja.colores.length === 1 ? "color" : "colores"} · <b>{hoja.tallas.length}</b> {hoja.tallas.length === 1 ? "talla" : "tallas"}
+            </span>
+          </span>
+        }
+        onClose={onClose}
+        alCerrarEnfocar={alCerrarEnfocar}
+      >
+        <div className="vr-cuerpo vr-quieta">
+          <aside data-guia="prod-resumen.hoja-foto" className="vr-lado">
+            <FotoVistaRapida producto={prenda} fila={aLaFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} />
+            <div>
+              <div className="vr-pie-foto">
+                <span className="vr-sw" data-color-dato style={{ background: colorEnFoto?.hex ?? undefined, width: 20, height: 20 }} />
+                <span className="vr-nom">
+                  {colorEnFoto?.nombre}
+                </span>
+                <span className="vr-est">{vista !== null && vista !== fijado ? "vista previa" : "fijado"}</span>
+              </div>
+              <p className="vr-pista">Pasa el mouse por un color de la tabla y la foto lo muestra. Un clic lo deja fijo.</p>
+              {/* Qué transmite el color de la foto y con qué se combina (ADR-0316): la misma ficha de color de Catálogo y Vender, en una caja de alto fijo para que no se mueva nada bajo el mouse (ADR-0185). */}
+              {fichaEnFoto && (
+                <div className="vr-color-ficha">
+                  <FichaDelColor key={colorEnFoto?.nombre} ficha={fichaEnFoto} forma="bloque" />
+                </div>
+              )}
+            </div>
+            {/* Lo que se escribió en «Descripción» al crear o editar la prenda. Sin descripción no se dibuja nada: el campo es opcional. */}
+            {ficha?.descripcion && (
+              <div className="vr-desc">
+                <span className="vr-rotulo label-cayla">Descripción</span>
+                <p>{ficha.descripcion}</p>
+              </div>
+            )}
+          </aside>
 
-      <div className="mt-5">
-        <TituloGrupo>Vendido en los últimos {DIAS_RITMO_RECIENTE} días, por color y talla</TituloGrupo>
-        {hoja.colores.length === 0 ? (
-          <p className="mt-2 text-sm text-tinta/70">Este modelo no tiene tallas ni colores activos.</p>
-        ) : (
-          // `tabIndex` + `role="region"`: con muchas tallas la matriz se desplaza hacia el lado, y sin esto quien usa solo el teclado no llega a las últimas columnas ni a «Total».
-          <div data-guia="prod-resumen.hoja" role="region" aria-label={`Ventas por color y talla de ${hoja.referencia}`} tabIndex={0} className="mt-1 overflow-x-auto">
-            <table /* unificar-fijo: una matriz de colores y tallas (con la foto de cada color), otra función que una lista de registros */ className="w-full border-separate border-spacing-0">
-              <caption className="sr-only">Vendido en los últimos {DIAS_RITMO_RECIENTE} días de {hoja.referencia}, por color y talla, con lo que queda en tiendas</caption>
-              <thead>
-                <tr>
-                  <th scope="col" className="label-cayla py-2 pr-3 text-left text-[11px] font-normal text-tinta/65">
-                    Color
-                  </th>
-                  {hoja.tallas.map((t) => (
-                    <th key={t} scope="col" className="label-cayla px-2 py-2 text-right text-[11px] font-normal text-tinta/65">
-                      {t}
-                    </th>
-                  ))}
-                  <th scope="col" className="label-cayla py-2 pl-3 text-right text-[11px] font-normal text-tinta/65">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {hoja.colores.map((c) => (
-                  <tr key={c.nombre}>
-                    <th scope="row" className="border-t border-tinta/10 py-2 pr-3 text-left font-normal">
-                      <CabeceraDeColor color={c} presentacion={presentacion} />
-                    </th>
-                    {c.celdas.map((celda, i) => (
-                      <td key={hoja.tallas[i]} className="border-t border-tinta/10 px-2 py-2 text-right align-middle">
-                        {celda ? <Cifras ventas={celda.ventas} stock={celda.stock} celda /> : <span className="text-sm text-tinta/65">—</span>}
-                      </td>
-                    ))}
-                    <td className="border-t border-tinta/10 py-2 pl-3 text-right align-middle">
-                      <Cifras ventas={c.ventas} stock={c.stock} fuerte />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th scope="row" className="border-t border-tinta/25 py-2 pr-3 text-left text-[13.5px] font-medium text-tinta">
-                    Total
-                  </th>
-                  {hoja.porTalla.map((t, i) => (
-                    <td key={hoja.tallas[i]} className="border-t border-tinta/25 px-2 py-2 text-right align-middle">
-                      <Cifras ventas={t.ventas} stock={t.stock} fuerte />
-                    </td>
-                  ))}
-                  <td className="border-t border-tinta/25 py-2 pl-3 text-right align-middle">
-                    <Cifras ventas={hoja.total.ventas} stock={hoja.total.stock} fuerte />
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+          <div className="min-w-0 space-y-5">
+            <div>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+                <Dato etiqueta="En tiendas" valor={hoja.stockRed} nota={hoja.diasRed === null ? "sin ventas medidas" : textoDiasDeStock(hoja.stockRed, hoja.diasRed)} />
+                <Dato etiqueta="En el Taller" valor={hoja.stockTaller} nota={hoja.stockTaller > 0 ? "por trasladar" : undefined} />
+                <Dato etiqueta="En camino" valor={hoja.enCamino} nota={hoja.enCamino > 0 ? "a las tiendas" : undefined} />
+                <Dato etiqueta="En producción" valor={hoja.enProduccion} nota={hoja.enProduccion > 0 ? "en órdenes abiertas" : undefined} />
+              </dl>
+              {falta && <p className="mt-3 text-[13.5px] leading-relaxed text-tinta">{falta}</p>}
+            </div>
+
+            <TiendasDelModelo hoja={hoja} />
+
+            <MatrizDelModelo
+              referencia={hoja.referencia}
+              tallas={hoja.tallas}
+              matriz={matriz}
+              tiendas={hoja.tiendas}
+              tiendaId={tiendaId}
+              alCambiarTienda={setTiendaId}
+              presentacion={presentacion}
+              fijado={fijado}
+              alFijar={setFijado}
+              enFoto={enFoto}
+              alVistaPrevia={setVista}
+            />
+
+            <FichaDelModelo ficha={ficha} />
+            <OrdenesDelModelo ordenes={hoja.ordenes} />
+            <TelaDelModelo materiales={hoja.materiales} />
+
+            <p className="nota-cayla">
+              Ventas {tiendaElegida ? `de ${tiendaElegida.nombre}` : "de todas las tiendas"} en los últimos {DIAS_RITMO_RECIENTE} días; debajo de cada cifra, lo que queda {tiendaElegida ? "ahí" : "en tiendas"}. Las cifras en gris tienen {UMBRAL_POCA_BASE_VENTAS} ventas o menos: es poca base, no decidas por ellas. «Ya no hay» marca lo que se vendió más de {UMBRAL_POCA_BASE_VENTAS} veces y hoy no queda ninguna en tiendas.
+              {aclaracion && ` ${aclaracion}`}
+            </p>
           </div>
-        )}
-      </div>
+        </div>
 
-      <p className="nota-cayla mt-4">
-        Ventas de todas las tiendas en los últimos {DIAS_RITMO_RECIENTE} días; debajo de cada cifra, lo que queda en tiendas. Las cifras en gris tienen {UMBRAL_POCA_BASE_VENTAS} ventas o menos: es poca base, no decidas por ellas. «Ya no hay» marca lo que se vendió más de {UMBRAL_POCA_BASE_VENTAS} veces y hoy no queda ninguna en tiendas.
-        {aclaracion && ` ${aclaracion}`}
-      </p>
-
-      <div data-guia="prod-resumen.hoja-acciones" className="pie-hoja-fijo mt-4 flex flex-wrap justify-end gap-2 pt-1">
-        {hoja.hrefTrasladar && (
-          <BotonEnlace href={hoja.hrefTrasladar} peso={traslado ? "primario" : "fantasma"}>
-            Trasladar al piso
-          </BotonEnlace>
-        )}
-        <BotonEnlace href={hrefOrden} peso={traslado ? "fantasma" : "primario"}>
-          {hoja.sugerida ? "Abrir orden sugerida" : "Abrir orden"}
-        </BotonEnlace>
-      </div>
-    </Modal>
+        {/* El pie fijo (`pie-hoja-fijo`): los botones nunca quedan bajo el pliegue, por larga que sea la hoja. A la izquierda, ir a ver el modelo donde vive; a la derecha, lo que se decide aquí. */}
+        <div className="pie-hoja-fijo vr-pie vr-quieta">
+          <div data-guia="prod-resumen.hoja-acciones" className="vr-botones">
+            <BotonEnlace href={hrefCatalogo} peso="fantasma">
+              Ver en Catálogo
+            </BotonEnlace>
+            <BotonEnlace href={hrefExistencias} peso="fantasma">
+              Ver en Existencias
+            </BotonEnlace>
+            {/* En celular los cuatro botones son celdas de la misma grilla de dos columnas (`contents`); desde `sm`, los dos de decidir van juntos a la derecha. */}
+            <span className="contents sm:ml-auto sm:flex sm:flex-wrap sm:items-center sm:gap-2">
+              {hoja.hrefTrasladar && (
+                <BotonEnlace href={hoja.hrefTrasladar} peso={traslado ? "primario" : "fantasma"}>
+                  Trasladar al piso
+                </BotonEnlace>
+              )}
+              <BotonEnlace href={hrefOrden} peso={traslado ? "fantasma" : "primario"}>
+                {hoja.sugerida ? "Abrir orden sugerida" : "Abrir orden"}
+              </BotonEnlace>
+            </span>
+          </div>
+        </div>
+      </Modal>
+      {/* La foto en grande, la misma hoja que abre la miniatura de Existencias. Va FUERA de la hoja y no dentro: un modal sube sus teclas y sus clics por sus ancestros de React (ADR-0128). */}
+      {fotoGrande && <FotoAmpliada fotoUrl={fotoGrande.fotoUrl} referencia={hoja.referencia} color={fotoGrande.color || null} onCerrar={() => setFotoGrande(null)} alCerrarEnfocar={botonAmpliar} />}
+    </>
   );
 }
