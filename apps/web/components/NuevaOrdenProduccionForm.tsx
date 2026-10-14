@@ -55,6 +55,8 @@ import {
   type ErrorModeloNuevo,
   type VocabularioModeloNuevo,
 } from "@/lib/modelo-nuevo-reglas";
+import { Ruler } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Abrir una orden (abrir_produccion). Lo que se decide acá: qué modelo, cuántas
 // por talla-color y el costo ESTIMADO. El costo real se corrige al cerrar.
@@ -654,9 +656,9 @@ export function NuevaOrdenProduccionForm({
           <section data-guia="prod-orden-nueva.insumos" aria-label="Tela y avíos de esta orden" className="space-y-2.5 rounded-2xl border border-sand bg-crema p-3.5">
             <p className={campoEtiqueta}>¿Alcanza la tela y los avíos?</p>
             {rendimiento.length === 0 ? (
-              <p className="text-xs text-tinta/65">
+              <Vacio tamano="chico" alinear="izquierda" className="p-0" icono={<Ruler />}>
                 Todavía no hay órdenes cerradas de este modelo con insumos descontados: el rendimiento se mide desde la primera. Mientras tanto, escribe el costo a mano.
-              </p>
+              </Vacio>
             ) : total === 0 ? (
               <p className="text-xs text-tinta/65">Indica cuántas prendas para ver si alcanza. Por prenda, según {rendimiento[0].ordenes === 1 ? "la última orden" : "las órdenes cerradas"}: {rendimiento.map((r) => `${r.insumo} ${cantidadTexto(r.porPrenda, r.unidad)}`).join(" · ")}.</p>
             ) : (

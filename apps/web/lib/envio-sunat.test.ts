@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { leerPasada, vaciarColaSunat } from "./envio-sunat";
+import { enviarVentaASunat, leerPasada, primeraVez, vaciarColaSunat } from "./envio-sunat";
 
 // ADR-0378: al abrir Comprobantes la cola se vacía en varias pasadas (antes, 3 por visita: con 41 atascados el aviso
 // rojo tardaba 14 visitas en irse). Lo que importa: que pare sola, que no le insista a un Lucode caído y que deje de
@@ -73,6 +73,21 @@ describe("vaciarColaSunat", () => {
       vivo = false;
     });
     await vaciarColaSunat(null, { alCambiar, seguir: () => vivo });
+    expect(llamadas.n).toBe(1);
+  });
+});
+
+// /chaos 2026-10-13 (DC-02): una ráfaga de clics en «Cobrar» devuelve la misma venta varias veces; a Lucode sale una sola.
+describe("un solo envío a SUNAT por venta", () => {
+  it("primeraVez dice sí una vez por venta", () => {
+    const enviadas = new Set<string>();
+    expect(primeraVez("v1", enviadas)).toBe(true);
+    expect(primeraVez("v1", enviadas)).toBe(false);
+    expect(primeraVez("v2", enviadas)).toBe(true);
+  });
+  it("cinco respuestas con la misma venta mandan un solo pedido a /api/lucode/emitir", () => {
+    const llamadas = servidor([{}]);
+    for (let i = 0; i < 5; i++) enviarVentaASunat("venta-rafaga");
     expect(llamadas.n).toBe(1);
   });
 });

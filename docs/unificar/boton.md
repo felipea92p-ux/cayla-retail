@@ -55,3 +55,32 @@ Verificado en el ERP: la onda corre en las hojas de Clientes y Caja y el botón 
 
 `boton`: 0 tras la pasada del mostrador (al decidir eran 14). `accion.eliminar` y `accion.cerrar`: 0. Las firmas (`apps/web/unificar/familias.mjs`) atrapan la
 versalita copiada a mano, un enlace o un botón sutil teñido de rojo para borrar, y un «Cerrar» escrito al pie de una hoja.
+
+## Ronda 9 (2026-10-13): «Desactivar color» y las acciones chicas
+
+**«Desactivar color» · P1, como Categorías.** Iba dentro de una frase como enlace (`btn-enlace`, sin rojo): ahora es `<Boton
+peso="peligro">` a la izquierda del pie, con Cancelar y Guardar a la derecha y, debajo, la nota de cuándo se bloquea. Conserva sus dos
+toques («¿Seguro? Confirmar»). La hoja de Proveedor tenía el mismo enlace en una frase, pero ninguna pantalla se lo mostraba (la lista solo
+la abre para un proveedor nuevo); Felipe: «no se desactivan proveedores desde esa hoja», así que se quitó. Una firma nueva de `accion.eliminar` atrapa desactivar, eliminar, anular, borrar o
+archivar escrito como enlace (con su texto hasta tres líneas más abajo; «Archivados (3)», que muestra lo archivado, no cuenta).
+
+**Las acciones chicas dentro de una hoja · P2, según lo que hacen.** Eran versalitas rojas de 10–11 px; en la migración de las rondas 6–8
+pasaron todas a enlace. Ahora: lo que **cambia varias cosas de un toque** es `btn-cayla btn-sutil btn-chico` (Repartir todas en partes
+iguales, Partes iguales, Marcar las N atrasadas, Los espero todas, Agregar … al envío, Usar S/ …, Cerrar con faltante, Reasignar), con el
+movimiento de todo botón y la onda al clic; lo que **corrige una sola cosa** sigue `btn-enlace` (Cambiar, Editar, Deshacer, Revisar,
+Cambiar contraseña). No hay firma: la diferencia es lo que hace, no cómo está escrito.
+
+![El pie de Colores y una acción chica](capturas/pie-y-acciones.ronda9.jpg)
+
+## El censo de después (2026-10-13): los «+ Agregar …» a mano y una fila que se apretaba
+
+Cinco acciones chicas que agregan algo seguían en versalitas grises a mano («+ Agregar otra prenda» al mover mercadería y al pedir a otra
+sede, «+ Agregar línea» en Nueva compra, «+ Agregar prenda fuera de comprobante» y «+ Agregar comprobante» en Recepción): por la regla de la
+ronda 9 son `<Boton peso="discreto">` chico, con el «+» que da su cuarto de vuelta. «Cambiar» de Nuevo producto corrige una sola cosa: pasó a
+`btn-enlace`. Y al abrir la lista de productos de Nueva compra el auditor no encontró la caja: la caja de la ronda 6 se deja encoger, y en la
+fila de líneas la columna «Talla y color» se quedaba con todo el ancho (78 px para Producto). La plantilla de la fila pasó a
+`minmax(0, …)`. Quedan en versalitas a mano «Limpiar», «Cancelar», «Entendido» y «Descargar reporte»: son de familias todavía sin decidir.
+
+**Ronda 10 (2026-10-13):** en la vista rápida de un proveedor, «Desactivar» era un botón discreto; pasó a `peso="peligro"`, como en la vista
+rápida de un producto («Reactivar» sigue discreto). La firma de `accion.eliminar` ve el enlace teñido, no un botón discreto que dice
+«Desactivar»: se encontró mirando la captura de la ronda 10.

@@ -47,3 +47,20 @@ subrayado tenue y la flecha escrita al final de un `btn-enlace`. Al migrar, cada
 flecha escrita a mano. `<EnlaceVer>` aprendió `alNavegar` (cerrar la hoja o el cajón en el mismo clic que navega). «Todo el historial»
 de Historial y de Apartados no era un enlace sino un período que se elige: pasó a `pildora-cayla`. El ritmo de Existencias conserva su
 texto llano (diseño aprobado, `unificar-fijo`).
+
+## Ronda 9 (2026-10-13)
+
+Las acciones chicas dentro de una hoja que eran versalitas rojas y la migración pasó a `btn-enlace` se repartieron **según lo que hacen**
+(Felipe, P2): las que cambian varias cosas de un toque son ahora un botón sutil chico; las que corrigen una sola siguen siendo este
+enlace. Detalle y lista: [boton.md](boton.md), «Ronda 9».
+
+## El censo de después (2026-10-13): cuatro «Ver … →» en versalitas a mano
+
+Rastreado al código, el censo encontró enlaces sueltos que llevan a ver más dibujados en `label-cayla` con la flecha escrita: «Ver los 11 →»
+(la caja abierta), «Ver todas las sedes →» (el historial de cierres de la caja), «Ver catálogo completo →» (Buscar) y el enlace de
+`PasoSugerido`. Pasaron a `<EnlaceVer>` (la flecha que avanza la dibuja la pieza). Una firma nueva los atrapa. Queda exento, con su motivo,
+«Ver en Productos →» de Categorías: es el rótulo de una tarjeta que ya es un enlace, y un `<EnlaceVer>` no se anida dentro de otro.
+
+
+**El censo de mostrador (2026-10-13)** encontró tres más en Caja («Ver todos →», «Ver en Finanzas →», «Ver posventa →»): la clase iba en una
+constante (`enlaceVer`) y la firma, que lee la clase escrita, no los veía. Pasaron a `<EnlaceVer>`.

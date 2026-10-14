@@ -43,7 +43,7 @@
       "button «Reintentar»",
       "Desplegable «(sin nombre)»",
       "button «{`Quitar ${prenda?.etiqueta ?? \"esta línea\"}»",
-      "button «+ Agregar otra prenda»",
+      "Boton «+ Agregar otra prenda»",
       "input «Nota (opcional)»",
       "ComboResponsable «(sin nombre)»",
       "button «Mejor no»",

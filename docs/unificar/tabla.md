@@ -57,3 +57,16 @@ y la «›».
 taller, Rendimiento y las listas de Compras pasaron a `<Tabla>` + `<Encabezado>` + `fila()`. `<Encabezado>` aprendió `visible` (desde qué
 ancho se ve: Clientes decide por su tarjeta con `@container`). Las tablas con columnas que cambian (tienda × mes, campañas) pasan su
 plantilla en una variable CSS (`grid-cols-[var(--cols)]`). **Queda:** `ListaConteo` (sus `<tr>` memorizadas de `FilaConteo`).
+
+## Ronda 9 (2026-10-13): la planilla de Contar
+
+Felipe eligió **P1, con la cara de la tabla del sistema**, tocando la demo (fuentes en [rondas/9](rondas/9/README.md)). `ListaConteo` sigue
+siendo un `<table>` —con 800 tallas en pantalla, cada `FilaConteo` se vuelve a dibujar sola— pero toma la cara de `<Tabla>`: la cabecera en
+arena (`encabezado-tabla-cayla`), las divisiones en arena, el rayado en hueso y la cascada al abrir (`fila-cayla` en cada `<tr>`), y las filas
+algo más altas (39 px con mouse; se lee mejor de pie, con la prenda en la mano). Lo que decía se queda: la talla que cuadra se tiñe de verde
+y el estado dice Correcto, Faltan o Hay de más. **Movimiento nuevo:** la talla recién contada respira en verde una vez (1,4 s). En un `<table>`
+respiran sus CELDAS (`tr.fila-cayla[data-recien] > :is(td, th)`), así el `<tr>` conserva su entrada, su rayado y su tinte; el atributo se
+quita al terminar, para que buscar y volver a mostrar no repita el respiro. El `<table>` queda exento con su motivo (`unificar-fijo`).
+**Deuda 1 → 0.** Verificado en una página de ensayo con datos en memoria (la base local no tiene un conteo abierto), en claro y oscuro.
+
+![Contar](capturas/conteo.ronda9.jpg)

@@ -23,6 +23,7 @@ import {
   type TonoFicha,
 } from "@/lib/analisis-ficha";
 import { diasEnAlmacen, nuncaSalio } from "@/lib/analisis-piso";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 // Análisis v4 (ADR-0357): la ficha de una prenda (actividad 6), copia de `fichaHTML()` de la maqueta aprobada. Arriba, la prenda y
 // su estado; después tarjetitas (sin párrafos), sus ventas por semana, dónde hay en la red, el modelo entero en mi tienda, el dinero
@@ -208,9 +209,7 @@ function Ficha({ prenda: p, onCerrar }: { prenda: ModeloAnalisis; onCerrar: () =
                 </button>
               )}
               {existencias && (
-                <Link href={existencias} className="btn-cayla btn-secundario">
-                  Ver en Existencias
-                </Link>
+                <BotonVer href={existencias}>Ver en Existencias</BotonVer>
               )}
               {movimientos && (
                 <Link href={movimientos} className="btn-cayla btn-sutil">

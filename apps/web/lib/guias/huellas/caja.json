@@ -2,7 +2,7 @@
   "guia": "caja",
   "ruta": "/caja",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 106,
+  "total": 101,
   "controles": {
     "app/(app)/caja/page.tsx": [
       "BotonEnlace «caja.historial-todas»"
@@ -23,8 +23,7 @@
       "Boton «caja.ingreso»",
       "Boton «caja.historial»",
       "button «{texto}»",
-      "button «{METODO_RITMO[clave].texto}»",
-      "button «Ver los»"
+      "button «{METODO_RITMO[clave].texto}»"
     ],
     "components/CajaTablero.tsx": [
       "Link «{contenido}»",
@@ -37,9 +36,6 @@
       "button «{on ? <Check size={13}»",
       "button «Volver a lo predeterminado»",
       "Link «Ver»",
-      "Link «Ver todos →»",
-      "Link «Ver en Finanzas →»",
-      "Link «Ver posventa →»",
       "SegmentoDeslizante «(predeterminada)»",
       "Link «Ver historial completo»",
       "button «Volver a la predeterminada»"
@@ -94,7 +90,7 @@
       "CampoTexto «Serie y número»",
       "button «Usa el formulario completo»",
       "button «Retiro o depósito»",
-      "ComboResponsable «avisoSalida.pedirAccion(ce»",
+      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -106,7 +102,6 @@
       "button «Historial de cierres»",
       "button «Reintentar»",
       "button «{f.valor === \"falto\" ? \"caja.historial-falto\" : undefined}»",
-      "Link «Ver todas las sedes →»",
       "button «{`Ver el detalle del cierre del ${dia}»"
     ],
     "components/IngresoRapidoModal.tsx": [
@@ -119,7 +114,7 @@
       "Link «Apartados»",
       "Link «Vender»",
       "button «Retiro o depósito»",
-      "ComboResponsable «avisoSalida»",
+      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -129,7 +124,7 @@
       "Desplegable «(sin nombre)»",
       "input «Describe el motivo»",
       "input «N° de operación, voucher, u otra nota»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "button «Cancelar»",
       "button «{responsable.motivo ?? undefined}»"
     ],
@@ -137,7 +132,7 @@
       "button «¿No está? Súmalo»",
       "button «Sumar proveedor»",
       "button «Cancelar»",
-      "ComboResponsable «avisoSalida.pedirAccion(onCerrar)»",
+      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "button «Cancelar» #2",
       "button «→guardar»"
     ],

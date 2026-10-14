@@ -11,6 +11,7 @@ import { SelloTipo } from "@/components/movimientos/SelloTipo";
 import { TrayectoMovimiento } from "@/components/movimientos/TrayectoMovimiento";
 import type { ConsultarLink, DetalleBajadas, DetalleCajon, ItemPrenda, PasoCajon, RutaCajon, TonoCifra, VistaCajon } from "@/lib/movimientos-cajon";
 import { TIPOS_VISUALES, type TipoVisual } from "@/lib/movimientos-tipos";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css (mismo contrato que `PanelTalla`). */
 const MS_SALIDA = 240;
@@ -66,7 +67,7 @@ function BloqueRuta({ ruta, tipo }: { ruta: RutaCajon; tipo: TipoVisual }) {
   if (!ruta.destino && !corrige) return null;
   return (
     <section className="mt-6 border-t border-sand pt-5" data-mv-tono={TIPOS_VISUALES[tipo].tono}>
-      <h3 className="mb-3 text-[15px] font-semibold text-tinta">Ruta</h3>
+      <TituloGrupo className="mb-3">Ruta</TituloGrupo>
       <TrayectoMovimiento origen={ruta.origen} destino={ruta.destino} tipo={tipo} motivo={ruta.motivo} solo={tipo === "conteo" ? "se corrigió tras contar" : "se corrigió aquí"} />
     </section>
   );
@@ -77,7 +78,7 @@ function BloquePasos({ pasos, tipo }: { pasos: PasoCajon[]; tipo: TipoVisual }) 
   if (pasos.length === 0) return null;
   return (
     <section className="mt-6 border-t border-sand pt-5" data-mv-tono={TIPOS_VISUALES[tipo].tono}>
-      <h3 className="mb-3 text-[15px] font-semibold text-tinta">Qué pasó</h3>
+      <TituloGrupo className="mb-3">Qué pasó</TituloGrupo>
       <ol className="mv-pasos">
         {pasos.map((p, i) => (
           <li key={i} data-hecho={p.hecho ? "" : undefined} style={{ "--k": i } as React.CSSProperties}>
@@ -141,10 +142,13 @@ function BloquePrenda({ prenda }: { prenda: NonNullable<DetalleCajon["prenda"]> 
 function Seccion({ icono: Icono, titulo, children }: { icono?: typeof FileText; titulo: string; children: React.ReactNode }) {
   return (
     <section className="mt-6 border-t border-sand pt-5 pb-1">
-      <h3 className="mb-3 flex items-center gap-2 text-[15px] font-semibold text-tinta">
-        {Icono && <Icono aria-hidden className="h-[18px] w-[18px] text-tinta/70" strokeWidth={1.6} />}
-        {titulo}
-      </h3>
+      {/* El título de un grupo del cajón (ADR-0358, ronda 7): versalitas con su raya; el ícono, si lo trae, va con él. */}
+      <TituloGrupo className="mb-3">
+        <span className="inline-flex items-center gap-1.5">
+          {Icono && <Icono aria-hidden className="h-3.5 w-3.5 text-tinta/70" strokeWidth={1.8} />}
+          {titulo}
+        </span>
+      </TituloGrupo>
       {children}
     </section>
   );

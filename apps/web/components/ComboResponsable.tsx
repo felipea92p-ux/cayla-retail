@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronDown, Clock, RefreshCw, Search, ShieldCheck, UserRound } from "lucide-react";
+import { Check, ChevronDown, Clock, RefreshCw, Search, ShieldCheck, UserRound, SearchX } from "lucide-react";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import type { PersonaDeTurno } from "@/lib/responsable-reglas";
@@ -11,6 +11,7 @@ import { useComboLista } from "@/components/ui/useCombo";
 import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { diaYHoraLima } from "@/lib/fechas-lima";
+import { Vacio } from "@/components/ui/Vacio";
 
 type Props = {
   control: ControlResponsable;
@@ -266,7 +267,9 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
           <div id={idLista} role="listbox" aria-label={`De turno ahora en ${sede}`} onScroll={alHacerScroll} className="min-h-0 flex-1 overflow-y-auto p-2">
             <p className="label-cayla px-2 pb-2 pt-1.5 text-[11px] text-tinta/60">De turno ahora · {sede}</p>
             {mostrarBuscador && mostradas.length === 0 ? (
-              <p className="px-2 py-3 text-sm text-tinta/65">Nada coincide con «{busqueda.trim()}».</p>
+              <Vacio tamano="chico" alinear="izquierda" icono={<SearchX />}>
+                Nada coincide con <b>«{busqueda.trim()}»</b>.
+              </Vacio>
             ) : (
               mostradas.map((p) => (
                 <button

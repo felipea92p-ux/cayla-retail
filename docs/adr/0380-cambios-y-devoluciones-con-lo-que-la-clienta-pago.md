@@ -65,3 +65,5 @@ Una sola parte (solo `create or replace` de tres funciones, sin tablas ni polít
 ## Lo que este ADR no arregla: la nota de una devolución PARCIAL lleva todas las líneas
 
 `aprobar_devolucion` llama a `emitir_nota` sin `p_items`, y `emitir_nota` copia los ítems del comprobante original (`coalesce(p_items, v_original.items)`). Desde este ADR el **total** de la nota es lo pagado por lo devuelto, pero en una devolución parcial (motivo «07») los **ítems** siguen siendo todas las líneas de la boleta, y eso es lo que `itemsParaLucode` manda a SUNAT. Ejemplo: boleta con una polera de S/ 80 y una blusa de S/ 60; se devuelve la polera → nota por S/ 80 que declara las dos prendas (S/ 140). Se vio en el código el 2026-10-12, sin probarlo contra Lucode. Está latente: en producción hay 0 devoluciones en 30 días. Arreglo propuesto: que `aprobar_devolucion` pase `p_items` armados con lo devuelto. Es SUNAT, así que espera el OK de Felipe (backlog de este ADR).
+
+**Actualización 2026-10-12:** construido en el ADR-0382 (`20261012200000`): la nota lleva solo lo devuelto. Sin pegar en producción.

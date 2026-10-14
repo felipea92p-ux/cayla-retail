@@ -178,7 +178,7 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
           )}
 
           <section>
-            <TituloGrupo className="mb-1" cuenta="no se edita ni se borra">
+            <TituloGrupo className="mb-1" nota="no se edita ni se borra">
               Historial
             </TituloGrupo>
             <ul className="border-t border-tinta/10">

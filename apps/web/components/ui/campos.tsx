@@ -969,14 +969,16 @@ const claseBoton = (peso: keyof typeof PESO_BOTON, className: string) => `btn-ca
 /**
  * El «+» del texto («+ Registrar gasto») se dibuja como ícono, para que dé su cuarto de vuelta al pasar el mouse (Felipe 2026-10-07:
  * «le falta animación en el +»). El lector de pantalla oye «Registrar gasto», sin el signo. Lo demás del texto va en un solo bloque,
- * así un `Agregar {año}` no se separa con el espacio de la fila.
+ * así un `Agregar {año}` no se separa con el espacio de la fila. La caja es `flex` (de bloque), no `inline-flex`: dentro del
+ * <span> de <Boton> una `inline-flex` armaba su propia línea de texto y el botón con «+» medía 43 px junto a sus vecinos de 40
+ * (ronda 10 de /unificar, 2026-10-13).
  */
 function conMas(children: ReactNode): ReactNode {
   const partes = Children.toArray(children);
   const primero = partes[0];
   if (typeof primero !== "string" || !/^\s*\+\s/.test(primero)) return children;
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="flex items-center gap-1.5">
       <Plus aria-hidden className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} />
       <span>
         {primero.replace(/^\s*\+\s*/, "")}
