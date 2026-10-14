@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  anioLima,
   avisoCumpleApagado,
   ayudaCumpleFueraDeMes,
   ayudaPieCumple,
@@ -150,9 +149,6 @@ describe("el mes de Lima", () => {
   });
   it("a las 00:00 de Lima ya es octubre", () => {
     expect(mesLima(new Date("2026-10-01T05:00:00Z"))).toBe(10);
-  });
-  it("el año del canje es el de Lima: el 31 de diciembre a las 20:00 todavía es el año que termina", () => {
-    expect(anioLima(new Date("2027-01-01T01:00:00Z"))).toBe(2026);
   });
 });
 

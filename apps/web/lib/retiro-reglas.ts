@@ -19,6 +19,7 @@ import type { Cantidades, TallaParaReponer } from "./reponer-prenda-reglas";
 
 /** La RPC y sus parámetros en un solo lugar: `retiro-reglas.test.ts` los fija contra la migración. */
 export const RPC_RETIRO = "retirar_del_piso";
+/** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
 export const PARAMETROS_RPC_RETIRO = ["p_ubicacion_id", "p_items", "p_nota", "p_token"] as const;
 
 /** El máximo de la nota (la base lo exige igual: hint `retiro_nota_larga`). */

@@ -108,8 +108,8 @@ jobs:
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: pnpm --filter web exec next typegen
 
-      # Los cuatro corren SIEMPRE aunque uno falle, pero solo si la instalación funcionó
-      # (si no hay node_modules, los cuatro fallarían por la misma razón y el informe sería
+      # Todos corren SIEMPRE aunque uno falle, pero solo si la instalación funcionó
+      # (si no hay node_modules, todos fallarían por la misma razón y el informe sería
       # ruido). Un push malo devuelve así el diagnóstico completo en una vuelta: sin esto,
       # arreglar el lint solo sirve para descubrir que además fallaban las pruebas.
       - name: Tipos
@@ -126,11 +126,20 @@ jobs:
 
       # Código muerto (ADR-0406): un archivo que nadie importa, una exportación que nadie lee o una dependencia que nadie carga
       # ponen el PR en rojo. Lee todo el monorepo en ~3 s; lo que se queda sin uso a propósito se declara en `knip.ts` o con
-      # `@public` junto al código, con su motivo. NO ve una función que solo usa su propia prueba: eso lo vigila
-      # `lib/reglas-sin-uso.test.ts` (ADR-0234), dentro de «Pruebas».
+      # `@public` junto al código, con su motivo. Cuenta las pruebas como uso: lo que SOLO usa su prueba lo ve el paso de abajo.
       - name: Código muerto
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: pnpm knip --no-progress
+
+      # Lo que solo usan las pruebas (ADR-0406, act. 2026-10-14; antes `reglas-sin-uso.test.ts`, ADR-0234): `knip --production`
+      # parte de lo que llega a la tienda y no cuenta las pruebas. Pone el PR en rojo si aparece una pieza que ninguna pantalla
+      # importa, o si una de la deuda de antes (`scripts/knip/deuda-produccion.mjs`, solo baja) ya se usa o ya no existe. Lo que
+      # existe PARA su prueba se declara con `@internal` y su motivo. ~1 s.
+      - name: Código que solo usan las pruebas
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: |
+          node --test scripts/knip/produccion.test.mjs
+          pnpm knip:produccion
 
       # El aviario (ADR-0104): ninguna tabla de producción sin pájaro, ninguna con dos, y
       # `docs/datos/generado/AVIARIO.md` al día. Tampoco toca base de datos: lee el volcado
