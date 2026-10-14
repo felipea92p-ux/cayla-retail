@@ -40,7 +40,12 @@ const BASE = arg("--base", "postgres");
 const SIN_ARREGLO = process.argv.includes("--sin-arreglo");
 const MIGRACIONES = SIN_ARREGLO
   ? []
-  : ["20261014192000_fondos_montos_validos_parte1.sql", "20261014193000_fondos_montos_validos_parte2.sql", "20261014194000_fondos_token_sigue_al_contenido.sql"].map(
+  : [
+      "20261014192000_fondos_montos_validos_parte1.sql",
+      "20261014193000_fondos_montos_validos_parte2.sql",
+      "20261014194000_fondos_token_sigue_al_contenido.sql",
+      "20261014200000_gasto_viaje_sede_para_la_caja.sql",
+    ].map(
       (f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"),
     );
 
@@ -271,6 +276,24 @@ ${prueba("e_descartado", "select retail.entregar_fondo(%L, %L, 100, 'Compra B', 
       espera(s, "res_otra", /^res_otra\|42501\|intento_ajeno\|/, e, "otra persona sin el módulo no revisa una rendición ajena");
       espera(s, "res_perdido", /^res_perdido\|no_llego$/, e, "un token que nunca llegó se da por no llegado");
       espera(s, "e_descartado", /^e_descartado\|P0001\|intento_descartado\|/, e, "y ese envío ya no entra (intento_descartado)");
+      return e;
+    },
+  },
+  {
+    nombre: "la sede de un gasto del viaje (la caja que propone la hoja): la de quien lo registra; si no tiene, la de su orden",
+    sql: `${como(ANA)}
+select 'ana|' || (retail.fn_gasto_viaje_sede(array[:'oc']::uuid[]) = :'tru')::text;
+${como(FELIPE)}
+select coalesce((select u.id from retail.colaboradores co join retail.ubicaciones u on u.id = co.ubicacion_asignada_id
+                  join public.personas p on p.id = co.persona_id where p.auth_user_id = '${FELIPE}' and u.activo limit 1), :'tru') as esperada \\gset
+select 'felipe|' || (retail.fn_gasto_viaje_sede(array[:'oc']::uuid[]) = :'esperada')::text;
+select 'nada|' || coalesce(retail.fn_gasto_viaje_sede(array[]::uuid[])::text, 'sin sede') || '|' || coalesce((select 'con sede' from retail.colaboradores co join public.personas p on p.id = co.persona_id where p.auth_user_id = '${FELIPE}' and co.ubicacion_asignada_id is not null), 'sin sede');`,
+    revisar: (s) => {
+      const e = [];
+      espera(s, "ana", /^ana\|true$/, e, "Ana (con sede) registra en la suya");
+      espera(s, "felipe", /^felipe\|true$/, e, "Felipe: su sede si tiene una; si no, la de la orden");
+      const nada = linea("nada")(s);
+      if (/\|sin sede$/.test(nada) && !/^nada\|sin sede\|/.test(nada)) e.push(`sin sede ni orden, ninguna — ${nada}`);
       return e;
     },
   },

@@ -22,7 +22,7 @@ import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { traducirError } from "@/lib/error-escritura";
-import { leerMonto } from "@/lib/caja-cierre-reglas";
+import { leerMontoPlata } from "@/lib/monto-plata-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
@@ -50,7 +50,7 @@ import {
   type PapelGastoViaje,
   type TipoGastoViaje,
 } from "@/lib/gastos-viaje-reglas";
-import { leerOrdenesParaGastoDesdeLaHoja, registrarGastoViaje } from "@/lib/gastos-viaje-acciones";
+import { leerOrdenesParaGastoDesdeLaHoja, leerSedeDelGasto, registrarGastoViaje } from "@/lib/gastos-viaje-acciones";
 
 // «+ Gasto del viaje» (ADR-0362, fase 6 · actividad 3; Felipe 2026-10-13: «desde Órdenes de compra»). Lo que quien compra pagó para traer
 // la mercadería (flete, agencia, cargador, embalaje) o en su viaje (pasaje, hotel, comida, taxi). Es un gasto de verdad: sale en Finanzas ▸
@@ -136,9 +136,22 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
     return [desdeLaLista ?? { ...orden, destino: null, fechaEmision: null }, ...lista.filter((o) => o.id !== orden.id)];
   }, [disponibles, orden]);
 
-  const cuentas = useCuentasParaElegir("pago", sede?.ubicacionId ?? null, true, { conMiFondo: true });
+  // La caja que se propone es de la tienda del GASTO (la de quien registra o la de la primera orden, como la base), no la de arriba:
+  // un cajón de otra tienda la base lo rechaza (/chaos 2026-10-14).
+  const [sedeDelGasto, setSedeDelGasto] = useState<string | null>(null);
+  const claveOrdenes = elegidas.join(",");
+  useEffect(() => {
+    let vivo = true;
+    void leerSedeDelGasto(claveOrdenes ? claveOrdenes.split(",") : []).then((id) => {
+      if (vivo) setSedeDelGasto(id);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [claveOrdenes]);
+  const cuentas = useCuentasParaElegir("pago", sedeDelGasto ?? sede?.ubicacionId ?? null, true, { conMiFondo: true });
   const cuentaId = cuentaEfectiva(cuentas.cuentas, "pago", medio, cuentaElegida);
-  const montoLeido = leerMonto(monto);
+  const montoLeido = leerMontoPlata(monto);
   const deFondo = cuentas.cuentas.some((c) => c.id === cuentaId && c.tipo === "fondo");
   // ADR-0362 (fase 6 · actividad 6, decisiones 56 y 70): un gasto de S/ 2 000 o más pagado en efectivo o desde un fondo queda «no
   // deducible». Se deja registrar; la hoja lo avisa. (Lo que pasa el tope de la planilla lo marca la base después: depende del día.)
@@ -214,7 +227,15 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
     if (!esPersona) responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
     // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
     if (r.tipo === "incierto") return;
-    if (r.tipo === "error") return setRechazo({ titulo: "No se guardó", texto: traducirError(r.error, "registrar el gasto"), tono: "error" });
+    if (r.tipo === "error") {
+      // Un cajón de otra tienda: la base lo dice sin decir qué elegir.
+      const otraTienda = /otra tienda que la caja/i.test(r.error.message ?? "");
+      return setRechazo({
+        titulo: "No se guardó",
+        texto: otraTienda ? "Esa caja es de otra tienda que este gasto: elige la de la tienda de la orden, o tu fondo." : traducirError(r.error, "registrar el gasto"),
+        tono: "error",
+      });
+    }
     registrado();
   }
 

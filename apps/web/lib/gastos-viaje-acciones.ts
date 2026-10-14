@@ -32,6 +32,15 @@ export function registrarGastoViaje(
   return firmar(createClient().rpc(RPC_REGISTRAR_GASTO_VIAJE as never, { ...args, p_token: token } as never), firma).abortSignal(senal);
 }
 
+/**
+ * De qué sede es el gasto con esas órdenes (`fn_gasto_viaje_sede`, la misma regla que `registrar_gasto_viaje`): la hoja propone la caja
+ * de ESA tienda (/chaos 2026-10-14). `fn_`: el loader general no bloquea la hoja. Si la base no contesta, `null` (la hoja usa la de arriba).
+ */
+export async function leerSedeDelGasto(ordenes: readonly string[]): Promise<string | null> {
+  const { data, error } = await (createClient().rpc("fn_gasto_viaje_sede" as never, { p_ordenes: ordenes } as never) as unknown as PromiseLike<{ data: unknown; error: unknown }>);
+  return !error && typeof data === "string" ? data : null;
+}
+
 /** Las órdenes que se pueden elegir (`fn_`: el loader general no bloquea la hoja). Si la base no contesta, la hoja sigue sin la lista. */
 export async function leerOrdenesParaGastoDesdeLaHoja(): Promise<{ ordenes: OrdenParaGasto[]; falla: boolean }> {
   const { data, error } = await (createClient().rpc(RPC_ORDENES_PARA_GASTO as never) as unknown as PromiseLike<{ data: unknown; error: unknown }>);

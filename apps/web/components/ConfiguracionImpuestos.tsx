@@ -38,10 +38,14 @@ import {
 
 type Guardar = (nombre: NombreParametro, vigenteDesde: string, valor: number | null, texto: string | null, listo: string) => Promise<boolean>;
 
-/** Una casilla que se guarda al salir si su texto cambió; si el guardado falla, vuelve a lo de antes. */
+/**
+ * Una casilla que se guarda al salir si su texto cambió; si el guardado falla, vuelve a lo de antes. Mientras guarda no se edita
+ * (/chaos 2026-10-14): con la red lenta, dos cambios seguidos llegaban en desorden y quedaba el primero aunque se escribió el segundo.
+ */
 function Casilla({ valor, etiqueta, ancho, alGuardar, placeholder = "—" }: { valor: string; etiqueta: string; ancho: string; alGuardar: (nuevo: string) => Promise<boolean>; placeholder?: string }) {
   const [t, setT] = useState(valor);
   const [antes, setAntes] = useState(valor);
+  const [guardando, setGuardando] = useState(false);
   if (valor !== antes) {
     setAntes(valor);
     setT(valor);
@@ -52,14 +56,18 @@ function Casilla({ valor, etiqueta, ancho, alGuardar, placeholder = "—" }: { v
       inputMode="decimal"
       value={t}
       placeholder={placeholder}
+      readOnly={guardando}
+      aria-busy={guardando || undefined}
       onChange={(e) => setT(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        if (e.key === "Escape") setT(valor);
+        if (e.key === "Escape" && !guardando) setT(valor);
       }}
       onBlur={async () => {
-        if (t.trim() === valor.trim()) return;
+        if (guardando || t.trim() === valor.trim()) return;
+        setGuardando(true);
         const ok = await alGuardar(t);
+        setGuardando(false);
         if (!ok) setT(valor);
       }}
       className={`fin-control fin-num inline-block ${ancho}`}
