@@ -1,7 +1,9 @@
 # ADR-0390 — Una devolución espera a que SUNAT acepte la boleta, el reembolso es libre con aviso y el plazo de cambio vive en la base
 
 - **Fecha:** 2026-10-12 · **Estado:** construido y verificado en local (copia desechable de la base, y la pantalla a 375 px con datos de
-  prueba que se deshicieron con `estado.mjs`). **No está en producción:** las dos migraciones esperan el OK de Felipe.
+  prueba que se deshicieron con `estado.mjs`). **En producción desde el 2026-10-14**, con el OK de Felipe:
+  las dos migraciones, ensayadas antes con un lote que terminaba en error a propósito, sobre la definición viva que ya traía
+  los arreglos de #1054 (ADR-0398) y #1062 (ADR-0382).
 - **Pedido:** tareas 6 y 7 de la revisión del 11-oct (lote C). Felipe eligió las dos reglas de negocio: «bloquear» (tarea 6) y «libre, con
   aviso» (tarea 7).
 
