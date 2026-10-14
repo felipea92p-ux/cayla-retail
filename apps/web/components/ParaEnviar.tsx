@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Modal, botonCancelar, botonPrimario, campoTexto } from "@/components/ui/Modal";
+import { Modal, botonPrimario, campoTexto } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -63,8 +63,8 @@ export function YaNoLaEnvioModal({ prenda, ubicacion, onClose }: { prenda: Prend
             <ComboResponsable control={responsable} deshabilitado={enviando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo." />
-          <div className="pie-hoja-fijo flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} className={botonCancelar} disabled={enviando}>
+          <div className="pie-hoja-fijo pie-acciones pt-1">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={enviando}>
               Mejor no
             </button>
             <button

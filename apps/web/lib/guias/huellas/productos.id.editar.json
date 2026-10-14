@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 141,
+  "total": 139,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «{producto.referencia}»"
@@ -142,8 +142,7 @@
       "button «Listo»"
     ],
     "components/ficha-producto/ImprimirLoQueEntro.tsx": [
-      "button «Más tarde»",
-      "button «Imprimir»"
+      "button «Más tarde»"
     ],
     "components/ficha-producto/MatrizStockFicha.tsx": [
       "SegmentoDeslizante «Qué se escribe en la tabla»",
@@ -189,7 +188,6 @@
       "Boton «{`Poner un precio propio en ${f.sede}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/ficha-producto/SeccionFicha.tsx": [

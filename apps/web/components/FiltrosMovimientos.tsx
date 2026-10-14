@@ -25,6 +25,7 @@ import {
 import { grupoPorId } from "@/lib/movimientos-tipos";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
 import { BotonFiltros } from "@/components/ui/FiltrosPildora";
+import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
 
 // Filtros de Movimientos. Viven en la URL (?q=…&cat=…&proc=…&sub=…&rango=…), igual que en
 // Compras: la página es un Server Component que filtra en Postgres, el enlace se puede
@@ -349,9 +350,9 @@ export function FiltrosMovimientos({
           {procesoSueltoPildora}
           {zona}
           {hayFiltros && (
-            <button type="button" data-guia="movimientos.limpiar" onClick={limpiar} className="btn-cayla btn-enlace text-xs">
+            <BotonLimpiar onClick={limpiar} guia="movimientos.limpiar">
               Limpiar filtros
-            </button>
+            </BotonLimpiar>
           )}
         </div>
         {procesos}
@@ -379,8 +380,8 @@ export function FiltrosMovimientos({
                   Descargar Excel con estos filtros
                 </BotonDescargar>
               )}
-              <div className="flex gap-2 pt-1">
-                <button type="button" onClick={limpiar} className="btn-cayla btn-secundario flex-1">
+              <div className="pie-acciones pt-1">
+                <button type="button" onClick={limpiar} className="btn-cayla btn-secundario">
                   Limpiar
                 </button>
                 <button type="button" onClick={cerrar} className="btn-cayla btn-primario flex-1">

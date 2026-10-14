@@ -156,7 +156,7 @@ export function NuevaCampanaModal({
           </CampoGuiado>
           <div className="pie-hoja-fijo">
             <PieGuia guia={guia} listo={nueva ? "Todo listo para crear." : "Todo listo para armar el plan."} />
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="pie-acciones pt-2">
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>

@@ -19,6 +19,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { camposDeCambiarPrecio, camposDeRetirar } from "@/lib/liquidacion-guia";
 import { diasALaVenta, tiempoALaVenta, errorDeLiquidacion, piezaDeJson, precioDeTexto, soles, type PiezaLiquidacion } from "@/lib/liquidacion-reglas";
 import { diaLima } from "@/lib/fechas-lima";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 type Modo = "ver" | "precio" | "retirar";
 
@@ -168,7 +169,7 @@ export function PiezaLiquidacionModal({
             </CampoGuiado>
             <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
               <PieGuia guia={guiaPrecio} listo="Sale una etiqueta nueva; la de ahora deja de valer." />
-              <div className="ml-auto flex gap-3">
+              <div className="ml-auto pie-acciones">
                 <Boton type="button" onClick={() => setModo("ver")}>
                   Cancelar
                 </Boton>
@@ -190,7 +191,7 @@ export function PiezaLiquidacionModal({
             </CampoGuiado>
             <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
               <PieGuia guia={guiaRetiro} listo="Deja de estar a la venta. No se borra: queda en «Retiradas»." />
-              <div className="ml-auto flex gap-3">
+              <div className="ml-auto pie-acciones">
                 <Boton type="button" onClick={() => setModo("ver")}>
                   Cancelar
                 </Boton>
@@ -214,9 +215,9 @@ export function PiezaLiquidacionModal({
               <Boton type="button" onClick={() => setModo("precio")}>
                 Bajar el precio
               </Boton>
-              <Boton type="button" peso="primario" cargando={impresion.enviando} onClick={impresion.imprimir}>
+              <BotonImprimir peso="primario" cargando={impresion.enviando} onClick={impresion.imprimir}>
                 Imprimir etiqueta
-              </Boton>
+              </BotonImprimir>
             </div>
           </>
         )}

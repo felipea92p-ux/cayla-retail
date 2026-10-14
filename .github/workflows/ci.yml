@@ -153,9 +153,10 @@ jobs:
       # PR). Aquí porque una de ellas lee la plantilla del formulario, y ese workflow solo baja scripts/migraciones.
       # deriva-diaria.test.mjs simula `deriva-diaria.yml` paso a paso (bash, jq y curl, que el runner trae).
       # sql-huerfano.test.mjs vigila el aviso de un PR cerrado con su SQL en producción (`sql-huerfano.yml`).
+      # deriva-pegados.test.mjs vigila qué PR abiertos se suman a main antes de compararlo con producción (ADR-0402).
       - name: Pruebas del check SQL pegado y de la deriva
         if: ${{ !cancelled() }}
-        run: node --test scripts/migraciones/sql-pegado.test.mjs scripts/migraciones/deriva.test.mjs scripts/migraciones/deriva-diaria.test.mjs scripts/migraciones/huellas-del-pr.test.mjs scripts/migraciones/sql-en-produccion.test.mjs scripts/migraciones/sql-huerfano.test.mjs
+        run: node --test scripts/migraciones/sql-pegado.test.mjs scripts/migraciones/deriva.test.mjs scripts/migraciones/deriva-diaria.test.mjs scripts/migraciones/huellas-del-pr.test.mjs scripts/migraciones/sql-en-produccion.test.mjs scripts/migraciones/sql-huerfano.test.mjs scripts/migraciones/deriva-pegados.test.mjs
 
       # Números de ADR únicos: cada sesión numera su ADR como "el siguiente" de su `main` y,
       # con ramas paralelas, dos eligen el mismo (0074 y 0105 siguen repetidos en

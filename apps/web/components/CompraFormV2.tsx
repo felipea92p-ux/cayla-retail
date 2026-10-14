@@ -952,7 +952,7 @@ export function CompraFormV2({
               {condicion === "contado" ? `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()} y pago · ${soles(total)}` : `Registrar ${TIPOS.find((t) => t.valor === tipo)!.texto.toLowerCase()}`}
             </BotonRegistrar>
           )}
-          <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir("/compras")} disabled={loading || registrada} className="w-full">
+          <Boton type="button" peso="fantasma" onClick={() => salida.pedirSalir("/compras")} disabled={loading || registrada} className="w-full">
             Cancelar
           </Boton>
         </div>

@@ -274,7 +274,7 @@ function FamiliaModal({
           <div className="mt-4">
             <PieGuia guia={guia} listo="Todo listo para guardar." />
           </div>
-          <div data-guia="familias.form-pie" className="mt-4 flex justify-end gap-2">
+          <div data-guia="familias.form-pie" className="mt-4 pie-acciones">
             <Boton peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>

@@ -164,7 +164,7 @@ function ProponerValorAbierto({ tipo, categoriaId, familia, ejesActuales, univer
         >
           {trabajando ? "Guardando…" : "Agregar"}
         </button>
-        <button type="button" onClick={() => onCerrar()} disabled={trabajando} className="btn-cayla btn-sutil">
+        <button type="button" onClick={() => onCerrar()} disabled={trabajando} className="btn-cayla btn-secundario">
           Cancelar
         </button>
       </div>

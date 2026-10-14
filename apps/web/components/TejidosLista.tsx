@@ -353,13 +353,13 @@ export function TejidosLista({
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoId === rechazandoTejido.id}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={rechazandoId === rechazandoTejido.id}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={rechazandoId === rechazandoTejido.id}
                   onClick={() => rechazar(rechazandoTejido)}
                 >
@@ -474,8 +474,8 @@ function NuevoTejidoModal({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton

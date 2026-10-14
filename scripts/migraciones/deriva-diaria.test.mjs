@@ -84,7 +84,10 @@ function simular({ vars = {}, secrets = {}, fingir = {}, archivos = {}, abierto 
     ].join("\n"),
   );
   chmodSync(join(bin, "gh"), 0o755);
-  for (const [nombre, contenido] of Object.entries(archivos)) writeFileSync(join(temp, nombre), contenido);
+  for (const [nombre, contenido] of Object.entries(archivos)) {
+    mkdirSync(dirname(join(temp, nombre)), { recursive: true });
+    writeFileSync(join(temp, nombre), contenido);
+  }
 
   const ctx = { "github.token": "token-falso", "github.server_url": "https://github.com", "github.repository": "cayla/retail", "github.run_id": "7" };
   for (const [k, v] of Object.entries(vars)) ctx[`vars.${k}`] = v;
@@ -121,13 +124,37 @@ function simular({ vars = {}, secrets = {}, fingir = {}, archivos = {}, abierto 
 
 const avisos = (gh) => gh.split("\n").filter((l) => /^gh issue (create|comment)/.test(l));
 const configurado = { vars: { SUPABASE_URL: "http://127.0.0.1:9", SUPABASE_ANON_KEY: "anon-falsa" }, secrets: { DERIVA_LLAVE: "llave-falsa" } };
-const nube = { "pnpm install --frozen-lockfile": 0, "Main, como el CI": 0, "Huellas de main": 0 };
+const nube = {
+  "pnpm install --frozen-lockfile": 0,
+  "Main, como el CI": 0,
+  "Huellas de main": 0,
+  // ADR-0402: leer los PR (GitHub) y aplicar su SQL (docker) también se fingen; lo que dejan va en `archivos`.
+  "PR que declaran su SQL pegado": 0,
+  "Huellas de main con lo pegado": 0,
+};
 const MAIN = "fn\tf()\taaaaaaaaaaaa\nfn\tg()\tbbbbbbbbbbbb\n";
+
+/** Lo que dejan los pasos de lo pegado: el plan de `reunir` y el resultado de `aplicar` (deriva-pegados.mjs). */
+function pegados({ prs = [], fallidos = [] } = {}) {
+  const plan = { prs: prs.map((numero) => ({ numero, sha: "abc", archivos: [`2026101400000${numero % 10}_x.sql`] })), orden: [], repetidos: [] };
+  return { "pegados/plan.json": JSON.stringify(plan), "pegados/resultado.json": JSON.stringify({ aplicados: [], fallidos, saltados: [] }) };
+}
 
 test("el archivo se lee: los pasos que la simulación necesita están, con su id", () => {
   const ids = pasos(WORKFLOW).map((p) => p.id).filter(Boolean);
-  for (const id of ["produccion", "main", "huellas_main", "comparar"]) assert.ok(ids.includes(id), id);
+  for (const id of ["produccion", "main", "huellas_main", "pegados", "huellas_pegados", "comparar"]) assert.ok(ids.includes(id), id);
   assert.ok(existsSync(join(RAIZ, "scripts", "migraciones", "deriva.mjs")));
+  assert.ok(existsSync(join(RAIZ, "scripts", "migraciones", "deriva-pegados.mjs")));
+});
+
+test("compara producción con main MÁS lo pegado, no con main a secas (ADR-0402)", () => {
+  const comparar = pasos(WORKFLOW).find((p) => p.id === "comparar").run;
+  assert.match(comparar, /deriva\.mjs "\$RUNNER_TEMP\/main-mas-pegados\.tsv" "\$RUNNER_TEMP\/produccion\.tsv" --resumen --con-pegados/);
+  assert.doesNotMatch(comparar, /\/main\.tsv/);
+  // Lo de los PR va después de producción: la llave solo vive en ese primer paso, que corre antes que cualquier SQL de un PR.
+  const orden = pasos(WORKFLOW).map((p) => p.id);
+  assert.ok(orden.indexOf("produccion") < orden.indexOf("pegados") && orden.indexOf("pegados") < orden.indexOf("huellas_pegados"));
+  for (const p of pasos(WORKFLOW).filter((x) => x.id !== "produccion")) assert.ok(!JSON.stringify(p.env).includes("DERIVA_LLAVE"), `${p.name}: sin la llave`);
 });
 
 test("producción no responde: la corrida sale roja Y el aviso dice que hoy no se pudo comparar", () => {
@@ -155,25 +182,69 @@ test("main no arma: el aviso nombra ese paso", () => {
 });
 
 test("el comparador no puede leer lo que devolvió producción: aviso de «no se pudo comparar», no de «hay diferencias»", () => {
-  const r = simular({ ...configurado, fingir: { "Huellas de producción": 0, ...nube }, archivos: { "main.tsv": MAIN, "produccion.tsv": "null\n" } });
+  const r = simular({ ...configurado, fingir: { "Huellas de producción": 0, ...nube }, archivos: { "main-mas-pegados.tsv": MAIN, "produccion.tsv": "null\n", ...pegados() } });
   assert.equal(r.rojo, true);
   assert.equal(avisos(r.gh).length, 1);
   assert.match(r.gh, /falló «Comparar/);
-  assert.doesNotMatch(r.gh, /no corren lo mismo/);
+  assert.doesNotMatch(r.gh, /no corre main/);
 });
 
 test("hay diferencias: UN aviso que lo dice (sin nombres), y no se suma el de «no se pudo comparar»", () => {
-  const r = simular({ ...configurado, fingir: { "Huellas de producción": 0, ...nube }, archivos: { "main.tsv": MAIN, "produccion.tsv": "fn\tf()\taaaaaaaaaaaa\nfn\tg()\tcccccccccccc\n" } });
+  const r = simular({
+    ...configurado,
+    fingir: { "Huellas de producción": 0, ...nube },
+    archivos: { "main-mas-pegados.tsv": MAIN, "produccion.tsv": "fn\tf()\taaaaaaaaaaaa\nfn\tg()\tcccccccccccc\n", ...pegados({ prs: [1055] }) },
+  });
   assert.equal(r.rojo, true);
   assert.equal(r.pasos.find((p) => p.nombre === "Avisar que hoy no se pudo comparar").outcome, "skipped");
   assert.deepEqual(avisos(r.gh).map((l) => l.split(" --")[0]), ["gh issue create"]);
-  assert.match(r.gh, /Producción y main no corren lo mismo/);
+  assert.match(r.gh, /Producción no corre main más lo que los PR abiertos declaran pegado/);
+  assert.match(r.gh, /Se sumó a main el SQL que estos PR abiertos declaran pegado en producción: #1055\./);
+  assert.match(r.gh, /artefacto\s+`huellas-main-mas-pegados`/);
   assert.doesNotMatch(r.gh, /NO se pudo comparar|g\(\)/);
 });
 
-test("iguales: verde, y cierra el aviso abierto", () => {
-  const r = simular({ ...configurado, abierto: "42", fingir: { "Huellas de producción": 0, ...nube }, archivos: { "main.tsv": MAIN, "produccion.tsv": MAIN } });
+test("iguales: verde, y cierra el aviso abierto diciendo qué PR se sumaron", () => {
+  const r = simular({ ...configurado, abierto: "42", fingir: { "Huellas de producción": 0, ...nube }, archivos: { "main-mas-pegados.tsv": MAIN, "produccion.tsv": MAIN, ...pegados({ prs: [806, 1055] }) } });
   assert.equal(r.rojo, false);
-  assert.match(r.gh, /^gh issue close 42 --comment .*✓ Producción corre lo mismo que main/m);
+  assert.match(r.gh, /^gh issue close 42 --comment .*✓ Producción corre main más lo que los PR abiertos declaran pegado.*#806, #1055/m);
   assert.equal(avisos(r.gh).length, 0);
+});
+
+test("iguales y ningún PR declara SQL pegado: verde, y dice que se comparó con main a secas", () => {
+  const r = simular({ ...configurado, abierto: "42", fingir: { "Huellas de producción": 0, ...nube }, archivos: { "main-mas-pegados.tsv": MAIN, "produccion.tsv": MAIN, ...pegados() } });
+  assert.equal(r.rojo, false);
+  assert.match(r.gh, /se comparó con main a secas/);
+});
+
+test("GitHub no responde al leer los PR: «hoy no se pudo comparar», nunca la comparación con main a secas", () => {
+  const r = simular({ ...configurado, fingir: { "Huellas de producción": 0, ...nube, "PR que declaran su SQL pegado": 1 }, archivos: { "main.tsv": MAIN, "produccion.tsv": MAIN } });
+  assert.equal(r.rojo, true);
+  assert.equal(r.pasos.find((p) => p.nombre === "Comparar y avisar").outcome, "skipped");
+  assert.match(r.gh, /falló «PR que declaran su SQL pegado: GitHub no respondió/);
+  assert.doesNotMatch(r.gh, /issue close/);
+});
+
+test("el SQL de lo pegado no se pudo aplicar ni tomar huellas: el aviso nombra ese paso", () => {
+  const r = simular({ ...configurado, fingir: { "Huellas de producción": 0, ...nube, "Huellas de main con lo pegado": 1 } });
+  assert.equal(r.rojo, true);
+  assert.match(r.gh, /falló «Huellas de main con lo pegado/);
+});
+
+test("un PR no armó sobre el main de hoy: rojo aunque lo demás calce, y el aviso nombra el PR y su archivo (no el error)", () => {
+  const fallidos = [{ pr: 1055, archivo: "20261013235000_rendicion_del_fondo.sql", motivo: 'ERROR: relation "retail.x" does not exist' }];
+  const r = simular({ ...configurado, abierto: "42", fingir: { "Huellas de producción": 0, ...nube }, archivos: { "main-mas-pegados.tsv": MAIN, "produccion.tsv": MAIN, ...pegados({ prs: [806, 1055], fallidos }) } });
+  assert.equal(r.rojo, true);
+  assert.deepEqual(avisos(r.gh).map((l) => l.split(" --")[0]), ["gh issue comment 42"]);
+  assert.match(r.gh, /✗ No se pudo comprobar todo lo que los PR abiertos declaran pegado/);
+  assert.match(r.gh, /#1055 no se pudo armar sobre el main de hoy \(falló `20261013235000_rendicion_del_fondo\.sql`\)/);
+  assert.match(r.gh, /Se sumó a main el SQL que estos PR abiertos declaran pegado en producción: #806\./);
+  assert.doesNotMatch(r.gh, /relation|issue close|NO se pudo comparar/);
+});
+
+test("lo que se sumó no se puede leer: «no se pudo comparar», no verde", () => {
+  const r = simular({ ...configurado, abierto: "42", fingir: { "Huellas de producción": 0, ...nube }, archivos: { "main-mas-pegados.tsv": MAIN, "produccion.tsv": MAIN } });
+  assert.equal(r.rojo, true);
+  assert.match(r.gh, /falló «Comparar/);
+  assert.doesNotMatch(r.gh, /issue close/);
 });

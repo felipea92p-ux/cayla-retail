@@ -392,7 +392,7 @@ export function IngresoRapidoModal({
 
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo="Todo listo: entra al cajón." />
-            <div className="ml-auto flex gap-3">
+            <div className="ml-auto pie-acciones">
               <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando || intento.incierto}>
                 Cancelar
               </Boton>

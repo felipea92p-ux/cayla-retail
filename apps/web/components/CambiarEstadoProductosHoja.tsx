@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { esFuncionAusente } from "@/lib/compras-reglas";
 import { avisar } from "@/components/ui/Avisos";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -85,8 +85,8 @@ export function CambiarEstadoProductosHoja({
           </ul>
           <ComboResponsable control={responsable} deshabilitado={guardando} />
           <p className="nota-cayla">{textos.nota}</p>
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} disabled={guardando} className={botonCancelar}>
+          <div className="pie-acciones pt-1">
+            <button type="button" onClick={cerrar} disabled={guardando} className="btn-cayla btn-secundario">
               Volver
             </button>
             <button
@@ -94,7 +94,7 @@ export function CambiarEstadoProductosHoja({
               onClick={() => void confirmar()}
               disabled={guardando || !responsable.listo || cambian.length === 0}
               title={responsable.motivo ?? undefined}
-              className={botonPrimario}
+              className="btn-cayla btn-primario"
             >
               {guardando ? "Guardando…" : textos.boton}
             </button>
