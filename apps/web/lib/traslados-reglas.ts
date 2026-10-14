@@ -119,6 +119,8 @@ export type TrasladoLeible = {
   lineasContadas?: number;
   /** Cuándo se anuló (estado `anulada`, ADR-0239 D-132). */
   anuladoEn?: string | null;
+  /** Unidades contadas de más que esperan revisión, fuera del stock (ADR-0404). Sin el dato, 0. */
+  sobrantesPorRevisar?: number;
 };
 
 export type ContextoTraslados = {
@@ -147,6 +149,9 @@ export type ContextoTraslados = {
  *  · cerrado_con_diferencia  — terminó, pero faltó o sobró algo: un líder lo cerró con nota. No se pinta de verde.
  *  · anulado                 — quien envió (o un líder) lo anuló antes de que se empezara a contar: el stock volvió
  *                              al origen (ADR-0239 D-132). Es historial, nunca «en tránsito» ni «por recibir».
+ *  · sobrante_por_revisar    — se cerró, pero llegó algo de más que espera revisión (ADR-0404) y puedo revisarlo en la
+ *                              sede que lo recibió: me toca decir qué pasó. Hasta entonces, eso no está en el stock.
+ *  · con_sobrante            — lo mismo, pero lo revisa otra persona (soy la sede que envió, o no puedo cerrar diferencias).
  * Un estado que no sea ninguno de los conocidos se lee como cerrado. */
 export type SituacionTraslado =
   | "requiere_recepcion"
@@ -155,7 +160,9 @@ export type SituacionTraslado =
   | "con_diferencia"
   | "cerrado"
   | "cerrado_con_diferencia"
-  | "anulado";
+  | "anulado"
+  | "sobrante_por_revisar"
+  | "con_sobrante";
 
 /** ¿Ya pasó la hora estimada? Es un DATO de la fila («atrasado desde ayer»), no decide si algo se puede recibir.
  *  Sin hora estimada no se puede prometer que «viene a tiempo»: se lee como «ya debería estar».
@@ -169,13 +176,14 @@ export function situacionTraslado(t: TrasladoLeible, ctx: ContextoTraslados): Si
   const soyDestino = t.ubicacionDestinoId === ctx.miUbicacionId;
   if (t.estado === "anulada") return "anulado";
   if (t.estado === "recibido_con_diferencia") return soyDestino && ctx.puedeCerrarDiferencia ? "requiere_revision" : "con_diferencia";
+  if (t.estado !== "en_transito" && (t.sobrantesPorRevisar ?? 0) > 0) return soyDestino && ctx.puedeCerrarDiferencia ? "sobrante_por_revisar" : "con_sobrante";
   if (t.estado !== "en_transito") return t.cerradoConDiferencia ? "cerrado_con_diferencia" : "cerrado";
   return soyDestino ? "requiere_recepcion" : "en_camino_saliente";
 }
 
 /** Lo que exige una acción de quien mira, ahora. Alimenta la franja, el filtro «Acción hoy» y el contador del menú. */
 export function requiereAccion(s: SituacionTraslado): boolean {
-  return s === "requiere_recepcion" || s === "requiere_revision";
+  return s === "requiere_recepcion" || s === "requiere_revision" || s === "sobrante_por_revisar";
 }
 
 /** Historial: ya no le pide nada a nadie ni tiene prendas en camino (cerrado, con o sin diferencia, o anulado). */

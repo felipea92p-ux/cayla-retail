@@ -494,7 +494,9 @@ select count(*) from respaldo_purgas.filas where purga like 'eliminado %';`);
   // Frenan: devoluciones y cambios (vienen de una venta), traslados entre sedes, prendas dañadas, envíos de proveedor, costos.
   // despacho_recibidos (ADR-0362 fase 4): lo contado al recibir un envío de orden de compra; la prenda ya la frena «ingresos recibidos
   // de un proveedor» (movimientos con lote), así que nunca llega a borrarse.
-  const FRENAN = ["devolucion_items", "transferencia_items", "transferencia_recepciones", "prendas_danadas", "envio_extras", "costo_historial", "despacho_recibidos"];
+  // traslado_sobrantes (ADR-0404): lo contado de más al recibir un traslado cita los movimientos de su revisión; cuelga de una
+  // recepción de traslado de la misma prenda, que ya frena el borrado, así que nunca llega a borrarse.
+  const FRENAN = ["devolucion_items", "transferencia_items", "transferencia_recepciones", "prendas_danadas", "envio_extras", "costo_historial", "despacho_recibidos", "traslado_sobrantes"];
   // Se van solas, en cascada, cuando la función borra su movimiento: una marca que solo une filas que ya se borran (la
   // corrección «en la mano» con su bajada, ADR-0328). No se respaldan: restaurar una purga devuelve la corrección y la
   // bajada, sin la marca que las unía.
