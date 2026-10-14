@@ -437,9 +437,6 @@ export function diasEsperaPorAbono(monto: number, saldo: number): 2 | 3 {
   return monto * 2 >= saldo ? 3 : 2;
 }
 
-/** Los abonos de un apartado, sin el adelanto con que se apartó. */
-export const abonosDe = (a: Pick<Apartado, "pagos">) => a.pagos.filter((p) => p.abono);
-
 // ---- Opciones de Apartados (paso 5 — 20260927130000) --------------------------------------------------------------
 
 /** Las funciones que una tienda puede apagar. La clave es la misma que guarda la base (`apartados_opciones.apagadas`). */
@@ -539,4 +536,3 @@ export function textoEstadoPedido(p: Pick<PedidoApartado, "estado" | "direccion"
   if (p.estado === "apartado") return "Apartado con adelanto";
   return "Cancelado";
 }
-

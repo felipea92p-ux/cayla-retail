@@ -451,7 +451,6 @@ export function fraseDeLoReal(vendido: number, l: Pick<LineaPlan, "flojo" | "nor
 /** Cómo se escriben las cantidades, el dinero y las fechas en esta pantalla (una sola vez, no en cada componente). */
 export const enteroES = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
 export const solesES = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-export const fechaLargaES = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("es-PE", { day: "numeric", month: "long" });
 
 /** Cuántas categorías son «las que más venden». */
 export const TOP_VENTAS = 10;
