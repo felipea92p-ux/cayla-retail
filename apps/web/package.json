@@ -22,12 +22,10 @@
     "guias:recorrer": "node guias/recorrer.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.124.0",
     "@cayla-retail/database": "workspace:*",
     "@cayla-retail/shared": "workspace:*",
     "@gsap/react": "^2.1.2",
     "@radix-ui/react-dialog": "^1.1.23",
-    "@radix-ui/react-slot": "^1.3.3",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.45.0",
     "class-variance-authority": "^0.7.1",

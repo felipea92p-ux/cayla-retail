@@ -289,7 +289,7 @@ RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la li
 `fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`); si no, el loader bloqueará la pantalla mientras se busca
 o se escribe. **Un buscador que filtra por URL (`?q=`) navega con `buscar(href)` de `useBusquedaEnUrl`
 (`components/ui/BusquedaEnUrl.tsx`), nunca con `router.push` suelto:** lo tipeado no abre el loader; el campo dice «Buscando…»
-(`SenalBuscando`) y la lista marcada con `data-resultados` se atenúa (Felipe 2026-09-28). Un filtro por clic sigue con el loader.
+(`<Buscador buscando>`) y la lista marcada con `data-resultados` se atenúa (Felipe 2026-09-28). Un filtro por clic sigue con el loader.
 Análisis (v4, ADR-0357) busca en el navegador, sin URL: lo tipeado filtra las prendas ya leídas, sin loader.
 Tiempos, alternativas y verificación: `docs/adr/0149-loader-general-a-pantalla-completa.md`.
 
@@ -390,7 +390,7 @@ Lo que se exige (el mínimo; en Nuevo producto y Editar producto está hecho y e
    al completarlo la luz pasa al siguiente. Se hace con `useGuiaCampos` + `<CampoGuiado>` alrededor de cada bloque + `<PieGuia>` sobre
    el botón principal (`components/guia-de-foco/`; lógica en `lib/guia-campos.ts`; piloto: `components/NuevaClientaModal.tsx`). Una regla
    de grupo («basta uno de tres datos») es UN campo virtual que envuelve a los tres. **La guía no cambia qué se puede confirmar.**
-2. **«Falta: …» tocable** al pie del paso (`FaltanDelPaso`), o «Para completar esta ficha» (`TiraFicha`) en una ficha que se edita:
+2. **«Falta: …» tocable** al pie del paso (`FaltanDelPaso`), o «Lo que falta» en el panel derecho de una ficha que se edita (Editar producto):
    cada cosa **lleva al campo** (lo deja a la vista, lo destella una vez y, si es de texto, le pone el cursor). Los campos se
    encuentran por `data-campo` con `irAlIdCampo` / `useGuiaAlta` (`alta-producto/useGuiaAlta.ts`), **nunca por clases de estilo**.
 3. **«Siguiente: …» tocable** en el resumen o la barra fija (`FichaPrevia`); en celular, la barra de abajo.
@@ -602,6 +602,19 @@ también en la base (ADR-0384):** la regla única es `retail.fn_categoria_admite
 (`venta_sin_precio`; la centinela de «Prenda sin registrar» queda fuera por su id), `revisar_producto_censo`, `crear_producto_con_variantes` y
 `catalogo_actualizar_producto` (`sin_precio`); en la web, `precioValido`. Toda función nueva que venda o fije un precio de catálogo la pregunta. Un parche a una de esas cinco funciones es un
 reemplazo anclado (`reemplazar_anclado`, formato que las suites de Frescura leen para deshacerlo) y se suma a sus listas `DESHACER_*`.
+
+## Código muerto: Knip en el CI (regla — ADR-0406, Felipe 2026-10-14)
+
+**El CI corre `pnpm knip` y pone el PR en rojo si hay un archivo que nadie importa, una exportación que nadie lee, una dependencia que
+nadie carga o un binario sin declarar** (en todo el monorepo, ~3 s; la configuración y el porqué de cada excepción, en `knip.ts`). Las
+pruebas cuentan como uso; una función que solo usa su prueba la vigila aparte `lib/reglas-sin-uso.test.ts` (ADR-0234). Si Knip falla:
+- **Lo que de verdad no se usa se borra** (git lo guarda). Antes de borrar una función que llama `.rpc(…)`, mira si alguien más la
+  llama: si era la única, la función de la base queda sin llamador y `pruebas:roles-cobertura` lo marca (esa limpieza lleva migración).
+- **Lo que se queda sin uso a propósito se declara, con el motivo junto al código:** una exportación con `@public` en su comentario
+  (`/** @public Sin uso hasta que … */`); un archivo entero, en `ignore` de `knip.ts`. Una pieza que nace antes que su primer uso (como
+  las de /unificar) se declara así y sale de la lista cuando la usa alguien.
+- **Un falso positivo** (un archivo que se carga por URL desde `public/`, un script que se lee como texto y se inyecta en la página, un
+  CLI que se corre a mano) va en `entry` de `knip.ts`, que es lo que es. Nunca se borra algo solo porque Knip lo diga sin entender cómo se carga.
 
 ## Vocabulario obligatorio
 

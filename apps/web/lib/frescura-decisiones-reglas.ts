@@ -25,7 +25,12 @@ export const PLAZO_TRASLADO_DIAS = 14;
 export const PLAZO_MAXIMO_DIAS = 30;
 /** Sin una comparación sólida ni en la sede ni en CAYLA: 15 días (respuesta P1 de Felipe, 2026-09-28). */
 export const PLAZO_SIN_REFERENCIA_DIAS = 15;
-/** De un compromiso se dice cómo va desde el día 7 (antes es «en curso» sin veredicto). */
+/**
+ * De un compromiso se dice cómo va desde el día 7 (antes es «en curso» sin veredicto).
+ *
+ * @public Escrita el 2026-09-30 con la libreta (ADR-0208, paso 4b), ningún código la lee: hoy el veredicto de un compromiso no
+ * espera al día 7. Felipe decide si la regla se aplica o se borra (ADR-0406); mientras, no se borra en silencio.
+ */
 export const DIAS_PARA_VEREDICTO_DE_COMPROMISO = 7;
 /** Después de que «cambiarla de lugar» no alcanzó, no se vuelve a sugerir durante estos días. */
 export const DIAS_SIN_REPETIR_CAMBIO = 30;

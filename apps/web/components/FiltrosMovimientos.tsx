@@ -249,7 +249,9 @@ export function FiltrosMovimientos({
         type="button"
         onClick={() => aplicar({ rango: "todo", desde: "", hasta: "" })}
         aria-pressed={periodo === "todo"}
-        className={`btn-cayla btn-enlace mb-2 text-[12.5px] ${periodo === "todo" ? "font-semibold" : ""}`}
+        // `btn-enlace` agranda su caja 0,25 em hacia abajo para pintar el subrayado y lo devuelve con un margen negativo; aquí `mb-2`
+        // le gana a ese margen, así que se descuenta para que «Todo el historial» quede donde estaba.
+        className={`btn-cayla btn-enlace mb-[calc(0.5rem_-_0.25em)] text-[12.5px] ${periodo === "todo" ? "font-semibold" : ""}`}
       >
         Todo el historial
       </button>

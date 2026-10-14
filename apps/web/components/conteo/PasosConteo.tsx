@@ -18,8 +18,6 @@ import { Check } from "lucide-react";
    el lector de pantalla. Sin estado ni efectos: sirve en Server Components.
    ==================================================================== */
 
-export type PasoConteo = "contar" | "revisar" | "confirmar";
-
 /** Un paso de una operación en tres (o más) pantallas: su clave y cómo se llama en la tienda. */
 export type PasoOperacion = { clave: string; nombre: string };
 

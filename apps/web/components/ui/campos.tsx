@@ -164,13 +164,6 @@ type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   sinPie?: boolean;
 };
 
-/* Altura única de todo control de una línea (input, fecha, combo): 36px, que
-   es lo que ya medía un input `text-sm` + `py-2`. Se fija explícita porque
-   Safari le da a `type="date"` su propia altura y letra internas, y un combo
-   con `appearance-none` pierde la altura nativa — sin un número común, cada
-   uno mide distinto al lado del otro. */
-export const ALTO_CONTROL = "h-9";
-
 /* Safari (macOS/iOS) dibuja el `type="date"` con su propio editor interno
    (::-webkit-datetime-edit), con relleno y tamaño de letra propios. Se le
    quita todo eso para que mida igual que un input de texto. Chrome ignora

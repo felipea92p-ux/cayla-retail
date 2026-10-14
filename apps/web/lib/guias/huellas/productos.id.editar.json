@@ -2,7 +2,7 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 142,
+  "total": 141,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
       "Volver «(sin nombre)»"
@@ -83,7 +83,6 @@
       "button «+ Registrar una marca o un proveedor nuevo»"
     ],
     "components/alta-producto/FotosAlta.tsx": [
-      "button «{`Quitar foto de ${c.nombre}»",
       "input «input.current?.click()»",
       "button «{etiqueta}»"
     ],
