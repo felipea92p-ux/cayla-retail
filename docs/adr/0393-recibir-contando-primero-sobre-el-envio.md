@@ -491,3 +491,4 @@ SE ROMPE SI: nace otra tabla de la recepción que cita a `productos` o `variante
 
 Probado sobre una base hecha de cero con todo `main`: `pruebas:eliminar-producto` 40/40, `pruebas:eliminar-producto-con-historia` 66/66 y
 `pruebas:pendientes-de-envio` 25/25 (E1 y E2 nuevos).
+**En producción el 2026-10-14** (con el OK de Felipe): la huella de `fn_producto_historia` coincide con la de la base hecha de cero.
