@@ -35,14 +35,19 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Avatares (`avatar`) | `<AvatarPersona>` en cuatro tamaños y `<PilaPersonas>` | 2026-10-13 (tocando) | 0 | [avatar.md](avatar.md) |
 | Descargar un archivo (`accion.exportar`) | `<BotonDescargar>` (`components/ui/BotonDescargar.tsx`): «Descargar» + qué, nunca «Exportar» ni solo un ícono; el secundario con el ícono de descarga que baja 2 px y el hilo mientras se arma el archivo (ronda 10) | 2026-10-13 (tocando) | 0 | [accion.exportar.md](accion.exportar.md) |
 | Abrir los filtros (`accion.filtrar`) | `<BotonFiltros>` (`components/ui/FiltrosPildora.tsx`): una píldora más, con cuántos hay puestos en el globito; en el celular, solo el ícono con su punto (ronda 10) | 2026-10-13 (tocando) | 0 | [accion.filtrar.md](accion.filtrar.md) |
-| Ver en otra pantalla (`accion.ver`) | `<BotonVer>` (`components/ui/BotonDescargar.tsx`): el secundario con la flecha que avanza, nunca negro ni con «→» escrito; en una frase, el enlace; junto a un resumen, `<EnlaceVer>` (ronda 10) | 2026-10-13 (tocando) | 0 | [accion.ver.md](accion.ver.md) |
+| Ver en otra pantalla (`accion.ver`) | `<BotonVer>` (`components/ui/BotonDescargar.tsx`): el secundario con la flecha que avanza, nunca negro ni con «→» escrito; en una frase, el enlace; junto a un resumen, `<EnlaceVer>` (ronda 10); al lado de una fila de una lista (los pendientes de Caja), el enlace del sistema (pendientes, 2026-10-14) | 2026-10-13 · 2026-10-14 (tocando) | 0 | [accion.ver.md](accion.ver.md) |
 | Cancelar y el pie de una hoja (`accion.cancelar`) | `pie-acciones` / `<PieAcciones izquierda>` (`components/ui/PieAcciones.tsx`): «Cancelar» es el secundario a su medida, ANTES del botón que guarda, los dos a la derecha; lo que borra, a la izquierda; en el celular, mitades (ronda 11) | 2026-10-14 (tocando) | 0 | [accion.cancelar.md](accion.cancelar.md) |
 | Limpiar los filtros (`accion.limpiar`) | `<FiltroPuesto>` (la píldora de los vacíos) y `<BotonLimpiar>` (la píldora punteada con el embudo tachado), `components/ui/FiltrosPuestos.tsx`; «Limpiar» + qué; en la hoja del celular, el secundario; en el calendario y «Pagar juntos», el enlace (ronda 11) | 2026-10-14 (tocando) | 0 | [accion.limpiar.md](accion.limpiar.md) |
-| Imprimir (`accion.imprimir`) | `<BotonImprimir>` (`components/ui/BotonImprimir.tsx`): la impresora a la izquierda y «Imprimir» + qué; negro solo si imprimir ES el paso; la hoja sale de la impresora al pasar el mouse (ronda 11) | 2026-10-14 (tocando) | 0 | [accion.imprimir.md](accion.imprimir.md) |
+| Imprimir (`accion.imprimir`) | `<BotonImprimir>` (`components/ui/BotonImprimir.tsx`): la impresora a la izquierda y «Imprimir» + qué; negro solo si imprimir ES el paso; la hoja sale de la impresora al pasar el mouse (ronda 11). La impresora es solo de lo que imprime ya: «Etiquetas», que lleva a su pantalla, lleva la etiqueta (pendientes) | 2026-10-14 (tocando) | 0 | [accion.imprimir.md](accion.imprimir.md) |
+| La cabecera de una pantalla (`titulo-pagina`) | `<EncabezadoPagina>` (`components/ui/EncabezadoPagina.tsx`), la de Inventario, en todas las pantallas menos Finanzas: sede y fecha con su hilo, el nombre del menú en 46 px, la frase y los botones a la derecha; la vuelta, la flecha junto a la sede; de dónde se llegó, tras la fecha (`detalle`). Finanzas conserva `<CabeceraPantalla>` (ADR-0195) | 2026-10-14 (mirando) | 0 | [titulo-pagina.md](titulo-pagina.md) |
 
 ## Propuestas esperando decisión
 
-Ninguna. **La ronda 11** (cancelar, limpiar e imprimir; fuentes en [rondas/11](rondas/11/README.md)) la eligió Felipe tocando las demos
+Ninguna. **Los pendientes antes de la ronda 12** (la cabecera de las pantallas que no la tenían, el ícono de «Etiquetas» y el «Ver» de los
+pendientes de Caja; fuentes en [rondas/pendientes](rondas/pendientes/README.md)) los eligió Felipe el 2026-10-14 —P1, P1 y P1— y se
+migraron el mismo día: 31 pantallas, deuda 0.
+
+**La ronda 11** (cancelar, limpiar e imprimir; fuentes en [rondas/11](rondas/11/README.md)) la eligió Felipe tocando las demos
 el 2026-10-14 —P1, P2 y P1— y se migró el mismo día: deuda 0.
 
 **La ronda 10** (descargar, filtros y ver en otra pantalla; fuentes en [rondas/10](rondas/10/README.md)) la eligió Felipe tocando las demos
@@ -88,7 +93,7 @@ en la página de elegir, nunca por una descripción.
 | 11 | ~~`casilla`~~ (decidida, ronda 6), ~~`enlace`~~, ~~`paginacion`~~, ~~`avatar`~~ (decididas, ronda 8), `modal`, `grafico` | Casillas e interruptores, enlaces de texto, hojas, gráficos, paginación, avatares | 6 / 9 / 5 / 5 / 2 / 2 | Pocas formas: rondas cortas. **De los gráficos, la barra apilada ya está decidida (`grafico.barra`, 2026-10-09)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357) |
 | 12 | `accion.cerrar`, `accion.cancelar`, `accion.guardar`, `accion.limpiar`, `accion.editar`, `accion.buscar`, `accion.imprimir`, `accion.menu`, `accion.copiar` | Los botones de una sola función | 1–2 cada una | Casi todas tienen ya una sola forma: se pueden cerrar juntas en una ronda. **`accion.cancelar`, `accion.limpiar` y `accion.imprimir`: decididas y migradas el 2026-10-14 (ronda 11)** |
 | 13 | `icono` | Iconos (tamaño y trazo) | 122 huellas · 73 | Las 122 son sobre todo tamaños y trazos distintos de lucide; hay que depurar mucho antes de mostrar |
-| — | `titulo-pagina` | La cabecera de cada pantalla | 8 · 97 | **No se corre** hasta que Felipe decida la cabecera de los módulos sin decidir (ADR-0220): Compras, Caja, Recibir, el resto de Catálogo |
+| ~~—~~ | ~~`titulo-pagina`~~ | La cabecera de cada pantalla | 8 · 97 | **Decidida y migrada el 2026-10-14 (pendientes, P1)**: la de Inventario en todas menos Finanzas |
 
 Las otras cinco no salen en el censo del 2026-10-06: `filtro` (las píldoras de filtro) quedó cubierta por la decisión de pestañas —la píldora
 rellena, la «A»—, y el censo nuevo dirá si queda alguna dibujada a mano; `contador` (el globito con número), `accion.siguiente` («Siguiente /

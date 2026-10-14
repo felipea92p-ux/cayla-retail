@@ -200,14 +200,14 @@ importa desde ambos lados.
 **El ERP usa la guía oficial «CAYLA Dynamic»: los colores salen SOLO de los tokens de `apps/web/app/globals.css`**
 (crema, papel, tinta, rojo, rojo-profundo, sand, taupe, verde, ámbar, hueso, pizarra). Nunca un hex suelto. Pantalla nueva
 o rediseñada: cabecera → cifras (`TarjetaCifra`) → filtros y tabla en UNA tarjeta (`Tabla`, `caja` en los campos,
-`pildora-cayla`) → nota en hueso (`nota-cayla`). **La cabecera es la de su módulo:** en Ventas, Inventario y Catálogo ▸
-Productos (esta última desde el 2026-09-28, ADR-0254; el resto de Catálogo sigue sin decidir),
+`pildora-cayla`) → nota en hueso (`nota-cayla`). **La cabecera es una sola en todo el ERP menos Finanzas (Felipe 2026-10-14,
+`/unificar`, ADR-0358 y ADR-0220 act.):**
 `<EncabezadoPagina>` (`components/ui/EncabezadoPagina.tsx`: sede y fecha arriba con el hilo taupe → título de 46 px con el
 nombre del menú, nunca la sede → frase; a la derecha, las cifras o el reloj y, si la pantalla no los tiene, sus acciones
 (prop `acciones`: bajan solas bajo la frase si la derecha está ocupada); la vuelta es una flecha a la izquierda de la línea de
-sede (`volver={<Volver href a />}`, Felipe 2026-10-06; desde la tarde de ese día es la única cara de la vuelta en todo el ERP, ADR-0358) y bajo la frase van solo estados; ADR-0220 y sus actualizaciones);
-en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). En cualquier otro módulo la cabecera está sin decidir:
-pregúntale a Felipe antes de elegir. Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
+sede (`volver={<Volver href a />}`, Felipe 2026-10-06; desde la tarde de ese día es la única cara de la vuelta en todo el ERP, ADR-0358) y bajo la frase van solo estados (`pie`);
+la frase es opcional y lo que diga de dónde se llegó («Productos · Blusa Emma») va tras la fecha (`detalle`); ADR-0220 y sus actualizaciones);
+solo en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). Lo vigila `lib/unificar.test.ts` (`titulo-pagina`). Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
 contraste medido y lo que quedó fuera (formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`. **El modo oscuro entró el
 2026-10-05 sobre esos mismos tokens: ver «Modo oscuro» más abajo.**
@@ -519,10 +519,11 @@ dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y
 | Avatares (`avatar`) | `<AvatarPersona tamano={24|32|40|80} deTurno terminal>` y `<PilaPersonas mas>`: iniciales en serif sobre arena, la foto que entra con un fundido, el punto verde de turno, la pila que se abre. Nunca un círculo de iniciales a mano | 2026-10-13 |
 | Descargar un archivo (`accion.exportar`) | `<BotonDescargar href \| onClick cargando chico>` (`components/ui/BotonDescargar.tsx`): «Descargar» + qué («Descargar Excel», «Descargar el mes»), el secundario con el ícono de descarga que baja 2 px al pasar el mouse y el hilo mientras se arma el archivo; con `href`, `<a download>` (sin loader). Nunca «Exportar» ni solo un ícono | 2026-10-13 |
 | Abrir los filtros (`accion.filtrar`) | `<BotonFiltros abierto activos soloIcono>` (`components/ui/FiltrosPildora.tsx`): una píldora más («Filtros» en letra normal; abierta, borde tinta y la flecha roja), cuántos hay puestos en el globito de los títulos; `soloIcono`: en el celular, el ícono con su punto. Nunca un botón de filtros a mano ni «Filtros · 2» escrito | 2026-10-13 |
-| Ver en otra pantalla (`accion.ver`) | `<BotonVer href alNavegar \| onClick chico>` (`components/ui/BotonDescargar.tsx`): el secundario con la flecha que avanza 4 px. Nunca negro ni con «→» escrito; en una frase, el enlace; junto a un resumen, `<EnlaceVer>`; la acción de un vacío sigue negra | 2026-10-13 |
+| Ver en otra pantalla (`accion.ver`) | `<BotonVer href alNavegar \| onClick chico>` (`components/ui/BotonDescargar.tsx`): el secundario con la flecha que avanza 4 px. Nunca negro ni con «→» escrito; en una frase, el enlace; junto a un resumen, `<EnlaceVer>`; al lado de una fila de una lista (los pendientes de Caja), `btn-cayla btn-enlace`; la acción de un vacío sigue negra | 2026-10-13 · 2026-10-14 |
 | Cancelar y el pie de una hoja (`accion.cancelar`) | La clase `pie-acciones` (o `<PieAcciones izquierda>`, `components/ui/PieAcciones.tsx`): «Cancelar» es `<Boton peso="fantasma">` (o `btn-cayla btn-secundario`) a su medida, ANTES del botón que guarda, los dos a la derecha; lo que borra va solo a la izquierda (`izquierda` o `mr-auto`); en el celular, mitades. Combina con `pie-hoja-fijo`. Nunca un «Cancelar» a media fila en escritorio, sutil, en versalitas ni después de «Guardar» | 2026-10-14 |
 | Limpiar los filtros (`accion.limpiar`) | `<FiltroPuesto onQuitar etiqueta>` (cada filtro puesto: la píldora de los vacíos, tinta con su ✕) y `<BotonLimpiar>` («Limpiar todo» o «Limpiar filtros»: una píldora punteada con el embudo tachado), `components/ui/FiltrosPuestos.tsx`. En la hoja de filtros del celular, «Limpiar» es el secundario; en el calendario o dentro de una frase, `btn-enlace`. Nunca «Quitar filtros» ni versalitas a mano | 2026-10-14 |
-| Imprimir (`accion.imprimir`) | `<BotonImprimir href \| onClick peso chico>` (`components/ui/BotonImprimir.tsx`): la impresora a la izquierda y «Imprimir» + qué («Imprimir ticket», «Imprimir la orden»); `peso="primario"` solo si imprimir ES el paso de esa pantalla; «o guardar en PDF» va en la frase de al lado o en su `title`. Nunca un `<Printer>` a mano ni «Imprimir o guardar PDF» | 2026-10-14 |
+| Imprimir (`accion.imprimir`) | `<BotonImprimir href \| onClick peso chico>` (`components/ui/BotonImprimir.tsx`): la impresora a la izquierda y «Imprimir» + qué («Imprimir ticket», «Imprimir la orden»); `peso="primario"` solo si imprimir ES el paso de esa pantalla; «o guardar en PDF» va en la frase de al lado o en su `title`. La impresora es solo de lo que imprime ya: «Etiquetas», que lleva a su pantalla, lleva la etiqueta (`<Tag>`). Nunca un `<Printer>` a mano ni «Imprimir o guardar PDF» | 2026-10-14 |
+| La cabecera de una pantalla (`titulo-pagina`) | `<EncabezadoPagina sede titulo subtitulo acciones volver detalle pie>` en toda pantalla menos Finanzas (ver «Paleta y orden de pantalla»); `<CabeceraPantalla>` solo en Finanzas. Nunca un `<h1>` en la serif dibujado a mano | 2026-10-14 |
 
 ## Guías interactivas: una demo por pantalla, siempre al día (regla — ADR-0389, Felipe 2026-10-07)
 

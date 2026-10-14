@@ -1,0 +1,13 @@
+## 2026-10-14 (/unificar: los pendientes antes de la ronda 12 — la cabecera de todo el ERP, «Etiquetas», el «Ver» de Caja, Nueva compra y los contrastes)
+Qué hice: cerré lo que las rondas 9–11 dejaron anotado. Sin decisión de por medio: Nueva compra a 1440 px (la fila reparte el ancho y el combo
+de talla dice «Sin desglose» cerrado, con `Opcion.corto`) y 91 textos tenues que no llegaban a 4,5:1 en Compras, Por pagar, Categorías y
+Configuración (y la fila «ya pasó» de Finanzas, que ahora atenúa su texto y no la opacidad entera). Para lo de Felipe armé una página de elegir
+con fotos de cada pantalla —la cabecera de hoy y la de Inventario puesta en su lugar en el navegador— y demos vivas; eligió P1 · P1 · P1: la
+cabecera de Inventario en todas las pantallas menos Finanzas, «Etiquetas» con la etiqueta y el «Ver» de una fila como el enlace. Migré 31
+pantallas (Compras, Recibir, las 8 de Producción, el resto de Catálogo, Configuración, Rendimiento, Actividad, Etiquetas de precio, Inicio,
+Comercial y Buscar), con su decisión `titulo-pagina` y sus firmas en `familias.mjs`: deuda 0.
+Por qué así: «una función, una pieza» (ADR-0358) y lo que ADR-0220 dejaba «sin decidir»; la pieza aceptó lo que cada pantalla traía (frase
+opcional, el sobretítulo tras la fecha) para no inventar textos ni perder datos, y la sede de arriba dice qué está mirando la persona.
+Felipe se lleva: una sola cabecera en todo el ERP (menos Finanzas, por su spike), vigilada por la prueba; las fotos de antes y después en claro,
+oscuro y 375 px (`docs/unificar/capturas/titulo-pagina.*.jpg`). Familias y Editar producto no se miraron en local porque a la base le falta
+`familias.entra_a_motores` (ADR-0377).
