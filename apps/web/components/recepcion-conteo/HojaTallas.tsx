@@ -88,9 +88,8 @@ export function HojaTallas({
           ? `Contaste ${sugeridas.toLocaleString("es-PE")}. Reparte cuántas llegaron de cada talla y color: con eso entran al stock del almacén.`
           : "Reparte cuántas llegaron de cada talla y color: con eso entran al stock del almacén."
       }
-      ancho="max-w-3xl"
+      tamano="ancha"
       bloqueado={guardando}
-      conCerrar
       onClose={onCerrar}
     >
       {(cerrar) => (
@@ -143,7 +142,7 @@ export function HojaTallas({
                   Dejar para después
                 </Boton>
                 <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-                  {guardando ? "Guardando…" : textoListo}
+                  {textoListo}
                 </Boton>
               </div>
             </div>

@@ -30,7 +30,7 @@ export function RegistrarBajadaModal({
 }) {
   const varias = nombres.length > 1;
   return (
-    <Modal titulo="Registrar la bajada al piso" ancho="max-w-md" onClose={onClose}>
+    <Modal titulo="Registrar la bajada al piso" onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <p className="text-sm text-tinta/80">

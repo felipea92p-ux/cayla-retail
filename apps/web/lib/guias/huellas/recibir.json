@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 126,
+  "total": 129,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «)»",
@@ -25,7 +25,7 @@
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «{actual?.fase === \"cargando\" ? \"Buscando…\" : \"Buscar\"}»",
+      "Boton «Buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/DecisionFaltanteFila.tsx": [
@@ -35,12 +35,15 @@
     ],
     "components/EnvioRecibido.tsx": [
       "Link «Se reclama en Notas de crédito ↗»",
-      "Boton «Recibir otro envío»"
+      "BotonImprimir «Imprimir»",
+      "Boton «Recibir otro envío»",
+      "BotonVer «Ver recibidas»"
     ],
     "components/FiltrosRecibidas.tsx": [
       "DesplegablePildora «Proveedor»",
       "button «{texto}»",
       "button «{texto}» #2",
+      "BotonLimpiar «Limpiar todo»",
       "button «{activa ? `Fechas: ${textoFechas(desde || undefined, hasta || undefined, hoy)}»",
       "button «{p.etiqueta}»",
       "CampoFecha «Desde»",
@@ -65,7 +68,7 @@
       "input «{`Costo por prenda de ${p.referencia}»",
       "button «{`Quitar ${p.referencia}»",
       "ComboResponsable «(sin nombre)»",
-      "button «{guia.frase ?? undefined}»"
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/Paginacion.tsx": [
       "Link «Volver al inicio»",

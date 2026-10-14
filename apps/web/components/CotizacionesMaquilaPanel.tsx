@@ -223,9 +223,9 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={loading} className="btn-cayla btn-primario">
-              {loading ? "Cargando…" : "Cargar cotización"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Cargando…" type="submit" disabled={loading}>
+              Cargar cotización
+            </Boton>
           </div>
         </form>
       )}

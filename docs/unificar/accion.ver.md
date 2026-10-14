@@ -44,7 +44,15 @@ el resumen del día de Vender («Historial» y «Caja», con su ícono) y la vis
 proveedor», «Ver los últimos 90 días»): sigue negro y lleva su `unificar-fijo` (Compras ▸ Nueva, Órdenes, Por revisar, Comprobantes de
 producción, Conteo y Movimientos).
 
+## «Ver» al lado de una fila (2026-10-14)
+
+En Caja, cada pendiente del turno («2 ventas sin comprobante») tenía un «Ver» que lleva a resolverlo: un botoncito de 24 px hecho a mano. El
+`<BotonVer>` chico mide 44 px y agrandaba cada fila; el «Ver las 9 →» rojo gastaba el rojo en cada una. Felipe eligió **P1 · el enlace del
+sistema** (`btn-cayla btn-enlace`, fuentes en [rondas/pendientes](rondas/pendientes/README.md)): la fila no crece y se lee como una acción
+chica, con el hilo que se llena al pasar el mouse. El enlace lleva su nombre completo para el lector («Ver 2 ventas sin comprobante»).
+
 ## Firmas
 
 Un `Link`, `BotonEnlace` o `<a>` negro (`btn-primario` o `peso="primario"`) cuyo texto empieza por «Ver», «Ir a» o «Abrir ficha», con o sin
-un ícono delante; y «→» escrito en un botón del sistema que lleva a otro lado. Excepciones: ninguna.
+un ícono delante; «→» escrito en un botón del sistema que lleva a otro lado; y un «Ver» de 11 px hecho a mano al lado de una fila (2026-10-14).
+Excepciones: ninguna.

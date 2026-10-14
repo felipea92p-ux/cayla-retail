@@ -2,7 +2,7 @@
   "guia": "compras.ordenes.ver.id",
   "ruta": "/compras/ordenes/ver/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 41,
+  "total": 42,
   "controles": {
     "app/(app)/compras/ordenes/ver/[id]/page.tsx": [
       "Volver «; if (falla || !detalle)»",
@@ -12,6 +12,7 @@
       "CampoSelect «{etiqueta}»"
     ],
     "components/ordenes-compra/AccionesOrden.tsx": [
+      "BotonImprimir «También sirve para guardar la orden en PDF»",
       "BotonEnlace «orden.registrar-comprobante»",
       "BotonEnlace «orden.enviar»",
       "Boton «Anular orden»",
@@ -21,7 +22,7 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/ordenes-compra/BotonEditarOrden.tsx": [
-      "BotonEnlace «Editar»"
+      "BotonEditar «);»"
     ],
     "components/ordenes-compra/ComprobantesDeOrden.tsx": [
       "Boton «orden.anular-comprobante»",

@@ -214,10 +214,10 @@ export function LlegoSinAviso({
             </Aviso>
           )}
           <PieGuia guia={campos} listo="Todo listo: ábrelo y cuenta." />
-          <Boton type="submit" peso="primario" cargando={abriendo} disabled={!campos.puedeConfirmar} title={campos.frase ?? undefined} className={campos.claseConfirmar}>
+          <Boton type="submit" peso="primario" cargando={abriendo} textoCargando="Abriendo…" disabled={!campos.puedeConfirmar} title={campos.frase ?? undefined} className={campos.claseConfirmar}>
             <span className="inline-flex items-center gap-2">
               <PackageOpen aria-hidden className="h-4 w-4" />
-              {abriendo ? "Abriendo…" : susFacturas.length > 0 ? "No, recibir sin factura y contar" : "Empezar a contar"}
+              {susFacturas.length > 0 ? "No, recibir sin factura y contar" : "Empezar a contar"}
               <ArrowRight aria-hidden className="h-4 w-4" />
             </span>
           </Boton>

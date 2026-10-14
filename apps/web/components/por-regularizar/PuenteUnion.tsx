@@ -6,7 +6,6 @@ import { anotadoPorCaja, balanzaDe, calceDe, diferenciasDe, disponibleDespues, F
 import type { FilaPorRegularizar } from "@/lib/por-regularizar";
 import { avisoDeRespuesta, type FormaDeducida } from "@/lib/por-regularizar-deduccion";
 import type { ControlResponsable } from "@/lib/useResponsable";
-import { botonPrimario } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -14,6 +13,7 @@ import { IconoVisto, MosaicoDePrenda, MosaicoDeVenta, soles } from "./piezas";
 import { PorQue } from "./PorQue";
 import { LineaCorregida } from "./LineaCorregida";
 import { estaEscribiendo } from "@/components/alta-producto/useGuiaAlta";
+import { Boton } from "@/components/ui/campos";
 
 /** Un rótulo pegado a una marca de la regla no se sale de ella: cerca de un borde se alinea hacia adentro. */
 const alinear = (pos: number): "ini" | "fin" | undefined => (pos < 24 ? "ini" : pos > 76 ? "fin" : undefined);
@@ -252,9 +252,9 @@ export function PuenteUnion({
 
           <div className="vsr-pu-fin" data-guia="regularizar.guardar">
             <PieGuia guia={guia} />
-            <button type="button" onClick={onGuardar} disabled={!puedeGuardar} title={guia.frase ?? responsable.motivo ?? undefined} className={`${botonPrimario} w-full ${guia.claseConfirmar}`}>
-              {guardando ? "Guardando…" : hecho ? "Listo" : "Regularizar"}
-            </button>
+            <Boton type="button" peso="primario" cargando={guardando} onClick={onGuardar} disabled={!puedeGuardar} title={guia.frase ?? responsable.motivo ?? undefined} className={`w-full flex-1 ${guia.claseConfirmar}`}>
+              {hecho ? "Listo" : "Regularizar"}
+            </Boton>
           </div>
         </div>
       )}

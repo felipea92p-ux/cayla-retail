@@ -19,8 +19,7 @@ export function HojaConfianza({ onCerrar }: { onCerrar: () => void }) {
       subtitulo={datos.puedeHablar ? "Las tres condiciones se cumplen." : "Análisis recomienda cuando se cumplen las tres."}
       onClose={onCerrar}
       variante="hoja"
-      ancho="max-w-xl"
-      tituloGrande
+      tamano="mediana"
       conCerrar
     >
       <div className="analisis analisis-hoja" data-guia="analisis.hoja-confianza">

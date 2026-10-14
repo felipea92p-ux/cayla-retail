@@ -16,7 +16,7 @@
       "button «Quitar»",
       "Boton «+ Agregar otra prenda»",
       "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
-      "button «nuevo-traslado.enviar»"
+      "Boton «nuevo-traslado.enviar»"
     ],
     "components/TrasladoEnviado.tsx": [
       "textarea «{`Mensaje para ${destino}»",

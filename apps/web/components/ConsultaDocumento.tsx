@@ -245,9 +245,10 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
             className="mb-[1.15rem] h-9 shrink-0 py-0"
             onClick={buscar}
             cargando={actual?.fase === "cargando"}
+            textoCargando="Buscando…"
             disabled={!puedeBuscar}
           >
-            {actual?.fase === "cargando" ? "Buscando…" : "Buscar"}
+            Buscar
           </Boton>
         </div>
       ) : (

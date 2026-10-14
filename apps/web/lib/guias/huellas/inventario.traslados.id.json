@@ -2,7 +2,7 @@
   "guia": "inventario.traslados.id",
   "ruta": "/inventario/traslados/(billetera)/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 90,
+  "total": 91,
   "controles": {
     "app/(app)/inventario/traslados/(billetera)/layout.tsx": [
       "BotonEnlace «traslados.nuevo»"
@@ -22,19 +22,19 @@
       "input «Por qué ya no la envías»",
       "ComboResponsable «Mejor no»",
       "button «Mejor no»",
-      "button «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/PedidoClienteModales.tsx": [
       "ComboResponsable «Mejor no»",
       "button «Mejor no»",
-      "button «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}»",
       "ComboResponsable «(sin nombre)»",
       "button «{estado === \"hecho\" ? \"Listo\" : \"Ahora no\"}»",
-      "button «{responsable.motivo ?? undefined}» #2",
+      "Boton «{responsable.motivo ?? undefined}» #2",
       "a «{responsable.motivo ?? undefined}»",
       "ComboResponsable «(sin nombre)» #2",
-      "button «{responsable.motivo ?? undefined}» #3",
-      "button «{responsable.motivo ?? undefined}» #4"
+      "Boton «{responsable.motivo ?? undefined}» #3",
+      "Boton «{responsable.motivo ?? undefined}» #4"
     ],
     "components/PedirAOtraSedeModal.tsx": [
       "button «{`Una menos de ${etiqueta}»",
@@ -47,7 +47,7 @@
       "input «Nota (opcional)»",
       "ComboResponsable «(sin nombre)»",
       "button «Mejor no»",
-      "button «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
     ],
     "components/traslados-guia/QrDeLaGuia.tsx": [
       "Link «{`Imprimir la guía de la caja Nº ${numero}»"
@@ -71,7 +71,7 @@
       "ComboResponsable «)»",
       "button «{p.cliente ? \"Ya no la quiere\" : \"Ya no la necesito\"}»",
       "button «Mejor no»",
-      "button «{guia.frase ?? undefined}»",
+      "Boton «{guia.frase ?? undefined}»",
       "button «Ver lo que subiste»",
       "Link «{vista.boton.texto}»",
       "Volver «Lo que subiste para»",
@@ -98,10 +98,11 @@
       "button «Terminé de contar»",
       "button «{LUGARES[o].icono}»",
       "Volver «void alConfirmar()»",
-      "button «→() => void alConfirmar()»",
-      "button «→() => void alCerrar()»",
+      "Boton «{que ? \"Confirmar lo que llegó\" : \"Confirmar\"}»",
+      "Boton «Cerrar con la diferencia»",
       "button «No anular»",
-      "button «{anulandoAhora ? \"Anulando…\" : \"Anular · vuelve a tu stock\"}»",
+      "Boton «Anular · vuelve a tu stock»",
+      "BotonImprimir «Imprimir la guía»",
       "button «Avisar por WhatsApp»",
       "button «{anular.porQueNo ?? undefined}»",
       "button «Anotarla como prenda de más»",
@@ -118,7 +119,7 @@
       "button «{o.titulo}»",
       "textarea «Cómo lo supiste»",
       "ComboResponsable «(sin nombre)»",
-      "button «{guardando ? \"Guardando…\" : \"Guardar lo que pasó\"}»"
+      "Boton «Guardar lo que pasó»"
     ]
   }
 }

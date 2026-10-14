@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Pencil, Receipt, SearchX, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { Archive, Receipt, SearchX, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -31,6 +31,7 @@ import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
@@ -233,9 +234,9 @@ export function EntregarVista({
             </ul>
             {conEditar && (
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => setEditar(true)} className="btn-cayla btn-secundario inline-flex h-9 items-center gap-1.5 px-2.5 text-[12.5px]">
-                  <Pencil className="h-3.5 w-3.5" aria-hidden /> Editar prendas
-                </button>
+                <BotonEditar chico onClick={() => setEditar(true)}>
+                  Editar prendas
+                </BotonEditar>
                 <span className="text-xs text-tinta/55">Sumar otra, quitar una o cambiar la talla, sin liberar.</span>
               </div>
             )}
@@ -442,7 +443,7 @@ export function EntregarVista({
                 onClick={entregar}
                 className={`${BOTON_PRINCIPAL} max-lg:hidden`}
               >
-                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar"}</span>
+                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(saldo)}</span>
               </button>
               <p className="text-center text-xs text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : cobro.sinMoneda ? AVISO_EFECTIVO_SIN_MONEDA : !cobro.listo ? "Elige cómo paga el saldo." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>
@@ -455,7 +456,7 @@ export function EntregarVista({
         <BarraMovil
           etiqueta={`Saldo · ${a.nombres}`}
           monto={saldo}
-          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar"}
+          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}
           icono={<ShoppingBag className="h-4 w-4" aria-hidden />}
           deshabilitado={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || cobro.noAlcanza}
           onClick={entregar}

@@ -81,7 +81,7 @@ export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal titulo="Nuevo insumo" subtitulo="Tela o avío que el Taller compra" onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Nuevo insumo" subtitulo="Tela o avío que el Taller compra" onClose={onClose}>
       <form onSubmit={guardar} className="space-y-4">
         <div data-guia="prod-insumo-nuevo.tipo" className="grid grid-cols-2 gap-3">
           <CampoSelect etiqueta="Tipo" valor={tipo} onValor={(v) => cambiarTipo(v)} opciones={TIPOS_INSUMO.map((t) => ({ valor: t.valor, texto: t.etiqueta }))} />
@@ -113,7 +113,7 @@ export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
         <div data-guia="prod-insumo-nuevo.cierre" className="space-y-4">
           <ComboResponsable control={responsable} deshabilitado={cargando} />
           <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-            {cargando ? "Guardando…" : "Agregar al catálogo"}
+            Agregar al catálogo
           </Boton>
         </div>
       </form>
@@ -177,7 +177,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
   }
 
   return (
-    <Modal titulo="Ingresar insumo" subtitulo="Cada ingreso abre un lote con su propio costo" onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Ingresar insumo" subtitulo="Cada ingreso abre un lote con su propio costo" onClose={onClose}>
       <form onSubmit={guardar} className="space-y-4">
         <CampoSelect
           etiqueta="¿Qué llegó?"
@@ -212,8 +212,8 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
           <span className="font-display text-lg tabular-nums text-tinta">{listo ? soles(total) : "—"}</span>
         </div>
         <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <Boton peso="primario" type="submit" cargando={cargando} disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-          {cargando ? "Ingresando…" : "Abrir lote y sumar al saldo"}
+        <Boton textoCargando="Ingresando…" peso="primario" type="submit" cargando={cargando} disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
+          Abrir lote y sumar al saldo
         </Boton>
       </form>
     </Modal>

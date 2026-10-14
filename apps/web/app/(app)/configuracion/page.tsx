@@ -5,7 +5,7 @@ import { getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from 
 import { getCategoriasGasto, getContextoGastos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
 import { anioLima, hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PestanasFin } from "@/components/finanzas/kit";
 import { ConfiguracionTiendas } from "@/components/ConfiguracionTiendas";
 import { ConfiguracionEmpresa } from "@/components/ConfiguracionEmpresa";
@@ -39,10 +39,11 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Gestión · Configuración"
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede="Toda CAYLA"
         titulo="Configuración"
-        bajada="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo."
+        subtitulo="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo."
       />
       <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} guia="config.pestanas" />
       {pestana === "empresa" && <ConfiguracionEmpresa datos={await getDatosEmpresa()} />}

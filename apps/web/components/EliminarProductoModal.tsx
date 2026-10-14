@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -23,6 +22,7 @@ import {
   textoSeBorraConHistoria,
   type ComoEliminar,
 } from "@/lib/eliminar-producto-reglas";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 /**
  * «Eliminar» un producto (ADR-0218 sin historia, ADR-0252 con su historia de stock). Lo hace quien edita el catálogo
@@ -99,6 +99,8 @@ export function EliminarProductoModal({
   const puede = como ? ofreceEliminar(como) : false;
   const conHistoria = puede && como?.nivel === "con_historia";
   const salida = como && !puede ? salidaSinEliminar(producto.estado, como.nivel, onDesactivar !== undefined) : null;
+  // Una salida a la vista (ADR-0358, ronda 12): si hay algo que hacer, «Cancelar» al pie; si la hoja solo explica, la ×.
+  const hayAccion = puede || Boolean(salida?.irAEditar) || Boolean(salida?.desactivar && onDesactivar);
   const quien = como && como.nivel !== "libre" ? textoQuienLoCargo(como.cargadoPor, como.cargadoEl) : null;
   // «No se puede» solo cuando la base lo dijo: si no se pudo ni preguntar, el título no afirma nada.
   const titulo = puede
@@ -110,7 +112,7 @@ export function EliminarProductoModal({
       : `Eliminar «${producto.referencia}»`;
 
   return (
-    <Modal titulo={titulo} ancho="max-w-md" bloqueado={eliminando} onClose={onClose}>
+    <Modal titulo={titulo} bloqueado={eliminando} onClose={onClose} conCerrar={!hayAccion}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           {comprobacion === "cargando" && <p className="text-sm text-tinta/70">Revisando si tiene ventas o movimientos…</p>}
@@ -142,13 +144,13 @@ export function EliminarProductoModal({
           {puede && <ComboResponsable control={responsable} deshabilitado={eliminando} />}
 
           <div className="pie-acciones">
-            <Boton peso="fantasma" onClick={cerrar} disabled={eliminando}>
-              {puede ? "Cancelar" : "Cerrar"}
-            </Boton>
+            {hayAccion && (
+              <Boton peso="fantasma" onClick={cerrar} disabled={eliminando}>
+                Cancelar
+              </Boton>
+            )}
             {salida?.irAEditar && (
-              <Link href={`/productos/${producto.productoId}/editar`} className="btn-cayla btn-primario">
-                Editar
-              </Link>
+              <BotonEditar href={`/productos/${producto.productoId}/editar`} />
             )}
             {salida?.desactivar && onDesactivar && (
               <Boton peso="peligro" onClick={onDesactivar}>
@@ -156,7 +158,7 @@ export function EliminarProductoModal({
               </Boton>
             )}
             {puede && (
-              <Boton peso="primario" cargando={eliminando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void eliminar(cerrar)}>
+              <Boton textoCargando="Eliminando…" peso="primario" cargando={eliminando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void eliminar(cerrar)}>
                 {conHistoria ? "Eliminar con su historia" : "Eliminar"}
               </Boton>
             )}

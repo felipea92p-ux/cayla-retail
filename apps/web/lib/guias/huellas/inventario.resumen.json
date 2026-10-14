@@ -2,7 +2,7 @@
   "guia": "inventario.resumen",
   "ruta": "/gestion/analisis",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 55,
+  "total": 56,
   "controles": {
     "components/PedirAOtraSedeModal.tsx": [
       "button «{`Una menos de ${etiqueta}»",
@@ -15,7 +15,7 @@
       "input «Nota (opcional)»",
       "ComboResponsable «(sin nombre)»",
       "button «Mejor no»",
-      "button «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
     ],
     "components/analisis/AnalisisPantalla.tsx": [
       "button «→() => verConDatosDeHoy(modo === \"que-falta\")»",
@@ -27,6 +27,7 @@
     "components/analisis/FichaPrenda.tsx": [
       "Link «{principal.texto}»",
       "button «Pedir a»",
+      "BotonVer «Ver en Existencias»",
       "Link «Movimientos»"
     ],
     "components/analisis/HojaConfianza.tsx": [
@@ -35,8 +36,8 @@
     ],
     "components/analisis/HojaLiquidarDesde.tsx": [
       "ComboResponsable «)»",
-      "button «{responsable.motivo ?? undefined}»",
-      "button «Cancelar»"
+      "button «Cancelar»",
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/analisis/PestanaAcaba.tsx": [
       "Link «Comprar todas»",

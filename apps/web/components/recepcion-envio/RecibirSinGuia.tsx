@@ -111,8 +111,8 @@ function HojaRecibirSinGuia({ orden, sede, onCerrar }: { orden: OrdenDirecta; se
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Abriendo…" : "Empezar a recibir"}
+            <Boton textoCargando="Abriendo…" type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              Empezar a recibir
             </Boton>
           </div>
         </form>

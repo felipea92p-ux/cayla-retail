@@ -424,8 +424,8 @@ export function FormularioRecepcion({
             <BotonEnlace href="/recibir" className="max-sm:hidden">
               Cancelar
             </BotonEnlace>
-            <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Recibiendo…" : textoBotonRecibir(totales.contado, detalle.lineas.every((l) => lineaDecidida(lineaDelBorrador(borrador, l))))}
+            <Boton textoCargando="Recibiendo…" type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {textoBotonRecibir(totales.contado, detalle.lineas.every((l) => lineaDecidida(lineaDelBorrador(borrador, l))))}
             </Boton>
           </div>
         )}

@@ -127,10 +127,10 @@ export function EmpezarARecibir({
               </CampoGuiado>
               <PieGuia guia={guia} listo="Todo listo: ábrelo y cuenta." />
               {errorDeApertura}
-              <Boton type="button" peso="primario" cargando={abriendo} onClick={() => void abrir()} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              <Boton type="button" peso="primario" cargando={abriendo} textoCargando="Abriendo…" onClick={() => void abrir()} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
                 <span className="inline-flex items-center gap-2">
                   <Package aria-hidden className="h-4 w-4" />
-                  {abriendo ? "Abriendo…" : "Abrir el fardo"}
+                  Abrir el fardo
                   <ArrowRight aria-hidden className="h-4 w-4" />
                 </span>
               </Boton>
@@ -188,8 +188,8 @@ export function EmpezarARecibir({
         <PieGuia guia={guia} listo="Todo listo para empezar." />
         {errorDeApertura}
         <div className="flex justify-end">
-          <Boton type="button" peso="primario" cargando={abriendo} onClick={() => void abrir()} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-            {abriendo ? "Abriendo…" : "Empezar a recibir"}
+          <Boton textoCargando="Abriendo…" type="button" peso="primario" cargando={abriendo} onClick={() => void abrir()} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            Empezar a recibir
           </Boton>
         </div>
       </section>

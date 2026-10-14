@@ -101,7 +101,7 @@ export function ElegirMuestra({ tipo, deLaCategoria, universo, imagenes, elegido
       {hoja && (
         <Modal
           variante="hoja"
-          ancho="max-w-[680px]"
+          tamano="ancha"
           titulo={t.titulo}
           subtitulo={`${todos.length} en el catálogo. Arriba, los que ya usa ${categoriaNombre}.`}
           onClose={() => setHoja(false)}

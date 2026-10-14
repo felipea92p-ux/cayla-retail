@@ -196,7 +196,7 @@ function RevisarRendicionModal({
       subtitulo={`La rindió el ${r.rendidaEn ? diaYHoraLima(r.rendidaEn).dia : "—"}${items ? ` · ${resumenItems(items)}` : ""}`}
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-xl"
+      tamano="mediana"
       alCerrarEnfocar={volverA}
       conCerrar
     >
@@ -351,8 +351,8 @@ function RevisarRendicionModal({
                 <Boton type="button" onClick={() => setDevolviendo(false)} disabled={guardando}>
                   Cancelar
                 </Boton>
-                <Boton type="button" peso="peligro" cargando={guardando} disabled={!motivo.trim()} onClick={() => void devolver()}>
-                  {guardando ? "Devolviendo…" : "Devolver para corregir"}
+                <Boton textoCargando="Devolviendo…" type="button" peso="peligro" cargando={guardando} disabled={!motivo.trim()} onClick={() => void devolver()}>
+                  Devolver para corregir
                 </Boton>
               </>
             ) : (
@@ -365,11 +365,12 @@ function RevisarRendicionModal({
                     type="submit"
                     peso="primario"
                     cargando={guardando}
+                    textoCargando="Aprobando…"
                     disabled={!guia.puedeConfirmar || lectura !== "lista"}
                     title={pieListaRevisar(lectura) ?? guia.frase ?? undefined}
                     className={guia.claseConfirmar}
                   >
-                    {guardando ? "Aprobando…" : fraseAprobar(r, decision, deuda)}
+                    {fraseAprobar(r, decision, deuda)}
                   </Boton>
                 )}
               </>

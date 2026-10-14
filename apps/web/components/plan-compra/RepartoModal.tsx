@@ -71,7 +71,6 @@ export function RepartoModal({
       subtitulo={`En ${planNombre}, lo que conviene tener se reparte según lo que vende cada tienda. A una que vende poco (o recién abre) puedes darle un mínimo.`}
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-md"
     >
       {(cerrar) => (
         <form

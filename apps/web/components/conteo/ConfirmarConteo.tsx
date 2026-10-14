@@ -23,6 +23,7 @@ import { claveResponsableConteo } from "@/lib/responsable-conteo";
 import { useResponsable } from "@/lib/useResponsable";
 import { Volver } from "@/components/ui/Volver";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    Confirmar conteo · el último paso: lo que va a cambiar, y cerrar
@@ -314,15 +315,15 @@ export function ConfirmarConteo({
           <div data-guia="confirmar.pie" className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
             {/* Mientras se cierra el conteo no se sale a revisar (como antes): la flecha queda apagada y no responde. */}
             <Volver href={urlRevisar} a="Volver a revisar" className={`self-center ${cerrando ? "pointer-events-none opacity-50" : ""}`} />
-            <button
+            <Boton peso="primario" cargando={cerrando} textoCargando="Actualizando…"
               type="button"
               disabled={cerrando || razonApagado !== null}
               title={razonApagado ?? undefined}
               onClick={() => void cerrar()}
-              className={`btn-cayla btn-primario h-11 w-full sm:w-auto ${preguntar ? guia.claseConfirmar : ""}`}
+              className={`h-11 w-full sm:w-auto ${preguntar ? guia.claseConfirmar : ""}`}
             >
-              {cerrando ? "Actualizando…" : "Cerrar y actualizar existencias"}
-            </button>
+              Cerrar y actualizar existencias
+            </Boton>
           </div>
         }
       />

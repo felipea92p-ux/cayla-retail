@@ -22,7 +22,7 @@
       "CampoTexto «Serie»",
       "CampoTexto «Próximo número»",
       "Boton «Cancelar»",
-      "Boton «{loading ? \"Guardando…\" : \"Registrar serie\"}»",
+      "Boton «Registrar serie»",
       "CampoTexto «Motivo»",
       "ComboResponsable «Cancelar»",
       "Boton «Cancelar» #2",

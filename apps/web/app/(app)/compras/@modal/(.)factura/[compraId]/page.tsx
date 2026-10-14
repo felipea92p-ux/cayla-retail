@@ -36,7 +36,7 @@ export default async function CompraDetalleModal({
 
   if (!detalle) {
     return (
-      <ModalRuta titulo="Factura no encontrada" ancho="max-w-sm" alCerrar={alCerrar}>
+      <ModalRuta titulo="Factura no encontrada" tamano="angosta" alCerrar={alCerrar}>
         <p className="text-sm text-tinta/75">No existe una factura con ese enlace, o ya no tienes acceso a ella.</p>
       </ModalRuta>
     );
@@ -53,7 +53,7 @@ export default async function CompraDetalleModal({
     <ModalRuta
       titulo={<TituloComprobante compra={compra} />}
       subtitulo={<DatosComprobante compra={compra} destino={detalle.destino} />}
-      ancho="max-w-2xl"
+      tamano="ancha"
       cierre="equis"
       alCerrar={alCerrar}
       acciones={anulada ? undefined : <CompraAcciones compra={compra} tieneRecepciones={detalle.recepciones.length > 0} datosPago={detalle.datosPago} permite={detalle.acciones} hayQueRecibir={hayAlgoQueRecibir(detalle.lineas)} />}

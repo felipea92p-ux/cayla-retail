@@ -307,7 +307,7 @@ export function RegistrarPagoModal({
 
   return (
     <Modal
-      variante="papel"
+      variante="hoja"
       titulo={
         hecho ? (
           <span className="sr-only">Pago registrado</span>
@@ -319,7 +319,7 @@ export function RegistrarPagoModal({
         )
       }
       subtitulo={hecho ? undefined : `1 comprobante · ${compra.documento}`}
-      ancho="max-w-2xl"
+      tamano="ancha"
       onClose={terminar}
     >
       {(cerrar) =>
@@ -467,8 +467,8 @@ export function RegistrarPagoModal({
                 <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
                   Cancelar
                 </button>
-                <Boton type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
-                  {loading ? "Registrando…" : `Registrar pago de ${soles(suma)}`}
+                <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
+                  {`Registrar pago de ${soles(suma)}`}
                 </Boton>
               </div>
             </div>
@@ -520,9 +520,9 @@ function AnularCompraModal({ compra, onClose }: { compra: CompraResumen; onClose
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={loading}>
               Volver
             </button>
-            <button type="submit" className="btn-cayla btn-primario" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
-              {loading ? "Anulando…" : "Anular"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Anulando…" type="submit" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
+              Anular
+            </Boton>
           </div>
         </form>
       )}

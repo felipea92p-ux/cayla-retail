@@ -46,8 +46,8 @@
       "ComboResponsable «)»",
       "CampoTexto «¿Qué tiene que corregir?»",
       "Boton «Cancelar»",
-      "Boton «{guardando ? \"Devolviendo…\" : \"Devolver para corregir\"}»",
       "Boton «Devolver para corregir»",
+      "Boton «Devolver para corregir» #2",
       "Boton «{pieListaRevisar(lectura) ?? guia.frase ?? undefined}»"
     ]
   }

@@ -396,7 +396,8 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
                     <b className="font-semibold">{p.cantidad}</b> {p.texto}
                   </span>
                 </span>
-                <Link href={p.href} className="rounded-md border border-sand px-2.5 py-1 text-[11px] font-semibold hover:border-taupe">
+                {/* El enlace del sistema, no un botón: la fila no crece y se lee como una acción chica (ADR-0358, Felipe 2026-10-14). */}
+                <Link href={p.href} className="btn-cayla btn-enlace shrink-0 text-[13px]" aria-label={`Ver ${p.cantidad} ${p.texto}`}>
                   Ver
                 </Link>
               </div>

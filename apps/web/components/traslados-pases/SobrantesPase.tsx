@@ -25,6 +25,7 @@ import {
   type SobranteTraslado,
 } from "@/lib/traslados-sobrantes-reglas";
 import type { TrasladoDetalle } from "@/lib/traslados";
+import { Boton } from "@/components/ui/campos";
 
 // Lo que llegó de más en un traslado ya cerrado (ADR-0404, Felipe 2026-10-14). No está en el stock ni se puede vender hasta que
 // alguien que puede cerrar la diferencia, en la sede que recibió, decide qué pasó: salió del origen, no se sabe de dónde salió
@@ -211,14 +212,14 @@ function RevisarSobrante({
         </Aviso>
       )}
       <PieGuia guia={guia} listo="Listo: ya puedes guardarlo." />
-      <button
+      <Boton peso="primario" cargando={guardando}
         type="button"
         onClick={() => void guardar()}
         disabled={!listo || guardando}
-        className={`btn-cayla btn-primario tp-grande ${guia.claseConfirmar}`}
+        className={`tp-grande ${guia.claseConfirmar}`}
       >
-        {guardando ? "Guardando…" : "Guardar lo que pasó"}
-      </button>
+        Guardar lo que pasó
+      </Boton>
     </div>
   );
 }

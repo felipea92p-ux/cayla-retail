@@ -40,7 +40,7 @@ export function CampanasArchivadasModal({ archivadas, onClose }: { archivadas: r
   }
 
   return (
-    <Modal titulo="Campañas archivadas" subtitulo="Las que se quitaron teniendo categorías armadas o un tope: no se borran. Restaurar las devuelve al selector." onClose={onClose} variante="hoja" ancho="max-w-lg">
+    <Modal conCerrar titulo="Campañas archivadas" subtitulo="Las que se quitaron teniendo categorías armadas o un tope: no se borran. Restaurar las devuelve al selector." onClose={onClose} variante="hoja" tamano="mediana">
       {(cerrar) =>
         archivadas.length === 0 ? (
           <Vacio tamano="chico" icono={<Archive />}>
@@ -59,7 +59,7 @@ export function CampanasArchivadasModal({ archivadas, onClose }: { archivadas: r
                   </span>
                   <span className="flex gap-2">
                     <BotonEnlace href={`/compras/plan?plan=${c.id}`}>Ver</BotonEnlace>
-                    <Boton type="button" peso="primario" cargando={restaurando === c.id} disabled={restaurando !== null || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void restaurar(c, cerrar)}>
+                    <Boton textoCargando="Restaurando…" type="button" peso="primario" cargando={restaurando === c.id} disabled={restaurando !== null || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void restaurar(c, cerrar)}>
                       Restaurar
                     </Boton>
                   </span>

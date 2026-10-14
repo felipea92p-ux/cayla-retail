@@ -114,7 +114,7 @@ export function CeldaComoVa({
         </button>
       )}
       {abierta && (
-        <Modal titulo={de ? `¿Cómo va ${de}?` : "¿Cómo va la campaña?"} subtitulo={`Día ${c.medidos} de ${c.dias}: lo vendido contra el plan, y dónde termina si sigue así.`} onClose={() => setAbierta(false)} variante="hoja" ancho="max-w-2xl" conCerrar>
+        <Modal titulo={de ? `¿Cómo va ${de}?` : "¿Cómo va la campaña?"} subtitulo={`Día ${c.medidos} de ${c.dias}: lo vendido contra el plan, y dónde termina si sigue así.`} onClose={() => setAbierta(false)} variante="hoja" tamano="ancha" conCerrar>
           <Curva c={c} />
         </Modal>
       )}

@@ -70,7 +70,7 @@ export function ExportarPlan({ planNombre, filas, confianza, onClose }: { planNo
       subtitulo={hayQueComprar ? `${planNombre} · ${lista.length} ${lista.length === 1 ? "categoría" : "categorías"} · ${enteroES.format(comprar)} prendas · ${solesES(inversion)} al costo` : planNombre}
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-2xl"
+      tamano="ancha"
       conCerrar
     >
       {() => (

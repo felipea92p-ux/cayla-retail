@@ -449,6 +449,7 @@ export function CerrarEnvio({
                   type="submit"
                   peso="primario"
                   cargando={guardando}
+                  textoCargando="Cerrando…"
                   disabled={!guia.puedeConfirmar || esperandoGuardar}
                   title={esperandoGuardar ? "Espera: lo último que contaste se está guardando" : (guia.frase ?? undefined)}
                   className={guia.claseConfirmar}
@@ -456,7 +457,7 @@ export function CerrarEnvio({
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <Check aria-hidden className="h-4 w-4" />
-                    {guardando ? "Cerrando…" : textoBotonCerrar(contadas, sede, reabierto)}
+                    {textoBotonCerrar(contadas, sede, reabierto)}
                   </span>
                 </Boton>
               </div>

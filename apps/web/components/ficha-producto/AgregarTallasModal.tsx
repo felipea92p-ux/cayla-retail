@@ -74,7 +74,7 @@ export function AgregarTallasModal({
   const colores = coloresDeLaPrenda.map((c) => ctx.colores.find((x) => x.codigo === c) ?? { codigo: c, nombre: n.color(c), hex: null, familiaColor: null });
 
   return (
-    <Modal titulo="Agregar talla" subtitulo="Llegó una talla que la prenda no tenía" onClose={onClose} ancho="max-w-2xl">
+    <Modal titulo="Agregar talla" subtitulo="Llegó una talla que la prenda no tenía" onClose={onClose} tamano="ancha">
       {(cerrar) => (
         <div data-guia="agregar-talla.cuerpo" className="space-y-5">
           {disponibles.length === 0 ? (

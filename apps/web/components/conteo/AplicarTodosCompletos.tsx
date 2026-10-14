@@ -63,7 +63,7 @@ export function ConfirmarAplicarTodos({
   onClose: () => void;
 }) {
   return (
-    <Modal titulo="¿Aplicar todos completos?" subtitulo={textos.subtitulo} ancho="max-w-md" onClose={onClose}>
+    <Modal titulo="¿Aplicar todos completos?" subtitulo={textos.subtitulo} onClose={onClose}>
       {(cerrar) => (
         <div className="space-y-4">
           {avisoArranque && (
