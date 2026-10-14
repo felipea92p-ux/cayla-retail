@@ -176,7 +176,52 @@ antes, cae exactamente en las 19.
 
 **Se rompe si** el color de un texto tenue se escribe de otra forma: una variable propia, `opacity` sobre el texto u otra mezcla. El
 candado solo reconoce `color: color-mix(… var(--color-tinta) N%, transparent)`; lo demás lo sigue viendo solo la auditoría en el
-navegador.
+navegador. (La lista de arriba se resolvió el mismo día: ver la actualización (b).)
+
+## Actualización 2026-10-14 (b) — la otra tanda: escalas con variables, Finanzas, el Observatorio y un piso también para el claro
+
+**Qué se midió.** Una auditoría de las pantallas, en claro y en oscuro (cuenta admin, banco local `cayla-oc`), encontró 63 piezas
+distintas que no llegaban al mínimo en claro, en las 45 pantallas que cargaron en la primera corrida, y ninguna nueva en oscuro. La
+mayoría eran clases de Tailwind: `text-tinta/40` a `/60` suman 853 usos en 205 archivos, y la más repetida es el «Buscar… Ctrl K» de la
+cabecera. El resto eran:
+- **Escalas propias hechas con variables:** las de la Vista rápida, el Historial de la prenda, el Observatorio e Inicio de Almacén.
+- **Las filas «suaves» de Finanzas:** toda la fila al 60 % de opacidad.
+- **El texto de ejemplo de los campos de Finanzas:** taupe al 80 %.
+- **Siete conteos y subtítulos** apagados con `opacity-60` u `opacity-70` solo en claro.
+
+**Qué se hizo.** Solo cambió el tono; el tamaño, el lugar y el texto siguen iguales. Felipe eligió mirando el antes y después en las
+tres piezas que lo pedían (el piso del claro, las filas suaves y el Observatorio).
+- **Escalas.**
+  - **Vista rápida e Historial:** todo escalón que pinta texto, a 62 % en claro; los íconos del Historial, a 50 % (3:1).
+  - **Inicio de Almacén:** su escalón del 50 % a 64 %, y la flecha a 50 %.
+  - **Observatorio:** su `--o-tx3` del 50 al 64 % en claro. Su CSS decía «el claro es el aprobado y no se toca»; Felipe aprobó el cambio.
+  - **Los nombres de las variables** (`--hp-t45`…) siguen siendo el escalón, no el porcentaje.
+- **Finanzas.**
+  - **La fila que ya pasó:** atenúa solo su texto de tinta (64 %) en vez de bajar toda la fila al 60 % de opacidad. Así el «—», el «%» y
+    el «pasó», que son taupe, también se leen.
+  - **El texto de ejemplo de sus campos:** pasa a taupe pleno.
+- **Los dos pisos de `tema.css`.**
+  - **En oscuro:** sube de 58 a 60 % (al 58 % daba 4.45 sobre sand), y su taupe pasa al pleno (al 82 % daba 3.89 sobre sand).
+  - **En claro (nuevo):** `text-tinta/40` a `/60` suben al 64 %, que pasa sobre crema, papel, hueso y sand.
+  - **Los marcadores (`placeholder:text-tinta/…`)** entran en los dos pisos. Los de `/25` y `/30` siguen siendo fantasmas a propósito.
+- **Siete textos apagados con opacidad solo en claro:** los conteos de las píldoras (Clientes, el historial de cierres de Caja), el del
+  segmento, el «· N» y «en esta página» de Por pagar, «sin saldo» de Órdenes de insumos y el «S/» del cobro dividido. Ahora no se apagan
+  en claro, o llevan la misma opacidad que en oscuro. El del cobro se midió también a 375 px (PL-105).
+
+**El candado.** `lib/tema-tokens.test.ts` ahora:
+- reconoce también las variables (`--x: color-mix(… var(--color-tinta) N%, transparent)`), que llevan la misma etiqueta;
+- mide solo en oscuro lo que vive en un bloque `[data-tema="oscuro"]`;
+- mide los dos pisos: su porcentaje sobre crema, papel, hueso y sand, y que cubran sus escalones.
+
+Cae si una escala vuelve al 45 % o si el piso del claro baja al 60 %.
+
+**Lo que queda fuera.**
+- **El subtítulo de una talla sin stock en Cambios** (`CambioReemplazo`, 65 % × 0,7 ≈ 2,9:1). Para probarlo a 375 px hace falta todo el
+  flujo de un cambio; queda anotado con su arreglo.
+- **Los textos apagados con `opacity-*` o pintados con otra clase.** El piso no los ve; los sigue encontrando la auditoría.
+
+**Se rompe si** un texto se apaga con opacidad o con un color escrito de otra forma: ni el piso ni el candado lo ven, solo la auditoría
+en el navegador.
 
 ## Cómo se verificó (actividad 13)
 

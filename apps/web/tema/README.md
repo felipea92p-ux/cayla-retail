@@ -64,8 +64,10 @@ archivo que no está declarado **falla**, y la deuda de antes (`lib/tema-colores
 (papel físico, un color de dato) se exime con `// tema-fijo: <por qué>` en esa misma línea.
 
 El texto tenue escrito en un CSS tiene su propio candado en `lib/tema-tokens.test.ts`: una mezcla de tinta por debajo del 64 %
-(`color: color-mix(… var(--color-tinta) N%, transparent)`) lleva en su línea `/* contraste: texto sobre papel, crema */` (o
-`texto grande …`, `gráfico …`, `no aplica — <motivo>`) y la prueba la mide en los dos temas. El auditor solo mide nodos de texto: no ve los
+(`color:` o una variable `--x:` hecha de `color-mix(… var(--color-tinta) N%, transparent)`) lleva en su línea
+`/* contraste: texto sobre papel, crema */` (o `texto grande …`, `gráfico …`, `no aplica — <motivo>`) y la prueba la mide en los dos
+temas, o solo en oscuro si vive en un bloque `[data-tema="oscuro"]`. La misma prueba mide los dos pisos de `tema.css` (el texto tenue de
+Tailwind: en oscuro al 60 %, en claro al 64 %). El auditor solo mide nodos de texto: no ve los
 marcadores de posición (`::placeholder`) ni los íconos (un SVG o una máscara). Esos solo los cuida ese candado (ADR-0336, act. 2026-10-14).
 
 ## Si algo da raro

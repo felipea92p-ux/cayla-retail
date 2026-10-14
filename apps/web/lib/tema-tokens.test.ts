@@ -248,7 +248,9 @@ describe("texto hecho de tinta en los CSS: por debajo del 64 % dice qué es y so
   //   /* contraste: texto grande sobre hueso */            → 3:1 (24 px, o 18.7 px en negrita)
   //   /* contraste: gráfico sobre hueso, papel */          → 3:1 (un ícono o una flecha, WCAG 1.4.11)
   //   /* contraste: no aplica — <por qué, en 10 letras o más> */   (deshabilitado, adorno, sin uso, transitorio)
-  // `tema.css` queda fuera: es el piso del oscuro. El navegador compone la mezcla en sRGB y redondea a 8 bits, como `mezcla`.
+  // Vale igual para una variable (`--vr-t45: color-mix(…)`, las escalas propias de Vista rápida, Historial, Observatorio…), y una línea que
+  // vive en un bloque `[data-tema="oscuro"]` se mide solo en oscuro. `tema.css` queda fuera: son los dos pisos, que se miden abajo. El
+  // navegador compone la mezcla en sRGB y redondea a 8 bits, como `mezcla`.
   const raiz = join(__dirname, "..");
   const hojas: string[] = [];
   const recorrer = (dir: string) => {
@@ -260,19 +262,24 @@ describe("texto hecho de tinta en los CSS: por debajo del 64 % dice qué es y so
   };
   recorrer(join(raiz, "app"));
 
-  const TINTA = /(?<![\w-])color:\s*color-mix\(in (?:srgb|oklab),\s*var\(--color-tinta\)\s+(\d+(?:\.\d+)?)%,\s*transparent\)/g;
-  const lineas: { donde: string; p: number; etiqueta: string | null }[] = [];
+  // `color: …` o una variable `--nombre: …` hecha de tinta y transparente.
+  const TINTA = /(?:(?<![\w-])color|(?<![\w-])--[\w-]+):\s*color-mix\(in (?:srgb|oklab),\s*var\(--color-tinta\)\s+(\d+(?:\.\d+)?)%,\s*transparent\)/g;
+  const lineas: { donde: string; p: number; etiqueta: string | null; temas: ("claro" | "oscuro")[] }[] = [];
   for (const hoja of hojas) {
     const css = readFileSync(hoja, "utf8");
-    const comentarios = [...css.matchAll(/\/\*[\s\S]*?\*\//g)].map((m) => [m.index ?? 0, (m.index ?? 0) + m[0].length]);
-    for (const m of css.matchAll(TINTA)) {
+    // Los comentarios se borran con espacios (mismo largo): así el selector de cada regla se busca sin que un «{» de un comentario engañe.
+    const limpio = css.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, " "));
+    for (const m of limpio.matchAll(TINTA)) {
       const i = m.index ?? 0;
       const p = Number(m[1]);
-      if (p >= 64 || comentarios.some(([a, b]) => i >= a && i < b)) continue;
+      if (p >= 64) continue;
       const fin = css.indexOf("\n", i);
       const linea = css.slice(css.lastIndexOf("\n", i) + 1, fin < 0 ? undefined : fin);
       const etiqueta = linea.match(/\/\*\s*contraste:\s*([\s\S]+?)\s*\*\//)?.[1] ?? null;
-      lineas.push({ donde: `${hoja.slice(raiz.length + 1)}:${css.slice(0, i).split("\n").length}`, p, etiqueta });
+      const llave = limpio.lastIndexOf("{", i);
+      const selector = limpio.slice(Math.max(limpio.lastIndexOf("}", llave), limpio.lastIndexOf("{", llave - 1), limpio.lastIndexOf(";", llave)) + 1, llave);
+      const temas: ("claro" | "oscuro")[] = /data-tema=["']oscuro["']/.test(selector) ? ["oscuro"] : ["claro", "oscuro"];
+      lineas.push({ donde: `${hoja.slice(raiz.length + 1)}:${css.slice(0, i).split("\n").length}`, p, etiqueta, temas });
     }
   }
 
@@ -294,7 +301,7 @@ describe("texto hecho de tinta en los CSS: por debajo del 64 % dice qué es y so
   const UMBRAL = { texto: 4.5, "texto grande": 3, gráfico: 3 } as const;
   const FONDOS = ["crema", "papel", "hueso", "sand"];
   for (const l of lineas.filter((x) => x.etiqueta !== null)) {
-    it(`${l.donde} · tinta al ${l.p} % · ${l.etiqueta}`, () => {
+    it(`${l.donde} · tinta al ${l.p} %${l.temas.length === 1 ? " (solo oscuro)" : ""} · ${l.etiqueta}`, () => {
       const e = l.etiqueta ?? "";
       if (e.startsWith("no aplica")) {
         expect(e.replace(/^no aplica\s*[—–-]?\s*/, "").length, "el motivo de «no aplica»").toBeGreaterThanOrEqual(10);
@@ -305,9 +312,38 @@ describe("texto hecho de tinta en los CSS: por debajo del 64 % dice qué es y so
       const umbral = UMBRAL[(m?.[1] ?? "texto") as keyof typeof UMBRAL];
       const fondos = (m?.[2] ?? "").split(/\s*,\s*/);
       for (const f of fondos) expect(FONDOS, `fondo «${f}»`).toContain(f);
-      for (const [tema, t] of [["claro", claro], ["oscuro", oscuro]] as const) {
+      for (const tema of l.temas) {
+        const t = tema === "claro" ? claro : oscuro;
         for (const f of fondos) expect(contraste(mezcla(t.tinta, t[f], l.p / 100), t[f]), `${tema}, sobre ${f}`).toBeGreaterThanOrEqual(umbral);
       }
     });
   }
+});
+
+describe("los pisos del texto tenue (estilos/tema.css) se leen", () => {
+  // El piso sube en un solo lugar las clases de Tailwind tenues (`text-tinta/40`…), que son cientos: si su porcentaje baja o pierde un escalón,
+  // todo el ERP vuelve a no leerse sin que ninguna otra prueba lo note. En oscuro desde la actividad 8 de ADR-0336; en claro desde el 2026-10-14.
+  const FONDOS = ["crema", "papel", "hueso", "sand"];
+  const piso = (aviso: RegExp) => {
+    const m = tema.match(new RegExp(`${aviso.source}[^{]*\\{\\s*color:\\s*color-mix\\(in (?:srgb|oklab),\\s*var\\(--color-tinta\\)\\s+(\\d+(?:\\.\\d+)?)%`));
+    return m ? { selectores: m[0], p: Number(m[1]) } : null;
+  };
+  const oscuroPiso = piso(/:where\(:root\[data-tema="oscuro"\]\) \.text-tinta\\\/35/);
+  const claroPiso = piso(/:where\(:root:not\(\[data-tema="oscuro"\]\)\) \.text-tinta\\\/40/);
+
+  it("en oscuro, `text-tinta/35` a `/50` (y su marcador) pasan 4.5:1 sobre crema, papel, hueso y sand", () => {
+    expect(oscuroPiso, "no encontré el piso del oscuro en tema.css").not.toBeNull();
+    for (const n of [35, 40, 45, 50]) {
+      expect(oscuroPiso?.selectores).toContain(`.text-tinta\\/${n}`);
+      expect(oscuroPiso?.selectores).toContain(`.placeholder\\:text-tinta\\/${n}::placeholder`);
+    }
+    for (const f of FONDOS) expect(contraste(mezcla(oscuro.tinta, oscuro[f], (oscuroPiso?.p ?? 0) / 100), oscuro[f]), `sobre ${f}`).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("en claro, `text-tinta/40` a `/60` (y el marcador de `/35` a `/60`) pasan 4.5:1 sobre crema, papel, hueso y sand", () => {
+    expect(claroPiso, "no encontré el piso del claro en tema.css").not.toBeNull();
+    for (const n of [40, 45, 50, 55, 60]) expect(claroPiso?.selectores).toContain(`.text-tinta\\/${n}`);
+    for (const n of [35, 40, 45, 50, 55, 60]) expect(claroPiso?.selectores).toContain(`.placeholder\\:text-tinta\\/${n}::placeholder`);
+    for (const f of FONDOS) expect(contraste(mezcla(claro.tinta, claro[f], (claroPiso?.p ?? 0) / 100), claro[f]), `sobre ${f}`).toBeGreaterThanOrEqual(4.5);
+  });
 });

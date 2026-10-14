@@ -233,12 +233,16 @@ Lo que se exige a toda pantalla, modal o pieza nueva o editada:
    PRENDA (la baldosa de `MosaicoPrenda`, la muestra de un tejido) es dato: no cambia, lleva `data-color-dato`, y el texto que se
    escribe encima usa `--color-tinta-fija` / `--color-crema-fija` (idénticos en los dos temas), nunca `tinta`/`crema`. Una pantalla
    de cámara sobre el video es negra en los dos temas (`bg-tinta-fija` + `.papel-fijo`, como los tres visores).
-4. **Un texto tenue (`text-tinta/35` a `/50`, `text-taupe/50` a `/70`) ya sube solo en oscuro** (una regla de `tema.css`, con `:where`
-   para no ganarle a `hover:`); no escribas `dark:` por costumbre, solo donde una medida lo pida (`dark:text-tinta/55`,
-   `dark:opacity-85` en un conteo junto a un filtro). `dark:` sigue el atributo, no el sistema operativo. **Ese piso no alcanza al texto
-   tenue escrito en un CSS** (`color: color-mix(… var(--color-tinta) N%, transparent)`): desde el 64 % pasa en todo fondo y tema; por
-   debajo, la línea lleva en la misma línea `/* contraste: texto|texto grande|gráfico sobre <fondos> */` o `no aplica — <motivo>`, y
-   `lib/tema-tokens.test.ts` la mide en los dos temas (ADR-0336, act. 2026-10-14).
+4. **Un texto tenue de Tailwind ya sube solo, en los dos temas** (dos pisos en `tema.css`, con `:where` para no ganarle a `hover:` ni a
+   `disabled:`): en oscuro, `text-tinta/35` a `/50` al 60 % y `text-taupe/50` a `/70` al taupe pleno; en claro (desde el 2026-10-14, Felipe
+   lo eligió mirando), `text-tinta/40` a `/60` al 64 %; y sus marcadores (`placeholder:text-tinta/…`) igual. `/25` y `/30` son fantasmas a
+   propósito. No escribas `dark:` por costumbre, solo donde una medida lo pida (`dark:text-tinta/55`). `dark:` sigue el atributo, no el
+   sistema operativo. **No apagues un texto con `opacity-*` solo en claro** (`opacity-60 dark:opacity-85` en un conteo): el piso no lo ve y
+   en claro se pierde; usa el tono del texto o la misma opacidad en los dos temas. **El piso tampoco alcanza al texto tenue escrito en un
+   CSS** (`color:` o una variable `--x:` hecha de `color-mix(… var(--color-tinta) N%, transparent)`): desde el 64 % pasa en todo fondo y
+   tema; por debajo, la línea lleva `/* contraste: texto|texto grande|gráfico sobre <fondos> */` o `no aplica — <motivo>`, y
+   `lib/tema-tokens.test.ts` la mide (solo en oscuro si vive en un bloque `[data-tema="oscuro"]`), junto con los dos pisos (ADR-0336, act.
+   2026-10-14).
 5. **Un token de color nuevo** va en el `@theme` de `globals.css`, en el bloque oscuro de `tema.css` y en `.papel-fijo` (si es de papel);
    `lib/tema-tokens.test.ts` falla si no coinciden, mide el contraste de cada texto sobre cada superficie y exige que toda
    `var(--color-…)` del código exista (Tailwind v4 solo emite un token que ve usado en CSS: el bloque de la paleta es `@theme static`).

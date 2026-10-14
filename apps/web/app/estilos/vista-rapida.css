@@ -17,10 +17,10 @@
   .vr-cuerpo,
   .vr-pie {
     --vr-t80: color-mix(in srgb, var(--color-tinta) 80%, transparent);
-    --vr-t60: color-mix(in srgb, var(--color-tinta) 60%, transparent);
-    --vr-t45: color-mix(in srgb, var(--color-tinta) 45%, transparent);
-    --vr-t35: color-mix(in srgb, var(--color-tinta) 35%, transparent);
-    --vr-t25: color-mix(in srgb, var(--color-tinta) 25%, transparent);
+    --vr-t60: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
+    --vr-t45: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
+    --vr-t35: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
+    --vr-t25: color-mix(in srgb, var(--color-tinta) 25%, transparent); /* contraste: no aplica — fantasma a propósito, hoy sin uso */
     /* Los tonos de cada lugar (Felipe 2026-10-12): el cuadrito de «Dónde» y su parte en la barrita de cada celda. Lo colgado en el piso,
        en tinta; lo guardado en el almacén, en taupe (el tono de siempre de la barrita); lo que no es ni lo uno ni lo otro (dañadas, sin
        ubicar), en un taupe tenue. Se invierten solos en oscuro. */
@@ -28,12 +28,13 @@
     --vr-c-almacen: var(--color-taupe);
     --vr-c-otro: color-mix(in srgb, var(--color-taupe) 40%, var(--color-sand));
   }
-  /* En oscuro, los dos tonos más tenues del texto suben al piso de legibilidad (el mismo 58 % de `tema.css`, ADR-0336): `--vr-t45` rinde
-     3.9:1 sobre papel oscuro. `--vr-t25` es un fantasma a propósito (rayas, ceros) y no se toca. */
+  /* En claro, ningún escalón que pinte texto baja del 62 %, lo mínimo que se lee sobre papel (4.5:1): al 60, 45 y 35 % daban 4.48, 2.86 y
+     2.18:1 (2026-10-14). El nombre es el escalón, no el porcentaje. En oscuro, los dos más tenues suben al piso de legibilidad (el 60 % de
+     `tema.css`, ADR-0336): `--vr-t45` rendía 3.9:1 sobre papel oscuro. `--vr-t25` es un fantasma a propósito (rayas) y no se toca. */
   :root[data-tema="oscuro"] .vr-cuerpo,
   :root[data-tema="oscuro"] .vr-pie {
-    --vr-t45: color-mix(in srgb, var(--color-tinta) 58%, transparent);
-    --vr-t35: color-mix(in srgb, var(--color-tinta) 52%, transparent);
+    --vr-t45: color-mix(in srgb, var(--color-tinta) 60%, transparent); /* contraste: texto sobre papel, crema */
+    --vr-t35: color-mix(in srgb, var(--color-tinta) 52%, transparent); /* contraste: texto sobre papel, crema */
   }
 
   /* ---- La bajada del título: código · categoría · estado · precio · colores y tallas ---- */
