@@ -42,3 +42,10 @@
   (`pruebas:fondos-entradas`: 0/5 sin el arreglo, 6/6 con él), después el arreglo, y los mismos ataques con la semilla 1014 resisten en la
   base y en el navegador. Cinco migraciones en producción (`20261014192000` … `200000`), huellas iguales al banco. Se trajo main antes de
   tocar la lista de operaciones con marca, que main había cambiado.
+- **/formidable de la fase 6 (2026-10-14, actividad 9):** dos pruebas ciegas sobre capturas (la encargada que revisa y la vendedora que
+  rinde), medición a 1440, 1024 y 375 px y un escéptico (4 confirmados, 10 matizados, 1 refutado y 3 que se nos escaparon): leyes 6,2
+  (ley 9 en 4) y oficio 8. Felipe eligió el cambio 1 —«Rendir» también desde la tarjeta del Inicio: sin Órdenes de compra no había dónde
+  rendir (decisión 80)— y el tope de la devolución con una rendición por aprobar, que encontró el escéptico: el fondo podía quedar
+  debiendo y debido por la misma plata (decisión 79, `20261014212000`). Los dos, con su prueba y vistos en el banco (Micaela, sin el
+  módulo, rindió desde su Inicio; la hoja frena S/ 380 con S/ 375 declarados). Después: leyes 6,3, sin ninguna ley bajo 5. Informe en
+  `docs/formidable/compras-fondos.md`.

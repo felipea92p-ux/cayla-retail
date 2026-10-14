@@ -1,5 +1,36 @@
 # Formidable · Compras ▸ Fondos por rendir, sus hojas, «Rendir tu fondo» y «Gasto del viaje»   (`/compras/fondos`)
 
+## Segunda vuelta · 2026-10-14, tarde — lo que Felipe eligió, hecho y visto en el banco
+
+- **SHA:** `3f3d67a45` (el tope de la devolución) y `8a38dc831` («Rendir» en el Inicio)   · **Qué eligió Felipe:** el cambio 1 y, para E2, «el
+  tope = lo que declaró». Los cambios 2 y 3 quedan propuestos, sin hacer.
+- **Entorno:** el banco `cayla-oc`, con el rol integrante SIN el módulo de Órdenes de compra (como viene en el seed: se lo había dado a mano
+  para el `/chaos` y se le quitó), y con la rendición de Micaela por aprobar (S/ 375 declarados, faltan S/ 5).
+
+### Medido y observado (antes → después, mismo ancho, 1440 px)
+| Comprobación | Antes | Después |
+|---|---|---|
+| Micaela sin el módulo, su Inicio | «Tu fondo: S/ 380.00», sin flecha ni acción: no hay dónde rendir [captura `1`] | «Rendir →» en la misma tarjeta; con la rendición enviada, «Ver tu rendición →» [capturas `1d`, `1b`] |
+| Rendir desde el Inicio, sin el módulo | imposible | la hoja de siempre; «Rendir: tengo S/ 375.00» guarda (la base no pide módulo) y avisa «Rendiste tu fondo con S/ 375.00 en la mano» [captura `1e`; en la base: `por_aprobar`, 375, faltan 5] |
+| La tarjeta sin nada que rendir | lleva a Órdenes de compra o a Por pagar | igual (la acción manda solo si hay algo que rendir) [prueba `accionTuFondo`] |
+| Órdenes de compra | «Rendir» en su cifra | igual (el mismo componente, renombrado `TuFondoConRendir`) |
+| Devolución con la rendición por aprobar | «Tiene S/ 380.00 en su fondo» y deja anotar S/ 380 [captura `4a`] | «Tiene S/ 375.00 en la mano: lo que declaró en su rendición, que espera aprobación»; con S/ 380: «Con su rendición por aprobar, tiene S/ 375.00 en la mano: no puede devolver más.» y el botón no se habilita [captura `4b`] |
+| La base, la misma secuencia (rendir 480 de 500 → devolver 500 → aprobar) | acepta los 500 y el fondo termina en −S/ 20, con una deuda de S/ 20 | rechaza los 500 (`fondo_insuficiente`), acepta 480 y el fondo termina en S/ 0 [`pruebas:fondos-entradas`: 6/7 sin la migración, 7/7 con ella] |
+
+(Las capturas viven fuera del repo, en `.chaos/capturas/formidable-fondos-2026-10-14/`.)
+
+### Notas después de los cambios
+| Eje | Antes | Ahora | Evidencia |
+|---|---|---|---|
+| 9 De punta a punta | 4 | 5 | [Observado] quien tiene un fondo rinde desde su Inicio, tenga o no el módulo; [Medido] la devolución ya no puede dejar el fondo debiendo y debido por la misma plata. Sigue abierto: «Lo que rindió» vacío si la lectura falla (cambio 2) |
+| Las demás | — | igual | no se volvieron a medir con una ciega: la ciega 2 dudó «¿estoy en el lugar correcto?» al llegar a Órdenes de compra, y esa duda ya no tiene dónde nacer, pero falta repetirla |
+| **Leyes (promedio)** | 6,2 | **6,3** | ninguna ley bajo 5: deja de estar «en deuda» |
+| **Oficio visual** | 8 | **8** | la acción de la tarjeta es la de `TarjetaCifra` (24 px de alto, como en Órdenes de compra) |
+
+### Lo que queda (no se ejecuta sin Felipe)
+- Los cambios 2 y 3 de abajo, y la lista aparte.
+- **Producción:** `20261014212000` espera su OK para pegarse (una función; la huella de `devolver_fondo` en producción es la del banco).
+
 - **Fecha / SHA:** 2026-10-14 · `1acc9b669` (punta de la fase 6 de ADR-0362, PR #1055)   · **Dispositivo que manda:** escritorio (Mac mini) para
   quien entrega y revisa; «Rendir tu fondo» también a 375 px (quien rinde puede hacerlo desde su celular)
 - **Pregunta que debería resolver (1 frase):** ¿quién tiene plata de CAYLA en la mano, cuánto, y qué me toca hacer con ella (entregar, revisar lo que
@@ -176,3 +207,4 @@ tienes S/ 375 de la tienda en la cartera.»
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-14 | `1acc9b669` | 6,2 (ley 9: 4) | 8 | — (3 propuestos, esperan OK) |
+| 2026-10-14 (tarde) | `8a38dc831` | 6,3 (ninguna bajo 5) | 8 | el cambio 1 («Rendir» en el Inicio) y el tope de la devolución (E2); los cambios 2 y 3, sin elegir |

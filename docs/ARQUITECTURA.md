@@ -1562,7 +1562,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     mismo token con otro contenido, `token_reusado`, y `fn_resolver_intento` revisa las cinco operaciones del fondo, 20261014194000); el
     monto con `lib/monto-plata-reglas.ts:leerMontoPlata` (coma decimal, decisión 78); y la base no acepta un monto NaN ni infinito
     (candados `*_montos_finitos`, 20261014192000), más de 2 decimales, fechas de antes del 13/10/2026 (`fn_fondos_desde`, decisión 77)
-    ni textos hechos solo de caracteres invisibles (`fn_sin_invisibles`, 20261014193000). El fondo es una cuenta de dinero de tipo `fondo` con su dueña (`cuentas_dinero.persona_id`, 1413),
+    ni textos hechos solo de caracteres invisibles (`fn_sin_invisibles`, 20261014193000). Desde /formidable (2026-10-14, decisión 79): con
+    una rendición por aprobar, la devolución no pasa del saldo menos su faltante (`topeDevolucion` en la hoja, `devolver_fondo` en la
+    base, 20261014212000). El fondo es una cuenta de dinero de tipo `fondo` con su dueña (`cuentas_dinero.persona_id`, 1413),
     y su saldo sale del mismo libro que «Cuentas y dinero» (`fn_dinero_libro`). Cabecera `EncabezadoPagina`.
     **Pagar desde «Mi fondo»** (actividad 2, `20261013212000`): `useCuentasParaElegir("pago", …, { conMiFondo: true })`
     (`components/finanzas/CampoCuenta.tsx`, con `useMiFondo` → `fn_mi_fondo`) en `RegistrarComprobanteOrden`, `RegistrarPagoModal`
@@ -1574,8 +1576,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `mostrarTuFondo` y `hrefTuFondo` de `lib/fondos-reglas.ts`) ← `lib/fondos.ts:getResumenMiFondo` (`fn_mi_fondo_resumen`: saldo,
     entregado, devuelto, pagado, gastos, desde y para qué, en una pasada por `fn_dinero_libro`). La dibujan `/compras/ordenes` (en la fila
     de cifras) y el Inicio (`app/(app)/page.tsx`, después de «Tu día»; en el de almacén, `InicioAlmacen` → arriba de la columna derecha).
-    **La rendición** (actividad 5, `20261013233000`, `234000` y `235000`): en Órdenes de compra, `components/fondos/TuFondoEnOrdenes.tsx`
-    («Rendir» / «Ver tu rendición») → `RendirFondo.tsx` (`fn_mi_ciclo_fondo` o `fn_rendicion_fondo_items`; `rendir_fondo`, firma
+    **La rendición** (actividad 5, `20261013233000`, `234000` y `235000`): en Órdenes de compra y, desde /formidable (2026-10-14, decisión
+    80), también en el Inicio, `components/fondos/TuFondoConRendir.tsx` («Rendir» / «Ver tu rendición», `accionTuFondo`) → `RendirFondo.tsx` (`fn_mi_ciclo_fondo` o `fn_rendicion_fondo_items`; `rendir_fondo`, firma
     `fondo_rendir`; retirar con `devolver_rendicion_fondo`); en Fondos por rendir, «Rendiciones por aprobar» (`fn_rendiciones_fondo`, en
     `getDatosFondos`) → `RevisarRendicion.tsx` (`aprobar_rendicion_fondo` / `devolver_rendicion_fondo`). Reglas en `lib/rendicion-reglas.ts`,
     llamadas en `lib/rendicion-acciones.ts`. La tarjeta suma `fn_mi_fondo_rendicion`. Fotos de un gasto del viaje: `FotoDelGasto.tsx` +
