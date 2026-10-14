@@ -167,7 +167,7 @@
       "BotonEnlace «{e.estado === \"abierto\" ? \"Seguir recibiendo\" : \"Recibir\"}»"
     ],
     "components/recepcion-envio/RecibirSinGuia.tsx": [
-      "Boton «Recibir sin guía»",
+      "Boton «Llegó esta orden»",
       "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"

@@ -1209,9 +1209,14 @@ export const TEXTO_QUIEN_COMPRO =
  *  42501 (otra sede, quien compró) y sin esto caerían al genérico «No se pudo…»: se dicen tal cual. `null` = no es uno de estos (el
  *  error sigue por `traducirError`: el responsable, la versión, la red). */
 const HINTS_DE_LA_RECEPCION = /^(recepcion|recibir|envio|orden_compra|orden)_[a-z_]+$/;
+/** La base dice «pulsa «Empezar a recibir»» (el botón de la fase 4); con la cara A el botón es «Abrir el fardo». El texto vive en nueve
+ *  lugares del SQL, varios dentro de reemplazos anclados y huellas md5: se traduce aquí, por su pista, en vez de tocarlo allá. */
+export const TEXTO_ENVIO_SIN_ABRIR = "Este envío todavía no se abrió: ábrelo primero y después cuenta.";
+
 export function mensajeDeLaRecepcion(error: { message?: string | null; hint?: string | null } | null | undefined): string | null {
   if (!error?.message) return null;
   if (esQuienCompro(error)) return TEXTO_QUIEN_COMPRO;
+  if (error.hint === "envio_sin_abrir") return TEXTO_ENVIO_SIN_ABRIR;
   if (error.hint && HINTS_DE_LA_RECEPCION.test(error.hint) && !/_sin_modulo$/.test(error.hint)) return error.message;
   return null;
 }

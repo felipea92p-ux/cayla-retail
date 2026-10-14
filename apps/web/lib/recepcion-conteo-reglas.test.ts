@@ -61,6 +61,9 @@ import {
   detalleDeEnvioSinAviso,
   marcaDeLinea,
   nombreDeLinea,
+  guardadoDesde,
+  textoGuardadoEstaSemana,
+  proveedorDelSinAviso,
 } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
 
@@ -371,6 +374,10 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(esEnvioSinAviso({ lineas: 0, ordenes: ["OC-000465"] })).toBe(false);
     expect(detalleDeEnvioSinAviso({ numeroGuia: "T001-9" })).toBe("Llegó sin aviso: se sigue contando · guía T001-9");
     expect(detalleDeEnvioSinAviso({ numeroGuia: null })).toBe("Llegó sin aviso: se sigue contando");
+    expect(detalleDeEnvioSinAviso({ numeroGuia: "T001-9" }, "Textiles Andina SAC")).toBe("Llegó sin aviso: se sigue contando · Textiles Andina SAC · guía T001-9");
+    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true }))).toBe("proveedor por confirmar");
+    expect(proveedorDelSinAviso(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedores: [PROV] }))).toBe(PROV.nombre);
+    expect(proveedorDelSinAviso(null)).toBeNull();
   });
 
   it("con el envío cerrado, el catálogo se lee solo si queda algo pendiente", () => {
@@ -498,21 +505,29 @@ describe("formidable 2026-10-13: el veredicto al cerrar y lo que pasa al cerrar"
     dijeron: null,
   });
 
-  it("cambio 1: sin nada en el stock, dice que están guardadas pero no se pueden vender, qué falta y el botón que lo resuelve", () => {
+  it("cambio 1: sin nada en el stock, dice que están guardadas pero no se pueden vender y qué falta; con un solo pendiente, sin botón propio", () => {
     const l = extra({ contadas: 5, en_stock: 0, sin_separar: 5 });
     const v = veredictoDelCerrado([l], paraDespues([l]));
     expect(v).toEqual({
       titulo: "Las 5 prendas están guardadas, pero todavía no se pueden vender",
-      texto: "Están en el almacén. Para venderlas falta decir qué modelo es cada una, con su talla y su color.",
+      texto: "Están en el almacén. Para venderlas falta decir qué modelo es cada una, con su talla y su color. Se hace abajo, con «Hacer ahora».",
       chip: null,
-      accion: "Separarlas ahora",
+      accion: null,
     });
     const una = extra({ contadas: 1, en_stock: 0, pendientes: [{ id: "p", tipo: "crear", cantidad: 1, quedan: 1, estado: "pendiente" }] });
     expect(veredictoDelCerrado([una], paraDespues([una]))).toMatchObject({
       titulo: "La prenda está guardada, pero todavía no se puede vender",
-      texto: "Está en el almacén. Para venderla falta crearla en el catálogo, con su talla y su color.",
-      accion: "Crearla ahora",
+      texto: "Está en el almacén. Para venderla falta crearla en el catálogo, con su talla y su color. Se hace abajo, con «Hacer ahora».",
+      accion: null,
     });
+  });
+
+  it("lista aparte (2026-10-14): con dos o más pendientes, el botón lleva al primero", () => {
+    const dos = extra({ contadas: 6, en_stock: 0, sin_separar: 4, pendientes: [{ id: "p", tipo: "crear", cantidad: 2, quedan: 2, estado: "pendiente" }] });
+    const v = veredictoDelCerrado([dos], paraDespues([dos]));
+    expect(paraDespues([dos]).length).toBe(2);
+    expect(v.accion).not.toBeNull();
+    expect(v.texto).not.toMatch(/Se hace abajo/);
   });
 
   it("cambio 1: con algo en el stock, listas para etiquetar; sin nada contado, lo dice", () => {
@@ -679,5 +694,28 @@ describe("Felipe 2026-10-14: sin proveedor y sin marca", () => {
     expect(camposDelCierre(base).some((c) => c.id === "proveedor")).toBe(false);
     expect(camposDelCierre({ ...base, proveedorPorConfirmar: true }).find((c) => c.id === "proveedor")).toMatchObject({ requerido: true, hecho: false });
     expect(camposDelCierre({ ...base, proveedorPorConfirmar: true, proveedorElegido: true }).find((c) => c.id === "proveedor")).toMatchObject({ hecho: true });
+  });
+});
+
+describe("lista aparte (2026-10-14): «Llegó esta semana» cuenta lo guardado sin lote", () => {
+  const p = {
+    porSeparar: 0,
+    porDetallar: 0,
+    porCrear: 0,
+    total: 0,
+    desde: null,
+    envios: [
+      { despachoId: "a", numero: "ENV-1", cerradoEn: "2026-10-14T15:00:00Z", porSeparar: 100, porDetallar: 3, porCrear: 15 },
+      { despachoId: "b", numero: "ENV-2", cerradoEn: "2026-10-01T15:00:00Z", porSeparar: 9, porDetallar: 0, porCrear: 0 },
+    ],
+  };
+  it("solo cuenta lo cerrado desde ese día de Lima", () => {
+    expect(guardadoDesde(p, "2026-10-08")).toEqual({ envios: 1, prendas: 118 });
+    expect(guardadoDesde(null, "2026-10-08")).toEqual({ envios: 0, prendas: 0 });
+  });
+  it("dice que no entró nada al stock pero sí llegó, o lo suma abajo de la lista", () => {
+    expect(textoGuardadoEstaSemana({ envios: 1, prendas: 118 }, "Tienda Trujillo", false)).toMatch(/no entró nada al stock de Tienda Trujillo, pero llegaron 118 prendas/);
+    expect(textoGuardadoEstaSemana({ envios: 1, prendas: 1 }, "Tienda Trujillo", true)).toMatch(/^Además llegaron 1 prenda que/);
+    expect(textoGuardadoEstaSemana({ envios: 0, prendas: 0 }, "Tienda Trujillo", false)).toBeNull();
   });
 });

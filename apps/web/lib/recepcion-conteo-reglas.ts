@@ -13,6 +13,7 @@
 
 import { leerCantidad, limpiarCantidad } from "./alta-producto";
 import { esFalloDeRed, traducirError } from "./error-escritura";
+import { diaLima } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
 import { leerNumero, aTexto } from "./orden-compra-alta";
 import {
@@ -385,9 +386,17 @@ export function esEnvioSinAviso(e: { lineas: number; ordenes: readonly string[] 
   return e.lineas === 0 && e.ordenes.length === 0;
 }
 
-/** Cómo se lee en la puerta un envío sin aviso que alguien dejó abierto: sin «0 prendas», que confunde. */
-export function detalleDeEnvioSinAviso(e: { numeroGuia: string | null }): string {
-  return ["Llegó sin aviso: se sigue contando", e.numeroGuia ? `guía ${e.numeroGuia}` : null].filter(Boolean).join(" · ");
+/** Cómo se lee en la puerta un envío sin aviso que alguien dejó abierto: sin «0 prendas», que confunde, y de quién es si se sabe
+ *  (`proveedor`: su nombre, «proveedor por confirmar», o `null` si no se pudo leer). */
+export function detalleDeEnvioSinAviso(e: { numeroGuia: string | null }, proveedor: string | null = null): string {
+  return ["Llegó sin aviso: se sigue contando", proveedor, e.numeroGuia ? `guía ${e.numeroGuia}` : null].filter(Boolean).join(" · ");
+}
+
+/** De quién es un envío sin aviso, para la puerta: su proveedor, «proveedor por confirmar», o `null` si no se sabe. */
+export function proveedorDelSinAviso(c: ConteosDelEnvio | null): string | null {
+  if (!c) return null;
+  if (c.proveedorPorConfirmar) return "proveedor por confirmar";
+  return c.proveedores[0]?.nombre ?? null;
 }
 
 export function necesitaCatalogoAlCerrar(conteos: ConteosDelEnvio | null): boolean {
@@ -882,12 +891,16 @@ export function veredictoDelCerrado(lineas: readonly LineaParaContar[], pendient
           ? una ? "crearla en el catálogo, con su talla y su color" : "crearlas en el catálogo, con su talla y su color"
           : "terminar lo de abajo: qué modelo es cada una, su talla y su color";
   const primera = pendientes[0].tipo;
+  // Con un solo pendiente, su «Hacer ahora» está justo abajo: un segundo botón que hace lo mismo hizo dudar a la prueba ciega
+  // (formidable, lista aparte del 2026-10-14; Felipe mandó resolverla). Con dos o más, el botón lleva al primero.
+  const unSoloPendiente = pendientes.length === 1;
   return {
     titulo: una ? "La prenda está guardada, pero todavía no se puede vender" : `Las ${guardadas} prendas están guardadas, pero todavía no se pueden vender`,
-    texto: `${una ? "Está" : "Están"} en el almacén. Para ${una ? "venderla" : "venderlas"} falta ${falta}.`,
+    texto: `${una ? "Está" : "Están"} en el almacén. Para ${una ? "venderla" : "venderlas"} falta ${falta}.${unSoloPendiente ? " Se hace abajo, con «Hacer ahora»." : ""}`,
     chip: null,
-    accion:
-      primera === "separar" ? (una ? "Separarla ahora" : "Separarlas ahora") : primera === "detalle" ? (una ? "Ponerle tallas ahora" : "Ponerles tallas ahora") : una ? "Crearla ahora" : "Crearlas ahora",
+    accion: unSoloPendiente
+      ? null
+      : primera === "separar" ? (una ? "Separarla ahora" : "Separarlas ahora") : primera === "detalle" ? (una ? "Ponerle tallas ahora" : "Ponerles tallas ahora") : una ? "Crearla ahora" : "Crearlas ahora",
   };
 }
 
@@ -1055,6 +1068,28 @@ export type PendientesDeLaSede = {
 };
 
 export const SIN_PENDIENTES: PendientesDeLaSede = { porSeparar: 0, porDetallar: 0, porCrear: 0, total: 0, desde: null, envios: [] };
+
+/**
+ * «Llegó esta semana» lee los lotes, y un envío cerrado sin nada en el stock no tiene lote: la prueba ciega creyó que no había llegado nada
+ * (formidable, lista aparte del 2026-10-14; Felipe mandó resolverla). Lo que quedó por terminar de los envíos cerrados desde `desde` (un día
+ * de Lima): cuántos envíos y cuántas prendas. Esas filas ya están en el aviso de arriba; aquí solo se cuentan para no decir «no llegó nada».
+ */
+export function guardadoDesde(p: PendientesDeLaSede | null, desde: string): { envios: number; prendas: number } {
+  const envios = (p?.envios ?? []).filter((e) => {
+    const dia = diaLima(e.cerradoEn);
+    return dia != null && dia >= desde;
+  });
+  return { envios: envios.length, prendas: envios.reduce((a, e) => a + e.porSeparar + e.porDetallar + e.porCrear, 0) };
+}
+
+/** Lo que dice «Llegó esta semana» de lo guardado: el vacío (si no entró nada al stock) o la línea de abajo (si algo entró). `null` si no hay. */
+export function textoGuardadoEstaSemana(g: { envios: number; prendas: number }, sede: string, hayEnElStock: boolean): string | null {
+  if (g.prendas === 0) return null;
+  const cuantas = `${g.prendas.toLocaleString("es-PE")} ${g.prendas === 1 ? "prenda" : "prendas"}`;
+  return hayEnElStock
+    ? `Además llegaron ${cuantas} que todavía no están en el stock: arriba, en lo que falta terminar.`
+    : `Esta semana no entró nada al stock de ${sede}, pero llegaron ${cuantas} que todavía están por terminar: arriba, en lo que falta terminar.`;
+}
 
 export function leerPendientesDeLaSede(data: unknown): PendientesDeLaSede {
   const r = objeto(Array.isArray(data) ? data[0] : data);

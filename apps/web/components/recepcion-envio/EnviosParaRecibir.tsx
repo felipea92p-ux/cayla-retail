@@ -16,12 +16,15 @@ export function EnviosParaRecibir({
   ordenes,
   sede,
   porCategoria = false,
+  proveedoresSinAviso = {},
 }: {
   envios: EnvioPorAbrir[];
   ordenes: OrdenDirecta[];
   sede: string;
   /** ADR-0393: con la base al día, el envío se cuenta por categoría (la fase 4 lo contaba talla por talla). */
   porCategoria?: boolean;
+  /** ADR-0393: de quién es cada envío sin aviso abierto (por id): su proveedor o «proveedor por confirmar». */
+  proveedoresSinAviso?: Readonly<Record<string, string | null>>;
 }) {
   if (envios.length === 0 && ordenes.length === 0) return null;
   return (
@@ -40,7 +43,7 @@ export function EnviosParaRecibir({
                 <span className="font-semibold tabular-nums">{e.numero}</span>
                 <Chip tono={ESTADO_ENVIO[e.estado].tono}>{ESTADO_ENVIO[e.estado].texto}</Chip>
               </p>
-              <p className="mt-0.5 text-xs text-taupe">{porCategoria && esEnvioSinAviso(e) ? detalleDeEnvioSinAviso(e) : detalleDeEnvioPorAbrir(e)}</p>
+              <p className="mt-0.5 text-xs text-taupe">{porCategoria && esEnvioSinAviso(e) ? detalleDeEnvioSinAviso(e, proveedoresSinAviso[e.id] ?? null) : detalleDeEnvioPorAbrir(e)}</p>
             </div>
             {e.creadoPorMi ? (
               <p className="text-[13px] text-taupe">{TEXTO_LA_RECIBE_OTRA}</p>

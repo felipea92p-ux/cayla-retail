@@ -34,12 +34,15 @@ export function LlegoSinAviso({
   ubicacionEtiqueta,
   proveedores,
   facturas,
+  hayListaArriba = false,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
   /** Con sus marcas (se leen en la puerta): se ven bajo cada proveedor y sirven para encontrarlo. */
   proveedores: readonly { id: string; nombre: string; marcas?: readonly string[] }[];
   facturas: readonly FacturaPorRecibir[];
+  /** Arriba hay envíos u órdenes de Compras para esta sede: esta tarjeta es para lo que NO está en esa lista (formidable, 2026-10-14). */
+  hayListaArriba?: boolean;
 }) {
   const router = useRouter();
   const responsable = useResponsable();
@@ -102,9 +105,11 @@ export function LlegoSinAviso({
         >
           <div>
             <p className="label-cayla text-[11px] text-taupe">Sin aviso de Compras</p> {/* unificar-fijo: la ceja de la tarjeta (de dónde viene el paquete), no un vacío */}
-            <TituloSeccion>¿Llegó algo sin aviso?</TituloSeccion>
+            <TituloSeccion>{hayListaArriba ? "¿Llegó algo que no está en la lista?" : "¿Llegó algo sin aviso?"}</TituloSeccion>
             <p className="mt-1 text-[15px] text-taupe">
-              Nadie lo despachó desde el sistema. Dime de quién es y se cuenta igual, por categoría: solo que sin con qué comparar.
+              {hayListaArriba
+                ? "Lo de arriba lo despachó Compras. Si llegó algo más, que nadie despachó desde el sistema, dime de quién es y se cuenta igual, por categoría: solo que sin con qué comparar."
+                : "Nadie lo despachó desde el sistema. Dime de quién es y se cuenta igual, por categoría: solo que sin con qué comparar."}
             </p>
           </div>
 

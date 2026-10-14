@@ -34,7 +34,8 @@ import { Vacio } from "@/components/ui/Vacio";
 import { BotonEnlace } from "@/components/ui/campos";
 import { EnviosParaRecibir } from "@/components/recepcion-envio/EnviosParaRecibir";
 import { getPorRecibirEnLaSede } from "@/lib/recepcion-envio";
-import { recibirContandoDisponible } from "@/lib/recepcion-conteo";
+import { getConteosDelEnvio, recibirContandoDisponible } from "@/lib/recepcion-conteo";
+import { esEnvioSinAviso, guardadoDesde, proveedorDelSinAviso, textoGuardadoEstaSemana } from "@/lib/recepcion-conteo-reglas";
 import { LlegoSinAviso } from "@/components/recepcion-conteo/LlegoSinAviso";
 import { PendientesDeRecibir } from "@/components/recepcion-conteo/PendientesDeRecibir";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -253,6 +254,14 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
       // Lo que le falta a ESTA sede (ADR-0139), ya sin lo recibido ni lo cerrado por faltante.
       pendientes: c.pendienteAqui ?? Math.max(0, c.facturadoCantidad - c.recibidoCantidad - c.cerradoCantidad),
     }));
+    // De quién es cada envío sin aviso que alguien dejó abierto (suelen ser uno o dos): la lista de Compras no lo trae. Si no se lee, la
+    // fila dice lo de siempre.
+    const sinAvisoAbiertos = contando.disponible ? (deOrdenes?.envios ?? []).filter(esEnvioSinAviso) : [];
+    const proveedoresSinAviso = Object.fromEntries(
+      await Promise.all(sinAvisoAbiertos.map(async (e) => [e.id, proveedorDelSinAviso((await getConteosDelEnvio(e.id)).conteos)] as const)),
+    );
+    // Lo que llegó esta semana y quedó por terminar no tiene lote: sin esto, la lista diría «no llegó nada» (ADR-0393, lista aparte).
+    const guardadoSemana = textoGuardadoEstaSemana(guardadoDesde(contando.pendientes, haceUnaSemana), persona.ubicacionEtiqueta, recientes.length > 0);
     // «Llegó esta semana» es la misma en las dos caras de la puerta (la de ADR-0393 y la de «Llegó mercadería»).
     const llegoEstaSemana = (
       <section data-guia="recibir.semana" className="space-y-2">
@@ -265,7 +274,12 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
         >
           Llegó esta semana · {persona.ubicacionEtiqueta}
         </TituloSeccion>
-        <RecepcionesRecientes recepciones={recientes} costos={costos} vacio={`Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`} />
+        <RecepcionesRecientes
+          recepciones={recientes}
+          costos={costos}
+          vacio={guardadoSemana ?? `Esta semana todavía no llegó nada a ${persona.ubicacionEtiqueta}.`}
+        />
+        {recientes.length > 0 && guardadoSemana && <p className="nota-cayla">{guardadoSemana}</p>}
       </section>
     );
     if (contando.disponible) {
@@ -274,13 +288,16 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
           {conEncabezado(`Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después. Entra al almacén de ${nombreMirada}.`)}
           {contando.pendientes && <PendientesDeRecibir pendientes={contando.pendientes} guia="recibir.pendientes" />}
           <AvisoTrasladosEnCamino traslados={trasladosHaciaAca(trasladosDeLaSede, persona.ubicacionId)} sedeNombre={persona.ubicacionEtiqueta} veTraslados={veModulo(persona, "traslados")} />
-          {deOrdenes && <EnviosParaRecibir envios={deOrdenes.envios} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria />}
+          {deOrdenes && (
+            <EnviosParaRecibir envios={deOrdenes.envios} ordenes={deOrdenes.ordenes} sede={persona.ubicacionEtiqueta} porCategoria proveedoresSinAviso={proveedoresSinAviso} />
+          )}
           <LlegoSinAviso
             key={claveDeLaRecepcion(persona.ubicacionId)}
             ubicacionId={persona.ubicacionId}
             ubicacionEtiqueta={persona.ubicacionEtiqueta}
             proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, marcas: marcas?.[p.id] ?? [] }))}
             facturas={facturasDeLaSede}
+            hayListaArriba={(deOrdenes?.envios.length ?? 0) + (deOrdenes?.ordenes.length ?? 0) > 0}
           />
           {llegoEstaSemana}
         </div>
