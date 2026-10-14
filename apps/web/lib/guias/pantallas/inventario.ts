@@ -1637,7 +1637,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Cerrar el envío",
-      texto: "Firma quien cierra. Lo que tiene tallas entra al almacén de tu sede (las dañadas, a la cuarentena) y lo demás queda para después, ya contado. Encima, lo que todavía falta decidir. En la demo no lo tocamos.",
+      texto: "Si el papel de la guía dice otra cosa, la corriges arriba. Firma quien cierra. Lo que tiene tallas entra al almacén de tu sede (las dañadas, a la cuarentena) y lo demás queda para después, ya contado. En la demo no lo tocamos.",
     },
     // ---- Abierto: el formulario ----
     {

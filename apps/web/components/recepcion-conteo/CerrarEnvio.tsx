@@ -47,7 +47,7 @@ import {
   textoResumenDelCierre,
   marcaDeLinea,
 } from "@/lib/recepcion-conteo-reglas";
-import { cerrarConteo, ponerProveedorEnvio } from "@/lib/recepcion-conteo-acciones";
+import { cerrarConteo, corregirGuiaEnvio, ponerProveedorEnvio } from "@/lib/recepcion-conteo-acciones";
 
 // Cerrar (ADR-0393, el paso 3 de la cara A): una fila por categoría —lo que dijeron, lo que se contó, lo que entra hoy al stock y lo que
 // queda para después—, el costo de cada una (decisión 6: quien cierra lo ve y lo corrige; en un envío sin aviso, solo quien ve el dinero de
@@ -106,6 +106,10 @@ export function CerrarEnvio({
   const [proveedorId, setProveedorId] = useState("");
   // Ya quedó puesto en la base (poner_proveedor_envio no lo cambia): no se vuelve a pedir ni a elegir.
   const [proveedorPuesto, setProveedorPuesto] = useState(false);
+  // La guía se escribe o corrige al cerrar (Felipe 2026-10-14): lo escrito, lo que ya quedó en la base y la versión nueva del envío.
+  const [guiaEscrita, setGuiaEscrita] = useState(detalle.numeroGuia ?? "");
+  const [guiaGuardada, setGuiaGuardada] = useState(detalle.numeroGuia ?? "");
+  const [versionTrasGuia, setVersionTrasGuia] = useState<number | null>(null);
   const avisoError = useRef<HTMLDivElement>(null);
 
   const decisionDe = (clave: string): DecisionCierre => decisiones[clave] ?? decisionInicial(visibles.find((l) => l.clave === clave) ?? visibles[0]);
@@ -121,6 +125,7 @@ export function CerrarEnvio({
     responsable: responsable.listo,
     proveedorPorConfirmar,
     proveedorElegido: proveedorPuesto || proveedorId !== "",
+    guia: guiaEscrita,
   });
   const guia = useGuiaCampos(campos, { enModal: false });
   const contadas = visibles.reduce((a, l) => a + contadasDe(l), 0);
@@ -144,11 +149,28 @@ export function CerrarEnvio({
       }
       setProveedorPuesto(true);
     }
+    // La guía, si cambió (corregir_guia_envio sube la versión del envío: se cierra con la nueva). Vacía no borra la que había.
+    // La versión sube y nunca baja: la más alta entre la que trajo la pantalla y la que devolvió la guía.
+    let versionParaCerrar = Math.max(versionTrasGuia ?? 0, version);
+    const guiaNueva = guiaEscrita.trim();
+    if (guiaNueva && guiaNueva !== guiaGuardada) {
+      const { version: v, error: eg } = await corregirGuiaEnvio({ p_despacho_id: detalle.id, p_numero_guia: guiaNueva.slice(0, TOPES_CONTEO.guia) }, responsable.firma());
+      responsable.despues(eg);
+      if (eg || v == null) {
+        setGuardando(false);
+        setError({ texto: mensajeAlGuardar(eg, "corregir la guía"), recargar: false });
+        requestAnimationFrame(() => avisoError.current?.focus());
+        return;
+      }
+      setGuiaGuardada(guiaNueva);
+      setVersionTrasGuia(v);
+      versionParaCerrar = v;
+    }
     const conConfirmados = Object.fromEntries(Object.entries(decisiones).map(([k, d]) => [k, confirmados.has(k) ? { ...d, confirmaCosto: true } : d]));
     const { resultado, error: e } = await cerrarConteo(
       {
         p_despacho_id: detalle.id,
-        p_version: version,
+        p_version: versionParaCerrar,
         p_lineas: lineasParaCerrar(visibles, conConfirmados, sinAviso),
         p_nota: nota.trim() ? nota.trim().slice(0, TOPES_CONTEO.notaEnvio) : null,
         p_token: token,
@@ -339,7 +361,18 @@ export function CerrarEnvio({
 
       <Balanza dijeron={visibles.some((l) => l.dijeron != null) ? visibles.reduce((a, l) => a + (l.dijeron ?? 0), 0) : null} contadas={contadas} />
 
-      <div className="card-cayla space-y-4 p-4 sm:p-5">
+      <div className="card-cayla grid gap-4 p-4 sm:grid-cols-[minmax(0,16rem)_minmax(0,1fr)] sm:p-5">
+        <CampoGuiado id="guia" guia={guia}>
+          <CampoTexto
+            etiqueta={guia.etiqueta("guia", "Número de guía")}
+            value={guiaEscrita}
+            maxLength={TOPES_CONTEO.guia}
+            onChange={(e) => setGuiaEscrita(e.target.value)}
+            // sugerir-fijo: el formato de un número de guía no depende de nada elegido antes
+            placeholder="Ej. T001-000342"
+            pie={guiaEscrita.trim() && guiaEscrita.trim() !== guiaGuardada ? "Se corrige al cerrar." : "Si el papel dice otra cosa, corrígela."}
+          />
+        </CampoGuiado>
         <CampoTexto
           etiqueta="Nota (opcional)"
           value={nota}

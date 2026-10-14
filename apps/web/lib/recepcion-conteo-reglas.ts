@@ -45,6 +45,8 @@ export const RPC_REABRIR_ENVIO = "reabrir_envio";
 export const RPC_SIN_AVISO = "abrir_envio_sin_aviso";
 /** Felipe 2026-10-14: el proveedor de un envío sin aviso que se abrió sin saberlo. */
 export const RPC_PONER_PROVEEDOR = "poner_proveedor_envio";
+/** Felipe 2026-10-14: el número de guía se escribe o corrige al cerrar (`20261014205000`). */
+export const RPC_CORREGIR_GUIA = "corregir_guia_envio";
 
 export const TOPES_CONTEO = { contadas: 99999, descripcionNueva: 200, nota: 300, notaEnvio: 500, motivo: 300, guia: 40 } as const;
 
@@ -663,6 +665,8 @@ export function camposDelCierre(
     /** Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): `cerrar_conteo_envio` no cierra sin proveedor (`envio_sin_proveedor`). */
     proveedorPorConfirmar?: boolean;
     proveedorElegido?: boolean;
+    /** Lo escrito en «Número de guía» (Felipe 2026-10-14): opcional, se corrige si el papel dice otra cosa. */
+    guia?: string;
   },
 ): CampoDeGuia[] {
   const falta = faltaParaCerrar(p);
@@ -691,6 +695,9 @@ export function camposDelCierre(
         pendiente: f ? `${f.texto}.` : "Sin costo entra igual: llega con la factura.",
       });
     }
+  }
+  if (p.guia !== undefined) {
+    campos.push({ id: "guia", nombre: "Número de guía", requerido: false, hecho: p.guia.trim() !== "", pendiente: "Si el papel de la guía dice otra cosa, corrígela." });
   }
   if (p.proveedorPorConfirmar) {
     campos.push({ id: "proveedor", nombre: "De quién llegó", requerido: true, hecho: p.proveedorElegido === true, pendiente: "Elige de quién llegó: pregúntale a Compras." });

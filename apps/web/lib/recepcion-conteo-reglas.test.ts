@@ -689,6 +689,13 @@ describe("Felipe 2026-10-14: sin proveedor y sin marca", () => {
     expect(nombreDeLinea(sinMarca)).toMatch(/Sin marca/);
   });
 
+  it("el número de guía es opcional en la guía de foco: hecho si tiene algo escrito, nunca un candado", () => {
+    const base = { lineas: [sinMarca], decisiones: {}, sinAviso: true, responsable: true };
+    expect(camposDelCierre({ ...base, guia: "" }).find((c) => c.id === "guia")).toMatchObject({ requerido: false, hecho: false });
+    expect(camposDelCierre({ ...base, guia: "T001-9" }).find((c) => c.id === "guia")).toMatchObject({ requerido: false, hecho: true });
+    expect(camposDelCierre(base).some((c) => c.id === "guia")).toBe(false);
+  });
+
   it("al cerrar, «De quién llegó» se pide solo si se abrió sin saberlo, y la guía coincide con lo que frena la base", () => {
     const base = { lineas: [sinMarca], decisiones: {}, sinAviso: true, responsable: true };
     expect(camposDelCierre(base).some((c) => c.id === "proveedor")).toBe(false);

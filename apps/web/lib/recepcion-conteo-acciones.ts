@@ -8,6 +8,7 @@ import {
   leerResuelto,
   RPC_CERRAR_CONTEO,
   RPC_CONTEOS_ENVIO,
+  RPC_CORREGIR_GUIA,
   RPC_GUARDAR_CONTEO,
   RPC_PONER_PROVEEDOR,
   RPC_REABRIR_ENVIO,
@@ -81,4 +82,14 @@ export async function ponerProveedorEnvio(
 ): Promise<{ ok: boolean; error: ErrorDeBase }> {
   const { error } = (await firmar(createClient().rpc(RPC_PONER_PROVEEDOR as never, args as never), firma)) as Respuesta;
   return { ok: !error, error: error ?? null };
+}
+
+/** Escribe o corrige el número de guía de un envío abierto (al cerrar). Devuelve la versión nueva del envío: es la que se pasa al cerrar. */
+export async function corregirGuiaEnvio(
+  args: { p_despacho_id: string; p_numero_guia: string },
+  firma: Firma | null,
+): Promise<{ version: number | null; error: ErrorDeBase }> {
+  const { data, error } = (await firmar(createClient().rpc(RPC_CORREGIR_GUIA as never, args as never), firma)) as Respuesta;
+  const r = !error && data && typeof data === "object" ? (data as { version?: unknown }) : null;
+  return { version: r && typeof r.version === "number" ? r.version : null, error: error ?? null };
 }

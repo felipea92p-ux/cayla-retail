@@ -13,6 +13,8 @@
  *      (la prenda nueva con el proveedor del envío); el formulario de la fase 4 no lo cierra, y se reabre sin freno.
  *   P  SIN PROVEEDOR (Felipe 2026-10-14): se abre y se cuenta sin saber de quién es; el cierre lo pide; se pone una sola vez y se pasa
  *      a lo contado; sus permisos.
+ *   G  LA GUÍA AL CERRAR (Felipe 2026-10-14, `20261014205000`): se escribe o corrige con el envío abierto; la misma otra vez no cambia
+ *      nada; vacía o larga no; en camino, sin responsable o sin Recibir no; deja su rastro y se cierra con la versión nueva.
  *   M  SIN MARCA (Felipe 2026-10-14): lo de fuera de la guía se cuenta sin marca, entra al stock así, la prenda nueva nace sin marca y el
  *      detalle del envío no pierde la fila; en un envío de Compras, lo de más sin marca deja su diferencia.
  *   F  LA FORMA: permisos y RLS.
@@ -50,6 +52,8 @@ const MIGRACIONES = SIN_MIGRACION
       "20261013180000_reabrir_envio.sql",
       // ADR-0393: lo que llega sin aviso, con el mismo conteo.
       "20261013183000_envio_sin_aviso.sql",
+      // ADR-0393: la guía se corrige al cerrar.
+      "20261014205000_corregir_guia_al_cerrar.sql",
     ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
@@ -166,6 +170,7 @@ ${atrapa(
 )}
 ${atrapa("detalle", "p_d uuid", "retail.fn_envio_detalle(p_d)")}
 ${atrapa("pone", "p_d uuid, p_prov uuid", "retail.poner_proveedor_envio(p_d, p_prov)")}
+${atrapa("guia", "p_d uuid, p_g text", "retail.corregir_guia_envio(p_d, p_g)")}
 ${atrapa(
   "sinaviso",
   "p_u uuid, p_prov uuid, p_guia text, p_nota text, p_token uuid",
@@ -538,6 +543,39 @@ caso(
    select concat_ws(' / ', :'de_compras', :'sin_resp', :'inactivo', :'sin_modulo',
      (select coalesce(proveedor_id::text, 'vacío') from retail.despachos_sin_aviso where despacho_id = :'d'));`,
   "envio_no_es_sin_aviso / responsable_requerido / recepcion_proveedor / recibir_sin_modulo / vacío",
+);
+
+// G. LA GUÍA AL CERRAR ---------------------------------------------------------------------------------------------------
+caso(
+  "G1 corregir la guía: con el envío abierto; la misma otra vez no cambia nada; vacía o larga no; se cierra con la versión nueva; cerrado no",
+  `${ENVIA("d1", [["l1", 10]])}${ITEM("d1", "l1")}${MICAELA_RECIBE}${ABRE("d1")}
+   select pg_temp.guia(:'d1', 'T001-555') as g \\gset
+   select pg_temp.guia(:'d1', 'T001-555') ->> 'repetido' as otra \\gset
+   select pg_temp.h(pg_temp.guia(:'d1', '   ')) as vacia \\gset
+   select pg_temp.h(pg_temp.guia(:'d1', repeat('x', 41))) as larga \\gset
+   select (:'g'::jsonb ->> 'version')::int as v_d1 \\gset
+   select ${GUARDA("d1", "di_l1", 10)} \\g /dev/null
+   ${VERS("d1", ["l1"])}
+   select pg_temp.e(${CIERRA("d1", [DEC("l1")])}) as cierra \\gset
+   select pg_temp.h(pg_temp.guia(:'d1', 'T001-999')) as cerrado \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'g'::jsonb), :'otra', :'vacia', :'larga', :'cierra', :'cerrado',
+     (select numero_guia from retail.despachos where id = :'d1'),
+     (select ${limpio("a.descripcion")} from retail.actividad a where a.registro_id = :'d1'::text and a.accion = 'despacho_guia'));`,
+  "OK / true / recepcion_guia / recepcion_guia / OK / envio_no_abierto / T001-555 / corrigió la guía de ENV: T001-88 → T001-555",
+);
+caso(
+  "G2 la guía no se corrige en camino, sin responsable ni sin Recibir; nada cambia",
+  `${ENVIA("d1", [["l1", 10]])}${MICAELA_RECIBE}
+   select pg_temp.h(pg_temp.guia(:'d1', 'T001-1')) as en_camino \\gset
+   ${ABRE("d1")}
+   ${SIN_ENCABEZADOS}
+   select pg_temp.h(pg_temp.guia(:'d1', 'T001-1')) as sin_resp \\gset
+   ${rolDeMicaela("existencias")}${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.h(pg_temp.guia(:'d1', 'T001-1')) as sin_modulo \\gset
+   reset role;
+   select concat_ws(' / ', :'en_camino', :'sin_resp', :'sin_modulo', (select numero_guia from retail.despachos where id = :'d1'));`,
+  "envio_no_abierto / responsable_requerido / recibir_sin_modulo / T001-88",
 );
 
 // M. SIN MARCA ----------------------------------------------------------------------------------------------------------
