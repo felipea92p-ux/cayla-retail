@@ -37,9 +37,10 @@ fusiona).
 - [x] Finanzas ▸ Gastos llamaba «IGV descontable» a un IGV perdido por pagar sin banco: lo hizo la sesión «Decir en Gastos cuándo el IGV
   de una factura se perdió» (chip `task_9e4c3306`) con lo que Felipe eligió el 2026-10-14, y entró con cherry-pick (`a079c035d`): la
   decisión 76 del ADR, la migración `20261014174000` y `pruebas:gastos-igv-perdido`.
-- [ ] Producción: pegar `20261014174000` (después de `20261014153000` y `20261014164000`) con el OK de Felipe, contando antes su ancla en
-  `fn_gastos_panel`. Esperan también a Felipe los 3 cambios de `/formidable` de Gastos y una decisión de dinero que dejó esa sesión
-  (`docs/backlog/2026-10-14-cool-fermi-e58891.md`).
+- [x] Producción: `20261014174000` pegada con el OK de Felipe (2026-10-14 ~14:14, como `20261014191419`): el ancla de `fn_gastos_panel`
+  contada antes (una vez, huella `c8b2c412…`) y, después, las tres funciones con la misma huella y los mismos permisos que el banco. Los 3
+  cambios de `/formidable` de Gastos y la tarjeta que nunca dice un negativo (Felipe los aprobó en esa sesión) entraron con cherry-pick
+  (`4ba53b3a5`), sin cambios en la base.
 - [x] Hoja del gasto del viaje (decisión 74, Felipe 2026-10-14): solo la orden desde la que se abrió; las demás con «+ Agregar otra
   orden» (el combo con buscador) y cada una con su «×». Probado en el banco a 1280 y 375 px, con el teclado (Enter elige, Escape vuelve
   al botón sin cerrar la hoja) y abriéndola desde la lista (ninguna orden: «+ Agregar una orden»).
