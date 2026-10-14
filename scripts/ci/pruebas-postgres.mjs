@@ -191,6 +191,12 @@ export const PRUEBAS = [
   // (ADR-0403) sobre el precio web, sus colores activos y las fotos del almacén público. ROLLBACK.
   "pruebas:vitrina-web",
 
+  // El motor del pedido web (ADR-0408, actividades 7-9): separar no toca el stock; confirmar reserva con el motor de Apartados
+  // (almacén primero) y Vender ya no la vende; dos por la última (uno reserva, el otro sin stock, y quién separó antes, también
+  // con dos sesiones a la vez); anular libera; el cierre de 24 h no toca lo confirmado; un pago nunca pasa el total; el n.º de
+  // operación y el aviso de la pasarela no se duplican; el efectivo en la caja abierta; permisos y transiciones imposibles. ROLLBACK.
+  "pruebas:pedidos-web-motor",
+
   // Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
   // La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.
   "pruebas:redondeo-efectivo",
