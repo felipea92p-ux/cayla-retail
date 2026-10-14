@@ -34,6 +34,7 @@ import {
   leerResultadoRecepcion,
   lineasParaBase,
   mensajeDeLaRecepcion,
+  TEXTO_ENVIO_SIN_ABRIR,
   matrizDe,
   costoDeReposicion,
   opcionesSobrante,
@@ -902,6 +903,8 @@ describe("la forma de la base de la fase 4", () => {
   it("los avisos de la fase se dicen tal cual (también los que llegan con 42501); los demás siguen su camino", () => {
     expect(mensajeDeLaRecepcion({ hint: "recibir_otra_sede", message: "Este envío va a Tienda Lima: lo recibe esa tienda" })).toBe("Este envío va a Tienda Lima: lo recibe esa tienda");
     expect(mensajeDeLaRecepcion({ hint: "recibir_quien_compro", message: "Hiciste esta orden: la tiene que recibir otra persona de la tienda" })).toBe(TEXTO_QUIEN_COMPRO);
+    // La base todavía nombra el botón de la fase 4; la pantalla dice lo que sirve en las dos caras.
+    expect(mensajeDeLaRecepcion({ hint: "envio_sin_abrir", message: "Este envío todavía no se abrió: pulsa «Empezar a recibir»" })).toBe(TEXTO_ENVIO_SIN_ABRIR);
     expect(mensajeDeLaRecepcion({ hint: "recepcion_faltante_causa", message: "Faltan 2 de Chompas: elige qué pasó" })).toBe("Faltan 2 de Chompas: elige qué pasó");
     expect(mensajeDeLaRecepcion({ hint: "envio_ya_recibido", message: "Este envío ya se recibió" })).toBe("Este envío ya se recibió");
     expect(mensajeDeLaRecepcion({ hint: "recibir_sin_modulo", message: "x" })).toBeNull();

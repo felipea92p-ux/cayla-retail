@@ -1017,6 +1017,27 @@ export const PRUEBAS = [
   // papel hasta su cupo; faltante y sobrante con causa; quien hizo la orden no la recibe; token y costo atípico. ROLLBACK siempre.
   "pruebas:recepcion-de-envio",
 
+  // El conteo guardado de un envío (ADR-0393): lo contado queda en la base línea por línea; gana el último con aviso de lo que pisó;
+  // lo separado no pasa de lo contado ni trae prendas ajenas; lo de fuera de la guía; el formulario de la fase 4 deja su conteo; un
+  // envío cerrado no se cuenta. ROLLBACK siempre.
+  "pruebas:conteo-de-envio",
+
+  // Cerrar lo contado con pendientes y «Hacer ahora» (ADR-0393, actividad 3): entra solo lo que tiene talla y color; lo demás queda
+  // pendiente («detalle», «crear») o sin separar; lo que faltó se mide con lo contado; quien cierra firma lo que vio; «Hacer ahora» entra
+  // como el cierre (costo del cierre, papel hasta su cupo), nunca más de lo que queda ni dos veces; la base no deja descuadrar una línea
+  // aunque se escriba a mano; el número del aviso por sede. ROLLBACK siempre.
+  "pruebas:pendientes-de-envio",
+
+  // Reabrir un envío recibido (ADR-0393, actividad 4; decisión 5): lo que faltó deja de valer sin borrarse y sale de «Nos debe», lo
+  // pendiente vuelve al borrador, lo que entró no se toca ni entra dos veces, y queda el rastro; no se reabre si Compras ya resolvió.
+  // ROLLBACK, salvo los dos casos de dos sesiones (reabrir y resolver la deuda a la vez): commitean un envío de prueba y lo borran.
+  "pruebas:reabrir-envio",
+
+  // El envío sin aviso (ADR-0393, actividad 4; decisiones 2 y 10): la sede lo abre al llegar, lo cuenta por categoría y lo cierra
+  // con los mismos pendientes; nada sobra ni deja deuda; el costo solo lo escribe quien ve el dinero de Compras (ADR-0330) y lo que
+  // entra sin costo no toca el de la prenda. ROLLBACK siempre.
+  "pruebas:envio-sin-aviso",
+
   // «Nos debe» (ADR-0362, fase 5a): solo un faltante «no vino» es deuda del proveedor; se salda con la prenda, a mano con nota o en la
   // próxima recepción (la más antigua primero), nunca más de lo debido (tampoco con dos sesiones a la vez); lo resuelto solo se agrega;
   // saldo a favor y depósito, «todavía no». ROLLBACK, salvo el caso de dos sesiones: commitea un envío de prueba y lo borra al terminar.
