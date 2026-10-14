@@ -61,7 +61,7 @@ const comoPostgres = `reset request.jwt.claim.sub;\nreset request.jwt.claims;\ns
 const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").replace(/^reset lock_timeout;$/gm, "");
 
 const gastoViaje = (alias, { concepto = "hotel", monto, papel = "factura", medio = "transferencia", cuenta = "bcp", ruc = RUC, serie = "F001-77" }) =>
-  `select retail.registrar_gasto_viaje('viaje', '${concepto}', ${monto}, retail.fn_hoy_lima(), '${papel}', '${medio}', :'${cuenta}', null, ${
+  `select retail.registrar_gasto_viaje('viaje', '${concepto}', ${monto}, retail.fn_hoy_lima(), '${papel}', '${medio}', :'${cuenta}', array[:'oc']::uuid[], ${
     serie ? `'${serie}'` : "null"
   }, ${ruc ? `'${ruc}'` : "null"}, null, null) as ${alias} \\gset\n`;
 
@@ -90,6 +90,8 @@ insert into public.personas (nombres, apellidos, sede_base_id, auth_user_id, rol
 insert into retail.colaboradores (persona_id, rol, rol_id, ubicacion_asignada_id, estado)
   values (:'ana_p', 'colaborador', retail.fn_rol_por_clave('integrante'), :'tru', 'activo');
 insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'ordenes_compra') on conflict do nothing;
+-- Un gasto del viaje va siempre al menos a una orden (decisión 75): la de esta prueba.
+insert into retail.ordenes_compra (proveedor_id, ubicacion_destino_id, creada_por) values (:'prov', :'tru', :'ana_p') returning id as oc \\gset
 ${como(FELIPE)}${firma("fondo_entregar")}
 select retail.entregar_fondo(:'ana_p', :'bcp', 3000, 'Compras Gamarra', null, null) \\g /dev/null
 select c.id as fondo from retail.cuentas_dinero c where c.tipo = 'fondo' and c.persona_id = :'ana_p' \\gset

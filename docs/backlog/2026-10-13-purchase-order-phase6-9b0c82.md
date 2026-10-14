@@ -1,6 +1,6 @@
 ## Compras ▸ fase 6 de las órdenes de compra: fondo por rendir y gastos del viaje (2026-10-13) — rama `claude/purchase-order-phase6-9b0c82`
 
-ADR-0362 (decisiones 16, 20, 26, 29, 30, 32–35, 46, 54–57 y 65–74). Lista de 8 actividades aprobada por Felipe el 2026-10-13; el
+ADR-0362 (decisiones 16, 20, 26, 29, 30, 32–35, 46, 54–57 y 65–75). Lista de 8 actividades aprobada por Felipe el 2026-10-13; el
 2026-10-14 la de contabilidad se partió en dos y quedaron 9 (decisión 73). PR #1055
 (borrador). Con la autorización de Felipe de esa noche, cada actividad se sube y sus migraciones se pegan en producción al cerrarla (no se
 fusiona).
@@ -37,6 +37,10 @@ fusiona).
 - [x] Hoja del gasto del viaje (decisión 74, Felipe 2026-10-14): solo la orden desde la que se abrió; las demás con «+ Agregar otra
   orden» (el combo con buscador) y cada una con su «×». Probado en el banco a 1280 y 375 px, con el teclado (Enter elige, Escape vuelve
   al botón sin cerrar la hoja) y abriéndola desde la lista (ninguna orden: «+ Agregar una orden»).
+- [x] Al menos una orden (decisión 75, Felipe 2026-10-14): la «×» sale solo con dos o más órdenes; abierta desde la lista, la orden es lo
+  que falta; la base frena un gasto sin orden (`20261014170000`, `gasto_viaje_sin_orden`). Pruebas de base: gastos-viaje 12/12 (con el
+  rechazo), igv-fase6 4/4, no-deducible 5/5 y deuda-fondo 4/4 (ahora registran sus gastos con una orden).
+- [ ] Producción: pegar `20261014170000` (espera el OK de Felipe: no es una de las 9 actividades autorizadas).
 - [ ] Actividad 9 · cierre: `tema:auditar`, `guias:recorrer`, `/chaos` con plata y `/formidable` (todavía no se corrieron).
 - [x] Tabla «Quién tiene plata» de Fondos por rendir a 1024 px con el menú abierto: la arregló otra sesión (las tres tablas deciden por
   el ancho de su tarjeta) y entró con cherry-pick (`caa9daf90`); verificado aquí a 1024 y 1280 px con el menú abierto (0 px de desborde).

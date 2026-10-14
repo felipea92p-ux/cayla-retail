@@ -93,6 +93,7 @@
 | 72 | IGV perdido por pago en efectivo | Se resta **en el mes del pago**, nunca en el mes de la factura: un mes ya declarado no cambia solo (Felipe 2026-10-14) |
 | 73 | Fase 6, la lista | La actividad de contabilidad se **parte en dos**: 7 · saldar la deuda (y la 1413 y la 1419 por dos caminos en el Balance) y 8 · el IGV (facturas de los gastos del viaje a crédito fiscal y lo no deducible fuera); el cierre pasa a ser la 9 (Felipe 2026-10-14) |
 | 74 | Las órdenes de un gasto del viaje | La hoja muestra **solo la orden desde la que se abrió** (abierta desde la lista, ninguna); las demás se suman con **«+ Agregar otra orden»**, que abre el combo con buscador, y cada una se quita con su «×». Nada de una lista larga a la vista: casi nunca se usa (Felipe 2026-10-14) |
+| 75 | Un gasto del viaje sin orden | **No existe: va siempre al menos a una orden** («Sí o sí necesito como mínimo una orden»). La hoja no deja quitar la última (la «×» sale con dos o más) y, abierta desde la lista, la orden es lo que falta; la base lo frena igual (`registrar_gasto_viaje`, `gasto_viaje_sin_orden`, 20261014170000). Deja sin efecto «las órdenes son opcionales» de la actividad 3 (Felipe 2026-10-14) |
 
 **Fase 2 (aprobada por Felipe el 2026-10-12, 11 actividades, rama `claude/purchase-order-phase2-9b0c82`):** 1 · las acciones de Compras
 dejan de ser «solo del líder» (ADR-0387) · 2 · qué tiendas se ven y a nombre de quién se paga · 3 · las líneas por «categoría + marca»
@@ -231,8 +232,8 @@ SE ROMPE SI: otra pantalla crea gastos de las categorías del viaje sin su ficha
 Por defecto *(provisional, revisar con Felipe)*: la acción `gasto_viaje_registrar` queda **soltada del combo «Responsable»** (con la cuenta
 de una persona firma ella; desde una terminal, el combo), aunque es de plata: se anota en Gamarra, lejos de toda tienda, donde nadie puede
 marcar su entrada (el mismo motivo de la decisión 39). Las dos pruebas que vigilan «ninguna acción de dinero soltada» la nombran como
-excepción. Las órdenes son opcionales (el cargador se paga a veces antes de saber a qué orden va); la hoja las propone si se abre desde una
-orden. Un gasto del viaje se anula en Finanzas ▸ Gastos, como cualquier gasto (una anulada no cuenta en «Traerla costó» y le devuelve la
+excepción. ~~Las órdenes son opcionales (el cargador se paga a veces antes de saber a qué orden va)~~ — desde la decisión 75 (2026-10-14)
+un gasto del viaje va **siempre al menos a una orden**; la hoja propone la orden desde la que se abre. Un gasto del viaje se anula en Finanzas ▸ Gastos, como cualquier gasto (una anulada no cuenta en «Traerla costó» y le devuelve la
 plata al fondo). Con tarjeta de crédito no se anota aquí (va por Finanzas ▸ Gastos). Las fotos del papel llegan con la rendición (69).
 
 **Fase 6 · actividad 4 (2026-10-13, noche): «Tu fondo» en Órdenes de compra y en el Inicio** (decisiones 26 y 32). Migración

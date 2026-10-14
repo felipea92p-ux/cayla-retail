@@ -33,6 +33,7 @@ const LLENO: ValoresGastoViaje = {
   nota: "",
   medio: "efectivo",
   cuentaId: "fondo-ana",
+  ordenes: ["o1"],
 };
 
 describe("el reparto entre órdenes (el mismo que la base)", () => {
@@ -89,12 +90,25 @@ describe("el papel (decisión 55)", () => {
 describe("lo que falta (las mismas reglas que la base)", () => {
   const faltan = (v: Partial<ValoresGastoViaje>, r = PERSONA) => faltanDe(camposGastoViaje({ ...LLENO, ...v }, HOY, r)).map((c) => c.id);
 
-  it("llena, se puede confirmar; las órdenes, la serie, el RUC y la nota no cuentan", () => {
+  it("llena, se puede confirmar; la serie, el RUC y la nota no cuentan", () => {
     expect(sePuedeConfirmar(camposGastoViaje(LLENO, HOY, PERSONA))).toBe(true);
     expect(faltan({})).toEqual([]);
   });
   it("vacía, falta lo que la base pide, en el orden de la hoja", () => {
-    expect(faltan({ tipo: "", concepto: "", monto: "", papel: "", cuentaId: null })).toEqual(["tipo", "concepto", "monto", "papel", "cuenta"]);
+    expect(faltan({ tipo: "", concepto: "", monto: "", papel: "", cuentaId: null, ordenes: [] })).toEqual([
+      "tipo",
+      "concepto",
+      "monto",
+      "papel",
+      "ordenes",
+      "cuenta",
+    ]);
+  });
+  it("sin orden no se confirma: un gasto del viaje va siempre al menos a una (decisión 75; la base lo frena igual)", () => {
+    const campos = camposGastoViaje({ ...LLENO, ordenes: [] }, HOY, PERSONA);
+    expect(faltanDe(campos).map((c) => [c.id, c.pendiente])).toEqual([["ordenes", "Elige la orden de este gasto."]]);
+    expect(sePuedeConfirmar(campos)).toBe(false);
+    expect(faltan({ ordenes: ["o1", "o2"] })).toEqual([]);
   });
   it("lo que la base rechaza: monto en cero, fecha futura, «Otro» sin nota, RUC mal escrito, planilla con comida", () => {
     expect(faltan({ monto: "0" })).toEqual(["monto"]);

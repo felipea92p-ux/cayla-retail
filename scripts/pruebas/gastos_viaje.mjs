@@ -2,15 +2,17 @@
 /**
  * Prueba de los gastos del viaje (ADR-0362, fase 6 · actividad 3): `20261013221000_gastos_del_viaje_esquema.sql` y
  * `20261013222000_gastos_del_viaje_funciones.sql` (sobre las del fondo: 20261013181000, 182000 y 212000). Y de «Tu fondo» (actividad 4,
- * `20261013231000_tu_fondo_resumen.sql`), que junta todo lo que mueve el fondo.
+ * `20261013231000_tu_fondo_resumen.sql`), que junta todo lo que mueve el fondo. Y de «al menos una orden» (decisión 75,
+ * `20261014170000_gasto_viaje_al_menos_una_orden.sql`): como la 222000 vuelve a crear la función entera, esta se carga después.
  *
  * QUÉ PROMETE
  *   · El módulo Órdenes de compra es la llave: sin él no se registra ni se leen los gastos de una orden (42501).
  *   · Un gasto del viaje es un gasto: «Traer la mercadería» (609, la línea de fletes del Estado de resultados) o «Viaje de compra»
  *     (631), con su ficha de viaje (concepto y papel). Pagado desde «Mi fondo», baja el fondo y el Diario lo saca de la 1413; desde una
  *     cuenta de siempre (la caja fuerte), el fondo no cambia y el Diario lo saca de la 101.
- *   · A una o varias órdenes: con varias, el monto se reparte según el total de cada una, a céntimos, y lo que sobra va a la de mayor
- *     total; la suma es el gasto. Cada orden dice lo que costó traerla; un gasto anulado no cuenta y devuelve la plata al fondo.
+ *   · A una o varias órdenes, nunca a ninguna (decisión 75): con varias, el monto se reparte según el total de cada una, a céntimos, y lo
+ *     que sobra va a la de mayor total; la suma es el gasto. Cada orden dice lo que costó traerla; un gasto anulado no cuenta y devuelve la
+ *     plata al fondo.
  *   · Sin comprobante solo taxi o cargador, con planilla de movilidad (decisión 55), sin serie ni RUC; sin tope todavía.
  *   · Desde un fondo paga solo su dueña (tampoco el líder); el mismo token no duplica; lo inválido no se guarda.
  *   · La firma de la decisión 39: con el responsable obligatorio, una persona sin la clave `gasto_viaje_registrar` no guarda; con ella,
@@ -46,6 +48,7 @@ const MIGRACION = [
   "20261013221000_gastos_del_viaje_esquema.sql",
   "20261013222000_gastos_del_viaje_funciones.sql",
   "20261013231000_tu_fondo_resumen.sql",
+  "20261014170000_gasto_viaje_al_menos_una_orden.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -216,16 +219,16 @@ select 'o2|' || coalesce(sum(o.monto), 0) || '|' || string_agg(o.ordenes::text, 
   },
   {
     nombre: "el papel: planilla de movilidad solo para taxi o cargador (sin serie ni RUC); el viaje va a «Viaje de compra» (631)",
-    sql: `select 'taxi|' || pg_temp.gv('viaje', 'taxi', 15, 'planilla_movilidad', :'fondo');
+    sql: `select 'taxi|' || pg_temp.gv('viaje', 'taxi', 15, 'planilla_movilidad', :'fondo', array[:'o1']::uuid[]);
 select 'cargador|' || pg_temp.gv('mercaderia', 'cargador', 20, 'planilla_movilidad', :'fondo', array[:'o1']::uuid[]);
 select 'comida|' || pg_temp.gv('viaje', 'comida', 20, 'planilla_movilidad', :'fondo');
 select 'flete|' || pg_temp.gv('mercaderia', 'flete', 20, 'planilla_movilidad', :'fondo');
 select 'con_serie|' || pg_temp.gv('viaje', 'taxi', 15, 'planilla_movilidad', :'fondo', null, 'efectivo', null, 'B1-1');
-select retail.registrar_gasto_viaje('viaje', 'hotel', 120, retail.fn_hoy_lima(), 'factura', 'efectivo', :'fondo', null, 'f001-55', '20123456789',
-  'Hostal Gamarra', null) as h \\gset
+select retail.registrar_gasto_viaje('viaje', 'hotel', 120, retail.fn_hoy_lima(), 'factura', 'efectivo', :'fondo', array[:'o1']::uuid[],
+  'f001-55', '20123456789', 'Hostal Gamarra', null) as h \\gset
 select 'hotel|' || g.categoria || '|' || v.papel || '|' || v.serie_numero || '|' || v.ruc_emisor || '|' || g.igv
   from retail.gastos g join retail.gastos_viaje v on v.gasto_id = g.id where g.id = :'h';
-select 'sin_orden|' || count(*) from retail.gastos_viaje_ordenes where gasto_id = :'h';
+select 'su_orden|' || count(*) from retail.gastos_viaje_ordenes where gasto_id = :'h';
 ${como(FELIPE)}${sinFirma}
 select 'diario|' || pg_temp.asiento(:'h');`,
     revisa: (s) => {
@@ -235,7 +238,7 @@ select 'diario|' || pg_temp.asiento(:'h');`,
       for (const k of ["comida", "flete"]) if (!new RegExp(`^${k}\\|P0001\\|gasto_viaje_sin_papel\\|Sin comprobante solo se acepta taxi o cargador`, "m").test(s)) e.push(`${k} — ${linea(k)(s)}`);
       if (!/^con_serie\|P0001\|\|Una planilla de movilidad no lleva serie ni RUC/m.test(s)) e.push(`con_serie — ${linea("con_serie")(s)}`);
       if (!/^hotel\|viaje_compra\|factura\|F001-55\|20123456789\|0\.00$/m.test(s)) e.push(`hotel — ${linea("hotel")(s)}`);
-      if (!/^sin_orden\|0$/m.test(s)) e.push(`un gasto del viaje puede no ir a ninguna orden — ${linea("sin_orden")(s)}`);
+      if (!/^su_orden\|1$/m.test(s)) e.push(`el hotel debía quedar en su orden — ${linea("su_orden")(s)}`);
       if (!/^diario\|1413:0\.00:120\.00,631:120\.00:0\.00$/m.test(s)) e.push(`el Diario del hotel debía ser 631 contra 1413 — ${linea("diario")(s)}`);
       return e;
     },
@@ -266,10 +269,10 @@ select 'nuevos|' || ${NUEVOS};`,
     ].filter(Boolean),
   },
   {
-    nombre: "el mismo token no duplica; lo inválido no se guarda",
+    nombre: "el mismo token no duplica; lo inválido no se guarda, tampoco un gasto sin orden (decisión 75)",
     sql: `select gen_random_uuid() as tok \\gset
-select retail.registrar_gasto_viaje('viaje', 'pasaje', 35, retail.fn_hoy_lima(), 'ticket', 'efectivo', :'fondo', null, null, null, null, :'tok') as a \\gset
-select retail.registrar_gasto_viaje('viaje', 'pasaje', 35, retail.fn_hoy_lima(), 'ticket', 'efectivo', :'fondo', null, null, null, null, :'tok') as b \\gset
+select retail.registrar_gasto_viaje('viaje', 'pasaje', 35, retail.fn_hoy_lima(), 'ticket', 'efectivo', :'fondo', array[:'o1']::uuid[], null, null, null, :'tok') as a \\gset
+select retail.registrar_gasto_viaje('viaje', 'pasaje', 35, retail.fn_hoy_lima(), 'ticket', 'efectivo', :'fondo', array[:'o1']::uuid[], null, null, null, :'tok') as b \\gset
 select 'igual|' || (:'a' = :'b')::text || '|' || (select count(*) from retail.gastos where token_cliente = :'tok');
 select 'cero|' || pg_temp.gv('viaje', 'pasaje', 0, 'ticket', :'fondo');
 select 'futura|' || pg_temp.gv('viaje', 'pasaje', 10, 'ticket', :'fondo', null, 'efectivo', null, null, null, retail.fn_hoy_lima() + 1);
@@ -277,10 +280,14 @@ select 'otro|' || pg_temp.gv('viaje', 'otro', 10, 'ticket', :'fondo');
 select 'cruzado|' || pg_temp.gv('mercaderia', 'hotel', 10, 'boleta', :'fondo');
 select 'anulada|' || pg_temp.gv('mercaderia', 'flete', 10, 'boleta', :'fondo', array[:'o3']::uuid[]);
 select 'ruc|' || pg_temp.gv('mercaderia', 'flete', 10, 'factura', :'fondo', null, 'efectivo', null, 'F1-1', '2012345');
-select 'tarjeta|' || pg_temp.gv('mercaderia', 'flete', 10, 'boleta', :'fondo', null, 'tarjeta');
+select 'tarjeta|' || pg_temp.gv('mercaderia', 'flete', 10, 'boleta', :'fondo', array[:'o1']::uuid[], 'tarjeta');
+select 'sin_orden|' || pg_temp.gv('viaje', 'pasaje', 10, 'ticket', :'fondo');
+select 'vacia|' || pg_temp.gv('mercaderia', 'flete', 10, 'boleta', :'fondo', array[]::uuid[]);
 select 'nuevos|' || ${NUEVOS};`,
     revisa: (s) => {
       const espera = {
+        sin_orden: "P0001|gasto_viaje_sin_orden|Elige la orden de este gasto",
+        vacia: "P0001|gasto_viaje_sin_orden|Elige la orden de este gasto",
         cero: "El monto tiene que ser mayor que cero",
         futura: "La fecha del gasto no puede ser futura",
         otro: "Con «Otro», escribe qué se pagó",
@@ -320,9 +327,9 @@ select 'sin|' || coalesce(sum(o.monto), 0) || '|' || (:'antes'::numeric - pg_tem
   {
     nombre: "la firma (decisión 39): con el responsable obligatorio, sin la clave de la acción no se guarda; con ella, firma ella",
     sql: `update retail.configuracion_empresa set exige_responsable = true;
-select 'sin_clave|' || pg_temp.gv('viaje', 'pasaje', 30, 'ticket', :'fondo');
+select 'sin_clave|' || pg_temp.gv('viaje', 'pasaje', 30, 'ticket', :'fondo', array[:'o1']::uuid[]);
 ${firma("gasto_viaje_registrar")}
-select retail.registrar_gasto_viaje('viaje', 'pasaje', 30, retail.fn_hoy_lima(), 'ticket', 'efectivo', :'fondo', null, null, null, null, null) as g \\gset
+select retail.registrar_gasto_viaje('viaje', 'pasaje', 30, retail.fn_hoy_lima(), 'ticket', 'efectivo', :'fondo', array[:'o1']::uuid[], null, null, null, null) as g \\gset
 select 'firma|' || (registrado_por = :'ana_p')::text from retail.gastos where id = :'g';
 select 'clave|' || count(*) from retail.acciones_sin_responsable where clave = 'gasto_viaje_registrar';`,
     revisa: (s) => [
@@ -371,7 +378,7 @@ select coalesce(sum(e.fletes), 0) as fl0, coalesce(sum(e.gastos_operacion), 0) a
 select coalesce(sum(costo), 0) as costo0 from retail.variantes \\gset
 ${como(ANA)}${sinFirma}
 select retail.registrar_gasto_viaje('mercaderia', 'flete', 70, retail.fn_hoy_lima(), 'boleta', 'efectivo', :'fondo', array[:'o1']::uuid[], null, null, null, null) as _f \\gset
-select retail.registrar_gasto_viaje('viaje', 'comida', 25, retail.fn_hoy_lima(), 'boleta', 'efectivo', :'fondo', null, null, null, null, null) as _c \\gset
+select retail.registrar_gasto_viaje('viaje', 'comida', 25, retail.fn_hoy_lima(), 'boleta', 'efectivo', :'fondo', array[:'o1']::uuid[], null, null, null, null) as _c \\gset
 ${como(FELIPE)}${sinFirma}
 select 'resultados|' || (coalesce(sum(e.fletes), 0) - :'fl0'::numeric) || '|' || (coalesce(sum(e.gastos_operacion), 0) - :'go0'::numeric)
   from retail.fn_estado_resultados(date_trunc('month', retail.fn_hoy_lima())::date, retail.fn_hoy_lima(), :'tru') e;

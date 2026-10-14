@@ -1608,7 +1608,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     sobre la lista) → `lib/ordenes-compra.ts:getDetalleOrden` (`fn_orden_compra_detalle`) + `components/ordenes-compra/DetalleOrdenCompra.tsx`.
     **Gastos del viaje** (ADR-0362 fase 6 · actividad 3, `20261013221000`/`222000`): «+ Gasto del viaje» en la cabecera de la lista y en
     `AccionesOrden` → `components/ordenes-compra/GastoDelViaje.tsx` (hoja con guía de foco; a la vista solo las órdenes elegidas, y las
-    demás con «+ Agregar otra orden» → `ComboBuscable` con `ordenesParaAgregar`, decisión 74; órdenes por `fn_gastos_viaje_ordenes`, «Sale de»
+    demás con «+ Agregar otra orden» → `ComboBuscable` con `ordenesParaAgregar`, decisión 74; al menos una, decisión 75, que también frena `registrar_gasto_viaje` —20261014170000—; órdenes por `fn_gastos_viaje_ordenes`, «Sale de»
     con `conMiFondo`) → `lib/gastos-viaje-acciones.ts` (`registrar_gasto_viaje`, firma `gasto_viaje_registrar`); reglas y reparto en
     `lib/gastos-viaje-reglas.ts`, ejemplos en `lib/sugerencias-gasto-viaje.ts`. «Traerla costó» en el detalle: `lib/gastos-viaje.ts:getGastosDeOrden`
     (`fn_gastos_viaje_de_orden`) + `components/ordenes-compra/GastosDeOrden.tsx`.

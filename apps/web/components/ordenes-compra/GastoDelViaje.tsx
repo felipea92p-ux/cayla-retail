@@ -55,7 +55,8 @@ import { leerOrdenesParaGastoDesdeLaHoja, registrarGastoViaje } from "@/lib/gast
 // o de una cuenta de siempre. Va a una o varias órdenes: con varias se reparte según el total de cada una, y la hoja muestra el reparto
 // antes de guardar (el mismo de la base). Sin comprobante, solo taxi o cargador, con planilla de movilidad (decisión 55).
 // Las órdenes (Felipe 2026-10-14): la hoja muestra solo las elegidas —abierta desde una orden, esa— y las demás se suman con «+ Agregar
-// otra orden», que abre el combo con buscador del sistema (su lista flota: la hoja no crece ni se encoge al abrirla).
+// otra orden», que abre el combo con buscador del sistema (su lista flota: la hoja no crece ni se encoge al abrirla). Va SIEMPRE al menos
+// a una (decisión 75): la última no se quita, y la base frena un gasto sin orden.
 //
 // Guía de foco (ADR-0284): lo que falta es lo MISMO que rechaza `registrar_gasto_viaje` (`camposGastoViaje`). Quién firma (decisión 39):
 // con la cuenta de una persona, ella (sin combo); desde una terminal, el combo «Responsable». Un doble clic no duplica (token por hoja).
@@ -138,12 +139,8 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
     { monto: montoLeido ?? 0, medio, tipoCuenta: cuentas.cuentas.find((c) => c.id === cuentaId)?.tipo ?? null },
   ]);
 
-  const valores = { tipo, concepto, monto, fecha, papel, serieNumero, ruc, nota, medio, cuentaId };
-  const campos = [
-    ...camposGastoViaje(valores, hoy, { esPersona, listo: responsable.listo, motivo: responsable.motivo }),
-    // Las órdenes son opcionales (el cargador se paga a veces antes de saber a qué orden va).
-    { id: "ordenes", nombre: "De qué órdenes", requerido: false, hecho: elegidas.length > 0, pendiente: "" },
-  ];
+  const valores = { tipo, concepto, monto, fecha, papel, serieNumero, ruc, nota, medio, cuentaId, ordenes: elegidas };
+  const campos = camposGastoViaje(valores, hoy, { esPersona, listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos);
 
   const vistas = ordenesElegidas(ordenes, elegidas);
@@ -221,7 +218,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
         );
         return;
       }
-      const aDonde = elegidas.length === 0 ? "del viaje" : elegidas.length === 1 ? `va a ${ordenes.find((o) => o.id === elegidas[0])?.numero ?? "la orden"}` : `se reparte entre ${elegidas.length} órdenes`;
+      const aDonde = elegidas.length === 1 ? `va a ${ordenes.find((o) => o.id === elegidas[0])?.numero ?? "la orden"}` : `se reparte entre ${elegidas.length} órdenes`;
       avisar.exito(`Gasto de ${soles(montoLeido ?? 0)} registrado`, {
         detalle: `${concepto ? TEXTO_CONCEPTO[concepto] : "Gasto"} · ${aDonde}.${deFondo ? " Salió de tu fondo." : ""}`,
       });
@@ -362,9 +359,10 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
             </div>
           )}
 
-          <CampoGuiado id="ordenes" guia={guia} titulo="¿De qué órdenes?" retiene="fila">
+          <CampoGuiado id="ordenes" guia={guia} titulo={vistas.length > 1 ? "¿De qué órdenes?" : "¿De qué orden?"} retiene="fila">
             <div className="flex flex-col gap-2">
-              {/* Solo las elegidas (abierta desde una orden, esa): cada una con su «×» para quitarla. */}
+              {/* Solo las elegidas (abierta desde una orden, esa). Con dos o más, cada una con su «×»; la última no se quita (decisión 75):
+                  para cambiarla, se agrega la buena y se quita la otra. */}
               {vistas.length > 0 && (
                 <ul className="divide-y divide-sand rounded-xl border border-sand">
                   {vistas.map((o) => (
@@ -372,15 +370,20 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
                       <span className="font-medium tabular-nums text-tinta">{o.numero}</span>
                       <span className="min-w-0 flex-1 truncate text-taupe">{o.proveedor}</span>
                       <span className="tabular-nums text-tinta/80">{soles(o.total)}</span>
-                      <button
-                        type="button"
-                        onClick={() => quitarOrden(o.id)}
-                        disabled={guardando}
-                        aria-label={`Quitar ${o.numero} de este gasto`}
-                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
-                      >
-                        <X aria-hidden className="h-3.5 w-3.5" />
-                      </button>
+                      {vistas.length > 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => quitarOrden(o.id)}
+                          disabled={guardando}
+                          aria-label={`Quitar ${o.numero} de este gasto`}
+                          className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
+                        >
+                          <X aria-hidden className="h-3.5 w-3.5" />
+                        </button>
+                      ) : (
+                        // El lugar de la «×», para que la fila no cambie de ancho al sumar o quitar una orden.
+                        <span aria-hidden className="h-7 w-7 shrink-0" />
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -412,7 +415,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
                 </div>
               ) : disponibles !== null && ordenes.length === 0 ? (
                 <Vacio tamano="chico" alinear="izquierda" icono={<ClipboardList />}>
-                  No hay órdenes para elegir: el gasto queda solo como gasto del viaje.
+                  No hay órdenes para elegir: un gasto del viaje siempre va a una orden de compra.
                 </Vacio>
               ) : disponibles === null || paraAgregar.length > 0 ? (
                 // Una acción chica que agrega algo: botón chico (ADR-0358, ronda 9). Mientras llegan las órdenes, todavía no se puede.
@@ -430,7 +433,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
               <p className="text-xs text-taupe">
                 {reparto.length > 1
                   ? `Se reparte según el total de cada orden: ${reparto.map((r) => `${ordenes.find((o) => o.id === r.id)?.numero ?? "OC"} ${soles(r.monto)}`).join(" · ")}.`
-                  : "Opcional. Con varias órdenes, el monto se reparte según el total de cada una."}
+                  : "Con varias órdenes, el monto se reparte según el total de cada una."}
               </p>
             </div>
           </CampoGuiado>

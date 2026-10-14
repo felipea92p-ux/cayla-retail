@@ -112,12 +112,15 @@ insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable, saldo_inicial,
 ${persona(ANA, "Ana", "ana-deuda@prueba.local")}
 ${persona(BETO, "Beto", "beto-deuda@prueba.local", { rolColab: "lider", clave: "lider" })}
 insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'ordenes_compra') on conflict do nothing;
+-- Un gasto del viaje va siempre al menos a una orden (decisión 75): la de esta prueba.
+select id as prov from retail.proveedores where nombre = 'Textiles Andina SAC' \\gset
+insert into retail.ordenes_compra (proveedor_id, ubicacion_destino_id, creada_por) values (:'prov', :'tru', :'ana_p') returning id as oc \\gset
 -- Beto le entrega S/ 500 a Ana; Ana paga un flete de S/ 80 desde su fondo (tiene 420) y rinde S/ 400: le faltan 20, sin explicación.
 ${como(BETO)}${firma("fondo_entregar")}
 select retail.entregar_fondo(:'ana_p', :'bcp', 500, 'Compras Gamarra', null, null) \\g /dev/null
 select c.id as fondo from retail.cuentas_dinero c where c.tipo = 'fondo' and c.persona_id = :'ana_p' \\gset
 ${como(ANA)}${firma("gasto_viaje_registrar")}
-select retail.registrar_gasto_viaje('mercaderia', 'flete', 80, retail.fn_hoy_lima(), 'boleta', 'efectivo', :'fondo', null, null, null, null, null) \\g /dev/null
+select retail.registrar_gasto_viaje('mercaderia', 'flete', 80, retail.fn_hoy_lima(), 'boleta', 'efectivo', :'fondo', array[:'oc']::uuid[], null, null, null, null) \\g /dev/null
 ${rendicionConDeuda("r1", 400)}
 select c.id as caja_fuerte from retail.cuentas_dinero c where c.tipo = 'caja_fuerte' order by c.orden limit 1 \\gset
 select c.id as cajon from retail.cuentas_dinero c where c.tipo = 'cajon' order by c.orden limit 1 \\gset
@@ -186,7 +189,7 @@ select 'quedo|' || pg_temp.debe(:'ana_p');`,
     nombre: "dos deudas: se paga primero la más vieja; anular devuelve la deuda; ni la persona ni «Cuentas y dinero» lo anulan",
     sql: `-- Una segunda rendición con deuda: Ana tiene 400, paga un taxi de 10 y rinde 380.
 ${como(ANA)}${firma("gasto_viaje_registrar")}
-select retail.registrar_gasto_viaje('viaje', 'taxi', 10, retail.fn_hoy_lima(), 'planilla_movilidad', 'efectivo', :'fondo', null, null, null, null, null) \\g /dev/null
+select retail.registrar_gasto_viaje('viaje', 'taxi', 10, retail.fn_hoy_lima(), 'planilla_movilidad', 'efectivo', :'fondo', array[:'oc']::uuid[], null, null, null, null) \\g /dev/null
 ${rendicionConDeuda("r2", 380)}
 -- En esta transacción las dos se aprobaron a la misma hora: la primera, una hora antes (su disparador no deja tocarla: se apaga aquí).
 set local session_replication_role = replica;

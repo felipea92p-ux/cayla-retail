@@ -121,6 +121,8 @@ insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable, saldo_inicial,
   values ('BCP prueba deducible', 'banco', '104', 90000, retail.fn_hoy_lima() - 30, 61) returning id as bcp \\gset
 ${persona(ANA, "Ana", "ana-deducible@prueba.local")}
 ${persona(EVA, "Eva", "eva-deducible@prueba.local")}
+-- Un gasto del viaje va siempre al menos a una orden (decisión 75): la de esta prueba.
+insert into retail.ordenes_compra (proveedor_id, ubicacion_destino_id, creada_por) values (:'prov', :'tru', :'ana_p') returning id as oc \\gset
 -- Las integrantes anotan gastos del viaje (Órdenes de compra) y nada más; Micaela queda sin esos módulos (el seed no se los da).
 insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'ordenes_compra') on conflict do nothing;
 ${como(FELIPE)}${firma("fondo_entregar")}
@@ -152,10 +154,10 @@ insert into retail.comprobantes_produccion (proveedor_id, tipo, serie, numero, c
   values (:'pprov', 'factura', 'TPD', '1', 'contado', 2118.64, 381.36, 2500) returning id as cprod \\gset
 insert into retail.comprobantes_produccion_pagos (comprobante_id, monto, metodo) values (:'cprod', 2500, 'efectivo') returning id as pp_efe \\gset
 ${como(ANA)}${firma("gasto_viaje_registrar")}
-select retail.registrar_gasto_viaje('viaje', 'hotel', 2100, retail.fn_hoy_lima(), 'factura', 'transferencia', :'fondo', null, 'F001-9', '20111111111', null, null) as g_fondo \\gset
-select retail.registrar_gasto_viaje('viaje', 'hotel', 1500, retail.fn_hoy_lima(), 'factura', 'transferencia', :'fondo', null, 'F001-10', '20111111111', null, null) as g_chico \\gset
+select retail.registrar_gasto_viaje('viaje', 'hotel', 2100, retail.fn_hoy_lima(), 'factura', 'transferencia', :'fondo', array[:'oc']::uuid[], 'F001-9', '20111111111', null, null) as g_fondo \\gset
+select retail.registrar_gasto_viaje('viaje', 'hotel', 1500, retail.fn_hoy_lima(), 'factura', 'transferencia', :'fondo', array[:'oc']::uuid[], 'F001-10', '20111111111', null, null) as g_chico \\gset
 ${como(FELIPE)}${firma("gasto_viaje_registrar")}
-select retail.registrar_gasto_viaje('viaje', 'pasaje', 2400, retail.fn_hoy_lima(), 'boleta', 'transferencia', :'bcp', null, 'B001-1', null, null, null) as g_banco \\gset
+select retail.registrar_gasto_viaje('viaje', 'pasaje', 2400, retail.fn_hoy_lima(), 'boleta', 'transferencia', :'bcp', array[:'oc']::uuid[], 'B001-1', null, null, null) as g_banco \\gset
 ${comoPostgres}
 select 'taller|' || pg_temp.nd(array['pagoprod:' || :'pp_efe'], array['efe']);
 select 'viaje|' || pg_temp.nd(array['gasto:' || :'g_fondo', 'gasto:' || :'g_chico', 'gasto:' || :'g_banco'], array['fondo', 'chico', 'banco']);`,
@@ -168,14 +170,14 @@ select 'viaje|' || pg_temp.nd(array['gasto:' || :'g_fondo', 'gasto:' || :'g_chic
   {
     nombre: "planilla de movilidad: sin tope nada; con tope, por persona y por día en el orden en que se anotó; otra persona, otro día y lo anulado no suman",
     sql: `${como(ANA)}${firma("gasto_viaje_registrar")}
-select retail.registrar_gasto_viaje('viaje', 'taxi', 30, retail.fn_hoy_lima(), 'planilla_movilidad', 'efectivo', :'fondo', null, null, null, null, null) as t30 \\gset
-select retail.registrar_gasto_viaje('mercaderia', 'cargador', 50, retail.fn_hoy_lima(), 'planilla_movilidad', 'efectivo', :'fondo', null, null, null, null, null) as c50 \\gset
-select retail.registrar_gasto_viaje('viaje', 'taxi', 20, retail.fn_hoy_lima(), 'planilla_movilidad', 'efectivo', :'fondo', null, null, null, null, null) as t20 \\gset
-select retail.registrar_gasto_viaje('viaje', 'taxi', 60, retail.fn_hoy_lima() - 1, 'planilla_movilidad', 'efectivo', :'fondo', null, null, null, null, null) as ayer60 \\gset
-select retail.registrar_gasto_viaje('viaje', 'taxi', 70, retail.fn_hoy_lima() - 5, 'planilla_movilidad', 'efectivo', :'fondo', null, null, null, null, null) as antes70 \\gset
-select retail.registrar_gasto_viaje('viaje', 'comida', 90, retail.fn_hoy_lima(), 'boleta', 'efectivo', :'fondo', null, 'B002-5', null, null, null) as boleta90 \\gset
+select retail.registrar_gasto_viaje('viaje', 'taxi', 30, retail.fn_hoy_lima(), 'planilla_movilidad', 'efectivo', :'fondo', array[:'oc']::uuid[], null, null, null, null) as t30 \\gset
+select retail.registrar_gasto_viaje('mercaderia', 'cargador', 50, retail.fn_hoy_lima(), 'planilla_movilidad', 'efectivo', :'fondo', array[:'oc']::uuid[], null, null, null, null) as c50 \\gset
+select retail.registrar_gasto_viaje('viaje', 'taxi', 20, retail.fn_hoy_lima(), 'planilla_movilidad', 'efectivo', :'fondo', array[:'oc']::uuid[], null, null, null, null) as t20 \\gset
+select retail.registrar_gasto_viaje('viaje', 'taxi', 60, retail.fn_hoy_lima() - 1, 'planilla_movilidad', 'efectivo', :'fondo', array[:'oc']::uuid[], null, null, null, null) as ayer60 \\gset
+select retail.registrar_gasto_viaje('viaje', 'taxi', 70, retail.fn_hoy_lima() - 5, 'planilla_movilidad', 'efectivo', :'fondo', array[:'oc']::uuid[], null, null, null, null) as antes70 \\gset
+select retail.registrar_gasto_viaje('viaje', 'comida', 90, retail.fn_hoy_lima(), 'boleta', 'efectivo', :'fondo', array[:'oc']::uuid[], 'B002-5', null, null, null) as boleta90 \\gset
 ${como(FELIPE)}${firma("gasto_viaje_registrar")}
-select retail.registrar_gasto_viaje('viaje', 'taxi', 40, retail.fn_hoy_lima(), 'planilla_movilidad', 'transferencia', :'bcp', null, null, null, null, null) as felipe40 \\gset
+select retail.registrar_gasto_viaje('viaje', 'taxi', 40, retail.fn_hoy_lima(), 'planilla_movilidad', 'transferencia', :'bcp', array[:'oc']::uuid[], null, null, null, null) as felipe40 \\gset
 ${comoPostgres}
 -- Cada planilla en su momento (en esta transacción todas tendrían la misma hora): el orden en que se anotaron. Un gasto solo cambia para
 -- anularse (su disparador): aquí se apaga solo para esta transacción.

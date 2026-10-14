@@ -205,6 +205,8 @@ export type ValoresGastoViaje = {
   medio: MedioGastoViaje | "";
   /** La cuenta que va (la elegida o la propuesta): nula si no hay ninguna. */
   cuentaId: string | null;
+  /** Las órdenes del gasto: al menos una (decisión 75). */
+  ordenes: readonly string[];
 };
 
 export function problemaDeTipo(v: ValoresGastoViaje): string | null {
@@ -244,12 +246,17 @@ export function problemaDeRuc(v: ValoresGastoViaje): string | null {
   const r = v.ruc.trim();
   return r === "" || /^\d{11}$/.test(r) ? null : "El RUC tiene 11 números.";
 }
+/** Decisión 75 (Felipe 2026-10-14): un gasto del viaje va siempre al menos a una orden. La base lo frena igual (20261014170000). */
+export function problemaDeOrdenes(v: Pick<ValoresGastoViaje, "ordenes">): string | null {
+  return v.ordenes.length > 0 ? null : "Elige la orden de este gasto.";
+}
 
 type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null };
 
 /**
- * Los campos de la hoja, en su orden. Las órdenes, la serie, el RUC y la nota (salvo con «Otro») son opcionales: no cuentan como «falta».
- * Con una FACTURA, el RUC es «sugerido» (fase 6 · actividad 8): sin él su IGV no se descuenta, pero no frena el registro.
+ * Los campos de la hoja, en su orden. La serie, el RUC y la nota (salvo con «Otro») son opcionales: no cuentan como «falta». La orden
+ * sí: al menos una (decisión 75). Con una FACTURA, el RUC es «sugerido» (fase 6 · actividad 8): sin él su IGV no se descuenta, pero no
+ * frena el registro.
  */
 export function camposGastoViaje(v: ValoresGastoViaje, hoy: string, r: Responsable): CampoDeGuia[] {
   const tipo = problemaDeTipo(v);
@@ -260,6 +267,7 @@ export function camposGastoViaje(v: ValoresGastoViaje, hoy: string, r: Responsab
   const nota = problemaDeNota(v);
   const serie = problemaDeSerie(v);
   const ruc = problemaDeRuc(v);
+  const ordenes = problemaDeOrdenes(v);
   const conPapel = v.papel !== "" && v.papel !== "planilla_movilidad";
   return [
     { id: "tipo", nombre: "Para qué fue", requerido: true, hecho: tipo === null, pendiente: tipo ?? "" },
@@ -280,6 +288,7 @@ export function camposGastoViaje(v: ValoresGastoViaje, hoy: string, r: Responsab
           },
         ]
       : []),
+    { id: "ordenes", nombre: "De qué orden", requerido: true, hecho: ordenes === null, pendiente: ordenes ?? "" },
     {
       id: "nota",
       nombre: v.concepto === "otro" ? "Qué se pagó" : "Nota",
