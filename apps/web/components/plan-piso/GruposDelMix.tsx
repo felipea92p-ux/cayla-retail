@@ -395,7 +395,7 @@ function HojaGuardarGrupos({
       titulo="Guardar los grupos"
       subtitulo={cambios.length === 1 ? "1 categoría" : `${cambios.length} categorías`}
       onClose={onClose}
-      ancho="max-w-[520px]"
+      tamano="mediana"
       bloqueado={enviando}
     >
       <form onSubmit={guardar} className="space-y-4" noValidate>
@@ -421,14 +421,14 @@ function HojaGuardarGrupos({
           <button type="button" className="btn-cayla btn-secundario" onClick={onClose} disabled={enviando}>
             Cancelar
           </button>
-          <button
+          <Boton peso="primario" cargando={enviando}
             type="submit"
-            className={`btn-cayla btn-primario ${choque ? "" : guia.claseConfirmar}`}
+            className={`${choque ? "" : guia.claseConfirmar}`}
             disabled={enviando || (!choque && !guia.puedeConfirmar)}
             title={choque ? undefined : (responsable.motivo ?? guia.frase ?? undefined)}
           >
-            {enviando ? "Guardando…" : choque ? "Actualizar y revisar" : "Guardar"}
-          </button>
+            {choque ? "Actualizar y revisar" : "Guardar"}
+          </Boton>
         </div>
       </form>
     </Modal>

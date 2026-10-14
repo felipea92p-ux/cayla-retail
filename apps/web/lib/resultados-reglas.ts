@@ -380,7 +380,8 @@ export function fuentesDe(clave: string): string[] {
   if (clave === "ventas")
     return ["venta_items, sin el IGV", "menos las anulaciones, devoluciones y cambios de este mes, aunque la venta sea de otro"];
   if (clave === "costo") return ["venta_items.costo_unitario", "el costo sellado el día de cada venta, no el de hoy"];
-  if (clave === "fletes") return ["Todavía no hay dónde registrar el flete de una compra"];
+  if (clave === "fletes")
+    return ["gastos «Traer la mercadería» (609): flete, agencia, cargador y embalaje, anotados desde Órdenes de compra (gastos del viaje)", "nunca en el costo de la prenda (decisión 20 del ADR-0362)"];
   if (clave === "mermas")
     return [
       "todo lo que salió sin venderse (fn_perdida_razon, la misma cuenta que la pestaña Pérdidas): faltantes de conteo, restas a mano, dañadas botadas o donadas, lo que faltó en un traslado y la venta anulada cuya prenda no volvió",

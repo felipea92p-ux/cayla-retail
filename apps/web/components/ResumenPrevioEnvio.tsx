@@ -63,7 +63,7 @@ export function ResumenPrevioEnvio({
           Entra al almacén de <b className="font-semibold text-tinta">{ubicacionNombre}</b> · {numeroGuia.trim() ? `Guía ${numeroGuia.trim()}` : "Sin guía anotada"}
         </>
       }
-      ancho="max-w-xl"
+      tamano="mediana"
       onClose={onVolver}
     >
       {(cerrar) => (

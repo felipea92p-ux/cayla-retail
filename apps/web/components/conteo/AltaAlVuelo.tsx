@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { avisar } from "@/components/ui/Avisos";
-import { Campo, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
+import { Campo, CampoSelect, CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { codigoDePrendaNueva, mensajeMezclaEnCenso, type PrendaConteo } from "@/lib/conteo-reglas";
@@ -152,7 +152,7 @@ export function AltaAlVuelo({
           La etiqueta <span className="font-mono text-[12px]">{codigoBarras}</span> no es de ninguna prenda del catálogo. Se registra y se cuenta enseguida.
         </>
       }
-      ancho="max-w-lg"
+      tamano="mediana"
       bloqueado={guardando}
       onClose={onCancelar}
     >
@@ -219,9 +219,9 @@ export function AltaAlVuelo({
             <button type="button" onClick={cerrar} disabled={guardando} className="btn-cayla btn-secundario h-11">
               Cancelar
             </button>
-            <button type="submit" disabled={guardando || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario h-11">
-              {guardando ? "Creando…" : "Crear y contar"}
-            </button>
+            <Boton peso="primario" cargando={guardando} textoCargando="Creando…" type="submit" disabled={guardando || !responsable.listo} title={responsable.motivo ?? undefined} className="h-11">
+              Crear y contar
+            </Boton>
           </div>
         </form>
       )}

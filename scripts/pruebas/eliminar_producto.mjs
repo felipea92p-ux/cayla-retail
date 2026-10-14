@@ -327,6 +327,9 @@ select pg_temp.huella(:'va');`);
     "precios_sede_prenda",
     // ADR-0362 fase 4: lo que una sede contó al recibir un envío de orden de compra (talla por talla) es historia de la prenda.
     "despacho_recibidos",
+    // ADR-0393: lo contado al recibir que todavía no entró al stock (un pendiente «detalle») también: renglón 23 de
+    // `fn_producto_historia` (20261014234000). Lo recibido frena por su movimiento con lote; un pendiente no deja movimiento.
+    "despacho_pendientes",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.

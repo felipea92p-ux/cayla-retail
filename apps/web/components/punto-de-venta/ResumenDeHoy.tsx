@@ -84,10 +84,11 @@ export function ResumenDeHoy({
 
       {abierto && (
         <Modal
+          conCerrar
           titulo="Ventas de hoy"
           subtitulo={`${ubicacionEtiqueta} · ${r.ventas} ${r.ventas === 1 ? "venta" : "ventas"}${meta ? ` · meta ${soles(meta)}` : ""}`}
           variante="hoja"
-          ancho="max-w-lg"
+          tamano="mediana"
           onClose={() => setAbierto(false)}
         >
           {(cerrar) => (

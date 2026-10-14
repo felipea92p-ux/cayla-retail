@@ -225,8 +225,8 @@ export function RegistrarPagoModal({
   // ADR-0195 F3b: «Sale de». La propuesta sale de la primera tienda del comprobante. A quien no ve las finanzas de todo
   // (`fn_ve_finanzas_de_todo`: líder, Configuración o Cierre de mes), `fn_cuentas_para_elegir` solo le lista en efectivo los
   // cajones y cajas fuertes de las sedes que opera: si la del comprobante no es una de ellas, se le propone una suya. La base
-  // vuelve a validar la cuenta al guardar (`fn_cuenta_sellada`).
-  const cuentas = useCuentasParaElegir("pago", compra.ubicacionesDestino[0] || null);
+  // vuelve a validar la cuenta al guardar (`fn_cuenta_sellada`). ADR-0362 fase 6: «Mi fondo» primero, si quien paga tiene uno.
+  const cuentas = useCuentasParaElegir("pago", compra.ubicacionesDestino[0] || null, true, { conMiFondo: true });
   const [loading, setLoading] = useState(false);
   // Quién registra el pago (ADR-0161/0162): `registrar_pagos_compra` firma con esa persona.
   const responsable = useResponsable();
@@ -307,7 +307,7 @@ export function RegistrarPagoModal({
 
   return (
     <Modal
-      variante="papel"
+      variante="hoja"
       titulo={
         hecho ? (
           <span className="sr-only">Pago registrado</span>
@@ -319,7 +319,7 @@ export function RegistrarPagoModal({
         )
       }
       subtitulo={hecho ? undefined : `1 comprobante · ${compra.documento}`}
-      ancho="max-w-2xl"
+      tamano="ancha"
       onClose={terminar}
     >
       {(cerrar) =>
@@ -425,7 +425,7 @@ export function RegistrarPagoModal({
               )}
             </section>
 
-            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} totalComprobante={compra.total} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
 
             <div className="border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta">
@@ -467,8 +467,8 @@ export function RegistrarPagoModal({
                 <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
                   Cancelar
                 </button>
-                <Boton type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
-                  {loading ? "Registrando…" : `Registrar pago de ${soles(suma)}`}
+                <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
+                  {`Registrar pago de ${soles(suma)}`}
                 </Boton>
               </div>
             </div>
@@ -520,9 +520,9 @@ function AnularCompraModal({ compra, onClose }: { compra: CompraResumen; onClose
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={loading}>
               Volver
             </button>
-            <button type="submit" className="btn-cayla btn-primario" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
-              {loading ? "Anulando…" : "Anular"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Anulando…" type="submit" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
+              Anular
+            </Boton>
           </div>
         </form>
       )}

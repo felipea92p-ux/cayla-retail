@@ -59,7 +59,7 @@ export function AjustarInicio({
           subtitulo="Solo aparecen avisos de los módulos que tu rol ve. Lo urgente sale igual aunque lo apagues."
           onClose={() => setAbierto(false)}
           variante="hoja"
-          ancho="max-w-lg"
+          tamano="mediana"
         >
           {(cerrar) => (
             <div className="space-y-5" data-guia="inicio.ajustar-lista">

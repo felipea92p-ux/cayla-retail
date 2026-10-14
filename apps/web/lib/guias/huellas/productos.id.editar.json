@@ -2,15 +2,16 @@
   "guia": "productos.id.editar",
   "ruta": "/productos/[id]/editar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 138,
+  "total": 142,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
-      "Volver «{producto.referencia}»"
+      "Volver «(sin nombre)»"
     ],
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
       "button «{o.texto}»",
       "CampoTexto «{guia.etiqueta(\"nota\", ayudaNota.etiqueta)}»",
+      "BotonDescargar «Descargar reporte del ajuste»",
       "ComboResponsable «{error && ( <Aviso tono=\"error\">{error}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
@@ -82,8 +83,9 @@
       "button «+ Registrar una marca o un proveedor nuevo»"
     ],
     "components/alta-producto/FotosAlta.tsx": [
+      "button «{etiqueta}»",
       "input «input.current?.click()»",
-      "button «{etiqueta}»"
+      "button «{etiqueta}» #2"
     ],
     "components/alta-producto/GrillaMuestras.tsx": [
       "button «{title}»",
@@ -103,13 +105,13 @@
       "button «Mejor elijo uno que ya existe»",
       "ComboBuscable «)» #2",
       "button «Cancelar»",
-      "button «{firma.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
       "CampoTexto «Nombre del color»",
       "Desplegable «setCodigoEscrito(normaliz»",
       "CampoTexto «Código»",
-      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
     ],
@@ -141,7 +143,8 @@
       "button «Listo»"
     ],
     "components/ficha-producto/ImprimirLoQueEntro.tsx": [
-      "button «Más tarde»"
+      "button «Más tarde»",
+      "BotonImprimir «Imprimir»"
     ],
     "components/ficha-producto/MatrizStockFicha.tsx": [
       "SegmentoDeslizante «Qué se escribe en la tabla»",
@@ -187,6 +190,7 @@
       "Boton «{`Poner un precio propio en ${f.sede}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/ficha-producto/SeccionFicha.tsx": [

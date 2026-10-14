@@ -116,12 +116,14 @@ export function SugerenciasColaModal({
   }
 
   return (
+    // Una salida a la vista (ADR-0358, ronda 12): con sugerencias, «Cancelar» al pie; sin ninguna, solo se lee y lleva la ×.
     <Modal
+      conCerrar={sugerencias.length === 0}
       titulo="Identificar con sugerencias"
       subtitulo="Ventas sin registrar que tienen una sola prenda posible en el sistema. Marca las que reconozcas."
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-3xl"
+      tamano="ancha"
     >
       {(cerrar) => (
         <div className="space-y-5">
@@ -220,13 +222,15 @@ export function SugerenciasColaModal({
           )}
 
           <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
-            <Boton type="button" onClick={cerrar}>
-              {sugerencias.length > 0 ? "Cancelar" : "Cerrar"}
-            </Boton>
             {sugerencias.length > 0 && (
-              <Boton type="button" peso="primario" cargando={guardando} disabled={pares.length === 0} onClick={() => void confirmar()}>
-                {pares.length === 0 ? "Marca al menos una" : `Identificar ${pares.length} ${pares.length === 1 ? "venta" : "ventas"}`}
-              </Boton>
+              <>
+                <Boton type="button" onClick={cerrar}>
+                  Cancelar
+                </Boton>
+                <Boton type="button" peso="primario" cargando={guardando} disabled={pares.length === 0} onClick={() => void confirmar()}>
+                  {pares.length === 0 ? "Marca al menos una" : `Identificar ${pares.length} ${pares.length === 1 ? "venta" : "ventas"}`}
+                </Boton>
+              </>
             )}
           </div>
         </div>

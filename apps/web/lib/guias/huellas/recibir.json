@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 119,
+  "total": 129,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «)»",
@@ -25,7 +25,7 @@
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «{actual?.fase === \"cargando\" ? \"Buscando…\" : \"Buscar\"}»",
+      "Boton «Buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/DecisionFaltanteFila.tsx": [
@@ -35,12 +35,15 @@
     ],
     "components/EnvioRecibido.tsx": [
       "Link «Se reclama en Notas de crédito ↗»",
-      "Boton «Recibir otro envío»"
+      "BotonImprimir «Imprimir»",
+      "Boton «Recibir otro envío»",
+      "BotonVer «Ver recibidas»"
     ],
     "components/FiltrosRecibidas.tsx": [
       "DesplegablePildora «Proveedor»",
       "button «{texto}»",
       "button «{texto}» #2",
+      "BotonLimpiar «Limpiar todo»",
       "button «{activa ? `Fechas: ${textoFechas(desde || undefined, hasta || undefined, hoy)}»",
       "button «{p.etiqueta}»",
       "CampoFecha «Desde»",
@@ -65,7 +68,7 @@
       "input «{`Costo por prenda de ${p.referencia}»",
       "button «{`Quitar ${p.referencia}»",
       "ComboResponsable «(sin nombre)»",
-      "button «{guia.frase ?? undefined}»"
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/Paginacion.tsx": [
       "Link «Volver al inicio»",
@@ -150,11 +153,22 @@
       "Volver «Confirmar y recibir»",
       "Boton «Confirmar y recibir»"
     ],
+    "components/recepcion-conteo/LlegoSinAviso.tsx": [
+      "button «→() => setProveedorId(p.id)»",
+      "button «No sé de qu»",
+      "Link «Sí, viene con la»",
+      "CampoTexto «{campos.etiqueta(\"sin-aviso-guia\", \"Número de guía (opcional)\")}»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «{campos.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/PendientesDeRecibir.tsx": [
+      "Link «{e.numero ?? \"Envío\"}»"
+    ],
     "components/recepcion-envio/EnviosParaRecibir.tsx": [
       "BotonEnlace «{e.estado === \"abierto\" ? \"Seguir recibiendo\" : \"Recibir\"}»"
     ],
     "components/recepcion-envio/RecibirSinGuia.tsx": [
-      "Boton «Recibir sin guía»",
+      "Boton «Llegó esta orden»",
       "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"

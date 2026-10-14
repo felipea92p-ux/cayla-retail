@@ -558,7 +558,7 @@ export function PanelTalla({
       <Modal
         alCerrarEnfocar={abridor}
         variante="hoja"
-        ancho="max-w-[62rem]"
+        ancho="max-w-[62rem]" /* unificar-fijo: el modal de la prenda de Existencias es de diseño propio (ADR-0344) */
         conCerrar
         titulo={prenda.referencia}
         subtitulo={subtitulo}

@@ -2,7 +2,7 @@
   "guia": "inventario.movimientos",
   "ruta": "/inventario/movimientos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 52,
+  "total": 56,
   "controles": {
     "app/(app)/inventario/movimientos/page.tsx": [
       "Pestanas «);»",
@@ -24,7 +24,9 @@
     ],
     "components/DetalleVentaModal.tsx": [
       "button «Reintentar»",
-      "Boton «Corregir pago»"
+      "Boton «Corregir pago»",
+      "BotonImprimir «Imprimir ticket»",
+      "BotonImprimir «Imprimir»"
     ],
     "components/EscanerBusqueda.tsx": [
       "button «Cerrar la cámara»",
@@ -53,6 +55,8 @@
       "BotonFiltros «movimientos.filtros-celular»",
       "Pastilla «{p.texto}» #2",
       "Pastilla «{nombreTipo(cat)}»",
+      "BotonLimpiar «Limpiar filtros»",
+      "BotonDescargar «Descargar Excel con estos filtros»",
       "button «Limpiar»",
       "button «Ver movimientos»"
     ],

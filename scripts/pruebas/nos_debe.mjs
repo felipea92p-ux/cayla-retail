@@ -54,7 +54,22 @@ const SIN_MIGRACION = process.argv.includes("--sin-migracion");
 const DOS_SESIONES = Boolean(process.env.CI) || CONTENEDOR !== COMPARTIDO || process.argv.includes("--dos-sesiones");
 const MIGRACIONES = SIN_MIGRACION
   ? ""
-  : ["20261013015000_nos_debe.sql"]
+  : [
+      // ADR-0393: 20261013015000 (la 5a) ya no se recarga. Ya está en producción, y desde 20261013172000 sus dos bloques sobre
+      // recibir_despacho (validar y saldar la reposición) viven en fn_recepcion_cerrar: re-pegarla encima falla a propósito (sus anclas
+      // ya no están ahí). Se recarga la cadena que hoy escribe lo que esta prueba mira, en su orden.
+      "20261013170000_recepcion_un_solo_camino_de_cierre.sql",
+      // ADR-0393: el conteo guardado; recibir_despacho deja también el conteo de cada línea.
+      "20261013171000_conteo_de_envio.sql",
+      // ADR-0393: el cierre único (fn_recepcion_cerrar) con la reposición adentro, y los pendientes.
+      "20261013172000_cerrar_conteo_con_pendientes.sql",
+      // ADR-0393: «Hacer ahora» con lo pendiente y el número del aviso.
+      "20261013173000_resolver_pendiente_de_envio.sql",
+      // ADR-0393: reabrir un envío recibido; «Nos debe» lee lo que vale.
+      "20261013180000_reabrir_envio.sql",
+      // ADR-0393: lo que llega sin aviso, con el mismo conteo.
+      "20261013183000_envio_sin_aviso.sql",
+    ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
           .replace(/^set lock_timeout.*$/m, "")
@@ -775,6 +790,8 @@ const PUBLICAS = "('fn_proveedor_nos_debe', 'fn_nos_debe_resumen', 'resolver_deu
 const INTERNAS = "('fn_nos_debe_deuda', 'fn_nos_debe_pendiente', 'fn_nos_debe_del_envio', 'fn_nos_debe_tasa_igv', " +
   "'fn_proveedor_deuda_resoluciones_candado', 'fn_reposicion_repartida')";
 const DE_RETAIL = (lista) => `from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname in ${lista}`;
+// El último valor: ninguna acción de la deuda DEL PROVEEDOR firma sin el combo «Responsable». La deuda del fondo por rendir
+// (`fondo_deuda_*`, 1419, ADR-0362 fase 6 · actividad 7) es del personal y firma sin combo por la decisión 39: no entra en la cuenta.
 caso(
   "S1 una función por nombre, security definer, authenticated sí y anon no; las internas cerradas; RLS sin políticas; nadie lee directo",
   `select concat_ws(',',
@@ -791,7 +808,7 @@ caso(
      has_table_privilege('anon', 'retail.proveedor_deuda_resoluciones', 'select'),
      (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail'
         and p.proname in ('recibir_despacho', 'fn_envio_detalle')),
-     (select count(*) from retail.acciones_sin_responsable where clave like '%deuda%' or clave like 'nos_debe%'));`,
+     (select count(*) from retail.acciones_sin_responsable where (clave like '%deuda%' and clave not like 'fondo%') or clave like 'nos_debe%'));`,
   "3,t,t,f,6,f,t,0,f,f,f,2,0",
 );
 

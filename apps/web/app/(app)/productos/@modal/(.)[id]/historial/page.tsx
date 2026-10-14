@@ -15,14 +15,14 @@ export default async function HistorialProductoModal({ params }: { params: Promi
   const [prenda, lectura] = await Promise.all([getPrendaDelHistorial(productoId), getHistorialPrenda(productoId)]);
   if (!prenda) {
     return (
-      <ModalRuta titulo="Producto no encontrado" ancho="max-w-sm">
+      <ModalRuta titulo="Producto no encontrado" tamano="angosta">
         <p className="text-sm text-tinta/75">No existe un producto con ese enlace, o ya no tienes acceso a él.</p>
       </ModalRuta>
     );
   }
 
   return (
-    <ModalRuta titulo="Historial" subtitulo={`«${prenda.referencia}» · lo que cambió en esta prenda, quién lo hizo y cuándo`} ancho="max-w-4xl">
+    <ModalRuta titulo="Historial" subtitulo={`«${prenda.referencia}» · lo que cambió en esta prenda, quién lo hizo y cuándo`} ancho="max-w-4xl" /* unificar-fijo: la página «Historial» de la vista rápida es de diseño propio (ADR-0354) */>
       <HistorialPrenda
         lectura={lectura}
         nombre={prenda.referencia}

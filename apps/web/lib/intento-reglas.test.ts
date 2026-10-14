@@ -139,13 +139,22 @@ const MIGRACIONES = join(RAIZ_WEB, "../../supabase/migrations");
 const TODAS = readdirSync(MIGRACIONES).filter((f) => /^\d+_.*\.sql$/.test(f)).sort().map((f) => readFileSync(join(MIGRACIONES, f), "utf8"));
 
 describe("la lista de operaciones es la de la base", () => {
-  it("OPERACIONES_CON_MARCA = las que la ÚLTIMA versión de `fn_resolver_intento` sabe revisar", () => {
-    const ultima = [...TODAS].reverse().find((m) => m.includes("create or replace function retail.fn_resolver_intento")) ?? "";
-    const delResolver = ultima.match(/if p_operacion not in \(([^)]*)\)/)?.[1].match(/'([a-z_]+)'/g)?.map((x) => x.slice(1, -1)) ?? [];
-    expect([...delResolver].sort()).toEqual([...OPERACIONES_CON_MARCA].sort());
+  it("OPERACIONES_CON_MARCA = las que la ÚLTIMA versión de `fn_resolver_intento` sabe revisar (con lo que le suman después los reemplazos anclados)", () => {
+    const i = TODAS.map((m) => m.includes("create or replace function retail.fn_resolver_intento")).lastIndexOf(true);
+    const delResolver = TODAS[i]?.match(/if p_operacion not in \(([^)]*)\)/)?.[1].match(/'([a-z_]+)'/g)?.map((x) => x.slice(1, -1)) ?? [];
+    // Una migración posterior que no reescribe la función entera le suma operaciones con un reemplazo anclado SOBRE LA LISTA
+    // (`…'separar_pedido_para_apartar'` → la misma línea más las nuevas, como los fondos en 20261014194000): cuentan las que trae el
+    // texto nuevo y no el viejo.
+    const sumadas = TODAS.slice(i + 1).flatMap((m) =>
+      [...m.matchAll(/pg_temp\.reemplazar\('retail\.fn_resolver_intento\(text, uuid\)',\s*\$v\$([^$]*)\$v\$,\s*\$n\$([^$]*)\$n\$/g)]
+        .filter(([, viejo]) => viejo.includes("'separar_pedido_para_apartar'"))
+        .flatMap(([, viejo, nuevo]) => (nuevo.match(/'([a-z_]+)'/g) ?? []).map((x) => x.slice(1, -1)).filter((op) => !viejo.includes(`'${op}'`))),
+    );
+    expect([...new Set([...delResolver, ...sumadas])].sort()).toEqual([...OPERACIONES_CON_MARCA].sort());
   });
   it("y cada una tiene su llamada a `fn_intento_con_huella` en alguna migración (la base rechaza el token con otro contenido)", () => {
-    const parchadas = new Set(TODAS.flatMap((m) => [...m.matchAll(/fn_intento_con_huella\('([a-z_]+)'\$v\$/g)].map((x) => x[1])));
+    // La marca de `insertar_antes` (`fn_intento_con_huella('op'$v$`) o la llamada insertada con un reemplazo (`…('op', p_token`).
+    const parchadas = new Set(TODAS.flatMap((m) => [...m.matchAll(/fn_intento_con_huella\('([a-z_]+)'(?:\$v\$|, p_token)/g)].map((x) => x[1])));
     expect(OPERACIONES_CON_MARCA.filter((op) => !parchadas.has(op))).toEqual([]);
   });
 });

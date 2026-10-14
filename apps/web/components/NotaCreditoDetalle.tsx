@@ -80,7 +80,7 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
   const titulo = f.clase === "pendiente" ? `Nota por reclamar · ${f.documento}` : `Nota de crédito ${f.serieNumero ?? ""}`;
 
   return (
-    <Modal titulo={titulo} subtitulo={`${f.proveedorNombre} · ${f.clase === "pendiente" ? `cerrado el ${diaMes(diaDelCierre(f))}` : `registrada el ${diaMes(f.fecha)}`}`} variante="papel" ancho="max-w-3xl" onClose={onCerrar}>
+    <Modal titulo={titulo} subtitulo={`${f.proveedorNombre} · ${f.clase === "pendiente" ? `cerrado el ${diaMes(diaDelCierre(f))}` : `registrada el ${diaMes(f.fecha)}`}`} variante="papel" tamano="ancha" onClose={onCerrar}>
       {(cerrar) => (
         <div className="mt-4 space-y-5">
           <div className="flex flex-wrap items-center gap-2">

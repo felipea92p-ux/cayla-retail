@@ -101,8 +101,8 @@ export function ColaSunatPanel({
           </p>
         </div>
         {filas.length > 1 && (
-          <BotonCompacto variante="primario" data-guia="por-enviar.todos" cargando={reintentandoTodos} disabled={transmitiendoId !== null} onClick={() => setConfirmarTodos(true)}>
-            {reintentandoTodos ? "Reintentando…" : `Reintentar los ${filas.length}`}
+          <BotonCompacto variante="primario" data-guia="por-enviar.todos" cargando={reintentandoTodos} textoCargando="Reintentando…" disabled={transmitiendoId !== null} onClick={() => setConfirmarTodos(true)}>
+            {`Reintentar los ${filas.length}`}
           </BotonCompacto>
         )}
       </div>
@@ -153,8 +153,8 @@ export function ColaSunatPanel({
                 </p>
                 {queHacer && <p className="mt-0.5 text-[13px] leading-snug text-tinta">Qué hacer: {queHacer}</p>}
               </div>
-              <BotonCompacto variante="fila-alerta" data-guia="por-enviar.reintentar" cargando={enVuelo} disabled={reintentandoTodos} aria-label={`Reintentar ahora ${numero(f)}`} onClick={() => transmitir(f.comprobante_id)}>
-                {enVuelo ? "Enviando…" : f.estado === "pendiente" && f.intentos_transmision === 0 ? "Enviar ahora" : "Reintentar ahora"}
+              <BotonCompacto variante="fila-alerta" data-guia="por-enviar.reintentar" cargando={enVuelo} textoCargando="Enviando…" disabled={reintentandoTodos} aria-label={`Reintentar ahora ${numero(f)}`} onClick={() => transmitir(f.comprobante_id)}>
+                {f.estado === "pendiente" && f.intentos_transmision === 0 ? "Enviar ahora" : "Reintentar ahora"}
               </BotonCompacto>
             </div>
           );

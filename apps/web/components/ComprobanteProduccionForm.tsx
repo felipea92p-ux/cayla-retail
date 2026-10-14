@@ -151,7 +151,7 @@ export function ComprobanteProduccionForm({
   }
 
   return (
-    <Modal titulo="Nueva factura de insumos" subtitulo="La factura de quien le vende al Taller" onClose={onClose} ancho="max-w-2xl">
+    <Modal titulo="Nueva factura de insumos" subtitulo="La factura de quien le vende al Taller" onClose={onClose} tamano="ancha">
       <form onSubmit={guardar} className="space-y-5">
         <div data-guia="prod-factura-nueva.proveedor">
         <CampoSelect
@@ -308,7 +308,7 @@ export function ComprobanteProduccionForm({
 
         {condicion === "contado" && (
           <div data-guia="prod-factura-nueva.medios">
-            <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} totalComprobante={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
           </div>
         )}
 
@@ -330,7 +330,7 @@ export function ComprobanteProduccionForm({
           </p>
           <ComboResponsable control={responsable} deshabilitado={cargando} />
           <Boton peso="primario" type="submit" cargando={cargando} disabled={!!error || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-            {cargando ? "Guardando…" : condicion === "contado" ? `Registrar y pagar ${soles(totalFinal)}` : "Registrar como por pagar"}
+            {condicion === "contado" ? `Registrar y pagar ${soles(totalFinal)}` : "Registrar como por pagar"}
           </Boton>
         </div>
       </form>

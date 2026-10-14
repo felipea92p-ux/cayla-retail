@@ -4,7 +4,7 @@ import { getCompra } from "@/lib/compras";
 import { getMiParteDeCompra } from "@/lib/compras-mi-parte";
 import { compraParaPagarMiParte, parteDelDetalle } from "@/lib/compras-mi-parte-reglas";
 import { ETIQUETA_METODO, ETIQUETA_TIPO_DOCUMENTO, fechaCorta, nombreDeLineaSinPrenda, soles } from "@/lib/compras-reglas";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { BotonPagar } from "@/components/CompraDetallePanel";
@@ -35,18 +35,20 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
   return (
     <div className="space-y-6">
       <div data-guia="parte.cabecera">
-        <Volver href="/compras/por-pagar" a="Por pagar" className="mb-4" />
-        <CabeceraPantalla
-          sobretitulo="Compras · Tu parte"
+        <EncabezadoPagina
+          sede={persona.ubicacionEtiqueta}
+          detalle="Tu parte"
+          volver={<Volver href="/compras/por-pagar" a="Por pagar" />}
           titulo={`${ETIQUETA_TIPO_DOCUMENTO[compra.tipo]} ${compra.documento}`}
-          bajada={`${compra.proveedorNombre} · lo gestiona ${compra.gestoraNombre}, que tiene el papel. Aquí ves y pagas solo lo que le toca a tu tienda.`}
-        >
-          <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-taupe">
-            Emitido {fechaCorta(compra.fechaEmision)}
-            {compra.fechaVencimiento ? ` · vence ${fechaCorta(compra.fechaVencimiento)}` : ""}
-            {!compra.vigente && <Chip tono="apagado">Anulado</Chip>}
-          </p>
-        </CabeceraPantalla>
+          subtitulo={`${compra.proveedorNombre} · lo gestiona ${compra.gestoraNombre}, que tiene el papel. Aquí ves y pagas solo lo que le toca a tu tienda.`}
+          pie={
+            <p className="flex flex-wrap items-center gap-2 text-xs text-taupe">
+              Emitido {fechaCorta(compra.fechaEmision)}
+              {compra.fechaVencimiento ? ` · vence ${fechaCorta(compra.fechaVencimiento)}` : ""}
+              {!compra.vigente && <Chip tono="apagado">Anulado</Chip>}
+            </p>
+          }
+        />
       </div>
 
       <div data-guia="parte.partes" className="space-y-6">

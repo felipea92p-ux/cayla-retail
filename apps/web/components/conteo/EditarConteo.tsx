@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil } from "lucide-react";
+
 import { createClient } from "@/lib/supabase/client";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 /* ====================================================================
    EditarConteo · «Corregir conteo» (antes «Editar conteo») en el resultado de un conteo cerrado (Inventario ▸ Conteo, 2026-09-29)
@@ -51,10 +52,9 @@ export function EditarConteo({ conteoId, puedeEditar, variantesCorregidas = [] }
 
   return (
     <div className="flex flex-col gap-1.5">
-      <button type="button" onClick={editar} disabled={abriendo || !puedeEditar} className="btn-cayla btn-secundario h-11 gap-2 self-start disabled:opacity-50">
-        <Pencil aria-hidden className="h-4 w-4" />
-        {abriendo ? "Abriendo…" : "Corregir conteo"}
-      </button>
+      <BotonEditar onClick={editar} cargando={abriendo} textoCargando="Abriendo…" disabled={!puedeEditar} className="self-start">
+        Corregir conteo
+      </BotonEditar>
       {!puedeEditar && <p className="text-xs text-taupe">Solo quien ajusta inventario puede corregir un conteo cerrado.</p>}
       {fallo && (
         <Aviso tono="error">{fallo}</Aviso>

@@ -38,12 +38,14 @@ export default async function ComprasLayout({ children, modal }: { children: Rea
   // ADR-0362 (decisión 34): también quien tiene Órdenes de compra, aunque no vea los montos de las facturas; su módulo trae sus
   // precios. Las demás pantallas siguen con su propio candado (cada una pide su módulo o `verDineroCompras`).
   // ADR-0387 (Felipe 2026-10-12, «el módulo es la llave»): también quien tiene Plan de campaña, que pide solo su módulo.
+  // ADR-0362 (fase 6, decisión 65): también quien tiene Fondos por rendir, que pide solo su módulo.
   const persona = await requirePersonaActualV2();
   if (
     !puede(persona, "verDineroCompras") &&
     !puede(persona, "editarCuentasProveedor") &&
     !veModulo(persona, "ordenes_compra") &&
-    !veModulo(persona, "plan_compra")
+    !veModulo(persona, "plan_compra") &&
+    !veModulo(persona, "fondos")
   )
     redirect("/");
 

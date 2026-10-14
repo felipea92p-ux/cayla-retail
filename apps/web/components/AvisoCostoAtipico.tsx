@@ -59,8 +59,8 @@ export function AvisoCostoAtipico({
         <Boton type="button" peso="fantasma" disabled={cargando} className="sm:flex-1" onClick={onCorregir}>
           {textoCorregir}
         </Boton>
-        <Boton type="button" peso="primario" cargando={cargando} disabled={!listo} title={motivoNoListo ?? undefined} className="sm:flex-1" onClick={onConfirmar}>
-          {cargando ? textoCargando : textoConfirmar}
+        <Boton type="button" peso="primario" cargando={cargando} textoCargando={textoCargando} disabled={!listo} title={motivoNoListo ?? undefined} className="sm:flex-1" onClick={onConfirmar}>
+          {textoConfirmar}
         </Boton>
       </div>
     </Aviso>

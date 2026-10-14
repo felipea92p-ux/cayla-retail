@@ -62,7 +62,7 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
   }
 
   return (
-    <Modal titulo="Pagar comprobante" subtitulo={`${c.proveedor} · ${etiquetaTipo(c.tipo, true)} ${c.serie}-${c.numero}`} onClose={onClose} ancho="max-w-lg">
+    <Modal titulo="Pagar comprobante" subtitulo={`${c.proveedor} · ${etiquetaTipo(c.tipo, true)} ${c.serie}-${c.numero}`} onClose={onClose} tamano="mediana">
       <form onSubmit={pagar} className="space-y-4">
         <dl className="divide-y divide-tinta/10 overflow-hidden rounded-xl border border-sand bg-crema text-[13px]">
           <div className="flex justify-between gap-3 px-3 py-2">
@@ -79,13 +79,13 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
           </div>
         </dl>
 
-        <MediosDePago medios={medios} onCambio={setMedios} esperado={c.saldo} exacto={false} etiquetaEsperado="Saldo" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+        <MediosDePago medios={medios} onCambio={setMedios} esperado={c.saldo} totalComprobante={c.total} exacto={false} etiquetaEsperado="Saldo" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
 
         <CampoTexto etiqueta="Fecha del pago" type="date" value={fecha} min={c.fechaEmision} max={hoy} onChange={(e) => setFecha(e.target.value)} tono={errorFecha ? "error" : "neutro"} pie={errorFecha ?? undefined} />
 
         <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <Boton peso="primario" type="submit" cargando={cargando} disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-          {cargando ? "Registrando…" : reparto.suma > 0 ? (quedaria > 0 ? `Pagar ${soles(reparto.suma)} · quedan ${soles(quedaria)}` : `Pagar ${soles(reparto.suma)} y saldar`) : "Pagar"}
+        <Boton textoCargando="Registrando…" peso="primario" type="submit" cargando={cargando} disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
+          {reparto.suma > 0 ? (quedaria > 0 ? `Pagar ${soles(reparto.suma)} · quedan ${soles(quedaria)}` : `Pagar ${soles(reparto.suma)} y saldar`) : "Pagar"}
         </Boton>
       </form>
     </Modal>

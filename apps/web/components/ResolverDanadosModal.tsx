@@ -222,7 +222,7 @@ export function ResolverDanadosModal({
       titulo="Prendas dañadas"
       subtitulo={`${pendientes.length} ${pendientes.length === 1 ? "pendiente" : "pendientes"} de resolver`}
       onClose={onClose}
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) => (
         <div className="space-y-4">

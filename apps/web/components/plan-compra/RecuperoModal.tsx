@@ -52,7 +52,6 @@ export function RecuperoModal({ planId, planNombre, actual, heredado, onClose }:
       subtitulo={`A qué % del precio vende CAYLA lo que queda de ${planNombre} en la liquidación. Cada categoría nueva arranca con este %; cada una puede cambiarlo.`}
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-md"
     >
       {(cerrar) => (
         <form

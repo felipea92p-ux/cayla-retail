@@ -215,7 +215,7 @@ export function FrescuraDetalle({
       }
       onClose={onClose}
       variante="hoja"
-      ancho="sm:max-w-[40rem]"
+      tamano="mediana"
       alCerrarEnfocar={volverA}
     >
       {(cerrar) => modo === "decidir" ? (

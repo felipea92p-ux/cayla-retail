@@ -40,6 +40,7 @@ import {
 } from "@/lib/notas-credito-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 /* ====================================================================
    Notas de crédito · el tablero (2026-09-19)
@@ -167,19 +168,17 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" {...entra(0)} className="anim-entra flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Notas de crédito de proveedor</h1>
-          <p className="mt-1 max-w-[42rem] text-sm text-tinta/65">
-            Lo que los proveedores le acreditan a CAYLA por faltantes, devoluciones o descuentos: qué falta reclamar, qué ya llegó y a dónde fue el dinero.
-          </p>
-        </div>
-        <Boton type="button" peso="primario" onClick={() => setRegistrar({ compraId: null })} aria-haspopup="dialog" data-guia="notas-credito.registrar">
-          + Registrar nota
-          <kbd className="ml-2 rounded border border-crema/35 px-1.5 text-[10px] text-crema/75">N</kbd>
-        </Boton>
-      </div>
+      <EncabezadoPagina
+        sede="Todas las tiendas"
+        titulo="Notas de crédito de proveedor"
+        subtitulo="Lo que los proveedores le acreditan a CAYLA por faltantes, devoluciones o descuentos: qué falta reclamar, qué ya llegó y a dónde fue el dinero."
+        acciones={
+          <Boton type="button" peso="primario" onClick={() => setRegistrar({ compraId: null })} aria-haspopup="dialog" data-guia="notas-credito.registrar">
+            + Registrar nota
+            <kbd className="ml-2 rounded border border-crema/35 px-1.5 text-[10px] text-crema/75">N</kbd>
+          </Boton>
+        }
+      />
 
       <div {...entra(1)}>
         {/* Dos secciones con otras columnas y otras acciones: la pestaña de vista del sistema (ADR-0358). */}

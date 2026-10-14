@@ -109,7 +109,7 @@ export function ClientasPanel({
     const { clientas, error } = await exportarClientas();
     setExportando(false);
     if (error) {
-      avisar.error(traducirError(error, "exportar la lista de clientes"));
+      avisar.error(traducirError(error, "exportar la lista de clientes", { lectura: true }));
       return;
     }
     descargarCsv(`clientes-${hoyLima()}.csv`, COLUMNAS_EXPORTAR, clientas.map(filaParaExportar));

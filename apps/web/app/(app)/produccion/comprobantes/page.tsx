@@ -21,7 +21,7 @@ export default async function ComprobantesProduccionPage() {
   const [comprobantes, proveedores, insumos, taller] = await Promise.all([getComprobantesProduccion(), getProveedoresProduccion(), getInsumosParaComprobante(), getTaller()]);
   return (
     <div className="space-y-6">
-      <ComprobantesProduccionPanel comprobantes={comprobantes} proveedores={proveedores.filter((p) => p.activo)} todosLosProveedores={proveedores} insumos={insumos} hoy={hoyLima()} tallerId={taller?.id ?? null} />
+      <ComprobantesProduccionPanel sede={persona.ubicacionEtiqueta} comprobantes={comprobantes} proveedores={proveedores.filter((p) => p.activo)} todosLosProveedores={proveedores} insumos={insumos} hoy={hoyLima()} tallerId={taller?.id ?? null} />
     </div>
   );
 }

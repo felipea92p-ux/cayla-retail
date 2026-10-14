@@ -129,7 +129,7 @@ export function PiezaLiquidacionModal({
         : `A la venta ${dias <= 0 ? "desde hoy" : `hace ${tiempoALaVenta(dias)}`}${pieza.etiquetas > 1 ? `, con ${pieza.etiquetas - 1} ${pieza.etiquetas === 2 ? "rebaja" : "rebajas"}` : ""}.`;
 
   return (
-    <Modal titulo={pieza.descripcion ?? (pieza.categoria || "Prenda de liquidación")} subtitulo={subtitulo} onClose={onClose} variante="hoja" ancho="max-w-md" conCerrar>
+    <Modal titulo={pieza.descripcion ?? (pieza.categoria || "Prenda de liquidación")} subtitulo={subtitulo} onClose={onClose} variante="hoja" conCerrar={modo === "ver"}>
       <div className="space-y-4">
         {codigoViejo && codigoViejo !== pieza.codigo && pieza.estado === "disponible" && (
           <Aviso tono="atencion" titulo="Esa etiqueta ya no vale">
@@ -195,7 +195,7 @@ export function PiezaLiquidacionModal({
                 <Boton type="button" onClick={() => setModo("ver")}>
                   Cancelar
                 </Boton>
-                <Boton type="submit" peso="peligro" cargando={guardando} disabled={!guiaRetiro.puedeConfirmar} className={guiaRetiro.claseConfirmar}>
+                <Boton textoCargando="Retirando…" type="submit" peso="peligro" cargando={guardando} disabled={!guiaRetiro.puedeConfirmar} className={guiaRetiro.claseConfirmar}>
                   Retirar
                 </Boton>
               </div>

@@ -1,0 +1,51 @@
+## Compras ▸ fase 6 de las órdenes de compra: fondo por rendir y gastos del viaje (2026-10-13) — rama `claude/purchase-order-phase6-9b0c82`
+
+- **Qué:** la plata que CAYLA le entrega a quien compra. Actividad 1: Compras ▸ Fondos por rendir (entregar, devolver y anular, con el
+  tablero de quién tiene cuánto). Actividad 2: pagar a un proveedor desde «Mi fondo»; si no alcanza, paga de su bolsillo y queda «CAYLA te
+  debe». Actividad 3: los gastos del viaje desde Órdenes de compra (flete, agencia, cargador, embalaje → 609; pasaje, hotel, comida, taxi →
+  631), a una o varias órdenes, con «Traerla costó» en cada una y nunca al costo de la prenda. Actividad 4: «Tu fondo», la tarjeta con lo
+  que le queda, en Órdenes de compra y en el Inicio. Actividad 5: la rendición (rendir, revisar y aprobar; el faltante lo asume CAYLA o
+  queda como deuda; las fotos de los papeles). Actividad 6: lo «no deducible» (efectivo o fondo en un comprobante de S/ 2 000 o más, y lo
+  que pase el tope diario de la planilla, que fija el contador): se avisa al pagar y se marca donde se ve cada pago o gasto. Actividad 7:
+  saldar la deuda de un faltante cuando la persona devuelve la plata (lo registra quien la recibe), y la 1413 y la 1419 comparadas por dos
+  caminos en el Balance. Actividad 8: el IGV. La factura con RUC de un gasto del viaje va al crédito fiscal (la hoja dice cuánto se
+  descuenta), y el IGV de lo pagado en efectivo o desde un fondo se pierde en el mes del pago: Impuestos lo resta y lo avisa, el resumen
+  para el contador lo trae y el Diario lo pasa de la 4011 a la 64. De paso entró, con cherry-pick, el arreglo de otra sesión para las
+  tablas de Fondos por rendir a 1024 px. Y, a pedido de Felipe, la hoja del gasto del viaje muestra solo la orden desde la que se abrió:
+  las demás se suman con «+ Agregar otra orden» (el combo con buscador) y se quitan con su «×». Y todo gasto del viaje va al menos a
+  una orden: la hoja no deja quitar la última y la base frena uno sin orden (`20261014170000`).
+- **Por qué:** ADR-0362, decisiones 16, 20, 26, 29, 30, 32–35, 46, 54–57 y 65–75 (las 67–70, de esa noche; las 71–75, del 2026-10-14:
+  la deuda solo se salda cuando la persona devuelve la plata, el IGV perdido va al mes del pago, la contabilidad se parte en dos, la
+  hoja del gasto no carga la lista de órdenes y un gasto del viaje va siempre al menos a una orden). Felipe aprobó la lista de 8
+  actividades y autorizó subir y pegar en producción cada actividad al cerrarla, sin fusionar.
+- **Cómo:** el fondo es una cuenta de dinero de tipo `fondo` con su dueña (1413) y su saldo sale del mismo libro que «Cuentas y dinero»;
+  no entra por las reglas generales de cuentas: los pagos y los gastos lo derivan a `fn_fondo_para_pagar` (solo su dueña, con su cuenta,
+  nunca una terminal) y el Diario lo saca de la 1413. Migraciones `20261013181000`, `182000`, `212000`, `221000`, `222000`, `231000`,
+  `233000`, `234000`, `235000`, `20261014002000`, `20261014145000` y `20261014153000`; pruebas `pruebas:fondos` (16),
+  `pruebas:gastos-viaje` (12), `pruebas:rendicion-fondo` (11), `pruebas:no-deducible` (5), `pruebas:deuda-fondo` (4) y
+  `pruebas:igv-fase6` (4), más las vecinas de dinero, Balance e impuestos en verde (`pruebas:estado-resultados` ahora cuenta el IGV
+  perdido de su escenario: 152,54); web 159 250 pruebas en verde. Todas en producción, cada una con sus anclas comprobadas antes y sus
+  huellas iguales a las del banco después (la de la actividad 6, 2026-10-13 ~20:10: 4 funciones, 3 restricciones y los permisos; la de
+  la 7, 2026-10-14 ~09:58: 21 huellas; la de la 8, 2026-10-14 ~10:37: 8 funciones, la restricción de `gastos` y los permisos). Lo no
+  deducible se calcula, no se guarda: una sola regla en la base (`fn_pago_no_bancarizado`, `fn_no_deducibles`); lo que se debe, también
+  (`fn_deudas_fondo_de`), y el IGV perdido (`fn_igv_perdido`). PR #1055 en borrador.
+- **/chaos de la fase 6 (2026-10-14, actividad 9):** el fondo aguanta lo que una persona hace mal con la pantalla (doble clic, recargar,
+  red cortada, cerrar a mitad, dos cuentas a la vez sobre el mismo fondo: el candado por persona las pone en fila), pero no lo que la base
+  recibe torcido: un monto «NaN» por la API se guarda y envenena el fondo, la caja y el Diario; el mismo token con otro contenido devuelve
+  lo viejo y la hoja anuncia lo nuevo (lo que Ventas y Caja ya cerraron el 13); y la coma decimal («1299,50») multiplica la plata por 100
+  en Entregar y en el gasto del viaje. Nada se arregló: los de dinero son de base y esperan a Felipe (backlog de la rama). Semilla 1014,
+  tablero en `docs/chaos/README.md`; el banco quedó idéntico a su foto.
+- **Los arreglos de /chaos (2026-10-14, con el OK de Felipe):** la base del fondo ya no acepta montos NaN ni infinitos (candados en las
+  tablas de plata, también para «Cuentas y dinero»), más de 2 decimales, fechas de antes del 13/10/2026 ni textos invisibles; el token
+  sigue al contenido en las cinco funciones del fondo y sus hojas se congelan si la respuesta se pierde (`useIntento`); las hojas entienden
+  «1299,50»; el gasto del viaje propone la caja de su tienda; el tope de la planilla espera al guardado anterior. Primero la prueba
+  (`pruebas:fondos-entradas`: 0/5 sin el arreglo, 6/6 con él), después el arreglo, y los mismos ataques con la semilla 1014 resisten en la
+  base y en el navegador. Cinco migraciones en producción (`20261014192000` … `200000`), huellas iguales al banco. Se trajo main antes de
+  tocar la lista de operaciones con marca, que main había cambiado.
+- **/formidable de la fase 6 (2026-10-14, actividad 9):** dos pruebas ciegas sobre capturas (la encargada que revisa y la vendedora que
+  rinde), medición a 1440, 1024 y 375 px y un escéptico (4 confirmados, 10 matizados, 1 refutado y 3 que se nos escaparon): leyes 6,2
+  (ley 9 en 4) y oficio 8. Felipe eligió el cambio 1 —«Rendir» también desde la tarjeta del Inicio: sin Órdenes de compra no había dónde
+  rendir (decisión 80)— y el tope de la devolución con una rendición por aprobar, que encontró el escéptico: el fondo podía quedar
+  debiendo y debido por la misma plata (decisión 79, `20261014212000`). Los dos, con su prueba y vistos en el banco (Micaela, sin el
+  módulo, rindió desde su Inicio; la hoja frena S/ 380 con S/ 375 declarados). Después: leyes 6,3, sin ninguna ley bajo 5. Informe en
+  `docs/formidable/compras-fondos.md`.

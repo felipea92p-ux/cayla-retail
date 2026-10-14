@@ -2,7 +2,7 @@
   "guia": "productos.por-revisar",
   "ruta": "/productos/por-revisar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 13,
+  "total": 16,
   "controles": {
     "app/(app)/productos/por-revisar/page.tsx": [
       "Volver «(sin nombre)»",
@@ -19,12 +19,15 @@
     ],
     "components/RevisarProductoHoja.tsx": [
       "Boton «Volver»",
+      "BotonVer «Ver las órdenes»",
+      "BotonVer «Ir a Existencias»",
       "BotonEnlace «Ponerle precio»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Volver» #2",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ]
   }
