@@ -161,6 +161,9 @@ export const AVIARIO = [
       // venden sin entrar al catálogo, y el precio mínimo con que se aceptan. Se venden por `venta_items`, así que son de quien responde por
       // la venta. Ya están en producción (la migración se pegó antes de fusionar); asignadas en el refresco del volcado del 2026-10-11.
       "piezas_liquidacion", "piezas_liquidacion_etiquetas", "parametros_liquidacion",
+      // La huella de cada envío con token de Ventas y Caja (ADR-0398): un mismo token con otro contenido se rechaza. La escriben las
+      // funciones que guardan en el mostrador y `fn_resolver_intento`. Asignada en el refresco del volcado del 2026-10-13.
+      "intentos_con_token",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales",
@@ -211,7 +214,11 @@ export const AVIARIO = [
       "comprobantes_produccion_recepciones", "comprobantes_produccion_cierres", "cotizaciones_maquila",
       // ADR-0161 (act. d): quién movió cada orden de etapa; solo la escribe `set_etapa_produccion`. Asignada en el refresco
       // del volcado del 2026-09-25.
-      "produccion_etapas_historial"] },
+      "produccion_etapas_historial",
+      // ADR-0362 (fase 7): las órdenes de insumos del Taller (OI-…), sus líneas y sus versiones. La compra del Taller no se mezcla con la
+      // de tienda (otros proveedores, otro destino, otro correlativo), así que son de Gallito, no de Pelícano. Están en producción desde
+      // el 2026-10-13; las asignó el refresco del volcado de ese día. La sesión de Producción confirma la asignación.
+      "ordenes_insumo", "orden_insumo_items", "orden_insumo_versiones"] },
   // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
   // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
   // Finanzas F1–F10 (ADR-0195, ADR-0198), repartidas con el criterio de GOBIERNO §1 «Repartos que no son obvios»: Garza es la
@@ -230,7 +237,11 @@ export const AVIARIO = [
       "cuentas_dinero", "medios_de_cobro", "movimientos_dinero", "conciliaciones", "dinero_revisados", "cuentas_asignadas",
       // Caja y avisos: el mínimo de caja que vigilan el Flujo y el Resumen. Y el presupuesto: el tope de gasto de cada mes,
       // que se compara contra `gastos` —el mismo dueño que lo gastado responde por lo que se pensaba gastar—.
-      "parametros_finanzas", "presupuestos"] },
+      "parametros_finanzas", "presupuestos",
+      // Los gastos de un viaje (con sus órdenes y fotos) y los fondos por rendir con su rendición: plata entregada a una persona que
+      // vuelve como gastos o como devolución. Es plata del día, como `gastos`. Están en producción desde el 2026-10-13 (sus migraciones
+      // aún no están en main); las asignó el refresco del volcado de ese día. Finanzas (Felipe) confirma la asignación.
+      "gastos_viaje", "gastos_viaje_ordenes", "gasto_viaje_fotos", "rendiciones_fondo", "rendicion_fondo_items"] },
   { n: "12", pajaro: "Urraca", modulo: "Contabilidad",
     tablas: ["activos_fijos",
       // El plan de cuentas (PCGE, F2a) y la lista cerrada de tipos de activo, que trae su cuenta y su vida útil (F2b).

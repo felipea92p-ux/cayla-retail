@@ -26,7 +26,8 @@ Informes con la evidencia en `.chaos/informes/*-2026-10-13.md` (locales, fuera d
 - [ ] El celular en Cambios y Devoluciones; SUNAT y Lucode reales; la página pública del club (necesita la llave de servicio); una cuenta «líder no admin» (en el seed los dos líderes son admin).
 
 ### Después de los arreglos de Ventas (ADR-0398)
-- [ ] **Pegar en producción M2–M9** (`20261013200000`…`20261013211000`), una parte por llamada, **con todas las cajas cerradas** (M1 ya está).
+- [x] ~~**Pegar en producción M2–M9**~~ — hecho el 2026-10-13 con las cajas cerradas (versiones `20261014025824` a `20261014030230`), verificado parte por parte; el volcado de `docs/datos/generado/` quedó refrescado (foto del 2026-10-14 03:05 UTC).
+- [ ] El refresco del volcado trajo, además de `intentos_con_token`, las tablas que otras sesiones pegaron ese día sin refrescar: órdenes de insumos del Taller (asignadas a Gallito) y gastos del viaje y fondos por rendir (asignados a Garza, sus migraciones aún no están en `main`). Que Producción y Finanzas confirmen esos pájaros.
 - [ ] Purga de `intentos_con_token` a los 90 días (crece una fila por escritura con token).
 - [ ] El mismo patrón de token (`useIntento` + la llamada a `fn_intento_con_huella`) en Finanzas (`GastosPanel`, y el activo fijo de `RegistrarGastoModal`: `registrar_activo` aún no compara el contenido en la base), Traslados (`PasePedido`, `iniciar_traslado`), Inventario (`ajustar_inventario`), Compras (`registrar_compra`) y Producción (`abrir_produccion`).
 - [ ] Propuesta de regla para CLAUDE.md («el token sigue al contenido»): espera el OK de Felipe (va en el PR).

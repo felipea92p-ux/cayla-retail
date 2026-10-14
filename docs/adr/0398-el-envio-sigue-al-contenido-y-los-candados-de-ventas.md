@@ -1,7 +1,8 @@
 # ADR-0398 · Ventas después de /chaos: el envío sigue a su contenido, el efectivo no baja de cero y los montos son de verdad
 
-- **Fecha:** 2026-10-13 · **Estado:** construido y verificado en local (pruebas de base, vitest y re-ataque en el navegador); migraciones por
-  pegar en producción (la primera, `20261013195000`, ya está). Rama `claude/chaos-skill-all-screens-5c56e1`.
+- **Fecha:** 2026-10-13 · **Estado:** construido y verificado en local (pruebas de base, vitest y re-ataque en el navegador). **Las nueve
+  migraciones están en producción** (la primera a las 14:57 y las otras ocho el 2026-10-13 de noche, con las cuatro cajas cerradas; versiones
+  `20261014025824` a `20261014030230`). Rama `claude/chaos-skill-all-screens-5c56e1`, PR #1054.
 - **Pedido:** Felipe, 2026-10-13, después de la corrida de `/chaos` en todo el ERP: «Arregla todo lo que está por arreglar en ese módulo
   [Ventas] y no pares hasta que termines, tiene que quedar todo cubierto».
 - **Decisiones de Felipe (2026-10-13):** la base bloquea el efectivo negativo; boleta con DNI de 8 dígitos y factura con RUC de 11, en la
@@ -80,6 +81,12 @@ Una parte por llamada, en orden, **con todas las cajas cerradas** (los disparado
 negativo se revisa antes: el 2026-10-13 no había ninguna). Antes de cada parte: las anclas y los md5 (verificados el 2026-10-13: mismas
 cuentas en local y en producción; `emitir_comprobante` tiene CRLF en producción, por eso su ancla es de una línea). Después: md5 «después»,
 `pg_constraint.convalidated` y `pg_trigger`. Al final, el volcado y `pnpm datos:generar:produccion` / `pnpm datos:comparar`.
+
+**Hecho el 2026-10-13.** Antes de pegar, las 19 anclas aparecían en producción exactamente las veces esperadas (aunque otras sesiones
+habían pegado ese día Finanzas y Producción). Después de cada parte: md5 de `fn_intento_con_huella` y `fn_resolver_intento` idéntico al
+local; las once funciones con su llamada a la huella una sola vez; los 5 disparadores diferidos activos; los 20 CHECK validados contra todas
+las filas (ninguna vieja los viola); las guardas y el disparador del documento en su lugar. El volcado se refrescó por diferencia (las 1 358
+huellas coinciden con producción) y `datos:comparar` no encontró ninguna pantalla que llame a algo que producción no acepte.
 
 ## Lo que queda fuera (va con el `/chaos` de cada módulo)
 
