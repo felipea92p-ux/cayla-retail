@@ -1378,12 +1378,34 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
 .e-opciones .btn-peligro { margin-top: 2px; }
 .e-check > span:last-child small { display: block; margin-top: 2px; color: var(--tinta-60); font-size: 11.5px; }
 .e-fechas { padding-left: 28px; }
+
+/* =====================  VERSIÓN 4: la portada sin cuenta y la cuenta propia  ===================== */
+.t-btn.t-btn-chico { height: 38px; padding: 0 16px; font-size: 13px; margin-left: 6px; }
+.t-portada-club { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 16px; padding-top: 8px; }
+.t-portada-club .t-tarjeta-club { max-width: 360px; transform: rotate(-4deg); box-shadow: 0 30px 60px -30px color-mix(in srgb, var(--t-oscuro) 80%, transparent); }
+.t-portada-club p { margin: 0; font-size: 13px; color: var(--t-hero-tinta); opacity: .85; text-align: center; }
+@container tienda (min-width: 960px) {
+  .t-portada-club { padding-top: 0; }
+  .t-portada-club .t-tarjeta-club { max-width: 420px; }
+}
+.w-caja-clave { position: relative; }
+.w-caja-clave .w-caja { padding-right: 84px; }
+.w-ver { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: none; padding: 8px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--taupe); }
+.w-cumple { display: grid; grid-template-columns: 1fr 1fr 1.6fr; gap: 8px; }
+.w-cumple .w-caja { min-width: 0; }
+.w-res-error { color: var(--rojo-profundo); font-weight: 600; font-size: 12.5px; }
+.w-res-aviso { color: var(--ambar); font-weight: 600; font-size: 12.5px; }
+.w-res-acc { display: flex; gap: 16px; flex-wrap: wrap; }
+.w-res .w-enlace { align-self: flex-start; padding: 2px 0; }
+.w-campo[data-estado="error"] .w-marca { color: var(--rojo-profundo); }
+.w-campo[data-estado="error"] .w-caja { border-color: color-mix(in srgb, var(--rojo) 55%, var(--sand)); }
+.w-enlace-izq { align-self: flex-start; }
 </style>
 <div class="maqueta">
   <header class="barra">
     <div class="marca">
       <img src="data:image/png;base64,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" alt="">
-      <div><span class="marca-nombre">Tienda online CAYLA</span><span class="marca-sub">Maqueta navegable · versión 3 · 14 de octubre de 2026</span></div>
+      <div><span class="marca-nombre">Tienda online CAYLA</span><span class="marca-sub">Maqueta navegable · versión 4 · 14 de octubre de 2026</span></div>
     </div>
     <div class="barra-tabs" role="group" aria-label="Vista">
       <button class="barra-tab" data-a="tab" data-t="recorrido" aria-pressed="true">Recorrido en vivo</button>
@@ -1411,19 +1433,31 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
         <div class="navegador-barra"><i></i><i></i><i></i><span class="navegador-url" id="grande-url">tienda.cayla.pe · dirección de ejemplo</span></div>
         <div class="navegador-cuerpo" id="tienda-grande"></div>
       </div>
-      <p class="grande-nota">Es la misma tienda que la del celular, a lo ancho de una computadora: la bolsa, la cuenta y los pedidos son los mismos. Prueba el filtro «Ver lo que hay en» y abre una prenda para ver su stock en cada tienda.</p>
+      <p class="grande-nota">Es la misma tienda que la del celular, a lo ancho de una computadora. Sin cuenta solo se ve la portada: crea tu cuenta o entra (en la maqueta, lucia.ramos@gmail.com con cualquier contraseña de 8 caracteres) para ver el catálogo, el stock de cada tienda y separar.</p>
     </div>
   </div>
 
   <div id="vista-como" class="doc" hidden>
     <section class="doc-hero">
       <h2>Separa online, <em>confirma por WhatsApp.</em></h2>
-      <p class="doc-lead">Una tienda con tus fotos reales donde el cliente ve lo nuevo, las ofertas, lo más vendido, looks completos y cuánto hay de cada prenda en cada tienda. Elige sus prendas, toca <b>«Separar»</b> y manda el pedido por WhatsApp con su número. En la web no se cobra nada, y el stock no se descuenta hasta que la tienda confirma el pedido.</p>
+      <p class="doc-lead">Una tienda con tus fotos reales a la que se entra con cuenta: el cliente la crea una vez (correo, contraseña, DNI, celular y cumpleaños) y ya es del Club CAYLA. Ve lo nuevo, las ofertas, lo más vendido, looks completos y cuánto hay de cada prenda en cada tienda. Elige, toca <b>«Separar»</b> y manda el pedido por WhatsApp con su número. En la web no se cobra nada, el stock baja cuando la tienda confirma y todo se recoge en tienda.</p>
       <div class="doc-tres">
         <div>El stock baja solo cuando la tienda confirma.</div>
-        <div>Quien crea su cuenta ya es del Club CAYLA.</div>
-        <div>Las novedades se ven en la web, sin publicidad por WhatsApp.</div>
+        <div>Sin cuenta no se ve el catálogo; al crearla ya es del Club CAYLA.</div>
+        <div>Por ahora todo se recoge en tienda.</div>
       </div>
+    </section>
+
+    <section class="doc-sec">
+      <h3>Qué cambió en la versión 4</h3>
+      <p>Aprobaste las propuestas y pediste que el catálogo se vea solo con cuenta.</p>
+      <ul class="pendientes">
+        <li><span>1</span><div><b>Sin cuenta solo se ve la portada.</b><small>La campaña, cómo se separa, el club y las tiendas, con «Crear mi cuenta» y «Entrar». Ninguna prenda, precio ni stock.</small></div></li>
+        <li><span>2</span><div><b>La cuenta se crea en la web, sin Google.</b><small>Correo y contraseña, DNI (el nombre sale solo), celular y cumpleaños desde el inicio. El correo y el DNI no se repiten, y la web avisa si el correo parece mal escrito («¿Quisiste decir gmail.com?»).</small></div></li>
+        <li><span>3</span><div><b>«Olvidé mi contraseña».</b><small>Llega un enlace al correo para crear una contraseña nueva. Por seguridad, la web dice lo mismo exista o no la cuenta.</small></div></li>
+        <li><span>4</span><div><b>Por ahora todo se recoge en tienda.</b><small>Se fueron los envíos de la web y del ERP: el cliente elige su tienda y recoge ahí con su código.</small></div></li>
+        <li><span>5</span><div><b>Una prenda por conseguir se cobra con un adelanto.</b><small>Cuánto, lo decide la tienda; el resto se cobra al recoger. Los avisos del club siguen por WhatsApp y también se ven en la cuenta.</small></div></li>
+      </ul>
     </section>
 
     <section class="doc-sec">
@@ -1441,7 +1475,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
 
     <section class="doc-sec">
       <h3>Lo que decidiste el 14 de octubre</h3>
-      <p>En siete rondas de preguntas. La maqueta las respeta todas.</p>
+      <p>En diez rondas de preguntas. La maqueta las respeta todas.</p>
       <div class="decisiones">
         <div class="decision"><span class="decision-q">Qué hace el cliente</span><span class="decision-a">Separa; no paga en la web</span><span class="decision-d">Elige sus prendas, toca «Separar» y el sistema crea un pedido por confirmar con su número. Después lo manda por WhatsApp.</span></div>
         <div class="decision"><span class="decision-q">Qué stock ve</span><span class="decision-a">Todo lo de cada tienda: piso y almacén</span><span class="decision-d">Separar no descuenta nada. El stock baja recién cuando la tienda confirma el pedido.</span></div>
@@ -1450,17 +1484,21 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
         <div class="decision"><span class="decision-q">Si nadie lo confirma</span><span class="decision-a">Se cierra solo a las 24 horas corridas</span><span class="decision-d">También corren de noche. El stock nunca bajó, así que no hay nada que devolver.</span></div>
         <div class="decision"><span class="decision-q">Si dos separan la última</span><span class="decision-a">Los dos quedan registrados y decide la tienda</span><span class="decision-d">Si el primero no se completa, se le confirma al segundo. A los demás, la tienda puede traerla de otra sede o conseguirla y coordinar una fecha de entrega.</span></div>
         <div class="decision"><span class="decision-q">Al confirmar</span><span class="decision-a">Baja el stock; los pedidos web van aparte</span><span class="decision-d">Pedidos web tiene su propia lista y no se mezcla con los apartados de tienda.</span></div>
+        <div class="decision"><span class="decision-q">Prenda por conseguir</span><span class="decision-a">Adelanto al confirmar; el resto al recoger</span><span class="decision-d">Cuánto cobrar de adelanto lo decide la tienda.</span></div>
         <div class="decision"><span class="decision-q">Confirmado y sin pagar</span><span class="decision-a">Aviso a las 48 horas; decide la sede</span><span class="decision-d">Nada se anula solo: quien quedó en pagar al recoger no pierde su pedido. Si la sede lo anula, el stock vuelve.</span></div>
-        <div class="decision"><span class="decision-q">Los pagos</span><span class="decision-a">Dentro del pedido web</span><span class="decision-d">Uno o varios: Yape, Plin o transferencia con su n.º de operación, o efectivo al recoger, que entra a la caja de la sede. La boleta sale cuando queda pagado.</span></div>
+        <div class="decision"><span class="decision-q">Los pagos</span><span class="decision-a">Dentro del pedido web</span><span class="decision-d">Se coordinan con la tienda por WhatsApp y la tienda los anota: Yape, Plin o transferencia con su n.º de operación, o efectivo al recoger, que entra a su caja. La boleta sale cuando queda pagado.</span></div>
         <div class="decision"><span class="decision-q">Prendas en dos tiendas</span><span class="decision-a">El cliente elige una tienda para todo</span><span class="decision-d">Lo que no está ahí se marca, y la tienda puede pedirlo a otra sede con un traslado al confirmar.</span></div>
-        <div class="decision"><span class="decision-q">Recojo o envío</span><span class="decision-a">Se coordina por WhatsApp</span><span class="decision-d">La web solo separa; la tienda lo anota. Tarifa fija dentro de Trujillo, Arequipa y Lima; a otra ciudad, por agencia y el envío se paga en destino.</span></div>
-        <div class="decision"><span class="decision-q">Cuenta del cliente</span><span class="decision-a">Para separar; al crearla ya es del Club</span><span class="decision-d">Google o correo con enlace, sin contraseña.</span></div>
-        <div class="decision"><span class="decision-q">Novedades</span><span class="decision-a">En la web, no por WhatsApp</span><span class="decision-d">Ya no se hace publicidad por WhatsApp. WhatsApp queda para los pedidos.</span></div>
+        <div class="decision"><span class="decision-q">Recojo o envío</span><span class="decision-a">Por ahora, siempre recojo en tienda</span><span class="decision-d">Los envíos quedan para más adelante; lo que decidiste entonces (tarifa fija en las tres ciudades, agencia con pago en destino) se retoma cuando se implementen.</span></div>
+        <div class="decision"><span class="decision-q">Sin cuenta</span><span class="decision-a">Solo la portada con la campaña y «Entrar»</span><span class="decision-d">Ninguna prenda, precio ni stock se ve sin cuenta.</span></div>
+        <div class="decision"><span class="decision-q">Cuenta del cliente</span><span class="decision-a">La crea en la web, sin Google</span><span class="decision-d">Correo y contraseña, DNI, celular y cumpleaños desde el inicio. El correo y el DNI no se repiten, y hay «Olvidé mi contraseña». Al crearla ya es miembro del Club.</span></div>
+        <div class="decision"><span class="decision-q">Quién crea cuenta</span><span class="decision-a">Cualquiera</span><span class="decision-d">La web suma miembros nuevos al club todos los días.</span></div>
+        <div class="decision"><span class="decision-q">Novedades</span><span class="decision-a">En la web, no por WhatsApp</span><span class="decision-d">Ya no se hace publicidad por WhatsApp. Por WhatsApp van los pedidos y los avisos del club (cumpleaños y vale), que también se ven en la cuenta.</span></div>
         <div class="decision"><span class="decision-q">Fotos y secciones</span><span class="decision-a">Las reales; Lo nuevo, Ofertas, Más vendidos y Arma tu look</span><span class="decision-d">Más las categorías, el Club y las tiendas. Ofertas junta todas las campañas vigentes.</span></div>
         <div class="decision"><span class="decision-q">Qué es «Lo nuevo»</span><span class="decision-a">Llegó a una tienda hace 30 días o menos</span><span class="decision-d">Sale solo del ingreso de mercadería. Desde la Vitrina se puede fijar o quitar una prenda.</span></div>
         <div class="decision"><span class="decision-q">Qué prendas se ven</span><span class="decision-a">Interruptor por modelo</span><span class="decision-d">Lo que no hay en ninguna tienda dice «Avísame».</span></div>
         <div class="decision"><span class="decision-q">Precio web</span><span class="decision-a">Propio, por modelo; el cliente ve solo ese</span><span class="decision-d">Nace al encender el modelo. Las campañas también se aplican sobre él.</span></div>
         <div class="decision"><span class="decision-q">Si no recoge en 7 días</span><span class="decision-a">Se le recuerda y decide la sede</span><span class="decision-d">Ya pagó, así que nada se libera solo.</span></div>
+        <div class="decision"><span class="decision-q">Cambios y devoluciones</span><span class="decision-a">Como en tienda: 7 días, en cualquier sede</span><span class="decision-d">Con la boleta y la etiqueta puesta.</span></div>
       </div>
     </section>
 
@@ -1476,8 +1514,8 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     </section>
 
     <section class="doc-sec">
-      <h3>Lo que propone esta maqueta y necesita tu OK</h3>
-      <p>No lo decidiste tú. Está dibujado para que lo veas funcionando, pero puede cambiar. Las letras b, d, e y l ya no están: el reloj de 20 minutos y el envío desde la sede más cercana se fueron con el pago en la web, y la boleta al completar el pago y «Lo nuevo» desde que llega a una tienda los decidiste tú.</p>
+      <h3>Propuestas que aprobaste</h3>
+      <p>Las propuso la maqueta y las aprobaste el 14 de octubre. Las letras b, d, e y l ya no están: se fueron con el pago en la web o las decidiste tú directamente.</p>
       <ul class="propuestas">
         <li><span>a</span><div><b>Al anotar un pago por Yape, Plin o transferencia, la sede escribe el n.º de operación que ve en su app.</b><small>El ERP avisa si ese número ya se usó en otro pedido, para que un mismo pago no cuente dos veces. Una foto se puede editar; la app no.</small></div></li>
         <li><span>c</span><div><b>Un color sin foto propia se muestra con la foto principal y la nota «Foto en otro color».</b><small>Esconderlo dejaría sin colores a la mayoría de las prendas.</small></div></li>
@@ -1499,7 +1537,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
         <li><span class="vida-n">2</span><div class="vida-t"><b>Separado, por confirmar</b><span>El cliente toca «Separar»: se crea el pedido con su número y lo manda por WhatsApp. El stock no cambia.</span></div><div class="vida-f">Si nadie lo confirma en 24 horas, se cierra solo.</div></li>
         <li><span class="vida-n">3</span><div class="vida-t"><b>Confirmado, por cobrar</b><span>La sede revisa el stock y confirma en Pedidos web: ahí baja el stock. Si falta una prenda, la trae de otra sede o la consigue para una fecha.</span></div><div class="vida-f">Si no se puede, lo cierra con el motivo. Si no paga en 48 horas, sale en rojo y decide la sede; si lo anula, el stock vuelve.</div></li>
         <li><span class="vida-n">4</span><div class="vida-t"><b>Pagado</b><span>Cada pago se anota dentro del pedido. Al completarlo sale la boleta.</span></div><div class="vida-f"></div></li>
-        <li><span class="vida-n">5</span><div class="vida-t"><b>Por entregar</b><span>Recojo en caja con el código de 4 cifras, envío en la ciudad o agencia a otra ciudad.</span></div><div class="vida-f">Si no lo recoge en 7 días, sale en rojo y decide la sede.</div></li>
+        <li><span class="vida-n">5</span><div class="vida-t"><b>Por entregar</b><span>Lo recoge en su tienda: muestra el código de 4 cifras en caja.</span></div><div class="vida-f">Si no lo recoge en 7 días, sale en rojo y decide la sede.</div></li>
         <li><span class="vida-n">6</span><div class="vida-t"><b>Entregado</b><span>El pedido queda cerrado con su boleta y su historia.</span></div><div class="vida-f"></div></li>
       </ol>
     </section>
@@ -1509,8 +1547,8 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
       <div class="cambios-erp">
         <div class="cambio"><span class="chip verde">Módulo nuevo</span><b>Ventas ▸ Pedidos web</b><span>Confirmar (baja el stock), cobrar y entregar. Va aparte de Apartados. Nace solo para el líder.</span></div>
         <div class="cambio"><span class="chip verde">Módulo nuevo</span><b>Catálogo ▸ Vitrina web</b><span>Modelos (interruptor, precio web, Lo nuevo) y Looks. Nace solo para el líder.</span></div>
-        <div class="cambio"><span class="chip pizarra">Dentro de Configuración</span><b>Tienda web</b><span>WhatsApp, dirección, horario y tarifa de envío de cada sede; las 24 horas para confirmar.</span></div>
-        <div class="cambio"><span class="chip neutro">Cambia el Club</span><b>Clientes ▸ Fichas</b><span>Quien crea su cuenta en la web entra al Club como miembro, con su DNI.</span></div>
+        <div class="cambio"><span class="chip pizarra">Dentro de Configuración</span><b>Tienda web</b><span>WhatsApp, dirección y horario de cada sede; las 24 horas para confirmar y el aviso de 48 horas sin pagar.</span></div>
+        <div class="cambio"><span class="chip neutro">Cambia el Club</span><b>Clientes ▸ Fichas</b><span>Quien crea su cuenta en la web entra al Club como miembro, con su DNI; si ya era del club en tienda, su cuenta se une a su ficha.</span></div>
         <div class="cambio"><span class="chip apagado">No cambia</span><b>Vender, Existencias y Apartados</b><span>Un pedido separado no toca el piso ni el almacén hasta que la sede lo confirma.</span></div>
       </div>
     </section>
@@ -1518,7 +1556,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     <section class="doc-sec">
       <h3>Cómo se arma por dentro</h3>
       <div class="arq">
-        <div class="arq-caja"><b>La web</b><span>Repositorio aparte (<code>cayla-tienda</code>). Catálogo, stock por tienda, bolsa, cuenta y club.</span></div>
+        <div class="arq-caja"><b>La tienda</b><span>Una aplicación aparte, con su dominio y su inicio de sesión de clientes. Catálogo, stock por tienda, bolsa, cuenta y club.</span></div>
         <div class="arq-flecha"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h15l-3-3M20 15H5l3 3"/></svg><span>puertas fijas</span></div>
         <div class="arq-caja base"><b>La base del ERP</b><span>La única verdad: stock, precios, fotos, pedidos, pagos y el club.</span></div>
         <div class="arq-flecha"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h15l-3-3M20 15H5l3 3"/></svg><span>como hoy</span></div>
@@ -1533,7 +1571,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
           <li>Un pedido sin confirmar a las 24 horas pasa a «se cerró» por una tarea programada o al leerlo; como nunca bajó el stock, no hay nada que devolver.</li>
           <li>Pagos: el efectivo entra a la caja de la sede (caja abierta); Yape, Plin y transferencia se anotan con su n.º de operación, que no se puede repetir. La boleta (SUNAT vía Lucode) sale al completar el pago: tocar comprobantes espera tu OK al construirlo.</li>
           <li>Si una prenda viene de otra sede, al confirmar se crea un traslado con el módulo Traslados de hoy. Si se consigue para una fecha, la línea del pedido guarda la fecha prometida y no baja stock: cuando la prenda entra por Compras o Producción, se asigna a este pedido (eso falta diseñarlo).</li>
-          <li>Las cuentas de los clientes van aparte de las del equipo. Si compartieran el inicio de sesión, cada regla que hoy dice «cualquier persona con sesión» tendría que revisarse. Unirse al club al crear la cuenta reutiliza el registro del Club (ADR-0288).</li>
+          <li>Cuentas de clientes con correo y contraseña, aparte de las del equipo: si compartieran el inicio de sesión, cada regla que hoy dice «cualquier persona con sesión» tendría que revisarse. El correo y el DNI son únicos en la base, no solo en la pantalla. «Olvidé mi contraseña» manda un enlace al correo y no revela si la cuenta existe. El catálogo solo responde a una sesión de cliente. Unirse al club al crear la cuenta reutiliza el registro del Club (ADR-0288) y su cumpleaños (día y mes; el año es opcional).</li>
           <li>«Lo nuevo» sale de la fecha del primer ingreso de la prenda a una tienda. Ofertas: las etiquetas con <code>descuento_pct</code> vigentes, aplicadas sobre <code>productos.precio_web</code>. Más vendidos necesita el canal de venta (la columna <code>canal</code> no existe hoy, R-42).</li>
         </ul>
       </details>
@@ -1542,10 +1580,8 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     <section class="doc-sec">
       <h3>Lo que falta decidir</h3>
       <ul class="pendientes">
-        <li><span>1</span><div><b>Una prenda que se consigue para una fecha, ¿se cobra antes de que llegue?</b><small>Todo, una parte o al recogerla. Hoy se coordina por WhatsApp y el pago se anota igual dentro del pedido.</small></div></li>
-        <li><span>2</span><div><b>¿Cada sede cobra con su propio Yape, o comparten uno?</b><small>Como cada sede confirma y cobra lo suyo, lo más limpio es un número por sede.</small></div></li>
-        <li><span>3</span><div><b>Los avisos del club por WhatsApp (cumpleaños y vale)</b><small>¿También se dejan y quedan solo en la cuenta, o siguen por WhatsApp porque son un beneficio y no publicidad?</small></div></li>
-        <li><span>4</span><div><b>Cambios y devoluciones, el envío dentro de la ciudad y el nombre de la web</b><small>La maqueta trae un borrador de cambios. Falta quién reparte, quién paga si la dirección estaba mal y qué dirección tendrá la tienda.</small></div></li>
+        <li><span>1</span><div><b>La dirección de la web</b><small>La maqueta sigue diciendo «tienda.cayla.pe» como ejemplo. Hay que decidirla antes de abrir la web al público.</small></div></li>
+        <li><span>2</span><div><b>Los envíos, cuando se retomen</b><small>Quién reparte en cada ciudad y quién paga el segundo envío si la dirección estaba mal.</small></div></li>
       </ul>
     </section>
 
@@ -1556,7 +1592,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
         <li>Se completan los datos que pide la web: fotos que faltan, prendas en campañas, precio web por modelo.</li>
         <li>Se escribe el ADR y el plan por fases, cada fase con su demo en el navegador.</li>
         <li>Base y ERP: pedidos web con sus pagos, Vitrina y Looks. Aplicarlo en producción espera tu OK.</li>
-        <li>Repositorio <code>cayla-tienda</code>: la tienda de esta maqueta, conectada a la base.</li>
+        <li>La tienda de esta maqueta como aplicación aparte, conectada a la base (dónde vive su código lo decides con la recomendación de arquitectura).</li>
         <li>Piloto en una sede con pocas prendas antes de abrir las tres.</li>
       </ol>
     </section>
@@ -1667,6 +1703,14 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   const CIUDADES = ['Chiclayo', 'Piura', 'Cajamarca', 'Cusco', 'Tacna', 'Puno', 'Huancayo', 'Ica'];
   const COLAB = ['Rosa Medina', 'Ana Lazo', 'Kiara Ruiz'];
   const CFG = { horasConfirmar: 24, horasPagar: 48, diasRecoger: 7 };
+  // Cuentas web que ya existen (inventadas). El correo y el DNI no se repiten (decisión de Felipe).
+  const CUENTAS0 = [
+    { correo: 'lucia.ramos@gmail.com', dni: '72330415', nombre: 'Lucía Ramos', celular: '900000437', cumple: { d: 3, m: 5, a: '' } },
+    { correo: 'carmen.diaz@gmail.com', dni: '45550192', nombre: 'Carmen Díaz', celular: '900000438', cumple: { d: 21, m: 11, a: '' } },
+    { correo: 'andrea.vega@gmail.com', dni: '46672018', nombre: 'Andrea Vega', celular: '900000440', cumple: { d: 9, m: 2, a: '' } },
+  ];
+  const NOMBRES_DNI = { '45871236': 'María Pérez Salas' }; // DNI que ya son del club en tienda
+  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   const CAT_INFO = {
     'Camisas y Blusas': { slug: 'blusas', nombre: 'Blusas y camisas', corto: 'Blusas', forma: 'blusa', desde: 79, pasos: 6, texto: 'Tela liviana que cae bien; se lleva dentro o fuera del pantalón.' },
     'Tops': { slug: 'tops', nombre: 'Tops', corto: 'Tops', forma: 'blusa', desde: 45, pasos: 4, texto: 'Ajuste cómodo para el día; combina con jeans, faldas y pantalones.' },
@@ -1752,29 +1796,29 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   const it = (prod, color, talla, precio, traslado) => ({ prod, color, talla, precio, traslado: traslado || null });
   function pedidosIniciales(t) {
     return [
-      { codigo: 'W-0141', sede: 'AQP', cliente: { nombre: 'Sofía Torres', dni: '43318820', cel: '900000441' }, items: [it('vestido-roma', 'NEG', 'Estándar', 169.9), it('top-biela', 'NEG', 'S', 59.9)], entrega: null, envio: 0, estado: 'por_confirmar', t: { creado: t - 3 * HORA }, pagos: [] },
-      { codigo: 'W-0140', sede: 'TRU', cliente: { nombre: 'Andrea Vega', dni: '46672018', cel: '900000440' }, items: [it('casaca-peluche', 'BEI', 'Estándar', 179.9), it('cardigan-crochet', 'VAI', 'M', 92.33)], entrega: null, envio: 0, estado: 'por_confirmar', t: { creado: t - 40 * MIN }, pagos: [] },
-      { codigo: 'W-0139', sede: 'TRU', cliente: { nombre: 'Paola Ruiz', dni: '70021458', cel: '900000439' }, items: [it('blusa-tiana', 'RPA', 'Estándar', 94.9)], entrega: { tipo: 'agencia', ciudad: 'Chiclayo', agencia: 'Shalom' }, envio: 0, estado: 'confirmado', t: { creado: t - 3 * DIA - 2 * HORA, confirmado: t - 3 * DIA }, pagos: [], responsable: 'Ana Lazo' },
-      { codigo: 'W-0138', sede: 'TRU', cliente: { nombre: 'Carmen Díaz', dni: '45550192', cel: '900000438' }, items: [it('conjunto-ailsa', 'BEI', 'S', 158.3)], entrega: { tipo: 'local', direccion: 'Urb. El Golf, calle Los Cedros' }, envio: 10, estado: 'confirmado', t: { creado: t - 26 * HORA, confirmado: t - 25 * HORA }, pagos: [{ monto: 100, medio: 'Yape', op: '04812793', t: t - 24 * HORA, resp: 'Rosa Medina' }], responsable: 'Rosa Medina' },
+      { codigo: 'W-0141', sede: 'AQP', cliente: { nombre: 'Sofía Torres', dni: '43318820', cel: '900000441' }, items: [it('vestido-roma', 'NEG', 'Estándar', 169.9), it('top-biela', 'NEG', 'S', 59.9)], entrega: { tipo: 'recojo' }, envio: 0, estado: 'por_confirmar', t: { creado: t - 3 * HORA }, pagos: [] },
+      { codigo: 'W-0140', sede: 'TRU', cliente: { nombre: 'Andrea Vega', dni: '46672018', cel: '900000440' }, items: [it('casaca-peluche', 'BEI', 'Estándar', 179.9), it('cardigan-crochet', 'VAI', 'M', 92.33)], entrega: { tipo: 'recojo' }, envio: 0, estado: 'por_confirmar', t: { creado: t - 40 * MIN }, pagos: [] },
+      { codigo: 'W-0139', sede: 'TRU', cliente: { nombre: 'Paola Ruiz', dni: '70021458', cel: '900000439' }, items: [it('blusa-tiana', 'RPA', 'Estándar', 94.9)], entrega: { tipo: 'recojo' }, envio: 0, estado: 'confirmado', t: { creado: t - 3 * DIA - 2 * HORA, confirmado: t - 3 * DIA }, pagos: [], responsable: 'Ana Lazo' },
+      { codigo: 'W-0138', sede: 'TRU', cliente: { nombre: 'Carmen Díaz', dni: '45550192', cel: '900000438' }, items: [it('conjunto-ailsa', 'BEI', 'S', 158.3)], entrega: { tipo: 'recojo' }, envio: 0, estado: 'confirmado', t: { creado: t - 26 * HORA, confirmado: t - 25 * HORA }, pagos: [{ monto: 100, medio: 'Yape', op: '04812793', t: t - 24 * HORA, resp: 'Rosa Medina' }], responsable: 'Rosa Medina' },
       { codigo: 'W-0137', sede: 'TRU', cliente: { nombre: 'Lucía Ramos', dni: '72330415', cel: '900000437' }, items: [it('polo-maura', 'BLA', 'Estándar', 54.9), it('basic-ori', 'BLA', 'Estándar', 39.9)], entrega: { tipo: 'recojo' }, envio: 0, estado: 'pagado', t: { creado: t - 11 * DIA, confirmado: t - 10 * DIA, pagado: t - 9 * DIA }, pagos: [{ monto: 94.8, medio: 'Plin', op: '03712280', t: t - 9 * DIA, resp: 'Kiara Ruiz' }], boleta: 'B001-000305', codigoRecojo: '2094', responsable: 'Kiara Ruiz' },
       { codigo: 'W-0136', sede: 'LIM', cliente: { nombre: 'Gabriela León', dni: '47811230', cel: '900000436' }, items: [it('vestido-abril', 'AZM', 'Estándar', 140.8)], entrega: { tipo: 'recojo' }, envio: 0, estado: 'pagado', t: { creado: t - 30 * HORA, confirmado: t - 29 * HORA, pagado: t - 28 * HORA }, pagos: [{ monto: 140.8, medio: 'Transferencia', op: '03990021', t: t - 28 * HORA, resp: 'Ana Lazo' }], boleta: 'B001-000313', codigoRecojo: '5528', responsable: 'Ana Lazo' },
       { codigo: 'W-0135', sede: 'TRU', cliente: { nombre: 'Rocío Flores', dni: '41230987', cel: '900000435' }, items: [it('palazo-billie', 'CEL', '28', 129.9)], entrega: { tipo: 'recojo' }, envio: 0, estado: 'entregado', t: { creado: t - 3 * DIA, confirmado: t - 3 * DIA + HORA, pagado: t - 2 * DIA, entregado: t - 2 * DIA }, pagos: [{ monto: 129.9, medio: 'Efectivo', op: '', t: t - 2 * DIA, resp: 'Rosa Medina' }], boleta: 'B001-000312', codigoRecojo: '7315', responsable: 'Rosa Medina' },
-      { codigo: 'W-0134', sede: 'TRU', cliente: { nombre: 'Marta Quispe', dni: '40118833', cel: '900000434' }, items: [it('blusa-lupita', 'NEG', 'Estándar', 84.9)], entrega: null, envio: 0, estado: 'vencido', t: { creado: t - 2 * DIA, vencido: t - DIA }, pagos: [] },
+      { codigo: 'W-0134', sede: 'TRU', cliente: { nombre: 'Marta Quispe', dni: '40118833', cel: '900000434' }, items: [it('blusa-lupita', 'NEG', 'Estándar', 84.9)], entrega: { tipo: 'recojo' }, envio: 0, estado: 'vencido', t: { creado: t - 2 * DIA, vencido: t - DIA }, pagos: [] },
     ];
   }
   function estadoInicial() {
     const productos = crearProductos();
     S = {
       tab: 'recorrido', lado: 'clienta', sig: 142, boleta: 319,
-      productos, stock: stockInicial(productos),
+      productos, stock: stockInicial(productos), cuentas: CUENTAS0.map((c) => ({ ...c, cumple: { ...c.cumple } })),
       looks: LOOKS0.map((l) => ({ ...l, piezas: l.piezas.map((x, i) => ({ ...x, ...POS_LOOK[l.piezas.length][i] })) })),
       esperan: { 'vestido-roma|NEG|Estándar': 4, 'body-amir|MOK|M': 2, 'casaca-peluche|NEG|Estándar': 3 },
       pedidos: pedidosIniciales(Date.now()),
       w: {
-        ruta: 'inicio', param: null, tienda: 'todas', tiendaPedido: null, bolsa: [], favoritos: ['vestido-abril', 'blusa-malibu'], avisame: [],
+        ruta: 'portada', param: null, tienda: 'todas', tiendaPedido: null, bolsa: [], favoritos: ['vestido-abril', 'blusa-malibu'], avisame: [],
         sel: { color: null, talla: null }, filtro: { cat: 'todas', orden: 'relevancia', campana: 'todas' }, ofInicio: 'todas', look: 0, q: '',
-        logueada: false, datosOk: false, datos: { correo: '', dni: '', nombre: '', club: false, celular: '', cumple: '', acepta: false },
-        hoja: null, login: 'inicio', intento: null, pedido: null, wsp: { enviado: false }, toast: null, lookSel: null, lookTallas: {}, favLate: null, saltaBolsa: false,
+        logueada: false, datos: datosVacios(), reg: regVacio(), ent: { correo: '', clave: '', ver: false, error: '' }, olv: { paso: 1, correo: '', clave: '', ver: false },
+        hoja: null, pedido: null, wsp: { enviado: false }, toast: null, lookSel: null, lookTallas: {}, favLate: null, saltaBolsa: false,
       },
       e: { ruta: 'pedidos', sede: 'TRU', pest: 'confirmar', vit: 'modelos', hoja: null, hoja2: null, f: {}, f2: {}, sel: [], toast: null, recien: null },
     };
@@ -1822,6 +1866,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   const faltaDe = (p) => Math.max(0, r2(totalPedido(p) - pagadoDe(p)));
   const venceEn = (p) => p.t.creado + CFG.horasConfirmar * HORA - Date.now();
   const pedidoVivo = () => S.pedidos.find((p) => p.codigo === S.w.pedido) || null;
+  const esDelCliente = (p) => S.w.logueada && p.cliente.dni === S.w.datos.dni;
   const codigoRecojo = (codigo) => String(1000 + (semilla('r' + codigo) % 9000));
   const noPaga = (p) => p.estado === 'confirmado' && Date.now() - p.t.confirmado > CFG.horasPagar * HORA;
   const noRecoge = (p) => p.estado === 'pagado' && p.entrega && p.entrega.tipo === 'recojo' && Date.now() > p.t.pagado + CFG.diasRecoger * DIA;
@@ -1830,7 +1875,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   function separar() {
     const sede = S.w.tiendaPedido;
     const items = S.w.bolsa.map((b) => it(b.prod, b.color, b.talla, precioCliente(P(b.prod))));
-    const p = { codigo: 'W-0' + S.sig++, sede, cliente: { nombre: S.w.datos.nombre, dni: S.w.datos.dni, cel: S.w.datos.celular }, items, entrega: null, envio: 0, estado: 'por_confirmar', t: { creado: Date.now() }, pagos: [], propio: true };
+    const p = { codigo: 'W-0' + S.sig++, sede, cliente: { nombre: S.w.datos.nombre, dni: S.w.datos.dni, cel: S.w.datos.celular }, items, entrega: { tipo: 'recojo' }, envio: 0, estado: 'por_confirmar', t: { creado: Date.now() }, pagos: [], propio: true };
     S.pedidos.unshift(p);
     S.w.pedido = p.codigo; S.w.bolsa = []; S.w.wsp = { enviado: false }; S.w.hoja = null; S.w.ruta = 'separado';
     S.e.sede = sede; S.e.ruta = 'pedidos'; S.e.pest = 'confirmar'; S.e.recien = p.codigo; S.e.hoja = null; S.e.hoja2 = null;
@@ -1856,7 +1901,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   function anuncios() {
     const a = [];
     if (campanaActiva(CAMPANAS.aniversario)) a.push('Aniversario CAYLA · −12 % hasta el ' + fechaCorta(finCampana(CAMPANAS.aniversario)));
-    a.push('Separa online y confirma por WhatsApp', 'Mira cuánto hay en cada tienda', 'Crea tu cuenta y ya eres del Club CAYLA');
+    a.push('Separa online y recoge en tu tienda', 'Mira cuánto hay en cada tienda', 'Crea tu cuenta y ya eres del Club CAYLA');
     return a;
   }
   let idxAnuncio = 0;
@@ -1904,6 +1949,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
       (nuevo ? '<button class="t-mega-foto" data-a="t-lista" data-p="nuevo">' + imgFoto(nuevo.principal, '', nuevo.nombre) + '<span><small>Recién llegado</small><b>Lo nuevo</b><small>' + pub.filter(esNuevo).length + ' prendas de los últimos 30 días</small></span></button>' : '');
   }
   function cabT() {
+    if (!S.w.logueada) { const a = anuncios(); return '<div class="t-anuncio"><span data-anuncio>' + esc(a[idxAnuncio % a.length]) + '</span></div><header class="t-cab"><div class="t-cab-fila"><button class="t-logo" data-a="t-ir" data-r="portada" aria-label="CAYLA, ir a la portada"><img src="' + ISO + '" alt=""><span>CAYLA</span></button><span class="t-esp"></span>' + (S.w.ruta !== 'entrar' ? '<button class="t-btn t-btn-sec t-btn-chico" data-a="t-ir" data-r="entrar">Entrar</button>' : '') + (S.w.ruta !== 'registro' ? '<button class="t-btn t-btn-chico t-solo-grande" data-a="t-ir" data-r="registro">Crear mi cuenta</button>' : '') + '</div></header>'; }
     const nB = S.w.bolsa.length, nF = S.w.favoritos.length, r = S.w.ruta, prm = S.w.param;
     const cur = (k) => (r === 'lista' && prm === k ? ' aria-current="true"' : '');
     const a = anuncios();
@@ -1931,9 +1977,9 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   function pieTienda() {
     return '<footer class="t-pie"><div class="t-ancho"><div class="t-pie-in">' +
       '<div class="t-pie-marca"><span class="t-logo"><img src="' + ISO + '" alt=""><span>CAYLA</span></span><p>Moda con tiendas en Trujillo, Arequipa y Lima. Separa online, confirma por WhatsApp y recoge en tu tienda.</p></div>' +
-      '<div><h4>Comprar</h4><ul><li><button data-a="t-lista" data-p="nuevo">Lo nuevo</button></li><li><button data-a="t-lista" data-p="ofertas">Ofertas</button></li><li><button data-a="t-lista" data-p="vendidos">Más vendidos</button></li><li><button data-a="t-lista" data-p="looks">Arma tu look</button></li></ul></div>' +
+      (S.w.logueada ? '<div><h4>Comprar</h4><ul><li><button data-a="t-lista" data-p="nuevo">Lo nuevo</button></li><li><button data-a="t-lista" data-p="ofertas">Ofertas</button></li><li><button data-a="t-lista" data-p="vendidos">Más vendidos</button></li><li><button data-a="t-lista" data-p="looks">Arma tu look</button></li></ul></div>' : '<div><h4>Tu cuenta</h4><ul><li><button data-a="t-ir" data-r="registro">Crear mi cuenta</button></li><li><button data-a="t-ir" data-r="entrar">Entrar</button></li><li><button data-a="t-ir" data-r="olvide">Olvidé mi contraseña</button></li></ul></div>') +
       '<div><h4>Ayuda</h4><ul><li><button data-a="t-ir" data-r="como-separar">Cómo separar</button></li><li><button data-a="t-ir" data-r="cambios">Cambios y devoluciones</button></li><li><button data-a="t-ir" data-r="tiendas">Nuestras tiendas</button></li></ul></div>' +
-      '<div><h4>CAYLA</h4><ul><li><button data-a="t-ir" data-r="cuenta">Club CAYLA</button></li><li><button data-a="w-privacidad">Privacidad</button></li><li><button data-a="w-privacidad">Términos del club</button></li></ul></div>' +
+      '<div><h4>CAYLA</h4><ul><li><button data-a="t-ir" data-r="' + (S.w.logueada ? 'cuenta' : 'registro') + '">Club CAYLA</button></li><li><button data-a="w-privacidad">Privacidad</button></li><li><button data-a="w-privacidad">Términos del club</button></li></ul></div>' +
       '</div><p class="t-pie-legal"><span>© 2026 CAYLA · Maqueta: precios y stock de ejemplo</span><span>Sin publicidad por WhatsApp: las novedades están aquí</span></p></div></footer>';
   }
 
@@ -1946,7 +1992,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     return '<section class="t-hero"><img class="t-colibri" src="' + ISO + '" alt="">' +
       '<div class="t-hero-texto"><span class="t-hero-ceja">Campaña · hasta el ' + fechaDia(c.hasta) + '</span>' +
       '<h1 class="t-hero-tit"><span>Aniversario</span><em>CAYLA</em></h1>' +
-      '<p class="t-hero-desc"><b>−' + c.pct + ' % en prendas elegidas.</b> Sepáralas online y confírmalas por WhatsApp con tu tienda.</p>' + cuentaHTML(c) +
+      '<p class="t-hero-desc"><b>−' + c.pct + ' % en prendas elegidas.</b> Sepáralas online, confírmalas por WhatsApp y recógelas en tu tienda.</p>' + cuentaHTML(c) +
       '<div class="t-hero-acciones"><button class="t-btn t-btn-claro" data-a="t-lista" data-p="ofertas" data-c="' + c.id + '">Ver la campaña</button><button class="t-enlace" data-a="t-lista" data-p="nuevo">Ver lo nuevo ' + ic('flecha') + '</button></div></div>' +
       '<div class="t-collage">' + polaroids(piezas) + '<span class="t-hero-pct" aria-hidden="true">−' + c.pct + '%</span></div></section>';
   }
@@ -2000,10 +2046,10 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   }
   function seccionComo() {
     return '<section class="t-sec t-ancho"><div class="t-sec-cab"><div><span class="t-ceja">Sin pagar en la web</span><h2>Así se <em>separa</em></h2></div><button class="t-ver" data-a="t-ir" data-r="como-separar">Cómo funciona ' + ic('flecha') + '</button></div><ol class="t-como">' +
-      '<li><span class="t-como-ic">' + ic('tienda') + '</span><b>Elige tus prendas y tu tienda</b><span>En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima.</span></li>' +
-      '<li><span class="t-como-ic">' + ic('pedido') + '</span><b>Toca «Separar»</b><span>Se crea tu pedido con su número. No pagas nada aquí.</span></li>' +
-      '<li><span class="t-como-ic">' + ic('chat') + '</span><b>Mándalo por WhatsApp</b><span>El mensaje ya va escrito. La tienda revisa y te confirma.</span></li>' +
-      '<li><span class="t-como-ic">' + ic('bolsa') + '</span><b>Paga y recíbelo</b><span>Por WhatsApp coordinas el pago y si lo recoges o te lo envían.</span></li></ol></section>';
+      '<li><span class="t-como-ic">' + ic('persona') + '</span><b>Crea tu cuenta</b><span>Con tu correo, tu DNI y tu celular. Ya eres del Club CAYLA.</span></li>' +
+      '<li><span class="t-como-ic">' + ic('tienda') + '</span><b>Elige y toca «Separar»</b><span>Mira cuánto hay en cada tienda. No pagas nada aquí.</span></li>' +
+      '<li><span class="t-como-ic">' + ic('chat') + '</span><b>Mándalo por WhatsApp</b><span>El mensaje ya va escrito con tu número de pedido. La tienda te confirma.</span></li>' +
+      '<li><span class="t-como-ic">' + ic('bolsa') + '</span><b>Paga y recógelo</b><span>Coordinas el pago por WhatsApp y lo recoges en tu tienda.</span></li></ol></section>';
   }
   function tarjetaClub(nombre) {
     return '<div class="t-tarjeta-club" data-tilt aria-label="Tarjeta del Club CAYLA"><div class="fila"><span class="marca">CAYLA</span><img src="' + ISO + '" alt=""></div><div class="chip-oro" aria-hidden="true"></div><div class="fila"><span><small>Miembro del club</small><div class="nombre">' + esc(nombre) + '</div></span><span style="text-align:right"><small>Desde</small><div class="nombre">2026</div></span></div></div>';
@@ -2011,14 +2057,14 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   function seccionClub() {
     const nombre = S.w.logueada && S.w.datos.nombre ? S.w.datos.nombre : 'Tu nombre aquí';
     return '<section class="t-club"><div class="t-ancho t-club-in"><div class="t-revela"><span class="t-ceja">Club CAYLA</span><h2>Crea tu cuenta y <em>ya eres del club.</em></h2><ul class="t-beneficios">' +
-      '<li><span>' + ic('regalo') + '</span><span><b>Descuento en tu cumpleaños</b><small>Te lo damos en tu mes, en la web o en tienda.</small></span></li>' +
+      '<li><span>' + ic('regalo') + '</span><span><b>Descuento en tu cumpleaños</b><small>Te avisamos por WhatsApp y lo ves en tu cuenta.</small></span></li>' +
       '<li><span>' + ic('ticket') + '</span><span><b>Un vale de compra por cada año</b><small>Cada aniversario con CAYLA suma un vale.</small></span></li>' +
       '<li><span>' + ic('chispa') + '</span><span><b>Lo nuevo, primero</b><small>Lo ves aquí, en tu cuenta. Sin mensajes de publicidad.</small></span></li>' +
       '<li><span>' + ic('pedido') + '</span><span><b>Tus pedidos en un lugar</b><small>Ves cada separación, si ya la confirmaron y cuánto falta pagar.</small></span></li></ul>' +
-      (S.w.logueada ? '<button class="t-btn" data-a="t-ir" data-r="cuenta">Ver mi cuenta</button>' : '<button class="t-btn" data-a="t-entrar" data-i="cuenta">Crear mi cuenta</button>') + '</div>' + tarjetaClub(nombre) + '</div></section>';
+      (S.w.logueada ? '<button class="t-btn" data-a="t-ir" data-r="cuenta">Ver mi cuenta</button>' : '<button class="t-btn" data-a="t-ir" data-r="registro">Crear mi cuenta</button>') + '</div>' + tarjetaClub(nombre) + '</div></section>';
   }
   function seccionTiendas() {
-    return '<section class="t-sec t-ancho"><div class="t-sec-cab"><div><span class="t-ceja">Mira lo que hay en cada una</span><h2>Nuestras <em>tiendas</em></h2></div></div><div class="t-tiendas">' + ORDEN_SEDES.map((s) => '<div class="t-tienda">' + ic('tienda') + '<b>' + SEDES[s].nombre + '</b><small>' + SEDES[s].direccion + ' (dirección de ejemplo)<br>' + SEDES[s].horario + '<br>WhatsApp +51 ' + SEDES[s].wsp + ' (de ejemplo)</small><button class="t-enlace" data-a="t-tienda" data-s="' + s + '" aria-pressed="' + (S.w.tienda === s) + '" style="align-self:flex-start">' + (S.w.tienda === s ? 'Viendo lo de ' + SEDES[s].nombre : 'Ver solo lo que hay aquí') + '</button></div>').join('') + '</div></section>';
+    return '<section class="t-sec t-ancho"><div class="t-sec-cab"><div><span class="t-ceja">' + (S.w.logueada ? 'Mira lo que hay en cada una' : 'Recoge en la que te quede cerca') + '</span><h2>Nuestras <em>tiendas</em></h2></div></div><div class="t-tiendas">' + ORDEN_SEDES.map((s) => '<div class="t-tienda">' + ic('tienda') + '<b>' + SEDES[s].nombre + '</b><small>' + SEDES[s].direccion + ' (dirección de ejemplo)<br>' + SEDES[s].horario + '<br>WhatsApp +51 ' + SEDES[s].wsp + ' (de ejemplo)</small>' + (S.w.logueada ? '<button class="t-enlace" data-a="t-tienda" data-s="' + s + '" aria-pressed="' + (S.w.tienda === s) + '" style="align-self:flex-start">' + (S.w.tienda === s ? 'Viendo lo de ' + SEDES[s].nombre : 'Ver solo lo que hay aquí') + '</button>' : '') + '</div>').join('') + '</div></section>';
   }
 
   /* ---- Listas ---- */
@@ -2095,7 +2141,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     const favBtn = '<button class="t-fav-grande' + (S.w.favLate === p.id ? ' late' : '') + '" data-a="t-fav" data-id="' + p.id + '" aria-pressed="' + fav + '" aria-label="' + (fav ? 'Quitar de favoritos' : 'Guardar en favoritos') + '">' + ic('corazon') + '</button>';
     // Otra persona separó la última unidad de esta talla en la tienda que mira (propuesta k).
     let competencia = '';
-    if (tal && S.w.tienda !== 'todas') { const n = enTienda(p.id, S.w.tienda, col.id, tal); const otros = S.pedidos.filter((x) => x.estado === 'por_confirmar' && x.sede === S.w.tienda && !x.propio && vivos(x).some((y) => y.prod === p.id && y.color === col.id && y.talla === tal)).length; if (n > 0 && otros >= n) competencia = '<p class="t-aviso-suave">' + ic('reloj') + (n === 1 ? 'Otra persona ya separó la última' : 'Otras personas ya separaron las que quedan') + ' en ' + SEDES[S.w.tienda].nombre + '. Igual puedes separarla: la tienda te confirma o te ofrece otra opción.</p>'; }
+    if (tal && S.w.tienda !== 'todas') { const n = enTienda(p.id, S.w.tienda, col.id, tal); const otros = S.pedidos.filter((x) => x.estado === 'por_confirmar' && x.sede === S.w.tienda && x.cliente.dni !== S.w.datos.dni && vivos(x).some((y) => y.prod === p.id && y.color === col.id && y.talla === tal)).length; if (n > 0 && otros >= n) competencia = '<p class="t-aviso-suave">' + ic('reloj') + (n === 1 ? 'Otra persona ya separó la última' : 'Otras personas ya separaron las que quedan') + ' en ' + SEDES[S.w.tienda].nombre + '. Igual puedes separarla: la tienda te confirma o te ofrece otra opción.</p>'; }
     const enBolsaYa = S.w.bolsa.length ? '<button class="t-enlace" data-a="t-ir" data-r="bolsa" style="align-self:center">Ver mi bolsa (' + S.w.bolsa.length + ')</button>' : '';
     const look = S.looks.find((l) => l.publicado && l.piezas.some((x) => x.prod === p.id));
     const combina = look ? look.piezas.filter((x) => x.prod !== p.id).map((x) => P(x.prod)).filter(Boolean) : [];
@@ -2110,7 +2156,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
         '<div class="t-bloque"><span class="t-etq">Talla <button class="t-enlace t-guia-tallas" data-a="t-hoja" data-h="tallas">Guía de tallas</button></span><div class="t-tallas">' + tallas + '</div></div>' +
         tablaStock(p, col, tal) + competencia +
         '<div class="t-cta-linea t-solo-grande">' + cta + favBtn + '</div>' + enBolsaYa +
-        '<div class="t-acordeon"><details open><summary>Cómo funciona separar ' + ic('chevron') + '</summary><p>Agrega tus prendas, elige tu tienda y toca «Separar». Se crea tu pedido con su número; lo mandas por WhatsApp y la tienda revisa que esté y te confirma. No pagas nada en la web: el pago y la entrega se coordinan por WhatsApp.</p></details>' +
+        '<div class="t-acordeon"><details open><summary>Cómo funciona separar ' + ic('chevron') + '</summary><p>Agrega tus prendas, elige tu tienda y toca «Separar». Se crea tu pedido con su número; lo mandas por WhatsApp y la tienda revisa que esté y te confirma. No pagas nada en la web: el pago se coordina por WhatsApp y lo recoges en tu tienda.</p></details>' +
         '<details><summary>Detalles ' + ic('chevron') + '</summary><p>' + esc(p.descripcion) + ' Foto, nombre, colores y tallas reales de tu catálogo; la descripción, el precio y el stock son de ejemplo.</p></details>' +
         '<details><summary>Cambios ' + ic('chevron') + '</summary><p>Borrador: cambio en cualquier tienda CAYLA dentro de 7 días con tu boleta y la etiqueta puesta.</p></details></div>' +
         '</div></div>' +
@@ -2143,52 +2189,122 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     const tiendas = '<div class="w-lista">' + ORDEN_SEDES.map((s) => { const cv = cobertura(s); const resto = cv.total - cv.ahi - cv.ninguna; return '<button class="w-opcion t-op-tienda" data-a="t-tienda-pedido" data-s="' + s + '" aria-pressed="' + (sede === s) + '"><span class="w-opcion-cab"><span class="w-radio"></span><span class="w-opcion-t"><b>' + SEDES[s].tienda + '</b><small>' + (cv.ahi === cv.total ? 'Tiene todo lo que elegiste' : 'Tiene ' + cv.ahi + ' de ' + cv.total + (resto > 0 ? '; lo demás lo trae de otra tienda' : '')) + '</small></span>' + ic('tienda') + '</span></button>'; }).join('') + '</div>';
     const sub = r2(S.w.bolsa.reduce((a, b) => a + precioCliente(P(b.prod)), 0));
     const ahorro = r2(S.w.bolsa.reduce((a, b) => a + (P(b.prod).web - precioCliente(P(b.prod))), 0));
-    const resumen = '<div class="w-resumen"><div><span>Prendas (' + S.w.bolsa.length + ')</span><span class="num">' + soles(sub) + '</span></div>' + (ahorro > 0 ? '<div><span>Ahorras con las campañas</span><span class="num t-ahorro">−' + soles(ahorro) + '</span></div>' : '') + '<div class="tot"><span>Total de tu pedido</span><span class="num">' + soles(sub) + '</span></div><small>El pago y la entrega se coordinan por WhatsApp con la tienda.</small></div>';
+    const resumen = '<div class="w-resumen"><div><span>Prendas (' + S.w.bolsa.length + ')</span><span class="num">' + soles(sub) + '</span></div>' + (ahorro > 0 ? '<div><span>Ahorras con las campañas</span><span class="num t-ahorro">−' + soles(ahorro) + '</span></div>' : '') + '<div class="tot"><span>Total de tu pedido</span><span class="num">' + soles(sub) + '</span></div><small>El pago se coordina por WhatsApp con la tienda, y lo recoges ahí.</small></div>';
     const listo = sede && !agotada;
     const pieTxt = '<p class="w-faltan">' + (agotada ? '<b>Hay una prenda agotada.</b> Quítala para separar.' : !sede ? 'Falta: <b>elegir la tienda</b>' : 'No pagas nada ahora: ' + SEDES[sede].tienda + ' te confirma por WhatsApp.') + '</p><button class="t-btn t-btn-ancho" data-a="t-separar"' + (listo ? '' : ' disabled') + '>' + ic('pedido') + (sede ? 'Separar en ' + SEDES[sede].nombre : 'Separar') + '</button>';
     return {
       pieEnLinea: false,
-      cuerpo: '<div class="t-pagina"><div class="t-ancho"><header class="t-lista-cab" style="padding-top:20px"><span class="t-ceja">Tu bolsa</span><h1>' + S.w.bolsa.length + (S.w.bolsa.length === 1 ? ' prenda' : ' prendas') + ' <em>por separar</em></h1></header><div class="t-bolsa" style="padding-top:0"><div><div class="t-bolsa-items">' + items + '</div><div class="w-bloque" style="margin-top:22px" data-campo="tienda" data-estado="' + (sede ? 'hecho' : 'sigue') + '"><span class="w-lbl">¿En qué tienda lo separas? <span class="w-marca">' + (sede ? '✓ Listo' : 'Sigue aquí') + '</span></span>' + tiendas + '</div></div><aside class="t-resumen"><h3>Resumen</h3>' + resumen + '<div class="t-solo-grande t-resumen-acc">' + pieTxt + '</div></aside></div></div>' + pieTienda() + '</div>',
+      cuerpo: '<div class="t-pagina"><div class="t-ancho"><header class="t-lista-cab" style="padding-top:20px"><span class="t-ceja">Tu bolsa</span><h1>' + S.w.bolsa.length + (S.w.bolsa.length === 1 ? ' prenda' : ' prendas') + ' <em>por separar</em></h1></header><div class="t-bolsa" style="padding-top:0"><div><div class="t-bolsa-items">' + items + '</div><div class="w-bloque" style="margin-top:22px" data-campo="tienda" data-estado="' + (sede ? 'hecho' : 'sigue') + '"><span class="w-lbl">¿En qué tienda lo recoges? <span class="w-marca">' + (sede ? '✓ Listo' : 'Sigue aquí') + '</span></span>' + tiendas + '</div></div><aside class="t-resumen"><h3>Resumen</h3>' + resumen + '<div class="t-solo-grande t-resumen-acc">' + pieTxt + '</div></aside></div></div>' + pieTienda() + '</div>',
       pie: pieTxt,
     };
   }
 
-  /* ---- Crear la cuenta (y entrar al club) ---- */
-  function faltanDatos() {
-    const d = S.w.datos, f = [];
-    if (!(d.dni.length === 8 && d.nombre)) f.push(['dni', 'tu DNI']);
-    if (!/^9\d{8}$/.test(d.celular)) f.push(['cel', 'tu celular']);
-    if (!d.acepta) f.push(['acepta', 'aceptar los términos']);
-    return f;
-  }
-  function resDni() {
-    const d = S.w.datos;
-    if (d.dni.length < 8) return '<p class="w-ayuda">Buscamos tu nombre solo, para tu boleta.</p>';
-    if (!d.nombre) return '<p class="w-ayuda">Buscando tu nombre…</p>';
-    return '<span class="w-res-ok">' + ic('check') + esc(d.nombre) + '</span>' + (d.club ? '<span class="w-club"><img src="' + ISO + '" alt="">Ya eras del Club CAYLA · tu talla guardada: M</span>' : '');
-  }
-  function vDatos() {
-    const d = S.w.datos;
-    const destino = S.w.intento && S.w.intento.tipo === 'separar' ? 'Crear mi cuenta y separar' : 'Crear mi cuenta';
+  /* ---- Sin cuenta solo se ve la portada; con cuenta, el catálogo (decisión de Felipe, 2026-10-14) ---- */
+  function datosVacios() { return { correo: '', dni: '', nombre: '', club: false, celular: '', cumple: { d: '', m: '', a: '' } }; }
+  function regVacio() { return { correo: '', clave: '', dni: '', nombre: '', club: false, celular: '', d: '', m: '', a: '', acepta: false, ver: false }; }
+  const correoValido = (c) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(c).trim());
+  const ARREGLOS_CORREO = { 'gmial.com': 'gmail.com', 'gmal.com': 'gmail.com', 'gamil.com': 'gmail.com', 'gnail.com': 'gmail.com', 'gmail.co': 'gmail.com', 'gmail.con': 'gmail.com', 'hotmial.com': 'hotmail.com', 'hotmal.com': 'hotmail.com', 'hotmail.con': 'hotmail.com', 'outlok.com': 'outlook.com', 'outlook.con': 'outlook.com', 'yahoo.con': 'yahoo.com', 'yaho.com': 'yahoo.com' };
+  function arregloCorreo(c) { const [u, d] = String(c).trim().toLowerCase().split('@'); return u && d && ARREGLOS_CORREO[d] ? u + '@' + ARREGLOS_CORREO[d] : null; }
+  const cuentaPorCorreo = (c) => S.cuentas.find((x) => x.correo === String(c).trim().toLowerCase());
+  const cuentaPorDni = (d) => S.cuentas.find((x) => x.dni === d);
+  const diasMes = (m) => [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1] || 31;
+  const cumpleTxt = (c) => (c && c.d && c.m ? Number(c.d) + ' de ' + MESES[Number(c.m) - 1] : '');
+  function vPortada() {
+    const c = CAMPANAS.aniversario, activa = campanaActiva(c);
     return {
-      pie: '<p class="w-faltan" data-w-faltan></p><button class="t-btn t-btn-ancho" data-a="w-datos-ok" data-w-datos-ok>' + destino + '</button>',
+      cuerpo: '<div class="t-pagina"><section class="t-hero t-portada"><img class="t-colibri" src="' + ISO + '" alt="">' +
+        '<div class="t-hero-texto">' + (activa ? '<span class="t-hero-ceja">Campaña · hasta el ' + fechaDia(c.hasta) + '</span><h1 class="t-hero-tit"><span>Aniversario</span><em>CAYLA</em></h1><p class="t-hero-desc"><b>−' + c.pct + ' % en prendas elegidas.</b> Entra para ver el catálogo, el stock de cada tienda y separar.</p>' + cuentaHTML(c) : '<span class="t-hero-ceja">Tienda online</span><h1 class="t-hero-tit"><span>Bienvenido a</span><em>CAYLA</em></h1><p class="t-hero-desc">Entra para ver el catálogo, el stock de cada tienda y separar.</p>') +
+        '<div class="t-hero-acciones"><button class="t-btn t-btn-claro" data-a="t-ir" data-r="registro">Crear mi cuenta</button><button class="t-enlace" data-a="t-ir" data-r="entrar">Ya tengo cuenta · Entrar ' + ic('flecha') + '</button></div></div>' +
+        '<div class="t-portada-club">' + tarjetaClub('Tu nombre aquí') + '<p>Al crear tu cuenta ya eres miembro del Club CAYLA.</p></div></section>' +
+        seccionComo() + seccionClub() + seccionTiendas() + pieTienda() + '</div>',
+    };
+  }
+  function estadoRegistro() {
+    const r = S.w.reg, correo = r.correo.trim().toLowerCase(), e = {};
+    const dominio = correo.split('@')[1] || '';
+    e.correo = !correo ? 'falta' : !correoValido(correo) ? (dominio.includes('.') ? 'mal' : 'falta') : cuentaPorCorreo(correo) ? 'repetido' : 'ok';
+    e.clave = r.clave.length >= 8 ? 'ok' : 'falta';
+    e.dni = r.dni.length < 8 ? 'falta' : cuentaPorDni(r.dni) ? 'repetido' : r.nombre ? 'ok' : 'buscando';
+    e.cel = /^9\d{8}$/.test(r.celular) ? 'ok' : 'falta';
+    const d = Number(r.d), m = Number(r.m), a = Number(r.a), hoyA = new Date().getFullYear();
+    const fechaOk = m >= 1 && m <= 12 && d >= 1 && d <= diasMes(m) && (!r.a || (r.a.length === 4 && a >= 1920 && a <= hoyA - 10));
+    e.cumple = !r.d || !r.m ? 'falta' : fechaOk ? 'ok' : 'mal';
+    e.acepta = r.acepta ? 'ok' : 'falta';
+    return e;
+  }
+  const CAMPOS_REG = [['correo', 'tu correo'], ['clave', 'tu contraseña'], ['dni', 'tu DNI'], ['cel', 'tu celular'], ['cumple', 'tu cumpleaños'], ['acepta', 'aceptar los términos']];
+  const faltanRegistro = () => { const e = estadoRegistro(); return CAMPOS_REG.filter((x) => e[x[0]] !== 'ok'); };
+  const campoW = (k, etiqueta, control) => '<div class="w-campo" data-campo="' + k + '"><label for="w-' + k + '">' + etiqueta + ' <span class="w-marca" data-marca="' + k + '"></span></label>' + control + '<div class="w-res" id="w-' + k + '-res"></div></div>';
+  const cajaClave = (id, f, valor, entrada, auto) => '<div class="w-caja-clave"><input id="' + id + '" class="w-caja" type="' + (S.w[f].ver ? 'text' : 'password') + '" autocomplete="' + auto + '" value="' + esc(valor) + '" data-in="' + entrada + '"><button type="button" class="w-ver" data-a="w-ver" data-f="' + f + '" aria-pressed="' + S.w[f].ver + '">' + (S.w[f].ver ? 'Ocultar' : 'Ver') + '</button></div>';
+  function vRegistro() {
+    const r = S.w.reg;
+    return {
+      pie: '<p class="w-faltan" data-reg-faltan></p><button class="t-btn t-btn-ancho" data-a="w-crear" data-reg-ok>Crear mi cuenta</button>',
       cuerpo: '<div class="t-pagina"><div class="t-ancho t-angosto"><div class="w-ficha">' +
-        '<div><span class="t-ceja">Solo la primera vez</span><h2 class="w-titulo" style="margin-top:6px">Crea tu cuenta y <em>ya eres del club.</em></h2><p class="w-texto-sec" style="margin-top:8px">Con tu DNI te reconocemos en cualquier tienda y sale tu boleta. A tu celular te escribe la tienda solo por tus pedidos.</p></div>' +
-        '<div class="w-campo" data-campo="dni"><label for="w-dni">DNI <span class="w-marca" data-marca="dni"></span></label><input id="w-dni" class="w-caja num" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="8 dígitos" value="' + esc(d.dni) + '" data-in="w-dni"><div class="w-res" id="w-dni-res">' + resDni() + '</div></div>' +
-        '<div class="w-campo" data-campo="cel"><label for="w-cel">Celular con WhatsApp <span class="w-marca" data-marca="cel"></span></label><div class="w-caja-pref"><span>+51</span><input id="w-cel" class="w-caja num" inputmode="tel" maxlength="9" autocomplete="tel-national" placeholder="9 dígitos" value="' + esc(d.celular) + '" data-in="w-cel"></div><p class="w-ayuda">Desde este número mandas tu pedido. No mandamos publicidad.</p></div>' +
-        '<div class="w-campo"><label for="w-cumple">Tu cumpleaños <span class="w-marca">opcional</span></label><input id="w-cumple" class="w-caja" placeholder="Día y mes, ej. 14 de octubre" value="' + esc(d.cumple) + '" data-in="w-cumple"><p class="w-ayuda">Para tu descuento de cumpleaños del club.</p></div>' +
-        '<div class="w-campo" data-campo="acepta"><label class="w-check"><input type="checkbox" id="w-acepta" data-in="w-acepta"' + (d.acepta ? ' checked' : '') + '><span>Acepto crear mi cuenta y unirme al Club CAYLA, y que CAYLA use mis datos para mis pedidos y beneficios, como dicen la <u>política de privacidad</u> y los <u>términos del club</u>. <span class="w-marca" data-marca="acepta"></span></span></label></div>' +
-        '<div class="w-info">' + ic('chispa') + '<span><b>Las novedades las ves aquí.</b><small>En tu cuenta aparece lo nuevo desde tu última visita. No te mandamos publicidad por WhatsApp.</small></span></div>' +
+        '<div><span class="t-ceja">Crea tu cuenta</span><h2 class="w-titulo" style="margin-top:6px">Entra al catálogo y <em>ya eres del club.</em></h2><p class="w-texto-sec" style="margin-top:8px">Una sola vez. Con tu DNI te reconocemos en cualquier tienda y sale tu boleta.</p></div>' +
+        campoW('correo', 'Correo', '<input id="w-correo" class="w-caja" type="email" inputmode="email" autocomplete="email" placeholder="tucorreo@gmail.com" value="' + esc(r.correo) + '" data-in="w-reg-correo">') +
+        campoW('clave', 'Contraseña', cajaClave('w-clave', 'reg', r.clave, 'w-reg-clave', 'new-password')) +
+        campoW('dni', 'DNI', '<input id="w-dni" class="w-caja num" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="8 dígitos" value="' + esc(r.dni) + '" data-in="w-reg-dni">') +
+        campoW('cel', 'Celular con WhatsApp', '<div class="w-caja-pref"><span>+51</span><input id="w-cel" class="w-caja num" inputmode="tel" maxlength="9" autocomplete="tel-national" placeholder="9 dígitos" value="' + esc(r.celular) + '" data-in="w-reg-cel"></div>') +
+        campoW('cumple', 'Tu cumpleaños', '<div class="w-cumple"><input id="w-cumple" class="w-caja num" inputmode="numeric" maxlength="2" placeholder="Día" aria-label="Día" value="' + esc(r.d) + '" data-in="w-reg-d"><input class="w-caja num" inputmode="numeric" maxlength="2" placeholder="Mes" aria-label="Mes, del 1 al 12" value="' + esc(r.m) + '" data-in="w-reg-m"><input class="w-caja num" inputmode="numeric" maxlength="4" placeholder="Año (opcional)" aria-label="Año, opcional" value="' + esc(r.a) + '" data-in="w-reg-a"></div>') +
+        '<div class="w-campo" data-campo="acepta"><label class="w-check"><input type="checkbox" id="w-acepta" data-in="w-reg-acepta"' + (r.acepta ? ' checked' : '') + '><span>Acepto crear mi cuenta y unirme al Club CAYLA, y que CAYLA use mis datos para mis pedidos y beneficios, como dicen la <u>política de privacidad</u> y los <u>términos del club</u>. <span class="w-marca" data-marca="acepta"></span></span></label></div>' +
+        '<p class="w-texto-sec">¿Ya tienes cuenta? <button class="w-enlace" data-a="t-ir" data-r="entrar">Entra</button></p>' +
         '</div></div></div>',
     };
   }
-  function guiaDatos() {
-    const f = faltanDatos(), d = S.w.datos;
-    const hecho = { dni: d.dni.length === 8 && !!d.nombre, cel: /^9\d{8}$/.test(d.celular), acepta: d.acepta };
-    const primero = f.length ? f[0][0] : null;
-    $$('.tienda [data-campo]').forEach((el) => { const k = el.dataset.campo; if (!(k in hecho)) return; const est = hecho[k] ? 'hecho' : k === primero ? 'sigue' : 'falta'; el.dataset.estado = est; const m = el.querySelector('[data-marca]'); if (m) m.textContent = est === 'hecho' ? '✓ Listo' : est === 'sigue' ? 'Sigue aquí' : ''; });
-    $$('[data-w-faltan]').forEach((x) => { x.innerHTML = f.length ? 'Falta: <b>' + f.map((y) => y[1]).join(', ') + '</b>' : 'Todo listo.'; });
-    $$('[data-w-datos-ok]').forEach((b) => { b.disabled = f.length > 0; });
+  function guiaRegistro() {
+    const e = estadoRegistro(), r = S.w.reg, falta = faltanRegistro(), primero = falta.length ? falta[0][0] : null;
+    $$('.tienda [data-campo]').forEach((el) => {
+      const k = el.dataset.campo; if (!(k in e)) return;
+      const est = e[k] === 'ok' ? 'hecho' : e[k] === 'mal' || e[k] === 'repetido' ? 'error' : k === primero ? 'sigue' : 'falta';
+      el.dataset.estado = est;
+      const m = el.querySelector('[data-marca]'); if (m) m.textContent = est === 'hecho' ? '✓ Listo' : est === 'error' ? 'Revisa' : est === 'sigue' ? 'Sigue aquí' : '';
+    });
+    const pone = (id, html) => $$('#' + id).forEach((x) => { if (x.innerHTML !== html) x.innerHTML = html; });
+    const sug = arregloCorreo(r.correo);
+    pone('w-correo-res', e.correo === 'repetido' ? '<span class="w-res-error">Ya hay una cuenta con este correo.</span><span class="w-res-acc"><button class="w-enlace" data-a="t-ir" data-r="entrar">Entrar</button><button class="w-enlace" data-a="w-olvide-desde">Olvidé mi contraseña</button></span>'
+      : sug ? '<span class="w-res-aviso">¿Quisiste decir <b>' + esc(sug) + '</b>?</span><button class="w-enlace" data-a="w-usar-correo" data-c="' + esc(sug) + '">Usar este correo</button>'
+      : e.correo === 'mal' ? '<span class="w-res-error">A este correo le falta algo: revisa lo que va después de la @.</span>'
+      : '<p class="w-ayuda">Escríbelo bien: si olvidas tu contraseña, te llega un enlace a este correo.</p>');
+    pone('w-clave-res', r.clave && r.clave.length < 8 ? '<p class="w-ayuda">Te ' + (8 - r.clave.length === 1 ? 'falta 1 carácter' : 'faltan ' + (8 - r.clave.length) + ' caracteres') + '.</p>' : '<p class="w-ayuda">8 caracteres o más. Solo tú la sabes.</p>');
+    pone('w-dni-res', e.dni === 'repetido' ? '<span class="w-res-error">Ya hay una cuenta con este DNI.</span><span class="w-res-acc"><button class="w-enlace" data-a="t-ir" data-r="entrar">Entrar</button><button class="w-enlace" data-a="t-ir" data-r="olvide">Olvidé mi contraseña</button></span>'
+      : e.dni === 'buscando' ? '<p class="w-ayuda">Buscando tu nombre…</p>'
+      : e.dni === 'ok' ? '<span class="w-res-ok">' + ic('check') + esc(r.nombre) + '</span>' + (r.club ? '<span class="w-club"><img src="' + ISO + '" alt="">Ya eras del Club CAYLA: tu cuenta se une a tu ficha</span>' : '')
+      : '<p class="w-ayuda">Buscamos tu nombre solo, para tu boleta. Cada DNI tiene una sola cuenta.</p>');
+    pone('w-cel-res', '<p class="w-ayuda">Por aquí te escribe la tienda por tus pedidos y te llegan los avisos del club. Sin publicidad.</p>');
+    pone('w-cumple-res', e.cumple === 'mal' ? '<span class="w-res-error">Revisa el día, el mes (del 1 al 12) y el año.</span>' : e.cumple === 'ok' ? '<span class="w-res-ok">' + ic('regalo') + 'Tu cumpleaños: ' + cumpleTxt({ d: r.d, m: r.m }) + '</span>' : '<p class="w-ayuda">Día y mes; el año es opcional. Es para tu descuento de cumpleaños.</p>');
+    $$('[data-reg-faltan]').forEach((x) => { x.innerHTML = falta.length ? 'Falta: <b>' + falta.map((y) => y[1]).join(', ') + '</b>' : 'Todo listo. Tu correo: <b>' + esc(r.correo.trim().toLowerCase()) + '</b>'; });
+    $$('[data-reg-ok]').forEach((b) => { b.disabled = falta.length > 0; });
+  }
+  function vEntrar() {
+    const n = S.w.ent, listo = correoValido(n.correo) && n.clave.length >= 8;
+    return {
+      pie: '<button class="t-btn t-btn-ancho" data-a="w-entrar" data-ent-ok' + (listo ? '' : ' disabled') + '>Entrar</button>',
+      cuerpo: '<div class="t-pagina"><div class="t-ancho t-angosto"><div class="w-ficha">' +
+        '<div><span class="t-ceja">Tu cuenta</span><h2 class="w-titulo" style="margin-top:6px">Entra para ver <em>el catálogo.</em></h2></div>' +
+        '<div class="w-campo"><label for="w-ent-correo">Correo</label><input id="w-ent-correo" class="w-caja" type="email" inputmode="email" autocomplete="email" value="' + esc(n.correo) + '" data-in="w-ent-correo"></div>' +
+        '<div class="w-campo"><label for="w-ent-clave">Contraseña</label>' + cajaClave('w-ent-clave', 'ent', n.clave, 'w-ent-clave', 'current-password') + '</div>' +
+        (n.error ? '<div class="w-res"><span class="w-res-error">' + n.error + '</span></div>' : '') +
+        '<button class="w-enlace w-enlace-izq" data-a="t-ir" data-r="olvide">Olvidé mi contraseña</button>' +
+        '<p class="w-texto-sec">¿Primera vez? <button class="w-enlace" data-a="t-ir" data-r="registro">Crea tu cuenta</button></p>' +
+        '<p class="w-ayuda">Maqueta: entra con lucia.ramos@gmail.com y cualquier contraseña de 8 caracteres o más.</p>' +
+        '</div></div></div>',
+    };
+  }
+  function vOlvide() {
+    const o = S.w.olv;
+    let c;
+    if (o.paso === 1) c = '<div><span class="t-ceja">Olvidé mi contraseña</span><h2 class="w-titulo" style="margin-top:6px">Te mandamos un enlace <em>a tu correo.</em></h2><p class="w-texto-sec" style="margin-top:8px">Escribe el correo con el que creaste tu cuenta.</p></div>' +
+      '<div class="w-campo"><label for="w-olv-correo">Correo</label><input id="w-olv-correo" class="w-caja" type="email" inputmode="email" autocomplete="email" value="' + esc(o.correo) + '" data-in="w-olv-correo"></div>' +
+      '<button class="t-btn t-btn-ancho" data-a="w-olv-enviar" data-olv-ok' + (correoValido(o.correo) ? '' : ' disabled') + '>Enviarme el enlace</button>' +
+      '<button class="w-enlace" data-a="t-ir" data-r="entrar">Volver a entrar</button>';
+    else if (o.paso === 2) c = '<span class="w-sobre">' + ic('sobre') + '</span><h2 class="w-titulo" style="text-align:center">Revisa tu correo</h2><p class="w-texto-sec" style="text-align:center">Si hay una cuenta con <b>' + esc(o.correo.trim().toLowerCase()) + '</b>, te llega un enlace para crear una contraseña nueva. Vence en 30 minutos.</p>' +
+      (cuentaPorCorreo(o.correo) ? '<button class="t-btn t-btn-ancho" data-a="w-olv-abri">Simular: abrí el enlace</button>' : '<p class="w-ayuda" style="text-align:center">En la maqueta ese correo no tiene cuenta, así que no llega nada. Por seguridad, la web dice lo mismo en los dos casos.</p>') +
+      '<button class="w-enlace" data-a="w-olv-otro">Usar otro correo</button>';
+    else c = '<div><span class="t-ceja">Contraseña nueva</span><h2 class="w-titulo" style="margin-top:6px">Crea tu contraseña <em>nueva.</em></h2></div>' +
+      '<div class="w-campo"><label for="w-olv-clave">Contraseña nueva</label>' + cajaClave('w-olv-clave', 'olv', o.clave, 'w-olv-clave', 'new-password') + '<p class="w-ayuda">8 caracteres o más.</p></div>' +
+      '<button class="t-btn t-btn-ancho" data-a="w-olv-guardar" data-olv-ok' + (o.clave.length >= 8 ? '' : ' disabled') + '>Guardar y entrar</button>';
+    return { cuerpo: '<div class="t-pagina"><div class="t-ancho t-angosto"><div class="w-ficha">' + c + '</div></div></div>' };
   }
 
   /* ---- Separado, WhatsApp y el estado del pedido ---- */
@@ -2210,7 +2326,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
       cuerpo: '<div class="t-pagina"><div class="t-ancho t-angosto"><div class="w-ficha">' +
         '<div class="t-separado-cab"><span class="t-sello">' + ic('check') + '</span><span class="t-ceja">Pedido ' + p.codigo + ' · por confirmar</span><h2 class="w-titulo">¡Listo, <em>lo separaste!</em></h2><p class="w-texto-sec">Ahora mándalo por WhatsApp a ' + sede.tienda + ' para que te confirmen la separación.</p></div>' +
         '<div class="w-reloj">' + ic('reloj') + '<span>Sin confirmar, se cierra en</span><b class="num" data-vence="' + p.codigo + '">' + hhmmss(venceEn(p)) + '</b></div>' +
-        '<ol class="w-pasos"><li><span>Envía el mensaje por WhatsApp<small>Ya va escrito, con tu número de pedido ' + p.codigo + '.</small></span></li><li><span>' + sede.tienda + ' te confirma<small>Revisa que tus prendas estén y te responde por el mismo chat.</small></span></li><li><span>Coordinan el pago y la entrega<small>Por WhatsApp: cómo pagas y si lo recoges o te lo envían.</small></span></li></ol>' +
+        '<ol class="w-pasos"><li><span>Envía el mensaje por WhatsApp<small>Ya va escrito, con tu número de pedido ' + p.codigo + '.</small></span></li><li><span>' + sede.tienda + ' te confirma<small>Revisa que tus prendas estén y te responde por el mismo chat.</small></span></li><li><span>Coordinan el pago y lo recoges<small>Por WhatsApp acuerdan cómo pagas, y lo recoges en ' + sede.tienda + '.</small></span></li></ol>' +
         '<div class="t-solo-grande t-separado-acc">' + boton + '</div>' +
         '<div class="w-tarjeta"><span class="w-lbl">Tu pedido · ' + sede.tienda + '</span>' + lineasPedido(p) + '<div class="w-resumen"><div class="tot"><span>Total</span><span class="num">' + soles(totalPedido(p)) + '</span></div></div></div>' +
         '<button class="w-enlace" data-a="t-ver-pedido-vivo">Ver el estado de mi pedido</button>' +
@@ -2236,13 +2352,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     const idx = cerrado ? 0 : orden.indexOf(p.estado === 'enviado' ? 'pagado' : p.estado);
     return '<ol class="w-linea">' + orden.map((k, i) => { const e = i <= idx ? 'hecho' : !cerrado && i === idx + 1 ? 'ahora' : 'falta'; return '<li class="w-hito" data-e="' + e + '"><span class="w-hito-p">' + (e === 'hecho' ? ic('check') : '') + '</span><span>' + nombres[k] + (t[k] ? '<small>' + fechaCorta(t[k]) + ', ' + hora(t[k]) + '</small>' : '') + '</span></li>'; }).join('') + '</ol>';
   }
-  function entregaCliente(p) {
-    const sede = SEDES[p.sede];
-    if (!p.entrega) return 'Se coordina por WhatsApp';
-    if (p.entrega.tipo === 'recojo') return 'Recojo en ' + sede.tienda;
-    if (p.entrega.tipo === 'local') return 'Envío a domicilio en ' + sede.nombre + ' · ' + soles(p.envio);
-    return 'Agencia a ' + esc(p.entrega.ciudad) + ' (el envío lo pagas al recoger)';
-  }
+  const entregaCliente = (p) => 'Recojo en ' + SEDES[p.sede].tienda;
   function vPedido() {
     const p = pedidoVivo();
     if (!p) return { cuerpo: '<div class="t-pagina"><div class="t-ancho"><div class="t-vacio">' + ic('pedido') + '<h3>Aún no tienes pedidos</h3><button class="t-btn" data-a="t-ir" data-r="inicio">Ir al inicio</button></div></div></div>' };
@@ -2250,10 +2360,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     const pag = pagadoDe(p), falta = faltaDe(p);
     if (p.estado === 'por_confirmar') { cab = '<span class="w-estado-chip t-ambar">Por confirmar</span><h2 class="w-titulo">Falta que <em>' + sede.tienda + '</em> lo confirme.</h2><p class="w-texto-sec">Ya lo separaste. Falta que la tienda revise que todo esté y te confirme. Si nadie lo confirma, se cierra en <b class="num" data-vence="' + p.codigo + '">' + hhmmss(venceEn(p)) + '</b>.</p>'; extra = '<button class="t-btn t-btn-ancho t-btn-wsp" data-a="t-wsp">' + ic('chat') + (S.w.wsp.enviado ? 'Escribir por WhatsApp' : 'Enviar por WhatsApp') + '</button>'; }
     else if (p.estado === 'confirmado') { cab = '<span class="w-estado-chip t-verde">Confirmado</span><h2 class="w-titulo">¡Confirmado! <em>Ya es tuyo.</em></h2><p class="w-texto-sec">' + sede.tienda + ' lo guardó para ti. ' + (vivos(p).some((i) => i.encargo) ? 'Una prenda llega el ' + fechaCorta(Math.max.apply(null, vivos(p).filter((i) => i.encargo).map((i) => i.encargo))) + ' y te avisan. ' : '') + (pag > 0 ? 'Ya pagaste una parte: falta ' + soles(falta) + '.' : 'Coordina el pago por WhatsApp.') + '</p>'; }
-    else if (p.estado === 'pagado' && !p.entrega) cab = '<span class="w-estado-chip t-verde">Pagado</span><h2 class="w-titulo">Pagado: <em>falta la entrega.</em></h2><p class="w-texto-sec">Coordina por WhatsApp si lo recoges o te lo envían.</p>';
-    else if (p.estado === 'pagado' && p.entrega.tipo === 'recojo') { cab = '<span class="w-estado-chip t-verde">Pagado · listo para recoger</span><h2 class="w-titulo">Te espera en <em>' + sede.nombre + '.</em></h2>'; extra = '<div class="w-codigo-caja"><small>Muestra este código en caja</small><span class="w-codigo num">' + p.codigoRecojo + '</span><small>Recoge hasta el ' + fecha(p.t.pagado + CFG.diasRecoger * DIA) + '</small></div>'; }
-    else if (p.estado === 'pagado') cab = '<span class="w-estado-chip t-verde">Pagado</span><h2 class="w-titulo">Pagado: <em>sale pronto.</em></h2><p class="w-texto-sec">Te avisamos por WhatsApp cuando salga.</p>';
-    else if (p.estado === 'enviado') cab = '<span class="w-estado-chip t-pizarra">En camino</span><h2 class="w-titulo">Tu pedido <em>va en camino.</em></h2>';
+    else if (p.estado === 'pagado') { cab = '<span class="w-estado-chip t-verde">Pagado · listo para recoger</span><h2 class="w-titulo">Te espera en <em>' + sede.nombre + '.</em></h2>'; extra = '<div class="w-codigo-caja"><small>Muestra este código en caja</small><span class="w-codigo num">' + p.codigoRecojo + '</span><small>Recoge hasta el ' + fecha(p.t.pagado + CFG.diasRecoger * DIA) + '</small></div>'; }
     else if (p.estado === 'entregado') cab = '<span class="w-estado-chip t-neutro">Entregado</span><h2 class="w-titulo">¡Gracias por comprar <em>en CAYLA!</em></h2>';
     else if (p.estado === 'vencido') { cab = '<span class="w-estado-chip t-neutro">Se cerró</span><h2 class="w-titulo">Pasaron 24 horas <em>sin confirmar.</em></h2><p class="w-texto-sec">El pedido se cerró porque la tienda no llegó a confirmarlo. Puedes volver a separarlo.</p>'; extra = '<button class="t-btn t-btn-ancho" data-a="w-reseparar">Volver a separar</button>'; }
     else cab = '<span class="w-estado-chip t-rojo">Anulado</span><h2 class="w-titulo">La tienda <em>anuló el pedido.</em></h2><p class="w-texto-sec">' + esc(p.motivo || '') + '. Si tienes dudas, escríbele a ' + sede.tienda + '.</p>';
@@ -2270,26 +2377,27 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   /* ---- Mi cuenta ---- */
   const ESTADO_T = { por_confirmar: ['Por confirmar', 't-ambar'], confirmado: ['Confirmado · falta pagar', 't-verde'], pagado: ['Pagado', 't-verde'], enviado: ['En camino', 't-pizarra'], entregado: ['Entregado', 't-neutro'], vencido: ['Se cerró sin confirmar', 't-neutro'], anulado: ['Anulado', 't-rojo'] };
   function vCuenta() {
-    if (!S.w.logueada) return { cuerpo: '<div class="t-pagina"><div class="t-ancho"><div class="t-cuenta-pag"><div class="t-cuenta-cab"><span class="t-ceja">Mi cuenta</span><h1>Entra y <em>ya eres del club.</em></h1><p class="w-texto-sec">Sin contraseña: con Google o con un enlace a tu correo.</p><button class="t-btn" data-a="t-entrar" data-i="cuenta">Entrar o crear mi cuenta</button></div>' + tarjetaClub('Tu nombre aquí') + '</div></div>' + pieTienda() + '</div>' };
-    const mios = S.pedidos.filter((p) => p.propio);
+    const d = S.w.datos, mios = S.pedidos.filter((p) => p.cliente.dni === d.dni);
     const desde = publicados().filter((p) => esNuevo(p) && p.dias <= 7);
+    const cumple = cumpleTxt(d.cumple);
     return {
-      cuerpo: '<div class="t-pagina"><div class="t-ancho"><div class="t-cuenta-pag"><div class="t-cuenta-cab"><span class="t-ceja">Mi cuenta</span><h1>Hola, <em>' + esc(primerNombre(S.w.datos.nombre || 'de nuevo')) + '.</em></h1>' + tarjetaClub(S.w.datos.nombre || 'Miembro CAYLA') + '<p class="w-texto-sec">Eres miembro del Club CAYLA.' + (S.w.datos.cumple ? ' Tu descuento de cumpleaños llega el ' + esc(S.w.datos.cumple) + '.' : '') + '</p><button class="t-enlace" data-a="w-salir" style="align-self:flex-start">Salir de mi cuenta</button></div>' +
+      cuerpo: '<div class="t-pagina"><div class="t-ancho"><div class="t-cuenta-pag"><div class="t-cuenta-cab"><span class="t-ceja">Mi cuenta</span><h1>Hola, <em>' + esc(primerNombre(d.nombre)) + '.</em></h1>' + tarjetaClub(d.nombre) + '<p class="w-texto-sec">Eres miembro del Club CAYLA.' + (cumple ? ' Tu descuento de cumpleaños llega el ' + cumple + '.' : '') + '</p><button class="t-enlace" data-a="w-salir" style="align-self:flex-start">Salir de mi cuenta</button></div>' +
         '<div class="w-ficha" style="padding:0">' +
         '<div class="w-bloque"><h3 class="w-seccion-t">Mis pedidos</h3>' + (mios.length ? mios.map((p) => { const i0 = vivos(p)[0] || p.items[0], pr = P(i0.prod); const e = ESTADO_T[p.estado]; return '<button class="w-ped" data-a="w-ver-pedido" data-c="' + p.codigo + '">' + tile(pr, fotoColor(pr, i0.color), colorDe(pr, i0.color).hex, pr.nombre, '') + '<span><b>' + p.codigo + ' · ' + soles(totalPedido(p)) + '</b><small>' + SEDES[p.sede].tienda + ' · ' + fechaCorta(p.t.creado) + '</small><span class="w-estado-chip ' + e[1] + '">' + e[0] + '</span></span>' + ic('flecha') + '</button>'; }).join('') : '<p class="w-texto-sec">Todavía no separaste nada.</p>') + '</div>' +
+        '<div class="w-bloque"><h3 class="w-seccion-t">Mis beneficios del club</h3><div class="t-novedad">' + ic('regalo') + '<span><b>Descuento de cumpleaños' + (cumple ? ': ' + cumple : '') + '</b><small>Te avisamos por WhatsApp y también lo ves aquí.</small></span></div><div class="t-novedad">' + ic('ticket') + '<span><b>Vale por tu aniversario con CAYLA</b><small>Cada año en el club suma un vale. Te avisamos por WhatsApp.</small></span></div></div>' +
         '<div class="w-bloque"><h3 class="w-seccion-t">Novedades para ti</h3><div class="t-novedad">' + ic('chispa') + '<span><b>Llegaron ' + desde.length + ' prendas esta semana.</b><small>Sin mensajes de publicidad: las novedades las ves aquí.</small></span></div><div class="t-carril">' + desde.slice(0, 8).map((p) => tarjeta(p, { sinNuevo: true })).join('') + '</div></div>' +
         '<div class="w-bloque"><h3 class="w-seccion-t">Favoritos</h3>' + (S.w.favoritos.length ? '<div class="t-carril">' + S.w.favoritos.map(P).filter(Boolean).map((p) => tarjeta(p)).join('') + '</div>' : '<p class="w-texto-sec">Toca el corazón de una prenda para guardarla aquí.</p>') + '</div>' +
         '<div class="w-bloque"><h3 class="w-seccion-t">Te avisamos cuando llegue</h3>' + (S.w.avisame.length ? S.w.avisame.map((a, k) => { const pr = P(a.prod), c = colorDe(pr, a.color); return '<div class="t-bolsa-item">' + tile(pr, fotoColor(pr, a.color), c.hex, pr.nombre) + '<span><b>' + esc(pr.nombre) + '</b><small>' + esc(c.nombre) + ' · Talla ' + esc(a.talla) + '</small></span><button class="w-quitar" data-a="w-quitar-aviso" data-k="' + k + '">Quitar</button></div>'; }).join('') : '<p class="w-texto-sec">Cuando una talla no esté en ninguna tienda, toca «Avísame» y aparece aquí.</p>') + '</div>' +
-        '<div class="w-bloque"><h3 class="w-seccion-t">Mis datos</h3><div><div class="w-dato"><span>Nombre</span><b>' + esc(S.w.datos.nombre || '—') + '</b></div><div class="w-dato"><span>DNI</span><b class="num">' + esc(S.w.datos.dni || '—') + '</b></div><div class="w-dato"><span>Celular</span><b class="num">' + esc(fmtCel(S.w.datos.celular) || '—') + '</b></div><div class="w-dato"><span>Correo</span><b>' + esc(S.w.datos.correo || '—') + '</b></div></div></div>' +
+        '<div class="w-bloque"><h3 class="w-seccion-t">Mis datos</h3><div><div class="w-dato"><span>Nombre</span><b>' + esc(d.nombre || '—') + '</b></div><div class="w-dato"><span>DNI</span><b class="num">' + esc(d.dni || '—') + '</b></div><div class="w-dato"><span>Celular</span><b class="num">' + esc(fmtCel(d.celular) || '—') + '</b></div><div class="w-dato"><span>Correo</span><b>' + esc(d.correo || '—') + '</b></div><div class="w-dato"><span>Cumpleaños</span><b>' + (cumple || '—') + '</b></div></div><button class="w-enlace w-enlace-izq" data-a="w-cambiar-clave">Cambiar mi contraseña</button></div>' +
         '</div></div></div>' + pieTienda() + '</div>',
     };
   }
   function vInfo(titulo, cuerpo) { return { cuerpo: '<div class="t-pagina"><div class="t-ancho t-angosto"><div class="w-ficha">' + titulo + cuerpo + '</div></div>' + pieTienda() + '</div>' }; }
-  const vComoSeparar = () => vInfo('<h2 class="w-titulo">Separa online, <em>confirma por WhatsApp.</em></h2>',
-    '<ol class="w-pasos"><li><span>Elige tus prendas y tu tienda<small>En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima. Lo que no está en tu tienda, la tienda puede traerlo de otra.</small></span></li><li><span>Toca «Separar»<small>Se crea tu pedido con su número. No pagas nada en la web.</small></span></li><li><span>Mándalo por WhatsApp<small>El mensaje ya va escrito. La tienda revisa que todo esté y te confirma.</small></span></li><li><span>Paga y recíbelo<small>Coordinan el pago (Yape, Plin, transferencia o en tienda) y si lo recoges o te lo envían.</small></span></li></ol>' +
+  const vComoSeparar = () => vInfo('<h2 class="w-titulo">Separa online, <em>recoge en tu tienda.</em></h2>',
+    '<ol class="w-pasos"><li><span>Crea tu cuenta<small>Con tu correo, tu DNI, tu celular y tu cumpleaños. Al crearla ya eres del Club CAYLA.</small></span></li><li><span>Elige tus prendas y tu tienda<small>En cada prenda ves cuánto hay en Trujillo, Arequipa y Lima. Lo que no está en tu tienda, la tienda puede traerlo de otra.</small></span></li><li><span>Toca «Separar» y mándalo por WhatsApp<small>Se crea tu pedido con su número y el mensaje ya va escrito. No pagas nada en la web.</small></span></li><li><span>Paga y recógelo<small>Coordinan el pago por WhatsApp (Yape, Plin, transferencia o en tienda) y lo recoges en tu tienda con un código.</small></span></li></ol>' +
     '<div class="w-info">' + ic('reloj') + '<span><b>Tienes 24 horas</b><small>Si en 24 horas nadie confirma el pedido, se cierra solo y puedes volver a separarlo.</small></span></div>' +
-    '<h3 class="w-seccion-t">Cómo lo recibes</h3><div><div class="w-dato"><span>Recojo en tu tienda</span><b>Gratis</b></div><div class="w-dato"><span>Envío en Trujillo o Arequipa</span><b class="num">S/ 10.00</b></div><div class="w-dato"><span>Envío en Lima</span><b class="num">S/ 15.00</b></div><div class="w-dato"><span>Otra ciudad, por agencia</span><b>Pagas el envío al recoger</b></div></div><p class="w-ayuda">Tarifas de ejemplo.</p>');
-  const vCambios = () => vInfo('<p class="w-borrador">Borrador de la maqueta: Felipe todavía no decide esta regla.</p><h2 class="w-titulo">Cambios <em>y devoluciones.</em></h2>', '<p class="w-texto">Puedes cambiar tu prenda en cualquier tienda CAYLA dentro de 7 días, con tu boleta y la etiqueta puesta.</p><p class="w-texto-sec">Las prendas de liquidación no tienen cambio.</p>');
+    '<div class="w-info">' + ic('tienda') + '<span><b>Por ahora, todo se recoge en tienda</b><small>Todavía no hacemos envíos. Lo recoges en la tienda que elegiste, hasta 7 días después de pagar.</small></span></div>');
+  const vCambios = () => vInfo('<h2 class="w-titulo">Cambios <em>y devoluciones.</em></h2>', '<p class="w-texto">Igual que en tienda: puedes cambiar o devolver tu prenda dentro de 7 días, en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.</p>');
   const vTiendas = () => ({ filtro: true, cuerpo: '<div class="t-pagina">' + seccionTiendas() + pieTienda() + '</div>' });
 
   /* ---- Hojas de la tienda ---- */
@@ -2301,16 +2409,11 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
       return velo + '<nav class="t-menu" aria-label="Menú"' + (animHojaT ? ' data-anim' : '') + '><div class="t-menu-cab"><span class="t-logo"><img src="' + ISO + '" alt=""><span>CAYLA</span></span><button class="t-ico" data-a="t-cerrar-hoja" aria-label="Cerrar el menú">' + ic('cerrar') + '</button></div>' +
         '<div class="t-menu-grandes"><button data-a="t-lista" data-p="nuevo">Lo nuevo <small>' + pub.filter(esNuevo).length + '</small></button><button data-a="t-lista" data-p="looks">Arma tu look <small>' + S.looks.filter((l) => l.publicado).length + '</small></button><button data-a="t-lista" data-p="vendidos">Más vendidos</button><button data-a="t-lista" data-p="favoritos">Favoritos <small>' + S.w.favoritos.length + '</small></button><button class="oferta" data-a="t-lista" data-p="ofertas">Ofertas <small>' + pub.filter(campanaDe).length + '</small></button></div>' +
         '<div class="t-menu-cats">' + ORDEN_CATS.filter((s) => pub.some((p) => p.catSlug === s)).map((s) => '<button data-a="t-lista" data-p="cat:' + s + '">' + catPorSlug(s).nombre + '</button>').join('') + '</div>' +
-        '<div class="t-menu-pie"><button class="t-enlace" data-a="t-ir" data-r="cuenta" style="align-self:flex-start">' + (S.w.logueada ? 'Mi cuenta y mis pedidos' : 'Entrar o crear cuenta') + '</button><button class="t-enlace" data-a="t-ir" data-r="como-separar" style="align-self:flex-start">Cómo separar</button><button class="t-enlace" data-a="t-ir" data-r="tiendas" style="align-self:flex-start">Nuestras tiendas</button></div></nav>';
+        '<div class="t-menu-pie"><button class="t-enlace" data-a="t-ir" data-r="cuenta" style="align-self:flex-start">' + 'Mi cuenta y mis pedidos' + '</button><button class="t-enlace" data-a="t-ir" data-r="como-separar" style="align-self:flex-start">Cómo separar</button><button class="t-enlace" data-a="t-ir" data-r="tiendas" style="align-self:flex-start">Nuestras tiendas</button></div></nav>';
     }
     if (h === 'buscar') return velo + '<div class="t-buscador" role="dialog" aria-label="Buscar"' + (animHojaT ? ' data-anim' : '') + '><div class="t-buscador-fila"><label class="t-buscador-caja">' + ic('lupa') + '<input id="t-q" type="text" placeholder="Busca vestidos, blusas, jeans…" value="' + esc(S.w.q) + '" data-in="t-q" autocomplete="off" aria-label="Buscar en la tienda"></label><button class="t-ico" data-a="t-cerrar-hoja" aria-label="Cerrar">' + ic('cerrar') + '</button></div><div id="t-resultados">' + resultadosHTML() + '</div></div>';
     let c = '';
     if (h === 'tallas') c = '<div class="w-hoja-cab"><h2>Guía de tallas</h2><button class="w-ico" data-a="t-cerrar-hoja" aria-label="Cerrar">' + ic('cerrar') + '</button></div><p class="w-texto-sec">Medidas del cuerpo, en centímetros (de ejemplo).</p><table class="w-tabla"><thead><tr><th>Talla</th><th>Busto</th><th>Cintura</th><th>Cadera</th></tr></thead><tbody><tr><td>S</td><td>86–90</td><td>68–72</td><td>92–96</td></tr><tr><td>M</td><td>90–94</td><td>72–76</td><td>96–100</td></tr><tr><td>L</td><td>94–100</td><td>76–82</td><td>100–106</td></tr><tr><td>XL</td><td>100–106</td><td>82–88</td><td>106–112</td></tr></tbody></table><p class="w-texto-sec">«Estándar» calza de S a M. En jeans, la talla es la cintura: 26 = 66 cm, 28 = 71, 30 = 76, 32 = 81, 34 = 86.</p>';
-    if (h === 'login') {
-      const motivo = S.w.intento && S.w.intento.tipo === 'avisame' ? 'para que te avisemos' : S.w.intento && S.w.intento.tipo === 'separar' ? 'para separar' : 'o crea tu cuenta';
-      if (S.w.login === 'enlace') c = '<span class="w-sobre">' + ic('sobre') + '</span><h2 class="w-titulo" style="text-align:center">Revisa tu correo</h2><p class="w-texto-sec" style="text-align:center">Te enviamos un enlace a <b>' + esc(S.w.datos.correo) + '</b>. Ábrelo en este equipo para entrar. Vence en 15 minutos.</p><button class="t-btn t-btn-ancho" data-a="w-abri-enlace">Simular: abrí el enlace</button><button class="w-enlace" data-a="w-otro-correo">Usar otro correo</button>';
-      else c = '<div class="w-hoja-cab"><h2>Entra ' + motivo + '</h2><button class="w-ico" data-a="t-cerrar-hoja" aria-label="Cerrar">' + ic('cerrar') + '</button></div><p class="w-texto-sec">Al crear tu cuenta ya eres miembro del Club CAYLA. No necesitas contraseña.</p><button class="t-btn t-btn-ancho t-btn-sec" data-a="w-google"><span class="w-g">G</span>Continuar con Google</button><div class="w-o">o con tu correo</div><div class="w-campo"><label for="w-correo">Correo</label><input id="w-correo" class="w-caja" type="email" inputmode="email" autocomplete="email" placeholder="tucorreo@gmail.com" value="' + esc(S.w.datos.correo) + '" data-in="w-correo"></div><button class="t-btn t-btn-ancho" data-a="w-enlace" id="w-enlace"' + (/^\S+@\S+\.\S+$/.test(S.w.datos.correo) ? '' : ' disabled') + '>Enviarme el enlace</button><p class="w-ayuda" style="text-align:center">Al entrar aceptas los términos de CAYLA y del club.</p>';
-    }
     if (h === 'look-tallas') {
       const l = S.looks.find((x) => x.id === S.w.lookSel);
       if (l) {
@@ -2333,28 +2436,31 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
 
   const claveT = { cel: '', grande: '' }, claveHojaT = { cel: '', grande: '' };
   let animHojaT = false;
-  const VISTAS_T = { inicio: vInicio, lista: vLista, look: vLook, producto: vProducto, bolsa: vBolsa, datos: vDatos, separado: vSeparado, whatsapp: vWhatsapp, pedido: vPedido, cuenta: vCuenta, 'como-separar': vComoSeparar, cambios: vCambios, tiendas: vTiendas };
+  const VISTAS_T = { portada: vPortada, registro: vRegistro, entrar: vEntrar, olvide: vOlvide, inicio: vInicio, lista: vLista, look: vLook, producto: vProducto, bolsa: vBolsa, separado: vSeparado, whatsapp: vWhatsapp, pedido: vPedido, cuenta: vCuenta, 'como-separar': vComoSeparar, cambios: vCambios, tiendas: vTiendas };
+  const RUTAS_SIN_CUENTA = ['portada', 'registro', 'entrar', 'olvide', 'como-separar', 'cambios', 'tiendas'];
   function htmlTienda(modo) {
+    if (!S.w.logueada && !RUTAS_SIN_CUENTA.includes(S.w.ruta)) { S.w.ruta = 'portada'; S.w.param = null; S.w.hoja = null; }
+    if (S.w.logueada && ['portada', 'registro', 'entrar', 'olvide'].includes(S.w.ruta)) { S.w.ruta = 'inicio'; S.w.param = null; }
     const v = (VISTAS_T[S.w.ruta] || vInicio)();
     const clave = S.w.ruta + ':' + (S.w.param || '') + ':' + (['pedido', 'separado'].includes(S.w.ruta) ? S.w.pedido : '');
     const anim = clave !== claveT[modo];
-    const hClave = S.w.hoja ? S.w.hoja + ':' + S.w.login + ':' + (S.w.lookSel || '') : '';
+    const hClave = S.w.hoja ? S.w.hoja + ':' + (S.w.lookSel || '') : '';
     animHojaT = !!hClave && hClave !== claveHojaT[modo]; claveHojaT[modo] = hClave;
     let interior;
     if (v.completo) interior = v.completo;
     else {
       const enLinea = v.pie && v.pieEnLinea !== false ? '<div class="t-ancho t-angosto t-solo-grande t-pie-en-linea">' + v.pie + '</div>' : '';
-      interior = cabT() + (v.filtro ? filtroTienda() : '') + '<main class="t-scroll"' + (anim ? ' data-anim' : '') + '>' + (v.cuerpo.includes('<footer class="t-pie">') ? v.cuerpo.replace('<footer class="t-pie">', enLinea + '<footer class="t-pie">') : v.cuerpo + enLinea) + '</main>' + (v.pie ? '<div class="t-pie-fijo t-solo-movil">' + v.pie + '</div>' : '');
+      interior = cabT() + (v.filtro && S.w.logueada ? filtroTienda() : '') + '<main class="t-scroll"' + (anim ? ' data-anim' : '') + '>' + (v.cuerpo.includes('<footer class="t-pie">') ? v.cuerpo.replace('<footer class="t-pie">', enLinea + '<footer class="t-pie">') : v.cuerpo + enLinea) + '</main>' + (v.pie ? '<div class="t-pie-fijo t-solo-movil">' + v.pie + '</div>' : '');
     }
     return { html: '<div class="tienda" data-modo="' + modo + '">' + interior + hojaT() + toastT() + '</div>', clave, anim };
   }
-  const SALTOS_W = [['inicio', 'Inicio'], ['trujillo', 'Solo Trujillo'], ['lista:nuevo', 'Lo nuevo'], ['lista:ofertas', 'Ofertas'], ['look', 'Arma tu look'], ['producto', 'Prenda y stock'], ['buscar', 'Buscar'], ['menu', 'Menú'], ['bolsa', 'Bolsa'], ['entrar', 'Entrar'], ['datos', 'Crear cuenta'], ['separado', 'Separado'], ['whatsapp', 'WhatsApp'], ['pedido', 'Tu pedido'], ['cuenta', 'Mi cuenta']];
+  const SALTOS_W = [['portada', 'Sin cuenta'], ['registro', 'Crear cuenta'], ['entrar', 'Entrar'], ['olvide', 'Olvidé mi contraseña'], ['inicio', 'Inicio'], ['trujillo', 'Solo Trujillo'], ['lista:nuevo', 'Lo nuevo'], ['lista:ofertas', 'Ofertas'], ['look', 'Arma tu look'], ['producto', 'Prenda y stock'], ['buscar', 'Buscar'], ['menu', 'Menú'], ['bolsa', 'Bolsa'], ['separado', 'Separado'], ['whatsapp', 'WhatsApp'], ['pedido', 'Tu pedido'], ['cuenta', 'Mi cuenta']];
   function pintarTienda(modo) {
     const cont = modo === 'cel' ? $('#cli') : $('#tienda-grande');
     const viejo = $('.t-scroll', cont), prevTop = viejo ? viejo.scrollTop : 0;
     const { html, clave, anim } = htmlTienda(modo);
     if (modo === 'cel') {
-      const actual = S.w.hoja === 'login' ? 'entrar' : S.w.hoja === 'buscar' || S.w.hoja === 'menu' ? S.w.hoja : S.w.ruta === 'lista' ? 'lista:' + S.w.param : S.w.ruta === 'inicio' && S.w.tienda === 'TRU' ? 'trujillo' : S.w.ruta;
+      const actual = S.w.hoja === 'buscar' || S.w.hoja === 'menu' ? S.w.hoja : S.w.ruta === 'lista' ? 'lista:' + S.w.param : S.w.ruta === 'inicio' && S.w.tienda === 'TRU' ? 'trujillo' : S.w.ruta;
       cont.innerHTML = '<div class="panel-cab"><span class="panel-tit">La web del cliente · celular</span><div class="saltos" role="group" aria-label="Ir a una pantalla de la web">' + SALTOS_W.map((s) => '<button class="salto" data-a="saltoW" data-s="' + s[0] + '" aria-current="' + (actual === s[0]) + '">' + s[1] + '</button>').join('') + '</div></div>' +
         '<div class="cel"><div class="cel-estado"><span class="num">' + new Date().toLocaleTimeString('es-PE', { hour: 'numeric', minute: '2-digit', hour12: false }) + '</span><span class="cel-isla"></span><span class="cel-iconos"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg viewBox="0 0 26 12"><rect x="0.5" y="0.5" width="22" height="11" rx="3" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="16" height="8" rx="2"/><rect x="23.5" y="4" width="2" height="4" rx="1" opacity=".4"/></svg></span></div><div class="cel-pantalla">' + html + '</div></div>';
     } else cont.innerHTML = html;
@@ -2363,7 +2469,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     claveT[modo] = clave;
     const g = $('[data-galeria]', cont);
     if (g) g.addEventListener('scroll', () => { const i = Math.round(g.scrollLeft / Math.max(1, g.clientWidth)); $$('[data-gal-puntos] i', cont).forEach((d, k) => { if (k === i) d.setAttribute('data-on', ''); else d.removeAttribute('data-on'); }); }, { passive: true });
-    if (S.w.ruta === 'datos') guiaDatos();
+    if (S.w.ruta === 'registro') guiaRegistro();
     S.w.favLate = null; S.w.saltaBolsa = false;
   }
   function volar(desde, cont) {
@@ -2394,14 +2500,13 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   function chipEstado(p) {
     if (p.estado === 'por_confirmar') { const v = venceEn(p); return '<span class="chip ' + (v < 3 * HORA ? 'rojo late' : 'ambar') + '">Por confirmar · vence en ' + plazo(v) + '</span>'; }
     if (p.estado === 'confirmado') return noPaga(p) ? '<span class="chip rojo">Sin pagar · confirmado ' + hace(p.t.confirmado) + '</span>' : '<span class="chip pizarra">Por cobrar · falta ' + soles(faltaDe(p)) + '</span>';
-    if (p.estado === 'pagado') { if (!p.entrega) return '<span class="chip ambar">Pagado · falta la entrega</span>'; if (noRecoge(p)) return '<span class="chip rojo">Sin recoger · pagó hace ' + Math.floor((Date.now() - p.t.pagado) / DIA) + ' días</span>'; return '<span class="chip verde">Pagado · por entregar</span>'; }
-    if (p.estado === 'enviado') return '<span class="chip pizarra">En camino</span>';
+    if (p.estado === 'pagado') { if (noRecoge(p)) return '<span class="chip rojo">Sin recoger · pagó hace ' + Math.floor((Date.now() - p.t.pagado) / DIA) + ' días</span>'; return '<span class="chip verde">Pagado · por entregar</span>'; }
     if (p.estado === 'entregado') return '<span class="chip neutro">Entregado</span>';
     if (p.estado === 'vencido') return '<span class="chip apagado">Se cerró sin confirmar</span>';
     return '<span class="chip apagado">Anulado</span>';
   }
   const momento = (p) => p.t.entregado || p.t.anulado || p.t.vencido || p.t.enviado || p.t.pagado || p.t.confirmado || p.t.creado;
-  const accionTexto = (p) => ({ por_confirmar: 'Revisa el stock y confírmalo', confirmado: noPaga(p) ? 'Escríbele y decide si lo anulas' : 'Registra su pago', pagado: !p.entrega ? 'Anota cómo lo recibe' : p.entrega.tipo === 'recojo' ? 'Entrégalo con su código' : 'Envíalo', enviado: 'Márcalo entregado' }[p.estado] || '');
+  const accionTexto = (p) => ({ por_confirmar: 'Revisa el stock y confírmalo', confirmado: noPaga(p) ? 'Escríbele y decide si lo anulas' : 'Registra su pago', pagado: 'Entrégalo con su código' }[p.estado] || '');
   const PEST = [['confirmar', 'Por confirmar'], ['cobrar', 'Por cobrar'], ['entregar', 'Por entregar'], ['cerrados', 'Cerrados']];
   function grupos(sede) {
     const ps = S.pedidos.filter((p) => p.sede === sede);
@@ -2410,7 +2515,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   function vPedidosE() {
     const g = grupos(S.e.sede), pest = S.e.pest, lista = g[pest];
     const cifra = (k, l, v, n, alerta) => '<button class="e-cifra" data-a="e-pest" data-p="' + k + '" aria-pressed="' + (pest === k) + '"><span class="e-cifra-l">' + l + '</span><span class="e-cifra-v num">' + v + '</span><span class="e-cifra-n' + (alerta ? ' alerta' : '') + '">' + n + '</span></button>';
-    const vacios = { confirmar: ['No hay pedidos por confirmar', 'Cuando un cliente toque «Separar», su pedido aparece aquí y te escribe por WhatsApp.'], cobrar: ['Nada por cobrar', 'Los pedidos confirmados esperan aquí su pago.'], entregar: ['Nada por entregar', 'Lo pagado que falta recoger o enviar aparece aquí.'], cerrados: ['Todavía no hay pedidos cerrados', 'Aquí quedan los entregados, los que se cerraron sin confirmar y los anulados.'] };
+    const vacios = { confirmar: ['No hay pedidos por confirmar', 'Cuando un cliente toque «Separar», su pedido aparece aquí y te escribe por WhatsApp.'], cobrar: ['Nada por cobrar', 'Los pedidos confirmados esperan aquí su pago.'], entregar: ['Nada por entregar', 'Lo pagado que falta recoger aparece aquí.'], cerrados: ['Todavía no hay pedidos cerrados', 'Aquí quedan los entregados, los que se cerraron sin confirmar y los anulados.'] };
     const filas = lista.slice().sort((a, b) => momento(a) - momento(b)).map((p) => '<tr class="e-fila" data-a="e-abrir" data-c="' + p.codigo + '"' + (S.e.recien === p.codigo ? ' data-recien' : '') + '><td class="sin-corte"><b class="num">' + p.codigo + '</b><small>' + hace(momento(p)) + '</small></td><td><span class="e-cli">' + avatar(p.cliente.nombre) + esc(p.cliente.nombre) + '</span></td><td><span class="e-minis">' + vivos(p).map((i) => miniE(P(i.prod), i.color)).join('') + '</span></td><td class="num der sin-corte">' + soles(totalPedido(p)) + '</td><td>' + chipEstado(p) + '<small>' + accionTexto(p) + '</small></td><td class="der e-abre">' + ic('flecha') + '</td></tr>').join('');
     const proximo = g.confirmar.length ? Math.min.apply(null, g.confirmar.map(venceEn)) : 0;
     const porCobrar = r2(g.cobrar.reduce((a, p) => a + faltaDe(p), 0));
@@ -2460,12 +2565,12 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
       '<div class="e-campo"><span class="e-etq">WhatsApp de la sede</span><input class="e-caja num" value="+51 ' + s.wsp + '" aria-label="WhatsApp de la sede"><p class="e-ayuda">Aquí llegan los pedidos que separan para ' + s.nombre + '.</p></div>' +
       '<div class="e-campo"><span class="e-etq">Dirección para recoger</span><input class="e-caja" value="' + s.direccion + '" aria-label="Dirección para recoger"></div>' +
       '<div class="e-campo"><span class="e-etq">Horario</span><input class="e-caja" value="' + s.horario + '" aria-label="Horario"></div>' +
-      '<div class="e-dos"><div class="e-campo"><span class="e-etq">Envío en la ciudad</span><div class="e-caja-sol"><span>S/</span><input class="e-caja num" value="' + s.envio.toFixed(2) + '" aria-label="Tarifa de envío en la ciudad"></div></div><div class="e-campo"><span class="e-etq">Llega en</span><input class="e-caja" value="24 a 48 horas" aria-label="Plazo de envío"></div></div></section>' +
+      '<p class="e-mini">Por ahora no hay envíos: todo pedido web se recoge en esta tienda.</p></section>' +
       '<section class="e-tarjeta"><h3>Para todas las sedes <span class="chip neutro">Solo el líder</span></h3>' +
       '<div class="e-dos"><div class="e-campo"><span class="e-etq">Horas para confirmar</span><input class="e-caja num" value="' + CFG.horasConfirmar + '" aria-label="Horas para confirmar"></div><div class="e-campo"><span class="e-etq">Aviso si no paga, en horas</span><input class="e-caja num" value="' + CFG.horasPagar + '" aria-label="Aviso si no paga, en horas"></div></div>' +
       '<div class="e-dos"><div class="e-campo"><span class="e-etq">Días para recoger</span><input class="e-caja num" value="' + CFG.diasRecoger + '" aria-label="Días para recoger"></div><div class="e-campo"><span class="e-etq">Lo nuevo dura</span><input class="e-caja num" value="30 días desde que llega" aria-label="Días en Lo nuevo"></div></div>' +
       '<div class="e-campo"><span class="e-etq">El número se ve desde</span><input class="e-caja num" value="3 o menos" aria-label="Desde cuánto se muestra el número"></div>' +
-      '<div class="e-campo"><span class="e-etq">Medios de pago de un pedido web</span><div class="e-pildoras"><span class="e-pildora" aria-pressed="true">Yape</span><span class="e-pildora" aria-pressed="true">Plin</span><span class="e-pildora" aria-pressed="true">Transferencia</span><span class="e-pildora" aria-pressed="true">Efectivo al recoger</span></div></div>' +
+      '<div class="e-campo"><span class="e-etq">Medios de pago que anota la tienda</span><div class="e-pildoras"><span class="e-pildora" aria-pressed="true">Yape</span><span class="e-pildora" aria-pressed="true">Plin</span><span class="e-pildora" aria-pressed="true">Transferencia</span><span class="e-pildora" aria-pressed="true">Efectivo al recoger</span></div></div>' +
       '<div class="aviso">' + ic('alerta') + '<div><span>Cambiar estos números afecta a las tres sedes desde el siguiente pedido.</span></div></div></section></div>' +
       '<div class="e-config-pie"><button class="btn btn-primario" data-a="e-guardar-config">Guardar</button></div></div>';
   }
@@ -2498,15 +2603,10 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     if (!f.responsable) falta.push(['resp', 'el responsable']);
     return falta;
   }
-  function bloqueEntrega(p, opcional) {
-    const f = S.e.f;
-    if (p.entrega) return '<div class="e-renglon" data-campo="entrega">' + ic(p.entrega.tipo === 'recojo' ? 'tienda' : p.entrega.tipo === 'local' ? 'camion' : 'caja') + '<span><b>' + (p.entrega.tipo === 'recojo' ? 'Recoge en ' + SEDES[p.sede].tienda : p.entrega.tipo === 'local' ? 'Envío en ' + SEDES[p.sede].nombre + ' · ' + soles(p.envio) : 'Agencia a ' + esc(p.entrega.ciudad) + ' · el envío se paga en destino') + '</b><small>' + (p.entrega.tipo === 'local' ? esc(p.entrega.direccion || '') : 'Coordinado por WhatsApp') + '</small></span><button class="btn-enlace" data-a="e-entrega-cambiar">Cambiar</button></div>';
-    const tipo = (f.entrega && f.entrega.tipo) || null;
-    return '<div class="e-campo" data-campo="entrega"><span class="e-etq">Cómo lo recibe' + (opcional ? ', si ya lo sabes' : '') + ' <span class="e-marca" data-marca="entrega">' + (opcional ? 'opcional' : '') + '</span></span><div class="e-pildoras">' + [['recojo', 'Recojo en tienda'], ['local', 'Envío en ' + SEDES[p.sede].nombre + ' · ' + soles(SEDES[p.sede].envio)], ['agencia', 'Agencia · se paga en destino']].map((x) => '<button class="e-pildora" data-a="e-entrega" data-t="' + x[0] + '" aria-pressed="' + (tipo === x[0]) + '">' + x[1] + '</button>').join('') + '</div>' +
-      (tipo === 'local' ? '<input class="e-caja" id="e-dir" placeholder="Dirección de entrega" value="' + esc((f.entrega && f.entrega.direccion) || '') + '" data-in="e-dir" autocomplete="off" aria-label="Dirección de entrega">' : '') +
-      (tipo === 'agencia' ? '<div class="e-pildoras">' + CIUDADES.map((c) => '<button class="e-pildora" data-a="e-ciudad" data-c="' + c + '" aria-pressed="' + ((f.entrega && f.entrega.ciudad) === c) + '">' + c + '</button>').join('') + '</div>' : '') +
-      (tipo ? '<button class="btn btn-secundario btn-chico e-guardar-entrega" data-a="e-guardar-entrega">Guardar la entrega</button>' : '<p class="e-ayuda">Lo coordinan por WhatsApp' + (opcional ? '; si todavía no lo saben, lo anotas después.' : '.') + '</p>') + '</div>';
-  }
+  // Una prenda por conseguir: adelanto al confirmar y el resto al recoger; cuánto, lo decide la tienda (Felipe).
+  const conEncargo = (p) => vivos(p).some((i) => i.encargo);
+  const avisoAdelanto = (p) => (conEncargo(p) && pagadoDe(p) === 0 ? '<div class="aviso info">' + ic('info') + '<div><span><b>Tiene una prenda por conseguir:</b> cobra un adelanto ahora (tú decides cuánto) y el resto al recoger.</span></div></div>' : '');
+  const ayudaMonto = (p) => (conEncargo(p) && pagadoDe(p) === 0 ? 'Adelanto: tú decides cuánto. El resto se cobra al recoger.' : 'Puede ser una parte: el resto se registra después.');
   function hConfirmar(p) {
     const f = S.e.f; f.traslado = f.traslado || {}; f.encargo = f.encargo || {};
     const filas = p.items.map((i, k) => {
@@ -2524,7 +2624,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     const falta = faltanConfirmar(p);
     const cuerpo = '<div class="e-bloque e-revisar"><span class="e-bloque-t">' + ic('chat') + 'Llega por WhatsApp con el número ' + p.codigo + '</span><span class="e-mini">' + esc(primerNombre(p.cliente.nombre)) + ' lo separó ' + hace(p.t.creado) + '. Revisa que esté todo y confírmalo; por el chat coordinan el pago y si lo recoge o se lo envían.</span></div>' +
       '<div class="e-bloque" data-campo="items"><span class="e-bloque-t">' + ic('estante') + 'Lo que pidió <span class="e-marca" data-marca="items"></span></span>' + filas + '</div>' +
-      bloqueEntrega(p, true) + comboResp() +
+      comboResp() +
       '<p class="e-mini">Al confirmar, el stock baja en ese momento (primero del almacén) y el pedido queda por cobrar. Si después se anula, el stock vuelve solo.</p>';
     const pie = '<div class="e-pie-izq"><button class="btn btn-secundario" data-a="e-no-confirmar">No se puede confirmar</button></div><span class="e-faltan" id="e-faltan">' + (falta.length ? 'Falta: <b>' + falta.map((x) => x[1]).join(', ') + '</b>' : '') + '</span><button class="btn btn-primario" id="e-principal" data-a="e-confirmar"' + (falta.length ? ' disabled' : '') + '>' + ic('check') + 'Confirmar · baja el stock</button>';
     return { cuerpo, pie };
@@ -2545,7 +2645,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   function hConfirmado(p) {
     const falta = faltaDe(p), tras = vivos(p).filter((i) => i.traslado || i.encargo);
     const cuerpo = (noPaga(p) ? '<div class="aviso error">' + ic('alerta') + '<div><span><b>Lo confirmaste ' + hace(p.t.confirmado) + ' y no paga.</b> Sus prendas siguen descontadas del stock. Escríbele y decide: si lo anulas, el stock vuelve.</span><button class="btn btn-secundario btn-chico" data-a="e-wsp" data-pl="cobro">' + ic('chat') + 'Escribirle por WhatsApp</button></div></div>' : '') + (S.e.f.recien === 'confirmado' ? '<div class="aviso exito">' + ic('check') + '<div><span><b>Confirmado.</b> El stock ya bajó y el pedido queda por cobrar.</span><button class="btn btn-secundario btn-chico" data-a="e-wsp" data-pl="confirmado">' + ic('chat') + 'Avisarle por WhatsApp</button></div></div>' : '') +
-      bloqueDinero(p) + bloqueEntrega(p, false) +
+      bloqueDinero(p) + avisoAdelanto(p) +
       (tras.length ? '<div class="aviso info">' + ic('traslado') + '<div><span>' + tras.map((i) => esc(P(i.prod).nombre) + (i.traslado ? ' viene de ' + SEDES[i.traslado].nombre + ' (traslado pedido al confirmar)' : ' está por conseguir: la prometiste para el ' + fechaCorta(i.encargo))).join(' · ') + '.</span></div></div>' : '') +
       '<p class="e-mini">La boleta sale cuando el pedido queda pagado completo.</p>';
     const pie = '<div class="e-pie-izq"><button class="btn btn-peligro" data-a="e-anular-confirmado">Anular</button></div><button class="btn btn-secundario" data-a="e-wsp" data-pl="cobro">' + ic('chat') + 'WhatsApp</button><button class="btn btn-primario" data-a="e-abrir-pago">' + ic('moneda') + 'Registrar pago · falta ' + soles(falta) + '</button>';
@@ -2560,19 +2660,10 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   }
   function hPorEntregar(p) {
     const f = S.e.f;
-    let cuerpo = bloqueDinero(p) + (p.boleta ? '<div class="e-renglon">' + ic('ticket') + '<span><b>Boleta ' + p.boleta + '</b><small>Salió al quedar pagado (de ejemplo)</small></span></div>' : '') + bloqueEntrega(p, false), pie = '';
-    if (p.estado === 'pagado' && !p.entrega) pie = '<span class="e-faltan">Falta: <b>anotar cómo lo recibe</b></span><button class="btn btn-primario" disabled>Entregar</button>';
-    else if (p.estado === 'pagado' && p.entrega.tipo === 'recojo') {
-      cuerpo += (noRecoge(p) ? '<div class="aviso error">' + ic('alerta') + '<div><span><b>Pagó hace más de 7 días y no lo recoge.</b> Ya pagó, así que no se libera solo. Escríbele y decide con tu líder.</span><button class="btn btn-secundario btn-chico" data-a="e-wsp" data-pl="norecoge">' + ic('chat') + 'Escribirle por WhatsApp</button></div></div>' : '') +
-        '<div class="e-campo" data-campo="cod"><label class="e-etq" for="e-cod">Código de recojo <span class="e-marca" data-marca="cod"></span></label><input id="e-cod" class="e-caja e-caja-codigo num" inputmode="numeric" maxlength="4" autocomplete="off" value="' + esc(f.codigo || '') + '" data-in="e-cod"><p class="e-ayuda" id="e-cod-ayuda">Pídeselo al cliente: lo tiene en su pedido.' + (p.propio ? ' En esta maqueta lo ves en la web del cliente.' : ' En esta maqueta es ' + p.codigoRecojo + '.') + '</p></div>' + comboResp();
-      pie = '<span class="e-faltan" id="e-faltan"></span><button class="btn btn-primario" id="e-principal" data-a="e-entregar"' + ((f.codigo || '').length === 4 && f.responsable ? '' : ' disabled') + '>Entregar</button>';
-    } else if (p.estado === 'pagado') {
-      cuerpo += (p.entrega.tipo === 'agencia' ? '<div class="e-dos"><div class="e-campo"><label class="e-etq" for="e-guia">N.º de orden de la agencia</label><input id="e-guia" class="e-caja num" value="' + esc(f.guia || '') + '" data-in="e-guia" autocomplete="off"></div><div class="e-campo"><label class="e-etq" for="e-clave">Clave</label><input id="e-clave" class="e-caja num" value="' + esc(f.clave || '') + '" data-in="e-clave" autocomplete="off"></div></div>' : '') + comboResp();
-      pie = '<button class="btn btn-primario" data-a="e-enviar"' + (f.responsable ? '' : ' disabled') + '>' + (p.entrega.tipo === 'agencia' ? 'Registrar envío' : 'Salió a reparto') + '</button>';
-    } else if (p.estado === 'enviado') {
-      cuerpo += '<div class="e-renglon">' + ic('camion') + '<span><b>Salió ' + hace(p.t.enviado) + '</b><small>' + (p.entrega.guia ? 'Orden ' + esc(p.entrega.guia) + ' · clave ' + esc(p.entrega.clave) : 'Reparto de la tienda') + '</small></span></div>';
-      pie = '<button class="btn btn-primario" data-a="e-entregado">Marcar entregado</button>';
-    }
+    const cuerpo = bloqueDinero(p) + (p.boleta ? '<div class="e-renglon">' + ic('ticket') + '<span><b>Boleta ' + p.boleta + '</b><small>Salió al quedar pagado (de ejemplo)</small></span></div>' : '') +
+      (noRecoge(p) ? '<div class="aviso error">' + ic('alerta') + '<div><span><b>Pagó hace más de 7 días y no lo recoge.</b> Ya pagó, así que no se libera solo. Escríbele y decide con tu líder.</span><button class="btn btn-secundario btn-chico" data-a="e-wsp" data-pl="norecoge">' + ic('chat') + 'Escribirle por WhatsApp</button></div></div>' : '') +
+      '<div class="e-campo" data-campo="cod"><label class="e-etq" for="e-cod">Código de recojo <span class="e-marca" data-marca="cod"></span></label><input id="e-cod" class="e-caja e-caja-codigo num" inputmode="numeric" maxlength="4" autocomplete="off" value="' + esc(f.codigo || '') + '" data-in="e-cod"><p class="e-ayuda" id="e-cod-ayuda">Pídeselo al cliente: lo tiene en su pedido.' + (esDelCliente(p) ? ' En esta maqueta lo ves en la web del cliente.' : ' En esta maqueta es ' + p.codigoRecojo + '.') + '</p></div>' + comboResp();
+    const pie = '<span class="e-faltan" id="e-faltan"></span><button class="btn btn-primario" id="e-principal" data-a="e-entregar"' + ((f.codigo || '').length === 4 && f.responsable ? '' : ' disabled') + '>Entregar</button>';
     return { cuerpo, pie };
   }
   function hPedido(p) {
@@ -2584,7 +2675,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     else parte = { cuerpo: bloqueDinero(p) + '<div class="aviso">' + ic('info') + '<div><span>' + (p.estado === 'entregado' ? '<b>Entregado</b> ' + hace(p.t.entregado) + '.' : p.estado === 'vencido' ? '<b>Se cerró sin confirmar</b> a las 24 horas. El stock nunca bajó.' : '<b>Anulado:</b> ' + esc(p.motivo || '') + '.') + '</span></div></div>', pie: '' };
     const cuerpo = '<div class="e-cliente">' + avatar(p.cliente.nombre, true) + '<div><b>' + esc(p.cliente.nombre) + '</b><small>DNI ••••' + esc(String(p.cliente.dni).slice(-4)) + ' · Cel. ' + esc(fmtCel(p.cliente.cel)) + ' · Miembro del club</small></div><button class="btn btn-secundario btn-chico" data-a="e-wsp" data-pl="libre">' + ic('chat') + 'WhatsApp</button></div>' +
       (p.estado !== 'por_confirmar' ? '<div class="e-items">' + vivos(p).map((i) => { const pr = P(i.prod), c = colorDe(pr, i.color); return '<div class="e-item">' + miniE(pr, i.color, true) + '<span class="e-item-t"><b>' + esc(pr.nombre) + '</b><small>' + esc(c.nombre) + ' · Talla ' + esc(i.talla) + (i.traslado ? ' · viene de ' + SEDES[i.traslado].nombre : '') + (i.encargo ? ' · por conseguir, para el ' + fechaCorta(i.encargo) : '') + '</small></span><b class="num">' + soles(i.precio) + '</b></div>'; }).join('') + '</div>' : '') + parte.cuerpo;
-    return hojaE({ titulo: 'Pedido ' + p.codigo, chip: chipEstado(p), bajada: 'Separado ' + hace(p.t.creado) + ' · ' + s.tienda, cuerpo, pie: parte.pie });
+    return hojaE({ titulo: 'Pedido ' + p.codigo, chip: chipEstado(p), bajada: 'Separado ' + hace(p.t.creado) + ' · lo recoge en ' + s.tienda, cuerpo, pie: parte.pie });
   }
   function validarPago() {
     const f = S.e.f2, p = S.pedidos.find((x) => x.codigo === S.e.hoja2.codigo), falta = faltaDe(p);
@@ -2598,7 +2689,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   function hPago() {
     const f = S.e.f2, v = validarPago(), p = v.p;
     const cuerpo = '<div class="e-dinero-fila"><span><small>Total</small><b class="num">' + soles(totalPedido(p)) + '</b></span><span><small>Pagado</small><b class="num">' + soles(pagadoDe(p)) + '</b></span><span class="falta"><small>Falta</small><b class="num">' + soles(v.falta) + '</b></span></div>' +
-      '<div class="e-campo"><label class="e-etq" for="e-monto">Monto</label><div class="e-caja-sol"><span>S/</span><input id="e-monto" class="e-caja num" inputmode="decimal" autocomplete="off" value="' + esc(f.monto) + '" data-in="e-monto"></div><p class="e-ayuda' + (v.errMonto && f.monto !== '' ? ' error' : '') + '" id="e-monto-ayuda">' + (v.errMonto && f.monto !== '' ? v.errMonto : 'Puede ser una parte: el resto se registra después.') + '</p></div>' +
+      '<div class="e-campo"><label class="e-etq" for="e-monto">Monto</label><div class="e-caja-sol"><span>S/</span><input id="e-monto" class="e-caja num" inputmode="decimal" autocomplete="off" value="' + esc(f.monto) + '" data-in="e-monto"></div><p class="e-ayuda' + (v.errMonto && f.monto !== '' ? ' error' : '') + '" id="e-monto-ayuda">' + (v.errMonto && f.monto !== '' ? v.errMonto : ayudaMonto(p)) + '</p></div>' +
       '<div class="e-campo"><span class="e-etq">Medio</span><div class="e-pildoras">' + ['Yape', 'Plin', 'Transferencia', 'Efectivo'].map((m) => '<button class="e-pildora" data-a="e-medio" data-m="' + m + '" aria-pressed="' + (f.medio === m) + '">' + m + '</button>').join('') + '</div></div>' +
       (v.digital ? '<div class="e-campo"><label class="e-etq" for="e-op">N.º de operación, de tu app o del banco</label><input id="e-op" class="e-caja num" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="De 6 a 12 dígitos" value="' + esc(f.op || '') + '" data-in="e-op"><p class="e-ayuda' + (v.dup ? ' error' : '') + '" id="e-op-ayuda">' + (v.dup ? 'Ese n.º de operación ya se registró en el pedido ' + v.dup.codigo + '.' : 'Confírmalo en tu app antes de registrarlo: una foto se puede editar.') + '</p></div>' : f.medio === 'Efectivo' ? '<p class="e-mini">El efectivo entra a la caja de ' + SEDES[p.sede].nombre + ' (tiene que estar abierta).</p>' : '') +
       comboResp('f2');
@@ -2654,7 +2745,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   const opcionesLook = (lista) => lista.map((x) => '<button class="e-pildora" data-a="e-look-agregar" data-id="' + x.id + '">' + ic('mas') + esc(x.nombre) + '</button>').join('') || '<span class="e-mini">No hay prendas con ese nombre.</span>';
   function plantilla(p, pl) {
     const n = primerNombre(p.cliente.nombre), s = SEDES[p.sede], tot = soles(totalPedido(p));
-    if (pl === 'confirmado') return 'Hola ' + n + ', confirmamos tu pedido ' + p.codigo + ' en ' + s.tienda + ' (' + tot + '). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda? ¿Lo recoges o te lo enviamos?';
+    if (pl === 'confirmado') return 'Hola ' + n + ', confirmamos tu pedido ' + p.codigo + ' en ' + s.tienda + ' (' + tot + '). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda? Lo recoges en ' + s.direccion + '.';
     if (pl === 'cobro') return 'Hola ' + n + ', te escribimos por tu pedido ' + p.codigo + '. Falta pagar ' + soles(faltaDe(p)) + '. ¿Te pasamos los datos para el Yape?';
     if (pl === 'sinstock') return 'Hola ' + n + ', revisamos tu pedido ' + p.codigo + ' y una prenda ya no está en ' + s.tienda + '. ¿Te ofrecemos otra talla, otro color o traerla de otra tienda?';
     if (pl === 'norecoge') return 'Hola ' + n + ', tu pedido ' + p.codigo + ' te espera en ' + s.tienda + ' desde el ' + fecha(p.t.pagado) + '. ¿Cuándo puedes pasar a recogerlo?';
@@ -2700,7 +2791,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   function refrescarPago() {
     if (!S.e.hoja2 || S.e.hoja2.tipo !== 'pago') return;
     const v = validarPago(), f = S.e.f2;
-    const ay = $('#e-monto-ayuda'); if (ay) { const err = v.errMonto && f.monto !== ''; ay.className = 'e-ayuda' + (err ? ' error' : ''); ay.textContent = err ? v.errMonto : 'Puede ser una parte: el resto se registra después.'; }
+    const ay = $('#e-monto-ayuda'); if (ay) { const err = v.errMonto && f.monto !== ''; ay.className = 'e-ayuda' + (err ? ' error' : ''); ay.textContent = err ? v.errMonto : ayudaMonto(v.p); }
     const ao = $('#e-op-ayuda'); if (ao) { ao.className = 'e-ayuda' + (v.dup ? ' error' : ''); ao.textContent = v.dup ? 'Ese n.º de operación ya se registró en el pedido ' + v.dup.codigo + '.' : 'Confírmalo en tu app antes de registrarlo: una foto se puede editar.'; }
     const b = $('#e-pago-ok'); if (b) { b.disabled = !v.ok; b.textContent = 'Registrar ' + (v.monto > 0 ? soles(v.monto) : 'pago'); }
   }
@@ -2750,9 +2841,9 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
      ================================================================================================= */
   function pintarGuion() {
     const p = pedidoVivo(), est = p ? p.estado : null;
-    const hechos = [S.w.bolsa.length > 0 || !!p, !!p && (S.w.wsp.enviado || est !== 'por_confirmar'), !!p && ['confirmado', 'pagado', 'enviado', 'entregado'].includes(est), !!p && ['pagado', 'enviado', 'entregado'].includes(est)];
+    const hechos = [S.w.logueada && (S.w.bolsa.length > 0 || !!p), !!p && (S.w.wsp.enviado || est !== 'por_confirmar'), !!p && ['confirmado', 'pagado', 'enviado', 'entregado'].includes(est), !!p && ['pagado', 'enviado', 'entregado'].includes(est)];
     const ahora = hechos.indexOf(false);
-    const pasos = [['Elige prendas y una tienda', 'En la web: mira cuánto hay en cada tienda.'], ['Sepáralo y manda el WhatsApp', 'Se crea el pedido por confirmar. El stock no cambia.'], ['Confírmalo en el ERP', 'Pedidos web: revisa el stock y confirma. Ahí baja.'], ['Registra el pago y entrega', 'El pago va dentro del pedido; al completarlo sale la boleta.']];
+    const pasos = [['Entra y elige prendas', 'En la web: crea tu cuenta y mira cuánto hay en cada tienda.'], ['Sepáralo y manda el WhatsApp', 'Se crea el pedido por confirmar. El stock no cambia.'], ['Confírmalo en el ERP', 'Pedidos web: revisa el stock y confirma. Ahí baja.'], ['Registra el pago y entrégalo', 'El pago va dentro del pedido; lo recoge con su código.']];
     const angosto = window.matchMedia('(max-width: 1179px)').matches;
     $('#guion').innerHTML = pasos.map((x, i) => {
       const e = hechos[i] ? 'hecho' : i === ahora ? 'ahora' : 'pendiente';
@@ -2772,17 +2863,12 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   /* =================================================================================================
      EVENTOS
      ================================================================================================= */
-  function irT(r) { S.w.hoja = null; if (r === 'entrar') { S.w.intento = S.w.intento || { tipo: 'cuenta' }; S.w.login = 'inicio'; S.w.hoja = 'login'; return; } S.w.ruta = r; S.w.param = null; }
+  function irT(r) { S.w.hoja = null; S.w.ruta = r; S.w.param = null; if (r === 'olvide') S.w.olv = { paso: 1, correo: S.w.olv.correo || S.w.ent.correo, clave: '', ver: false }; if (r === 'entrar') S.w.ent.error = ''; }
   function irLista(p, campana) { S.w.hoja = null; S.w.ruta = 'lista'; S.w.param = p; S.w.filtro = { cat: 'todas', orden: 'relevancia', campana: campana || 'todas' }; }
-  function despuesDeEntrar() { S.w.logueada = true; S.w.hoja = null; S.w.login = 'inicio'; if (!S.w.datosOk) { S.w.ruta = 'datos'; return; } seguirIntento(); }
-  function seguirIntento() {
-    const i = S.w.intento; S.w.intento = null; S.w.hoja = null;
-    if (!i) { S.w.ruta = 'cuenta'; return; }
-    if (i.tipo === 'separar') { if (S.w.bolsa.length && S.w.tiendaPedido) separar(); else S.w.ruta = 'bolsa'; }
-    else if (i.tipo === 'avisame') { agregarAviso(i); S.w.ruta = 'producto'; S.w.param = i.prod; S.w.sel = { color: i.color, talla: i.talla }; }
-    else S.w.ruta = 'cuenta';
-  }
-  function datosDemo() { Object.assign(S.w.datos, { correo: 'maria.perez@gmail.com', dni: '45871236', nombre: 'María Pérez Salas', club: true, celular: '900000451', cumple: '14 de octubre', acepta: true }); S.w.logueada = true; S.w.datosOk = true; }
+  function entrarComo(c) { S.w.logueada = true; S.w.datos = { correo: c.correo, dni: c.dni, nombre: c.nombre, club: true, celular: c.celular, cumple: { ...c.cumple } }; S.w.hoja = null; S.w.ruta = 'inicio'; S.w.param = null; }
+  function salirCuenta() { S.w.logueada = false; S.w.datos = datosVacios(); S.w.bolsa = []; S.w.tiendaPedido = null; S.w.tienda = 'todas'; S.w.hoja = null; S.w.ruta = 'portada'; S.w.param = null; S.w.pedido = null; }
+  const MARIA = { correo: 'maria.perez@gmail.com', dni: '45871236', nombre: 'María Pérez Salas', celular: '900000451', cumple: { d: 14, m: 10, a: '' } };
+  function datosDemo() { if (!cuentaPorCorreo(MARIA.correo)) S.cuentas.push({ ...MARIA, cumple: { ...MARIA.cumple } }); entrarComo(cuentaPorCorreo(MARIA.correo)); }
   function contTienda() { return S.tab === 'grande' ? $('#tienda-grande') : $('#cli'); }
   function agregarABolsa(prod, color, talla, desde) {
     const p = P(prod);
@@ -2804,14 +2890,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
       if (typeof enc[k] === 'number') { i.encargo = Date.now() + enc[k] * DIA; i.traslado = null; return; }
       const e = estadoItem(p, i); if (e.otra && tras[k] !== false) { i.traslado = e.otra; i.de = sacar(i.prod, e.otra, i.color, i.talla); }
     });
-    const ent = S.e.f && S.e.f.entrega;
-    if (!p.entrega && ent && ent.tipo && (ent.tipo !== 'agencia' || ent.ciudad)) aplicarEntrega(p, ent);
     p.estado = 'confirmado'; p.t.confirmado = Date.now(); p.responsable = resp;
-  }
-  function aplicarEntrega(p, e) {
-    p.entrega = { tipo: e.tipo, direccion: e.direccion || '', ciudad: e.ciudad || '', agencia: 'Shalom' };
-    p.envio = e.tipo === 'local' ? SEDES[p.sede].envio : 0;
-    if (e.tipo === 'recojo' && !p.codigoRecojo) p.codigoRecojo = codigoRecojo(p.codigo);
   }
   function revisarVencidos() { let c = false; for (const p of S.pedidos) if (p.estado === 'por_confirmar' && venceEn(p) <= 0) { p.estado = 'vencido'; p.t.vencido = Date.now(); c = true; } return c; }
 
@@ -2834,34 +2913,47 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     't-look-agregar': () => { const l = S.looks.find((x) => x.id === S.w.lookSel); let n = 0; l.piezas.forEach((x, k) => { const t = S.w.lookTallas[k]; if (t && enTiendas(x.prod, x.color, t) > 0) { S.w.bolsa.push({ prod: x.prod, color: x.color, talla: t }); n++; } }); S.w.hoja = null; S.w.saltaBolsa = true; toastW('Agregaste ' + n + (n === 1 ? ' prenda' : ' prendas') + ' del look «' + esc(l.nombre) + '» a tu bolsa.'); },
     't-fav': (d) => { const k = S.w.favoritos.indexOf(d.id); if (k >= 0) S.w.favoritos.splice(k, 1); else { S.w.favoritos.push(d.id); S.w.favLate = d.id; toastW('Guardado en tus favoritos.'); } },
     't-hoja': (d) => { S.w.hoja = d.h; },
-    't-cerrar-hoja': () => { S.w.hoja = null; S.w.login = 'inicio'; },
+    't-cerrar-hoja': () => { S.w.hoja = null; },
     't-of-inicio': (d) => { S.w.ofInicio = d.c; },
     't-filtro-cat': (d) => { S.w.filtro.cat = d.c; },
     't-orden': () => { const o = ['relevancia', 'precio-asc', 'precio-desc']; S.w.filtro.orden = o[(o.indexOf(S.w.filtro.orden) + 1) % o.length]; },
     't-campana': (d) => { S.w.filtro.campana = d.c; S.w.filtro.cat = 'todas'; },
     't-tienda': (d) => { S.w.tienda = d.s; if (d.s !== 'todas') S.w.tiendaPedido = d.s; },
     't-tienda-pedido': (d) => { S.w.tiendaPedido = d.s; },
-    't-entrar': (d) => { S.w.intento = { tipo: d.i || 'cuenta' }; S.w.login = 'inicio'; S.w.hoja = 'login'; },
     't-buscar-sug': (d) => { S.w.q = d.q; },
     't-agregar': (d, el) => { const p = P(S.w.param); const t = el.closest('.tienda'); agregarABolsa(p.id, S.w.sel.color, S.w.sel.talla, t && t.querySelector('.t-foto-g img')); },
     't-rapido': (d, el) => { const card = el.closest('.t-card'); agregarABolsa(d.id, d.c, d.t, card && card.querySelector('.t-card-foto img')); },
-    't-separar': () => { if (!S.w.tiendaPedido) return; S.w.intento = { tipo: 'separar' }; if (!S.w.logueada) { S.w.login = 'inicio'; S.w.hoja = 'login'; return; } if (!S.w.datosOk) { S.w.ruta = 'datos'; return; } seguirIntento(); },
+    't-separar': () => { if (!S.w.tiendaPedido) return; if (!S.w.logueada) { S.w.ruta = 'entrar'; return; } separar(); },
     't-wsp': () => { S.w.ruta = 'whatsapp'; },
     't-ver-pedido-vivo': () => { S.w.ruta = 'pedido'; },
     'w-color': (d) => { S.w.sel.color = d.c; },
     'w-talla': (d) => { S.w.sel.talla = d.t; },
-    'w-avisame': () => { const i = { tipo: 'avisame', prod: S.w.param, color: S.w.sel.color, talla: S.w.sel.talla }; if (!S.w.logueada) { S.w.intento = i; S.w.login = 'inicio'; S.w.hoja = 'login'; return; } agregarAviso(i); },
+    'w-avisame': () => { agregarAviso({ prod: S.w.param, color: S.w.sel.color, talla: S.w.sel.talla }); },
     'w-quitar': (d) => { const [p, c, t] = d.k.split('|'); const k = S.w.bolsa.findIndex((b) => b.prod === p && b.color === c && b.talla === t); if (k >= 0) S.w.bolsa.splice(k, 1); },
-    'w-google': () => { S.w.datos.correo = S.w.datos.correo || 'maria.perez@gmail.com'; despuesDeEntrar(); },
-    'w-enlace': () => { if (/^\S+@\S+\.\S+$/.test(S.w.datos.correo)) S.w.login = 'enlace'; },
-    'w-abri-enlace': () => despuesDeEntrar(),
-    'w-otro-correo': () => { S.w.login = 'inicio'; },
-    'w-datos-ok': () => { if (faltanDatos().length) return; S.w.datosOk = true; toastW('Listo: ya eres miembro del Club CAYLA.'); seguirIntento(); },
+    'w-ver': (d) => { const f = S.w[d.f]; if (f) f.ver = !f.ver; },
+    'w-usar-correo': (d) => { S.w.reg.correo = d.c; },
+    'w-crear': () => {
+      if (faltanRegistro().length) return;
+      const r = S.w.reg, c = { correo: r.correo.trim().toLowerCase(), dni: r.dni, nombre: r.nombre, celular: r.celular, cumple: { d: Number(r.d), m: Number(r.m), a: r.a } };
+      S.cuentas.push(c); entrarComo(c); S.w.reg = regVacio();
+      toastW(r.club ? 'Listo: tu cuenta quedó unida a tu ficha del Club CAYLA.' : 'Listo: ya eres miembro del Club CAYLA.');
+    },
+    'w-entrar': () => {
+      const n = S.w.ent, c = cuentaPorCorreo(n.correo);
+      if (!c || n.clave.length < 8) { n.error = 'El correo o la contraseña no coinciden. Revísalos o recupera tu contraseña.'; n.clave = ''; return; }
+      entrarComo(c); S.w.ent = { correo: '', clave: '', ver: false, error: '' }; toastW('Hola, ' + esc(primerNombre(c.nombre)) + '.');
+    },
+    'w-olvide-desde': () => { S.w.olv = { paso: 1, correo: S.w.reg.correo.trim(), clave: '', ver: false }; S.w.ruta = 'olvide'; },
+    'w-olv-enviar': () => { if (correoValido(S.w.olv.correo)) S.w.olv.paso = 2; },
+    'w-olv-abri': () => { S.w.olv.paso = 3; },
+    'w-olv-otro': () => { S.w.olv = { paso: 1, correo: '', clave: '', ver: false }; },
+    'w-olv-guardar': () => { const o = S.w.olv, c = cuentaPorCorreo(o.correo); if (!c || o.clave.length < 8) return; entrarComo(c); S.w.olv = { paso: 1, correo: '', clave: '', ver: false }; toastW('Listo: cambiaste tu contraseña.'); },
+    'w-cambiar-clave': () => toastW('En la web real te pide tu contraseña actual y la nueva.'),
     'w-enviar-wsp': () => { S.w.wsp.enviado = true; },
     'w-reseparar': () => { const p = pedidoVivo(); if (!p) return; S.w.bolsa = vivos(p).map((i) => ({ prod: i.prod, color: i.color, talla: i.talla })); S.w.tiendaPedido = p.sede; S.w.ruta = 'bolsa'; },
     'w-ver-pedido': (d) => { S.w.pedido = d.c; S.w.ruta = 'pedido'; },
     'w-quitar-aviso': (d) => { S.w.avisame.splice(Number(d.k), 1); },
-    'w-salir': () => { S.w.logueada = false; S.w.ruta = 'inicio'; toastW('Saliste de tu cuenta.'); },
+    'w-salir': () => { salirCuenta(); toastW('Saliste de tu cuenta.'); },
     'w-boleta': () => toastW('La boleta electrónica se abre en PDF (en la web real).'),
     'w-privacidad': () => toastW('Igual que en la página del Club: privacidad y términos de CAYLA.'),
     // --- ERP
@@ -2890,11 +2982,7 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
       p.estado = 'anulado'; p.motivo = S.e.f.motivo; p.t.anulado = Date.now(); p.responsable = S.e.f.responsable;
       S.e.hoja = null; S.e.f = { responsable: S.e.f.responsable }; S.e.pest = 'cerrados'; toastE('Pedido ' + p.codigo + (devuelve ? ' anulado: el stock volvió.' : ' cerrado. El stock no cambió.'));
     },
-    'e-entrega': (d) => { S.e.f.entrega = Object.assign({}, S.e.f.entrega || {}, { tipo: d.t }); },
-    'e-ciudad': (d) => { S.e.f.entrega = Object.assign({}, S.e.f.entrega || {}, { ciudad: d.c }); },
-    'e-guardar-entrega': () => { const p = pedidoAbiertoE(), e = S.e.f.entrega; if (!p || !e || !e.tipo) return; if (e.tipo === 'agencia' && !e.ciudad) { toastE('Elige la ciudad de la agencia.'); return; } aplicarEntrega(p, e); S.e.f.entrega = null; toastE('Entrega guardada.' + (e.tipo === 'local' ? ' Se sumó el envío al total.' : '')); },
-    'e-entrega-cambiar': () => { const p = pedidoAbiertoE(); if (p) { S.e.f.entrega = Object.assign({}, p.entrega); p.entrega = null; p.envio = 0; } },
-    'e-abrir-pago': () => { const p = pedidoAbiertoE(); if (!p) return; S.e.hoja2 = { tipo: 'pago', codigo: p.codigo }; S.e.f2 = { monto: faltaDe(p).toFixed(2), medio: null, op: '', responsable: S.e.f.responsable || null }; },
+    'e-abrir-pago': () => { const p = pedidoAbiertoE(); if (!p) return; S.e.hoja2 = { tipo: 'pago', codigo: p.codigo }; S.e.f2 = { monto: conEncargo(p) && pagadoDe(p) === 0 ? '' : faltaDe(p).toFixed(2), medio: null, op: '', responsable: S.e.f.responsable || null }; },
     'e-medio': (d) => { S.e.f2.medio = d.m; },
     'e-registrar-pago': () => {
       const v = validarPago(); if (!v.ok) return;
@@ -2902,12 +2990,10 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
       p.pagos.push({ monto: v.monto, medio: f.medio, op: f.medio === 'Efectivo' ? '' : f.op, t: Date.now(), resp: f.responsable });
       S.e.f.responsable = S.e.f.responsable || f.responsable;
       S.e.hoja2 = null; S.e.f2 = {};
-      if (faltaDe(p) <= 0.001) { p.estado = 'pagado'; p.t.pagado = Date.now(); p.boleta = 'B001-000' + S.boleta++; if (p.entrega && p.entrega.tipo === 'recojo' && !p.codigoRecojo) p.codigoRecojo = codigoRecojo(p.codigo); S.e.pest = 'entregar'; toastE('Pagado completo. Salió la boleta ' + p.boleta + ' (de ejemplo).'); }
+      if (faltaDe(p) <= 0.001) { p.estado = 'pagado'; p.t.pagado = Date.now(); p.boleta = 'B001-000' + S.boleta++; if (!p.codigoRecojo) p.codigoRecojo = codigoRecojo(p.codigo); S.e.pest = 'entregar'; toastE('Pagado completo. Salió la boleta ' + p.boleta + ' (de ejemplo).'); }
       else toastE('Pago registrado. Falta ' + soles(faltaDe(p)) + '.');
     },
     'e-entregar': () => { const p = pedidoAbiertoE(); if (!p || (S.e.f.codigo || '').length !== 4 || !S.e.f.responsable) return; if (S.e.f.codigo !== p.codigoRecojo) { const ay = $('#e-cod-ayuda'); if (ay) { ay.className = 'e-ayuda error'; ay.textContent = 'Ese código no es de este pedido. Pídele el de su pedido ' + p.codigo + '.'; } return 'sin-pintar'; } p.estado = 'entregado'; p.t.entregado = Date.now(); S.e.hoja = null; S.e.f = { responsable: S.e.f.responsable }; S.e.pest = 'cerrados'; toastE('Entregado. Pedido ' + p.codigo + ' cerrado.'); },
-    'e-enviar': () => { const p = pedidoAbiertoE(); if (!p || !S.e.f.responsable) return; if (p.entrega.tipo === 'agencia') Object.assign(p.entrega, { guia: S.e.f.guia || '', clave: S.e.f.clave || '' }); p.estado = 'enviado'; p.t.enviado = Date.now(); toastE('Envío registrado. Mándale los datos por WhatsApp.'); },
-    'e-entregado': () => { const p = pedidoAbiertoE(); if (!p) return; p.estado = 'entregado'; p.t.entregado = Date.now(); S.e.hoja = null; S.e.pest = 'cerrados'; toastE('Pedido ' + p.codigo + ' entregado.'); },
     'e-wsp': (d) => { const p = pedidoAbiertoE(); if (p) S.e.hoja2 = { tipo: 'wsp', codigo: p.codigo, pl: d.pl }; },
     'e-copiar': () => { const t = $('#e-wsp-t'); if (t) copiar(t.value, t); toastE('Mensaje copiado.'); },
     'e-abrir-wsp': () => { const h = S.e.hoja2, p = S.pedidos.find((x) => x.codigo === h.codigo); S.e.hoja2 = null; toastE('En el ERP real se abre WhatsApp con este mensaje para ' + esc(primerNombre(p.cliente.nombre)) + '.'); },
@@ -2948,22 +3034,21 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   function demoSeparado() { datosDemo(); S.w.bolsa = BOLSA_DEMO(); S.w.tiendaPedido = 'TRU'; separar(); }
   function demoConfirmado() {
     demoSeparado(); S.w.wsp.enviado = true;
-    const p = pedidoVivo(); S.e.f = {}; confirmarPedido(p, 'Rosa Medina'); p.t.creado = Date.now() - 50 * MIN; p.t.confirmado = Date.now() - 20 * MIN; aplicarEntrega(p, { tipo: 'recojo' });
+    const p = pedidoVivo(); S.e.f = {}; confirmarPedido(p, 'Rosa Medina'); p.t.creado = Date.now() - 50 * MIN; p.t.confirmado = Date.now() - 20 * MIN;
     S.e.f = { responsable: 'Rosa Medina' }; S.e.pest = 'cobrar'; abrirPedidoE(p.codigo); S.w.ruta = 'pedido';
     return p;
   }
   function saltoW(s) {
     S.w.hoja = null;
+    if (['portada', 'registro', 'entrar', 'olvide'].includes(s)) { salirCuenta(); irT(s); return; }
+    if (!S.w.logueada) datosDemo();
     if (s.startsWith('lista:')) { irLista(s.slice(6)); return; }
     if (s === 'trujillo') { S.w.tienda = 'TRU'; S.w.tiendaPedido = 'TRU'; S.w.ruta = 'inicio'; S.w.param = null; return; }
     if (s === 'producto') { S.w.ruta = 'producto'; S.w.param = S.w.param && P(S.w.param) ? S.w.param : 'blusa-demy'; return; }
     if (s === 'look') { S.w.ruta = 'look'; S.w.param = 'oficina'; return; }
     if (s === 'buscar' || s === 'menu') { S.w.hoja = s; if (s === 'buscar' && !S.w.q) S.w.q = 'vestido'; return; }
-    if (s === 'entrar') { if (S.w.logueada) { S.w.logueada = false; S.w.datosOk = false; } S.w.intento = { tipo: 'cuenta' }; S.w.login = 'inicio'; S.w.hoja = 'login'; S.w.ruta = 'inicio'; return; }
-    if (s === 'datos') { S.w.logueada = true; S.w.intento = S.w.intento || { tipo: 'cuenta' }; S.w.ruta = 'datos'; return; }
     if (s === 'bolsa' && !S.w.bolsa.length) S.w.bolsa = BOLSA_DEMO();
     if (s === 'separado' || s === 'whatsapp' || s === 'pedido') { if (!pedidoVivo()) demoSeparado(); S.w.ruta = s; return; }
-    if (s === 'cuenta' && !S.w.logueada) datosDemo();
     S.w.ruta = s; S.w.param = null;
   }
   function saltoE(s) {
@@ -2976,6 +3061,9 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     S.e.ruta = s; S.e.hoja = null;
   }
   function presetTienda(n) {
+    if (['portada', 'registro', 'entrar', 'olvide'].includes(n)) { irT(n); return; }
+    datosDemo();
+    if (n === 'inicio') return;
     if (n === 'producto') { S.w.ruta = 'producto'; S.w.param = 'blusa-demy'; return; }
     if (n === 'stock') { S.w.ruta = 'producto'; S.w.param = 'top-biela'; S.w.sel = { color: 'NEG', talla: 'S' }; return; }
     if (n === 'trujillo') { saltoW('trujillo'); return; }
@@ -2983,7 +3071,6 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     if (n === 'bolsa') { S.w.bolsa = [{ prod: 'blusa-demy', color: 'BLA', talla: 'Estándar' }, { prod: 'cardigan-crochet', color: 'VAI', talla: 'M' }, { prod: 'top-biela', color: 'NEG', talla: 'S' }]; S.w.tiendaPedido = 'TRU'; S.w.ruta = 'bolsa'; return; }
     if (n === 'look') { S.w.ruta = 'look'; S.w.param = 'finde'; return; }
     if (n === 'menu' || n === 'buscar') { saltoW(n); return; }
-    if (n === 'datos') { S.w.logueada = true; S.w.bolsa = BOLSA_DEMO(); S.w.tiendaPedido = 'TRU'; S.w.intento = { tipo: 'separar' }; S.w.ruta = 'datos'; return; }
     if (n === 'separado' || n === 'whatsapp' || n === 'pedido') { demoSeparado(); if (n !== 'separado') S.w.ruta = n; return; }
     if (['ofertas', 'nuevo', 'vendidos', 'favoritos'].includes(n)) { irLista(n); return; }
   }
@@ -2997,12 +3084,12 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
     if (n === 'pedido') { demoSeparado(); S.w.wsp.enviado = true; S.w.ruta = 'pedido'; return; }
     if (n === 'confirmar') { demoSeparado(); S.w.wsp.enviado = true; S.w.ruta = 'pedido'; abrirPedidoE(S.w.pedido); S.e.recien = S.w.pedido; S.lado = 'erp'; return; }
     if (n === 'cobrar') { demoConfirmado(); A['e-abrir-pago'](); S.e.f2.medio = 'Yape'; S.lado = 'erp'; return; }
-    if (n === 'entregar') { const p = demoConfirmado(); p.pagos.push({ monto: totalPedido(p), medio: 'Yape', op: '05120448', t: Date.now() - 5 * MIN, resp: 'Rosa Medina' }); p.estado = 'pagado'; p.t.pagado = Date.now() - 5 * MIN; p.boleta = 'B001-000' + S.boleta++; S.e.pest = 'entregar'; abrirPedidoE(p.codigo); S.e.f = { responsable: 'Rosa Medina' }; S.lado = 'erp'; return; }
+    if (n === 'entregar') { const p = demoConfirmado(); p.pagos.push({ monto: totalPedido(p), medio: 'Yape', op: '05120448', t: Date.now() - 5 * MIN, resp: 'Rosa Medina' }); p.estado = 'pagado'; p.t.pagado = Date.now() - 5 * MIN; p.boleta = 'B001-000' + S.boleta++; p.codigoRecojo = codigoRecojo(p.codigo); S.e.pest = 'entregar'; abrirPedidoE(p.codigo); S.e.f = { responsable: 'Rosa Medina' }; S.lado = 'erp'; return; }
     if (n === 'ultima') { demoConfirmado(); S.e.f = { responsable: 'Rosa Medina' }; abrirPedidoE('W-0140'); S.lado = 'erp'; return; }
     if (n === 'sinpagar') { abrirPedidoE('W-0139'); S.e.pest = 'cobrar'; S.lado = 'erp'; return; }
-    if (n === 'vitrina') { S.e.ruta = 'vitrina'; A['e-publicar']({ id: 'vestido-roma' }); S.w.ruta = 'producto'; S.w.param = 'vestido-roma'; S.w.sel = { color: 'NEG', talla: null }; S.lado = 'erp'; return; }
+    if (n === 'vitrina') { datosDemo(); S.e.ruta = 'vitrina'; A['e-publicar']({ id: 'vestido-roma' }); S.w.ruta = 'producto'; S.w.param = 'vestido-roma'; S.w.sel = { color: 'NEG', talla: null }; S.lado = 'erp'; return; }
     if (n === 'vitrina-lista') { S.e.ruta = 'vitrina'; S.lado = 'erp'; return; }
-    if (n === 'looks-erp') { S.e.ruta = 'vitrina'; S.e.vit = 'looks'; A['e-look-editar']({ l: 'finde' }); S.w.ruta = 'look'; S.w.param = 'finde'; S.lado = 'erp'; return; }
+    if (n === 'looks-erp') { datosDemo(); S.e.ruta = 'vitrina'; S.e.vit = 'looks'; A['e-look-editar']({ l: 'finde' }); S.w.ruta = 'look'; S.w.param = 'finde'; S.lado = 'erp'; return; }
     if (n === 'config') { S.e.ruta = 'config'; S.lado = 'erp'; return; }
     presetTienda(n);
   }
@@ -3033,22 +3120,25 @@ textarea.e-caja { height: auto; min-height: 84px; padding: 10px 12px; resize: ve
   document.addEventListener('pointerout', (ev) => { const card = ev.target.closest && ev.target.closest('[data-tilt]'); if (card && !card.contains(ev.relatedTarget)) { card.style.setProperty('--rx', '0deg'); card.style.setProperty('--ry', '0deg'); } });
   const ENTRADAS = {
     't-q': (v) => { S.w.q = v; const r = $('#t-resultados'); if (r) r.innerHTML = resultadosHTML(); },
-    'w-correo': (v) => { S.w.datos.correo = v.trim(); const b = $('#w-enlace'); if (b) b.disabled = !/^\S+@\S+\.\S+$/.test(S.w.datos.correo); },
-    'w-dni': (v, el) => {
+    'w-reg-correo': (v) => { S.w.reg.correo = v; guiaRegistro(); },
+    'w-reg-clave': (v) => { S.w.reg.clave = v; guiaRegistro(); },
+    'w-reg-dni': (v, el) => {
       const d = v.replace(/\D/g, '').slice(0, 8); if (el.value !== d) el.value = d;
-      const cambio = d !== S.w.datos.dni; S.w.datos.dni = d;
-      if (cambio) { S.w.datos.nombre = ''; S.w.datos.club = false; }
-      const res = $('#w-dni-res'); if (res) res.innerHTML = resDni();
-      if (d.length === 8 && cambio) setTimeout(() => { if (S.w.datos.dni !== d) return; S.w.datos.nombre = 'María Pérez Salas'; S.w.datos.club = d === '45871236'; const r = $('#w-dni-res'); if (r) r.innerHTML = resDni(); guiaDatos(); }, 650);
-      guiaDatos();
+      const r = S.w.reg, cambio = d !== r.dni; r.dni = d;
+      if (cambio) { r.nombre = ''; r.club = false; }
+      if (d.length === 8 && cambio && !cuentaPorDni(d)) setTimeout(() => { if (S.w.reg.dni !== d) return; S.w.reg.nombre = NOMBRES_DNI[d] || 'Cliente de ejemplo'; S.w.reg.club = !!NOMBRES_DNI[d]; guiaRegistro(); }, 650);
+      guiaRegistro();
     },
-    'w-cel': (v, el) => { const d = v.replace(/\D/g, '').slice(0, 9); if (el.value !== d) el.value = d; S.w.datos.celular = d; guiaDatos(); },
-    'w-cumple': (v) => { S.w.datos.cumple = v; },
-    'w-acepta': (v, el) => { S.w.datos.acepta = el.checked; guiaDatos(); },
+    'w-reg-cel': (v, el) => { const d = v.replace(/\D/g, '').slice(0, 9); if (el.value !== d) el.value = d; S.w.reg.celular = d; guiaRegistro(); },
+    'w-reg-d': (v, el) => { const d = v.replace(/\D/g, '').slice(0, 2); if (el.value !== d) el.value = d; S.w.reg.d = d; guiaRegistro(); },
+    'w-reg-m': (v, el) => { const d = v.replace(/\D/g, '').slice(0, 2); if (el.value !== d) el.value = d; S.w.reg.m = d; guiaRegistro(); },
+    'w-reg-a': (v, el) => { const d = v.replace(/\D/g, '').slice(0, 4); if (el.value !== d) el.value = d; S.w.reg.a = d; guiaRegistro(); },
+    'w-reg-acepta': (v, el) => { S.w.reg.acepta = el.checked; guiaRegistro(); },
+    'w-ent-correo': (v) => { S.w.ent.correo = v; $$('[data-ent-ok]').forEach((b) => { b.disabled = !(correoValido(v) && S.w.ent.clave.length >= 8); }); },
+    'w-ent-clave': (v) => { S.w.ent.clave = v; $$('[data-ent-ok]').forEach((b) => { b.disabled = !(correoValido(S.w.ent.correo) && v.length >= 8); }); },
+    'w-olv-correo': (v) => { S.w.olv.correo = v; $$('[data-olv-ok]').forEach((b) => { b.disabled = !correoValido(v); }); },
+    'w-olv-clave': (v) => { S.w.olv.clave = v; $$('[data-olv-ok]').forEach((b) => { b.disabled = v.length < 8; }); },
     'e-cod': (v, el) => { const d = v.replace(/\D/g, '').slice(0, 4); if (el.value !== d) el.value = d; S.e.f.codigo = d; guiaE(); },
-    'e-guia': (v) => { S.e.f.guia = v; },
-    'e-clave': (v) => { S.e.f.clave = v; },
-    'e-dir': (v) => { S.e.f.entrega = Object.assign({}, S.e.f.entrega || {}, { direccion: v }); },
     'e-monto': (v) => { S.e.f2.monto = v; refrescarPago(); },
     'e-op': (v, el) => { const d = v.replace(/\D/g, '').slice(0, 12); if (el.value !== d) el.value = d; S.e.f2.op = d; refrescarPago(); },
     'e-precio': (v) => { const n = Number(String(v).replace(',', '.')); S.e.f.precio = n; const c = $('#e-precio-calc'); if (c) c.innerHTML = calcPrecio(P(S.e.hoja.id), n); },
