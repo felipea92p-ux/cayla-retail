@@ -438,7 +438,7 @@ export function NuevaMarcaForm({
 
       <AvisoSinIdentidad firma={firma} />
       <PieGuia guia={guia} listo="Todo listo para registrar." />
-      <div className="flex justify-end gap-2">
+      <div className="pie-acciones">
         <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-secundario">
           Cancelar
         </button>

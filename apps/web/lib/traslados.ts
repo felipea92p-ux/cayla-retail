@@ -210,15 +210,6 @@ export async function getTrasladosEnCurso(ubicacionId: string): Promise<Traslado
   return separarVacios((await filasEnCurso(supabase, ubicacionId)).map((f) => aResumen(f))).conPrendas;
 }
 
-/** Los últimos traslados que YA terminaron (cerrados, anulados, o «completada» del
- *  modelo atómico anterior), para el historial de la pantalla. Aparte de los
- *  en curso a propósito: los en curso se traen todos (son pocos y hay que
- *  verlos todos); el historial se acota. */
-export async function getTrasladosCerrados(ubicacionId: string, limite = 30): Promise<TrasladoResumen[]> {
-  const supabase = await createClient();
-  return separarVacios((await filasCerradas(supabase, ubicacionId, limite)).map((f) => aResumen(f))).conPrendas;
-}
-
 /** Las fotos de los productos que van en estos traslados, en UNA consulta por lote de 100
  *  productos (100 uuids caben cómodos en la URL). Son decorativas: si la lectura falla, la
  *  pantalla sigue con el marcador «sin foto» — nunca `exigir`, una miniatura no puede tumbar

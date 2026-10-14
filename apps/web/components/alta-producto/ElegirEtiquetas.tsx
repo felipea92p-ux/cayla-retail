@@ -11,7 +11,7 @@ import { proponerEtiqueta, type ValorCreado } from "@/lib/alta-producto-ejes";
 import type { EtiquetaAlta } from "@/lib/alta-producto-datos";
 import { ayudaDeEtiqueta } from "@/lib/etiqueta-ayuda";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
   agruparEtiquetas,
   coincideConTexto,
@@ -560,7 +560,7 @@ function CrearEtiquetaAbierta({
         <button type="button" onClick={() => void crear()} disabled={trabajando || !firma.listo} title={firma.motivo ?? undefined} className="btn-cayla btn-primario">
           {trabajando ? "Creando…" : puedeAprobar ? "Crear y agregar" : "Proponer etiqueta"}
         </button>
-        <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-sutil">
+        <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-secundario">
           Cancelar
         </button>
       </div>

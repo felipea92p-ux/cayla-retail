@@ -53,6 +53,14 @@ export function PuntoDeVentaColaOffline({ cola, onDescartar }: Props) {
           {confirmando === venta.token ? (
             <span className="flex shrink-0 items-center gap-2">
               <span className="text-tinta/70">¿Descartarla? No queda ningún rastro en el servidor.</span>
+              {/* «Cancelar» antes de la acción, como en el pie de una hoja (ADR-0358, ronda 11). */}
+              <button
+                type="button"
+                onClick={() => setConfirmando(null)}
+                className="btn-cayla btn-secundario h-7 px-2.5 text-[12.5px]"
+              >
+                Cancelar
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -62,13 +70,6 @@ export function PuntoDeVentaColaOffline({ cola, onDescartar }: Props) {
                 className="btn-cayla btn-peligro h-7 px-2.5 text-[12.5px]"
               >
                 Sí, descartar
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmando(null)}
-                className="btn-cayla btn-secundario h-7 px-2.5 text-[12.5px]"
-              >
-                Cancelar
               </button>
             </span>
           ) : (

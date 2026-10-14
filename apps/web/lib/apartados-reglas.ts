@@ -36,12 +36,6 @@ export const MOTIVOS_LIBERACION = [
 ] as const;
 export type MotivoLiberacion = (typeof MOTIVOS_LIBERACION)[number]["valor"];
 
-/** `aaaa-mm-dd` de HOY en Lima. `en-CA` da justo ese formato, y `timeZone` evita que un servidor
- *  en UTC corra la fecha un día (a las 8 p. m. de Lima ya es «mañana» en UTC). */
-export function hoyLima(ahora: Date = new Date()): string {
-  return ahora.toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-}
-
 /** Días de calendario entre `hoy` y `venceEl`: negativo = ya venció. */
 export function diasHasta(venceEl: string, hoy: string): number {
   const [a, m, d] = venceEl.split("-").map(Number);

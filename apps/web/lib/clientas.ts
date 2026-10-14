@@ -1,21 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
-import {
-  aCambio,
-  aClienta,
-  aDevolucion,
-  aSeparacion,
-  agruparCompras,
-  COLUMNAS_CLIENTA,
-  type Clienta,
-  type FichaClienta,
-  type FilaCambio,
-  type FilaClienta,
-  type FilaCompra,
-  type FilaDevolucion,
-  type FilaSeparacion,
-} from "@/lib/clientas-reglas";
-import type { TextoClub, TipoTextoClub } from "@/lib/club-reglas";
 import { textosDelCartel, type TextosCartel } from "@/lib/club-cartel-reglas";
 import {
   aCifrasClientas,
@@ -33,7 +16,7 @@ import {
 // docs/datos/DECISIONES-2026-09-26-clientas.md sección H). Página (server) importa este archivo;
 // el panel cliente SOLO `clientas-reglas.ts` y `clientas-acciones.ts` (un Server Component nunca
 // llama código de un archivo "use client", y viceversa nunca debería hacer falta).
-export type { Clienta, CifrasClientas };
+export type { CifrasClientas };
 
 export type ListaClientas = { filas: ClientaDeLista[]; total: number; falla: string | null };
 
@@ -54,36 +37,6 @@ export async function getListaClientas(p: ParamsLista): Promise<ListaClientas> {
   if (error) return { filas: [], total: 0, falla: `No se pudo leer la lista de clientes: ${error.message}` };
   const filas = (data ?? []) as FilaListaClienta[];
   return { filas: filas.map(aClientaDeLista), total: filas[0]?.total ?? 0, falla: null };
-}
-
-/** La ficha completa: la clienta más su actividad, LEÍDA de ventas/cambios/devoluciones/
- *  separaciones (nunca una tabla copia) — `fn_clienta_*` cruzan las tres sedes a propósito, ver
- *  esas funciones (20260928180000_clienta_actividad_y_exportar.sql): la ficha es de la marca, no
- *  de la sede donde compró. */
-export async function getFichaClienta(id: string): Promise<FichaClienta | null> {
-  const supabase = await createClient();
-  const [clienta, compras, cambios, devoluciones, separaciones] = await Promise.all([
-    supabase
-      .from("clientas")
-      .select(COLUMNAS_CLIENTA)
-      .eq("id", id)
-      .maybeSingle(),
-    supabase.rpc("fn_clienta_compras", { p_id: id }),
-    supabase.rpc("fn_clienta_cambios", { p_id: id }),
-    supabase.rpc("fn_clienta_devoluciones", { p_id: id }),
-    supabase.rpc("fn_clienta_separaciones", { p_id: id }),
-  ]);
-
-  const filaClienta = exigir(clienta, "la ficha del cliente") as FilaClienta | null;
-  if (!filaClienta) return null;
-
-  return {
-    clienta: aClienta(filaClienta),
-    compras: agruparCompras(exigir(compras, "sus compras") as FilaCompra[]),
-    cambios: (exigir(cambios, "sus cambios") as FilaCambio[]).map(aCambio),
-    devoluciones: (exigir(devoluciones, "sus devoluciones") as FilaDevolucion[]).map(aDevolucion),
-    separaciones: (exigir(separaciones, "sus apartados") as FilaSeparacion[]).map(aSeparacion),
-  };
 }
 
 /* ------------------------------------------------------------------
@@ -120,14 +73,6 @@ export async function getTextosDelCartel(): Promise<{ textos: TextosCartel | nul
   const textos = textosDelCartel(data);
   if (!textos) return { textos: null, falla: "La base no dio completos los beneficios del club (el % del cumpleaños, el vale de cada año o lo que hace contar un año)." };
   return { textos, falla: null };
-}
-
-/** Los textos vigentes del club (`fn_club_textos_vigentes`), leídos del servidor. Vacío si la base todavía no los tiene. */
-export async function getTextosClub(): Promise<TextoClub[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_club_textos_vigentes");
-  if (error) return [];
-  return (data ?? []).map((t) => ({ tipo: t.tipo as TipoTextoClub, version: t.version, texto: t.texto }));
 }
 
 /** Las cifras de la cabecera de /clientas y la cuenta de cada píldora (como el spike del club, `fichasHTML`), contadas por la

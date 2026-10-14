@@ -2,7 +2,7 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 132,
+  "total": 127,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
@@ -56,13 +56,8 @@
       "DesplegablePildora «Condición»",
       "button «{`existencias.ver-${valor}»",
       "DesplegablePildora «Ordenar por»",
-      "button «{`Quitar filtro ${c.texto}»",
-      "button «{`Volver al orden de siempre (ahora: ${ordenTexto}»",
-      "button «existencias.chip-vista»",
-      "button «Limpiar todo»",
       "button «existencias.escanear»",
       "BotonFiltros «{alLadoDeFiltros}»",
-      "button «Limpiar filtros»",
       "button «existencias.copiar-enlace»",
       "button «Limpiar»",
       "button «Ver»"

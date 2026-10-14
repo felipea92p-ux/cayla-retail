@@ -6,6 +6,7 @@ import { EMISOR } from "@/lib/emisor";
 import { LEY_REDONDEO_TICKET, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
 import { money } from "@/components/PuntoDeVenta";
 import { esConstancia, tramosDelPlazo, textoDevolucion, type Apartado, type ClaveEstado } from "@/lib/separaciones-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 
 export { FotoPrenda } from "@/components/ui/FotoPrenda";
 
@@ -87,7 +88,7 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy, redondeo = 0, 
           <small>no sirve para cambios ni como pago</small>
         </p>
       )}
-      {copia && <p className="rt-centro rt-negrita">COPIA · REIMPRESA EL {fechaNumerica(new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }))}</p>}
+      {copia && <p className="rt-centro rt-negrita">COPIA · REIMPRESA EL {fechaNumerica(hoyLima())}</p>}
       <dl className="rt-datos">
         <dt>Cliente</dt>
         <dd>{a.nombres} {a.apellidos}</dd>

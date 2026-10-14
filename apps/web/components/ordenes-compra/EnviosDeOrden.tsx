@@ -241,7 +241,7 @@ function AnularEnvioModal({
               {error.texto}
             </Aviso>
           )}
-          <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
+          <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>

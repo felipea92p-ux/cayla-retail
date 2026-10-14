@@ -8,6 +8,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck --continue",
     "test": "turbo run test",
+    "knip": "knip",
     "migraciones:verificar": "node scripts/migraciones/verificar.mjs",
     "migraciones:versiones": "node scripts/migraciones/versiones.mjs",
     "migraciones:sin-drop-trigger": "node scripts/migraciones/sin-drop-trigger.mjs",
@@ -209,6 +210,7 @@
     "pruebas:anular-venta-mismo-dia": "node scripts/pruebas/anular_venta_mismo_dia.mjs",
     "pruebas:anular-venta-misma-sede": "node scripts/pruebas/anular_venta_misma_sede.mjs",
     "pruebas:token-sigue-al-contenido": "node scripts/pruebas/token_sigue_al_contenido.mjs",
+    "pruebas:inventario-token-y-textos": "node scripts/pruebas/inventario_token_y_textos.mjs",
     "pruebas:caja-efectivo-no-negativo": "node scripts/pruebas/caja_efectivo_no_negativo.mjs",
     "pruebas:ventas-montos-validos": "node scripts/pruebas/ventas_montos_validos.mjs",
     "pruebas:comprobante-documento-valido": "node scripts/pruebas/comprobante_documento_valido.mjs",
@@ -223,6 +225,7 @@
     "pruebas:envio-costo-atipico": "node scripts/pruebas/envio_costo_atipico.mjs",
     "pruebas:corregir-variantes": "node scripts/pruebas/corregir_variantes.mjs",
     "pruebas:cuarentena-no-se-vende": "node scripts/pruebas/cuarentena_no_se_vende.mjs",
+    "pruebas:cuarentena-no-se-ajusta": "node scripts/pruebas/cuarentena_no_se_ajusta.mjs",
     "pruebas:stock-huella": "node scripts/pruebas/stock_huella.mjs",
     "pruebas:candados-pago-y-firma": "node scripts/pruebas/candados_pago_y_firma.mjs",
     "pruebas:danadas-reportar-arreglar": "node scripts/pruebas/danadas_reportar_arreglar.mjs",
@@ -247,6 +250,7 @@
     "carga:correr": "node scripts/carga/carga.mjs correr"
   },
   "devDependencies": {
+    "knip": "^6.41.0",
     "turbo": "^2.5.0",
     "typescript": "^5.6.0"
   }

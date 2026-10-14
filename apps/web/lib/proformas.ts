@@ -3,8 +3,7 @@ import { exigir, tolerar } from "@/lib/resultado";
 import { marcarPorVencer, type Proforma, type ProformaFila } from "@/lib/proformas-reglas";
 import { resumenProformas, type ResumenProformas } from "@/lib/facturacion-reglas";
 
-export type { EstadoProforma, LineaProforma, Proforma, ProformaFila } from "@/lib/proformas-reglas";
-export { marcarPorVencer } from "@/lib/proformas-reglas";
+export type { Proforma } from "@/lib/proformas-reglas";
 
 const COLUMNAS_PROFORMA = "id, numero, ubicacion_id, cliente_nombre, cliente_num_doc, total, estado, comprobante_id, venta_id, nota, items, created_at, vence_at";
 

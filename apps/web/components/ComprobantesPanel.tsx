@@ -537,14 +537,14 @@ function ModalAnular({ comprobante, onClose }: { comprobante: Comprobante; onClo
           />
 
           <ComboResponsable control={responsable} deshabilitado={enviandoAnulacion} className="pt-2" />
-          <div className="flex gap-2 pt-3">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones pt-3">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={enviandoAnulacion}
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
@@ -635,14 +635,14 @@ function ModalLiberar({ comprobante, onClose }: { comprobante: Comprobante; onCl
           />
 
           <ComboResponsable control={responsable} deshabilitado={enviandoLiberacion} className="pt-2" />
-          <div className="flex gap-2 pt-3">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones pt-3">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={enviandoLiberacion}
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}

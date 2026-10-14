@@ -37,6 +37,7 @@ import type { OrdenProduccion } from "@/lib/produccion";
 import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -376,9 +377,7 @@ export function OrdenPanel({
                   Llevarlas a las tiendas
                 </Link>
                 {/* ADR-0180: una etiqueta de precio por prenda buena; queda aquí para reimprimir mientras la orden siga cerrada. */}
-                <Link href={urlEtiquetasDePrecio({ produccion: orden.id })} className="btn-cayla btn-secundario">
-                  Imprimir etiquetas de precio
-                </Link>
+                <BotonImprimir href={urlEtiquetasDePrecio({ produccion: orden.id })}>Imprimir etiquetas de precio</BotonImprimir>
               </div>
             </section>
           )}

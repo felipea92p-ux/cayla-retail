@@ -251,7 +251,7 @@ export function NuevoColorAlta({
         >
           {guardando ? "Creando…" : "Crear y elegir"}
         </button>
-        <button type="button" onClick={onCerrar} disabled={guardando} className="btn-cayla btn-sutil">
+        <button type="button" onClick={onCerrar} disabled={guardando} className="btn-cayla btn-secundario">
           Cancelar
         </button>
       </div>

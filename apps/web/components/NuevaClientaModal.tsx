@@ -140,7 +140,7 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
           {/* Pegado al borde de abajo (`pie-hoja-fijo`): con el teclado del celular abierto, «Registrar» sigue a la vista. */}
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2" data-guia="clientas.nuevo-registrar">
             <PieGuia guia={guia} listo="Todo listo para registrar." />
-            <div className="ml-auto flex gap-3">
+            <div className="ml-auto pie-acciones">
               <Boton type="button" onClick={cerrar}>
                 Cancelar
               </Boton>

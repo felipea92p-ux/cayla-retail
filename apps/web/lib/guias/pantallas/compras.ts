@@ -1567,7 +1567,7 @@ export const GUIA_ORDEN: Guia = {
       id: "acciones",
       ancla: "orden.acciones",
       titulo: "Lo que haces con ella",
-      texto: "«Imprimir o guardar PDF» saca la orden en papel A4, lista para mandársela al proveedor. «Editar» la corrige, solo mientras no tenga comprobante ni envío; «Anular orden» la deja sin efecto, con un motivo, y no se deshace. En la demo no tocamos ninguno.",
+      texto: "«Imprimir la orden» la saca en papel A4 (o en PDF), lista para mandársela al proveedor. «Editar» la corrige, solo mientras no tenga comprobante ni envío; «Anular orden» la deja sin efecto, con un motivo, y no se deshace. En la demo no tocamos ninguno.",
     },
     {
       id: "enviar",

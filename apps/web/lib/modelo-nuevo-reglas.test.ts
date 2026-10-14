@@ -552,7 +552,7 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
     // La etiqueta puede ir en varias líneas (A3 le suma `variante`, `conCerrar` y el ancho): se lee sin importar los saltos.
     expect(f).toMatch(/<Modal\s+titulo="Nueva orden de producción"\s+onClose=\{onClose\}\s+antesDeCerrar=\{avisoSalida\.pedirAccion\}/);
     expect(f).not.toContain("onClose={() => avisoSalida.pedirAccion(onClose)}");
-    expect(f).toContain("onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}");
+    expect(f).toContain('onClick={() => avisoSalida.pedirAccion(onClose)} className="btn-cayla btn-secundario"');
     // Elegir el tipo (Producción/Muestra), el modo (Ya existe/Modelo nuevo) o el modelo de la lista no es trabajo perdido: no cuenta como «cambios sin guardar».
     const foto = /fotoFormulario\(\{([^}]*)\}\)/.exec(f)?.[1] ?? "";
     for (const ligero of ["tipo", "modoModelo", "productoId"]) expect(foto, ligero).not.toContain(ligero);

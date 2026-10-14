@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -462,7 +462,7 @@ export function RegistrarPagoModal({
               <ComboResponsable control={responsable} deshabilitado={loading} />
 
               {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
-              <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">
+              <div className="pie-acciones -mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
                 <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
                 <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
                   Cancelar
@@ -516,11 +516,11 @@ function AnularCompraModal({ compra, onClose }: { compra: CompraResumen; onClose
           </p>
           <CampoTexto etiqueta="Motivo" id="anular-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Se registró por error, el proveedor la reemplazó…" autoFocus />
           <ComboResponsable control={responsable} deshabilitado={loading} />
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={cerrar} className={botonCancelar} disabled={loading}>
+          <div className="pie-acciones pt-1">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={loading}>
               Volver
             </button>
-            <button type="submit" className={botonPrimario} disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
+            <button type="submit" className="btn-cayla btn-primario" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
               {loading ? "Anulando…" : "Anular"}
             </button>
           </div>
