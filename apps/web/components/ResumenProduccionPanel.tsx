@@ -15,6 +15,8 @@ import { FotoPrenda } from "@/components/ui/FotoPrenda";
 import type { HojaDeModelo } from "@/lib/produccion-hoja-modelo";
 import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
 import { FilaQueAbreLaHoja } from "@/components/produccion-resumen/FilaQueAbreLaHoja";
+import { ProveedorFichasDeColor } from "@/components/produccion-resumen/FichasDeColor";
+import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { TONO_ESTADO_MODELO } from "@/components/produccion-resumen/estado-modelo";
 
 // Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
@@ -54,6 +56,7 @@ export function ResumenProduccionPanel({
   cifras,
   modelos,
   hojas,
+  fichasDeColor,
   telas,
   falloRed,
 }: {
@@ -68,12 +71,15 @@ export function ResumenProduccionPanel({
   modelos: FilaModelo[];
   /** La hoja «Ver el modelo» de cada modelo (por `productoId`): lo vendido por color y talla y los enlaces a la orden y al traslado. Se arma en el servidor con lo que ya se leyó. */
   hojas: Record<string, HojaDeModelo>;
+  /** El vocabulario de colores con su ficha (qué transmite y con qué se combina): la hoja de cada modelo la usa bajo su foto. Una sola vez para todo el panel. Vacío si no se pudo leer: la hoja no dice nada del color. */
+  fichasDeColor: ColorConFicha[];
   telas: FilaTela[];
   falloRed: string | null;
 }) {
   const maxDias = 60; // la escala de la barra: hasta el techo de «alta cobertura» de Inventario
 
   return (
+    <ProveedorFichasDeColor fichas={fichasDeColor}>
     <div className="space-y-6">
       {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
           (ADR-0358). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
@@ -321,5 +327,6 @@ export function ResumenProduccionPanel({
         </p>
       </section>
     </div>
+    </ProveedorFichasDeColor>
   );
 }

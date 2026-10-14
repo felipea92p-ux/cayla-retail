@@ -779,6 +779,30 @@ describe("terminales sin tipo: el rol manda", () => {
     expect(aterrizajeDe({ modulos: ["inicio", "vender", "caja"], pantallaPrincipal: "caja" })).toBe("/caja");
     expect(aterrizajeDe({ modulos: ["inicio", "vender"], pantallaPrincipal: "caja" })).toBe("/"); // ya no tiene «caja»: vuelve al default
   });
+
+  it("en CAYLA Global, quien iba a quedarse en el Inicio va al tablero; el Admin no, porque su Inicio es el Observatorio (ADR-0275, ADR-0322)", () => {
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "global" })).toBe("/global");
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "global", esAdmin: true })).toBe("/");
+    // Parado en una sede, el Inicio es el Inicio, sea o no Admin.
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "sede" })).toBe("/");
+    expect(aterrizajeDe({ modulos: ["inicio", "cayla_global"], vista: "sede", esAdmin: true })).toBe("/");
+    // Una pantalla principal que no es el Inicio manda igual en CAYLA Global, y sin ninguna pantalla sigue siendo «Sin acceso».
+    expect(aterrizajeDe({ modulos: ["inicio", "clientas", "cayla_global"], pantallaPrincipal: "clientas", vista: "global" })).toBe("/clientas");
+    expect(aterrizajeDe({ modulos: [], vista: "global" })).toBe("/sin-acceso");
+  });
+
+  it("parada en una sede, la vista y el Admin no le cambian el destino a nadie: es la regla de siempre", () => {
+    const perfiles: { terminal?: boolean; modulos: ClaveModulo[]; pantallaPrincipal?: string }[] = [
+      { modulos: ["inicio", "vender"] },
+      { modulos: ["vender"] },
+      { modulos: ["inicio", "vender", "caja"], pantallaPrincipal: "caja" },
+      { terminal: true, modulos: ["vender", "caja"] },
+      { terminal: true, modulos: ["existencias"] },
+    ];
+    for (const perfil of perfiles) {
+      for (const esAdmin of [false, true]) expect(aterrizajeDe({ ...perfil, vista: "sede", esAdmin })).toBe(aterrizajeDe(perfil));
+    }
+  });
 });
 
 describe("falla cerrado: una terminal solo ve lo que su rol nombra", () => {

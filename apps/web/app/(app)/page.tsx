@@ -73,9 +73,17 @@ export default async function InicioPage() {
   const persona = await requirePersonaActualV2();
   // Una terminal cuyo ROL ve el Punto de Venta aterriza ahí (pedido de Felipe, 2026-09-21; sin tipo desde 2026-09-22): su
   // menú no tiene «Inicio», su casa es el mostrador. Una persona aterriza en la pantalla principal de su rol, o en la
-  // primera que ve (20260925220000). Es un aterrizaje, no un candado. La regla vive en `aterrizajeDe`.
+  // primera que ve (20260925220000); en CAYLA Global, en el tablero, salvo el Admin. Es un aterrizaje, no un candado. La
+  // regla vive en `aterrizajeDe`, la misma que usa el login para entrar directo (2026-10-13): esta redirección queda para
+  // quien abre `/` a mano o desde el menú.
   const modulos = persona.modulos.map((m) => m.clave);
-  const destino = aterrizajeDe({ terminal: persona.terminal, modulos, pantallaPrincipal: persona.pantallaPrincipal });
+  const destino = aterrizajeDe({
+    terminal: persona.terminal,
+    modulos,
+    pantallaPrincipal: persona.pantallaPrincipal,
+    esAdmin: persona.esAdmin,
+    vista: persona.vista,
+  });
   if (destino !== "/") redirect(destino);
   if (persona.esAdmin) {
     const datos = await getDatosObservatorio();
@@ -93,6 +101,7 @@ export default async function InicioPage() {
     }
   }
   // En CAYLA Global el Inicio de una sede no tiene sentido (mostraría la sede donde trabaja bajo «CAYLA Global»): al tablero.
+  // A quien no es Admin ya lo mandó `aterrizajeDe`; aquí llega solo el Admin cuyo Observatorio no se pudo leer.
   if (persona.vista === "global") redirect("/global");
   const esLider = persona.rol === "lider";
   const ve = (m: (typeof modulos)[number]) => modulos.includes(m);

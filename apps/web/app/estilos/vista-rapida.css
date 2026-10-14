@@ -721,6 +721,23 @@
     animation: vr-texto-entra 260ms var(--ease-cayla) backwards;
   }
 
+  /* ---- Variante quieta: el diseño de la vista rápida SIN su movimiento rico ----
+     Lo usa la hoja «Ver el modelo» de Producción ▸ Resumen (ADR-0133, actualización 2026-10-13 (c)): su disposición y sus piezas, pero el
+     movimiento rico es solo de la vista rápida de Catálogo (ADR-0136, actualización 2026-10-05). El movimiento de esa hoja es el de `<Modal>`.
+     Se pone `vr-quieta` en `.vr-cuerpo` y en `.vr-pie`; el título y la bajada simplemente no llevan `vr-titulo` ni `vr-dato`. */
+  .vr-quieta .vr-lado,
+  .vr-quieta .vr-foto::after,
+  .vr-quieta .vr-capa[data-nueva="true"],
+  .vr-quieta .vr-desc p,
+  .vr-quieta .vr-texto-cambia,
+  .vr-pie.vr-quieta {
+    animation: none;
+  }
+  .vr-quieta .vr-par {
+    transform: none;
+    transition: none;
+  }
+
   /* ---- Celular: una columna, foto como cinta, pie en 2 × 2 ---- */
   @media (max-width: 639px) {
     .vr-cuerpo {

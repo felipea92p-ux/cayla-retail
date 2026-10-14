@@ -3,7 +3,8 @@
 // (CSV). Sin React ni Supabase: se prueba con vitest y se usa desde el servidor y desde el navegador.
 
 import { CODIGO_SUNAT_DOCUMENTO } from "./documento-comprobante-reglas";
-import { mesDe, textoMes } from "./gastos-reglas";
+import { hoyLima } from "./fechas-lima";
+import { fechaCorta, mesDe, textoMes } from "./gastos-reglas";
 
 type Fila = Record<string, unknown>;
 const num = (v: unknown) => (v === null || v === undefined ? 0 : Number(v));
@@ -269,6 +270,7 @@ export type ParametroFila = {
   nota: string | null;
   provisional: boolean;
   registradoPor: string | null;
+  /** Un instante (timestamptz, en UTC): su día se muestra con `diaDelRegistro`, nunca cortándole los 10 primeros caracteres. */
   registradoEn: string | null;
   correcciones: number;
 };
@@ -285,6 +287,15 @@ export function leerParametro(f: Fila): ParametroFila {
     registradoEn: f.registrado_en ? String(f.registrado_en) : null,
     correcciones: num(f.correcciones),
   };
+}
+
+/** El día en que se puso una vigencia, en Lima: «13 oct 2026». La base manda el instante en UTC («2026-10-14T01:00:00+00:00»):
+ *  cortarle los 10 primeros caracteres daba el día de UTC, y lo puesto de 7 pm a medianoche de Lima salía con fecha de
+ *  mañana. Sin instante, o con uno que no se puede leer, null: se dice quién lo puso y no se inventa cuándo. */
+export function diaDelRegistro(registradoEn: string | null): string | null {
+  if (!registradoEn) return null;
+  const t = Date.parse(registradoEn);
+  return Number.isNaN(t) ? null : fechaCorta(hoyLima(new Date(t)), true);
 }
 
 /** Lo que se muestra en la casilla: la tasa en % («18»), la UIT en soles («5500»), el límite en UIT («300»). */
