@@ -16,6 +16,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { fechaCorta, solesRedondo, type UbicacionGastos, type Ver } from "@/lib/gastos-reglas";
+import { horaLima } from "@/lib/fechas-lima";
 import {
   MEDIOS_COBRO,
   OPCIONES_QUE_PASO,
@@ -30,7 +31,6 @@ import {
   diaYNumero,
   explicacionCuenta,
   hoyEnPalabras,
-  horaLima,
   insigniaCuenta,
   leerEgresoParaMovimiento,
   nombreCorto,
