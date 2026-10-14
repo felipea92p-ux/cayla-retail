@@ -4,10 +4,13 @@ import { Cabecera } from "@/components/Cabecera";
 import { CuentaRegresiva } from "@/components/CuentaRegresiva";
 import { Icono, type NombreIcono } from "@/components/Icono";
 import { Isotipo } from "@/components/Isotipo";
+import { NuestrasTiendas } from "@/components/NuestrasTiendas";
 import { Pie } from "@/components/Pie";
 import { TarjetaClub } from "@/components/TarjetaClub";
 import { leerPortada } from "@/lib/portada-servidor";
+import { leerSedes } from "@/lib/tiendas-servidor";
 import { anioLima, anuncios, fechaCorta, fechaLarga, partirTitulo, pctTexto, type Campana } from "@/lib/portada";
+import "./estilos/tiendas.css";
 
 // La campaña sale de la base y la página se guarda 5 minutos: lo que se cambia en el ERP aparece solo, sin volver a
 // publicar la tienda, y si la base no responde se sigue mostrando la última portada buena.
@@ -28,7 +31,7 @@ const BENEFICIOS: [NombreIcono, string, string][] = [
 ];
 
 export default async function Portada() {
-  const { campana } = await leerPortada();
+  const [{ campana }, sedes] = await Promise.all([leerPortada(), leerSedes()]);
   const anio = anioLima();
   return (
     <div className="tienda">
@@ -106,6 +109,9 @@ export default async function Portada() {
             <TarjetaClub nombre="Tu nombre aquí" desde={anio} />
           </div>
         </section>
+
+        {/* Las tiendas que el ERP muestra en la web (Configuración ▸ Tienda web). Sin ninguna, o sin base, la sección no sale. */}
+        {sedes.length > 0 && <NuestrasTiendas sedes={sedes} />}
 
         <Pie anio={anio} />
       </main>

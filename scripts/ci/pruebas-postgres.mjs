@@ -174,6 +174,12 @@ export const PRUEBAS = [
   // campaña vigente. ROLLBACK.
   "pruebas:tienda-puerta",
 
+  // Configuración ▸ Tienda web (ADR-0408, act. 6): la web solo muestra tiendas encendidas, abiertas y completas (nombre web,
+  // dirección y el WhatsApp del QR del club, un solo número); no se enciende una incompleta ni se repite un nombre; los plazos
+  // no van en cero ni negativos y el umbral no pasa de 3; guarda el líder o quien tiene Configuración, y tienda_web solo lee
+  // tienda_sedes. ROLLBACK.
+  "pruebas:tienda-web-configuracion",
+
   // Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
   // La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.
   "pruebas:redondeo-efectivo",

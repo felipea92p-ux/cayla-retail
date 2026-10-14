@@ -340,7 +340,7 @@ export function ConfiguracionTiendas({ datos, despuesDeWhatsapp }: { datos: Dato
       <Superficie className="anim-sube" guia="config.tiendas-whatsapp">
         <TituloDeTarjeta
           titulo="WhatsApp de cada tienda"
-          bajada="El número al que los clientes le escriben desde el QR del club (el cartel del mostrador). Sin número, esa tienda no muestra QR y el club sigue, sin novedades por WhatsApp."
+          bajada="El número al que los clientes le escriben desde el QR del club (el cartel del mostrador) y desde la tienda web, donde llegan sus pedidos. Sin número, esa tienda no muestra QR ni sale en la web, y el club sigue, sin novedades por WhatsApp."
         >
           <BotonVer href="/clientas/cartel" chico>
             Ver el cartel del club
