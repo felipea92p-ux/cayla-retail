@@ -29,7 +29,7 @@ publicada no se cae (Vercel conserva la anterior), pero lo nuevo no sale hasta o
    `NEXT_PUBLIC_SUPABASE_URL` y la llave pública de mentira (el build no habla con Supabase; solo lee la URL para la lista de hosts de
    imágenes de `next.config.ts`).
 2. **Solo cuando puede cambiar lo que se compila.** `scripts/ci/alcance.mjs` escribe una salida nueva, `compilar=si|no`: `si` si el PR
-   toca `apps/web/`, `packages/`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `turbo.json` o `.nvmrc`. En un push a `main`
+   toca `apps/web/`, `packages/`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `turbo.json`, `.nvmrc` o el propio `ci.yml` (así quien edite el job lo ve correr en su PR). En un push a `main`
    es `no` (Vercel construye producción). El job usa `!= 'no'`, no `== 'si'`: si `alcance` falla, el job corre.
 3. **Apagar `Preview Deployments`** en el proyecto `cayla-retail` de Vercel. Producción no cambia. El `ignoreCommand` del ADR-0383 se
    deja: solo actúa sobre vistas previas, que ya no habrá, no estorba y vuelve a servir si alguien las reactiva.

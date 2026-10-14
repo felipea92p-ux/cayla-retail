@@ -129,6 +129,7 @@ test("compilar: la web, los paquetes, el lockfile y la versión de Node cambian 
     "pnpm-workspace.yaml",
     "turbo.json",
     ".nvmrc",
+    ".github/workflows/ci.yml", // quien edite el job de compilar lo ve correr en su PR
   ]) {
     assert.equal(compilaLaWeb(["docs/a.md", archivo]), true, archivo);
   }
@@ -136,7 +137,7 @@ test("compilar: la web, los paquetes, el lockfile y la versión de Node cambian 
     "docs/adr/0407-x.md",
     "supabase/migrations/20261014000000_x.sql",
     "scripts/pruebas/x.mjs",
-    ".github/workflows/ci.yml",
+    ".github/workflows/sql-pegado.yml",
     "CLAUDE.md",
     "apps/webhooks/x.ts", // no es apps/web/
   ]) {

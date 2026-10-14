@@ -31,7 +31,7 @@
  *
  * `compilar=si|no` (ADR-0407): si hace falta `next build` en el CI. Vercel construía una vista previa por rama y era el
  * único build antes de fusionar; al apagarlas, el CI toma ese lugar, pero solo cuando el PR puede cambiar lo que se
- * compila (la web, `packages/`, el lockfile, la versión de Node). En un push a `main` es `no`: Vercel construye producción.
+ * compila (la web, `packages/`, el lockfile, la versión de Node, el propio `ci.yml`). En un push a `main` es `no`: Vercel construye producción.
  * Ante la duda, `si`.
  */
 import { execFileSync } from "node:child_process";
@@ -40,8 +40,9 @@ import { pathToFileURL } from "node:url";
 
 const SOLO_DOCUMENTOS = [/^docs\//, /\.md$/, /^\.claude\//, /^\.agents\//, /^graphify-out\//];
 const WEB = /^apps\/web\//;
-// Lo que cambia el resultado de `next build`: la web, los paquetes que importa, el lockfile y la versión de Node.
-const COMPILA_LA_WEB = [WEB, /^packages\//, /^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|turbo\.json|\.nvmrc)$/];
+// Lo que cambia el resultado de `next build`: la web, los paquetes que importa, el lockfile y la versión de Node. Y el propio
+// `ci.yml`: quien edite el job de compilar lo ve correr en su PR.
+const COMPILA_LA_WEB = [WEB, /^packages\//, /^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|turbo\.json|\.nvmrc)$/, /^\.github\/workflows\/ci\.yml$/];
 
 /** ¿Alguno de estos archivos puede cambiar lo que compila `next build`? */
 export function compilaLaWeb(archivos) {
