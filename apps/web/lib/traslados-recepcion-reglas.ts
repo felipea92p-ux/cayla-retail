@@ -316,7 +316,7 @@ export type ConsecuenciaCierre = {
   entran: string;
   /** Lo que se da por perdido; `null` si no falta nada. */
   perdidas: string | null;
-  /** Lo que llegó de más y entra también; `null` si no sobró nada. */
+  /** Lo que llegó de más: queda por revisar, fuera del stock (ADR-0404); `null` si no sobró nada. */
   deMas: string | null;
   unidadesPerdidas: number;
 };
@@ -329,7 +329,8 @@ export function consecuenciaCierre(lineas: LineaRecepcion[], conteos: Conteos, {
     if (l.ingresado) continue;
     const v = valorContado(l, conteos) ?? 0;
     const e = l.cantidadEnviada ?? 0;
-    entranN += v;
+    // ADR-0404: de cada prenda entra hasta lo enviado; lo de más queda por revisar.
+    entranN += Math.min(v, e);
     if (e > v) perdidas.push({ nombre: nombrePrenda(l), n: e - v });
     if (v > e) deMas.push({ nombre: nombrePrenda(l), n: v - e });
   }
@@ -339,7 +340,10 @@ export function consecuenciaCierre(lineas: LineaRecepcion[], conteos: Conteos, {
     entran: entranN === 0 ? "No entra ninguna prenda más al stock." : `${entranN === 1 ? "Entra" : "Entran"} ${prendas(entranN)} ${lugarTexto(destino, sede)}.`,
     perdidas:
       perdidasN === 0 ? null : `${perdidasN === 1 ? "Se da por perdida" : "Se dan por perdidas"} ${prendas(perdidasN)}: ${listaDePrendas(perdidas)}.`,
-    deMas: deMasN === 0 ? null : `${deMasN === 1 ? "Llegó 1 prenda de más y también entra" : `Llegaron ${deMasN} prendas de más y también entran`}: ${listaDePrendas(deMas)}.`,
+    deMas:
+      deMasN === 0
+        ? null
+        : `${deMasN === 1 ? "Queda por revisar 1 prenda de más" : `Quedan por revisar ${deMasN} prendas de más`}, sin entrar al stock: ${listaDePrendas(deMas)}.`,
     unidadesPerdidas: perdidasN,
   };
 }

@@ -205,17 +205,32 @@ select c.id as comprobante_id, c.venta_id, c.serie || '-' || c.numero as numero,
   },
   {
     id: "INV-08",
-    nombre: "recepcion_no_excede_el_envio",
+    nombre: "lo_que_entra_por_un_traslado_salio_de_alguna_sede",
     gravedad: 1,
     nivel: "cruzada",
-    dice: "En un traslado, una sede no puede recibir de una prenda más de lo que se envió: sería stock que apareció sin salir de ninguna parte.",
+    // ADR-0404: contar de más ya no es una violación (queda como sobrante a revisar, fuera del stock). Lo imposible es que entre
+    // al stock por un traslado más de lo que SALIÓ por él: lo enviado y, si un líder dijo «salió del origen», esa salida.
+    dice: "Por un traslado no puede entrar a una sede más de una prenda que la que salió por él: sería stock que apareció sin salir de ninguna parte.",
     sql: `
-select i.transferencia_id, i.variante_id, i.cantidad as enviado, coalesce(r.t, 0) as recibido
-  from retail.transferencia_items i
-  join (select transferencia_id, variante_id, sum(cantidad_recibida) as t from retail.transferencia_recepciones group by 1, 2) r
-    on r.transferencia_id = i.transferencia_id and r.variante_id = i.variante_id
- where r.t > i.cantidad`,
-    corrompe: `update retail.transferencia_recepciones set cantidad_recibida = cantidad_recibida + 1000 where ctid = (select ctid from retail.transferencia_recepciones limit 1);`,
+with entro as (
+  select tr.transferencia_id, m.variante_id, sum(m.cantidad) as q
+    from retail.movimientos m join retail.transferencia_recepciones tr on tr.id = m.transferencia_recepcion_id
+   where m.tipo = 'entrada'
+   group by 1, 2
+), salio as (
+  select coalesce(ti.transferencia_id, trs.transferencia_id) as transferencia_id, m.variante_id, sum(m.cantidad) as q
+    from retail.movimientos m
+    left join retail.transferencia_items ti on ti.id = m.transferencia_item_id
+    left join retail.transferencia_recepciones trs on trs.id = m.transferencia_recepcion_id
+   where m.tipo = 'salida' and coalesce(ti.transferencia_id, trs.transferencia_id) is not null
+   group by 1, 2
+)
+select e.transferencia_id, e.variante_id, coalesce(s.q, 0) as salio, e.q as entro
+  from entro e left join salio s on s.transferencia_id = e.transferencia_id and s.variante_id = e.variante_id
+ where e.q > coalesce(s.q, 0)`,
+    corrompe: `insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, transferencia_recepcion_id)
+select tr.variante_id, t.ubicacion_destino_id, coalesce(t.sububicacion_destino_id, retail.fn_sububicacion_por_defecto(t.ubicacion_destino_id, 'traslado_entrada')), 'entrada', 1000, 'traslado_entrada', tr.id
+  from retail.transferencia_recepciones tr join retail.transferencias t on t.id = tr.transferencia_id limit 1;`,
   },
   {
     id: "INV-09",
