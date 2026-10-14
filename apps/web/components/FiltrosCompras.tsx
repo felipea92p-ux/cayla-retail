@@ -20,6 +20,7 @@ import {
   type EstadoRecepcion,
   type TipoDocumentoCompra,
 } from "@/lib/compras-reglas";
+import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 
 // Filtros de las tablas de Compras. Viven en la URL (?q=…&pago=…): así la
 // página es un Server Component que filtra en Postgres, el enlace se puede
@@ -284,32 +285,25 @@ export function FiltrosCompras({
       {chips.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" data-guia="filtros-compras.chips">
           {chips.map((c) => (
-            <button
+            <FiltroPuesto
               key={c.texto}
-              type="button"
-              onClick={() => {
+              onQuitar={() => {
                 if ("q" in c.quitar) setBusqueda("");
                 aplicar(c.quitar);
               }}
-              className="label-cayla anim-entrada inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
-              aria-label={`Quitar filtro ${c.texto}`}
+              etiqueta={`Quitar filtro ${c.texto}`}
             >
               {c.texto}
-              <span aria-hidden className="text-sm leading-none">
-                ×
-              </span>
-            </button>
+            </FiltroPuesto>
           ))}
-          <button
-            type="button"
+          <BotonLimpiar
             onClick={() => {
               setBusqueda("");
               router.push(pathname);
             }}
-            className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo"
           >
             Limpiar todo
-          </button>
+          </BotonLimpiar>
         </div>
       )}
     </div>

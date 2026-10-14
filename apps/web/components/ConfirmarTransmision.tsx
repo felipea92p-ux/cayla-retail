@@ -1,6 +1,6 @@
 "use client";
 
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 
@@ -31,8 +31,8 @@ export function ConfirmarTransmision({
       {(cerrar) => (
         <div className="space-y-4">
           <ComboResponsable control={responsable} />
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} className={botonCancelar}>
+          <div className="pie-acciones pt-1">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
               Cancelar
             </button>
             <button
@@ -40,7 +40,7 @@ export function ConfirmarTransmision({
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
               onClick={() => onTransmitir(responsable.encabezados())}
-              className={botonPrimario}
+              className="btn-cayla btn-primario"
             >
               {accion}
             </button>

@@ -2,9 +2,7 @@
 
 import { useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Printer } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { Boton } from "@/components/ui/campos";
 import { AvisoStock } from "@/components/plan-compra/AvisoStock";
 import { descargarCsv } from "@/lib/exportar-csv";
 import {
@@ -19,6 +17,7 @@ import {
   type FilaPlan,
 } from "@/lib/plan-compra-reglas";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // «Exportar» del plan de campaña (ADR-0349): la lista de compra que se lleva al proveedor, por categoría y por talla, con su total.
 // Se arma en el navegador con lo que la pantalla ya leyó (no toca la base). Una vista previa en papel; «Descargar Excel (CSV)» baja el
@@ -87,10 +86,9 @@ export function ExportarPlan({ planNombre, filas, confianza, onClose }: { planNo
             </p>
           )}
           <div className="flex flex-wrap justify-end gap-3">
-            <Boton type="button" disabled={!hayQueComprar} onClick={() => window.print()}>
-              <Printer aria-hidden className="h-4 w-4" />
-              Imprimir
-            </Boton>
+            <BotonImprimir disabled={!hayQueComprar} onClick={() => window.print()}>
+              Imprimir la lista
+            </BotonImprimir>
             <BotonDescargar peso="primario" disabled={!hayQueComprar} onClick={() => descargarCsv(nombreDelArchivoDeCompra(planNombre), [...ENCABEZADOS_LISTA_COMPRA], filasDelCsvDeCompra(lista))}>
               Descargar Excel
             </BotonDescargar>

@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 122,
+  "total": 120,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «:»",
@@ -10,8 +10,8 @@
       "BotonEnlace «Ir a Categorías»"
     ],
     "components/ColaOfflineAviso.tsx": [
-      "button «Sí, descartar»",
       "button «Cancelar»",
+      "button «Sí, descartar»",
       "button «Descartar»"
     ],
     "components/NuevoProductoForm.tsx": [
@@ -158,7 +158,6 @@
       "Link «Editar el producto»",
       "Link «{abrirOrden.boton}»",
       "Link «{completas ? \"Ver las fotos\" : \"Agregar fotos\"}»",
-      "Link «Imprimir etiquetas»",
       "button «Crear otro parecido»"
     ],
     "components/alta-producto/ProponerValor.tsx": [
@@ -185,7 +184,6 @@
       "button «›»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ]
   }

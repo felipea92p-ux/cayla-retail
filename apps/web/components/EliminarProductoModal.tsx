@@ -141,22 +141,22 @@ export function EliminarProductoModal({
 
           {puede && <ComboResponsable control={responsable} deshabilitado={eliminando} />}
 
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={eliminando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={eliminando}>
               {puede ? "Cancelar" : "Cerrar"}
             </Boton>
             {salida?.irAEditar && (
-              <Link href={`/productos/${producto.productoId}/editar`} className="btn-cayla btn-primario flex flex-1 items-center justify-center">
+              <Link href={`/productos/${producto.productoId}/editar`} className="btn-cayla btn-primario">
                 Editar
               </Link>
             )}
             {salida?.desactivar && onDesactivar && (
-              <Boton peso="peligro" className="flex-1" onClick={onDesactivar}>
+              <Boton peso="peligro" onClick={onDesactivar}>
                 Desactivar
               </Boton>
             )}
             {puede && (
-              <Boton peso="primario" className="flex-1" cargando={eliminando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void eliminar(cerrar)}>
+              <Boton peso="primario" cargando={eliminando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void eliminar(cerrar)}>
                 {conHistoria ? "Eliminar con su historia" : "Eliminar"}
               </Boton>
             )}

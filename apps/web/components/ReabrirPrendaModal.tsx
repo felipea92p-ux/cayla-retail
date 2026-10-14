@@ -89,7 +89,7 @@ export function ReabrirPrendaModal({ fila, onClose }: { fila: FilaPorRegularizar
           </p>
 
           <PieGuia guia={guia} listo="Todo listo para reabrir." />
-          <div className="flex justify-end gap-3 pt-1">
+          <div className="pie-acciones pt-1">
             <Boton type="button" onClick={cerrar}>
               Cancelar
             </Boton>
