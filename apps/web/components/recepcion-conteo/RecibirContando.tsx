@@ -241,7 +241,7 @@ export function RecibirContando({
         : otraSede || noLoRecibe
           ? `${origen}. Se recibe en ${detalle.sede?.nombre ?? "su sede"}.`
           : estado === "abierto"
-            ? "Abre el fardo y cuenta por categoría. Qué prendas son puede quedar para después: lo esencial es el número."
+            ? "Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después."
             : `${origen}. Viene en camino a ${detalle.sede?.nombre ?? "la sede"}.`;
   const cifra =
     estado === "anulado"

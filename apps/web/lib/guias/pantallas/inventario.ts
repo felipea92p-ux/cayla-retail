@@ -1522,7 +1522,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Recibir lo que llegó",
-      texto: "Aquí recibes en tu sede lo que llegó: abres el fardo, cuentas por categoría y cierras. Qué prendas son, sus tallas y lo nuevo pueden quedar para después; lo que faltó o vino de más queda anotado para Compras. Es una demo: no se guarda nada.",
+      texto: "Aquí recibes en tu sede lo que llegó: abres el fardo, cuentas cuántas llegaron de cada tipo de prenda y cierras. Qué modelo es cada una, sus tallas y lo nuevo pueden quedar para después; lo que faltó o vino de más queda anotado para Compras. Es una demo: no se guarda nada.",
     },
     {
       id: "cifra",
@@ -1612,7 +1612,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       ancla: "recepcion.tabla-cierre",
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
-      texto: "Una fila por categoría: el costo (corrígelo si la factura dice otro), lo que dijeron, lo que contaste, lo que entra hoy al stock y lo que queda para después. Si no cuadró, eliges qué pasó: queda anotado para Compras.",
+      texto: "Una fila por categoría: el costo (corrígelo si la factura dice otro), lo que dijeron, lo que contaste y cuántas se pueden vender ya; lo demás queda guardado para terminar después. Si no cuadró, eliges qué pasó: queda anotado para Compras.",
     },
     {
       id: "cerrar-boton",
@@ -1743,7 +1743,7 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       opcional: true,
       requiere: ["recepcion.cerrado"],
       titulo: "Lo que sigue",
-      texto: "El primer botón imprime las etiquetas de precio de lo que llegó y «Bajar al piso» lleva lo bueno al piso de venta. Te llevan a otra pantalla, así que en la demo no los tocamos.",
+      texto: "Si algo ya se puede vender, el primer botón imprime sus etiquetas de precio y «Bajar al piso» lo lleva al piso de venta. Si todo quedó guardado, el botón te lleva a terminar lo primero de «Para después». En la demo no los tocamos.",
     },
     {
       id: "para-despues",

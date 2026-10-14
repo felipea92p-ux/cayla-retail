@@ -136,8 +136,41 @@ da captura + lista numerada de lo que se toca (sin leer el repositorio).
   repetir (chaos 393).
 - **Persona sin contexto:** ciega ✓ (arriba); real: sin probar.
 
+## Los 3 cambios, aplicados con el OK de Felipe (2026-10-14)
+
+1. **Cerrado sin nada en el stock** → «Las 5 prendas están guardadas, pero todavía no se pueden vender» · «Están en el almacén. Para
+   venderlas falta decir qué modelo es cada una, con su talla y su color.» · botón «Separarlas ahora» (abre lo primero de «Para
+   después»). El texto cambia según lo pendiente (separar, tallas o crear) y en singular. Siempre «prendas»: «las 5 polos» no concuerda.
+2. **La frase de arriba** (al contar y en la puerta) → «Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es
+   cada una lo puedes decir ahora o después.»
+3. **El cierre** → la columna «Al stock» se llama «Se pueden vender» (la celda dice «N guardadas»), y sobre el botón: «Al cerrar: 0 se
+   pueden vender ya · 3 quedan guardadas para terminar después.»
+
+Reglas puras con prueba: `veredictoDelCerrado`, `resumenDelCierre` y `textoResumenDelCierre` (`lib/recepcion-conteo-reglas.ts`). Las guías
+de `/recibir` y `/recibir/envio/[id]` dicen lo mismo (bienvenida, tabla del cierre y «Lo que sigue») y se recorrieron de nuevo.
+
+**Verificación.** [Observado] Segunda ciega (Sonnet, misma tarea, sin el repositorio): 14 acciones, 0 retrocesos. Al terminar dijo con
+sus palabras: «están contadas y guardadas en el almacén, pero NO están listas para vender; falta que alguien diga qué modelo es cada
+falda, con su talla y su color». Ya no dudó de la frase de arriba ni de la columna del cierre. [Medido] A 1440 px, en el cierre y en el
+cerrado: 0 blancos bajo el mínimo, 0 contrastes bajos y una sola acción principal por vista.
+
+| Eje | Antes | Después | Evidencia |
+|---|---|---|---|
+| 1 Sin manual | 7 | 8 | [Observado] dos ciegas ✓; la segunda entiende el estado final · real: sin probar (tope 8) |
+| 3 Simplicidad profunda | 6 | 8 | [Observado] el veredicto se lee como «falta esto para venderlas» |
+| 4 Lenguaje de tienda | 6 | 7 | [Observado] sin dudas en la frase ni en la columna; quedan «Dijeron» y «Admin» (pieza común) |
+| 8 Quitar antes de agregar | 7 | 7 | [Observado] con un solo pendiente, «Separarlas ahora» y «Hacer ahora» hacen lo mismo |
+| **Leyes (promedio)** | **7,2** | **7,6** | las demás leyes, sin cambio |
+| **Oficio visual** | **8** | **8,5** | [Medido] lo que falla es del marco común |
+
+**Lista aparte, nueva (no se ejecuta sin que Felipe lo mande):**
+- Con un solo pendiente, el botón del veredicto y el «Hacer ahora» de la fila hacen lo mismo (la ciega dudó si eran distintos).
+- «Llegó esta semana» lee los lotes: un envío cerrado sin nada en el stock no aparece, y la ciega creyó que nada había llegado hoy.
+- «Recibir sin guía» (una orden directa) y «¿Llegó algo sin aviso?» conviven en la puerta y se confunden (lo toca #1040).
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-12 | fase 5a | 5,8 (provisional, 4 leyes) | sin medir | — |
 | 2026-10-13 | `69df902e6` (cara A, ADR-0393) | 7,2 (9 leyes) · leyes 3 y 4: 6 | 8 | el 3 de la fase 4 (un F5 borraba lo contado), por diseño |
+| 2026-10-14 | los 3 cambios de la cara A | 7,6 · ley 1: 8 (tope sin real) | 8,5 | los 3 del 2026-10-13 |

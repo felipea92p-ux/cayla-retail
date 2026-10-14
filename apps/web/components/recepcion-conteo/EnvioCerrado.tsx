@@ -10,7 +10,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { buenasDeRecibidos, despuesDeRecibirEnvio, textoCausa, type CatalogoParaRecibir, type DetalleEnvio, type PrendaRecepcion } from "@/lib/recepcion-envio-reglas";
-import { cifrasDelEnvio, paraDespues, textoNoSeReabre, textoPrendas, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
+import { cifrasDelEnvio, paraDespues, textoNoSeReabre, textoPrendas, veredictoDelCerrado, type ConteosDelEnvio, type LineaParaContar, type ParaDespues } from "@/lib/recepcion-conteo-reglas";
 import { HacerAhora } from "./HacerAhora";
 import { ReabrirEnvio } from "./ReabrirEnvio";
 
@@ -49,6 +49,8 @@ export function EnvioCerrado({
   const [reabriendo, setReabriendo] = useState(false);
   const cifras = cifrasDelEnvio(lineas);
   const lista = paraDespues(lineas);
+  // Qué dice el envío sobre el stock: listas para etiquetar o, si nada entró, por qué y qué lo resuelve (formidable 2026-10-13, cambio 1).
+  const veredicto = veredictoDelCerrado(lineas, lista);
   const buenas = buenasDeRecibidos(detalle.recibidos);
   const acciones = despuesDeRecibirEnvio({ lotes, buenas, unidades: cifras.enStock, unidadesBuenas: buenas.reduce((a, b) => a + b.cantidad, 0), veExistencias });
   const diferencias = (detalle.diferencias ?? []).filter((d) => d.cantidad > 0);
@@ -77,22 +79,24 @@ export function EnvioCerrado({
       </div>
 
       <section className="card-cayla space-y-3 p-4 sm:p-5" aria-label="Ya en el stock">
-        <TituloSeccion dato={<Chip tono={cifras.enStock > 0 ? "verde" : "neutro"}>{cifras.enStock > 0 ? "Listas para etiquetar" : "Esperan sus pendientes"}</Chip>}>
-          {cifras.enStock > 0 ? `${textoPrendas(cifras.enStock)} ya están en el stock del almacén` : "Todavía nada entró al stock"}
-        </TituloSeccion>
-        <p className="text-sm text-taupe">
-          {cifras.enStock > 0
-            ? "Son las que ya tienen tallas y colores. Todo llegó sin etiqueta: lo que sigue es imprimir la etiqueta de precio y colgarlas."
-            : "Al stock entra lo que tiene tallas y colores: resuelve los pendientes de abajo y entra solo."}
-        </p>
-        {acciones.length > 0 && (
+        <TituloSeccion dato={veredicto.chip ? <Chip tono={veredicto.chip.tono}>{veredicto.chip.texto}</Chip> : undefined}>{veredicto.titulo}</TituloSeccion>
+        <p className="text-sm text-taupe">{veredicto.texto}</p>
+        {veredicto.accion && lista.length > 0 ? (
           <div data-guia="recepcion.despues" className="flex flex-wrap gap-2.5">
-            {acciones.map((a) => (
-              <BotonEnlace key={a.clave} href={a.href} peso={a.principal ? "primario" : "fantasma"}>
-                {a.texto}
-              </BotonEnlace>
-            ))}
+            <Boton type="button" peso="primario" onClick={() => setHaciendo(lista[0])}>
+              {veredicto.accion}
+            </Boton>
           </div>
+        ) : (
+          acciones.length > 0 && (
+            <div data-guia="recepcion.despues" className="flex flex-wrap gap-2.5">
+              {acciones.map((a) => (
+                <BotonEnlace key={a.clave} href={a.href} peso={a.principal ? "primario" : "fantasma"}>
+                  {a.texto}
+                </BotonEnlace>
+              ))}
+            </div>
+          )
         )}
       </section>
 

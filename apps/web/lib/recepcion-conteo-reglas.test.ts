@@ -43,6 +43,9 @@ import {
   type LineaParaContar,
   type Separado,
   necesitaCatalogoAlCerrar,
+  resumenDelCierre,
+  textoResumenDelCierre,
+  veredictoDelCerrado,
   lineasALaVista,
   leerContadas,
   mensajeAlGuardar,
@@ -387,6 +390,50 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(textoAvisoPendientes(leerPendientesDeLaSede(null))).toBeNull();
     expect(diasDesde("2026-10-01T10:00:00Z", new Date("2026-10-09T09:00:00Z"))).toBe(7);
     expect(diasDesde(null)).toBeNull();
+  });
+});
+
+describe("formidable 2026-10-13: el veredicto al cerrar y lo que pasa al cerrar", () => {
+  const conteo = (o: Record<string, unknown>) => leerConteosDelEnvio({ despacho_id: "d", estado: "cerrado", conteos: [conteoCrudo(o)] })?.conteos[0] ?? null;
+  const extra = (o: Record<string, unknown>): LineaParaContar => ({
+    clave: "extra:1",
+    linea: null,
+    conteo: conteo({ extra_posicion: 1, proveedor: PROV, categoria: CAT, marca: MARCA, ...o }),
+    categoria: CAT,
+    marca: MARCA,
+    proveedor: PROV,
+    dijeron: null,
+  });
+
+  it("cambio 1: sin nada en el stock, dice que están guardadas pero no se pueden vender, qué falta y el botón que lo resuelve", () => {
+    const l = extra({ contadas: 5, en_stock: 0, sin_separar: 5 });
+    const v = veredictoDelCerrado([l], paraDespues([l]));
+    expect(v).toEqual({
+      titulo: "Las 5 prendas están guardadas, pero todavía no se pueden vender",
+      texto: "Están en el almacén. Para venderlas falta decir qué modelo es cada una, con su talla y su color.",
+      chip: null,
+      accion: "Separarlas ahora",
+    });
+    const una = extra({ contadas: 1, en_stock: 0, pendientes: [{ id: "p", tipo: "crear", cantidad: 1, quedan: 1, estado: "pendiente" }] });
+    expect(veredictoDelCerrado([una], paraDespues([una]))).toMatchObject({
+      titulo: "La prenda está guardada, pero todavía no se puede vender",
+      texto: "Está en el almacén. Para venderla falta crearla en el catálogo, con su talla y su color.",
+      accion: "Crearla ahora",
+    });
+  });
+
+  it("cambio 1: con algo en el stock, listas para etiquetar; sin nada contado, lo dice", () => {
+    const l = extra({ contadas: 5, en_stock: 3, sin_separar: 2 });
+    expect(veredictoDelCerrado([l], paraDespues([l]))).toMatchObject({ titulo: "3 prendas ya están en el stock del almacén", chip: { tono: "verde" }, accion: null });
+    expect(veredictoDelCerrado([], [])).toMatchObject({ titulo: "Nada entró al stock", accion: null });
+  });
+
+  it("cambio 3: al cerrar, cuántas se pueden vender ya y cuántas quedan guardadas", () => {
+    const l = extra({ contadas: 5, en_stock: 0, sin_separar: 5 });
+    expect(resumenDelCierre([l])).toEqual({ sePuedenVender: 0, guardadas: 5 });
+    expect(textoResumenDelCierre({ sePuedenVender: 0, guardadas: 5 })).toBe("Al cerrar: 0 se pueden vender ya · 5 quedan guardadas para terminar después.");
+    expect(textoResumenDelCierre({ sePuedenVender: 1, guardadas: 1 })).toBe("Al cerrar: 1 se puede vender ya · 1 queda guardada para terminar después.");
+    expect(textoResumenDelCierre({ sePuedenVender: 4, guardadas: 0 })).toBe("Al cerrar: 4 se pueden vender ya.");
   });
 });
 

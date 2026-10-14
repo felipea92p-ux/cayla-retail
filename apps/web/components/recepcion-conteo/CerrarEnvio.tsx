@@ -41,6 +41,8 @@ import {
   type DecisionCierre,
   type LineaParaContar,
   mensajeAlGuardar,
+  resumenDelCierre,
+  textoResumenDelCierre,
 } from "@/lib/recepcion-conteo-reglas";
 import { cerrarConteo } from "@/lib/recepcion-conteo-acciones";
 
@@ -50,7 +52,7 @@ import { cerrarConteo } from "@/lib/recepcion-conteo-acciones";
 // Las reglas son las de `cerrar_conteo_envio` (`camposDelCierre`): la guía de foco enciende lo que falta.
 
 // Las columnas del cierre, una sola vez para el encabezado y cada fila (la pieza <Tabla>, ADR-0358). En celular se apilan.
-const PLANTILLA_CIERRE = "sm:grid-cols-[minmax(0,1.5fr)_8.5rem_4.5rem_4.5rem_6rem_minmax(0,2.5fr)]";
+const PLANTILLA_CIERRE = "sm:grid-cols-[minmax(0,1.5fr)_8.5rem_4.5rem_4.5rem_7.5rem_minmax(0,2.5fr)]";
 
 export function CerrarEnvio({
   detalle,
@@ -98,7 +100,9 @@ export function CerrarEnvio({
   const campos = camposDelCierre({ lineas: visibles, decisiones, sinAviso, responsable: responsable.listo });
   const guia = useGuiaCampos(campos, { enModal: false });
   const contadas = visibles.reduce((a, l) => a + contadasDe(l), 0);
-  const porDetallar = visibles.reduce((a, l) => a + Math.max(0, contadasDe(l) - (l.conteo?.enStock ?? 0) - detalladas(l.conteo?.separado ?? { prendas: [], nuevas: [] })), 0);
+  // Lo que pasa al cerrar, dicho para la tienda (formidable 2026-10-13, cambio 3): cuántas se pueden vender ya y cuántas quedan guardadas.
+  const resumen = resumenDelCierre(visibles);
+  const porDetallar = resumen.guardadas;
 
   async function cerrar(confirmados: ReadonlySet<string> = new Set()) {
     if (!guia.puedeConfirmar || esperandoGuardar) return;
@@ -162,7 +166,7 @@ export function CerrarEnvio({
             { titulo: "Costo c/u", alinear: "der", ayuda: "El costo que trae el envío; quien cierra lo corrige si el papel dice otra cosa" },
             { titulo: "Dijeron", alinear: "der" },
             { titulo: "Contaste", alinear: "der" },
-            { titulo: "Al stock", alinear: "der" },
+            { titulo: "Se pueden vender", alinear: "der", ayuda: "Lo que entra al stock al cerrar: ya tiene su talla y su color" },
             { titulo: "Diferencia y por qué" },
           ]}
         />
@@ -214,9 +218,9 @@ export function CerrarEnvio({
                     {l.conteo ? contadasDe(l) : <Chip tono="ambar">Sin contar</Chip>}
                   </div>
                   <div className="min-w-0 sm:text-right" role="cell">
-                    <span className="text-taupe sm:hidden">Al stock </span>
+                    <span className="text-taupe sm:hidden">Se pueden vender </span>
                     <span className="tabular-nums text-verde">{alStock}</span>
-                    {para > 0 && <p className="text-[11px] text-taupe">{para} para después</p>}
+                    {para > 0 && <p className="text-[11px] text-taupe">{para} {para === 1 ? "guardada" : "guardadas"}</p>}
                   </div>
                   <div className="min-w-0" role="cell">
                     {!l.conteo ? (
@@ -300,7 +304,8 @@ export function CerrarEnvio({
             />
           ) : (
             <>
-              <PieGuia guia={guia} listo={porDetallar > 0 ? `Todo listo. ${porDetallar} quedan para después: no frenan el cierre.` : "Todo listo para cerrar."} />
+              <p className="text-sm text-tinta" aria-live="polite">{textoResumenDelCierre(resumen)}</p>
+              <PieGuia guia={guia} listo={porDetallar > 0 ? "Todo listo: lo guardado no frena el cierre." : "Todo listo para cerrar."} />
               <div className="flex flex-wrap items-center justify-between gap-2.5">
                 <Volver onClick={onVolver} a="contar" deshabilitado={guardando} />
                 <Boton

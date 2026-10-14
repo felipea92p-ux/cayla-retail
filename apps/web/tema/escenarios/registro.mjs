@@ -1194,8 +1194,9 @@ const envioDeTrujillo = (condicion) => {
   return id;
 };
 const ENVIO_ABIERTO = "d.estado = 'abierto'";
+// «Para después» tiene algo si hay un pendiente anotado (tallas o crear) o prendas sin separar (esas no se anotan: salen de las cuentas).
 const ENVIO_CON_PENDIENTES =
-  "d.estado = 'cerrado' and exists (select 1 from retail.despacho_pendientes p where p.despacho_id = d.id and p.estado = 'pendiente')";
+  "d.estado = 'cerrado' and (exists (select 1 from retail.despacho_pendientes p where p.despacho_id = d.id and p.estado = 'pendiente') or exists (select 1 from retail.fn_envio_cuentas(array[d.id]) c where c.sin_separar > 0))";
 const irAlEnvio = (condicion) => async (pagina) => irA(`/recibir/envio/${envioDeTrujillo(condicion)}`)(pagina);
 const RECEPCION = ["integrante"];
 ESCENARIOS.push(

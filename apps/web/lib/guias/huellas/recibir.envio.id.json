@@ -2,7 +2,7 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 102,
+  "total": 103,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «(sin nombre)»",
@@ -71,6 +71,7 @@
       "Boton «No llegó nada»"
     ],
     "components/recepcion-conteo/EnvioCerrado.tsx": [
+      "Boton «{veredicto.accion}»",
       "BotonEnlace «{a.texto}»",
       "Boton «{p.tipo === \"crear\" ? \"+ Crear ahora\" : \"Hacer ahora\"}»",
       "Boton «Reabrir el conteo»"

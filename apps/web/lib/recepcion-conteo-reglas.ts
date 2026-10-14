@@ -763,6 +763,80 @@ export function paraDespues(lineas: readonly LineaParaContar[]): ParaDespues[] {
   return r;
 }
 
+/**
+ * Lo que pasa al cerrar, en dos cifras (formidable 2026-10-13, cambio 3): cuántas se pueden vender ya (lo que entra al stock: lo que ya
+ * estaba y lo que el borrador trae con tallas y colores) y cuántas quedan guardadas en el almacén para terminar después. La prueba
+ * ciega leyó «Al stock 0 · 5 para después» como «no quedaron registradas»: se dice qué significa para la tienda.
+ */
+export function resumenDelCierre(lineas: readonly LineaParaContar[]): { sePuedenVender: number; guardadas: number } {
+  let sePuedenVender = 0;
+  let guardadas = 0;
+  for (const l of lineas) {
+    if (!lineaVisible(l)) continue;
+    const entra = (l.conteo?.enStock ?? 0) + detalladas(l.conteo?.separado ?? SEPARADO_VACIO);
+    sePuedenVender += entra;
+    guardadas += Math.max(0, contadasDe(l) - entra);
+  }
+  return { sePuedenVender, guardadas };
+}
+
+/** La línea sobre el botón de cerrar: «Al cerrar: 0 se pueden vender ya · 5 quedan guardadas para terminar después.» */
+export function textoResumenDelCierre(r: { sePuedenVender: number; guardadas: number }): string {
+  const vender = `${r.sePuedenVender} ${r.sePuedenVender === 1 ? "se puede" : "se pueden"} vender ya`;
+  if (r.guardadas === 0) return `Al cerrar: ${vender}.`;
+  return `Al cerrar: ${vender} · ${r.guardadas} ${r.guardadas === 1 ? "queda guardada" : "quedan guardadas"} para terminar después.`;
+}
+
+export type VeredictoDelCerrado = {
+  titulo: string;
+  texto: string;
+  /** La insignia al lado del título; `null` si el botón ya dice lo que sigue. */
+  chip: { tono: "verde" | "neutro"; texto: string } | null;
+  /** El botón que lleva a terminar lo primero de «Para después»; `null` si no hay nada pendiente o ya hay prendas para etiquetar. */
+  accion: string | null;
+};
+
+/**
+ * Qué dice el envío cerrado sobre el stock (formidable 2026-10-13, cambio 1). Con algo adentro: listas para etiquetar. Sin nada adentro y
+ * con pendientes: un veredicto —están guardadas pero todavía no se pueden vender— y la acción que lo resuelve. La prueba ciega esperaba ver
+ * sus prendas en el inventario y no leyó «Todavía nada entró al stock» como «falta esto». Siempre «prendas» (no la categoría: «las 5
+ * polos» no concuerda).
+ */
+export function veredictoDelCerrado(lineas: readonly LineaParaContar[], pendientes: readonly ParaDespues[]): VeredictoDelCerrado {
+  const { enStock } = cifrasDelEnvio(lineas);
+  if (enStock > 0) {
+    return {
+      titulo: `${textoPrendas(enStock)} ya ${enStock === 1 ? "está" : "están"} en el stock del almacén`,
+      texto: `${enStock === 1 ? "Es la que ya tiene" : "Son las que ya tienen"} tallas y colores. Todo llegó sin etiqueta: lo que sigue es imprimir la etiqueta de precio y colgarlas.`,
+      chip: { tono: "verde", texto: "Listas para etiquetar" },
+      accion: null,
+    };
+  }
+  const guardadas = pendientes.reduce((a, p) => a + p.cantidad, 0);
+  if (guardadas === 0) {
+    return { titulo: "Nada entró al stock", texto: "En este envío no se contó ninguna prenda.", chip: { tono: "neutro", texto: "Sin prendas" }, accion: null };
+  }
+  const una = guardadas === 1;
+  const tipos = new Set(pendientes.map((p) => p.tipo));
+  const solo = tipos.size === 1 ? pendientes[0].tipo : null;
+  const falta =
+    solo === "separar"
+      ? una ? "decir qué modelo es, con su talla y su color" : "decir qué modelo es cada una, con su talla y su color"
+      : solo === "detalle"
+        ? una ? "ponerle su talla y su color" : "ponerles su talla y su color"
+        : solo === "crear"
+          ? una ? "crearla en el catálogo, con su talla y su color" : "crearlas en el catálogo, con su talla y su color"
+          : "terminar lo de abajo: qué modelo es cada una, su talla y su color";
+  const primera = pendientes[0].tipo;
+  return {
+    titulo: una ? "La prenda está guardada, pero todavía no se puede vender" : `Las ${guardadas} prendas están guardadas, pero todavía no se pueden vender`,
+    texto: `${una ? "Está" : "Están"} en el almacén. Para ${una ? "venderla" : "venderlas"} falta ${falta}.`,
+    chip: null,
+    accion:
+      primera === "separar" ? (una ? "Separarla ahora" : "Separarlas ahora") : primera === "detalle" ? (una ? "Ponerle tallas ahora" : "Ponerles tallas ahora") : una ? "Crearla ahora" : "Crearlas ahora",
+  };
+}
+
 /** Lo que entró al stock del envío y lo que falta: las dos cifras del cierre. */
 export function cifrasDelEnvio(lineas: readonly LineaParaContar[]): { contadas: number; enStock: number; porDetallar: number; dijeron: number | null } {
   let contadas = 0;
