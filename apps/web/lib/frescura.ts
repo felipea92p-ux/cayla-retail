@@ -35,8 +35,6 @@ import type { PersonaActualV2 } from "@/lib/persona-actual";
 //   · quien tiene el módulo SIN ser líder lee solo su sede, entera. El registro al colgar y la referencia de CAYLA no se le
 //     piden: las dos necesitan las otras tiendas, que no opera (DECIDÍ en ADR-0208, «Actualización 2026-09-28 — paso 4»).
 
-export type { FrescuraDeSede, FrescuraLider } from "@/lib/frescura-reglas";
-
 /** Los días de historia que lee cada sede: la ventana más larga de la vara (`VENTANAS_VARA_DIAS`). */
 export const FRESCURA_DIAS_LECTURA = 120;
 

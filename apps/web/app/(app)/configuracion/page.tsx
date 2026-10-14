@@ -3,7 +3,7 @@ import { getCargaInicial } from "@/lib/carga-inicial";
 import { ConfiguracionCargaInicial } from "@/components/ConfiguracionCargaInicial";
 import { getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
 import { getCategoriasGasto, getContextoGastos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
-import { hoyLima } from "@/lib/fechas-lima";
+import { anioLima, hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { PestanasFin } from "@/components/finanzas/kit";
@@ -123,7 +123,7 @@ async function SeccionImpuestos() {
   return (
     <>
       {parametros.falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{parametros.falla}</p>}
-      <ConfiguracionImpuestos parametros={parametros.datos} anioActual={Number(hoyLima().slice(0, 4))} />
+      <ConfiguracionImpuestos parametros={parametros.datos} anioActual={anioLima()} />
     </>
   );
 }

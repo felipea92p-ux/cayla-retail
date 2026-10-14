@@ -261,3 +261,22 @@ describe("el anillo en palabras", () => {
     expect(textoDelAnillo(anilloDelDia({ porRecibir: 0, tePiden: 0, hechas: 0 }))).toEqual({ titulo: "Nada pendiente hoy", detalle: "Todo al día" });
   });
 });
+
+describe("el pase con algo de más por revisar (ADR-0404)", () => {
+  const cerrado = pase({ estado: "cerrada", confirmadoEn: iso(7, "10:00"), cerradoEn: iso(7, "11:00"), unidadesRecibidas: 9, lineasContadas: 4, cerradoConDiferencia: true, sobrantesPorRevisar: 1 });
+  it("a quien lo revisa: «Llegó de más · revísala», en Llegan y con su botón principal", () => {
+    expect(tonoDelPase(cerrado, ctx)).toBe("revisar");
+    expect(nombreDelPase(cerrado, ctx, "TRU")).toBe("Llegó de más · revísala");
+    expect(botonDelPase(cerrado, ctx)).toEqual({ texto: "Revisar lo que sobró", principal: true });
+    expect(pestanaDelPase(cerrado, ctx)).toBe("llegan");
+    expect(camposDelPase(cerrado, ctx, "TAL")[2]).toEqual({ etiqueta: "De más", valor: "1 prenda", detalle: "por revisar" });
+  });
+  it("a la sede que envió: lo ve, pero lo revisa la otra", () => {
+    const desdeTaller = { ...ctx, miUbicacionId: TALLER };
+    expect(nombreDelPase(cerrado, desdeTaller, "TRU")).toBe("Llegó de más · la revisa TRU");
+    expect(botonDelPase(cerrado, desdeTaller)).toEqual({ texto: "Ver lo que sobró", principal: false });
+  });
+  it("ya revisado, vuelve al historial", () => {
+    expect(pestanaDelPase({ ...cerrado, sobrantesPorRevisar: 0 }, ctx)).toBe("terminadas");
+  });
+});

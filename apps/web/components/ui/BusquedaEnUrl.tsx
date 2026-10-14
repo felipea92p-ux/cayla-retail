@@ -13,7 +13,7 @@ import { navegacionSinEspera } from "@/components/ui/Espera";
    navegador; aquí la base es inevitable, así que se cambia la señal, no el camino:
 
    · `buscar(href)` anuncia la dirección al loader (`navegacionSinEspera`) y navega en una transición.
-   · Mientras la base responde, `buscando` es true: el campo dice «Buscando…» (`SenalBuscando`) y todo lo
+   · Mientras la base responde, `buscando` es true: el campo dice «Buscando…» (`<Buscador buscando>`) y todo lo
      marcado con `data-resultados` se atenúa (regla «BÚSQUEDA EN CURSO» de globals.css). Lo de antes se
      sigue viendo, pero nadie lo confunde con la respuesta nueva.
 
@@ -49,23 +49,4 @@ export function useBusquedaEnUrl() {
   );
 
   return { buscando, buscar };
-}
-
-/** «Buscando…» en rojo, junto al campo. Entra y sale con opacidad (sin mover nada) y lo anuncia a un lector de pantalla. */
-export function SenalBuscando({ activo, className = "" }: { activo: boolean; className?: string }) {
-  return (
-    <>
-      <span
-        aria-hidden
-        className={`label-cayla pointer-events-none whitespace-nowrap text-[10.5px] text-rojo transition-opacity duration-200 [transition-timing-function:var(--ease-cayla)] motion-reduce:transition-none ${
-          activo ? "opacity-100" : "opacity-0"
-        } ${className}`}
-      >
-        Buscando…
-      </span>
-      <span role="status" className="sr-only">
-        {activo ? "Buscando…" : ""}
-      </span>
-    </>
-  );
 }

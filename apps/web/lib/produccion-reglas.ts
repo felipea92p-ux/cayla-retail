@@ -126,7 +126,6 @@ export const COLUMNAS_TABLERO = [
   { clave: "acabado", titulo: "En acabados" },
   { clave: "listo", titulo: "Listas para cerrar" },
 ] as const;
-export type ColumnaTablero = (typeof COLUMNAS_TABLERO)[number]["clave"];
 
 /** Cuántos días antes de la entrega una orden abierta empieza a avisar. Es una convención de menú, no
  *  un dato del Taller: se puede afinar cuando haya plazos reales por etapa (Eficiencia, F7). */

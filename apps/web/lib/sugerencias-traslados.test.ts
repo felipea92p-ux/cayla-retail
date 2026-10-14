@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_EJEMPLO_NOTA, ejemploNotaCierre } from "./sugerencias-traslados";
+import { MAX_EJEMPLO_NOTA, ejemploNotaCierre, ejemploNotaSobrante } from "./sugerencias-traslados";
 
 const l = (p: Partial<Parameters<typeof ejemploNotaCierre>[0][number]> & { varianteId: string }) => ({
   referencia: "Falda Ariana",
@@ -33,5 +33,29 @@ describe("ejemploNotaCierre", () => {
     const t = ejemploNotaCierre([largo], { a: 1 }, "Tienda Trujillo");
     expect(t.length).toBeLessThanOrEqual(MAX_EJEMPLO_NOTA + 20);
     expect(t).not.toContain("esmeralda");
+  });
+});
+
+describe("ejemploNotaSobrante (ADR-0404)", () => {
+  const DECISIONES = ["salio_del_origen", "encontrada", "error_de_conteo"] as const;
+  it("cada decisión tiene su ejemplo, distinto de las otras y del neutro", () => {
+    const textos = [...DECISIONES.map((d) => ejemploNotaSobrante(d, "Tienda Lima")), ejemploNotaSobrante(null, "Tienda Lima")];
+    expect(new Set(textos).size).toBe(4);
+    for (const t of textos) expect(t.startsWith("Ej. ")).toBe(true);
+  });
+  it("«salió del origen» nombra la sede que envió", () => {
+    expect(ejemploNotaSobrante("salio_del_origen", "Tienda Lima")).toContain("Tienda Lima");
+  });
+  it("sigue a lo elegido (A→B→A) y es estable", () => {
+    const a = ejemploNotaSobrante("encontrada", "Taller");
+    const b = ejemploNotaSobrante("error_de_conteo", "Taller");
+    expect(a).not.toBe(b);
+    expect(ejemploNotaSobrante("encontrada", "Taller")).toBe(a);
+  });
+  it("sin elegir, un texto que no promete nada", () => {
+    expect(ejemploNotaSobrante(null, "Tienda Lima")).not.toContain("Tienda Lima");
+  });
+  it("cabe en el celular, también con un nombre de sede largo", () => {
+    for (const d of [...DECISIONES, null]) expect(ejemploNotaSobrante(d, "Tienda Arequipa Centro Comercial Real Plaza").length).toBeLessThanOrEqual(MAX_EJEMPLO_NOTA);
   });
 });
