@@ -36,7 +36,7 @@ import { useIdsNuevos } from "@/lib/useNovedades";
 import type { CajaAbierta, MovimientoCaja, ResumenCaja, SeriesVentasCaja, CierreCaja } from "@/lib/caja";
 import { claveLocal, leer } from "@/lib/almacen-local";
 import type { VentaEncolada } from "@/lib/ventas-offline";
-import { duracionAbierta, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, turnoLargo, type MetodoRitmo } from "@/lib/caja-panel-reglas";
+import { duracionAbierta, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, textoMetodosDeVenta, turnoLargo, type MetodoRitmo } from "@/lib/caja-panel-reglas";
 import { filaDeMovimiento } from "@/lib/caja-movimiento-reglas";
 import { elegirMetodo, elegirVista, FILTRO_MOV_INICIAL, metodosDelTurno, pasaFiltroMov, piezasDelCajon, type FiltroMov, type ModoCierres } from "@/lib/caja-tablero-reglas";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
@@ -239,7 +239,7 @@ export function CajaAbiertaPanel({
       horaTexto: v.hora,
       icono: "venta" as const,
       metodos: metodosDe(v.metodosPago),
-      titulo: `Venta${v.metodosPago ? ` · ${v.metodosPago}` : ""}`,
+      titulo: `Venta${v.metodosPago ? ` · ${textoMetodosDeVenta(v.metodosPago)}` : ""}`,
       meta: v.vendedor ?? "—",
       monto: v.total,
       color: colorDeMetodo(v.metodosPago),
@@ -657,6 +657,7 @@ const METODO_RITMO: Record<MetodoRitmo, { texto: string; color: string }> = {
   tarjeta: ETIQUETA_METODO.tarjeta!,
   yape: ETIQUETA_METODO.yape!,
   transferencia: ETIQUETA_METODO.transferencia!,
+  qr: ETIQUETA_METODO.qr!,
   otro: { texto: "Otro", color: "var(--color-taupe)" },
 };
 

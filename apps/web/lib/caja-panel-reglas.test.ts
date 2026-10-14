@@ -7,6 +7,7 @@ import {
   esMotivoDeAjuste,
   formatoDuracion,
   metodosDe,
+  textoMetodosDeVenta,
   motivosDeMovimiento,
   referenciaObligatoria,
   rangoHorasCaja,
@@ -47,6 +48,10 @@ describe("metodosDe", () => {
   it("sin dato no inventa un método", () => {
     expect(metodosDe(null)).toEqual([]);
     expect(metodosDe("")).toEqual([]);
+  });
+  it("el QR es su propio medio: no cae en 'otro' (ni solo ni mezclado)", () => {
+    expect(metodosDe("qr")).toEqual(["qr"]);
+    expect(metodosDe("efectivo + qr")).toEqual(["efectivo", "qr"]);
   });
   it("lo que no reconoce cae en 'otro', no se pierde", () => {
     expect(metodosDe("cheque")).toEqual(["otro"]);
@@ -236,5 +241,14 @@ describe("referenciaObligatoria", () => {
     expect(referenciaObligatoria("Depósito bancario")).toBe(true);
     expect(referenciaObligatoria("Otro")).toBe(true);
     expect(referenciaObligatoria("Retiro de efectivo")).toBe(false);
+  });
+});
+
+describe("textoMetodosDeVenta", () => {
+  it("escribe QR en mayúscula y deja los demás medios como vienen", () => {
+    expect(textoMetodosDeVenta("qr")).toBe("QR");
+    expect(textoMetodosDeVenta("efectivo + qr")).toBe("efectivo + QR");
+    expect(textoMetodosDeVenta("efectivo")).toBe("efectivo");
+    expect(textoMetodosDeVenta(null)).toBe("");
   });
 });
