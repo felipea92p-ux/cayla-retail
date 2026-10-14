@@ -78,14 +78,13 @@ propia se muestra con la foto principal. f. Agregar a la bolsa no separa nada. g
 agrega completo eligiendo cada talla. i. «Novedades para ti» en la cuenta. j. Al confirmar, el stock baja primero del almacén.
 k. El ERP dice qué pedido separó antes la última y la ficha se lo avisa al cliente. m. Código de 4 cifras para recoger.
 
-## Arquitectura recomendada (espera el OK de Felipe)
+## Arquitectura (aprobada por Felipe el 14 de octubre; detalle en ADR-0408)
 
 - **El código, en este mismo repositorio, como app aparte** (`apps/tienda`): el repo ya es un monorepo (pnpm y turbo con
   `apps/web` y `packages/`), y Vercel publica varias apps de un mismo repo, cada una con su dominio. La base, los tipos, las
   pruebas y los chequeos contra producción se comparten, y un mismo cambio sube base, ERP y tienda juntos.
-- **Las cuentas de los clientes, separadas de las del equipo:** la base tiene unas 850 reglas de acceso que dejan entrar a
-  «cualquiera con sesión» (`to authenticated`, `auth.uid() is not null`). Un cliente con sesión en el mismo inicio de sesión
-  del equipo pasaría esas reglas. Recomendado: un proyecto de inicio de sesión propio para los clientes, y la tienda entra a
+- **Las cuentas de los clientes, separadas de las del equipo:** en producción 34 de las 137 políticas de `retail` solo piden sesión (30 de lectura: productos, variantes, ubicaciones, proveedores, configuración, códigos de descuento…) y `authenticated` tiene permiso sobre todas las tablas y funciones (`0005_grants.sql`). Un cliente con sesión en el mismo inicio de
+  sesión del equipo pasaría esas reglas. Recomendado: un proyecto de inicio de sesión propio para los clientes, y la tienda entra a
   la base solo por funciones `tienda_*` con un rol que no puede leer tablas.
 - **Listo para una pasarela de pago:** los pagos del pedido web guardan origen, proveedor y referencia externa única, con
   estados; una notificación de la pasarela (webhook o IPN) puede repetirse sin duplicar el pago, y la tarjeta nunca pasa por
@@ -95,4 +94,5 @@ k. El ERP dice qué pedido separó antes la última y la ficha se lo avisa al cl
 ## Falta decidir
 
 1. La dirección de la web (sigue «tienda.cayla.pe» de ejemplo). 2. Los envíos, cuando se retomen: quién reparte y quién paga
-el segundo envío si la dirección estaba mal. 3. El OK a la arquitectura recomendada.
+el segundo envío si la dirección estaba mal. 3. Si confirmar un pedido reserva la prenda o la saca del stock, y si la boleta sale al
+entregar o al quedar pagado (preguntas del plan de ADR-0408).
