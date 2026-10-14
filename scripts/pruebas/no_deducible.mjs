@@ -109,6 +109,11 @@ $f$;
 
 insert into retail.configuracion_empresa (id, ruc, razon_social, exige_responsable) values (true, '20000000001', 'Prueba', false)
   on conflict (id) do update set exige_responsable = false;
+-- Cada caso arranca SIN tope de la planilla, tenga lo que tenga la base (un banco local puede traer uno de una prueba a mano). Un parámetro
+-- tributario no se borra (su disparador): se apaga solo dentro de esta transacción, que siempre se deshace.
+set local session_replication_role = replica;
+delete from retail.parametros_tributarios where nombre = 'tope_planilla_movilidad';
+set local session_replication_role = origin;
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select p.sede_base_id as sede_base from public.personas p where p.auth_user_id = '${MICAELA}' \\gset
 select id as prov from retail.proveedores where nombre = 'Textiles Andina SAC' \\gset

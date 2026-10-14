@@ -187,10 +187,12 @@ create or replace function retail.fn_no_deducibles(p_claves text[])
 returns table (clave text, motivo text, monto numeric, total numeric, tope numeric)
 language plpgsql stable security definer set search_path = retail, public, extensions as $$
 begin
+  -- Producción no está: ninguna pantalla del Taller muestra todavía la marca, y pedir aquí su módulo lo haría pasar por protegido
+  -- en `pruebas:roles-cobertura` sin que lo estén sus funciones de abrir y cerrar producción.
   if not (retail.fn_ve_modulo('ordenes_compra') or retail.fn_ve_modulo('fondos') or retail.fn_ve_modulo('facturas_compra')
-          or retail.fn_ve_modulo('por_pagar') or retail.fn_ve_modulo('produccion') or retail.fn_ve_modulo('gastos')
-          or retail.fn_ve_modulo('cuentas_dinero') or retail.fn_ve_modulo('impuestos') or retail.fn_mi_fondo_cuenta() is not null) then
-    raise exception 'Ver lo no deducible necesita un módulo de Compras, Producción o Finanzas en tu rol, o tener un fondo.' using errcode = '42501';
+          or retail.fn_ve_modulo('por_pagar') or retail.fn_ve_modulo('gastos') or retail.fn_ve_modulo('cuentas_dinero')
+          or retail.fn_ve_modulo('impuestos') or retail.fn_mi_fondo_cuenta() is not null) then
+    raise exception 'Ver lo no deducible necesita un módulo de Compras o de Finanzas en tu rol, o tener un fondo.' using errcode = '42501';
   end if;
   if cardinality(coalesce(p_claves, '{}'::text[])) > 1000 then
     raise exception 'Se preguntan 1,000 filas como máximo.' using errcode = 'P0001';
