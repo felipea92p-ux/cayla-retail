@@ -1521,6 +1521,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   - `/finanzas/resumen` → el tablero que junta lo anterior (F10).
   - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
     Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
+  - `/configuracion?tab=tienda-web` (ADR-0408, actividad 6; pestaña, no módulo) → `lib/configuracion.ts`
+    `getConfiguracionTiendaWeb` (`fn_configuracion_tienda_web`) + `lib/tienda-web-reglas.ts` (puro: la regla de qué le falta a una
+    tienda para verse en la web, los plazos y la guía de foco) + `lib/sugerencias-tienda-web.ts` → `ConfiguracionTiendaWeb.tsx` →
+    RPC `guardar_sede_tienda_web`, `guardar_whatsapp_tienda` (el WhatsApp es el mismo del QR del club) y
+    `guardar_parametros_tienda_web`, firmadas con el responsable. Tablas `ubicacion_datos_web` y `configuracion_tienda_web`
+    (**sin pegar en producción**). La tienda las lee con `tienda_sedes()` (§3.y).
 - **Rendimiento con meta por persona** (ADR-0219, ADR-0325; módulo `rendimiento`, sin módulo nuevo — D-157):
   - `/rendimiento` (`?vista=hoy|semana|mes`, `?sede=`) → `lib/rendimiento.ts` (`leerPantallaRendimiento`: `fn_rendimiento_equipo` para los rankings, y `fn_metas_equipo`, `fn_rendimiento_serie`,
     `fn_metas_historial` para el panel; el panel es una lectura secundaria: si la base no lo tiene la pantalla sigue con los rankings y lo dice) + `lib/rendimiento-meta-reglas.ts` (puro: ventanas Hoy/Semana/Mes,
@@ -1641,6 +1647,10 @@ y, en la base, `pnpm pruebas:tienda-puerta`.
 
 - `/` (portada sin cuenta) → `lib/base.ts` `leerPortada()` → `retail.tienda_portada()`: la campaña vigente que termina
   primero. Si la base no responde, la portada sale sin campaña.
+- `/` («Nuestras tiendas», después del Club) y `/tiendas` (actividad 6) → `lib/tiendas-servidor.ts` `leerSedes()` →
+  `retail.tienda_sedes()`: las tiendas encendidas en Configuración ▸ Tienda web, abiertas y con nombre web, dirección y WhatsApp
+  (el del QR del club, `ubicaciones.whatsapp_numero`), por nombre web; el enlace abre un chat sin mensaje. Sin base, la portada sale
+  sin la sección y `/tiendas` lo dice en una línea. Prueba en la base: `pnpm pruebas:tienda-web-configuracion`.
 
 ---
 
