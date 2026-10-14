@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { History, Info, PauseCircle, Pencil, PlayCircle, Printer, SignpostBig, Trash2 } from "lucide-react";
+import { History, Info, PauseCircle, Pencil, PlayCircle, SignpostBig, Trash2, Tag } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
@@ -353,7 +353,7 @@ export function VistaRapidaProducto({
             data-sin-unidades={etiquetas.sinUnidades || undefined}
             className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-[12.5px] text-crema hover:bg-rojo-profundo" : BOTON)}
           >
-            <Printer aria-hidden className="h-4 w-4" />
+            <Tag aria-hidden className="h-4 w-4" />
             <span key={etiquetas.texto + etiquetas.cantidad} className="vr-texto">
               {etiquetas.texto}
               {etiquetas.cantidad > 1 && <span className="vr-cuenta tabular-nums">{etiquetas.cantidad}</span>}

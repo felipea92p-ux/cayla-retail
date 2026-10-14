@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, Printer, SignpostBig, Trash2, X, FunnelX } from "lucide-react";
+import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, SignpostBig, Trash2, X, FunnelX, Tag } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
@@ -563,7 +563,7 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
         aria-label={`Etiquetas de precio de ${referencia}`}
         title="Etiquetas de precio"
       >
-        <Printer aria-hidden className="h-4 w-4" />
+        <Tag aria-hidden className="h-4 w-4" />
       </EnlaceEtiquetas>
       <Link href={acciones.historial} className={boton} aria-label={`Historial de ${referencia}`} title="Historial">
         <History aria-hidden className="h-4 w-4" />
@@ -592,7 +592,7 @@ function AccionesDeVariante({ href, unidades, descripcion, sede }: { href: strin
         aria-label={`Etiqueta de precio de ${descripcion}`}
         title="Imprimir la etiqueta de esta variante"
       >
-        <Printer aria-hidden className="h-4 w-4" />
+        <Tag aria-hidden className="h-4 w-4" />
       </EnlaceEtiquetas>
     </div>
   );
@@ -769,7 +769,7 @@ function FichaVariantes({
           sede={acciones.sede}
           className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-[12.5px] text-crema hover:bg-rojo-profundo" : boton)}
         >
-          <Printer aria-hidden className="h-4 w-4" />
+          <Tag aria-hidden className="h-4 w-4" />
           Etiquetas
         </EnlaceEtiquetas>
         <Link href={acciones.historial} className={boton}>
@@ -876,7 +876,7 @@ function BarraMarcadas({
           `${negado ? `${forma} bg-rojo hover:bg-rojo-profundo` : boton} ${variantes.length === 0 ? "pointer-events-none opacity-40" : ""}`
         }
       >
-        <Printer aria-hidden className="h-4 w-4" />
+        <Tag aria-hidden className="h-4 w-4" />
         Etiquetas
       </EnlaceEtiquetas>
       {/* El rótulo del anaquel (ADR-0366): uno por modelo marcado, o todos juntos. No depende del stock de la sede. */}
