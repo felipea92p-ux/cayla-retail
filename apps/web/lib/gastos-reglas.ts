@@ -394,8 +394,10 @@ export function fechaCorta(iso: string | null, conAnio = false): string {
 // ---- El IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76) -----------------------------------------------
 //
 // Una factura de S/ 2 000 o más pagada en efectivo o desde un fondo pierde el IGV de lo pagado así (bancarización). La base dice cuánto y
-// cuándo (`fn_igv_perdido`, en el mes del PAGO); aquí solo se dice con palabras de tienda. Felipe eligió (2026-10-14): la fila dice «IGV
-// perdido» en ámbar, el detalle dice por qué y en qué mes lo resta Impuestos, y la tarjeta lo resta en el mes del pago.
+// cuándo (`fn_igv_perdido`, en el mes del PAGO); aquí solo se dice con palabras de tienda. Felipe eligió (2026-10-14): la fila dice
+// «perdido» en ámbar, el detalle dice por qué y en qué mes lo resta Impuestos, y la tarjeta lo resta en el mes del pago. Con /formidable
+// (el mismo día): la fila en dos renglones, la nota con la factura y el mes, lo que falta pagar dice que va por el banco, y la tarjeta
+// nunca dice un negativo (lo explica en palabras).
 
 /** Una fila de `fn_gastos_igv_perdido`: a qué gasto va y el pago que se llevó su parte del IGV. */
 export function leerPagoSinBanco(f: Fila): { gastoId: string; pago: PagoSinBanco } {
@@ -429,15 +431,14 @@ export function igvDelGasto(g: Pick<GastoFila, "igv" | "igvPerdido">): { descont
 }
 
 /**
- * Lo que dice la fila bajo el monto: «IGV S/ 360.00»; si se perdió todo, «IGV perdido S/ 360.00» (la pantalla lo pinta en ámbar); si se
- * perdió una parte, lo que queda y lo perdido: «IGV S/ 180.00 · perdido S/ 180.00». Sin IGV, nada.
+ * Lo que dice la fila bajo el monto, en dos renglones: arriba el IGV de la factura, como siempre («IGV S/ 360.00»), y debajo, si se perdió
+ * algo, cuánto («perdido S/ 180.00», la pantalla lo pinta en ámbar). En un solo renglón era ambiguo (¿«IGV S/ 180.00 · perdido S/ 180.00»
+ * era todo el IGV?) y ensanchaba la columna de 120 a 211 px (/formidable, 2026-10-14). Sin IGV, nada.
  */
-export function igvBajoElMonto(g: Pick<GastoFila, "igv" | "igvPerdido">): { igv: string | null; perdido: string | null } | null {
+export function igvBajoElMonto(g: Pick<GastoFila, "igv" | "igvPerdido">): { igv: string; perdido: string | null } | null {
   if (g.igv <= 0) return null;
-  const { descontable, perdido } = igvDelGasto(g);
-  if (perdido <= 0) return { igv: `IGV ${soles(g.igv)}`, perdido: null };
-  if (descontable <= 0) return { igv: null, perdido: `IGV perdido ${soles(perdido)}` };
-  return { igv: `IGV ${soles(descontable)}`, perdido: `perdido ${soles(perdido)}` };
+  const { perdido } = igvDelGasto(g);
+  return { igv: `IGV ${soles(g.igv)}`, perdido: perdido > 0 ? `perdido ${soles(perdido)}` : null };
 }
 
 const COMO_SE_PAGO: Record<PagoSinBanco["como"], string> = { efectivo: "en efectivo", fondo: "desde un fondo" };
@@ -447,10 +448,17 @@ function enLista(t: readonly string[]): string {
   return t.length <= 1 ? (t[0] ?? "") : `${t.slice(0, -1).join(", ")} y ${t[t.length - 1]}`;
 }
 
+/** «octubre», o «enero de 2027» si el año no es `anio`. */
+function nombreDeMes(mes: string, anio: string): string {
+  const nombre = MESES[Number(mes.slice(5, 7)) - 1];
+  return mes.slice(0, 4) === anio ? nombre : `${nombre} de ${mes.slice(0, 4)}`;
+}
+
 /**
- * El dato «IGV perdido» del detalle: cuánto, cómo y cuándo. Un solo pago por el total: «S/ 360.00 · se pagó en efectivo el 14 oct»; uno
- * por una parte: «S/ 180.00 · S/ 1,180.00 se pagaron en efectivo el 14 oct»; varios: «S/ 240.00 · 2 pagos en efectivo (3 oct y 14 oct)»
- * («sin banco» si se mezclan efectivo y fondo). La fecha lleva el año solo si no es el del gasto.
+ * El dato «IGV perdido» del detalle: cuánto, de qué pago y cuándo. Un solo pago por el total: «S/ 360.00 · se pagó en efectivo el 14 oct»;
+ * uno por una parte: «S/ 180.00 · del pago de S/ 1,180.00 en efectivo (12 oct)» (antes los dos montos iban seguidos y se confundían);
+ * varios: «S/ 240.00 · de 2 pagos sin banco (3 oct y 14 oct)» («sin banco» si se mezclan efectivo y fondo). La fecha lleva el año solo si
+ * no es el del gasto.
  */
 export function textoIgvPerdido(g: Pick<GastoFila, "igv" | "igvPerdido" | "pagosSinBanco" | "montoTotal" | "fecha">): string | null {
   const { perdido } = igvDelGasto(g);
@@ -461,27 +469,70 @@ export function textoIgvPerdido(g: Pick<GastoFila, "igv" | "igvPerdido" | "pagos
   const como = new Set(pagos.map((p) => p.como)).size === 1 ? COMO_SE_PAGO[pagos[0]!.como] : "sin banco";
   if (pagos.length === 1) {
     const p = pagos[0]!;
-    return `${soles(perdido)} · ${p.monto >= g.montoTotal ? "se pagó" : `${soles(p.monto)} se pagaron`} ${como} el ${dia(p.fecha)}`;
+    if (p.monto >= g.montoTotal) return `${soles(perdido)} · se pagó ${como} el ${dia(p.fecha)}`;
+    return `${soles(perdido)} · del pago de ${soles(p.monto)} ${como} (${dia(p.fecha)})`;
   }
-  return `${soles(perdido)} · ${pagos.length} pagos ${como} (${enLista([...new Set(pagos.map((p) => p.fecha))].map(dia))})`;
+  return `${soles(perdido)} · de ${pagos.length} pagos ${como} (${enLista([...new Set(pagos.map((p) => p.fecha))].map(dia))})`;
 }
 
 /**
- * La nota del detalle: por qué se perdió y en qué mes lo resta Impuestos (el del PAGO, decisión 72), con el año solo si no es el del gasto:
- * «… Se resta del IGV de octubre, en Impuestos.»
+ * La nota del detalle, con la factura y el mes: «Esta factura es de S/ 2,360: desde S/ 2,000 se paga por el banco, y SUNAT no deja
+ * descontar el IGV de lo que se pagó en efectivo o desde un fondo[, aunque ese pago sea de menos de S/ 2,000]. Ese IGV ya está restado de lo
+ * que descuentas en octubre.» (la frase de Impuestos). Va «aunque ese/cada pago sea de menos de S/ 2,000» cuando lo pagado sin banco no llega
+ * a S/ 2 000: la primera prueba ciega pensó que la regla no le tocaba, y la segunda preguntó «¿menor que qué?» con «aunque ese pago sea menor».
+ * `mes` es el del último pago (para el enlace a Impuestos, que la pantalla pone solo si se ve ese módulo).
  */
-export function notaIgvPerdido(g: Pick<GastoFila, "igv" | "igvPerdido" | "pagosSinBanco" | "fecha">): string | null {
+export function notaIgvPerdido(
+  g: Pick<GastoFila, "igv" | "igvPerdido" | "pagosSinBanco" | "fecha" | "montoTotal">,
+): { texto: string; mes: string } | null {
   const { perdido } = igvDelGasto(g);
-  if (perdido <= 0 || g.pagosSinBanco.length === 0) return null;
-  const anio = g.fecha.slice(0, 4);
-  const meses = [...new Set(g.pagosSinBanco.map((p) => p.fecha.slice(0, 7)))].sort().map((m) => {
-    const nombre = MESES[Number(m.slice(5, 7)) - 1];
-    return m.slice(0, 4) === anio ? nombre : `${nombre} de ${m.slice(0, 4)}`;
-  });
-  return (
-    `Una factura de S/ ${UMBRAL_BANCARIZACION.toLocaleString("es-PE")} o más se paga por el banco: SUNAT no deja descontar el IGV de lo ` +
-    `que se pagó en efectivo o desde un fondo. Se resta del IGV de ${enLista(meses)}, en Impuestos.`
-  );
+  const pagos = g.pagosSinBanco;
+  if (perdido <= 0 || pagos.length === 0) return null;
+  const meses = [...new Set(pagos.map((p) => p.fecha.slice(0, 7)))].sort();
+  const menores = pagos.every((p) => p.monto < UMBRAL_BANCARIZACION);
+  const tope = `S/ ${UMBRAL_BANCARIZACION.toLocaleString("es-PE")}`;
+  const aunque = !menores ? "" : pagos.length === 1 ? `, aunque ese pago sea de menos de ${tope}` : `, aunque cada pago sea de menos de ${tope}`;
+  const texto =
+    `Esta factura es de ${solesRedondo(g.montoTotal)}: desde ${tope} se paga por el banco, y SUNAT ` +
+    `no deja descontar el IGV de lo que se pagó en efectivo o desde un fondo${aunque}. Ese IGV ya está restado de lo que descuentas en ` +
+    `${enLista(meses.map((m) => nombreDeMes(m, g.fecha.slice(0, 4))))}.`;
+  return { texto, mes: meses[meses.length - 1]! };
+}
+
+/**
+ * El IGV que todavía se puede perder: el de lo que falta pagar de una factura a crédito de S/ 2 000 o más (su total, como la regla). Si se
+ * paga en efectivo o desde un fondo, se pierde; el detalle lo dice («Lo que falta … se paga por el banco»). Por pagar avisa también al
+ * pagar. 0 si no hay saldo, no es de S/ 2 000 o más o no trae IGV.
+ */
+export function igvEnRiesgo(g: Pick<GastoFila, "compraId" | "estado" | "saldo" | "igv" | "montoTotal">): number {
+  if (!g.compraId || g.estado !== "vigente" || !g.saldo || g.saldo <= 0 || g.igv <= 0 || g.montoTotal < UMBRAL_BANCARIZACION) return 0;
+  return redondear((g.igv * Math.min(g.saldo, g.montoTotal)) / g.montoTotal);
+}
+
+/**
+ * Lo que la tarjeta muestra: el IGV que puedes descontar, nunca menos de cero. Si lo perdido en el mes (de gastos de este mes o de otros)
+ * pasa el IGV de las facturas del mes, la tarjeta dice S/ 0 y la bajada explica que Impuestos resta lo que falta: «puedes descontar
+ * −S/ 180» no se entiende (Felipe pidió la opción «más entendible y lógica», 2026-10-14). La cuenta de Impuestos no cambia.
+ */
+export function igvParaLaTarjeta(p: Pick<PanelGastos, "igvDescontable">): number {
+  return Math.max(0, p.igvDescontable);
+}
+
+/**
+ * El IGV de los gastos de la lista que se pierde por un pago sin banco de OTRO mes (antes o después): la tarjeta de este mes lo sigue
+ * contando, porque Impuestos lo resta en el mes del pago (decisión 72), aunque la fila ya diga «perdido». Con los meses de esos pagos.
+ */
+export function perdidoEnOtroMes(gastos: readonly Pick<GastoFila, "estado" | "igv" | "pagosSinBanco">[], mes: string): { igv: number; meses: string[] } {
+  let igv = 0;
+  const meses = new Set<string>();
+  for (const g of gastos) {
+    if (g.estado !== "vigente") continue;
+    const fuera = g.pagosSinBanco.filter((p) => p.fecha.slice(0, 7) !== mes);
+    if (!fuera.length) continue;
+    igv += Math.min(Math.max(g.igv, 0), fuera.reduce((s, p) => s + p.igv, 0));
+    for (const p of fuera) meses.add(p.fecha.slice(0, 7));
+  }
+  return { igv: redondear(igv), meses: [...meses].sort() };
 }
 
 /** Una cifra de la bajada de una tarjeta: redonda como la tarjeta, salvo que sea menos de un sol (nunca «S/ 0» de algo que sí hay). */
@@ -491,14 +542,33 @@ function cifraDeBajada(n: number): string {
 
 /**
  * La bajada de la tarjeta «IGV que puedes descontar»: de dónde sale y, si en el mes se pagó sin banco una factura grande, cuánto IGV se
- * perdió (ya restado del número, como en Impuestos). Si lo perdido es de gastos de otro mes, lo dice: esos gastos no están en la lista.
+ * perdió (ya restado del número, como en Impuestos), y si es de gastos de otro mes. Si lo perdido pasa el IGV de las facturas del mes, la
+ * tarjeta dice S/ 0 y aquí se dice que Impuestos resta lo que falta. Y si la tarjeta cuenta un IGV que se pierde en otro mes (`otroMes`, de
+ * `perdidoEnOtroMes`), lo dice: la fila ya dice «perdido» y la tarjeta no lo resta este mes.
  */
-export function bajadaIgvDelMes(p: Pick<PanelGastos, "boletas" | "igvPerdido">): string {
-  const { igv, deOtrosMeses } = p.igvPerdido;
+export function bajadaIgvDelMes(
+  p: Pick<PanelGastos, "boletas" | "igv" | "igvPerdido" | "igvDescontable"> & { mes?: string },
+  otroMes?: { igv: number; meses: string[] },
+): string {
+  const { igv: perdido, deOtrosMeses } = p.igvPerdido;
   const otros =
-    deOtrosMeses <= 0 ? "" : deOtrosMeses >= igv ? " (de gastos de otros meses)" : ` (${cifraDeBajada(deOtrosMeses)} de gastos de otros meses)`;
-  const menos = igv > 0 ? `, menos ${cifraDeBajada(igv)} que se pierde por pagar sin banco${otros}` : "";
-  return `Solo de facturas${menos}. ${p.boletas} ${p.boletas === 1 ? "boleta" : "boletas"} sin IGV descontable.`;
+    deOtrosMeses <= 0 ? "" : deOtrosMeses >= perdido ? " (de gastos de otros meses)" : ` (${cifraDeBajada(deOtrosMeses)} de gastos de otros meses)`;
+  let frase = "Solo de facturas.";
+  if (perdido > 0 && p.igvDescontable >= 0) frase = `Solo de facturas, menos ${cifraDeBajada(perdido)} que se pierde por pagar sin banco${otros}.`;
+  else if (perdido > 0 && p.igv <= 0) frase = `Las facturas del mes no traen IGV, y se pierde ${cifraDeBajada(perdido)} por pagar sin banco${otros}: Impuestos lo resta este mes.`;
+  else if (perdido > 0)
+    frase =
+      `Se pierde ${cifraDeBajada(perdido)} por pagar sin banco${otros}, más que los ${cifraDeBajada(p.igv)} de IGV de las facturas del mes: ` +
+      `Impuestos resta los ${cifraDeBajada(-p.igvDescontable)} que faltan.`;
+  let incluye = "";
+  if (otroMes && otroMes.igv > 0 && otroMes.meses.length) {
+    const anio = (p.mes ?? otroMes.meses[0]!).slice(0, 4);
+    const varios = otroMes.meses.length > 1;
+    incluye =
+      ` Incluye ${cifraDeBajada(otroMes.igv)} que se pierde por ${varios ? "pagos" : "un pago"} sin banco de ` +
+      `${enLista(otroMes.meses.map((m) => nombreDeMes(m, anio)))}: Impuestos lo resta en ${varios ? "esos meses" : "ese mes"}.`;
+  }
+  return `${frase}${incluye} ${p.boletas} ${p.boletas === 1 ? "boleta" : "boletas"} sin IGV descontable.`;
 }
 
 // ---- El formulario ----------------------------------------------------------------------------------------------------

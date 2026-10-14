@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type CSSProperties } from "react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -25,10 +26,13 @@ import {
   fechaCorta,
   igvBajoElMonto,
   igvDelGasto,
+  igvEnRiesgo,
+  igvParaLaTarjeta,
   mesesRecientes,
   notaIgvPerdido,
   papelDelGasto,
   papelEnUnaLinea,
+  perdidoEnOtroMes,
   puedeAnular,
   resumenActivosPorSede,
   resumenFijos,
@@ -79,6 +83,7 @@ export function GastosPanel({
   cajasAbiertas,
   esLider,
   puedeConfigurar = esLider,
+  puedeVerImpuestos = esLider,
   ver,
   mes,
   hoy,
@@ -101,6 +106,8 @@ export function GastosPanel({
   esLider: boolean;
   /** ¿Ve el módulo Configuración? Ahí se editan los gastos fijos (ADR-0253: ya no es solo del líder). */
   puedeConfigurar?: boolean;
+  /** ¿Ve el módulo Impuestos? La nota del IGV perdido enlaza al mes del pago solo para quien lo ve (si no, sería «Sin acceso»). */
+  puedeVerImpuestos?: boolean;
   ver: Ver;
   mes: string;
   hoy: string;
@@ -184,9 +191,10 @@ export function GastosPanel({
         <TarjetaCifra etiqueta="Gastado en el mes" valor={panel ? solesRedondo(panel.total) : null} noSePudoLeer={!panel} {...entra(1)}>
           {panel ? `${panel.n} ${panel.n === 1 ? "gasto vigente" : "gastos vigentes"} · ${nombreCorto}` : "Sin datos"}
         </TarjetaCifra>
-        {/* ADR-0362, fase 6 (decisión 76): lo perdido por pagar sin banco se resta en el mes del pago, como Impuestos. */}
-        <TarjetaCifra etiqueta="IGV que puedes descontar" valor={panel ? solesRedondo(panel.igvDescontable) : null} noSePudoLeer={!panel} {...entra(2)}>
-          {panel ? bajadaIgvDelMes(panel) : ""}
+        {/* ADR-0362, fase 6 (decisión 76): lo perdido por pagar sin banco se resta en el mes del pago, como Impuestos; la tarjeta nunca dice
+            un negativo y la bajada explica lo que se pierde en otro mes. */}
+        <TarjetaCifra etiqueta="IGV que puedes descontar" valor={panel ? solesRedondo(igvParaLaTarjeta(panel)) : null} noSePudoLeer={!panel} {...entra(2)}>
+          {panel ? bajadaIgvDelMes({ ...panel, mes }, perdidoEnOtroMes(gastos, mes)) : ""}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="Por pagar de gastos" tono={panel?.porPagar ? "text-ambar" : undefined} valor={panel ? solesRedondo(panel.porPagar) : null} noSePudoLeer={!panel} {...entra(3)}>
           {panel ? (panel.nPorPagar ? `${panel.nPorPagar} con factura a crédito` : "Nada a crédito") : ""}
@@ -314,7 +322,7 @@ export function GastosPanel({
         <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
       )}
       {noEsFijo && <NoEsFijoModal sugerido={noEsFijo} onCerrar={() => setNoEsFijo(null)} />}
-      {detalle && <GastoDetalleModal gasto={detalle} onCerrar={() => setDetalle(null)} />}
+      {detalle && <GastoDetalleModal gasto={detalle} puedeVerImpuestos={puedeVerImpuestos} onCerrar={() => setDetalle(null)} />}
       {clasificar && (
         <ClasificarEgresoModal
           egreso={clasificar}
@@ -450,11 +458,10 @@ function TablaGastos({
                       </td>
                       <td className="fin-num" data-l="Monto">
                         <b>{soles(g.montoTotal)}</b>
-                        {igvFila && (
+                        {igvFila && <span className="fin-sub">{igvFila.igv}</span>}
+                        {igvFila?.perdido && (
                           <span className="fin-sub">
-                            {igvFila.igv}
-                            {igvFila.igv && igvFila.perdido && " · "}
-                            {igvFila.perdido && <span className="text-ambar-profundo">{igvFila.perdido}</span>}
+                            <span className="text-ambar-profundo">{igvFila.perdido}</span>
                           </span>
                         )}
                       </td>
@@ -483,7 +490,7 @@ function TablaGastos({
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar: () => void }) {
+function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: GastoFila; puedeVerImpuestos: boolean; onCerrar: () => void }) {
   const router = useRouter();
   const responsable = useResponsable();
   const [anulando, setAnulando] = useState(false);
@@ -513,6 +520,7 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
   const igv = igvDelGasto(g);
   const perdido = textoIgvPerdido(g);
   const notaPerdido = notaIgvPerdido(g);
+  const enRiesgo = igvEnRiesgo(g);
 
   if (anulando) {
     return (
@@ -565,8 +573,29 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
           ...(g.motivoAnulacion ? [{ dato: "Anulado", valor: g.motivoAnulacion, tenue: true }] : []),
         ]}
       />
-      {notaPerdido && <p className="nota-cayla mb-4">{notaPerdido}</p>}
-      {pendiente && <p className="nota-cayla mb-4">Se paga desde <b>Compras ▸ Por pagar</b>, como cualquier factura de proveedor.</p>}
+      {notaPerdido && (
+        <p className="nota-cayla mb-4">
+          {notaPerdido.texto}
+          {puedeVerImpuestos && (
+            <>
+              {" "}Míralo en{" "}
+              <Link href={`/finanzas/impuestos?mes=${notaPerdido.mes}`} className="btn-enlace">
+                Impuestos
+              </Link>
+              .
+            </>
+          )}
+        </p>
+      )}
+      {pendiente &&
+        (enRiesgo > 0 ? (
+          <p className="nota-cayla mb-4">
+            Lo que falta ({soles(g.saldo ?? 0)}) se paga desde <b>Compras ▸ Por pagar</b> por el banco: en efectivo o desde un fondo se pierde su IGV
+            ({soles(enRiesgo)}).
+          </p>
+        ) : (
+          <p className="nota-cayla mb-4">Se paga desde <b>Compras ▸ Por pagar</b>, como cualquier factura de proveedor.</p>
+        ))}
       <div className="fin-botones" data-guia="fin-gastos.detalle-botones">
         {g.estado === "vigente" && !puedeAnular(g) && <p className="mr-auto self-center text-[12.5px] text-taupe">Su factura ya tiene pagos: no se anula (como en Compras).</p>}
         {puedeAnular(g) && (

@@ -1,5 +1,63 @@
 # Formidable · Finanzas ▸ Gastos — la fila de un gasto del viaje   (`/finanzas/gastos`)
 
+## Segunda vuelta · 2026-10-14, tarde — los 3 cambios aplicados (OK de Felipe) y la tarjeta sin negativos
+
+- **SHA:** `da1941fae` + los 3 cambios   · **Qué cambió:** lo de «Los 3 cambios de mayor impacto» del re-análisis de abajo, tal cual se propuso, y los meses
+  cruzados con la opción que Felipe pidió («la que sea más entendible y lógica»): la tarjeta **nunca dice un negativo**; si lo perdido pasa el IGV del
+  mes dice S/ 0 y «Impuestos resta los S/ 180 que faltan», y el mes del gasto dice «Incluye S/ 180 que se pierde por un pago sin banco de octubre:
+  Impuestos lo resta en ese mes». La base no cambió.
+- **Entorno:** la misma página de prueba con datos inventados, ahora al ancho real de Finanzas (`max-w-5xl`), con los casos `?caso=negativo` y
+  `?caso=septiembre`. El «antes» es `da1941fae` a ese mismo ancho.
+
+### Medido (antes → después, mismo ancho)
+| Comprobación | Antes (`da1941fae`) | Después |
+|---|---|---|
+| Columna Monto (1440 y 1024) | 211 px | 130 px |
+| Alto de la fila del alquiler (1024) | 118 px | 80 px |
+| La fila del hotel | «IGV perdido S/ 360.00» | «IGV S/ 360.00» / «perdido S/ 360.00» (ámbar) |
+| La fila del alquiler | «IGV S/ 180.00 · perdido S/ 180.00» | «IGV S/ 360.00» / «perdido S/ 180.00» (ámbar) |
+| El valor «IGV perdido» del detalle | «S/ 180.00 · S/ 1,180.00 se pagaron en efectivo el 12 oct» | «S/ 180.00 · del pago de S/ 1,180.00 en efectivo (12 oct)»; no se sale de la hoja a 375, 1024 ni 1440 |
+| La nota | «Una factura de S/ 2,000 o más… Se resta del IGV de octubre, en Impuestos.» | «Esta factura es de S/ 2,360: … aunque ese pago sea de menos de S/ 2,000. Ese IGV ya está restado de lo que descuentas en octubre. Míralo en Impuestos.» (enlace `btn-enlace` a `/finanzas/impuestos?mes=2026-10`, solo con el módulo) |
+| Lo que falta pagar | «Se paga desde Compras ▸ Por pagar, como cualquier factura de proveedor.» | «Lo que falta (S/ 1,180.00) se paga desde Compras ▸ Por pagar por el banco: en efectivo o desde un fondo se pierde su IGV (S/ 180.00).» |
+| Tarjeta, mes del pago con más pérdida que IGV | «S/ -180» | «S/ 0 · Se pierde S/ 230 por pagar sin banco (S/ 180 de gastos de otros meses), más que los S/ 50 de IGV de las facturas del mes: Impuestos resta los S/ 180 que faltan.» |
+| Tarjeta, mes del gasto con pérdida en otro mes | «S/ 360 · Solo de facturas.» | «S/ 360 · Solo de facturas. Incluye S/ 180 que se pierde por un pago sin banco de octubre: Impuestos lo resta en ese mes.» |
+| Desborde de la página | 0 px | 0 px (1440, 1024, 375; claro y oscuro) |
+| Oficio del detalle (medidor) | 4 de 8 a 1024 (medido en el re-análisis) | 5 de 8 a 1024: la nueva es «filas de alto desigual», el «×» de la hoja en la misma franja que «Qué mirar» y «Registrar gasto», que están detrás del velo (falso positivo); a 375 baja de 5 a 4 |
+
+### Notas (0–10) después de los cambios
+| Eje | Antes | Ahora | Evidencia |
+|---|---|---|---|
+| 1 Sin manual | 7 | 8 | [Observado] segunda ciega: correcta al primer intento, 2 «casi errores» (antes 5), ninguno en las palabras nuevas · real: sin probar (tope 8) |
+| 2 Una pregunta, una respuesta | 8 | 8 | [Observado] a los 5 s: «la tarjeta "IGV que puedes descontar: S/ 279" ya responde la primera pregunta» |
+| 3 Simplicidad profunda | 6 | 8 | [Observado] entendió sola el riesgo: «los S/ 180 de esa mitad pendiente… solo se podrán descontar si se paga por banco» |
+| 4 Lenguaje de tienda | 6 | 7 | [Observado] la nota y «del pago de» se entendieron; «aunque ese pago sea menor» le hizo preguntar «¿menor que qué?» (ya dice «de menos de S/ 2,000»); «desde un fondo» sigue sin entenderse |
+| 5 Contenido primero | 8 | 8 | [Observado] vio el ámbar a los 5 s |
+| 6 Lo difícil, a un toque | 7 | 8 | [Observado] «aquí tocaría "Impuestos" ("Míralo en Impuestos")»: el porqué y el siguiente paso, en el detalle |
+| 7 Perdonar antes que preguntar | — | — | no cambió: solo lee |
+| 8 Quitar antes de agregar | 7 | 7 | [Observado] el alquiler a crédito sigue con dos notas y «Su factura ya tiene pagos…» abajo |
+| 9 De punta a punta | 7 | 8 | [Medido] 375, oscuro y los meses cruzados (S/ 0 explicado) |
+| **Leyes (promedio)** | 7,0 | **7,8** | sin ninguna ley bajo 5 |
+| **Oficio visual** | 7 | **8** | [Medido] la columna Monto en 130 px, nada se sale de la hoja, contraste bien |
+
+### Segunda prueba ciega (mismo agente sin contexto, misma tarea, 3 capturas nuevas de 1440 px)
+| Medida | Resultado | Pasa |
+|---|---|---|
+| Lectura de 5 s | «la pantalla de los gastos de octubre… "IGV que puedes descontar: S/ 279" ya responde la primera pregunta… en las filas del Hotel y del Alquiler veo "perdido" en dorado» | sí |
+| Primer intento | correcta (S/ 278.85, S/ 540 perdidos, el porqué de cada factura) y además: «los S/ 180 de esa mitad pendiente… solo se podrán descontar si se paga por banco» | sí |
+| Pasos | 12 (cruzó todas las cifras; el mínimo sigue siendo 3) | no |
+| Dudas | 10 (antes 12); en lo nuevo: «perdido» (¿plata o IGV? se aclaró en el detalle), «aunque ese pago sea menor» (ya corregido) y «Ese IGV ya está restado» (¿de los S/ 279? concluyó que sí) | no |
+| Palabras no entendidas | 10, casi todas de antes (cuenta 631, Unidad, Dynamic, vigentes…); en lo nuevo, solo «desde un fondo» | no |
+| Errores evitables | 2 «casi errores» (antes 5): dar los S/ 279 por seguros, y el redondeo de la tarjeta frente a los céntimos de la tabla | casi |
+
+### Lo que queda (no se ejecuta sin Felipe)
+- **El subrayado del enlace «Impuestos» a veces no se ve** [Observado: la ciega lo vio subrayado en el alquiler y no en el hotel; Opinión: la pieza
+  `btn-enlace` dibuja el subrayado 0,7 em bajo el centro de la caja, y en una frase de 13 px cae justo en el borde y a veces no se pinta]. Es la pieza
+  común (ADR-0358, ronda 8): si se ajusta, en todo el ERP.
+- **«perdido S/ 360.00» bajo «IGV S/ 360.00»:** la ciega dudó si se perdió plata o IGV hasta abrir el detalle. «IGV perdido S/ 360.00» en el segundo
+  renglón lo diría, a costa de unos 25 px más de columna.
+- **La tarjeta no dice qué parte del IGV todavía depende de pagar por banco** (la ciega dio los S/ 279 por seguros hasta ver el detalle).
+- «desde un fondo», «Compras ▸ Por pagar» sin enlace y lo demás de la lista aparte de abajo, sin cambios.
+
 ## Re-análisis · 2026-10-14, tarde — el IGV perdido por pagar sin banco (ADR-0362, decisión 76)
 
 - **Fecha / SHA:** 2026-10-14 · `87ef1b5dd` (punta de la fase 6, PR #1055) + el cambio del IGV perdido   · **Dispositivo que manda:** escritorio
@@ -191,3 +249,4 @@ Sin hacer (`rapido`).
 |---|---|---|---|---|
 | 2026-10-14 | `adcbe6c40` + arreglo | — (`rapido`) | — (fila sin fallas medidas) | el papel del viaje en la lista, el detalle y las cifras |
 | 2026-10-14 (tarde) | `87ef1b5dd` + el IGV perdido | 7,0 (ley 1: 7, ciega sobre capturas) | 7 (la columna Monto se ensancha) | el «IGV descontable» de un IGV perdido (lo que no pediste de la mañana); arreglados el corte a 375 px y el «S/ -0»; 3 cambios nuevos esperan OK |
+| 2026-10-14 (tarde, 2) | `da1941fae` + los 3 cambios | 7,8 (ley 1: 8, segunda ciega sobre capturas) | 8 | los 3 cambios con el OK de Felipe, y la tarjeta sin negativos en los meses cruzados |
