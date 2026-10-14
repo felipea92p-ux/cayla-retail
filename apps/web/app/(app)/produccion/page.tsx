@@ -7,8 +7,13 @@ import { getInsumosDelTaller } from "@/lib/insumos";
 import { getLineasPorRecibir } from "@/lib/recibir-produccion";
 import { getComprobantesProduccion } from "@/lib/comprobantes-produccion";
 import { getDecisionProduccion } from "@/lib/decision-produccion";
+import { getCatalogo } from "@/lib/catalogo-v2";
+import { opcional } from "@/lib/resultado";
+import { coloresDeModelos, presentacionesDeModelos } from "@/lib/produccion-presentacion";
+import { hojaDelModelo, materialesDelModelo, ordenesDelModelo, prendasPorFabricar } from "@/lib/produccion-hoja-modelo";
+import { getFichasDeColor, getFichasDeModelos } from "@/lib/produccion-ficha-modelo";
 import { hoyLima } from "@/lib/fechas-lima";
-import { cifrasResumen, decisionesDeProduccion, demandaDeInsumos, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
+import { cifrasResumen, resumenDeDecisiones, demandaDeInsumos, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
 import { ResumenProduccionPanel } from "@/components/ResumenProduccionPanel";
 
 // `/produccion` es el módulo padre (ADR-0133) y, desde F6, su Resumen: «¿qué necesita mi decisión hoy?». Solo líder (ventas de la red y dinero) y, como el resto
@@ -26,14 +31,23 @@ export default async function ProduccionPage() {
   if (!taller) redirect("/produccion/ordenes");
 
   const hoy = hoyLima();
-  const [ordenes, modelos, datosInsumos, lineas, comprobantes] = await Promise.all([
-    getOrdenesProduccion(taller.id, { conCostos: true }),
-    getModelosProducibles(),
+  const [ordenes, modelos, datosInsumos, lineas, comprobantes, catalogo] = await Promise.all([
+    getOrdenesProduccion(taller.id, { conCostos: true, limite: 400 }),
+    getModelosProducibles({ soloProducibles: true }),
     getInsumosDelTaller(taller.id, { conCostos: true, hoy }),
     getLineasPorRecibir(taller.id),
     getComprobantesProduccion(),
+    // Las fotos son un dato SECUNDARIO (la misma copia cacheada de Catálogo, ADR-0168): si no se leen, cada modelo se dibuja con el ícono de su categoría
+    // sobre su color y todo lo demás sigue en pie.
+    opcional(getCatalogo(), "las fotos de los modelos"),
   ]);
-  const decision = await getDecisionProduccion({ modelos, ordenes, insumos: datosInsumos.insumos, consumosPorOrden: datosInsumos.consumosPorOrden, lineasPorRecibir: lineas });
+  const presentaciones = presentacionesDeModelos(catalogo ?? []);
+  // Las fichas (marca, proveedor, material, patrón y la de cada color) son datos SECUNDARIOS, como las fotos: si no se leen, la hoja «Ver el modelo» lo dice y lo demás sigue en pie.
+  const [decision, fichasDeModelos, fichasDeColor] = await Promise.all([
+    getDecisionProduccion({ modelos, ordenes, insumos: datosInsumos.insumos, consumosPorOrden: datosInsumos.consumosPorOrden, lineasPorRecibir: lineas, conSedes: true }),
+    opcional(getFichasDeModelos(modelos.map((m) => m.productoId)), "la ficha de los modelos"),
+    opcional(getFichasDeColor(), "la ficha de los colores"),
+  ]);
 
   const ordenesParaDecidir: (OrdenParaDecidir & { costoTela: number; costoAvios: number })[] = ordenes.map((o) => ({
     id: o.id,
@@ -57,16 +71,34 @@ export default async function ProduccionPage() {
   const datos = decision.datos;
   const demandaInsumos = demandaDeInsumos(ordenesParaDecidir, datos?.rendimientoPorModelo ?? {}, consumoNeto);
   const filasModelo = datos
-    ? filasPorModelo(datos.demanda, modelos.map((m) => ({ productoId: m.productoId, referencia: m.referencia, variantesIds: m.variantes.map((v) => v.varianteId) })), datos.enProduccion)
+    ? filasPorModelo(datos.demanda, modelos.map((m) => ({ productoId: m.productoId, referencia: m.referencia, variantesIds: m.variantes.map((v) => v.varianteId), variantes: m.variantes.map((v) => ({ varianteId: v.varianteId, talla: v.talla, color: v.color, colorHex: v.colorHex })) })), datos.enProduccion)
     : [];
 
-  const decisiones = decisionesDeProduccion({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo });
+  // La hoja «Ver el modelo» de cada fila: se arma aquí con lo que la página ya leyó (más la ficha del catálogo, que se lee aparte) y viaja al navegador con la página.
+  // La ficha de cada color viaja UNA vez, con el panel (no dentro de cada hoja: repetiría el vocabulario ~2 KB por modelo).
+  const coloresPorModelo = coloresDeModelos(catalogo ?? []);
+  const modeloPorId = new Map(modelos.map((m) => [m.productoId, m]));
+  const saldosDeInsumos = new Map((datos?.insumos ?? []).map((i) => [i.insumoId, { insumoId: i.insumoId, saldo: i.saldo, porLlegar: i.porLlegar }]));
+  const hojas = Object.fromEntries(
+    filasModelo.map((f) => [
+      f.productoId,
+      hojaDelModelo(f, coloresPorModelo[f.productoId] ?? [], taller.id, {
+        ficha: fichasDeModelos?.[f.productoId] ?? null,
+        precios: modeloPorId.get(f.productoId)?.variantes.map((v) => v.precio) ?? [],
+        sedes: datos?.sedes ?? [],
+        ordenes: ordenesDelModelo(ordenes, f.productoId, hoy),
+        materiales: materialesDelModelo(datos?.rendimientoPorModelo[f.productoId] ?? [], prendasPorFabricar(f), saldosDeInsumos),
+      }),
+    ]),
+  );
+
+  const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo, tallerId: taller.id });
   const cifras = cifrasResumen({ hoy, ordenes: ordenesParaDecidir, insumos, capitalInsumos: datosInsumos.capital, comprobantes });
   const telas = filasDeTela(insumos, demandaInsumos, llegadas);
 
   return (
     <div className="space-y-6">
-      <ResumenProduccionPanel decisiones={decisiones} cifras={cifras} modelos={filasModelo} telas={telas} falloRed={decision.fallo} />
+      <ResumenProduccionPanel presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} fichasDeColor={fichasDeColor ?? []} telas={telas} falloRed={decision.fallo} />
     </div>
   );
 }

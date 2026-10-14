@@ -88,3 +88,74 @@ otra pregunta («¿alcanza para cortar?»).
   Producción, Insumos e Inventario juntos.
 - **Sin decidir:** D-I (consolidado de deuda e IGV); cuándo se reconstruye Finanzas (migrar `gastos_taller`); si algún día un colaborador del Taller registra
   comprobantes (hoy solo el líder).
+
+## Actualización 2026-10-13: el Resumen dice la verdad sobre lo que decide
+
+El análisis de `/pantalla` sobre `/produccion` (`docs/pantallas/produccion.md`, cumple su finalidad 5,0/10) encontró que el Resumen decidía por modelo con un ritmo sin
+base visible y decía más de lo que sabía. Felipe ordenó las tareas #1 a #5; quedaron construidas sin migración:
+
+- **Qué se ofrece para fabricar.** Solo lo activo, aprobado, no de prueba y de una familia que entra a los motores (`esProducible`; ADR-0270, ADR-0377 act. 2026-10-13).
+- **La urgencia no miente.** Con 0 en tiendas dice «ya se agotó» (no «se agota en ~1 día»), «1 día» en singular, y entre agotados va primero el que más se vende.
+- **El tope no corta en silencio.** Hasta 3 modelos por producir tienen tarjeta; con más, UNA los junta y nombra a los 3 más urgentes. Ninguna clase pasa de 3 tarjetas y el
+  total sigue en 7; lo que no cabe se cuenta («10 asuntos · se ven 4», «Y 6 entregas más, que no caben aquí»). `resumenDeDecisiones` devuelve `ocultas` y `total`.
+- **Cada cifra dice su base.** «Se vende X por semana (N ventas en 30 días)»; con 2 o menos, «poca base» (`UMBRAL_POCA_BASE_VENTAS`, `lib/inventario-reglas.ts`, elegido por Felipe).
+  La base cuenta solo las ventas de las sedes con las que se midió el ritmo (`DemandaVariante.ventasBase`). Solo avisa: no cambia estados ni esconde tarjetas.
+- **La tela no se subestima.** El rendimiento medido se calcula para los modelos que se ofrecen **y para todo producto con una orden** (`productosParaRendimiento`): una orden abierta de un modelo que ya no se ofrece (descontinuado, de prueba, familia apagada) igual va a cortar tela, y sin su rendimiento «¿Alcanza la tela?» habría pedido menos de lo real. Lo cazó la revisión independiente del código, no una prueba.
+- **El modelo se reconoce.** Foto de cada modelo (la del primer color con foto, como Catálogo) o, sin foto, el ícono de su categoría sobre su color (ADR-0333), en cada fila
+  y tarjeta. La tabla se lee a 1024 px (nombre a dos líneas; «En prod.» entre 1024 y 1279 px solo en la insignia) y la fila tiene el anillo de foco del sistema (ADR-0351).
+
+**Lo que sigue sin hacerse** (el análisis lo ordena, falta el OK de Felipe): el «% de ventas sin prenda», que exige leer la cola de ventas sin registrar de otro módulo. Lo que aquí figuraba
+como pendiente (#6 a #9) se ordenó después: ver la actualización (b).
+
+## Actualización 2026-10-13 (b): «Producir ya» compara lo que falta, y la unidad de decisión sigue siendo el modelo
+
+Felipe ordenó las tareas #6 a #9 del mismo análisis (`docs/pantallas/produccion.md`).
+
+- **«Producir ya» compara en vez de preguntar si existe una orden (#6).** Por cada talla y color: lo que falta para cubrir `DIAS_OBJETIVO_PRODUCCION` (30) días de venta es `ritmo × 30 − (tiendas + en camino + órdenes
+  abiertas)`; de eso, lo que ya está hecho en el Taller se **traslada** y el resto se **produce** (`repartirFalta`, `lib/produccion-decision-reglas.ts`). `producir` es exactamente lo que sugiere «Nueva orden»
+  (`sugerirVariante`): una sola cifra para las dos pantallas, y una prueba lo exige sobre una rejilla de combinaciones. Con 7 días de stock o menos y algo por fabricar el modelo queda en «Producir ya» aunque haya una
+  orden: una de 1 prenda contra una falta de 30 no la apaga (la tarjeta dice «lo que ya se fabrica no alcanza (faltan 29)», nunca «no hay orden abierta» delante de una orden, y no cita la cantidad de la orden: con varias
+  tallas no es lo que cubrió cada falta). Entre 8 y 30 días rige la misma idea para el estado: «Ya hay orden abierta» solo si las órdenes CUBREN lo que falta; si no, «Vigilar» (y la hoja muestra lo que falta). **DESCARTÉ** comparar sumando todo el modelo, porque lo que sobra
+  de una talla no cubre la falta de otra: se compara por talla y color.
+- **«Trasladar al piso» es un estado nuevo.** Si lo que falta ya está en el Taller no hay que fabricar nada: la fila y, con 7 días de stock o menos, una tarjeta llevan a Mover mercadería con el Taller de origen y las cantidades puestas
+  (`urlLlevarATiendas`, el mismo contrato de «Siguiente paso: llevarlas a las tiendas», F8). Si el Taller cubre solo una parte, sigue «Producir ya» (con 7 días o menos; entre 8 y 30, «Vigilar») y la tarjeta nombra lo que hay en el Taller. Más de 3 modelos para trasladar se cuentan en «y N más».
+- **«Se vendían y ya no hay en tiendas» solo avisa.** Una talla o color en 0 con más de `UMBRAL_POCA_BASE_VENTAS` ventas, dentro de un modelo que sí tiene stock, se nombra en su fila; **no cambia el estado ni crea tarjeta** (Felipe: «solo avisar»). Por eso, en un modelo que el Resumen aconseja no producir («Alcanza», «Sobrestock», sin ritmo) la
+  hoja tampoco dice «hay que fabricar» ni ofrece «Abrir orden sugerida»: serían dos mensajes opuestos sobre el mismo modelo (`estadoPideFabricar`, lo halló la revisión independiente). Con poca base, ni la tarjeta ni la hoja
+  dicen cuánto fabricar (sí lo que ya está en el Taller, que es stock que existe).
+- **«Ver el modelo» (#8): la fila abre una hoja.** Tocar un modelo de «¿Qué producir?» abre `<Modal variante="hoja">` con su foto, lo que hay (tiendas, Taller, en camino, órdenes abiertas), lo que falta
+  y, por color y talla, lo vendido en 30 días con «ya no hay» donde se vendió más de 2 veces y hoy no queda nada, y los totales por talla y por color; en gris, lo de 2 ventas o menos (poca base: conteos, no rankings).
+  El stock va debajo, como dato secundario. La cabecera mide el ritmo con las tiendas donde se pudo medir y la matriz suma las de todas: si difieren, la nota al pie lo dice con los dos números. La matriz es una región con
+  nombre y se alcanza con el teclado (se desplaza hacia el lado con muchas tallas). La orden y el traslado salen DE la hoja: la fila ya no es un enlace a «Nueva orden» (un clic más; Felipe lo eligió así) y las tarjetas de «Para decidir» siguen yendo directo.
+  La hoja es solo de lectura. **DESCARTÉ** reutilizar la vista rápida de Catálogo (depende de lo que carga la grilla y del stock de la sede activa, que en Producción es el Taller) y abrirla por una ruta interceptada
+  (repetiría las ~30 lecturas de la página por cada modelo). **Costo medido:** el dato de las hojas viaja con la página, ~1,2 KB por modelo; con 232 modelos y 1.898 variantes (más que las ~1.435 de producción) son
+  267 KB sin comprimir y 18 KB con brotli (25 KB con gzip). Si el catálogo crece mucho, se recorta primero lo que cabe en la hoja (los colores sin venta), no se agrega una lectura.
+- **«Abrir orden sugerida» dice la cantidad y la lleva (#9).** La tarjeta de «producir» agrega «Sugerido: 52 prendas (S 8 · M 16 · L 16 · XL 12)» —lo que falta fabricar, por talla— solo si el modelo tiene base
+  (más de 2 ventas, `sugerenciaDeOrden`); con poca base el botón dice «Abrir orden» y la orden se abre vacía: no promete una cantidad que sería ruido (ADR-0346). Con base, el botón lleva `&sugerida=1` y «Nueva orden»
+  llega con la matriz ya llena (`cantidadesInicialesDeNuevaOrden`, la función que usa el formulario al abrirse, con la misma cuenta de «Usar la sugerencia»; una prueba exige que lo que escribe coincida con la cifra de la tarjeta).
+  La sugerencia se aplica UNA vez, a la apertura que vino por la URL: como la URL no cambia al cerrar ni al guardar, `OrdenesTablero` la descarta al cerrar y un «+ Nueva orden» posterior abre vacío. El parámetro es **opt-in**: `?nueva=` sigue siendo
+  el contrato de siempre para Análisis y Nuevo producto, que no cambian. La matriz se llena al iniciar el estado del formulario y no en un efecto, así lo precargado es el punto de partida y cerrar sin tocar nada no
+  pregunta «¿salir sin guardar?»; solo para el modelo pedido (nunca el primero de la lista), en una orden de producción y si la red respondió. La hoja «Ver el modelo» ofrece el mismo botón con la misma regla.
+- **#7 decidida: la unidad es el modelo.** Lo que Producción fabrica es una orden de un modelo (`producciones.producto_id`), y la hoja «Ver el modelo» y la cantidad sugerida se construyen sobre él. El «hueco» (categoría × talla × familia de
+  color) queda como la alternativa que el motor de demanda ya calcula para lo nuevo (ADR-0347) y que Felipe puede traer al Resumen cuando hable; el motor calla en una tienda mientras no cumpla las condiciones de ADR-0346 (14 días seguidos con ≥90 % de ventas con prenda y el piso cuadrado). **Se reabre si** el catálogo se parte en tantos modelos
+  de pocas ventas que casi todos salen «poca base»: ahí el modelo deja de ser una unidad con la que se pueda decidir.
+
+## Actualización 2026-10-13 (c): «Ver el modelo» es la ficha completa del modelo, con el diseño de Catálogo
+
+Felipe, mirando la hoja de #8: «tiene que dejarme ver todo: proveedor, marca, qué tienda lo vende… son datos que ya existen; sigue el diseño de Catálogo o del punto de venta». Tenía razón: la hoja mostraba cuatro cifras y una matriz, y todo lo demás
+que se sabe del modelo estaba en otra pantalla. Ahora es la ficha entera, dibujada con las piezas de la vista rápida de Catálogo (`vr-cuerpo`, `FotoVistaRapida`, `FichaDelColor`, `.vr-ficha`) pero **sin su movimiento rico**, que sigue siendo solo de esa hoja (ADR-0136, act. 2026-10-05): la hoja lleva la variante `vr-quieta` de `vista-rapida.css` (sin barrido de título, sin cascada de datos, sin destello ni cruce de la foto, sin paralaje; el movimiento es el de `<Modal>`):
+
+- **A la izquierda**, la foto grande que sigue al color que se señala (pasar el mouse la anticipa, un clic la fija; la lupa la abre en grande), la ficha de ese color («Combina bien con…») y la descripción del modelo.
+- **A la derecha**: las cuatro cifras de siempre y lo que falta; **«Dónde se vende»** (por tienda: lo que vendió en 30 días, lo que le queda, cuántos días le dura al ritmo de ESA tienda —en gris si ese ritmo se midió con 2 ventas o menos— y lo que le viene en camino, con «Toda la red» al pie);
+  **la matriz color × talla** de toda la red o de una tienda (un segmento cambia de una a otra sin mover filas ni columnas); **la ficha** (marca, proveedor, material, patrón; código, categoría, precio y temporada van en la bajada del título);
+  **las órdenes abiertas del modelo** (etapa y entrega, cada una abre en Órdenes) y **la tela y los avíos que lleva** (rendimiento medido en órdenes cerradas) contra su saldo, para las prendas que faltan fabricar: «Alcanza», «Alcanza si llega» o «Faltan N».
+  Al pie, «Ver en Catálogo» y «Ver en Existencias» junto a «Trasladar al piso» y «Abrir orden». **«Ver en Existencias» abre la tienda que más prendas tiene del color de la foto, en su primera talla con stock** (`dondeVerlo`, `hrefVerEnExistencias`): Producción se ve parado en el Taller y Existencias abre la sede en la que estás, así que un enlace sin sede caía en la lista del Taller sin abrir ninguna prenda; si no hay stock en tiendas va al Taller y, si no hay en ninguna sede, a la lista.
+- **Qué es dato nuevo y de dónde sale** (sin migración, solo lectura): marca, proveedor, material, patrón, descripción, código y temporada, de `productos` y sus tablas de vocabulario (`getFichasDeModelos`, `lib/produccion-ficha-modelo.ts`; `productos_select` es de toda sesión autenticada);
+  lo de cada tienda, de las MISMAS filas por sede que ya leía la decisión de Producción (`getFilasRecientesDeSede`), abiertas por sede en vez de sumadas (`demandaPorSede`, `lib/produccion-por-tienda.ts`, con las mismas reglas que la suma de la red: la suma de las tiendas da la cifra
+  de la red: `lib/produccion-por-tienda.test.ts` lo exige comparando contra `demandaDeLaRed` sobre una red con ritmos medidos y no medidos, devoluciones, un almacén y el Taller); las órdenes y la tela, de lo que la página ya leía (`ordenesDelModelo`, `materialesDelModelo` sobre `analizarInsumos`).
+- **Todo puede fallar (principio 9).** La ficha del catálogo y la de los colores se leen con `opcional(...)`: si no responde la del catálogo, la hoja dice «No se pudo leer la ficha del catálogo» en vez de escribir «Sin registrar» (que afirmaría que está vacía); si no responde la de los colores, la hoja no dibuja «Combina bien con» (es un adorno: ahí no se afirma nada que corregir). Todo lo demás sigue en pie.
+  `getDecisionProduccion` entrega lo de cada sede solo si se pide (`conSedes`): «Nueva orden» manda esa decisión entera al navegador y no lo necesita.
+- **DESCARTÉ** abrir la vista rápida de Catálogo tal cual (lo que el #8 ya descartó: depende de la grilla y del stock de la sede activa, que aquí es el Taller): se reutiliza su diseño y sus piezas, no su componente. **DESCARTÉ** mandar la ficha de cada color dentro de cada hoja: pesaba ~2 KB por modelo de ~5,7;
+  el vocabulario viaja UNA vez con el panel (`FichasDeColor.tsx`) y la hoja busca el color por su nombre, como la vista rápida. **DESCARTÉ** dejarle a la hoja el movimiento rico de Catálogo (barrido, cascada, destello, cruce de la foto): lo habría heredado por usar sus clases, y la regla lo reserva a esa hoja; si Felipe quiere que la foto cruce al cambiar de color, es agregar «Ver el modelo» a la lista de ADR-0136 y quitar `vr-quieta` de la foto. **DESCARTÉ** ordenar las tiendas por lo que venden: conteos, no rankings (ADR-0346), van en el orden del catálogo de sedes.
+- **Costo medido** (232 modelos sintéticos de 3 a 12 variantes, 3 tiendas, con fotos y ficha): lo que viaja con la página sube de 267 KB a 630 KB sin comprimir, y de 25 KB a 51 KB con gzip (35 KB con brotli). Si el catálogo crece mucho, se recortan primero las tiendas sin nada que decir, no se agrega una lectura.
+- Verificado en el navegador a 1440 px en claro y oscuro, con una hoja agotada (la de la captura de Felipe), con ficha sin leer y a 375 px (el pie en 2 × 2); la guía de `/produccion` se recorrió con `guias:recorrer` (17 pasos, sin escrituras). Sin movimiento nuevo: solo el de `<Modal>`. **Revisión independiente** antes del PR (4 lentes —lógica y datos, UI, reglas del repo, veracidad de la documentación— y 2 escépticos por hallazgo): 22 hallazgos, 10 confirmados y 4 divididos; se arreglaron los reales (la nota al pie y el título de la matriz dicen la tienda elegida; «Ver en Existencias» abre una talla que existe; la variante quieta; los vacíos son `<Vacio>`; «Dura» en gris con poca base; rótulos en celular; `getOrdenesProduccion` se pide con `limite: 400` desde el Resumen, porque su tope de 60 recortaba también las órdenes abiertas y la hoja afirma «no hay ninguna orden abierta»).
+
