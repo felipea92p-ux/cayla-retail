@@ -12,6 +12,7 @@ import { Boton, CampoTexto, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
 /**
  * Familias del negocio (Indumentaria, Calzado, Accesorios y Complementos...).
@@ -248,6 +249,7 @@ function FamiliaModal({
             <CampoGuiado id="nombre" guia={guia}>
               <CampoTexto
                 etiqueta={guia.etiqueta("nombre", "Nombre")}
+                maxLength={MAX_NOMBRE_CATALOGO}
                 value={borrador.nombre}
                 onChange={(e) => onCambio({ ...borrador, nombre: e.target.value })}
                 placeholder="Ej. Hogar y Decoración"

@@ -22,6 +22,10 @@ const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const PARTE1 = readFileSync(join(RAIZ, "supabase/migrations/20261013204000_ventas_montos_validos_parte1.sql"), "utf8");
 const PARTE2 = readFileSync(join(RAIZ, "supabase/migrations/20261013205000_ventas_montos_validos_parte2.sql"), "utf8");
+// Los candados que pone la parte 1, leídos del archivo: contar por nombre (`%montos_finitos`) sumaba también los de otros módulos
+// (Catálogo, ADR-0405, usa el mismo nombre para que hable la misma frase) y la cuenta dejaba de ser la de esta migración.
+const CANDADOS_PARTE1 = [...PARTE1.matchAll(/pg_temp\.candado\('[a-z_]+', '([a-z_]+)'/g)].map((m) => m[1]);
+if (CANDADOS_PARTE1.length !== 20) throw new Error(`esperaba 20 candados en la parte 1 y encontré ${CANDADOS_PARTE1.length}`);
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const SANDRA = "22222222-2222-4222-8222-000000000005";
 const ARGS = ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
@@ -161,7 +165,7 @@ update retail.devoluciones set reembolso_monto = -5, reembolso_metodo = 'yape' w
 // --- Las migraciones ---
 {
   const r = correr(`begin;\n${PARTE1}\n${PARTE2}\n${PARTE1}\n${PARTE2}
-select 'candados|' || count(*) from pg_constraint where conname like '%montos_finitos' or conname like '%recibido_con_tope' or conname in ('devoluciones_reembolso_valido', 'devoluciones_reembolso_metodo_valido', 'devoluciones_reembolso_con_metodo');
+select 'candados|' || count(*) from pg_constraint where conname = any(array[${CANDADOS_PARTE1.map((c) => `'${c}'`).join(", ")}]);
 select 'guardas|' || (length(d) - length(replace(d, 'monto_invalido', ''))) / length('monto_invalido') from pg_get_functiondef('retail.cerrar_caja(uuid, numeric, numeric, text, text, uuid)'::regprocedure) d;`);
   esperar("las dos partes se pueden pegar dos veces: 20 candados y cada guarda una sola vez", r.ok && r.salida.includes("candados|20") && r.salida.includes("guardas|2"), r.salida || r.error);
 }
