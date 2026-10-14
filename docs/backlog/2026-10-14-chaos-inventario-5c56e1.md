@@ -14,8 +14,8 @@ Informe con la evidencia en `.chaos/informes/inventario-2026-10-14.md` (local, f
 ### Para Felipe
 - [x] ~~**Pegar en producción** `20261014162000` y después `20261014163000`~~ — hecho el 2026-10-14 con el OK de Felipe, verificado por md5.
   El volcado de `docs/datos/generado/` no cambia (ninguna firma, tabla ni candado nuevo).
-- [ ] **«Prenda de más» al recibir un traslado** (ADR-0173, INV-08): entra al destino sin salir del origen. ¿Sale del origen o entra como
-  sobrante a investigar? Cambia el flujo de recibir: no se tocó.
+- [x] ~~**«Prenda de más» al recibir un traslado** (ADR-0173, INV-08)~~ — Felipe: entra como sobrante a revisar, fuera del stock (ADR-0404,
+  rama `claude/traslado-sobrante-5c56e1`).
 
 ### Menores que se dejaron a propósito
 - [ ] La nota de un pedido no atendido acepta 5000 letras por la API (la pantalla de Vender ya la corta; en producción la más larga tiene 23).

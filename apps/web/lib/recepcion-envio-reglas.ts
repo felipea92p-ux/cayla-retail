@@ -1182,8 +1182,10 @@ export function detalleRecibido(r: Pick<ResultadoRecepcion, "buenas" | "danadas"
   return partes.length > 0 ? partes.join(" · ") : "nada por anotar";
 }
 
-/** «ENV-000061 recibido · 30 prendas al almacén, 2 a cuarentena · faltan 2». */
-export const textoRecibido = (r: ResultadoRecepcion): string => `${tituloRecibido(r)} · ${detalleRecibido(r)}`;
+/** «ENV-000061 recibido · 30 prendas al almacén, 2 a cuarentena · faltan 2». Lo dice «Cómo se cerró», que a veces solo tiene el
+ *  resumen que arma con las líneas (sin lotes ni despacho): por eso pide solo lo que usan sus dos piezas. */
+export const textoRecibido = (r: Pick<ResultadoRecepcion, "numero" | "buenas" | "danadas" | "faltan" | "sobran">): string =>
+  `${tituloRecibido(r)} · ${detalleRecibido(r)}`;
 
 /** Qué decir cuando se corta la señal al recibir. La recepción pudo llegar a la base y perderse solo la respuesta: reintentar sin cambiar nada
  *  es seguro (el mismo token con los mismos datos devuelve la misma recepción, sin repetir nada). */

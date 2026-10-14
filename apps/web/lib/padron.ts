@@ -212,7 +212,7 @@ function registrarRespuestaSunat() {
   sunatPausadaHasta = 0;
 }
 
-/** Solo para las pruebas: la caché y este contador viven en el módulo. */
+/** @internal Solo para las pruebas: la caché y este contador viven en el módulo. */
 export function reiniciarSunatPublico() {
   registrarRespuestaSunat();
 }

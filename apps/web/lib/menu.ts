@@ -28,6 +28,7 @@ import type { Vista } from "./vista-global";
 
 /** Tipo de la ubicación en la que está parado quien mira (`personas.ubicacionTipo`). */
 export type TipoUbicacion = "tienda" | "almacen" | "taller";
+/** @internal Todos los tipos de ubicación, para que las pruebas del menú y de los módulos recorran cada uno. */
 export const TIPOS_UBICACION: readonly TipoUbicacion[] = ["tienda", "almacen", "taller"];
 
 /**

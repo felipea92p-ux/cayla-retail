@@ -169,25 +169,51 @@
   }
 }
 
-/* ---------- El piso de legibilidad del texto tenue en oscuro (ADR-0336, actividad 8) ----------
-   El diseño tiene niveles de texto muy tenues (`text-tinta/35` … `/50`: separadores, ayudas, valores vacíos). Sobre crema rinden 3.3 a
-   4.1:1 y ya eran flojos; sobre el oscuro, donde el ojo sigue peor un texto fino y claro, no se dejan perder: se suben al 58 %, que sobre
-   `papel`, `hueso` y `sand` pasa 4.5:1. Es UNA regla en vez de 370 `dark:` repartidos por los componentes. Se queda bajo (`:where`: sin
-   especificidad) para que `hover:text-tinta`, `dark:text-…` y cualquier estado sigan ganando. Los niveles 25 % y 30 % NO se tocan: son
-   fantasmas a propósito (un «— código —» de ejemplo, un día de otro mes ya tiene su propio refuerzo). */
+/* ---------- El piso de legibilidad del texto tenue (ADR-0336, actividad 8; también en claro desde el 2026-10-14) ----------
+   El diseño tiene niveles de texto muy tenues (`text-tinta/35` … `/60`: separadores, ayudas, fechas, valores vacíos) y sin piso no se leen:
+   en claro, sobre crema y papel, rinden 2.5 a 4.5:1; en oscuro, donde el ojo sigue peor un texto fino y claro, 3.3 a 4.1:1. Es UNA regla por
+   tema en vez de cientos de `dark:` o de clases cambiadas a mano (853 usos de `/40` a `/60` en 205 archivos al 2026-10-14). Se queda bajo
+   (`:where`: sin especificidad) para que `hover:text-tinta`, `disabled:…`, `dark:text-…` y cualquier estado sigan ganando. Los niveles 25 % y
+   30 % NO se tocan: son fantasmas a propósito (un «— código —» de ejemplo, un día de otro mes ya tiene su propio refuerzo).
+   · OSCURO: `/35` a `/50`, y su marcador (`placeholder:`), suben al 60 %, que sobre papel, hueso y sand pasa 4.5:1 (5.8, 5.3 y 4.7; hasta el
+     2026-10-14 era el 58 %, que sobre sand daba 4.45).
+   · CLARO (Felipe lo eligió el 2026-10-14, mirando el antes y después): `/35` a `/60`, y su marcador, suben al 64 %, que sobre crema, papel,
+     hueso y sand pasa 4.5:1 (5.0, 5.1, 4.7 y 4.7). En claro esos escalones se ven iguales: el número de la clase es el escalón, no el tono.
+   · TAUPE, en los dos temas: `text-taupe/50` a `/70` al taupe pleno (abajo).
+   Los pisos los mide `lib/tema-tokens.test.ts`. */
 @layer utilities {
   @media screen {
     :where(:root[data-tema="oscuro"]) .text-tinta\/35,
     :where(:root[data-tema="oscuro"]) .text-tinta\/40,
     :where(:root[data-tema="oscuro"]) .text-tinta\/45,
-    :where(:root[data-tema="oscuro"]) .text-tinta\/50 {
-      color: color-mix(in oklab, var(--color-tinta) 58%, transparent);
+    :where(:root[data-tema="oscuro"]) .text-tinta\/50,
+    :where(:root[data-tema="oscuro"]) .placeholder\:text-tinta\/35::placeholder,
+    :where(:root[data-tema="oscuro"]) .placeholder\:text-tinta\/40::placeholder,
+    :where(:root[data-tema="oscuro"]) .placeholder\:text-tinta\/45::placeholder,
+    :where(:root[data-tema="oscuro"]) .placeholder\:text-tinta\/50::placeholder {
+      color: color-mix(in oklab, var(--color-tinta) 60%, transparent);
     }
-    /* Lo mismo para el taupe tenue (12 usos): sobre papel oscuro, el taupe al 50–70 % rinde 3.4 a 4.2:1. */
-    :where(:root[data-tema="oscuro"]) .text-taupe\/50,
-    :where(:root[data-tema="oscuro"]) .text-taupe\/60,
-    :where(:root[data-tema="oscuro"]) .text-taupe\/70 {
-      color: color-mix(in oklab, var(--color-taupe) 82%, transparent);
+    :where(:root:not([data-tema="oscuro"])) .text-tinta\/35,
+    :where(:root:not([data-tema="oscuro"])) .text-tinta\/40,
+    :where(:root:not([data-tema="oscuro"])) .text-tinta\/45,
+    :where(:root:not([data-tema="oscuro"])) .text-tinta\/50,
+    :where(:root:not([data-tema="oscuro"])) .text-tinta\/55,
+    :where(:root:not([data-tema="oscuro"])) .text-tinta\/60,
+    :where(:root:not([data-tema="oscuro"])) .placeholder\:text-tinta\/35::placeholder,
+    :where(:root:not([data-tema="oscuro"])) .placeholder\:text-tinta\/40::placeholder,
+    :where(:root:not([data-tema="oscuro"])) .placeholder\:text-tinta\/45::placeholder,
+    :where(:root:not([data-tema="oscuro"])) .placeholder\:text-tinta\/50::placeholder,
+    :where(:root:not([data-tema="oscuro"])) .placeholder\:text-tinta\/55::placeholder,
+    :where(:root:not([data-tema="oscuro"])) .placeholder\:text-tinta\/60::placeholder {
+      color: color-mix(in oklab, var(--color-tinta) 64%, transparent);
+    }
+    /* El taupe tenue (10 usos), en los dos temas: al 50–70 % rendía 2.0 a 2.8:1 en claro y 3.4 a 4.2:1 en oscuro. Sube al taupe pleno, que
+       pasa sobre crema, papel, hueso y sand en los dos (en claro, 5.2, 5.6, 4.6 y 4.5). Hasta el 2026-10-14 solo subía en oscuro, al 82 %, que
+       daba 4.50 sobre `hueso` y 3.89 sobre `sand`. Lo mide `lib/tema-tokens.test.ts`. */
+    :where(:root) .text-taupe\/50,
+    :where(:root) .text-taupe\/60,
+    :where(:root) .text-taupe\/70 {
+      color: var(--color-taupe);
     }
   }
 }

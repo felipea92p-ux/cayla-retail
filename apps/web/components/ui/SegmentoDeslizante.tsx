@@ -156,7 +156,7 @@ function SegmentoCampo({ opciones, valor, onCambio, etiqueta, className = "" }: 
             className={`label-cayla relative shrink-0 whitespace-nowrap px-3.5 py-2.5 text-[11px] transition-colors duration-200 ${activa ? "text-crema" : "text-tinta/65 hover:text-rojo"}`}
           >
             {o.etiqueta}
-            {o.conteo != null && <span className="ml-1 font-medium tracking-normal opacity-60 dark:opacity-85">{o.conteo}</span>}
+            {o.conteo != null && <span className="ml-1 font-medium tracking-normal dark:opacity-85">{o.conteo}</span>}
           </button>
         );
       })}

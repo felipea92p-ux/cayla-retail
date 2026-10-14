@@ -27,6 +27,7 @@ export const BOTON_COMPROBAR = "Comprobar";
 
 /** La RPC y sus parámetros en un solo lugar: `bajada-reglas.test.ts` los fija contra la migración. */
 export const RPC_BAJADA = "bajar_al_piso";
+/** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
 export const PARAMETROS_RPC_BAJADA = ["p_ubicacion_id", "p_items", "p_token"] as const;
 
 const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
