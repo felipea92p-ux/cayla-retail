@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { COMPRAS_PARA_FRECUENTE, MESES_PARA_FRECUENTE, estadoFrecuente } from "./clienta-actividad-reglas";
 import {
+  COLUMNAS_EXPORTAR,
   FILTROS_LISTA,
   POR_PAGINA,
   aClientaDeLista,
@@ -11,6 +12,7 @@ import {
   detallePublicidad,
   detalleSocias,
   estadoDeLaFila,
+  filaParaExportar,
   frecuenteDeLaFicha,
   hrefLista,
   leerParamsLista,
@@ -129,6 +131,46 @@ describe("una fila de la lista", () => {
     expect(ultimaCompraLegible("2026-09-12T20:00:00+00:00", "2026-09-30")).toEqual({ fecha: "12 sep", hace: "hace 18 d" });
     expect(ultimaCompraLegible("2026-10-01T02:00:00+00:00", "2026-09-30")).toEqual({ fecha: "30 sep", hace: "hoy" });
     expect(ultimaCompraLegible("2026-09-29T15:00:00+00:00", "2026-09-30")).toEqual({ fecha: "29 sep", hace: "ayer" });
+  });
+
+  it("una última compra que no se lee no inventa un día (la copia propia del día de Lima se caía con ella)", () => {
+    expect(ultimaCompraLegible("ayer", "2026-09-30")).toBeNull();
+  });
+});
+
+describe("exportar la lista: las fechas del CSV son el día de Lima", () => {
+  // Ejemplo inventado: se registró el 13 de octubre a las 20:00 de Lima (2026-10-14 01:00 UTC) y entró al club ese mismo día a
+  // las 23:30 (2026-10-14 04:30 UTC). `created_at` y `club_desde` llegan de la base en UTC.
+  const clienta = {
+    documentoTipo: "dni" as const,
+    documentoNumero: "40112233",
+    nombre: "Ana Torres",
+    telefonoWhatsapp: "987654321",
+    clubDesde: "2026-10-14T04:30:00+00:00",
+    codigoClub: "C-0142",
+    publicidadDesde: null,
+    cumpleDia: 5,
+    cumpleMes: 3,
+    cumpleAnio: null,
+    createdAt: "2026-10-14T01:00:00.123456+00:00",
+    archivadaEn: null,
+    anonimizada: false,
+    fusionadaEnId: null,
+  };
+
+  it("«Miembro desde» y «Registrado» dicen el 13, aunque en UTC ya sea el 14", () => {
+    const fila = filaParaExportar(clienta);
+    expect(fila[COLUMNAS_EXPORTAR.indexOf("Miembro desde")]).toBe("2026-10-13");
+    expect(fila[COLUMNAS_EXPORTAR.indexOf("Registrado")]).toBe("2026-10-13"); // con el corte de UTC, «2026-10-14»
+  });
+
+  it("la fila completa va en el orden de las columnas", () => {
+    expect(filaParaExportar(clienta)).toEqual(["DNI", "40112233", "Ana Torres", "987654321", "2026-10-13", "C-0142", "no", "5/3", "2026-10-13", "activo"]);
+    expect(filaParaExportar(clienta)).toHaveLength(COLUMNAS_EXPORTAR.length);
+  });
+
+  it("quien no es miembro deja «Miembro desde» vacío", () => {
+    expect(filaParaExportar({ ...clienta, clubDesde: null, codigoClub: null })[COLUMNAS_EXPORTAR.indexOf("Miembro desde")]).toBe("");
   });
 });
 

@@ -19,11 +19,11 @@
       "button «Todo ·»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "Boton «{loading ? \"Registrando…\" : `Registrar pago de ${soles(suma)}»",
+      "Boton «{`Registrar pago de ${soles(suma)}»",
       "CampoTexto «Motivo»",
       "ComboResponsable «Volver»",
       "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/DeudaPorVencimiento.tsx": [
       "button «{TITULO[f.k]}»"
@@ -37,8 +37,8 @@
       "DesplegablePildora «Tipo de documento»",
       "DesplegablePildora «Destino»",
       "DesplegablePildora «Vencimiento»",
-      "button «{`Quitar filtro ${c.texto}»",
-      "button «Limpiar todo»",
+      "FiltroPuesto «{`Quitar filtro ${c.texto}»",
+      "BotonLimpiar «Limpiar todo»",
       "button «{texto}»",
       "CampoFecha «Emitida desde»",
       "CampoFecha «Emitida hasta»"
@@ -57,7 +57,7 @@
       "CampoFecha «Fecha del pago»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "Boton «(sin nombre)»"
+      "Boton «{credito > 0 ? `Registrar pago de ${soles(total)}»"
     ],
     "components/PagoPiezas.tsx": [
       "button «{`Copiar ${etiqueta.toLowerCase()}»",
@@ -77,7 +77,7 @@
       "button «Solo vencidas»"
     ],
     "components/PorPagarLista.tsx": [
-      "button «{`Quitar filtro ${filtroLocal.etiqueta}»",
+      "FiltroPuesto «{`Quitar filtro ${filtroLocal.etiqueta}»",
       "Boton «Quitar el filtro»",
       "button «Marcar todo»",
       "button «Limpiar»",

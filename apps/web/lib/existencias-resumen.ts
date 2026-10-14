@@ -1,5 +1,5 @@
 import { agruparPorPrenda, type FilaPrenda } from "./existencias-prendas";
-import { hoyEnLima } from "./resumen-periodo";
+import { hoyLima } from "./fechas-lima";
 import { ventasNetasDe, type FilaResumen } from "./resumen-reglas";
 
 /* ====================================================================
@@ -43,7 +43,7 @@ export type MesEnCurso = {
   desdeTexto: string;
 };
 
-/** A partir de «aaaa-mm-dd» de hoy en Lima (`hoyEnLima`). Siempre desde el día 1: el 1 de cada mes el contador vuelve a cero. */
+/** A partir de «aaaa-mm-dd» de hoy en Lima (`hoyLima`). Siempre desde el día 1: el 1 de cada mes el contador vuelve a cero. */
 export function mesEnCurso(hoy: string): MesEnCurso {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(hoy);
   const mes = m ? Number(m[2]) : 0;
@@ -54,7 +54,7 @@ export function mesEnCurso(hoy: string): MesEnCurso {
 
 /** El mes en curso a partir de un instante (el reloj del servidor): «hoy» es el de Lima, no el de UTC. */
 export function mesEnCursoDe(ahora: Date): MesEnCurso {
-  return mesEnCurso(hoyEnLima(ahora));
+  return mesEnCurso(hoyLima(ahora));
 }
 
 /** Lo que se vendió de una prenda en el mes, tal como viaja al navegador: una fila por talla con ventas netas, nada más. */

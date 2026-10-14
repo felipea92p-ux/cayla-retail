@@ -7,6 +7,7 @@ import type { MetodoPago } from "@cayla-retail/shared";
 import { filtrarPrendasV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { TOPE_VUELTO, UNIDAD_EFECTIVO, efectivoACobrar, redondeoDelEfectivo } from "./redondeo-efectivo-reglas";
 import type { ReservaEnOrigen } from "./pedidos-con-cliente-reglas";
+import { diaLima } from "./fechas-lima";
 
 /** D3 (Felipe, 2026-09-22): 7 días para recoger, aviso cuando faltan 2, 2 días para decidir tras vencer. */
 export const PLAZO_DIAS = 7;
@@ -94,7 +95,9 @@ export function estadoVisible(a: Pick<Apartado, "estado" | "venceEl" | "adelanto
 /** Orden de la lista «Todos»: primero lo que exige una acción hoy. */
 export const ORDEN_ESTADO: Record<ClaveEstado, number> = { devolver: 0, vencida: 1, porvencer: 2, vigente: 3, cerrada: 4 };
 
-/** La barra del plazo: 7 tramos de plazo + 2 de gracia. `pasado` ya transcurrió, `hoy` es el día actual. */
+/** La barra del plazo: 7 tramos de plazo + 2 de gracia. `pasado` ya transcurrió, `hoy` es el día actual. `creadaEl` es el día de
+ *  Lima en que se apartó, `diaLima(a.creadaEn)`: la base guarda el instante en UTC y calcula `vence_el` con ese mismo día de Lima
+ *  (`fn_hoy_lima()` + 7); con los 10 primeros caracteres del instante, lo apartado de 7 pm a medianoche arrancaba «mañana». */
 export type TramoPlazo = { tipo: "plazo" | "gracia"; momento: "pasado" | "hoy" | "futuro" };
 export function tramosDelPlazo(creadaEl: string, hoy: string): TramoPlazo[] {
   const dia = diasEntre(creadaEl, hoy);
@@ -104,7 +107,21 @@ export function tramosDelPlazo(creadaEl: string, hoy: string): TramoPlazo[] {
   }));
 }
 
+/** La línea de tiempo de Entregar (Apartó → Hoy → Vence): cuántos días tiene el plazo y cuántos ya pasaron, contados desde el día
+ *  de Lima en que se apartó (`diaLima(a.creadaEn)`, como `tramosDelPlazo`). Sin ese día —un instante que no se lee—, la línea no
+ *  avanza: no se inventa cuándo se apartó. */
+export function avanceDelPlazo(creadaEl: string | null, hoy: string, venceEl: string): { total: number; pasados: number } {
+  if (!creadaEl) return { total: 1, pasados: 0 };
+  const total = Math.max(1, diasEntre(creadaEl, venceEl));
+  return { total, pasados: Math.min(total, Math.max(0, diasEntre(creadaEl, hoy))) };
+}
+
 export const soloDigitos = (s: string) => s.replace(/\D/g, "");
+
+/** ¿El apartado se hizo CON constancia (sin boleta de anticipo)? Es todo apartado nuevo (ADR-0399, Felipe 2026-10-14): el adelanto es un pacto
+ *  interno, la clienta se lleva el código APT-… como constancia y la boleta o factura sale una sola vez, al entregar, por el total. Un apartado
+ *  VIEJO, de antes, ya tiene su boleta de anticipo con el correlativo gastado: conserva su ticket y su texto de siempre. */
+export const esConstancia = (a: Pick<Apartado, "comprobanteAnticipo">): boolean => a.comprobanteAnticipo === null;
 
 /** Lo que se busca en «Entregar» y en «Todos»: código, nombre, DNI, celular o comprobante. */
 export function coincide(a: Apartado, texto: string): boolean {
@@ -335,11 +352,7 @@ export function mensajeWhatsapp(a: Pick<Apartado, "nombres" | "codigo" | "venceE
 /** Lo que la base sabe de los avisos de un apartado (`fn_avisos_separaciones`, 20260926233000). */
 export type AvisoApartado = { avisos: number; ultimoEn: string; ultimoPor: string | null };
 
-/** El día de Lima (`aaaa-mm-dd`) de un instante: «hoy» se cuenta en la hora de la tienda, no en la del servidor. */
-export function diaLima(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-}
-
+/** «Hoy» se cuenta en la hora de la tienda, no en la del servidor: el día del último aviso es el de Lima (`diaLima`). */
 export function avisadaHoy(aviso: AvisoApartado | undefined, hoy: string): boolean {
   return !!aviso && diaLima(aviso.ultimoEn) === hoy;
 }
@@ -423,9 +436,6 @@ export const TOPE_SEPARACIONES = 200;
 export function diasEsperaPorAbono(monto: number, saldo: number): 2 | 3 {
   return monto * 2 >= saldo ? 3 : 2;
 }
-
-/** Los abonos de un apartado, sin el adelanto con que se apartó. */
-export const abonosDe = (a: Pick<Apartado, "pagos">) => a.pagos.filter((p) => p.abono);
 
 // ---- Opciones de Apartados (paso 5 — 20260927130000) --------------------------------------------------------------
 
@@ -526,4 +536,3 @@ export function textoEstadoPedido(p: Pick<PedidoApartado, "estado" | "direccion"
   if (p.estado === "apartado") return "Apartado con adelanto";
   return "Cancelado";
 }
-

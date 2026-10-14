@@ -339,7 +339,7 @@ function GuiaImpresion({ onClose }: { onClose: () => void }) {
       titulo="Guía de impresión de etiquetas"
       subtitulo={`Brother QL-1110NWB, rollo de ${anchoRollo} mm, etiqueta de ${PAPEL}. Se configura una sola vez por computadora.`}
       onClose={onClose}
-      ancho="sm:max-w-5xl"
+      ancho="sm:max-w-5xl" /* unificar-fijo: la guía de impresión dibuja la hoja de etiquetas a tamaño real: es de diseño propio */
       variante="papel"
     >
       {(cerrar) => (

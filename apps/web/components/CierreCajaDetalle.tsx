@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Eye, Flag, FunnelX, Receipt } from "lucide-react";
-import { Modal } from "@/components/ui/Modal";
+import { Flag, FunnelX, Receipt } from "lucide-react";
+import { ANCHO_HOJA, Modal } from "@/components/ui/Modal";
 import { getDetalleCierre, type DetalleCierre, type EventoCaja } from "@/app/actions/caja";
 import type { CierreCaja } from "@/lib/caja";
 import { etiquetaDestino } from "@/lib/caja-cierre-reglas";
@@ -71,27 +71,8 @@ export function useDetalleCierre() {
   return { abrir, modal };
 }
 
-/** El botón de ojo de cada fila de la página `/caja/historial`. */
-export function BotonVerDetalleCierre({ cierre }: { cierre: CierreCaja }) {
-  const { abrir, modal } = useDetalleCierre();
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => abrir(cierre)}
-        data-guia="caja-historial.ver"
-        aria-label={`Ver el detalle del cierre de ${cierre.ubicacionNombre} (${hora(cierre.cerradaEn)})`}
-        className="inline-flex h-7 w-7 items-center justify-center rounded-md text-tinta/50 transition-colors hover:bg-tinta/8 hover:text-rojo"
-      >
-        <Eye className="h-4 w-4" aria-hidden />
-      </button>
-      {modal}
-    </>
-  );
-}
-
 /** El ancho de la hoja con el detalle: deja las tres tarjetas del cierre en una fila (en celular y tablet pasan a una sola columna). */
-export const ANCHO_DETALLE_CIERRE = "max-w-5xl";
+export const ANCHO_DETALLE_CIERRE = ANCHO_HOJA.ancha;
 
 type FiltroFlujo = "todo" | "ventas" | "cajon";
 const FILTROS: [FiltroFlujo, string][] = [
@@ -118,7 +99,7 @@ const TEXTO_ESTADO = (estado: keyof typeof COLOR_ESTADO, dif: number) => (estado
 /** El modal de un cierre cuando no hay una hoja de atrás a la que volver (la página `/caja/historial`). */
 export function DetalleCierreModal({ cierre, detalle, cargando, error, onClose }: { cierre: CierreCaja; detalle: DetalleCierre | null; cargando: boolean; error: boolean; onClose: () => void }) {
   return (
-    <Modal conCerrar titulo={tituloDelCierre(cierre)} subtitulo={bajadaDelCierre(cierre)} onClose={onClose} ancho={ANCHO_DETALLE_CIERRE}>
+    <Modal conCerrar titulo={tituloDelCierre(cierre)} subtitulo={bajadaDelCierre(cierre)} onClose={onClose} tamano="ancha">
       <DetalleCierreContenido cierre={cierre} detalle={detalle} cargando={cargando} error={error} />
     </Modal>
   );

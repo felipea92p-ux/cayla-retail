@@ -5,8 +5,8 @@ import { BadgePercent, Banknote, Cake, Gift, Check, CirclePause, CreditCard, Lan
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import type { TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
+  descuentoPedido,
   descuentoResultante,
-  descuentoUnitarioPorPorcentaje,
   desgloseIgv,
   hayDescuentoManual,
   necesitaArgumentoEscrito,
@@ -14,6 +14,7 @@ import {
   pasoDelDescuento,
   RAZONES_DESCUENTO,
   totalDeLineas,
+  type ModoDescuento,
   type MomentoTicket,
   type PasoDescuento,
 } from "@/lib/vender-reglas";
@@ -26,6 +27,7 @@ import { LineaDelTicket } from "@/components/punto-de-venta/LineaDelTicket";
 import type { DetalleVariante } from "@/lib/ticket-linea-reglas";
 import { ayudaPieCumple, textoPieCumple, ticketConCumple } from "@/lib/club-cumple-canje-reglas";
 import { TEXTO_PIE_VALE, ayudaPieVale, ticketConVale } from "@/lib/club-aniversario-canje-reglas";
+import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Volver } from "@/components/ui/Volver";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
@@ -36,6 +38,10 @@ const TASA_IGV = 0.18;
 
 /** Atajos de % del apartado de descuento — los que se dan de palabra en el mostrador. */
 const ATAJOS_DESCUENTO = [5, 10, 15] as const;
+
+/** Atajos de S/ del apartado de descuento — la otra entrada, para cuando lo que se acordó con el cliente es un monto y no un %
+ *  (vuelve el 2026-10-14, Felipe; antes de salir, el 2026-09-25, eran los mismos). */
+const ATAJOS_DESCUENTO_MONTO = [5, 10, 20, 50] as const;
 
 
 
@@ -342,16 +348,19 @@ export function PuntoDeVentaTicket({
   const totalDescuento = carrito.reduce((acc, it) => acc + it.cantidad * it.descuentoUnitario, 0);
 
   // ---- Apartado de descuento: todo derivado de props, sin estado propio ----------
+  const porMonto = descuento.modo === "monto";
   const pct = Number(descuento.pct);
   const pctValido = Number.isFinite(pct) && pct > 0 && pct <= 100;
-  const valorValido = pctValido;
+  const monto = Number(descuento.monto);
+  const montoValido = Number.isFinite(monto) && monto > 0;
+  const valorValido = porMonto ? montoValido : pctValido;
   const elegidas = descuento.elegidas;
   const todoElTicket = elegidas === null;
   const alcanza = (claveLinea: string) => elegidas === null || elegidas.includes(claveLinea);
   const elegidasCuenta = elegidas === null ? carrito.length : elegidas.length;
-  // El descuento por unidad que va a quedar en cada línea si se aplica ahora — en % es
-  // el mismo para todas; en S/ cambia según el precio de cada una.
-  const montoPedido = (it: ItemCarrito) => descuentoUnitarioPorPorcentaje(it.precioUnitario, pct);
+  // El descuento por unidad que va a quedar en cada línea si se aplica ahora — en % sale del
+  // precio de cada una (sin céntimos sueltos, ADR-0403); en S/ es el monto tal cual.
+  const montoPedido = (it: ItemCarrito) => descuentoPedido(descuento.modo, porMonto ? monto : pct, it.precioUnitario);
   const descuentoUnitarioAplicando = (it: ItemCarrito) =>
     !alcanza(it.claveLinea) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto;
   // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora. Con el cumpleaños canjeado, también
@@ -375,7 +384,9 @@ export function PuntoDeVentaTicket({
       return !r.prevaleceCampana && necesitaArgumentoEscrito(it.precioUnitario, r.monto);
     });
   const motivoDescuento = !valorValido
-    ? "Elige un porcentaje entre 1 y 100."
+    ? porMonto
+      ? "Escribe un monto mayor a 0."
+      : "Elige un porcentaje entre 1 y 100."
     : elegidasCuenta === 0
       ? "Elige al menos una prenda."
       : descuento.razon === ""
@@ -552,46 +563,95 @@ export function PuntoDeVentaTicket({
             </div>
           ) : descontando ? (
             <div className={saliendo ? "anim-revelar-salida space-y-5 px-5 py-4" : "anim-revelar space-y-5 px-5 py-4"}>
-              {/* 1 · Cuánto: solo en % (Felipe, 2026-09-25: el S/ salió del apartado). Los
-                  atajos son los habituales; «Otro» es para cualquier otro %. */}
+              {/* 1 · Cuánto: % del precio o S/ por prenda (Felipe, 2026-10-14: el S/ vuelve; salió el 2026-09-25). El % deja el
+                  precio sin céntimos sueltos (ADR-0403); el S/ es lo que se escribe, tal cual. Los atajos son los habituales;
+                  «Otro» es para cualquier otro valor. */}
               <fieldset className="space-y-2">
                 <legend className="text-[11px] text-tinta/50">
                   <span className="flex items-center gap-1.5">
-                    <Percent className={ICONO_CHICO} aria-hidden />
-                    Porcentaje
+                    {porMonto ? <Banknote className={ICONO_CHICO} aria-hidden /> : <Percent className={ICONO_CHICO} aria-hidden />}
+                    {porMonto ? "Monto por prenda" : "Porcentaje"}
                   </span>
                 </legend>
-                <div data-paso-descuento="valor" className={`grid grid-cols-3 gap-1 rounded-xl bg-sand/50 p-1 transition-shadow ${luz("valor") ? LUZ_PISTA : ""}`}>
-                  {ATAJOS_DESCUENTO.map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => onDescuento({ pct: String(p) })}
-                      disabled={bloqueado}
-                      aria-pressed={descuento.pct === String(p)}
-                      className={`${OPCION} h-11 text-sm font-semibold ${descuento.pct === String(p) ? OPCION_ACTIVA : OPCION_INACTIVA}`}
-                    >
-                      {p}%
-                    </button>
-                  ))}
-                </div>
-                <label className={`caja-cayla caja-campo h-11 gap-2 ${luz("valor") ? LUZ_CAMPO : ""}`}>
-                  <span className="text-[11px] text-tinta/50">Otro</span>
-                  <input
-                    aria-label="Porcentaje de descuento"
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={100}
-                    value={descuento.pct}
-                    onChange={(e) => onDescuento({ pct: e.target.value })}
-                    onKeyDown={siguienteConEnter}
-                    placeholder="0"
-                    disabled={bloqueado}
-                    className={`self-stretch py-0 text-right text-lg font-semibold ${SIN_FLECHAS}`}
-                  />
-                  <span className="text-sm text-tinta/60">%</span>
-                </label>
+                <SegmentoDeslizante
+                  forma="modo"
+                  etiqueta="Cómo escribir el descuento"
+                  valor={descuento.modo}
+                  onCambio={(m) => onDescuento({ modo: m as ModoDescuento })}
+                  opciones={[
+                    { clave: "porcentaje", etiqueta: "%", ayuda: "En porcentaje del precio" },
+                    { clave: "monto", etiqueta: "S/", ayuda: "En soles por prenda" },
+                  ]}
+                />
+                {porMonto ? (
+                  <>
+                    <div data-paso-descuento="valor" className={`grid grid-cols-4 gap-1 rounded-xl bg-sand/50 p-1 transition-shadow ${luz("valor") ? LUZ_PISTA : ""}`}>
+                      {ATAJOS_DESCUENTO_MONTO.map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => onDescuento({ monto: String(m) })}
+                          disabled={bloqueado}
+                          aria-pressed={descuento.monto === String(m)}
+                          className={`${OPCION} h-11 text-sm font-semibold ${descuento.monto === String(m) ? OPCION_ACTIVA : OPCION_INACTIVA}`}
+                        >
+                          S/{m}
+                        </button>
+                      ))}
+                    </div>
+                    <label className={`caja-cayla caja-campo h-11 gap-2 ${luz("valor") ? LUZ_CAMPO : ""}`}>
+                      <span className="text-[11px] text-tinta/50">Otro</span>
+                      <span className="ml-auto text-sm text-tinta/60">S/</span>
+                      <input
+                        aria-label="Monto de descuento por prenda"
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        step="0.10"
+                        value={descuento.monto}
+                        onChange={(e) => onDescuento({ monto: e.target.value })}
+                        onKeyDown={siguienteConEnter}
+                        placeholder="0.00"
+                        disabled={bloqueado}
+                        className={`w-24 self-stretch py-0 text-right text-lg font-semibold ${SIN_FLECHAS}`}
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <div data-paso-descuento="valor" className={`grid grid-cols-3 gap-1 rounded-xl bg-sand/50 p-1 transition-shadow ${luz("valor") ? LUZ_PISTA : ""}`}>
+                      {ATAJOS_DESCUENTO.map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => onDescuento({ pct: String(p) })}
+                          disabled={bloqueado}
+                          aria-pressed={descuento.pct === String(p)}
+                          className={`${OPCION} h-11 text-sm font-semibold ${descuento.pct === String(p) ? OPCION_ACTIVA : OPCION_INACTIVA}`}
+                        >
+                          {p}%
+                        </button>
+                      ))}
+                    </div>
+                    <label className={`caja-cayla caja-campo h-11 gap-2 ${luz("valor") ? LUZ_CAMPO : ""}`}>
+                      <span className="text-[11px] text-tinta/50">Otro</span>
+                      <input
+                        aria-label="Porcentaje de descuento"
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={100}
+                        value={descuento.pct}
+                        onChange={(e) => onDescuento({ pct: e.target.value })}
+                        onKeyDown={siguienteConEnter}
+                        placeholder="0"
+                        disabled={bloqueado}
+                        className={`self-stretch py-0 text-right text-lg font-semibold ${SIN_FLECHAS}`}
+                      />
+                      <span className="text-sm text-tinta/60">%</span>
+                    </label>
+                  </>
+                )}
               </fieldset>
 
               {/* Motivo (R-45): de una lista cerrada, no texto libre — «un texto libre
@@ -716,6 +776,9 @@ export function PuntoDeVentaTicket({
                   <span className="font-display text-2xl text-tinta">{money(totalConDescuento)}</span>
                 </p>
               )}
+              {/* Por qué el % no da el precio «exacto»: cada prenda baja al S/ 0.10 de abajo para que se cobre sin céntimos
+                  sueltos (ADR-0403). En S/ no hace falta: lo que se escribe es lo que se descuenta. */}
+              {valorValido && elegidasCuenta > 0 && !porMonto && <p className="-mt-3 text-xs text-tinta/50">Cada prenda baja a un precio sin céntimos sueltos.</p>}
             </div>
           ) : cobrando && cuerpoCobro ? (
             // En el celular la hoja de cobro vive aquí, dentro de la hoja del ticket (y del formulario que cobra). En
@@ -934,7 +997,7 @@ export function PuntoDeVentaTicket({
                   <BadgePercent className={ICONO} aria-hidden />
                   Aplicar descuento
                 </span>
-                <strong className="font-display text-lg">{valorValido ? `−${pct}%` : "—"}</strong>
+                <strong className="font-display text-lg">{valorValido ? (porMonto ? `−${money(monto)}` : `−${pct}%`) : "—"}</strong>
               </button>
               {hayDescuentoEnAlcance && (
                 <button

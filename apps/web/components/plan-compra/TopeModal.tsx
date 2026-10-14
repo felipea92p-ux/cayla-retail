@@ -48,7 +48,7 @@ export function TopeModal({ planId, planNombre, topeActual, onClose }: { planId:
   }
 
   return (
-    <Modal titulo="Tope de inversión" subtitulo={`Cuánto invertir al costo en ${planNombre}. Te avisamos si el plan se pasa; nunca te impide guardarlo.`} onClose={onClose} variante="hoja" ancho="max-w-md">
+    <Modal titulo="Tope de inversión" subtitulo={`Cuánto invertir al costo en ${planNombre}. Te avisamos si el plan se pasa; nunca te impide guardarlo.`} onClose={onClose} variante="hoja">
       {(cerrar) => (
         <form
           onSubmit={(e) => {
@@ -65,7 +65,7 @@ export function TopeModal({ planId, planNombre, topeActual, onClose }: { planId:
           </CampoGuiado>
           <div className="pie-hoja-fijo">
             <PieGuia guia={guia} listo="Todo listo para guardar." />
-            <div className="flex flex-wrap justify-end gap-3 pt-2">
+            <div className="pie-acciones pt-2">
               {topeActual !== null && (
                 <Boton type="button" peso="peligro" disabled={trabajando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void guardar(null, cerrar)} className="mr-auto">
                   Quitar el tope

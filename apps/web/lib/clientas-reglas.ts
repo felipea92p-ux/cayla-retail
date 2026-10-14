@@ -183,9 +183,9 @@ export function aSeparacion(f: FilaSeparacion): Separacion {
   return { id: f.separacion_id, codigo: f.codigo, fecha: f.fecha, estado: f.estado, total: f.total, venceEl: f.vence_el };
 }
 
-/** La ficha completa: la clienta más su actividad. Vive acá (no en `clientas.ts`) porque tanto la
- *  carga inicial (server, `getFichaClienta`) como el refresco tras editar (cliente,
- *  `cargarFichaClienta` en `clientas-acciones.ts`) arman la misma forma. */
+/** La ficha completa: la clienta más su actividad. Vive acá (no en `clientas.ts`) porque la arma
+ *  `cargarFichaClienta` (`clientas-acciones.ts`, desde el navegador) y un componente cliente la lee:
+ *  `clientas.ts` es de servidor. */
 export type FichaClienta = {
   clienta: Clienta;
   compras: Compra[];

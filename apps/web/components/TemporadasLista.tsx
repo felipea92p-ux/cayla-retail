@@ -560,7 +560,6 @@ function ModalFecha({
     <Modal
       titulo={`Cambiar el inicio de ${nombre}`}
       subtitulo={`Fecha guardada: ${textoInstanteLima(evento.inicio)} (${NOMBRE_FUENTE[evento.fuente]}).`}
-      ancho="max-w-md"
       onClose={onClose}
       bloqueado={guardando}
     >
@@ -589,8 +588,8 @@ function ModalFecha({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton
@@ -673,7 +672,6 @@ function ModalAnio({
     <Modal
       titulo={`Agregar el calendario de ${anio}`}
       subtitulo="Vienen con una fecha aproximada, a mediodía. Si tienes las horas de SENAMHI (o del Observatorio Naval de EE. UU. mientras SENAMHI no publique), cópialas y marca de dónde salen."
-      ancho="max-w-md"
       onClose={onClose}
       bloqueado={guardando}
     >
@@ -701,8 +699,8 @@ function ModalAnio({
               <PieGuia guia={guia} listo="Todo listo para agregar." />
             </>
           )}
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
             <Boton

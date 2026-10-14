@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
-import { Cake, Gift, Printer } from "lucide-react";
+import { Cake, Gift } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { ReciboTermico } from "@/components/ReciboTermico";
 import { EnviarBoleta } from "@/components/punto-de-venta/EnviarBoleta";
@@ -15,6 +15,7 @@ import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { textoCumpleCobrado } from "@/lib/club-cumple-canje-reglas";
 import { textoValeCobrado } from "@/lib/club-aniversario-canje-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 type Props = {
   ok: VentaOk;
@@ -71,7 +72,6 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
       subtitulo={ubicacionEtiqueta}
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
-      ancho={r ? "max-w-md" : "max-w-sm"}
     >
       {(cerrar) => (
         <div className="space-y-4">
@@ -209,15 +209,9 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
             <div className="space-y-2">
               {/* Lo que se hace en casi todas las ventas, en UN toque y con Enter (el foco ya está
                   acá): imprime y deja la caja lista para la siguiente clienta. */}
-              <button
-                type="button"
-                autoFocus
-                onClick={() => imprimirYSeguir(cerrar)}
-                className={`${botonPrimario} flex w-full items-center justify-center gap-2 whitespace-nowrap`}
-              >
-                <Printer className="h-4 w-4" aria-hidden />
+              <BotonImprimir peso="primario" autoFocus onClick={() => imprimirYSeguir(cerrar)} className="w-full whitespace-nowrap">
                 Imprimir y nueva venta
-              </button>
+              </BotonImprimir>
               {/* Las dos salidas menos comunes, más discretas: reintentar el papel sin salir
                   (se atascó, se acabó el rollo) o seguir sin imprimir (la clienta no lo quiere). */}
               <div className="grid grid-cols-2 gap-2">

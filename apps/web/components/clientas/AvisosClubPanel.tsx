@@ -439,10 +439,10 @@ function FilaAviso({
             </button>
           </>
         ) : (
-          <Boton peso="primario" className="!py-2.5 max-sm:flex-1" onClick={onEnviar} cargando={enCurso} disabled={ocupado || bloqueo !== null} title={bloqueo ?? "Abre WhatsApp Web con su número y el texto listos"}>
+          <Boton peso="primario" className="!py-2.5 max-sm:flex-1" onClick={onEnviar} cargando={enCurso} textoCargando="Anotando…" disabled={ocupado || bloqueo !== null} title={bloqueo ?? "Abre WhatsApp Web con su número y el texto listos"}>
             <span className="inline-flex items-center gap-1.5">
               <MessageCircle className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-              {enCurso ? "Anotando…" : "Enviar"}
+              Enviar
             </span>
           </Boton>
         )}

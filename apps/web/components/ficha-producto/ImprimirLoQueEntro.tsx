@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Printer } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { IconoEtiquetaPapel } from "@/components/IconoEtiquetaPapel";
@@ -9,6 +8,7 @@ import type { ColorAlta } from "@/lib/alta-producto";
 import { iconoDeEtiqueta } from "@/lib/etiqueta-visual";
 import { precioEtiqueta } from "@/lib/etiqueta-precio-reglas";
 import type { LineaParaImprimir } from "@/lib/matriz-ficha-reglas";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // «Etiquetas de lo que entró» (Felipe 2026-10-03: «cuando agregues stock, o agregues un color con stock, debe salirte grande lo de
 // imprimir etiquetas solo de eso agregado»). Sale al terminar «Revisar y guardar» si entraron unidades, en vez del botón chico del
@@ -75,7 +75,7 @@ export function ImprimirLoQueEntro({
   return (
     <Modal
       variante="hoja"
-      ancho="max-w-2xl"
+      tamano="ancha"
       titulo="Etiquetas de lo que entró"
       subtitulo={`${prenda} quedó guardado. Imprime una etiqueta por cada prenda que entró: las que ya estaban en la tienda ya tienen la suya.`}
       onClose={onDespues}
@@ -159,10 +159,9 @@ export function ImprimirLoQueEntro({
               <button type="button" onClick={cerrar} className="btn-cayla btn-sutil">
                 Más tarde
               </button>
-              <button type="button" onClick={onImprimir} autoFocus className="btn-cayla btn-primario inline-flex items-center justify-center gap-2">
-                <Printer aria-hidden className="h-4 w-4" />
+              <BotonImprimir peso="primario" autoFocus onClick={onImprimir}>
                 Imprimir {total} {total === 1 ? "etiqueta" : "etiquetas"}
-              </button>
+              </BotonImprimir>
             </div>
             <p className="mt-2 text-[11.5px] text-taupe sm:text-right">Si lo dejas para después, Productos te lo recuerda arriba hasta que salgas del módulo.</p>
           </div>

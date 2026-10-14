@@ -10,7 +10,7 @@
       "Casilla «{`El resto (${cantidadTexto(resto, l.unidad)}»",
       "Desplegable «)»",
       "CampoTexto «Nota de la entrega»",
-      "ComboResponsable «{cargando ? \"Registrando…\" : \"Registrar recepción\"}»",
+      "ComboResponsable «Registrar recepción»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/RecibirProduccionPanel.tsx": [

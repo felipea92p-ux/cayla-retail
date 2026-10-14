@@ -8,7 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { objecionArchivo, subirAdjuntosCompra } from "@/lib/adjuntos-compra";
 import { ADJUNTOS_MAX_POR_FACTURA, fechaCorta, tamanoLegible, type AdjuntoCompra } from "@/lib/compras-reglas";
 import { Boton } from "@/components/ui/campos";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { firmar } from "@/lib/responsable-reglas";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { Paperclip } from "lucide-react";
@@ -260,13 +260,13 @@ function QuitarAdjuntoModal({ adjunto, onClose, onQuitado }: { adjunto: AdjuntoC
       {(cerrar) => (
         <div className="space-y-4">
           <p className="text-sm text-tinta/75">Deja de verse en esta factura. El archivo no se destruye: queda guardado por si hace falta recuperarlo.</p>
-          <div className="flex gap-3">
-            <button type="button" onClick={cerrar} className={botonCancelar} disabled={loading}>
+          <div className="pie-acciones">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={loading}>
               Cancelar
             </button>
-            <button type="button" onClick={confirmar} className={botonPrimario} disabled={loading}>
-              {loading ? "Quitando…" : "Quitar"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Quitando…" type="button" onClick={confirmar} disabled={loading}>
+              Quitar
+            </Boton>
           </div>
         </div>
       )}

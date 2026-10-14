@@ -3,7 +3,7 @@
 import { useState, type KeyboardEvent } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoTexto } from "@/components/ui/campos";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { Resaltado } from "@/components/ui/Resaltado";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { ProponerValor } from "@/components/alta-producto/ProponerValor";
@@ -122,7 +122,7 @@ export function ElegirTallas({ deLaCategoria, universo, elegidas, onElegidas, ha
       {hoja && (
         <Modal
           variante="hoja"
-          ancho="max-w-[680px]"
+          tamano="ancha"
           titulo="Agrega otra talla"
           subtitulo={`${todas.length} tallas en el catálogo. Las que elijas se suman a esta prenda.`}
           onClose={() => setHoja(false)}
@@ -297,19 +297,18 @@ function HojaTallas({
           <p className="text-[12.5px] tabular-nums text-taupe">
             {marcadas.length} {marcadas.length === 1 ? "talla elegida" : "tallas elegidas"}
           </p>
-          <div className="flex gap-2">
-            <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-sutil">
+          <div className="pie-acciones">
+            <button type="button" onClick={onCancelar} disabled={guardando} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button
+            <Boton peso="primario" cargando={guardando}
               type="button"
               onClick={() => void listo()}
               disabled={guardando || (nuevas.length > 0 && !firma.listo)}
               title={nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}
-              className="btn-cayla btn-primario"
             >
-              {guardando ? "Guardando…" : "Listo"}
-            </button>
+              Listo
+            </Boton>
           </div>
         </div>
       </div>

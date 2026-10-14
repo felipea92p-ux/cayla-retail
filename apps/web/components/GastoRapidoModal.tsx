@@ -20,6 +20,8 @@ import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { soles } from "@/lib/compras-reglas";
+import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
+import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import { partirSerieNumero, validarGasto, type CategoriaGasto } from "@/lib/gastos-reglas";
 import {
   CLAVE_OTRO,
@@ -247,6 +249,10 @@ export function GastoRapidoModal({
   ];
   const guia = useGuiaCampos(campos);
   const montoNumero = Number(e.monto);
+  // ADR-0362 (fase 6 · actividad 6, decisiones 56 y 70): con factura o boleta de S/ 2 000 o más, lo pagado en efectivo queda «no
+  // deducible». Se deja registrar; la hoja lo avisa.
+  const conComprobanteGrande = e.conComprobante && Number.isFinite(montoNumero) && montoNumero >= UMBRAL_BANCARIZACION;
+  const avisoNoDeducible = conComprobanteGrande ? avisoBancarizacion(montoNumero, [{ monto: montoNumero, medio: e.medio }]) : null;
   const montoListo = campos.some((c) => c.id === "monto" && c.hecho);
 
   const avisoSalida = useSalidaSinGuardar(
@@ -346,7 +352,7 @@ export function GastoRapidoModal({
       antesDeCerrar={avisoSalida.pedirAccion}
       onClose={onCerrar}
       bloqueado={guardando || intento.incierto}
-      ancho="max-w-[560px]"
+      tamano="mediana"
     >
       {(cerrar) => (
         <form onSubmit={guardar} className="gr-hoja relative space-y-5" noValidate>
@@ -541,6 +547,8 @@ export function GastoRapidoModal({
             </div>
           </div>
 
+          <AvisoNoDeducible aviso={avisoNoDeducible} reservar={conComprobanteGrande} />
+
           {onRetiro && (
             <p className="text-[12.5px] text-taupe">
               ¿Sale plata del cajón y no es un gasto (un retiro, un depósito al banco)?{" "}
@@ -559,7 +567,7 @@ export function GastoRapidoModal({
 
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo={textos.listo} />
-            <div className="ml-auto flex gap-3">
+            <div className="ml-auto pie-acciones">
               <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando || intento.incierto}>
                 Cancelar
               </Boton>

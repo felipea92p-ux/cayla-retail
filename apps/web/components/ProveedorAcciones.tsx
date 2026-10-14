@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, MessageCircle, Pencil, Plus } from "lucide-react";
+import { Copy, MessageCircle, Plus } from "lucide-react";
 import { ProveedorModal, borradorDe } from "@/components/ProveedorModal";
 import { Boton, BotonAncla, BotonEnlace } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { formatoCci, urlWhatsApp } from "@/lib/proveedores-reglas";
 import type { ProveedorFicha } from "@/lib/proveedores";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 // Las acciones de la ficha (maqueta 09): escribirle por WhatsApp desde el teléfono guardado, copiar el
 // CCI para la transferencia, editar sin volver a la lista y registrar un comprobante con este
@@ -50,11 +51,7 @@ export function ProveedorAcciones({ proveedor, rubros }: { proveedor: ProveedorF
             </span>
           </Boton>
         )}
-        <Boton type="button" onClick={() => setEditando(true)} data-guia="proveedor-ficha.editar">
-          <span className="inline-flex items-center gap-2">
-            <Pencil aria-hidden className="h-3.5 w-3.5" /> Editar
-          </span>
-        </Boton>
+        <BotonEditar onClick={() => setEditando(true)} guia="proveedor-ficha.editar" />
         {proveedor.activo && (
           <BotonEnlace href={`/compras/nueva?prov=${proveedor.id}`} peso="primario">
             <Plus aria-hidden className="h-3.5 w-3.5" /> Registrar factura

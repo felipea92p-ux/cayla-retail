@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode, type RefObject } from "react";
-import Image from "next/image";
+import { useEffect, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { Trash2 } from "lucide-react";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Chip } from "@/components/ui/Chip";
 import { money, type ItemCarrito, type OrigenDeLinea, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { colorInicial, resumenDePrenda, type GrupoCatalogo, type PrendaCatalogo } from "@/lib/catalogo-grupos";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { precargarMiniaturas } from "@/components/ui/precargar-miniaturas";
+import { SIZES_OPCIONES_VENDER as SIZES_FOTO } from "@/lib/fotos-tamanos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { motivoNoCobrable } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
@@ -70,12 +72,17 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
   const [fijo, setFijo] = useState(inicial?.clave);
   const [vistaPrevia, setVistaPrevia] = useState<string | null>(null);
   const [recien, setRecien] = useState<{ id: string; pulso: number } | null>(null);
+  // Abrir la hoja baja las fotos de todos los colores: pasar por una fila no espera a la red.
+  useEffect(() => {
+    precargarMiniaturas(prenda.colores.map((c) => c.fotoUrl), SIZES_FOTO);
+  }, [prenda.colores]);
   const colores = [...prenda.colores].sort((a, b) => rango(a) - rango(b));
   const elegido = prenda.colores.find((c) => c.clave === fijo) ?? inicial;
   const mostrado = prenda.colores.find((c) => c.clave === vistaPrevia) ?? elegido;
   const enTicket = (id: string) => carrito.find((it) => it.claveLinea === id)?.cantidad ?? 0;
   if (!elegido || !mostrado) return null;
   const varMostrada = mostrado.tallas[0]?.variante;
+  const sinFotoMostrada = <MosaicoPrenda colorHex={varMostrada?.colorHex} prefijo={varMostrada?.categoriaPrefijo} familia={varMostrada?.categoriaFamilia ?? null} categoria={varMostrada?.categoria} forma="grilla" className="h-full w-full !rounded-none" />;
   const llevaMostrado = mostrado.tallas.reduce((a, t) => a + enTicket(t.variante.varianteId), 0);
   // La frase sigue al color que se MIRA (pasar por una fila la cambia); las prendas concretas, solo al FIJAR (Felipe 2026-10-10).
   const combinaMostrado = combinaDe?.(anclaDe(prenda, mostrado)) ?? null;
@@ -86,7 +93,7 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
       titulo={prenda.referencia}
       subtitulo={`${prenda.categoria ?? "Sin categoría"} · ${resumenDePrenda(prenda)} · ${ubicacionEtiqueta}`}
       variante="hoja"
-      ancho="max-w-3xl"
+      tamano="ancha"
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
       // El foco inicial en la hoja, no en el primer control (Formidable 2026-10-10): Radix enfocaba el primer círculo de «Combina bien
@@ -102,9 +109,9 @@ export function OpcionesDePrendaModal({ prenda, colorClave, ubicacionEtiqueta, c
               <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-xl bg-sand/40 sm:w-full">
                 <div key={mostrado.clave} className="vg-capa vg-capa-entra">
                   {mostrado.fotoUrl ? (
-                    <Image src={mostrado.fotoUrl} alt={[prenda.referencia, mostrado.color].filter(Boolean).join(" ")} fill sizes="(min-width: 640px) 240px, 96px" className="object-cover" unoptimized />
+                    <ImagenDePrenda src={mostrado.fotoUrl} alt={[prenda.referencia, mostrado.color].filter(Boolean).join(" ")} fill sizes={SIZES_FOTO} className="object-cover" fondo={varMostrada?.colorHex} fallback={sinFotoMostrada} />
                   ) : (
-                    <MosaicoPrenda colorHex={varMostrada?.colorHex} prefijo={varMostrada?.categoriaPrefijo} familia={varMostrada?.categoriaFamilia ?? null} categoria={varMostrada?.categoria} forma="grilla" className="h-full w-full !rounded-none" />
+                    sinFotoMostrada
                   )}
                 </div>
               </div>

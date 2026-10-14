@@ -7,7 +7,8 @@ import { METODOS_PAGO, METODOS_PAGO_VENTA, type MetodoPagoVenta } from "@cayla-r
 import { clasificarFalloDeSubida, esFalloDeRed, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { barrerColaSunat, enviarVentaASunat } from "@/lib/envio-sunat";
 import { useIntento } from "@/lib/useIntento";
-import { avisoDeResolucion, cobrosGuardados, cobrosPorResolver, conCobro, huellaDe, leerResolucion, sinCobro, TOPE_ESPERA_MS } from "@/lib/intento-reglas";
+import { avisoDeResolucion, cobrosGuardados, conCobro, huellaDe, sinCobro } from "@/lib/intento-reglas";
+import { useEnviosEnCurso } from "@/lib/useEnviosEnCurso";
 import { CobroEnDuda } from "@/components/punto-de-venta/CobroEnDuda";
 import { avisar } from "@/components/ui/Avisos";
 import { resolverCodigoV2, type PrendaBuscableV2 } from "@/lib/buscar-prenda-v2";
@@ -16,10 +17,11 @@ import { categoriasQueCombinan, claveAnotada, fraseCombina, indiceDeColores, sug
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
+  aplicarDescuentoMonto,
   atendioDelTicket,
   conCodigoDelCatalogo,
   descuentoResultante,
-  descuentoUnitarioPorPorcentaje,
+  descuentoPedido,
   esperaAlCargar,
   metodoDeAtajo,
   cobroEnEfectivo,
@@ -37,6 +39,7 @@ import {
   conDescuentoDeCampana,
   type CampanaLinea,
   type DetalleDescuento,
+  type ModoDescuento,
   type MomentoTicket,
   type PagoAplicado,
 } from "@/lib/vender-reglas";
@@ -246,12 +249,14 @@ export type ItemCarrito = {
 
 export type OrigenDeLinea = "combina_bien_con";
 
-/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el % tal cual lo
- *  escribe (solo %, Felipe 2026-09-25), a qué líneas alcanza (`null` es todo el ticket;
+/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% o S/ por
+ *  prenda; el S/ volvió el 2026-10-14, Felipe), el valor tal cual lo escribe en cada uno, a qué líneas alcanza (`null` es todo el ticket;
  *  `[]` es que todavía no eligió ninguna), el motivo (R-45) y el argumento que pide todo
  *  descuento pasado el 15 %. */
 export type DescuentoForm = {
+  modo: ModoDescuento;
   pct: string;
+  monto: string;
   elegidas: string[] | null;
   razon: string;
   razonOtro: string;
@@ -314,7 +319,7 @@ const MAX_RESULTADOS = 6;
 
 /** El apartado «Descuento» arranca así siempre: sin valor, sin líneas elegidas (salvo
  *  que `abrirDescuento` traiga unas), sin motivo. */
-const DESCUENTO_VACIO: DescuentoForm = { pct: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
+const DESCUENTO_VACIO: DescuentoForm = { modo: "porcentaje", pct: "", monto: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
 
 export const money = (n: number) => `S/${n.toFixed(2)}`;
 
@@ -503,54 +508,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
   // se cierra mientras se cobra, al volver Vender le pregunta a la base por ese envío y dice si la venta quedó.
   const claveCobro = claveLocal(ubicacionId, "cobro-en-curso");
   // Un cobro que quedó en el aire en una visita anterior: al montar (y al volver la conexión) se le pregunta a la base y se dice si
-  // la venta quedó. Solo los que salieron hace más del tope de espera: uno más nuevo puede seguir en camino desde otra pestaña, y
-  // preguntarlo lo daría por no llegado. El cobro en duda de ESTA pestaña lo resuelve su propia hoja (`CobroEnDuda`).
-  useEffect(() => {
-    let vivo = true;
-    let espera: number | undefined;
-    async function resolverPendientes() {
-      window.clearTimeout(espera);
-      const propio = envio.instantanea()?.marca.token;
-      const ahora = Date.now();
-      const pendientes = cobrosGuardados(leer(claveCobro, [])).filter((c) => c.token !== propio);
-      const listos = cobrosPorResolver(pendientes, ahora);
-      for (const c of listos) {
-        let res = null;
-        try {
-          const { data, error } = await createClient()
-            .rpc("fn_resolver_intento" as never, { p_operacion: "registrar_venta", p_token: c.token } as never)
-            .setHeader("x-espera", "no");
-          res = error ? null : leerResolucion(data);
-        } catch {
-          res = null;
-        }
-        if (!vivo) return;
-        // Sin respuesta: se vuelve a preguntar con la próxima conexión.
-        if (!res) continue;
-        guardar(claveCobro, sinCobro(cobrosGuardados(leer(claveCobro, [])), c.token));
-        const aviso = avisoDeResolucion(res, c);
-        if (aviso.tono === "exito") {
-          avisar.exito(aviso.titulo, { detalle: aviso.detalle, duracion: 9000 });
-          router.refresh();
-        } else avisar.aviso(aviso.titulo, { detalle: aviso.detalle, duracion: 9000 });
-      }
-      const jovenes = pendientes.filter((c) => !listos.includes(c));
-      if (vivo && jovenes.length > 0) {
-        const proximo = Math.min(...jovenes.map((c) => Date.parse(c.enviadoEn) + TOPE_ESPERA_MS - ahora));
-        espera = window.setTimeout(() => void resolverPendientes(), Math.max(1000, proximo + 500));
-      }
-    }
-    void resolverPendientes();
-    const alVolver = () => void resolverPendientes();
-    window.addEventListener("online", alVolver);
-    return () => {
-      vivo = false;
-      window.clearTimeout(espera);
-      window.removeEventListener("online", alVolver);
-    };
-    // Una vez por sede: lo demás se lee al momento de preguntar.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [claveCobro]);
+  // la venta quedó (`useEnviosEnCurso`). El cobro en duda de ESTA pestaña lo resuelve su propia hoja (`CobroEnDuda`).
+  useEnviosEnCurso({
+    clave: claveCobro,
+    operacion: "registrar_venta",
+    guardados: cobrosGuardados,
+    tokenPropio: () => envio.instantanea()?.marca.token,
+    avisoDe: avisoDeResolucion,
+    alHecho: () => router.refresh(),
+  });
   // El ticket de esta sede, al día, para `TicketPorSede`: si la sede cambia con Vender abierta, este componente se monta de
   // nuevo (su key lleva la sede) y lo que estaba armado queda en la espera de ESTA sede (Felipe, 2026-10-11).
   const reportarTicket = useReportarTicket();
@@ -1416,7 +1382,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // descuento «no entró».
     const cedieron = carrito.filter((it) => {
       if (!it.campana || (claves.length > 0 && !claves.includes(it.claveLinea))) return false;
-      const monto = descuentoUnitarioPorPorcentaje(it.precioUnitario, Number(descuento.pct));
+      const monto = descuentoPedido(descuento.modo, Number(descuento.modo === "monto" ? descuento.monto : descuento.pct), it.precioUnitario);
       return Number(monto) > 0 && descuentoResultante(it, monto).prevaleceCampana;
     });
     if (cedieron.length > 0) {
@@ -1425,7 +1391,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       );
     }
     // ADR-0379: una pieza de liquidación tiene precio final; el descuento del ticket no la toca.
-    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), claves, detalle).map((it, i) => (actual[i]?.liquidacion ? actual[i]! : it)));
+    setCarrito((actual) =>
+      (descuento.modo === "monto"
+        ? aplicarDescuentoMonto(actual, Number(descuento.monto), claves, detalle)
+        : aplicarDescuento(actual, Number(descuento.pct), claves, detalle)
+      ).map((it, i) => (actual[i]?.liquidacion ? actual[i]! : it)),
+    );
     setMomento("armar");
   }
   function quitarDescuentoDelTicket() {
@@ -2452,7 +2423,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
       )}
 
       {apilado && hojaTicket && (
-        <Modal titulo="Ticket actual" variante="ticket" ancho="max-w-xl" onClose={() => setHojaTicket(false)} alCerrarEnfocar={buscador}>
+        <Modal titulo="Ticket actual" variante="ticket" tamano="mediana" onClose={() => setHojaTicket(false)} alCerrarEnfocar={buscador}>
           {ticketNodo(true)}
         </Modal>
       )}
@@ -2607,8 +2578,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
 
       {modalAbrirVisible && (
         // Ancha (`max-w-xl`): angosta, con el aviso «Nadie de turno» pasaba los 800 px de alto (Felipe 2026-10-01).
-        <Modal titulo="Abrir caja" ancho="max-w-xl" onClose={() => setModalCaja(null)} alCerrarEnfocar={focoTrasAbrirCaja}>
-          <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} esperado={fondoUltimoCierre} enHoja />
+        <Modal titulo="Abrir caja" tamano="mediana" onClose={() => setModalCaja(null)} alCerrarEnfocar={focoTrasAbrirCaja}>
+          {(cerrar) => <AbrirCajaFormV2 ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} esperado={fondoUltimoCierre} enHoja onCancelar={cerrar} />}
         </Modal>
       )}
       {modalCerrarVisible && cajaId && (

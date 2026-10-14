@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar, enfocar } from "@/components/ui/Avisos";
-import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
+import { campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import { Boton, CampoSelect, Desplegable } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -16,6 +16,12 @@ import { juntarPorPrenda, prendasNoDisponibles } from "@/lib/traslado-lineas-reg
 import { Package } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
+import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
+import { useIntento } from "@/lib/useIntento";
+import { avisoDeTraslado, conEnvio, huellaDe, sinEnvio, trasladosGuardados } from "@/lib/intento-reglas";
+import { useEnviosEnCurso } from "@/lib/useEnviosEnCurso";
+import { claveLocal, guardar, leer } from "@/lib/almacen-local";
+import { hoyLima } from "@/lib/fechas-lima";
 
 // Fase UI 1.1 (2026-09-12): sobre la RPC `transferir` de V2
 // (`supabase/migrations/0003_funciones.sql:286`), pedida por Felipe tras ver
@@ -60,6 +66,8 @@ type Linea = { varianteId: string; cantidad: string };
 // y cada línea nueva traía la primera prenda del catálogo: si se te olvidaba cambiarla, esa prenda viajaba.
 // Enviar exige destino y prenda en cada línea; el error sale JUNTO al campo (no en una esquina) y el cursor va ahí.
 const LINEA_VACIA: Linea = { varianteId: "", cantidad: "1" };
+/** El tope de la nota: el mismo que pone la base (`traslado_nota_larga`, ADR-0401). */
+const MAX_NOTA_TRASLADO = 200;
 type Errores = { destino?: string; eta?: string; lineas: Record<number, string> };
 const SIN_ERRORES: Errores = { lineas: {} };
 const idLinea = (i: number) => `mover-linea-${i}`;
@@ -121,14 +129,39 @@ export function MoverMercaderiaFormV2({
   ]);
   const [errores, setErrores] = useState<Errores>(SIN_ERRORES);
   const [loading, setLoading] = useState(false);
+  const [revisando, setRevisando] = useState(false);
   // Lo que se ve tras enviar: el traslado ya está guardado, con su número y su lista (`TrasladoEnviado`).
   const [ok, setOk] = useState<{ id: string | null; numero: number | null; destino: string; whatsapp: string | null; prendas: PrendaEnviada[] } | null>(null);
-  // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
-  // una red que se cae), la base devuelve lo ya guardado en vez de descontar el stock dos veces. Se renueva solo al guardar bien.
-  const token = useRef<string>(crypto.randomUUID());
+  // La marca del envío sigue a lo que se manda (ADR-0398/0401): dos clics o un reintento con LO MISMO no envían dos veces; si la
+  // respuesta se pierde, el formulario se congela hasta reenviar lo mismo o preguntar si se guardó. Antes el token se renovaba solo
+  // al guardar bien: tras una respuesta perdida, corregir a 3 y reintentar anunciaba «3 enviadas» y la base tenía las 2 del primero.
+  const intento = useIntento("iniciar_traslado");
+  // El traslado en curso (NAV-03): se anota antes de mandarlo y se borra al saber qué pasó. Si la página se recarga mientras se
+  // envía, al volver esta pantalla le pregunta a la base por ese envío y dice si salió (antes volvía vacía y se enviaba de nuevo).
+  const claveTraslado = claveLocal(origenId, "traslado-en-curso");
   // Enviar un traslado saca stock del origen: pide Responsable (ADR-0161). La lista es la de turno en el ORIGEN,
   // que es donde está parada quien envía.
   const responsable = useResponsable({ ubicacionId: origenId, etiqueta: origenEtiqueta });
+
+  useEnviosEnCurso({
+    clave: claveTraslado,
+    operacion: "iniciar_traslado",
+    guardados: trasladosGuardados,
+    tokenPropio: () => intento.instantanea()?.marca.token,
+    avisoDe: avisoDeTraslado,
+    alHecho: () => router.refresh(),
+  });
+  // Mientras se envía o el envío está en duda, cerrar o recargar la pestaña pregunta antes (el envío anotado igual se resuelve al
+  // volver, pero quien despacha no se entera en el momento).
+  useEffect(() => {
+    if (!loading && !intento.incierto) return;
+    const antesDeSalir = (ev: BeforeUnloadEvent) => {
+      ev.preventDefault();
+      ev.returnValue = "";
+    };
+    window.addEventListener("beforeunload", antesDeSalir);
+    return () => window.removeEventListener("beforeunload", antesDeSalir);
+  }, [loading, intento.incierto]);
 
   function stockDe(varianteId: string): number {
     return variantes.find((v) => v.varianteId === varianteId)?.cantidad ?? 0;
@@ -215,6 +248,7 @@ export function MoverMercaderiaFormV2({
     const nuevos: Errores = { lineas: {} };
     if (!destinoId) nuevos.destino = "Elige a qué sede va el traslado.";
     if (!etaLocal) nuevos.eta = "Indica cuándo esperas que llegue.";
+    else if (etaLocal.slice(0, 10) < hoyLima()) nuevos.eta = "La llegada no puede ser antes de hoy.";
     const conCantidad = lineas.map((l) => ({ ...l, cantidadNum: Math.trunc(Number(l.cantidad)) }));
     conCantidad.forEach((l, i) => {
       if (!l.varianteId) nuevos.lineas[i] = "Elige la prenda, o quita esta línea.";
@@ -227,40 +261,61 @@ export function MoverMercaderiaFormV2({
       enfocar(primerError);
       return;
     }
-    const validas = conCantidad;
     // Una fila por prenda: `transferencia_items` no admite la misma `variante_id` dos veces en un traslado. El combo ya
     // no deja repetirla; esto es la red por si dos líneas llegaran con la misma (se suman, no se rechazan).
-    const items = juntarPorPrenda(validas);
+    const items = juntarPorPrenda(conCantidad);
+    const sedeDestino = destinos.find((d) => d.id === destinoId);
+    const destino = sedeDestino?.nombre ?? "";
+    const unidades = items.reduce((acc, it) => acc + it.cantidad, 0);
+    const notaLimpia = nota.trim();
     setLoading(true);
 
     const supabase = createClient();
-    const { data: trasladoId, error } = await firmar(supabase.rpc("iniciar_traslado", {
-      p_ubicacion_origen_id: origenId,
-      p_ubicacion_destino_id: destinoId,
-      p_items: items,
-      p_fecha_estimada_llegada: new Date(etaLocal).toISOString(),
-      p_nota: nota || undefined,
-      p_token: token.current,
-    }), responsable.firma());
-
-    responsable.despues(error);
-    if (error) {
+    const r = await intento.enviar<string>(huellaDe({ origenId, destinoId, items, eta: etaLocal, nota: notaLimpia }), (token, senal) => {
+      guardar(claveTraslado, conEnvio(trasladosGuardados(leer(claveTraslado, [])), { token, destino, prendas: unidades, enviadoEn: new Date().toISOString() }));
+      return firmar(
+        supabase.rpc("iniciar_traslado", {
+          p_ubicacion_origen_id: origenId,
+          p_ubicacion_destino_id: destinoId,
+          p_items: items,
+          p_fecha_estimada_llegada: new Date(etaLocal).toISOString(),
+          p_nota: notaLimpia || undefined,
+          p_token: token,
+        }),
+        responsable.firma(),
+      ).abortSignal(senal);
+    });
+    // Otro envío ya está en camino (una ráfaga de clics): este no manda nada.
+    if (r.tipo === "ocupado") return;
+    if (r.tipo === "congelado") {
       setLoading(false);
-      avisar.error(traducirError(error, "iniciar el traslado"));
+      avisarCongelado(avisar);
       return;
     }
-    // El formulario sigue bloqueado (`loading`) hasta que sale la pantalla de «enviado»: entre el guardado y la lectura
-    // del número hay una espera, y con el token ya renovado un segundo clic ahí crearía un traslado duplicado.
-    token.current = crypto.randomUUID();
-    const unidades = validas.reduce((acc, l) => acc + l.cantidadNum, 0);
-    const sedeDestino = destinos.find((d) => d.id === destinoId);
-    const destino = sedeDestino?.nombre ?? "";
-    const id = typeof trasladoId === "string" ? trasladoId : null;
+    responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: el formulario lo dice sobre el botón y se congela hasta saber qué pasó. El traslado anotado queda por resolver.
+    if (r.tipo === "incierto") {
+      setLoading(false);
+      return;
+    }
+    guardar(claveTraslado, sinEnvio(trasladosGuardados(leer(claveTraslado, [])), r.token));
+    if (r.tipo === "error") {
+      setLoading(false);
+      avisar.error(traducirError(r.error, "iniciar el traslado"));
+      return;
+    }
+    const id = r.tipo === "ok" ? (typeof r.data === "string" ? r.data : null) : typeof r.datos.transferencia_id === "string" ? r.datos.transferencia_id : null;
+    await mostrarEnviado(id, items, destino, sedeDestino?.whatsapp ?? null, unidades);
+  }
+
+  /** Lo que se ve al saber que salió: su número, su lista y el aviso. El formulario sigue bloqueado mientras se lee el número. */
+  async function mostrarEnviado(id: string | null, items: { variante_id: string; cantidad: number }[], destino: string, whatsapp: string | null, unidades: number) {
+    setLoading(true);
     setOk({
       id,
-      numero: id ? await leerNumeroDelTraslado(supabase, id) : null,
+      numero: id ? await leerNumeroDelTraslado(createClient(), id) : null,
       destino,
-      whatsapp: sedeDestino?.whatsapp ?? null,
+      whatsapp,
       // Lo que de verdad se guardó: una fila por prenda (`items`), no las líneas tecleadas.
       prendas: items.map((it) => {
         const v = variantes.find((x) => x.varianteId === it.variante_id);
@@ -272,6 +327,28 @@ export function MoverMercaderiaFormV2({
       detalle: "Salió de tu almacén ahora. Entra a la otra sede cuando la cuenten al recibirla.",
     });
     router.refresh();
+  }
+
+  /** «Revisar si se guardó»: le pregunta a la base por el envío en duda. */
+  async function revisar() {
+    const token = intento.instantanea()?.marca.token;
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "sin_respuesta") {
+      avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+      return;
+    }
+    if (token) guardar(claveTraslado, sinEnvio(trasladosGuardados(leer(claveTraslado, [])), token));
+    if (res.tipo === "no_llego") {
+      avisar.aviso("El traslado no se envió", { detalle: "No salió nada de tu almacén. Revisa los datos y vuelve a enviarlo." });
+      return;
+    }
+    // Salió: lo que se ve es lo que estaba en el formulario (congelado desde el envío, así que es lo mismo que se guardó).
+    const items = juntarPorPrenda(lineas.map((l) => ({ ...l, cantidadNum: Math.trunc(Number(l.cantidad)) })));
+    const sedeDestino = destinos.find((d) => d.id === destinoId);
+    const unidades = typeof res.datos.prendas === "number" ? res.datos.prendas : items.reduce((acc, it) => acc + it.cantidad, 0);
+    await mostrarEnviado(typeof res.datos.transferencia_id === "string" ? res.datos.transferencia_id : null, items, sedeDestino?.nombre ?? "", sedeDestino?.whatsapp ?? null, unidades);
   }
 
   if (ok) {
@@ -309,6 +386,8 @@ export function MoverMercaderiaFormV2({
   return (
     // `noValidate`: los avisos del navegador salen en su propio globo y su idioma; los de este formulario, junto al campo.
     <form onSubmit={onSubmit} noValidate className="card-cayla space-y-5 p-5">
+      {/* Los campos se congelan mientras no se sabe si el traslado salió (`useIntento`): solo se puede reenviar lo mismo o revisar. */}
+      <fieldset disabled={intento.incierto} className="campos-congelables min-w-0 space-y-5">
       <div data-guia="nuevo-traslado.ruta" className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <span className={campoEtiqueta}>Desde</span>
@@ -340,6 +419,7 @@ export function MoverMercaderiaFormV2({
             id="mover-eta"
             type="datetime-local"
             className={campoTexto}
+            min={`${hoyLima()}T00:00`}
             value={etaLocal}
             onChange={(e) => {
               setEtaLocal(e.target.value);
@@ -358,7 +438,7 @@ export function MoverMercaderiaFormV2({
           <label className={campoEtiqueta} htmlFor="mover-nota">
             Nota (opcional)
           </label>
-          <input id="mover-nota" value={nota} onChange={(e) => setNota(e.target.value)} className={campoTexto} />
+          <input id="mover-nota" value={nota} maxLength={MAX_NOTA_TRASLADO} onChange={(e) => setNota(e.target.value)} className={campoTexto} />
         </div>
       </div>
 
@@ -423,11 +503,13 @@ export function MoverMercaderiaFormV2({
       </div>
 
       <div data-guia="nuevo-traslado.responsable">
-        <ComboResponsable control={responsable} deshabilitado={loading} />
+        <ComboResponsable control={responsable} deshabilitado={loading || intento.incierto} />
       </div>
-      <button type="submit" data-guia="nuevo-traslado.enviar" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
-        {loading ? "Enviando…" : destinoId ? `Enviar a ${destinos.find((d) => d.id === destinoId)?.nombre ?? "…"}` : "Enviar traslado"}
-      </button>
+      </fieldset>
+      {intento.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} />}
+      <Boton type="submit" peso="primario" cargando={loading} textoCargando="Enviando…" data-guia="nuevo-traslado.enviar" disabled={revisando || !responsable.listo} title={responsable.motivo ?? undefined} className="flex-1">
+        {intento.incierto ? "Volver a intentar" : destinoId ? `Enviar a ${destinos.find((d) => d.id === destinoId)?.nombre ?? "…"}` : "Enviar traslado"}
+      </Boton>
     </form>
   );
 }

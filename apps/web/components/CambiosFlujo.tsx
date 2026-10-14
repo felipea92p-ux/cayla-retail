@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, Loader2 } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -559,9 +559,9 @@ export function CambiosFlujo({
               </BotonSecundario>
               {/* Como «Cobrar» en Vender: qué se hace a la izquierda; cuánto, a la derecha. Solo si
                   hay diferencia que mover: sin ella, el botón no promete plata. */}
-              <BotonRojo onClick={confirmar} disabled={enviando || revisando || !responsable.listo} monto={r.diferencia !== 0 ? soles(Math.abs(r.diferencia)) : undefined}>
-                {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-                {enviando ? "Registrando…" : envio.incierto ? "Volver a intentar" : "Confirmar cambio"}
+              <BotonRojo onClick={confirmar} cargando={enviando} textoCargando="Registrando…" disabled={revisando || !responsable.listo} monto={r.diferencia !== 0 ? soles(Math.abs(r.diferencia)) : undefined}>
+                <Check className="h-4 w-4" aria-hidden />
+                {envio.incierto ? "Volver a intentar" : "Confirmar cambio"}
               </BotonRojo>
             </div>
           </PieDelPaso>

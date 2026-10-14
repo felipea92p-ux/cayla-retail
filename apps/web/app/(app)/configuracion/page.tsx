@@ -3,9 +3,9 @@ import { getCargaInicial } from "@/lib/carga-inicial";
 import { ConfiguracionCargaInicial } from "@/components/ConfiguracionCargaInicial";
 import { getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
 import { getCategoriasGasto, getContextoGastos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
-import { hoyLima } from "@/lib/fechas-lima";
+import { anioLima, hoyLima } from "@/lib/fechas-lima";
 import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PestanasFin } from "@/components/finanzas/kit";
 import { ConfiguracionTiendas } from "@/components/ConfiguracionTiendas";
 import { ConfiguracionEmpresa } from "@/components/ConfiguracionEmpresa";
@@ -39,10 +39,11 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Gestión · Configuración"
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede="Toda CAYLA"
         titulo="Configuración"
-        bajada="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo."
+        subtitulo="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo."
       />
       <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} guia="config.pestanas" />
       {pestana === "empresa" && <ConfiguracionEmpresa datos={await getDatosEmpresa()} />}
@@ -123,7 +124,7 @@ async function SeccionImpuestos() {
   return (
     <>
       {parametros.falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{parametros.falla}</p>}
-      <ConfiguracionImpuestos parametros={parametros.datos} anioActual={Number(hoyLima().slice(0, 4))} />
+      <ConfiguracionImpuestos parametros={parametros.datos} anioActual={anioLima()} />
     </>
   );
 }

@@ -190,8 +190,8 @@ export function OrdenCierre({
           onConfirmar={() => confirmar(true)}
         />
       ) : (
-        <Boton peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="mt-4 w-full" onClick={() => confirmar()}>
-          {cargando ? "Cerrando…" : orden.esMuestra ? "Terminar muestra" : "Confirmar entrada al stock"}
+        <Boton textoCargando="Cerrando…" peso="primario" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="mt-4 w-full" onClick={() => confirmar()}>
+          {orden.esMuestra ? "Terminar muestra" : "Confirmar entrada al stock"}
         </Boton>
       )}
     </section>

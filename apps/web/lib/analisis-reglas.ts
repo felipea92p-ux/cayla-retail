@@ -6,9 +6,10 @@
 // (60 días por defecto, uno para todos); en rojo, lo de más de 3 meses. El sistema NO decide si pedirla a otra tienda o
 // comprarla (decisión 7): todo lo que se acaba aparece para comprar y, si otra tienda la tiene, se dice cuántas tiene.
 
-import type { EdadInventario, PrendaAnalisis, PrendaEnOtraSede, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
+import type { DatosAnalisis, EdadInventario, PrendaAnalisis, PrendaEnOtraSede, SedeAnalisis, VistaAnalisis } from "./analisis-tipos";
 import { VISTAS_ANALISIS } from "./analisis-tipos";
-import { diasEntreFechas } from "./fechas-lima";
+import { diaLima, diasEntreFechas } from "./fechas-lima";
+import { esPedidoDeTalla, type MotivoPedido } from "./se-probo-reglas";
 
 /** Hasta cuántos días de stock «se está acabando» (el eje del carril llega a 2 semanas). */
 export const DIAS_SE_ACABA = 14;
@@ -199,3 +200,18 @@ export function sedeDeAnalisis(u: { id: string; nombre: string }): SedeAnalisis 
 
 /** «1 prenda» / «3 prendas». */
 export const plural = (n: number, uno: string, varios: string): string => (n === 1 ? uno : varios);
+
+/** Un pedido de la tienda tal como lo lee `getPedidosNoAtendidos` (`pedidos_no_atendidos`). */
+type PedidoParaNoHabia = { resuelto: boolean; motivo: MotivoPedido; productoReferencia: string | null; descripcionLibre: string | null; talla: string | null; creadoEn: string };
+
+/** «Te pidieron y no había»: los pedidos de talla sin resolver, con qué se pidió y el día de Lima en que se anotó. `creadoEn` es un
+ *  instante que la base manda en UTC: con sus 10 primeros caracteres, lo anotado de 7 pm a medianoche salía con el día siguiente.
+ *  Sin un instante que se lea, el día queda en `null`: no se inventa. */
+export function noHabiaDe(pedidos: readonly PedidoParaNoHabia[]): DatosAnalisis["noHabia"] {
+  return pedidos
+    .filter((p) => !p.resuelto && esPedidoDeTalla(p.motivo))
+    .map((p) => ({
+      que: [p.productoReferencia ?? p.descripcionLibre ?? "Prenda sin nombre", p.talla].filter(Boolean).join(" · "),
+      dia: diaLima(p.creadoEn),
+    }));
+}

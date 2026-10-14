@@ -2,12 +2,13 @@
   "guia": "inventario",
   "ruta": "/inventario",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 132,
+  "total": 136,
   "controles": {
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
       "button «{o.texto}»",
       "CampoTexto «{guia.etiqueta(\"nota\", ayudaNota.etiqueta)}»",
+      "BotonDescargar «Descargar reporte del ajuste»",
       "ComboResponsable «{error && ( <Aviso tono=\"error\">{error}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
@@ -56,13 +57,13 @@
       "DesplegablePildora «Condición»",
       "button «{`existencias.ver-${valor}»",
       "DesplegablePildora «Ordenar por»",
-      "button «{`Quitar filtro ${c.texto}»",
-      "button «{`Volver al orden de siempre (ahora: ${ordenTexto}»",
-      "button «existencias.chip-vista»",
-      "button «Limpiar todo»",
+      "FiltroPuesto «{`Quitar filtro ${c.texto}»",
+      "FiltroPuesto «{`Volver al orden de siempre (ahora: ${ordenTexto}»",
+      "FiltroPuesto «{`Volver a las tarjetas (ahora: ${vistaDistinta}»",
+      "BotonLimpiar «Limpiar todo»",
       "button «existencias.escanear»",
       "BotonFiltros «{alLadoDeFiltros}»",
-      "button «Limpiar filtros»",
+      "BotonLimpiar «Limpiar filtros»",
       "button «existencias.copiar-enlace»",
       "button «Limpiar»",
       "button «Ver»"
@@ -73,8 +74,11 @@
       "Link «{p.referencia}»",
       "Link «Cuadrar el piso»",
       "Link «Cuadrar el piso» #2",
+      "BotonDescargar «Descargar CSV»",
+      "BotonDescargar «Descargar CSV» #2",
       "Casilla «Marcar todas las tallas de esta página»",
       "Casilla «{`Marcar ${f.referencia}»",
+      "BotonDescargar «Descargar CSV» #3",
       "button «{resumen.apartado}»",
       "button «Resumen por categoría»",
       "Link «Bajar al piso»",
@@ -145,7 +149,7 @@
       "ComboResponsable «);»",
       "button «Cancelar»",
       "Volver «)»",
-      "button «{completo ? undefined : (guia.frase ?? responsable.motivo ?? undefined)}»"
+      "Boton «{completo ? undefined : (guia.frase ?? responsable.motivo ?? undefined)}»"
     ],
     "components/existencias/PanelTalla.tsx": [
       "button «{`${valor}»",

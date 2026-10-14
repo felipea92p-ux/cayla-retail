@@ -60,7 +60,7 @@ export function OpcionesComprobante({
   }
 
   return (
-    <Modal ancho="max-w-md" titulo={`${tipo} ${numero}`} subtitulo={`${c.cliente_nombre ?? "Cliente varios"} · ${dia} ${hora} · ${sede}`} onClose={onClose}>
+    <Modal conCerrar titulo={`${tipo} ${numero}`} subtitulo={`${c.cliente_nombre ?? "Cliente varios"} · ${dia} ${hora} · ${sede}`} onClose={onClose}>
       <div className="flex items-center justify-between gap-3">
         <Chip tono={chip.tono} className={chip.punteado ? "border-dashed border-tinta/30" : ""}>
           {chip.texto}

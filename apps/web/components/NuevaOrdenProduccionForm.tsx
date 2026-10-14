@@ -9,7 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { CampoMonto, CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Aviso } from "@/components/ui/Aviso";
-import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { Chip } from "@/components/ui/Chip";
@@ -476,7 +476,6 @@ export function NuevaOrdenProduccionForm({
       onClose={onClose}
       antesDeCerrar={avisoSalida.pedirAccion}
       variante="hoja"
-      conCerrar
       // 1080 px (A3). `scroll-pb`: bajo 980 px la ficha es una barra pegada abajo y, al llevar el cursor a un campo (la guía de foco), no debe quedar detrás de ella.
       ancho="max-w-[1080px] scroll-pb-[calc(var(--alto-barra-ficha,10rem)+1rem)] min-[980px]:scroll-pb-0"
     >
@@ -769,18 +768,18 @@ export function NuevaOrdenProduccionForm({
               </Aviso>
             )}
 
-            <div className="flex gap-2">
-              <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
+            <div className="pie-acciones">
+              <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className="btn-cayla btn-secundario">
                 Cancelar
               </button>
-              <button
+              <Boton peso="primario" cargando={cargando} textoCargando="Abriendo…"
                 type="submit"
                 disabled={cargando || !guia.puedeConfirmar || !responsable.listo}
                 title={guia.frase ?? responsable.motivo ?? undefined}
-                className={`${botonPrimario} ${guia.claseConfirmar}`}
+                className={`flex-1 ${guia.claseConfirmar}`}
               >
-                {cargando ? "Abriendo…" : esNuevo ? "Crear y abrir orden" : "Abrir orden"}
-              </button>
+                {esNuevo ? "Crear y abrir orden" : "Abrir orden"}
+              </Boton>
             </div>
           </div>
         </FichaOrden>

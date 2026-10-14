@@ -1,0 +1,57 @@
+/* Ronda 11 de /unificar: las demos de cancelar, limpiar e imprimir. Solo tokens; usa demo9.css (marco de las demos) y el CSS real del ERP. */
+.r11-fila { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; }
+.r11-hoja { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 20px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px;
+  box-shadow: 0 18px 40px -24px color-mix(in srgb, var(--color-sombra) 35%, transparent); }
+.r11-hoja h5 { margin: 0; font: 400 22px/1.15 var(--font-serif); color: var(--color-tinta); }
+.r11-campo { display: flex; flex-direction: column; gap: 6px; }
+.r11-caja { display: flex; align-items: center; height: 40px; padding: 0 12px; font-size: 14px; color: var(--color-tinta); }
+.r11-pie { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--color-sand); }
+.r11-pie-derecha { justify-content: space-between; }
+.r11-pie-der { display: flex; gap: 8px; margin-left: auto; }
+.r11-pie-izq { display: flex; gap: 8px; }
+.r11-pie-mitades > * { flex: 1 1 0; }
+.r11-pie-con-izq { justify-content: space-between; }
+.r11-pie-con-izq .r11-pie-mitades { display: flex; gap: 8px; }
+.r11-crece { flex: 1 1 260px; display: flex; gap: 8px; }
+.r11-crece > * { flex: 1 1 0; }
+.r11-celular { display: flex; flex-direction: column; gap: 6px; }
+/* Hoy: el «Cancelar» del flujo del mostrador (versalitas de 11 px, 48 px, anillo) y su «Confirmar» rojo; el de Editar marca, versalitas sueltas. */
+.r11-flujo-sec { display: inline-flex; align-items: center; height: 48px; padding: 0 20px; border-radius: 6px; font-size: 11px; color: var(--color-tinta);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 15%, transparent); background: none; cursor: pointer; }
+.r11-flujo-sec:hover { background: var(--color-papel); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-tinta) 30%, transparent); }
+.r11-flujo-rojo { height: 48px; padding: 0 24px; border-radius: 6px; background: var(--color-rojo); color: var(--color-crema); font: 500 14px/1 var(--font-sans); border: 0; cursor: pointer; }
+.r11-hoy-vers { font-size: 11px; color: color-mix(in srgb, var(--color-tinta) 60%, transparent); background: none; border: 0; cursor: pointer; }
+.r11-hoy-vers:hover { color: var(--color-tinta); }
+/* Limpiar: la fila de los filtros puestos */
+.r11-filtros { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.r11-puestos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 30px; }
+.r11-limpiar { font-size: 13px; margin-left: 4px; }
+.r11-limpiar-pildora { gap: 6px; border-style: dashed; }
+.r11-hoy-chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent);
+  background: color-mix(in srgb, var(--color-tinta) 4%, transparent); padding: 4px 10px; font-size: 10px; color: color-mix(in srgb, var(--color-tinta) 75%, transparent); cursor: pointer; transition: color 200ms, border-color 200ms; }
+.r11-hoy-chip span { font-size: 14px; line-height: 1; }
+.r11-hoy-chip:hover { border-color: var(--color-rojo); color: var(--color-rojo); }
+.r11-hoy-limpiar { padding: 0 4px; font-size: 10px; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); background: none; border: 0; cursor: pointer; }
+.r11-hoy-limpiar:hover { color: var(--color-rojo); }
+[data-r11-quitar].r11-sale { animation: r11-sale 220ms var(--ease-cayla) forwards; }
+@keyframes r11-sale { to { opacity: 0; transform: scale(0.8); } }
+/* Imprimir: la hoja SALE de la impresora (baja 2 px) al pasar el mouse, como la flecha de descargar baja y la de ver avanza. */
+.r11-boton-imprimir svg.lucide-printer rect { transition: translate 300ms var(--ease-cayla); }
+.r11-boton-imprimir:hover:not(:disabled) svg.lucide-printer rect { translate: 0 2px; }
+.r11-hoy-ticket { display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--color-sand); background: var(--color-papel);
+  color: var(--color-tinta); font: 500 14px/1 var(--font-sans); cursor: pointer; transition: border-color 200ms; }
+.r11-hoy-ticket:hover { border-color: var(--color-taupe); }
+.r11-listo { font-size: 12px; color: var(--color-verde); animation: cayla-entrada 260ms var(--ease-cayla) both; }
+/* La cabecera de una pantalla (data-voz="cabecera") */
+.r11-cab { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; padding: 16px 20px; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 16px; margin-bottom: 16px; }
+.r11-ante { margin: 0; font-size: 11px; letter-spacing: .13em; color: var(--color-taupe); }
+.r11-h { margin: 4px 0 0; font: 400 30px/1.1 var(--font-serif); color: var(--color-tinta); }
+.r11-acc { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .r11-boton-imprimir svg.lucide-printer rect, [data-r11-quitar].r11-sale { transition: none; animation: none; } }
+/* El calendario de una fecha y la barra de «Pagar juntos» */
+.r11-cal-dias { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; font-size: 13px; text-align: center; color: var(--color-tinta); }
+.r11-cal-dias span { height: 30px; display: grid; place-items: center; border-radius: 8px; }
+.r11-cal-elegido { background: var(--color-tinta); color: var(--color-crema); }
+.r11-cal-pie { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-sand); padding-top: 8px; }
+.r11-sel-barra { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; font-size: 14px; color: var(--color-tinta); }
+.r11-sel-acc { display: flex; align-items: center; gap: 12px; }

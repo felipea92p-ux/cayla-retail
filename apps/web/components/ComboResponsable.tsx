@@ -12,6 +12,7 @@ import { comboNecesitaBuscador, filtrarCombo } from "@/lib/combo-reglas";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 type Props = {
   control: ControlResponsable;
@@ -134,15 +135,12 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         ) : (
           <p className="mt-1.5 text-[13px] text-tinta/80">Revisa la conexión y vuelve a intentar. Sin esa lista no se puede elegir quién hace la operación.</p>
         )}
-        <button
-          type="button"
-          onClick={() => void control.recargar()}
-          disabled={control.recargando}
-          className="btn-cayla btn-secundario mt-3 inline-flex h-9 items-center gap-2"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${control.recargando ? "motion-safe:animate-spin" : ""}`} aria-hidden />
-          {control.recargando ? "Actualizando…" : "Actualizar lista"}
-        </button>
+        <Boton type="button" onClick={() => void control.recargar()} cargando={control.recargando} textoCargando="Actualizando…" className="mt-3 h-9">
+          <span className="flex items-center gap-2">
+            <RefreshCw className="-my-1 h-3.5 w-3.5" aria-hidden />
+            Actualizar lista
+          </span>
+        </Boton>
       </div>
     );
   }

@@ -2,7 +2,7 @@
   "guia": "productos",
   "ruta": "/productos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 76,
+  "total": 78,
   "controles": {
     "app/(app)/productos/page.tsx": [
       "Link «Existencias»",
@@ -10,17 +10,18 @@
       "BotonEnlace «productos.rotulos»",
       "BotonEnlace «productos.nuevo»",
       "Link «Revisar»",
+      "Link «Crear desde Recibir»",
       "Link «Completar»"
     ],
     "components/CambiarEstadoProductosHoja.tsx": [
       "ComboResponsable «{textos.nota}»",
       "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/EliminarProductoModal.tsx": [
       "ComboResponsable «(sin nombre)»",
-      "Boton «{puede ? \"Cancelar\" : \"Cerrar\"}»",
-      "Link «Editar»",
+      "Boton «Cancelar»",
+      "BotonEditar «)»",
       "Boton «Desactivar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -28,10 +29,10 @@
       "Link «{children}»"
     ],
     "components/FiltrosProductos.tsx": [
-      "button «{`Quitar filtro ${c.texto}»",
-      "button «Limpiar todo»",
+      "FiltroPuesto «{`Quitar filtro ${c.texto}»",
+      "BotonLimpiar «Limpiar todo»",
       "DesplegablePildora «Ordenar por»",
-      "button «Limpiar filtros»",
+      "BotonLimpiar «Limpiar filtros»",
       "button «Copiar enlace de esta lista»",
       "DesplegablePildora «Categoría»",
       "DesplegablePildora «Talla»",
@@ -65,10 +66,10 @@
       "BotonEnlace «Limpiar filtros»",
       "Casilla «{etiqueta}»",
       "button «productos.tabla-abrir»",
-      "Link «{`Editar ${referencia}»",
+      "LapizEditar «)»",
       "Link «{`Ver ${referencia}»",
       "Link «{`Historial de ${referencia}»",
-      "Link «Editar»",
+      "BotonEditar «)»",
       "Link «Ver en Existencias»",
       "Link «Historial»",
       "button «Eliminar»",
@@ -81,7 +82,7 @@
       "SegmentoDeslizante «Tamaño de las tarjetas»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ],
     "components/historial-prenda/HistorialPrenda.tsx": [
@@ -108,6 +109,7 @@
       "Link «Editar»",
       "Link «Rótulo»",
       "button «vista-rapida.historial»",
+      "BotonVer «Ver en Existencias»",
       "button «Eliminar»"
     ]
   }

@@ -2,7 +2,7 @@
 
 import { useId, useMemo, useState, type ReactNode, type RefObject } from "react";
 import { Banknote, Palette, PenLine, Ruler, Tag } from "lucide-react";
-import { Modal, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { ListaSugerencias } from "@/components/ui/ListaSugerencias";
@@ -287,7 +287,7 @@ export function PrendaSinRegistrarModal({
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
       variante="hoja"
-      ancho="max-w-4xl"
+      ancho="max-w-4xl" /* unificar-fijo: la mesa de Ventas sin registrar es de diseño propio (ADR-0360) */
       bloqueado={corregir?.guardando ?? false}
       // Al corregir todo viene lleno: el foco va a la hoja y ninguna lista se abre sola (en Vender sí: se empieza por la categoría).
       focoEnLaHoja={Boolean(corregir)}
@@ -504,15 +504,17 @@ export function PrendaSinRegistrarModal({
                   : "Lista para el ticket. Enter en el precio también la agrega."
             }
           />
-          <button
+          <Boton
             type="button"
+            peso="primario"
+            cargando={corregir ? corregir.guardando : undefined}
             onClick={agregar}
             disabled={!puedeConfirmar}
             title={guia.frase ?? undefined}
-            className={`${botonPrimario} mt-3 w-full ${guia.claseConfirmar}`}
+            className={`mt-3 w-full flex-1 ${guia.claseConfirmar}`}
           >
-            {corregir ? (corregir.guardando ? "Guardando…" : "Guardar cambios") : "Agregar al ticket"}
-          </button>
+            {corregir ? "Guardar cambios" : "Agregar al ticket"}
+          </Boton>
         </div>
       </div>
     </Modal>

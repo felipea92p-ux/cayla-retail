@@ -237,12 +237,12 @@ function AnularComprobanteModal({
               {error}
             </Aviso>
           )}
-          <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
+          <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Anulando…" : "Anular comprobante"}
+            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              Anular comprobante
             </Boton>
           </div>
         </form>

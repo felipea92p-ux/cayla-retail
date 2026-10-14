@@ -1,5 +1,5 @@
 import { compararTallas } from "./tallas";
-import { diasEntreFechas } from "./fechas-lima";
+import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 import { precioPropioMasBajo } from "./precio-sede-reglas";
 
@@ -126,7 +126,6 @@ export const COLUMNAS_TABLERO = [
   { clave: "acabado", titulo: "En acabados" },
   { clave: "listo", titulo: "Listas para cerrar" },
 ] as const;
-export type ColumnaTablero = (typeof COLUMNAS_TABLERO)[number]["clave"];
 
 /** Cuántos días antes de la entrega una orden abierta empieza a avisar. Es una convención de menú, no
  *  un dato del Taller: se puede afinar cuando haya plazos reales por etapa (Eficiencia, F7). */
@@ -274,6 +273,16 @@ export function resumenTablero(ordenes: OrdenParaResumen[], hoy: string): Resume
     pronto,
     margenPromedio: margenes.length ? margenes.reduce((a, b) => a + b, 0) / margenes.length : null,
   };
+}
+
+/** Las prendas buenas que entraron al stock desde el día `desde` (`aaaa-mm-dd` de Lima): el «terminadas hoy · 7 días · 30 días» del
+ *  Taller en el Observatorio. `inventariadoEn` es un instante que la base manda en UTC: se compara su día de LIMA (`diaLima`); con
+ *  sus 10 primeros caracteres, lo cerrado de 7 pm a medianoche contaba como terminado al día siguiente. */
+export function terminadasDesde(ordenes: readonly { inventariadoEn: string | null; cantidadBuenas: number | null }[], desde: string): number {
+  return ordenes.reduce((suma, o) => {
+    const dia = diaLima(o.inventariadoEn);
+    return dia !== null && dia >= desde ? suma + (o.cantidadBuenas ?? 0) : suma;
+  }, 0);
 }
 
 // ---------------------------------------------------------------------------

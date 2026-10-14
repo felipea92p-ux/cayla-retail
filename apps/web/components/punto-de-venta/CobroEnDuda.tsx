@@ -35,7 +35,6 @@ export function CobroEnDuda({
       subtitulo={`${soles(total)} · ${prendas} ${prendas === 1 ? "prenda" : "prendas"}`}
       onClose={() => {}}
       bloqueado
-      ancho="max-w-md"
     >
       <div className="space-y-4">
         <AvisoIntentoIncierto onRevisar={onRevisar} revisando={revisando} onReintentar={onReintentar} reintentando={reintentando} />

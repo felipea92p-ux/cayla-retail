@@ -63,7 +63,21 @@ audita agrega los suyos.** Se corren con `--escenarios` (los de las rutas elegid
 archivo que no está declarado **falla**, y la deuda de antes (`lib/tema-colores-archivos.ts`) **solo baja**. Una línea legítima
 (papel físico, un color de dato) se exime con `// tema-fijo: <por qué>` en esa misma línea.
 
+El texto tenue escrito en un CSS tiene su propio candado en `lib/tema-tokens.test.ts`: una mezcla de tinta por debajo del 64 %
+(`color:` o una variable `--x:` hecha de `color-mix(… var(--color-tinta) N%, transparent)`) lleva en su línea
+`/* contraste: texto sobre papel, crema */` (o `texto grande …`, `gráfico …`, `no aplica — <motivo>`) y la prueba la mide en los dos
+temas, o solo en oscuro si vive en un bloque `[data-tema="oscuro"]`. La misma prueba mide los dos pisos de `tema.css` (el texto tenue de
+Tailwind: en oscuro al 60 %, en claro al 64 %, y el taupe tenue al taupe pleno en los dos). El auditor solo mide nodos de texto: no ve los
+marcadores de posición (`::placeholder`) ni los íconos (un SVG o una máscara). Esos solo los cuida ese candado (ADR-0336, act. 2026-10-14).
+
 ## Si algo da raro
+
+- **El disco se llena.** Compilar las ~85 pantallas en desarrollo deja ~10 GB de caché de Turbopack en `apps/web/.next` (el
+  2026-10-14 llenó el disco y Docker se cayó). Para una auditoría completa, apaga la caché en disco solo mientras corre:
+  `experimental.turbopackFileSystemCacheForDev: false` en `next.config.ts` (no se commitea); la caché queda en memoria y `.next`
+  no pasa de ~0,5 GB. Y borra `apps/web/.next` al terminar.
+- **No audites «Por reintentar» (`/vender/comprobantes/por-reintentar`).** Al abrirse llama sola al reintento de envíos a SUNAT
+  (`/api/lucode/reintentar`). En local no sale nada sin `LUCODE_TOKEN`, pero reserva comprobantes de la cola por 5 minutos.
 
 - **«No entró …»** La cuenta no existe: `pnpm --filter web tema:cuentas`. El login espera a que React hidrate; si el `next dev`
   está compilando por primera vez, la primera corrida tarda.

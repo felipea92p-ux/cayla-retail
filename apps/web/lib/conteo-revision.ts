@@ -101,7 +101,27 @@ export function textoConfirmaPrimero(n: number, para: "continuar" | "cerrar como
  * nada —sería mentira y invitaría a repetir—: `incierto` le dice a la pantalla que ofrezca mirar cómo quedó el conteo.
  */
 export function mensajeDeCierre(error: ErrorEscritura): { texto: string; incierto: boolean } {
+  // Ya cerrado: el cierre ocurrió (la pantalla lleva al conteo con `conteoYaCerrado`; esto es por si otra pantalla lo muestra).
+  if (conteoYaCerrado(error)) {
+    return { texto: "Este conteo ya estaba cerrado: las existencias ya se actualizaron. Míralo en «Ver el conteo».", incierto: true };
+  }
+  // Cancelado: ahí sí es seguro que no se cerró ni se movió nada.
+  if (error && /ya está anulado/i.test(error.message ?? "")) {
+    return { texto: "Este conteo se canceló: no se cerró ni cambió ninguna existencia.", incierto: false };
+  }
   const incierto = esRespuestaIncierta(error);
+  // /chaos 2026-10-14: un 502 del camino caía en el texto genérico («Vuelve a intentar»), que invita a repetir sin mirar.
+  if (incierto) {
+    return { texto: "No sabemos si el conteo se cerró: la respuesta no llegó. Antes de volver a intentarlo, mira cómo quedó en «Ver el conteo».", incierto };
+  }
   const base = traducirError(error, "cerrar el conteo", { confirmarAntesDeRepetir: true });
-  return { texto: incierto ? base : `El conteo no se cerró y no cambió ninguna existencia. ${base}`, incierto };
+  return { texto: `El conteo no se cerró y no cambió ninguna existencia. ${base}`, incierto };
+}
+
+/**
+ * La base contestó «Ese conteo ya está cerrado»: el cierre YA ocurrió (un reintento después de una respuesta perdida, o lo cerró otra
+ * persona). No es un error que mostrar: la pantalla lleva al conteo terminado, como tras un cierre bien hecho (/chaos 2026-10-14).
+ */
+export function conteoYaCerrado(error: ErrorEscritura): boolean {
+  return !!error && /ya está cerrado/i.test(error.message ?? "");
 }

@@ -30,7 +30,7 @@
       "Boton «Corregir el precio»",
       "Boton «Sí, cobré S/»",
       "ComboResponsable «)»",
-      "button «{guia.frase ?? undefined}»"
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/ReabrirPrendaModal.tsx": [
       "button «{m.titulo}»",
@@ -42,7 +42,7 @@
       "button «Reintentar»",
       "button «(sin nombre)»",
       "Casilla «{`Unir «${s.venta.descripcion}»",
-      "Boton «{sugerencias.length > 0 ? \"Cancelar\" : \"Cerrar\"}»",
+      "Boton «Cancelar»",
       "Boton «→() => void confirmar()»"
     ],
     "components/por-regularizar/FranjaAvance.tsx": [
@@ -58,7 +58,7 @@
       "button «Corregir lo anotado»",
       "button «{f === \"ya_registrada\" ? <Tag aria-hidden strokeWidth={1.6}»",
       "ComboResponsable «(sin nombre)»",
-      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/por-regularizar/ResumenResuelta.tsx": [
       "button «Corregir lo anotado»",

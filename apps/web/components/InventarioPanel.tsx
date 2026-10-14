@@ -24,7 +24,8 @@ import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
 import { ResumenStockOverlay } from "@/components/ResumenStockOverlay";
 import { RitmoRecientePopover } from "@/components/RitmoRecientePopover";
-import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
+import { resumirApartados, type Apartado } from "@/lib/apartados-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { ChipAlerta, ChipMantener } from "@/components/ExistenciasChips";
 import { ExistenciasVacio } from "@/components/ExistenciasVacio";
 import { ParaHoy, type AccionTarea } from "@/components/existencias/ParaHoy";
@@ -1403,7 +1404,7 @@ export function InventarioPanel({
       )}
 
       {viendoPendientes && (
-        <Modal titulo="Pendientes de hoy" subtitulo="Lo de la sede, en el orden en que conviene hacerlo" onClose={() => setViendoPendientes(false)} ancho="max-w-2xl">
+        <Modal conCerrar titulo="Pendientes de hoy" subtitulo="Lo de la sede, en el orden en que conviene hacerlo" onClose={() => setViendoPendientes(false)} tamano="ancha">
           {/* Cada botón de una tarea cierra la ventana (`alElegir`) y hace lo suyo: filtrar, abrir Dañadas o Apartados, o ir a otra pantalla. */}
           <ParaHoy
             tareas={tareasHoy}

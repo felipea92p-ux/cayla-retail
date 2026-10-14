@@ -19,6 +19,7 @@ import {
   type ClaveAtajo,
 } from "@/lib/historial-acciones-reglas";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 
 // Filtros de Ventas ▸ Historial (ADR-0147), con el mismo patrón que Catálogo y Compras: a la vista el período
 // (los atajos de siempre: 7, 30 y 90 días, o fechas propias) y un botón «Filtros · N» que despliega el panel
@@ -315,34 +316,23 @@ export function FiltrosHistorialVentas({
       {chips.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           {chips.map((c) => (
-            <button
-              key={Object.keys(c.quitar).join("|")}
-              type="button"
-              onClick={() => aplicar(c.quitar)}
-              aria-label={`Quitar filtro ${c.texto}`}
-              className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
-            >
+            <FiltroPuesto key={Object.keys(c.quitar).join("|")} onQuitar={() => aplicar(c.quitar)} etiqueta={`Quitar filtro ${c.texto}`}>
               {c.texto}
-              <span aria-hidden className="text-sm leading-none">
-                ×
-              </span>
-            </button>
+            </FiltroPuesto>
           ))}
-          <button
-            type="button"
+          <BotonLimpiar
             onClick={() => {
               setPersonalizadoAbierto(false);
               router.push(pathname);
             }}
-            className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo"
           >
             Limpiar todo
-          </button>
+          </BotonLimpiar>
         </div>
       )}
 
       {eligiendo && (
-        <Modal titulo="Tus atajos" subtitulo="Los de fábrica siempre están. Los que marques quedan guardados en este equipo." onClose={() => setEligiendo(false)} ancho="max-w-sm" variante="hoja">
+        <Modal conCerrar titulo="Tus atajos" subtitulo="Los de fábrica siempre están. Los que marques quedan guardados en este equipo." onClose={() => setEligiendo(false)} variante="hoja">
           <ul data-guia="historial.atajos-modal" className="divide-y divide-dashed divide-tinta/10">
             {ATAJOS.filter((a) => puedeMias || a.clave !== "mias").map((a) => (
               <li key={a.clave} className="py-1.5">

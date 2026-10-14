@@ -14,13 +14,13 @@ import { CabeceraBloque, CampoFin, InputFin, SelectFin, Superficie } from "@/com
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { fechaCorta } from "@/lib/gastos-reglas";
+import { diaLima } from "@/lib/fechas-lima";
 import { mesAntesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import {
   avisosPendientes,
   bajadaUnidad,
   deUnidad,
   deUnidadLarga,
-  diaDe,
   enlaceChequeo,
   estadoConsolidado,
   estadoTarjeta,
@@ -40,6 +40,7 @@ import {
   type PanelCierre,
   type Unidad,
 } from "@/lib/cierre-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Finanzas ▸ Cierre de mes (ADR-0195 F9, ADR-0198), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-cierre.js`): cabecera con «CAYLA entera» y el mes → la matriz de unidades con su estado y su huella → los chequeos
@@ -130,14 +131,14 @@ function Pantalla({ panel, unidadPedida, inicioFinanzas }: { panel: PanelCierre;
               {x.estado === "cerrado" && x.cierre ? (
                 <>
                   <span className="fin-unidad-sub">
-                    {fechaCorta(diaDe(x.cierre.cerradoEn))} · {primerNombre(x.cierre.cerradoPor)}
+                    {fechaCorta(diaLima(x.cierre.cerradoEn))} · {primerNombre(x.cierre.cerradoPor)}
                   </span>
                   <span className="fin-unidad-h" title={x.cierre.huella}>
                     {huellaCorta(x.cierre.huella)}
                   </span>
                 </>
               ) : x.estado === "reabierto" && x.cierre?.reabiertoEn ? (
-                <span className="fin-unidad-sub">reabierto el {fechaCorta(diaDe(x.cierre.reabiertoEn))}</span>
+                <span className="fin-unidad-sub">reabierto el {fechaCorta(diaLima(x.cierre.reabiertoEn))}</span>
               ) : null}
             </button>
           );
@@ -312,7 +313,7 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
       titulo={titulo}
       subtitulo={`Desde ahora nadie podrá registrar ni cambiar gastos, facturas, pagos ni movimientos ${deUnidad(unidad)} con fecha de ese mes. Se guarda el diario con su huella.`}
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       {avisos.length > 0 && (
         <div className="nota-cayla mb-4">
@@ -325,9 +326,9 @@ function CerrarModal({ mes, unidad, onCerrar, alCerrar }: { mes: string; unidad:
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={cerrar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Cerrando…" : "Cerrar el mes"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Cerrando…" type="button" onClick={cerrar} disabled={guardando || !responsable.listo}>
+          Cerrar el mes
+        </Boton>
       </div>
     </Modal>
   );
@@ -350,16 +351,16 @@ function CerrarConsolidadoModal({ mes, onCerrar }: { mes: string; onCerrar: () =
       titulo={`Cerrar ${nombreMes(mes)} ${mes.slice(0, 4)} de CAYLA entera`}
       subtitulo="Todas las unidades ya cerraron. El consolidado queda congelado con su huella y es el que se le entrega al contador."
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       <ComboResponsable control={responsable} deshabilitado={guardando} />
       <div className="fin-botones mt-4">
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={cerrar} disabled={guardando || !responsable.listo}>
-          {guardando ? "Cerrando…" : "Cerrar consolidado"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Cerrando…" type="button" onClick={cerrar} disabled={guardando || !responsable.listo}>
+          Cerrar consolidado
+        </Boton>
       </div>
     </Modal>
   );
@@ -387,7 +388,7 @@ function ReabrirModal({ mes, unidad, onCerrar }: { mes: string; unidad: Unidad; 
       titulo={`Reabrir ${nombreMes(mes)} ${mes.slice(0, 4)} ${deUnidadLarga(unidad)}`}
       subtitulo="Los números de ese mes pueden volver a cambiar. Queda en la historia quién, cuándo y por qué; CAYLA entera también se reabre."
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       <CampoFin etiqueta="Motivo (obligatorio)" htmlFor="reabrir-motivo" ayuda={tocado && error ? error : undefined} tono={tocado && error ? "aviso" : undefined}>
         <InputFin id="reabrir-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder={`Ej. llegó una factura de ${nombreMes(mes)} tarde`} />
@@ -397,9 +398,9 @@ function ReabrirModal({ mes, unidad, onCerrar }: { mes: string; unidad: Unidad; 
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={reabrir} disabled={guardando || !responsable.listo}>
-          {guardando ? "Reabriendo…" : "Reabrir"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Reabriendo…" type="button" onClick={reabrir} disabled={guardando || !responsable.listo}>
+          Reabrir
+        </Boton>
       </div>
     </Modal>
   );

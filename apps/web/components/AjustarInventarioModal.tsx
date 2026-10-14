@@ -186,7 +186,7 @@ export function AjustarInventarioModal({
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
         if (errCarga) {
-          avisar.error(traducirError(errCarga, "cargar las variantes del producto"));
+          avisar.error(traducirError(errCarga, "cargar las variantes del producto", { lectura: true }));
           setCargando(false);
           return;
         }
@@ -438,7 +438,6 @@ export function AjustarInventarioModal({
       subtitulo="Corrige lo que hay de cada talla"
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
-      ancho="max-w-md"
       bloqueado={enviando}
       lateral={prenda && prenda.fotoUrl !== undefined ? <FotoDePrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} {...categoriaDe(prenda)} /> : undefined}
     >
@@ -571,8 +570,8 @@ export function AjustarInventarioModal({
           {!cargando && variantes.length > 0 && <PieGuia guia={guia} listo="Todo listo para ajustar." />}
 
           {/* `pie-hoja-fijo`: Cancelar y Confirmar no se van bajo el pliegue en un laptop de 768 px de alto (globals.css). */}
-          <div className="pie-hoja-fijo flex gap-2 pt-1">
-            <Boton type="button" onClick={cerrar} disabled={enviando} className="flex-1">
+          <div className="pie-hoja-fijo pie-acciones pt-1">
+            <Boton type="button" onClick={cerrar} disabled={enviando}>
               Cancelar
             </Boton>
             <Boton

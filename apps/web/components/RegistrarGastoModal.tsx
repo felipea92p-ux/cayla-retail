@@ -16,10 +16,12 @@ import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sella
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { hoyLima } from "@/lib/fechas-lima";
+import { diaLima } from "@/lib/fechas-lima";
 import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
+import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
+import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import {
   TEXTO_COMPROBANTE,
   TEXTO_MEDIO,
@@ -41,6 +43,7 @@ import {
   type TipoComprobante,
   type UbicacionGastos,
 } from "@/lib/gastos-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Registrar un gasto o un activo fijo (ADR-0195 F2). Una sola ventana para los casos de la vida real:
 //  · sin comprobante (mototaxi, bolsas): cómo se pagó; si fue efectivo, sale del cajón abierto de esa tienda;
@@ -108,7 +111,7 @@ export function RegistrarGastoModal({
     ubicacion: egreso?.ubicacionId ?? (esActivo && ubicacionInicial === "empresa" ? (ubicaciones[0]?.id ?? "") : ubicacionInicial),
     categoria: "",
     descripcion: egreso?.nota ?? "",
-    fecha: egreso ? hoyLima(new Date(egreso.creadoEn)) : hoy,
+    fecha: egreso ? (diaLima(egreso.creadoEn) ?? "") : hoy,
     monto: egreso ? String(egreso.monto) : "",
     // Lo más común (la luz, el alquiler, el contador) llega con factura; lo que sale del cajón, casi nunca.
     comprobante: egreso ? "sin_comprobante" : "factura",
@@ -156,6 +159,14 @@ export function RegistrarGastoModal({
   const salida = cuentasGasto.find((c) => c.id === cuentaSalida) ?? null;
   const bancoConMedio = salida?.tipo === "banco" ? (mediosDeBanco(conComprobante).includes(medioBanco) ? medioBanco : "transferencia") : null;
   const medioSalida = salida ? (medioDeCuenta(salida.tipo) ?? bancoConMedio ?? "transferencia") : "";
+  // ADR-0362 (fase 6 · actividad 6, decisiones 56 y 70): un comprobante de S/ 2 000 o más pagado en efectivo queda «no deducible». Se
+  // deja registrar; la hoja lo avisa. Sin comprobante o a crédito (se paga después, desde Por pagar) no hay nada que avisar aquí.
+  const pagaAhora = conComprobante && !aCredito && monto.ok;
+  const avisoNoDeducible = pagaAhora
+    ? avisoBancarizacion(monto.valor, [
+        { monto: monto.valor, medio: egreso ? "efectivo" : conCuentas ? medioSalida : b.medio, tipoCuenta: egreso ? "cajon" : (salida?.tipo ?? null) },
+      ])
+    : null;
 
   function elegirComprobante(t: TipoComprobante) {
     setB((x) => {
@@ -365,11 +376,11 @@ export function RegistrarGastoModal({
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setNuevoProveedor(null)}>
+                    Cancelar
+                  </button>
                   <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>
                     Sumar proveedor
-                  </button>
-                  <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setNuevoProveedor(null)}>
-                    Cancelar
                   </button>
                   <span className="text-[12px]">Queda en el directorio; sus cuentas se completan en Compras ▸ Proveedores.</span>
                 </div>
@@ -381,7 +392,7 @@ export function RegistrarGastoModal({
   );
 
   return (
-    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion} ancho="max-w-[620px]" bloqueado={guardando || intento.incierto}>
+    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion} tamano="mediana" bloqueado={guardando || intento.incierto}>
       {/* Los campos se congelan mientras no se sabe si el gasto se guardó (la cascada de la hoja sigue igual: globals.css). */}
       <fieldset disabled={intento.incierto} className="campos-congelables min-w-0">
         {/* Orden del spike: un gasto empieza por su comprobante; un activo, por qué es, dónde está y cuánto dura. */}
@@ -543,6 +554,8 @@ export function RegistrarGastoModal({
           </CampoFin>
         )}
 
+        <AvisoNoDeducible aviso={avisoNoDeducible} reservar={pagaAhora && monto.valor >= UMBRAL_BANCARIZACION} />
+
         <ComboResponsable control={responsable} deshabilitado={guardando || intento.incierto} />
       </fieldset>
 
@@ -552,10 +565,8 @@ export function RegistrarGastoModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={() => avisoSalida.pedirAccion(onCerrar)} disabled={guardando || intento.incierto}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || revisando || !responsable.listo}>
-          {guardando
-            ? "Guardando…"
-            : intento.incierto
+        <Boton peso="primario" cargando={guardando} type="button" onClick={guardar} disabled={guardando || revisando || !responsable.listo}>
+          {intento.incierto
               ? "Volver a intentar"
               : egreso
                 ? esActivo
@@ -564,7 +575,7 @@ export function RegistrarGastoModal({
                 : esActivo
                   ? "Registrar activo"
                   : "Registrar gasto"}
-        </button>
+        </Boton>
       </div>
       {avisoSalida.aviso}
     </Modal>

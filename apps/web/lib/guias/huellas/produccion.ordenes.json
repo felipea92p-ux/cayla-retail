@@ -27,14 +27,14 @@
       "CampoMonto «Tela»",
       "CampoMonto «Avíos»",
       "CampoMonto «Maquila»",
-      "Link «Ponle precio en Editar producto»",
       "CampoTexto «Fecha de entrega»",
       "CampoTexto «Nota»",
+      "Link «Ponle precio en Editar producto»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Usar ese modelo»",
       "Boton «Es otro modelo, crearlo igual»",
       "button «Cancelar»",
-      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/OrdenCierre.tsx": [
       "CampoMonto «Tela (real)»",
@@ -47,22 +47,22 @@
       "button «{abierto ? \"Cancelar devolución\" : \"Devolver al estante\"}»",
       "input «0»",
       "button «Devolver todo»",
-      "ComboResponsable «{devolviendo ? \"Devolviendo…\" : \"Devolver al lote\"}»",
+      "ComboResponsable «Devolver al lote»",
       "Boton «{responsable.motivo ?? undefined}»",
       "Link «Cárgalos en Insumos»",
       "button «{i.nombre}»",
       "input «0» #2",
-      "ComboResponsable «{cargando ? \"Descontando…\" : \"Descontar del lote\"}»",
+      "ComboResponsable «Descontar del lote»",
       "Boton «{responsable.motivo ?? undefined}» #2"
     ],
     "components/OrdenModales.tsx": [
       "input «Por qué se cancela la corrida»",
       "ComboResponsable «Volver»",
       "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}»",
       "ComboResponsable «Volver» #2",
       "button «Volver» #2",
-      "button «{responsable.motivo ?? undefined}» #2"
+      "Boton «{responsable.motivo ?? undefined}» #2"
     ],
     "components/OrdenPanel.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -70,7 +70,7 @@
       "Boton «(sin nombre)»",
       "button «Reabrir»",
       "Link «Llevarlas a las tiendas»",
-      "Link «Imprimir etiquetas de precio»",
+      "BotonImprimir «Imprimir etiquetas de precio»",
       "Boton «→() => setCerrando(true)»",
       "Boton «Anular»",
       "Boton «Volver sin cerrar»",
@@ -113,7 +113,7 @@
       "CampoTexto «Nombre del color»",
       "Desplegable «setCodigoEscrito(normaliz»",
       "CampoTexto «Código»",
-      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
     ],

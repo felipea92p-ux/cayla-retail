@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { etiquetaRango, hoyEnLima, parseIso, sumarDias } from "./resumen-periodo";
+import { etiquetaRango, parseIso, sumarDias } from "./resumen-periodo";
 
 describe("fechas sin zona horaria", () => {
   it("parseIso rechaza lo que no es una fecha real", () => {
@@ -16,15 +16,6 @@ describe("fechas sin zona horaria", () => {
     expect(sumarDias("2026-01-01", -1)).toBe("2025-12-31");
     expect(sumarDias("2026-02-28", 1)).toBe("2026-03-01");
     expect(sumarDias("2024-02-28", 1)).toBe("2024-02-29");
-  });
-
-  it("hoyEnLima no se corre un día por la zona horaria", () => {
-    // 2026-09-19 02:00 UTC = 2026-09-18 21:00 en Lima.
-    expect(hoyEnLima(new Date("2026-09-19T02:00:00Z"))).toBe("2026-09-18");
-    // 2026-09-18 05:30 UTC = 2026-09-18 00:30 en Lima (recién empezó el día).
-    expect(hoyEnLima(new Date("2026-09-18T05:30:00Z"))).toBe("2026-09-18");
-    // 2026-09-18 04:30 UTC = 2026-09-17 23:30 en Lima (todavía ayer).
-    expect(hoyEnLima(new Date("2026-09-18T04:30:00Z"))).toBe("2026-09-17");
   });
 });
 

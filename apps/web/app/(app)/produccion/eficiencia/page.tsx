@@ -4,8 +4,8 @@ import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { getTaller, getOrdenesProduccion } from "@/lib/produccion";
 import { getGastosDelTaller, getPlanillaDelTaller } from "@/lib/eficiencia";
-import { eficienciaDePeriodo, fechaLimaDe, ventanasDePeriodos } from "@/lib/eficiencia-reglas";
-import { hoyLima } from "@/lib/fechas-lima";
+import { eficienciaDePeriodo, ventanasDePeriodos } from "@/lib/eficiencia-reglas";
+import { diaLima, hoyLima } from "@/lib/fechas-lima";
 import { EficienciaTallerPanel } from "@/components/EficienciaTallerPanel";
 
 // Eficiencia del Taller (ADR-0133, F7; D-31 y D-33). Solo líder (dinero, planilla) y, como el resto de Producción, solo parado en el Taller. Mide lo que cuesta
@@ -27,7 +27,7 @@ export default async function EficienciaPage() {
     referencia: o.referencia,
     estado: o.estado,
     esMuestra: o.esMuestra,
-    cerradaEn: fechaLimaDe(o.inventariadoEn),
+    cerradaEn: diaLima(o.inventariadoEn),
     fechaEntrega: o.fechaEntrega,
     cantidadPlan: o.cantidadPlan,
     cantidadBuenas: o.cantidadBuenas,
@@ -39,7 +39,7 @@ export default async function EficienciaPage() {
 
   return (
     <div className="space-y-6">
-      <EficienciaTallerPanel periodos={periodos} estadoPlanilla={planilla.estado} hayGastos={gastos.length > 0} />
+      <EficienciaTallerPanel sede={persona.ubicacionEtiqueta} periodos={periodos} estadoPlanilla={planilla.estado} hayGastos={gastos.length > 0} />
     </div>
   );
 }

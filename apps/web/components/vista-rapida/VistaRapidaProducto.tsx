@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { History, Info, PauseCircle, Pencil, PlayCircle, Printer, SignpostBig, Trash2 } from "lucide-react";
+import { History, Info, PauseCircle, Pencil, PlayCircle, SignpostBig, Trash2, Tag } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
@@ -141,6 +141,7 @@ export function VistaRapidaProducto({
 
   const sedeCorta = corta(sede) || "tu sede";
   const detalleOtras = existencias ? lineasDeStock(existencias).detalle : null;
+  const fotosDeLosColores = useMemo(() => matriz.filas.map((f) => f.fotoUrl), [matriz.filas]);
   const claveEnFoto = vista ?? fijado;
   const filaEnFoto = matriz.filas.find((f) => f.clave === claveEnFoto) ?? matriz.filas[0];
   // La ficha del color que está en la foto: la fila de la matriz lleva el NOMBRE del color (único en el vocabulario, `colores_clave_unica`),
@@ -240,9 +241,8 @@ export function VistaRapidaProducto({
         )
       }
       onClose={onClose}
-      ancho="max-w-4xl"
+      ancho="max-w-4xl" /* unificar-fijo: la vista rápida de un producto es de diseño propio (ADR-0136 act. 2026-10-05) */
       conCerrar
-      tituloGrande
     >
       {pagina === "historial" ? (
         <div className={paso}>
@@ -259,7 +259,7 @@ export function VistaRapidaProducto({
       <div className={paso}>
       <div className="vr-cuerpo">
         <aside data-guia="vista-rapida.foto" className="vr-lado">
-          <FotoVistaRapida producto={producto} fila={filaEnFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} />
+          <FotoVistaRapida producto={producto} fila={filaEnFoto} onAmpliar={setFotoGrande} botonAmpliar={botonAmpliar} precargar={fotosDeLosColores} />
           <div>
             <div className="vr-pie-foto">
               <span className="vr-sw" style={{ background: filaEnFoto?.hex, width: 20, height: 20 }} />
@@ -353,7 +353,7 @@ export function VistaRapidaProducto({
             data-sin-unidades={etiquetas.sinUnidades || undefined}
             className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-[12.5px] text-crema hover:bg-rojo-profundo" : BOTON)}
           >
-            <Printer aria-hidden className="h-4 w-4" />
+            <Tag aria-hidden className="h-4 w-4" />
             <span key={etiquetas.texto + etiquetas.cantidad} className="vr-texto">
               {etiquetas.texto}
               {etiquetas.cantidad > 1 && <span className="vr-cuenta tabular-nums">{etiquetas.cantidad}</span>}

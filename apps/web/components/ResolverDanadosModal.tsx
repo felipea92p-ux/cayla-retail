@@ -222,7 +222,7 @@ export function ResolverDanadosModal({
       titulo="Prendas dañadas"
       subtitulo={`${pendientes.length} ${pendientes.length === 1 ? "pendiente" : "pendientes"} de resolver`}
       onClose={onClose}
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) => (
         <div className="space-y-4">
@@ -329,8 +329,8 @@ export function ResolverDanadosModal({
                         <Aviso tono="error">{errorArreglo}</Aviso>
                       )}
                       <PieGuia guia={guia} listo="Todo listo: vuelve al almacén." />
-                      <div className="flex gap-2">
-                        <Boton type="button" onClick={() => setArreglando(null)} disabled={resolviendo !== null} className="flex-1">
+                      <div className="pie-acciones">
+                        <Boton type="button" onClick={() => setArreglando(null)} disabled={resolviendo !== null}>
                           Cancelar
                         </Boton>
                         <Boton
@@ -371,8 +371,8 @@ export function ResolverDanadosModal({
                         />
                       </CampoGuiado>
                       <PieGuia guia={guia} listo="Todo listo para liquidar." />
-                      <div className="flex gap-2">
-                        <Boton type="button" onClick={() => setLiquidando(null)} disabled={resolviendo !== null} className="flex-1">
+                      <div className="pie-acciones">
+                        <Boton type="button" onClick={() => setLiquidando(null)} disabled={resolviendo !== null}>
                           Cancelar
                         </Boton>
                         <Boton
@@ -382,7 +382,7 @@ export function ResolverDanadosModal({
                           cargando={resolviendo === p.id}
                           disabled={resolviendo !== null || !responsable.listo}
                           title={responsable.motivo ?? undefined}
-                          className="flex-1"
+                         
                         >
                           Confirmar liquidación
                         </Boton>

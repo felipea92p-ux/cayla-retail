@@ -20,7 +20,9 @@
  *   3. node scripts/migraciones/deriva.mjs main.tsv produccion.tsv [--markdown]
  *      Con `--resumen`, solo «hay o no hay diferencias», sin nombres ni cuentas: es lo que publica la revisión diaria
  *      (`deriva-diaria.yml`), porque el repo es público. Cada mañana GitHub pide las huellas de producción a
- *      `retail.huellas_catalogo` con su llave (20260928210000, ADR-0251).
+ *      `retail.huellas_catalogo` con su llave (20260928210000, ADR-0251). Desde el ADR-0402 la revisión diaria no le
+ *      pasa las huellas de main a secas sino las de main MÁS el SQL que los PR abiertos declaran pegado
+ *      (`deriva-pegados.mjs`), con `--con-pegados` para que la frase lo diga.
  *
  * QUÉ PROMETE. Lista, en palabras del negocio, lo que está en main y no en producción, lo que está en producción y no
  * en main, y lo que está en las dos con otra versión. Sale con código 1 si hay algo que no está en CONOCIDAS, y con 2 si
@@ -50,6 +52,13 @@ export const CONOCIDAS = [
   {
     patron: /^(columna|permiso|rls|vista)\tplanilla_por_sede\b/,
     motivo: "20260921160000 crea la vista solo si Dynamic tiene sus tablas de planilla; la base de main usa el stub de Dynamic, que no las tiene.",
+  },
+  {
+    // Solo la forma de la tabla y el permiso de service_role: un permiso a anon, authenticated o PUBLIC, una política, un
+    // disparador o una vista sobre un respaldo SÍ se ven, porque eso ya no es un respaldo quieto (ADR-0402).
+    patron: /^(columna|candado|indice|rls)\trespaldo_[a-z0-9_]+(\.|$)|^permiso\trespaldo_[a-z0-9_]+\.service_role$/,
+    motivo:
+      "Tablas «respaldo_…» que deja en producción un arreglo de datos hecho allá (la renumeración de comprobantes de octubre): no vienen de una migración y no van al repo. Su lugar es el schema respaldo_purgas.",
   },
 ];
 
@@ -182,9 +191,16 @@ export function informe(r, { markdown = false } = {}) {
  * cuyas migraciones públicas crean 5 funciones (pasó el 2026-09-28 con Frescura) nombra el SQL que falta sin nombrarlo.
  * El sí/no ya es público (la corrida sale roja o verde). Los nombres y las cuentas se miran en privado: la consulta en el
  * SQL Editor (o el conector de Supabase) y `deriva.mjs` sin `--resumen`.
+ * Con `conPegados` (`--con-pegados`), la revisión diaria comparó con main MÁS el SQL que los PR abiertos declaran pegado
+ * (`deriva-pegados.mjs`, ADR-0402), y la frase lo dice.
  */
-export function resumen(r) {
+export function resumen(r, { conPegados = false } = {}) {
   const total = r.soloMain.length + r.soloProduccion.length + r.distintas.length;
+  if (conPegados) {
+    return total === 0
+      ? "✓ Producción corre main más lo que los PR abiertos declaran pegado (fuera de las diferencias conocidas)."
+      : "✗ Producción no corre main más lo que los PR abiertos declaran pegado: tiene algo que nadie declara, o le falta algo declarado.";
+  }
   if (total === 0) return "✓ Producción corre lo mismo que main (fuera de las diferencias conocidas).";
   return "✗ Producción y main no corren lo mismo.";
 }
@@ -197,7 +213,7 @@ export function resumen(r) {
 function main() {
   const [rutaMain, rutaProd, ...opciones] = process.argv.slice(2);
   if (!rutaMain || !rutaProd) {
-    console.error("Uso: node scripts/migraciones/deriva.mjs <huellas-main> <huellas-produccion> [--markdown | --resumen]");
+    console.error("Uso: node scripts/migraciones/deriva.mjs <huellas-main> <huellas-produccion> [--markdown | --resumen [--con-pegados]]");
     process.exit(2);
   }
   const publico = opciones.includes("--resumen");
@@ -209,7 +225,7 @@ function main() {
     console.error(publico ? "✗ No se pudo comparar: una de las celdas de huellas no se pudo leer." : `✗ No se pudo comparar: ${e.message}`);
     process.exit(2);
   }
-  console.log(publico ? resumen(r) : informe(r, { markdown: opciones.includes("--markdown") }));
+  console.log(publico ? resumen(r, { conPegados: opciones.includes("--con-pegados") }) : informe(r, { markdown: opciones.includes("--markdown") }));
   if (r.soloMain.length + r.soloProduccion.length + r.distintas.length > 0) process.exit(1);
 }
 

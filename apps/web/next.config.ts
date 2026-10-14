@@ -20,6 +20,17 @@ const nextConfig: NextConfig = {
           },
         ]
       : [],
+    // Cuánto vive en la caché de Vercel una foto ya optimizada: 31 días (el default de Next 16 son 4 horas). El nombre de cada foto lleva un
+    // uuid y una foto nueva es un archivo nuevo, así que lo cacheado nunca queda viejo; con 4 horas se volvían a procesar cada pocas
+    // horas las ~900 fotos × sus anchos (ADR-0168, act. 2026-10-14 b). Si algún día se REEMPLAZA una foto bajo el mismo nombre, hay que
+    // invalidarla (`vercel cache invalidate --srcimg <url>`): hasta entonces se vería la vieja.
+    minimumCacheTTL: 60 * 60 * 24 * 31,
+    // Los únicos anchos que el optimizador genera: 4 en vez de los 16 por defecto. Cada ancho distinto de una foto es una transformación y una
+    // entrada de caché más (~900 fotos × anchos); con estos, cada foto se procesa a lo sumo 4 veces. Cubren lo que la app dibuja
+    // (`lib/fotos-tamanos.ts`): miniaturas de 32–64 px → 48 / 96 (retina); de 100 a 260 px → 96 / 256; de 240 px a una tarjeta de 480 px
+    // en retina → 640 / 1080. Una foto se sirve algo más grande que su caja, nunca más chica. `imageSizes` va por debajo del menor `deviceSizes`.
+    imageSizes: [48, 96, 256],
+    deviceSizes: [640, 1080],
     // Solo en `next dev`: el Supabase local vive en localhost, que Next 16 bloquea por defecto (protección SSRF).
     // Nunca en producción: allá el host es público y esta puerta queda cerrada.
     dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",

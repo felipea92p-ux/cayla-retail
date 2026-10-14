@@ -45,6 +45,7 @@ import {
 import type { CierreCaja } from "@/lib/caja";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
 import { TEXTO_MEDIO } from "@/lib/gastos-reglas";
+import { diaLima } from "@/lib/fechas-lima";
 import { Vacio } from "@/components/ui/Vacio";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { BarraApilada } from "@/components/ui/BarraApilada";
@@ -395,7 +396,8 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
                     <b className="font-semibold">{p.cantidad}</b> {p.texto}
                   </span>
                 </span>
-                <Link href={p.href} className="rounded-md border border-sand px-2.5 py-1 text-[11px] font-semibold hover:border-taupe">
+                {/* El enlace del sistema, no un botón: la fila no crece y se lee como una acción chica (ADR-0358, Felipe 2026-10-14). */}
+                <Link href={p.href} className="btn-cayla btn-enlace shrink-0 text-[13px]" aria-label={`Ver ${p.cantidad} ${p.texto}`}>
                   Ver
                 </Link>
               </div>
@@ -525,7 +527,6 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
 
 const FORMATO_DIA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", weekday: "short", day: "numeric" });
 const FORMATO_HORA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "numeric", minute: "2-digit" });
-const FORMATO_ISO = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" });
 const diaCorto = (iso: string) => FORMATO_DIA.format(new Date(iso)).replace(".", "");
 
 const TONO_CUADRE: Record<ClaveCuadre, TonoChip> = { ok: "verde", poco: "ambar", mal: "rojo" };
@@ -737,7 +738,12 @@ function VistaTabla({ cierres }: { cierres: CierreCaja[] }) {
 }
 
 function VistaGrafico({ cierres }: { cierres: CierreCaja[] }) {
-  const dias = cierresPorDia(cierres.map((c) => ({ dia: FORMATO_ISO.format(new Date(c.cerradaEn)), montoCierreSistema: c.montoCierreSistema, diferencia: c.diferencia })));
+  const dias = cierresPorDia(
+    cierres.flatMap((c) => {
+      const dia = diaLima(c.cerradaEn);
+      return dia ? [{ dia, montoCierreSistema: c.montoCierreSistema, diferencia: c.diferencia }] : [];
+    }),
+  );
   const max = Math.max(...dias.map((d) => d.esperado), 0.0001);
   return (
     <div>

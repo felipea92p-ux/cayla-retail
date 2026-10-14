@@ -80,7 +80,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
             Tengo
             {/* La caja que se enciende, baja (ADR-0358, ronda 6): antes una raya con su propio hilo. */}
             <span className="caja-cayla caja-campo caja-campo-baja min-h-8 w-[7.5rem] gap-1 px-2">
-              <span aria-hidden className="text-tinta/55">S/</span>
+              <span aria-hidden className="text-tinta/70">S/</span>
               <input
                 inputMode="decimal"
                 value={cajaTxt}
@@ -152,7 +152,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
               </span>
             ))}
           </div>
-          <p className="mt-2 min-h-5 text-xs text-tinta/60" aria-live="polite">
+          <p className="mt-2 min-h-5 text-xs text-tinta/70" aria-live="polite">
             {veredicto}
           </p>
         </>
