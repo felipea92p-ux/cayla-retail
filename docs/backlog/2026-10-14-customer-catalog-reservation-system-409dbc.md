@@ -11,8 +11,8 @@ Maqueta: `docs/maquetas/tienda-online-2026-10/` (`index.html` + `README.md`, con
   sesión propio (en producción 34 de las 137 políticas de `retail` solo piden sesión y `authenticated` tiene permiso sobre todas las tablas
   y funciones); la tienda entra a la base solo por funciones `tienda_*` con un rol propio; pedidos web sobre el motor de Apartados; pagos
   listos para una pasarela.
-- [ ] **Aprobar la lista de actividades** (abajo) y responder las dos preguntas del plan: si confirmar un pedido reserva la prenda o la
-  saca del stock, y si la boleta sale al entregar o al quedar pagado.
+- [x] **Lista de actividades aprobada** (abajo, en ese orden). Decidido: confirmar **reserva** la prenda y sale del stock al entregar;
+  la boleta sale **al quedar pagado completo** (los adelantos parciales no llevan comprobante).
 
 ### Plan de construcción (una actividad = un corte vertical demostrable, un commit; estimado en sesiones)
 

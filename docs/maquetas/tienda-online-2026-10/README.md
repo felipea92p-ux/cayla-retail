@@ -94,5 +94,7 @@ k. El ERP dice qué pedido separó antes la última y la ficha se lo avisa al cl
 ## Falta decidir
 
 1. La dirección de la web (sigue «tienda.cayla.pe» de ejemplo). 2. Los envíos, cuando se retomen: quién reparte y quién paga
-el segundo envío si la dirección estaba mal. 3. Si confirmar un pedido reserva la prenda o la saca del stock, y si la boleta sale al
-entregar o al quedar pagado (preguntas del plan de ADR-0408).
+el segundo envío si la dirección estaba mal.
+
+Decidido al aprobar el plan (ADR-0408): confirmar un pedido **reserva** la prenda y sale del stock al entregarla; la boleta sale **al
+quedar pagado completo** (los adelantos parciales no llevan comprobante).

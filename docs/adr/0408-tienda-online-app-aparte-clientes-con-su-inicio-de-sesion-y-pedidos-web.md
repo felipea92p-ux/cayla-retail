@@ -1,6 +1,7 @@
 # ADR-0408 · Tienda online: una app aparte en este repo, los clientes con su propio inicio de sesión y pedidos web sobre el motor de Apartados
 
-- **Fecha:** 2026-10-14 · **Estado:** arquitectura aprobada por Felipe; la lista de actividades espera su aprobación antes de escribir código.
+- **Fecha:** 2026-10-14 · **Estado:** arquitectura, lista de actividades y las dos decisiones de inventario y boleta aprobadas por Felipe
+  el 2026-10-14; construcción en curso, actividad por actividad.
   Rama `claude/customer-catalog-reservation-system-409dbc`.
 - **Pedido:** Felipe, 2026-10-14: una tienda online donde el cliente ve el catálogo y separa prendas sin afectar el piso. Diez rondas de
   preguntas y cuatro versiones de la maqueta (`docs/maquetas/tienda-online-2026-10/`, su README tiene todas las decisiones de negocio).
@@ -51,9 +52,9 @@ Felipe quiere los pedidos web separados de los apartados (su lista, sus estados 
 que ya funciona en producción: reservar una prenda (`apartar_stock`), pedirla a otra sede y apartarla al llegar (`pedir_prenda_para_apartar`
 y `fn_apartar_pedidos_que_llegaron`), el efectivo a la caja abierta, la venta y el comprobante con su cola de Lucode. No se inventa un
 segundo motor de reservas.
-**Pendiente de Felipe (pregunta 2 del plan):** confirmar un pedido **reserva** la prenda (deja de estar disponible en la web y en Vender, y
-sale del stock al entregarla) o la **saca** del stock en ese momento. Recomendado: reservar, porque la prenda sigue físicamente en la tienda
-hasta que el cliente la recoge, y una salida anticipada haría fallar los conteos.
+**Decidió Felipe (2026-10-14):** confirmar un pedido **reserva** la prenda: deja de estar disponible al instante en la web y en Vender,
+igual que un apartado, y **sale del stock al entregarla**. La prenda sigue físicamente en la tienda hasta que el cliente la recoge; una
+salida anticipada haría fallar los conteos. **DESCARTÉ** sacarla del stock al confirmar por esa misma razón.
 
 **DECIDÍ 5 — El precio web en una tabla de la vitrina, no en `productos`.**
 `vitrina_productos(producto_id, publicado, precio_web, fijo_en_nuevo, …)`: el núcleo del catálogo no se toca (principio 1). El precio de
@@ -74,9 +75,12 @@ Las 48 horas sin pagar y los 7 días sin recoger se calculan al leer.
 su medio, su n.º de operación (único entre los pagos digitales), el proveedor y la referencia externa (única) y su estado. Cuando llegue Izipay
 (Interbank) o Culqi (BCP), su aviso de pago se registra con una función que no duplica si el aviso llega dos veces. Un pedido se marca
 pagado solo con el aviso firmado de la pasarela, nunca por la vuelta del navegador, y la tarjeta no pasa por servidores de CAYLA.
-**Pendiente de Felipe (pregunta 3 del plan):** la boleta del pedido web sale **al entregar, por el total** (como los apartados, ADR-0399) o
-**al quedar pagado**. Recomendado: al entregar, por la misma razón del ADR-0399 y porque la venta saca la prenda del stock en el momento en que
-de verdad sale de la tienda.
+**Decidió Felipe (2026-10-14):** la boleta sale **al quedar pagado completo**: si paga todo antes de recoger, en ese momento; si paga al
+recoger, al recoger. Los adelantos parciales no llevan comprobante, como en los apartados (ADR-0399). Así se cumple la regla de SUNAT de
+emitir al cobrar o al entregar, lo que pase primero. Consecuencia de diseño: la venta queda **«pagada, por entregar»** hasta el recojo; la
+prenda sigue reservada en la tienda y sale del stock al entregarla. Cómo se modela sin romper la regla de que toda venta entregada tiene su
+salida se decide en la actividad 10, con `/rigor`. **DESCARTÉ** la boleta al entregar por el total: con el pago completo por adelantado,
+SUNAT pide el comprobante al cobrar.
 
 **DECIDÍ 10 — La calidad no se rebaja.** Las pantallas nuevas del ERP (Pedidos web, Vitrina web, Configuración ▸ Tienda web) cumplen todas las
 reglas del repo: módulo que nace solo para el líder, combo «Responsable», guía de foco, guía interactiva, `/chaos` en lo que guarda, modo
@@ -92,8 +96,9 @@ llave de servicio del ERP.
 
 ## Riesgos y cómo se cubren
 
-- **El rol `tienda_web` por el *pooler* de Supabase:** se prueba en la actividad 1. Si no funciona, la alternativa es una Edge Function del
-  proyecto del ERP como única puerta, con su propio secreto.
+- **El rol `tienda_web` por el *pooler* de Supabase:** se prueba en local en la actividad 1 y en producción al publicar (actividad 13,
+  con el OK de Felipe para crear el rol). Si no funciona, la alternativa es una Edge Function del proyecto del ERP como única puerta, con su
+  propio secreto.
 - **Correo de recuperación de contraseña:** el correo que trae Supabase tiene un tope bajo de envíos; producción necesita un proveedor de correo
   (una cuenta que crea Felipe).
 - **El CI y los ganchos solo conocen `apps/web`:** `scripts/ci/alcance.mjs:37`, `next typegen`, el `ignoreCommand` de Vercel, los escáneres,
@@ -105,4 +110,5 @@ llave de servicio del ERP.
 
 ## Plan
 
-La lista de actividades, cada una un corte vertical demostrable, está en el backlog de la rama y se aprueba antes de escribir código.
+La lista de 13 actividades, cada una un corte vertical demostrable, está en el backlog de la rama. Felipe la aprobó en ese orden el
+2026-10-14.
