@@ -57,7 +57,8 @@ los 5 s (`proximaRevision`, pura y probada). El aviso dice lo que pasó: «Tu tr
   un reintento, pero sigue siendo diseño. Es una regla de stock que cambia el flujo de la tienda: ¿lo de más sale del origen, o entra como
   sobrante a investigar?
 - **Pegar las dos migraciones en producción.** Solo funciones, una parte cada una, `20261014162000` antes que `20261014163000`. Las anclas
-  se verificaron en producción (solo lectura) el 2026-10-14.
+  se verificaron en producción (solo lectura) el 2026-10-14. **Se pegan ANTES de fusionar la web:** son compatibles con la web de
+  hoy, y sin ellas «Revisar si se guardó» de Nuevo traslado solo respondería «Todavía no hay respuesta» (reenviar lo mismo sí funciona).
 
 ## Lo vigila
 
