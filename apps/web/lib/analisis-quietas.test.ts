@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis } from "./analisis-tipos";
 import { DIAS_VIGILAR, GRUPOS_QUIETAS, LIQUIDAR_DEFECTO, LIQUIDAR_MAX, LIQUIDAR_MIN, prendasDe } from "./analisis-reglas";
-import { barraDeEdad, cifrasQuietas, destinoDeTodas, gruposQuietas, marcasEje, notaSinCosto, pistaQuieta, TEXTO_VACIO_QUIETAS, TRAMOS_EDAD, vacioQuietas } from "./analisis-quietas";
+import { barraDeEdad, cifrasQuietas, destinoDeTodas, gruposQuietas, marcaLiquidarComun, marcasEje, notaDeUmbrales, notaSinCosto, pistaQuieta, TEXTO_VACIO_QUIETAS, TRAMOS_EDAD, vacioQuietas } from "./analisis-quietas";
 import { modeloDe } from "./analisis-modelo";
 
 // Datos inventados para la prueba: ni nombres del catálogo ni cifras de producción.
@@ -188,6 +188,30 @@ describe("«Aún no se sabe» (ADR-0357, act. 2026-10-14)", () => {
   });
   it("con solo prendas en duda hay carril: no es «Todo se mueve»", () => {
     expect(vacioQuietas([quieta("duda", 80, { enDuda: 1 })], 60, 0)).toBeNull();
+  });
+});
+
+describe("los escalones de cada tipo en el carril (ADR-0357, act. 2026-10-14)", () => {
+  const polos = { vigila: 3, liquidar: 5, vara: "hoy" as const, vendidas: 30 };
+  it("cada fila pinta su zona de liquidar desde el umbral de su tipo; el eje es el de «Liquidar desde»", () => {
+    const sin = pistaQuieta(8, 60);
+    const con = pistaQuieta(8, 60, 5);
+    expect(con.n).toBe(sin.n); // el punto cae igual: el eje es uno
+    expect(sin.zona).toBe("nd");
+    expect(con.zona).toBe("ate");
+    expect(con.liquidar).toBeCloseTo((5 / 120) * 100);
+  });
+  it("la marca «Liquidar» del eje solo si todas las filas se liquidan desde el mismo día", () => {
+    expect(marcaLiquidarComun([], 60)).toBe(60);
+    expect(marcaLiquidarComun([{}, {}], 60)).toBe(60);
+    expect(marcaLiquidarComun([{ umbrales: polos }, { umbrales: polos }], 60)).toBe(5);
+    expect(marcaLiquidarComun([{ umbrales: polos }, {}], 60)).toBeNull();
+  });
+  it("la nota dice con qué se mide cada tipo", () => {
+    expect(notaDeUmbrales([{ umbrales: polos }], "sin_modulo")).toContain("todo se mide con «Liquidar desde»");
+    expect(notaDeUmbrales([{}, {}], "ok")).toContain("Ningún tipo tiene todavía ventas");
+    expect(notaDeUmbrales([{ umbrales: polos }], "ok")).toBe("Cada tipo se mide con lo que tardan en venderse los suyos en tu piso.");
+    expect(notaDeUmbrales([{ umbrales: polos }, {}], "ok")).toContain("«Liquidar desde» vale para los que todavía no tienen ritmo");
   });
 });
 

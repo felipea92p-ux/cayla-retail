@@ -9,7 +9,7 @@ import { HojaLiquidarDesde } from "@/components/analisis/HojaLiquidarDesde";
 import { Icono } from "@/components/analisis/iconos";
 import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/analisis/piezas";
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
-import { edadDelInventario, GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, LIQUIDAR_PASO, plural, prendasDe, sedeQueMasVende, totalEnTienda, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
+import { edadDelInventario, GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, LIQUIDAR_PASO, plural, prendasDe, sedeQueMasVende, totalEnTienda, umbralLiquidar, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
 import { ERROR_DIAS_LIQUIDAR, leerDiasLiquidar, pasoLiquidar } from "@/lib/analisis-liquidar-reglas";
 import { hrefEnviar, hrefLiquidar, hrefRegistrarVentas } from "@/lib/analisis-acciones";
 import { nuncaSalio } from "@/lib/analisis-piso";
@@ -22,6 +22,8 @@ import {
   marcasEje,
   notaSinCosto,
   pistaQuieta,
+  marcaLiquidarComun,
+  notaDeUmbrales,
   TEXTO_VACIO_QUIETAS,
   TRAMOS_EDAD,
   vacioQuietas,
@@ -65,6 +67,10 @@ export function PestanaQuieta() {
   const faltan = notaSinCosto(cifras);
   const { enviar, liquidar, duda, vigila } = gruposQuietas(prendas, liquidarDesde);
   const marcas = marcasEje(liquidarDesde);
+  // La marca «Liquidar» del eje, solo si todas las filas se liquidan desde el mismo día; y la nota de con qué se mide cada tipo.
+  const enCarril = [...enviar, ...liquidar, ...duda, ...vigila];
+  const comun = marcaLiquidarComun(enCarril, liquidarDesde);
+  const notaUmbral = notaDeUmbrales(datos.prendas, datos.frescura);
   const etiquetas = etiquetasEje(liquidarDesde);
 
   // Los botones de todo el grupo: «Enviar todas» solo si todas van a la misma tienda (si no, cada fila tiene la suya).
@@ -92,7 +98,7 @@ export function PestanaQuieta() {
     {
       clave: "liquidar",
       titulo: "Liquidar",
-      ayuda: `Llevan más de ${liquidarDesde} días en el piso sin venderse, aquí ni en otra tienda. En rojo, las de más de 3 meses. Cuánto rebajar lo eliges en Etiquetas.`,
+      ayuda: `Llevan en el piso sin venderse más de lo que tardan 9 de cada 10 de su tipo que sí se vendieron (si su tipo todavía no tiene ritmo, ${liquidarDesde} días: «Liquidar desde»), aquí ni en otra tienda. En rojo, las de más de 3 meses. Cuánto rebajar lo eliges en Etiquetas.`,
       icono: "etiqueta",
       est: "ate",
       prendas: liquidar,
@@ -112,7 +118,7 @@ export function PestanaQuieta() {
     {
       clave: "vigila",
       titulo: "Vigílalas",
-      ayuda: "Llevan más de un mes en el piso sin venderse, pero todavía no llegan a «Liquidar desde».",
+      ayuda: "Llevan sin venderse más de lo que tardan 3 de cada 4 de su tipo (si su tipo todavía no tiene ritmo, un mes), pero todavía no llegan a liquidar.",
       icono: "vigila",
       est: "nd",
       mudo: true,
@@ -177,9 +183,10 @@ export function PestanaQuieta() {
 
   const pista = (p: ModeloAnalisis) => {
     const dias = p.diasSinVender ?? 0;
-    const { n, zona, cifraALaIzquierda } = pistaQuieta(dias, liquidarDesde);
+    // Cada fila dibuja su zona de liquidar desde el umbral de SU tipo (la vara de Frescura) o, sin él, «Liquidar desde».
+    const { n, zona, cifraALaIzquierda, liquidar: desde } = pistaQuieta(dias, liquidarDesde, umbralLiquidar(p, liquidarDesde));
     return (
-      <span className="pista zonas" style={{ ["--u" as string]: `${marcas.liquidar}%`, ["--r" as string]: `${marcas.tresMeses}%` }}>
+      <span className="pista zonas" style={{ ["--u" as string]: `${desde}%`, ["--r" as string]: `${marcas.tresMeses}%` }}>
         <i className="barra cx" style={{ ["--n" as string]: n }} />
         <span
           className="punto po"
@@ -268,7 +275,10 @@ export function PestanaQuieta() {
       {vacio === "todo-se-mueve" ? (
         <section className="tarjeta carril entra" style={{ ["--i" as string]: 2 }}>
           <div className="c-cab">
-            <h3 className="b-tit">Días en el piso sin venderse</h3>
+            <div>
+              <h3 className="b-tit">Días en el piso sin venderse</h3>
+              <span className="c-sub">{notaUmbral}</span>
+            </div>
             <span className="b-nota">{control}</span>
           </div>
           <SinCarril tipo="todo-se-mueve" dentro />
@@ -276,17 +286,22 @@ export function PestanaQuieta() {
       ) : (
         <Carril
           titulo="Días en el piso sin venderse"
+          nota={notaUmbral}
           herramienta={control}
           eje={[
             { texto: "0", left: "0%" },
-            {
-              texto: (
-                <span className="zona" style={{ color: "var(--color-ambar)" }}>
-                  Liquidar
-                </span>
-              ),
-              left: `${marcas.liquidar}%`,
-            },
+            ...(comun !== null
+              ? [
+                  {
+                    texto: (
+                      <span className="zona" style={{ color: "var(--color-ambar)" }}>
+                        Liquidar
+                      </span>
+                    ),
+                    left: `${pistaQuieta(0, liquidarDesde, comun).liquidar}%`,
+                  },
+                ]
+              : []),
             ...(etiquetas.tresMeses
               ? [
                   {

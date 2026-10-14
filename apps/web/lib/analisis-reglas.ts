@@ -124,21 +124,28 @@ export function otraSedeQueLaTiene(otras: readonly PrendaEnOtraSede[]): PrendaEn
   return [...con].sort((a, b) => b.stock - a.stock || b.vendidas30 - a.vendidas30 || a.sedeId.localeCompare(b.sedeId))[0];
 }
 
+/** Desde cuántos días sin venderse se liquida esta prenda: el p90 de la vara de su tipo o, sin ella, «Liquidar desde». */
+export const umbralLiquidar = (p: Pick<PrendaAnalisis, "umbrales">, liquidarDesde: number): number => p.umbrales?.liquidar ?? liquidarDesde;
+/** Desde cuántos días sin venderse se vigila esta prenda: el p75 de la vara de su tipo o, sin ella, un mes. */
+export const umbralVigilar = (p: Pick<PrendaAnalisis, "umbrales">): number => p.umbrales?.vigila ?? DIAS_VIGILAR;
+
 /**
- * El grupo de una prenda, o null si no pide nada (se vende bien, o lleva menos de un mes quieta). Una prenda vive en UN solo
- * grupo: lo que se acaba se compra; lo quieto desde el umbral se manda a donde sí se vende (si otra tienda vendió 2 o más) o
- * se liquida; lo quieto desde un mes, se vigila. Lo quieto con una unidad que puede ser una venta sin registrar (`enDuda`, la cuenta
- * de Frescura) no se manda ni se liquida: va a «duda» hasta que se registre esa venta (ADR-0357, act. 2026-10-14).
+ * El grupo de una prenda, o null si no pide nada (se vende bien, o todavía no lleva quieta lo que se vigila). Una prenda vive en UN
+ * solo grupo: lo que se acaba se compra; lo quieto desde el umbral de liquidar se manda a donde sí se vende (si otra tienda vendió 2
+ * o más) o se liquida; lo quieto desde el umbral de vigilar, se vigila. Los umbrales son los de la vara de su tipo (p90 y p75,
+ * `analisis-vara.ts`; ADR-0357, act. 2026-10-14) o, sin ella, «Liquidar desde» y un mes. Lo quieto con una unidad que puede ser una
+ * venta sin registrar (`enDuda`, la cuenta de Frescura) no se manda ni se liquida: va a «duda» hasta que se registre esa venta.
  */
 export function grupoDe(
-  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas" | "enDuda">,
+  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas" | "enDuda" | "umbrales">,
   liquidarDesde: number,
 ): GrupoAnalisis | null {
   if (seEstaAcabando(p)) return "comprar";
   if (p.vendidas30 > 0 || p.diasSinVender === null || totalEnTienda(p) === 0) return null;
-  if (p.diasSinVender < liquidarDesde && p.diasSinVender < DIAS_VIGILAR) return null;
+  const liquidar = umbralLiquidar(p, liquidarDesde);
+  if (p.diasSinVender < liquidar && p.diasSinVender < umbralVigilar(p)) return null;
   if ((p.enDuda ?? 0) > 0) return "duda";
-  if (p.diasSinVender < liquidarDesde) return "vigila";
+  if (p.diasSinVender < liquidar) return "vigila";
   const vende = sedeQueMasVende(p.otras);
   if (vende && vende.vendidas30 >= VENDIDAS_PARA_ENVIAR) return "enviar";
   return "liquidar";

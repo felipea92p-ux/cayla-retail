@@ -258,6 +258,16 @@ describe("los botones del pie", () => {
     expect(accionPrincipal(p, null, SEDES, TODO)).toBeNull();
   });
 
+  it("lo quieto con la vara de su tipo dice contra qué se juzgó (ADR-0357, act. 2026-10-14)", () => {
+    const p = prenda({ piso: 2, diasSinVender: 8, umbrales: { vigila: 3, liquidar: 6, vara: "hoy", vendidas: 30 } });
+    expect(hechosDe(p, "liquidar", SEDES).map((h) => [h.valor, h.etiqueta].join(" · "))).toEqual([
+      "8 días · en el piso sin venderse",
+      "6 días · tardan 9 de cada 10 de su tipo",
+      "Tienes 2 · 2 en el piso",
+      "Liquidar · tú eliges cuánto",
+    ]);
+  });
+
   it("lo que puede haberse vendido sin registrar: «Registrar ventas» (Por regularizar), y sus tarjetitas lo dicen; sin Existencias, sin botón", () => {
     const p = prenda({ piso: 2, diasSinVender: 80, enDuda: 1 });
     expect(accionPrincipal(p, "duda", SEDES, TODO)).toEqual({ texto: "Registrar ventas", href: "/inventario/por-regularizar" });

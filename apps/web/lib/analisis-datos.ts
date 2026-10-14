@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { DatosAnalisis, PreparacionAnalisis, SedeAnalisis } from "@/lib/analisis-tipos";
+import type { DatosAnalisis, PreparacionAnalisis, SedeAnalisis, UmbralesQuieta } from "@/lib/analisis-tipos";
+import { conUmbrales, umbralesPorTipo } from "@/lib/analisis-vara";
 import { armarPrendas, conPreciosDeMiTienda } from "@/lib/analisis-armado";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { armarModelos, FALLA_ULTIMA_VENTA } from "@/lib/analisis-modelo";
@@ -55,18 +56,22 @@ const FALLA_FRESCURA = "No se pudo leer Frescura del piso: «No se vende» no sa
  * Lo que Análisis usa de la lectura de Frescura de mi tienda (ADR-0357, act. 2026-10-14): por talla, cuántas unidades colgadas pueden ser
  * una venta sin registrar (`dudadas`). Nunca lanza: sin el módulo, o si la sede no separa piso, no se lee; si falla, se dice.
  */
-async function leerFrescura(activa: Ubicacion, conFrescura: boolean): Promise<{ estado: DatosAnalisis["frescura"]; dudas: Map<string, number> }> {
+async function leerFrescura(
+  activa: Ubicacion,
+  conFrescura: boolean,
+): Promise<{ estado: DatosAnalisis["frescura"]; dudas: Map<string, number>; umbrales: Map<string, UmbralesQuieta> }> {
   const dudas = new Map<string, number>();
-  if (!conFrescura) return { estado: "sin_modulo", dudas };
-  if (activa.tipo !== "tienda") return { estado: "no_aplica", dudas };
+  const umbrales = new Map<string, UmbralesQuieta>();
+  if (!conFrescura) return { estado: "sin_modulo", dudas, umbrales };
+  if (activa.tipo !== "tienda") return { estado: "no_aplica", dudas, umbrales };
   const lectura = await getLecturaFrescuraDeTienda({ id: activa.id, nombre: activa.nombre });
   if (lectura.fallo !== null || lectura.datos === null) {
     console.error(`Frescura de Análisis: ${lectura.fallo ?? "sin datos"}`);
-    return { estado: "fallo", dudas };
+    return { estado: "fallo", dudas, umbrales };
   }
-  if (!lectura.datos.separaPiso) return { estado: "no_aplica", dudas };
+  if (!lectura.datos.separaPiso) return { estado: "no_aplica", dudas, umbrales };
   for (const prenda of lectura.datos.prendas) for (const t of prenda.tallas) if ((t.dudadas ?? 0) > 0) dudas.set(t.varianteId, t.dudadas!);
-  return { estado: "ok", dudas };
+  return { estado: "ok", dudas, umbrales: umbralesPorTipo(lectura.datos.categorias) };
 }
 
 /** `conFrescura`: si quien mira ve Frescura del piso (la base no le deja leerla sin el módulo). */
@@ -115,7 +120,8 @@ export async function getDatosAnalisis(activa: Ubicacion, { conFrescura = false 
   // Los días de ventas que mi tienda tiene en el ERP, hasta 30: el techo del ritmo de cada prenda y de qué días habla «Vendiste».
   const ventana = diasDeVentas(prepDe(activa.id)?.primeraVenta, hoy);
   // Cada talla mide su ritmo en los días que estuvo colgada, de 7 a los días de ventas de mi tienda (2026-10-14, `ventanaDeRitmo`).
-  const tallas = conVentanaDeRitmo(armarPrendas(conPreciosDeMiTienda(filasDe(activa.id), preciosDeMiTienda), otrasDe(activa.id), llegan.porVariante), hoy, ventana).map((p) => ({
+  // Y se juzga quieta contra la vara de su tipo (p75 y p90 de Frescura, `analisis-vara.ts`), si la tiene.
+  const tallas = conUmbrales(conVentanaDeRitmo(armarPrendas(conPreciosDeMiTienda(filasDe(activa.id), preciosDeMiTienda), otrasDe(activa.id), llegan.porVariante), hoy, ventana), frescura.umbrales).map((p) => ({
     ...p,
     ...(frescura.estado === "ok" ? { enDuda: frescura.dudas.get(p.varianteId) ?? 0 } : {}),
   }));

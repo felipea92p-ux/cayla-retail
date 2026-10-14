@@ -129,6 +129,8 @@ export function hechosDe(
     const dias = p.diasSinVender ?? 0;
     const grave = dias >= DIAS_TRES_MESES;
     agregar(grave ? "urg" : "reloj", grave ? "rojo" : "ambar", `${dias} ${plural(dias, "día", "días")}`, "en el piso sin venderse");
+    // Contra qué se juzgó (ADR-0357, act. 2026-10-14): lo que tardan los de su tipo que sí se vendieron en el piso de la tienda.
+    if (p.umbrales) agregar("reloj", "pizarra", `${p.umbrales.liquidar} ${plural(p.umbrales.liquidar, "día", "días")}`, "tardan 9 de cada 10 de su tipo");
     agregar("caja", "taupe", `Tienes ${tienes}`, `${p.piso} en el piso`);
     const vende = grupo === "enviar" ? sedeQueMasVende(p.otras) : null;
     if (vende) agregar("camion", "ambar", `${codigoDe(sedes, vende.sedeId)} vendió ${vende.vendidas30}`, "este mes");
