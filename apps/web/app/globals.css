@@ -21,6 +21,7 @@
 /* Etiquetas de precio, la pantalla: filas por modelo, el paso − n +, el tacho y su movimiento (2026-10-09). */
 @import "./estilos/etiquetas-precio.css";
 @import "./estilos/caja-cerrada.css";
+@import "./estilos/pie-acciones.css";
 @import "./estilos/club-publico.css";
 @import "./estilos/recordatorio-cierre.css";
 @import "./estilos/caja-cierre.css";
@@ -1569,6 +1570,9 @@ html[data-buscando] [data-resultados] {
   /* Descargar (ADR-0358, ronda 10): la flecha de descarga BAJA 2 px, como la que lleva a otro lado avanza. */
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)) svg.lucide-download { transition: translate 300ms var(--ease-cayla); }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-download { translate: 0 2px; }
+  /* Imprimir (ADR-0358, ronda 11): la hoja SALE de la impresora (baja 2 px), como la flecha de descargar baja. */
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) svg.lucide-printer rect { transition: translate 300ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-printer rect { translate: 0 2px; }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace))::before {
     content: ""; position: absolute; pointer-events: none; border-radius: 999px;
     left: var(--onda-x, 50%); top: var(--onda-y, 50%); width: var(--onda-d, 0px); height: var(--onda-d, 0px);
@@ -2535,7 +2539,7 @@ html[data-buscando] [data-resultados] {
     :is(.mov-boton, .btn-cayla:not(.btn-enlace)),
     :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover,
     :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active { translate: none !important; scale: none !important; }
-    :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg, .mov-mas) { rotate: none !important; translate: none !important; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg, svg rect, .mov-mas) { rotate: none !important; translate: none !important; }
   }
 }
 /* ==================================================================

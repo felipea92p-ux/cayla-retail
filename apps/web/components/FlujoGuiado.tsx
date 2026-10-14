@@ -277,7 +277,8 @@ export function BotonSecundario({ onClick, children, disabled = false }: { onCli
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="mov-boton label-cayla inline-flex h-12 items-center gap-2 rounded-md px-5 text-[11px] text-tinta ring-1 ring-tinta/15 hover:bg-papel hover:ring-tinta/30 disabled:opacity-50"
+      // El secundario del sistema (ADR-0358, ronda 11: «Cancelar» y sus vecinos hablan en letra normal), con el alto de 48 px del flujo.
+      className="btn-cayla btn-secundario h-12 gap-2 px-5"
     >
       {children}
     </button>

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { createPortal } from "react-dom";
-import { MessageCircle, Plus, Printer, ShoppingBag } from "lucide-react";
+import { MessageCircle, Plus, ShoppingBag } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { EMISOR } from "@/lib/emisor";
 import { enlaceWhatsApp } from "@/lib/facturacion-comprobantes-reglas";
@@ -11,6 +11,7 @@ import { fechaHoraLima } from "@/lib/recibo-reglas";
 import { textoTicketCambio } from "@/lib/cambios-atajos-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { soles } from "@/lib/compras-reglas";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 /* ====================================================================
    CambioTicket · lo que la clienta se lleva al terminar un cambio (spike 2026-09-26, opción A)
@@ -107,10 +108,9 @@ export function CambioTicketHoja({ ticket, onNuevo, onCerrar }: { ticket: Ticket
               <MessageCircle aria-hidden className="h-4 w-4" />
               {ticket.clienta ? `WhatsApp a ${ticket.clienta.split(" · ")[0]!.split(" ")[0]}` : "Enviar por WhatsApp"}
             </a>
-            <button type="button" onClick={() => window.print()} className={`${boton} border border-sand bg-papel text-tinta hover:border-taupe`}>
-              <Printer aria-hidden className="h-4 w-4" />
+            <BotonImprimir onClick={() => window.print()} className="h-12 rounded-xl">
               Imprimir ticket
-            </button>
+            </BotonImprimir>
             <Link href="/vender" className={`${boton} border border-sand bg-papel text-tinta hover:border-taupe`}>
               <ShoppingBag aria-hidden className="h-4 w-4" />
               Se lleva algo más: seguir vendiendo

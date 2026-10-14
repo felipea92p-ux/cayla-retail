@@ -19,7 +19,7 @@ export function AccionesEnCurso({ conteoId, numero }: { conteoId: string; numero
         <Link href={`/inventario/conteo/${conteoId}`} className="btn-cayla btn-primario h-11">
           Seguir contando
         </Link>
-        <button type="button" onClick={() => setCancelando(true)} className="btn-cayla btn-sutil h-11">
+        <button type="button" onClick={() => setCancelando(true)} className="btn-cayla btn-peligro h-11">
           Cancelar conteo
         </button>
       </div>

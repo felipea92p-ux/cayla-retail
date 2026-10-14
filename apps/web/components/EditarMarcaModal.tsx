@@ -217,13 +217,13 @@ export function EditarMarcaModal({
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div data-guia="marcas.form-pie" className="flex items-center gap-3">
+          <div data-guia="marcas.form-pie" className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
+              Cancelar
+            </Boton>
             <Boton peso="primario" onClick={() => void guardar(cerrar)} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
               {guardando ? "Guardando…" : "Guardar"}
             </Boton>
-            <button type="button" onClick={cerrar} disabled={guardando} className="label-cayla text-[11px] text-tinta/60 hover:text-tinta">
-              Cancelar
-            </button>
           </div>
         </div>
       )}

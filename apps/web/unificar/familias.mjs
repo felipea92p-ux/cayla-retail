@@ -837,6 +837,67 @@ export const DECISIONES = {
     "deuda": [],
     "excepciones": []
   },
+  "accion.cancelar": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.cancelar.md",
+    "elegida": "P1 · «Cancelar» es el botón secundario del sistema, del ancho de su palabra, ANTES del botón que guarda y los dos a la derecha del pie (`pie-acciones` / <PieAcciones>); lo que borra o desactiva, solo a la izquierda; en el celular, mitades; el flujo del mostrador conserva sus 48 px; elegida tocándola el 2026-10-14",
+    "pieza": "components/ui/PieAcciones.tsx",
+    "tambien": ["app/estilos/pie-acciones.css", "components/ui/Modal.tsx", "components/FlujoGuiado.tsx"],
+    "ventana": 6,
+    "firmas": [
+      // Un «Cancelar» a media fila (`flex-1`, `botonCancelar`), sutil, discreto o en versalitas: es el secundario a su medida en `pie-acciones`.
+      "<(?:Boton|button|BotonEnlace|Link)\\b(?:[^>]|=>)*?(?:\\bbtn-sutil\\b|peso=\"discreto\"|\\blabel-cayla\\b|\\bflex-1\\b|\\{botonCancelar\\})(?:[^>]|=>)*>\\s*Cancelar(?=\\s*(?:<|\\n|$))"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/GeneradorDibujo.tsx", "motivo": "una barra de herramientas del dibujo (Cancelar, Otras variantes, Usar este), no el pie de una hoja" }
+    ]
+  },
+  "accion.limpiar": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.limpiar.md",
+    "elegida": "P2 · cada filtro puesto es la píldora de los vacíos (<FiltroPuesto>, tinta con su ✕) y «Limpiar todo» una píldora más, punteada, con el embudo tachado (<BotonLimpiar>); el verbo es «Limpiar» + qué, nunca «Quitar filtros»; en la hoja del celular, el secundario; en el calendario y en «Pagar juntos», el enlace; elegida tocándola el 2026-10-14",
+    "pieza": "components/ui/FiltrosPuestos.tsx",
+    "tambien": ["app/estilos/vacio-aviso-buscador.css"],
+    "ventana": 4,
+    "firmas": [
+      // «Limpiar» en versalitas sueltas o sutil: es <BotonLimpiar> en la fila de filtros, el enlace en el calendario, el secundario en una hoja.
+      "<(?:button|Boton)\\b(?:[^>]|=>)*?(?:\\blabel-cayla\\b|\\bbtn-sutil\\b)(?:[^>]|=>)*>\\s*Limpiar\\b",
+      // La pastilla de un filtro puesto hecha a mano (versalitas con su ×): es <FiltroPuesto>.
+      "rounded-full border border-tinta\\/15 bg-tinta\\/\\[0\\.04\\]",
+      // El verbo: «Limpiar», nunca «Quitar filtros».
+      "\\bQuitar (?:los )?filtros\\b"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.imprimir": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.imprimir.md",
+    "elegida": "P1 · <BotonImprimir>: siempre con la impresora a la izquierda y «Imprimir» + qué; negro solo si imprimir ES el paso (el ticket después de vender, las etiquetas de lo que acaba de llegar), si no secundario; «o guardar en PDF» va en la frase de al lado; la hoja sale de la impresora al pasar el mouse; elegida tocándola el 2026-10-14",
+    "pieza": "components/ui/BotonImprimir.tsx",
+    "tambien": ["app/globals.css"],
+    "ventana": 3,
+    "firmas": [
+      // La impresora dibujada fuera de la pieza (un botón a mano): es <BotonImprimir>.
+      "<Printer\\b",
+      // «Imprimir o guardar (en) PDF» en el botón: lo del PDF va en la frase de al lado.
+      "Imprimir o guardar",
+      // Un botón del sistema que dice «Imprimir…» sin la pieza.
+      "(?:\\bbtn-(?:primario|secundario)\\b|<Boton\\b)(?:[^>]|=>)*>\\s*(?:\\{[^}\\n]*\\?\\s*)?[\"`]?Imprimir\\b"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/ProductosTabla.tsx", "motivo": "«Etiquetas» lleva a la pantalla de etiquetas (y antes cuenta si hay unidades): es ver en otra pantalla, en la tabla de Productos (ADR-0254)" },
+      { "archivo": "components/vista-rapida/VistaRapidaProducto.tsx", "motivo": "«Etiquetas» de la vista rápida lleva a la pantalla de etiquetas; la vista rápida es decidida a propósito (ADR-0136)" },
+      { "archivo": "components/OpcionesComprobante.tsx", "motivo": "«Imprimir de nuevo» es una opción de una lista (abre el PDF), no un botón" },
+      { "archivo": "components/apartados/TodosVista.tsx", "motivo": "fila compacta del mostrador: reimprimir es un ícono con su nombre para el lector, junto al de WhatsApp" },
+      { "archivo": "components/GuiaImpresion.tsx", "motivo": "la guía de impresión DIBUJA el botón de la pantalla de etiquetas para explicarlo; no es un botón" }
+    ]
+  },
   "grafico.barra": {
     "fecha": "2026-10-09",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",

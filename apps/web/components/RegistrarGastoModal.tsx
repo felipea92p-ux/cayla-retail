@@ -365,11 +365,11 @@ export function RegistrarGastoModal({
                   </div>
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => setNuevoProveedor(null)}>
+                    Cancelar
+                  </button>
                   <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>
                     Sumar proveedor
-                  </button>
-                  <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setNuevoProveedor(null)}>
-                    Cancelar
                   </button>
                   <span className="text-[12px]">Queda en el directorio; sus cuentas se completan en Compras ▸ Proveedores.</span>
                 </div>

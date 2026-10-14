@@ -2,7 +2,7 @@
   "guia": "compras.plan",
   "ruta": "/compras/plan",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 84,
+  "total": 83,
   "controles": {
     "components/colaboradores/CajonFicha.tsx": [
       "button «Cerrar»"
@@ -25,9 +25,6 @@
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? (cambio ? undefined : \"No cambiaste nada\")}»"
-    ],
-    "components/plan-compra/ExportarPlan.tsx": [
-      "Boton «Imprimir»"
     ],
     "components/plan-compra/FilaCategoria.tsx": [
       "button «plan.categoria»"
@@ -52,14 +49,14 @@
       "BotonFiltro «{p.texto}»",
       "DesplegablePildora «Familia»",
       "DesplegablePildora «Ordenar por»",
-      "Boton «{q.trim() ? \"Borrar la búsqueda\" : \"Quitar los filtros\"}»",
+      "Boton «{q.trim() ? \"Borrar la búsqueda\" : \"Limpiar filtros\"}»",
       "button «{plegadas.length}»"
     ],
     "components/plan-compra/NuevaCampanaModal.tsx": [
       "CampoTexto «{<span className=\"sr-only\">{nueva ? \"Nombre de la campaña\" : \"Nombre del plan\"}»",
       "CampoFecha «{<span className=\"sr-only\">Desde</span>}»",
       "CampoFecha «{<span className=\"sr-only\">Hasta</span>}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «Can»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],

@@ -767,7 +767,7 @@ export function CategoriasLista({
             ) : (
               <span />
             )}
-            <div className="flex gap-2">
+            <div className="pie-acciones">
               <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                 Cancelar
               </Boton>

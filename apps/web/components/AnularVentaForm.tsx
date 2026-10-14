@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
 import { Desplegable } from "@/components/ui/campos";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { codigoPrenda } from "@/lib/prenda-reglas";
@@ -185,11 +185,11 @@ export function AnularVentaForm({
           {error && <Aviso tono="error">{error}</Aviso>}
 
           <ComboResponsable control={responsable} deshabilitado={loading} />
-          <div className="flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} className={botonCancelar}>
+          <div className="pie-acciones pt-1">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={loading || !items || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
+            <button type="submit" disabled={loading || !items || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
               {loading ? "Anulando…" : "Anular venta"}
             </button>
           </div>

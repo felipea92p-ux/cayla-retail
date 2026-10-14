@@ -9,7 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { CampoMonto, CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Aviso } from "@/components/ui/Aviso";
-import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta, botonPrimario } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { Chip } from "@/components/ui/Chip";
@@ -769,8 +769,8 @@ export function NuevaOrdenProduccionForm({
               </Aviso>
             )}
 
-            <div className="flex gap-2">
-              <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className={botonCancelar}>
+            <div className="pie-acciones">
+              <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className="btn-cayla btn-secundario">
                 Cancelar
               </button>
               <button

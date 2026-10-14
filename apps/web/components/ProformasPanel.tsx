@@ -4,7 +4,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
-import { ChevronDown, FileText, Plus, Printer } from "lucide-react";
+import { ChevronDown, FileText, Plus } from "lucide-react";
 import type { FotoDePrenda, Proforma } from "@/lib/proformas";
 import { lineasDeLaProforma, numeroDeProforma } from "@/lib/proformas-reglas";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
@@ -21,9 +21,9 @@ import { ProformaA4 } from "@/components/ProformaA4";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // Las columnas de la lista, según el ancho DE LA TARJETA (container queries) y no el de la ventana,
 // igual que en Comprobantes y en «Actividad de hoy»: con el menú lateral desplegado, una ventana de
@@ -291,9 +291,10 @@ export function ProformasPanel({
               </div>
               <p className="text-xs text-tinta/60">Para enviarla por WhatsApp, elige «Guardar como PDF» en el cuadro de impresión y adjunta el archivo.</p>
               <div className="flex gap-2">
-                <Boton type="button" peso="primario" className="flex-1" onClick={() => setImprimiendo(true)} cargando={imprimiendo}>
-                  <Printer aria-hidden className="h-4 w-4" /> Imprimir o guardar en PDF
-                </Boton>
+                {/* Que también sirve para guardarla en PDF lo dice la frase de arriba, no el botón (ADR-0358, ronda 11). */}
+                <BotonImprimir peso="primario" className="flex-1" onClick={() => setImprimiendo(true)} cargando={imprimiendo}>
+                  Imprimir la proforma
+                </BotonImprimir>
               </div>
             </div>
           )}
