@@ -1,4 +1,4 @@
-import { Receipt } from "lucide-react";
+import { Receipt, ChartColumn } from "lucide-react";
 import { Ayuda } from "@/components/Ayuda";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -159,7 +159,11 @@ export function PanelComercialVista({ panel }: { panel: PanelComercial }) {
                   {pico !== null && <span className="ml-2 text-xs font-normal text-tinta/60">Hora fuerte: {etiquetaHora(pico)}</span>}
                 </p>
                 {serie.length === 0 ? (
-                  <div className="card-cayla p-5 text-sm text-tinta/65">Aún no hay ventas hoy en {s.nombre}.</div>
+                  <div className="card-cayla">
+                    <Vacio tamano="chico" alinear="izquierda" className="px-5 py-4" icono={<ChartColumn />}>
+                      Aún no hay ventas hoy en {s.nombre}.
+                    </Vacio>
+                  </div>
                 ) : (
                   <VentasPorHoraChart datos={serie} horaActual={panel.horaActual} />
                 )}

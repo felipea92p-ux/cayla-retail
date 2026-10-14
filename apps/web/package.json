@@ -15,6 +15,8 @@
     "tema:colores": "node tema/colores-sueltos.mjs",
     "unificar:censo": "node unificar/cli.mjs",
     "unificar:deuda": "node unificar/deuda.mjs",
+    "unificar:rellenar": "node unificar/rellenar-deuda.mjs",
+    "unificar:ver": "node unificar/ver-deuda.mjs",
     "unificar:fotos": "node unificar/fotos.mjs",
     "guias:huella": "node guias/huella.mjs",
     "guias:recorrer": "node guias/recorrer.mjs"

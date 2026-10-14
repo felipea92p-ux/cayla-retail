@@ -11,6 +11,8 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import type { PedidoNoAtendido } from "@/lib/pedidos-no-atendidos";
 import { describirMotivo } from "@/lib/se-probo-reglas";
+import { ClipboardList } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // La mitad cliente de la pantalla de verificación (D-79, ADR-0152): marcar resuelto es la única
 // escritura que esta pantalla ofrece — anotar uno nuevo todavía no tiene botón acá a propósito
@@ -38,9 +40,9 @@ export function PedidosNoAtendidosLista({ pedidos }: { pedidos: PedidoNoAtendido
   return (
     <div className="space-y-7">
       <section data-guia="pedidos.pendientes" className="space-y-3">
-        <TituloSeccion dato={<b>{pendientes.length}</b>}>Pendientes</TituloSeccion>
+        <TituloSeccion cuenta={pendientes.length}>Pendientes</TituloSeccion>
         {pendientes.length === 0 ? (
-          <p className="text-sm text-tinta/60">Ningún pedido pendiente en esta sede.</p>
+          <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<ClipboardList />}>Ningún pedido pendiente en esta sede.</Vacio>
         ) : (
           <ul className="divide-y divide-tinta/10 rounded-md border border-tinta/10">
             {pendientes.map((pedido) => (
@@ -52,7 +54,7 @@ export function PedidosNoAtendidosLista({ pedidos }: { pedidos: PedidoNoAtendido
 
       {resueltos.length > 0 && (
         <section data-guia="pedidos.resueltos" className="space-y-3">
-          <TituloSeccion dato={<b>{resueltos.length}</b>}>Resueltos</TituloSeccion>
+          <TituloSeccion cuenta={resueltos.length}>Resueltos</TituloSeccion>
           <ul className="divide-y divide-tinta/10 rounded-md border border-tinta/10 opacity-60">
             {resueltos.map((pedido) => (
               <FilaPedido key={pedido.id} pedido={pedido} resolviendo={false} onResolver={undefined} />

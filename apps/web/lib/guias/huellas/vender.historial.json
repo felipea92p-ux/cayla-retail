@@ -2,7 +2,7 @@
   "guia": "vender.historial",
   "ruta": "/vender/historial",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 41,
+  "total": 40,
   "controles": {
     "app/(app)/vender/historial/page.tsx": [
       "Link «Volver al período»",
@@ -40,7 +40,6 @@
       "Pastilla «Personalizado»",
       "Pastilla «{a.etiqueta}»",
       "button «historial.atajo-elegir»",
-      "a «Exportar»",
       "BotonFiltros «→() => setPanelAbierto((v) => !v)»",
       "CampoFecha «Desde»",
       "CampoFecha «Hasta»",

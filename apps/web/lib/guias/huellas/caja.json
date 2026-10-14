@@ -2,7 +2,7 @@
   "guia": "caja",
   "ruta": "/caja",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 106,
+  "total": 101,
   "controles": {
     "app/(app)/caja/page.tsx": [
       "BotonEnlace «caja.historial-todas»"
@@ -23,8 +23,7 @@
       "Boton «caja.ingreso»",
       "Boton «caja.historial»",
       "button «{texto}»",
-      "button «{METODO_RITMO[clave].texto}»",
-      "button «Ver los»"
+      "button «{METODO_RITMO[clave].texto}»"
     ],
     "components/CajaTablero.tsx": [
       "Link «{contenido}»",
@@ -37,9 +36,6 @@
       "button «{on ? <Check size={13}»",
       "button «Volver a lo predeterminado»",
       "Link «Ver»",
-      "Link «Ver todos →»",
-      "Link «Ver en Finanzas →»",
-      "Link «Ver posventa →»",
       "SegmentoDeslizante «(predeterminada)»",
       "Link «Ver historial completo»",
       "button «Volver a la predeterminada»"
@@ -106,7 +102,6 @@
       "button «Historial de cierres»",
       "button «Reintentar»",
       "button «{f.valor === \"falto\" ? \"caja.historial-falto\" : undefined}»",
-      "Link «Ver todas las sedes →»",
       "button «{`Ver el detalle del cierre del ${dia}»"
     ],
     "components/IngresoRapidoModal.tsx": [

@@ -2,7 +2,7 @@
   "guia": "inventario.conteo.id",
   "ruta": "/inventario/conteo/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 60,
+  "total": 58,
   "controles": {
     "app/(app)/inventario/conteo/[id]/page.tsx": [
       "Link «Contar todo»"
@@ -88,8 +88,6 @@
     "components/conteo/ResultadoConteo.tsx": [
       "Volver «:»",
       "Volver «(sin nombre)»",
-      "Link «Ver Existencias»",
-      "Link «Ver movimientos del conteo»",
       "Link «Míralas todas en Movimientos →»"
     ]
   }

@@ -97,7 +97,7 @@ export function ArbolCategoria({
             {elegida.prefijo && <p className="text-xs text-tinta/60">Código empieza con {elegida.prefijo}-</p>}
           </div>
         </div>
-        <button type="button" onClick={onCambiar} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
+        <button type="button" onClick={onCambiar} className="btn-cayla btn-enlace text-xs">
           Cambiar
         </button>
       </div>

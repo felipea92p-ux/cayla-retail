@@ -62,3 +62,17 @@ el `detalle` de la pieza), los buscadores y vacíos de Apartados (Apartar, Entre
 
 - **Análisis: «No pude ver tus prendas» no es un vacío sino una lectura que falló**: pasa a `<Aviso tono="error">`. Los casos buenos
   («Nada se está acabando», «Todo se mueve», «Todo salió al piso») se quedan como vacío con su ✓, en el color de la pieza (sin verde).
+
+## El censo de mostrador (2026-10-13): 49 frases grises que la firma no veía
+
+El censo de después con la cuenta del terminal de ventas (61 de 133 vistas) mostró en Caja seis formas de «vacío» que no eran la pieza. Rastreado
+al código, eran **frases grises sueltas** («Sin ventas todavía.», «Nada pendiente en esta sede.», «No hay tickets en espera.», «Ninguna cuenta
+tiene este rol todavía.»): la firma solo conocía unas clases exactas, y cada pantalla escribía la suya. Eran 49 en 40 archivos de todos los
+módulos (Caja, Compras, Vender, Historial, Clientes, Pedidos, las búsquedas, Inventario, Conteo, Catálogo, Producción, Roles, Finanzas y
+Rendimiento). Pasaron a `<Vacio tamano="chico">` con el ícono de lo que falta, el mismo texto y lo buscado en negrita; la página de Buscar, al
+vacío grande con su título. El pulso del Historial deja su recuadro punteado.
+
+**Firma nueva:** un `<p>` o `<div>` con texto gris (`tinta/40`–`/65` o `taupe`) que empieza por «Sin», «Ningún/a/o», «Nada», «Todavía no»,
+«No hay» o «Aún no», en su línea o en la siguiente (`ventana: 2`). «Nada se guarda todavía» explica, no es un vacío, y la firma lo deja
+pasar; las cuatro frases que explican algo sin decir «no hay» (sin internet al vender, sin pago al registrar una compra, de dónde sale el
+rendimiento de una orden, el descuento que aún no se aplica) llevan su `unificar-fijo`.

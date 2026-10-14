@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bandage, PencilLine, Truck, Warehouse } from "lucide-react";
+import { ArrowRight, Bandage, PencilLine, Truck, Warehouse, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { avisarDestacado } from "@/components/ui/AvisoDestacado";
@@ -54,6 +54,7 @@ import {
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
+import { Vacio } from "@/components/ui/Vacio";
 
 type Prenda = PrendaAgrupada<FilaExistencias>;
 
@@ -872,7 +873,11 @@ export function FlujoTalla({
           <>
             <Pregunta>¿A qué sede le pides?</Pregunta>
             <div className="grid gap-2">
-              {origenes.length === 0 && <p className="text-sm text-taupe">Ninguna otra tienda tiene esta talla.</p>}
+              {origenes.length === 0 && (
+                <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Store />}>
+                  Ninguna otra tienda tiene esta talla.
+                </Vacio>
+              )}
               {origenes.map((s) => (
                 <Opcion
                   key={s.id}

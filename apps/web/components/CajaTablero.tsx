@@ -46,6 +46,7 @@ import type { CierreCaja } from "@/lib/caja";
 import type { ContextoTableroCaja } from "@/lib/caja-tablero";
 import { TEXTO_MEDIO } from "@/lib/gastos-reglas";
 import { Vacio } from "@/components/ui/Vacio";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { BarraApilada } from "@/components/ui/BarraApilada";
 
 const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -106,7 +107,7 @@ export function TarjetaCobrado({ porMetodo, redondeo = 0, indice }: { porMetodo:
       <p className="label-cayla text-[11px] text-tinta/65">Cobrado en el turno</p>
       <p className="font-display mt-2.5 text-[32px] leading-none text-tinta tabular-nums lining-nums">{soles(c.total)}</p>
       {c.metodos.length === 0 ? (
-        <p className="mt-4 text-xs text-tinta/50">Sin ventas todavía.</p>
+        <Vacio tamano="chico" alinear="izquierda" className="mt-2 px-0" icono={<Wallet />}>Sin ventas todavía.</Vacio>
       ) : (
         <>
           {/* La barra es `<BarraApilada>` (ADR-0358): un tramo por método, con su token de color; decorativa, la leyenda de abajo ya dice los montos. */}
@@ -370,7 +371,6 @@ function CabeceraPanel({ titulo, bajada, derecha }: { titulo: string; bajada: st
   );
 }
 
-const enlaceVer = "label-cayla shrink-0 rounded-md px-2 py-1 text-[11px] text-taupe transition-colors hover:bg-sand/40 hover:text-tinta";
 const filaLista = "flex items-center justify-between gap-3 border-t border-sand py-2.5 text-[13px] first:border-t-0";
 
 function SinLectura() {
@@ -384,7 +384,7 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
       <div className="card-cayla anim-sube p-5">
         <CabeceraPanel titulo="Pendientes del turno" bajada="Resuélvelos antes de cerrar" derecha={total > 0 ? <Chip tono="ambar">{total}</Chip> : <Chip tono="verde">Al día</Chip>} />
         {contexto.pendientes.length === 0 ? (
-          <p className="py-3 text-xs text-tinta/50">Nada pendiente en esta sede.</p>
+          <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Check />}>Nada pendiente en esta sede.</Vacio>
         ) : (
           <div>
             {contexto.pendientes.map((p) => (
@@ -414,15 +414,13 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
           titulo="Apartados de la tienda"
           bajada={a ? `Saldo por cobrar ${soles(a.porCobrar)}` : "Separaciones de esta sede"}
           derecha={
-            <Link href="/vender/apartados" className={enlaceVer}>
-              Ver todos →
-            </Link>
+            <EnlaceVer href="/vender/apartados">Ver todos</EnlaceVer>
           }
         />
         {!a ? (
           <SinLectura />
         ) : a.lista.length === 0 ? (
-          <p className="py-3 text-xs text-tinta/50">No hay separaciones abiertas.</p>
+          <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Bookmark />}>No hay separaciones abiertas.</Vacio>
         ) : (
           <div>
             {a.lista.slice(0, 4).map((x) => (
@@ -455,15 +453,13 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
                 : `Salieron del cajón · ${soles(g.total)}`
           }
           derecha={
-            <Link href="/finanzas/gastos" className={enlaceVer}>
-              Ver en Finanzas →
-            </Link>
+            <EnlaceVer href="/finanzas/gastos">Ver en Finanzas</EnlaceVer>
           }
         />
         {!g ? (
           <SinLectura />
         ) : g.lista.length === 0 ? (
-          <p className="py-3 text-xs text-tinta/50">Todavía no hay gastos en este turno.</p>
+          <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Receipt />}>Todavía no hay gastos en este turno.</Vacio>
         ) : (
           <div>
             {g.lista.map((x) => (
@@ -490,15 +486,13 @@ function PanelElegido({ tarjeta, contexto }: { tarjeta: TarjetaCaja; contexto: C
         titulo="Cambios y devoluciones"
         bajada={p ? `En este turno · efectivo devuelto ${soles(p.efectivoDevuelto)}` : "Lo que pasó por esta caja"}
         derecha={
-          <Link href="/cambios" className={enlaceVer}>
-            Ver posventa →
-          </Link>
+          <EnlaceVer href="/cambios">Ver posventa</EnlaceVer>
         }
       />
       {!p ? (
         <SinLectura />
       ) : p.lista.length === 0 ? (
-        <p className="py-3 text-xs text-tinta/50">Ningún cambio ni devolución en este turno.</p>
+        <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<ArrowLeftRight />}>Ningún cambio ni devolución en este turno.</Vacio>
       ) : (
         <div>
           {p.lista.slice(0, 4).map((x) => (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, Layers } from "lucide-react";
+import { ChevronRight, Layers, ArrowLeftRight } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { Boton } from "@/components/ui/campos";
@@ -139,7 +139,7 @@ export function InsumosPanel({ datos, tallerId, esLider }: { datos: InsumosDelTa
             <TituloSeccion>Libro de movimientos</TituloSeccion>
             <p className="mb-2 text-xs text-tinta/65">Solo se agrega: nada se edita ni se borra.</p>
             {libro.length === 0 ? (
-              <p className="py-3 text-sm text-tinta/65">Todavía no se movió nada.</p>
+              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<ArrowLeftRight />}>Todavía no se movió nada.</Vacio>
             ) : (
               <ul className="divide-y divide-tinta/10">
                 {libro.map((m) => {
@@ -232,7 +232,7 @@ function FilaInsumo({
         <div className="min-h-0 overflow-hidden">
           <div className="border-t border-sand px-4 pb-3 pt-1.5">
             {lotes.length === 0 ? (
-              <p className="py-3 text-sm text-tinta/65">Todavía no hay lotes de este insumo.</p>
+              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Layers />}>Todavía no hay lotes de este insumo.</Vacio>
             ) : (
               <ul>
                 {lotes.map((l) => (

@@ -11,6 +11,8 @@ import { Boton } from "@/components/ui/campos";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { firmar } from "@/lib/responsable-reglas";
 import { firmaOmitida } from "@/lib/responsable-omitido";
+import { Paperclip } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Adjuntos de una factura de proveedor (20260914180000_compras_adjuntos.sql).
 // Dos piezas sobre el mismo <input type=file>:
@@ -185,7 +187,7 @@ export function AdjuntosDeFactura({
         {adjuntos.some((a) => a.url === null) && <span className="text-xs text-tinta/45">Sin acceso al almacén de archivos ahora</span>}
       </div>
       <div className="card-cayla divide-y divide-tinta/10">
-        {adjuntos.length === 0 && <p className="px-5 py-4 text-sm text-tinta/65">Sin documentos adjuntos.</p>}
+        {adjuntos.length === 0 && <Vacio tamano="chico" alinear="izquierda" className="px-5" icono={<Paperclip />}>Sin documentos adjuntos.</Vacio>}
         {adjuntos.map((a) => (
           <div key={a.id} className="flex items-center gap-3 px-5 py-2.5">
             <IconoTipo tipo={a.tipo} />

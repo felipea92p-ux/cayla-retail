@@ -85,7 +85,7 @@ function Lista({
   return (
     <section className="card-cayla overflow-hidden" aria-label={titulo}>
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-tinta/10 px-4 py-3 sm:px-5">
-        <TituloSeccion dato={<b>{lineas.length}</b>}>{titulo}</TituloSeccion>
+        <TituloSeccion cuenta={lineas.length}>{titulo}</TituloSeccion>
         <p className="text-xs text-taupe">{ayuda}</p>
       </header>
       <ul className="divide-y divide-tinta/10">

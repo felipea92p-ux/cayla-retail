@@ -2,9 +2,8 @@
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
-import { Check, ChevronRight, Info, Shirt, Truck, X } from "lucide-react";
+import { Check, ChevronRight, Info, Truck, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { leerCostosAtipicos, type CostoAtipico } from "@/lib/costo-atipico-reglas";
@@ -18,7 +17,7 @@ import { avisoConteoGuardado, avisoConteoRetomado, envioContado, mensajeDeSalida
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { usePistola } from "@/components/ui/usePistola";
-import { Boton, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto, Desplegable, Interruptor } from "@/components/ui/campos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
@@ -75,6 +74,9 @@ import {
 } from "@/lib/envio-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
+import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
+import type { FilaConCategoria } from "@/lib/categoria-de-prenda";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Lo que llega a la puerta es un envío —una agencia, una guía,
@@ -115,7 +117,7 @@ type Variante = {
   colorHex?: string | null;
   /** La foto de la prenda en ESE color (`producto_fotos`); `null` = sin foto. */
   fotoUrl?: string | null;
-};
+} & FilaConCategoria;
 type Ubicacion = { id: string; nombre: string };
 type Proveedor = { id: string; nombre: string };
 
@@ -827,7 +829,7 @@ export function RecepcionEnvio({
               al pasar el mouse o enfocar. Enter salta a la siguiente prenda. */}
           <div className={`grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2.5 @[46rem]:gap-x-3 ${PLANTILLA_LINEA}`}>
             <span className="col-span-2 flex min-w-0 items-center gap-3 @[46rem]:col-span-1">
-              <Miniatura hex={variantePorId.get(l.varianteId)?.colorHex ?? null} fotoUrl={variantePorId.get(l.varianteId)?.fotoUrl ?? null} />
+              <Miniatura variante={variantePorId.get(l.varianteId)} />
               <span className="min-w-0 text-sm text-tinta">
                 <span className="block truncate font-medium @[46rem]:font-normal">{l.referencia}</span>
                 <span className="block truncate text-xs text-tinta/55">
@@ -1023,7 +1025,7 @@ export function RecepcionEnvio({
               </span>
             ) : (
               nAtrasadas > 0 && (
-                <button type="button" onClick={marcarAtrasadas} className="btn-cayla btn-enlace whitespace-nowrap text-xs">
+                <button type="button" onClick={marcarAtrasadas} className="btn-cayla btn-sutil btn-chico whitespace-nowrap">
                   Marcar las {nAtrasadas} atrasadas
                 </button>
               )
@@ -1166,15 +1168,9 @@ export function RecepcionEnvio({
                   <p className="label-cayla text-[10.5px] text-tinta/55">Comprobantes de este envío</p>
                   {comprasSinMarcar.length > 0 && (
                     <div ref={menuRef} className="relative">
-                      <button
-                        type="button"
-                        aria-expanded={menuAgregar}
-                        aria-haspopup="menu"
-                        onClick={() => setMenuAgregar((v) => !v)}
-                        className="inline-flex items-center gap-1.5 rounded-[10px] border border-dashed border-tinta/25 px-3 py-1.5 text-[12.5px] text-tinta/65 transition-colors hover:border-rojo hover:text-rojo"
-                      >
+                      <Boton type="button" peso="discreto" aria-expanded={menuAgregar} aria-haspopup="menu" onClick={() => setMenuAgregar((v) => !v)} className="btn-chico">
                         + Agregar comprobante
-                      </button>
+                      </Boton>
                       {menuAgregar && (
                         <div role="menu" className="anim-revelar absolute right-0 top-[calc(100%+6px)] z-10 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-sand bg-papel">
                           {comprasSinMarcar.map((c) => {
@@ -1247,6 +1243,7 @@ export function RecepcionEnvio({
                           valor={escaneo}
                           onCambio={setEscaneo}
                           icono="barras"
+                          {...ariaDelBuscador("recepcion-sugerencias", verSugerencias && sugerencias.length > 0, 0)}
                           onFocus={() => setVerSugerencias(true)}
                           onBlur={() => setVerSugerencias(false)}
                           onKeyDown={(e) => {
@@ -1261,25 +1258,22 @@ export function RecepcionEnvio({
                           etiqueta="Escanear una prenda: suma 1 al comprobante que la trae"
                         />
                         {verSugerencias && sugerencias.length > 0 && (
-                          <div role="listbox" aria-label="Prendas que coinciden" className="anim-revelar absolute inset-x-0 top-[calc(100%+6px)] z-10 overflow-hidden rounded-xl border border-sand bg-papel">
-                            {sugerencias.map((l, i) => (
-                              <button
-                                key={l.varianteId}
-                                type="button"
-                                role="option"
-                                aria-selected={i === 0}
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => escanear(l.sku)}
-                                className={`flex w-full items-center justify-between gap-3 border-t border-tinta/10 px-3 py-2 text-left text-[13px] first:border-t-0 hover:bg-tinta/[0.04] ${i === 0 ? "bg-tinta/[0.03]" : ""}`}
-                              >
-                                <span className="min-w-0 truncate text-tinta">
-                                  {l.referencia} {[l.talla, l.color].filter(Boolean).join(" / ")}
-                                  <small className="text-tinta/55"> · {l.sku}</small>
-                                </span>
-                                <small className="shrink-0 text-tinta/55">{documentoDe(l)}</small>
-                              </button>
-                            ))}
-                          </div>
+                          // La lista de sugerencias del sistema (ADR-0358, ronda 9): la miniatura de la prenda, su código y la factura que
+                          // la trae. El Enter toma la primera (si lo escrito no es un código exacto), así que la activa es siempre la primera.
+                          <ListaSugerencias
+                            id="recepcion-sugerencias"
+                            etiqueta="Prendas que coinciden"
+                            // Más ancha que el escáner (que vive a la derecha), para que se lean el código y la factura enteros.
+                            className="absolute right-0 top-[calc(100%+6px)] z-10 w-[min(30rem,calc(100vw-2rem))]"
+                            sugerencias={sugerencias.map((l) => ({
+                              clave: l.varianteId,
+                              miniatura: <MiniaturaPrenda fotoUrl={l.fotoUrl ?? null} colorHex={l.colorHex ?? null} {...categoriaDe(l)} />,
+                              titulo: l.referencia,
+                              detalle: [l.talla, l.color, l.sku].filter(Boolean).join(" · "),
+                              derecha: documentoDe(l),
+                            }))}
+                            onElegir={(i) => escanear(sugerencias[i].sku)}
+                          />
                         )}
                       </div>
                     </div>
@@ -1298,7 +1292,7 @@ export function RecepcionEnvio({
                       </button>
                     )}
                     {ultimaLectura.agregar && (
-                      <button type="button" onClick={agregarYReleer} className="btn-cayla btn-enlace text-xs">
+                      <button type="button" onClick={agregarYReleer} className="btn-cayla btn-sutil btn-chico">
                         Agregar {ultimaLectura.agregar.documento} al envío
                       </button>
                     )}
@@ -1484,11 +1478,14 @@ export function RecepcionEnvio({
                                 marcador="Proveedor…"
                               />
                             </div>
-                            <label className="flex shrink-0 cursor-pointer items-center gap-2 pb-2 text-sm text-tinta/75">
-                              <input type="checkbox" checked={ex.esRegalo} onChange={(e) => actualizarExtra(i, { esRegalo: e.target.checked, costoUnitario: e.target.checked ? "" : ex.costoUnitario })} className="peer sr-only" />
-                              <span aria-hidden className="relative h-[18px] w-8 rounded-full bg-tinta/25 transition-colors duration-200 after:absolute after:left-0.5 after:top-0.5 after:h-3.5 after:w-3.5 after:rounded-full after:bg-papel after:transition-transform after:duration-[260ms] after:ease-cayla peer-checked:bg-tinta peer-checked:after:translate-x-3.5 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-rojo" />
-                              Es un regalo
-                            </label>
+                            {/* El interruptor del sistema (ADR-0358, ronda 6): se prende en tinta y la perilla se estira al presionar. */}
+                            <div className="shrink-0 pb-2">
+                              <Interruptor
+                                activo={ex.esRegalo}
+                                onActivo={(v) => actualizarExtra(i, { esRegalo: v, costoUnitario: v ? "" : ex.costoUnitario })}
+                                etiqueta="Es un regalo"
+                              />
+                            </div>
                             <input
                               type="number"
                               min={0}
@@ -1511,9 +1508,9 @@ export function RecepcionEnvio({
                           </div>
                         );
                       })}
-                      <button type="button" onClick={agregarExtra} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
+                      <Boton type="button" peso="discreto" onClick={agregarExtra} className="btn-chico self-start">
                         + Agregar prenda fuera de comprobante
-                      </button>
+                      </Boton>
                     </div>
 
                     {/* ADR-0299: lo que manda otra sede de CAYLA no se recibe en este envío. Se cuenta y se confirma en Traslados
@@ -1598,7 +1595,7 @@ export function RecepcionEnvio({
                   <span key="dec" className="anim-revelar flex flex-wrap items-center gap-x-2 text-xs text-ambar-profundo">
                     <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
                     {porDecidir.length === 1 ? "1 fila llegó con faltante y falta decidir qué pasó" : `${porDecidir.length} filas llegaron con faltante y falta decidir qué pasó`}.
-                    <button type="button" onClick={esperarTodas} className="btn-cayla btn-enlace text-xs">
+                    <button type="button" onClick={esperarTodas} className="btn-cayla btn-sutil btn-chico">
                       Los espero todas
                     </button>
                   </span>
@@ -1722,19 +1719,12 @@ export function RecepcionEnvio({
   );
 }
 
-// La prenda: su foto si la hay; si no, su color real (`retail.colores.hex`) con la prenda genérica, para distinguir una blusa negra de una beige sin leer. Sin hex, arena.
-function Miniatura({ hex, fotoUrl = null }: { hex: string | null; fotoUrl?: string | null }) {
-  // Con foto, la foto (quien cuenta compara la prenda con lo que tiene en la mano); sin ella, el color real con la prenda genérica.
-  if (fotoUrl) return <Image src={fotoUrl} alt="" width={40} height={40} unoptimized className="h-10 w-10 shrink-0 rounded-[10px] border border-tinta/10 object-cover transition-transform duration-[260ms] ease-cayla group-hover:scale-105" />;
-  const n = hex && /^#[0-9a-f]{6}$/i.test(hex) ? parseInt(hex.slice(1), 16) : null;
-  const claro = n === null ? true : (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255 > 0.55;
+// La prenda: su foto o, sin foto, el ícono de su categoría sobre su color real (`MiniaturaPrenda`, ADR-0333; antes, una camisa genérica):
+// distingue una blusa negra de una beige sin leer. Crece un poco al pasar el mouse por la fila, como antes.
+function Miniatura({ variante }: { variante: Variante | undefined }) {
   return (
-    <span
-      aria-hidden
-      className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border border-tinta/10 bg-sand transition-transform duration-[260ms] ease-cayla group-hover:scale-105"
-      style={n === null ? undefined : { background: hex! }}
-    >
-      <Shirt className={`h-5 w-5 ${claro ? "text-tinta/40" : "text-crema/75"}`} />
+    <span className="shrink-0 transition-transform duration-[260ms] ease-cayla group-hover:scale-105">
+      <MiniaturaPrenda fotoUrl={variante?.fotoUrl ?? null} colorHex={variante?.colorHex ?? null} tamano="md" {...categoriaDe(variante)} />
     </span>
   );
 }

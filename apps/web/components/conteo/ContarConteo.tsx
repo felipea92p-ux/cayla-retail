@@ -2,7 +2,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Clock, Info, ScanBarcode, UserRound, X } from "lucide-react";
+import { Camera, Clock, Info, ScanBarcode, UserRound, X, ScanLine, SearchX } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { EscanerConteo, type LecturaConteo } from "@/components/EscanerConteo";
 import { AltaAlVuelo } from "@/components/conteo/AltaAlVuelo";
@@ -40,6 +40,7 @@ import { avisarLectura } from "@/lib/sonido-conteo";
 import { createClient } from "@/lib/supabase/client";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { claveResponsableConteo } from "@/lib/responsable-conteo";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    ContarConteo · la pantalla donde se cuenta (Inventario ▸ Conteo ▸ Contar, rediseño 2026-09-29)
@@ -631,9 +632,17 @@ export function ContarConteo({ detalle, catalogo, soloVariantes, generadoEn, cat
         </div>
 
         {!hayVariantes ? (
-          <p className="card-cayla px-5 py-6 text-sm text-taupe">No hay variantes registradas en esta ubicación. Escanea una para agregarla al conteo.</p>
+          <div className="card-cayla">
+            <Vacio tamano="chico" alinear="izquierda" className="px-5 py-5" icono={<ScanLine />}>
+              No hay variantes registradas en esta ubicación. Escanea una para agregarla al conteo.
+            </Vacio>
+          </div>
         ) : vaciaPorAcotar ? (
-          <p className="card-cayla px-5 py-6 text-sm text-taupe">Ninguna de las variantes pedidas está en este conteo. Escanea la prenda para agregarla.</p>
+          <div className="card-cayla">
+            <Vacio tamano="chico" alinear="izquierda" className="px-5 py-5" icono={<ScanLine />}>
+              Ninguna de las variantes pedidas está en este conteo. Escanea la prenda para agregarla.
+            </Vacio>
+          </div>
         ) : (
           <>
             {nCoincidencias === 0 && (
@@ -828,7 +837,9 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
 function SinCoincidencias({ texto, sugeridas, alSumar }: { texto: string; sugeridas: PrendaConteo[]; alSumar: (p: PrendaConteo) => void }) {
   return (
     <div className="card-cayla space-y-3 px-5 py-6">
-      <p className="text-sm text-taupe">Ninguna variante coincide con «{texto}».</p>
+      <Vacio tamano="chico" alinear="izquierda" className="p-0" icono={<SearchX />}>
+        Ninguna variante coincide con <b>«{texto}»</b>.
+      </Vacio>
       {sugeridas.length > 0 && (
         <div className="space-y-2 rounded-xl border border-sand bg-papel px-3.5 py-3 text-sm text-tinta">
           <p>No estaba en la lista de este conteo. ¿Es alguna de estas?</p>

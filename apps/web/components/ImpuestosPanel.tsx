@@ -32,6 +32,7 @@ import {
 } from "@/lib/impuestos-reglas";
 import { Vacio } from "@/components/ui/Vacio";
 import { Settings2 } from "lucide-react";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 // Finanzas ▸ Impuestos (ADR-0195 F8), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/, `vista-impuestos.js`):
 // cabecera con «CAYLA entera» y las descargas → cuatro cifras → el límite del régimen y lo que conviene revisar → los
@@ -376,9 +377,9 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
               <p>{p.detalle}</p>
             </div>
             {p.accion ? (
-              <Link href={p.accion.href} className="btn-cayla btn-sutil btn-chico">
+              <BotonVer href={p.accion.href} chico>
                 {p.accion.texto}
-              </Link>
+              </BotonVer>
             ) : (
               <span />
             )}
