@@ -5,9 +5,9 @@
   "total": 15,
   "controles": {
     "components/ResumenProduccionPanel.tsx": [
-      "Pestanas «Producción»",
       "BotonEnlace «Ver órdenes»",
       "BotonEnlace «+ Nueva orden»",
+      "Pestanas «0 ? \"ambar\" : \"verde\"»",
       "Link «{d.accion.texto}»",
       "Link «{o.cantidad}»",
       "Link «Cárgalas en Insumos»"

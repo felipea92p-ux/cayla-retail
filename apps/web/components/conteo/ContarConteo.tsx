@@ -910,7 +910,7 @@ function PieContar({
           lateral={
             // Discreto: la ÚNICA confirmación por lectura. Sin modales ni avisos flotantes.
             <span role="status" aria-live="polite" className="inline-block min-w-[5.5rem] text-right">
-              {guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "✓ Guardado" : null}
+              {guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "✓ Guardado" : null /* unificar-fijo: el estado de la planilla mientras se guarda sola, no un botón */}
             </span>
           }
         />

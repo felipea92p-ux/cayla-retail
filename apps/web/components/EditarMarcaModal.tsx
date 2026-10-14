@@ -107,7 +107,7 @@ export function EditarMarcaModal({
   const accion = "label-cayla shrink-0 text-[10.5px] text-tinta/60 underline underline-offset-4 hover:text-rojo";
 
   return (
-    <Modal titulo="Editar marca" subtitulo={marca.nombre} onClose={onClose} ancho="max-w-lg">
+    <Modal titulo="Editar marca" subtitulo={marca.nombre} onClose={onClose} tamano="mediana">
       {(cerrar) => (
         <div data-guia="marcas.form" className="mt-4 space-y-4">
           <CampoGuiado id="nombre" guia={guia}>
@@ -224,7 +224,7 @@ export function EditarMarcaModal({
               Cancelar
             </Boton>
             <Boton peso="primario" onClick={() => void guardar(cerrar)} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Guardando…" : "Guardar"}
+              Guardar
             </Boton>
           </div>
         </div>

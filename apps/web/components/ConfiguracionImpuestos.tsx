@@ -27,6 +27,7 @@ import {
   type ParametroFila,
   type Regimen,
 } from "@/lib/impuestos-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Impuestos (ADR-0195 F8), dibujada como el spike (docs/maquetas/finanzas-2026-09/, `cfgImpuestos`): la
 // tasa de IGV con sus vigencias, la UIT de cada año y —lo que el spike dejaba para cuando el contador confirme— el
@@ -398,7 +399,7 @@ function NuevaVigencia({
     { id: "responsable", nombre: "Quién hace el cambio", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién hace el cambio." },
   ]);
   return (
-    <Modal variante="hoja" titulo={h.titulo} subtitulo={h.subtitulo} onClose={onCerrar} ancho="max-w-[480px]">
+    <Modal variante="hoja" titulo={h.titulo} subtitulo={h.subtitulo} onClose={onCerrar}>
       <div className="fin-dos-campos" data-guia="config.nueva-tasa-campos">
         <CampoGuiado id="desde" guia={guia}>
           <CampoFin etiqueta="Desde" htmlFor="vigencia-desde">
@@ -419,17 +420,16 @@ function NuevaVigencia({
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar}>
           Cancelar
         </button>
-        <button
+        <Boton peso="primario" cargando={guardando}
           type="button"
-          className="btn-cayla btn-primario"
           disabled={!listo || guardando || !responsable.listo}
           onClick={async () => {
             if (!v.ok) return;
             if (await guardar(nombre, desde, v.valor, null, h.listo(desde, valor))) onCerrar();
           }}
         >
-          {guardando ? "Guardando…" : "Agregar"}
-        </button>
+          Agregar
+        </Boton>
       </div>
     </Modal>
   );

@@ -560,7 +560,6 @@ function ModalFecha({
     <Modal
       titulo={`Cambiar el inicio de ${nombre}`}
       subtitulo={`Fecha guardada: ${textoInstanteLima(evento.inicio)} (${NOMBRE_FUENTE[evento.fuente]}).`}
-      ancho="max-w-md"
       onClose={onClose}
       bloqueado={guardando}
     >
@@ -673,7 +672,6 @@ function ModalAnio({
     <Modal
       titulo={`Agregar el calendario de ${anio}`}
       subtitulo="Vienen con una fecha aproximada, a mediodía. Si tienes las horas de SENAMHI (o del Observatorio Naval de EE. UU. mientras SENAMHI no publique), cópialas y marca de dónde salen."
-      ancho="max-w-md"
       onClose={onClose}
       bloqueado={guardando}
     >

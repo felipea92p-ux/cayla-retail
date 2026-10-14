@@ -147,7 +147,7 @@ export function HacerAhora({
 
   if (atipicos) {
     return (
-      <Modal titulo="Hay un costo fuera de lo normal" onClose={() => setAtipicos(null)} conCerrar bloqueado={guardando} ancho="max-w-lg">
+      <Modal titulo="Hay un costo fuera de lo normal" onClose={() => setAtipicos(null)} bloqueado={guardando} tamano="mediana">
         <AvisoCostoAtipico
           costos={atipicosPorLinea(atipicos.costos)}
           pie="El costo con el que se cerró esta línea no se parece al de la prenda. Si está bien, confírmalo: el costo de la prenda se promedia con él."
@@ -294,7 +294,7 @@ function SepararAhora({
   ];
   const guia = useGuiaCampos(campos);
   return (
-    <Modal titulo={`Separar ${textoPrendas(item.cantidad)}`} subtitulo={`${item.sub}. Busca cada prenda por su nombre; lo que no esté en el catálogo, como nuevas.`} ancho="max-w-2xl" bloqueado={guardando} conCerrar onClose={onCerrar}>
+    <Modal titulo={`Separar ${textoPrendas(item.cantidad)}`} subtitulo={`${item.sub}. Busca cada prenda por su nombre; lo que no esté en el catálogo, como nuevas.`} tamano="ancha" bloqueado={guardando} onClose={onCerrar}>
       {(cerrar) => (
         <form
           noValidate
@@ -326,7 +326,7 @@ function SepararAhora({
                   Cancelar
                 </Boton>
                 <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-                  {guardando ? "Guardando…" : "Guardar"}
+                  Guardar
                 </Boton>
               </div>
             </div>

@@ -12,6 +12,7 @@ import type { EstadoPlanilla } from "@/lib/eficiencia";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Encabezado, Tabla, celda, fila, type Columna } from "@/components/ui/Tabla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Eficiencia del Taller (ADR-0133, F7; D-31 y D-33). «Cuánto cuesta de verdad cada prenda que sale del Taller»: materiales de lo que cerró + conversión (la
 // planilla de Dynamic y los gastos generales, repartidos entre las prendas buenas). El período es el de la planilla (29 al 28). Sin planilla visible NO se
@@ -39,7 +40,18 @@ function Variacion({ actual, anterior }: { actual: number | null; anterior: numb
   return <>{v > 0 ? "▲" : "▼"} {pct(Math.abs(v))} {v > 0 ? "más" : "menos"} que el período anterior</>;
 }
 
-export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: { periodos: EficienciaPeriodo[]; estadoPlanilla: EstadoPlanilla; hayGastos: boolean }) {
+export function EficienciaTallerPanel({
+  periodos,
+  estadoPlanilla,
+  hayGastos,
+  sede,
+}: {
+  periodos: EficienciaPeriodo[];
+  estadoPlanilla: EstadoPlanilla;
+  hayGastos: boolean;
+  /** La sede de la línea de arriba de la cabecera (el Taller). */
+  sede: string;
+}) {
   const [clave, setClave] = useState(periodos[0]?.ventana.clave ?? "");
   const i = Math.max(0, periodos.findIndex((p) => p.ventana.clave === clave));
   const actual = periodos[i];
@@ -48,6 +60,13 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
 
   return (
     <div className="space-y-6">
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). Eficiencia es una pestaña del Resumen, no una fila
+          del menú: su título es el de la pantalla y lo suyo va en la frase. */}
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Eficiencia del Taller"
+        subtitulo="Cuánto cuesta de verdad cada prenda que sale del Taller: la tela, los avíos y la maquila de lo que cerró, más lo que cuesta transformarlo —la planilla y los gastos del Taller— repartido entre las prendas buenas."
+      />
       {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
           (ADR-0358). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
       <Pestanas
@@ -60,13 +79,6 @@ export function EficienciaTallerPanel({ periodos, estadoPlanilla, hayGastos }: {
           { clave: "eficiencia", etiqueta: "Eficiencia", href: "/produccion/eficiencia", ayuda: "Cuánto cuesta cada prenda" },
         ]}
       />
-      <div className="anim-entra">
-        <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Eficiencia del Taller</h1>
-        <p className="mt-1 max-w-2xl text-sm text-tinta/65">
-          Cuánto cuesta de verdad cada prenda que sale del Taller: la tela, los avíos y la maquila de lo que cerró, más lo que cuesta transformarlo —la planilla y los gastos del Taller— repartido entre las prendas buenas.
-        </p>
-      </div>
 
       {estadoPlanilla === "sin_vista" && (
         <p data-guia="prod-eficiencia.aviso-planilla" className="rounded-md bg-sand/60 px-3 py-2.5 text-sm text-tinta/80">

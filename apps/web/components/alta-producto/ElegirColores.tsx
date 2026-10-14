@@ -172,7 +172,7 @@ export function ElegirColores({
       {/* «+ Nuevo color» es un modal (Felipe, 2026-10-02): el formulario en línea empujaba la carta hacia abajo y, con ella abierta,
           quedaba lejos del botón. Cinco datos (nombre, tono, familia, código y su aviso de parecidos) merecen su propia hoja. */}
       {nuevo && (
-        <Modal variante="hoja" ancho="max-w-[680px]" titulo="Nuevo color" subtitulo="Queda en el catálogo y se elige en esta prenda." onClose={() => setNuevo(null)}>
+        <Modal variante="hoja" tamano="ancha" titulo="Nuevo color" subtitulo="Queda en el catálogo y se elige en esta prenda." onClose={() => setNuevo(null)}>
           {(cerrar) => (
             <NuevoColorAlta
               key={nuevo.vez}

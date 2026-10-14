@@ -15,19 +15,19 @@
       "button «revisada»",
       "button «Revisada»",
       "button «Anular este saldo…»",
-      "button «{guardando ? \"Guardando…\" : \"Anotar\"}»",
+      "Boton «Anotar»",
       "button «{fechaCorta(h.fecha, true)}»",
       "button «Conciliar»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «{guardando ? \"Registrando…\" : \"Registrar\"}»",
+      "Boton «Registrar»",
       "button «Anular…»",
       "ComboResponsable «Volver»",
       "button «Volver»",
-      "button «{guardando ? \"Anulando…\" : accion}»"
+      "Boton «{accion}»"
     ],
     "components/finanzas/PagosSinCuenta.tsx": [
-      "button «{guardando === p.clave ? \"Guardando…\" : \"Guardar\"}»",
+      "Boton «Guardar»",
       "ComboResponsable «);»"
     ]
   }

@@ -536,7 +536,6 @@ export function EtiquetasLista({
         <Modal
           titulo={`${verboAprobacion(aprobandoEtiqueta.estado)} «${aprobandoEtiqueta.nombre}»`}
           subtitulo={AYUDA_COMENTARIO_APROBAR}
-          ancho="max-w-sm"
           onClose={() => setAprobandoAbierto(null)}
         >
           {(cerrar) => (
@@ -562,7 +561,7 @@ export function EtiquetasLista({
       )}
 
       {rechazandoEtiqueta && (
-        <Modal titulo={`Rechazar «${rechazandoEtiqueta.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+        <Modal titulo={`Rechazar «${rechazandoEtiqueta.nombre}»`} onClose={() => setRechazandoAbierto(null)}>
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
@@ -672,7 +671,7 @@ function CampanaModal({
   }
 
   return (
-    <Modal titulo={`Campaña «${etiqueta.nombre}»`} ancho="max-w-md" onClose={onClose}>
+    <Modal titulo={`Campaña «${etiqueta.nombre}»`} onClose={onClose}>
       {(cerrar) => (
         <div data-guia="atributos.campana-form" className="mt-5 space-y-5">
           <CampoGuiado id="descuento" guia={guia}>
@@ -800,7 +799,7 @@ function NuevaEtiquetaModal({
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: responsable.listo, pendiente: "Elige quién registra." },
   ]);
   return (
-    <Modal titulo="Nueva etiqueta" subtitulo="Queda disponible de inmediato para cualquier variante." ancho="max-w-sm" onClose={onClose}>
+    <Modal titulo="Nueva etiqueta" subtitulo="Queda disponible de inmediato para cualquier variante." onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <CampoGuiado id="nombre" guia={guia}>

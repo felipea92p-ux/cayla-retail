@@ -28,7 +28,7 @@ import { ICONO_DEL_ACCESO, TRAZOS_MENU } from "@/lib/menu-iconos";
 import { formatoSoles } from "@/lib/resumen-formato";
 import { contarVencidas } from "@/lib/por-regularizar";
 import { contarComprobantesAtascados } from "@/lib/comprobantes";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { AjustarInicio } from "@/components/inicio/AjustarInicio";
 import { InicioAlmacen } from "@/components/inicio-almacen/InicioAlmacen";
 import { accesosAlmacen, esPerfilAlmacen, fuentesDeAlmacen } from "@/lib/inicio-almacen-reglas";
@@ -160,7 +160,6 @@ export default async function InicioPage() {
         : persona.ubicacionTipo === "taller"
           ? "Taller"
           : "Integrante";
-  const fecha = new Intl.DateTimeFormat("es-PE", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Lima" }).format(new Date());
 
   const ajustar =
     avisos.length > 0 ? (
@@ -176,7 +175,7 @@ export default async function InicioPage() {
   if (datosAlmacen) {
     return (
       <div className="space-y-6 pb-24 sm:pb-0">
-        <CabeceraPantalla sobretitulo={fecha} titulo={saludo} bajada={`${etiquetaRol} · ${persona.ubicacionEtiqueta}`} />
+        <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo={saludo} subtitulo={etiquetaRol} />
         <InicioAlmacen
           datos={datosAlmacen}
           visibles={visibles}
@@ -201,10 +200,11 @@ export default async function InicioPage() {
 
   return (
     <div className={`space-y-6 ${fijo ? "pb-24 sm:pb-0" : ""}`}>
-      <CabeceraPantalla
-        sobretitulo={fecha}
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): la sede y la fecha arriba, el saludo de título. */}
+      <EncabezadoPagina
+        sede={persona.ubicacionEtiqueta}
         titulo={saludo}
-        bajada={`${etiquetaRol} · ${persona.ubicacionEtiqueta}`}
+        subtitulo={etiquetaRol}
         acciones={
           vende ? (
             <Link href="/vender" className="btn-cayla btn-primario hidden items-center gap-2 sm:inline-flex" data-guia="inicio.vender">

@@ -21,7 +21,7 @@
     ],
     "components/rendimiento/PanelRendimiento.tsx": [
       "button «{v.etiqueta}»",
-      "BotonCompacto «{permiso.puede ? \"rendimiento.meta-boton\" : undefined}»",
+      "LapizEditar «{permiso.puede ? undefined : permiso.motivo}»",
       "button «Ordenar por esta columna»"
     ]
   }

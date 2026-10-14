@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ListChecks, Minus, Pencil, Plus, Sparkles, X } from "lucide-react";
+import { ListChecks, Minus, Plus, Sparkles, X } from "lucide-react";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Chip } from "@/components/ui/Chip";
@@ -178,12 +179,7 @@ export function SepararPrendas({
           </span>
           <span className="rc-fila-fin">
             {nuevas > 0 && !enHacerAhora && (
-              <Boton type="button" peso="discreto" onClick={() => setDescribiendo(true)}>
-                <span className="inline-flex items-center gap-1.5">
-                  <Pencil aria-hidden className="h-4 w-4" />
-                  Describir ahora
-                </span>
-              </Boton>
+              <BotonEditar onClick={() => setDescribiendo(true)}>Describir ahora</BotonEditar>
             )}
             {nuevas > 0 ? <Chip tono="pizarra">Por crear</Chip> : <Chip tono="neutro">Ninguna</Chip>}
             <PasoCantidad valor={nuevas} etiqueta="nuevas" onValor={(n) => onSeparado(cambiarNuevasSinDescribir(separado, n))} />

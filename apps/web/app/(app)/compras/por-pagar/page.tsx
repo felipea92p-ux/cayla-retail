@@ -21,6 +21,7 @@ import type { DatosPagoProveedor } from "@/components/PagoJuntosModal";
 import { CircleCheck, FunnelX, SearchX } from "lucide-react";
 import { BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Por pagar (ADR-0035, rediseño ADR-0111): los comprobantes vigentes con saldo, de lo más urgente
 // a lo que puede esperar. Sale del índice parcial `compras_por_pagar_idx`, que solo contiene lo
@@ -130,13 +131,11 @@ export default async function PorPagarPage({ searchParams }: { searchParams: Pro
   return (
     <PorPagarProvider agruparInicial={agrupar}>
       <div className="space-y-6">
-        <div data-voz="cabecera" {...entra(0)}>
-          <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Por pagar</h1>
-          <p className="mt-1 text-sm text-tinta/65">
-            Lo que se debe a proveedores, de lo más urgente a lo que puede esperar. Se paga desde cada fila, o varios comprobantes del mismo proveedor juntos.
-          </p>
-        </div>
+        <EncabezadoPagina
+          sede="Todas las tiendas"
+          titulo="Por pagar"
+          subtitulo="Lo que se debe a proveedores, de lo más urgente a lo que puede esperar. Se paga desde cada fila, o varios comprobantes del mismo proveedor juntos."
+        />
 
         {/* Cuatro cifras, todas con acción. `grid-cols-2` también en celular: con las tarjetas
             apiladas a ancho completo la lista —lo que se vino a ver— quedaba a ~830 px de scroll.

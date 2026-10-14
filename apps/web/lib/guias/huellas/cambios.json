@@ -2,7 +2,7 @@
   "guia": "cambios",
   "ruta": "/cambios",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 38,
+  "total": 39,
   "controles": {
     "components/BuscadorVentas.tsx": [
       "button «Buscar»",
@@ -26,6 +26,7 @@
     ],
     "components/CambioTicket.tsx": [
       "a «(sin nombre)»",
+      "BotonImprimir «Imprimir ticket»",
       "Link «Se lleva algo más: seguir vendiendo»",
       "button «Nuevo cambio»"
     ],
@@ -60,7 +61,7 @@
       "button «{children}» #2"
     ],
     "components/punto-de-venta/AnotarNoHabia.tsx": [
-      "button «→anotar»",
+      "Boton «→anotar»",
       "button «{t}»",
       "ComboResponsable «(sin nombre)»"
     ]

@@ -524,7 +524,7 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
 
   if (anulando) {
     return (
-      <Modal variante="hoja" titulo="Anular gasto" subtitulo={`No se borra: queda a la vista como anulado, con el motivo y quién lo hizo.${g.cajaMovimientoId ? " Si salió de un cajón, la plata no vuelve sola: se corrige en la caja." : ""}`} onClose={onCerrar} ancho="max-w-[520px]">
+      <Modal variante="hoja" titulo="Anular gasto" subtitulo={`No se borra: queda a la vista como anulado, con el motivo y quién lo hizo.${g.cajaMovimientoId ? " Si salió de un cajón, la plata no vuelve sola: se corrige en la caja." : ""}`} onClose={onCerrar} tamano="mediana">
         <CampoFin etiqueta="Motivo" htmlFor="anular-motivo">
           <InputFin id="anular-motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder="Ej. se registró dos veces" />
         </CampoFin>
@@ -533,9 +533,9 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
           <button type="button" className="btn-cayla btn-secundario" onClick={() => setAnulando(false)} disabled={guardando}>
             Volver
           </button>
-          <button type="button" className="btn-cayla btn-primario" onClick={anular} disabled={guardando || !responsable.listo}>
-            {guardando ? "Anulando…" : "Anular gasto"}
-          </button>
+          <Boton peso="primario" cargando={guardando} textoCargando="Anulando…" type="button" onClick={anular} disabled={guardando || !responsable.listo}>
+            Anular gasto
+          </Boton>
         </div>
       </Modal>
     );
@@ -554,7 +554,7 @@ function GastoDetalleModal({ gasto: g, puedeVerImpuestos, onCerrar }: { gasto: G
       }
       subtitulo={bajada}
       onClose={onCerrar}
-      ancho="max-w-[520px]"
+      tamano="mediana"
     >
       <ListaDatos
         guia="fin-gastos.detalle"
@@ -716,7 +716,7 @@ function ClasificarEgresoModal({
         </>
       }
       onClose={onCerrar}
-      ancho="max-w-[560px]"
+      tamano="mediana"
     >
       <OpcionesFin nombre="que-fue" etiqueta="Qué fue" valor={que} onValor={setQue} opciones={opciones} guia="fin-gastos.clasificar-opciones" />
       {que === "gasto" && (
@@ -762,9 +762,9 @@ function ClasificarEgresoModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || (que !== "activo" && !responsable.listo)}>
-          {que === "activo" ? "Seguir: registrar el activo" : guardando ? "Guardando…" : "Guardar"}
-        </button>
+        <Boton type="button" peso="primario" cargando={guardando} onClick={guardar} disabled={que !== "activo" && !responsable.listo}>
+          {que === "activo" ? "Seguir: registrar el activo" : "Guardar"}
+        </Boton>
       </div>
     </Modal>
   );
@@ -814,9 +814,9 @@ function MarcasNoGasto({ marcas }: { marcas: MarcaNoGasto[] }) {
                   </span>
                 </div>
                 <span className="fin-monto">{soles(m.monto)}</span>
-                <button type="button" className="btn-cayla btn-sutil btn-chico" disabled={revirtiendo !== null} onClick={() => revertir(m)}>
-                  {revirtiendo === m.id ? "Revirtiendo…" : "Revertir"}
-                </button>
+                <Boton peso="discreto" cargando={revirtiendo === m.id} textoCargando="Revirtiendo…" type="button" className="btn-chico" disabled={revirtiendo !== null} onClick={() => revertir(m)}>
+                  Revertir
+                </Boton>
               </li>
             ))}
           </ul>

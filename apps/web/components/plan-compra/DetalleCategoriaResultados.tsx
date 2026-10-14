@@ -75,7 +75,7 @@ export function DetalleCategoriaResultados({
   const maxTienda = Math.max(0, ...porTienda.map((x) => x.unidades));
 
   return (
-    <Modal titulo={categoria.nombre} subtitulo={`${r.plan.nombre} · ${categoria.familia} · ${enteroES.format(unidades)} ${unidades === 1 ? "prenda vendida" : "prendas vendidas"}`} onClose={onClose} variante="hoja" ancho="max-w-2xl" conCerrar>
+    <Modal titulo={categoria.nombre} subtitulo={`${r.plan.nombre} · ${categoria.familia} · ${enteroES.format(unidades)} ${unidades === 1 ? "prenda vendida" : "prendas vendidas"}`} onClose={onClose} variante="hoja" tamano="ancha" conCerrar>
       <div className="space-y-6">
         {r.tiendas.length > 1 && (
           <div role="group" aria-label="Tienda" className="flex flex-wrap gap-2">

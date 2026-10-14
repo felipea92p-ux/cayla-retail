@@ -12,6 +12,7 @@ import { cuentaParaSaludar } from "@/lib/login-saludo";
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Boton } from "@/components/ui/campos";
 
 const MENSAJES_ERROR: Record<string, string> = {
   sin_persona:
@@ -202,13 +203,13 @@ function LoginForm() {
               </div>
             </div>
 
-            <button
+            <Boton peso="primario" cargando={loading} textoCargando="Entrando…"
               type="submit"
               disabled={loading}
-              className="btn-cayla btn-primario mt-2 w-full"
+              className="mt-2 w-full"
             >
-              {loading ? "Entrando…" : "Entrar"}
-            </button>
+              Entrar
+            </Boton>
           </div>
         </form>
 

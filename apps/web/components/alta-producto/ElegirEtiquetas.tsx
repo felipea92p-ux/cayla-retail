@@ -137,7 +137,7 @@ export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, 
       {hoja && (
         <Modal
           variante="hoja"
-          ancho="max-w-[680px]"
+          tamano="ancha"
           titulo="Elige las etiquetas"
           subtitulo={`${total} en el catálogo.`}
           onClose={() => setHoja(false)}
@@ -454,7 +454,7 @@ function NuevaEtiquetaModal({
           ? FRASE_ETIQUETA_INVALIDA
           : null;
   return (
-    <Modal variante="hoja" ancho="max-w-md" titulo="Nueva etiqueta" subtitulo="Escribe cómo se va a llamar." onClose={onCerrar}>
+    <Modal variante="hoja" titulo="Nueva etiqueta" subtitulo="Escribe cómo se va a llamar." onClose={onCerrar}>
       {(cerrar) => (
         <div className="space-y-3">
           <CampoTexto
@@ -557,9 +557,9 @@ function CrearEtiquetaAbierta({
       </p>
       <AvisoSinIdentidad firma={firma} enHoja />
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={() => void crear()} disabled={trabajando || !firma.listo} title={firma.motivo ?? undefined} className="btn-cayla btn-primario">
-          {trabajando ? "Creando…" : puedeAprobar ? "Crear y agregar" : "Proponer etiqueta"}
-        </button>
+        <Boton peso="primario" cargando={trabajando} textoCargando="Creando…" type="button" onClick={() => void crear()} disabled={trabajando || !firma.listo} title={firma.motivo ?? undefined}>
+          {puedeAprobar ? "Crear y agregar" : "Proponer etiqueta"}
+        </Boton>
         <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-secundario">
           Cancelar
         </button>

@@ -18,6 +18,7 @@ import { FilaQueAbreLaHoja } from "@/components/produccion-resumen/FilaQueAbreLa
 import { ProveedorFichasDeColor } from "@/components/produccion-resumen/FichasDeColor";
 import type { ColorConFicha } from "@/lib/ficha-del-color";
 import { TONO_ESTADO_MODELO } from "@/components/produccion-resumen/estado-modelo";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Resumen de Producción (ADR-0133, F6): «¿qué necesita mi decisión hoy?». Cada tarjeta nace de datos que ya existen y lleva su evidencia; desaparece sola
 // cuando el dato cambia. Solo hechos y cuentas sobre datos medidos. El rojo de la pantalla (máximo 2) lo lleva únicamente la cifra de «Por pagar» cuando hay algo
@@ -59,6 +60,7 @@ export function ResumenProduccionPanel({
   fichasDeColor,
   telas,
   falloRed,
+  sede,
 }: {
   /** Cómo se dibuja cada modelo (foto, o color y categoría): por `productoId`. Vacío si el catálogo no se pudo leer: se dibuja la percha. */
   presentaciones: Record<string, PresentacionDeModelo>;
@@ -75,12 +77,29 @@ export function ResumenProduccionPanel({
   fichasDeColor: ColorConFicha[];
   telas: FilaTela[];
   falloRed: string | null;
+  /** La sede de la línea de arriba de la cabecera (el Taller). */
+  sede: string;
 }) {
   const maxDias = 60; // la escala de la barra: hasta el techo de «alta cobertura» de Inventario
 
   return (
     <ProveedorFichasDeColor fichas={fichasDeColor}>
     <div className="space-y-6">
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): el título es el del menú («Resumen») y la pregunta
+          que responde pasa a la frase. */}
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Resumen"
+        subtitulo="¿Qué necesita mi decisión hoy? Lo que pide acción en el Taller, del más urgente al menos."
+        acciones={
+          <div data-guia="prod-resumen.acciones" className="flex items-center gap-2">
+            <BotonEnlace href="/produccion/ordenes">Ver órdenes</BotonEnlace>
+            <BotonEnlace href="/produccion/ordenes?nueva=auto" peso="primario">
+              + Nueva orden
+            </BotonEnlace>
+          </div>
+        }
+      />
       {/* «Hoy | Eficiencia»: las dos miradas del líder sobre el Taller (ADR-0133, F6 y F7), con la pestaña de vista del sistema
           (ADR-0358). Eficiencia NO es una fila del lateral (el menú de Producción está en su tope de hijas): se llega desde aquí. */}
       <Pestanas
@@ -93,19 +112,6 @@ export function ResumenProduccionPanel({
           { clave: "eficiencia", etiqueta: "Eficiencia", href: "/produccion/eficiencia", ayuda: "Cuánto cuesta cada prenda" },
         ]}
       />
-      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">¿Qué necesita mi decisión hoy?</h1>
-          <p className="mt-1 max-w-xl text-sm text-tinta/65">Lo que pide acción en el Taller, del más urgente al menos. Cada tarjeta sale de los datos de abajo y desaparece cuando lo resuelves.</p>
-        </div>
-        <div data-guia="prod-resumen.acciones" className="flex items-center gap-2">
-          <BotonEnlace href="/produccion/ordenes">Ver órdenes</BotonEnlace>
-          <BotonEnlace href="/produccion/ordenes?nueva=auto" peso="primario">
-            + Nueva orden
-          </BotonEnlace>
-        </div>
-      </div>
 
       <div data-guia="prod-resumen.cifras" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <TarjetaCifra

@@ -500,7 +500,7 @@ export function RolesPanel({
               Descartar
             </Boton>
             <Boton type="button" peso="primario" onClick={guardar} cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
-              {guardando ? "Guardando…" : "Guardar cambios"}
+              Guardar cambios
             </Boton>
           </>
         }
@@ -769,9 +769,9 @@ function CuentasDelRolModal({ rol, cuentas, onClose }: { rol: RolVista; cuentas:
   const filtradas = cuentas.filter((c) => norm(`${c.nombre} ${c.ubicacion ?? ""}`).includes(norm(q.trim())));
   return (
     <Modal
+      conCerrar
       titulo={rol.nombre}
       subtitulo={`${cuentas.length === 1 ? "1 cuenta tiene" : `${cuentas.length} cuentas tienen`} este rol. Para cambiar el de una, usa «Asignar» o su fila en Cuentas.`}
-      ancho="max-w-md"
       onClose={onClose}
     >
       <div className="mt-4 space-y-2">

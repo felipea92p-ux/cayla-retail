@@ -14,6 +14,7 @@ import {
   type DatosPagoProveedor,
 } from "@/lib/proveedores-reglas";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 
 // «Cómo se le paga a este proveedor» (ADR-0134): cuenta, CCI, Yape/Plin y titular, cada uno con su «Copiar».
 // UNA sola fuente para la ficha del proveedor y para los modales de pago (antes eran tres copias distintas,
@@ -99,9 +100,7 @@ export function CuentasProveedor({
             </button>
           )}
           {onEditar && (
-            <button type="button" onClick={onEditar} className="btn-cayla btn-enlace text-xs">
-              Editar
-            </button>
+            <LapizEditar que="la cuenta" onClick={onEditar} />
           )}
         </div>
       </div>

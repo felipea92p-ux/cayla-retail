@@ -40,6 +40,7 @@ import { LlegoSinAviso } from "@/components/recepcion-conteo/LlegoSinAviso";
 import { PendientesDeRecibir } from "@/components/recepcion-conteo/PendientesDeRecibir";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Recibir mercadería (ADR-0330, 2026-10-04): la LLEGADA manda y la factura se une después. `/recibir` abre en «Llegó
 // mercadería» (`LlegoMercaderia`, motor `recibir_lote`): ¿de quién? y ¿qué llegó?, en la sede de la cabecera. Recibir contra una
@@ -96,23 +97,27 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
   const nombreMirada = persona.ubicacionEtiqueta;
 
   // Sin pestañas (ADR-0330): la puerta es UNA. Recibir contra una factura y el historial se abren desde ella y vuelven a ella.
+  // La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): la sede donde se recibe en la línea de arriba.
+  // `fraseLlegada` reemplaza la frase de «Llegó mercadería» cuando se recibe contando (ADR-0393).
   const conEncabezado = (fraseLlegada?: string) => (
-    <div data-voz="cabecera" className="anim-entra">
-      <p className="label-cayla text-[11px] text-tinta/65">Recibir · {nombreMirada}</p>
-      <h1 className="font-display mt-1 text-2xl text-tinta">Recibir mercadería</h1>
-      <p className="mt-1 max-w-3xl text-sm text-tinta/65">
-        {vista === "llegada"
+    <EncabezadoPagina
+      sede={nombreMirada}
+      volver={
+        vista !== "llegada" && (
+          <span data-guia="recibir.volver" className="inline-flex">
+            <Volver href="/recibir" a="Llegó mercadería" />
+          </span>
+        )
+      }
+      titulo="Recibir mercadería"
+      subtitulo={
+        vista === "llegada"
           ? (fraseLlegada ?? `Escanea lo que llegó y recíbelo: entra al almacén de ${nombreMirada}. Si no tiene factura todavía, igual se recibe.`)
           : vista === "factura"
             ? `Marca la factura con la que vino la mercadería, cuenta lo que llegó y recibe. Solo ves lo que le toca a ${nombreMirada}; lo de otras tiendas lo recibe cada una.`
-            : `Todo lo que llegó a ${nombreMirada}: sin factura y contra factura.`}
-      </p>
-      {vista !== "llegada" && (
-        <div data-guia="recibir.volver" className="mt-3 w-fit">
-          <Volver href="/recibir" a="Llegó mercadería" />
-        </div>
-      )}
-    </div>
+            : `Todo lo que llegó a ${nombreMirada}: sin factura y contra factura.`
+      }
+    />
   );
   const encabezado = conEncabezado();
 

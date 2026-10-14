@@ -13,7 +13,7 @@
       "CampoFecha «Vigente hasta»",
       "CampoTexto «Quién la dio (opcional)»",
       "button «Cancelar»",
-      "button «{loading ? \"Cargando…\" : \"Cargar cotización\"}»"
+      "Boton «Cargar cotización»"
     ]
   }
 }

@@ -12,7 +12,7 @@
       "CampoTexto «Mínimo»",
       "CampoTexto «Merma al cortar (%)»",
       "CampoTexto «Nota»",
-      "ComboResponsable «{cargando ? \"Guardando…\" : \"Agregar al catálogo\"}»",
+      "ComboResponsable «Agregar al catálogo»",
       "Boton «{responsable.motivo ?? undefined}»",
       "CampoSelect «¿Qué llegó?»",
       "CampoTexto «{`Cantidad (${UNIDADES_INSUMO[unidad].corta}»",
@@ -21,7 +21,7 @@
       "CampoTexto «Documento»",
       "CampoSelect «Origen»",
       "CampoTexto «Nota» #2",
-      "ComboResponsable «{cargando ? \"Ingresando…\" : \"Abrir lote y sumar al saldo\"}»",
+      "ComboResponsable «Abrir lote y sumar al saldo»",
       "Boton «{responsable.motivo ?? undefined}» #2"
     ],
     "components/InsumosPanel.tsx": [

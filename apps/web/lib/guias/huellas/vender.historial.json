@@ -2,7 +2,7 @@
   "guia": "vender.historial",
   "ruta": "/vender/historial",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 36,
+  "total": 41,
   "controles": {
     "app/(app)/vender/historial/page.tsx": [
       "Link «Volver al período»",
@@ -29,7 +29,9 @@
     ],
     "components/DetalleVentaModal.tsx": [
       "button «Reintentar»",
-      "Boton «Corregir pago»"
+      "Boton «Corregir pago»",
+      "BotonImprimir «Imprimir ticket»",
+      "BotonImprimir «Imprimir»"
     ],
     "components/FiltrosHistorialVentas.tsx": [
       "button «{guia}»",
@@ -38,6 +40,7 @@
       "Pastilla «Personalizado»",
       "Pastilla «{a.etiqueta}»",
       "button «historial.atajo-elegir»",
+      "BotonDescargar «Descargar Excel»",
       "BotonFiltros «→() => setPanelAbierto((v) => !v)»",
       "CampoFecha «Desde»",
       "CampoFecha «Hasta»",
@@ -47,7 +50,9 @@
       "DesplegablePildora «Pago»",
       "DesplegablePildora «Estado»",
       "DesplegablePildora «Comprobante»",
-      "Pastilla «Con datos de prueba»"
+      "Pastilla «Con datos de prueba»",
+      "FiltroPuesto «{`Quitar filtro ${c.texto}»",
+      "BotonLimpiar «Limpiar todo»"
     ],
     "components/HistorialVentasLista.tsx": [
       "button «historial.venta-abrir»",

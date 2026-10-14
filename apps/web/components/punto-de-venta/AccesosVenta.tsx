@@ -36,7 +36,7 @@ export function MasDeLaTienda({ accesos, arriba, pie }: { accesos: readonly Acce
       </button>
 
       {abierto && (
-        <Modal titulo="Más de la tienda" subtitulo="Lo que trabaja de la mano con la venta." variante="hoja" ancho="max-w-md" onClose={() => setAbierto(false)}>
+        <Modal conCerrar titulo="Más de la tienda" subtitulo="Lo que trabaja de la mano con la venta." variante="hoja" onClose={() => setAbierto(false)}>
           {(cerrar) => (
             <div data-guia="vender.mas-panel">
               {arriba}

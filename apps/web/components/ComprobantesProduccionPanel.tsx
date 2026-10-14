@@ -16,6 +16,7 @@ import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 const ETIQUETA_FILTRO: Record<FiltroEstado, string> = { todos: "Todos", por_pagar: "Por pagar", vencidos: "Vencidos", pagados: "Pagados", anulados: "Anulados" };
 
@@ -32,6 +33,7 @@ export function ComprobantesProduccionPanel({
   insumos,
   hoy,
   tallerId,
+  sede,
 }: {
   comprobantes: ComprobanteProduccion[];
   proveedores: ProveedorProduccion[];
@@ -39,6 +41,8 @@ export function ComprobantesProduccionPanel({
   insumos: InsumoParaComprobante[];
   hoy: string;
   tallerId: string | null;
+  /** La sede de la línea de arriba de la cabecera (el Taller). */
+  sede: string;
 }) {
   const [estado, setEstado] = useState<FiltroEstado>("todos");
   const [proveedorId, setProveedorId] = useState("");
@@ -53,16 +57,17 @@ export function ComprobantesProduccionPanel({
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Facturas de insumos</h1>
-          <p className="mt-1 max-w-xl text-sm text-tinta/65">La factura de quien le vende al Taller: qué se compró, a qué precio y cuánto falta pagar. Es un libro aparte del de Compras.</p>
-        </div>
-        <Boton peso="primario" data-guia="prod-facturas.nueva" onClick={() => setNuevo(true)}>
-          + Nueva factura
-        </Boton>
-      </div>
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Facturas de insumos"
+        subtitulo="La factura de quien le vende al Taller: qué se compró, a qué precio y cuánto falta pagar. Es un libro aparte del de Compras."
+        acciones={
+          <Boton peso="primario" data-guia="prod-facturas.nueva" onClick={() => setNuevo(true)}>
+            + Nueva factura
+          </Boton>
+        }
+      />
 
       <div data-guia="prod-facturas.cifras" className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra

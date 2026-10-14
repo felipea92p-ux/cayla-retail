@@ -27,7 +27,7 @@
       "button «{`Confirmar ${c.categoria}»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «{choque ? undefined : (responsable.motivo ?? guia.frase ?? undefined)}»"
+      "Boton «{choque ? undefined : (responsable.motivo ?? guia.frase ?? undefined)}»"
     ],
     "components/plan-piso/Mancuerna.tsx": [
       "button «{TEXTO_DE_LEYENDA[t]}»",

@@ -65,9 +65,7 @@ export function AgregarFueraDeGuia({
     <Modal
       titulo={sinAviso ? "¿Qué llegó?" : "Algo que no estaba en la guía"}
       subtitulo={sinAviso ? "Agrega cada categoría que llegó y cuéntala." : "Se cuenta como las demás; al cerrar dirás qué pasa con lo que vino de más."}
-      ancho="max-w-md"
       bloqueado={guardando}
-      conCerrar
       onClose={onCerrar}
     >
       {(cerrar) => (
@@ -121,8 +119,8 @@ export function AgregarFueraDeGuia({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Agregando…" : "+ Agregar y contar"}
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Agregando…" disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              + Agregar y contar
             </Boton>
           </div>
         </form>

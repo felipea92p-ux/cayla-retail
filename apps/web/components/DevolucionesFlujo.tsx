@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -519,9 +519,9 @@ export function DevolucionesFlujo({
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
               </BotonSecundario>
-              <BotonRojo onClick={registrar} disabled={enviando || !responsable.listo} monto={soles(valorTotal)}>
-                {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-                {enviando ? "Registrando…" : "Registrar devolución"}
+              <BotonRojo onClick={registrar} cargando={enviando} textoCargando="Registrando…" disabled={!responsable.listo} monto={soles(valorTotal)}>
+                <Check className="h-4 w-4" aria-hidden />
+                Registrar devolución
               </BotonRojo>
             </div>
           </PieDelPaso>

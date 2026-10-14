@@ -352,7 +352,7 @@ export function GastoRapidoModal({
       antesDeCerrar={avisoSalida.pedirAccion}
       onClose={onCerrar}
       bloqueado={guardando || intento.incierto}
-      ancho="max-w-[560px]"
+      tamano="mediana"
     >
       {(cerrar) => (
         <form onSubmit={guardar} className="gr-hoja relative space-y-5" noValidate>

@@ -22,6 +22,7 @@ import type { ConsumoDeOrden, InsumoVista } from "@/lib/insumos";
 import { Scissors, Shirt } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Órdenes de producción del Taller (ADR-0133, F2): un tablero por etapa en vez de una lista plana. La etapa donde
 // está la orden ES su columna; al marcarla hecha la tarjeta viaja a la siguiente. Las muestras (otras tres
@@ -43,6 +44,7 @@ export function OrdenesTablero({
   tipoInicial = "produccion",
   puedeEditarCatalogo = false,
   vocabulario = null,
+  sede,
 }: {
   tallerId: string;
   ordenes: OrdenProduccion[];
@@ -64,6 +66,8 @@ export function OrdenesTablero({
   puedeEditarCatalogo?: boolean;
   /** Tallas, colores y categorías para «Modelo nuevo» dentro de la orden (ADR-0361). */
   vocabulario?: Tolerado<VocabularioModeloNuevo> | null;
+  /** La sede de la línea de arriba de la cabecera (el Taller). */
+  sede: string;
 }) {
   const [abiertaId, setAbiertaId] = useState<string | null>(ordenInicialId && ordenes.some((o) => o.id === ordenInicialId) ? ordenInicialId : null);
   const [nuevaAbierta, setNuevaAbierta] = useState(nuevaInicial !== null);
@@ -92,17 +96,17 @@ export function OrdenesTablero({
 
   return (
     <div className="space-y-6">
-      {/* Cabecera del spike: el título a la izquierda y la acción principal arriba a la derecha. */}
-      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Órdenes de producción</h1>
-          <p className="mt-1 max-w-xl text-sm text-tinta/65">Dónde está cada corrida, cuánto lleva costando y si llega a tiempo.</p>
-        </div>
-        <Boton peso="primario" data-guia="prod-ordenes.nueva" onClick={() => setNuevaAbierta(true)}>
-          + Nueva orden
-        </Boton>
-      </div>
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Órdenes de producción"
+        subtitulo="Dónde está cada corrida, cuánto lleva costando y si llega a tiempo."
+        acciones={
+          <Boton peso="primario" data-guia="prod-ordenes.nueva" onClick={() => setNuevaAbierta(true)}>
+            + Nueva orden
+          </Boton>
+        }
+      />
 
       {modelos.length === 0 && (
         <div className="card-cayla">

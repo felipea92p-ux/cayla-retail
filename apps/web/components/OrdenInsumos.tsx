@@ -279,8 +279,8 @@ export function OrdenInsumos({
                       </dl>
                     )}
                     <ComboResponsable control={responsable} deshabilitado={devolviendo} />
-                    <Boton peso="fantasma" cargando={devolviendo} disabled={!previsionDev?.ok || !responsable.listo} title={responsable.motivo ?? undefined} onClick={devolver} className="w-full">
-                      {devolviendo ? "Devolviendo…" : "Devolver al lote"}
+                    <Boton textoCargando="Devolviendo…" peso="fantasma" cargando={devolviendo} disabled={!previsionDev?.ok || !responsable.listo} title={responsable.motivo ?? undefined} onClick={devolver} className="w-full">
+                      Devolver al lote
                     </Boton>
                   </div>
                 )}
@@ -385,8 +385,8 @@ export function OrdenInsumos({
                   )}
 
                   <ComboResponsable control={responsable} deshabilitado={cargando} />
-                  <Boton peso="primario" cargando={cargando} disabled={!prevision?.ok || !responsable.listo} title={responsable.motivo ?? undefined} onClick={descontar} className="w-full">
-                    {cargando ? "Descontando…" : "Descontar del lote"}
+                  <Boton textoCargando="Descontando…" peso="primario" cargando={cargando} disabled={!prevision?.ok || !responsable.listo} title={responsable.motivo ?? undefined} onClick={descontar} className="w-full">
+                    Descontar del lote
                   </Boton>
                   <p className="text-xs text-tinta/65">Si te equivocas, lo puedes devolver al estante mientras la orden siga en proceso.</p>
                 </div>

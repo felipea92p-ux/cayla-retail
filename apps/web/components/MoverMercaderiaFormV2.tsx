@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar, enfocar } from "@/components/ui/Avisos";
-import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
+import { campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import { Boton, CampoSelect, Desplegable } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -507,15 +507,9 @@ export function MoverMercaderiaFormV2({
       </div>
       </fieldset>
       {intento.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} />}
-      <button type="submit" data-guia="nuevo-traslado.enviar" disabled={loading || revisando || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
-        {loading
-          ? "Enviando…"
-          : intento.incierto
-            ? "Volver a intentar"
-            : destinoId
-              ? `Enviar a ${destinos.find((d) => d.id === destinoId)?.nombre ?? "…"}`
-              : "Enviar traslado"}
-      </button>
+      <Boton type="submit" peso="primario" cargando={loading} textoCargando="Enviando…" data-guia="nuevo-traslado.enviar" disabled={revisando || !responsable.listo} title={responsable.motivo ?? undefined} className="flex-1">
+        {intento.incierto ? "Volver a intentar" : destinoId ? `Enviar a ${destinos.find((d) => d.id === destinoId)?.nombre ?? "…"}` : "Enviar traslado"}
+      </Boton>
     </form>
   );
 }

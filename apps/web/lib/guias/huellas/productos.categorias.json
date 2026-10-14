@@ -2,7 +2,7 @@
   "guia": "productos.categorias",
   "ruta": "/productos/categorias",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 35,
+  "total": 36,
   "controles": {
     "app/(app)/productos/categorias/page.tsx": [
       "Link «Productos · Familias»",
@@ -29,7 +29,7 @@
       "Link «categorias.vista-productos»",
       "button «{h.prefijo ?? \"—\"}» #2",
       "Link «{temporada.nombre ? \"Cambiarla\" : \"Elegirla\"}»",
-      "Boton «categorias.vista-editar»"
+      "BotonEditar «)»"
     ],
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -47,6 +47,7 @@
       "Boton «Reactivar»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ]
   }

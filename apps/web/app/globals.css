@@ -2717,14 +2717,15 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
       /* La hoja nunca es más baja que la foto (3:4) con su relleno: una hoja de pocas filas no la recorta. */
       min-height: calc(var(--ancho-lateral) * 4 / 3 + 3rem);
     }
-    .hoja-con-lateral.cascada-modal.max-w-sm {
-      max-width: calc(24rem + var(--ancho-lateral) + var(--separacion-lateral));
-    }
+    /* Los tres anchos de una hoja (ADR-0358, ronda 12): angosta, mediana y ancha. */
     .hoja-con-lateral.cascada-modal.max-w-md {
       max-width: calc(28rem + var(--ancho-lateral) + var(--separacion-lateral));
     }
-    .hoja-con-lateral.cascada-modal.max-w-lg {
-      max-width: calc(32rem + var(--ancho-lateral) + var(--separacion-lateral));
+    .hoja-con-lateral.cascada-modal.max-w-xl {
+      max-width: calc(36rem + var(--ancho-lateral) + var(--separacion-lateral));
+    }
+    .hoja-con-lateral.cascada-modal.max-w-3xl {
+      max-width: calc(48rem + var(--ancho-lateral) + var(--separacion-lateral));
     }
     .hoja-con-lateral.cascada-modal > [data-lateral] {
       display: block;

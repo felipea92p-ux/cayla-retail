@@ -98,7 +98,7 @@ export default async function ProduccionPage() {
 
   return (
     <div className="space-y-6">
-      <ResumenProduccionPanel presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} fichasDeColor={fichasDeColor ?? []} telas={telas} falloRed={decision.fallo} />
+      <ResumenProduccionPanel sede={persona.ubicacionEtiqueta} presentaciones={presentaciones} decisiones={resumen.decisiones} ocultas={resumen.ocultas} totalAsuntos={resumen.total} cifras={cifras} modelos={filasModelo} hojas={hojas} fichasDeColor={fichasDeColor ?? []} telas={telas} falloRed={decision.fallo} />
     </div>
   );
 }
