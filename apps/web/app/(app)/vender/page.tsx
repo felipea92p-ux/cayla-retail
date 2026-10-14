@@ -141,6 +141,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       color: v.color,
       colorHex: v.colorHex ?? null,
       colorCodigo: v.colorCodigo ?? null,
+      // Con el color, la llave de «¿Es alguna de estas?» en Prenda sin registrar (`prendasPosibles`).
+      tallaId: v.tallaId ?? null,
+      categoriaId: v.categoriaId ?? null,
       categoria: v.categoria,
       categoriaPrefijo: v.categoriaPrefijo ?? null,
       categoriaFamilia: v.categoriaFamilia ?? null,

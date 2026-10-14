@@ -62,6 +62,7 @@ import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
+import { prendasPosibles } from "@/lib/prenda-sin-registrar-posibles";
 import { AgregarBolsaModal, FilaDeBolsas } from "@/components/punto-de-venta/BolsaDelTicket";
 import { bolsasDeLaCaja } from "@/lib/bolsas-reglas";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
@@ -176,6 +177,10 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
   colorHex?: string | null;
   /** `variantes.color_codigo`: cruza con la ficha del color (ADR-0316) en «Todo de la prenda». Ausente = sin ficha. */
   colorCodigo?: string | null;
+  /** `variantes.talla_id` y `productos.categoria_id`: con el color, la llave con que «Prenda sin registrar» ofrece la prenda del
+   *  catálogo que coincide («¿Es alguna de estas?», `prendasPosibles`). Ausentes = no se ofrece nada. */
+  tallaId?: string | null;
+  categoriaId?: string | null;
   precio: number;
   /** El precio de arriba es el de ESTA tienda (precio propio, Felipe 2026-10-09): la tarjeta se lo dice a la colaboradora con
    *  «Precio de Trujillo». El cliente no lo ve: para él es el precio. Ausente = el general. */
@@ -2564,6 +2569,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         <PrendaSinRegistrarModal
           listas={listasPrendaLibre}
           onAgregar={agregarPrendaSinRegistrar}
+          // «¿Es alguna de estas?» (A2, auditoría 2026-10-14): las prendas del catálogo que coinciden y se pueden cobrar AHORA en
+          // esta sede, sobre el mismo stock en vivo con que la caja deja entrar una prenda al ticket. «Es esta» la agrega como
+          // cualquier otra línea: descuenta el piso, lleva su costo, y la cola de regularizar no la recibe.
+          posibles={(elegido) => prendasPosibles(variantesVisibles, elegido, (v) => motivoNoCobrable(v) === "cobrable")}
+          onEsEsta={(varianteId) => {
+            const v = variantesVisibles.find((x) => x.varianteId === varianteId);
+            setManualAbierto(false);
+            if (v) void agregar(v);
+          }}
           onClose={() => setManualAbierto(false)}
           alCerrarEnfocar={buscador}
         />

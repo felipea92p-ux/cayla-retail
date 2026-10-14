@@ -32,3 +32,18 @@ K cae), 21 pruebas de `lib/anular-comprobante-reglas.test.ts`, `tsc` y `eslint` 
 cerrada responde 409 antes de Lucode («La caja de esta venta ya cerró…») y una de caja abierta pasa la revisión y recién ahí llama a Lucode. Queda
 abierto el caso raro de SUNAT rechazando la baja después (venta anulada con comprobante vigente): lo detectará la invariante de la Fase 1.
 Pendiente de aplicar en producción con OK de Felipe (la web no se publica antes que la migración).
+
+## 2026-10-14 (A2: «¿Es alguna de estas?» en la hoja «Prenda sin registrar»)
+Qué hice: con categoría, talla y color elegidos, la hoja muestra, antes de la descripción, las prendas del catálogo que coinciden y se
+pueden cobrar ahora en esta tienda (`lib/prenda-sin-registrar-posibles.ts`, pura, 9 pruebas: por id de categoría y talla y por código de
+color, nunca por el nombre; la misma definición de «posible» que `fn_candidatas_de_venta` y el mismo «cobrable» con que Vender deja entrar
+una prenda al ticket). Tocar una (`ListaSugerencias`, la pieza única de lo sugerido, con `MiniaturaPrenda`) la mete al ticket como venta
+normal y cierra la hoja; si no es ninguna, se sigue anotando como siempre. El catálogo de Vender trae ahora `tallaId` y `categoriaId`
+(opcionales: una copia guardada antes no ofrece nada, nunca adivina). La guía interactiva de Vender lo cuenta en su paso.
+Por qué así: sin RPC nueva —Vender ya tiene el catálogo y el stock en vivo de la sede— y por id, no por nombre (ADR-0290). Dos o tres
+posibles se muestran todas: elegir por la persona sería adivinar (ADR-0334, decisión 9).
+Felipe se lleva: la vía dominante del mostrador (69 % de las líneas) deja de ser un atajo ciego: si la prenda ya está en el sistema, se
+cobra con su stock y su costo. Verificado: vitest entero (479 archivos, incluidos los candados de guías, foco, sugerir, unificar y tema),
+`tsc` y `eslint` limpios; en el navegador local (Tienda Lima, «Camisas y Blusas · M · Negro») la hoja ofreció «Blusa Emma · 19 en el piso ·
+S/ 79.90» y al tocarla la hoja se cerró y la línea entró al ticket con su stock; a 375 px la hoja no se desborda (página 375 px de ancho,
+lista de 325 px).

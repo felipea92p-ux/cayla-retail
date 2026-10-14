@@ -5,8 +5,8 @@ la web no se publica antes que la migración, o una boleta dada de baja responde
 - **A1, lo que queda:** los 3 casos de producción (B005-202, -221, -236; S/ 251,70) se remedian aparte con el contador. Riesgo residual: si SUNAT
   rechaza la baja después, la venta queda anulada con comprobante vigente; la invariante «toda venta completada tiene un comprobante vivo y toda
   anulada ninguno» (Fase 1, `fn_invariantes`) lo detecta y la salida es una nota de crédito. `consultar-anulacion` podría avisarlo al ver «no_anulado».
-- **A2** · «Es esta» en la hoja del mostrador: lectura nueva `fn_prendas_posibles(sede, categoría, talla, color)` con la misma definición de
-  «posible» que `fn_candidatas_de_venta`; la prenda entra al ticket como línea normal.
+- **A2, hecha:** «¿Es alguna de estas?» en la hoja del mostrador, sin RPC nueva (`lib/prenda-sin-registrar-posibles.ts` sobre el catálogo y
+  el stock en vivo de Vender). Queda por decidir si la mesa de Ventas sin registrar (`corregir`) también ofrece posibles: hoy no, la venta ya existe.
 - **A3** · Precio con referencia: rango de precios de la categoría en la sede (lógica pura) y confirmación fuera de rango, como el costo atípico de
   Compras. El candado en `registrar_venta` (muy fuera → líder) queda para la Fase 1 con el contador.
 - **A4** · Costo estimado con su origen (`venta_items.costo_origen`); Finanzas rotula el margen. **Espera la decisión del contador** (qué estimador).

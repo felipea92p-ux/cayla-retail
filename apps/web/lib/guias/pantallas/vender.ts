@@ -81,7 +81,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       ...CAJA_ABIERTA,
       preparar: [{ tipo: "vaciar", ancla: "vender.buscador" }],
       titulo: "Prenda sin registrar",
-      texto: "Para la prenda que todavía no está en el sistema (llegó sin etiqueta). Te pide categoría, talla, color y precio, y entra al ticket como cualquier otra; después Almacén la registra y le pone su etiqueta. Como el botón registra algo, en la demo no lo tocamos.",
+      texto: "Para la prenda que llegó sin etiqueta. Te pide categoría, talla y color, y si en el piso hay una prenda del sistema igual, te la muestra: «Es esta» la cobra como siempre. Si no, pones el precio y Almacén la registra después. Como registra algo, en la demo no lo tocamos.",
     },
     {
       id: "ver-catalogo",
