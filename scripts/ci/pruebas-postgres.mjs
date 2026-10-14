@@ -344,6 +344,8 @@ export const PRUEBAS = [
   // ADR-0401 (/chaos de Inventario 2026-10-14): el token sigue al contenido en ocho funciones de Inventario, el resolver revisa
   // un traslado, y los topes de notas, llegada y motivo de ajuste.
   "pruebas:inventario-token-y-textos",
+  // ADR-0404: lo contado de más al recibir un traslado queda como sobrante a revisar, fuera del stock.
+  "pruebas:traslado-sobrantes",
   // ADR-0405 (/chaos de Catálogo 2026-10-14): precio y costo NaN y nombres sin tope rebotan en la tabla. Con control.
   "pruebas:catalogo-montos-y-textos",
 

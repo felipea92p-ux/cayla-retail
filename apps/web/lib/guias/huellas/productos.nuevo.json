@@ -2,7 +2,7 @@
   "guia": "productos.nuevo",
   "ruta": "/productos/nuevo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 120,
+  "total": 119,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
       "Volver «:»",
@@ -97,7 +97,6 @@
       "button «{datos.siguiente ?? undefined}» #2"
     ],
     "components/alta-producto/FotosAlta.tsx": [
-      "button «{`Quitar foto de ${c.nombre}»",
       "input «input.current?.click()»",
       "button «{etiqueta}»"
     ],

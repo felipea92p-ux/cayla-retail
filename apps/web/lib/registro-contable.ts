@@ -15,12 +15,6 @@ export type EventoId = "aporte_dinero" | "aporte_especie" | "gasto" | "compra" |
 // depende del papel. Así el sistema nunca reclama un crédito que SUNAT no permite.
 export type Comprobante = "factura" | "boleta" | "nota";
 
-export const COMPROBANTES: { id: Comprobante; etiqueta: string; nota: string }[] = [
-  { id: "factura", etiqueta: "Factura", nota: "Con crédito de IGV" },
-  { id: "boleta", etiqueta: "Boleta", nota: "Sin crédito de IGV" },
-  { id: "nota", etiqueta: "Nota / sin comprobante", nota: "Sin crédito · igual entra" },
-];
-
 // ─── Subgrupo funcional de cada cuenta ──────────────────────────────────────
 // Más fino que el "elemento" contable (activo/pasivo…): permite delimitar qué
 // cuentas tienen sentido en cada acción, para no ofrecer opciones absurdas
