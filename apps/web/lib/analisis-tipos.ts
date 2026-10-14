@@ -95,6 +95,10 @@ export type PrendaAnalisis = {
   /** Su última venta en MI tienda (YYYY-MM-DD, sin tope de fechas); null si nunca se vendió aquí. undefined si la base todavía no lo
    *  dice (sin 20261010120000): con esto se cuentan los días sin venderse del modelo entero (`analisis-modelo.ts`). */
   ultimaVenta?: string | null;
+  /** Unidades colgadas de esta prenda que pueden ser una venta sin registrar: una venta pendiente anotada en caja con su tipo, talla y
+   *  color (la cuenta de Frescura, ADR-0208 act. 2026-10-10 (c)). Con alguna, no se sabe si se vendió: no se liquida (ADR-0357, act.
+   *  2026-10-14). Sin la lectura de Frescura, undefined. */
+  enDuda?: number;
   /** La primera vez que entró a MI tienda (YYYY-MM-DD); null si no se sabe. Con esto se cuentan los días que lleva guardada. */
   llego: string | null;
   /** Unidades que llegaron a mi tienda en los últimos 30 días, y cuántas de ellas ya se vendieron («se vende lo que llega»). */
@@ -173,6 +177,9 @@ export type DatosAnalisis = {
   sabeUltimaVenta: boolean;
   /** Desde cuántos días sin venderse se liquida (uno para todos, ADR-0357). */
   liquidarDesde: number;
+  /** Si se leyó Frescura del piso de mi tienda (las dudas de ventas sin registrar y la vara de cada categoría): «sin_modulo» si quien
+   *  mira no la ve, «fallo» si no respondió (y se dice en `fallas`), «no_aplica» si la sede no separa piso y almacén. */
+  frescura: "ok" | "sin_modulo" | "fallo" | "no_aplica";
   /** Lo vendido «sin registrar» en mi tienda en los mismos 30 días de `vendidas30`, por tipo (nombre de la categoría): la venta que no
    *  dice qué prenda fue pero sí de qué tipo (`lib/vendido-sin-registrar.ts`). «Qué pedir» la suma a lo vendido de su tipo (ADR-0357,
    *  act. 2026-10-14). Vacío si no se pudo leer (y se dice en `fallas`). */

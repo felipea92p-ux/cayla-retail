@@ -153,6 +153,8 @@ export function modeloDe(vs: readonly PrendaAnalisis[], hoy: string): ModeloAnal
     salioAlPiso: extremo(variantes.map((v) => v.salioAlPiso), "primera"),
     ...(variantes.every((v) => v.ultimaVenta !== undefined) ? { ultimaVenta: extremo(variantes.map((v) => v.ultimaVenta), "ultima") } : {}),
     llego: extremo(variantes.map((v) => v.llego), "primera"),
+    // Lo que puede ser una venta sin registrar se suma; si de ninguna talla se sabe (sin la lectura de Frescura), no se dice.
+    ...(variantes.some((v) => v.enDuda !== undefined) ? { enDuda: suma(variantes, (v) => v.enDuda ?? 0) } : {}),
     llegaron30: suma(variantes, (v) => v.llegaron30),
     vendidasDeLasQueLlegaron30: suma(variantes, (v) => v.vendidasDeLasQueLlegaron30),
     otras: otrasDelModelo(variantes),

@@ -172,6 +172,25 @@ describe("los grupos del carril", () => {
   });
 });
 
+describe("«Aún no se sabe» (ADR-0357, act. 2026-10-14)", () => {
+  it("lo quieto con una unidad en duda va a su grupo, de lo que más espera a lo que menos, y sale de los demás", () => {
+    const prendas = [
+      quieta("liquidar", 65, { piso: 5 }),
+      quieta("duda-vieja", 80, { enDuda: 1 }),
+      quieta("duda-vigila", 40, { enDuda: 2 }),
+      quieta("enviar-en-duda", 70, { otras: [vendioAlla("tienda-b", 3)], enDuda: 1 }),
+    ];
+    const g = gruposQuietas(prendas, 60);
+    expect(g.duda.map((p) => p.varianteId)).toEqual(["duda-vieja", "enviar-en-duda", "duda-vigila"]);
+    expect(g.liquidar.map((p) => p.varianteId)).toEqual(["liquidar"]);
+    expect(g.enviar).toEqual([]);
+    expect(g.vigila).toEqual([]);
+  });
+  it("con solo prendas en duda hay carril: no es «Todo se mueve»", () => {
+    expect(vacioQuietas([quieta("duda", 80, { enDuda: 1 })], 60, 0)).toBeNull();
+  });
+});
+
 describe("«Enviar todas»", () => {
   it("si todas van a la misma tienda, esa", () => {
     expect(destinoDeTodas([{ otras: [vendioAlla("tienda-b", 3), vendioAlla("tienda-c", 0)] }, { otras: [vendioAlla("tienda-b", 2)] }])).toBe("tienda-b");

@@ -11,7 +11,7 @@ import { Ayuda, COLOR_ESTADO, nombreLargo, Numero, soles } from "@/components/an
 import type { ModeloAnalisis } from "@/lib/analisis-modelo";
 import { edadDelInventario, GRUPOS_QUIETAS, LIQUIDAR_MAX, LIQUIDAR_MIN, LIQUIDAR_PASO, plural, prendasDe, sedeQueMasVende, totalEnTienda, VENDIDAS_PARA_ENVIAR } from "@/lib/analisis-reglas";
 import { ERROR_DIAS_LIQUIDAR, leerDiasLiquidar, pasoLiquidar } from "@/lib/analisis-liquidar-reglas";
-import { hrefEnviar, hrefLiquidar } from "@/lib/analisis-acciones";
+import { hrefEnviar, hrefLiquidar, hrefRegistrarVentas } from "@/lib/analisis-acciones";
 import { nuncaSalio } from "@/lib/analisis-piso";
 import {
   barraDeEdad,
@@ -63,7 +63,7 @@ export function PestanaQuieta() {
   // Las cifras son de toda la tienda (como la cuenta de la pestaña); el carril, de lo que deja ver el buscador.
   const cifras = cifrasQuietas(prendasDe(datos.prendas, GRUPOS_QUIETAS, liquidarDesde));
   const faltan = notaSinCosto(cifras);
-  const { enviar, liquidar, vigila } = gruposQuietas(prendas, liquidarDesde);
+  const { enviar, liquidar, duda, vigila } = gruposQuietas(prendas, liquidarDesde);
   const marcas = marcasEje(liquidarDesde);
   const etiquetas = etiquetasEje(liquidarDesde);
 
@@ -97,6 +97,17 @@ export function PestanaQuieta() {
       est: "ate",
       prendas: liquidar,
       lote: lote(liquidarTodas, "Liquidar todos", `Liquidar todos: ${liquidar.length} ${plural(liquidar.length, "modelo", "modelos")}`),
+    },
+    {
+      // ADR-0357, act. 2026-10-14: quietas, pero alguna unidad colgada puede ser una venta anotada en caja que nadie registró (la cuenta de
+      // Frescura). No se mandan ni se liquidan hasta saberlo: el botón lleva a registrar esas ventas.
+      clave: "duda",
+      titulo: "Aún no se sabe",
+      ayuda: "Puede que ya se hayan vendido: hay una venta anotada en caja de su tipo, talla y color que nadie registró. Regístrala antes de mandarlas o liquidarlas.",
+      icono: "info",
+      est: "info",
+      prendas: duda,
+      lote: lote(hrefRegistrarVentas(acceso), "Registrar ventas", "Registrar las ventas sin su prenda"),
     },
     {
       clave: "vigila",

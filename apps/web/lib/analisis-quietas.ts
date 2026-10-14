@@ -106,14 +106,15 @@ export function pistaQuieta(dias: number, liquidarDesde: number): { n: number; z
 }
 
 /** Las prendas de cada grupo del carril, cada uno de lo que más espera a lo que menos. Una prenda cae en uno solo. */
-export function gruposQuietas<T extends PrendaAnalisis>(prendas: readonly T[], liquidarDesde: number): { enviar: T[]; liquidar: T[]; vigila: T[] } {
-  const grupos = { enviar: [] as T[], liquidar: [] as T[], vigila: [] as T[] };
+export function gruposQuietas<T extends PrendaAnalisis>(prendas: readonly T[], liquidarDesde: number): { enviar: T[]; liquidar: T[]; duda: T[]; vigila: T[] } {
+  const grupos = { enviar: [] as T[], liquidar: [] as T[], duda: [] as T[], vigila: [] as T[] };
   for (const p of prendas) {
     const g = grupoDe(p, liquidarDesde);
-    if (g === "enviar" || g === "liquidar" || g === "vigila") grupos[g].push(p);
+    if (g === "enviar" || g === "liquidar" || g === "duda" || g === "vigila") grupos[g].push(p);
   }
   grupos.enviar.sort(ordenQuietas);
   grupos.liquidar.sort(ordenQuietas);
+  grupos.duda.sort(ordenQuietas);
   grupos.vigila.sort(ordenQuietas);
   return grupos;
 }

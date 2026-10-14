@@ -45,11 +45,12 @@ export function diasDeVentas(primeraVenta: string | null | undefined, hoy: strin
 /** Cuántas prendas muestran las listas cortas de Hoy. */
 export const PRENDAS_EN_LISTA = 5;
 
-export type GrupoAnalisis = "comprar" | "enviar" | "liquidar" | "vigila";
+/** «duda»: quieta, pero alguna unidad colgada puede ser una venta sin registrar (ADR-0357, act. 2026-10-14): no se sabe, no se liquida. */
+export type GrupoAnalisis = "comprar" | "enviar" | "liquidar" | "vigila" | "duda";
 /** Los grupos de «Se está acabando» y de «No se vende», en el orden de su carril. */
 export const GRUPOS_ACABA: readonly GrupoAnalisis[] = ["comprar"];
 export const GRUPOS_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar"];
-export const GRUPOS_CARRIL_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar", "vigila"];
+export const GRUPOS_CARRIL_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar", "duda", "vigila"];
 
 /**
  * Nunca salió al piso (20261007120000): tiene unidades guardadas en mi tienda y la base no sabe de ninguna vez en su piso de venta
@@ -103,15 +104,18 @@ export function otraSedeQueLaTiene(otras: readonly PrendaEnOtraSede[]): PrendaEn
 /**
  * El grupo de una prenda, o null si no pide nada (se vende bien, o lleva menos de un mes quieta). Una prenda vive en UN solo
  * grupo: lo que se acaba se compra; lo quieto desde el umbral se manda a donde sí se vende (si otra tienda vendió 2 o más) o
- * se liquida; lo quieto desde un mes, se vigila.
+ * se liquida; lo quieto desde un mes, se vigila. Lo quieto con una unidad que puede ser una venta sin registrar (`enDuda`, la cuenta
+ * de Frescura) no se manda ni se liquida: va a «duda» hasta que se registre esa venta (ADR-0357, act. 2026-10-14).
  */
 export function grupoDe(
-  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas">,
+  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas" | "enDuda">,
   liquidarDesde: number,
 ): GrupoAnalisis | null {
   if (seEstaAcabando(p)) return "comprar";
   if (p.vendidas30 > 0 || p.diasSinVender === null || totalEnTienda(p) === 0) return null;
-  if (p.diasSinVender < liquidarDesde) return p.diasSinVender >= DIAS_VIGILAR ? "vigila" : null;
+  if (p.diasSinVender < liquidarDesde && p.diasSinVender < DIAS_VIGILAR) return null;
+  if ((p.enDuda ?? 0) > 0) return "duda";
+  if (p.diasSinVender < liquidarDesde) return "vigila";
   const vende = sedeQueMasVende(p.otras);
   if (vende && vende.vendidas30 >= VENDIDAS_PARA_ENVIAR) return "enviar";
   return "liquidar";

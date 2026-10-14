@@ -103,6 +103,22 @@ describe("el grupo de cada prenda (una sola)", () => {
     expect(grupoDe(prenda({ diasSinVender: 120 }), 60)).toBeNull();
     expect(grupoDe(prenda({ piso: 2 }), 60)).toBeNull();
   });
+  // ADR-0357, act. 2026-10-14: una venta pendiente anotada en caja de su tipo, talla y color puede ser una de sus unidades colgadas.
+  it("lo quieto con una unidad que puede ser una venta sin registrar no se manda ni se liquida: «duda»", () => {
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(3), enDuda: 1 }), 60)).toBe("duda");
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(1), enDuda: 1 }), 60)).toBe("duda");
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 44, enDuda: 2 }), 60)).toBe("duda");
+  });
+  it("la duda no cambia lo que no estaba quieto: lo nuevo, lo que se vende y lo que se acaba siguen igual", () => {
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 20, enDuda: 1 }), 60)).toBeNull();
+    expect(grupoDe(prenda({ piso: 20, vendidas30: 5, diasSinVender: 2, enDuda: 1 }), 60)).toBeNull();
+    expect(grupoDe(prenda({ piso: 1, vendidas30: 4, enDuda: 1 }), 60)).toBe("comprar");
+  });
+  it("sin duda (0) o sin saberla (sin la lectura de Frescura), se juzga como siempre", () => {
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(1), enDuda: 0 }), 60)).toBe("liquidar");
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 64, otras: otras(1) }), 60)).toBe("liquidar");
+    expect(grupoDe(prenda({ piso: 3, diasSinVender: 44, enDuda: 0 }), 60)).toBe("vigila");
+  });
   it("prendasDe filtra por grupos y se ordena de lo más urgente a lo menos", () => {
     const a = prenda({ varianteId: "a", vendidas30: 6 });
     const b = prenda({ varianteId: "b", piso: 1, vendidas30: 4 });

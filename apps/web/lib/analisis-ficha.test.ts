@@ -85,6 +85,7 @@ describe("el chip de la prenda (el título de su grupo)", () => {
     expect(chipDeGrupo("enviar")).toEqual({ est: "ate", texto: "Mándalas a donde sí se venden" });
     expect(chipDeGrupo("liquidar")).toEqual({ est: "ate", texto: "Liquidar" });
     expect(chipDeGrupo("vigila")).toEqual({ est: "nd", texto: "Vigílalas" });
+    expect(chipDeGrupo("duda")).toEqual({ est: "nd", texto: "Aún no se sabe" });
     expect(chipDeGrupo(null)).toEqual({ est: "bien", texto: "Va bien" });
     // Guardada y nunca colgada: no «va bien», nadie la vio (20261007120000). Un grupo manda sobre eso.
     expect(chipDeGrupo(null, true)).toEqual({ est: "ate", texto: "Nunca salió al piso" });
@@ -255,6 +256,13 @@ describe("los botones del pie", () => {
     expect(accionPrincipal(p, "liquidar", SEDES, { ...TODO, etiquetas: false })).toBeNull();
     expect(accionPrincipal(p, "vigila", SEDES, TODO)).toBeNull();
     expect(accionPrincipal(p, null, SEDES, TODO)).toBeNull();
+  });
+
+  it("lo que puede haberse vendido sin registrar: «Registrar ventas» (Por regularizar), y sus tarjetitas lo dicen; sin Existencias, sin botón", () => {
+    const p = prenda({ piso: 2, diasSinVender: 80, enDuda: 1 });
+    expect(accionPrincipal(p, "duda", SEDES, TODO)).toEqual({ texto: "Registrar ventas", href: "/inventario/por-regularizar" });
+    expect(accionPrincipal(p, "duda", SEDES, { ...TODO, regularizar: false })).toBeNull();
+    expect(leer(p)).toEqual(["80 días · sin una venta registrada", "1 en duda · puede ser una venta sin registrar", "Tienes 2 · 2 en el piso"]);
   });
 
   it("nunca salió al piso: «Bajar al piso» (Reponer a piso con ella); sin Existencias, sin botón", () => {

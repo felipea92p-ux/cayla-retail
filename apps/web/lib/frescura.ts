@@ -9,6 +9,7 @@ import {
   armarFrescuraSede,
   type CargarDudas,
   type FilaConfianza,
+  type FrescuraDeSede,
   type FrescuraSede,
   type LlamarRpcFrescura,
   type RespuestaRpc,
@@ -392,6 +393,25 @@ export async function getPisoDeFrescuraParaElInicio(persona: Pick<PersonaActualV
   } catch (e) {
     console.error("Inicio: no se pudo leer el piso de Frescura", e);
     return { estado: "fallo" };
+  }
+}
+
+/**
+ * La lectura de Frescura de UNA tienda, con lo que cambia el veredicto (la vara de CAYLA de respaldo y las dudas de ventas sin registrar),
+ * para Análisis (ADR-0357, act. 2026-10-14): qué unidades colgadas pueden ser una venta sin registrar y la vara de cada categoría. Las
+ * mismas cuentas de la pantalla, sin lo decorativo ni la comparación con hace 4 semanas (Análisis no la usa).
+ *
+ * PROMETE: nunca lanza; la falla vuelve en `fallo`. ASUME: la llama el servidor con la sesión de quien mira y solo si ve `frescura` (la base
+ * lo exige: sin él, `fn_frescura_sede` da 42501).
+ */
+export async function getLecturaFrescuraDeTienda(sede: { id: string; nombre: string }): Promise<FrescuraDeSede["lectura"]> {
+  try {
+    const supabase = await createClient();
+    const rpc = rpcFrescura(supabase);
+    const { respaldo } = await leerRespaldoCayla(rpc, new Date().toISOString());
+    return (await armarFrescuraSede(sede, rpc, FRESCURA_DIAS_LECTURA, respaldo, undefined, cargarDudasCon(supabase))).lectura;
+  } catch (e) {
+    return { datos: null, fallo: e instanceof Error ? e.message : String(e) };
   }
 }
 
