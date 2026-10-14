@@ -2,10 +2,10 @@
 //
 // CONTRATO
 //   PROMETE: decir, campo por campo, qué está hecho y qué hay que corregir, con la MISMA regla que apaga «Guardar»
-//            (`valido` de `CampanaModal`): descuento, fechas y fechas entre sí bien escritos.
+//            (`campanaValida`, que `CampanaModal` usa tal cual): descuento, fechas y fechas entre sí bien escritos.
 //   ASUME:   nada de esto es obligatorio llenarlo (una campaña puede ser solo informativa, sin descuento ni fechas). Por eso un
 //            campo solo es «requerido» cuando la persona YA escribió algo en él: escribirlo mal bloquea, dejarlo vacío no.
-//            Si «hecho» sale de aquí, «se puede guardar» sale de aquí también: una prueba exige que coincida con `valido`.
+//            Si «hecho» sale de aquí, «se puede guardar» sale de aquí también: una prueba exige que coincida con `campanaValida`.
 //   NO HACE: no agrega reglas (no vuelve obligatorio el descuento), no mira las categorías (siempre opcionales).
 import type { CampoDeGuia } from "./guia-campos";
 import { objecionVigencia, parsearDescuento, parsearFecha } from "./etiqueta-campana";
@@ -20,7 +20,8 @@ export type EntradaCampana = {
   puedeDarDescuento: boolean;
 };
 
-/** Lo que hoy apaga «Guardar» en `CampanaModal`: el descuento, las dos fechas y su orden. */
+/** Lo que apaga «Guardar» en `CampanaModal` (`components/EtiquetasLista.tsx`, que la llama tal cual): el descuento, las dos
+ *  fechas y su orden. */
 export function campanaValida(e: Pick<EntradaCampana, "descuento" | "desde" | "hasta">): boolean {
   const pct = parsearDescuento(e.descuento);
   const d = parsearFecha(e.desde);

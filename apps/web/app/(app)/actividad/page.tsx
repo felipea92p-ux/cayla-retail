@@ -1,4 +1,4 @@
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { PantallaActividad } from "@/components/actividad/PantallaActividad";
 import { MODULOS_CON_ACTIVIDAD } from "@/lib/actividad-reglas";
 import { esClaveModulo } from "@/lib/modulos";
@@ -16,10 +16,11 @@ export default async function ActividadPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Gestión"
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede={esLider ? "Todas las sedes" : persona.ubicacionEtiqueta}
         titulo="Actividad"
-        bajada={
+        subtitulo={
           esLider
             ? "Quién hizo qué en cada módulo, en todas las sedes."
             : `Quién hizo qué en cada módulo de ${persona.ubicacionEtiqueta}.`

@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import type { OrdenProduccion } from "@/lib/produccion";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import type { ConsumoDeOrden } from "@/lib/insumos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { Boton } from "@/components/ui/campos";
 
 // Anular y revertir una orden (ADR-0133, F2: se conservan tal cual estaban en `OrdenesProduccionV2.tsx`; solo
 // cambió de archivo). Cada una es una RPC; ninguna escribe en las tablas directo. Si la base dice que no, el aviso
@@ -66,13 +67,13 @@ export function AnularOrdenModal({ orden, consumos = [], onClose }: { orden: Ord
           <input id="anular-motivo" type="text" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por qué se cancela la corrida" className={campoTexto} />
         </div>
         <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onClose} className={botonCancelar}>
+        <div className="pie-acciones pt-1">
+          <button type="button" onClick={onClose} className="btn-cayla btn-secundario">
             Volver
           </button>
-          <button type="submit" disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
-            {cargando ? "Anulando…" : "Anular orden"}
-          </button>
+          <Boton peso="primario" cargando={cargando} textoCargando="Anulando…" type="submit" disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined}>
+            Anular orden
+          </Boton>
         </div>
       </form>
     </Modal>
@@ -111,13 +112,13 @@ export function RevertirOrdenModal({ orden, onClose }: { orden: OrdenProduccion;
             : "La muestra vuelve a \"en proceso\". No había stock que devolver."}
         </p>
         <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onClose} className={botonCancelar}>
+        <div className="pie-acciones pt-1">
+          <button type="button" onClick={onClose} className="btn-cayla btn-secundario">
             Volver
           </button>
-          <button type="button" onClick={confirmar} disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
-            {cargando ? "Revirtiendo…" : "Revertir"}
-          </button>
+          <Boton peso="primario" cargando={cargando} textoCargando="Revirtiendo…" type="button" onClick={confirmar} disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined}>
+            Revertir
+          </Boton>
         </div>
       </div>
     </Modal>

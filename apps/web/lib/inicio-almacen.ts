@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { contar, tolerarLectura } from "@/lib/inicio";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { getExistenciasProductos } from "@/lib/catalogo-v2";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { planDelPiso } from "@/lib/piso-plan";

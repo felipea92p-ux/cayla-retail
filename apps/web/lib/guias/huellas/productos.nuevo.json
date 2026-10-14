@@ -10,8 +10,8 @@
       "BotonEnlace «Ir a Categorías»"
     ],
     "components/ColaOfflineAviso.tsx": [
-      "button «Sí, descartar»",
       "button «Cancelar»",
+      "button «Sí, descartar»",
       "button «Descartar»"
     ],
     "components/NuevoProductoForm.tsx": [
@@ -55,7 +55,7 @@
       "Link «{p.referencia}» #2"
     ],
     "components/alta-producto/ConfigurarCategoria.tsx": [
-      "button «{firma.motivo ?? undefined}»"
+      "Boton «{firma.motivo ?? undefined}»"
     ],
     "components/alta-producto/ElegirColores.tsx": [
       "button «{`Quitar ${c.nombre}»",
@@ -68,7 +68,7 @@
       "Boton «{enLinea ? undefined : \"Crear una etiqueta necesita internet\"}»",
       "Boton «+ Crear «»",
       "CampoTexto «Nombre de la etiqueta»",
-      "button «{firma.motivo ?? undefined}»",
+      "Boton «{firma.motivo ?? undefined}»",
       "button «Cancelar»"
     ],
     "components/alta-producto/ElegirMarcaProveedor.tsx": [
@@ -87,19 +87,19 @@
       "button «+ Otra talla»",
       "CampoTexto «Buscar talla»",
       "button «Cancelar»",
-      "button «{nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}»"
+      "Boton «{nuevas.length > 0 ? (firma.motivo ?? undefined) : undefined}»"
     ],
     "components/alta-producto/FichaPrevia.tsx": [
       "button «{g.bloquea ? `Siguiente: ${g.texto}»",
       "button «Cancelar»",
       "button «{datos.siguiente ?? undefined}»",
       "button «{verMovil ? \"Ocultar\" : \"Ver\"}»",
-      "button «{datos.siguiente ?? undefined}» #2"
+      "Boton «{datos.siguiente ?? undefined}»"
     ],
     "components/alta-producto/FotosAlta.tsx": [
-      "button «{`Quitar foto de ${c.nombre}»",
+      "button «{etiqueta}»",
       "input «input.current?.click()»",
-      "button «{etiqueta}»"
+      "button «{etiqueta}» #2"
     ],
     "components/alta-producto/GrillaMuestras.tsx": [
       "button «{title}»",
@@ -117,7 +117,7 @@
       "SegmentoDeslizante «Qué escribes en la tabla»",
       "input «1»",
       "button «{`Restar a ${etiqueta}»",
-      "input «{`Cuántas tienes de ${etiqueta}»",
+      "input «{`${preguntaCelda}»",
       "button «{`Sumar a ${etiqueta}»",
       "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
     ],
@@ -138,13 +138,13 @@
       "button «Mejor elijo uno que ya existe»",
       "ComboBuscable «)» #2",
       "button «Cancelar»",
-      "button «{firma.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
       "CampoTexto «Nombre del color»",
       "Desplegable «setCodigoEscrito(normaliz»",
       "CampoTexto «Código»",
-      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
     ],
@@ -158,14 +158,14 @@
       "Link «Editar el producto»",
       "Link «{abrirOrden.boton}»",
       "Link «{completas ? \"Ver las fotos\" : \"Agregar fotos\"}»",
-      "Link «Imprimir etiquetas»",
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Crear otro parecido»",
-      "Link «Ir a productos»"
+      "BotonVer «Ir a productos»"
     ],
     "components/alta-producto/ProponerValor.tsx": [
       "button «{t.boton}»",
       "CampoTexto «{`Nombre ${tipo === \"tallas\" ? \"de la\" : \"del\"}»",
-      "button «{firma.motivo ?? undefined}»",
+      "Boton «{firma.motivo ?? undefined}»",
       "button «Cancelar»"
     ],
     "components/alta-producto/PuntosAvance.tsx": [
@@ -186,7 +186,7 @@
       "button «›»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ]
   }

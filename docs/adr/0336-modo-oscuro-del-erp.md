@@ -103,6 +103,137 @@ movimiento">` (ADR-0353); el aviso de cierre de caja (`estructura.recordatorio`:
 depende de que la sede tenga hora de cierre: el escenario contesta él la consulta que sondea (`/api/caja/recordatorio`) con una caja
 abierta hace 5 h y abre su pestaña, sin escribir en la base compartida.
 
+## Actualización 2026-10-13 — un símbolo que el código oculta se mide como gráfico (3:1), no como texto
+
+El escáner (`tema/motor/escaner-en-pagina.js`) le pedía 4.5:1 a todo nodo de texto, también a la flecha «›» con `aria-hidden` que
+cierra cada fila de Compras. Para un elemento gráfico el piso es 3:1 (WCAG 1.4.11; un adorno puro ni siquiera tiene exigencia,
+1.4.3), así que esa flecha, ya subida a 3.24–3.32:1 en claro y 4.34–4.52:1 en oscuro (PR #1024), seguía saliendo como «heredado» en
+la fila rayada en oscuro (4.34 contra 4.5). Decidido con Felipe el 2026-10-13, con la lista de lo que cambia a la vista.
+
+**Regla.** Un símbolo es **gráfico** —se mide contra 3:1 y el reporte dice «gráfico, mín. 3»— si el código lo ocultó al lector
+(`aria-hidden="true"`), su pieza entera no tiene letras ni dígitos y no es una tecla. Sigue siendo texto, con 4.5:1:
+
+1. **Lo que tiene letras o dígitos, aunque esté oculto.** Se mira la pieza (el elemento) y no el nodo: React parte `+{n}` en «+» y
+   «30», y ese «+» es parte de un número (Colaboradores ▸ Roles y accesos).
+2. **Una tecla (`<kbd>`).** El «/» del buscador dice qué apretar; el campo ya se lo anuncia al lector con `aria-keyshortcuts`, pero quien
+   mira la pantalla lo lee.
+3. **Lo que queda detrás de un modal abierto.** Radix le pone `aria-hidden` a toda la página de atrás y la marca con
+   `data-aria-hidden`; ahí un «%», el «:» de «Ordenar por:» o la «—» de «sin dato» son texto. Solo cuenta el `aria-hidden` que puso el
+   código.
+
+**Cómo se midió, antes de proponerlo.** El criterio pedido al principio («dentro de `aria-hidden` y sin letras ni dígitos») se probó
+primero y se llevaba 126 hallazgos que son texto: 71 del «/» del buscador, 51 detrás de modales y 4 del «+N». De ahí salieron las tres
+excepciones. Con el criterio final, en local (cuentas admin, admin en CAYLA Global, admin en el Taller e integrante):
+
+- **El auditor real, antes y después** (94 pantallas comparables): deja de marcar **solo** la flecha de Compras (claro 3.32 y 3.24,
+  oscuro 4.34). «Solo en oscuro», 0 → 0; heredados de admin, 31 → 30. Lo demás que difiere entre las dos corridas son textos con la hora
+  (salen y entran en pares).
+- **Un comparador** que corre el escáner viejo y el nuevo sobre la MISMA carga de cada página, con todos los escenarios registrados
+  (285 vistas con modales y listas abiertos): deja de marcar **8 hallazgos en 2 piezas**, la flecha de Compras (6) y el «:» rojo del
+  reloj de paletas del aviso de cierre de caja (2, 4.03:1 en los dos temas: un separador dentro de un dibujo oculto al lector, cuyos
+  dígitos se siguen midiendo como texto). Cero casos en que el escaneo nuevo contradiga al criterio.
+- **20 casos borde** en una página sintética (oculto por un ancestro, `aria-hidden="false"` o vacío, una tecla oculta, un «%» detrás de
+  un modal, una flecha propia dentro de un modal, «+30» en uno o dos nodos, un gráfico bajo 3 y uno grande): todos dan lo esperado.
+
+**Se rompe si** una librería de modales oculta la página de atrás sin la marca `data-aria-hidden`: los símbolos de atrás volverían a
+contar como gráficos mientras el modal esté abierto. Radix, la que usa el ERP, la pone: estaba en cada modal medido.
+
+## Actualización 2026-10-14 — el texto tenue escrito en un CSS se mide en el CI y dice qué es
+
+**Qué pasó.** La auditoría marcó la nota de `<TituloGrupo>`: 45 % de tinta, 2.85:1 en claro y 3.93:1 en oscuro sobre papel. Ahora toma el
+tono de su título. Detrás había una causa más ancha: el piso del texto tenue de `tema.css` (regla 4 de «Modo oscuro» en CLAUDE.md) solo
+sube las clases de Tailwind, y un `color: color-mix(in srgb, var(--color-tinta) N%, transparent)` escrito a mano en un CSS no lo recibe ni
+lo medía nada en el CI. Había 37 líneas así por debajo del 64 %, en 19 archivos de `app/` (`globals.css` y `estilos/`).
+
+**Qué se hizo.** Solo cambió el tono de tinta; el tamaño, el lugar y el texto siguen iguales.
+- **19 no pasaban y se subieron** al mínimo que pasa sobre su fondo real. El texto quedó en 62 % sobre papel o crema y en 64 % sobre hueso
+  o sand (4.5:1). Son las horas del gráfico de tramos, la hora de la comparativa de Caja, el número y el título de la ficha del taller, los
+  datos de la hoja del modelo, la opción del segmento, la tecla «/» del buscador, las iniciales del Observatorio y los ejemplos dentro de
+  los campos, los buscadores, la lista y el club. El monto grande del gasto rápido quedó en 50 % (texto grande, 3:1), y en 50 % también la
+  × de un aviso, la flecha de la ficha del taller, el ícono de un paso pendiente y el «…» de la paginación (gráficos, 3:1). Se midieron en
+  el navegador, antes y después, en claro y en oscuro, con el banco local de pruebas; cinco que no estaban a mano se calcularon sobre su
+  fondo fijo.
+- **18 se quedan, cada una con su motivo en la línea:**
+  - 8 íconos que ya pasan 3:1;
+  - la «›» de una fila, apagada en reposo y en tinta plena cuando se ve;
+  - 2 botones deshabilitados, que WCAG exime;
+  - 2 reglas de `alta-parecidas.css` que ningún componente pinta;
+  - la letra mientras gira en el pase de traslado, que dura un instante;
+  - 4 textos al 62 % que ya pasaban: el título de grupo, el separador de día, la etiqueta de un campo y el pie de los rótulos.
+
+**La regla y su candado.** Desde el 64 %, la tinta pasa 4.5:1 sobre crema, papel, hueso y sand en los dos temas. Por debajo, la línea lleva
+su etiqueta en la misma línea: `/* contraste: texto sobre papel, crema */` (4.5:1), `texto grande sobre …` o `gráfico sobre …` (3:1), o
+`no aplica — <motivo>`. `lib/tema-tokens.test.ts` recorre todos los CSS de `app/` salvo `tema.css` y falla si una línea bajo el 64 % no
+trae etiqueta. Mide cada etiquetada sobre los fondos que nombra, en claro y en oscuro, y comprueba la premisa del 64 %. Con los tonos de
+antes, cae exactamente en las 19.
+
+**Lo que queda fuera (anotado en el backlog).**
+- **Escalas propias hechas con variables:** `--vr-t45` de la vista rápida, `--hp-t45` del historial de la prenda, `--vsr-t50` de Ventas
+  sin registrar, y `--pp-poste` y `--grupo-fuera` del plan del piso.
+- **Las mezclas de taupe:** `finanzas.css` y `rotulos-brother.css`.
+- **Las clases de Tailwind que fallan en claro:** `text-tinta/50` sobre crema, como el «Ctrl K» del buscador de la cabecera.
+- **El piso de `tema.css`:** su 58 % da 4.45:1 sobre sand en oscuro, no 4.5 como dice su comentario.
+
+**Se rompe si** el color de un texto tenue se escribe de otra forma: una variable propia, `opacity` sobre el texto u otra mezcla. El
+candado solo reconoce `color: color-mix(… var(--color-tinta) N%, transparent)`; lo demás lo sigue viendo solo la auditoría en el
+navegador. (La lista de arriba se resolvió el mismo día: ver la actualización (b).)
+
+## Actualización 2026-10-14 (b) — la otra tanda: escalas con variables, Finanzas, el Observatorio y un piso también para el claro
+
+**Qué se midió.** Una auditoría de las pantallas, en claro y en oscuro (cuenta admin, banco local `cayla-oc`), encontró 63 piezas
+distintas que no llegaban al mínimo en claro, en las 45 pantallas que cargaron en la primera corrida, y ninguna nueva en oscuro. La
+mayoría eran clases de Tailwind: `text-tinta/40` a `/60` suman 853 usos en 205 archivos, y la más repetida es el «Buscar… Ctrl K» de la
+cabecera. El resto eran:
+- **Escalas propias hechas con variables:** las de la Vista rápida, el Historial de la prenda, el Observatorio e Inicio de Almacén.
+- **Las filas «suaves» de Finanzas:** toda la fila al 60 % de opacidad.
+- **El texto de ejemplo de los campos de Finanzas:** taupe al 80 %.
+- **Siete conteos y subtítulos** apagados con `opacity-60` u `opacity-70` solo en claro.
+
+**Qué se hizo.** Solo cambió el tono; el tamaño, el lugar y el texto siguen iguales. Felipe eligió mirando el antes y después en las
+tres piezas que lo pedían (el piso del claro, las filas suaves y el Observatorio).
+- **Escalas.**
+  - **Vista rápida e Historial:** todo escalón que pinta texto, a 62 % en claro; los íconos del Historial, a 50 % (3:1).
+  - **Inicio de Almacén:** su escalón del 50 % a 64 %, y la flecha a 50 %.
+  - **Observatorio:** su `--o-tx3` del 50 al 64 % en claro. Su CSS decía «el claro es el aprobado y no se toca»; Felipe aprobó el cambio.
+  - **Los nombres de las variables** (`--hp-t45`…) siguen siendo el escalón, no el porcentaje.
+- **Finanzas.**
+  - **La fila que ya pasó:** atenúa solo su texto de tinta (64 %) en vez de bajar toda la fila al 60 % de opacidad. Así el «—», el «%» y
+    el «pasó», que son taupe, también se leen.
+  - **El texto de ejemplo de sus campos:** pasa a taupe pleno.
+- **Los dos pisos de `tema.css`.**
+  - **En oscuro:** sube de 58 a 60 % (al 58 % daba 4.45 sobre sand), y su taupe pasa al pleno (al 82 % daba 3.89 sobre sand).
+  - **En claro (nuevo):** `text-tinta/35` a `/60` suben al 64 %, que pasa sobre crema, papel, hueso y sand. El `/35` se sumó después de
+    la auditoría completa, igual que el taupe tenue (`text-taupe/50` a `/70`), que pasa al taupe pleno en los dos temas.
+  - **Los marcadores (`placeholder:text-tinta/…`)** entran en los dos pisos. Los de `/25` y `/30` siguen siendo fantasmas a propósito.
+- **Siete textos apagados con opacidad solo en claro:** los conteos de las píldoras (Clientes, el historial de cierres de Caja), el del
+  segmento, el «· N» y «en esta página» de Por pagar, «sin saldo» de Órdenes de insumos y el «S/» del cobro dividido. Ahora no se apagan
+  en claro, o llevan la misma opacidad que en oscuro. El del cobro se midió también a 375 px (PL-105).
+
+**El candado.** `lib/tema-tokens.test.ts` ahora:
+- reconoce también las variables (`--x: color-mix(… var(--color-tinta) N%, transparent)`), que llevan la misma etiqueta;
+- mide solo en oscuro lo que vive en un bloque `[data-tema="oscuro"]`;
+- mide los dos pisos: su porcentaje sobre crema, papel, hueso y sand, y que cubran sus escalones.
+
+Cae si una escala vuelve al 45 % o si el piso del claro baja al 60 %.
+
+**Lo que queda fuera.**
+- **El subtítulo de una talla sin stock en Cambios** (`CambioReemplazo`, 65 % × 0,7 ≈ 2,9:1). Para probarlo a 375 px hace falta todo el
+  flujo de un cambio; queda anotado con su arreglo.
+- **Los textos apagados con `opacity-*` o pintados con otra clase.** El piso no los ve; los sigue encontrando la auditoría.
+
+**Cómo se verificó.**
+- **Una auditoría completa del después:** 85 pantallas estáticas, cuenta admin, banco local `cayla-oc`, sin `/global` (que pasa la cuenta a
+  la vista de toda la empresa) y sin «Por reintentar» (que reintenta envíos a SUNAT al abrirse).
+  - En las 43 pantallas que cargaron en las dos corridas, los textos bajo el mínimo bajaron de 308 a 0 en claro y de 4 a 0 en oscuro.
+  - En el conjunto, nada falla solo en oscuro.
+  - Solo quedan los fantasmas `/25` de Nuevo producto y el dibujo de la impresora con su rótulo de ejemplo en Rótulos.
+- **En el navegador, pieza por pieza:** las escalas y Finanzas, antes y después en los dos temas, y el cobro dividido de Vender a 375 px.
+- **Lo que aprendió la corrida:** compilar ~85 pantallas en desarrollo deja ~10 GB de caché de Turbopack y llenó el disco. Para una
+  auditoría completa se apaga `turbopackFileSystemCacheForDev` mientras corre (`apps/web/tema/README.md`).
+
+**Se rompe si** un texto se apaga con opacidad o con un color escrito de otra forma: ni el piso ni el candado lo ven, solo la auditoría
+en el navegador.
+
 ## Cómo se verificó (actividad 13)
 
 `tsc` sin errores y las pruebas del tema en verde. Con la herramienta, contra el `next dev` local de esta rama: las 12 rutas con 6 cuentas a 1440 px (72 visitas), 24 escenarios con Admin, Integrante y Terminal de ventas a 1440 px (58 visitas) y a 375 px (58 visitas): **0 hallazgos solo en oscuro**. Mirando las capturas: la ficha de una clienta, Roles y accesos, el cartel (ahora rojo como saldrá impreso) y las etiquetas (papel blanco, como salen) se leen bien. Los escenarios que no abren algo son por el rol.

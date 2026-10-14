@@ -2,26 +2,26 @@
   "guia": "compras.proveedores.id",
   "ruta": "/compras/proveedores/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 40,
+  "total": 46,
   "controles": {
     "app/(app)/compras/proveedores/[id]/page.tsx": [
       "Volver «(sin nombre)»",
-      "Link «{c.documento}»"
+      "Link «{celdas}»"
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «{actual?.fase === \"cargando\" ? \"Buscando…\" : \"Buscar\"}»",
+      "Boton «Buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
-      "button «Editar»",
+      "LapizEditar «)»",
       "button «{`Copiar ${etiqueta.toLowerCase()}»"
     ],
     "components/ProveedorAcciones.tsx": [
       "BotonAncla «WhatsApp»",
       "Boton «Copiar CCI»",
-      "Boton «proveedor-ficha.editar»",
+      "BotonEditar «→() => setEditando(true)»",
       "BotonEnlace «Registrar factura»"
     ],
     "components/ProveedorModal.tsx": [
@@ -41,7 +41,6 @@
       "button «{ETIQUETA_BILLETERA[b]}»",
       "button «Usar el teléfono de contacto (»",
       "CampoTexto «Titular de la cuenta»",
-      "button «Desactivar proveedor»",
       "Boton «Cancelar»",
       "Boton «(sin nombre)»"
     ],
@@ -53,10 +52,19 @@
       "CampoTexto «Nota (opcional)»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «{loading ? \"Registrando…\" : \"Registrar reembolso\"}»"
+      "Boton «Registrar reembolso»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"
+    ],
+    "components/nos-debe/HojaReposicion.tsx": [
+      "Boton «proveedor-ficha.reposicion»",
+      "CampoTexto «Cuántas llegaron»",
+      "CampoTexto «Cómo llegó»",
+      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "Boton «Recargar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ]
   }
 }

@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Clock, History, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { VentasDeHoyLista } from "@/components/VentasDeHoy";
 import type { VentaDeHoy } from "@/lib/useVentasDeHoy";
 import { anchoBarraMeta, resumenDeHoy } from "@/lib/vender-hoy-reglas";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 const soles = (n: number) => `S/${n.toFixed(2)}`;
 
@@ -84,10 +84,11 @@ export function ResumenDeHoy({
 
       {abierto && (
         <Modal
+          conCerrar
           titulo="Ventas de hoy"
           subtitulo={`${ubicacionEtiqueta} · ${r.ventas} ${r.ventas === 1 ? "venta" : "ventas"}${meta ? ` · meta ${soles(meta)}` : ""}`}
           variante="hoja"
-          ancho="max-w-lg"
+          tamano="mediana"
           onClose={() => setAbierto(false)}
         >
           {(cerrar) => (
@@ -107,16 +108,16 @@ export function ResumenDeHoy({
               {(verHistorial || verCaja) && (
                 <div className="mt-5 flex gap-2">
                   {verHistorial && (
-                    <Link href="/vender/historial" onClick={cerrar} className="btn-cayla btn-secundario inline-flex h-10 flex-1 items-center justify-center gap-2">
+                    <BotonVer href="/vender/historial" alNavegar={cerrar} className="h-10 flex-1">
                       <History className="h-4 w-4" aria-hidden />
                       Historial completo
-                    </Link>
+                    </BotonVer>
                   )}
                   {verCaja && (
-                    <Link href="/caja" onClick={cerrar} className="btn-cayla btn-secundario inline-flex h-10 flex-1 items-center justify-center gap-2">
+                    <BotonVer href="/caja" alNavegar={cerrar} className="h-10 flex-1">
                       <Wallet className="h-4 w-4" aria-hidden />
                       Ir a Caja
-                    </Link>
+                    </BotonVer>
                   )}
                 </div>
               )}

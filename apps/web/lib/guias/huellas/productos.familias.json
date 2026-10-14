@@ -5,7 +5,7 @@
   "total": 14,
   "controles": {
     "app/(app)/productos/familias/page.tsx": [
-      "Volver «Familias»"
+      "Volver «(sin nombre)»"
     ],
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -14,16 +14,16 @@
     ],
     "components/FamiliasLista.tsx": [
       "Boton «familias.agregar»",
-      "Boton «familias.editar»",
+      "LapizEditar «setConfirmando(confirmacionCatalogo(\"desactivar\", f.nombre,»",
       "Boton «Desactivar»",
       "Boton «Reactivar»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
-      "ComboResponsable «Ca»",
+      "ComboResponsable «Cancelar»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ]
   }

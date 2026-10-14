@@ -16,7 +16,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { esVersionCambiada, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { estaActiva, type Clienta, type FichaClienta } from "@/lib/clientas-reglas";
 import { deducirTallas, estadoFrecuente } from "@/lib/clienta-actividad-reglas";
-import { ajustarNumeroAlTipo, documentoLegible, problemaDocumento } from "@/lib/documento-clienta-reglas";
+import { ajustarNumeroAlTipo, contactoVisible, problemaDocumento } from "@/lib/documento-clienta-reglas";
 import { estadoClub } from "@/lib/club-reglas";
 import { cajaDelProblemaCumple, cumpleCompleto, problemaCumple, type CumpleEscrito } from "@/lib/club-cumple-reglas";
 import { avisoCambioDeCelular, cumpleLegible, faltaParaSerSocia } from "@/lib/club-clientas-reglas";
@@ -36,8 +36,9 @@ import {
 import { frecuenteDeLaFicha, suSedeDeLaFicha } from "@/lib/clientas-lista-reglas";
 import { PreferenciasClienta } from "@/components/clientas/PreferenciasClienta";
 import { HistoriaPermisos } from "@/components/clientas/HistoriaPermisos";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, SearchX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 /** Lo que muestra la hoja: la ficha, o una de sus acciones (cada una responde adentro del mismo panel, ADR-0136). Del club
  *  queda «Registrar su BAJA» (`baja`): desde la tanda 1g (ADR-0288, G-1, G-7) ella se une sola desde el cartel, así que la
@@ -149,7 +150,19 @@ function camposDeLaGuia(
  * escaneando el cartel y ahí decide si quiere publicidad (G-12): la ficha no une al club ni marca la publicidad. Lo único del
  * club que se registra aquí es su BAJA, cuando escribe BAJA a la tienda; la historia de permisos lo muestra.
  */
-export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onClose: () => void; onCambiada: () => void }) {
+export function ClientaFichaModal({
+  id,
+  verCompleto = false,
+  onClose,
+  onCambiada,
+}: {
+  id: string;
+  /** El DNI y el celular completos (Felipe 2026-10-13: solo el líder); los demás los ven a medias. La caja de edición los
+   *  muestra completos: hace falta para corregirlos. */
+  verCompleto?: boolean;
+  onClose: () => void;
+  onCambiada: () => void;
+}) {
   const [ficha, setFicha] = useState<FichaClienta | null>(null);
   const [cargando, setCargando] = useState(true);
   const [modo, setModo] = useState<Modo>("ver");
@@ -190,7 +203,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
     const { ficha, error } = await cargarFichaClienta(id);
     setCargando(false);
     if (error || !ficha) {
-      avisar.error(traducirError(error, "abrir la ficha del cliente"));
+      avisar.error(traducirError(error, "abrir la ficha del cliente", { lectura: true }));
       onClose();
       return;
     }
@@ -200,7 +213,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
 
   if (cargando || !ficha) {
     return (
-      <Modal titulo="Cliente" subtitulo="Cargando…" onClose={onClose} variante="hoja">
+      <Modal conCerrar titulo="Cliente" subtitulo="Cargando…" onClose={onClose} variante="hoja">
         <p className="text-sm text-tinta/65">Un momento…</p>
       </Modal>
     );
@@ -211,9 +224,10 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
   const tallas = deducirTallas(ficha.compras);
   const frecuente = frecuenteDeLaFicha(ficha.resumenCompras ?? null, estadoFrecuente(ficha.compras, new Date()));
   const suSede = suSedeDeLaFicha(ficha.resumenCompras ?? null);
-  // Dentro de la ficha el documento se ve completo, con su tipo («DNI 71234482», «CE 001234567»): quien la abre ya la
-  // buscó a propósito. Lo que se enmascara es el mostrador del Punto de venta.
-  const documento = documentoLegible(c.documentoTipo, c.documentoNumero, false);
+  // El documento con su tipo («DNI 71234482») y el celular: completos para el líder, a medias para los demás (Felipe
+  // 2026-10-13, auditoría punto 18). Antes se veían completos para toda cuenta con el módulo.
+  const contacto = contactoVisible(c, verCompleto);
+  const documento = contacto.documento;
   const enClub = estadoClub(c);
   // Solo una miembro tiene pestaña «Club» (permisos y preferencias); una ficha anonimizada no tiene nada del club que mostrar.
   const conClub = enClub !== "no_socia" && !c.anonimizada;
@@ -309,7 +323,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
     }
     const { clientas, error } = await buscarClienta(terminoUnir);
     if (error) {
-      avisar.error(traducirError(error, "buscar la otra ficha"));
+      avisar.error(traducirError(error, "buscar la otra ficha", { lectura: true }));
       return;
     }
     setResultadosUnir(clientas.filter((otra) => otra.id !== id));
@@ -362,11 +376,13 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
             : c.fusionadaEnId
               ? "Esta ficha se unió a otra"
               : `Ficha archivada: ${c.motivoArchivo}`
-          : [documento, c.telefonoWhatsapp, c.codigoClub].filter(Boolean).join(" · ") || "Sin documento ni celular"
+          : [documento, contacto.celular, c.codigoClub].filter(Boolean).join(" · ") || "Sin documento ni celular"
       }
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-2xl"
+      tamano="ancha"
+      // Una salida a la vista (ADR-0358, ronda 12): mirando la ficha, la ×; editando, archivando o uniendo, «Cancelar».
+      conCerrar={modo === "ver"}
     >
       {() => (
         <div ref={raiz} className="space-y-5">
@@ -396,18 +412,14 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                   ]}
                 />
                 {activa && (
-                  <Boton
-                    type="button"
-                    peso="primario"
-                    data-guia="clientas.ficha-editar"
+                  <BotonEditar
+                    guia="clientas.ficha-editar"
                     className="mb-2 shrink-0 !py-2"
                     onClick={() => {
                       setEdicion(datosDeEdicion(c));
                       setModo("editar");
                     }}
-                  >
-                    Editar
-                  </Boton>
+                  />
                 )}
               </div>
 
@@ -553,7 +565,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                 !c.fusionadaEnId && (
                   <div className="flex flex-wrap justify-end gap-3 border-t border-sand pt-4">
                     <ComboResponsable control={responsable} deshabilitado={guardando} compacto />
-                    <Boton type="button" peso="primario" cargando={guardando} onClick={onReactivar} disabled={!responsable.listo}>
+                    <Boton textoCargando="Reactivando…" type="button" peso="primario" cargando={guardando} onClick={onReactivar} disabled={!responsable.listo}>
                       Reactivar
                     </Boton>
                   </div>
@@ -636,7 +648,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
               <PieGuia guia={guia} listo={anonimizar ? "Todo listo para anonimizar." : "Todo listo para archivar."} />
               <div className="flex justify-end gap-3 pt-2">
                 {volverAVer}
-                <Boton
+                <Boton textoCargando={anonimizar ? "Anonimizando…" : "Archivando…"}
                   type="button"
                   peso="primario"
                   cargando={guardando}
@@ -667,7 +679,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                 {resultadosUnir !== null && (
                   <div className="space-y-2">
                     {resultadosUnir.length === 0 ? (
-                      <p className="text-sm text-tinta/65">Sin coincidencias.</p>
+                      <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<SearchX />}>Sin coincidencias.</Vacio>
                     ) : (
                       resultadosUnir.map((otra) => (
                         <button
@@ -678,7 +690,8 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                         >
                           <span className="text-sm text-tinta">{otra.nombre ?? "Sin nombre"}</span>
                           <span className="text-xs text-tinta/65">
-                            {[documentoLegible(otra.documentoTipo, otra.documentoNumero, false), otra.telefonoWhatsapp].filter(Boolean).join(" · ")}
+                            {/* Unir no se puede deshacer: para comparar las dos fichas, el número completo a quien sea que una. */}
+                            {Object.values(contactoVisible(otra, true)).filter(Boolean).join(" · ")}
                           </span>
                         </button>
                       ))
@@ -692,7 +705,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
               <PieGuia guia={guia} listo="Todo listo para unir." />
               <div className="flex justify-end gap-3 pt-2">
                 {volverAVer}
-                <Boton
+                <Boton textoCargando="Uniendo…"
                   type="button"
                   peso="primario"
                   cargando={guardando}
@@ -714,7 +727,7 @@ export function ClientaFichaModal({ id, onClose, onCambiada }: { id: string; onC
                 cupones por WhatsApp, en las 3 tiendas. <strong>Sigue siendo miembro</strong>: su cupón de cumpleaños y su vale de aniversario
                 siguen, en tienda.
               </p>
-              <p className="text-xs text-tinta/65">Vale para toda ficha con el celular {c.telefonoWhatsapp}.</p>
+              <p className="text-xs text-tinta/65">Vale para toda ficha con el celular {contacto.celular}.</p>
               <CampoGuiado id="responsable" guia={guia}>
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>

@@ -3,15 +3,16 @@
 import { useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Ban, Printer } from "lucide-react";
+import { Ban, ReceiptText, Truck } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, BotonEnlace, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { BotonEditarOrden } from "@/components/ordenes-compra/BotonEditarOrden";
+import { GastoDelViaje } from "@/components/ordenes-compra/GastoDelViaje";
 import { HojaOrdenCompra, type EmpresaDeLaOrden } from "@/components/ordenes-compra/HojaOrdenCompra";
 import { useTituloDeImpresion } from "@/lib/useTituloDeImpresion";
 import { useResponsable } from "@/lib/useResponsable";
@@ -19,14 +20,33 @@ import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import type { CampoDeGuia } from "@/lib/guia-campos";
-import { MAX_MOTIVO_ANULACION, avisoDeCorte, numeroOrdenCompra, problemaDeMotivo, type DetalleOrden } from "@/lib/ordenes-compra-reglas";
+import {
+  MAX_MOTIVO_ANULACION,
+  avisoDeCorte,
+  numeroOrdenCompra,
+  problemaDeMotivo,
+  puedeAnularOrden,
+  puedeEditarOrden,
+  puedeEnviarOrden,
+  puedeRegistrarComprobante,
+  type DetalleOrden,
+} from "@/lib/ordenes-compra-reglas";
 import { anularOrdenCompra } from "@/lib/ordenes-compra-acciones";
 import { textoParaBase } from "@/lib/orden-compra-alta";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // Lo que se hace con una orden (ADR-0362, fase 1 · actividades 4, 5 y 6): «Imprimir o guardar PDF» siempre; «Editar» y «Anular orden»
-// solo mientras está «generada». Va al pie de la ventana de la orden (`lugar="pie"`: anular a la izquierda, como «Anular comprobante» en
-// una factura; imprimir y editar a la derecha, donde la mano ya está al terminar de leer) y en la cabecera de su página
-// (`lugar="cabecera"`).
+// solo mientras está «generada». Con papel (fase 2, actividad 4) se suma «Registrar comprobante» —la acción principal— mientras la orden esté
+// generada y con «Llega a». Y desde que tiene un comprobante «Editar» se va (la base no edita una orden con comprobante); mientras tenga uno
+// vigente también se va «Anular orden» (primero se anula el comprobante; la orden abierta lo explica).
+//
+// Con envíos (fase 3, actividad «Enviar a una sede»): mientras la orden esté generada y tenga algo por enviar se suma «Enviar a una sede» (la
+// pantalla `envio/[id]`). Es la acción principal si «Registrar comprobante» no está; si está, queda a su lado en segundo plano: el comprobante no
+// bloquea (decisión 9) y cualquiera de los dos puede ir primero. Y desde que la orden tiene un envío se va «Editar» (aun anulado: la guía
+// cuelga de sus líneas), y con uno vigente también «Anular orden» (primero se anula el envío; la orden abierta lo explica).
+//
+// Va al pie de la ventana de la orden (`lugar="pie"`: anular a la izquierda, como «Anular comprobante» en una factura; imprimir, editar y la
+// acción principal a la derecha, donde la mano ya está al terminar de leer) y en la cabecera de su página (`lugar="cabecera"`).
 //
 // Anular es irreversible: pide el motivo en una hoja, con su guía de foco (el motivo y, desde una terminal, quién lo hace), y dice qué
 // pasa antes de confirmar. Con la cuenta de una persona firma ella (`orden_compra_anular`, decisión 39).
@@ -34,6 +54,8 @@ import { textoParaBase } from "@/lib/orden-compra-alta";
 // El PDF (decisión 1: se puede mandar al proveedor) sale del diálogo de impresión, como la guía de traslado: el papel
 // (`HojaOrdenCompra`, A4) queda montado pegado a <body> mientras la orden está a la vista —así Ctrl+P también imprime la orden y no la
 // pantalla— y el documento se llama como la orden, así el archivo se guarda como «OC-000129.pdf» (`useTituloDeImpresion`).
+//
+// «+ Gasto del viaje» (fase 6 · actividad 3): en toda orden que no esté anulada, con ESTA orden ya elegida (lo que costó traerla).
 
 const sinSuscripcion = () => () => {};
 
@@ -43,16 +65,37 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
   const origenAnular = useRef<HTMLElement | null>(null);
   const montado = useSyncExternalStore(sinSuscripcion, () => true, () => false);
   useTituloDeImpresion(numeroOrdenCompra(orden.numero));
-  const generada = orden.estado === "generada";
+  // Las mismas reglas que la base, dichas para no ofrecer un botón que ella rechazaría (`ordenes-compra-reglas.ts`).
+  const puedeEditar = puedeEditarOrden(orden);
+  const puedeAnular = puedeAnularOrden(orden);
+  const puedeEnviar = puedeEnviarOrden(orden);
 
   const imprimir = (
-    <Boton onClick={() => window.print()}>
-      <span className="inline-flex items-center gap-2">
-        <Printer aria-hidden className="h-3.5 w-3.5" /> Imprimir o guardar PDF
-      </span>
-    </Boton>
+    <BotonImprimir onClick={() => window.print()} title="También sirve para guardar la orden en PDF">
+      Imprimir la orden
+    </BotonImprimir>
   );
-  const anular = generada && (
+  const registrar = puedeRegistrarComprobante(orden) && (
+    <BotonEnlace href={`/compras/ordenes/comprobante/${orden.id}`} peso="primario" data-guia="orden.registrar-comprobante">
+      <span className="inline-flex items-center gap-2">
+        <ReceiptText aria-hidden className="h-3.5 w-3.5" /> Registrar comprobante
+      </span>
+    </BotonEnlace>
+  );
+  const enviar = puedeEnviar && (
+    <BotonEnlace href={`/compras/ordenes/envio/${orden.id}`} peso={registrar ? "fantasma" : "primario"} data-guia="orden.enviar">
+      <span className="inline-flex items-center gap-2">
+        <Truck aria-hidden className="h-3.5 w-3.5" /> Enviar a una sede
+      </span>
+    </BotonEnlace>
+  );
+  const gastoViaje = orden.estado !== "anulada" && (
+    <GastoDelViaje
+      orden={{ id: orden.id, numero: numeroOrdenCompra(orden.numero), proveedor: orden.proveedor.nombre, total: orden.total }}
+      guia="orden.gasto-viaje"
+    />
+  );
+  const anular = puedeAnular && (
     <Boton
       peso="peligro"
       onClick={(e) => {
@@ -72,14 +115,20 @@ export function AccionesOrden({ orden, empresa, lugar }: { orden: DetalleOrden; 
           {anular}
           <div className="ml-auto flex flex-wrap items-center gap-3">
             {imprimir}
-            {generada && <BotonEditarOrden id={orden.id} />}
+            {gastoViaje}
+            {puedeEditar && <BotonEditarOrden id={orden.id} />}
+            {enviar}
+            {registrar}
           </div>
         </div>
       ) : (
         <div data-guia="orden.acciones" className="flex flex-wrap items-center gap-3">
           {anular}
           {imprimir}
-          {generada && <BotonEditarOrden id={orden.id} />}
+          {gastoViaje}
+          {puedeEditar && <BotonEditarOrden id={orden.id} />}
+          {enviar}
+          {registrar}
         </div>
       )}
       {anulando && (
@@ -205,12 +254,12 @@ function AnularOrdenModal({
             </CampoGuiado>
           )}
           <PieGuia guia={guia} listo="Todo listo para anular." />
-          <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
+          <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Anulando…" : "Anular orden"}
+            <Boton textoCargando="Anulando…" type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              Anular orden
             </Boton>
           </div>
         </form>

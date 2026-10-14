@@ -102,7 +102,12 @@ flowchart TB
 ### 3.1 Mapa por dominio (ruta → lib → componentes → RPC/tablas)
 
 **Inicio (`/`)**
-- `app/(app)/page.tsx`: aterriza según el rol (`aterrizajeDe`) y, si se queda, arma «Hoy», «Te toca», accesos y «Equipo de hoy»
+- **«Tu piso» (ADR-0395, 2026-10-13):** en el Inicio de una TIENDA (no terminal), `<Suspense>` con `components/inicio/PisoDelInicio.tsx` (Server Component async; sin módulo nuevo: cada tarjeta la ve quien ve `frescura` o `plan_piso`). Qué se dice vive en `lib/inicio-piso-reglas.ts` (`pisoQueSeVe`, `vistaFrescuraInicio`, `vistaPlanInicio`, `vistaPisoInicio`; pura, con su prueba). Lecturas que nunca lanzan (`LecturaParaElInicio`: ok / no aplica / falló): `getPisoDeFrescuraParaElInicio` (`lib/frescura.ts`: `rpcFrescura` + `armarFrescuraSede` + `puertaDelPiso`, una sola tienda, sin caché) y `getPisoDelPlanParaElInicio` (`lib/plan-piso-servidor.ts`: `armarPropuesta` + `getCapacidadPisoConEstado`). La barra y la línea de porcentajes (`segmentosDelPiso`, `lineaDelPiso`) viven en `lib/frescura-piso.ts` y las usan también `FrescuraPiso` y `FrescuraRed`. Lleva a `/gestion/frescura` y `/gestion/plan-del-piso`. Guía: paso `piso` de `GUIA_INICIO`.
+- **Entrar sin pasar por el Inicio (2026-10-13, ADR-0136 act. e):** el login (`app/login/page.tsx`) pregunta a `/api/aterrizaje` a qué pantalla entra la
+  cuenta y navega UNA vez ahí (`router.replace`, sin `router.refresh()`); con el colibrí, la app recién abierta no se muestra hasta que el velo tapa la
+  pantalla (`EsperaAlVelo` de `components/login/EntradaColibri.tsx`, montada en `app/(app)/layout.tsx`; la espera vive en `lib/entrada-estado.ts`,
+  `veloPendiente`). Lo que hace el login con la respuesta, en `lib/login-aterrizaje.ts` (si no sabe, va a `/`).
+- `app/(app)/page.tsx`: aterriza según el rol (`aterrizajeDe`, la misma regla del login: pantalla principal, terminal, CAYLA Global salvo el Admin) y, si se queda, arma «Hoy», «Te toca», accesos y «Equipo de hoy»
   (`lib/inicio.ts`, `lib/inicio-reglas.ts`, `lib/inicio-avisos.ts`; ADR-0225). **Una cuenta de almacén** (`esPerfilAlmacen`: no vende, ve Productos,
   puede crear productos y recibe) usa su propio cuerpo: `components/inicio-almacen/InicioAlmacen.tsx` (cabina «Nuevo producto», «Te toca», «Nuevo en el
   catálogo», pulso, en camino, por colgar y accesos; botón fijo de celular `DockAlmacen`). Lecturas: `lib/inicio-almacen.ts`
@@ -774,6 +779,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   de las tarjetas (`grande | mediano | pequeno`) va en la cookie `cayla_grilla_tam` (`lib/tamano-grilla.ts`, la lee la página
   y la escribe `SelectorTamanoGrilla.tsx`; columnas `auto-fill` por ancho disponible); la cabecera lleva una frase y `<Ayuda>`.
 - **Precio propio por sede (ADR-0370):** `/productos/[id]/editar` dibuja «Precio por tienda» (`ficha-producto/PreciosPorSede.tsx` + `PrecioSedeModal.tsx`; RPC `fn_precios_sede_producto`, `poner_precio_sede`, `quitar_precio_sede`; reglas `lib/precio-sede-reglas.ts`, ejemplo `lib/sugerencias-precio-sede.ts`). La regla del precio es `fn_precio_en_sede` y la usan `registrar_venta`, `separar_prendas`, `editar_separacion`, `registrar_cambio`, `crear_proforma` y `regularizar_prenda`. Las pantallas leen `fn_precios_en_sede`: Vender en su página y en `lib/usePreciosEnVivo.ts`; Apartados, Cambios, Proformas, Ventas sin registrar, Etiquetas (`lib/etiquetas-precio.ts`), Existencias (`getStockPorUbicacion`) y Traslados (`EscenarioPase.tsx`) con `lib/precios-sede-datos.ts`; Productos marca «2 precios» (`ficha-producto/InsigniaPrecios.tsx`). **Desde el 2026-10-10 el precio de una tienda es de la PRENDA** (`precios_sede_prenda`, uno por prenda y tienda; `precios_sede` por variante quedó como historia, `20261011100000`): `fn_precio_en_sede` lo busca por la prenda de la variante, un disparador diferido en `variantes` (`fn_precio_sede_depurar`) quita el que queda igual al precio de la prenda, y `registrar_cambio` cobra con `fn_precio_para_cambio` (la misma prenda, al precio de la tienda donde se compró; `20261011100200`, que además hace que `fn_productos_filtro` filtre y ordene con el precio de la tienda; la segunda lectura de `separar_prendas` la arregla `20261011100100`). **Desde el 2026-10-11 también lo leen, con `getPreciosPorSede`/`getPreciosDeLasTiendas`:** Inicio de Almacén (`lib/inicio-almacen.ts`, la tarjeta «Nuevo en el catálogo»), Análisis (`lib/analisis-datos.ts` → `conPreciosDeMiTienda`), Dañadas (`getPrendasDanadasPendientes` → `precioEnLaSede`) y el aviso de costo de Catálogo ▸ Atributos ▸ Etiquetas (`productos/atributos/page.tsx` → `precioMasBajoEnTiendas`); y Producción (`produccion/ordenes/page.tsx` → `conPreciosMasBajos` de `lib/produccion-reglas.ts`, solo para el líder) mide el margen con el precio propio MÁS BAJO de cualquier tienda (`precioPropioMasBajo`, `precioParaMargen`). La ficha lee los precios con `ficha-producto/usePreciosDeTienda.ts` (los comparten el bloque y la hoja «Revisa y guarda», `ConfirmarCambios.tsx`, que pregunta por cada tienda al cambiar el precio de la prenda); Productos, `/buscar` y la cabecera de la ficha muestran el precio de la tienda elegida arriba.
+- **El envío sigue a su contenido (ADR-0398, /chaos 2026-10-13):** las pantallas de Ventas y Caja que guardan con token (Vender, `GastoRapidoModal`, `IngresoRapidoModal`, `MovimientoCajaModal`, `apartados/ApartarVista`, `EntregarVista`, `ModalesApartado` —abonar, editar, enviar pedido— y `CambiosFlujo`) mandan con `lib/useIntento.ts` (reglas puras en `lib/intento-reglas.ts`): la marca sigue a la huella de lo que se manda, una ráfaga no manda dos veces y, si la respuesta no trae veredicto, la pantalla se congela (`fieldset.campos-congelables`, `components/ui/AvisoIntentoIncierto.tsx`; en Vender, `punto-de-venta/CobroEnDuda.tsx`) hasta reenviar lo mismo o preguntar con la RPC `fn_resolver_intento(op, token)`. Vender anota el cobro en curso en `claveLocal(sede, "cobro-en-curso")` y lo resuelve al volver. En la base, `intentos_con_token` + `fn_intento_con_huella` (interna) en las once funciones con token; el efectivo de una caja abierta no baja de cero (`fn_exigir_efectivo_en_caja`, disparadores diferidos `*_efectivo_no_negativo`); montos `*_montos_finitos` y `fn_monto_valido`; documento del comprobante (`fn_problema_documento_comprobante`, disparador `comprobantes_documento_valido`). La hoja de cobro ofrece solo los comprobantes con serie (`tiposDeComprobanteDeLaSede`, `vender/page.tsx` lee `series_comprobantes`).
+- **El envío sigue a su contenido en Inventario (ADR-0401, /chaos 2026-10-14):** Nuevo traslado (`MoverMercaderiaFormV2`) y el pase de un pedido (`traslados-pases/PasePedido.tsx`) mandan con `useIntento` (`iniciar_traslado`, `enviar_pedido_a_otra_sede` o `enviar_pedido_para_apartar`). `fn_resolver_intento` también revisa un traslado (`hecho` con `transferencia_id`, `numero` y `prendas`). El envío que queda en el aire al recargar se resuelve al volver con `lib/useEnviosEnCurso.ts` (lo usan Vender, con `cobro-en-curso`, y Nuevo traslado, con `claveLocal(origen, "traslado-en-curso")`; reintenta a los 5 s si la pregunta falla, `proximaRevision`). En la base, `fn_intento_con_huella` también en `iniciar_traslado`, `enviar_pedido_a_otra_sede`, `recibir_lote`, `pedir_a_otra_sede`, `pedir_prenda_para_apartar`, `apartar_prenda`, `bajar_al_piso_desde_vender` y `arreglar_prenda_danada`; topes de nota y fecha en `iniciar_traslado`, `pedir_a_otra_sede` y `ajustar_inventario` (`20261014163000`).
+- **La prenda de más de un traslado (ADR-0404):** `cerrar_traslado_con_diferencia` mete al stock hasta lo enviado; lo de más queda en `retail.traslado_sobrantes` (por revisar, fuera del stock). El pase lo lee con `fn_sobrantes_de_traslado` (`getTrasladoDetalle` → `TrasladoDetalle.sobrantes`) y la lista con `fn_sobrantes_por_revisar` (`getTrasladosDeLaSede` y el número del menú, `getTrasladosPorAtender`); la situación es `sobrante_por_revisar` / `con_sobrante` (`lib/traslados-reglas.ts`). La revisión es `components/traslados-pases/SobrantesPase.tsx` → `resolver_sobrante_traslado` (reglas puras en `lib/traslados-sobrantes-reglas.ts`). `fn_perdidas_de_traslados` cuenta como enviada la salida de una prenda que no venía en la caja.
 - **Bolsas de despacho / familias fuera de los motores (ADR-0377, 2026-10-10):** Catálogo ▸ Familias (`/productos/familias`, `FamiliasLista` + `api/productos/familias`) trae el interruptor «Cuenta en Análisis, Frescura y el plan del piso» (`familias.entra_a_motores`, por defecto sí). La pregunta es `retail.fn_categoria_entra_a_motores(categoria_id)` (sin dato: sí) y la hacen `fn_piso_plan_lectura`, `fn_demanda_sede`, `fn_plan_compra`, `fn_analisis_sede` y `fn_frescura_sede`; la web lo hace en las dos lecturas directas de la cola de `lib/frescura.ts` (`lib/familias-motores.ts`). Vender: `vender/page.tsx` lee `familias` con la marca apagada y pone `fueraDeMotores` en cada prenda; `lib/bolsas-reglas.ts` elige las bolsas y `punto-de-venta/BolsaDelTicket.tsx` dibuja la fila «Bolsas · + Agregar bolsa» (en el `arriba` del ticket, junto a `ClientaDelTicket`) y su hoja, que agrega por `agregar()`. Un ticket de S/ 0.00 no se cobra (`motivoBloqueoCobro`) y `itemsParaLucode` no declara una línea de precio de etiqueta 0. Dinero, comprobante, Ventas, Finanzas y Resumen siguen contando la bolsa. **El precio 0 solo vale en esas familias (ADR-0384, 2026-10-12):** la regla es `retail.fn_categoria_admite_precio_cero` y la preguntan `registrar_venta` (`venta_sin_precio`), `revisar_producto_censo`, `crear_producto_con_variantes` y `catalogo_actualizar_producto` (`sin_precio`); en la web, `precioValido` (`lib/variantes-ficha-reglas.ts`), que usan Editar producto, la celda de precios de Nuevo producto (`celdaSinPrecio`, `lib/tabla-alta-reglas.ts`) y la caja (`sinPrecioParaVender` en `agregar()`, `lib/vender-reglas.ts`).
 - `/productos/[id]/editar` → `ProductoForm.tsx` guarda en dos tiempos (ADR-0257): un `useState(capturar)` guarda la foto de «al
   abrir» y `lib/producto-cambios-reglas.ts:resumenDeCambios` la compara contra el estado actual en cada render (función pura,
@@ -855,6 +863,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`ProductoCreado.tsx`) ofrece «Abrir la orden» → `/produccion/ordenes?nueva=<producto>&tipo=…`. Los enlaces de ida y vuelta son puros: `lib/modelo-nuevo-orden-reglas.ts`.
   Es el camino de la **alta completa** (con fotos, tejido y patrón); el modelo que el Taller necesita de inmediato se crea dentro de «Nueva orden ▸ Modelo nuevo»
   (`abrir_produccion_con_modelo_nuevo`, ADR-0361 segunda parte) y nace `pendiente` si quien lo crea no edita el catálogo.
+  **«Nueva orden» abre con el modelo (ADR-0396, A1, 2026-10-13):** `components/orden-produccion/ElegirModelo.tsx` (buscador con `Buscador`, la prenda de cada modelo, «Se están acabando»
+  para el líder y «Crear un modelo nuevo» fija al pie) y su tarjeta; las reglas puras —lista, tipo deducido, «se acaba en N días» con la MISMA regla del Resumen
+  (`filasPorModelo`) y órdenes abiertas/recientes— viven en `lib/orden-modelo-reglas.ts`. `OrdenesTablero` le pasa a la hoja las órdenes abiertas y recientes; `getModelosProducibles`
+  trae ahora el prefijo y la familia de la categoría para la prenda sin foto (ADR-0333).
   **Quién firma (ADR-0285):** un solo combo «Responsable», el recuadro `QuienRegistra` arriba de los pasos
   (`components/alta-producto/IdentidadAlta.tsx`); esa identidad firma la prenda y los guardados de mitad de formulario (marca,
   talla, tejido, color, etiqueta, muestra, valor, categoría) vía `useFirmaDeMitad` (reglas puras en `lib/identidad-alta-reglas.ts`).
@@ -913,8 +925,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - `/produccion/eficiencia` (solo líder; F7) → `app/(app)/produccion/eficiencia/page.tsx` junta órdenes cerradas (`getOrdenesProduccion`), la planilla del Taller (`lib/eficiencia.ts:getPlanillaDelTaller` → vista puente
   `retail.planilla_por_sede`, security_invoker sobre `public.v_planilla_pagada` de Dynamic: solo importes agregados, D-33) y los gastos del Taller (`gastos`, Finanzas ADR-0117) y calcula con `lib/eficiencia-reglas.ts`
   (puro: ventanas de período 29–28, costo por prenda, reparto del gasto) → `EficienciaTallerPanel.tsx`.
-- `/produccion` (Resumen, solo líder; F6) → `app/(app)/produccion/page.tsx` junta órdenes, insumos, lo por recibir, comprobantes y la decisión de la red (`getDecisionProduccion`) y calcula con `lib/produccion-decisiones.ts`
-  (puro: tarjetas, demanda de insumos de las órdenes abiertas, filas por modelo y por tela, cifras) → `ResumenProduccionPanel.tsx` (componente de servidor: enlaces a `?orden=` / `?nueva=` de Órdenes).
+- `/produccion` (Resumen, solo líder; F6) → `app/(app)/produccion/page.tsx` junta órdenes, insumos, lo por recibir, comprobantes, los modelos que se pueden fabricar (`getModelosProducibles({ soloProducibles: true })`:
+  `esProducible` de `lib/produccion-reglas.ts` + `categoriasFueraDeMotores` de `lib/familias-motores.ts`, ADR-0377 act. 2026-10-13), la decisión de la red (`getDecisionProduccion`) y, como dato secundario, las fotos
+  (`getCatalogo()` → `lib/produccion-presentacion.ts:presentacionesDeModelos`), y calcula con `lib/produccion-decisiones.ts` (puro: `resumenDeDecisiones` = tarjetas con tope por clase y lo que no cupo, demanda de insumos
+  de las órdenes abiertas, filas por modelo con su base de ventas y su detalle por talla y color —lo que falta se reparte en «trasladar» y «producir», `repartirFalta` en `lib/produccion-decision-reglas.ts`—, filas por tela,
+  cifras) → `ResumenProduccionPanel.tsx` (componente de servidor: enlaces a `?orden=` de Órdenes; dibuja cada modelo con `components/ui/FotoPrenda.tsx`, ADR-0333). Cada fila de «¿Qué producir?» es un botón
+  (`components/produccion-resumen/FilaQueAbreLaHoja.tsx`) que abre la hoja «Ver el modelo» (`HojaModelo.tsx`, `<Modal variante="hoja">`): su dato lo arma la página con lo que ya leyó
+  (`lib/produccion-hoja-modelo.ts:hojaDelModelo` + `lib/produccion-presentacion.ts:coloresDeModelos`) y viaja con ella; desde el 2026-10-13 la hoja es la ficha completa del modelo (ADR-0133, act. (c)): suma la ficha del catálogo (`lib/produccion-ficha-modelo.ts`: marca, proveedor, material, patrón), lo de cada tienda (`lib/produccion-por-tienda.ts`, desde `getDecisionProduccion({ conSedes })`), las órdenes abiertas y la tela del modelo, y dibuja con las piezas de la vista rápida de Catálogo (`components/produccion-resumen/`: `TiendasDelModelo`, `MatrizDelModelo`, `FichaDelModelo`, `OrdenesYTelaDelModelo`, `FichasDeColor`); la orden (`?nueva=<modelo>`, con `&sugerida=1` si hay base: `NuevaOrdenProduccionForm` llega con la matriz llena) y el traslado (`/inventario/mover`) salen de la hoja.
+  El análisis y las tareas que siguen: `docs/pantallas/produccion.md`.
 - **Nueva orden con decisión (F5, solo líder):** `app/(app)/produccion/ordenes/page.tsx` → `lib/decision-produccion.ts:getDecisionProduccion` (ritmo y stock de cada sede por `getFilasRecientesDeSede` →
   `fn_resumen_variantes`; consumo real de órdenes cerradas; saldo de Insumos; lo facturado por llegar) + `lib/produccion-decision-reglas.ts` (puro: demanda de la red, curva sugerida, rendimiento medido, ¿alcanza?) →
   `OrdenesTablero.tsx` → `NuevaOrdenProduccionForm.tsx`. Sin esquema nuevo.
@@ -939,9 +957,31 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `NuevaOrdenProduccionForm.tsx` (RPC `abrir_produccion` con `p_token`; con el selector «Ya existe / Modelo nuevo» y la opción «Modelo nuevo» llama en cambio a
   `abrir_produccion_con_modelo_nuevo`, que crea el modelo, sus variantes y la orden en una transacción con el mismo `p_token`, ADR-0361: reglas puras en
   `lib/modelo-nuevo-reglas.ts`, campos en `ModeloNuevoCampos.tsx`, tallas y colores desde `getVocabularioModeloNuevo` en `lib/produccion.ts`; el enlace a
-  `/productos/nuevo?desde=produccion` queda como alta completa, y `?nueva=<producto>&tipo=muestra|produccion` abre la orden con ese modelo y ese tipo). Entra el
+  `/productos/nuevo?desde=produccion` queda como alta completa, y `?nueva=<producto>&tipo=muestra|produccion` abre la orden con ese modelo y ese tipo). **Desde ADR-0396 (A1–A2)
+  la hoja abre con el modelo (`components/orden-produccion/ElegirModelo.tsx`, reglas en `lib/orden-modelo-reglas.ts`) y las cantidades se escriben en la MISMA tabla de Nuevo producto
+  (`components/alta-producto/MatrizCantidades.tsx` con `soloCantidades`; puente puro `lib/orden-tabla-reglas.ts`; los colores de un modelo nuevo son filas de esa tabla y
+  `components/orden-produccion/AgregarColor.tsx` suma una; lo que viaja a las RPC no cambia, lo fija `lib/orden-carga-util.test.ts`). **A3:** la hoja mide 1080 px y su `<form>` es una rejilla de dos paneles; a la derecha, la ficha fija `components/orden-produccion/FichaOrden.tsx` (presentacional; textos en `lib/orden-ficha-reglas.ts`) con lo que cierra la orden debajo.** Entra el
   cualquier persona —líder o integrante— parada en una ubicación con `ubicacionTipo === "taller"` (`puedeVerProduccion`, en `lib/menu.ts` y re-exportada por `lib/produccion-menu.ts`;
   un líder que llega desde otra ubicación ve un aviso, ADR-0133 nota 2026-09-20).
+- `/ordenes-insumos` («Órdenes de insumos», ADR-0362 fase 7, decisión 47; módulo `ordenes_insumos`: basta el módulo, NO pide el de
+  producción ni el dinero del Taller, por eso la ruta no cuelga de `/produccion`; en el menú, primera de Producción ▸ Abastecimiento) →
+  `lib/ordenes-insumo.ts` (`fn_ordenes_insumo` para la lista y para las cifras —las generadas de a 100—) + `lib/ordenes-insumo-reglas.ts`
+  (número `OI-000001`, cantidades POR UNIDAD «12.5 metros · 4 conos», la cuenta exacta de la base —importe = round(cantidad × precio, 2),
+  el % sobre ese importe— en milésimas/diezmilésimas/céntimos, lectura defensiva, filtros `?estado=&q=&cursor=`, página de 50 pidiendo 51)
+  + `components/ordenes-insumo/BuscadorOrdenesInsumo.tsx` (número, proveedor o insumo, sin loader) + `PaginacionCursor`. Su layout pone la
+  puerta (`exigirModulo`) y la ranura `@modal`.
+  - `/ordenes-insumos/ver/[id]` (página completa) y `/ordenes-insumos/@modal/(.)ver/[id]` (la misma, como ventana sobre la lista) →
+    `lib/ordenes-insumo.ts:getDetalleOrdenInsumo` (`fn_orden_insumo`) + `components/ordenes-insumo/DetalleOrdenInsumo.tsx` (líneas con su unidad,
+    precio con 4 decimales si los usa, «Lo que decía antes» desde `orden_insumo_versiones`) + `AccionesOrdenInsumo.tsx` («Anular orden» →
+    `lib/ordenes-insumo-acciones.ts:anularOrdenInsumo`, `anular_orden_insumo`, firma `orden_insumo_anular`; «Imprimir o guardar PDF» con
+    `HojaOrdenInsumo.tsx`, el mismo papel de la orden de compra en `#orden-insumo-print`, «OI-000012.pdf»; «Editar»).
+  - `/ordenes-insumos/nueva` y `/ordenes-insumos/editar/[id]` → `lib/ordenes-insumo.ts:getDatosNuevaOrdenInsumo` / `getDatosEditarOrdenInsumo`
+    (`fn_orden_insumo_opciones`: proveedores del Taller, insumos y talleres SIN datos bancarios —`proveedores_produccion` es del líder por RLS—,
+    y `fn_ordenes_insumo_siguiente`; al editar se suma lo inactivo que la orden ya tenía) + `components/ordenes-insumo/NuevaOrdenInsumo.tsx` →
+    `crear_orden_insumo` / `editar_orden_insumo` (firmas `orden_insumo_crear` / `orden_insumo_editar`: persona sin combo, terminal con combo;
+    versión esperada al editar) + `lib/orden-insumo-alta.ts` (guía de foco con las reglas de `fn_orden_insumo_validar`, argumentos, la orden
+    guardada de vuelta al formulario —con la cantidad vacía si la unidad del insumo cambió—, dónde se dice cada rechazo) +
+    `lib/sugerencias-orden-insumo.ts` (los ejemplos siguen la unidad y el tipo del insumo elegido).
 
 **Ventas / caja**
 - `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +
@@ -1070,8 +1110,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `lib/devoluciones-reglas.ts`. `?item=` abre el flujo sobre una prenda (desde y hacia Cambios).
 - `/clientas` (2026-09-22, ADR-0154, D-76/D-77; paso 2 del acta CONSTRUIDO 2026-09-27,
   ADR-0249, **migraciones `20260928140000` a `180000` sin pegar en producción** — el nodo
-  `clientas` del menú pasó de `futura` a `viva`) → `lib/clientas.ts:getClientas`/
-  `getFichaClienta` (lectura server) → `ClientasPanel.tsx` (lista + buscador + alta) +
+  `clientas` del menú pasó de `futura` a `viva`) → `lib/clientas.ts:getListaClientas`
+  (lectura server; la ficha la lee el navegador, `cargarFichaClienta`) → `ClientasPanel.tsx` (lista + buscador + alta) +
   `ClientaFichaModal.tsx` (ver/editar/archivar/unir, `<Modal variante="hoja">`) +
   `NuevaClientaModal.tsx` → `lib/clientas-acciones.ts` → RPC `buscar_clienta`,
   `registrar_clienta`, `editar_clienta` (documento con tipo: `p_documento_tipo` + `p_documento_numero`, ADR-0288; al fijar el documento ligan sus compras anteriores con `fn_ligar_ventas_por_documento`; candado optimista `version`, ADR-0193 reusado),
@@ -1203,7 +1243,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `registrar_compra`, `recibir_compras`, `registrar_pagos_compra` (varios medios, todo o nada; `registrar_pago_compra` es el atajo de un medio),
   `anular_compra`, `listar_compras`, `resumen_compras`. Sub-navegación en
   `ComprasNav.tsx` (layout de `/compras`).
-- **Notas de crédito** (2026-09-19, ADR-0142): `/compras/notas-credito` (solo líder) → `lib/notas-credito.ts`
+- **Notas de crédito** (2026-09-19, ADR-0142): `/compras/notas-credito` (quien tiene Notas de crédito: ADR-0161 y ADR-0387; nació solo del líder) → `lib/notas-credito.ts`
   (lectura) + `lib/notas-credito-reglas.ts` (puro: urgencia a 14 días, FIFO para deducir «Aplicada», las tres
   partes del dinero, filtros y buscador) → `NotasCreditoPanel` (+ `NotaCreditoVistaRapida`, `NotaCreditoDetalle`,
   `RegistrarNotaCreditoModal`) → RPC `notas_credito_tablero()` (notas + notas pendientes en una llamada),
@@ -1253,6 +1293,45 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `fn_aplicar_candado_de_dinero()` se los pone (o se los devuelve tras otra migración). La página además tacha los
   montos en el servidor como segunda línea (`comprobanteSinMontos`). «Recibidas» (`?vista=recibidas`) agrupa las filas
   de un envío de 2+ proveedores bajo una cabecera (`agruparPorEnvio`, `getEnviosDeLotes` lee `lotes.envio_id`).
+- **El comprobante de una orden** (ADR-0362, fase 2, 2026-10-12; migraciones `20261012205000`, `20261012210000` y `20261012211000`, **en
+  producción desde el 2026-10-12**): `/compras/ordenes/comprobante/[id]` → `components/ordenes-compra/RegistrarComprobanteOrden.tsx` +
+  `lib/comprobante-orden-reglas.ts` (puro: precarga, centavos, totales, avisos) → RPC `registrar_comprobante_orden` (solo el módulo
+  Órdenes de compra; boleta, nota o factura con IGV; crédito o contado a nombre de la empresa; devuelve los avisos de «de más» y «fuera de
+  la orden»). La orden abierta (`DetalleOrdenCompra`, `ComprobantesDeOrden`) lee de `fn_orden_compra_detalle` `facturado`, `pendiente`,
+  `comprobantes` y `papel`, y anula con `anular_compra` (también con Órdenes de compra si el comprobante sale de una orden).
+  `compra_items` acepta líneas sin prenda (`categoria_id` + `marca_id`, `orden_compra_item_id`, `precio_venta_sugerido`); Recibir no
+  las ofrece (`lineas_compra_operativo`, `listar_compras_operativo`, `resumen_recepciones`) y `recibir_compras`, `recibir_envio` y
+  `cerrar_linea_compra` las rechazan. El papel es único entre los vigentes (`compras_papel_vigente_unico`). **«Sin comprobante»**
+  (decisión 50, migración `20261012235000`, **sin pegar**): cuarto tipo, sin serie ni número (la base pone `SC` + la secuencia
+  `compras_sin_comprobante_seq`), sin IGV; en la web, `pidePapel`/`palabrasDelTipo` y, a 375 px, el tipo en un desplegable.
+- **Enviar una orden a una sede** (ADR-0362, fase 3, 2026-10-12; migraciones `20261012225000` y `20261012230000`, **sin pegar**):
+  `/compras/ordenes/envio/[id]` → `components/ordenes-compra/EnviarOrdenASede.tsx` + `lib/envio-orden-reglas.ts` (puro: precarga de lo por
+  enviar, validación espejo, `p_lineas`) → RPC `crear_envio` (tablas `despachos` y `despacho_items`: una guía, una sede, `ENV-000001`,
+  precio neto congelado; tope diferido «≤ máx(pedido, facturado)»; no mueve stock). La orden abierta lista sus envíos
+  (`EnviosDeOrden.tsx`, `anular_envio` solo en camino) y su detalle suma `enviado`, `por_enviar`, `envios` y `deuda_de`
+  (`fn_orden_compra_gestora`, decisión 46: la deuda es de la sede de quien hizo la orden). La lista gana la píldora «Por enviar»
+  (`fn_ordenes_compra_por_enviar`). Para la recepción (fase 4): `fn_envios_por_abrir(sede)` y `fn_envio_detalle(id)`.
+- **Recibir un envío de orden de compra en la sede** (ADR-0362, fase 4, 2026-10-12; migraciones `20261013001000` y `20261013002000`,
+  **sin pegar**): `/recibir` suma la tarjeta `components/recepcion-envio/EnviosParaRecibir.tsx` (`fn_envios_por_recibir`,
+  `fn_ordenes_directas_por_recibir`; «Recibir sin guía» → `recibir_orden_sin_envio`). `/recibir/envio/[id]` → `lib/recepcion-envio.ts`
+  (`fn_envio_detalle`) → `components/recepcion-envio/RecibirEnvio.tsx` (estados) + `FormularioRecepcion`, `HojaPrenda` y
+  `ElegirPrendaExistente` (`fn_prendas_para_recibir`) → `lib/recepcion-envio-acciones.ts`: `abrir_despacho`,
+  `preparar_prenda_al_recibir` (alta al recibir: `crear_producto_con_variantes` con `retail.alta_al_recibir`) y `recibir_despacho`
+  (lote por proveedor con `lotes.despacho_id`, `despacho_recibidos`, `despacho_diferencias`, cuarentena + `prendas_danadas`). Lógica
+  pura en `lib/recepcion-envio-reglas.ts`.
+- **Recibir contando primero** (ADR-0393, 2026-10-13; migraciones `20261013170000`–`183000`, **sin pegar**): con esas funciones en la
+  base, `/recibir/envio/[id]` cambia de cara (si faltan, sigue la de la fase 4): `lib/recepcion-conteo.ts` (`fn_envio_conteos`) →
+  `components/recepcion-conteo/RecibirContando.tsx` (¿Qué llegó? → Contar → Cerrar → cerrado) + `ContarEnvio`, `SepararPrendas`,
+  `HojaTallas`, `AgregarFueraDeGuia`, `CerrarEnvio`, `EnvioCerrado`, `HacerAhora` y `ReabrirEnvio` → `lib/recepcion-conteo-acciones.ts`:
+  `guardar_conteo_envio` (con `x-espera: no`), `cerrar_conteo_envio`, `resolver_pendiente_envio`, `reabrir_envio` y
+  `abrir_envio_sin_aviso`. `/recibir` cambia «Llegó mercadería» por `LlegoSinAviso.tsx` y suma `PendientesDeRecibir.tsx`
+  (`fn_recepcion_pendientes`, el mismo número que el aviso «Recibido por terminar» del Inicio y el de Catálogo ▸ Productos). Lógica pura
+  en `lib/recepcion-conteo-reglas.ts`; reusa la matriz, `HojaPrenda` y `ElegirPrendaExistente` de la fase 4.
+- **«Nos debe»** (ADR-0362, fase 5a, 2026-10-12; migración `20261013015000`, **sin pegar**): la ficha del proveedor
+  (`/compras/proveedores/[id]`) suma `components/nos-debe/NosDebeProveedor.tsx` (`lib/nos-debe.ts` → `fn_proveedor_nos_debe`) y la hoja
+  `HojaReposicion.tsx` (`lib/nos-debe-acciones.ts` → `resolver_deuda_proveedor`); la orden nueva/editar lee `fn_nos_debe_resumen`
+  (`getDatosNuevaOrden`, aviso); la recepción ofrece la causa `reposicion_faltante` con `deudas_del_proveedor` de `fn_envio_detalle`, y
+  `recibir_despacho` reparte la reposición entre las deudas (`proveedor_deuda_resoluciones`). Lógica pura en `lib/nos-debe-reglas.ts`.
 - **Compras por tienda** (ADR-0184, 2026-09-23; migraciones `20260923180000`–`180400`, **no en producción todavía**). QUIÉN usa Compras
   lo dice el rol (ADR-0161, `fn_capacidad_por_modulos`); DE QUÉ TIENDAS, `fn_compras_ubicaciones()` → `uuid[]`: el líder todas; con módulo,
   su tienda (`fn_ubicacion_actual_persona`) más las extra de `compradores_de_tienda` (R-10; la tabla sola no da acceso). Cada factura tiene
@@ -1263,18 +1342,27 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   al centavo. `compra_pagos.ubicacion_id` + `fn_saldo_de_tienda` + candado diferido: cada tienda paga su parte; las tres RPC de pago ganan
   `p_ubicacion_id` (obligatorio para quien no es líder). **F3-b:** la tienda con parte en una factura ajena no ve la tabla: lee su parte con
   `fn_mis_partes_de_compras()` / `fn_mi_parte_de_compra(compra)` (`lib/compras-mi-parte.ts`, `components/MisPartesDeCompras.tsx`,
-  ruta `/compras/parte/[compraId]`). `cambiar_tienda_gestora_compra`: solo líder.
+  ruta `/compras/parte/[compraId]`). `cambiar_tienda_gestora_compra`: quien tiene Facturas de proveedor (ADR-0387; antes, solo líder).
   **ADR-0187 (`20260924100000`):** «cuánto debo» sale de `fn_deuda_visible(p_ids)` (líder: saldo de la factura; tienda: suma de
   `fn_saldo_de_tienda` de sus tiendas, gestione quien gestione). La usan `resumen_compras`, `resumen_compras_extra`,
   `deuda_por_vencimiento`, `salidas_caja_30d`, `por_pagar_tramos` (solo `gestionada`) y el saldo de `fn_proveedores`; la página
   `/compras/por-pagar` reemplaza los montos de sus filas con `porPagarConMiParte` (`lib/compras-mi-parte.ts`).
+  **DESHECHO en Compras por ADR-0387 (actividad 2, `20261012204000`, en producción desde el 2026-10-12):** quien tiene un módulo de plata de
+  Compras ve y maneja las facturas de TODAS las tiendas, como el líder: las políticas preguntan `(select fn_puede_ver_dinero_de_compras())`
+  (ya no `fn_compras_visibles`), `fn_compra_es_de_mis_tiendas` = `fn_puede_ver_dinero_de_compras()`, `fn_puede_comprar_en` = cualquier
+  tienda activa, `fn_deuda_visible` da la factura entera y `fn_mis_partes_de_compras` sale vacía. Se paga a nombre de la empresa: las
+  tres RPC de pago ya no exigen `p_ubicacion_id` (si llega, se valida como antes) y el contado de `registrar_compra` va sin tienda. La web
+  de Compras no muestra «Pagas desde» ni «Tu parte…» (Finanzas ▸ Por pagar tampoco). Proveedores ve los montos de la empresa con su
+  módulo (`fn_ve_plata_de_proveedores`). Decisión 45: la deuda es de la tienda que hizo el pedido (la gestora): `fn_por_pagar_consolidado`
+  mirando una tienda y `fn_bal_facturas_de_tienda` suman por gestora, sin partes. `compradores_de_tienda`, `fn_compras_ubicaciones`,
+  `fn_compras_visibles`, `fn_mi_parte_de_compra`, `MisPartesDeCompras` y `/compras/parte/[compraId]` quedan sin efecto (se retiran).
 - **Un comprobante se reparte entre tiendas y cada tienda recibe lo suyo** (2026-09-19, ADR-0139; migraciones `20260919172000`
   + `20260919173000`, **en producción desde el 2026-09-20**). La factura ya no tiene un destino (`compras.ubicacion_destino_id` se
   elimina): tiene un **reparto por línea y tienda**, `compra_item_destinos` (siempre existe, aunque sea de una sola tienda; su
   suma por línea = la cantidad lo exige un constraint trigger diferido). Lo recibido por tienda no se guarda: sale de
   `movimientos` (`compra_item_id` + `ubicacion_id`) y lo cruza la vista `compra_item_reparto_resumen`
   (`pendiente = asignado − recibido − cerrado`). `recibir_compras` topa **por tienda**; `cerrar_linea_compra` lleva
-  `p_ubicacion_id`; `reasignar_reparto_compra` (solo líder) mueve lo que aún no llegó y deja rastro en `compra_reasignaciones`;
+  `p_ubicacion_id`; `reasignar_reparto_compra` (quien tiene Facturas de proveedor, de cualquier tienda: ADR-0387) mueve lo que aún no llegó y deja rastro en `compra_reasignaciones`;
   `fn_puede_ver_compra` reemplaza al candado por el destino de la cabecera; `compras_resumen.ubicaciones_destino` trae las
   tiendas. Web: `lib/reparto-reglas.ts` (reglas puras: validar y explicar un reparto, «Te toca 12 de 24»), `lib/compras-reparto.ts`
   (lee el reparto y las reasignaciones de un comprobante, tolerante), `lib/compras.ts` (`listarCompras`/`getLineasCompra` reciben la
@@ -1474,14 +1562,69 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `components/motor-demanda/MotorEnProduccion.tsx`.
     Venta perdida con la prenda exacta (ADR-0348): `AnotarNoHabia` (Vender) y `CambioSalidas` (Cambios) mandan `p_variante_id` a
     `registrar_pedido_no_atendido` (`lib/se-probo-reglas.ts` → `argsRegistrarPedido`); `fn_demanda_sede` la suma a su grupo.
-  - `/compras/plan` («Plan de campaña», ADR-0349 y ADR-0372, módulo `plan_compra`, pide `verDineroCompras`) → `lib/plan-compra.ts`
+  - `/compras/plan` («Plan de campaña», ADR-0349 y ADR-0372, módulo `plan_compra`; desde ADR-0387 pide solo su módulo, también para crear, editar, quitar, restaurar y el tope) → `lib/plan-compra.ts`
     (`fn_plan_compra` + la tabla `familias` para el nombre del filtro + `getPreparacionMotor` para el aviso de stock; los tres leen en
-    paralelo y solo el plan es obligatorio) + `lib/plan-compra-reglas.ts` (cuantil crítico, triangular, curva sugerida, validación;
+    paralelo y solo el plan es obligatorio; después, `fn_plan_compra_propuesta` y, con sus fechas `previa`, `fn_historial_ventas`: el
+    multiplicador de cada tienda que el ERP todavía no cubre, `conHistorial` en `lib/plan-compra-propuesta.ts`, ADR-0372 act. 2026-10-13); y `fn_plan_compra_pedido` (lo pedido en órdenes de compra y `por_llegar`, lo que todavía no está en ninguna tienda, que `armarFilas` resta de «Comprar»; `lib/plan-compra-pedido.ts`, ADR-0372 act. 2026-10-13 b) + `lib/plan-compra-reglas.ts` (cuantil crítico, triangular, curva sugerida, validación;
     desde ADR-0372 también filas, las que más venden, filtros, plegado, momento de la campaña, escala de la barra, paso a paso,
     confianza del stock y lista de compra) + `lib/plan-compra-guia.ts`. Pantalla: `components/plan-compra/PlanCampana.tsx` arma
     `AvisoStock`, `CifrasPlan` y `ListaCategorias` (con `FilaCategoria` y `BarraRango`); la hoja de una categoría es
     `PlanCategoriaModal.tsx` y el paso a paso `PasoAPaso.tsx`, los dos con `FormularioCategoria.tsx` (`guardar_plan_compra_linea`);
-    `ExportarPlan.tsx` baja la lista en CSV (`lib/exportar-csv.ts`) o la imprime (`app/estilos/lista-compra.css`). Tope de inversión (B2): `TopeModal.tsx` → `guardar_plan_compra_tope` (módulo y líder). Varias campañas (B3): `SelectorCampana.tsx` + `NuevaCampanaModal.tsx` → `fn_planes_compra` (lectura) y `crear_plan_compra` (módulo y líder), con `planes_compra.etiqueta_id` ligando el plan a su etiqueta de Catálogo ▸ Etiquetas. `fn_plan_compra` suma `catalogo`, `stock_sedes`, `vendido_30` y `plan.tope_inversion` (todo opcional para la web: `leerPlan` deja `null` lo que la base no manda). B4 (ADR-0372, act. 2026-10-10 b): cada línea trae su `version` y la lectura `con_version`; `guardar_plan_compra_linea` recibe `p_version_esperada` (0 = la hoja abrió sin plan) y rechaza con PT409 si otra persona guardó otra cosa entre medio. La vista «Paso a paso» vive en `?vista=paso`; una `?plan=` que no existe lee la más reciente (`planPedidoNoExiste`). B5 (act. c): `EditarCampanaModal.tsx` → `editar_plan_compra` y `quitar_plan_compra` (vacía se borra, con algo se archiva); `CampanasArchivadasModal.tsx` → `restaurar_plan_compra`; `fn_planes_compra` dice `archivado` y `con_tope`, y `fn_plan_compra` no abre por defecto una archivada. C1–C6 (act. 2026-10-12): sin `?plan=` se abre la campaña que toca hoy (`campanaQueAbre`); pestañas `PestanasPlan.tsx` (Plan · Resultados · Historial); la propuesta de flojo/normal/bueno sale de `fn_plan_compra_propuesta` + `lib/plan-compra-propuesta.ts` (`FormularioCategoria` «Proponer los tres»); `RecuperoModal.tsx` → `guardar_plan_compra_recupero` (lo que sobra de CAYLA, solo líder).
+    `ExportarPlan.tsx` baja la lista en CSV (`lib/exportar-csv.ts`) o la imprime (`app/estilos/lista-compra.css`). Tope de inversión (B2): `TopeModal.tsx` → `guardar_plan_compra_tope` (módulo y líder). Varias campañas (B3): `SelectorCampana.tsx` + `NuevaCampanaModal.tsx` → `fn_planes_compra` (lectura) y `crear_plan_compra` (módulo y líder), con `planes_compra.etiqueta_id` ligando el plan a su etiqueta de Catálogo ▸ Etiquetas. `fn_plan_compra` suma `catalogo`, `stock_sedes`, `vendido_30` y `plan.tope_inversion` (todo opcional para la web: `leerPlan` deja `null` lo que la base no manda). B4 (ADR-0372, act. 2026-10-10 b): cada línea trae su `version` y la lectura `con_version`; `guardar_plan_compra_linea` recibe `p_version_esperada` (0 = la hoja abrió sin plan) y rechaza con PT409 si otra persona guardó otra cosa entre medio. La vista «Paso a paso» vive en `?vista=paso`; una `?plan=` que no existe lee la más reciente (`planPedidoNoExiste`). B5 (act. c): `EditarCampanaModal.tsx` → `editar_plan_compra` y `quitar_plan_compra` (vacía se borra, con algo se archiva); `CampanasArchivadasModal.tsx` → `restaurar_plan_compra`; `fn_planes_compra` dice `archivado` y `con_tope`, y `fn_plan_compra` no abre por defecto una archivada. C1–C6 (act. 2026-10-12): sin `?plan=` se abre la campaña que toca hoy (`campanaQueAbre`); pestañas `PestanasPlan.tsx` (Plan · Resultados · Historial); la propuesta de flojo/normal/bueno sale de `fn_plan_compra_propuesta` + `lib/plan-compra-propuesta.ts` (`FormularioCategoria` «Proponer los tres»); `RecuperoModal.tsx` → `guardar_plan_compra_recupero` (lo que sobra de CAYLA, solo líder). Act. f (2026-10-12): el selector es el calendario (`calendarioDelSelector`); `NuevaCampanaModal.tsx` arma el plan de una campaña del calendario (`crear_plan_compra`) o crea una nueva en Etiquetas con su plan (`crear_campana_con_plan`); un plan por campaña y por año.
+  - `/compras/fondos` («Fondos por rendir», ADR-0362 fase 6 · actividad 1, decisiones 26, 29, 30, 34, 35 y 65; módulo `fondos`: basta el
+    módulo, 8.ª entrada de Compras) → `lib/fondos.ts:getDatosFondos` (`fn_fondos`, `fn_fondos_movimientos`, `fn_fondos_opciones`, en
+    paralelo) + `lib/fondos-reglas.ts` (lectura defensiva, cifras, opciones agrupadas, lo que falta en cada hoja = lo que rechaza la base) +
+    `components/fondos/AccionesFondos.tsx` (hojas «Entregar plata», «Lo que devuelve» y «Anular», con guía de foco) →
+    `lib/fondos-acciones.ts` (`entregar_fondo`, `devolver_fondo`, `anular_movimiento_fondo`; firmas `fondo_entregar`, `fondo_devolver`,
+    `fondo_anular`). Desde /chaos (2026-10-14): la marca de cada envío sigue a lo que se manda (`lib/useIntento.ts`; la base rechaza el
+    mismo token con otro contenido, `token_reusado`, y `fn_resolver_intento` revisa las cinco operaciones del fondo, 20261014194000); el
+    monto con `lib/monto-plata-reglas.ts:leerMontoPlata` (coma decimal, decisión 78); y la base no acepta un monto NaN ni infinito
+    (candados `*_montos_finitos`, 20261014192000), más de 2 decimales, fechas de antes del 13/10/2026 (`fn_fondos_desde`, decisión 77)
+    ni textos hechos solo de caracteres invisibles (`fn_sin_invisibles`, 20261014193000). Desde /formidable (2026-10-14, decisión 79): con
+    una rendición por aprobar, la devolución no pasa del saldo menos su faltante (`topeDevolucion` en la hoja, `devolver_fondo` en la
+    base, 20261014212000). El fondo es una cuenta de dinero de tipo `fondo` con su dueña (`cuentas_dinero.persona_id`, 1413),
+    y su saldo sale del mismo libro que «Cuentas y dinero» (`fn_dinero_libro`). Cabecera `EncabezadoPagina`.
+    **Pagar desde «Mi fondo»** (actividad 2, `20261013212000`): `useCuentasParaElegir("pago", …, { conMiFondo: true })`
+    (`components/finanzas/CampoCuenta.tsx`, con `useMiFondo` → `fn_mi_fondo`) en `RegistrarComprobanteOrden`, `RegistrarPagoModal`
+    (`CompraDetallePanel`) y `PagoJuntosModal`; `conMiFondo`/`leerMiFondo` en `lib/fondos-reglas.ts`, y en `lib/cuenta-sellada-reglas.ts`
+    el tipo `fondo`, `ayudaDelFondo` («CAYLA te debe») y `usadoDelFondo` (lo pasan `LineasPago` y `MediosDePago`). En la base, el sello de
+    los pagos (`fn_compra_pagos_sellar`) deriva el fondo a `fn_fondo_para_pagar` (solo su dueña, con su cuenta) y `fn_asientos` lo saca de
+    la 1413.
+    **«Tu fondo»** (actividad 4, `20261013231000`): `components/fondos/TarjetaTuFondo.tsx` (la pieza de cifra, con `caraTuFondo`,
+    `mostrarTuFondo` y `hrefTuFondo` de `lib/fondos-reglas.ts`) ← `lib/fondos.ts:getResumenMiFondo` (`fn_mi_fondo_resumen`: saldo,
+    entregado, devuelto, pagado, gastos, desde y para qué, en una pasada por `fn_dinero_libro`). La dibujan `/compras/ordenes` (en la fila
+    de cifras) y el Inicio (`app/(app)/page.tsx`, después de «Tu día»; en el de almacén, `InicioAlmacen` → arriba de la columna derecha).
+    **La rendición** (actividad 5, `20261013233000`, `234000` y `235000`): en Órdenes de compra y, desde /formidable (2026-10-14, decisión
+    80), también en el Inicio, `components/fondos/TuFondoConRendir.tsx` («Rendir» / «Ver tu rendición», `accionTuFondo`) → `RendirFondo.tsx` (`fn_mi_ciclo_fondo` o `fn_rendicion_fondo_items`; `rendir_fondo`, firma
+    `fondo_rendir`; retirar con `devolver_rendicion_fondo`; «Ver tu rendición» lee su explicación con `fn_mi_rendicion_abierta`, 20261014222000); en Fondos por rendir, «Rendiciones por aprobar» (`fn_rendiciones_fondo`, en
+    `getDatosFondos`) → `RevisarRendicion.tsx` (`aprobar_rendicion_fondo` / `devolver_rendicion_fondo`). Reglas en `lib/rendicion-reglas.ts`,
+    llamadas en `lib/rendicion-acciones.ts`. La tarjeta suma `fn_mi_fondo_rendicion`. Fotos de un gasto del viaje: `FotoDelGasto.tsx` +
+    `lib/gastos-viaje-fotos.ts` (bucket `retail-gastos-viaje`, `registrar_foto_gasto_viaje`, `fn_fotos_gasto_viaje`).
+    **Lo no deducible** (actividad 6, `20261014002000`): la regla es `fn_pago_no_bancarizado` (y el tope de la planilla, el parámetro
+    tributario `tope_planilla_movilidad`); `fn_no_deducibles(claves del libro)` ← `lib/no-deducible.ts:leerNoDeduciblesCon` (servidor o
+    navegador) ← `getPagosCompra`/`getPagosDeCompras` (`lib/compras.ts`), `getGastosDeOrden` (`lib/gastos-viaje.ts`) y `leerItems`
+    (`lib/rendicion-acciones.ts`); se dibuja con `components/MarcaNoDeducible.tsx` en `ComprobantePagos`, `PorPagarVistaRapida`,
+    `GastosDeOrden`, `RendirFondo` y `RevisarRendicion`. El aviso al pagar es `components/AvisoNoDeducible.tsx` con `avisoBancarizacion` /
+    `avisoBancarizacionLote` (`lib/no-deducible-reglas.ts`), en `LineasPago`, `MediosDePago` (de `PagoPiezas` y la del Taller),
+    `GastoDelViaje`, `RegistrarGastoModal` y `GastoRapidoModal`. El tope se fija en Configuración ▸ Impuestos (`ConfiguracionImpuestos`,
+    `guardar_parametro_tributario`).
+    **Saldar la deuda de un faltante** (actividad 7, `20261014145000`): en Fondos por rendir, «Registrar su pago» (`PagarDeudaFondo`,
+    `components/fondos/AccionesFondos.tsx`, con `camposPagarDeuda` de `lib/deuda-fondo-reglas.ts`) → `pagar_deuda_fondo`; «Anular» de
+    un pago → `anular_pago_deuda_fondo` (llamadas en `lib/fondos-acciones.ts`). Lo que se debe: `fn_deudas_fondo` (en `getDatosFondos`) y,
+    adentro, `fn_deudas_fondo_de`, que también usan `fn_mi_fondo_rendicion` («Tu fondo») y `fn_bal_otro_camino` (la 1419 del Balance);
+    `fn_conciliacion_contable` suma las filas de la 1413 y la 1419 (sus nombres, en `lib/balance-reglas.ts`).
+    **El IGV** (actividad 8, `20261014153000`): `registrar_gasto_viaje` separa el IGV de una factura con RUC (`gastos.igv`; la hoja lo
+    anticipa con `pistaDelPapel`, `lib/gastos-viaje-reglas.ts`). El IGV perdido por pagar sin banco es UNA lectura, `fn_igv_perdido(desde,
+    hasta)` (en el mes del pago; usa `fn_pago_no_bancarizado`), que leen `fn_impuestos_compras` (fila negativa `igv_perdido`, y las
+    facturas y boletas de los gastos del viaje), `fn_impuestos_panel` (`revisar.igv_perdido` → `PanelImpuestos.revisar.igvPerdido`: la
+    tarjeta del crédito y «Para revisar» de `ImpuestosPanel.tsx`, y su línea en `csvResumenIgv`) y `fn_asientos_igv_perdido` (64 contra
+    4011, sumada a `fn_asientos`). `fn_impuestos_registro_compras` suma las facturas y boletas de los gastos del viaje
+    (`FilaRegistroCompras.origen = 'gasto_viaje'`). Finanzas ▸ Gastos (decisión 76, `20261014174000`) también le pregunta: la interna
+    `fn_igv_perdido_de_gastos` une cada pago perdido a su gasto, y la leen `fn_gastos_igv_perdido` (← `lib/gastos.ts:getGastos`, que la une a
+    la lista con `conIgvPerdido`; la fila y el detalle con `igvBajoElMonto`, `textoIgvPerdido`, `notaIgvPerdido` —su enlace a Impuestos solo con
+    `puedeVerImpuestos`— e `igvEnRiesgo`, `lib/gastos-reglas.ts`) y `fn_gastos_panel` (clave `igv_perdido`, en el mes del pago →
+    `PanelGastos.igvPerdido` / `igvDescontable`; la tarjeta con `igvParaLaTarjeta`, que nunca es negativa, y `bajadaIgvDelMes`, que con
+    `perdidoEnOtroMes` dice el IGV de la lista que se pierde en otro mes).
   - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`.
   - `/compras/plan/historial` (ADR-0372 C3) → `getHistorialPlan` → `fn_historial_ventas` (Sinatra en `retail.ventas_historicas` antes del ERP) + `lib/plan-compra-historial.ts`; pantalla `components/plan-compra/HistorialCampanas.tsx`.
   - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;
@@ -1493,6 +1636,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     Recibir pase a Inventario (la sesión de Recepción; ver ADR-0362, «Contrato con»).
   - `/compras/ordenes/ver/[id]` (una orden; página completa al recargar) y `/compras/@modal/(.)ordenes/ver/[id]` (la misma, como ventana
     sobre la lista) → `lib/ordenes-compra.ts:getDetalleOrden` (`fn_orden_compra_detalle`) + `components/ordenes-compra/DetalleOrdenCompra.tsx`.
+    **Gastos del viaje** (ADR-0362 fase 6 · actividad 3, `20261013221000`/`222000`): «+ Gasto del viaje» en la cabecera de la lista y en
+    `AccionesOrden` → `components/ordenes-compra/GastoDelViaje.tsx` (hoja con guía de foco; a la vista solo las órdenes elegidas, y las
+    demás con «+ Agregar otra orden» → `ComboBuscable` con `ordenesParaAgregar`, decisión 74; al menos una, decisión 75, que también frena `registrar_gasto_viaje` —20261014170000—; órdenes por `fn_gastos_viaje_ordenes`, «Sale de»
+    con `conMiFondo` y de la tienda del gasto: `fn_gasto_viaje_sede`, 20261014200000, la misma regla que la base) → `lib/gastos-viaje-acciones.ts`
+    (`registrar_gasto_viaje`, firma `gasto_viaje_registrar`, con la marca de `useIntento`: si la respuesta se pierde, la hoja se congela y
+    pregunta a `fn_resolver_intento`, 20261014194000); el monto con `lib/monto-plata-reglas.ts:leerMontoPlata` (coma decimal, decisión 78);
+    reglas y reparto en `lib/gastos-viaje-reglas.ts`, ejemplos en `lib/sugerencias-gasto-viaje.ts`. «Traerla costó» en el detalle: `lib/gastos-viaje.ts:getGastosDeOrden`
+    (`fn_gastos_viaje_de_orden`) + `components/ordenes-compra/GastosDeOrden.tsx`.
     «ver» va delante del id a propósito: una interceptada `ordenes/[id]` se tragaba `/compras/ordenes/nueva` (Next la modela como
     reescritura `beforeFiles`). Con la orden «generada», `components/ordenes-compra/AccionesOrden.tsx` en el pie de la ventana y en la
     cabecera de la página: «Anular orden» (hoja con el motivo → `lib/ordenes-compra-acciones.ts:anularOrdenCompra`, `anular_orden_compra`,
@@ -1547,6 +1698,10 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
 - `/api/observatorio` y `/api/observatorio/tienda?u=<id>` → `GET`, solo lectura y solo Admin (403 si no): lo que el Observatorio vuelve a leer
   cada 30 s (`getDatosObservatorio`) y el panel de una tienda (`getDatosTienda`; la tienda se valida contra `getUbicaciones`). Si la base no responde,
   500 y la pantalla conserva lo que tenía. ADR-0322.
+- `/api/aterrizaje` → `GET`, solo lectura: `{ destino }`, la pantalla a la que entra quien acaba de iniciar sesión (`aterrizajeDe` de `lib/menu.ts`
+  con `requirePersonaActualV2`, la misma regla del Inicio). La llama el login antes de navegar, para ir directo sin pintar `/` (Felipe 2026-10-13,
+  «se ve el inicio»). Sin sesión o sin acceso responde con la redirección de `requirePersonaActualV2`; el login no la sigue y, como con cualquier
+  fallo o una espera de más de 5 s, entra por `/`, el camino de siempre. `Cache-Control: private, no-store`. ADR-0136 act. 2026-10-13 (e).
 
 Sin sesión, `middleware.ts` devuelve `401` JSON a `/api/*` en vez de redirigir
 a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
@@ -1642,9 +1797,9 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
 | `mover_entre_piso_y_almacen` / `apartar_prenda` / `ajustar_inventario` (2026-09-26, ADR-0240; **sin pegar en producción**) | Las puertas de Existencias con el candado de su módulo («Bajada al piso», «Apartados») sobre `mover_interno` y `apartar_stock`, que desde la parte 2 (`20260927180200`) ya no se llaman desde el navegador; y «Ajustar inventario» de una vez, todo o nada, con marca (`ajustes_inventario_intentos`). |
 | `fn_faltantes_de_conteo` / `registrar_hallazgo_de_conteo` / `ajustar_inventario` con `conteo_item_id` (2026-10-01, ADR-0291; **sin pegar en producción**) | La prenda que faltó en un conteo cerrado y apareció: «Ajustar inventario» pregunta «¿es la que faltó en el Conteo N?» y, con «sí», el ajuste queda enlazado a esa línea (motivo `hallazgo_conteo`); el resultado del conteo lo muestra leyendo el libro. Solo `fn_faltantes_de_conteo` la llama la web; `registrar_hallazgo_de_conteo` solo la llama `ajustar_inventario`. |
 | `apartar_stock` / `liberar_apartado` / `listar_apartados` / `fn_verificar_apartados` (2026-09-20, ADR-0141; **sin pegar en producción**) | Apartar una prenda para una clienta sin restarla del conteo físico: `apartar_stock` crea la reserva (clienta, contacto, fecha límite) y sube `stock.cantidad_apartada` en una transacción; `liberar_apartado` la cierra (solo quien apartó o una líder); `listar_apartados` es la lectura de la pantalla, con `puede_liberar` ya calculado; `fn_verificar_apartados` (solo SQL Editor) devuelve las filas donde el contador no cuadra con la suma de sus apartados abiertos — debe dar 0 filas |
-| `separar_prendas` / `entregar_separacion` / `extender_separacion` / `liberar_separacion` / `registrar_devolucion_separacion` / `fn_vencer_separaciones` / `buscar_separaciones` / `resumen_separaciones` / `fn_verificar_separaciones` (2026-09-23, ADR-0166; **sin pegar en producción**) | Separar con adelanto: `separar_prendas` aparta cada prenda (reusa `apartar_stock`), registra el adelanto (efectivo → ingreso de caja) y emite la boleta/factura de ANTICIPO; `entregar_separacion` cierra los apartados, crea la venta por el total con el precio congelado (pago `anticipo` + saldo) y emite el comprobante que DEDUCE el anticipo, todo en una transacción; `extender_separacion` (+7, una vez) y `liberar_separacion` solo líder/terminal de ventas; `fn_vencer_separaciones` libera sola lo vencido hace más de 2 días (se llama al abrir la pantalla, sin pg_cron); `registrar_devolucion_separacion` cierra devolviendo el 100% (efectivo → egreso) e intenta la nota de crédito; `fn_verificar_separaciones` (solo SQL Editor) debe dar 0 filas |
+| `separar_prendas` / `entregar_separacion` / `extender_separacion` / `liberar_separacion` / `registrar_devolucion_separacion` / `fn_vencer_separaciones` / `buscar_separaciones` / `resumen_separaciones` / `fn_verificar_separaciones` (2026-09-23, ADR-0166; **sin pegar en producción**) | Separar con adelanto: `separar_prendas` aparta cada prenda (reusa `apartar_stock`) y registra el adelanto (efectivo → ingreso de caja); **desde ADR-0399 (2026-10-14, sin pegar en producción) no emite comprobante: la clienta se lleva una constancia (el código APT-…)** — antes emitía la boleta/factura de ANTICIPO; `entregar_separacion` cierra los apartados, crea la venta por el total con el precio congelado (pago `anticipo` + saldo) y emite **una sola boleta o factura por el total, sin nombrar el adelanto** (un apartado viejo con su anticipo conserva el camino de antes: la boleta por el saldo que lo DEDUCE), todo en una transacción; `extender_separacion` (+7, una vez) y `liberar_separacion` solo líder/terminal de ventas; `fn_vencer_separaciones` libera sola lo vencido hace más de 2 días (se llama al abrir la pantalla, sin pg_cron); `registrar_devolucion_separacion` cierra devolviendo el 100% (efectivo → egreso) e intenta la nota de crédito; `fn_verificar_separaciones` (solo SQL Editor) debe dar 0 filas |
 | `registrar_aviso_separacion` / `fn_avisos_separaciones` (2026-09-26, ADR-0227; migración `20260926233000`) | Recordar en lote: `registrar_aviso_separacion` anota que se le escribió a la clienta por WhatsApp (tabla append-only `separacion_avisos`, firma el responsable, exige el módulo Apartados); `fn_avisos_separaciones` da por apartado abierto cuántos avisos, el último y quién. La lee `lib/separaciones.ts`; la escribe `RecordarModal` (`components/apartados/ModalesApartado.tsx`) desde «Todos» |
-| `abonar_separacion` / `editar_separacion` / `guardar_opciones_apartados` / `fn_opciones_apartados` (2026-09-26, ADR-0236; migraciones `20260927100000`–`130000`) | Abonos (pago más del apartado, con su anticipo; `comprobante_anticipos` lista lo que descuenta la boleta final), editar prendas (todo o nada; lo quitado va a `separacion_items_retirados`), opciones de pantalla por tienda (solo el líder). `buscar_separaciones` suma `estante` y el id de cada prenda. Desde `20261010180000` (2026-10-10) recibe `p_desde`/`p_hasta` opcionales: acotan solo lo cerrado por el día en que se hizo; lo abierto o por devolver sale siempre (Historial: `lib/historial-apartados-reglas.ts`). Actividad: disparadores sobre `separaciones`, `separacion_abonos`, `separacion_avisos` y `separacion_ediciones`. Web: `AbonarModal`, `EditarApartadoModal`, `OpcionesApartadosModal` (`components/apartados/ModalesApartado.tsx`) |
+| `abonar_separacion` / `editar_separacion` / `guardar_opciones_apartados` / `fn_opciones_apartados` (2026-09-26, ADR-0236; migraciones `20260927100000`–`130000`) | Abonos (pago más del apartado; desde ADR-0399 sin comprobante propio — antes cada abono emitía su anticipo y `comprobante_anticipos` listaba lo que descontaba la boleta final), editar prendas (todo o nada; lo quitado va a `separacion_items_retirados`), opciones de pantalla por tienda (solo el líder). `buscar_separaciones` suma `estante` y el id de cada prenda. Desde `20261010180000` (2026-10-10) recibe `p_desde`/`p_hasta` opcionales: acotan solo lo cerrado por el día en que se hizo; lo abierto o por devolver sale siempre (Historial: `lib/historial-apartados-reglas.ts`). Actividad: disparadores sobre `separaciones`, `separacion_abonos`, `separacion_avisos` y `separacion_ediciones`. Web: `AbonarModal`, `EditarApartadoModal`, `OpcionesApartadosModal` (`components/apartados/ModalesApartado.tsx`) |
 | `pedir_prenda_para_apartar` / `enviar_pedido_para_apartar` / `cancelar_pedido_para_apartar` / `separar_pedido_para_apartar` / ~~`fn_pedidos_para_apartar`~~ (2026-09-26, ADR-0233; migración `20260927140000`; la lectura vieja se retira en `20261005170000`: la reemplazó `fn_pedidos_con_cliente`) | Apartar de otra sede: la tienda de la clienta pide, la otra envía con `iniciar_traslado`, el disparador `pedidos_para_apartar_al_llegar` (sobre `transferencias`, al cerrar) la guarda con `apartar_stock`, y con el adelanto se suelta, pasa al piso (`mover_interno`) y se aparta con `separar_prendas`, todo junto. Desde ADR-0328 act. 17 (anclas en `20261005130100`): pedir lo acepta también Vender y APARTA la prenda en la sede que la tiene (`fn_reservar_pedido_en_origen`), enviar suelta esa reserva (la vuelve a apartar si la liberaron a mano, y se niega si está colgada), cancelar también (y exige Traslados, Apartados o Vender), y `anular_traslado` la vuelve a apartar; la reserva se cierra con su propia nota (`fn_cerrar_reserva_de_pedido`). Apartados lee `fn_pedidos_con_cliente` (con `reserva_en`). Web: `PedirYApartarModal` (Vender ▸ «Dónde más hay» y Apartados), `EnviarPedidoModal`, `CancelarPedidoModal`; «Pedidos entre tiendas» en Todos |
 | `subir_pedido_al_almacen` / `marcar_pedido_avisado` / `confirmar_pedido_sigue_en_pie` / `fn_pedidos_por_atender` / `fn_pedidos_con_cliente` (2026-10-05, ADR-0328 act. 17; migración `20261005130100`) | El primer paso para enviar un pedido colgado (suelta la reserva del piso, sube y la vuelve a apartar en el almacén, todo o nada; Traslados, Apartados o Existencias); la constancia de que se le avisó al cliente; el «Sí, sigue en pie» de la tienda que pidió (a los 7 días: la reserva allá no vence sola, `sigue_en_pie_en`); lo que espera respuesta entre sedes (el número de Traslados en el menú y el aviso de 48 h: en el Inicio de los líderes de las DOS sedes del pedido, cada uno en el de su sede de partida —`leAvisaSinRespuesta`, `PersonaActualV2.sedePropiaId`—, y en el Observatorio del Admin); y los pedidos para un cliente (sin nombre ni celular para la sede que envía) con dónde está apartada la prenda, de qué lado se cerró sin ella (`cancelado_desde`, que anotan `cancelar_pedido_para_apartar` con `fn_lado_del_pedido` y el disparador de llegada) y si se avisó (Traslados, la franja de Vender `PedidosParaClientes.tsx` —llegó / no llegó— y el aviso «Pedidos para clientes» del Inicio, `leerPedidosConCliente` + `resumenParaElInicio`) |
 | `subir_para_enviar` / `cancelar_para_enviar` / `fn_para_enviar` + disparador `para_enviar_al_salir` (2026-10-05, ADR-0328 act. 17; migración `20261005130200`) | La lista «Para enviar»: subir del piso al almacén PARA mandarlo a otra sede (`retirar_del_piso` + la fila, todo o nada, con marca); sale de la lista cuando sale un traslado a ese destino (las salidas de un traslado anulado dejan de contar solas); «Ya no la envío» con motivo; la lectura por sede con lo libre hoy en el almacén. Eliminar un producto la conoce (`fn_producto_historia`, renglón 21) |

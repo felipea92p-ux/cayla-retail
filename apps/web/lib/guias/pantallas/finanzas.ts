@@ -200,7 +200,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       ancla: "fin-gastos.cifras",
       preparar: [{ tipo: "escape" }],
       titulo: "Los gastos en cifras",
-      texto: "Lo gastado en el mes, el IGV que puedes descontar (solo de facturas; una boleta no da IGV), lo que falta pagar de gastos a crédito y los egresos de caja que nadie dijo todavía qué fueron. Esa última tarjeta te lleva a su lista.",
+      texto: "Lo gastado en el mes, el IGV que puedes descontar (solo de facturas, menos el que se pierde por pagar sin banco; una boleta no da IGV), lo que falta pagar de gastos a crédito y los egresos de caja que nadie dijo qué fueron. Esa última tarjeta te lleva a su lista.",
     },
     {
       id: "pestanas",
@@ -226,7 +226,7 @@ export const GUIA_FIN_GASTOS: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "fin-gastos.fila" }],
       titulo: "El detalle de un gasto",
-      texto: "El total, el IGV que se descuenta, cómo se pagó (o cuándo vence, si es a crédito), su estado y quién lo registró. Un gasto a crédito se paga desde Compras ▸ Por pagar.",
+      texto: "El total, el IGV que se descuenta y el que se perdió por pagar sin banco una factura grande (la nota dice por qué y te lleva a Impuestos), cómo se pagó (o cuándo vence), su estado y quién lo registró. Un gasto a crédito se paga desde Compras ▸ Por pagar.",
     },
     {
       id: "detalle-botones",
@@ -504,14 +504,14 @@ export const GUIA_FIN_POR_PAGAR: Guia = {
       id: "lista",
       ancla: "fin-por-pagar.lista",
       titulo: "La lista de lo que se debe",
-      texto: "Cada factura con su vencimiento, el proveedor, de qué es (mercadería, gasto, activo o insumo), el total, lo pagado y el saldo. Mirando una tienda, de una factura repartida solo aparece su parte. Si no se debe nada, aquí lo dice.",
+      texto: "Cada factura con su vencimiento, el proveedor, de qué es (mercadería, gasto, activo o insumo), el total, lo pagado y el saldo. Mirando una tienda, cada factura cuenta entera para la tienda que la pidió, aunque parte de la mercadería vaya a otra. Si no se debe nada, aquí lo dice.",
     },
     {
       id: "pagar",
       ancla: "fin-por-pagar.pagar",
       opcional: true,
       titulo: "Pagar una factura",
-      texto: "Abre el mismo pago de Compras (o de Producción, si es tela del Taller): cuánto, con qué medio y desde qué cuenta. El pago queda en su factura y baja la deuda. En la demo no lo tocamos.",
+      texto: "Abre el mismo pago de Compras (o de Producción, si es tela del Taller): cuánto, con qué medio y desde qué cuenta, sin elegir tienda. El pago queda en su factura y baja la deuda. En la demo no lo tocamos.",
     },
     {
       id: "varias",

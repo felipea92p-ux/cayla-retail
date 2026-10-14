@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoSelect } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
 import { lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
@@ -47,6 +47,9 @@ import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 // pago. Se ofrece, apagado (2026-09-19, Felipe: en las tres formas de pagar el saldo a favor se sugiere y lo
 // decide quien paga, nunca se descuenta solo); al activarlo se ve el monto a transferir ya reducido. La base lo aplica en el mismo pago
 // (`p_credito`): las filas del historial de cada comprobante dicen «Saldo a favor» y descuentan del libro.
+//
+// A nombre de la empresa (ADR-0387, Felipe 2026-10-12; deshace aquí el «Pagas desde» de ADR-0184): quien tiene Por pagar paga
+// el lote sin atarlo a ninguna tienda, sea líder o no, así que no se manda `p_ubicacion_id`.
 
 export type { DatosPagoProveedor, ResultadoPago };
 
@@ -62,7 +65,6 @@ export function PagoJuntosModal({
   datos,
   onClose,
   onPagado,
-  misTiendas,
 }: {
   proveedorId: string;
   proveedorNombre: string;
@@ -71,10 +73,6 @@ export function PagoJuntosModal({
   onClose: () => void;
   /** Se llama al CERRAR la confirmación de un pago registrado (no antes), con lo que quedó pagado. */
   onPagado: (resultado: ResultadoPago) => void;
-  /** ADR-0184 (F4-F5): solo para un comprador de tienda. `undefined` o vacío = líder, el pago no se ata a ninguna
-   *  tienda (como siempre). Con una sola, se usa directo; con varias, se elige con cuál se paga — es UNA tienda para
-   *  todo el lote (un solo pago), y la base exige que tenga parte en CADA comprobante que reciba algo. */
-  misTiendas?: { id: string; nombre: string }[];
 }) {
   // El orden del modal es el de la aplicación: primero lo más vencido.
   const ordenados = useMemo(
@@ -90,10 +88,11 @@ export function PagoJuntosModal({
   // Los medios con que se paga. Con una sola línea su monto no se escribe: es lo que sale de verdad (`aTransferir`).
   const [lineas, setLineas] = useState<LineaPago[]>([{ monto: "", metodo: formaInicial, referencia: "" }]);
   const [fecha, setFecha] = useState(hoyLima());
-  const [ubicacionPago, setUbicacionPago] = useState(misTiendas?.[0]?.id ?? "");
-  // ADR-0195 F3b: «Sale de». La propuesta de cada medio sale de la tienda con que se paga; el líder, de la tienda del
-  // comprobante más vencido.
-  const cuentas = useCuentasParaElegir("pago", ubicacionPago || ordenados[0]?.ubicacionesDestino[0] || null);
+  // ADR-0195 F3b: «Sale de». La propuesta de cada medio sale de la tienda del comprobante más vencido. A quien no ve las
+  // finanzas de todo, `fn_cuentas_para_elegir` solo le lista en efectivo los cajones y cajas fuertes de las sedes que opera:
+  // si esa tienda no es una de ellas, se le propone una suya. La base vuelve a validar la cuenta al guardar. ADR-0362 fase 6:
+  // «Mi fondo» primero, si quien paga tiene uno.
+  const cuentas = useCuentasParaElegir("pago", ordenados[0]?.ubicacionesDestino[0] || null, true, { conMiFondo: true });
   const [loading, setLoading] = useState(false);
   // Quién registra el pago (ADR-0161/0162): las dos funciones de pago firman con esa persona.
   const responsable = useResponsable();
@@ -176,7 +175,6 @@ export function PagoJuntosModal({
     if (!mediosRpc) return void avisar.error("Cada medio de pago necesita un monto mayor a cero.");
     if (fecha > hoyLima()) return void avisar.error("La fecha del pago no puede ser futura: es cuándo se pagó, no cuándo se pagará.");
     if (aplicaciones.some((a) => a.monto > 0 && a.c.fechaEmision && fecha < a.c.fechaEmision)) return void avisar.error("La fecha del pago no puede ser anterior a la emisión de alguno de los comprobantes.");
-    if (misTiendas && misTiendas.length > 0 && !ubicacionPago) return void avisar.error("Elige con qué tienda pagas.");
     if (!responsable.listo) return void (responsable.motivo && avisar.error(responsable.motivo));
     const firma = responsable.firma();
     setLoading(true);
@@ -193,8 +191,6 @@ export function PagoJuntosModal({
             p_fecha: fecha,
             p_token: token.current,
             ...(credito > 0 ? { p_credito: credito } : {}),
-            // ADR-0184 (F4): sin tiendas propias (líder) el pago no se ata a ninguna, como siempre.
-            ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
           }), firma)
         : await firmar(supabase.rpc("registrar_pago_compras", {
             p_proveedor_id: proveedorId,
@@ -204,7 +200,6 @@ export function PagoJuntosModal({
             p_fecha: fecha,
             p_token: token.current,
             ...(credito > 0 ? { p_credito: credito } : {}),
-            ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
           }), firma);
     cerrarProceso();
     setLoading(false);
@@ -231,7 +226,7 @@ export function PagoJuntosModal({
 
   return (
     <Modal
-      variante="papel"
+      variante="hoja"
       titulo={
         hecho ? (
           <span className="sr-only">Pago registrado</span>
@@ -243,7 +238,7 @@ export function PagoJuntosModal({
         )
       }
       subtitulo={hecho ? undefined : `${ordenados.length === 1 ? "1 comprobante" : `${ordenados.length} comprobantes`} · una sola transferencia`}
-      ancho="max-w-2xl"
+      tamano="ancha"
       onClose={() => (resultado.current ? onPagado(resultado.current) : onClose())}
     >
       {(cerrar) =>
@@ -390,17 +385,6 @@ export function PagoJuntosModal({
             </div>
           )}
 
-          {/* ADR-0184 (F4-F5): con una sola tienda propia se paga con ella sin preguntar; con varias, se elige —
-              es UNA tienda para todo el lote, y la base exige que tenga parte en cada comprobante que reciba algo. */}
-          {misTiendas && misTiendas.length > 1 && (
-            <CampoSelect
-              etiqueta="Pagas desde"
-              valor={ubicacionPago}
-              onValor={(v) => setUbicacionPago(v)}
-              opciones={misTiendas.map((t) => ({ valor: t.id, texto: t.nombre }))}
-            />
-          )}
-
           {todoConFavor ? (
             <div className="grid gap-5 sm:grid-cols-[1.7fr_1fr_1fr]">
               <p className="rounded-xl border border-dashed border-tinta/25 px-4 py-3 text-sm text-tinta/65 sm:col-span-2">
@@ -409,7 +393,7 @@ export function PagoJuntosModal({
               <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={setFecha} required />
             </div>
           ) : (
-            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} aplicaciones={aplicaciones.map((a) => ({ total: a.c.total, monto: a.monto }))} />
           )}
 
           <div className="border-t border-tinta/10 pt-4">
@@ -445,13 +429,13 @@ export function PagoJuntosModal({
           <ComboResponsable control={responsable} deshabilitado={loading} />
 
           {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
-          <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">
+          <div className="pie-acciones -mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
             <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
             <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
               Cancelar
             </button>
-            <Boton type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman}>
-              {loading ? "Registrando…" : credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
+            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman}>
+              {credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
             </Boton>
           </div>
         </form>

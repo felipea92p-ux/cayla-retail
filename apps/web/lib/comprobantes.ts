@@ -3,14 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas, tolerar } from "@/lib/resultado";
 import { resumenPorEnviar, type ResumenPorEnviar } from "@/lib/facturacion-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "@/lib/transmision-reglas";
-import type { Comprobante, EstadoComprobante, SerieComprobante, VentaDelDia } from "@/lib/comprobantes-reglas";
+import type { Comprobante, EstadoComprobante, SerieComprobante } from "@/lib/comprobantes-reglas";
 
 // Tipos y reglas puras (lo que un componente cliente puede necesitar como
 // VALOR: constantes, `tipoDocumentoDeCliente`) viven en comprobantes-reglas.ts,
 // no acá — ver ese archivo para el porqué. Este archivo es solo lectura de
 // servidor (principio del repo: lib/ nunca escribe; la emisión pasa por RPC
 // desde el componente cliente).
-export type { TipoComprobante, EstadoComprobante, EntornoTransmision, Comprobante, SerieComprobante, ItemVentaDelDia, VentaDelDia } from "@/lib/comprobantes-reglas";
+export type { Comprobante, SerieComprobante } from "@/lib/comprobantes-reglas";
 
 export async function getComprobantesMes(desde: string, hasta: string): Promise<Comprobante[]> {
   const supabase = await createClient();
@@ -100,17 +100,6 @@ export async function getUltimoPorSerie(series: SerieComprobante[]): Promise<Rec
     if (fila) porSerie[s.id] = fila.created_at;
   }
   return porSerie;
-}
-
-/** Todo lo vendido hoy (hora Lima), con su comprobante si ya tiene uno. La
- *  RPC (`fn_ventas_del_dia`, security definer) ya filtra por rol: un líder ve
- *  todas las ubicaciones o una sola si se lo pides; un integrante solo ve la
- *  suya sin importar qué `ubicacionId` se mande — no hay nada que este lib
- *  necesite reforzar acá. */
-export async function getVentasDeHoy(ubicacionId?: string): Promise<VentaDelDia[]> {
-  const supabase = await createClient();
-  const res = await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId });
-  return exigir(res, "las ventas de hoy") as unknown as VentaDelDia[];
 }
 
 /** PL-114: cuántos comprobantes llevan más de `HORAS_REINTENTO_AUTOMATICO` sin llegar a SUNAT — el trabajo

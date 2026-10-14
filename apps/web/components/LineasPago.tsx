@@ -8,8 +8,10 @@ import { ETIQUETA_METODO, ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, soles } fr
 import { destinoDelMedio } from "@/lib/destino-de-pago";
 import { DestinoDelMedio } from "@/components/DestinoDelMedio";
 import type { DatosPagoProveedor } from "@/lib/proveedores-reglas";
-import { cuentaEfectiva, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
+import { cuentaEfectiva, usadoDelFondo, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
 import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
+import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
+import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
 
 /* ====================================================================
    LineasPago · un pago repartido en varios medios (2026-09-14)
@@ -34,6 +36,9 @@ import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
    (banco + últimos dígitos del CCI, o el celular de Yape/Plin enmascarado) y se avisa —en ámbar— si ese
    medio no calza con lo que el proveedor tiene cargado. Solo avisos: no bloquean, y el N.° de operación
    sigue siendo opcional. Sin `datosProveedor` el componente se ve como siempre.
+
+   No deducible (ADR-0362, fase 6 · actividad 6): con `totalComprobante` de S/ 2 000 o más, lo que va en efectivo o sale de un
+   fondo se avisa como «no deducible» (decisión 56: se deja pagar). La regla es la de la base (`fn_pago_no_bancarizado`).
 
    Movimiento (ADR-0136, prototipo comprobantes-vivo.html): el medio se elige con FICHAS (no con un desplegable):
    cambian de color con suavidad, sin rebote, y marcan con un punto el medio preferido del proveedor. La línea
@@ -86,6 +91,7 @@ export function LineasPago({
   datosProveedor = null,
   enlaceFicha,
   cuentas,
+  totalComprobante,
 }: {
   lineas: LineaPago[];
   onLineas: (l: LineaPago[]) => void;
@@ -102,6 +108,8 @@ export function LineasPago({
   enlaceFicha?: string;
   /** ADR-0195 F3b: con las cuentas, cada línea pregunta «Sale de» (propuesta según el medio). Sin ellas, como siempre. */
   cuentas?: { lista: readonly CuentaElegible[]; listo: boolean };
+  /** El total del COMPROBANTE (no lo que falta pagar): de S/ 2 000 o más, avisa lo que queda «no deducible» (ADR-0362, fase 6). */
+  totalComprobante?: number;
 }) {
   const metodos = saldoFavor > 0 ? [...METODOS, METODO_SALDO_A_FAVOR] : METODOS;
   const conFavor = lineas.some((l) => l.metodo === METODO_SALDO_A_FAVOR);
@@ -178,6 +186,14 @@ export function LineasPago({
   // Sin nada que cubrir y nada escrito no hay frase que decir (p. ej. el total del formulario aún es 0).
   const hayResumen = objetivo > 0 || suma > 0;
 
+  // Lo que queda «no deducible»: cada línea con el tipo de la cuenta de la que sale (un fondo cuenta con cualquier medio).
+  const tipoCuentaDe = (l: LineaPago) => {
+    if (!cuentas || l.metodo === METODO_SALDO_A_FAVOR) return null;
+    const idCuenta = cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId);
+    return cuentas.lista.find((c) => c.id === idCuenta)?.tipo ?? null;
+  };
+  const avisoNoDeducible = avisoBancarizacion(totalComprobante, lineas.map((l) => ({ monto: l.monto, medio: l.metodo, tipoCuenta: tipoCuentaDe(l) })));
+
   // La columna "Quitar" existe solo cuando hay más de una línea: con una sola, un `auto` vacío igual cobraba
   // su hueco + separación y apretaba los campos dentro de un modal.
   const plantilla = lineas.length > 1 ? "sm:grid-cols-[9.5rem_1fr_auto]" : "sm:grid-cols-[9.5rem_1fr]";
@@ -190,7 +206,7 @@ export function LineasPago({
             Tienes <b className="font-semibold">{soles(saldoFavor)}</b> a favor con este proveedor.
           </p>
           {!conFavor && (
-            <button type="button" onClick={usarSaldoFavor} className="btn-cayla btn-enlace text-xs">
+            <button type="button" onClick={usarSaldoFavor} className="btn-cayla btn-sutil btn-chico">
               Usar {soles(Math.min(saldoFavor, objetivo))}
             </button>
           )}
@@ -258,6 +274,7 @@ export function LineasPago({
                       valor={cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId)}
                       onValor={(v) => actualizar(i, { cuentaId: v })}
                       deshabilitado={l.metodo === METODO_SALDO_A_FAVOR}
+                      montoDelFondo={usadoDelFondo(lineas, cuentas.lista, i)}
                     />
                   </div>
                 )}
@@ -300,6 +317,7 @@ export function LineasPago({
           </p>
         )}
       </div>
+      <AvisoNoDeducible aviso={avisoNoDeducible} reservar={(totalComprobante ?? 0) >= UMBRAL_BANCARIZACION} className="mt-3" />
     </div>
   );
 }

@@ -20,5 +20,4 @@ export const CUENTAS = [
 
 /** La pantalla a la que cae la cuenta al entrar: la terminal de ventas no tiene Inicio, su casa es Vender. */
 export const inicioDe = (cuenta) => cuenta.inicio ?? "/";
-export const esAnonima = (c) => c.correo === null;
 export const porClave = (clave) => CUENTAS.find((c) => c.clave === clave);

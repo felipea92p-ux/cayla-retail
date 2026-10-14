@@ -1,5 +1,5 @@
 // Guías de Producción, el Taller (ADR-0389): Resumen, Órdenes, Insumos, Recibir, Proveedores, Facturas de insumos, Por pagar,
-// Cotizaciones de maquila y Eficiencia. Producción solo se ve parado en el Taller (`guias/ejemplos.mjs` entra con `admin-taller`).
+// Cotizaciones de maquila, Eficiencia y, al final, las Órdenes de insumos (ADR-0362, fase 7). Producción solo se ve parado en el Taller (`guias/ejemplos.mjs` entra con `admin-taller`).
 // Es dinero y stock: cada guía dice con cuidado QUÉ guarda cada botón (abrir una orden, ingresar un lote, registrar una factura,
 // pagar) y nunca lo toca. El piloto solo abre las ventanas de «Nueva orden», «Nuevo insumo», «Nuevo proveedor», «Nueva factura» y
 // «Nueva cotización» para mostrar sus campos, escribe un ejemplo sacado de la pantalla y cambia de período en Eficiencia.
@@ -20,16 +20,16 @@ export const GUIA_PROD_RESUMEN: Guia = {
       texto: "Esta es la mirada del líder sobre el Taller: qué está urgente, qué modelos conviene producir y si alcanza la tela. Todo sale de las órdenes, los insumos y las ventas de las tiendas. Es una demo: no se abre ni se paga nada.",
     },
     {
-      id: "miradas",
-      ancla: "produccion.miradas",
-      titulo: "Hoy y Eficiencia",
-      texto: "«Hoy» es esta pantalla: lo que hay que decidir. «Eficiencia» te lleva a cuánto cuesta de verdad cada prenda que sale del Taller, período a período.",
-    },
-    {
       id: "acciones",
       ancla: "prod-resumen.acciones",
       titulo: "Ir a las órdenes",
       texto: "«Ver órdenes» abre el tablero de lo que se está fabricando; «Nueva orden» te lleva ahí mismo con la ventana para abrir una corrida. Te llevan a otra pantalla, así que en la demo no los tocamos.",
+    },
+    {
+      id: "miradas",
+      ancla: "produccion.miradas",
+      titulo: "Hoy y Eficiencia",
+      texto: "«Hoy» es esta pantalla: lo que hay que decidir. «Eficiencia» te lleva a cuánto cuesta de verdad cada prenda que sale del Taller, período a período.",
     },
     {
       id: "cifras",
@@ -48,24 +48,89 @@ export const GUIA_PROD_RESUMEN: Guia = {
       ancla: "prod-resumen.asunto",
       opcional: true,
       titulo: "Cada asunto",
-      texto: "Arriba, qué pasa («tiene 67 días de stock: no produzcas más»); abajo, el porqué en números. El botón de la derecha te lleva a donde se resuelve. Nadie la borra: la tarjeta desaparece sola cuando el asunto queda resuelto.",
+      texto: "Arriba, qué pasa («tiene 67 días de stock: no produzcas más»); abajo, el porqué en números. El botón de la derecha te lleva a donde se resuelve. Nadie la borra: la tarjeta desaparece sola cuando el asunto queda resuelto. Si son muchos los modelos por producir, una sola tarjeta los junta.",
+    },
+    {
+      id: "mas",
+      ancla: "prod-resumen.mas",
+      opcional: true,
+      titulo: "Lo que no cupo",
+      texto: "Si hay más asuntos de los que caben, aquí dice cuántos faltan y dónde verlos: «6 entregas» te lleva a Órdenes. Nada se corta en silencio.",
     },
     {
       id: "que-producir",
       ancla: "prod-resumen.que-producir",
       titulo: "¿Qué producir?",
-      texto: "Todos los modelos del catálogo, primero los que más urge fabricar. Sirve para decidir la próxima corrida mirando lo que de verdad se vende en las tiendas, no a ojo.",
+      texto: "Los modelos que se pueden fabricar (no salen los descontinuados, los pendientes de aprobación, los de prueba ni los de familias como Empaque), primero los que más urge fabricar. Sirve para decidir la próxima corrida mirando lo que de verdad se vende en las tiendas, no a ojo.",
     },
     {
       id: "modelo",
       ancla: "prod-resumen.modelo",
       opcional: true,
       titulo: "Cómo se lee un modelo",
-      texto: "Stock en tiendas, ventas por semana y cuántos días le dura (la barra; sus marcas son 7 y 30 días), cuántas se están fabricando y el consejo: «Producir ya», «Sobrestock» o «Sin ritmo medido» si aún no se vende. Al tocarlo se abre una orden nueva con ese modelo.",
+      texto: "Su foto (sin foto, el ícono de su categoría sobre su color); stock en tiendas; ventas por semana y en cuántas se apoyan («Poca base»: 2 o menos); cuántos días le dura (la barra); y el consejo: «Producir ya», «Trasladar al piso», «Sobrestock»… Tócalo para abrir su hoja.",
+    },
+    {
+      id: "hoja",
+      ancla: "prod-resumen.hoja-foto",
+      requiere: ["prod-resumen.modelo"],
+      preparar: [{ tipo: "clic", ancla: "prod-resumen.modelo" }],
+      titulo: "Ver el modelo",
+      texto: "La ficha completa del modelo, con el mismo diseño que en Catálogo. A la izquierda, su foto (la lupa la abre en grande): pasa el mouse por un color de la tabla y la foto lo muestra. A la derecha, todo lo que importa para decidir. Solo se mira: no se guarda nada.",
+    },
+    {
+      id: "hoja-tiendas",
+      ancla: "prod-resumen.hoja-tiendas",
+      opcional: true,
+      titulo: "Qué tienda lo vende",
+      texto: "Por tienda: cuánto vendió en 30 días, cuánto le queda, cuántos días le dura al ritmo de ESA tienda y qué le viene en camino. «Toda la red» las suma. En gris, poca base (2 ventas o menos): no decidas por ese número.",
+    },
+    {
+      id: "hoja-tienda",
+      ancla: "prod-resumen.hoja-tienda-selector",
+      opcional: true,
+      titulo: "Toda la red o una tienda",
+      texto: "Cambia la tabla de abajo a lo de una sola tienda, con las mismas filas y columnas, para ver en qué color y talla se queda corta cada una.",
+    },
+    {
+      id: "hoja-matriz",
+      ancla: "prod-resumen.hoja",
+      opcional: true,
+      titulo: "Por color y talla",
+      texto: "Lo que se vendió en 30 días y, debajo de cada cifra, lo que queda en tiendas. «Ya no hay» marca lo que se vendió y se acabó. Toca un color para dejar fija su foto.",
+    },
+    {
+      id: "hoja-ficha",
+      ancla: "prod-resumen.hoja-ficha",
+      opcional: true,
+      titulo: "Marca, proveedor y material",
+      texto: "De quién es, quién lo trae, de qué está hecho y qué patrón usa: lo mismo que dice Catálogo. «Sin registrar» es lo que falta completar en Editar.",
+    },
+    {
+      id: "hoja-ordenes",
+      ancla: "prod-resumen.hoja-ordenes",
+      opcional: true,
+      titulo: "Órdenes abiertas del modelo",
+      texto: "Las órdenes de este modelo que ya están en marcha: en qué etapa van y cuándo se entregan. Tócala y se abre en Órdenes. Así no abres otra sin saber que ya hay una.",
+    },
+    {
+      id: "hoja-tela",
+      ancla: "prod-resumen.hoja-tela",
+      opcional: true,
+      titulo: "Tela y avíos del modelo",
+      texto: "Lo que lleva una prenda de cada insumo (medido en órdenes ya cerradas) y si alcanza para lo que falta fabricar. Si todavía no hay consumo medido, la hoja lo dice en vez de adivinar.",
+    },
+    {
+      id: "hoja-acciones",
+      ancla: "prod-resumen.hoja-acciones",
+      opcional: true,
+      titulo: "Decidir desde la hoja",
+      texto: "«Ver en Catálogo» abre la ficha del modelo; «Ver en Existencias», el stock del color de la foto donde más hay. «Abrir orden» te lleva a Nueva orden con el modelo elegido; con «Abrir orden sugerida» las cantidades llegan escritas. «Trasladar al piso» lleva lo ya hecho en el Taller. En la demo no los tocamos.",
     },
     {
       id: "tela",
       ancla: "prod-resumen.tela",
+      preparar: [{ tipo: "escape" }],
       titulo: "¿Alcanza la tela?",
       texto: "Cada tela con lo que hay en el Taller, lo facturado que está por llegar y lo que piden las órdenes abiertas. «Alcanza si llega» depende de lo pedido; «Faltan» dice que hay que comprar antes de cortar. Si aún no hay telas, el enlace te lleva a cargarlas en Insumos.",
     },
@@ -138,30 +203,25 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Empiezas aquí cuando decides fabricar un modelo. Se abre una ventana para armar la corrida (te la abrimos para mostrarte sus partes, sin abrir ninguna orden).",
     },
     {
-      id: "tipo",
-      ancla: "prod-orden-nueva.tipo",
-      preparar: [{ tipo: "clic", ancla: "prod-ordenes.nueva" }],
-      titulo: "¿Producción o muestra?",
-      texto: "«Producción» fabrica el lote y, al cerrar, entra al stock del Taller. «Muestra» es para desarrollar un modelo: patrón y prototipo, sin stock.",
-    },
-    {
-      id: "modo",
-      ancla: "prod-orden-nueva.modo",
-      titulo: "¿Ya existe o es nuevo?",
-      texto: "«Ya existe» toma un modelo del catálogo. «Modelo nuevo» lo crea aquí mismo: su nombre, categoría, tallas, colores y precio, y entra al catálogo recién al abrir la orden.",
-    },
-    {
       id: "modelo",
       ancla: "prod-orden-nueva.modelo",
+      preparar: [{ tipo: "clic", ancla: "prod-ordenes.nueva" }],
+      titulo: "Primero, el modelo",
+      texto: "Busca el modelo que se va a fabricar. Si eres líder, arriba salen los que se están acabando. Elegido, «Cambiar» vuelve a la lista. ¿No existe? «Crear un modelo nuevo» lo arma aquí mismo, con su orden (te elegimos uno para mostrártelo).",
+      demostrar: [{ tipo: "clic", ancla: "prod-orden-nueva.modelo-fila" }],
+    },
+    {
+      id: "tipo",
+      ancla: "prod-orden-nueva.tipo",
       opcional: true,
-      titulo: "Qué modelo",
-      texto: "Elige el modelo del catálogo que se va a fabricar. Al cambiarlo, la tabla de tallas y colores de abajo se arma con las suyas.",
+      titulo: "¿Lote o muestra?",
+      texto: "Se elige solo: un modelo que ya existe se fabrica como «Lote de producción» y, al cerrar, entra al stock del Taller; uno nuevo arranca como «Muestra», para desarrollarlo (patrón y prototipo) sin stock. Si hace falta, lo cambias aquí.",
     },
     {
       id: "matriz",
       ancla: "prod-orden-nueva.matriz",
       titulo: "Cuántas por talla y color",
-      texto: "Escribe cuántas prendas de cada talla en cada color. El número gris es lo que sugiere la red; una raya es una talla que ese color no tiene. Si falta una talla o un color, se agrega en Productos, no aquí.",
+      texto: "Escribe cuántas prendas van de cada talla y color: Enter baja a la celda siguiente y «Llenar todas con» repite un número en toda la tabla. El número gris es lo que sugiere la red. En un modelo nuevo, «+ Agregar color» suma una fila. Una raya (—) es una combinación que el modelo no tiene.",
     },
     {
       id: "red",
@@ -208,8 +268,8 @@ export const GUIA_PROD_ORDENES: Guia = {
     {
       id: "resumen",
       ancla: "prod-orden-nueva.resumen",
-      titulo: "Costo por prenda",
-      texto: "Se calcula solo: el costo de la corrida entre las prendas. Por ejemplo, 12 prendas con S/ 240 de costo salen a S/ 20 cada una. Si el modelo tiene precio, también ves a cuánto se vende y el margen que queda.",
+      titulo: "La orden, tal como va quedando",
+      texto: "A la derecha ves la orden mientras la armas: la prenda, cuántas son, a cuánto se vende, el costo y el margen que queda, y la fecha. El costo por prenda se calcula solo: 12 prendas con S/ 240 de costo salen a S/ 20 cada una.",
     },
     {
       id: "entrega",
@@ -221,7 +281,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "cierre",
       ancla: "prod-orden-nueva.cierre",
       titulo: "Quién la abre",
-      texto: "Eliges quién abre la orden y tocas «Abrir orden»: recién ahí aparece en el tablero, en «Por cortar». En la demo no la abrimos: cerramos la ventana sin guardar nada.",
+      texto: "Debajo de la ficha te dice qué falta; eliges quién abre la orden y tocas «Abrir orden»: recién ahí aparece en el tablero, en «Por cortar». En la demo no la abrimos: cerramos la ventana sin guardar nada.",
     },
     {
       id: "fin",
@@ -816,6 +876,276 @@ export const GUIA_PROD_EFICIENCIA: Guia = {
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes leer la eficiencia del Taller. Para repasarlo: Mi perfil ▸ Demo ▸ Eficiencia del Taller.",
+    },
+  ],
+};
+
+// ---- Órdenes de insumos del Taller (ADR-0362, fase 7 · ADR-0389) ----
+// Las gemelas de las guías de Órdenes de compra (fase 1): una orden es lo que se le PIDE a un proveedor del Taller, antes de su
+// factura. La demo no crea, no edita, no imprime ni anula: abrir una orden desde la lista es ir a otra dirección (el piloto no sale de la
+// pantalla), así que la fila se explica y la orden tiene su propia guía. Producción se ve parado en el Taller: el recorredor entra con
+// `admin-taller` (`guias/ejemplos.mjs`), aunque la pantalla, que no cuelga de `/produccion`, abre desde cualquier sede con su módulo.
+
+export const GUIA_ORDENES_INSUMO: Guia = {
+  id: "ordenes-insumos",
+  ruta: "/ordenes-insumos",
+  titulo: "Órdenes de insumos",
+  resumen: "Lo que le pides a cada proveedor del Taller: qué insumo, cuánto y a cuánto.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Lo que le pides al proveedor del Taller",
+      texto: "Antes de que llegue la factura, aquí anotas lo que le pides a un proveedor del Taller: qué tela o avío, cuánto y a cuánto. Cada orden lleva su número propio (OI-000012), que nunca se repite. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "nueva",
+      ancla: "oi-lista.nueva",
+      titulo: "Una orden nueva",
+      texto: "Abre el formulario para pedirle algo a un proveedor del Taller: eliges al proveedor y escribes lo que pides, insumo por insumo, en su unidad (metros, conos…). Al guardar, vuelves aquí con la orden marcada como «Recién guardada».",
+    },
+    {
+      id: "cifras",
+      ancla: "oi-lista.cifras",
+      opcional: true,
+      titulo: "Cuánto se ha pedido",
+      texto: "Cuánto suman las órdenes generadas y cuántas esperan su entrega en los próximos 7 días. Una anulada no suma. No cambian con la búsqueda ni con los filtros.",
+    },
+    {
+      id: "buscador",
+      ancla: "oi-lista.buscador",
+      opcional: true,
+      titulo: "Buscar una orden",
+      texto: "Escribe el número («OI-000012», «oi12» o solo «12»), el proveedor o un insumo (su nombre o su código), sin preocuparte por tildes ni mayúsculas. La lista se filtra mientras escribes. Mira, buscamos un proveedor de la lista.",
+      demostrar: [{ tipo: "escribir", ancla: "oi-lista.buscador", texto: { palabraDe: "oi-lista.proveedor" } }],
+    },
+    {
+      id: "filtros",
+      ancla: "oi-lista.filtros",
+      opcional: true,
+      preparar: [{ tipo: "vaciar", ancla: "oi-lista.buscador" }],
+      titulo: "Generadas y anuladas",
+      texto: "«Generadas» deja solo las órdenes que siguen en pie; «Anuladas», las que se dejaron sin efecto. Tócala otra vez para ver las dos.",
+    },
+    {
+      id: "lista",
+      ancla: "oi-lista.lista",
+      opcional: true,
+      titulo: "Una fila por orden",
+      texto: "El número y cuándo se emitió, el proveedor, la entrega que esperas, lo pedido por unidad («12.5 metros · 4 conos»: nunca se suman metros con conos), el total y su estado. Una anulada lleva el total tachado.",
+    },
+    {
+      id: "fila",
+      ancla: "oi-lista.fila",
+      opcional: true,
+      titulo: "Abrir una orden",
+      texto: "Toca una fila y la orden se abre en una ventana encima de la lista, sin perder tu búsqueda: ahí la lees, la imprimes o la guardas en PDF para el proveedor, la editas o la anulas. Cierras con la ✕ o Escape y vuelves aquí.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes buscar, filtrar y abrir tus órdenes de insumos. Si hay muchas, abajo pasas a la página siguiente. Para repasarlo: Mi perfil ▸ Demo ▸ Órdenes de insumos.",
+    },
+  ],
+  alSalir: [{ tipo: "vaciar", ancla: "oi-lista.buscador" }],
+};
+
+/** Los pasos del formulario de una orden de insumos: los mismos en «Nueva» y en «Editar» (es la misma pantalla, `NuevaOrdenInsumo`). */
+const PASOS_FORMULARIO_OI = {
+  datos: {
+    id: "datos",
+    ancla: "oi-form.datos",
+    titulo: "Proveedor y a dónde llega",
+    texto: "El proveedor del Taller (búscalo por su nombre o su RUC) y el taller al que llega; si hay uno solo, ya va puesto. La entrega estimada va si la sabes, y la nota es para lo que el proveedor debe saber.",
+  },
+  lineas: {
+    id: "lineas",
+    ancla: "oi-form.lineas",
+    titulo: "Lo que pides",
+    texto: "Una línea por insumo. Arriba ves cuántas líneas llevas y cuánto pides de cada unidad (metros con metros, conos con conos); abajo, el total de la orden.",
+  },
+  linea: {
+    id: "linea",
+    ancla: "oi-form.linea",
+    opcional: true,
+    titulo: "Cada línea",
+    texto: "El insumo (por su nombre o su código), una descripción si ayuda, la cantidad en su unidad con hasta tres decimales (12.5 metros) y el precio por esa unidad con hasta cuatro (un botón a S/ 0.0350). El descuento va en % o en soles; al lado, el subtotal. La ✕ quita la línea.",
+  },
+  unidadCambiada: {
+    id: "unidad-cambiada",
+    ancla: "oi-form.unidad-cambiada",
+    opcional: true,
+    titulo: "Si cambió la unidad",
+    texto: "Si alguien cambió la unidad de un insumo después de hacer la orden (de metros a kilos, por ejemplo), su línea lo avisa y la cantidad viene vacía: escríbela otra vez en la unidad nueva. Lo que decía antes queda guardado.",
+  },
+  agregar: {
+    id: "agregar",
+    ancla: "oi-form.agregar",
+    titulo: "Otro insumo",
+    texto: "Suma una línea vacía para otro insumo. En la demo no la agregamos.",
+  },
+} as const;
+
+export const GUIA_NUEVA_ORDEN_INSUMO: Guia = {
+  id: "ordenes-insumos.nueva",
+  ruta: "/ordenes-insumos/nueva",
+  titulo: "Nueva orden de insumos",
+  resumen: "Lo que le pides a un proveedor del Taller, insumo por insumo y en su unidad.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Pedirle al proveedor del Taller",
+      texto: "Aquí armas lo que le pides a un proveedor del Taller: tela, hilo, botones… La factura y la recepción vienen después: esto es el pedido. Cada campo te dice si está hecho, si sigue o si falta. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "cifras",
+      ancla: "oi-form.cifras",
+      titulo: "Su número y su total",
+      texto: "El número que tendrá la orden (se confirma al guardar) y el total, que se va sumando mientras escribes las líneas.",
+    },
+    PASOS_FORMULARIO_OI.datos,
+    PASOS_FORMULARIO_OI.lineas,
+    PASOS_FORMULARIO_OI.linea,
+    PASOS_FORMULARIO_OI.agregar,
+    {
+      id: "guardar",
+      ancla: "oi-form.guardar",
+      titulo: "Guardar la orden",
+      texto: "Si trabajas desde una terminal, eliges quién hace la orden. Encima de los botones, lo que todavía falta. «Guardar orden» le da su número y vuelves a la lista; «Cancelar» sale sin guardar. En la demo no guardamos.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes armar una orden de insumos. La flecha de arriba te devuelve a la lista. Para repasarlo: Mi perfil ▸ Demo ▸ Nueva orden de insumos.",
+    },
+  ],
+};
+
+export const GUIA_ORDEN_INSUMO: Guia = {
+  id: "ordenes-insumos.ver.id",
+  ruta: "/ordenes-insumos/ver/[id]",
+  titulo: "Una orden de insumos",
+  resumen: "Lo que se le pidió a un proveedor del Taller: para imprimirla, corregirla o anularla.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Una orden por dentro",
+      texto: "Aquí ves todo lo que se le pidió a un proveedor del Taller en esta orden: a quién, a qué taller llega, cada insumo con su cantidad y el total. Es una demo: no se cambia nada.",
+    },
+    {
+      id: "anulada",
+      ancla: "oi.anulada",
+      opcional: true,
+      titulo: "Una orden anulada",
+      texto: "Si se anuló, lo dice primero: por qué, quién y cuándo. Ya no cuenta en lo pedido y su número no vuelve a usarse.",
+    },
+    {
+      id: "datos",
+      ancla: "oi.datos",
+      titulo: "A quién y a dónde",
+      texto: "El proveedor con su RUC y su rubro, el taller al que llega, cuándo se emitió y cuándo esperas la entrega.",
+    },
+    {
+      id: "lineas",
+      ancla: "oi.lineas",
+      titulo: "Lo que se pidió",
+      texto: "Una fila por insumo: su nombre y su código, cuánto en su unidad, el precio de cada una (con cuatro decimales si los usa), el descuento y el subtotal. Abajo, cuánto se pidió de cada unidad y el total.",
+    },
+    {
+      id: "versiones",
+      ancla: "oi.versiones",
+      opcional: true,
+      titulo: "Lo que decía antes",
+      texto: "Si la orden se corrigió, aquí queda lo que decía antes de cada cambio, con quién lo cambió y cuándo. Nada se pierde.",
+    },
+    {
+      id: "pie",
+      ancla: "oi.pie",
+      titulo: "Su estado y quién la hizo",
+      texto: "Si está generada o anulada, quién la creó y cuándo y, si alguien la cambió después, quién fue y cuándo.",
+    },
+    {
+      id: "acciones",
+      ancla: "oi.acciones",
+      titulo: "Lo que haces con ella",
+      texto: "Los botones de esta orden. Mientras esté generada la puedes imprimir, corregir o anular; una anulada solo se imprime.",
+    },
+    {
+      id: "imprimir",
+      ancla: "oi.imprimir",
+      titulo: "Imprimir la orden",
+      texto: "Saca la orden en papel A4, lista para mandársela al proveedor. Si eliges «Guardar como PDF», el archivo se llama como la orden (OI-000012.pdf). En la demo no lo abrimos.",
+    },
+    {
+      id: "editar",
+      ancla: "oi.editar",
+      opcional: true,
+      titulo: "Corregirla",
+      texto: "«Editar» abre la orden en su formulario para corregirla, solo mientras está generada. Te lleva a otra pantalla, así que en la demo no lo tocamos.",
+    },
+    {
+      id: "anular",
+      ancla: "oi.anular",
+      opcional: true,
+      titulo: "Anularla",
+      texto: "«Anular orden» la deja sin efecto: te pide por qué y no se deshace. No se borra y su número no vuelve a usarse. En la demo no lo tocamos.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer una orden de insumos. Si la abriste desde la lista, la ✕ o Escape te devuelven a ella. Para repasarlo: Mi perfil ▸ Demo ▸ Una orden de insumos.",
+    },
+  ],
+};
+
+export const GUIA_EDITAR_ORDEN_INSUMO: Guia = {
+  id: "ordenes-insumos.editar.id",
+  ruta: "/ordenes-insumos/editar/[id]",
+  titulo: "Editar orden de insumos",
+  resumen: "Corregir lo que le pediste a un proveedor del Taller, sin cambiar su número.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Corregir una orden",
+      texto: "Es el mismo formulario de una orden nueva, con la orden como está hoy. Corriges lo que haga falta; el número y la fecha de emisión no cambian. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "anulada",
+      ancla: "oi-form.anulada",
+      opcional: true,
+      titulo: "Una anulada no se edita",
+      texto: "Esta orden está anulada y ya no se puede cambiar. «Ver la orden» la abre; si todavía hace falta pedir eso, crea una orden nueva.",
+    },
+    {
+      id: "cifras",
+      ancla: "oi-form.cifras",
+      opcional: true,
+      titulo: "El total, al día",
+      texto: "El número de la orden está en el título. Aquí, el total, que cambia mientras corriges las líneas.",
+    },
+    { ...PASOS_FORMULARIO_OI.datos, opcional: true },
+    { ...PASOS_FORMULARIO_OI.lineas, opcional: true },
+    PASOS_FORMULARIO_OI.linea,
+    PASOS_FORMULARIO_OI.unidadCambiada,
+    { ...PASOS_FORMULARIO_OI.agregar, opcional: true },
+    {
+      id: "guardar",
+      ancla: "oi-form.guardar",
+      opcional: true,
+      titulo: "Guardar los cambios",
+      texto: "«Guardar cambios» deja la orden corregida y queda escrito quién la cambió y cuándo; lo que decía antes no se pierde. Si otra persona la guardó mientras tanto, te avisa y «Recargar» te muestra lo que dice ahora. En la demo no guardamos.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes corregir una orden de insumos. La flecha de arriba te devuelve a la lista. Para repasarlo: Mi perfil ▸ Demo ▸ Editar orden de insumos.",
     },
   ],
 };

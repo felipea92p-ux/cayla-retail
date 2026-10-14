@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { DIAS_PLAZO_CAMBIO } from "@/lib/cambios-reglas";
 import {

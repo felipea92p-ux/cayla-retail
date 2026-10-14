@@ -6,10 +6,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
-import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 import { lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ETIQUETA_METODO, METODO_SALDO_A_FAVOR, soles, type CompraResumen } from "@/lib/compras-reglas";
@@ -37,26 +37,28 @@ import { firmar } from "@/lib/responsable-reglas";
 // ADR-0161 P1 (20260923140000): cada botón es de UN módulo — «Anular», de Facturas de compra; «Registrar pago», de Por pagar
 // (`permite`, calculado en el servidor desde los módulos de la cuenta). Quien no lo tiene no ve el botón; la base igual lo
 // rechazaría (`fn_puede_registrar_facturas_compra`, `fn_puede_pagar_compras`).
+//
+// ADR-0387 (Felipe 2026-10-12, con su decisión 45): quien tiene Por pagar paga la factura entera a nombre de la empresa, sea líder
+// o no, en Compras y en Finanzas: el modal ya no pregunta «Pagas desde» ni manda `p_ubicacion_id` (deshace aquí ADR-0184 F4-F5).
 export function CompraAcciones({
   compra,
   tieneRecepciones,
   datosPago,
   permite,
-  misTiendas,
+  hayQueRecibir = true,
 }: {
   compra: CompraResumen;
   tieneRecepciones: boolean;
   datosPago?: DatosPagoProveedor;
   permite: AccionesDeCompra;
-  /** ADR-0184 (F4-F5): solo para un comprador de tienda — sus tiendas, para elegir con cuál paga (`p_ubicacion_id`).
-   *  `undefined` = líder, sin atarse a ninguna (como siempre). Con una sola, se usa sin preguntar. */
-  misTiendas?: { id: string; nombre: string }[];
+  /** `false` si lo que falta llegar es de líneas sin prenda (un comprobante de orden de compra): llega por guía, no por Recibir. */
+  hayQueRecibir?: boolean;
 }) {
   const router = useRouter();
   const [anulando, setAnulando] = useState(false);
   const [pagando, setPagando] = useState(false);
   const vigente = compra.estado === "vigente";
-  const puedeRecibir = vigente && compra.estadoRecepcion !== "recibida";
+  const puedeRecibir = vigente && compra.estadoRecepcion !== "recibida" && hayQueRecibir;
   const puedePagar = vigente && compra.saldo > 0 && permite.pagar;
   // ADR-0195 F2: la factura de un gasto o de un activo se anula desde Finanzas ▸ Gastos (con lo que detalla); la base tampoco la deja sola.
   const puedeAnular = vigente && compra.pagado === 0 && !tieneRecepciones && permite.facturas && (compra.naturaleza ?? "mercaderia") === "mercaderia";
@@ -109,7 +111,7 @@ export function CompraAcciones({
         </div>
       </div>
       {anulando && <AnularCompraModal compra={compra} onClose={() => setAnulando(false)} />}
-      {pagando && <RegistrarPagoModal compra={compra} saldoFavor={datosPago?.saldoFavor ?? 0} datos={datosPago} misTiendas={misTiendas} onClose={() => setPagando(false)} />}
+      {pagando && <RegistrarPagoModal compra={compra} saldoFavor={datosPago?.saldoFavor ?? 0} datos={datosPago} onClose={() => setPagando(false)} />}
     </>
   );
 }
@@ -117,17 +119,16 @@ export function CompraAcciones({
 // Abre el modal de pago al llegar a Por pagar con `?pagar=<id>` (ver arriba).
 // La página ya verificó que la factura existe, está vigente y tiene saldo.
 // Al cerrar se quita solo `pagar` de la URL (con `replace`, para que "atrás"
-// no vuelva a abrirlo) y se conservan los filtros que hubiera.
+// no vuelva a abrirlo) y se conservan los filtros que hubiera. Lo usan Compras ▸ Por pagar y Finanzas ▸ Cuentas y dinero ▸
+// Por pagar, que pagan igual (ADR-0387, decisión 45).
 export function PagoDesdeUrl({
   compra,
   saldoFavor = 0,
   datos,
-  misTiendas,
 }: {
   compra: CompraResumen;
   saldoFavor?: number;
   datos?: DatosPagoProveedor;
-  misTiendas?: { id: string; nombre: string }[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -137,7 +138,7 @@ export function PagoDesdeUrl({
     p.delete("pagar");
     router.replace(p.size ? `${pathname}?${p}` : pathname);
   }
-  return <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} datos={datos} misTiendas={misTiendas} onClose={cerrar} />;
+  return <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} datos={datos} onClose={cerrar} />;
 }
 
 // Desde "Por pagar" se paga sin entrar al detalle: el botón de la fila abre
@@ -158,7 +159,6 @@ export function BotonPagar({
   onPagado,
   etiqueta,
   conIcono = false,
-  misTiendas,
 }: {
   compra: CompraResumen;
   compacto?: boolean;
@@ -169,7 +169,6 @@ export function BotonPagar({
   etiqueta?: string;
   /** Un billete a la izquierda del texto (el botón del cajón, como en el spike). */
   conIcono?: boolean;
-  misTiendas?: { id: string; nombre: string }[];
 }) {
   const [abierto, setAbierto] = useState(false);
   if (compra.estado !== "vigente" || compra.saldo <= 0) return null;
@@ -192,7 +191,7 @@ export function BotonPagar({
           (etiqueta ?? `Registrar pago · saldo ${soles(compra.saldo)}`)
         )}
       </Boton>
-      {abierto && <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} datos={datos} misTiendas={misTiendas} onPagado={onPagado} onClose={() => setAbierto(false)} />}
+      {abierto && <RegistrarPagoModal compra={compra} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} onClose={() => setAbierto(false)} />}
     </>
   );
 }
@@ -209,17 +208,12 @@ export function RegistrarPagoModal({
   compra,
   saldoFavor = 0,
   datos,
-  misTiendas,
   onClose,
   onPagado,
 }: {
   compra: CompraResumen;
   saldoFavor?: number;
   datos?: DatosPagoProveedor;
-  /** ADR-0184 (F4-F5): solo para un comprador de tienda. `undefined` o vacío = líder, el pago no se ata a ninguna
-   *  tienda (como siempre). Con una sola, se usa directo; con varias, se elige con cuál se paga — la base exige que
-   *  esa tienda tenga parte en ESTA factura y no deje su saldo en negativo; si no la tiene, el error lo dice. */
-  misTiendas?: { id: string; nombre: string }[];
   onClose: () => void;
   /** Se llama al CERRAR la confirmación de un pago registrado. Sin esto el modal pide el refresh por su cuenta (el detalle). */
   onPagado?: (r: ResultadoPago) => void;
@@ -228,9 +222,11 @@ export function RegistrarPagoModal({
   // Un pago puede repartirse en varios medios (20260914200000_compras_multipago): la RPC escribe todas las líneas o ninguna.
   const [lineas, setLineas] = useState<LineaPago[]>(() => [{ ...lineaPagoVacia(compra.saldo.toFixed(2)), metodo: datos?.formaPagoPreferida && datos.formaPagoPreferida in ETIQUETA_METODO ? datos.formaPagoPreferida : "transferencia" }]);
   const [fecha, setFecha] = useState(hoyLima());
-  const [ubicacionPago, setUbicacionPago] = useState(misTiendas?.[0]?.id ?? "");
-  // ADR-0195 F3b: «Sale de». La propuesta sale de la tienda con que se paga; el líder, de la primera tienda del comprobante.
-  const cuentas = useCuentasParaElegir("pago", ubicacionPago || compra.ubicacionesDestino[0] || null);
+  // ADR-0195 F3b: «Sale de». La propuesta sale de la primera tienda del comprobante. A quien no ve las finanzas de todo
+  // (`fn_ve_finanzas_de_todo`: líder, Configuración o Cierre de mes), `fn_cuentas_para_elegir` solo le lista en efectivo los
+  // cajones y cajas fuertes de las sedes que opera: si la del comprobante no es una de ellas, se le propone una suya. La base
+  // vuelve a validar la cuenta al guardar (`fn_cuenta_sellada`). ADR-0362 fase 6: «Mi fondo» primero, si quien paga tiene uno.
+  const cuentas = useCuentasParaElegir("pago", compra.ubicacionesDestino[0] || null, true, { conMiFondo: true });
   const [loading, setLoading] = useState(false);
   // Quién registra el pago (ADR-0161/0162): `registrar_pagos_compra` firma con esa persona.
   const responsable = useResponsable();
@@ -271,17 +267,16 @@ export function RegistrarPagoModal({
     if (compra.fechaEmision && fecha < compra.fechaEmision) return void avisar.error("La fecha del pago no puede ser anterior a la emisión del comprobante.");
     if (excede) return void avisar.error(`El pago supera el saldo pendiente (${soles(compra.saldo)}).`, { enfocar: "pago-monto-0" });
     if (favorExcedido) return void avisar.error(`Usas ${soles(favorUsado)} de saldo a favor y solo tienes ${soles(saldoFavor)}.`, { enfocar: "pago-monto-0" });
-    if (misTiendas && misTiendas.length > 0 && !ubicacionPago) return void avisar.error("Elige con qué tienda pagas.");
     if (!responsable.listo) return void (responsable.motivo && avisar.error(responsable.motivo));
     setLoading(true);
     const supabase = createClient();
+    // Sin `p_ubicacion_id` (ADR-0387, decisión 45): el pago no se ata a ninguna tienda, va a nombre de la empresa y baja la deuda
+    // de la factura, que es toda de la tienda que la pidió.
     const { error } = await firmar(supabase.rpc("registrar_pagos_compra", {
       p_compra_id: compra.id,
       p_pagos: pagos,
       p_fecha: fecha,
       p_token: token.current,
-      // ADR-0184 (F4): sin tiendas propias (líder) el pago no se ata a ninguna, como siempre.
-      ...(ubicacionPago ? { p_ubicacion_id: ubicacionPago } : {}),
     }), responsable.firma());
     setLoading(false);
     responsable.despues(error);
@@ -312,7 +307,7 @@ export function RegistrarPagoModal({
 
   return (
     <Modal
-      variante="papel"
+      variante="hoja"
       titulo={
         hecho ? (
           <span className="sr-only">Pago registrado</span>
@@ -324,7 +319,7 @@ export function RegistrarPagoModal({
         )
       }
       subtitulo={hecho ? undefined : `1 comprobante · ${compra.documento}`}
-      ancho="max-w-2xl"
+      tamano="ancha"
       onClose={terminar}
     >
       {(cerrar) =>
@@ -430,18 +425,7 @@ export function RegistrarPagoModal({
               )}
             </section>
 
-            {/* ADR-0184 (F4-F5): con una sola tienda propia se paga con ella sin preguntar; con varias, se elige —
-                la base exige que esa tienda tenga parte en ESTA factura y valida que no supere su saldo. */}
-            {misTiendas && misTiendas.length > 1 && (
-              <CampoSelect
-                etiqueta="Pagas desde"
-                valor={ubicacionPago}
-                onValor={(v) => setUbicacionPago(v)}
-                opciones={misTiendas.map((t) => ({ valor: t.id, texto: t.nombre }))}
-              />
-            )}
-
-            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} totalComprobante={compra.total} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
 
             <div className="border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta">
@@ -478,13 +462,13 @@ export function RegistrarPagoModal({
               <ComboResponsable control={responsable} deshabilitado={loading} />
 
               {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
-              <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">
+              <div className="pie-acciones -mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
                 <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si el comprobante ya no admite el monto, no se registra.</p>
                 <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
                   Cancelar
                 </button>
-                <Boton type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
-                  {loading ? "Registrando…" : `Registrar pago de ${soles(suma)}`}
+                <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={loading || excede || favorExcedido || suma <= 0}>
+                  {`Registrar pago de ${soles(suma)}`}
                 </Boton>
               </div>
             </div>
@@ -532,13 +516,13 @@ function AnularCompraModal({ compra, onClose }: { compra: CompraResumen; onClose
           </p>
           <CampoTexto etiqueta="Motivo" id="anular-motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Se registró por error, el proveedor la reemplazó…" autoFocus />
           <ComboResponsable control={responsable} deshabilitado={loading} />
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={cerrar} className={botonCancelar} disabled={loading}>
+          <div className="pie-acciones pt-1">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario" disabled={loading}>
               Volver
             </button>
-            <button type="submit" className={botonPrimario} disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
-              {loading ? "Anulando…" : "Anular"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Anulando…" type="submit" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined}>
+              Anular
+            </Boton>
           </div>
         </form>
       )}

@@ -6,6 +6,8 @@ import { usePorPagar } from "@/components/PorPagarContexto";
 import { soles } from "@/lib/compras-reglas";
 import type { SalidaCaja } from "@/lib/compras-indicadores";
 import { cubrirCaja, enCubetaCaja, parseMonto } from "@/lib/por-pagar-reglas";
+import { CalendarClock } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // «Salidas de caja · próximos 30 días» (maqueta 02): cuánto vence cada semana, para saber si la caja alcanza ANTES de la fecha y no
 // después. Seis columnas que entrega `salidas_caja_30d()`: lo ya vencido, cuatro semanas desde hoy (Lima) y «Después». Sin librería de
@@ -78,7 +80,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
             Tengo
             {/* La caja que se enciende, baja (ADR-0358, ronda 6): antes una raya con su propio hilo. */}
             <span className="caja-cayla caja-campo caja-campo-baja min-h-8 w-[7.5rem] gap-1 px-2">
-              <span aria-hidden className="text-tinta/55">S/</span>
+              <span aria-hidden className="text-tinta/70">S/</span>
               <input
                 inputMode="decimal"
                 value={cajaTxt}
@@ -92,7 +94,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
         )}
       </div>
       {max <= 0 ? (
-        <p className="mt-4 text-sm text-tinta/65">No hay pagos que venzan en los próximos 30 días.</p>
+        <Vacio tamano="chico" alinear="izquierda" className="mt-2 px-0" icono={<CalendarClock />}>No hay pagos que venzan en los próximos 30 días.</Vacio>
       ) : (
         <>
           <div className="mt-3 flex h-[158px] items-end gap-1.5 border-b border-tinta/10 sm:gap-2.5">
@@ -150,7 +152,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
               </span>
             ))}
           </div>
-          <p className="mt-2 min-h-5 text-xs text-tinta/60" aria-live="polite">
+          <p className="mt-2 min-h-5 text-xs text-tinta/70" aria-live="polite">
             {veredicto}
           </p>
         </>

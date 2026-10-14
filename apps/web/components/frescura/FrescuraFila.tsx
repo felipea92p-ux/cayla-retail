@@ -10,6 +10,7 @@ import type { FilaDeDecision } from "@/lib/frescura-decisiones-pantalla";
 import { APROXIMADO, type AccionFila, type FilaVista } from "@/lib/frescura-pantalla";
 import { EstadoChip, ICONO_SUGERENCIA } from "./piezas";
 import type { ErrorAnotar } from "./useAnotarDecision";
+import { Boton } from "@/components/ui/campos";
 
 // Una prenda (modelo+color) de Frescura del piso: la fila de la tabla en la computadora y la tarjeta en el celular. Una fila =
 // una prenda = una frase (Formidable, ADR-0350): la prenda con su miniatura (la foto o, sin foto, el ícono de su categoría sobre
@@ -137,17 +138,17 @@ function Accion({
   return (
     <span data-guia="frescura.accion" className="flex flex-wrap items-center gap-x-2.5 gap-y-1 md:justify-end">
       {accion?.tipo === "anotar" && (
-        <button
+        <Boton peso="primario" cargando={enviando} textoCargando="Anotando…"
           type="button"
-          className="btn-cayla btn-primario btn-chico"
+          className="btn-chico"
           disabled={enviando}
           onClick={(e) => {
             detener(e);
             onAnotar(accion.accion, accion.verbo);
           }}
         >
-          {enviando ? "Anotando…" : accion.verbo}
-        </button>
+          {accion.verbo}
+        </Boton>
       )}
       {accion?.tipo === "enlace" && (
         <Link href={accion.href} className="btn-cayla btn-secundario btn-chico" onClick={detener}>

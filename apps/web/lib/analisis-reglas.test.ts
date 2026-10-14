@@ -12,6 +12,7 @@ import {
   leerBusqueda,
   leerVista,
   liquidarDesdeValido,
+  noHabiaDe,
   ordenSeAcaba,
   otraSedeQueLaTiene,
   porLlegar,
@@ -170,5 +171,31 @@ describe("la tienda como se habla en tienda", () => {
     expect(sedeDeAnalisis({ id: "1", nombre: "Tienda AQP" })).toMatchObject({ codigo: "AQP", ciudad: "Arequipa" });
     expect(sedeDeAnalisis({ id: "2", nombre: "Tienda Trujillo" })).toMatchObject({ codigo: "TRU", ciudad: "Trujillo" });
     expect(sedeDeAnalisis({ id: "3", nombre: "Tienda Cusco" })).toMatchObject({ codigo: "CUS", ciudad: "Cusco" });
+  });
+});
+
+describe("«Te pidieron y no había»: el día de Lima en que se anotó", () => {
+  // Como lo manda `pedidos_no_atendidos`: `created_at` es un instante en UTC. Anotado el 13 de octubre a las 20:00 de Lima
+  // (2026-10-14 01:00 UTC).
+  const pedido = (p: Partial<Parameters<typeof noHabiaDe>[0][number]> = {}) => ({
+    resuelto: false,
+    motivo: "no_habia_talla" as const,
+    productoReferencia: "Polo Lucky",
+    descripcionLibre: null,
+    talla: "M",
+    creadoEn: "2026-10-14T01:00:00.123456+00:00",
+    ...p,
+  });
+
+  it("lo anotado a las 20:00 del 13 en Lima es del 13, aunque en UTC ya sea el 14", () => {
+    expect(noHabiaDe([pedido()])).toEqual([{ que: "Polo Lucky · M", dia: "2026-10-13" }]); // con el corte de UTC, «2026-10-14»
+  });
+
+  it("solo cuentan los pedidos de talla que siguen sin resolver", () => {
+    expect(noHabiaDe([pedido({ resuelto: true }), pedido({ motivo: "se_probo_no_llevo" })])).toEqual([]);
+  });
+
+  it("sin un instante que se lea, el día queda vacío", () => {
+    expect(noHabiaDe([pedido({ creadoEn: "" })])).toEqual([{ que: "Polo Lucky · M", dia: null }]);
   });
 });

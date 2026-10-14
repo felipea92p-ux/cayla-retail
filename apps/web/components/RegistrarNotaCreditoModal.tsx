@@ -33,8 +33,10 @@ import { CampoSaleDe, useCuentasParaElegir } from "@/components/finanzas/CampoCu
 import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Buscador } from "@/components/ui/Buscador";
+import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada } from "@/components/ui/BarraApilada";
+import { Boton } from "@/components/ui/campos";
 
 /* ====================================================================
    Registrar una nota de crédito de compra (2026-09-19)
@@ -261,7 +263,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
 
   if (exito) {
     return (
-      <Modal titulo={exito.titulo} variante="papel" ancho="max-w-xl" onClose={onCerrar}>
+      <Modal titulo={exito.titulo} variante="papel" tamano="mediana" onClose={onCerrar}>
         {(cerrar) => (
           <div className="pt-2 text-center" data-sin-cascada>
             <svg aria-hidden viewBox="0 0 64 64" className="mx-auto mb-3 h-16 w-16 fill-none stroke-verde" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -289,7 +291,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
   const bajada = !factura || cambiando ? "Busca la factura contra la que el proveedor emitió la nota." : compraIdInicial ? "Viene de una nota por reclamar: la factura, el motivo y el monto ya están puestos." : "Revisa la factura y completa la nota.";
 
   return (
-    <Modal titulo="Registrar nota de crédito" subtitulo={bajada} variante="papel" ancho="max-w-3xl" onClose={onCerrar}>
+    <Modal titulo="Registrar nota de crédito" subtitulo={bajada} variante="hoja" tamano="ancha" onClose={onCerrar}>
       {(cerrar) => (
         <form onSubmit={registrar} noValidate className="mt-4 space-y-5">
           {/* --- factura de origen: ficha o buscador ------------------------------------ */}
@@ -304,11 +306,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
               <div>
                 <Buscador guia="nc-modal.buscador"
                   ref={refBuscador}
-                  role="combobox"
-                  aria-expanded={resultados.length > 0}
-                  aria-controls="nc-fb-lista"
-                  aria-autocomplete="list"
-                  aria-activedescendant={resultados[activa] ? `nc-fb-${resultados[activa].id}` : undefined}
+                  {...ariaDelBuscador("nc-fb-lista", resultados.length > 0, resultados[activa] ? activa : null)}
                   etiqueta="Buscar factura por serie-número, proveedor o monto"
                   placeholder="Serie-número, proveedor o monto"
                   valor={texto}
@@ -334,10 +332,50 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
                   ))}
                 </div>
 
-                <div id="nc-fb-lista" role="listbox" aria-label="Facturas de compra" className="scroll-cayla mt-2.5 max-h-[250px] overflow-y-auto overscroll-contain rounded-xl border border-sand">
+                {/* La lista de sugerencias del sistema, en línea: es la lista del paso, no flota (ADR-0358, ronda 9). La activa (↑ ↓ o el
+                    mouse) lleva el hilo rojo y su «Enter»; el clic se lleva el foco, como antes. */}
+                <ListaSugerencias
+                  id="nc-fb-lista"
+                  etiqueta="Facturas de compra"
+                  enLinea
+                  retenerFoco={false}
+                  className="mt-2.5 max-h-[250px] overscroll-contain"
+                  sugerencias={
+                    fallaFacturas
+                      ? []
+                      : resultados.map((f) => {
+                          const chip = chipFactura(f, hoy);
+                          return {
+                            clave: f.id,
+                            titulo: (
+                              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2.5">
+                                <span className="font-semibold tabular-nums text-tinta"><Marcado texto={f.documento} busqueda={texto} /></span>
+                                <span className="text-[13px] text-tinta/65"><Marcado texto={f.proveedorNombre} busqueda={texto} /></span>
+                              </span>
+                            ),
+                            detalle: (
+                              <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                                <Chip tono={chip.tono}>{chip.texto}</Chip>
+                                {f.tieneNota && <Chip tono="neutro">Con nota</Chip>}
+                                <span className="text-tinta/55">emitida {diaMes(f.fechaEmision)}</span>
+                              </span>
+                            ),
+                            derecha: (
+                              <>
+                                <span className="text-sm tabular-nums text-tinta"><Marcado texto={soles(f.total)} busqueda={texto} /></span>
+                                <span className="tabular-nums text-tinta/55">{f.saldo > 0.004 ? <>Saldo <Marcado texto={soles(f.saldo)} busqueda={texto} /></> : "Sin saldo"}</span>
+                              </>
+                            ),
+                          };
+                        })
+                  }
+                  activa={resultados[activa] ? activa : null}
+                  onActiva={setActiva}
+                  onElegir={(i) => elegirFactura(resultados[i].id)}
+                >
                   {fallaFacturas ? (
                     <p className="px-3.5 py-5 text-center text-[13px] text-tinta/65">{fallaFacturas}</p>
-                  ) : resultados.length === 0 ? (
+                  ) : (
                     <Vacio
                       tamano="chico"
                       icono={texto ? <SearchX /> : filtro !== "todas" ? <FunnelX /> : <Receipt />}
@@ -345,38 +383,8 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
                     >
                       {texto ? `Ninguna factura coincide con «${texto.trim()}». Prueba con otra serie, otro proveedor o un monto.` : "No hay facturas que coincidan. Prueba con otra serie, otro proveedor o un monto."}
                     </Vacio>
-                  ) : (
-                    resultados.map((f, i) => {
-                      const chip = chipFactura(f, hoy);
-                      return (
-                        <button
-                          key={f.id}
-                          id={`nc-fb-${f.id}`}
-                          type="button"
-                          role="option"
-                          aria-selected={i === activa}
-                          onMouseMove={() => i !== activa && setActiva(i)}
-                          onClick={() => elegirFactura(f.id)}
-                          className={`nc-fb-op ${i > 0 ? "border-t border-tinta/10" : ""}`}
-                        >
-                          <span className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-                            <span className="text-sm font-semibold tabular-nums text-tinta"><Marcado texto={f.documento} busqueda={texto} /></span>
-                            <span className="text-[13px] text-tinta/65"><Marcado texto={f.proveedorNombre} busqueda={texto} /></span>
-                          </span>
-                          <span className="col-start-1 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-xs">
-                            <Chip tono={chip.tono}>{chip.texto}</Chip>
-                            {f.tieneNota && <Chip tono="neutro">Con nota</Chip>}
-                            <span className="text-tinta/55">emitida {diaMes(f.fechaEmision)}</span>
-                          </span>
-                          <span className="col-start-2 row-span-2 row-start-1 flex flex-col justify-center text-right text-sm">
-                            <span className="tabular-nums text-tinta"><Marcado texto={soles(f.total)} busqueda={texto} /></span>
-                            <span className="text-xs tabular-nums text-tinta/55">{f.saldo > 0.004 ? <>Saldo <Marcado texto={soles(f.saldo)} busqueda={texto} /></> : "Sin saldo"}</span>
-                          </span>
-                        </button>
-                      );
-                    })
                   )}
-                </div>
+                </ListaSugerencias>
               </div>
             </div>
           </section>
@@ -580,14 +588,14 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
           {/* `pie-hoja-fijo` (globals.css): la fila de acciones se queda pegada abajo de la hoja en un laptop de 768 px de alto.
               La línea de arriba vive en la caja de adentro para no correrse hasta el borde de la hoja. */}
           <div className="pie-hoja-fijo" data-guia="nc-modal.pie">
-            <div className="flex flex-wrap items-center gap-3 border-t border-tinta/10 pt-4">
+            <div className="pie-acciones border-t border-tinta/10 pt-4">
               <p className="hidden flex-1 text-xs text-tinta/55 sm:block">Queda como un registro nuevo: no se edita ni se borra. El IGV de la nota resta del crédito fiscal del mes.</p>
               <button type="button" onClick={cerrar} disabled={enviando} className="btn-cayla btn-secundario">
                 Cancelar
               </button>
-              <button type="submit" disabled={enviando || buscando} className="btn-cayla btn-primario">
-                {enviando ? "Registrando…" : v.destino === "reembolso" ? "Registrar nota y reembolso" : "Registrar nota"}
-              </button>
+              <Boton peso="primario" cargando={enviando} textoCargando="Registrando…" type="submit" disabled={enviando || buscando}>
+                {v.destino === "reembolso" ? "Registrar nota y reembolso" : "Registrar nota"}
+              </Boton>
             </div>
           </div>
         </form>

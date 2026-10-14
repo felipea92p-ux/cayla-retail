@@ -25,7 +25,7 @@ describe("guía de la campaña de una etiqueta", () => {
     expect(camposDeCampana({ ...base, puedeDarDescuento: false }).map((c) => c.id)).toEqual(["vigencia", "categorias"]);
   });
 
-  // La coherencia que importa: «se puede guardar» según la guía ⇔ la regla real de CampanaModal (`valido`).
+  // La coherencia que importa: «se puede guardar» según la guía ⇔ la regla real de CampanaModal (`campanaValida`, que el modal llama tal cual).
   it("coincide con la validación real en cada combinación", () => {
     const descuentos = ["", "20", "12,5", "20 %", "0", "101", "abc", "%"];
     const fechas = ["", "2026-10-01", "2026-10-10", "2026-02-31", "2026-13-01", "mañana"];

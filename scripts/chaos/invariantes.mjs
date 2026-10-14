@@ -58,6 +58,35 @@ const MAX = 64 * 1024 * 1024;
  * `sql`: devuelve UNA FILA POR VIOLACIÓN (vacío = limpia). `corrompe`: SQL que rompe a propósito el dato que vigila (solo para la
  * autoprueba, siempre revertido). `sinAutoprueba`: por qué no se puede corromper (se dice en voz alta).
  */
+/** Las columnas de dinero de Ventas y Caja que vigila INV-16 (todas las `numeric` de esas tablas, 2026-10-13). */
+const COLUMNAS_DE_DINERO = [
+  ["cajas", ["monto_apertura", "monto_cierre_sistema", "monto_cierre_real", "diferencia", "monto_fondo", "monto_apertura_esperado", "fondo_requerido"]],
+  ["caja_movimientos", ["monto"]],
+  ["caja_traslados", ["monto"]],
+  ["venta_pagos", ["monto", "recibido"]],
+  ["venta_items", ["precio_unitario", "descuento_unitario", "costo_unitario", "descuento_club_unitario"]],
+  ["ventas", ["descuento_pct"]],
+  ["cambios", ["diferencia"]],
+  ["devoluciones", ["reembolso_monto"]],
+  ["separaciones", ["total", "adelanto"]],
+  ["separacion_items", ["precio_unitario", "descuento_unitario"]],
+  ["separacion_pagos", ["monto", "recibido"]],
+  ["separacion_abonos", ["monto"]],
+  ["separacion_ediciones", ["total_antes", "total_despues"]],
+  ["comprobantes", ["subtotal", "igv", "total", "anticipo_deducido"]],
+  ["proformas", ["subtotal", "igv", "total"]],
+];
+
+/** Las columnas de plata de Finanzas y de los fondos que vigila INV-17 (/chaos 2026-10-14, ADR-0362 fase 6). */
+const COLUMNAS_DE_PLATA = [
+  ["movimientos_dinero", ["monto", "comision"]],
+  ["gastos", ["monto_total", "igv"]],
+  ["compra_pagos", ["monto"]],
+  ["gastos_viaje_ordenes", ["monto"]],
+  ["rendiciones_fondo", ["arrastre", "entregado", "devuelto", "pagado", "gastos", "otros", "saldo", "efectivo", "faltante"]],
+  ["rendicion_fondo_items", ["monto"]],
+];
+
 export const INVARIANTES = [
   {
     id: "INV-01",
@@ -186,17 +215,32 @@ select c.id as comprobante_id, c.venta_id, c.serie || '-' || c.numero as numero,
   },
   {
     id: "INV-08",
-    nombre: "recepcion_no_excede_el_envio",
+    nombre: "lo_que_entra_por_un_traslado_salio_de_alguna_sede",
     gravedad: 1,
     nivel: "cruzada",
-    dice: "En un traslado, una sede no puede recibir de una prenda más de lo que se envió: sería stock que apareció sin salir de ninguna parte.",
+    // ADR-0404: contar de más ya no es una violación (queda como sobrante a revisar, fuera del stock). Lo imposible es que entre
+    // al stock por un traslado más de lo que SALIÓ por él: lo enviado y, si un líder dijo «salió del origen», esa salida.
+    dice: "Por un traslado no puede entrar a una sede más de una prenda que la que salió por él: sería stock que apareció sin salir de ninguna parte.",
     sql: `
-select i.transferencia_id, i.variante_id, i.cantidad as enviado, coalesce(r.t, 0) as recibido
-  from retail.transferencia_items i
-  join (select transferencia_id, variante_id, sum(cantidad_recibida) as t from retail.transferencia_recepciones group by 1, 2) r
-    on r.transferencia_id = i.transferencia_id and r.variante_id = i.variante_id
- where r.t > i.cantidad`,
-    corrompe: `update retail.transferencia_recepciones set cantidad_recibida = cantidad_recibida + 1000 where ctid = (select ctid from retail.transferencia_recepciones limit 1);`,
+with entro as (
+  select tr.transferencia_id, m.variante_id, sum(m.cantidad) as q
+    from retail.movimientos m join retail.transferencia_recepciones tr on tr.id = m.transferencia_recepcion_id
+   where m.tipo = 'entrada'
+   group by 1, 2
+), salio as (
+  select coalesce(ti.transferencia_id, trs.transferencia_id) as transferencia_id, m.variante_id, sum(m.cantidad) as q
+    from retail.movimientos m
+    left join retail.transferencia_items ti on ti.id = m.transferencia_item_id
+    left join retail.transferencia_recepciones trs on trs.id = m.transferencia_recepcion_id
+   where m.tipo = 'salida' and coalesce(ti.transferencia_id, trs.transferencia_id) is not null
+   group by 1, 2
+)
+select e.transferencia_id, e.variante_id, coalesce(s.q, 0) as salio, e.q as entro
+  from entro e left join salio s on s.transferencia_id = e.transferencia_id and s.variante_id = e.variante_id
+ where e.q > coalesce(s.q, 0)`,
+    corrompe: `insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, transferencia_recepcion_id)
+select tr.variante_id, t.ubicacion_destino_id, coalesce(t.sububicacion_destino_id, retail.fn_sububicacion_por_defecto(t.ubicacion_destino_id, 'traslado_entrada')), 'entrada', 1000, 'traslado_entrada', tr.id
+  from retail.transferencia_recepciones tr join retail.transferencias t on t.id = tr.transferencia_id limit 1;`,
   },
   {
     id: "INV-09",
@@ -284,6 +328,68 @@ select p.id as pieza_id, p.estado, p.precio, vi.precio_unitario, vi.cantidad, v.
     or (p.estado <> 'disponible' and exists (select 1 from retail.piezas_liquidacion_etiquetas e where e.pieza_id = p.id and e.vigente and p.estado = 'retirada'))`,
     corrompe: `update retail.piezas_liquidacion_etiquetas set vigente = false where ctid = (select e.ctid from retail.piezas_liquidacion_etiquetas e join retail.piezas_liquidacion p on p.id = e.pieza_id where e.vigente and p.estado = 'disponible' limit 1);`,
   },
+  {
+    id: "INV-14",
+    nombre: "compra_anulada_sin_mercaderia",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Una factura de proveedor anulada no tiene mercadería ingresada: `anular_compra` lo prohíbe («dejaría stock o dinero sin respaldo»). Si la tiene, hay prendas en el stock que ya no le deben nada a nadie. Nació de /chaos 2026-10-13 (recibir y anular a la vez: las dos pasaban).",
+    sql: `
+select c.id as compra_id, c.serie || '-' || c.numero as factura, sum(m.cantidad) as unidades_ingresadas
+  from retail.compras c
+  join retail.compra_items ci on ci.compra_id = c.id
+  join retail.movimientos m on m.compra_item_id = ci.id
+ where c.estado = 'anulada'
+ group by c.id, c.serie, c.numero`,
+    corrompe: `update retail.compras set estado = 'anulada', motivo_anulacion = 'autoprueba chaos', anulada_at = now()
+ where ctid = (select c.ctid from retail.compras c where c.estado = 'vigente'
+                and exists (select 1 from retail.compra_items ci join retail.movimientos m on m.compra_item_id = ci.id where ci.compra_id = c.id) limit 1);`,
+  },
+  {
+    id: "INV-15",
+    nombre: "caja_abierta_con_efectivo",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Una caja abierta nunca espera menos de cero en el cajón: no se puede sacar plata que no está (egresos, reembolsos, vueltos de un cambio, ventas anuladas). Se calcula con `fn_calcular_esperado_caja`, la misma cuenta que usa `cerrar_caja`. Nació de /chaos 2026-10-13.",
+    sql: `
+select c.id as caja_id, c.ubicacion_id, e.esperado
+  from retail.cajas c
+  cross join lateral retail.fn_calcular_esperado_caja(c.id) e
+ where c.estado = 'abierta' and e.esperado < 0`,
+    // Un ingreso de una caja abierta pasa a ser un egreso enorme: el esperado cae bajo cero. Es un UPDATE, que el candado
+    // de la base (un disparador al insertar) no mira: así se prueba el detector y no el candado.
+    corrompe: `update retail.caja_movimientos set tipo = 'egreso', monto = monto + 1000000
+ where ctid = (select m.ctid from retail.caja_movimientos m join retail.cajas c on c.id = m.caja_id where c.estado = 'abierta' limit 1);`,
+  },
+  {
+    id: "INV-16",
+    nombre: "montos_de_ventas_finitos",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Ningún monto de Ventas o de Caja es `NaN` ni infinito. En Postgres `'NaN'::numeric` es mayor que cualquier número y `'Infinity'` también existe: los dos pasan los CHECK `>= 0` y, una vez dentro, cualquier suma que los toque (el esperado de la caja, el total del día) se rompe. Nació de /chaos 2026-10-13.",
+    sql: COLUMNAS_DE_DINERO.map(([tabla, columnas]) =>
+      `select '${tabla}' as tabla, id::text as fila_id, '${columnas.join(",")}' as columnas from retail.${tabla} where ${columnas.map((c) => `abs(${c}) >= 'Infinity'`).join(" or ")}`
+    ).join("\nunion all\n"),
+    // El candado de la base (`venta_pagos_montos_finitos`) se quita dentro de la transacción revertida: sin eso, la
+    // corrupción misma rebota y no se puede probar que el detector la ve.
+    corrompe: `alter table retail.venta_pagos drop constraint if exists venta_pagos_montos_finitos;
+update retail.venta_pagos set monto = 'NaN' where ctid = (select ctid from retail.venta_pagos limit 1);`,
+  },
+  {
+    id: "INV-17",
+    nombre: "montos_de_plata_finitos",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Ningún monto de la plata de Finanzas o de un fondo (movimientos de dinero, gastos, pagos a proveedores, el reparto de un gasto del viaje, las rendiciones) es `NaN` ni infinito. Un NaN pasa el CHECK `> 0` y, una vez dentro, deja en NaN el saldo del fondo, la caja de origen y el Diario. Nació de /chaos 2026-10-14 (fase 6).",
+    sql: COLUMNAS_DE_PLATA.map(([tabla, columnas]) =>
+      `select '${tabla}' as tabla, ${tabla === "gastos_viaje_ordenes" ? "gasto_id" : tabla === "rendicion_fondo_items" ? "rendicion_id || ':' || clave" : "id"}::text as fila_id, '${columnas.join(",")}' as columnas from retail.${tabla} where ${columnas.map((c) => `abs(${c}) >= 'Infinity'`).join(" or ")}`
+    ).join("\nunion all\n"),
+    // El candado de la base (`movimientos_dinero_montos_finitos`) se quita dentro de la transacción revertida: sin eso, la corrupción
+    // misma rebota y no se puede probar que el detector la ve.
+    corrompe: `alter table retail.movimientos_dinero drop constraint if exists movimientos_dinero_montos_finitos;
+set local session_replication_role = replica;
+update retail.movimientos_dinero set monto = 'NaN' where ctid = (select ctid from retail.movimientos_dinero limit 1);`,
+  },
 ];
 
 // ── Instrumento (Docker + psql) ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -321,10 +427,14 @@ export function autoprobar(inv, ejecutar = psql) {
   const antes = evaluar(inv, ejecutar);
   if (antes.estado === "error") return { estado: "error", mensaje: antes.mensaje };
   try {
-    const salida = ejecutar(`begin; ${preludioDe(inv)}\n${inv.corrompe}\n${comoJson(inv.sql)}\nrollback;`);
+    // `:ROW_COUNT` (psql) = cuántas filas tocó la última sentencia de `corrompe` (todas terminan en un UPDATE o un INSERT … SELECT).
+    // Cero = no había con qué corromper en ESTA base (p. ej. una recién sembrada sin piezas de liquidación): la prueba no se pudo
+    // hacer, que no es lo mismo que un detector ciego (2026-10-13: INV-13 salía «CIEGA» en una base nueva sin piezas).
+    const salida = ejecutar(`begin; ${preludioDe(inv)}\n${inv.corrompe}\nselect 'chaos:filas_corrompidas=' || :ROW_COUNT;\n${comoJson(inv.sql)}\nrollback;`);
     const filas = salida.split("\n").filter((l) => l.trim().startsWith("{")).map((l) => JSON.parse(l));
     const nuevas = filas.filter((f) => !antes.filas.some((a) => huellaDe(a) === huellaDe(f)));
     if (nuevas.length) return { estado: "detecta", mensaje: `${nuevas.length} violación(es) nueva(s) tras corromper` };
+    if (/chaos:filas_corrompidas=0\b/.test(salida)) return { estado: "sin-datos", mensaje: "la corrupción no encontró ninguna fila que romper en esta base: no se pudo probar" };
     return { estado: "ciega", mensaje: "se corrompió el dato y el detector NO gritó" };
   } catch (e) {
     const msg = String(e.stderr || e.message || e);

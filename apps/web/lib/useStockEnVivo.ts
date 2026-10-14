@@ -5,10 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import { almacenReleido, apartadoReleido, conStockReleido } from "@/lib/vender-stock-local";
 import { sumarCantidades } from "@/lib/inventario-reglas";
 import { leerTodas } from "@/lib/resultado";
-import { mismoStock, type StockReleido } from "@/lib/stock-en-vivo-reglas";
+import { claveDeConocidos, hayQueReleer, huellaParaRecordar, mismoStock, type StockReleido, type UltimaHuella } from "@/lib/stock-en-vivo-reglas";
 
 export type { StockReleido } from "@/lib/stock-en-vivo-reglas";
-export { mismoStock } from "@/lib/stock-en-vivo-reglas";
 
 /**
  * Stock en vivo, compartido por Vender/Apartados/Cambios (2026-09-25) — cierra el hueco que reportó Felipe:
@@ -63,12 +62,24 @@ export async function leerStockDeSede(ubicacionId: string, conocidos: string[], 
 }
 
 /**
+ * La huella del stock de la sede (`fn_stock_huella`, 20261013153000): 32 letras que cambian si cambia cualquier cantidad,
+ * apartado o fila que esta cuenta ve. Preguntarla es leer un texto corto en vez de 1.507 filas; con ella el sondeo sabe si
+ * vale la pena releer. `null` si no se pudo (la función no existe en esa base o la red falló): entonces se relee entero.
+ */
+async function leerHuellaDeSede(ubicacionId: string): Promise<string | null> {
+  const { data, error } = await createClient().rpc("fn_stock_huella", { p_ubicacion_id: ubicacionId });
+  return error || typeof data !== "string" ? null : data;
+}
+
+/**
  * Sondea `leerStockDeSede` mientras la pantalla sigue montada y `activo` (p. ej. hay caja abierta: no hay nada
  * que cobrar/apartar/cambiar igual). `alLeer` recibe el mapa releído cada vez que la lectura sale bien —cada
  * pantalla decide dónde aterriza (su propio `ajustesStock`)—, y de yapa el almacén (solo Vender lo usa) y lo
  * apartado en el piso (Vender y Cambios); quien no los necesita ignora los argumentos que sobran; una lectura que falla no llama a `alLeer`, la
  * pantalla se queda con lo que ya mostraba. Sondea también al volver a la pestaña o a la red; nunca con la
- * pestaña oculta, sin conexión, ni con `activo` en falso.
+ * pestaña oculta, sin conexión, ni con `activo` en falso. Cada vuelta pregunta primero la huella de la sede y baja las
+ * filas solo si cambió (o si cambió qué prendas conoce la pantalla): sin ventas ni reposiciones, una vuelta es un texto
+ * de 32 letras en vez de todo el stock de la tienda (auditoría 2026-10-13, punto 20).
  *
  * `conocidos` y `alLeer` se leen siempre en su versión más reciente por ref (mismo idioma que `onCodigoRef` en
  * `EscanerCamara`): así el intervalo no se resetea con cada render de quien los provee (una tecla del buscador,
@@ -90,17 +101,29 @@ export function useStockEnVivo(
   // Lo último que se avisó de verdad (no lo último que se leyó): si la sede no cambió en 10 s, `sondear` vuelve
   // a leer lo mismo y NO llama a `alLeer` — evita el repintado de la grilla entera con datos idénticos.
   const ultimoRef = useRef<StockReleido | null>(null);
+  // La huella de la sede en la última lectura completa (auditoría 2026-10-13, punto 20): si no cambió, no se baja nada.
+  const huellaRef = useRef<UltimaHuella>(null);
 
   useEffect(() => {
     if (!activo) return;
     let cancelado = false;
     // Cada arranque del sondeo (sede nueva, caja que se abre) parte sin memoria: la primera lectura siempre avisa.
     ultimoRef.current = null;
+    huellaRef.current = null;
     const sondear = async () => {
       // Sin mirar `navigator.onLine` (puede decir «sin red» con internet, 2026-10-10): sin red de verdad, falla y ya.
       if (document.visibilityState !== "visible") return;
-      const releido = await leerStockDeSede(ubicacionId, conocidosRef.current);
+      const conocidos = conocidosRef.current;
+      const clave = claveDeConocidos(conocidos);
+      const huella = await leerHuellaDeSede(ubicacionId);
+      if (cancelado || !hayQueReleer(huellaRef.current, huella, clave)) return;
+      const releido = await leerStockDeSede(ubicacionId, conocidos);
       if (!releido || cancelado) return;
+      // Se recuerda la huella solo si otra, pedida DESPUÉS de las filas, dice lo mismo (`huellaParaRecordar`): un cambio que fue y
+      // volvió entre las dos lecturas no deja a la pantalla con el estado intermedio. Cuesta un texto corto más por relectura.
+      const despues = huella === null ? null : await leerHuellaDeSede(ubicacionId);
+      if (cancelado) return;
+      huellaRef.current = huellaParaRecordar(huella, despues, clave);
       if (ultimoRef.current && mismoStock(ultimoRef.current, releido)) return;
       ultimoRef.current = releido;
       alLeerRef.current(releido.cobrable, releido.almacen, releido.apartado);

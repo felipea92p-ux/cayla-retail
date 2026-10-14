@@ -13,10 +13,10 @@ import { PERMISOS, type Permiso } from "./menu";
 export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas", "avisos_club",
-  "existencias", "conteos", "traslados", "movimientos",
+  "existencias", "conteos", "traslados", "movimientos", "recibir",
   "productos", "atributos", "etiquetas", "liquidacion",
-  "ordenes_compra", "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito", "plan_compra",
-  "produccion",
+  "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "notas_credito", "plan_compra",
+  "produccion", "ordenes_insumos",
   "analisis", "frescura", "plan_piso", "colaboradores", "roles",
   "configuracion",
   "gastos", "cuentas_dinero", "reportes_financieros", "impuestos", "cierre_mes",
@@ -68,6 +68,8 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "conteos", grupo: "Inventario", nombre: "Conteos", incluye: "Iniciar, registrar y cerrar conteos" },
   { clave: "traslados", grupo: "Inventario", nombre: "Traslados", incluye: "Enviar, recibir, cancelar y cerrar con diferencia" },
   { clave: "movimientos", grupo: "Inventario", nombre: "Movimientos", incluye: "Consultar y exportar" },
+  // ADR-0393 (Felipe, 2026-10-14): Recibir vive en Inventario, para todos (20261014210000; la base de producción ya lo tenía ahí).
+  { clave: "recibir", grupo: "Inventario", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
   { clave: "productos", grupo: "Catálogo", nombre: "Productos", incluye: "Crear, editar y archivar prendas; precios, fotos y códigos" },
   { clave: "atributos", grupo: "Catálogo", nombre: "Categorías, marcas y atributos", incluye: "Crear, editar, desactivar y aprobar propuestas" },
   { clave: "etiquetas", grupo: "Catálogo", nombre: "Etiquetas", incluye: "Crear, editar, aprobar y archivar etiquetas, configurar su campaña y descuento, y ponérselas a las prendas" },
@@ -79,14 +81,21 @@ export const MODULOS: readonly Modulo[] = [
   // (decisiones 34 y 37): no pasa por la regla de Compras por tienda (ADR-0184).
   { clave: "ordenes_compra", grupo: "Compras", nombre: "Órdenes de compra", incluye: "Crear, ver, editar y anular las órdenes de compra a proveedores de todas las sedes, con sus precios, y descargar su PDF" },
   { clave: "facturas_compra", grupo: "Compras", nombre: "Facturas de compra", incluye: "Registrar, corregir y anular facturas" },
-  { clave: "recibir", grupo: "Compras", nombre: "Recibir mercadería", incluye: "Recibir envíos de proveedores" },
   { clave: "por_pagar", grupo: "Compras", nombre: "Por pagar", incluye: "Ver lo que se debe y registrar pagos" },
+  // Fondos por rendir (ADR-0362, fase 6; 20261013181000): la plata que se le entrega a quien compra. Nace SIN rol (solo el líder) y
+  // delegable: sus funciones piden este módulo, no al líder (decisión 35).
+  { clave: "fondos", grupo: "Compras", nombre: "Fondos por rendir", incluye: "Entregar plata a una persona para que compre, registrar lo que devuelve y ver cuánto tiene cada una en la mano" },
   { clave: "proveedores", grupo: "Compras", nombre: "Proveedores", incluye: "Crear, editar y archivar; cuentas bancarias, Yape y Plin" },
   { clave: "notas_credito", grupo: "Compras", nombre: "Notas de crédito", incluye: "Registrar y anular notas" },
   // Plan de campaña (ADR-0349, 20261005220000): cuánto comprar por categoría para una campaña (diciembre 2026 primero), con tres
   // escenarios, y compararlo después con lo vendido. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo.
   { clave: "plan_compra", grupo: "Compras", nombre: "Plan de campaña", incluye: "Armar por categoría cuánto comprar para una campaña (tres escenarios, precio, costo, curva de tallas) y compararlo después con lo que se vendió" },
   { clave: "produccion", grupo: "Producción", nombre: "Órdenes de producción", incluye: "Crear, editar y cancelar órdenes; registrar avance" },
+  // Órdenes de insumos (ADR-0362 fase 7, decisión 47; 20261013035000): lo que el Taller le pide a cada proveedor de tela y avíos, aparte
+  // de la orden de tienda (decisiones 25 y 28). Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo y nada más.
+  // Quien lo tiene ve y hace todo en esas órdenes, con sus precios, sin ver el resto de la plata del Taller; no necesita «Órdenes de
+  // producción» (la pantalla vive en /ordenes-insumos, fuera del layout de /produccion).
+  { clave: "ordenes_insumos", grupo: "Producción", nombre: "Órdenes de insumos", incluye: "Crear, ver, editar y anular las órdenes de compra de insumos del Taller, con sus precios, y descargar su PDF" },
   { clave: "analisis", grupo: "Gestión", nombre: "Análisis", incluye: "Reportes de ventas e inventario" },
   // Frescura del piso y Plan del piso viven en «Gestión» desde ADR-0392 (2026-10-13, migración 20261013134000: orden 212 y 214,
   // justo después de Análisis). Nacieron en «Inventario» (20260929100000 y 20261006100000); el lateral los muestra en «Gestión».

@@ -33,6 +33,8 @@ const cat = ([prefijo, nombre]: readonly [string, string]): CategoriaParaSugerir
 const CATEGORIAS = ACTIVAS.map(cat);
 const TODAS = [...ACTIVAS, ...APAGADAS].map(cat);
 const nombreSugerido = (descripcion: string, categorias = CATEGORIAS) => sugerirCategoria(descripcion, categorias)?.nombre ?? null;
+/** Los dos recorridos exhaustivos de colores (al final) no caben en los 5 s de vitest en un runner cargado; 30 s les sobra. */
+const LIMITE_TOTALIDAD = 30_000;
 
 describe("sugerir la categoría desde la descripción — la lista de la prueba es la real", () => {
   it("son las 42 activas de la base (la prueba no mira una lista vacía) y cada una tiene sus palabras en la tabla", () => {
@@ -272,7 +274,9 @@ describe("solo cuenta lo que escribió la persona: ni la descripción armada ni 
         expect(sugerenciaParaMostrar(enMedio, c.id, CATEGORIAS, { armada: a, color }), enMedio).toBeNull();
       }
     }
-  });
+    // Recorre categorías × colores (miles de llamadas, ~0,16 ms cada una): 1,2 s en un Mac, pero más de 5 s (el límite de
+    // vitest) en un runner del CI cargado con todos los archivos a la vez (PR #1004, 2026-10-14). Crece con la paleta.
+  }, LIMITE_TOTALIDAD);
 
   it("y aunque un color futuro se llame como una prenda («Tono jean», «Rosa top»…), su nombre nunca delata una categoría", () => {
     const palabras = Object.values(SINONIMOS_POR_CATEGORIA).flat();
@@ -283,7 +287,7 @@ describe("solo cuenta lo que escribió la persona: ni la descripción armada ni 
         expect(sugerenciaParaMostrar(enMedio, c.id, CATEGORIAS, { armada: armada(c.nombre, color, "M"), color }), enMedio).toBeNull();
       }
     }
-  });
+  }, LIMITE_TOTALIDAD);
 });
 
 /** Los nombres de color que las migraciones dejan en `retail.colores` (sus `insert … values` y sus renombres). */

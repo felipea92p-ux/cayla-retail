@@ -15,6 +15,10 @@ export type EstadoConfirmar = "reposo" | "cargando" | "hecho";
 
 const MENSAJE: Record<EstadoConfirmar, string> = { reposo: "", cargando: "Registrando el pago…", hecho: "Pago registrado." };
 
+/**
+ * @public No lo dibuja ninguna pantalla desde el 2026-09-19 (las fusiones de Comprobantes y Por pagar dejaron los modales de pago sin
+ * `useConfirmacionPago`). Se queda hasta que Felipe decida si vuelve a esos modales o se borra (docs/backlog/2026-10-06-determined-thompson-f7b8d8.md).
+ */
 export function BotonConfirmar({
   estado,
   disabled = false,
@@ -67,6 +71,8 @@ const COLORES_CHISPA = ["var(--color-verde)", "var(--color-taupe)", "var(--color
  * ~700 ms. Sobrio a propósito —confirma, no celebra— y con la curva del sistema. Se salta por completo con
  * movimiento reducido. Cada partícula es un <i> fijo en el `body` que se borra solo al terminar; si algo falla
  * (sin WAAPI, sin `origen`) simplemente no pasa nada: es un adorno de la confirmación, nunca parte del pago.
+ *
+ * @public Sin uso por la misma razón que `BotonConfirmar` (arriba): espera la misma decisión de Felipe.
  */
 export function lanzarChispas(origen: Element | null | undefined) {
   if (!origen || typeof document === "undefined" || prefiereMovimientoReducido()) return;

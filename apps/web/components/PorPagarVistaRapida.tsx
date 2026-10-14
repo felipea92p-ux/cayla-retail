@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowUpRight, ChevronDown, ChevronUp, X } from "lucide-react";
+import { ArrowUpRight, ChevronDown, ChevronUp, X, Banknote } from "lucide-react";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
@@ -14,6 +14,8 @@ import { diaMes, diasHastaLima, hoyLima } from "@/lib/fechas-lima";
 import type { NotaPendiente } from "@/lib/compras-indicadores";
 import { etiquetaVence, pasosDeComprobante, tramoDe, type PasoDeComprobante } from "@/lib/por-pagar-reglas";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { MarcaNoDeducible } from "@/components/MarcaNoDeducible";
+import { Vacio } from "@/components/ui/Vacio";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -26,7 +28,8 @@ const BORDE: Record<PasoDeComprobante["tono"], string> = { rojo: "border-l-rojo"
 // lista, perdiendo el orden, el filtro y lo marcado. Acá la lista queda detrás, intacta, y con ↑ ↓ se pasa de un
 // comprobante al siguiente sin cerrar.
 //
-// Es solo de líder (el dinero de Compras solo llega a un líder, ADR-0126). El detalle completo sigue siendo la
+// Lo ve quien tiene Por pagar (antes solo el líder, ADR-0126); desde ADR-0387, con el comprobante entero de cualquier tienda y
+// pagando a nombre de la empresa, sin elegir tienda. El detalle completo sigue siendo la
 // pantalla de referencia: esto es el vistazo, no la reemplaza. El historial de pagos vive allí: `CompraResumen`
 // no lo trae y pedirlo en cada clic sería una consulta más por fila; aquí van el total, lo pagado y el plazo.
 //
@@ -42,7 +45,6 @@ export function PorPagarVistaRapida({
   onCerrar,
   onNavegar,
   onPagado,
-  misTiendas,
 }: {
   compra: CompraResumen;
   /** Los demás comprobantes con saldo del mismo proveedor (los que la lista tiene a la vista). */
@@ -57,8 +59,6 @@ export function PorPagarVistaRapida({
   onNavegar: (delta: 1 | -1) => void;
   /** El pago que se registra desde el cajón avisa a la lista, que hace reaccionar la pantalla y cierra el cajón. */
   onPagado: (r: ResultadoPago) => void;
-  /** ADR-0184 (F4-F5): solo para un comprador de tienda — sus tiendas, para pagar con la que corresponda. */
-  misTiendas?: { id: string; nombre: string }[];
 }) {
   const [cerrando, setCerrando] = useState(false);
   const pedirCierre = useCallback(() => setCerrando(true), []);
@@ -146,7 +146,7 @@ export function PorPagarVistaRapida({
                 <section className="mt-[22px]">
                   <TituloGrupo className="mb-1">Pagos de este comprobante</TituloGrupo>
                   {pagos.length === 0 ? (
-                    <p className="border-t border-tinta/10 py-2.5 text-[13px] text-tinta/55">Sin pagos todavía.</p>
+                    <Vacio tamano="chico" alinear="izquierda" className="border-t border-tinta/10 px-0" icono={<Banknote />}>Sin pagos todavía.</Vacio>
                   ) : (
                     <ul>
                       {pagos.map((p, i) => (
@@ -157,6 +157,7 @@ export function PorPagarVistaRapida({
                             {p.referencia && <span className="block text-xs text-tinta/55">{p.referencia}</span>}
                           </span>
                           <b className="font-medium tabular-nums">{soles(p.monto)}</b>
+                          {p.noDeducible && <MarcaNoDeducible nd={p.noDeducible} montoDeLaFila={p.monto} className="col-span-full" />}
                         </li>
                       ))}
                     </ul>
@@ -166,7 +167,7 @@ export function PorPagarVistaRapida({
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5 border-t border-tinta/10 px-6 py-4" data-guia="por-pagar.vista-acciones">
-              <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} etiqueta={`Pagar ${soles(c.saldo)}`} conIcono misTiendas={misTiendas} />
+              <BotonPagar compra={c} saldoFavor={saldoFavor} datos={datos} onPagado={onPagado} etiqueta={`Pagar ${soles(c.saldo)}`} conIcono />
               <Link
                 href={`/compras/factura/${c.id}`}
                 className="btn-cayla btn-secundario inline-flex items-center gap-2"

@@ -6,7 +6,7 @@
   "controles": {
     "components/finanzas/BalancePanel.tsx": [
       "button «fin-balance.arranque»",
-      "button «fin-reportes.excel»",
+      "BotonDescargar «Descargar Excel»",
       "Boton «Registrar saldos de arranque»",
       "Link «{enlace.texto}»",
       "button «{enlace.texto}»"
@@ -15,7 +15,7 @@
       "button «Usar esta cifra»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «→guardar»"
+      "Boton «→guardar»"
     ]
   }
 }

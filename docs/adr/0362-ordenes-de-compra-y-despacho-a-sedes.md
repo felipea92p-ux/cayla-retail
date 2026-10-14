@@ -58,6 +58,327 @@
 | 37 | Quién ve las órdenes | Quien tiene el módulo ve las órdenes de **todas las sedes** y las «por repartir»; la lista **arranca filtrada en la sede donde está** y puede pasar a «Todas». Es la 34 aplicada: no sigue la regla de Compras por tienda (ADR-0184) (Felipe 2026-10-10) |
 | 38 | Menú | «Órdenes de compra» entra como **7.ª entrada de Compras, temporal**, con la excepción de tope que ya prevé `menu.test.ts`; se quita cuando Recibir mercadería pase a Inventario (Felipe 2026-10-10) |
 | 39 | Responsable | Crear, editar y anular una orden: **con la cuenta de una persona, firma ella sola, sin combo ni marca de entrada** (la compradora está en Gamarra, lejos del kiosco); **desde una terminal, pide el combo «Responsable»**. Es el mismo trato que «apartar una prenda» y los avisos del club: las claves `orden_compra_*` entran a `acciones_sin_responsable` (Felipe 2026-10-10) |
+| 40 | El módulo es la llave en Compras | **Quien tiene el módulo hace todo lo que hay dentro, sea líder o no, en todo Compras** (Plan de campaña, Proveedores, Órdenes, Facturas, Recibir, Por pagar, Notas de crédito): se quitan los «solo el líder». ADR-0387 (Felipe 2026-10-12) |
+| 41 | Qué tiendas se ven | Quien tiene el módulo ve **todas las tiendas** y paga a nombre de la empresa; deshace en Compras ADR-0184 y ADR-0187 (13 personas no líder afectadas el 2026-10-12). ADR-0387 (Felipe 2026-10-12) |
+| 42 | Comprobante y contado | Registrar el comprobante de una orden y pagarlo al contado (desde una cuenta de la empresa, hasta que existan los fondos de la fase 6) piden **solo el módulo Órdenes de compra** (Felipe 2026-10-12) |
+| 43 | Más de lo pedido | Si el papel del proveedor trae más unidades o una línea que no estaba en la orden, **se acepta y se avisa** (Felipe 2026-10-12) |
+| 44 | Proveedores ve sus montos | Quien tiene el módulo Proveedores ve, dentro de Proveedores, lo que la empresa le compra y le debe a cada uno y su saldo a favor («Sí, que los vea»); revierte ADR-0161 P3. No abre los tableros de Facturas ni Por pagar. ADR-0387 (Felipe 2026-10-12) |
+| 45 | De quién es la deuda | **La deuda de una factura es 100 % de la tienda que hizo el pedido** (la gestora, la que guarda el papel): «Trujillo y Lima, si no hicieron el pedido, no tienen nada que pagar, sino quien realizó el pedido»; si otra tienda recibió parte, se compensan entre ellas, fuera del sistema. El pago de la empresa baja la deuda de esa factura. Finanzas (Por pagar por tienda y Balance por tienda) deja de sumar «partes», y su Por pagar se paga igual que Compras. ADR-0387 (Felipe 2026-10-12) |
+| 46 | Quién paga una orden | **La deuda de una orden es de la sede de QUIEN HIZO LA ORDEN** (no de quien registra el papel ni de «Llega a»), y la paga ella desde su fondo por rendir (fase 6); mientras el fondo no exista, se paga desde Por pagar. «Si la encargada compra, ella paga»: la general de Lima compra para repartir y la deuda es de Lima aunque las prendas terminen en Trujillo (Felipe 2026-10-12). En la base: la gestora del comprobante es la sede asignada de quien creó la orden (si no, «Llega a»; si no, la de quien registra) |
+| 47 | Órdenes de insumos | **Entrada nueva «Órdenes de insumos»** (módulo propio, nace solo para el líder): quien la tiene ve y hace todo en esas órdenes, sin ver el resto de la plata del Taller (Felipe 2026-10-12; resuelve el «Por decidir» de la fase 7) |
+| 48 | Envío de una orden «directo» | **Con guía, pero opcional:** quien compra puede registrar el envío; si no, la tienda recibe directo contra la orden (Felipe 2026-10-12) |
+| 49 | La prenda al recibir | **La crea quien recibe, en la tienda**, con las tallas y colores que llegaron y el precio sugerido ya puesto (Felipe 2026-10-12; confirma la 21) |
+| 50 | Cuatro tipos de comprobante | **«Debe existir 4 tipos de comprobantes: boleta, nota de venta, factura y sin comprobante»** (Felipe 2026-10-12). Una compra de una orden sin ningún papel se registra igual que las otras: sin serie ni número (la base le pone uno interno, `SC-000001`, único para la empresa), sin IGV, al crédito o al contado; no entra al Registro de Compras de Impuestos. Migración `20261012235000`. Por defecto *(provisional)*: si después llega el papel, se anula la compra sin comprobante y se registra el papel (mientras no tenga pagos); la factura suelta de Facturas de proveedor no cambia |
+| 51 | Terminales con la plata de Compras | **Se deja así** (Felipe 2026-10-13): las 6 terminales de tienda tienen Facturas de proveedor (las de Almacén, también Por pagar y Notas de crédito) y, por la decisión 41, leen las de las tres tiendas. Medido en producción ese día: 0 facturas, 0 pagos, 0 órdenes |
+| 52 | Dónde viven las órdenes de insumos | **Producción ▸ Abastecimiento, primera** (pedir → factura → recibir → pagar), con ruta propia `/ordenes-insumos` para que quien solo tenga ese módulo no necesite el de Producción (Felipe 2026-10-13, confirma lo provisional de la fase 7) |
+| 53 | Precio al recibir en el Taller | **Quien recibe ve y corrige el precio de ESA orden**, como en las tiendas (18), sin ver el resto de la plata del Taller (Felipe 2026-10-13) |
+| 54 | Faltante al rendir el fondo | **Queda como deuda de la persona**, a la vista hasta que se salde; se le descuenta del sueldo solo con su autorización escrita (Felipe 2026-10-13) |
+| 55 | Gastos del viaje sin comprobante | **Solo taxi y cargador**, con planilla de movilidad y un tope diario que fija el contador; hotel y comida, solo con comprobante (Felipe 2026-10-13) |
+| 56 | Efectivo de S/ 2 000 o más | **Se deja pagar, marcado «no deducible»** (no se frena): Felipe eligió esto sobre frenarlo y sugerir transferir (2026-10-13). El sistema avisa que ese gasto no cuenta para impuestos y que su IGV se pierde |
+| 57 | Contabilidad del fondo, provisional | **Fondo en la 1413** (entregas a rendir) y **el Yape personal de la compradora no cuenta como pago bancarizado de CAYLA**, hasta que el contador diga otra cosa (Felipe 2026-10-13) |
+| 58 | Saldo a favor con factura | **Interno ya, su nota de crédito después:** se registra al toque con un documento interno que baja lo que se le debe al proveedor en el próximo pago, marcado «falta su nota de crédito» con el aviso del IGV (61) hasta que llegue; al llegar, se adjunta (Felipe 2026-10-13). Con boleta, nota de venta o sin comprobante: documento interno sin IGV |
+| 59 | «Depositó» | **Lo registra quien tiene Proveedores**, desde la ficha del proveedor (Felipe 2026-10-13; el módulo es la llave, 40) |
+| 60 | Devolver una dañada al proveedor | **Queda como deuda «por reponer»** con las mismas salidas que un faltante; **la devuelve quien recibe: todos los que tienen el módulo, no solo el líder** (Felipe 2026-10-13) |
+| 61 | Aviso del IGV | **Aviso en Inicio que no se puede ocultar**, para quien ve la plata de Compras, mientras un proveedor deba prendas de una factura (Felipe 2026-10-13) |
+| 62 | Lista de compras del Taller | **Después**: primero el comprobante y la recepción de la orden de insumos (Felipe 2026-10-13) |
+| 63 | Maquila y flete del Taller | **Siguen como gastos** en Finanzas (los del viaje, en el fondo de la fase 6); la orden de insumos solo lleva insumos (Felipe 2026-10-13) |
+| 64 | «Fijar un mínimo» del Plan | **También para quien tiene el módulo Plan de campaña**: el módulo es la llave (40) (Felipe 2026-10-13) |
+| 65 | Dónde va «Fondos por rendir» | **Directo en Compras**, como octava entrada (después de Por pagar), subiendo el tope del menú de Compras. Se le preguntó con el subgrupo «Pagos» (Por pagar + Fondos + Notas de crédito) como recomendación y con «Finanzas ▸ Dinero»; dijo que no va en Finanzas y eligió no regrupar (Felipe 2026-10-13) |
+| 66 | Recibir mercadería | **Se mudará a Existencias** (Felipe 2026-10-13, al hablar del menú). Ese día Compras baja de 8 a 7 entradas y la excepción del tope queda solo por Fondos por rendir. No es parte de la fase 6 |
+| 67 | Gastos del viaje: dónde y a qué | **Desde Órdenes de compra**, por quien tiene ese módulo; la plata sale de «Mi fondo» o de una cuenta de siempre. Un gasto va a **una o varias órdenes**: con varias se reparte según el total de cada una («hay que manejar ambos casos») (Felipe 2026-10-13) |
+| 68 | Planilla de movilidad | **Sin tope hasta que el contador lo fije**; cuando exista, lo que pase el tope se deja y se marca «no deducible» (como la 56) (Felipe 2026-10-13) |
+| 69 | Rendición | Un faltante **con explicación lo decide quien aprueba** («Lo asume CAYLA» o «Queda como deuda de la persona»; sin explicación, deuda: 54). Al aprobar, **el fondo puede quedar en cero o conservar plata** para las próximas compras (devolver lo que sobra es opcional). **Foto del papel opcional**, y la rendición avisa cuáles no la tienen (Felipe 2026-10-13, noche) |
+| 70 | Efectivo de S/ 2 000 o más | Se mira **el total del comprobante** (la regla de la bancarización): todo lo pagado en efectivo o desde un fondo (el Yape personal incluido, 57) queda marcado «no deducible», con aviso (Felipe 2026-10-13, noche) |
+| 71 | Saldar la deuda de un faltante | **Solo cuando la persona devuelve la plata.** Nada de descontarla del sueldo por ahora ni de conectarla con la planilla de Dynamic: la deuda queda a la vista hasta que la devuelva (Felipe 2026-10-14; ajusta la 54) |
+| 72 | IGV perdido por pago en efectivo | Se resta **en el mes del pago**, nunca en el mes de la factura: un mes ya declarado no cambia solo (Felipe 2026-10-14) |
+| 73 | Fase 6, la lista | La actividad de contabilidad se **parte en dos**: 7 · saldar la deuda (y la 1413 y la 1419 por dos caminos en el Balance) y 8 · el IGV (facturas de los gastos del viaje a crédito fiscal y lo no deducible fuera); el cierre pasa a ser la 9 (Felipe 2026-10-14) |
+| 74 | Las órdenes de un gasto del viaje | La hoja muestra **solo la orden desde la que se abrió** (abierta desde la lista, ninguna); las demás se suman con **«+ Agregar otra orden»**, que abre el combo con buscador, y cada una se quita con su «×». Nada de una lista larga a la vista: casi nunca se usa (Felipe 2026-10-14) |
+| 75 | Un gasto del viaje sin orden | **No existe: va siempre al menos a una orden** («Sí o sí necesito como mínimo una orden»). La hoja no deja quitar la última (la «×» sale con dos o más) y, abierta desde la lista, la orden es lo que falta; la base lo frena igual (`registrar_gasto_viaje`, `gasto_viaje_sin_orden`, 20261014170000). Deja sin efecto «las órdenes son opcionales» de la actividad 3 (Felipe 2026-10-14) |
+| 76 | El IGV perdido en Finanzas ▸ Gastos | La tarjeta «IGV que puedes descontar» **resta lo perdido en el mes del pago**, como Impuestos (72), y lo dice debajo; **nunca dice un negativo**: si lo perdido pasa el IGV del mes, dice S/ 0 y que Impuestos resta lo que falta, y el mes del gasto avisa el IGV de su lista que se pierde en otro mes (Felipe pidió «la opción más entendible y lógica»). La fila dice el IGV de la factura y debajo, en ámbar, **«perdido S/ X»**, nunca «descontable»; el detalle dice de qué pago, por qué (la factura y el umbral) y en qué mes lo resta Impuestos (con enlace para quien ve ese módulo), y en una factura a crédito de S/ 2 000 o más, que lo que falta va por el banco. Gastos le pregunta a `fn_igv_perdido`, no lo calcula (`fn_gastos_igv_perdido` y la clave `igv_perdido` de `fn_gastos_panel`, 20261014174000) (Felipe 2026-10-14) |
+| 77 | Desde cuándo hay plata de un fondo | Una entrega, una devolución o un gasto del viaje **no son de antes del 13/10/2026**, cuando empezaron los fondos (`fn_fondos_desde`); la futura ya estaba frenada. Nació de /chaos (2026-10-14: una entrega de 1900 se guardaba) (Felipe 2026-10-14) |
+| 78 | El monto con coma en las hojas del fondo | **«1299,50» es S/ 1,299.50** en Entregar, Registrar devolución, Registrar su pago, Rendir y el gasto del viaje (`leerMontoPlata`); «12.500» no se adivina y se pide de nuevo. **Caja sigue con su lector** (que borra las comas) hasta que Felipe lo decida. Nació de /chaos (2026-10-14: «1299,50» se leía S/ 129,950.00) (Felipe 2026-10-14) |
+| 79 | Devolver con una rendición por aprobar | **La devolución no pasa de lo que la persona tiene en la mano: el saldo menos el faltante que su rendición ya declaró**, que sale del fondo recién al aprobarla; sin una rendición por aprobar, el tope es el saldo, como siempre. La base lo exige (`devolver_fondo`, `20261014212000`) y la hoja lo dice («Tiene S/ 375.00 en la mano: lo que declaró en su rendición, que espera aprobación»). Nació de /formidable (2026-10-14): devolver «lo de los libros» y aprobar después dejaba el fondo en −S/ 5 y una deuda de S/ 5 por la misma plata (Felipe 2026-10-14) |
+| 80 | Dónde se rinde | **También desde la tarjeta «Tu fondo» del Inicio**, con la misma acción que en Órdenes de compra («Rendir» o «Ver tu rendición»); sin nada que rendir, la tarjeta sigue llevando a donde se compra. Rendir no pide módulo (decisión 34): sin Órdenes de compra, el Inicio era el único lugar donde la persona veía su fondo, y no tenía dónde rendirlo. Nació de /formidable (2026-10-14) (Felipe 2026-10-14) |
+| 81 | Aprobar sin ver la lista | **«Aprobar» espera a que se vea lo que se rindió.** Si la lista no se puede leer, «Revisar», «Ver tu rendición» y «Rendir» lo dicen («No pude traer lo que rindió») con «Volver a intentar», en vez de dibujar una lista vacía; la lectura se corta a los 10 s. La base ya relee y rechaza si algo cambió: esto cuida que quien aprueba vea lo que aprueba. Nació de /formidable (2026-10-14, cambio 2) (Felipe 2026-10-14) |
+| 82 | La cuenta de una persona, dicha entera | **El faltante dice en cuánto queda la deuda** («su deuda pasa de S/ 25.00 a S/ 30.00»), en «Revisar», en «Rendir», en «Ver tu rendición» y en el botón «Aprobar: su deuda sube a S/ 30.00»; la fila de quien rindió dice «dice S/ 375.00 · por aprobar» bajo lo de los libros; quien no puede aprobar ve «Revisar» en secundario; «Ver tu rendición» lee la explicación de la propia rendición (`fn_mi_rendicion_abierta`, `20261014222000`) para no decir «quien la revisa decide» cuando sin explicación es deuda (54); y palabras de tienda: «1 gasto y 1 entrega» (no «2 filas»), «Entregado» (no «Le entregaste»), «Lo que entró y salió de su fondo», «otra persona que revise los fondos» (también en `fn_rendicion_quien_no_aprueba`). Nació de /formidable (2026-10-14, cambio 3) (Felipe 2026-10-14) |
+| 83 | Devolver con una rendición por aprobar: las dos cifras | **La hoja de devolución dice las dos cifras y de dónde sale el tope**: «Los libros dicen S/ 380.00, pero a su rendición por aprobar le faltan S/ 5.00: puede devolver hasta S/ 375.00» (reemplaza la frase de la hoja de la 79; el tope no cambia). La cifra grande de la tabla y de «Tienen en la mano» sigue siendo la de los libros. Va con lo que falta y no con «lo que dijo tener»: si después de rendir le entregaron más, lo que dijo tener ya no es el tope. Y un monto dentro de una frase no se parte entre «S/» y la cifra (`solesSinCorte`). Nació de la prueba ciega repetida de /formidable (2026-10-14): con S/ 380 en la tabla y S/ 375 en la hoja, no supo cuál era la buena (Felipe 2026-10-14) |
+
+**Fase 2 (aprobada por Felipe el 2026-10-12, 11 actividades, rama `claude/purchase-order-phase2-9b0c82`):** 1 · las acciones de Compras
+dejan de ser «solo del líder» (ADR-0387) · 2 · qué tiendas se ven y a nombre de quién se paga · 3 · las líneas por «categoría + marca»
+se ven bien en todo el ERP · 4 · registrar el comprobante de una orden · 5 · factura con IGV · 6 · al contado, con su pago · 7 · precio
+de venta sugerido · 8 · entregas parciales · 9 · órdenes «Por repartir» · 10 · revisión de calidad · 11 · cierre. Por defecto: la
+factura suelta de hoy sigue igual; la casilla del IGV arranca marcada; corregir un comprobante es anularlo y registrarlo de nuevo; firma
+como la decisión 39; el precio sugerido es opcional; la tienda que gestiona el comprobante es la de «Llega a» (o la de quien lo registra
+si es «Por repartir»). *(La 46 reemplazó esta última regla y la 50 sumó «Sin comprobante» como cuarto tipo: ver la fase 3.)*
+
+**Fase 3 (2026-10-12, rama `claude/purchase-order-phase3-9b0c82`; Felipe pidió avanzar de corrido y respondió las decisiones 46–49
+antes de irse; la 50 la mandó mientras se construía).** Contrato: `docs/compras/ordenes-de-compra-2026-10/contrato-envio-a-sede.md`.
+Lo construido:
+- **«Enviar a una sede»** desde la orden abierta (`crear_envio`, página `/compras/ordenes/envio/[id]`): una guía, una sede (12 y 22); el
+  número de guía es opcional (48); nace «en camino» con un número `ENV-000001` único para toda la empresa; cada línea congela su
+  categoría, marca, descripción y el precio neto por unidad (quien recibe lo ve y lo corrige: fase 4, decisión 18). **Un envío no mueve
+  stock:** el stock entra cuando la sede recibe (fase 4).
+- **Una orden «directo»** solo va a su «Llega a»; **una «Por repartir»** se reparte en varias guías a varias sedes. La base ya acepta una
+  guía con líneas de varias órdenes y proveedores; la pantalla arranca desde una orden.
+- **Tope (candado de esquema, diferido):** lo enviado de una línea nunca pasa del mayor entre lo pedido y lo facturado; lo de más que
+  el papel facturó sí sale, y avisa (43). Dos personas mandando lo mismo a la vez: sale una y la otra lee «quedan 0 por enviar».
+- **Anular un envío:** solo mientras va en camino, con motivo (hasta 300) y la versión que se vio; libera lo enviado. Una orden con algún
+  envío ya no se edita; con uno vigente, no se anula.
+- **La deuda (46):** `fn_orden_compra_gestora` — la sede asignada de quien creó la orden (si no, «Llega a»; si no, la de quien registra);
+  con eso, una «Por repartir» ya registra su comprobante, y la hoja dice «la deuda queda en …».
+- **«Sin comprobante» (50):** cuarto tipo al registrar el comprobante de una orden (número interno `SC-000001`, sin IGV). En el
+  celular, el tipo se elige con un desplegable: los cuatro no caben en el segmento a 375 px.
+
+Por defecto *(provisional, revisar con Felipe)*: al enviar se vuelve a la lista con la orden marcada y el aviso «ENV-… en camino a …»
+con «Ver la orden» (como crear y editar); la píldora «Por enviar» cuenta las órdenes generadas con algo que todavía no salió; la guía
+impresa (guía de remisión) queda para después; sin guía, la sede recibe directo contra la orden (fase 4).
+
+**Fase 4 (2026-10-12, rama `claude/purchase-order-phase4-9b0c82`; la sesión de Recepción no tenía rama y la tomó esta línea).**
+Contrato: `docs/compras/ordenes-de-compra-2026-10/contrato-recepcion-de-envio.md` (con «Cambios al construir»). Lo construido:
+- **Recibir un envío en la sede** (`/recibir/envio/[id]`, módulo Recibir): «Empezar a recibir» (`abrir_despacho`: el envío pasa a
+  `abierto` y ya no se anula); por línea, el costo que se ve y se corrige (18), la prenda —nueva, creada ahí con las tallas y colores que
+  llegaron y el precio sugerido (21, 49), o una que ya existe, con la talla o el color que faltaba— y la matriz talla × color; lo dañado
+  va a la cuarentena con su fila en `prendas_danadas` (23); lo que faltó lleva su causa y lo que vino de más su motivo (14, 15); lo que
+  no estaba en la guía se agrega (13). Al cerrar (`recibir_despacho`), un lote por proveedor, el costo promediado, lo recibido cargado
+  al papel hasta su cupo y la recepción a la vista («cómo se cerró»).
+- **Una orden «directo» sin guía** se recibe igual (48): `recibir_orden_sin_envio` crea su envío y lo deja abierto.
+- **Quien hizo la orden no la recibe, sin excepción (17):** la base lo frena (`recibir_quien_compro`) y la pantalla lo dice antes.
+- **El alta al recibir (49):** `crear_producto_con_variantes` deja crear la prenda a quien tiene Recibir, solo dentro de
+  `preparar_prenda_al_recibir`; si no edita el catálogo, la prenda nace «pendiente» y un líder la revisa.
+
+Por defecto *(provisional, revisar con Felipe)*: las causas del faltante son «No vino» (deuda del proveedor, fase 5), «Se perdió en el
+camino» y «Llegó a otra sede»; todo lo contado entra al costo de la línea, también un regalo; la pareja marca–proveedor se registra
+sola al crear la prenda; un costo de 0 pide confirmar; sin cola sin conexión en esta pantalla.
+
+**Fase 5a (2026-10-12, rama `claude/purchase-order-phase5-9b0c82`).** Contrato: `docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md`.
+Lo construido (no mueve plata): **la deuda** es el faltante «No vino» de una recepción (14); se ve en la ficha del proveedor («Prendas
+por reponer») y al crear o editar su próxima orden (14); se salda con **la prenda** —en la próxima recepción, «Es la reposición de lo que
+faltó», la más antigua primero, o a mano con «Llegó la reposición» y una nota (24)—, nunca más de lo debido. **Fase 5b, sin construir:**
+«Pasar a saldo a favor» y «Depositó» (24) y devolver una dañada al proveedor (27) mueven plata y tocan la contabilidad (nota de crédito
+tipo 07, IGV de lo que no llegó): esperan a Felipe y al contador; las preguntas están en el contrato.
+
+**Fase 7, parte 1 (2026-10-13, rama `claude/purchase-order-phase7-9b0c82`; construida de noche, provisional).** Contrato:
+`docs/compras/ordenes-de-compra-2026-10/contrato-ordenes-de-insumos.md` (con «Cambios al construir»). Lo construido: **la orden de
+insumos del Taller** (`OI-000001`, su propio correlativo: 28) con su **módulo propio `ordenes_insumos`** (47; nace solo para el líder y es
+delegable: quien lo tiene ve y hace todo en estas órdenes, con sus precios, sin ver el resto de la plata del Taller). Proveedor de
+`proveedores_produccion`, destino un taller y líneas de insumo con la cantidad en su unidad (hasta 3 decimales) y el precio con hasta 4
+decimales, como los comprobantes y los lotes del Taller. Crear, ver, editar, anular e imprimir o guardar el PDF, con las mismas reglas que
+la orden de tienda: versión contra la edición simultánea, firma del responsable (39), número que no se libera. **Sin construir (espera a
+Felipe):** el comprobante de la orden y la recepción en el Taller (las preguntas 2 a 4 del contrato).
+
+Por defecto *(provisional, revisar con Felipe)*: la entrada vive en Producción ▸ Abastecimiento (la opción recomendada de la pregunta 1),
+pero con ruta propia, `/ordenes-insumos`, porque todo lo que cuelga de `/produccion` exige el módulo de Producción; el destino es
+obligatorio y es un taller; la unidad del insumo se copia en la línea y, si después cambia, al editar esa línea pide la cantidad de nuevo;
+el insumo no se restringe al proveedor de la orden; una orden lleva hasta 100 líneas.
+
+**Fase 6 · actividad 1 (2026-10-13, rama `claude/purchase-order-phase6-9b0c82`; lista de 8 actividades aprobada por Felipe el
+2026-10-13): la base del fondo y Compras ▸ Fondos por rendir.** Migraciones `20261013181000` (esquema) y `20261013182000` (funciones),
+prueba `pnpm pruebas:fondos`. Contrato: `contrato-fondo-por-rendir.md`; mapa de lo que se rompe: `mapa-dinero-fase6.md`.
+
+```
+DECIDÍ: el fondo de una persona es un TIPO NUEVO de cuenta de dinero, `fondo`, con su dueña en `cuentas_dinero.persona_id` y la
+        cuenta contable 1413 (decisión 57). Una sola cuenta de fondo viva por persona, que nace con la primera entrega. Entregar y
+        devolver son dos movimientos propios (`entrega_fondo`, `devolucion_fondo`); el saldo sale del mismo libro que «Cuentas y
+        dinero». Nadie mueve plata de su propio fondo desde Fondos por rendir (ni con su cuenta ni eligiéndose en el combo).
+DESCARTÉ: darle dueña a la cuenta `por_rendir` («Efectivo entregado al líder»), como decía el mapa de módulos: esa cuenta es la caja
+        de la empresa que el líder recibe de los cierres (101, no un anticipo a rendir), y seis piezas suponen que hay UNA sola (el
+        índice único, el traslado al líder en `fn_dinero_libro` y en `fn_caja_traslados_sellar`, `registrar_ingreso_caja` y tres
+        pruebas). Con un tipo propio, nada de eso cambia.
+SE ROMPE SI: la actividad 2 (pagar desde «Mi fondo») no le enseña a `fn_cuenta_sirve` y `fn_cuentas_para_elegir` el tipo `fondo`
+        solo para su dueña: hoy el fondo no sirve para pagar nada, a propósito. (La actividad 2 lo resolvió por otro camino, sin
+        tocar esas dos: ver abajo.)
+```
+
+La 1413 entra en la actividad 1 y no en la 7 (contabilidad) porque la cuenta contable de una cuenta de dinero no cambia nunca
+(`fn_cuentas_dinero_inmutable`): cambiarla después obligaría a tocar fondos ya usados. La actividad 7 sigue con la 609/631 de los gastos
+del viaje y el faltante como cuenta por cobrar. Por defecto *(provisional, revisar con Felipe)*: la plata de un fondo sale de un banco, de
+una caja fuerte o de lo que tiene el líder (esto último, solo el líder, como en todo el ERP); lo que se devuelve lo registra quien recibe
+la plata, nunca la dueña, y no más de lo que tiene; anular una entrega de la que ya salió plata no se puede; en Actividad todavía no se
+anota (el propio tablero dice quién hizo cada movimiento).
+
+**Fase 6 · actividad 2 (2026-10-13): pagar desde «Mi fondo»** en el comprobante de una orden al contado y en Por pagar (pagar un
+comprobante y «Pagar juntos»). Migración `20261013212000`; prueba `pnpm pruebas:fondos` (6 casos nuevos, 16 en total).
+
+```
+DECIDÍ: el fondo no entra por las reglas generales de cuentas: `fn_cuenta_sirve` y `fn_cuentas_para_elegir` siguen sin conocerlo.
+        Los pagos de Compras lo suman en la pantalla (`fn_mi_fondo`, el fondo de QUIEN MIRA, y `conMiFondo`: primero en «Sale de»,
+        «Mi fondo · tienes S/ X») y, en la base, el sello de los pagos (`fn_compra_pagos_sellar`) lo deriva a `fn_fondo_para_pagar`:
+        solo su dueña, con SU cuenta (nunca desde una terminal, donde el combo elige un nombre que no prueba quién tiene la plata) y
+        firmando ella; en efectivo, Yape, Plin, transferencia, depósito u «otro»; sin mirar el saldo (decisión 32: si no alcanza, paga
+        de su bolsillo y el negativo es «CAYLA te debe»). El Diario saca ese pago de la 1413, no de la cuenta de su medio.
+DESCARTÉ: que `fn_cuenta_sirve` acepte el tipo `fondo` (lo que la actividad 1 había previsto): esa tabla la usan las 13 pantallas de
+        «¿De dónde sale la plata?» y los sellos de gastos, activos y Producción, cuyos asientos van por el medio (101 en efectivo): un
+        gasto pagado desde el fondo habría restado de la caja en el Diario y el Balance de la 101 no cuadraría. Los gastos del viaje
+        (actividad 4) llegan al fondo con su propia regla.
+SE ROMPE SI: alguien escribe `compra_pagos` sin pasar por su disparador (hoy las 4 funciones que pagan insertan y el disparador
+        sella), o el Diario deja de leer `cuenta_dinero_id` en los pagos: el fondo bajaría en «Cuentas y dinero» y no en el Balance.
+```
+
+Por defecto *(provisional, revisar con Felipe)*: «Mi fondo» se **propone** solo para el efectivo y solo si tiene plata; con el fondo vacío
+o en negativo, el efectivo sigue proponiendo la caja de siempre y el fondo queda a un toque; nunca se propone «por descarte» (sin banco
+cargado, una transferencia queda por elegir, como antes). Quien no tiene fondo no ve «Mi fondo»: un fondo nace con una entrega de otra
+persona. En el tablero, un fondo en negativo no resta de «Tienen en la mano»: tiene su cifra, «CAYLA les debe». Con la plata en negativo
+ahora posible, anular una entrega dice cuánto salió de ella sin pasar de lo entregado.
+
+**Fase 6 · actividad 3 (2026-10-13, noche): gastos del viaje** (decisiones 20, 26, 55, 57, 67 y 68). Migraciones `20261013221000` (esquema)
+y `20261013222000` (funciones); prueba `pnpm pruebas:gastos-viaje` (11 casos).
+
+```
+DECIDÍ: un gasto del viaje ES un gasto (`retail.gastos`), con dos categorías nuevas: «Traer la mercadería» (609, la línea de fletes
+        del Estado de resultados) y «Viaje de compra» (631). Lo propio del viaje va en una ficha aparte (`gastos_viaje`: concepto y
+        papel) y en su reparto (`gastos_viaje_ordenes`: lo que le toca a cada orden, según su total, a céntimos; lo que sobra va a la de
+        mayor total). Lo registra `registrar_gasto_viaje` (módulo Órdenes de compra) con la MISMA pieza de pago que Finanzas ▸ Gastos
+        (`fn_comprobante_y_pago`): del cajón crea su egreso; de un fondo lo valida el sello de gastos con `fn_fondo_para_pagar`, y el
+        Diario lo saca de la 1413. La sede del gasto es la de quien compra (46). Cada orden dice «Traerla costó S/ X».
+DESCARTÉ: columnas nuevas en `retail.gastos` (tabla en uso de todo Finanzas; lo del viaje es una ficha aparte) y crear la factura de un
+        gasto del viaje como comprobante de compra con su IGV (le pediría a quien está en Gamarra dar de alta al proveedor): se guardan
+        el papel, la serie y el RUC para el contador; el IGV de una factura queda para la actividad de contabilidad.
+SE ROMPE SI: otra pantalla crea gastos de las categorías del viaje sin su ficha (salen en Gastos y en el Estado de resultados, pero no en
+        «Traerla costó»), o el Diario deja de leer la cuenta del gasto: el fondo bajaría en «Cuentas y dinero» y no en el Balance.
+```
+
+Por defecto *(provisional, revisar con Felipe)*: la acción `gasto_viaje_registrar` queda **soltada del combo «Responsable»** (con la cuenta
+de una persona firma ella; desde una terminal, el combo), aunque es de plata: se anota en Gamarra, lejos de toda tienda, donde nadie puede
+marcar su entrada (el mismo motivo de la decisión 39). Las dos pruebas que vigilan «ninguna acción de dinero soltada» la nombran como
+excepción. ~~Las órdenes son opcionales (el cargador se paga a veces antes de saber a qué orden va)~~ — desde la decisión 75 (2026-10-14)
+un gasto del viaje va **siempre al menos a una orden**; la hoja propone la orden desde la que se abre. Un gasto del viaje se anula en Finanzas ▸ Gastos, como cualquier gasto (una anulada no cuenta en «Traerla costó» y le devuelve la
+plata al fondo). Con tarjeta de crédito no se anota aquí (va por Finanzas ▸ Gastos). Las fotos del papel llegan con la rendición (69).
+
+**Fase 6 · actividad 4 (2026-10-13, noche): «Tu fondo» en Órdenes de compra y en el Inicio** (decisiones 26 y 32). Migración
+`20261013231000`; prueba `pnpm pruebas:gastos-viaje` (un caso nuevo, 12 en total), que junta todo lo que mueve un fondo.
+
+```
+DECIDÍ: «Tu fondo» es una cifra, así que es LA pieza de cifra (`TarjetaCifra`, ADR-0358), la misma en los dos lugares
+        (`TarjetaTuFondo`): «S/ 200.00 te queda», debajo «Gastaste S/ 300.00 de S/ 500.00» y al pie desde cuándo y para qué. Si
+        pagó de su bolsillo, el número es lo que CAYLA le debe, en ámbar, y el contexto empieza con «CAYLA te debe:»; nunca un número
+        negativo. En Órdenes de compra es una cifra más de la fila de arriba (con cuatro, en fila desde 56 rem de ancho disponible); en
+        el Inicio, después de «Tu día» y antes de «Te toca» (es una cifra suya), y en el de almacén arriba de su columna derecha. Los
+        números salen de `fn_mi_fondo_resumen`, en UNA pasada por el mismo libro que el saldo (`fn_dinero_libro`), así que el
+        desglose cuadra siempre con él. Una lectura que falla no pinta nada (la mayoría no tiene fondo), pero queda en el registro.
+DESCARTÉ: sumar cada cosa desde su tabla (`compra_pagos`, `gastos`, `movimientos_dinero`): serían dos verdades. Y ampliar
+        `fn_mi_fondo`: cambiar lo que devuelve obliga a borrarla, y el combo de los pagos solo necesita el saldo.
+SE ROMPE SI: otra cosa mueve un fondo sin pasar por el libro (el saldo de la tarjeta dejaría de ser el de «Cuentas y dinero»); el
+        resumen lo delataría en «otros», que hoy siempre es 0.
+```
+
+Por defecto *(provisional, revisar con Felipe)*: la tarjeta sale mientras el fondo tenga o haya tenido plata en este ciclo (todavía no hay
+rendición: el ciclo es desde la primera entrega; la actividad 5 lo hará empezar en la última rendición aprobada, cambiando la función por
+dentro y no la pantalla). En el Inicio lleva a Órdenes de compra, o a Por pagar si la persona solo ve esa; si no ve ninguna, informa. En
+Órdenes de compra informa (la actividad 5 le suma «Rendir»). **El Observatorio del Admin no la lleva**: su diseño es una decisión
+(ADR-0322); un Admin con fondo lo ve en Órdenes de compra. Lo que pagó a proveedores y lo que se fue en gastos del viaje viene separado de
+la base, pero la tarjeta los muestra juntos («Gastaste»): el detalle, pago por pago, es de la hoja de la rendición. **No se construyó
+«Lo recibí»** (la compradora confirma la entrega en su tarjeta, del mapa de módulos): no está en la lista de 8 actividades aprobada y
+pediría guardar algo nuevo; queda anotado en el backlog para que Felipe decida.
+
+**Fase 6 · actividad 5 (2026-10-13, noche): la rendición** (decisiones 32–35, 54 y 69). Migraciones `20261013233000` (fotos de los gastos
+del viaje), `20261013234000` (su bucket y sus políticas, SOLAS: ADR-0195) y `20261013235000` (la rendición); prueba `pnpm pruebas:rendicion-fondo`
+(11 casos).
+
+```
+DECIDÍ: rendir CONGELA lo que dijo el sistema (tenías, te entregaron, devolviste, pagaste, gastos, deberías tener), lo que la persona
+        contó en la mano, el faltante y su explicación, y qué filas del libro del fondo entran (`rendicion_fondo_items`, por su clave): el
+        ciclo se corta por QUÉ filas se rindieron, no por la hora, así que lo que se anota mientras tanto va al ciclo siguiente. Aprueba otra
+        persona con Fondos por rendir; nunca la dueña (33), ni quien le entregó plata en esa rendición (35); la de un líder, un Admin (33).
+        Un faltante con explicación lo decide quien aprueba; sin explicación, deuda (54, 69). Al aprobar, el faltante SALE del fondo con un
+        movimiento propio sin destino (`faltante_fondo_asumido` → 6599, el mismo «Diferencias de caja» de un faltante de caja;
+        `faltante_fondo_deuda` → 1419, cuenta nueva por cobrar al personal) y el fondo queda con lo que la persona de verdad tiene. Lo
+        rendido queda congelado: un gasto o una entrega en una rendición vigente no se anula (toma el candado del fondo para no cruzarse).
+        Las fotos de los gastos del viaje viven en su bucket propio, con una fila por foto; la rendición cuenta los papeles sin foto (69).
+DESCARTÉ: cortar el ciclo por fecha u hora (un pago guardado a la vez quedaría contado dos veces o ninguna); una cuenta de dinero para la
+        deuda («Cuentas y dinero» la sumaría como plata de CAYLA); y aceptar un sobrante (plata que el sistema no sabe de dónde salió).
+SE ROMPE SI: una migración nueva cambia (en vez de SUMAR) el texto que dejó otra en un reemplazo anclado: volver a pegar la anterior ya no
+        encuentra su texto. Le pasó a esta antes de publicarla y se rehízo para que solo sume (la prueba carga todas dos veces y lo vigila).
+```
+
+Por defecto *(provisional, revisar con Felipe)*: más plata en la mano de la que dice el fondo **no se rinde** (la hoja pide revisar: falta
+anotar algo); las cuentas 1419 y 6599 hasta que el contador diga; la deuda queda **a la vista** en «Tu fondo» y en Fondos por rendir, y
+**cobrarla** (que la persona la devuelva, o se le descuente con su autorización escrita) es de la actividad 7; la dueña puede **retirar** su
+rendición para corregirla antes de que la revisen; una foto se puede sumar aunque el gasto ya se haya rendido (completa la evidencia); el
+tablero de Fondos cuenta un faltante dentro de «Gastó». `fn_mi_fondo_resumen` conserva sus columnas y ahora cuenta solo el ciclo abierto;
+lo de la rendición viene en `fn_mi_fondo_rendicion`. Una sola pieza dice quién es la cuenta: `fn_persona_de_la_cuenta`.
+
+**Fase 6 · actividad 6 (2026-10-13, noche): lo «no deducible»** (decisiones 55, 56, 57, 68 y 70). Migración `20261014002000`; prueba
+`pnpm pruebas:no-deducible` (5 casos) y `lib/no-deducible-reglas.test.ts`.
+
+```
+DECIDÍ: una sola regla en la base, CALCULADA y no guardada. Bancarización (`fn_pago_no_bancarizado`): en un comprobante de S/ 2 000 o
+        más —su TOTAL, aunque se pague en partes—, cada pago en efectivo o que sale de un fondo (con cualquier medio: el Yape personal de
+        quien compra no es bancarización de CAYLA, 57) es no deducible entero; la transferencia, el depósito, la tarjeta y el Yape de CAYLA,
+        no. Cubre los comprobantes de proveedor de cualquier naturaleza (mercadería, gasto, activo), los del Taller y los gastos del viaje
+        (cuyo monto es su papel entero). Planilla de movilidad: con tope vigente en la fecha del gasto, se suman las planillas de la misma
+        persona en el mismo día, en el orden en que se anotaron; lo que pasa el tope es no deducible (la que lo cruza, en parte). El tope es
+        un parámetro tributario más (`parametros_tributarios`, 'tope_planilla_movilidad'), con vigencias desde cualquier fecha como el IGV
+        y en Configuración ▸ Impuestos; SIN FILA NO HAY TOPE (68). `fn_no_deducibles(claves del libro)` lo responde a la web;
+        `fn_no_deducibles_de` es su pieza interna (la actividad 8 pregunta la misma regla, `fn_pago_no_bancarizado`, pago por pago).
+        La web AVISA al pagar con el espejo de la regla
+        (`avisoBancarizacion`) en todas las formas de pagar a un proveedor —registrar un comprobante o el de una orden, Por pagar, Pagar
+        juntos, el Taller, el gasto del viaje y los gastos de Finanzas y de Caja con comprobante— y MARCA lo ya pagado donde se ve: la
+        rendición (quien rinde y quien revisa), «Traerla costó» y los pagos de un comprobante (su detalle y la vista rápida de Por pagar).
+DESCARTÉ: guardar la marca en el pago (se desincroniza cuando el contador fija el tope o se anula una planilla del mismo día); el umbral
+        como parámetro (cambió una vez desde 2004; son dos líneas si vuelve a cambiar); frenar el pago (56); marcar los gastos SIN
+        comprobante de Finanzas (no tienen papel: la bancarización mira comprobantes); y sacar el IGV del crédito fiscal aquí, que va en la
+        actividad de contabilidad (la 8 desde la decisión 73) para que Impuestos, el Diario y la conciliación cuenten igual.
+SE ROMPE SI: alguien pinta «no deducible» con su propia cuenta en vez de preguntar a la base, o el umbral cambia en un lado y no en el
+        otro (`fn_pago_no_bancarizado` y `UMBRAL_BANCARIZACION`).
+```
+
+Por defecto *(provisional, revisar con Felipe)*: en «Pagar juntos» el aviso dice **«hasta S/ X»** cuando no todos los comprobantes son de
+S/ 2 000 o más (cuánto efectivo va a cada uno lo reparte la base en cascada); la persona del tope es **quien registró** la planilla; un
+comprobante con nota de crédito se mira por su **total original**; el aviso al pagar no dice nada del tope de la planilla (depende de lo que
+ya se anotó ese día: la marca sale al guardar).
+
+**Fase 6 · actividad 7 (2026-10-14): saldar la deuda de un faltante** (decisiones 54, 71 y 73). Migración `20261014145000`; prueba
+`pnpm pruebas:deuda-fondo` (4 casos) y `lib/deuda-fondo-reglas.test.ts`.
+
+```
+DECIDÍ: la deuda se salda SOLO cuando la persona devuelve la plata (71): un movimiento nuevo, `pago_deuda_fondo`, que ENTRA a un banco,
+        a una caja fuerte o al líder y no sale de ninguna cuenta; es de una rendición (`rendicion_id`) y el Diario lo asienta contra la
+        1419. Lo registra quien recibe la plata, con Fondos por rendir (nunca la persona que debe, como lo que se devuelve de un fondo); no
+        acepta más de lo que debe y, con varias deudas, paga primero la más vieja (por la hora en que se aprobó cada rendición). Un pago
+        mal registrado se anula con su motivo, también por otra persona, y la deuda vuelve; «Cuentas y dinero» no lo anula. Lo que se debe
+        sale de UNA lectura (`fn_deudas_fondo_de`: el faltante de la rendición menos lo pagado), que usan Fondos por rendir, «Tu fondo»,
+        el pago y el Balance. «¿Cuadra?» suma dos filas: la 1413 contra lo que tiene cada fondo y la 1419 contra lo que falta pagar de
+        cada rendición con deuda.
+DESCARTÉ: descontar la deuda del sueldo (71: por ahora no, ni conectarla con la planilla de Dynamic); un pago suelto, sin rendición (cada
+        rendición tiene que decir qué le falta); que el pago entre al fondo de la misma persona (nadie lo recibiría: la decisión 26 pide
+        el control); y cambiar las columnas de `fn_rendiciones_fondo` (volver a pegar la 235000 fallaría): lo que se debe va en una
+        lectura nueva.
+SE ROMPE SI: alguien registra la devolución de una deuda como «Lo que devuelve» de su fondo: la plata entraría a CAYLA y la deuda
+        seguiría. La pantalla ofrece «Registrar su pago» solo donde hay deuda.
+```
+
+Por defecto *(provisional, revisar con Felipe)*: la deuda se paga a un banco, una caja fuerte o al líder (no a un cajón: no pasa por la
+caja); la 1419 sigue siendo provisional hasta el contador (57); «Lo asume CAYLA» después de aprobada no existe (una deuda no se perdona
+desde el sistema).
+
+**Fase 6 · actividad 8 (2026-10-14): el IGV** (decisiones 56, 70, 72 y 73). Migración `20261014153000`; prueba `pnpm pruebas:igv-fase6`
+(4 casos), `pnpm pruebas:estado-resultados` (el pago de 1 000 en efectivo de una factura de 2 360 de su escenario ahora pierde 152,54) y
+`lib/impuestos-reglas.test.ts` y `lib/gastos-viaje-reglas.test.ts`.
+
+```
+DECIDÍ: la FACTURA de un gasto del viaje con el RUC de quien la dio separa su IGV al guardarse (`registrar_gasto_viaje`, con la tasa de
+        la fecha): entra al crédito de los gastos en Impuestos, al registro de compras para el contador (con el nombre del proveedor que
+        tenga ese RUC; si ninguno, «Sin razón social (ver el RUC)») y al Diario, en la 4011, como la factura de un gasto de Finanzas. Sin
+        RUC, con boleta, ticket o planilla, no hay crédito. La hoja lo anticipa: con «Factura», el RUC queda «sugerido» y una línea dice
+        cuánto IGV se descuenta (o por qué no). El IGV que se pierde por la bancarización sale de UNA lectura, `fn_igv_perdido(desde,
+        hasta)`: en el mes del PAGO (72) y en la proporción pagada así (IGV × pago ÷ total; un gasto del viaje es su propio pago y pierde
+        todo su IGV). Impuestos lo resta como una fila negativa dentro de la categoría de su comprobante (así el crédito de cada mes, el
+        saldo a favor que se arrastra y «¿Cuadra?» lo cuentan igual sin cambiar columnas); el panel lo dice en la tarjeta del crédito y en
+        «Para revisar»; el resumen para el contador tiene su línea; y el Diario lo asienta (debe 64 «Gastos por tributos», haber 4011).
+        Lo del Taller se resta en Impuestos pero no se asienta: el Diario tampoco tiene su IGV.
+DESCARTÉ: restarlo en el mes de la factura (un mes ya declarado cambiaría solo, 72); perder TODO el IGV de una factura pagada en parte
+        por el banco (la 70 marca lo pagado en efectivo o desde un fondo, no el resto); crear un comprobante de compra para la factura del
+        gasto del viaje (pediría dar de alta al proveedor desde Gamarra); columnas nuevas en `fn_impuestos_igv_meses` (volver a pegar la
+        migración que la creó fallaría); y dar crédito por un ticket de máquina registradora (depende de requisitos que confirma el contador).
+SE ROMPE SI: una pantalla calcula el IGV perdido por su cuenta (Impuestos y el Diario dirían cosas distintas: se pregunta a
+        `fn_igv_perdido`), o el umbral cambia en un lado y no en el otro (todo sale de `fn_pago_no_bancarizado`).
+```
+
+Por defecto *(provisional, revisar con Felipe y el contador)*: el IGV perdido va a la **64** hasta que el contador diga otra cuenta; el
+ticket no da crédito; la factura de un gasto del viaje va al registro sin razón social cuando ningún proveedor tiene su RUC; con nota de
+crédito, la proporción se calcula sobre el total ORIGINAL de la factura (como la regla de la actividad 6). **Finanzas ▸ Gastos** todavía
+dice «Sin comprobante» en un gasto del viaje con factura (su papel vive en `gastos_viaje` y `fn_gastos_lista` solo mira `compras`): queda
+como tarea aparte.
 
 ## Fuente: el brief de Felipe
 

@@ -164,13 +164,6 @@ type CampoTextoProps = InputHTMLAttributes<HTMLInputElement> & {
   sinPie?: boolean;
 };
 
-/* Altura única de todo control de una línea (input, fecha, combo): 36px, que
-   es lo que ya medía un input `text-sm` + `py-2`. Se fija explícita porque
-   Safari le da a `type="date"` su propia altura y letra internas, y un combo
-   con `appearance-none` pierde la altura nativa — sin un número común, cada
-   uno mide distinto al lado del otro. */
-export const ALTO_CONTROL = "h-9";
-
 /* Safari (macOS/iOS) dibuja el `type="date"` con su propio editor interno
    (::-webkit-datetime-edit), con relleno y tamaño de letra propios. Se le
    quita todo eso para que mida igual que un input de texto. Chrome ignora
@@ -293,6 +286,9 @@ export type Opcion<T extends string> = {
   grupo?: string;
   /** Se ve pero no se elige (un cajón con la caja cerrada): ni con el mouse ni con el teclado. Solo `Desplegable`/`CampoSelect`. */
   deshabilitada?: boolean;
+  /** Cómo se lee con el combo CERRADO, cuando la caja es angosta (una columna de una tabla): la lista sigue mostrando `texto`.
+   *  Nueva compra: «Sin desglose» en la fila, «Sin desglose (se reparte al recibir)» en la lista. Solo `Desplegable`/`CampoSelect`. */
+  corto?: string;
 };
 
 /* ------------------------------------------------------------------
@@ -756,8 +752,8 @@ export function Desplegable<T extends string>({
           // control el ancho de la más larga —cerrado mide igual que el del spike y no baila al elegir otra—; en una
           // columna angosta, lo elegido se corta con «…» y lo invisible no desborda (`overflow-hidden`).
           <span className="grid min-w-0 overflow-hidden">
-            <span className={`col-start-1 row-start-1 truncate ${elegida ? "" : "text-tinta/65"}`}>{elegida?.texto ?? marcador}</span>
-            {[marcador, ...opciones.map((o) => o.texto)].map((t, k) => (
+            <span className={`col-start-1 row-start-1 truncate ${elegida ? "" : "text-tinta/65"}`}>{elegida?.corto ?? elegida?.texto ?? marcador}</span>
+            {[marcador, ...opciones.map((o) => o.corto ?? o.texto)].map((t, k) => (
               <span key={k} aria-hidden className="invisible col-start-1 row-start-1 h-0 whitespace-nowrap">
                 {t}
               </span>
@@ -765,7 +761,7 @@ export function Desplegable<T extends string>({
           </span>
         ) : (
           <span key={cambio} className={`combo-valor ${cambio ? "combo-valor-entra" : ""} ${elegida || f.marcadorComoTexto ? "" : "text-tinta/65"}`}>
-            {elegida?.texto ?? marcador}
+            {elegida?.corto ?? elegida?.texto ?? marcador}
           </span>
         )}
         {f.flecha &&
@@ -969,14 +965,16 @@ const claseBoton = (peso: keyof typeof PESO_BOTON, className: string) => `btn-ca
 /**
  * El «+» del texto («+ Registrar gasto») se dibuja como ícono, para que dé su cuarto de vuelta al pasar el mouse (Felipe 2026-10-07:
  * «le falta animación en el +»). El lector de pantalla oye «Registrar gasto», sin el signo. Lo demás del texto va en un solo bloque,
- * así un `Agregar {año}` no se separa con el espacio de la fila.
+ * así un `Agregar {año}` no se separa con el espacio de la fila. La caja es `flex` (de bloque), no `inline-flex`: dentro del
+ * <span> de <Boton> una `inline-flex` armaba su propia línea de texto y el botón con «+» medía 43 px junto a sus vecinos de 40
+ * (ronda 10 de /unificar, 2026-10-13).
  */
 function conMas(children: ReactNode): ReactNode {
   const partes = Children.toArray(children);
   const primero = partes[0];
   if (typeof primero !== "string" || !/^\s*\+\s/.test(primero)) return children;
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="flex items-center gap-1.5">
       <Plus aria-hidden className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} />
       <span>
         {primero.replace(/^\s*\+\s*/, "")}
@@ -986,26 +984,55 @@ function conMas(children: ReactNode): ReactNode {
   );
 }
 
+/**
+ * Mientras guarda (ADR-0358, ronda 12, Felipe eligió P1 el 2026-10-14): con `cargando`, la palabra pasa a «Guardando…» (u otro verbo,
+ * `textoCargando`: «Abriendo…», «Cerrando…»), corre el hilo de abajo y el botón se apaga para que un doble clic no guarde dos veces.
+ * Las dos palabras ocupan la MISMA celda (una invisible): el botón no cambia de ancho y nada se corre. Solo si se pasa `cargando`
+ * (un botón que no guarda no reserva el lugar de «Guardando…»). Lo usan `Boton`, `BotonCompacto` y los botones del flujo del mostrador.
+ */
+export function PalabraEnEspera({ cargando, texto = "Guardando…", children }: { cargando: boolean; texto?: string; children: ReactNode }) {
+  return (
+    <span className="relative grid">
+      <span className={`[grid-area:1/1] ${cargando ? "invisible" : ""}`}>{children}</span>
+      <span className={`[grid-area:1/1] text-center ${cargando ? "" : "invisible"}`}>{texto}</span>
+    </span>
+  );
+}
+
+/** El hilo que barre abajo mientras la base responde (el mismo en todo botón que guarda): crema sobre un botón oscuro, rojo sobre uno claro. */
+export function HiloEnEspera({ claro = false }: { claro?: boolean }) {
+  return (
+    <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
+      <span className={`block h-full w-1/3 rounded-full [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${claro ? "bg-crema" : "bg-rojo"}`} />
+    </span>
+  );
+}
+
 export function Boton({
   peso = "fantasma",
-  cargando = false,
+  cargando,
+  textoCargando = "Guardando…",
   className = "",
   children,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   peso?: keyof typeof PESO_BOTON;
+  /** Está guardando: «Guardando…», el hilo y el botón apagado. Un botón que guarda SIEMPRE lo pasa (también en `false`). */
   cargando?: boolean;
+  /** Otro verbo mientras espera, si lo que hace no es guardar («Abriendo…», «Cerrando…», «Anulando…»). */
+  textoCargando?: string;
 }) {
+  const guarda = cargando !== undefined;
   return (
-    <button {...props} disabled={props.disabled || cargando} className={claseBoton(peso, className)}>
-      <span className="relative">{conMas(children)}</span>
-      {cargando && (
-        <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] overflow-hidden rounded-full">
-          <span
-            className={`block h-full w-1/3 rounded-full [animation:cayla-hilo-barrido_1.1s_linear_infinite] ${peso === "primario" ? "bg-crema" : "bg-rojo"}`}
-          />
-        </span>
+    <button {...props} disabled={props.disabled || cargando} aria-busy={cargando || undefined} className={claseBoton(peso, className)}>
+      {guarda ? (
+        <PalabraEnEspera cargando={Boolean(cargando)} texto={textoCargando}>
+          {conMas(children)}
+        </PalabraEnEspera>
+      ) : (
+        <span className="relative">{conMas(children)}</span>
       )}
+      {cargando && <HiloEnEspera claro={peso === "primario" || peso === "peligro"} />}
     </button>
   );
 }

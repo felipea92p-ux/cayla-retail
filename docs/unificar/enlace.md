@@ -47,3 +47,35 @@ subrayado tenue y la flecha escrita al final de un `btn-enlace`. Al migrar, cada
 flecha escrita a mano. `<EnlaceVer>` aprendió `alNavegar` (cerrar la hoja o el cajón en el mismo clic que navega). «Todo el historial»
 de Historial y de Apartados no era un enlace sino un período que se elige: pasó a `pildora-cayla`. El ritmo de Existencias conserva su
 texto llano (diseño aprobado, `unificar-fijo`).
+
+## Ronda 9 (2026-10-13)
+
+Las acciones chicas dentro de una hoja que eran versalitas rojas y la migración pasó a `btn-enlace` se repartieron **según lo que hacen**
+(Felipe, P2): las que cambian varias cosas de un toque son ahora un botón sutil chico; las que corrigen una sola siguen siendo este
+enlace. Detalle y lista: [boton.md](boton.md), «Ronda 9».
+
+## El censo de después (2026-10-13): cuatro «Ver … →» en versalitas a mano
+
+Rastreado al código, el censo encontró enlaces sueltos que llevan a ver más dibujados en `label-cayla` con la flecha escrita: «Ver los 11 →»
+(la caja abierta), «Ver todas las sedes →» (el historial de cierres de la caja), «Ver catálogo completo →» (Buscar) y el enlace de
+`PasoSugerido`. Pasaron a `<EnlaceVer>` (la flecha que avanza la dibuja la pieza). Una firma nueva los atrapa. Queda exento, con su motivo,
+«Ver en Productos →» de Categorías: es el rótulo de una tarjeta que ya es un enlace, y un `<EnlaceVer>` no se anida dentro de otro.
+
+
+**El censo de mostrador (2026-10-13)** encontró tres más en Caja («Ver todos →», «Ver en Finanzas →», «Ver posventa →»): la clase iba en una
+constante (`enlaceVer`) y la firma, que lee la clase escrita, no los veía. Pasaron a `<EnlaceVer>`.
+
+## El subrayado que no se pintaba (2026-10-14, con el OK de Felipe mirando las láminas)
+
+Una prueba ciega de /formidable (Finanzas ▸ Gastos) vio «Míralo en Impuestos» subrayado en una hoja y sin subrayado en otra. Medido en una
+página de prueba con cada contexto en que el ERP usa la pieza (claro y oscuro): el renglón cae 0,7 em bajo el centro, y en una caja del alto
+de la letra eso queda entre 1 y 1,5 px **debajo** del borde de la caja, donde el navegador ya no pinta el fondo. En reposo no se veía en 5 de
+8 contextos (un enlace dentro de un párrafo, de una ayuda, de un texto de 15 px, partido en dos renglones, y los 118 `btn-cayla btn-enlace`);
+en dos de ellos tampoco se veía el hilo rojo. Solo se pintaba siempre en un `<button>` dentro de una frase y en un `btn-chico` (44 px); en una
+nota de 13 px, según en qué píxel cayera el renglón.
+
+**El arreglo, en la pieza:** el renglón se mide desde el contenido (`background-origin: content-box`), y un relleno de 0,25 em abajo agranda el
+área donde se pinta, con un margen negativo del mismo tamaño para que la caja no ocupe más (`.btn-enlace:not(.btn-chico)`). El renglón queda
+en el mismo lugar que antes y la letra no se mueve: medido en los 8 contextos y en tres componentes reales (A favor con proveedores, el aviso
+de «Agregar en su ficha» y «Todo el historial» de Movimientos) a 1440 y 375 px, con las mismas posiciones y los mismos altos antes y después.
+Un `mb-*` en el mismo elemento le gana al margen negativo: ahí se descuenta a mano (`FiltrosMovimientos`, `mb-[calc(0.5rem_-_0.25em)]`).

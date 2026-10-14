@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bandage, PencilLine, Truck, Warehouse } from "lucide-react";
+import { ArrowRight, Bandage, PencilLine, Truck, Warehouse, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
 import { avisarDestacado } from "@/components/ui/AvisoDestacado";
@@ -54,6 +54,8 @@ import {
 import type { FilaExistencias } from "@/lib/inventario-v2";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
+import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 type Prenda = PrendaAgrupada<FilaExistencias>;
 
@@ -872,7 +874,11 @@ export function FlujoTalla({
           <>
             <Pregunta>¿A qué sede le pides?</Pregunta>
             <div className="grid gap-2">
-              {origenes.length === 0 && <p className="text-sm text-taupe">Ninguna otra tienda tiene esta talla.</p>}
+              {origenes.length === 0 && (
+                <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Store />}>
+                  Ninguna otra tienda tiene esta talla.
+                </Vacio>
+              )}
               {origenes.map((s) => (
                 <Opcion
                   key={s.id}
@@ -1077,26 +1083,30 @@ export function FlujoTalla({
           <Aviso tono="error">{error}</Aviso>
         )}
         {!completo && faltanHasta(tipo, i, d, ctx).length > 0 && <PieGuia guia={guiaDePasos} />}
-        <div className="flex gap-2">
+        <div className="pie-acciones">
           {i === 0 || incierto ? (
-            <button type="button" onClick={atras} disabled={enviando} className="btn-cayla btn-secundario flex-1 gap-1.5">
+            <button type="button" onClick={atras} disabled={enviando} className="btn-cayla btn-secundario gap-1.5">
               Cancelar
             </button>
           ) : (
             <Volver onClick={atras} deshabilitado={enviando} a="Volver al paso anterior" className="self-center" />
           )}
-          <button
+          <Boton
             type="button"
+            peso="primario"
+            cargando={enviando}
             onClick={seguir}
-            disabled={!completo || enviando}
+            disabled={!completo}
             title={completo ? undefined : (guia.frase ?? responsable.motivo ?? undefined)}
-            className={`btn-cayla btn-primario flex-[2] gap-2 ${completo ? "hilo-seguir" : ""}`}
+            className={`flex-[2] ${completo ? "hilo-seguir" : ""}`}
           >
-            {ultimo && <IconoFinal aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />}
-            {enviando ? "Guardando…" : ultimo ? (tipo === "danada" ? textoBotonReportar(d.n ?? 0, incierto) : incierto ? "Confirmar de nuevo" : verboFinal(tipo, d, nombreSede(d.sedeId))) : "Continuar"}
-            {!ultimo && <ArrowRight aria-hidden className="h-4 w-4" />}
-            <kbd className="ml-1 hidden rounded border border-crema/30 px-1 text-[11px] font-normal text-crema/80 sm:inline">↵</kbd>
-          </button>
+            <span className="flex items-center justify-center gap-2">
+              {ultimo && <IconoFinal aria-hidden className="-my-1 h-[18px] w-[18px]" strokeWidth={1.6} />}
+              {ultimo ? (tipo === "danada" ? textoBotonReportar(d.n ?? 0, incierto) : incierto ? "Confirmar de nuevo" : verboFinal(tipo, d, nombreSede(d.sedeId))) : "Continuar"}
+              {!ultimo && <ArrowRight aria-hidden className="-my-1 h-4 w-4" />}
+              <kbd className="ml-1 hidden rounded border border-crema/30 px-1 text-[11px] font-normal text-crema/80 sm:inline">↵</kbd>
+            </span>
+          </Boton>
         </div>
       </div>
     </div>

@@ -56,7 +56,7 @@ export function PlanCategoriaModal({
   const [sucio, setSucio] = useState(false);
   const salida = useSalidaSinGuardar(sucio, `Escribiste parte del plan de ${fila.c.nombre} y todavía no se guardó. Si sales ahora, se pierde lo que escribiste.`);
   return (
-    <Modal titulo={`Plan de ${fila.c.nombre}`} subtitulo={`${planNombre}.`} onClose={onClose} antesDeCerrar={salida.pedirAccion} variante="hoja" ancho="max-w-2xl">
+    <Modal titulo={`Plan de ${fila.c.nombre}`} subtitulo={`${planNombre}.`} onClose={onClose} antesDeCerrar={salida.pedirAccion} variante="hoja" tamano="ancha">
       {(cerrar) => (
         <>
           <FormularioCategoria
@@ -77,7 +77,7 @@ export function PlanCategoriaModal({
               if (!(seguir && siguiente !== null)) cerrar();
             }}
             pie={({ guardando, puedeGuardar, motivo, claseConfirmar }) => (
-              <div className="flex flex-wrap justify-end gap-3 pt-2">
+              <div className="pie-acciones pt-2">
                 <Boton type="button" onClick={() => salida.pedirAccion(cerrar)}>
                   Cancelar
                 </Boton>

@@ -18,7 +18,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import {
-  AccionTarjeta,
+
   BarraAtributos,
   BotonesPendiente,
   BotonReactivar,
@@ -32,6 +32,8 @@ import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
 import { filtrarColores } from "@/lib/atributos-buscar";
 import { Aviso } from "@/components/ui/Aviso";
+import { LapizEditar } from "@/components/ui/BotonEditar";
+import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
@@ -477,7 +479,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                         )}
                         {/* Desactivar un color vive dentro de Editar: si todavía lo usa alguna variante activa, la pantalla se bloquea y dice cuántas. */}
                         <PieTarjeta>
-                          <AccionTarjeta onClick={() => setEditando(c)} guia="atributos.color-editar">Editar</AccionTarjeta>
+                          <LapizEditar que={c.nombre} guia="atributos.color-editar" onClick={() => setEditando(c)} />
                         </PieTarjeta>
                       </>
                     )}
@@ -493,7 +495,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         <Modal
           titulo="Nuevo color del vocabulario"
           subtitulo="Queda disponible de inmediato para cualquier prenda nueva o existente."
-          ancho="max-w-md"
           onClose={() => setAgregando(false)}
         >
           {(cerrar) => (
@@ -504,6 +505,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   <CampoGuiado id="nombre" guia={guia}>
                   <CampoTexto
                     etiqueta={guia.etiqueta("nombre", "Nombre")}
+                    maxLength={MAX_NOMBRE_CATALOGO}
                     value={nombre}
                     onChange={(e) => {
                       setNombre(e.target.value);
@@ -573,8 +575,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                 <ComboResponsable control={responsable} deshabilitado={guardando} />
               </CampoGuiado>
               <PieGuia guia={guia} listo="Todo listo para guardar." />
-              <div className="flex gap-2 pt-3">
-                <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+              <div className="pie-acciones pt-3">
+                <Boton type="button" peso="fantasma" onClick={cerrar} disabled={guardando}>
                   Cancelar
                 </Boton>
                 <Boton
@@ -625,17 +627,17 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       )}
 
       {rechazandoColor && (
-        <Modal titulo={`Rechazar «${rechazandoColor.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+        <Modal titulo={`Rechazar «${rechazandoColor.nombre}»`} onClose={() => setRechazandoAbierto(null)}>
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
-              <div className="flex gap-2">
-                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoCodigo === rechazandoColor.codigo}>
+              <div className="pie-acciones">
+                <Boton peso="fantasma" onClick={cerrar} disabled={rechazandoCodigo === rechazandoColor.codigo}>
                   Cancelar
                 </Boton>
                 <Boton
                   peso="primario"
-                  className="flex-1"
+                 
                   cargando={rechazandoCodigo === rechazandoColor.codigo}
                   onClick={() => rechazar(rechazandoColor)}
                 >
@@ -797,14 +799,15 @@ function ColorEditarModal({
   const ocupado = guardando || desactivando;
 
   return (
-    <Modal titulo={`Editar «${color.nombre}»`} ancho="max-w-md" onClose={onClose}>
+    <Modal titulo={`Editar «${color.nombre}»`} onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           {/* Cada campo ya reserva su línea de pie; con space-y-4 encima los huecos
               quedaban el doble de grandes que los de Notas hacia abajo. */}
           <div data-guia="atributos.color-form" className="space-y-1">
             <CampoGuiado id="nombre" guia={guia}>
-              <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")} value={nombre} onChange={(e) => setNombre(e.target.value)} />
+              <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")}
+                    maxLength={MAX_NOMBRE_CATALOGO} value={nombre} onChange={(e) => setNombre(e.target.value)} />
             </CampoGuiado>
             <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
             <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
@@ -855,38 +858,38 @@ function ColorEditarModal({
             <ComboResponsable control={responsable} deshabilitado={ocupado} />
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
-          <div data-guia="atributos.color-pie" className="space-y-4">
-          <div className="flex gap-2 pt-3">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={ocupado}>
-              Cancelar
-            </Boton>
-            <Boton
-              type="button"
-              peso="primario"
-              onClick={guardar}
-              cargando={guardando}
-              disabled={!nombre.trim() || pantoneInvalido(pantone, vocabularioPantone) || descripcion.trim().length > MAX_DESCRIPCION || ocupado || !responsable.listo}
-              title={responsable.motivo ?? guia.frase ?? undefined}
-              className={`flex-1 ${guia.claseConfirmar}`}
-            >
-              Guardar
-            </Boton>
-          </div>
-
-          <p className="border-t border-tinta/10 pt-3 text-xs text-tinta/55">
-            ¿Ya no se usa este color?{" "}
-            <button
-              type="button"
-              onClick={() => (confirmandoDesactivar ? desactivar() : setConfirmandoDesactivar(true))}
-              disabled={ocupado || !responsable.listo}
-              title={responsable.motivo ?? undefined}
-              // El enlace dentro de una frase (ADR-0358, ronda 8); el segundo toque, ya armado, en seminegrita.
-              className={`btn-cayla btn-enlace text-xs ${confirmandoDesactivar ? "font-semibold" : ""}`}
-            >
-              {desactivando ? "Desactivando…" : confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
-            </button>
-            . Se bloquea si todavía hay una prenda activa con este color.
-          </p>
+          <div data-guia="atributos.color-pie" className="space-y-2 pt-3">
+            {/* Lo peligroso, rojo desde el principio y en el pie, como en Categorías y Familias (ADR-0358, ronda 9). Sigue pidiendo dos
+                toques: el segundo, ya armado, dice «¿Seguro? Confirmar». */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Boton cargando={desactivando} textoCargando="Desactivando…"
+                type="button"
+                peso="peligro"
+                onClick={() => (confirmandoDesactivar ? desactivar() : setConfirmandoDesactivar(true))}
+                disabled={ocupado || !responsable.listo}
+                title={responsable.motivo ?? undefined}
+                className={confirmandoDesactivar ? "font-semibold" : ""}
+              >
+                {confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
+              </Boton>
+              <div className="pie-acciones">
+                <Boton type="button" peso="fantasma" onClick={cerrar} disabled={ocupado}>
+                  Cancelar
+                </Boton>
+                <Boton
+                  type="button"
+                  peso="primario"
+                  onClick={guardar}
+                  cargando={guardando}
+                  disabled={!nombre.trim() || pantoneInvalido(pantone, vocabularioPantone) || descripcion.trim().length > MAX_DESCRIPCION || ocupado || !responsable.listo}
+                  title={responsable.motivo ?? guia.frase ?? undefined}
+                  className={guia.claseConfirmar}
+                >
+                  Guardar
+                </Boton>
+              </div>
+            </div>
+            <p className="text-xs text-tinta/55">Desactivar se bloquea si todavía hay una prenda activa con este color.</p>
           </div>
         </div>
       )}

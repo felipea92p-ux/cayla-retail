@@ -140,7 +140,6 @@ export function NuevaTerminalModal({
           ? "La cuenta del aparato ya existe. Esta es su clave."
           : "Un aparato compartido de una tienda, con su propia cuenta y sin persona. Lo que ve lo decide su rol; lo que hace lo firma quien se elige como responsable."
       }
-      ancho="max-w-md"
       onClose={onClose}
     >
       {(cerrar: Cerrar) =>
@@ -178,19 +177,19 @@ export function NuevaTerminalModal({
           />
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           {error && <Aviso tono="error">{error}</Aviso>}
-          <div className="flex gap-2 pt-1">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones pt-1">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Creando…"
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={enviando}
               disabled={!ubicacionId || !rolId || !nombre.trim() || repetido || !roles || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {enviando ? "Creando…" : "Crear terminal"}
+              Crear terminal
             </Boton>
           </div>
         </form>
@@ -240,7 +239,6 @@ export function CambiarClaveModal({
     <Modal
       titulo={resultado ? `Clave nueva de ${resultado.nombre}` : `Cambiar la clave de ${terminal.nombre}`}
       subtitulo={resultado ? "La clave anterior ya no sirve." : undefined}
-      ancho="max-w-md"
       onClose={onClose}
     >
       {(cerrar: Cerrar) =>
@@ -254,20 +252,20 @@ export function CambiarClaveModal({
           </p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           {error && <Aviso tono="error">{error}</Aviso>}
-          <div className="flex gap-2">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Cambiando…"
               type="button"
               peso="primario"
-              className="flex-1"
+             
               cargando={enviando}
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
               onClick={confirmar}
             >
-              {enviando ? "Cambiando…" : "Cambiar clave"}
+              Cambiar clave
             </Boton>
           </div>
         </div>

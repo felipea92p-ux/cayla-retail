@@ -5,7 +5,7 @@
   "total": 53,
   "controles": {
     "app/(app)/compras/nueva/page.tsx": [
-      "Volver «Compras»",
+      "Volver «(sin nombre)»",
       "BotonEnlace «Ir a Proveedores»",
       "BotonEnlace «Ir a Productos»"
     ],
@@ -17,7 +17,7 @@
       "a «Ver»",
       "button «Quitar»",
       "button «Cancelar»",
-      "button «{loading ? \"Quitando…\" : \"Quitar\"}»"
+      "Boton «Quitar»"
     ],
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -46,7 +46,7 @@
       "input «Cantidad»",
       "input «Costo unitario»",
       "button «Quitar»",
-      "button «+ Agregar línea»",
+      "Boton «+ Agregar línea»",
       "Casilla «Registrar un pago ahora»",
       "CampoTexto «Nota (opcional)»",
       "ComboResponsable «(sin nombre)»",
@@ -67,7 +67,7 @@
     "components/RepartoEnRegistro.tsx": [
       "CampoSelect «Mercadería destinada a»",
       "SegmentoDeslizante «Destino de la mercadería»",
-      "button «{activa && <Check aria-hidden className=\"h-3 w-3\" />}»",
+      "button «{bloqueada ? \"Tiene que quedar al menos una tienda\" : undefined}»",
       "Desplegable «)»",
       "input «{`Unidades para ${t.nombre}»",
       "button «Partes iguales»"

@@ -6,7 +6,6 @@ import {
   PLAZO_TRASLADO_DIAS,
   finDePlazo,
   type AccionDecision,
-  type AccionRenglon,
   type DecisionDePrenda,
   type FinDecision,
   type LineaDecision,
@@ -475,6 +474,3 @@ export function avisoDeExito(accion: AccionDecision, prenda: string, vence: stri
   };
   return { titulo: `Anotado: ${que[accion]}`, detalle: `${prenda} sale de «Por decidir» hasta el ${diaYNumero(vence)}. ${cuando[accion]}` };
 }
-
-/** Tipo auxiliar: la acción de una línea es una acción anotable (no una anulación). */
-export const esAccionAnotable = (a: AccionRenglon): a is AccionDecision => a !== "anulacion";

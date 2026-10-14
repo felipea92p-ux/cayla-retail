@@ -5446,6 +5446,8 @@ export type Database = {
       fn_cola_arranque_candidatas: { Args: { p_ubicacion_id: string }; Returns: { en_stock: number; prenda_id: string; variante_id: string }[] }
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
       fn_catalogo_version: { Args: never; Returns: number }
+      // 20261013153000: md5 del stock que la cuenta ve en una sede; useStockEnVivo solo relee si cambia.
+      fn_stock_huella: { Args: { p_ubicacion_id: string }; Returns: string }
       fn_acepta_pago_qr: { Args: never; Returns: boolean }
       fn_acepta_redondeo_efectivo: { Args: never; Returns: boolean }
       fn_variantes_con_costo_oficial: { Args: { p_ids: string[] }; Returns: string[] }
@@ -7916,6 +7918,24 @@ export type Database = {
         }[]
       }
       fn_stock_por_sede_json: { Args: never; Returns: Json }
+      // ADR-0270: la fórmula única de «cuánto hay» por prenda y sede (sin sede = todas; sin productos = todos).
+      fn_existencias: {
+        Args: { p_ubicacion_id?: string; p_producto_ids?: string[] }
+        Returns: {
+          variante_id: string
+          producto_id: string
+          ubicacion_id: string
+          fisico: number
+          danado: number
+          apartado: number
+          disponible: number
+          piso_libre: number
+          almacen_libre: number
+          sin_lugar: number
+          en_camino: number
+          talla_retirada: boolean
+        }[]
+      }
       fn_sububicacion_por_defecto: {
         Args: { p_ubicacion_id: string; p_uso: string }
         Returns: string

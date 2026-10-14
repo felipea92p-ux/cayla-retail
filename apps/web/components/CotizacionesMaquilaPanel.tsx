@@ -8,7 +8,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto, CampoSelect } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import type { CategoriaParaCotizar, CotizacionMaquila } from "@/lib/cotizaciones-maquila";
@@ -219,13 +219,13 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
             pie="Para volver a pedirla cuando venza."
           />
           </div>
-          <div data-guia="prod-cotizacion-nueva.cargar" className="flex gap-2 pt-1">
-            <button type="button" onClick={cerrar} className={botonCancelar}>
+          <div data-guia="prod-cotizacion-nueva.cargar" className="pie-acciones pt-1">
+            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={loading} className={botonPrimario}>
-              {loading ? "Cargando…" : "Cargar cotización"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Cargando…" type="submit" disabled={loading}>
+              Cargar cotización
+            </Boton>
           </div>
         </form>
       )}

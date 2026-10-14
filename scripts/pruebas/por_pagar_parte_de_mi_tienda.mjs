@@ -1,16 +1,20 @@
 #!/usr/bin/env node
 /**
- * Pruebas de «Por pagar muestra la parte de MI tienda» (ADR-0187) contra el Postgres local.
+ * Pruebas de «Por pagar muestra la parte de MI tienda» (ADR-0187) contra el Postgres local, pasadas a «el módulo es la llave»
+ * (ADR-0387, Felipe 2026-10-12: quien tiene un módulo de plata de Compras ve la deuda de la EMPRESA, todas las tiendas, como
+ * el líder). El nombre del archivo se queda (lo llaman el CI y `package.json`); cada caso que se invirtió lo dice en su nombre.
  *
- * EL CASO (Felipe, 2026-09-23): una factura repartida mitad Trujillo, mitad Lima. En Por pagar, Trujillo ve SU mitad y Lima
- * la suya, gestione quien gestione la factura; el líder ve la factura entera.
+ * EL CASO (Felipe, 2026-09-23; deshecho en Compras el 2026-10-12): una factura repartida mitad Trujillo, mitad Lima. Antes, en
+ * Por pagar Trujillo veía SU mitad y Lima la suya; hoy quien tiene Por pagar ve la factura entera, gestione quien la gestione,
+ * igual que el líder. Lo que le queda a la parte de cada tienda (`fn_saldo_de_tienda`, que no cambió) sigue bajando solo con
+ * los pagos hechos desde esa tienda.
  *
  * QUÉ PRUEBA
- *   · `fn_deuda_visible`: la gestora ve su parte (no el total); la otra tienda también ve la suya (`gestionada` = f); el líder
- *     ve el total; sin módulo, nada; al pagar su parte, la factura sale de SU deuda pero sigue en la del líder;
- *   · las cifras (`resumen_compras`, `deuda_por_vencimiento`, `salidas_caja_30d`, `resumen_compras_extra`, `fn_proveedores`)
- *     suben exactamente lo de MI parte; `por_pagar_tramos` solo lo de las facturas que gestiono (cuadra con la lista);
- *   · para el líder, las cifras suben el total, como siempre;
+ *   · `fn_deuda_visible`: con Por pagar, la factura entera y gestionada (`gestionada` = t), la gestione su tienda u otra, y aunque
+ *     no traiga nada para su tienda; el líder, igual; sin módulo, nada; al pagar su mitad desde Trujillo, la factura sigue en la
+ *     deuda (la mitad de Lima) para ella y para el líder, y la parte de Trujillo queda en cero;
+ *   · las cifras (`resumen_compras`, `deuda_por_vencimiento`, `salidas_caja_30d`, `resumen_compras_extra`, `fn_proveedores`,
+ *     `por_pagar_tramos`) suben el total de las facturas, para ella como para el líder; la concentración es la de la empresa;
  *   · una sola firma y nada abierto a anon; el candado de dinero intacto.
  *
  * CÓMO. Cada escenario en su transacción con ROLLBACK. Las cifras se comparan ANTES y DESPUÉS de registrar las facturas de
@@ -109,16 +113,17 @@ const DIFERENCIA = `select :deuda_d - :deuda_a, :con_saldo_d - :con_saldo_a, :ve
 
 // ===================================================================== 1. cuánto debo en cada comprobante
 exito(
-  "la gestora (Trujillo) ve SU mitad, no la factura entera",
+  "ADR-0387 (Felipe 2026-10-12): con Por pagar, la gestora (Trujillo) ve la factura ENTERA, como el líder (antes: solo su mitad, 708.00)",
   escenario(`${compra("f1", { gestora: "trujillo", dest: { trujillo: 12, lima: 12 } })}${MODULOS("por_pagar")}${COMO_MICAELA}
 select total, pagado, saldo, gestionada from retail.fn_deuda_visible(array[:'f1']::uuid[]);`),
-  ["708.00|0.00|708.00|t"]
+  ["1416.00|0.00|1416.00|t"]
 );
 exito(
-  "la otra tienda con parte también ve la suya, marcada como no gestionada (va en «Mis partes»)",
+  "ADR-0387 (Felipe 2026-10-12): la factura que gestiona Lima, Trujillo también la ve entera y gestionada; ya no va a «Mis partes» (antes: su mitad, no gestionada)",
   escenario(`${compra("f1", { gestora: "lima", dest: { trujillo: 12, lima: 12 } })}${MODULOS("por_pagar")}${COMO_MICAELA}
-select total, saldo, gestionada from retail.fn_deuda_visible(array[:'f1']::uuid[]);`),
-  ["708.00|708.00|f"]
+select total, saldo, gestionada from retail.fn_deuda_visible(array[:'f1']::uuid[]);
+select count(*) from retail.fn_mis_partes_de_compras() where compra_id = :'f1';`),
+  ["1416.00|1416.00|t", "0"]
 );
 exito(
   "el líder ve la factura entera",
@@ -127,10 +132,10 @@ select total, saldo, gestionada from retail.fn_deuda_visible(array[:'f1']::uuid[
   ["1416.00|1416.00|t"]
 );
 exito(
-  "una factura que no trae nada para Trujillo no aparece en su deuda",
+  "ADR-0387 (Felipe 2026-10-12): una factura que no trae nada para Trujillo también aparece en su deuda, entera: la deuda es de la empresa (antes: no aparecía)",
   escenario(`${compra("f1", { gestora: "lima", dest: { lima: 24 } })}${MODULOS("por_pagar")}${COMO_MICAELA}
-select count(*) from retail.fn_deuda_visible(array[:'f1']::uuid[]);`),
-  ["0"]
+select total, saldo, gestionada from retail.fn_deuda_visible(array[:'f1']::uuid[]);`),
+  ["1416.00|1416.00|t"]
 );
 exito(
   "sin módulo de Compras no ve ninguna deuda",
@@ -139,28 +144,29 @@ select count(*) from retail.fn_deuda_visible();`),
   ["0"]
 );
 exito(
-  "Trujillo paga su mitad: sale de SU deuda; el líder sigue viendo la mitad de Lima",
+  "ADR-0387 (Felipe 2026-10-12): Trujillo paga su mitad desde Trujillo: la factura sigue en su deuda con la mitad de Lima (708.00), igual que la ve el líder, y la parte de Trujillo queda en 0.00 (antes: salía de SU deuda)",
   escenario(`${compra("f1", { gestora: "trujillo", dest: { trujillo: 12, lima: 12 } })}${MODULOS("por_pagar")}${COMO_MICAELA}
 ${PAGAR("f1", "708.00", "trujillo")} as _p \\gset
-select count(*) from retail.fn_deuda_visible(array[:'f1']::uuid[]);
-${COMO_FELIPE}select saldo from retail.fn_deuda_visible(array[:'f1']::uuid[]);`),
-  ["0", "708.00"]
+select saldo, gestionada from retail.fn_deuda_visible(array[:'f1']::uuid[]);
+${COMO_FELIPE}select saldo, retail.fn_saldo_de_tienda(:'f1', :'trujillo'), retail.fn_saldo_de_tienda(:'f1', :'lima') from retail.fn_deuda_visible(array[:'f1']::uuid[]);`),
+  ["708.00|t", "708.00|0.00|708.00"]
 );
 exito(
-  "un pago parcial de Trujillo baja solo su parte",
+  "ADR-0387 (Felipe 2026-10-12): un pago parcial desde Trujillo baja la factura entera que ve (1,416.00 → 1,216.00) y, por tienda, solo la parte de Trujillo (508.00; Lima sigue en 708.00) (antes: veía solo su parte, 708.00 → 508.00)",
   escenario(`${compra("f1", { gestora: "trujillo", dest: { trujillo: 12, lima: 12 } })}${MODULOS("por_pagar")}${COMO_MICAELA}
 ${PAGAR("f1", "200.00", "trujillo")} as _p \\gset
-select total, pagado, saldo from retail.fn_deuda_visible(array[:'f1']::uuid[]);`),
-  ["708.00|200.00|508.00"]
+select total, pagado, saldo from retail.fn_deuda_visible(array[:'f1']::uuid[]);
+${COMO_FELIPE}select retail.fn_saldo_de_tienda(:'f1', :'trujillo'), retail.fn_saldo_de_tienda(:'f1', :'lima');`),
+  ["1416.00|200.00|1216.00", "508.00|708.00"]
 );
 
 // ===================================================================== 2. las cifras
 exito(
-  "Trujillo (gestora de una, con parte en otra de Lima): las cifras suben SU parte de las dos; los subtotales de la lista, solo la que gestiona",
+  "ADR-0387 (Felipe 2026-10-12): Trujillo (gestora de una, con parte en otra de Lima), con Por pagar: las cifras y los subtotales de la lista suben las dos facturas enteras (2,832.00), igual que para el líder (antes: su parte de las dos, 1,416.00, y en la lista solo la que gestiona, 708.00)",
   escenario(`${MODULOS("por_pagar")}${COMO_MICAELA}${CIFRAS("a")}
 ${COMO_FELIPE}${compra("f1", { gestora: "trujillo", dest: { trujillo: 12, lima: 12 } })}${compra("f2", { gestora: "lima", dest: { trujillo: 12, lima: 12 } })}
 ${COMO_MICAELA}${CIFRAS("d")}${DIFERENCIA}`),
-  ["1416.00|2|1416.00|1416.00|1416.00|708.00"]
+  ["2832.00|2|2832.00|2832.00|2832.00|2832.00"]
 );
 exito(
   "el líder: las mismas dos facturas suben el total entero, como siempre",
@@ -170,14 +176,14 @@ ${CIFRAS("d")}${DIFERENCIA}`),
   ["2832.00|2|2832.00|2832.00|2832.00|2832.00"]
 );
 exito(
-  "la concentración de Trujillo sale de SU deuda, incluida su parte en la factura que gestiona Lima",
+  "ADR-0387 (Felipe 2026-10-12): la concentración de Trujillo sale de la deuda que ve —la de la EMPRESA, con la factura que gestiona Lima entera— y es la misma que ve el líder (antes: de SU deuda, con su parte de la de Lima)",
   escenario(`${compra("f1", { gestora: "trujillo", dest: { trujillo: 12, lima: 12 } })}${compra("f2", { gestora: "lima", dest: { trujillo: 12, lima: 12 } })}${MODULOS("por_pagar")}${COMO_MICAELA}
 select top_proveedor_id as top, top_proveedor_pct as pct from retail.resumen_compras_extra() \\gset
--- La cuenta se rehace con la misma deuda de Micaela, pero leyendo \`compras\` sin RLS (ella no ve la factura de Lima).
-${COMO_POSTGRES}${cambiaA(MICAELA)}
+-- La cuenta se rehace con la misma deuda de Micaela y leyendo \`compras\` CON su RLS: desde ADR-0387 ve también la factura de Lima.
 select :pct = round(100 * (select sum(v.saldo) from retail.fn_deuda_visible() v join retail.compras c on c.id = v.compra_id where c.proveedor_id = :'top')
-                    / (select sum(saldo) from retail.fn_deuda_visible()), 1);`),
-  ["t"]
+                    / (select sum(saldo) from retail.fn_deuda_visible()), 1);
+${COMO_FELIPE}select top_proveedor_id = :'top', top_proveedor_pct = :pct from retail.resumen_compras_extra();`),
+  ["t", "t|t"]
 );
 
 // ===================================================================== 3. firmas y permisos

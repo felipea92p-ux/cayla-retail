@@ -15,7 +15,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { RPC_RESTAURAR_CAMPANA, rotuloDeCampana, type CampanaPlan } from "@/lib/plan-compra-reglas";
 
 // «Campañas archivadas» del plan (ADR-0372, B5): las que se quitaron teniendo algo (categorías armadas o un tope) no se borran; viven aquí, se
-// pueden mirar tal como quedaron y volver al selector con «Restaurar». Solo un líder la abre (la base lo exige también). Restaurar firma con el
+// pueden mirar tal como quedaron y volver al selector con «Restaurar». La abre quien tiene el módulo Plan de campaña (la base lo exige también; ADR-0387: ya no solo un líder). Restaurar firma con el
 // responsable del combo.
 
 export function CampanasArchivadasModal({ archivadas, onClose }: { archivadas: readonly CampanaPlan[]; onClose: () => void }) {
@@ -40,7 +40,7 @@ export function CampanasArchivadasModal({ archivadas, onClose }: { archivadas: r
   }
 
   return (
-    <Modal titulo="Campañas archivadas" subtitulo="Las que se quitaron teniendo categorías armadas o un tope: no se borran. Restaurar las devuelve al selector." onClose={onClose} variante="hoja" ancho="max-w-lg">
+    <Modal conCerrar titulo="Campañas archivadas" subtitulo="Las que se quitaron teniendo categorías armadas o un tope: no se borran. Restaurar las devuelve al selector." onClose={onClose} variante="hoja" tamano="mediana">
       {(cerrar) =>
         archivadas.length === 0 ? (
           <Vacio tamano="chico" icono={<Archive />}>
@@ -59,7 +59,7 @@ export function CampanasArchivadasModal({ archivadas, onClose }: { archivadas: r
                   </span>
                   <span className="flex gap-2">
                     <BotonEnlace href={`/compras/plan?plan=${c.id}`}>Ver</BotonEnlace>
-                    <Boton type="button" peso="primario" cargando={restaurando === c.id} disabled={restaurando !== null || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void restaurar(c, cerrar)}>
+                    <Boton textoCargando="Restaurando…" type="button" peso="primario" cargando={restaurando === c.id} disabled={restaurando !== null || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void restaurar(c, cerrar)}>
                       Restaurar
                     </Boton>
                   </span>

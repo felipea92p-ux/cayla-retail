@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact } from "react";
 import { useRouter } from "next/navigation";
@@ -26,9 +26,10 @@ import { celdaTarjeta, tallasSinColgar } from "@/lib/existencias-tarjeta-compact
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { mejorOrigen, type DatosFlujo, type SedeConCantidad, type TipoFlujo } from "@/lib/existencias-flujos";
-import { MS_ENTRE_TECLAS } from "@/lib/existencias-pistola";
+import { esRafaga, MS_ENTRE_TECLAS } from "@/lib/existencias-pistola";
 import { urlRotulos } from "@/lib/rotulos-reglas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
+import { FOTO_PANEL_TALLA } from "@/lib/fotos-tamanos";
 
 type Vista = "talla" | "todas";
 type Prenda = PrendaAgrupada<FilaExistencias>;
@@ -427,7 +428,7 @@ export function PanelTalla({
   function alTeclear(e: KeyboardEventReact<HTMLDivElement>) {
     const antes = ultimaTecla.current;
     ultimaTecla.current = e.timeStamp;
-    if (e.key.length === 1 && e.timeStamp - antes < MS_ENTRE_TECLAS) return;
+    if (esRafaga(e.key, antes, e.timeStamp)) return;
     alFlecha(e);
     if (e.defaultPrevented || flujo || vista !== "talla" || escribiendo(document.activeElement) || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
@@ -557,7 +558,7 @@ export function PanelTalla({
       <Modal
         alCerrarEnfocar={abridor}
         variante="hoja"
-        ancho="max-w-[62rem]"
+        ancho="max-w-[62rem]" /* unificar-fijo: el modal de la prenda de Existencias es de diseño propio (ADR-0344) */
         conCerrar
         titulo={prenda.referencia}
         subtitulo={subtitulo}
@@ -616,7 +617,7 @@ export function PanelTalla({
                 >
                   {prenda.fotoUrl ? (
                     <>
-                      <Image src={prenda.fotoUrl} alt="" width={408} height={544} unoptimized className="h-full w-full object-cover" />
+                      <ImagenDePrenda src={prenda.fotoUrl} alt="" width={FOTO_PANEL_TALLA.width} height={FOTO_PANEL_TALLA.height} className="h-full w-full object-cover" fondo={prenda.colorHex} fallback={<SinFoto tamano="h-full w-full" colorHex={prenda.colorHex} {...categoriaDe(prenda)} />} />
                       <span aria-hidden className="absolute bottom-2 right-2 grid h-7 w-7 place-items-center rounded-full bg-papel/90 text-tinta shadow-[0_1px_3px_color-mix(in_srgb,var(--color-sombra)_25%,transparent)]">
                         <ZoomIn className="h-3.5 w-3.5" strokeWidth={2} />
                       </span>

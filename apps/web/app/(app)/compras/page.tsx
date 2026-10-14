@@ -1,9 +1,6 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { Download } from "lucide-react";
 import { exigirModulo } from "@/lib/persona-actual";
-import { getMisPartesDeCompras } from "@/lib/compras-mi-parte";
-import { MisPartesDeCompras } from "@/components/MisPartesDeCompras";
 import { listarCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, ETIQUETA_TIPO_DOCUMENTO, soles, type ParamsCompras } from "@/lib/compras";
 import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indicadores";
 import { celdaPago, celdaRecepcion, nombreDelMes, subEmision, vistaActiva, type VistaComprobantes } from "@/lib/comprobantes-lista-reglas";
@@ -18,11 +15,13 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ChipNotaPendiente } from "@/components/ChipNotaPendiente";
 import { SegmentoEnlaces } from "@/components/ui/SegmentoEnlaces";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
-import { BotonAncla, BotonEnlace } from "@/components/ui/campos";
+import { BotonEnlace } from "@/components/ui/campos";
 import { FiltrosCompras } from "@/components/FiltrosCompras";
 import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { ComprobantesListaFilas } from "@/components/ComprobantesListaFilas";
 import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Comprobantes de proveedores (ADR-0035, rediseño ADR-0111): la lista de lo que se compró. Cada
 // fila dice los dos estados que importan —cuánto falta pagar y cuánto falta llegar— con su cifra
@@ -53,7 +52,9 @@ const PLANTILLA = "sm:grid-cols-[8rem_1fr_7.5rem_10.75rem_11rem_7.25rem_1rem]";
 const PARAMS_DE_VISTA = ["saldo", "porrecibir", "vencidas", "pago"];
 
 export default async function ComprasPage({ searchParams }: { searchParams: Promise<ParamsCompras> }) {
-  const persona = await exigirModulo("facturas_compra"); // 20260923130000: la lista de facturas es del módulo Facturas de compra
+  // 20260923130000: la lista de facturas es del módulo Facturas de compra. ADR-0387 (Felipe 2026-10-12): con el módulo se ven
+  // las facturas de TODAS las tiendas, como el líder (lo filtra la base); ya no hay «tu parte» en comprobantes de otra tienda.
+  await exigirModulo("facturas_compra");
   const params = await searchParams;
   const filtros = filtrosDesdeParams(params);
   const cursor = leerCursor(params.cursor);
@@ -63,14 +64,12 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
   // Qué comprobantes esperan su nota de crédito por faltante depende de los ids de la página, así que se
   // pide ENCADENADA a la lista (y solo si algún comprobante de la página tiene algo cerrado): sigue corriendo
   // en paralelo con las demás consultas de la pantalla.
-  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, proveedores, ubicaciones, misPartes] = await Promise.all([
+  const [{ pagina: { filas: compras, siguiente }, notas }, resumen, extra, proveedores, ubicaciones] = await Promise.all([
     listarCompras(filtros, { cursor, orden }).then(async (pagina) => ({ pagina, notas: await getNotasPendientes(idsConFaltanteCerrado(pagina.filas)) })),
     getResumenCompras(),
     getResumenComprasExtra(),
     getProveedoresActivos(),
     getUbicaciones(),
-    // ADR-0184 (F3-b): la parte de mi tienda en comprobantes que gestiona otra (el líder los ve enteros en la lista).
-    persona.rol === "lider" ? Promise.resolve([]) : getMisPartesDeCompras(),
   ]);
   // Para decir a qué tiendas va un comprobante repartido (ADR-0139).
   const nombrePorUbicacion = Object.fromEntries(ubicaciones.map((u) => [u.id, u.nombre]));
@@ -105,23 +104,25 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Facturas de proveedor</h1>
-          <p className="mt-1 text-sm text-tinta/65">Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella.</p>
-        </div>
-        <div className="flex flex-wrap gap-2.5">
-          {/* El registro de compras del mes que se le manda al contador (ADR-0184: con el filtro por tienda de la base,
-              quien no es líder exporta lo de sus tiendas). */}
-          <BotonAncla href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} data-guia="compras.exportar">
-            <Download aria-hidden className="h-3.5 w-3.5" /> Exportar mes
-          </BotonAncla>
-          <BotonEnlace href="/compras/nueva" peso="primario" data-guia="compras.registrar">
-            + Registrar factura
-          </BotonEnlace>
-        </div>
-      </div>
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). Desde ADR-0387 quien tiene el módulo ve las
+          facturas de todas las tiendas: eso dice la línea de arriba. */}
+      <EncabezadoPagina
+        sede="Todas las tiendas"
+        titulo="Facturas de proveedor"
+        subtitulo="Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella."
+        acciones={
+          <>
+            {/* El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien lo descarga: desde ADR-0387,
+                quien tiene el módulo descarga las facturas de todas las tiendas, como el líder. */}
+            <BotonDescargar href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} guia="compras.exportar">
+              Descargar el mes
+            </BotonDescargar>
+            <BotonEnlace href="/compras/nueva" peso="primario" data-guia="compras.registrar">
+              + Registrar factura
+            </BotonEnlace>
+          </>
+        }
+      />
 
       {/* Cada cifra lleva a donde se actúa sobre ella: «Por pagar» a la lista de deuda (y si hay vencidas,
           directo a las vencidas), «Por recibir» a la pantalla de recepción. La flecha la pone TarjetaCifra (ADR-0358). */}
@@ -178,8 +179,6 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
           Crédito fiscal · solo facturas
         </TarjetaCifra>
       </div>
-
-      <MisPartesDeCompras partes={misPartes} indice={5} />
 
       {/* Los estados dejan menos facturas en la MISMA lista (mismas columnas, mismas acciones): son un filtro de un valor y van
           con la píldora del sistema (ADR-0358, «Pestañas y segmentos», 2026-10-06), no con la pestaña en MAYÚSCULAS de la
@@ -252,14 +251,14 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                   >
                     <span className={celda("izq", "whitespace-normal text-sm tabular-nums text-tinta")}>
                       <span className="block">{diaMes(c.fechaEmision)}</span>
-                      <span className={`block text-xs ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/55"}`}>{subEmision(c)}</span>
+                      <span className={`block text-xs ${c.vencida && c.estadoPago !== "pagada" ? "text-rojo" : "text-tinta/70"}`}>{subEmision(c)}</span>
                     </span>
                     <span className={celda()} data-guia="compras.proveedor">
                       <span className={`block text-sm ${c.estado === "anulada" ? "text-tinta/40 line-through" : "text-tinta"}`}>
                         <Resaltado texto={c.proveedorNombre} busqueda={busqueda} />
                       </span>
                       {c.proveedorRuc && (
-                        <span className="block text-xs tabular-nums text-tinta/55">
+                        <span className="block text-xs tabular-nums text-tinta/70">
                           RUC <Resaltado texto={c.proveedorRuc} busqueda={busqueda} />
                         </span>
                       )}
@@ -268,14 +267,14 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       <span className="block">
                         <Resaltado texto={c.documento} busqueda={busqueda} />
                       </span>
-                      <span className="block text-xs text-tinta/55">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
+                      <span className="block text-xs text-tinta/70">{ETIQUETA_TIPO_DOCUMENTO[c.tipo]}</span>
                     </span>
                     <span className={celda("izq", "overflow-visible whitespace-normal")} data-guia="compras.recepcion">
                       <Chip tono={recepcion.tono}>{recepcion.texto}</Chip>
-                      <span className="mt-0.5 block text-xs text-tinta/55">{recepcion.sub}</span>
+                      <span className="mt-0.5 block text-xs text-tinta/70">{recepcion.sub}</span>
                       {/* Repartido entre varias tiendas (ADR-0139): a cuáles va. Un comprobante de una sola tienda no lo repite acá. */}
                       {c.ubicacionesDestino.length > 1 && (
-                        <span className="mt-0.5 block text-xs text-tinta/55">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
+                        <span className="mt-0.5 block text-xs text-tinta/70">Repartida: {nombresDeDestinos(c.ubicacionesDestino, nombrePorUbicacion)}</span>
                       )}
                       {/* Avance real de lo recibido: solo si hay recepción parcial (`pct` es null si no). */}
                       <AvanceFino pct={recepcion.pct} />
@@ -285,7 +284,7 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
                       <Chip tono={pago.tono} vivo={pago.tono === "rojo"}>
                         {pago.texto}
                       </Chip>
-                      <span className="mt-0.5 block text-xs tabular-nums text-tinta/55">{pago.sub}</span>
+                      <span className="mt-0.5 block text-xs tabular-nums text-tinta/70">{pago.sub}</span>
                       <AvanceFino pct={pago.pct} />
                       {/* Junto al saldo: lo que el proveedor todavía debe acreditar por un faltante cerrado. */}
                       <ChipNotaPendiente nota={notas[c.id]} saldo={c.saldo} className="mt-1" />

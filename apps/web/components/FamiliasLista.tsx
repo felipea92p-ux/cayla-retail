@@ -12,6 +12,8 @@ import { Boton, CampoTexto, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
+import { LapizEditar } from "@/components/ui/BotonEditar";
+import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
 /**
  * Familias del negocio (Indumentaria, Calzado, Accesorios y Complementos...).
@@ -137,10 +139,8 @@ export function FamiliasLista({
               </div>
               {puedeEditar && (
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <Boton peso="discreto" className="px-2.5 py-1.5 text-[10.5px]" onClick={() => setBorrador({ codigo: f.codigo, nombre: f.nombre, entraAMotores: f.entraAMotores })} data-guia="familias.editar">
-                    Editar
-                  </Boton>
-                  <Boton
+                  <LapizEditar que={f.nombre} guia="familias.editar" onClick={() => setBorrador({ codigo: f.codigo, nombre: f.nombre, entraAMotores: f.entraAMotores })} />
+                  <Boton textoCargando="Desactivando…"
                     peso="peligro"
                     cargando={cambiandoCodigo === f.codigo}
                     onClick={() => setConfirmando(confirmacionCatalogo("desactivar", f.nombre, () => cambiarEstado(f)))}
@@ -185,7 +185,7 @@ export function FamiliasLista({
               >
                 {f.nombre}
                 {puedeEditar && (
-                  <Boton
+                  <Boton textoCargando="Reactivando…"
                     peso="discreto"
                     className="px-2 py-1 text-[10.5px]"
                     cargando={cambiandoCodigo === f.codigo}
@@ -248,6 +248,7 @@ function FamiliaModal({
             <CampoGuiado id="nombre" guia={guia}>
               <CampoTexto
                 etiqueta={guia.etiqueta("nombre", "Nombre")}
+                maxLength={MAX_NOMBRE_CATALOGO}
                 value={borrador.nombre}
                 onChange={(e) => onCambio({ ...borrador, nombre: e.target.value })}
                 placeholder="Ej. Hogar y Decoración"
@@ -274,7 +275,7 @@ function FamiliaModal({
           <div className="mt-4">
             <PieGuia guia={guia} listo="Todo listo para guardar." />
           </div>
-          <div data-guia="familias.form-pie" className="mt-4 flex justify-end gap-2">
+          <div data-guia="familias.form-pie" className="mt-4 pie-acciones">
             <Boton peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>

@@ -6,6 +6,7 @@ import { HojaParecidas } from "@/components/alta-producto/HojaParecidas";
 import { TiraParecidas } from "@/components/alta-producto/TiraParecidas";
 import { fechaCorta } from "@/lib/etiqueta-vigencia";
 import type { AlertaVista } from "@/lib/parecidas-alta-vista";
+import { Boton } from "@/components/ui/campos";
 
 // «Prendas parecidas» (Fase 1, 2026-09-30): si el formulario pasa `parecidas`, la alerta va bajo la ficha (escritorio), la tira
 // «2 prendas parecidas · Ver» sobre la barra de abajo (celular y tablet) y la hoja «Ver y comparar» se monta aquí (es un portal: se ve igual con el
@@ -223,11 +224,11 @@ export function FichaPrevia({
           )}
         </div>
         <div data-guia="nuevo.crear" className={`space-y-3 ${parecidas ? "shrink-0" : ""}`}>
-          <div className="flex gap-2">
+          <div className="pie-acciones">
             <button type="button" onClick={onCancelar} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined} className="btn-cayla btn-primario flex-1">
+            <button type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined} className="btn-cayla btn-primario">
               {textoCrear}
             </button>
           </div>
@@ -257,9 +258,9 @@ export function FichaPrevia({
           <button type="button" onClick={() => setVerMovil((v) => !v)} aria-expanded={verMovil} className="btn-cayla btn-secundario px-3">
             {verMovil ? "Ocultar" : "Ver"}
           </button>
-          <button type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined} className="btn-cayla btn-primario">
-            {cargando ? "Creando…" : "Crear"}
-          </button>
+          <Boton peso="primario" cargando={cargando} textoCargando="Creando…" type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined}>
+            Crear
+          </Boton>
         </div>
         <Siguiente d={datos} clase="mt-1 text-xs" />
       </div>

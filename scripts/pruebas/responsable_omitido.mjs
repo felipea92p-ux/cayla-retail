@@ -172,10 +172,21 @@ caso(
 // Menos dos: Editar producto (`producto_confirmar_cambios`) vuelve a pedir responsable desde 20261006180100 (ADR-0354) y Regularizar
 // una prenda (`regularizar_prenda`) desde 20261004204000 (ADR-0328, en producción desde el 5-oct; 20261006200000 repite el borrado).
 // Y tres más de Órdenes de compra (crear, editar y anular: 20261010223500, 20261010235000 y 20261010235500; ADR-0362,
-// decisión 39): con la cuenta de una persona firma ella; desde una terminal, el combo.
-const TOTAL = EN_SECO ? "28" : "35";
+// decisión 39): con la cuenta de una persona firma ella; desde una terminal, el combo. Y una más: registrar el comprobante de una orden
+// (`orden_compra_comprobante`, 20261012211000; ADR-0362 fase 2, decisión 42), con el mismo trato. Y una más: enviar una orden a una sede
+// (`orden_compra_envio`, 20261012225000; ADR-0362 fase 3). Y tres más de Órdenes de insumos del Taller (`orden_insumo_crear`,
+// `orden_insumo_editar` y `orden_insumo_anular`, 20261013040000; ADR-0362 fase 7): la decisión 39 extendida a la orden del Taller.
+// Y tres más de Fondos por rendir (`fondo_entregar`, `fondo_devolver` y `fondo_anular`, 20261013182000; ADR-0362 fase 6): el mismo trato.
+// Y una más: el gasto del viaje (`gasto_viaje_registrar`, 20261013222000; ADR-0362 fase 6 · actividad 3), que se anota lejos de la tienda.
+// Y cuatro de la rendición (ADR-0362 fase 6 · actividad 5): la foto del papel de un gasto del viaje (`gasto_viaje_foto`, 20261013233000),
+// rendir el propio fondo y aprobar o devolver una rendición (`fondo_rendir`, `fondo_rendicion_aprobar`, `fondo_rendicion_devolver`,
+// 20261013235000). Y dos de la deuda de un faltante (ADR-0362 fase 6 · actividad 7): registrar lo que la persona paga y anularlo
+// (`fondo_deuda_pagar`, `fondo_deuda_anular`, 20261014145000).
+const TOTAL = EN_SECO ? "28" : "50";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
-caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)';`, "0");
+// El gasto del viaje es la excepción con motivo: se anota en Gamarra, donde nadie marca entrada (ADR-0362 fase 6, provisional). Sumarle
+// la foto de su papel no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`).
+caso("la caja, la venta y los cambios NO están en la lista", `select count(*) from retail.acciones_sin_responsable where clave ~ '(caja|venta|cambio_prenda|devolucion|gasto|cierre_mes)' and clave not in ('gasto_viaje_registrar', 'gasto_viaje_foto');`, "0");
 caso(
   "la API no lee ni escribe la lista (RLS sin políticas, sin permisos)",
   `set local role authenticated;\nselect pg_temp.intento('select * from retail.acciones_sin_responsable') || ',' || pg_temp.intento($$delete from retail.acciones_sin_responsable$$);`,

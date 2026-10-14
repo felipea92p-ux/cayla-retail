@@ -34,7 +34,7 @@
   /* ---------- la tarjeta del riel ---------- */
   .pp-card {
     --pp-pad: 24px; --pp-banda: 14px; --pp-gap: 9px; --pp-solape: 0.4;
-    --pp-poste: color-mix(in srgb, var(--color-tinta) 58%, transparent);
+    --pp-poste: color-mix(in srgb, var(--color-tinta) 58%, transparent); /* contraste: gráfico sobre papel */
     background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: var(--radius-xl);
     padding: var(--pp-pad); display: grid; gap: 26px; min-width: 0;
   }

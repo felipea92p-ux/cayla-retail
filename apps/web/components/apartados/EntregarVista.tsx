@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Pencil, Receipt, SearchX, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { Archive, Receipt, SearchX, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -11,8 +11,12 @@ import { CampoMonto } from "@/components/ui/CampoMonto";
 import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { enviarVentaASunat } from "@/lib/envio-sunat";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
-import { AVISO_EFECTIVO_SIN_MONEDA, cobroDelSaldo, coincide, diasEntre, encendida, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
+import { AVISO_EFECTIVO_SIN_MONEDA, avanceDelPlazo, cobroDelSaldo, coincide, encendida, esConstancia, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { BarraMovil, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal } from "@/components/apartados/ModalesApartado";
@@ -20,12 +24,14 @@ import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { diaLima } from "@/lib/fechas-lima";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
@@ -76,7 +82,11 @@ export function EntregarVista({
   const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [texto, setTexto] = useState("");
   const [pagos, setPagos] = useState<PagoAdelanto[]>([]);
-  const [enviando, setEnviando] = useState(false);
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): el apartado y los pagos. Si la respuesta se pierde, la vista
+  // se congela (ni otro apartado ni otros pagos) hasta saber si la entrega quedó.
+  const envio = useIntento("entregar_separacion");
+  const enviando = envio.enviando;
+  const [revisando, setRevisando] = useState(false);
   const [abonar, setAbonar] = useState(false);
   const [editar, setEditar] = useState(false);
   const conAbonos = encendida(apagadas, "abonos");
@@ -84,13 +94,14 @@ export function EntregarVista({
   const conEstante = encendida(apagadas, "estante");
   const ubicacion = { ubicacionId, etiqueta: ubicacionEtiqueta };
   const [entregado, setEntregado] = useState<{ apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number; redondeo: number } | null>(null);
-  const token = useRef<string>(crypto.randomUUID());
   // Entregar guarda en la tienda (cobra el saldo y cierra la venta): pide Responsable (ADR-0161), vacío en cada entrega
   // (módulo Punto de venta: no propone a quien inició sesión).
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta }, { modo: "atencion" });
 
   /** Cambiar de clienta es otra operación: el combo vuelve a vacío. */
   function elegir(id: string | null) {
+    // En duda no se cambia de apartado: la entrega en el aire es la del elegido.
+    if (envio.incierto) return;
     responsable.limpiar();
     onElegir(id);
   }
@@ -113,26 +124,42 @@ export function EntregarVista({
 
   async function entregar() {
     if (!a || !cobro.listo || !cajaAbierta || !responsable.listo) return;
-    setEnviando(true);
     // Con el redondeo del efectivo (ADR-0311) viaja el efectivo YA cobrado en monedas y, aparte, la fila `redondeo`: la suma sigue siendo el
-    // saldo exacto, que es lo que la boleta final documenta.
+    // saldo exacto. La boleta o factura sale por el TOTAL del apartado y no nombra el adelanto (ADR-0399).
     const pagosRpc = pagosParaRpcApartado(pagos, redondeoEfectivo);
-    const { error } = await firmar(
-      createClient().rpc("entregar_separacion", {
-        p_separacion_id: a.id,
-        p_pagos: pagosRpc,
-        p_token: token.current,
-      }),
-      responsable.firma(),
+    const params = { p_separacion_id: a.id, p_pagos: pagosRpc };
+    const r = await envio.enviar(huellaDe(params), (token, senal) =>
+      firmar(createClient().rpc("entregar_separacion", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
     );
-    setEnviando(false);
+    if (r.tipo === "ocupado" || r.tipo === "congelado") return;
     // Éxito → el combo vuelve a vacío; rechazo por el responsable (marcó salida) → vacía y relee la lista.
-    responsable.despues(error);
-    if (error) {
-      avisar.error(traducirError(error, "entregar el apartado", { confirmarAntesDeRepetir: true }));
+    responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: la vista lo dice arriba y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") {
+      avisar.error(traducirError(r.error, "entregar el apartado"));
       return;
     }
-    token.current = crypto.randomUUID();
+    // Como cualquier venta: la boleta o factura se declara a SUNAT en segundo plano; si Lucode no responde queda en la cola de reintento
+    // (y, si la respuesta quedó en duda, el barrido la recoge). Un apartado VIEJO (con su boleta de anticipo) no se envía solo: la ruta lo
+    // frena hasta que se pruebe el anticipo con Lucode.
+    if (esConstancia(a) && r.tipo === "ok" && typeof r.data === "string") enviarVentaASunat(r.data);
+    entregadoCon(a, pagosRpc);
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await envio.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho" && a) return entregadoCon(a, pagosParaRpcApartado(pagos, redondeoEfectivo));
+    if (res.tipo === "no_llego") {
+      avisar.aviso("La entrega no se registró", { detalle: "El apartado sigue abierto y no se cobró el saldo. Revisa los pagos y vuelve a entregar." });
+      return;
+    }
+    if (res.tipo === "sin_respuesta") avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
+  function entregadoCon(a: Apartado, pagosRpc: ReturnType<typeof pagosParaRpcApartado>) {
     const pagadoHoy = pagosRpc.flatMap((p) => (p.metodo === "redondeo" ? [] : [{ metodo: NOMBRE_METODO[p.metodo] ?? p.metodo, monto: p.monto }]));
     const redondeo = pagosRpc.find((p) => p.metodo === "redondeo")?.monto ?? 0;
     setEntregado({ apartado: a, pagadoHoy, vuelto: cobro.vuelto, redondeo });
@@ -145,6 +172,13 @@ export function EntregarVista({
 
   return (
     <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+      {envio.incierto && (
+        <div className="px-5 pt-5 sm:px-6 lg:col-span-2">
+          <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} onReintentar={entregar} reintentando={enviando} />
+        </div>
+      )}
+      {/* En duda, nada se toca: otro apartado u otros pagos podrían entregar dos veces. */}
+      <fieldset disabled={envio.incierto} className="contents">
       <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
       {cabecera}
       <div className="flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0">
@@ -158,7 +192,7 @@ export function EntregarVista({
             elegir(null);
             setPagos([]);
           }}
-          placeholder="Nombre, DNI, celular o N.º de boleta"
+          placeholder="Nombre, DNI, celular o código APT-"
           etiqueta="Buscar apartado"
         />
 
@@ -176,7 +210,7 @@ export function EntregarVista({
               </div>
               <div className="text-right">
                 <EstadoChip {...estadoVisible(a, hoy)} />
-                <p className="mt-1 font-mono text-[11px] text-tinta/55">{a.codigo} · {a.comprobanteAnticipo}</p>
+                <p className="mt-1 font-mono text-[11px] text-tinta/55">{a.codigo}{a.comprobanteAnticipo ? ` · ${a.comprobanteAnticipo}` : ""}</p>
                 {conEstante && a.estante && (
                   <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-[11px]"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
                 )}
@@ -185,7 +219,7 @@ export function EntregarVista({
                 </button>
               </div>
             </div>
-            <LineaDeTiempo creadaEl={a.creadaEn.slice(0, 10)} hoy={hoy} venceEl={a.venceEl} />
+            <LineaDeTiempo creadaEl={diaLima(a.creadaEn)} hoy={hoy} venceEl={a.venceEl} />
             <ul className="divide-y divide-sand border-t border-sand">
               {a.prendas.map((pr) => (
                 <li key={pr.varianteId} className="flex items-center gap-3 py-2.5">
@@ -200,16 +234,16 @@ export function EntregarVista({
             </ul>
             {conEditar && (
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => setEditar(true)} className="btn-cayla btn-secundario inline-flex h-9 items-center gap-1.5 px-2.5 text-[12.5px]">
-                  <Pencil className="h-3.5 w-3.5" aria-hidden /> Editar prendas
-                </button>
+                <BotonEditar chico onClick={() => setEditar(true)}>
+                  Editar prendas
+                </BotonEditar>
                 <span className="text-xs text-tinta/55">Sumar otra, quitar una o cambiar la talla, sin liberar.</span>
               </div>
             )}
             <p className="flex items-start gap-2 rounded-xl border border-sand bg-crema px-3 py-2.5 text-[12.5px] text-tinta/80">
               <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
               <span>
-                Antes de entregar: la prenda está en {conEstante && a.estante ? <>el estante <b>{a.estante}</b></> : "«Apartados»"} con la etiqueta {a.codigo}, y el DNI o la boleta del cliente coinciden.
+                Antes de entregar: la prenda está en {conEstante && a.estante ? <>el estante <b>{a.estante}</b></> : "«Apartados»"} con la etiqueta {a.codigo}, y el DNI o la {esConstancia(a) ? "constancia" : "boleta"} del cliente coinciden.
               </span>
             </p>
           </article>
@@ -285,7 +319,7 @@ export function EntregarVista({
                   <p className="flex justify-between"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
                   {a.pagos.map((p, i) => (
                     <p key={i} className="flex justify-between">
-                      <span>{p.abono ? "Abonó" : "Adelantó"} con {NOMBRE_METODO[p.metodo] ?? p.metodo} · {fechaCorta(p.fecha ?? a.creadaEn)}</span>
+                      <span>{p.abono ? "Abonó" : "Adelantó"} con {NOMBRE_METODO[p.metodo] ?? p.metodo} · {fechaCorta(diaLima(p.fecha ?? a.creadaEn))}</span>
                       <span>−{money(p.monto)}</span>
                     </p>
                   ))}
@@ -357,6 +391,7 @@ export function EntregarVista({
                     {cobro.excede && <Aviso tono="error" chico>Con esos medios no hay vuelto: cobra justo {money(saldo)}.</Aviso>}
                     {cobro.falta > 0 && pagos.length > 0 && <Aviso tono="error" chico>Falta {money(cobro.falta)}</Aviso>}
                     {cobro.noAlcanza && <Aviso tono="error" chico>Lo recibido no alcanza.</Aviso>}
+                    {cobro.vueltoExcede && <Aviso tono="error" chico>El vuelto pasa de S/ 500: revisa cuánto entregó.</Aviso>}
                   </fieldset>
                 )}
                 {cobro.vuelto > 0 && (
@@ -378,11 +413,13 @@ export function EntregarVista({
                 )}
                 <p className="flex items-start gap-1.5 text-xs text-tinta/60">
                   <Receipt className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {saldo > 0
-                    ? a.pagos.some((p) => p.abono)
-                      ? "Sale la boleta final por el saldo, que descuenta todos los anticipos (el del apartado y los abonos)."
-                      : `Sale la boleta final por el saldo, que descuenta el anticipo ${a.comprobanteAnticipo}.`
-                    : "Ya pagó todo: se entrega sin cobrar nada más."} No se piden datos otra vez.
+                  {esConstancia(a)
+                    ? `Sale la boleta o factura por el total (${money(a.total)}), sin nombrar el adelanto.${saldo > 0 ? "" : " Ya pagó todo: no se cobra nada más."}`
+                    : saldo > 0
+                      ? a.pagos.some((p) => p.abono)
+                        ? "Sale la boleta final por el saldo, que descuenta todos los anticipos (el del apartado y los abonos)."
+                        : `Sale la boleta final por el saldo, que descuenta el anticipo ${a.comprobanteAnticipo}.`
+                      : "Ya pagó todo: se entrega sin cobrar nada más."} No se piden datos otra vez.
                 </p>
               </div>
             </div>
@@ -406,7 +443,7 @@ export function EntregarVista({
                 onClick={entregar}
                 className={`${BOTON_PRINCIPAL} max-lg:hidden`}
               >
-                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar"}</span>
+                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(saldo)}</span>
               </button>
               <p className="text-center text-xs text-tinta/55">{!cajaAbierta ? "Abre la caja para poder entregar." : cobro.sinMoneda ? AVISO_EFECTIVO_SIN_MONEDA : !cobro.listo ? "Elige cómo paga el saldo." : (responsable.motivo ?? "Listo: entrega la prenda y la boleta.")}</p>
@@ -419,7 +456,7 @@ export function EntregarVista({
         <BarraMovil
           etiqueta={`Saldo · ${a.nombres}`}
           monto={saldo}
-          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar"}
+          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}
           icono={<ShoppingBag className="h-4 w-4" aria-hidden />}
           deshabilitado={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || cobro.noAlcanza}
           onClick={entregar}
@@ -430,13 +467,13 @@ export function EntregarVista({
       {editar && a && <EditarApartadoModal apartado={a} prendas={prendas} ubicacion={ubicacion} onClose={() => setEditar(false)} />}
 
       {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} redondeo={entregado.redondeo} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
+      </fieldset>
     </div>
   );
 }
 
-function LineaDeTiempo({ creadaEl, hoy, venceEl }: { creadaEl: string; hoy: string; venceEl: string }) {
-  const total = Math.max(1, diasEntre(creadaEl, venceEl));
-  const pasados = Math.min(total, Math.max(0, diasEntre(creadaEl, hoy)));
+function LineaDeTiempo({ creadaEl, hoy, venceEl }: { creadaEl: string | null; hoy: string; venceEl: string }) {
+  const { total, pasados } = avanceDelPlazo(creadaEl, hoy, venceEl);
   return (
     <div className="relative grid grid-cols-3 pt-5 text-xs text-tinta/60">
       <span aria-hidden className="absolute top-[7px] right-2 left-2 h-0.5 bg-sand" />

@@ -19,15 +19,15 @@
     ],
     "components/RevisarProductoHoja.tsx": [
       "Boton «Volver»",
-      "BotonEnlace «Ver las órdenes»",
-      "BotonEnlace «Ir a Existencias»",
+      "BotonVer «Ver las órdenes»",
+      "BotonVer «Ir a Existencias»",
       "BotonEnlace «Ponerle precio»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Volver» #2",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
-      "Link «Imprimir etiquetas»",
+      "BotonImprimir «Imprimir etiquetas»",
       "button «Descartar el aviso de etiquetas pendientes»"
     ]
   }

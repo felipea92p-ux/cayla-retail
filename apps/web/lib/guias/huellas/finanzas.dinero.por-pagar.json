@@ -2,7 +2,7 @@
   "guia": "finanzas.dinero.por-pagar",
   "ruta": "/finanzas/dinero/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 39,
+  "total": 38,
   "controles": {
     "components/CompraDetallePanel.tsx": [
       "button «Anular comprobante»",
@@ -13,14 +13,13 @@
       "input «{`Monto a pagar de ${compra.documento}»",
       "input «Total del pago»",
       "button «Todo ·»",
-      "CampoSelect «Pagas desde»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "Boton «{loading ? \"Registrando…\" : `Registrar pago de ${soles(suma)}»",
+      "Boton «{`Registrar pago de ${soles(suma)}»",
       "CampoTexto «Motivo»",
       "ComboResponsable «Volver»",
       "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/MediosDePago.tsx": [
       "Desplegable «cambiar(i,»",

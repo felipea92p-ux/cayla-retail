@@ -19,6 +19,7 @@ import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor
 import { conPreciosDeSede, leerPreciosEnSede } from "@/lib/precio-sede-reglas";
 import { pisoAnterior, type Familia, type PuertaPiso } from "@/lib/frescura-piso";
 import { resumenDeTienda, type ResumenTienda } from "@/lib/frescura-red";
+import { pisoFrescuraParaElInicio, type LecturaParaElInicio, type PisoFrescuraInicio } from "@/lib/inicio-piso-reglas";
 import type { NombresDeTemporadas } from "@/lib/frescura-pantalla";
 import type { Tolerado } from "@/lib/resultado";
 import type { PersonaActualV2 } from "@/lib/persona-actual";
@@ -33,8 +34,6 @@ import type { PersonaActualV2 } from "@/lib/persona-actual";
 //     con eso arma la referencia de CAYLA y «Las N tiendas»;
 //   · quien tiene el módulo SIN ser líder lee solo su sede, entera. El registro al colgar y la referencia de CAYLA no se le
 //     piden: las dos necesitan las otras tiendas, que no opera (DECIDÍ en ADR-0208, «Actualización 2026-09-28 — paso 4»).
-
-export type { FrescuraDeSede, FrescuraLider } from "@/lib/frescura-reglas";
 
 /** Los días de historia que lee cada sede: la ventana más larga de la vara (`VENTANAS_VARA_DIAS`). */
 export const FRESCURA_DIAS_LECTURA = 120;
@@ -372,6 +371,36 @@ export type DatosRed = { tiendas: ResumenTienda[]; esLider: boolean };
  * con OK de Felipe: fuera de esta ronda); mientras tanto la pantalla lo dice. Cada tienda falla por su cuenta; la suma de CAYLA no afirma
  * nada si falta una (`resumenCayla`).
  */
+/**
+ * La lectura de Frescura que pide la tarjeta «Tu piso» del Inicio (ADR-0395): UNA tienda, la que la persona mira, y solo lo que la tarjeta
+ * dice. NO es `getFrescuraPantalla`: para un líder esa lee las tres tiendas, el registro al colgar y la referencia de CAYLA (unas 24 consultas
+ * y tres análisis), y el Inicio es la pantalla que más se abre. Esta hace las MISMAS cuentas de la pantalla para la tienda activa (la vara de
+ * CAYLA de respaldo, las dudas de ventas sin registrar, la puerta y lo ya decidido: lo que cambia el veredicto) y deja lo decorativo
+ * (miniaturas, precios, temporadas, anotadas, familias, el registro de las otras tiendas).
+ *
+ * PROMETE: nunca lanza. «no aplica» si la sede no es una tienda o no separa piso y almacén; «falló» si la lectura no respondió.
+ * ASUME: la llama el servidor con la sesión de quien mira y SOLO si ve el módulo `frescura` (la base lo exige: sin él, las lecturas dan 42501).
+ * NO TIENE CACHÉ: va dentro de un `<Suspense>` para no frenar el resto del Inicio. Si en producción pesa, se mide antes de cachear (el candado
+ * de las RPC es por persona, así que una caché compartida por sede no es trivial).
+ */
+export async function getPisoDeFrescuraParaElInicio(persona: Pick<PersonaActualV2, "ubicacionId" | "ubicacionEtiqueta" | "ubicacionTipo">): Promise<LecturaParaElInicio<PisoFrescuraInicio>> {
+  if (persona.ubicacionTipo !== "tienda") return { estado: "no_aplica" };
+  try {
+    const supabase = await createClient();
+    const rpc = rpcFrescura(supabase);
+    const sede = { id: persona.ubicacionId, nombre: persona.ubicacionEtiqueta };
+    // La vara y la puerta no dependen una de otra: a la vez. La lectura de la sede necesita la vara al juzgar cada prenda.
+    const [{ respaldo }, puerta] = await Promise.all([leerRespaldoCayla(rpc, new Date().toISOString()), puertaDelPiso(supabase, sede.id)]);
+    const { lectura } = await armarFrescuraSede(sede, rpc, FRESCURA_DIAS_LECTURA, respaldo, pisoAnterior, cargarDudasCon(supabase));
+    if (lectura.fallo !== null || lectura.datos === null) return { estado: "fallo" };
+    if (!lectura.datos.separaPiso) return { estado: "no_aplica" };
+    return { estado: "ok", datos: pisoFrescuraParaElInicio(lectura.datos, puerta) };
+  } catch (e) {
+    console.error("Inicio: no se pudo leer el piso de Frescura", e);
+    return { estado: "fallo" };
+  }
+}
+
 export async function getFrescuraRed(persona: Pick<PersonaActualV2, "rol">, dias: number = FRESCURA_DIAS_LECTURA): Promise<DatosRed> {
   if (persona.rol !== "lider") return { tiendas: [], esLider: false };
   const supabase = await createClient();

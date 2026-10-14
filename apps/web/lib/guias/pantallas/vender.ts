@@ -181,7 +181,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       solo: "escritorio",
       ...CAJA_ABIERTA,
       titulo: "Descuento, espera y quién atiende",
-      texto: "«Aplicar descuento» rebaja todo el ticket con su motivo. «Dejar en espera» guarda el ticket para atender a otro cliente y retomarlo después. Arriba del botón eliges quién está atendiendo.",
+      texto: "«Aplicar descuento» rebaja el ticket o solo unas prendas, en % o en soles, con su motivo; el % deja el precio sin céntimos. «Dejar en espera» guarda el ticket para atender a otro cliente. Arriba del botón eliges quién atiende.",
     },
     {
       id: "cobrar",
@@ -254,7 +254,7 @@ export const GUIA_APARTADOS: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Apartar una prenda",
-      texto: "Cuando un cliente quiere una prenda pero vuelve otro día, se la separas con un adelanto. La prenda deja de estar a la venta hasta que la recoge o vence el plazo. Es una demo: no se aparta nada.",
+      texto: "Cuando un cliente quiere una prenda pero vuelve otro día, se la separas con un adelanto. Se lleva una constancia (no es comprobante de pago); la boleta o factura sale una sola vez, cuando recoge, por el total. Es una demo: no se aparta nada.",
     },
     {
       id: "pestanas",
@@ -292,7 +292,7 @@ export const GUIA_APARTADOS: Guia = {
       opcional: true,
       solo: "escritorio",
       titulo: "Cobrar el saldo y entregar",
-      texto: "Con el apartado elegido, cobras lo que falta (efectivo, tarjeta o Yape) y la prenda se entrega. Si el cliente ya no la quiere, desde aquí se libera y se le devuelve el adelanto.",
+      texto: "Con el apartado elegido, cobras lo que falta (efectivo, tarjeta o Yape) y la prenda se entrega con su boleta o factura por el total. Si el cliente ya no la quiere, desde aquí se libera y se le devuelve el adelanto, sin gastar ningún comprobante.",
     },
     {
       id: "todos",
@@ -465,7 +465,7 @@ export const GUIA_HISTORIAL: Guia = {
       ancla: "historial.herramientas",
       opcional: true,
       titulo: "Más filtros y Excel",
-      texto: "«Exportar» (solo el líder) baja en Excel lo que estás viendo, con los mismos filtros. «Filtros» abre el resto, para afinar la búsqueda (te lo abrimos en el paso siguiente).",
+      texto: "«Descargar Excel» (solo el líder) baja lo que estás viendo, con los mismos filtros. «Filtros» abre el resto, para afinar la búsqueda (te lo abrimos en el paso siguiente).",
     },
     {
       id: "filtros-panel",

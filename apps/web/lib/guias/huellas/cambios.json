@@ -26,7 +26,7 @@
     ],
     "components/CambioTicket.tsx": [
       "a «(sin nombre)»",
-      "button «Imprimir ticket»",
+      "BotonImprimir «Imprimir ticket»",
       "Link «Se lleva algo más: seguir vendiendo»",
       "button «Nuevo cambio»"
     ],
@@ -34,7 +34,7 @@
       "input «{l.referencia}»",
       "Volver «Continuar»",
       "Volver «Revisar el cambio»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{envio.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "Volver «Cancelar»"
     ],
     "components/CambiosPanel.tsx": [
@@ -61,7 +61,7 @@
       "button «{children}» #2"
     ],
     "components/punto-de-venta/AnotarNoHabia.tsx": [
-      "button «→anotar»",
+      "Boton «→anotar»",
       "button «{t}»",
       "ComboResponsable «(sin nombre)»"
     ]

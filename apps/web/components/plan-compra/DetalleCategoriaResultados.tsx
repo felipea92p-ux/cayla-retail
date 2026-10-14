@@ -19,6 +19,7 @@ import {
   type LecturaResultados,
   type SenalCategoria,
 } from "@/lib/plan-compra-resultados";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 // El detalle de una categoría en Resultados (ADR-0372, C6 · Felipe 2026-10-12: «al darle clic a una fila, qué prendas y de qué colores se
 // vendieron más»; y después, «sus ventas contra lo esperado y la campaña pasada»). Solo lee: lo que ya trae `fn_plan_compra_resultados`
@@ -74,7 +75,7 @@ export function DetalleCategoriaResultados({
   const maxTienda = Math.max(0, ...porTienda.map((x) => x.unidades));
 
   return (
-    <Modal titulo={categoria.nombre} subtitulo={`${r.plan.nombre} · ${categoria.familia} · ${enteroES.format(unidades)} ${unidades === 1 ? "prenda vendida" : "prendas vendidas"}`} onClose={onClose} variante="hoja" ancho="max-w-2xl" conCerrar>
+    <Modal titulo={categoria.nombre} subtitulo={`${r.plan.nombre} · ${categoria.familia} · ${enteroES.format(unidades)} ${unidades === 1 ? "prenda vendida" : "prendas vendidas"}`} onClose={onClose} variante="hoja" tamano="ancha" conCerrar>
       <div className="space-y-6">
         {r.tiendas.length > 1 && (
           <div role="group" aria-label="Tienda" className="flex flex-wrap gap-2">
@@ -144,7 +145,7 @@ export function DetalleCategoriaResultados({
 
         {tienda === null && porTienda.length > 1 && (
           <section>
-            <h3 className="text-[13px] font-semibold text-tinta">Por tienda</h3>
+            <TituloGrupo>Por tienda</TituloGrupo>
             <ol className="mt-2 space-y-1.5">
               {porTienda.map(({ t, unidades: u }) => (
                 <li key={t.id} className="grid grid-cols-[7rem_minmax(0,1fr)_3rem] items-center gap-3 text-sm">
@@ -160,7 +161,7 @@ export function DetalleCategoriaResultados({
         )}
 
         <section>
-          <h3 className="text-[13px] font-semibold text-tinta">Las prendas que más se vendieron</h3>
+          <TituloGrupo>Las prendas que más se vendieron</TituloGrupo>
           {prendas.length === 0 ? (
             <Vacio tamano="chico" icono={<Shirt />} titulo={tienda === null ? "Todavía no se vendió ninguna" : "En esta tienda no se vendió ninguna"}>
               Cuando se venda una prenda de {categoria.nombre}, aparece aquí con su color.
@@ -191,7 +192,7 @@ export function DetalleCategoriaResultados({
 
         {colores.length > 0 && (
           <section>
-            <h3 className="text-[13px] font-semibold text-tinta">Por color</h3>
+            <TituloGrupo>Por color</TituloGrupo>
             <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
               {colores.map((c) => (
                 <li key={c.codigo} className="grid grid-cols-[minmax(0,1fr)_minmax(0,6rem)_2.5rem] items-center gap-3 text-sm">

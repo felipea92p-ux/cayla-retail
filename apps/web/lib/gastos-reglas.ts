@@ -4,6 +4,8 @@
 
 import { claveTexto, type MotivoParecido } from "./nombres-parecidos";
 import { proveedoresParecidos } from "./proveedores-reglas";
+import { soles } from "./compras-reglas";
+import { UMBRAL_BANCARIZACION } from "./no-deducible-reglas";
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
@@ -16,6 +18,20 @@ export const TEXTO_COMPROBANTE: Record<TipoComprobante, string> = {
   boleta: "Boleta",
   recibo_por_honorarios: "Recibo por honorarios",
   sin_comprobante: "Sin comprobante",
+};
+
+/**
+ * El papel de un gasto en la lista (`comprobante_tipo` de `fn_gastos_lista`): el tipo de su comprobante de proveedor (`compras.tipo`) o,
+ * en un gasto del viaje (ADR-0362, fase 6), el papel de su ficha (`gastos_viaje.papel`), que la base manda sin traducir. Son los valores
+ * que aceptan esos dos candados: si la base gana otro, `pruebas:gastos-lista-viaje` falla y dice cuál falta aquí.
+ */
+export type PapelDeGasto = TipoComprobante | "nota_venta" | "ticket" | "planilla_movilidad";
+/** Con las palabras de la hoja «Gasto del viaje» (`TEXTO_PAPEL`): quien registró el gasto reconoce lo que eligió. */
+export const TEXTO_PAPEL_DE_GASTO: Record<PapelDeGasto, string> = {
+  ...TEXTO_COMPROBANTE,
+  nota_venta: "Nota de venta",
+  ticket: "Ticket o boleto",
+  planilla_movilidad: "Sin comprobante",
 };
 
 /** Cómo se pagó. `deposito` solo existe con comprobante (así lo acepta `compra_pagos`). */
@@ -122,19 +138,22 @@ export function leerVer(param: string | undefined, ubicaciones: readonly Ubicaci
   return { clave: "todas", ubicacionId: null, soloEmpresa: false };
 }
 
-export function nombreVer(ver: Ver, ubicaciones: readonly UbicacionGastos[]): string {
-  if (ver.soloEmpresa) return "de la empresa";
-  if (!ver.ubicacionId) return "de todas las tiendas";
-  return `de ${ubicaciones.find((u) => u.id === ver.ubicacionId)?.nombre ?? "la tienda"}`;
-}
-
 // ---- Lo que devuelve la base → tipos de la pantalla ---------------------------------------------------------------------
 
 export type CategoriaGasto = { codigo: string; nombre: string; ejemplos: string; cuenta: string; cuentaNombre: string };
 
 export type PanelGastos = {
   total: number;
+  /** El IGV de las facturas de los gastos del mes (sin restar lo perdido). */
   igv: number;
+  /**
+   * El IGV perdido por los pagos sin banco DEL MES (ADR-0362, fase 6, decisión 76: en el mes del pago, como Impuestos), de los gastos que
+   * se ven aunque sean de otro mes; `deOtrosMeses`, cuánto de eso es de gastos de otro mes. Sin la clave en la base (la migración
+   * 20261014174000 sin pegar), ceros: la tarjeta dice lo de antes.
+   */
+  igvPerdido: { n: number; igv: number; deOtrosMeses: number };
+  /** «IGV que puedes descontar»: el IGV de las facturas del mes menos lo perdido en el mes. */
+  igvDescontable: number;
   n: number;
   boletas: number;
   sinComprobante: number;
@@ -160,7 +179,7 @@ export type GastoFila = {
   medioPago: MedioGasto | null;
   cajaMovimientoId: string | null;
   compraId: string | null;
-  comprobanteTipo: TipoComprobante;
+  comprobanteTipo: PapelDeGasto;
   comprobante: string | null;
   proveedorNombre: string | null;
   condicion: "contado" | "credito" | null;
@@ -172,7 +191,14 @@ export type GastoFila = {
   registradoPor: string | null;
   /** Cuándo se registró (la hora del gasto que no salió de un cajón, como el pagado con Yape desde Caja). */
   creadoEn: string | null;
+  /** El IGV que se perdió por pagar sin banco (ADR-0362, fase 6, decisión 76): la suma de `pagosSinBanco`, nunca más que `igv`. */
+  igvPerdido: number;
+  /** Los pagos en efectivo o desde un fondo que se llevaron su parte del IGV (`fn_gastos_igv_perdido`), del más viejo al más nuevo. */
+  pagosSinBanco: PagoSinBanco[];
 };
+
+/** Un pago en efectivo o desde un fondo de una factura de S/ 2 000 o más: la base dice cuánto IGV se llevó (`fn_igv_perdido`). */
+export type PagoSinBanco = { pagoId: string; fecha: string; igv: number; monto: number; como: "efectivo" | "fondo" };
 
 export type EgresoPorClasificar = {
   id: string;
@@ -207,9 +233,13 @@ const txt = (v: unknown) => (v === null || v === undefined ? null : String(v));
 
 export function leerPanel(data: unknown): PanelGastos {
   const d = (data ?? {}) as Fila;
+  const perdido = (d.igv_perdido ?? {}) as Fila;
+  const igvPerdido = { n: num(perdido.n), igv: num(perdido.igv), deOtrosMeses: num(perdido.de_otros_meses) };
   return {
     total: num(d.total),
     igv: num(d.igv),
+    igvPerdido,
+    igvDescontable: redondear(num(d.igv) - igvPerdido.igv),
     n: num(d.n),
     boletas: num(d.boletas),
     sinComprobante: num(d.sin_comprobante),
@@ -237,7 +267,7 @@ export function leerGasto(g: Fila): GastoFila {
     medioPago: (txt(g.medio_pago) as MedioGasto | null) ?? null,
     cajaMovimientoId: txt(g.caja_movimiento_id),
     compraId: txt(g.compra_id),
-    comprobanteTipo: ((txt(g.comprobante_tipo) as TipoComprobante | null) ?? "sin_comprobante"),
+    comprobanteTipo: ((txt(g.comprobante_tipo) as PapelDeGasto | null) ?? "sin_comprobante"),
     comprobante: txt(g.comprobante),
     proveedorNombre: txt(g.proveedor_nombre),
     condicion: (txt(g.condicion) as "contado" | "credito" | null) ?? null,
@@ -248,6 +278,9 @@ export function leerGasto(g: Fila): GastoFila {
     motivoAnulacion: txt(g.motivo_anulacion),
     registradoPor: txt(g.registrado_por_nombre),
     creadoEn: txt(g.creado_en),
+    // Los pone `conIgvPerdido` con lo que responde `fn_gastos_igv_perdido`.
+    igvPerdido: 0,
+    pagosSinBanco: [],
   };
 }
 
@@ -314,9 +347,34 @@ export function textoPago(
   return g.tienePagos ? "Pagado" : "—";
 }
 
+/** ¿El gasto trae comprobante? La planilla de movilidad no: es el «sin comprobante» de un gasto del viaje (decisión 55 del ADR-0362).
+ *  Un ticket o boleto sí: es un comprobante de pago, aunque hoy no dé crédito fiscal. */
+export function tieneComprobante(papel: PapelDeGasto): boolean {
+  return papel !== "sin_comprobante" && papel !== "planilla_movilidad";
+}
+
+/**
+ * El papel de un gasto como lo dice la tabla: el tipo y, debajo, su serie y número. Debajo de una planilla de movilidad va su nombre, para
+ * que nadie salga a buscar una boleta que no existe. Un valor que la pantalla no conoce se dice «Comprobante», nunca «Sin comprobante».
+ */
+export function papelDelGasto(g: Pick<GastoFila, "comprobanteTipo" | "comprobante">): { tipo: string; detalle: string | null } {
+  if (g.comprobanteTipo === "planilla_movilidad") return { tipo: TEXTO_PAPEL_DE_GASTO.planilla_movilidad, detalle: "Planilla de movilidad" };
+  const tipo = (TEXTO_PAPEL_DE_GASTO as Partial<Record<string, string>>)[g.comprobanteTipo] ?? "Comprobante";
+  return { tipo, detalle: g.comprobante };
+}
+
+/** El papel en una línea (la bajada del detalle): «Factura F001-4321», «Ticket o boleto», «Sin comprobante (planilla de movilidad)». */
+export function papelEnUnaLinea(g: Pick<GastoFila, "comprobanteTipo" | "comprobante">): string {
+  if (g.comprobanteTipo === "planilla_movilidad") return `${TEXTO_PAPEL_DE_GASTO.planilla_movilidad} (planilla de movilidad)`;
+  const { tipo, detalle } = papelDelGasto(g);
+  return detalle ? `${tipo} ${detalle}` : tipo;
+}
+
 /** «S/ 5,472»: las cifras grandes de una pantalla van sin céntimos (spike); las filas, con ellos (`soles`). */
 export function solesRedondo(n: number): string {
-  return `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+  // `|| 0`: un negativo de céntimos redondea a -0 y se escribiría «S/ -0» (el IGV del mes menos lo perdido, partido en pagos que
+  // redondean cada uno, puede quedar en -0.01).
+  return `S/ ${(Math.round(n) || 0).toLocaleString("es-PE")}`;
 }
 
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -325,6 +383,186 @@ export function fechaCorta(iso: string | null, conAnio = false): string {
   if (!iso) return "—";
   const [a, m, d] = iso.slice(0, 10).split("-");
   return `${Number(d)} ${MESES_CORTOS[Number(m) - 1]}${conAnio ? ` ${a}` : ""}`;
+}
+
+// ---- El IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76) -----------------------------------------------
+//
+// Una factura de S/ 2 000 o más pagada en efectivo o desde un fondo pierde el IGV de lo pagado así (bancarización). La base dice cuánto y
+// cuándo (`fn_igv_perdido`, en el mes del PAGO); aquí solo se dice con palabras de tienda. Felipe eligió (2026-10-14): la fila dice
+// «perdido» en ámbar, el detalle dice por qué y en qué mes lo resta Impuestos, y la tarjeta lo resta en el mes del pago. Con /formidable
+// (el mismo día): la fila en dos renglones, la nota con la factura y el mes, lo que falta pagar dice que va por el banco, y la tarjeta
+// nunca dice un negativo (lo explica en palabras).
+
+/** Una fila de `fn_gastos_igv_perdido`: a qué gasto va y el pago que se llevó su parte del IGV. */
+export function leerPagoSinBanco(f: Fila): { gastoId: string; pago: PagoSinBanco } {
+  return {
+    gastoId: String(f.gasto_id),
+    pago: { pagoId: String(f.pago_id), fecha: String(f.fecha), igv: num(f.igv), monto: num(f.monto), como: f.como === "fondo" ? "fondo" : "efectivo" },
+  };
+}
+
+/**
+ * Une a cada gasto sus pagos sin banco. Lo perdido nunca pasa del IGV del gasto: cada pago redondea su parte y, pagada en varias partes,
+ * la suma podría pasarse por un céntimo. Un gasto sin pagos sin banco queda igual.
+ */
+export function conIgvPerdido(gastos: readonly GastoFila[], filas: readonly Fila[]): GastoFila[] {
+  const porGasto = new Map<string, PagoSinBanco[]>();
+  for (const f of filas) {
+    const { gastoId, pago } = leerPagoSinBanco(f);
+    porGasto.set(gastoId, [...(porGasto.get(gastoId) ?? []), pago]);
+  }
+  return gastos.map((g) => {
+    const pagos = [...(porGasto.get(g.id) ?? [])].sort((a, b) => a.fecha.localeCompare(b.fecha));
+    if (!pagos.length) return g;
+    return { ...g, igvPerdido: Math.min(g.igv, redondear(pagos.reduce((s, p) => s + p.igv, 0))), pagosSinBanco: pagos };
+  });
+}
+
+/** El IGV de un gasto, partido: lo que todavía se descuenta y lo que se perdió por pagar sin banco. */
+export function igvDelGasto(g: Pick<GastoFila, "igv" | "igvPerdido">): { descontable: number; perdido: number } {
+  const perdido = Math.min(Math.max(g.igvPerdido, 0), Math.max(g.igv, 0));
+  return { descontable: redondear(g.igv - perdido), perdido };
+}
+
+/**
+ * Lo que dice la fila bajo el monto, en dos renglones: arriba el IGV de la factura, como siempre («IGV S/ 360.00»), y debajo, si se perdió
+ * algo, cuánto («perdido S/ 180.00», la pantalla lo pinta en ámbar). En un solo renglón era ambiguo (¿«IGV S/ 180.00 · perdido S/ 180.00»
+ * era todo el IGV?) y ensanchaba la columna de 120 a 211 px (/formidable, 2026-10-14). Sin IGV, nada.
+ */
+export function igvBajoElMonto(g: Pick<GastoFila, "igv" | "igvPerdido">): { igv: string; perdido: string | null } | null {
+  if (g.igv <= 0) return null;
+  const { perdido } = igvDelGasto(g);
+  return { igv: `IGV ${soles(g.igv)}`, perdido: perdido > 0 ? `perdido ${soles(perdido)}` : null };
+}
+
+const COMO_SE_PAGO: Record<PagoSinBanco["como"], string> = { efectivo: "en efectivo", fondo: "desde un fondo" };
+
+/** «a», «a y b», «a, b y c». */
+function enLista(t: readonly string[]): string {
+  return t.length <= 1 ? (t[0] ?? "") : `${t.slice(0, -1).join(", ")} y ${t[t.length - 1]}`;
+}
+
+/** «octubre», o «enero de 2027» si el año no es `anio`. */
+function nombreDeMes(mes: string, anio: string): string {
+  const nombre = MESES[Number(mes.slice(5, 7)) - 1];
+  return mes.slice(0, 4) === anio ? nombre : `${nombre} de ${mes.slice(0, 4)}`;
+}
+
+/**
+ * El dato «IGV perdido» del detalle: cuánto, de qué pago y cuándo. Un solo pago por el total: «S/ 360.00 · se pagó en efectivo el 14 oct»;
+ * uno por una parte: «S/ 180.00 · del pago de S/ 1,180.00 en efectivo (12 oct)» (antes los dos montos iban seguidos y se confundían);
+ * varios: «S/ 240.00 · de 2 pagos sin banco (3 oct y 14 oct)» («sin banco» si se mezclan efectivo y fondo). La fecha lleva el año solo si
+ * no es el del gasto.
+ */
+export function textoIgvPerdido(g: Pick<GastoFila, "igv" | "igvPerdido" | "pagosSinBanco" | "montoTotal" | "fecha">): string | null {
+  const { perdido } = igvDelGasto(g);
+  const pagos = g.pagosSinBanco;
+  if (perdido <= 0 || pagos.length === 0) return null;
+  const anio = g.fecha.slice(0, 4);
+  const dia = (iso: string) => fechaCorta(iso, iso.slice(0, 4) !== anio);
+  const como = new Set(pagos.map((p) => p.como)).size === 1 ? COMO_SE_PAGO[pagos[0]!.como] : "sin banco";
+  if (pagos.length === 1) {
+    const p = pagos[0]!;
+    if (p.monto >= g.montoTotal) return `${soles(perdido)} · se pagó ${como} el ${dia(p.fecha)}`;
+    return `${soles(perdido)} · del pago de ${soles(p.monto)} ${como} (${dia(p.fecha)})`;
+  }
+  return `${soles(perdido)} · de ${pagos.length} pagos ${como} (${enLista([...new Set(pagos.map((p) => p.fecha))].map(dia))})`;
+}
+
+/**
+ * La nota del detalle, con la factura y el mes: «Esta factura es de S/ 2,360: desde S/ 2,000 se paga por el banco, y SUNAT no deja
+ * descontar el IGV de lo que se pagó en efectivo o desde un fondo[, aunque ese pago sea de menos de S/ 2,000]. Ese IGV ya está restado de lo
+ * que descuentas en octubre.» (la frase de Impuestos). Va «aunque ese/cada pago sea de menos de S/ 2,000» cuando lo pagado sin banco no llega
+ * a S/ 2 000: la primera prueba ciega pensó que la regla no le tocaba, y la segunda preguntó «¿menor que qué?» con «aunque ese pago sea menor».
+ * `mes` es el del último pago (para el enlace a Impuestos, que la pantalla pone solo si se ve ese módulo).
+ */
+export function notaIgvPerdido(
+  g: Pick<GastoFila, "igv" | "igvPerdido" | "pagosSinBanco" | "fecha" | "montoTotal">,
+): { texto: string; mes: string } | null {
+  const { perdido } = igvDelGasto(g);
+  const pagos = g.pagosSinBanco;
+  if (perdido <= 0 || pagos.length === 0) return null;
+  const meses = [...new Set(pagos.map((p) => p.fecha.slice(0, 7)))].sort();
+  const menores = pagos.every((p) => p.monto < UMBRAL_BANCARIZACION);
+  const tope = `S/ ${UMBRAL_BANCARIZACION.toLocaleString("es-PE")}`;
+  const aunque = !menores ? "" : pagos.length === 1 ? `, aunque ese pago sea de menos de ${tope}` : `, aunque cada pago sea de menos de ${tope}`;
+  const texto =
+    `Esta factura es de ${solesRedondo(g.montoTotal)}: desde ${tope} se paga por el banco, y SUNAT ` +
+    `no deja descontar el IGV de lo que se pagó en efectivo o desde un fondo${aunque}. Ese IGV ya está restado de lo que descuentas en ` +
+    `${enLista(meses.map((m) => nombreDeMes(m, g.fecha.slice(0, 4))))}.`;
+  return { texto, mes: meses[meses.length - 1]! };
+}
+
+/**
+ * El IGV que todavía se puede perder: el de lo que falta pagar de una factura a crédito de S/ 2 000 o más (su total, como la regla). Si se
+ * paga en efectivo o desde un fondo, se pierde; el detalle lo dice («Lo que falta … se paga por el banco»). Por pagar avisa también al
+ * pagar. 0 si no hay saldo, no es de S/ 2 000 o más o no trae IGV.
+ */
+export function igvEnRiesgo(g: Pick<GastoFila, "compraId" | "estado" | "saldo" | "igv" | "montoTotal">): number {
+  if (!g.compraId || g.estado !== "vigente" || !g.saldo || g.saldo <= 0 || g.igv <= 0 || g.montoTotal < UMBRAL_BANCARIZACION) return 0;
+  return redondear((g.igv * Math.min(g.saldo, g.montoTotal)) / g.montoTotal);
+}
+
+/**
+ * Lo que la tarjeta muestra: el IGV que puedes descontar, nunca menos de cero. Si lo perdido en el mes (de gastos de este mes o de otros)
+ * pasa el IGV de las facturas del mes, la tarjeta dice S/ 0 y la bajada explica que Impuestos resta lo que falta: «puedes descontar
+ * −S/ 180» no se entiende (Felipe pidió la opción «más entendible y lógica», 2026-10-14). La cuenta de Impuestos no cambia.
+ */
+export function igvParaLaTarjeta(p: Pick<PanelGastos, "igvDescontable">): number {
+  return Math.max(0, p.igvDescontable);
+}
+
+/**
+ * El IGV de los gastos de la lista que se pierde por un pago sin banco de OTRO mes (antes o después): la tarjeta de este mes lo sigue
+ * contando, porque Impuestos lo resta en el mes del pago (decisión 72), aunque la fila ya diga «perdido». Con los meses de esos pagos.
+ */
+export function perdidoEnOtroMes(gastos: readonly Pick<GastoFila, "estado" | "igv" | "pagosSinBanco">[], mes: string): { igv: number; meses: string[] } {
+  let igv = 0;
+  const meses = new Set<string>();
+  for (const g of gastos) {
+    if (g.estado !== "vigente") continue;
+    const fuera = g.pagosSinBanco.filter((p) => p.fecha.slice(0, 7) !== mes);
+    if (!fuera.length) continue;
+    igv += Math.min(Math.max(g.igv, 0), fuera.reduce((s, p) => s + p.igv, 0));
+    for (const p of fuera) meses.add(p.fecha.slice(0, 7));
+  }
+  return { igv: redondear(igv), meses: [...meses].sort() };
+}
+
+/** Una cifra de la bajada de una tarjeta: redonda como la tarjeta, salvo que sea menos de un sol (nunca «S/ 0» de algo que sí hay). */
+function cifraDeBajada(n: number): string {
+  return Math.abs(n) < 1 ? soles(n) : solesRedondo(n);
+}
+
+/**
+ * La bajada de la tarjeta «IGV que puedes descontar»: de dónde sale y, si en el mes se pagó sin banco una factura grande, cuánto IGV se
+ * perdió (ya restado del número, como en Impuestos), y si es de gastos de otro mes. Si lo perdido pasa el IGV de las facturas del mes, la
+ * tarjeta dice S/ 0 y aquí se dice que Impuestos resta lo que falta. Y si la tarjeta cuenta un IGV que se pierde en otro mes (`otroMes`, de
+ * `perdidoEnOtroMes`), lo dice: la fila ya dice «perdido» y la tarjeta no lo resta este mes.
+ */
+export function bajadaIgvDelMes(
+  p: Pick<PanelGastos, "boletas" | "igv" | "igvPerdido" | "igvDescontable"> & { mes?: string },
+  otroMes?: { igv: number; meses: string[] },
+): string {
+  const { igv: perdido, deOtrosMeses } = p.igvPerdido;
+  const otros =
+    deOtrosMeses <= 0 ? "" : deOtrosMeses >= perdido ? " (de gastos de otros meses)" : ` (${cifraDeBajada(deOtrosMeses)} de gastos de otros meses)`;
+  let frase = "Solo de facturas.";
+  if (perdido > 0 && p.igvDescontable >= 0) frase = `Solo de facturas, menos ${cifraDeBajada(perdido)} que se pierde por pagar sin banco${otros}.`;
+  else if (perdido > 0 && p.igv <= 0) frase = `Las facturas del mes no traen IGV, y se pierde ${cifraDeBajada(perdido)} por pagar sin banco${otros}: Impuestos lo resta este mes.`;
+  else if (perdido > 0)
+    frase =
+      `Se pierde ${cifraDeBajada(perdido)} por pagar sin banco${otros}, más que los ${cifraDeBajada(p.igv)} de IGV de las facturas del mes: ` +
+      `Impuestos resta los ${cifraDeBajada(-p.igvDescontable)} que faltan.`;
+  let incluye = "";
+  if (otroMes && otroMes.igv > 0 && otroMes.meses.length) {
+    const anio = (p.mes ?? otroMes.meses[0]!).slice(0, 4);
+    const varios = otroMes.meses.length > 1;
+    incluye =
+      ` Incluye ${cifraDeBajada(otroMes.igv)} que se pierde por ${varios ? "pagos" : "un pago"} sin banco de ` +
+      `${enLista(otroMes.meses.map((m) => nombreDeMes(m, anio)))}: Impuestos lo resta en ${varios ? "esos meses" : "ese mes"}.`;
+  }
+  return `${frase}${incluye} ${p.boletas} ${p.boletas === 1 ? "boleta" : "boletas"} sin IGV descontable.`;
 }
 
 // ---- El formulario ----------------------------------------------------------------------------------------------------
@@ -660,11 +898,6 @@ export function puedeAnularActivo(a: Pick<ActivoFila, "estado" | "compraId" | "t
 // ---- F2b: gastos fijos ------------------------------------------------------------------------------------------------
 
 export type EstadoFijo = "registrado" | "por_llegar" | "falta";
-export const TEXTO_ESTADO_FIJO: Record<EstadoFijo, { texto: string; tono: "verde" | "pizarra" | "ambar" }> = {
-  registrado: { texto: "Registrado", tono: "verde" },
-  por_llegar: { texto: "Viene", tono: "pizarra" },
-  falta: { texto: "Falta registrar", tono: "ambar" },
-};
 
 export type GastoFijoMes = {
   id: string;

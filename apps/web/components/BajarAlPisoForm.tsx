@@ -2,7 +2,7 @@
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Check, Hand, Info, Loader2, Minus, Plus, ScanBarcode } from "lucide-react";
+import { Camera, Check, Hand, Info, Minus, Plus, ScanBarcode, ScanLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
@@ -90,6 +90,8 @@ import {
   type RespuestaEnMano,
 } from "@/lib/bajada-en-mano";
 import { Aviso } from "@/components/ui/Aviso";
+import { Vacio } from "@/components/ui/Vacio";
+import { Boton } from "@/components/ui/campos";
 
 /*
  * «Bajar prendas al piso» (ADR-0208, paso 1). Se usa de pie junto al fardo, con la pistola (que es un teclado): cada
@@ -1058,7 +1060,7 @@ export function BajarAlPisoForm({
           {(hayLineas || !exito) && (
             <section data-guia="bajar.lista" className="card-cayla overflow-hidden">
               {!hayLineas ? (
-                <p className="px-5 py-10 text-center text-sm text-taupe">Aún no escaneaste nada.</p>
+                <Vacio tamano="chico" className="py-10" icono={<ScanLine />}>Aún no escaneaste nada.</Vacio>
               ) : (
                 <ul className="divide-y divide-tinta/10">
                   {lineas.map((l) => {
@@ -1155,26 +1157,23 @@ export function BajarAlPisoForm({
               </div>
               <div data-guia="bajar.confirmar" className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-end">
                 <ComboResponsable control={responsable} deshabilitado={enviando} className="sm:w-64" />
-                <button
+                <Boton
                   type="button"
+                  peso="primario"
+                  cargando={enviando}
                   onClick={confirmar}
                   disabled={!puedeConfirmar}
                   aria-describedby={motivo && !enviando ? "bajar-motivo" : undefined}
-                  className="btn-cayla btn-primario h-11 w-full sm:w-auto"
+                  className="h-11 w-full sm:w-auto"
                 >
-                  {enviando ? (
-                    <>
-                      <Loader2 aria-hidden className="h-4 w-4 motion-safe:animate-spin" />
-                      Guardando…
-                    </>
-                  ) : congelada ? (
+                  {congelada ? (
                     botonIncierto
                   ) : hayEscaneadas ? (
                     textoDeConfirmar(resumen.prendas)
                   ) : (
                     "Confirmar bajada"
                   )}
-                </button>
+                </Boton>
               </div>
             </div>
           </div>

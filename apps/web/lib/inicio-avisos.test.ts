@@ -50,6 +50,16 @@ describe("avisosInicio", () => {
     expect(avisosInicio({ pedidosCliente: null })[0]!.nivel).toBe("sinleer");
   });
 
+  it("ADR-0393: lo recibido por terminar lleva a Recibir; si lo más antiguo pasa de 7 días, es urgente", () => {
+    const base = { porSeparar: 5, porDetallar: 0, porCrear: 3, total: 8, envios: [] };
+    const [a] = avisosInicio({ recibidoPorTerminar: { ...base, desde: null } });
+    expect(a).toMatchObject({ clave: "porTerminar", cantidad: 8, nivel: "toca", href: "/recibir", ahora: "Termina 8 prendas recibidas" });
+    expect(a!.detalle).toBe("Contadas y en el almacén, pero sin poder venderse: 5 por separar, 3 por crear.");
+    expect(avisosInicio({ recibidoPorTerminar: { ...base, desde: "2020-01-01T10:00:00Z" } })[0]!.nivel).toBe("urgente");
+    expect(avisosInicio({ recibidoPorTerminar: { ...base, porSeparar: 0, porCrear: 0, total: 0, desde: null } })[0]!.nivel).toBe("aldia");
+    expect(avisosInicio({ recibidoPorTerminar: null })[0]!.nivel).toBe("sinleer");
+  });
+
   it("decisión del 2026-10-04: a los 7 días el Inicio pregunta si el pedido sigue en pie (la reserva allá no vence sola)", () => {
     const [a] = avisosInicio({ pedidosCliente: { llegaron: 0, noLlegaron: 0, sigueEnPie: 2, primero: "Ana Lozano" } });
     expect(a).toMatchObject({ cantidad: 2, nivel: "toca", ahora: "Confirma si 2 pedidos siguen en pie" });

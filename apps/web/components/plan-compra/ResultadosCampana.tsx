@@ -97,7 +97,7 @@ export function ResultadosCampana({
     <Ayuda titulo="Resultados">
       <span className="block">
         «×2.0 un día normal» quiere decir que la tienda vendió, por día, el doble de prendas que en los 60 días anteriores a la campaña. El año que
-        viene, la propuesta del Plan usa ese número en vez de × 3.
+        viene, la propuesta del Plan usa ese número.
       </span>
       <span className="mt-2 block">
         «Se agotó» es una categoría que quedó en cero en esa tienda antes de terminar: lo vendido ahí quedó corto por falta de stock, y la propuesta
@@ -145,7 +145,7 @@ export function ResultadosCampana({
         ) : (
           <div className="card-cayla">
             <Vacio icono={<ChartColumn />} titulo="Todavía no hay campañas">
-              Cuando un líder cree una campaña en la pestaña Plan, aquí ves lo que se vendió en ella.
+              Cuando se cree una campaña en la pestaña Plan, aquí ves lo que se vendió en ella.
             </Vacio>
           </div>
         )}
@@ -391,7 +391,7 @@ export function ResultadosCampana({
       {conMultiplicador.length > 0 && momento === "terminada" && (
         <p className="nota-cayla" data-guia="plan-resultados.proxima">
           Para la próxima: {conMultiplicador.map((x) => `${x.t.nombre} ${textoMultiplicador(x.m!)}`).join(", ")}
-          {recupero !== null ? `, y lo que sobró se vendió al ${recupero} % del precio` : ""}. La propuesta del Plan usa estos números en vez de × 3.
+          {recupero !== null ? `, y lo que sobró se vendió al ${recupero} % del precio` : ""}. La propuesta del Plan usa estos números.
         </p>
       )}
     </div>

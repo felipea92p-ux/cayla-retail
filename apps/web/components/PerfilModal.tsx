@@ -8,8 +8,9 @@ import { BUCKET_FOTOS_PERFIL } from "@/lib/foto-perfil";
 import { recordarFotoPersona } from "@/lib/useFotoPersona";
 import { avisar } from "@/components/ui/Avisos";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
+import { Boton } from "@/components/ui/campos";
 
 // "Mi perfil" (0014_perfil.sql, 2026-09-14): casi todo acá es de solo lectura
 // a propósito — nombres/apellidos/correo/rol/estado/ubicación son de Dynamic
@@ -76,7 +77,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
       .maybeSingle()
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
-        if (errCarga) avisar.error(traducirError(errCarga, "cargar tu perfil"));
+        if (errCarga) avisar.error(traducirError(errCarga, "cargar tu perfil", { lectura: true }));
         else if (data) {
           const miPerfil = data as MiPerfil;
           setPerfil(miPerfil);
@@ -161,7 +162,7 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
   }
 
   return (
-    <Modal conCerrar titulo="Mi perfil" subtitulo="Tu información personal y de cuenta." onClose={alCerrar} ancho="max-w-lg">
+    <Modal conCerrar titulo="Mi perfil" subtitulo="Tu información personal y de cuenta." onClose={alCerrar} tamano="mediana">
       {(cerrar) => {
         void cerrar; // el cierre animado de Modal no distingue "en vuelo" — se controla acá, con alCerrar
         if (cargando) return <p className="py-8 text-center text-sm text-tinta/65">Cargando…</p>;
@@ -182,17 +183,16 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
               <AvatarPersona personaId={perfil.persona_id} nombre={nombreCompleto} tamano={80} />
               <div className="space-y-2">
                 <input ref={inputRef} type="file" accept="image/jpeg" onChange={onArchivo} className="hidden" />
-                <div className="flex gap-2">
-                  <button
+                <div className="pie-acciones">
+                  <Boton cargando={subiendo} textoCargando="Subiendo…"
                     type="button"
                     onClick={() => inputRef.current?.click()}
                     disabled={subiendo}
-                    className={botonCancelar}
                   >
-                    {subiendo ? "Subiendo…" : perfil.foto_url ? "Cambiar foto" : "Subir foto"}
-                  </button>
+                    {perfil.foto_url ? "Cambiar foto" : "Subir foto"}
+                  </Boton>
                   {perfil.foto_url && (
-                    <button type="button" onClick={onEliminarFoto} disabled={subiendo} className="btn-cayla btn-peligro flex-1">
+                    <button type="button" onClick={onEliminarFoto} disabled={subiendo} className="btn-cayla btn-peligro">
                       Eliminar
                     </button>
                   )}
@@ -360,13 +360,13 @@ function CambiarClave({ onListo }: { onListo: () => void }) {
           className="caja-campo-input mt-1.5"
         />
       </div>
-      <div className="flex gap-2">
-        <button type="button" onClick={onListo} className={botonCancelar}>
+      <div className="pie-acciones">
+        <button type="button" onClick={onListo} className="btn-cayla btn-secundario">
           Cancelar
         </button>
-        <button type="submit" disabled={guardando} className={botonPrimario}>
-          {guardando ? "Guardando…" : "Guardar contraseña"}
-        </button>
+        <Boton peso="primario" cargando={guardando} type="submit" disabled={guardando}>
+          Guardar contraseña
+        </Boton>
       </div>
     </form>
   );

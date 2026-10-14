@@ -1,5 +1,5 @@
 import { compararTallas } from "./tallas";
-import { diasEntreFechas } from "./fechas-lima";
+import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 import { precioPropioMasBajo } from "./precio-sede-reglas";
 
@@ -126,7 +126,6 @@ export const COLUMNAS_TABLERO = [
   { clave: "acabado", titulo: "En acabados" },
   { clave: "listo", titulo: "Listas para cerrar" },
 ] as const;
-export type ColumnaTablero = (typeof COLUMNAS_TABLERO)[number]["clave"];
 
 /** Cuántos días antes de la entrega una orden abierta empieza a avisar. Es una convención de menú, no
  *  un dato del Taller: se puede afinar cuando haya plazos reales por etapa (Eficiencia, F7). */
@@ -276,6 +275,16 @@ export function resumenTablero(ordenes: OrdenParaResumen[], hoy: string): Resume
   };
 }
 
+/** Las prendas buenas que entraron al stock desde el día `desde` (`aaaa-mm-dd` de Lima): el «terminadas hoy · 7 días · 30 días» del
+ *  Taller en el Observatorio. `inventariadoEn` es un instante que la base manda en UTC: se compara su día de LIMA (`diaLima`); con
+ *  sus 10 primeros caracteres, lo cerrado de 7 pm a medianoche contaba como terminado al día siguiente. */
+export function terminadasDesde(ordenes: readonly { inventariadoEn: string | null; cantidadBuenas: number | null }[], desde: string): number {
+  return ordenes.reduce((suma, o) => {
+    const dia = diaLima(o.inventariadoEn);
+    return dia !== null && dia >= desde ? suma + (o.cantidadBuenas ?? 0) : suma;
+  }, 0);
+}
+
 // ---------------------------------------------------------------------------
 // Siguiente paso de una orden cerrada: llevarlas a las tiendas (ADR-0133, F8)
 // ---------------------------------------------------------------------------
@@ -306,4 +315,28 @@ export function parsearLineasPrellenadas(param: string | undefined): { varianteI
     acum.set(id, (acum.get(id) ?? 0) + n);
   }
   return [...acum.entries()].map(([varianteId, cantidad]) => ({ varianteId, cantidad }));
+}
+
+// ---------------------------------------------------------------------------
+// ¿Un modelo se puede ofrecer para producir? (Resumen de Producción, 2026-10-13)
+//
+// CONTRATO
+//   PROMETE: decir si un modelo entra a «¿Qué producir?» y a las tarjetas de «Para decidir». Entra solo si está activo (un descontinuado
+//            no se produce, ADR-0270), aprobado (un alta pendiente o rechazada todavía no es mercadería), no es de prueba y su familia
+//            no está fuera de los motores (ADR-0377: bolsas, cajas, empaque; Felipe decidió el 2026-10-13 que Producción ▸ Resumen
+//            también la respeta, porque «¿Qué producir?» decide qué fabricar).
+//   ASUME:   lo que no se sabe sigue contando, igual que la base (`fn_categoria_entra_a_motores`): un modelo sin categoría, o una lectura
+//            de familias que falló (conjunto vacío), NO lo sacan. Ante la duda se muestra; nunca se esconde una prenda de verdad.
+//   NO HACE: no lee la base ni decide qué familia está apagada (eso lo marca un líder en Catálogo ▸ Familias); y NO cierra la puerta
+//            de la base: `abrir_produccion` todavía no mira el estado del producto (candado #6 del backlog), así que esto solo
+//            decide qué se le OFRECE a la líder en el Resumen.
+// ---------------------------------------------------------------------------
+
+export type ProductoParaProducir = { estado: string; estado_alta: string; es_prueba: boolean; categoria_id: string | null };
+
+export function esProducible(p: ProductoParaProducir, categoriasApagadas: ReadonlySet<string>): boolean {
+  if (p.estado !== "activo") return false;
+  if (p.estado_alta !== "aprobado") return false;
+  if (p.es_prueba) return false;
+  return !p.categoria_id || !categoriasApagadas.has(p.categoria_id);
 }

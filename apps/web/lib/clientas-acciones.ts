@@ -152,8 +152,8 @@ export type ResultadoFicha = { ficha: FichaClienta | null; error: ErrorEscritura
 
 /** La ficha completa (clienta + su actividad), leída DESDE EL NAVEGADOR — para abrirla al hacer
  *  clic en una fila y para refrescarla tras editar/archivar/unir, sin depender de un Server
- *  Component. Mismas cinco lecturas que `lib/clientas.ts` (`getFichaClienta`, usada al aterrizar
- *  en `/clientas` la primera vez); esta es su gemela del lado del cliente.
+ *  Component. Es la única lectura de la ficha: su gemela del servidor (`getFichaClienta`)
+ *  ya no la llamaba nadie y se borró el 2026-10-14 (ADR-0406).
  *  Tanda 1f (ADR-0288): más su sede y frecuente con compra neta (`fn_clienta_su_sede`, la regla de la lista). Esa sexta
  *  lectura no tumba la ficha si falla (la base sin la migración 20260930210000): llega `null` y la ficha sigue. */
 export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {

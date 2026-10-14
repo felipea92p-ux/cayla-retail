@@ -32,6 +32,7 @@ import {
   GUIA_PEDIDOS_NO_ATENDIDOS,
   GUIA_POR_REGULARIZAR,
   GUIA_RECIBIR,
+  GUIA_RECIBIR_ENVIO,
   GUIA_TRASLADO,
   GUIA_TRASLADOS,
 } from "./pantallas/inventario";
@@ -49,9 +50,12 @@ import {
   GUIA_ROTULOS,
 } from "./pantallas/catalogo";
 import {
+  GUIA_COMPROBANTE_ORDEN,
   GUIA_EDITAR_ORDEN,
+  GUIA_ENVIO_ORDEN,
   GUIA_FACTURA,
   GUIA_FACTURAS,
+  GUIA_FONDOS,
   GUIA_MI_PARTE,
   GUIA_NOTAS_CREDITO,
   GUIA_NUEVA_FACTURA,
@@ -91,6 +95,10 @@ import {
   GUIA_PROD_PROVEEDORES,
   GUIA_PROD_RECIBIR,
   GUIA_PROD_RESUMEN,
+  GUIA_ORDENES_INSUMO,
+  GUIA_NUEVA_ORDEN_INSUMO,
+  GUIA_ORDEN_INSUMO,
+  GUIA_EDITAR_ORDEN_INSUMO,
 } from "./pantallas/produccion";
 import {
   GUIA_ACTIVIDAD,
@@ -142,6 +150,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_TRASLADO,
   GUIA_NUEVO_TRASLADO,
   GUIA_RECIBIR,
+  GUIA_RECIBIR_ENVIO,
   GUIA_PRODUCTOS,
   GUIA_EDITAR_PRODUCTO,
   GUIA_HISTORIAL_PRENDA,
@@ -168,6 +177,9 @@ export const GUIAS: readonly Guia[] = [
   GUIA_NUEVA_ORDEN,
   GUIA_ORDEN,
   GUIA_EDITAR_ORDEN,
+  GUIA_COMPROBANTE_ORDEN,
+  GUIA_ENVIO_ORDEN,
+  GUIA_FONDOS,
   GUIA_FIN_RESUMEN,
   GUIA_FIN_GASTOS,
   GUIA_FIN_CUENTAS,
@@ -191,6 +203,10 @@ export const GUIAS: readonly Guia[] = [
   GUIA_PROD_POR_PAGAR,
   GUIA_PROD_COTIZACIONES,
   GUIA_PROD_EFICIENCIA,
+  GUIA_ORDENES_INSUMO,
+  GUIA_NUEVA_ORDEN_INSUMO,
+  GUIA_ORDEN_INSUMO,
+  GUIA_EDITAR_ORDEN_INSUMO,
   GUIA_INICIO,
   GUIA_ACTIVIDAD,
   GUIA_BUSCAR,
@@ -204,10 +220,12 @@ export const GUIAS: readonly Guia[] = [
   GUIA_RENDIMIENTO,
 ];
 
-/** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. */
+/** @internal Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla. Lo leen las pruebas y
+ *  `scripts/focus/escanear.mjs`, no la tienda. */
 export const PENDIENTES_HOY = 0;
 
-/** La ruta es la de la carpeta bajo `app/(app)`: «/» es Inicio y `[id]` se escribe tal cual. */
+/** @internal El tablero de las guías (ADR-0389): lo leen `guias.test.ts` y `scripts/focus/escanear.mjs`, no la tienda. La ruta es la de
+ *  la carpeta bajo `app/(app)`: «/» es Inicio y `[id]` se escribe tal cual. */
 export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- inicio ----
   "/": { estado: "aplicada", guia: GUIA_INICIO.id },
@@ -235,10 +253,13 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/compras/@modal/(.)ordenes/ver/[id]": { estado: "no-aplica", motivo: "La misma vista que /compras/ordenes/ver/[id] abierta como hoja sobre la lista: comparte su guía." },
   "/compras/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar el modal, no dibuja nada." },
   "/compras/factura/[compraId]": { estado: "aplicada", guia: GUIA_FACTURA.id },
+  "/compras/fondos": { estado: "aplicada", guia: GUIA_FONDOS.id },
   "/compras/notas-credito": { estado: "aplicada", guia: GUIA_NOTAS_CREDITO.id },
   "/compras/nueva": { estado: "aplicada", guia: GUIA_NUEVA_FACTURA.id },
   "/compras/ordenes": { estado: "aplicada", guia: GUIA_ORDENES.id },
+  "/compras/ordenes/comprobante/[id]": { estado: "aplicada", guia: GUIA_COMPROBANTE_ORDEN.id },
   "/compras/ordenes/editar/[id]": { estado: "aplicada", guia: GUIA_EDITAR_ORDEN.id },
+  "/compras/ordenes/envio/[id]": { estado: "aplicada", guia: GUIA_ENVIO_ORDEN.id },
   "/compras/ordenes/nueva": { estado: "aplicada", guia: GUIA_NUEVA_ORDEN.id },
   "/compras/ordenes/ver/[id]": { estado: "aplicada", guia: GUIA_ORDEN.id },
   "/compras/parte/[compraId]": { estado: "aplicada", guia: GUIA_MI_PARTE.id },
@@ -295,6 +316,13 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/inventario/traslados/nuevo": { estado: "aplicada", guia: GUIA_NUEVO_TRASLADO.id },
   // ---- movimientos ----
   "/movimientos": { estado: "no-aplica", motivo: "Solo redirige a Inventario ▸ Movimientos (la dirección vieja). La guía es la de esa pantalla." },
+  // ---- ordenes-insumos ----
+  "/ordenes-insumos": { estado: "aplicada", guia: GUIA_ORDENES_INSUMO.id },
+  "/ordenes-insumos/@modal/(.)ver/[id]": { estado: "no-aplica", motivo: "La misma vista que /ordenes-insumos/ver/[id] abierta como hoja sobre la lista: comparte su guía." },
+  "/ordenes-insumos/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar la ventana, no dibuja nada." },
+  "/ordenes-insumos/editar/[id]": { estado: "aplicada", guia: GUIA_EDITAR_ORDEN_INSUMO.id },
+  "/ordenes-insumos/nueva": { estado: "aplicada", guia: GUIA_NUEVA_ORDEN_INSUMO.id },
+  "/ordenes-insumos/ver/[id]": { estado: "aplicada", guia: GUIA_ORDEN_INSUMO.id },
   // ---- pedidos-no-atendidos ----
   "/pedidos-no-atendidos": { estado: "aplicada", guia: GUIA_PEDIDOS_NO_ATENDIDOS.id },
   // ---- produccion ----
@@ -322,6 +350,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/productos/por-revisar": { estado: "aplicada", guia: GUIA_POR_REVISAR.id },
   // ---- recibir ----
   "/recibir": { estado: "aplicada", guia: GUIA_RECIBIR.id },
+  "/recibir/envio/[id]": { estado: "aplicada", guia: GUIA_RECIBIR_ENVIO.id },
   // ---- rendimiento ----
   "/rendimiento": { estado: "aplicada", guia: GUIA_RENDIMIENTO.id },
   // ---- rotulos ----

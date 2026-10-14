@@ -20,7 +20,7 @@ export default async function ProveedoresProduccionPage() {
   const proveedores = await getProveedoresProduccion();
   return (
     <div className="space-y-6">
-      <ProveedoresProduccionPanel proveedores={proveedores} />
+      <ProveedoresProduccionPanel sede={persona.ubicacionEtiqueta} proveedores={proveedores} />
     </div>
   );
 }

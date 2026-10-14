@@ -49,6 +49,8 @@ export type DatosPase = {
   lineas: number;
   lineasContadas: number;
   cerradoConDiferencia: boolean;
+  /** Unidades contadas de más que esperan revisión, fuera del stock (ADR-0404). Sin el dato, 0. */
+  sobrantesPorRevisar?: number;
   creadoPorNombre: string | null;
   fotos: FotoTraslado[];
   colores: string[];
@@ -183,6 +185,8 @@ export function tonoDelPase(t: DatosPase, ctx: ContextoTraslados): TonoPase {
       return "dif";
     case "requiere_revision":
     case "con_diferencia":
+    case "sobrante_por_revisar":
+    case "con_sobrante":
       return "revisar";
     case "requiere_recepcion":
       return seEstaContando(t) ? "contando" : estaAtrasada(t, ctx.ahoraIso) ? "atraso" : "llega";
@@ -212,6 +216,8 @@ export function nombreDelPase(t: DatosPase, ctx: ContextoTraslados, codigoDestin
       return soyDestino ? "Contando" : `${codigoDestino} la está contando`;
     case "revisar":
       if (s === "requiere_revision") return "Falta revisar";
+      if (s === "sobrante_por_revisar") return "Llegó de más · revísala";
+      if (s === "con_sobrante") return soyDestino ? "Llegó de más · espera a un líder" : `Llegó de más · la revisa ${codigoDestino}`;
       return soyDestino ? "Faltó algo · espera a un líder" : `Faltó algo · la revisa ${codigoDestino}`;
     case "cerrado":
       return "Recibida completa";
@@ -302,6 +308,11 @@ export function camposDelPase(t: DatosPase, ctx: ContextoTraslados, codigoOrigen
   }
   const llego: CampoPase = { etiqueta: "Llegó", valor: t.confirmadoEn || t.cerradoEn ? diaHora((t.confirmadoEn ?? t.cerradoEn)!, ctx.ahoraIso) : "—", detalle: null };
   const dif = diferenciaDeUnidades(t);
+  const deMas = t.sobrantesPorRevisar ?? 0;
+  if (tono === "revisar" && deMas > 0) {
+    // ADR-0404: lo de más espera revisión fuera del stock; el pase dice cuánto, no la diferencia neta.
+    return [salio, llego, { etiqueta: "De más", valor: `${deMas} ${plural(deMas, "prenda", "prendas")}`, detalle: "por revisar" }];
+  }
   if (tono === "revisar" || tono === "dif") {
     const n = Math.abs(dif);
     return [
@@ -327,6 +338,8 @@ export function botonDelPase(t: DatosPase, ctx: ContextoTraslados): VistaPase["b
     case "contando":
       return soyDestino ? { texto: "Seguir contando", principal: true } : { texto: "Ver lo que enviaste", principal: false };
     case "revisar":
+      if (s === "sobrante_por_revisar") return { texto: "Revisar lo que sobró", principal: true };
+      if (s === "con_sobrante") return { texto: "Ver lo que sobró", principal: false };
       return s === "requiere_revision" ? { texto: "Revisar lo que faltó", principal: true } : { texto: "Ver la diferencia", principal: false };
     case "sale":
       return { texto: "Ver lo que enviaste", principal: false };

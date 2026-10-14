@@ -40,7 +40,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { avisoConteoGuardado, avisoConteoRetomado, llegadaContada, mensajeDeSalida, unidadesDeLaLlegada } from "@/lib/recibir-cambio-de-sede";
-import { Desplegable } from "@/components/ui/campos";
+import { Desplegable, Boton } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -49,6 +49,8 @@ import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import { BORRADOR_VACIO, ProveedorModal } from "@/components/ProveedorModal";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { Buscador } from "@/components/ui/Buscador";
+import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
+import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 
 export type ProveedorLlegada = { id: string; nombre: string; ruc: string | null; marcas: string[] };
 
@@ -66,6 +68,7 @@ type ConteoDeLaLlegada = {
 };
 
 const ID_BUSCADOR = "llegada-buscador";
+const ID_LISTA = "llegada-sugerencias";
 
 // «Llegó mercadería» (ADR-0330): la puerta única para lo que llega de un proveedor. Dos preguntas —¿de quién? y ¿qué llegó?— y
 // se recibe en la sede de la cabecera; lo recibido entra al almacén (ADR-0328) y después se etiqueta y se baja al piso. Escribe
@@ -433,11 +436,12 @@ export function LlegoMercaderia({
           <div data-guia="recibir.prendas">
           <CampoGuiado id="llegada-prendas" guia={guia} titulo="¿Qué llegó?" ayuda={ayudaDelBuscador(proveedor)}>
             <div className="relative">
-              {/* El buscador de la pistola (<Buscador icono="barras">, ADR-0358, como el de «Contra factura»). La lista que se abre debajo,
-                  con la muestra de cada prenda, es propia: la pieza de combos no dibuja fotos. */}
+              {/* El buscador de la pistola (<Buscador icono="barras">, ADR-0358, como el de «Contra factura») y, debajo, la lista de
+                  sugerencias del sistema (ronda 9). */}
               <Buscador
                 id={ID_BUSCADOR}
                 ref={buscador}
+                {...ariaDelBuscador(ID_LISTA, listaAbierta, 0)}
                 valor={busqueda}
                 onCambio={setBusqueda}
                 icono="barras"
@@ -460,33 +464,24 @@ export function LlegoMercaderia({
                 posLista &&
                 destino &&
                 createPortal(
-                  <ul style={{ position: "fixed", ...posLista }} className="anim-revelar lista-flotante z-50 overflow-y-auto rounded-xl p-1" role="listbox" aria-label="Prendas que coinciden">
-                    {sugerencias.map((p, i) => (
-                      <li key={p.varianteId}>
-                        <button
-                          type="button"
-                          role="option"
-                          aria-selected={i === 0}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            sumar(p);
-                            buscador.current?.focus();
-                          }}
-                          className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-hueso ${i === 0 ? "bg-hueso/60" : ""}`}
-                        >
-                          <Muestra prenda={p} />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-tinta">{p.referencia}</span>
-                            <span className="block truncate text-xs text-taupe">
-                              {detalle(p)} · {p.sku}
-                              {p.marca ? ` · ${p.marca}` : ""}
-                            </span>
-                          </span>
-                          {i === 0 && <span className="label-cayla text-[10px] text-taupe">Enter</span>}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>,
+                  // La lista de sugerencias del sistema (ADR-0358, ronda 9): la miniatura de la prenda, su código debajo y la tecla
+                  // que la toma. El Enter suma la primera (`leer`), así que la activa es siempre la primera y el mouse solo tiñe.
+                  <ListaSugerencias
+                    id={ID_LISTA}
+                    etiqueta="Prendas que coinciden"
+                    style={{ position: "fixed", ...posLista }}
+                    className="z-50"
+                    sugerencias={sugerencias.map((p) => ({
+                      clave: p.varianteId,
+                      miniatura: <Muestra prenda={p} />,
+                      titulo: p.referencia,
+                      detalle: `${detalle(p)} · ${p.sku}${p.marca ? ` · ${p.marca}` : ""}`,
+                    }))}
+                    onElegir={(i) => {
+                      sumar(sugerencias[i]);
+                      buscador.current?.focus();
+                    }}
+                  />,
                   destino,
                 )}
             </div>
@@ -592,9 +587,9 @@ export function LlegoMercaderia({
                 onConfirmar={() => recibir(atipicos.flatMap((a) => (a.linea === null ? [] : [a.linea])))}
               />
             ) : (
-              <button type="submit" disabled={loading} title={guia.frase ?? undefined} className={`btn-cayla btn-primario w-full sm:w-auto ${guia.claseConfirmar}`}>
-                {loading ? "Recibiendo…" : unidades > 0 ? `Recibir ${unidades} ${unidades === 1 ? "prenda" : "prendas"} en ${ubicacionEtiqueta}` : `Recibir en ${ubicacionEtiqueta}`}
-              </button>
+              <Boton peso="primario" cargando={loading} textoCargando="Recibiendo…" type="submit" disabled={loading} title={guia.frase ?? undefined} className={`w-full sm:w-auto ${guia.claseConfirmar}`}>
+                {unidades > 0 ? `Recibir ${unidades} ${unidades === 1 ? "prenda" : "prendas"} en ${ubicacionEtiqueta}` : `Recibir en ${ubicacionEtiqueta}`}
+              </Boton>
             )}
           </div>
         </form>
@@ -616,11 +611,8 @@ export function LlegoMercaderia({
 
 const detalle = (p: PrendaLlegada) => [p.talla, p.color].filter(Boolean).join(" · ");
 
-/** La foto de la prenda o, si no tiene, el tinte de su color: lo que se reconoce de un vistazo con la caja abierta. */
+/** La miniatura de la prenda: su foto o, sin foto, el ícono de su categoría sobre su color (`MiniaturaPrenda`, ADR-0333): lo que se
+ *  reconoce de un vistazo con la caja abierta, igual que en todo el ERP. */
 function Muestra({ prenda }: { prenda: PrendaLlegada }) {
-  if (prenda.fotoUrl) {
-    // eslint-disable-next-line @next/next/no-img-element -- miniatura de 32 px de Storage; el optimizador no aporta aquí
-    return <img src={prenda.fotoUrl} alt="" className="h-8 w-8 shrink-0 rounded object-cover" />;
-  }
-  return <span aria-hidden className="h-8 w-8 shrink-0 rounded border border-tinta/10 bg-hueso" style={prenda.colorHex ? { backgroundColor: prenda.colorHex } : undefined} />;
+  return <MiniaturaPrenda fotoUrl={prenda.fotoUrl ?? null} colorHex={prenda.colorHex ?? null} {...categoriaDe(prenda)} />;
 }

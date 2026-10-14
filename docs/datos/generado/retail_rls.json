@@ -454,6 +454,11 @@
   "relkind": "r",
   "rls": true
  },
+ "gasto_viaje_fotos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "gastos": {
   "forzado": false,
   "relkind": "r",
@@ -470,6 +475,16 @@
   "rls": true
  },
  "gastos_legado_2026_09": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gastos_viaje": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gastos_viaje_ordenes": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -500,6 +515,11 @@
   "rls": true
  },
  "insumos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "intentos_con_token": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -569,7 +589,22 @@
   "relkind": "r",
   "rls": true
  },
+ "orden_insumo_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "orden_insumo_versiones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "ordenes_compra": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ordenes_insumo": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -740,6 +775,16 @@
   "rls": true
  },
  "proveedores_produccion": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "rendicion_fondo_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "rendiciones_fondo": {
   "forzado": false,
   "relkind": "r",
   "rls": true

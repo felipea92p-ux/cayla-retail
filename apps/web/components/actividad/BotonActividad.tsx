@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { LayoutGrid } from "lucide-react";
+import { TRAZOS_MENU } from "@/lib/menu-iconos";
 import { ListaActividad, useActividad } from "@/components/actividad/ListaActividad";
 import {
   MODULOS_CON_ACTIVIDAD,
@@ -23,7 +24,8 @@ import type { ClaveModulo } from "@/lib/modulos";
 // pantalla más, es el historial de la pantalla donde uno está—. Al abrirlo muestra la actividad del módulo de esa
 // ruta, en la sede activa del selector. Solo lo pinta quien lo ve (`veActividad`); el alcance lo pone la base.
 
-const RUTA_HISTORIAL = "M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2";
+// El reloj con la flecha que vuelve: el mismo trazo del «Historial» del menú (`TRAZOS_MENU.historial`) y el de «Actividad» en Roles y accesos.
+const RUTA_HISTORIAL = TRAZOS_MENU.historial;
 
 export function BotonActividad({ ubicacionId, ubicacionEtiqueta, esLider }: { ubicacionId: string | null; ubicacionEtiqueta: string; esLider: boolean }) {
   const pathname = usePathname();
@@ -83,7 +85,7 @@ function PanelActividad({
       titulo={`Actividad · ${titulo}`}
       subtitulo={`${ubicacionEtiqueta} · quién hizo qué y cuándo`}
       onClose={onClose}
-      ancho="sm:max-w-xl"
+      tamano="mediana"
       variante="papel"
     >
       {(cerrar) => (

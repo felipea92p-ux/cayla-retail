@@ -2,7 +2,6 @@
 
 import { useContext, type ReactNode } from "react";
 import { EtiquetaAhora, MarcaCampo, VozDelEstado } from "@/components/alta-producto/guia";
-import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { RetencionLuzContexto, useRetenerLuz, type ModoRetencion } from "@/components/guia-de-foco/useRetenerLuz";
 import type { CampoAlta, EstadoCampo } from "@/lib/alta-producto-guia";
 
@@ -13,58 +12,6 @@ import type { CampoAlta, EstadoCampo } from "@/lib/alta-producto-guia";
 // dice con tinta (borde y fondo oscuros suaves + marca ✓), el rojo queda para
 // lo que bloquea, y el ámbar para lo que avisa pero deja seguir.
 
-/** Un paso del recorrido. Cerrado = se ve atenuado y no se puede tocar, pero NO se oculta: la persona ve el camino completo. */
-export function Bloque({
-  numero,
-  titulo,
-  ayuda,
-  bloqueado = false,
-  bloqueadoTexto,
-  listo = false,
-  derecha,
-  children,
-}: {
-  numero: number;
-  titulo: string;
-  ayuda?: ReactNode;
-  bloqueado?: boolean;
-  /** Qué falta para abrir este paso, en la voz de la persona ("Elige primero la categoría"). */
-  bloqueadoTexto?: string;
-  listo?: boolean;
-  derecha?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section
-      aria-labelledby={`bloque-${numero}`}
-      className={`card-cayla p-5 transition-opacity ${bloqueado ? "opacity-55" : ""}`}
-    >
-      <header className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <span
-            aria-hidden
-            className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] tabular-nums ${
-              listo ? "border-verde bg-verde text-crema" : "border-tinta/30 text-tinta/70"
-            }`}
-          >
-            {listo ? "✓" : numero}
-          </span>
-          <div>
-            <TituloSeccion id={`bloque-${numero}`}>{titulo}</TituloSeccion>
-            {ayuda && !bloqueado && <p className="mt-1 text-xs text-tinta/60">{ayuda}</p>}
-            {bloqueado && bloqueadoTexto && <p className="mt-1 text-xs text-tinta/60">{bloqueadoTexto}</p>}
-          </div>
-        </div>
-        {derecha && !bloqueado && <div className="shrink-0">{derecha}</div>}
-      </header>
-      {/* `inert`: un bloque cerrado no recibe foco ni clics, ni con teclado. */}
-      <div className={bloqueado ? "hidden" : "mt-4"} {...(bloqueado ? { inert: true } : {})}>
-        {children}
-      </div>
-    </section>
-  );
-}
-
 /** El chip de elegir/desmarcar. `aria-pressed` para que un lector de pantalla diga "activado". */
 export function ChipOpcion({
   elegido,
@@ -72,12 +19,16 @@ export function ChipOpcion({
   children,
   className = "",
   disabled = false,
+  chico = false,
 }: {
   elegido: boolean;
   onClick: () => void;
   children: ReactNode;
   className?: string;
   disabled?: boolean;
+  /** Dentro de una celda de tabla (las causas del cierre de Recibir): 32 px de alto, letra de 13 px y lo elegido relleno, para que tres opciones quepan
+   *  en dos líneas de la columna y la fila no se estire. */
+  chico?: boolean;
 }) {
   return (
     <button
@@ -85,11 +36,17 @@ export function ChipOpcion({
       onClick={onClick}
       aria-pressed={elegido}
       disabled={disabled}
-      className={`flex min-h-9 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm transition-colors disabled:opacity-40 ${
-        elegido ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
+      className={`flex items-center gap-1.5 rounded-md border transition-colors disabled:opacity-40 ${chico ? "min-h-8 px-2 py-1 text-[13px]" : "min-h-9 px-2.5 py-1.5 text-sm"} ${
+        elegido
+          ? chico
+            ? "border-tinta bg-tinta text-crema"
+            : "border-tinta bg-tinta/[0.07] text-tinta"
+          : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
       } ${className}`}
     >
-      {elegido && (
+      {/* La chica marca lo elegido rellenándose (como la maqueta de Recibir), sin el ✓: el ✓ la ensanchaba y empujaba a sus vecinas a
+          otra línea en una celda angosta. */}
+      {elegido && !chico && (
         <span aria-hidden className="text-[11px] leading-none">
           ✓
         </span>
@@ -127,7 +84,7 @@ export function PasoAlta({
     // (en el celular los puntos miden ~56 px y no 104: basta 8rem, 2026-10-09).
     <section aria-labelledby={id} className="scroll-mt-32 rounded-xl sm:scroll-mt-[11.5rem] border border-sand bg-papel">
       <div className="px-4 pt-4 sm:px-5">
-        <h2 id={id} className="text-[14.5px] font-semibold text-tinta">
+        <h2 id={id} className="text-[14.5px] font-semibold text-tinta">{/* unificar-fijo: el título de un paso de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
           {titulo}
         </h2>
       </div>

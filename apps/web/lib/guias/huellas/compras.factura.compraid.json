@@ -2,7 +2,7 @@
   "guia": "compras.factura.compraid",
   "ruta": "/compras/factura/[compraId]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 54,
+  "total": 53,
   "controles": {
     "app/(app)/compras/factura/[compraId]/page.tsx": [
       "Volver «(sin nombre)»"
@@ -18,14 +18,14 @@
       "a «Ver»",
       "button «Quitar»",
       "button «Cancelar»",
-      "button «{loading ? \"Quitando…\" : \"Quitar\"}»"
+      "Boton «Quitar»"
     ],
     "components/CerrarFaltanteModal.tsx": [
       "CampoSelect «¿En qué tienda faltó?»",
       "input «de»",
       "button «{texto}»",
-      "ComboResponsable «{loading ? \"Cerrando…\" : \"Cerrar línea con faltante\"}»",
-      "button «{loading ? \"Cerrando…\" : \"Cerrar línea con faltante\"}»"
+      "ComboResponsable «Cerrar línea con faltante»",
+      "Boton «Cerrar línea con faltante»"
     ],
     "components/CompraDetalle.tsx": [
       "a «Finanzas ▸ Gastos»"
@@ -39,14 +39,13 @@
       "input «{`Monto a pagar de ${compra.documento}»",
       "input «Total del pago»",
       "button «Todo ·»",
-      "CampoSelect «Pagas desde»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "Boton «{loading ? \"Registrando…\" : `Registrar pago de ${soles(suma)}»",
+      "Boton «{`Registrar pago de ${soles(suma)}»",
       "CampoTexto «Motivo»",
       "ComboResponsable «Volver»",
       "button «Volver»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/NotasCreditoCompra.tsx": [
       "Link «Notas de crédito»"
@@ -72,8 +71,8 @@
       "input «de»",
       "input «{ETIQUETA_MOTIVO_REASIGNACION[m]}»",
       "CampoTexto «{motivo === \"otro\" ? \"Nota (cuenta el motivo)\" : \"Nota (opcional)\"}»",
-      "ComboResponsable «{loading ? \"Moviendo…\" : cantidadOk && haciaId ? `Mover ${n}»",
-      "button «{error ?? undefined}»"
+      "ComboResponsable «{cantidadOk && haciaId ? `Mover ${n}»",
+      "Boton «{error ?? undefined}»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

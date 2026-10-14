@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import type { CategoriaDePrenda } from "@/lib/categoria-de-prenda";
 import type { ColorDisponible } from "@/lib/productos-vista";
@@ -98,13 +98,10 @@ export function SwatchesColor({
 /** La foto chica de la fila: la del color que se está mirando o, si ese color no tiene foto, el ícono de su categoría sobre ese
  *  color (`MosaicoPrenda`, ADR-0333; antes un tinte con una percha). */
 export function MiniaturaPrenda({ color, referencia, className = "h-[50px] w-10", prefijo, familia, categoria }: { color: ColorDisponible | null; referencia: string; className?: string } & CategoriaDePrenda) {
+  const sinFoto = <MosaicoPrenda forma="relleno" colorHex={color?.hex} prefijo={prefijo} familia={familia} categoria={categoria} className="h-full w-full !rounded-none transition-colors duration-300" />;
   return (
     <span className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-md ${className}`}>
-      {color?.fotoUrl ? (
-        <Image src={color.fotoUrl} alt={`${referencia} — ${color.nombre}`} fill sizes="48px" className="object-cover" unoptimized />
-      ) : (
-        <MosaicoPrenda forma="relleno" colorHex={color?.hex} prefijo={prefijo} familia={familia} categoria={categoria} className="h-full w-full !rounded-none transition-colors duration-300" />
-      )}
+      {color?.fotoUrl ? <ImagenDePrenda src={color.fotoUrl} alt={`${referencia} — ${color.nombre}`} fill sizes="48px" className="object-cover" fondo={color.hex} fallback={sinFoto} /> : sinFoto}
     </span>
   );
 }

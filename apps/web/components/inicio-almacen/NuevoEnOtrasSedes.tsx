@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { categoriaDe } from "@/components/ui/PrendaCelda";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import Link from "next/link";
@@ -144,17 +144,16 @@ function FragmentoTarjeta({ divisor, children }: { divisor: string | null; child
 function Tarjeta({ p, indice, puedeEditar }: { p: NuevoProducto; indice: number; puedeEditar: boolean }) {
   const estilo = { "--i": indice, viewTransitionName: `ia-pc-${p.id.slice(0, 8)}` } as CSSProperties;
   const visibles = p.colores.slice(0, 4);
+  // La capa absoluta es de este contenedor: el mosaico trae su propio `relative`.
+  const sinFoto = (
+    <div className="absolute inset-0">
+      <MosaicoPrenda forma="relleno" conNombre colorHex={colorUnico(p.colores)} {...categoriaDe(p)} className="h-full w-full !rounded-none" />
+    </div>
+  );
   return (
     <article className="ia-pc ia-tilt ia-spot" style={estilo}>
       <div className="ia-ft">
-        {p.fotoUrl ? (
-          <Image src={p.fotoUrl} alt="" fill sizes="250px" unoptimized />
-        ) : (
-          // La capa absoluta es de este contenedor: el mosaico trae su propio `relative`.
-          <div className="absolute inset-0">
-            <MosaicoPrenda forma="relleno" conNombre colorHex={colorUnico(p.colores)} {...categoriaDe(p)} className="h-full w-full !rounded-none" />
-          </div>
-        )}
+        {p.fotoUrl ? <ImagenDePrenda src={p.fotoUrl} alt="" fill sizes="250px" fallback={sinFoto} /> : sinFoto}
         <i className="ia-scan" />
         <span className="ia-bd ia-nv">
           <Ico clave="plus" />

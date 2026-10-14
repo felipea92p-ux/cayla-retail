@@ -134,6 +134,54 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   `excepciones` de cada decisión. Registros: `docs/unificar/campo-combo.md`, `etiqueta-campo.md`, `casilla.md`, `tabla.md`,
   `titulo-seccion.md`, `enlace.md`, `paginacion.md`, `avatar.md`.
 
+- **2026-10-13 · ronda 9, las seis que dejaron abiertas las rondas 6–8, tocándolas** (fuentes en `docs/unificar/rondas/9/`; lo de hoy
+  copiado del DOM real del ERP). Felipe eligió: **una lista de sugerencias para las tres** que sugieren mientras se escribe o se escanea
+  (P1: `<ListaSugerencias>`, la lista de todo combo con su fila rica —miniatura de la prenda, título, detalle, dato a la derecha— y la tecla
+  «Enter» en la activa; Llegó mercadería y Recibir contra factura flotan, las facturas de la nota de crédito van en línea); **Contar con la
+  cara de la tabla del sistema** (P1: cabecera arena, rayado hueso, cascada, la talla recién contada respira en verde; sigue siendo un
+  `<table>` por rendimiento, exento con su motivo); **Frescura con píldoras** cuya lista dibuja **apartados con título** (P1:
+  `DesplegablePildora` aprende `apartado`); **«Desactivar color» rojo en el pie** como Categorías y Familias (P1; la hoja de Proveedor, que tenía el mismo enlace
+  sin ninguna pantalla que lo mostrara, lo perdió: Felipe, «no se desactivan proveedores desde esa hoja»), y una firma nueva de `accion.eliminar` para que desactivar no vuelva a ser un enlace; **el número de un título pegado al
+  nombre en el globito de las pestañas** (P2: `cuenta` en `TituloSeccion` y `TituloGrupo`; a la derecha queda solo lo que resume, y una
+  firma nueva atrapa un conteo puesto como `dato`); y **las acciones chicas según lo que hacen** (P2: lo que cambia varias cosas de un
+  toque —repartir, marcar todas, usar un saldo, cerrar con faltante, reasignar— es `btn-sutil btn-chico`; lo que corrige una sola
+  —Cambiar, Editar, Deshacer— sigue `btn-enlace`). Migrado el mismo día: **deuda 4 → 0** en todas las familias. Registros:
+  `campo-combo.md`, `tabla.md`, `boton.md`, `titulo-seccion.md`, `enlace.md`.
+
+- **2026-10-13 · ronda 10, tres botones de una sola función, tocándolos** (fuentes en `docs/unificar/rondas/10/`). Felipe eligió las tres P1:
+  **bajar un archivo es «Descargar» + qué** (`<BotonDescargar>`: el secundario con el ícono de descarga que baja 2 px y el hilo mientras se
+  arma el archivo; nunca «Exportar» ni solo un ícono); **el botón de los filtros es una píldora más** (`<BotonFiltros>` con la cara de
+  `.pildora-filtro`, cuántos hay puestos en el globito de los títulos; Existencias deja su cuadrado y en el celular queda el ícono con su
+  punto); y **llevar a ver algo en otra pantalla es el botón secundario con la flecha que avanza** (`<BotonVer>`; nunca negro ni con «→»
+  escrito; el vacío conserva su paso principal en negro, con su `unificar-fijo`). Migrado el mismo día: **deuda 0** en las tres. De paso,
+  la caja del «+» y del ícono dentro de `<Boton>` pasó de `inline-flex` a `flex`: armaba su propia línea de texto y el botón medía hasta
+  45 px junto a vecinos de 40. Registros: `accion.exportar.md`, `accion.filtrar.md`, `accion.ver.md`.
+
+- **2026-10-14 · ronda 11, cancelar, limpiar e imprimir, tocándolos** (fuentes en `docs/unificar/rondas/11/`). Felipe eligió: **«Cancelar» a su
+  medida, a la derecha y ANTES del botón que guarda** (P1: la clase `pie-acciones` y `<PieAcciones>`; lo que borra va solo a la izquierda; en el
+  celular, mitades; el flujo del mostrador conserva sus 48 px; la clase va sin `@layer` para mandar sobre el `flex-1` de los pies de antes);
+  **los filtros puestos con la píldora de los vacíos y «Limpiar todo» como una píldora punteada** (P2: `<FiltroPuesto>` y `<BotonLimpiar>`; el
+  verbo es «Limpiar» + qué); e **imprimir siempre con la impresora, «Imprimir» + qué, negro solo si imprimir es el paso** (P1: `<BotonImprimir>`;
+  la hoja sale de la impresora al pasar el mouse). Migrado el mismo día: 116 pies en 86 archivos (también los «Mejor no»), 8 filtros puestos y
+  11 «Limpiar», 24 botones de imprimir; deuda 0 en las tres. Registros: `accion.cancelar.md`, `accion.limpiar.md`, `accion.imprimir.md`.
+
+- **2026-10-14 · los pendientes antes de la ronda 12, mirando las fotos y tocando las demos** (fuentes en `docs/unificar/rondas/pendientes/`).
+  Felipe eligió: **la cabecera de Inventario en todas las pantallas menos Finanzas** (P1: `<EncabezadoPagina>`; cierra lo que ADR-0220 dejaba
+  «sin decidir» —Compras, Recibir, Producción, el resto de Catálogo— y también Configuración, Rendimiento, Etiquetas de precio, Actividad,
+  Inicio, Comercial y Buscar, que usaban la de Finanzas o una a mano; Finanzas conserva `<CabeceraPantalla>`, su spike de ADR-0195); **«Etiquetas»
+  lleva la etiqueta** en Productos y en Existencias (P1: la impresora es solo de lo que imprime ya); y **el «Ver» de una fila es el enlace del
+  sistema** (P1: los pendientes del turno en Caja). Migrado el mismo día: 31 pantallas en 33 archivos (la frase de la pieza pasó a ser opcional
+  y lo que decía el sobretítulo va tras la fecha, en `detalle`), 5 íconos y 1 enlace; deuda 0. Registro nuevo: `titulo-pagina.md`.
+
+- **2026-10-14 · ronda 12, guardar, editar y las hojas, tocándolos** (fuentes en `docs/unificar/rondas/12/`). Felipe eligió P1 en las cinco
+  preguntas: **mientras guarda, «Guardando…» y el hilo sin cambiar de ancho** (lo hace la pieza con `cargando`, también `BotonCompacto` y los
+  botones del flujo del mostrador; cada acción que no es guardar dice su verbo con `textoCargando`); **«Editar» es el secundario con el
+  lápiz y, en una fila o tarjeta de una lista, el lápiz solo** (`<BotonEditar>`, `<LapizEditar>`); y **las hojas tienen una cara** (papel,
+  sin sombra, título de 24 px), **tres anchos con nombre** (`tamano`: angosta 448, mediana 576, ancha 768) **y una salida a la vista** (la ×
+  si solo se lee, «Cancelar» si guarda, nunca las dos). Migrado el mismo día: 140 botones que esperaban a mano (dos codemods), 22 «Editar»,
+  146 anchos y unas 30 salidas; deuda 0 en las tres. La salida no tiene firma (depende de si la hoja guarda). Registros: `accion.guardar.md`,
+  `accion.editar.md`, `modal.md`.
+
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en
 `docs/SESIONES-ACTIVAS.md` lo reserva para que no vuelva a chocar.

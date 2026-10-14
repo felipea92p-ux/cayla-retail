@@ -68,7 +68,7 @@ export default async function PorRevisarPage({ searchParams }: { searchParams: P
             icono={<CheckCheck />}
             titulo="No hay prendas por revisar"
             acciones={
-              <BotonEnlace href="/productos" peso="primario">
+              <BotonEnlace href="/productos" peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                 Ir a Productos
               </BotonEnlace>
             }

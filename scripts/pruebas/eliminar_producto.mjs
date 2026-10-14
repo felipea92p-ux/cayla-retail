@@ -325,11 +325,17 @@ select pg_temp.huella(:'va');`);
     // 2026-10-10 es de la prenda (`precios_sede_prenda`); la tabla por variante quedó como historia.
     "precios_sede",
     "precios_sede_prenda",
+    // ADR-0362 fase 4: lo que una sede contó al recibir un envío de orden de compra (talla por talla) es historia de la prenda.
+    "despacho_recibidos",
+    // ADR-0393: lo contado al recibir que todavía no entró al stock (un pendiente «detalle») también: renglón 23 de
+    // `fn_producto_historia` (20261014234000). Lo recibido frena por su movimiento con lote; un pendiente no deja movimiento.
+    "despacho_pendientes",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.
   // Y una prenda quitada de un apartado (`separacion_items_retirados`), del apartado de la misma prenda (renglón 7).
-  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados"];
+  // Y lo contado de más al recibir un traslado (`traslado_sobrantes`, ADR-0404), de la recepción de la misma prenda.
+  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados", "traslado_sobrantes"];
   const conocidas = [...SUYAS, ...HISTORIA, ...POR_SU_MADRE].map((t) => `'retail.${t}'`).join(", ");
   const r = correr(`select coalesce(string_agg(distinct c.conrelid::regclass::text, ', '), 'NINGUNA')
     from pg_constraint c

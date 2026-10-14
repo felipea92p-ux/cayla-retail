@@ -24,7 +24,7 @@ export const GUIA_FACTURAS: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Las facturas de proveedor",
-      texto: "Cada factura que registras es lo que CAYLA le compró a un proveedor y, mientras no se pague, lo que le debe. Aquí ves todas, con lo que falta pagar y lo que falta llegar. Es una demo: no se registra ni se paga nada.",
+      texto: "Cada factura que registras es lo que CAYLA le compró a un proveedor y, mientras no se pague, lo que le debe. Aquí ves las de todas las tiendas, con lo que falta pagar y lo que falta llegar. Es una demo: no se registra ni se paga nada.",
     },
     {
       id: "registrar",
@@ -35,7 +35,7 @@ export const GUIA_FACTURAS: Guia = {
     {
       id: "exportar",
       ancla: "compras.exportar",
-      titulo: "Exportar el mes",
+      titulo: "Descargar el mes",
       texto: "Descarga un archivo con las facturas del mes, que se abre en Excel, para mandárselo al contador. No cambia nada en el sistema.",
     },
     {
@@ -43,13 +43,6 @@ export const GUIA_FACTURAS: Guia = {
       ancla: "compras.cifras",
       titulo: "Cómo están las compras",
       texto: "Lo que se debe a proveedores (y cuánto ya venció), las facturas cuya mercadería todavía no llega, lo comprado este mes y el IGV de las facturas del mes. Las que tienen flecha te llevan a donde se actúa.",
-    },
-    {
-      id: "mis-partes",
-      ancla: "mis-partes.panel",
-      opcional: true,
-      titulo: "Tu parte en otras facturas",
-      texto: "Si otra tienda registró una factura que también trae mercadería para la tuya, aquí ves la parte que le toca pagar a tu tienda.",
     },
     {
       id: "vistas",
@@ -179,7 +172,7 @@ export const GUIA_FACTURA: Guia = {
       id: "lineas",
       ancla: "factura.lineas",
       titulo: "Lo que se compró",
-      texto: "Cada prenda con su talla y color, cuántas, a qué costo sin IGV y cuántas ya llegaron. Abajo, el subtotal, el IGV y el total, como en el papel.",
+      texto: "Cada prenda con su talla y color, cuántas, a qué costo sin IGV y cuántas ya llegaron. Si la factura salió de una orden de compra, la línea trae categoría y marca y dice «Sin prenda todavía»: se crea cuando llega por guía. Abajo, el total, como en el papel.",
     },
     {
       id: "cerrar-faltante",
@@ -252,7 +245,7 @@ export const GUIA_FACTURA: Guia = {
       ancla: "factura.recepciones",
       preparar: [{ tipo: "escape" }],
       titulo: "Lo que llegó",
-      texto: "Cada vez que llegó mercadería de esta factura: el día, la guía, la tienda y cuántas unidades. «Recibir mercadería» te lleva a anotar lo que acaba de llegar.",
+      texto: "Cada vez que llegó mercadería de esta factura: el día, la guía, la tienda y cuántas unidades. Mientras queden prendas por recibir, «Recibir mercadería» te lleva a anotar lo que acaba de llegar.",
     },
     {
       id: "notas",
@@ -273,7 +266,7 @@ export const GUIA_FACTURA: Guia = {
       ancla: "factura.acciones",
       opcional: true,
       titulo: "Recibir o pagar",
-      texto: "«Ir a recibir» lleva a anotar la mercadería que llegó. «Registrar pago» abre la ventana para anotar lo que le pagaste al proveedor (te la abrimos). Sin pagos ni recepciones, también se puede anular. Si ya está todo, dice «Pagado».",
+      texto: "«Ir a recibir» lleva a anotar la mercadería que llegó, si todavía hay prendas por recibir. «Registrar pago» abre la ventana para anotar lo que le pagaste al proveedor (te la abrimos). Sin pagos ni recepciones, también se puede anular. Si ya está todo, dice «Pagado».",
     },
     {
       id: "pago-datos",
@@ -303,7 +296,7 @@ export const GUIA_FACTURA: Guia = {
       ancla: "pago-modal.pie",
       opcional: true,
       titulo: "Quién paga y registrar",
-      texto: "Aquí queda quién lo está haciendo, y el botón registra el pago: baja la deuda y queda en la lista de pagos. Es todo o nada. En la demo cerramos sin pagar.",
+      texto: "Aquí queda quién lo está haciendo, y el botón registra el pago a nombre de la empresa, sin elegir tienda: baja la deuda y queda en la lista de pagos. Es todo o nada. En la demo cerramos sin pagar.",
     },
     {
       id: "fin",
@@ -326,7 +319,7 @@ export const GUIA_POR_PAGAR: Guia = {
       id: "bienvenida",
       ancla: null,
       titulo: "Lo que se debe a proveedores",
-      texto: "Cada factura registrada que todavía no se paga del todo aparece aquí, de lo más urgente a lo que puede esperar. Desde aquí se paga. Es una demo: no se paga nada.",
+      texto: "Cada factura registrada, de cualquier tienda, que todavía no se paga del todo aparece aquí, de lo más urgente a lo que puede esperar. Desde aquí se paga. Es una demo: no se paga nada.",
     },
     {
       id: "cifras",
@@ -340,13 +333,6 @@ export const GUIA_POR_PAGAR: Guia = {
       opcional: true,
       titulo: "Saldo a tu favor",
       texto: "Proveedores que te deben plata por una nota de crédito. Ese saldo se puede usar al pagarles: se ofrece, no se descuenta solo.",
-    },
-    {
-      id: "mis-partes",
-      ancla: "mis-partes.panel",
-      opcional: true,
-      titulo: "Tu parte en otras facturas",
-      texto: "Si otra tienda registró una factura con mercadería para la tuya, aquí está lo que le toca pagar a tu tienda.",
     },
     {
       id: "vencimiento",
@@ -438,7 +424,7 @@ export const GUIA_POR_PAGAR: Guia = {
       ancla: "pago-modal.pie",
       opcional: true,
       titulo: "Quién paga y registrar",
-      texto: "Aquí queda quién lo está haciendo, y el botón registra el pago: baja la deuda y la fila se marca como pagada. Es todo o nada. En la demo cerramos sin pagar.",
+      texto: "Aquí queda quién lo está haciendo, y el botón registra el pago a nombre de la empresa, sin elegir tienda: baja la deuda y la fila se marca como pagada. Es todo o nada. En la demo cerramos sin pagar.",
     },
     {
       id: "saldo-fila",
@@ -891,7 +877,7 @@ export const GUIA_PROVEEDOR: Guia = {
       id: "modal-pie",
       ancla: "proveedor-modal.pie",
       titulo: "Guardar los cambios",
-      texto: "«Guardar cambios» deja sus datos corregidos; «Cancelar» o la ✕ cierran sin tocar nada. Si ya no le compras, abajo puedes desactivarlo: no se borra, solo deja de salir al registrar facturas. En la demo cerramos sin guardar.",
+      texto: "«Guardar cambios» deja sus datos corregidos; «Cancelar» o la ✕ cierran sin tocar nada. En la demo cerramos sin guardar.",
     },
     {
       id: "cifras",
@@ -901,12 +887,52 @@ export const GUIA_PROVEEDOR: Guia = {
       titulo: "Cómo cumple",
       texto: "Lo facturado en el año, lo que se le debe, sus entregas atrasadas, cuántas llegaron completas, cuánto tarda en entregar y en cuánto le pagas de verdad.",
     },
+    // «Nos debe» (ADR-0362, fase 5a): las prendas por reponer, encima del saldo a favor. Solo la ve quien ve los montos de la ficha. El piloto
+    // abre la hoja «Llegó la reposición» para mostrarla y la cierra sin anotar nada.
+    {
+      id: "nos-debe",
+      ancla: "proveedor-ficha.nos-debe",
+      opcional: true,
+      titulo: "Lo que te debe",
+      texto: "Lo que este proveedor le debe a CAYLA: arriba, las prendas por reponer (lo que faltó en una recepción y no mandó), con su total; abajo, el saldo a tu favor en plata.",
+    },
+    {
+      id: "deuda",
+      ancla: "proveedor-ficha.deuda",
+      opcional: true,
+      titulo: "Cada prenda por reponer",
+      texto: "Cada faltante que en una recepción se marcó «No vino» es una deuda: cuántas y de qué, en qué envío y sede faltaron, hace cuánto y cuánto valen. Se cierra cuando llegan.",
+    },
+    {
+      id: "reposicion",
+      ancla: "proveedor-ficha.reposicion",
+      opcional: true,
+      titulo: "Llegó la reposición",
+      texto: "Si el proveedor ya mandó lo que faltaba y no se marcó al recibirlo, lo anotas aquí (te lo abrimos). Si viene en un envío que todavía no recibiste, márcalo al recibir: se anota solo.",
+    },
+    {
+      id: "hoja-reposicion",
+      ancla: "proveedor-ficha.hoja-reposicion",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "proveedor-ficha.reposicion", siEsta: true }],
+      titulo: "Anotar que cumplió",
+      texto: "Cuántas llegaron (viene puesto todo lo que debía), cómo llegaron y quién lo anota. Solo anota que el proveedor cumplió: no suma prendas al stock. Al anotarlo, queda en el historial de la deuda. En la demo no lo tocamos.",
+    },
+    {
+      // Cierra la hoja aunque este paso se salte (no hay cerradas): `preparar` corre antes de ver si el paso aplica.
+      id: "cerradas",
+      ancla: "proveedor-ficha.nos-debe-cerradas",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Ya repuestas",
+      texto: "Las deudas que se cerraron en los últimos 90 días, con cuándo y cómo llegó cada reposición. Si son muchas, se pliegan: tócalas para verlas.",
+    },
     {
       id: "saldo-favor",
       ancla: "proveedor-ficha.saldo-favor",
       opcional: true,
-      titulo: "Lo que te debe",
-      texto: "El saldo a tu favor con este proveedor (por notas de crédito) y de dónde viene. Se usa al pagarle o se le pide de vuelta.",
+      titulo: "Saldo a tu favor",
+      texto: "La plata que te debe: el saldo a tu favor con este proveedor (por notas de crédito) y de dónde viene. Se usa al pagarle o se le pide de vuelta.",
     },
     {
       id: "costo",
@@ -920,7 +946,7 @@ export const GUIA_PROVEEDOR: Guia = {
       ancla: "proveedor-ficha.ultimos",
       opcional: true,
       titulo: "Sus últimas facturas",
-      texto: "Las facturas más recientes de este proveedor, con lo más urgente de cada una. Abajo, el enlace a todas.",
+      texto: "Las facturas más recientes de este proveedor, con lo más urgente de cada una. Si ves Facturas de proveedor, tocas una para abrirla y abajo hay un enlace a todas; si no, solo se leen.",
     },
     {
       id: "otros",
@@ -988,7 +1014,7 @@ export const GUIA_NUEVA_FACTURA: Guia = {
       ancla: "nueva.destino",
       opcional: true,
       titulo: "A qué tienda va",
-      texto: "La tienda que va a recibir la mercadería. Si una sola factura trae prendas para varias tiendas, elige «Repartir entre tiendas» y en cada línea dices cuántas van a cada una.",
+      texto: "La tienda que va a recibir la mercadería: puedes elegir cualquiera. Si una sola factura trae prendas para varias, elige «Repartir entre tiendas» (tiene que quedar al menos una) y en cada línea dices cuántas van a cada una.",
     },
     {
       id: "lineas",
@@ -1084,8 +1110,8 @@ export const GUIA_MI_PARTE: Guia = {
       id: "pagar",
       ancla: "parte.pagar",
       opcional: true,
-      titulo: "Pagar tu parte",
-      texto: "Abre la ventana para anotar el pago de tu tienda. Baja solo tu parte de la deuda. En la demo no lo tocamos.",
+      titulo: "Pagar",
+      texto: "Abre la ventana para anotar un pago. Se registra a nombre de la empresa: ya no eliges con qué tienda pagas. En la demo no lo tocamos.",
     },
     {
       id: "lineas",
@@ -1125,14 +1151,14 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.empezar",
       opcional: true,
       titulo: "Por dónde empezar",
-      texto: "Cuando ya hay categorías con plan, al lado sale «Exportar», para imprimirlo o bajarlo a Excel. Este botón abre la categoría que más vende y todavía no tiene plan: la que conviene llenar primero.",
+      texto: "Cuando ya hay categorías con plan, al lado sale «Descargar la lista», para imprimirla o bajarla a Excel. Este botón abre la categoría que más vende y todavía no tiene plan: la que conviene llenar primero.",
     },
     {
       id: "selector",
       ancla: "plan.selector",
       opcional: true,
       titulo: "Qué campaña planificas",
-      texto: "Elige la campaña: en curso, por venir o terminadas. Un líder ve al final «+ Nueva campaña», «Editar o quitar esta campaña» (nombre y fechas; si ya tiene algo armado, se archiva en vez de borrarse) y «Campañas archivadas», donde se miran y se restauran.",
+      texto: "Es el calendario de Etiquetas: las campañas de este año y el que viene. Las que dicen «armar plan» todavía no tienen el suyo; tócala y se arma con sus fechas. Al final, un líder crea una campaña que no está en el calendario, edita o quita la abierta y ve las archivadas.",
     },
     {
       id: "vistas",
@@ -1140,6 +1166,13 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       opcional: true,
       titulo: "Plan, Resultados e Historial",
       texto: "Aquí armas el plan. «Resultados» muestra lo que se vendió de verdad en la campaña y «Historial», lo que vendió cada tienda en cada campaña, año por año. Cada una tiene su demo.",
+    },
+    {
+      id: "sin-plan",
+      ancla: "plan.sin-plan",
+      opcional: true,
+      titulo: "Una campaña que empezó sin plan",
+      texto: "Si la campaña ya empezó (o terminó) y nadie la planificó, la pantalla no te pide llenarla: te lleva a ver cómo va cada categoría, para reponer o impulsar a tiempo, y a planificar la próxima campaña.",
     },
     {
       id: "archivada",
@@ -1175,7 +1208,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.pedido",
       opcional: true,
       titulo: "Ya pedido en órdenes de compra",
-      texto: "Las órdenes de compra que llegan dentro de las fechas de la campaña, con su total. Se muestran, no se restan de «Comprar»: todavía no sabemos cuándo llegó cada una. En la tabla, cada categoría dice cuántas ya se pidieron.",
+      texto: "Las órdenes de compra que llegan dentro de las fechas de la campaña, con su total. Lo que todavía no llegó a ninguna tienda ya se resta de «Comprar»; lo que llegó está en «Hay hoy». En la tabla, cada categoría dice cuántas se pidieron y cuántas faltan llegar.",
     },
     {
       id: "recupero-cayla",
@@ -1207,10 +1240,17 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       texto: "Busca una categoría; filtra las que tienen plan, las que no, las que más venden o las que se agotaron; elige una familia y el orden. «Paso a paso» te lleva por las categorías una a una, de la que más vende a la que menos.",
     },
     {
+      id: "stock-linea",
+      ancla: "plan.stock-linea",
+      opcional: true,
+      titulo: "¿Se puede confiar en «Hay hoy»?",
+      texto: "Si una tienda no tiene el piso cuadrado o el almacén contado, esta línea te lo dice: lo que hay hoy puede no ser exacto y el plan pediría comprar de más. «Ver qué falta» abre el detalle, con el acceso a Conteo.",
+    },
+    {
       id: "tabla",
       ancla: "plan.tabla",
       titulo: "Una fila por categoría",
-      texto: "Lo que esperas vender en los tres escenarios, lo que ya hay hoy en todas las tiendas, cuánto comprar y cuánto cuesta. «Sin plan» quiere decir que esa categoría todavía no tiene números.",
+      texto: "Lo que esperas vender en los tres escenarios, lo que ya hay hoy en todas las tiendas, cuánto comprar y cuánto cuesta. «Armar plan» quiere decir que esa categoría todavía no tiene números; las columnas de compra salen cuando alguna ya los tiene.",
     },
     {
       id: "categoria",
@@ -1300,8 +1340,8 @@ export const GUIA_PLAN_CAMPANA: Guia = {
 };
 
 // ---- Órdenes de compra (ADR-0389, fase 1) y las vistas Resultados e Historial del Plan de campaña (ADR-0372) ----
-// Una orden es lo que se le PIDE al proveedor, antes de su factura. La demo no crea, no edita, no imprime ni anula: abrir una orden
-// desde la lista es ir a otra dirección (el piloto no sale de la pantalla), así que la fila se explica y la orden tiene su propia guía.
+// Una orden es lo que se le PIDE al proveedor, antes de su factura. La demo no crea, no edita, no imprime, no envía ni anula: abrir una
+// orden desde la lista es ir a otra dirección (el piloto no sale de la pantalla), así que la fila se explica y la orden tiene su propia guía.
 
 export const GUIA_ORDENES: Guia = {
   id: "compras.ordenes",
@@ -1322,11 +1362,24 @@ export const GUIA_ORDENES: Guia = {
       texto: "Abre el formulario para pedirle algo a un proveedor: eliges al proveedor, a dónde llega y escribes lo que pides, prenda por prenda. Al guardar, vuelve aquí con la orden marcada como «Recién guardada».",
     },
     {
+      id: "gasto-viaje",
+      ancla: "ordenes.gasto-viaje",
+      titulo: "Lo que costó traer la compra",
+      texto: "«+ Gasto del viaje» anota lo que pagaste para traer la compra (flete, agencia, cargador, embalaje) o en el viaje (pasaje, hotel, comida, taxi), y a qué órdenes va. Sale de tu fondo o de una cuenta de siempre y nunca entra al costo de la prenda. En la demo no lo guardamos.",
+    },
+    {
       id: "cifras",
       ancla: "ordenes.cifras",
       opcional: true,
       titulo: "Cuánto se ha pedido",
       texto: "Lo pedido a proveedores en todas las sedes, lo que llega a la sede donde trabajas y lo que llega a Lima «por repartir» entre las tiendas. Solo cuentan las órdenes generadas: una anulada no suma. No cambian con los filtros.",
+    },
+    {
+      id: "tu-fondo",
+      ancla: "ordenes.tu-fondo",
+      opcional: true,
+      titulo: "Tu fondo",
+      texto: "La plata que CAYLA te entregó para comprar: cuánto te queda y cuánto gastaste. Baja sola al pagar o anotar un gasto desde «Mi fondo». «Rendir» abre tu rendición: cuentas tu efectivo y otra persona la revisa. Solo la ves tú.",
     },
     {
       id: "buscador",
@@ -1345,6 +1398,14 @@ export const GUIA_ORDENES: Guia = {
       texto: "Las primeras píldoras dicen a qué tienda llega cada orden (arranca en tu sede) o si llega a Lima para repartir; cada una trae cuántas hay. «Generadas» y «Anuladas» dejan solo las de ese estado; tócala otra vez para ver las dos.",
     },
     {
+      // Se explica sin tocarla: su nombre lleva «enviar» y el piloto no toca nada que suene a guardar (`motivoParaNoTocar`).
+      id: "por-enviar",
+      ancla: "ordenes.por-enviar",
+      opcional: true,
+      titulo: "Lo que falta enviar",
+      texto: "«Por enviar» deja solo las órdenes que todavía tienen prendas por mandar a una sede, de todas las sedes, y en cada fila ves cuántas unidades faltan. Tócala otra vez para volver a verlas todas.",
+    },
+    {
       id: "lista",
       ancla: "ordenes.lista",
       opcional: true,
@@ -1356,7 +1417,7 @@ export const GUIA_ORDENES: Guia = {
       ancla: "ordenes.fila",
       opcional: true,
       titulo: "Abrir una orden",
-      texto: "Toca una fila y la orden se abre en una ventana encima de la lista, sin perder tus filtros: ahí la lees completa, la imprimes o guardas en PDF para el proveedor, la editas o la anulas. Cierras con la ✕ o Escape y vuelves aquí.",
+      texto: "Toca una fila y la orden se abre en una ventana encima de la lista, sin perder tus filtros: ahí la lees completa, la imprimes o guardas en PDF para el proveedor, la mandas a una sede, la editas o la anulas. Cierras con la ✕ o Escape y vuelves aquí.",
     },
     {
       id: "fin",
@@ -1375,6 +1436,14 @@ const PASOS_FORMULARIO_ORDEN = {
     ancla: "orden-form.datos",
     titulo: "Proveedor y a dónde llega",
     texto: "El proveedor (búscalo por nombre, marca o RUC) y a qué tienda llega la mercadería; «por repartir» si llega a Lima y se separa después. La entrega estimada va si la sabes, y la nota es para lo que el proveedor debe saber.",
+  },
+  // «Nos debe» (ADR-0362, fase 5a): sale al elegir un proveedor que todavía debe prendas por reponer de otra compra.
+  nosDebe: {
+    id: "nos-debe",
+    ancla: "orden-form.nos-debe",
+    opcional: true,
+    titulo: "Si el proveedor te debe algo",
+    texto: "Si este proveedor todavía te debe prendas de otra compra, aquí te lo recuerda, con cuántas y cuánto valen: pídeselas en esta orden o márcalas cuando lleguen.",
   },
   lineas: {
     id: "lineas",
@@ -1416,6 +1485,7 @@ export const GUIA_NUEVA_ORDEN: Guia = {
       texto: "El número que tendrá la orden (se confirma al guardar) y el total, que se va sumando mientras escribes las líneas.",
     },
     PASOS_FORMULARIO_ORDEN.datos,
+    PASOS_FORMULARIO_ORDEN.nosDebe,
     PASOS_FORMULARIO_ORDEN.lineas,
     PASOS_FORMULARIO_ORDEN.linea,
     PASOS_FORMULARIO_ORDEN.agregar,
@@ -1438,13 +1508,13 @@ export const GUIA_ORDEN: Guia = {
   id: "compras.ordenes.ver.id",
   ruta: "/compras/ordenes/ver/[id]",
   titulo: "Una orden de compra",
-  resumen: "Lo que se le pidió a un proveedor, completo, para imprimir, editar o anular.",
+  resumen: "Lo que se le pidió a un proveedor, el papel que ya llegó y lo que salió a las sedes: para imprimir, corregir, anular, registrar su comprobante o enviarla.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "Una orden por dentro",
-      texto: "Aquí ves todo lo que se le pidió a un proveedor en esta orden: a quién, a dónde llega, cada prenda y el total. Es una demo: no se cambia nada.",
+      texto: "Aquí ves todo lo que se le pidió a un proveedor en esta orden: a quién, a dónde llega, cada prenda y el total; y, cuando ya los hay, el papel del proveedor y lo que salió hacia las sedes. Es una demo: no se cambia nada.",
     },
     {
       id: "anulada",
@@ -1466,16 +1536,86 @@ export const GUIA_ORDEN: Guia = {
       texto: "Una fila por prenda: categoría y marca, cuántas, el precio de cada una, el descuento y el subtotal. Abajo, cuántas líneas y unidades, y el total de la orden.",
     },
     {
+      id: "papel-linea",
+      ancla: "orden.papel-linea",
+      opcional: true,
+      titulo: "Cuánto llegó en papel",
+      texto: "Cuando ya se registró un comprobante, cada línea dice «Llegó en papel: 8 de 10»: cuántas unidades aparecen ya en el papel del proveedor. En ámbar, el papel trae de más; en verde, la línea ya está completa.",
+    },
+    {
+      id: "envio-linea",
+      ancla: "orden.envio-linea",
+      opcional: true,
+      titulo: "Cuánto salió a las sedes",
+      texto: "Cuando ya salió algo, cada línea dice «Enviado: 8 de 10»: cuántas unidades van en envíos que no se anularon, de las que hay que mandar. En verde, la línea ya salió toda.",
+    },
+    {
+      id: "comprobantes",
+      ancla: "orden.comprobantes",
+      opcional: true,
+      titulo: "El papel que ya llegó",
+      texto: "Los comprobantes de esta orden, del más reciente al más antiguo: documento (una compra sin comprobante lleva su número interno SC-…), tipo, emisión, total, lo que falta pagar y su estado. Mientras tenga uno vigente, la orden no se edita ni se anula.",
+    },
+    {
+      id: "anular-comprobante",
+      ancla: "orden.anular-comprobante",
+      opcional: true,
+      titulo: "Anular un comprobante",
+      texto: "Si el papel se copió mal, «Anular» pide el motivo y lo deja sin efecto: deja de contar en Por pagar y la orden recupera lo pendiente. No se borra ni se deshace. Con pagos o mercadería recibida no se deja. En la demo no lo tocamos.",
+    },
+    {
+      id: "envios",
+      ancla: "orden.envios",
+      opcional: true,
+      titulo: "Lo que salió hacia las sedes",
+      texto: "Los envíos de esta orden, del más reciente al más antiguo: su número, a qué sede va, la guía, cuándo salió, cuántas unidades y su estado. Con un envío, la orden ya no se edita; mientras tenga uno vigente, tampoco se anula.",
+    },
+    {
+      id: "anular-envio",
+      ancla: "orden.anular-envio",
+      opcional: true,
+      titulo: "Anular un envío",
+      texto: "Si un envío salió mal, «Anular envío» pide el motivo y lo deja sin efecto: lo que llevaba vuelve a quedar por enviar. Solo mientras va «En camino»: cuando la sede lo abre, ya no. No se borra ni se deshace. En la demo no lo tocamos.",
+    },
+    {
+      id: "gastos-viaje",
+      ancla: "orden.gastos-viaje",
+      opcional: true,
+      titulo: "Traerla costó",
+      texto: "Los gastos del viaje de esta orden (flete, cargador, hotel…) y lo que le tocó a ella: si un gasto se repartió entre varias órdenes, aquí ves su parte. Es lo que costó traerla, aparte del costo de las prendas.",
+    },
+    {
       id: "pie",
       ancla: "orden.pie",
       titulo: "Su estado y quién la hizo",
-      texto: "Si está generada o anulada, quién la creó y cuándo y, si alguien la cambió después, quién fue y cuándo.",
+      texto: "Si está generada o anulada, si ya tiene papel («Papel en parte» o «Papel completo») y si ya salió («Enviado en parte» o «Todo enviado»), quién la creó y cuándo y, si alguien la cambió después, quién fue y cuándo.",
     },
     {
       id: "acciones",
       ancla: "orden.acciones",
       titulo: "Lo que haces con ella",
-      texto: "«Imprimir o guardar PDF» saca la orden en papel A4, lista para mandársela al proveedor. Mientras está generada: «Editar» la corrige y «Anular orden» la deja sin efecto, con un motivo; eso no se deshace. En la demo no tocamos ninguno.",
+      texto: "«Imprimir la orden» la saca en papel A4 (o en PDF), lista para mandársela al proveedor. «Editar» la corrige, solo mientras no tenga comprobante ni envío; «Anular orden» la deja sin efecto, con un motivo, y no se deshace. En la demo no tocamos ninguno.",
+    },
+    {
+      id: "gasto-viaje",
+      ancla: "orden.gasto-viaje",
+      opcional: true,
+      titulo: "Anotar un gasto del viaje",
+      texto: "«+ Gasto del viaje» abre la hoja con esta orden ya elegida: qué pagaste, cuánto, el papel que te dieron y de dónde salió la plata. Puedes sumar otras órdenes y el monto se reparte según el total de cada una. En la demo no lo guardamos.",
+    },
+    {
+      id: "enviar",
+      ancla: "orden.enviar",
+      opcional: true,
+      titulo: "Enviar a una sede",
+      texto: "Mientras quede algo por enviar, este botón te lleva a armar la guía con la que sale hacia una sede, con lo que falta ya puesto. Se envía con o sin comprobante. Te lleva a otra pantalla, así que en la demo no lo tocamos.",
+    },
+    {
+      id: "registrar-comprobante",
+      ancla: "orden.registrar-comprobante",
+      opcional: true,
+      titulo: "Registrar el comprobante",
+      texto: "Cuando el proveedor te da su papel (factura, boleta o nota de venta), este botón te lleva a copiarlo, con lo que falta de la orden ya puesto; si no te dio ninguno, ahí mismo la registras «sin comprobante». Te lleva a otra pantalla, así que en la demo no lo tocamos.",
     },
     {
       id: "fin",
@@ -1506,6 +1646,13 @@ export const GUIA_EDITAR_ORDEN: Guia = {
       texto: "Esta orden está anulada y ya no se puede cambiar. «Ver la orden» la abre; si todavía hace falta pedir eso, crea una orden nueva.",
     },
     {
+      id: "con-comprobante",
+      ancla: "orden-form.con-comprobante",
+      opcional: true,
+      titulo: "Con comprobante no se edita",
+      texto: "Una orden que ya tiene comprobante no se edita: sus líneas respaldan el papel. Si el papel está mal, anula su comprobante desde la orden y regístralo de nuevo. «Ver la orden» te lleva a ella.",
+    },
+    {
       id: "cifras",
       ancla: "orden-form.cifras",
       opcional: true,
@@ -1513,6 +1660,7 @@ export const GUIA_EDITAR_ORDEN: Guia = {
       texto: "El número de la orden está en el título. Aquí, el total, que cambia mientras corriges las líneas.",
     },
     { ...PASOS_FORMULARIO_ORDEN.datos, opcional: true },
+    PASOS_FORMULARIO_ORDEN.nosDebe,
     { ...PASOS_FORMULARIO_ORDEN.lineas, opcional: true },
     PASOS_FORMULARIO_ORDEN.linea,
     { ...PASOS_FORMULARIO_ORDEN.agregar, opcional: true },
@@ -1528,6 +1676,180 @@ export const GUIA_EDITAR_ORDEN: Guia = {
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes corregir una orden de compra. La flecha de arriba te devuelve a la lista. Para repasarlo: Mi perfil ▸ Demo ▸ Editar orden de compra.",
+    },
+  ],
+};
+
+// Registrar el comprobante de una orden (ADR-0362, fase 2). Pantalla interna: se llega desde «Registrar comprobante» en la orden abierta y
+// no se ofrece sola. Es dinero (deja una deuda por pagar, o un pago si es al contado), así que la guía solo EXPLICA: el único toque del
+// piloto es cambiar «Crédito» ↔ «Contado» para mostrar el bloque del pago, que es de pantalla y se deshace al salir. Nunca escribe un
+// ejemplo (ADR-0290: serie y número son los del papel de cada proveedor, no hay uno que valga para todos).
+// «Sin comprobante» (decisión 50, Felipe 2026-10-12: cuatro tipos) se EXPLICA y el piloto no lo elige: el tipo arranca en «Factura» pero
+// la persona pudo haber elegido otro antes de abrir la demo, y volver a ponerlo sería cambiarle una decisión de dinero (el IGV). Su nota
+// tiene su propio paso, opcional: sale cuando ya está elegido.
+export const GUIA_COMPROBANTE_ORDEN: Guia = {
+  id: "compras.ordenes.comprobante.id",
+  ruta: "/compras/ordenes/comprobante/[id]",
+  titulo: "Registrar comprobante de orden",
+  resumen: "Copiar el papel que dio el proveedor por lo que le pediste, o registrar la compra sin comprobante: lo que falta de la orden ya viene puesto.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Copiar el papel del proveedor",
+      texto: "Aquí registras el papel que el proveedor te dio por una orden: factura, boleta o nota de venta; si no te dio ninguno, la compra se registra «sin comprobante». Lo que falta de la orden ya viene puesto y tú corriges lo que no coincida. Es una demo: no se registra nada.",
+    },
+    {
+      id: "cifras",
+      ancla: "comprobante.cifras",
+      titulo: "El total del papel, al día",
+      // «Arriba», sin «a la derecha»: en un celular la cifra baja bajo el título, a la izquierda.
+      texto: "Arriba se va sumando el total de lo que copias, para compararlo con el total impreso en el papel antes de registrar. Sin comprobante, es el total de la compra.",
+    },
+    {
+      id: "aviso",
+      ancla: "comprobante.aviso",
+      opcional: true,
+      titulo: "Si ya hay papel registrado",
+      texto: "Si la orden ya tiene comprobantes, aquí te avisa. Abajo viene solo lo que todavía no llegó en papel; si ya llegó todo, otro papel se acepta y lo que pase de lo pedido queda avisado como «de más».",
+    },
+    {
+      id: "papel",
+      ancla: "comprobante.papel",
+      titulo: "Qué papel es y cómo se paga",
+      texto: "Elige qué papel te dieron (boleta, nota de venta o factura) y copia su serie, su número y su fecha; si no te dieron ninguno, elige «Sin comprobante». Después, si va a crédito (queda en Por pagar, con su vencimiento) o al contado. El interruptor suma el IGV de 18 %, solo en una factura.",
+    },
+    {
+      id: "sin-papel",
+      ancla: "comprobante.sin-papel",
+      opcional: true,
+      titulo: "Una compra sin comprobante",
+      texto: "Si el proveedor no te dio ningún papel, no hay serie ni número que copiar: la compra se guarda con un número interno (SC-000001) para que el contador sepa que no tiene comprobante. No lleva IGV, no entra al Registro de Compras de Impuestos y se paga igual, a crédito o al contado.",
+    },
+    {
+      id: "renglones",
+      ancla: "comprobante.renglones",
+      titulo: "Lo que dice el papel",
+      texto: "Una fila por cada renglón del papel (sin comprobante, por cada cosa que compraste), con lo que falta de la orden ya puesto. Arriba ves cuántos renglones y unidades llevas. Lo que trae de más se acepta y queda avisado; lo que no trae, lo quitas con la ✕.",
+    },
+    {
+      id: "renglon",
+      ancla: "comprobante.renglon",
+      opcional: true,
+      titulo: "Cada renglón",
+      texto: "La prenda (categoría y marca), cuántas, el costo por unidad —sin IGV si el papel lo discrimina—, el precio de venta si lo sabes y el subtotal. Si los centavos no cuadran, un renglón se parte en dos para que sumen exacto.",
+    },
+    {
+      id: "sin-poner",
+      ancla: "comprobante.sin-poner",
+      opcional: true,
+      titulo: "Lo que quedó sin poner",
+      texto: "Las líneas de la orden que no pusiste en este papel, con cuántas pediste y cuántas ya llegaron en papel. «Poner en el papel» («Poner en la compra», sin comprobante) la trae de vuelta con su costo.",
+    },
+    {
+      id: "fuera",
+      ancla: "comprobante.fuera",
+      titulo: "Algo que no estaba en la orden",
+      texto: "Si te facturaron o compraste una prenda que no estaba en la orden, la agregas aquí con su categoría y marca. La prenda se crea cuando llegue la mercadería, por guía. En la demo no agregamos nada.",
+    },
+    {
+      id: "totales",
+      ancla: "comprobante.totales",
+      titulo: "Subtotal, IGV y total",
+      texto: "Se calculan solos con los renglones: compáralos con el papel antes de registrar. En una factura con IGV, si el papel dice otro total por unos centavos, escríbelo abajo: ese total manda y el IGV se ajusta. En los demás, el IGV dice «No lleva».",
+    },
+    {
+      id: "pago",
+      ancla: "comprobante.pago",
+      preparar: [{ tipo: "clic", ancla: "comprobante.contado" }],
+      titulo: "Si se paga al contado",
+      texto: "Al contado, se registra con su pago por el total: eliges el medio (transferencia, Yape, efectivo…), de qué cuenta sale y, si hace falta, divides el pago en varios medios. A crédito no se paga ahora: queda en Por pagar.",
+    },
+    {
+      id: "registrar",
+      ancla: "comprobante.registrar",
+      preparar: [{ tipo: "clic", ancla: "comprobante.credito" }],
+      titulo: "Registrar el comprobante",
+      // Al registrar, la pantalla vuelve a la LISTA de órdenes con la orden marcada (`hrefOrdenGuardada`), no a la orden.
+      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta. «Registrar comprobante» (o «Registrar sin comprobante») deja la compra por pagar, o pagada si fue al contado, y vuelves a la lista. «Cancelar» sale sin guardar. En la demo no lo tocamos.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes copiar el papel de un proveedor. La flecha de arriba te devuelve a la lista. Para repasarlo: Mi perfil ▸ Demo ▸ Esta pantalla.",
+    },
+  ],
+  alSalir: [{ tipo: "clic", ancla: "comprobante.credito", siEsta: true }],
+};
+
+// Enviar una orden a una sede (ADR-0362, fase 3). Pantalla interna: se llega desde «Enviar a una sede» en la orden abierta y no se ofrece
+// sola. Enviar deja la mercadería «en camino» hacia una sede, así que la guía solo EXPLICA y el piloto no toca nada: ni elige la sede ni
+// cambia una cantidad (las cantidades vienen puestas, y cambiar una despierta el «¿Salir sin guardar?» al irse de la demo). Tampoco
+// escribe un número de guía de ejemplo (ADR-0290: es el del papel del transportista, no hay uno que valga para todos).
+export const GUIA_ENVIO_ORDEN: Guia = {
+  id: "compras.ordenes.envio.id",
+  ruta: "/compras/ordenes/envio/[id]",
+  titulo: "Enviar una orden a una sede",
+  resumen: "Mandar lo de una orden a una sede, en una guía: lo que falta enviar ya viene puesto.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Mandar lo pedido a una sede",
+      // Lo de «enviarla es opcional» es la decisión 48 de ADR-0362. Va aquí y no en «A qué sede va»: en un celular, esa tarjeta con más texto
+      // ya no cabe sobre la sección y tapa el número de guía y la nota que explica.
+      texto: "Aquí armas la guía con la que sale lo de una orden hacia una sede: a cuál va y cuántas van de cada prenda, con o sin comprobante. Si la orden llega directo a una tienda, enviarla es opcional: sin envío, la tienda la recibe contra la orden. Es una demo: no se envía nada.",
+    },
+    {
+      id: "cifras",
+      ancla: "envio.cifras",
+      titulo: "Cuánto va en esta guía",
+      // «Arriba», sin «a la derecha»: en un celular la cifra baja bajo el título, a la izquierda.
+      texto: "Arriba, cuántas unidades salen en esta guía. Cambia mientras ajustas las cantidades de abajo.",
+    },
+    {
+      id: "aviso",
+      ancla: "envio.aviso",
+      opcional: true,
+      titulo: "Si ya salió algo antes",
+      texto: "Si la orden ya tuvo envíos, aquí te dice cuántas unidades salieron. Abajo queda solo lo que falta enviar.",
+    },
+    {
+      id: "destino",
+      ancla: "envio.destino",
+      titulo: "A qué sede va",
+      texto: "Si la orden llega directo a una tienda, va solo ahí; si llegó a Lima «por repartir», eliges la sede: una guía va a una sola. El número de guía y la nota son opcionales.",
+    },
+    {
+      id: "lineas",
+      ancla: "envio.lineas",
+      titulo: "Qué lleva",
+      texto: "Una fila por prenda de la orden, con lo que le falta enviar ya puesto. Si hay varias, «Todo lo que queda» vuelve a ponerlo en todas y «Dejar todas en 0» las vacía, para que escribas solo lo que va a esta sede.",
+    },
+    {
+      id: "renglon",
+      ancla: "envio.renglon",
+      titulo: "Cada prenda",
+      texto: "La prenda (categoría y marca), cuántas pediste y cuántas ya salieron. «Quedan» es lo que falta enviar; en «Van» escribes cuántas salen en esta guía. Con 0 o la caja vacía, esa prenda no va esta vez: la mandas en otra guía.",
+    },
+    {
+      id: "total",
+      ancla: "envio.total",
+      titulo: "Lo que sale en total",
+      texto: "Cuántas líneas y unidades van en esta guía. Una guía no sale vacía: tiene que llevar al menos una prenda.",
+    },
+    {
+      id: "enviar",
+      ancla: "envio.enviar",
+      titulo: "Enviar",
+      texto: "Desde una terminal, eliges quién envía. Encima del botón ves lo que falta. «Enviar» registra el envío con su número (ENV-000012) «en camino» y vuelves a la lista: no suma al stock hasta que la sede lo reciba. «Cancelar» sale sin enviar. En la demo no lo tocamos.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes mandar una orden a una sede. La flecha de arriba te devuelve a la lista. Para repasarlo: Mi perfil ▸ Demo ▸ Esta pantalla.",
     },
   ],
 };
@@ -1728,4 +2050,98 @@ export const GUIA_PLAN_HISTORIAL: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }],
+};
+
+// ---- Fondos por rendir (ADR-0362, fase 6 · actividad 1 · ADR-0389) ----
+// Es plata: la guía dice con cuidado qué cuenta como entregado, devuelto y en la mano, y nunca entrega, registra ni anula (los
+// botones se EXPLICAN con la pieza encendida). Lo que depende de que alguien ya tenga fondo (las cifras, la lista, los movimientos) es
+// opcional; sin fondos, la guía explica la tarjeta vacía.
+export const GUIA_FONDOS: Guia = {
+  id: "compras.fondos",
+  ruta: "/compras/fondos",
+  titulo: "Fondos por rendir",
+  resumen: "La plata que le entregas a quien compra, y cuánto tiene cada persona en la mano.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "La plata para comprar",
+      texto: "Quien compra para CAYLA paga al proveedor, el flete y sus gastos con plata que le entregas antes. Aquí la entregas y ves cuánto tiene cada persona en la mano. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "entregar",
+      ancla: "fondos.entregar",
+      titulo: "Entregar plata",
+      texto: "Eliges a quién, de qué banco o caja fuerte sale y para qué es («compras en Gamarra»). No es un gasto: la plata sigue siendo de CAYLA mientras la persona la tiene. Nadie se entrega plata a sí mismo.",
+    },
+    {
+      id: "vacio",
+      ancla: "fondos.vacio",
+      opcional: true,
+      titulo: "Todavía nadie tiene fondo",
+      texto: "Cuando entregues la primera plata, aquí vas a ver a esa persona: cuánto le diste, cuánto devolvió y cuánto tiene en la mano.",
+    },
+    {
+      id: "rendiciones",
+      ancla: "fondos.rendiciones",
+      opcional: true,
+      titulo: "Rendiciones por aprobar",
+      texto: "Quien compró rinde su fondo: cuenta lo que tiene en la mano y aquí ves lo que debería tener, lo que dice que tiene y si cuadra o le falta plata. Cada una se revisa con «Revisar».",
+    },
+    {
+      id: "revisar",
+      ancla: "fondos.revisar",
+      opcional: true,
+      titulo: "Revisar una rendición",
+      texto: "Abre cada pago y gasto con su foto. Si falta plata y explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda, y la hoja dice en cuánto queda la suya. Quien le entregó la plata no la aprueba: puede revisarla y devolverla para que la corrija. En la demo no la aprobamos.",
+    },
+    {
+      id: "cifras",
+      ancla: "fondos.cifras",
+      opcional: true,
+      titulo: "Toda la empresa",
+      texto: "Cuánto tienen en la mano todas las personas juntas, cuánto se entregó desde el primer fondo y cuánto devolvieron.",
+    },
+    {
+      id: "lista",
+      ancla: "fondos.lista",
+      opcional: true,
+      titulo: "Quién tiene plata",
+      texto: "Una fila por persona: su sede, para qué fue la última entrega, cuánto se le entregó, cuánto devolvió y lo que tiene en la mano. Si rindió y espera, lo que dijo tener sale bajo su cifra; si debe por un faltante, lo dice bajo su nombre.",
+    },
+    {
+      id: "devolver",
+      ancla: "fondos.devolver",
+      opcional: true,
+      titulo: "Lo que devuelve",
+      texto: "Cuando te devuelve lo que sobró, lo registra quien recibe la plata (nunca quien la devuelve): a qué banco o caja fuerte volvió y cuánto. Si su rendición espera aprobación, la hoja dice cuánto le falta y hasta cuánto puede devolver.",
+    },
+    {
+      id: "pagar-deuda",
+      ancla: "fondos.pagar-deuda",
+      opcional: true,
+      titulo: "Saldar una deuda",
+      texto: "Si alguien debe por un faltante y te devuelve la plata, aquí lo registras: cuánto pagó y a qué banco o caja fuerte entró. La deuda baja apenas se guarda. No lo registra quien debe, y no se paga más de lo que debe.",
+    },
+    {
+      id: "movimientos",
+      ancla: "fondos.movimientos",
+      opcional: true,
+      titulo: "Entregas, devoluciones y pagos de deuda",
+      texto: "Cada entrega, devolución y pago de deuda, lo más nuevo arriba: de dónde salió o a dónde llegó la plata y para qué. Lo anulado queda a la vista, tachado, con quién lo anuló y por qué.",
+    },
+    {
+      id: "anular",
+      ancla: "fondos.anular",
+      opcional: true,
+      titulo: "Anular un error",
+      texto: "Si una entrega, una devolución o un pago de deuda se anotó mal, se anula con su motivo; no se borra. Una entrega de la que ya salió plata no se anula, y nadie anula lo de su propio fondo.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes entregar plata, ver cuánto tiene cada persona y revisar sus rendiciones. Para repasarlo: Mi perfil ▸ Demo ▸ Fondos por rendir.",
+    },
+  ],
 };

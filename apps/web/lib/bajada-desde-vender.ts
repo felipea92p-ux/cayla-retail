@@ -16,6 +16,7 @@ import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error
 
 /** La RPC y sus parámetros en un solo lugar: `bajada-desde-vender.test.ts` los fija contra la migración. */
 export const RPC_BAJADA_DESDE_VENDER = "bajar_al_piso_desde_vender";
+/** @internal Lo lee solo su prueba, que lo cruza con la firma de la migración y con los argumentos que arma la pantalla. */
 export const PARAMETROS_RPC_BAJADA_DESDE_VENDER = ["p_ubicacion_id", "p_variante_id", "p_piso_necesario", "p_token"] as const;
 
 /** Sin tope, una conexión colgada dejaría el loader encima de la caja: a los 20 s se corta y se trata como un corte de red

@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, Info } from "lucide-react";
+import { ChevronDown, CircleCheck, Info, Shirt } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Desplegable, type Opcion } from "@/components/ui/campos";
+import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Buscador } from "@/components/ui/Buscador";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -54,6 +54,7 @@ import { FrescuraPiso } from "./FrescuraPiso";
 import { FrescuraAguja } from "./FrescuraAguja";
 import { loQueMueveLaAguja, loQueSeLlevan, sinEstrenar } from "@/lib/frescura-aguja";
 import { conteoDeTodo, pisoDeLaTienda, pisoPorFamilia, respuestaDelPiso } from "@/lib/frescura-piso";
+import { BotonLimpiar } from "@/components/ui/FiltrosPuestos";
 
 // Frescura del piso (ADR-0208, paso 4): cuánto lleva colgada cada prenda de la sede y qué tan rápido se vende, contra las
 // demás de su categoría, y qué hacer con lo que se queda. Maqueta aprobada: `docs/maquetas/frescura-3c-2026-09/` (colores
@@ -185,13 +186,13 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const tableroCompacto = (cifras?.porDecidir ?? 0) > 0;
   const abierta = ctx && prendaAbierta ? (enTabla.find((p) => p.clave === prendaAbierta) ?? null) : null;
 
-  // Las opciones de los combos (ADR-0209: sin <select>; Estado tiene 11 y trae buscador solo).
-  const opcionesCategoria: Opcion<string>[] = useMemo(() => {
+  // Las opciones de las píldoras (ADR-0209: sin <select>; Estado tiene 10 y trae buscador solo).
+  const opcionesCategoria: { valor: string; texto: string }[] = useMemo(() => {
     const vistas = new Map<string, string>();
     for (const p of enTabla) vistas.set(p.categoriaId, p.categoriaNombre);
     return [{ valor: TODAS_LAS_CATEGORIAS, texto: "Todas las categorías" }, ...[...vistas].map(([valor, texto]) => ({ valor, texto }))];
   }, [enTabla]);
-  const opcionesEstado: Opcion<FiltroEstado>[] = FILTROS_ESTADO.map((f) => ({ valor: f.valor, texto: f.texto, ...("grupo" in f ? { grupo: f.grupo } : {}) }));
+  const opcionesEstado = FILTROS_ESTADO.map((f) => ({ valor: f.valor, texto: f.texto, ...("grupo" in f ? { apartado: f.grupo } : {}) }));
 
   // Una categoría que no está en la tabla (un enlace viejo, o la otra sede del selector con `?cat=` puesto) es «todas»:
   // si no, el combo decía «Elegir» —que en todo el sistema es «falta elegir»— y la tabla salía vacía sin explicar por qué.
@@ -349,21 +350,15 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 etiqueta="Buscar prenda, color o código"
                 className="min-w-0 flex-[1_1_220px] sm:max-w-[340px]"
               />
-              <Desplegable // unificar-fijo: filtro de Frescura; su vecino «Estado» usa grupos con título que la píldora no dibuja (decide Felipe)
-                valor={filtros.cat}
-                onValor={(cat) => cambiar({ cat })}
-                opciones={opcionesCategoria}
-                forma="caja"
-                etiquetaAccesible="Categoría"
-                className="w-full min-[480px]:w-52"
-              />
-              <Desplegable // unificar-fijo: filtro de Frescura con grupos de estado con título, que la píldora no dibuja (decide Felipe)
+              {/* Las píldoras de filtro del sistema (ADR-0358, ronda 9): la de «Estado» lista sus opciones en tres apartados con título. */}
+              <DesplegablePildora icono={Shirt} etiqueta="Categoría" valor={filtros.cat} onValor={(cat) => cambiar({ cat })} opciones={opcionesCategoria} valorPorDefecto={TODAS_LAS_CATEGORIAS} />
+              <DesplegablePildora
+                icono={CircleCheck}
+                etiqueta="Estado"
                 valor={filtros.estado}
-                onValor={(estado) => cambiar({ estado })}
+                onValor={(estado) => cambiar({ estado: estado as FiltroEstado })}
                 opciones={opcionesEstado}
-                forma="caja"
-                etiquetaAccesible="Estado"
-                className="w-full min-[480px]:w-56"
+                valorPorDefecto={SIN_FILTROS.estado}
               />
               {/* Apagar «Por decidir» es pedir ver todas (`todas`): si no, la vista de entrada lo volvería a poner. */}
               <button
@@ -381,9 +376,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 </button>
               )}
               {hayFiltros(filtros) && (
-                <button type="button" className="btn-cayla btn-enlace inline-flex min-h-7 items-center text-[13px]" onClick={() => quitarFiltros(prendaAbierta)}>
-                  Quitar filtros
-                </button>
+                <BotonLimpiar onClick={() => quitarFiltros(prendaAbierta)}>Limpiar filtros</BotonLimpiar>
               )}
               {tablero.length === 0 && <span className="ml-auto">{botonComoSeLee}</span>}
             </div>
@@ -444,14 +437,14 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                   <>
                     <b className="font-semibold text-tinta">Todavía no anotaste ninguna decisión.</b> Cuando decidas qué hacer con una prenda, la verás aquí con cómo le va.{" "}
                     <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => quitarFiltros(null)}>
-                      Quitar filtros
+                      Limpiar filtros
                     </button>
                   </>
                 ) : (
                   <>
                     Ninguna prenda con estos filtros.{" "}
                     <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => quitarFiltros(null)}>
-                      Quitar filtros
+                      Limpiar filtros
                     </button>
                   </>
                 )}
@@ -463,7 +456,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                     {!franjaUnica && (
                     <div className="border-t border-sand px-4 pb-3 pt-4 sm:px-5">
                       {/* El conteo del grupo solo cuando hay varios: con uno solo repetía la franja (ley 8). */}
-                      <TituloSeccion dato={grupos.length > 1 ? `${g.prendas.length} ${g.prendas.length === 1 ? "prenda" : "prendas"}` : undefined}>{g.nombre}</TituloSeccion>
+                      <TituloSeccion cuenta={grupos.length > 1 ? g.prendas.length : undefined}>{g.nombre}</TituloSeccion>
                     </div>
                     )}
                     <div className="overflow-x-auto [scrollbar-width:thin]">

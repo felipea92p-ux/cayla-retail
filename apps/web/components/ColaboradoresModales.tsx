@@ -44,13 +44,13 @@ export function AlternarTerminalModal({
   }
 
   return (
-    <Modal titulo={titulo} ancho="max-w-md" onClose={onClose}>
+    <Modal titulo={titulo} onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           <p className="text-sm leading-relaxed text-tinta/85">{texto}</p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex gap-2">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton
@@ -58,11 +58,12 @@ export function AlternarTerminalModal({
               peso="primario"
               className={`flex-1 ${terminal.activo ? "bg-rojo hover:bg-rojo/90" : ""}`}
               cargando={enviando}
+              textoCargando={terminal.activo ? "Desactivando…" : "Reactivando…"}
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
               onClick={() => confirmar(cerrar)}
             >
-              {enviando ? (terminal.activo ? "Desactivando…" : "Reactivando…") : boton}
+              {boton}
             </Boton>
           </div>
         </div>

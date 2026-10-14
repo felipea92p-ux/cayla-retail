@@ -87,13 +87,14 @@ function Buscador({ valor, onValor, etiqueta, placeholder = "Buscar" }: Busqueda
   );
 }
 
-/** «● ROTACIÓN 4»: el título de cada grupo de tarjetas. Sin `punto`, el de «Desactivadas». */
+/** «● ROTACIÓN 4»: el título de cada grupo de tarjetas, con cuántas hay en el globito. Sin `punto`, el de «Desactivadas». */
 export function TituloGrupo({ punto, cuenta, children }: { punto?: string; cuenta: number; children: ReactNode }) {
   return (
     <p className="label-cayla flex items-center gap-1.5 text-[11px] text-tinta/65">
       {punto && <span aria-hidden className={`inline-block h-1.5 w-1.5 rounded-full ${punto}`} />}
       {children}
-      <span className="font-normal tabular-nums text-tinta/40">{cuenta}</span>
+      {/* Cuántos hay: el globito de los títulos y las pestañas (ADR-0358, ronda 9). */}
+      <span className="titulo-cuenta ml-0.5">{cuenta.toLocaleString("es-PE")}</span>
     </p>
   );
 }
@@ -255,7 +256,7 @@ export function DesactivarTarjeta({ onClick, cambiando = false }: { onClick: () 
 /** «Reactivar» de una tarjeta desactivada. */
 export function BotonReactivar({ onClick, cambiando = false }: { onClick: () => void; cambiando?: boolean }) {
   return (
-    <Boton peso="discreto" className="w-full px-2.5! py-1.5 text-[11px] whitespace-nowrap" cargando={cambiando} onClick={onClick}>
+    <Boton textoCargando="Reactivando…" peso="discreto" className="w-full px-2.5! py-1.5 text-[11px] whitespace-nowrap" cargando={cambiando} onClick={onClick}>
       Reactivar
     </Boton>
   );

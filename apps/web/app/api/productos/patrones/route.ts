@@ -105,7 +105,7 @@ export async function PATCH(request: Request) {
         .eq("patron_id", id)
         .eq("estado", "activo");
       if (errorConteo) {
-        return Response.json({ error: traducirError(errorConteo, "revisar los productos de este patrón") }, { status: 400 });
+        return Response.json({ error: traducirError(errorConteo, "revisar los productos de este patrón", { lectura: true }) }, { status: 400 });
       }
       if ((count ?? 0) > 0) {
         const n = count ?? 0;

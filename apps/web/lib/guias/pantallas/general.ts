@@ -315,6 +315,13 @@ export const GUIA_INICIO: Guia = {
       texto: "Cuánto llevas vendido en el mes contra tu meta del mes, y cuántos días de trabajo te quedan.",
     },
     {
+      id: "tu-fondo",
+      ancla: "inicio.tu-fondo",
+      opcional: true,
+      titulo: "Tu fondo",
+      texto: "Si CAYLA te entregó plata para comprar, aquí ves cuánto te queda y cuánto gastaste; si pagaste de tu bolsillo, cuánto te debe CAYLA. «Rendir» abre tu rendición: cuentas tu efectivo y otra persona la revisa. Si no hay nada que rendir, al tocarla vas a donde compras. Solo la ves tú.",
+    },
+    {
       id: "vender",
       ancla: "inicio.vender",
       opcional: true,
@@ -345,6 +352,14 @@ export const GUIA_INICIO: Guia = {
       excluye: ["inicio.almacen-cabina"],
       titulo: "Prender o apagar avisos",
       texto: "Cada aviso con su interruptor: verde lo ves, gris no. Los del candado salen siempre, y lo que apagas igual aparece si se vuelve urgente. «Volver a lo recomendado» deshace tus cambios. Se recuerda en este aparato. En la demo no tocamos ninguno.",
+    },
+    {
+      id: "piso",
+      ancla: "inicio.piso",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Tu piso",
+      texto: "Cómo está el piso de tu tienda sin entrar a Gestión: cuánto de lo colgado está fresco y cuánto del riel está ocupado. Si todavía no se puede saber, te dice por qué y te da el botón que lo arregla (por ejemplo, «Cuadrar el piso»). Tocas una tarjeta y vas a su pantalla.",
     },
     {
       id: "accesos",
@@ -506,7 +521,7 @@ export const GUIA_BUSCAR: Guia = {
       ancla: "buscar.stock",
       opcional: true,
       titulo: "Cuánto hay y a qué precio",
-      texto: "El número grande es cuánto hay entre todas las sedes que puedes ver; si dice «agotada», no queda ninguna. Debajo, el precio.",
+      texto: "El número grande es cuánto hay para vender entre todas las sedes que puedes ver: no cuenta lo apartado ni lo que está en Cuarentena. Si dice «agotada», no queda ninguna libre. Debajo, el precio.",
     },
     {
       id: "sedes",
@@ -810,7 +825,7 @@ export const GUIA_COMERCIAL: Guia = {
       ancla: "comercial.horas",
       opcional: true,
       titulo: "Ventas por hora",
-      texto: "Cuánto vendió cada tienda en cada hora de hoy, y cuál fue su hora fuerte. Sirve para repartir turnos. «Ver como tabla» muestra los mismos números en filas.",
+      texto: "Cuánto vendió cada tienda en cada hora de hoy, y cuál fue su hora fuerte. Sirve para repartir turnos.",
     },
     {
       id: "colaboradoras",
@@ -1065,7 +1080,7 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.propuesta-botones",
       opcional: true,
       titulo: "Aplicar o dejarlo",
-      texto: "«Aplicar» guarda esos topes de una vez, a nombre del responsable; «Cancelar» (o «Cerrar», si no hay nada que cambiar) no toca nada. En la demo no aplicamos: cerramos la ventana.",
+      texto: "«Aplicar» guarda esos topes de una vez, a nombre del responsable; «Cancelar» no toca nada (si no hay nada que cambiar, la ventana se cierra con la × de arriba). En la demo no aplicamos: cerramos la ventana.",
     },
     {
       id: "impuestos-igv",
@@ -1104,6 +1119,20 @@ export const GUIA_CONFIGURACION: Guia = {
       preparar: [{ tipo: "escape" }],
       titulo: "La UIT de cada año",
       texto: "El valor de la UIT, que marca el límite de ventas del régimen y la renta.",
+    },
+    {
+      id: "impuestos-tope",
+      ancla: "config.impuestos-tope",
+      opcional: true,
+      titulo: "El tope de la planilla",
+      texto: "Cuánto se acepta por persona y por día en taxis y cargadores sin comprobante. Lo fija el contador: lo que pase se deja registrar y queda «no deducible». Sin tope, no se marca nada.",
+    },
+    {
+      id: "nuevo-tope",
+      ancla: "config.nuevo-tope",
+      opcional: true,
+      titulo: "Un tope nuevo",
+      texto: "Cuando el contador lo fije o cambie, se agrega desde una fecha, como una tasa nueva. Lo de antes de esa fecha no se marca.",
     },
     {
       id: "impuestos-regimen",

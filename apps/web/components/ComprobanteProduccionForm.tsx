@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Truck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
@@ -28,6 +28,7 @@ import { medioNuevo, mediosParaRpc, repartoDeMedios, type MedioForm } from "@/li
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Alta de un comprobante de Producción (ADR-0133, F4b; D-H): la factura del proveedor de tela, avíos o maquila. Con `<Modal>` del
 // sistema (ADR-0136). Las reglas duras las hace cumplir la base (`registrar_comprobante_produccion`): contado ⇒ pago por el total
@@ -139,7 +140,7 @@ export function ComprobanteProduccionForm({
     responsable.despues(err);
     setCargando(false);
     if (err) {
-      avisar.error(traducirError(err, "registrar el comprobante"));
+      avisar.error(traducirError(err, "registrar el comprobante", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(`${serie.trim().toUpperCase()}-${numero.trim()} registrado`, {
@@ -150,7 +151,7 @@ export function ComprobanteProduccionForm({
   }
 
   return (
-    <Modal titulo="Nueva factura de insumos" subtitulo="La factura de quien le vende al Taller" onClose={onClose} ancho="max-w-2xl">
+    <Modal titulo="Nueva factura de insumos" subtitulo="La factura de quien le vende al Taller" onClose={onClose} tamano="ancha">
       <form onSubmit={guardar} className="space-y-5">
         <div data-guia="prod-factura-nueva.proveedor">
         <CampoSelect
@@ -161,7 +162,11 @@ export function ComprobanteProduccionForm({
           marcador="Elige un proveedor…"
         />
         </div>
-        {proveedores.length === 0 && <p className="-mt-3 text-xs text-tinta/65">Todavía no hay proveedores de Producción. Agrégalos en Proveedores.</p>}
+        {proveedores.length === 0 && (
+          <Vacio tamano="chico" alinear="izquierda" className="-mt-3 px-0" icono={<Truck />}>
+            Todavía no hay proveedores de Producción. Agrégalos en Proveedores.
+          </Vacio>
+        )}
 
         <div data-guia="prod-factura-nueva.documento">
           <p className="label-cayla text-[11px] text-tinta/65">Documento</p>
@@ -303,7 +308,7 @@ export function ComprobanteProduccionForm({
 
         {condicion === "contado" && (
           <div data-guia="prod-factura-nueva.medios">
-            <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} totalComprobante={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
           </div>
         )}
 
@@ -325,7 +330,7 @@ export function ComprobanteProduccionForm({
           </p>
           <ComboResponsable control={responsable} deshabilitado={cargando} />
           <Boton peso="primario" type="submit" cargando={cargando} disabled={!!error || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-            {cargando ? "Guardando…" : condicion === "contado" ? `Registrar y pagar ${soles(totalFinal)}` : "Registrar como por pagar"}
+            {condicion === "contado" ? `Registrar y pagar ${soles(totalFinal)}` : "Registrar como por pagar"}
           </Boton>
         </div>
       </form>

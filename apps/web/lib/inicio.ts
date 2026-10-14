@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import { recibirContandoDisponible } from "@/lib/recepcion-conteo";
 import { getCajaAbierta, getVentasMismaHoraSemanaAnterior } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getParametrosCaja } from "@/lib/configuracion";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { fuenteVentasDeHoy, nombreDiaLima } from "@/lib/inicio-reglas";
 import { armarEquipo, resumirApartados, type FuentesAvisos, type MiembroEquipo } from "@/lib/inicio-avisos";
 import { armarMiMeta, rangoDeMiLectura, type MiMeta } from "@/lib/mi-meta-reglas";
@@ -122,11 +123,11 @@ export async function contar(que: string, consulta: PromiseLike<{ count: number 
 
 export async function getFuentesAvisos(
   cuenta: { ubicacionId: string; sedePropiaId: string | null; esLider: boolean; esTerminal: boolean; ve: (m: ClaveModulo) => boolean; pagaCompras: boolean },
-  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar">
+  base: Omit<FuentesAvisos, "apartados" | "devoluciones" | "pedidos" | "conteoAbierto" | "porPagar" | "perdidas" | "pedidosSinRespuesta" | "pedidosCliente" | "paraEnviar" | "recibidoPorTerminar">
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
-  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias] = await Promise.all([
+  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar] = await Promise.all([
     ve("apartados")
       ? tolerarLectura("los apartados", async () => resumirApartados(await getApartadosAbiertos(ubicacionId, { esTerminal: cuenta.esTerminal }), hoyLima()))
       : undefined,
@@ -168,8 +169,11 @@ export async function getFuentesAvisos(
     ve("traslados") ? leerParaEnviar(ubicacionId).then((f) => (f === null ? null : paraEnviarAtrasadas(f, new Date().toISOString()))) : undefined,
     // Felipe 2026-10-13: el aviso de cuentas bancarias que cambiaron es para el líder, y lleva a Proveedores.
     cuenta.esLider && ve("proveedores") ? getCuentasBancariasCambiadas() : undefined,
+    // ADR-0393 (decisión 4): lo recibido que todavía no está en el stock, para quien ve Recibir. Si la base todavía no cuenta primero
+    // (sin sus migraciones), el aviso no existe; si no responde, «no se pudo leer».
+    ve("recibir") ? recibirContandoDisponible(ubicacionId).then((r) => (r.disponible ? r.pendientes : undefined)) : undefined,
   ]);
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar };
 }
 
 /** Quién está hoy en la sede (asistencia de Dynamic) y, si la cuenta ve la actividad (ADR-0207), qué hizo cada una. */

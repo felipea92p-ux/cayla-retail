@@ -5,7 +5,6 @@ import {
   claveUnidad,
   deUnidad,
   deUnidadLarga,
-  diaDe,
   enlaceChequeo,
   enumerar,
   etiquetaEnlace,
@@ -112,12 +111,10 @@ describe("palabras", () => {
     expect(deUnidadLarga({ alcance: "empresa", nombre: "De la empresa", tipo: "empresa" })).toBe("de la empresa");
     expect(tituloUnidad("2026-08", { nombre: "Tienda LIM" })).toBe("Tienda LIM · agosto 2026");
   });
-  it("la huella corta, el primer nombre y el día de Lima de un instante", () => {
+  it("la huella corta y el primer nombre", () => {
     expect(huellaCorta(HUELLA)).toBe("d6aa…41bf");
     expect(huellaCorta(null)).toBe("");
     expect(primerNombre("Felipe Alvarez")).toBe("Felipe");
-    // 01:11 UTC del 25 = 20:11 del 24 en Lima.
-    expect(diaDe("2026-09-25T01:11:30.876463+00:00")).toBe("2026-09-24");
   });
   it("«a, b y c»", () => {
     expect(enumerar([])).toBe("");
@@ -125,6 +122,7 @@ describe("palabras", () => {
     expect(enumerar(["Alquiler", "Luz", "Internet"])).toBe("Alquiler, Luz y Internet");
   });
   it("lo que dice el bloque bajo su título: quién cerró, quién reabrió y por qué, o qué se revisa", () => {
+    // Cerró a las 01:11 UTC del 25 = las 20:11 del 24 en Lima: el día es el 24.
     expect(bajadaUnidad(unidad("Tienda Trujillo"))).toBe("Cerrado el 24 sep por Felipe Alvarez.");
     expect(bajadaUnidad(unidad("Tienda Lima"))).toBe("Lo que el sistema revisa antes de dejarte cerrar.");
     const reabierta: Unidad = {

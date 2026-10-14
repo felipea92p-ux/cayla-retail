@@ -3,6 +3,7 @@
 // componentes de `components/inicio-almacen/` (cliente).
 
 import { porColgarDeLaSede } from "./existencias-para-hoy";
+import { diaLima, hoyLima } from "./fechas-lima";
 import { urlBajarAlPiso, type FilaPrenda } from "./existencias-prendas";
 import type { Aviso, AvisosVisibles, FuentesAvisos } from "./inicio-avisos";
 import { fotoPrincipal, type FotoCruda } from "./inventario-reglas";
@@ -101,12 +102,11 @@ export type FilaNuevoCruda = {
 };
 
 const LIMA = "America/Lima";
-const fechaLima = new Intl.DateTimeFormat("en-CA", { timeZone: LIMA });
-const horaLima = new Intl.DateTimeFormat("es-PE", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: LIMA });
+const horaAmPm = new Intl.DateTimeFormat("es-PE", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: LIMA });
 
 /** Cuándo se abre la ventana de «hoy y ayer»: la medianoche de Lima de AYER (UTC−5 fijo, como `nombreDiaLima`), en ISO. */
 export function inicioDeAyerLima(ahoraMs: number): string {
-  const hoy = fechaLima.format(new Date(ahoraMs));
+  const hoy = hoyLima(new Date(ahoraMs));
   const ayer = new Date(`${hoy}T12:00:00Z`);
   ayer.setUTCDate(ayer.getUTCDate() - 1);
   return new Date(`${ayer.toISOString().slice(0, 10)}T05:00:00Z`).toISOString();
@@ -115,8 +115,8 @@ export function inicioDeAyerLima(ahoraMs: number): string {
 /** «hace 5 min», «hace 2 h» (mismo día de Lima) o «ayer, 6:40 p. m.». */
 export function etiquetaHace(creadoIso: string, ahoraMs: number): { dia: "hoy" | "ayer"; hace: string } {
   const creado = new Date(creadoIso);
-  const mismoDia = fechaLima.format(creado) === fechaLima.format(new Date(ahoraMs));
-  if (!mismoDia) return { dia: "ayer", hace: `ayer, ${horaLima.format(creado)}` };
+  const mismoDia = diaLima(creadoIso) === hoyLima(new Date(ahoraMs));
+  if (!mismoDia) return { dia: "ayer", hace: `ayer, ${horaAmPm.format(creado)}` };
   const min = Math.max(0, Math.floor((ahoraMs - creado.getTime()) / 60000));
   if (min < 1) return { dia: "hoy", hace: "hace un momento" };
   if (min < 60) return { dia: "hoy", hace: `hace ${min} min` };
@@ -299,9 +299,9 @@ export function etiquetaLlegada(llegadaIso: string | null, ahoraMs: number): str
   if (!llegadaIso) return null;
   const t = new Date(llegadaIso);
   if (Number.isNaN(t.getTime())) return null;
-  const hoy = fechaLima.format(new Date(ahoraMs));
-  const dia = fechaLima.format(t);
-  const hora = horaLima.format(t);
+  const hoy = hoyLima(new Date(ahoraMs));
+  const dia = diaLima(llegadaIso);
+  const hora = horaAmPm.format(t);
   if (t.getTime() < ahoraMs) return dia === hoy ? `debió llegar ${hora}` : "debió llegar antes";
   if (dia === hoy) return `llega ~${hora}`;
   const manana = new Date(`${hoy}T12:00:00Z`);
@@ -323,15 +323,15 @@ export function siglaSede(nombre: string): string {
 export type AccesoDeAlmacen = {
   href: string;
   etiqueta: string;
-  icono: "stock" | "traslados" | "truck" | "tag" | "rotulo" | "conteo" | "scan";
+  icono: "stock" | "traslados" | "recibir" | "tag" | "rotulo" | "conteo" | "scan";
   /** El botón oscuro de la fila (Escanear). */
   destacado?: boolean;
 };
 
-const ACCESOS_ALMACEN: (AccesoDeAlmacen & { modulo: ClaveModulo | null })[] = [
+export const ACCESOS_ALMACEN: (AccesoDeAlmacen & { modulo: ClaveModulo | null })[] = [
   { href: "/inventario", etiqueta: "Stock", icono: "stock", modulo: "existencias" },
   { href: "/inventario/traslados", etiqueta: "Traslados", icono: "traslados", modulo: "traslados" },
-  { href: "/recibir", etiqueta: "Recibir", icono: "truck", modulo: "recibir" },
+  { href: "/recibir", etiqueta: "Recibir", icono: "recibir", modulo: "recibir" },
   // Etiquetas de precio no es de un módulo propio: se llega desde Existencias, así que la ve quien ve Existencias.
   { href: "/etiquetas-de-precio", etiqueta: "Etiquetas", icono: "tag", modulo: "existencias" },
   // Rótulos de anaquel (ADR-0366): tampoco es un módulo; quien acomoda el almacén es quien ve Existencias.

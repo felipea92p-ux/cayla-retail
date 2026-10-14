@@ -1,0 +1,6 @@
+## 🗓️ La vara de CAYLA también para Análisis llega a `main` (2026-10-14) — migración YA en producción; rama `claude/traer-vara-cayla-analisis`
+
+- [x] **Traer la versión viva a `main`:** `supabase/migrations/20261014172000_frescura_vara_cayla_tambien_para_analisis.sql` (cuerpo de `pg_proc.prosrc` de producción, md5 `46a4fdf5…`, huella `96f465df9c82`) y cuatro casos nuevos en `scripts/pruebas/frescura_vara_cayla.mjs`. ADR-0208, «Actualización 2026-10-14».
+- [ ] **El comentario de la función quedó corto** (Felipe decide si se corrige): `comment on function retail.fn_frescura_vara_cayla()` dice «para quien ve Frescura del piso» y hoy también la lee Análisis. Corregirlo es un `comment on function` que hay que pegar en producción; no cambia ninguna huella de la deriva.
+- [ ] **Una sola puerta para Análisis** (Felipe decide): la vara pregunta `fn_ve_modulo('analisis')`, y las lecturas de Análisis, `fn_puede_analizar()` (`fn_es_lider() or fn_capacidad_por_modulos(array['analisis'])`, ADR-0357). Son dos reglas distintas: no comprobé que coincidan en todos los casos (un módulo oculto al líder, una terminal) y, si una cambia, la otra no la sigue. Cambiarlo es tocar un permiso en producción.
+- [ ] **Queda un huérfano de la deriva del 14-oct:** `fn_cuentas_con_rol` con otra versión que la de `main`, origen desconocido. Mismo tratamiento.
