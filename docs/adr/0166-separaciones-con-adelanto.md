@@ -1,6 +1,8 @@
 # ADR-0166 — Apartados (en la base, `separaciones`): apartar prendas con adelanto, entregarlas con el saldo y devolver si no recogen
 
 **Fecha:** 2026-09-23
+**Actualización 2026-10-14 (ADR-0399):** la decisión D1 («comprobante de ANTICIPO al separar, el final lo deduce») queda **revertida** por Felipe: el adelanto es un pacto
+interno, el apartado entrega una constancia y la boleta o factura sale una sola vez, al entregar, por el total. Ver [ADR-0399](0399-apartados-sin-comprobante-de-anticipo.md).
 **Estado:** Aceptado. **Base de datos implementada y probada en local** (`supabase/migrations/20260923090000_separaciones.sql`). **Aplicada en
 producción el 2026-09-22** con el OK de Felipe, justo **después** de ADR-0141 (`20260920160000_apartar_stock.sql`), de la que depende:
 las 10 funciones con md5 idéntico al repo y `fn_verificar_separaciones` en 0 filas. Pantallas: construidas y probadas en local (ver «Pantallas»).

@@ -95,6 +95,9 @@ where v.estado <> 'anulada'
   and (select coalesce(sum(s.cantidad), 0) from retail.stock s
         where s.variante_id = vi.variante_id
           and s.sububicacion_id = retail.fn_sububicacion_por_defecto(v.ubicacion_id, 'venta')) >= 1
+  -- Dentro del plazo de cambio (15 días de Lima, \`fn_dias_plazo_cambio\`, 20261012222000): una venta vieja la rechaza ese
+  -- candado ANTES de llegar al de la línea, que es lo que esta suite mide.
+  and retail.fn_hoy_lima() - (v.created_at at time zone 'America/Lima')::date <= 15
 order by v.created_at desc
 limit 1;`);
   if (!fila) return null;
