@@ -4,7 +4,7 @@ import type { DatosAnalisis, PreparacionAnalisis, SedeAnalisis } from "@/lib/ana
 import { armarPrendas, conPreciosDeMiTienda } from "@/lib/analisis-armado";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { armarModelos, FALLA_ULTIMA_VENTA } from "@/lib/analisis-modelo";
-import { diasDeVentas, liquidarDesdeValido, sedeDeAnalisis } from "@/lib/analisis-reglas";
+import { diasDeVentas, liquidarDesdeValido, noHabiaDe, sedeDeAnalisis } from "@/lib/analisis-reglas";
 import { FALLA_PISO } from "@/lib/analisis-piso";
 import { getPrendasPorSede } from "@/lib/analisis-sede";
 import { getPorLlegar } from "@/lib/analisis-por-llegar";
@@ -13,7 +13,6 @@ import { getRindePorCategoria } from "@/lib/analisis-rinde";
 import { getConteosResumen } from "@/lib/conteos";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
 import { getPedidosNoAtendidos } from "@/lib/pedidos-no-atendidos";
-import { esPedidoDeTalla } from "@/lib/se-probo-reglas";
 import { getUbicaciones, type Ubicacion } from "@/lib/ubicaciones";
 
 // Análisis v4 (ADR-0357): todo lo que la pantalla lee, una vez por visita, desde el servidor. Cada parte que falla se dice en
@@ -110,12 +109,7 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
     rebajaDe100: lectura.rebajaDe100[activa.id] ?? null,
     rinde: rinde.rinde,
     conteo: ultimoConteo ? { contadas: ultimoConteo.lineas, coinciden: Math.max(0, ultimoConteo.lineas - ultimoConteo.lineasConDiferencia) } : null,
-    noHabia: (pedidos ?? [])
-      .filter((p) => !p.resuelto && esPedidoDeTalla(p.motivo))
-      .map((p) => ({
-        que: [p.productoReferencia ?? p.descripcionLibre ?? "Prenda sin nombre", p.talla].filter(Boolean).join(" · "),
-        dia: p.creadoEn.slice(0, 10),
-      })),
+    noHabia: noHabiaDe(pedidos ?? []),
     fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null].filter(
       (f): f is string => f !== null,
     ),
