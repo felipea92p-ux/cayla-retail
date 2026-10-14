@@ -33,7 +33,7 @@
       "input «{l.referencia}»",
       "Volver «Continuar»",
       "Volver «Revisar el cambio»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{envio.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
       "Volver «Cancelar»"
     ],
     "components/CambiosPanel.tsx": [

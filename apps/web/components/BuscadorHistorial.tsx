@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
+import { MAX_LARGO_BUSQUEDA } from "@/lib/cambios-reglas";
 import { Buscador } from "@/components/ui/Buscador";
 
 // El buscador de Ventas ▸ Historial (ADR-0230): un solo campo para encontrar la venta de una clienta que vuelve —por el
@@ -60,6 +61,7 @@ export function BuscadorHistorial({ valor }: { valor: string }) {
       etiqueta="Buscar una venta"
       // Corto para que quepa a 375 px; el código de etiqueta también se busca (lo dice el título).
       placeholder="Boleta, DNI, cliente o prenda"
+      maxLength={MAX_LARGO_BUSQUEDA}
       title="Busca por comprobante, DNI o RUC, cliente, prenda o código de etiqueta"
     />
   );

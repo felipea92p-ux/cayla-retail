@@ -16,6 +16,9 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { soles } from "@/lib/compras-reglas";
 import { partirSerieNumero, validarGasto, type CategoriaGasto } from "@/lib/gastos-reglas";
 import {
@@ -217,9 +220,12 @@ export function GastoRapidoModal({
   const responsable = useResponsable();
   const [e, setE] = useState<EstadoGastoRapido>(GASTO_RAPIDO_VACIO);
   const [documento, setDocumento] = useState("");
-  const [guardando, setGuardando] = useState(false);
   const [listo, setListo] = useState<{ que: string; monto: number; sello: string } | null>(null);
-  const [token] = useState(() => crypto.randomUUID());
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): si la respuesta se pierde, la hoja se congela hasta saber si
+  // el gasto quedó; cambiar el monto y reenviar con la marca vieja devolvía el gasto anterior.
+  const intento = useIntento("registrar_gasto");
+  const guardando = intento.enviando;
+  const [revisando, setRevisando] = useState(false);
   const montoRef = useRef<HTMLInputElement>(null);
   const poner = <K extends keyof EstadoGastoRapido>(k: K, v: EstadoGastoRapido[K]) => setE((x) => ({ ...x, [k]: v }));
 
@@ -274,13 +280,32 @@ export function GastoRapidoModal({
     }
     const v = validarGasto(borradorDeGastoRapido(e, caja, hoy), hoy);
     if (!v.ok) return avisar.error(v.error);
-    setGuardando(true);
-    const { error } = await firmar(createClient().rpc("registrar_gasto" as never, { ...v.valor, p_token: token } as never), responsable.firma());
-    setGuardando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "registrar el gasto"));
+    const r = await intento.enviar(huellaDe(v.valor), (token, senal) =>
+      firmar(createClient().rpc("registrar_gasto" as never, { ...v.valor, p_token: token } as never), responsable.firma()).abortSignal(senal),
+    );
+    if (r.tipo === "ocupado" || r.tipo === "congelado") return;
+    responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") return avisar.error(traducirError(r.error, "registrar el gasto"));
+    registrado(v.valor.p_monto_total);
+  }
+
+  function registrado(monto: number) {
     const que = esOtro ? e.otroTexto.trim() : (conceptoPorClave(e.concepto)?.nombre ?? "Gasto");
-    setListo({ que, monto: v.valor.p_monto_total, sello: textos.sello });
+    setListo({ que, monto, sello: textos.sello });
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return registrado(Number(res.datos.monto ?? montoNumero));
+    if (res.tipo === "no_llego") {
+      avisar.aviso("El gasto no se registró", { detalle: "No quedó nada guardado. Revisa los datos y vuelve a registrarlo." });
+      return;
+    }
+    avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
   }
 
   // El sello de «listo» sale DESPUÉS del loader, nunca debajo (la regla de ADR-0149: primero «espera», después «listo»). Una vez a la
@@ -304,7 +329,7 @@ export function GastoRapidoModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selloAlaVista]);
 
-  const textoBoton = montoListo ? `Registrar ${soles(montoNumero)}` : "Registrar gasto";
+  const textoBoton = intento.incierto ? "Volver a intentar" : montoListo ? `Registrar ${soles(montoNumero)}` : "Registrar gasto";
 
   return (
     <Modal
@@ -320,11 +345,13 @@ export function GastoRapidoModal({
       // `onClose`, «Seguir editando» tras un Escape dejaba la hoja montada e invisible, y «Cancelar» tenía que soltar la guardia del «atrás».
       antesDeCerrar={avisoSalida.pedirAccion}
       onClose={onCerrar}
-      bloqueado={guardando}
+      bloqueado={guardando || intento.incierto}
       ancho="max-w-[560px]"
     >
       {(cerrar) => (
         <form onSubmit={guardar} className="gr-hoja relative space-y-5" noValidate>
+          {/* En duda, los datos no se tocan: cambiarlos y reenviar podría registrar el gasto dos veces. */}
+          <fieldset disabled={intento.incierto} className="campos-congelables min-w-0 space-y-5">
           <CampoGuiado
             id="concepto"
             guia={guia}
@@ -526,17 +553,21 @@ export function GastoRapidoModal({
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
+          </fieldset>
+
+          {intento.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} />}
 
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo={textos.listo} />
             <div className="ml-auto pie-acciones">
-              <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando}>
+              <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando || intento.incierto}>
                 Cancelar
               </Boton>
               <Boton
                 type="submit"
                 peso="primario"
                 cargando={guardando}
+                disabled={revisando}
                 title={guia.frase ?? undefined}
                 aria-disabled={!guia.puedeConfirmar || undefined}
                 className={`gr-registrar ${guia.claseConfirmar}`}

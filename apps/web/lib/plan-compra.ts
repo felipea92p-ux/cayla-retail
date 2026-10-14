@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { RPC_PLAN, RPC_PLANES, campanaQueAbre, esIdDePlan, leerCampanas, type CampanaPlan, type CampanasLeidas } from "@/lib/plan-compra-reglas";
-import { hoyEnLima } from "@/lib/resumen-periodo";
+import { hoyLima } from "@/lib/fechas-lima";
 import { RPC_PROPUESTA, leerPropuesta } from "@/lib/plan-compra-propuesta";
 import { RPC_PEDIDO } from "@/lib/plan-compra-pedido";
 import { RPC_RESULTADOS, campanaParaResultados } from "@/lib/plan-compra-resultados";
@@ -48,7 +48,7 @@ export async function getPlanCompra(planId?: string): Promise<{
   const leerPlanYCampanas = async () => {
     const planes = await supabase.rpc(RPC_PLANES as never);
     const leidas = planes.error ? null : leerCampanas(planes.data);
-    const abre = pedido ?? (leidas ? (campanaQueAbre(leidas.planes, hoyEnLima(new Date()))?.id ?? null) : null);
+    const abre = pedido ?? (leidas ? (campanaQueAbre(leidas.planes, hoyLima())?.id ?? null) : null);
     const primera = await supabase.rpc(RPC_PLAN as never, (abre ? { p_plan_id: abre } : {}) as never);
     return { planes, primera };
   };
@@ -117,7 +117,7 @@ export async function getResultadosPlan(planId?: string): Promise<{ datos: unkno
   if (planes.error) console.error(`${RPC_PLANES} (resultados): ${planes.error.message}`);
   const campanas = planes.error ? null : leerCampanas(planes.data);
   const pedido = esIdDePlan(planId) ? planId.trim() : null;
-  const id = pedido ?? (campanas ? (campanaParaResultados(campanas.planes, hoyEnLima(new Date()))?.id ?? null) : null);
+  const id = pedido ?? (campanas ? (campanaParaResultados(campanas.planes, hoyLima())?.id ?? null) : null);
   if (!id) return { datos: null, campanas, falla: null, anterior: null, propuesta: null };
   // La misma campaña un año antes (Sinatra o ERP), en paralelo: da la forma de los días para «¿Cómo va?». Es una ayuda: si falla, los
   // días pesan igual. La propuesta (C4) trae lo que vendió cada categoría en esa campaña del año anterior, para el detalle de una fila:
@@ -153,7 +153,7 @@ export async function getHistorialPlan(anioPedido?: string): Promise<{
   planes: CampanaPlan[];
   falla: string | null;
 }> {
-  const hoy = hoyEnLima(new Date());
+  const hoy = hoyLima();
   const pedido = Number(anioPedido);
   const anio = Number.isInteger(pedido) && pedido >= 2000 && pedido <= Number(hoy.slice(0, 4)) ? pedido : Number(hoy.slice(0, 4)) - 1;
   const supabase = await createClient();

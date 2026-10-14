@@ -15,7 +15,7 @@ import { getPorPagarTramos } from "@/lib/compras-indicadores";
 import { getCoberturaDeFotos } from "@/lib/inicio-almacen";
 import { contarComprobantesAtascados } from "@/lib/comprobantes";
 import { getOrdenesProduccion, getTaller } from "@/lib/produccion";
-import { etapasDe, resumenTablero } from "@/lib/produccion-reglas";
+import { etapasDe, resumenTablero, terminadasDesde } from "@/lib/produccion-reglas";
 import { getFilasRecientesDeSede } from "@/lib/resumen-inventario";
 import { calcularCobertura, velocidadDeFila } from "@/lib/resumen-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -331,8 +331,6 @@ export async function getTallerObservatorio(): Promise<TallerObs | null> {
     const hoy = hoyLima();
     const r = resumenTablero(ordenes, hoy);
     const enCurso = ordenes.filter((o) => o.estado === "en_proceso" && !o.esMuestra);
-    const terminadasDesde = (desde: string) =>
-      ordenes.filter((o) => o.inventariadoEn && o.inventariadoEn.slice(0, 10) >= desde).reduce((a, o) => a + (o.cantidadBuenas ?? 0), 0);
     const avances = enCurso.map((o) => {
       const etapas = etapasDe(o.esMuestra);
       return etapas.filter((e) => o.etapas[e.clave] === "hecho").length / etapas.length;
@@ -340,7 +338,7 @@ export async function getTallerObservatorio(): Promise<TallerObs | null> {
     return {
       enCurso: r.enCurso,
       atrasadas: r.vencidas,
-      terminadas: { hoy: terminadasDesde(hoy), d7: terminadasDesde(sumarDias(hoy, -6)), d30: terminadasDesde(sumarDias(hoy, -29)) },
+      terminadas: { hoy: terminadasDesde(ordenes, hoy), d7: terminadasDesde(ordenes, sumarDias(hoy, -6)), d30: terminadasDesde(ordenes, sumarDias(hoy, -29)) },
       avance: avances.length ? avances.reduce((a, b) => a + b, 0) / avances.length : null,
     };
   });

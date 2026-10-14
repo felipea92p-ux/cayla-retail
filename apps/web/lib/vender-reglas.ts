@@ -4,7 +4,9 @@
 // ningún fetcher server-only pueda arrastrar al navegador.
 
 import { METODOS_PAGO, type MetodoPagoVenta } from "@cayla-retail/shared";
-import { efectivoACobrar, redondeoDelEfectivo, UNIDAD_EFECTIVO } from "./redondeo-efectivo-reglas";
+import { efectivoACobrar, redondeoDelEfectivo, TOPE_VUELTO, UNIDAD_EFECTIVO } from "./redondeo-efectivo-reglas";
+
+export { TOPE_VUELTO };
 import { motivoNoCobrable } from "./vender-stock-local";
 import { precioValido } from "./variantes-ficha-reglas";
 
@@ -132,9 +134,11 @@ export function vueltoDe(pago: PagoAplicado, redondear = false): number {
  *  **falta** si no llega y **exacto** si es justo; `null` mientras no se haya dicho cuánto paga (la línea queda invisible, reservando su
  *  alto). `monto` es la cifra que se muestra: el vuelto, lo que falta o el cobro exacto. La hoja pinta **exacto en verde** y **falta en
  *  rojo**; el vuelto queda neutro (es información, no un aviso). `vuelto` es el de `vueltoDe` con el mismo redondeo que `aCobrar`. */
-export type LecturaDelRecibido = { estado: "vuelto" | "falta" | "exacto"; monto: number };
+export type LecturaDelRecibido = { estado: "vuelto" | "falta" | "exacto" | "excede"; monto: number };
 export function lecturaDelRecibido(recibido: number | undefined, aCobrar: number, vuelto: number): LecturaDelRecibido | null {
   if (recibido === undefined) return null;
+  // Un vuelto de más de S/ 500 es un billete mal escrito: se marca en rojo y `motivoBloqueoCobro` no deja cobrar.
+  if (vuelto > TOPE_VUELTO) return { estado: "excede", monto: vuelto };
   if (vuelto > 0) return { estado: "vuelto", monto: vuelto };
   if (recibido < aCobrar) return { estado: "falta", monto: redondear2(aCobrar - recibido) };
   return { estado: "exacto", monto: aCobrar };
@@ -276,6 +280,11 @@ export function motivoBloqueoCobro(v: {
   // cobra con otro medio; regalar el monto de otro medio no es redondear.
   const efectivo = v.redondeoEfectivo ? v.pagos.find((p) => p.metodo === "efectivo" && p.monto > 0) : undefined;
   if (efectivo && efectivoACobrar(efectivo.monto) <= 0) return `El efectivo no puede ser menos de S/ ${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
+  // Un vuelto de más de S/ 500 es un billete mal escrito (la base tampoco lo acepta, `venta_pagos_recibido_con_tope`).
+  const conRecibido = v.pagos.find((p) => p.metodo === "efectivo" && p.monto > 0 && p.recibido !== undefined);
+  if (conRecibido && vueltoDe(conRecibido, !!v.redondeoEfectivo) > TOPE_VUELTO) {
+    return `El vuelto pasa de S/ ${TOPE_VUELTO}: revisa con cuánto paga el cliente.`;
+  }
   if (v.sinComprobante) return "Elige el comprobante.";
   if (v.facturaSinRuc) return "La factura necesita el RUC de la empresa.";
   if (v.problemaDocumento) return v.problemaDocumento;
@@ -555,4 +564,20 @@ export function textoSinStock(p: SinStockAqui, agotada = "agotada"): string {
  */
 export function sinPrecioParaVender(v: { precio: number; fueraDeMotores?: boolean }): boolean {
   return !precioValido(v.precio, v.fueraDeMotores === true);
+}
+
+
+/** Los comprobantes que se cobran en caja. */
+export type TipoComprobanteVenta = "boleta" | "factura" | "nota_venta";
+export const TIPOS_COMPROBANTE_VENTA: readonly TipoComprobanteVenta[] = ["boleta", "factura", "nota_venta"];
+
+/**
+ * Qué comprobantes ofrece la hoja de cobro: los que la sede tiene con una serie activa (/chaos 2026-10-13: «Nota de venta» se
+ * ofrecía en una sede sin su serie y, al cobrar, la base rechazaba la venta entera). Si la lectura de las series falló (`null`) o la
+ * sede no tiene ninguna, se ofrecen los tres como antes: cobrar dice entonces qué falta, en vez de dejar la caja sin opciones.
+ */
+export function tiposDeComprobanteDeLaSede(series: readonly { tipo: string }[] | null): TipoComprobanteVenta[] {
+  if (!series) return [...TIPOS_COMPROBANTE_VENTA];
+  const conSerie = TIPOS_COMPROBANTE_VENTA.filter((t) => series.some((s) => s.tipo === t));
+  return conSerie.length > 0 ? conSerie : [...TIPOS_COMPROBANTE_VENTA];
 }

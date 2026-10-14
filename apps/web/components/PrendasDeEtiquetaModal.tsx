@@ -12,7 +12,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { firmar } from "@/lib/responsable-reglas";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { nombreBajoCosto, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
 import {
   alternarProducto,

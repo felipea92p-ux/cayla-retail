@@ -16,7 +16,7 @@ import { PaseTraslado, usePase } from "@/components/traslados-pases/PaseTraslado
 import { RUTA_TRASLADOS } from "@/components/traslados-pases/Billetera";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { hoyLima } from "@/lib/apartados-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
   etiquetaLinea,
   faltaEnOrigen,

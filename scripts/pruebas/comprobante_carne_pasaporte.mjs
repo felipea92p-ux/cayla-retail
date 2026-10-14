@@ -64,6 +64,20 @@ if (VERSIONES.length !== 3) {
 }
 const EMITIR = VERSIONES.find((v) => v.firma.startsWith("retail.emitir_comprobante(")).firma;
 
+// El documento del comprobante (20261013210000, /chaos 2026-10-13) es POSTERIOR y le agregó a emitir_comprobante el DNI de 8
+// dígitos y el RUC de 11: cambia su huella. Para medir y volver a pegar ESTA migración, se deshace dentro de la transacción del caso.
+const DOCUMENTO = readFileSync(join(RAIZ, "supabase", "migrations", "20261013210000_documento_del_comprobante.sql"), "utf8");
+const PAR_DOCUMENTO = DOCUMENTO.match(/'retail\.emitir_comprobante\([^']*\)',\s*\$v\$([\s\S]*?)\$v\$,\s*\$v\$([\s\S]*?)\$v\$,\s*1\);/);
+if (!PAR_DOCUMENTO) {
+  console.error("✗ No encontré el reemplazo de emitir_comprobante en 20261013210000_documento_del_comprobante.sql.");
+  process.exit(1);
+}
+const SIN_DOCUMENTO_POSTERIOR = `reset role;
+do $deshacer$ begin
+  execute replace(pg_get_functiondef('${EMITIR}'::regprocedure), $n$${PAR_DOCUMENTO[2]}$n$, $o$${PAR_DOCUMENTO[1]}$o$);
+end $deshacer$;
+`;
+
 // Seed local: Felipe (líder y Admin).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 // Tokens fijos: para contar, después de un rechazo, que no quedó ninguna venta con ese token.
@@ -362,6 +376,7 @@ select cliente_tipo_doc || '|' || cliente_num_doc || '|' || left(serie, 1) from 
 // =====================================================================================================================
 caso(
   "(g) los md5 «después» de la sección 0 son los de las funciones vivas",
+  SIN_DOCUMENTO_POSTERIOR +
   VERSIONES.map(
     (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
   ).join(""),
@@ -410,7 +425,7 @@ select (length(prosrc) - length(replace(prosrc, 'ADR-0288 D-3', ''))) / length('
 const PEGAR = `reset role;\n${MIGRACION}\nset local search_path = retail, public, extensions;\n`;
 caso(
   "(h) pegarla otra vez deja todo igual: función, permisos, candados y comentario (y el bloque una sola vez)",
-  FOTO + PEGAR + FOTO,
+  SIN_DOCUMENTO_POSTERIOR + FOTO + PEGAR + FOTO,
   (s) => {
     // Sin las líneas vacías que imprimen los `select` de la migración (su reemplazo anclado devuelve void).
     const l = s.split("\n").filter(Boolean);

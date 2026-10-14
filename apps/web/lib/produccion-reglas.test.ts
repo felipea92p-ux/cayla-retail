@@ -132,6 +132,7 @@ import {
   posicionEnMedidor,
   resumenTablero,
   segundas,
+  terminadasDesde,
   totalBuenas,
 } from "./produccion-reglas";
 
@@ -291,6 +292,26 @@ describe("resumenTablero", () => {
   });
   it("sin nada con qué comparar, el margen es null", () => {
     expect(resumenTablero([], hoy).margenPromedio).toBeNull();
+  });
+});
+
+describe("terminadasDesde: las prendas que entraron al stock, por día de Lima", () => {
+  // Ejemplo inventado. `inventariadoEn` como lo manda la base: timestamptz en UTC (2026-10-14 01:00 UTC = 13 de octubre, 20:00 en Lima).
+  const orden = (inventariadoEn: string | null, cantidadBuenas: number | null) => ({ inventariadoEn, cantidadBuenas });
+
+  it("lo que entró a las 20:00 del 13 en Lima es del 13: no suma en «hoy» del 14", () => {
+    const ordenes = [orden("2026-10-14T01:00:00.123456+00:00", 12), orden("2026-10-14T15:00:00+00:00", 5)];
+    expect(terminadasDesde(ordenes, "2026-10-14")).toBe(5); // con el corte de UTC daba 17
+    expect(terminadasDesde(ordenes, "2026-10-13")).toBe(17);
+  });
+
+  it("el borde de la ventana es la medianoche de Lima", () => {
+    expect(terminadasDesde([orden("2026-10-08T04:59:00+00:00", 3)], "2026-10-08")).toBe(0); // 23:59 del 7 en Lima
+    expect(terminadasDesde([orden("2026-10-08T05:00:00+00:00", 3)], "2026-10-08")).toBe(3); // 00:00 del 8 en Lima
+  });
+
+  it("una orden que no entró al stock, o sin buenas anotadas, no suma", () => {
+    expect(terminadasDesde([orden(null, 4), orden("2026-10-14T15:00:00+00:00", null)], "2026-10-01")).toBe(0);
   });
 });
 

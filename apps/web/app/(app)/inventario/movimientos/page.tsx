@@ -15,11 +15,11 @@ import {
   listarMovimientos,
   periodoCorto,
   serializarCursorMovimientos,
-  hoyEnLima,
   type CategoriaFiltro,
   type ParamsMovimientos,
 } from "@/lib/movimientos-v2";
 import { desdeDeUltimosDias, restarDias } from "@/lib/movimientos-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { PerdidasVista } from "@/components/perdidas/PerdidasVista";
@@ -179,7 +179,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
               // Las bajadas al piso del día se pliegan solo en «Todos» sin búsqueda (ADR-0241): con la píldora
               // «Piso ↔ almacén» o buscando una prenda, cada una es su fila.
               plegar={!filtros.categoria && !filtros.motivo && !filtros.busqueda}
-              hoyLima={hoyEnLima()}
+              hoyLima={hoyLima()}
               enlaceCompras={esLider}
               enlaceVentas={veModulo(persona, "historial")}
             />
@@ -233,7 +233,7 @@ function PestanasMovimientos({ activa }: { activa: "movimientos" | "perdidas" })
  *  30 días de «se repite», que es lo mismo que avisa el Inicio del líder) y la vista. Sin filtros de Movimientos: es otra
  *  pregunta («¿cuánto perdimos?»), con su propio período (por defecto, este mes). */
 async function PaginaPerdidas({ ubicacionId, modulos, params }: { ubicacionId: string; modulos: readonly string[]; params: ParamsPerdidas }) {
-  const hoy = hoyEnLima();
+  const hoy = hoyLima();
   const rango = rangoPerdidas(params.p, hoy);
   const filtro = filtrosPerdidas(params);
   const filtrada = Boolean(filtro.varianteId || filtro.sububicacionId);

@@ -7,7 +7,9 @@
  *
  * ENTRAR (al iniciar sesión): el fondo se oscurece, el colibrí del login cruza al centro y flota mientras la pantalla de destino carga debajo; cuando está
  * lista, en el centro se abre una ventana CON LA FORMA DEL COLIBRÍ que deja ver esa pantalla de verdad (un agujero en el velo oscuro, no un dibujo), y el ave
- * se agranda hasta salirse y la ventana cubre todo.
+ * se agranda hasta salirse y la ventana cubre todo. «Debajo» de verdad: la pantalla de destino se pide de inmediato pero no se muestra hasta que esta
+ * capa avisa que el velo ya tapa la pantalla (`marcarVeloCubierto` → `EsperaAlVelo`, ADR-0136 act. 2026-10-13 (e)); antes se alcanzaba a ver a través
+ * del velo todavía transparente.
  * SALIR (al apretar Salir): lo mismo al revés y más rápido: la ventana, que cubre la pantalla que se deja, se encoge sobre el colibrí; con la ventana
  * cerrada y el fondo oscuro, el colibrí flota en el centro mientras se cierra la sesión y carga el login (`alLlegarAlCentro`); cuando el login está
  * listo, el colibrí vuela a su lugar (se mide en ese momento) y el fondo oscuro se va.
@@ -16,9 +18,17 @@
  * La geometría y la línea de tiempo viven en `lib/login-entrada.ts`; el aleteo, en `lib/login-vuelo.ts`; los estilos, en `login.css`.
  */
 
-import { useEffect, useId, useRef, useSyncExternalStore } from "react";
+import { use, useEffect, useId, useRef, useSyncExternalStore } from "react";
 import { esperaOcupada } from "@/lib/espera-estado";
-import { entradaEnCurso, medirAveDelLogin, suscribirEntrada, terminarEntrada, type EntradaEnCurso } from "@/lib/entrada-estado";
+import {
+  entradaEnCurso,
+  marcarVeloCubierto,
+  medirAveDelLogin,
+  suscribirEntrada,
+  terminarEntrada,
+  veloPendiente,
+  type EntradaEnCurso,
+} from "@/lib/entrada-estado";
 import {
   CABEZA_DEL_AVE,
   LIENZO_DEL_AVE,
@@ -34,6 +44,7 @@ import {
   msDelVuelo,
   opacidadDelSaludo,
   revisarLaPantalla,
+  veloCubre,
   type Caja,
 } from "@/lib/login-entrada";
 import { TRAZOS_DEL_AVE, alaDelAve } from "@/lib/login-vuelo";
@@ -41,6 +52,19 @@ import { TRAZOS_DEL_AVE, alaDelAve } from "@/lib/login-vuelo";
 export function EntradaColibri() {
   const entrada = useSyncExternalStore(suscribirEntrada, entradaEnCurso, () => null);
   return entrada ? <Vuelo key={entrada.id} entrada={entrada} /> : null;
+}
+
+/**
+ * La app recién abierta no se muestra hasta que el velo de la entrada tape la pantalla (Felipe 2026-10-13: «se ve el inicio» antes de que el colibrí lo
+ * abra). Va UNA vez, en el layout de la app (`app/(app)/layout.tsx`), por encima de todo `loading.tsx`: mientras el velo no tapa, suspende, y como la
+ * navegación del login es una transición, React deja el login a la vista y no cambia nada todavía. La pantalla de destino se pide al servidor igual de
+ * inmediato y carga en paralelo con el vuelo: la entrada no se alarga. Sin entrada en curso (recargar, navegar, menos movimiento) no hace nada; la
+ * espera se suelta sola al tope (`MS_TOPE_DEL_VELO`), así que nunca retiene la app más que eso.
+ */
+export function EsperaAlVelo() {
+  const pendiente = veloPendiente();
+  if (pendiente) use(pendiente);
+  return null;
 }
 
 /** Cuánto tarda en irse el velo si el vuelo se deshace (no se corta de golpe). */
@@ -127,7 +151,8 @@ function Vuelo({ entrada }: { entrada: EntradaEnCurso }) {
       }
 
       const medidas = { origen, ancho: window.innerWidth, alto: window.innerHeight };
-      const e = saliendo ? estadoDeLaSalida(ms, listoEn, medidas) : estadoDeLaEntrada(msDelVuelo(ms, listoEn), ms, medidas);
+      const vms = msDelVuelo(ms, listoEn);
+      const e = saliendo ? estadoDeLaSalida(ms, listoEn, medidas) : estadoDeLaEntrada(vms, ms, medidas);
       if (e.terminado) return terminarEntrada();
 
       const [a, b] = alaDelAve(e.angulo, e.alargue);
@@ -140,6 +165,8 @@ function Vuelo({ entrada }: { entrada: EntradaEnCurso }) {
       silueta.setAttribute("transform", lleva(Math.max(e.kVentana, 1e-6)));
       silueta.style.visibility = e.kVentana > 0 ? "visible" : "hidden";
       velo.style.opacity = String(e.velo);
+      // Con el velo ya tapando la pantalla, la de destino puede mostrarse (`EsperaAlVelo`, Felipe 2026-10-13): debajo, y solo se ve por la ventana.
+      if (!saliendo && veloCubre(vms)) marcarVeloCubierto(entrada.id);
 
       // El saludo (diseño B): bajo el colibrí cuando flota en el centro; asoma al llegar, se queda mientras espera y se va cuando el vuelo sigue.
       const g = geometriaDeLaEntrada(medidas);

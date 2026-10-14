@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diaMes, diasEntreFechas, diasHastaLima, diaYHoraLima, hoyLima, sumarDias } from "./fechas-lima";
+import { diaLima, diaMes, diasEntreFechas, diasHastaLima, diaYHoraLima, horaLima, hoyLima, hoyLimaUTC, mesActualLima, mesLimaUTC, sumarDias } from "./fechas-lima";
 
 describe("hoyLima", () => {
   it("a las 19:30 de Lima todavía es el mismo día (en UTC ya es mañana)", () => {
@@ -8,6 +8,93 @@ describe("hoyLima", () => {
   });
   it("a las 00:10 de Lima ya es el día siguiente", () => {
     expect(hoyLima(new Date("2026-09-19T05:10:00Z"))).toBe("2026-09-19");
+  });
+  it("a las 23:30 de Lima todavía es ese día", () => {
+    // 2026-09-18 04:30 UTC = 2026-09-17 23:30 en Lima.
+    expect(hoyLima(new Date("2026-09-18T04:30:00Z"))).toBe("2026-09-17");
+  });
+});
+
+describe("diaLima: el día de Lima de un instante", () => {
+  it("lo hecho a las 20:00 del 13 en Lima es del 13, aunque en UTC ya sea el 14", () => {
+    // Como lo manda la base: timestamptz en UTC, con microsegundos. Cortarle los 10 primeros caracteres daba «2026-10-14».
+    expect(diaLima("2026-10-14T01:00:00.123456+00:00")).toBe("2026-10-13");
+    expect(diaLima("2026-10-14T01:00:00Z")).toBe("2026-10-13");
+  });
+
+  it("el día cambia a la medianoche de Lima, no a la de UTC", () => {
+    expect(diaLima("2026-10-14T04:59:59+00:00")).toBe("2026-10-13"); // 23:59:59 en Lima
+    expect(diaLima("2026-10-14T05:00:00+00:00")).toBe("2026-10-14"); // 00:00 en Lima
+    expect(diaLima("2026-10-13T23:59:00+00:00")).toBe("2026-10-13"); // 18:59 en Lima: el mismo día en los dos relojes
+  });
+
+  it("cruza el fin de mes y de año en Lima", () => {
+    expect(diaLima("2026-11-01T02:30:00+00:00")).toBe("2026-10-31"); // 21:30 del 31 de octubre en Lima
+    expect(diaLima("2026-03-01T04:00:00+00:00")).toBe("2026-02-28"); // 23:00 del 28 de febrero
+    expect(diaLima("2027-01-01T03:00:00+00:00")).toBe("2026-12-31"); // 22:00 del 31 de diciembre
+  });
+
+  it("lee el instante con la hora de Lima escrita", () => {
+    expect(diaLima("2026-10-13T20:00:00-05:00")).toBe("2026-10-13");
+  });
+
+  it("una fecha sola ya es un día: vuelve tal cual, sin correrse al día anterior", () => {
+    expect(diaLima("2026-10-13")).toBe("2026-10-13");
+  });
+
+  it("sin instante, o con uno que no se lee, no inventa un día", () => {
+    expect(diaLima(null)).toBeNull();
+    expect(diaLima(undefined)).toBeNull();
+    expect(diaLima("")).toBeNull();
+    expect(diaLima("ayer")).toBeNull();
+  });
+});
+
+describe("horaLima: la hora de Lima de un instante", () => {
+  it("lo hecho a las 20:00 del 13 en Lima es a las 20:00, aunque en UTC sea la 01:00 del 14", () => {
+    expect(horaLima("2026-10-14T01:00:00.123456+00:00")).toBe("20:00");
+    expect(horaLima("2026-10-01T03:30:00Z")).toBe("22:30");
+    expect(horaLima("2026-09-30T16:58:00Z")).toBe("11:58");
+  });
+
+  it("cruza la medianoche de Lima en 24 h: 00:30, nunca 24:30", () => {
+    expect(horaLima("2026-09-30T05:30:00Z")).toBe("00:30");
+    expect(horaLima("2026-10-14T05:00:00+00:00")).toBe("00:00");
+    expect(horaLima("2026-10-14T04:59:59+00:00")).toBe("23:59");
+  });
+
+  it("lee el instante con la hora de Lima escrita", () => {
+    expect(horaLima("2026-10-13T20:00:00-05:00")).toBe("20:00");
+  });
+
+  it("es la misma hora que da diaYHoraLima", () => {
+    for (const x of ["2026-01-05T10:07:00Z", "2027-01-01T03:00:00Z", "2026-09-19T16:34:00-05:00"]) expect(horaLima(x)).toBe(diaYHoraLima(x).hora);
+  });
+
+  it("una fecha sola no tiene hora, y sin instante o con uno que no se lee no inventa una", () => {
+    expect(horaLima("2026-10-13")).toBeNull();
+    expect(horaLima(null)).toBeNull();
+    expect(horaLima(undefined)).toBeNull();
+    expect(horaLima("")).toBeNull();
+    expect(horaLima("ayer")).toBeNull();
+  });
+});
+
+describe("un día o un mes de Lima como rango de instantes UTC", () => {
+  it("el mes de Lima empieza a las 05:00 UTC de su día 1, y diciembre termina en enero", () => {
+    expect(mesLimaUTC(2026, 10)).toEqual({ desde: "2026-10-01T05:00:00.000Z", hasta: "2026-11-01T05:00:00.000Z" });
+    expect(mesLimaUTC(2026, 12)).toEqual({ desde: "2026-12-01T05:00:00.000Z", hasta: "2027-01-01T05:00:00.000Z" });
+  });
+
+  it("el 31 de octubre a las 22:00 de Lima todavía es octubre, aunque en UTC ya sea noviembre", () => {
+    expect(mesActualLima(Date.parse("2026-11-01T03:00:00Z"))).toEqual({ anio: 2026, mes: 10 });
+    expect(mesActualLima(Date.parse("2026-11-01T05:00:00Z"))).toEqual({ anio: 2026, mes: 11 });
+    expect(mesActualLima(Date.parse("2027-01-01T03:00:00Z"))).toEqual({ anio: 2026, mes: 12 });
+  });
+
+  it("hoy de Lima va de su medianoche a la siguiente, también a las 20:00", () => {
+    expect(hoyLimaUTC(Date.parse("2026-10-14T01:00:00Z"))).toEqual({ desde: "2026-10-13T05:00:00.000Z", hasta: "2026-10-14T05:00:00.000Z" });
+    expect(hoyLimaUTC(Date.parse("2026-10-14T05:00:00Z"))).toEqual({ desde: "2026-10-14T05:00:00.000Z", hasta: "2026-10-15T05:00:00.000Z" });
   });
 });
 

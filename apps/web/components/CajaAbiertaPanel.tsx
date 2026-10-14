@@ -44,7 +44,7 @@ import type { CategoriaGasto, UbicacionGastos } from "@/lib/gastos-reglas";
 import type { ConceptoOrdenado } from "@/lib/gasto-rapido-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { DIAS_SEMANA, explicarMeta, minutosDeHora as minutosLima, proyeccionAlCierre, type ParametrosCaja } from "@/lib/configuracion-reglas";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import { Boton } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";

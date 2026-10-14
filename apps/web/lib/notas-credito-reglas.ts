@@ -1,4 +1,4 @@
-import { diasEntreFechas } from "./fechas-lima";
+import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { soles } from "./compras-reglas";
 import { MARGEN_NOTA, reparteNota, type ReparteNota } from "./recepciones-reglas";
 
@@ -107,6 +107,13 @@ export function edadEnDias(fecha: string, hoy: string): number {
   return Math.max(0, diasEntreFechas(fecha, hoy));
 }
 
+/** El día (`aaaa-mm-dd` de Lima) en que se cerró el faltante: ahí arranca el reloj del reclamo y es el «cerrado el …» de la pantalla.
+ *  `cerradoEn` es un instante que la base manda en UTC: con sus 10 primeros caracteres, lo cerrado de 7 pm a medianoche de Lima
+ *  salía cerrado «mañana» y con un día menos de antigüedad. Sin un instante que se lea, vale la fecha de la fila. */
+export function diaDelCierre(f: Pick<FilaTablero, "cerradoEn" | "fecha">): string {
+  return diaLima(f.cerradoEn) ?? f.fecha;
+}
+
 /** «Hoy» · «Ayer» · «Hace 12 días» — como lo dice el spike. */
 export function hace(dias: number): string {
   if (dias <= 0) return "Hoy";
@@ -209,7 +216,7 @@ export function armarFilas(
     const dev = f.clase === "nota" && f.serieNumero ? (devoluciones.get(f.serieNumero) ?? null) : null;
     // El reloj de los 14 días arranca cuando se CERRÓ el faltante (`cerrado_en`), no cuando se emitió
     // el comprobante: es el día en que el proveedor quedó debiendo la nota.
-    const edadDias = edadEnDias(f.clase === "pendiente" ? (f.cerradoEn?.slice(0, 10) ?? f.fecha) : f.fecha, p.hoy);
+    const edadDias = edadEnDias(f.clase === "pendiente" ? diaDelCierre(f) : f.fecha, p.hoy);
     // Quién decide si la nota por faltante ya se puede registrar es la BASE (`resuelto`), no la pantalla:
     // es la misma condición que `fn_insertar_nota_credito_compra` vuelve a exigir al escribir.
     const bloqueada = f.clase === "pendiente" && !f.resuelto;
@@ -579,7 +586,7 @@ export function pasosDeNota(f: FilaVista, dinero: (n: number) => string = soles)
       clave: "Faltante",
       titulo: f.bloqueada ? "Faltante detectado · el comprobante todavía no está resuelto" : "Faltante detectado",
       detalle: `${f.unidadesCerradas.toLocaleString("es-PE")} ${f.unidadesCerradas === 1 ? "unidad cerrada" : "unidades cerradas"} en ${f.documento}`,
-      fecha: dm(f.cerradoEn?.slice(0, 10) ?? f.fecha),
+      fecha: dm(diaDelCierre(f)),
       estado: f.bloqueada ? "ahora" : "hecho",
     });
     pasos.push({ clave: "Nota recibida", titulo: "Nota de crédito recibida", detalle: "Serie-número, fecha y monto de la nota", fecha: null, estado: f.bloqueada ? "pendiente" : "ahora" });

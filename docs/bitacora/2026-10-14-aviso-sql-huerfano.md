@@ -1,0 +1,4 @@
+## 2026-10-14 (Un PR cerrado con su SQL ya en producción deja de quedar en silencio)
+Qué hice: el aviso «SQL huérfano» (ADR-0251, actualización 2026-10-14). Cuando un PR se cierra sin fusionar, con «SQL pegado en producción» marcada y migraciones que `main` no tiene, abre «SQL en producción que main no tiene: PR #N», lo comenta en el PR y lo cierra solo cuando esos archivos llegan a `main`. Corre al cerrar un PR, al llegar migraciones a `main` y cada mañana.
+Por qué así: avisa en el momento del error, en el PR que lo causó. La revisión diaria no podía nombrarlo: las huellas de un PR duran 7 días, y en cuanto otro PR pega encima de la misma función el rastro ya no calza con ninguno (justo lo que pasó con #978 y #1054).
+Felipe se lleva: si al fusionar esto #1054 todavía no llegó a `main`, la primera corrida abre el aviso de #978; es correcto y se cierra solo cuando llegue. Un aviso cerrado a mano no se vuelve a abrir.

@@ -19,8 +19,9 @@ import { numeroDeProforma } from "@/lib/proformas-reglas";
 import { confirmacionDeConversion } from "@/lib/facturacion-proformas-reglas";
 import { lineasDelCarritoDesdeProforma } from "@/lib/proforma-al-carrito";
 import { lineasDelCarritoDesdeVenta, type RepeticionDeVenta } from "@/lib/repetir-venta";
-import { elegirComprobante, diaDeLima, type VentaCruda } from "@/lib/ventas-historial-reglas";
-import type { CampanaLinea } from "@/lib/vender-reglas";
+import { elegirComprobante, type VentaCruda } from "@/lib/ventas-historial-reglas";
+import { diaLima } from "@/lib/fechas-lima";
+import { tiposDeComprobanteDeLaSede, type CampanaLinea } from "@/lib/vender-reglas";
 import { armarListasPrendaLibre, leerListasPrendaLibre } from "@/lib/prenda-sin-registrar-listas";
 import { clubDeLaCaja } from "@/lib/club-caja-reglas";
 import { sedesParaPedir } from "@/lib/pedidos-entre-sedes-reglas";
@@ -60,7 +61,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, listasLeidas, resVentasHoy, resTextosClub, resWhatsappTienda, resQr, resRedondeo, resOpcionesApartados, pedidosConCliente, resPreciosSede, resColores, resFamiliasApagadas, resSeries] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
@@ -100,6 +101,9 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     supabase.from("colores").select("codigo, nombre, hex, familia_color, tipo, descripcion, combina_con").eq("activo", true),
     // Las familias fuera de los motores: de ahí salen las bolsas de «Agregar bolsa» (Bolsas de despacho, 2026-10-10). Pocas filas.
     supabase.from("familias").select("codigo").eq("entra_a_motores", false),
+    // Las series activas de esta sede: la hoja de cobro solo ofrece los comprobantes que la sede puede emitir (/chaos 2026-10-13,
+    // «Nota de venta» sin serie). Secundario: si falla, se ofrecen los tres como antes y cobrar dice qué falta.
+    supabase.from("series_comprobantes").select("tipo").eq("ubicacion_id", persona.ubicacionId).is("archivada_at", null),
   ]);
   const coloresConFicha: ColorConFicha[] = (tolerar(resColores, "las fichas de color").datos ?? []).map((c) => ({
     codigo: c.codigo,
@@ -204,7 +208,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         comprobantes: VentaCruda["comprobantes"];
       };
       const comprobante = elegirComprobante(v.comprobantes);
-      const [, mes, dia] = diaDeLima(v.created_at).split("-");
+      const [, mes, dia] = (diaLima(v.created_at) ?? "").split("-");
       const prendas = v.venta_items.map((i) => ({
         varianteId: i.variante_id,
         cantidad: i.cantidad,
@@ -260,6 +264,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         puedeBuscarClienta={modulos.includes("clientas")}
         club={club}
         qrDisponible={resQr.data === true}
+        tiposComprobante={tiposDeComprobanteDeLaSede(resSeries.error ? null : (resSeries.data ?? null))}
         redondeoEfectivoDisponible={resRedondeo.data === true}
         pedirAOtraSede={
           (resOpcionesApartados.data ?? []).includes("otra_sede") || sedesParaPedir(ubicaciones, persona.ubicacionId).length === 0

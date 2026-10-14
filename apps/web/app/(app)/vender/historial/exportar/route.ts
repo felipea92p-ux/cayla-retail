@@ -1,6 +1,6 @@
 import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { hoyEnLima } from "@/lib/movimientos-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { filtrosDesdeParams, idsDeHistorial, listarVentasHistorial, type CursorVentas, type FilaHistorial, type ParamsHistorial } from "@/lib/ventas-historial";
 import { csvDeHistorial, nombreArchivoHistorial } from "@/lib/historial-exportar-reglas";
 
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
 
   const params = Object.fromEntries(new URL(req.url).searchParams.entries()) as ParamsHistorial;
   const tiendas = (await getUbicaciones()).filter((u) => u.tipo === "tienda");
-  const hoy = hoyEnLima();
+  const hoy = hoyLima();
   const filtros = filtrosDesdeParams(params, {
     esLider: true,
     sedesIds: tiendas.map((t) => t.id),

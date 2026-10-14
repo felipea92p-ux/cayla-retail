@@ -1,5 +1,5 @@
 import { fechaCorta, parsearMonto, type Resultado } from "./gastos-reglas";
-import { diaYHoraLima, diasEntreFechas } from "./fechas-lima";
+import { diaLima, diasEntreFechas } from "./fechas-lima";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3, 20260925110000): lógica pura, sin servidor ni navegador. La leen las páginas
 // (servidor) y los paneles (cliente). Los saldos NO se calculan aquí: los suma la base (`fn_cuentas_dinero_saldos`); aquí
@@ -217,9 +217,21 @@ export function leerCierre(c: Fila): CierreConDiferencia {
   return { cajaId: String(c.caja_id), ubicacionNombre: String(c.ubicacion_nombre), cerradaEn: String(c.cerrada_en), diferencia: num(c.diferencia), cerradaPor: texto(c.cerrada_por) || null };
 }
 
+/** Una salida de caja que un depósito o un retiro puede tomar. `creadoEn` es un instante (timestamptz, en UTC): su día se
+ *  lee con `textoSalida`, nunca cortándole los 10 primeros caracteres. */
 export type EgresoParaMovimiento = { id: string; cajaId: string; monto: number; motivo: string; nota: string | null; creadoEn: string; marca: string | null };
 export function leerEgresoParaMovimiento(e: Fila): EgresoParaMovimiento {
   return { id: String(e.id), cajaId: String(e.caja_id), monto: num(e.monto), motivo: String(e.motivo), nota: texto(e.nota), creadoEn: String(e.creado_en), marca: texto(e.marca) };
+}
+
+/** Cómo se lee una salida en «¿Cuál salida?» (Registrar movimiento): «13 oct · S/ 300.00 · Depósito bancario — Voucher 7788».
+ *  El día es el de Lima: la base manda el instante en UTC («2026-10-14T01:00:00+00:00»), y cortarle los 10 primeros
+ *  caracteres daba el día de UTC: lo registrado de 7 pm a medianoche de Lima salía con fecha de mañana. Sin instante, o con
+ *  uno que no se puede leer, empieza por el monto: no se inventa cuándo. */
+export function textoSalida(e: EgresoParaMovimiento): string {
+  const dia = diaLima(e.creadoEn);
+  const cuerpo = `${soles2(e.monto)} · ${e.motivo}${e.nota ? ` — ${e.nota}` : ""}${e.marca ? " (marcado «no es gasto»)" : ""}`;
+  return dia ? `${fechaCorta(dia)} · ${cuerpo}` : cuerpo;
 }
 
 export type ConciliacionCuenta = {
@@ -552,9 +564,4 @@ export function diaYNumero(iso: string): string {
   const dias = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
   const lima = new Date(Date.parse(iso) - 5 * 3_600_000);
   return `${dias[lima.getUTCDay()]} ${lima.getUTCDate()}`;
-}
-
-/** «09:02» en hora de Lima. */
-export function horaLima(iso: string): string {
-  return diaYHoraLima(iso).hora;
 }

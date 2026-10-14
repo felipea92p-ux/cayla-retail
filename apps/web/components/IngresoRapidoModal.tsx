@@ -17,6 +17,9 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { Baldosa } from "@/components/GastoRapidoModal";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 import { soles } from "@/lib/compras-reglas";
 import {
   INGRESO_RAPIDO_VACIO,
@@ -77,9 +80,12 @@ export function IngresoRapidoModal({
   const router = useRouter();
   const responsable = useResponsable();
   const [e, setE] = useState<EstadoIngresoRapido>(INGRESO_RAPIDO_VACIO);
-  const [guardando, setGuardando] = useState(false);
   const [listo, setListo] = useState<{ que: string; monto: number } | null>(null);
-  const [token] = useState(() => crypto.randomUUID());
+  // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): si la respuesta se pierde, la hoja se congela hasta saber si
+  // la entrada quedó.
+  const intento = useIntento("registrar_ingreso_caja");
+  const guardando = intento.enviando;
+  const [revisando, setRevisando] = useState(false);
   const montoRef = useRef<HTMLInputElement>(null);
   const poner = <K extends keyof EstadoIngresoRapido>(k: K, v: EstadoIngresoRapido[K]) => setE((x) => ({ ...x, [k]: v }));
 
@@ -132,26 +138,35 @@ export function IngresoRapidoModal({
     }
     const v = validarIngreso(e, sedes, esLider);
     if (!v.ok) return avisar.error(v.error);
-    setGuardando(true);
-    const { error } = await firmar(
-      createClient().rpc(
-        "registrar_ingreso_caja" as never,
-        {
-          p_caja_id: caja.id,
-          p_concepto: v.valor.p_concepto,
-          p_monto: v.valor.p_monto,
-          p_nota: v.valor.p_nota,
-          p_de_donde: v.valor.p_de_donde,
-          p_sede_origen_id: v.valor.p_sede_origen_id,
-          p_token: token,
-        } as never,
-      ),
-      responsable.firma(),
+    const params = {
+      p_caja_id: caja.id,
+      p_concepto: v.valor.p_concepto,
+      p_monto: v.valor.p_monto,
+      p_nota: v.valor.p_nota,
+      p_de_donde: v.valor.p_de_donde,
+      p_sede_origen_id: v.valor.p_sede_origen_id,
+    };
+    const r = await intento.enviar(huellaDe(params), (token, senal) =>
+      firmar(createClient().rpc("registrar_ingreso_caja" as never, { ...params, p_token: token } as never), responsable.firma()).abortSignal(senal),
     );
-    setGuardando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "registrar el ingreso"));
+    if (r.tipo === "ocupado" || r.tipo === "congelado") return;
+    responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") return avisar.error(traducirError(r.error, "registrar el ingreso"));
     setListo({ que: elegido?.nombre ?? "Ingreso", monto: v.valor.p_monto });
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return setListo({ que: elegido?.nombre ?? "Ingreso", monto: Number(res.datos.monto ?? e.monto) });
+    if (res.tipo === "no_llego") {
+      avisar.aviso("La entrada no se registró", { detalle: "No quedó nada guardado. Revisa los datos y vuelve a registrarla." });
+      return;
+    }
+    avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
   }
 
   // El sello sale DESPUÉS del loader (ADR-0149), se queda un momento y la hoja se cierra; Caja se refresca (el cajón ya lo suma).
@@ -181,7 +196,7 @@ export function IngresoRapidoModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selloAlaVista]);
 
-  const textoBoton = montoListo ? `Registrar ${soles(Number(e.monto))}` : "Registrar ingreso";
+  const textoBoton = intento.incierto ? "Volver a intentar" : montoListo ? `Registrar ${soles(Number(e.monto))}` : "Registrar ingreso";
 
   return (
     <Modal
@@ -197,11 +212,13 @@ export function IngresoRapidoModal({
       // `onClose`, «Cancelar» preguntaba dos veces y «Seguir editando» tras un Escape dejaba la hoja montada e invisible.
       antesDeCerrar={avisoSalida.pedirAccion}
       onClose={onCerrar}
-      bloqueado={guardando}
+      bloqueado={guardando || intento.incierto}
       ancho="max-w-[560px]"
     >
       {(cerrar) => (
         <form onSubmit={guardar} className="gr-hoja relative space-y-5" noValidate>
+          {/* En duda, los datos no se tocan: cambiarlos y reenviar podría registrar la entrada dos veces. */}
+          <fieldset disabled={intento.incierto} className="campos-congelables min-w-0 space-y-5">
           <CampoGuiado id="concepto" guia={guia} titulo="¿De dónde viene la plata?">
             <div role="radiogroup" aria-label="De dónde viene la plata" className="gr-mosaico" data-columnas="3">
               {conceptos.map((c, i) => (
@@ -369,17 +386,21 @@ export function IngresoRapidoModal({
           <CampoGuiado id="responsable" guia={guia}>
             <ComboResponsable control={responsable} deshabilitado={guardando} />
           </CampoGuiado>
+          </fieldset>
+
+          {intento.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} />}
 
           <div className="pie-hoja-fijo flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
             <PieGuia guia={guia} listo="Todo listo: entra al cajón." />
             <div className="ml-auto pie-acciones">
-              <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando}>
+              <Boton type="button" onClick={() => avisoSalida.pedirAccion(cerrar)} disabled={guardando || intento.incierto}>
                 Cancelar
               </Boton>
               <Boton
                 type="submit"
                 peso="primario"
                 cargando={guardando}
+                disabled={revisando}
                 title={guia.frase ?? undefined}
                 aria-disabled={!guia.puedeConfirmar || undefined}
                 className={`gr-registrar ${guia.claseConfirmar}`}
