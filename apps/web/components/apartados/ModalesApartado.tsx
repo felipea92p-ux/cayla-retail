@@ -14,6 +14,7 @@ import { money } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { diaLima } from "@/lib/fechas-lima";
 import {
   AVISO_DIAS,
   EXTENSIONES_MAX,
@@ -252,7 +253,7 @@ export function ReimprimirApartadoModal({ apartado, sede, onClose }: { apartado:
             <p className="text-xs text-tinta/70">
               {a.nombres} {a.apellidos} · {cual === "final" ? `total ${money(a.total)}` : `adelanto ${money(a.adelanto)} de ${money(a.total)}`}
             </p>
-            <p className="text-xs text-tinta/60">Apartado el {fechaCorta(a.creadaEn.slice(0, 10))} · sale marcado como COPIA.</p>
+            <p className="text-xs text-tinta/60">Apartado el {fechaCorta(diaLima(a.creadaEn))} · sale marcado como COPIA.</p>
           </div>
           <button type="button" autoFocus onClick={() => window.print()} className={`${botonPrimario} flex w-full items-center justify-center gap-2`}>
             <Printer className="h-4 w-4" aria-hidden />
