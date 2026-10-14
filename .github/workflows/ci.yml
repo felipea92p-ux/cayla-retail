@@ -105,8 +105,8 @@ jobs:
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: pnpm --filter web exec next typegen
 
-      # Los tres corren SIEMPRE aunque uno falle, pero solo si la instalación funcionó
-      # (si no hay node_modules, los tres fallarían por la misma razón y el informe sería
+      # Los cuatro corren SIEMPRE aunque uno falle, pero solo si la instalación funcionó
+      # (si no hay node_modules, los cuatro fallarían por la misma razón y el informe sería
       # ruido). Un push malo devuelve así el diagnóstico completo en una vuelta: sin esto,
       # arreglar el lint solo sirve para descubrir que además fallaban las pruebas.
       - name: Tipos
@@ -120,6 +120,14 @@ jobs:
       - name: Pruebas
         if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
         run: pnpm test
+
+      # Código muerto (ADR-0406): un archivo que nadie importa, una exportación que nadie lee o una dependencia que nadie carga
+      # ponen el PR en rojo. Lee todo el monorepo en ~3 s; lo que se queda sin uso a propósito se declara en `knip.ts` o con
+      # `@public` junto al código, con su motivo. NO ve una función que solo usa su propia prueba: eso lo vigila
+      # `lib/reglas-sin-uso.test.ts` (ADR-0234), dentro de «Pruebas».
+      - name: Código muerto
+        if: ${{ !cancelled() && steps.instalar.outcome == 'success' }}
+        run: pnpm knip --no-progress
 
       # El aviario (ADR-0104): ninguna tabla de producción sin pájaro, ninguna con dos, y
       # `docs/datos/generado/AVIARIO.md` al día. Tampoco toca base de datos: lee el volcado
@@ -153,9 +161,10 @@ jobs:
       # PR). Aquí porque una de ellas lee la plantilla del formulario, y ese workflow solo baja scripts/migraciones.
       # deriva-diaria.test.mjs simula `deriva-diaria.yml` paso a paso (bash, jq y curl, que el runner trae).
       # sql-huerfano.test.mjs vigila el aviso de un PR cerrado con su SQL en producción (`sql-huerfano.yml`).
+      # deriva-pegados.test.mjs vigila qué PR abiertos se suman a main antes de compararlo con producción (ADR-0402).
       - name: Pruebas del check SQL pegado y de la deriva
         if: ${{ !cancelled() }}
-        run: node --test scripts/migraciones/sql-pegado.test.mjs scripts/migraciones/deriva.test.mjs scripts/migraciones/deriva-diaria.test.mjs scripts/migraciones/huellas-del-pr.test.mjs scripts/migraciones/sql-en-produccion.test.mjs scripts/migraciones/sql-huerfano.test.mjs
+        run: node --test scripts/migraciones/sql-pegado.test.mjs scripts/migraciones/deriva.test.mjs scripts/migraciones/deriva-diaria.test.mjs scripts/migraciones/huellas-del-pr.test.mjs scripts/migraciones/sql-en-produccion.test.mjs scripts/migraciones/sql-huerfano.test.mjs scripts/migraciones/deriva-pegados.test.mjs
 
       # Números de ADR únicos: cada sesión numera su ADR como "el siguiente" de su `main` y,
       # con ramas paralelas, dos eligen el mismo (0074 y 0105 siguen repetidos en

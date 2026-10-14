@@ -1082,9 +1082,9 @@ export function FlujoTalla({
           <Aviso tono="error">{error}</Aviso>
         )}
         {!completo && faltanHasta(tipo, i, d, ctx).length > 0 && <PieGuia guia={guiaDePasos} />}
-        <div className="flex gap-2">
+        <div className="pie-acciones">
           {i === 0 || incierto ? (
-            <button type="button" onClick={atras} disabled={enviando} className="btn-cayla btn-secundario flex-1 gap-1.5">
+            <button type="button" onClick={atras} disabled={enviando} className="btn-cayla btn-secundario gap-1.5">
               Cancelar
             </button>
           ) : (

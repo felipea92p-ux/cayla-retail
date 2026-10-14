@@ -8,7 +8,6 @@ import { leerTodas } from "@/lib/resultado";
 import { claveDeConocidos, hayQueReleer, huellaParaRecordar, mismoStock, type StockReleido, type UltimaHuella } from "@/lib/stock-en-vivo-reglas";
 
 export type { StockReleido } from "@/lib/stock-en-vivo-reglas";
-export { mismoStock } from "@/lib/stock-en-vivo-reglas";
 
 /**
  * Stock en vivo, compartido por Vender/Apartados/Cambios (2026-09-25) — cierra el hueco que reportó Felipe:

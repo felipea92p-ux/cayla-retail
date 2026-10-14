@@ -214,11 +214,11 @@ export function DarAccesoModal({
           <div className="pie-hoja-fijo">
             <div className="space-y-2 border-t border-sand pt-3" data-guia="colaboradores.dar-confirmar">
               <PieGuia guia={guia} listo={soyLider ? "Todo listo para dar acceso." : "Todo listo para pedir el acceso."} />
-              <div className="flex gap-2">
-                <button type="button" className="btn-cayla btn-secundario flex-1" onClick={cerrar}>
+              <div className="pie-acciones">
+                <button type="button" className="btn-cayla btn-secundario" onClick={cerrar}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn-cayla btn-primario flex-1" disabled={!listo} title={responsable.motivo ?? undefined}>
+                <button type="submit" className="btn-cayla btn-primario" disabled={!listo} title={responsable.motivo ?? undefined}>
                   {enviando ? "Guardando…" : soyLider ? (personas.length > 1 ? `Dar acceso a ${personas.length}` : "Dar acceso") : "Pedir acceso"}
                 </button>
               </div>

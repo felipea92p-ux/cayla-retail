@@ -1,9 +1,9 @@
 "use client";
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
-import Link from "next/link";
 import { hrefEtiquetasDeSubidas, juntarSubidas } from "@/lib/matriz-ficha-reglas";
 import { conDesde } from "@/lib/vuelta-productos";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // Recordatorio de «Imprimir etiquetas» (2026-10-02, Felipe: «que sea bastante visible y que no desaparezca hasta
 // cambiar de módulo»). Cuando un ajuste de stock desde la ficha de un producto SUBE alguna talla, hay una prenda más
@@ -86,9 +86,9 @@ function BannerRecordatorio({ pendientes, onLimpiar }: { pendientes: readonly Li
         <p className="min-w-0 flex-1 truncate text-[12.5px] text-tinta/60" title={detalle}>
           {detalle}
         </p>
-        <Link href={href} className="btn-cayla btn-primario shrink-0 text-[12.5px]">
+        <BotonImprimir href={href} peso="primario" className="shrink-0 text-[12.5px]">
           Imprimir etiquetas
-        </Link>
+        </BotonImprimir>
         <button
           type="button"
           onClick={onLimpiar}

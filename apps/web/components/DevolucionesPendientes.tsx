@@ -387,7 +387,7 @@ function PanelResolver({
           )}
 
           <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="pie-acciones">
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>
@@ -421,7 +421,7 @@ function PanelResolver({
             </Aviso>
           )}
           <ComboResponsable control={responsable} deshabilitado={cargando} className="max-w-sm" />
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="pie-acciones">
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>

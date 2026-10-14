@@ -50,7 +50,6 @@ export const TOPES_CONTEO = { contadas: 99999, descripcionNueva: 200, nota: 300,
 
 /** Pistas que la pantalla trata distinto del mensaje de la base (que ya viene en palabras de tienda). */
 export const HINT_CONTEO_CAMBIADO = "conteo_cambiado";
-export const HINT_COSTO_SIN_PERMISO = "recepcion_costo_sin_permiso";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Lectores tolerantes

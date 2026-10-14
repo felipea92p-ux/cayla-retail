@@ -448,11 +448,11 @@ export function CerrarCajaModalV2({
                 )}
               </p>
             )}
-            <div className="flex gap-2 pt-1">
-              <button type="button" onClick={cerrar} className={botonCancelar}>
+            <div className="pie-acciones pt-1">
+              <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
                 Cancelar
               </button>
-              <button type="submit" disabled={contado === null || contado < 0} className={botonPrimario}>
+              <button type="submit" disabled={contado === null || contado < 0} className="btn-cayla btn-primario">
                 Continuar
               </button>
             </div>

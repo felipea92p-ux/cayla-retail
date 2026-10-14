@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 128,
+  "total": 126,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «)»",
@@ -19,8 +19,8 @@
       "Link «{uno ? `Abrir el Traslado ${traslados[0].numero}»"
     ],
     "components/ColaOfflineAviso.tsx": [
-      "button «Sí, descartar»",
       "button «Cancelar»",
+      "button «Sí, descartar»",
       "button «Descartar»"
     ],
     "components/ConsultaDocumento.tsx": [
@@ -35,14 +35,12 @@
     ],
     "components/EnvioRecibido.tsx": [
       "Link «Se reclama en Notas de crédito ↗»",
-      "Link «Imprimir»",
       "Boton «Recibir otro envío»"
     ],
     "components/FiltrosRecibidas.tsx": [
       "DesplegablePildora «Proveedor»",
       "button «{texto}»",
       "button «{texto}» #2",
-      "button «Limpiar»",
       "button «{activa ? `Fechas: ${textoFechas(desde || undefined, hasta || undefined, hoy)}»",
       "button «{p.etiqueta}»",
       "CampoFecha «Desde»",

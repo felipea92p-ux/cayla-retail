@@ -21,6 +21,7 @@
 /* Etiquetas de precio, la pantalla: filas por modelo, el paso − n +, el tacho y su movimiento (2026-10-09). */
 @import "./estilos/etiquetas-precio.css";
 @import "./estilos/caja-cerrada.css";
+@import "./estilos/pie-acciones.css";
 @import "./estilos/club-publico.css";
 @import "./estilos/recordatorio-cierre.css";
 @import "./estilos/caja-cierre.css";
@@ -494,10 +495,21 @@ body {
       linear-gradient(color-mix(in srgb, var(--color-tinta) 32%, transparent), color-mix(in srgb, var(--color-tinta) 32%, transparent));
     background-size: 0% 1.5px, 100% 1px;
     background-position: 0 calc(50% + 0.7em), 0 calc(50% + 0.7em);
+    background-origin: content-box;
     background-repeat: no-repeat;
     -webkit-box-decoration-break: clone;
     box-decoration-break: clone;
     transition: background-size 300ms var(--ease-cayla), color 200ms var(--ease-cayla);
+  }
+  /* El renglón cae 0,7 em bajo el centro: en una caja del alto de la letra (un enlace dentro de una frase, un `btn-cayla btn-enlace`)
+     eso queda entre 1 y 1,5 px DEBAJO del borde, donde el navegador ya no pinta el fondo, y el subrayado no se veía (o se veía según en
+     qué píxel cayera el renglón; medido el 2026-10-14). El relleno de abajo agranda el área donde se pinta sin mover el renglón (se mide
+     desde el contenido, `background-origin` de arriba) y el margen negativo del mismo tamaño deja la caja donde estaba: nada se corre. Un
+     `btn-chico` mide 44 px y ya lo pintaba: no lo lleva (con su alto mínimo, el margen sí lo achicaría). Un `mb-*` en el mismo elemento le
+     gana al margen: ahí se descuenta a mano (FiltrosMovimientos). */
+  .btn-enlace:not(.btn-chico) {
+    padding-bottom: 0.25em;
+    margin-bottom: -0.25em;
   }
   .btn-enlace:hover:not(:disabled):not([aria-disabled="true"]) {
     background-size: 100% 1.5px, 100% 1px;
@@ -1570,6 +1582,9 @@ html[data-buscando] [data-resultados] {
   /* Descargar (ADR-0358, ronda 10): la flecha de descarga BAJA 2 px, como la que lleva a otro lado avanza. */
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)) svg.lucide-download { transition: translate 300ms var(--ease-cayla); }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-download { translate: 0 2px; }
+  /* Imprimir (ADR-0358, ronda 11): la hoja SALE de la impresora (baja 2 px), como la flecha de descargar baja. */
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)) svg.lucide-printer rect { transition: translate 300ms var(--ease-cayla); }
+  :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover:not(:disabled) svg.lucide-printer rect { translate: 0 2px; }
   :is(.mov-boton, .btn-cayla:not(.btn-enlace))::before {
     content: ""; position: absolute; pointer-events: none; border-radius: 999px;
     left: var(--onda-x, 50%); top: var(--onda-y, 50%); width: var(--onda-d, 0px); height: var(--onda-d, 0px);
@@ -2536,7 +2551,7 @@ html[data-buscando] [data-resultados] {
     :is(.mov-boton, .btn-cayla:not(.btn-enlace)),
     :is(.mov-boton, .btn-cayla:not(.btn-enlace)):hover,
     :is(.mov-boton, .btn-cayla:not(.btn-enlace)):active { translate: none !important; scale: none !important; }
-    :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg, .mov-mas) { rotate: none !important; translate: none !important; }
+    :is(.mov-boton, .btn-cayla:not(.btn-enlace)) :is(svg, svg rect, .mov-mas) { rotate: none !important; translate: none !important; }
   }
 }
 /* ==================================================================

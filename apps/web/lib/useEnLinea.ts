@@ -84,8 +84,3 @@ function suscribir(avisar: () => void) {
 export function useEnLinea(): boolean {
   return useSyncExternalStore(suscribir, () => instantanea, () => true);
 }
-
-/** Lo mismo, leído una vez (fuera de React o en un manejador). */
-export function hayRedAhora(): boolean {
-  return typeof window === "undefined" ? true : instantanea;
-}

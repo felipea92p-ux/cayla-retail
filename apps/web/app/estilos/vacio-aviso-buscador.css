@@ -54,6 +54,12 @@
   .vacio-filtro svg { width: 14px; height: 14px; opacity: 0.75; }
   .vacio-filtro:hover svg { opacity: 1; }
   .vacio-filtro:active { transform: scale(0.94); }
+  /* «Limpiar todo» al final de los filtros puestos (ronda 11, <BotonLimpiar>): una píldora más, punteada, con el embudo tachado; el borde
+     se calienta al pasar el mouse y se encoge al presionarla, como la del filtro puesto. */
+  .pildora-limpiar { border-style: dashed; gap: 6px; font-weight: 500; color: var(--color-taupe); transition: border-color 200ms, color 200ms, transform 200ms var(--ease-cayla); }
+  .pildora-limpiar:hover { border-color: var(--color-taupe); color: var(--color-tinta); }
+  .pildora-limpiar:active { transform: scale(0.94); }
+  .pildora-limpiar svg { width: 14px; height: 14px; flex-shrink: 0; }
 
   /* ---------- <Vacio tamano="chico">: una línea dentro de una tabla, una hoja o una lista ---------- */
   .vacio-chico { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 14px; font-size: 13.5px; color: var(--color-taupe); animation: cayla-vacio-sube 300ms var(--ease-cayla) backwards; }
@@ -216,7 +222,7 @@
     .vacio > *, .vacio-chico, .aviso-linea, .buscador-conteo, .buscador-borrar { animation: none; }
     .vacio-ic::after { animation: none; }
     .buscador-hilo::before, .buscador-giro { animation: none; }
-    .buscador, .buscador-icono, .vacio-filtro { transition: none; }
+    .buscador, .buscador-icono, .vacio-filtro, .pildora-limpiar { transition: none; }
     .buscador.mostrador:focus-within, .buscador:focus-within .buscador-icono { transform: none; }
   }
 }

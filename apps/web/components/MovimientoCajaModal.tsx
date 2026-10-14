@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { esMotivoDeAjuste, motivosDeMovimiento, referenciaObligatoria } from "@/lib/caja-panel-reglas";
-import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import { Desplegable } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -229,11 +229,11 @@ export function MovimientoCajaModal({
         <ComboResponsable control={responsable} deshabilitado={loading} />
         </fieldset>
         {intento.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} />}
-        <div className="flex gap-2 pt-1">
-          <button type="button" onClick={cerrar} disabled={intento.incierto} className={botonCancelar}>
+        <div className="pie-acciones pt-1">
+          <button type="button" onClick={cerrar} disabled={intento.incierto} className="btn-cayla btn-secundario">
             Cancelar
           </button>
-          <button type="submit" disabled={loading || revisando || !tipo || !motivoRapido || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
+          <button type="submit" disabled={loading || revisando || !tipo || !motivoRapido || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
             {loading ? "Guardando…" : intento.incierto ? "Volver a intentar" : "Registrar"}
           </button>
         </div>

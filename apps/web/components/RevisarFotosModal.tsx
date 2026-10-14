@@ -226,11 +226,11 @@ export function RevisarFotosModal({
             ))}
           </ul>
 
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton peso="primario" className="flex-1" cargando={guardando} disabled={procesando || usadas.length === 0} onClick={() => confirmar(cerrar)}>
+            <Boton peso="primario" cargando={guardando} disabled={procesando || usadas.length === 0} onClick={() => confirmar(cerrar)}>
               {procesando ? "Procesando…" : usadas.length === 0 ? "Nada que cambiar" : textoConfirmar(usadas.length)}
             </Boton>
           </div>

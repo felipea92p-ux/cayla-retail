@@ -11,7 +11,7 @@ import {
   type ParametrosFinanzasConCorte,
 } from "@/lib/configuracion-reglas";
 
-export type { CampanaConfig, ConfiguracionTiendas, EfectoCampana, TiendaConfig } from "@/lib/configuracion-reglas";
+export type { ConfiguracionTiendas } from "@/lib/configuracion-reglas";
 
 // Configuración ▸ Tiendas y caja (ADR-0195 F1, 20260924210000). Todo sale de `fn_configuracion_tiendas` (solo líder)
 // y de `fn_parametros_caja` (la única regla de qué meta y qué fondo rigen un día; la lee también Caja).

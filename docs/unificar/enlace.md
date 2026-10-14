@@ -64,3 +64,18 @@ Rastreado al código, el censo encontró enlaces sueltos que llevan a ver más d
 
 **El censo de mostrador (2026-10-13)** encontró tres más en Caja («Ver todos →», «Ver en Finanzas →», «Ver posventa →»): la clase iba en una
 constante (`enlaceVer`) y la firma, que lee la clase escrita, no los veía. Pasaron a `<EnlaceVer>`.
+
+## El subrayado que no se pintaba (2026-10-14, con el OK de Felipe mirando las láminas)
+
+Una prueba ciega de /formidable (Finanzas ▸ Gastos) vio «Míralo en Impuestos» subrayado en una hoja y sin subrayado en otra. Medido en una
+página de prueba con cada contexto en que el ERP usa la pieza (claro y oscuro): el renglón cae 0,7 em bajo el centro, y en una caja del alto
+de la letra eso queda entre 1 y 1,5 px **debajo** del borde de la caja, donde el navegador ya no pinta el fondo. En reposo no se veía en 5 de
+8 contextos (un enlace dentro de un párrafo, de una ayuda, de un texto de 15 px, partido en dos renglones, y los 118 `btn-cayla btn-enlace`);
+en dos de ellos tampoco se veía el hilo rojo. Solo se pintaba siempre en un `<button>` dentro de una frase y en un `btn-chico` (44 px); en una
+nota de 13 px, según en qué píxel cayera el renglón.
+
+**El arreglo, en la pieza:** el renglón se mide desde el contenido (`background-origin: content-box`), y un relleno de 0,25 em abajo agranda el
+área donde se pinta, con un margen negativo del mismo tamaño para que la caja no ocupe más (`.btn-enlace:not(.btn-chico)`). El renglón queda
+en el mismo lugar que antes y la letra no se mueve: medido en los 8 contextos y en tres componentes reales (A favor con proveedores, el aviso
+de «Agregar en su ficha» y «Todo el historial» de Movimientos) a 1440 y 375 px, con las mismas posiciones y los mismos altos antes y después.
+Un `mb-*` en el mismo elemento le gana al margen negativo: ahí se descuenta a mano (`FiltrosMovimientos`, `mb-[calc(0.5rem_-_0.25em)]`).
