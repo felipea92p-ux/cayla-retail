@@ -28,6 +28,9 @@ import {
   type ResumenMiFondo,
 } from "./fondos-reglas";
 
+/** El monto en una frase va con un espacio que no se parte (`solesSinCorte`): así se escribe lo esperado sin ese carácter invisible. */
+const nb = (s: string) => s.replaceAll("S/ ", "S/\u00a0");
+
 // Fondos por rendir (ADR-0362, fase 6 · actividad 1). Lo que falta en cada hoja tiene que ser lo MISMO que rechaza la base
 // (20261013182000, `scripts/pruebas/fondos.mjs`): estos casos son los suyos, del lado de la pantalla.
 
@@ -304,9 +307,10 @@ describe("lo que falta (las mismas reglas que la base)", () => {
   // /formidable 2026-10-14 (E2), lo mismo que exige `devolver_fondo` desde 20261014212000 (`scripts/pruebas/fondos_entradas.mjs`).
   it("devolver con su rendición por aprobar: el tope es lo que tiene en la mano (el saldo menos su faltante), no lo de los libros", () => {
     const tope = topeDevolucion(380, 5);
-    expect(tope).toEqual({ monto: 375, porRendicion: true });
-    expect(subtituloDevolver(tope)).toBe("Tiene S/ 375.00 en la mano: lo que declaró en su rendición, que espera aprobación.");
-    expect(problemaDeMonto("380", tope)).toBe("Con su rendición por aprobar, tiene S/ 375.00 en la mano: no puede devolver más.");
+    expect(tope).toEqual({ monto: 375, porRendicion: true, libros: 380, faltante: 5 });
+    // Decisión 83: las dos cifras en la hoja (la tabla dice S/ 380.00, los libros), y lo que falta para pasar de una a otra.
+    expect(subtituloDevolver(tope)).toBe(nb("Los libros dicen S/ 380.00, pero a su rendición por aprobar le faltan S/ 5.00: puede devolver hasta S/ 375.00."));
+    expect(problemaDeMonto("380", tope)).toBe(nb("Puede devolver hasta S/ 375.00: a su rendición por aprobar le faltan S/ 5.00."));
     expect(problemaDeMonto("375", tope)).toBeNull();
     expect(problemaDeMonto("375,00", tope)).toBeNull();
     const campos = camposDevolver({ cuentaId: "c-fuerte", monto: "380", nota: "" }, tope, OPCIONES.cuentas, PERSONA);
@@ -314,11 +318,18 @@ describe("lo que falta (las mismas reglas que la base)", () => {
   });
 
   it("sin rendición por aprobar (o sin faltante), el tope es el saldo de siempre; nunca es negativo", () => {
-    expect(topeDevolucion(380)).toEqual({ monto: 380, porRendicion: false });
-    expect(topeDevolucion(380, 0)).toEqual({ monto: 380, porRendicion: false });
+    expect(topeDevolucion(380)).toEqual({ monto: 380, porRendicion: false, libros: 380, faltante: 0 });
+    expect(topeDevolucion(380, 0)).toEqual({ monto: 380, porRendicion: false, libros: 380, faltante: 0 });
     expect(subtituloDevolver(topeDevolucion(380))).toBe("Tiene S/ 380.00 en su fondo.");
-    expect(topeDevolucion(5, 5)).toEqual({ monto: 0, porRendicion: true });
-    expect(topeDevolucion(3, 5)).toEqual({ monto: 0, porRendicion: true });
+    expect(topeDevolucion(5, 5)).toEqual({ monto: 0, porRendicion: true, libros: 5, faltante: 5 });
+    expect(topeDevolucion(3, 5)).toEqual({ monto: 0, porRendicion: true, libros: 3, faltante: 5 });
+  });
+
+  it("si después de rendir le entregaron más, la hoja sigue diciendo la verdad: los libros, lo que falta y el tope", () => {
+    // Rindió con S/ 375 en la mano (le faltaban S/ 5) y después le entregaron S/ 100: los libros dicen S/ 480 y puede devolver S/ 475.
+    expect(subtituloDevolver(topeDevolucion(480, 5))).toBe(
+      nb("Los libros dicen S/ 480.00, pero a su rendición por aprobar le faltan S/ 5.00: puede devolver hasta S/ 475.00."),
+    );
   });
 });
 

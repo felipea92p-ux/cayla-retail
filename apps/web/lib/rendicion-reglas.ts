@@ -1,5 +1,5 @@
 import { leerMontoPlata } from "./monto-plata-reglas";
-import { soles } from "./compras-reglas";
+import { solesSinCorte } from "./compras-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import type { NoDeducible } from "./no-deducible-reglas";
 
@@ -17,6 +17,7 @@ export const RPC_APROBAR_RENDICION = "aprobar_rendicion_fondo";
 export const RPC_DEVOLVER_RENDICION = "devolver_rendicion_fondo";
 export const RPC_RENDICIONES_FONDO = "fn_rendiciones_fondo";
 export const RPC_RENDICION_ITEMS = "fn_rendicion_fondo_items";
+export const RPC_MI_RENDICION_ABIERTA = "fn_mi_rendicion_abierta";
 export const RPC_REGISTRAR_FOTO_GASTO_VIAJE = "registrar_foto_gasto_viaje";
 export const RPC_FOTOS_GASTO_VIAJE = "fn_fotos_gasto_viaje";
 export const BUCKET_FOTOS_GASTO_VIAJE = "retail-gastos-viaje";
@@ -61,6 +62,17 @@ export function leerMiFondoRendicion(data: unknown): RendicionDeMiFondo | null {
     abierta: id ? { id, en: texto(f.rendicion_en) ?? "", faltante: numero(f.rendicion_faltante) ?? 0 } : null,
     deuda: numero(f.deuda) ?? 0,
   };
+}
+
+/**
+ * La rendición por aprobar de quien pregunta, con su explicación (`fn_mi_rendicion_abierta`, 20261014222000). La lee «Ver tu rendición»
+ * para decir qué pasa con el faltante. Null si no hay, si la base todavía no tiene la función o si no se pudo leer.
+ */
+export function leerMiRendicionAbierta(data: unknown): { id: string; explicacion: string | null } | null {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return null;
+  const f = data as Record<string, unknown>;
+  const id = texto(f.id);
+  return id ? { id, explicacion: texto(f.explicacion) } : null;
 }
 
 export type TipoItem = "mov" | "pago" | "gasto" | "otro";
@@ -218,15 +230,20 @@ export function cuentaRendicion(saldo: number, textoEfectivo: string): CuentaRen
   return dif > 0 ? { ...base, efectivo, estado: "falta", faltante: dif } : { ...base, efectivo, estado: "sobra", sobra: -dif };
 }
 
-/** Lo que la hoja dice bajo «¿Cuánto tienes en la mano?», en palabras de tienda. */
-export function fraseCuenta(c: CuentaRendicion): string | null {
+/**
+ * Lo que la hoja dice bajo «¿Cuánto tienes en la mano?», en palabras de tienda. `deudaAntes`: lo que ya debe por faltantes aprobados
+ * (/formidable 2026-10-14, cambio 3): con él, el faltante dice en qué queda su deuda, en vez de dejarla adivinar si se suman.
+ */
+export function fraseCuenta(c: CuentaRendicion, deudaAntes = 0): string | null {
   switch (c.estado) {
     case "cuadra":
-      return c.caylaTeDebe > CENTAVO ? `Cuadra. CAYLA te debe ${soles(c.caylaTeDebe)}: se te devuelve con una entrega.` : "Cuadra.";
+      return c.caylaTeDebe > CENTAVO ? `Cuadra. CAYLA te debe ${solesSinCorte(c.caylaTeDebe)}: se te devuelve con una entrega.` : "Cuadra.";
     case "falta":
-      return `Te faltan ${soles(c.faltante)}. Escribe qué pasó: si no, quedan como deuda tuya.`;
+      return deudaAntes > CENTAVO
+        ? `Te faltan ${solesSinCorte(c.faltante)}. Escribe qué pasó: si no, tu deuda pasa de ${solesSinCorte(deudaAntes)} a ${solesSinCorte(redondo(deudaAntes + c.faltante))} cuando la aprueben.`
+        : `Te faltan ${solesSinCorte(c.faltante)}. Escribe qué pasó: si no, quedan como deuda tuya cuando la aprueben.`;
     case "sobra":
-      return `Tienes ${soles(c.sobra)} más de lo que dice tu fondo: falta anotar algo (o un gasto quedó dos veces). Revísalo antes de rendir.`;
+      return `Tienes ${solesSinCorte(c.sobra)} más de lo que dice tu fondo: falta anotar algo (o un gasto quedó dos veces). Revísalo antes de rendir.`;
     case "invalido":
       return "No se entiende el monto: escríbelo así, 375.50 o 375,50 (0 si no te queda nada).";
     default:
@@ -234,12 +251,33 @@ export function fraseCuenta(c: CuentaRendicion): string | null {
   }
 }
 
+// ---------- La lista de lo rendido dentro de una hoja ----------
+
+/**
+ * En qué está la lista de lo rendido (/formidable 2026-10-14, cambio 2): llegando, leída o sin poder leerse. Antes, una lectura que fallaba
+ * se dibujaba como una lista vacía («Lo que rindió» con 0, o «No hay pagos ni gastos»), y «Aprobar» se podía pulsar mientras la lista
+ * todavía cargaba. La base no depende de la lista (relee y rechaza si algo cambió): esto cuida que quien aprueba vea lo que aprueba.
+ */
+export type LecturaLista = "cargando" | "lista" | "falla";
+
+export function lecturaLista(items: readonly unknown[] | null, falla: boolean): LecturaLista {
+  if (falla) return "falla";
+  return items === null ? "cargando" : "lista";
+}
+
+/** Lo que dice el pie de «Revisar» mientras la lista no se ve: aprobar espera a que se vea. */
+export function pieListaRevisar(l: LecturaLista): string | null {
+  if (l === "cargando") return "Espera a que cargue lo que rindió.";
+  if (l === "falla") return "Para aprobar, primero tiene que verse lo que rindió: vuelve a intentar.";
+  return null;
+}
+
 // ---------- Lo que falta en cada hoja ----------
 
 type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null };
 
 /** Los campos de «Rendir mi fondo»: el efectivo (obligatorio; no más de lo que dice el fondo) y la explicación (sugerida si falta plata). */
-export function camposRendir(v: { efectivo: string; explicacion: string }, saldo: number): CampoDeGuia[] {
+export function camposRendir(v: { efectivo: string; explicacion: string }, saldo: number, deudaAntes = 0): CampoDeGuia[] {
   const c = cuentaRendicion(saldo, v.efectivo);
   const efectivoOk = c.estado === "cuadra" || c.estado === "falta";
   const largo = v.explicacion.trim().length > MAX_TEXTO_RENDICION;
@@ -249,7 +287,7 @@ export function camposRendir(v: { efectivo: string; explicacion: string }, saldo
       nombre: "Lo que tienes en la mano",
       requerido: true,
       hecho: efectivoOk,
-      pendiente: c.estado === "sin_escribir" ? "Cuenta tu efectivo y escribe cuánto tienes (0 si no te queda nada)." : (fraseCuenta(c) ?? ""),
+      pendiente: c.estado === "sin_escribir" ? "Cuenta tu efectivo y escribe cuánto tienes (0 si no te queda nada)." : (fraseCuenta(c, deudaAntes) ?? ""),
     },
   ];
   if (c.estado === "falta") {
@@ -289,16 +327,63 @@ export function camposAprobar(r: Pick<Rendicion, "faltante" | "explicacion">, v:
 
 /** «Rendir S/ 120.00» con lo que ya se sabe. */
 export function fraseRendir(c: CuentaRendicion): string {
-  return c.efectivo != null && (c.estado === "cuadra" || c.estado === "falta") ? `Rendir: tengo ${soles(c.efectivo)}` : "Rendir mi fondo";
+  return c.efectivo != null && (c.estado === "cuadra" || c.estado === "falta") ? `Rendir: tengo ${solesSinCorte(c.efectivo)}` : "Rendir mi fondo";
 }
 
-/** Lo que dice el botón de aprobar: con faltante, cómo queda. */
-export function fraseAprobar(r: Pick<Rendicion, "faltante" | "explicacion">, decision: DecisionFaltante | ""): string {
+/**
+ * Lo que dice el botón de aprobar: con faltante, cómo queda. `deudaAntes`: lo que ya debe por faltantes aprobados (/formidable 2026-10-14,
+ * cambio 3): «Aprobar: debe S/ 5.00» dejaba adivinar si esos S/ 5 eran toda su deuda o se sumaban a la que ya tenía.
+ */
+export function fraseAprobar(r: Pick<Rendicion, "faltante" | "explicacion">, decision: DecisionFaltante | "", deudaAntes = 0): string {
   if (r.faltante <= CENTAVO) return "Aprobar la rendición";
   const d = r.explicacion ? decision : "deuda_persona";
-  if (d === "asume_cayla") return `Aprobar: CAYLA asume ${soles(r.faltante)}`;
-  if (d === "deuda_persona") return `Aprobar: debe ${soles(r.faltante)}`;
+  if (d === "asume_cayla") return `Aprobar: CAYLA asume ${solesSinCorte(r.faltante)}`;
+  if (d === "deuda_persona")
+    return deudaAntes > CENTAVO ? `Aprobar: su deuda sube a ${solesSinCorte(redondo(deudaAntes + r.faltante))}` : `Aprobar: queda debiendo ${solesSinCorte(r.faltante)}`;
   return "Aprobar la rendición";
+}
+
+/**
+ * El aviso del faltante en «Revisar» cuando no lo explicó (sin explicación es deuda, decisión 54): en qué queda su deuda si se aprueba.
+ * Impersonal («si se aprueba así»): también lo lee quien no puede aprobarla.
+ */
+export function fraseFaltanteSinExplicar(faltante: number, deudaAntes = 0): string {
+  return deudaAntes > CENTAVO
+    ? `No escribió qué pasó: si se aprueba así, su deuda pasa de ${solesSinCorte(deudaAntes)} a ${solesSinCorte(redondo(deudaAntes + faltante))}.`
+    : `No escribió qué pasó: si se aprueba así, queda debiendo ${solesSinCorte(faltante)}.`;
+}
+
+/** Lo que dice el aviso de éxito al aprobar con faltante: cómo quedó. */
+export function detalleAprobada(faltante: number, decision: DecisionFaltante, nombre: string, deudaAntes = 0): string {
+  if (decision === "asume_cayla") return `CAYLA asume ${solesSinCorte(faltante)}.`;
+  return deudaAntes > CENTAVO ? `La deuda de ${nombre} queda en ${solesSinCorte(redondo(deudaAntes + faltante))}.` : `${nombre} queda debiendo ${solesSinCorte(faltante)}.`;
+}
+
+/**
+ * «Ver tu rendición»: qué pasa con el faltante (/formidable 2026-10-14, cambio 3). Antes decía siempre «Quien la revisa decide…», que es
+ * falso sin explicación: la base la hace deuda sin elegir (decisión 54). `explicacion`: la suya (`fn_mi_rendicion_abierta`); `undefined`
+ * si no se pudo leer: entonces dice las dos cosas, que es lo único seguro.
+ */
+export function fraseFaltanteTuRendicion(explicacion: string | null | undefined, faltante: number, deudaAntes = 0): string {
+  if (explicacion === undefined) return "Si al rendir escribiste qué pasó, quien la revisa decide si lo asume CAYLA; si no, queda como deuda tuya.";
+  if (explicacion) return `Escribiste: «${explicacion}». Quien la revisa decide si lo asume CAYLA o queda como deuda tuya.`;
+  return deudaAntes > CENTAVO
+    ? `No escribiste qué pasó: cuando la aprueben, tu deuda pasa de ${solesSinCorte(deudaAntes)} a ${solesSinCorte(redondo(deudaAntes + faltante))}.`
+    : "No escribiste qué pasó: cuando la aprueben, queda como deuda tuya.";
+}
+
+/** Lo que hay en una rendición, contado como en la tienda: «1 gasto y 1 entrega» (antes, «2 filas», que nadie entendió). */
+export function resumenItems(items: readonly Pick<ItemRendicion, "tipo" | "monto">[]): string {
+  const cuenta = (n: number, uno: string, varios: string) => (n > 0 ? `${n} ${n === 1 ? uno : varios}` : null);
+  const partes = [
+    cuenta(items.filter((i) => i.tipo === "pago").length, "pago a proveedor", "pagos a proveedores"),
+    cuenta(items.filter((i) => i.tipo === "gasto").length, "gasto", "gastos"),
+    cuenta(items.filter((i) => i.tipo === "mov" && i.monto >= 0).length, "entrega", "entregas"),
+    cuenta(items.filter((i) => i.tipo === "mov" && i.monto < 0).length, "devolución", "devoluciones"),
+    cuenta(items.filter((i) => i.tipo === "otro").length, "otro movimiento", "otros movimientos"),
+  ].filter((p): p is string => p !== null);
+  if (partes.length === 0) return "nada";
+  return partes.length === 1 ? partes[0] : `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}`;
 }
 
 /** Quién lee: la dueña («te entregaron») o quien revisa («le entregaron»). */

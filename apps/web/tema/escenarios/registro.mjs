@@ -1095,6 +1095,21 @@ ESCENARIOS.push(
   { id: "fondos.pagar-deuda", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Registrar su pago» (la deuda de un faltante)", preparar: clicRol("button", /^Registrar su pago/i) },
   { id: "fondos.anular", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Anular» un movimiento", preparar: clicRol("button", /^Anular$/) },
   { id: "fondos.revisar", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Revisar» una rendición (necesita una por aprobar)", preparar: clicRol("button", /^Revisar$/) },
+  // La lista de lo rendido que no se puede leer (decisión 81): la lectura falla SOLO en la red de la auditoría (no se toca la base), y la
+  // hoja dice que no pudo, con «Volver a intentar». `limpiar` quita la ruta.
+  {
+    id: "fondos.revisar-sin-lista",
+    soloPorId: true,
+    ruta: "/compras/fondos",
+    cuentas: ["admin"],
+    abre: "[role=dialog] >> text=No pude traer lo que rindió",
+    nombre: "Fondos por rendir · «Revisar» cuando la lista de lo rendido no se puede leer",
+    async preparar(pagina) {
+      await pagina.route(/\/rpc\/fn_rendicion_fondo_items/, (ruta) => ruta.fulfill({ status: 500, contentType: "application/json", body: '{"message":"simulada"}' }));
+      await clicRol("button", /^Revisar$/)(pagina);
+    },
+    limpiar: (pagina) => pagina.unroute(/\/rpc\/fn_rendicion_fondo_items/).catch(() => {}),
+  },
   { id: "ordenes.gasto-viaje", ruta: "/compras/ordenes", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Órdenes de compra · la hoja «Gasto del viaje»", preparar: clicRol("button", /Gasto del viaje/i) },
   {
     id: "ordenes.gasto-viaje-orden",
@@ -1105,6 +1120,20 @@ ESCENARIOS.push(
     preparar: secuencia(clicRol("button", /Gasto del viaje/i), clicRol("button", /Agregar una orden/i)),
   },
   { id: "ordenes.rendir", ruta: "/compras/ordenes", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Órdenes de compra · «Rendir» desde «Tu fondo»", preparar: clicRol("button", /^(Rendir|Ver tu rendición)/) },
+  // «Rendir» con la lista de lo que no se rindió sin poder leerse (decisión 81): falla solo en la red de la auditoría.
+  {
+    id: "ordenes.rendir-sin-lista",
+    soloPorId: true,
+    ruta: "/compras/ordenes",
+    cuentas: ["admin"],
+    abre: "[role=dialog] >> text=No pude traer la lista",
+    nombre: "Órdenes de compra · «Rendir» cuando la lista de lo que no se rindió no se puede leer",
+    async preparar(pagina) {
+      await pagina.route(/\/rpc\/fn_mi_ciclo_fondo/, (ruta) => ruta.fulfill({ status: 500, contentType: "application/json", body: '{"message":"simulada"}' }));
+      await clicRol("button", /^Rendir$/)(pagina);
+    },
+    limpiar: (pagina) => pagina.unroute(/\/rpc\/fn_mi_ciclo_fondo/).catch(() => {}),
+  },
   {
     id: "ordenes.traerla-costo",
     ruta: "/compras/ordenes/ver/[id]",
