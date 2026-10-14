@@ -63,6 +63,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
 import { prendasPosibles } from "@/lib/prenda-sin-registrar-posibles";
+import { rangoDePreciosDeCategoria } from "@/lib/prenda-sin-registrar-precio";
 import { AgregarBolsaModal, FilaDeBolsas } from "@/components/punto-de-venta/BolsaDelTicket";
 import { bolsasDeLaCaja } from "@/lib/bolsas-reglas";
 import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
@@ -2578,6 +2579,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
             setManualAbierto(false);
             if (v) void agregar(v);
           }}
+          // El precio con referencia (A3): cuánto cuestan en el catálogo las prendas de esa categoría, con el precio de esta tienda.
+          rangoDePrecio={(categoriaId) => rangoDePreciosDeCategoria(variantesVisibles, categoriaId)}
           onClose={() => setManualAbierto(false)}
           alCerrarEnfocar={buscador}
         />

@@ -47,3 +47,18 @@ cobra con su stock y su costo. Verificado: vitest entero (479 archivos, incluido
 `tsc` y `eslint` limpios; en el navegador local (Tienda Lima, «Camisas y Blusas · M · Negro») la hoja ofreció «Blusa Emma · 19 en el piso ·
 S/ 79.90» y al tocarla la hoja se cerró y la línea entró al ticket con su stock; a 375 px la hoja no se desborda (página 375 px de ancho,
 lista de 325 px).
+
+## 2026-10-14 (A3: el precio de «Prenda sin registrar» con referencia)
+Qué hice: con la categoría elegida, bajo el precio se lee cuánto cuestan sus prendas en el catálogo («Faldas en tu catálogo: de S/ 64.90 a
+S/ 74.90»); si lo tecleado se sale de ese rango, aparece el aviso del sistema (`Aviso` de atención, la misma forma que el costo atípico de
+Compras) con «Corregir el precio» y «Sí, cobré S/ 15.00», y «Agregar al ticket» espera esa confirmación, que vale para ESE precio (cambiarlo
+la pide de nuevo). `lib/prenda-sin-registrar-precio.ts` (pura, 11 pruebas): con menos de 8 precios, de mínimo a máximo; desde 8, del
+percentil 10 al 90, inclusivo; precio de esta tienda si lo tiene. Solo al anotar en Vender; al corregir, el precio es fijo. La guía de
+Vender lo cuenta y las huellas de Vender y de Ventas sin registrar se aceptaron tras revisarlas.
+Por qué así: Felipe aprobó «confirmación fuera de rango» (A3) y dejó el candado en `registrar_venta` (muy fuera → líder) para la Fase 1 con
+el contador; aquí nada bloquea por la base, pide una decisión. Sin rojo: no es un error, es una pregunta. El rango sale del catálogo que
+Vender ya tiene (sin consulta ni dato nuevo).
+Felipe se lleva: un precio tecleado por error (15 en vez de 65) ya no entra en silencio; y la persona ve el rango ANTES de teclear.
+Verificado: vitest entero en verde, `tsc` y `eslint` limpios; en el navegador local (Faldas · L · Coral): 15 avisa y deja «Agregar» apagado,
+«Sí, cobré S/ 15.00» lo enciende y la hoja dice «Confirmado», 70 vuelve a la referencia sin aviso; a 375 px el aviso cabe (25–350 px) sin
+desborde.

@@ -7,8 +7,9 @@ la web no se publica antes que la migración, o una boleta dada de baja responde
   anulada ninguno» (Fase 1, `fn_invariantes`) lo detecta y la salida es una nota de crédito. `consultar-anulacion` podría avisarlo al ver «no_anulado».
 - **A2, hecha:** «¿Es alguna de estas?» en la hoja del mostrador, sin RPC nueva (`lib/prenda-sin-registrar-posibles.ts` sobre el catálogo y
   el stock en vivo de Vender). Queda por decidir si la mesa de Ventas sin registrar (`corregir`) también ofrece posibles: hoy no, la venta ya existe.
-- **A3** · Precio con referencia: rango de precios de la categoría en la sede (lógica pura) y confirmación fuera de rango, como el costo atípico de
-  Compras. El candado en `registrar_venta` (muy fuera → líder) queda para la Fase 1 con el contador.
+- **A3, hecha:** precio con referencia y confirmación fuera de rango (`lib/prenda-sin-registrar-precio.ts`). Queda para la Fase 1, con el contador:
+  el candado en `registrar_venta` (muy fuera de rango → `p_autorizado_por` de un líder) y si el rango debe salir de lo VENDIDO (p10–p90 de ventas
+  reales por categoría) en vez del catálogo cuando haya muestra.
 - **A4** · Costo estimado con su origen (`venta_items.costo_origen`); Finanzas rotula el margen. **Espera la decisión del contador** (qué estimador).
   Revisa la decisión 7 de ADR-0334 («no se inventa un costo»): hay que actualizarla con el porqué.
 - **A5** · La cola llega a quien vende: contador «Hoy: N sin registrar» al pie del ticket y la cola en «Te toca» de la terminal.

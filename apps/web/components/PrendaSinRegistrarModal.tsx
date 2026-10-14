@@ -3,7 +3,7 @@
 import { useId, useMemo, useState, type ReactNode, type RefObject } from "react";
 import { Banknote, Palette, PenLine, Ruler, Tag } from "lucide-react";
 import { Modal, botonPrimario } from "@/components/ui/Modal";
-import { CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { ListaSugerencias } from "@/components/ui/ListaSugerencias";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
@@ -17,6 +17,8 @@ import { camposGuiaPrenda } from "@/lib/prenda-sin-registrar-guia";
 import { arranqueDeCorreccion, cambioEnCorreccion, type AnotadoPorCaja } from "@/lib/corregir-prenda-sin-registrar-reglas";
 import { sinonimosDeCategoria, sugerenciaParaMostrar } from "@/lib/sugerir-categoria-sin-registrar";
 import { detalleDePosible, fraseDePosibles, type ElegidoEnLaHoja, type PrendaPosible } from "@/lib/prenda-sin-registrar-posibles";
+import { fraseDeReferencia, fraseFueraDeRango, precioNecesitaConfirmacion, veredictoDePrecio, type RangoDePrecios } from "@/lib/prenda-sin-registrar-precio";
+import { Aviso } from "@/components/ui/Aviso";
 import {
   faltaEnPrendaSinRegistrar,
   gruposDeTallas,
@@ -76,6 +78,7 @@ export function PrendaSinRegistrarModal({
   onAgregar,
   posibles,
   onEsEsta,
+  rangoDePrecio,
   onClose,
   alCerrarEnfocar,
   corregir,
@@ -87,6 +90,9 @@ export function PrendaSinRegistrarModal({
   posibles?: (elegido: ElegidoEnLaHoja) => PrendaPosible[];
   /** Vender: la persona reconoció la prenda en la lista; entra al ticket como cualquier otra y la hoja se cierra. */
   onEsEsta?: (varianteId: string) => void;
+  /** Vender: cuánto cuestan las prendas de una categoría en el catálogo (`rangoDePreciosDeCategoria`). Con esto, un precio fuera de
+   *  rango pide confirmarse antes de agregar (A3, auditoría 2026-10-14). Sin esto, el precio sigue libre. */
+  rangoDePrecio?: (categoriaId: string) => RangoDePrecios | null;
   onClose: () => void;
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   corregir?: {
@@ -142,7 +148,12 @@ export function PrendaSinRegistrarModal({
       ? [...camposGuiaPrenda(datos), { id: "responsable", nombre: "Responsable", requerido: true, hecho: corregir.responsable.listo, pendiente: "Elige quién hace la corrección." }]
       : camposGuiaPrenda(datos),
   );
-  const puedeConfirmar = falta === null && cambio && (!corregir || (corregir.responsable.listo && !corregir.guardando));
+  // El precio con referencia (solo al anotar): el rango de la categoría en el catálogo y, si lo tecleado se sale, la confirmación de ESE precio.
+  const [precioConfirmado, setPrecioConfirmado] = useState<number | null>(null);
+  const rango = useMemo(() => (!corregir && rangoDePrecio && categoriaId ? rangoDePrecio(categoriaId) : null), [corregir, rangoDePrecio, categoriaId]);
+  const veredicto = veredictoDePrecio(datos.precio, rango);
+  const faltaConfirmarPrecio = !corregir && precioNecesitaConfirmacion(veredicto, datos.precio, precioConfirmado);
+  const puedeConfirmar = falta === null && cambio && !faltaConfirmarPrecio && (!corregir || (corregir.responsable.listo && !corregir.guardando));
 
   const opcionesCategoria = useMemo(
     () =>
@@ -430,6 +441,35 @@ export function PrendaSinRegistrarModal({
                 />
               </span>
             </label>
+            {/* La referencia, antes de teclear: cuánto cuestan las prendas de esa categoría en el catálogo. */}
+            {rango && categoria && (veredicto === "dentro" || veredicto === "sin_precio") && (
+              <p className="mt-1.5 text-xs text-tinta/65" data-referencia-precio>
+                {fraseDeReferencia(categoria.nombre, rango)}
+              </p>
+            )}
+            {/* Fuera de rango: la misma forma que el costo atípico de Compras (corregir o confirmar), sin rojo: no es un error, es una decisión. */}
+            {rango && categoria && (veredicto === "bajo" || veredicto === "alto") && (
+              <Aviso
+                tono="atencion"
+                titulo={fraseFueraDeRango(datos.precio, categoria.nombre, rango, veredicto).titulo}
+                className="mt-3"
+                key={`${veredicto}-${datos.precio}`}
+              >
+                <p>{fraseFueraDeRango(datos.precio, categoria.nombre, rango, veredicto).detalle}</p>
+                {faltaConfirmarPrecio ? (
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <Boton type="button" peso="fantasma" className="sm:flex-1" onClick={() => document.getElementById(idPrecio)?.focus()}>
+                      Corregir el precio
+                    </Boton>
+                    <Boton type="button" peso="primario" className="sm:flex-1" onClick={() => setPrecioConfirmado(datos.precio)}>
+                      Sí, cobré S/ {datos.precio.toFixed(2)}
+                    </Boton>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs">Confirmado: entra al ticket con ese precio.</p>
+                )}
+              </Aviso>
+            )}
           </CampoGuiado>
           )}
         </div>
@@ -454,7 +494,15 @@ export function PrendaSinRegistrarModal({
           )}
           <PieGuia
             guia={guia}
-            listo={corregir ? (cambio ? "Listo para guardar." : "Todavía no cambiaste nada.") : "Lista para el ticket. Enter en el precio también la agrega."}
+            listo={
+              corregir
+                ? cambio
+                  ? "Listo para guardar."
+                  : "Todavía no cambiaste nada."
+                : faltaConfirmarPrecio
+                  ? "El precio se sale de lo usual: confírmalo o corrígelo antes de agregar."
+                  : "Lista para el ticket. Enter en el precio también la agrega."
+            }
           />
           <button
             type="button"
