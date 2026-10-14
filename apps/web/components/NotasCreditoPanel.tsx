@@ -27,6 +27,7 @@ import {
   chipEstado,
   cifrasTablero,
   destinoTexto,
+  diaDelCierre,
   filtrarTablero,
   hace,
   type Banda,
@@ -474,7 +475,7 @@ function FilaNota({
             <Chip tono={tonoEdad} vivo={urgente}>
               {hace(f.edadDias)}
             </Chip>
-            <span className="mt-0.5 block text-xs text-tinta/55">cerrado el {diaMes(f.cerradoEn?.slice(0, 10) ?? f.fecha)}</span>
+            <span className="mt-0.5 block text-xs text-tinta/55">cerrado el {diaMes(diaDelCierre(f))}</span>
           </>
         ) : (
           <>

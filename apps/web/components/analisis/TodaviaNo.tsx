@@ -176,7 +176,7 @@ export function HoyTodaviaNo() {
             datos.noHabia.slice(0, 5).map((n, k) => (
               <div key={k} className="nh-f">
                 <span>{n.que}</span>
-                <span>{fechaCorta(n.dia)}</span>
+                <span>{n.dia ? fechaCorta(n.dia) : "—"}</span>
               </div>
             ))
           )}
