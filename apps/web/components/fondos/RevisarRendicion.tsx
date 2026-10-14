@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
+import { MarcaNoDeducible } from "@/components/MarcaNoDeducible";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -227,6 +228,7 @@ function RevisarRendicionModal({ r, onClose, volverA }: { r: Rendicion; onClose:
                           {i.tipo === "gasto" && i.refId && i.conFoto && <VerFoto gastoId={i.refId} />}
                         </div>
                       )}
+                      <MarcaNoDeducible nd={i.noDeducible} montoDeLaFila={i.monto} className="mt-1" />
                     </div>
                     <span className={`shrink-0 whitespace-nowrap tabular-nums ${i.monto >= 0 ? "text-verde-profundo" : "text-tinta"}`}>
                       {i.monto >= 0 ? `+${soles(i.monto)}` : soles(-i.monto)}

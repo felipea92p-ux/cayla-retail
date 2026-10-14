@@ -13,6 +13,8 @@ import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
 import { cuentaEfectiva, usadoDelFondo, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
+import { UMBRAL_BANCARIZACION, avisoBancarizacion, avisoBancarizacionLote } from "@/lib/no-deducible-reglas";
 
 // Piezas que comparten los dos modales de pago de Por pagar (spike 2026-09-19, ADR-0131): «Pagar juntos»
 // (`PagoJuntosModal`, varios comprobantes de un proveedor) y el pago de UN comprobante (`RegistrarPagoModal`, el botón
@@ -346,6 +348,8 @@ export function MediosDePago({
   id = "pago",
   exacto = false,
   cuentas,
+  totalComprobante,
+  aplicaciones,
 }: {
   lineas: LineaPago[];
   onLineas: (l: LineaPago[]) => void;
@@ -366,6 +370,10 @@ export function MediosDePago({
   exacto?: boolean;
   /** ADR-0195 F3b: con las cuentas, cada medio pregunta «Sale de» (propuesta según el medio y la tienda). */
   cuentas?: { lista: readonly CuentaElegible[]; listo: boolean };
+  /** ADR-0362 (fase 6 · actividad 6): el total del COMPROBANTE que se paga; de S/ 2 000 o más avisa lo que queda «no deducible». */
+  totalComprobante?: number;
+  /** Pagar juntos: cada comprobante con su total y lo que recibe de este pago (el aviso de lo no deducible mira a cada uno). */
+  aplicaciones?: readonly { total: number; monto: number }[];
 }) {
   const suma = sumaLineasPago(lineas);
   const falta = Math.round((objetivo - suma) * 100) / 100;
@@ -405,6 +413,17 @@ export function MediosDePago({
   const fechaCampo = <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={onFecha} required />;
   // Lo que de verdad sale por cada línea: en «Pagar juntos» con un solo medio el monto no se escribe, es todo el pago.
   const conMontos = exacto && !varios ? [{ ...lineas[0], monto: objetivo.toFixed(2) }] : lineas;
+  // Lo que queda «no deducible» (ADR-0362, fase 6): cada medio con el tipo de la cuenta de la que sale (un fondo cuenta con cualquiera).
+  const tipoCuentaDe = (l: LineaPago) => {
+    if (!cuentas || l.metodo === METODO_SALDO_A_FAVOR) return null;
+    const idCuenta = cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId);
+    return cuentas.lista.find((c) => c.id === idCuenta)?.tipo ?? null;
+  };
+  const lineasAviso = conMontos.map((l) => ({ monto: l.monto, medio: l.metodo, tipoCuenta: tipoCuentaDe(l) }));
+  const avisoNoDeducible = aplicaciones ? avisoBancarizacionLote(aplicaciones, lineasAviso) : avisoBancarizacion(totalComprobante, lineasAviso);
+  const reservarAviso = aplicaciones
+    ? aplicaciones.some((a) => a.monto > 0 && a.total >= UMBRAL_BANCARIZACION)
+    : (totalComprobante ?? 0) >= UMBRAL_BANCARIZACION;
   // «Sale de» (F3b). Con saldo a favor no sale de ninguna cuenta: el campo queda invisible y conserva su alto (ADR-0185).
   const saleDe = (l: LineaPago, i: number) =>
     cuentas ? (
@@ -529,6 +548,7 @@ export function MediosDePago({
             Usas {soles(favorUsado)} de saldo a favor y solo tienes {soles(saldoFavor)}.
           </Aviso>}
       </div>
+      <AvisoNoDeducible aviso={avisoNoDeducible} reservar={reservarAviso} />
     </div>
   );
 }

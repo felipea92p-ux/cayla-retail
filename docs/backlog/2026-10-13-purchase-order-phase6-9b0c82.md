@@ -7,12 +7,17 @@ fusiona).
 - [x] Actividad 1 · base del fondo y Compras ▸ Fondos por rendir (`20261013181000`, `20261013182000`). En producción.
 - [x] Actividad 2 · pagar desde «Mi fondo» (`20261013212000`). En producción.
 - [x] Actividad 3 · gastos del viaje (`20261013221000`, `20261013222000`). En producción.
-- [x] Actividad 4 · «Tu fondo» en Órdenes de compra y en el Inicio (`20261013231000`).
+- [x] Actividad 4 · «Tu fondo» en Órdenes de compra y en el Inicio (`20261013231000`). En producción.
 - [x] Actividad 5 · rendición (`20261013233000`, `234000` —bucket y políticas, solas— y `235000`): rendir, aprobar (faltante asumido →
-  6599 o deuda → 1419), devolver o retirar, lo rendido congelado y las fotos de los gastos del viaje.
+  6599 o deuda → 1419), devolver o retirar, lo rendido congelado y las fotos de los gastos del viaje. En producción.
 - [ ] Felipe (actividad 5, provisional): un sobrante no se rinde; 1419 y 6599 hasta el contador; la dueña puede retirar su rendición; el
   tablero cuenta el faltante dentro de «Gastó». La deuda se ve pero todavía no se cobra (actividad 7).
-- [ ] Actividad 6 · efectivo de S/ 2 000 o más «no deducible» (decisiones 56 y 70) y el tope de la planilla cuando el contador lo fije (68).
+- [x] Actividad 6 · lo «no deducible» (`20261014002000`, decisiones 55, 56, 57, 68 y 70): la regla de la bancarización y el tope de la
+  planilla de movilidad (parámetro tributario con vigencias, en Configuración ▸ Impuestos; vacío hasta el contador), el aviso en todas
+  las formas de pagar a un proveedor y la marca en la rendición, «Traerla costó» y los pagos de un comprobante. En producción.
+- [ ] Felipe (actividad 6, provisional): en «Pagar juntos» el aviso dice «hasta S/ X» si no todos los comprobantes son grandes; la persona
+  del tope es quien registró la planilla; un comprobante con nota de crédito se mira por su total original. El tope de la planilla lo
+  tiene que fijar el contador (mientras no haya, nada se marca por la planilla).
 - [ ] Actividad 7 · contabilidad (faltante como cuenta por cobrar a la persona; IGV de las facturas de gastos del viaje; la 1413 por dos caminos).
 - [ ] Actividad 8 · cierre: `tema:auditar`, `guias:recorrer`, `/chaos` con plata y `/formidable` (todavía no se corrieron).
 - [ ] Felipe: lo marcado *provisional* en el ADR (la acción `gasto_viaje_registrar` soltada del combo «Responsable»; cuándo se propone

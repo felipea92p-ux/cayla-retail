@@ -1121,6 +1121,20 @@ export const GUIA_CONFIGURACION: Guia = {
       texto: "El valor de la UIT, que marca el límite de ventas del régimen y la renta.",
     },
     {
+      id: "impuestos-tope",
+      ancla: "config.impuestos-tope",
+      opcional: true,
+      titulo: "El tope de la planilla",
+      texto: "Cuánto se acepta por persona y por día en taxis y cargadores sin comprobante. Lo fija el contador: lo que pase se deja registrar y queda «no deducible». Sin tope, no se marca nada.",
+    },
+    {
+      id: "nuevo-tope",
+      ancla: "config.nuevo-tope",
+      opcional: true,
+      titulo: "Un tope nuevo",
+      texto: "Cuando el contador lo fije o cambie, se agrega desde una fecha, como una tasa nueva. Lo de antes de esa fecha no se marca.",
+    },
+    {
       id: "impuestos-regimen",
       ancla: "config.impuestos-regimen",
       opcional: true,

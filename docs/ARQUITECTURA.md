@@ -1557,6 +1557,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `getDatosFondos`) → `RevisarRendicion.tsx` (`aprobar_rendicion_fondo` / `devolver_rendicion_fondo`). Reglas en `lib/rendicion-reglas.ts`,
     llamadas en `lib/rendicion-acciones.ts`. La tarjeta suma `fn_mi_fondo_rendicion`. Fotos de un gasto del viaje: `FotoDelGasto.tsx` +
     `lib/gastos-viaje-fotos.ts` (bucket `retail-gastos-viaje`, `registrar_foto_gasto_viaje`, `fn_fotos_gasto_viaje`).
+    **Lo no deducible** (actividad 6, `20261014002000`): la regla es `fn_pago_no_bancarizado` (y el tope de la planilla, el parámetro
+    tributario `tope_planilla_movilidad`); `fn_no_deducibles(claves del libro)` ← `lib/no-deducible.ts:leerNoDeduciblesCon` (servidor o
+    navegador) ← `getPagosCompra`/`getPagosDeCompras` (`lib/compras.ts`), `getGastosDeOrden` (`lib/gastos-viaje.ts`) y `leerItems`
+    (`lib/rendicion-acciones.ts`); se dibuja con `components/MarcaNoDeducible.tsx` en `ComprobantePagos`, `PorPagarVistaRapida`,
+    `GastosDeOrden`, `RendirFondo` y `RevisarRendicion`. El aviso al pagar es `components/AvisoNoDeducible.tsx` con `avisoBancarizacion` /
+    `avisoBancarizacionLote` (`lib/no-deducible-reglas.ts`), en `LineasPago`, `MediosDePago` (de `PagoPiezas` y la del Taller),
+    `GastoDelViaje`, `RegistrarGastoModal` y `GastoRapidoModal`. El tope se fija en Configuración ▸ Impuestos (`ConfiguracionImpuestos`,
+    `guardar_parametro_tributario`).
   - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`.
   - `/compras/plan/historial` (ADR-0372 C3) → `getHistorialPlan` → `fn_historial_ventas` (Sinatra en `retail.ventas_historicas` antes del ERP) + `lib/plan-compra-historial.ts`; pantalla `components/plan-compra/HistorialCampanas.tsx`.
   - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;

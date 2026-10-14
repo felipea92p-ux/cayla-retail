@@ -14,6 +14,7 @@ import { diaMes, diasHastaLima, hoyLima } from "@/lib/fechas-lima";
 import type { NotaPendiente } from "@/lib/compras-indicadores";
 import { etiquetaVence, pasosDeComprobante, tramoDe, type PasoDeComprobante } from "@/lib/por-pagar-reglas";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { MarcaNoDeducible } from "@/components/MarcaNoDeducible";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -155,6 +156,7 @@ export function PorPagarVistaRapida({
                             {p.referencia && <span className="block text-xs text-tinta/55">{p.referencia}</span>}
                           </span>
                           <b className="font-medium tabular-nums">{soles(p.monto)}</b>
+                          {p.noDeducible && <MarcaNoDeducible nd={p.noDeducible} montoDeLaFila={p.monto} className="col-span-full" />}
                         </li>
                       ))}
                     </ul>

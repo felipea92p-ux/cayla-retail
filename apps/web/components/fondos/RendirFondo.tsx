@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
+import { MarcaNoDeducible } from "@/components/MarcaNoDeducible";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { Boton, CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
@@ -89,6 +90,7 @@ function ListaItems({ items, alSubir, deshabilitado }: { items: ItemRendicion[] 
                 {i.tipo === "pago" && !i.conFoto && <span className="text-xs text-taupe">Se adjunta en su comprobante.</span>}
               </div>
             )}
+            <MarcaNoDeducible nd={i.noDeducible} montoDeLaFila={i.monto} className="mt-1" />
           </div>
           <span className={`shrink-0 whitespace-nowrap tabular-nums ${i.monto >= 0 ? "text-verde-profundo" : "text-tinta"}`}>{montoFila(i)}</span>
         </li>

@@ -618,6 +618,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                 lineas={pagos}
                 onLineas={setPagos}
                 objetivo={totalSoles}
+                totalComprobante={totalSoles}
                 exacto
                 saldoFavor={datos.proveedor?.saldoFavor ?? 0}
                 datosProveedor={datos.proveedor?.datosPago ?? null}

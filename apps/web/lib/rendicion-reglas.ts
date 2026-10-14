@@ -1,6 +1,7 @@
 import { leerMonto } from "./caja-cierre-reglas";
 import { soles } from "./compras-reglas";
 import type { CampoDeGuia } from "./guia-campos";
+import type { NoDeducible } from "./no-deducible-reglas";
 
 // La rendición del fondo (ADR-0362, fase 6 · actividad 5; decisiones 33–35, 54 y 69): las reglas puras de las dos hojas —rendir (la
 // dueña) y revisar (quien aprueba)— y de lo que la tarjeta «Tu fondo» suma por la rendición. Leer lo que manda la base (que puede venir
@@ -81,6 +82,8 @@ export type ItemRendicion = {
   /** null = no lleva papel (una entrega o una devolución). */
   conFoto: boolean | null;
   fotos: number;
+  /** Lo que la base dice no deducible de esta fila (actividad 6; `fn_no_deducibles`), o null. Lo pone `leerItems`. */
+  noDeducible: NoDeducible | null;
 };
 
 const TIPOS_ITEM: readonly TipoItem[] = ["mov", "pago", "gasto"];
@@ -106,6 +109,7 @@ export function leerItemsRendicion(data: unknown): ItemRendicion[] {
         documento: texto(f.documento),
         conFoto: typeof f.con_foto === "boolean" ? f.con_foto : null,
         fotos: Math.max(0, Math.trunc(numero(f.fotos) ?? 0)),
+        noDeducible: null,
       },
     ];
   });

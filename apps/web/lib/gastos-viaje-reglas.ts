@@ -1,6 +1,7 @@
 import { leerMonto } from "./caja-cierre-reglas";
 import { soles } from "./compras-reglas";
 import type { CampoDeGuia } from "./guia-campos";
+import type { NoDeducible } from "./no-deducible-reglas";
 
 // Gastos del viaje (ADR-0362, fase 6 · actividad 3; respuestas de Felipe del 2026-10-13): las reglas puras de la hoja «Gasto del viaje»
 // y de «Traerla costó». Lo que falta en la hoja es lo MISMO que rechaza `registrar_gasto_viaje` (20261013222000): la guía no agrega
@@ -123,6 +124,8 @@ export type GastoDeOrden = {
   cuenta: string | null;
   deFondo: boolean;
   registradoPor: string | null;
+  /** Lo que la base dice no deducible de este gasto (fase 6 · actividad 6; `fn_no_deducibles`): lo pone `getGastosDeOrden`. */
+  noDeducible?: NoDeducible | null;
 };
 
 const TIPOS = new Set<string>(["mercaderia", "viaje"]);

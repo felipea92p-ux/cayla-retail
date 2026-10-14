@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import type { FirmaOmitida } from "@/lib/responsable-omitido";
 import type { ErrorDeBase } from "@/lib/ordenes-compra-acciones";
+import { leerNoDeduciblesCon } from "@/lib/no-deducible";
 import {
   RPC_APROBAR_RENDICION,
   RPC_DEVOLVER_RENDICION,
@@ -20,13 +21,19 @@ import {
 
 export type { ErrorDeBase };
 
-/** Lo que la dueña todavía no rindió (`fn_mi_ciclo_fondo`), o las filas de una rendición (`fn_rendicion_fondo_items`). */
+/**
+ * Lo que la dueña todavía no rindió (`fn_mi_ciclo_fondo`), o las filas de una rendición (`fn_rendicion_fondo_items`), cada una con lo que
+ * la base dice no deducible (actividad 6). Si esa segunda lectura falla, las filas llegan igual, sin la marca.
+ */
 export async function leerItems(rendicionId: string | null): Promise<{ items: ItemRendicion[]; error: ErrorDeBase }> {
   const supabase = createClient();
   const { data, error } = rendicionId
     ? await supabase.rpc(RPC_RENDICION_ITEMS as never, { p_rendicion_id: rendicionId } as never)
     : await supabase.rpc(RPC_MI_CICLO_FONDO as never);
-  return { items: error ? [] : leerItemsRendicion(data), error: error ?? null };
+  if (error) return { items: [], error };
+  const items = leerItemsRendicion(data);
+  const nd = await leerNoDeduciblesCon(supabase, items.map((i) => i.clave));
+  return { items: items.map((i) => ({ ...i, noDeducible: nd.get(i.clave) ?? null })), error: null };
 }
 
 export async function rendirFondo(

@@ -303,7 +303,7 @@ export function ComprobanteProduccionForm({
 
         {condicion === "contado" && (
           <div data-guia="prod-factura-nueva.medios">
-            <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
+            <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} totalComprobante={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
           </div>
         )}
 

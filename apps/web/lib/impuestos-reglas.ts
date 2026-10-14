@@ -254,7 +254,12 @@ export function porcentaje(fraccion: number, decimales = 1): string {
 
 // ---- Parámetros (Configuración ▸ Impuestos) -----------------------------------------------------------------------------
 
-export type NombreParametro = "igv" | "uit" | "umbral_uit" | "renta_pago_cuenta" | "regimen";
+// `tope_planilla_movilidad` (ADR-0362, fase 6 · actividad 6, decisión 68): soles por persona y por día; rige desde cualquier fecha, como el
+// IGV. Sin fila no hay tope: lo fija el contador (SUNAT: el 4 % de la remuneración mínima vital).
+export type NombreParametro = "igv" | "uit" | "umbral_uit" | "renta_pago_cuenta" | "regimen" | "tope_planilla_movilidad";
+
+/** Los que rigen por año (desde el 1 de enero): la tabla del régimen. La tasa de IGV y el tope de la planilla, desde cualquier fecha. */
+const POR_ANIO: readonly NombreParametro[] = ["regimen", "umbral_uit", "renta_pago_cuenta"];
 export type ParametroFila = {
   nombre: NombreParametro;
   /** «2026-01-01». */
@@ -285,6 +290,8 @@ export function leerParametro(f: Fila): ParametroFila {
 /** Lo que se muestra en la casilla: la tasa en % («18»), la UIT en soles («5500»), el límite en UIT («300»). */
 export function valorEnCasilla(p: Pick<ParametroFila, "nombre" | "valor">): string {
   if (p.valor === null) return "";
+  // El tope de la planilla es un monto en soles: con sus dos decimales («45.20»).
+  if (p.nombre === "tope_planilla_movilidad") return p.valor.toFixed(2);
   const v = p.nombre === "igv" || p.nombre === "renta_pago_cuenta" ? p.valor * 100 : p.valor;
   return String(Number(v.toFixed(4)));
 }
@@ -309,6 +316,10 @@ export function parsearParametro(nombre: Exclude<NombreParametro, "regimen">, ti
     if (n < 1000 || n > 100000) return { ok: false, error: "La UIT va en soles (5500)." };
     return { ok: true, valor: n };
   }
+  if (nombre === "tope_planilla_movilidad") {
+    if (n <= 0 || n > 1000) return { ok: false, error: "El tope va en soles por persona y por día (45.20), mayor que cero y hasta 1,000." };
+    return { ok: true, valor: Math.round(n * 100) / 100 };
+  }
   if (n <= 0 || n > 100000) return { ok: false, error: "El límite va en UIT (300), no en soles." };
   return { ok: true, valor: n };
 }
@@ -330,7 +341,7 @@ export function vigenteEnAnio(parametros: readonly ParametroFila[], nombre: Nomb
 /** Los años que la tabla del régimen muestra: los que tienen algo y el año en curso, del más nuevo al más viejo. */
 export function aniosDeRegimen(parametros: readonly ParametroFila[], anioActual: number, extra: readonly number[] = []): number[] {
   const anios = new Set<number>([anioActual, ...extra]);
-  for (const p of parametros) if (p.nombre !== "igv" && p.nombre !== "uit") anios.add(Number(p.vigenteDesde.slice(0, 4)));
+  for (const p of parametros) if (POR_ANIO.includes(p.nombre)) anios.add(Number(p.vigenteDesde.slice(0, 4)));
   return [...anios].sort((a, b) => b - a);
 }
 

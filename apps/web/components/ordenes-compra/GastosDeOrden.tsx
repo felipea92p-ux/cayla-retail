@@ -3,6 +3,7 @@ import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { TEXTO_PAPEL, traerlaCosto, type GastoDeOrden } from "@/lib/gastos-viaje-reglas";
+import { MarcaNoDeducible } from "@/components/MarcaNoDeducible";
 
 // «Traerla costó S/ X» (ADR-0362, fase 6 · actividad 3; decisión 20: el costo de traer una compra se ve junto a ella, nunca en el costo de
 // la prenda). Los gastos del viaje de esta orden, con lo que le tocó a ella: un gasto de varias órdenes se reparte según el total de cada
@@ -41,6 +42,8 @@ export function GastosDeOrden({ gastos }: { gastos: readonly GastoDeOrden[] | nu
               <span className="block text-xs tabular-nums text-taupe @min-[40rem]:hidden">
                 {[diaMes(g.fecha), TEXTO_PAPEL[g.papel], g.cuenta].filter(Boolean).join(" · ")}
               </span>
+              {/* Lo no deducible se mira sobre el gasto entero (su papel), no sobre la parte de esta orden. */}
+              <MarcaNoDeducible nd={g.noDeducible} montoDeLaFila={g.montoTotal} className="mt-1" />
             </span>
             <span className={celda("izq", `${EN_COLUMNAS} text-tinta/80`)}>{TEXTO_PAPEL[g.papel]}</span>
             <span className={celda("izq", `${EN_COLUMNAS} text-tinta/80`)}>{g.cuenta ?? "—"}</span>

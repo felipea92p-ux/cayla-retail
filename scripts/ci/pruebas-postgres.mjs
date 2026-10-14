@@ -998,6 +998,9 @@ export const PRUEBAS = [
   // comprobante solo taxi o cargador; un anulado no cuenta y devuelve la plata al fondo; la firma de la decisión 39. ROLLBACK siempre.
   "pruebas:gastos-viaje",
   "pruebas:rendicion-fondo",
+  // Lo no deducible (ADR-0362, fase 6 · actividad 6): en un comprobante de S/ 2 000 o más, lo pagado en efectivo o desde un fondo; y lo
+  // que pasa el tope diario de la planilla de movilidad, por persona y por día. ROLLBACK siempre.
+  "pruebas:no-deducible",
 
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y

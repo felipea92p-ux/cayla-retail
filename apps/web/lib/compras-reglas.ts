@@ -7,6 +7,7 @@
 import { hoyLima } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 import { estadoDeMiTienda, nombreDeLineaSinPrenda } from "./reparto-reglas";
+import type { NoDeducible } from "./no-deducible-reglas";
 
 // La etiqueta de una línea sin prenda vive junto a `etiquetaDeLinea` (reparto-reglas); las pantallas la piden desde acá.
 export { nombreDeLineaSinPrenda };
@@ -146,6 +147,8 @@ export type PagoCompra = {
   monto: number;
   metodo: string;
   referencia: string | null;
+  /** Lo que la base dice no deducible de este pago (ADR-0362, fase 6 · actividad 6; `fn_no_deducibles`): lo ponen los cargadores. */
+  noDeducible?: NoDeducible | null;
 };
 
 export type ProveedorResumen = { id: string; nombre: string; ruc: string | null };

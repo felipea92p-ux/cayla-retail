@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, fechaCorta, soles } from "@/lib/compras-reglas";
 import { idsNuevos } from "@/lib/comprobante-linea-tiempo";
+import type { NoDeducible } from "@/lib/no-deducible-reglas";
+import { MarcaNoDeducible } from "@/components/MarcaNoDeducible";
 
 // «Pagos registrados» del detalle (ADR-0136): filas a todo el ancho —ficha del medio, fecha, N.° de operación
 // (si se anotó) y monto a la derecha—, del más reciente al más antiguo, sin caja alrededor (como el prototipo). Cuando `router.refresh()` trae un pago que no estaba, esa fila ENTRA: se desliza
@@ -11,7 +13,7 @@ import { idsNuevos } from "@/lib/comprobante-linea-tiempo";
 // se animan (el detalle ya entra en cascada); tampoco se repite el efecto en un refresco cualquiera: solo es
 // «nuevo» lo que aparece por primera vez DESPUÉS de haber pintado la lista.
 
-export type PagoFila = { id: string; fecha: string; metodo: string; referencia: string | null; monto: number };
+export type PagoFila = { id: string; fecha: string; metodo: string; referencia: string | null; monto: number; noDeducible?: NoDeducible | null };
 
 export function ComprobantePagos({ pagos }: { pagos: PagoFila[] }) {
   // Los ids que ya estaban cuando se abrió el detalle. Se fija una sola vez (estado inicial): un pago que
@@ -41,6 +43,8 @@ export function ComprobantePagos({ pagos }: { pagos: PagoFila[] }) {
                 <span className={`col-span-3 truncate text-xs tabular-nums text-tinta/65 sm:col-span-1 sm:col-start-3 sm:row-start-1 ${p.referencia ? "" : "hidden sm:block"}`}>
                   {p.referencia ? (p.metodo === METODO_SALDO_A_FAVOR ? p.referencia : `Op. ${p.referencia}`) : "—"}
                 </span>
+                {/* ADR-0362, fase 6 · actividad 6: un pago en efectivo o desde un fondo de un comprobante de S/ 2 000 o más. */}
+                {p.noDeducible && <MarcaNoDeducible nd={p.noDeducible} montoDeLaFila={p.monto} className="col-span-full" />}
               </div>
             );
           })}

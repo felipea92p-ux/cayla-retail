@@ -284,6 +284,35 @@ rendición para corregirla antes de que la revisen; una foto se puede sumar aunq
 tablero de Fondos cuenta un faltante dentro de «Gastó». `fn_mi_fondo_resumen` conserva sus columnas y ahora cuenta solo el ciclo abierto;
 lo de la rendición viene en `fn_mi_fondo_rendicion`. Una sola pieza dice quién es la cuenta: `fn_persona_de_la_cuenta`.
 
+**Fase 6 · actividad 6 (2026-10-13, noche): lo «no deducible»** (decisiones 55, 56, 57, 68 y 70). Migración `20261014002000`; prueba
+`pnpm pruebas:no-deducible` (5 casos) y `lib/no-deducible-reglas.test.ts`.
+
+```
+DECIDÍ: una sola regla en la base, CALCULADA y no guardada. Bancarización (`fn_pago_no_bancarizado`): en un comprobante de S/ 2 000 o
+        más —su TOTAL, aunque se pague en partes—, cada pago en efectivo o que sale de un fondo (con cualquier medio: el Yape personal de
+        quien compra no es bancarización de CAYLA, 57) es no deducible entero; la transferencia, el depósito, la tarjeta y el Yape de CAYLA,
+        no. Cubre los comprobantes de proveedor de cualquier naturaleza (mercadería, gasto, activo), los del Taller y los gastos del viaje
+        (cuyo monto es su papel entero). Planilla de movilidad: con tope vigente en la fecha del gasto, se suman las planillas de la misma
+        persona en el mismo día, en el orden en que se anotaron; lo que pasa el tope es no deducible (la que lo cruza, en parte). El tope es
+        un parámetro tributario más (`parametros_tributarios`, 'tope_planilla_movilidad'), con vigencias desde cualquier fecha como el IGV
+        y en Configuración ▸ Impuestos; SIN FILA NO HAY TOPE (68). `fn_no_deducibles(claves del libro)` lo responde a la web;
+        `fn_no_deducibles_de` es la pieza interna que usará la actividad 7. La web AVISA al pagar con el espejo de la regla
+        (`avisoBancarizacion`) en todas las formas de pagar a un proveedor —registrar un comprobante o el de una orden, Por pagar, Pagar
+        juntos, el Taller, el gasto del viaje y los gastos de Finanzas y de Caja con comprobante— y MARCA lo ya pagado donde se ve: la
+        rendición (quien rinde y quien revisa), «Traerla costó» y los pagos de un comprobante (su detalle y la vista rápida de Por pagar).
+DESCARTÉ: guardar la marca en el pago (se desincroniza cuando el contador fija el tope o se anula una planilla del mismo día); el umbral
+        como parámetro (cambió una vez desde 2004; son dos líneas si vuelve a cambiar); frenar el pago (56); marcar los gastos SIN
+        comprobante de Finanzas (no tienen papel: la bancarización mira comprobantes); y sacar el IGV del crédito fiscal aquí, que es de la
+        actividad 7 para que Impuestos, el Diario y la conciliación cuenten igual.
+SE ROMPE SI: alguien pinta «no deducible» con su propia cuenta en vez de preguntar a la base, o el umbral cambia en un lado y no en el
+        otro (`fn_pago_no_bancarizado` y `UMBRAL_BANCARIZACION`).
+```
+
+Por defecto *(provisional, revisar con Felipe)*: en «Pagar juntos» el aviso dice **«hasta S/ X»** cuando no todos los comprobantes son de
+S/ 2 000 o más (cuánto efectivo va a cada uno lo reparte la base en cascada); la persona del tope es **quien registró** la planilla; un
+comprobante con nota de crédito se mira por su **total original**; el aviso al pagar no dice nada del tope de la planilla (depende de lo que
+ya se anotó ese día: la marca sale al guardar).
+
 ## Fuente: el brief de Felipe
 
 «CAYLA Retail · Brief de desarrollo: Compras y LIM Taller» (7 oct 2026), https://claude.ai/artifact/2GE1cKibGDhCZFsQaY5XRV. Felipe

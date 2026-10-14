@@ -22,6 +22,8 @@ import { leerMonto } from "@/lib/caja-cierre-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
+import { UMBRAL_BANCARIZACION, avisoBancarizacion } from "@/lib/no-deducible-reglas";
+import { AvisoNoDeducible } from "@/components/AvisoNoDeducible";
 import { ejemploNota, ejemploSerie } from "@/lib/sugerencias-gasto-viaje";
 import {
   CONCEPTOS_DE,
@@ -122,6 +124,11 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
   const cuentaId = cuentaEfectiva(cuentas.cuentas, "pago", medio, cuentaElegida);
   const montoLeido = leerMonto(monto);
   const deFondo = cuentas.cuentas.some((c) => c.id === cuentaId && c.tipo === "fondo");
+  // ADR-0362 (fase 6 · actividad 6, decisiones 56 y 70): un gasto de S/ 2 000 o más pagado en efectivo o desde un fondo queda «no
+  // deducible». Se deja registrar; la hoja lo avisa. (Lo que pasa el tope de la planilla lo marca la base después: depende del día.)
+  const avisoNoDeducible = avisoBancarizacion(montoLeido, [
+    { monto: montoLeido ?? 0, medio, tipoCuenta: cuentas.cuentas.find((c) => c.id === cuentaId)?.tipo ?? null },
+  ]);
 
   const valores = { tipo, concepto, monto, fecha, papel, serieNumero, ruc, nota, medio, cuentaId };
   const campos = [
@@ -414,6 +421,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
                 deshabilitado={guardando}
                 montoDelFondo={deFondo ? (montoLeido ?? 0) : 0}
               />
+              <AvisoNoDeducible aviso={avisoNoDeducible} reservar={(montoLeido ?? 0) >= UMBRAL_BANCARIZACION} />
             </div>
           </CampoGuiado>
 

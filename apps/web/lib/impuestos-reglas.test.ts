@@ -144,6 +144,7 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(valorEnCasilla(fila("igv", "2011-03-01", 0.18))).toBe("18");
     expect(valorEnCasilla(fila("renta_pago_cuenta", "2026-01-01", 0.015))).toBe("1.5");
     expect(valorEnCasilla(fila("uit", "2026-01-01", 5500))).toBe("5500");
+    expect(valorEnCasilla(fila("tope_planilla_movilidad", "2026-10-01", 45.2))).toBe("45.20");
   });
 
   it("lo tipeado se guarda como la base lo pide: la tasa como fracción", () => {
@@ -152,6 +153,8 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(parsearParametro("renta_pago_cuenta", "1,5")).toEqual({ ok: true, valor: 0.015 });
     expect(parsearParametro("uit", "S/ 5,500")).toEqual({ ok: true, valor: 5500 });
     expect(parsearParametro("umbral_uit", "300")).toEqual({ ok: true, valor: 300 });
+    expect(parsearParametro("tope_planilla_movilidad", "S/ 45.20")).toEqual({ ok: true, valor: 45.2 });
+    expect(parsearParametro("tope_planilla_movilidad", "45,2")).toEqual({ ok: true, valor: 45.2 });
   });
 
   it("y rechaza lo que la base rechazaría, con palabras de la tienda", () => {
@@ -160,6 +163,8 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(parsearParametro("umbral_uit", "1650000").ok).toBe(false);
     expect(parsearParametro("uit", "").ok).toBe(false);
     expect(parsearParametro("uit", "cinco mil").ok).toBe(false);
+    expect(parsearParametro("tope_planilla_movilidad", "0").ok).toBe(false);
+    expect(parsearParametro("tope_planilla_movilidad", "1500").ok).toBe(false);
   });
 
   it("el de un año y el que rige ese año (si no tiene, el último de antes)", () => {
@@ -169,6 +174,8 @@ describe("parámetros (Configuración ▸ Impuestos)", () => {
     expect(vigenteEnAnio(ps, "uit", 2025)?.valor).toBe(5350);
     expect(vigenteEnAnio(ps, "uit", 2024)).toBeNull();
     expect(aniosDeRegimen(ps, 2026, [2027])).toEqual([2027, 2026]);
+    // El tope de la planilla rige desde cualquier fecha: no suma años a la tabla del régimen.
+    expect(aniosDeRegimen([...ps, fila("tope_planilla_movilidad", "2024-05-01", 45.2)], 2026)).toEqual([2026]);
   });
 });
 
