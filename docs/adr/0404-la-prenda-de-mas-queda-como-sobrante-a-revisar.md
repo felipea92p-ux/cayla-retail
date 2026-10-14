@@ -27,7 +27,7 @@ puede cobrar. Lo que faltó (de menos) sigue igual: se da por perdido.
 | Decisión | Qué pasa con el stock | Cómo lo leen los reportes |
 |---|---|---|
 | Salió de [origen] sin anotarse | Sale del origen (donde la tenga libre, primero su lugar de envío; nunca de la cuarentena) y entra al destino | Dos movimientos del traslado (`traslado_salida` / `traslado_entrada`): Movimientos los muestra con el número del traslado y Pérdidas no ve ni pérdida ni aparición, porque la prenda viajó |
-| No sé de dónde salió | Entra al destino como «Encontré prendas» (ajuste `reposicion`) con la nota | Pérdidas: «apareció, a mano», igual que Ajustar |
+| No sé de dónde salió | Entra al **almacén** del destino como «Encontré prendas», por `registrar_movimiento` (la única puerta de ese motivo: solo suma, pide nota) | Pérdidas: «apareció, a mano», igual que Ajustar |
 | Me equivoqué al contar | Nada | Nada |
 
 Pide una nota (5 a 200 letras) y quién lo decide (el combo Responsable, ADR-0162). Si el origen no tiene la prenda libre en el
@@ -46,7 +46,9 @@ cerrar, la consecuencia ya no dice que lo de más «también entra»: dice que q
 
 - `20261014175000` (parte 1): la tabla `traslado_sobrantes`, con un candado que hace imposible una decisión sin los movimientos que la
   cumplen (o con movimientos que no le tocan). RLS encendido sin políticas: solo la tocan funciones `security definer`.
-- `20261014180000` (parte 2): el cierre nuevo (reemplazo entero con candado de md5: si alguien cambió la función, se detiene sin tocar
+- `20261014180000` (parte 2): los dos movimientos de «salió del origen» viven en una función interna (`fn_sobrante_viaja`), aparte de
+  la revisión: una función que escribe «Encontré prendas» no puede tener su propio `insert into movimientos` (lo vigila
+  `pruebas:cierre-carga-inicial`). El cierre nuevo (reemplazo entero con candado de md5: si alguien cambió la función, se detiene sin tocar
   nada), la revisión, las lecturas `fn_sobrantes_de_traslado` y `fn_sobrantes_por_revisar`, y un reemplazo anclado en
   `fn_perdidas_de_traslados` para que lo enviado cuente la salida de una prenda que no venía en la caja.
 - INV-08 de `/chaos` pasa a vigilar que **lo que entra por un traslado salió por él** (contar de más ya no es una violación).

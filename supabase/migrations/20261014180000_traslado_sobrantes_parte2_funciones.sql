@@ -12,7 +12,8 @@
 --        · salio_del_origen — sale del stock del origen (donde la tenga libre, primero su lugar de envío) y entra al destino,
 --          las dos como movimientos del traslado (`traslado_salida` / `traslado_entrada`), así Pérdidas y Movimientos la
 --          leen como parte del viaje. Si el origen no la tiene libre en el sistema, se rechaza y lo dice.
---        · encontrada — entra al destino como «Encontré prendas» (ajuste `reposicion`), con la nota.
+--        · encontrada — entra al almacén del destino como «Encontré prendas», por `registrar_movimiento` (sus reglas: solo suma y
+--          pide nota; la única puerta de ese motivo), con la nota.
 --        · error_de_conteo — no entra nada.
 --      Pedir dos veces lo mismo devuelve lo mismo (`ya_registrado`); pedir otra cosa sobre uno ya revisado se rechaza.
 --   3. `fn_sobrantes_de_traslado(traslado)` y `fn_sobrantes_por_revisar(sede)`: lo que lee el pase y la lista de Traslados.
@@ -112,6 +113,41 @@ end;
 $function$;
 
 -- ----------------------------------------------------------------------------
+-- 2a. «Salió del origen»: los dos movimientos del viaje (interna; la llama solo `resolver_sobrante_traslado`, que ya validó y tomó los
+--     candados). Van enlazados al traslado: la salida a su línea del envío (o, si la prenda no venía en la caja, a la línea contada) y
+--     la entrada a la línea contada; así Movimientos y Pérdidas la leen como parte del mismo viaje. Aparte de la revisión a propósito:
+--     ninguna función que escriba «Encontré prendas» puede tener su propio `insert into movimientos` (`pruebas:cierre-carga-inicial`).
+-- ----------------------------------------------------------------------------
+create or replace function retail.fn_sobrante_viaja(p_sobrante_id uuid, p_item_id uuid, p_sub_origen uuid, p_sub_destino uuid,
+                                                    p_persona uuid, p_nota_salida text, p_nota_entrada text)
+returns uuid[]
+language plpgsql
+set search_path = retail, public, extensions
+as $function$
+declare
+  s traslado_sobrantes%rowtype;
+  v_salida uuid;
+  v_entrada uuid;
+begin
+  s := (select x from traslado_sobrantes x where x.id = p_sobrante_id);
+  insert into movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo,
+                           transferencia_item_id, transferencia_recepcion_id, usuario_id, nota)
+    values (s.variante_id, s.ubicacion_origen_id, p_sub_origen, 'salida', s.cantidad, 'traslado_salida',
+            p_item_id, case when p_item_id is null then s.transferencia_recepcion_id end, p_persona, p_nota_salida)
+    returning id into v_salida;
+  perform fn_aplicar_movimiento(v_salida);
+  insert into movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, transferencia_recepcion_id, usuario_id, nota)
+    values (s.variante_id, s.ubicacion_id, p_sub_destino, 'entrada', s.cantidad, 'traslado_entrada',
+            s.transferencia_recepcion_id, p_persona, p_nota_entrada)
+    returning id into v_entrada;
+  perform fn_aplicar_movimiento(v_entrada);
+  return array[v_salida, v_entrada];
+end;
+$function$;
+
+revoke all on function retail.fn_sobrante_viaja(uuid, uuid, uuid, uuid, uuid, text, text) from public, anon, authenticated;
+
+-- ----------------------------------------------------------------------------
 -- 2. La revisión de un sobrante (quien puede cerrar la diferencia, en la sede que recibió).
 -- ----------------------------------------------------------------------------
 create or replace function retail.resolver_sobrante_traslado(p_sobrante_id uuid, p_decision text, p_nota text)
@@ -132,6 +168,7 @@ declare
   v_entrada uuid;
   v_origen text;
   v_texto text;
+  v_movs uuid[];
 begin
   if p_decision is null or p_decision not in ('salio_del_origen', 'encontrada', 'error_de_conteo') then
     raise exception 'Elige qué pasó con la prenda de más.' using errcode = 'P0001', hint = 'sobrante_decision_invalida';
@@ -198,26 +235,19 @@ begin
       raise exception '% no tiene esa prenda libre en el sistema para descontarla. Si no salió de allá, elige «No sé de dónde salió».', v_origen
         using errcode = 'P0001', hint = 'sobrante_origen_sin_stock';
     end if;
-    -- Las dos van enlazadas al traslado: la salida a su línea del envío (o, si la prenda no venía en la caja, a la línea
-    -- contada) y la entrada a la línea contada. Así Movimientos y Pérdidas la leen como parte del mismo viaje.
-    insert into movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo,
-                             transferencia_item_id, transferencia_recepcion_id, usuario_id, nota)
-      values (s.variante_id, s.ubicacion_origen_id, v_sub_origen, 'salida', s.cantidad, 'traslado_salida',
-              v_item, case when v_item is null then s.transferencia_recepcion_id end, v_persona,
-              'De más en el traslado ' || t.numero || ': salió sin anotarse. ' || v_nota)
-      returning id into v_salida;
-    perform fn_aplicar_movimiento(v_salida);
-    insert into movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, transferencia_recepcion_id, usuario_id, nota)
-      values (s.variante_id, s.ubicacion_id, v_sub_destino, 'entrada', s.cantidad, 'traslado_entrada',
-              s.transferencia_recepcion_id, v_persona, 'De más en el traslado ' || t.numero || ': salió de ' || v_origen || '. ' || v_nota)
-      returning id into v_entrada;
-    perform fn_aplicar_movimiento(v_entrada);
+    v_movs := fn_sobrante_viaja(s.id, v_item, v_sub_origen, v_sub_destino, v_persona,
+      'De más en el traslado ' || t.numero || ': salió sin anotarse. ' || v_nota,
+      'De más en el traslado ' || t.numero || ': salió de ' || v_origen || '. ' || v_nota);
+    v_salida := v_movs[1];
+    v_entrada := v_movs[2];
   elsif p_decision = 'encontrada' then
-    insert into movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, usuario_id, nota)
-      values (s.variante_id, s.ubicacion_id, v_sub_destino, 'ajuste', s.cantidad, 'reposicion', v_persona,
-              'De más en el traslado ' || t.numero || ', sin saber de dónde salió. ' || v_nota)
-      returning id into v_entrada;
-    perform fn_aplicar_movimiento(v_entrada);
+    -- «Encontré prendas» entra SOLO por `registrar_movimiento` (lo vigila `pruebas:cierre-carga-inicial`): ahí viven sus reglas —va
+    -- al almacén, solo suma, pide nota, y la prenda sin historia en la sede—. Por eso al almacén de la sede, no al piso donde quizá
+    -- entró la caja. Si la sede no separa piso y almacén, donde entró el traslado.
+    v_entrada := registrar_movimiento(s.variante_id, s.ubicacion_id, 'ajuste', s.cantidad, 'reposicion',
+      'De más en el traslado ' || t.numero || ', sin saber de dónde salió. ' || v_nota,
+      coalesce((select sb.id from sububicaciones sb where sb.ubicacion_id = s.ubicacion_id and sb.tipo = 'almacen_tienda' order by sb.id limit 1),
+               v_sub_destino));
   end if;
 
   update traslado_sobrantes
