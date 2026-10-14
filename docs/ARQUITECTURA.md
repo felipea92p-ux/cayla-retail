@@ -1587,7 +1587,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     de cifras) y el Inicio (`app/(app)/page.tsx`, después de «Tu día»; en el de almacén, `InicioAlmacen` → arriba de la columna derecha).
     **La rendición** (actividad 5, `20261013233000`, `234000` y `235000`): en Órdenes de compra y, desde /formidable (2026-10-14, decisión
     80), también en el Inicio, `components/fondos/TuFondoConRendir.tsx` («Rendir» / «Ver tu rendición», `accionTuFondo`) → `RendirFondo.tsx` (`fn_mi_ciclo_fondo` o `fn_rendicion_fondo_items`; `rendir_fondo`, firma
-    `fondo_rendir`; retirar con `devolver_rendicion_fondo`); en Fondos por rendir, «Rendiciones por aprobar» (`fn_rendiciones_fondo`, en
+    `fondo_rendir`; retirar con `devolver_rendicion_fondo`; «Ver tu rendición» lee su explicación con `fn_mi_rendicion_abierta`, 20261014222000); en Fondos por rendir, «Rendiciones por aprobar» (`fn_rendiciones_fondo`, en
     `getDatosFondos`) → `RevisarRendicion.tsx` (`aprobar_rendicion_fondo` / `devolver_rendicion_fondo`). Reglas en `lib/rendicion-reglas.ts`,
     llamadas en `lib/rendicion-acciones.ts`. La tarjeta suma `fn_mi_fondo_rendicion`. Fotos de un gasto del viaje: `FotoDelGasto.tsx` +
     `lib/gastos-viaje-fotos.ts` (bucket `retail-gastos-viaje`, `registrar_foto_gasto_viaje`, `fn_fotos_gasto_viaje`).
