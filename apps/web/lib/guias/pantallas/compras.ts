@@ -2120,7 +2120,7 @@ export const GUIA_FONDOS: Guia = {
       id: "movimientos",
       ancla: "fondos.movimientos",
       opcional: true,
-      titulo: "Entregas y devoluciones",
+      titulo: "Entregas, devoluciones y pagos de deuda",
       texto: "Cada entrega, devolución y pago de deuda, lo más nuevo arriba: de dónde salió o a dónde llegó la plata y para qué. Lo anulado queda a la vista, tachado, con quién lo anuló y por qué.",
     },
     {

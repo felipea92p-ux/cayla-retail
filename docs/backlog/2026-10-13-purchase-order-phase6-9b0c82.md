@@ -52,7 +52,10 @@ fusiona).
     ninguno de la fase 6: las campañas pasadas de Configuración ▸ Tiendas y caja, el cargador global y la nota de un título de grupo
     (tarea aparte `task_16231c3d`). Los escenarios nuevos quedan en `tema/escenarios/registro.mjs`; «Revisar» una rendición va solo por id
     (necesita una por aprobar).
-  - [ ] `guias:recorrer`, `/chaos` con plata y `/formidable`.
+  - [x] `guias:recorrer` (2026-10-14, banco, como líder): Fondos por rendir, Órdenes de compra, una orden, Impuestos, Gastos, el Inicio y
+    Configuración en escritorio, y las de Compras y el Inicio a 375 px: cada paso encontró su pieza, ninguna escribió en la base y no
+    quedó nada abierto. Capturas miradas; el paso de los movimientos de Fondos ahora se titula como su sección («…y pagos de deuda»).
+  - [ ] `/chaos` con plata y `/formidable`.
 - [x] Tabla «Quién tiene plata» de Fondos por rendir a 1024 px con el menú abierto: la arregló otra sesión (las tres tablas deciden por
   el ancho de su tarjeta) y entró con cherry-pick (`caa9daf90`); verificado aquí a 1024 y 1280 px con el menú abierto (0 px de desborde).
 - [ ] Felipe: lo marcado *provisional* en el ADR (la acción `gasto_viaje_registrar` soltada del combo «Responsable»; cuándo se propone
