@@ -77,6 +77,16 @@ const COLUMNAS_DE_DINERO = [
   ["proformas", ["subtotal", "igv", "total"]],
 ];
 
+/** Las columnas de plata de Finanzas y de los fondos que vigila INV-17 (/chaos 2026-10-14, ADR-0362 fase 6). */
+const COLUMNAS_DE_PLATA = [
+  ["movimientos_dinero", ["monto", "comision"]],
+  ["gastos", ["monto_total", "igv"]],
+  ["compra_pagos", ["monto"]],
+  ["gastos_viaje_ordenes", ["monto"]],
+  ["rendiciones_fondo", ["arrastre", "entregado", "devuelto", "pagado", "gastos", "otros", "saldo", "efectivo", "faltante"]],
+  ["rendicion_fondo_items", ["monto"]],
+];
+
 export const INVARIANTES = [
   {
     id: "INV-01",
@@ -364,6 +374,21 @@ select c.id as caja_id, c.ubicacion_id, e.esperado
     // corrupción misma rebota y no se puede probar que el detector la ve.
     corrompe: `alter table retail.venta_pagos drop constraint if exists venta_pagos_montos_finitos;
 update retail.venta_pagos set monto = 'NaN' where ctid = (select ctid from retail.venta_pagos limit 1);`,
+  },
+  {
+    id: "INV-17",
+    nombre: "montos_de_plata_finitos",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Ningún monto de la plata de Finanzas o de un fondo (movimientos de dinero, gastos, pagos a proveedores, el reparto de un gasto del viaje, las rendiciones) es `NaN` ni infinito. Un NaN pasa el CHECK `> 0` y, una vez dentro, deja en NaN el saldo del fondo, la caja de origen y el Diario. Nació de /chaos 2026-10-14 (fase 6).",
+    sql: COLUMNAS_DE_PLATA.map(([tabla, columnas]) =>
+      `select '${tabla}' as tabla, ${tabla === "gastos_viaje_ordenes" ? "gasto_id" : tabla === "rendicion_fondo_items" ? "rendicion_id || ':' || clave" : "id"}::text as fila_id, '${columnas.join(",")}' as columnas from retail.${tabla} where ${columnas.map((c) => `abs(${c}) >= 'Infinity'`).join(" or ")}`
+    ).join("\nunion all\n"),
+    // El candado de la base (`movimientos_dinero_montos_finitos`) se quita dentro de la transacción revertida: sin eso, la corrupción
+    // misma rebota y no se puede probar que el detector la ve.
+    corrompe: `alter table retail.movimientos_dinero drop constraint if exists movimientos_dinero_montos_finitos;
+set local session_replication_role = replica;
+update retail.movimientos_dinero set monto = 'NaN' where ctid = (select ctid from retail.movimientos_dinero limit 1);`,
   },
 ];
 

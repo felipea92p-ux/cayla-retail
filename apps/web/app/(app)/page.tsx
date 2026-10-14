@@ -39,6 +39,9 @@ import { Etiqueta } from "@/components/inicio/TarjetasInicio";
 import { EsqueletoPiso, PisoDelInicio } from "@/components/inicio/PisoDelInicio";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/inicio/MiMeta";
+import { TuFondoConRendir } from "@/components/fondos/TuFondoConRendir";
+import { getResumenMiFondo } from "@/lib/fondos";
+import { hrefTuFondo, mostrarTuFondo } from "@/lib/fondos-reglas";
 
 // Inicio por rol, computadora y celular (spike docs/maquetas/inicio-movil-roles-2026-09/, decisiones de Felipe del
 // 2026-09-26, con 5 referentes: Shopify, Square, Toast, Dynamics 365 y Zebra). UN solo orden en todos los tamaños:
@@ -55,6 +58,11 @@ import { SeccionLoQueVaBien, SeccionMiMeta, SeccionTuMes } from "@/components/in
 // La cuenta de ALMACÉN (la que recibe y registra mercadería y no vende: `esPerfilAlmacen`) tiene su propio Inicio, con la
 // cabina «Nuevo producto» (Felipe, 2026-09-30, ADR-0292; maqueta docs/maquetas/inicio-almacen-2026-09/). Usa los mismos
 // avisos, el mismo filtro «Ajustar» y las mismas reglas de arriba: solo cambia cómo se dibuja y qué más lee.
+//
+// «Tu fondo» (ADR-0362, fase 6 · actividad 4): quien tiene plata de CAYLA para comprar ve cuánto le queda, después de sus cifras del día
+// (es una cifra suya) y antes de «Te toca»; en el Inicio de almacén, arriba de su columna derecha. Lleva a Órdenes de compra (o a Por
+// pagar) si ve esa pantalla. El Observatorio del Admin no la lleva: su diseño es una decisión (ADR-0322); un Admin con fondo lo ve en
+// Órdenes de compra.
 //
 // La cuenta ADMIN (no vende: mira cómo va el negocio) tiene el Observatorio (Felipe, 2026-10-03, ADR-0322; maqueta
 // docs/maquetas/inicio-admin-v3-2026-10/): el mapa de las tiendas, cuánto vendió cada una contra su meta y lo que hay por
@@ -106,7 +114,7 @@ export default async function InicioPage() {
   const piso = pisoQueSeVe({ ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos });
   const esAlmacen = esPerfilAlmacen({ ubicacionTipo: persona.ubicacionTipo, modulos, puedeEditarCatalogo });
 
-  const [hoy, miMeta, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo, datosAlmacen] = await Promise.all([
+  const [hoy, miMeta, traslados, prendasVencidas, aperturas, comprobantesAtascados, equipo, datosAlmacen, fondo] = await Promise.all([
     mostrarHoy(perfil) ? getHoyDeLaSede(persona.ubicacionId, esLider) : Promise.resolve(null),
     // Su meta (ADR-0325): solo de una integrante de tienda; la líder tiene Rendimiento. `null` = sin meta: el Inicio queda como estaba.
     !esLider && mostrarHoy(perfil) ? getMiMeta() : Promise.resolve(null),
@@ -120,7 +128,11 @@ export default async function InicioPage() {
     // Lo que solo lee la cuenta de almacén. El piso de la sede sale del motor del piso (una lectura), ya no de Existencias
     // entera: no hace falta la lista de sedes.
     esAlmacen ? getInicioAlmacen({ ubicacionId: persona.ubicacionId, ve }) : Promise.resolve(null),
+    // Una terminal no tiene fondo (es un aparato, ADR-0162): ni se pregunta.
+    persona.terminal ? Promise.resolve(null) : getResumenMiFondo(),
   ]);
+  const tuFondo = mostrarTuFondo(fondo) ? fondo : null;
+  const hrefFondo = hrefTuFondo((m) => ve(m));
   const fuentes = await getFuentesAvisos(
     { ubicacionId: persona.ubicacionId, sedePropiaId: persona.sedePropiaId, esLider, esTerminal: persona.terminal, ve, pagaCompras: puede(persona, "verDineroCompras") },
     {
@@ -169,6 +181,7 @@ export default async function InicioPage() {
           datos={datosAlmacen}
           visibles={visibles}
           ajustar={ajustar}
+          tuFondo={tuFondo ? <TuFondoConRendir fondo={tuFondo} href={hrefFondo} guia="inicio.tu-fondo" /> : null}
           accesos={accesosAlmacen(modulos)}
           veRecibir={ve("recibir")}
           puedeEditarCatalogo={puedeEditarCatalogo}
@@ -209,6 +222,12 @@ export default async function InicioPage() {
               <SeccionLoQueVaBien miMeta={miMeta} />
               <SeccionTuMes miMeta={miMeta} />
             </>
+          )}
+          {tuFondo && (
+            // En la misma grilla que las cifras de «Tu día»: una cifra más, no una franja a todo el ancho.
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <TuFondoConRendir fondo={tuFondo} href={hrefFondo} guia="inicio.tu-fondo" className="col-span-2 sm:col-span-1" />
+            </div>
           )}
           <TeToca visibles={visibles} ajustar={ajustar} />
           {piso.alguno && (
