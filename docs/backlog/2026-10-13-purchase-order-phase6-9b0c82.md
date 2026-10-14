@@ -81,7 +81,8 @@ fusiona).
   - [x] `/formidable` (2026-10-14): leyes 6,2 → 6,3 y oficio 8 (`docs/formidable/compras-fondos.md`). Hechos con el OK de Felipe: «Rendir»
     desde la tarjeta del Inicio (decisión 80) y el tope de la devolución con una rendición por aprobar (decisión 79, `20261014212000`,
     `pruebas:fondos-entradas` 6/7 sin la migración y 7/7 con ella).
-    - [ ] Producción: pegar `20261014212000` (una función, reemplazo anclado; huella de `devolver_fondo` igual al banco, 13a89771…).
+    - [x] Producción: `20261014212000` pegada con el OK de Felipe (2026-10-14, versión de allá `20261014213308`); la huella de
+      `devolver_fondo` quedó igual a la del banco (`05e87e25…`).
     - [ ] Felipe: los cambios 2 («Revisar»: primero la lista) y 3 (la cuenta de cada persona en una frase) que no se eligieron, y la lista
       aparte del informe (a quién se le entrega plata, «Gastó» con el faltante, la cabecera de Compras, «viaje», el ejemplo del taxi…).
 - [x] Tabla «Quién tiene plata» de Fondos por rendir a 1024 px con el menú abierto: la arregló otra sesión (las tres tablas deciden por

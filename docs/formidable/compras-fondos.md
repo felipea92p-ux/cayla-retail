@@ -29,7 +29,7 @@
 
 ### Lo que queda (no se ejecuta sin Felipe)
 - Los cambios 2 y 3 de abajo, y la lista aparte.
-- **Producción:** `20261014212000` espera su OK para pegarse (una función; la huella de `devolver_fondo` en producción es la del banco).
+- **Producción:** `20261014212000` pegada con el OK de Felipe (2026-10-14, versión de allá `20261014213308`); la huella de `devolver_fondo` quedó igual a la del banco.
 
 - **Fecha / SHA:** 2026-10-14 · `1acc9b669` (punta de la fase 6 de ADR-0362, PR #1055)   · **Dispositivo que manda:** escritorio (Mac mini) para
   quien entrega y revisa; «Rendir tu fondo» también a 375 px (quien rinde puede hacerlo desde su celular)
