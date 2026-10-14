@@ -20,6 +20,9 @@ import {
   type LecturaHistorial,
   type Medida,
 } from "@/lib/plan-compra-historial";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { History } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // El detalle de una campaña del Historial (ADR-0372, C3 · Felipe 2026-10-12: «al darle clic a una fila, los detalles»). Solo lee.
 // Sinatra no sabe qué prendas se vendieron: antes del ERP, el detalle es el día a día de la campaña (contra un día normal) y la MISMA
@@ -129,7 +132,7 @@ export function DetalleCampanaHistorial({
             </dl>
 
             <section data-guia="plan-historial.dias">
-              <h3 className="text-[13px] font-semibold text-tinta">Día a día</h3>
+              <TituloGrupo>Día a día</TituloGrupo>
               <p className="text-xs text-tinta/70">
                 {detalle.diaNormal !== null ? `La línea es un día normal: ${solesSinCentimos(detalle.diaNormal)} (el promedio de los 60 días de antes).` : "Sin los 60 días de antes no hay día normal con qué comparar."}
               </p>
@@ -155,11 +158,11 @@ export function DetalleCampanaHistorial({
         )}
 
         <section data-guia="plan-historial.anual">
-          <h3 className="text-[13px] font-semibold text-tinta">La misma campaña, año por año</h3>
+          <TituloGrupo>La misma campaña, año por año</TituloGrupo>
           {anuales === undefined ? (
             <p className="mt-2 text-sm text-taupe">Buscando los otros años…</p>
           ) : anuales.length === 0 ? (
-            <p className="mt-2 text-sm text-taupe">No hay otros años con datos de esta tienda.</p>
+            <Vacio tamano="chico" alinear="izquierda" className="mt-1 px-0" icono={<History />}>No hay otros años con datos de esta tienda.</Vacio>
           ) : (
             <ol className="mt-2 space-y-1.5">
               {anuales.map((x, i) => {

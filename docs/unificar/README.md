@@ -24,42 +24,40 @@ forma más usada del último censo (la «A» de la lámina) y no se inventa otra
 | Avisos y notas (`aviso`) | `<Aviso tono>` (`components/ui/Aviso.tsx`): la franja a la izquierda con el ícono que se dibuja (el error destella una vez); `nota-cayla` con su «i»; el error de un dato bajo su campo y el de la hoja en `<Aviso tono="error">` | 2026-10-08 (tocando) | 0 | [aviso.md](aviso.md) |
 | Buscadores (`buscador`) | `<Buscador>` (`components/ui/Buscador.tsx`): la caja hundida con lupa viva, «/», «×», «Buscando…» solo si la espera tarda, y el conteo; `tamano="mostrador"`, la píldora que se despega; busca mientras se escribe | 2026-10-08 (escribiendo en ellos) | 0 | [buscador.md](buscador.md) |
 | Barra apilada (`grafico.barra`) | `<BarraApilada>` (`components/ui/BarraApilada.tsx`): la píldora con pista de arena, el movimiento de Compras (entra tramo a tramo, se reacomoda, el tramo apuntado se estira y los demás bajan), tres altos (12 · 8 · 4 px), 24 px para el mouse y, si responde, cada tramo es un botón con su nombre | 2026-10-09 (tocando) | 0 | [grafico.barra.md](grafico.barra.md) |
-| Campos y combos (`campo`, `combo`) | La caja que se enciende (`caja-cayla caja-campo`): `CampoTexto`, `CampoMonto`, `CampoFecha`, `Desplegable`, `ComboBuscable`, `ComboResponsable`; la lista de todo combo con hilo de canto y ✓ | 2026-10-13 (tocando) | 0 · 3 | [campo-combo.md](campo-combo.md) |
-| Filtro que se abre (`filtro`) | `<DesplegablePildora>`: la píldora con su nombre; puesta, rellena de tinta con su ✕ | 2026-10-13 (tocando) | 0 | [campo-combo.md](campo-combo.md) |
+| Campos y combos (`campo`, `combo`) | La caja que se enciende (`caja-cayla caja-campo`): `CampoTexto`, `CampoMonto`, `CampoFecha`, `Desplegable`, `ComboBuscable`, `ComboResponsable`; la lista de todo combo con hilo de canto y ✓; lo que sugiere mientras se escribe o se escanea, `<ListaSugerencias>` (ronda 9) | 2026-10-13 (tocando) | 0 · 0 | [campo-combo.md](campo-combo.md) |
+| Filtro que se abre (`filtro`) | `<DesplegablePildora>`: la píldora con su nombre; puesta, rellena de tinta con su ✕; con `apartado`, sus opciones en grupos con título (ronda 9) | 2026-10-13 (tocando) | 0 | [campo-combo.md](campo-combo.md) |
 | Título de campo (`etiqueta-campo`) | La de `<Campo>`: versalitas que se oscurecen con su caja | 2026-10-13 (tocando) | 0 | [etiqueta-campo.md](etiqueta-campo.md) |
 | Casillas (`casilla`) | `<Casilla>` (el ✓ se dibuja) e `<Interruptor>` (en tinta) | 2026-10-13 (tocando) | 0 | [casilla.md](casilla.md) |
-| Tablas (`tabla`) | `<Tabla>` con movimiento: cascada, hilo de canto y «›», fila abierta, recién guardada | 2026-10-13 (tocando) | 1 | [tabla.md](tabla.md) |
-| Títulos de sección (`titulo-seccion`) | `<TituloSeccion>`, `<TituloGrupo>`, `<SeparadorDia>` | 2026-10-13 (tocando) | 0 | [titulo-seccion.md](titulo-seccion.md) |
+| Tablas (`tabla`) | `<Tabla>` con movimiento: cascada, hilo de canto y «›», fila abierta, recién guardada; la planilla de Contar con su cara (ronda 9) | 2026-10-13 (tocando) | 0 | [tabla.md](tabla.md) |
+| Títulos de sección (`titulo-seccion`) | `<TituloSeccion>`, `<TituloGrupo>`, `<SeparadorDia>`; cuántos hay, en el globito pegado al nombre (`cuenta`, ronda 9) | 2026-10-13 (tocando) | 0 | [titulo-seccion.md](titulo-seccion.md) |
 | Enlaces (`enlace`) | `btn-enlace` con el hilo que se llena; `<EnlaceVer>` en versalitas rojas con la flecha que avanza | 2026-10-13 (tocando) | 0 | [enlace.md](enlace.md) |
 | Paginación (`paginacion`) | `<Paginas>`: la píldora que se desliza | 2026-10-13 (tocando) | 0 | [paginacion.md](paginacion.md) |
 | Avatares (`avatar`) | `<AvatarPersona>` en cuatro tamaños y `<PilaPersonas>` | 2026-10-13 (tocando) | 0 | [avatar.md](avatar.md) |
+| Descargar un archivo (`accion.exportar`) | `<BotonDescargar>` (`components/ui/BotonDescargar.tsx`): «Descargar» + qué, nunca «Exportar» ni solo un ícono; el secundario con el ícono de descarga que baja 2 px y el hilo mientras se arma el archivo (ronda 10) | 2026-10-13 (tocando) | 0 | [accion.exportar.md](accion.exportar.md) |
+| Abrir los filtros (`accion.filtrar`) | `<BotonFiltros>` (`components/ui/FiltrosPildora.tsx`): una píldora más, con cuántos hay puestos en el globito; en el celular, solo el ícono con su punto (ronda 10) | 2026-10-13 (tocando) | 0 | [accion.filtrar.md](accion.filtrar.md) |
+| Ver en otra pantalla (`accion.ver`) | `<BotonVer>` (`components/ui/BotonDescargar.tsx`): el secundario con la flecha que avanza, nunca negro ni con «→» escrito; en una frase, el enlace; junto a un resumen, `<EnlaceVer>` (ronda 10) | 2026-10-13 (tocando) | 0 | [accion.ver.md](accion.ver.md) |
 
 ## Propuestas esperando decisión
 
-| Familia | Propuesta | Desde | Nota |
-|---|---|---|---|
-| — | ninguna por ahora: las rondas 6, 7 y 8 se decidieron el 2026-10-13 (sus fragmentos siguen en `propuestas/` y sus fuentes en [rondas/6-8](rondas/6-8/README.md)) | — | — |
+Ninguna. **La ronda 10** (descargar, filtros y ver en otra pantalla; fuentes en [rondas/10](rondas/10/README.md)) la eligió Felipe
+tocando las demos el 2026-10-13, las tres **P1**, y se migró el mismo día: deuda 0.
 
-**La migración de las rondas 6–8 (2026-10-13):** la deuda bajó de 258 archivos a 4 en un día (Caja, Ventas, Compras, Producción,
-Inventario, Catálogo, Colaboradores y el resto), sin cambiar qué hace ningún botón. Lo que queda, y lo que pide una decisión de Felipe:
+**La migración de las rondas 6–8 (2026-10-13)** bajó la deuda de 258 archivos a 4 en un día, sin cambiar qué hace ningún botón, y dejó seis
+preguntas que no se podían decidir por regla. **La ronda 9 (el mismo día, tocando las demos) las cerró y la deuda quedó en 0 en todas las
+familias:**
 
-1. **Tres combos que la pieza no sabe hacer** (`combo`): las sugerencias de la pistola en Llegó mercadería y en Recepción del taller (con su
-   muestra de color y el Enter del lector) y el buscador de facturas de Registrar nota de crédito (chips, montos y filtros). ¿Se les hace
-   una variante de la lista con fotos, o se declaran excepción?
-2. **La tabla de Conteo** (`tabla`, `ListaConteo`): sus filas son `<tr>` memorizadas de `FilaConteo` con `colgroup`; pasarla a la rejilla
-   obliga a reescribir la fila. Pendiente de una tanda propia.
-3. **Los filtros de Frescura** (marcados `unificar-fijo`): «Estado» usa grupos con título que `DesplegablePildora` no dibuja. ¿Se le
-   enseña a la píldora a dibujar grupos, o Frescura se queda con su caja?
-4. **«Desactivar color»** en Colores va dentro de una frase: quedó en `btn-enlace` (sin el rojo de `accion.eliminar`). Si se quiere rojo,
-   hay que sacarlo de la frase. En Categorías sí pasó a `btn-peligro` (va en el pie, junto a Guardar).
-5. **Los conteos de los títulos pasaron a la derecha** («Pendientes (3)» → «Pendientes» con «3» a la derecha, `dato` de `TituloSeccion`);
-   en las columnas del tablero de Órdenes y en los grupos de las hojas, el número queda al lado del nombre (`cuenta` de `TituloGrupo`).
-6. **Las acciones chicas que eran versalitas rojas** de 10–11 px («Agregar…», «Cambiar», «Repartir…») son ahora `btn-enlace` de 12 px en
-   letra normal. Si alguna debía llamar más la atención, es un `<Boton>`, no un enlace.
+1. La lista que sugiere al escanear o buscar (Llegó mercadería, Recibir contra factura, Registrar nota de crédito): **P1, una para las tres**,
+   `<ListaSugerencias>` ([campo-combo.md](campo-combo.md)).
+2. La planilla de Contar: **P1, con la cara de la tabla del sistema** y la talla recién contada que respira en verde ([tabla.md](tabla.md)).
+3. Los filtros de Frescura: **P1, píldoras** cuya lista dibuja apartados con título ([campo-combo.md](campo-combo.md)).
+4. «Desactivar color»: **P1, rojo en el pie** como Categorías; la hoja de Proveedor pierde su «Desactivar» (no se desactiva desde ahí) ([boton.md](boton.md)).
+5. El número de un título: **P2, pegado al nombre en el globito** de las pestañas ([titulo-seccion.md](titulo-seccion.md)).
+6. Las acciones chicas: **P2, según lo que hacen**: las que cambian varias cosas, botón sutil chico; las que corrigen una, enlace
+   ([boton.md](boton.md)).
 
 ## Por analizar (las próximas rondas)
 
-El motor (`apps/web/unificar/familias.mjs`) reconoce **41 familias**: 22 decididas y 19 por analizar (el 2026-10-13). Las cifras son del censo del 2026-10-06 **sin
+El motor (`apps/web/unificar/familias.mjs`) reconoce **41 familias**: 25 decididas y 16 por analizar (el 2026-10-13, tras la ronda 10). Las cifras son del censo del 2026-10-06 **sin
 depurar**: en la ronda 1 la depuración las bajó mucho (pestañas, de 25 formas a 18 reales; cifras, de 17 a 7), así que sirven para ordenar,
 no como veredicto. El orden es la recomendación de Claude: primero lo que la colaboradora lee o toca en más pantallas.
 
@@ -80,7 +78,7 @@ en la página de elegir, nunca por una descripción.
 | 7 | `tabla` | Tablas | 39 sin depurar → **4 reales** + `fin-tabla` | **Decidida el 2026-10-13 (ronda 7)** |
 | 8 | `campo` + `etiqueta-campo` | Cajas de texto y sus títulos | 8 / 5 (censo parcial del 2026-10-12) + el código: 5 caras de campo en una misma hoja | **Decidida el 2026-10-13 (ronda 6)**: campo y combo en UNA pregunta |
 | 9 | `titulo-seccion` | El título de cada bloque dentro de una pantalla | 46 sin depurar → serif en 8 tamaños, versalitas en 6, sans en 5, y 4 separadores de día | **Decidida el 2026-10-13 (ronda 7)**: bloque, grupo y separador de día |
-| 10 | `accion.ver`, `accion.filtrar`, `accion.exportar`, `accion.eliminar` | Ver el detalle, filtrar, exportar, quitar o anular | 13 / 4 / 4 / 4 | `accion.eliminar` toca dinero y comprobantes cuando anula: migrar no cambia qué hace |
+| 10 | `accion.ver`, `accion.filtrar`, `accion.exportar` | Ver en otra pantalla, abrir los filtros, descargar un archivo | censo del 2026-10-13: 16 / 5 / 4 (depurado: 4 pesos de «ver», 2 caras de filtros, 4 caras y dos verbos de descargar) | **Decidida y migrada el 2026-10-13 (ronda 10, las tres P1)** (`accion.eliminar` ya estaba decidida, ronda 4) |
 | 11 | ~~`casilla`~~ (decidida, ronda 6), ~~`enlace`~~, ~~`paginacion`~~, ~~`avatar`~~ (decididas, ronda 8), `modal`, `grafico` | Casillas e interruptores, enlaces de texto, hojas, gráficos, paginación, avatares | 6 / 9 / 5 / 5 / 2 / 2 | Pocas formas: rondas cortas. **De los gráficos, la barra apilada ya está decidida (`grafico.barra`, 2026-10-09)**; faltan la línea (Caja), las barras mensuales (Rendimiento) y la dona (mapa del Inicio). Los de Análisis tienen su excepción de movimiento (ADR-0357) |
 | 12 | `accion.cerrar`, `accion.cancelar`, `accion.guardar`, `accion.limpiar`, `accion.editar`, `accion.buscar`, `accion.imprimir`, `accion.menu`, `accion.copiar` | Los botones de una sola función | 1–2 cada una | Casi todas tienen ya una sola forma: se pueden cerrar juntas en una ronda |
 | 13 | `icono` | Iconos (tamaño y trazo) | 122 huellas · 73 | Las 122 son sobre todo tamaños y trazos distintos de lucide; hay que depurar mucho antes de mostrar |
@@ -102,6 +100,8 @@ Cargar más»), `accion.anterior` y `accion.deshacer` no aparecieron con la cuen
 | 2026-10-07 (noche) | `claude/unificar-next-round-bdaaa0` @ `63b64ba7`, cuenta Admin, todo el ERP con escenarios, familias `combo,tabla,titulo-seccion` (adelanto de la ronda 6, sin depurar) | 243 de 250 | 3 | 42 formas de combo en 118 pantallas, 39 de tabla en 70, 46 de título de sección en 151. Falta depurar y la pasada del mostrador; queda en `apps/web/unificar/.salida/r6-admin/` (fuera de git) |
 | 2026-10-09 | `claude/keen-feistel-35a4cb` @ `ef8e017e`, cuentas Admin y Admin-Taller, todo el ERP con los escenarios de Compras, familia `grafico` (el motor aprendió a ver una barra apilada hecha con cajas: antes solo veía SVG) | 180 de 188 | 1 | 10 formas de gráfico en el censo; la barra apilada son 4 huellas (dos de ellas, la misma barra vista tras un modal). Quince archivos la dibujan a mano: Notas de crédito, Proformas, Producción, Caja, el cierre y Eficiencia no salen con el seed y se contaron leyendo el código (Facturación e Historial sí salen). Frescura (otra rama) se midió aparte contra su worktree (`--otra-obra`). Después de migrar «Deuda por vencimiento», el censo la muestra con la huella de P; «Deuda por proveedor» sigue a mano |
 | 2026-10-12 | `claude/unificar-componentes-animaciones-f811a1` @ `6bffcd43c`, cuenta Admin, todo el ERP con escenarios, familias `combo,tabla,titulo-seccion,campo,etiqueta-campo,casilla` (rondas 6 y 7) | **47 de 274** (incompleto) | 6 | **Se cortó a la mitad:** el disco se llenó, Docker se apagó solo (`no space left on device`) y la base local cayó; desde ahí todas las rutas mandaban al login. Las rondas 6 y 7 se armaron con este censo parcial (campo, etiqueta-campo, casilla) y con el completo del 2026-10-07 (combo, tabla, titulo-seccion). La pasada de `terminal-ventas` no alcanzó a correr (la cuenta no existía en la base local y `tema:cuentas` necesita Docker) |
+| 2026-10-13 | `claude/mystifying-jang-ef15d0` @ `3b4b888ef`, cuenta Admin, todo el ERP con escenarios (el censo de después de las rondas 6–9) | 252 de 277 | 41 familias medidas | Sin depurar, cifras altas (combo 36, tabla 39, títulos 41): son la misma pieza en otro tamaño, Finanzas y las excepciones. **Rastreado al código** (el texto de cada variante con `grep`): 10 títulos que la firma no veía (un `\b` tras `]`), 4 «Ver … →» en versalitas, 2 casillas a mano, 5 «+ Agregar» y la caja «Producto» de Nueva compra encogida a 78 px; todo migrado o arreglado ese día. Base de la ronda 10 |
+| 2026-10-13 | `claude/mystifying-jang-ef15d0` @ `ec9b81fa5`, cuenta `terminal-ventas` (el mostrador), todo el ERP con escenarios | 61 de 133 (las demás: sin acceso) | 32 familias medidas | **Rastreado al código:** las seis formas de «vacío» de Caja eran frases grises sueltas, y en todo el ERP había 49 en 40 archivos que la firma no veía (estaba atada a clases exactas). Migradas a `<Vacio>` con una firma nueva, y 3 «Ver … →» de Caja a `<EnlaceVer>` |
 
 ## Cómo se agrega una fila
 

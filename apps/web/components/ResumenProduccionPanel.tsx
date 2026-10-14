@@ -149,7 +149,14 @@ export function ResumenProduccionPanel({
       </div>
 
       <section data-guia="prod-resumen.decidir" aria-label="Para decidir" className="space-y-3">
-        <TituloSeccion dato={totalAsuntos === 0 ? "nada por ahora" : totalAsuntos > decisiones.length ? `${plural(totalAsuntos, "asunto", "asuntos")} · se ven ${decisiones.length}` : plural(totalAsuntos, "asunto", "asuntos")}>Para decidir</TituloSeccion>
+        {/* Cuántos asuntos hay de verdad, en el globito (ADR-0358, ronda 9); a la derecha, solo lo que el número no dice: que se ven
+            menos de los que hay, o que no hay nada. */}
+        <TituloSeccion
+          cuenta={totalAsuntos > 0 ? totalAsuntos : undefined}
+          dato={totalAsuntos === 0 ? "nada por ahora" : totalAsuntos > decisiones.length ? `se ven ${decisiones.length}` : undefined}
+        >
+          Para decidir
+        </TituloSeccion>
         {decisiones.length === 0 ? (
           <div className="card-cayla">
             <Vacio tamano="chico" icono={<CircleCheck />}>
@@ -172,7 +179,7 @@ export function ResumenProduccionPanel({
                   </svg>
                 )}
                 <div className="min-w-0">
-                  <h3 className="text-[14.5px] font-medium text-tinta">{d.titulo}</h3>
+                  <h3 className="text-[14.5px] font-medium text-tinta">{/* unificar-fijo: el nombre de un asunto de la lista, un dato y no el título de una sección */}{d.titulo}</h3>
                   <p className="mt-0.5 text-[13px] text-tinta/70">{d.detalle}</p>
                 </div>
                 <Link

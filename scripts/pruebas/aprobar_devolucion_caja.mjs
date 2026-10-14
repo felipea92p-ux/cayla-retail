@@ -2,7 +2,7 @@
 /**
  * Prueba puntual de `retail.aprobar_devolucion` — CAYLA V2.
  *
- * NO es una suite completa de Devoluciones. Verifica solo dos candados:
+ * NO es una suite completa de Devoluciones. Verifica estos candados:
  *
  * 1. `20260916180000_cambio_y_devolucion_exigen_caja_si_hay_efectivo.sql`: un reembolso en
  *    efectivo sin caja abierta se rechaza (antes quedaba con `caja_id` null, invisible para
@@ -16,6 +16,13 @@
  *    sumar. La devolución que quedó pendiente se rechaza, y eso sigue funcionando. Y
  *    `cerrar_caja` no espera en el cajón el efectivo de una venta anulada: ya volvió a la
  *    clienta, contarlo dejaba un faltante fantasma en el arqueo.
+ * 3. La nota de crédito de una boleta ACEPTADA: sale por lo que la clienta pagó, no por el
+ *    precio de lista, y ninguna nota acredita más de lo cobrado (`20261012120100`, ADR-0380);
+ *    y declara SOLO lo devuelto, con el texto de la boleta si era una prenda sin registrar
+ *    (`20261012200000`, ADR-0382).
+ *
+ * Otra base del mismo Postgres (una copia desechable con las migraciones de tu rama):
+ * `PRUEBAS_BASE=mi_copia node scripts/pruebas/aprobar_devolucion_caja.mjs`.
  *
  * Mismo mecanismo que `scripts/pruebas/registrar_cambio.mjs` (`docker exec ... psql` +
  * `set local request.jwt.claim.sub` + `ROLLBACK` siempre) — ver ese archivo para el
@@ -266,6 +273,109 @@ select n.total = b.total
 rollback;
 `);
   esperar("sin descuento nada cambia: la nota sale por el total de la boleta", notaSinDescuento.ok && notaSinDescuento.salida === "t", notaSinDescuento);
+
+  // ---- 20261012200000 (ADR-0382): la nota de crédito declara SOLO lo devuelto ----
+  // Antes `aprobar_devolucion` no le pasaba ítems a `emitir_nota` y la nota copiaba TODAS las líneas de la boleta: en una
+  // devolución parcial le decía a SUNAT que volvieron prendas que la clienta se llevó, con ítems que no sumaban el total.
+  // Boleta ACEPTADA con dos prendas: BLU-EMMA-NEG-M con S/ 20 de descuento (1 unidad) y BLU-EMMA-BEI-M sin descuento (2 unidades).
+  const FIXTURE_DOS_LINEAS = `${FIXTURE_BASE}
+select id as v_b, precio as precio_b from retail.variantes where sku = 'BLU-EMMA-BEI-M' \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'v_b', :'ubic', :'sub_piso', 'entrada', 1000, 'colchón de prueba') returning id as mov_b \\gset
+select retail.fn_aplicar_movimiento(:'mov_b') as _d2 \\gset
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(
+    jsonb_build_object('variante_id', :'v_old', 'cantidad', 1, 'precio_unitario', (:'precio_viejo')::numeric, 'descuento_unitario', 20,
+                       'motivo_descuento', 'liquidacion_temporada', 'argumento_descuento', 'prueba automatizada'),
+    jsonb_build_object('variante_id', :'v_b', 'cantidad', 2, 'precio_unitario', (:'precio_b')::numeric, 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'precio_viejo')::numeric - 20 + 2 * (:'precio_b')::numeric)),
+  null, gen_random_uuid(), 'boleta') as venta_nota \\gset
+update retail.comprobantes set estado = 'aceptado', entorno_transmision = 'sandbox' where venta_id = :'venta_nota';
+insert into retail.series_comprobantes (ubicacion_id, tipo, serie)
+  select :'ubic', 'nota_credito', 'BC01' where not exists (select 1 from retail.series_comprobantes where ubicacion_id = :'ubic' and tipo = 'nota_credito');
+select id as item_a from retail.venta_items where venta_id = :'venta_nota' and variante_id = :'v_old' \\gset
+select id as item_b from retail.venta_items where venta_id = :'venta_nota' and variante_id = :'v_b' \\gset
+`;
+
+  // Devuelve `lineas` (pares venta_item / cantidad), la aprueba otra líder y lee la nota: motivo | n.º de ítems | lo que dicen
+  // los ítems (variante:cantidad:descuento, ordenado) | ¿Σ (precio − descuento) × cantidad de los ítems = total de la nota?
+  const NOTA_LEIDA = `
+select n.motivo, jsonb_array_length(n.items),
+       (select string_agg(linea, ',' order by linea) from (
+          select case when (it ->> 'variante_id')::uuid = :'v_old'::uuid then 'A' else 'B' end || ':' || (it ->> 'cantidad') || ':' || ((it ->> 'descuento_unitario')::numeric)::int as linea
+            from jsonb_array_elements(n.items) it) l),
+       (select sum((it ->> 'cantidad')::numeric * ((it ->> 'precio_unitario')::numeric - (it ->> 'descuento_unitario')::numeric))
+          from jsonb_array_elements(n.items) it) = n.total
+  from retail.devoluciones d join retail.comprobantes n on n.id = d.nota_credito_id
+ where d.id = :'dev_parcial';
+rollback;
+`;
+  const devolverYLeer = (lineas, reembolso) => correr(`${FIXTURE_DOS_LINEAS}
+select retail.crear_devolucion(:'venta_nota', :'ubic',
+  jsonb_build_array(${lineas.map(([item, cant]) => `jsonb_build_object('venta_item_id', :'${item}', 'cantidad', ${cant}, 'condicion', 'vendible')`).join(", ")}),
+  'prueba automatizada', 'otro') as dev_parcial \\gset
+set local request.jwt.claim.sub = '${SANDRA}';
+select retail.aprobar_devolucion(:'dev_parcial', ${reembolso}, 'yape') as _ok \\gset
+${NOTA_LEIDA}`);
+
+  const parcialOtraPrenda = devolverYLeer([["item_a", 1]], "(:'precio_viejo')::numeric - 20");
+  esperar(
+    "devolución parcial (una de dos prendas): la nota declara solo la devuelta, con su descuento, y sus ítems suman el total",
+    parcialOtraPrenda.ok && parcialOtraPrenda.salida === "07|1|A:1:20|t",
+    parcialOtraPrenda
+  );
+
+  const parcialMenosUnidades = devolverYLeer([["item_b", 1]], "(:'precio_b')::numeric");
+  esperar(
+    "devolución parcial (una de dos unidades): la nota declara 1 unidad, no las 2 de la boleta",
+    parcialMenosUnidades.ok && parcialMenosUnidades.salida === "07|1|B:1:0|t",
+    parcialMenosUnidades
+  );
+
+  const devolucionTotal = devolverYLeer([["item_a", 1], ["item_b", 2]], "(:'precio_viejo')::numeric - 20 + 2 * (:'precio_b')::numeric");
+  esperar(
+    "devolución total: la nota declara las dos prendas completas y suma el total (lo que ya estaba bien no cambia)",
+    devolucionTotal.ok && devolucionTotal.salida === "06|2|A:1:20,B:2:0|t",
+    devolucionTotal
+  );
+
+  // Una prenda sin registrar (ADR-0179) ya regularizada a BLU-EMMA-NEG-M, vendida junto a otra BLU-EMMA-NEG-M de lista: al
+  // regularizar, las dos líneas de venta quedan con la MISMA variante, y la boleta dijo «Blusa lino beige» para una de ellas. La
+  // nota de la devuelta tiene que repetir ese texto (sale de `prendas_por_regularizar`), no el nombre del catálogo.
+  const sinRegistrar = correr(`${FIXTURE_BASE}
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
+  select :'ubic', 'Almacén de tienda', 'almacen_tienda'
+  where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'almacen_tienda');
+select id as cat from retail.categorias where activo order by nombre limit 1 \\gset
+select id as talla from retail.tallas where activo and estado = 'aprobado' order by valor limit 1 \\gset
+select codigo as color from retail.colores where activo order by codigo limit 1 \\gset
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(
+    jsonb_build_object('variante_id', '22222222-2222-4222-8222-222222222222', 'cantidad', 1, 'precio_unitario', 50, 'descuento_unitario', 0,
+                       'descripcion_libre', 'Blusa lino beige', 'categoria_id', :'cat', 'talla_id', :'talla', 'color_codigo', :'color'),
+    jsonb_build_object('variante_id', :'v_old', 'cantidad', 1, 'precio_unitario', (:'precio_viejo')::numeric, 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', 50 + (:'precio_viejo')::numeric)),
+  null, gen_random_uuid(), 'boleta') as venta_nota \\gset
+update retail.comprobantes set estado = 'aceptado', entorno_transmision = 'sandbox' where venta_id = :'venta_nota';
+insert into retail.series_comprobantes (ubicacion_id, tipo, serie)
+  select :'ubic', 'nota_credito', 'BC01' where not exists (select 1 from retail.series_comprobantes where ubicacion_id = :'ubic' and tipo = 'nota_credito');
+select vi.id as item_libre from retail.venta_items vi join retail.prendas_por_regularizar p on p.venta_item_id = vi.id where vi.venta_id = :'venta_nota' \\gset
+select retail.regularizar_prenda(p.id, :'v_old', 'ya_registrada') as _dif from retail.prendas_por_regularizar p where p.venta_item_id = :'item_libre' \\gset
+select retail.crear_devolucion(:'venta_nota', :'ubic',
+  jsonb_build_array(jsonb_build_object('venta_item_id', :'item_libre', 'cantidad', 1, 'condicion', 'vendible')),
+  'prueba automatizada', 'otro') as dev_libre \\gset
+set local request.jwt.claim.sub = '${SANDRA}';
+select retail.aprobar_devolucion(:'dev_libre', 50, 'yape') as _ok \\gset
+select jsonb_array_length(n.items), n.items -> 0 ->> 'descripcion_libre', (n.items -> 0 ->> 'precio_unitario')::numeric, n.total
+  from retail.devoluciones d join retail.comprobantes n on n.id = d.nota_credito_id
+ where d.id = :'dev_libre';
+rollback;
+`);
+  esperar(
+    "prenda sin registrar ya regularizada: la nota declara solo esa línea y con el texto de la boleta («Blusa lino beige»)",
+    sinRegistrar.ok && sinRegistrar.salida === "1|Blusa lino beige|50.00|50.00",
+    sinRegistrar
+  );
 
   console.log(`\n${total - fallos}/${total} pruebas en verde.`);
   process.exit(fallos > 0 ? 1 : 0);

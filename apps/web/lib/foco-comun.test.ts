@@ -86,7 +86,9 @@ describe("los anillos propios con transparencia (rojo o tinta) solo bajan", () =
   // 2026-10-08 (ADR-0358, ronda 5): 49 → 46; los buscadores de Cambios/Devoluciones, Vender y Comprobantes pasan a <Buscador>, con el anillo del sistema.
   // 46 → 44 el 2026-10-08: Apartados (Todos, Entregar) y el ticket pasan a <Buscador> con el anillo del sistema.
   // 44 → 32 el 2026-10-13 (ADR-0358, rondas 6–8): las cajas, casillas, enlaces y filtros dibujados a mano pasan a sus piezas.
-  const PENDIENTES_HOY = 32;
+  // 32 → 31 el 2026-10-13 (ADR-0358, verificación de la ronda 9): la casilla propia de Por pagar y el «Es un regalo» de Recepción pasan a
+  // <Casilla> e <Interruptor>, con el anillo del sistema.
+  const PENDIENTES_HOY = 31;
   it("la cuenta de afuera de components/ui es exacta y solo baja", () => {
     const total = porArchivo.reduce((s, a) => s + a.n, 0);
     expect(total).toBe(PENDIENTES_HOY);

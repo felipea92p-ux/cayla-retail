@@ -2,7 +2,7 @@
   "guia": "configuracion",
   "ruta": "/configuracion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 73,
+  "total": 72,
   "controles": {
     "components/ConfiguracionCajaAvisos.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -39,7 +39,6 @@
       "Casilla «{`Cuánto sube la meta en ${campana.nombre}»",
       "Casilla «{`Fondo de caja en ${campana.nombre}»",
       "ComboResponsable «(sin nombre)»",
-      "Link «Ver el cartel del club»",
       "BotonEnlace «+ Nueva campaña (en Catálogo ▸ Etiquetas)»",
       "Link «Ver cómo se ve en Caja»"
     ],

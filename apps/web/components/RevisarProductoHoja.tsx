@@ -21,6 +21,7 @@ import {
   type ModoRevision,
   type ProductoPorRevisar,
 } from "@/lib/revisar-productos-reglas";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 /**
  * Aprobar o rechazar UNA prenda propuesta (`revisar_producto_censo`, ADR-0371), con el combo «Responsable» (ADR-0161: revisar el
@@ -98,14 +99,14 @@ export function RevisarProductoHoja({
                   Volver
                 </Boton>
                 {bloqueo.motivo === "ordenes" && veProduccion && (
-                  <BotonEnlace href="/produccion/ordenes" peso="primario" className="flex-1">
+                  <BotonVer href="/produccion/ordenes" className="flex-1">
                     Ver las órdenes
-                  </BotonEnlace>
+                  </BotonVer>
                 )}
                 {bloqueo.motivo === "stock" && veExistencias && (
-                  <BotonEnlace href="/inventario" peso="primario" className="flex-1">
+                  <BotonVer href="/inventario" className="flex-1">
                     Ir a Existencias
-                  </BotonEnlace>
+                  </BotonVer>
                 )}
                 {/* Quien revisa edita el catálogo (la pantalla lo exige): la ficha siempre se le abre. */}
                 {bloqueo.motivo === "precio" && (

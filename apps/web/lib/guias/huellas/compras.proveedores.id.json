@@ -2,7 +2,7 @@
   "guia": "compras.proveedores.id",
   "ruta": "/compras/proveedores/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 47,
+  "total": 46,
   "controles": {
     "app/(app)/compras/proveedores/[id]/page.tsx": [
       "Volver «(sin nombre)»",
@@ -41,7 +41,6 @@
       "button «{ETIQUETA_BILLETERA[b]}»",
       "button «Usar el teléfono de contacto (»",
       "CampoTexto «Titular de la cuenta»",
-      "button «Desactivar proveedor»",
       "Boton «Cancelar»",
       "Boton «(sin nombre)»"
     ],

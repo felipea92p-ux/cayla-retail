@@ -44,7 +44,7 @@ export function QuienRegistra({ control, deshabilitado = false }: { control: Con
   return (
     <section id={ID_QUIEN_REGISTRA} aria-labelledby="quien-registra-titulo" className="rounded-xl border border-sand bg-papel px-4 py-3.5 sm:px-5">
       <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <h2 id="quien-registra-titulo" className="text-[13px] font-semibold text-tinta">
+        <h2 id="quien-registra-titulo" className="text-[13px] font-semibold text-tinta">{/* unificar-fijo: el título de un bloque de Nuevo producto, que tiene su diseño aprobado (ADR-0260, ADR-0284) */}
           Quién registra
         </h2>
         <span className="text-[12px] leading-snug text-taupe">

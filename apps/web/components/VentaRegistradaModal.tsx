@@ -87,7 +87,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
           </div>
 
           {ok.offline && (
-            <p className="text-center text-xs text-tinta/65">
+            <p className="text-center text-xs text-tinta/65">{/* unificar-fijo: explica qué pasó con la venta sin internet, no es un vacío */}
               Sin internet: quedó guardada en este equipo y sube sola cuando vuelva la conexión. No se puede emitir comprobante todavía.
             </p>
           )}

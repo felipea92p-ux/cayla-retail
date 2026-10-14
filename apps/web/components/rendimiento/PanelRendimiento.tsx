@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, ChartColumn } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
@@ -38,6 +38,7 @@ import {
 import { EditarMetaModal } from "./EditarMetaModal";
 import { GraficoVentasMeta } from "./GraficoVentasMeta";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { Vacio } from "@/components/ui/Vacio";
 
 /* ====================================================================
    El panel de Rendimiento de UNA tienda (ADR-0325, spike docs/maquetas/rendimiento-meta-2026-09/)
@@ -265,7 +266,9 @@ export function PanelRendimiento({
               </p>
             </>
           ) : (
-            <p className="mt-2 text-xs text-tinta/65">Sin ventas {t.enPeriodo}: todavía no hay horas que mirar.</p>
+            <Vacio tamano="chico" alinear="izquierda" className="mt-1 px-0" icono={<ChartColumn />}>
+              Sin ventas {t.enPeriodo}: todavía no hay horas que mirar.
+            </Vacio>
           )}
         </div>
       )}

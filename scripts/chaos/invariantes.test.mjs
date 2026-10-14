@@ -114,6 +114,16 @@ test("autoprobar: corrompe y consulta en la MISMA transacción, y esa transacci�
   assert.match(tx, /rollback;\s*$/);
 });
 
+test("autoprobar: una corrupción que no tocó ninguna fila es «sin datos», no «ciega» (una base recién sembrada sin esa tabla poblada)", () => {
+  let tx = "";
+  let n = 0;
+  const r = autoprobar(inv, (sql) => { if (++n === 2) tx = sql; return n === 2 ? "chaos:filas_corrompidas=0" : ""; });
+  assert.equal(r.estado, "sin-datos");
+  assert.ok(tx.indexOf("update t set a = 1;") < tx.indexOf(":ROW_COUNT") && tx.indexOf(":ROW_COUNT") < tx.indexOf("row_to_json"), "cuenta lo que tocó la corrupción, justo después de corromper");
+  n = 0;
+  assert.equal(autoprobar(inv, () => (++n === 2 ? "chaos:filas_corrompidas=1" : "")).estado, "ciega", "tocó una fila y el detector no gritó: ciega de verdad");
+});
+
 test("autoprobar: tabla vacía = «sin datos» (la prueba no se pudo hacer), jamás «detecta»", () => {
   let n = 0;
   const r = autoprobar(inv, () => {

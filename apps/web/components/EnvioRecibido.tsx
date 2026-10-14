@@ -8,6 +8,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { soles } from "@/lib/compras-reglas";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import type { MovimientoDelEnvio } from "@/lib/envio-reglas";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 // «Envío recibido»: lo que queda después de confirmar (spike de Recibir, 2026-09-19). No es solo «61 unidades»:
 // muestra QUÉ entró, prenda por prenda, colgando de un hilo — la idea de que cada prenda entra como un
@@ -127,9 +128,7 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
         </Boton>
         {/* Sin red, navegar deja la pestaña en una página que no carga (y la cola solo sube desde Recibir). */}
         {!ok.sinConexion && (
-          <Link href="/recibir?vista=recibidas&nueva=1" className="btn-cayla btn-primario">
-            Ver recibidas
-          </Link>
+          <BotonVer href="/recibir?vista=recibidas&nueva=1">Ver recibidas</BotonVer>
         )}
       </div>
     </div>

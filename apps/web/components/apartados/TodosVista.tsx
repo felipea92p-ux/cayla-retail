@@ -260,7 +260,7 @@ export function TodosVista({
 
       {conOtraSede && pedidos.length > 0 && (
         <section data-guia="apartados.pedidos" className="rounded-2xl border border-sand">
-          <TituloSeccion nivel={3} dato={<b>{pedidos.length}</b>} className="border-b border-sand px-5 py-3">
+          <TituloSeccion nivel={3} cuenta={pedidos.length} className="border-b border-sand px-5 py-3">
             Pedidos entre tiendas
           </TituloSeccion>
           <ul className="divide-y divide-sand">
@@ -456,7 +456,7 @@ export function TodosVista({
           if (filas.length === 0) return null;
           return (
             <section key={g.titulo} data-guia="apartados.lista">
-              <TituloSeccion nivel={3} dato={<b>{filas.length}</b>} className="mb-2.5">
+              <TituloSeccion nivel={3} cuenta={filas.length} className="mb-2.5">
                 {g.titulo}
               </TituloSeccion>
               <ul className="divide-y divide-sand overflow-hidden rounded-2xl border border-sand">

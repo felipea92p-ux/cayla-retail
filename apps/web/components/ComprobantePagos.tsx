@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, fechaCorta, soles } from "@/lib/compras-reglas";
 import { idsNuevos } from "@/lib/comprobante-linea-tiempo";
+import { Banknote } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // «Pagos registrados» del detalle (ADR-0136): filas a todo el ancho —ficha del medio, fecha, N.° de operación
 // (si se anotó) y monto a la derecha—, del más reciente al más antiguo, sin caja alrededor (como el prototipo). Cuando `router.refresh()` trae un pago que no estaba, esa fila ENTRA: se desliza
@@ -23,7 +25,7 @@ export function ComprobantePagos({ pagos }: { pagos: PagoFila[] }) {
     <section data-guia="factura.pagos">
       <p className="label-cayla mb-1 text-[11px] text-tinta/65">Pagos registrados</p>
       {pagos.length === 0 ? (
-        <p className="border-t border-tinta/10 py-2 text-[13px] text-tinta/55">Aún no hay pagos registrados.</p>
+        <Vacio tamano="chico" alinear="izquierda" className="border-t border-tinta/10 px-0" icono={<Banknote />}>Aún no hay pagos registrados.</Vacio>
       ) : (
         <div>
           {pagos.map((p) => {

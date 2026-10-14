@@ -37,7 +37,7 @@ export default async function EditarOrdenInsumoPage({ params }: { params: Promis
               icono={<FileX />}
               titulo="No encontramos esa orden"
               acciones={
-                <BotonEnlace href={RUTA_ORDENES_INSUMO} peso="primario">
+                <BotonEnlace href={RUTA_ORDENES_INSUMO} peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
                   Ver las órdenes de insumos
                 </BotonEnlace>
               }

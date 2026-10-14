@@ -1,8 +1,9 @@
 import { CircleCheck } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
-import { Boton, BotonEnlace } from "@/components/ui/campos";
+import { Boton } from "@/components/ui/campos";
 import type { ConfianzaDelStock } from "@/lib/plan-compra-reglas";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 // El aviso sobre el «Hay hoy» del plan de campaña (ADR-0349 + ADR-0346): «comprar = lo que conviene tener − lo que ya hay», y si lo que
 // ya hay está incompleto la compra sale inflada sin que nadie lo vea. Dice qué tiendas no están al día y lleva a Conteo (solo a quien
@@ -32,9 +33,7 @@ export function AvisoStock({ confianza, puedeContar }: { confianza: ConfianzaDel
       titulo="El «Hay hoy» está incompleto"
       accion={
         puedeContar ? (
-          <BotonEnlace href="/inventario/conteo" peso="fantasma">
-            Ir a Conteo
-          </BotonEnlace>
+          <BotonVer href="/inventario/conteo">Ir a Conteo</BotonVer>
         ) : undefined
       }
     >

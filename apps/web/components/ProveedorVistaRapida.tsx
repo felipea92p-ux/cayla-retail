@@ -15,6 +15,7 @@ import { PasoSugerido } from "@/components/ui/PasoSugerido";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { BotonVer } from "@/components/ui/BotonDescargar";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -143,7 +144,8 @@ export function ProveedorVistaRapida({
                   + Comprobante
                 </Link>
               )}
-              <Boton type="button" peso="discreto" cargando={cambiando} onClick={onCambiarEstado} className="px-3 py-2">
+              {/* Desactivar es lo peligroso (rojo desde el principio, ADR-0358 ronda 7, como en la vista rápida de un producto); reactivar, no. */}
+              <Boton type="button" peso={p.activo ? "peligro" : "discreto"} cargando={cambiando} onClick={onCambiarEstado} className="px-3 py-2">
                 {p.activo ? "Desactivar" : "Reactivar"}
               </Boton>
               <span className="ml-auto flex items-center gap-1.5 text-xs tabular-nums text-tinta/55">
@@ -155,12 +157,9 @@ export function ProveedorVistaRapida({
                   <ChevronDown aria-hidden className="h-3.5 w-3.5" />
                 </button>
               </span>
-              <Link
-                href={`/compras/proveedores/${p.id}`}
-                className="btn-cayla btn-primario basis-full text-center"
-              >
-                Abrir ficha completa →
-              </Link>
+              <BotonVer href={`/compras/proveedores/${p.id}`} className="basis-full">
+                Abrir ficha completa
+              </BotonVer>
             </div>
           </div>
         </Dialog.Content>

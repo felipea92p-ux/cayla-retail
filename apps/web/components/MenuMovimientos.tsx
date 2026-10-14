@@ -15,7 +15,7 @@ export function MenuMovimientos({ hrefExportar }: { hrefExportar: string }) {
         items={[
           {
             clave: "exportar",
-            etiqueta: "Exportar a Excel",
+            etiqueta: "Descargar Excel",
             onSelect: () => {
               window.location.href = hrefExportar;
             },

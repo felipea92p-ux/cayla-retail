@@ -5,8 +5,20 @@
 
 const OPCIONES = { method: "POST", headers: { "Content-Type": "application/json", "x-espera": "no" }, keepalive: true } as const;
 
-/** Declara la boleta o factura de una venta recién cobrada. */
+/** Las ventas que esta pestaña ya mandó a declarar: una ráfaga de clics en «Cobrar» devuelve la MISMA venta varias veces (el
+ *  token), y cada respuesta disparaba otro envío a Lucode (/chaos 2026-10-13, DC-02). Con esto sale uno solo por venta. */
+const yaEnviadas = new Set<string>();
+
+/** ¿Es la primera vez que esta pestaña manda esta venta? (La anota.) */
+export function primeraVez(ventaId: string, enviadas: Set<string> = yaEnviadas): boolean {
+  if (enviadas.has(ventaId)) return false;
+  enviadas.add(ventaId);
+  return true;
+}
+
+/** Declara la boleta o factura de una venta recién cobrada (una sola vez por venta en esta pestaña). */
 export function enviarVentaASunat(ventaId: string): void {
+  if (!primeraVez(ventaId)) return;
   fetch("/api/lucode/emitir", { ...OPCIONES, body: JSON.stringify({ venta_id: ventaId }) }).catch(() => {
     // Sin red: el comprobante sigue `pendiente` y lo recoge el próximo barrido.
   });

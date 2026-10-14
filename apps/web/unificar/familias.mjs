@@ -421,8 +421,13 @@ export const DECISIONES = {
     "tambien": ["app/globals.css"],
     "firmas": [
       // Un enlace o un botón sutil teñido de rojo a mano para borrar o anular: va btn-peligro.
-      "\\bbtn-(?:sutil|enlace)\\b[^\"'`]*\\btext-rojo"
+      "\\bbtn-(?:sutil|enlace)\\b[^\"'`]*\\btext-rojo",
+      // Desactivar, eliminar, anular, borrar o archivar escrito como enlace (dentro de una frase): es un <Boton peso="peligro"> en el
+      // pie de la hoja, como en Categorías, Familias, Colores y Proveedores (ronda 9, 2026-10-13). «Archivados (3)», que muestra
+      // lo archivado, no es la acción (`(?!d)`).
+      "\\bbtn-enlace\\b[^\\n]*(?:\\n[^\\n]*){0,3}?\\n\\s*(?:\\{[^}\\n]*\\?\\s*\")?(?:Desactiv|Elimin|Anul|Borr|Archiv)(?:ar|a)(?!d)\\w*"
     ],
+    "ventana": 4,
     "deuda": []
   },
   "accion.cerrar": {
@@ -468,7 +473,12 @@ export const DECISIONES = {
     "elegida": "P1 · el ícono de lo que falta que se dibuja, título serif, frase que dice qué hacer y el botón (grande y chico); al no encontrar, dice qué se buscó y deja deshacerlo ahí; elegida tocándola el 2026-10-08",
     "pieza": "components/ui/Vacio.tsx",
     "tambien": ["app/estilos/vacio-aviso-buscador.css"],
+    "ventana": 2,
     "firmas": [
+      // La frase gris suelta que dice que no hay nada («Sin ventas todavía.», «No hay separaciones abiertas.», «Ninguna cuenta tiene
+      // este rol»), con el texto en su línea o en la siguiente: el censo de mostrador (2026-10-13) encontró 49 que las firmas de abajo,
+      // atadas a una clase exacta, no veían. «Nada se guarda todavía» explica, no es un vacío; otra frase que explica lleva su unificar-fijo.
+      "<(?:p|div)\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:tinta\\/(?:4|5|6)[05]|taupe(?:\\/\\d+)?)(?![\\w-])[^\"'`]*[\"'`]\\}?[^>]*>\\s*(?:Sin |Ningún|Ninguna|Ninguno|Nada (?!se guard)|Todavía no|No hay|Aún no (?!se guard))",
       // La frase en cursiva serif (B) y su versión «SinCoincidencias».
       "\\bfont-display\\b[^\"'`]*\\bitalic\\b[^\"'`]*\\btext-tinta\\/6[05]\\b",
       // La frase gris suelta de <Tabla> y sus primas (A), la centrada gris clara de Caja y la cursiva chica.
@@ -538,7 +548,10 @@ export const DECISIONES = {
       // CSS (`[type="checkbox"]`) ni el input escondido que solo guarda un estado (`sr-only`, el «ver más» del Inicio).
       "(?<!\\[)type=(?:\"checkbox\"|\\{\"checkbox\"\\})(?![^\\n]*\\bsr-only\\b)",
       // Un interruptor hecho a mano (la pieza es <Interruptor>).
-      "(?<!\\[)role=\"switch\""
+      "(?<!\\[)role=\"switch\"",
+      // Una casilla invisible que mueve una cara dibujada a mano con `peer-checked:` (la casilla propia de Por pagar, el «Es un regalo» de
+      // Recepción): es <Casilla> o <Interruptor>. Encontradas al rastrear el censo de después (2026-10-13).
+      "(?<!\\[)type=(?:\"checkbox\"|\\{\"checkbox\"\\})[^\\n]*\\bpeer\\b"
     ],
     "excepciones": [
       { "archivo": "components/finanzas/EscenariosPanel.tsx", "motivo": "ADR-0195: Finanzas se dibuja como su spike; la casilla es la de la opción en tarjeta del kit (fin-opcion-esc)" },
@@ -595,7 +608,9 @@ export const DECISIONES = {
       "\\bunderline\\b[^\"'`]*\\bdecoration-tinta\\/\\d+",
       "\\bhover:text-rojo(?:-profundo)?\\b[^\"'`]*\\bhover:underline\\b|\\bhover:underline\\b[^\"'`]*\\bhover:text-rojo",
       // La flecha escrita a mano al final de un `btn-enlace` («Ver traslados →»): un enlace que lleva a ver más es <EnlaceVer>.
-      "\\bbtn-enlace\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/)"
+      "\\bbtn-enlace\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/)",
+      // Lo mismo en versalitas a mano («Ver los 11 →», «Ver todas las sedes →»): encontradas por el censo de después (2026-10-13).
+      "\\blabel-cayla\\b[^\\n]*(?:\\n[^\\n]*){0,3}?[^\\n]*→\\s*(?:\\{|<\\/|\\n|$)"
     ],
     "ventana": 4,
     "deuda": [],
@@ -614,9 +629,7 @@ export const DECISIONES = {
       // Un encabezado de tabla a mano (sus títulos con `role="columnheader"`): el encabezado es <Encabezado>.
       "role=\"columnheader\""
     ],
-    "deuda": [
-      "components/conteo/ListaConteo.tsx"
-    ],
+    "deuda": [],
     "excepciones": [
       { "archivo": "app/estilos/finanzas.css", "motivo": "ADR-0195: el CSS del kit de Finanzas (su comentario nombra la tabla del spike)" },
       { "archivo": "components/ConfiguracionCargaInicial.tsx", "motivo": "ADR-0195: la tabla del kit de Finanzas (fin-tabla), decidida a propósito; Felipe no la unió en la ronda 7" },
@@ -662,13 +675,15 @@ export const DECISIONES = {
     "pieza": "components/ui/TituloSeccion.tsx",
     "tambien": ["app/estilos/titulos.css"],
     "firmas": [
+      // Cuántos hay en un bloque, puesto a la derecha como si fuera un resumen: va en `cuenta`, el globito pegado al nombre (ronda 9).
+      "<TituloSeccion\\b(?:[^>]|=>)*?\\bdato=\\{<b>\\{[\\w.]+\\.length\\}<\\/b>\\}",
       // Un título de bloque en serif dibujado a mano (de 18 a 24 px): es <TituloSeccion>.
       "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\bfont-(?:display|serif)\\b[^\"'`]*\\btext-(?:lg|xl|2xl|\\[(?:1[89]|2[0-4])(?:\\.5)?px\\])",
       "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:lg|xl|2xl|\\[(?:1[89]|2[0-4])(?:\\.5)?px\\])[^\"'`]*\\bfont-(?:display|serif)\\b",
       // Un título en versalitas a mano (`label-cayla` en un h2/h3/h4): de bloque, <TituloSeccion>; de grupo, <TituloGrupo>.
       "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\blabel-cayla\\b",
       // Un título en sans seminegrita a mano (13 a 16 px).
-      "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:sm|base|\\[1[3-6](?:\\.5)?px\\])\\b[^\"'`]*\\bfont-(?:semibold|medium|bold)\\b"
+      "<h[234]\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:sm|base|\\[1[3-6](?:\\.5)?px\\])(?![\\w-])[^\"'`]*\\bfont-(?:semibold|medium|bold)\\b"
     ],
     "deuda": [],
     "excepciones": [
@@ -723,18 +738,14 @@ export const DECISIONES = {
     "registro": "docs/unificar/campo-combo.md",
     "elegida": "P1 · el combo es la misma caja que se enciende (el chevron gira y se pone rojo, el valor elegido entra subiendo); P1 · una lista para todo combo: la elegida con el hilo rojo de canto y su ✓ que se dibuja, cascada hasta 8, buscador fijo con su lupa; elegidas tocándolas el 2026-10-13",
     "pieza": "components/ui/campos.tsx",
-    "tambien": ["app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css"],
+    "tambien": ["app/globals.css", "components/ui/ComboBuscable.tsx", "components/ComboResponsable.tsx", "components/ui/FiltrosPildora.tsx", "components/ui/useCombo.ts", "app/estilos/campos-y-casillas.css", "components/ui/ListaSugerencias.tsx"],
     "firmas": [
       // Un combo o una lista desplegable hecha a mano (la regla de combos ya era una, ADR-0209; ahora también su cara).
       "role=\"combobox\"",
       "role=\"listbox\"",
       "\\blista-flotante\\b"
     ],
-    "deuda": [
-      "components/LlegoMercaderia.tsx",
-      "components/RecepcionEnvio.tsx",
-      "components/RegistrarNotaCreditoModal.tsx"
-    ],
+    "deuda": [],
     "excepciones": [
       { "archivo": "components/finanzas/kit.tsx", "motivo": "ADR-0195: el kit de Finanzas (fin-control, SelectFin) queda como está; con la caja de la ronda 6 está a 4 px de ser igual y Felipe dice si se une" },
       { "archivo": "app/estilos/alta-guia.css", "motivo": "la guía de foco (ADR-0284) busca los controles por su rol o su etiqueta: no dibuja ninguno" },
@@ -771,7 +782,57 @@ export const DECISIONES = {
       // El título de Campo copiado a mano (versalitas sobre una caja): es <Campo> o la clase `campo-etiqueta`.
       "\\blabel-cayla block text-\\[11px\\] text-tinta\\/(?:6\\d|7\\d)\\b",
       // Un título de campo en letra normal hecho a mano: un <label> de 12 a 14 px con peso.
-      "<label\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:xs|sm|\\[1[234](?:\\.5)?px\\])\\b[^\"'`]*\\bfont-(?:medium|semibold)\\b"
+      "<label\\b[^>]*className=[\"'{`][^\"'`]*\\btext-(?:xs|sm|\\[1[234](?:\\.5)?px\\])(?![\\w-])[^\"'`]*\\bfont-(?:medium|semibold)\\b"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.exportar": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.exportar.md",
+    "elegida": "P1 · «Descargar» + qué («Descargar Excel», «Descargar CSV», «Descargar reporte del ajuste»), nunca «Exportar» ni solo un ícono: el botón secundario con el ícono de descarga que BAJA 2 px al pasar el mouse y el hilo mientras se arma el archivo; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/BotonDescargar.tsx",
+    "tambien": ["app/globals.css"],
+    "firmas": [
+      // El ícono de descarga dibujado fuera de la pieza (un botón a mano o solo un ícono): es <BotonDescargar>.
+      "<Download\\b",
+      // «Exportar» como texto de un botón, un ítem de menú o una etiqueta: el verbo es «Descargar».
+      "^\\s*Exportar\\b|>\\s*Exportar\\b|etiqueta: \"Exportar|aria-label=\"Exportar"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.filtrar": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.filtrar.md",
+    "elegida": "P1 · una píldora más: «Filtros» con la cara de las píldoras que abre (borde arena, su ícono, su nombre en letra normal; abierta, borde tinta y la flecha roja) y cuántos hay puestos en el globito de los títulos; en el celular, solo el ícono con su punto; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/FiltrosPildora.tsx",
+    "tambien": ["app/estilos/campos-y-casillas.css"],
+    "ventana": 3,
+    "firmas": [
+      // Un botón de filtros hecho a mano (el ícono de deslizadores y «Filtros» al lado): es <BotonFiltros>.
+      "\\bSlidersHorizontal\\b[^\\n]*(?:\\n[^\\n]*){0,1}?\\n\\s*Filtros\\b",
+      // El conteo escrito («Filtros · 2»): va en el globito de la pieza.
+      "Filtros\\{[^}]*·"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.ver": {
+    "fecha": "2026-10-13",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.ver.md",
+    "elegida": "P1 · llevar a ver algo en otra pantalla es siempre el botón secundario con la flecha a la derecha que avanza 4 px (<BotonVer>), nunca negro ni con «→» escrito; dentro de una frase, el enlace; junto a un resumen, <EnlaceVer>; elegida tocándola el 2026-10-13",
+    "pieza": "components/ui/BotonDescargar.tsx",
+    "tambien": [],
+    "ventana": 6,
+    "firmas": [
+      // Un botón NEGRO que solo lleva a otra pantalla («Ver en Existencias», «Ir a Caja», «Abrir ficha completa»): es <BotonVer>.
+      "<(?:Link|BotonEnlace|a)\\b[^>]*?(?:\\bbtn-primario\\b|peso=\"primario\")[^>]*>\\s*\\n(?:\\s*<[^>]*\\/>\\s*\\n)?\\s*(?:Ver|Ir a|Abrir ficha)\\b",
+      // «→» escrito a mano en un botón del sistema que lleva a otro lado: la flecha la dibuja la pieza.
+      "\\bbtn-(?:primario|secundario|sutil)\\b[^\\n]*(?:\\n[^\\n]*){0,2}?\\n\\s*(?:Ver|Ir a|Abrir)\\b[^\\n]*→"
     ],
     "deuda": [],
     "excepciones": []
