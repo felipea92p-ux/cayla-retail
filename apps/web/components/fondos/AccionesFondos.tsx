@@ -11,6 +11,9 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { leerMonto } from "@/lib/caja-cierre-reglas";
@@ -44,8 +47,9 @@ import { diaMes } from "@/lib/fechas-lima";
 // además impide que alguien mueva su propio fondo desde aquí (ni con su cuenta ni eligiéndose en el combo): la pantalla ya no lo ofrece
 // (la persona sale en la lista pero no se elige; su fila no lleva «Registrar devolución» ni «Anular»), y si igual llegara, lo dice.
 //
-// Un doble clic no duplica: el candado se pone en el mismo tick y la base recibe un token por hoja (`p_token`): un reintento tras un
-// corte de señal devuelve el MISMO movimiento.
+// Un doble clic no duplica y un reintento tras un corte no cambia lo que se guarda: la marca de cada envío sigue a lo que se manda
+// (`useIntento`, /chaos 2026-10-14). Si la respuesta se pierde, la hoja se congela («No sabemos si se guardó») hasta reenviar lo mismo o
+// preguntarle a la base; corregir el monto antes de saber qué pasó ya no anuncia lo que no se guardó.
 
 type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
 
@@ -89,10 +93,13 @@ function EntregarFondoModal({ opciones, onClose, volverA }: { opciones: Opciones
   const [cuentaId, setCuentaId] = useState("");
   const [monto, setMonto] = useState("");
   const [motivo, setMotivo] = useState("");
-  const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
-  const [token] = useState(() => crypto.randomUUID());
-  const enVuelo = useRef(false);
+  // La marca sigue a lo que se manda (`useIntento`, /chaos 2026-10-14): si la respuesta se pierde, la hoja se congela hasta saber qué
+  // pasó; nunca se manda otra cosa con la misma marca ni se anuncia algo distinto de lo que guardó la base.
+  const intento = useIntento("entregar_fondo");
+  const guardando = intento.enviando;
+  const congelada = intento.incierto;
+  const [revisando, setRevisando] = useState(false);
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
 
@@ -112,39 +119,45 @@ function EntregarFondoModal({ opciones, onClose, volverA }: { opciones: Opciones
   };
 
   async function confirmar() {
-    if (guardando || enVuelo.current) return;
-    if (!guia.puedeConfirmar) {
+    if (guardando) return;
+    if (!congelada && !guia.puedeConfirmar) {
       const ahora = guia.ahora ?? guia.faltan[0]?.id;
       if (ahora) guia.ir(ahora);
       return;
     }
-    enVuelo.current = true;
-    try {
-      setGuardando(true);
-      setRechazo(null);
-      const firma = esPersona ? firmaOmitida("fondo_entregar") : responsable.firma();
-      const { id, error } = await entregarFondo(
-        { p_persona_id: personaId, p_cuenta_origen_id: cuentaId, p_monto: montoLeido ?? 0, p_motivo: motivo.trim(), p_token: token },
-        firma,
-      );
-      setGuardando(false);
-      if (!esPersona) responsable.despues(error);
-      if (error || !id) {
-        setRechazo(rechazoDe(error, "entregar la plata"));
-        return;
-      }
-      avisar.exito(`Le entregaste ${soles(montoLeido ?? 0)} a ${primerNombre(persona?.nombre ?? "")}`, {
-        detalle: "Ya está en su fondo: aquí ves cuánto tiene en la mano.",
-      });
-      onClose();
-      router.refresh();
-    } finally {
-      enVuelo.current = false;
-    }
+    setRechazo(null);
+    const firma = esPersona ? firmaOmitida("fondo_entregar") : responsable.firma();
+    const args = { p_persona_id: personaId, p_cuenta_origen_id: cuentaId, p_monto: montoLeido ?? 0, p_motivo: motivo.trim() };
+    const r = await intento.enviar(huellaDe(args), (token, senal) => entregarFondo(args, firma, token, senal));
+    if (r.tipo === "ocupado") return;
+    if (r.tipo === "congelado") return avisarCongelado(avisar);
+    if (!esPersona) responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") return setRechazo(rechazoDe(r.error, "entregar la plata"));
+    entregada();
+  }
+
+  // Lo que se anuncia es lo que se mandó: con la hoja congelada mientras estuvo en duda, es lo mismo que guardó la base.
+  function entregada() {
+    avisar.exito(`Le entregaste ${soles(montoLeido ?? 0)} a ${primerNombre(persona?.nombre ?? "")}`, {
+      detalle: "Ya está en su fondo: aquí ves cuánto tiene en la mano.",
+    });
+    onClose();
+    router.refresh();
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return entregada();
+    if (res.tipo === "no_llego") return avisar.aviso("La entrega no se registró", { detalle: "No quedó nada guardado: revisa los datos y vuelve a entregar." });
+    avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
   }
 
   return (
-    <Modal titulo="Entregar plata" subtitulo="Para que compre: queda en su fondo hasta que la rinda." onClose={onClose} variante="hoja" alCerrarEnfocar={volverA}>
+    <Modal titulo="Entregar plata" subtitulo="Para que compre: queda en su fondo hasta que la rinda." onClose={onClose} variante="hoja" alCerrarEnfocar={volverA} bloqueado={guardando || congelada}>
       {(cerrar) => (
         <form
           onSubmit={(e) => {
@@ -153,6 +166,7 @@ function EntregarFondoModal({ opciones, onClose, volverA }: { opciones: Opciones
           }}
           className="space-y-5"
         >
+          <fieldset disabled={congelada} className="campos-congelables min-w-0 space-y-5">
           <CampoGuiado id="persona" guia={guia} titulo="¿A quién le entregas?">
             <CampoSelect
               etiqueta="¿A quién le entregas?"
@@ -204,18 +218,23 @@ function EntregarFondoModal({ opciones, onClose, volverA }: { opciones: Opciones
               <ComboResponsable control={responsable} deshabilitado={guardando} />
             </CampoGuiado>
           )}
-          {rechazo && (
-            <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
-              {rechazo.texto}
-            </Aviso>
+          </fieldset>
+          {congelada ? (
+            <AvisoIntentoIncierto onRevisar={() => void revisar()} revisando={revisando} />
+          ) : (
+            rechazo && (
+              <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
+                {rechazo.texto}
+              </Aviso>
+            )
           )}
           <PieGuia guia={guia} listo="Todo listo para entregar." conFrase />
           <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
-            <Boton type="button" onClick={cerrar} disabled={guardando}>
+            <Boton type="button" onClick={cerrar} disabled={guardando || congelada}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Entregando…" : fraseEntregar(montoLeido, persona?.nombre ?? null)}
+            <Boton type="submit" peso="primario" cargando={guardando} disabled={!congelada && !guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {guardando ? "Entregando…" : congelada ? "Volver a intentar" : fraseEntregar(montoLeido, persona?.nombre ?? null)}
             </Boton>
           </div>
         </form>
@@ -261,10 +280,13 @@ function DevolverFondoModal({
   const [cuentaId, setCuentaId] = useState("");
   const [monto, setMonto] = useState("");
   const [nota, setNota] = useState("");
-  const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
-  const [token] = useState(() => crypto.randomUUID());
-  const enVuelo = useRef(false);
+  // La marca sigue a lo que se manda (`useIntento`, /chaos 2026-10-14): si la respuesta se pierde, la hoja se congela hasta saber qué
+  // pasó; nunca se manda otra cosa con la misma marca ni se anuncia algo distinto de lo que guardó la base.
+  const intento = useIntento("devolver_fondo");
+  const guardando = intento.enviando;
+  const congelada = intento.incierto;
+  const [revisando, setRevisando] = useState(false);
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
   const nombre = primerNombre(fondo.persona);
@@ -273,33 +295,37 @@ function DevolverFondoModal({
   const montoLeido = leerMonto(monto);
 
   async function confirmar() {
-    if (guardando || enVuelo.current) return;
-    if (!guia.puedeConfirmar) {
+    if (guardando) return;
+    if (!congelada && !guia.puedeConfirmar) {
       const ahora = guia.ahora ?? guia.faltan[0]?.id;
       if (ahora) guia.ir(ahora);
       return;
     }
-    enVuelo.current = true;
-    try {
-      setGuardando(true);
-      setRechazo(null);
-      const firma = esPersona ? firmaOmitida("fondo_devolver") : responsable.firma();
-      const { id, error } = await devolverFondo(
-        { p_persona_id: fondo.personaId, p_cuenta_destino_id: cuentaId, p_monto: montoLeido ?? 0, p_nota: nota.trim() || null, p_token: token },
-        firma,
-      );
-      setGuardando(false);
-      if (!esPersona) responsable.despues(error);
-      if (error || !id) {
-        setRechazo(rechazoDe(error, "registrar lo devuelto"));
-        return;
-      }
-      avisar.exito(`${nombre} devolvió ${soles(montoLeido ?? 0)}`, { detalle: "Ya no cuenta en su fondo." });
-      onClose();
-      router.refresh();
-    } finally {
-      enVuelo.current = false;
-    }
+    setRechazo(null);
+    const firma = esPersona ? firmaOmitida("fondo_devolver") : responsable.firma();
+    const args = { p_persona_id: fondo.personaId, p_cuenta_destino_id: cuentaId, p_monto: montoLeido ?? 0, p_nota: nota.trim() || null };
+    const r = await intento.enviar(huellaDe(args), (token, senal) => devolverFondo(args, firma, token, senal));
+    if (r.tipo === "ocupado") return;
+    if (r.tipo === "congelado") return avisarCongelado(avisar);
+    if (!esPersona) responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") return setRechazo(rechazoDe(r.error, "registrar lo devuelto"));
+    registrada();
+  }
+
+  function registrada() {
+    avisar.exito(`${nombre} devolvió ${soles(montoLeido ?? 0)}`, { detalle: "Ya no cuenta en su fondo." });
+    onClose();
+    router.refresh();
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return registrada();
+    if (res.tipo === "no_llego") return avisar.aviso("La devolución no se registró", { detalle: "No quedó nada guardado: revisa los datos y vuelve a registrarla." });
+    avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
   }
 
   return (
@@ -309,6 +335,7 @@ function DevolverFondoModal({
       onClose={onClose}
       variante="hoja"
       alCerrarEnfocar={volverA}
+      bloqueado={guardando || congelada}
     >
       {(cerrar) => (
         <form
@@ -318,6 +345,7 @@ function DevolverFondoModal({
           }}
           className="space-y-5"
         >
+          <fieldset disabled={congelada} className="campos-congelables min-w-0 space-y-5">
           <p className="text-sm text-tinta/75">Lo registra quien recibe la plata, no quien la devuelve.</p>
           <CampoGuiado id="cuenta" guia={guia} titulo="¿A dónde vuelve la plata?">
             <CampoSelect
@@ -364,18 +392,23 @@ function DevolverFondoModal({
               <ComboResponsable control={responsable} deshabilitado={guardando} />
             </CampoGuiado>
           )}
-          {rechazo && (
-            <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
-              {rechazo.texto}
-            </Aviso>
+          </fieldset>
+          {congelada ? (
+            <AvisoIntentoIncierto onRevisar={() => void revisar()} revisando={revisando} />
+          ) : (
+            rechazo && (
+              <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
+                {rechazo.texto}
+              </Aviso>
+            )
           )}
           <PieGuia guia={guia} listo="Todo listo para registrar." conFrase />
           <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
-            <Boton type="button" onClick={cerrar} disabled={guardando}>
+            <Boton type="button" onClick={cerrar} disabled={guardando || congelada}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Registrando…" : fraseDevolver(montoLeido)}
+            <Boton type="submit" peso="primario" cargando={guardando} disabled={!congelada && !guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {guardando ? "Registrando…" : congelada ? "Volver a intentar" : fraseDevolver(montoLeido)}
             </Boton>
           </div>
         </form>
@@ -564,10 +597,13 @@ function PagarDeudaFondoModal({
   const [cuentaId, setCuentaId] = useState("");
   const [monto, setMonto] = useState("");
   const [nota, setNota] = useState("");
-  const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
-  const [token] = useState(() => crypto.randomUUID());
-  const enVuelo = useRef(false);
+  // La marca sigue a lo que se manda (`useIntento`, /chaos 2026-10-14): si la respuesta se pierde, la hoja se congela hasta saber qué
+  // pasó; nunca se manda otra cosa con la misma marca ni se anuncia algo distinto de lo que guardó la base.
+  const intento = useIntento("pagar_deuda_fondo");
+  const guardando = intento.enviando;
+  const congelada = intento.incierto;
+  const [revisando, setRevisando] = useState(false);
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
   const nombre = primerNombre(deuda.persona);
@@ -578,35 +614,39 @@ function PagarDeudaFondoModal({
   const reparto = deuda.deudas.length > 1 && montoLeido != null && montoLeido > 0 && montoLeido <= deuda.debe + 0.005 ? repartoDelPago(montoLeido, deuda.deudas) : [];
 
   async function confirmar() {
-    if (guardando || enVuelo.current) return;
-    if (!guia.puedeConfirmar) {
+    if (guardando) return;
+    if (!congelada && !guia.puedeConfirmar) {
       const ahora = guia.ahora ?? guia.faltan[0]?.id;
       if (ahora) guia.ir(ahora);
       return;
     }
-    enVuelo.current = true;
-    try {
-      setGuardando(true);
-      setRechazo(null);
-      const firma = esPersona ? firmaOmitida("fondo_deuda_pagar") : responsable.firma();
-      const pagado = montoLeido ?? 0;
-      const { id, error } = await pagarDeudaFondo(
-        { p_persona_id: deuda.personaId, p_monto: pagado, p_cuenta_destino_id: cuentaId, p_nota: nota.trim() || null, p_token: token },
-        firma,
-      );
-      setGuardando(false);
-      if (!esPersona) responsable.despues(error);
-      if (error || !id) {
-        setRechazo(rechazoDe(error, "registrar el pago"));
-        return;
-      }
-      const queda = Math.round((deuda.debe - pagado) * 100) / 100;
-      avisar.exito(`${nombre} pagó ${soles(pagado)} de su deuda`, { detalle: queda > 0 ? `Todavía debe ${soles(queda)}.` : "Ya no debe nada." });
-      onClose();
-      router.refresh();
-    } finally {
-      enVuelo.current = false;
-    }
+    setRechazo(null);
+    const firma = esPersona ? firmaOmitida("fondo_deuda_pagar") : responsable.firma();
+    const args = { p_persona_id: deuda.personaId, p_monto: montoLeido ?? 0, p_cuenta_destino_id: cuentaId, p_nota: nota.trim() || null };
+    const r = await intento.enviar(huellaDe(args), (token, senal) => pagarDeudaFondo(args, firma, token, senal));
+    if (r.tipo === "ocupado") return;
+    if (r.tipo === "congelado") return avisarCongelado(avisar);
+    if (!esPersona) responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") return setRechazo(rechazoDe(r.error, "registrar el pago"));
+    pagada();
+  }
+
+  function pagada() {
+    const pagado = montoLeido ?? 0;
+    const queda = Math.round((deuda.debe - pagado) * 100) / 100;
+    avisar.exito(`${nombre} pagó ${soles(pagado)} de su deuda`, { detalle: queda > 0 ? `Todavía debe ${soles(queda)}.` : "Ya no debe nada." });
+    onClose();
+    router.refresh();
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return pagada();
+    if (res.tipo === "no_llego") return avisar.aviso("El pago no se registró", { detalle: "No quedó nada guardado: revisa los datos y vuelve a registrarlo." });
+    avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
   }
 
   return (
@@ -616,6 +656,7 @@ function PagarDeudaFondoModal({
       onClose={onClose}
       variante="hoja"
       alCerrarEnfocar={volverA}
+      bloqueado={guardando || congelada}
     >
       {(cerrar) => (
         <form
@@ -625,6 +666,7 @@ function PagarDeudaFondoModal({
           }}
           className="space-y-5"
         >
+          <fieldset disabled={congelada} className="campos-congelables min-w-0 space-y-5">
           <p className="text-sm text-tinta/75">Lo registra quien recibe la plata, no quien la debe. La deuda baja apenas se guarda.</p>
           {deuda.deudas.length > 1 && (
             <ul className="divide-y divide-sand rounded-xl border border-sand text-sm" data-sin-cascada>
@@ -697,18 +739,23 @@ function PagarDeudaFondoModal({
               <ComboResponsable control={responsable} deshabilitado={guardando} />
             </CampoGuiado>
           )}
-          {rechazo && (
-            <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
-              {rechazo.texto}
-            </Aviso>
+          </fieldset>
+          {congelada ? (
+            <AvisoIntentoIncierto onRevisar={() => void revisar()} revisando={revisando} />
+          ) : (
+            rechazo && (
+              <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
+                {rechazo.texto}
+              </Aviso>
+            )
           )}
           <PieGuia guia={guia} listo="Todo listo para registrar." conFrase />
           <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
-            <Boton type="button" onClick={cerrar} disabled={guardando}>
+            <Boton type="button" onClick={cerrar} disabled={guardando || congelada}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Registrando…" : frasePagarDeuda(montoLeido)}
+            <Boton type="submit" peso="primario" cargando={guardando} disabled={!congelada && !guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {guardando ? "Registrando…" : congelada ? "Volver a intentar" : frasePagarDeuda(montoLeido)}
             </Boton>
           </div>
         </form>

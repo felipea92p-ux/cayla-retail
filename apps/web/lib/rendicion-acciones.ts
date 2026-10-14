@@ -36,12 +36,14 @@ export async function leerItems(rendicionId: string | null): Promise<{ items: It
   return { items: items.map((i) => ({ ...i, noDeducible: nd.get(i.clave) ?? null })), error: null };
 }
 
-export async function rendirFondo(
-  args: { p_efectivo: number; p_explicacion: string | null; p_token: string },
+/** Con la marca de `useIntento` (el token sigue a lo que se manda, 20261014194000) y la señal de corte. */
+export function rendirFondo(
+  args: { p_efectivo: number; p_explicacion: string | null },
   firma: Firma | FirmaOmitida | null,
-): Promise<{ id: string | null; error: ErrorDeBase }> {
-  const { data, error } = await firmar(createClient().rpc(RPC_RENDIR_FONDO as never, args as never), firma);
-  return { id: typeof data === "string" ? data : null, error: error ?? null };
+  token: string,
+  senal: AbortSignal,
+) {
+  return firmar(createClient().rpc(RPC_RENDIR_FONDO as never, { ...args, p_token: token } as never), firma).abortSignal(senal);
 }
 
 export async function aprobarRendicion(

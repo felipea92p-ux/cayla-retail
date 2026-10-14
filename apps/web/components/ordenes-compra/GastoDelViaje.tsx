@@ -17,8 +17,11 @@ import { CampoSaleDe, useCuentasParaElegir } from "@/components/finanzas/CampoCu
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { firmaOmitida } from "@/lib/responsable-omitido";
-import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
+import { traducirError } from "@/lib/error-escritura";
 import { leerMonto } from "@/lib/caja-cierre-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -59,7 +62,8 @@ import { leerOrdenesParaGastoDesdeLaHoja, registrarGastoViaje } from "@/lib/gast
 // a una (decisión 75): la última no se quita, y la base frena un gasto sin orden.
 //
 // Guía de foco (ADR-0284): lo que falta es lo MISMO que rechaza `registrar_gasto_viaje` (`camposGastoViaje`). Quién firma (decisión 39):
-// con la cuenta de una persona, ella (sin combo); desde una terminal, el combo «Responsable». Un doble clic no duplica (token por hoja).
+// con la cuenta de una persona, ella (sin combo); desde una terminal, el combo «Responsable». Un doble clic no duplica y un reintento no cambia lo
+// guardado: la marca de cada envío sigue a lo que se manda (`useIntento`, /chaos 2026-10-14).
 
 type OrdenInicial = Pick<OrdenParaGasto, "id" | "numero" | "proveedor" | "total">;
 type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
@@ -107,10 +111,13 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
   const [elegidas, setElegidas] = useState<string[]>(() => (orden ? [orden.id] : []));
   const [agregando, setAgregando] = useState(false);
   const [disponibles, setDisponibles] = useState<OrdenParaGasto[] | null>(null);
-  const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
-  const [token] = useState(() => crypto.randomUUID());
-  const enVuelo = useRef(false);
+  // La marca sigue a lo que se manda (`useIntento`, /chaos 2026-10-14): si la respuesta se pierde, la hoja se congela hasta saber qué
+  // pasó; cambiar el concepto o el monto antes ya no anuncia un gasto que no se guardó.
+  const intento = useIntento("registrar_gasto_viaje");
+  const guardando = intento.enviando;
+  const congelada = intento.incierto;
+  const [revisando, setRevisando] = useState(false);
 
   // Las órdenes para elegir: las más recientes que no están anuladas. La orden desde la que se abrió va primero aunque sea más vieja.
   useEffect(() => {
@@ -179,54 +186,55 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
   };
 
   async function confirmar() {
-    if (guardando || enVuelo.current) return;
-    if (!guia.puedeConfirmar) {
+    if (guardando) return;
+    if (!congelada && !guia.puedeConfirmar) {
       const ahora = guia.ahora ?? guia.faltan[0]?.id;
       if (ahora) guia.ir(ahora);
       return;
     }
-    enVuelo.current = true;
-    try {
-      setGuardando(true);
-      setRechazo(null);
-      const firma = esPersona ? firmaOmitida("gasto_viaje_registrar") : responsable.firma();
-      const conPapel = papel !== "planilla_movilidad";
-      const { id, error } = await registrarGastoViaje(
-        {
-          p_tipo: tipo,
-          p_concepto: concepto,
-          p_monto: montoLeido ?? 0,
-          p_fecha: fecha,
-          p_papel: papel,
-          p_medio_pago: medio,
-          p_cuenta_id: cuentaId,
-          p_ordenes: elegidas,
-          p_serie_numero: conPapel && serieNumero.trim() ? serieNumero.trim() : null,
-          p_ruc: conPapel && ruc.trim() ? ruc.trim() : null,
-          p_nota: nota.trim() || null,
-          p_token: token,
-        },
-        firma,
-      );
-      setGuardando(false);
-      if (!esPersona) responsable.despues(error);
-      if (error || !id) {
-        setRechazo(
-          error && esFalloDeRed(error)
-            ? { titulo: "Se cortó la conexión", texto: "No sabemos si alcanzó a guardarse. Vuelve a tocar el botón: si ya se guardó, no se repite.", tono: "atencion" }
-            : { titulo: "No se guardó", texto: traducirError(error, "registrar el gasto"), tono: "error" },
-        );
-        return;
-      }
-      const aDonde = elegidas.length === 1 ? `va a ${ordenes.find((o) => o.id === elegidas[0])?.numero ?? "la orden"}` : `se reparte entre ${elegidas.length} órdenes`;
-      avisar.exito(`Gasto de ${soles(montoLeido ?? 0)} registrado`, {
-        detalle: `${concepto ? TEXTO_CONCEPTO[concepto] : "Gasto"} · ${aDonde}.${deFondo ? " Salió de tu fondo." : ""}`,
-      });
-      onClose();
-      router.refresh();
-    } finally {
-      enVuelo.current = false;
-    }
+    setRechazo(null);
+    const firma = esPersona ? firmaOmitida("gasto_viaje_registrar") : responsable.firma();
+    const conPapel = papel !== "planilla_movilidad";
+    const args = {
+      p_tipo: tipo,
+      p_concepto: concepto,
+      p_monto: montoLeido ?? 0,
+      p_fecha: fecha,
+      p_papel: papel,
+      p_medio_pago: medio,
+      p_cuenta_id: cuentaId,
+      p_ordenes: elegidas,
+      p_serie_numero: conPapel && serieNumero.trim() ? serieNumero.trim() : null,
+      p_ruc: conPapel && ruc.trim() ? ruc.trim() : null,
+      p_nota: nota.trim() || null,
+    };
+    const r = await intento.enviar(huellaDe(args), (token, senal) => registrarGastoViaje(args, firma, token, senal));
+    if (r.tipo === "ocupado") return;
+    if (r.tipo === "congelado") return avisarCongelado(avisar);
+    if (!esPersona) responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") return setRechazo({ titulo: "No se guardó", texto: traducirError(r.error, "registrar el gasto"), tono: "error" });
+    registrado();
+  }
+
+  // Lo que se anuncia es lo que se mandó: mientras estuvo en duda, la hoja no se pudo cambiar.
+  function registrado() {
+    const aDonde = elegidas.length === 1 ? `va a ${ordenes.find((o) => o.id === elegidas[0])?.numero ?? "la orden"}` : `se reparte entre ${elegidas.length} órdenes`;
+    avisar.exito(`Gasto de ${soles(montoLeido ?? 0)} registrado`, {
+      detalle: `${concepto ? TEXTO_CONCEPTO[concepto] : "Gasto"} · ${aDonde}.${deFondo ? " Salió de tu fondo." : ""}`,
+    });
+    onClose();
+    router.refresh();
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return registrado();
+    if (res.tipo === "no_llego") return avisar.aviso("El gasto no se registró", { detalle: "No quedó nada guardado: revisa los datos y vuelve a registrarlo." });
+    avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
   }
 
   const conceptos = tipo ? CONCEPTOS_DE[tipo] : [];
@@ -242,6 +250,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
       // Ancha como Registrar gasto: con 5 conceptos y 4 papeles a la vista se elige de un toque, sin abrir desplegables.
       ancho="max-w-xl"
       alCerrarEnfocar={volverA}
+      bloqueado={guardando || congelada}
     >
       {(cerrar) => (
         <form
@@ -251,6 +260,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
           }}
           className="@container space-y-5"
         >
+          <fieldset disabled={congelada} className="campos-congelables min-w-0 space-y-5">
           <CampoGuiado id="tipo" guia={guia} titulo="¿Para qué fue?">
             <SegmentoDeslizante
               etiqueta="Para qué fue"
@@ -490,18 +500,23 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
               <ComboResponsable control={responsable} deshabilitado={guardando} />
             </CampoGuiado>
           )}
-          {rechazo && (
-            <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
-              {rechazo.texto}
-            </Aviso>
+          </fieldset>
+          {congelada ? (
+            <AvisoIntentoIncierto onRevisar={() => void revisar()} revisando={revisando} />
+          ) : (
+            rechazo && (
+              <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
+                {rechazo.texto}
+              </Aviso>
+            )
           )}
           <PieGuia guia={guia} listo="Todo listo para registrar." conFrase />
           <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
-            <Boton type="button" onClick={cerrar} disabled={guardando}>
+            <Boton type="button" onClick={cerrar} disabled={guardando || congelada}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Registrando…" : fraseRegistrarGasto(montoLeido)}
+            <Boton type="submit" peso="primario" cargando={guardando} disabled={!congelada && !guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {guardando ? "Registrando…" : congelada ? "Volver a intentar" : fraseRegistrarGasto(montoLeido)}
             </Boton>
           </div>
         </form>

@@ -14,6 +14,9 @@ import { avisar } from "@/components/ui/Avisos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { firmaOmitida } from "@/lib/responsable-omitido";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes, diaYHoraLima } from "@/lib/fechas-lima";
@@ -114,10 +117,13 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
   const [fallaLectura, setFallaLectura] = useState(false);
   const [efectivo, setEfectivo] = useState("");
   const [explicacion, setExplicacion] = useState("");
-  const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
-  const [token] = useState(() => crypto.randomUUID());
-  const enVuelo = useRef(false);
+  // La marca sigue a lo que se manda (`useIntento`, /chaos 2026-10-14): si la respuesta se pierde, el efectivo y la explicación se
+  // congelan hasta saber qué pasó; corregirlos antes ya no anuncia una rendición que no se guardó.
+  const intento = useIntento("rendir_fondo");
+  const guardando = intento.enviando;
+  const congelada = intento.incierto;
+  const [revisando, setRevisando] = useState(false);
 
   // Se vuelve a leer al subir una foto (cambia «Sin foto» a «Con foto»).
   const [vuelta, setVuelta] = useState(0);
@@ -142,35 +148,42 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
   const vacio = items !== null && items.length === 0 && !fallaLectura;
 
   async function confirmar() {
-    if (guardando || enVuelo.current) return;
-    if (!guia.puedeConfirmar || vacio) {
+    if (guardando) return;
+    if (!congelada && (!guia.puedeConfirmar || vacio)) {
       const ahora = guia.ahora ?? guia.faltan[0]?.id;
       if (ahora) guia.ir(ahora);
       return;
     }
-    enVuelo.current = true;
-    try {
-      setGuardando(true);
-      setRechazo(null);
-      const { id, error } = await rendirFondo(
-        {
-          p_efectivo: cuenta.efectivo ?? 0,
-          p_explicacion: cuenta.estado === "falta" && explicacion.trim() ? explicacion.trim() : null,
-          p_token: token,
-        },
-        firmaOmitida("fondo_rendir"),
-      );
-      setGuardando(false);
-      if (error || !id) {
-        setRechazo(rechazoDe(error, "rendir tu fondo"));
-        return;
-      }
-      avisar.exito("Rendiste tu fondo", { detalle: "Otra persona con Fondos por rendir la revisa. Mientras, puedes seguir comprando." });
-      onClose();
-      router.refresh();
-    } finally {
-      enVuelo.current = false;
-    }
+    setRechazo(null);
+    const args = {
+      p_efectivo: cuenta.efectivo ?? 0,
+      p_explicacion: cuenta.estado === "falta" && explicacion.trim() ? explicacion.trim() : null,
+    };
+    const r = await intento.enviar(huellaDe(args), (token, senal) => rendirFondo(args, firmaOmitida("fondo_rendir"), token, senal));
+    if (r.tipo === "ocupado") return;
+    if (r.tipo === "congelado") return avisarCongelado(avisar);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") return setRechazo(rechazoDe(r.error, "rendir tu fondo"));
+    rendida();
+  }
+
+  // Lo que se anuncia es lo que se mandó: mientras estuvo en duda, el efectivo no se pudo cambiar.
+  function rendida() {
+    avisar.exito(`Rendiste tu fondo con ${soles(cuenta.efectivo ?? 0)} en la mano`, {
+      detalle: "Otra persona con Fondos por rendir la revisa. Mientras, puedes seguir comprando.",
+    });
+    onClose();
+    router.refresh();
+  }
+
+  async function revisar() {
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return rendida();
+    if (res.tipo === "no_llego") return avisar.aviso("La rendición no se guardó", { detalle: "No quedó nada guardado: revisa lo que tienes en la mano y vuelve a rendir." });
+    avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
   }
 
   const fila = (texto: string, monto: string, fuerte = false) => (
@@ -188,6 +201,7 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
       variante="hoja"
       ancho="max-w-xl"
       alCerrarEnfocar={volverA}
+      bloqueado={guardando || congelada}
     >
       {(cerrar) => (
         <form
@@ -223,7 +237,7 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
               Todo lo que pagaste y gastaste ya está en una rendición.
             </Aviso>
           ) : (
-            <>
+            <fieldset disabled={congelada} className="campos-congelables min-w-0 space-y-5">
               <CampoGuiado id="efectivo" guia={guia} titulo="¿Cuánto tienes en la mano?">
                 <CampoMonto
                   etiqueta="¿Cuánto tienes en la mano?"
@@ -264,22 +278,26 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
                   <p className="mt-1.5 text-xs text-taupe">Con tu explicación, quien revisa decide si lo asume CAYLA; sin ella, queda como deuda tuya.</p>
                 </CampoGuiado>
               )}
-            </>
+            </fieldset>
           )}
 
-          {rechazo && (
-            <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
-              {rechazo.texto}
-            </Aviso>
+          {congelada ? (
+            <AvisoIntentoIncierto onRevisar={() => void revisar()} revisando={revisando} />
+          ) : (
+            rechazo && (
+              <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
+                {rechazo.texto}
+              </Aviso>
+            )
           )}
           {!vacio && <PieGuia guia={guia} listo="Todo listo para rendir." conFrase />}
           <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
-            <Boton type="button" onClick={cerrar} disabled={guardando}>
+            <Boton type="button" onClick={cerrar} disabled={guardando || congelada}>
               Cancelar
             </Boton>
             {!vacio && (
-              <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar || items === null} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-                {guardando ? "Rindiendo…" : fraseRendir(cuenta)}
+              <Boton type="submit" peso="primario" cargando={guardando} disabled={!congelada && (!guia.puedeConfirmar || items === null)} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+                {guardando ? "Rindiendo…" : congelada ? "Volver a intentar" : fraseRendir(cuenta)}
               </Boton>
             )}
           </div>

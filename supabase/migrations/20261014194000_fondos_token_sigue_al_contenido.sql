@@ -27,7 +27,8 @@
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe). Una sola parte, solo funciones, después de 20261014193000. Reemplazos ANCLADOS:
 -- las cinco funciones del fondo tienen la misma huella en el banco `cayla-oc` y en producción (2026-10-14); `fn_resolver_intento` NO
--- (producción ya conoce las operaciones de Inventario, 20261014171040), así que sus anclas son líneas que están en las dos versiones,
+-- (producción ya conoce las operaciones de Inventario, 20261014162000, pegada como 20261014171040), así que sus anclas son líneas que
+-- están en las dos versiones,
 -- cada una una sola vez. Si algo cambió, aborta sin cambiar nada. Idempotente. Sin `select … into` dentro de textos entre comillas.
 -- ============================================================================
 set search_path = retail, public, extensions;

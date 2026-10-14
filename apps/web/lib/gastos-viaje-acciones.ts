@@ -6,12 +6,12 @@ import { RPC_ORDENES_PARA_GASTO, RPC_REGISTRAR_GASTO_VIAJE, leerOrdenesParaGasto
 
 // Gastos del viaje (ADR-0362, fase 6 · actividad 3): lo que la hoja le pide a la base. Las reglas viven en `registrar_gasto_viaje`
 // (20261013222000); aquí solo se arma la llamada con su firma: con la cuenta de una persona, `firmaOmitida("gasto_viaje_registrar")`
-// (firma ella, sin combo); desde una terminal, la del combo «Responsable» (decisión 39). El `p_token` lo genera la hoja una vez: un doble
-// clic o un reintento tras un corte devuelve el MISMO gasto.
+// (firma ella, sin combo); desde una terminal, la del combo «Responsable» (decisión 39). El `p_token` es la marca de `useIntento`
+// (/chaos 2026-10-14, 20261014194000): sigue a lo que se manda; lo mismo devuelve el MISMO gasto, otra cosa es `token_reusado`.
 
 export type { ErrorDeBase };
 
-export async function registrarGastoViaje(
+export function registrarGastoViaje(
   args: {
     p_tipo: string;
     p_concepto: string;
@@ -24,12 +24,12 @@ export async function registrarGastoViaje(
     p_serie_numero: string | null;
     p_ruc: string | null;
     p_nota: string | null;
-    p_token: string;
   },
   firma: Firma | FirmaOmitida | null,
-): Promise<{ id: string | null; error: ErrorDeBase }> {
-  const { data, error } = await firmar(createClient().rpc(RPC_REGISTRAR_GASTO_VIAJE as never, args as never), firma);
-  return { id: typeof data === "string" ? data : null, error: error ?? null };
+  token: string,
+  senal: AbortSignal,
+) {
+  return firmar(createClient().rpc(RPC_REGISTRAR_GASTO_VIAJE as never, { ...args, p_token: token } as never), firma).abortSignal(senal);
 }
 
 /** Las órdenes que se pueden elegir (`fn_`: el loader general no bloquea la hoja). Si la base no contesta, la hoja sigue sin la lista. */
