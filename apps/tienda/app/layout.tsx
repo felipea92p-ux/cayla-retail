@@ -1,6 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { EB_Garamond, DM_Sans } from "next/font/google";
+import { Suspense } from "react";
+import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import "./globals.css";
+// Las páginas de la cuenta (crear, entrar, recuperar, «Mi cuenta», privacidad y términos) y el aviso «Listo: …», que también
+// sale en la portada al salir de la cuenta.
+import "./estilos/cuenta.css";
 
 // Las mismas dos letras del ERP y de la marca: EB Garamond para títulos, DM Sans para el texto.
 const serif = EB_Garamond({ subsets: ["latin"], variable: "--font-eb-garamond", display: "swap" });
@@ -22,7 +27,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={`${serif.variable} ${sans.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Lee la dirección en el navegador: en una página guardada en caché (la portada) va dentro de su Suspense. */}
+        <Suspense fallback={null}>
+          <AvisoDeLaUrl />
+        </Suspense>
+      </body>
     </html>
   );
 }

@@ -1,11 +1,13 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
-import { advertenciasDe, consultarPadron, leerSunatPublico, normalizarRespuestaPadron, reiniciarSunatPublico } from "./padron";
+import { leerSunatPublico, normalizarRespuestaPadron, reiniciarSunatPublico } from "@cayla-retail/shared/padron";
+import { advertenciasDe, consultarPadron } from "./padron";
 
 // Estas pruebas cubren la pieza que se rompe cuando un proveedor del padrón
 // cambia de formato — sin gastar consultas reales, que se pagan. Los objetos de
 // abajo son las formas documentadas por cada proveedor (ver comentarios en
-// lib/padron.ts): si mañana se agrega un cuarto proveedor, se agrega su caso
-// aquí y se ve de inmediato si el resto sigue funcionando.
+// packages/shared/src/padron.ts): si mañana se agrega un cuarto proveedor, se agrega su caso
+// aquí y se ve de inmediato si el resto sigue funcionando. `consultarPadron` se prueba por
+// `./padron`, el que usa el ERP: así también se prueba que le pasa sus variables PADRON_*.
 
 describe("normalizarRespuestaPadron — RUC", () => {
   it("lee el formato de Decolecta / apis.net.pe", () => {

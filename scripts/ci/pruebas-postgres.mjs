@@ -174,6 +174,11 @@ export const PRUEBAS = [
   // campaña vigente. ROLLBACK.
   "pruebas:tienda-puerta",
 
+  // Las cuentas de la tienda online (ADR-0408, actividad 2): correo y DNI únicos, los topes del cartel (club_intento) al
+  // consultar y al registrar, la cuenta que se une a la ficha del Club sin pisar sus datos, el menor de 18 y el cumpleaños
+  // imposible rechazados sin escribir nada, y `cuentas_web` cerrada a todos. ROLLBACK.
+  "pruebas:tienda-cuentas",
+
   // Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
   // La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.
   "pruebas:redondeo-efectivo",

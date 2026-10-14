@@ -15,9 +15,14 @@ function archivos(dir: string): string[] {
   });
 }
 
-const FUENTES = [...CARPETAS.flatMap((c) => archivos(join(RAIZ, c))), join(RAIZ, "next.config.ts")]
+const FUENTES = [...CARPETAS.flatMap((c) => archivos(join(RAIZ, c))), join(RAIZ, "next.config.ts"), join(RAIZ, "proxy.ts")]
   .map((ruta) => ({ ruta: relative(RAIZ, ruta), texto: readFileSync(ruta, "utf8") }))
   .filter((f) => f.ruta !== ESTE);
+
+/** Las variables de entorno que se leen (`process.env.X`), con el archivo donde se leen. */
+const variables = FUENTES.flatMap(({ ruta, texto }) => [...texto.matchAll(/process\.env\.([A-Z0-9_]+)/g)].map((m) => ({ ruta, nombre: m[1] })));
+const esDelNavegador = (texto: string) => /^\s*["']use client["']/.test(texto);
+const esDeAcciones = (texto: string) => /^\s*["']use server["']/.test(texto);
 
 const importaciones = (texto: string) =>
   [...texto.matchAll(/(?:from\s+|import\s*\(\s*|require\s*\(\s*|^\s*import\s+)["']([^"']+)["']/gm)].map((m) => m[1]);
@@ -66,5 +71,27 @@ describe("candados de la tienda", () => {
       .filter(({ texto }) => importaciones(texto).some((imp) => /(^|\/)(base|[a-z-]+-servidor)$/.test(imp)))
       .map((f) => f.ruta);
     expect(malos).toEqual([]);
+  });
+
+  // Las cuentas de los clientes (actividad 2): su proyecto de inicio de sesión es otro, y la tienda lo nombra con lo suyo.
+  it("las variables de entorno son de la tienda: TIENDA_* en el servidor y, en el navegador, solo la dirección y la llave pública del proyecto de clientes", () => {
+    expect(variables.length).toBeGreaterThan(0);
+    // Ni una variable del ERP (las de su Supabase, su sal del club, su padrón…): la tienda tiene las suyas.
+    expect(variables.filter((v) => !/^(TIENDA_|NEXT_PUBLIC_TIENDA_)/.test(v.nombre) && v.nombre !== "NODE_ENV").map((v) => `${v.ruta}: ${v.nombre}`)).toEqual([]);
+    const publicas = new Set(FUENTES.flatMap(({ texto }) => [...texto.matchAll(/\bNEXT_PUBLIC_[A-Z0-9_]+/g)].map((m) => m[0])));
+    expect([...publicas].sort()).toEqual(["NEXT_PUBLIC_TIENDA_AUTH_ANON_KEY", "NEXT_PUBLIC_TIENDA_AUTH_URL"]);
+  });
+
+  it("la llave secreta del proyecto de clientes solo la lee lib/sesion-servidor.ts, que es del servidor", () => {
+    const conLlave = FUENTES.filter(({ texto }) => texto.includes("TIENDA_AUTH_SERVICE_KEY")).map((f) => f.ruta);
+    expect(conLlave).toEqual(["lib/sesion-servidor.ts"]);
+    expect(FUENTES.find((f) => f.ruta === "lib/sesion-servidor.ts")?.texto.trimStart().startsWith('import "server-only";')).toBe(true);
+  });
+
+  it("solo el servidor crea y borra usuarios del proyecto de clientes (nunca un componente del navegador)", () => {
+    const conAdmin = FUENTES.filter(({ texto }) => /\.auth\.admin\b/.test(texto));
+    expect(conAdmin.length).toBeGreaterThan(0);
+    expect(conAdmin.filter(({ ruta, texto }) => !esDeAcciones(texto) && !/-servidor\.ts$/.test(ruta)).map((f) => f.ruta)).toEqual([]);
+    expect(FUENTES.filter(({ texto }) => esDelNavegador(texto) && /\b(clienteAdmin|clienteSuelto|clienteSesion)\b/.test(texto)).map((f) => f.ruta)).toEqual([]);
   });
 });

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+  <!--
+    El correo de «Olvidé mi contraseña» de la tienda online (ADR-0408). Lo manda el proyecto de inicio de sesión de los clientes.
+    El enlace lleva a /nueva-contrasena con el código de un solo uso (`token_hash`): esa página lo canjea recién cuando la persona
+    toca «Guardar y entrar» (un POST), así un lector de correos que abre los enlaces solo no lo gasta.
+    Los colores van escritos (son los de la paleta CAYLA): un correo no lee las variables de la hoja de estilos de la tienda.
+  -->
+  <body style="margin:0;padding:24px 12px;background:#f5f0e8;font-family:Arial,Helvetica,sans-serif;color:#1a1a18">
+    <div style="max-width:480px;margin:0 auto;background:#fbf8f2;border:1px solid #e8e0d0;border-radius:14px;padding:28px 24px">
+      <p style="margin:0 0 6px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#805c4c;font-weight:bold">CAYLA · Tienda online</p>
+      <h1 style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-weight:normal;font-size:28px;line-height:1.1">Crea tu contraseña nueva</h1>
+      <p style="margin:0 0 20px;font-size:15px;line-height:1.5">Pediste cambiar la contraseña de tu cuenta CAYLA. Toca el botón y escribe una nueva.</p>
+      <p style="margin:0 0 22px">
+        <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery" style="display:inline-block;background:#1a1a18;color:#f5f0e8;text-decoration:none;font-weight:bold;font-size:14px;padding:14px 26px;border-radius:999px">Crear mi contraseña nueva</a>
+      </p>
+      <p style="margin:0;font-size:13px;line-height:1.5;color:#5b5b55">El enlace vence en 30 minutos y sirve una sola vez. Si no lo pediste, ignora este correo: tu contraseña sigue igual.</p>
+    </div>
+  </body>
+</html>
