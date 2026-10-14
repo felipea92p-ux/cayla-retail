@@ -3,14 +3,14 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Camera, Info, Loader2, Minus, Plus, ScanBarcode, Undo2 } from "lucide-react";
+import { Camera, Info, Minus, Plus, ScanBarcode, Undo2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { ErrorEscritura } from "@/lib/error-escritura";
 import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 import { avisar } from "@/components/ui/Avisos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { Chip } from "@/components/ui/Chip";
-import { CampoTexto, Interruptor } from "@/components/ui/campos";
+import { CampoTexto, Interruptor, Boton } from "@/components/ui/campos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { EsqueletoTabla, EsqueletoTarjetas } from "@/components/Esqueleto";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -943,19 +943,17 @@ export function CuadrarPisoForm({
                     Sigue: confirmar
                   </button>
                 ) : (
-                  <button
+                  <Boton
                     type="button"
-                    className={`btn-cayla btn-primario h-11 flex-1 sm:flex-none ${motivoConfirmar ? "" : guiaConfirmar.claseConfirmar}`}
-                    disabled={enviando || (!congelada && (motivoConfirmar !== null || vista?.estado !== "lista"))}
+                    peso="primario"
+                    cargando={enviando}
+                    textoCargando="Cuadrando…"
+                    className={`h-11 flex-1 sm:flex-none ${motivoConfirmar ? "" : guiaConfirmar.claseConfirmar}`}
+                    disabled={!congelada && (motivoConfirmar !== null || vista?.estado !== "lista")}
                     title={motivoConfirmar ?? undefined}
                     onClick={() => void confirmar()}
                   >
-                    {enviando ? (
-                      <>
-                        <Loader2 aria-hidden className="h-4 w-4 motion-safe:animate-spin" />
-                        Cuadrando…
-                      </>
-                    ) : congelada ? (
+                    {congelada ? (
                       BOTON_COMPROBAR_CUADRE
                     ) : (
                       // En el celular, sin la sede (la barra ya la dice arriba): el nombre largo de una sede no cabe junto a «Volver».
@@ -964,7 +962,7 @@ export function CuadrarPisoForm({
                         <span className="max-sm:hidden">Cuadrar el piso de {sede}</span>
                       </>
                     )}
-                  </button>
+                  </Boton>
                 )}
               </div>
             }

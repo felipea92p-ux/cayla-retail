@@ -34,7 +34,7 @@
       "CampoTexto «{notaRequerida ? \"Por qué se vuelve a cuadrar\" : \"Nota (opcional)\"}»",
       "button «(sin nombre)»",
       "button «Sigue: confirmar»",
-      "button «{motivoConfirmar ?? undefined}»"
+      "Boton «{motivoConfirmar ?? undefined}»"
     ],
     "components/cuadre-piso/ResultadoCuadre.tsx": [
       "BotonVer «Ir a Existencias»",

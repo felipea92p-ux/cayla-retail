@@ -31,7 +31,7 @@
       "button «{`Una más de ${nombre}»",
       "button «Quitar»",
       "ComboResponsable «(sin nombre)»",
-      "button «→confirmar»"
+      "Boton «→confirmar»"
     ],
     "components/BajarEnManoModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"nota\", \"¿De dónde salió? (opcional)\")}»",
