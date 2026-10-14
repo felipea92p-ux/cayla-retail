@@ -70,7 +70,7 @@ una prueba de auditoría en `scripts/pruebas/redondeo_efectivo.mjs`.
 
 ## 5. Qué NO cambia
 
-Los precios, los descuentos (ADR-0302 sigue exacto: el redondeo ocurre al pagar, no en el precio), el IGV, el comprobante y el
+Los precios, los descuentos (hasta el 2026-10-14 ADR-0302 era exacto y el redondeo ocurría solo al pagar; desde ADR-0403 el descuento en % deja el precio sin céntimos sueltos, y este redondeo del efectivo queda como la red para lo que aún los traiga: un monto en S/, el cumpleaños), el IGV, el comprobante y el
 QR de SUNAT, y lo que se cobra con tarjeta, Yape, Plin o transferencia. Si Lucode o SUNAT no responden, nada cambia: el
 comprobante sale exacto y el redondeo vive solo adentro. La cola de ventas sin conexión sigue aceptando el contrato viejo
 (efectivo exacto, sin fila de redondeo) para no perder ninguna venta.

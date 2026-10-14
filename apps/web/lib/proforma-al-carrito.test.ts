@@ -57,8 +57,8 @@ describe("lineasDelCarritoDesdeProforma", () => {
   it("si la campaña del día deja la prenda más barata, gana la campaña", () => {
     const campana = { etiquetaId: "e", nombre: "Black Friday", pct: 30 };
     const { lineas } = lineasDelCarritoDesdeProforma(proforma([linea({ precio_unitario: 199.9 })]), [variante({ campana })]);
-    // 199.90 con 30 % = 59.97 de descuento: se cobra 139.93 (exacto, ADR-0302).
-    expect(lineas[0]).toMatchObject({ razonDescuento: "campana", descuentoUnitario: 59.97 });
+    // 199.90 con 30 % = 59.97 exacto: el precio 139.93 baja a 139.90, así que se descuenta 60.00 (ADR-0403).
+    expect(lineas[0]).toMatchObject({ razonDescuento: "campana", descuentoUnitario: 60 });
   });
 
   // Con el descuento exacto (ADR-0302) una proforma al 20 % y una campaña de 20 % dan el MISMO monto. Si ganaba la proforma,
