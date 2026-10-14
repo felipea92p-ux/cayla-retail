@@ -421,11 +421,6 @@ export function etiquetaDia(fecha: string, hoyLima: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-/** El día de hoy en Lima como `aaaa-mm-dd`, venga de donde venga el servidor. */
-export function hoyEnLima(): string {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-}
-
 export function fechaCorta(iso: string): string {
   const [a, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}/${a}`;

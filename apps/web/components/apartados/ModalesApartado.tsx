@@ -14,7 +14,7 @@ import { money } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { diaLima } from "@/lib/fechas-lima";
+import { diaLima, hoyLima } from "@/lib/fechas-lima";
 import {
   AVISO_DIAS,
   EXTENSIONES_MAX,
@@ -630,7 +630,8 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
   const responsable = useResponsable(ubicacion, { modo: "atencion" });
   const saldo = apartado.saldo;
   const dias = diasEsperaPorAbono(monto, saldo);
-  const nuevaFecha = sumarDiasIso(apartado.venceEl < new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }) ? new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }) : apartado.venceEl, dias);
+  const hoy = hoyLima();
+  const nuevaFecha = sumarDiasIso(apartado.venceEl < hoy ? hoy : apartado.venceEl, dias);
   const valido = monto > 0 && monto <= saldo;
   const rapidos = [20, 50].filter((x) => x < saldo);
 
@@ -1055,7 +1056,7 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
 /** La otra tienda envía lo que le pidieron: es el traslado de siempre, con la clienta en la nota. */
 export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedido: PedidoApartado; prenda: PrendaApartable | undefined; ubicacion: UbicacionApartado; onClose: () => void }) {
   const router = useRouter();
-  const manana = sumarDiasIso(new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }), 1);
+  const manana = sumarDiasIso(hoyLima(), 1);
   const [llega, setLlega] = useState(manana);
   // La marca del envío sigue a lo que se manda (/chaos 2026-10-13): el pedido y la fecha. Si la respuesta se pierde, la hoja se
   // congela hasta saber si el traslado salió.

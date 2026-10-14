@@ -19,7 +19,8 @@ import { numeroDeProforma } from "@/lib/proformas-reglas";
 import { confirmacionDeConversion } from "@/lib/facturacion-proformas-reglas";
 import { lineasDelCarritoDesdeProforma } from "@/lib/proforma-al-carrito";
 import { lineasDelCarritoDesdeVenta, type RepeticionDeVenta } from "@/lib/repetir-venta";
-import { elegirComprobante, diaDeLima, type VentaCruda } from "@/lib/ventas-historial-reglas";
+import { elegirComprobante, type VentaCruda } from "@/lib/ventas-historial-reglas";
+import { diaLima } from "@/lib/fechas-lima";
 import { tiposDeComprobanteDeLaSede, type CampanaLinea } from "@/lib/vender-reglas";
 import { armarListasPrendaLibre, leerListasPrendaLibre } from "@/lib/prenda-sin-registrar-listas";
 import { clubDeLaCaja } from "@/lib/club-caja-reglas";
@@ -207,7 +208,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
         comprobantes: VentaCruda["comprobantes"];
       };
       const comprobante = elegirComprobante(v.comprobantes);
-      const [, mes, dia] = diaDeLima(v.created_at).split("-");
+      const [, mes, dia] = (diaLima(v.created_at) ?? "").split("-");
       const prendas = v.venta_items.map((i) => ({
         varianteId: i.variante_id,
         cantidad: i.cantidad,
