@@ -1,0 +1,29 @@
+/* =====================================================================
+   EL PIE DE UNA HOJA (`pie-acciones`, <PieAcciones>) — ronda 11 de /unificar (ADR-0358, Felipe lo eligió tocándolo el 2026-10-14).
+
+   «Cancelar» es el botón secundario del sistema, del ancho de su palabra, y va a la IZQUIERDA del botón que guarda; los dos juntos a la
+   derecha del pie. Lo que borra o desactiva va solo a la izquierda (`pie-acciones-izq`). En el celular (menos de 640 px) los botones de
+   la derecha se reparten la fila en mitades iguales, que se tocan mejor con el dedo, y lo que borra baja a su propia fila.
+
+   Este archivo va SIN @layer a propósito: una regla sin capa le gana a las utilidades de Tailwind, así que el pie decide el ancho de sus
+   botones aunque alguno todavía traiga `flex-1` (los pies de antes eran dos mitades). Se combina con `pie-hoja-fijo` (el pie que se
+   queda pegado abajo en una hoja larga).
+   ===================================================================== */
+.pie-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+/* Solo los botones y enlaces: una nota a la izquierda (`<p className="flex-1">`) conserva sus clases, y la flecha de «Volver»
+   (`data-pieza="volver"`) conserva su círculo. Lo que borra va a la izquierda en `pie-acciones-izq` o, si es un solo botón, con `mr-auto`. */
+.pie-acciones > :is(button, a):not([data-pieza="volver"]) { flex: 0 0 auto; }
+.pie-acciones > .pie-acciones-izq { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-right: auto; }
+@media (max-width: 639.98px) {
+  /* Un pie que comparte la fila con otra cosa (`ml-auto`, al lado de «Falta: …») baja a ocupar la suya: si no, sus mitades serían del
+     ancho de sus palabras. El pie fijo (`pie-hoja-fijo`) ya es de bloque y se estira con sus márgenes negativos: no se toca. */
+  .pie-acciones:not(.pie-hoja-fijo) { width: 100%; margin-left: 0; }
+  .pie-acciones > :is(button, a):not([data-pieza="volver"]) { flex: 1 1 0; min-width: 0; }
+  .pie-acciones > :is(.pie-acciones-izq, .mr-auto) { order: 1; flex-basis: 100%; margin-right: 0; }
+}

@@ -223,11 +223,11 @@ export function FichaPrevia({
           )}
         </div>
         <div data-guia="nuevo.crear" className={`space-y-3 ${parecidas ? "shrink-0" : ""}`}>
-          <div className="flex gap-2">
+          <div className="pie-acciones">
             <button type="button" onClick={onCancelar} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined} className="btn-cayla btn-primario flex-1">
+            <button type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined} className="btn-cayla btn-primario">
               {textoCrear}
             </button>
           </div>

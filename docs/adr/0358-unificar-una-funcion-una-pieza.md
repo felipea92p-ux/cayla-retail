@@ -157,6 +157,14 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   la caja del «+» y del ícono dentro de `<Boton>` pasó de `inline-flex` a `flex`: armaba su propia línea de texto y el botón medía hasta
   45 px junto a vecinos de 40. Registros: `accion.exportar.md`, `accion.filtrar.md`, `accion.ver.md`.
 
+- **2026-10-14 · ronda 11, cancelar, limpiar e imprimir, tocándolos** (fuentes en `docs/unificar/rondas/11/`). Felipe eligió: **«Cancelar» a su
+  medida, a la derecha y ANTES del botón que guarda** (P1: la clase `pie-acciones` y `<PieAcciones>`; lo que borra va solo a la izquierda; en el
+  celular, mitades; el flujo del mostrador conserva sus 48 px; la clase va sin `@layer` para mandar sobre el `flex-1` de los pies de antes);
+  **los filtros puestos con la píldora de los vacíos y «Limpiar todo» como una píldora punteada** (P2: `<FiltroPuesto>` y `<BotonLimpiar>`; el
+  verbo es «Limpiar» + qué); e **imprimir siempre con la impresora, «Imprimir» + qué, negro solo si imprimir es el paso** (P1: `<BotonImprimir>`;
+  la hoja sale de la impresora al pasar el mouse). Migrado el mismo día: 116 pies en 86 archivos (también los «Mejor no»), 8 filtros puestos y
+  11 «Limpiar», 24 botones de imprimir; deuda 0 en las tres. Registros: `accion.cancelar.md`, `accion.limpiar.md`, `accion.imprimir.md`.
+
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en
 `docs/SESIONES-ACTIVAS.md` lo reserva para que no vuelva a chocar.

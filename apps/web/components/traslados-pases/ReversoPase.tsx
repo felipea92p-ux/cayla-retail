@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useState, type CSSProperties, type ReactNode } from "react";
-import Link from "next/link";
-import { Check, Minus, Plus, Printer, ScanLine, Store, Warehouse } from "lucide-react";
+import { Check, Minus, Plus, ScanLine, Store, Warehouse } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -54,6 +53,7 @@ import { preguntaFirma } from "@/lib/firma-heredada";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { Volver } from "@/components/ui/Volver";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 import { SobrantesPase } from "@/components/traslados-pases/SobrantesPase";
 
 // El reverso del pase (ADR-0355, maqueta D): lo que se hace con la caja al darle vuelta.
@@ -517,9 +517,7 @@ export function ReversoPase({
               {esOrigen && (
                 <>
                   {/* La guía para pegar en la caja, con el QR que abre el conteo (ADR-0242 D-3). Ni ella ni el WhatsApp dicen cuántas van. */}
-                  <Link href={rutaDeLaGuia(t.id)} className="btn-cayla btn-secundario">
-                    <Printer aria-hidden strokeWidth={1.7} className="h-4 w-4" /> Guía
-                  </Link>
+                  <BotonImprimir href={rutaDeLaGuia(t.id)}>Imprimir la guía</BotonImprimir>
                   <button type="button" onClick={avisarPorWhatsApp} className="btn-cayla btn-secundario">
                     Avisar por WhatsApp
                   </button>

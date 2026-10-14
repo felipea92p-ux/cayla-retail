@@ -255,3 +255,10 @@ los ve. Si alguno se pegó, lo dice la revisión diaria, sin nombre.
 Lo vigila `scripts/migraciones/sql-huerfano.test.mjs`, en «Tipos, lint y pruebas»: el caso de #978, lo que no avisa, un
 aviso por PR, el cierre solo, lo público sin objetos de la base, el script con un `gh` caído, y que el workflow baje `main`
 y no interpole el cuerpo del PR.
+
+## Actualización 2026-10-14 (b) — la revisión diaria resta lo que los PR abiertos declaran pegado
+
+Desde el [ADR-0402](0402-deriva-diaria-resta-lo-que-los-pr-declaran-pegado.md), la revisión diaria no compara producción con `main` a
+secas sino con `main` MÁS el SQL de los PR abiertos que marcaron «SQL pegado en producción», aplicado cada mañana sobre la base de
+`main` (`scripts/migraciones/deriva-pegados.mjs`). Medido ese día: de 203 diferencias a 5, y las 5 eran SQL que nadie declaraba. El
+rojo vuelve a querer decir algo; lo público sigue siendo sí o no.

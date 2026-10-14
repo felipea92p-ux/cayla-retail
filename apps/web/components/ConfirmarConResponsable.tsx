@@ -29,13 +29,13 @@ export function ConfirmarConResponsable({
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           {control && <ComboResponsable control={control} deshabilitado={enCurso} />}
-          <div className="flex gap-2">
-            <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={enCurso}>
+          <div className="pie-acciones">
+            <Boton peso="fantasma" onClick={cerrar} disabled={enCurso}>
               Cancelar
             </Boton>
             <Boton
               peso="primario"
-              className="flex-1"
+             
               cargando={enCurso}
               disabled={control ? !control.listo : undefined}
               title={control?.motivo ?? undefined}

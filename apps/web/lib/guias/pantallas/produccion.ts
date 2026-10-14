@@ -1077,7 +1077,7 @@ export const GUIA_ORDEN_INSUMO: Guia = {
     {
       id: "imprimir",
       ancla: "oi.imprimir",
-      titulo: "Imprimir o guardar en PDF",
+      titulo: "Imprimir la orden",
       texto: "Saca la orden en papel A4, lista para mandársela al proveedor. Si eliges «Guardar como PDF», el archivo se llama como la orden (OI-000012.pdf). En la demo no lo abrimos.",
     },
     {

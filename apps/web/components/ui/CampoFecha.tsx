@@ -425,7 +425,7 @@ export function CampoFecha({
             </div>
 
             <div className="mt-2 flex items-center justify-between border-t border-sand pt-2">
-              <button type="button" onClick={() => elegir(elHoy)} className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo">
+              <button type="button" onClick={() => elegir(elHoy)} className="btn-cayla btn-enlace text-[13px]">
                 Hoy
               </button>
               {marcados && (
@@ -442,7 +442,7 @@ export function CampoFecha({
                     setAbierto(false);
                     onValor("");
                   }}
-                  className="label-cayla text-[11px] text-tinta/65 transition-colors hover:text-rojo"
+                  className="btn-cayla btn-enlace text-[13px]"
                 >
                   Limpiar
                 </button>

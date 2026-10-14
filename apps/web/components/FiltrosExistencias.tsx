@@ -26,6 +26,7 @@ import {
 } from "@/lib/existencias-filtros";
 import { atajoElegido } from "@/lib/existencias-rapidos";
 import { Buscador } from "@/components/ui/Buscador";
+import { BotonLimpiar, FiltroPuesto } from "@/components/ui/FiltrosPuestos";
 
 /* ====================================================================
    La barra de filtros de Existencias (2026-10-03): la MISMA estructura que la de Productos (ADR-0308) —buscador con «/»,
@@ -324,44 +325,22 @@ export function FiltrosExistencias({
   const bloqueChips = (chips.length > 0 || ordenDistinto || vistaDistinta) && (
     <div data-guia="existencias.chips" className={`flex flex-wrap items-center gap-2 ${panelAbierto ? "md:hidden" : ""}`}>
       {chips.map((c) => (
-        <button
-          key={c.quitar.join("|")}
-          type="button"
-          onClick={() => quitar(c.quitar)}
-          className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
-          aria-label={`Quitar filtro ${c.texto}`}
-        >
+        <FiltroPuesto key={c.quitar.join("|")} onQuitar={() => quitar(c.quitar)} etiqueta={`Quitar filtro ${c.texto}`}>
           {c.texto}
-          <span aria-hidden className="text-sm leading-none">×</span>
-        </button>
+        </FiltroPuesto>
       ))}
       {orden && ordenDistinto && (
-        <button
-          type="button"
-          onClick={() => orden.onValor(orden.porDefecto)}
-          className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
-          aria-label={`Volver al orden de siempre (ahora: ${ordenTexto})`}
-        >
+        <FiltroPuesto onQuitar={() => orden.onValor(orden.porDefecto)} etiqueta={`Volver al orden de siempre (ahora: ${ordenTexto})`}>
           Orden: {ordenTexto}
-          <span aria-hidden className="text-sm leading-none">×</span>
-        </button>
+        </FiltroPuesto>
       )}
       {verComo && vistaDistinta && (
-        <button
-          type="button"
-          onClick={() => verComo.onValor("tarjetas")}
-          data-guia="existencias.chip-vista"
-          className="label-cayla inline-flex items-center gap-1.5 rounded-full border border-tinta/15 bg-tinta/[0.04] px-2.5 py-1 text-[10px] text-tinta/75 transition-colors hover:border-rojo hover:text-rojo"
-          aria-label={`Volver a las tarjetas (ahora: ${vistaDistinta})`}
-        >
+        <FiltroPuesto onQuitar={() => verComo.onValor("tarjetas")} etiqueta={`Volver a las tarjetas (ahora: ${vistaDistinta})`} guia="existencias.chip-vista">
           Vista: {vistaDistinta}
-          <span aria-hidden className="text-sm leading-none">×</span>
-        </button>
+        </FiltroPuesto>
       )}
       {chips.length > 0 && (
-        <button type="button" onClick={onLimpiar} className="label-cayla px-1 text-[10px] text-tinta/55 hover:text-rojo">
-          Limpiar todo
-        </button>
+        <BotonLimpiar onClick={onLimpiar}>Limpiar todo</BotonLimpiar>
       )}
     </div>
   );
@@ -441,9 +420,9 @@ export function FiltrosExistencias({
           </span>
           {/* Con el panel abierto los chips no se ven: «Limpiar filtros» queda aquí, a la vista. */}
           {panelAbierto && chips.length > 0 && (
-            <button type="button" onClick={onLimpiar} className="label-cayla ml-3 hidden text-[10px] text-tinta/55 hover:text-rojo md:inline">
-              Limpiar filtros
-            </button>
+            <span className="ml-3 hidden md:inline-flex">
+              <BotonLimpiar onClick={onLimpiar}>Limpiar filtros</BotonLimpiar>
+            </span>
           )}
         </p>
 
@@ -478,9 +457,9 @@ export function FiltrosExistencias({
       {hojaAbierta && (
         <Modal titulo="Filtros" subtitulo="Cada cambio se aplica al momento." onClose={() => setHojaAbierta(false)} ancho="max-w-lg">
           {panel}
-          <div className="pie-hoja-fijo mt-4 flex items-center gap-2">
+          <div className="pie-hoja-fijo pie-acciones mt-4">
             {activos > 0 && (
-              <button type="button" onClick={onLimpiar} className="btn-cayla btn-sutil">
+              <button type="button" onClick={onLimpiar} className="btn-cayla btn-secundario">
                 Limpiar
               </button>
             )}

@@ -178,14 +178,14 @@ export function NuevaTerminalModal({
           />
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           {error && <Aviso tono="error">{error}</Aviso>}
-          <div className="flex gap-2 pt-1">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones pt-1">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton
               type="submit"
               peso="primario"
-              className="flex-1"
+             
               cargando={enviando}
               disabled={!ubicacionId || !rolId || !nombre.trim() || repetido || !roles || !responsable.listo}
               title={responsable.motivo ?? undefined}
@@ -254,14 +254,14 @@ export function CambiarClaveModal({
           </p>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           {error && <Aviso tono="error">{error}</Aviso>}
-          <div className="flex gap-2">
-            <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton
               type="button"
               peso="primario"
-              className="flex-1"
+             
               cargando={enviando}
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
