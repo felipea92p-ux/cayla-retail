@@ -70,3 +70,12 @@ tamaño entre corchetes. Corregida (`(?![\w-])`), aparecieron 10 archivos y se m
 `<TituloSeccion>`; los días del historial de cierres de Caja son `<SeparadorDia>`. Quedan exentos, con su motivo en la línea: el nombre de
 cada asunto de Producción (un dato de la lista) y los títulos de los pasos de Nuevo producto (su diseño aprobado, ADR-0260 y ADR-0284).
 Verificado en escritorio y, en Cambios, Devoluciones y Apartados, a 375 px.
+
+## Actualización 2026-10-14: la nota del grupo se lee
+
+La auditoría del modo oscuro (`tema:auditar`) midió la `nota` de `<TituloGrupo>` («· lo que ya salió hacia las sedes», «· el papel que ya
+llegó») en 2.85:1 en claro y 3.93:1 en oscuro sobre papel: estaba al 45 % de tinta y el mínimo para texto es 4.5:1. En claro no pasa por
+debajo del 61 %, que ya es el 62 % del título, así que **la nota toma el tono de su título** (4.79:1 en claro, 6.13:1 en oscuro): sin
+cambiar su tamaño, su lugar ni lo que dice. La separan del título la minúscula, el peso (500 contra 600) y el punto. El piso de `tema.css`
+para el texto tenue no la alcanzaba en oscuro porque solo cubre las clases de Tailwind (`text-tinta/45`), no un `color-mix` escrito en un
+CSS; ahora `lib/tema-tokens.test.ts` mide cada texto de `titulos.css` hecho de tinta, sobre papel y crema, en los dos temas.

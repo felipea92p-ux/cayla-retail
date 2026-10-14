@@ -186,7 +186,7 @@
     font-variant-numeric: tabular-nums;
     color: var(--color-tinta);
   }
-  .gr-monto-input::placeholder { color: color-mix(in srgb, var(--color-tinta) 30%, transparent); }
+  .gr-monto-input::placeholder { color: color-mix(in srgb, var(--color-tinta) 50%, transparent); } /* contraste: texto grande sobre hueso, papel */
 
   .gr-montos {
     display: flex;
