@@ -60,6 +60,12 @@ se tiñe de rojo al pasar el mouse.
 
 ![Después: Nueva categoría, Pendientes de hoy (con la ×) y Pagar en oscuro (sin la ×)](capturas/modal.despues.jpg)
 
+A 375 px (el detalle de una venta desde Historial, con la cuenta del mostrador): ![La hoja a 375 px](capturas/ronda12-375.jpg)
+
+**Verificado:** `tema:auditar` con las hojas abiertas (Caja, Categorías, Por pagar, Marcas): 0 hallazgos solo en oscuro. `guias:recorrer`
+de Vender, Cambios, Devoluciones y Apartados a 375 px, y de Caja, Marcas, Atributos, la ficha de un proveedor, Clientes y Conteo a 1440:
+todas en verde.
+
 ## Firmas
 
 Un `ancho` a medida (`max-w-…`) y `tituloGrande`. La salida no tiene firma: depende de si la hoja guarda, y eso no se ve en una línea; la
