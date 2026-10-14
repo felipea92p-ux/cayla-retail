@@ -29,3 +29,9 @@
   la 7, 2026-10-14 ~09:58: 21 huellas; la de la 8, 2026-10-14 ~10:37: 8 funciones, la restricción de `gastos` y los permisos). Lo no
   deducible se calcula, no se guarda: una sola regla en la base (`fn_pago_no_bancarizado`, `fn_no_deducibles`); lo que se debe, también
   (`fn_deudas_fondo_de`), y el IGV perdido (`fn_igv_perdido`). PR #1055 en borrador.
+- **/chaos de la fase 6 (2026-10-14, actividad 9):** el fondo aguanta lo que una persona hace mal con la pantalla (doble clic, recargar,
+  red cortada, cerrar a mitad, dos cuentas a la vez sobre el mismo fondo: el candado por persona las pone en fila), pero no lo que la base
+  recibe torcido: un monto «NaN» por la API se guarda y envenena el fondo, la caja y el Diario; el mismo token con otro contenido devuelve
+  lo viejo y la hoja anuncia lo nuevo (lo que Ventas y Caja ya cerraron el 13); y la coma decimal («1299,50») multiplica la plata por 100
+  en Entregar y en el gasto del viaje. Nada se arregló: los de dinero son de base y esperan a Felipe (backlog de la rama). Semilla 1014,
+  tablero en `docs/chaos/README.md`; el banco quedó idéntico a su foto.

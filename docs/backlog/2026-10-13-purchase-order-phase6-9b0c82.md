@@ -55,7 +55,27 @@ fusiona).
   - [x] `guias:recorrer` (2026-10-14, banco, como líder): Fondos por rendir, Órdenes de compra, una orden, Impuestos, Gastos, el Inicio y
     Configuración en escritorio, y las de Compras y el Inicio a 375 px: cada paso encontró su pieza, ninguna escribió en la base y no
     quedó nada abierto. Capturas miradas; el paso de los movimientos de Fondos ahora se titula como su sección («…y pagos de deuda»).
-  - [ ] `/chaos` con plata y `/formidable`.
+  - [x] `/chaos` con plata (2026-10-14, banco `cayla-oc`, semilla 1014, 12 del núcleo + 8 sorteados; tablero en `docs/chaos/README.md`,
+    informe local en `.chaos/`). Resistieron el doble clic, recargar al guardar, la red cortada, el Tab, cerrar a mitad del guardado, los
+    permisos de la API y 11 carreras entre dos cuentas sobre el mismo fondo (y una ráfaga de 8 sesiones): el candado por persona los pone
+    en fila y las invariantes del fondo quedan limpias. El banco quedó idéntico a su foto.
+  - [ ] Felipe: los hallazgos de `/chaos` (ninguno se arregló todavía):
+    - [ ] (g1) `entregar_fondo` y `registrar_gasto_viaje` guardan un monto «NaN» que llega por la API, y un NaN deja en NaN el fondo, la
+      caja de origen, la 1413 y el Diario. No es solo de la fase 6 (`registrar_movimiento_dinero` también). Arreglo de raíz: candado en
+      las tablas de dinero, como `ventas_montos_validos` (migración).
+    - [ ] (g1) Mismo token con otro contenido: si la respuesta se pierde y la persona corrige el monto antes de reintentar, la base guarda
+      lo primero y la hoja anuncia lo nuevo (Entregar: guardó S/ 40 y dijo S/ 90; Rendir: guardó 380 sin faltante y ella había corregido a
+      350). Las cinco funciones del fondo no usan «el token sigue al contenido» (`fn_intento_con_huella`, 20261013200000).
+    - [ ] (g2) La coma decimal: «1299,50» se lee S/ 129,950.00 y «150,5», S/ 1,505.00 en Entregar y en el gasto del viaje (`leerMonto` borra
+      las comas; también lee «1e3» y «0x10»). Decidir si se cambia para todos (Caja lo usa) o solo para el fondo.
+    - [ ] (g2) Fechas de 1900 aceptadas en entregar, devolver y el gasto del viaje (solo se frena la futura). Falta la regla del piso.
+    - [ ] (g2) Por la API: 3 decimales redondeados en silencio en entregar y devolver, un carácter invisible como texto y el motivo de
+      anular una entrega sin largo máximo.
+    - [ ] (g3) El tope de la planilla con red lenta: dos cambios seguidos pueden quedar en el orden equivocado (quedó 50 tras escribir 55,5).
+    - [ ] (g4) El gasto del viaje de una orden de otra tienda propone el cajón de la sede de arriba y la base lo rechaza con «Es de otra
+      tienda que la caja que lo paga»; y errores crudos de Postgres por la API (montos enormes).
+    - [ ] Un hallazgo de seguridad: ver el chat del 2026-10-14 (no se versiona).
+  - [ ] `/formidable`.
 - [x] Tabla «Quién tiene plata» de Fondos por rendir a 1024 px con el menú abierto: la arregló otra sesión (las tres tablas deciden por
   el ancho de su tarjeta) y entró con cherry-pick (`caa9daf90`); verificado aquí a 1024 y 1280 px con el menú abierto (0 px de desborde).
 - [ ] Felipe: lo marcado *provisional* en el ADR (la acción `gasto_viaje_registrar` soltada del combo «Responsable»; cuándo se propone
