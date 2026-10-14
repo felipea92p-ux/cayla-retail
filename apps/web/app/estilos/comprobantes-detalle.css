@@ -128,7 +128,7 @@
     border-radius: 9999px;
     border: 1.5px solid color-mix(in srgb, var(--color-tinta) 25%, transparent);
     background: var(--color-papel);
-    color: color-mix(in srgb, var(--color-tinta) 45%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: gráfico sobre papel */
     transition: background-color 500ms var(--ease-cayla), border-color 500ms var(--ease-cayla), color 500ms var(--ease-cayla);
   }
   .cd-nodo[data-estado="hecho"] .cd-pt {
