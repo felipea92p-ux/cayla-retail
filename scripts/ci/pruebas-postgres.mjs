@@ -348,6 +348,9 @@ export const PRUEBAS = [
   "pruebas:traslado-sobrantes",
   // ADR-0405 (/chaos de Catálogo 2026-10-14): precio y costo NaN y nombres sin tope rebotan en la tabla. Con control.
   "pruebas:catalogo-montos-y-textos",
+  // ADR-0409 (/chaos de Producción 2026-10-14): el token sigue al contenido en seis funciones del Taller, el IGV de una factura
+  // de insumos va de 0 a 18 %, y un NaN en sus montos rebota en la tabla. Con controles.
+  "pruebas:produccion-token-y-montos",
 
   // El efectivo de una caja abierta nunca queda bajo cero (/chaos 2026-10-13): egreso, reembolso, vuelto de un cambio, anular
   // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
