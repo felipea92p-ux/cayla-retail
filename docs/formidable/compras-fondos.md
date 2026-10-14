@@ -1,5 +1,62 @@
 # Formidable · Compras ▸ Fondos por rendir, sus hojas, «Rendir tu fondo» y «Gasto del viaje»   (`/compras/fondos`)
 
+## Tercera vuelta · 2026-10-14, noche — los cambios 2 y 3, hechos y con la ciega repetida
+
+- **SHA:** `f5414c593` (rama `claude/formidable-fondos-cambios-9b0c82`, desde `main` con la fase 6 fusionada)   · **Qué eligió Felipe:** los
+  cambios 2 y 3, tal cual se propusieron (decisiones 81 y 82). La base: `20261014222000`, pegada en producción con su OK.
+- **Entorno:** el banco `cayla-oc`, con la rendición de Micaela por aprobar (S/ 375 declarados, faltan S/ 5, sin explicación; ya debía S/ 25),
+  mirado como Felipe (le entregó plata: no aprueba), Sandra (aprueba) y Micaela (la dueña). Las fallas de lectura, forzadas con `fetch`.
+
+### Medido y observado (antes → después, 1440 px)
+| Comprobación | Antes | Después |
+|---|---|---|
+| «Revisar» con la lista que no se lee | «Lo que rindió» vacío con 0, y desaparecía «1 papel sin foto» | «No pude traer lo que rindió. Las cifras de arriba sí están al día.» + «Volver a intentar»; el aviso del papel sigue; «Aprobar» deshabilitado con «Para aprobar, primero tiene que verse lo que rindió» [captura `6a`] |
+| «Revisar» con la lista cargando | «Todo listo para aprobar.» y «Aprobar» activo | «Espera a que cargue lo que rindió.» y «Aprobar» espera; al reintentar, carga y se habilita [captura `6b`] |
+| «Rendir» y «Ver tu rendición» con la lista que no se lee | «No hay pagos ni gastos en esta rendición» (falso) | el aviso con «Volver a intentar» («puedes rendir igual» / «tu rendición está guardada») [captura `7c`] |
+| El faltante en «Revisar» | «No escribió qué pasó: queda como su deuda.» | «No escribió qué pasó: si se aprueba así, su deuda pasa de S/ 25.00 a S/ 30.00.» [captura `5d`] |
+| El botón de aprobar | «Aprobar: debe S/ 5.00» | «Aprobar: su deuda sube a S/ 30.00»; al aprobar, «La deuda de Micaela queda en S/ 30.00.» y la fila «Debe S/ 30.00» |
+| «Ver tu rendición» sin explicación | «Quien la revisa decide si lo asume CAYLA o queda como deuda tuya» (falso, decisión 54) | «No escribiste qué pasó: cuando la aprueben, tu deuda pasa de S/ 25.00 a S/ 30.00.» [captura `7a`] |
+| «Rendir» con S/ 5 de menos | «…si no, quedan como deuda tuya.» | «…si no, tu deuda pasa de S/ 25.00 a S/ 30.00 cuando la aprueben.»; y «Mientras nadie la apruebe, puedes retirarla y corregirla.» [captura `7b`] |
+| La fila de quien rindió | «S/ 380.00» | «S/ 380.00» y debajo «dice S/ 375.00 · por aprobar», sin partir «por aprobar» [captura `5c`] |
+| «Revisar» para quien no aprueba | negro (dos primarias en la página) | secundario (una primaria: «Entregar plata») [Medido] |
+| Palabras | «2 filas», «Le entregaste», «Lo que rindió», «con Fondos por rendir» | «1 gasto y 1 entrega», «Entregado», «Lo que entró y salió de su fondo», «otra persona que revise los fondos» (también en la base) |
+| Oficio de «Revisar» (Sandra) | — | 0 blancos bajo 24 px, 0 textos bajo 4,5:1, 1 primaria, sin desborde [Medido] |
+| Guías y modo oscuro | — | `guias:recorrer` de Fondos, Órdenes de compra e Inicio en verde a 1440 y a 375 px (11, 11 y 20 pasos, sin escribir en la base); `tema:auditar`: 0 hallazgos en oscuro en la página, sus 4 hojas, «Revisar», «Rendir» y los dos estados nuevos de lista que no se lee (escenarios `fondos.revisar-sin-lista` y `ordenes.rendir-sin-lista`), mirando las capturas [Medido]. El paso «Revisar una rendición» decía «ve Revisar en gris» y el botón no es gris: ahora dice qué puede hacer |
+
+### Ciega 1 repetida (la misma tarea y el mismo mapa, capturas nuevas)
+| Medida | Antes | Ahora |
+|---|---|---|
+| Lectura de 5 s | correcta | correcta (sigue el desconcierto por «TIENDA LIMA») |
+| Primer intento | correcta | correcta, y además: «si se aprueba así, su deuda sube a S/ 30.00» → «Devolver para corregir» para que explique los S/ 5 |
+| Pasos | 8 | 8 |
+| Dudas | 12 | 11. **Resuelta en el camino:** «Faltan S/ 5.00 y Debe S/ 25.00… lo aclaró Revisar (la deuda ya era 25 y con este faltante pasaría a 30)». **Nueva:** «S/ 380.00 en la tabla contra “Tiene S/ 375.00 en la mano” en Registrar devolución: no supe cuál tomar como la buena» (la hoja de devolución dice lo declarado desde la decisión 79) |
+| Palabras no entendidas | «2 filas», «con Fondos por rendir», «Tu fondo», «papel» (a medias), «(chaos)» | ya no «2 filas» ni «con Fondos por rendir»; quedan «Tu fondo» y «viaje» (los entendió), «(chaos)» y «1 Issue» (datos y aviso de desarrollo, no de la pantalla) |
+| Retrocesos | 5 | 4 |
+
+### Notas después de los cambios
+| Eje | Antes | Ahora | Evidencia |
+|---|---|---|---|
+| 1 Sin manual | 6 | 7 | [Observado] la ciega repetida resolvió dentro de «Revisar» lo que antes no resolvía; 11 dudas · real: sin probar (tope 8) |
+| 2 Una pregunta, una respuesta | 7 | 8 | [Medido] una sola primaria a la vista para quien no aprueba |
+| 3 Simplicidad profunda | 5 | 7 | [Observado] faltante y deuda se leen juntos; queda «S/ 380 en la tabla contra S/ 375 en la devolución» (abajo) |
+| 4 Lenguaje de tienda | 6 | 7 | [Observado] ya no aparecen «2 filas» ni «con Fondos por rendir»; «viaje» sigue (decisión de Felipe) |
+| 5 Contenido primero | 8 | 8 | sin cambios |
+| 6 Lo difícil, a un toque | 6 | 6 | «Debes S/ 25.00» todavía no se puede tocar (lista aparte) |
+| 7 Perdonar antes que preguntar | 7 | 8 | [Medido] «Aprobar» espera a ver la lista y su botón dice en qué queda la deuda |
+| 8 Quitar antes de agregar | 7 | 7 | sin cambios |
+| 9 De punta a punta | 5 | 7 | [Medido] ninguna de las tres hojas dibuja una lista vacía falsa; la lectura se corta a los 10 s y se reintenta |
+| **Leyes (promedio)** | 6,3 | **7,2** | ninguna bajo 6 |
+| **Oficio visual** | 8 | **8** | [Medido] la hoja «Revisar» sin fallas a 1440 |
+
+### Lo que queda (no se ejecuta sin Felipe)
+- ~~**Nueva, de la ciega repetida:** con la rendición por aprobar, la tabla dice S/ 380 (los libros) y la hoja de devolución S/ 375.~~ **Decidido
+  y hecho (decisión 83, Felipe 2026-10-14):** la hoja dice las dos cifras y de dónde sale el tope («Los libros dicen S/ 380.00, pero a su rendición
+  por aprobar le faltan S/ 5.00: puede devolver hasta S/ 375.00») [captura `4c`]; la cifra grande sigue siendo la de los libros. De paso, ningún
+  monto de una frase de la rendición o de la devolución se parte entre «S/» y la cifra (`solesSinCorte`) [captura `5e`].
+- La lista aparte de abajo, sin cambios (a quién se le entrega plata, «Gastó» con el faltante, la cabecera de Compras, «viaje», el ejemplo del
+  taxi, el pie cortado de «Tu fondo», que «Debes S/ 25.00» se pueda tocar, los 35 px a 375 px). Y una más de la ciega: no se ve quién hizo cada
+  entrega en la tabla de movimientos.
+
 ## Segunda vuelta · 2026-10-14, tarde — lo que Felipe eligió, hecho y visto en el banco
 
 - **SHA:** `3f3d67a45` (el tope de la devolución) y `8a38dc831` («Rendir» en el Inicio)   · **Qué eligió Felipe:** el cambio 1 y, para E2, «el
@@ -208,3 +265,4 @@ tienes S/ 375 de la tienda en la cartera.»
 |---|---|---|---|---|
 | 2026-10-14 | `1acc9b669` | 6,2 (ley 9: 4) | 8 | — (3 propuestos, esperan OK) |
 | 2026-10-14 (tarde) | `8a38dc831` | 6,3 (ninguna bajo 5) | 8 | el cambio 1 («Rendir» en el Inicio) y el tope de la devolución (E2); los cambios 2 y 3, sin elegir |
+| 2026-10-14 (noche) | `f5414c593` | 7,2 (ninguna bajo 6) | 8 | los cambios 2 («Aprobar» espera la lista) y 3 (la cuenta en una frase); ciega 1 repetida: 11 dudas, 4 retrocesos |

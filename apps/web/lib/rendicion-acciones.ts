@@ -7,9 +7,11 @@ import {
   RPC_APROBAR_RENDICION,
   RPC_DEVOLVER_RENDICION,
   RPC_MI_CICLO_FONDO,
+  RPC_MI_RENDICION_ABIERTA,
   RPC_RENDICION_ITEMS,
   RPC_RENDIR_FONDO,
   leerItemsRendicion,
+  leerMiRendicionAbierta,
   type DecisionFaltante,
   type ItemRendicion,
 } from "@/lib/rendicion-reglas";
@@ -21,19 +23,36 @@ import {
 
 export type { ErrorDeBase };
 
+/** Cuánto espera una hoja la lista de lo rendido antes de decir que no pudo leerla (en vez de quedarse en esqueleto sin decir nada). */
+const ESPERA_LISTA_MS = 10_000;
+
 /**
  * Lo que la dueña todavía no rindió (`fn_mi_ciclo_fondo`), o las filas de una rendición (`fn_rendicion_fondo_items`), cada una con lo que
- * la base dice no deducible (actividad 6). Si esa segunda lectura falla, las filas llegan igual, sin la marca.
+ * la base dice no deducible (actividad 6). Si esa segunda lectura falla, las filas llegan igual, sin la marca. Si la base no contesta en
+ * `ESPERA_LISTA_MS`, vuelve con error (/formidable 2026-10-14, cambio 2): la hoja lo dice y ofrece volver a intentar.
  */
 export async function leerItems(rendicionId: string | null): Promise<{ items: ItemRendicion[]; error: ErrorDeBase }> {
   const supabase = createClient();
+  const corte = AbortSignal.timeout(ESPERA_LISTA_MS);
   const { data, error } = rendicionId
-    ? await supabase.rpc(RPC_RENDICION_ITEMS as never, { p_rendicion_id: rendicionId } as never)
-    : await supabase.rpc(RPC_MI_CICLO_FONDO as never);
+    ? await supabase.rpc(RPC_RENDICION_ITEMS as never, { p_rendicion_id: rendicionId } as never).abortSignal(corte)
+    : await supabase.rpc(RPC_MI_CICLO_FONDO as never).abortSignal(corte);
   if (error) return { items: [], error };
   const items = leerItemsRendicion(data);
   const nd = await leerNoDeduciblesCon(supabase, items.map((i) => i.clave));
   return { items: items.map((i) => ({ ...i, noDeducible: nd.get(i.clave) ?? null })), error: null };
+}
+
+/**
+ * La rendición por aprobar de quien pregunta, con su explicación (`fn_mi_rendicion_abierta`, 20261014222000): «Ver tu rendición» la usa
+ * para decir qué pasa con el faltante. `undefined` si no se pudo leer (la hoja dice entonces las dos cosas, que es lo único seguro).
+ */
+export async function miRendicionAbierta(): Promise<{ id: string; explicacion: string | null } | null | undefined> {
+  const { data, error } = await createClient()
+    .rpc(RPC_MI_RENDICION_ABIERTA as never)
+    .abortSignal(AbortSignal.timeout(ESPERA_LISTA_MS));
+  if (error) return undefined;
+  return leerMiRendicionAbierta(data);
 }
 
 /** Con la marca de `useIntento` (el token sigue a lo que se manda, 20261014194000) y la señal de corte. */
