@@ -8,6 +8,7 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { NIVEL_QR, ZONA_MUDA_MODULOS } from "@/lib/qr";
 import { cartelesDelClub, type CartelDeTienda } from "@/lib/club-qr-reglas";
 import { CARTEL_INVITACION, letraChicaDelCartel, type TextosCartel } from "@/lib/club-cartel-reglas";
+import { BotonImprimir } from "@/components/ui/BotonImprimir";
 
 // El cartel del club «Invitación» (ADR-0288 act. g, G-1; diseño C aprobado por Felipe el 2026-10-01): la vista previa en
 // pantalla y la hoja que va a la impresora. La hoja (`#cartel-club-print`) va pegada a <body> con un portal, como las etiquetas
@@ -61,9 +62,9 @@ export function CartelClub({
         subtitulo="Una hoja A4 por tienda para el mostrador: el cliente escanea el QR y se registra en el Club CAYLA desde su celular."
         pie={volver}
         acciones={
-          <button type="button" className="btn-cayla btn-primario" disabled={!hay || !textos || !origen} onClick={() => window.print()}>
+          <BotonImprimir peso="primario" disabled={!hay || !textos || !origen} onClick={() => window.print()}>
             {hay && textos ? `Imprimir ${carteles.length === 1 ? "el cartel" : `${carteles.length} carteles`}` : "Nada que imprimir"}
-          </button>
+          </BotonImprimir>
         }
       />
 

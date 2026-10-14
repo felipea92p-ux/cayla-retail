@@ -183,7 +183,7 @@ function FormularioBeneficios({ vigentes, cerrar, onGuardado }: { vigentes: Bene
       <PieGuia guia={guia} listo={sinCambios ? "Todo en orden. Cambia un valor para guardar." : "Todo listo para guardar."} />
 
       <div className="pie-hoja-fijo">
-        <div className="flex justify-end gap-3 pt-2" data-guia="avisos.beneficios-guardar">
+        <div className="pie-acciones pt-2" data-guia="avisos.beneficios-guardar">
           <Boton type="button" onClick={cerrar} disabled={guardando}>
             Cancelar
           </Boton>

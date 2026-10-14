@@ -2,7 +2,7 @@
   "guia": "devoluciones",
   "ruta": "/devoluciones",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 58,
+  "total": 56,
   "controles": {
     "components/AnularVentaForm.tsx": [
       "button «Listo»",
@@ -32,9 +32,7 @@
     ],
     "components/DetalleVentaModal.tsx": [
       "button «Reintentar»",
-      "Boton «Corregir pago»",
-      "button «Imprimir ticket»",
-      "button «Imprimir»"
+      "Boton «Corregir pago»"
     ],
     "components/DevolucionesFlujo.tsx": [
       "Casilla «{`Devolver ${l.referencia}»",
