@@ -132,3 +132,23 @@ contadas contra producción: 1 y 1). La web no cambia: el conteo «Categorías»
 tal cual (todo `hint` que empieza por `grupos_mix_`). Lo vigila `pnpm pruebas:motores-familias-apagadas` (casos G1-G3 y R1).
 
 **En producción desde el 2026-10-13** (Felipe la pegó; verificado de solo lectura: las dos funciones preguntan, 45 categorías en el plan, 0 sin grupo). Pendiente: refrescar el diccionario.
+
+## Actualización 2026-10-13: «¿Qué producir?» del Resumen de Producción también la respeta
+
+**Lo que había.** La lista de motores que preguntan por la familia no incluía a Producción ▸ Resumen: `getModelosProducibles` trataba como producible a
+todo producto con una variante activa y `fn_resumen_variantes`, su fuente, no pregunta `fn_categoria_entra_a_motores`. Una bolsa con ventas y stock podía
+salir «Producir ya» y abrir una orden de corte que el Taller no fabrica. El análisis `docs/pantallas/produccion.md` (§4.2) lo señaló: ningún documento decía
+si esa pantalla estaba exenta, y la letra de `CLAUDE.md` («todo motor de decisión que cuente ventas o stock por categoría») decía que no.
+
+**Lo que se decidió (Felipe, 2026-10-13).** Sí aplica: «¿Qué producir?» **decide qué fabricar**, no es plata. Se resuelve en la web, no en la base:
+`getModelosProducibles({ soloProducibles: true })` quita los modelos de una categoría apagada (`categoriasFueraDeMotores`, la misma lectura de Frescura) junto
+con los descontinuados, los pendientes o rechazados y los de prueba (`esProducible`, `lib/produccion-reglas.ts`; ADR-0270). Se descartó parchar
+`fn_resumen_variantes` con otro reemplazo anclado: la función es de las más tocadas y el filtro por modelo cuesta una consulta chica que ya existe.
+
+**Lo que NO hace.** «Nueva orden» sigue ofreciendo todo el catálogo y `abrir_produccion` no mira el estado ni la familia: quien abre una orden por otra vía
+no encuentra este filtro. El candado en la base es el #6 del backlog (`docs/BACKLOG.md:44`, L, estructural) y es de Felipe. Ante la duda sigue contando
+(ADR-0377 punto 3): sin categoría o con la lectura de familias caída, el modelo se muestra.
+
+**Producción hoy** (volcado de solo lectura del 2026-10-13): 235 productos, todos aprobados y ninguno de prueba; el filtro dejaría fuera 1 descontinuado y
+hasta 2 de familias apagadas. Lo vigilan 7 pruebas de `esProducible` (`lib/produccion-reglas.test.ts`). `pnpm pruebas:motores-familias-apagadas` no tiene caso
+de Producción porque no hay función nueva en la base; la regla vive en la web.

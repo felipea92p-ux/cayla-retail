@@ -31,7 +31,7 @@ export function DockAlmacen({ veRecibir, hrefColgar }: { veRecibir: boolean; hre
       </Link>
       {veRecibir && (
         <Link href="/recibir" className="ia-ib" aria-label="Recibir mercadería">
-          <Ico clave="truck" />
+          <Ico clave="recibir" />
         </Link>
       )}
       {hrefColgar && (

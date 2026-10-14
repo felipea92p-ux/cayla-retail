@@ -10,7 +10,8 @@
 //     con lo que se recupera = precio × recupero %.
 //   · Cuantil crítico = Cu ÷ (Cu + Co): la probabilidad de cubrir la demanda que conviene comprar.
 //   · La demanda de la campaña es incierta: tres escenarios (flojo, normal, bueno) forman una distribución triangular; se compra
-//     hasta su cuantil crítico, menos lo que ya hay en la red.
+//     hasta su cuantil crítico, menos lo que ya hay en la red y lo que ya viene en órdenes de compra sin llegar (`porLlegar`,
+//     `lib/plan-compra-pedido.ts`, Felipe 2026-10-13).
 //   · La curva de tallas la propone el sistema desde lo vendido (con su prenda o anotado) en 90 días, apoyada en un reparto parejo
 //     entre las tallas de la categoría con el mismo encogimiento del motor de demanda: n/(n+k), k = 10 unidades.
 //
@@ -22,6 +23,7 @@
 import type { PreparacionSede } from "./motor-demanda-reglas";
 import type { PropuestaCategoria } from "./plan-compra-propuesta";
 import type { TiendaReparto } from "./plan-compra-reparto";
+import { enCaminoDe, type PedidoCategoria } from "./plan-compra-pedido";
 import { compararTallas } from "./tallas";
 import { proyectarCampana } from "./plan-compra-historial";
 
@@ -215,7 +217,7 @@ export type Calculo = {
   cuantil: number;
   /** Las unidades que conviene tener para la campaña. */
   objetivo: number;
-  /** Lo que ya hay en la red. */
+  /** Lo que ya hay en la red más lo que ya viene en órdenes de compra sin llegar: con eso se cuenta para la campaña. */
   stock: number;
   /** Lo que hay que comprar: objetivo − stock, nunca negativo. */
   comprar: number;
@@ -479,7 +481,9 @@ export type FilaPlan = {
   /** Lo necesario para repartir el objetivo entre las tiendas (`lib/plan-compra-reparto.ts`); undefined = la base no lo manda. */
   reparto?: TiendaReparto[];
   /** Lo ya pedido en órdenes de compra para esta campaña (`lib/plan-compra-pedido.ts`); undefined = nada pedido o la base no lo manda. */
-  pedido?: { unidades: number; soles: number; ordenes: number[] };
+  pedido?: PedidoCategoria;
+  /** Lo pedido que todavía no llegó a ninguna tienda: se suma a `stock` en la cuenta de «Comprar». 0 si no hay o la base no lo manda. */
+  enCamino: number;
 };
 
 const sumaDe = (m: ReadonlyMap<string, number> | undefined) => (m ? [...m.values()].reduce((s, n) => s + n, 0) : 0);
@@ -491,17 +495,22 @@ function porVentas(a: FilaPlan, b: FilaPlan): number {
 /**
  * Una fila por categoría activa, con su cuenta hecha, ordenada por lo que más vende (la que más vende primero; a igual venta, la de más
  * stock; a igual stock, por nombre). El orden es estable: dos lecturas iguales dan la misma tabla. `ordenarFilas` la reordena.
+ * `pedido` (lo pedido en órdenes, por categoría): lo que falta llegar se cuenta como si ya estuviera, así «Comprar» no lo pide dos veces.
  */
-export function armarFilas(plan: LecturaPlan): FilaPlan[] {
+export function armarFilas(plan: LecturaPlan, pedido?: ReadonlyMap<string, PedidoCategoria> | null): FilaPlan[] {
   const filas = plan.categorias
     .map((c): FilaPlan => {
       const linea = plan.lineas.get(c.id);
       const stock = plan.stock.get(c.id) ?? 0;
+      const delPedido = pedido?.get(c.id);
+      const enCamino = enCaminoDe(delPedido);
       return {
         c,
         linea,
         stock,
-        calculo: linea ? calcular(linea, stock) : null,
+        calculo: linea ? calcular(linea, stock + enCamino) : null,
+        pedido: delPedido,
+        enCamino,
         vendido: plan.vendidoEnCampana.get(c.id) ?? 0,
         ventas: sumaDe(plan.vendidoPorTalla.get(c.id)),
         puesto: null,
@@ -601,7 +610,11 @@ export function momentoDeLaCampana(hoy: string, desde: string, hasta: string): M
     const n = diasEntre(hoy, desde);
     return { estado, fuerte: n === 1 ? "Falta 1 día" : `Faltan ${n} días`, resto: "para que empiece" };
   }
-  if (estado === "durante") return { estado, fuerte: `Día ${diasEntre(desde, hoy) + 1} de ${diasEntre(desde, hasta) + 1}`, resto: "lo que se vendió hasta hoy va al lado" };
+  if (estado === "durante") {
+    // Lo que queda, no lo que ya dice la tabla («lo que se vendió va al lado» repetía la frase de arriba; prompt maestro 2026-10-13).
+    const quedan = diasEntre(hoy, hasta);
+    return { estado, fuerte: `Día ${diasEntre(desde, hoy) + 1} de ${diasEntre(desde, hasta) + 1}`, resto: quedan === 0 ? "termina hoy" : quedan === 1 ? "termina mañana" : `termina en ${quedan} días` };
+  }
   return { estado, fuerte: `Terminó hace ${dias(diasEntre(hasta, hoy))}`, resto: "mira lo que pasó contra lo que supusiste" };
 }
 

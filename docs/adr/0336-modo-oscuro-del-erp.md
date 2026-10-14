@@ -103,6 +103,41 @@ movimiento">` (ADR-0353); el aviso de cierre de caja (`estructura.recordatorio`:
 depende de que la sede tenga hora de cierre: el escenario contesta él la consulta que sondea (`/api/caja/recordatorio`) con una caja
 abierta hace 5 h y abre su pestaña, sin escribir en la base compartida.
 
+## Actualización 2026-10-13 — un símbolo que el código oculta se mide como gráfico (3:1), no como texto
+
+El escáner (`tema/motor/escaner-en-pagina.js`) le pedía 4.5:1 a todo nodo de texto, también a la flecha «›» con `aria-hidden` que
+cierra cada fila de Compras. Para un elemento gráfico el piso es 3:1 (WCAG 1.4.11; un adorno puro ni siquiera tiene exigencia,
+1.4.3), así que esa flecha, ya subida a 3.24–3.32:1 en claro y 4.34–4.52:1 en oscuro (PR #1024), seguía saliendo como «heredado» en
+la fila rayada en oscuro (4.34 contra 4.5). Decidido con Felipe el 2026-10-13, con la lista de lo que cambia a la vista.
+
+**Regla.** Un símbolo es **gráfico** —se mide contra 3:1 y el reporte dice «gráfico, mín. 3»— si el código lo ocultó al lector
+(`aria-hidden="true"`), su pieza entera no tiene letras ni dígitos y no es una tecla. Sigue siendo texto, con 4.5:1:
+
+1. **Lo que tiene letras o dígitos, aunque esté oculto.** Se mira la pieza (el elemento) y no el nodo: React parte `+{n}` en «+» y
+   «30», y ese «+» es parte de un número (Colaboradores ▸ Roles y accesos).
+2. **Una tecla (`<kbd>`).** El «/» del buscador dice qué apretar; el campo ya se lo anuncia al lector con `aria-keyshortcuts`, pero quien
+   mira la pantalla lo lee.
+3. **Lo que queda detrás de un modal abierto.** Radix le pone `aria-hidden` a toda la página de atrás y la marca con
+   `data-aria-hidden`; ahí un «%», el «:» de «Ordenar por:» o la «—» de «sin dato» son texto. Solo cuenta el `aria-hidden` que puso el
+   código.
+
+**Cómo se midió, antes de proponerlo.** El criterio pedido al principio («dentro de `aria-hidden` y sin letras ni dígitos») se probó
+primero y se llevaba 126 hallazgos que son texto: 71 del «/» del buscador, 51 detrás de modales y 4 del «+N». De ahí salieron las tres
+excepciones. Con el criterio final, en local (cuentas admin, admin en CAYLA Global, admin en el Taller e integrante):
+
+- **El auditor real, antes y después** (94 pantallas comparables): deja de marcar **solo** la flecha de Compras (claro 3.32 y 3.24,
+  oscuro 4.34). «Solo en oscuro», 0 → 0; heredados de admin, 31 → 30. Lo demás que difiere entre las dos corridas son textos con la hora
+  (salen y entran en pares).
+- **Un comparador** que corre el escáner viejo y el nuevo sobre la MISMA carga de cada página, con todos los escenarios registrados
+  (285 vistas con modales y listas abiertos): deja de marcar **8 hallazgos en 2 piezas**, la flecha de Compras (6) y el «:» rojo del
+  reloj de paletas del aviso de cierre de caja (2, 4.03:1 en los dos temas: un separador dentro de un dibujo oculto al lector, cuyos
+  dígitos se siguen midiendo como texto). Cero casos en que el escaneo nuevo contradiga al criterio.
+- **20 casos borde** en una página sintética (oculto por un ancestro, `aria-hidden="false"` o vacío, una tecla oculta, un «%» detrás de
+  un modal, una flecha propia dentro de un modal, «+30» en uno o dos nodos, un gráfico bajo 3 y uno grande): todos dan lo esperado.
+
+**Se rompe si** una librería de modales oculta la página de atrás sin la marca `data-aria-hidden`: los símbolos de atrás volverían a
+contar como gráficos mientras el modal esté abierto. Radix, la que usa el ERP, la pone: estaba en cada modal medido.
+
 ## Cómo se verificó (actividad 13)
 
 `tsc` sin errores y las pruebas del tema en verde. Con la herramienta, contra el `next dev` local de esta rama: las 12 rutas con 6 cuentas a 1440 px (72 visitas), 24 escenarios con Admin, Integrante y Terminal de ventas a 1440 px (58 visitas) y a 375 px (58 visitas): **0 hallazgos solo en oscuro**. Mirando las capturas: la ficha de una clienta, Roles y accesos, el cartel (ahora rojo como saldrá impreso) y las etiquetas (papel blanco, como salen) se leen bien. Los escenarios que no abren algo son por el rol.

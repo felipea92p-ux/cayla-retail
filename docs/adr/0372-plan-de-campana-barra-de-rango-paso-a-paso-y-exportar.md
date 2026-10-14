@@ -284,3 +284,81 @@ edita un plan y lo mueve al año de otro de la misma campaña: lo rechaza el ín
 
 Pruebas: `scripts/pruebas/plan_compra.mjs` C5–C7 y D1–D4; `lib/plan-compra-reglas.test.ts` (calendario, selector, hoja en sus dos caras).
 Migración `20261012234000_plan_compra_campana_por_anio_y_campana_nueva.sql` (una sola parte, sin políticas).
+
+## Actualización 2026-10-13 — sin la campaña en el ERP, el bueno sale del historial y no del × 3
+
+**El problema.** Trujillo y Arequipa venden en el ERP desde el 30 de setiembre de 2026, así que para Navidad 2026 ninguna tienda tiene la misma
+campaña del año anterior en el ERP y todas caían en «normal × 3». El historial de Sinatra, cargado el 2026-10-12, dice otra cosa: diciembre vende
+entre ×1,59 y ×2,30 un día normal en Trujillo (mediana ×2,04, 2017–2025; Navidad del 11 al 25, ×2,0) y ×1,16 y ×1,11 en Arequipa (2024 y 2025).
+Con × 3, el bueno salía 1,5 veces el de su historia en Trujillo y 2,6 veces en Arequipa, y la compra de Navidad es la más cara del año.
+
+**Lo que se decidió (Felipe, 2026-10-13: «prepara el cambio del multiplicador en una rama»).** El bueno de cada tienda sale del primero que exista:
+1. la campaña del año anterior en el ERP (punto medio, o solo normal × multiplicador si se agotó), como antes;
+2. si no, la misma campaña del año anterior en el historial: normal × el multiplicador de esa tienda, medido con `medir`, la misma regla de la
+   pestaña Historial (soles por día de la campaña ÷ soles por día de sus 60 días de antes, con al menos 20 días con venta en la base);
+3. si tampoco, normal × 3.
+
+Solo web, sin migración: `conHistorial` en `lib/plan-compra-propuesta.ts` llena `multiplicadorHistorial` por tienda, y `getPlanCompra` lee
+`fn_historial_ventas` para `rangoDeCampana(previa)` justo después de la propuesta, porque las fechas de «la misma campaña del año anterior» las define
+la base (`previa`). La hoja de la categoría lo explica: «Tienda Trujillo: normal × 2.0 (lo que esa tienda vendió de más en esa campaña el año pasado,
+según su historial)». El × 3 dice ahora si la campaña no estaba ni en el ERP ni en el historial, o si el historial no se pudo leer.
+
+DECIDÍ: medir el multiplicador en la web con `medir` de Historial y las fechas `previa` de la base.
+DESCARTÉ: (a) llevar la cuenta a `fn_plan_compra_propuesta`, porque pide migración y pegado en producción para algo que Historial ya calcula en la
+web, y dejaría el multiplicador definido dos veces, en SQL y en TS; (b) la mediana de varios años, que es más estable (Trujillo va de 1,59 a 2,30),
+pero el camino del ERP usa solo el año anterior y dos varas para el mismo bueno se contradirían el año que viene; (c) el punto medio con lo vendido,
+porque Sinatra no sabe de categorías ni de unidades.
+SE ROMPE SI: el año anterior fue raro para una tienda (Trujillo 2021, ×1,59): la propuesta lo hereda tal cual, igual que con el ERP; o si a la carga
+de Sinatra le faltan días en los 60 de la base: con menos de 20 días con venta no hay multiplicador y vuelve el × 3, como dice la explicación.
+
+Si `fn_historial_ventas` no responde, el Plan se ve igual que antes (× 3) y la explicación no afirma que la campaña falte en el historial.
+
+**Verificado.** `lib/plan-compra-propuesta.test.ts` (26, 10 nuevas: el orden ERP → historial → × 3, cada tienda con el suyo, el mismo número que
+`medir`, la base delgada, la tienda sin historial, sin historial leído y las dos explicaciones); suite de la web (461 archivos), `tsc` y `eslint`.
+En el navegador local, Navidad 2026: Casacas (vendida en Trujillo) dice «normal × 2.0 … según su historial» y Vestidos (vendida en Lima, sin
+historial) «normal × 3 (esa campaña del año pasado no está ni en el ERP ni en su historial)».
+
+**Queda para Felipe.** El simulador «¿Y si la campaña vende distinto?» sigue arrancando en ×3.0 (`components/plan-compra/SimuladorPlan.tsx:16`) y su
+mínimo es ×1.5, por debajo del cual está Arequipa: decidir si arranca en el multiplicador de la propuesta.
+
+## Actualización 2026-10-13 (b) — lo pedido en órdenes de compra se resta de «Comprar»: solo lo que falta llegar
+
+**El problema.** La actualización (e) dejó lo pedido en órdenes a la vista sin restarlo, porque las órdenes no sabían cuándo llegaba la
+mercadería y restarlo contaba dos veces lo que ya había entrado al stock: «cuando Órdenes reciba contra la orden (su fase 4), pasa a restar».
+Las fases 3 (envíos), 4 (recepción) y 5a («Nos debe») de ADR-0362 ya están en producción. Sin restar, quien arma Navidad con órdenes hechas
+ve «Comprar 200» cuando 150 ya vienen en camino, y puede comprar dos veces lo mismo.
+
+**Lo que se decidió (Felipe, 2026-10-13: «haz que el plan reste lo pedido en órdenes»).** Se resta lo que todavía no está en ninguna tienda.
+Por cada línea de una orden `generada` de la campaña (migración `20261013213000`, `fn_plan_compra_pedido` suma `por_llegar`):
+- lo que todavía no salió en un envío vigente (lo pedido − lo enviado en envíos en camino, abiertos o cerrados; nunca negativo),
+- más lo que va en un envío en camino o abierto (todavía no entra al stock),
+- más lo que el proveedor debe reponer: los faltantes «No vino» de envíos cerrados, menos lo ya resuelto en «Nos debe».
+
+Lo que llegó en un envío cerrado ya está en «Hay hoy» y no se vuelve a restar; lo que se perdió o fue a otra sede no va a llegar por esa
+orden. La reposición de un «No vino» entra al stock y salda su deuda en el mismo acto, así que pasa de «por llegar» a «Hay hoy» sin contarse dos
+veces. En la web, `armarFilas` cuenta `porLlegar` como si ya estuviera (`calcular(línea, hay + por llegar)`); la hoja de la categoría y el
+simulador usan la misma cuenta. La fila dice «20 ya pedidas · 15 por llegar, ya descontadas» (o «ya llegaron»), y «N más de lo que pide el
+plan» solo cuenta lo que pone de más el pedido, no lo que ya sobraba en la red. La barra parte lo que se cuenta en tres tramos: lo que hay
+(verde), lo que viene en órdenes (verde claro) y lo que hay que comprar (negro). «Hay hoy» sigue siendo lo que está en las tiendas.
+
+DECIDÍ: medir por línea de la orden, con los mismos estados de envío que usa Órdenes para «enviado» (`fn_orden_compra_detalle`).
+DESCARTÉ: (a) restar todo lo pedido sin mirar los envíos, porque lo que ya llegó estaría dos veces; (b) partir de max(pedido, facturado), como
+«por enviar» en Órdenes, porque el Plan muestra lo pedido y restar más de lo que dice «ya pedidas» no se podría explicar en la fila (si un
+proveedor factura de más, esas prendas se ven cuando llegan); (c) dar por perdido un faltante «No vino», porque «Nos debe» lo trata como una deuda
+por reponer (decisiones 14 y 24 de ADR-0362).
+SE ROMPE SI: una orden para Navidad llega antes de la campaña (entrega en noviembre): no es «de la campaña» por sus fechas (act. e), así que lo
+que viene en camino no se resta hasta que llega y entra al stock; o si la fase 5b agrega una forma de saldar una deuda que sí traiga prendas:
+hoy toda resolución saca la deuda de «por llegar».
+
+Si la base todavía no manda `por_llegar` (la web publicada antes de pegar el SQL), `porLlegar` es null y el Plan no resta nada: se ve como
+antes. **Migración `20261013213000` EN PRODUCCIÓN desde el 2026-10-13** (orden de Felipe; ensayo revertido antes; después, el cuerpo vivo tiene la
+huella del archivo, `bd7ca122bda0933b1de184b920f2e653`, con los mismos permisos).
+
+**Verificado.** `lib/plan-compra-pedido.test.ts` y `lib/plan-compra-reglas.test.ts` (9 casos nuevos: leer `por_llegar` con la base nueva y la vieja,
+un total que no se inventa a medias, la resta en `armarFilas`, lo que llegó que no se resta dos veces, nunca negativo y las frases); suite de la
+web (461 archivos), `tsc` y las pruebas de `scripts/migraciones`. Casos de base `O2` y `O3` en `scripts/pruebas/plan_compra_historia.mjs`:
+una orden de 30 con un envío recibido de 20 (17 llegaron y 3 «No vino», con 1 ya repuesta), otro recibido de 2 que se perdieron, uno en camino
+de 6 y uno anulado de 50 da 10 por llegar; una orden toda recibida da 0. Se corrieron dentro de un rollback sobre la base local, con las cinco
+tablas de envíos y sus índices creados desde sus migraciones (la primera versión del caso anotaba dos diferencias en la misma línea de un envío,
+que la base no admite: lo encontró el CI) (a la base local le faltan 38 migraciones y no se tocó); en el CI corren sobre la base completa. La consulta nueva se probó en
+producción en solo lectura (compila contra las tablas reales; hoy hay 0 órdenes de compra, así que no cambia ningún número todavía).

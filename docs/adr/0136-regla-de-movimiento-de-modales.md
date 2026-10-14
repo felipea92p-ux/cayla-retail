@@ -337,3 +337,73 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
   `prefers-reduced-motion` todo queda quieto, los trazos aparecen dibujados y las veces llegan de una.
 - **Dónde vive:** `apps/web/app/estilos/gasto-rapido.css` (sus `@keyframes gr-*`) y la cuenta de las veces en `useCuenta` del mismo componente.
   No se generaliza.
+
+
+## Actualización 2026-10-13 — el login «El vuelo vivo»: el colibrí que cose las sedes, pedido por Felipe
+
+- **Qué:** en `/login`, en pantalla ancha, el colibrí rojo aparece en Trujillo dibujándose trazo a trazo y aleteando (el ala sube y baja
+  desde el hombro); salta a Arequipa y a Lima, flota un instante en cada una y la «cose» (el ojal se rellena y suelta una onda); da la vuelta,
+  crece, cruza por detrás del lema y tiñe «transforma.» de rojo al pasar; llega a su lugar, flota, da dos aleteos que se apagan hasta quedar
+  en la pose exacta del logo y el hilo punteado da un último tirón. Se voltea con suavidad cuando vuela a la izquierda y se ladea al subir
+  (nunca más de 22°). Dura 4,3 s. En el celular no hay panel ni vuelo: el formulario con la marca arriba.
+- **Por qué se admite:** es la única pantalla que ve todo el que entra y la puerta de la marca. Felipe pidió que el login «no sea tan simple»,
+  eligió la maqueta C2, pidió «que el colibrí haga el recorrido hasta llegar a su posición» y después «una mejor animación», y eligió la C4
+  mirando el video (2026-10-13). Es decorativo, y por eso queda escrito como excepción: no corre sobre nada que la persona tenga que leer
+  para trabajar, y el formulario se puede llenar mientras vuela.
+- **Los límites:** una sola vez al entrar, sin rebote (los ritmos `ritmoDelVuelo` y `ritmoDelSalto` están probados: nunca se pasan ni
+  retroceden). El aleteo y el mecerse se repiten mientras vuela, pero **se detienen al llegar**: nada queda moviéndose. Solo tokens. Con
+  `prefers-reduced-motion`, o si la ventana cambia de tamaño a medio vuelo, se ve terminado (ave en su lugar, hilo y palabra completos).
+- **Dónde vive:** la geometría del ala, el recorrido, la línea de tiempo y el teñido en `apps/web/lib/login-vuelo.ts` (con su prueba, que
+  además exige que el ave sea la misma de `IsotipoCayla`), el panel en `components/login/PanelVuelo.tsx` y los estilos en
+  `app/estilos/login.css`. Maqueta: `docs/maquetas/login-2026-10/` (`?v=C4`; la C2 queda para comparar). No se generaliza.
+
+## Actualización 2026-10-13 (b) — la entrada al ERP «El colibrí se abre», pedida por Felipe
+
+- **Qué es:** al iniciar sesión, el colibrí del login cruza al centro de la pantalla, el fondo se oscurece (como la mitad de la marca) y, en el
+  centro, se abre una ventana con la forma del propio colibrí que deja ver la pantalla de destino de verdad; luego el ave se agranda hasta
+  salirse y la ventana la sigue hasta cubrir todo (≈3,5 s desde el clic). Si la pantalla de destino todavía no cargó, el ave flota en el centro
+  aleteando y la ventana espera (no abre un vacío).
+- **Por qué se admite:** Felipe lo pidió («que el colibrí se coloque en el centro y se agrande hasta que aparece la pantalla de después de iniciar
+  sesión») y eligió la maqueta mirándola (`docs/maquetas/login-entrada-2026-10/`). Corre una sola vez, al entrar, sobre nada que haya que leer.
+- **Los límites:** una sola vez, sin rebote ni bucle (mismos ritmos que el vuelo del login; el aleteo se apaga en la pose del logo al terminar). Solo
+  se dispara al iniciar sesión (no al recargar ni al cambiar de sede). Solo tokens (`tinta-fija`/`papel`, `rojo`). Con `prefers-reduced-motion`
+  **no empieza**: el login entra como siempre. Mientras dura, la capa frena clics y teclas (no se inicia sesión dos veces) y el loader general
+  (ADR-0149) se aparta: el vuelo ocupa su lugar. Se deshace sola (velo que se va en 300 ms) si te devuelven al login con un motivo
+  (`?error=`) o si la pantalla tarda más de 15 s.
+- **Dónde vive:** la geometría, la línea de tiempo y la espera en `apps/web/lib/login-entrada.ts` (con su prueba, que además mide que la silueta cubre
+  la pantalla de 375×812 a 1920×1080), el estado en `lib/entrada-estado.ts`, la capa en `components/login/EntradaColibri.tsx` (montada una vez en
+  `app/layout.tsx`, como el loader, para sobrevivir a la navegación) y los estilos `.entrada-*` en `app/estilos/login.css`. No se generaliza.
+- **Lo que no hace (decidido):** no encoge la pantalla de verdad dentro de la ventana (como sí lo hace la maqueta): se ve a su tamaño, recortada por la
+  silueta que crece. Encogerla exigía transformar el contenido real y movería los elementos `fixed` (menú lateral, cabecera) hasta el último cuadro.
+
+## Actualización 2026-10-13 (c) — la salida «El colibrí se abre» al revés (versión B), pedida por Felipe
+
+- **Qué es:** al apretar **Salir**, la entrada pero al revés y más rápido (~2,2 s sin esperas): la ventana con forma de colibrí, que cubre la pantalla que se deja, se
+  encoge sobre el colibrí y se cierra; con el fondo oscuro, el colibrí flota en el centro mientras se cierra la sesión y carga el login; cuando el login está
+  listo, el colibrí vuela a su lugar (se mide en ese momento, no se supone) y el fondo oscuro se va. El login llega ya terminado, con su colibrí en su lugar: el
+  vuelo propio del login no corre (`PanelVuelo` lee `data-entrando`), y la capa aterriza sobre él sin salto.
+- **Por qué se admite:** Felipe pidió «un efecto similar al de iniciar sesión pero al revés», recibió tres versiones en la maqueta (A espejo 3,8 s · B espejo rápido
+  2,2 s · C cortina y vuelo 1,5 s) y eligió la B mirándolas. Una salida se repite a diario: por eso la rápida.
+- **Los límites:** los de la entrada (una vez, sin rebote ni bucle, solo tokens, sin empezar con `prefers-reduced-motion`: `Salir` cierra la sesión como siempre) y
+  además: el loader general se aparta mientras dura; la sesión se cierra RECIÉN con la ventana cerrada (no al hacer clic), con la marca de «salida propia» de
+  ADR-0309; un segundo clic o tecla sobre Salir no inicia otra; si el login no carga en 15 s o no hay colibrí a la vista, el velo se va en 300 ms y la persona queda
+  fuera de sesión como al salir normal.
+- **Dónde vive:** `estadoDeLaSalida` y `msCorridosDeLaSalida` en `lib/login-entrada.ts` (es `estadoDeLaEntrada` con el tiempo corrido hacia atrás: no hay otra
+  coreografía; con su prueba), `iniciarSalida` y `medirAveDelLogin` en `lib/entrada-estado.ts`, la misma capa `components/login/EntradaColibri.tsx` y el botón en
+  `components/LogoutButton.tsx`. Maqueta: `docs/maquetas/login-entrada-2026-10/` (`?modo=salir&s=B`). No se generaliza.
+- **Lo que no hace:** igual que la entrada, la pantalla que se deja no se encoge de verdad: la silueta la va recortando.
+
+## Actualización 2026-10-13 (d) — el saludo de la entrada y la salida, pedido por Felipe
+
+- **Qué es:** mientras el colibrí flota en el centro, un saludo bajo él: **«Bienvenido(a)» y el nombre** al entrar, **«Hasta luego» y el nombre** al salir. Una persona se saluda por su
+  nombre de pila; una terminal (ADR-0162), por el nombre completo del aparato («Terminal Ventas TRU»). Es el diseño B de la maqueta: la frase pequeña en versalitas y el nombre grande en
+  serif cursiva y rojo, sobre el velo oscuro (crema fija en los dos temas).
+- **Por qué se admite:** Felipe lo pidió como un «plus», eligió el texto corto y el diseño B mirando la maqueta (`docs/maquetas/login-entrada-2026-10/`). Es texto que se lee en una pausa, no
+  movimiento continuo: asoma, se queda y se va una sola vez (misma curva `ritmoDelVuelo`, sin rebote). No es un aviso (no pide nada ni se cierra).
+- **La pausa:** para que alcance a leerse, el colibrí flota en el centro **al menos 450 ms** (`PAUSA_MINIMA_EN_EL_CENTRO`) aunque la pantalla de destino cargue al instante: la entrada y la salida
+  duran ese tiempo más. Es un mínimo: si la pantalla tarda, flota lo que haga falta. El aleteo NO se detiene en la pausa (corre con el tiempo real).
+- **De dónde sale el nombre:** al salir, de `persona.nombre` que el menú ya tiene (`AppShell` → `LogoutButton`); al entrar, de `fn_persona_actual_resumen()` y `fn_mi_terminal()` pedidas apenas se abre la
+  sesión, con un tope de 4 s (si falla o tarda, el saludo va sin nombre y la entrada no se retrasa). El nombre se escribe con `textContent`, nunca como HTML.
+- **El texto:** «Bienvenido(a)» lo pidió Felipe literal; no se adivina el género a partir del nombre (regla del vocabulario del ERP).
+- **Dónde vive:** el texto y las curvas en `lib/login-saludo.ts` y `lib/login-entrada.ts` (`instanteParaSeguir`, `opacidadDelSaludo`; con su prueba), el nombre en `lib/entrada-estado.ts`
+  (`ponerNombreDelSaludo`), el dibujo en `components/login/EntradaColibri.tsx` y los estilos `.entrada-saludo*` en `app/estilos/login.css`.

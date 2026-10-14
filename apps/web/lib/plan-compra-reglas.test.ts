@@ -324,6 +324,28 @@ describe("armarFilas y totalesDelPlan: la hoja", () => {
   it("los totales suman solo lo que tiene plan, pero lo vendido es de todas", () => {
     expect(totalesDelPlan(armarFilas(plan()))).toEqual({ conPlan: 1, total: 5, aComprar: 150, inversion: 6000, vendido: 12 });
   });
+  describe("lo pedido en órdenes de compra (Felipe 2026-10-13)", () => {
+    const pedido = (porLlegar: number | null) => new Map([["d", { unidades: 60, porLlegar, soles: 2400, ordenes: [12] }]]);
+    it("lo que viene y todavía no llegó se resta de «Comprar»; «Hay hoy» sigue siendo lo que está en las tiendas", () => {
+      const faldas = armarFilas(plan(), pedido(40)).find((x) => x.c.nombre === "Faldas")!;
+      expect([faldas.stock, faldas.enCamino]).toEqual([30, 40]);
+      expect(faldas.calculo).toEqual(calcular({ flojo: 80, normal: 120, bueno: 180, precio: 100, costo: 40, recuperoPct: 50 }, 70));
+      expect(faldas.calculo?.comprar).toBe(110);
+      expect(faldas.pedido?.unidades).toBe(60);
+      expect(totalesDelPlan(armarFilas(plan(), pedido(40))).aComprar).toBe(110);
+    });
+    it("lo que ya llegó no se resta dos veces: está en el stock y no en lo que falta llegar", () => {
+      const faldas = armarFilas(plan(), pedido(0)).find((x) => x.c.nombre === "Faldas")!;
+      expect([faldas.enCamino, faldas.calculo?.comprar]).toEqual([0, 150]);
+    });
+    it("con una base que no manda lo que falta llegar, no se resta nada (como antes), pero lo pedido se ve", () => {
+      const faldas = armarFilas(plan(), pedido(null)).find((x) => x.c.nombre === "Faldas")!;
+      expect([faldas.enCamino, faldas.calculo?.comprar, faldas.pedido?.unidades]).toEqual([0, 150, 60]);
+    });
+    it("si lo que viene pasa de lo que conviene tener, no se compra nada (nunca negativo)", () => {
+      expect(armarFilas(plan(), pedido(500)).find((x) => x.c.nombre === "Faldas")!.calculo?.comprar).toBe(0);
+    });
+  });
   it("sin categorías, todo en cero", () => {
     expect(totalesDelPlan([])).toEqual({ conPlan: 0, total: 0, aComprar: 0, inversion: 0, vendido: 0 });
   });
@@ -400,6 +422,9 @@ describe("momentoDeLaCampana", () => {
     expect(momentoDeLaCampana("2026-12-01", "2026-12-01", "2026-12-31").fuerte).toBe("Día 1 de 31");
     expect(momentoDeLaCampana("2026-12-15", "2026-12-01", "2026-12-31").fuerte).toBe("Día 15 de 31");
     expect(momentoDeLaCampana("2026-12-31", "2026-12-01", "2026-12-31").fuerte).toBe("Día 31 de 31");
+    expect(momentoDeLaCampana("2026-12-31", "2026-12-01", "2026-12-31").resto).toBe("termina hoy");
+    expect(momentoDeLaCampana("2026-12-30", "2026-12-01", "2026-12-31").resto).toBe("termina mañana");
+    expect(momentoDeLaCampana("2026-12-15", "2026-12-01", "2026-12-31").resto).toBe("termina en 16 días");
   });
   it("después: hace cuántos días terminó", () => {
     expect(momentoDeLaCampana("2027-01-08", "2026-12-01", "2026-12-31").fuerte).toBe("Terminó hace 8 días");
@@ -678,7 +703,7 @@ describe("el tope de inversión: leer lo que se escribe y medirlo", () => {
     expect(efectoEnElTope(0, 0, 12000)).toEqual({ total: 0, porcentaje: 0, excede: 0 });
   });
   it("la barra: las 5 que más cuestan y el resto junto en «Otras»; sin plan o sin costo no entran", () => {
-    const mk = (n: number, inv: number) => ({ c: { id: `c${n}`, nombre: `Cat ${n}`, prefijo: null, familia: null, tallas: [] }, linea: undefined, stock: 0, calculo: { cuantil: 1, objetivo: 1, stock: 0, comprar: 1, inversion: inv }, vendido: 0, ventas: 0, puesto: null, ventas30: null, sedes: null, catalogo: null });
+    const mk = (n: number, inv: number) => ({ c: { id: `c${n}`, nombre: `Cat ${n}`, prefijo: null, familia: null, tallas: [] }, linea: undefined, stock: 0, enCamino: 0, calculo: { cuantil: 1, objetivo: 1, stock: 0, comprar: 1, inversion: inv }, vendido: 0, ventas: 0, puesto: null, ventas30: null, sedes: null, catalogo: null });
     const filas = [mk(1, 100), mk(2, 700), mk(3, 300), mk(4, 500), mk(5, 200), mk(6, 50), mk(7, 25), { ...mk(8, 0) }, { ...mk(9, 900), calculo: null }];
     const seg = segmentosDelTope(filas);
     expect(seg.map((x) => [x.clave, x.valor])).toEqual([["c2", 700], ["c4", 500], ["c3", 300], ["c5", 200], ["c1", 100], ["otras", 75]]);

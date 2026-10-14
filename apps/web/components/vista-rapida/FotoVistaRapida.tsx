@@ -4,12 +4,15 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import Image from "next/image";
 import { ZoomIn } from "lucide-react";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
-import type { ProductoListado } from "@/lib/catalogo-v2";
-import { categoriaDe } from "@/lib/categoria-de-prenda";
-import type { FilaColor } from "@/lib/vista-rapida-producto-reglas";
+import { categoriaDe, type FilaConCategoria } from "@/lib/categoria-de-prenda";
 import { hayPunteroFino } from "./movimiento";
 
-type Capa = { id: number; clave: string; nombre: string; hex: string; fotoUrl: string | null };
+/** Lo que la foto necesita de la prenda: cómo se llama y, sin foto, su categoría para dibujar su ícono. La vista rápida de Productos pasa su `ProductoListado`; la hoja «Ver el modelo» de Producción, lo que ya tiene. */
+export type PrendaParaFoto = FilaConCategoria & { referencia: string };
+/** El color que se mira: su clave, su nombre, su hex (`null` = el catálogo no lo tiene: se dibuja el ícono de su categoría sin un color inventado) y su foto. */
+export type ColorParaFoto = { clave: string; nombre: string; hex: string | null; fotoUrl: string | null };
+
+type Capa = { id: number; clave: string; nombre: string; hex: string | null; fotoUrl: string | null };
 
 /** Lo que dura el cruce de una foto a otra (`vr-foto-entra`, vista-rapida.css): pasado ese tiempo la capa de abajo ya no se ve y se quita. */
 const MS_CRUCE = 620;
@@ -30,8 +33,8 @@ export function FotoVistaRapida({
   onAmpliar,
   botonAmpliar,
 }: {
-  producto: ProductoListado;
-  fila: FilaColor | undefined;
+  producto: PrendaParaFoto;
+  fila: ColorParaFoto | undefined;
   onAmpliar?: (foto: { fotoUrl: string; color: string }) => void;
   /** El botón de la lupa, para devolverle el foco al cerrar la foto en grande. */
   botonAmpliar?: RefObject<HTMLButtonElement | null>;

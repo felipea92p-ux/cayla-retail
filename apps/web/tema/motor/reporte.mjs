@@ -4,7 +4,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const linea = (h) => `  - **${h.ratio}** (mín. ${h.umbral}) «${h.texto}» ${h.color} sobre ${h.fondo}${h.imagen ? " ⚠ sobre imagen o degradado" : ""} — \`${h.donde}\``;
+const linea = (h) => `  - **${h.ratio}** (${h.grafico ? "gráfico, " : ""}mín. ${h.umbral}) «${h.texto}» ${h.color} sobre ${h.fondo}${h.imagen ? " ⚠ sobre imagen o degradado" : ""} — \`${h.donde}\``;
 
 export function resumirVisita(v) {
   const claves = new Set(v.claro?.contrastes.map((h) => h.clave) ?? []);

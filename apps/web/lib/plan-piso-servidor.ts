@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import { getCapacidadPiso } from "@/lib/capacidad-piso-servidor";
+import { getCapacidadPiso, getCapacidadPisoConEstado } from "@/lib/capacidad-piso-servidor";
 import { leerFotos, type FotoEspacio } from "@/lib/espacio-piso";
 import { armarPropuesta, type PropuestaMix } from "@/lib/mix-piso";
 import { leerLecturaDelPiso } from "@/lib/piso-plan-servidor";
 import { leerCategorias, leerGrupos, type CategoriaMix, type GrupoMix } from "@/lib/plan-piso-grupos";
 import { codigoDeTienda } from "@/lib/terminales-reglas";
+import type { LecturaParaElInicio, PisoPlanInicio } from "@/lib/inicio-piso-reglas";
 
 export type LecturaGruposMix = { ok: true; grupos: GrupoMix[]; categorias: CategoriaMix[] } | { ok: false; motivo: string };
 
@@ -65,6 +66,45 @@ export async function getPropuestaDelMix(args: { ubicacionId: string; nombreSede
   } catch (e) {
     console.error("Plan del piso: no se pudo armar la propuesta del mix", e);
     return { ok: false, motivo: "No se pudo armar la propuesta." };
+  }
+}
+
+/**
+ * Lo que pide la tarjeta «Tu piso» del Inicio (ADR-0395): cuánto cuelga del riel de UNA sede frente a su capacidad y si el piso ya se cuadró.
+ * Hace las mismas lecturas que `getPropuestaDelMix` y llama a la misma `armarPropuesta`, pero las TRES a la vez: la pantalla pide primero los
+ * grupos y después el piso porque necesita los grupos para dibujar; la tarjeta solo necesita las cifras, y dos viajes en serie en el Inicio se notan.
+ *
+ * PROMETE: nunca lanza. «no aplica» si la sede no tiene propuesta (no es de las tres tiendas o no tiene piso de venta) o no tiene capacidad medida
+ * (un «334» sin su «de N» no dice nada); «falló» si los grupos, el piso o la capacidad no se pudieron leer (la base no respondió).
+ * ASUME: la llama el servidor SOLO si la persona ve el módulo `plan_piso`: `fn_grupos_mix` lo exige y, sin esa puerta, cada carga del Inicio dejaría un 42501 en el log.
+ */
+export async function getPisoDelPlanParaElInicio(args: { ubicacionId: string; nombreSede: string }): Promise<LecturaParaElInicio<PisoPlanInicio>> {
+  try {
+    const [grupos, lectura, capacidad] = await Promise.all([getGruposDelMix(), leerLecturaDelPiso(args.ubicacionId), getCapacidadPisoConEstado(args.ubicacionId)]);
+    // «La base no respondió» y «la sede no tiene capacidad medida» se dicen distinto: lo primero es un fallo (la tarjeta lo dice), lo segundo no dibuja nada.
+    if (!grupos.ok || !lectura || capacidad.estado === "fallo") return { estado: "fallo" };
+    if (capacidad.estado === "sin_capacidad") return { estado: "no_aplica" };
+    const propuesta = armarPropuesta({
+      grupos: grupos.grupos,
+      categorias: grupos.categorias,
+      lectura,
+      capacidad: capacidad.capacidad.capacidad,
+      codigoSede: codigoDeTienda(args.nombreSede),
+    });
+    if (propuesta.motivoSinPropuesta !== null || propuesta.capacidad === null) return { estado: "no_aplica" };
+    return {
+      estado: "ok",
+      datos: {
+        colgadas: propuesta.colgadasEnElRiel,
+        capacidad: propuesta.capacidad,
+        cuadrado: propuesta.cuadrado,
+        provisional: capacidad.capacidad.provisional,
+        sinGrupoColgadas: propuesta.sinGrupo.colgadas,
+      },
+    };
+  } catch (e) {
+    console.error("Inicio: no se pudo leer el piso del Plan", e);
+    return { estado: "fallo" };
   }
 }
 
