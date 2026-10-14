@@ -55,8 +55,8 @@ export function NuevoRolModal({
             <input id="rol-nombre" className="caja-campo-input" value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} autoFocus autoComplete="off" />
           </Campo>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex justify-end gap-2">
-            <Boton type="button" peso="discreto" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" disabled={!valido || !responsable.listo} title={responsable.motivo ?? undefined} cargando={enviando}>
@@ -106,8 +106,8 @@ export function RenombrarRolModal({
             <input id="rol-descripcion" className="caja-campo-input" value={descripcion} maxLength={200} onChange={(e) => setDescripcion(e.target.value)} autoComplete="off" />
           </Campo>
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex justify-end gap-2">
-            <Boton type="button" peso="discreto" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" disabled={!valido || !responsable.listo} title={responsable.motivo ?? undefined} cargando={enviando}>
@@ -138,8 +138,8 @@ export function ArchivarRolModal({
       {(cerrar) => (
         <div className="mt-6 space-y-4">
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex justify-end gap-2">
-            <Boton type="button" peso="discreto" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton
@@ -278,8 +278,8 @@ export function AsignarRolModal({
 
           )}
           <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="flex justify-end gap-2">
-            <Boton type="button" peso="discreto" onClick={cerrar}>
+          <div className="pie-acciones">
+            <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" disabled={!listo || !responsable.listo} title={responsable.motivo ?? undefined} cargando={enviando}>
