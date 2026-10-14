@@ -22,6 +22,7 @@ import { PUNTO_DEL_TONO, tonoDeFamilia } from "@/lib/categoria-tonos";
 import { avisoChoque, ejemploParaFamilia, prefijoDesdeNombre, quienUsaNombre, quienUsaPrefijo } from "@/lib/categoria-alta-reglas";
 import { FolderTree, Grid3x3, Layers, Ruler, Shapes } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 /**
  * Las familias del negocio (Indumentaria, Calzado...), cada una con sus
@@ -800,7 +801,7 @@ export function CategoriasLista({
                   </span>
                 )}
                 {puedeEditar && c.familia && c.prefijo && (
-                  <Boton
+                  <Boton textoCargando="Reactivando…"
                     peso="discreto"
                     className="px-2 py-1 text-[10.5px]"
                     cargando={cambiandoId === c.id}
@@ -985,9 +986,7 @@ function VistaRapidaCategoria({
 
       <div data-guia="categorias.vista-pie" className="mt-6 flex justify-end gap-2 border-t border-tinta/10 pt-4">
         {puedeEditar && (
-          <Boton peso="primario" onClick={onEditar} data-guia="categorias.vista-editar">
-            Editar
-          </Boton>
+          <BotonEditar onClick={onEditar} guia="categorias.vista-editar" />
         )}
       </div>
     </Modal>

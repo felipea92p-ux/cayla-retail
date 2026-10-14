@@ -50,7 +50,7 @@
       "Link «{soles(saldo)}»",
       "Link «{soles(p.saldo_favor ?? 0)}»",
       "Link «proveedores.comprobante»",
-      "Boton «{cambiando ? \"…\" : \"Reactivar\"}»"
+      "Boton «Reactivar»"
     ]
   }
 }

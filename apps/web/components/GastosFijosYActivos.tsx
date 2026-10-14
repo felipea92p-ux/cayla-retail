@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type CSSProperties, type ReactNode } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -36,6 +35,7 @@ import {
 import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { CalendarClock, Laptop } from "lucide-react";
+import { BotonEditar, LapizEditar } from "@/components/ui/BotonEditar";
 
 // Finanzas ▸ Gastos, pestañas «Fijos del mes» y «Activos fijos» (ADR-0195 F2b), y la lista de fijos de Configuración,
 // dibujadas como el spike (docs/maquetas/finanzas-2026-09/, `vistaFijos`, `tablaActivos`, `cfgFijos`).
@@ -81,9 +81,9 @@ export function FijosDelMes({
   const detalle = (f: GastoFijoMes) => `${f.proveedorNombre ?? "Sin proveedor"} · día ${f.diaDelMes}${f.montoVariable ? " · monto variable" : ""}`;
   const monto = (f: GastoFijoMes) => `${f.montoVariable ? "~" : ""}${solesRedondo(f.monto)}`;
   const editar = puedeConfigurar ? (
-    <Link href="/configuracion?tab=fijos" className="btn-cayla btn-sutil btn-chico">
+    <BotonEditar chico href="/configuracion?tab=fijos">
       Editar fijos
-    </Link>
+    </BotonEditar>
   ) : null;
 
   if (fijos.length === 0 && sugeridos.length === 0) {
@@ -311,9 +311,7 @@ export function TablaGastosFijos({
                       {f.diaDelMes}
                     </td>
                     <td className="fin-num">
-                      <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setEditar({ fijo: f })}>
-                        Editar
-                      </button>
+                      <LapizEditar que={f.descripcion} onClick={() => setEditar({ fijo: f })} className="ml-auto" />
                     </td>
                   </tr>
                 ))}
@@ -689,7 +687,7 @@ export function ActivoDetalleModal({ activo: a, hoy, onCerrar }: { activo: Activ
           <button type="button" className="btn-cayla btn-secundario" onClick={() => setAccion(null)} disabled={guardando}>
             Volver
           </button>
-          <Boton peso="primario" cargando={guardando} type="button" onClick={confirmar} disabled={guardando || !responsable.listo}>
+          <Boton textoCargando={accion === "baja" ? "Dando de baja…" : "Anulando…"} peso="primario" cargando={guardando} type="button" onClick={confirmar} disabled={guardando || !responsable.listo}>
             {accion === "baja" ? "Dar de baja" : "Anular activo"}
           </Boton>
         </div>

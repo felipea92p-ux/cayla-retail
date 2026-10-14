@@ -19,7 +19,7 @@
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/ordenes-compra/BotonEditarOrden.tsx": [
-      "BotonEnlace «Editar»"
+      "BotonEditar «);»"
     ],
     "components/ordenes-compra/ComprobantesDeOrden.tsx": [
       "Boton «orden.anular-comprobante»",

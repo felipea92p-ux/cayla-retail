@@ -760,9 +760,9 @@ function MarcasNoGasto({ marcas }: { marcas: MarcaNoGasto[] }) {
                   </span>
                 </div>
                 <span className="fin-monto">{soles(m.monto)}</span>
-                <button type="button" className="btn-cayla btn-sutil btn-chico" disabled={revirtiendo !== null} onClick={() => revertir(m)}>
-                  {revirtiendo === m.id ? "Revirtiendo…" : "Revertir"}
-                </button>
+                <Boton peso="discreto" cargando={revirtiendo === m.id} textoCargando="Revirtiendo…" type="button" className="btn-chico" disabled={revirtiendo !== null} onClick={() => revertir(m)}>
+                  Revertir
+                </Boton>
               </li>
             ))}
           </ul>

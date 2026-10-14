@@ -20,7 +20,7 @@
     "components/EliminarProductoModal.tsx": [
       "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»",
-      "Link «Editar»",
+      "BotonEditar «)»",
       "Boton «Desactivar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -65,10 +65,10 @@
       "BotonEnlace «Limpiar filtros»",
       "Casilla «{etiqueta}»",
       "button «productos.tabla-abrir»",
-      "Link «{`Editar ${referencia}»",
+      "LapizEditar «)»",
       "Link «{`Ver ${referencia}»",
       "Link «{`Historial de ${referencia}»",
-      "Link «Editar»",
+      "BotonEditar «)»",
       "Link «Ver en Existencias»",
       "Link «Historial»",
       "button «Eliminar»",

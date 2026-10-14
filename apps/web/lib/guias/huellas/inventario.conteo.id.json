@@ -80,7 +80,7 @@
       "button «Reintentar»"
     ],
     "components/conteo/EditarConteo.tsx": [
-      "button «{abriendo ? \"Abriendo…\" : \"Corregir conteo\"}»"
+      "BotonEditar «Corregir conteo»"
     ],
     "components/conteo/ListaConteo.tsx": [
       "button «{`Completar todo: ${nombre}»"

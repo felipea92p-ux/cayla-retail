@@ -398,9 +398,9 @@ function ReabrirModal({ mes, unidad, onCerrar }: { mes: string; unidad: Unidad; 
         <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={reabrir} disabled={guardando || !responsable.listo}>
-          {guardando ? "Reabriendo…" : "Reabrir"}
-        </button>
+        <Boton peso="primario" cargando={guardando} textoCargando="Reabriendo…" type="button" onClick={reabrir} disabled={guardando || !responsable.listo}>
+          Reabrir
+        </Boton>
       </div>
     </Modal>
   );

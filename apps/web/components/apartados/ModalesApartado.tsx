@@ -488,15 +488,14 @@ export function ExtenderModal({ apartado, ubicacion, onClose }: { apartado: Apar
           <ComboResponsable control={responsable} deshabilitado={enviando} />
           <div className="pie-acciones">
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
-            <button
+            <Boton peso="primario" cargando={enviando} textoCargando="Extendiendo…"
               type="button"
               disabled={enviando || agotado || !responsable.listo}
               title={agotado ? "Ya se extendió una vez." : (responsable.motivo ?? undefined)}
               onClick={() => extender(cerrar)}
-              className="btn-cayla btn-primario"
             >
-              {enviando ? "Extendiendo…" : "Extender 7 días"}
-            </button>
+              Extender 7 días
+            </Boton>
           </div>
         </div>
       )}

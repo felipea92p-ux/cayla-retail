@@ -59,7 +59,7 @@ export function CampanasArchivadasModal({ archivadas, onClose }: { archivadas: r
                   </span>
                   <span className="flex gap-2">
                     <BotonEnlace href={`/compras/plan?plan=${c.id}`}>Ver</BotonEnlace>
-                    <Boton type="button" peso="primario" cargando={restaurando === c.id} disabled={restaurando !== null || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void restaurar(c, cerrar)}>
+                    <Boton textoCargando="Restaurando…" type="button" peso="primario" cargando={restaurando === c.id} disabled={restaurando !== null || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void restaurar(c, cerrar)}>
                       Restaurar
                     </Boton>
                   </span>

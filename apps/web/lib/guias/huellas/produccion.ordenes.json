@@ -34,7 +34,7 @@
       "Boton «Usar ese modelo»",
       "Boton «Es otro modelo, crearlo igual»",
       "button «Cancelar»",
-      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/OrdenCierre.tsx": [
       "CampoMonto «Tela (real)»",
@@ -47,7 +47,7 @@
       "button «{abierto ? \"Cancelar devolución\" : \"Devolver al estante\"}»",
       "input «0»",
       "button «Devolver todo»",
-      "ComboResponsable «{devolviendo ? \"Devolviendo…\" : \"Devolver al lote\"}»",
+      "ComboResponsable «Devolver al lote»",
       "Boton «{responsable.motivo ?? undefined}»",
       "Link «Cárgalos en Insumos»",
       "button «{i.nombre}»",
@@ -62,7 +62,7 @@
       "Boton «{responsable.motivo ?? undefined}»",
       "ComboResponsable «Volver» #2",
       "button «Volver» #2",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}» #2"
     ],
     "components/OrdenPanel.tsx": [
       "ComboResponsable «(sin nombre)»",

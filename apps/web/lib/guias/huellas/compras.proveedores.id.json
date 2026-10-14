@@ -15,13 +15,13 @@
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
-      "button «Editar»",
+      "LapizEditar «)»",
       "button «{`Copiar ${etiqueta.toLowerCase()}»"
     ],
     "components/ProveedorAcciones.tsx": [
       "BotonAncla «WhatsApp»",
       "Boton «Copiar CCI»",
-      "Boton «proveedor-ficha.editar»",
+      "BotonEditar «→() => setEditando(true)»",
       "BotonEnlace «Registrar factura»"
     ],
     "components/ProveedorModal.tsx": [

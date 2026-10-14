@@ -34,7 +34,7 @@
       "input «{tienda ? tienda.corto : \"La otra tienda\"}»",
       "ComboResponsable «Mejor no»",
       "button «Mejor no»",
-      "button «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/apartados/ApartadosPanel.tsx": [
       "Pestanas «(sin nombre)»",
@@ -76,7 +76,7 @@
     ],
     "components/apartados/EntregarVista.tsx": [
       "button «Otro cliente»",
-      "button «Editar prendas»",
+      "BotonEditar «Editar prendas»",
       "Boton «Borrar la búsqueda»",
       "button «{x.nombres}»",
       "button «{`${m}»",
@@ -108,7 +108,7 @@
       "Boton «{responsable.motivo ?? undefined}»",
       "ComboResponsable «Mejor no» #2",
       "button «Mejor no» #2",
-      "button «{agotado ? \"Ya se extendió una vez.\" : (responsable.motivo ?? undefined)}»",
+      "Boton «{agotado ? \"Ya se extendió una vez.\" : (responsable.motivo ?? undefined)}»",
       "button «{a.nombres}»",
       "button «Saltar»",
       "button «Mejor no» #3",

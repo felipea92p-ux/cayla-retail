@@ -2,7 +2,7 @@
   "guia": "productos.atributos",
   "ruta": "/productos/atributos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 161,
+  "total": 162,
   "controles": {
     "components/AtributosHub.tsx": [
       "Pestanas «{AYUDA[tipo]}»"
@@ -10,6 +10,7 @@
     "components/ColoresLista.tsx": [
       "BotonFiltro «Todos»",
       "BotonFiltro «{g.texto}»",
+      "LapizEditar «)»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
       "CampoTexto «{guia.etiqueta(\"codigo\", \"Código (3 letras)\")}»",
       "CampoSelect «{guia.etiqueta(\"familia\", \"Familia\")}»",

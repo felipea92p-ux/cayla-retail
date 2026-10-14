@@ -68,7 +68,7 @@
       "input «{`Costo por prenda de ${p.referencia}»",
       "button «{`Quitar ${p.referencia}»",
       "ComboResponsable «(sin nombre)»",
-      "button «{guia.frase ?? undefined}»"
+      "Boton «{guia.frase ?? undefined}»"
     ],
     "components/Paginacion.tsx": [
       "Link «Volver al inicio»",

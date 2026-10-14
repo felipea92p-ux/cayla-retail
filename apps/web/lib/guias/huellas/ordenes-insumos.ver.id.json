@@ -10,7 +10,7 @@
     ],
     "components/ordenes-insumo/AccionesOrdenInsumo.tsx": [
       "BotonImprimir «También sirve para guardar la orden en PDF»",
-      "BotonEnlace «oi.editar»",
+      "BotonEditar «); const anular = puedeAnularOrdenInsumo(orden) && (»",
       "Boton «oi.anular»",
       "CampoTexto «Por qué se anula»",
       "ComboResponsable «)»",

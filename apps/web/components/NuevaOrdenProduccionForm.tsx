@@ -9,7 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { CampoMonto, CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Aviso } from "@/components/ui/Aviso";
-import { Modal, campoEtiqueta, botonPrimario } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
 import { Chip } from "@/components/ui/Chip";
@@ -772,14 +772,14 @@ export function NuevaOrdenProduccionForm({
               <button type="button" onClick={() => avisoSalida.pedirAccion(onClose)} className="btn-cayla btn-secundario">
                 Cancelar
               </button>
-              <button
+              <Boton peso="primario" cargando={cargando} textoCargando="Abriendo…"
                 type="submit"
                 disabled={cargando || !guia.puedeConfirmar || !responsable.listo}
                 title={guia.frase ?? responsable.motivo ?? undefined}
-                className={`${botonPrimario} ${guia.claseConfirmar}`}
+                className={`flex-1 ${guia.claseConfirmar}`}
               >
-                {cargando ? "Abriendo…" : esNuevo ? "Crear y abrir orden" : "Abrir orden"}
-              </button>
+                {esNuevo ? "Crear y abrir orden" : "Abrir orden"}
+              </Boton>
             </div>
           </div>
         </FichaOrden>

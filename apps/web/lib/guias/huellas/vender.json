@@ -9,8 +9,8 @@
       "input «Ej.: se usó para vuelto antes de abrir»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»",
-      "button «{responsable.motivo ?? undefined}»",
-      "button «{responsable.motivo ?? undefined}» #2",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}» #2",
       "button «→onElegir»"
     ],
     "components/CampoDocumentoClienta.tsx": [
@@ -65,7 +65,7 @@
       "input «{tienda ? tienda.corto : \"La otra tienda\"}»",
       "ComboResponsable «Mejor no»",
       "button «Mejor no»",
-      "button «{responsable.motivo ?? guia.frase ?? undefined}»"
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/PrendaSinRegistrarModal.tsx": [
       "button «Usar «»",

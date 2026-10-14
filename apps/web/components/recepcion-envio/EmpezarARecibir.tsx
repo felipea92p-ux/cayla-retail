@@ -85,8 +85,8 @@ export function EmpezarARecibir({ detalle, sede, responsable, onAbierto }: { det
           </Aviso>
         )}
         <div className="flex justify-end">
-          <Boton type="button" peso="primario" cargando={abriendo} onClick={() => void abrir()} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-            {abriendo ? "Abriendo…" : "Empezar a recibir"}
+          <Boton textoCargando="Abriendo…" type="button" peso="primario" cargando={abriendo} onClick={() => void abrir()} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+            Empezar a recibir
           </Boton>
         </div>
       </section>

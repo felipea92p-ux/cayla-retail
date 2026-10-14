@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronRight, History, PackageOpen, PauseCircle, Pencil, PlayCircle, SignpostBig, Trash2, X, FunnelX, Tag } from "lucide-react";
+import { ChevronRight, History, PackageOpen, PauseCircle, PlayCircle, SignpostBig, Trash2, X, FunnelX, Tag } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { CambiarEstadoProductosHoja } from "@/components/CambiarEstadoProductosHoja";
@@ -46,6 +46,7 @@ import { BotonEnlace } from "@/components/ui/campos";
 import { InsigniaPrecios } from "@/components/ficha-producto/InsigniaPrecios";
 import type { PrecioDeTienda } from "@/lib/precio-sede-reglas";
 import { Casilla } from "@/components/ui/Casilla";
+import { BotonEditar, LapizEditar } from "@/components/ui/BotonEditar";
 
 /**
  * Productos ▸ Tabla (ADR-0254, rediseño 2026-09-28 sobre `docs/maquetas/productos-administrar-2026-09/`).
@@ -545,9 +546,7 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
       className="pointer-events-none absolute right-4 top-1/2 flex -translate-y-1/2 translate-x-1.5 gap-0.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_color-mix(in_srgb,var(--color-sombra)_35%,transparent)] transition-[opacity,transform] duration-200 ease-cayla group-hover/fila:pointer-events-auto group-hover/fila:translate-x-0 group-hover/fila:opacity-100 group-focus-within/fila:pointer-events-auto group-focus-within/fila:translate-x-0 group-focus-within/fila:opacity-100 [@media(hover:none)]:hidden"
     >
       {acciones.editar && (
-        <Link href={acciones.editar} className={boton} aria-label={`Editar ${referencia}`} title="Editar">
-          <Pencil aria-hidden className="h-4 w-4" />
-        </Link>
+        <LapizEditar href={acciones.editar} que={referencia} />
       )}
       {acciones.existencias && (
         <Link href={acciones.existencias} className={boton} aria-label={`Ver ${referencia} en Existencias`} title="Ver en Existencias">
@@ -751,10 +750,7 @@ function FichaVariantes({
       {/* Todas las acciones de la prenda: en una pantalla táctil (sin hover) este es el único lugar donde están. */}
       <div className="mt-4 flex flex-wrap gap-2">
         {acciones.editar && (
-          <Link href={acciones.editar} className={boton}>
-            <Pencil aria-hidden className="h-4 w-4" />
-            Editar
-          </Link>
+          <BotonEditar href={acciones.editar} className="min-h-10 text-[12.5px]" />
         )}
         {acciones.existencias && (
           <Link href={acciones.existencias} className={boton}>

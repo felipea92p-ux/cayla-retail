@@ -18,7 +18,7 @@
       "Boton «Cerrar consolidado»",
       "ComboResponsable «Cancelar» #3",
       "button «Cancelar» #3",
-      "button «{guardando ? \"Reabriendo…\" : \"Reabrir\"}»"
+      "Boton «Reabrir»"
     ]
   }
 }

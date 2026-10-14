@@ -6,7 +6,7 @@ import { TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
+import { campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -177,19 +177,19 @@ export function AbrirCajaFormV2({
           <Boton type="button" onClick={onCancelar} disabled={loading}>
             Cancelar
           </Boton>
-          <button type="submit" disabled={loading || !listo || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
-            {loading ? "Abriendo…" : monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
-          </button>
+          <Boton peso="primario" cargando={loading} textoCargando="Abriendo…" type="submit" disabled={loading || !listo || !responsable.listo} title={responsable.motivo ?? undefined} className="flex-1">
+            {monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
+          </Boton>
         </div>
       ) : (
-        <button
+        <Boton peso="primario" cargando={loading} textoCargando="Abriendo…"
           type="submit"
           disabled={loading || !listo || !responsable.listo}
           title={responsable.motivo ?? undefined}
-          className={`${botonPrimario} w-full`}
+          className={`flex-1 w-full`}
         >
-          {loading ? "Abriendo…" : monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
-        </button>
+          {monto !== null && listo ? `Abrir caja con ${money(monto)}` : "Abrir caja"}
+        </Boton>
       )}
     </form>
   );

@@ -18,7 +18,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import {
-  AccionTarjeta,
+
   BarraAtributos,
   BotonesPendiente,
   BotonReactivar,
@@ -32,6 +32,7 @@ import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
 import { filtrarColores } from "@/lib/atributos-buscar";
 import { Aviso } from "@/components/ui/Aviso";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 
 /**
  * El vocabulario cerrado de colores — portado de `trix/catalogo-vocabulario`
@@ -477,7 +478,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                         )}
                         {/* Desactivar un color vive dentro de Editar: si todavía lo usa alguna variante activa, la pantalla se bloquea y dice cuántas. */}
                         <PieTarjeta>
-                          <AccionTarjeta onClick={() => setEditando(c)} guia="atributos.color-editar">Editar</AccionTarjeta>
+                          <LapizEditar que={c.nombre} guia="atributos.color-editar" onClick={() => setEditando(c)} />
                         </PieTarjeta>
                       </>
                     )}

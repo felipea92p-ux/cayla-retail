@@ -195,7 +195,7 @@ export function PiezaLiquidacionModal({
                 <Boton type="button" onClick={() => setModo("ver")}>
                   Cancelar
                 </Boton>
-                <Boton type="submit" peso="peligro" cargando={guardando} disabled={!guiaRetiro.puedeConfirmar} className={guiaRetiro.claseConfirmar}>
+                <Boton textoCargando="Retirando…" type="submit" peso="peligro" cargando={guardando} disabled={!guiaRetiro.puedeConfirmar} className={guiaRetiro.claseConfirmar}>
                   Retirar
                 </Boton>
               </div>

@@ -184,14 +184,13 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
               <div className="space-y-2">
                 <input ref={inputRef} type="file" accept="image/jpeg" onChange={onArchivo} className="hidden" />
                 <div className="pie-acciones">
-                  <button
+                  <Boton cargando={subiendo} textoCargando="Subiendo…"
                     type="button"
                     onClick={() => inputRef.current?.click()}
                     disabled={subiendo}
-                    className="btn-cayla btn-secundario"
                   >
-                    {subiendo ? "Subiendo…" : perfil.foto_url ? "Cambiar foto" : "Subir foto"}
-                  </button>
+                    {perfil.foto_url ? "Cambiar foto" : "Subir foto"}
+                  </Boton>
                   {perfil.foto_url && (
                     <button type="button" onClick={onEliminarFoto} disabled={subiendo} className="btn-cayla btn-peligro">
                       Eliminar

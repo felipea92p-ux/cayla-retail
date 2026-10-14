@@ -30,6 +30,7 @@ import {
 import { Boton } from "@/components/ui/campos";
 import { Store } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 
 // Configuración ▸ Cuentas y cobros (ADR-0195 F3), dibujada como el spike (`vista-config.js`, `cfgCuentas`): las cuentas
 // de CAYLA (los cajones y cajas fuertes nacen con cada tienda; aquí se agregan bancos, billeteras, el POS y la tarjeta) y a
@@ -113,9 +114,7 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
                         <Chip tono={c.archivada ? "apagado" : "verde"} tachado={false}>
                           {c.archivada ? "archivada" : "activa"}
                         </Chip>
-                        <button type="button" className="btn-enlace text-[12px]" disabled={guardando} onClick={() => setEditar(c)} aria-label={`Editar ${c.nombre}`}>
-                          Editar
-                        </button>
+                        <LapizEditar que={c.nombre} disabled={guardando} onClick={() => setEditar(c)} />
                       </span>
                     </td>
                   </tr>

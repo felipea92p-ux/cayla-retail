@@ -567,18 +567,22 @@ describe("Nueva orden: los de gravedad 4 de /chaos (2026-10-10), #6, #7 y #8", (
 describe("el botón principal de Nueva orden cabe a 375 px", () => {
   it("su etiqueta tiene a lo más 20 letras (a 375 px «Crear modelo y abrir orden» medía 180 px en un botón de 159 y se recortaba ~21 px)", () => {
     const fuente = readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
-    const etiquetas = [...fuente.matchAll(/cargando \? "Abriendo…" : esNuevo \? "([^"]+)" : "([^"]+)"/g)];
+    // Desde la ronda 12 de /unificar (ADR-0358) «Abriendo…» lo pone la pieza (`textoCargando`); la etiqueta es la del botón en reposo.
+    expect(fuente).toContain('textoCargando="Abriendo…"');
+    const etiquetas = [...fuente.matchAll(/\{esNuevo \? "([^"]+)" : "([^"]+)"\}/g)];
     expect(etiquetas.length).toBe(1);
     for (const e of [etiquetas[0][1], etiquetas[0][2]]) expect(e.length, e).toBeLessThanOrEqual(20);
   });
 });
 
 describe("el formulario de Nueva orden", () => {
-  it("ningún <Boton> de adentro envía el formulario sin querer: todos llevan type=\"button\" (sin él, «Usar ese modelo» volvía a crear la orden)", () => {
+  it("ningún <Boton> de adentro envía el formulario sin querer: todos llevan type=\"button\" (sin él, «Usar ese modelo» volvía a crear la orden); el único que envía lo declara", () => {
     const fuente = readFileSync(join(__dirname, "..", "components", "NuevaOrdenProduccionForm.tsx"), "utf8");
     const aperturas = [...fuente.matchAll(/<Boton\b[^>]*>/g)].map((m) => m[0]);
     expect(aperturas.length).toBeGreaterThan(0);
-    for (const a of aperturas) expect(a, a).toContain('type="button"');
+    for (const a of aperturas) expect(a, a).toMatch(/type="(button|submit)"/);
+    // Enviar el formulario es «Abrir orden» (desde la ronda 12 un <Boton>, ADR-0358): uno solo.
+    expect(aperturas.filter((a) => a.includes('type="submit"')).length).toBe(1);
   });
 });
 

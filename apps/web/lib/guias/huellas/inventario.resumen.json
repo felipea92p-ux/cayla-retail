@@ -15,7 +15,7 @@
       "input «Nota (opcional)»",
       "ComboResponsable «(sin nombre)»",
       "button «Mejor no»",
-      "button «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
     ],
     "components/analisis/AnalisisPantalla.tsx": [
       "button «→() => verConDatosDeHoy(modo === \"que-falta\")»",

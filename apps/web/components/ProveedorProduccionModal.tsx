@@ -249,7 +249,7 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
           {proveedor ? (
-            <Boton peso="discreto" type="button" cargando={archivando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={cambiarEstado}>
+            <Boton textoCargando={proveedor.activo ? "Archivando…" : "Reactivando…"} peso="discreto" type="button" cargando={archivando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={cambiarEstado}>
               {proveedor.activo ? "Archivar proveedor" : "Reactivar proveedor"}
             </Boton>
           ) : (

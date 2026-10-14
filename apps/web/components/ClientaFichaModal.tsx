@@ -38,6 +38,7 @@ import { PreferenciasClienta } from "@/components/clientas/PreferenciasClienta";
 import { HistoriaPermisos } from "@/components/clientas/HistoriaPermisos";
 import { ShoppingBag, SearchX } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 /** Lo que muestra la hoja: la ficha, o una de sus acciones (cada una responde adentro del mismo panel, ADR-0136). Del club
  *  queda «Registrar su BAJA» (`baja`): desde la tanda 1g (ADR-0288, G-1, G-7) ella se une sola desde el cartel, así que la
@@ -411,18 +412,14 @@ export function ClientaFichaModal({
                   ]}
                 />
                 {activa && (
-                  <Boton
-                    type="button"
-                    peso="primario"
-                    data-guia="clientas.ficha-editar"
+                  <BotonEditar
+                    guia="clientas.ficha-editar"
                     className="mb-2 shrink-0 !py-2"
                     onClick={() => {
                       setEdicion(datosDeEdicion(c));
                       setModo("editar");
                     }}
-                  >
-                    Editar
-                  </Boton>
+                  />
                 )}
               </div>
 
@@ -568,7 +565,7 @@ export function ClientaFichaModal({
                 !c.fusionadaEnId && (
                   <div className="flex flex-wrap justify-end gap-3 border-t border-sand pt-4">
                     <ComboResponsable control={responsable} deshabilitado={guardando} compacto />
-                    <Boton type="button" peso="primario" cargando={guardando} onClick={onReactivar} disabled={!responsable.listo}>
+                    <Boton textoCargando="Reactivando…" type="button" peso="primario" cargando={guardando} onClick={onReactivar} disabled={!responsable.listo}>
                       Reactivar
                     </Boton>
                   </div>
@@ -651,7 +648,7 @@ export function ClientaFichaModal({
               <PieGuia guia={guia} listo={anonimizar ? "Todo listo para anonimizar." : "Todo listo para archivar."} />
               <div className="flex justify-end gap-3 pt-2">
                 {volverAVer}
-                <Boton
+                <Boton textoCargando={anonimizar ? "Anonimizando…" : "Archivando…"}
                   type="button"
                   peso="primario"
                   cargando={guardando}
@@ -708,7 +705,7 @@ export function ClientaFichaModal({
               <PieGuia guia={guia} listo="Todo listo para unir." />
               <div className="flex justify-end gap-3 pt-2">
                 {volverAVer}
-                <Boton
+                <Boton textoCargando="Uniendo…"
                   type="button"
                   peso="primario"
                   cargando={guardando}

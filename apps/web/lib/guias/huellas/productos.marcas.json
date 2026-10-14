@@ -2,7 +2,7 @@
   "guia": "productos.marcas",
   "ruta": "/productos/marcas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 36,
+  "total": 37,
   "controles": {
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «(sin nombre)»",
@@ -56,7 +56,8 @@
     ],
     "components/marcas/TarjetaMarca.tsx": [
       "button «Reactivar»",
-      "button «marcas.editar»"
+      "button «marcas.editar»",
+      "LapizEditar «) )»"
     ]
   }
 }

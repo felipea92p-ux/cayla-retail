@@ -12,8 +12,8 @@
       "input «Ej.: se usó para vuelto antes de abrir»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»",
-      "button «{responsable.motivo ?? undefined}»",
-      "button «{responsable.motivo ?? undefined}» #2",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «{responsable.motivo ?? undefined}» #2",
       "button «→onElegir»"
     ],
     "components/BarraCierreCaja.tsx": [

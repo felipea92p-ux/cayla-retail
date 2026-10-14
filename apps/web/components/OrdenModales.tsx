@@ -116,9 +116,9 @@ export function RevertirOrdenModal({ orden, onClose }: { orden: OrdenProduccion;
           <button type="button" onClick={onClose} className="btn-cayla btn-secundario">
             Volver
           </button>
-          <button type="button" onClick={confirmar} disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
-            {cargando ? "Revirtiendo…" : "Revertir"}
-          </button>
+          <Boton peso="primario" cargando={cargando} textoCargando="Revirtiendo…" type="button" onClick={confirmar} disabled={cargando || !responsable.listo} title={responsable.motivo ?? undefined}>
+            Revertir
+          </Boton>
         </div>
       </div>
     </Modal>

@@ -279,8 +279,8 @@ export function OrdenInsumos({
                       </dl>
                     )}
                     <ComboResponsable control={responsable} deshabilitado={devolviendo} />
-                    <Boton peso="fantasma" cargando={devolviendo} disabled={!previsionDev?.ok || !responsable.listo} title={responsable.motivo ?? undefined} onClick={devolver} className="w-full">
-                      {devolviendo ? "Devolviendo…" : "Devolver al lote"}
+                    <Boton textoCargando="Devolviendo…" peso="fantasma" cargando={devolviendo} disabled={!previsionDev?.ok || !responsable.listo} title={responsable.motivo ?? undefined} onClick={devolver} className="w-full">
+                      Devolver al lote
                     </Boton>
                   </div>
                 )}

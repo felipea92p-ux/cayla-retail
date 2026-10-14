@@ -29,7 +29,7 @@
       "Link «categorias.vista-productos»",
       "button «{h.prefijo ?? \"—\"}» #2",
       "Link «{temporada.nombre ? \"Cambiarla\" : \"Elegirla\"}»",
-      "Boton «categorias.vista-editar»"
+      "BotonEditar «)»"
     ],
     "components/ConfirmarConResponsable.tsx": [
       "ComboResponsable «(sin nombre)»",

@@ -11,7 +11,7 @@
     "components/ClientaFichaModal.tsx": [
       "Boton «Cancelar»",
       "Pestanas «(sin nombre)»",
-      "Boton «clientas.ficha-editar»",
+      "BotonEditar «)»",
       "Boton «Registrar su BAJA»",
       "button «Unir con otra ficha»",
       "button «Archivar»",

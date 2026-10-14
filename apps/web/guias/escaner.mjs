@@ -113,7 +113,7 @@ const CONTROLES = [
   "button", "a", "Link", "input", "textarea", "select",
   "Boton", "BotonEnlace", "BotonAncla", "BotonCompacto", "BotonFiltro", "BotonFiltros",
   // Las piezas de una sola función de `/unificar` (rondas 10 y 11, ADR-0358): un control que se migra a ellas sigue en la huella.
-  "BotonDescargar", "BotonVer", "BotonImprimir", "BotonLimpiar", "FiltroPuesto",
+  "BotonDescargar", "BotonVer", "BotonImprimir", "BotonLimpiar", "FiltroPuesto", "BotonEditar", "LapizEditar",
   "CampoTexto", "CampoSelect", "CampoMonto", "CampoFecha", "Desplegable", "DesplegablePildora", "ComboBuscable", "ComboResponsable",
   "Casilla", "Pestanas", "SegmentoDeslizante", "SegmentoEnlaces", "Pastilla", "Volver",
 ];

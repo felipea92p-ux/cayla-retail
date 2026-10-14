@@ -44,7 +44,7 @@
       "Link «Ver cómo se ve en Caja»"
     ],
     "components/GastosFijosYActivos.tsx": [
-      "Link «Editar fijos»",
+      "BotonEditar «Editar fijos»",
       "BotonEnlace «Agregar el primero»",
       "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}»",
       "button «{f.montoVariable ? \"Registrar monto\" : \"Registrar\"}» #2",
@@ -54,7 +54,7 @@
       "button «Cancelar»",
       "Boton «No es fijo»",
       "Boton «+ Agregar fijo»",
-      "button «Editar»",
+      "LapizEditar «))»",
       "ComboResponsable «(sin nombre)»",
       "button «Ya no se paga: archivar»",
       "button «Cancelar» #2",
@@ -68,7 +68,7 @@
     "components/finanzas/ConfiguracionCuentas.tsx": [
       "ComboResponsable «(sin nombre)»",
       "Boton «+ Agregar cuenta»",
-      "button «{`Editar ${c.nombre}»",
+      "LapizEditar «);»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
       "Boton «Agregar»"

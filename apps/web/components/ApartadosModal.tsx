@@ -106,7 +106,7 @@ export function ApartadosModal({
               <Boton type="button" onClick={() => { setLiberando(null); setMotivo(""); setIntento(false); responsable.limpiar(); }} className="flex-1">
                 Volver
               </Boton>
-              <Boton
+              <Boton textoCargando="Liberando…"
                 type="submit"
                 peso="primario"
                 cargando={enviando}

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Pencil, Receipt, SearchX, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { Archive, Receipt, SearchX, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -31,6 +31,7 @@ import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Boton } from "@/components/ui/campos";
 import { Buscador } from "@/components/ui/Buscador";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
@@ -233,9 +234,9 @@ export function EntregarVista({
             </ul>
             {conEditar && (
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => setEditar(true)} className="btn-cayla btn-secundario inline-flex h-9 items-center gap-1.5 px-2.5 text-[12.5px]">
-                  <Pencil className="h-3.5 w-3.5" aria-hidden /> Editar prendas
-                </button>
+                <BotonEditar chico onClick={() => setEditar(true)}>
+                  Editar prendas
+                </BotonEditar>
                 <span className="text-xs text-tinta/55">Sumar otra, quitar una o cambiar la talla, sin liberar.</span>
               </div>
             )}

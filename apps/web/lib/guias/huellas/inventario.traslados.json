@@ -47,7 +47,7 @@
       "input «Nota (opcional)»",
       "ComboResponsable «(sin nombre)»",
       "button «Mejor no»",
-      "button «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? guia.frase ?? motivo ?? undefined}»"
     ],
     "components/traslados-guia/QrDeLaGuia.tsx": [
       "Link «{`Imprimir la guía de la caja Nº ${numero}»"

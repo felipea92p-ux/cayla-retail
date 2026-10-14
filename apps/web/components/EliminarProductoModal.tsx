@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -23,6 +22,7 @@ import {
   textoSeBorraConHistoria,
   type ComoEliminar,
 } from "@/lib/eliminar-producto-reglas";
+import { BotonEditar } from "@/components/ui/BotonEditar";
 
 /**
  * «Eliminar» un producto (ADR-0218 sin historia, ADR-0252 con su historia de stock). Lo hace quien edita el catálogo
@@ -150,9 +150,7 @@ export function EliminarProductoModal({
               </Boton>
             )}
             {salida?.irAEditar && (
-              <Link href={`/productos/${producto.productoId}/editar`} className="btn-cayla btn-primario">
-                Editar
-              </Link>
+              <BotonEditar href={`/productos/${producto.productoId}/editar`} />
             )}
             {salida?.desactivar && onDesactivar && (
               <Boton peso="peligro" onClick={onDesactivar}>
@@ -160,7 +158,7 @@ export function EliminarProductoModal({
               </Boton>
             )}
             {puede && (
-              <Boton peso="primario" cargando={eliminando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void eliminar(cerrar)}>
+              <Boton textoCargando="Eliminando…" peso="primario" cargando={eliminando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} onClick={() => void eliminar(cerrar)}>
                 {conHistoria ? "Eliminar con su historia" : "Eliminar"}
               </Boton>
             )}

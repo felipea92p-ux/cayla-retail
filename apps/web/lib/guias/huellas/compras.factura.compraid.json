@@ -71,8 +71,8 @@
       "input «de»",
       "input «{ETIQUETA_MOTIVO_REASIGNACION[m]}»",
       "CampoTexto «{motivo === \"otro\" ? \"Nota (cuenta el motivo)\" : \"Nota (opcional)\"}»",
-      "ComboResponsable «{loading ? \"Moviendo…\" : cantidadOk && haciaId ? `Mover ${n}»",
-      "button «{error ?? undefined}»"
+      "ComboResponsable «{cantidadOk && haciaId ? `Mover ${n}»",
+      "Boton «{error ?? undefined}»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

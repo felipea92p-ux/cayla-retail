@@ -174,7 +174,7 @@ export function EditarCampanaModal({
                   <Boton type="button" onClick={() => setConfirmarBorrado(false)} disabled={trabajando}>
                     No, dejarla
                   </Boton>
-                  <Boton type="button" peso="peligro" cargando={trabajando} onClick={() => void quitarCampana(cerrar)}>
+                  <Boton textoCargando="Borrando…" type="button" peso="peligro" cargando={trabajando} onClick={() => void quitarCampana(cerrar)}>
                     Sí, borrar campaña
                   </Boton>
                 </div>
