@@ -182,6 +182,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/productos/familias": { estado: "no-aplica", motivo: "Muestra las familias como tarjetas de solo lectura; lo que se llena vive en la ventana «Nueva familia», que lleva su propia guía (registro de modales)." },
   "/productos/marcas": { estado: "aplicada", evidencia: ["components/alta-producto/NuevaMarcaForm.tsx"] },
   "/productos/nuevo": { estado: "aplicada", evidencia: ["components/NuevoProductoForm.tsx", "components/alta-producto/piezas.tsx"] },
+  // ADR-0408 (actividad 3): Catálogo ▸ Vitrina web. Lo que se llena vive en sus dos hojas: la del modelo (precio web —lo que la base
+  // rechaza: vacío, inválido o bajo el costo—, descripción opcional y quién lo cambia) y la del lote (cuánto subir o bajar, y quién).
+  "/productos/vitrina": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaModeloHoja.tsx", "components/vitrina/VitrinaLoteHoja.tsx"] },
   "/productos/por-revisar": { estado: "no-aplica", motivo: "Cola de solo lectura de las prendas que alguien propuso (ADR-0371): cada fila trae sus datos y dos botones, Aprobar y Rechazar; no hay campos que llenar ni pasos que seguir. Lo único que se elige —quién firma— vive en la hoja de cada decisión (components/RevisarProductoHoja.tsx)." },
   // ---- recibir ----
   // ADR-0330: la puerta «Llegó mercadería» trae su guía (proveedor → prendas → quién recibe). La rama «contra factura»
@@ -405,4 +408,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0362 (fase 5a): «Llegó la reposición» en la ficha del proveedor. Falta lo que `resolver_deuda_proveedor` rechazaría: cuántas (de 1 a lo
   // que debe; viene puesto todo, «sugerido» hasta que se toca, y con una sola no se pregunta), cómo llegó (la nota, obligatoria) y quién lo anota.
   "components/nos-debe/HojaReposicion.tsx": { estado: "aplicada", evidencia: ["components/nos-debe/HojaReposicion.tsx"] },
+  // ADR-0408 (actividad 3): las hojas de la Vitrina web. «Falta» es lo que `vitrina_guardar_modelo` y `vitrina_cambiar_precios` rechazarían
+  // (el precio web; cuánto subir o bajar, sin dejar a ninguno en cero) y quién lo cambia; la descripción para la web es opcional.
+  "components/vitrina/VitrinaModeloHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaModeloHoja.tsx"] },
+  "components/vitrina/VitrinaLoteHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaLoteHoja.tsx"] },
 };

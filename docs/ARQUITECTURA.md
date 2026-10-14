@@ -833,6 +833,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `retirar_pieza_liquidacion`) + `PrecioMinimoLiquidacion.tsx` (`guardar_precio_minimo_liquidacion`); la etiqueta de papel es
   `EtiquetaLiquidacion.tsx` y se imprime con `useImprimirLiquidacion` (la misma hoja de la Brother). Vender
   (`PuntoDeVenta.tsx:agregarPiezaLiquidacion`) manda la línea con `pieza_liquidacion_codigo` a `registrar_venta`.
+- `/productos/vitrina` (Catálogo ▸ Vitrina web, módulo `vitrina_web`, ADR-0408 act. 3) → `page.tsx` lee `fn_vitrina_modelos` →
+  `VitrinaPantalla.tsx` (cifras, buscador, lista con casilla e interruptor, barra fija del lote) + `VitrinaModeloHoja.tsx`
+  (`vitrina_guardar_modelo`: mostrar, precio web, Lo nuevo y descripción) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`,
+  `vitrina_cambiar_precios`); reglas en `lib/vitrina-reglas.ts`, guía de foco en `lib/vitrina-guia.ts`.
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +
@@ -1728,6 +1732,10 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `tienda_consultar_documento`, `tienda_revisar_registro`, `tienda_registrar_cuenta` (une la cuenta a su ficha del Club o la crea con
   origen `web`), `tienda_mi_cuenta` y `tienda_club_beneficios`; los topes, con `club_intento` (`lib/intentos-servidor.ts`). El nombre por
   DNI sale de `packages/shared` (`padron.ts`), el mismo que usa el ERP. Prueba en la base: `pnpm pruebas:tienda-cuentas`.
+- `/catalogo` (grupo `(catalogo)`, todavía sin candado de cuenta) → `lib/catalogo-servidor.ts` `leerCatalogo()` →
+  `retail.tienda_catalogo()`: lo publicado en la Vitrina web con su precio web y el de la campaña (la regla de la caja,
+  ADR-0403), sus colores y hasta dos fotos del almacén público; `lib/catalogo.ts` filtra por categoría y ordena, y
+  `components/TarjetaPrenda.tsx` dibuja la tarjeta. Si la base no responde, la página dice que no se pudo cargar.
 
 ---
 

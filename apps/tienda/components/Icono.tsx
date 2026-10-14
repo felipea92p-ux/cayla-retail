@@ -11,6 +11,8 @@ const TRAZOS = {
   pedido: <><path d="M6 3h9l3 3v15H6z" /><path d="M9 9h6M9 13h6M9 17h3" /></>,
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   sobre: <><rect x="3.5" y="5.5" width="17" height="13" rx="2" /><path d="M4 7l8 6 8-6" /></>,
+  // Catálogo (actividad 3): el botón que cambia el orden de la lista.
+  flechas: <path d="M4 8h13l-3-3M20 16H7l3 3" />,
 };
 
 export type NombreIcono = keyof typeof TRAZOS;

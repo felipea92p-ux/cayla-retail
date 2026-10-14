@@ -176,6 +176,8 @@ const foto = (p: PerfilDelMenu) => {
 // (ADR-0362 fase 7, 2026-10-13): «Órdenes de insumos», igual: nace sin rol y no pide el dinero del Taller (decisión 47), así que en la
 // fotografía la integrante parada en el Taller la ve en Abastecimiento, junto a Recibir; sin el módulo, Abastecimiento se le disuelve en
 // «Recibir», como siempre.
+// (ADR-0408, actividad 3, 2026-10-14): «Vitrina web», igual: nace sin rol; la fotografía de antes la trae en Catálogo porque sus
+// perfiles no traen módulos.
 const CON_MODULOS_NUEVOS = (c: Cuenta) =>
   c.rol === "lider"
     ? modulosDeHoy(c.rol)
@@ -192,6 +194,7 @@ const CON_MODULOS_NUEVOS = (c: Cuenta) =>
         { clave: "plan_compra" as const, completo: false },
         { clave: "ordenes_insumos" as const, completo: false },
         { clave: "fondos" as const, completo: false },
+        { clave: "vitrina_web" as const, completo: false },
       ];
 const hrefs = (p: PerfilDelMenu) =>
   JSON.stringify(menuPara(p).riel).match(/"href":"[^"]+"/g)?.map((h) => h.slice(8, -1)).sort() ?? [];
@@ -206,11 +209,11 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
   }
 
   for (const u of TIPOS_UBICACION) {
-    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4), «rendimiento» (ADR-0219), «avisos_club» (ADR-0288 act. g), «plan_piso» (ADR-0329), «liquidacion» (ADR-0379), «ordenes_compra» (ADR-0362), «plan_compra» (ADR-0387), «ordenes_insumos» (ADR-0362 fase 7) ni «fondos» (ADR-0362 fase 6) le faltan exactamente esas once`, () => {
+    it(`integrante en ${u}: sin «apartados» (ADR-0196), «inicio» (20260925220000), «frescura» (ADR-0208 paso 4), «rendimiento» (ADR-0219), «avisos_club» (ADR-0288 act. g), «plan_piso» (ADR-0329), «liquidacion» (ADR-0379), «ordenes_compra» (ADR-0362), «plan_compra» (ADR-0387), «ordenes_insumos» (ADR-0362 fase 7) «fondos» (ADR-0362 fase 6) ni «vitrina_web» (ADR-0408) le faltan exactamente esas doce`, () => {
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/gestion/plan-del-piso", "/productos/liquidacion", "/compras/ordenes", "/compras/plan", "/ordenes-insumos", "/compras/fondos"]
+      const esperado = ["/", "/vender/apartados", "/gestion/frescura", "/rendimiento", "/clientas/avisos", "/gestion/plan-del-piso", "/productos/liquidacion", "/compras/ordenes", "/compras/plan", "/ordenes-insumos", "/compras/fondos", "/productos/vitrina"]
         .filter((h) => deAntes.includes(h))
         .sort();
       expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);

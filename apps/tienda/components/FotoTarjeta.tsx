@@ -1,0 +1,50 @@
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import type { Forma } from "@/lib/catalogo";
+import { DibujoPrenda } from "./DibujoPrenda";
+
+// Lo que se ve de una prenda en su tarjeta: su foto (y la segunda al pasar el mouse) o, si no tiene o no carga, su silueta en su
+// color. La foto viene del almacén PÚBLICO de fotos de prendas del ERP: se muestra sin ninguna llave.
+const TAMANOS = "(min-width: 960px) 25vw, (min-width: 700px) 33vw, 50vw";
+
+export function FotoTarjeta({
+  foto,
+  segunda,
+  optimizar,
+  nombre,
+  forma,
+  color,
+}: {
+  foto: string | null;
+  segunda: string | null;
+  /** Por foto: si el optimizador de Next puede achicarla (`fotoOptimizable`). Si no, se muestra tal cual. */
+  optimizar: [boolean, boolean];
+  nombre: string;
+  forma: Forma;
+  color: string | null;
+}) {
+  // Una foto que no carga (borrada, sin red): queda la silueta, nunca una imagen rota.
+  const [rota, setRota] = useState(false);
+  const conFoto = Boolean(foto) && !rota;
+  return (
+    <span className={`t-card-foto${conFoto ? "" : " sin-foto"}`}>
+      <span className="t-dibujo">
+        <DibujoPrenda forma={forma} color={color} />
+      </span>
+      {conFoto && foto && (
+        <Image
+          src={foto}
+          alt={nombre}
+          fill
+          sizes={TAMANOS}
+          unoptimized={!optimizar[0]}
+          className={`f1${segunda ? " con-f2" : ""}`}
+          onError={() => setRota(true)}
+        />
+      )}
+      {conFoto && segunda && <Image src={segunda} alt="" fill sizes={TAMANOS} unoptimized={!optimizar[1]} className="f2" />}
+    </span>
+  );
+}

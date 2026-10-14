@@ -1,0 +1,68 @@
+import Link from "next/link";
+import {
+  colorDeDibujo,
+  formaDe,
+  fotoOptimizable,
+  fotosDeTarjeta,
+  hrefDePrenda,
+  insigniaOferta,
+  muestras,
+  precioTarjeta,
+  type Prenda,
+} from "@/lib/catalogo";
+import { FotoTarjeta } from "./FotoTarjeta";
+
+/**
+ * La tarjeta de una prenda en la grilla (maqueta v4, `tarjeta`): su foto (o su silueta), la insignia de la campaña, su nombre, el precio
+ * que paga el cliente (con el precio web tachado si hay descuento) y sus colores. La foto y el nombre llevan a su ficha. Lo que la
+ * maqueta suma después —el corazón de favoritos, «Agregar» y cuánto hay en cada tienda— llega con sus actividades (12, 7 y 4).
+ */
+export function TarjetaPrenda({ prenda, origenFotos }: { prenda: Prenda; origenFotos: string | undefined }) {
+  const [foto, segunda] = fotosDeTarjeta(prenda);
+  const precio = precioTarjeta(prenda);
+  const oferta = insigniaOferta(prenda);
+  const { visibles, mas } = muestras(prenda);
+  const href = hrefDePrenda(prenda);
+  return (
+    <article className="t-card">
+      {/* La foto repite el enlace del nombre: fuera del Tab y del lector, para que cada tarjeta sea UNA parada con el teclado. */}
+      <Link href={href} className="t-card-media" tabIndex={-1} aria-hidden="true">
+        <FotoTarjeta
+          foto={foto}
+          segunda={segunda}
+          optimizar={[foto ? fotoOptimizable(foto, origenFotos) : false, segunda ? fotoOptimizable(segunda, origenFotos) : false]}
+          nombre={prenda.nombre}
+          forma={formaDe(prenda.categoria?.prefijo)}
+          color={colorDeDibujo(prenda)}
+        />
+        {oferta && (
+          <span className="t-insignias">
+            <span className="t-insignia oferta">{oferta}</span>
+          </span>
+        )}
+      </Link>
+      <div className="t-card-info">
+        <Link href={href} className="t-card-nom">
+          {prenda.nombre}
+        </Link>
+        <span className={`t-precio${precio.oferta ? " oferta" : ""}`}>
+          <b className="num">{precio.principal}</b>
+          {precio.anterior && (
+            <s className="num">
+              <span className="t-sr">Antes </span>
+              {precio.anterior}
+            </s>
+          )}
+        </span>
+        {visibles.length > 0 && (
+          <span className="t-muestras" role="img" aria-label={`${prenda.colores.length === 1 ? "Color" : "Colores"}: ${prenda.colores.map((c) => c.nombre).join(", ")}`}>
+            {visibles.map((c) => (
+              <i key={c.codigo} title={c.nombre} data-color-dato style={c.hex ? { background: c.hex } : undefined} />
+            ))}
+            {mas > 0 && <small>+{mas}</small>}
+          </span>
+        )}
+      </div>
+    </article>
+  );
+}
