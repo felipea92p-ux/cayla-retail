@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { filasPorModelo, seVendioYYaNoHay, sugerenciaDeOrden, type FilaModelo } from "./produccion-decisiones";
 import type { DemandaVariante } from "./produccion-decision-reglas";
-import { aclaracionDeLaBase, fraseDeLaFalta, hojaDelModelo, SIN_COLOR, SIN_TALLA } from "./produccion-hoja-modelo";
+import { aclaracionDeLaBase, fraseDeLaFalta, hojaDelModelo, matrizDeLaHoja, materialesDelModelo, hrefVerEnExistencias, ordenesDelModelo, prendasPorFabricar, textoDeEntrega, SIN_COLOR, SIN_TALLA } from "./produccion-hoja-modelo";
+import type { DemandaDeSede } from "./produccion-por-tienda";
 
 // Una variante: [id, talla, color, hex, stockRed, ventasNetas, stockTaller]
 type V = [string, string | null, string | null, string | null, number, number, number?];
@@ -210,5 +211,127 @@ describe("aclaracionDeLaBase (la cabecera y el total de la matriz no cuentan las
   it("si coinciden, o no hay ritmo, no dice nada", () => {
     expect(a(0.4, 15, 15)).toBeNull();
     expect(a(null, 0, 15)).toBeNull();
+  });
+});
+
+
+describe("la hoja con lo de cada tienda (marca, proveedor, tiendas, órdenes, insumos)", () => {
+  const modelo = fila([
+    ["a", "M", "Negro", "#111111", 3, 5],
+    ["b", "S", "Negro", "#111111", 0, 7],
+    ["d", "S", "Beige", "#d8c3a5", 4, 0],
+  ]);
+  // Llegan en orden CONTRARIO a lo que venden (Trujillo 0, Arequipa 2, Lima 10): si la hoja las ordenara por ventas, el orden de salida cambiaría.
+  const sedes: DemandaDeSede[] = [
+    { id: "tru", nombre: "Tienda Trujillo", tipo: "tienda", porVariante: {} },
+    { id: "taller", nombre: "Taller", tipo: "taller", porVariante: { a: { ventas: 0, stock: 9, enCamino: 0, ritmoDia: null, ventasBase: 0 } } },
+    { id: "aqp", nombre: "Tienda Arequipa", tipo: "tienda", porVariante: { a: { ventas: 2, stock: 1, enCamino: 0, ritmoDia: null, ventasBase: 0 }, d: { ventas: 0, stock: 4, enCamino: 0, ritmoDia: null, ventasBase: 0 } } },
+    { id: "lim", nombre: "Tienda Lima", tipo: "tienda", porVariante: { a: { ventas: 3, stock: 2, enCamino: 1, ritmoDia: 0.1, ventasBase: 3 }, b: { ventas: 7, stock: 0, enCamino: 0, ritmoDia: 0.23, ventasBase: 7 } } },
+  ];
+  const h = hojaDelModelo(modelo, [], null, { sedes, precios: [49.9, 59.9, 0], ficha: { codigo: "BLU-0042", descripcion: null, marca: "Cayla", proveedor: "Textil Sur", tejido: null, patron: "Liso", temporada: null } });
+
+  it("deja las tiendas y no el Taller (el Taller no vende: va en «En el Taller»), y no las ordena por lo que venden: salen en el orden en que llegan", () => {
+    expect(h.tiendas.map((t) => t.id)).toEqual(["tru", "aqp", "lim"]);
+  });
+  it("cada tienda suma SUS ventas, su stock y lo que le viene; una que no tiene nada del modelo sigue en la lista con ceros", () => {
+    const lim = h.tiendas.find((t) => t.id === "lim")!;
+    expect([lim.ventas, lim.stock, lim.enCamino]).toEqual([10, 2, 1]);
+    expect(lim.ritmoDia).toBeCloseTo(0.33, 2);
+    expect(lim.dias).toBeCloseTo(2 / 0.33, 0);
+    expect(h.tiendas.find((t) => t.id === "tru")).toMatchObject({ ventas: 0, stock: 0, enCamino: 0, ritmoDia: null, dias: null });
+  });
+  it("una tienda sin ritmo medido no inventa días", () => {
+    const aqp = h.tiendas.find((t) => t.id === "aqp")!;
+    expect(aqp.ritmoDia).toBeNull();
+    expect(aqp.dias).toBeNull();
+    expect(aqp.ventas).toBe(2); // las ventas se cuentan igual; solo el ritmo no se afirma
+  });
+  it("la matriz de una tienda tiene las mismas filas, columnas y huecos que la de la red", () => {
+    const red = matrizDeLaHoja(h, null);
+    const lim = matrizDeLaHoja(h, "lim");
+    expect(lim.colores.map((c) => c.nombre)).toEqual(red.colores.map((c) => c.nombre));
+    expect(lim.colores.map((c) => c.celdas.map((x) => x === null))).toEqual(red.colores.map((c) => c.celdas.map((x) => x === null)));
+    // Negro (M y S) en Lima: la M vendió 3 y tiene 2; la S vendió 7 y tiene 0
+    const negro = lim.colores.find((c) => c.nombre === "Negro")!;
+    expect(negro.celdas).toEqual([{ ventas: 7, stock: 0 }, { ventas: 3, stock: 2 }]);
+    expect(lim.total).toEqual({ ventas: 10, stock: 2 });
+    expect(lim.porTalla.reduce((a, t) => a + t.ventas, 0)).toBe(lim.total.ventas);
+  });
+  it("la suma de las tiendas da la cifra de la red (las cifras son las mismas, solo partidas)", () => {
+    const porTiendas = h.tiendas.reduce((a, t) => ({ ventas: a.ventas + t.ventas, stock: a.stock + t.stock }), { ventas: 0, stock: 0 });
+    expect(porTiendas).toEqual({ ventas: 12, stock: 7 });
+  });
+  it("una tienda que no existe devuelve la matriz de la red, no un error", () => {
+    expect(matrizDeLaHoja(h, "no-existe")).toEqual(matrizDeLaHoja(h, null));
+  });
+  it("«Ver en Existencias» abre la tienda que más tiene de ese color y su primera talla CON stock, no la primera de la curva ni el Taller", () => {
+    const negro = h.colores.find((c) => c.nombre === "Negro")!; // a = M Negro, b = S Negro; Lima tiene 2 en M y 0 en S
+    expect(negro.dondeVerlo).toEqual({ ubicacionId: "lim", varianteId: "a" });
+    const beige = h.colores.find((c) => c.nombre === "Beige")!; // d = S Beige: solo Arequipa tiene (4)
+    expect(beige.dondeVerlo).toEqual({ ubicacionId: "aqp", varianteId: "d" });
+  });
+  it("con prendas del color en varias tiendas gana la que más tiene, sin importar el orden en que llegan", () => {
+    const una = fila([["a", "M", "Negro", "#111111", 6, 5, 0]]);
+    const tienda = (id: string, stock: number): DemandaDeSede => ({ id, nombre: id, tipo: "tienda", porVariante: { a: { ventas: 1, stock, enCamino: 0, ritmoDia: null, ventasBase: 0 } } });
+    expect(hojaDelModelo(una, [], "taller", { sedes: [tienda("poca", 1), tienda("mucha", 5)] }).colores[0].dondeVerlo).toEqual({ ubicacionId: "mucha", varianteId: "a" });
+    expect(hojaDelModelo(una, [], "taller", { sedes: [tienda("mucha", 5), tienda("poca", 1)] }).colores[0].dondeVerlo).toEqual({ ubicacionId: "mucha", varianteId: "a" });
+  });
+  it("sin stock en tiendas, el Taller (la primera talla de la curva que tenga); sin stock en ninguna sede, nada: el enlace va a la lista y no a una talla que no abre", () => {
+    const enTaller = fila([["m", "M", "Negro", "#111111", 0, 5, 6], ["s", "S", "Negro", "#111111", 0, 5, 3]]); // S y M del Taller
+    const solo = hojaDelModelo(enTaller, [], "taller", { sedes: [] });
+    expect(solo.colores[0].dondeVerlo).toEqual({ ubicacionId: null, varianteId: "s" }); // S va antes que M en la curva
+    const sinNada = fila([["a", "M", "Negro", "#111111", 0, 5, 0]]);
+    expect(hojaDelModelo(sinNada, [], "taller", { sedes: [] }).colores[0].dondeVerlo).toBeNull();
+    expect(hrefVerEnExistencias(null)).toBe("/inventario");
+    expect(hrefVerEnExistencias({ ubicacionId: null, varianteId: "v 1" })).toBe("/inventario?variante=v%201");
+    expect(hrefVerEnExistencias({ ubicacionId: "lim", varianteId: "a" })).toBe("/inventario?ubicacion=lim&variante=a");
+  });
+  it("el precio sale de las variantes con precio (un 0 no baja el mínimo) y la ficha viaja tal cual", () => {
+    expect([h.precioMin, h.precioMax]).toEqual([49.9, 59.9]);
+    expect(h.ficha?.proveedor).toBe("Textil Sur");
+    expect(hojaDelModelo(modelo).ficha).toBeNull(); // sin leer: null, nunca una ficha vacía que diga «sin registrar»
+    expect(hojaDelModelo(modelo).precioMin).toBeNull();
+  });
+});
+
+describe("órdenes y materiales del modelo", () => {
+  const orden = (id: string, o: Partial<Parameters<typeof ordenesDelModelo>[0][number]> = {}) => ({ id, productoId: "p1", estado: "en_proceso", esMuestra: false, cantidadPlan: 20, etapas: {}, fechaEntrega: null as string | null, ...o });
+  it("solo las abiertas del modelo, la que se entrega antes primero y sin fecha al final; dice en qué etapa va", () => {
+    const r = ordenesDelModelo(
+      [orden("sin"), orden("tarde", { fechaEntrega: "2026-11-01" }), orden("pronto", { fechaEntrega: "2026-10-15", etapas: { corte: "hecho" } }), orden("otra", { productoId: "p2" }), orden("cerrada", { estado: "terminada" })],
+      "p1",
+      "2026-10-13",
+    );
+    expect(r.map((o) => o.id)).toEqual(["pronto", "tarde", "sin"]);
+    expect(r[0].etapa).toBe("Confección");
+    expect(r[0].entrega).toEqual({ tipo: "pronto", dias: 2 });
+    expect(r[2].entrega).toEqual({ tipo: "sin_fecha" });
+  });
+  it("la entrega se dice como se lee: hoy, mañana, en N días, vencida, o la fecha si hay tiempo", () => {
+    const t = (entrega: Parameters<typeof textoDeEntrega>[0]["entrega"], fechaEntrega: string | null = "2026-11-20") => textoDeEntrega({ entrega, fechaEntrega });
+    expect(t({ tipo: "sin_fecha" }, null)).toBe("Sin fecha de entrega");
+    expect(t({ tipo: "vencida", dias: 1 })).toBe("Vencida hace 1 día");
+    expect(t({ tipo: "vencida", dias: 4 })).toBe("Vencida hace 4 días");
+    expect(t({ tipo: "pronto", dias: 0 })).toBe("Se entrega hoy");
+    expect(t({ tipo: "pronto", dias: 1 })).toBe("Se entrega mañana");
+    expect(t({ tipo: "pronto", dias: 3 })).toBe("Se entrega en 3 días");
+    expect(t({ tipo: "holgada", dias: 38 })).toMatch(/^Se entrega el /);
+  });
+  it("con todas las etapas hechas la orden está «Lista para cerrar»", () => {
+    expect(ordenesDelModelo([orden("x", { etapas: { corte: "hecho", confeccion: "hecho", acabado: "hecho" } })], "p1", "2026-10-13")[0].etapa).toBe("Lista para cerrar");
+  });
+  it("materiales: sin rendimiento medido es null; con él, dice si alcanza para lo que falta y cuántas prendas salen con el saldo", () => {
+    expect(materialesDelModelo([], 10, new Map())).toBeNull();
+    const rend = [{ insumoId: "t1", insumo: "Popelina", unidad: "metro" as const, tipo: "tela" as const, porPrenda: 1.5, ordenes: 2, prendas: 40 }];
+    const m = materialesDelModelo(rend, 10, new Map([["t1", { insumoId: "t1", saldo: 12, porLlegar: 5 }]]))!;
+    expect(m.prendas).toBe(10);
+    expect(m.lineas[0]).toMatchObject({ insumo: "Popelina", porPrenda: 1.5, necesita: 15, estado: "alcanza_si_llega", prendasConElSaldo: 8 });
+    expect(materialesDelModelo(rend, 10, new Map())!.lineas[0]).toMatchObject({ estado: "falta", faltan: 15, prendasConElSaldo: 0 }); // insumo sin saldo conocido: falta, no «alcanza»
+  });
+  it("las prendas por fabricar siguen la misma regla que la frase de «falta»: poca base no afirma una cantidad", () => {
+    const base = { estado: "producir_ya" as const, producir: 12 };
+    expect(prendasPorFabricar({ ...base, ventasBase: 30 })).toBe(12);
+    expect(prendasPorFabricar({ ...base, ventasBase: 2 })).toBe(0);
+    expect(prendasPorFabricar({ estado: "alcanza", producir: 12, ventasBase: 30 })).toBe(0);
   });
 });

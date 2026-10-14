@@ -1,6 +1,7 @@
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getFilasRecientesDeSede } from "@/lib/resumen-inventario";
 import { loteMasAntiguoConSaldo } from "@/lib/insumos-reglas";
+import { demandaPorSede, type DemandaDeSede } from "@/lib/produccion-por-tienda";
 import { demandaDeLaRed, enProduccionPorVariante, productosParaRendimiento, rendimientoMedido, type DemandaVariante, type Rendimiento } from "@/lib/produccion-decision-reglas";
 import type { InsumoVista, ConsumoDeOrden } from "@/lib/insumos";
 import type { LineaPorRecibir } from "@/lib/recibir-produccion-reglas";
@@ -27,6 +28,9 @@ export type DecisionProduccion = {
   /** Lo que dice el motor de demanda (ADR-0347), AL LADO de la curva de arriba, sin reemplazarla (Felipe, 2026-10-05). Solo hablan las
    *  tiendas que cumplen ADR-0346. Si no se pudo leer, `null`: la curva de siempre sigue igual. */
   motor: MotorDeLaRed | null;
+  /** Lo de CADA sede por variante (la hoja «Ver el modelo» del Resumen: «¿qué tienda lo vende?»). Solo viene si se pide con `conSedes`: «Nueva orden» manda esta decisión entera al
+   *  navegador y no lo necesita. */
+  sedes?: DemandaDeSede[];
 };
 
 export async function getDecisionProduccion(args: {
@@ -35,6 +39,8 @@ export async function getDecisionProduccion(args: {
   insumos: InsumoVista[];
   consumosPorOrden: Record<string, ConsumoDeOrden[]>;
   lineasPorRecibir: LineaPorRecibir[];
+  /** Suma `sedes` (lo de cada sede, por variante) al resultado. */
+  conSedes?: boolean;
 }): Promise<Tolerado<DecisionProduccion>> {
   try {
     const sedes = await getUbicaciones();
@@ -43,7 +49,7 @@ export async function getDecisionProduccion(args: {
       console.error("motor de demanda:", e);
       return null;
     });
-    const conFilas = await Promise.all(sedes.map(async (u) => ({ tipo: u.tipo, filas: await getFilasRecientesDeSede(u.id) })));
+    const conFilas = await Promise.all(sedes.map(async (u) => ({ id: u.id, nombre: u.nombre, tipo: u.tipo, filas: await getFilasRecientesDeSede(u.id) })));
     const variantesDeModelos = new Set(args.modelos.flatMap((m) => m.variantes.map((v) => v.varianteId)));
     const demanda = [...demandaDeLaRed(conFilas).values()].filter((d) => variantesDeModelos.has(d.varianteId));
 
@@ -68,6 +74,7 @@ export async function getDecisionProduccion(args: {
           return { insumoId: i.id, nombre: i.nombre, unidad: i.unidad, saldo: i.saldo, porLlegar: porLlegar.get(i.id) ?? 0, costoUnitario: lote?.costoUnitario ?? null };
         }),
         motor: await motor,
+        ...(args.conSedes ? { sedes: demandaPorSede(conFilas, variantesDeModelos) } : {}),
       },
       fallo: null,
     };

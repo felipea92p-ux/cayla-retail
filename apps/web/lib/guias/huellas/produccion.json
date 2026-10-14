@@ -2,7 +2,7 @@
   "guia": "produccion",
   "ruta": "/produccion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 9,
+  "total": 15,
   "controles": {
     "components/ResumenProduccionPanel.tsx": [
       "Pestanas «Producción»",
@@ -16,8 +16,20 @@
       "button «{guia}»"
     ],
     "components/produccion-resumen/HojaModelo.tsx": [
+      "BotonEnlace «Ver en Catálogo»",
+      "BotonEnlace «Ver en Existencias»",
       "BotonEnlace «Trasladar al piso»",
       "BotonEnlace «{hoja.sugerida ? \"Abrir orden sugerida\" : \"Abrir orden\"}»"
+    ],
+    "components/produccion-resumen/MatrizDelModelo.tsx": [
+      "SegmentoDeslizante «Tienda de la matriz»",
+      "button «→() => alFijar(c.nombre)»"
+    ],
+    "components/produccion-resumen/OrdenesYTelaDelModelo.tsx": [
+      "Link «(sin nombre)»"
+    ],
+    "components/vista-rapida/FotoVistaRapida.tsx": [
+      "button «vista-rapida.ampliar»"
     ]
   }
 }
