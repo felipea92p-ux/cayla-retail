@@ -1,5 +1,5 @@
 import { fechaCorta, textoMes } from "./gastos-reglas";
-import { hoyLima } from "./fechas-lima";
+import { diaLima } from "./fechas-lima";
 
 // Finanzas ▸ Cierre de mes (ADR-0195 F9, ADR-0198): lógica PURA de la pantalla. La base decide qué está cerrado, qué
 // chequeos aplican a cada unidad y si pasan (`fn_cierre_panel`, 20260925180000); aquí solo se leen y se ponen en palabras,
@@ -155,8 +155,6 @@ export const mesEnSelector = (mes: string): string => {
   const t = textoMes(mes);
   return t.charAt(0).toUpperCase() + t.slice(1);
 };
-/** La fecha de Lima de un instante (un cierre de las 21:00 del 3 es del 3, no del 4). */
-export const diaDe = (instante: string): string => hoyLima(new Date(instante));
 /** «19ce…40ab»: la huella corta, como el spike. */
 export const huellaCorta = (h: string | null | undefined): string => (h && h.length > 8 ? `${h.slice(0, 4)}…${h.slice(-4)}` : h ?? "");
 /** «Felipe» de «Felipe Alvarez». */
@@ -184,9 +182,9 @@ export const tituloUnidad = (mes: string, u: Pick<Unidad, "nombre">): string => 
 
 /** Lo que dice el bloque bajo su título: quién cerró, o quién reabrió y por qué, o qué se revisa. */
 export function bajadaUnidad(u: Unidad): string {
-  if (u.estado === "cerrado" && u.cierre) return `Cerrado el ${fechaCorta(diaDe(u.cierre.cerradoEn))} por ${u.cierre.cerradoPor}.`;
+  if (u.estado === "cerrado" && u.cierre) return `Cerrado el ${fechaCorta(diaLima(u.cierre.cerradoEn))} por ${u.cierre.cerradoPor}.`;
   if (u.estado === "reabierto" && u.cierre?.reabiertoEn)
-    return `Reabierto el ${fechaCorta(diaDe(u.cierre.reabiertoEn))} por ${u.cierre.reabiertoPor ?? "—"}: «${u.cierre.motivoReapertura ?? ""}». Lo que el sistema revisa antes de dejarte cerrar.`;
+    return `Reabierto el ${fechaCorta(diaLima(u.cierre.reabiertoEn))} por ${u.cierre.reabiertoPor ?? "—"}: «${u.cierre.motivoReapertura ?? ""}». Lo que el sistema revisa antes de dejarte cerrar.`;
   return "Lo que el sistema revisa antes de dejarte cerrar.";
 }
 
@@ -372,9 +370,9 @@ export function historiaDe(p: Pick<PanelCierre, "historia">, u: Pick<Unidad, "al
   const lineas: { cuando: string; texto: string }[] = [];
   for (const e of p.historia) {
     if (e.alcance !== u.alcance || e.ubicacionId !== u.ubicacionId) continue;
-    lineas.push({ cuando: e.cerradoEn, texto: `${fechaCorta(diaDe(e.cerradoEn))} · ${primerNombre(e.cerradoPor)} cerró${e.version > 1 ? ` (versión ${e.version})` : ""} · ${huellaCorta(e.huella)}` });
+    lineas.push({ cuando: e.cerradoEn, texto: `${fechaCorta(diaLima(e.cerradoEn))} · ${primerNombre(e.cerradoPor)} cerró${e.version > 1 ? ` (versión ${e.version})` : ""} · ${huellaCorta(e.huella)}` });
     if (e.reabiertoEn)
-      lineas.push({ cuando: e.reabiertoEn, texto: `${fechaCorta(diaDe(e.reabiertoEn))} · ${primerNombre(e.reabiertoPor ?? "—")} reabrió: «${e.motivoReapertura ?? ""}»` });
+      lineas.push({ cuando: e.reabiertoEn, texto: `${fechaCorta(diaLima(e.reabiertoEn))} · ${primerNombre(e.reabiertoPor ?? "—")} reabrió: «${e.motivoReapertura ?? ""}»` });
   }
   return lineas.sort((a, b) => a.cuando.localeCompare(b.cuando)).map((l) => l.texto);
 }

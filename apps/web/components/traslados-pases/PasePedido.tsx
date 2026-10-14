@@ -19,7 +19,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
-import { hoyLima } from "@/lib/apartados-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
   etiquetaLinea,
   faltaEnOrigen,

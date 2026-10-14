@@ -142,7 +142,7 @@
     ],
     "components/RecepcionesCompraLista.tsx": [
       "button «recibidas.fila»",
-      "button «{diaMes(hoyLima(new Date(g.fechaRecepcion)))}»"
+      "button «{diaMes(diaLima(g.fechaRecepcion))}»"
     ],
     "components/RecepcionesRecientes.tsx": [
       "button «recibir.reciente»"

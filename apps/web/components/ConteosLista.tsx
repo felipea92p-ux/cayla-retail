@@ -4,7 +4,8 @@ import type { TonoChip } from "@/components/ui/Chip";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import { ColumnaHora, DIA_CUANTOS, DIA_ETIQUETA, DIA_TITULO, FILA_ACTIVIDAD, PUNTO_ACTIVIDAD } from "@/components/ui/lista-actividad";
 import { resultadoConteo, textoAlcance, textoLugar, textoResultadoConteo, type ResultadoConteo } from "@/lib/conteo-reglas";
-import { apoyoDeResultado, cifraDeConteo, horaLimaDe, responsablesDeConteo, textoAperturaCierre, type GrupoDia } from "@/lib/conteo-recientes-reglas";
+import { apoyoDeResultado, cifraDeConteo, responsablesDeConteo, textoAperturaCierre, type GrupoDia } from "@/lib/conteo-recientes-reglas";
+import { horaLima } from "@/lib/fechas-lima";
 import { etiquetaDia } from "@/lib/movimientos-reglas";
 
 /* ====================================================================
@@ -73,7 +74,7 @@ export function ConteosLista({ grupos, hoy }: { grupos: GrupoDia[]; hoy: string 
               const { abrio, cerro } = responsablesDeConteo(c);
               const apoyo = apoyoDeResultado(c);
               const cifra = cifraDeConteo(c);
-              const hora = horaLimaDe(c.creadoEn);
+              const hora = horaLima(c.creadoEn);
               const detalle = `${textoLugar(c)} · ${textoAlcance(c)}`;
               return (
                 <li key={c.id}>

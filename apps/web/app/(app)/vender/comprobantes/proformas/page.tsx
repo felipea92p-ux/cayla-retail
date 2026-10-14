@@ -4,7 +4,7 @@ import { lineasDeLaProforma } from "@/lib/proformas-reglas";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
+import { mesActualLima, mesLimaUTC } from "@/lib/fechas-lima";
 import { mesDeParametro, montoPorVencer, periodoDelMes, resumenProformas, tiendasOperativas, ubicacionActualDe } from "@/lib/facturacion-reglas";
 import { conversionDelMes } from "@/lib/facturacion-proformas-reglas";
 import { ProformasPanel } from "@/components/ProformasPanel";

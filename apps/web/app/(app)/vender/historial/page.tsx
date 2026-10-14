@@ -7,7 +7,7 @@ import { getResumenPorEnviar } from "@/lib/comprobantes";
 import { getCajaAbierta } from "@/lib/caja";
 import { createClient } from "@/lib/supabase/server";
 import { opcional } from "@/lib/resultado";
-import { hoyEnLima } from "@/lib/movimientos-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
   filtrosDesdeParams,
   idsDeHistorial,
@@ -56,7 +56,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
   const params = await searchParams;
   const esLider = persona.rol === "lider";
   const puedeFacturar = puede(persona, "facturar");
-  const hoy = hoyEnLima();
+  const hoy = hoyLima();
 
   const [ubicaciones, colaboradores, suspendidos, inactivos] = await Promise.all([
     getUbicaciones(),

@@ -11,7 +11,7 @@
 import { clave, filtrarPrendasV2, resolverCodigoV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
 import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
-import { diaYHoraLima, hoyLima } from "./fechas-lima";
+import { diaLima, diaYHoraLima, hoyLima } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
 import type { FilaConCategoria } from "./categoria-de-prenda";
 
@@ -178,7 +178,7 @@ export type LlegadaReciente = { proveedorId: string | null; fecha: string; unida
 export function yaEntroHoy(recientes: readonly LlegadaReciente[], proveedorId: string, ahora: Date = new Date()): LlegadaReciente[] {
   if (!proveedorId) return [];
   const hoy = hoyLima(ahora);
-  return recientes.filter((r) => r.proveedorId === proveedorId && hoyLima(new Date(r.fecha)) === hoy).sort((a, b) => b.fecha.localeCompare(a.fecha));
+  return recientes.filter((r) => r.proveedorId === proveedorId && diaLima(r.fecha) === hoy).sort((a, b) => b.fecha.localeCompare(a.fecha));
 }
 
 /** El aviso, en una frase; null si hoy no entró nada de ese proveedor. */
