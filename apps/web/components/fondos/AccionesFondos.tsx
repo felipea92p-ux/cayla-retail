@@ -17,6 +17,7 @@ import { leerMonto } from "@/lib/caja-cierre-reglas";
 import { soles } from "@/lib/compras-reglas";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import {
+  ARTICULO_MOVIMIENTO_FONDO,
   MAX_TEXTO_FONDO,
   TEXTO_MOVIMIENTO_FONDO,
   camposDevolver,
@@ -31,10 +32,13 @@ import {
   type MovimientoFondo,
   type OpcionesFondos,
 } from "@/lib/fondos-reglas";
-import { anularMovimientoFondo, devolverFondo, entregarFondo } from "@/lib/fondos-acciones";
+import { anularMovimientoFondo, anularPagoDeudaFondo, devolverFondo, entregarFondo, pagarDeudaFondo } from "@/lib/fondos-acciones";
+import { camposPagarDeuda, frasePagarDeuda, repartoDelPago, type DeudaDePersona } from "@/lib/deuda-fondo-reglas";
+import { diaMes } from "@/lib/fechas-lima";
 
-// Fondos por rendir (ADR-0362, fase 6 · actividad 1): las tres hojas que guardan. Cada una con su guía de foco (ADR-0284): lo que
-// falta es lo MISMO que rechaza la base (`camposEntregar`, `camposDevolver`, `lib/fondos-reglas.ts`).
+// Fondos por rendir (ADR-0362, fase 6 · actividad 1): las hojas que guardan. Cada una con su guía de foco (ADR-0284): lo que falta es lo
+// MISMO que rechaza la base (`camposEntregar`, `camposDevolver`, `lib/fondos-reglas.ts`; `camposPagarDeuda`, `lib/deuda-fondo-reglas.ts`).
+// La actividad 7 suma «Registrar su pago»: lo que la persona devuelve de la deuda de un faltante (decisión 71: solo así se salda).
 //
 // Quién firma (decisión 39): con la cuenta de una PERSONA no hay combo —firma ella—; desde una TERMINAL, el combo «Responsable». La base
 // además impide que alguien mueva su propio fondo desde aquí (ni con su cuenta ni eligiéndose en el combo): la pantalla ya no lo ofrece
@@ -419,6 +423,8 @@ function AnularMovimientoFondoModal({
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
   const que = TEXTO_MOVIMIENTO_FONDO[movimiento.tipo].toLowerCase();
+  const art = ARTICULO_MOVIMIENTO_FONDO[movimiento.tipo];
+  const esPago = movimiento.tipo === "pago_deuda_fondo";
 
   // Lo que falta = lo que `anular_movimiento_fondo` rechazaría: el motivo y, desde una terminal, quién lo anula.
   const campos: CampoDeGuia[] = [
@@ -440,15 +446,18 @@ function AnularMovimientoFondoModal({
     try {
       setGuardando(true);
       setRechazo(null);
-      const firma = esPersona ? firmaOmitida("fondo_anular") : responsable.firma();
-      const { error } = await anularMovimientoFondo({ p_id: movimiento.id, p_motivo: motivo.trim() }, firma);
+      const firma = esPersona ? firmaOmitida(esPago ? "fondo_deuda_anular" : "fondo_anular") : responsable.firma();
+      const args = { p_id: movimiento.id, p_motivo: motivo.trim() };
+      const { error } = esPago ? await anularPagoDeudaFondo(args, firma) : await anularMovimientoFondo(args, firma);
       setGuardando(false);
       if (!esPersona) responsable.despues(error);
       if (error) {
-        setRechazo(rechazoDe(error, `anular la ${que}`));
+        setRechazo(rechazoDe(error, `anular ${art} ${que}`));
         return;
       }
-      avisar.exito(`Anulaste la ${que} de ${soles(movimiento.monto)}`, { detalle: "Queda a la vista, tachada, con quién la anuló y por qué." });
+      avisar.exito(`Anulaste ${art} ${que} de ${soles(movimiento.monto)}`, {
+        detalle: esPago ? `${movimiento.persona} vuelve a deber ese monto. Queda a la vista, tachado, con quién lo anuló y por qué.` : "Queda a la vista, tachada, con quién la anuló y por qué.",
+      });
       onClose();
       router.refresh();
     } finally {
@@ -458,7 +467,7 @@ function AnularMovimientoFondoModal({
 
   return (
     <Modal
-      titulo={`Anular la ${que}`}
+      titulo={`Anular ${art} ${que}`}
       subtitulo={`${movimiento.persona} · ${soles(movimiento.monto)}`}
       onClose={onClose}
       variante="hoja"
@@ -475,8 +484,10 @@ function AnularMovimientoFondoModal({
           <p className="text-sm text-tinta/75">
             {movimiento.tipo === "entrega_fondo"
               ? "La plata vuelve a contar donde estaba y deja de contar en su fondo."
-              : "La plata vuelve a contar en su fondo."}{" "}
-            No se borra: queda a la vista con quién la anuló y por qué. <b className="font-medium text-tinta">Esto no se puede deshacer.</b>
+              : esPago
+                ? `La plata deja de contar en ${movimiento.cuenta} y ${primerNombre(movimiento.persona)} vuelve a deber ${soles(movimiento.monto)}.`
+                : "La plata vuelve a contar en su fondo."}{" "}
+            No se borra: queda a la vista con quién {esPago ? "lo" : "la"} anuló y por qué. <b className="font-medium text-tinta">Esto no se puede deshacer.</b>
           </p>
           <CampoGuiado id="motivo" guia={guia} titulo="Por qué se anula">
             <CampoTexto
@@ -507,7 +518,197 @@ function AnularMovimientoFondoModal({
               Cancelar
             </Boton>
             <Boton type="submit" peso="peligro" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Anulando…" : `Anular la ${que}`}
+              {guardando ? "Anulando…" : `Anular ${art} ${que}`}
+            </Boton>
+          </div>
+        </form>
+      )}
+    </Modal>
+  );
+}
+
+// ---------- Registrar lo que la persona paga de su deuda (actividad 7) ----------
+
+export function PagarDeudaFondo({ deuda, cuentas }: { deuda: DeudaDePersona; cuentas: CuentaOpcion[] }) {
+  const [abierta, setAbierta] = useState(false);
+  const origen = useRef<HTMLElement | null>(null);
+  return (
+    <>
+      <Boton
+        peso="fantasma"
+        data-guia="fondos.pagar-deuda"
+        onClick={(e) => {
+          origen.current = e.currentTarget;
+          setAbierta(true);
+        }}
+      >
+        Registrar su pago
+      </Boton>
+      {abierta && <PagarDeudaFondoModal deuda={deuda} cuentas={cuentas} onClose={() => setAbierta(false)} volverA={origen} />}
+    </>
+  );
+}
+
+function PagarDeudaFondoModal({
+  deuda,
+  cuentas,
+  onClose,
+  volverA,
+}: {
+  deuda: DeudaDePersona;
+  cuentas: CuentaOpcion[];
+  onClose: () => void;
+  volverA: RefObject<HTMLElement | null>;
+}) {
+  const router = useRouter();
+  const [cuentaId, setCuentaId] = useState("");
+  const [monto, setMonto] = useState("");
+  const [nota, setNota] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [rechazo, setRechazo] = useState<Rechazo | null>(null);
+  const [token] = useState(() => crypto.randomUUID());
+  const enVuelo = useRef(false);
+  const esPersona = Boolean(useSedeActiva()?.personaSesionId);
+  const responsable = useResponsable();
+  const nombre = primerNombre(deuda.persona);
+
+  const guia = useGuiaCampos(camposPagarDeuda({ cuentaId, monto, nota }, deuda.debe, cuentas, { esPersona, listo: responsable.listo, motivo: responsable.motivo }));
+  const montoLeido = leerMonto(monto);
+  // Con varias deudas, cuánto paga de cada una (la más vieja primero, como la base).
+  const reparto = deuda.deudas.length > 1 && montoLeido != null && montoLeido > 0 && montoLeido <= deuda.debe + 0.005 ? repartoDelPago(montoLeido, deuda.deudas) : [];
+
+  async function confirmar() {
+    if (guardando || enVuelo.current) return;
+    if (!guia.puedeConfirmar) {
+      const ahora = guia.ahora ?? guia.faltan[0]?.id;
+      if (ahora) guia.ir(ahora);
+      return;
+    }
+    enVuelo.current = true;
+    try {
+      setGuardando(true);
+      setRechazo(null);
+      const firma = esPersona ? firmaOmitida("fondo_deuda_pagar") : responsable.firma();
+      const pagado = montoLeido ?? 0;
+      const { id, error } = await pagarDeudaFondo(
+        { p_persona_id: deuda.personaId, p_monto: pagado, p_cuenta_destino_id: cuentaId, p_nota: nota.trim() || null, p_token: token },
+        firma,
+      );
+      setGuardando(false);
+      if (!esPersona) responsable.despues(error);
+      if (error || !id) {
+        setRechazo(rechazoDe(error, "registrar el pago"));
+        return;
+      }
+      const queda = Math.round((deuda.debe - pagado) * 100) / 100;
+      avisar.exito(`${nombre} pagó ${soles(pagado)} de su deuda`, { detalle: queda > 0 ? `Todavía debe ${soles(queda)}.` : "Ya no debe nada." });
+      onClose();
+      router.refresh();
+    } finally {
+      enVuelo.current = false;
+    }
+  }
+
+  return (
+    <Modal
+      titulo={`Lo que paga ${nombre} de su deuda`}
+      subtitulo={`Debe ${soles(deuda.debe)} por faltantes de su fondo.`}
+      onClose={onClose}
+      variante="hoja"
+      alCerrarEnfocar={volverA}
+    >
+      {(cerrar) => (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void confirmar();
+          }}
+          className="space-y-5"
+        >
+          <p className="text-sm text-tinta/75">Lo registra quien recibe la plata, no quien la debe. La deuda baja apenas se guarda.</p>
+          {deuda.deudas.length > 1 && (
+            <ul className="divide-y divide-sand rounded-xl border border-sand text-sm" data-sin-cascada>
+              {deuda.deudas.map((d) => (
+                <li key={d.rendicionId} className="flex items-baseline justify-between gap-3 px-3.5 py-2">
+                  <span className="text-tinta/80">Rendición aprobada el {diaMes(d.desde)}</span>
+                  <span className="tabular-nums text-tinta">debe {soles(d.debe)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <CampoGuiado id="monto" guia={guia} titulo="¿Cuánto pagó?">
+            <CampoMonto
+              etiqueta="¿Cuánto pagó?"
+              etiquetaOculta
+              inputMode="decimal"
+              autoComplete="off"
+              value={monto}
+              disabled={guardando}
+              onChange={(e) => {
+                setRechazo(null);
+                setMonto(e.target.value);
+              }}
+            />
+            <button
+              type="button"
+              className="btn-enlace mt-1.5 text-xs"
+              disabled={guardando}
+              onClick={() => {
+                setRechazo(null);
+                setMonto(deuda.debe.toFixed(2));
+              }}
+            >
+              Pagó todo: {soles(deuda.debe)}
+            </button>
+            {reparto.length > 0 && (
+              <p className="mt-1.5 text-xs text-taupe">
+                Paga primero la más vieja: {reparto.map((x) => `${soles(x.paga)} de la del ${diaMes(x.desde)}`).join(" y ")}.
+              </p>
+            )}
+          </CampoGuiado>
+          <CampoGuiado id="cuenta" guia={guia} titulo="¿A dónde entró la plata?">
+            <CampoSelect
+              etiqueta="¿A dónde entró la plata?"
+              caja
+              valor={cuentaId}
+              onValor={(v) => {
+                setRechazo(null);
+                setCuentaId(v);
+              }}
+              opciones={opcionesDeCuentas(cuentas)}
+              marcador="Elige el banco o la caja fuerte"
+              deshabilitado={guardando}
+            />
+          </CampoGuiado>
+          <CampoGuiado id="nota" guia={guia} titulo="Nota">
+            <CampoTexto
+              etiqueta="Nota"
+              caja
+              maxLength={MAX_TEXTO_FONDO}
+              // sugerir-fijo: la nota de un pago cuenta cómo devolvió la plata; no depende del monto ni de la cuenta elegidos.
+              placeholder="Ej. Lo devolvió en efectivo"
+              value={nota}
+              disabled={guardando}
+              onChange={(e) => setNota(e.target.value)}
+            />
+          </CampoGuiado>
+          {!esPersona && (
+            <CampoGuiado id="responsable" guia={guia} titulo="Quién recibe">
+              <ComboResponsable control={responsable} deshabilitado={guardando} />
+            </CampoGuiado>
+          )}
+          {rechazo && (
+            <Aviso tono={rechazo.tono} titulo={rechazo.titulo}>
+              {rechazo.texto}
+            </Aviso>
+          )}
+          <PieGuia guia={guia} listo="Todo listo para registrar." conFrase />
+          <div className="pie-hoja-fijo flex justify-end gap-3 pt-1">
+            <Boton type="button" onClick={cerrar} disabled={guardando}>
+              Cancelar
+            </Boton>
+            <Boton type="submit" peso="primario" cargando={guardando} disabled={!guia.puedeConfirmar} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {guardando ? "Registrando…" : frasePagarDeuda(montoLeido)}
             </Boton>
           </div>
         </form>

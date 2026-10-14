@@ -11,9 +11,10 @@ import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
-import { AnularMovimientoFondo, DevolverFondo, EntregarFondo } from "@/components/fondos/AccionesFondos";
+import { AnularMovimientoFondo, DevolverFondo, EntregarFondo, PagarDeudaFondo } from "@/components/fondos/AccionesFondos";
 import { RevisarRendicion } from "@/components/fondos/RevisarRendicion";
 import { estadoPorFondo } from "@/lib/rendicion-reglas";
+import { deudasPorPersona } from "@/lib/deuda-fondo-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 
 // Compras ▸ Fondos por rendir (ADR-0362, fase 6 · actividad 1; decisiones 26, 29, 30, 34, 35 y 65): la plata que CAYLA le entrega a
@@ -31,7 +32,11 @@ import { diaYHoraLima } from "@/lib/fechas-lima";
 //
 // La rendición (actividad 5, 20261013235000): arriba de todo, «Rendiciones por aprobar», cada una con «Revisar» (la hoja dice si quien
 // mira no puede aprobarla: es su fondo, le entregó plata en esa rendición, o es la de un líder y no es Admin). En la fila de cada persona,
-// si rindió y espera, y lo que debe por un faltante (decisión 54: a la vista hasta que se salde; cobrarlo es de la actividad 7).
+// si rindió y espera, y lo que debe por un faltante (decisión 54: a la vista hasta que se salde).
+//
+// Saldar la deuda (actividad 7, decisión 71: solo cuando la persona devuelve la plata): en la fila de quien debe, «Registrar su pago», que
+// lo registra quien recibe la plata. Lo que debe sale de `fn_deudas_fondo` (el faltante menos lo pagado); cada pago va a la lista de abajo,
+// con su «Anular».
 
 const PLANTILLA_FONDOS_BASE = "sm:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem_8.5rem_11rem]";
 const PLANTILLA_FONDOS_GASTO = "sm:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem_7.5rem_8.5rem_11rem]";
@@ -42,14 +47,17 @@ const PLANTILLA_RENDICIONES = "sm:grid-cols-[minmax(0,1fr)_8.5rem_8.5rem_minmax(
 const SOLO_ESCRITORIO = "hidden sm:block";
 const SEGUNDA_LINEA = "block whitespace-normal text-xs text-taupe sm:hidden";
 
-const TONO_MOVIMIENTO: Record<MovimientoFondo["tipo"], TonoChip> = { entrega_fondo: "pizarra", devolucion_fondo: "neutro" };
+const TONO_MOVIMIENTO: Record<MovimientoFondo["tipo"], TonoChip> = { entrega_fondo: "pizarra", devolucion_fondo: "neutro", pago_deuda_fondo: "verde" };
 const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? uno : varios}`;
 
 export default async function FondosPage() {
   const persona = await exigirModulo("fondos");
-  const { fondos, movimientos, opciones, rendiciones, rendicionesFalla, falla } = await getDatosFondos();
+  const { fondos, movimientos, opciones, rendiciones, rendicionesFalla, deudas: filasDeuda, deudasFalla, falla } = await getDatosFondos();
   const porAprobar = rendiciones.filter((r) => r.estado === "por_aprobar");
   const estado = estadoPorFondo(rendiciones);
+  const deudas = deudasPorPersona(filasDeuda);
+  const debe = (personaId: string) => deudas.get(personaId)?.debe ?? 0;
+  const conPagos = movimientos.some((m) => m.tipo === "pago_deuda_fondo");
   const cifras = cifrasDeFondos(fondos);
   const conGasto = cifras.gastado !== 0;
   const conDeuda = cifras.teDebe > 0;
@@ -102,6 +110,11 @@ export default async function FondosPage() {
 
           {rendicionesFalla && (
             <Aviso tono="atencion" titulo="No se pudieron leer las rendiciones" chico>
+              Lo demás de esta pantalla sí está al día. Vuelve a intentarlo en un momento.
+            </Aviso>
+          )}
+          {deudasFalla && (
+            <Aviso tono="atencion" titulo="No se pudo leer lo que se debe por faltantes" chico>
               Lo demás de esta pantalla sí está al día. Vuelve a intentarlo en un momento.
             </Aviso>
           )}
@@ -166,10 +179,10 @@ export default async function FondosPage() {
                     <span className="block truncate text-xs text-taupe">
                       {[f.sede, f.ultimoMotivo ? `«${f.ultimoMotivo}»` : null].filter(Boolean).join(" · ") || "—"}
                     </span>
-                    {(estado.get(f.cuentaId)?.porAprobar || (estado.get(f.cuentaId)?.deuda ?? 0) > 0.005) && (
+                    {(estado.get(f.cuentaId)?.porAprobar || debe(f.personaId) > 0.005) && (
                       <span className="mt-1 flex flex-wrap gap-1.5">
                         {estado.get(f.cuentaId)?.porAprobar && <Chip tono="pizarra">Rindió: por aprobar</Chip>}
-                        {(estado.get(f.cuentaId)?.deuda ?? 0) > 0.005 && <Chip tono="ambar">Debe {soles(estado.get(f.cuentaId)?.deuda ?? 0)}</Chip>}
+                        {debe(f.personaId) > 0.005 && <Chip tono="ambar">Debe {soles(debe(f.personaId))}</Chip>}
                       </span>
                     )}
                     <span className={SEGUNDA_LINEA}>
@@ -191,12 +204,15 @@ export default async function FondosPage() {
                       </span>
                     )}
                   </span>
-                  <span className="flex min-w-0 justify-start sm:justify-end">
+                  <span className="flex min-w-0 flex-wrap justify-start gap-2 sm:justify-end">
                     {f.esMio ? (
                       <span className="text-xs text-taupe">Tu fondo: lo mueve otra persona</span>
-                    ) : f.saldo > 0 ? (
-                      <DevolverFondo fondo={f} cuentas={opciones.cuentas} />
-                    ) : null}
+                    ) : (
+                      <>
+                        {f.saldo > 0 && <DevolverFondo fondo={f} cuentas={opciones.cuentas} />}
+                        {debe(f.personaId) > 0.005 && <PagarDeudaFondo deuda={deudas.get(f.personaId)!} cuentas={opciones.cuentas} />}
+                      </>
+                    )}
                   </span>
                 </div>
               ))}
@@ -205,7 +221,9 @@ export default async function FondosPage() {
 
           {movimientos.length > 0 && (
             <section className="space-y-3">
-              <TituloSeccion dato={plural(movimientos.length, "movimiento", "movimientos")}>Entregas y devoluciones</TituloSeccion>
+              <TituloSeccion dato={plural(movimientos.length, "movimiento", "movimientos")}>
+                {conPagos ? "Entregas, devoluciones y pagos de deuda" : "Entregas y devoluciones"}
+              </TituloSeccion>
               <Tabla guia="fondos.movimientos">
                 <Encabezado
                   plantilla={PLANTILLA_MOVIMIENTOS}
@@ -225,14 +243,17 @@ export default async function FondosPage() {
                       <span className={celda("izq", "tabular-nums text-tinta/80")}>{diaMes(m.fecha)}</span>
                       <span className={celda("izq", "text-tinta")}>{m.persona}</span>
                       <span className="min-w-0">
-                        <Chip tono={anulado ? "apagado" : TONO_MOVIMIENTO[m.tipo]}>{anulado ? `${TEXTO_MOVIMIENTO_FONDO[m.tipo]} anulada` : TEXTO_MOVIMIENTO_FONDO[m.tipo]}</Chip>
+                        <Chip tono={anulado ? "apagado" : TONO_MOVIMIENTO[m.tipo]}>
+                          {anulado ? `${TEXTO_MOVIMIENTO_FONDO[m.tipo]} ${m.tipo === "pago_deuda_fondo" ? "anulado" : "anulada"}` : TEXTO_MOVIMIENTO_FONDO[m.tipo]}
+                        </Chip>
                       </span>
                       <span className={celda("izq", "text-tinta/80")}>
                         {m.tipo === "entrega_fondo" ? `De ${m.cuenta}` : `A ${m.cuenta}`}
                         {m.motivo && <span className="block truncate text-xs text-taupe">«{m.motivo}»</span>}
                         {anulado && (
                           <span className="block truncate text-xs text-taupe">
-                            Anulada{m.anuladoPor ? ` por ${m.anuladoPor}` : ""}
+                            {m.tipo === "pago_deuda_fondo" ? "Anulado" : "Anulada"}
+                            {m.anuladoPor ? ` por ${m.anuladoPor}` : ""}
                             {m.motivoAnulacion ? `: ${m.motivoAnulacion}` : ""}
                           </span>
                         )}

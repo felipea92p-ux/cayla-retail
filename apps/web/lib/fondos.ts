@@ -15,6 +15,7 @@ import {
   type ResumenMiFondo,
 } from "@/lib/fondos-reglas";
 import { RPC_MI_FONDO_RENDICION, RPC_RENDICIONES_FONDO, leerMiFondoRendicion, leerRendiciones, type Rendicion } from "@/lib/rendicion-reglas";
+import { RPC_DEUDAS_FONDO, leerDeudasFondo, type DeudaFondo } from "@/lib/deuda-fondo-reglas";
 
 // Fondos por rendir (ADR-0362, fase 6 · actividad 1): lectura del servidor, por las funciones de 20261013182000. Todas piden el módulo
 // `fondos`. Si una lectura falla —la web publicada antes que la migración, o la base caída—, lo dice (principio 9): nunca una lista
@@ -32,30 +33,46 @@ export type DatosFondos = {
   /** Las rendiciones (actividad 5), las por aprobar primero. Si su lectura falla, la pantalla sale igual y lo dice (`rendicionesFalla`). */
   rendiciones: Rendicion[];
   rendicionesFalla: boolean;
+  /** Lo que se debe por faltantes (actividad 7), rendición por rendición. Si su lectura falla, la pantalla sale igual y lo dice. */
+  deudas: DeudaFondo[];
+  deudasFalla: boolean;
   falla: string | null;
 };
 
 /** Todo lo que la pantalla necesita, en paralelo. Con una sola lectura caída, la pantalla dice que falló (no muestra a medias). */
 export async function getDatosFondos(): Promise<DatosFondos> {
   const supabase = await createClient();
-  const [f, m, o, r] = await Promise.all([
+  const [f, m, o, r, d] = await Promise.all([
     supabase.rpc(RPC_FONDOS as never) as unknown as Respuesta,
     supabase.rpc(RPC_MOVIMIENTOS_FONDOS as never, { p_persona_id: null, p_limite: 200 } as never) as unknown as Respuesta,
     supabase.rpc(RPC_OPCIONES_FONDOS as never) as unknown as Respuesta,
     supabase.rpc(RPC_RENDICIONES_FONDO as never, { p_estado: null, p_limite: 100 } as never) as unknown as Respuesta,
+    supabase.rpc(RPC_DEUDAS_FONDO as never) as unknown as Respuesta,
   ]);
   const error = f.error ?? m.error ?? o.error;
   if (error) {
     console.error(`fondos por rendir: ${error.message}`);
-    return { fondos: [], movimientos: [], opciones: { yo: null, personas: [], cuentas: [] }, rendiciones: [], rendicionesFalla: false, falla: FALLA };
+    return {
+      fondos: [],
+      movimientos: [],
+      opciones: { yo: null, personas: [], cuentas: [] },
+      rendiciones: [],
+      rendicionesFalla: false,
+      deudas: [],
+      deudasFalla: false,
+      falla: FALLA,
+    };
   }
   if (r.error) console.error(`fondos por rendir (rendiciones): ${r.error.message}`);
+  if (d.error) console.error(`fondos por rendir (deudas): ${d.error.message}`);
   return {
     fondos: leerFondos(f.data),
     movimientos: leerMovimientosFondos(m.data),
     opciones: leerOpcionesFondos(o.data),
     rendiciones: r.error ? [] : leerRendiciones(r.data),
     rendicionesFalla: Boolean(r.error),
+    deudas: d.error ? [] : leerDeudasFondo(d.data),
+    deudasFalla: Boolean(d.error),
     falla: null,
   };
 }

@@ -169,13 +169,13 @@ describe("los textos", () => {
 });
 
 describe("el tablero de quien aprueba", () => {
-  it("por fondo: la rendición que espera y lo que se debe por faltantes aprobados como deuda", () => {
+  it("por fondo: la rendición que espera (lo que se debe sale de fn_deudas_fondo, actividad 7)", () => {
     const e = estadoPorFondo([
       R,
       { ...R, id: "r0", estado: "aprobada", decision: "deuda_persona", faltante: 20 },
       { ...R, id: "r-1", estado: "aprobada", decision: "asume_cayla", faltante: 15 },
       { ...R, id: "r-2", estado: "devuelta", faltante: 50 },
     ]);
-    expect(e.get("f1")).toMatchObject({ porAprobar: { id: "r1" }, deuda: 20 });
+    expect(e.get("f1")).toEqual({ porAprobar: expect.objectContaining({ id: "r1" }) });
   });
 });

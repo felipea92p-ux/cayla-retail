@@ -89,6 +89,9 @@
 | 68 | Planilla de movilidad | **Sin tope hasta que el contador lo fije**; cuando exista, lo que pase el tope se deja y se marca «no deducible» (como la 56) (Felipe 2026-10-13) |
 | 69 | Rendición | Un faltante **con explicación lo decide quien aprueba** («Lo asume CAYLA» o «Queda como deuda de la persona»; sin explicación, deuda: 54). Al aprobar, **el fondo puede quedar en cero o conservar plata** para las próximas compras (devolver lo que sobra es opcional). **Foto del papel opcional**, y la rendición avisa cuáles no la tienen (Felipe 2026-10-13, noche) |
 | 70 | Efectivo de S/ 2 000 o más | Se mira **el total del comprobante** (la regla de la bancarización): todo lo pagado en efectivo o desde un fondo (el Yape personal incluido, 57) queda marcado «no deducible», con aviso (Felipe 2026-10-13, noche) |
+| 71 | Saldar la deuda de un faltante | **Solo cuando la persona devuelve la plata.** Nada de descontarla del sueldo por ahora ni de conectarla con la planilla de Dynamic: la deuda queda a la vista hasta que la devuelva (Felipe 2026-10-14; ajusta la 54) |
+| 72 | IGV perdido por pago en efectivo | Se resta **en el mes del pago**, nunca en el mes de la factura: un mes ya declarado no cambia solo (Felipe 2026-10-14) |
+| 73 | Fase 6, la lista | La actividad de contabilidad se **parte en dos**: 7 · saldar la deuda (y la 1413 y la 1419 por dos caminos en el Balance) y 8 · el IGV (facturas de los gastos del viaje a crédito fiscal y lo no deducible fuera); el cierre pasa a ser la 9 (Felipe 2026-10-14) |
 
 **Fase 2 (aprobada por Felipe el 2026-10-12, 11 actividades, rama `claude/purchase-order-phase2-9b0c82`):** 1 · las acciones de Compras
 dejan de ser «solo del líder» (ADR-0387) · 2 · qué tiendas se ven y a nombre de quién se paga · 3 · las líneas por «categoría + marca»
@@ -312,6 +315,30 @@ Por defecto *(provisional, revisar con Felipe)*: en «Pagar juntos» el aviso di
 S/ 2 000 o más (cuánto efectivo va a cada uno lo reparte la base en cascada); la persona del tope es **quien registró** la planilla; un
 comprobante con nota de crédito se mira por su **total original**; el aviso al pagar no dice nada del tope de la planilla (depende de lo que
 ya se anotó ese día: la marca sale al guardar).
+
+**Fase 6 · actividad 7 (2026-10-14): saldar la deuda de un faltante** (decisiones 54, 71 y 73). Migración `20261014145000`; prueba
+`pnpm pruebas:deuda-fondo` (4 casos) y `lib/deuda-fondo-reglas.test.ts`.
+
+```
+DECIDÍ: la deuda se salda SOLO cuando la persona devuelve la plata (71): un movimiento nuevo, `pago_deuda_fondo`, que ENTRA a un banco,
+        a una caja fuerte o al líder y no sale de ninguna cuenta; es de una rendición (`rendicion_id`) y el Diario lo asienta contra la
+        1419. Lo registra quien recibe la plata, con Fondos por rendir (nunca la persona que debe, como lo que se devuelve de un fondo); no
+        acepta más de lo que debe y, con varias deudas, paga primero la más vieja (por la hora en que se aprobó cada rendición). Un pago
+        mal registrado se anula con su motivo, también por otra persona, y la deuda vuelve; «Cuentas y dinero» no lo anula. Lo que se debe
+        sale de UNA lectura (`fn_deudas_fondo_de`: el faltante de la rendición menos lo pagado), que usan Fondos por rendir, «Tu fondo»,
+        el pago y el Balance. «¿Cuadra?» suma dos filas: la 1413 contra lo que tiene cada fondo y la 1419 contra lo que falta pagar de
+        cada rendición con deuda.
+DESCARTÉ: descontar la deuda del sueldo (71: por ahora no, ni conectarla con la planilla de Dynamic); un pago suelto, sin rendición (cada
+        rendición tiene que decir qué le falta); que el pago entre al fondo de la misma persona (nadie lo recibiría: la decisión 26 pide
+        el control); y cambiar las columnas de `fn_rendiciones_fondo` (volver a pegar la 235000 fallaría): lo que se debe va en una
+        lectura nueva.
+SE ROMPE SI: alguien registra la devolución de una deuda como «Lo que devuelve» de su fondo: la plata entraría a CAYLA y la deuda
+        seguiría. La pantalla ofrece «Registrar su pago» solo donde hay deuda.
+```
+
+Por defecto *(provisional, revisar con Felipe)*: la deuda se paga a un banco, una caja fuerte o al líder (no a un cajón: no pasa por la
+caja); la 1419 sigue siendo provisional hasta el contador (57); «Lo asume CAYLA» después de aprobada no existe (una deuda no se perdona
+desde el sistema).
 
 ## Fuente: el brief de Felipe
 

@@ -180,8 +180,9 @@ caso(
 // Y una más: el gasto del viaje (`gasto_viaje_registrar`, 20261013222000; ADR-0362 fase 6 · actividad 3), que se anota lejos de la tienda.
 // Y cuatro de la rendición (ADR-0362 fase 6 · actividad 5): la foto del papel de un gasto del viaje (`gasto_viaje_foto`, 20261013233000),
 // rendir el propio fondo y aprobar o devolver una rendición (`fondo_rendir`, `fondo_rendicion_aprobar`, `fondo_rendicion_devolver`,
-// 20261013235000).
-const TOTAL = EN_SECO ? "28" : "48";
+// 20261013235000). Y dos de la deuda de un faltante (ADR-0362 fase 6 · actividad 7): registrar lo que la persona paga y anularlo
+// (`fondo_deuda_pagar`, `fondo_deuda_anular`, 20261014145000).
+const TOTAL = EN_SECO ? "28" : "50";
 caso(`la lista tiene las ${TOTAL} acciones soltadas`, `select count(*) from retail.acciones_sin_responsable;`, TOTAL);
 // El gasto del viaje es la excepción con motivo: se anota en Gamarra, donde nadie marca entrada (ADR-0362 fase 6, provisional). Sumarle
 // la foto de su papel no mueve plata: es evidencia, como el adjunto de una factura (`compra_adjunto_subir`).

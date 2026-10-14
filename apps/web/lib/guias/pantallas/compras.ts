@@ -2110,18 +2110,25 @@ export const GUIA_FONDOS: Guia = {
       texto: "Cuando te devuelve lo que sobró, lo registra quien recibe la plata (nunca quien la devuelve): a qué banco o caja fuerte volvió y cuánto. No puede devolver más de lo que tiene.",
     },
     {
+      id: "pagar-deuda",
+      ancla: "fondos.pagar-deuda",
+      opcional: true,
+      titulo: "Saldar una deuda",
+      texto: "Si alguien debe por un faltante y te devuelve la plata, aquí lo registras: cuánto pagó y a qué banco o caja fuerte entró. La deuda baja apenas se guarda. No lo registra quien debe, y no se paga más de lo que debe.",
+    },
+    {
       id: "movimientos",
       ancla: "fondos.movimientos",
       opcional: true,
       titulo: "Entregas y devoluciones",
-      texto: "Cada entrega y cada devolución, la más nueva arriba: de dónde salió o a dónde volvió la plata y para qué. Una anulada queda a la vista, tachada, con quién la anuló y por qué.",
+      texto: "Cada entrega, devolución y pago de deuda, lo más nuevo arriba: de dónde salió o a dónde llegó la plata y para qué. Lo anulado queda a la vista, tachado, con quién lo anuló y por qué.",
     },
     {
       id: "anular",
       ancla: "fondos.anular",
       opcional: true,
       titulo: "Anular un error",
-      texto: "Si una entrega o una devolución se anotó mal, se anula con su motivo; no se borra. Una entrega de la que ya salió plata (devuelta o pagada) no se anula, y nadie anula la plata de su propio fondo.",
+      texto: "Si una entrega, una devolución o un pago de deuda se anotó mal, se anula con su motivo; no se borra. Una entrega de la que ya salió plata no se anula, y nadie anula lo de su propio fondo.",
     },
     {
       id: "fin",

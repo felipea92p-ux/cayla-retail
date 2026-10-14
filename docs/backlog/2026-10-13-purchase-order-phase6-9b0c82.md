@@ -1,6 +1,7 @@
 ## Compras ▸ fase 6 de las órdenes de compra: fondo por rendir y gastos del viaje (2026-10-13) — rama `claude/purchase-order-phase6-9b0c82`
 
-ADR-0362 (decisiones 16, 20, 26, 29, 30, 32–35, 46, 54–57 y 65–70). Lista de 8 actividades aprobada por Felipe el 2026-10-13. PR #1055
+ADR-0362 (decisiones 16, 20, 26, 29, 30, 32–35, 46, 54–57 y 65–73). Lista de 8 actividades aprobada por Felipe el 2026-10-13; el
+2026-10-14 la de contabilidad se partió en dos y quedaron 9 (decisión 73). PR #1055
 (borrador). Con la autorización de Felipe de esa noche, cada actividad se sube y sus migraciones se pegan en producción al cerrarla (no se
 fusiona).
 
@@ -18,8 +19,15 @@ fusiona).
 - [ ] Felipe (actividad 6, provisional): en «Pagar juntos» el aviso dice «hasta S/ X» si no todos los comprobantes son grandes; la persona
   del tope es quien registró la planilla; un comprobante con nota de crédito se mira por su total original. El tope de la planilla lo
   tiene que fijar el contador (mientras no haya, nada se marca por la planilla).
-- [ ] Actividad 7 · contabilidad (faltante como cuenta por cobrar a la persona; IGV de las facturas de gastos del viaje; la 1413 por dos caminos).
-- [ ] Actividad 8 · cierre: `tema:auditar`, `guias:recorrer`, `/chaos` con plata y `/formidable` (todavía no se corrieron).
+- [x] Actividad 7 · saldar la deuda de un faltante (`20261014145000`, decisiones 54 y 71): «Registrar su pago» en Fondos por rendir (lo
+  registra quien recibe la plata; la más vieja primero; se anula con su motivo) y la 1413 y la 1419 por dos caminos en «¿Cuadra?» del
+  Balance. En producción. Nada de descontar del sueldo (71).
+- [ ] Felipe (actividad 7, provisional): la deuda se paga a un banco, una caja fuerte o al líder (no a un cajón); una deuda no se perdona
+  desde el sistema después de aprobada.
+- [ ] Actividad 8 · el IGV: las facturas de los gastos del viaje a crédito fiscal y el IGV de lo no deducible fuera, en el mes del pago
+  (72), igual en Impuestos, el Diario y el Balance.
+- [ ] Actividad 9 · cierre: `tema:auditar`, `guias:recorrer`, `/chaos` con plata y `/formidable` (todavía no se corrieron).
+- [ ] Tabla «Quién tiene plata» de Fondos por rendir: a 1024 px con el menú abierto se desborda (viene de antes; quedó como tarea aparte).
 - [ ] Felipe: lo marcado *provisional* en el ADR (la acción `gasto_viaje_registrar` soltada del combo «Responsable»; cuándo se propone
   «Mi fondo»; de dónde sale y a dónde vuelve la plata de un fondo; «Tu fondo» no sale en el Observatorio del Admin).
 - [ ] Felipe: **«Lo recibí»** (la compradora confirma en su tarjeta que recibió la plata; sin confirmar, al líder le aparece «sin

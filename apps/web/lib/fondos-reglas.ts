@@ -44,7 +44,8 @@ export type FondoFila = {
   esMio: boolean;
 };
 
-export type TipoMovimientoFondo = "entrega_fondo" | "devolucion_fondo";
+// `pago_deuda_fondo` (actividad 7): lo que la persona devolvió de la deuda de un faltante; la cuenta es a donde entró la plata.
+export type TipoMovimientoFondo = "entrega_fondo" | "devolucion_fondo" | "pago_deuda_fondo";
 
 export type MovimientoFondo = {
   id: string;
@@ -109,7 +110,7 @@ export function leerFondos(data: unknown): FondoFila[] {
 export function leerMovimientosFondos(data: unknown): MovimientoFondo[] {
   return filas(data).flatMap((f) => {
     const id = texto(f.id);
-    const tipo = f.tipo === "entrega_fondo" || f.tipo === "devolucion_fondo" ? f.tipo : null;
+    const tipo = f.tipo === "entrega_fondo" || f.tipo === "devolucion_fondo" || f.tipo === "pago_deuda_fondo" ? f.tipo : null;
     const fecha = texto(f.fecha);
     const monto = numero(f.monto);
     if (!id || !tipo || !fecha || monto == null) return [];
@@ -358,6 +359,14 @@ export function cifrasDeFondos(fondos: readonly FondoFila[]): CifrasFondos {
 export const TEXTO_MOVIMIENTO_FONDO: Record<TipoMovimientoFondo, string> = {
   entrega_fondo: "Entrega",
   devolucion_fondo: "Devolución",
+  pago_deuda_fondo: "Pago de deuda",
+};
+
+/** «la entrega», «la devolución», «el pago de deuda»: el artículo de cada uno, para que la hoja de anular hable bien. */
+export const ARTICULO_MOVIMIENTO_FONDO: Record<TipoMovimientoFondo, "la" | "el"> = {
+  entrega_fondo: "la",
+  devolucion_fondo: "la",
+  pago_deuda_fondo: "el",
 };
 
 /** «Micaela Vendedora» → «Micaela»: el botón y el aviso hablan como en la tienda. */
@@ -430,7 +439,7 @@ export function problemaDeNota(textoNota: string): string | null {
 
 /** Quién firma desde una terminal (decisión 39): con la cuenta de una persona, nadie más que ella. */
 type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null; quien: string };
-const campoResponsable = (r: Responsable): CampoDeGuia[] =>
+export const campoResponsable = (r: Responsable): CampoDeGuia[] =>
   r.esPersona ? [] : [{ id: "responsable", nombre: r.quien, requerido: true, hecho: r.listo, pendiente: r.motivo ?? `Elige ${r.quien.toLowerCase()}.` }];
 
 /** Los campos de «Entregar plata», en el orden de la hoja. */

@@ -94,6 +94,9 @@ export const ACCIONES_SIN_RESPONSABLE = {
   fondo_rendir: "Rendir el propio fondo (solo con la cuenta de su dueña: desde una terminal no se rinde)",
   fondo_rendicion_aprobar: "Aprobar la rendición de un fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
   fondo_rendicion_devolver: "Devolver para corregir la rendición de un fondo, o retirar la propia (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  // ADR-0362 fase 6 · actividad 7 (20261014145000): la deuda de un faltante se salda cuando la persona devuelve la plata.
+  fondo_deuda_pagar: "Registrar lo que una persona paga de la deuda de un faltante de su fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
+  fondo_deuda_anular: "Anular el pago de la deuda de un faltante de fondo (con la cuenta de una persona firma ella, desde una terminal se elige quién)",
 } as const;
 
 export type ClaveSinResponsable = keyof typeof ACCIONES_SIN_RESPONSABLE;

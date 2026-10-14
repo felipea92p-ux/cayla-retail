@@ -328,13 +328,15 @@ export function textoPapel(i: Pick<ItemRendicion, "tipo" | "conFoto">): string |
 
 // ---------- El tablero de quien aprueba ----------
 
-/** Por persona (su cuenta de fondo): la rendición por aprobar y lo que debe por faltantes (decisión 54), para la fila de cada una. */
-export function estadoPorFondo(rendiciones: readonly Rendicion[]): Map<string, { porAprobar: Rendicion | null; deuda: number }> {
-  const mapa = new Map<string, { porAprobar: Rendicion | null; deuda: number }>();
+/**
+ * Por persona (su cuenta de fondo): la rendición por aprobar, para la fila de cada una. Lo que debe por faltantes ya no sale de aquí: la
+ * rendición dice el faltante, no lo que ya pagó (actividad 7: `fn_deudas_fondo`, `lib/deuda-fondo-reglas.ts`).
+ */
+export function estadoPorFondo(rendiciones: readonly Rendicion[]): Map<string, { porAprobar: Rendicion | null }> {
+  const mapa = new Map<string, { porAprobar: Rendicion | null }>();
   for (const r of rendiciones) {
-    const e = mapa.get(r.cuentaId) ?? { porAprobar: null, deuda: 0 };
+    const e = mapa.get(r.cuentaId) ?? { porAprobar: null };
     if (r.estado === "por_aprobar") e.porAprobar = r;
-    if (r.estado === "aprobada" && r.decision === "deuda_persona") e.deuda = redondo(e.deuda + r.faltante);
     mapa.set(r.cuentaId, e);
   }
   return mapa;

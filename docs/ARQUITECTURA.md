@@ -1578,6 +1578,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `avisoBancarizacionLote` (`lib/no-deducible-reglas.ts`), en `LineasPago`, `MediosDePago` (de `PagoPiezas` y la del Taller),
     `GastoDelViaje`, `RegistrarGastoModal` y `GastoRapidoModal`. El tope se fija en Configuración ▸ Impuestos (`ConfiguracionImpuestos`,
     `guardar_parametro_tributario`).
+    **Saldar la deuda de un faltante** (actividad 7, `20261014145000`): en Fondos por rendir, «Registrar su pago» (`PagarDeudaFondo`,
+    `components/fondos/AccionesFondos.tsx`, con `camposPagarDeuda` de `lib/deuda-fondo-reglas.ts`) → `pagar_deuda_fondo`; «Anular» de
+    un pago → `anular_pago_deuda_fondo` (llamadas en `lib/fondos-acciones.ts`). Lo que se debe: `fn_deudas_fondo` (en `getDatosFondos`) y,
+    adentro, `fn_deudas_fondo_de`, que también usan `fn_mi_fondo_rendicion` («Tu fondo») y `fn_bal_otro_camino` (la 1419 del Balance);
+    `fn_conciliacion_contable` suma las filas de la 1413 y la 1419 (sus nombres, en `lib/balance-reglas.ts`).
   - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`.
   - `/compras/plan/historial` (ADR-0372 C3) → `getHistorialPlan` → `fn_historial_ventas` (Sinatra en `retail.ventas_historicas` antes del ERP) + `lib/plan-compra-historial.ts`; pantalla `components/plan-compra/HistorialCampanas.tsx`.
   - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;
