@@ -1,11 +1,12 @@
 /**
  * «¿Hay una entrada o una salida con el colibrí en curso?» — el puente entre el login (`app/login/page.tsx`, que inicia la entrada al iniciar
  * sesión), el botón Salir (`components/LogoutButton.tsx`, que inicia la salida), la capa que las dibuja (`components/login/EntradaColibri.tsx`,
- * montada una vez en el layout raíz para que sobreviva a la navegación) y el loader general (`components/ui/Espera.tsx`, que se aparta mientras
- * dura: el vuelo ocupa su lugar). La geometría y la línea de tiempo viven en `lib/login-entrada.ts`.
+ * montada una vez en el layout raíz para que sobreviva a la navegación), la app recién abierta (`EsperaAlVelo`, que no se muestra antes de que el
+ * velo tape la pantalla) y el loader general (`components/ui/Espera.tsx`, que se aparta mientras dura: el vuelo ocupa su lugar). La geometría y la
+ * línea de tiempo viven en `lib/login-entrada.ts`.
  */
 
-import type { Caja } from "./login-entrada";
+import { MS_TOPE_DEL_VELO, type Caja } from "./login-entrada";
 import { saludoDe, type SaludoDeLaEntrada } from "./login-saludo";
 
 export type EntradaEnCurso = {
@@ -26,6 +27,20 @@ export type EntradaEnCurso = {
 let actual: EntradaEnCurso | null = null;
 let contador = 0;
 const oyentes = new Set<() => void>();
+
+/**
+ * La espera del velo de la entrada en curso: se cumple cuando el velo ya tapa toda la pantalla (Felipe 2026-10-13, «se ve el inicio»). Es UNA promesa
+ * por entrada (la misma en cada lectura: React la usa para suspender, `EsperaAlVelo`). Null cuando no hay nada que esperar.
+ */
+let esperaDelVelo: { id: number; tapa: Promise<void>; soltar: () => void } | null = null;
+
+/** Suelta la espera del velo (de la entrada `id`, o la que haya): ya tapa, la entrada se deshizo o se pasó el tope. */
+function soltarElVelo(id?: number) {
+  if (!esperaDelVelo || (id !== undefined && esperaDelVelo.id !== id)) return;
+  const { soltar } = esperaDelVelo;
+  esperaDelVelo = null;
+  soltar();
+}
 
 function avisar() {
   oyentes.forEach((o) => o());
@@ -67,7 +82,14 @@ export function iniciarEntrada(): boolean {
   if (typeof window === "undefined" || actual || sinMovimiento()) return false;
   const origen = medirAveDelLogin();
   if (!origen) return false;
-  actual = { id: ++contador, modo: "entrar", saludo: saludoDe("entrar", null, false), origen };
+  const id = ++contador;
+  actual = { id, modo: "entrar", saludo: saludoDe("entrar", null, false), origen };
+  // La app recién abierta no se muestra hasta que el velo tape la pantalla; si la capa no llega a avisarlo (la pestaña quedó en segundo plano y el
+  // navegador frenó el dibujo), la espera se suelta sola al tope: nadie queda esperando para siempre.
+  let soltar = () => {};
+  const tapa = new Promise<void>((resolver) => (soltar = resolver));
+  esperaDelVelo = { id, tapa, soltar };
+  window.setTimeout(() => soltarElVelo(id), MS_TOPE_DEL_VELO);
   document.documentElement.setAttribute("data-entrando", "");
   avisar();
   return true;
@@ -100,10 +122,26 @@ export function ponerNombreDelSaludo(id: number, nombre: string, terminal: boole
   if (actual?.id === id) actual.saludo = saludoDe(actual.modo, nombre, terminal);
 }
 
+/**
+ * Mientras el velo de la entrada todavía no tapa la pantalla: la promesa que se cumple cuando la tape. Null si no hay nada que esperar (sin entrada,
+ * en una salida, o ya tapó). La lee la app recién abierta (`EsperaAlVelo`) para no mostrarse antes: la pantalla de destino se pide al servidor de
+ * inmediato y carga debajo del velo, y solo se ve cuando la ventana del colibrí se abre (`veloCubre`, `lib/login-entrada.ts`).
+ */
+export function veloPendiente(): Promise<void> | null {
+  return esperaDelVelo?.tapa ?? null;
+}
+
+/** La capa avisa que el velo de ESTA entrada ya tapa la pantalla (una entrada que ya no está no cuenta; avisar dos veces no hace nada). */
+export function marcarVeloCubierto(id: number) {
+  soltarElVelo(id);
+}
+
 /** La entrada o la salida terminó (ya cubrió la pantalla / ya llegó el colibrí) o se deshizo. */
 export function terminarEntrada() {
   if (!actual) return;
   actual = null;
   document.documentElement.removeAttribute("data-entrando");
+  // La app no se queda esperando a un velo que ya no está.
+  soltarElVelo();
   avisar();
 }
