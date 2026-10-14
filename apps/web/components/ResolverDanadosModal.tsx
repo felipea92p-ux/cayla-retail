@@ -29,6 +29,8 @@ import {
   tituloExitoArreglo,
 } from "@/lib/danadas-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { Check } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // "Dañado" (2026-09-17, ADR-0071, Opción A): cola de prendas en cuarentena
 // (`aprobar_devolucion`, condición danada_reparacion/danada_donar; un cambio con
@@ -237,7 +239,7 @@ export function ResolverDanadosModal({
           )}
           {otraSede && pendientes.length > 0 && <p className="nota-cayla">Estás mirando otra sede: para operarla, cambia la sede activa en la cabecera. Así lo que guardes queda firmado por alguien de turno allá.</p>}
           {pendientes.length === 0 ? (
-            <p className="text-sm text-tinta/65">No hay prendas dañadas pendientes en esta ubicación.</p>
+            <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Check />}>No hay prendas dañadas pendientes en esta ubicación.</Vacio>
           ) : (
             <div className="max-h-[28rem] space-y-3 overflow-y-auto pr-1">
               {pendientes.map((p) => (

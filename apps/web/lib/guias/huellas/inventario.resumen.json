@@ -2,7 +2,7 @@
   "guia": "inventario.resumen",
   "ruta": "/gestion/analisis",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 56,
+  "total": 55,
   "controles": {
     "components/PedirAOtraSedeModal.tsx": [
       "button «{`Una menos de ${etiqueta}»",
@@ -11,7 +11,7 @@
       "button «Reintentar»",
       "Desplegable «(sin nombre)»",
       "button «{`Quitar ${prenda?.etiqueta ?? \"esta línea\"}»",
-      "button «+ Agregar otra prenda»",
+      "Boton «+ Agregar otra prenda»",
       "input «Nota (opcional)»",
       "ComboResponsable «(sin nombre)»",
       "button «Mejor no»",
@@ -27,7 +27,6 @@
     "components/analisis/FichaPrenda.tsx": [
       "Link «{principal.texto}»",
       "button «Pedir a»",
-      "Link «Ver en Existencias»",
       "Link «Movimientos»"
     ],
     "components/analisis/HojaConfianza.tsx": [

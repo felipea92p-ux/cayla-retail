@@ -22,6 +22,7 @@ import { AVISO_DE_CORTE_ANULAR_ENVIO, TOPES_ENVIO, problemaDeMotivoEnvio, sePued
 import { ESTADO_ENVIO, numeroOrdenCompra, tieneEnvioVivo, type DetalleOrden, type EnvioDeOrden } from "@/lib/ordenes-compra-reglas";
 import { textoParaBase } from "@/lib/orden-compra-alta";
 import { anularEnvioDeOrden, leerVersionActualDelEnvio } from "@/lib/ordenes-compra-acciones";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 // Los envíos de una orden (ADR-0362, fase 3): la lista que se ve en la orden abierta, del más reciente al más antiguo, con su estado
 // (En camino, Abierto, Cerrado, Anulado) y «Anular envío» en los que siguen en camino. Una guía lleva lo de la orden a UNA sede; la sede
@@ -52,9 +53,7 @@ export function EnviosDeOrden({ orden }: { orden: DetalleOrden }) {
 
   return (
     <section aria-label="Envíos de la orden" data-guia="orden.envios" className="space-y-2">
-      <h3 className="text-[13px] font-semibold text-tinta">
-        Envíos <span className="font-normal text-taupe">· lo que ya salió hacia las sedes</span>
-      </h3>
+      <TituloGrupo nota="lo que ya salió hacia las sedes">Envíos</TituloGrupo>
       <Tabla>
         <div className="hidden @min-[44rem]:block">
           <Encabezado

@@ -13,8 +13,10 @@ import { urlEtiquetasDePrecio } from "./etiqueta-precio-reglas";
 import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
 import { diaYHoraLima, hoyLima } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
+import type { FilaConCategoria } from "./categoria-de-prenda";
 
-export type PrendaLlegada = PrendaBuscableV2 & { productoId: string; colorHex?: string | null; fotoUrl?: string | null };
+/** `categoria*`: dibujan la miniatura de la prenda sin foto (el ícono de su categoría, ADR-0333). */
+export type PrendaLlegada = PrendaBuscableV2 & { productoId: string; colorHex?: string | null; fotoUrl?: string | null } & FilaConCategoria;
 
 /** Una prenda de lo que llegó. `costo` es texto porque es lo que se teclea; vacío = sin costo (no toca el costo de la prenda). */
 export type LineaLlegada = { varianteId: string; cantidad: number; costo: string };

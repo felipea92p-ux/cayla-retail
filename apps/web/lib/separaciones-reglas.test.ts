@@ -360,3 +360,18 @@ describe("esConstancia (ADR-0399: el adelanto no emite boleta de anticipo)", () 
     expect(coincide(nuevo, "B005-000301")).toBe(false);
   });
 });
+
+// /chaos 2026-10-13 (ENT-07): el vuelto del efectivo tiene tope (S/ 500), en el adelanto y en el saldo, igual que en Vender y en la base.
+describe("el tope del vuelto en Apartados", () => {
+  it("el saldo con un vuelto de más no queda listo", () => {
+    expect(cobroDelSaldo([{ metodo: "efectivo", monto: 89, recibido: 589 }], 89)).toMatchObject({ vuelto: 500, vueltoExcede: false, listo: true });
+    expect(cobroDelSaldo([{ metodo: "efectivo", monto: 89, recibido: 589.01 }], 89)).toMatchObject({ vueltoExcede: true, listo: false });
+  });
+});
+
+describe("el tope del vuelto en el adelanto", () => {
+  it("un adelanto en efectivo con más de S/ 500 de vuelto pide revisar", () => {
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 30, recibido: 530 }] }), 179).pago).toBeUndefined();
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 30, recibido: 530.01 }] }), 179).pago).toMatch(/vuelto pasa de S\/ 500/);
+  });
+});

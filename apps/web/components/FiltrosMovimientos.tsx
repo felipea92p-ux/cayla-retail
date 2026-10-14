@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Camera, SlidersHorizontal, X } from "lucide-react";
+import { Camera, X } from "lucide-react";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { Modal } from "@/components/ui/Modal";
 import { useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
@@ -23,6 +23,8 @@ import {
   type TokenSububicacion,
 } from "@/lib/movimientos-reglas";
 import { grupoPorId } from "@/lib/movimientos-tipos";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { BotonFiltros } from "@/components/ui/FiltrosPildora";
 
 // Filtros de Movimientos. Viven en la URL (?q=…&cat=…&proc=…&sub=…&rango=…), igual que en
 // Compras: la página es un Server Component que filtra en Postgres, el enlace se puede
@@ -319,16 +321,10 @@ export function FiltrosMovimientos({
         >
           <Camera aria-hidden strokeWidth={1.5} className="h-[18px] w-[18px]" />
         </button>
-        <button
-          type="button"
-          onClick={() => setHoja(true)}
-          data-guia="movimientos.filtros-celular"
-          className="flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-sand bg-papel px-3 text-[13px] font-medium text-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo sm:hidden"
-        >
-          <SlidersHorizontal aria-hidden strokeWidth={1.5} className="h-4 w-4" />
-          Filtros
-          {cuantosFiltros > 0 && <span className="rounded-full bg-tinta px-1.5 text-[10.5px] tabular-nums text-crema">{cuantosFiltros}</span>}
-        </button>
+        {/* El botón de los filtros del sistema (ADR-0358, ronda 10): una píldora más, con cuántos hay puestos en su globito. */}
+        <span className="flex shrink-0 sm:hidden">
+          <BotonFiltros abierto={hoja} activos={cuantosFiltros} onClick={() => setHoja(true)} data-guia="movimientos.filtros-celular" />
+        </span>
         <div className="hidden sm:block">{periodos}</div>
       </div>
 
@@ -379,9 +375,9 @@ export function FiltrosMovimientos({
               )}
               {zona && <section className="space-y-2">{zona}</section>}
               {hrefExportar && (
-                <a href={hrefExportar} download className="btn-cayla btn-enlace text-[13px]">
-                  Exportar a Excel con estos filtros
-                </a>
+                <BotonDescargar href={hrefExportar} chico className="self-start">
+                  Descargar Excel con estos filtros
+                </BotonDescargar>
               )}
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={limpiar} className="btn-cayla btn-secundario flex-1">

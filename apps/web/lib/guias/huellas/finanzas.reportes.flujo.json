@@ -2,10 +2,9 @@
   "guia": "finanzas.reportes.flujo",
   "ruta": "/finanzas/reportes/flujo",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 3,
+  "total": 2,
   "controles": {
     "components/finanzas/FlujoCajaPanel.tsx": [
-      "button «fin-reportes.excel»",
       "Link «Configuración ▸ Tiendas y caja»",
       "Link «Configuración ▸ Caja y avisos»"
     ]

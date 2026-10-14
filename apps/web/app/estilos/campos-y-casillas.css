@@ -205,12 +205,14 @@
   }
   .pildora-filtro-quitar svg { width: 12px; height: 12px; }
   .pildora-filtro-quitar:hover { background: color-mix(in srgb, var(--color-crema) 18%, transparent); color: var(--color-crema); }
+  /* «Filtros» (BotonFiltros, ronda 10): cuántos hay puestos, en el globito de los títulos, pegado al nombre. */
+  .pildora-filtro .pildora-filtro-cuenta { margin-left: -2px; }
   .pildora-filtro-punto { position: absolute; right: 6px; top: 6px; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
   /* «Ordenar» de Productos junto al buscador del celular: solo el ícono, en un círculo de 38 px, con un punto si está puesta. */
   @media (max-width: 639.98px) {
     .pildora-filtro-icono-celular { width: 38px; height: 38px; justify-content: center; }
     .pildora-filtro-icono-celular .pildora-filtro-boton { width: 100%; justify-content: center; padding: 0; }
-    .pildora-filtro-icono-celular :is(.pildora-filtro-nombre, .pildora-filtro-valor, .pildora-filtro-flecha, .pildora-filtro-quitar) { display: none; }
+    .pildora-filtro-icono-celular :is(.pildora-filtro-nombre, .pildora-filtro-valor, .pildora-filtro-flecha, .pildora-filtro-quitar, .pildora-filtro-cuenta) { display: none; }
     .pildora-filtro-icono-celular .pildora-filtro-icono { width: 16px; height: 16px; }
   }
   @media (min-width: 640px) {
@@ -312,6 +314,69 @@
   .interruptor[aria-checked="true"] .interruptor-perilla { translate: 16px 0; }
   .interruptor:active:not(:disabled) .interruptor-perilla { width: 21px; }
   .interruptor[aria-checked="true"]:active:not(:disabled) .interruptor-perilla { translate: 11px 0; }
+
+  /* ---------- La lista que sugiere mientras se escribe o se escanea (ListaSugerencias, ADR-0358 ronda 9) ----------
+     La superficie de toda lista (`lista-flotante`) o, si la lista es el contenido del paso, la misma en línea con su borde. Cada fila:
+     su miniatura, título y detalle, un dato a la derecha. La activa (la que toma el Enter) lleva el hilo rojo de canto y la tecla. */
+  .lista-sugerencias { display: flex; flex-direction: column; overflow-y: auto; padding: 6px 0; border-radius: var(--radius-lg); }
+  .lista-sugerencias-en-linea { border: 1px solid var(--color-sand); border-radius: var(--radius-xl); background: var(--color-papel); }
+  .sugerencia {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 12px;
+    width: calc(100% - 12px);
+    margin: 0 6px;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    text-align: left;
+    font-size: 14px;
+    color: color-mix(in srgb, var(--color-tinta) 85%, transparent);
+    cursor: pointer;
+    transition: background-color 150ms var(--ease-cayla), color 150ms var(--ease-cayla);
+    animation: cayla-entrada 360ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 30ms);
+  }
+  .sugerencia:hover { background: color-mix(in srgb, var(--color-tinta) 4%, transparent); color: var(--color-tinta); }
+  .sugerencia[data-activa] { background: color-mix(in srgb, var(--color-rojo) 10%, var(--color-papel)); color: var(--color-tinta); }
+  .sugerencia-canto {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 2px;
+    height: 22px;
+    margin-top: -11px;
+    border-radius: 999px;
+    background: var(--color-rojo);
+    transform: scaleY(0);
+    transition: transform 200ms var(--ease-cayla);
+  }
+  .sugerencia[data-activa] .sugerencia-canto { transform: scaleY(1); }
+  .sugerencia-texto { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+  .sugerencia-titulo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3; }
+  .sugerencia-detalle { overflow: hidden; margin-top: 2px; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 1.35; color: var(--color-taupe); }
+  .sugerencia-derecha { display: flex; flex-shrink: 0; flex-direction: column; align-items: flex-end; font-size: 12px; color: var(--color-taupe); font-variant-numeric: tabular-nums; text-align: right; }
+  .sugerencia-tecla {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+    padding: 0 6px;
+    border: 1px solid color-mix(in srgb, var(--color-tinta) 18%, transparent);
+    border-radius: 5px;
+    font-family: inherit;
+    font-size: 10.5px;
+    color: var(--color-taupe);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity 200ms var(--ease-cayla), transform 200ms var(--ease-cayla);
+  }
+  .sugerencia-tecla svg { width: 11px; height: 11px; }
+  .sugerencia[data-activa] .sugerencia-tecla { opacity: 1; transform: none; }
 }
 
 @keyframes cayla-tilde-dibuja {
@@ -335,13 +400,17 @@
   .casilla-fondo,
   .casilla-marca :is(path, polyline, line),
   .interruptor,
-  .interruptor-perilla {
+  .interruptor-perilla,
+  .sugerencia,
+  .sugerencia-canto,
+  .sugerencia-tecla {
     transition-duration: 1ms !important;
     transition-delay: 0ms !important;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .sugerencia,
   .combo-tilde :is(path, polyline),
   .combo-valor-entra,
   .caja-campo[data-trabajando]::after {

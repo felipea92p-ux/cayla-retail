@@ -38,3 +38,10 @@ ya cambiaron en todas las pantallas que los usaban (Existencias, Productos, Comp
 etiqueta por categoría) y su «a medias» cubre la casilla de tres estados de Etiquetas. Los interruptores que van en una fila con su título
 a la izquierda (Opciones de apartados, Ajustar Inicio, Pago junto) usan la cara de la pieza (`interruptor` + `interruptor-perilla`) con su
 `unificar-fijo`. **Excepciones:** las casillas de Finanzas (Escenarios, Estado de resultados), que se dibujan como su spike (ADR-0195).
+
+## El censo de después (2026-10-13): dos caras dibujadas a mano
+
+La firma no contaba una casilla `sr-only` (un input escondido que solo guarda un estado), y así se escapaban dos caras hechas a mano con
+`peer-checked:`: la casilla propia de Por pagar (una función local que hasta se llamaba `Casilla`) y el interruptor «Es un regalo» de las
+prendas fuera de comprobante en Recepción. Pasaron a `<Casilla>` y a `<Interruptor>` (la fila de Por pagar ya ignoraba el clic de una casilla,
+así que la pieza, que no lo deja subir, no cambia qué hace). Una firma nueva atrapa `type="checkbox"` con `peer`.

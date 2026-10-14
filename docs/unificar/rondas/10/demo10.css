@@ -1,0 +1,34 @@
+/* Ronda 10 de /unificar: las demos de descargar, filtros y ver. Solo tokens; usa demo9.css (marco de las demos) y el CSS real del ERP. */
+.r10-cab { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; padding: 16px 20px; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 16px; }
+.r10-ante { margin: 0; font-size: 11px; letter-spacing: .13em; color: var(--color-taupe); }
+.r10-h { margin: 4px 0 0; font: 400 30px/1.1 var(--font-serif); color: var(--color-tinta); }
+.r10-acc { display: flex; flex-wrap: wrap; gap: 8px; }
+.r10-hoja { background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 16px; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; }
+.r10-hoja h5 { margin: 0; font: 500 19px/1.2 var(--font-serif); }
+.r10-pie { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* Propuesta: la flecha de descargar BAJA 2 px al pasar el mouse (como la de «ver» avanza 4) y, mientras se arma el archivo, el hilo barre. */
+.r10-descarga .r10-baja { transition: translate 300ms var(--ease-cayla); }
+.r10-descarga:hover:not(:disabled) .r10-baja { translate: 0 2px; }
+.r10-descarga[data-trabajando] { pointer-events: none; }
+.r10-descarga[data-trabajando]::after { content: ""; position: absolute; left: 10%; bottom: 0; height: 2px; width: 33%; border-radius: 2px; background: var(--color-rojo); animation: cayla-hilo-barrido 1.1s linear infinite; }
+.r10-listo { font-size: 12px; color: var(--color-verde); animation: cayla-entrada 260ms var(--ease-cayla) both; }
+/* Hoy: el «EXPORTAR» de Historial de ventas, a mano (36 px, versalitas tinta/75, borde tinta/20, esquinas 12) */
+.r10-hoy-exportar { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--color-tinta) 20%, transparent); background: none; font: 600 10.5px/1 var(--font-sans); letter-spacing: .12em; color: color-mix(in srgb, var(--color-tinta) 75%, transparent); cursor: pointer; transition: color 250ms, border-color 250ms; }
+.r10-hoy-exportar:hover { color: var(--color-tinta); border-color: color-mix(in srgb, var(--color-tinta) 40%, transparent); }
+.r10-hoy-enlace { font-size: 11px; color: color-mix(in srgb, var(--color-tinta) 55%, transparent); background: none; border: 0; cursor: pointer; padding: 0; }
+.r10-hoy-enlace:hover { color: var(--color-rojo); }
+/* Filtros: el panel que abre */
+.r10-panel { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--color-tinta) 8%, transparent); animation: cayla-entrada 280ms var(--ease-cayla) both; }
+.r10-cuenta { margin-left: 2px; }
+[data-r10-filtros][aria-expanded="true"], .pildora-filtro[data-abierta] { border-color: var(--color-tinta); }
+.r10-hoy-filtros { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent); background: none; font: 600 11px/1 var(--font-sans); letter-spacing: .13em; color: color-mix(in srgb, var(--color-tinta) 65%, transparent); cursor: pointer; transition: color 250ms, border-color 250ms, background-color 250ms; }
+.r10-hoy-filtros.activo, .r10-hoy-filtros[aria-expanded="true"] { background: color-mix(in srgb, var(--color-tinta) 5%, transparent); border-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); color: var(--color-tinta); }
+.r10-hoy-filtros svg { width: 14px; height: 14px; }
+.r10-hoy-cuadro { position: relative; display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 16px; border: 1px solid var(--color-sand); background: var(--color-papel); color: color-mix(in srgb, var(--color-tinta) 65%, transparent); cursor: pointer; }
+.r10-hoy-cuadro.activo, .r10-hoy-cuadro[aria-expanded="true"] { border-color: color-mix(in srgb, var(--color-tinta) 30%, transparent); background: color-mix(in srgb, var(--color-tinta) 4%, transparent); color: var(--color-tinta); }
+.r10-hoy-cuadro b { position: absolute; top: -6px; right: -6px; display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px; background: var(--color-tinta); color: var(--color-crema); font-size: 10.5px; }
+/* Ver: la tarjeta con su resumen y su acción */
+.r10-tarjeta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 14px 18px; background: var(--color-papel); border: 1px solid var(--color-sand); border-radius: 14px; font-size: 14px; }
+.r10-tarjeta b { font-weight: 600; }
+.r10-ver { text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { .r10-descarga .r10-baja, .r10-panel { transition: none; animation: none; } }

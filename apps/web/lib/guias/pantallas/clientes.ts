@@ -49,8 +49,8 @@ export const GUIA_CLIENTES: Guia = {
       id: "exportar",
       ancla: "clientas.exportar",
       preparar: [{ tipo: "escape" }],
-      titulo: "Exportar",
-      texto: "Descarga la lista en un archivo que se abre en Excel. Solo un Admin puede exportar la lista completa.",
+      titulo: "Descargar la lista",
+      texto: "«Descargar lista» baja los clientes en un archivo que se abre en Excel. Solo un Admin puede descargar la lista completa.",
     },
     {
       id: "mas",

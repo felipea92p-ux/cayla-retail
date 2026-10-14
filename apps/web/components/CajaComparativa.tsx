@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useCountUp } from "@/lib/useCountUp";
+import { Wallet } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 import {
   curvaAcumulada,
   horaTexto,
@@ -253,7 +255,7 @@ export function ComoTePagaron({ hoy, ayer }: Pick<Props, "hoy" | "ayer">) {
       <p className="text-sm font-bold text-tinta">Cómo te pagaron</p>
       <p className="text-xs text-tinta/50">Lo que cobraste hoy por cada medio, y lo que cobraste ayer en todo el día</p>
       {filas.length === 0 ? (
-        <p className="mt-4 text-xs text-tinta/50">Sin ventas todavía.</p>
+        <Vacio tamano="chico" alinear="izquierda" className="mt-2 px-0" icono={<Wallet />}>Sin ventas todavía.</Vacio>
       ) : (
         <div className="mt-2">
           {filas.map((f, i) => (

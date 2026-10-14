@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ImagePlus, RotateCcw, Wand2 } from "lucide-react";
+import { ImagePlus, RotateCcw, Wand2, Shirt } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
@@ -19,6 +19,7 @@ import { reducirMuestra, subirMuestra } from "@/lib/muestra-atributo";
 import { encabezadosOmitidos } from "@/lib/responsable-omitido";
 import { ayudaDeTejido } from "@/lib/tejido-ayuda";
 import type { ColorDibujo } from "@/lib/dibujo-generado";
+import { Vacio } from "@/components/ui/Vacio";
 
 /**
  * El detalle de un tejido o de un patrón (ADR-0256): se abre al hacer clic en su tarjeta de Atributos.
@@ -325,7 +326,7 @@ export function DetalleMuestraModal({
             </div>
           )}
           {carga.estado === "listo" && carga.prendas.length === 0 && (
-            <p className="rounded-lg border border-dashed border-tinta/15 p-3 text-sm text-tinta/60">Ninguna prenda usa {palabra.el} todavía.</p>
+            <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Shirt />}>Ninguna prenda usa {palabra.el} todavía.</Vacio>
           )}
           {carga.estado === "listo" && carga.prendas.length > 0 && (
             <ul className="max-h-72 divide-y divide-sand overflow-y-auto rounded-lg border border-sand">

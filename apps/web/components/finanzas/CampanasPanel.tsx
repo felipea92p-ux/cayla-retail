@@ -18,6 +18,9 @@ import {
   veredictoCampana,
   type CampanaFila,
 } from "@/lib/resultados-reglas";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { Megaphone } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Finanzas ▸ Reportes ▸ Campañas (ADR-0195 K2, PLAN-FINANZAS §7 ter), dibujado como el spike aprobado (`vistaCampanas`):
 // a la izquierda el margen extra de cada campaña que pasó, a la derecha su tabla; abajo las que vienen, con cuánto más hay
@@ -77,9 +80,9 @@ export function CampanasPanel({
         acciones={
           <>
             <Chip versalitas={false}>{esLider ? "CAYLA entera" : tiendaNombre}</Chip>
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} data-guia="fin-reportes.excel">
+            <BotonDescargar onClick={descargar} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />
@@ -109,7 +112,9 @@ export function CampanasPanel({
                 }))}
               />
             ) : (
-              <p className="text-sm text-taupe">Todavía no terminó ninguna campaña con ventas y días normales para comparar.</p>
+              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Megaphone />}>
+                Todavía no terminó ninguna campaña con ventas y días normales para comparar.
+              </Vacio>
             )}
             {malas && <p className="mt-2.5 text-[13px] text-taupe">{malas}</p>}
           </Superficie>

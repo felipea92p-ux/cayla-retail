@@ -6,6 +6,8 @@ import { usePorPagar } from "@/components/PorPagarContexto";
 import { soles } from "@/lib/compras-reglas";
 import type { SalidaCaja } from "@/lib/compras-indicadores";
 import { cubrirCaja, enCubetaCaja, parseMonto } from "@/lib/por-pagar-reglas";
+import { CalendarClock } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // «Salidas de caja · próximos 30 días» (maqueta 02): cuánto vence cada semana, para saber si la caja alcanza ANTES de la fecha y no
 // después. Seis columnas que entrega `salidas_caja_30d()`: lo ya vencido, cuatro semanas desde hoy (Lima) y «Después». Sin librería de
@@ -92,7 +94,7 @@ export function SalidasDeCaja({ salidas, indice = 0 }: { salidas: SalidaCaja[]; 
         )}
       </div>
       {max <= 0 ? (
-        <p className="mt-4 text-sm text-tinta/65">No hay pagos que venzan en los próximos 30 días.</p>
+        <Vacio tamano="chico" alinear="izquierda" className="mt-2 px-0" icono={<CalendarClock />}>No hay pagos que venzan en los próximos 30 días.</Vacio>
       ) : (
         <>
           <div className="mt-3 flex h-[158px] items-end gap-1.5 border-b border-tinta/10 sm:gap-2.5">
