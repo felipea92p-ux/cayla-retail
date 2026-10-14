@@ -1,7 +1,7 @@
 # ADR-0399 — Apartados sin comprobante de anticipo: constancia al apartar, boleta o factura una sola vez, al entregar, por el total
 
 **Fecha:** 2026-10-14
-**Estado:** Aceptado y construido en local (3 migraciones + web). **SQL sin pegar en producción** (ver «Producción»). **Revisa** la decisión D1 de
+**Estado:** Aceptado y construido (3 migraciones + web). **SQL YA EN PRODUCCIÓN desde el 2026-10-14** (las 3 partes, en orden, con las huellas de las 5 funciones verificadas; ver «Producción»). La web sale con el PR. **Revisa** la decisión D1 de
 [ADR-0166](0166-separaciones-con-adelanto.md) («boleta o factura de anticipo al separar, la final deduce el anticipo»).
 **Decide:** Felipe, 2026-10-14, en chat: «la boleta o factura solo se emite cuando se concreta la venta por el monto total, sin siquiera
 especificar el adelanto, ya que es algo pactado más que otra cosa» y «si el cliente se arrepiente se le devuelve el dinero y no se gasta ningún
@@ -64,7 +64,7 @@ sistema siempre devuelve; si cambia la política, se emite ahí.
 | `fn_verificar_separaciones` | exigía comprobante de anticipo | exige la boleta o factura de un apartado nuevo entregado |
 | Web (ticket, modales, Entregar) | «boleta de anticipo» | constancia al apartar; al entregar, la boleta se envía a SUNAT como cualquier venta |
 
-## Producción (pegar en este orden, una por una, con huella antes y después)
+## Producción (pegado el 2026-10-14 en este orden, una por una, con huella antes y después)
 
 1. `20261014150000_apartados_entregar_boleta_por_el_total.sql` — **primero**: con ella sola nada cambia para lo que ya existe.
 2. `20261014151000_apartados_constancia_sin_comprobante.sql` — apartar y abonar dejan de emitir.
