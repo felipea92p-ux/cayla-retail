@@ -83,6 +83,9 @@ fusiona).
     `pruebas:fondos-entradas` 6/7 sin la migración y 7/7 con ella).
     - [x] Producción: `20261014212000` pegada con el OK de Felipe (2026-10-14, versión de allá `20261014213308`); la huella de
       `devolver_fondo` quedó igual a la del banco (`05e87e25…`).
+    - [x] CI del PR: `pruebas:actor-firma` y `pruebas:terminales-red` contaban dos funciones de los arreglos de `/chaos` que buscaban la
+      cuenta con su propia consulta a `auth.uid()`. `20261014221000` las pasa a `fn_persona_de_la_cuenta` (lo que responden no cambia);
+      pegada con el OK de Felipe (versión de allá `20261014214750`), con las huellas iguales al banco.
     - [ ] Felipe: los cambios 2 («Revisar»: primero la lista) y 3 (la cuenta de cada persona en una frase) que no se eligieron, y la lista
       aparte del informe (a quién se le entrega plata, «Gastó» con el faltante, la cabecera de Compras, «viaje», el ejemplo del taxi…).
 - [x] Tabla «Quién tiene plata» de Fondos por rendir a 1024 px con el menú abierto: la arregló otra sesión (las tres tablas deciden por
