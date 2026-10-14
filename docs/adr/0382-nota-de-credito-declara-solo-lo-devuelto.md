@@ -74,3 +74,11 @@ pegado por el SQL Editor).
    `search_path`; la nota ya pasa los ítems y el comentario viejo no está. `emitir_nota` sin tocar (`196885b8`).
 
 Sigue pendiente: transmitir una nota «07» al sandbox de Lucode antes de la primera devolución parcial real.
+
+## Actualización 2026-10-14: vuelve al repo
+
+El PR #978 se cerró el 2026-10-12 sin fusionar y sin comentario, con el SQL ya pegado en producción. Producción quedó con un arreglo que no
+vivía en ningún archivo de `main`: el CI armaba `aprobar_devolucion` sin él, y el check «SQL pegado» de #1054 (ADR-0398, que agrega una guarda
+del reembolso a la misma función) no podía coincidir con producción. Felipe eligió traerlo a `main` (2026-10-14) con los mismos tres commits,
+en un PR apilado sobre el de #1054: ese CI arma la función con las dos cosas, igual que producción (huella `c007df7d5858` en local y en
+producción), y al entrar en #1054 los dos llegan a `main` juntos. Nada se pega de nuevo: el SQL es el mismo que ya corre.
