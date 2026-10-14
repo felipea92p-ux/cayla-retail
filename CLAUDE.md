@@ -299,6 +299,7 @@ o se escribe. **Un buscador que filtra por URL (`?q=`) navega con `buscar(href)`
 (`<Buscador buscando>`) y la lista marcada con `data-resultados` se atenúa (Felipe 2026-09-28). Un filtro por clic sigue con el loader.
 Análisis (v4, ADR-0357) busca en el navegador, sin URL: lo tipeado filtra las prendas ya leídas, sin loader.
 Tiempos, alternativas y verificación: `docs/adr/0149-loader-general-a-pantalla-completa.md`.
+**Un guardado que se queda sin respuesta (corte de red) rehace la pantalla solo** cuando la base vuelve a responder, sin loader y sin tocar lo escrito (`<RefrescoTrasCorte />`, ADR-0411): una pantalla nueva no hace nada, nadie escribe su propio refresco tras un corte, y una pantalla con cola sin conexión propia se suma a `PANTALLAS_SIN_CONEXION` (ahí no se refresca).
 
 ## Módulos y roles (regla — ADR-0161, Felipe 2026-09-22)
 
