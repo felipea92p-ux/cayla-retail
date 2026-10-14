@@ -18,7 +18,7 @@ const COLUMNAS_ORDENES: Columna[] = [{ titulo: "Orden" }, { titulo: "Va en" }, {
 export function OrdenesDelModelo({ ordenes }: { ordenes: OrdenDeHoja[] }) {
   return (
     <div>
-      <TituloGrupo cuenta={ordenes.length > 0 ? String(ordenes.length) : undefined}>Órdenes abiertas de este modelo</TituloGrupo>
+      <TituloGrupo cuenta={ordenes.length > 0 ? ordenes.length : undefined}>Órdenes abiertas de este modelo</TituloGrupo>
       {ordenes.length === 0 ? (
         <Vacio tamano="chico" icono={<ClipboardList />}>
           No hay ninguna orden abierta de este modelo.

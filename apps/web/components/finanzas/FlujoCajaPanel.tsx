@@ -32,6 +32,9 @@ import {
   type Proyeccion,
 } from "@/lib/flujo-caja-reglas";
 import { Aviso } from "@/components/ui/Aviso";
+import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { CalendarX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Finanzas ▸ Reportes ▸ Flujo de caja (ADR-0195 F6), dibujado como el spike aprobado (`vistaFlujo`, «¿Por qué vendí bien y
 // no hay plata?»): a la izquierda lo que ya pasó (lo que entró por medio, lo que salió por concepto, y semana a semana); a
@@ -77,9 +80,9 @@ export function FlujoCajaPanel({
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
-            <button type="button" className="btn-cayla btn-secundario" onClick={descargar} disabled={!real && !proyeccion} data-guia="fin-reportes.excel">
+            <BotonDescargar onClick={descargar} disabled={!real && !proyeccion} guia="fin-reportes.excel">
               Descargar Excel
-            </button>
+            </BotonDescargar>
           </>
         }
       />
@@ -106,7 +109,13 @@ export function FlujoCajaPanel({
                 })}
               />
             </div>
-            {real ? <LoQuePaso real={real} /> : <p className="text-sm text-taupe">Sin datos de este mes.</p>}
+            {real ? (
+              <LoQuePaso real={real} />
+            ) : (
+              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<CalendarX />}>
+                Sin datos de este mes.
+              </Vacio>
+            )}
           </Superficie>
         </div>
 
@@ -121,7 +130,13 @@ export function FlujoCajaPanel({
                 opciones={SEMANAS_POSIBLES.map((n) => ({ valor: String(n), texto: `${n} semanas` }))}
               />
             </div>
-            {proyeccion ? <LoQueViene p={proyeccion} /> : <p className="text-sm text-taupe">Sin datos de lo que viene.</p>}
+            {proyeccion ? (
+              <LoQueViene p={proyeccion} />
+            ) : (
+              <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<CalendarX />}>
+                Sin datos de lo que viene.
+              </Vacio>
+            )}
           </Superficie>
         </div>
       </section>

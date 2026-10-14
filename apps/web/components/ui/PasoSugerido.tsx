@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { SiguientePaso } from "@/lib/proveedores-reglas";
+import { EnlaceVer } from "./EnlaceVer";
 
 const BORDE = { rojo: "border-l-rojo", ambar: "border-l-ambar", verde: "border-l-verde", neutro: "border-l-tinta/25" } as const;
 
@@ -24,9 +24,9 @@ export function PasoSugerido({ paso, proveedorId, animar = false, indice, classN
       <b className="font-semibold">{paso.fuerte}</b>
       {paso.resto}
       {enlace && (
-        <Link href={enlace.href} className="label-cayla mt-2 block text-[11px] text-tinta underline underline-offset-2 hover:no-underline sm:ml-1 sm:mt-0 sm:inline-block">
-          {enlace.texto} →
-        </Link>
+        <EnlaceVer href={enlace.href} className="mt-2 sm:ml-1 sm:mt-0">
+          {enlace.texto}
+        </EnlaceVer>
       )}
     </div>
   );

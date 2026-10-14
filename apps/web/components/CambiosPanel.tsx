@@ -21,6 +21,7 @@ import { estadoPrendaVendida, type TallaQueNoCalza } from "@/lib/cambios-reglas"
 import { abrirDesdeLectura, busquedaDesdeLectura, type SedeConId } from "@/lib/cambios-atajos-reglas";
 import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import type { CambioArmado } from "@/lib/cambios-cambio-de-sede";
+import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 type Filtro = "todas" | "con_cambio" | "sin_comprobante";
 
@@ -213,9 +214,7 @@ export function CambiosPanel({
     // `pb-28` en el celular: la barra fija de abajo («Escanear prenda o boleta») no tapa la última compra.
     <div className="space-y-12 pb-28 sm:pb-0">
       <section aria-labelledby="iniciar-cambio" className="space-y-4">
-        <h2 id="iniciar-cambio" className="text-[15px] font-semibold text-tinta">
-          Iniciar un cambio
-        </h2>
+        <TituloSeccion id="iniciar-cambio">Iniciar un cambio</TituloSeccion>
         <BuscadorVentas
           key={`${busqueda}|${todasLasSedes}`}
           valorInicial={busqueda}
@@ -336,9 +335,9 @@ function TallasQueNoCalzan({ tallas }: { tallas: TallaQueNoCalza[] }) {
   return (
     <section className="space-y-3 pt-6" aria-labelledby="tallas-que-no-calzan">
       <div>
-        <h2 id="tallas-que-no-calzan" className="text-[15px] font-semibold text-tinta">
-          Tallas que no calzan · últimos 90 días
-        </h2>
+        <TituloSeccion id="tallas-que-no-calzan" dato="últimos 90 días">
+          Tallas que no calzan
+        </TituloSeccion>
         <p className="mt-0.5 text-sm text-tinta/70">
           Prendas que se cambian seguido a otra talla, en todas las sedes. Si una va casi siempre a la talla de arriba, la horma puede estar calzando chica.
         </p>

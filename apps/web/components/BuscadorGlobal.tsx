@@ -9,6 +9,8 @@ import { clave } from "@/lib/buscar-prenda-v2";
 import { createClient } from "@/lib/supabase/client";
 import { armarEquipo, textoEstado, type MiembroEquipo } from "@/lib/inicio-avisos";
 import type { ItemMenu } from "@/lib/menu";
+import { SearchX } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 type Props = {
   /** Toda pantalla que este perfil puede abrir, ya resuelta por rol (`menu.riel.flatMap(hojasDe)` en
@@ -234,7 +236,7 @@ export function BuscadorGlobal({ pantallas, ubicacionId, ubicacionEtiqueta, most
             )}
 
             {pantallasFiltradas.length === 0 && equipoFiltrado.length === 0 && (
-              <p className="px-2 py-6 text-center text-sm text-tinta/50 dark:text-tinta/60">Sin coincidencias para «{query}»</p>
+              <Vacio tamano="chico" className="py-6" icono={<SearchX />}>Sin coincidencias para «{query}»</Vacio>
             )}
           </div>
         </Modal>

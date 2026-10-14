@@ -4,6 +4,8 @@ import { ETIQUETA_MOTIVO_NOTA, fechaCorta, soles, type CompraResumen } from "@/l
 import type { NotaCreditoCompra } from "@/lib/compras-faltantes";
 import { estadoNotaFaltante, montoDeCierres, tasaIgv } from "@/lib/recepciones-reglas";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { FileMinus } from "lucide-react";
+import { Vacio } from "@/components/ui/Vacio";
 
 // Sección «Notas de crédito» del detalle de un comprobante (D2, ADR-0111): lo que el proveedor
 // ya nos reconoció (faltantes, devoluciones, descuentos). Cada nota dice qué hizo: cuánto bajó lo que se
@@ -41,13 +43,15 @@ export function NotasCreditoCompra({ compra, notas, cerrados }: { compra: Compra
         </p>
       )}
       {notas.length === 0 ? (
-        <p className="card-cayla p-5 text-sm text-tinta/65">
-          Sin notas de crédito. Si el proveedor emite una por un faltante o una devolución, se registra en{" "}
-          <Link href="/compras/notas-credito" className="btn-enlace">
-            Notas de crédito
-          </Link>
-          : baja lo que se debe y, si ya estaba pagado, queda a tu favor con ese proveedor. Acá se ven las de este comprobante.
-        </p>
+        <div className="card-cayla">
+          <Vacio tamano="chico" alinear="izquierda" className="px-5 py-4" icono={<FileMinus />}>
+            Sin notas de crédito. Si el proveedor emite una por un faltante o una devolución, se registra en{" "}
+            <Link href="/compras/notas-credito" className="btn-enlace">
+              Notas de crédito
+            </Link>
+            : baja lo que se debe y, si ya estaba pagado, queda a tu favor con ese proveedor. Acá se ven las de este comprobante.
+          </Vacio>
+        </div>
       ) : (
         <Tabla>
           <Encabezado plantilla={PLANTILLA} columnas={[{ titulo: "Fecha" }, { titulo: "Nota · Motivo" }, { titulo: "Monto", alinear: "der" }]} />
