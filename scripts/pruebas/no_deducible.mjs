@@ -11,7 +11,8 @@
  *     mismo día, en el orden en que se anotaron: la que cruza el tope, en parte; las que siguen, enteras. Otra persona u otro día no suman,
  *     una anulada tampoco, y antes de que rija el tope no hay tope.
  *   · El tope se guarda como parámetro tributario desde cualquier fecha (no solo el 1 de enero), en soles y mayor que cero.
- *   · La lectura de la web: claves que no son del libro no responden; más de 1,000 no; sin módulo ni fondo, no.
+ *   · La lectura de la web: claves que no son del libro no responden; más de 1,000 no; sin módulo ni fondo, no; con solo su fondo, lo de
+ *     su fondo (20261014195000).
  *
  * CÓMO. Como `rendicion_fondo.mjs`: carga su migración dentro de cada caso (se puede pegar dos veces), sesión simulada con
  * `request.jwt.claim.sub` y ROLLBACK siempre: nada queda escrito.
@@ -37,6 +38,8 @@ const BASE = arg("--base", "postgres");
 // todas; en local, actualízala). Volver a pegar la 181000 sobre una base que ya tiene faltantes de una rendición choca con su restricción
 // de tipos, que es anterior a ellos.
 const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261014002000_no_deducible.sql"), "utf8");
+// Con solo su fondo, una persona pregunta por lo de su fondo (20261014195000): se carga después, porque la suya vuelve a crear la función.
+const MI_FONDO = readFileSync(join(RAIZ, "supabase", "migrations", "20261014195000_no_deducibles_de_mi_fondo.sql"), "utf8");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder y Admin (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante — Tienda Trujillo
@@ -87,6 +90,7 @@ begin;
 set local search_path = retail, public, extensions;
 ${sinCandadosDePegado(MIGRACION)}
 ${sinCandadosDePegado(MIGRACION)}
+${sinCandadosDePegado(MI_FONDO)}
 set local search_path = retail, public, extensions;
 
 -- «SIN_ERROR» o «<sqlstate>|<hint>|<mensaje>».
@@ -114,6 +118,9 @@ insert into retail.configuracion_empresa (id, ruc, razon_social, exige_responsab
 set local session_replication_role = replica;
 delete from retail.parametros_tributarios where nombre = 'tope_planilla_movilidad';
 set local session_replication_role = origin;
+-- Esta prueba anota planillas de hace unos días; el piso de fechas de los fondos (20261014193000: no antes del 13/10/2026) mira otra
+-- cosa y se baja solo dentro de esta transacción, que siempre se deshace.
+create or replace function retail.fn_fondos_desde() returns date language sql immutable set search_path = retail, public as $p$ select date '2000-01-01' $p$;
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select p.sede_base_id as sede_base from public.personas p where p.auth_user_id = '${MICAELA}' \\gset
 select id as prov from retail.proveedores where nombre = 'Textiles Andina SAC' \\gset
@@ -230,7 +237,7 @@ select 'directo|' || pg_temp.intento($q$insert into retail.parametros_tributario
   },
   {
     nombre: "la lectura de la web: quién la ve, claves que no son del libro, y el máximo",
-    sql: `${compra("grande", 3000)}${pago("p_efe", "grande", 3000, "efectivo", null)}
+    sql: `${compra("grande", 3000)}${pago("p_efe", "grande", 3000, "efectivo", null)}${compra("suya", 2500)}${como(ANA)}${pago("p_suyo", "suya", 2500, "yape", "fondo")}${comoPostgres}
 ${como(ANA)}${sinFirma}
 select 'ana|' || string_agg(d.motivo || ':' || d.monto, ',') from retail.fn_no_deducibles(array['pago:' || :'p_efe', 'pago:basura', 'mov:' || :'p_efe', 'gasto:', null]) d;
 ${como(EVA)}${sinFirma}
@@ -243,13 +250,15 @@ ${como(EVA)}${sinFirma}
 select 'eva_sin|' || pg_temp.intento(format('select * from retail.fn_no_deducibles(array[%L])', 'pago:' || :'p_efe'));
 ${como(ANA)}${sinFirma}
 select 'ana_fondo|' || count(*) from retail.fn_no_deducibles(array['pago:' || :'p_efe']);
+select 'ana_suyo|' || count(*) from retail.fn_no_deducibles(array['pago:' || :'p_suyo', 'pago:' || :'p_efe']);
 ${como(FELIPE)}${sinFirma}
 select 'mil|' || pg_temp.intento('select * from retail.fn_no_deducibles(array(select ''pago:'' || gen_random_uuid() from generate_series(1, 1001)))');`,
     revisa: (s) => [
       !/^ana\|bancarizacion:3000\.00$/m.test(s) && `con el módulo responde solo la clave del libro que es no deducible — ${linea("ana")(s)}`,
       !/^eva\|1$/m.test(s) && `eva con Órdenes de compra — ${linea("eva")(s)}`,
       !/^eva_sin\|42501\|/m.test(s) && `sin módulo ni fondo, no — ${linea("eva_sin")(s)}`,
-      !/^ana_fondo\|1$/m.test(s) && `sin módulo pero con su fondo, sí — ${linea("ana_fondo")(s)}`,
+      !/^ana_fondo\|0$/m.test(s) && `sin módulo y con su fondo, lo que no salió de su fondo no responde — ${linea("ana_fondo")(s)}`,
+      !/^ana_suyo\|1$/m.test(s) && `sin módulo y con su fondo, lo que salió de su fondo sí — ${linea("ana_suyo")(s)}`,
       !/^mil\|P0001\|\|Se preguntan 1,000/m.test(s) && `más de 1,000 claves — ${linea("mil")(s)}`,
     ].filter(Boolean),
   },
