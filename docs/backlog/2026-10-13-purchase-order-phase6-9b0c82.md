@@ -12,7 +12,7 @@ fusiona).
 - [x] Actividad 5 · rendición (`20261013233000`, `234000` —bucket y políticas, solas— y `235000`): rendir, aprobar (faltante asumido →
   6599 o deuda → 1419), devolver o retirar, lo rendido congelado y las fotos de los gastos del viaje. En producción.
 - [ ] Felipe (actividad 5, provisional): un sobrante no se rinde; 1419 y 6599 hasta el contador; la dueña puede retirar su rendición; el
-  tablero cuenta el faltante dentro de «Gastó». La deuda se ve pero todavía no se cobra (actividad 7).
+  tablero cuenta el faltante dentro de «Gastó». La deuda se ve y, desde la actividad 7, se salda cuando la persona devuelve la plata.
 - [x] Actividad 6 · lo «no deducible» (`20261014002000`, decisiones 55, 56, 57, 68 y 70): la regla de la bancarización y el tope de la
   planilla de movilidad (parámetro tributario con vigencias, en Configuración ▸ Impuestos; vacío hasta el contador), el aviso en todas
   las formas de pagar a un proveedor y la marca en la rendición, «Traerla costó» y los pagos de un comprobante. En producción.
@@ -24,10 +24,19 @@ fusiona).
   Balance. En producción. Nada de descontar del sueldo (71).
 - [ ] Felipe (actividad 7, provisional): la deuda se paga a un banco, una caja fuerte o al líder (no a un cajón); una deuda no se perdona
   desde el sistema después de aprobada.
-- [ ] Actividad 8 · el IGV: las facturas de los gastos del viaje a crédito fiscal y el IGV de lo no deducible fuera, en el mes del pago
-  (72), igual en Impuestos, el Diario y el Balance.
+- [x] Actividad 8 · el IGV (`20261014153000`, decisiones 56, 70 y 72): la factura con RUC de un gasto del viaje va al crédito fiscal (la
+  hoja dice cuánto IGV se descuenta, o por qué no) y el IGV de lo pagado en efectivo o desde un fondo se pierde en el mes del PAGO, igual
+  en Impuestos (crédito, «Para revisar», registro de compras y resumen para el contador), el Diario (64 contra 4011) y el Balance. En
+  producción; ningún mes ya declarado cambió (en producción no había IGV perdido en ningún mes).
+- [ ] Felipe y el contador (actividad 8, provisional): el IGV perdido va a la 64; el ticket no da crédito; la factura de un gasto del
+  viaje va al registro sin razón social si ningún proveedor tiene su RUC; con nota de crédito, la proporción se calcula sobre el total
+  original de la factura.
+- [ ] Finanzas ▸ Gastos dice «Sin comprobante» (y «Sin proveedor») en un gasto del viaje con factura, junto a su IGV: `fn_gastos_lista`
+  solo mira `compras` y el papel vive en `gastos_viaje`. Viene de la actividad 3; quedó como tarea aparte (un commit para traer con
+  cherry-pick, migración nueva con su reserva).
 - [ ] Actividad 9 · cierre: `tema:auditar`, `guias:recorrer`, `/chaos` con plata y `/formidable` (todavía no se corrieron).
-- [ ] Tabla «Quién tiene plata» de Fondos por rendir: a 1024 px con el menú abierto se desborda (viene de antes; quedó como tarea aparte).
+- [x] Tabla «Quién tiene plata» de Fondos por rendir a 1024 px con el menú abierto: la arregló otra sesión (las tres tablas deciden por
+  el ancho de su tarjeta) y entró con cherry-pick (`caa9daf90`); verificado aquí a 1024 y 1280 px con el menú abierto (0 px de desborde).
 - [ ] Felipe: lo marcado *provisional* en el ADR (la acción `gasto_viaje_registrar` soltada del combo «Responsable»; cuándo se propone
   «Mi fondo»; de dónde sale y a dónde vuelve la plata de un fondo; «Tu fondo» no sale en el Observatorio del Admin).
 - [ ] Felipe: **«Lo recibí»** (la compradora confirma en su tarjeta que recibió la plata; sin confirmar, al líder le aparece «sin

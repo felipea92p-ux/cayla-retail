@@ -135,7 +135,9 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
             : "Sin datos"}
         </TarjetaCifra>
         <TarjetaCifra etiqueta="IGV que descuentas" valor={foco ? solesRedondo(foco.credito) : null} {...entra(2)}>
-          {`Facturas de mercadería, gastos, activos e insumos${foco && foco.creditoNotas > 0 ? `, menos ${solesRedondo(foco.creditoNotas)} de notas de crédito` : ""}`}
+          {`Facturas de mercadería, gastos, activos e insumos${foco && foco.creditoNotas > 0 ? `, menos ${solesRedondo(foco.creditoNotas)} de notas de crédito` : ""}${
+            panel.revisar.igvPerdido.igv > 0 ? `, menos ${solesRedondo(panel.revisar.igvPerdido.igv)} que se pierde por pagar sin banco` : ""
+          }`}
         </TarjetaCifra>
         <TarjetaCifra
           etiqueta={aFavor ? `Saldo a favor para ${siguiente}` : `IGV a pagar en ${siguiente}`}
@@ -334,6 +336,14 @@ function ParaRevisar({ panel }: { panel: PanelImpuestos }) {
       titulo: `${plural(r.boletas.n, "compra", "compras")} con boleta este mes`,
       detalle: `Una boleta no da IGV descontable. Si el proveedor emite factura, pídela${r.boletas.proveedores.length ? `: ${r.boletas.proveedores.join(", ")}` : ""}.`,
       accion: r.boletas.gastos > 0 ? { texto: "Ver gastos", href: `/finanzas/gastos?mes=${mes}&ver=todas` } : undefined,
+    });
+  }
+  // ADR-0362, fase 6 · actividad 8 (decisión 72): el IGV que se perdió en el mes del pago. La base ya lo restó; aquí se dice y se dice qué hacer.
+  if (r.igvPerdido.igv > 0) {
+    puntos.push({
+      tono: "ambar",
+      titulo: `${solesRedondo(r.igvPerdido.igv)} de IGV que no se descuenta`,
+      detalle: `${plural(r.igvPerdido.n, "pago", "pagos")} en efectivo o desde un fondo de facturas de S/ 2,000 o más. SUNAT pide pagarlas por el banco: ese IGV ya está restado de lo que descuentas.`,
     });
   }
   if (r.rechazados.n > 0) {

@@ -1,5 +1,6 @@
 import { leerMonto } from "./caja-cierre-reglas";
 import { soles } from "./compras-reglas";
+import { igvDeFactura } from "./gastos-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import type { NoDeducible } from "./no-deducible-reglas";
 
@@ -246,7 +247,10 @@ export function problemaDeRuc(v: ValoresGastoViaje): string | null {
 
 type Responsable = { esPersona: boolean; listo: boolean; motivo: string | null };
 
-/** Los campos de la hoja, en su orden. Las órdenes, la serie, el RUC y la nota (salvo con «Otro») son opcionales: no cuentan como «falta». */
+/**
+ * Los campos de la hoja, en su orden. Las órdenes, la serie, el RUC y la nota (salvo con «Otro») son opcionales: no cuentan como «falta».
+ * Con una FACTURA, el RUC es «sugerido» (fase 6 · actividad 8): sin él su IGV no se descuenta, pero no frena el registro.
+ */
 export function camposGastoViaje(v: ValoresGastoViaje, hoy: string, r: Responsable): CampoDeGuia[] {
   const tipo = problemaDeTipo(v);
   const concepto = problemaDeConcepto(v);
@@ -266,7 +270,14 @@ export function camposGastoViaje(v: ValoresGastoViaje, hoy: string, r: Responsab
     ...(conPapel
       ? [
           { id: "serie", nombre: "Serie y número", requerido: serie !== null, hecho: v.serieNumero.trim() !== "" && serie === null, pendiente: serie ?? "" },
-          { id: "ruc", nombre: "RUC", requerido: ruc !== null, hecho: v.ruc.trim() !== "" && ruc === null, pendiente: ruc ?? "" },
+          {
+            id: "ruc",
+            nombre: "RUC",
+            requerido: ruc !== null,
+            sugerido: v.papel === "factura",
+            hecho: v.ruc.trim() !== "" && ruc === null,
+            pendiente: ruc ?? (v.papel === "factura" ? "Escribe el RUC: con él, su IGV se descuenta." : ""),
+          },
         ]
       : []),
     {
@@ -282,6 +293,20 @@ export function camposGastoViaje(v: ValoresGastoViaje, hoy: string, r: Responsab
 }
 
 // ---------- Textos ----------
+
+/**
+ * La línea bajo «¿Qué papel te dieron?» (fase 6 · actividad 8). Una FACTURA con el RUC de quien la dio separa su IGV y CAYLA lo descuenta
+ * de sus impuestos (`registrar_gasto_viaje`, 20261014153000, con la tasa de la fecha; aquí se anticipa con la de hoy, como en Finanzas ▸
+ * Gastos); sin el RUC, no. Si es de S/ 2 000 o más y no se paga por el banco, ese IGV se pierde (`igvSePierde`: el mismo aviso de lo no
+ * deducible de la hoja), y esta línea no promete lo contrario.
+ */
+export function pistaDelPapel(v: Pick<ValoresGastoViaje, "papel" | "ruc">, monto: number | null, igvSePierde: boolean): string {
+  if (v.papel === "planilla_movilidad") return "Va en la planilla de movilidad: sin boleta, solo taxi y cargador.";
+  if (v.papel !== "factura") return "Sin comprobante solo se acepta taxi o cargador (planilla de movilidad).";
+  if (!/^\d{11}$/.test(v.ruc.trim())) return "Con el RUC de quien te la dio, su IGV se descuenta de los impuestos.";
+  if (igvSePierde) return "Es de S/ 2,000 o más y no se paga por el banco: su IGV no se descuenta.";
+  return monto != null && monto > 0 ? `Su IGV (${soles(igvDeFactura(monto))}) se descuenta de los impuestos.` : "Su IGV se descuenta de los impuestos.";
+}
 
 /** Lo que dice el botón de la hoja: «Registrar gasto de S/ 60.00». */
 export function fraseRegistrarGasto(monto: number | null): string {

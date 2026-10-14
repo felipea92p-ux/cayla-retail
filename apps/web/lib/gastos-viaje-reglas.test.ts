@@ -7,6 +7,7 @@ import {
   leerGastosDeOrden,
   leerOrdenesParaGasto,
   papelesPara,
+  pistaDelPapel,
   problemaDePapel,
   repartirGasto,
   traerlaCosto,
@@ -110,6 +111,32 @@ describe("lo que falta (las mismas reglas que la base)", () => {
     const ids = camposGastoViaje({ ...LLENO, tipo: "viaje", concepto: "taxi", papel: "planilla_movilidad" }, HOY, PERSONA).map((c) => c.id);
     expect(ids).not.toContain("serie");
     expect(ids).not.toContain("ruc");
+  });
+  it("con una factura el RUC se sugiere (sin él no se descuenta su IGV), pero no frena el registro", () => {
+    const campos = camposGastoViaje({ ...LLENO, papel: "factura" }, HOY, PERSONA);
+    expect(faltanDe(campos).map((c) => c.id)).toEqual(["ruc"]);
+    expect(faltanDe(campos)[0]!.pendiente).toBe("Escribe el RUC: con él, su IGV se descuenta.");
+    expect(sePuedeConfirmar(campos)).toBe(true);
+    expect(faltan({ papel: "factura", ruc: "20123456789" })).toEqual([]);
+    expect(faltan({ papel: "boleta" })).toEqual([]);
+  });
+});
+
+describe("la línea del papel: el IGV de la factura (fase 6 · actividad 8)", () => {
+  it("una factura con RUC dice cuánto IGV se descuenta (lo mismo que separa la base: total − total ÷ 1.18)", () => {
+    expect(pistaDelPapel({ papel: "factura", ruc: "20123456789" }, 118, false)).toBe("Su IGV (S/ 18.00) se descuenta de los impuestos.");
+    expect(pistaDelPapel({ papel: "factura", ruc: "20123456789" }, 100, false)).toBe("Su IGV (S/ 15.25) se descuenta de los impuestos.");
+    expect(pistaDelPapel({ papel: "factura", ruc: "20123456789" }, null, false)).toBe("Su IGV se descuenta de los impuestos.");
+  });
+  it("sin RUC (o mal escrito) no hay crédito: lo dice; si no pasa por el banco, el IGV se pierde", () => {
+    expect(pistaDelPapel({ papel: "factura", ruc: "" }, 118, false)).toBe("Con el RUC de quien te la dio, su IGV se descuenta de los impuestos.");
+    expect(pistaDelPapel({ papel: "factura", ruc: "2012345" }, 118, false)).toBe("Con el RUC de quien te la dio, su IGV se descuenta de los impuestos.");
+    expect(pistaDelPapel({ papel: "factura", ruc: "20123456789" }, 2360, true)).toBe("Es de S/ 2,000 o más y no se paga por el banco: su IGV no se descuenta.");
+  });
+  it("con otro papel, la regla de la planilla de siempre", () => {
+    expect(pistaDelPapel({ papel: "boleta", ruc: "20123456789" }, 118, false)).toBe("Sin comprobante solo se acepta taxi o cargador (planilla de movilidad).");
+    expect(pistaDelPapel({ papel: "", ruc: "" }, null, false)).toBe("Sin comprobante solo se acepta taxi o cargador (planilla de movilidad).");
+    expect(pistaDelPapel({ papel: "planilla_movilidad", ruc: "" }, 10, false)).toBe("Va en la planilla de movilidad: sin boleta, solo taxi y cargador.");
   });
 });
 

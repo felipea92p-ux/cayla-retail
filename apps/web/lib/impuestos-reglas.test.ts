@@ -134,6 +134,13 @@ describe("leer lo que devuelve la base", () => {
     expect(p.renta.tasa).toBeNull();
     expect(p.revisar.boletas.proveedores).toEqual(["Bodega"]);
     expect(p.revisar.sinComprobante).toEqual({ n: 0, total: 0, alegra: 0 });
+    // Sin el aviso (una base de antes de la fase 6 · actividad 8), nada perdido.
+    expect(p.revisar.igvPerdido).toEqual({ n: 0, igv: 0 });
+  });
+
+  it("el IGV perdido por pagar sin banco (fase 6 · actividad 8): cuántos pagos y cuánto IGV, ya restado del crédito", () => {
+    const p = leerPanelImpuestos({ mes: "2026-10-01", revisar: { igv_perdido: { n: 2, igv: "152.54" } } });
+    expect(p.revisar.igvPerdido).toEqual({ n: 2, igv: 152.54 });
   });
 });
 
@@ -267,6 +274,15 @@ describe("registros para el contador", () => {
     expect(r.filas).toContainEqual(["Saldo a favor que pasa al mes siguiente", "234.00"]);
     expect(r.filas).toContainEqual(["Régimen", "sin configurar"]);
     expect(r.filas).toContainEqual(["Pago a cuenta de renta", ""]);
+    expect(r.filas).toContainEqual(["IGV perdido por bancarización: pagos en efectivo o desde un fondo (ya restado de las líneas de facturas)", "0.00"]);
+  });
+
+  it("el resumen dice cuánto IGV se perdió por pagar sin banco (ya restado de cada línea de facturas)", () => {
+    const panel = leerPanelImpuestos({ mes: "2026-10-01", foco: { mes: "2026-10-01", credito_gastos: 30 }, revisar: { igv_perdido: { n: 1, igv: 152.54 } } });
+    expect(csvResumenIgv(panel).filas).toContainEqual([
+      "IGV perdido por bancarización: pagos en efectivo o desde un fondo (ya restado de las líneas de facturas)",
+      "152.54",
+    ]);
   });
 
   it("el CSV lleva BOM, comas y comillas escapadas", () => {

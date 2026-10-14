@@ -299,14 +299,15 @@ DECIDÍ: una sola regla en la base, CALCULADA y no guardada. Bancarización (`fn
         persona en el mismo día, en el orden en que se anotaron; lo que pasa el tope es no deducible (la que lo cruza, en parte). El tope es
         un parámetro tributario más (`parametros_tributarios`, 'tope_planilla_movilidad'), con vigencias desde cualquier fecha como el IGV
         y en Configuración ▸ Impuestos; SIN FILA NO HAY TOPE (68). `fn_no_deducibles(claves del libro)` lo responde a la web;
-        `fn_no_deducibles_de` es la pieza interna que usará la actividad 7. La web AVISA al pagar con el espejo de la regla
+        `fn_no_deducibles_de` es su pieza interna (la actividad 8 pregunta la misma regla, `fn_pago_no_bancarizado`, pago por pago).
+        La web AVISA al pagar con el espejo de la regla
         (`avisoBancarizacion`) en todas las formas de pagar a un proveedor —registrar un comprobante o el de una orden, Por pagar, Pagar
         juntos, el Taller, el gasto del viaje y los gastos de Finanzas y de Caja con comprobante— y MARCA lo ya pagado donde se ve: la
         rendición (quien rinde y quien revisa), «Traerla costó» y los pagos de un comprobante (su detalle y la vista rápida de Por pagar).
 DESCARTÉ: guardar la marca en el pago (se desincroniza cuando el contador fija el tope o se anula una planilla del mismo día); el umbral
         como parámetro (cambió una vez desde 2004; son dos líneas si vuelve a cambiar); frenar el pago (56); marcar los gastos SIN
-        comprobante de Finanzas (no tienen papel: la bancarización mira comprobantes); y sacar el IGV del crédito fiscal aquí, que es de la
-        actividad 7 para que Impuestos, el Diario y la conciliación cuenten igual.
+        comprobante de Finanzas (no tienen papel: la bancarización mira comprobantes); y sacar el IGV del crédito fiscal aquí, que va en la
+        actividad de contabilidad (la 8 desde la decisión 73) para que Impuestos, el Diario y la conciliación cuenten igual.
 SE ROMPE SI: alguien pinta «no deducible» con su propia cuenta en vez de preguntar a la base, o el umbral cambia en un lado y no en el
         otro (`fn_pago_no_bancarizado` y `UMBRAL_BANCARIZACION`).
 ```
@@ -339,6 +340,35 @@ SE ROMPE SI: alguien registra la devolución de una deuda como «Lo que devuelve
 Por defecto *(provisional, revisar con Felipe)*: la deuda se paga a un banco, una caja fuerte o al líder (no a un cajón: no pasa por la
 caja); la 1419 sigue siendo provisional hasta el contador (57); «Lo asume CAYLA» después de aprobada no existe (una deuda no se perdona
 desde el sistema).
+
+**Fase 6 · actividad 8 (2026-10-14): el IGV** (decisiones 56, 70, 72 y 73). Migración `20261014153000`; prueba `pnpm pruebas:igv-fase6`
+(4 casos), `pnpm pruebas:estado-resultados` (el pago de 1 000 en efectivo de una factura de 2 360 de su escenario ahora pierde 152,54) y
+`lib/impuestos-reglas.test.ts` y `lib/gastos-viaje-reglas.test.ts`.
+
+```
+DECIDÍ: la FACTURA de un gasto del viaje con el RUC de quien la dio separa su IGV al guardarse (`registrar_gasto_viaje`, con la tasa de
+        la fecha): entra al crédito de los gastos en Impuestos, al registro de compras para el contador (con el nombre del proveedor que
+        tenga ese RUC; si ninguno, «Sin razón social (ver el RUC)») y al Diario, en la 4011, como la factura de un gasto de Finanzas. Sin
+        RUC, con boleta, ticket o planilla, no hay crédito. La hoja lo anticipa: con «Factura», el RUC queda «sugerido» y una línea dice
+        cuánto IGV se descuenta (o por qué no). El IGV que se pierde por la bancarización sale de UNA lectura, `fn_igv_perdido(desde,
+        hasta)`: en el mes del PAGO (72) y en la proporción pagada así (IGV × pago ÷ total; un gasto del viaje es su propio pago y pierde
+        todo su IGV). Impuestos lo resta como una fila negativa dentro de la categoría de su comprobante (así el crédito de cada mes, el
+        saldo a favor que se arrastra y «¿Cuadra?» lo cuentan igual sin cambiar columnas); el panel lo dice en la tarjeta del crédito y en
+        «Para revisar»; el resumen para el contador tiene su línea; y el Diario lo asienta (debe 64 «Gastos por tributos», haber 4011).
+        Lo del Taller se resta en Impuestos pero no se asienta: el Diario tampoco tiene su IGV.
+DESCARTÉ: restarlo en el mes de la factura (un mes ya declarado cambiaría solo, 72); perder TODO el IGV de una factura pagada en parte
+        por el banco (la 70 marca lo pagado en efectivo o desde un fondo, no el resto); crear un comprobante de compra para la factura del
+        gasto del viaje (pediría dar de alta al proveedor desde Gamarra); columnas nuevas en `fn_impuestos_igv_meses` (volver a pegar la
+        migración que la creó fallaría); y dar crédito por un ticket de máquina registradora (depende de requisitos que confirma el contador).
+SE ROMPE SI: una pantalla calcula el IGV perdido por su cuenta (Impuestos y el Diario dirían cosas distintas: se pregunta a
+        `fn_igv_perdido`), o el umbral cambia en un lado y no en el otro (todo sale de `fn_pago_no_bancarizado`).
+```
+
+Por defecto *(provisional, revisar con Felipe y el contador)*: el IGV perdido va a la **64** hasta que el contador diga otra cuenta; el
+ticket no da crédito; la factura de un gasto del viaje va al registro sin razón social cuando ningún proveedor tiene su RUC; con nota de
+crédito, la proporción se calcula sobre el total ORIGINAL de la factura (como la regla de la actividad 6). **Finanzas ▸ Gastos** todavía
+dice «Sin comprobante» en un gasto del viaje con factura (su papel vive en `gastos_viaje` y `fn_gastos_lista` solo mira `compras`): queda
+como tarea aparte.
 
 ## Fuente: el brief de Felipe
 

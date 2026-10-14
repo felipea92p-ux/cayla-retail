@@ -1004,6 +1004,9 @@ export const PRUEBAS = [
   // Saldar la deuda de un faltante (ADR-0362, fase 6 · actividad 7): lo registra quien recibe la plata, no más de lo que debe, la más
   // vieja primero, anular devuelve la deuda, y la 1419 y la 1413 por dos caminos. ROLLBACK siempre.
   "pruebas:deuda-fondo",
+  // El IGV de la fase 6 (ADR-0362, actividad 8): la factura con RUC de un gasto del viaje va al crédito fiscal; el IGV de lo pagado sin
+  // banco se pierde en el mes del PAGO (Impuestos en negativo, el aviso del panel y, en el Diario, 64 contra 4011). ROLLBACK siempre.
+  "pruebas:igv-fase6",
 
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y

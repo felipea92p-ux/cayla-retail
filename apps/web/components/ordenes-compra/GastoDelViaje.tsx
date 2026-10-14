@@ -37,6 +37,7 @@ import {
   etiquetaOrdenParaGasto,
   fraseRegistrarGasto,
   papelesPara,
+  pistaDelPapel,
   repartirGasto,
   type ConceptoGastoViaje,
   type MedioGastoViaje,
@@ -315,11 +316,8 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
                 marcador="Elige el papel"
               />
             </div>
-            <p className="mt-1.5 text-xs text-taupe">
-              {papel === "planilla_movilidad"
-                ? "Va en la planilla de movilidad: sin boleta, solo taxi y cargador."
-                : "Sin comprobante solo se acepta taxi o cargador (planilla de movilidad)."}
-            </p>
+            {/* Con una factura, cuánto IGV se descuenta (o por qué no): fase 6 · actividad 8. */}
+            <p className="mt-1.5 text-xs text-taupe">{pistaDelPapel({ papel, ruc }, montoLeido, avisoNoDeducible !== null)}</p>
           </CampoGuiado>
 
           {conPapel && (

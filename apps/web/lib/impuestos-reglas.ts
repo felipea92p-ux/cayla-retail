@@ -92,6 +92,9 @@ export type PanelImpuestos = {
     rechazados: { n: number; total: number };
     sinComprobante: { n: number; total: number; alegra: number };
     honorarios: { n: number; total: number; mayores: number };
+    /** El IGV perdido en el mes por pagar en efectivo o desde un fondo una factura de S/ 2 000 o más (ADR-0362, fase 6 · actividad 8;
+     *  `fn_igv_perdido`). Ya está restado del crédito: esto solo lo dice. */
+    igvPerdido: { n: number; igv: number };
   };
 };
 
@@ -140,6 +143,7 @@ export function leerPanelImpuestos(data: unknown): PanelImpuestos {
       rechazados: { n: num(par("rechazados").n), total: num(par("rechazados").total) },
       sinComprobante: { n: num(par("sin_comprobante").n), total: num(par("sin_comprobante").total), alegra: num(par("sin_comprobante").alegra) },
       honorarios: { n: num(par("honorarios").n), total: num(par("honorarios").total), mayores: num(par("honorarios").mayores) },
+      igvPerdido: { n: num(par("igv_perdido").n), igv: num(par("igv_perdido").igv) },
     },
   };
 }
@@ -403,7 +407,8 @@ export function leerFilaVentas(f: Fila): FilaRegistroVentas {
 }
 
 export type FilaRegistroCompras = {
-  origen: "compra" | "taller" | "nota_credito";
+  /** `gasto_viaje`: la factura o boleta de un gasto del viaje (ADR-0362, fase 6 · actividad 8). */
+  origen: "compra" | "taller" | "nota_credito" | "gasto_viaje";
   naturaleza: string;
   fecha: string;
   vencimiento: string | null;
@@ -588,7 +593,7 @@ export function csvRegistroCompras(filas: readonly FilaRegistroCompras[], mes: s
 }
 
 /** El resumen del mes que acompaña a los dos registros en el paquete para el contador. */
-export function csvResumenIgv(panel: Pick<PanelImpuestos, "mes" | "foco" | "parametros" | "renta">): Csv {
+export function csvResumenIgv(panel: Pick<PanelImpuestos, "mes" | "foco" | "parametros" | "renta" | "revisar">): Csv {
   const f = panel.foco;
   const v = (n: number | null | undefined) => (n === null || n === undefined ? "" : monto(n));
   const p = panel.parametros;
@@ -601,6 +606,8 @@ export function csvResumenIgv(panel: Pick<PanelImpuestos, "mes" | "foco" | "para
     ["IGV de facturas de gastos", v(f?.creditoGastos)],
     ["IGV de facturas de activos fijos", v(f?.creditoActivos)],
     ["IGV de facturas del Taller", v(f?.creditoTaller)],
+    // ADR-0362, fase 6 · actividad 8: cada línea de facturas ya viene sin lo que se perdió; esta dice cuánto fue.
+    ["IGV perdido por bancarización: pagos en efectivo o desde un fondo (ya restado de las líneas de facturas)", v(panel.revisar.igvPerdido.igv)],
     ["IGV de notas de crédito de proveedores (resta)", v(f?.creditoNotas)],
     ["IGV que se descuenta (crédito)", v(f?.credito)],
     ["Saldo a favor del mes anterior", v(f?.saldoAnterior)],

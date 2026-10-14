@@ -1587,6 +1587,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     un pago → `anular_pago_deuda_fondo` (llamadas en `lib/fondos-acciones.ts`). Lo que se debe: `fn_deudas_fondo` (en `getDatosFondos`) y,
     adentro, `fn_deudas_fondo_de`, que también usan `fn_mi_fondo_rendicion` («Tu fondo») y `fn_bal_otro_camino` (la 1419 del Balance);
     `fn_conciliacion_contable` suma las filas de la 1413 y la 1419 (sus nombres, en `lib/balance-reglas.ts`).
+    **El IGV** (actividad 8, `20261014153000`): `registrar_gasto_viaje` separa el IGV de una factura con RUC (`gastos.igv`; la hoja lo
+    anticipa con `pistaDelPapel`, `lib/gastos-viaje-reglas.ts`). El IGV perdido por pagar sin banco es UNA lectura, `fn_igv_perdido(desde,
+    hasta)` (en el mes del pago; usa `fn_pago_no_bancarizado`), que leen `fn_impuestos_compras` (fila negativa `igv_perdido`, y las
+    facturas y boletas de los gastos del viaje), `fn_impuestos_panel` (`revisar.igv_perdido` → `PanelImpuestos.revisar.igvPerdido`: la
+    tarjeta del crédito y «Para revisar» de `ImpuestosPanel.tsx`, y su línea en `csvResumenIgv`) y `fn_asientos_igv_perdido` (64 contra
+    4011, sumada a `fn_asientos`). `fn_impuestos_registro_compras` suma las facturas y boletas de los gastos del viaje
+    (`FilaRegistroCompras.origen = 'gasto_viaje'`).
   - `/compras/plan/resultados` (ADR-0372 C6) → `getResultadosPlan` → `fn_plan_compra_resultados` + `lib/plan-compra-resultados.ts`; pantalla `components/plan-compra/ResultadosCampana.tsx`.
   - `/compras/plan/historial` (ADR-0372 C3) → `getHistorialPlan` → `fn_historial_ventas` (Sinatra en `retail.ventas_historicas` antes del ERP) + `lib/plan-compra-historial.ts`; pantalla `components/plan-compra/HistorialCampanas.tsx`.
   - `/compras/ordenes` («Órdenes de compra», ADR-0362 fase 1, módulo `ordenes_compra`: basta el módulo, no pide `verDineroCompras`;
