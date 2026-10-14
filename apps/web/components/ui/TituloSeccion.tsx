@@ -82,7 +82,7 @@ export function TituloGrupo({
   children: ReactNode;
   /** Cuántos tiene el grupo: el globito pegado al nombre («GENERADAS 3»). */
   cuenta?: number;
-  /** Una aclaración que no es un número («no se edita ni se borra»): al lado, en minúscula tenue. */
+  /** Una aclaración que no es un número («no se edita ni se borra»): al lado, en minúscula y con el tono del título (más tenue no se lee). */
   nota?: ReactNode;
   nivel?: Nivel;
   /** Cuándo empieza a dibujarse la raya (ms), para escalonar los grupos de una hoja. Por defecto, 120. */

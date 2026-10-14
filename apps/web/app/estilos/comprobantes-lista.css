@@ -151,7 +151,7 @@
      (claro 3.2–3.3:1, oscuro 4.1–4.5:1; al 30 % daba 1.9 y 2.5) y queda un escalón bajo el texto de apoyo (`text-tinta/55`), para
      no competir con él. Sin color propio en la lista que la use: una utilidad (`text-tinta/40`) le gana también al rojo del hover. */
   .cmp-flecha-fila {
-    color: color-mix(in srgb, var(--color-tinta) 50%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 50%, transparent); /* contraste: gráfico sobre papel, hueso */
     transition:
       transform 260ms var(--ease-cayla),
       color 260ms var(--ease-cayla);

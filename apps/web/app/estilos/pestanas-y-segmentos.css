@@ -215,7 +215,7 @@
     letter-spacing: 0.13em;
     text-transform: uppercase;
     line-height: 1;
-    color: color-mix(in srgb, var(--color-tinta) 60%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 64%, transparent); /* contraste: texto sobre sand */
     white-space: nowrap;
     text-decoration: none;
     cursor: pointer;

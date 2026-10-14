@@ -71,7 +71,7 @@
 .cmp-hora-baja { justify-content: flex-start; }
 .cmp-hora-val { font-size: 10px; font-weight: 700; margin: 0 0 2px; }
 .cmp-hora-baja .cmp-hora-val { margin: 2px 0 0; }
-.cmp-hora-rotulo { position: absolute; bottom: -32px; font-size: 10px; text-align: center; line-height: 1.2; white-space: nowrap; color: color-mix(in srgb, var(--color-tinta) 52%, transparent); }
+.cmp-hora-rotulo { position: absolute; bottom: -32px; font-size: 10px; text-align: center; line-height: 1.2; white-space: nowrap; color: color-mix(in srgb, var(--color-tinta) 62%, transparent); } /* contraste: texto sobre papel */
 .cmp-barra { display: block; width: 64%; max-width: 30px; min-height: 2px; animation: cmp-crece 0.6s var(--ease-cayla) both; animation-delay: calc(var(--j, 0) * 45ms + 200ms); }
 .cmp-barra-sube { background: var(--color-verde); border-radius: 5px 5px 0 0; transform-origin: bottom; }
 .cmp-barra-baja { background: var(--color-grafico-baja); border-radius: 0 0 5px 5px; transform-origin: top; }

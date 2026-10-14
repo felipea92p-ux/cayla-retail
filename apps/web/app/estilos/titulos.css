@@ -59,7 +59,7 @@
     letter-spacing: 0.13em;
     text-transform: uppercase;
     line-height: 1.3;
-    color: color-mix(in srgb, var(--color-tinta) 62%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
   }
   .titulo-grupo-texto { display: flex; align-items: center; gap: 0.75rem; }
   .titulo-grupo-texto::after {
@@ -71,7 +71,10 @@
     animation: cayla-raya-dibuja 520ms var(--ease-cayla) backwards;
     animation-delay: var(--retraso, 120ms);
   }
-  .titulo-grupo-cuenta { margin-left: -0.5rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: color-mix(in srgb, var(--color-tinta) 45%, transparent); font-variant-numeric: tabular-nums; }
+  /* La nota del grupo («· no se edita ni se borra») habla en el tono de su título: más tenue no se lee. Al 45 % de tinta daba 2.85:1 en
+     claro y 3.93:1 en oscuro sobre papel (auditoría del modo oscuro, 2026-10-14; el mínimo es 4.5), y en claro no pasa por debajo del
+     61 %, que ya es el 62 % del título. La separan del título la minúscula, el peso y el punto. Lo vigila `lib/tema-tokens.test.ts`. */
+  .titulo-grupo-cuenta { margin-left: -0.5rem; font-weight: 500; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
 
   .separador-dia {
     position: sticky;
@@ -92,7 +95,7 @@
     letter-spacing: 0.13em;
     text-transform: uppercase;
     line-height: 1.3;
-    color: color-mix(in srgb, var(--color-tinta) 62%, transparent);
+    color: color-mix(in srgb, var(--color-tinta) 62%, transparent); /* contraste: texto sobre papel, crema */
   }
   .separador-dia-hoy { color: var(--color-tinta); }
   .separador-dia-texto { display: inline-flex; align-items: center; gap: 0.5rem; }
