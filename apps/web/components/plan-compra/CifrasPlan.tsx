@@ -53,7 +53,7 @@ export function CifrasPlan({
         {totales.conPlan === 0 ? "Empieza por las que más venden" : "Las demás no suman a la compra"}
       </TarjetaCifra>
       <TarjetaCifra etiqueta="Prendas a comprar" valor={<CifraQueCuenta valor={totales.aComprar} alMontar />}>
-        Lo que conviene tener menos lo que ya hay
+        Lo que conviene tener menos lo que hay y lo que ya viene
       </TarjetaCifra>
       <TarjetaCifra
         etiqueta="Inversión al costo"

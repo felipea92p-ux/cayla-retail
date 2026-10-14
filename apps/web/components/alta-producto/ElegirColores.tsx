@@ -14,6 +14,10 @@ import { FichaDelColor } from "@/components/ui/FichaDelColor";
 import { useEnLinea } from "@/lib/useEnLinea";
 import { Boton } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
+import { Punto } from "@/components/alta-producto/Punto";
+
+// `Punto` vive en su propio archivo (la tabla de cantidades lo usa sin arrastrar este selector); se sigue exportando de aquí para quien ya lo importaba.
+export { Punto };
 
 // Elegir los colores de un producto (spike producto-nuevo-v2, Felipe 2026-09-28).
 //
@@ -40,6 +44,8 @@ export function ElegirColores({
   onAlternar,
   onCreado,
   cartaAbierta = true,
+  sinElegidos = false,
+  enfocarBuscador = false,
 }: {
   colores: ColorAlta[];
   grupos: { familia: string; texto: string; colores: ColorAlta[] }[];
@@ -50,6 +56,10 @@ export function ElegirColores({
   onCreado: (color: ColorAlta) => void;
   /** La carta arranca abierta (ADR-0312/0314, así sigue Nuevo producto). «Modelo nuevo» de la orden la abre cerrada: ahí el color es opcional y 89 círculos tapaban lo obligatorio. */
   cartaAbierta?: boolean;
+  /** No dibuja la fila de elegidos (las píldoras con su ×): quien lo pide ya los muestra en otro lugar (en «Nueva orden», cada color elegido es una FILA de la tabla de cantidades, con su propio ×). De fábrica se dibuja. */
+  sinElegidos?: boolean;
+  /** El cursor llega al buscador al abrirse (y vuelve a él tras cada color elegido): para agregar varios seguidos tecleando. De fábrica no se mueve el foco. */
+  enfocarBuscador?: boolean;
 }) {
   const [carta, setCarta] = useState(cartaAbierta);
   // El buscador vuelve a vacío después de cada elección: se remonta con otra `key`.
@@ -82,6 +92,7 @@ export function ElegirColores({
 
   return (
     <div className="space-y-2.5">
+      {!sinElegidos && (
       <div className="flex min-h-9 flex-wrap items-center gap-1.5">
         {listaElegidos.length === 0 ? (
           <p className="text-[12.5px] text-taupe">Todavía ninguno. Búscalo por su nombre o tócalo en la carta de abajo.</p>
@@ -105,6 +116,7 @@ export function ElegirColores({
           ))
         )}
       </div>
+      )}
 
       {pendiente && elegidos.includes(pendiente.codigo) && (
         <p role="status" className="text-xs text-taupe">
@@ -118,6 +130,7 @@ export function ElegirColores({
           caja
           className="min-w-[13rem] flex-1"
           etiquetaAccesible="Buscar un color"
+          autoFocus={enfocarBuscador}
           marcador={`Busca entre los ${colores.length} colores: petróleo, coral…`}
           valor=""
           onValor={(cod) => {
@@ -287,12 +300,3 @@ function PieDeLaCarta({ senalado, elegido, colores, porCodigo }: { senalado: Col
   );
 }
 
-export function Punto({ hex, familia, tipo, grande = false }: { hex: string | null; familia?: string | null; tipo?: string | null; grande?: boolean }) {
-  return (
-    <span
-      aria-hidden
-      className={`inline-block shrink-0 rounded-full border border-tinta/20 ${grande ? "h-5 w-5" : "h-2.5 w-2.5"}`}
-      style={{ background: fondoDeMuestra(hex, familia, tipo) ?? "transparent", borderColor: bordeDeMuestra(hex) }}
-    />
-  );
-}

@@ -28,8 +28,9 @@ import { conPreciosMasBajos, conPreciosMasBajosDeModelos } from "@/lib/produccio
 // candado real sigue siendo el de cada RPC.
 //
 // `?nueva=<modelo>&tipo=muestra|produccion` abre «Nueva orden» con ese modelo y ese tipo ya elegidos: es por donde vuelve la persona
-// que creó un modelo nuevo desde la propia orden (ADR-0361, `lib/modelo-nuevo-orden-reglas.ts`).
-export default async function OrdenesProduccionPage({ searchParams }: { searchParams: Promise<{ orden?: string; nueva?: string; tipo?: string }> }) {
+// que creó un modelo nuevo desde la propia orden (ADR-0361, `lib/modelo-nuevo-orden-reglas.ts`). `&sugerida=1` (solo lo manda el Resumen de Producción, «Abrir orden sugerida») además llena la
+// matriz con la cantidad sugerida por la red; sin él, `?nueva=` abre la orden vacía, como siempre (también lo usan Análisis y Nuevo producto).
+export default async function OrdenesProduccionPage({ searchParams }: { searchParams: Promise<{ orden?: string; nueva?: string; tipo?: string; sugerida?: string }> }) {
   const sp = await searchParams;
   const persona = await requirePersonaActualV2();
   if (!puedeVerProduccion(persona)) {
@@ -76,7 +77,7 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
 
   return (
     <div className="space-y-6">
-      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} vocabulario={vocabulario} />
+      <OrdenesTablero tallerId={taller.id} ordenes={ordenes} modelos={modelos} esLider={esLider} hoy={hoy} insumos={datosInsumos.insumos} consumosPorOrden={datosInsumos.consumosPorOrden} decision={decision} ordenInicialId={sp.orden ?? null} nuevaInicial={sp.nueva ?? null} sugeridaInicial={sp.sugerida === "1"} tipoInicial={tipoDeParametro(sp.tipo)} puedeEditarCatalogo={puedeEditarCatalogo} vocabulario={vocabulario} />
     </div>
   );
 }
