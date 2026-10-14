@@ -168,6 +168,23 @@ cerrado: 0 blancos bajo el mínimo, 0 contrastes bajos y una sola acción princi
 - «Llegó esta semana» lee los lotes: un envío cerrado sin nada en el stock no aparece, y la ciega creyó que nada había llegado hoy.
 - «Recibir sin guía» (una orden directa) y «¿Llegó algo sin aviso?» conviven en la puerta y se confunden (lo toca #1040).
 
+## Prueba ciega (2026-10-14, Sonnet, cuenta de Sandra en Tienda Trujillo, base propia, diseño de la maqueta A)
+Tarea: «Llegó un paquete que Compras no avisó, no sabemos de quién es; trae 4 casacas sin marca. Regístralo y termina de recibirlo; Compras
+responde que es de Confecciones del Sur».
+
+| Medida | Resultado |
+|---|---|
+| Lectura de 5 s | ✓ «la pantalla para anotar lo que llega»; encontró «¿Llegó algo que no está en la lista?» como su caso |
+| Primer intento | ✓ cerró ENV-000004 sin retroceder |
+| Pasos | 13 (10 clics, 1 escritura, 2 teclas solo para desplazarse); mínimo ≈ 9 |
+| Al final | ✓ explica sola que las 4 casacas están guardadas, que todavía no se venden y que falta decir qué modelo es cada una («Hacer ahora») |
+| Nota de la ciega | 8/10 |
+| Dudas | la tarjeta sin aviso queda bajo el pliegue con una lista de Compras arriba; si «Sin marca» y el costo vacío estaban bien; el buscador «Buscar entre Casacas · Sin marca» bajo el contador (no lo tocó: es opcional) |
+
+**Lista aparte, de esta ciega (no se ejecuta sin que Felipe lo mande):** con envíos de Compras y pendientes arriba, la tarjeta sin aviso
+queda bajo el pliegue a 900 px de alto; el costo vacío en un envío sin aviso podría decir «llega con la factura» también a quien ve el
+dinero (hoy dice «S/ sin costo»).
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
