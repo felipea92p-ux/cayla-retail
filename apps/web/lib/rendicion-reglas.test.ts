@@ -24,6 +24,9 @@ import {
   type Rendicion,
 } from "./rendicion-reglas";
 
+/** El monto en una frase va con un espacio que no se parte (`solesSinCorte`): así se escribe lo esperado sin ese carácter invisible. */
+const nb = (s: string) => s.replaceAll("S/ ", "S/\u00a0");
+
 // La rendición del fondo (ADR-0362, fase 6 · actividad 5). Lo que falta en cada hoja tiene que ser lo MISMO que rechaza la base
 // (20261013235000, `scripts/pruebas/rendicion_fondo.mjs`): estos casos son los suyos, del lado de la pantalla.
 
@@ -101,16 +104,16 @@ describe("la cuenta de la rendición (la misma que la base)", () => {
   it("con el fondo en negativo debería tener 0 y CAYLA le debe (decisión 32): en cero cuadra; con plata, sobra", () => {
     expect(cuentaRendicion(-280, "0")).toMatchObject({ estado: "cuadra", deberias: 0, caylaTeDebe: 280 });
     expect(cuentaRendicion(-280, "10")).toMatchObject({ estado: "sobra", sobra: 10 });
-    expect(fraseCuenta(cuentaRendicion(-280, "0"))).toBe("Cuadra. CAYLA te debe S/ 280.00: se te devuelve con una entrega.");
+    expect(fraseCuenta(cuentaRendicion(-280, "0"))).toBe(nb("Cuadra. CAYLA te debe S/ 280.00: se te devuelve con una entrega."));
   });
   it("lo que dice bajo el campo", () => {
     expect(fraseCuenta(cuentaRendicion(120, "120"))).toBe("Cuadra.");
-    expect(fraseCuenta(cuentaRendicion(120, "100"))).toBe("Te faltan S/ 20.00. Escribe qué pasó: si no, quedan como deuda tuya cuando la aprueben.");
+    expect(fraseCuenta(cuentaRendicion(120, "100"))).toBe(nb("Te faltan S/ 20.00. Escribe qué pasó: si no, quedan como deuda tuya cuando la aprueben."));
     // Con una deuda de antes, dice en qué queda (/formidable 2026-10-14, cambio 3: «¿los S/ 20 se suman a lo que ya debo?»).
     expect(fraseCuenta(cuentaRendicion(120, "100"), 25)).toBe(
-      "Te faltan S/ 20.00. Escribe qué pasó: si no, tu deuda pasa de S/ 25.00 a S/ 45.00 cuando la aprueben.",
+      nb("Te faltan S/ 20.00. Escribe qué pasó: si no, tu deuda pasa de S/ 25.00 a S/ 45.00 cuando la aprueben."),
     );
-    expect(fraseCuenta(cuentaRendicion(120, "150"))).toMatch(/^Tienes S\/ 30\.00 más de lo que dice tu fondo/);
+    expect(fraseCuenta(cuentaRendicion(120, "150"))).toMatch(/^Tienes S\/\u00a030\.00 más de lo que dice tu fondo/);
     expect(fraseCuenta(cuentaRendicion(120, ""))).toBeNull();
   });
 });
@@ -152,14 +155,14 @@ describe("lo que falta en «Revisar la rendición»", () => {
 
 describe("los textos", () => {
   it("los botones dicen cómo queda", () => {
-    expect(fraseRendir(cuentaRendicion(120, "100"))).toBe("Rendir: tengo S/ 100.00");
+    expect(fraseRendir(cuentaRendicion(120, "100"))).toBe(nb("Rendir: tengo S/ 100.00"));
     expect(fraseRendir(cuentaRendicion(120, ""))).toBe("Rendir mi fondo");
-    expect(fraseAprobar(R, "asume_cayla")).toBe("Aprobar: CAYLA asume S/ 20.00");
-    expect(fraseAprobar(R, "deuda_persona")).toBe("Aprobar: queda debiendo S/ 20.00");
-    expect(fraseAprobar({ ...R, explicacion: null }, "")).toBe("Aprobar: queda debiendo S/ 20.00");
+    expect(fraseAprobar(R, "asume_cayla")).toBe(nb("Aprobar: CAYLA asume S/ 20.00"));
+    expect(fraseAprobar(R, "deuda_persona")).toBe(nb("Aprobar: queda debiendo S/ 20.00"));
+    expect(fraseAprobar({ ...R, explicacion: null }, "")).toBe(nb("Aprobar: queda debiendo S/ 20.00"));
     // Con una deuda de antes, el botón dice en cuánto queda (/formidable 2026-10-14, cambio 3).
-    expect(fraseAprobar({ ...R, explicacion: null }, "", 25)).toBe("Aprobar: su deuda sube a S/ 45.00");
-    expect(fraseAprobar(R, "asume_cayla", 25)).toBe("Aprobar: CAYLA asume S/ 20.00");
+    expect(fraseAprobar({ ...R, explicacion: null }, "", 25)).toBe(nb("Aprobar: su deuda sube a S/ 45.00"));
+    expect(fraseAprobar(R, "asume_cayla", 25)).toBe(nb("Aprobar: CAYLA asume S/ 20.00"));
     expect(fraseAprobar({ ...R, faltante: 0 }, "")).toBe("Aprobar la rendición");
   });
   it("cada fila en palabras de tienda, según quién lee; su papel; cuántos sin foto", () => {
@@ -210,21 +213,21 @@ describe("la lista de lo rendido dentro de una hoja", () => {
 // /formidable 2026-10-14, cambio 3: la cuenta de cada persona, en una sola frase.
 describe("la cuenta de la persona, dicha entera", () => {
   it("el faltante sin explicar dice en cuánto queda su deuda", () => {
-    expect(fraseFaltanteSinExplicar(5, 25)).toBe("No escribió qué pasó: si se aprueba así, su deuda pasa de S/ 25.00 a S/ 30.00.");
-    expect(fraseFaltanteSinExplicar(5)).toBe("No escribió qué pasó: si se aprueba así, queda debiendo S/ 5.00.");
+    expect(fraseFaltanteSinExplicar(5, 25)).toBe(nb("No escribió qué pasó: si se aprueba así, su deuda pasa de S/ 25.00 a S/ 30.00."));
+    expect(fraseFaltanteSinExplicar(5)).toBe(nb("No escribió qué pasó: si se aprueba así, queda debiendo S/ 5.00."));
   });
 
   it("el aviso al aprobar dice cómo quedó", () => {
-    expect(detalleAprobada(5, "asume_cayla", "Micaela", 25)).toBe("CAYLA asume S/ 5.00.");
-    expect(detalleAprobada(5, "deuda_persona", "Micaela", 25)).toBe("La deuda de Micaela queda en S/ 30.00.");
-    expect(detalleAprobada(5, "deuda_persona", "Micaela")).toBe("Micaela queda debiendo S/ 5.00.");
+    expect(detalleAprobada(5, "asume_cayla", "Micaela", 25)).toBe(nb("CAYLA asume S/ 5.00."));
+    expect(detalleAprobada(5, "deuda_persona", "Micaela", 25)).toBe(nb("La deuda de Micaela queda en S/ 30.00."));
+    expect(detalleAprobada(5, "deuda_persona", "Micaela")).toBe(nb("Micaela queda debiendo S/ 5.00."));
   });
 
   it("«Ver tu rendición» dice lo cierto: con explicación decide quien revisa; sin ella es deuda; sin leerla, las dos cosas", () => {
     expect(fraseFaltanteTuRendicion("Pagué la propina del cargador", 5, 25)).toBe(
       "Escribiste: «Pagué la propina del cargador». Quien la revisa decide si lo asume CAYLA o queda como deuda tuya.",
     );
-    expect(fraseFaltanteTuRendicion(null, 5, 25)).toBe("No escribiste qué pasó: cuando la aprueben, tu deuda pasa de S/ 25.00 a S/ 30.00.");
+    expect(fraseFaltanteTuRendicion(null, 5, 25)).toBe(nb("No escribiste qué pasó: cuando la aprueben, tu deuda pasa de S/ 25.00 a S/ 30.00."));
     expect(fraseFaltanteTuRendicion(null, 5)).toBe("No escribiste qué pasó: cuando la aprueben, queda como deuda tuya.");
     expect(fraseFaltanteTuRendicion(undefined, 5, 25)).toBe(
       "Si al rendir escribiste qué pasó, quien la revisa decide si lo asume CAYLA; si no, queda como deuda tuya.",

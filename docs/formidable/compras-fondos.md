@@ -49,9 +49,10 @@
 | **Oficio visual** | 8 | **8** | [Medido] la hoja «Revisar» sin fallas a 1440 |
 
 ### Lo que queda (no se ejecuta sin Felipe)
-- **Nueva, de la ciega repetida:** con la rendición por aprobar, la tabla y la tarjeta «Tienen en la mano» dicen S/ 380 (los libros) y la hoja de
-  devolución dice S/ 375 (lo declarado, decisión 79). La fila ya pone «dice S/ 375.00 · por aprobar» debajo, pero la ciega no supo cuál tomar.
-  Es plata: si la cifra grande debe ser la declarada mientras espera, lo decide Felipe.
+- ~~**Nueva, de la ciega repetida:** con la rendición por aprobar, la tabla dice S/ 380 (los libros) y la hoja de devolución S/ 375.~~ **Decidido
+  y hecho (decisión 83, Felipe 2026-10-14):** la hoja dice las dos cifras y de dónde sale el tope («Los libros dicen S/ 380.00, pero a su rendición
+  por aprobar le faltan S/ 5.00: puede devolver hasta S/ 375.00») [captura `4c`]; la cifra grande sigue siendo la de los libros. De paso, ningún
+  monto de una frase de la rendición o de la devolución se parte entre «S/» y la cifra (`solesSinCorte`) [captura `5e`].
 - La lista aparte de abajo, sin cambios (a quién se le entrega plata, «Gastó» con el faltante, la cabecera de Compras, «viaje», el ejemplo del
   taxi, el pie cortado de «Tu fondo», que «Debes S/ 25.00» se pueda tocar, los 35 px a 375 px). Y una más de la ciega: no se ve quién hizo cada
   entrega en la tabla de movimientos.

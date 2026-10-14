@@ -10,7 +10,8 @@ ADR-0362, decisiones 81 y 82. Informe: `docs/formidable/compras-fondos.md` (terc
   `fn_rendicion_quien_no_aprueba` (`3e23b09d…`) y `fn_mi_rendicion_abierta` (`5a796044…`) iguales a las del banco.
 - [ ] Felipe: la lista aparte del informe (a quién se le entrega plata, «Gastó» con el faltante, la cabecera de Compras, «viaje», el
   ejemplo del taxi, el pie cortado de «Tu fondo», los 35 px de los botones a 375 px, que «Debes S/ 25.00» se pueda tocar).
-- [ ] Felipe (plata, nueva de la ciega repetida): con una rendición por aprobar, la tabla y la tarjeta «Tienen en la mano» dicen S/ 380
-  (los libros) y «Registrar devolución» dice S/ 375 (lo declarado, decisión 79). La fila ya pone «dice S/ 375.00 · por aprobar», pero la
-  ciega no supo cuál tomar. ¿La cifra grande pasa a ser la declarada mientras espera?
+- [x] Felipe (plata, nueva de la ciega repetida): S/ 380 en la tabla contra S/ 375 en «Registrar devolución». Decidió explicarlo en la hoja
+  (decisión 83): «Los libros dicen S/ 380.00, pero a su rendición por aprobar le faltan S/ 5.00: puede devolver hasta S/ 375.00». Hecho, con
+  los montos de las frases sin cortarse (`solesSinCorte`).
+- [ ] Fuera de esta obra: el resto del ERP escribe montos en frases con `soles` (espacio normal) y se pueden partir igual; tarea aparte.
 - [ ] Felipe: en la tabla de movimientos de un fondo no se ve quién hizo cada entrega (de la ciega repetida).

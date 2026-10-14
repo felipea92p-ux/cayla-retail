@@ -2107,7 +2107,7 @@ export const GUIA_FONDOS: Guia = {
       ancla: "fondos.devolver",
       opcional: true,
       titulo: "Lo que devuelve",
-      texto: "Cuando te devuelve lo que sobró, lo registra quien recibe la plata (nunca quien la devuelve): a qué banco o caja fuerte volvió y cuánto. No puede devolver más de lo que tiene en la mano: si su rendición espera aprobación, lo que dijo tener.",
+      texto: "Cuando te devuelve lo que sobró, lo registra quien recibe la plata (nunca quien la devuelve): a qué banco o caja fuerte volvió y cuánto. Si su rendición espera aprobación, la hoja dice cuánto le falta y hasta cuánto puede devolver.",
     },
     {
       id: "pagar-deuda",

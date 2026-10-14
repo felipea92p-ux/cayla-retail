@@ -12,3 +12,6 @@
   `pruebas:rendicion-fondo`, guía de Fondos al día y sus huellas. Visto en el banco como Felipe, Sandra y Micaela, con la lectura forzada a
   fallar y al reintentar. La ciega de la encargada, repetida con capturas nuevas: 11 dudas (antes 12) y 4 retrocesos (antes 5); la duda
   «faltan S/ 5 y debe S/ 25» la resolvió «Revisar» sola. Notas: leyes 7,2 (antes 6,3), oficio 8.
+- **Después (decisión 83):** Felipe eligió explicar en la hoja de devolución las dos cifras que confundieron a la ciega (S/ 380 de los libros
+  y S/ 375 de tope): la hoja dice los libros, lo que falta y hasta cuánto puede devolver. Los montos de las frases ya no se parten entre «S/» y
+  la cifra (`solesSinCorte`). Escenarios nuevos de modo oscuro para la lista que no se lee; la guía ya no dice «en gris».

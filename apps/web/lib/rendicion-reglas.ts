@@ -1,5 +1,5 @@
 import { leerMontoPlata } from "./monto-plata-reglas";
-import { soles } from "./compras-reglas";
+import { solesSinCorte } from "./compras-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import type { NoDeducible } from "./no-deducible-reglas";
 
@@ -237,13 +237,13 @@ export function cuentaRendicion(saldo: number, textoEfectivo: string): CuentaRen
 export function fraseCuenta(c: CuentaRendicion, deudaAntes = 0): string | null {
   switch (c.estado) {
     case "cuadra":
-      return c.caylaTeDebe > CENTAVO ? `Cuadra. CAYLA te debe ${soles(c.caylaTeDebe)}: se te devuelve con una entrega.` : "Cuadra.";
+      return c.caylaTeDebe > CENTAVO ? `Cuadra. CAYLA te debe ${solesSinCorte(c.caylaTeDebe)}: se te devuelve con una entrega.` : "Cuadra.";
     case "falta":
       return deudaAntes > CENTAVO
-        ? `Te faltan ${soles(c.faltante)}. Escribe qué pasó: si no, tu deuda pasa de ${soles(deudaAntes)} a ${soles(redondo(deudaAntes + c.faltante))} cuando la aprueben.`
-        : `Te faltan ${soles(c.faltante)}. Escribe qué pasó: si no, quedan como deuda tuya cuando la aprueben.`;
+        ? `Te faltan ${solesSinCorte(c.faltante)}. Escribe qué pasó: si no, tu deuda pasa de ${solesSinCorte(deudaAntes)} a ${solesSinCorte(redondo(deudaAntes + c.faltante))} cuando la aprueben.`
+        : `Te faltan ${solesSinCorte(c.faltante)}. Escribe qué pasó: si no, quedan como deuda tuya cuando la aprueben.`;
     case "sobra":
-      return `Tienes ${soles(c.sobra)} más de lo que dice tu fondo: falta anotar algo (o un gasto quedó dos veces). Revísalo antes de rendir.`;
+      return `Tienes ${solesSinCorte(c.sobra)} más de lo que dice tu fondo: falta anotar algo (o un gasto quedó dos veces). Revísalo antes de rendir.`;
     case "invalido":
       return "No se entiende el monto: escríbelo así, 375.50 o 375,50 (0 si no te queda nada).";
     default:
@@ -327,7 +327,7 @@ export function camposAprobar(r: Pick<Rendicion, "faltante" | "explicacion">, v:
 
 /** «Rendir S/ 120.00» con lo que ya se sabe. */
 export function fraseRendir(c: CuentaRendicion): string {
-  return c.efectivo != null && (c.estado === "cuadra" || c.estado === "falta") ? `Rendir: tengo ${soles(c.efectivo)}` : "Rendir mi fondo";
+  return c.efectivo != null && (c.estado === "cuadra" || c.estado === "falta") ? `Rendir: tengo ${solesSinCorte(c.efectivo)}` : "Rendir mi fondo";
 }
 
 /**
@@ -337,9 +337,9 @@ export function fraseRendir(c: CuentaRendicion): string {
 export function fraseAprobar(r: Pick<Rendicion, "faltante" | "explicacion">, decision: DecisionFaltante | "", deudaAntes = 0): string {
   if (r.faltante <= CENTAVO) return "Aprobar la rendición";
   const d = r.explicacion ? decision : "deuda_persona";
-  if (d === "asume_cayla") return `Aprobar: CAYLA asume ${soles(r.faltante)}`;
+  if (d === "asume_cayla") return `Aprobar: CAYLA asume ${solesSinCorte(r.faltante)}`;
   if (d === "deuda_persona")
-    return deudaAntes > CENTAVO ? `Aprobar: su deuda sube a ${soles(redondo(deudaAntes + r.faltante))}` : `Aprobar: queda debiendo ${soles(r.faltante)}`;
+    return deudaAntes > CENTAVO ? `Aprobar: su deuda sube a ${solesSinCorte(redondo(deudaAntes + r.faltante))}` : `Aprobar: queda debiendo ${solesSinCorte(r.faltante)}`;
   return "Aprobar la rendición";
 }
 
@@ -349,14 +349,14 @@ export function fraseAprobar(r: Pick<Rendicion, "faltante" | "explicacion">, dec
  */
 export function fraseFaltanteSinExplicar(faltante: number, deudaAntes = 0): string {
   return deudaAntes > CENTAVO
-    ? `No escribió qué pasó: si se aprueba así, su deuda pasa de ${soles(deudaAntes)} a ${soles(redondo(deudaAntes + faltante))}.`
-    : `No escribió qué pasó: si se aprueba así, queda debiendo ${soles(faltante)}.`;
+    ? `No escribió qué pasó: si se aprueba así, su deuda pasa de ${solesSinCorte(deudaAntes)} a ${solesSinCorte(redondo(deudaAntes + faltante))}.`
+    : `No escribió qué pasó: si se aprueba así, queda debiendo ${solesSinCorte(faltante)}.`;
 }
 
 /** Lo que dice el aviso de éxito al aprobar con faltante: cómo quedó. */
 export function detalleAprobada(faltante: number, decision: DecisionFaltante, nombre: string, deudaAntes = 0): string {
-  if (decision === "asume_cayla") return `CAYLA asume ${soles(faltante)}.`;
-  return deudaAntes > CENTAVO ? `La deuda de ${nombre} queda en ${soles(redondo(deudaAntes + faltante))}.` : `${nombre} queda debiendo ${soles(faltante)}.`;
+  if (decision === "asume_cayla") return `CAYLA asume ${solesSinCorte(faltante)}.`;
+  return deudaAntes > CENTAVO ? `La deuda de ${nombre} queda en ${solesSinCorte(redondo(deudaAntes + faltante))}.` : `${nombre} queda debiendo ${solesSinCorte(faltante)}.`;
 }
 
 /**
@@ -368,7 +368,7 @@ export function fraseFaltanteTuRendicion(explicacion: string | null | undefined,
   if (explicacion === undefined) return "Si al rendir escribiste qué pasó, quien la revisa decide si lo asume CAYLA; si no, queda como deuda tuya.";
   if (explicacion) return `Escribiste: «${explicacion}». Quien la revisa decide si lo asume CAYLA o queda como deuda tuya.`;
   return deudaAntes > CENTAVO
-    ? `No escribiste qué pasó: cuando la aprueben, tu deuda pasa de ${soles(deudaAntes)} a ${soles(redondo(deudaAntes + faltante))}.`
+    ? `No escribiste qué pasó: cuando la aprueben, tu deuda pasa de ${solesSinCorte(deudaAntes)} a ${solesSinCorte(redondo(deudaAntes + faltante))}.`
     : "No escribiste qué pasó: cuando la aprueben, queda como deuda tuya.";
 }
 
