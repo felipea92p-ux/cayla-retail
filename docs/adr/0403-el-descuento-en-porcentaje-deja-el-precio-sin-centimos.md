@@ -1,8 +1,8 @@
 # ADR-0403 — El descuento en % deja el precio sin céntimos sueltos; el descuento en S/ vuelve
 
 **Fecha:** 2026-10-14
-**Estado:** construido en la rama `claude/price-rounding-money-input-56b2f7`. **SQL SIN PEGAR en producción** (`20261014173000_descuento_precio_sin_centimos.sql`,
-una sola parte); la web sale con el PR. **Reemplaza** la regla de [ADR-0302](0302-el-descuento-de-campana-es-exacto.md) (el descuento en % es exacto al
+**Estado:** construido en la rama `claude/price-rounding-money-input-56b2f7`. **SQL PEGADO en producción el 2026-10-14 a las ~15:30 (Lima)** con la orden de Felipe («ahora mismo», con el riesgo a la vista:
+tiendas vendiendo y 29 campañas vigentes; `20261014173000_descuento_precio_sin_centimos.sql`, una sola parte, vía `apply_migration`); la web sale con el PR #1081 y hasta entonces las ventas con campaña se rechazan. **Reemplaza** la regla de [ADR-0302](0302-el-descuento-de-campana-es-exacto.md) (el descuento en % es exacto al
 céntimo). **Complementa** [ADR-0311](0311-redondeo-del-efectivo.md) (el redondeo del efectivo al cobrar sigue igual).
 **Decide:** Felipe, 2026-10-14, en chat: «al aplicar algún tipo de porcentaje de descuento, la prenda no [debe] quedar con un precio en el que se tenga
 que pagar céntimos, sino que debería redondearse para que sea más sencillo el pago y más entendible», y «volver a integrar la parte de ingresar
