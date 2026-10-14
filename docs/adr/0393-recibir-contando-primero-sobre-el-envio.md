@@ -353,3 +353,44 @@ Probado: los dos órdenes de pegado en una transacción que se deshace (la funci
 veces), la base hecha de cero, las seis suites de la recepción y la del Plan (`plan_compra_historia`, 18/18). **Orden de pegado completo:**
 `170000`, `171000`, `172000`, `173000`, `180000`, `183000`, `20261014144000`.
 
+
+### El diseño de la maqueta A, aplicado (2026-10-14)
+
+Felipe comparó lo construido con la maqueta (`docs/maquetas/recibir-fardo-2026-10/a-camino.html`) y pidió que se viera como ella. Las
+pantallas hacen lo mismo que en la actividad 5 —las mismas funciones, los mismos guardados—; cambió cómo se ven:
+
+- **El riel** de tres paradas con lo que ya pasó en cada una («ENV-000123 · 120 prendas», «118 contadas · 118 para después»): es la misma
+  pieza que la línea de pasos de Inventario (`PasosConteo forma="riel"`), más grande. Los pasos hechos se tocan para volver.
+- **¿Qué llegó?:** la caja del fardo, lo que dijeron que trae por categoría y **«Abrir el fardo»** (antes «Empezar a recibir»). Al lado,
+  «¿Llegó algo que no está aquí?» separa los dos casos que se confundían: dentro de este fardo se suma al contar; otro paquete se recibe
+  sin aviso.
+- **Contar:** la lista de categorías a la izquierda (cuántas separadas, cuántas sin separar, la diferencia) y el contador grande a la
+  derecha (+5, +10, «Llegaron las N»). El buscador de prendas queda siempre a la vista; lo nuevo se puede **describir ahora** (una hoja
+  que solo escribe en el borrador de la línea, `describirNuevas`: nunca pasa de las nuevas contadas). Abajo, **la balanza** Dijeron /
+  Contaste, que se inclina hacia donde hay más y dice si cuadra (`veredictoDeLaBalanza`).
+- **Cerrar:** la tabla suma la columna **«Para después»** con su detalle por categoría (sin separar, sin tallas, por crear).
+- **Cerrado:** el sello, las cuatro cifras, «Para después» como caja punteada y «Lo que no cuadró» con lo que pasa con cada causa.
+- **Sin aviso:** el proveedor se elige en tarjetas con sus marcas (antes un combo).
+
+DECIDÍ: copiar la maqueta con las piezas del sistema (`Chip`, `TarjetaCifra`, `Buscador`, `Boton`, `TituloSeccion`, `ComboResponsable`) y
+dibujar solo lo que no existía (caja, baldosa, balanza, sello: `components/recepcion-conteo/piezas.tsx`, estilos solo con tokens en
+`app/estilos/recepcion-conteo.css`).
+DESCARTÉ: copiar el HTML de la maqueta tal cual, porque trae sus propios botones, pestañas y colores: rompería «una función, una pieza»
+(ADR-0358), el modo oscuro (ADR-0336) y la guía de foco (ADR-0284), y la pantalla dejaría de verse como el resto del ERP.
+SE ROMPE SI: la maqueta cambia y nadie lo trae aquí: el riel, la balanza y la caja viven solo en Recibir y nadie más los mira.
+
+**Lo que se aparta de la maqueta, a propósito:**
+
+- **Quién cuenta y quién cierra** es el combo «Responsable» de siempre (ADR-0161/0162: candado de asistencia, firma con
+  `fn_actor_persona_id(true)`), no las tarjetas de personas de la maqueta.
+- **«Se pueden vender»** y no «Al stock»: lo eligió Felipe en `/formidable` (2026-10-14).
+- **El punto del paso de hoy late una vez**, no en bucle (ADR-0136).
+- **Los títulos** son `TituloSeccion` (21 px), no los 30 px de la maqueta (ADR-0358).
+- **Se dice «Envío ENV-…»**, no «Fardo F-…»: el número es el del envío de Compras (vocabulario de este ADR).
+- **No están**, porque piden base o decisión de Felipe: «¿Cuántas dijeron que venían?» en un envío sin aviso, «Proveedor por confirmar»,
+  «Avisar a la encargada» y el número de guía al cerrar.
+
+De paso: el pie fijo del cierre ya no se sale 8 px a 375 (usaba los márgenes de una hoja estando en la página); el costo dice qué es en el
+celular; el texto chico del riel sube a 4,5:1 (`tema:auditar`); «Volver a cero» pasa a «Poner en cero»; el contador ya no dice «las
+vestidos». Verificado: suite completa de vitest, `guias:recorrer` con el envío en camino y abierto, `tema:auditar` de siete escenarios
+(0 hallazgos en oscuro; uno nuevo: «Describir lo nuevo») y 375 px sin desbordes en la puerta, contar, cerrar y cerrado.
