@@ -1191,7 +1191,7 @@ export const AVISO_DE_CORTE_RECEPCION =
   "Se cortó la conexión y no sabemos si la recepción llegó a guardarse. Vuelve a pulsar «Recibir» sin cambiar nada: si ya se guardó, no se repite.";
 
 export const AVISO_DE_CORTE_APERTURA =
-  "Se cortó la conexión y no sabemos si el envío se abrió. Vuelve a pulsar «Empezar a recibir»: si ya estaba abierto, no pasa nada.";
+  "Se cortó la conexión y no sabemos si el envío se abrió. Vuelve a pulsar el botón: si ya estaba abierto, no pasa nada.";
 
 export const AVISO_DE_CORTE_PRENDA =
   "Se cortó la conexión y no sabemos si la prenda se creó. Vuelve a pulsar el botón sin cambiar nada: si ya se creó, no se repite.";

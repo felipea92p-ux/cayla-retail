@@ -14,7 +14,11 @@ import {
   claveDe,
   cifrasDelEnvio,
   contadasParaGuardar,
+  insigniaDelEnvio,
   lineasParaContar,
+  paraDespues,
+  resumenDelCierre,
+  subtitulosDelRiel,
   textoPisaste,
   type ClaveLinea,
   type ConteoDeLinea,
@@ -25,7 +29,10 @@ import {
 } from "@/lib/recepcion-conteo-reglas";
 import { guardarConteo, leerConteos } from "@/lib/recepcion-conteo-acciones";
 import { EmpezarARecibir } from "@/components/recepcion-envio/EmpezarARecibir";
-import { CabeceraEnvio, LoQueTrae, origenDelEnvio } from "@/components/recepcion-envio/PiezasEnvio";
+import { LoQueTrae, origenDelEnvio } from "@/components/recepcion-envio/PiezasEnvio";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Volver } from "@/components/ui/Volver";
+import { Chip } from "@/components/ui/Chip";
 import { ContarEnvio } from "./ContarEnvio";
 import { CerrarEnvio } from "./CerrarEnvio";
 import { EnvioCerrado } from "./EnvioCerrado";
@@ -46,7 +53,8 @@ export type EstadoGuardado = "guardando" | "guardado" | "error";
 const ESPERA_GUARDAR_MS = 700;
 
 type Paso = 1 | 2 | 3;
-// El mismo indicador del conteo de inventario (una función, una pieza: ADR-0358): orienta, no se toca; cada paso trae sus botones.
+// El mismo indicador del conteo de inventario (una función, una pieza: ADR-0358), en su forma «riel» (la maqueta A): tres paradas a lo
+// ancho con lo que pasó en cada una. Con el envío abierto, «Contar» y «Cerrar» se tocan para ir y volver.
 const PASOS = [
   { clave: "1", nombre: "¿Qué llegó?" },
   { clave: "2", nombre: "Contar" },
@@ -233,26 +241,34 @@ export function RecibirContando({
 
   const origen = origenDelEnvio(detalle) || (sinAviso ? `Sin aviso · ${base?.proveedores[0]?.nombre ?? ""}` : "");
   const reabierto = estado === "abierto" && (base?.cierres.length ?? 0) > 0;
+  // La frase de la maqueta, la misma en los tres pasos (de qué envío se trata lo dicen el riel y su tarjeta).
   const frase =
     estado === "anulado"
       ? "Este envío se anuló: ya no llega."
-      : estado === "cerrado"
-        ? `${origen}. Ya se recibió.`
-        : otraSede || noLoRecibe
-          ? `${origen}. Se recibe en ${detalle.sede?.nombre ?? "su sede"}.`
-          : estado === "abierto"
-            ? "Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después."
-            : `${origen}. Viene en camino a ${detalle.sede?.nombre ?? "la sede"}.`;
-  const cifra =
-    estado === "anulado"
-      ? null
-      : estado === "en_camino"
-        ? { rotulo: "Vienen", valor: `${detalle.enviado.toLocaleString("es-PE")} ${detalle.enviado === 1 ? "prenda" : "prendas"}` }
-        : { rotulo: estado === "cerrado" ? "Contadas" : "Contadas hasta ahora", valor: cifras.dijeron != null ? `${cifras.contadas.toLocaleString("es-PE")} de ${cifras.dijeron.toLocaleString("es-PE")}` : cifras.contadas.toLocaleString("es-PE") };
+      : otraSede || noLoRecibe
+        ? `${origen}. Se recibe en ${detalle.sede?.nombre ?? "su sede"}.`
+        : "Abre el fardo y cuenta cuántas llegaron de cada tipo de prenda. Qué modelo es cada una lo puedes decir ahora o después.";
+  // La cabecera de la maqueta A: el nombre del módulo, la frase y, a la derecha, en qué está el envío. El número del envío y lo que se
+  // lleva contado van en el riel y en la balanza.
+  const pendientesDelEnvio = estado === "cerrado" ? paraDespues(lineas).length : 0;
+  const insignia = insigniaDelEnvio(estado, pendientesDelEnvio);
+  const subtitulos = subtitulosDelRiel({
+    estado,
+    numero: detalle.numero,
+    enviado: detalle.enviado,
+    sinAviso,
+    proveedor: base?.proveedores[0]?.nombre ?? null,
+    contadas: cifras.contadas,
+    paraDespues: resumenDelCierre(lineas).guardadas,
+  });
 
   return (
     <div className="space-y-6">
-      <CabeceraEnvio sede={sedeActual.etiqueta} detalle={detalle} frase={frase} cifra={cifra} />
+      <EncabezadoPagina sede={sedeActual.etiqueta} titulo="Recibir mercadería" subtitulo={frase} volver={<Volver href="/recibir" a="Recibir mercadería" />}>
+        <div className="anim-sube" style={{ "--i": 1 } as React.CSSProperties}>
+          <Chip tono={insignia.tono}>{insignia.texto}</Chip>
+        </div>
+      </EncabezadoPagina>
 
       {estado === "anulado" && (
         <Aviso tono="atencion" titulo="Este envío se anuló: ya no llega">
@@ -280,8 +296,21 @@ export function RecibirContando({
         </>
       )}
 
-      {porRecibir && !otraSede && !noLoRecibe && (
-        <PasosConteo actual={String(estado === "en_camino" ? 1 : paso)} pasos={PASOS} etiqueta="Pasos de la recepción" />
+      {(porRecibir || estado === "cerrado") && !otraSede && !noLoRecibe && (
+        <PasosConteo
+          forma="riel"
+          actual={String(estado === "en_camino" ? 1 : estado === "cerrado" ? 3 : paso)}
+          pasos={PASOS}
+          subtitulos={subtitulos}
+          etiqueta="Pasos de la recepción"
+          onIr={
+            estado === "abierto"
+              ? (clave) => {
+                  if (clave === "2" || clave === "3") setPaso(Number(clave) as Paso);
+                }
+              : undefined
+          }
+        />
       )}
 
       {estado === "en_camino" && !otraSede && !noLoRecibe && (

@@ -44,6 +44,14 @@ import {
   type Separado,
   necesitaCatalogoAlCerrar,
   resumenDelCierre,
+  prendasQueEntraron,
+  detalleParaDespues,
+  describirNuevas,
+  quitarNuevaDescrita,
+  cambiarCantidadNuevaDescrita,
+  veredictoDeLaBalanza,
+  subtitulosDelRiel,
+  insigniaDelEnvio,
   textoResumenDelCierre,
   veredictoDelCerrado,
   lineasALaVista,
@@ -390,6 +398,89 @@ describe("«Hacer ahora», reabrir y el aviso de la sede", () => {
     expect(textoAvisoPendientes(leerPendientesDeLaSede(null))).toBeNull();
     expect(diasDesde("2026-10-01T10:00:00Z", new Date("2026-10-09T09:00:00Z"))).toBe(7);
     expect(diasDesde(null)).toBeNull();
+  });
+});
+
+describe("maqueta A: «Describir ahora» las nuevas", () => {
+  it("describe parte de las nuevas, junta la misma descripción y no describe más de las que hay", () => {
+    let s: Separado = cambiarNuevasSinDescribir(SEPARADO_VACIO, 6);
+    s = describirNuevas(s, "  Blusa con lazo,   rosada ", 2);
+    expect(s.nuevas).toEqual([{ cantidad: 2, descripcion: "Blusa con lazo, rosada" }, { cantidad: 4, descripcion: null }]);
+    s = describirNuevas(s, "blusa con lazo, rosada", 1);
+    expect(s.nuevas).toEqual([{ cantidad: 3, descripcion: "Blusa con lazo, rosada" }, { cantidad: 3, descripcion: null }]);
+    s = describirNuevas(s, "Top corto", 9);
+    expect(nuevasSinDescribir(s)).toBe(0);
+    expect(totalSeparado(s)).toBe(6);
+    expect(describirNuevas(s, "Otra", 1)).toBe(s);
+    expect(describirNuevas(cambiarNuevasSinDescribir(SEPARADO_VACIO, 2), "   ", 1).nuevas).toEqual([{ cantidad: 2, descripcion: null }]);
+  });
+
+  it("quitar una descripción devuelve esas nuevas a «sin describir»; cambiar su cantidad no baja de 1", () => {
+    let s = describirNuevas(cambiarNuevasSinDescribir(SEPARADO_VACIO, 5), "Top corto", 3);
+    s = cambiarCantidadNuevaDescrita(s, "Top corto", 0);
+    expect(s.nuevas.find((x) => x.descripcion === "Top corto")?.cantidad).toBe(1);
+    s = quitarNuevaDescrita(s, "Top corto");
+    expect(s.nuevas).toEqual([{ cantidad: 3, descripcion: null }]);
+  });
+});
+
+describe("maqueta A: lo que queda para después, línea por línea", () => {
+  it("una frase por cosa: la prenda sin tallas, las nuevas y lo sin separar; nada si todo entra", () => {
+    const l = (o: Record<string, unknown>): LineaParaContar => ({
+      clave: "item:i1",
+      linea: linea("i1", 40),
+      conteo: leerConteosDelEnvio({ despacho_id: "d", conteos: [conteoCrudo({ despacho_item_id: "i1", ...o })] })?.conteos[0] ?? null,
+      categoria: CAT,
+      marca: MARCA,
+      proveedor: PROV,
+      dijeron: 40,
+    });
+    const r = detalleParaDespues(
+      l({ contadas: 40, separado: { prendas: [{ producto_id: "pa", nombre: "Blusa Lía", cantidad: 12, variantes: null }], nuevas: [{ cantidad: 6, descripcion: null }, { cantidad: 2, descripcion: "Top corto" }] } }),
+    );
+    expect(r).toEqual(["Blusa Lía · 12 sin tallas ni colores", `6 ${CAT.nombre.toLowerCase()} nuevas por crear`, "Top corto · 2 por crear", `20 ${CAT.nombre.toLowerCase()} sin separar`]);
+    expect(detalleParaDespues(l({ contadas: 3, en_stock: 3 }))).toEqual([]);
+    expect(detalleParaDespues({ ...l({}), conteo: null })).toEqual([]);
+  });
+});
+
+describe("maqueta A: las prendas que ya se pueden vender", () => {
+  it("se juntan por nombre, sin las dañadas, de más a menos", () => {
+    expect(
+      prendasQueEntraron([
+        { prenda: "Blusa Nina", cantidad: 5, danadas: 0 },
+        { prenda: "Blusa Aurora", cantidad: 6, danadas: 0 },
+        { prenda: "Blusa Aurora", cantidad: 7, danadas: 1 },
+        { prenda: "Falda Plisada", cantidad: 2, danadas: 2 },
+      ]),
+    ).toEqual([
+      { nombre: "Blusa Aurora", cantidad: 12 },
+      { nombre: "Blusa Nina", cantidad: 5 },
+    ]);
+    expect(prendasQueEntraron(null)).toEqual([]);
+  });
+});
+
+describe("maqueta A: la balanza, el riel y la insignia", () => {
+  it("la balanza se inclina hacia donde hay más, con tope, y dice el veredicto", () => {
+    expect(veredictoDeLaBalanza(120, 121)).toEqual({ estado: "ambar", texto: "Sobran 1", angulo: 1.6 });
+    expect(veredictoDeLaBalanza(120, 100)).toMatchObject({ estado: "ambar", texto: "Faltan 20", angulo: -9 });
+    expect(veredictoDeLaBalanza(64, 64)).toEqual({ estado: "verde", texto: "Cuadra con lo que dijeron", angulo: 0 });
+    expect(veredictoDeLaBalanza(40, 0)).toMatchObject({ estado: "neutro", texto: "Todavía no contaste" });
+    expect(veredictoDeLaBalanza(null, 7)).toEqual({ estado: "neutro", texto: "Llegó sin aviso: no hay con qué comparar", angulo: 0 });
+  });
+
+  it("el riel dice qué pasó en cada paso", () => {
+    const base = { estado: "abierto", numero: "ENV-000118", enviado: 120, sinAviso: false, proveedor: null, contadas: 121, paraDespues: 6 };
+    expect(subtitulosDelRiel(base)).toEqual({ "1": "ENV-000118 · 120 prendas", "2": "121 contadas · 6 para después", "3": "Lo que no cuadró y quién cerró" });
+    expect(subtitulosDelRiel({ ...base, estado: "en_camino", contadas: 0, paraDespues: 0 })["2"]).toBe("Por categoría");
+    expect(subtitulosDelRiel({ ...base, sinAviso: true, proveedor: "Confecciones del Sur", estado: "cerrado", contadas: 1, paraDespues: 0 })).toEqual({ "1": "Confecciones del Sur · sin aviso", "2": "1 contada", "3": "Cerrado" });
+  });
+
+  it("la insignia de la cabecera", () => {
+    expect(insigniaDelEnvio("en_camino", 0)).toEqual({ tono: "pizarra", texto: "En camino" });
+    expect(insigniaDelEnvio("cerrado", 6)).toEqual({ tono: "pizarra", texto: "6 pendientes del envío" });
+    expect(insigniaDelEnvio("cerrado", 0)).toEqual({ tono: "verde", texto: "Recibido" });
   });
 });
 

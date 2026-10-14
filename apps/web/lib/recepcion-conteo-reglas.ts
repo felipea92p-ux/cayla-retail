@@ -278,6 +278,38 @@ export function cambiarNuevasSinDescribir(s: Separado, cantidad: number): Separa
 }
 
 /**
+ * «Describir ahora» (maqueta A): de las nuevas sin describir, `cantidad` pasan a llevar lo que son («Blusa con lazo, rosada, S y M»).
+ * Siguen siendo nuevas «por crear» (se crean después, en «Hacer ahora»), pero quien las crea ya sabe qué son. La misma descripción se
+ * junta; no se describen más de las que hay sin describir.
+ */
+export function describirNuevas(s: Separado, descripcion: string, cantidad: number): Separado {
+  const texto = descripcion.trim().replace(/\s+/g, " ").slice(0, TOPES_CONTEO.descripcionNueva);
+  const sin = nuevasSinDescribir(s);
+  const n = Math.min(sin, Math.max(0, Math.trunc(cantidad)));
+  if (!texto || n === 0) return s;
+  const clave = texto.toLocaleLowerCase("es");
+  const ya = s.nuevas.some((x) => x.descripcion?.toLocaleLowerCase("es") === clave);
+  const descritas = ya
+    ? s.nuevas.filter((x) => x.descripcion).map((x) => (x.descripcion?.toLocaleLowerCase("es") === clave ? { ...x, cantidad: x.cantidad + n } : x))
+    : [...s.nuevas.filter((x) => x.descripcion), { cantidad: n, descripcion: texto }];
+  return cambiarNuevasSinDescribir({ ...s, nuevas: descritas }, sin - n);
+}
+
+/** Quita una descripción: esas nuevas vuelven a «sin describir» (no se pierden de lo contado). */
+export function quitarNuevaDescrita(s: Separado, descripcion: string): Separado {
+  const quitada = s.nuevas.find((x) => x.descripcion === descripcion);
+  if (!quitada) return s;
+  const sin = nuevasSinDescribir(s);
+  return cambiarNuevasSinDescribir({ ...s, nuevas: s.nuevas.filter((x) => x.descripcion !== descripcion) }, sin + quitada.cantidad);
+}
+
+/** Cuántas son de una nueva ya descrita (al menos 1: para que sean 0, se quita). */
+export function cambiarCantidadNuevaDescrita(s: Separado, descripcion: string, cantidad: number): Separado {
+  const n = Math.max(1, Math.min(TOPES_CONTEO.contadas, Math.trunc(cantidad)));
+  return { ...s, nuevas: s.nuevas.map((x) => (x.descripcion === descripcion ? { ...x, cantidad: n } : x)) };
+}
+
+/**
  * Lo que se guarda de una línea: si lo separado pasa de lo contado, el número sube (perdonar antes que preguntar, ley 7 de /formidable): la
  * pantalla lo dice («Separaste más de lo que contaste: el conteo pasa a 12»). En un envío reabierto lo contado no baja de lo que ya entró.
  */
@@ -835,6 +867,79 @@ export function veredictoDelCerrado(lineas: readonly LineaParaContar[], pendient
     accion:
       primera === "separar" ? (una ? "Separarla ahora" : "Separarlas ahora") : primera === "detalle" ? (una ? "Ponerle tallas ahora" : "Ponerles tallas ahora") : una ? "Crearla ahora" : "Crearlas ahora",
   };
+}
+
+/**
+ * La balanza «Dijeron / Contaste» de la maqueta A: el brazo se inclina hacia donde hay más (±9°, 1,6° por prenda de diferencia) y la
+ * insignia dice el veredicto. Sin lo que dijeron (un envío sin aviso), no hay con qué comparar y el brazo queda derecho.
+ */
+export function veredictoDeLaBalanza(dijeron: number | null, contadas: number): { estado: "neutro" | "verde" | "ambar"; texto: string; angulo: number } {
+  if (dijeron == null) return { estado: "neutro", texto: "Llegó sin aviso: no hay con qué comparar", angulo: 0 };
+  const d = contadas - dijeron;
+  const angulo = Math.max(-9, Math.min(9, d * 1.6));
+  if (contadas === 0) return { estado: "neutro", texto: "Todavía no contaste", angulo };
+  if (d === 0) return { estado: "verde", texto: "Cuadra con lo que dijeron", angulo: 0 };
+  return { estado: "ambar", texto: d < 0 ? `Faltan ${-d}` : `Sobran ${d}`, angulo };
+}
+
+/**
+ * Lo que dice el riel bajo cada paso (maqueta A): en «¿Qué llegó?», de qué envío se trata; en «Contar», cuánto va contado y cuánto queda
+ * para después; en «Cerrar», qué se hace ahí o que ya se cerró.
+ */
+export function subtitulosDelRiel(p: {
+  estado: string;
+  numero: string;
+  enviado: number;
+  sinAviso: boolean;
+  proveedor: string | null;
+  contadas: number;
+  paraDespues: number;
+}): Record<"1" | "2" | "3", string> {
+  const llego = p.sinAviso ? [p.proveedor, "sin aviso"].filter(Boolean).join(" · ") : `${p.numero} · ${textoPrendas(p.enviado)}`;
+  const contar =
+    p.estado === "en_camino"
+      ? "Por categoría"
+      : p.contadas === 0
+        ? "Por categoría"
+        : `${p.contadas.toLocaleString("es-PE")} ${p.contadas === 1 ? "contada" : "contadas"}${p.paraDespues > 0 ? ` · ${p.paraDespues.toLocaleString("es-PE")} para después` : ""}`;
+  return { "1": llego, "2": contar, "3": p.estado === "cerrado" ? "Cerrado" : "Lo que no cuadró y quién cerró" };
+}
+
+/** La insignia de la cabecera (maqueta A: «1 fardo en camino», «6 pendientes del fardo»): en qué está el envío, en una línea. */
+export function insigniaDelEnvio(estado: string, pendientes: number): { tono: "pizarra" | "ambar" | "verde" | "neutro"; texto: string } {
+  if (estado === "en_camino") return { tono: "pizarra", texto: "En camino" };
+  if (estado === "abierto") return { tono: "ambar", texto: "Contando" };
+  if (estado === "cerrado") return pendientes > 0 ? { tono: "pizarra", texto: `${pendientes} ${pendientes === 1 ? "pendiente" : "pendientes"} del envío` } : { tono: "verde", texto: "Recibido" };
+  return { tono: "neutro", texto: "Anulado" };
+}
+
+/**
+ * La columna «Para después» del cierre (maqueta A): qué queda guardado de una línea y por qué, una frase por cosa —una prenda sin tallas,
+ * las nuevas (descritas o no) y lo que nadie separó—. Vacía si todo entra al stock.
+ */
+export function detalleParaDespues(l: LineaParaContar): string[] {
+  const c = l.conteo;
+  if (!c) return [];
+  const cat = (l.categoria?.nombre ?? "prendas").toLowerCase();
+  const r: string[] = [];
+  for (const p of c.separado.prendas) if (p.variantes === null && p.cantidad > 0) r.push(`${p.nombre ?? "Prenda"} · ${p.cantidad} sin tallas ni colores`);
+  for (const n of c.separado.nuevas) {
+    if (n.cantidad <= 0) continue;
+    r.push(n.descripcion ? `${n.descripcion} · ${n.cantidad} por crear` : `${n.cantidad} ${cat} ${n.cantidad === 1 ? "nueva" : "nuevas"} por crear`);
+  }
+  const sinSeparar = Math.max(0, contadasDe(l) - (c.enStock ?? 0) - totalSeparado(c.separado));
+  if (sinSeparar > 0) r.push(`${sinSeparar} ${cat} sin separar`);
+  return r;
+}
+
+/** Las prendas que ya se pueden vender, juntas por nombre («Blusa Aurora ×12»): lo bueno de lo recibido (sin las dañadas), de más a menos. */
+export function prendasQueEntraron(recibidos: readonly { prenda: string | null; cantidad: number; danadas: number }[] | null): { nombre: string; cantidad: number }[] {
+  const por = new Map<string, number>();
+  for (const r of recibidos ?? []) {
+    const buenas = r.cantidad - r.danadas;
+    if (buenas > 0) por.set(r.prenda ?? "Prenda", (por.get(r.prenda ?? "Prenda") ?? 0) + buenas);
+  }
+  return [...por.entries()].map(([nombre, cantidad]) => ({ nombre, cantidad })).sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre, "es"));
 }
 
 /** Lo que entró al stock del envío y lo que falta: las dos cifras del cierre. */

@@ -8,6 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
+import { Balanza, BaldosaCategoria } from "./piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -42,6 +43,7 @@ import {
   type LineaParaContar,
   mensajeAlGuardar,
   resumenDelCierre,
+  detalleParaDespues,
   textoResumenDelCierre,
 } from "@/lib/recepcion-conteo-reglas";
 import { cerrarConteo } from "@/lib/recepcion-conteo-acciones";
@@ -52,7 +54,7 @@ import { cerrarConteo } from "@/lib/recepcion-conteo-acciones";
 // Las reglas son las de `cerrar_conteo_envio` (`camposDelCierre`): la guía de foco enciende lo que falta.
 
 // Las columnas del cierre, una sola vez para el encabezado y cada fila (la pieza <Tabla>, ADR-0358). En celular se apilan.
-const PLANTILLA_CIERRE = "sm:grid-cols-[minmax(0,1.5fr)_8.5rem_4.5rem_4.5rem_7.5rem_minmax(0,2.5fr)]";
+const PLANTILLA_CIERRE = "sm:grid-cols-[minmax(0,1.6fr)_6.5rem_3.75rem_4.25rem_5rem_minmax(0,1.6fr)_minmax(0,1.7fr)]";
 
 export function CerrarEnvio({
   detalle,
@@ -167,6 +169,7 @@ export function CerrarEnvio({
             { titulo: "Dijeron", alinear: "der" },
             { titulo: "Contaste", alinear: "der" },
             { titulo: "Se pueden vender", alinear: "der", ayuda: "Lo que entra al stock al cerrar: ya tiene su talla y su color" },
+            { titulo: "Para después", ayuda: "Lo que queda guardado en el almacén hasta separarlo, ponerle tallas o crearlo" },
             { titulo: "Diferencia y por qué" },
           ]}
         />
@@ -180,15 +183,24 @@ export function CerrarEnvio({
               const editaCosto = !(sinAviso && !l.linea && !veDinero);
               return (
                 <div key={l.clave} className={fila(PLANTILLA_CIERRE, "sm:items-start")} role="row">
-                  <div className="min-w-0" role="cell">
-                    <p className="font-medium text-tinta">{l.categoria?.nombre ?? "Categoría"}</p>
-                    <p className="text-xs text-taupe">
-                      {[l.marca?.nombre, l.conteo?.contadoPor?.nombre ? `contó ${l.conteo.contadoPor.nombre.split(" ")[0]}` : null, !l.linea && !sinAviso ? "no estaba en la guía" : null]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
+                  <div className="flex min-w-0 items-start gap-2.5" role="cell">
+                    <BaldosaCategoria categoria={l.categoria} tamano="chico" />
+                    <span className="min-w-0">
+                      <p className="font-medium text-tinta">{l.categoria?.nombre ?? "Categoría"}</p>
+                      <p className="text-xs text-taupe">
+                        {[l.marca?.nombre, l.conteo?.contadoPor?.nombre ? `contó ${l.conteo.contadoPor.nombre.split(" ")[0]}` : null, !l.linea && !sinAviso ? "no estaba en la guía" : null]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </span>
                   </div>
                   <div className="min-w-0 sm:text-right" role="cell">
+                    {/* La caja esconde su etiqueta (la dice la cabecera de la tabla); en el celular la cabecera no está. */}
+                    {editaCosto && (
+                      <span aria-hidden className="mb-1 block text-xs text-taupe sm:hidden">
+                        Costo por prenda
+                      </span>
+                    )}
                     {editaCosto ? (
                       <CampoGuiado id={idCampoCierre("costo", l.clave)} guia={guia}>
                         <CampoTexto
@@ -219,8 +231,21 @@ export function CerrarEnvio({
                   </div>
                   <div className="min-w-0 sm:text-right" role="cell">
                     <span className="text-taupe sm:hidden">Se pueden vender </span>
-                    <span className="tabular-nums text-verde">{alStock}</span>
-                    {para > 0 && <p className="text-[11px] text-taupe">{para} {para === 1 ? "guardada" : "guardadas"}</p>}
+                    <span className="font-semibold tabular-nums text-verde">{alStock}</span>
+                  </div>
+                  <div className="min-w-0 space-y-1" role="cell">
+                    {para > 0 ? (
+                      <>
+                        <Chip tono="pizarra">{para} para después</Chip>
+                        <ul className="space-y-0.5 text-xs leading-snug text-taupe">
+                          {detalleParaDespues(l).map((t) => (
+                            <li key={t}>{t}</li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : (
+                      <Chip tono="verde">Nada</Chip>
+                    )}
                   </div>
                   <div className="min-w-0" role="cell">
                     {!l.conteo ? (
@@ -256,6 +281,14 @@ export function CerrarEnvio({
         {sinAviso ? "Lo que llega sin aviso no tiene con qué compararse: nada sobra ni falta. " : "El costo de cada línea viene de la orden: si la factura dice otra cosa, corrígelo aquí. "}
         ¿Alguna llegó dañada? Márcala en «Tallas y colores» (va a la cuarentena), o repórtala después en Existencias.
       </p>
+      {porDetallar > 0 && (
+        <p className="nota-cayla">
+          Cerrar el envío deja el conteo oficial y {porDetallar} {porDetallar === 1 ? "prenda" : "prendas"} para después (separar, poner tallas y colores, crear lo
+          nuevo). Hoy se pueden vender las que ya tienen tallas y colores; el resto, cuando se termine cada pendiente.
+        </p>
+      )}
+
+      <Balanza dijeron={visibles.some((l) => l.dijeron != null) ? visibles.reduce((a, l) => a + (l.dijeron ?? 0), 0) : null} contadas={contadas} />
 
       <div className="card-cayla space-y-4 p-4 sm:p-5">
         <CampoTexto
@@ -266,11 +299,13 @@ export function CerrarEnvio({
           // sugerir-fijo: la nota de la recepción no depende de nada elegido antes
           placeholder="Ej. Llegó en dos bolsas"
         />
-        <CampoGuiado id="responsable" guia={guia}>
-          <p className="mb-1.5 text-[13px] font-semibold text-tinta">{guia.etiqueta("responsable", "Quién cierra")}</p>
-          <ComboResponsable control={responsable} />
-        </CampoGuiado>
       </div>
+
+      <CampoGuiado id="responsable" guia={guia} className="card-cayla p-4 sm:p-5">
+        <p className="mb-2 text-[13px] font-semibold text-tinta">{guia.etiqueta("responsable", "Quién cierra el conteo")}</p>
+        <ComboResponsable control={responsable} />
+        {!sinAviso && <p className="mt-2 text-xs text-taupe">Quien hizo una orden no puede cerrar su envío (regla de Compras): firma otra persona de la tienda.</p>}
+      </CampoGuiado>
 
       {error && (
         <Aviso ref={avisoError} enfocable tono="error" titulo="No se pudo cerrar">
@@ -279,8 +314,9 @@ export function CerrarEnvio({
         </Aviso>
       )}
 
-      {/* El pie de una hoja, pegado abajo mientras la tabla pasa por detrás; aquí vive en la página, así que su fondo es el de la página. */}
-      <div className="pie-hoja-fijo" style={{ "--fondo-hoja": "var(--color-crema)" } as CSSProperties}>
+      {/* El pie de una hoja, pegado abajo mientras la tabla pasa por detrás; aquí vive en la página, así que su fondo es el de la página y
+          no se estira a los lados (los márgenes negativos son los de la hoja: en la página, a 375 px, la sacaban 8 px del borde). */}
+      <div className="pie-hoja-fijo" style={{ "--fondo-hoja": "var(--color-crema)", marginInline: 0, paddingInline: 0 } as CSSProperties}>
         <div className="card-cayla space-y-3 p-4">
           {atipicos ? (
             <AvisoCostoAtipico

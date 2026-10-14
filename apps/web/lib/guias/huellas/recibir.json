@@ -158,9 +158,9 @@
       "Boton «Confirmar y recibir»"
     ],
     "components/recepcion-conteo/LlegoSinAviso.tsx": [
-      "CampoSelect «{campos.etiqueta(\"sin-aviso-proveedor\", \"¿De quién es?\")}»",
-      "CampoTexto «{campos.etiqueta(\"sin-aviso-guia\", \"Número de guía (opcional)\")}»",
+      "button «→() => setProveedorId(p.id)»",
       "Link «Sí, viene con la»",
+      "CampoTexto «{campos.etiqueta(\"sin-aviso-guia\", \"Número de guía (opcional)\")}»",
       "ComboResponsable «(sin nombre)»",
       "Boton «{campos.frase ?? undefined}»"
     ],

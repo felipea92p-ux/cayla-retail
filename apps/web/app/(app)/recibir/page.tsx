@@ -279,7 +279,7 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             key={claveDeLaRecepcion(persona.ubicacionId)}
             ubicacionId={persona.ubicacionId}
             ubicacionEtiqueta={persona.ubicacionEtiqueta}
-            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre }))}
+            proveedores={proveedores.map((p) => ({ id: p.id, nombre: p.nombre, marcas: marcas?.[p.id] ?? [] }))}
             facturas={facturasDeLaSede}
           />
           {llegoEstaSemana}

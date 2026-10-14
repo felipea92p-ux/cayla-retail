@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Minus, Plus } from "lucide-react";
+import { ArrowLeft, ArrowRight, Minus, Plus } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { PieGuia } from "@/components/guia-de-foco/CampoGuiado";
+import { EtiquetaAhora, MarcaCampo } from "@/components/alta-producto/guia";
+import { Balanza, BaldosaCategoria } from "./piezas";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { HojaPrenda, type DestinoHoja } from "@/components/recepcion-envio/HojaPrenda";
 import type { ControlResponsable } from "@/lib/useResponsable";
@@ -45,11 +47,6 @@ type Hoja =
   | { tipo: "agregar" }
   | null;
 
-const ESTADO_MARCA = {
-  hecho: "border-tinta bg-tinta text-crema",
-  ahora: "border-2 border-rojo bg-papel",
-  falta: "border-sand bg-papel",
-} as const;
 
 export function ContarEnvio({
   detalle,
@@ -126,136 +123,154 @@ export function ContarEnvio({
   const lineaDeHoja = hoja && hoja.tipo !== "agregar" ? (visibles.find((l) => l.clave === hoja.clave) ?? null) : null;
   const categoriaDeHoja = lineaDeHoja?.categoria ? (catalogo?.categorias.find((c) => c.id === lineaDeHoja.categoria?.id) ?? null) : null;
 
+  // La balanza de abajo: todo lo que dijeron contra todo lo contado (sin aviso, nada con qué comparar).
+  const conGuia = visibles.some((l) => l.dijeron != null);
+  const totalDijeron = conGuia ? visibles.reduce((a, l) => a + (l.dijeron ?? 0), 0) : null;
+  const totalContadas = visibles.reduce((a, l) => a + (l.conteo ? contadasDe(l) : 0), 0);
+
   return (
     <div className="space-y-5">
-      <div className="card-cayla flex flex-wrap items-end justify-between gap-3 p-4" data-guia="recepcion.quien-cuenta">
-        <div className="min-w-0 flex-1 basis-64">
-          <p className="mb-1.5 text-[13px] font-semibold text-tinta">Quién cuenta</p>
-          <ComboResponsable control={responsable} compacto />
-        </div>
-        <p className="text-xs text-taupe">Cada categoría guarda quién la contó. Varias personas pueden contar a la vez; firma quien cierra.</p>
-      </div>
-
       {reabierto && (
         <Aviso tono="info" titulo="Reabriste el envío">
           Corrige lo que haga falta y vuelve a cerrarlo. Lo que ya entró al stock no se vuelve a contar ni se toca.
         </Aviso>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(240px,300px)_minmax(0,1fr)]">
-        <aside aria-label="Categorías del envío" className="space-y-1.5" data-guia="recepcion.categorias">
-          <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">{sinAviso ? "Lo que llegó" : "Categorías del envío"}</p>
-          {visibles.map((l) => {
-            const estado = l.linea ? guia.estado(idCampoConteo(l.clave)) : contadasDe(l) > 0 ? "hecho" : "falta";
-            const dif = diferenciaDe(l);
-            const pend = l.conteo ? Math.max(0, contadasDe(l) - (l.conteo.enStock ?? 0) - detalladasDe(l)) : 0;
-            return (
-              <button
-                key={l.clave}
-                type="button"
-                data-campo={l.linea ? idCampoConteo(l.clave) : undefined}
-                aria-current={linea?.clave === l.clave ? "true" : undefined}
-                onClick={() => elegir(l)}
-                className={`hilo-luz flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                  linea?.clave === l.clave ? "border-tinta bg-papel" : "border-sand bg-papel/60 hover:border-tinta/40"
-                }`}
-                data-estado={estado === "ahora" ? "ahora" : undefined}
-              >
-                <span aria-hidden className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border ${ESTADO_MARCA[estado === "hecho" ? "hecho" : estado === "ahora" ? "ahora" : "falta"]}`}>
-                  {estado === "hecho" && <Check className="h-3 w-3" strokeWidth={2.6} />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-tinta">{l.categoria?.nombre ?? "Categoría"}</span>
-                  <span className="block truncate text-xs text-taupe">
-                    {[l.marca?.nombre, !l.linea && !sinAviso ? "no estaba en la guía" : null, pend > 0 ? `${pend} para después` : null].filter(Boolean).join(" · ")}
+      <div className="grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="space-y-5 lg:sticky lg:top-4">
+          <div data-guia="recepcion.quien-cuenta" className="space-y-1.5 px-1">
+            <p className="label-cayla text-[11px] text-taupe">Quién cuenta</p>
+            <ComboResponsable control={responsable} compacto />
+            <p className="text-xs text-taupe">Cada categoría guarda quién la contó. Varias personas pueden contar a la vez; firma quien cierra.</p>
+          </div>
+
+          <nav aria-label="Categorías del envío" className="space-y-1.5" data-guia="recepcion.categorias">
+            <p className="label-cayla px-1 text-[11px] text-taupe">{sinAviso ? "Lo que llegó" : "Categorías del envío"}</p>
+            {visibles.map((l) => {
+              const contada = l.linea ? l.conteo !== null : contadasDe(l) > 0;
+              const estado = contada ? "hecho" : linea?.clave === l.clave ? "ahora" : "falta";
+              const dif = diferenciaDe(l);
+              // Separadas: las que ya se sabe qué prenda son (con o sin tallas) más las que ya entraron; sin separar: el resto de lo contado.
+              // Dice lo mismo que la insignia de «¿Qué … son?» («35 sin separar»): «para después» queda para el riel, que cuenta en
+              // prendas todo lo que no entra al stock (también lo separado sin tallas y lo nuevo).
+              const sep = l.conteo ? totalSeparado(l.conteo.separado) + (l.conteo.enStock ?? 0) : 0;
+              const sinSep = l.conteo ? Math.max(0, contadasDe(l) - sep) : 0;
+              const sub = !l.conteo
+                ? [l.marca?.nombre, l.dijeron != null ? `dijeron ${l.dijeron}` : null, !l.linea && !sinAviso ? "no venía" : null].filter(Boolean).join(" · ")
+                : contadasDe(l) === 0
+                  ? "no llegó nada"
+                  : sinSep === 0
+                    ? "todas separadas"
+                    : [sep > 0 ? `${sep} ${sep === 1 ? "separada" : "separadas"}` : null, `${sinSep} sin separar`].filter(Boolean).join(" · ");
+              return (
+                <button
+                  key={l.clave}
+                  type="button"
+                  data-campo={l.linea ? idCampoConteo(l.clave) : undefined}
+                  aria-current={linea?.clave === l.clave ? "true" : undefined}
+                  onClick={() => elegir(l)}
+                  className="rc-cat-item"
+                >
+                  <span className="rc-cat-marca">
+                    <MarcaCampo estado={estado} />
                   </span>
-                </span>
-                <span className="text-right">
-                  <span className="block text-sm font-semibold tabular-nums text-tinta">
-                    {l.conteo ? contadasDe(l) : "—"}
-                    {l.dijeron != null && <span className="text-xs font-normal text-taupe">/{l.dijeron}</span>}
+                  <BaldosaCategoria categoria={l.categoria} />
+                  <span className="min-w-0 flex-1">
+                    <b className="block truncate text-sm text-tinta">{l.categoria?.nombre ?? "Categoría"}</b>
+                    <small className="block text-xs leading-snug text-taupe">{sub}</small>
+                    {dif != null && dif !== 0 && l.conteo && (
+                      <span className="mt-1 inline-block">
+                        <Chip tono="ambar">{dif > 0 ? `+${dif}` : dif}</Chip>
+                      </span>
+                    )}
                   </span>
-                  {dif != null && dif !== 0 && l.conteo && (
-                    <span className={`text-[11px] tabular-nums ${dif < 0 ? "text-ambar" : "text-pizarra"}`}>{dif > 0 ? `+${dif}` : dif}</span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
-          <Boton
-            type="button"
-            peso={visibles.length === 0 ? "primario" : "discreto"}
-            className="w-full"
-            onClick={() => setHoja({ tipo: "agregar" })}
-            data-guia="recepcion.agregar"
-            data-campo={visibles.length === 0 ? ID_CAMPO_AGREGAR : undefined}
-          >
-            {sinAviso ? "+ Agregar lo que llegó" : "+ Algo que no estaba en la guía"}
-          </Boton>
+                  <span className="whitespace-nowrap text-right tabular-nums">
+                    <b className="text-lg text-tinta">{l.conteo ? contadasDe(l) : 0}</b>
+                    {l.dijeron != null && <span className="text-xs text-taupe">/{l.dijeron}</span>}
+                  </span>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              className="rc-cat-agregar"
+              onClick={() => setHoja({ tipo: "agregar" })}
+              data-guia="recepcion.agregar"
+              data-campo={visibles.length === 0 ? ID_CAMPO_AGREGAR : undefined}
+            >
+              <Plus aria-hidden className="h-4 w-4 shrink-0" />
+              <span className="whitespace-nowrap text-[14.5px]">{sinAviso ? "Agregar lo que llegó" : "Agregar categoría"}</span>
+              {!sinAviso && <span className="whitespace-nowrap text-xs text-taupe">· no venía en el envío</span>}
+            </button>
+          </nav>
         </aside>
 
-        <section className="card-cayla space-y-5 p-4 sm:p-5" aria-label="Contar">
-          {!linea ? (
-            <div className="space-y-2 py-6 text-center">
-              <p className="font-display text-xl text-tinta">¿Qué llegó?</p>
-              <p className="text-sm text-taupe">Agrega la primera categoría a la izquierda y cuéntala. Una a la vez; después agregas las demás.</p>
-            </div>
-          ) : (
-            <ContadorDeLinea
-              key={linea.clave}
-              linea={linea}
-              sinAviso={sinAviso}
-              guardado={guardados[linea.clave] ?? null}
-              error={errores[linea.clave] ?? null}
-              onEscribir={(c) => onEscribir(linea, c)}
-            >
-              {linea.categoria && linea.marca && (
-                <SepararPrendas
-                  categoria={linea.categoria}
-                  marca={linea.marca}
-                  separado={linea.conteo?.separado ?? { prendas: [], nuevas: [] }}
-                  tope={Math.max(0, contadasDe(linea) - (linea.conteo?.enStock ?? 0))}
-                  onSeparado={(s) => onEscribir(linea, { separado: s, contadas: Math.max(contadasDe(linea), (linea.conteo?.enStock ?? 0) + totalSeparado(s)) })}
-                  onTallas={(p) => void abrirTallas(linea, p)}
-                  onPrendaVista={onPrendaVista}
-                />
-              )}
-              {errorHoja && (
-                <Aviso tono="error" chico>
-                  {errorHoja}
-                </Aviso>
-              )}
-            </ContadorDeLinea>
-          )}
+        <div className="min-w-0 space-y-4">
+          <section className="rc-contador space-y-4 p-4 sm:p-6" aria-label="Contar">
+            {!linea ? (
+              <div className="space-y-2 py-6 text-center">
+                <TituloSeccion>¿Qué llegó?</TituloSeccion>
+                <p className="text-sm text-taupe">Agrega la primera categoría a la izquierda y cuéntala. Una a la vez; después agregas las demás.</p>
+              </div>
+            ) : (
+              <ContadorDeLinea
+                key={linea.clave}
+                linea={linea}
+                sinAviso={sinAviso}
+                guardado={guardados[linea.clave] ?? null}
+                error={errores[linea.clave] ?? null}
+                onEscribir={(c) => onEscribir(linea, c)}
+              >
+                {linea.categoria && linea.marca && (
+                  <SepararPrendas
+                    categoria={linea.categoria}
+                    marca={linea.marca}
+                    separado={linea.conteo?.separado ?? { prendas: [], nuevas: [] }}
+                    tope={Math.max(0, contadasDe(linea) - (linea.conteo?.enStock ?? 0))}
+                    onSeparado={(s) => onEscribir(linea, { separado: s, contadas: Math.max(contadasDe(linea), (linea.conteo?.enStock ?? 0) + totalSeparado(s)) })}
+                    onTallas={(p) => void abrirTallas(linea, p)}
+                    onPrendaVista={onPrendaVista}
+                  />
+                )}
+                {errorHoja && (
+                  <Aviso tono="error" chico>
+                    {errorHoja}
+                  </Aviso>
+                )}
+              </ContadorDeLinea>
+            )}
 
-          <div className="space-y-3 border-t border-sand pt-4">
-            <PieGuia guia={guia} listo="Todas las categorías tienen su número." />
-            <div className="flex flex-wrap items-center justify-between gap-2.5">
-              <Boton type="button" peso="discreto" disabled={!anterior} onClick={() => anterior && elegir(anterior)}>
-                <span className="inline-flex items-center gap-1.5">
-                  <ArrowLeft aria-hidden className="h-4 w-4" />
-                  Anterior
-                </span>
-              </Boton>
-              {/* Con todas las categorías contadas (o al reabrir), lo que sigue es cerrar, esté donde esté la persona en la lista. */}
-              {siguiente && !guia.puedeConfirmar ? (
-                <Boton type="button" peso="primario" onClick={() => elegir(siguiente)}>
+            <div className="space-y-3 border-t border-sand pt-4">
+              <PieGuia guia={guia} listo="Todas las categorías tienen su número." />
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                <Boton type="button" peso="discreto" disabled={!anterior} onClick={() => anterior && elegir(anterior)}>
                   <span className="inline-flex items-center gap-1.5">
-                    Listo, sigue {siguiente.categoria?.nombre ?? "la siguiente"}
-                    <ArrowRight aria-hidden className="h-4 w-4" />
+                    <ArrowLeft aria-hidden className="h-4 w-4" />
+                    Anterior
                   </span>
                 </Boton>
-              ) : (
-                <Boton type="button" peso="primario" onClick={onCerrar} disabled={visibles.length === 0} data-guia="recepcion.pasar-a-cerrar">
-                  <span className="inline-flex items-center gap-1.5">
-                    Pasar a cerrar
-                    <ArrowRight aria-hidden className="h-4 w-4" />
-                  </span>
-                </Boton>
-              )}
+                {/* Con todas las categorías contadas (o al reabrir), lo que sigue es cerrar, esté donde esté la persona en la lista. */}
+                {siguiente && !guia.puedeConfirmar ? (
+                  <Boton type="button" peso="primario" onClick={() => elegir(siguiente)}>
+                    <span className="inline-flex items-center gap-1.5">
+                      Listo, sigue {siguiente.categoria?.nombre ?? "la siguiente"}
+                      <ArrowRight aria-hidden className="h-4 w-4" />
+                    </span>
+                  </Boton>
+                ) : (
+                  <Boton type="button" peso="primario" onClick={onCerrar} disabled={visibles.length === 0} data-guia="recepcion.pasar-a-cerrar">
+                    <span className="inline-flex items-center gap-1.5">
+                      Pasar a cerrar
+                      <ArrowRight aria-hidden className="h-4 w-4" />
+                    </span>
+                  </Boton>
+                )}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+
+          <Balanza dijeron={totalDijeron} contadas={totalContadas} guia="recepcion.cifra" />
+        </div>
       </div>
 
       {hoja?.tipo === "agregar" && (
@@ -322,11 +337,6 @@ export function ContarEnvio({
   );
 }
 
-/** Cuántas de lo separado de una línea ya tienen tallas y colores. */
-function detalladasDe(l: LineaParaContar): number {
-  return (l.conteo?.separado.prendas ?? []).filter((p) => p.variantes !== null).reduce((a, p) => a + p.cantidad, 0);
-}
-
 /** A dónde va la hoja de la prenda («Es nueva» / «+ talla o color») desde una línea del conteo. */
 function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "agregar", prenda: PrendaRecepcion | null, nProveedores: number): DestinoHoja {
   return {
@@ -373,11 +383,16 @@ function ContadorDeLinea({
   };
   const fraccion = linea.dijeron ? Math.min(1, contadas / linea.dijeron) : contadas > 0 ? 1 : 0;
 
+  const llevaCuenta = guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "Guardado" : linea.conteo?.contadoPor?.nombre ? `Contó ${linea.conteo.contadoPor.nombre}` : null;
+  const nombre = linea.categoria ? linea.categoria.nombre.toLowerCase() : "prendas";
+
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <TituloSeccion>{linea.categoria?.nombre ?? "Categoría"}</TituloSeccion>
+    <div className="space-y-4">
+      {/* En el celular, «Contó …» baja bajo el nombre: a la derecha apretaba la categoría a una columna de 11 letras. */}
+      <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
+        <BaldosaCategoria categoria={linea.categoria} />
+        <div className="min-w-0 flex-1 basis-48">
+          <TituloSeccion dato={!linea.conteo ? <EtiquetaAhora /> : undefined}>{linea.categoria?.nombre ?? "Categoría"}</TituloSeccion>
           <p className="text-sm text-taupe">
             {[linea.marca?.nombre, linea.proveedor?.nombre, linea.linea?.descripcion].filter(Boolean).join(" · ")}
             {linea.dijeron != null && (
@@ -392,67 +407,73 @@ function ContadorDeLinea({
             )}
           </p>
         </div>
-        <p className="text-xs text-taupe" aria-live="polite">
-          {guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "Guardado" : linea.conteo?.contadoPor?.nombre ? `Contó ${linea.conteo.contadoPor.nombre}` : ""}
-        </p>
+        {llevaCuenta && (
+          <p className="w-full pl-13 text-xs text-taupe sm:w-auto sm:pl-0" aria-live="polite">
+            {llevaCuenta}
+          </p>
+        )}
       </div>
 
+      <p className="max-w-[600px] text-[14.5px] text-taupe">
+        Cuenta cuántas llegaron de {nombre} y escribe el número.
+        {linea.dijeron != null && " Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué."}
+      </p>
+
       <div className="space-y-3" data-guia="recepcion.numero">
-        <p className="text-sm text-tinta">
-          Cuenta {linea.categoria ? `las ${linea.categoria.nombre.toLowerCase()}` : "las prendas"} de esta línea y escribe cuántas llegaron.
-          {linea.dijeron != null && " Si no coincide con lo que dijeron, no pasa nada: al cerrar dirás por qué."}
-        </p>
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={() => poner(contadas - 1)} disabled={contadas <= minimo} aria-label="Una menos" className="grid h-12 w-12 place-items-center rounded-2xl border border-sand bg-papel text-tinta hover:border-tinta/40 disabled:opacity-30">
-            <Minus aria-hidden className="h-5 w-5" />
+        <div className="rc-numero">
+          <button type="button" onClick={() => poner(contadas - 1)} disabled={contadas <= minimo} aria-label="Una menos" className="rc-paso-btn">
+            <Minus aria-hidden className="h-[22px] w-[22px]" />
           </button>
-          {/* La caja que se enciende, alta (ADR-0358): el número es lo protagonista del conteo, como el monto de una hoja. */}
-          <div className="caja-cayla caja-campo caja-campo-alta w-32">
-            <input
-              type="text"
-              inputMode="numeric"
-              className="font-display w-full self-stretch py-0 text-center text-3xl leading-none tabular-nums"
-              value={texto}
-              placeholder="0"
-              aria-label={`Cuántas ${linea.categoria?.nombre.toLowerCase() ?? "prendas"} llegaron`}
-              onChange={(e) => {
-                // Solo dígitos: la caja muestra lo que se guarda. Vacío es «todavía escribiendo», no 0.
-                const { texto: limpio, contadas: n } = leerContadas(e.target.value);
-                setEscribiendo(limpio);
-                if (n !== null && n >= minimo) onEscribir({ contadas: n });
-              }}
-              onBlur={() => setEscribiendo(null)}
-              onFocus={(e) => {
-                setEscribiendo(e.currentTarget.value);
-                e.currentTarget.select();
-              }}
-            />
-          </div>
-          <button type="button" onClick={() => poner(contadas + 1)} aria-label="Una más" className="grid h-12 w-12 place-items-center rounded-2xl border border-sand bg-papel text-tinta hover:border-tinta/40">
-            <Plus aria-hidden className="h-5 w-5" />
+          <input // unificar-fijo: el número protagonista de la maqueta A (Felipe 2026-10-13), sin caja: se lee como una cifra
+            type="text"
+            inputMode="numeric"
+            value={texto}
+            placeholder="0"
+            aria-label={`Cuántas ${nombre} llegaron`}
+            onChange={(e) => {
+              // Solo dígitos: lo que se ve es lo que se guarda. Vacío es «todavía escribiendo», no 0.
+              const { texto: limpio, contadas: n } = leerContadas(e.target.value);
+              setEscribiendo(limpio);
+              if (n !== null && n >= minimo) onEscribir({ contadas: n });
+            }}
+            onBlur={() => setEscribiendo(null)}
+            onFocus={(e) => {
+              setEscribiendo(e.currentTarget.value);
+              e.currentTarget.select();
+            }}
+          />
+          <button type="button" onClick={() => poner(contadas + 1)} aria-label="Una más" className="rc-paso-btn">
+            <Plus aria-hidden className="h-[22px] w-[22px]" />
           </button>
-          <div className="flex flex-wrap gap-1.5">
-            <Boton type="button" peso="discreto" onClick={() => poner(contadas + 5)}>
-              +5
-            </Boton>
-            <Boton type="button" peso="discreto" onClick={() => poner(contadas + 10)}>
-              +10
-            </Boton>
-            {linea.dijeron != null && linea.dijeron >= minimo && (
-              <Boton type="button" peso="discreto" onClick={() => poner(linea.dijeron ?? 0)}>
-                Llegaron las {linea.dijeron}
-              </Boton>
-            )}
-            {!linea.conteo && linea.linea && (
-              <Boton type="button" peso="discreto" onClick={() => poner(0)}>
-                No llegó nada
-              </Boton>
-            )}
-          </div>
         </div>
-        <div className="space-y-2">
-          <div className="h-2 overflow-hidden rounded-full bg-sand" aria-hidden>
-            <div className={`h-full rounded-full transition-[width] duration-300 ease-cayla ${v.tono === "verde" ? "bg-verde" : v.tono === "ambar" ? "bg-ambar" : "bg-tinta/40"}`} style={{ width: `${fraccion * 100}%` }} />
+        <div className="rc-rapidos">
+          <button type="button" onClick={() => poner(contadas + 5)}>
+            +5
+          </button>
+          <button type="button" onClick={() => poner(contadas + 10)}>
+            +10
+          </button>
+          {linea.dijeron != null && linea.dijeron >= minimo && (
+            <button type="button" onClick={() => poner(linea.dijeron ?? 0)}>
+              Llegaron las {linea.dijeron}
+            </button>
+          )}
+          {!linea.conteo && linea.linea ? (
+            <button type="button" onClick={() => poner(0)}>
+              No llegó nada
+            </button>
+          ) : (
+            contadas > 0 &&
+            minimo === 0 && (
+              <button type="button" onClick={() => poner(0)}>
+                Poner en cero
+              </button>
+            )
+          )}
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <div className="rc-barra" aria-hidden>
+            <i style={{ width: `${fraccion * 100}%`, background: `var(--color-${v.tono === "verde" ? "verde" : v.tono === "ambar" ? "ambar" : "taupe"})` }} />
           </div>
           <Chip tono={v.tono === "neutro" ? "neutro" : v.tono}>{v.texto}</Chip>
           {(linea.conteo?.enStock ?? 0) > 0 && (

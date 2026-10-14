@@ -390,6 +390,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0393: las tallas y colores de una prenda separada: qué prenda es, cuántas de cada talla y color y, si llegaron dañadas, cuántas y
   // si tienen arreglo (lo que la base rechazaría al meterlas al stock).
   "components/recepcion-conteo/HojaTallas.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/HojaTallas.tsx"] },
+  // ADR-0393 (maqueta A, decisión 8): «Describir ahora» las nuevas contadas sin crearlas: qué son (3 letras o más) y cuántas (de 1 a las
+  // que quedan sin describir). No guarda en la base: va al borrador de la línea.
+  "components/recepcion-conteo/DescribirNuevas.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/DescribirNuevas.tsx"] },
   // ADR-0393 (decisión 5): reabrir pide el motivo (3 letras o más) y quién lo reabre.
   "components/recepcion-conteo/ReabrirEnvio.tsx": { estado: "aplicada", evidencia: ["components/recepcion-conteo/ReabrirEnvio.tsx"] },
   // ADR-0362 (fase 5a): «Llegó la reposición» en la ficha del proveedor. Falta lo que `resolver_deuda_proveedor` rechazaría: cuántas (de 1 a lo
