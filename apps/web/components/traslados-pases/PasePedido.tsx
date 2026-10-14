@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, PackageOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -16,6 +16,9 @@ import { PaseTraslado, usePase } from "@/components/traslados-pases/PaseTraslado
 import { RUTA_TRASLADOS } from "@/components/traslados-pases/Billetera";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
+import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { hoyLima } from "@/lib/apartados-reglas";
 import {
   etiquetaLinea,
@@ -142,8 +145,12 @@ function ReversoPedido({ pedido: p, modo, sede, onModo }: { pedido: PedidoEntreS
   const opciones = opcionesLlegada(hoyLima());
   const [llegada, setLlegada] = useState<OpcionLlegada>(opciones[1]);
   const [trabajando, setTrabajando] = useState(false);
-  // Un token por pase abierto: el doble clic (o reintentar tras un corte) no arma dos traslados.
-  const token = useRef<string>(crypto.randomUUID());
+  const [revisando, setRevisando] = useState(false);
+  // La marca del envío sigue a lo que se manda (ADR-0398/0401): el doble clic o el reintento con lo mismo no arman dos traslados, y
+  // si la respuesta se pierde el pase se congela hasta reenviar lo mismo o preguntar si salió (antes, cambiar la fecha tras un corte
+  // con el mismo token devolvía el traslado viejo o un error sin salida).
+  const intento = useIntento(p.cliente ? "enviar_pedido_para_apartar" : "enviar_pedido_a_otra_sede");
+  const ocupado = trabajando || intento.enviando || intento.incierto;
   const responsable = useResponsable(sede);
   const guia = useGuiaCampos(modo === "ver" ? [] : camposDelPedido(responsable.listo, responsable.motivo), { enModal: false });
   const total = totalPrendas(p);
@@ -155,19 +162,41 @@ function ReversoPedido({ pedido: p, modo, sede, onModo }: { pedido: PedidoEntreS
 
   async function enviar() {
     if (!responsable.listo) return;
-    setTrabajando(true);
     const supabase = createClient();
-    const { error } = await firmar(
-      p.cliente
-        ? supabase.rpc("enviar_pedido_para_apartar", { p_pedido_id: p.grupoId, p_fecha_estimada_llegada: llegadaIso(llegada.fecha), p_token: token.current })
-        : supabase.rpc("enviar_pedido_a_otra_sede", { p_grupo_id: p.grupoId, p_fecha_estimada_llegada: llegadaIso(llegada.fecha), p_token: token.current }),
-      responsable.firma(),
+    const fecha = llegadaIso(llegada.fecha);
+    const r = await intento.enviar(huellaDe({ grupo: p.grupoId, fecha }), (token, senal) =>
+      firmar(
+        p.cliente
+          ? supabase.rpc("enviar_pedido_para_apartar", { p_pedido_id: p.grupoId, p_fecha_estimada_llegada: fecha, p_token: token })
+          : supabase.rpc("enviar_pedido_a_otra_sede", { p_grupo_id: p.grupoId, p_fecha_estimada_llegada: fecha, p_token: token }),
+        responsable.firma(),
+      ).abortSignal(senal),
     );
-    setTrabajando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "enviar el pedido", { confirmarAntesDeRepetir: true }));
+    if (r.tipo === "ocupado") return;
+    if (r.tipo === "congelado") return avisarCongelado(avisar);
+    responsable.despues(r.tipo === "error" || r.tipo === "incierto" ? r.error : null);
+    // En duda: el pase lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (r.tipo === "incierto") return;
+    if (r.tipo === "error") return avisar.error(traducirError(r.error, "enviar el pedido", { confirmarAntesDeRepetir: true }));
+    enviado();
+  }
+
+  function enviado() {
     avisar.exito(`Enviado a ${p.otraSede}`, { detalle: `Salió como traslado: ${textoPrendas(total)}, llega ${llegada.etiqueta.toLowerCase()}.` });
     pase.sellar("ENVIADO", "sale", { luego: RUTA_TRASLADOS });
+  }
+
+  /** «Revisar si se guardó»: le pregunta a la base por el envío en duda. */
+  async function revisar() {
+    setRevisando(true);
+    const res = await intento.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") return enviado();
+    if (res.tipo === "no_llego") {
+      avisar.aviso("El pedido no se envió", { detalle: "No salió nada de tu almacén. Vuelve a enviarlo." });
+      return;
+    }
+    avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
   }
 
   async function cancelar() {
@@ -236,7 +265,7 @@ function ReversoPedido({ pedido: p, modo, sede, onModo }: { pedido: PedidoEntreS
               <p className="mb-1.5 text-[13px] font-semibold text-tinta">¿Cuándo llega?</p>
               <div className="flex flex-wrap gap-2" role="group" aria-label="¿Cuándo llega?">
                 {opciones.map((o) => (
-                  <button key={o.clave} type="button" className="pildora-cayla" aria-pressed={llegada.clave === o.clave} onClick={() => setLlegada(o)} disabled={trabajando}>
+                  <button key={o.clave} type="button" className="pildora-cayla" aria-pressed={llegada.clave === o.clave} onClick={() => setLlegada(o)} disabled={ocupado}>
                     {o.etiqueta}
                   </button>
                 ))}
@@ -254,7 +283,7 @@ function ReversoPedido({ pedido: p, modo, sede, onModo }: { pedido: PedidoEntreS
         )}
         {modo !== "ver" && (
           <CampoGuiado id="responsable-pedido" guia={guia} titulo="¿Quién lo hace?">
-            <ComboResponsable control={responsable} deshabilitado={trabajando} compacto className="w-full" />
+            <ComboResponsable control={responsable} deshabilitado={ocupado} compacto className="w-full" />
           </CampoGuiado>
         )}
       </div>
@@ -269,18 +298,27 @@ function ReversoPedido({ pedido: p, modo, sede, onModo }: { pedido: PedidoEntreS
       ) : (
         <div className="tp-reverso-pie">
           <PieGuia guia={guia} listo="Listo." />
+          {modo === "enviar" && intento.incierto && <AvisoIntentoIncierto onRevisar={revisar} revisando={revisando} />}
           <div className="tp-fila">
-            <button type="button" onClick={() => (mePiden || modo === "enviar" ? pase.girar(false) : onModo("ver"))} disabled={trabajando} className="btn-cayla btn-secundario">
+            <button type="button" onClick={() => (mePiden || modo === "enviar" ? pase.girar(false) : onModo("ver"))} disabled={ocupado} className="btn-cayla btn-secundario">
               Mejor no
             </button>
             <button
               type="button"
               onClick={() => void (modo === "enviar" ? enviar() : cancelar())}
-              disabled={trabajando || !guia.puedeConfirmar}
+              disabled={trabajando || intento.enviando || revisando || !guia.puedeConfirmar}
               title={guia.frase ?? undefined}
               className={`btn-cayla ${modo === "enviar" ? "btn-primario" : "btn-peligro"} tp-grande ${guia.claseConfirmar}`}
             >
-              {trabajando ? (modo === "enviar" ? "Enviando…" : "Cancelando…") : modo === "enviar" ? "Enviar por traslado" : motivo}
+              {trabajando || intento.enviando
+                ? modo === "enviar"
+                  ? "Enviando…"
+                  : "Cancelando…"
+                : modo === "enviar"
+                  ? intento.incierto
+                    ? "Volver a intentar"
+                    : "Enviar por traslado"
+                  : motivo}
             </button>
           </div>
         </div>
