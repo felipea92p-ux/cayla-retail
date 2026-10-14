@@ -233,8 +233,8 @@ export function EditarMetaModal({
           </CampoGuiado>
           <PieGuia guia={guia} listo="Todo listo para guardar." />
 
-          <div className="flex gap-2 pt-1" data-guia="rendimiento.meta-guardar">
-            <Boton type="button" onClick={cerrar} className="flex-1" disabled={enviando}>
+          <div className="pie-acciones pt-1" data-guia="rendimiento.meta-guardar">
+            <Boton type="button" onClick={cerrar} disabled={enviando}>
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" cargando={enviando} disabled={!responsable.listo} title={responsable.motivo ?? guia.frase ?? undefined} className={`flex-1 ${guia.claseConfirmar}`}>

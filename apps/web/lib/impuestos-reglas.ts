@@ -3,7 +3,7 @@
 // (CSV). Sin React ni Supabase: se prueba con vitest y se usa desde el servidor y desde el navegador.
 
 import { CODIGO_SUNAT_DOCUMENTO } from "./documento-comprobante-reglas";
-import { hoyLima } from "./fechas-lima";
+import { diaLima } from "./fechas-lima";
 import { fechaCorta, mesDe, textoMes } from "./gastos-reglas";
 
 type Fila = Record<string, unknown>;
@@ -297,9 +297,8 @@ export function leerParametro(f: Fila): ParametroFila {
  *  cortarle los 10 primeros caracteres daba el día de UTC, y lo puesto de 7 pm a medianoche de Lima salía con fecha de
  *  mañana. Sin instante, o con uno que no se puede leer, null: se dice quién lo puso y no se inventa cuándo. */
 export function diaDelRegistro(registradoEn: string | null): string | null {
-  if (!registradoEn) return null;
-  const t = Date.parse(registradoEn);
-  return Number.isNaN(t) ? null : fechaCorta(hoyLima(new Date(t)), true);
+  const dia = diaLima(registradoEn);
+  return dia ? fechaCorta(dia, true) : null;
 }
 
 /** Lo que se muestra en la casilla: la tasa en % («18»), la UIT en soles («5500»), el límite en UIT («300»). */

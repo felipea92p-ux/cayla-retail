@@ -15,6 +15,7 @@ import {
   FUNCIONES_APARTADOS,
   mensajeWhatsapp,
   erroresDelApartado,
+  esConstancia,
   estadoVisible,
   moverActivo,
   resultadosDelBuscador,
@@ -374,6 +375,21 @@ describe("pedidoDeFila — Apartados lee los pedidos con dónde quedó la prenda
     expect(paraQuienPedido(p)).toBe("Pedido de Tienda Lima para un cliente");
     expect(paraQuienPedido({ ...p, nombres: "Ana", apellidos: "Lozano" })).toBe("Pedido de Tienda Lima para un cliente");
     expect(paraQuienPedido({ ...p, direccion: "pedi", nombres: "Ana", apellidos: "Lozano" })).toBe("Para Ana Lozano");
+  });
+});
+
+describe("esConstancia (ADR-0399: el adelanto no emite boleta de anticipo)", () => {
+  it("un apartado nuevo no tiene boleta de anticipo: su comprobante es la constancia (el código APT-…)", () => {
+    expect(esConstancia(apartado({ comprobanteAnticipo: null }))).toBe(true);
+  });
+  it("un apartado viejo, con su boleta de anticipo ya emitida, NO se trata como constancia", () => {
+    expect(esConstancia(apartado())).toBe(false);
+  });
+  it("se busca por su código aunque no tenga comprobante, y también por la boleta final una vez entregado", () => {
+    const nuevo = apartado({ comprobanteAnticipo: null });
+    expect(coincide(nuevo, "APT-TRU-0007")).toBe(true);
+    expect(coincide(apartado({ comprobanteAnticipo: null, comprobanteFinal: "B005-000301" }), "b005-000301")).toBe(true);
+    expect(coincide(nuevo, "B005-000301")).toBe(false);
   });
 });
 

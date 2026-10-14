@@ -1,6 +1,6 @@
 // Vender con la caja cerrada (ADR-0301, maqueta B «Persiana», docs/maquetas/caja-cerrada-2026-10/).
 // Lo que dice el cartel y la línea de abajo, y los tiempos de la salida. Lógica pura: la importan el componente y su prueba.
-import { diaYHoraLima, diasEntreFechas, hoyLima } from "./fechas-lima";
+import { diaLima, diaYHoraLima, diasEntreFechas, hoyLima } from "./fechas-lima";
 
 /** El último cierre de la sede, lo justo para decir cuándo cerró, quién y cuánto quedó en el cajón. */
 export type CierreAnterior = {
@@ -23,7 +23,7 @@ function soles(n: number): string {
 /** «hoy, 08:10», «ayer, 21:04» o «el 28/09, 21:04», en hora de Lima. */
 export function cuandoCerro(cerradaEn: string, ahora: Date = new Date()): string {
   const { dia, hora } = diaYHoraLima(cerradaEn);
-  const dias = diasEntreFechas(hoyLima(new Date(cerradaEn)), hoyLima(ahora));
+  const dias = diasEntreFechas(diaLima(cerradaEn) ?? "", hoyLima(ahora));
   if (dias <= 0) return `hoy, ${hora}`;
   if (dias === 1) return `ayer, ${hora}`;
   return `el ${dia}, ${hora}`;

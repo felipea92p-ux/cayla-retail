@@ -2,12 +2,12 @@ import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getSububicaciones } from "@/lib/sububicaciones";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { textoCsv } from "@/lib/exportar-csv";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
   ENCABEZADOS_CSV_MOVIMIENTOS,
   filaCsvMovimiento,
   filtrosDesdeParams,
   getSaldosDeMovimientos,
-  hoyEnLima,
   listarMovimientos,
   nombreArchivoMovimientos,
   type CursorMovimientos,
@@ -50,7 +50,7 @@ export async function GET(req: Request) {
   return new Response(textoCsv(ENCABEZADOS_CSV_MOVIMIENTOS, filas.slice(0, TOPE_EXPORTAR)), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${nombreArchivoMovimientos(sede, hoyEnLima(), recortado)}"`,
+      "Content-Disposition": `attachment; filename="${nombreArchivoMovimientos(sede, hoyLima(), recortado)}"`,
       "Cache-Control": "no-store",
     },
   });

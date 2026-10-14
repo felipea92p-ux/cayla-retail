@@ -3689,3 +3689,31 @@ del ERP, la gemela) y un escéptico por lente: 36 hallazgos, ninguno refutado. L
 - **La tarjeta:** el «¿Por qué?» se despliega en su lugar (`CifraSinSaber`; flotando tapaba el botón de la puerta), los clásicos tienen su
   muestra, sale el aviso que repetía «aproximado», la regla de la hoja mide su ancho real.
 - **La rapidez** suma lo anotado en caja solo desde que el piso está cuadrado (`cuadradoEn`): antes no hay con qué medir lo colgado.
+
+## Actualización 2026-10-14 — la vara de CAYLA también la lee quien ve Análisis (lo que rige en producción desde el 13-oct)
+
+**El hecho:** desde el 2026-10-13, producción tiene otra versión de `retail.fn_frescura_vara_cayla()` que la de `main`: además del líder
+y de quien tiene «Frescura del piso», deja leer la vara a quien tiene el módulo **«Análisis»** (`… or fn_ve_modulo('analisis')`), y su
+error dice «hace falta el módulo «Frescura del piso» o «Análisis» en tu rol» (la pista sigue siendo `frescura_sin_permiso`). Se pegó en el
+SQL Editor sin dejar archivo: no está en ninguna rama local ni de `origin`, ni en un stash, ni en los worktrees de este Mac (buscado el
+14-oct). La revisión de deriva del 14-oct la encontró como «otra versión». Su comentario en el código da la razón: la vara es una medición
+de CAYLA «y la necesita todo el que decide sobre inventario, no solo la pantalla que la construyó». Nadie dejó escrito quién lo decidió.
+
+**Qué entró a `main`:** `20261014172000_frescura_vara_cayla_tambien_para_analisis.sql`, con el cuerpo de `pg_proc.prosrc` de producción
+copiado carácter por carácter (md5 exacto `46a4fdf53ad9ed7231fcb6eb9e96c51a`; la huella de la deriva, `96f465df9c82`, es la misma en
+producción y en una base de `main` con esta migración). La firma, lo que devuelve, `security definer` y los permisos no cambian, y
+tampoco el `comment on function`: producción conserva el de `20261008120000` («para quien ve Frescura del piso»), que quedó corto.
+`pnpm pruebas:frescura-vara-cayla` suma cuatro casos: una integrante con solo «Análisis» lee la vara, con solo «Vender» no, el control
+con el candado de `20261008120000` la deja afuera, y el cuerpo es el de producción.
+
+**Qué abre y qué no:** la vara no tiene sede ni nombres, son conteos anónimos de CAYLA entera por categoría. Quien ve Análisis ya ve más
+que eso (las prendas de cada tienda con su precio y su costo: ADR-0328 «Enmienda 2026-10-06», ADR-0357). Nadie sin Frescura ni Análisis
+la lee, y la tabla sigue sin políticas.
+
+**DECIDÍ:** copiar a `main` la versión viva tal cual, sin cambiar el candado ni el comentario.
+**DESCARTÉ:** traerla con el comentario corregido (o con el candado de `fn_puede_analizar`), porque el archivo dejaría de decir lo que
+corre en producción y cualquiera de las dos cosas hay que pegarla allá: es otro paso, con el OK de Felipe; y dejar `main` como estaba,
+porque una migración que recree la función desde `main` le quitaría el acceso a Análisis sin que nadie lo decida.
+**SE ROMPE SI** alguien vuelve a pegar `20261008120000_frescura_vara_cayla.sql` entero (por ejemplo, para reparar `fn_frescura_sede`):
+su `create or replace` devuelve la vara al candado de solo Frescura y Análisis deja de leerla en silencio. La prueba lo marca en rojo
+contra una base así.

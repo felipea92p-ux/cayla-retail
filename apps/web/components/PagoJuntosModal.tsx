@@ -429,7 +429,7 @@ export function PagoJuntosModal({
           <ComboResponsable control={responsable} deshabilitado={loading} />
 
           {/* Pie a todo el ancho del panel (sale del relleno con márgenes negativos), como en el spike. */}
-          <div className="-mx-6 -mb-6 flex flex-wrap items-center gap-3 border-t border-tinta/10 px-6 py-4">
+          <div className="pie-acciones -mx-6 -mb-6 border-t border-tinta/10 px-6 py-4">
             <p className="min-w-0 flex-1 basis-48 text-xs text-tinta/55">Todo o nada: si un comprobante ya no admite el monto, no se registra ninguno.</p>
             <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
               Cancelar

@@ -131,9 +131,12 @@ export function HojaLiquidarDesde({ dias, onCerrar, onGuardado }: { dias: number
             </div>
           )}
 
-          <div className="h-acciones">
+          <div className="h-acciones pie-acciones">
             {efecto.cambia ? (
               <>
+                <button type="button" className="btn-cayla btn-secundario" onClick={cerrar} disabled={guardando}>
+                  Cancelar
+                </button>
                 <button
                   type="submit"
                   className="btn-cayla btn-primario"
@@ -141,9 +144,6 @@ export function HojaLiquidarDesde({ dias, onCerrar, onGuardado }: { dias: number
                   title={responsable.motivo ?? undefined}
                 >
                   {guardando ? "Guardando…" : "Guardar para todos"}
-                </button>
-                <button type="button" className="btn-cayla btn-secundario" onClick={cerrar} disabled={guardando}>
-                  Cancelar
                 </button>
               </>
             ) : null}

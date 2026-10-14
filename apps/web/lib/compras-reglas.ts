@@ -4,7 +4,7 @@
 // lo importan, y si estuviera junto con las consultas arrastraría
 // `next/headers` al navegador — Next lo rechaza en tiempo de compilación.
 
-import { hoyLima } from "./fechas-lima";
+import { diaLima } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 import { estadoDeMiTienda, nombreDeLineaSinPrenda } from "./reparto-reglas";
 import type { NoDeducible } from "./no-deducible-reglas";
@@ -299,7 +299,7 @@ export function fechaCorta(iso: string | null): string {
   // Un INSTANTE (con hora: la llegada de un lote, un pago) se lee en Lima: de 7 pm a medianoche de Lima, en UTC ya es «mañana», y
   // cortar los 10 primeros caracteres ponía la recepción de las 22:17 del 12/10 con fecha 13/10 (prueba ciega del 2026-10-12).
   // Una FECHA sola (`aaaa-mm-dd`) se usa tal cual.
-  const dia = /^\d{4}-\d{2}-\d{2}[T ]\d/.test(iso) && !Number.isNaN(Date.parse(iso)) ? hoyLima(new Date(iso)) : iso.slice(0, 10);
+  const dia = diaLima(iso) ?? iso.slice(0, 10);
   const [a, m, d] = dia.split("-");
   return `${d}/${m}/${a}`;
 }

@@ -8,7 +8,7 @@ import { BUCKET_FOTOS_PERFIL } from "@/lib/foto-perfil";
 import { recordarFotoPersona } from "@/lib/useFotoPersona";
 import { avisar } from "@/components/ui/Avisos";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
-import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 
 // "Mi perfil" (0014_perfil.sql, 2026-09-14): casi todo acá es de solo lectura
@@ -182,17 +182,17 @@ export function PerfilModal({ onClose, veAdministracion = false, veConfiguracion
               <AvatarPersona personaId={perfil.persona_id} nombre={nombreCompleto} tamano={80} />
               <div className="space-y-2">
                 <input ref={inputRef} type="file" accept="image/jpeg" onChange={onArchivo} className="hidden" />
-                <div className="flex gap-2">
+                <div className="pie-acciones">
                   <button
                     type="button"
                     onClick={() => inputRef.current?.click()}
                     disabled={subiendo}
-                    className={botonCancelar}
+                    className="btn-cayla btn-secundario"
                   >
                     {subiendo ? "Subiendo…" : perfil.foto_url ? "Cambiar foto" : "Subir foto"}
                   </button>
                   {perfil.foto_url && (
-                    <button type="button" onClick={onEliminarFoto} disabled={subiendo} className="btn-cayla btn-peligro flex-1">
+                    <button type="button" onClick={onEliminarFoto} disabled={subiendo} className="btn-cayla btn-peligro">
                       Eliminar
                     </button>
                   )}
@@ -360,11 +360,11 @@ function CambiarClave({ onListo }: { onListo: () => void }) {
           className="caja-campo-input mt-1.5"
         />
       </div>
-      <div className="flex gap-2">
-        <button type="button" onClick={onListo} className={botonCancelar}>
+      <div className="pie-acciones">
+        <button type="button" onClick={onListo} className="btn-cayla btn-secundario">
           Cancelar
         </button>
-        <button type="submit" disabled={guardando} className={botonPrimario}>
+        <button type="submit" disabled={guardando} className="btn-cayla btn-primario">
           {guardando ? "Guardando…" : "Guardar contraseña"}
         </button>
       </div>

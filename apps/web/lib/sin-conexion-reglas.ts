@@ -7,7 +7,8 @@
  * sin red tampoco se podría guardar nada ahí.
  *
  * `sw.js` es JavaScript plano servido desde `public/` y no puede importar este archivo: repite la lista, y
- * `sin-conexion-reglas.test.ts` falla si las dos se separan.
+ * `sin-conexion-reglas.test.ts` falla si las dos se separan. También repite el día de Lima (`diaLima(fecha)`), y la misma prueba
+ * lo compara con `hoyLima` de `fechas-lima`.
  *
  * Vender, solo con la copia DE HOY (Felipe, 2026-09-25, «Copia de hoy»): vender con el stock de una copia de ayer
  * daría demasiadas ventas rechazadas o stock negativo al subir. La regla de dejar ≥1 unidad en piso sigue (ADR-0013).
@@ -25,11 +26,6 @@ export const PANTALLAS_SIN_CONEXION: readonly PantallaSinConexion[] = [
 export function pantallaSinConexion(pathname: string): PantallaSinConexion | null {
   const limpia = pathname.replace(/\/+$/, "") || "/";
   return PANTALLAS_SIN_CONEXION.find((p) => p.ruta === limpia) ?? null;
-}
-
-/** El día calendario en Lima (AAAA-MM-DD) de un instante: la tienda cierra el día en hora de Lima, no en UTC. */
-export function diaLima(fecha: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima", year: "numeric", month: "2-digit", day: "2-digit" }).format(fecha);
 }
 
 /**

@@ -189,7 +189,7 @@ export function ListaCategorias({
           filtros={quitar}
           acciones={
             <Boton type="button" peso="fantasma" onClick={limpiar}>
-              {q.trim() ? "Borrar la búsqueda" : "Quitar los filtros"}
+              {q.trim() ? "Borrar la búsqueda" : "Limpiar filtros"}
             </Boton>
           }
         >

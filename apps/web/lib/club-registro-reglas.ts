@@ -16,6 +16,7 @@
 import type { Database } from "@cayla-retail/database";
 import { celularValido, enlaceQrClub } from "./club-reglas";
 import { MESES_DEL_ANIO, type CumpleEscrito } from "./club-cumple-reglas";
+import { diaLima } from "./fechas-lima";
 import { esTipoDocumentoClienta, normalizarNumeroDocumento, problemaDocumento, type TipoDocumentoClienta } from "./documento-clienta-reglas";
 
 /** Los argumentos exactos de `registrarse_en_el_club`, como los genera la base. */
@@ -161,13 +162,8 @@ export function textoLegal(p: PaginaClub, cual: "privacidad" | "terminos"): Text
 
 /** «1 de octubre de 2026», en hora de Lima. Acepta `aaaa-mm-dd` o un instante con zona. null si no se entiende. */
 export function fechaLarga(valor: string | null | undefined): string | null {
-  if (!valor) return null;
-  let iso = /^\d{4}-\d{2}-\d{2}$/.test(valor.trim()) ? valor.trim() : null;
-  if (!iso) {
-    const t = Date.parse(valor);
-    if (Number.isNaN(t)) return null;
-    iso = new Date(t).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-  }
+  const iso = diaLima(valor?.trim());
+  if (!iso) return null;
   const [a, m, d] = iso.split("-").map(Number);
   const mes = MESES_DEL_ANIO[(m ?? 0) - 1];
   if (!a || !mes || !d) return null;

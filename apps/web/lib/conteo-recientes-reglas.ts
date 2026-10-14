@@ -8,11 +8,11 @@
  * MÁS de lo que se dibuja sin filtro: para llegar a una fecha vieja hay que tenerla en la mano. NO hace: pedir nada a la base.
  *
  * Por qué se agrupa por la fecha de APERTURA (Felipe, 2026-10-01): la pregunta de quien mira es «¿a qué hora se hizo?», y un
- * conteo que se abre a las 11:43 y se cierra a las 11:52 tiene una sola hora. El día es el de Lima (`diaLimaDe`): el servidor
+ * conteo que se abre a las 11:43 y se cierra a las 11:52 tiene una sola hora. El día es el de Lima (`diaLima`): el servidor
  * corre en UTC y de 7 pm a medianoche ya es «mañana» para él.
  */
 
-import { sumarDias } from "./fechas-lima";
+import { diaLima, diaYHoraLima, horaLima, sumarDias } from "./fechas-lima";
 import { LIMITE_HISTORIAL_CONTEO } from "./conteo-inicio-reglas";
 import { resultadoConteo, type ConteoResumen } from "./conteo-reglas";
 
@@ -25,16 +25,6 @@ export const LIMITE_CONTEOS_FILTRABLES = 300;
 
 const DIAS_SEMANA = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"] as const;
 const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"] as const;
-
-/** `aaaa-mm-dd` de un instante, en hora de Lima. Lima va cinco horas detrás de UTC todo el año (sin horario de verano). */
-export function diaLimaDe(instante: string): string {
-  return new Date(Date.parse(instante) - 5 * 3600 * 1000).toISOString().slice(0, 10);
-}
-
-/** `hh:mm` de un instante, en hora de Lima. */
-export function horaLimaDe(instante: string): string {
-  return new Date(Date.parse(instante) - 5 * 3600 * 1000).toISOString().slice(11, 16);
-}
 
 /**
  * El día que pide la URL, o `null`. Solo vale una fecha REAL `aaaa-mm-dd` (un `?dia=2026-02-31` o un texto cualquiera se
@@ -64,7 +54,7 @@ export type GrupoDia = {
 export function agruparPorDia(conteos: readonly ConteoResumen[]): GrupoDia[] {
   const grupos: GrupoDia[] = [];
   for (const c of conteos) {
-    const dia = diaLimaDe(c.creadoEn);
+    const dia = diaLima(c.creadoEn) ?? "";
     const ultimo = grupos[grupos.length - 1];
     if (ultimo && ultimo.dia === dia) ultimo.conteos.push(c);
     else grupos.push({ dia, conteos: [c] });
@@ -96,7 +86,7 @@ export type VistaRecientes = {
  */
 export function vistaDeRecientes(todos: readonly ConteoResumen[], hoy: string, dia: string | null, tope: number = LIMITE_HISTORIAL_CONTEO): VistaRecientes {
   const ayer = sumarDias(hoy, -1);
-  const dias = todos.map((c) => diaLimaDe(c.creadoEn));
+  const dias = todos.map((c) => diaLima(c.creadoEn) ?? "");
   const mostrados = dia === null ? todos.slice(0, tope) : todos.filter((_, i) => dias[i] === dia);
   let anterior: VistaRecientes["anterior"] = null;
   if (dia !== null && mostrados.length === 0) {
@@ -141,14 +131,13 @@ export function hrefRecientes(dia: string | null, variantes: readonly string[] =
 /** «Cerrado 11:52», o «Cerrado 01/10 09:05» si cerró otro día que el de apertura; `null` si no cerró (en curso, cancelado). */
 export function textoCierre(c: Pick<ConteoResumen, "creadoEn" | "cerradoEn" | "estado">): string | null {
   if (c.estado !== "cerrado" || !c.cerradoEn) return null;
-  const mismoDia = diaLimaDe(c.cerradoEn) === diaLimaDe(c.creadoEn);
-  const [, m, d] = diaLimaDe(c.cerradoEn).split("-");
-  return `Cerrado ${mismoDia ? "" : `${d}/${m} `}${horaLimaDe(c.cerradoEn)}`;
+  const { dia, hora } = diaYHoraLima(c.cerradoEn);
+  return `Cerrado ${diaLima(c.cerradoEn) === diaLima(c.creadoEn) ? "" : `${dia} `}${hora}`;
 }
 
 /** «Abierto 11:43 · cerrado 11:52» (al pasar el mouse por la fila). Si cerró otro día, dice cuál: «cerrado 01/10 09:05». */
 export function textoAperturaCierre(c: Pick<ConteoResumen, "creadoEn" | "cerradoEn" | "estado">): string {
-  const abierto = `Abierto ${horaLimaDe(c.creadoEn)}`;
+  const abierto = `Abierto ${horaLima(c.creadoEn) ?? "—"}`;
   const cierre = textoCierre(c);
   return cierre ? `${abierto} · ${cierre.charAt(0).toLowerCase()}${cierre.slice(1)}` : abierto;
 }

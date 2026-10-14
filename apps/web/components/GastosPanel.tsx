@@ -17,7 +17,7 @@ import { Buscador, CabeceraBloque, CampoFin, Herramientas, InputFin, ListaDatos,
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { hoyLima } from "@/lib/fechas-lima";
+import { diaLima } from "@/lib/fechas-lima";
 import {
   TEXTO_ESTADO_GASTO,
   TEXTO_NO_GASTO,
@@ -273,7 +273,7 @@ export function GastosPanel({
                   <tbody>
                     {egresos.map((e) => (
                       <tr key={e.id}>
-                        <td data-l="Fecha">{fechaCorta(hoyLima(new Date(e.creadoEn)))}</td>
+                        <td data-l="Fecha">{fechaCorta(diaLima(e.creadoEn))}</td>
                         <td data-l="Tienda">{e.ubicacionNombre}</td>
                         <td className="fin-ancha" data-l="Motivo">
                           <b>{e.motivo}</b>
@@ -648,7 +648,7 @@ function ClasificarEgresoModal({
           ubicacion: e.ubicacionId,
           categoria,
           descripcion,
-          fecha: hoyLima(new Date(e.creadoEn)),
+          fecha: diaLima(e.creadoEn) ?? "",
           monto: String(e.monto),
           comprobante: "sin_comprobante",
           proveedorId: "",
@@ -711,7 +711,7 @@ function ClasificarEgresoModal({
       titulo="¿Qué fue esta salida?"
       subtitulo={
         <>
-          {e.ubicacionNombre} · {fechaCorta(hoyLima(new Date(e.creadoEn)))} · <b className="font-semibold text-tinta">{soles(e.monto)}</b> · «{e.motivo}
+          {e.ubicacionNombre} · {fechaCorta(diaLima(e.creadoEn))} · <b className="font-semibold text-tinta">{soles(e.monto)}</b> · «{e.motivo}
           {e.nota ? ` — ${e.nota}` : ""}»
         </>
       }
