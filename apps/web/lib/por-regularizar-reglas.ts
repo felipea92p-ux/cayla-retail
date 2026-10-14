@@ -1,7 +1,7 @@
 // Reglas de la cola «Por regularizar» (ADR-0179): prendas vendidas en caja antes de estar en el
 // sistema, que almacén une después con su prenda real. Lógica pura: la usan la pestaña de Recibir
 // y el aviso del inicio.
-import { hoyLima } from "./fechas-lima";
+import { diaLima, hoyLima } from "./fechas-lima";
 import { clave } from "./buscar-prenda-v2";
 import { cargaAbierta, fechaCorta, type CargaInicialSede } from "./carga-inicial-reglas";
 
@@ -51,7 +51,7 @@ export function cifrasPorRegularizar(filas: FilaParaCifras[], ahora: Date = new 
     if (f.estado === "pendiente") {
       pendientes++;
       if (estaVencida(f.vendidoEn, ahora)) vencidas++;
-    } else if (f.estado === "regularizada" && f.diferencia !== null && hoyLima(new Date(f.vendidoEn)).slice(0, 7) === mes) {
+    } else if (f.estado === "regularizada" && f.diferencia !== null && diaLima(f.vendidoEn)?.slice(0, 7) === mes) {
       if (f.diferencia < 0) descuentoMes += -f.diferencia;
       else sobreprecioMes += f.diferencia;
     }

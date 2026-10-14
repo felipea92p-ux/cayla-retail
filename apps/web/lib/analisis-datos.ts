@@ -14,6 +14,7 @@ import { getConteosResumen } from "@/lib/conteos";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
 import { getPedidosNoAtendidos } from "@/lib/pedidos-no-atendidos";
 import { getUbicaciones, type Ubicacion } from "@/lib/ubicaciones";
+import { hoyLima } from "@/lib/fechas-lima";
 
 // Análisis v4 (ADR-0357): todo lo que la pantalla lee, una vez por visita, desde el servidor. Cada parte que falla se dice en
 // `fallas` y deja su sección callada (principio 9): nunca «sin ventas» por un error.
@@ -41,9 +42,6 @@ async function leerPreparacionDeLaRed(): Promise<{ filas: PreparacionAnalisis[];
 
 /** Si no se pudo leer el precio propio de mi tienda, las cifras en soles quedan con el precio de la prenda y la pantalla lo dice. */
 const FALLA_PRECIOS_DE_MI_TIENDA = "No se pudo leer el precio propio de tu tienda: las cifras en soles usan el precio de la prenda";
-
-/** Hoy en Lima, si la base no lo dijo (YYYY-MM-DD). */
-const hoyEnLima = (): string => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" }).format(new Date());
 
 export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis> {
   const tiendas = (await getUbicaciones()).filter((u) => u.tipo === "tienda" && u.activo);
@@ -77,7 +75,7 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
 
   const filasDe = (id: string) => lectura.porSede[id] ?? [];
   const otrasDe = (id: string) => sedes.filter((s) => s.id !== id).map((sede) => ({ sede, filas: filasDe(sede.id) }));
-  const hoy = motor.filas[0]?.hoy ?? hoyEnLima();
+  const hoy = motor.filas[0]?.hoy ?? hoyLima();
   // El ritmo de todo Análisis: lo vendido entre los días de ventas que mi tienda tiene en el ERP, hasta 30 (cada prenda lo lleva).
   const ventana = diasDeVentas(prepDe(activa.id)?.primeraVenta, hoy);
   const tallas = armarPrendas(conPreciosDeMiTienda(filasDe(activa.id), preciosDeMiTienda), otrasDe(activa.id), llegan.porVariante).map((p) => ({ ...p, diasDeVentas: ventana }));

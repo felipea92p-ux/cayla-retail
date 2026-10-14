@@ -7,6 +7,7 @@
  */
 
 import type { Opcion } from "@/components/ui/campos";
+import { diaLima, horaLima } from "./fechas-lima";
 
 export type Estacion = "otono" | "invierno" | "primavera" | "verano";
 
@@ -119,12 +120,7 @@ export function instanteLima(fecha: string, hora: string): string | null {
 
 /** La fecha y hora de Perú de un instante guardado, para llenar el formulario al corregirla («2026-12-21», «15:50»). */
 export function partesLima(instante: string): { fecha: string; hora: string } {
-  const lima = new Date(new Date(instante).getTime() - 5 * 3600_000);
-  const dos = (n: number) => String(n).padStart(2, "0");
-  return {
-    fecha: `${lima.getUTCFullYear()}-${dos(lima.getUTCMonth() + 1)}-${dos(lima.getUTCDate())}`,
-    hora: `${dos(lima.getUTCHours())}:${dos(lima.getUTCMinutes())}`,
-  };
+  return { fecha: diaLima(instante) ?? "", hora: horaLima(instante) ?? "" };
 }
 
 /** «21 dic 2026, 15:50» en hora de Perú. */

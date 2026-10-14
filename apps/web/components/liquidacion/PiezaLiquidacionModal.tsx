@@ -17,7 +17,8 @@ import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { traducirError } from "@/lib/error-escritura";
 import { camposDeCambiarPrecio, camposDeRetirar } from "@/lib/liquidacion-guia";
-import { diasALaVenta, tiempoALaVenta, errorDeLiquidacion, fechaLima, piezaDeJson, precioDeTexto, soles, type PiezaLiquidacion } from "@/lib/liquidacion-reglas";
+import { diasALaVenta, tiempoALaVenta, errorDeLiquidacion, piezaDeJson, precioDeTexto, soles, type PiezaLiquidacion } from "@/lib/liquidacion-reglas";
+import { diaLima } from "@/lib/fechas-lima";
 
 type Modo = "ver" | "precio" | "retirar";
 
@@ -121,9 +122,9 @@ export function PiezaLiquidacionModal({
   const dias = diasALaVenta(pieza, hoy);
   const subtitulo =
     pieza.estado === "vendida"
-      ? `Se vendió el ${fechaLima(pieza.vendidaEn) ?? "—"} a S/ ${soles(pieza.precio)}.`
+      ? `Se vendió el ${diaLima(pieza.vendidaEn) ?? "—"} a S/ ${soles(pieza.precio)}.`
       : pieza.estado === "retirada"
-        ? `Se retiró el ${fechaLima(pieza.retiradaEn) ?? "—"}: ${pieza.motivoRetiro ?? "sin motivo"}.`
+        ? `Se retiró el ${diaLima(pieza.retiradaEn) ?? "—"}: ${pieza.motivoRetiro ?? "sin motivo"}.`
         : `A la venta ${dias <= 0 ? "desde hoy" : `hace ${tiempoALaVenta(dias)}`}${pieza.etiquetas > 1 ? `, con ${pieza.etiquetas - 1} ${pieza.etiquetas === 2 ? "rebaja" : "rebajas"}` : ""}.`;
 
   return (

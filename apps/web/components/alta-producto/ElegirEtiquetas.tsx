@@ -11,7 +11,7 @@ import { proponerEtiqueta, type ValorCreado } from "@/lib/alta-producto-ejes";
 import type { EtiquetaAlta } from "@/lib/alta-producto-datos";
 import { ayudaDeEtiqueta } from "@/lib/etiqueta-ayuda";
 import { estiloConocido } from "@/lib/etiqueta-grupos";
-import { hoyLima } from "@/lib/etiqueta-vigencia";
+import { hoyLima } from "@/lib/fechas-lima";
 import {
   agruparEtiquetas,
   coincideConTexto,

@@ -3,7 +3,6 @@ import {
   aFila,
   itemsPorRegularizar,
   agruparPorDia,
-  diaDeLima,
   elegirComprobante,
   filtrosDesdeParams,
   limitesUTC,
@@ -390,12 +389,6 @@ describe("mezclaDePagos", () => {
       { metodo: "redondeo", monto: 0.08 },
     ]);
     expect(Math.round(lista.reduce((a, m) => a + m.monto, 0) * 100)).toBe(7988);
-  });
-});
-
-describe("diaDeLima", () => {
-  it("las 9:30 p. m. del 19 en Lima siguen siendo el 19 aunque en UTC ya sea el 20", () => {
-    expect(diaDeLima("2026-09-20T02:30:00+00:00")).toBe("2026-09-19");
   });
 });
 
