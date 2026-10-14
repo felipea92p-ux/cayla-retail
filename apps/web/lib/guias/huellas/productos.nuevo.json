@@ -117,7 +117,7 @@
       "SegmentoDeslizante «Qué escribes en la tabla»",
       "input «1»",
       "button «{`Restar a ${etiqueta}»",
-      "input «{`Cuántas tienes de ${etiqueta}»",
+      "input «{`${preguntaCelda}»",
       "button «{`Sumar a ${etiqueta}»",
       "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
     ],

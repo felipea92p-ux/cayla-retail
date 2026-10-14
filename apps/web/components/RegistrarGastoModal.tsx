@@ -223,7 +223,7 @@ export function RegistrarGastoModal({
   }
 
   // «¿Salir sin guardar?» (2026-09-28). Escape, el velo, la ✕ o «Cancelar» cerraban la hoja y lo tipeado (monto, serie,
-  // proveedor) se perdía sin aviso. Todos pasan por `pedirAccion`; guardar bien cierra directo. La foto de apertura ya
+  // proveedor) se perdía sin aviso. Todos pasan por `pedirAccion` (Escape, el velo y la ✕ por `antesDeCerrar`, no por `onClose`: `lib/hojas-salida-sin-guardar.test.ts`); guardar bien cierra directo. La foto de apertura ya
   // trae lo que llega precargado (un egreso por clasificar, un gasto fijo): solo cuenta lo que la persona cambió.
   const fotoActual = fotoFormulario({ b, documento, activo, nuevoProveedor });
   const [fotoAlAbrir] = useState(fotoActual);
@@ -343,7 +343,7 @@ export function RegistrarGastoModal({
   );
 
   return (
-    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={() => avisoSalida.pedirAccion(onCerrar)} ancho="max-w-[620px]">
+    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion} ancho="max-w-[620px]">
       {/* Orden del spike: un gasto empieza por su comprobante; un activo, por qué es, dónde está y cuánto dura. */}
       {!esActivo && bloqueComprobante}
       <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]" data-guia="fin-gastos.form-que">

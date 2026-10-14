@@ -3,7 +3,8 @@ import { enteroES, escalaDeRango, posicionEnEscala, type Calculo, type LineaPlan
 
 // La barra de rango de una categoría del plan de campaña (ADR-0349; maqueta docs/maquetas/plan-de-campana-2026-10/): sustituye
 // «flojo · normal · bueno» en texto por algo que se lee de un vistazo, todo sobre UNA misma escala:
-//   · abajo, la barra apilada del sistema (`BarraApilada`): verde = lo que YA HAY, negro = lo que HAY QUE COMPRAR;
+//   · abajo, la barra apilada del sistema (`BarraApilada`): verde = lo que YA HAY, verde claro = lo que VIENE en órdenes de compra y todavía
+//     no llega (Felipe 2026-10-13: ya se descuenta de «Comprar»), negro = lo que HAY QUE COMPRAR;
 //   · arriba, una banda clara del diciembre flojo al bueno y una marca en el normal: lo que se supone que se venderá;
 //   · en la campaña y después, un rombo con lo que se vendió de verdad, sobre la misma escala.
 // Debajo van los tres números, porque una barra sola no se lee: lo que dice el dibujo se dice también en texto (y para el lector de
@@ -17,6 +18,7 @@ export function BarraRango({
   vendido = 0,
   retraso = 0,
   viva = false,
+  enCamino = 0,
 }: {
   linea: Pick<LineaPlan, "flojo" | "normal" | "bueno">;
   calculo: Calculo;
@@ -26,11 +28,18 @@ export function BarraRango({
   retraso?: number;
   /** La barra cambia MIENTRAS la persona escribe (la hoja de una categoría): no entra creciendo y se reacomoda sin saltos (ADR-0136). */
   viva?: boolean;
+  /** Lo que viene en órdenes de compra sin llegar: ya está dentro de `calculo.stock` (lo que se cuenta), aquí se dibuja aparte. */
+  enCamino?: number;
 }) {
   const escala = escalaDeRango(linea, calculo, vendido);
   const pos = (v: number) => posicionEnEscala(v, escala);
+  const viene = Math.max(0, Math.min(enCamino, calculo.stock));
+  const hay = calculo.stock - viene;
   const dice =
-    `Flojo ${linea.flojo}, normal ${linea.normal}, bueno ${linea.bueno}. Ya hay ${calculo.stock}. Comprar ${calculo.comprar}.` + (vendido > 0 ? ` Se vendieron ${vendido}.` : "");
+    `Flojo ${linea.flojo}, normal ${linea.normal}, bueno ${linea.bueno}. Ya hay ${hay}.` +
+    (viene > 0 ? ` Vienen ${viene} en órdenes de compra.` : "") +
+    ` Comprar ${calculo.comprar}.` +
+    (vendido > 0 ? ` Se vendieron ${vendido}.` : "");
   return (
     <span role="img" aria-label={dice} className="block min-w-0">
       <span aria-hidden className="relative block h-2">
@@ -48,7 +57,8 @@ export function BarraRango({
           retraso={retraso}
           viva={viva}
           segmentos={[
-            { clave: "hay", nombre: "Ya hay", valor: calculo.stock, clase: "bg-verde" },
+            { clave: "hay", nombre: "Ya hay", valor: hay, clase: "bg-verde" },
+            { clave: "viene", nombre: "Viene en órdenes", valor: viene, clase: "bg-verde/40" },
             { clave: "comprar", nombre: "Comprar", valor: calculo.comprar, clase: "bg-tinta" },
           ]}
         />
@@ -67,7 +77,7 @@ export function BarraRango({
 }
 
 /** La leyenda de la barra (una línea sobre la tabla): qué es cada color y cada marca. */
-export function LeyendaRango({ conVendido }: { conVendido: boolean }) {
+export function LeyendaRango({ conVendido, conEnCamino = false }: { conVendido: boolean; conEnCamino?: boolean }) {
   const item = "inline-flex items-center gap-1.5";
   return (
     <p className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-tinta/70">
@@ -76,6 +86,12 @@ export function LeyendaRango({ conVendido }: { conVendido: boolean }) {
         <i aria-hidden className="inline-block h-2 w-4 rounded-full bg-verde" />
         Ya hay
       </span>
+      {conEnCamino && (
+        <span className={item}>
+          <i aria-hidden className="inline-block h-2 w-4 rounded-full bg-verde/40" />
+          Viene en órdenes
+        </span>
+      )}
       <span className={item}>
         <i aria-hidden className="inline-block h-2 w-4 rounded-full bg-tinta" />
         Comprar

@@ -50,7 +50,8 @@ en vez de regrupar.
 ## Cómo agregar una fila al menú (para quien viene detrás)
 
 1. Edita **`apps/web/lib/menu.ts`**, no `AppShell.tsx`: agrega el nodo con su `id`, `etiqueta`, `ruta`, clave de `icono`, `pajaro`, `permiso` (si exige uno) y los
-   `ubicaciones` donde aplica. Si el ícono es nuevo, agrega su trazo a `IC` en `AppShell.tsx` (es lo único que sigue viviendo allí).
+   `ubicaciones` donde aplica. Si el ícono es nuevo, agrega su clave a `ClaveIcono` (`lib/menu.ts`) y su trazo a `TRAZOS_MENU` en `lib/menu-iconos.ts`: el lateral, Roles y accesos y los accesos
+   rápidos del Inicio lo toman de ahí (actualizado 2026-10-13; antes vivía en `IC` de `AppShell.tsx`).
 2. Corre `menu.test.ts`: fallará la equivalencia, y es correcto. **Regenera `menu-hoy.golden.json` a propósito** y explica en el PR qué perfil ve algo distinto.
 3. Si tu grupo ya tiene 6 hijas no subas el tope: regrupa (una fila nueva entra como pestaña dentro de la pantalla).
 4. Una fila entra al menú cuando **existe**: pantalla, permiso y candado en la base. Mientras tanto, déjala con estado `futura`.

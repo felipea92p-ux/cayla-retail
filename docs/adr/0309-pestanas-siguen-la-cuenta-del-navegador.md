@@ -20,3 +20,14 @@ mirar la pestaña (`visibilitychange`/`focus`). Una pestaña sin cuenta (login, 
 
 **Costo asumido.** Una pantalla a medio llenar se pierde al irse; con otra cuenta ya no era de esa persona. Lo guardado
 sin conexión vive en el equipo y no se toca.
+
+## Actualización 2026-10-13 — «Salir» en esta pestaña no es «otra pestaña»
+
+**El defecto.** `LogoutButton` cierra la sesión y después navega a `/login`. Entre las dos cosas, el aviso de cierre de Supabase llegaba a
+`SesionEntrePestanas`, que veía «tenía cuenta y ya no» y concluía que otra pestaña la cerró: dejaba el aviso «La sesión se cerró en otra
+pestaña» y recargaba `/login`. El aviso dura 6 s y espera al loader, así que quien salía y entraba enseguida lo veía encima de Inicio (Felipe
+2026-10-13, captura). «A veces» porque era una carrera entre esa recarga y la navegación del propio botón.
+
+**La regla.** «Salir» marca su cierre como propio ANTES de cerrar la sesión (`lib/sesion-salida-propia.ts`, en memoria de esa pestaña) y
+`decidirAccionDeSesion` no avisa si la cuenta desapareció y la marca tiene menos de 10 s (`MS_SALIDA_PROPIA`). Una marca no esconde un
+cambio de cuenta (sigue yendo al inicio) ni un cierre hecho en OTRA pestaña (esa no tiene la marca: sigue avisando, y es verdad).
