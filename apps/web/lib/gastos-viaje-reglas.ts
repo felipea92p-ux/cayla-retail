@@ -322,9 +322,6 @@ export function fraseRegistrarGasto(monto: number | null): string {
   return monto != null && monto > 0 ? `Registrar gasto de ${soles(monto)}` : "Registrar gasto";
 }
 
-/** Cómo se lee una orden en la lista de la hoja: «OC-002788 · Textiles Andina SAC · S/ 300.00». */
-export const etiquetaOrdenParaGasto = (o: OrdenParaGasto) => `${o.numero} · ${o.proveedor} · ${soles(o.total)}`;
-
 // ---------- Las órdenes del gasto (Felipe 2026-10-14) ----------
 
 /** Una orden que se puede sumar, como la pide el combo con buscador: «OC-002788 · Textiles Andina SAC», su total al lado, y la sede a

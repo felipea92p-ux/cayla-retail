@@ -13,7 +13,6 @@ import type { RendicionDeMiFondo } from "./rendicion-reglas";
 // Actividad 4 (20261013231000): la tarjeta «Tu fondo» de Órdenes de compra y del Inicio (`leerResumenMiFondo`, `caraTuFondo`).
 // Actividad 5 (20261013235000): la tarjeta cuenta el ciclo abierto y suma la rendición (`ResumenMiFondo.rendicion`, `rendicion-reglas.ts`).
 
-export const RUTA_FONDOS = "/compras/fondos";
 // Cada llamada nombra su constante (`.rpc(RPC_X as never, …)`): así la lee la prueba de cobertura de roles.
 export const RPC_FONDOS = "fn_fondos";
 export const RPC_MOVIMIENTOS_FONDOS = "fn_fondos_movimientos";
