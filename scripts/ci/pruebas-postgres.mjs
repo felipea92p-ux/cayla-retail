@@ -1035,6 +1035,10 @@ export const PRUEBAS = [
   // El IGV de la fase 6 (ADR-0362, actividad 8): la factura con RUC de un gasto del viaje va al crédito fiscal; el IGV de lo pagado sin
   // banco se pierde en el mes del PAGO (Impuestos en negativo, el aviso del panel y, en el Diario, 64 contra 4011). ROLLBACK siempre.
   "pruebas:igv-fase6",
+  // Finanzas ▸ Gastos con los gastos del viaje (ADR-0362, fase 6): la lista y sus cifras leen el papel de su ficha (factura, boleta,
+  // ticket o planilla de movilidad, con su número y quien la dio), sin cambiar columnas ni lo de un gasto de Finanzas; y la pantalla
+  // sabe decir todo papel que la base acepta. ROLLBACK siempre.
+  "pruebas:gastos-lista-viaje",
 
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y

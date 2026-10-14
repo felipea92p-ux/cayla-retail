@@ -18,6 +18,20 @@ export const TEXTO_COMPROBANTE: Record<TipoComprobante, string> = {
   sin_comprobante: "Sin comprobante",
 };
 
+/**
+ * El papel de un gasto en la lista (`comprobante_tipo` de `fn_gastos_lista`): el tipo de su comprobante de proveedor (`compras.tipo`) o,
+ * en un gasto del viaje (ADR-0362, fase 6), el papel de su ficha (`gastos_viaje.papel`), que la base manda sin traducir. Son los valores
+ * que aceptan esos dos candados: si la base gana otro, `pruebas:gastos-lista-viaje` falla y dice cuál falta aquí.
+ */
+export type PapelDeGasto = TipoComprobante | "nota_venta" | "ticket" | "planilla_movilidad";
+/** Con las palabras de la hoja «Gasto del viaje» (`TEXTO_PAPEL`): quien registró el gasto reconoce lo que eligió. */
+export const TEXTO_PAPEL_DE_GASTO: Record<PapelDeGasto, string> = {
+  ...TEXTO_COMPROBANTE,
+  nota_venta: "Nota de venta",
+  ticket: "Ticket o boleto",
+  planilla_movilidad: "Sin comprobante",
+};
+
 /** Cómo se pagó. `deposito` solo existe con comprobante (así lo acepta `compra_pagos`). */
 export type MedioGasto = "efectivo" | "yape" | "plin" | "transferencia" | "deposito" | "tarjeta";
 export const TEXTO_MEDIO: Record<MedioGasto, string> = {
@@ -160,7 +174,7 @@ export type GastoFila = {
   medioPago: MedioGasto | null;
   cajaMovimientoId: string | null;
   compraId: string | null;
-  comprobanteTipo: TipoComprobante;
+  comprobanteTipo: PapelDeGasto;
   comprobante: string | null;
   proveedorNombre: string | null;
   condicion: "contado" | "credito" | null;
@@ -237,7 +251,7 @@ export function leerGasto(g: Fila): GastoFila {
     medioPago: (txt(g.medio_pago) as MedioGasto | null) ?? null,
     cajaMovimientoId: txt(g.caja_movimiento_id),
     compraId: txt(g.compra_id),
-    comprobanteTipo: ((txt(g.comprobante_tipo) as TipoComprobante | null) ?? "sin_comprobante"),
+    comprobanteTipo: ((txt(g.comprobante_tipo) as PapelDeGasto | null) ?? "sin_comprobante"),
     comprobante: txt(g.comprobante),
     proveedorNombre: txt(g.proveedor_nombre),
     condicion: (txt(g.condicion) as "contado" | "credito" | null) ?? null,
@@ -312,6 +326,29 @@ export function textoPago(
   if (g.cajaMovimientoId) return `Cajón · ${g.ubicacionNombre ?? "tienda"}`;
   if (g.medioPago) return TEXTO_MEDIO[g.medioPago];
   return g.tienePagos ? "Pagado" : "—";
+}
+
+/** ¿El gasto trae comprobante? La planilla de movilidad no: es el «sin comprobante» de un gasto del viaje (decisión 55 del ADR-0362).
+ *  Un ticket o boleto sí: es un comprobante de pago, aunque hoy no dé crédito fiscal. */
+export function tieneComprobante(papel: PapelDeGasto): boolean {
+  return papel !== "sin_comprobante" && papel !== "planilla_movilidad";
+}
+
+/**
+ * El papel de un gasto como lo dice la tabla: el tipo y, debajo, su serie y número. Debajo de una planilla de movilidad va su nombre, para
+ * que nadie salga a buscar una boleta que no existe. Un valor que la pantalla no conoce se dice «Comprobante», nunca «Sin comprobante».
+ */
+export function papelDelGasto(g: Pick<GastoFila, "comprobanteTipo" | "comprobante">): { tipo: string; detalle: string | null } {
+  if (g.comprobanteTipo === "planilla_movilidad") return { tipo: TEXTO_PAPEL_DE_GASTO.planilla_movilidad, detalle: "Planilla de movilidad" };
+  const tipo = (TEXTO_PAPEL_DE_GASTO as Partial<Record<string, string>>)[g.comprobanteTipo] ?? "Comprobante";
+  return { tipo, detalle: g.comprobante };
+}
+
+/** El papel en una línea (la bajada del detalle): «Factura F001-4321», «Ticket o boleto», «Sin comprobante (planilla de movilidad)». */
+export function papelEnUnaLinea(g: Pick<GastoFila, "comprobanteTipo" | "comprobante">): string {
+  if (g.comprobanteTipo === "planilla_movilidad") return `${TEXTO_PAPEL_DE_GASTO.planilla_movilidad} (planilla de movilidad)`;
+  const { tipo, detalle } = papelDelGasto(g);
+  return detalle ? `${tipo} ${detalle}` : tipo;
 }
 
 /** «S/ 5,472»: las cifras grandes de una pantalla van sin céntimos (spike); las filas, con ellos (`soles`). */

@@ -25,8 +25,15 @@ import {
   validarActivo,
   validarFijo,
   validarGasto,
+  leerGasto,
+  papelDelGasto,
+  papelEnUnaLinea,
+  tieneComprobante,
+  TEXTO_PAPEL_DE_GASTO,
   type BorradorGasto,
+  type PapelDeGasto,
 } from "./gastos-reglas";
+import { TEXTO_PAPEL, type PapelGastoViaje } from "./gastos-viaje-reglas";
 
 const HOY = "2026-09-24";
 const base: BorradorGasto = {
@@ -184,6 +191,47 @@ describe("estado, anular y cómo se pagó", () => {
     expect(p.porPagar).toBe(48);
     expect(p.porCategoria[0]!.monto).toBe(150);
     expect(p.porUbicacion[0]!.ubicacionId).toBe(null);
+  });
+});
+
+describe("el papel de un gasto en la lista, también el de un gasto del viaje (ADR-0362, fase 6)", () => {
+  // Lo que puede traer `comprobante_tipo`: los tipos de `compras` y los papeles de `gastos_viaje` (los dos candados de la base).
+  // `pruebas:gastos-lista-viaje` compara esta misma lista con la base.
+  const TODOS: PapelDeGasto[] = ["factura", "boleta", "nota_venta", "recibo_por_honorarios", "sin_comprobante", "ticket", "planilla_movilidad"];
+  const fila = (comprobante_tipo: string | null, comprobante: string | null = null) =>
+    leerGasto({ id: "g", categoria: "viaje_compra", categoria_nombre: "Viaje de compra", cuenta: "631", descripcion: "Hotel", fecha: "2026-10-14", comprobante_tipo, comprobante });
+
+  it("cada valor que la base puede mandar tiene su texto", () => {
+    expect(Object.keys(TEXTO_PAPEL_DE_GASTO).sort()).toEqual([...TODOS].sort());
+    for (const t of TODOS) expect(papelDelGasto(fila(t)).tipo).not.toBe("");
+  });
+  it("con las mismas palabras que la hoja «Gasto del viaje»: quien lo registró reconoce lo que eligió", () => {
+    for (const p of Object.keys(TEXTO_PAPEL) as PapelGastoViaje[]) expect(TEXTO_PAPEL_DE_GASTO[p]).toBe(TEXTO_PAPEL[p]);
+  });
+  it("la factura del hotel dice Factura y su número (antes decía «Sin comprobante»)", () => {
+    expect(papelDelGasto(fila("factura", "F001-4321"))).toEqual({ tipo: "Factura", detalle: "F001-4321" });
+    expect(papelEnUnaLinea(fila("factura", "F001-4321"))).toBe("Factura F001-4321");
+  });
+  it("un ticket sin número dice «Ticket o boleto», no «Sin comprobante»", () => {
+    expect(papelDelGasto(fila("ticket"))).toEqual({ tipo: "Ticket o boleto", detalle: null });
+    expect(papelEnUnaLinea(fila("ticket"))).toBe("Ticket o boleto");
+    expect(papelEnUnaLinea(fila("ticket", "0001-552"))).toBe("Ticket o boleto 0001-552");
+  });
+  it("la planilla de movilidad dice «Sin comprobante» y, debajo, que va en la planilla", () => {
+    expect(papelDelGasto(fila("planilla_movilidad"))).toEqual({ tipo: "Sin comprobante", detalle: "Planilla de movilidad" });
+    expect(papelEnUnaLinea(fila("planilla_movilidad"))).toBe("Sin comprobante (planilla de movilidad)");
+  });
+  it("un gasto de Finanzas se dice igual que antes", () => {
+    expect(papelDelGasto(fila(null))).toEqual({ tipo: "Sin comprobante", detalle: null });
+    expect(papelEnUnaLinea(fila(null))).toBe("Sin comprobante");
+    expect(papelEnUnaLinea(fila("boleta", "B001-9"))).toBe("Boleta B001-9");
+    expect(papelEnUnaLinea(fila("recibo_por_honorarios", "E001-3"))).toBe("Recibo por honorarios E001-3");
+  });
+  it("un valor que la pantalla no conoce dice «Comprobante», nunca «Sin comprobante»", () => {
+    expect(papelDelGasto(fila("liquidacion_de_compra", "L001-1"))).toEqual({ tipo: "Comprobante", detalle: "L001-1" });
+  });
+  it("trae comprobante todo menos «sin comprobante» y la planilla de movilidad (lo que dice la Caja de un gasto del turno)", () => {
+    expect(TODOS.filter((t) => !tieneComprobante(t)).sort()).toEqual(["planilla_movilidad", "sin_comprobante"]);
   });
 });
 
