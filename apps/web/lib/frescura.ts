@@ -3,6 +3,7 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 import { enLaTabla } from "@/lib/frescura-pantalla";
 import { categoriasFueraDeMotores, sinCategoriasApagadas } from "@/lib/familias-motores";
+import { leerVendidoSinRegistrar } from "@/lib/vendido-sin-registrar";
 import {
   armarFrescuraLider,
   armarFrescuraSede,
@@ -269,22 +270,15 @@ async function anotadasDeLaSede(supabase: Supabase, sedeId: string): Promise<Ano
     const ahora = Date.now();
     const desde = new Date(ahora - 28 * 86_400_000).toISOString();
     const corte14 = ahora - 14 * 86_400_000;
-    const { data, error } = await supabase
-      .from("prendas_por_regularizar")
-      .select("categoria_id, vendido_en, categoria:categorias ( nombre )")
-      .eq("ubicacion_id", sedeId)
-      .in("estado", ["pendiente", "cerrada_sin_prenda"])
-      .gte("vendido_en", desde);
-    if (error || !data) return [];
-    // Sin lo de una familia apagada (la bolsa de despacho): sus ventas anotadas no cuentan en la rapidez de una categoría de prendas.
-    const fuera = await categoriasFueraDeMotores(supabase);
+    // La misma lectura que usa Análisis (`lib/vendido-sin-registrar.ts`), ya sin las familias apagadas: la bolsa de despacho no cuenta en
+    // la rapidez de una categoría de prendas.
     const porCategoria = new Map<string, AnotadasCategoria>();
-    for (const f of sinCategoriasApagadas(data as { categoria_id: string; vendido_en: string; categoria: { nombre: string } | null }[], fuera, (r) => r.categoria_id)) {
-      const c = porCategoria.get(f.categoria_id) ?? { categoriaId: f.categoria_id, nombre: f.categoria?.nombre ?? "Sin categoría", d14: 0, d28: 0, fechas: [] };
+    for (const f of await leerVendidoSinRegistrar(supabase, sedeId, desde)) {
+      const c = porCategoria.get(f.categoriaId) ?? { categoriaId: f.categoriaId, nombre: f.categoria, d14: 0, d28: 0, fechas: [] };
       c.d28 += 1;
-      c.fechas.push(f.vendido_en);
-      if (Date.parse(f.vendido_en) >= corte14) c.d14 += 1;
-      porCategoria.set(f.categoria_id, c);
+      c.fechas.push(f.vendidoEn);
+      if (Date.parse(f.vendidoEn) >= corte14) c.d14 += 1;
+      porCategoria.set(f.categoriaId, c);
     }
     return [...porCategoria.values()];
   } catch {

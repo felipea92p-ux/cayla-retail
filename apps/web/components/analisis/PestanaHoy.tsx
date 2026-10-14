@@ -63,7 +63,7 @@ export function PestanaHoy() {
   const estPiso: Estado | null = !datos.sabePiso ? "nd" : sinSalir.length ? "ate" : buscando ? null : "bien";
   // «¿Qué pedir?»: para cuánto te alcanza cada tipo al ritmo de los días de ventas, contra Navidad (B2, Felipe 2026-10-07).
   const hastaNavidad = diasANavidad(datos.hoy);
-  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso);
+  const alcance = alcancePorTipo(datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo);
   const noLlegan = alcance.filter((t) => t.pide);
   const vendioAlgo = alcance.some((t) => t.vendidas > 0);
 

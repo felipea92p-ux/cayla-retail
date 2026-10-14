@@ -33,6 +33,8 @@ import {
   tipRinde,
   textoAlcance,
   textoRitmo,
+  tiposSinRegistrar,
+  notaTiposSinRegistrar,
   ventaMaxima,
   type AlcanceTipo,
   type CurvaTallas,
@@ -55,9 +57,11 @@ export function PestanaPedir() {
   const riel = useMemo(() => rielNavidad(datos.hoy), [datos.hoy]);
   const hastaNavidad = diasANavidad(datos.hoy);
   const tipos = useMemo(
-    () => alcancePorTipo(datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso),
-    [datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso],
+    () => alcancePorTipo(datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo),
+    [datos.prendas, diasDeVentas, hastaNavidad, datos.sabePiso, datos.sinPrendaPorTipo],
   );
+  // Lo vendido sin registrar de tipos que la tienda no tiene en el sistema: no se sabe para cuánto alcanzan, pero no se calla.
+  const sinRegistro = useMemo(() => tiposSinRegistrar(datos.prendas, datos.sinPrendaPorTipo), [datos.prendas, datos.sinPrendaPorTipo]);
   // Las tallas se comparan talla por talla (las filas de la base), no por modelo.
   const curva = useMemo(() => curvaDeTallas(datos.tallas, categoria), [datos.tallas, categoria]);
   // «Lo que más se vende»: los 5 primeros por defecto; la persona elige ver 10, 15 o 20 (Felipe 2026-10-10). Solo se ofrecen los
@@ -124,6 +128,7 @@ export function PestanaPedir() {
             {textoRitmo(diasDeVentas)} · toca un tipo para ver sus tallas y lo que más se vende <span aria-hidden="true">→</span>
           </p>
           <TablaAlcance tipos={tiposOrdenados} hastaNavidad={hastaNavidad} categoria={categoria} onElegir={elegir} />
+          {sinRegistro.length > 0 && <p className="b-nota al-sin-registro">{notaTiposSinRegistrar(sinRegistro)}</p>}
         </section>
 
         {/* El panel del tipo elegido (o de toda la tienda): siempre a la vista junto a la lista mientras se recorre. */}
@@ -270,7 +275,8 @@ function TablaAlcance({ tipos, hastaNavidad, categoria, onElegir }: { tipos: Alc
             <span className="n">
               <b>{t.categoria}</b>
               <small>
-                vendiste {t.vendidas} · tienes {t.tiene}
+                vendiste {t.vendidas}
+                {t.sinPrenda > 0 ? ` (${t.sinPrenda} sin su prenda)` : ""} · tienes {t.tiene}
               </small>
             </span>
             <span className="p">

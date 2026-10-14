@@ -9,6 +9,8 @@ import {
   textoAlcance,
   textoRitmo,
   tipoCorto,
+  tiposSinRegistrar,
+  notaTiposSinRegistrar,
   cuentaNavidad,
   curvaDeTallas,
   escalaRinde,
@@ -170,6 +172,66 @@ describe("¿para cuánto te alcanza? (B2: por tipo, contra Navidad)", () => {
     const a = alcancePorTipo([prenda({ categoria: "Capas", vendidas30: 3, piso: 0, almacen: 0 })], 8, 79, true);
     expect(a[0]).toMatchObject({ dias: 0, pide: true });
     expect(textoAlcance(0)).toBe("Ya no hay");
+  });
+
+  // ADR-0357, act. 2026-10-14: lo vendido sin registrar (anotado en caja con su tipo) cuenta en el ritmo de su tipo.
+  describe("con lo vendido sin registrar", () => {
+    // Datos inventados: un tipo que se registra poco (8 de 22 ventas con su prenda), en una tienda de 15 días con Navidad a 72.
+    const poco = [
+      prenda({ categoria: "Faldas", categoriaPrefijo: "FAL", vendidas30: 5, piso: 6, almacen: 20, salioAlPiso: "2026-10-01" }),
+      prenda({ categoria: "Faldas", categoriaPrefijo: "FAL", vendidas30: 3, piso: 4, almacen: 19, salioAlPiso: "2026-10-01" }),
+    ];
+
+    it("sin contarlo, el tipo parecía llegar a Navidad; con lo vendido sin su prenda, no llega", () => {
+      const solo = alcancePorTipo(poco, 15, 72, true)[0]!;
+      expect(solo).toMatchObject({ vendidas: 8, sinPrenda: 0, tiene: 49, pide: false });
+      expect(Math.round(solo.dias!)).toBe(92);
+      const con = alcancePorTipo(poco, 15, 72, true, { Faldas: 14 })[0]!;
+      expect(con).toMatchObject({ vendidas: 22, sinPrenda: 14, tiene: 49, pide: true });
+      expect(Math.round(con.dias!)).toBe(33);
+    });
+
+    it("un tipo vendido SOLO sin registrar deja de ser «No se vendió»: tiene ritmo y se compara con Navidad", () => {
+      const tipo = [prenda({ categoria: "Shorts", categoriaPrefijo: "SHO", vendidas30: 0, piso: 8, almacen: 10, salioAlPiso: "2026-10-01" })];
+      expect(alcancePorTipo(tipo, 15, 72, true)[0]).toMatchObject({ dias: null, pide: false });
+      const a = alcancePorTipo(tipo, 15, 72, true, { Shorts: 16 })[0]!;
+      expect(a).toMatchObject({ vendidas: 16, sinPrenda: 16, tiene: 18, pide: true });
+      expect(textoAlcance(a.dias)).toBe("2 semanas");
+    });
+
+    it("un tipo que la tienda tiene pero hoy sin venta ni stock también suma lo vendido sin registrar (y ya no hay)", () => {
+      const agotado = [prenda({ categoria: "Capas", categoriaPrefijo: "CAP", vendidas30: 0, piso: 0, almacen: 0 })];
+      expect(alcancePorTipo(agotado, 15, 72, true)).toEqual([]);
+      expect(alcancePorTipo(agotado, 15, 72, true, { Capas: 4 })[0]).toMatchObject({ vendidas: 4, sinPrenda: 4, tiene: 0, dias: 0, pide: true });
+    });
+
+    it("un tipo que la tienda no tiene registrado no entra a la tabla: se nombra aparte, del más vendido al menos", () => {
+      const a = alcancePorTipo(poco, 15, 72, true, { Pulseras: 11, Relojes: 10, Faldas: 14 });
+      expect(a.map((t) => t.categoria)).toEqual(["Faldas"]);
+      expect(tiposSinRegistrar(poco, { Pulseras: 11, Relojes: 10, Faldas: 14, Lentes: 0 })).toEqual([
+        { categoria: "Pulseras", vendidas: 11 },
+        { categoria: "Relojes", vendidas: 10 },
+      ]);
+      expect(notaTiposSinRegistrar([{ categoria: "Pulseras", vendidas: 11 }])).toBe(
+        "También vendiste 11 Pulseras sin registrar: no están en el sistema, así que no se sabe para cuánto te alcanzan.",
+      );
+      expect(notaTiposSinRegistrar([
+        { categoria: "Pulseras", vendidas: 11 },
+        { categoria: "Relojes", vendidas: 10 },
+      ])).toContain("11 Pulseras y 10 Relojes sin registrar");
+      expect(
+        notaTiposSinRegistrar(["A", "B", "C", "D", "E"].map((c, k) => ({ categoria: c, vendidas: 9 - k }))),
+      ).toContain("9 A, 8 B, 7 C y 2 tipos más sin registrar");
+    });
+
+    it("sin lo vendido sin registrar (o vacío), todo queda como antes", () => {
+      const tienda = [
+        prenda({ categoria: "Polos", vendidas30: 37, piso: 60, almacen: 187 }),
+        prenda({ categoria: "Capas", categoriaPrefijo: "CAP", vendidas30: 7, piso: 3 }),
+      ];
+      expect(alcancePorTipo(tienda, 8, 79, true, {})).toEqual(alcancePorTipo(tienda, 8, 79, true));
+      expect(alcancePorTipo(tienda, 8, 79, true).every((t) => t.sinPrenda === 0)).toBe(true);
+    });
   });
 
   it("las palabras: días bajo una semana, semanas hasta 6 meses, y lo que no se vendió", () => {
@@ -456,8 +518,8 @@ describe("Qué pedir, opción A: el panel del tipo y el «Top» que se elige (Fe
   });
 
   it("la frase del tipo: para cuánto alcanza contra Navidad y lo que tienes; sin tipo, lo de toda la tienda", () => {
-    const tops = { categoria: "Tops", prefijo: null, familia: null, vendidas: 21, tiene: 92, nunca: 39, dias: 49, pide: true };
-    const polos = { categoria: "Polos", prefijo: null, familia: null, vendidas: 0, tiene: 10, nunca: 0, dias: null, pide: false };
+    const tops = { categoria: "Tops", prefijo: null, familia: null, vendidas: 21, sinPrenda: 0, tiene: 92, nunca: 39, dias: 49, pide: true };
+    const polos = { categoria: "Polos", prefijo: null, familia: null, vendidas: 0, sinPrenda: 0, tiene: 10, nunca: 0, dias: null, pide: false };
     expect(fraseDelTipo(tops, [], 11)).toBe("Te alcanza para 7 semanas: no llega a Navidad. Tienes 92 · 39 nunca salieron al piso.");
     expect(fraseDelTipo(polos, [], 11)).toBe("No se vendió en 11 días. Tienes 10.");
     expect(fraseDelTipo({ ...tops, dias: 0, tiene: 0, nunca: 0 }, [], 11)).toBe("Ya no te queda: no llega a Navidad. Tienes 0.");
@@ -466,7 +528,7 @@ describe("Qué pedir, opción A: el panel del tipo y el «Top» que se elige (Fe
 });
 
 describe("el orden de «¿Para cuánto te alcanza?» (Felipe 2026-10-12)", () => {
-  const t = (categoria: string, vendidas: number, dias: number | null) => ({ categoria, prefijo: null, familia: null, vendidas, tiene: 5, nunca: 0, dias, pide: false });
+  const t = (categoria: string, vendidas: number, dias: number | null) => ({ categoria, prefijo: null, familia: null, vendidas, sinPrenda: 0, tiene: 5, nunca: 0, dias, pide: false });
   // Ya ordenados por «se acaba antes», como los entrega alcancePorTipo.
   const tipos = [t("Capas", 10, 1), t("Polos", 86, 35), t("Tops", 21, 56), t("Bodys", 21, 77), t("Shorts", 0, null)];
 

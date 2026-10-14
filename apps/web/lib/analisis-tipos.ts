@@ -173,6 +173,10 @@ export type DatosAnalisis = {
   sabeUltimaVenta: boolean;
   /** Desde cuántos días sin venderse se liquida (uno para todos, ADR-0357). */
   liquidarDesde: number;
+  /** Lo vendido «sin registrar» en mi tienda en los mismos 30 días de `vendidas30`, por tipo (nombre de la categoría): la venta que no
+   *  dice qué prenda fue pero sí de qué tipo (`lib/vendido-sin-registrar.ts`). «Qué pedir» la suma a lo vendido de su tipo (ADR-0357,
+   *  act. 2026-10-14). Vacío si no se pudo leer (y se dice en `fallas`). */
+  sinPrendaPorTipo: Record<string, number>;
   /** De cada 100 líneas vendidas en mis 30 días, cuántas llevaron rebaja; null si no se vendió nada. */
   rebajaDe100: number | null;
   /** Lo que más rinde por categoría en 90 días: ganancia por cada S/ 1 que hay en ropa de esa categoría. */

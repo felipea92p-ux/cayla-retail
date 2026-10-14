@@ -4,7 +4,7 @@ import type { DatosAnalisis, PreparacionAnalisis, SedeAnalisis } from "@/lib/ana
 import { armarPrendas, conPreciosDeMiTienda } from "@/lib/analisis-armado";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { armarModelos, FALLA_ULTIMA_VENTA } from "@/lib/analisis-modelo";
-import { diasDeVentas, liquidarDesdeValido, noHabiaDe, sedeDeAnalisis } from "@/lib/analisis-reglas";
+import { diasDeVentas, liquidarDesdeValido, noHabiaDe, sedeDeAnalisis, VENTANA_VENTAS } from "@/lib/analisis-reglas";
 import { FALLA_PISO } from "@/lib/analisis-piso";
 import { getPrendasPorSede } from "@/lib/analisis-sede";
 import { getPorLlegar } from "@/lib/analisis-por-llegar";
@@ -14,7 +14,8 @@ import { getConteosResumen } from "@/lib/conteos";
 import { leerPreparacion, preparacionDeSede, RPC_PREPARACION } from "@/lib/motor-demanda-reglas";
 import { getPedidosNoAtendidos } from "@/lib/pedidos-no-atendidos";
 import { getUbicaciones, type Ubicacion } from "@/lib/ubicaciones";
-import { hoyLima } from "@/lib/fechas-lima";
+import { leerVendidoSinRegistrar, sinRegistrarPorTipo } from "@/lib/vendido-sin-registrar";
+import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 
 // Análisis v4 (ADR-0357): todo lo que la pantalla lee, una vez por visita, desde el servidor. Cada parte que falla se dice en
 // `fallas` y deja su sección callada (principio 9): nunca «sin ventas» por un error.
@@ -43,13 +44,16 @@ async function leerPreparacionDeLaRed(): Promise<{ filas: PreparacionAnalisis[];
 /** Si no se pudo leer el precio propio de mi tienda, las cifras en soles quedan con el precio de la prenda y la pantalla lo dice. */
 const FALLA_PRECIOS_DE_MI_TIENDA = "No se pudo leer el precio propio de tu tienda: las cifras en soles usan el precio de la prenda";
 
+/** Si no se pudo leer lo vendido sin registrar, «Qué pedir» cuenta solo lo vendido con su prenda y la pantalla lo dice. */
+const FALLA_SIN_PRENDA = "No se pudo leer lo vendido sin registrar: «Qué pedir» cuenta solo las ventas con su prenda";
+
 export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis> {
   const tiendas = (await getUbicaciones()).filter((u) => u.tipo === "tienda" && u.activo);
   const ordenadas = [activa, ...tiendas.filter((u) => u.id !== activa.id)];
   const sedes: SedeAnalisis[] = ordenadas.map(sedeDeAnalisis);
   const ids = sedes.map((s) => s.id);
 
-  const [motor, lectura, llegan, liquidar, rinde, conteos, pedidos, preciosPropios] = await Promise.all([
+  const [motor, lectura, llegan, liquidar, rinde, conteos, pedidos, preciosPropios, sinPrenda] = await Promise.all([
     leerPreparacionDeLaRed(),
     getPrendasPorSede(ids),
     getPorLlegar(activa.id),
@@ -66,6 +70,14 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
     // El precio de MI tienda (su precio propio, si lo tiene): solo la mía, de las otras no se lee precio. No lanza; si falla, mi
     // tienda no aparece en el mapa y se dice (más abajo) en vez de mostrar el precio de la prenda como si fuera el de la caja.
     getPreciosPorSede([activa.id]),
+    // Lo vendido sin registrar de mi tienda en los mismos 30 días de Lima que `vendidas30` (hoy incluido): cuenta en «Qué pedir» por tipo.
+    // Si falla, «Qué pedir» cuenta solo lo vendido con su prenda, como antes, y se dice.
+    createClient()
+      .then((supabase) => leerVendidoSinRegistrar(supabase, activa.id, `${sumarDias(hoyLima(), -(VENTANA_VENTAS - 1))}T00:00:00-05:00`))
+      .catch((e: unknown) => {
+      console.error(`vendido sin registrar de Análisis: ${e instanceof Error ? e.message : String(e)}`);
+      return null;
+    }),
   ]);
   const preciosDeMiTienda = preciosPropios[activa.id];
 
@@ -104,11 +116,12 @@ export async function getDatosAnalisis(activa: Ubicacion): Promise<DatosAnalisis
     sabePiso,
     sabeUltimaVenta,
     liquidarDesde,
+    sinPrendaPorTipo: sinPrenda ? sinRegistrarPorTipo(sinPrenda) : {},
     rebajaDe100: lectura.rebajaDe100[activa.id] ?? null,
     rinde: rinde.rinde,
     conteo: ultimoConteo ? { contadas: ultimoConteo.lineas, coinciden: Math.max(0, ultimoConteo.lineas - ultimoConteo.lineasConDiferencia) } : null,
     noHabia: noHabiaDe(pedidos ?? []),
-    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null].filter(
+    fallas: [motor.falla, lectura.falla, fallaPiso, fallaUltima, preciosDeMiTienda === undefined ? FALLA_PRECIOS_DE_MI_TIENDA : null, llegan.falla, liquidar.falla, rinde.falla, conteos === null ? "No se pudo leer el último conteo" : null, pedidos === null ? "No se pudo leer «Te pidieron y no había»" : null, sinPrenda === null ? FALLA_SIN_PRENDA : null].filter(
       (f): f is string => f !== null,
     ),
   };
