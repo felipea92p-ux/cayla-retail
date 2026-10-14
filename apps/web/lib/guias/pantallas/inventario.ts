@@ -1382,7 +1382,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.sin-aviso",
       opcional: true,
       titulo: "¿Llegó algo sin aviso?",
-      texto: "Lo que vino directo del proveedor se recibe igual: eliges de quién es, la guía si la trae y quién recibe, y se abre para contarlo por categoría. Si ese proveedor tiene una factura por recibir aquí, te ofrece recibir contra ella. En la demo no lo abrimos.",
+      texto: "Lo que vino directo del proveedor se recibe igual: eliges de quién es (o «No sé de quién es», y se elige al cerrar), la guía si la trae y quién recibe, y se cuenta por categoría. Si ese proveedor tiene una factura por recibir aquí, te ofrece recibir contra ella. En la demo no lo abrimos.",
     },
     {
       id: "proveedor",
@@ -1621,6 +1621,15 @@ export const GUIA_RECIBIR_ENVIO: Guia = {
       requiere: ["recepcion.tabla-cierre"],
       titulo: "Lo que se cierra",
       texto: "Una fila por categoría: el costo (corrígelo si la factura dice otro), lo que dijeron, lo que contaste, cuántas se pueden vender ya y qué queda para después. Si no cuadró, eliges qué pasó: queda anotado para Compras.",
+    },
+    {
+      // Felipe 2026-10-14: solo en un envío sin aviso que se abrió sin saber de quién es.
+      id: "de-quien",
+      ancla: "recepcion.de-quien",
+      opcional: true,
+      requiere: ["recepcion.tabla-cierre"],
+      titulo: "¿De quién llegó?",
+      texto: "Este paquete se abrió sin saber de quién era. Antes de cerrar, pregúntale a Compras y elígelo: sin proveedor no entra al stock, porque el lote, el costo y la factura se unen por él. Las prendas sí pueden quedar sin marca.",
     },
     {
       id: "cerrar-boton",

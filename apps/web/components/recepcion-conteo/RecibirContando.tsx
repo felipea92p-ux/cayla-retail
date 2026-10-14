@@ -77,6 +77,7 @@ export function RecibirContando({
   lotes,
   veExistencias,
   veDinero,
+  proveedoresParaElegir = [],
 }: {
   detalle: DetalleEnvio;
   conteos: ConteosDelEnvio | null;
@@ -87,6 +88,8 @@ export function RecibirContando({
   veExistencias: boolean;
   /** Ve el dinero de Compras: en un envío sin aviso, solo así escribe el costo (ADR-0330). */
   veDinero: boolean;
+  /** Un envío sin aviso que llegó sin saber de quién (Felipe 2026-10-14): los proveedores para elegir al cerrar. */
+  proveedoresParaElegir?: readonly { id: string; nombre: string }[];
 }) {
   const router = useRouter();
   const responsable = useResponsable();
@@ -157,7 +160,7 @@ export function RecibirContando({
 
   /** Guarda una línea en la base con lo último que se escribió. */
   const guardar = useCallback(
-    async (linea: LineaParaContar, b: Borrador, nuevo?: { proveedorId: string | null; categoriaId: string; marcaId: string }): Promise<ConteoDeLinea | null> => {
+    async (linea: LineaParaContar, b: Borrador, nuevo?: { proveedorId: string | null; categoriaId: string; marcaId: string | null }): Promise<ConteoDeLinea | null> => {
       const { contadas, subio } = contadasParaGuardar(b.contadas, b.separado, linea.conteo?.enStock ?? 0);
       setGuardados((g) => ({ ...g, [linea.clave]: "guardando" }));
       const { guardado, error } = await guardarConteo(
@@ -257,7 +260,7 @@ export function RecibirContando({
     numero: detalle.numero,
     enviado: detalle.enviado,
     sinAviso,
-    proveedor: base?.proveedores[0]?.nombre ?? null,
+    proveedor: base?.proveedorPorConfirmar ? "proveedor por confirmar" : (base?.proveedores[0]?.nombre ?? null),
     contadas: cifras.contadas,
     paraDespues: resumenDelCierre(lineas).guardadas,
   });
@@ -333,6 +336,7 @@ export function RecibirContando({
           lineas={lineas}
           conteos={conteos}
           sinAviso={sinAviso}
+          proveedorPorConfirmar={base?.proveedorPorConfirmar ?? false}
           reabierto={reabierto}
           catalogo={catalogo}
           responsable={responsable}
@@ -360,6 +364,8 @@ export function RecibirContando({
           sede={sedeActual.etiqueta}
           responsable={responsable}
           veDinero={veDinero}
+          proveedorPorConfirmar={base?.proveedorPorConfirmar ?? false}
+          proveedores={proveedoresParaElegir}
           esperandoGuardar={pendientesDeGuardar}
           onVolver={() => setPaso(2)}
           onConteoCambiado={() => void releer()}

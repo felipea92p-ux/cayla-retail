@@ -1562,7 +1562,7 @@ export function argsPrepararPrenda(
     despachoId: string;
     despachoItemId: string | null;
     categoriaId: string;
-    marcaId: string;
+    marcaId: string | null;
     productoId: string | null;
     confirmoDistinto: boolean;
     token: string;

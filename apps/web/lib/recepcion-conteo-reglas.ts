@@ -42,6 +42,8 @@ export const RPC_CERRAR_CONTEO = "cerrar_conteo_envio";
 export const RPC_RESOLVER_PENDIENTE = "resolver_pendiente_envio";
 export const RPC_REABRIR_ENVIO = "reabrir_envio";
 export const RPC_SIN_AVISO = "abrir_envio_sin_aviso";
+/** Felipe 2026-10-14: el proveedor de un envío sin aviso que se abrió sin saberlo. */
+export const RPC_PONER_PROVEEDOR = "poner_proveedor_envio";
 
 export const TOPES_CONTEO = { contadas: 99999, descripcionNueva: 200, nota: 300, notaEnvio: 500, motivo: 300, guia: 40 } as const;
 
@@ -362,6 +364,8 @@ export type ConteosDelEnvio = {
   despachoId: string;
   estado: string | null;
   origen: "compra" | "sin_aviso";
+  /** Un envío sin aviso que se abrió sin saber de quién es (Felipe 2026-10-14): se cuenta igual y el proveedor se pone antes de cerrar. */
+  proveedorPorConfirmar: boolean;
   proveedores: { id: string; nombre: string }[];
   conteos: ConteoDeLinea[];
   cierres: CierreDelEnvio[];
@@ -445,6 +449,7 @@ export function leerConteosDelEnvio(data: unknown): ConteosDelEnvio | null {
     despachoId,
     estado: texto(r.estado),
     origen: texto(r.origen) === "sin_aviso" ? "sin_aviso" : "compra",
+    proveedorPorConfirmar: booleano(r.proveedor_por_confirmar) ?? false,
     proveedores: lista(r.proveedores).map(idNombre).filter((p): p is { id: string; nombre: string } => p !== null),
     conteos: lista(r.conteos).map(leerConteoDeLinea).filter((c): c is ConteoDeLinea => c !== null),
     cierres: lista(r.cierres)
@@ -546,7 +551,7 @@ export function argsGuardarConteo(p: {
   linea: Pick<LineaParaContar, "linea" | "conteo">;
   contadas: number;
   separado: Separado;
-  nuevo?: { proveedorId: string | null; categoriaId: string; marcaId: string };
+  nuevo?: { proveedorId: string | null; categoriaId: string; marcaId: string | null };
 }): ArgsGuardarConteo {
   const extra = p.linea.linea ? null : (p.linea.conteo?.extraPosicion ?? null);
   return {
@@ -645,7 +650,13 @@ export function faltaParaCerrar(p: {
 }
 
 /** Los campos de la guía de foco del cierre (ADR-0284): los mismos que `faltaParaCerrar`, también los ya hechos (llevan su ✓). */
-export function camposDelCierre(p: Parameters<typeof faltaParaCerrar>[0]): CampoDeGuia[] {
+export function camposDelCierre(
+  p: Parameters<typeof faltaParaCerrar>[0] & {
+    /** Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): `cerrar_conteo_envio` no cierra sin proveedor (`envio_sin_proveedor`). */
+    proveedorPorConfirmar?: boolean;
+    proveedorElegido?: boolean;
+  },
+): CampoDeGuia[] {
   const falta = faltaParaCerrar(p);
   const campos: CampoDeGuia[] = [];
   for (const l of p.lineas) {
@@ -672,6 +683,9 @@ export function camposDelCierre(p: Parameters<typeof faltaParaCerrar>[0]): Campo
         pendiente: f ? `${f.texto}.` : "Sin costo entra igual: llega con la factura.",
       });
     }
+  }
+  if (p.proveedorPorConfirmar) {
+    campos.push({ id: "proveedor", nombre: "De quién llegó", requerido: true, hecho: p.proveedorElegido === true, pendiente: "Elige de quién llegó: pregúntale a Compras." });
   }
   campos.push({ id: "responsable", nombre: "Quién cierra", requerido: true, hecho: p.responsable, pendiente: "Elige quién cierra." });
   return campos;
@@ -759,8 +773,16 @@ export function causasDe(
   return null;
 }
 
+/** La marca de una línea (Felipe 2026-10-14: lo que no estaba en la guía puede no tenerla): la suya o «Sin marca» (`id` vacío). */
+export type MarcaDeLinea = { id: string | null; nombre: string };
+/** El valor de «Sin marca» en un combo (la base recibe `null`). */
+export const SIN_MARCA = "sin-marca";
+export function marcaDeLinea(l: { marca: { id: string; nombre: string } | null }): MarcaDeLinea {
+  return l.marca ?? { id: null, nombre: "Sin marca" };
+}
+
 export function nombreDeLinea(l: Pick<LineaParaContar, "categoria" | "marca" | "linea">): string {
-  const base = [l.categoria?.nombre, l.marca?.nombre].filter(Boolean).join(" · ") || "esta línea";
+  const base = [l.categoria?.nombre, l.categoria ? marcaDeLinea(l).nombre : null].filter(Boolean).join(" · ") || "esta línea";
   return l.linea?.descripcion ? `${base} · ${l.linea.descripcion}` : base;
 }
 

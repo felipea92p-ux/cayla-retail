@@ -22,6 +22,7 @@ import {
   totalSeparado,
   type PrendaSeparada,
   type Separado,
+  type MarcaDeLinea,
 } from "@/lib/recepcion-conteo-reglas";
 import { BaldosaCategoria } from "./piezas";
 import { DescribirNuevas } from "./DescribirNuevas";
@@ -72,7 +73,7 @@ export function SepararPrendas({
   onPrendaVista,
 }: {
   categoria: CategoriaDeLinea;
-  marca: { id: string; nombre: string };
+  marca: MarcaDeLinea;
   separado: Separado;
   tope: number;
   enHacerAhora?: boolean;
@@ -223,7 +224,7 @@ function BuscarPrendaEnLinea({
   onEsNueva,
 }: {
   categoria: CategoriaDeLinea;
-  marca: { id: string; nombre: string };
+  marca: MarcaDeLinea;
   onElegir: (p: PrendaRecepcion) => void;
   onEsNueva: (texto: string) => void;
 }) {

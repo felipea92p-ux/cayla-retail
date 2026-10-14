@@ -2,7 +2,7 @@
   "guia": "recibir",
   "ruta": "/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 132,
+  "total": 133,
   "controles": {
     "app/(app)/recibir/page.tsx": [
       "Volver «)»",
@@ -159,6 +159,7 @@
     ],
     "components/recepcion-conteo/LlegoSinAviso.tsx": [
       "button «→() => setProveedorId(p.id)»",
+      "button «No sé de qu»",
       "Link «Sí, viene con la»",
       "CampoTexto «{campos.etiqueta(\"sin-aviso-guia\", \"Número de guía (opcional)\")}»",
       "ComboResponsable «(sin nombre)»",

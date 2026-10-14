@@ -59,6 +59,8 @@ import {
   mensajeAlGuardar,
   esEnvioSinAviso,
   detalleDeEnvioSinAviso,
+  marcaDeLinea,
+  nombreDeLinea,
 } from "./recepcion-conteo-reglas";
 import type { LineaEnvio } from "./recepcion-envio-reglas";
 
@@ -647,5 +649,35 @@ describe("poner las tallas desde la hoja", () => {
     expect(juntas.prendas.map((p) => [p.productoId, p.cantidad, p.variantes?.map((x) => [x.varianteId, x.cantidad])])).toEqual([
       ["pb", 5, [["b1", 3], ["b2", 2]]],
     ]);
+  });
+});
+
+describe("Felipe 2026-10-14: sin proveedor y sin marca", () => {
+  const sinMarca: LineaParaContar = {
+    clave: "extra:1",
+    linea: null,
+    conteo: leerConteosDelEnvio({ despacho_id: "d", conteos: [conteoCrudo({ extra_posicion: 1, contadas: 3, proveedor: null, categoria: CAT, marca: null })] })?.conteos[0] ?? null,
+    categoria: CAT,
+    marca: null,
+    proveedor: null,
+    dijeron: null,
+  };
+
+  it("el envío dice si se abrió sin saber de quién es", () => {
+    expect(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso", proveedor_por_confirmar: true, proveedores: [] })?.proveedorPorConfirmar).toBe(true);
+    expect(leerConteosDelEnvio({ despacho_id: "d", origen: "sin_aviso" })?.proveedorPorConfirmar).toBe(false);
+  });
+
+  it("una línea sin marca se nombra «Sin marca» y lleva su id vacío (la base recibe null)", () => {
+    expect(marcaDeLinea(sinMarca)).toEqual({ id: null, nombre: "Sin marca" });
+    expect(marcaDeLinea({ marca: MARCA })).toEqual(MARCA);
+    expect(nombreDeLinea(sinMarca)).toMatch(/Sin marca/);
+  });
+
+  it("al cerrar, «De quién llegó» se pide solo si se abrió sin saberlo, y la guía coincide con lo que frena la base", () => {
+    const base = { lineas: [sinMarca], decisiones: {}, sinAviso: true, responsable: true };
+    expect(camposDelCierre(base).some((c) => c.id === "proveedor")).toBe(false);
+    expect(camposDelCierre({ ...base, proveedorPorConfirmar: true }).find((c) => c.id === "proveedor")).toMatchObject({ requerido: true, hecho: false });
+    expect(camposDelCierre({ ...base, proveedorPorConfirmar: true, proveedorElegido: true }).find((c) => c.id === "proveedor")).toMatchObject({ hecho: true });
   });
 });

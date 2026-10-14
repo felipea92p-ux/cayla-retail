@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, PackageOpen, Store } from "lucide-react";
+import { ArrowRight, Check, CircleHelp, PackageOpen, Store } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -22,6 +22,9 @@ import { abrirEnvioSinAviso } from "@/lib/recepcion-conteo-acciones";
 // que un envío —por categoría, lo demás para después—. La puerta pregunta lo de siempre (ADR-0330): ¿de quién es? Si ese proveedor tiene una
 // factura por recibir en esta sede, ofrece recibir contra ella. Si no, abre un envío sin guía y lleva a contarlo. El costo llega con la
 // factura (solo quien ve el dinero de Compras lo pone al cerrar).
+
+/** «No sé de quién es» (Felipe 2026-10-14): a veces Compras manda sin decir de quién es. Se cuenta igual y el proveedor se pone al cerrar. */
+const SIN_PROVEEDOR = "sin-proveedor";
 
 export type FacturaPorRecibir = { id: string; proveedorId: string; documento: string; fechaEmision: string | null; pendientes: number };
 
@@ -49,7 +52,7 @@ export function LlegoSinAviso({
 
   const campos = useGuiaCampos(
     [
-      { id: "sin-aviso-proveedor", nombre: "De quién es", requerido: true, hecho: proveedorId !== "", pendiente: "Elige de qué proveedor es." },
+      { id: "sin-aviso-proveedor", nombre: "De quién es", requerido: true, hecho: proveedorId !== "", pendiente: "Elige de qué proveedor es, o «No sé de quién es»." },
       { id: "sin-aviso-guia", nombre: "Número de guía", requerido: false, hecho: guia.trim() !== "", pendiente: "Si vino con guía, escribe su número." },
       { id: "sin-aviso-quien", nombre: "Quién recibe", requerido: true, hecho: responsable.listo, pendiente: "Elige quién recibe." },
     ],
@@ -61,7 +64,7 @@ export function LlegoSinAviso({
     setAbriendo(true);
     setError(null);
     const { abierto, error: e } = await abrirEnvioSinAviso(
-      { p_ubicacion_id: ubicacionId, p_proveedor_id: proveedorId, p_numero_guia: guia.trim() || null, p_nota: null, p_token: token },
+      { p_ubicacion_id: ubicacionId, p_proveedor_id: proveedorId === SIN_PROVEEDOR ? null : proveedorId, p_numero_guia: guia.trim() || null, p_nota: null, p_token: token },
       responsable.firma(),
     );
     responsable.despues(e);
@@ -132,6 +135,27 @@ export function LlegoSinAviso({
               ))}
               {aLaVista.length === 0 && <li className="px-1 text-[13px] text-taupe">Ningún proveedor coincide con «{buscar}».</li>}
               {coinciden.length > primeros.length && <li className="px-1 text-xs text-taupe">Escribe para encontrar a los demás ({coinciden.length - primeros.length} más).</li>}
+              {/* Siempre a la vista, al final: no depende de lo que se busque. */}
+              <li>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={proveedorId === SIN_PROVEEDOR}
+                  onClick={() => setProveedorId(SIN_PROVEEDOR)}
+                  className={`flex w-full items-center gap-3 rounded-2xl border border-dashed px-3 py-2.5 text-left transition-colors ${
+                    proveedorId === SIN_PROVEEDOR ? "border-tinta bg-papel" : "border-tinta/25 hover:border-tinta/40"
+                  }`}
+                >
+                  <span className="rc-cat-ic" data-tamano="chico" aria-hidden>
+                    <CircleHelp className="h-[18px] w-[18px]" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <b className="block text-[14.5px] text-tinta">No sé de quién es</b>
+                    <small className="block text-[12.5px] text-taupe">Se cuenta igual. Antes de cerrar, pregúntale a Compras y elígelo.</small>
+                  </span>
+                  {proveedorId === SIN_PROVEEDOR && <Check aria-hidden className="h-4 w-4 text-verde" />}
+                </button>
+              </li>
             </ul>
           </CampoGuiado>
 

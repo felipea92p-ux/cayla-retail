@@ -53,7 +53,8 @@ export function BloquePrenda({
   conteo: Conteo;
   prenda: PrendaRecepcion | null;
   categoria: CategoriaDeLinea;
-  marca: { id: string; nombre: string };
+  /** `id` vacío = sin marca (ADR-0393, 2026-10-14). */
+  marca: { id: string | null; nombre: string };
   colores: readonly ColorAlta[];
   /** Lo que venía de esta línea (`null` en lo que no estaba en la guía): «Contaste 18 de 20». */
   enviado: number | null;

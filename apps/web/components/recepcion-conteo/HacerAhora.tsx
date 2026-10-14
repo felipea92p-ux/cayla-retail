@@ -25,6 +25,8 @@ import {
   type Separado,
   type VarianteSeparada,
   mensajeAlGuardar,
+  marcaDeLinea,
+  type MarcaDeLinea,
 } from "@/lib/recepcion-conteo-reglas";
 import { resolverPendiente } from "@/lib/recepcion-conteo-acciones";
 import { HojaTallas } from "./HojaTallas";
@@ -75,7 +77,8 @@ export function HacerAhora({
   const [error, setError] = useState<string | null>(null);
   const [atipicos, setAtipicos] = useState<{ costos: CostoAtipicoRecepcion[]; separado: Separado } | null>(null);
   const categoria = linea?.categoria ?? null;
-  const marca = linea?.marca ?? null;
+  // La de la línea, o «Sin marca» (ADR-0393, 2026-10-14): una línea sin marca también se termina.
+  const marca = linea ? marcaDeLinea(linea) : null;
   const pendienteId = item.tipo === "separar" ? null : item.pendiente.id;
 
   // Un «detalle»: la prenda del pendiente con sus tallas y colores (de lo ya buscado, o se busca por su nombre).
@@ -268,7 +271,7 @@ function SepararAhora({
 }: {
   item: ParaDespues;
   categoria: NonNullable<LineaParaContar["categoria"]>;
-  marca: NonNullable<LineaParaContar["marca"]>;
+  marca: MarcaDeLinea;
   separado: Separado;
   guardando: boolean;
   error: string | null;

@@ -9,6 +9,7 @@ import {
   RPC_CERRAR_CONTEO,
   RPC_CONTEOS_ENVIO,
   RPC_GUARDAR_CONTEO,
+  RPC_PONER_PROVEEDOR,
   RPC_REABRIR_ENVIO,
   RPC_RESOLVER_PENDIENTE,
   RPC_SIN_AVISO,
@@ -64,11 +65,20 @@ export async function reabrirEnvio(
   return { abierto: error ? null : leerEnvioAbierto(data), error: error ?? null };
 }
 
-/** «Llegó sin aviso»: abre en la sede un envío sin guía de ese proveedor. */
+/** «Llegó sin aviso»: abre en la sede un envío sin guía de ese proveedor, o sin proveedor (`null`: por confirmar, Felipe 2026-10-14). */
 export async function abrirEnvioSinAviso(
-  args: { p_ubicacion_id: string; p_proveedor_id: string; p_numero_guia: string | null; p_nota: string | null; p_token: string },
+  args: { p_ubicacion_id: string; p_proveedor_id: string | null; p_numero_guia: string | null; p_nota: string | null; p_token: string },
   firma: Firma | null,
 ): Promise<{ abierto: ReturnType<typeof leerEnvioAbierto>; error: ErrorDeBase }> {
   const { data, error } = (await firmar(createClient().rpc(RPC_SIN_AVISO as never, args as never), firma)) as Respuesta;
   return { abierto: error ? null : leerEnvioAbierto(data), error: error ?? null };
+}
+
+/** Pone el proveedor de un envío sin aviso que se abrió sin saberlo (una sola vez; el mismo otra vez no hace nada). Antes de cerrar. */
+export async function ponerProveedorEnvio(
+  args: { p_despacho_id: string; p_proveedor_id: string },
+  firma: Firma | null,
+): Promise<{ ok: boolean; error: ErrorDeBase }> {
+  const { error } = (await firmar(createClient().rpc(RPC_PONER_PROVEEDOR as never, args as never), firma)) as Respuesta;
+  return { ok: !error, error: error ?? null };
 }

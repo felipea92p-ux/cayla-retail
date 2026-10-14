@@ -17,6 +17,13 @@
 --   4. El proveedor del envío vale en `guardar_conteo_envio` y en `preparar_prenda_al_recibir` (REEMPLAZOS ANCLADOS), que lo buscaban
 --      solo en las órdenes; `recibir_despacho` (el formulario de la fase 4) no cierra un envío sin aviso; `fn_envio_conteos` dice de
 --      dónde vino el envío (`origen`) y sus proveedores.
+--   5. (Felipe, 2026-10-14) SIN PROVEEDOR: a veces Compras manda sin decir de quién es. El envío sin aviso se abre y se cuenta sin
+--      proveedor («por confirmar»); `poner_proveedor_envio` lo pone cuando alguien lo sabe, y `cerrar_conteo_envio` no cierra sin él
+--      (`envio_sin_proveedor`): nada entra al stock sin dueño, porque el lote, el costo y la factura se unen por proveedor.
+--   6. (Felipe, 2026-10-14) SIN MARCA: hay prendas que no tienen marca. Lo que no estaba en la guía se cuenta sin marca si hace falta,
+--      la prenda se crea sin marca (el catálogo ya lo acepta y se completa en Editar producto) y entra al stock así:
+--      `despacho_recibidos.marca_id` y `despacho_diferencias.marca_id` dejan de ser obligatorios, y las lecturas que unían la marca
+--      (el detalle del envío, el cierre y «Hacer ahora») la unen con LEFT JOIN para no perder esas filas.
 --
 -- LO QUE NUNCA DEBE EXISTIR (y quién lo impide):
 --   · Un envío sin aviso con líneas de Compras → nace abierto en la misma transacción, y una línea solo se agrega a un envío en camino
@@ -25,6 +32,9 @@
 --   · Un costo escrito por quien no ve el dinero de Compras → cerrar_conteo_envio (`recepcion_costo_sin_permiso`).
 --   · El costo de una prenda pisado por una entrada sin costo → fn_recepcion_entrar no promedia lo que entra sin costo.
 --   · El mismo envío sin aviso dos veces por un doble clic → `despachos.token_cliente` único.
+--   · Una prenda que entra al stock sin proveedor → cerrar_conteo_envio (`envio_sin_proveedor`) y, debajo, `lotes.proveedor_id` y
+--     `despacho_recibidos.proveedor_id` obligatorios.
+--   · Un proveedor cambiado después de puesto → el disparador `despachos_sin_aviso_fija` solo deja pasar de vacío a uno, una vez.
 --
 -- CONTRATO de abrir_envio_sin_aviso
 --   PROMETE: con el módulo Recibir, la sede (la de la cabecera, que la cuenta puede operar) y quien firma, abre un envío sin guía de
@@ -37,12 +47,14 @@
 --     de Compras, y una docena de lecturas suyas (el detalle, «por recibir», «Nos debe», preparar_prenda_al_recibir) unen la línea con su
 --     orden; cada una habría que tocarla para que no la pierda. «Lo que no estaba en la guía» ya es exactamente esto: categoría, marca y
 --     proveedor, contado y separado igual.
---   · «Por confirmar» como proveedor: la puerta de hoy ya pregunta «¿de quién?» primero, y un lote, una deuda y una factura sin proveedor
---     no se pueden unir después. Si en la tienda nadie sabe, el líder lo elige.
+--   · Que entre al stock sin proveedor (con el lote «por confirmar»): se vendería el mismo día, pero el lote, el costo, la factura y
+--     «Nos debe» quedarían sin dueño y unirlos después reescribe historia del núcleo. Felipe eligió (2026-10-14) contar sin proveedor y
+--     ponerlo antes de cerrar. Lo que sí queda libre es la PRENDA: sin marca y, si se crea sin saber de quién es, sin proveedor.
 --   · «Lo que dijeron» por categoría (cuántas prometió el proveedor por WhatsApp): sin orden no hay deuda que anotar; cabe en la nota.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe). UNA parte, después de 20261013180000: una tabla NUEVA sin políticas (RLS encendido),
--- `despacho_recibidos.costo_unitario` deja de ser obligatorio (0 filas en producción; solo la escriben estas funciones), disparadores
+-- `despacho_recibidos.costo_unitario` y `marca_id`, y `despacho_diferencias.marca_id`, dejan de ser obligatorios (0 filas en producción;
+-- solo las escriben estas funciones), el CHECK de lo contado fuera de la guía se afloja (tabla nueva de 171000), disparadores
 -- con `create or replace trigger`; sin `drop trigger` ni políticas (ADR-0195) y sin `select … into` dentro de textos entre comillas
 -- (ADR-0288). Los reemplazos anclados abortan sin tocar nada si una definición viva cambió y no hacen nada si ya están. Se puede pegar
 -- dos veces. El bloque final comprueba todo.
@@ -74,14 +86,16 @@ $f$;
 -- ---------- 1. Los envíos que llegaron sin aviso ----------
 create table if not exists retail.despachos_sin_aviso (
   despacho_id uuid primary key references retail.despachos (id),
-  -- «¿De quién?»: el proveedor de todo lo que llegue en este envío.
-  proveedor_id uuid not null references retail.proveedores (id),
+  -- «¿De quién?»: el proveedor de todo lo que llegue en este envío. Vacío = por confirmar (Felipe 2026-10-14): se pone una sola vez,
+  -- con poner_proveedor_envio, y el envío no se cierra sin él.
+  proveedor_id uuid references retail.proveedores (id),
   creado_por uuid not null references public.personas (id),
   creado_en timestamptz not null default now()
 );
 comment on table retail.despachos_sin_aviso is
   'ADR-0393 (decisión 2): los envíos que una sede abrió al llegar mercadería sin orden de compra, y de qué proveedor. Un envío así no '
   'tiene líneas: todo lo contado es «lo que no estaba en la guía» y nada sobra. No se cambia ni se borra. Solo funciones (RLS sin políticas).';
+alter table retail.despachos_sin_aviso alter column proveedor_id drop not null;
 alter table retail.despachos_sin_aviso enable row level security;
 revoke all on table retail.despachos_sin_aviso from anon, authenticated;
 
@@ -92,6 +106,11 @@ security definer
 set search_path = retail, public, extensions
 as $$
 begin
+  -- La única escritura: poner el proveedor que faltaba (por confirmar → uno), sin tocar nada más.
+  if tg_op = 'UPDATE' and old.proveedor_id is null and new.proveedor_id is not null
+     and new.despacho_id = old.despacho_id and new.creado_por = old.creado_por and new.creado_en = old.creado_en then
+    return new;
+  end if;
   raise exception 'De quién llegó un envío sin aviso no se cambia ni se borra' using errcode = '42501', hint = 'sin_aviso_inmutable';
 end;
 $$;
@@ -111,6 +130,59 @@ select pg_temp.reemplazar(
       if v_costo is not null then
         perform retail.fn_recalcular_costo_variante(v_var, v_buenas + v_danadas, v_costo, 'compra', v_movs[1]);
       end if;$v$,
+  1);
+
+-- ---------- 2b. Sin marca (Felipe 2026-10-14): lo que no estaba en la guía puede no tener marca ----------
+-- Lo de la guía trae la suya (la de la orden); lo agregado al contar puede no tenerla, y entra al stock así.
+alter table retail.despacho_recibidos alter column marca_id drop not null;
+alter table retail.despacho_diferencias alter column marca_id drop not null;
+alter table retail.despacho_conteos drop constraint if exists despacho_conteos_extra_con_que;
+-- El proveedor también puede faltar en lo contado de un envío sin aviso por confirmar: el cierre lo exige (sección 3) y
+-- poner_proveedor_envio lo completa.
+alter table retail.despacho_conteos add constraint despacho_conteos_extra_con_que
+  check (extra_posicion is null or categoria_id is not null);
+comment on column retail.despacho_recibidos.marca_id is
+  'La marca de lo que entró: la de la línea de la guía o, en lo que no estaba en ella, la elegida al contar. Vacía = sin marca (ADR-0393, 2026-10-14).';
+
+-- Las lecturas que unían la marca la unen con LEFT JOIN: con JOIN, una fila sin marca desaparecía sin aviso (el cierre no la habría
+-- metido al stock y «Hacer ahora» no habría encontrado su pendiente).
+select pg_temp.reemplazar(
+  'retail.cerrar_conteo_envio(uuid,integer,jsonb,text,uuid)',
+  $v$join retail.marcas m on m.id = coalesce(di.marca_id, k.marca_id)$v$,
+  $v$left join retail.marcas m on m.id = coalesce(di.marca_id, k.marca_id)$v$,
+  3);
+select pg_temp.reemplazar(
+  'retail.resolver_pendiente_envio(uuid,uuid,integer,uuid,jsonb,boolean,uuid)',
+  $v$join retail.marcas m on m.id = coalesce(di.marca_id, k.marca_id)$v$,
+  $v$left join retail.marcas m on m.id = coalesce(di.marca_id, k.marca_id)$v$,
+  1);
+select pg_temp.reemplazar(
+  'retail.fn_envio_detalle(uuid)',
+  $v$join retail.marcas m on m.id = r.marca_id$v$,
+  $v$left join retail.marcas m on m.id = r.marca_id$v$,
+  1);
+select pg_temp.reemplazar(
+  'retail.fn_envio_detalle(uuid)',
+  $v$join retail.marcas m on m.id = x.marca_id$v$,
+  $v$left join retail.marcas m on m.id = x.marca_id$v$,
+  1);
+select pg_temp.reemplazar(
+  'retail.fn_envio_detalle(uuid)',
+  $v$'marca', jsonb_build_object('id', m.id, 'nombre', m.nombre)$v$,
+  $v$'marca', case when m.id is not null then jsonb_build_object('id', m.id, 'nombre', m.nombre) end$v$,
+  3);
+
+-- «Ya la tengo» y el buscador de «¿Qué … son?»: sin marca busca las prendas sin marca de esa categoría.
+select pg_temp.reemplazar(
+  'retail.fn_prendas_para_recibir(uuid,uuid,text)',
+  $v$  if p_categoria_id is null or p_marca_id is null then$v$,
+  $v$  -- ADR-0393 (Felipe 2026-10-14): sin marca vale: busca las prendas sin marca de esa categoría.
+  if p_categoria_id is null then$v$,
+  1);
+select pg_temp.reemplazar(
+  'retail.fn_prendas_para_recibir(uuid,uuid,text)',
+  $v$           and pr.marca_id = p_marca_id$v$,
+  $v$           and pr.marca_id is not distinct from p_marca_id$v$,
   1);
 
 -- ---------- 3. Al cerrar: nada sobra y el costo es de quien ve el dinero de Compras ----------
@@ -137,24 +209,88 @@ select pg_temp.reemplazar(
     elsif v_costo is null then$v$,
   1);
 
+select pg_temp.reemplazar(
+  'retail.cerrar_conteo_envio(uuid,integer,jsonb,text,uuid)',
+  $v$  perform retail.fn_recepcion_exigir(v_despacho.id, v_despacho.ubicacion_destino_id, v_actor);$v$,
+  $v$  perform retail.fn_recepcion_exigir(v_despacho.id, v_despacho.ubicacion_destino_id, v_actor);
+  -- ADR-0393 (Felipe 2026-10-14): lo que llegó sin aviso se cuenta sin saber de quién es, pero no entra al stock sin proveedor.
+  if exists (select 1 from retail.despachos_sin_aviso s where s.despacho_id = v_despacho.id and s.proveedor_id is null) then
+    raise exception 'Falta de quién llegó: elige el proveedor (pregúntale a Compras) y vuelve a cerrar' using hint = 'envio_sin_proveedor';
+  end if;$v$,
+  1);
+
 -- ---------- 4. El proveedor del envío vale al contar y al crear una prenda ----------
 select pg_temp.reemplazar(
   'retail.guardar_conteo_envio(uuid,uuid,integer,jsonb,integer,integer,uuid,uuid,uuid)',
   $v$                            where di.despacho_id = p_despacho_id);
     if p_extra_posicion is not null then$v$,
   $v$                            where di.despacho_id = p_despacho_id)
-                     -- ADR-0393: el de un envío sin aviso.
-                     || array(select s.proveedor_id from retail.despachos_sin_aviso s where s.despacho_id = p_despacho_id);
+                     -- ADR-0393: el de un envío sin aviso (si ya se sabe).
+                     || array(select s.proveedor_id from retail.despachos_sin_aviso s
+                               where s.despacho_id = p_despacho_id and s.proveedor_id is not null);
     if p_extra_posicion is not null then$v$,
+  1);
+select pg_temp.reemplazar(
+  'retail.guardar_conteo_envio(uuid,uuid,integer,jsonb,integer,integer,uuid,uuid,uuid)',
+  $v$    if v_prov is null then
+      if cardinality(v_proveedores) <> 1 then$v$,
+  $v$    if v_prov is null and cardinality(v_proveedores) = 0
+       and exists (select 1 from retail.despachos_sin_aviso s where s.despacho_id = p_despacho_id) then
+      -- ADR-0393 (Felipe 2026-10-14): un envío sin aviso por confirmar se cuenta sin proveedor; poner_proveedor_envio lo completa.
+      v_prov := null;
+    elsif v_prov is null then
+      if cardinality(v_proveedores) <> 1 then$v$,
+  1);
+select pg_temp.reemplazar(
+  'retail.guardar_conteo_envio(uuid,uuid,integer,jsonb,integer,integer,uuid,uuid,uuid)',
+  $v$    if v_marca is null or not exists (select 1 from retail.marcas m where m.id = v_marca and m.activo) then
+      raise exception 'Elige una marca activa para lo que no estaba en la guía' using hint = 'recepcion_extra_marca';$v$,
+  $v$    -- ADR-0393 (Felipe 2026-10-14): sin marca vale; una marca, activa.
+    if v_marca is not null and not exists (select 1 from retail.marcas m where m.id = v_marca and m.activo) then
+      raise exception 'Esa marca ya no está activa: elige otra o «Sin marca»' using hint = 'recepcion_extra_marca';$v$,
   1);
 select pg_temp.reemplazar(
   'retail.preparar_prenda_al_recibir(uuid,uuid,uuid,uuid,uuid,text,jsonb,numeric,text,uuid,uuid,boolean,uuid,uuid)',
   $v$                           where di.despacho_id = p_despacho_id);
     if p_proveedor_id is not null then$v$,
   $v$                           where di.despacho_id = p_despacho_id)
-                    -- ADR-0393: el de un envío sin aviso.
-                    || array(select s.proveedor_id from retail.despachos_sin_aviso s where s.despacho_id = p_despacho_id);
+                    -- ADR-0393: el de un envío sin aviso (si ya se sabe).
+                    || array(select s.proveedor_id from retail.despachos_sin_aviso s
+                              where s.despacho_id = p_despacho_id and s.proveedor_id is not null);
     if p_proveedor_id is not null then$v$,
+  1);
+select pg_temp.reemplazar(
+  'retail.preparar_prenda_al_recibir(uuid,uuid,uuid,uuid,uuid,text,jsonb,numeric,text,uuid,uuid,boolean,uuid,uuid)',
+  $v$    elsif cardinality(v_candidatos) = 1 then
+      v_proveedor := v_candidatos[1];$v$,
+  $v$    elsif cardinality(v_candidatos) = 0 and exists (select 1 from retail.despachos_sin_aviso s where s.despacho_id = p_despacho_id) then
+      -- ADR-0393 (Felipe 2026-10-14): el envío sin aviso todavía no sabe de quién es: la prenda queda sin proveedor (se completa en
+      -- Editar producto). Lo que entra al stock sí lo lleva: el cierre lo exige.
+      v_proveedor := null;
+    elsif cardinality(v_candidatos) = 1 then
+      v_proveedor := v_candidatos[1];$v$,
+  1);
+select pg_temp.reemplazar(
+  'retail.preparar_prenda_al_recibir(uuid,uuid,uuid,uuid,uuid,text,jsonb,numeric,text,uuid,uuid,boolean,uuid,uuid)',
+  $v$    if p_marca_id is null or not exists (select 1 from retail.marcas m where m.id = p_marca_id and m.activo) then
+      raise exception 'Elige una marca activa para la prenda' using hint = 'recepcion_marca';$v$,
+  $v$    -- ADR-0393 (Felipe 2026-10-14): una prenda puede no tener marca; si la tiene, activa.
+    if p_marca_id is not null and not exists (select 1 from retail.marcas m where m.id = p_marca_id and m.activo) then
+      raise exception 'Esa marca ya no está activa: elige otra o «Sin marca»' using hint = 'recepcion_marca';$v$,
+  1);
+select pg_temp.reemplazar(
+  'retail.preparar_prenda_al_recibir(uuid,uuid,uuid,uuid,uuid,text,jsonb,numeric,text,uuid,uuid,boolean,uuid,uuid)',
+  $v$    insert into retail.marca_proveedores (marca_id, proveedor_id) values (v_marca, v_proveedor) on conflict do nothing;$v$,
+  $v$    if v_marca is not null and v_proveedor is not null then
+      insert into retail.marca_proveedores (marca_id, proveedor_id) values (v_marca, v_proveedor) on conflict do nothing;
+    end if;$v$,
+  1);
+select pg_temp.reemplazar(
+  'retail.preparar_prenda_al_recibir(uuid,uuid,uuid,uuid,uuid,text,jsonb,numeric,text,uuid,uuid,boolean,uuid,uuid)',
+  $v$(select m.nombre from retail.marcas m where m.id = v_marca)
+      using hint = 'recepcion_prenda_ajena';$v$,
+  $v$coalesce((select m.nombre from retail.marcas m where m.id = v_marca), 'sin marca')
+      using hint = 'recepcion_prenda_ajena';$v$,
   1);
 
 -- El formulario de la fase 4 recorre las líneas de la guía: un envío sin aviso no tiene, y se cierra con el conteo.
@@ -206,7 +342,7 @@ begin
         left join retail.despachos_sin_aviso s on s.despacho_id = d.id
        where d.token_cliente = p_token
     loop
-      if v_previo.ubicacion_destino_id = p_ubicacion_id and v_previo.proveedor_id = p_proveedor_id then
+      if v_previo.ubicacion_destino_id = p_ubicacion_id and v_previo.proveedor_id is not distinct from p_proveedor_id then
         return jsonb_build_object('despacho_id', v_previo.id, 'numero', retail.fn_envio_numero_texto(v_previo.numero),
                                   'estado', v_previo.estado, 'version', v_previo.version, 'repetido', true);
       end if;
@@ -220,9 +356,12 @@ begin
   end if;
   -- La sede: la que la cuenta puede operar (no hay órdenes, así que la decisión 17 no aplica).
   perform retail.fn_recepcion_exigir(null, p_ubicacion_id, v_actor);
-  v_proveedor := (select pr.nombre from retail.proveedores pr where pr.id = p_proveedor_id and pr.activo);
-  if v_proveedor is null then
-    raise exception 'Elige de quién llegó: un proveedor activo' using hint = 'recepcion_proveedor';
+  -- Sin proveedor = por confirmar (Felipe 2026-10-14): se cuenta igual y se pone antes de cerrar.
+  if p_proveedor_id is not null then
+    v_proveedor := (select pr.nombre from retail.proveedores pr where pr.id = p_proveedor_id and pr.activo);
+    if v_proveedor is null then
+      raise exception 'Elige de quién llegó: un proveedor activo, o «No sé de quién es»' using hint = 'recepcion_proveedor';
+    end if;
   end if;
   if v_guia is not null and length(v_guia) > 40 then
     raise exception 'El número de guía es muy largo: hasta 40 letras' using hint = 'recepcion_guia';
@@ -242,7 +381,8 @@ begin
   -- Actividad (ADR-0207): «abrió ENV-000062: llegó sin aviso de Proveedor X». Si falla, igual queda.
   begin
     perform retail.fn_actividad_anotar(
-      'recibir', 'despacho_sin_aviso', 'abrió ' || retail.fn_envio_numero_texto(v_numero) || ': llegó sin aviso de ' || v_proveedor,
+      'recibir', 'despacho_sin_aviso', 'abrió ' || retail.fn_envio_numero_texto(v_numero) || ': llegó sin aviso '
+        || coalesce('de ' || v_proveedor, '(proveedor por confirmar)'),
       v_actor, retail.fn_actividad_terminal_ahora(), p_ubicacion_id, null,
       'despachos', v_id::text, now(),
       jsonb_build_object('despacho_id', v_id, 'envio', retail.fn_envio_numero_texto(v_numero), 'proveedor_id', p_proveedor_id),
@@ -256,11 +396,92 @@ begin
 end;
 $$;
 comment on function retail.abrir_envio_sin_aviso(uuid, uuid, text, text, uuid) is
-  'ADR-0393 (decisiones 2 y 10): abre en la sede un envío SIN GUÍA de ese proveedor, listo para contar con guardar_conteo_envio (todo '
-  'es «lo que no estaba en la guía» y nada sobra) y cerrar con cerrar_conteo_envio (sin costo, salvo quien ve el dinero de Compras). '
-  'Módulo Recibir y la sede; firma el responsable. Token. Devuelve {despacho_id, numero, estado, version, repetido}.';
+  'ADR-0393 (decisiones 2 y 10): abre en la sede un envío SIN GUÍA de ese proveedor (o sin proveedor, por confirmar: se pone con '
+  'poner_proveedor_envio antes de cerrar), listo para contar con guardar_conteo_envio (todo es «lo que no estaba en la guía» y nada '
+  'sobra) y cerrar con cerrar_conteo_envio (sin costo, salvo quien ve el dinero de Compras). Módulo Recibir y la sede; firma el '
+  'responsable. Token. Devuelve {despacho_id, numero, estado, version, repetido}.';
 revoke all on function retail.abrir_envio_sin_aviso(uuid, uuid, text, text, uuid) from public, anon;
 grant execute on function retail.abrir_envio_sin_aviso(uuid, uuid, text, text, uuid) to authenticated, service_role;
+
+-- ---------- 5b. Poner el proveedor que faltaba (Felipe 2026-10-14) ----------
+-- CONTRATO de poner_proveedor_envio
+--   PROMETE: con el módulo Recibir y la sede, a un envío sin aviso ABIERTO que todavía no sabe de quién es, le pone ese proveedor
+--            (activo) y se lo pasa a todo lo contado en él. Si ya tenía ese mismo, no hace nada (reintento).
+--   ASUME:   alguien supo de quién es (le preguntó a Compras).
+--   NO HACE: no cambia un proveedor ya puesto ni cierra el envío; no sube la versión de lo contado (los números no cambiaron: quien
+--            cierra no tiene que volver a mirarlos).
+create or replace function retail.poner_proveedor_envio(p_despacho_id uuid, p_proveedor_id uuid)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_actor uuid;
+  v_despacho retail.despachos;
+  v_actual uuid;
+  v_nombre text;
+begin
+  if retail.fn_ve_modulo('recibir') is not true then
+    raise exception 'Recibir mercadería necesita el módulo «Recibir mercadería» en tu rol' using errcode = '42501', hint = 'recibir_sin_modulo';
+  end if;
+  -- El envío en exclusiva: guardar_conteo_envio lo toma compartido, así nadie agrega una línea sin proveedor mientras se pone.
+  select d.* into v_despacho from retail.despachos d where d.id = p_despacho_id for update;
+  if not found then
+    raise exception 'Ese envío no existe' using hint = 'envio_no_existe';
+  end if;
+  select s.proveedor_id into v_actual from retail.despachos_sin_aviso s where s.despacho_id = p_despacho_id for update;
+  if not found then
+    raise exception 'Este envío vino de Compras: su proveedor es el de sus órdenes' using hint = 'envio_no_es_sin_aviso';
+  end if;
+  if v_actual = p_proveedor_id then
+    return jsonb_build_object('despacho_id', p_despacho_id, 'proveedor',
+                              (select jsonb_build_object('id', pr.id, 'nombre', pr.nombre) from retail.proveedores pr where pr.id = v_actual),
+                              'repetido', true);
+  end if;
+  if v_actual is not null then
+    raise exception 'Este envío ya tiene su proveedor: no se cambia' using hint = 'envio_proveedor_puesto';
+  end if;
+  if v_despacho.estado <> 'abierto' then
+    raise exception 'Este envío ya no se está contando: recarga la pantalla' using hint = 'envio_no_abierto';
+  end if;
+  v_actor := retail.fn_actor_persona_id(true);
+  if v_actor is null then
+    raise exception 'Elige quién hace esta operación' using errcode = '42501', hint = 'responsable_requerido';
+  end if;
+  perform retail.fn_recepcion_exigir(v_despacho.id, v_despacho.ubicacion_destino_id, v_actor);
+  v_nombre := (select pr.nombre from retail.proveedores pr where pr.id = p_proveedor_id and pr.activo);
+  if v_nombre is null then
+    raise exception 'Elige de quién llegó: un proveedor activo' using hint = 'recepcion_proveedor';
+  end if;
+
+  update retail.despachos_sin_aviso s set proveedor_id = p_proveedor_id where s.despacho_id = p_despacho_id;
+  update retail.despacho_conteos k set proveedor_id = p_proveedor_id
+   where k.despacho_id = p_despacho_id and k.despacho_item_id is null and k.proveedor_id is null;
+
+  begin
+    perform retail.fn_actividad_anotar(
+      'recibir', 'despacho_sin_aviso_proveedor',
+      'puso el proveedor de ' || retail.fn_envio_numero_texto(v_despacho.numero) || ': ' || v_nombre,
+      v_actor, retail.fn_actividad_terminal_ahora(), v_despacho.ubicacion_destino_id, null,
+      'despachos', p_despacho_id::text, now(),
+      jsonb_build_object('despacho_id', p_despacho_id, 'proveedor_id', p_proveedor_id),
+      'vivo');
+  exception when others then
+    raise warning 'actividad: no se anotó el proveedor del envío % (%)', v_despacho.numero, sqlerrm;
+  end;
+
+  return jsonb_build_object('despacho_id', p_despacho_id, 'proveedor', jsonb_build_object('id', p_proveedor_id, 'nombre', v_nombre),
+                            'repetido', false);
+end;
+$$;
+comment on function retail.poner_proveedor_envio(uuid, uuid) is
+  'ADR-0393 (Felipe 2026-10-14): pone el proveedor de un envío sin aviso abierto que se abrió sin saberlo, y se lo pasa a lo contado. '
+  'Una sola vez (no cambia uno puesto); el mismo proveedor otra vez no hace nada. Módulo Recibir y la sede; firma el responsable. '
+  'Devuelve {despacho_id, proveedor: {id, nombre}, repetido}.';
+revoke all on function retail.poner_proveedor_envio(uuid, uuid) from public, anon;
+grant execute on function retail.poner_proveedor_envio(uuid, uuid) to authenticated, service_role;
 
 -- ---------- 6. Lo contado de un envío dice de dónde vino y sus proveedores ----------
 create or replace function retail.fn_envio_conteos(p_despacho_id uuid)
@@ -287,6 +508,8 @@ begin
     -- ADR-0393: «compra» (lo mandó Compras, con su guía) o «sin_aviso» (lo abrió la sede al llegar).
     'origen', case when exists (select 1 from retail.despachos_sin_aviso s where s.despacho_id = p_despacho_id) then 'sin_aviso'
                    else 'compra' end,
+    -- Felipe 2026-10-14: un envío sin aviso que se abrió sin saber de quién es (se pone antes de cerrar).
+    'proveedor_por_confirmar', exists (select 1 from retail.despachos_sin_aviso s where s.despacho_id = p_despacho_id and s.proveedor_id is null),
     -- Los proveedores del envío: los de sus órdenes, o el de un envío sin aviso (para lo que no estaba en la guía).
     'proveedores', coalesce((
       select jsonb_agg(jsonb_build_object('id', q.id, 'nombre', q.nombre) order by q.nombre)
@@ -321,7 +544,7 @@ begin
 end;
 $$;
 comment on function retail.fn_envio_conteos(uuid) is
-  'ADR-0393: lo contado de un envío: {despacho_id, estado, origen (compra | sin_aviso), proveedores [{id, nombre}], conteos: [como '
+  'ADR-0393: lo contado de un envío: {despacho_id, estado, origen (compra | sin_aviso), proveedor_por_confirmar, proveedores [{id, nombre}], conteos: [como '
   'fn_envio_conteo_json], cierres: [{tipo, motivo, resultado, hecho_por, hecho_en}], reabrir: {se_puede, por_que_no} (solo cerrado)}. '
   'NULL si el envío no existe. Módulo Órdenes de compra o Recibir mercadería.';
 revoke all on function retail.fn_envio_conteos(uuid) from public, anon;
@@ -347,6 +570,31 @@ begin
   if not (select p.prosecdef from pg_proc p where p.oid = v_funcion::regprocedure)
      or has_function_privilege('anon', v_funcion, 'execute') or not has_function_privilege('authenticated', v_funcion, 'execute') then
     raise exception '%: security definer, la ejecuta authenticated y no anon', v_funcion;
+  end if;
+  if (select is_nullable from information_schema.columns
+       where table_schema = 'retail' and table_name = 'despachos_sin_aviso' and column_name = 'proveedor_id') <> 'YES'
+     or (select is_nullable from information_schema.columns
+          where table_schema = 'retail' and table_name = 'despacho_recibidos' and column_name = 'marca_id') <> 'YES'
+     or (select is_nullable from information_schema.columns
+          where table_schema = 'retail' and table_name = 'despacho_diferencias' and column_name = 'marca_id') <> 'YES' then
+    raise exception 'sin proveedor y sin marca: el proveedor de un envío sin aviso y la marca de lo recibido tienen que poder quedar vacíos';
+  end if;
+  v_funcion := 'retail.poner_proveedor_envio(uuid,uuid)';
+  if not (select p.prosecdef from pg_proc p where p.oid = v_funcion::regprocedure)
+     or has_function_privilege('anon', v_funcion, 'execute') or not has_function_privilege('authenticated', v_funcion, 'execute') then
+    raise exception '%: security definer, la ejecuta authenticated y no anon', v_funcion;
+  end if;
+  if position('envio_sin_proveedor' in pg_get_functiondef('retail.cerrar_conteo_envio(uuid,integer,jsonb,text,uuid)'::regprocedure)) = 0
+     or position('left join retail.marcas m on m.id = coalesce(di.marca_id, k.marca_id)' in
+                 pg_get_functiondef('retail.cerrar_conteo_envio(uuid,integer,jsonb,text,uuid)'::regprocedure)) = 0
+     or position('left join retail.marcas m on m.id = coalesce(di.marca_id, k.marca_id)' in
+                 pg_get_functiondef('retail.resolver_pendiente_envio(uuid,uuid,integer,uuid,jsonb,boolean,uuid)'::regprocedure)) = 0
+     or position('left join retail.marcas m on m.id = r.marca_id' in pg_get_functiondef('retail.fn_envio_detalle(uuid)'::regprocedure)) = 0
+     or position('left join retail.marcas m on m.id = x.marca_id' in pg_get_functiondef('retail.fn_envio_detalle(uuid)'::regprocedure)) = 0
+     or position('«Sin marca»' in pg_get_functiondef(
+          'retail.guardar_conteo_envio(uuid,uuid,integer,jsonb,integer,integer,uuid,uuid,uuid)'::regprocedure)) = 0
+     or position('pr.marca_id is not distinct from p_marca_id' in pg_get_functiondef('retail.fn_prendas_para_recibir(uuid,uuid,text)'::regprocedure)) = 0 then
+    raise exception 'falta uno de los reemplazos de «sin proveedor» y «sin marca» (cerrar, resolver, el detalle, guardar o la búsqueda)';
   end if;
   if position('if v_costo is not null then' in pg_get_functiondef('retail.fn_recepcion_entrar(uuid,uuid,text,text,uuid,jsonb,uuid[],text)'::regprocedure)) = 0
      or position('recepcion_costo_sin_permiso' in pg_get_functiondef('retail.cerrar_conteo_envio(uuid,integer,jsonb,text,uuid)'::regprocedure)) = 0

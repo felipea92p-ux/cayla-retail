@@ -1207,6 +1207,9 @@ const ENVIO_CON_PENDIENTES =
 const irAlEnvio = (condicion) => async (pagina) => irA(`/recibir/envio/${envioDeTrujillo(condicion)}`)(pagina);
 // «Describir ahora» solo sale en la categoría que tiene nuevas sin describir: se elige un envío abierto que las tenga y se recorren sus
 // categorías (elegir una no guarda nada) hasta dar con el botón.
+// Felipe 2026-10-14: un envío sin aviso abierto que todavía no sabe de quién es (al cerrar pide «¿De quién llegó?»).
+const ENVIO_SIN_PROVEEDOR =
+  "d.estado = 'abierto' and exists (select 1 from retail.despachos_sin_aviso s where s.despacho_id = d.id and s.proveedor_id is null) and exists (select 1 from retail.despacho_conteos k where k.despacho_id = d.id)";
 const ENVIO_CON_NUEVAS =
   "d.estado = 'abierto' and exists (select 1 from retail.despacho_conteos c, jsonb_array_elements(c.separado->'nuevas') n where c.despacho_id = d.id and n->>'descripcion' is null and (n->>'cantidad')::int > 0)";
 const abrirDescribir = async (pagina) => {
@@ -1224,6 +1227,7 @@ ESCENARIOS.push(
   { id: "recepcion.contar", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: '[data-guia="recepcion.categorias"]', nombre: "Recibir un envío · Contar (la lista y el contador)", preparar: irAlEnvio(ENVIO_ABIERTO) },
   { id: "recepcion.agregar", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: "[role=dialog]", nombre: "Recibir un envío · la hoja «Agregar lo que llegó»", preparar: secuencia(irAlEnvio(ENVIO_ABIERTO), async (pagina) => { await pagina.locator('[data-guia="recepcion.agregar"]').first().click({ timeout: 8000 }); await esperar(pagina, 1100); }) },
   { id: "recepcion.describir", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: "[role=dialog]", nombre: "Recibir un envío · la hoja «Describir lo nuevo»", preparar: secuencia(irAlEnvio(ENVIO_CON_NUEVAS), abrirDescribir) },
+  { id: "recepcion.de-quien", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: '[data-guia="recepcion.de-quien"]', nombre: "Recibir un envío · Cerrar sin proveedor («¿De quién llegó?»)", preparar: secuencia(irAlEnvio(ENVIO_SIN_PROVEEDOR), async (pagina) => { await pagina.locator('[data-guia="recepcion.pasar-a-cerrar"]').first().click({ timeout: 8000 }); await esperar(pagina, 1200); }) },
   { id: "recepcion.cerrar", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: '[data-guia="recepcion.tabla-cierre"]', nombre: "Recibir un envío · Cerrar (la tabla y el pie)", preparar: secuencia(irAlEnvio(ENVIO_ABIERTO), async (pagina) => { await pagina.locator('[data-guia="recepcion.pasar-a-cerrar"]').first().click({ timeout: 8000 }); await esperar(pagina, 1200); }) },
   { id: "recepcion.cerrado", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: '[data-guia="recepcion.para-despues"]', nombre: "Recibir un envío · cerrado, con «Para después»", preparar: irAlEnvio(ENVIO_CON_PENDIENTES) },
   { id: "recepcion.hacer-ahora", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: "[role=dialog]", nombre: "Recibir un envío · la hoja «Hacer ahora» (separar)", preparar: secuencia(irAlEnvio(ENVIO_CON_PENDIENTES), clicRol("button", /^Hacer ahora$/)) },

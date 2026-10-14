@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { Encabezado, TABLA, Tabla } from "@/components/ui/Tabla";
 import { Balanza, BaldosaCategoria } from "./piezas";
@@ -45,8 +45,9 @@ import {
   resumenDelCierre,
   detalleParaDespues,
   textoResumenDelCierre,
+  marcaDeLinea,
 } from "@/lib/recepcion-conteo-reglas";
-import { cerrarConteo } from "@/lib/recepcion-conteo-acciones";
+import { cerrarConteo, ponerProveedorEnvio } from "@/lib/recepcion-conteo-acciones";
 
 // Cerrar (ADR-0393, el paso 3 de la cara A): una fila por categoría —lo que dijeron, lo que se contó, lo que entra hoy al stock y lo que
 // queda para después—, el costo de cada una (decisión 6: quien cierra lo ve y lo corrige; en un envío sin aviso, solo quien ve el dinero de
@@ -71,6 +72,8 @@ export function CerrarEnvio({
   sede,
   responsable,
   veDinero,
+  proveedorPorConfirmar = false,
+  proveedores = [],
   esperandoGuardar,
   onVolver,
   onConteoCambiado,
@@ -84,6 +87,9 @@ export function CerrarEnvio({
   sede: string;
   responsable: ControlResponsable;
   veDinero: boolean;
+  /** Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): antes de cerrar se elige el proveedor (`poner_proveedor_envio`). */
+  proveedorPorConfirmar?: boolean;
+  proveedores?: readonly { id: string; nombre: string }[];
   /** Algo de lo contado todavía se está guardando: se espera antes de cerrar. */
   esperandoGuardar: boolean;
   onVolver: () => void;
@@ -97,6 +103,9 @@ export function CerrarEnvio({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<{ texto: string; recargar: boolean } | null>(null);
   const [atipicos, setAtipicos] = useState<CostoAtipicoRecepcion[] | null>(null);
+  const [proveedorId, setProveedorId] = useState("");
+  // Ya quedó puesto en la base (poner_proveedor_envio no lo cambia): no se vuelve a pedir ni a elegir.
+  const [proveedorPuesto, setProveedorPuesto] = useState(false);
   const avisoError = useRef<HTMLDivElement>(null);
 
   const decisionDe = (clave: string): DecisionCierre => decisiones[clave] ?? decisionInicial(visibles.find((l) => l.clave === clave) ?? visibles[0]);
@@ -105,7 +114,14 @@ export function CerrarEnvio({
     setDecisiones((d) => ({ ...d, [clave]: { ...decisionDe(clave), ...cambio } }));
   };
 
-  const campos = camposDelCierre({ lineas: visibles, decisiones, sinAviso, responsable: responsable.listo });
+  const campos = camposDelCierre({
+    lineas: visibles,
+    decisiones,
+    sinAviso,
+    responsable: responsable.listo,
+    proveedorPorConfirmar,
+    proveedorElegido: proveedorPuesto || proveedorId !== "",
+  });
   const guia = useGuiaCampos(campos, { enModal: false });
   const contadas = visibles.reduce((a, l) => a + contadasDe(l), 0);
   // Lo que pasa al cerrar, dicho para la tienda (formidable 2026-10-13, cambio 3): cuántas se pueden vender ya y cuántas quedan guardadas.
@@ -116,6 +132,18 @@ export function CerrarEnvio({
     if (!guia.puedeConfirmar || esperandoGuardar) return;
     setGuardando(true);
     setError(null);
+    // Primero, de quién llegó (si se abrió sin saberlo): sin proveedor la base no cierra. Puesto una vez, queda puesto.
+    if (proveedorPorConfirmar && !proveedorPuesto) {
+      const { error: ep } = await ponerProveedorEnvio({ p_despacho_id: detalle.id, p_proveedor_id: proveedorId }, responsable.firma());
+      responsable.despues(ep);
+      if (ep) {
+        setGuardando(false);
+        setError({ texto: mensajeAlGuardar(ep, "poner el proveedor"), recargar: ep.hint === "envio_proveedor_puesto" });
+        requestAnimationFrame(() => avisoError.current?.focus());
+        return;
+      }
+      setProveedorPuesto(true);
+    }
     const conConfirmados = Object.fromEntries(Object.entries(decisiones).map(([k, d]) => [k, confirmados.has(k) ? { ...d, confirmaCosto: true } : d]));
     const { resultado, error: e } = await cerrarConteo(
       {
@@ -198,7 +226,7 @@ export function CerrarEnvio({
                     <span className="min-w-0 @min-[880px]:flex @min-[880px]:min-h-10 @min-[880px]:flex-col @min-[880px]:justify-center">
                       <p className="font-medium text-tinta">{l.categoria?.nombre ?? "Categoría"}</p>
                       <p className="text-xs text-taupe">
-                        {[l.marca?.nombre, l.conteo?.contadoPor?.nombre ? `contó ${l.conteo.contadoPor.nombre.split(" ")[0]}` : null, !l.linea && !sinAviso ? "no estaba en la guía" : null]
+                        {[l.categoria ? marcaDeLinea(l).nombre : null, l.conteo?.contadoPor?.nombre ? `contó ${l.conteo.contadoPor.nombre.split(" ")[0]}` : null, !l.linea && !sinAviso ? "no estaba en la guía" : null]
                           .filter(Boolean)
                           .join(" · ")}
                       </p>
@@ -321,6 +349,25 @@ export function CerrarEnvio({
           placeholder="Ej. Llegó en dos bolsas"
         />
       </div>
+
+      {proveedorPorConfirmar && (
+        <div data-guia="recepcion.de-quien">
+          <CampoGuiado id="proveedor" guia={guia} className="card-cayla space-y-2 p-4 sm:p-5">
+            <CampoSelect
+              etiqueta={guia.etiqueta("proveedor", "¿De quién llegó?")}
+              valor={proveedorId}
+              onValor={setProveedorId}
+              opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))}
+              marcador="Elige el proveedor"
+              deshabilitado={proveedorPuesto || guardando}
+            />
+            <p className="text-xs text-taupe">
+              Se abrió sin saber de quién era. Pregúntale a Compras: sin proveedor no entra al stock, porque el lote, el costo y la factura se
+              unen por él. Las prendas pueden quedar sin marca.
+            </p>
+          </CampoGuiado>
+        </div>
+      )}
 
       <CampoGuiado id="responsable" guia={guia} className="card-cayla p-4 sm:p-5">
         <p className="mb-2 text-[13px] font-semibold text-tinta">{guia.etiqueta("responsable", "Quién cierra el conteo")}</p>

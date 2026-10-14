@@ -7,9 +7,10 @@ import { Boton, CampoSelect } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import type { CatalogoParaRecibir } from "@/lib/recepcion-envio-reglas";
+import { SIN_MARCA } from "@/lib/recepcion-conteo-reglas";
 
 // «¿Llegó algo que no estaba en la guía?» (ADR-0393; decisión 13 de ADR-0362): una categoría que no venía se agrega a la lista con su marca
-// (y, si el envío trae dos o más, su proveedor), y se cuenta como las demás. Al cerrar, Compras ve lo que pasó con ella. En un envío sin
+// (o «Sin marca», Felipe 2026-10-14) y, si el envío trae dos o más, su proveedor; y se cuenta como las demás. Al cerrar, Compras ve lo que pasó con ella. En un envío sin
 // aviso, todo lo que llega entra por aquí, y del proveedor del envío.
 
 export function AgregarFueraDeGuia({
@@ -25,7 +26,7 @@ export function AgregarFueraDeGuia({
   sinAviso: boolean;
   /** Lo que ya está en la lista (categoría + marca), para no agregarlo dos veces. */
   yaUsadas: ReadonlySet<string>;
-  onAgregar: (nuevo: { proveedorId: string | null; categoriaId: string; marcaId: string }) => Promise<string | null>;
+  onAgregar: (nuevo: { proveedorId: string | null; categoriaId: string; marcaId: string | null }) => Promise<string | null>;
   onCerrar: () => void;
 }) {
   const [categoriaId, setCategoriaId] = useState("");
@@ -46,7 +47,7 @@ export function AgregarFueraDeGuia({
   const campos = [
     ...(eligeProveedor ? [{ id: "fuera-proveedor", nombre: "De qué proveedor", requerido: true, hecho: proveedorId !== "", pendiente: "Elige de qué proveedor es." }] : []),
     { id: "fuera-categoria", nombre: "Qué llegó", requerido: true, hecho: categoriaId !== "", pendiente: "Elige la categoría." },
-    { id: "fuera-marca", nombre: "La marca", requerido: true, hecho: marcaId !== "" && !repetida, pendiente: repetida ? "Esa categoría y marca ya está en la lista." : "Elige la marca." },
+    { id: "fuera-marca", nombre: "La marca", requerido: true, hecho: marcaId !== "" && !repetida, pendiente: repetida ? "Esa categoría y marca ya está en la lista." : "Elige la marca, o «Sin marca»." },
   ];
   const guia = useGuiaCampos(campos);
 
@@ -54,7 +55,7 @@ export function AgregarFueraDeGuia({
     if (!guia.puedeConfirmar) return;
     setGuardando(true);
     setError(null);
-    const clave = await onAgregar({ proveedorId: eligeProveedor ? proveedorId : null, categoriaId, marcaId });
+    const clave = await onAgregar({ proveedorId: eligeProveedor ? proveedorId : null, categoriaId, marcaId: marcaId === SIN_MARCA ? null : marcaId });
     setGuardando(false);
     if (clave) onCerrar();
     else setError("No se pudo agregar. Revisa la conexión y vuelve a intentar.");
@@ -106,7 +107,8 @@ export function AgregarFueraDeGuia({
               etiqueta={guia.etiqueta("fuera-marca", "La marca")}
               valor={marcaId}
               onValor={setMarcaId}
-              opciones={marcas.map((m) => ({ valor: m.id, texto: m.nombre }))}
+              // «Sin marca» primero (Felipe 2026-10-14): hay prendas que no la tienen; se completa después en Editar producto.
+              opciones={[{ valor: SIN_MARCA, texto: "Sin marca" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
               marcador="Elige la marca"
               tono={repetida ? "error" : undefined}
               pie={repetida ? "Esa categoría y marca ya está en la lista: cuéntala ahí." : undefined}

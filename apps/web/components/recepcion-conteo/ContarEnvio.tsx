@@ -31,6 +31,8 @@ import {
   type ConteosDelEnvio,
   type LineaParaContar,
   type PrendaSeparada,
+  SIN_MARCA,
+  marcaDeLinea,
 } from "@/lib/recepcion-conteo-reglas";
 import { AgregarFueraDeGuia } from "./AgregarFueraDeGuia";
 import { HojaTallas } from "./HojaTallas";
@@ -53,6 +55,7 @@ export function ContarEnvio({
   lineas,
   conteos,
   sinAviso,
+  proveedorPorConfirmar = false,
   reabierto,
   catalogo,
   responsable,
@@ -68,6 +71,8 @@ export function ContarEnvio({
   lineas: readonly LineaParaContar[];
   conteos: ConteosDelEnvio | null;
   sinAviso: boolean;
+  /** Llegó sin aviso y sin saber de quién (Felipe 2026-10-14): se cuenta igual; el proveedor se elige al cerrar. */
+  proveedorPorConfirmar?: boolean;
   reabierto: boolean;
   catalogo: CatalogoParaRecibir | null;
   responsable: ControlResponsable;
@@ -77,7 +82,7 @@ export function ContarEnvio({
   /** Recuerda una prenda ya leída (con sus tallas y colores), para no volver a buscarla. */
   onPrendaVista: (p: PrendaRecepcion) => void;
   onEscribir: (linea: LineaParaContar, cambio: Partial<Borrador>) => void;
-  onAgregar: (nuevo: { proveedorId: string | null; categoriaId: string; marcaId: string }) => Promise<ClaveLinea | null>;
+  onAgregar: (nuevo: { proveedorId: string | null; categoriaId: string; marcaId: string | null }) => Promise<ClaveLinea | null>;
   onCerrar: () => void;
 }) {
   // Lo agregado en esta visita se ve aunque todavía esté en 0 (lo de fuera de la guía en 0 es «lo quitado»).
@@ -93,7 +98,7 @@ export function ContarEnvio({
   const i = linea ? visibles.indexOf(linea) : -1;
   const siguiente = i >= 0 ? (visibles[i + 1] ?? null) : null;
   const anterior = i > 0 ? visibles[i - 1] : null;
-  const yaUsadas = new Set(visibles.map((l) => `${l.categoria?.id}|${l.marca?.id}`));
+  const yaUsadas = new Set(visibles.map((l) => `${l.categoria?.id}|${l.marca?.id ?? SIN_MARCA}`));
   const proveedores = conteos?.proveedores ?? [];
 
   function elegir(l: LineaParaContar) {
@@ -103,8 +108,8 @@ export function ContarEnvio({
   async function prendaCompleta(p: PrendaSeparada, l: LineaParaContar): Promise<PrendaRecepcion | null> {
     const ya = prendas.get(p.productoId);
     if (ya) return ya;
-    if (!l.categoria || !l.marca) return null;
-    const { prendas: halladas } = await buscarPrendasParaRecibir(l.categoria.id, l.marca.id, p.nombre ?? "");
+    if (!l.categoria) return null;
+    const { prendas: halladas } = await buscarPrendasParaRecibir(l.categoria.id, marcaDeLinea(l).id, p.nombre ?? "");
     const hallada = halladas.find((x) => x.productoId === p.productoId) ?? null;
     if (hallada) onPrendaVista(hallada);
     return hallada;
@@ -143,6 +148,11 @@ export function ContarEnvio({
             <ComboResponsable control={responsable} compacto />
             <p className="text-xs text-taupe">Cada categoría guarda quién la contó. Varias personas pueden contar a la vez; firma quien cierra.</p>
           </div>
+          {proveedorPorConfirmar && (
+            <p className="nota-cayla text-[13px]">
+              <b className="text-tinta">Proveedor por confirmar.</b> Cuenta igual: al cerrar eliges de quién llegó (pregúntale a Compras).
+            </p>
+          )}
 
           <nav aria-label="Categorías del envío" className="space-y-1.5" data-guia="recepcion.categorias">
             <p className="label-cayla px-1 text-[11px] text-taupe">{sinAviso ? "Lo que llegó" : "Categorías del envío"}</p>
@@ -156,7 +166,7 @@ export function ContarEnvio({
               const sep = l.conteo ? totalSeparado(l.conteo.separado) + (l.conteo.enStock ?? 0) : 0;
               const sinSep = l.conteo ? Math.max(0, contadasDe(l) - sep) : 0;
               const sub = !l.conteo
-                ? [l.marca?.nombre, l.dijeron != null ? `dijeron ${l.dijeron}` : null, !l.linea && !sinAviso ? "no venía" : null].filter(Boolean).join(" · ")
+                ? [l.categoria ? marcaDeLinea(l).nombre : null, l.dijeron != null ? `dijeron ${l.dijeron}` : null, !l.linea && !sinAviso ? "no venía" : null].filter(Boolean).join(" · ")
                 : contadasDe(l) === 0
                   ? "no llegó nada"
                   : sinSep === 0
@@ -221,10 +231,10 @@ export function ContarEnvio({
                 error={errores[linea.clave] ?? null}
                 onEscribir={(c) => onEscribir(linea, c)}
               >
-                {linea.categoria && linea.marca && (
+                {linea.categoria && (
                   <SepararPrendas
                     categoria={linea.categoria}
-                    marca={linea.marca}
+                    marca={marcaDeLinea(linea)}
                     separado={linea.conteo?.separado ?? { prendas: [], nuevas: [] }}
                     tope={Math.max(0, contadasDe(linea) - (linea.conteo?.enStock ?? 0))}
                     onSeparado={(s) => onEscribir(linea, { separado: s, contadas: Math.max(contadasDe(linea), (linea.conteo?.enStock ?? 0) + totalSeparado(s)) })}
@@ -291,12 +301,12 @@ export function ContarEnvio({
         />
       )}
 
-      {hoja?.tipo === "tallas" && lineaDeHoja?.categoria && lineaDeHoja.marca && (
+      {hoja?.tipo === "tallas" && lineaDeHoja?.categoria && (
         <HojaTallas
           key={hoja.prenda.productoId}
           prenda={hoja.prenda}
           categoria={lineaDeHoja.categoria}
-          marca={lineaDeHoja.marca}
+          marca={marcaDeLinea(lineaDeHoja)}
           colores={catalogo?.colores ?? []}
           variantes={hoja.original.productoId === hoja.prenda.productoId ? hoja.original.variantes : null}
           sugeridas={hoja.original.cantidad}
@@ -311,7 +321,7 @@ export function ContarEnvio({
         />
       )}
 
-      {hoja?.tipo === "prenda" && lineaDeHoja?.categoria && lineaDeHoja.marca && (
+      {hoja?.tipo === "prenda" && lineaDeHoja?.categoria && (
         <HojaPrenda
           destino={destinoDe(detalle, lineaDeHoja, hoja.modo, hoja.prenda, proveedores.length)}
           categoria={categoriaDeHoja}
@@ -322,8 +332,8 @@ export function ContarEnvio({
             setHoja({ tipo: "tallas", clave: hoja.clave, original: hoja.original, prenda });
           }}
           onUsarExistente={async (productoId, nombre) => {
-            if (!lineaDeHoja.categoria || !lineaDeHoja.marca) return false;
-            const { prendas: halladas } = await buscarPrendasParaRecibir(lineaDeHoja.categoria.id, lineaDeHoja.marca.id, nombre);
+            if (!lineaDeHoja.categoria) return false;
+            const { prendas: halladas } = await buscarPrendasParaRecibir(lineaDeHoja.categoria.id, marcaDeLinea(lineaDeHoja).id, nombre);
             const hallada = halladas.find((x) => x.productoId === productoId);
             if (!hallada) return false;
             onPrendaVista(hallada);
@@ -344,8 +354,8 @@ function destinoDe(detalle: DetalleEnvio, l: LineaParaContar, modo: "nueva" | "a
     despachoId: detalle.id,
     despachoItemId: l.linea?.id ?? null,
     categoriaId: l.categoria?.id ?? "",
-    marcaId: l.marca?.id ?? "",
-    marcaNombre: l.marca?.nombre ?? "",
+    marcaId: l.marca?.id ?? null,
+    marcaNombre: marcaDeLinea(l).nombre,
     descripcionOrden: l.linea?.descripcion ?? null,
     precioSugerido: l.linea?.precioVentaSugerido ?? null,
     costoUnitario: l.conteo?.costoUnitario ?? l.linea?.costoUnitario ?? null,
@@ -394,7 +404,7 @@ function ContadorDeLinea({
         <div className="min-w-0 flex-1 basis-48">
           <TituloSeccion dato={!linea.conteo ? <EtiquetaAhora /> : undefined}>{linea.categoria?.nombre ?? "Categoría"}</TituloSeccion>
           <p className="text-sm text-taupe">
-            {[linea.marca?.nombre, linea.proveedor?.nombre, linea.linea?.descripcion].filter(Boolean).join(" · ")}
+            {[linea.categoria ? marcaDeLinea(linea).nombre : null, linea.proveedor?.nombre, linea.linea?.descripcion].filter(Boolean).join(" · ")}
             {linea.dijeron != null && (
               <>
                 {" "}· Dijeron <b className="text-tinta">{linea.dijeron}</b>

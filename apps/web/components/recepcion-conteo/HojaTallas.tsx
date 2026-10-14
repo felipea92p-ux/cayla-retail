@@ -35,7 +35,8 @@ export function HojaTallas({
 }: {
   prenda: PrendaRecepcion;
   categoria: CategoriaDeLinea;
-  marca: { id: string; nombre: string };
+  /** `id` vacío = sin marca (ADR-0393, 2026-10-14). */
+  marca: { id: string | null; nombre: string };
   colores: readonly ColorAlta[];
   /** Lo ya detallado (para seguir corrigiéndolo). */
   variantes: readonly VarianteSeparada[] | null;
