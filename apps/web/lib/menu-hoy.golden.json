@@ -1,5 +1,5 @@
 {
- "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-28 (ADR-0208, paso 4; Felipe: «hagámoslo»): «Frescura del piso» entra directo en Inventario, después de Análisis (o de Conteo, donde Análisis no se ve). 2026-10-01 (ADR-0288 act. g, tanda 1g): Clientas pasa de hoja a grupo al nacer su segunda pantalla, «Avisos» (módulo avisos_club): «Fichas» se queda con el corazón y la cabecera estrena la escarapela del club; quien solo ve las fichas sigue viendo la fila «Clientas» de siempre. 2026-10-02 (Felipe): «Clientas» se llama «Clientes» en todo el ERP (la ruta /clientas y la clave del módulo no cambian). 2026-10-05 (ADR-0349; Felipe: plan de compra de diciembre con tres escenarios): «Plan de campaña» entra primero en Compras, con `verDineroCompras` como sus hermanas (muestra costos). 2026-10-05 (ADR-0329, Felipe: «Subir el tope a 8»): «Plan del piso» entra directo en Inventario, después de «Frescura del piso». 2026-10-13 (ADR-0392; Felipe, preguntado con las opciones): «Gestión» es un grupo de PRIMER nivel debajo de Inicio (en el Taller, después de Producción) con Análisis, Frescura del piso, Plan del piso y Rendimiento; las tres salen de Inventario (que vuelve a 4) y Rendimiento deja su fila suelta. Aterrizar en sus rutas abre «gestion». 2026-10-13 (ADR-0362 fase 7, decisión 47): «Órdenes de insumos» entra PRIMERA en Producción ▸ Abastecimiento (pedir → factura → recibir → pagar), sin `exige` (el módulo es la llave): el líder del Taller ve cinco hijas en Abastecimiento, y quien trabaja en el Taller la ve junto a Recibir, así que su Abastecimiento ya no se disuelve en «Recibir». Su ruta, /ordenes-insumos, abre el grupo de Producción. 2026-10-13 (ADR-0362 fase 6, decisión 65; Felipe: «Compras, directo»): «Fondos por rendir» entra en Compras después de «Por pagar», como octava hija (sube el tope de Compras a 8; baja a 7 cuando «Recibir mercadería» se mude a Existencias). Solo pide su módulo, que nace sin rol: con módulos lo ve el líder; en esta foto (la forma de antes, sin módulos) también quien no es líder, como Plan de campaña y Órdenes de compra. Su ruta, /compras/fondos, abre el grupo de Compras.",
+ "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-28 (ADR-0208, paso 4; Felipe: «hagámoslo»): «Frescura del piso» entra directo en Inventario, después de Análisis (o de Conteo, donde Análisis no se ve). 2026-10-01 (ADR-0288 act. g, tanda 1g): Clientas pasa de hoja a grupo al nacer su segunda pantalla, «Avisos» (módulo avisos_club): «Fichas» se queda con el corazón y la cabecera estrena la escarapela del club; quien solo ve las fichas sigue viendo la fila «Clientas» de siempre. 2026-10-02 (Felipe): «Clientas» se llama «Clientes» en todo el ERP (la ruta /clientas y la clave del módulo no cambian). 2026-10-05 (ADR-0349; Felipe: plan de compra de diciembre con tres escenarios): «Plan de campaña» entra primero en Compras, con `verDineroCompras` como sus hermanas (muestra costos). 2026-10-05 (ADR-0329, Felipe: «Subir el tope a 8»): «Plan del piso» entra directo en Inventario, después de «Frescura del piso». 2026-10-13 (ADR-0392; Felipe, preguntado con las opciones): «Gestión» es un grupo de PRIMER nivel debajo de Inicio (en el Taller, después de Producción) con Análisis, Frescura del piso, Plan del piso y Rendimiento; las tres salen de Inventario (que vuelve a 4) y Rendimiento deja su fila suelta. Aterrizar en sus rutas abre «gestion». 2026-10-13 (ADR-0362 fase 7, decisión 47): «Órdenes de insumos» entra PRIMERA en Producción ▸ Abastecimiento (pedir → factura → recibir → pagar), sin `exige` (el módulo es la llave): el líder del Taller ve cinco hijas en Abastecimiento, y quien trabaja en el Taller la ve junto a Recibir, así que su Abastecimiento ya no se disuelve en «Recibir». Su ruta, /ordenes-insumos, abre el grupo de Producción. 2026-10-13 (ADR-0362 fase 6, decisión 65; Felipe: «Compras, directo»): «Fondos por rendir» entra en Compras después de «Por pagar», como octava hija (sube el tope de Compras a 8; baja a 7 cuando «Recibir mercadería» se mude a Existencias). Solo pide su módulo, que nace sin rol: con módulos lo ve el líder; en esta foto (la forma de antes, sin módulos) también quien no es líder, como Plan de campaña y Órdenes de compra. Su ruta, /compras/fondos, abre el grupo de Compras. 2026-10-14 (ADR-0393; Felipe: «asegúrate que Recibir mercadería esté en inventario, en el menú lateral también»): «Recibir mercadería» vive solo en Inventario, después de Conteo, para todo perfil y en cualquier sede (sale de Compras, que baja de 8 a 7; el líder en el Taller ahora lo tiene).",
  "capturadoDe": {
   "archivo": "apps/web/components/AppShell.tsx",
   "commit": "e14ef82c",
@@ -579,6 +579,11 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
+       },
+       {
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
        }
       ],
       "insignia": 3
@@ -639,11 +644,6 @@
         "etiqueta": "Facturas de proveedor",
         "href": "/compras",
         "icono": "facturas"
-       },
-       {
-        "etiqueta": "Recibir mercadería",
-        "href": "/recibir",
-        "icono": "recibir"
        },
        {
         "etiqueta": "Por pagar",
@@ -848,6 +848,11 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
+       },
+       {
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
        }
       ]
      },
@@ -907,11 +912,6 @@
         "etiqueta": "Facturas de proveedor",
         "href": "/compras",
         "icono": "facturas"
-       },
-       {
-        "etiqueta": "Recibir mercadería",
-        "href": "/recibir",
-        "icono": "recibir"
        },
        {
         "etiqueta": "Por pagar",
@@ -1044,7 +1044,7 @@
     "/compras/nueva": "compras",
     "/compras/factura/123": "compras",
     "/compras/exportar": "compras",
-    "/recibir": "compras",
+    "/recibir": "inventario",
     "/inventario": "inventario",
     "/inventario/movimientos": "inventario",
     "/inventario/traslados": "inventario",
@@ -1715,6 +1715,11 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
+       },
+       {
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
        }
       ],
       "insignia": 3
@@ -1991,6 +1996,11 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
+       },
+       {
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
        }
       ]
      },
@@ -2140,7 +2150,7 @@
     "/compras/nueva": "compras",
     "/compras/factura/123": "compras",
     "/compras/exportar": "compras",
-    "/recibir": "compras",
+    "/recibir": "inventario",
     "/inventario": "inventario",
     "/inventario/movimientos": "inventario",
     "/inventario/traslados": "inventario",
@@ -2733,6 +2743,11 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
+       },
+       {
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
        }
       ],
       "insignia": 3
@@ -2793,11 +2808,6 @@
         "etiqueta": "Facturas de proveedor",
         "href": "/compras",
         "icono": "facturas"
-       },
-       {
-        "etiqueta": "Recibir mercadería",
-        "href": "/recibir",
-        "icono": "recibir"
        },
        {
         "etiqueta": "Por pagar",
@@ -3002,6 +3012,11 @@
         "etiqueta": "Conteo",
         "href": "/inventario/conteo",
         "icono": "conteo"
+       },
+       {
+        "etiqueta": "Recibir mercadería",
+        "href": "/recibir",
+        "icono": "recibir"
        }
       ]
      },
@@ -3061,11 +3076,6 @@
         "etiqueta": "Facturas de proveedor",
         "href": "/compras",
         "icono": "facturas"
-       },
-       {
-        "etiqueta": "Recibir mercadería",
-        "href": "/recibir",
-        "icono": "recibir"
        },
        {
         "etiqueta": "Por pagar",
@@ -3198,7 +3208,7 @@
     "/compras/nueva": "compras",
     "/compras/factura/123": "compras",
     "/compras/exportar": "compras",
-    "/recibir": "compras",
+    "/recibir": "inventario",
     "/inventario": "inventario",
     "/inventario/movimientos": "inventario",
     "/inventario/traslados": "inventario",

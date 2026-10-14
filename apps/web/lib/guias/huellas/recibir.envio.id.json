@@ -2,11 +2,12 @@
   "guia": "recibir.envio.id",
   "ruta": "/recibir/envio/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 59,
+  "total": 117,
   "controles": {
     "app/(app)/recibir/envio/[id]/page.tsx": [
       "Volver «(sin nombre)»",
-      "BotonEnlace «Ir a Recibir mercadería»"
+      "BotonEnlace «Ir a Recibir mercadería»",
+      "Volver «(sin nombre)» #2"
     ],
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -39,6 +40,82 @@
       "button «→onClick»",
       "button «›»"
     ],
+    "components/conteo/PasosConteo.tsx": [
+      "button «{contenido}»"
+    ],
+    "components/recepcion-conteo/AgregarFueraDeGuia.tsx": [
+      "CampoSelect «{guia.etiqueta(\"fuera-proveedor\", \"De qué proveedor\")}»",
+      "CampoSelect «{guia.etiqueta(\"fuera-categoria\", \"Qué llegó\")}»",
+      "CampoSelect «{guia.etiqueta(\"fuera-marca\", \"La marca\")}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/CerrarEnvio.tsx": [
+      "CampoTexto «{`Costo por prenda de ${nombreDeLinea(l)}»",
+      "Boton «Contarla»",
+      "CampoTexto «{guia.etiqueta(\"guia\", \"Número de guía\")}»",
+      "CampoTexto «Nota (opcional)»",
+      "CampoSelect «{guia.etiqueta(\"proveedor\", \"¿De quién llegó?\")}»",
+      "ComboResponsable «(sin nombre)»",
+      "Volver «→onVolver»",
+      "Boton «recepcion.cerrar-boton»"
+    ],
+    "components/recepcion-conteo/ContarEnvio.tsx": [
+      "ComboResponsable «Cada categoría guarda quién la contó. Varias personas pueden»",
+      "button «→() => elegir(l)»",
+      "button «recepcion.agregar»",
+      "Boton «Anterior»",
+      "Boton «Listo, sigue»",
+      "Boton «recepcion.pasar-a-cerrar»",
+      "button «Una menos»",
+      "input «{`Cuántas ${nombre}»",
+      "button «Una más»",
+      "button «+5»",
+      "button «+10»",
+      "button «Llegaron las»",
+      "button «No llegó nada»",
+      "button «Poner en cero»"
+    ],
+    "components/recepcion-conteo/DescribirNuevas.tsx": [
+      "CampoTexto «{guia.etiqueta(\"describir-que\", \"¿Qué son? Nombre, color, tallas\")}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/EnvioCerrado.tsx": [
+      "Boton «{veredicto.accion}»",
+      "BotonEnlace «{a.texto}»",
+      "Boton «{p.tipo === \"crear\" ? \"+ Crear ahora\" : \"Hacer ahora\"}»",
+      "Boton «Reabrir el conteo»",
+      "BotonEnlace «Recibir otro»",
+      "BotonEnlace «Ver todo lo recibido»"
+    ],
+    "components/recepcion-conteo/HacerAhora.tsx": [
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/HojaTallas.tsx": [
+      "Boton «Dejar para después»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/ReabrirEnvio.tsx": [
+      "CampoTexto «{guia.etiqueta(\"reabrir-motivo\", \"¿Por qué lo reabres?\")}»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/recepcion-conteo/RecibirContando.tsx": [
+      "Volver «(sin nombre)»"
+    ],
+    "components/recepcion-conteo/SepararPrendas.tsx": [
+      "button «{`Una menos de ${etiqueta}»",
+      "button «{`Una más de ${etiqueta}»",
+      "button «{`Quitar ${etiqueta}»",
+      "button «Cambiar»",
+      "Boton «Tallas y colores ahora»",
+      "Boton «Describir ahora»",
+      "button «{p.nombre}»",
+      "button «(sin nombre)»"
+    ],
     "components/recepcion-envio/BloquePrenda.tsx": [
       "Boton «+ talla o color»",
       "Boton «Cambiar»",
@@ -53,9 +130,12 @@
       "button «{p.nombre}»"
     ],
     "components/recepcion-envio/EmpezarARecibir.tsx": [
-      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
       "Boton «Recargar»",
-      "Boton «{guia.frase ?? undefined}»"
+      "ComboResponsable «{errorDeApertura}»",
+      "Boton «{guia.frase ?? undefined}»",
+      "BotonEnlace «Recibir sin aviso»",
+      "ComboResponsable «{errorDeApertura}» #2",
+      "Boton «{guia.frase ?? undefined}» #2"
     ],
     "components/recepcion-envio/FormularioRecepcion.tsx": [
       "CampoTexto «Nota de la recepción»",
