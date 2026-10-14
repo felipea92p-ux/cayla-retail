@@ -4,6 +4,7 @@
 // cada tienda y dice a qué tienda va «Enviar todas». Las cifras de dibujo son las de la maqueta aprobada por Felipe (2026-10-06).
 
 import type { EdadInventario, PrendaAnalisis } from "./analisis-tipos";
+import { diasEntreFechas } from "./fechas-lima";
 import { DIAS_EJE_QUIETAS, DIAS_TRES_MESES, GRUPOS_CARRIL_QUIETAS, grupoDe, ordenQuietas, plural, prendasDe, sedeQueMasVende, totalEnTienda, umbralLiquidar } from "./analisis-reglas";
 
 /** Las cifras grandes de arriba: cuántos modelos están quietos y cuánta plata hay en ellos. */
@@ -188,22 +189,41 @@ export function barraDeEdad(edad: EdadInventario): { total: number; tramos: Tram
   };
 }
 
-export type VacioQuietas = "todo-se-mueve" | "sin-datos";
-
 /**
- * Lo que dice la pestaña cuando no hay carril (con las prendas de la tienda, sin buscar): «todo-se-mueve» si ninguna lleva un
- * mes sin venderse; «sin-datos» si no llegó ni una prenda y algo falló al leer (principio 9: nunca «todo se mueve» por un
- * error; la misma regla que «Se está acabando»); null si hay carril. Con «Liquidar desde» de 30 días o más no depende de él (el
- * control solo pasa prendas de un grupo a otro); con menos, puede sumar al carril las que ya llevan ese tiempo sin venderse. Nunca
- * saca una.
+ * Si «No se vende» puede decir algo de esta tienda (ADR-0357, act. 2026-10-14; tarea #2): algún modelo con algo en la tienda lleva en el
+ * piso, desde que salió, al menos lo que se espera para liquidarlo (el p90 de su tipo o «Liquidar desde»). Si ninguno llegó todavía
+ * —una tienda que vende en el ERP hace menos días que el umbral, o todo se colgó hace poco—, que nada esté quieto no es una buena
+ * noticia: todavía no se puede saber.
  */
-export function vacioQuietas(prendas: readonly PrendaAnalisis[], liquidarDesde: number, fallas: number): VacioQuietas | null {
-  if (prendasDe(prendas, GRUPOS_CARRIL_QUIETAS, liquidarDesde).length > 0) return null;
-  return prendas.length === 0 && fallas > 0 ? "sin-datos" : "todo-se-mueve";
+export function puedeJuzgarQuietas(prendas: readonly Pick<PrendaAnalisis, "piso" | "almacen" | "salioAlPiso" | "umbrales">[], liquidarDesde: number, hoy: string): boolean {
+  return prendas.some((p) => totalEnTienda(p) > 0 && p.salioAlPiso !== null && diasEntreFechas(p.salioAlPiso, hoy) >= umbralLiquidar(p, liquidarDesde));
 }
 
-/** El título y la línea de cada vacío («sin-datos» dice lo mismo que en «Se está acabando»). */
+/** «Todavía no se puede saber: …» con el umbral que manda (el de cada tipo, o «Liquidar desde» si ningún tipo tiene ritmo). */
+export function lineaTodaviaNoQuietas(prendas: readonly Pick<PrendaAnalisis, "piso" | "almacen" | "salioAlPiso" | "umbrales">[], liquidarDesde: number): string {
+  if (!prendas.some((p) => totalEnTienda(p) > 0 && p.salioAlPiso !== null)) return "No hay nada colgado que juzgar todavía.";
+  return prendas.some((p) => p.umbrales)
+    ? "Ningún modelo lleva aún lo que tarda su tipo en venderse."
+    : `Ningún modelo lleva aún ${liquidarDesde} ${plural(liquidarDesde, "día", "días")} en el piso.`;
+}
+
+export type VacioQuietas = "todo-se-mueve" | "todavia-no" | "sin-datos";
+
+/**
+ * Lo que dice la pestaña cuando no hay carril (con las prendas de la tienda, sin buscar): «sin-datos» si no llegó ni una prenda y algo
+ * falló al leer (principio 9: nunca «todo se mueve» por un error; la misma regla que «Se está acabando»); «todavia-no» si ningún modelo
+ * lleva aún en el piso lo que se espera para juzgarlo (`puedeJuzgarQuietas`: nunca «todo se mueve» por no haber esperado); si no,
+ * «todo-se-mueve»; null si hay carril.
+ */
+export function vacioQuietas(prendas: readonly PrendaAnalisis[], liquidarDesde: number, fallas: number, hoy?: string): VacioQuietas | null {
+  if (prendasDe(prendas, GRUPOS_CARRIL_QUIETAS, liquidarDesde).length > 0) return null;
+  if (prendas.length === 0 && fallas > 0) return "sin-datos";
+  return hoy !== undefined && !puedeJuzgarQuietas(prendas, liquidarDesde, hoy) ? "todavia-no" : "todo-se-mueve";
+}
+
+/** El título y la línea de cada vacío («sin-datos» dice lo mismo que en «Se está acabando»; «todavia-no» lleva su línea aparte). */
 export const TEXTO_VACIO_QUIETAS: Record<VacioQuietas, { titulo: string; linea: string }> = {
   "todo-se-mueve": { titulo: "Todo se mueve", linea: "Ningún modelo lleva sin venderse más de lo que se vigila." },
+  "todavia-no": { titulo: "Todavía no se puede saber", linea: "Ningún modelo lleva aún en el piso lo que se espera." },
   "sin-datos": { titulo: "No pude ver tus prendas", linea: "Vuelve a intentarlo en un rato." },
 };

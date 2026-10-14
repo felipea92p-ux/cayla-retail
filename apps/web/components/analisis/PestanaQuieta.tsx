@@ -22,6 +22,7 @@ import {
   marcasEje,
   notaSinCosto,
   pistaQuieta,
+  lineaTodaviaNoQuietas,
   marcaLiquidarComun,
   notaDeUmbrales,
   TEXTO_VACIO_QUIETAS,
@@ -30,7 +31,7 @@ import {
   type VacioQuietas,
 } from "@/lib/analisis-quietas";
 import { Vacio } from "@/components/ui/Vacio";
-import { Check } from "lucide-react";
+import { Check, Hourglass } from "lucide-react";
 import { Aviso } from "@/components/ui/Aviso";
 
 // Análisis v4 (ADR-0357): la pestaña «No se vende», como la maqueta aprobada (`vistaNose()`): arriba, cuánto hay quieto y la edad
@@ -58,7 +59,7 @@ export function PestanaQuieta() {
   // Hay carril o no, con las prendas de la tienda (sin buscar): si el buscador las deja fuera, el carril lo dice. Sin datos, la
   // pestaña solo lo dice; con «Todo se mueve», las cifras, la edad de la ropa y «Liquidar desde» siguen a la vista (Felipe,
   // 2026-10-07: en TRU no había nada quieto y no tenía dónde cambiar los 60 días).
-  const vacio = vacioQuietas(datos.prendas, liquidarDesde, datos.fallas.length);
+  const vacio = vacioQuietas(datos.prendas, liquidarDesde, datos.fallas.length, datos.hoy);
   const sinSalir = datos.sabePiso ? datos.prendas.filter(nuncaSalio).length : 0;
   if (vacio === "sin-datos") return <SinCarril tipo={vacio} />;
 
@@ -272,7 +273,7 @@ export function PestanaQuieta() {
         </div>
       )}
 
-      {vacio === "todo-se-mueve" ? (
+      {vacio === "todo-se-mueve" || vacio === "todavia-no" ? (
         <section className="tarjeta carril entra" style={{ ["--i" as string]: 2 }}>
           <div className="c-cab">
             <div>
@@ -281,7 +282,7 @@ export function PestanaQuieta() {
             </div>
             <span className="b-nota">{control}</span>
           </div>
-          <SinCarril tipo="todo-se-mueve" dentro />
+          <SinCarril tipo={vacio} dentro linea={vacio === "todavia-no" ? lineaTodaviaNoQuietas(datos.prendas, liquidarDesde) : undefined} />
         </section>
       ) : (
         <Carril
@@ -382,8 +383,18 @@ function EdadDeLoQueTienes() {
 }
 
 /** Sin carril: todo se mueve (la respuesta corta y buena) o no se pudieron leer las prendas (nunca «todo se mueve» por una falla). */
-function SinCarril({ tipo, dentro = false }: { tipo: VacioQuietas; /** Dentro de la tarjeta del carril, sin tarjeta propia. */ dentro?: boolean }) {
-  const texto = TEXTO_VACIO_QUIETAS[tipo];
+function SinCarril({
+  tipo,
+  dentro = false,
+  linea,
+}: {
+  tipo: VacioQuietas;
+  /** Dentro de la tarjeta del carril, sin tarjeta propia. */
+  dentro?: boolean;
+  /** La línea en vez de la de siempre («Todavía no se puede saber» dice con qué umbral). */
+  linea?: string;
+}) {
+  const texto = { ...TEXTO_VACIO_QUIETAS[tipo], ...(linea ? { linea } : {}) };
   // «No pude ver tus prendas» no es un vacío sino una lectura que falló: va como aviso de error (Felipe 2026-10-08).
   if (tipo === "sin-datos")
     return (
@@ -392,8 +403,9 @@ function SinCarril({ tipo, dentro = false }: { tipo: VacioQuietas; /** Dentro de
       </Aviso>
     );
   // La pieza única de vacío (ADR-0358, ronda 5): el título ya dice el estado, así que el chip «bien / sin datos» ya no se repite.
+  // «Todavía no se puede saber» no es un «todo bien»: el reloj de arena, no el visto (tarea #2, 2026-10-14).
   const vacio = (
-    <Vacio icono={<Check />} titulo={texto.titulo}>
+    <Vacio icono={tipo === "todavia-no" ? <Hourglass /> : <Check />} titulo={texto.titulo}>
       {texto.linea}
     </Vacio>
   );

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis } from "./analisis-tipos";
 import { DIAS_VIGILAR, GRUPOS_QUIETAS, LIQUIDAR_DEFECTO, LIQUIDAR_MAX, LIQUIDAR_MIN, prendasDe } from "./analisis-reglas";
-import { barraDeEdad, cifrasQuietas, destinoDeTodas, gruposQuietas, marcaLiquidarComun, marcasEje, notaDeUmbrales, notaSinCosto, pistaQuieta, TEXTO_VACIO_QUIETAS, TRAMOS_EDAD, vacioQuietas } from "./analisis-quietas";
+import { barraDeEdad, cifrasQuietas, destinoDeTodas, gruposQuietas, lineaTodaviaNoQuietas, marcaLiquidarComun, marcasEje, notaDeUmbrales, notaSinCosto, pistaQuieta, puedeJuzgarQuietas, TEXTO_VACIO_QUIETAS, TRAMOS_EDAD, vacioQuietas } from "./analisis-quietas";
 import { modeloDe } from "./analisis-modelo";
 
 // Datos inventados para la prueba: ni nombres del catálogo ni cifras de producción.
@@ -215,6 +215,23 @@ describe("los escalones de cada tipo en el carril (ADR-0357, act. 2026-10-14)", 
   });
 });
 
+describe("«Todavía no se puede saber» en vez de «Todo se mueve» (tarea #2, 2026-10-14)", () => {
+  it("sin carril y sin ningún modelo que lleve el umbral en el piso, la pestaña no dice «Todo se mueve»", () => {
+    const nuevas = [prenda({ varianteId: "a", piso: 2, salioAlPiso: "2026-10-10", diasSinVender: 4 })];
+    expect(vacioQuietas(nuevas, 15, 0, "2026-10-14")).toBe("todavia-no");
+    expect(TEXTO_VACIO_QUIETAS["todavia-no"].titulo).toBe("Todavía no se puede saber");
+    expect(vacioQuietas(nuevas, 15, 0, "2026-10-30")).toBe("todo-se-mueve");
+    // Sin la fecha (quien no la pasa), como antes.
+    expect(vacioQuietas(nuevas, 15, 0)).toBe("todo-se-mueve");
+  });
+  it("puedeJuzgarQuietas mira solo lo que hay en la tienda y ya salió al piso", () => {
+    expect(puedeJuzgarQuietas([prenda({ piso: 0, almacen: 0, salioAlPiso: "2026-08-01" })], 15, "2026-10-14")).toBe(false);
+    expect(puedeJuzgarQuietas([prenda({ almacen: 2, salioAlPiso: null })], 15, "2026-10-14")).toBe(false);
+    expect(puedeJuzgarQuietas([prenda({ almacen: 2, salioAlPiso: "2026-09-29" })], 15, "2026-10-14")).toBe(true);
+    expect(lineaTodaviaNoQuietas([prenda({ almacen: 2, salioAlPiso: null })], 15)).toBe("No hay nada colgado que juzgar todavía.");
+  });
+});
+
 describe("«Enviar todas»", () => {
   it("si todas van a la misma tienda, esa", () => {
     expect(destinoDeTodas([{ otras: [vendioAlla("tienda-b", 3), vendioAlla("tienda-c", 0)] }, { otras: [vendioAlla("tienda-b", 2)] }])).toBe("tienda-b");
@@ -280,6 +297,10 @@ describe("cuando no hay carril", () => {
   it("cada vacío dice algo corto, con su título y una línea", () => {
     expect(TEXTO_VACIO_QUIETAS["todo-se-mueve"].titulo).toBe("Todo se mueve");
     for (const t of Object.values(TEXTO_VACIO_QUIETAS)) expect(t.linea.length).toBeLessThanOrEqual(60);
+    // La línea de «Todavía no se puede saber» que dice el umbral, también corta (con 999 días, la más larga).
+    const colgada = [prenda({ piso: 1, salioAlPiso: "2026-10-01" })];
+    expect(lineaTodaviaNoQuietas(colgada, 999).length).toBeLessThanOrEqual(60);
+    expect(lineaTodaviaNoQuietas([{ ...colgada[0]!, umbrales: { vigila: 3, liquidar: 5, vara: "hoy", vendidas: 30 } }], 15).length).toBeLessThanOrEqual(60);
   });
 });
 
