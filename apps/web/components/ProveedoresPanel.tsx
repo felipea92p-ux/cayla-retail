@@ -22,6 +22,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // La tabla de líder gana columnas según el ANCHO DE LA TABLA, no el de la ventana (container queries de
 // Tailwind: `@3xl`, `@5xl`, `@7xl` miden el contenedor `@container` de <Tabla>). Con el menú lateral abierto
@@ -189,20 +190,20 @@ export function ProveedoresPanel({
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Proveedores</h1>
-          <p className="mt-1 text-sm text-tinta/65">A quién se le compra. Un proveedor tiene que estar acá antes de poder registrar su comprobante.</p>
-        </div>
-        {puedeEditar && (
-          <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)} aria-haspopup="dialog" data-guia="proveedores.registrar">
-            <span className="flex items-center gap-2">
-              <span aria-hidden>+</span> Registrar proveedor
-            </span>
-          </Boton>
-        )}
-      </div>
+      <EncabezadoPagina
+        sede="Todas las tiendas"
+        titulo="Proveedores"
+        subtitulo="A quién se le compra. Un proveedor tiene que estar acá antes de poder registrar su comprobante."
+        acciones={
+          puedeEditar && (
+            <Boton peso="primario" onClick={() => setBorrador(BORRADOR_VACIO)} aria-haspopup="dialog" data-guia="proveedores.registrar">
+              <span className="flex items-center gap-2">
+                <span aria-hidden>+</span> Registrar proveedor
+              </span>
+            </Boton>
+          )
+        }
+      />
 
       {verMontos && resumen && <ProveedoresIndicadores resumen={resumen} reparto={reparto} foco={foco} onFoco={setFoco} onAbrir={setAbiertoId} />}
 

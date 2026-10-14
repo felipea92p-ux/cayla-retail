@@ -21,6 +21,7 @@ import { Paginacion, leerCursor } from "@/components/Paginacion";
 import { ComprobantesListaFilas } from "@/components/ComprobantesListaFilas";
 import { ComprobantesListaVacia } from "@/components/ComprobantesListaVacia";
 import { BotonDescargar } from "@/components/ui/BotonDescargar";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Comprobantes de proveedores (ADR-0035, rediseño ADR-0111): la lista de lo que se compró. Cada
 // fila dice los dos estados que importan —cuánto falta pagar y cuánto falta llegar— con su cifra
@@ -103,23 +104,25 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Facturas de proveedor</h1>
-          <p className="mt-1 text-sm text-tinta/65">Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella.</p>
-        </div>
-        <div className="flex flex-wrap gap-2.5">
-          {/* El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien lo descarga: desde ADR-0387,
-              quien tiene el módulo descarga las facturas de todas las tiendas, como el líder. */}
-          <BotonDescargar href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} guia="compras.exportar">
-            Descargar el mes
-          </BotonDescargar>
-          <BotonEnlace href="/compras/nueva" peso="primario" data-guia="compras.registrar">
-            + Registrar factura
-          </BotonEnlace>
-        </div>
-      </div>
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). Desde ADR-0387 quien tiene el módulo ve las
+          facturas de todas las tiendas: eso dice la línea de arriba. */}
+      <EncabezadoPagina
+        sede="Todas las tiendas"
+        titulo="Facturas de proveedor"
+        subtitulo="Cada factura registra lo que se compró; la recepción y el pago se anotan contra ella."
+        acciones={
+          <>
+            {/* El registro de compras del mes que se le manda al contador. Se lee con la sesión de quien lo descarga: desde ADR-0387,
+                quien tiene el módulo descarga las facturas de todas las tiendas, como el líder. */}
+            <BotonDescargar href={`/compras/exportar?mes=${hoy.slice(0, 7)}`} guia="compras.exportar">
+              Descargar el mes
+            </BotonDescargar>
+            <BotonEnlace href="/compras/nueva" peso="primario" data-guia="compras.registrar">
+              + Registrar factura
+            </BotonEnlace>
+          </>
+        }
+      />
 
       {/* Cada cifra lleva a donde se actúa sobre ella: «Por pagar» a la lista de deuda (y si hay vencidas,
           directo a las vencidas), «Por recibir» a la pantalla de recepción. La flecha la pone TarjetaCifra (ADR-0358). */}
