@@ -12,8 +12,8 @@ Informe con la evidencia en `.chaos/informes/inventario-2026-10-14.md` (local, f
 - [x] ~~Nota de traslado de 5000 letras, llegada en 1990, motivo de ajuste libre, nota de ajuste sin tope~~.
 
 ### Para Felipe
-- [ ] **Pegar en producción** `20261014162000` y después `20261014163000` (solo funciones; anclas verificadas en producción el 2026-10-14).
-  Después: el volcado de `docs/datos/generado/` y `pnpm datos:comparar`.
+- [x] ~~**Pegar en producción** `20261014162000` y después `20261014163000`~~ — hecho el 2026-10-14 con el OK de Felipe, verificado por md5.
+  El volcado de `docs/datos/generado/` no cambia (ninguna firma, tabla ni candado nuevo).
 - [ ] **«Prenda de más» al recibir un traslado** (ADR-0173, INV-08): entra al destino sin salir del origen. ¿Sale del origen o entra como
   sobrante a investigar? Cambia el flujo de recibir: no se tocó.
 

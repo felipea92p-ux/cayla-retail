@@ -1,7 +1,8 @@
 # ADR-0401 · Inventario después de /chaos: el envío sigue a su contenido, el envío en curso se resuelve al volver y los textos tienen tope
 
 - **Fecha:** 2026-10-14 · **Estado:** construido y verificado en local (pruebas de base, vitest, guía recorrida y re-ataque en un navegador).
-  **Las dos migraciones NO están en producción**: esperan el OK de Felipe. Rama `claude/chaos-inventario-5c56e1`.
+  **Las dos migraciones están en producción** desde el 2026-10-14 (con el OK de Felipe, antes de fusionar la web). Rama
+  `claude/chaos-inventario-5c56e1`, PR #1068.
 - **Pedido:** Felipe, 2026-10-14, tras el `/chaos` de Inventario (semilla `20261014`): «Cubre todo y arregla todo lo que consideres
   necesario y que necesite arreglo, si no interrumpe el flujo ni nada».
 - **Extiende:** ADR-0398 (el envío sigue a su contenido en Ventas: `intentos_con_token`, `fn_intento_con_huella`, `fn_resolver_intento`,
@@ -56,8 +57,12 @@ los 5 s (`proximaRevision`, pura y probada). El aviso dice lo que pasó: «Tu tr
 - **La «prenda de más» al recibir un traslado** (ADR-0173, INV-08): entra al destino sin salir del origen. Con el punto 1 ya no la alimenta
   un reintento, pero sigue siendo diseño. Es una regla de stock que cambia el flujo de la tienda: ¿lo de más sale del origen, o entra como
   sobrante a investigar?
-- **Pegar las dos migraciones en producción.** Solo funciones, una parte cada una, `20261014162000` antes que `20261014163000`. Las anclas
-  se verificaron en producción (solo lectura) el 2026-10-14. **Se pegan ANTES de fusionar la web:** son compatibles con la web de
+- ~~Pegar las dos migraciones en producción~~: **hecho el 2026-10-14.** Solo funciones, una parte cada una, `20261014162000` antes que
+  `20261014163000`. Antes, las 10 anclas aparecían las veces esperadas y `fn_resolver_intento` era idéntico al del repo; se revisó además
+  que ninguna función de la base llama a `ajustar_inventario` y que sus tres pantallas mandan solo los cuatro motivos (producción tiene
+  movimientos con motivo `conteo` y `hallazgo_conteo`, pero los escriben `cerrar_conteo` y `registrar_hallazgo_de_conteo` directo, sin
+  pasar por el ajuste). Después, los cuerpos son idénticos al local (md5), salvo `ajustar_inventario`, que difiere solo en comentarios
+  que producción ya no guardaba. El diccionario no cambia: ninguna firma, tabla ni candado es nuevo. **Se pegan ANTES de fusionar la web:** son compatibles con la web de
   hoy, y sin ellas «Revisar si se guardó» de Nuevo traslado solo respondería «Todavía no hay respuesta» (reenviar lo mismo sí funciona).
 
 ## Lo vigila
