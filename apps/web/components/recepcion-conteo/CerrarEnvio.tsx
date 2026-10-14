@@ -7,7 +7,7 @@ import { Aviso } from "@/components/ui/Aviso";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
-import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
+import { Encabezado, TABLA, Tabla } from "@/components/ui/Tabla";
 import { Balanza, BaldosaCategoria } from "./piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { AvisoCostoAtipico } from "@/components/AvisoCostoAtipico";
@@ -53,8 +53,14 @@ import { cerrarConteo } from "@/lib/recepcion-conteo-acciones";
 // Compras, y vacío entra sin costo), qué pasó con lo que no cuadró, una nota y quién cierra. Separar y detallar NO frenan: son pendientes.
 // Las reglas son las de `cerrar_conteo_envio` (`camposDelCierre`): la guía de foco enciende lo que falta.
 
-// Las columnas del cierre, una sola vez para el encabezado y cada fila (la pieza <Tabla>, ADR-0358). En celular se apilan.
-const PLANTILLA_CIERRE = "sm:grid-cols-[minmax(0,1.6fr)_6.5rem_3.75rem_4.25rem_5rem_minmax(0,1.6fr)_minmax(0,1.7fr)]";
+// Las columnas del cierre, una sola vez para el encabezado y cada fila (la pieza <Tabla>, ADR-0358). La tabla decide su forma por el ancho
+// de su TARJETA (`@container`, como Clientes), no por el de la ventana: con el lateral abierto, a 1024 px la tarjeta mide ~670 px y siete
+// columnas se pisaban. Desde 880 px de tarjeta, columnas; con menos, cada fila apilada, con su etiqueta en cada dato.
+// En columnas, toda celda pone su primera línea en la franja de 40 px de la caja del costo (`FRANJA`): el nombre, las cifras, el chip y la
+// diferencia quedan a la misma altura aunque «Para después» o la causa sumen líneas abajo.
+const PLANTILLA_CIERRE = "@min-[880px]:grid-cols-[minmax(0,1.5fr)_6.5rem_3.75rem_4.25rem_7rem_minmax(0,1.5fr)_minmax(0,1.8fr)]";
+const FRANJA = "@min-[880px]:flex @min-[880px]:min-h-10 @min-[880px]:items-center";
+const CIFRA = "min-w-0 whitespace-nowrap tabular-nums @min-[880px]:flex @min-[880px]:min-h-10 @min-[880px]:items-center @min-[880px]:justify-end";
 
 export function CerrarEnvio({
   detalle,
@@ -160,8 +166,9 @@ export function CerrarEnvio({
         </Aviso>
       )}
 
-      <Tabla guia="recepcion.tabla-cierre">
+      <Tabla guia="recepcion.tabla-cierre" className="@container">
         <Encabezado
+          visible="hidden @min-[880px]:grid"
           plantilla={PLANTILLA_CIERRE}
           columnas={[
             { titulo: "Categoría" },
@@ -182,10 +189,13 @@ export function CerrarEnvio({
               const costo = leerCostoCierre(d.costo);
               const editaCosto = !(sinAviso && !l.linea && !veDinero);
               return (
-                <div key={l.clave} className={fila(PLANTILLA_CIERRE, "sm:items-start")} role="row">
+                <div key={l.clave} className={`grid ${TABLA.fila} ${PLANTILLA_CIERRE} @min-[880px]:items-start`} role="row">
+                  {/* El ícono en la franja; el nombre, centrado en ella si cabe en una línea y hacia abajo si se parte. */}
                   <div className="flex min-w-0 items-start gap-2.5" role="cell">
-                    <BaldosaCategoria categoria={l.categoria} tamano="chico" />
-                    <span className="min-w-0">
+                    <span className="flex items-center @min-[880px]:h-10">
+                      <BaldosaCategoria categoria={l.categoria} tamano="chico" />
+                    </span>
+                    <span className="min-w-0 @min-[880px]:flex @min-[880px]:min-h-10 @min-[880px]:flex-col @min-[880px]:justify-center">
                       <p className="font-medium text-tinta">{l.categoria?.nombre ?? "Categoría"}</p>
                       <p className="text-xs text-taupe">
                         {[l.marca?.nombre, l.conteo?.contadoPor?.nombre ? `contó ${l.conteo.contadoPor.nombre.split(" ")[0]}` : null, !l.linea && !sinAviso ? "no estaba en la guía" : null]
@@ -194,10 +204,10 @@ export function CerrarEnvio({
                       </p>
                     </span>
                   </div>
-                  <div className="min-w-0 sm:text-right" role="cell">
-                    {/* La caja esconde su etiqueta (la dice la cabecera de la tabla); en el celular la cabecera no está. */}
+                  <div className="min-w-0 max-w-48 @min-[880px]:max-w-none @min-[880px]:text-right" role="cell">
+                    {/* La caja esconde su etiqueta (la dice la cabecera de la tabla); apilada, la cabecera no está. */}
                     {editaCosto && (
-                      <span aria-hidden className="mb-1 block text-xs text-taupe sm:hidden">
+                      <span aria-hidden className="mb-1 block text-xs text-taupe @min-[880px]:hidden">
                         Costo por prenda
                       </span>
                     )}
@@ -221,22 +231,24 @@ export function CerrarEnvio({
                       <span className="text-xs text-taupe">llega con la factura</span>
                     )}
                   </div>
-                  <div className={celda("der", "text-taupe")} role="cell">
-                    <span className="sm:hidden">Dijeron </span>
+                  <div className={`${CIFRA} text-taupe`} role="cell">
+                    <span className="@min-[880px]:hidden">Dijeron&nbsp;</span>
                     {l.dijeron ?? "—"}
                   </div>
-                  <div className={celda("der", "text-tinta")} role="cell">
-                    <span className="text-taupe sm:hidden">Contaste </span>
+                  <div className={`${CIFRA} text-tinta`} role="cell">
+                    <span className="text-taupe @min-[880px]:hidden">Contaste&nbsp;</span>
                     {l.conteo ? contadasDe(l) : <Chip tono="ambar">Sin contar</Chip>}
                   </div>
-                  <div className="min-w-0 sm:text-right" role="cell">
-                    <span className="text-taupe sm:hidden">Se pueden vender </span>
+                  <div className={CIFRA} role="cell">
+                    <span className="text-taupe @min-[880px]:hidden">Se pueden vender&nbsp;</span>
                     <span className="font-semibold tabular-nums text-verde">{alStock}</span>
                   </div>
                   <div className="min-w-0 space-y-1" role="cell">
                     {para > 0 ? (
                       <>
-                        <Chip tono="pizarra">{para} para después</Chip>
+                        <div className={FRANJA}>
+                          <Chip tono="pizarra">{para} para después</Chip>
+                        </div>
                         <ul className="space-y-0.5 text-xs leading-snug text-taupe">
                           {detalleParaDespues(l).map((t) => (
                             <li key={t}>{t}</li>
@@ -244,32 +256,41 @@ export function CerrarEnvio({
                         </ul>
                       </>
                     ) : (
-                      <Chip tono="verde">Nada</Chip>
+                      <div className={FRANJA}>
+                        <Chip tono="verde">Nada</Chip>
+                      </div>
                     )}
                   </div>
                   <div className="min-w-0" role="cell">
                     {!l.conteo ? (
-                      <CampoGuiado id={idCampoCierre("contar", l.clave)} guia={guia}>
+                      <CampoGuiado id={idCampoCierre("contar", l.clave)} guia={guia} className={FRANJA}>
                         <Boton type="button" peso="discreto" onClick={onVolver}>
                           Contarla
                         </Boton>
                       </CampoGuiado>
                     ) : causas ? (
                       <CampoGuiado id={idCampoCierre("causa", l.clave)} guia={guia} retiene="fila">
-                        <p className="mb-1.5 text-xs font-semibold text-tinta">
-                          {dif != null && dif < 0 ? `Faltan ${-dif}` : dif != null && dif > 0 ? `Sobran ${dif}` : `${contadasDe(l)} que no venían`}
-                        </p>
-                        <ElegirOpcion
-                          etiqueta={`Qué pasó con ${nombreDeLinea(l)}`}
-                          opciones={causas.opciones}
-                          valor={causas.tipo === "faltante" ? d.faltanteCausa : d.sobranteCausa}
-                          onValor={(v) => cambiar(l.clave, causas.tipo === "faltante" ? { faltanteCausa: v as CausaFaltante } : { sobranteCausa: v as CausaSobrante })}
-                        />
+                        {/* Como la maqueta: el chip de la diferencia en la franja y, debajo, qué pasó. */}
+                        <div className={`${FRANJA} gap-2`}>
+                          <Chip tono="ambar">
+                            {dif != null && dif < 0 ? `Faltan ${-dif}` : dif != null && dif > 0 ? `Sobran ${dif}` : `${contadasDe(l)} que no venían`}
+                          </Chip>
+                          <span className="text-xs text-taupe">¿Qué pasó?</span>
+                        </div>
+                        <div className="mt-1">
+                          <ElegirOpcion
+                            chico
+                            etiqueta={`Qué pasó con ${nombreDeLinea(l)}`}
+                            opciones={causas.opciones}
+                            valor={causas.tipo === "faltante" ? d.faltanteCausa : d.sobranteCausa}
+                            onValor={(v) => cambiar(l.clave, causas.tipo === "faltante" ? { faltanteCausa: v as CausaFaltante } : { sobranteCausa: v as CausaSobrante })}
+                          />
+                        </div>
                       </CampoGuiado>
-                    ) : dif == null ? (
-                      <Chip tono="neutro">{sinAviso ? "Sin aviso" : "Sin guía"}</Chip>
                     ) : (
-                      <Chip tono="verde">Cuadra</Chip>
+                      <div className={FRANJA}>
+                        {dif == null ? <Chip tono="neutro">{sinAviso ? "Sin aviso" : "Sin guía"}</Chip> : <Chip tono="verde">Cuadra</Chip>}
+                      </div>
                     )}
                   </div>
                 </div>

@@ -226,18 +226,21 @@ export function ElegirOpcion({
   opciones,
   valor,
   onValor,
+  chico = false,
 }: {
   etiqueta: string;
   /** `guia`: el ancla de la guía interactiva de esa opción (la reposición, fase 5a). Va en una caja alrededor del chip, que es de todos. */
   opciones: readonly { valor: string; texto: string; guia?: string }[];
   valor: string | null;
   onValor: (valor: string) => void;
+  /** Opciones compactas, para una celda de tabla (`ChipOpcion chico`). */
+  chico?: boolean;
 }) {
   return (
     <div role="group" aria-label={etiqueta} className="flex flex-wrap gap-1.5">
       {opciones.map((o) => {
         const chip = (
-          <ChipOpcion key={o.valor} elegido={valor === o.valor} onClick={() => onValor(o.valor)}>
+          <ChipOpcion key={o.valor} elegido={valor === o.valor} onClick={() => onValor(o.valor)} chico={chico}>
             {o.texto}
           </ChipOpcion>
         );

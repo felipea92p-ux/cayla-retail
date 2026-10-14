@@ -73,11 +73,14 @@ export function LlegoSinAviso({
     router.push(`/recibir/envio/${abierto.despachoId}`);
   }
 
-  // Los proveedores que coinciden con lo escrito (por nombre o por marca), hasta 6; el elegido siempre a la vista.
+  // Los proveedores que coinciden con lo escrito (por nombre o por marca), hasta 6, SIEMPRE en el mismo orden: el elegido se marca con
+  // su ✓ donde está (Felipe 2026-10-14: subirlo al primer lugar al tocarlo confundía, parecía que la lista había cambiado). Solo si lo
+  // escrito lo deja fuera de los 6, se agrega al final para que no desaparezca lo elegido.
   const q = normalizar(buscar);
   const coinciden = proveedores.filter((p) => !q || normalizar(p.nombre).includes(q) || (p.marcas ?? []).some((m) => normalizar(m).includes(q)));
   const elegido = proveedores.find((p) => p.id === proveedorId) ?? null;
-  const aLaVista = [...(elegido ? [elegido] : []), ...coinciden.filter((p) => p.id !== proveedorId)].slice(0, 6);
+  const primeros = coinciden.slice(0, 6);
+  const aLaVista = elegido && !primeros.some((p) => p.id === elegido.id) ? [...primeros, elegido] : primeros;
 
   return (
     <div id="sin-aviso" className="grid scroll-mt-6 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
@@ -128,7 +131,7 @@ export function LlegoSinAviso({
                 </li>
               ))}
               {aLaVista.length === 0 && <li className="px-1 text-[13px] text-taupe">Ningún proveedor coincide con «{buscar}».</li>}
-              {coinciden.length > aLaVista.length && <li className="px-1 text-xs text-taupe">Escribe para encontrar a los demás ({coinciden.length - aLaVista.length} más).</li>}
+              {coinciden.length > primeros.length && <li className="px-1 text-xs text-taupe">Escribe para encontrar a los demás ({coinciden.length - primeros.length} más).</li>}
             </ul>
           </CampoGuiado>
 

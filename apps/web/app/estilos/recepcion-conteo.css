@@ -40,7 +40,8 @@ button.rc-parada:disabled { cursor: default; }
 
 /* ---- El ícono de una categoría en su baldosa ---- */
 .rc-cat-ic { display: grid; flex: none; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--color-hueso); color: var(--color-tinta); }
-.rc-cat-ic[data-tamano="chico"] { width: 32px; height: 32px; border-radius: 9px; background: var(--color-papel); }
+/* La chica vive en filas de cebra (papel y hueso): un tinte de tinta se ve igual sobre las dos; papel desaparecía en una y hueso en la otra. */
+.rc-cat-ic[data-tamano="chico"] { width: 32px; height: 32px; border-radius: 9px; background: color-mix(in srgb, var(--color-tinta) 6%, transparent); }
 
 /* ---- La lista de categorías del envío ---- */
 .rc-cat-item { position: relative; display: flex; width: 100%; align-items: center; gap: 10px; padding: 10px 12px 10px 14px; border: 1px solid transparent; border-radius: 16px; text-align: left; transition: background-color 200ms var(--ease-cayla), border-color 200ms var(--ease-cayla), translate 200ms var(--ease-cayla); }
