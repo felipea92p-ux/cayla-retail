@@ -17,6 +17,7 @@ import {
   TEXTO_REGIMEN,
   aniosDeRegimen,
   delAnio,
+  diaDelRegistro,
   parsearParametro,
   valorEnCasilla,
   vigenteEnAnio,
@@ -73,10 +74,11 @@ function Quien({ p, onConfirmar }: { p: ParametroFila; onConfirmar: () => void }
       </small>
     );
   if (!p.registradoPor) return p.nota ? <small>{p.nota}</small> : null;
+  const dia = diaDelRegistro(p.registradoEn);
   return (
     <small>
       {p.correcciones > 0 ? "corregido" : "puesto"} por {p.registradoPor}
-      {p.registradoEn ? ` · ${fechaCorta(p.registradoEn.slice(0, 10), true)}` : ""}
+      {dia ? ` · ${dia}` : ""}
     </small>
   );
 }
