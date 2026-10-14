@@ -1,6 +1,7 @@
 // Relativo, no `@/`: vitest no resuelve el alias y este archivo tiene pruebas.
 import { ETIQUETA_TIPO, type EstadoComprobante, type TipoComprobante } from "./comprobantes-reglas";
 import type { Cantidades } from "./inventario-reglas";
+import { hoyLima } from "./fechas-lima";
 
 // Reglas de lectura de Movimientos, sin nada de servidor: las importan los
 // componentes cliente (lista, filtros, detalle). Las lecturas contra Postgres
@@ -506,7 +507,7 @@ export function restarDias(hoy: string, dias: number): string {
 
 /** El primer día de un período de N días que TERMINA hoy: 7 días es hoy y los 6 anteriores
  *  (misma cuenta que el Resumen). */
-export function desdeDeUltimosDias(dias: number, hoy: string = hoyEnLima()): string {
+export function desdeDeUltimosDias(dias: number, hoy: string = hoyLima()): string {
   return restarDias(hoy, dias - 1);
 }
 
@@ -521,7 +522,7 @@ export function filtrosDesdeParams(
     porDefecto?: "hoy" | "30";
   } = {}
 ): FiltrosResueltos {
-  const hoy = contexto.hoy ?? hoyEnLima();
+  const hoy = contexto.hoy ?? hoyLima();
   const desdeUrl = esFecha(p.desde) ? p.desde : undefined;
   const hastaUrl = esFecha(p.hasta) ? p.hasta : undefined;
 

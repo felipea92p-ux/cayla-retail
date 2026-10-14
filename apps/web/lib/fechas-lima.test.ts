@@ -9,6 +9,10 @@ describe("hoyLima", () => {
   it("a las 00:10 de Lima ya es el día siguiente", () => {
     expect(hoyLima(new Date("2026-09-19T05:10:00Z"))).toBe("2026-09-19");
   });
+  it("a las 23:30 de Lima todavía es ese día", () => {
+    // 2026-09-18 04:30 UTC = 2026-09-17 23:30 en Lima.
+    expect(hoyLima(new Date("2026-09-18T04:30:00Z"))).toBe("2026-09-17");
+  });
 });
 
 describe("diaLima: el día de Lima de un instante", () => {

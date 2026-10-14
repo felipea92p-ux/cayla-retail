@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { avanceDeMision, claveMision, leerFotoMision, objetivosDeHoy } from "@/lib/existencias-mision";
-import { hoyLima } from "@/lib/apartados-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 const LARGO = 2 * Math.PI * 13;
