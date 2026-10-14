@@ -2,14 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, X } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { Casilla } from "@/components/ui/Casilla";
-import { Buscador } from "@/components/ui/Buscador";
+import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -36,8 +35,9 @@ import {
   TEXTO_PAPEL,
   TIPOS_GASTO_VIAJE,
   camposGastoViaje,
-  etiquetaOrdenParaGasto,
   fraseRegistrarGasto,
+  ordenesElegidas,
+  ordenesParaAgregar,
   papelesPara,
   pistaDelPapel,
   repartirGasto,
@@ -54,12 +54,17 @@ import { leerOrdenesParaGastoDesdeLaHoja, registrarGastoViaje } from "@/lib/gast
 // Gastos y en el Estado de resultados, y nunca entra al costo de la prenda (decisión 20). La plata sale de «Mi fondo» (primero, si tiene uno)
 // o de una cuenta de siempre. Va a una o varias órdenes: con varias se reparte según el total de cada una, y la hoja muestra el reparto
 // antes de guardar (el mismo de la base). Sin comprobante, solo taxi o cargador, con planilla de movilidad (decisión 55).
+// Las órdenes (Felipe 2026-10-14): la hoja muestra solo las elegidas —abierta desde una orden, esa— y las demás se suman con «+ Agregar
+// otra orden», que abre el combo con buscador del sistema (su lista flota: la hoja no crece ni se encoge al abrirla).
 //
 // Guía de foco (ADR-0284): lo que falta es lo MISMO que rechaza `registrar_gasto_viaje` (`camposGastoViaje`). Quién firma (decisión 39):
 // con la cuenta de una persona, ella (sin combo); desde una terminal, el combo «Responsable». Un doble clic no duplica (token por hoja).
 
 type OrdenInicial = Pick<OrdenParaGasto, "id" | "numero" | "proveedor" | "total">;
 type Rechazo = { titulo: string; texto: string; tono: "error" | "atencion" };
+
+/** «+ Agregar otra orden»: el foco vuelve aquí después de sumar una (hay una sola hoja abierta a la vez). */
+const ID_AGREGAR_ORDEN = "gasto-viaje-agregar-orden";
 
 export function GastoDelViaje({ orden = null, guia }: { orden?: OrdenInicial | null; guia: string }) {
   const [abierta, setAbierta] = useState(false);
@@ -99,7 +104,7 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
   const [medio, setMedio] = useState<MedioGastoViaje>("efectivo");
   const [cuentaElegida, setCuentaElegida] = useState<string | undefined>(undefined);
   const [elegidas, setElegidas] = useState<string[]>(() => (orden ? [orden.id] : []));
-  const [busqueda, setBusqueda] = useState("");
+  const [agregando, setAgregando] = useState(false);
   const [disponibles, setDisponibles] = useState<OrdenParaGasto[] | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [rechazo, setRechazo] = useState<Rechazo | null>(null);
@@ -141,11 +146,8 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
   ];
   const guia = useGuiaCampos(campos);
 
-  const filtradas = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
-    if (!q) return ordenes;
-    return ordenes.filter((o) => `${o.numero} ${o.proveedor} ${o.destino ?? ""}`.toLowerCase().includes(q));
-  }, [ordenes, busqueda]);
+  const vistas = ordenesElegidas(ordenes, elegidas);
+  const paraAgregar = useMemo(() => ordenesParaAgregar(ordenes, elegidas), [ordenes, elegidas]);
   const reparto = useMemo(
     () => repartirGasto(montoLeido ?? 0, ordenes.filter((o) => elegidas.includes(o.id))),
     [montoLeido, ordenes, elegidas],
@@ -167,9 +169,16 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
     setConcepto(c as ConceptoGastoViaje);
     if (papel === "planilla_movilidad" && !papelesPara(c as ConceptoGastoViaje).includes("planilla_movilidad")) setPapel("");
   };
-  const alternarOrden = (id: string) => {
+  const agregarOrden = (id: string) => {
     setRechazo(null);
-    setElegidas((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]));
+    setElegidas((xs) => (xs.includes(id) ? xs : [...xs, id]));
+    setAgregando(false);
+    // El combo se va con la orden elegida: el foco vuelve a «+ Agregar otra orden», por si se suma una más.
+    requestAnimationFrame(() => document.getElementById(ID_AGREGAR_ORDEN)?.focus());
+  };
+  const quitarOrden = (id: string) => {
+    setRechazo(null);
+    setElegidas((xs) => xs.filter((x) => x !== id));
   };
 
   async function confirmar() {
@@ -354,36 +363,70 @@ function GastoDelViajeModal({ orden, onClose, volverA }: { orden: OrdenInicial |
           )}
 
           <CampoGuiado id="ordenes" guia={guia} titulo="¿De qué órdenes?" retiene="fila">
-            <div className="space-y-2">
-              {ordenes.length > 8 && (
-                <Buscador
-                  valor={busqueda}
-                  onCambio={setBusqueda}
-                  etiqueta="Buscar una orden"
-                  // sugerir-fijo: dice por qué se busca (número u proveedor); no depende de nada elegido en la hoja.
-                  placeholder="N.º de orden o proveedor"
-                />
-              )}
-              {disponibles === null && ordenes.length === 0 ? (
-                <p className="text-sm text-taupe">Buscando las órdenes…</p>
-              ) : ordenes.length === 0 ? (
-                <Vacio tamano="chico" alinear="izquierda" icono={<ClipboardList />}>
-                  No hay órdenes para elegir: el gasto queda solo como gasto del viaje.
-                </Vacio>
-              ) : (
-                <ul className="max-h-56 divide-y divide-sand overflow-y-auto rounded-xl border border-sand">
-                  {filtradas.map((o) => (
-                    <li key={o.id}>
-                      <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-hueso">
-                        <Casilla marcada={elegidas.includes(o.id)} onCambio={() => alternarOrden(o.id)} etiqueta={`Elegir ${etiquetaOrdenParaGasto(o)}`} />
-                        <span className="font-medium tabular-nums text-tinta">{o.numero}</span>
-                        <span className="min-w-0 flex-1 truncate text-taupe">{o.proveedor}</span>
-                        <span className="tabular-nums text-tinta/80">{soles(o.total)}</span>
-                      </label>
+            <div className="flex flex-col gap-2">
+              {/* Solo las elegidas (abierta desde una orden, esa): cada una con su «×» para quitarla. */}
+              {vistas.length > 0 && (
+                <ul className="divide-y divide-sand rounded-xl border border-sand">
+                  {vistas.map((o) => (
+                    <li key={o.id} className="flex items-center gap-3 py-1.5 pl-3 pr-1.5 text-sm">
+                      <span className="font-medium tabular-nums text-tinta">{o.numero}</span>
+                      <span className="min-w-0 flex-1 truncate text-taupe">{o.proveedor}</span>
+                      <span className="tabular-nums text-tinta/80">{soles(o.total)}</span>
+                      <button
+                        type="button"
+                        onClick={() => quitarOrden(o.id)}
+                        disabled={guardando}
+                        aria-label={`Quitar ${o.numero} de este gasto`}
+                        className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
+                      >
+                        <X aria-hidden className="h-3.5 w-3.5" />
+                      </button>
                     </li>
                   ))}
                 </ul>
               )}
+              {agregando ? (
+                // El combo con buscador del sistema (su lista flota). Si se sale sin elegir —clic afuera, Tab o Escape—, vuelve el botón.
+                // El Escape se toma en la captura (antes que el combo): cierra la lista y el combo de una vez, y es de este control, así
+                // que no cierra la hoja (useEscapeLibre); el siguiente, sí.
+                <div
+                  onBlur={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setAgregando(false);
+                  }}
+                  onKeyDownCapture={(e) => {
+                    if (e.key !== "Escape") return;
+                    e.stopPropagation();
+                    setAgregando(false);
+                    requestAnimationFrame(() => document.getElementById(ID_AGREGAR_ORDEN)?.focus());
+                  }}
+                >
+                  <ComboBuscable
+                    autoFocus
+                    valor=""
+                    onValor={agregarOrden}
+                    opciones={paraAgregar}
+                    // sugerir-fijo: dice por qué se busca (número u proveedor); no depende de nada elegido en la hoja.
+                    marcador="N.º de orden o proveedor"
+                    etiquetaAccesible="Agregar una orden al gasto"
+                  />
+                </div>
+              ) : disponibles !== null && ordenes.length === 0 ? (
+                <Vacio tamano="chico" alinear="izquierda" icono={<ClipboardList />}>
+                  No hay órdenes para elegir: el gasto queda solo como gasto del viaje.
+                </Vacio>
+              ) : disponibles === null || paraAgregar.length > 0 ? (
+                // Una acción chica que agrega algo: botón chico (ADR-0358, ronda 9). Mientras llegan las órdenes, todavía no se puede.
+                <Boton
+                  id={ID_AGREGAR_ORDEN}
+                  type="button"
+                  peso="discreto"
+                  className="btn-chico self-start"
+                  disabled={disponibles === null || guardando}
+                  onClick={() => setAgregando(true)}
+                >
+                  {vistas.length > 0 ? "+ Agregar otra orden" : "+ Agregar una orden"}
+                </Boton>
+              ) : null}
               <p className="text-xs text-taupe">
                 {reparto.length > 1
                   ? `Se reparte según el total de cada orden: ${reparto.map((r) => `${ordenes.find((o) => o.id === r.id)?.numero ?? "OC"} ${soles(r.monto)}`).join(" · ")}.`

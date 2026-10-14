@@ -11,9 +11,11 @@
   caminos en el Balance. Actividad 8: el IGV. La factura con RUC de un gasto del viaje va al crédito fiscal (la hoja dice cuánto se
   descuenta), y el IGV de lo pagado en efectivo o desde un fondo se pierde en el mes del pago: Impuestos lo resta y lo avisa, el resumen
   para el contador lo trae y el Diario lo pasa de la 4011 a la 64. De paso entró, con cherry-pick, el arreglo de otra sesión para las
-  tablas de Fondos por rendir a 1024 px.
-- **Por qué:** ADR-0362, decisiones 16, 20, 26, 29, 30, 32–35, 46, 54–57 y 65–73 (las 67–70, de esa noche; las 71–73, del 2026-10-14:
-  la deuda solo se salda cuando la persona devuelve la plata, el IGV perdido va al mes del pago y la contabilidad se parte en dos). Felipe aprobó la lista de 8
+  tablas de Fondos por rendir a 1024 px. Y, a pedido de Felipe, la hoja del gasto del viaje muestra solo la orden desde la que se abrió:
+  las demás se suman con «+ Agregar otra orden» (el combo con buscador) y se quitan con su «×».
+- **Por qué:** ADR-0362, decisiones 16, 20, 26, 29, 30, 32–35, 46, 54–57 y 65–74 (las 67–70, de esa noche; las 71–74, del 2026-10-14:
+  la deuda solo se salda cuando la persona devuelve la plata, el IGV perdido va al mes del pago, la contabilidad se parte en dos y la
+  hoja del gasto no carga la lista de órdenes). Felipe aprobó la lista de 8
   actividades y autorizó subir y pegar en producción cada actividad al cerrarla, sin fusionar.
 - **Cómo:** el fondo es una cuenta de dinero de tipo `fondo` con su dueña (1413) y su saldo sale del mismo libro que «Cuentas y dinero»;
   no entra por las reglas generales de cuentas: los pagos y los gastos lo derivan a `fn_fondo_para_pagar` (solo su dueña, con su cuenta,

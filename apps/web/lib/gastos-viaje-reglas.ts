@@ -315,3 +315,25 @@ export function fraseRegistrarGasto(monto: number | null): string {
 
 /** Cómo se lee una orden en la lista de la hoja: «OC-002788 · Textiles Andina SAC · S/ 300.00». */
 export const etiquetaOrdenParaGasto = (o: OrdenParaGasto) => `${o.numero} · ${o.proveedor} · ${soles(o.total)}`;
+
+// ---------- Las órdenes del gasto (Felipe 2026-10-14) ----------
+
+/** Una orden que se puede sumar, como la pide el combo con buscador: «OC-002788 · Textiles Andina SAC», su total al lado, y la sede a
+ *  la que va como otra palabra que la encuentra (tipear «Trujillo» trae las que van allá). */
+export type OrdenParaAgregar = { valor: string; texto: string; detalle: string; claves?: string[] };
+
+/**
+ * La hoja muestra solo las órdenes elegidas (al abrirla desde una orden, esa) y las demás se suman con «+ Agregar otra orden»: así no
+ * carga una lista larga que casi nunca se usa (Felipe 2026-10-14). Estas son las que se pueden sumar: las no elegidas, en el mismo
+ * orden de la lista (la más reciente primero).
+ */
+export function ordenesParaAgregar(ordenes: readonly OrdenParaGasto[], elegidas: readonly string[]): OrdenParaAgregar[] {
+  return ordenes
+    .filter((o) => !elegidas.includes(o.id))
+    .map((o) => ({ valor: o.id, texto: `${o.numero} · ${o.proveedor}`, detalle: soles(o.total), ...(o.destino ? { claves: [o.destino] } : {}) }));
+}
+
+/** Las órdenes elegidas, en el orden en que se eligieron (la de la hoja primero). Una que todavía no llegó de la base no se dibuja. */
+export function ordenesElegidas(ordenes: readonly OrdenParaGasto[], elegidas: readonly string[]): OrdenParaGasto[] {
+  return elegidas.flatMap((id) => ordenes.filter((o) => o.id === id).slice(0, 1));
+}

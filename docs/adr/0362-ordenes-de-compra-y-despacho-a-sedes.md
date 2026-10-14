@@ -92,6 +92,7 @@
 | 71 | Saldar la deuda de un faltante | **Solo cuando la persona devuelve la plata.** Nada de descontarla del sueldo por ahora ni de conectarla con la planilla de Dynamic: la deuda queda a la vista hasta que la devuelva (Felipe 2026-10-14; ajusta la 54) |
 | 72 | IGV perdido por pago en efectivo | Se resta **en el mes del pago**, nunca en el mes de la factura: un mes ya declarado no cambia solo (Felipe 2026-10-14) |
 | 73 | Fase 6, la lista | La actividad de contabilidad se **parte en dos**: 7 · saldar la deuda (y la 1413 y la 1419 por dos caminos en el Balance) y 8 · el IGV (facturas de los gastos del viaje a crédito fiscal y lo no deducible fuera); el cierre pasa a ser la 9 (Felipe 2026-10-14) |
+| 74 | Las órdenes de un gasto del viaje | La hoja muestra **solo la orden desde la que se abrió** (abierta desde la lista, ninguna); las demás se suman con **«+ Agregar otra orden»**, que abre el combo con buscador, y cada una se quita con su «×». Nada de una lista larga a la vista: casi nunca se usa (Felipe 2026-10-14) |
 
 **Fase 2 (aprobada por Felipe el 2026-10-12, 11 actividades, rama `claude/purchase-order-phase2-9b0c82`):** 1 · las acciones de Compras
 dejan de ser «solo del líder» (ADR-0387) · 2 · qué tiendas se ven y a nombre de quién se paga · 3 · las líneas por «categoría + marca»

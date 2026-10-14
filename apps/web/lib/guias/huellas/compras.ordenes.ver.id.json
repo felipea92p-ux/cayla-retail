@@ -2,7 +2,7 @@
   "guia": "compras.ordenes.ver.id",
   "ruta": "/compras/ordenes/ver/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 40,
+  "total": 42,
   "controles": {
     "app/(app)/compras/ordenes/ver/[id]/page.tsx": [
       "Volver «; if (falla || !detalle)»",
@@ -50,7 +50,9 @@
       "CampoSelect «Qué papel te dieron»",
       "CampoTexto «Serie y número»",
       "CampoTexto «RUC de quien te lo dio»",
-      "Casilla «{`Elegir ${etiquetaOrdenParaGasto(o)}»",
+      "button «{`Quitar ${o.numero}»",
+      "ComboBuscable «) : disponibles !== null && ordenes.length === 0 ? (»",
+      "Boton «→() => setAgregando(true)»",
       "SegmentoDeslizante «Cómo pagaste»",
       "CampoSelect «Cómo pagaste»",
       "CampoTexto «{concepto === \"otro\" ? \"¿Qué se pagó?\" : \"Nota\"}»",

@@ -6,11 +6,14 @@ import {
   fraseRegistrarGasto,
   leerGastosDeOrden,
   leerOrdenesParaGasto,
+  ordenesElegidas,
+  ordenesParaAgregar,
   papelesPara,
   pistaDelPapel,
   problemaDePapel,
   repartirGasto,
   traerlaCosto,
+  type OrdenParaGasto,
   type ValoresGastoViaje,
 } from "./gastos-viaje-reglas";
 
@@ -119,6 +122,32 @@ describe("lo que falta (las mismas reglas que la base)", () => {
     expect(sePuedeConfirmar(campos)).toBe(true);
     expect(faltan({ papel: "factura", ruc: "20123456789" })).toEqual([]);
     expect(faltan({ papel: "boleta" })).toEqual([]);
+  });
+});
+
+describe("las órdenes del gasto: se ven las elegidas y las demás se agregan (Felipe 2026-10-14)", () => {
+  const orden = (id: string, numero: string, total: number, destino: string | null = null): OrdenParaGasto => ({
+    id,
+    numero,
+    proveedor: "Textiles Andina SAC",
+    destino,
+    total,
+    fechaEmision: "2026-10-12",
+  });
+  const ORDENES = [orden("a", "OC-002787", 80, "Tienda Trujillo"), orden("b", "OC-002788", 80), orden("c", "OC-002786", 378, "Tienda Lima")];
+
+  it("para agregar quedan las no elegidas, en el orden de la lista, con su total al lado y la sede como otra palabra que la encuentra", () => {
+    expect(ordenesParaAgregar(ORDENES, ["a"])).toEqual([
+      { valor: "b", texto: "OC-002788 · Textiles Andina SAC", detalle: "S/ 80.00" },
+      { valor: "c", texto: "OC-002786 · Textiles Andina SAC", detalle: "S/ 378.00", claves: ["Tienda Lima"] },
+    ]);
+    expect(ordenesParaAgregar(ORDENES, [])).toHaveLength(3);
+    expect(ordenesParaAgregar(ORDENES, ["a", "b", "c"])).toEqual([]);
+  });
+  it("las elegidas se dibujan en el orden en que se eligieron; una que todavía no llegó de la base, no", () => {
+    expect(ordenesElegidas(ORDENES, ["c", "a"]).map((o) => o.numero)).toEqual(["OC-002786", "OC-002787"]);
+    expect(ordenesElegidas(ORDENES, ["z", "b"]).map((o) => o.id)).toEqual(["b"]);
+    expect(ordenesElegidas([], ["a"])).toEqual([]);
   });
 });
 
