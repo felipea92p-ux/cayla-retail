@@ -68,7 +68,7 @@
 .t-anuncio { flex: none; height: 30px; display: grid; place-items: center; background: var(--t-oscuro); color: var(--t-oscuro-tinta); font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; overflow: hidden; padding-inline: 12px; text-align: center; white-space: nowrap; }
 .t-anuncio span { display: block; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .t-cab { flex: none; position: relative; z-index: 15; background: color-mix(in srgb, var(--crema) 95%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--sand); }
-.t-cab-fila { height: 56px; display: flex; align-items: center; gap: 2px; padding-inline: 6px; max-width: 1360px; margin-inline: auto; }
+.t-cab-fila { height: 56px; display: flex; align-items: center; gap: 2px; padding-inline: 10px 16px; max-width: 1360px; margin-inline: auto; }
 .t-logo { display: flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 6px; color: var(--tinta); }
 .t-logo img { width: 27px; height: auto; }
 .t-logo span { font-family: var(--serif); font-size: 21px; font-weight: 500; letter-spacing: .22em; }
@@ -191,7 +191,7 @@
 @container tienda (min-width: 960px) {
   .t-como { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 }
-.t-btn.t-btn-chico { height: 38px; padding: 0 16px; font-size: 13px; margin-left: 6px; }
+.t-btn.t-btn-chico { min-height: 38px; height: 38px; padding: 0 16px; font-size: 13px; margin-left: 6px; }
 .t-portada-club { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 16px; padding-top: 8px; }
 .t-portada-club .t-tarjeta-club { max-width: 360px; transform: rotate(-4deg); box-shadow: 0 30px 60px -30px color-mix(in srgb, var(--t-oscuro) 80%, transparent); }
 .t-portada-club p { margin: 0; font-size: 13px; color: var(--t-hero-tinta); opacity: .85; text-align: center; }

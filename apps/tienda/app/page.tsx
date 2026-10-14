@@ -13,7 +13,8 @@ import { anioLima, anuncios, fechaCorta, fechaLarga, partirTitulo, pctTexto, typ
 import "./estilos/tiendas.css";
 
 // La campaña sale de la base y la página se guarda 5 minutos: lo que se cambia en el ERP aparece solo, sin volver a
-// publicar la tienda, y si la base no responde se sigue mostrando la última portada buena.
+// publicar la tienda. Si la base no responde, la portada sale igual, sin campaña ni tiendas, y esa versión también dura
+// 5 minutos: a la vuelta siguiente se vuelve a leer la base.
 export const revalidate = 300;
 
 const PASOS: [NombreIcono, string, string][] = [
