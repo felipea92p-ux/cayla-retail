@@ -1,19 +1,20 @@
 # Cómo seguir con `/unificar` desde otra sesión
 
-Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas, el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`, PR #1026, fusionado el mismo día) y sus herramientas de migración en el repo (rama `claude/unificar-herramientas-deuda`), y ese mismo día con la ronda 9 —las seis que quedaron abiertas— y la ronda 10 —descargar, filtros y ver en otra pantalla— decididas y migradas, más el censo del mostrador rastreado al código, y el 2026-10-14 con la ronda 11 —cancelar, limpiar e imprimir— decidida y migrada (rama `claude/mystifying-jang-ef15d0`) y, ese mismo día, los pendientes antes de la ronda 12 —la cabecera de todas las pantallas, «Etiquetas», el «Ver» de Caja, Nueva compra a 1440 px y los contrastes heredados del claro— (rama `claude/unificar-ronda-12`). Es el punto de partida para la próxima sesión: qué está
+Escrito el 2026-10-07 al cerrar la ronda 4 y puesto al día el 2026-10-08 al cerrar la ronda 5 (rama `claude/unificar-next-round-bdaaa0`), el 2026-10-09 con la ronda 5b, la barra apilada (rama `claude/keen-feistel-35a4cb`), el 2026-10-12 con las rondas 6 y 7 armadas, el 2026-10-13 con las rondas 6, 7 y 8 decididas y migradas (rama `claude/unificar-componentes-animaciones-f811a1`, PR #1026, fusionado el mismo día) y sus herramientas de migración en el repo (rama `claude/unificar-herramientas-deuda`), y ese mismo día con la ronda 9 —las seis que quedaron abiertas— y la ronda 10 —descargar, filtros y ver en otra pantalla— decididas y migradas, más el censo del mostrador rastreado al código, y el 2026-10-14 con la ronda 11 —cancelar, limpiar e imprimir— decidida y migrada (rama `claude/mystifying-jang-ef15d0`) y, ese mismo día, los pendientes antes de la ronda 12 —la cabecera de todas las pantallas, «Etiquetas», el «Ver» de Caja, Nueva compra a 1440 px y los contrastes heredados del claro— (rama `claude/unificar-ronda-12`), y ese mismo día la ronda 12 —guardar, editar y las hojas— decidida y migrada (misma rama). Es el punto de partida para la próxima sesión: qué está
 decidido, qué falta, cómo se trabaja y lo que se aprendió en el camino. **Léelo antes de abrir la skill** (`/unificar`) y mantenlo al día
 al cerrar cada ronda: la próxima sesión no ve esta conversación.
 
 **Para arrancar, pega esto en la sesión nueva:**
 
-> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md`, `docs/unificar/README.md` y `docs/unificar/MIGRAR.md`. Las rondas 1 a 11
-> y los pendientes (la cabecera, «Etiquetas», el «Ver» de Caja) están decididos y migrados (deuda 0 en todas las familias). Arma la ronda 12 del tablero («Por analizar»: `modal`, `grafico` y los botones
-> de una función que quedan —`accion.guardar`, `accion.editar`, `accion.buscar`, `accion.copiar`, `accion.menu`—) con un censo nuevo, y cierra
-> lo que quedó de «Lo que falta, en orden».
+> Seguimos con `/unificar`. Lee `docs/unificar/CONTINUAR.md`, `docs/unificar/README.md` y `docs/unificar/MIGRAR.md`. Las rondas 1 a 12
+> y los pendientes (la cabecera, «Etiquetas», el «Ver» de Caja) están decididos y migrados (deuda 0 en todas las familias). Arma la ronda 13
+> del tablero («Por analizar»: `grafico` —la línea de Caja, las barras mensuales de Rendimiento, la dona del Inicio—, `icono`, y los
+> botones de una función que quedan —`accion.buscar`, `accion.menu`, `accion.copiar`—) con un censo nuevo, y cierra lo que quedó de «Lo
+> que falta, en orden».
 
 ## Dónde quedó
 
-Veintinueve familias decididas por Felipe (la última, `titulo-pagina`, el 2026-10-14), todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas
+Treinta y dos familias decididas por Felipe (las últimas, `accion.guardar`, `accion.editar` y `modal`, el 2026-10-14), todas **mirando** (y de la ronda 3 en adelante, **tocando** demos vivas), migradas y vigiladas
 por `lib/unificar.test.ts`. **Todas las que tienen candado están en deuda 0** desde la ronda 9 (2026-10-13), también tras las rondas 10 y
 11. La tabla de abajo es la de las rondas 1–5b; las de las rondas 6–11 están en el tablero (`README.md`) y en «Piezas únicas» de `CLAUDE.md`.
 
@@ -34,6 +35,27 @@ por `lib/unificar.test.ts`. **Todas las que tienen candado están en deuda 0** d
 | 5b | `grafico.barra` | `<BarraApilada>`: pista de arena + el movimiento de Compras (entra, se reacomoda, el apuntado se estira y los demás bajan); 12 · 8 · 4 px; si responde, cada tramo es un botón. **Deuda: 0**; migrada entera (Compras, Vender, Caja y Producción) | [grafico.barra.md](grafico.barra.md) |
 
 Lo mismo, en corto, está en la tabla «Piezas únicas» de `CLAUDE.md`, que es lo que lee cualquier sesión que construya una pantalla.
+
+## Ronda 12 (2026-10-14): guardar, editar y las hojas, decididas y migradas
+
+Censo nuevo de las tres familias (Admin y el terminal del mostrador) y una página de elegir con cinco preguntas: mientras guarda, «Editar», y
+de las hojas su cara, su ancho y su salida. Las demos de hojas usan las clases reales de `<Modal>` y entran como una de verdad; el botón que
+guarda espera 2 s. Felipe eligió **las cinco P1**. Migrado el mismo día, deuda 0 en las tres: la cara y los anchos en la pieza (146 hojas a
+`tamano`), unas 30 salidas, 140 botones que esperaban a mano (dos codemods en `rondas/12/`) y 22 «Editar».
+
+Lo aprendido en esta ronda:
+- **Una regex no lee JSX.** `<Modal\b((?:[^>]|=>)*?)>` corta en el `>` de un título con JSX (`titulo={<span>…</span>}`): la primera pasada
+  dejó 23 hojas sin migrar y se vio buscando los `ancho=` que quedaban. `rondas/12/etiquetas.mjs` lee la etiqueta de apertura respetando
+  llaves y comillas; úsalo en todo codemod que toque atributos.
+- **Un valor por defecto cambia más de lo que parece.** Al hacer que `<Boton cargando>` diga «Guardando…», todo botón que ya pasaba
+  `cargando` lo dijo, también los que desactivan, anulan o imprimen. Hay que listar los que ya usaban la prop y darles su verbo
+  (`verbos2.mjs`), y las piezas que envuelven a `Boton` (`BotonImprimir`, `BotonDescargar`) ponen el suyo.
+- **Los gerundios no terminan todos en «-ando».** El primer codemod buscaba `…ando…` y se le escaparon «Abriendo», «Recibiendo»,
+  «Pidiendo», «Moviendo», «Devolviendo».
+- **Las pruebas que leen el texto del código se rompen con la migración** (Nueva orden de producción: la etiqueta del botón y que todo
+  `<Boton>` lleve `type`): se adaptan conservando su intención, y una prueba que prohíbe `unificar-fijo` en un archivo pide declarar su
+  excepción en `familias.mjs`.
+- **Al reabrir la sesión, la app puede volver la worktree a su rama original.** Revisa `git branch --show-current` antes de seguir.
 
 ## Pendientes (2026-10-14): la cabecera, «Etiquetas» y «Ver», decididos y migrados
 

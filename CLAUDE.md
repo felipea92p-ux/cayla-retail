@@ -159,7 +159,7 @@ efecto del sistema: velo con desenfoque → hoja que sube 18 px y crece → cont
 55 ms de desfase) → salida corta.** No definas otra animación de entrada de modal ni reimplementes el overlay
 (`fixed inset-0`): si una pieza no debe entrar en cascada, `data-sin-cascada`. Lo único que un modal agrega por su cuenta
 son respuestas a una acción dentro del contenido (barra que se llena, cifra que cuenta, «visto» que se dibuja) con
-`--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida», el giro del botón mientras la base responde y las rayas
+`--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida», el hilo que barre el botón mientras la base responde (antes, su giro; ronda 12 de `/unificar`) y las rayas
 del círculo punteado de un campo opcional en la guía de foco, ADR-0136 act. c; y, solo en la persiana de «Caja cerrada» de Vender, el
 cartel que se mece al colgarse y sus bucles suaves, ADR-0136 act. d / ADR-0301; y, en el Observatorio del Admin, el latido de una
 tienda con caja abierta, el cometa de un traslado en camino y el halo de un aviso urgente, ADR-0322; y la **vista rápida de producto** de
@@ -275,7 +275,7 @@ se parecen, no está terminada. Lo que se aparta del spike a propósito queda es
 respuesta.** Se usa SIEMPRE al cargar una pantalla, al presionar un botón que guarda y al cambiar de sede — y se activa solo:
 parchea `window.fetch` y `lib/espera-reglas.ts` (`clasificarPeticion`, lógica pura y testeada) decide qué es `'carga'` o
 `'guardado'`. **No construyas otro overlay de carga a pantalla completa ni dejes un «Cargando…» suelto**; un botón o una
-pantalla nueva no tiene que hacer nada para tenerlo. Los botones conservan su giro «Guardando…» (el loader se suma), y un
+pantalla nueva no tiene que hacer nada para tenerlo. Los botones conservan su «Guardando…» con el hilo (`<Boton cargando>`, ronda 12 de `/unificar`; el loader se suma), y un
 `Suspense` de una sección dentro de una pantalla sigue siendo esqueleto parcial, no el loader global.
 **El aviso de éxito (`avisar.*`, esquina superior derecha) sale DESPUÉS del loader, nunca encima** (`lib/espera-estado.ts`): el
 loader dice «espera, se está procesando» y el aviso dice «listo, se guardó bien». Mientras haya una petición en curso o el
@@ -524,6 +524,9 @@ dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y
 | Limpiar los filtros (`accion.limpiar`) | `<FiltroPuesto onQuitar etiqueta>` (cada filtro puesto: la píldora de los vacíos, tinta con su ✕) y `<BotonLimpiar>` («Limpiar todo» o «Limpiar filtros»: una píldora punteada con el embudo tachado), `components/ui/FiltrosPuestos.tsx`. En la hoja de filtros del celular, «Limpiar» es el secundario; en el calendario o dentro de una frase, `btn-enlace`. Nunca «Quitar filtros» ni versalitas a mano | 2026-10-14 |
 | Imprimir (`accion.imprimir`) | `<BotonImprimir href \| onClick peso chico>` (`components/ui/BotonImprimir.tsx`): la impresora a la izquierda y «Imprimir» + qué («Imprimir ticket», «Imprimir la orden»); `peso="primario"` solo si imprimir ES el paso de esa pantalla; «o guardar en PDF» va en la frase de al lado o en su `title`. La impresora es solo de lo que imprime ya: «Etiquetas», que lleva a su pantalla, lleva la etiqueta (`<Tag>`). Nunca un `<Printer>` a mano ni «Imprimir o guardar PDF» | 2026-10-14 |
 | La cabecera de una pantalla (`titulo-pagina`) | `<EncabezadoPagina sede titulo subtitulo acciones volver detalle pie>` en toda pantalla menos Finanzas (ver «Paleta y orden de pantalla»); `<CabeceraPantalla>` solo en Finanzas. Nunca un `<h1>` en la serif dibujado a mano | 2026-10-14 |
+| Mientras guarda (`accion.guardar`) | `<Boton cargando>` (también `BotonCompacto` y los botones del flujo del mostrador): la palabra pasa a «Guardando…» (u otro verbo con `textoCargando`: «Anulando…», «Desactivando…»), corre el hilo y el botón se apaga, sin cambiar de ancho. Todo botón que guarda pasa `cargando` (también en `false`). Nunca `{guardando ? "Guardando…" : …}` a mano ni una rueda que gira | 2026-10-14 |
+| Editar algo (`accion.editar`) | `<BotonEditar href \| onClick chico>` (`components/ui/BotonEditar.tsx`): el secundario con el lápiz, nunca negro; en una fila o una tarjeta de una lista (muchas iguales), `<LapizEditar que href \| onClick>`: el lápiz solo de 32 px con «Editar <que>» para el lector; dentro de una frase o de una hoja, el enlace. Nunca un `<Pencil>` a mano | 2026-10-14 |
+| Las hojas (`modal`) | `<Modal>` con UNA cara (papel, sin sombra, título serif de 24 px, la frase en taupe), un ancho con nombre (`tamano="angosta"` 448 —el de fábrica—, `"mediana"` 576, `"ancha"` 768; `ancho` a medida solo en una hoja de diseño propio, con su `unificar-fijo`) y **una salida a la vista**: `conCerrar` (la ×) si la hoja solo se lee, «Cancelar» en su pie si guarda, nunca las dos (si cambia de modo, `conCerrar={modo === "ver"}`) | 2026-10-14 |
 
 ## Guías interactivas: una demo por pantalla, siempre al día (regla — ADR-0389, Felipe 2026-10-07)
 

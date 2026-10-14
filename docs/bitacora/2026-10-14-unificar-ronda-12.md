@@ -11,3 +11,15 @@ opcional, el sobretítulo tras la fecha) para no inventar textos ni perder datos
 Felipe se lleva: una sola cabecera en todo el ERP (menos Finanzas, por su spike), vigilada por la prueba; las fotos de antes y después en claro,
 oscuro y 375 px (`docs/unificar/capturas/titulo-pagina.*.jpg`). Familias y Editar producto no se miraron en local porque a la base le falta
 `familias.entra_a_motores` (ADR-0377).
+
+## 2026-10-14 (/unificar: ronda 12 — guardar, editar y las hojas, decididas y migradas)
+Qué hice: traje `main` (con el #1074 ya fusionado; tres huellas de guías regeneradas), corrí el censo de las tres familias con Admin y el
+mostrador y armé una página de elegir con cinco preguntas y demos vivas (hojas que entran como una de verdad, un botón que espera 2 s).
+Felipe eligió las cinco P1: «Guardando…» y el hilo sin cambiar de ancho; «Editar» secundario con el lápiz y, en una fila, el lápiz solo;
+y toda hoja con la misma cara (papel, sin sombra, título de 24 px), tres anchos con nombre y una salida a la vista. Lo hice en las piezas
+(`Modal`, `Boton`, `BotonCompacto`, `FlujoGuiado`, dos piezas nuevas `BotonEditar`/`LapizEditar`) y migré con dos codemods y a mano:
+146 anchos, unas 30 salidas, 140 botones que esperaban a mano y 22 «Editar». Deuda 0, con firmas nuevas en `familias.mjs`.
+Por qué así: «una función, una pieza» (ADR-0358); la pieza decide sola (la colaboradora no tiene que adivinar si el botón se colgó) y
+migrar no cambió qué hace ningún botón: solo cómo espera, cómo se ve y por dónde se sale.
+Felipe se lleva: las hojas iguales en todo el ERP, una salida a la vista en cada una, botones que esperan igual y dicen su verbo, y las
+fotos de propuesta y después en `docs/unificar/capturas/` (`accion.guardar.*`, `accion.editar.*`, `modal.*`).
