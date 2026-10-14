@@ -1645,6 +1645,10 @@ y, en la base, `pnpm pruebas:tienda-puerta`.
 
 - `/` (portada sin cuenta) → `lib/base.ts` `leerPortada()` → `retail.tienda_portada()`: la campaña vigente que termina
   primero. Si la base no responde, la portada sale sin campaña.
+- `/catalogo` (grupo `(catalogo)`, todavía sin candado de cuenta) → `lib/catalogo-servidor.ts` `leerCatalogo()` →
+  `retail.tienda_catalogo()`: lo publicado en la Vitrina web con su precio web y el de la campaña (la regla de la caja,
+  ADR-0403), sus colores y hasta dos fotos del almacén público; `lib/catalogo.ts` filtra por categoría y ordena, y
+  `components/TarjetaPrenda.tsx` dibuja la tarjeta. Si la base no responde, la página dice que no se pudo cargar.
 
 ---
 

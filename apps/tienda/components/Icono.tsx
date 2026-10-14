@@ -9,6 +9,8 @@ const TRAZOS = {
   ticket: <><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4V7Z" /><path d="M10 7v10" /></>,
   chispa: <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" />,
   pedido: <><path d="M6 3h9l3 3v15H6z" /><path d="M9 9h6M9 13h6M9 17h3" /></>,
+  // Catálogo (actividad 3): el botón que cambia el orden de la lista.
+  flechas: <path d="M4 8h13l-3-3M20 16H7l3 3" />,
 };
 
 export type NombreIcono = keyof typeof TRAZOS;
