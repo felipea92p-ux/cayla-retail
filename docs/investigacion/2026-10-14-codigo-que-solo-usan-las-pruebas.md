@@ -1,7 +1,13 @@
 # Código que solo usan las pruebas (2026-10-14)
 
-Informe para Felipe. **No se borró nada:** cada propuesta espera tu OK. Rama `claude/knip-produccion-1bed1d`, montada sobre
-`claude/knip-dead-code-9cfc30` (`0391b9227`, con `origin/main` `89de128be` adentro), que suma Knip al CI (ADR-0406).
+Informe para Felipe. Rama `claude/knip-produccion-1bed1d`, montada sobre `claude/knip-dead-code-9cfc30` (`0391b9227`, con
+`origin/main` `89de128be` adentro), que suma Knip al CI (ADR-0406) y se fusionó como #1079.
+
+> **Decidido el mismo día (Felipe, chat):** opción 2 de la sección 4 y conectar las cuatro copias de la sección 2 C. Ya están hechas
+> en esta rama (ADR-0406, actualización b): `pnpm knip:produccion` en el CI, `@internal` en los 22 oráculos de A, `ignoreFiles` para
+> los 5 archivos de B, las cuatro pantallas conectadas y `reglas-sin-uso.test.ts` retirado. Las 78 piezas de D, E y F son la deuda
+> de `scripts/knip/deuda-produccion.mjs`. **No se borró nada de esa lista:** `registro-contable.ts`, la hoja de prueba de etiquetas y
+> el resto siguen esperando su OK, módulo por módulo.
 
 ## En corto
 
