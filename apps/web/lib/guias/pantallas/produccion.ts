@@ -79,6 +79,13 @@ export const GUIA_PROD_RESUMEN: Guia = {
       texto: "La ficha completa del modelo, con el mismo diseño que en Catálogo. A la izquierda, su foto (la lupa la abre en grande): pasa el mouse por un color de la tabla y la foto lo muestra. A la derecha, todo lo que importa para decidir. Solo se mira: no se guarda nada.",
     },
     {
+      id: "hoja-ficha",
+      ancla: "prod-resumen.hoja-ficha",
+      opcional: true,
+      titulo: "Marca, proveedor y material",
+      texto: "De quién es, quién lo trae, de qué está hecho y qué patrón usa: lo mismo que dice Catálogo. «Sin registrar» es lo que falta completar en Editar.",
+    },
+    {
       id: "hoja-tiendas",
       ancla: "prod-resumen.hoja-tiendas",
       opcional: true,
@@ -98,13 +105,6 @@ export const GUIA_PROD_RESUMEN: Guia = {
       opcional: true,
       titulo: "Por color y talla",
       texto: "Lo que se vendió en 30 días y, debajo de cada cifra, lo que queda en tiendas. «Ya no hay» marca lo que se vendió y se acabó. Toca un color para dejar fija su foto.",
-    },
-    {
-      id: "hoja-ficha",
-      ancla: "prod-resumen.hoja-ficha",
-      opcional: true,
-      titulo: "Marca, proveedor y material",
-      texto: "De quién es, quién lo trae, de qué está hecho y qué patrón usa: lo mismo que dice Catálogo. «Sin registrar» es lo que falta completar en Editar.",
     },
     {
       id: "hoja-ordenes",
