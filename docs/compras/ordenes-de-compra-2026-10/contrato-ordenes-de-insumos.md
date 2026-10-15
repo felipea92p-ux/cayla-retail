@@ -3,7 +3,7 @@
 Escrito la noche del 2026-10-12 para que la fase 7 arranque apenas Felipe responda. **La parte 1 (la orden: puntos 1 y 4 de «Lo que se
 construiría») se construyó esa misma noche, con lo no decidido marcado provisional** (ver «Cambios al construir»). **La parte 2
 (el comprobante y la recepción del Taller, puntos 2 y 3) se construyó el 2026-10-14**, con las respuestas de Felipe (decisiones 52, 53,
-62, 63, 84 y 85): ver «Cambios al construir la parte 2». El anexo del
+62, 63 y 84 a 88): ver «Cambios al construir la parte 2». El anexo del
 2026-10-08 (`insumos-por-orden-de-compra.md`) recomendaba UNIR prenda e insumo en una sola orden; **Felipe decidió lo contrario**
 (decisiones 25, 28 y 47) y eso manda.
 
@@ -75,5 +75,13 @@ construiría») se construyó esa misma noche, con lo no decidido marcado provis
 - **Lo que no llegó (85):** «El resto no va a llegar» con su motivo; queda anotado en la orden (`orden_insumo_cierres`) como lo que el
   proveedor nos debe, a la vista en la orden y en la lista. Cómo se salda, con la fase 5b.
 - **Candados nuevos de la orden:** con un papel (aunque se anule después) ya no se edita; con un papel vigente o algo recibido, no se anula.
-- **Abierto (de /chaos, espera a Felipe):** anular el papel de una orden en Producción ▸ Comprobantes no mira lo recibido ni lo anotado de
-  la orden (gravedad 1). Detalle en el ADR-0362, «Fase 7, parte 2».
+- **El papel de una orden no se anula si responde por algo** (de /chaos, gravedad 1; arreglado con el OK de Felipe el 2026-10-14):
+  `anular_comprobante_produccion` bloquea la orden y no anula el papel si una línea suya está anotada como «no llegará» o si respalda lo
+  recibido de más. Primero se registra el papel correcto.
+- **La orden muestra lo que llegó fuera de ella** (de /formidable): `fn_orden_insumo` devuelve `fuera_de_orden` (lo que el papel trajo y no
+  estaba pedido, con lo facturado, lo recibido, lo anotado y lo que queda), y el estado de la orden lo cuenta: «Recibida» cuando no queda
+  nada por recibir, también fuera de la orden.
+- **Topes en la base** (de /chaos): el código de un lote va hasta 40 letras, la referencia de un pago hasta 100 y un pago lleva hasta 20
+  medios, como en la pantalla.
+- Todo lo de esta parte está **en producción desde el 2026-10-15** (las seis migraciones, en orden y una sola vez). Detalle en el ADR-0362,
+  «Fase 7, parte 2».

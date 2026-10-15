@@ -24,7 +24,7 @@
 | **Leyes (promedio)** | **6,8** | **la ley 9 en 4** |
 | **Oficio visual** | **8** | [Medido] de la hoja: 0 problemas de contraste, huecos en la escala, una sola acción principal; lo demás es del cromo o de piezas del sistema |
 
-## Los 3 cambios de mayor impacto (esperan tu OK)
+## Los 3 cambios de mayor impacto (Felipe dio el OK a los tres el 2026-10-14: hechos en `1fb64b6bd` y `2ff6bf4de`, decisión 88 del ADR-0362)
 1. **Antes →** después de recibir, la orden muestra «Llegó al Taller» solo en sus líneas pedidas: los 3 conos de hilo que trajo la factura no aparecen
    (la base, `fn_orden_insumo`, no devuelve lo facturado ni lo recibido de una línea fuera de la orden), y el chip queda «Llegó en parte» aunque Recibir
    diga «Ya no queda nada por recibir» (no descuenta lo anotado como «no va a llegar»). Al revés: con lo pedido completo y el hilo pendiente, diría «Llegó
@@ -64,7 +64,10 @@ ADR-0362) es tuya.
 - En la orden ya completa, «Registrar comprobante» sigue negro: bajarlo a secundario cuando el papel está completo.
 - En la orden, nada explica por qué la factura F777-0001 suma S/ 149.86 en una orden de S/ 115.00 (son los 3 conos y el IGV): se resuelve en parte con el cambio 1.
 - «Código de lote» opcional: no supo qué escribir (si queda vacío, el lote se llama como la orden).
-- /chaos (g4): tras un corte, corregir y reintentar no ofrece «Recargar».
+- /chaos (g4): tras un corte, corregir y reintentar no ofrece «Recargar». **Hecho (2026-10-15)** con la misma regla que el papel
+  (`esEnvioConOtrosDatos`, con su prueba); visto en el navegador en el papel, no en esta hoja.
+- El porqué de un número que no vale queda escrito sobre los botones, fuera del pie fijo: con la hoja arriba se ve la caja marcada y el botón
+  apagado, y el porqué al bajar. Es de la pieza (`PieGuia conFrase`, igual en sus cinco hermanas), no de esta hoja: llevarlo al pie fijo sería para todas.
 
 ## Prueba ciega (2026-10-14, Sonnet, sobre capturas del banco)
 | Medida | Resultado |
@@ -82,7 +85,21 @@ ADR-0362) es tuya.
 - Caída externa: [Medido, /chaos] red cortada y respuesta perdida: el reintento igual devuelve la misma recepción.
 - Persona sin contexto: ciega ✓ (arriba) · real: sin probar (y conviene con alguien del Taller que no haya hecho la orden).
 
+## Después (2026-10-15, `1fb64b6bd` y `2ff6bf4de`, en el banco, 1440 px)
+| Lo medido | Antes | Después |
+|---|---|---|
+| La orden, después de recibir | sin los 3 conos de hilo que trajo la factura; el chip, «Llegó en parte» para siempre | [Medido] «No estaba en la orden · lo trajo el papel»: «Hilo algodón · 3 conos — Llegó al Taller: 3 de 3 conos — F777-0001 · S/ 12.00»; los chips, «Papel completo · Recibida · Nos debe» |
+| El pie de la hoja | «Se abrirán 3 lotes y quedará anotado 1 insumo…» | [Medido] «Entran al Taller 10 metros de Lino crudo, 80 unidades de Botón nácar y 3 conos de Hilo algodón. No llegarán 20 unidades de Botón nácar: el proveedor nos debe S/ 4.00.» |
+| Bajo la casilla, sin marcar | «El resto seguirá pendiente» (antes de marcar) | [Medido] «Si no va a llegar, márcalo. Si no lo marcas, lo que falta (20 unidades) sigue pendiente para otra entrega.» |
+| Bajo la casilla, marcada | «Queda anotado… a este costo» | [Medido] «El proveedor nos debe 20 unidades: S/ 4.00, al costo de arriba.» |
+| Un número que no vale (101 de 100) | el porqué, solo en un `title` | [Medido] la caja se marca, el botón se apaga y el porqué queda escrito sobre los botones (con la hoja arriba, se lee al bajar) |
+
+**Notas después:** ley 9, de 4 a 8 (la orden dice lo mismo que Recibir); ley 3, de 6 a 8 (el pie con cantidades); ley 4, de 7 a 8 (los textos de la
+casilla); ley 6, de 6 a 7 (el porqué escrito, pero al pie). Las demás no cambian: la ciega no se repitió. **Leyes: 7,7 (provisional).** Oficio: 8, sin
+volver a medir. Capturas: el banco (`formi/despues/r01`–`r03`), fuera del repo.
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-14 | `a08cd59c2` | 6,8 | 8 | — (los 3 esperan el OK de Felipe) |
+| 2026-10-15 | `2ff6bf4de` | 7,7 (provisional) | 8 (sin volver a medir) | los 3 (la orden con lo de fuera y su chip, el pie con cantidades, los textos y el porqué) |

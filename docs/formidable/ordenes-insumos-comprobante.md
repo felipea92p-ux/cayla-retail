@@ -26,7 +26,7 @@
 | **Leyes (promedio)** | **7,1** | **la ley 7 en 3**: es lo primero que se arregla |
 | **Oficio visual** | **8** | [Medido] de las fallas automáticas, casi todas son del cromo o de piezas del sistema, o falsos positivos (ver «Escéptico»); de la pantalla quedan dos desvíos de 1 px que no se ven |
 
-## Los 3 cambios de mayor impacto (esperan tu OK)
+## Los 3 cambios de mayor impacto (Felipe dio el OK a los tres el 2026-10-14: hechos en `2ff6bf4de`, decisión 87 del ADR-0362)
 1. **Antes →** el papel arranca con «Factura» y «Crédito» en negro (la guía los da por faltantes, pero el botón registra igual) y, al elegir «Contado», el
    pago aparece 700 px más abajo con su medio puesto (Transferencia) y «Todo listo para registrar». **Después →** **nada viene puesto**, como el papel de
    Compras desde el 13/10 (commit `5ca186960`): el tipo, cómo se paga y el medio del pago al contado arrancan vacíos y se eligen siempre; el total, sin IGV
@@ -78,7 +78,22 @@ base no compara la serie con el tipo (una boleta «B001» pasa como factura). Es
 - Caída externa: [Medido, /chaos] con la red cortada, «Se cortó la conexión… vuelve a pulsar sin cambiar nada»; el reintento igual devuelve el mismo papel.
 - Persona sin contexto: ciega ✓ (arriba) · real: sin probar.
 
+## Después (2026-10-15, `2ff6bf4de`, en el banco, 1440 px)
+| Lo medido | Antes | Después |
+|---|---|---|
+| Al entrar | «Factura» y «Crédito» elegidos, sin contar | [Medido] nada elegido: el tipo, cómo se paga y el medio se eligen siempre; el total, sin IGV hasta elegir factura |
+| Solo serie y número, y el botón | se registraba una factura al crédito con IGV | [Medido] 0 llamadas a la base: la guía lleva al tipo |
+| El pie, factura al crédito | «Todo listo para registrar» | [Medido] «Vas a registrar la factura F001-0456 por S/ 56.05, al crédito: vence el 30/10/2026.» |
+| Al contado | el medio venía puesto (Transferencia) | [Medido] ningún medio elegido; con transferencia: «…, pagada con transferencia desde BCP Empresa (prueba).» |
+| Título y botón | «Comprobante de OI-…» · «Registrar comprobante» | [Medido] «Compra de OI-…» · «Registrar la compra» (también el botón de la orden y su guía) |
+| Tras un corte, corregir y reintentar | sin «Recargar» (g4 de /chaos) | [Medido] ofrece «Recargar» |
+
+**Notas después:** ley 7, de 3 a 8 (arriba); ley 3, de 8 a 9 (el pie dice qué se registra); ley 9, de 6 a 7 («Recargar»; queda el título a 375 px,
+que es de la cabecera). Las demás no cambian: la ciega no se repitió, así que la ley 1 sigue en 7. **Leyes: 7,9 (provisional).** Oficio: 8, sin volver
+a medir. Capturas: el banco (`formi/despues/p01`–`p03`, `d01`), fuera del repo.
+
 ## Historial
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-14 | `a08cd59c2` | 7,1 | 8 | — (los 3 esperan el OK de Felipe) |
+| 2026-10-15 | `2ff6bf4de` | 7,9 (provisional) | 8 (sin volver a medir) | los 3 (nada viene puesto, «Registrar la compra», el pie dice qué se registra) y «Recargar» (g4 de /chaos) |
