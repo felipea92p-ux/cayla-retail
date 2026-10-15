@@ -347,7 +347,7 @@ export function hrefLista({
 }
 
 /** «12 prendas», «1 prenda». */
-const cuantasPrendas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
+export const cuantasPrendas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
 
 /**
  * La línea de cuántas hay (maqueta, `vLista`): «12 prendas», «12 prendas en Faldas», «5 prendas en Trujillo · 3 más en otras
