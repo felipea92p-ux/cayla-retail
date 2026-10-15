@@ -1911,10 +1911,12 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   lo que muestra la página) y `lib/bolsa-servidor.ts`, y la cambian SOLO las acciones de `app/acciones/bolsa.ts`: `agregarALaBolsa`
   (pregunta antes a la base si se puede), `agregarLookALaBolsa` (un look: todas sus prendas con la misma regla, `revisarParaAgregar`),
   `quitarDeLaBolsa`, `elegirTiendaDeRecojo`, `separar` y `volverASeparar`. `/bolsa` →
-  `retail.tienda_bolsa(lineas, sede)`: cada prenda al precio de la tienda elegida (sin tienda, el mayor de la web) con la campaña, y por
-  tienda solo «alcanza / hay / se vende» (nunca la cifra). «Separar» → `retail.tienda_separar(usuario_web_id, ubicacion_id, lineas,
+  `retail.tienda_bolsa(lineas, sede)`: cada prenda al precio de la tienda elegida (sin tienda, o si ahí no se vende, el mayor de la web)
+  con la campaña, y por tienda solo «alcanza / hay / se vende» (nunca la cifra; «se vende» = sin etiqueta que la limite y con precio en
+  esa tienda). «Separar» → `retail.tienda_separar(usuario_web_id, ubicacion_id, lineas,
   token)`: vuelve a calcular cada precio (`fn_tienda_precio_talla`, la regla única del precio de la tienda, la misma de la bolsa, la
-  ficha, el catálogo y el look) contra el que el cliente vio, llama a
+  ficha, el catálogo y el look) contra el que el cliente vio (una talla sin precio en la tienda de recojo y con precio en otra de la web
+  es `tienda_separar_no_se_vende`; `tienda_separar_no_publicada` queda para lo que no está en la tienda online), llama a
   `crear_pedido_web` (no toca el stock) y, en la misma transacción, cierra las esperas de «Avísame» de esa cuenta por las prendas que
   separó (`esperas_web.pedido_web_id`); la marca de la cookie hace que dos toques den el mismo pedido. Un cliente tiene a lo sumo 3
   separaciones «por confirmar» vigentes a la vez (Felipe, 2026-10-14; la constante `c_tope_por_confirmar`, mirada después de la marca;

@@ -6,7 +6,9 @@
  * QUÉ PRUEBA. `20261015021000_tienda_bolsa_y_separar.sql`, `20261015022000_tienda_mis_pedidos.sql` y
  * `20261015023000_pedidos_web_cierre_programado.sql`:
  *   A. La bolsa (`tienda_bolsa`): el precio de la tienda elegida o, sin tienda, el mayor de la web, con la campaña de la caja
- *      encima; en cada tienda de la web, si alcanza, si hay y si se vende ahí, siempre como sí/no (nunca la cifra), y lo MISMO que
+ *      encima; en cada tienda de la web, si alcanza, si hay y si se vende ahí (sin una etiqueta que la limite y con precio en esa
+ *      tienda: la ropa en S/ 0 en su ficha con precio solo en Trujillo sigue en la bolsa, con el precio de «Todas», y en Lima dice «no se
+ *      vende», Felipe 2026-10-15), siempre como sí/no (nunca la cifra), y lo MISMO que
  *      dice la ficha (la regla única de «hay», 20261015012000: ni la Cuarentena, ni lo apartado, ni el Taller); lo que ya no se puede
  *      separar vuelve sin nombre ni foto; la entrada torcida (de la cookie) no la rompe. El precio es la regla única de la ficha
  *      (`fn_tienda_precio_talla`, 20261015012000): que la bolsa, la ficha, el catálogo y el look digan el mismo precio, y que romper esa
@@ -15,7 +17,8 @@
  *      tocar el stock ni el libro; dos toques con la misma marca dan el mismo pedido (aunque entretanto cambie el precio); la
  *      marca de otro no devuelve su pedido; un precio que no cuadra, lo que ya no está en la Vitrina, lo que no se vende en esa
  *      tienda, lo agotado (también lo que solo está en el Taller o en una tienda escondida: la regla de la ficha), una talla que esa
- *      tienda no ofrece (a S/ 0, ADR-0384; con precio propio de la tienda, la de ropa sí se ofrece y se separa ahí, 20261015121000), una
+ *      tienda no ofrece (a S/ 0, ADR-0384; con precio propio de la tienda, la de ropa sí se ofrece y se separa ahí, 20261015121000: en
+ *      otra tienda que no le puso precio, `no_se_vende`; si no la ofrece ninguna tienda de la web, `no_publicada`), una
  *      tienda escondida, sin cuenta o una bolsa torcida no separan NADA. A lo sumo 3 separaciones «por confirmar» a la vez por cliente
  *      (`tienda_separar_tope`, decisión de Felipe 2026-10-14): la marca se mira antes que el tope, y lo confirmado o vencido no
  *      cuenta. Que «Separar» cierre las esperas de «Avísame» lo prueba `pnpm pruebas:tienda-club` (S).
@@ -437,19 +440,43 @@ escenario(
   // precio de la tienda aunque su ficha diga S/ 0 en una talla. Con precio propio en Trujillo, la bolsa la ofrece en Trujillo y con
   // «Todas» (el mayor) a ese precio, y no en Lima, donde sigue sin precio; «Separar» la separa en Trujillo y no en Lima. (La primera
   // versión de esa migración, sin pegar, no la ofrecía en ninguna: eso queda solo para la talla de obsequio, que en la web ni se muestra.)
-  "ROPA · con precio propio en Trujillo, la talla que su ficha deja en S/ 0 se ofrece en Trujillo y con «Todas» a ese precio y no en Lima; «Separar» la separa en Trujillo y no en Lima",
+  // Y en Lima (`20261015021000`, el mismo día): la bolsa la deja, con el precio de «Todas» y marcada «no se vende en Lima» (`en_sedes`),
+  // y «Separar» dice `no_se_vende` («quítala o elige otra tienda»), no `no_publicada` («ya no está en la tienda online»).
+  "ROPA · con precio propio en Trujillo, la talla que su ficha deja en S/ 0 se ofrece en Trujillo y con «Todas» a ese precio y no en Lima: en Lima la bolsa la marca «no se vende» (con el precio de Trujillo) y «Separar» dice `no_se_vende`",
   `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 2);
 update retail.variantes set precio = 0 where id = :'v';
 select retail.poner_precio_sede(:'prod_v', :'tru', :'p_v'::numeric + 10, 'Prueba de la bolsa') is not null as _p \\gset
 select retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, :'tru') -> 'lineas' -> 0 as en_tru \\gset
 select retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, null) -> 'lineas' -> 0 as en_todas \\gset
+select retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, :'lim') -> 'lineas' -> 0 as en_lim \\gset
 select concat_ws(',',
   (:'en_tru')::jsonb ->> 'disponible', ((:'en_tru')::jsonb ->> 'precio')::numeric = :'p_v'::numeric + 10,
   (:'en_todas')::jsonb ->> 'disponible', ((:'en_todas')::jsonb ->> 'precio')::numeric = :'p_v'::numeric + 10,
-  retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, :'lim') -> 'lineas' -> 0 ->> 'disponible',
+  (:'en_lim')::jsonb ->> 'disponible', ((:'en_lim')::jsonb ->> 'precio')::numeric = :'p_v'::numeric + 10,
+  (:'en_lim')::jsonb -> 'en_sedes' -> :'lim' ->> 'se_vende', (:'en_lim')::jsonb -> 'en_sedes' -> :'tru' ->> 'se_vende',
   pg_temp.probar(${separarTexto(bolsa(L("v", 1, ":'p_v'::numeric + 10")))}),
   ${hint(separarTexto(bolsa(L("v", 1, ":'p_v'::numeric + 10")), { sede: "lim" }))});`,
-  "true,t,true,t,false,ok,tienda_separar_no_publicada",
+  "true,t,true,t,true,t,false,true,ok,tienda_separar_no_se_vende",
+);
+escenario(
+  // La prenda ENTERA en S/ 0 en su ficha (Felipe 2026-10-15): sin precio de tienda no está en la tienda online (la Vitrina dice «sin
+  // precio», 20261015122000); con precio propio en Trujillo, sí. La Vitrina, la bolsa y «Separar» dicen lo mismo: en Lima «no se vende»
+  // (`no_se_vende`), y con el modelo oculto en la Vitrina, «ya no está» (`no_publicada`).
+  "ROPA · la prenda ENTERA en S/ 0 en su ficha: sin precio de tienda no está en la tienda online; con precio propio en Trujillo, sí, y en Lima la bolsa y «Separar» dicen que no se vende ahí; oculta en la Vitrina, `no_publicada`",
+  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 2);
+update retail.variantes set precio = 0 where producto_id = :'prod_v';
+select concat_ws('/', retail.fn_vitrina_por_que_no(:'prod_v'),
+  retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, null) -> 'lineas' -> 0 ->> 'disponible',
+  ${hint(separarTexto(bolsa(L("v", 1, "0"))))}) as sin_tienda \\gset
+select retail.poner_precio_sede(:'prod_v', :'tru', :'p_v'::numeric + 10, 'Prueba de la bolsa') is not null as _p \\gset
+select retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, :'lim') -> 'lineas' -> 0 as en_lim \\gset
+select concat_ws(',', :'sin_tienda', coalesce(retail.fn_vitrina_por_que_no(:'prod_v'), 'se puede'),
+  (:'en_lim')::jsonb ->> 'disponible', (:'en_lim')::jsonb -> 'en_sedes' -> :'lim' ->> 'se_vende', (:'en_lim')::jsonb -> 'en_sedes' -> :'tru' ->> 'se_vende',
+  ((:'en_lim')::jsonb ->> 'precio')::numeric = :'p_v'::numeric + 10,
+  pg_temp.probar(${separarTexto(bolsa(L("v", 1, ":'p_v'::numeric + 10")))}),
+  ${hint(separarTexto(bolsa(L("v", 1, ":'p_v'::numeric + 10")), { sede: "lim" }))},
+  ${hint(`format('update retail.vitrina_productos set publicado = false where producto_id = %L; select retail.tienda_separar(%L, %L, %L, %L)', :'prod_v', :'usr_a', :'tru', ${bolsa(L("v", 1, ":'p_v'::numeric + 10"))}, gen_random_uuid())`)});`,
+  "sin_precio/false/tienda_separar_no_publicada,se puede,true,false,true,t,ok,tienda_separar_no_se_vende,tienda_separar_no_publicada",
 );
 escenario(
   "una bolsa torcida no separa: vacía, mal escrita, cantidad 0, precio con 3 decimales, la misma prenda dos veces o más de 20",
@@ -603,8 +630,19 @@ const MUTANTES = [
   ["cobra el precio de «Todas» y no el de la tienda de recojo", 0, "fn_tienda_precio_talla(array[r.variante_id], p_ubicacion_id)", "fn_tienda_precio_talla(array[r.variante_id], null)"],
   // La campaña y la regla del precio viven en la pieza común (fn_tienda_precio_talla, 20261015012000): sus mutantes los corre
   // `pnpm pruebas:tienda-ficha -- --mutantes`, que cruza la bolsa con la ficha, el catálogo y el look (sección 9).
-  ["la bolsa muestra el precio de «Todas» aunque haya tienda elegida", 0, "from retail.fn_tienda_precio_talla(array(select en.variante_id from entrada en), v_sede) pr", "from retail.fn_tienda_precio_talla(array(select en.variante_id from entrada en), null) pr"],
-  ["la bolsa deja separar una talla que no se ofrece (sin mirar la regla del precio)", 0, "coalesce(pr.se_ofrece, false) and coalesce(vp.publicado, false)", "coalesce(vp.publicado, false)"],
+  ["la bolsa muestra el precio de «Todas» aunque haya tienda elegida", 0, "left join por_tienda e on e.variante_id = en.variante_id and e.ubicacion_id = v_sede and e.se_ofrece", "left join por_tienda e on false"],
+  ["la bolsa deja separar una talla que no se ofrece (sin mirar la regla del precio)", 0, "coalesce(w.se_ofrece, false) and coalesce(vp.publicado, false)", "coalesce(vp.publicado, false)"],
+  // El precio es el de la tienda (Felipe 2026-10-15): una talla sin precio en la tienda elegida que sí se vende en otra sigue en la
+  // bolsa, «no se vende» ahí, y «Separar» dice `no_se_vende`; la que no se ofrece en ninguna, «ya no está» (`no_publicada`).
+  ["la bolsa saca de la tienda online lo que no se vende en la tienda elegida (mira solo esa tienda, no «Todas»)", 0,
+    "coalesce(w.se_ofrece, false) and coalesce(vp.publicado, false)",
+    "(e.variante_id is not null or v_sede is null) and coalesce(w.se_ofrece, false) and coalesce(vp.publicado, false)"],
+  ["la bolsa dice que se vende en una tienda donde la talla no tiene precio", 0, "and coalesce(pt.se_ofrece, false)", "and true"],
+  ["la bolsa muestra el precio de la tienda elegida aunque ahí no se venda (S/ 0)", 0, "and e.ubicacion_id = v_sede and e.se_ofrece", "and e.ubicacion_id = v_sede"],
+  ["«Separar» dice «ya no está» de una talla que se vende en otra tienda de la web", 0,
+    "if exists (select 1 from retail.fn_tienda_precio_talla(array[r.variante_id], null) w where w.se_ofrece) then", "if false then"],
+  ["«Separar» dice «no se vende ahí» de una talla que no se ofrece en ninguna tienda de la web", 0,
+    "if exists (select 1 from retail.fn_tienda_precio_talla(array[r.variante_id], null) w where w.se_ofrece) then", "if true then"],
   ["«Separar» separa una talla que esa tienda no ofrece", 0, "if not coalesce(p.se_ofrece, false) then", "if false then"],
   ["separa lo que ya no está en la Vitrina", 0, "where v.id = r.variante_id and v.activo and vp.publicado and retail.fn_vitrina_publicable(v.producto_id)) then", "where v.id = r.variante_id) then"],
   ["separa lo que no se vende en esa tienda", 0, "if not retail.fn_variante_permitida_en_sede(r.variante_id, p_ubicacion_id) then", "if false then"],
