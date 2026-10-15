@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { leerMontoPlata } from "./monto-plata-reglas";
+import { lecturaCampoMonto, leerMontoPlata, montoIlegible, numeroDeMonto } from "./monto-plata-reglas";
 
 describe("leerMontoPlata (el monto de una hoja del fondo, /chaos 2026-10-14)", () => {
   it("la coma decimal se entiende: «1299,50» es S/ 1,299.50 y «150,5» es S/ 150.50 (antes, 129 950 y 1 505)", () => {
@@ -39,5 +39,43 @@ describe("leerMontoPlata (el monto de una hoja del fondo, /chaos 2026-10-14)", (
     for (const t of ["", "  ", "abc", "12abc", "1e3", "0x10", "--20", "+5", "100 soles", "1,2345", "1.5.5", "1.299.50", "12.34.56", "1.299,000", "1,23,456", "100.,", ".", ","]) {
       expect(leerMontoPlata(t), t).toBeNull();
     }
+  });
+});
+
+describe("lecturaCampoMonto: lo que `CampoMonto` le avisa al padre (ADR-0419, /chaos 2026-10-15)", () => {
+  it("la coma decimal se entiende: «2,5» es S/ 2.50, no S/ 25 (el `type=number` del navegador borraba la coma)", () => {
+    expect(lecturaCampoMonto("2,5")).toEqual({ valor: 2.5, ilegible: false });
+    expect(lecturaCampoMonto("12,50")).toEqual({ valor: 12.5, ilegible: false });
+    expect(lecturaCampoMonto("1.299,50")).toEqual({ valor: 1299.5, ilegible: false });
+    expect(lecturaCampoMonto("1,299.50")).toEqual({ valor: 1299.5, ilegible: false });
+    expect(lecturaCampoMonto("1,299")).toEqual({ valor: 1299, ilegible: false });
+  });
+  it("vacío es 0 sin queja; mientras se escribe «100.» ya es 100", () => {
+    expect(lecturaCampoMonto("")).toEqual({ valor: 0, ilegible: false });
+    expect(lecturaCampoMonto("100.")).toEqual({ valor: 100, ilegible: false });
+  });
+  it("lo que no se entiende avisa 0 al padre (no se guarda nada) y se marca ilegible: nunca se adivina", () => {
+    for (const t of ["12.500", "12.345", "abc", "1e3", "1,2,3", "1.299.50"]) expect(lecturaCampoMonto(t), t).toEqual({ valor: 0, ilegible: true });
+  });
+  it("un negativo pasa tal cual: la hoja dice «tiene que ser mayor que cero»", () => {
+    expect(lecturaCampoMonto("-5")).toEqual({ valor: -5, ilegible: false });
+  });
+});
+
+describe("numeroDeMonto: el reemplazo de `Number(texto)` en los campos de plata que guardan texto (ADR-0419)", () => {
+  it("lee la coma decimal donde `Number` daba NaN, y vacío sigue siendo 0 como con `Number`", () => {
+    expect(numeroDeMonto("2,5")).toBe(2.5);
+    expect(numeroDeMonto("1.299,50")).toBe(1299.5);
+    expect(numeroDeMonto("12.40")).toBe(12.4);
+    expect(numeroDeMonto("")).toBe(0);
+    expect(numeroDeMonto("  ")).toBe(0);
+  });
+  it("lo que no se entiende es NaN: `> 0` es falso y `|| 0` da 0, así que ningún botón guarda un monto adivinado", () => {
+    for (const t of ["12.500", "abc", "1e3", "0x10"]) expect(numeroDeMonto(t), t).toBeNaN();
+  });
+  it("montoIlegible marca el campo solo si hay algo escrito que no se entiende", () => {
+    expect(montoIlegible("")).toBe(false);
+    expect(montoIlegible("2,5")).toBe(false);
+    expect(montoIlegible("12.500")).toBe(true);
   });
 });

@@ -8,6 +8,7 @@ import { diaLima } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 import { estadoDeMiTienda, nombreDeLineaSinPrenda } from "./reparto-reglas";
 import type { NoDeducible } from "./no-deducible-reglas";
+import { numeroDeMonto } from "./monto-plata-reglas";
 
 // La etiqueta de una línea sin prenda vive junto a `etiquetaDeLinea` (reparto-reglas); las pantallas la piden desde acá.
 export { nombreDeLineaSinPrenda };
@@ -382,7 +383,7 @@ export function totalesDeLasLineasQueSeEnvian(
   conIgv: boolean,
 ): { subtotal: number; igv: number; total: number } {
   return totalesCompra(
-    lineas.filter(seEnviaLinea).map((l) => ({ cantidad: l.cantidad, costoTipeado: Number(l.costoUnitario) })),
+    lineas.filter(seEnviaLinea).map((l) => ({ cantidad: l.cantidad, costoTipeado: typeof l.costoUnitario === "number" ? l.costoUnitario : numeroDeMonto(l.costoUnitario) })),
     igvPorcentaje,
     conIgv,
   );
