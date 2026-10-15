@@ -6,10 +6,15 @@ import {
   accionesDeFase,
   avancesNuevos,
   avisoMinimoDeFase,
+  buenasAlAnotarExcepcion,
   cantidadConUnidad,
+  cantidadesAfuera,
+  cantidadesQuePuedenSalir,
   cantidadesQueFaltan,
   cifrasDeLaOrden,
   cuandoTerminoLaFase,
+  detalleDeVuelta,
+  devengadoDeLaRespuesta,
   diaCorto,
   estadoDeLaOrden,
   faltaTerminar,
@@ -19,18 +24,25 @@ import {
   horaLima,
   leerOrdenPagina,
   lineaDeTiempoAgrupada,
+  lineasDeSalida,
+  lineasDeVuelta,
   numeroDeOrdenEnUrl,
+  problemasDeSalida,
+  problemasDeVuelta,
   puedeCambiarQuien,
   queSigue,
+  quedanAfuera,
   quienDeFase,
   rojoDeLaOrden,
   textoApertura,
   textoColoresYTallas,
   textoCosto,
   textoDeFase,
+  textoMandaste,
   textoQueSigue,
   textoSeVende,
   textoTermine,
+  textoVolvieron,
   type FasePagina,
   type OrdenPagina,
 } from "./orden-pagina-reglas";
@@ -528,5 +540,158 @@ describe("paridad con la migración 20261014155000", () => {
     expect(SQL).toContain("create or replace function retail.deshacer_avance(p_avance_id uuid)");
     const anterior = readFileSync(join(RAIZ, "supabase", "migrations", "20261014154000_produccion_fases_y_tela_de_la_orden.sql"), "utf8");
     expect(anterior).toMatch(/cambiar_quien_fase\(\s*p_fase_id uuid, p_quien text, p_proveedor_id uuid default null, p_tarifa_prenda numeric default null,\s*p_fijo_orden numeric default null, p_cantidad_minima integer default null, p_fecha_prometida date default null/);
+  });
+});
+
+// ---------- Salida y Vuelta (actividad 4) ----------
+
+describe("Salida y Vuelta — lo que se puede mandar y lo que está afuera, por talla y color", () => {
+  /** La costura de la orden de ejemplo: a cada talla y color entraron 8, salieron 8 (todo está afuera). */
+  const costura = (o: ReturnType<typeof orden>) => o.fases.find((f) => f.clave === "costura")!;
+  const nombreDe = (id: string) => `la variante ${id}`;
+  const vacio = {};
+
+  it("una fase con todo afuera no tiene nada por mandar; lo que está afuera es lo que salió menos lo que volvió", () => {
+    const f = costura(orden());
+    expect(cantidadesQuePuedenSalir(f)).toEqual({});
+    expect(cantidadesAfuera(f)).toEqual(Object.fromEntries(TODAS.map((id) => [id, 8])));
+  });
+  it("sin salir nada, lo que puede salir es lo que entró; y nada está afuera", () => {
+    const o = orden({ fases: [crudo().fases[0], faseCruda({ clave: "costura", secuencia: 30, quien: "servicio", proveedor_id: "pv-1", proveedor_nombre: "Confecciones del Norte", tarifa_prenda: 4.5, estado: "pendiente" }, { entrada: 8 }), crudo().fases[2]] });
+    const f = costura(o);
+    expect(cantidadesQuePuedenSalir(f)).toEqual(Object.fromEntries(TODAS.map((id) => [id, 8])));
+    expect(cantidadesAfuera(f)).toEqual({});
+  });
+  it("lo que ya salió se descuenta de lo que puede salir, talla por talla", () => {
+    const o = orden({ fases: [crudo().fases[0], faseCruda({ clave: "costura", secuencia: 30, quien: "servicio", proveedor_id: "pv-1", proveedor_nombre: "X", tarifa_prenda: 4.5 }, { entrada: 8, salieron: 5, afuera: 5 }), crudo().fases[2]] });
+    expect(Object.values(cantidadesQuePuedenSalir(costura(o)))).toEqual([3, 3, 3, 3, 3, 3]);
+  });
+
+  describe("problemasDeSalida", () => {
+    const sinNada = orden({ fases: [crudo().fases[0], faseCruda({ clave: "costura", secuencia: 30, quien: "servicio", proveedor_id: "pv-1", proveedor_nombre: "X", tarifa_prenda: 4.5 }, { entrada: 8 }), crudo().fases[2]] });
+    it("nada escrito: pide escribir algo (salida_sin_lineas)", () => {
+      expect(problemasDeSalida(costura(sinNada), vacio, nombreDe).map((p) => p.hint)).toEqual(["salida_sin_lineas"]);
+      expect(problemasDeSalida(costura(sinNada), { n28: "0", n30: "", c28: "x" }, nombreDe).map((p) => p.hint)).toEqual(["salida_sin_lineas"]);
+    });
+    it("de más: dice de cuál talla y color y cuánto sí puede (salida_excede)", () => {
+      const p = problemasDeSalida(costura(sinNada), { n28: "9", n30: "8" }, nombreDe);
+      expect(p).toEqual([{ hint: "salida_excede", texto: "De la variante n28 solo puedes mandar 8: escribiste 9." }]);
+    });
+    it("lo justo y lo parcial no tienen problemas", () => {
+      expect(problemasDeSalida(costura(sinNada), Object.fromEntries(TODAS.map((id) => [id, "8"])), nombreDe)).toEqual([]);
+      expect(problemasDeSalida(costura(sinNada), { n28: "3" }, nombreDe)).toEqual([]);
+    });
+    it("una talla sin nada listo para mandar lo dice con otra frase", () => {
+      const p = problemasDeSalida(costura(orden()), { n28: "1" }, nombreDe);
+      expect(p).toEqual([{ hint: "salida_excede", texto: "De la variante n28 no hay nada listo para mandar." }]);
+    });
+    it("lineasDeSalida manda solo lo mayor que cero, en el orden de la fase y con enteros", () => {
+      expect(lineasDeSalida(costura(sinNada), { c30: "2", n28: "5", n30: "0", n32: "", c28: "3.9" })).toEqual([
+        { variante_id: "n28", cantidad: 5 },
+        { variante_id: "c28", cantidad: 3 },
+        { variante_id: "c30", cantidad: 2 },
+      ]);
+    });
+  });
+
+  describe("problemasDeVuelta", () => {
+    const f = () => costura(orden());
+    const buenasTodas = Object.fromEntries(TODAS.map((id) => [id, "8"]));
+    it("nada escrito (vuelta_sin_lineas)", () => {
+      expect(problemasDeVuelta(f(), { buenas: {}, segundas: {}, faltantes: {} }, "", nombreDe).map((p) => p.hint)).toEqual(["vuelta_sin_lineas"]);
+    });
+    it("todo volvió bueno: sin problemas y sin motivo", () => {
+      expect(problemasDeVuelta(f(), { buenas: buenasTodas, segundas: {}, faltantes: {} }, "", nombreDe)).toEqual([]);
+    });
+    it("de más: buenas + segundas + faltantes pasan de lo que hay afuera (vuelta_excede)", () => {
+      const p = problemasDeVuelta(f(), { buenas: { n28: "8" }, segundas: { n28: "1" }, faltantes: {} }, "salió con una mancha", nombreDe);
+      expect(p).toEqual([{ hint: "vuelta_excede", texto: "De la variante n28 hay 8 afuera: anotaste 9." }]);
+    });
+    it("segundas o faltantes sin decir qué pasó (vuelta_sin_motivo); con el motivo, nada", () => {
+      const c = { buenas: { n28: "6" }, segundas: { n28: "1" }, faltantes: { n28: "1" } };
+      expect(problemasDeVuelta(f(), c, "  ", nombreDe).map((p) => p.hint)).toEqual(["vuelta_sin_motivo"]);
+      expect(problemasDeVuelta(f(), c, "se perdieron en el taller", nombreDe)).toEqual([]);
+    });
+    it("el motivo viaja solo en las líneas que traen segundas o faltantes, y las celdas en cero no viajan", () => {
+      const c = { buenas: { n28: "6", n30: "8" }, segundas: { n28: "1" }, faltantes: { n28: "1" } };
+      expect(lineasDeVuelta(f(), c, " se perdieron ")).toEqual([
+        { variante_id: "n28", buenas: 6, segundas: 1, faltantes: 1, motivo: "se perdieron" },
+        { variante_id: "n30", buenas: 8, segundas: 0, faltantes: 0, motivo: null },
+      ]);
+    });
+    it("quedanAfuera: lo que hay afuera menos lo que se está anotando, nunca negativo", () => {
+      expect(quedanAfuera(f(), { buenas: {}, segundas: {}, faltantes: {} })).toBe(48);
+      expect(quedanAfuera(f(), { buenas: buenasTodas, segundas: {}, faltantes: {} })).toBe(0);
+      expect(quedanAfuera(f(), { buenas: { n28: "5" }, segundas: { n28: "1" }, faltantes: { n28: "1" } })).toBe(41);
+      // Pasarse en una celda no hace negativo el total (el exceso lo dice `problemasDeVuelta`, por talla y color).
+      expect(quedanAfuera(f(), { buenas: { n28: "99" }, segundas: {}, faltantes: {} })).toBe(0);
+    });
+  });
+
+  describe("buenasAlAnotarExcepcion — «volvieron buenas» nace con todo; lo que faltó deja de ser bueno", () => {
+    it("una celda cuadrada baja sus buenas al anotar una segunda o un faltante", () => {
+      expect(buenasAlAnotarExcepcion({ afuera: 8, buenas: "8", segundas: "", faltantes: "" }, { faltantes: "3" })).toBe("5");
+      expect(buenasAlAnotarExcepcion({ afuera: 8, buenas: "5", segundas: "", faltantes: "3" }, { segundas: "2" })).toBe("3");
+    });
+    it("quitar la excepción devuelve las buenas", () => {
+      expect(buenasAlAnotarExcepcion({ afuera: 8, buenas: "5", segundas: "", faltantes: "3" }, { faltantes: "" })).toBe("8");
+    });
+    it("una celda que la persona ya dejó sin cuadrar no se toca", () => {
+      expect(buenasAlAnotarExcepcion({ afuera: 8, buenas: "4", segundas: "", faltantes: "" }, { faltantes: "3" })).toBe("4");
+    });
+    it("nunca baja de cero", () => {
+      expect(buenasAlAnotarExcepcion({ afuera: 8, buenas: "8", segundas: "", faltantes: "" }, { faltantes: "20" })).toBe("0");
+    });
+  });
+
+  describe("los textos", () => {
+    it("el aviso de una Salida y el de una Vuelta", () => {
+      expect(textoMandaste(48, "Confecciones del Norte")).toBe("Mandaste 48 prendas a Confecciones del Norte");
+      expect(textoMandaste(1, "X")).toBe("Mandaste 1 prenda a X");
+      expect(textoVolvieron({ buenas: 40, segundas: 5, faltantes: 3 }, "Confecciones del Norte")).toBe("Volvieron 40 prendas buenas de Confecciones del Norte");
+      expect(textoVolvieron({ buenas: 1, segundas: 0, faltantes: 0 }, "X")).toBe("Volvieron 1 prenda buena de X");
+      expect(textoVolvieron({ buenas: 0, segundas: 0, faltantes: 4 }, "X")).toBe("Anotaste lo que pasó con las prendas de X");
+    });
+    it("el renglón de una Vuelta dice lo que no volvió bueno y, si se ven costos, lo que se le debe", () => {
+      expect(detalleDeVuelta({ numeroTexto: "OP-000002", segundas: 0, faltantes: 0, devengado: null })).toBe("OP-000002");
+      expect(detalleDeVuelta({ numeroTexto: "OP-000002", segundas: 5, faltantes: 3, devengado: 180 })).toBe("OP-000002 · 5 segundas · 3 faltaron: queda anotado por qué · se le deben S/ 180.00 hasta ahora");
+      expect(detalleDeVuelta({ numeroTexto: "OP-000002", segundas: 0, faltantes: 1, devengado: 0 })).toBe("OP-000002 · 1 faltó: queda anotado por qué");
+    });
+    it("el devengado se lee de la respuesta de la base, o es null", () => {
+      expect(devengadoDeLaRespuesta([{ id: "a", devengado: 81 }, { id: "b", devengado: null }], "a")).toBe(81);
+      expect(devengadoDeLaRespuesta([{ id: "a", devengado: "81.00" }], "a")).toBe(81);
+      expect(devengadoDeLaRespuesta([{ id: "b", devengado: null }], "b")).toBeNull();
+      expect(devengadoDeLaRespuesta([{ id: "a", devengado: 1 }], "otra")).toBeNull();
+      expect(devengadoDeLaRespuesta("no es una lista", "a")).toBeNull();
+      expect(devengadoDeLaRespuesta(null, "a")).toBeNull();
+    });
+  });
+
+  describe("paridad con registrar_salida y registrar_vuelta (20261014155000)", () => {
+    const salida = funcion("registrar_salida");
+    const vuelta = funcion("registrar_vuelta");
+    it("las dos llaman con los argumentos que la página manda", () => {
+      expect(SQL).toContain("create or replace function retail.registrar_salida(p_fase_id uuid, p_lineas jsonb, p_guia text default null, p_nota text default null)");
+      expect(SQL).toContain("create or replace function retail.registrar_vuelta(p_fase_id uuid, p_lineas jsonb, p_guia text default null, p_nota text default null)");
+    });
+    it("los hints que la pantalla sabe decir existen en la base (la Salida valida sus líneas con el ayudante compartido, que arma «salida_…» con el nombre de la operación)", () => {
+      const ayudante = funcion("fn_produccion_lineas_cantidad");
+      expect(salida).toContain("fn_produccion_lineas_cantidad(p_lineas, 'salida')");
+      expect(ayudante).toContain("p_que || '_sin_lineas'");
+      expect(salida).toContain("hint = 'salida_excede'");
+      for (const h of ["vuelta_sin_lineas", "vuelta_excede", "vuelta_sin_motivo"]) expect(vuelta, h).toContain(`hint = '${h}'`);
+    });
+    it("las llaves de cada línea son las que lee la base", () => {
+      const ayudante = funcion("fn_produccion_lineas_cantidad");
+      for (const k of ["variante_id", "cantidad"]) expect(ayudante, k).toContain(`->> '${k}'`);
+      for (const k of ["variante_id", "buenas", "segundas", "faltantes", "motivo"]) expect(vuelta, k).toContain(`->> '${k}'`);
+    });
+    it("el tope de la Salida es lo que entró menos lo que ya salió, y el de la Vuelta es lo que salió menos lo que ya volvió", () => {
+      expect(vuelta).toMatch(/v_volvieron \+ v_buenas \+ v_segundas \+ v_faltantes > v_salieron/);
+      expect(salida).toContain("salida_excede");
+    });
+    it("la Vuelta suma sus buenas como avance de la fase (por eso hechas cuenta lo que volvió bueno)", () => {
+      expect(vuelta).toMatch(/insert into retail\.produccion_avances[\s\S]*'vuelta'/);
+    });
   });
 });

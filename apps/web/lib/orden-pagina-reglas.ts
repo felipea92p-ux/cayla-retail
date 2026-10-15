@@ -23,6 +23,8 @@ export const RPC_ORDEN_PRODUCCION = "fn_orden_produccion";
 export const RPC_REGISTRAR_AVANCE = "registrar_avance";
 export const RPC_DESHACER_AVANCE = "deshacer_avance";
 export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
+export const RPC_REGISTRAR_SALIDA = "registrar_salida";
+export const RPC_REGISTRAR_VUELTA = "registrar_vuelta";
 
 /** Días sin que nadie anote nada para que la orden pida atención (ADR-0400, «Pantallas» punto 1). */
 export const DIAS_SIN_MOVERSE = 4;
@@ -830,4 +832,125 @@ export function avancesNuevos(antes: readonly EventoTiempo[], despues: readonly 
 /** El texto del aviso de éxito: «Terminaste 120 prendas de Corte». */
 export function textoTermine(total: number, faseNombre: string): string {
   return `Terminaste ${cuantas(total, "prenda", "prendas")} de ${faseNombre}`;
+}
+
+// ---------- Salida y Vuelta de un servicio (ADR-0400, decisión 4; actividad 4) ----------
+// Lo que sale a un servicio se anota como «Salida» y lo que vuelve como «Vuelta», por talla y color. Nada de esto decide algo nuevo: los topes y los motivos son los de
+// `registrar_salida` y `registrar_vuelta` (20261014155000), con sus mismos hints; `lib/orden-pagina-reglas.test.ts` lee la migración y exige que coincidan.
+
+/** Lo que todavía se puede mandar a un servicio, por talla y color (solo las que tienen algo): lo que entró a la fase menos lo que ya salió. Es el valor de fábrica de «Salida». */
+export function cantidadesQuePuedenSalir(f: FasePagina): Record<string, number> {
+  const salida: Record<string, number> = {};
+  for (const v of f.porVariante) {
+    const n = Math.max(v.entrada - v.salieron, 0);
+    if (n > 0) salida[v.varianteId] = n;
+  }
+  return salida;
+}
+
+/** Lo que está afuera con el servicio, por talla y color (solo las que tienen algo): lo que salió menos lo que ya volvió, buenas, segundas o faltantes. Es el valor de fábrica de «Vuelta». */
+export function cantidadesAfuera(f: FasePagina): Record<string, number> {
+  const afuera: Record<string, number> = {};
+  for (const v of f.porVariante) if (v.afuera > 0) afuera[v.varianteId] = v.afuera;
+  return afuera;
+}
+
+/** La misma lectura de una celda que `lineasDeModeloExistente`: entero, de cero en adelante; lo vacío o ilegible es cero. */
+const celdaEntera = (texto: string | undefined): number => Math.max(Math.floor(Number(texto) || 0), 0);
+
+export type ProblemaDeSalida = { hint: "salida_sin_lineas" | "salida_excede"; texto: string };
+
+/** Lo que la base rechazaría de una Salida: ninguna talla y color con algo, o más de lo que puede salir. Una frase por talla y color que se pasa. */
+export function problemasDeSalida(f: FasePagina, cantidades: Readonly<Record<string, string>>, nombreDe: (varianteId: string) => string): ProblemaDeSalida[] {
+  const tope = cantidadesQuePuedenSalir(f);
+  const escritas = f.porVariante.map((v) => ({ id: v.varianteId, n: celdaEntera(cantidades[v.varianteId]) })).filter((l) => l.n > 0);
+  if (escritas.length === 0) return [{ hint: "salida_sin_lineas", texto: "Escribe cuántas mandas en al menos una talla y color." }];
+  const problemas: ProblemaDeSalida[] = [];
+  for (const l of escritas) {
+    const puede = tope[l.id] ?? 0;
+    if (l.n > puede) problemas.push({ hint: "salida_excede", texto: puede > 0 ? `De ${nombreDe(l.id)} solo puedes mandar ${puede}: escribiste ${l.n}.` : `De ${nombreDe(l.id)} no hay nada listo para mandar.` });
+  }
+  return problemas;
+}
+
+/** Las líneas de `registrar_salida`: las tallas y colores con algo mayor que cero, en el orden de la fase. */
+export function lineasDeSalida(f: FasePagina, cantidades: Readonly<Record<string, string>>): { variante_id: string; cantidad: number }[] {
+  return f.porVariante.map((v) => ({ variante_id: v.varianteId, cantidad: celdaEntera(cantidades[v.varianteId]) })).filter((l) => l.cantidad > 0);
+}
+
+/** Lo que se anota de una Vuelta, por talla y color: las que volvieron buenas, las segundas y las que faltaron (cada tabla, sus celdas como texto). */
+export type CantidadesDeVuelta = { buenas: Readonly<Record<string, string>>; segundas: Readonly<Record<string, string>>; faltantes: Readonly<Record<string, string>> };
+
+export type LineaDeVuelta = { variante_id: string; buenas: number; segundas: number; faltantes: number; motivo: string | null };
+
+/** Las líneas de `registrar_vuelta`: solo las tallas y colores con algo; el «qué pasó» viaja en las que traen segundas o faltantes (la base lo pide por línea). */
+export function lineasDeVuelta(f: FasePagina, c: CantidadesDeVuelta, motivo: string): LineaDeVuelta[] {
+  const que = motivo.trim();
+  return f.porVariante
+    .map((v) => ({ variante_id: v.varianteId, buenas: celdaEntera(c.buenas[v.varianteId]), segundas: celdaEntera(c.segundas[v.varianteId]), faltantes: celdaEntera(c.faltantes[v.varianteId]) }))
+    .filter((l) => l.buenas + l.segundas + l.faltantes > 0)
+    .map((l) => ({ ...l, motivo: l.segundas + l.faltantes > 0 && que !== "" ? que : null }));
+}
+
+export type ProblemaDeVuelta = { hint: "vuelta_sin_lineas" | "vuelta_excede" | "vuelta_sin_motivo"; texto: string };
+
+/** Lo que la base rechazaría de una Vuelta: nada escrito, más de lo que está afuera (por talla y color) o segundas y faltantes sin decir qué pasó. */
+export function problemasDeVuelta(f: FasePagina, c: CantidadesDeVuelta, motivo: string, nombreDe: (varianteId: string) => string): ProblemaDeVuelta[] {
+  const afuera = cantidadesAfuera(f);
+  const lineas = lineasDeVuelta(f, c, motivo);
+  if (lineas.length === 0) return [{ hint: "vuelta_sin_lineas", texto: "Escribe cuántas volvieron en al menos una talla y color." }];
+  const problemas: ProblemaDeVuelta[] = [];
+  for (const l of lineas) {
+    const hay = afuera[l.variante_id] ?? 0;
+    const suma = l.buenas + l.segundas + l.faltantes;
+    if (suma > hay) problemas.push({ hint: "vuelta_excede", texto: hay > 0 ? `De ${nombreDe(l.variante_id)} hay ${hay} afuera: anotaste ${suma}.` : `De ${nombreDe(l.variante_id)} no hay nada afuera.` });
+  }
+  if (lineas.some((l) => l.segundas + l.faltantes > 0) && motivo.trim() === "") problemas.push({ hint: "vuelta_sin_motivo", texto: "Cuéntanos qué pasó con lo que no volvió bueno." });
+  return problemas;
+}
+
+/** Cuántas quedan afuera después de lo que se está anotando (nunca negativo). */
+export function quedanAfuera(f: FasePagina, c: CantidadesDeVuelta): number {
+  const anotadas = f.porVariante.reduce((s, v) => s + celdaEntera(c.buenas[v.varianteId]) + celdaEntera(c.segundas[v.varianteId]) + celdaEntera(c.faltantes[v.varianteId]), 0);
+  return Math.max(Object.values(cantidadesAfuera(f)).reduce((a, b) => a + b, 0) - anotadas, 0);
+}
+
+/**
+ * Las buenas de una celda al anotar segundas o faltantes en ella. «Volvieron buenas» nace con TODO lo que está afuera: al decir que 3 faltaron, esas 3 dejan de ser buenas. Solo se
+ * ajusta una celda que estaba «cuadrada» (buenas + segundas + faltantes = lo que hay afuera); si la persona ya había dejado prendas sin volver, su número no se toca.
+ */
+export function buenasAlAnotarExcepcion(o: { afuera: number; buenas: string; segundas: string; faltantes: string }, nuevo: { segundas?: string; faltantes?: string }): string {
+  const cuadrada = celdaEntera(o.buenas) + celdaEntera(o.segundas) + celdaEntera(o.faltantes) === o.afuera;
+  if (!cuadrada) return o.buenas;
+  const segundas = celdaEntera(nuevo.segundas ?? o.segundas);
+  const faltantes = celdaEntera(nuevo.faltantes ?? o.faltantes);
+  return String(Math.max(o.afuera - segundas - faltantes, 0));
+}
+
+/** El texto del aviso de una Salida: «Mandaste 48 prendas a Confecciones del Norte». */
+export function textoMandaste(total: number, servicio: string): string {
+  return `Mandaste ${cuantas(total, "prenda", "prendas")} a ${servicio}`;
+}
+
+/** El texto del aviso de una Vuelta: «Volvieron 40 prendas buenas de Confecciones del Norte». Sin buenas, dice lo que sí se anotó. */
+export function textoVolvieron(o: { buenas: number; segundas: number; faltantes: number }, servicio: string): string {
+  if (o.buenas > 0) return `Volvieron ${cuantas(o.buenas, "prenda buena", "prendas buenas")} de ${servicio}`;
+  return `Anotaste lo que pasó con las prendas de ${servicio}`;
+}
+
+/** El renglón de abajo del aviso de una Vuelta: lo que no volvió bueno y, solo a quien ve costos, lo que se le debe al servicio por esa fase hasta ahora. */
+export function detalleDeVuelta(o: { segundas: number; faltantes: number; devengado: number | null; numeroTexto: string }): string {
+  const partes = [o.numeroTexto];
+  if (o.segundas > 0) partes.push(cuantas(o.segundas, "segunda", "segundas"));
+  if (o.faltantes > 0) partes.push(`${cuantas(o.faltantes, "faltó", "faltaron")}: queda anotado por qué`);
+  if (o.devengado !== null && o.devengado > 0) partes.push(`se le deben S/ ${o.devengado.toFixed(2)} hasta ahora`);
+  return partes.join(" · ");
+}
+
+/** Lo que se le debe al servicio por la fase tras anotar, leído de la respuesta de `registrar_vuelta` (las fases con su estado). `null` si no viene o no es un número. */
+export function devengadoDeLaRespuesta(respuesta: unknown, faseId: string): number | null {
+  if (!Array.isArray(respuesta)) return null;
+  const fase = respuesta.find((f): f is { id: string; devengado?: unknown } => typeof f === "object" && f !== null && (f as { id?: unknown }).id === faseId);
+  const n = Number(fase?.devengado);
+  return fase && fase.devengado !== null && fase.devengado !== undefined && Number.isFinite(n) ? n : null;
 }

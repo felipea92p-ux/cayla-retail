@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { estadosDe, faltanDe, sePuedeConfirmar, siguienteDe } from "./guia-campos";
-import { camposDeAvance, camposDeCambiarQuien } from "./orden-pagina-guia";
+import { camposDeAvance, camposDeCambiarQuien, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
 import { problemasFases, type FaseBorrador, type ProveedorServicio, type TarifaDeLista } from "./orden-fases-reglas";
 
 describe("camposDeAvance — la guía coincide con lo que registrar_avance exige", () => {
@@ -55,5 +55,39 @@ describe("camposDeCambiarQuien — la guía coincide con lo que la base rechazar
     const campos = camposDeCambiarQuien({ faltas: ["Si «Acabado» sale afuera, elige a quién."], responsableListo: true });
     expect(siguienteDe(campos)).toMatchObject({ id: "fase", pendiente: "Si «Acabado» sale afuera, elige a quién." });
     expect(estadosDe(camposDeCambiarQuien({ faltas: [], responsableListo: false }))).toEqual({ fase: "hecho", quien: "ahora" });
+  });
+});
+
+describe("camposDeSalida — la guía coincide con lo que registrar_salida exige", () => {
+  // `registrar_salida` rechaza una salida sin cantidades o con más de lo que puede salir, y exige a alguien que firme.
+  const laBaseAcepta = (total: number, excesos: number, responsableListo: boolean) => total > 0 && excesos === 0 && responsableListo;
+  it("recorre las combinaciones: «se puede confirmar» es exactamente «la base acepta»", () => {
+    for (const total of [0, 8, 48]) for (const excesos of [0, 1]) for (const responsableListo of [true, false]) {
+      const campos = camposDeSalida({ total, excesos: Array.from({ length: excesos }, () => "De Negro · M solo puedes mandar 8: escribiste 9."), responsableListo });
+      expect(sePuedeConfirmar(campos), `${total}/${excesos}/${responsableListo}`).toBe(laBaseAcepta(total, excesos, responsableListo));
+    }
+  });
+  it("precargada con lo que puede salir, solo sigue «quién lo anota»; si se pasa, dice de cuál talla", () => {
+    expect(estadosDe(camposDeSalida({ total: 48, excesos: [], responsableListo: false }))).toEqual({ cantidades: "hecho", quien: "ahora" });
+    expect(siguienteDe(camposDeSalida({ total: 50, excesos: ["De Negro · M solo puedes mandar 8: escribiste 9."], responsableListo: true }))).toMatchObject({ id: "cantidades", pendiente: "De Negro · M solo puedes mandar 8: escribiste 9." });
+  });
+});
+
+describe("camposDeVuelta — la guía coincide con lo que registrar_vuelta exige", () => {
+  // `registrar_vuelta` rechaza una vuelta vacía o que pasa de lo que está afuera, segundas o faltantes sin decir qué pasó, y exige a alguien que firme.
+  it("recorre las combinaciones: «se puede confirmar» es exactamente «la base acepta»", () => {
+    for (const total of [0, 40]) for (const excesos of [0, 1]) for (const hayExcepciones of [true, false]) for (const conMotivo of [true, false]) for (const responsableListo of [true, false]) {
+      const campos = camposDeVuelta({ total, excesos: Array.from({ length: excesos }, () => "De Negro · M hay 8 afuera: anotaste 9."), hayExcepciones, conMotivo, responsableListo });
+      const acepta = total > 0 && excesos === 0 && (!hayExcepciones || conMotivo) && responsableListo;
+      expect(sePuedeConfirmar(campos), `${total}/${excesos}/${hayExcepciones}/${conMotivo}/${responsableListo}`).toBe(acepta);
+    }
+  });
+  it("«qué pasó» solo es un campo cuando hay segundas o faltantes", () => {
+    expect(camposDeVuelta({ total: 40, excesos: [], hayExcepciones: false, conMotivo: false, responsableListo: false }).map((c) => c.id)).toEqual(["cantidades", "quien"]);
+    expect(camposDeVuelta({ total: 40, excesos: [], hayExcepciones: true, conMotivo: false, responsableListo: false }).map((c) => c.id)).toEqual(["cantidades", "motivo", "quien"]);
+  });
+  it("con faltantes y sin motivo, sigue «qué pasó» y dice qué hacer", () => {
+    const campos = camposDeVuelta({ total: 40, excesos: [], hayExcepciones: true, conMotivo: false, responsableListo: true });
+    expect(siguienteDe(campos)).toMatchObject({ id: "motivo", pendiente: "Cuéntanos qué pasó con lo que no volvió bueno." });
   });
 });

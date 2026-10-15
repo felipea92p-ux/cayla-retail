@@ -3,6 +3,8 @@
 import { useState, type CSSProperties } from "react";
 import { Check, House, ListChecks, Truck } from "lucide-react";
 import { AnotarAvanceModal } from "@/components/orden-pagina/AnotarAvanceModal";
+import { AnotarSalidaModal } from "@/components/orden-pagina/AnotarSalidaModal";
+import { AnotarVueltaModal } from "@/components/orden-pagina/AnotarVueltaModal";
 import { CambiarQuienModal } from "@/components/orden-pagina/CambiarQuienModal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Boton } from "@/components/ui/campos";
@@ -24,9 +26,10 @@ import {
 // La ruta de fases de la orden (ADR-0400, decisiones 1–3 y 7; vista D de la lámina): las fases en fila, cosidas por un hilo — hecha ✓ · actual encendida · pendiente —, cada una con
 // quién la hace (el Taller o un servicio de afuera), cuántas van, lo que prometió y su acción: «Terminé N» en el Taller; «Salida» y «Vuelta» en un servicio. «Cambiar quién» aparece
 // solo mientras la fase no empezó. Nada se calcula aquí: el estado de cada fase viene derivado de la base (`fn_fases_de_orden`) y los textos de `lib/orden-pagina-reglas.ts`.
-// «Salida» y «Vuelta» ya tienen su función en la base (20261014155000) pero sus hojas son de la actividad 4: aquí quedan a la vista, apagadas, con su razón.
+// «Salida» y «Vuelta» abren sus hojas (actividad 4): lo que sale a un servicio y lo que regresa, por talla y color. En la fase actual, la que toca primero lleva el botón principal: «Vuelta»
+// si hay prendas afuera, «Salida» si no.
 
-type Hoja = { tipo: "terminar" | "quien"; faseId: string };
+type Hoja = { tipo: "terminar" | "quien" | "salida" | "vuelta"; faseId: string };
 
 export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opciones: Tolerado<OpcionesNuevaOrden> | null; hoy: string }) {
   const [hoja, setHoja] = useState<Hoja | null>(null);
@@ -34,6 +37,9 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
   const hechas = fases.filter((f) => f.estado === "hecha").length;
   // La guía interactiva (ADR-0389) ancla «Terminé» en la fase actual y «Cambiar quién» en la primera que lo permite: una sola pieza por ancla.
   const idDeLaQueCambia = fases.find((f) => puedeCambiarQuien(f, datos))?.id ?? null;
+  // «Salida» y «Vuelta» se anclan en la primera fase que las ofrece (no solo en la actual: con el corte a medias, la costura ya puede recibir una salida).
+  const idDeLaQueSale = fases.find((f) => accionesDeFase(f, datos).includes("salida"))?.id ?? null;
+  const idDeLaQueRecibe = fases.find((f) => accionesDeFase(f, datos).includes("vuelta"))?.id ?? null;
   const faseDeLaHoja = hoja ? (fases.find((f) => f.id === hoja.faseId) ?? null) : null;
   const dato = fases.every((f) => f.estado === "hecha")
     ? "las fases terminaron"
@@ -110,14 +116,14 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
                       Terminé {faltaTerminar(fase, fases)}
                     </Boton>
                   )}
-                  {acciones.includes("salida") && (
-                    <Boton type="button" peso="fantasma" disabled>
-                      Salida
+                  {acciones.includes("vuelta") && (
+                    <Boton type="button" peso={fase.actual ? "primario" : "fantasma"} aria-haspopup="dialog" data-guia={fase.id === idDeLaQueRecibe ? "prod-orden.vuelta" : undefined} onClick={() => setHoja({ tipo: "vuelta", faseId: fase.id })}>
+                      Vuelta
                     </Boton>
                   )}
-                  {acciones.includes("vuelta") && (
-                    <Boton type="button" peso="fantasma" disabled>
-                      Vuelta
+                  {acciones.includes("salida") && (
+                    <Boton type="button" peso={fase.actual && !acciones.includes("vuelta") ? "primario" : "fantasma"} aria-haspopup="dialog" data-guia={fase.id === idDeLaQueSale ? "prod-orden.salida" : undefined} onClick={() => setHoja({ tipo: "salida", faseId: fase.id })}>
+                      Salida
                     </Boton>
                   )}
                   {cambiar && (
@@ -125,7 +131,6 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
                       Cambiar quién
                     </button>
                   )}
-                  {(acciones.includes("salida") || acciones.includes("vuelta")) && <p className="w-full text-xs text-taupe-profundo">Salida y Vuelta llegan en el siguiente paso.</p>}
                 </div>
               )}
             </li>
@@ -133,6 +138,8 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
         })}
       </ol>
       {hoja?.tipo === "terminar" && faseDeLaHoja && <AnotarAvanceModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
+      {hoja?.tipo === "salida" && faseDeLaHoja && <AnotarSalidaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
+      {hoja?.tipo === "vuelta" && faseDeLaHoja && <AnotarVueltaModal datos={datos} fase={faseDeLaHoja} onClose={() => setHoja(null)} />}
       {hoja?.tipo === "quien" && faseDeLaHoja && <CambiarQuienModal datos={datos} fase={faseDeLaHoja} opciones={opciones} hoy={hoy} onClose={() => setHoja(null)} />}
     </section>
   );
