@@ -186,6 +186,8 @@
     "pruebas:envio-sin-aviso": "node scripts/pruebas/envio_sin_aviso.mjs",
     "pruebas:nos-debe": "node scripts/pruebas/nos_debe.mjs",
     "pruebas:ordenes-insumo": "node scripts/pruebas/ordenes_insumo.mjs",
+    "pruebas:comprobante-orden-insumo": "node scripts/pruebas/comprobante_orden_insumo.mjs",
+    "pruebas:recepcion-orden-insumo": "node scripts/pruebas/recepcion_orden_insumo.mjs",
     "pruebas:fondos": "node scripts/pruebas/fondos.mjs",
     "pruebas:gastos-viaje": "node scripts/pruebas/gastos_viaje.mjs",
     "pruebas:rendicion-fondo": "node scripts/pruebas/rendicion_fondo.mjs",

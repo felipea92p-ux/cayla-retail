@@ -85,6 +85,7 @@ describe("el chip de la prenda (el título de su grupo)", () => {
     expect(chipDeGrupo("enviar")).toEqual({ est: "ate", texto: "Mándalas a donde sí se venden" });
     expect(chipDeGrupo("liquidar")).toEqual({ est: "ate", texto: "Liquidar" });
     expect(chipDeGrupo("vigila")).toEqual({ est: "nd", texto: "Vigílalas" });
+    expect(chipDeGrupo("duda")).toEqual({ est: "nd", texto: "Aún no se sabe" });
     expect(chipDeGrupo(null)).toEqual({ est: "bien", texto: "Va bien" });
     // Guardada y nunca colgada: no «va bien», nadie la vio (20261007120000). Un grupo manda sobre eso.
     expect(chipDeGrupo(null, true)).toEqual({ est: "ate", texto: "Nunca salió al piso" });
@@ -94,25 +95,25 @@ describe("el chip de la prenda (el título de su grupo)", () => {
 
 describe("el dinero, como se lee en tienda", () => {
   it("entero sin decimales; con céntimos, dos; sin dato, «—»", () => {
-    expect(solesFicha(60)).toBe("S/ 60");
-    expect(solesFicha(59.9)).toBe("S/ 59.90");
-    expect(solesFicha(1250)).toBe("S/ 1,250");
-    expect(solesFicha(0)).toBe("S/ 0");
+    expect(solesFicha(60)).toBe("S/\u00a060");
+    expect(solesFicha(59.9)).toBe("S/\u00a059.90");
+    expect(solesFicha(1250)).toBe("S/\u00a01,250");
+    expect(solesFicha(0)).toBe("S/\u00a00");
     expect(solesFicha(null)).toBe("—");
     expect(solesFicha(Number.NaN)).toBe("—");
-    expect(solesFicha(-5)).toBe("−S/ 5");
+    expect(solesFicha(-5)).toBe("−S/\u00a05");
   });
   it("lo que se gana por cada una es precio menos costo, sin arrastrar el error de los decimales", () => {
-    expect(dineroDe({ precio: 60, costo: 27 })).toEqual({ costo: "S/ 27", ganas: "S/ 33" });
-    expect(dineroDe({ precio: 79.9, costo: 32.92 })).toEqual({ costo: "S/ 32.92", ganas: "S/ 46.98" });
+    expect(dineroDe({ precio: 60, costo: 27 })).toEqual({ costo: "S/\u00a027", ganas: "S/\u00a033" });
+    expect(dineroDe({ precio: 79.9, costo: 32.92 })).toEqual({ costo: "S/\u00a032.92", ganas: "S/\u00a046.98" });
   });
   it("si falta el precio o el costo, «—» (nunca una ganancia inventada)", () => {
     expect(dineroDe({ precio: 60, costo: null })).toEqual({ costo: "—", ganas: "—" });
-    expect(dineroDe({ precio: null, costo: 27 })).toEqual({ costo: "S/ 27", ganas: "—" });
+    expect(dineroDe({ precio: null, costo: 27 })).toEqual({ costo: "S/\u00a027", ganas: "—" });
   });
   it("la línea bajo el nombre: color, talla y precio", () => {
-    expect(subtituloFicha({ color: "Celeste", talla: "S", precio: 60 })).toBe("Celeste · talla S · S/ 60");
-    expect(subtituloFicha({ color: "Negro", talla: "Estándar", precio: 59.9 })).toBe("Negro · talla Estándar · S/ 59.90");
+    expect(subtituloFicha({ color: "Celeste", talla: "S", precio: 60 })).toBe("Celeste · talla S · S/\u00a060");
+    expect(subtituloFicha({ color: "Negro", talla: "Estándar", precio: 59.9 })).toBe("Negro · talla Estándar · S/\u00a059.90");
     expect(subtituloFicha({ color: "Celeste", talla: "S", precio: null })).toBe("Celeste · talla S");
   });
 });
@@ -257,6 +258,23 @@ describe("los botones del pie", () => {
     expect(accionPrincipal(p, null, SEDES, TODO)).toBeNull();
   });
 
+  it("lo quieto con la vara de su tipo dice contra qué se juzgó (ADR-0357, act. 2026-10-14)", () => {
+    const p = prenda({ piso: 2, diasSinVender: 8, umbrales: { vigila: 3, liquidar: 6, vara: "hoy", vendidas: 30 } });
+    expect(hechosDe(p, "liquidar", SEDES).map((h) => [h.valor, h.etiqueta].join(" · "))).toEqual([
+      "8 días · en el piso sin venderse",
+      "6 días · tardan 9 de cada 10 de su tipo",
+      "Tienes 2 · 2 en el piso",
+      "Liquidar · tú eliges cuánto",
+    ]);
+  });
+
+  it("lo que puede haberse vendido sin registrar: «Registrar ventas» (Por regularizar), y sus tarjetitas lo dicen; sin Existencias, sin botón", () => {
+    const p = prenda({ piso: 2, diasSinVender: 80, enDuda: 1 });
+    expect(accionPrincipal(p, "duda", SEDES, TODO)).toEqual({ texto: "Registrar ventas", href: "/inventario/por-regularizar" });
+    expect(accionPrincipal(p, "duda", SEDES, { ...TODO, regularizar: false })).toBeNull();
+    expect(leer(p)).toEqual(["80 días · sin una venta registrada", "1 en duda · puede ser una venta sin registrar", "Tienes 2 · 2 en el piso"]);
+  });
+
   it("nunca salió al piso: «Bajar al piso» (Reponer a piso con ella); sin Existencias, sin botón", () => {
     const p = prenda({ varianteId: "g44", piso: 0, almacen: 2, salioAlPiso: null });
     expect(accionPrincipal(p, null, SEDES, TODO, true)).toEqual({ texto: "Bajar al piso", href: "/inventario/bajar?lineas=g44:1" });
@@ -354,6 +372,6 @@ describe("el modelo en tu tienda: frase, tabla y otras tiendas (opción B, Felip
 
   it("el subtítulo dice sus colores y tallas, y el precio «desde» el menor si varía", () => {
     const conPrecios = modeloDe([prenda({ varianteId: "p1", color: "Arena", talla: "S", precio: 100 }), prenda({ varianteId: "p2", color: "Tostado", talla: "M", precio: 90 })], HOY_FICHA);
-    expect(subtituloFicha(conPrecios)).toBe("2 colores · S, M · desde S/ 90");
+    expect(subtituloFicha(conPrecios)).toBe("2 colores · S, M · desde S/\u00a090");
   });
 });

@@ -12,7 +12,7 @@
 // no cambian: cambia la pieza que miden. Lógica pura, probada en `analisis-modelo.test.ts`.
 
 import type { LlegadaPrenda, PrendaAnalisis, PrendaEnOtraSede } from "./analisis-tipos";
-import { esTallaUnica, totalEnTienda } from "./analisis-reglas";
+import { esTallaUnica, totalEnTienda, ventanaDeRitmo } from "./analisis-reglas";
 import { compararTallas } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
 
@@ -47,6 +47,8 @@ const delModelo = (v: PrendaAnalisis) => ({
   origen: v.origen,
   proveedorId: v.proveedorId,
   diasDeVentas: v.diasDeVentas,
+  // Los escalones de «No se vende» son de su tipo, y todas sus tallas son del mismo.
+  ...(v.umbrales ? { umbrales: v.umbrales } : {}),
 });
 
 const suma = (vs: readonly PrendaAnalisis[], campo: (v: PrendaAnalisis) => number): number => vs.reduce((s, v) => s + campo(v), 0);
@@ -136,8 +138,13 @@ export function modeloDe(vs: readonly PrendaAnalisis[], hoy: string): ModeloAnal
   // La cara del modelo: la foto y el color de lo que más se vende (o, si nada se vendió, de lo que más hay).
   const cara = variantes.find((v) => v.color === colores[0] && v.fotoUrl) ?? variantes.find((v) => v.color === colores[0]) ?? variantes[0];
   const semanas = variantes[0].semanas.map((_, k) => suma(variantes, (v) => v.semanas[k] ?? 0));
+  const salioAlPiso = extremo(variantes.map((v) => v.salioAlPiso), "primera");
+  // El ritmo del modelo se mide desde que se colgó cualquiera de sus tallas (2026-10-14): su ventana es la del modelo, no la de su primera
+  // talla. Sin los días de la tienda (un cargador viejo), la de su primera talla, como antes.
+  const tienda = variantes[0].diasDeVentasTienda;
   return {
     ...delModelo(variantes[0]),
+    ...(tienda !== undefined ? { diasDeVentas: ventanaDeRitmo(salioAlPiso, hoy, tienda), diasDeVentasTienda: tienda } : {}),
     varianteId: variantes[0].productoId,
     color: colores.length === 1 ? colores[0] : "",
     colorHex: cara.colorHex,
@@ -150,9 +157,11 @@ export function modeloDe(vs: readonly PrendaAnalisis[], hoy: string): ModeloAnal
     vendidas30: suma(variantes, (v) => v.vendidas30),
     semanas,
     diasSinVender: diasSinVenderModelo(variantes, hoy),
-    salioAlPiso: extremo(variantes.map((v) => v.salioAlPiso), "primera"),
+    salioAlPiso,
     ...(variantes.every((v) => v.ultimaVenta !== undefined) ? { ultimaVenta: extremo(variantes.map((v) => v.ultimaVenta), "ultima") } : {}),
     llego: extremo(variantes.map((v) => v.llego), "primera"),
+    // Lo que puede ser una venta sin registrar se suma; si de ninguna talla se sabe (sin la lectura de Frescura), no se dice.
+    ...(variantes.some((v) => v.enDuda !== undefined) ? { enDuda: suma(variantes, (v) => v.enDuda ?? 0) } : {}),
     llegaron30: suma(variantes, (v) => v.llegaron30),
     vendidasDeLasQueLlegaron30: suma(variantes, (v) => v.vendidasDeLasQueLlegaron30),
     otras: otrasDelModelo(variantes),

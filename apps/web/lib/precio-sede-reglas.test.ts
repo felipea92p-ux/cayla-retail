@@ -44,8 +44,8 @@ describe("leerMonto", () => {
 
 describe("diferencia con el precio de la prenda", () => {
   it("dice cuánto más o menos, en palabras de tienda (nunca «general»)", () => {
-    expect(fraseDiferencia(129.9, 119.9)).toBe("S/ 10.00 más que el precio de la prenda (+8 %)");
-    expect(fraseDiferencia(109.9, 119.9)).toBe("S/ 10.00 menos que el precio de la prenda (−8 %)");
+    expect(fraseDiferencia(129.9, 119.9)).toBe("S/\u00a010.00 más que el precio de la prenda (+8 %)");
+    expect(fraseDiferencia(109.9, 119.9)).toBe("S/\u00a010.00 menos que el precio de la prenda (−8 %)");
     expect(fraseDiferencia(119.9, 119.9)).toBe("igual que el precio de la prenda");
     expect(fraseDiferencia(100, null)).toBeNull();
   });
@@ -160,7 +160,7 @@ describe("«2 precios» en Catálogo ▸ Productos", () => {
   });
   it("FAL-0008: AQP 79.90 (igual a la prenda) y TRU 69.90 son DOS precios, no tres", () => {
     const lista = [{ sede: "AQP", precio: 79.9 }, { sede: "LIM", precio: 79.9 }, { sede: "TRU", precio: 69.9 }];
-    expect(insigniaPrecios(lista)).toEqual({ texto: "2 precios", detalle: "AQP y LIM S/ 79.90 · TRU S/ 69.90" });
+    expect(insigniaPrecios(lista)).toEqual({ texto: "2 precios", detalle: "AQP y LIM S/\u00a079.90 · TRU S/\u00a069.90" });
   });
   it("con precio por talla, la tienda sin precio propio es un rango y cuenta aparte (no se esconde detrás del más barato)", () => {
     const r = preciosDeTiendaPorProducto(
@@ -169,7 +169,7 @@ describe("«2 precios» en Catálogo ▸ Productos", () => {
       nombres,
     );
     expect(r.falda).toEqual([{ sede: "AQP", precio: 79.9 }, { sede: "LIM", precio: 79.9, hasta: 89.9 }, { sede: "TRU", precio: 79.9, hasta: 89.9 }]);
-    expect(insigniaPrecios(r.falda)).toEqual({ texto: "2 precios", detalle: "AQP S/ 79.90 · LIM y TRU S/ 79.90–89.90" });
+    expect(insigniaPrecios(r.falda)).toEqual({ texto: "2 precios", detalle: "AQP S/\u00a079.90 · LIM y TRU S/\u00a079.90–89.90" });
   });
   it("si todas las tiendas venden igual, no hay insignia", () => {
     expect(insigniaPrecios([{ sede: "AQP", precio: 79.9 }, { sede: "LIM", precio: 79.9 }])).toBeNull();
@@ -336,7 +336,7 @@ describe("al cambiar el precio de la prenda, la hoja pregunta por las tiendas", 
 
 describe("las etiquetas colgadas al cambiar el precio de una tienda", () => {
   it("dice cuántas y con qué precio, en singular y plural", () => {
-    expect(avisoEtiquetasAlCambiar(3, "Tienda AQP", 69.9)).toBe("En Tienda AQP hay 3 prendas con la etiqueta de S/ 69.90: cámbiales la etiqueta.");
+    expect(avisoEtiquetasAlCambiar(3, "Tienda AQP", 69.9)).toBe("En Tienda AQP hay 3 prendas con la etiqueta de S/\u00a069.90: cámbiales la etiqueta.");
     expect(avisoEtiquetasAlCambiar(1, "Tienda AQP", null)).toBe("En Tienda AQP hay 1 prenda con la etiqueta de antes: cámbiale la etiqueta.");
     expect(avisoEtiquetasAlCambiar(0, "Tienda AQP", 69.9)).toBeNull();
   });

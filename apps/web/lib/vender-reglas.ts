@@ -268,7 +268,7 @@ export function motivoBloqueoCobro(v: {
   if (v.prendas === 0) return "Agrega una prenda para cobrar.";
   // Un ticket que no cobra nada (solo la bolsa de obsequio, a S/ 0.00) no se puede cobrar ni emitir: la base rechaza una venta en S/ 0
   // entera. Se dice aquí, con la causa, en vez de dejar «Elige cómo pagó el cliente» para un total que no tiene qué pagar.
-  if (v.total <= 0) return "El ticket está en S/ 0.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
+  if (v.total <= 0) return "El ticket está en S/\u00a00.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
   if (v.motivoResponsable) return v.motivoResponsable;
   if (v.momento !== "cobrar") return null;
   if (v.proformaVencidaSinConfirmar) return "Confirma que cobras la proforma vencida al precio de entonces.";
@@ -279,11 +279,11 @@ export function motivoBloqueoCobro(v: {
   // Con el redondeo, un efectivo de menos de S/ 0.10 (p. ej. los 0.07 que sobran tras un Yape) no se puede entregar: no hay moneda. Se
   // cobra con otro medio; regalar el monto de otro medio no es redondear.
   const efectivo = v.redondeoEfectivo ? v.pagos.find((p) => p.metodo === "efectivo" && p.monto > 0) : undefined;
-  if (efectivo && efectivoACobrar(efectivo.monto) <= 0) return `El efectivo no puede ser menos de S/ ${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
+  if (efectivo && efectivoACobrar(efectivo.monto) <= 0) return `El efectivo no puede ser menos de S/\u00a0${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
   // Un vuelto de más de S/ 500 es un billete mal escrito (la base tampoco lo acepta, `venta_pagos_recibido_con_tope`).
   const conRecibido = v.pagos.find((p) => p.metodo === "efectivo" && p.monto > 0 && p.recibido !== undefined);
   if (conRecibido && vueltoDe(conRecibido, !!v.redondeoEfectivo) > TOPE_VUELTO) {
-    return `El vuelto pasa de S/ ${TOPE_VUELTO}: revisa con cuánto paga el cliente.`;
+    return `El vuelto pasa de S/\u00a0${TOPE_VUELTO}: revisa con cuánto paga el cliente.`;
   }
   if (v.sinComprobante) return "Elige el comprobante.";
   if (v.facturaSinRuc) return "La factura necesita el RUC de la empresa.";

@@ -16,6 +16,7 @@ import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
 import { DIAS_PARA_PREGUNTAR } from "./pedidos-con-cliente-reglas";
 import { DIAS_PARA_ENVIAR } from "./para-enviar-reglas";
 import { hrefPerdidas, type AvisoPerdidas } from "./perdidas-reglas";
+import { montosSinCorte } from "./montos-sin-corte";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
 
@@ -103,7 +104,7 @@ export type FuentesAvisos = {
   porCompletar?: number | null;
 };
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
 const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
 const SIN_LEER = "No se pudo leer. Lo demás de esta pantalla sí está al día.";
 
@@ -712,7 +713,7 @@ export function armarEquipo(turno: FilaTurno[], actividad: FilaActividad[] | nul
       m = { personaId: a.persona_id, nombre: primerNombre(a.persona_nombre), estado: null, ventas: 0, monto: 0, ultima: null };
       porId.set(a.persona_id, m);
     }
-    m.ultima ??= { hora: a.ocurrio_at, texto: a.descripcion };
+    m.ultima ??= { hora: a.ocurrio_at, texto: montosSinCorte(a.descripcion) }; // la descripción la escribe Postgres
     if (a.accion === "venta_registrada") {
       const total = Number((a.detalle as { total?: unknown } | null)?.total ?? 0);
       m.ventas = (m.ventas ?? 0) + 1;

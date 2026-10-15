@@ -277,7 +277,7 @@ describe("la diferencia se mide contra lo que la clienta pagó, no contra el pre
   });
 
   it("explica el precio de una línea con descuento, y calla si no lo tuvo", () => {
-    expect(textoPagoConDescuento(conCampana)).toBe("Pagó con S/ 20.00 de descuento (lista S/ 100.00)");
+    expect(textoPagoConDescuento(conCampana)).toBe("Pagó con S/\u00a020.00 de descuento (lista S/\u00a0100.00)");
     expect(textoPagoConDescuento(linea)).toBeNull();
   });
 });

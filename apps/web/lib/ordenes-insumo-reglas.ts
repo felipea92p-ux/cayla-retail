@@ -32,6 +32,10 @@ export const RPC_SIGUIENTE_ORDEN_INSUMO = "fn_ordenes_insumo_siguiente";
 export const RPC_CREAR_ORDEN_INSUMO = "crear_orden_insumo";
 export const RPC_EDITAR_ORDEN_INSUMO = "editar_orden_insumo";
 export const RPC_ANULAR_ORDEN_INSUMO = "anular_orden_insumo";
+/** El papel del proveedor de una orden de insumos (fase 7 parte 2 · actividad 1, 20261015020000). */
+export const RPC_REGISTRAR_COMPROBANTE_ORDEN_INSUMO = "registrar_comprobante_orden_insumo";
+/** Lo que el proveedor nos debe, orden por orden, para las filas de la lista (fase 7 parte 2 · actividad 4, 20261015043000). */
+export const RPC_NOS_DEBE_ORDENES_INSUMO = "fn_ordenes_insumo_nos_debe";
 
 /** La base reconoció el mismo id con OTRO pedido: la orden ya se había guardado con lo de antes (`crear_orden_insumo`). */
 export const HINT_INSUMO_YA_GUARDADA = "orden_insumo_ya_guardada";
@@ -104,7 +108,7 @@ export function textoCantidades(cantidades: readonly CantidadPorUnidad[]): strin
 export function precioUnitarioTexto(precio: number): string {
   const diezmilesimas = Math.round(precio * 10_000);
   if (diezmilesimas % 100 === 0) return soles(diezmilesimas / 10_000);
-  return `S/ ${(diezmilesimas / 10_000).toLocaleString("es-PE", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
+  return `S/\u00a0${(diezmilesimas / 10_000).toLocaleString("es-PE", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -191,7 +195,7 @@ export function dudaDePrecioInsumo(texto: string): string {
   const t = limpio(texto);
   const miles = t.replace(".", "");
   const decimal = t.slice(0, -1); // «1.500» → «1.50»: el cero de más
-  return `¿«${t}» es S/ ${miles} o S/ ${decimal}? Escríbelo sin punto (${miles}) o con dos decimales (${decimal}).`;
+  return `¿«${t}» es S/\u00a0${miles} o S/\u00a0${decimal}? Escríbelo sin punto (${miles}) o con dos decimales (${decimal}).`;
 }
 
 /** Lo que se tipeó en una línea, para la cuenta. */
@@ -265,7 +269,25 @@ export type OrdenInsumoFila = {
   total: number;
   creadaPorNombre: string | null;
   creadaEn: string;
+  /** Lo que no llegó (fase 7 parte 2, actividad 4): cuántas líneas se cerraron y lo que el proveedor nos debe. null si nada. */
+  nosDebe?: NosDebeOrden | null;
 };
+
+export type NosDebeOrden = { cierres: number; monto: number };
+
+/** Lee `fn_ordenes_insumo_nos_debe`: orden → lo que nos debe. Una fila rara se descarta. */
+export function leerNosDebe(data: unknown): Map<string, NosDebeOrden> {
+  const salida = new Map<string, NosDebeOrden>();
+  for (const f of Array.isArray(data) ? data : []) {
+    if (!f || typeof f !== "object") continue;
+    const r = f as Record<string, unknown>;
+    const id = texto(r.orden_id);
+    const cierres = cifra(r.cierres);
+    const monto = cifra(r.nos_debe);
+    if (id && cierres != null && cierres > 0) salida.set(id, { cierres, monto: monto ?? 0 });
+  }
+  return salida;
+}
 
 /** Lee una fila de `fn_ordenes_insumo`; `null` si le falta algo que la lista necesita (se descarta, no se inventa). */
 export function leerFilaOrdenInsumo(f: unknown): OrdenInsumoFila | null {
@@ -331,6 +353,57 @@ export type VersionOrdenInsumo = {
   total: number;
 };
 
+/** Lo facturado de una línea de la orden (fase 7 parte 2, actividad 1): lo que dicen sus papeles vigentes, en la unidad de la línea; y lo
+ *  que ya entró al Taller (actividad 3, `recepcion`; 0 si la base todavía no lo trae). */
+export type FacturadoDeLinea = { posicion: number; itemId: string; facturado: number; recibido: number };
+
+/** Un papel del proveedor de la orden (fase 7 parte 2), vigente o anulado. «Sin comprobante» trae su número interno SC-…. */
+export type PapelDeOrdenInsumo = {
+  id: string;
+  tipo: string;
+  documento: string;
+  fechaEmision: string | null;
+  condicion: string | null;
+  fechaVencimiento: string | null;
+  total: number;
+  estado: "vigente" | "anulada";
+};
+
+/** Lo que no llegó de una línea (fase 7 parte 2, actividad 4): lo que el proveedor nos debe, con su costo al cerrarse. */
+export type CierreDeOrdenInsumo = {
+  id: string;
+  /** La línea pedida; null si es algo que el papel trajo fuera de la orden. */
+  itemId: string | null;
+  posicion: number | null;
+  insumo: string;
+  unidad: string;
+  cantidad: number;
+  costoUnitario: number;
+  importe: number;
+  motivo: "faltante" | "devolucion" | "otro";
+  nota: string | null;
+  creadoEn: string | null;
+  por: string | null;
+};
+
+/** Lo que un papel de la orden trajo SIN estar en ella (decisión 43), con lo que pasó en el Taller: lo recibido, lo anotado como «no
+ *  llegará» y lo que queda (/formidable 2026-10-14: la orden no lo mostraba). Solo de papeles vigentes. */
+export type FueraDeOrdenInsumo = {
+  /** `comprobantes_produccion_items.id`. */
+  itemId: string;
+  comprobanteId: string;
+  /** El papel que lo trajo («F777-0001»). */
+  documento: string;
+  insumo: string;
+  codigo: string | null;
+  unidad: string;
+  facturado: number;
+  costoUnitario: number;
+  recibido: number;
+  cerrado: number;
+  queda: number;
+};
+
 export type DetalleOrdenInsumo = {
   id: string;
   numero: number;
@@ -353,6 +426,16 @@ export type DetalleOrdenInsumo = {
   total: number;
   /** De la más vieja a la más nueva; vacía si nunca se editó. */
   versiones: VersionOrdenInsumo[];
+  /** Lo facturado de cada línea, por posición (vacío si la base todavía no lo trae). */
+  facturacion: FacturadoDeLinea[];
+  /** Sus papeles, del más nuevo al más viejo. */
+  comprobantes: PapelDeOrdenInsumo[];
+  /** El plazo de crédito del proveedor, para sugerir el vencimiento del papel; null si su ficha no lo dice. */
+  plazoCreditoDias: number | null;
+  /** Lo que no llegó (vacío si nada, o si la base todavía no lo trae). */
+  cierres: CierreDeOrdenInsumo[];
+  /** Lo que sus papeles trajeron fuera de la orden (vacío si nada, o si la base todavía no lo trae). */
+  fueraDeOrden: FueraDeOrdenInsumo[];
 };
 
 function leerLineas(data: unknown): LineaOrdenInsumo[] {
@@ -411,6 +494,112 @@ function leerVersiones(data: unknown): VersionOrdenInsumo[] {
     .sort((a, b) => a.version - b.version);
 }
 
+function leerFacturacion(data: unknown, recepcion: unknown): FacturadoDeLinea[] {
+  // Lo recibido llega en su propia clave (`recepcion`, 20261015040000), por posición.
+  const recibidoPor = new Map<number, number>();
+  for (const x of Array.isArray(recepcion) ? recepcion : []) {
+    if (!x || typeof x !== "object") continue;
+    const r = x as Record<string, unknown>;
+    const posicion = cifra(r.posicion);
+    const recibido = cifra(r.recibido);
+    if (posicion != null && recibido != null) recibidoPor.set(posicion, recibido);
+  }
+  return (Array.isArray(data) ? data : [])
+    .map((f): FacturadoDeLinea | null => {
+      if (!f || typeof f !== "object") return null;
+      const r = f as Record<string, unknown>;
+      const posicion = cifra(r.posicion);
+      const itemId = texto(r.item_id);
+      const facturado = cifra(r.facturado);
+      return posicion == null || !itemId || facturado == null ? null : { posicion, itemId, facturado, recibido: recibidoPor.get(posicion) ?? 0 };
+    })
+    .filter((f): f is FacturadoDeLinea => f !== null);
+}
+
+function leerPapeles(data: unknown): PapelDeOrdenInsumo[] {
+  return (Array.isArray(data) ? data : [])
+    .map((c): PapelDeOrdenInsumo | null => {
+      if (!c || typeof c !== "object") return null;
+      const r = c as Record<string, unknown>;
+      const id = texto(r.id);
+      const tipo = texto(r.tipo);
+      const documento = texto(r.documento);
+      const estado = r.estado === "vigente" || r.estado === "anulada" ? r.estado : null;
+      if (!id || !tipo || !documento || !estado) return null;
+      return {
+        id,
+        tipo,
+        documento,
+        fechaEmision: texto(r.fecha_emision),
+        condicion: texto(r.condicion),
+        fechaVencimiento: texto(r.fecha_vencimiento),
+        total: cifra(r.total) ?? 0,
+        estado,
+      };
+    })
+    .filter((c): c is PapelDeOrdenInsumo => c !== null);
+}
+
+const MOTIVOS: readonly CierreDeOrdenInsumo["motivo"][] = ["faltante", "devolucion", "otro"];
+
+function leerCierres(data: unknown): CierreDeOrdenInsumo[] {
+  return (Array.isArray(data) ? data : [])
+    .map((c): CierreDeOrdenInsumo | null => {
+      if (!c || typeof c !== "object") return null;
+      const r = c as Record<string, unknown>;
+      const id = texto(r.id);
+      const insumo = texto(r.insumo);
+      const unidad = texto(r.unidad);
+      const cantidad = cifra(r.cantidad);
+      const motivo = MOTIVOS.find((m) => m === r.motivo);
+      if (!id || !insumo || !unidad || cantidad == null || !motivo) return null;
+      return {
+        id,
+        itemId: texto(r.item_id),
+        posicion: cifra(r.posicion),
+        insumo,
+        unidad,
+        cantidad,
+        costoUnitario: cifra(r.costo_unitario) ?? 0,
+        importe: cifra(r.importe) ?? 0,
+        motivo,
+        nota: texto(r.nota),
+        creadoEn: texto(r.creado_en),
+        por: texto(r.por),
+      };
+    })
+    .filter((c): c is CierreDeOrdenInsumo => c !== null);
+}
+
+function leerFueraDeOrden(data: unknown): FueraDeOrdenInsumo[] {
+  return (Array.isArray(data) ? data : [])
+    .map((f): FueraDeOrdenInsumo | null => {
+      if (!f || typeof f !== "object") return null;
+      const r = f as Record<string, unknown>;
+      const itemId = texto(r.item_id);
+      const comprobanteId = texto(r.comprobante_id);
+      const documento = texto(r.documento);
+      const insumo = texto(r.insumo);
+      const unidad = texto(r.unidad);
+      const facturado = cifra(r.facturado);
+      if (!itemId || !comprobanteId || !documento || !insumo || !unidad || facturado == null) return null;
+      return {
+        itemId,
+        comprobanteId,
+        documento,
+        insumo,
+        codigo: texto(r.codigo),
+        unidad,
+        facturado,
+        costoUnitario: cifra(r.costo_unitario) ?? 0,
+        recibido: cifra(r.recibido) ?? 0,
+        cerrado: cifra(r.cerrado) ?? 0,
+        queda: cifra(r.queda) ?? 0,
+      };
+    })
+    .filter((f): f is FueraDeOrdenInsumo => f !== null);
+}
+
 /** Lee `fn_orden_insumo`; null si no llegó una orden (no existe, o la respuesta no se entiende). Una línea rara se descarta. */
 export function leerDetalleOrdenInsumo(data: unknown): DetalleOrdenInsumo | null {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
@@ -448,13 +637,31 @@ export function leerDetalleOrdenInsumo(data: unknown): DetalleOrdenInsumo | null
     cantidades: leerCantidades(d.cantidades),
     total: cifra(d.total) ?? 0,
     versiones: leerVersiones(d.versiones),
+    facturacion: leerFacturacion(d.facturacion, d.recepcion),
+    comprobantes: leerPapeles(d.comprobantes),
+    plazoCreditoDias: cifra(d.plazo_credito_dias),
+    cierres: leerCierres(d.cierres),
+    fueraDeOrden: leerFueraDeOrden(d.fuera_de_orden),
   };
 }
 
-/** «Editar» y «Anular orden»: solo una generada. Lo mismo que rechazan `editar_orden_insumo` y `anular_orden_insumo` (que siguen
- *  siendo el candado); el comprobante y la recepción del Taller, cuando lleguen, sumarán aquí su propia regla, como la fase 2. */
-export const puedeEditarOrdenInsumo = (d: Pick<DetalleOrdenInsumo, "estado">): boolean => d.estado === "generada";
-export const puedeAnularOrdenInsumo = (d: Pick<DetalleOrdenInsumo, "estado">): boolean => d.estado === "generada";
+/** ¿La orden ya tiene una recepción en el Taller? (fase 7 parte 2, actividades 3 y 4): algo recibido —pedido o fuera de la orden— o algo
+ *  anotado como «no llegará». Es el mismo candado de la base (`orden_insumo_con_recepcion`: hay una recepción). */
+export const tieneRecibidoInsumo = (d: Pick<DetalleOrdenInsumo, "facturacion"> & Partial<Pick<DetalleOrdenInsumo, "cierres" | "fueraDeOrden">>): boolean =>
+  d.facturacion.some((f) => f.recibido > 0) || (d.cierres?.length ?? 0) > 0 || (d.fueraDeOrden ?? []).some((f) => f.recibido > 0);
+
+/**
+ * «Editar» y «Anular orden»: lo mismo que rechazan `editar_orden_insumo` y `anular_orden_insumo` (que siguen siendo el candado). Solo una
+ * generada; y con papel (fase 7 parte 2): una orden que tuvo papel —aunque se haya anulado— ya no se edita (editar borra sus líneas, y
+ * las del comprobante del Taller no se tocan), y con su papel VIGENTE tampoco se anula (primero se anula el papel). Con algo recibido en el
+ * Taller (actividad 3), ni una cosa ni la otra: los lotes apuntan a sus líneas y lo recibido ya es stock.
+ */
+export const puedeEditarOrdenInsumo = (d: Pick<DetalleOrdenInsumo, "estado" | "comprobantes" | "facturacion">): boolean =>
+  d.estado === "generada" && d.comprobantes.length === 0 && !tieneRecibidoInsumo(d);
+export const puedeAnularOrdenInsumo = (d: Pick<DetalleOrdenInsumo, "estado" | "comprobantes" | "facturacion">): boolean =>
+  d.estado === "generada" && !d.comprobantes.some((c) => c.estado === "vigente") && !tieneRecibidoInsumo(d);
+/** «Registrar comprobante»: una orden generada (la base no le registra papel a una anulada). */
+export const puedeRegistrarComprobanteInsumo = (d: Pick<DetalleOrdenInsumo, "estado">): boolean => d.estado === "generada";
 
 /** Las líneas cuya unidad cambió desde que se hizo la orden (alguien cambió la del insumo en el catálogo). */
 export function lineasConUnidadCambiada(d: Pick<DetalleOrdenInsumo, "lineas">): LineaOrdenInsumo[] {

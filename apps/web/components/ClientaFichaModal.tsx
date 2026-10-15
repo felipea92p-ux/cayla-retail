@@ -52,7 +52,7 @@ function fecha(iso: string): string {
   return FORMATO_FECHA.format(new Date(iso));
 }
 function soles(n: number): string {
-  return `S/ ${n.toFixed(2)}`;
+  return `S/\u00a0${n.toFixed(2)}`;
 }
 /** El cumpleaños de «Editar» como lo escriben las cajas (la ficha lo guarda en tres textos). */
 const cumpleDeEdicion = (e: DatosEdicion): CumpleEscrito => ({ dia: e.cumpleDia, mes: e.cumpleMes, anio: e.cumpleAnio });

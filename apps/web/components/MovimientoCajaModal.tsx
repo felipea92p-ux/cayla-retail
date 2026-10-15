@@ -107,7 +107,7 @@ export function MovimientoCajaModal({
   }
 
   function registrado(t: "ingreso" | "egreso") {
-    avisar.exito(`${TEXTO_TIPO[t]} de caja registrada`, { detalle: `S/ ${(Number(monto) || 0).toFixed(2)} · ${motivo}` });
+    avisar.exito(`${TEXTO_TIPO[t]} de caja registrada`, { detalle: `S/\u00a0${(Number(monto) || 0).toFixed(2)} · ${motivo}` });
     router.refresh();
     onClose();
   }

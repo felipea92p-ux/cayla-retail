@@ -81,8 +81,8 @@ export function textoTicketCambio(t: {
     t.diferencia === 0
       ? "Sin diferencia de precio"
       : t.diferencia > 0
-        ? `Pagaste S/ ${t.diferencia.toFixed(2)} de diferencia`
-        : `Te devolvimos S/ ${(-t.diferencia).toFixed(2)}`;
+        ? `Pagaste S/\u00a0${t.diferencia.toFixed(2)} de diferencia`
+        : `Te devolvimos S/\u00a0${(-t.diferencia).toFixed(2)}`;
   return [
     `Hola, este es el resumen de tu cambio en CAYLA ${t.sede}:`,
     `Cambio N.º ${t.operacion}${t.comprobante ? ` · de la ${t.comprobante}` : ""}`,

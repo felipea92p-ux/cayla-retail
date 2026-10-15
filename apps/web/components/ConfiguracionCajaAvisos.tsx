@@ -73,7 +73,7 @@ export function ConfiguracionCajaAvisos({ parametros }: { parametros: Parametros
     }
     avisar.exito(
       campo === "minimoCaja"
-        ? `Mínimo de caja: S/ ${Math.round(v.valor.minimoCaja).toLocaleString("es-PE")}.`
+        ? `Mínimo de caja: S/\u00a0${Math.round(v.valor.minimoCaja).toLocaleString("es-PE")}.`
         : campo === "avisoGastoPct"
           ? `Un gasto avisa si supera su promedio en ${v.valor.avisoGastoPct} %.`
           : `Los vencimientos se avisan con ${v.valor.avisoVenceDias} días.`,

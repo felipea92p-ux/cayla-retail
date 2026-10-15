@@ -96,7 +96,7 @@ function FilaCotizacion({ cotizacion: c, hoy }: { cotizacion: CotizacionMaquila;
         <p className="mt-0.5 truncate text-[13px] text-tinta/65 @min-[900px]:hidden">{c.proveedorReferencia ?? "Sin proveedor anotado"}</p>
       </div>
 
-      <p className="font-display text-lg leading-tight tabular-nums text-tinta @min-[640px]:text-right">S/ {c.precioMaquila.toFixed(2)}</p>
+      <p className="font-display text-lg leading-tight tabular-nums text-tinta @min-[640px]:text-right">S/&nbsp;{c.precioMaquila.toFixed(2)}</p>
 
       <p className="text-[13px] text-tinta/75">{textoDeVigencia(c)}</p>
 

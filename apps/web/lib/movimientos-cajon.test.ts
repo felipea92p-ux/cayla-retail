@@ -470,7 +470,7 @@ describe("el cajón dice de qué tipo es, por dónde fue y qué pasó (ADR-0353)
         movimiento({ id: "s", tipo: "salida", categoria: "salida", motivo: "cambio", cantidad: 1, delta: -1, varianteId: "v2", cambio: { id: "c", diferencia } }),
       ])[0];
     expect(pasosDeOperacion(filas(0))[2].texto).toBe("Sin diferencia de precio");
-    expect(pasosDeOperacion(filas(15))[2].texto).toBe("Diferencia: S/ 15.00");
+    expect(pasosDeOperacion(filas(15))[2].texto).toBe("Diferencia: S/\u00a015.00");
   });
 
   it("los tipos sin pasos propios (apartado, dañado) no muestran «Qué pasó»", () => {

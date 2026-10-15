@@ -4,17 +4,20 @@ import { hoyLima } from "@/lib/fechas-lima";
 import {
   RPC_DETALLE_ORDEN_INSUMO,
   RPC_LISTA_ORDENES_INSUMO,
+  RPC_NOS_DEBE_ORDENES_INSUMO,
   RPC_OPCIONES_ORDEN_INSUMO,
   RPC_SIGUIENTE_ORDEN_INSUMO,
   argsListaInsumo,
   cifrasDeOrdenesInsumo,
   leerDetalleOrdenInsumo,
   leerFilasOrdenesInsumo,
+  leerNosDebe,
   leerOpcionesOrdenInsumo,
   type CifrasOrdenesInsumo,
   type DatosOrdenInsumo,
   type DetalleOrdenInsumo,
   type FiltrosListaInsumo,
+  type InsumoOpcion,
   type OrdenInsumoFila,
 } from "@/lib/ordenes-insumo-reglas";
 
@@ -39,7 +42,19 @@ export async function listarOrdenesInsumo(filtros: FiltrosListaInsumo): Promise<
     console.error(`${RPC_LISTA_ORDENES_INSUMO}: ${error.message}`);
     return { filas: [], falla: FALLA_LISTA };
   }
-  return { filas: leerFilasOrdenesInsumo(data), falla: null };
+  const filas = leerFilasOrdenesInsumo(data);
+  // Lo que no llegó (fase 7 parte 2, actividad 4): una lectura aparte, para las órdenes de esta página. Es un adorno de la lista: si no
+  // responde (o la base todavía no la tiene), las filas se muestran igual, sin la marca.
+  if (filas.length > 0) {
+    const ids = filas.map((f) => f.id);
+    const res = await (supabase.rpc(RPC_NOS_DEBE_ORDENES_INSUMO as never, { p_ids: ids } as never) as unknown as Respuesta);
+    if (res.error) console.error(`${RPC_NOS_DEBE_ORDENES_INSUMO}: ${res.error.message}`);
+    else {
+      const deuda = leerNosDebe(res.data);
+      for (const f of filas) f.nosDebe = deuda.get(f.id) ?? null;
+    }
+  }
+  return { filas, falla: null };
 }
 
 /**
@@ -136,4 +151,27 @@ export async function getDatosEditarOrdenInsumo(id: string): Promise<{ datos: Da
   }
   // `falla` es solo la de leer la orden: la de las listas ya viaja en `datos.falla` y el formulario la muestra.
   return { datos: { ...datos, proveedores, talleres, insumos }, detalle, falla };
+}
+
+/**
+ * Lo que necesita «Registrar comprobante» de una orden de insumos (fase 7 parte 2): la orden —con lo facturado de cada línea y el plazo
+ * del proveedor— y los insumos sin archivar, para poner uno que no estaba en la orden (decisión 43). Si los insumos no cargan, el
+ * formulario sirve igual para lo pedido y lo dice (`fallaListas`): nunca un combo vacío que parezca «no hay insumos».
+ */
+export async function getDatosComprobanteOrdenInsumo(
+  id: string,
+): Promise<{ detalle: DetalleOrdenInsumo | null; falla: string | null; insumos: InsumoOpcion[]; fallaListas: string | null }> {
+  const supabase = await createClient();
+  const [{ detalle, falla }, resOpciones] = await Promise.all([
+    getDetalleOrdenInsumo(id),
+    supabase.rpc(RPC_OPCIONES_ORDEN_INSUMO as never) as unknown as Respuesta,
+  ]);
+  const opciones = resOpciones.error ? null : leerOpcionesOrdenInsumo(resOpciones.data);
+  if (!opciones) console.error(`[ordenes-insumo] comprobante: ${resOpciones.error?.message ?? "respuesta que no se entiende"}`);
+  return {
+    detalle,
+    falla,
+    insumos: opciones?.insumos ?? [],
+    fallaListas: opciones ? null : "No se pudieron leer los insumos: por ahora solo se puede poner lo que está en la orden. Vuelve a intentarlo en un momento.",
+  };
 }

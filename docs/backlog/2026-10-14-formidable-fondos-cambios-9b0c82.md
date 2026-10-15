@@ -13,5 +13,6 @@ ADR-0362, decisiones 81 y 82. Informe: `docs/formidable/compras-fondos.md` (terc
 - [x] Felipe (plata, nueva de la ciega repetida): S/ 380 en la tabla contra S/ 375 en «Registrar devolución». Decidió explicarlo en la hoja
   (decisión 83): «Los libros dicen S/ 380.00, pero a su rendición por aprobar le faltan S/ 5.00: puede devolver hasta S/ 375.00». Hecho, con
   los montos de las frases sin cortarse (`solesSinCorte`).
-- [ ] Fuera de esta obra: el resto del ERP escribe montos en frases con `soles` (espacio normal) y se pueden partir igual; tarea aparte.
+- [x] Fuera de esta obra: el resto del ERP escribía montos en frases con `soles` (espacio normal) y se podían partir igual. Hecho en #1093
+  (ADR-0413): todo monto del ERP va con el espacio que no se parte, y `lib/montos-sin-corte.test.ts` lo vigila.
 - [ ] Felipe: en la tabla de movimientos de un fondo no se ve quién hizo cada entrega (de la ciega repetida).
