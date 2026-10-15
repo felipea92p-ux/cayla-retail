@@ -205,12 +205,19 @@ function main() {
     const COMO_TIENDA = `begin;\ngrant tienda_web to current_user with set true;\nset local role tienda_web;\n`;
     const portadaComoTienda = correr(`${COMO_TIENDA}select (retail.tienda_portada() ? 'campana')::text;\nrollback;`);
     esperarValor("como tienda_web, la portada responde", portadaComoTienda, "true");
-    for (const tabla of ["etiquetas", "variantes", "movimientos", "clientas"]) {
+    // Con las tablas que la tienda llena por sus funciones (las cuentas, y las recomendaciones de 20261015134000): ni esas las toca directo.
+    for (const tabla of ["etiquetas", "variantes", "movimientos", "clientas", "cuentas_web", "recomendaciones_web"]) {
       const r = correr(`${COMO_TIENDA}select count(*) from retail.${tabla};\nrollback;`);
       esperar(`como tienda_web, leer retail.${tabla} se niega`, !r.ok && /permission denied/.test(r.mensaje), r.ok ? `leyó: ${r.salida}` : r.mensaje);
     }
     const escribir = correr(`${COMO_TIENDA}update retail.etiquetas set activo = activo where false;\nrollback;`);
     esperar("como tienda_web, escribir en retail.etiquetas se niega", !escribir.ok && /permission denied/.test(escribir.mensaje), escribir.ok ? "escribió" : escribir.mensaje);
+    const recomendar = correr(`${COMO_TIENDA}insert into retail.recomendaciones_web (cuenta_web_id, clienta_id, texto, marca) values (gen_random_uuid(), gen_random_uuid(), 'Escrita a mano, sin su función', gen_random_uuid());\nrollback;`);
+    esperar(
+      "como tienda_web, escribir una recomendación a mano (sin tienda_recomendar) se niega",
+      !recomendar.ok && /permission denied/.test(recomendar.mensaje),
+      recomendar.ok ? "escribió" : recomendar.mensaje,
+    );
   }
 
   console.log("— La campaña de la portada —");

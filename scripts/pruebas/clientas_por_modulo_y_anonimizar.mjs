@@ -211,6 +211,12 @@ const DE_PEDIDOS_WEB = ["fn_pedido_web", "fn_pedidos_web_sede"];
 // Con el candado del módulo, como las demás lecturas de la ficha (la prueba a fondo scripts/pruebas/clientas_correo_en_la_ficha.mjs).
 const DE_LA_FICHA_Y_LA_TIENDA = ["fn_clienta_tienda_online"];
 
+// Y la de Clientes ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15, 20261015135000): `fn_recomendaciones` le da a quien tiene el módulo
+// «Recomendaciones» lo que los clientes recomiendan desde la tienda online, SIEMPRE con su nombre y el id de su ficha (para responderle;
+// sin nombre ni ficha si se anonimizó). Con el candado de SU módulo, `recomendaciones` (como las de Avisos y las de los pedidos web):
+// lo justo para responderle, nunca la ficha entera. La prueba a fondo es scripts/pruebas/recomendaciones_web.mjs.
+const DE_RECOMENDACIONES = ["fn_recomendaciones"];
+
 // Seed local: Felipe (líder y admin), Micaela (integrante de Trujillo, con Clientas por su rol).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -715,10 +721,16 @@ LISTA_BLANCA.push("tienda_favorito", "tienda_avisame");
 // pedido para emitir su boleta (como registrar_venta con el cliente del cobro) y no devuelve nada de ella. No la ejecuta nadie de la
 // API: solo la llama registrar_pago_pedido_web, que ya exige el módulo «Pedidos web» (lo prueba scripts/pruebas/pedidos_web_entregar.mjs).
 LISTA_BLANCA.push("fn_pedido_web_vender");
+// Y el disparador de las recomendaciones al anonimizar (ADR-0408, 20261015134000): fn_recomendaciones_al_anonimizar lee de la ficha que
+// se anonimiza SUS datos de antes (`old.nombre`, `old.documento_numero`, `old.telefono_whatsapp`, `old.correo`) solo para QUITARLOS del
+// texto de sus recomendaciones. Devuelve `trigger` (nadie la llama por la API) y no devuelve nada de la ficha. La prueba a fondo es
+// scripts/pruebas/recomendaciones_web.mjs (sección A).
+LISTA_BLANCA.push("fn_recomendaciones_al_anonimizar");
 /** La condición del vigilante: sin el candado del módulo (en el código, no en un comentario), salvo las de la página. */
 const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.proname not in (${[...DE_LA_PAGINA, ...DEL_SERVIDOR, ...DE_LA_TIENDA].map((n) => `'${n}'`).join(", ")})
   and not (x.proname in (${DE_AVISOS.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''avisos_club''\\)')
-  and not (x.proname in (${DE_PEDIDOS_WEB.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_pedido_web_exigir\\(')`;
+  and not (x.proname in (${DE_PEDIDOS_WEB.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_pedido_web_exigir\\(')
+  and not (x.proname in (${DE_RECOMENDACIONES.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''recomendaciones''\\)')`;
 const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' order by x.proname), 'ninguna')
   from (select p.proname, ${SIN_COMENTARIOS} as src, pg_get_function_result(p.oid) as retorna
           from pg_proc p
@@ -727,9 +739,9 @@ const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' orde
  where (x.proname ~ 'clienta' or x.retorna ~* 'clientas' or x.src ~* '(\\mclientas\\M|telefono_whatsapp|whatsapp_consentimiento_en|cumple_dia|cumple_mes)')
    and ${condicion};\n`;
 caso(
-  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 10, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g, la 1 del cobro (agregar_celular_clienta) las 5 de la tienda online, las 2 de los pedidos web y la 1 de la ficha y la tienda online (fn_clienta_tienda_online), y todas llevan el candado del módulo salvo las 2 de la página, las 2 del servidor y las 5 de la tienda (las de Avisos y las de los pedidos web, el de su módulo)",
+  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 10, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g, la 1 del cobro (agregar_celular_clienta) las 5 de la tienda online, las 2 de los pedidos web, la 1 de la ficha y la tienda online (fn_clienta_tienda_online) y la 1 de Recomendaciones (fn_recomendaciones), y todas llevan el candado del módulo salvo las 2 de la página, las 2 del servidor y las 5 de la tienda (las de Avisos, las de los pedidos web y la de Recomendaciones, el de su módulo)",
   VIGILANTE("true") + VIGILANTE(SIN_EL_CANDADO),
-  `${[...LAS_DE_LA_FICHA, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_LA_TIENDA, ...DE_PEDIDOS_WEB, ...DE_LA_FICHA_Y_LA_TIENDA].sort().join(",")}\nninguna`
+  `${[...LAS_DE_LA_FICHA, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_LA_TIENDA, ...DE_PEDIDOS_WEB, ...DE_LA_FICHA_Y_LA_TIENDA, ...DE_RECOMENDACIONES].sort().join(",")}\nninguna`
 );
 caso(
   "(5) el vigilante muerde: una función NUEVA que devuelve el DNI sin el candado (o con el candado solo en un comentario) sale nombrada",
