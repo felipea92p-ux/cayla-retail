@@ -93,7 +93,7 @@ export function AnularSalidaOVueltaModal({ datos, entrada, onClose }: { datos: O
 
         <div data-guia="prod-orden-anular.motivo">
           <CampoGuiado id="motivo" guia={guia}>
-            <CampoTexto id="anular-motivo" etiqueta="Por qué la anulas" pie="Obligatorio: queda escrito en la línea de tiempo" value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={MAX_MOTIVO_ANULACION} />
+            <CampoTexto id="anular-motivo" etiqueta={guia.etiqueta("motivo", "Por qué la anulas")} pie="Obligatorio: queda escrito en la línea de tiempo" value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={MAX_MOTIVO_ANULACION} />
           </CampoGuiado>
         </div>
 

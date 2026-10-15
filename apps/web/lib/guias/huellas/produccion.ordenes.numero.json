@@ -82,7 +82,7 @@
       "Boton «{afuera ? textoPrendasAfuera(afuera) : (responsable.motivo ?? undefined)}»"
     ],
     "components/orden-pagina/AnularSalidaOVueltaModal.tsx": [
-      "CampoTexto «Por qué la anulas»",
+      "CampoTexto «{guia.etiqueta(\"motivo\", \"Por qué la anulas\")}»",
       "ComboResponsable «avisoSalida.pedirAccion(onClo»",
       "button «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"

@@ -186,6 +186,7 @@
     "pruebas:produccion-lista": "node scripts/pruebas/produccion_lista.mjs",
     "pruebas:produccion-cierre": "node scripts/pruebas/produccion_cierre.mjs",
     "pruebas:produccion-tela": "node scripts/pruebas/produccion_tela.mjs",
+    "pruebas:produccion-tarifas": "node scripts/pruebas/produccion_tarifas.mjs",
     "pruebas:plan-compra-historia": "node scripts/pruebas/plan_compra_historia.mjs",
     "pruebas:roles": "node scripts/pruebas/roles_por_modulo.mjs",
     "pruebas:roles-cobertura": "node scripts/pruebas/roles_cobertura_modulos.mjs",
