@@ -13,7 +13,8 @@
 --   · vale: su vale por aniversario DISPONIBLE (`fn_club_aniversario_calculo`, la misma cuenta que lee la caja), con el monto, hasta
 --     cuándo y de qué aniversario es.
 --   · llegaron: cada espera viva («Avísame cuando llegue») cuya prenda se ve en la web y ya tiene algo libre en su tienda (o en alguna
---     de la web, si le daba igual), con dónde hay. La misma regla que «Te avisamos cuando llegue» de «Mi cuenta».
+--     de la web, si le daba igual), con dónde hay. La misma regla que «Te avisamos cuando llegue» de «Mi cuenta»: la regla única de
+--     «hay» de la tienda, `fn_tienda_disponible` en las tiendas de la web (`fn_tienda_sedes_web`), leída UNA vez para todas sus prendas.
 --   Sin cuenta, null. Con la ficha del Club inactiva, sin cumpleaños ni vale (como «Mi cuenta»); lo que llegó sí sale.
 --
 -- DECIDÍ: una función aparte y no `tienda_mi_club`. Esa es la lectura de «Mi cuenta» y ANOTA LA VISITA (`cuentas_web_visitas`, para
@@ -22,9 +23,9 @@
 --   lo que el aviso no necesita (las novedades recorren los movimientos de todo lo publicado, los favoritos, cada espera tienda por
 --   tienda). Esta es `stable`, no escribe nada y solo mira lo de esa persona.
 -- DECIDÍ: las reglas no se copian donde se pueden llamar: el % sale de `fn_club_beneficios`, el vale de `fn_club_aniversario_calculo`,
---   lo libre de `fn_tienda_libre` y si se ve de `fn_tienda_modelo_se_ve`. Lo único escrito aquí otra vez es «es su mes y no hay canje
---   este año» (5 líneas, igual que en `tienda_mi_club`, que no lo tiene en una función); la prueba compara las dos funciones ficha por
---   ficha, así que si una cambia y la otra no, la prueba lo dice.
+--   lo libre de `fn_tienda_disponible` (con `fn_tienda_sedes_web`) y si se ve de `fn_tienda_modelo_se_ve`. Lo único escrito aquí otra
+--   vez es «es su mes y no hay canje este año» (5 líneas, igual que en `tienda_mi_club`, que no lo tiene en una función); la prueba
+--   compara las dos funciones ficha por ficha, así que si una cambia y la otra no, la prueba lo dice.
 -- DECIDÍ: qué avisos ya cerró la persona («Entendido») NO se guarda aquí: lo recuerda su navegador (una cookie por aviso, ADR-0408).
 --   La base no junta datos de lo que alguien leyó.
 -- DESCARTÉ: devolver lo que ya se usó o lo que viene (cumpleaños próximo, vale en camino): eso es de «Mi cuenta»; el aviso es solo lo
@@ -105,38 +106,44 @@ begin
     end if;
   end if;
 
-  -- Lo que esperaba y ya llegó: vivas, que se ven en la web y con algo libre en su tienda (o en alguna de la web).
-  v_sedes := retail.fn_tienda_sedes_ids();
+  -- Lo que esperaba y ya llegó: sus esperas vivas cuya prenda se ve en la web y tiene algo libre en su tienda (o en alguna de la web,
+  -- si le daba igual). «Libre» es la regla única de «hay» de la tienda (la ficha, la bolsa, «Mi cuenta»): `fn_tienda_disponible` en las
+  -- tiendas de la web, leída UNA vez para todas sus prendas.
+  v_sedes := retail.fn_tienda_sedes_web();
   v_llegaron := coalesce((
+    with vivas as (
+      select e.* from retail.esperas_web e where e.cuenta_web_id = v_cuenta and e.quitada_en is null
+    ),
+    libres as (
+      select d.variante_id, d.ubicacion_id
+        from retail.fn_tienda_disponible(array(select distinct va.producto_id
+                                                 from vivas x join retail.variantes va on va.id = x.variante_id), v_sedes) d
+    )
     select jsonb_agg(jsonb_build_object(
-             'id', x.id,
-             'producto_id', x.producto_id,
-             'producto', x.producto,
-             'color', x.color,
-             'talla', x.talla,
-             'sede', x.sede,
+             'id', e.id,
+             'producto_id', v.producto_id,
+             'producto', p.referencia,
+             'color', co.nombre,
+             'talla', t.valor,
+             'sede', case when e.ubicacion_id is null then null else coalesce(dw.nombre_web, u.nombre) end,
              'hay_en', to_jsonb(array(
                select coalesce(dw2.nombre_web, u2.nombre)
-                 from unnest(v_sedes) s (id)
-                 join retail.ubicaciones u2 on u2.id = s.id
-                 left join retail.ubicacion_datos_web dw2 on dw2.ubicacion_id = s.id
-                where retail.fn_tienda_libre(x.variante_id, array[s.id]) > 0
+                 from libres l
+                 join retail.ubicaciones u2 on u2.id = l.ubicacion_id
+                 left join retail.ubicacion_datos_web dw2 on dw2.ubicacion_id = l.ubicacion_id
+                where l.variante_id = e.variante_id
                 order by lower(coalesce(dw2.nombre_web, u2.nombre))))
-           ) order by x.creada_en desc, x.id)
-      from (select e.id, e.variante_id, e.creada_en, v.producto_id, p.referencia as producto, co.nombre as color, t.valor as talla,
-                   case when e.ubicacion_id is null then null else coalesce(dw.nombre_web, u.nombre) end as sede
-              from retail.esperas_web e
-              join retail.variantes v on v.id = e.variante_id
-              join retail.productos p on p.id = v.producto_id
-              left join retail.colores co on co.codigo = v.color_codigo
-              left join retail.tallas t on t.id = v.talla_id
-              left join retail.ubicaciones u on u.id = e.ubicacion_id
-              left join retail.ubicacion_datos_web dw on dw.ubicacion_id = e.ubicacion_id
-             where e.cuenta_web_id = v_cuenta
-               and e.quitada_en is null
-               and retail.fn_tienda_modelo_se_ve(v.producto_id)
-               and retail.fn_tienda_libre(e.variante_id,
-                                          case when e.ubicacion_id is null then v_sedes else array[e.ubicacion_id] end) > 0) x),
+           ) order by e.creada_en desc, e.id)
+      from vivas e
+      join retail.variantes v on v.id = e.variante_id
+      join retail.productos p on p.id = v.producto_id
+      left join retail.colores co on co.codigo = v.color_codigo
+      left join retail.tallas t on t.id = v.talla_id
+      left join retail.ubicaciones u on u.id = e.ubicacion_id
+      left join retail.ubicacion_datos_web dw on dw.ubicacion_id = e.ubicacion_id
+     where exists (select 1 from libres l
+                    where l.variante_id = e.variante_id and (e.ubicacion_id is null or l.ubicacion_id = e.ubicacion_id))
+       and retail.fn_tienda_modelo_se_ve(v.producto_id)),
     '[]'::jsonb);
 
   return jsonb_build_object('cumple', v_cumple, 'vale', v_vale, 'llegaron', v_llegaron);
