@@ -150,7 +150,16 @@ export function interpretarLook(dato: unknown): { sede: string | null; look: Loo
 
 /** El precio de una prenda del look, con la misma regla de la tarjeta del catálogo: lo que paga y, si hay campaña, el precio tachado. */
 export const precioDePieza = (p: PiezaLook): PrecioTarjeta =>
-  precioTarjeta({ ...p.prenda, codigo: null, colores: [], fotos: [] });
+  precioTarjeta({
+    ...p.prenda,
+    codigo: null,
+    colores: [],
+    fotos: [],
+    stock: null,
+    nuevo: null,
+    vendidos: null,
+    campana: p.prenda.campana ? { id: null, hasta: null, ...p.prenda.campana } : null,
+  });
 
 /** «El look completo S/ 304.70» (o «Desde …» si una campaña no toca todas las tallas de alguna prenda). */
 export const totalDelLook = (l: Pick<Look, "totalFinal" | "desde">): string => `${l.desde ? "Desde " : ""}${soles(l.totalFinal)}`;
