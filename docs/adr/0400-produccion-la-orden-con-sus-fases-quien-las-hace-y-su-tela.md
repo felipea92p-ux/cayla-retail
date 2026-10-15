@@ -296,3 +296,29 @@ lámina elegida y el margen sigue a la vista en el panel de cada orden y en la h
 **Cómo se verificó.** `pnpm pruebas:produccion-lista` (9 casos en ROLLBACK: la fila es idéntica a la de la página en orden, líneas, fases y tela; sin costos y con el último movimiento; los límites de históricas; «al stock este mes»
 sin muestras ni otro mes; las puertas por módulo y sede; solo lectura), 39 pruebas de las reglas puras con paridad contra el SQL, la guía interactiva de 20 pasos recorrida a 1440 y a 375 px (el «¿Por qué?» se abre solo, sin tocar nada),
 `tema:auditar` a 1440, 1024 y 375 sin hallazgos, y el navegador: la explicación se abre bajo su fila, la fila lleva a su página y una orden antigua abre el cajón.
+
+## Actualización 2026-10-15 (d) · actividad 6: pasar la orden al stock, con su candado y sus costos (OK explícito de Felipe)
+
+**Lo que Felipe aprobó (2026-10-15, tres preguntas con Ganas/Pagas).** (1) Construirla tal cual está en el ADR; (2) los costos del Taller los ve **quien ve Producción parado en ese Taller** (antes, solo el líder); (3) las **segundas no entran al
+stock**: quedan anotadas en la Vuelta y el costo del lote se reparte entre las buenas (la alternativa, un producto «segunda», es otra obra sobre el núcleo del catálogo).
+
+**Base (migración `20261014160000_produccion_cierre_al_stock_y_costos_del_taller.sql`, solo funciones; sin políticas ni `alter table`).**
+- `cerrar_produccion` (misma firma, ADR-0090), en una orden CON fases: **(a)** no cierra con prendas todavía en un servicio (`cierre_con_prendas_afuera`); **(b)** no deja entrar más buenas de una talla y color que las terminadas en la
+  última fase (`cierre_buenas_exceden`); **(c)** si no le mandan `p_costo_maquila`, el costo de los servicios es lo **devengado** (`fn_costo_servicios_orden`, la suma de lo que `fn_fases_de_orden` ya calcula); tela y avíos siguen siendo los del
+  libro de insumos; **(d)** en un lote escribe lo **medido** en `producto_consumos` (metros de tela usados ÷ buenas), que gana sobre lo declarado. Una orden de ANTES de las fases cierra exactamente como hoy.
+- `anular_produccion` (misma firma) no anula con prendas afuera (`anular_con_prendas_afuera`).
+- `fn_costos_producciones` y `fn_costos_insumos_taller` pasan a «líder, o quien ve `produccion` y opera ese Taller» (`fn_ve_costos_del_taller`, la misma regla de `fn_orden_produccion`).
+- **Una extensión de lo aprobado, que solo restringe:** el cierre tampoco acepta prendas afuera (la misma lógica que anular: una prenda en un servicio sin una orden abierta que la reclame es un estado imposible, principio 2). Se resuelve con la Vuelta,
+  o con los faltantes y su motivo (que no se pagan).
+
+**Pantalla.** En la página de la orden, `AccionesDeLaOrden` abre tres hojas, ya sin mandar al cajón: **«Pasar al stock»** (en una muestra, «Terminar muestra»; precargada con lo terminado en la última fase, con el resumen de lo que entra y, a quien ve costos, el
+costo por prenda; si la base dice `costo_atipico`, un líder lo confirma en línea; un doble clic no cierra dos veces; el aviso trae «Llevarlas a las tiendas»), **«Anular orden»** (deshabilitada con la frase de la base si hay prendas afuera; dice qué tela y avíos
+vuelven al estante) y **«Revertir el cierre»** (en una orden terminada). El botón de la cabecera se llama «Anular orden» para no confundirse con el «Anular» de una salida de la línea de tiempo. `?orden=<id>` (Resumen) ya no abre el cajón para una orden con fases: va a
+su página; el cajón (`OrdenPanel`) queda solo para las abiertas antes de las fases.
+
+**Lo que NO cambió.** `revertir_produccion` (devuelve el stock como siempre; lo medido que dejó el cierre se reescribe en el siguiente cierre del modelo). `fn_recalcular_costo_variante`, el promedio ponderado (ADR-0067) y la regla del costo atípico.
+**Pendiente (A8):** el cajón de una orden antigua y la pantalla de Insumos siguen mostrando costos solo al líder (`esLider` en sus componentes); la página de la orden ya los muestra a quien ve Producción en el Taller.
+
+**Cómo se verificó.** `pnpm pruebas:produccion-cierre` (14 casos en ROLLBACK: el flujo completo con 46 buenas de 50 —2 segundas y 2 faltantes no entran—, el costo de servicios devengado y repartido entre las buenas, el monto explícito que manda, el candado de las buenas, la talla ajena y el cero, las prendas afuera
+en cerrar y en anular, lo medido, una muestra, una orden de antes de las fases, quién ve los costos y la forma) y la suite del candado del dinero, cuyo caso 4c cambió a la decisión nueva y cuyo caso de «volver a pegar» ya no deja cambios en la base compartida. En el
+navegador, sobre una orden de prueba: el candado dice «No puedes pasar al stock 9 de Caqui · 28: en Acabado se terminaron 8», un doble clic deja UN cierre (6 movimientos, 48 prendas), el costo sale a S/ 4.50 por prenda y «Revertir el cierre» devuelve las 48 con su movimiento.

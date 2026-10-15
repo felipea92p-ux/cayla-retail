@@ -4,8 +4,11 @@ import { describe, expect, it } from "vitest";
 import {
   DIAS_SIN_MOVERSE,
   MAX_MOTIVO_ANULACION,
+  RPC_ANULAR_PRODUCCION,
   RPC_ANULAR_SALIDA,
   RPC_ANULAR_VUELTA,
+  RPC_CERRAR_PRODUCCION,
+  RPC_REVERTIR_PRODUCCION,
   accionesDeFase,
   avancesNuevos,
   avisoMinimoDeFase,
@@ -13,6 +16,7 @@ import {
   cantidadConUnidad,
   cantidadesAfuera,
   cantidadesQuePuedenSalir,
+  cantidadesTerminadas,
   cantidadesQueFaltan,
   cifrasDeLaOrden,
   cuandoTerminoLaFase,
@@ -25,26 +29,36 @@ import {
   filasDeTela,
   fraseDeLaOrden,
   horaLima,
+  insumosPorDevolver,
   leerOrdenPagina,
   lineaDeTiempoAgrupada,
+  lineasDeCierre,
   lineasDeSalida,
   lineasDeVuelta,
   numeroDeOrdenEnUrl,
+  prendasAfuera,
   problemaDeAnulacion,
+  problemasDeCierre,
   problemasDeSalida,
   problemasDeVuelta,
   puedeCambiarQuien,
   queSigue,
   quedanAfuera,
   quienDeFase,
+  resumenDeCierre,
   rojoDeLaOrden,
   rpcDeAnulacion,
   textoAnulaste,
+  textoAnulasteLaOrden,
   textoApertura,
   textoColoresYTallas,
   textoCosto,
   textoDeFase,
   textoMandaste,
+  textoPasasteAlStock,
+  textoPrendasAfuera,
+  textoQuePasaAlRevertir,
+  totalDeCierre,
   textoQuePasaAlAnular,
   textoQueSigue,
   textoSeVende,
@@ -787,6 +801,128 @@ describe("anular una salida o una vuelta", () => {
     });
     it("anular nunca toca el stock ni los libros: ninguna de las dos escribe en movimientos", () => {
       expect(SQL_ANULAR).not.toMatch(/insert into retail\.(movimientos|movimientos_insumo|stock)\b/);
+    });
+  });
+});
+
+// ---------- Pasar la orden al stock, anularla y revertirla (ADR-0400, actividad 6) ----------
+
+describe("pasar la orden al stock, anularla y revertirla", () => {
+  const nombreDe = (id: string) => `la variante ${id}`;
+  const costuraHecha = faseCruda({ clave: "costura", secuencia: 30, quien: "servicio", proveedor_id: "pv-1", proveedor_nombre: "Confecciones del Norte", tarifa_prenda: 4.5, estado: "hecha" }, { entrada: 8, salieron: 8, hechas: 8 });
+  const corteHecho = faseCruda({ clave: "corte", secuencia: 10, quien: "taller", estado: "hecha" }, { entrada: 9, hechas: 8 });
+  /** Las tres fases hechas; a cada talla y color entraron 8 a Acabado y `hechas` salieron buenas. */
+  const lista = (hechas = 8, parche: Record<string, unknown> = {}) => orden({ fases: [corteHecho, costuraHecha, faseCruda({ clave: "acabado", secuencia: 60, quien: "taller", estado: "hecha" }, { entrada: 8, hechas })], ...parche });
+  const escritas = (n: number) => Object.fromEntries(TODAS.map((id) => [id, String(n)]));
+
+  it("lo terminado en la última fase, por talla y color, es lo que puede entrar al stock (y el valor de fábrica de la hoja)", () => {
+    expect(cantidadesTerminadas(lista(8).fases)).toEqual(Object.fromEntries(TODAS.map((id) => [id, 8])));
+    expect(cantidadesTerminadas(lista(5).fases)).toEqual(Object.fromEntries(TODAS.map((id) => [id, 5])));
+    expect(cantidadesTerminadas(lista(0).fases)).toEqual({});
+    expect(cantidadesTerminadas([])).toEqual({});
+  });
+
+  it("prendas afuera: la primera fase de la ruta que las tiene, y la frase de la base (con cuántas, de qué fase y con quién)", () => {
+    expect(prendasAfuera(lista().fases)).toBeNull();
+    const afuera = orden(); // la costura de la orden de ejemplo tiene 48 afuera con Confecciones del Norte
+    const a = prendasAfuera(afuera.fases);
+    expect(a).toMatchObject({ n: 48, servicio: "Confecciones del Norte" });
+    expect(textoPrendasAfuera(a!)).toBe("Hay 48 prendas de Costura afuera con Confecciones del Norte: anota primero su vuelta (o los faltantes, con su motivo).");
+    expect(textoPrendasAfuera({ fase: a!.fase, servicio: "un servicio", n: 1 })).toContain("Hay 1 prenda de Costura");
+  });
+
+  it("sin problemas cuando entra lo terminado o menos; de más, una frase por talla y color; ninguna buena, se anula", () => {
+    const o = lista(8);
+    expect(problemasDeCierre(o.fases, o.lineas, escritas(8), nombreDe)).toEqual([]);
+    expect(problemasDeCierre(o.fases, o.lineas, escritas(3), nombreDe)).toEqual([]);
+    expect(problemasDeCierre(o.fases, o.lineas, { ...escritas(8), n28: "9", c32: "10" }, nombreDe)).toEqual([
+      { hint: "cierre_buenas_exceden", texto: "No puedes pasar al stock 9 de la variante n28: en Acabado se terminaron 8." },
+      { hint: "cierre_buenas_exceden", texto: "No puedes pasar al stock 10 de la variante c32: en Acabado se terminaron 8." },
+    ]);
+    expect(problemasDeCierre(o.fases, o.lineas, {}, nombreDe).map((p) => p.hint)).toEqual(["cierre_sin_buenas"]);
+    expect(problemasDeCierre(o.fases, o.lineas, escritas(0), nombreDe).map((p) => p.hint)).toEqual(["cierre_sin_buenas"]);
+  });
+
+  it("con prendas todavía afuera no se pasa al stock, y eso manda sobre lo demás", () => {
+    const o = orden();
+    expect(problemasDeCierre(o.fases, o.lineas, escritas(8), nombreDe).map((p) => p.hint)).toEqual(["cierre_con_prendas_afuera"]);
+  });
+
+  it("las líneas de cerrar_produccion: una por talla y color de la orden, las que no se escribieron en cero y con enteros", () => {
+    const o = lista(8);
+    expect(lineasDeCierre(o.lineas, { n28: "8", n30: "3.9", c28: "x" })).toEqual([
+      { variante_id: "n28", cantidad: 8 },
+      { variante_id: "n30", cantidad: 3 },
+      { variante_id: "n32", cantidad: 0 },
+      { variante_id: "c28", cantidad: 0 },
+      { variante_id: "c30", cantidad: 0 },
+      { variante_id: "c32", cantidad: 0 },
+    ]);
+    expect(totalDeCierre({ n28: "8", n30: "3.9", c28: "x", c30: "-4" })).toBe(11);
+  });
+
+  it("el resumen: las segundas y faltantes quedan anotadas, y quien ve los costos ve cuánto sale cada prenda (el costo se reparte entre las buenas)", () => {
+    const o = lista(8);
+    o.fases[1] = { ...o.fases[1], segundas: 2, faltantes: 1 };
+    const conCostos = { ...o, costos: { telaEstimado: 0, aviosEstimado: 0, telaReal: 0, aviosReal: 0, serviciosEstimado: 0, serviciosDevengado: 216, totalEstimado: 0, totalRealHastaHoy: 216 }, permisos: { puedeOperar: true, veCostos: true } };
+    expect(resumenDeCierre(conCostos, 48)).toEqual({ buenas: 48, segundas: 2, faltantes: 1, costoTotal: 216, costoPorPrenda: 4.5 });
+    expect(resumenDeCierre(conCostos, 36).costoPorPrenda).toBe(6);
+    expect(resumenDeCierre(conCostos, 0)).toMatchObject({ costoTotal: 216, costoPorPrenda: null });
+    expect(resumenDeCierre({ ...conCostos, permisos: { puedeOperar: true, veCostos: false } }, 48)).toMatchObject({ costoTotal: null, costoPorPrenda: null });
+    expect(resumenDeCierre({ ...conCostos, costos: null }, 48)).toMatchObject({ costoTotal: null, costoPorPrenda: null });
+  });
+
+  it("los avisos: cuántas entraron (o que la muestra se dio por terminada), y que la orden se anuló o volvió a estar en proceso", () => {
+    expect(textoPasasteAlStock(48, "Pantalón Lía", false)).toBe("48 prendas de Pantalón Lía entraron al stock del Taller");
+    expect(textoPasasteAlStock(1, "Pantalón Lía", false)).toBe("1 prenda de Pantalón Lía entró al stock del Taller");
+    expect(textoPasasteAlStock(3, "Pantalón Lía", true)).toBe("Muestra Pantalón Lía terminada");
+    expect(textoAnulasteLaOrden("Pantalón Lía")).toBe("Orden de Pantalón Lía anulada");
+  });
+
+  it("al anular, la tela y los avíos que ya se usaron vuelven al estante: una vez por insumo, y solo los usados", () => {
+    expect(insumosPorDevolver(orden().insumos)).toEqual([{ nombre: "Gabardina", texto: "35 m" }]);
+    const dosColores = orden().insumos.flatMap((i) => [i, { ...i, id: `${i.id}-b`, colorNombre: "Caqui" }]);
+    expect(insumosPorDevolver(dosColores)).toEqual([{ nombre: "Gabardina", texto: "35 m" }]);
+    expect(insumosPorDevolver([])).toEqual([]);
+  });
+
+  it("al revertir, dice qué pasa con el stock: las prendas salen (con un movimiento) o, en una muestra, nada que devolver", () => {
+    expect(textoQuePasaAlRevertir({ inventariadoEn: "2026-10-15T12:00:00+00:00", cantidadBuenas: 46 })).toContain("Las 46 prendas salen del stock del Taller");
+    expect(textoQuePasaAlRevertir({ inventariadoEn: null, cantidadBuenas: 3 })).toBe("La muestra vuelve a estar en proceso. No había stock que devolver.");
+  });
+
+  describe("paridad con la migración 20261014160000", () => {
+    const SQL_CIERRE = readFileSync(join(RAIZ, "supabase", "migrations", "20261014160000_produccion_cierre_al_stock_y_costos_del_taller.sql"), "utf8");
+    const cerrar = SQL_CIERRE.slice(SQL_CIERRE.indexOf("create or replace function retail.cerrar_produccion("), SQL_CIERRE.indexOf("-- ---------- 4. Anular una orden"));
+    it("la web llama a las tres funciones con los nombres y los argumentos que la base declara", () => {
+      expect(RPC_CERRAR_PRODUCCION).toBe("cerrar_produccion");
+      expect(RPC_ANULAR_PRODUCCION).toBe("anular_produccion");
+      expect(RPC_REVERTIR_PRODUCCION).toBe("revertir_produccion");
+      for (const arg of ["p_produccion_id uuid", "p_buenas jsonb", "p_costo_tela numeric", "p_costo_avios numeric", "p_costo_maquila numeric", "p_confirma_costo_atipico boolean"]) expect(cerrar, arg).toContain(arg);
+      expect(SQL_CIERRE).toContain("create or replace function retail.anular_produccion(p_produccion_id uuid, p_motivo text default null)");
+    });
+    it("cada línea que manda la hoja lleva las llaves que lee la base", () => {
+      for (const k of ["variante_id", "cantidad"]) expect(cerrar, k).toContain(`->> '${k}'`);
+    });
+    it("los hints y las frases que la hoja sabe decir existen en la base, con las mismas palabras", () => {
+      for (const h of ["cierre_con_prendas_afuera", "cierre_buenas_exceden"]) expect(cerrar, h).toContain(`hint = '${h}'`);
+      expect(SQL_CIERRE).toContain("hint = 'anular_con_prendas_afuera'");
+      expect(SQL_CIERRE.match(/anota primero su vuelta \(o los faltantes, con su motivo\)/g)).toHaveLength(2);
+      expect(cerrar).toContain("No puedes pasar al stock % de %: en % se terminaron %");
+      expect(cerrar).toContain("No salió ninguna prenda buena — si la corrida se perdió, anula la orden en vez de cerrarla");
+    });
+    it("el costo de los servicios sale de lo devengado, y los montos de tela y avíos siguen siendo los del libro de insumos", () => {
+      expect(cerrar).toContain("coalesce(p_costo_maquila, retail.fn_costo_servicios_orden(p_produccion_id))");
+      expect(cerrar).toContain("costo_tela = coalesce(p_costo_tela, costo_tela)");
+      expect(cerrar).toContain("costo_avios = coalesce(p_costo_avios, costo_avios)");
+    });
+    it("solo las buenas entran al stock: el único movimiento que escribe es la entrada de las líneas con buenas", () => {
+      expect(cerrar.match(/insert into movimientos \(/g)).toHaveLength(1);
+      expect(cerrar).toContain("where produccion_id = p_produccion_id and cantidad_buenas > 0");
+    });
+    it("los costos del Taller los ve el líder o quien ve Producción parado en ese Taller", () => {
+      expect(SQL_CIERRE).toContain("retail.fn_es_lider() or (retail.fn_ve_modulo('produccion') and retail.fn_puede_operar_ubicacion(p_ubicacion_id))");
+      expect(SQL_CIERRE.match(/where retail\.fn_ve_costos_del_taller\(p_ubicacion_id\)/g)).toHaveLength(2);
     });
   });
 });

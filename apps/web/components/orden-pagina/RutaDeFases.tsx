@@ -52,7 +52,7 @@ export function RutaDeFases({ datos, opciones, hoy }: { datos: OrdenPagina; opci
         <TituloSeccion>Fases</TituloSeccion>
         <div className="card-cayla" data-guia="prod-orden.fases">
           <Vacio tamano="chico" icono={<ListChecks />}>
-            Esta orden se abrió antes de que existieran las fases. Se sigue desde la lista de Órdenes.
+            {datos.orden.estado === "en_proceso" ? "Esta orden se abrió antes de que existieran las fases. Se sigue desde la lista de Órdenes." : "Esta orden se cerró antes de que existieran las fases: no hay un recorrido por fase que mostrar."}
           </Vacio>
         </div>
       </section>

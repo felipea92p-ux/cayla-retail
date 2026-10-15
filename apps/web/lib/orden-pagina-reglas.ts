@@ -27,6 +27,9 @@ export const RPC_REGISTRAR_SALIDA = "registrar_salida";
 export const RPC_REGISTRAR_VUELTA = "registrar_vuelta";
 export const RPC_ANULAR_SALIDA = "anular_salida";
 export const RPC_ANULAR_VUELTA = "anular_vuelta";
+export const RPC_CERRAR_PRODUCCION = "cerrar_produccion";
+export const RPC_ANULAR_PRODUCCION = "anular_produccion";
+export const RPC_REVERTIR_PRODUCCION = "revertir_produccion";
 
 /** Días sin que nadie anote nada para que la orden pida atención (ADR-0400, «Pantallas» punto 1). */
 export const DIAS_SIN_MOVERSE = 4;
@@ -1003,4 +1006,96 @@ export function textoQuePasaAlAnular(que: "salida" | "vuelta"): string {
 /** El texto del aviso de éxito: «Anulaste la salida». */
 export function textoAnulaste(que: "salida" | "vuelta"): string {
   return `Anulaste la ${que}`;
+}
+
+// ---------- Pasar la orden al stock, anularla y revertirla (ADR-0400, actividad 6; OK de Felipe, 2026-10-15) ----------
+// Nada de esto decide algo nuevo: los candados y las frases son los de `cerrar_produccion` y `anular_produccion` (20261014160000), con sus mismos hints; `lib/orden-pagina-reglas.test.ts`
+// lee la migración y exige que coincidan. Solo las BUENAS entran al stock: las segundas y las faltantes quedan anotadas en la Vuelta y su costo lo reparten las buenas.
+
+export type PrendasAfuera = { fase: FasePagina; servicio: string; n: number };
+
+/** La primera fase de la ruta con prendas todavía en un servicio, o `null` si no hay ninguna afuera. Con prendas afuera no se pasa al stock ni se anula (`cierre_con_prendas_afuera`, `anular_con_prendas_afuera`). */
+export function prendasAfuera(fases: readonly FasePagina[]): PrendasAfuera | null {
+  const f = [...fases].sort((a, b) => a.secuencia - b.secuencia).find((x) => x.afuera > 0);
+  return f ? { fase: f, servicio: f.proveedorNombre ?? "un servicio", n: f.afuera } : null;
+}
+
+/** La frase de la base cuando hay prendas afuera: «Hay 20 prendas de Costura afuera con X: anota primero su vuelta (o los faltantes, con su motivo)». */
+export function textoPrendasAfuera(a: PrendasAfuera): string {
+  return `Hay ${cuantas(a.n, "prenda", "prendas")} de ${a.fase.nombre} afuera con ${a.servicio}: anota primero su vuelta (o los faltantes, con su motivo).`;
+}
+
+/** Lo terminado en la última fase, por talla y color (solo las que tienen algo): es lo máximo que puede entrar al stock y el valor de fábrica de «Pasar al stock». */
+export function cantidadesTerminadas(fases: readonly FasePagina[]): Record<string, number> {
+  const ultima = [...fases].sort((a, b) => a.secuencia - b.secuencia).at(-1);
+  const salida: Record<string, number> = {};
+  for (const v of ultima?.porVariante ?? []) if (v.hechas > 0) salida[v.varianteId] = v.hechas;
+  return salida;
+}
+
+export function totalDeCierre(cantidades: Readonly<Record<string, string>>): number {
+  return Object.values(cantidades).reduce((s, t) => s + celdaEntera(t), 0);
+}
+
+export type ProblemaDeCierre = { hint: "cierre_con_prendas_afuera" | "cierre_buenas_exceden" | "cierre_sin_buenas"; texto: string };
+
+/**
+ * Lo que la base rechazaría al pasar la orden al stock: prendas todavía afuera, más buenas de una talla y color que las terminadas en la última fase, o ninguna buena. Una frase por cada
+ * talla y color que se pasa. `fases` vacío (una orden de antes de las fases) no tiene candado: no se usa esta hoja para esas órdenes.
+ */
+export function problemasDeCierre(fases: readonly FasePagina[], lineas: readonly LineaPagina[], cantidades: Readonly<Record<string, string>>, nombreDe: (varianteId: string) => string): ProblemaDeCierre[] {
+  const afuera = prendasAfuera(fases);
+  if (afuera) return [{ hint: "cierre_con_prendas_afuera", texto: textoPrendasAfuera(afuera) }];
+  const tope = cantidadesTerminadas(fases);
+  const ultima = [...fases].sort((a, b) => a.secuencia - b.secuencia).at(-1);
+  const problemas: ProblemaDeCierre[] = [];
+  for (const l of lineas) {
+    const n = celdaEntera(cantidades[l.varianteId]);
+    const puede = tope[l.varianteId] ?? 0;
+    if (n > puede) problemas.push({ hint: "cierre_buenas_exceden", texto: `No puedes pasar al stock ${n} de ${nombreDe(l.varianteId)}: en ${ultima?.nombre ?? "la última fase"} se terminaron ${puede}.` });
+  }
+  if (problemas.length === 0 && totalDeCierre(cantidades) === 0) return [{ hint: "cierre_sin_buenas", texto: "No salió ninguna prenda buena: si el lote se perdió, anula la orden en vez de pasarla al stock." }];
+  return problemas;
+}
+
+/** Las líneas de `cerrar_produccion`: una por talla y color de la orden, las que no se escribieron en cero (así toda línea queda contestada). */
+export function lineasDeCierre(lineas: readonly LineaPagina[], cantidades: Readonly<Record<string, string>>): { variante_id: string; cantidad: number }[] {
+  return lineas.map((l) => ({ variante_id: l.varianteId, cantidad: celdaEntera(cantidades[l.varianteId]) }));
+}
+
+export type ResumenDeCierre = { buenas: number; segundas: number; faltantes: number; costoTotal: number | null; costoPorPrenda: number | null };
+
+/**
+ * Lo que se lee en la hoja antes de confirmar: cuántas buenas entran, cuántas segundas y faltantes quedan anotadas sin entrar, y —solo para quien ve los costos del Taller— el costo real
+ * hasta hoy repartido entre las buenas (la base lo calcula igual: tela y avíos del libro de insumos y lo devengado por los servicios, entre las buenas).
+ */
+export function resumenDeCierre(p: Pick<OrdenPagina, "fases" | "costos" | "permisos">, buenas: number): ResumenDeCierre {
+  const segundas = p.fases.reduce((s, f) => s + f.segundas, 0);
+  const faltantes = p.fases.reduce((s, f) => s + f.faltantes, 0);
+  const costoTotal = p.permisos.veCostos && p.costos ? p.costos.totalRealHastaHoy : null;
+  return { buenas, segundas, faltantes, costoTotal, costoPorPrenda: costoTotal !== null && buenas > 0 ? Math.round((costoTotal / buenas) * 100) / 100 : null };
+}
+
+/** El aviso de éxito: «48 prendas de Pantalón Lía entraron al stock del Taller» (una muestra solo se da por terminada). */
+export function textoPasasteAlStock(total: number, referencia: string, esMuestra: boolean): string {
+  return esMuestra ? `Muestra ${referencia} terminada` : `${cuantas(total, "prenda", "prendas")} de ${referencia} ${total === 1 ? "entró" : "entraron"} al stock del Taller`;
+}
+
+/** La tela y los avíos que vuelven al estante si se anula la orden: lo que ya se usó, una vez por insumo (el libro no sabe de colores: el usado es el mismo en cada fila de un insumo). */
+export function insumosPorDevolver(insumos: readonly InsumoPagina[]): { nombre: string; texto: string }[] {
+  const porInsumo = new Map<string, InsumoPagina>();
+  for (const i of insumos) if (i.usado > (porInsumo.get(i.insumoId)?.usado ?? 0)) porInsumo.set(i.insumoId, i);
+  return [...porInsumo.values()].filter((i) => i.usado > 0).map((i) => ({ nombre: i.nombre, texto: cantidadConUnidad(i.usado, i.unidad) }));
+}
+
+/** El aviso de éxito de anular: «Orden de Pantalón Lía anulada». */
+export function textoAnulasteLaOrden(referencia: string): string {
+  return `Orden de ${referencia} anulada`;
+}
+
+/** Lo que dice la hoja de revertir: qué pasa con el stock según lo que se cerró (una muestra no tocó el stock). */
+export function textoQuePasaAlRevertir(o: { inventariadoEn: string | null; cantidadBuenas: number | null }): string {
+  return o.inventariadoEn
+    ? `Las ${o.cantidadBuenas ?? 0} prendas salen del stock del Taller (queda un movimiento de reversión: la entrada original no se borra) y la orden vuelve a estar en proceso, para corregir las buenas o los costos.`
+    : "La muestra vuelve a estar en proceso. No había stock que devolver.";
 }

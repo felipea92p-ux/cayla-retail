@@ -76,6 +76,10 @@ export default async function OrdenesProduccionPage({ searchParams }: { searchPa
     // Las filas de la lista: si no se leen, la pantalla lo dice (nunca una lista vacía que parezca «no hay órdenes»).
     getListaDeOrdenes(taller.id, hoy),
   ]);
+  // `?orden=<id>` (los enlaces del Resumen y de antes) abría el cajón de la orden. Desde ADR-0400 (actividad 6) una orden CON fases se sigue en su página: se va allá. El cajón queda solo
+  // para las abiertas antes de las fases (las que la lista marca `legado`).
+  const pedida = sp.orden ? listaDeOrdenes.lista?.filas.find((f) => f.id === sp.orden) : undefined;
+  if (pedida && !pedida.legado) redirect(pedida.href);
   const ordenes = preciosTiendas ? conPreciosMasBajos(ordenesBase, preciosTiendas) : ordenesBase;
   const modelos = preciosTiendas ? conPreciosMasBajosDeModelos(modelosBase, preciosTiendas) : modelosBase;
 

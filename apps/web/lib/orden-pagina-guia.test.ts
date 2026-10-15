@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { estadosDe, faltanDe, sePuedeConfirmar, siguienteDe } from "./guia-campos";
-import { camposDeAnulacion, camposDeAvance, camposDeCambiarQuien, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
+import { camposDeAnulacion, camposDeAvance, camposDeCambiarQuien, camposDeCierre, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
 import { problemaDeAnulacion } from "./orden-pagina-reglas";
 import { problemasFases, type FaseBorrador, type ProveedorServicio, type TarifaDeLista } from "./orden-fases-reglas";
 
@@ -114,5 +114,29 @@ describe("camposDeAnulacion — la guía coincide con lo que anular_salida y anu
   });
   it("lo que dice la guía de lo que falta es lo mismo que dice la hoja al rechazar", () => {
     expect(camposDeAnulacion({ problema: problemaDeAnulacion(""), responsableListo: true })[0].pendiente).toBe("Cuéntanos por qué se anula.");
+  });
+});
+
+describe("camposDeCierre — la guía coincide con lo que cerrar_produccion exige", () => {
+  // `cerrar_produccion` rechaza más buenas que lo terminado, prendas todavía afuera y ninguna buena; y exige a alguien que firme (`fn_actor_persona_id(true)`).
+  const laBaseAcepta = (total: number, problemas: readonly string[], responsableListo: boolean) => total > 0 && problemas.length === 0 && responsableListo;
+
+  it("recorre las combinaciones: «se puede confirmar» es exactamente «la base acepta»", () => {
+    for (const total of [0, 1, 48]) {
+      for (const problemas of [[], ["No puedes pasar al stock 9 de Negro · 30: en Acabado se terminaron 8."]]) {
+        for (const responsableListo of [true, false]) {
+          expect(sePuedeConfirmar(camposDeCierre({ total, problemas, responsableListo })), `${total}/${problemas.length}/${responsableListo}`).toBe(laBaseAcepta(total, problemas, responsableListo));
+        }
+      }
+    }
+  });
+  it("al abrir la hoja precargada con lo terminado, solo sigue «quién lo anota»", () => {
+    const campos = camposDeCierre({ total: 48, problemas: [], responsableListo: false });
+    expect(siguienteDe(campos)?.id).toBe("quien");
+    expect(estadosDe(campos).cantidades).toBe("hecho");
+  });
+  it("lo que dice la guía de lo que falta es lo que dice la base: el primer problema, o cómo completar", () => {
+    expect(camposDeCierre({ total: 9, problemas: ["No puedes pasar al stock 9 de X: en Acabado se terminaron 8."], responsableListo: true })[0].pendiente).toBe("No puedes pasar al stock 9 de X: en Acabado se terminaron 8.");
+    expect(camposDeCierre({ total: 0, problemas: [], responsableListo: true })[0].pendiente).toBe("Escribe cuántas salieron buenas en cada talla y color.");
   });
 });

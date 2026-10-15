@@ -1,4 +1,4 @@
-// La guía de foco de las hojas de la página de la orden: «Terminé» (anotar lo terminado en una fase), «Cambiar quién», la «Salida» y la «Vuelta» de un servicio, y «Anular» una de las dos (CLAUDE.md «Guía de foco», ADR-0284). Sin React ni red.
+// La guía de foco de las hojas de la página de la orden: «Terminé» (anotar lo terminado en una fase), «Cambiar quién», la «Salida» y la «Vuelta» de un servicio, «Anular» una de las dos y «Pasar al stock» (CLAUDE.md «Guía de foco», ADR-0284). Sin React ni red.
 //
 // CONTRATO
 //   PROMETE: dado lo que la persona ya hizo en la hoja, la lista de campos con su «hecho» para que `useGuiaCampos` diga cuál está hecho, cuál sigue y qué falta antes del botón.
@@ -86,5 +86,22 @@ export function camposDeAnulacion(e: EleccionAnulacion): CampoDeGuia[] {
   return [
     { id: "motivo", nombre: "Por qué la anulas", requerido: true, hecho: e.problema === null, pendiente: e.problema ?? "Cuéntanos por qué se anula." },
     { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota esta anulación." },
+  ];
+}
+
+export type EleccionCierre = {
+  /** Cuántas prendas buenas se pasan al stock en total. */
+  total: number;
+  /** Lo que `problemasDeCierre` dice de lo escrito (vacío = la base lo aceptaría). */
+  problemas: readonly string[];
+  responsableListo: boolean;
+};
+
+/** «Pasar al stock»: cuántas salieron buenas (precargado con lo terminado en la última fase) y quién lo anota. La guía y el botón dicen lo mismo que `cerrar_produccion`. */
+export function camposDeCierre(e: EleccionCierre): CampoDeGuia[] {
+  const malas = e.total <= 0 || e.problemas.length > 0;
+  return [
+    { id: "cantidades", nombre: "Cuántas salieron buenas", requerido: true, hecho: !malas, pendiente: e.problemas[0] ?? "Escribe cuántas salieron buenas en cada talla y color." },
+    { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién pasa esto al stock." },
   ];
 }
