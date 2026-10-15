@@ -8,9 +8,15 @@ import type { NextConfig } from "next";
 // optimizador de imágenes solo acepta las de ese almacén y de ese origen (`TIENDA_FOTOS_ORIGEN`, la dirección del proyecto donde vive,
 // que no es un secreto): sin una lista cerrada, `/_next/image?url=…` serviría de proxy a cualquier dirección. Sin la variable, las
 // fotos se muestran tal cual (`lib/catalogo.ts`, `fotoOptimizable`).
+// En la versión de PRODUCCIÓN de Vercel, el almacén de CAYLA vale aunque la variable no llegue a la compilación: el 2026-10-15, el
+// primer día en producción, la tienda tenía la variable al funcionar pero no al compilar, así que pedía fotos optimizadas que el
+// optimizador rechazaba (400) y no se veía ninguna. La lista sigue cerrada a ese único origen, que no es un secreto (es la dirección
+// pública de cada foto).
+const ORIGEN_DE_FOTOS_EN_PRODUCCION = "https://vovjyyiafkxteijimpuy.supabase.co";
 function origenDeFotos(): URL | null {
+  const texto = process.env.TIENDA_FOTOS_ORIGEN?.trim() || (process.env.VERCEL_ENV === "production" ? ORIGEN_DE_FOTOS_EN_PRODUCCION : "");
   try {
-    return process.env.TIENDA_FOTOS_ORIGEN ? new URL(process.env.TIENDA_FOTOS_ORIGEN) : null;
+    return texto ? new URL(texto) : null;
   } catch {
     return null;
   }

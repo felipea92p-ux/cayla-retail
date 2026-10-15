@@ -266,3 +266,27 @@ el cobro fue en otro mes, en qué mes cuenta. **Antes de abrir la tienda:** conf
 (Yape, Plin, transferencia) de cada tienda, y publicar los textos finales del Club (la regla de 3 años ahora dice «desde tu última compra
 o tu última entrada a tu cuenta web») y de privacidad y términos, que siguen en borrador.
 
+
+## Actualización 2026-10-15 (e): la puesta en producción, y lo que se aprendió el primer día
+
+Felipe decidió cómo salir sin costos nuevos y sin dominio por ahora; el primer día dejó cuatro lecciones que ya están en el código.
+
+- **El proyecto de clientes:** Supabase en una organización aparte y gratis («CAYLA Tienda», proyecto `cayla-tienda-clientes`, São Paulo).
+  Felipe preguntó si podía vivir en el proyecto del ERP: no, porque ahí cualquier sesión pasa por alguien de adentro (ese día, 771
+  funciones de `retail` y 583 de Dynamic aceptaban a cualquiera con sesión). Riesgo aceptado del plan gratis: se pausa tras 7 días sin
+  uso; si pasa, se reactiva con un clic (o se sube a Pro cuando la tienda despegue).
+- **Los correos:** por Resend con `tienda@cayla.pe` (el dominio ya estaba verificado: lo usa el ERP para invitar), con su propia llave
+  («Supabase tienda»), no la del ERP: si un día hay que anularla, el ERP sigue mandando las suyas.
+- **Vercel:** un proyecto más (`cayla-tienda`) en la misma cuenta del ERP, sin costo extra, en **São Paulo** (`regions: ["gru1"]` en
+  `apps/tienda/vercel.json`): sin eso, Vercel lo dejaba en Estados Unidos, lejos de la base. **Sin dominio por ahora**:
+  `cayla-tienda.vercel.app`. Su «Ignored Build Step» (`scripts/ci/vercel-ignorar-tienda.mjs`) solo construye producción, y solo si
+  cambió algo que la tienda compila: Vercel construye una versión a la vez para toda la cuenta y la tienda no le quita turno al ERP.
+- **La conexión a la base: el pooler en modo SESIÓN (puerto 5432), no transacción (6543).** Medido: con 10 consultas a la vez, en
+  modo transacción 5 quedaban colgadas (el servidor esperando un mensaje que nunca llegaba, `active/ClientRead`) y la tienda se
+  congelaba; en modo sesión, 10 de 10 en 1,7 s. Desactivar el encadenado de postgres.js (`max_pipeline: 1`) no lo arregló.
+- **El catálogo, 24 s → 1,2 s** (`20261015215000`): con 294 prendas publicadas, `fn_tienda_precio_talla` recalculaba qué tiendas se ven
+  en la web en cada fila (29 881 veces por carga) porque Postgres metía sus CTE dentro de la consulta. Se materializan; lo vigila el
+  escenario 0 de `pruebas:tienda-inicio`.
+- **Las fotos no dependen de una variable en producción:** `TIENDA_FOTOS_ORIGEN` llegaba a la tienda al funcionar pero no al compilar, y
+  el optimizador rechazaba todas las fotos (400). En la versión de producción de Vercel, `next.config.ts` acepta el almacén de CAYLA
+  aunque la variable falte.
