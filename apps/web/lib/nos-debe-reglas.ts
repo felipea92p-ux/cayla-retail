@@ -11,7 +11,8 @@
 // El contrato con la base: docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md. La deuda ES la fila de `despacho_diferencias` con
 // `tipo = 'faltante'` y `causa = 'no_vino'`; lo resuelto vive en `proveedor_deuda_resoluciones` (solo se agregan filas). La fase 5a cierra
 // una deuda con la prenda («repuesta»); la 5b (actividad 1), también con plata: «Pasar a saldo a favor» registra un documento interno DI-…
-// que baja lo que se le debe al comprobante y deja el resto a favor (decisión 58). «Depositó» llega en la actividad 5.
+// que baja lo que se le debe al comprobante y deja el resto a favor (decisión 58); y (actividad 5) «Depositó»: el mismo documento y, en la
+// misma operación, el reembolso de lo que quedó a favor, porque el proveedor ya devolvió esa plata (decisiones 24 y 59).
 
 import { soles } from "./compras-reglas";
 import { diaLima, diasEntreFechas } from "./fechas-lima";
@@ -79,6 +80,8 @@ export type DeudaProveedor = {
   /** Dónde faltó: «ENV-000061». */
   envio: string | null;
   sede: string | null;
+  /** La sede donde faltó: «Depositó» propone sus cuentas para el efectivo que entra. */
+  sedeId: string | null;
   /** Cuándo se recibió el envío donde faltó (la fecha de la deuda). */
   fecha: string | null;
   /** La orden de compra de esa línea: «OC-000129». */
@@ -145,6 +148,7 @@ function leerDeuda(f: unknown): DeudaProveedor | null {
     diferenciaId,
     envio: numeroEnvio(envio ? envio.numero : (r.envio ?? r.numero_envio ?? r.despacho_numero)),
     sede: nombreDe(r.sede) ?? texto(r.sede_nombre),
+    sedeId: idDe(r, "sede") ?? texto(r.ubicacion_destino_id),
     fecha: texto(r.fecha) ?? texto(r.creado_en) ?? texto(r.recibido_en),
     orden: texto(objeto(r.orden)?.numero) ?? texto(r.orden),
     saldadaEn: texto(r.saldada_en),
@@ -389,7 +393,7 @@ export function textoDeResolucion(r: ResolucionDeuda, hoy: string): string {
     r.forma === "saldo_a_favor"
       ? `${cuantas} a saldo a favor${r.documento ? ` con el ${r.documento}${r.monto != null ? ` (${soles(r.monto)})` : ""}` : ""}`
       : r.forma === "deposito"
-        ? `${cuantas} pagadas con un depósito`
+        ? `${r.cantidad === 1 ? "1 se pagó" : `${cuantas} se pagaron`} con un depósito${r.documento ? ` (${r.documento}${r.monto != null ? ` por ${soles(r.monto)}` : ""})` : ""}`
         : r.envio
           ? `${llego} en ${r.envio}`
           : `${llego}, anotado a mano${r.nota ? ` («${r.nota}»)` : ""}`;
@@ -653,8 +657,7 @@ export function leerValorDeDeuda(data: unknown): ValorDeDeuda | null {
  * B001-902: los S/ 60.00 quedan a favor de Textiles Andina y se descuentan de tu próximo pago.» / las dos cosas, si alcanza para parte.
  */
 export function fraseSaldoAFavor(proveedor: string, v: ValorDeDeuda): string {
-  const papeles = v.papeles.map((x) => `${x.tipo ? `${nombreDeTipoDePapel(x.tipo)} ` : ""}${x.documento}`);
-  const cuales = papeles.length > 0 ? new Intl.ListFormat("es", { type: "conjunction" }).format(papeles) : "su comprobante";
+  const cuales = papelesDelValor(v);
   if (v.aFavor <= 0) return `Baja ${soles(v.bajaDeuda)} de lo que le debes por ${cuales}.`;
   if (v.bajaDeuda <= 0) return `Ya pagaste ${cuales}: los ${soles(v.aFavor)} quedan a favor de ${proveedor} y se descuentan de tu próximo pago.`;
   return `Baja ${soles(v.bajaDeuda)} de lo que le debes por ${cuales}, y ${soles(v.aFavor)} quedan a favor de ${proveedor} para tu próximo pago.`;
@@ -681,6 +684,12 @@ export function fraseNotaDeLaFactura(v: Pick<ValorDeDeuda, "papeles">): string |
   const cuales = new Intl.ListFormat("es", { type: "conjunction" }).format(facturas.map((x) => x.documento));
   const que = facturas.length === 1 ? `su nota de crédito por ${soles(monto)} contra ${cuales}` : `sus notas de crédito por ${soles(monto)} contra ${cuales}`;
   return `Es una factura: pídele al proveedor ${que}. Hasta que llegue, sus ${soles(igv)} de IGV quedan en espera.`;
+}
+
+/** «la boleta B001-902», «la factura F001-901 y la boleta B001-902»: los comprobantes de donde sale el valor; sin ellos, «su comprobante». */
+function papelesDelValor(v: Pick<ValorDeDeuda, "papeles">): string {
+  const papeles = v.papeles.map((x) => `${x.tipo ? `${nombreDeTipoDePapel(x.tipo)} ` : ""}${x.documento}`);
+  return papeles.length > 0 ? new Intl.ListFormat("es", { type: "conjunction" }).format(papeles) : "su comprobante";
 }
 
 /** «la boleta», «la nota de venta», «la factura», «la compra sin comprobante»: el papel, nombrado. */
@@ -731,6 +740,221 @@ export function detalleDeSaldoAFavor(docs: DocumentoInterno[]): string {
   if (facturas.length === 0) return hecho;
   const pide = facturas.map((x) => `${soles(x.monto)}${x.comprobante ? ` contra ${x.comprobante}` : ""}`);
   return `${hecho} Pídele ${facturas.length === 1 ? "su nota de crédito" : "sus notas de crédito"} por ${new Intl.ListFormat("es", { type: "conjunction" }).format(pide)}.`;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// La hoja «Depositó» (`registrar_deposito_deuda`, fase 5b, actividad 5)
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+/** Escritura: «Depositó». La base registra el documento interno y el reembolso de lo que quedó a favor en una sola operación. */
+export const RPC_DEPOSITO_DEUDA = "registrar_deposito_deuda";
+
+/** Lo que acepta la base del depósito: la referencia, como la de un reembolso (hasta 60 letras). */
+export const TOPES_DEPOSITO = { referencia: 60 } as const;
+
+/** Cómo devuelve la plata un proveedor: los medios de un reembolso (`fn_insertar_reembolso_proveedor`), los mismos de `ETIQUETA_METODO`. */
+export const METODOS_DEPOSITO = ["transferencia", "yape", "plin", "efectivo", "deposito", "otro"] as const;
+
+export type BorradorDeposito = { cantidad: string; monto: string; metodo: string; fecha: string; referencia: string; nota: string };
+
+/**
+ * Viene puesto todo lo que se puede pagar, la transferencia (como en el reembolso) y la fecha de hoy: los tres son «sugeridos» hasta que se
+ * tocan. El monto, vacío: se escribe mirando el depósito, y la hoja lo compara con lo que quedó a favor.
+ */
+export const borradorDeposito = (d: Pick<DeudaProveedor, "pendiente" | "sinPapel">, hoy: string): BorradorDeposito => ({
+  cantidad: String(Math.max(1, pasablesASaldo(d))),
+  monto: "",
+  metodo: "transferencia",
+  fecha: hoy,
+  referencia: "",
+  nota: "",
+});
+
+/** La cantidad escrita: un entero de 1 a lo que está en un comprobante (lo que nadie facturó no se pagó: no hay plata que devolver por eso). */
+export function leerCantidadDeposito(t: string, pasables: number, categoria: string | null = null): { n: number | null; problema: string | null } {
+  const limpio = t.trim();
+  if (limpio === "") return { n: null, problema: "Escribe cuántas pagó con el depósito." };
+  if (!/^\d{1,4}$/.test(limpio)) return { n: null, problema: "Escribe solo el número de prendas, sin letras ni decimales." };
+  const n = Number(limpio);
+  if (n < 1) return { n: null, problema: "Tiene que ser al menos 1." };
+  if (n > pasables) return { n: null, problema: `Puede pagar ${cantidadDePrendas(pasables, categoria)}: las demás no se facturaron.` };
+  return { n, problema: null };
+}
+
+/** Cuántas paga el depósito: lo escrito si es válido; si solo hay 1 en un comprobante, 1. */
+export function cantidadDeposito(b: Pick<BorradorDeposito, "cantidad">, d: Pick<DeudaProveedor, "pendiente" | "sinPapel">): number | null {
+  const pasables = pasablesASaldo(d);
+  if (pasables <= 0) return null;
+  return pasables === 1 ? 1 : leerCantidadDeposito(b.cantidad, pasables).n;
+}
+
+/** El monto escrito, en soles con hasta 2 decimales, como lo acepta la base (la coma vale como punto, como en Por pagar). */
+export function leerMontoDeposito(t: string): { n: number | null; problema: string | null } {
+  const limpio = t.trim().replace(",", ".");
+  if (limpio === "") return { n: null, problema: "Escribe cuánto te depositó." };
+  if (!/^\d+(\.\d+)?$/.test(limpio)) return { n: null, problema: "Escribe el monto en soles, solo con números." };
+  const n = Number(limpio);
+  if (!Number.isFinite(n) || n <= 0) return { n: null, problema: `El depósito tiene que ser de más de ${soles(0)}.` };
+  if (!/^\d+(\.\d{1,2})?$/.test(limpio)) return { n: null, problema: "El monto va con hasta 2 decimales." };
+  return { n: redondear(n), problema: null };
+}
+
+export type ProblemasDeposito = { cantidad?: string; monto?: string; metodo?: string; fecha?: string; referencia?: string; nota?: string };
+
+/**
+ * Lo que `resolver_deuda_proveedor` rechazaría con la forma `deposito`, dicho antes de llenar todo: la cantidad (de 1 a lo que está en un
+ * comprobante), el monto (exactamente lo que quedó a favor: si todavía se le debe el comprobante, no hay nada que depositar), el medio, la
+ * fecha (ni futura ni anterior a la recepción donde faltaron), la referencia (hasta 60 letras) y la nota (hasta 300). La cuenta donde entró
+ * es opcional, como en la base y en el reembolso: no tiene problema que decir.
+ */
+export function problemasDeposito(p: {
+  borrador: BorradorDeposito;
+  deuda: Pick<DeudaProveedor, "pendiente" | "sinPapel" | "fecha"> & { categoria?: string | null };
+  /** Lo que quedaría a favor con la cantidad escrita (`fn_deuda_valor`): lo que tiene que ser el depósito. `null` = todavía no se sabe. */
+  aFavor: number | null;
+  hoy: string;
+}): ProblemasDeposito {
+  const { borrador: b, deuda: d } = p;
+  const r: ProblemasDeposito = {};
+  const pasables = pasablesASaldo(d);
+  if (pasables > 1) {
+    const { problema } = leerCantidadDeposito(b.cantidad, pasables, d.categoria ?? null);
+    if (problema) r.cantidad = problema;
+  }
+  const monto = leerMontoDeposito(b.monto);
+  if (p.aFavor != null && p.aFavor <= 0) r.monto = "Todavía le debes ese comprobante: no hay nada que te deposite. Usa «Pasar a saldo a favor».";
+  else if (monto.problema) r.monto = monto.problema;
+  else if (p.aFavor != null && monto.n !== redondear(p.aFavor))
+    r.monto = `Lo que no llegó deja ${soles(p.aFavor)} a tu favor: el depósito tiene que ser eso. Si te depositó otra cifra, revisa cuántas pagó con él.`;
+  if (!(METODOS_DEPOSITO as readonly string[]).includes(b.metodo)) r.metodo = "Elige cómo te lo devolvió.";
+  const desde = diaLima(d.fecha);
+  if (!b.fecha) r.fecha = "Elige la fecha del depósito.";
+  else if (b.fecha > p.hoy) r.fecha = "La fecha del depósito no puede ser futura.";
+  else if (desde && b.fecha < desde) r.fecha = `El depósito no puede ser anterior a la recepción donde faltaron (${desde.slice(8, 10)}/${desde.slice(5, 7)}).`;
+  if (textoParaBase(b.referencia).length > TOPES_DEPOSITO.referencia) r.referencia = `La referencia va hasta ${TOPES_DEPOSITO.referencia} letras.`;
+  const nota = problemaDeNotaOpcional(b.nota);
+  if (nota) r.nota = nota;
+  return r;
+}
+
+/**
+ * Los campos de la guía de la hoja (ADR-0284), en el orden en que se ven: cuántas (si hay más de una; viene puesto todo lo que se puede),
+ * cuánto, cuándo (viene hoy), cómo (viene la transferencia), a qué cuenta entró (viene la de siempre para ese medio; sin cuentas para él, no
+ * se pregunta), la referencia y la nota (opcionales) y quién lo hace. Lo que viene puesto es «sugerido» hasta que se toca: la luz pasa por
+ * ahí para que se revise y nunca bloquea; puesto mal, bloquea como siempre. La cuenta es siempre «sugerida»: la base no la exige (sin ella,
+ * el reembolso no queda en Cuentas y dinero), y la guía no agrega reglas.
+ */
+export function camposDeposito(
+  problemas: ProblemasDeposito,
+  b: BorradorDeposito,
+  d: Pick<DeudaProveedor, "pendiente" | "sinPapel">,
+  extra: {
+    responsable: { listo: boolean; motivo: string | null };
+    /** «Entra a»: si hay cuentas para ese medio y cuál va (la elegida o la propuesta, `cuentaEfectiva`). */
+    cuenta: { hay: boolean; id: string | null };
+    tocados?: { cantidad?: boolean; fecha?: boolean; metodo?: boolean; cuenta?: boolean };
+  },
+): CampoDeGuia[] {
+  const tocados = extra.tocados ?? {};
+  const sugeridoOFalta = (id: string, nombre: string, problema: string | undefined, tocado: boolean | undefined, revisa: string): CampoDeGuia =>
+    !problema && !tocado ? { id, nombre, requerido: false, sugerido: true, hecho: false, pendiente: revisa } : { id, nombre, requerido: true, hecho: !problema, pendiente: problema ?? "" };
+  const campos: CampoDeGuia[] = [];
+  if (pasablesASaldo(d) > 1) {
+    campos.push(sugeridoOFalta("cantidad", "Cuántas pagó", problemas.cantidad, tocados.cantidad, "Revisa cuántas pagó con el depósito: viene puesto todo lo que se puede."));
+  }
+  campos.push({ id: "monto", nombre: "Cuánto te depositó", requerido: true, hecho: !problemas.monto, pendiente: problemas.monto ?? "" });
+  campos.push(sugeridoOFalta("fecha", "Fecha del depósito", problemas.fecha, tocados.fecha, "Revisa la fecha: viene la de hoy, y va la del depósito."));
+  campos.push(sugeridoOFalta("metodo", "Cómo te lo devolvió", problemas.metodo, tocados.metodo, "Revisa cómo te lo devolvió: viene la transferencia."));
+  if (extra.cuenta.hay) {
+    campos.push({
+      id: "cuenta",
+      nombre: "A qué cuenta entró",
+      requerido: false,
+      sugerido: true,
+      hecho: Boolean(tocados.cuenta && extra.cuenta.id),
+      pendiente: extra.cuenta.id ? "Revisa a qué cuenta entró: viene la de siempre para ese medio." : "Elige a qué cuenta entró: así queda en Cuentas y dinero.",
+    });
+  }
+  campos.push(
+    problemas.referencia
+      ? { id: "referencia", nombre: "Referencia", requerido: true, hecho: false, pendiente: problemas.referencia }
+      : { id: "referencia", nombre: "Referencia", requerido: false, hecho: textoParaBase(b.referencia) !== "", pendiente: "" },
+  );
+  campos.push(
+    problemas.nota
+      ? { id: "nota", nombre: "Nota", requerido: true, hecho: false, pendiente: problemas.nota }
+      : { id: "nota", nombre: "Nota", requerido: false, hecho: textoParaBase(b.nota) !== "", pendiente: "" },
+  );
+  campos.push({ id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: extra.responsable.listo, pendiente: extra.responsable.motivo ?? "Elige quién lo hace." });
+  return campos;
+}
+
+export type ArgsDepositoDeuda = {
+  p_diferencia_id: string;
+  p_cantidad: number;
+  p_nota: string;
+  p_token: string;
+  p_deposito: { monto: number; metodo: string; fecha: string; referencia: string | null; cuenta_id: string | null };
+};
+
+/** Los argumentos de `registrar_deposito_deuda`. Solo se llama con la hoja lista; `token` se genera al abrirla (un reintento no registra dos). */
+export function argsDeposito(d: Pick<DeudaProveedor, "diferenciaId" | "pendiente" | "sinPapel">, b: BorradorDeposito, cuentaId: string | null, token: string): ArgsDepositoDeuda {
+  return {
+    p_diferencia_id: d.diferenciaId,
+    p_cantidad: cantidadDeposito(b, d) ?? 0,
+    p_nota: textoParaBase(b.nota),
+    p_token: token,
+    p_deposito: {
+      monto: leerMontoDeposito(b.monto).n ?? 0,
+      metodo: b.metodo,
+      fecha: b.fecha,
+      referencia: textoParaBase(b.referencia) || null,
+      cuenta_id: cuentaId,
+    },
+  };
+}
+
+/** «Registrar el depósito de S/ 40.00»: el botón dice lo que se registra, con el monto escrito si ya se entiende. */
+export function textoBotonDeposito(monto: number | null): string {
+  return monto != null && monto > 0 ? `Registrar el depósito de ${soles(monto)}` : "Registrar el depósito";
+}
+
+/**
+ * Qué pasa, antes del botón: «Ya pagaste la boleta B001-902: Textiles Andina te tiene que haber depositado S/ 40.00.» / «Baja S/ 10.00 de lo
+ * que le debes por la boleta B001-902, y Textiles Andina te tiene que haber depositado S/ 30.00.» `null` si no queda nada a favor.
+ */
+export function fraseDeposito(proveedor: string, v: ValorDeDeuda): string | null {
+  if (v.aFavor <= 0) return null;
+  const cuales = papelesDelValor(v);
+  return v.bajaDeuda <= 0
+    ? `Ya pagaste ${cuales}: ${proveedor} te tiene que haber depositado ${soles(v.aFavor)}.`
+    : `Baja ${soles(v.bajaDeuda)} de lo que le debes por ${cuales}, y ${proveedor} te tiene que haber depositado ${soles(v.aFavor)}.`;
+}
+
+/** Sin nada a favor: lo que no llegó solo baja la deuda del comprobante, y no corresponde un depósito. Dice qué hacer en cada caso. */
+export function fraseSinDeposito(v: ValorDeDeuda): string {
+  return `Todavía le debes ${papelesDelValor(v)}: lo que no llegó baja tu deuda en ${soles(v.bajaDeuda)} y no hace falta que te deposite. Si ya lo pagaste, registra primero ese pago; si no, usa «Pasar a saldo a favor».`;
+}
+
+/**
+ * El aviso de éxito: «DI-000050 por S/ 40.00: te devolvió S/ 40.00. Entró a Caja fuerte Trujillo.» Con parte de la deuda: «DI-000050 por
+ * S/ 40.00: bajó S/ 10.00 de lo que le debes por B001-902 y te devolvió S/ 30.00.» Con una factura, lo que falta: «Pídele su nota de crédito
+ * por S/ 23.60 contra F001-901.»
+ */
+export function detalleDeDeposito(docs: DocumentoInterno[], cuenta: string | null): string {
+  if (docs.length === 0) return "Quedó anotado en la ficha del proveedor.";
+  const hecho = docs
+    .map((x) =>
+      x.bajaDeuda > 0
+        ? `${x.documento} por ${soles(x.monto)}: bajó ${soles(x.bajaDeuda)} de lo que le debes${x.comprobante ? ` por ${x.comprobante}` : ""} y te devolvió ${soles(x.aFavor)}.`
+        : `${x.documento} por ${soles(x.monto)}: te devolvió ${soles(x.aFavor)}.`,
+    )
+    .join(" ");
+  const entro = cuenta ? ` Entró a ${cuenta}.` : "";
+  const facturas = docs.filter((x) => x.igv > 0);
+  if (facturas.length === 0) return `${hecho}${entro}`;
+  const pide = facturas.map((x) => `${soles(x.monto)}${x.comprobante ? ` contra ${x.comprobante}` : ""}`);
+  return `${hecho}${entro} Pídele ${facturas.length === 1 ? "su nota de crédito" : "sus notas de crédito"} por ${new Intl.ListFormat("es", { type: "conjunction" }).format(pide)}.`;
 }
 
 /** Qué decir cuando se corta la señal al anotar: pudo guardarse. Reintentar sin cambiar nada es seguro (el mismo token no anota dos veces). */

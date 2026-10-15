@@ -15,13 +15,15 @@ import {
   type DeudaProveedor,
   type NosDebe,
 } from "@/lib/nos-debe-reglas";
+import { BotonDeposito } from "./HojaDeposito";
 import { BotonReposicion } from "./HojaReposicion";
 import { BotonSaldoAFavor } from "./HojaSaldoAFavor";
 
 // «Nos debe» en la ficha del proveedor (ADR-0362, fase 5a, decisiones 14 y 24): lo que el proveedor le debe a CAYLA, junto. Primero las
 // PRENDAS por reponer (cada faltante «No vino» de una recepción es una deuda: «2 chompas · S/ 84.00 · ENV-000061 · Tienda Trujillo · hace 3
 // días»), cada una con «Llegó la reposición» y, si el proveedor no la va a mandar, «Pasar a saldo a favor» (fase 5b, decisión 58: un documento
-// interno por lo que se pagó); abajo, las que se cerraron en los últimos 90 días (plegadas si son muchas). Debajo, la PLATA:
+// interno por lo que se pagó) o, si ya devolvió esa plata, «Depositó» (actividad 5: el documento y el reembolso juntos); abajo, las que se
+// cerraron en los últimos 90 días (plegadas si son muchas). Debajo, la PLATA:
 // el saldo a favor de siempre (`children`), que esta sección envuelve. Una debajo de la otra y a todo el ancho: lado a lado, en una laptop
 // con el menú abierto, cada deuda se partía en cuatro renglones. Sin estado propio: sirve desde la página del servidor; lo único que se
 // toca es el botón, que abre su hoja.
@@ -42,7 +44,7 @@ export function NosDebeProveedor({
   falla: string | null;
   proveedorNombre: string;
   hoy: string;
-  /** Pasar a saldo a favor mueve plata: Proveedores o líder (`fn_puede_gestionar_proveedores`, la misma regla que la base). */
+  /** Pasar a saldo a favor y «Depositó» mueven plata: Proveedores o líder (`fn_puede_gestionar_proveedores`, la misma regla que la base). */
   puedeSaldoAFavor?: boolean;
   /** El saldo a favor (la plata que el proveedor debe). */
   children?: ReactNode;
@@ -81,7 +83,9 @@ export function NosDebeProveedor({
               </Vacio>
             </div>
           ) : (
-            <ul className="divide-y divide-tinta/10 border-t border-tinta/10">
+            // Las columnas de cada deuda las decide el ancho de la tarjeta (`@container`), no el de la ventana: con el menú abierto en una laptop,
+            // los tres botones a la derecha dejaban al texto en una tira de cuatro renglones. Hasta 56rem, los botones van debajo.
+            <ul className="@container divide-y divide-tinta/10 border-t border-tinta/10">
               {abiertas.map((d) => (
                 <FilaDeuda key={d.diferenciaId} deuda={d} proveedorNombre={proveedorNombre} hoy={hoy} puedeSaldoAFavor={puedeSaldoAFavor} />
               ))}
@@ -135,7 +139,7 @@ function FilaDeuda({
 }) {
   const avance = avanceDeDeuda(d);
   return (
-    <li data-guia="proveedor-ficha.deuda" aria-label={textoDeDeuda(d, hoy)} className="grid gap-x-4 gap-y-2 px-5 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+    <li data-guia="proveedor-ficha.deuda" aria-label={textoDeDeuda(d, hoy)} className="grid gap-x-4 gap-y-2 px-5 py-3 @min-[56rem]:grid-cols-[minmax(0,1fr)_auto] @min-[56rem]:items-center">
       <div className="min-w-0">
         <p className="text-sm text-tinta">
           <b className="font-semibold">{queDebe(d)}</b>
@@ -148,12 +152,13 @@ function FilaDeuda({
         </p>
         {d.nota && <p className="mt-0.5 truncate text-xs text-tinta/65">Nota de la recepción: «{d.nota}»</p>}
       </div>
-      <div className="flex items-center justify-between gap-3 sm:justify-end">
+      <div className="flex items-center justify-between gap-3 @min-[56rem]:justify-end">
         <p className="text-right">
           <span className="block text-sm tabular-nums text-tinta">{soles(d.montoPendiente)}</span>
           {d.conIgv && <span className="block text-[11px] text-taupe">{d.montoConIgv != null ? `${soles(d.montoConIgv)} con IGV` : "sin IGV"}</span>}
         </p>
         <div className="flex flex-wrap items-center justify-end gap-2">
+          {puedeSaldoAFavor && <BotonDeposito deuda={d} proveedorNombre={proveedorNombre} hoy={hoy} />}
           {puedeSaldoAFavor && <BotonSaldoAFavor deuda={d} proveedorNombre={proveedorNombre} hoy={hoy} />}
           <BotonReposicion deuda={d} proveedorNombre={proveedorNombre} hoy={hoy} />
         </div>

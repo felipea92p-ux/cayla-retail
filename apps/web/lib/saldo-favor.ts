@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { esFuncionAusente } from "./compras-reglas";
 import { esDocumentoInterno } from "./notas-credito-reglas";
 
 // Saldo a favor de los proveedores (ADR-0111, corrección 2026-09-18): lo que un proveedor le debe a CAYLA
@@ -7,7 +8,8 @@ import { esDocumentoInterno } from "./notas-credito-reglas";
 // nace pagada) y todavía no se descontó de un pago ni se reembolsó. Vive en el libro `proveedor_creditos`
 // (append-only); el saldo es la SUMA del libro, nunca un dato guardado. Solo LEE: las escrituras pasan por
 // las RPC de pago (`saldo_a_favor` como medio) y `registrar_reembolso_proveedor`, desde los componentes cliente.
-// Para quien no es líder todo llega en 0 / vacío (RLS del libro).
+// Para quien no ve la plata de los proveedores todo llega en 0 / vacío (RLS del libro). La ficha lee su saldo con `fn_saldo_favor_visible`
+// (ADR-0362, fase 5b, actividad 5): con el módulo Proveedores solo, la suma de siempre salía en S/ 0 aunque el historial sí se veía.
 
 const n = (v: unknown): number => (v == null ? 0 : Number(v));
 
@@ -51,12 +53,9 @@ export type MovimientoCredito = {
 /** El historial del saldo a favor de UN proveedor, del más reciente al más antiguo. */
 export async function getCreditosProveedor(proveedorId: string, limite = 50): Promise<{ saldo: number; movimientos: MovimientoCredito[] }> {
   const supabase = await createClient();
-  const [saldo, filas] = await Promise.all([
-    supabase.rpc("fn_saldo_favor_proveedor", { p_proveedor_id: proveedorId }),
-    supabase.rpc("fn_proveedor_creditos", { p_proveedor_id: proveedorId, p_limite: limite }),
-  ]);
+  const [saldo, filas] = await Promise.all([saldoVisible(supabase, proveedorId), supabase.rpc("fn_proveedor_creditos", { p_proveedor_id: proveedorId, p_limite: limite })]);
   return {
-    saldo: n(exigir(saldo, "el saldo a favor del proveedor")),
+    saldo,
     movimientos: exigir(filas, "el historial del saldo a favor").map((f) => ({
       id: f.id,
       tipo: f.tipo as TipoMovimientoCredito,
@@ -70,6 +69,19 @@ export async function getCreditosProveedor(proveedorId: string, limite = 50): Pr
       creadoEn: f.created_at,
     })),
   };
+}
+
+/** El saldo que ve la ficha (`fn_saldo_favor_visible`). Si la base todavía no la tiene (la web publicada antes que la migración), la suma de
+ *  siempre: con Proveedores solo saldrá en S/ 0, como antes, pero la ficha no se cae. */
+async function saldoVisible(supabase: Awaited<ReturnType<typeof createClient>>, proveedorId: string): Promise<number> {
+  const r = (await supabase.rpc("fn_saldo_favor_visible" as never, { p_proveedor_id: proveedorId } as never)) as {
+    data: unknown;
+    error: { code?: string; message: string } | null;
+  };
+  if (r.error && esFuncionAusente(r.error)) {
+    return n(exigir(await supabase.rpc("fn_saldo_favor_proveedor", { p_proveedor_id: proveedorId }), "el saldo a favor del proveedor"));
+  }
+  return n(exigir(r, "el saldo a favor del proveedor"));
 }
 
 export const ETIQUETA_MOVIMIENTO_CREDITO: Record<TipoMovimientoCredito, string> = {

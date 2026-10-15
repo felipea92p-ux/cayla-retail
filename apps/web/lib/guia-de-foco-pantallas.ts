@@ -408,6 +408,10 @@ export const MODALES: Record<string, PantallaGuia> = {
   // que debe; viene puesto todo, «sugerido» hasta que se toca, y con una sola no se pregunta), cómo llegó (la nota, obligatoria) y quién lo anota.
   "components/nos-debe/HojaReposicion.tsx": { estado: "aplicada", evidencia: ["components/nos-debe/HojaReposicion.tsx"] },
   "components/nos-debe/HojaSaldoAFavor.tsx": { estado: "aplicada", evidencia: ["components/nos-debe/HojaSaldoAFavor.tsx"] },
+  // ADR-0362 fase 5b, actividad 5: «Depositó». Falta lo que `resolver_deuda_proveedor` rechazaría con la forma `deposito`: cuánto te depositó
+  // (lo que quedó a favor, exacto), la fecha (ni futura ni antes de la recepción), cómo te lo devolvió y quién lo hace; la cantidad, la fecha,
+  // el medio y la cuenta vienen puestos y son «sugeridos».
+  "components/nos-debe/HojaDeposito.tsx": { estado: "aplicada", evidencia: ["components/nos-debe/HojaDeposito.tsx"] },
   // ADR-0362 fase 5b, actividad 3: «Llegó su nota de crédito».
   "components/NotaDelProveedorModal.tsx": { estado: "aplicada", evidencia: ["components/NotaDelProveedorModal.tsx"] },
 };

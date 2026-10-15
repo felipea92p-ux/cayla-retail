@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261015150000_nos_debe_saldo_a_favor.sql — CAYLA V2 · ADR-0362, fase 5b, actividades 1 a 4 (parte 2 de 2: las funciones). Va después de
+-- 20261015150000_nos_debe_saldo_a_favor.sql — CAYLA V2 · ADR-0362, fase 5b, actividades 1 a 5 (parte 2 de 2: las funciones). Va después de
 -- 20261015145000_nos_debe_saldo_a_favor_esquema.sql. Contrato: docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md.
 --
 -- EL PROBLEMA PRIMERO. Una deuda del proveedor solo se saldaba con la prenda. Si no la va a mandar, la plata pagada por ella no volvía.
@@ -40,6 +40,13 @@
 --      los documentos internos de una factura que esperan la nota del proveedor (su IGV, en la cuenta puente) y las prendas de una factura
 --      que no llegaron y nadie resolvió (su IGV sigue en el crédito fiscal sin la mercadería). Cada parte, solo para quien puede hacer algo
 --      con ella (Notas de crédito; ver lo que debe un proveedor); para los demás, nula.
+--   9. «Depositó» (actividad 5, decisiones 24 y 59): el proveedor devuelve en plata lo que no mandó. `registrar_deposito_deuda` (la web)
+--      recibe el depósito (cuánto, cómo, cuándo y a qué cuenta entró) y llama a `resolver_deuda_proveedor` con la forma `deposito`, que en
+--      UNA transacción registra el documento interno (como pasar a saldo a favor) y el reembolso de lo que quedó a favor: lo depositado tiene
+--      que ser eso, ni más ni menos. Con el módulo Proveedores, como pasar a saldo a favor. El resolvedor no cambia de firma (lo recargan
+--      20261013180000 y sus pruebas): el depósito le llega en un ajuste de la transacción, `retail.deposito_de_deuda`. Y
+--      `fn_saldo_favor_visible`: el saldo a favor que lee la ficha, con el permiso de quien ve la plata de los proveedores (con Proveedores
+--      solo, la ficha decía S/ 0: `fn_saldo_favor_proveedor` suma con los permisos de quien mira, y la tabla no le muestra las filas).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe). UNA parte, después de 20261015145000. Sin tablas, sin políticas, sin `drop trigger`
 -- (ADR-0195), sin `select … into` dentro de textos entre comillas (ADR-0288). Las reescrituras y los reemplazos abortan SIN TOCAR NADA si la
@@ -226,6 +233,9 @@ comment on function retail.fn_deuda_valor(uuid, integer) is
   'ADR-0362 fase 5b: la hoja «Pasar a saldo a favor» pregunta cuánto vale pasar N prendas (sin N: lo pendiente). Pide lo mismo que ver lo que debe un proveedor.';
 
 -- ---------- 3. Pasar a saldo a favor (interna) ----------
+-- La de 8 argumentos (actividades 1 a 4, nunca en producción) se reemplaza por la de 10: la forma (`saldo_a_favor` o `deposito`) y la fecha
+-- (la del depósito; sin ella, hoy). Se borra antes para no dejar dos versiones que la llamada no sabría distinguir.
+drop function if exists retail.fn_pasar_deuda_a_saldo_a_favor(uuid, integer, text, uuid, text, uuid, uuid, text);
 create or replace function retail.fn_pasar_deuda_a_saldo_a_favor(
   p_diferencia_id uuid,
   p_cantidad integer,
@@ -234,7 +244,9 @@ create or replace function retail.fn_pasar_deuda_a_saldo_a_favor(
   p_huella text,
   p_actor uuid,
   p_ubicacion_id uuid,
-  p_texto_cierre text
+  p_texto_cierre text,
+  p_forma text default 'saldo_a_favor',
+  p_fecha date default null
 )
 returns jsonb
 language plpgsql
@@ -260,7 +272,7 @@ declare
   v_nota_id uuid;
   v_res uuid;
   v_primera_res uuid;
-  v_hoy date := retail.fn_hoy_lima();
+  v_hoy date := coalesce(p_fecha, retail.fn_hoy_lima());
   v_docs jsonb := '[]'::jsonb;
 begin
   -- Los comprobantes de esa línea pedida se bloquean, en orden: dos personas pasando deudas del mismo papel, un pago o una recepción a la
@@ -334,7 +346,7 @@ begin
     end if;
     -- La resolución de la deuda, con su documento. El token va en la primera: un reintento la encuentra y devuelve lo mismo.
     insert into retail.proveedor_deuda_resoluciones (diferencia_id, forma, cantidad, nota, token_cliente, huella, creado_por, nota_credito_id)
-    values (p_diferencia_id, 'saldo_a_favor', v_cantidad, p_nota,
+    values (p_diferencia_id, p_forma, v_cantidad, p_nota,
             case when v_primera_res is null then p_token end, case when v_primera_res is null then p_huella end, p_actor, v_nota_id)
     returning id into v_res;
     v_primera_res := coalesce(v_primera_res, v_res);
@@ -346,7 +358,7 @@ begin
   return jsonb_build_object('resolucion_id', v_primera_res, 'documentos', v_docs);
 end;
 $$;
-comment on function retail.fn_pasar_deuda_a_saldo_a_favor(uuid, integer, text, uuid, text, uuid, uuid, text) is
+comment on function retail.fn_pasar_deuda_a_saldo_a_favor(uuid, integer, text, uuid, text, uuid, uuid, text, text, date) is
   'ADR-0362 fase 5b (decisión 58): cierra en el papel las prendas que no llegaron, registra el documento interno DI-… que baja la deuda del comprobante y deja el resto a favor, y anota la resolución. Interna: la llama resolver_deuda_proveedor con la deuda ya bloqueada.';
 
 -- ---------- 4. Resolver una deuda (la web) ----------
@@ -369,29 +381,36 @@ declare
   v_desc text;
   v_detalle jsonb;
   v_plata jsonb;
+  -- «Depositó» (actividad 5): los datos del depósito los pone `registrar_deposito_deuda` en un ajuste de esta transacción; sin él, no hay.
+  p_deposito jsonb := case when lower(btrim(coalesce(p_forma, ''))) = 'deposito'
+                           then nullif(nullif(current_setting('retail.deposito_de_deuda', true), ''), 'null')::jsonb end;
+  v_dep_monto numeric;
+  v_dep_metodo text;
+  v_dep_fecha date;
+  v_dep_referencia text;
+  v_dep_cuenta uuid;
+  v_a_favor numeric;
+  v_doc jsonb;
 begin
-  -- Pasar a saldo a favor mueve plata: es de quien lleva a los proveedores (fase 5b, decisión 58; el módulo es la llave, 40). La reposición,
-  -- como en la 5a: Proveedores o Recibir.
-  if v_forma = 'saldo_a_favor' then
+  -- Pasar a saldo a favor y «Depositó» mueven plata: son de quien lleva a los proveedores (fase 5b, decisiones 58 y 59; el módulo es la
+  -- llave, 40). La reposición, como en la 5a: Proveedores o Recibir.
+  if v_forma in ('saldo_a_favor', 'deposito') then
     if retail.fn_puede_gestionar_proveedores() is not true then
-      raise exception 'Pasar a saldo a favor lo que debe un proveedor necesita el módulo «Proveedores» en tu rol'
+      raise exception '%', case when v_forma = 'deposito' then 'Registrar que un proveedor depositó lo que debe necesita el módulo «Proveedores» en tu rol'
+                                else 'Pasar a saldo a favor lo que debe un proveedor necesita el módulo «Proveedores» en tu rol' end
         using errcode = '42501', hint = 'nos_debe_sin_modulo';
     end if;
   elsif retail.fn_ve_modulo('proveedores') is not true and retail.fn_ve_modulo('recibir') is not true then
     raise exception 'Marcar lo que repuso un proveedor necesita el módulo «Proveedores» o «Recibir mercadería» en tu rol'
       using errcode = '42501', hint = 'nos_debe_sin_modulo';
   end if;
-  -- «Depositó» llega en la actividad 5 de la fase 5b.
-  if v_forma = 'deposito' then
-    raise exception 'Todavía no: «Depositó» llega en la siguiente entrega' using hint = 'nos_debe_todavia_no';
-  end if;
-  if v_forma is null or v_forma not in ('repuesta', 'saldo_a_favor') then
-    raise exception 'No se entiende cómo se resolvió la deuda: elige «Llegó la reposición» o «Pasar a saldo a favor»' using hint = 'nos_debe_forma';
+  if v_forma is null or v_forma not in ('repuesta', 'saldo_a_favor', 'deposito') then
+    raise exception 'No se entiende cómo se resolvió la deuda: elige «Llegó la reposición», «Pasar a saldo a favor» o «Depositó»' using hint = 'nos_debe_forma';
   end if;
 
   -- La deuda se bloquea ANTES de mirar el token: un doble clic con el mismo token se pone en fila y el segundo devuelve lo del primero;
   -- dos personas marcando la misma deuda a la vez, también, y la segunda ve lo que ya quedó. La marca puede faltar (ADR-0393): LEFT JOIN.
-  select x.id, x.despacho_id, x.proveedor_id, x.tipo, x.causa, x.cantidad, d.numero as envio_numero, d.ubicacion_destino_id,
+  select x.id, x.despacho_id, x.proveedor_id, x.tipo, x.causa, x.cantidad, x.creado_en, d.numero as envio_numero, d.ubicacion_destino_id,
          pr.nombre as proveedor, concat_ws(' · ', c.nombre, m.nombre) as que
     into v_deuda
     from retail.despacho_diferencias_vigentes x
@@ -410,7 +429,8 @@ begin
 
   -- Doble clic o reintento sin red: lo mismo ya se guardó y se devuelve, aunque quien lo hizo ya no esté de turno (comprobar algo
   -- guardado no escribe nada). El mismo token con otros datos no es un reintento.
-  v_huella := md5(jsonb_build_object('diferencia_id', p_diferencia_id, 'forma', v_forma, 'cantidad', p_cantidad, 'nota', v_nota)::text);
+  v_huella := md5((jsonb_build_object('diferencia_id', p_diferencia_id, 'forma', v_forma, 'cantidad', p_cantidad, 'nota', v_nota)
+                   || case when v_forma = 'deposito' then jsonb_build_object('deposito', p_deposito) else '{}'::jsonb end)::text);
   if p_token is not null then
     for v_existente in select r.id, r.huella from retail.proveedor_deuda_resoluciones r where r.token_cliente = p_token loop
       if v_existente.huella = v_huella then
@@ -426,7 +446,9 @@ begin
     raise exception 'Elige quién hace esta operación' using errcode = '42501', hint = 'responsable_requerido';
   end if;
   if p_cantidad is null or p_cantidad < 1 then
-    raise exception '%', case when v_forma = 'repuesta' then 'Escribe cuántas llegaron: desde 1' else 'Escribe cuántas pasan a saldo a favor: desde 1' end
+    raise exception '%', case when v_forma = 'repuesta' then 'Escribe cuántas llegaron: desde 1'
+                              when v_forma = 'deposito' then 'Escribe cuántas pagó con el depósito: desde 1'
+                              else 'Escribe cuántas pasan a saldo a favor: desde 1' end
       using hint = 'nos_debe_cantidad';
   end if;
   if v_forma = 'repuesta' and v_nota is null then
@@ -446,6 +468,48 @@ begin
       using hint = 'nos_debe_pasa_de_lo_debido';
   end if;
 
+  -- «Depositó»: cuánto, cómo, cuándo y a qué cuenta entró (como un reembolso). El monto se compara más abajo con lo que quedó a favor.
+  if v_forma = 'deposito' then
+    if p_deposito is null or jsonb_typeof(p_deposito) <> 'object' then
+      raise exception 'Faltan los datos del depósito: cuánto, cómo y cuándo' using hint = 'nos_debe_deposito_monto';
+    end if;
+    if jsonb_typeof(p_deposito -> 'monto') <> 'number' or (p_deposito ->> 'monto')::numeric <= 0 then
+      raise exception 'Escribe cuánto te depositó' using hint = 'nos_debe_deposito_monto';
+    end if;
+    v_dep_monto := (p_deposito ->> 'monto')::numeric;
+    if v_dep_monto <> round(v_dep_monto, 2) then
+      raise exception 'El monto del depósito admite como máximo 2 decimales' using hint = 'nos_debe_deposito_monto';
+    end if;
+    v_dep_metodo := lower(nullif(btrim(coalesce(p_deposito ->> 'metodo', '')), ''));
+    if v_dep_metodo is null or v_dep_metodo not in ('transferencia', 'yape', 'plin', 'efectivo', 'deposito', 'otro') then
+      raise exception 'Elige cómo te devolvió la plata' using hint = 'nos_debe_deposito_metodo';
+    end if;
+    begin
+      v_dep_fecha := coalesce(nullif(p_deposito ->> 'fecha', '')::date, retail.fn_hoy_lima());
+    exception when others then
+      raise exception 'La fecha del depósito no se entiende' using hint = 'nos_debe_deposito_fecha';
+    end;
+    if v_dep_fecha > retail.fn_hoy_lima() then
+      raise exception 'La fecha del depósito no puede ser futura' using hint = 'nos_debe_deposito_fecha';
+    end if;
+    if v_dep_fecha < (v_deuda.creado_en at time zone 'America/Lima')::date then
+      raise exception 'El depósito no puede ser anterior a la recepción donde faltaron' using hint = 'nos_debe_deposito_fecha';
+    end if;
+    v_dep_referencia := nullif(btrim(coalesce(p_deposito ->> 'referencia', '')), '');
+    if length(v_dep_referencia) > 60 then
+      raise exception 'La referencia va hasta 60 letras' using hint = 'nos_debe_deposito_referencia';
+    end if;
+    begin
+      v_dep_cuenta := nullif(p_deposito ->> 'cuenta_id', '')::uuid;
+    exception when others then
+      raise exception 'Esa cuenta no existe: recarga la pantalla' using hint = 'nos_debe_deposito_cuenta';
+    end;
+    if v_dep_cuenta is not null
+       and not exists (select 1 from retail.cuentas_dinero c where c.id = v_dep_cuenta and c.archivada_en is null and c.tipo <> 'fondo') then
+      raise exception 'Esa cuenta ya no está: elige otra' using hint = 'nos_debe_deposito_cuenta';
+    end if;
+  end if;
+
   begin
     if v_forma = 'repuesta' then
       insert into retail.proveedor_deuda_resoluciones (diferencia_id, forma, cantidad, nota, token_cliente, huella, creado_por)
@@ -454,9 +518,28 @@ begin
     else
       v_plata := retail.fn_pasar_deuda_a_saldo_a_favor(
         p_diferencia_id, p_cantidad, v_nota, p_token, v_huella, v_actor, v_deuda.ubicacion_destino_id,
-        left('Pasó a saldo a favor ' || p_cantidad || ' de ' || v_deuda.que || ' (faltaron en la '
-             || retail.fn_envio_numero_texto(v_deuda.envio_numero) || ')', 300));
+        left(case when v_forma = 'deposito' then 'Las pagó con un depósito: ' || p_cantidad else 'Pasó a saldo a favor ' || p_cantidad end
+             || ' de ' || v_deuda.que || ' (faltaron en la ' || retail.fn_envio_numero_texto(v_deuda.envio_numero) || ')', 300),
+        v_forma, case when v_forma = 'deposito' then v_dep_fecha end);
       v_id := (v_plata ->> 'resolucion_id')::uuid;
+      if v_forma = 'deposito' then
+        -- Lo que el proveedor depositó es lo que quedó a favor después de bajar lo que se le debía de ese comprobante: ni más ni menos.
+        v_a_favor := coalesce((select sum((d ->> 'a_favor')::numeric) from jsonb_array_elements(v_plata -> 'documentos') d), 0);
+        if v_a_favor <= 0 then
+          raise exception 'Todavía le debes ese comprobante: lo que no llegó solo baja tu deuda (S/ %). No hace falta que te deposite: usa «Pasar a saldo a favor»',
+            to_char(coalesce((select sum((d ->> 'baja_deuda')::numeric) from jsonb_array_elements(v_plata -> 'documentos') d), 0), 'FM999999990.00')
+            using hint = 'nos_debe_deposito_sin_sobrante';
+        end if;
+        if v_dep_monto <> v_a_favor then
+          raise exception 'El depósito es de S/ %, pero lo que no llegó deja S/ % a tu favor (después de bajar lo que le debías): revisa el monto',
+            to_char(v_dep_monto, 'FM999999990.00'), to_char(v_a_favor, 'FM999999990.00') using hint = 'nos_debe_deposito_monto';
+        end if;
+        -- Un reembolso por documento interno, con su parte: así cada uno queda saldado en el libro del saldo a favor.
+        for v_doc in select d from jsonb_array_elements(v_plata -> 'documentos') d where (d ->> 'a_favor')::numeric > 0 loop
+          perform retail.fn_insertar_reembolso_proveedor(v_deuda.proveedor_id, (v_doc ->> 'a_favor')::numeric, v_dep_metodo, v_dep_referencia,
+                                                         v_dep_fecha, v_nota, v_actor, (v_doc ->> 'nota_credito_id')::uuid, v_dep_cuenta);
+        end loop;
+      end if;
     end if;
   exception when unique_violation then
     get stacked diagnostics v_restriccion = constraint_name;
@@ -486,6 +569,13 @@ begin
       perform retail.fn_actividad_anotar('proveedores', 'deuda_saldo_a_favor', v_desc, v_actor, retail.fn_actividad_terminal_ahora(),
                                          v_deuda.ubicacion_destino_id, null, 'proveedor_deuda_resoluciones', v_id::text, now(),
                                          v_detalle || jsonb_build_object('documentos', v_plata -> 'documentos'), 'vivo');
+    elsif v_forma = 'deposito' then
+      v_desc := 'registró que ' || v_deuda.proveedor || ' depositó lo de ' || p_cantidad || ' de ' || v_deuda.que || ' (faltaron en la '
+        || retail.fn_envio_numero_texto(v_deuda.envio_numero) || '): '
+        || coalesce((select string_agg(e ->> 'documento', ', ') from jsonb_array_elements(v_plata -> 'documentos') e), '');
+      perform retail.fn_actividad_anotar('proveedores', 'deuda_deposito', v_desc, v_actor, retail.fn_actividad_terminal_ahora(),
+                                         v_deuda.ubicacion_destino_id, null, 'proveedor_deuda_resoluciones', v_id::text, now(),
+                                         v_detalle || jsonb_build_object('documentos', v_plata -> 'documentos'), 'vivo');
     else
       v_desc := 'marcó que ' || v_deuda.proveedor || ' repuso ' || p_cantidad || ' de ' || v_deuda.que || ' (faltaron en la '
         || retail.fn_envio_numero_texto(v_deuda.envio_numero) || ')';
@@ -507,6 +597,27 @@ begin
                             'documentos', coalesce(v_plata -> 'documentos', '[]'::jsonb));
 end;
 $$;
+
+-- «Depositó» (actividad 5): la puerta de la web. Deja el depósito en un ajuste de ESTA transacción y llama al resolvedor con la forma
+-- `deposito`, que lo vuelve a exigir todo (el módulo, la deuda, la cantidad, el depósito) y escribe el documento interno y el reembolso
+-- juntos. Fuera de esta función el resolvedor no tiene depósito y no escribe nada.
+create or replace function retail.registrar_deposito_deuda(p_diferencia_id uuid, p_cantidad integer, p_nota text, p_token uuid, p_deposito jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_r jsonb;
+begin
+  perform set_config('retail.deposito_de_deuda', coalesce(p_deposito, 'null'::jsonb)::text, true);
+  v_r := retail.resolver_deuda_proveedor(p_diferencia_id, 'deposito', p_cantidad, p_nota, p_token);
+  perform set_config('retail.deposito_de_deuda', '', true);
+  return v_r;
+end;
+$$;
+comment on function retail.registrar_deposito_deuda(uuid, integer, text, uuid, jsonb) is
+  'ADR-0362 fase 5b (actividad 5, decisiones 24 y 59): «Depositó». El proveedor devolvió en plata lo que no mandó: documento interno y reembolso de lo que quedó a favor, en una transacción. Con el módulo Proveedores.';
 
 -- Los documentos de una resolución (y de las que nacieron con ella en la misma llamada): lo que devuelve un reintento.
 create or replace function retail.fn_deuda_documentos_de(p_resolucion_id uuid)
@@ -1040,19 +1151,42 @@ $$;
 comment on function retail.fn_igv_en_espera() is
   'ADR-0362 fase 5b (actividad 4): el aviso del IGV del Inicio y del Observatorio. Notas del proveedor por pedir (documentos internos de una factura sin su nota) y prendas de una factura que no llegaron y siguen sin resolver, con su IGV. Cada parte, nula para quien no puede hacer nada con ella.';
 
+-- ---------- 8c. El saldo a favor que lee la ficha (actividad 5) ----------
+-- `fn_saldo_favor_proveedor` suma con los permisos de quien mira: con el módulo Proveedores solo, la tabla no le muestra las filas y la ficha
+-- decía S/ 0 (aunque sí veía el libro). Esta lectura pregunta el permiso de ver la plata de los proveedores, como el libro, y suma todo.
+-- La de siempre no se toca: la usan por dentro el pago y el reembolso.
+create or replace function retail.fn_saldo_favor_visible(p_proveedor_id uuid)
+returns numeric
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+begin
+  if retail.fn_ve_plata_de_proveedores() is not true then
+    raise exception 'Ver el saldo a favor de un proveedor necesita el módulo «Proveedores» o la plata de Compras en tu rol' using errcode = '42501';
+  end if;
+  return retail.fn_saldo_favor_proveedor(p_proveedor_id);
+end;
+$$;
+comment on function retail.fn_saldo_favor_visible(uuid) is
+  'ADR-0362 fase 5b (actividad 5): el saldo a favor de un proveedor para la ficha y Por pagar, con el permiso de ver la plata de los proveedores (con Proveedores solo, fn_saldo_favor_proveedor daba 0).';
+
 -- ---------- 9. Permisos ----------
 revoke all on function retail.fn_deuda_papel(uuid, integer) from public, anon, authenticated;
 grant execute on function retail.fn_deuda_papel(uuid, integer) to service_role;
 revoke all on function retail.fn_deuda_valor_de(uuid, integer) from public, anon, authenticated;
 grant execute on function retail.fn_deuda_valor_de(uuid, integer) to service_role;
-revoke all on function retail.fn_pasar_deuda_a_saldo_a_favor(uuid, integer, text, uuid, text, uuid, uuid, text) from public, anon, authenticated;
-grant execute on function retail.fn_pasar_deuda_a_saldo_a_favor(uuid, integer, text, uuid, text, uuid, uuid, text) to service_role;
+revoke all on function retail.fn_pasar_deuda_a_saldo_a_favor(uuid, integer, text, uuid, text, uuid, uuid, text, text, date) from public, anon, authenticated;
+grant execute on function retail.fn_pasar_deuda_a_saldo_a_favor(uuid, integer, text, uuid, text, uuid, uuid, text, text, date) to service_role;
 revoke all on function retail.fn_deuda_documentos_de(uuid) from public, anon, authenticated;
 grant execute on function retail.fn_deuda_documentos_de(uuid) to service_role;
 revoke all on function retail.fn_deuda_valor(uuid, integer) from public, anon;
 grant execute on function retail.fn_deuda_valor(uuid, integer) to authenticated, service_role;
 revoke all on function retail.resolver_deuda_proveedor(uuid, text, integer, text, uuid) from public, anon;
 grant execute on function retail.resolver_deuda_proveedor(uuid, text, integer, text, uuid) to authenticated, service_role;
+revoke all on function retail.registrar_deposito_deuda(uuid, integer, text, uuid, jsonb) from public, anon;
+grant execute on function retail.registrar_deposito_deuda(uuid, integer, text, uuid, jsonb) to authenticated, service_role;
 revoke all on function retail.fn_nos_debe_deuda(uuid) from public, anon;
 revoke all on function retail.fn_nota_proveedor_resumen(uuid) from public, anon, authenticated;
 grant execute on function retail.fn_nota_proveedor_resumen(uuid) to service_role;
@@ -1061,6 +1195,8 @@ revoke all on function retail.adjuntar_nota_proveedor(uuid[], text, date, numeri
 grant execute on function retail.adjuntar_nota_proveedor(uuid[], text, date, numeric, uuid) to authenticated, service_role;
 revoke all on function retail.fn_notas_proveedor_tablero() from public, anon;
 grant execute on function retail.fn_notas_proveedor_tablero() to authenticated, service_role;
+revoke all on function retail.fn_saldo_favor_visible(uuid) from public, anon;
+grant execute on function retail.fn_saldo_favor_visible(uuid) to authenticated, service_role;
 revoke all on function retail.fn_igv_en_espera() from public, anon;
 grant execute on function retail.fn_igv_en_espera() to authenticated, service_role;
 
@@ -1087,8 +1223,15 @@ begin
   if position('''4019''' in pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure)) = 0 then
     raise exception 'el Diario todavía baja el crédito fiscal con el IGV de un documento interno';
   end if;
-  if position('nos_debe_todavia_no' in pg_get_functiondef('retail.fn_pasar_deuda_a_saldo_a_favor(uuid, integer, text, uuid, text, uuid, uuid, text)'::regprocedure)) > 0 then
+  if position('nos_debe_todavia_no' in pg_get_functiondef('retail.fn_pasar_deuda_a_saldo_a_favor(uuid, integer, text, uuid, text, uuid, uuid, text, text, date)'::regprocedure)) > 0 then
     raise exception 'pasar a saldo a favor todavía no acepta facturas';
+  end if;
+  if to_regprocedure('retail.fn_saldo_favor_visible(uuid)') is null then
+    raise exception 'falta el saldo a favor visible (fn_saldo_favor_visible)';
+  end if;
+  if position('retail.deposito_de_deuda' in pg_get_functiondef('retail.resolver_deuda_proveedor(uuid, text, integer, text, uuid)'::regprocedure)) = 0
+     or to_regprocedure('retail.registrar_deposito_deuda(uuid, integer, text, uuid, jsonb)') is null then
+    raise exception 'resolver_deuda_proveedor todavía no registra el depósito';
   end if;
   if to_regprocedure('retail.fn_igv_en_espera()') is null then
     raise exception 'falta el aviso del IGV (fn_igv_en_espera)';

@@ -30,6 +30,9 @@
  *      plata; desde su fecha baja el crédito fiscal (Impuestos, registro de compras) y el Diario saca su IGV de la cuenta puente; lo que no
  *      se acepta (sin Notas de crédito, otro comprobante, serie, fecha, monto distinto); una nota para dos documentos; la tabla sola no
  *      deja dos notas para un documento ni se edita.
+ *   D  «DEPOSITÓ» (5b, actividad 5): documento interno y reembolso de lo que quedó a favor en una transacción, a la cuenta donde entró;
+ *      lo que no se acepta (todavía se le debe, monto distinto, medio, fecha, referencia, cuenta, sin Proveedores); con factura, el IGV
+ *      espera en la cuenta puente; y el saldo a favor que lee la ficha con Proveedores solo (antes S/ 0).
  *   I  EL AVISO DEL IGV (5b, actividad 4): `fn_igv_en_espera` cuenta las prendas de una factura que no llegaron y los documentos que
  *      esperan la nota del proveedor, con su IGV; salen al resolver o adjuntar; cada parte, solo para quien puede actuar.
  *   P  PERMISOS: Proveedores o Recibir resuelven; la plata de Compras y Órdenes de compra solo leen; sin módulos, 42501; sin elegir
@@ -181,6 +184,11 @@ ${atrapa(
   "resuelve",
   "p_dif uuid, p_forma text, p_cantidad integer, p_nota text, p_token uuid",
   "retail.resolver_deuda_proveedor(p_dif, p_forma, p_cantidad, p_nota, p_token)",
+)}
+${atrapa(
+  "deposita",
+  "p_dif uuid, p_cantidad integer, p_nota text, p_token uuid, p_dep jsonb",
+  "retail.registrar_deposito_deuda(p_dif, p_cantidad, p_nota, p_token, p_dep)",
 )}
 ${atrapa("debe", "p_prov uuid", "retail.fn_proveedor_nos_debe(p_prov)")}
 ${atrapa("resumen", "p_nada integer", "retail.fn_nos_debe_resumen()")}
@@ -339,8 +347,8 @@ function caso(nombre, sql, esperado) {
 const SIN_MODULO_RESOLVER = "42501|nos_debe_sin_modulo|Marcar lo que repuso un proveedor necesita el módulo «Proveedores» o «Recibir mercadería» en tu rol";
 const SIN_MODULO_LEER = "42501|nos_debe_sin_modulo|Ver lo que te debe un proveedor necesita el módulo «Proveedores», la plata de Compras, «Órdenes de compra» o «Recibir mercadería» en tu rol";
 const SIN_MODULO_RESUMEN = "42501|nos_debe_sin_modulo|Ver lo que te deben los proveedores necesita el módulo «Proveedores», la plata de Compras, «Órdenes de compra» o «Recibir mercadería» en tu rol";
-const TODAVIA_NO = "P0001|nos_debe_todavia_no|Todavía no: «Depositó» llega en la siguiente entrega";
-const FORMA = "P0001|nos_debe_forma|No se entiende cómo se resolvió la deuda: elige «Llegó la reposición» o «Pasar a saldo a favor»";
+const SIN_DEPOSITO = "P0001|nos_debe_deposito_monto|Faltan los datos del depósito: cuánto, cómo y cuándo";
+const FORMA = "P0001|nos_debe_forma|No se entiende cómo se resolvió la deuda: elige «Llegó la reposición», «Pasar a saldo a favor» o «Depositó»";
 const SIN_PAPEL_TODO =
   "P0001|nos_debe_sin_papel|Esas prendas no están en ningún comprobante con cupo: no se facturaron, así que no hay plata que pasar a saldo a favor. Si el proveedor las cobra después, regístralo y vuelve a intentarlo";
 const NO_ES_DEUDA = "P0001|nos_debe_no_es_deuda|Eso no es una deuda del proveedor: solo lo que «no vino» se repone";
@@ -510,7 +518,7 @@ caso(
 
 // B. FASE 5B ----------------------------------------------------------------------------------------------------------------
 caso(
-  "B1 «Depositó» todavía no; a saldo a favor lo que nadie facturó, no (no hay plata); sin escribir nada; otra forma o una deuda que no existe, no",
+  "B1 «Depositó» sin sus datos, no; a saldo a favor lo que nadie facturó, no (no hay plata); sin escribir nada; otra forma o una deuda que no existe, no",
   `${rolDeMicaela("recibir", "proveedores")}
    ${DEUDA("x1", "l1", 10, 7)}
    ${como(MICAELA)}${EN_TIENDA}
@@ -523,7 +531,7 @@ caso(
      coalesce(pg_temp.debe(gen_random_uuid())::text, 'nulo')) as r \\gset
    reset role;
    select :'r' || ' / ' || ${ESTADO("x1")};`,
-  [SIN_PAPEL_TODO, TODAVIA_NO, FORMA, FORMA,
+  [SIN_PAPEL_TODO, SIN_DEPOSITO, FORMA, FORMA,
     "P0001|nos_debe_no_existe|Esa deuda no existe: recarga la pantalla",
     "nulo",
     "0/3"].join(" / "),
@@ -878,16 +886,150 @@ caso(
   ].join(" / "),
 );
 
+// D. «DEPOSITÓ» (fase 5b, actividad 5) ------------------------------------------------------------------------------------------
+// El proveedor devuelve en plata lo que no mandó: documento interno + reembolso de lo que quedó a favor, en una transacción.
+const DEPOSITO = (monto, extra = "") =>
+  `jsonb_build_object('monto', ${monto}, 'metodo', 'efectivo', 'fecha', retail.fn_hoy_lima(), 'referencia', 'Recibo 12', 'cuenta_id', :'fuerte'${extra})`;
+const FUERTE = `select id as fuerte from retail.cuentas_dinero where tipo = 'caja_fuerte' and nombre like '%Trujillo' \\gset\n`;
+caso(
+  "D1 «Depositó» con el comprobante ya pagado: documento interno y reembolso en una transacción, a la cuenta donde entró; el saldo a favor queda en cero; el mismo token no repite; la actividad",
+  `${PAPEL("bol", "boleta", "B001", "902", [["l1", 10, 20]])}
+   ${FUERTE}
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.registrar_pago_compra(:'bol', 200.00, 'transferencia') as pg \\gset
+   reset role;
+   ${rolDeMicaela("recibir", "proveedores")}
+   ${DEUDA("x1", "l1", 10, 7)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select gen_random_uuid() as tok \\gset
+   select pg_temp.deposita(:'x1', 2, 'Lo devolvió en efectivo', :'tok', ${DEPOSITO("40.00")}) as d \\gset
+   select pg_temp.deposita(:'x1', 2, 'Lo devolvió en efectivo', :'tok', ${DEPOSITO("40.00")}) as d2 \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'d'::jsonb), ((:'d'::jsonb ->> 'resolucion_id') = (:'d2'::jsonb ->> 'resolucion_id'))::text,
+     (select ${DI("d ->> 'documento'")} || ':' || (d ->> 'monto') || ':' || (d ->> 'baja_deuda') || ':' || (d ->> 'a_favor')
+        from jsonb_array_elements(:'d'::jsonb -> 'documentos') d),
+     (select string_agg(k.tipo || ':' || k.monto || ':' || coalesce(k.metodo, '-') || ':' || coalesce(k.referencia, '-') || ':'
+                        || coalesce((k.cuenta_dinero_id = :'fuerte')::text, '-'), ',' order by k.tipo)
+        from retail.proveedor_creditos k where k.proveedor_id = :'prov'),
+     retail.fn_saldo_favor_proveedor(:'prov'),
+     (select string_agg(r.forma || ':' || r.cantidad || ':' || (r.nota_credito_id is not null), ',') from retail.proveedor_deuda_resoluciones r
+       where r.diferencia_id = :'x1'),
+     (select count(*) from retail.compra_notas_credito n where n.compra_id = :'bol') || ' documento',
+     (select string_agg(a.modulo || ':' || ${DI(limpio("a.descripcion"))}, ',') from retail.actividad a
+       where a.accion = 'deuda_deposito' and a.detalle ->> 'diferencia_id' = :'x1'));`,
+  [
+    "OK",
+    "true",
+    "DI-N:40.00:0.00:40.00",
+    "nota_credito:40.00:-:-:-,reembolso:40.00:efectivo:Recibo 12:true",
+    "0.00",
+    "deposito:2:true",
+    "1 documento",
+    "proveedores:registró que Proveedor Nos Debe Prueba depositó lo de 2 de Polos Nos Debe · Marca Nos Debe Prueba (faltaron en la ENV): DI-N",
+  ].join(" / "),
+);
+caso(
+  "D2 «Depositó» lo que no se acepta: si todavía se le debe el comprobante, no hay nada que depositar; el monto tiene que ser lo que quedó a favor; medio, fecha, referencia y cuenta; con Recibir solo, 42501; sin escribir nada",
+  `${PAPEL("bol", "boleta", "B001", "902", [["l1", 10, 20]])}
+   ${FUERTE}
+   ${rolDeMicaela("recibir", "proveedores")}
+   ${DEUDA("x1", "l1", 10, 7)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.e(pg_temp.deposita(:'x1', 2, null, null, ${DEPOSITO("40.00")})) as impaga \\gset
+   reset role;
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.registrar_pago_compra(:'bol', 200.00, 'transferencia') as pg \\gset
+   reset role;
+   ${como(MICAELA)}${EN_TIENDA}
+   select concat_ws(' / ', :'impaga',
+     pg_temp.e(pg_temp.deposita(:'x1', 2, null, null, ${DEPOSITO("30.00")})),
+     pg_temp.e(pg_temp.deposita(:'x1', 2, null, null, ${DEPOSITO("0")})),
+     pg_temp.e(pg_temp.deposita(:'x1', 2, null, null, ${DEPOSITO("40.001")})),
+     pg_temp.e(pg_temp.deposita(:'x1', 2, null, null, ${DEPOSITO("40.00", ", 'metodo', 'cheque'")})),
+     pg_temp.e(pg_temp.deposita(:'x1', 2, null, null, ${DEPOSITO("40.00", ", 'fecha', retail.fn_hoy_lima() + 1")})),
+     pg_temp.e(pg_temp.deposita(:'x1', 2, null, null, ${DEPOSITO("40.00", ", 'fecha', retail.fn_hoy_lima() - 400")})),
+     pg_temp.e(pg_temp.deposita(:'x1', 2, null, null, ${DEPOSITO("40.00", ", 'referencia', repeat('x', 61)")})),
+     pg_temp.e(pg_temp.deposita(:'x1', 2, null, null, ${DEPOSITO("40.00", ", 'cuenta_id', gen_random_uuid()")}))) as r \\gset
+   reset role;
+   ${MICAELA_CON("recibir")}
+   select pg_temp.e(pg_temp.deposita(:'x1', 2, null, null, ${DEPOSITO("40.00")})) as solo_recibir \\gset
+   reset role;
+   select concat_ws(' / ', :'r', :'solo_recibir', ${ESTADO("x1")},
+     (select count(*) from retail.compra_notas_credito n where n.compra_id = :'bol') || ' documentos',
+     (select count(*) from retail.proveedor_creditos k where k.proveedor_id = :'prov' and k.tipo = 'reembolso') || ' reembolsos');`,
+  [
+    "P0001|nos_debe_deposito_sin_sobrante|Todavía le debes ese comprobante: lo que no llegó solo baja tu deuda (S/ 40.00). No hace falta que te deposite: usa «Pasar a saldo a favor»",
+    "P0001|nos_debe_deposito_monto|El depósito es de S/ 30.00, pero lo que no llegó deja S/ 40.00 a tu favor (después de bajar lo que le debías): revisa el monto",
+    "P0001|nos_debe_deposito_monto|Escribe cuánto te depositó",
+    "P0001|nos_debe_deposito_monto|El monto del depósito admite como máximo 2 decimales",
+    "P0001|nos_debe_deposito_metodo|Elige cómo te devolvió la plata",
+    "P0001|nos_debe_deposito_fecha|La fecha del depósito no puede ser futura",
+    "P0001|nos_debe_deposito_fecha|El depósito no puede ser anterior a la recepción donde faltaron",
+    "P0001|nos_debe_deposito_referencia|La referencia va hasta 60 letras",
+    "P0001|nos_debe_deposito_cuenta|Esa cuenta ya no está: elige otra",
+    "42501|nos_debe_sin_modulo|Registrar que un proveedor depositó lo que debe necesita el módulo «Proveedores» en tu rol",
+    "0/3",
+    "0 documentos",
+    "0 reembolsos",
+  ].join(" / "),
+);
+caso(
+  "D3 «Depositó» con factura ya pagada: el reembolso lleva su IGV, y ese IGV espera la nota del proveedor en la cuenta puente",
+  `${PAPEL("fac", "factura", "F001", "901", [["l1", 10, 20]])}
+   ${FUERTE}
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.registrar_pago_compra(:'fac', 236.00, 'transferencia') as pg \\gset
+   reset role;
+   ${rolDeMicaela("recibir", "proveedores")}
+   ${DEUDA("x1", "l1", 10, 7)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.deposita(:'x1', 1, null, null, ${DEPOSITO("23.60")}) as d \\gset
+   reset role;
+   select (:'d'::jsonb -> 'documentos' -> 0 ->> 'nota_credito_id') as nc \\gset
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select coalesce(string_agg(x.cuenta || ':' || x.debe || ':' || x.haber, ',' order by x.cuenta), '-') as diario
+     from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), null) x where x.origen_id = :'nc' \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'d'::jsonb),
+     (select string_agg(k.tipo || ':' || k.monto, ',' order by k.tipo) from retail.proveedor_creditos k where k.proveedor_id = :'prov'),
+     retail.fn_saldo_favor_proveedor(:'prov'), :'diario');`,
+  "OK / nota_credito:23.60,reembolso:23.60 / 0.00 / 201:0:20.00,4019:0:3.60,421:23.60:0",
+);
+caso(
+  "D4 con Proveedores solo, el saldo a favor de la ficha se lee entero (antes salía S/ 0); sin Proveedores ni la plata de Compras, 42501",
+  `${PAPEL("bol", "boleta", "B001", "902", [["l1", 10, 20]])}
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.registrar_pago_compra(:'bol', 200.00, 'transferencia') as pg \\gset
+   reset role;
+   ${rolDeMicaela("recibir", "proveedores")}
+   ${DEUDA("x1", "l1", 10, 7)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.resuelve(:'x1', 'saldo_a_favor', 3, null, null) as a \\gset
+   reset role;
+   ${MICAELA_CON("proveedores")}
+   select retail.fn_saldo_favor_visible(:'prov') as visible, retail.fn_saldo_favor_proveedor(:'prov') as de_siempre \\gset
+   reset role;
+   ${MICAELA_CON("existencias")}
+   select pg_temp.intento(format('select retail.fn_saldo_favor_visible(%L)', :'prov')) as sin_modulo \\gset
+   reset role;
+   select concat_ws(' / ', :'visible', :'de_siempre', :'sin_modulo');`,
+  "60.00 / 0.00 / 42501||Ver el saldo a favor de un proveedor necesita el módulo «Proveedores» o la plata de Compras en tu rol",
+);
+
 // I. EL AVISO DEL IGV (fase 5b, actividad 4) ------------------------------------------------------------------------------------
-// `fn_igv_en_espera` cuenta en toda la base: el caso compara contra lo que había al empezar (el banco puede traer datos).
+// `fn_igv_en_espera` cuenta en toda la base: el caso compara contra lo que había al empezar (el banco puede traer datos). Una diferencia
+// de cero se escribe «0» aunque las dos cifras traigan céntimos (10.80 − 10.80 da 0.00).
 caso(
   "I1 el aviso del IGV: las prendas de una factura que no llegaron (no las de una boleta) y los documentos que esperan su nota, con su IGV; salen al resolver o adjuntar; cada parte solo para quien puede actuar",
-  `create function pg_temp.igv(j jsonb, b jsonb) returns text language sql as $f$
+  `create function pg_temp.cifra(n numeric) returns text language sql as $f$
+     select case when n = 0 then '0' else to_char(n, 'FM999999990.00') end
+   $f$;
+   create function pg_temp.igv(j jsonb, b jsonb) returns text language sql as $f$
      select coalesce(((j -> 'sin_nota' ->> 'documentos')::int - coalesce((b -> 'sin_nota' ->> 'documentos')::int, 0)) || ':'
-              || ((j -> 'sin_nota' ->> 'igv')::numeric - coalesce((b -> 'sin_nota' ->> 'igv')::numeric, 0)), 'nulo')
+              || pg_temp.cifra((j -> 'sin_nota' ->> 'igv')::numeric - coalesce((b -> 'sin_nota' ->> 'igv')::numeric, 0)), 'nulo')
        || ' | ' || coalesce(((j -> 'faltantes' ->> 'prendas')::int - coalesce((b -> 'faltantes' ->> 'prendas')::int, 0)) || ':'
               || ((j -> 'faltantes' ->> 'facturas')::int - coalesce((b -> 'faltantes' ->> 'facturas')::int, 0)) || ':'
-              || ((j -> 'faltantes' ->> 'igv')::numeric - coalesce((b -> 'faltantes' ->> 'igv')::numeric, 0)), 'nulo')
+              || pg_temp.cifra((j -> 'faltantes' ->> 'igv')::numeric - coalesce((b -> 'faltantes' ->> 'igv')::numeric, 0)), 'nulo')
    $f$;
    ${como(FELIPE)}${SIN_ENCABEZADOS}
    select retail.fn_igv_en_espera() as base \\gset
@@ -1220,7 +1362,8 @@ caso(
 
 // La fase 5b: lo que lee y escribe la web, security definer con authenticated y sin anon; lo interno, cerrado; las tablas de la nota del
 // proveedor, con RLS, sin políticas y sin lectura directa.
-const PUBLICAS_5B = "('fn_deuda_valor', 'adjuntar_nota_proveedor', 'fn_notas_proveedor_tablero', 'fn_igv_en_espera')";
+const PUBLICAS_5B = "('fn_deuda_valor', 'adjuntar_nota_proveedor', 'fn_notas_proveedor_tablero', 'fn_igv_en_espera', 'fn_saldo_favor_visible', " +
+  "'registrar_deposito_deuda')";
 const INTERNAS_5B = "('fn_deuda_papel', 'fn_deuda_valor_de', 'fn_pasar_deuda_a_saldo_a_favor', 'fn_deuda_documentos_de', 'fn_nota_proveedor_resumen', " +
   "'fn_asientos_nota_proveedor')";
 caso(
@@ -1237,7 +1380,7 @@ caso(
      has_table_privilege('authenticated', 'retail.compra_notas_proveedor', 'select'),
      has_table_privilege('authenticated', 'retail.compra_notas_proveedor_documentos', 'select'),
      has_table_privilege('anon', 'retail.compra_notas_proveedor', 'select'));`,
-  "4,t,t,f,6,f,t,0,f,f,f",
+  "6,t,t,f,6,f,t,0,f,f,f",
 );
 
 // C. DOS SESIONES A LA VEZ --------------------------------------------------------------------------------------------------

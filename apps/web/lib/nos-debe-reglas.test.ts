@@ -1,16 +1,31 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  argsDeposito,
   argsResolverDeuda,
   argsSaldoAFavor,
   avanceDeDeuda,
+  borradorDeposito,
   borradorSaldoAFavor,
+  camposDeposito,
   camposSaldoAFavor,
   cantidadASaldo,
+  cantidadDeposito,
   cuantoVale,
+  detalleDeDeposito,
   detalleDeSaldoAFavor,
+  fraseDeposito,
   fraseNotaDeLaFactura,
   fraseSaldoAFavor,
+  fraseSinDeposito,
+  leerCantidadDeposito,
   leerCantidadSaldoAFavor,
+  leerMontoDeposito,
+  METODOS_DEPOSITO,
+  problemasDeposito,
+  textoBotonDeposito,
+  TOPES_DEPOSITO,
+  type BorradorDeposito,
   leerDocumentosInternos,
   leerValorDeDeuda,
   pasablesASaldo,
@@ -49,6 +64,7 @@ import {
   type DeudaProveedor,
 } from "./nos-debe-reglas";
 import { sePuedeConfirmar } from "./guia-campos";
+import { ETIQUETA_METODO } from "./compras-reglas";
 
 // «Nos debe» (ADR-0362, fase 5a): la lógica pura de la pantalla. El contrato con la base:
 // docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md.
@@ -708,3 +724,215 @@ describe("cuánto vale y adónde va (fn_deuda_valor) y lo que vuelve", () => {
   });
 });
 
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// «Depositó» (fase 5b, actividad 5): el proveedor devolvió en plata lo que no mandó
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+describe("la hoja «Depositó»: cuántas, cuánto y cómo", () => {
+  it("viene puesto todo lo que se puede pagar, la transferencia y hoy; el monto, vacío", () => {
+    expect(borradorDeposito(deuda(), HOY)).toEqual({ cantidad: "2", monto: "", metodo: "transferencia", fecha: HOY, referencia: "", nota: "" });
+    expect(borradorDeposito(deuda({ sinPapel: 1 }), HOY).cantidad).toBe("1");
+  });
+
+  it("la cantidad, de 1 a lo que está en un comprobante", () => {
+    expect(leerCantidadDeposito("", 2).problema).toBe("Escribe cuántas pagó con el depósito.");
+    expect(leerCantidadDeposito("1.5", 2).problema).toBe("Escribe solo el número de prendas, sin letras ni decimales.");
+    expect(leerCantidadDeposito("0", 2).problema).toBe("Tiene que ser al menos 1.");
+    expect(leerCantidadDeposito("3", 2, "Chompas").problema).toBe("Puede pagar 2 chompas: las demás no se facturaron.");
+    expect(leerCantidadDeposito("2", 2)).toEqual({ n: 2, problema: null });
+    expect(cantidadDeposito({ cantidad: "" }, deuda({ sinPapel: 1 }))).toBe(1);
+    expect(cantidadDeposito({ cantidad: "2" }, deuda({ sinPapel: 2 }))).toBeNull();
+  });
+
+  it("el monto, en soles con hasta 2 decimales (la coma vale como punto)", () => {
+    expect(leerMontoDeposito("")).toEqual({ n: null, problema: "Escribe cuánto te depositó." });
+    expect(leerMontoDeposito("40")).toEqual({ n: 40, problema: null });
+    expect(leerMontoDeposito(" 40,5 ")).toEqual({ n: 40.5, problema: null });
+    expect(leerMontoDeposito("40.001").problema).toBe("El monto va con hasta 2 decimales.");
+    expect(leerMontoDeposito("0").problema).toBe("El depósito tiene que ser de más de S/\u00a00.00.");
+    for (const raro of ["abc", "-5", "1,299.50", "S/ 40", "4e1"]) expect(leerMontoDeposito(raro).problema).toBe("Escribe el monto en soles, solo con números.");
+  });
+
+  it("los medios son los del reembolso, los mismos que muestran las pastillas, y la base pide lo mismo", () => {
+    expect([...METODOS_DEPOSITO]).toEqual(Object.keys(ETIQUETA_METODO));
+    const sql = readFileSync(new URL("../../../supabase/migrations/20261015150000_nos_debe_saldo_a_favor.sql", import.meta.url), "utf8");
+    expect(sql).toContain(`v_dep_metodo not in (${METODOS_DEPOSITO.map((m) => `'${m}'`).join(", ")})`);
+    expect(sql).toContain(`length(v_dep_referencia) > ${TOPES_DEPOSITO.referencia}`);
+  });
+});
+
+describe("la hoja «Depositó»: lo que rechaza la base, dicho antes", () => {
+  const BIEN: BorradorDeposito = { cantidad: "2", monto: "84.00", metodo: "transferencia", fecha: HOY, referencia: "Op 123", nota: "" };
+  const problemas = (b: Partial<BorradorDeposito>, aFavor: number | null = 84, d: DeudaProveedor = deuda()) =>
+    problemasDeposito({ borrador: { ...BIEN, ...b }, deuda: d, aFavor, hoy: HOY });
+
+  it("todo bien: nada que decir", () => {
+    expect(problemas({})).toEqual({});
+    // Sin saber todavía cuánto quedó a favor, el monto no se compara (la base decide).
+    expect(problemas({ monto: "30" }, null)).toEqual({});
+  });
+
+  it("el monto es exactamente lo que quedó a favor; sin nada a favor, no hay depósito", () => {
+    expect(problemas({ monto: "30" }).monto).toBe(
+      "Lo que no llegó deja S/\u00a084.00 a tu favor: el depósito tiene que ser eso. Si te depositó otra cifra, revisa cuántas pagó con él.",
+    );
+    expect(problemas({}, 0).monto).toBe("Todavía le debes ese comprobante: no hay nada que te deposite. Usa «Pasar a saldo a favor».");
+    expect(problemas({ monto: "" }).monto).toBe("Escribe cuánto te depositó.");
+  });
+
+  it("el medio, la fecha, la referencia y la nota", () => {
+    expect(problemas({ metodo: "cheque" }).metodo).toBe("Elige cómo te lo devolvió.");
+    expect(problemas({ metodo: "" }).metodo).toBe("Elige cómo te lo devolvió.");
+    expect(problemas({ fecha: "" }).fecha).toBe("Elige la fecha del depósito.");
+    expect(problemas({ fecha: "2026-10-16" }).fecha).toBe("La fecha del depósito no puede ser futura.");
+    // La recepción donde faltaron fue el 12 en Lima (19:44): ese día vale, el 11 no.
+    expect(problemas({ fecha: "2026-10-11" }).fecha).toBe("El depósito no puede ser anterior a la recepción donde faltaron (12/10).");
+    expect(problemas({ fecha: "2026-10-12" }).fecha).toBeUndefined();
+    expect(problemas({ referencia: "x".repeat(61) }).referencia).toBe("La referencia va hasta 60 letras.");
+    expect(problemas({ referencia: "x".repeat(60) }).referencia).toBeUndefined();
+    expect(problemas({ nota: "x".repeat(301) }).nota).toBe("La nota va hasta 300 letras.");
+    expect(problemas({ cantidad: "3" }).cantidad).toBe("Puede pagar 2 chompas: las demás no se facturaron.");
+  });
+});
+
+describe("la guía de la hoja «Depositó» (ADR-0284)", () => {
+  const listo = { listo: true, motivo: null };
+  const conCuenta = { hay: true, id: "cta-1" };
+  const BIEN: BorradorDeposito = { cantidad: "2", monto: "84.00", metodo: "transferencia", fecha: HOY, referencia: "", nota: "" };
+  const campos = (b: BorradorDeposito, extra: Partial<Parameters<typeof camposDeposito>[3]> = {}, aFavor: number | null = 84, d: DeudaProveedor = deuda()) =>
+    camposDeposito(problemasDeposito({ borrador: b, deuda: d, aFavor, hoy: HOY }), b, d, { responsable: listo, cuenta: conCuenta, ...extra });
+
+  it("en el orden en que se ven; lo que viene puesto es sugerido", () => {
+    const c = campos(borradorDeposito(deuda(), HOY));
+    expect(c.map((x) => x.id)).toEqual(["cantidad", "monto", "fecha", "metodo", "cuenta", "referencia", "nota", "responsable"]);
+    expect(c.find((x) => x.id === "cantidad")).toMatchObject({ sugerido: true, requerido: false });
+    expect(c.find((x) => x.id === "fecha")).toMatchObject({ sugerido: true, requerido: false });
+    expect(c.find((x) => x.id === "metodo")).toMatchObject({ sugerido: true, requerido: false });
+    expect(c.find((x) => x.id === "cuenta")).toMatchObject({ sugerido: true, requerido: false, hecho: false });
+    // El monto se escribe mirando el depósito: falta.
+    expect(c.find((x) => x.id === "monto")).toMatchObject({ requerido: true, hecho: false, pendiente: "Escribe cuánto te depositó." });
+    expect(sePuedeConfirmar(c)).toBe(false);
+  });
+
+  it("con el monto escrito y quien lo hace, se puede; la cuenta nunca bloquea", () => {
+    expect(sePuedeConfirmar(campos(BIEN))).toBe(true);
+    expect(sePuedeConfirmar(campos(BIEN, { cuenta: { hay: true, id: null } }))).toBe(true);
+    expect(campos(BIEN, { cuenta: { hay: true, id: null } }).find((x) => x.id === "cuenta")!.pendiente).toBe("Elige a qué cuenta entró: así queda en Cuentas y dinero.");
+    expect(campos(BIEN, { cuenta: { hay: true, id: "cta-1" }, tocados: { cuenta: true } }).find((x) => x.id === "cuenta")).toMatchObject({ hecho: true });
+    // Sin cuentas para ese medio, no se pregunta.
+    expect(campos(BIEN, { cuenta: { hay: false, id: null } }).some((x) => x.id === "cuenta")).toBe(false);
+    expect(sePuedeConfirmar(campos(BIEN, { responsable: { listo: false, motivo: "Elige quién lo hace." } }))).toBe(false);
+  });
+
+  it("puesto mal, bloquea; con una sola que se pueda pagar, no se pregunta cuántas", () => {
+    expect(sePuedeConfirmar(campos({ ...BIEN, monto: "30" }))).toBe(false);
+    expect(sePuedeConfirmar(campos({ ...BIEN, fecha: "2026-10-16" }, { tocados: { fecha: true } }))).toBe(false);
+    expect(campos({ ...BIEN, fecha: "2026-10-16" }).find((x) => x.id === "fecha")).toMatchObject({ requerido: true, hecho: false });
+    expect(sePuedeConfirmar(campos({ ...BIEN, referencia: "x".repeat(61) }))).toBe(false);
+    expect(sePuedeConfirmar(campos(BIEN, {}, 0))).toBe(false);
+    expect(campos({ ...BIEN, cantidad: "" }, {}, 42, deuda({ sinPapel: 1 })).some((x) => x.id === "cantidad")).toBe(false);
+  });
+});
+
+/**
+ * Lo que rechaza `resolver_deuda_proveedor` con la forma `deposito` (20261015150000): cantidad de 1 a lo que está en un comprobante, monto
+ * número > 0 con hasta 2 decimales e igual a lo que quedó a favor (y algo tiene que quedar), medio de la lista, fecha ni futura ni anterior a
+ * la recepción, referencia hasta 60 y nota hasta 300. Lo que la guía deja pasar, la base lo acepta; lo que la base rechaza, la guía lo bloquea.
+ */
+function rechazoDelDeposito(a: ReturnType<typeof argsDeposito>, pasables: number, aFavor: number, desde: string): string | null {
+  if (!Number.isInteger(a.p_cantidad) || a.p_cantidad < 1 || a.p_cantidad > pasables) return "cantidad";
+  if (a.p_nota.length > 300) return "nota";
+  const m = a.p_deposito.monto;
+  if (!(m > 0) || Math.round(m * 100) !== m * 100) return "monto";
+  if (!(METODOS_DEPOSITO as readonly string[]).includes(a.p_deposito.metodo)) return "metodo";
+  if (!a.p_deposito.fecha || a.p_deposito.fecha > HOY || a.p_deposito.fecha < desde) return "fecha";
+  if ((a.p_deposito.referencia ?? "").length > 60) return "referencia";
+  if (aFavor <= 0) return "sin sobrante";
+  if (m !== aFavor) return "monto distinto";
+  return null;
+}
+
+describe("espejo de «Depositó»: la guía y la base dicen lo mismo", () => {
+  const BIEN: BorradorDeposito = { cantidad: "2", monto: "84.00", metodo: "transferencia", fecha: HOY, referencia: "Op 123", nota: "" };
+  const escenarios: { nombre: string; b: Partial<BorradorDeposito>; aFavor?: number; d?: DeudaProveedor }[] = [
+    { nombre: "todo bien", b: {} },
+    { nombre: "una parte, con lo que deja", b: { cantidad: "1", monto: "42" }, aFavor: 42 },
+    { nombre: "otro monto", b: { monto: "80" } },
+    { nombre: "monto con 3 decimales", b: { monto: "84.001" } },
+    { nombre: "monto cero", b: { monto: "0" } },
+    { nombre: "nada a favor", b: {}, aFavor: 0 },
+    { nombre: "medio raro", b: { metodo: "cheque" } },
+    { nombre: "fecha futura", b: { fecha: "2026-10-16" } },
+    { nombre: "fecha antes de la recepción", b: { fecha: "2026-10-11" } },
+    { nombre: "el mismo día de la recepción", b: { fecha: "2026-10-12" } },
+    { nombre: "referencia larga", b: { referencia: "x".repeat(61) } },
+    { nombre: "nota larga", b: { nota: "x".repeat(301) } },
+    { nombre: "más de lo que se puede", b: { cantidad: "3" } },
+    { nombre: "una sola con papel", b: { cantidad: "" }, aFavor: 42, d: deuda({ sinPapel: 1 }) },
+  ];
+  it.each(escenarios.map((e) => [e.nombre, e] as const))("%s", (nombre, e) => {
+    const d = e.d ?? deuda();
+    const aFavor = e.aFavor ?? 84;
+    const b = { ...BIEN, ...e.b, ...(e.aFavor === 42 && e.b.monto === undefined ? { monto: "42" } : {}) };
+    const guia = camposDeposito(problemasDeposito({ borrador: b, deuda: d, aFavor, hoy: HOY }), b, d, {
+      responsable: { listo: true, motivo: null },
+      cuenta: { hay: true, id: "cta-1" },
+      tocados: { cantidad: true, fecha: true, metodo: true, cuenta: true },
+    });
+    const rechazo = rechazoDelDeposito(argsDeposito(d, b, "cta-1", "tok"), pasablesASaldo(d), aFavor, "2026-10-12");
+    expect(sePuedeConfirmar(guia), `${nombre}: la guía y la base no dicen lo mismo (${rechazo ?? "la base acepta"})`).toBe(rechazo === null);
+  });
+
+  it("los argumentos: el depósito limpio, la cuenta y el token de la hoja", () => {
+    expect(argsDeposito(deuda(), { ...BIEN, monto: "84", referencia: "  Op 123 ", nota: "  Lo devolvió en el banco  " }, "cta-1", "tok")).toEqual({
+      p_diferencia_id: "dif-1",
+      p_cantidad: 2,
+      p_nota: "Lo devolvió en el banco",
+      p_token: "tok",
+      p_deposito: { monto: 84, metodo: "transferencia", fecha: HOY, referencia: "Op 123", cuenta_id: "cta-1" },
+    });
+    expect(argsDeposito(deuda(), { ...BIEN, referencia: "   " }, null, "tok").p_deposito).toMatchObject({ referencia: null, cuenta_id: null });
+    expect(textoBotonDeposito(null)).toBe("Registrar el depósito");
+    expect(textoBotonDeposito(84)).toBe("Registrar el depósito de S/\u00a084.00");
+  });
+});
+
+describe("lo que dice «Depositó»: antes del botón, al terminar y en el historial", () => {
+  const PAPEL = { compra_id: "c1", documento: "B001-902", tipo: "boleta", cantidad: 2, base: 84, igv: 0, monto: 84, saldo: 200 };
+  const VALOR = { cantidad: 2, con_papel: 2, sin_papel: 0, base: 84, igv: 0, monto: 84, con_factura: false };
+  const valor = (baja: number, aFavor: number) =>
+    leerValorDeDeuda({ ...VALOR, baja_deuda: baja, a_favor: aFavor, papeles: [{ ...PAPEL, baja_deuda: baja, a_favor: aFavor }] })!;
+
+  it("cuánto te tiene que haber depositado; sin nada a favor, qué hacer", () => {
+    expect(fraseDeposito("Textiles Andina", valor(0, 84))).toBe("Ya pagaste la boleta B001-902: Textiles Andina te tiene que haber depositado S/\u00a084.00.");
+    expect(fraseDeposito("Textiles Andina", valor(24, 60))).toBe(
+      "Baja S/\u00a024.00 de lo que le debes por la boleta B001-902, y Textiles Andina te tiene que haber depositado S/\u00a060.00.",
+    );
+    expect(fraseDeposito("Textiles Andina", valor(84, 0))).toBeNull();
+    expect(fraseSinDeposito(valor(84, 0))).toBe(
+      "Todavía le debes la boleta B001-902: lo que no llegó baja tu deuda en S/\u00a084.00 y no hace falta que te deposite. Si ya lo pagaste, registra primero ese pago; si no, usa «Pasar a saldo a favor».",
+    );
+  });
+
+  it("el aviso de éxito: el documento, lo que devolvió y adónde entró; con factura, la nota que falta", () => {
+    const docs = leerDocumentosInternos({ documentos: [{ documento: "DI-000003", comprobante: "B001-902", cantidad: 2, monto: 84, baja_deuda: 0, a_favor: 84 }] });
+    expect(detalleDeDeposito(docs, "Caja fuerte Trujillo")).toBe("DI-000003 por S/\u00a084.00: te devolvió S/\u00a084.00. Entró a Caja fuerte Trujillo.");
+    const parte = leerDocumentosInternos({ documentos: [{ documento: "DI-000004", comprobante: "B001-902", cantidad: 2, monto: 84, baja_deuda: 24, a_favor: 60 }] });
+    expect(detalleDeDeposito(parte, null)).toBe("DI-000004 por S/\u00a084.00: bajó S/\u00a024.00 de lo que le debes por B001-902 y te devolvió S/\u00a060.00.");
+    const fac = leerDocumentosInternos({ documentos: [{ documento: "DI-000005", comprobante: "F001-901", cantidad: 1, monto: 23.6, igv: 3.6, baja_deuda: 0, a_favor: 23.6 }] });
+    expect(detalleDeDeposito(fac, "BCP Soles")).toBe(
+      "DI-000005 por S/\u00a023.60: te devolvió S/\u00a023.60. Entró a BCP Soles. Pídele su nota de crédito por S/\u00a023.60 contra F001-901.",
+    );
+    expect(detalleDeDeposito([], null)).toBe("Quedó anotado en la ficha del proveedor.");
+  });
+
+  it("en el historial de la deuda", () => {
+    expect(
+      textoDeResolucion({ forma: "deposito", cantidad: 2, envio: null, documento: "DI-000003", monto: 84, nota: null, por: "Micaela Vendedora", fecha: "2026-10-15T15:00:00Z" }, HOY),
+    ).toBe("2 se pagaron con un depósito (DI-000003 por S/\u00a084.00) · Micaela Vendedora · hoy");
+    expect(textoDeResolucion({ forma: "deposito", cantidad: 1, envio: null, documento: null, monto: null, nota: null, por: null, fecha: null }, HOY)).toBe(
+      "1 se pagó con un depósito",
+    );
+  });
+});

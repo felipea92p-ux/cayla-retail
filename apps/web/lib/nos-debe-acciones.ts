@@ -4,8 +4,10 @@ import {
   leerDocumentosInternos,
   leerResultadoResolucion,
   leerValorDeDeuda,
+  RPC_DEPOSITO_DEUDA,
   RPC_DEUDA_VALOR,
   RPC_RESOLVER_DEUDA,
+  type ArgsDepositoDeuda,
   type ArgsResolverDeuda,
   type DocumentoInterno,
   type ResultadoResolucion,
@@ -13,8 +15,8 @@ import {
 } from "@/lib/nos-debe-reglas";
 
 // «Nos debe» (ADR-0362, fases 5a y 5b): lo que la pantalla le pide a la base. Las reglas viven en la función (la reposición, con Proveedores o
-// Recibir; pasar a saldo a favor, con Proveedores; la cantidad de 1 a lo pendiente; «depósito» todavía no); aquí solo se arma la llamada con su
-// firma, el combo «Responsable» (`fn_actor_persona_id(true)`), como toda función que guarda.
+// Recibir; pasar a saldo a favor y «Depositó», con Proveedores; la cantidad de 1 a lo pendiente); aquí solo se arma la llamada con su firma,
+// el combo «Responsable» (`fn_actor_persona_id(true)`), como toda función que guarda.
 
 export type ErrorDeBase = { code?: string; message: string; hint?: string | null; details?: string | null } | null;
 
@@ -34,6 +36,15 @@ export async function pasarDeudaASaldoAFavor(
 ): Promise<{ resultado: ResultadoResolucion | null; documentos: DocumentoInterno[]; error: ErrorDeBase }> {
   const { data, error } = (await firmar(createClient().rpc(RPC_RESOLVER_DEUDA as never, args as never), firma)) as Respuesta;
   return error ? { resultado: null, documentos: [], error } : { resultado: leerResultadoResolucion(data), documentos: leerDocumentosInternos(data), error: null };
+}
+
+/** «Depositó» (fase 5b, actividad 5): el documento interno y el reembolso de lo que quedó a favor, juntos. El token hace seguro el reintento. */
+export async function registrarDepositoDeuda(
+  args: ArgsDepositoDeuda,
+  firma: Firma | null,
+): Promise<{ documentos: DocumentoInterno[]; error: ErrorDeBase }> {
+  const { data, error } = (await firmar(createClient().rpc(RPC_DEPOSITO_DEUDA as never, args as never), firma)) as Respuesta;
+  return error ? { documentos: [], error } : { documentos: leerDocumentosInternos(data), error: null };
 }
 
 /** Cuánto vale pasar N prendas de una deuda a saldo a favor (una lectura: el loader no tapa la hoja). `null` si la base no contestó. */

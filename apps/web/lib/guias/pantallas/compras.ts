@@ -936,13 +936,30 @@ export const GUIA_PROVEEDOR: Guia = {
       texto: "Cuántas pasan (viene puesto todo lo que se puede), cuánto valen al costo de su comprobante y cuánto baja de tu deuda o queda a favor. La nota es opcional. Al pasarlo nace el documento interno DI-…, que queda en el historial. En la demo no lo tocamos.",
     },
     {
+      // Cierra la hoja de pasar a saldo a favor antes de mostrar el depósito.
+      id: "deposito",
+      ancla: "proveedor-ficha.deposito",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Depositó",
+      texto: "Si el proveedor no va a mandar lo que faltó y ya te devolvió la plata, lo registras aquí: el documento interno y el depósito que entró, en un solo paso. Solo si ya pagaste ese comprobante.",
+    },
+    {
+      id: "hoja-deposito",
+      ancla: "proveedor-ficha.hoja-deposito",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "proveedor-ficha.deposito", siEsta: true }],
+      titulo: "Lo que te devolvió",
+      texto: "Cuántas pagó con el depósito, cuánto te depositó (tiene que ser lo que quedó a tu favor), cuándo, cómo y a qué cuenta entró. La referencia y la nota son opcionales. En la demo no lo tocamos.",
+    },
+    {
       // Cierra la hoja aunque este paso se salte (no hay cerradas): `preparar` corre antes de ver si el paso aplica.
       id: "cerradas",
       ancla: "proveedor-ficha.nos-debe-cerradas",
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Ya saldadas",
-      texto: "Las deudas que se cerraron en los últimos 90 días, con cuándo y cómo se saldó cada parte: la reposición que llegó o lo que pasó a saldo a favor. Si son muchas, se pliegan: tócalas para verlas.",
+      texto: "Las deudas que se cerraron en los últimos 90 días, con cuándo y cómo se saldó cada parte: la reposición que llegó, lo que pasó a saldo a favor o lo que te devolvió con un depósito. Si son muchas, se pliegan: tócalas para verlas.",
     },
     {
       id: "saldo-favor",
