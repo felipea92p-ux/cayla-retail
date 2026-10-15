@@ -175,6 +175,9 @@ const HUELLAS: Huella[] = [
   },
   // Las fechas de una factura de compra (/chaos de Compras 2026-10-15, 20261015170000, ADR-0421): la pantalla ya lo frena.
   { marca: "compras_vence_despues_de_emitir", frase: "El vencimiento no puede ser anterior a la emisión: revisa las fechas del documento." },
+  // La ficha de un cliente (/chaos 2026-10-15, 20261015154000, ADR-0416): la pantalla ya lo frena; esto es el respaldo.
+  { marca: "clientas_con_algun_dato", frase: "La ficha necesita al menos el documento, el nombre o el celular." },
+  { marca: "clientas_cumple_fecha_real", frase: "Ese cumpleaños no existe: revisa el día y el mes." },
   {
     // Un documento, una clienta: `clientas_dni_unico` (20260922140000) pasó a `clientas_documento_unico`, por tipo y
     // número, en 20260930160000 (ADR-0288 D-2). `registrar_clienta` hace upsert por documento y `editar_clienta` lo

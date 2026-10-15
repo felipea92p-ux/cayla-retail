@@ -5,6 +5,7 @@ import { ARBOL, esGrupo, type Nodo } from "@/lib/menu";
 import { MODULOS, esClaveModulo } from "@/lib/modulos";
 import { NOMBRE_VISTA_GLOBAL } from "@/lib/vista-global";
 import { EligeSede } from "@/components/EligeSede";
+import { rutaDeVuelta } from "@/lib/elige-sede-reglas";
 
 // CAYLA Global (ADR-0275): a dónde llega quien, mirando toda la empresa, abre una pantalla que trabaja en UNA sede
 // (Punto de venta, Caja, un Conteo). No es «sin acceso»: la pantalla existe, solo que necesita saber en qué sede.
@@ -30,11 +31,12 @@ function hojas(nodos: readonly Nodo[], heredados: readonly Tipo[] | null = null)
  *  módulo: su primera pantalla del menú. Una ruta que el menú no conoce se respeta tal cual (sin nombre). */
 function destinoDe(desde: string | undefined, modulo: string | undefined): Destino | null {
   const todas = hojas(ARBOL).filter((h) => h.ruta !== "/");
-  if (desde && desde.startsWith("/") && !desde.startsWith("//")) {
+  const ruta = rutaDeVuelta(desde);
+  if (ruta) {
     const hoja = todas
-      .filter((h) => desde === h.ruta || desde.startsWith(`${h.ruta}/`))
+      .filter((h) => ruta === h.ruta || ruta.startsWith(`${h.ruta}/`))
       .sort((a, b) => b.ruta.length - a.ruta.length)[0];
-    return { nombre: hoja?.etiqueta ?? "", ruta: desde, tipos: hoja?.tipos ?? null };
+    return { nombre: hoja?.etiqueta ?? "", ruta, tipos: hoja?.tipos ?? null };
   }
   if (modulo && esClaveModulo(modulo)) {
     const hoja = todas.find((h) => h.modulo === modulo);

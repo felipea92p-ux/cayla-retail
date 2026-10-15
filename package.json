@@ -230,6 +230,7 @@
     "pruebas:anular-venta-misma-sede": "node scripts/pruebas/anular_venta_misma_sede.mjs",
     "pruebas:token-sigue-al-contenido": "node scripts/pruebas/token_sigue_al_contenido.mjs",
     "pruebas:inventario-token-y-textos": "node scripts/pruebas/inventario_token_y_textos.mjs",
+    "pruebas:clientas-y-metas-candados": "node scripts/pruebas/clientas_y_metas_candados.mjs",
     "pruebas:traslado-sobrantes": "node scripts/pruebas/traslado_sobrantes.mjs",
     "pruebas:catalogo-montos-y-textos": "node scripts/pruebas/catalogo_montos_y_textos.mjs",
     "pruebas:produccion-token-y-montos": "node scripts/pruebas/produccion_token_y_montos.mjs",
