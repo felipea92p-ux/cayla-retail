@@ -8,7 +8,7 @@
 -- CÓMO (esta migración, solo lectura)
 --   `fn_ordenes_produccion_lista(p_ubicacion_id, p_historicas)` recorre las órdenes de ese Taller —todas las que están en proceso y las
 --   `p_historicas` terminadas o anuladas más recientes— y devuelve, de cada una, lo mismo que `fn_orden_produccion` salvo lo que la lista no pinta:
---   sin `costos` (null) y con solo el último movimiento de la línea de tiempo (basta para «días sin moverse»). Así la lista y la página no pueden
+--   sin `costos` (null) y con solo el último movimiento de la línea de tiempo (basta para «días sin moverse»). Con `tela_pendiente` (20261015165000): lo que otras órdenes reservan de cada tela, para que «la tela no alcanza» sea la misma cuenta que en la página. Así la lista y la página no pueden
 --   contradecirse (mismas fases, misma tela, mismo veredicto), y los costos del Taller no viajan a una pantalla que no los muestra.
 --   Además cuenta, exacto y sin depender del límite, lo que pasó al stock este mes (lotes, no muestras): la cifra «Al stock este mes».
 --
@@ -53,6 +53,8 @@ begin
       (v_o - 'costos' - 'linea_de_tiempo')
       || jsonb_build_object(
            'costos', null,
+           -- Lo que otras órdenes ya reservan de cada tela y lo pedido (ADR-0400, actividad 7): así «la tela no alcanza» es la MISMA cuenta en la lista y en la página de la orden.
+           'tela_pendiente', retail.fn_tela_pendiente_de_la_orden(v_id),
            'linea_de_tiempo', case when jsonb_array_length(coalesce(v_o -> 'linea_de_tiempo', '[]'::jsonb)) > 0 then jsonb_build_array(v_o -> 'linea_de_tiempo' -> 0) else '[]'::jsonb end));
   end loop;
 

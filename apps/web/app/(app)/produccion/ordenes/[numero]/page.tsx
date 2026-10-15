@@ -79,7 +79,7 @@ export default async function OrdenProduccionPage({ params }: { params: Promise<
 
       <div className="op-bloques">
         <div className="space-y-6">
-          <TelaDeLaOrdenVista datos={datos} />
+          <TelaDeLaOrdenVista datos={datos} puedePedir={persona.modulos.some((m) => m.clave === "ordenes_insumos")} />
           <CostoDeLaOrden datos={datos} />
         </div>
         <LineaDeTiempo datos={datos} hoy={hoy} />

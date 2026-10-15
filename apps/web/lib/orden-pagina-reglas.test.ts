@@ -9,6 +9,7 @@ import {
   RPC_ANULAR_VUELTA,
   RPC_CERRAR_PRODUCCION,
   RPC_REVERTIR_PRODUCCION,
+  RPC_TELA_PENDIENTE,
   accionesDeFase,
   avancesNuevos,
   avisoMinimoDeFase,
@@ -923,6 +924,63 @@ describe("pasar la orden al stock, anularla y revertirla", () => {
     it("los costos del Taller los ve el líder o quien ve Producción parado en ese Taller", () => {
       expect(SQL_CIERRE).toContain("retail.fn_es_lider() or (retail.fn_ve_modulo('produccion') and retail.fn_puede_operar_ubicacion(p_ubicacion_id))");
       expect(SQL_CIERRE.match(/where retail\.fn_ve_costos_del_taller\(p_ubicacion_id\)/g)).toHaveLength(2);
+    });
+  });
+});
+
+// ---------- La tela cuenta lo que otras órdenes ya reservan y muestra lo pedido (ADR-0400, actividad 7) ----------
+
+describe("la tela: lo comprometido por otras órdenes y lo pedido", () => {
+  const SQL_TELA = readFileSync(join(RAIZ, "supabase", "migrations", "20261015165000_produccion_tela_pendiente_de_la_orden.sql"), "utf8");
+  const pendiente = (cuerpo: Record<string, unknown>) => orden({ tela_pendiente: [{ insumo_id: "i-1", comprometido_otras: 0, pedidos: [], ...cuerpo }] } as never);
+
+  it("sin `tela_pendiente` (una base o una lista que no lo manda) cada insumo no tiene nada reservado ni pedido: «alcanza» se mide contra todo el estante, como antes", () => {
+    const [gabardina] = orden().insumos;
+    expect(gabardina).toMatchObject({ comprometidoOtras: 0, pedidos: [] });
+    expect(filasDeTela(orden().insumos)[0]).toMatchObject({ alcanza: true, faltan: null, faltanNumero: null, reservadoPorOtras: null, pedidos: [] });
+  });
+
+  it("lee lo que reservan las otras y lo pedido; lo que no se entiende se descarta o queda en cero", () => {
+    const o = pendiente({ comprometido_otras: "12.5", pedidos: [{ numero_texto: "OI-000003", proveedor: "Textiles Andinos", cantidad: "50", unidad: "metro", fecha_entrega: "2026-10-23" }, { numero_texto: null, cantidad: 3 }, "basura"] });
+    expect(o.insumos[0]).toMatchObject({ comprometidoOtras: 12.5, pedidos: [{ numeroTexto: "OI-000003", proveedor: "Textiles Andinos", cantidad: 50, unidad: "metro", fechaEntrega: "2026-10-23" }] });
+    expect(pendiente({ comprometido_otras: -4 }).insumos[0].comprometidoOtras).toBe(0);
+    expect(orden({ tela_pendiente: "no es una lista" } as never).insumos[0].comprometidoOtras).toBe(0);
+  });
+
+  it("lo que otras órdenes reservan se resta de lo libre: con 20 m en el estante y 20 reservados, a una orden a la que le falta 1 m le faltan 1 m (antes decía «Alcanza»)", () => {
+    const [f] = filasDeTela(pendiente({ comprometido_otras: 20 }).insumos);
+    expect(f).toMatchObject({ alcanza: false, faltan: "1 m", faltanNumero: 1, reservadoPorOtras: "Otras órdenes ya reservan 20 m" });
+    expect(filasDeTela(pendiente({ comprometido_otras: 19 }).insumos)[0]).toMatchObject({ alcanza: true });
+  });
+
+  it("lo pedido se muestra con su número, cuánto, a quién y para cuándo, pero NO hace que «alcance» (una orden de insumos no sabe si ya llegó)", () => {
+    const o = pendiente({ comprometido_otras: 20, pedidos: [{ numero_texto: "OI-000003", proveedor: "Textiles Andinos", cantidad: 50, unidad: "metro", fecha_entrega: "2026-10-23" }, { numero_texto: "OI-000002", proveedor: "Textiles Andinos", cantidad: 35, unidad: "metro", fecha_entrega: null }] });
+    const [f] = filasDeTela(o.insumos);
+    expect(f.pedidos).toEqual(["OI-000003 · 50 m a Textiles Andinos · llega el vie 23 oct", "OI-000002 · 35 m a Textiles Andinos"]);
+    expect(f.alcanza).toBe(false);
+  });
+
+  it("«la tela no alcanza» (la causa que pone la orden en rojo) cuenta lo reservado igual en la página y en la lista", () => {
+    expect(rojoDeLaOrden(orden(), HOY).map((c) => c.clave)).not.toContain("tela_no_llega");
+    expect(rojoDeLaOrden(pendiente({ comprometido_otras: 20 }), HOY).map((c) => c.clave)).toContain("tela_no_llega");
+  });
+
+  describe("paridad con la migración 20261015165000", () => {
+    it("la web llama a la función con el nombre y el argumento que la base declara", () => {
+      expect(RPC_TELA_PENDIENTE).toBe("fn_tela_pendiente_de_la_orden");
+      expect(SQL_TELA).toContain(`create or replace function retail.${RPC_TELA_PENDIENTE}(p_produccion_id uuid)`);
+    });
+    it("manda las llaves que la web lee", () => {
+      for (const k of ["insumo_id", "comprometido_otras", "pedidos", "numero_texto", "proveedor", "cantidad", "unidad", "fecha_entrega"]) expect(SQL_TELA, k).toContain(`'${k}'`);
+    });
+    it("cuenta las OTRAS órdenes en proceso (nunca la propia) y solo las órdenes de insumos generadas de los últimos 60 días", () => {
+      expect(SQL_TELA).toContain("p3.estado = 'en_proceso' and p3.id <> p_produccion_id");
+      expect(SQL_TELA).toContain("p2.estado = 'en_proceso' and p2.id <> p_produccion_id");
+      expect(SQL_TELA).toContain("oi.estado = 'generada' and oi.fecha_emision >= retail.fn_hoy_lima() - 60");
+    });
+    it("la lista de Órdenes lleva lo mismo que la página", () => {
+      const SQL_LISTA = readFileSync(join(RAIZ, "supabase", "migrations", "20261015005000_produccion_lista_de_ordenes.sql"), "utf8");
+      expect(SQL_LISTA).toContain("'tela_pendiente', retail.fn_tela_pendiente_de_la_orden(v_id)");
     });
   });
 });

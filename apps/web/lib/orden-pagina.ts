@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { RPC_ORDEN_PRODUCCION, leerOrdenPagina, numeroDeOrdenEnUrl, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { RPC_ORDEN_PRODUCCION, RPC_TELA_PENDIENTE, leerOrdenPagina, numeroDeOrdenEnUrl, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 
 // La página de una orden de producción (ADR-0400, actividad 3): lectura del servidor. Dos pasos: el número de la URL (`OP-000067`) se resuelve al id de la orden y `fn_orden_produccion`
 // trae TODO lo que la página dibuja (orden, fases, tela, costos, línea de tiempo y permisos) en una sola lectura. Si algo falla lo dice (principio 9): nunca una orden "vacía" que
@@ -35,7 +35,11 @@ export async function getOrdenProduccionPagina(segmento: string): Promise<{ orde
     return { orden: null, falla: FALLA };
   }
   if (data === null) return { orden: null, falla: null };
-  const orden = leerOrdenPagina(data);
+  // Lo que otras órdenes reservan de cada tela y lo pedido (actividad 7): dato secundario; sin él, «alcanza» se mide contra todo el estante.
+  const pendiente = await (supabase.rpc(RPC_TELA_PENDIENTE as never, { p_produccion_id: fila.id } as never) as unknown as Respuesta);
+  const telaPendiente = pendiente.error ? null : pendiente.data;
+  if (pendiente.error) console.error(`${RPC_TELA_PENDIENTE}: ${pendiente.error.message}`);
+  const orden = leerOrdenPagina(typeof data === "object" && data !== null ? { ...(data as Record<string, unknown>), tela_pendiente: telaPendiente } : data);
   // Una respuesta que no se parece a una orden es una falla de lectura, no una orden inexistente: decir «no existe» escondería un problema.
   return orden ? { orden, falla: null } : { orden: null, falla: FALLA };
 }

@@ -322,3 +322,25 @@ su página; el cajón (`OrdenPanel`) queda solo para las abiertas antes de las f
 **Cómo se verificó.** `pnpm pruebas:produccion-cierre` (14 casos en ROLLBACK: el flujo completo con 46 buenas de 50 —2 segundas y 2 faltantes no entran—, el costo de servicios devengado y repartido entre las buenas, el monto explícito que manda, el candado de las buenas, la talla ajena y el cero, las prendas afuera
 en cerrar y en anular, lo medido, una muestra, una orden de antes de las fases, quién ve los costos y la forma) y la suite del candado del dinero, cuyo caso 4c cambió a la decisión nueva y cuyo caso de «volver a pegar» ya no deja cambios en la base compartida. En el
 navegador, sobre una orden de prueba: el candado dice «No puedes pasar al stock 9 de Caqui · 28: en Acabado se terminaron 8», un doble clic deja UN cierre (6 movimientos, 48 prendas), el costo sale a S/ 4.50 por prenda y «Revertir el cierre» devuelve las 48 con su movimiento.
+
+## Actualización 2026-10-15 (e) · actividad 7: la tela usada y «¿alcanza?» de verdad
+
+**El hueco que cerró.** Con la lista (actividad 5) y el cierre (actividad 6), el cajón viejo (`OrdenInsumos`) dejó de ser alcanzable para una orden con fases: **no había ninguna pantalla para anotar la tela usada ni devolver la que sobró**, y sin tela usada no hay costo real
+ni «lo medido». Se rehízo en la página de la orden, sin tocar las dos funciones de la base que ya escriben (`registrar_consumo_insumo`, `devolver_insumo_de_produccion`).
+
+**Pantalla.** En «Tela» de la orden: **«Anotar lo que usaste»** (la hoja `TelaUsadaModal`: qué tela o avío —una fila por insumo aunque tenga varios colores—, cuánto, nota y quién lo anota; nace con lo que falta según el plan sin pasar de lo que hay en el estante; no deja anotar más
+de lo que hay) y **«Devolver lo que sobró»** (trae la tela de vuelta al lote del que salió, a su mismo costo; solo aparece si ya se anotó algo). Si lo que se usó cruza de un lote al siguiente, la base pide dos llamadas: la hoja las hace sola (`anotarConsumoEnLotes`, cada una un consumo
+válido; si la tela se acaba a la mitad, lo ya anotado queda anotado y dice cuánto falta). Además, **al terminar el corte** (cuando lo que se anota en «Terminé» completa el lote) la propia hoja pregunta la tela usada de cada tela, precargada y opcional: primero se anota el avance
+y después la tela (dos RPC, no una: no se tocó la firma de `registrar_avance`); si la tela falla, el corte queda anotado y la hoja lo dice. «Deshacer» del corte no devuelve la tela y el aviso lo advierte.
+
+**«¿Alcanza?» cuenta lo comprometido (migración `20261015165000_produccion_tela_pendiente_de_la_orden.sql`, solo lectura).** `fn_tela_pendiente_de_la_orden` da, por cada tela de la orden, cuánto reservan las OTRAS órdenes abiertas del Taller (la misma fórmula de `fn_nueva_orden_opciones`: su plan menos lo
+descontado, sin contar esta) y las órdenes de insumos generadas de esa tela con destino el Taller (últimos 60 días, sin las anuladas). `veredictoTela` ya recibía lo comprometido: la página de la orden pasaba 0; ahora pasa lo real, así que dos órdenes ya no dicen «alcanza» contra los mismos metros. La lista de Órdenes
+lleva lo mismo (`tela_pendiente` dentro de `fn_ordenes_produccion_lista`): «la tela no alcanza» es una sola cuenta. Cuando falta, **«Pedir N m»** lleva a Órdenes de insumos (solo a quien ve ese módulo).
+**Lo pedido se muestra, NO se suma a lo que hay:** una orden de insumos solo es `generada` o `anulada`, no se liga a la recepción; sumarla contaría dos veces lo que ya llegó y diría «alcanza» sin que alcance.
+
+**Lo que NO se hizo, y queda para decidir con Felipe.** El consumo por prenda **declarado en el modelo** (lo de Audaces) hoy se escribe una sola vez, con la primera tela de la primera orden de ese modelo (la apertura, `on conflict do nothing`), y lo corrige lo MEDIDO al pasar un lote al stock (actividad 6). El
+panel para editarlo antes en «Editar producto» no se construyó: esa pantalla no tiene hoy un lugar de Producción y es un formulario grande de otro módulo (Catálogo) con su barra de guardar. **Pendiente de la respuesta de Felipe.** Tampoco se pre-llena «Pedir» en la orden de insumos (es otra
+pantalla y otro módulo).
+
+**Cómo se verificó.** `pnpm pruebas:produccion-tela` (9 casos en ROLLBACK: lo que reservan las otras, descontarle tela a la otra, una orden anulada, los pedidos y sus filtros, que la lista diga lo mismo que la página, las puertas y la forma), 15 pruebas de la lógica de la hoja (agrupar por insumo, validar, partir entre
+lotes con un lote que se acaba) y 11 de la lectura y las frases de la tela con paridad contra el SQL. En el navegador: la hoja nace con 44 m (lo que hay), un doble clic descuenta UNA vez, el costo real de la tela sale solo (S/ 858) y la tela muestra «Faltan 31.6 m», «Pedir 31.6 m» y sus dos pedidos.

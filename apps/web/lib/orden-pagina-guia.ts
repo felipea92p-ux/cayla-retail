@@ -1,4 +1,4 @@
-// La guía de foco de las hojas de la página de la orden: «Terminé» (anotar lo terminado en una fase), «Cambiar quién», la «Salida» y la «Vuelta» de un servicio, «Anular» una de las dos y «Pasar al stock» (CLAUDE.md «Guía de foco», ADR-0284). Sin React ni red.
+// La guía de foco de las hojas de la página de la orden: «Terminé» (anotar lo terminado en una fase), «Cambiar quién», la «Salida» y la «Vuelta» de un servicio, «Anular» una de las dos, «Pasar al stock» y anotar la tela usada (CLAUDE.md «Guía de foco», ADR-0284). Sin React ni red.
 //
 // CONTRATO
 //   PROMETE: dado lo que la persona ya hizo en la hoja, la lista de campos con su «hecho» para que `useGuiaCampos` diga cuál está hecho, cuál sigue y qué falta antes del botón.
@@ -103,5 +103,19 @@ export function camposDeCierre(e: EleccionCierre): CampoDeGuia[] {
   return [
     { id: "cantidades", nombre: "Cuántas salieron buenas", requerido: true, hecho: !malas, pendiente: e.problemas[0] ?? "Escribe cuántas salieron buenas en cada talla y color." },
     { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién pasa esto al stock." },
+  ];
+}
+
+export type EleccionTelaUsada = {
+  /** Lo que `problemaDeTelaUsada` dice de lo escrito (null = la base lo aceptaría). */
+  problema: string | null;
+  responsableListo: boolean;
+};
+
+/** Anotar lo que se usó de una tela (o devolver lo que sobró): cuánto —la base rechaza más de lo que hay o de lo descontado— y quién lo anota. */
+export function camposDeTelaUsada(e: EleccionTelaUsada, devuelve = false): CampoDeGuia[] {
+  return [
+    { id: "cantidad", nombre: devuelve ? "Cuánto devuelves" : "Cuánto usaste", requerido: true, hecho: e.problema === null, pendiente: e.problema ?? (devuelve ? "Escribe cuánto devuelves." : "Escribe cuánto usaste.") },
+    { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: devuelve ? "Elige quién anota esta devolución." : "Elige quién anota esto." },
   ];
 }

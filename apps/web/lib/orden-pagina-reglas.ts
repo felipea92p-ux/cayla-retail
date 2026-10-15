@@ -20,6 +20,7 @@ import { veredictoTela } from "./orden-tela-reglas";
 //   NO HACE: no escribe en la base, no decide quién puede operar (eso viene en `permisos`) y no calcula dinero: los montos son los de la base, aquí solo se acomodan.
 
 export const RPC_ORDEN_PRODUCCION = "fn_orden_produccion";
+export const RPC_TELA_PENDIENTE = "fn_tela_pendiente_de_la_orden";
 export const RPC_REGISTRAR_AVANCE = "registrar_avance";
 export const RPC_DESHACER_AVANCE = "deshacer_avance";
 export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
@@ -103,7 +104,13 @@ export type InsumoPagina = {
   cantidadPlan: number;
   usado: number;
   saldo: number;
+  /** Lo que las OTRAS órdenes abiertas del Taller ya reservan de este insumo (su plan menos lo descontado): no está libre para esta orden (`fn_tela_pendiente_de_la_orden`). */
+  comprometidoOtras: number;
+  /** Las órdenes de insumos generadas de este insumo con destino el Taller (últimos 60 días): se muestran, no se suman a lo que hay. */
+  pedidos: PedidoDeInsumo[];
 };
+
+export type PedidoDeInsumo = { numeroTexto: string; proveedor: string; cantidad: number; unidad: string; fechaEntrega: string | null };
 
 export type CostosPagina = {
   telaEstimado: number;
@@ -261,6 +268,21 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
   const permisos = esObjeto(crudo.permisos) ? crudo.permisos : {};
   const costos = esObjeto(crudo.costos) ? crudo.costos : null;
   const lista = (x: unknown): unknown[] => (Array.isArray(x) ? x : []);
+  // Lo que otras órdenes reservan de cada tela y lo pedido (`tela_pendiente`, ADR-0400 actividad 7): opcional. Sin ello, «alcanza» se mide contra todo el estante, como antes.
+  const pendientes = new Map<string, { comprometidoOtras: number; pedidos: PedidoDeInsumo[] }>();
+  for (const t of lista(crudo.tela_pendiente)) {
+    if (!esObjeto(t)) continue;
+    const insumoId = texto(t.insumo_id);
+    if (!insumoId) continue;
+    const pedidos = lista(t.pedidos).flatMap((x): PedidoDeInsumo[] => {
+      if (!esObjeto(x)) return [];
+      const numeroTexto = texto(x.numero_texto);
+      const cantidad = numero(x.cantidad);
+      if (!numeroTexto || cantidad === null) return [];
+      return [{ numeroTexto, proveedor: texto(x.proveedor) ?? "un proveedor", cantidad, unidad: texto(x.unidad) ?? "unidad", fechaEntrega: texto(x.fecha_entrega) }];
+    });
+    pendientes.set(insumoId, { comprometidoOtras: Math.max(numero(t.comprometido_otras) ?? 0, 0), pedidos });
+  }
   return {
     orden: {
       id,
@@ -301,7 +323,8 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
       const idInsumo = texto(i.id);
       const insumoId = texto(i.insumo_id);
       if (!idInsumo || !insumoId) return [];
-      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0 }];
+      const pendiente = pendientes.get(insumoId);
+      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, pedidos: pendiente?.pedidos ?? [] }];
     }),
     costos: costos
       ? {
@@ -601,7 +624,22 @@ export function cuandoTerminoLaFase(clave: FaseClave, linea: readonly EventoTiem
 
 // ---------- La tela ----------
 
-export type FilaDeTela = { id: string; nombre: string; detalle: string; plan: string; usado: string; saldo: string; alcanza: boolean; faltan: string | null };
+export type FilaDeTela = {
+  id: string;
+  nombre: string;
+  detalle: string;
+  plan: string;
+  usado: string;
+  saldo: string;
+  alcanza: boolean;
+  faltan: string | null;
+  /** Cuánto falta, como número y en su unidad (para llevar a pedirlo). `null` si alcanza. */
+  faltanNumero: number | null;
+  /** «Otras órdenes ya reservan 20 m», o `null` si ninguna reserva nada. */
+  reservadoPorOtras: string | null;
+  /** Las órdenes de insumos generadas de esta tela: «OI-000003 · 50 m a Textiles Andinos · llega el vie 23 oct». */
+  pedidos: string[];
+};
 
 /**
  * La tela y los avíos de la orden, UNA fila por insumo: lo que pide el plan (la suma de sus colores), lo ya usado y si lo que queda en el estante alcanza para lo que falta usar. Es el
@@ -615,7 +653,8 @@ export function filasDeTela(insumos: readonly InsumoPagina[]): FilaDeTela[] {
     const base = filas[0];
     const plan = filas.reduce((s, f) => s + f.cantidadPlan, 0);
     const usado = Math.max(...filas.map((f) => f.usado));
-    const v = veredictoTela(Math.max(plan - usado, 0), base.saldo, 0);
+    const comprometida = Math.max(...filas.map((f) => f.comprometidoOtras));
+    const v = veredictoTela(Math.max(plan - usado, 0), base.saldo, comprometida);
     const color = (f: InsumoPagina) => f.colorNombre?.toLocaleLowerCase("es") ?? null;
     const unColor = filas.length === 1 && color(base) !== null;
     const detalle =
@@ -633,6 +672,9 @@ export function filasDeTela(insumos: readonly InsumoPagina[]): FilaDeTela[] {
       saldo: cantidadConUnidad(base.saldo, base.unidad),
       alcanza: v.alcanza,
       faltan: v.alcanza ? null : cantidadConUnidad(v.faltan, base.unidad),
+      faltanNumero: v.alcanza ? null : v.faltan,
+      reservadoPorOtras: comprometida > 0 ? `Otras órdenes ya reservan ${cantidadConUnidad(comprometida, base.unidad)}` : null,
+      pedidos: base.pedidos.map((p) => `${p.numeroTexto} · ${cantidadConUnidad(p.cantidad, p.unidad)} a ${p.proveedor}${p.fechaEntrega ? ` · llega el ${diaCorto(p.fechaEntrega)}` : ""}`),
     };
   });
 }

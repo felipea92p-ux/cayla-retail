@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 83,
+  "total": 93,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «; if (!puedeVerProduccion(persona)) return»",
@@ -53,10 +53,11 @@
       "Boton «prod-orden.revertir»"
     ],
     "components/orden-pagina/AnotarAvanceModal.tsx": [
+      "CampoTexto «{`${t.nombre}»",
       "CampoTexto «Nota»",
       "ComboResponsable «avisoSalida.pedirAccion(onClo»",
       "button «Cancelar»",
-      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+      "button «{guia.frase ?? problemasDeTela[0] ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/AnotarSalidaModal.tsx": [
       "CampoTexto «N.º de guía»",
@@ -118,6 +119,19 @@
       "Boton «{fase.id === idDeLaQueRecibe ? \"prod-orden.vuelta\" : undefined}»",
       "Boton «{fase.id === idDeLaQueSale ? \"prod-orden.salida\" : undefined}»",
       "button «{fase.id === idDeLaQueCambia ? \"prod-orden.cambiar-quien\" : undefined}»"
+    ],
+    "components/orden-pagina/TelaDeLaOrdenVista.tsx": [
+      "BotonEnlace «{i === 0 ? \"prod-orden.pedir-tela\" : undefined}»",
+      "Boton «prod-orden.anotar-tela»",
+      "Boton «prod-orden.devolver-tela»"
+    ],
+    "components/orden-pagina/TelaUsadaModal.tsx": [
+      "CampoSelect «Qué tela o avío»",
+      "CampoTexto «{guia.etiqueta(\"cantidad\", devuelve ? `Cuántos ${unidad}»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «)»",
+      "button «Cancelar»",
+      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-produccion/AgregarColor.tsx": [
       "button «{`Quitar ${nombre}»",
