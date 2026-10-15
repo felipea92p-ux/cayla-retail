@@ -162,13 +162,6 @@ export function complementoDeSaldo(e: {
   return e.vencida ? { texto: `venció ${fecha}`, alerta: true } : { texto: `vence ${fecha}`, alerta: false };
 }
 
-/** El tono de una barra de avance: verde al completarse, ámbar a medias, neutro sin nada; rojo si hay que actuar. */
-export function tonoDeAvance(avance: number, opciones: { alerta?: boolean } = {}): TonoAvance {
-  if (opciones.alerta) return "rojo";
-  if (avance >= 1) return "verde";
-  if (avance > 0) return "ambar";
-  return "neutro";
-}
 
 /** Los ids que aparecieron desde la última vez que se miró la lista (para dar entrada solo a los pagos nuevos). */
 export function idsNuevos(vistos: ReadonlySet<string>, ids: readonly string[]): string[] {

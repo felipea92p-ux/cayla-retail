@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Clock, History, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { VentasDeHoyLista } from "@/components/VentasDeHoy";
@@ -69,10 +70,8 @@ export function ResumenDeHoy({
         </span>
         {r.pctMeta !== null && (
           <span className="ml-auto flex items-center gap-2">
-            <span className="h-1.5 w-16 overflow-hidden rounded-full bg-tinta/10" aria-hidden>
-              <span className="block h-full rounded-full bg-verde" style={{ width: `${ancho}%` }} />
-            </span>
-            <span className="text-xs font-semibold text-verde tabular-nums">{r.pctMeta}%</span>
+            <BarraAvance pct={ancho} decorativa className="w-16" />
+            <span className={`text-xs font-semibold tabular-nums ${r.pctMeta >= 100 ? "text-verde" : "text-tinta"}`}>{r.pctMeta}%</span>
           </span>
         )}
       </button>
@@ -96,10 +95,8 @@ export function ResumenDeHoy({
               <p className="font-display text-4xl leading-none text-tinta tabular-nums">{soles(r.total)}</p>
               {r.pctMeta !== null && (
                 <div className="mt-3 flex items-center gap-3">
-                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-tinta/10" aria-hidden>
-                    <span className="block h-full rounded-full bg-verde" style={{ width: `${ancho}%` }} />
-                  </span>
-                  <span className="text-xs font-semibold text-verde tabular-nums">{r.pctMeta}% de la meta</span>
+                  <BarraAvance pct={ancho} decorativa className="min-w-0 flex-1" />
+                  <span className={`text-xs font-semibold tabular-nums ${r.pctMeta >= 100 ? "text-verde" : "text-tinta"}`}>{r.pctMeta}% de la meta</span>
                 </div>
               )}
               <div className="mt-5">

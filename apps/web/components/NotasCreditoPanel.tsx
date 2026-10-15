@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ChevronDown, ChevronRight, CircleCheck, FileMinus, FunnelX, SearchX, ShieldCheck, Wallet, X } from "lucide-react";
 import { BarraApilada } from "@/components/ui/BarraApilada";
@@ -487,9 +488,7 @@ function FilaNota({
         <span className="font-display block text-[18px] tabular-nums text-tinta">{soles(f.monto)}</span>
         <span className={`block text-xs ${f.estado === "emitida" || f.devuelto ? "text-verde-profundo" : "text-tinta/55"}`}>{destinoTexto(f)}</span>
         {f.clase === "nota" && f.monto > 0 && (
-          <span aria-hidden className="ml-auto mt-1 block h-[3px] w-[5.5rem] overflow-hidden rounded-full bg-sand">
-            <i className="anim-crece-x block h-full origin-left rounded-full bg-verde" style={{ width: `${Math.min(100, (f.aplicado / f.monto) * 100)}%` }} />
-          </span>
+          <BarraAvance pct={(f.aplicado / f.monto) * 100} alto="fina" decorativa className="ml-auto mt-1 w-[5.5rem]" />
         )}
       </span>
       <span className={celda("izq", "hidden overflow-visible whitespace-normal sm:block")}>
@@ -628,9 +627,7 @@ function SaldosAFavorTablero({ proveedores, movimientos, total, puedeReembolsar 
                   {p.deuda > 0 ? `Le debes ${soles(p.deuda)} · con tu saldo solo transferirías ${soles(Math.max(0, Math.round((p.deuda - cubre) * 100) / 100))}` : "Sin deuda pendiente: queda a tu favor para su próxima compra, o pide el reembolso."}
                 </p>
                 {p.deuda > 0 && (
-                  <div aria-hidden className="mt-2 h-[5px] max-w-[21rem] overflow-hidden rounded-full bg-sand">
-                    <div className="anim-crece-x h-full origin-left rounded-full bg-verde" style={{ width: `${Math.min(100, Math.round((cubre / p.deuda) * 100))}%` }} />
-                  </div>
+                  <BarraAvance pct={(cubre / p.deuda) * 100} decorativa className="mt-2 max-w-[21rem]" />
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-4">

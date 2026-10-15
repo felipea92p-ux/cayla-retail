@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Anillo } from "@/components/ui/Anillo";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, ChevronRight, Info, Truck, X } from "lucide-react";
@@ -1062,9 +1064,7 @@ export function RecepcionEnvio({
                   <span className="block text-xs text-tinta/65">
                     {textoEsperada(c, ahora)} · {c.recibidoCantidad} de {c.facturadoCantidad} u.{c.facturadoTotal != null && c.facturadoTotal > c.facturadoCantidad ? " · tu parte" : ""}
                   </span>
-                  <span aria-hidden className="mt-1.5 block h-[3px] overflow-hidden rounded-full bg-sand">
-                    <span className="anim-crece-x block h-full rounded-full bg-tinta/45" style={{ width: `${c.facturadoCantidad ? Math.min(100, (c.recibidoCantidad / c.facturadoCantidad) * 100) : 0}%` }} />
-                  </span>
+                  <BarraAvance pct={c.facturadoCantidad ? (c.recibidoCantidad / c.facturadoCantidad) * 100 : 0} alto="fina" decorativa className="mt-1.5" />
                 </span>
                 <span className="shrink-0 text-right">
                   <Chip tono={llegada.tono}>{llegada.texto}</Chip>
@@ -1151,7 +1151,10 @@ export function RecepcionEnvio({
                   )}
                 </div>
                 <div className="flex items-center gap-4 border-t border-tinta/10 p-5 @xl:col-span-2 @[44rem]:col-span-1 @[44rem]:border-l @[44rem]:border-t-0">
-                  <Anillo pct={pctContado} />
+                  {/* Cuánto llevas contado del envío (el anillo del sistema, ronda 13): en tinta mientras falta, verde al 100 %. */}
+                  <Anillo pct={pctContado} tamano="mediano" etiqueta={`${pctContado} % contado`}>
+                    <span className="font-display text-[19px] font-normal">{pctContado}%</span>
+                  </Anillo>
                   <div>
                     <p className="label-cayla text-[10.5px] text-tinta/55">Estado de recepción</p>
                     <p key={estadoDelEnvio} className="anim-asentar font-display text-2xl leading-tight text-tinta">{estadoDelEnvio}</p>
@@ -1306,9 +1309,7 @@ export function RecepcionEnvio({
                       <span className="whitespace-nowrap text-xs text-tinta/65">
                         {totales.lineasContadas} de {totales.lineasTotal} {totales.lineasTotal === 1 ? "línea contada" : "líneas contadas"}
                       </span>
-                      <div className="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-sand" role="progressbar" aria-valuenow={totales.lineasContadas} aria-valuemin={0} aria-valuemax={totales.lineasTotal} aria-label="Líneas contadas">
-                        <div className={`h-full rounded-full transition-[width] ${totales.lineasContadas === totales.lineasTotal ? "bg-verde" : "bg-ambar"}`} style={{ width: `${totales.lineasTotal ? (totales.lineasContadas / totales.lineasTotal) * 100 : 0}%` }} />
-                      </div>
+                      <BarraAvance pct={totales.lineasTotal ? (totales.lineasContadas / totales.lineasTotal) * 100 : 0} etiqueta="Líneas contadas" texto={`${totales.lineasContadas} de ${totales.lineasTotal}`} className="min-w-24 flex-1" />
                       {totales.lineasTotal - totales.lineasContadas > 0 && <span className="text-xs text-tinta/55">{totales.lineasTotal - totales.lineasContadas} sin contar: siguen pendientes</span>}
                     </div>
 
@@ -1355,9 +1356,7 @@ export function RecepcionEnvio({
                                     {contadasC} de {propias.length} {propias.length === 1 ? "línea" : "líneas"}
                                   </span>
                                 </span>
-                                <span className="mt-1 block h-1 overflow-hidden rounded-full bg-sand">
-                                  <span className={`block h-full rounded-full ${unidadesC >= pendienteTotal ? "bg-verde" : "bg-ambar"}`} style={{ width: `${pendienteTotal ? Math.min(100, (unidadesC / pendienteTotal) * 100) : 0}%` }} />
-                                </span>
+                                <BarraAvance pct={pendienteTotal ? (unidadesC / pendienteTotal) * 100 : 0} alto="fina" decorativa className="mt-1" />
                               </span>
                               {abierto ? (
                                 <>
@@ -1737,21 +1736,6 @@ function Ini({ nombre, chico = false, apilada = false }: { nombre: string; chico
     <span aria-hidden className={`grid shrink-0 place-items-center rounded-full bg-sand font-bold tracking-wide text-tinta/75 ${chico ? "h-[22px] w-[22px] text-[9px]" : "h-[30px] w-[30px] text-[10.5px]"} ${apilada ? "anim-asentar -ml-1.5 border-2 border-papel first:ml-0" : ""}`}>
       {inicialesProveedor(nombre)}
     </span>
-  );
-}
-
-// Cuánto llevas contado del envío, de un vistazo. Ámbar mientras falta, verde al 100 %.
-function Anillo({ pct }: { pct: number }) {
-  const r = 28;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg width="70" height="70" viewBox="0 0 70 70" className="shrink-0" role="img" aria-label={`${pct} % contado`}>
-      <circle cx="35" cy="35" r={r} fill="none" strokeWidth="6" className="stroke-sand" />
-      <circle cx="35" cy="35" r={r} fill="none" strokeWidth="6" strokeLinecap="round" className={`transition-[stroke-dashoffset,stroke] duration-[900ms] ease-cayla ${pct >= 100 ? "stroke-verde" : "stroke-ambar"}`} strokeDasharray={c} strokeDashoffset={c * (1 - Math.min(1, pct / 100))} transform="rotate(-90 35 35)" />
-      <text x="35" y="41" textAnchor="middle" className="fill-tinta font-display" fontSize="19">
-        {pct}%
-      </text>
-    </svg>
   );
 }
 

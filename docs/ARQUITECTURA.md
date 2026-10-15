@@ -1234,6 +1234,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`/compras/proveedores/[id]`, «Datos para pagar»), `PagoJuntosModal` y el pago individual; `ProveedorModal` («Cómo
   pagarle»), la lista (chip/filtro «Sin datos de pago»), `LineasPago` y `CompraFormV2` (avisos de destino). Reglas puras en
   `lib/proveedores-reglas.ts` (normalizar/enmascarar/validar, `bancoDeCci`, `sinDatosDePago`, `cuentaLocalVisible`).
+  **Quién ve los datos para pagar (2026-10-13, auditoría punto 18, migración `20261013161000`):** solo quien ve Proveedores,
+  Por pagar o Cuentas y dinero, o puede editar un proveedor (`fn_puede_ver_datos_bancarios()`). La tabla ya no entrega las seis
+  columnas bancarias en una lectura directa (permiso por columna); `fn_proveedores()` las devuelve en NULL a los demás y
+  `getProveedor` (ficha) las lee por la RPC `fn_proveedor_datos_bancarios(uuid)` (si la RPC no existe todavía, PGRST202, de la
+  tabla como antes). Cada cambio queda en `proveedores_cambios_bancarios` (disparador): la ficha lo muestra con
+  `fn_proveedor_cambios_bancarios(uuid)` → `CambiosCuentaProveedor.tsx`, y el aviso «Cuentas de proveedor que cambiaron» del
+  Inicio (`lib/inicio.ts`, `lib/inicio-avisos.ts`) y del Observatorio (`lib/observatorio.ts`) lee `fn_cuentas_bancarias_cambiadas(int)`
+  por `lib/proveedores.ts:getCuentasBancariasCambiadas`. Un candado estático (`lib/proveedores-columnas-bancarias.test.ts`)
+  impide volver a leerlas de la tabla.
   **Varios rubros por proveedor (ADR-0213, 2026-09-25; sin pegar en producción):** `proveedores.rubro text` pasa a
   `rubros text[] not null default '{}'` con el CHECK `proveedores_rubros_limpios` (= `fn_rubros_limpios(rubros)`: sin vacíos,
   recortado, uno por `fn_clave_texto`). `registrar_proveedor`/`actualizar_proveedor` cambian `p_rubro text` por

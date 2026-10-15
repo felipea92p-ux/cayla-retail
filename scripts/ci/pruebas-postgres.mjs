@@ -356,6 +356,9 @@ export const PRUEBAS = [
   // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
   // Con control. Disparadores diferidos: cada caso corre `set constraints all immediate` y termina en ROLLBACK.
   "pruebas:caja-efectivo-no-negativo",
+  // ADR-0412 (/chaos de Finanzas 2026-10-14): NaN, tope de S/ 1 000 000 y textos con tope en Finanzas; la caja fuerte no queda bajo
+  // cero (disparadores diferidos: cada caso corre `set constraints all immediate`); un gasto anterior al inicio de Finanzas. Con controles.
+  "pruebas:finanzas-montos-y-caja-fuerte",
 
   // Montos válidos en Ventas y Caja (/chaos 2026-10-13): ni NaN ni infinito en apertura, cierre (tampoco en blanco), egresos y
   // reembolsos; el vuelto con tope de S/ 500; el reembolso de una devolución ≥ 0 y con uno de los cinco medios. Con controles.
@@ -383,6 +386,7 @@ export const PRUEBAS = [
   // Cuarentena no sale hacia la clienta (PL-78): un disparador en movimientos rechaza venta, cambio y apartado
   // desde una sububicación Cuarentena; liquidar sigue. Control con el disparador deshecho. Cada caso: ROLLBACK.
   "pruebas:cuarentena-no-se-vende",
+  "pruebas:datos-sensibles-proveedores",
 
   // La cuarentena no se ajusta a mano (ADR-0328 act. 10): un disparador en movimientos rechaza todo `ajuste` sobre una
   // sububicación Cuarentena (descuadraría el stock contra prendas_danadas); sus puertas propias siguen y abrir_conteo
