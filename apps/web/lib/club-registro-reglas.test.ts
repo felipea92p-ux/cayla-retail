@@ -429,8 +429,10 @@ describe("después de «Unirme»", () => {
 
   it("nuevo: bienvenida (sin género) con su nombre y su código; con WhatsApp, el saludo a la tienda con su nombre y su código", () => {
     const b = bienvenida(listo, pagina());
-    expect(b.titulo).toBe("¡Te damos la bienvenida, Lucía!");
-    expect(b.bajada).toBe("Ya eres miembro del Club CAYLA.");
+    // Cómo se confirma el Club (Felipe 2026-10-15): «¡Listo!» arriba y «Te damos la bienvenida…» debajo, sin repetir «bienvenida».
+    expect(b.titulo).toBe("¡Listo, Lucía!");
+    expect(b.bajada).toBe("Te damos la bienvenida al Club CAYLA.");
+    expect(`${b.titulo} ${b.bajada}`.match(/bienvenida/gi)).toHaveLength(1);
     expect(b.saludo?.titulo).toBe("Último paso: salúdanos por WhatsApp");
     // A la tienda del cartel: la que le contesta y le escribe después.
     expect(b.saludo?.boton).toBe("Saludar a Tienda TRU");
@@ -457,7 +459,7 @@ describe("después de «Unirme»", () => {
 
   it("sin su nombre corto, la bienvenida no dice «null» y el saludo no deja marcadores ni espacios dobles", () => {
     const b = bienvenida({ ...listo, nombre: null }, pagina());
-    expect(b.titulo).toBe("¡Te damos la bienvenida!");
+    expect(b.titulo).toBe("¡Listo!");
     const saludo = decodeURIComponent(b.saludo!.enlace.split("text=")[1]!);
     expect(saludo).not.toMatch(/\{|\}|null| {2}| \./);
     expect(saludo).toContain("(C-0142)");

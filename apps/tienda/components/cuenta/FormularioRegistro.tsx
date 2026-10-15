@@ -298,7 +298,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
       <div>
         <span className="t-ceja">Crea tu cuenta</span>
         <h1 className="w-titulo">
-          Entra al catálogo y <em>ya eres del club.</em>
+          Entra al catálogo y <em>forma parte del club.</em>
         </h1>
         <p className="w-texto-sec">Una sola vez. Con tu DNI te reconocemos en cualquier tienda y sale tu boleta.</p>
       </div>

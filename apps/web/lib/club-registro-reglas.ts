@@ -519,7 +519,7 @@ export function ipDeLaPeticion(reenviadaPor: string | null | undefined, real: st
 
 export type Bienvenida = {
   titulo: string;
-  /** La línea bajo el título: «Ya eres miembro…», o desde cuándo lo es si ya lo era. */
+  /** La línea bajo el título: «Te damos la bienvenida…», o desde cuándo es miembro si ya lo era. */
   bajada: string;
   /** Solo si marcó la casilla de WhatsApp y la tienda tiene número (ADR-0288 G-6, G-12). */
   saludo: { titulo: string; parrafo: string; boton: string; enlace: string } | null;
@@ -527,8 +527,10 @@ export type Bienvenida = {
 
 /**
  * Lo que ve al terminar (diseño aprobado el 2026-10-01; su código va en su tarjeta de miembro, que dibuja la página). Nuevo:
- * «¡Te damos la bienvenida, {nombre}!» y «Ya eres miembro del Club CAYLA.». Ya era miembro: «Actualizamos tus datos» y desde
- * cuándo lo es. Sin género: sirve igual a un cliente o a una clienta (Felipe, 2026-10-02).
+ * «¡Listo, {nombre}!» y «Te damos la bienvenida al Club CAYLA.» (cómo se confirma el Club, Felipe 2026-10-15: la misma frase al
+ * terminar de crear la cuenta en la tienda; «bienvenida» una sola vez). Ya era miembro: «Actualizamos tus datos» y desde cuándo lo
+ * es («Eres miembro del Club CAYLA», como se le dice a quien ya es). Sin género: sirve igual a un cliente o a una clienta (Felipe,
+ * 2026-10-02).
  * Con la casilla de WhatsApp, el último paso: saludar a la tienda del cartel con su código (así guarda el número oficial y la
  * conversación la empieza ella). Sin texto `saludo` vigente, el chat se abre sin mensaje.
  */
@@ -541,12 +543,12 @@ export function bienvenida(r: Extract<RespuestaRegistro, { estado: "listo" }>, p
     : "";
   const enlace = r.conPublicidad ? enlaceQrClub(p.whatsapp, mensaje) : null;
   return {
-    titulo: r.eraSocia ? "Actualizamos tus datos" : `¡Te damos la bienvenida${r.nombre ? `, ${r.nombre}` : ""}!`,
+    titulo: r.eraSocia ? "Actualizamos tus datos" : `¡Listo${r.nombre ? `, ${r.nombre}` : ""}!`,
     bajada: r.eraSocia
       ? desde
         ? `Eres miembro del Club CAYLA desde el ${desde}.`
         : "Ya eras miembro del Club CAYLA."
-      : "Ya eres miembro del Club CAYLA.",
+      : "Te damos la bienvenida al Club CAYLA.",
     saludo: enlace
       ? {
           titulo: "Último paso: salúdanos por WhatsApp",
