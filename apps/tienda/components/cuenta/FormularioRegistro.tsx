@@ -14,8 +14,8 @@ import {
   faltanRegistro,
   marcaDe,
   MENSAJES,
+  mensajeSinNombre,
   normalizarCorreo,
-  pideNombre,
   REGISTRO_VACIO,
   soloDigitos,
   TEXTO_MARCA,
@@ -37,6 +37,8 @@ import { PasoCodigo, type InicioCodigo } from "./PasoCodigo";
 // «Crea tu cuenta» (maqueta v4, `vRegistro` y `guiaRegistro`). Cada campo dice su estado en su título (✓ Listo · Sigue aquí ·
 // Revisa) y debajo qué le falta o qué está mal; el de abajo dice todo lo que falta y el botón se enciende cuando no falta nada.
 // Mientras se escribe, el correo y el DNI se revisan en la base (si ya tienen cuenta) y el DNI trae el nombre del padrón a medias.
+// El nombre no se escribe (Felipe 2026-10-15): si el padrón no lo encuentra o no responde, no se crea la cuenta, y el DNI ofrece
+// «Volver a intentar».
 // Actividad 2b: «Soy mayor de 18 años» (obligatoria), «Avisos del Club por WhatsApp» (opcional, con el texto aprobado del Club) y,
 // al terminar, un código al correo: la cuenta y la ficha nacen recién con el código bueno (`PasoCodigo`).
 
@@ -44,7 +46,6 @@ const ID: Record<CampoProblema, string> = {
   correo: "registro-correo",
   clave: "registro-clave",
   dni: "registro-dni",
-  nombre: "registro-nombre",
   cel: "registro-cel",
   cumple: "registro-cumple-dia",
   mayor: "registro-mayor",
@@ -122,9 +123,16 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     else if (e.campo === "correo" && e.mensaje === MENSAJES.correoDeOtraPersona) setCorreoRevisado({ valor: correo, estado: "de_otra_persona" });
     else if (e.campo === "dni" && e.mensaje === MENSAJES.dniRepetido) setDniRevisado({ valor: r.dni, estado: { estado: "repetido" } });
     else if (e.campo === "dni" && e.mensaje === MENSAJES.dniArchivada) setDniRevisado({ valor: r.dni, estado: { estado: "archivada" } });
-    else if (e.campo === "nombre" && !pideNombre(consultaDni))
-      // El padrón ya no dio el nombre al crear: que lo escriba.
-      setDniRevisado({ valor: r.dni, estado: { estado: "sin_nombre", motivo: "sin_padron", delClub: consultaDni.estado === "encontrado" && consultaDni.delClub } });
+    else if (e.campo === "dni" && (e.mensaje === MENSAJES.dniSinPadron || e.mensaje === MENSAJES.dniNoEncontrado))
+      // El padrón ya no dio el nombre al crear: el DNI lo dice, con «Volver a intentar» (el nombre no se escribe a mano).
+      setDniRevisado({
+        valor: r.dni,
+        estado: {
+          estado: "sin_nombre",
+          motivo: e.mensaje === MENSAJES.dniNoEncontrado ? "no_encontrado" : "sin_padron",
+          delClub: (consultaDni.estado === "encontrado" || consultaDni.estado === "sin_nombre") && consultaDni.delClub,
+        },
+      });
     else if (e.campo === "avisos") {
       // El texto de los avisos cambió: el nuevo se lee y se vuelve a marcar (nunca se da por aceptado uno que no leyó).
       if (e.casilla !== undefined) setCasilla(e.casilla);
@@ -285,14 +293,22 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
           ) : consultaDni.estado === "buscando" ? (
             <p className="w-ayuda">{MENSAJES.dniBuscando}</p>
           ) : consultaDni.estado === "encontrado" ? (
-            <span className="w-res-ok">
-              <Icono nombre="check" />
-              {consultaDni.aMedias}
-            </span>
+            // Su nombre del padrón, a medias (no revela el de nadie) y con su origen: no se escribe ni se cambia aquí.
+            <>
+              <span className="w-res-ok">
+                <Icono nombre="check" />
+                {consultaDni.aMedias}
+              </span>
+              <p className="w-ayuda">{MENSAJES.dniDelPadron}</p>
+            </>
           ) : consultaDni.estado === "sin_nombre" ? (
-            <span className="w-res-aviso">
-              {consultaDni.motivo === "no_encontrado" ? MENSAJES.dniNoEncontrado : consultaDni.motivo === "limite" ? MENSAJES.dniLimite : MENSAJES.dniSinPadron}
-            </span>
+            // Sin el nombre del padrón no hay cuenta (Felipe 2026-10-15): el porqué y «Volver a intentar», que pregunta otra vez.
+            <>
+              <span className="w-res-error">{mensajeSinNombre(consultaDni.motivo)}</span>
+              <button type="button" className="w-enlace" onClick={() => setDniRevisado({ valor: "", estado: { estado: "sin_revisar" } })}>
+                Volver a intentar
+              </button>
+            </>
           ) : (
             <p className="w-ayuda">{MENSAJES.dniAyuda}</p>
           )}
@@ -304,24 +320,6 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
           )}
         </Resultado>
       </Campo>
-
-      {pideNombre(consultaDni) && (
-        <Campo campo="nombre" idCaja={ID.nombre} etiqueta="Tus nombres y apellidos" marca={marca("nombre")} {...foco("nombre")}>
-          <input
-            id={ID.nombre}
-            className="w-caja"
-            autoComplete="name"
-            autoCapitalize="words"
-            maxLength={200}
-            value={r.nombre}
-            onChange={(e) => cambiar({ nombre: e.target.value })}
-            aria-describedby={`${ID.nombre}-res`}
-          />
-          <Resultado id={ID.nombre}>
-            <p className="w-ayuda">{MENSAJES.nombreAyuda}</p>
-          </Resultado>
-        </Campo>
-      )}
 
       <Campo campo="cel" idCaja={ID.cel} etiqueta="Celular con WhatsApp" marca={marca("cel")} {...foco("cel")}>
         <div className="w-caja-pref">

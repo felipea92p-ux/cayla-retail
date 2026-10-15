@@ -23,7 +23,7 @@ import {
   mensajeCodigoEsperar,
   mensajeCodigoLimite,
   mensajeCodigoMalo,
-  nombreLimpio,
+  mensajeSinNombre,
   normalizarCorreo,
   problemaRegistro,
   TEXTOS_VERSION,
@@ -31,7 +31,6 @@ import {
   type CasillaWhatsapp,
   type ConsultaCorreo,
   type ConsultaDni,
-  type Registro,
 } from "@/lib/cuentas";
 import {
   anotarInvitadoEnBase,
@@ -45,7 +44,7 @@ import {
   revisarRegistroEnBase,
 } from "@/lib/cuentas-servidor";
 import { huellas } from "@/lib/intentos-servidor";
-import { buscarNombre } from "@/lib/padron-servidor";
+import { anotarLecturaDelPadron, buscarNombre } from "@/lib/padron-servidor";
 import { borrarCookiesDeSesion, clienteAdmin, clienteSesion, leerSesion } from "@/lib/sesion-servidor";
 import { borrarSiNoTieneCuenta, confirmarCorreo, invitarCorreo, limpiarInvitados } from "@/lib/usuarios-servidor";
 
@@ -67,7 +66,8 @@ export async function consultarCorreo(correo: unknown): Promise<ConsultaCorreo> 
 
 /**
  * Con los 8 dígitos: si ese DNI ya tiene cuenta, si su ficha está archivada, si ya era del Club, y su nombre del padrón A MEDIAS
- * («Maria P. S.»). Nunca el nombre completo. Si el padrón no lo encuentra o no responde, la persona escribe su nombre.
+ * («Maria P. S.»). Nunca el nombre completo. Si el padrón no lo encuentra o no responde, no se puede crear la cuenta: el nombre no se
+ * escribe a mano (Felipe 2026-10-15), y la página ofrece «Volver a intentar».
  */
 export async function consultarDni(dni: unknown): Promise<ConsultaDni> {
   if (typeof dni !== "string" || !/^\d{8}$/.test(dni)) return { estado: "sin_revisar" };
@@ -105,9 +105,9 @@ const enCodigo = (mensaje: string | null, tono: "error" | "aviso" | "ok", espera
 
 /**
  * «Mandarme el código». El orden seguro (principio 9): (1) la base revisa el correo, el DNI y los topes (y cuenta el intento,
- * con sus topes por ip, documento y celular); (2) el nombre: el del padrón, o el que escribió si el padrón no lo da; (3) los
- * avisos: el texto que leyó sigue siendo el vigente; (4) la base reserva el envío (60 s entre uno y otro, 5 por hora) y (5) el
- * proyecto de clientes manda el código. Hasta el código bueno no existe ni la cuenta ni la ficha.
+ * con sus topes por ip, documento y celular); (2) el nombre: el del padrón, que no se escribe a mano (sin él no se manda el código:
+ * no habría cuenta); (3) los avisos: el texto que leyó sigue siendo el vigente; (4) la base reserva el envío (60 s entre uno y otro,
+ * 5 por hora) y (5) el proyecto de clientes manda el código. Hasta el código bueno no existe ni la cuenta ni la ficha.
  */
 export async function pedirCodigo(entrada: unknown): Promise<RespuestaCodigo> {
   const leido = esquemaPedirCodigo.safeParse(entrada);
@@ -140,9 +140,9 @@ export async function pedirCodigo(entrada: unknown): Promise<RespuestaCodigo> {
     return enDatos(null, MENSAJES.noDisponible);
   }
 
-  // 2. El nombre: que no falte después del código.
-  const nombre = await nombreParaLaCuenta(r);
-  if (!nombre) return enDatos("nombre", "Escribe tus nombres y apellidos, tal como están en tu DNI.");
+  // 2. El nombre del padrón: que no falte después del código.
+  const nombre = await nombreParaLaCuenta(r.dni, false);
+  if (nombre.estado !== "ok") return enDatos("dni", mensajeSinNombre(nombre.estado));
 
   // 3. Los avisos citan el texto que leyó: si cambió, que lo vuelva a leer antes de recibir el código.
   if (r.avisos) {
@@ -231,9 +231,9 @@ export async function confirmarCodigo(entrada: unknown): Promise<RespuestaCodigo
   }
   const correo = normalizarCorreo(r.correo);
 
-  // 1. El nombre (antes de gastar un intento).
-  const nombre = await nombreParaLaCuenta(r);
-  if (!nombre) return enDatos("nombre", "Escribe tus nombres y apellidos, tal como están en tu DNI.");
+  // 1. El nombre del padrón (antes de gastar un intento), anotado en la base: sin esa lectura la ficha no lo acepta.
+  const nombre = await nombreParaLaCuenta(r.dni, true);
+  if (nombre.estado !== "ok") return enDatos("dni", mensajeSinNombre(nombre.estado));
 
   // 2. ¿Se puede probar? (Cuenta el intento.)
   const intento = await intentoDeCodigoEnBase(correo);
@@ -259,7 +259,7 @@ export async function confirmarCodigo(entrada: unknown): Promise<RespuestaCodigo
     correo,
     dni: r.dni,
     nombre: nombre.nombre,
-    nombreDelPadron: nombre.delPadron,
+    nombreDelPadron: true,
     celular: celularNormalizado(r.celular),
     cumpleDia: dia,
     cumpleMes: mes,
@@ -304,13 +304,19 @@ async function marcarEntradaDeHoy(usuarioWebId: string): Promise<void> {
   });
 }
 
-/** El nombre que va a la cuenta: el del padrón (consultado aquí: el del navegador no cuenta) o, si no lo da, el que escribió.
- *  null si no hay ninguno. */
-async function nombreParaLaCuenta(r: Registro): Promise<{ nombre: string; delPadron: boolean } | null> {
-  const padron = await buscarNombre(r.dni);
-  if (padron.estado === "encontrado") return { nombre: padron.nombre, delPadron: true };
-  const escrito = nombreLimpio(r.nombre);
-  return escrito.length >= 3 ? { nombre: escrito, delPadron: false } : null;
+/**
+ * El nombre que va a la cuenta: SOLO el del padrón, consultado aquí (lo que diga el navegador no cuenta; Felipe 2026-10-15: sin la
+ * API no se registra). `anotar`: justo antes de crear la cuenta, deja la lectura en la base (`tienda_anotar_lectura_padron`), que es
+ * lo que la ficha exige para aceptar el nombre; si no se pudo anotar, se lee como que el padrón no respondió (se vuelve a intentar).
+ */
+async function nombreParaLaCuenta(
+  dni: string,
+  anotar: boolean,
+): Promise<{ estado: "ok"; nombre: string } | { estado: "no_encontrado" | "sin_padron" }> {
+  const padron = await buscarNombre(dni);
+  if (padron.estado !== "encontrado") return { estado: padron.estado };
+  if (anotar && !(await anotarLecturaDelPadron(dni, padron.nombre))) return { estado: "sin_padron" };
+  return { estado: "ok", nombre: padron.nombre };
 }
 
 /* ------------------------------------------------------------------ Salir y rehacer */
