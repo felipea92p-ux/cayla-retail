@@ -25,7 +25,8 @@
  *   R  EL MISMO PAPEL: repetido no; anulado, sí.
  *   C  CONDICIONES: contado sin pago, vencimiento, emisión futura, pago al crédito, tipo y serie.
  *   CC AL CONTADO (actividad 2): desde una cuenta, por el total y sin vencimiento, la plata sale de esa cuenta en el libro del dinero; el
- *      mismo envío no paga dos veces; los pagos que no cuadran o no se entienden, rechazados.
+ *      mismo envío no paga dos veces; los pagos que no cuadran o no se entienden, rechazados; hasta 20 medios y referencias de hasta 100
+ *      letras (/chaos 2026-10-14).
  *   CF DESDE «MI FONDO» (actividad 2): la dueña paga desde su fondo y su saldo baja (el pago entra a su rendición como «pago»); desde el
  *      fondo de otra persona, no.
  *   K  CANDADO: con papel vigente no se edita ni se anula; anulado el papel, se edita y su línea queda sin enlace. Orden anulada.
@@ -365,6 +366,18 @@ caso(
     "comprobante_orden_insumo_sin_pago",
     "0",
   ].join(",")
+);
+caso(
+  "CC3 topes del pago (/chaos 2026-10-14): más de 20 medios o una referencia de más de 100 letras, no; con 100 letras, sí",
+  `${BANCO}select concat_ws(',',
+     split_part(pg_temp.eh(pg_temp.registra(:'oc', 'boleta', 'B001', '230', ${LINEAS}, p_condicion => 'contado', p_venc => null,
+       p_pago => (select jsonb_agg(jsonb_build_object('metodo', 'transferencia', 'monto', case when g = 21 then '7.00' else '6.60' end, 'cuenta_id', :'bcp'))
+                    from generate_series(1, 21) g))), '|', 2),
+     split_part(pg_temp.eh(pg_temp.registra(:'oc', 'boleta', 'B001', '231', ${LINEAS}, p_condicion => 'contado', p_venc => null,
+       p_pago => ${pagoDe("139.00", ":'bcp'", ", 'referencia', repeat('r', 101)")})), '|', 2),
+     pg_temp.j(pg_temp.registra(:'oc', 'boleta', 'B001', '232', ${LINEAS}, p_condicion => 'contado', p_venc => null,
+       p_pago => ${pagoDe("139.00", ":'bcp'", ", 'referencia', repeat('r', 100)")})) ->> 'documento');`,
+  "comprobante_orden_insumo_pago,comprobante_orden_insumo_pago,B001-232"
 );
 caso(
   "CF1 desde «Mi fondo»: la dueña paga la factura (S/ 164.02) y su fondo baja de S/ 500 a S/ 335.98; el pago entra a su rendición como «pago»",

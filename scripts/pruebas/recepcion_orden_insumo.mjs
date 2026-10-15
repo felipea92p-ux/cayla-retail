@@ -18,14 +18,17 @@
  *   M  las migraciones se vuelven a cargar.
  *   P  PUERTAS: sin el módulo de Producción no se lee ni se recibe; quien hizo la orden no la recibe.
  *   R  RECIBIR: sin papel; hasta lo que queda; el costo sugerido y el corregido; con papel (lo de más y lo de fuera de la orden).
- *   Q  CANTIDADES MALAS: cuatro decimales, cero, NaN, una línea de otra orden, repetida, sin líneas.
+ *   Q  CANTIDADES MALAS: cuatro decimales, cero, NaN, una línea de otra orden, repetida, sin líneas; un código de lote de más de 40 letras.
  *   I  DOBLE ENVÍO: el mismo token y contenido devuelve la misma recepción; con otro contenido, `token_reusado`.
  *   K  CANDADO: con algo recibido no se edita ni se anula. Orden anulada; una tienda no recibe insumos.
  *   N  LO QUE NO LLEGÓ (actividad 4): se cierra el resto al recibir (o solo se cierra, con «0»), deja de estar pendiente y queda en la
- *      orden y en la lista como lo que el proveedor nos debe, a su costo; los cierres que no se entienden, rechazados.
+ *      orden y en la lista como lo que el proveedor nos debe, a su costo; los cierres que no se entienden, rechazados. Y desde /chaos
+ *      (2026-10-14): el papel de una orden no se anula si su línea fuera de la orden ya está anotada o si respalda lo recibido de más (sí, si
+ *      lo recibido cabe en lo pedido), y la orden dice lo que llegó fuera de ella (`fuera_de_orden`).
  *   L  EL LIBRO: no se edita ni se borra (las recepciones y lo que no llegó).
  *   S  LA FORMA: security definer con search_path; `authenticated` sí, `anon` no; lo interno, cerrado.
- *   2S DOS SESIONES A LA VEZ: reciben todo lo que queda de la misma línea; la segunda espera la orden y lee que ya no queda: un solo lote. Hace
+ *   2S DOS SESIONES A LA VEZ: reciben todo lo que queda de la misma línea; la segunda espera la orden y lee que ya no queda: un solo lote.
+ *      Y recibir la línea del papel fuera de la orden mientras se anula ese papel, en los dos órdenes: nunca un lote de un papel anulado. Hace
  *      COMMIT de una orden de prueba y la borra al terminar, así que NO corre contra la base local compartida: solo en el CI (cada tanda
  *      tiene su base) o con `--contenedor` de un banco propio.
  *
@@ -345,6 +348,60 @@ caso(
   "4.000:0.2000:se rompieron:true"
 );
 
+// ---------- Anular el papel de una orden (/chaos 2026-10-14, gravedad 1) ----------
+// `anular_comprobante_produccion` no sabía de órdenes: dejaba anular un papel cuya línea fuera de la orden ya estaba anotada como «no
+// llegará» (la orden seguía cobrándole al proveedor por un papel anulado) o que respaldaba lo recibido de más.
+const papelDeMicaela = (tipo, serie, numero, lineas) => `${MICAELA_CON_MODULO}${como(MICAELA)}${FIRMA_PAPEL}
+   select (retail.registrar_comprobante_orden_insumo(:'o1', '${tipo}', '${serie}', '${numero}', ${lineas}, null, 'credito', retail.fn_hoy_lima() + 30)
+           ->> 'comprobante_id') as c \\gset
+   -- La línea fuera de la orden, si el papel la trae (vacía si no: el gset de psql exige una fila).
+   select coalesce((select x.id::text from retail.comprobantes_produccion_items x where x.comprobante_id = :'c' and x.orden_insumo_item_id is null limit 1), '') as bx \\gset
+   ${como(FELIPE)}${SIN_FIRMA}`;
+const anularPapel = `pg_temp.intento($$select retail.anular_comprobante_produccion('$$ || :'c' || $$', 'mal registrado')$$)`;
+const BOTONES_FUERA = `jsonb_build_array(jsonb_build_object('insumo_id', :'boton', 'cantidad', '10', 'costo_unitario', '0.20'))`;
+caso(
+  "N5 el papel cuya línea fuera de la orden ya está anotada como «no llegará» no se anula (comprobante_orden_insumo_con_cierre) y sigue vigente",
+  `${papelDeMicaela("boleta", "B001", "903", BOTONES_FUERA)}
+   select pg_temp.recibe(:'o1', :'taller', jsonb_build_array(jsonb_build_object('comprobante_item_id', :'bx', 'cantidad', '0',
+     'cierre', jsonb_build_object('motivo', 'faltante')))) \\g /dev/null
+   select ${anularPapel} as a \\gset
+   select concat_ws('|', pg_temp.eh(:'a'), (select estado from retail.comprobantes_produccion where id = :'c'));`,
+  "P0001|comprobante_orden_insumo_con_cierre|vigente"
+);
+caso(
+  "N6 el papel que respalda lo recibido de más no se anula: se pidieron 12.5 m, el papel trajo 15 y llegaron 15 (comprobante_orden_insumo_recibido)",
+  `${papelDeMicaela("factura", "F001", "904", "jsonb_build_array(jsonb_build_object('orden_insumo_item_id', :'i1', 'cantidad', '15', 'costo_unitario', '10'))")}
+   select pg_temp.recibe(:'o1', :'taller', ${una(":'i1'", "15")}) \\g /dev/null
+   select ${anularPapel} as a \\gset
+   select concat_ws('|', pg_temp.eh(:'a'), (select estado from retail.comprobantes_produccion where id = :'c'));`,
+  "P0001|comprobante_orden_insumo_recibido|vigente"
+);
+caso(
+  "N7 si lo recibido cabe en lo pedido, el papel sí se anula: la orden respalda lo que llegó (12.5 m pedidos, papel de 12.5, llegaron 10)",
+  `${papelDeMicaela("factura", "F001", "905", "jsonb_build_array(jsonb_build_object('orden_insumo_item_id', :'i1', 'cantidad', '12.5', 'costo_unitario', '10'))")}
+   select pg_temp.recibe(:'o1', :'taller', ${una(":'i1'", "10")}) \\g /dev/null
+   select ${anularPapel} as a \\gset
+   select concat_ws('|', :'a', (select estado from retail.comprobantes_produccion where id = :'c'));`,
+  "SIN_ERROR|anulada"
+);
+caso(
+  "N8 la orden dice lo que llegó fuera de ella: la línea del papel con lo facturado, lo recibido, lo anotado y lo que queda (fuera_de_orden)",
+  `${papelDeMicaela("boleta", "B001", "906", BOTONES_FUERA)}
+   select pg_temp.recibe(:'o1', :'taller', jsonb_build_array(jsonb_build_object('comprobante_item_id', :'bx', 'cantidad', '6',
+     'cierre', jsonb_build_object('motivo', 'faltante')))) \\g /dev/null
+   select (select string_agg(concat_ws(':', f ->> 'insumo', f ->> 'unidad', f ->> 'documento', f ->> 'facturado', f ->> 'recibido',
+                                        f ->> 'cerrado', f ->> 'queda', ((f ->> 'item_id')::uuid = :'bx')::text), ',')
+             from jsonb_array_elements(retail.fn_orden_insumo(:'o1') -> 'fuera_de_orden') f);`,
+  "Botón Nácar CI Recepción:unidad:B001-906:10.000:6.000:4.000:0.000:true"
+);
+caso(
+  "Q2 un código de lote de más de 40 letras no (recibir_orden_insumo_codigo), como en la pantalla; con 40, sí",
+  `select concat_ws(',',
+     split_part(pg_temp.eh(pg_temp.recibe(:'o1', :'taller', ${una(":'i1'", "1", ", 'codigo_lote', repeat('x', 41)")})), '|', 2),
+     pg_temp.j(pg_temp.recibe(:'o1', :'taller', ${una(":'i1'", "1", ", 'codigo_lote', repeat('y', 40)")})) ->> 'lotes');`,
+  "recibir_orden_insumo_codigo,1"
+);
+
 caso(
   "K1 con algo recibido la orden ya no se edita ni se anula (orden_insumo_con_recepcion)",
   `select pg_temp.recibe(:'o1', :'taller', ${una(":'i1'", "1")}) \\g /dev/null
@@ -402,12 +459,17 @@ begin;
 set local session_replication_role = replica;
 create temp table _prov on commit drop as select p.id from retail.proveedores_produccion p where p.nombre like '${MARCA_2S}%';
 create temp table _ord on commit drop as select o.id from retail.ordenes_insumo o where o.proveedor_id in (select id from _prov);
+-- Los lotes de sus recepciones: los de una línea pedida y los de una línea del papel fuera de la orden.
 create temp table _lot on commit drop as select l.id from retail.insumo_lotes l
-  where l.orden_insumo_item_id in (select i.id from retail.orden_insumo_items i where i.orden_insumo_id in (select id from _ord));
+  where l.orden_insumo_recepcion_id in (select r.id from retail.orden_insumo_recepciones r where r.orden_insumo_id in (select id from _ord));
+create temp table _pap on commit drop as select c.id from retail.comprobantes_produccion c where c.orden_insumo_id in (select id from _ord);
 delete from retail.orden_insumo_cierres k where k.orden_insumo_id in (select id from _ord);
 delete from retail.movimientos_insumo m where m.insumo_lote_id in (select id from _lot);
 delete from retail.insumo_lotes l where l.id in (select id from _lot);
 delete from retail.orden_insumo_recepciones r where r.orden_insumo_id in (select id from _ord);
+delete from retail.comprobantes_produccion_pagos p where p.comprobante_id in (select id from _pap);
+delete from retail.comprobantes_produccion_items x where x.comprobante_id in (select id from _pap);
+delete from retail.comprobantes_produccion c where c.id in (select id from _pap);
 delete from retail.actividad a where a.tabla = 'ordenes_insumo' and a.registro_id in (select id::text from _ord);
 delete from retail.orden_insumo_versiones v where v.orden_insumo_id in (select id from _ord);
 delete from retail.orden_insumo_items i where i.orden_insumo_id in (select id from _ord);
@@ -445,27 +507,62 @@ ${espera ? `select pg_sleep(${espera});\ncommit;` : "commit;"}
 `;
 const ultima = (s) => s.stdout.trim().split("\n").filter(Boolean).at(-1);
 
-async function dosSesiones() {
-  const nombre = "2S1 dos sesiones reciben a la vez todo lo que queda de la misma línea: la segunda espera la orden y lee que ya no queda; un solo lote";
+// 2S2: la orden de Felipe con su boleta, que trae 3 conos de hilo fuera de la orden. Sandra recibe esa línea y Felipe anula la boleta, a
+// la vez (/chaos 2026-10-14, K07): antes, los dos pasaban sin esperarse y quedaba un lote colgado de un papel anulado.
+const CREAR_2S2 = `
+set client_min_messages = warning;
+begin;
+set local search_path = retail, public, extensions;
+${como(FELIPE)}${FIRMA_CREAR}
+insert into retail.proveedores_produccion (nombre, rubro) values ('${MARCA_2S} ' || substr(md5(random()::text), 1, 8), 'tela') returning id as prov \\gset
+insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZOIR2S-' || substr(md5(random()::text), 1, 8), 'Lino dos sesiones', 'tela', 'metro')
+  returning id as ins \\gset
+insert into retail.insumos (codigo, nombre, tipo, unidad_medida) values ('ZZOIR2S-' || substr(md5(random()::text), 1, 8), 'Hilo dos sesiones', 'avio', 'cono')
+  returning id as hilo \\gset
+select id as taller from retail.ubicaciones where tipo = 'taller' and activo order by nombre limit 1 \\gset
+select r.id as oc from retail.crear_orden_insumo(gen_random_uuid(), :'prov', :'taller', null::date, null,
+  jsonb_build_array(jsonb_build_object('insumo_id', :'ins', 'cantidad', '10', 'precio_unitario', '20'))) r \\gset
+${FIRMA_PAPEL}
+select (retail.registrar_comprobante_orden_insumo(:'oc', 'boleta', 'B2S', substr(md5(random()::text), 1, 8),
+  jsonb_build_array(jsonb_build_object('insumo_id', :'hilo', 'cantidad', '3', 'costo_unitario', '4')), null, 'credito', retail.fn_hoy_lima() + 30)
+  ->> 'comprobante_id') as c \\gset
+select x.id as bx from retail.comprobantes_produccion_items x where x.comprobante_id = :'c' \\gset
+commit;
+select :'oc' || '|' || :'c' || '|' || :'bx' || '|' || :'taller';
+`;
+const SESION = (quien, firma, sql, espera) => `
+set client_min_messages = warning;
+begin;
+set local search_path = retail, public, extensions;
+${ENVOLTURAS}
+${como(quien)}${firma}
+select ${sql} as r \\gset
+select case when :'r' like 'OK:%' or :'r' = 'SIN_ERROR' then 'OK' else pg_temp.eh(:'r') end;
+${espera ? `select pg_sleep(${espera});\ncommit;` : "commit;"}
+`;
+const RECIBE_PAPEL = (x, espera) =>
+  SESION(SANDRA, SIN_FIRMA, `pg_temp.recibe('${x.oc}', '${x.taller}', jsonb_build_array(jsonb_build_object('comprobante_item_id', '${x.bx}', 'cantidad', '3')))`, espera);
+const ANULA_PAPEL = (x, espera) =>
+  SESION(FELIPE, SIN_FIRMA, `pg_temp.intento($$select retail.anular_comprobante_produccion('${x.c}', 'a la vez')$$)`, espera);
+
+// Corre dos sesiones (la primera retiene sus candados 1.5 s) sobre una orden COMMITEADA y la borra al terminar.
+async function dosSesiones(nombre, crear, primera, segunda, mira, esperado) {
   if (!DOS_SESIONES) {
     console.log(`⤳ ${nombre}: se salta en la base local compartida (hace COMMIT); córrela con --contenedor <banco propio>`);
     return;
   }
   try {
     psql(LIMPIAR_2S);
-    const [oc, it, taller] = psql(CREAR_2S).trim().split("\n").filter(Boolean).at(-1).split("|");
-    const x = { oc, it, taller };
-    const p1 = psqlAsync(SESION_RECIBE(x, 1.5));
+    const x = crear(psql(crear.sql).trim().split("\n").filter(Boolean).at(-1).split("|"));
+    const p1 = psqlAsync(primera(x, 1.5));
     await dormir(400);
-    const p2 = psqlAsync(SESION_RECIBE(x, null));
+    const p2 = psqlAsync(segunda(x, null));
     const [s1, s2] = await Promise.all([p1, p2]);
-    const lotes = psql(`select count(*) || ':' || coalesce(sum(cantidad_ingresada), 0) from retail.insumo_lotes where orden_insumo_item_id = '${it}';`).trim();
-    const esperado = "s1=OK · s2=P0001|recibir_orden_insumo_de_mas · esperó · lotes=1:10.000";
-    const obtenido = `s1=${ultima(s1)} · s2=${ultima(s2)} · ${s2.ms > 900 ? "esperó" : `no esperó (${s2.ms} ms)`} · lotes=${lotes}`;
+    const obtenido = `s1=${ultima(s1)} · s2=${ultima(s2)} · ${s2.ms > 900 ? "esperó" : `no esperó (${s2.ms} ms)`} · ${psql(mira(x)).trim()}`;
     const ok = s1.code === 0 && s2.code === 0 && obtenido === esperado;
     anotar(nombre, ok, esperado, ok ? obtenido : `${obtenido}\n    s1: ${s1.stderr.trim()}\n    s2: ${s2.stderr.trim()}`);
   } catch (e) {
-    anotar("2S dos sesiones", false, "sin error", String(e.stderr ?? e.message).split("\n").slice(0, 4).join(" "));
+    anotar(nombre, false, "sin error", String(e.stderr ?? e.message).split("\n").slice(0, 4).join(" "));
   } finally {
     try {
       const quedan = psql(LIMPIAR_2S).trim().split("\n").filter(Boolean).at(-1);
@@ -475,8 +572,35 @@ async function dosSesiones() {
     }
   }
 }
+const ordenSola = Object.assign(([oc, it, taller]) => ({ oc, it, taller }), { sql: CREAR_2S });
+const ordenConPapel = Object.assign(([oc, c, bx, taller]) => ({ oc, c, bx, taller }), { sql: CREAR_2S2 });
+const papelYLotes = (x) => `select 'papel ' || (select estado from retail.comprobantes_produccion where id = '${x.c}') || ' · lotes=' ||
+  (select count(*) from retail.insumo_lotes where comprobante_item_id = '${x.bx}');`;
 
-await dosSesiones();
+await dosSesiones(
+  "2S1 dos sesiones reciben a la vez todo lo que queda de la misma línea: la segunda espera la orden y lee que ya no queda; un solo lote",
+  ordenSola,
+  (x, espera) => SESION_RECIBE(x, espera),
+  (x, espera) => SESION_RECIBE(x, espera),
+  (x) => `select 'lotes=' || count(*) || ':' || coalesce(sum(cantidad_ingresada), 0) from retail.insumo_lotes where orden_insumo_item_id = '${x.it}';`,
+  "s1=OK · s2=P0001|recibir_orden_insumo_de_mas · esperó · lotes=1:10.000",
+);
+await dosSesiones(
+  "2S2a se recibe la línea del papel fuera de la orden mientras se anula ese papel: la anulación espera la orden, ve el lote y no anula",
+  ordenConPapel,
+  RECIBE_PAPEL,
+  ANULA_PAPEL,
+  papelYLotes,
+  "s1=OK · s2=P0001| · esperó · papel vigente · lotes=1",
+);
+await dosSesiones(
+  "2S2b se anula el papel mientras se recibe su línea fuera de la orden: la recepción espera la orden y ya no encuentra la línea; ningún lote",
+  ordenConPapel,
+  ANULA_PAPEL,
+  RECIBE_PAPEL,
+  papelYLotes,
+  "s1=OK · s2=P0001|recibir_orden_insumo_linea_ajena · esperó · papel anulada · lotes=0",
+);
 
 console.log(`\n${casos - fallas}/${casos} casos bien${fallas ? ` — ${fallas} en rojo` : ""} (contenedor: ${CONTENEDOR})`);
 process.exit(fallas ? 1 : 0);

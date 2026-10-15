@@ -128,6 +128,10 @@ $v$,
     else
       raise exception 'El pago necesita al menos un medio con su monto' using hint = 'comprobante_orden_insumo_pago';
     end if;
+    -- Topes (/chaos 2026-10-14: la base guardaba 4750 medios de S/ 0.01 y referencias de 5000 letras): hasta 20 medios.
+    if jsonb_array_length(v_pagos) > 20 then
+      raise exception 'Un pago lleva hasta 20 medios' using hint = 'comprobante_orden_insumo_pago';
+    end if;
     for v_pago in select e.value from jsonb_array_elements(v_pagos) e loop
       if jsonb_typeof(v_pago) <> 'object' then
         raise exception 'El pago necesita al menos un medio con su monto' using hint = 'comprobante_orden_insumo_pago';
@@ -148,6 +152,10 @@ $v$,
       end if;
       if coalesce(v_pago ->> 'metodo', '') not in ('transferencia', 'yape', 'plin', 'efectivo', 'deposito', 'otro') then
         raise exception 'Medio de pago no reconocido: %', coalesce(nullif(v_pago ->> 'metodo', ''), '(vacío)') using hint = 'comprobante_orden_insumo_pago';
+      end if;
+      -- La referencia (el número de la operación), hasta 100 letras.
+      if length(btrim(coalesce(v_pago ->> 'referencia', ''))) > 100 then
+        raise exception 'La referencia del pago va hasta 100 letras' using hint = 'comprobante_orden_insumo_pago';
       end if;
       if v_pago_fecha > v_hoy then
         raise exception 'La fecha del pago no puede ser futura: hoy es %', to_char(v_hoy, 'DD/MM/YYYY') using hint = 'comprobante_orden_insumo_pago';

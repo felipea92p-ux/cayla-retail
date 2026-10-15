@@ -19,6 +19,11 @@
 --   4. El detalle de la orden (`fn_orden_insumo`, REEMPLAZO ANCLADO antes de su `return`, sin tocar lo que agregaron 20261015020000 y
 --      20261015040000) suma `cierres`; y la lista lee aparte, para las órdenes de su página, lo que nos debe cada una
 --      (`fn_ordenes_insumo_nos_debe`): `fn_ordenes_insumo` no cambia de columnas, así su migración se puede volver a pegar.
+--   Y lo que /chaos y /formidable encontraron antes de pegarla (2026-10-14, con el OK de Felipe):
+--   5. El detalle de la orden suma también `fuera_de_orden`: lo que el papel trajo fuera de ella, con lo facturado, lo recibido, lo
+--      anotado y lo que queda (la orden no lo mostraba en ningún lado). El código de un lote va hasta 40 letras, como en la pantalla.
+--   6. `anular_comprobante_produccion` (REEMPLAZO ANCLADO): el papel de una orden bloquea la orden antes de mirar y no se anula si una línea
+--      suya está anotada como «no llegará» o si respalda lo recibido de más (gravedad 1: dejaba lo recibido o lo anotado sin respaldo).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe). UNA parte, después de 20261015040000. Una tabla nueva sin políticas y funciones; sin
 -- `drop trigger` (ADR-0195) ni `select … into` dentro de textos entre comillas (ADR-0288). Re-ejecutable: se puede pegar dos veces. El
@@ -326,6 +331,10 @@ begin
         raise exception 'De %, con lo que llega ahora no queda nada por cerrar', v_fila.insumo using hint = 'recibir_orden_insumo_cierre';
       end if;
     end if;
+    -- El código del lote, como en la pantalla: hasta 40 letras (/chaos 2026-10-14: la base guardaba uno de 5000).
+    if length(btrim(coalesce(v_linea ->> 'codigo_lote', ''))) > 40 then
+      raise exception 'El código de lote de la línea % va hasta 40 letras', v_pos using hint = 'recibir_orden_insumo_codigo';
+    end if;
     v_lineas := v_lineas || jsonb_build_object(
       'tipo', v_tipo, 'item_id', v_item, 'insumo_id', v_fila.insumo_id, 'cantidad', v_cant, 'costo', v_costo,
       'codigo', nullif(btrim(coalesce(v_linea ->> 'codigo_lote', '')), ''),
@@ -435,6 +444,21 @@ $v$,
       left join public.personas pe on pe.id = k.usuario_id
      where k.orden_insumo_id = p_orden_id
   ), '[]'::jsonb));
+  -- Lo que el papel trajo fuera de la orden (decisión 43): lo facturado, lo recibido, lo anotado como «no llegará» y lo que queda
+  -- (/formidable 2026-10-14: la orden no lo mostraba en ningún lado, y su estado de recepción no lo contaba).
+  v_foto := v_foto || jsonb_build_object('fuera_de_orden', coalesce((
+    select jsonb_agg(jsonb_build_object(
+             'item_id', x.id, 'comprobante_id', y.id, 'documento', y.serie || '-' || y.numero, 'insumo_id', x.insumo_id,
+             'insumo', n.nombre, 'codigo', n.codigo, 'unidad', n.unidad_medida, 'facturado', x.cantidad, 'costo_unitario', x.costo_unitario,
+             'recibido', r.cantidad, 'cerrado', k.cantidad, 'queda', greatest(x.cantidad - r.cantidad - k.cantidad, 0)
+           ) order by y.fecha_emision, y.serie, y.numero, n.nombre)
+      from retail.comprobantes_produccion_items x
+      join retail.comprobantes_produccion y on y.id = x.comprobante_id and y.estado = 'vigente'
+      join retail.insumos n on n.id = x.insumo_id
+      cross join lateral (select coalesce(sum(l.cantidad_ingresada), 0) as cantidad from retail.insumo_lotes l where l.comprobante_item_id = x.id) r
+      cross join lateral (select coalesce(sum(c.cantidad), 0) as cantidad from retail.orden_insumo_cierres c where c.comprobante_item_id = x.id) k
+     where y.orden_insumo_id = p_orden_id and x.orden_insumo_item_id is null and x.insumo_id is not null
+  ), '[]'::jsonb));
 $n$,
   1);
 
@@ -467,7 +491,47 @@ comment on function retail.fn_ordenes_insumo_nos_debe(uuid[]) is
   'ADR-0362 fase 7 parte 2 (actividad 4): de las órdenes de insumos pedidas, cuántas líneas se cerraron porque no van a llegar y lo que el '
   'proveedor nos debe, a su costo. Exige el módulo ordenes_insumos.';
 
--- ---------- 6. Permisos ----------
+-- ---------- 6. Anular el papel de una orden (/chaos 2026-10-14, gravedad 1) ----------
+-- `anular_comprobante_produccion` (la del Taller) no sabía de órdenes: dejaba anular el papel de una orden aunque una línea suya estuviera
+-- anotada como «no llegará» (la orden seguía diciendo «El proveedor nos debe» por un papel anulado) o aunque respaldara lo recibido de más;
+-- y como no bloqueaba la orden, a la vez que se recibía su línea fuera de la orden, los dos pasaban y quedaba un lote de un papel anulado.
+-- Ahora, si el papel es de una orden, bloquea la orden ANTES de mirar (como recibir y registrar: lo que mira después ya ve lo que la otra
+-- sesión confirmó), y no anula si una línea suya está anotada o si, sin él, una línea pedida quedaría con más recibido y anotado que lo
+-- pedido y lo facturado en los otros papeles vigentes. Lo recibido que cabe en lo pedido lo respalda la orden: ese papel sí se anula.
+select pg_temp.reemplazar(
+  'retail.anular_comprobante_produccion(uuid,text)',
+  $v$  if v_c.estado = 'anulada' then
+    return;
+  end if;
+$v$,
+  $n$  if v_c.estado = 'anulada' then
+    return;
+  end if;
+  -- El papel de una orden de insumos (ADR-0362, fase 7 parte 2) responde por lo que la orden recibió y anotó.
+  if v_c.orden_insumo_id is not null then
+    perform 1 from retail.ordenes_insumo o where o.id = v_c.orden_insumo_id for update;
+    if exists (select 1 from retail.orden_insumo_cierres k join retail.comprobantes_produccion_items i on i.id = k.comprobante_item_id
+                where i.comprobante_id = p_comprobante_id) then
+      raise exception 'Una línea de este comprobante ya está anotada en su orden como que no va a llegar: no se puede anular.'
+        using hint = 'comprobante_orden_insumo_con_cierre';
+    end if;
+    if exists (
+      select 1 from retail.orden_insumo_items it
+       where it.orden_insumo_id = v_c.orden_insumo_id
+         and (select coalesce(sum(l.cantidad_ingresada), 0) from retail.insumo_lotes l where l.orden_insumo_item_id = it.id)
+           + (select coalesce(sum(k.cantidad), 0) from retail.orden_insumo_cierres k where k.orden_insumo_item_id = it.id)
+           > greatest(it.cantidad, (select coalesce(sum(x.cantidad), 0) from retail.comprobantes_produccion_items x
+                                      join retail.comprobantes_produccion y on y.id = x.comprobante_id
+                                     where x.orden_insumo_item_id = it.id and y.estado = 'vigente' and y.id <> p_comprobante_id))
+    ) then
+      raise exception 'Su orden ya recibió más de lo que pidió y este comprobante lo respalda: anularlo dejaría insumos sin papel. Registra primero el comprobante correcto.'
+        using hint = 'comprobante_orden_insumo_recibido';
+    end if;
+  end if;
+$n$,
+  1);
+
+-- ---------- 7. Permisos ----------
 revoke all on function retail.fn_ordenes_insumo_nos_debe(uuid[]) from public, anon;
 grant execute on function retail.fn_ordenes_insumo_nos_debe(uuid[]) to authenticated, service_role;
 revoke all on function retail.fn_orden_insumo_por_recibir_lineas(uuid) from public, anon, authenticated;
@@ -492,6 +556,13 @@ begin
   if position('''cierres''' in pg_get_functiondef('retail.fn_orden_insumo(uuid)'::regprocedure)) = 0
      or to_regprocedure('retail.fn_ordenes_insumo_nos_debe(uuid[])') is null then
     raise exception 'falta lo que no llegó en el detalle o en la lista de órdenes de insumos';
+  end if;
+  if position('''fuera_de_orden''' in pg_get_functiondef('retail.fn_orden_insumo(uuid)'::regprocedure)) = 0 then
+    raise exception 'falta lo que llegó fuera de la orden en su detalle';
+  end if;
+  if position('comprobante_orden_insumo_con_cierre' in pg_get_functiondef('retail.anular_comprobante_produccion(uuid,text)'::regprocedure)) = 0
+     or position('comprobante_orden_insumo_recibido' in pg_get_functiondef('retail.anular_comprobante_produccion(uuid,text)'::regprocedure)) = 0 then
+    raise exception 'falta el candado de anular el papel de una orden de insumos';
   end if;
 end;
 $$;
