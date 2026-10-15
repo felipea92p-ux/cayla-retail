@@ -8,7 +8,7 @@
 //   pendiente  DEUDA de las pantallas hechas antes de la regla. Una pantalla NUEVA no puede nacer aquí: o trae su guía o dice por qué
 //              no aplica. Al terminar una, se pasa a «aplicada» y se baja `PENDIENTES_HOY` (la cuenta es exacta: solo baja).
 
-import { GUIA_APARTADOS, GUIA_COMPROBANTES, GUIA_HISTORIAL, GUIA_PUNTO_DE_VENTA } from "./pantallas/vender";
+import { GUIA_APARTADOS, GUIA_COMPROBANTES, GUIA_HISTORIAL, GUIA_PEDIDOS_WEB, GUIA_PUNTO_DE_VENTA } from "./pantallas/vender";
 import {
   GUIA_CAJA,
   GUIA_CAMBIOS,
@@ -124,6 +124,7 @@ export type PantallaConGuia =
 export const GUIAS: readonly Guia[] = [
   GUIA_PUNTO_DE_VENTA,
   GUIA_APARTADOS,
+  GUIA_PEDIDOS_WEB,
   GUIA_HISTORIAL,
   GUIA_COMPROBANTES,
   GUIA_COMPROBANTES_MES,
@@ -363,6 +364,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- vender ----
   "/vender": { estado: "aplicada", guia: GUIA_PUNTO_DE_VENTA.id },
   "/vender/apartados": { estado: "aplicada", guia: GUIA_APARTADOS.id },
+  "/vender/pedidos-web": { estado: "aplicada", guia: GUIA_PEDIDOS_WEB.id },
   "/vender/comprobantes": { estado: "aplicada", guia: GUIA_COMPROBANTES.id },
   "/vender/comprobantes/emitidos": { estado: "aplicada", guia: GUIA_COMPROBANTES_MES.id },
   "/vender/comprobantes/por-reintentar": { estado: "aplicada", guia: GUIA_POR_ENVIAR.id },

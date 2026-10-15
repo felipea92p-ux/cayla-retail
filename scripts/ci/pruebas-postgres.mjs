@@ -203,6 +203,11 @@ export const PRUEBAS = [
   // operación y el aviso de la pasarela no se duplican; el efectivo en la caja abierta; permisos y transiciones imposibles. ROLLBACK.
   "pruebas:pedidos-web-motor",
 
+  // Pedidos web en el ERP (ADR-0408, act. 8): el módulo nace solo del líder y su candado es `fn_pedido_web_exigir`; los plazos
+  // salen de Configuración ▸ Tienda web; el aviso de 48 h calla con adelanto y una prenda por conseguir o en camino; enviar desde
+  // otra tienda arma un traslado que se reserva solo al llegar (y vuelve si se anula); Catálogo dice «tiene pedidos web». ROLLBACK.
+  "pruebas:pedidos-web-erp",
+
   // Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
   // La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.
   "pruebas:redondeo-efectivo",

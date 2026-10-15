@@ -347,6 +347,137 @@ export const GUIA_APARTADOS: Guia = {
   ],
 };
 
+// Ventas ▸ Pedidos web (ADR-0408, act. 8). El piloto abre el primer pedido de la lista y, si hay algo para enviar a otra tienda, su
+// hoja; nunca confirma, cierra, anula ni envía: esos botones se explican encendidos. Lo que se ve depende del pedido que abre (por
+// confirmar o ya confirmado), por eso los pasos de la hoja son opcionales.
+export const GUIA_PEDIDOS_WEB: Guia = {
+  id: "vender.pedidos-web",
+  ruta: "/vender/pedidos-web",
+  titulo: "Pedidos web",
+  resumen: "Confirmar lo que los clientes separan en la tienda online.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Los pedidos de la tienda online",
+      texto: "Cuando un cliente toca «Separar» en la web, su pedido llega aquí y te escribe por WhatsApp con su número. Tú revisas el stock y lo confirmas: recién ahí se reservan sus prendas. Es una demo: no se confirma ni se anula nada.",
+    },
+    {
+      id: "cifras",
+      ancla: "pedidos-web.cifras",
+      titulo: "Cómo va tu tienda",
+      texto: "Cuántos esperan que los confirmes y cuándo vence el primero, cuánto falta cobrar, cuántos pagaron y esperan recoger, y lo cobrado hoy. Toca una cifra y la lista muestra esos pedidos.",
+    },
+    {
+      id: "para-enviar",
+      ancla: "pedidos-web.para-enviar",
+      opcional: true,
+      titulo: "Lo que otra tienda espera de ti",
+      texto: "Prendas que se reservaron aquí para un pedido que se recoge en otra tienda. Se envían por traslado y, al llegar, quedan reservadas allá solas.",
+    },
+    {
+      id: "enviar",
+      ancla: "enviar-pedido-web.prendas",
+      opcional: true,
+      requiere: ["pedidos-web.para-enviar"],
+      preparar: [{ tipo: "clic", ancla: "pedidos-web.enviar" }],
+      titulo: "Qué sale y de dónde",
+      texto: "Las prendas que viajan. Si alguna está colgada en el piso, descuélgala: el sistema la pasa al almacén antes de enviarla.",
+    },
+    {
+      id: "enviar-llega",
+      ancla: "enviar-pedido-web.llega",
+      opcional: true,
+      titulo: "Cuándo llega",
+      texto: "El día que la otra tienda la espera. Traslados la muestra en camino hasta que la reciban.",
+    },
+    {
+      id: "enviar-acciones",
+      ancla: "enviar-pedido-web.acciones",
+      opcional: true,
+      titulo: "Enviarla",
+      texto: "«Enviar por traslado» suelta la reserva de aquí y arma el traslado en el mismo paso: nadie puede venderla mientras viaja. En la demo no se envía nada.",
+    },
+    {
+      id: "pestanas",
+      ancla: "pedidos-web.pestanas",
+      preparar: [{ tipo: "escape" }],
+      titulo: "En qué paso va cada uno",
+      texto: "«Por confirmar» espera que revises el stock (si nadie lo confirma a tiempo, se cierra solo). «Por cobrar» ya tiene sus prendas reservadas, «Por entregar» está pagado y «Cerrados» guarda lo entregado, lo anulado y lo que venció.",
+    },
+    {
+      id: "lista",
+      ancla: "pedidos-web.lista",
+      titulo: "Cada pedido",
+      texto: "Su número es el mismo que el cliente te manda por WhatsApp. Ves quién lo separó, sus prendas, el total y qué toca hacer ahora. Tócalo para abrirlo.",
+    },
+    {
+      id: "cliente",
+      ancla: "pedido-web.cliente",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "pedidos-web.abrir" }],
+      titulo: "Quién lo separó",
+      texto: "Su nombre, su DNI a medias, su celular y si es miembro del club. «WhatsApp» abre el chat con el cliente para coordinar el pago y cuándo lo recoge.",
+    },
+    {
+      id: "llega",
+      ancla: "pedido-web.llega",
+      opcional: true,
+      titulo: "Cómo te llega",
+      texto: "El cliente te escribe por WhatsApp con este número. Revisa que esté todo antes de confirmarlo.",
+    },
+    {
+      id: "prendas",
+      ancla: "pedido-web.prendas",
+      opcional: true,
+      titulo: "Sus prendas",
+      texto: "Cada prenda dice cuántas hay libres y de dónde sale (el almacén primero). Si no hay aquí, la traes de otra tienda o la consigues para una fecha; si alguien más la pidió, te avisa. Ya confirmado, dice dónde está cada una.",
+    },
+    {
+      id: "reservar",
+      ancla: "pedido-web.reservar",
+      opcional: true,
+      titulo: "Llegó lo que faltaba",
+      texto: "Cuando una prenda por conseguir ya está en la tienda (se compró o salió del taller), «Reservarla» la separa para el pedido. Lo que viene por traslado se reserva solo al llegar.",
+    },
+    {
+      id: "responsable",
+      ancla: "pedido-web.responsable",
+      opcional: true,
+      titulo: "Quién lo confirma",
+      texto: "Como en toda la tienda, lo que se guarda queda a nombre de quien está de turno.",
+    },
+    {
+      id: "acciones",
+      ancla: "pedido-web.acciones",
+      opcional: true,
+      titulo: "Confirmar o cerrarlo",
+      texto: "«Confirmar» reserva sus prendas: dejan de ofrecerse en la web y en Vender. «No se puede confirmar» lo cierra con su motivo (no hay stock, el cliente no respondió o desistió) sin tocar el stock. En la demo no se confirma nada.",
+    },
+    {
+      id: "dinero",
+      ancla: "pedido-web.dinero",
+      opcional: true,
+      titulo: "Lo que pagó",
+      texto: "El total, lo pagado y lo que falta. La boleta sale cuando el pedido queda pagado completo. Si lo anulas, sus prendas vuelven a estar disponibles.",
+    },
+    {
+      id: "nota",
+      ancla: "pedidos-web.nota",
+      preparar: [{ tipo: "escape" }],
+      titulo: "Lo que conviene saber",
+      texto: "Separar no toca el stock: la prenda se reserva al confirmar y sale del stock al entregarla. Los pedidos web van aparte de los apartados de la tienda.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes revisar y confirmar un pedido web. Para repasarlo: Mi perfil ▸ Demo ▸ Pedidos web.",
+    },
+  ],
+  alSalir: [{ tipo: "escape" }],
+};
+
 export const GUIA_HISTORIAL: Guia = {
   id: "vender.historial",
   ruta: "/vender/historial",

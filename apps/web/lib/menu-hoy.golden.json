@@ -54,6 +54,11 @@
         "icono": "apartados"
        },
        {
+        "etiqueta": "Pedidos web",
+        "href": "/vender/pedidos-web",
+        "icono": "pedidosWeb"
+       },
+       {
         "etiqueta": "Caja",
         "href": "/caja",
         "icono": "caja"
@@ -260,6 +265,11 @@
         "etiqueta": "Apartados",
         "href": "/vender/apartados",
         "icono": "apartados"
+       },
+       {
+        "etiqueta": "Pedidos web",
+        "href": "/vender/pedidos-web",
+        "icono": "pedidosWeb"
        },
        {
         "etiqueta": "Caja",
@@ -529,6 +539,11 @@
         "etiqueta": "Apartados",
         "href": "/vender/apartados",
         "icono": "apartados"
+       },
+       {
+        "etiqueta": "Pedidos web",
+        "href": "/vender/pedidos-web",
+        "icono": "pedidosWeb"
        },
        {
         "etiqueta": "Caja",
@@ -804,6 +819,11 @@
         "etiqueta": "Apartados",
         "href": "/vender/apartados",
         "icono": "apartados"
+       },
+       {
+        "etiqueta": "Pedidos web",
+        "href": "/vender/pedidos-web",
+        "icono": "pedidosWeb"
        },
        {
         "etiqueta": "Caja",
@@ -1166,6 +1186,11 @@
         "icono": "apartados"
        },
        {
+        "etiqueta": "Pedidos web",
+        "href": "/vender/pedidos-web",
+        "icono": "pedidosWeb"
+       },
+       {
         "etiqueta": "Caja",
         "href": "/caja",
         "icono": "caja"
@@ -1384,6 +1409,11 @@
         "etiqueta": "Apartados",
         "href": "/vender/apartados",
         "icono": "apartados"
+       },
+       {
+        "etiqueta": "Pedidos web",
+        "href": "/vender/pedidos-web",
+        "icono": "pedidosWeb"
        },
        {
         "etiqueta": "Caja",
@@ -1687,6 +1717,11 @@
         "icono": "apartados"
        },
        {
+        "etiqueta": "Pedidos web",
+        "href": "/vender/pedidos-web",
+        "icono": "pedidosWeb"
+       },
+       {
         "etiqueta": "Caja",
         "href": "/caja",
         "icono": "caja"
@@ -1974,6 +2009,11 @@
         "icono": "apartados"
        },
        {
+        "etiqueta": "Pedidos web",
+        "href": "/vender/pedidos-web",
+        "icono": "pedidosWeb"
+       },
+       {
         "etiqueta": "Caja",
         "href": "/caja",
         "icono": "caja"
@@ -2258,6 +2298,11 @@
         "icono": "apartados"
        },
        {
+        "etiqueta": "Pedidos web",
+        "href": "/vender/pedidos-web",
+        "icono": "pedidosWeb"
+       },
+       {
         "etiqueta": "Caja",
         "href": "/caja",
         "icono": "caja"
@@ -2464,6 +2509,11 @@
         "etiqueta": "Apartados",
         "href": "/vender/apartados",
         "icono": "apartados"
+       },
+       {
+        "etiqueta": "Pedidos web",
+        "href": "/vender/pedidos-web",
+        "icono": "pedidosWeb"
        },
        {
         "etiqueta": "Caja",
@@ -2733,6 +2783,11 @@
         "etiqueta": "Apartados",
         "href": "/vender/apartados",
         "icono": "apartados"
+       },
+       {
+        "etiqueta": "Pedidos web",
+        "href": "/vender/pedidos-web",
+        "icono": "pedidosWeb"
        },
        {
         "etiqueta": "Caja",
@@ -3008,6 +3063,11 @@
         "etiqueta": "Apartados",
         "href": "/vender/apartados",
         "icono": "apartados"
+       },
+       {
+        "etiqueta": "Pedidos web",
+        "href": "/vender/pedidos-web",
+        "icono": "pedidosWeb"
        },
        {
         "etiqueta": "Caja",
