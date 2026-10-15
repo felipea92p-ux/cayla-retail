@@ -28,6 +28,11 @@ export const ID_NOMBRE_DEL_PADRON = "nombre-del-padron";
 /** Medio segundo después del último dígito: tipear no dispara consultas a medio camino (cada una puede pagarse). */
 const ESPERA_MS = 400;
 
+// En el celular, «Volver a intentar» baja bajo el texto del aviso: a su derecha, en la hoja angosta, el texto quedaba a dos o tres
+// palabras por línea (como en Pedidos web, `PedidoWebHoja`).
+const AVISO_CON_BOTON =
+  "max-sm:grid-cols-[auto_minmax(0,1fr)] max-sm:[&>.aviso-linea-acc]:col-start-2 max-sm:[&>.aviso-linea-acc]:row-auto max-sm:[&>.aviso-linea-acc]:justify-self-start";
+
 type Lectura = { numero: string; padron: PadronDeFicha };
 
 /**
@@ -123,6 +128,7 @@ export function NombreDelPadron({
         <Aviso
           tono="atencion"
           titulo={aviso.titulo}
+          className={AVISO_CON_BOTON}
           accion={
             <button type="button" className="btn-cayla btn-enlace" onClick={onConsultar} disabled={deshabilitado}>
               Volver a intentar
