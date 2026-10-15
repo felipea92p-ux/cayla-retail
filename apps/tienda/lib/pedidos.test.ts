@@ -155,8 +155,14 @@ describe("la línea de tiempo y el reloj", () => {
     expect(hitos({ ...base, estado: "por_confirmar" }).map((h) => h.estado)).toEqual(["hecho", "ahora", "falta", "falta"]);
     expect(hitos({ ...base, estado: "pagado" }).map((h) => h.estado)).toEqual(["hecho", "hecho", "hecho", "ahora"]);
     expect(hitos({ ...base, estado: "entregado" }).map((h) => h.estado)).toEqual(["hecho", "hecho", "hecho", "hecho"]);
-    // Un pedido cerrado (vencido o anulado) solo marca «Separado».
+    // Un pedido cerrado (vencido o anulado) marca hecho cada paso que tiene fecha, y ninguno como «ahora».
     expect(hitos({ ...base, estado: "vencido" }).map((h) => h.estado)).toEqual(["hecho", "falta", "falta", "falta"]);
+    expect(hitos({ ...base, confirmadoEn: "b", pagadoEn: "c", estado: "anulado" }).map((h) => h.estado)).toEqual([
+      "hecho",
+      "hecho",
+      "hecho",
+      "falta",
+    ]);
     expect(hitos({ ...base, estado: "por_confirmar" }).map((h) => h.nombre)).toEqual([
       "Separado",
       "Confirmado por la tienda",

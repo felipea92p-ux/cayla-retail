@@ -286,7 +286,8 @@ export function textoCambiarlo(diasParaCambiar: number | null): string {
 
 export type Hito = { nombre: string; cuando: string | null; estado: "hecho" | "ahora" | "falta" };
 
-/** La línea de tiempo del pedido (maqueta, `hitos`): Separado → Confirmado por la tienda → Pagado → Entregado. */
+/** La línea de tiempo del pedido (maqueta, `hitos`): Separado → Confirmado por la tienda → Pagado → Entregado. Un pedido cerrado
+ *  (vencido o anulado) marca hecho todo paso que tiene fecha (hasta dónde llegó antes de cerrarse) y nada como «ahora». */
 export function hitos(p: Pick<Pedido, "estado" | "creadoEn" | "confirmadoEn" | "pagadoEn" | "entregadoEn">): Hito[] {
   const orden: [EstadoPedido, string, string | null][] = [
     ["por_confirmar", "Separado", p.creadoEn],
@@ -299,7 +300,7 @@ export function hitos(p: Pick<Pedido, "estado" | "creadoEn" | "confirmadoEn" | "
   return orden.map(([, nombre, cuando], i) => ({
     nombre,
     cuando,
-    estado: i <= idx ? "hecho" : !cerrado && i === idx + 1 ? "ahora" : "falta",
+    estado: (cerrado ? cuando !== null : i <= idx) ? "hecho" : !cerrado && i === idx + 1 ? "ahora" : "falta",
   }));
 }
 
