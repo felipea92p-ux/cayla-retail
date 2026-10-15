@@ -34,7 +34,8 @@ ERP cada cuenta es una fila de `cuentas_web` unida a su ficha del Club, y la tie
 - **Entrar** y **pedir el enlace de «Olvidé mi contraseña»** se hacen desde el navegador (`lib/auth-navegador.ts`): así el
   proyecto de clientes pone sus topes a la ip de cada persona. El enlace del correo lleva a `/nueva-contrasena`, que canjea su
   código recién al guardar (un lector de correos que abre enlaces solo no lo gasta).
-- `proxy.ts` refresca la sesión y lleva a cada uno a su lado (con sesión, de la portada y de «Entrar» a «Mi cuenta»).
+- `proxy.ts` refresca la sesión y lleva a cada uno a su lado (con sesión, de la portada y de «Entrar» al Inicio, `/inicio`; sin
+  sesión, del Inicio, el catálogo y «Mi cuenta» a «Entrar»).
 - La llave secreta del proyecto de clientes solo la lee `lib/sesion-servidor.ts`; la cookie se llama `tienda-sesion` (en local
   el ERP también vive en `localhost` y no deben pisarse).
 
@@ -60,5 +61,5 @@ ERP cada cuenta es una fila de `cuentas_web` unida a su ficha del Club, y la tie
 5. `pnpm --filter tienda dev` → http://localhost:3100 (o «tienda-dev» en `.claude/launch.json`).
 
 Pruebas: `pnpm --filter tienda test`, `typecheck` y `lint`; en la base, `pnpm pruebas:tienda-puerta`, `pnpm pruebas:tienda-cuentas`,
-`pnpm pruebas:vitrina-web` y `pnpm pruebas:tienda-ficha` (cuánto hay en cada tienda; con `-- --mutantes`, además contra versiones rotas a
-propósito de su migración).
+`pnpm pruebas:vitrina-web`, `pnpm pruebas:tienda-ficha` (cuánto hay en cada tienda) y `pnpm pruebas:tienda-inicio` («Lo nuevo», «Más
+vendidos» y los plazos de la ayuda); las dos últimas, con `-- --mutantes`, además contra versiones rotas a propósito de su migración.

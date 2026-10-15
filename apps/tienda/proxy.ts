@@ -6,9 +6,9 @@ import { COOKIE_SESION, configAuth, redireccionDelProxy, tieneCookieDeSesion } f
 // La barrera por delante de la tienda (Next 16 llama `proxy` a lo que antes era `middleware`). Hace dos cosas:
 //   1. Refresca la sesión del cliente: una página no puede escribir cookies, y sin esto la sesión se vencería a la hora
 //      (`@supabase/ssr`). Solo si trae la cookie: un visitante sin cuenta no le cuesta ni una consulta al proyecto de clientes.
-//   2. Lleva a cada uno a su lado: con sesión, de la portada, «Entrar», «Crear mi cuenta» y «Olvidé mi contraseña» a «Mi
-//      cuenta»; sin sesión, de «Mi cuenta» a «Entrar» (`lib/sesion.ts`). Si el proyecto de clientes no contesta, no manda a
-//      nadie a ningún lado.
+//   2. Lleva a cada uno a su lado: con sesión, de la portada, «Entrar», «Crear mi cuenta» y «Olvidé mi contraseña» al Inicio;
+//      sin sesión, del Inicio, el catálogo y «Mi cuenta» a «Entrar» (`lib/sesion.ts`). Si el proyecto de clientes no contesta,
+//      no manda a nadie a ningún lado.
 // No es la que protege los datos: cada página y cada acción vuelve a preguntar quién es, y la base decide en sus funciones.
 export async function proxy(request: NextRequest) {
   const ajustes = configAuth();

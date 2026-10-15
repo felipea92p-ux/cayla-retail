@@ -1,0 +1,80 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA (ADR-0408) · actividad 5: el Inicio de quien tiene cuenta.
+   Sale de la maqueta aprobada (docs/maquetas/tienda-online-2026-10, `vInicio`, `heroCampana`, `heroNuevo`, `circulosCats`). El héroe,
+   la franja de la campaña, el Club y las tiendas ya vienen de la portada (globals.css, tiendas.css); aquí va lo que suma el Inicio: las
+   fotos del héroe como polaroids, las categorías como círculos, la banda oscura de las ofertas y el ranking de más vendidos. Solo
+   tokens: el papel de una polaroid y el estudio de las fotos son fijos (son parte de la foto), igual en claro y en oscuro.
+   ===================================================================================================== */
+
+/* ---- El héroe: las fotos como polaroids que caen (una vez) ---- */
+.t-hero-inicio .t-colibri { top: 22px; }
+.t-collage { position: relative; height: 330px; z-index: 2; }
+.t-polaroid { position: absolute; width: 47%; padding: 8px 8px 34px; background: var(--t-papel-fijo); border-radius: 5px; box-shadow: 0 26px 40px -18px color-mix(in srgb, var(--t-tinta-fija) 55%, transparent); transform: rotate(var(--r)); transition: transform .45s var(--ease), box-shadow .45s; animation: t-caer 1s var(--ease) both; animation-delay: calc(var(--i) * 140ms + 260ms); color: var(--t-tinta-fija); }
+.t-polaroid .t-card-foto { border-radius: 0; }
+.t-polaroid-pie { position: absolute; left: 10px; right: 10px; bottom: 8px; display: flex; justify-content: space-between; gap: 6px; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; }
+.t-polaroid-pie > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.t-polaroid:hover { transform: rotate(0deg) translateY(-8px) scale(1.04); z-index: 6; box-shadow: 0 40px 50px -20px color-mix(in srgb, var(--t-tinta-fija) 60%, transparent); }
+.t-polaroid.p1 { left: 0; top: 7%; --r: -7deg; --i: 0; z-index: 2; }
+.t-polaroid.p2 { left: 27%; top: 0; --r: 3deg; --i: 1; z-index: 3; }
+.t-polaroid.p3 { right: 0; top: 16%; --r: 8deg; --i: 2; z-index: 2; }
+.t-polaroid:focus-visible { outline: 2px solid var(--t-hero-acento); outline-offset: 3px; }
+.t-hero-pct { position: absolute; right: -10px; bottom: -36px; z-index: 0; font-family: var(--serif); font-style: italic; font-weight: 500; font-size: clamp(150px, 46cqi, 300px); line-height: 1; letter-spacing: -.04em; color: transparent; -webkit-text-stroke: 1.4px var(--t-hero-filo); pointer-events: none; animation: t-aparecer 1.4s var(--ease) .5s both; }
+
+/* ---- Las categorías como historias: un círculo por categoría; con algo nuevo, su aro rojo ---- */
+/* `scroll-padding-inline`: sin él, el navegador ajusta el primer círculo al borde (pierde el margen de 16 px al cargar). */
+.t-circs { display: flex; gap: 14px; overflow-x: auto; padding: 18px 16px 4px; scroll-padding-inline: 16px; scrollbar-width: none; scroll-snap-type: x proximity; }
+.t-circs::-webkit-scrollbar { display: none; }
+.t-circ { flex: none; width: 74px; display: flex; flex-direction: column; align-items: center; gap: 7px; scroll-snap-align: start; color: var(--tinta); }
+.t-circ-img { position: relative; width: 70px; height: 70px; border-radius: 50%; overflow: hidden; display: block; box-shadow: 0 0 0 2px var(--crema), 0 0 0 3.5px var(--sand); transition: transform .35s var(--ease), box-shadow .35s; }
+.t-circ[data-nuevo] .t-circ-img { box-shadow: 0 0 0 2px var(--crema), 0 0 0 4px var(--rojo); }
+.t-circ-img .t-card-foto { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 50%; }
+.t-circ-img .t-card-foto img { object-fit: cover; object-position: 50% 18%; }
+.t-circ-img .pz { width: 76%; }
+.t-circ b { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.t-circ:hover .t-circ-img { transform: scale(1.07); }
+.t-circ:focus-visible { outline: 2px solid var(--rojo); outline-offset: 4px; border-radius: 8px; }
+
+/* ---- Las ofertas: la banda oscura, con una píldora por campaña ---- */
+.t-ofertas { margin-top: 36px; padding-block: 38px 36px; background: var(--t-oscuro); color: var(--t-oscuro-tinta); }
+.t-ofertas .t-ceja { color: var(--t-hero-acento); }
+.t-ofertas .t-sec-cab h2 em { color: var(--t-hero-acento); }
+.t-ofertas .t-sec-cab p { color: var(--t-oscuro-suave); }
+.t-ofertas .t-ver { color: var(--t-oscuro-tinta); }
+.t-ofertas .t-ver b { background: var(--t-oscuro-filo); }
+.t-ofertas .t-card-nom, .t-ofertas .t-precio b { color: var(--t-oscuro-tinta); }
+.t-ofertas .t-precio.oferta b { color: var(--t-hero-acento); }
+.t-ofertas .t-precio s, .t-ofertas .t-muestras small, .t-ofertas .t-card-nota { color: var(--t-oscuro-suave); }
+.t-ofertas .t-muestras i { box-shadow: inset 0 0 0 1px var(--t-oscuro-filo); }
+.t-ofertas .t-pildoras { margin-bottom: 16px; }
+.t-ofertas .t-pildora { border-color: var(--t-oscuro-filo); color: var(--t-oscuro-tinta); }
+.t-ofertas .t-pildora:hover { border-color: var(--t-oscuro-tinta); }
+.t-ofertas .t-pildora[aria-current="true"] { background: var(--t-oscuro-tinta); border-color: var(--t-oscuro-tinta); color: var(--t-tinta-fija); }
+.t-ofertas .t-card-nom:focus-visible, .t-ofertas .t-pildora:focus-visible, .t-ofertas .t-ver:focus-visible { outline-color: var(--t-hero-acento); }
+
+/* ---- Más vendidos: el puesto grande, en contorno, junto a cada tarjeta (sin cifras de ventas) ---- */
+.t-top { list-style: none; margin: 0 -16px; padding: 0 16px 8px; display: grid; grid-auto-flow: column; grid-auto-columns: 58%; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 16px; scrollbar-width: none; }
+.t-top::-webkit-scrollbar { display: none; }
+.t-top li { position: relative; scroll-snap-align: start; }
+.t-top-n { position: absolute; left: -2px; bottom: 58px; z-index: 4; font-family: var(--serif); font-weight: 500; font-size: 112px; line-height: .78; color: var(--crema); -webkit-text-stroke: 1.5px var(--tinta); pointer-events: none; }
+.t-top li .t-card { margin-left: 30px; }
+
+/* ---- Nuestras tiendas: «Ver solo lo que hay aquí» ---- */
+.t-tienda-ver { align-self: flex-start; padding: 8px 0 2px; }
+
+@container tienda (min-width: 700px) {
+  .t-top { grid-auto-columns: calc((100% - 42px) / 3.3); }
+}
+@container tienda (min-width: 960px) {
+  .t-collage { height: 480px; }
+  .t-polaroid { width: 44%; }
+  .t-circs { justify-content: center; gap: 26px; padding-top: 30px; }
+  .t-circ { width: 96px; }
+  .t-circ-img { width: 92px; height: 92px; }
+  .t-circ b { font-size: 12.5px; }
+  .t-ofertas { padding-block: 60px 56px; margin-top: 60px; }
+  .t-top { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-columns: auto; margin: 0; padding: 0; overflow: visible; gap: 26px 18px; }
+  .t-top-n { font-size: 140px; }
+}
+
+/* `t-aparecer` vive en cabecera.css (se carga en todas las páginas). */
+@keyframes t-caer { from { opacity: 0; transform: translateY(-70px) rotate(calc(var(--r) * -2.2)) scale(.92); } }

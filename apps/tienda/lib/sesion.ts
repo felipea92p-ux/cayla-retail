@@ -23,12 +23,11 @@ export function configAuth(): ConfigAuth | null {
 export const tieneCookieDeSesion = (nombres: readonly string[]) =>
   nombres.some((nombre) => nombre === COOKIE_SESION || /^tienda-sesion\.\d+$/.test(nombre));
 
-/** Las páginas de quien no tiene cuenta. Con sesión, el proxy lleva al catálogo (la maqueta lleva al Inicio, que arma la
- *  actividad 5: entonces cambia `INICIO_CON_CUENTA`). */
+/** Las páginas de quien no tiene cuenta. Con sesión, el proxy lleva al Inicio (maqueta v4: entrar o crear la cuenta lleva ahí). */
 const SOLO_SIN_CUENTA = new Set(["/", "/entrar", "/crear-cuenta", "/olvide-mi-contrasena"]);
-/** Las que piden cuenta: «Mi cuenta» y todo el catálogo (sin cuenta solo se ve la portada, maqueta v4). */
-const soloConCuenta = (ruta: string) => ruta === "/cuenta" || ruta === "/catalogo" || ruta.startsWith("/catalogo/");
-export const INICIO_CON_CUENTA = "/catalogo";
+/** Las que piden cuenta: el Inicio, «Mi cuenta» y todo el catálogo (sin cuenta solo se ve la portada, maqueta v4). */
+const soloConCuenta = (ruta: string) => ruta === "/inicio" || ruta === "/cuenta" || ruta === "/catalogo" || ruta.startsWith("/catalogo/");
+export const INICIO_CON_CUENTA = "/inicio";
 
 /**
  * A dónde manda el proxy, o null para seguir. Solo navegaciones (GET/HEAD): una acción del servidor viaja como POST a la misma

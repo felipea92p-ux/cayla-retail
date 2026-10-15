@@ -378,16 +378,23 @@ select retail.vitrina_mostrar(array[:'emma']::uuid[], true) \\gset
   );
 
   // ---------------------------------------------------------------- 7. El catálogo
+  // Lo de la actividad 4 tiene que estar; lo único que puede sumarse es `nuevo` y `vendidos` (la actividad 5, pruebas:tienda-inicio).
+  const CLAVES_A4 = "campana,categoria,codigo,colores,desde,fotos,id,nombre,precio,precio_final,stock";
+  const CLAVES_PERMITIDAS = `${CLAVES_A4},nuevo,vendidos`;
   valor(
-    "el catálogo suma solo `stock` (total y sedes) y la campaña trae su id y su último día",
+    "el catálogo suma `stock` (total y sedes) y nada del ERP; la campaña trae su id y su último día",
     `${PREPARAR}insert into retail.etiquetas (nombre, estilo, activo, descuento_pct, vigente_hasta) values ('ZZ Todo', 'campana', true, 10, retail.fn_hoy_lima() + 3) returning id as etq \\gset
       insert into retail.variante_etiquetas (variante_id, etiqueta_id) select v.id, :'etq' from retail.variantes v where v.producto_id = :'emma' and v.activo;
-      select concat_ws('|', (select string_agg(k, ',' order by k) from ${EN_CATALOGO("emma")} t(x), jsonb_object_keys(x) k),
+      select concat_ws('|',
+          'faltan:' || coalesce((select string_agg(c, ',') from unnest(string_to_array('${CLAVES_A4}', ',')) c
+                                  where not exists (select 1 from ${EN_CATALOGO("emma")} t(x) where x ? c)), ''),
+          'sobran:' || coalesce((select string_agg(k, ',') from ${EN_CATALOGO("emma")} t(x), jsonb_object_keys(x) k
+                                  where k <> all (string_to_array('${CLAVES_PERMITIDAS}', ','))), ''),
           (select string_agg(k, ',' order by k) from ${EN_CATALOGO("emma")} t(x), jsonb_object_keys(x -> 'stock') k),
           (select string_agg(k, ',' order by k) from ${EN_CATALOGO("emma")} t(x), jsonb_object_keys(x -> 'campana') k),
           (select (x -> 'campana' ->> 'id') = :'etq' from ${EN_CATALOGO("emma")} t(x)));
       rollback;`,
-    "campana,categoria,codigo,colores,desde,fotos,id,nombre,precio,precio_final,stock|sedes,total|hasta,id,nombre,pct|t",
+    "faltan:|sobran:|sedes,total|hasta,id,nombre,pct|t",
   );
 
   // ---------------------------------------------------------------- 8. La migración

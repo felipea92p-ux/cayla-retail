@@ -69,6 +69,7 @@
 .t-insignias { position: absolute; left: 8px; top: 8px; z-index: 2; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 .t-insignia { font-size: 9.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 4px 7px 3px; border-radius: 2px; background: var(--t-papel-fijo); color: var(--t-tinta-fija); }
 .t-insignia.oferta { background: var(--t-oferta); color: var(--t-oferta-tinta); }
+.t-insignia.nuevo { background: var(--t-tinta-fija); color: var(--t-papel-fijo); }
 
 .t-card-info { display: flex; flex-direction: column; gap: 4px; padding-inline: 1px; }
 .t-card-nom { font-size: 13px; font-weight: 500; line-height: 1.3; color: var(--tinta); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -91,7 +92,18 @@
 .t-card-nota.ok { color: var(--verde); }
 .t-card-nota.no { color: var(--tinta-60); font-weight: 500; }
 
-/* Un carril que se desliza de lado (la ficha: «También te puede gustar»). */
+/* Las campañas de las ofertas (actividad 5, maqueta `t-campanas`): una tarjeta por campaña, que la elige o la suelta. */
+.t-campanas { display: grid; grid-auto-flow: column; grid-auto-columns: 78%; gap: 10px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 4px; padding: 0 16px 14px; }
+.t-campanas::-webkit-scrollbar { display: none; }
+.t-campana { border: 1px solid var(--sand); border-radius: 10px; padding: 14px; background: var(--papel); display: flex; flex-direction: column; gap: 4px; color: var(--tinta); transition: border-color .2s, box-shadow .2s; }
+.t-campana:hover { border-color: var(--taupe); }
+.t-campana[aria-current="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
+.t-campana b { font-family: var(--serif); font-size: 24px; font-weight: 500; line-height: 1; }
+.t-campana .pct { font-family: var(--serif); font-style: italic; font-size: 36px; line-height: 1; color: var(--rojo); }
+.t-campana small { font-size: 12px; color: var(--tinta-60); }
+.t-campana:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+
+/* Un carril que se desliza de lado (la ficha: «También te puede gustar»; el Inicio: Lo nuevo). */
 .t-carril { display: grid; grid-auto-flow: column; grid-auto-columns: 47%; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; padding: 0 16px 10px; scroll-padding-inline: 16px; }
 .t-carril::-webkit-scrollbar { display: none; }
 .t-carril > * { scroll-snap-align: start; }
@@ -106,6 +118,7 @@
 @container tienda (min-width: 700px) {
   .t-grilla { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 34px 16px; }
   .t-carril { grid-auto-columns: calc((100% - 32px) / 3.2); }
+  .t-campanas { grid-auto-columns: calc((100% - 30px) / 3.4); }
 }
 @container tienda (min-width: 960px) {
   .t-ubic { justify-content: center; }
@@ -113,4 +126,5 @@
   .t-grilla { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px 18px; }
   .t-pildoras { flex-wrap: wrap; overflow: visible; }
   .t-carril { grid-auto-columns: calc((100% - 3 * 18px) / 4); gap: 18px; margin-inline: 0; padding-inline: 0; }
+  .t-campanas { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-columns: auto; margin: 0 0 4px; padding: 0 0 18px; overflow: visible; }
 }

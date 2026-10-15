@@ -1756,6 +1756,20 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las piezas
   internas de las dos lecturas (`fn_tienda_nivel`, `fn_tienda_umbral`, `fn_tienda_sedes_web`, `fn_tienda_disponible`, `fn_tienda_precios`)
   no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones rotas a propósito).
+- `/inicio` (el Inicio con cuenta, actividad 5; adonde lleva el proxy a quien tiene sesión, `INICIO_CON_CUENTA`) → `leerPortada()`
+  (la campaña del héroe), `leerSedes()` y `leerCatalogo(sede)`: desde `20261015013000`, cada prenda de `retail.tienda_catalogo` trae
+  también `nuevo` ({dias} si su PRIMER ingreso a una tienda, `fn_es_llegada`, fue hace 30 días o menos, o si está fijada en la Vitrina;
+  nunca si está quitada) y `vendidos` (su puesto, 1 a 20, por unidades vendidas en 30 días en toda la red, la definición de Catálogo ▸
+  Productos; nunca las unidades), sin las familias fuera de los motores (`fn_categoria_entra_a_motores`). Piezas internas:
+  `fn_tienda_lo_nuevo`, `fn_tienda_mas_vendidos`. `lib/inicio.ts` arma el héroe (la campaña o Lo nuevo), los círculos de categorías y la
+  cabecera con cuenta (`components/CabeceraConCuenta.tsx`: el menú «Ropa», el buscador que filtra mientras se escribe sobre el índice
+  que manda el servidor, `lib/buscador.ts`, y «Mi cuenta»); `components/MarcoCatalogo.tsx` es el marco de las páginas con cuenta. Las
+  listas de la maqueta son `/catalogo?lista=nuevo|ofertas|vendidos` (las ofertas, con `&campana=<id>`; `lib/catalogo.ts`). Prueba en
+  la base: `pnpm pruebas:tienda-inicio`.
+- `/como-separar` y `/cambios-y-devoluciones` (la ayuda, con y sin cuenta, actividad 5) → `lib/ayuda-servidor.ts` `leerAyuda()` →
+  `retail.tienda_ayuda()`: las horas para que la tienda confirme y los días para recoger (`configuracion_tienda_web`) y los días para
+  cambiar una prenda (`fn_dias_plazo_cambio`, el número que imprime la boleta). Sin base, la página los dice sin número. «Cómo separar»
+  nombra las tiendas con `leerSedes()`.
 
 ---
 

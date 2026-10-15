@@ -204,6 +204,20 @@ export function campanaDeLaFicha(f: Ficha, talla: Variante | null): Campana | nu
 /** El chip de la campaña: «−12 % · Aniversario CAYLA». */
 export const chipCampana = (c: Campana | null): string | null => (c ? `−${pctTexto(c.pct)} % · ${c.nombre}` : null);
 
+/** Los chips de arriba del nombre que salen del catálogo (actividad 5): «Nuevo · llegó hace 4 días» (o «Nuevo», si está fijado en la
+ *  Vitrina) y «N.º 3 en más vendidos». */
+export function chipsDelCatalogo(p: { nuevo: { dias: number | null } | null; vendidos: number | null } | null): { texto: string; tono?: "nuevo" }[] {
+  if (!p) return [];
+  const chips: { texto: string; tono?: "nuevo" }[] = [];
+  if (p.nuevo) {
+    const d = p.nuevo.dias;
+    const cuando = d === null ? "" : d === 0 ? " · llegó hoy" : ` · llegó hace ${d} ${d === 1 ? "día" : "días"}`;
+    chips.push({ texto: `Nuevo${cuando}`, tono: "nuevo" });
+  }
+  if (p.vendidos !== null) chips.push({ texto: `N.º ${p.vendidos} en más vendidos` });
+  return chips;
+}
+
 /** «3 días 5 h» o, en el último día, «05:12:09»: lo que falta para que termine la campaña (su último día rige completo, en Lima). */
 export function faltaParaTerminar(hasta: string, ahora: number): string | null {
   const fin = new Date(`${hasta}T23:59:59-05:00`).getTime();

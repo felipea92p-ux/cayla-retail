@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  cabeceraDeLista,
+  campanasDe,
   categoriasDe,
   colorDeDibujo,
   conteoDeLista,
@@ -11,9 +13,12 @@ import {
   hrefLista,
   insigniaOferta,
   interpretarCatalogo,
+  leerCampana,
   leerCategoria,
+  leerLista,
   leerOrden,
   muestras,
+  nombreOrden,
   precioTarjeta,
   siguienteOrden,
   soles,
@@ -75,6 +80,36 @@ describe("interpretarCatalogo", () => {
       { ...EMMA, campana: { nombre: "", pct: 10 } },
     ];
     expect(interpretarCatalogo({ sede: null, prendas: [...rara, EMMA] })?.prendas.map((p) => p.nombre)).toEqual(["Blusa Emma"]);
+  });
+
+  it("lee «Lo nuevo» (sus días) y «Más vendidos» (su puesto) (actividad 5); uno raro deja la prenda visible y sin ese dato", () => {
+    const p = leer({ ...EMMA, nuevo: { dias: 4 }, vendidos: 2 });
+    expect(p.nuevo).toEqual({ dias: 4 });
+    expect(p.vendidos).toBe(2);
+    expect(leer({ ...EMMA, nuevo: { dias: null } }).nuevo).toEqual({ dias: null });
+    expect(emma.nuevo).toBeNull();
+    expect(emma.vendidos).toBeNull();
+    // Más de 30 días no es «nuevo»; un puesto fuera de 1 a 20, o una cifra en vez del puesto, no se cree.
+    for (const raro of [{ ...EMMA, nuevo: { dias: 31 } }, { ...EMMA, nuevo: { dias: -1 } }, { ...EMMA, nuevo: true }]) {
+      expect(leer(raro)).toMatchObject({ nombre: "Blusa Emma", nuevo: null });
+    }
+    for (const raro of [0, 21, 2.5, "3", 7193]) expect(leer({ ...EMMA, vendidos: raro })).toMatchObject({ nombre: "Blusa Emma", vendidos: null });
+  });
+
+  it("la campaña trae su id y su último día; sin ellos (o raros) se lee igual, con null", () => {
+    const ID = "8a6f1c1e-3b55-4c8e-9a55-222222222222";
+    expect(leer({ ...EMMA, precio_final: 63.9, campana: { id: ID, nombre: "Aniversario", pct: 20, hasta: "2026-10-21" } }).campana).toEqual({
+      id: ID,
+      nombre: "Aniversario",
+      pct: 20,
+      hasta: "2026-10-21",
+    });
+    expect(leer({ ...EMMA, precio_final: 63.9, campana: { id: "x", nombre: "Aniversario", pct: 20, hasta: "21/10" } }).campana).toEqual({
+      id: null,
+      nombre: "Aniversario",
+      pct: 20,
+      hasta: null,
+    });
   });
 
   it("si la respuesta no es un catálogo, null (la página dice que no se pudo cargar)", () => {
@@ -207,5 +242,91 @@ describe("la lista: categorías y orden", () => {
     expect(conteoDeLista(2, { categoria: "Faldas", tienda: "Trujillo", enOtras: 0 })).toBe("2 prendas de Faldas en Trujillo");
     // Sin tienda elegida no hay «otras tiendas».
     expect(conteoDeLista(4, { ...sin, enOtras: 3 })).toBe("4 prendas");
+  });
+});
+
+describe("las listas: Lo nuevo, las ofertas y Más vendidos (actividad 5)", () => {
+  const ANIV = "8a6f1c1e-3b55-4c8e-9a55-222222222222";
+  const LIQ = "8a6f1c1e-3b55-4c8e-9a55-333333333333";
+  const prenda = (nombre: string, extra: Partial<Prenda> = {}): Prenda => ({ ...emma, id: nombre, nombre, ...extra });
+  const oferta = (id: string | null, nombre: string, pct: number, hasta: string | null) => ({
+    precioFinal: 59.9,
+    campana: { id, nombre, pct, hasta },
+  });
+  const lista = [
+    prenda("Blusa A", { nuevo: { dias: 12 }, vendidos: 3 }),
+    prenda("Blusa B", { nuevo: { dias: null } }),
+    prenda("Blusa C", { nuevo: { dias: 2 }, vendidos: 1, ...oferta(ANIV, "Aniversario", 20, "2026-10-21") }),
+    prenda("Blusa D", { vendidos: 2, ...oferta(LIQ, "Liquidación", 30, "2026-10-31") }),
+    prenda("Blusa E", { ...oferta(ANIV, "Aniversario", 20, "2026-10-21") }),
+    // Una campaña que no baja nada no es oferta.
+    prenda("Blusa F", { campana: { id: LIQ, nombre: "Liquidación", pct: 30, hasta: "2026-10-31" } }),
+  ];
+  const nombres = (ps: Prenda[]) => ps.map((p) => p.nombre);
+
+  it("lee la lista y la campaña de la URL; lo raro vuelve a toda la ropa y a todas las campañas", () => {
+    expect(leerLista("nuevo")).toBe("nuevo");
+    expect(leerLista(["vendidos", "x"])).toBe("vendidos");
+    expect(leerLista("ofertas")).toBe("ofertas");
+    expect(leerLista("todo")).toBe("todo");
+    expect(leerLista("rebajas")).toBe("todo");
+    expect(leerLista(undefined)).toBe("todo");
+    expect(leerCampana(ANIV.toUpperCase())).toBe(ANIV);
+    expect(leerCampana(" no-es-un-id ")).toBeNull();
+    expect(leerCampana(undefined)).toBeNull();
+  });
+
+  it("cada lista deja lo suyo, con su orden propio: Lo nuevo por llegada (lo fijado al final), Más vendidos por puesto", () => {
+    expect(nombres(filtrarYOrdenar(lista, { categoria: null, orden: "destacado", lista: "nuevo" }))).toEqual(["Blusa C", "Blusa A", "Blusa B"]);
+    expect(nombres(filtrarYOrdenar(lista, { categoria: null, orden: "destacado", lista: "vendidos" }))).toEqual(["Blusa C", "Blusa D", "Blusa A"]);
+    expect(nombres(filtrarYOrdenar(lista, { categoria: null, orden: "destacado", lista: "ofertas" }))).toEqual(["Blusa C", "Blusa D", "Blusa E"]);
+    expect(nombres(filtrarYOrdenar(lista, { categoria: null, orden: "destacado", lista: "ofertas", campana: ANIV }))).toEqual(["Blusa C", "Blusa E"]);
+    // La campaña elegida solo filtra las ofertas.
+    expect(nombres(filtrarYOrdenar(lista, { categoria: null, orden: "destacado", lista: "nuevo", campana: ANIV }))).toHaveLength(3);
+    expect(filtrarYOrdenar(lista, { categoria: null, orden: "destacado" })).toHaveLength(6);
+    // Por precio, el precio manda también dentro de una lista.
+    expect(nombres(filtrarYOrdenar(lista, { categoria: null, orden: "precio-asc", lista: "vendidos" }))).toEqual(["Blusa C", "Blusa D", "Blusa A"]);
+    expect(nombres(filtrarYOrdenar(lista, { categoria: null, orden: "precio-desc", lista: "vendidos" }))).toEqual(["Blusa A", "Blusa C", "Blusa D"]);
+  });
+
+  it("las campañas con algo en oferta, cuántas tiene cada una, la que termina primero adelante", () => {
+    expect(campanasDe(lista)).toEqual([
+      { id: ANIV, nombre: "Aniversario", pct: 20, hasta: "2026-10-21", cuantas: 2 },
+      { id: LIQ, nombre: "Liquidación", pct: 30, hasta: "2026-10-31", cuantas: 1 },
+    ]);
+    // Sin fecha de término, al final; con la misma fecha, el mayor descuento primero; sin id no se puede elegir.
+    const otras = [
+      prenda("X", oferta("8a6f1c1e-3b55-4c8e-9a55-444444444444", "Sin fin", 10, null)),
+      prenda("Y", oferta("8a6f1c1e-3b55-4c8e-9a55-555555555555", "Chica", 10, "2026-10-21")),
+      prenda("Z", oferta(null, "Sin id", 50, "2026-10-01")),
+    ];
+    expect(campanasDe([...lista, ...otras]).map((c) => c.nombre)).toEqual(["Aniversario", "Chica", "Liquidación", "Sin fin"]);
+    expect(campanasDe([])).toEqual([]);
+  });
+
+  it("cada lista dice su nombre: la ceja, el título y la frase; el orden «destacado» se llama como el de su lista", () => {
+    expect(cabeceraDeLista("nuevo").titulo).toEqual(["Lo", "nuevo"]);
+    expect(cabeceraDeLista("ofertas").titulo).toEqual(["Las", "ofertas"]);
+    expect(cabeceraDeLista("vendidos")).toMatchObject({ titulo: ["Más", "vendidos"], ceja: "Lo que más se llevan" });
+    expect(cabeceraDeLista("todo")).toEqual({ ceja: "Toda la tienda", titulo: ["Toda la", "ropa"], frase: null, vacio: null });
+    // Vacía, cada lista dice qué aparecería ahí (no «no hay prendas» a secas).
+    expect(cabeceraDeLista("ofertas").vacio?.titulo).toBe("Por ahora no hay ofertas");
+    expect(cabeceraDeLista("nuevo").vacio?.titulo).toBe("Por ahora no hay nada nuevo");
+    expect(cabeceraDeLista("vendidos").vacio?.titulo).toBe("Todavía no hay más vendidos");
+    expect(nombreOrden("destacado")).toBe("Destacado");
+    expect(nombreOrden("destacado", "nuevo")).toBe("Más reciente");
+    expect(nombreOrden("destacado", "vendidos")).toBe("Ranking");
+    expect(nombreOrden("precio-asc", "vendidos")).toBe("Menor precio");
+    expect(nombreOrden("precio-desc", "nuevo")).toBe("Mayor precio");
+  });
+
+  it("la dirección lleva la lista y, solo en las ofertas, la campaña", () => {
+    expect(hrefLista({ lista: "nuevo", categoria: null, orden: "destacado" })).toBe("/catalogo?lista=nuevo");
+    expect(hrefLista({ lista: "vendidos", sede: "trujillo", categoria: "CMS", orden: "precio-asc" })).toBe(
+      "/catalogo?lista=vendidos&sede=trujillo&categoria=CMS&orden=precio-asc",
+    );
+    expect(hrefLista({ lista: "ofertas", campana: ANIV, categoria: null, orden: "destacado" })).toBe(`/catalogo?lista=ofertas&campana=${ANIV}`);
+    expect(hrefLista({ lista: "nuevo", campana: ANIV, categoria: null, orden: "destacado" })).toBe("/catalogo?lista=nuevo");
+    expect(hrefLista({ lista: "todo", campana: ANIV, categoria: null, orden: "destacado" })).toBe("/catalogo");
   });
 });

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient, isAuthRetryableFetchError, type SupabaseClient } from "@supabase/supabase-js";
@@ -51,8 +52,9 @@ export type LecturaSesion =
   /** El proyecto de clientes no contestó: no se sabe. Nadie se queda sin su cuenta por eso, y nada se borra. */
   | { estado: "sin_respuesta" };
 
-/** Quién es, validado con el proyecto de clientes (no basta con la cookie para mostrar datos de una cuenta). */
-export async function leerSesion(): Promise<LecturaSesion> {
+/** Quién es, validado con el proyecto de clientes (no basta con la cookie para mostrar datos de una cuenta). Una vez por petición:
+ *  el marco de la página y la página la comparten (una sola consulta al proyecto de clientes). */
+export const leerSesion = cache(async (): Promise<LecturaSesion> => {
   const almacen = await cookies();
   if (!tieneCookieDeSesion(almacen.getAll().map((c) => c.name))) return { estado: "sin_sesion" };
   const cliente = await clienteSesion();
@@ -60,7 +62,7 @@ export async function leerSesion(): Promise<LecturaSesion> {
   const { data, error } = await cliente.auth.getUser();
   if (data.user) return { estado: "con_sesion", usuarioId: data.user.id };
   return error && isAuthRetryableFetchError(error) ? { estado: "sin_respuesta" } : { estado: "sin_sesion" };
-}
+});
 
 /** ¿Trae la cookie de una sesión? Sin preguntarle a nadie: solo para elegir la cabecera de una página que no muestra datos. */
 export async function haySesion(): Promise<boolean> {

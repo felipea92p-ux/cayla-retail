@@ -16,6 +16,10 @@ const TRAZOS = {
   // La ficha (actividad 4): el acordeón y lo que falta para que termine la campaña.
   chevron: <path d="M7 10l5 5 5-5" />,
   reloj: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v5l3 2" /></>,
+  // La cabecera con cuenta (actividad 5): el menú, el buscador y cerrar sus hojas.
+  menu: <path d="M4 7h16M4 12h16M4 17h10" />,
+  lupa: <><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2" /></>,
+  cerrar: <path d="M6 6l12 12M18 6L6 18" />,
 };
 
 export type NombreIcono = keyof typeof TRAZOS;

@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FichaPrenda } from "@/components/FichaPrenda";
-import { FiltroTienda } from "@/components/FiltroTienda";
 import { Icono } from "@/components/Icono";
+import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
+import { textoCambios } from "@/lib/ayuda";
+import { leerAyuda } from "@/lib/ayuda-servidor";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { claveCategoria, hrefDePrenda, hrefLista } from "@/lib/catalogo";
-import { esIdDePrenda } from "@/lib/ficha";
+import { chipsDelCatalogo, esIdDePrenda } from "@/lib/ficha";
 import { leerFicha } from "@/lib/ficha-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
@@ -42,31 +44,30 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 // recargar. Debajo, otras prendas de su categoría que hay en la tienda elegida.
 export default async function FichaDePrenda(props: Props) {
   const { id, sp, sedes, pedida, ficha } = await leer(props);
-  const catalogo = await leerCatalogo(pedida?.id ?? null);
+  // El plazo de cambio es el de la caja (el que imprime la boleta), el mismo de «Cambios y devoluciones».
+  const [catalogo, plazos] = await Promise.all([leerCatalogo(pedida?.id ?? null), leerAyuda()]);
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = ficha?.sede ? sedes.find((s) => s.id === ficha.sede) ?? null : null;
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
   const clave = ficha ? claveCategoria(ficha.categoria) : null;
-  const similares = ficha
-    ? (catalogo?.prendas ?? [])
-        .filter((p) => p.id !== ficha.id && claveCategoria(p.categoria) === clave && hayEnTienda(p.stock, elegida?.id ?? null))
-        .slice(0, 8)
-    : [];
+  const enLaTienda = (catalogo?.prendas ?? []).filter((p) => hayEnTienda(p.stock, elegida?.id ?? null));
+  const similares = ficha ? enLaTienda.filter((p) => p.id !== ficha.id && claveCategoria(p.categoria) === clave).slice(0, 8) : [];
+  // «Nuevo · llegó hace 4 días» y «N.º 3 en más vendidos» salen del catálogo, que ya los trae.
+  const chips = chipsDelCatalogo(catalogo?.prendas.find((p) => p.id === id) ?? null);
 
   return (
-    <>
-      {sedes.length > 1 && (
-        <FiltroTienda
-          opciones={[
-            { nombre: "Todas", href: hrefDePrenda({ id }), actual: elegida === null },
-            ...sedes.map((s) => ({ nombre: s.nombre, href: hrefDePrenda({ id }, claveDeSede(s.nombre)), actual: elegida?.id === s.id })),
-          ]}
-        />
-      )}
+    <MarcoCatalogo
+      prendas={enLaTienda}
+      sede={sede}
+      filtro={[
+        { nombre: "Todas", href: hrefDePrenda({ id }), actual: elegida === null },
+        ...sedes.map((s) => ({ nombre: s.nombre, href: hrefDePrenda({ id }, claveDeSede(s.nombre)), actual: elegida?.id === s.id })),
+      ]}
+    >
       <div className="t-ancho">
         <nav className="t-ruta" aria-label="Estás en">
-          <Link href="/">Inicio</Link>
+          <Link href={sede ? `/inicio?sede=${encodeURIComponent(sede)}` : "/inicio"}>Inicio</Link>
           <span aria-hidden="true">/</span>
           {ficha?.categoria && clave ? (
             <>
@@ -87,7 +88,14 @@ export default async function FichaDePrenda(props: Props) {
             </Link>
           </div>
         ) : (
-          <FichaPrenda ficha={ficha} sedeElegida={elegida?.id ?? null} colorPedido={unValor(sp.color)} origenFotos={origenFotos} />
+          <FichaPrenda
+            ficha={ficha}
+            sedeElegida={elegida?.id ?? null}
+            colorPedido={unValor(sp.color)}
+            origenFotos={origenFotos}
+            chips={chips}
+            cambios={textoCambios(plazos)}
+          />
         )}
 
         {ficha && similares.length > 0 && (
@@ -108,6 +116,6 @@ export default async function FichaDePrenda(props: Props) {
           </section>
         )}
       </div>
-    </>
+    </MarcoCatalogo>
   );
 }
