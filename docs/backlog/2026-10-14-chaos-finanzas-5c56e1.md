@@ -1,6 +1,6 @@
 ## 🧨 /chaos de Finanzas (2026-10-14) — rama `claude/chaos-finanzas-5c56e1`, ADR-0412
 
-- [ ] **Pegar en producción**, con el OK de Felipe y en este orden: `20261015002000` (solo `alter table`, mejor fuera de horario) y después
+- [x] ~~**Pegar en producción**~~ — hecho el 2026-10-15 con el OK de Felipe (16 candados validados, 7 disparadores). Era, en este orden: `20261015002000` (solo `alter table`, mejor fuera de horario) y después
   `20261015003000` (funciones y disparadores). Antes, volver a mirar que ninguna caja fuerte esté bajo cero, que ninguna fila viole los
   candados y que las cuatro anclas sigan apareciendo una vez (`registrar_gasto`, `registrar_movimiento_dinero`, `registrar_activo`,
   `cargar_activo_inicial`; verificadas idénticas a producción el 2026-10-14).

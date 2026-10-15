@@ -1,7 +1,8 @@
 # ADR-0412 · Finanzas después de /chaos: la caja fuerte no queda bajo cero, los montos tienen tope y un gasto no es anterior al inicio
 
 - **Fecha:** 2026-10-14 · **Estado:** construido y verificado en local (suite de base con controles, suites vecinas, vitest). **Las dos
-  migraciones NO están en producción:** esperan el OK de Felipe. Rama `claude/chaos-finanzas-5c56e1`.
+  migraciones están en producción** desde el 2026-10-15 (con el OK de Felipe): 16 candados validados contra todas las filas, 7
+  disparadores y las seis funciones con el mismo md5 que en local. Rama `claude/chaos-finanzas-5c56e1`, PR #1092.
 - **Pedido:** Felipe, 2026-10-14: «pega las migraciones y continúa con el siguiente módulo» después de Producción (ADR-0409), con la
   consigna de siempre: cubrir y arreglar lo que haga falta sin interrumpir el flujo. Compras sigue en reconstrucción (#1056, #1040, #1032,
   #1088); la fase 6 de Fondos por rendir (#1055) ya está en main.
