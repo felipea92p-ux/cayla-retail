@@ -302,7 +302,7 @@ export const MENSAJES = {
   mayorFalta: "Para crear tu cuenta, confirma que eres mayor de 18 años.",
   aceptaFalta: "Para crear tu cuenta, acepta la política de privacidad y los términos del club.",
   avisosTitulo: "Avisos del Club por WhatsApp",
-  avisosAyuda: "Te llegan al celular de arriba. Para dejarlos, escribe BAJA al WhatsApp de cualquier tienda CAYLA.",
+  avisosAyuda: "Te llegan al celular de arriba.",
   avisosCambio: "El texto de los avisos cambió. Léelo y vuelve a marcarlo si quieres recibirlos.",
   avisosSinActivar: "Tus avisos por WhatsApp quedaron sin activar: tu ficha del Club tiene otro celular. Para cambiarlo, acércate a una tienda CAYLA.",
   noDisponible: "No pudimos crear tu cuenta ahora. Intenta de nuevo en unos minutos.",

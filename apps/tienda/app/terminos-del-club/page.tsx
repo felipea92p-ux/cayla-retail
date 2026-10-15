@@ -97,15 +97,7 @@ export default async function TerminosDelClub() {
           </section>
 
           <section>
-            <h2>7. Baja del Club</h2>
-            <p>
-              Puedes darte de baja cuando quieras en cualquier tienda CAYLA o en caylaperu@gmail.com (qué pasa con tu cuenta web en ese caso,
-              por definir con CAYLA).
-            </p>
-          </section>
-
-          <section>
-            <h2>8. Conservación de datos</h2>
+            <h2>7. Conservación de datos</h2>
             <p>
               Si pasan 3 años desde tu última compra, tu ficha se anonimiza de forma automática y dejas de ser miembro (ver la Política de
               privacidad, punto 6).
