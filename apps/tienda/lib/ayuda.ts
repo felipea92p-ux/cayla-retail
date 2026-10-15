@@ -51,7 +51,7 @@ export function pasosParaSeparar(tiendas: readonly string[]): Paso[] {
   const donde = tiendas.length > 0 ? `En cada prenda ves cuánto hay en ${listaDeNombres(tiendas)}.` : "En cada prenda ves cuánto hay en cada tienda.";
   const traer = tiendas.length === 1 ? "" : " Lo que no está en tu tienda, la tienda puede traerlo de otra.";
   return [
-    { titulo: "Crea tu cuenta", texto: "Con tu correo, tu DNI, tu celular y tu cumpleaños. Al crearla ya eres del Club CAYLA." },
+    { titulo: "Crea tu cuenta", texto: "Con tu correo, tu DNI, tu celular y tu cumpleaños, y forma parte del Club CAYLA." },
     { titulo: "Elige tus prendas y tu tienda", texto: `${donde}${traer}` },
     { titulo: "Toca «Separar» y mándalo por WhatsApp", texto: "Se crea tu pedido con su número y el mensaje ya va escrito. No pagas nada en la web." },
     {

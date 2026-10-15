@@ -52,7 +52,7 @@ describe("textos de la campaña", () => {
     expect(con[0]).toMatch(/^Aniversario CAYLA · −12 % hasta el 21 oct\.?$/);
     expect(con).toHaveLength(4);
     expect(anuncios({ ...ANIVERSARIO, hasta: null })[0]).toBe("Aniversario CAYLA · −12 %");
-    expect(anuncios(null)).toEqual(["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", "Crea tu cuenta y ya eres del Club CAYLA"]);
+    expect(anuncios(null)).toEqual(["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", "Crea tu cuenta y forma parte del Club CAYLA"]);
   });
 });
 

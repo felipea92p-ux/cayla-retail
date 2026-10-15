@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icono, type NombreIcono } from "./Icono";
 
 const PASOS: [NombreIcono, string, string][] = [
-  ["persona", "Crea tu cuenta", "Con tu correo, tu DNI y tu celular. Ya eres del Club CAYLA."],
+  ["persona", "Crea tu cuenta", "Con tu correo, tu DNI y tu celular, y forma parte del Club CAYLA."],
   ["tienda", "Elige y toca «Separar»", "Mira cuánto hay en cada tienda. No pagas nada aquí."],
   ["chat", "Mándalo por WhatsApp", "El mensaje ya va escrito con tu número de pedido. La tienda te confirma."],
   ["bolsa", "Paga y recógelo", "Coordinas el pago por WhatsApp y lo recoges en tu tienda."],

@@ -42,7 +42,7 @@ export default async function Portada() {
           </div>
           <div className="t-portada-club">
             <TarjetaClub nombre="Tu nombre aquí" desde={anio} />
-            <p>Al crear tu cuenta ya eres miembro del Club CAYLA.</p>
+            <p>Crea tu cuenta y forma parte del Club CAYLA.</p>
           </div>
         </section>
 

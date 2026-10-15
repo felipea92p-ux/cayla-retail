@@ -22,11 +22,11 @@ export function SeccionClub({ nombre, desde, conCuenta }: { nombre: string | nul
           <h2 id="club-cayla">
             {conCuenta ? (
               <>
-                Eres del club. <em>Esto es para ti.</em>
+                Eres miembro del club. <em>Esto es para ti.</em>
               </>
             ) : (
               <>
-                Crea tu cuenta y <em>ya eres del club.</em>
+                Crea tu cuenta y <em>forma parte del club.</em>
               </>
             )}
           </h2>
