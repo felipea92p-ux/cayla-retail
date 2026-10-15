@@ -52,9 +52,13 @@ describe("el héroe del Inicio", () => {
     expect(hero.campanaId).toBe(ANIV);
   });
 
-  it("con campaña pero nada suyo en la tienda elegida: el héroe de la campaña igual, sin prendas", () => {
-    const hero = heroDelInicio(campana, [prenda("Blusa")]);
-    expect(hero).toEqual({ tipo: "campana", campana, piezas: [], campanaId: null });
+  it("con campaña pero nada suyo en lo que se ve: no se anuncia (Felipe 2026-10-15); sale Lo nuevo y, sin nada nuevo, la marca", () => {
+    const hero = heroDelInicio(campana, [prenda("Blusa"), prenda("Nueva", { nuevo: { dias: 3 }, fotos: [FOTO] })]);
+    expect(hero.tipo === "nuevo" && nombres(hero.piezas)).toEqual(["Nueva"]);
+    expect(heroDelInicio(campana, [prenda("Blusa")])).toEqual({ tipo: "marca" });
+    // De la campaña pero sin descuento en esta tienda tampoco cuenta: no es «suya» aquí.
+    const sinDescuento = prenda("Sin descuento", { campana: { id: ANIV, nombre: "Aniversario CAYLA", pct: 20, hasta: "2026-10-21" } });
+    expect(heroDelInicio(campana, [sinDescuento]).tipo).toBe("marca");
   });
 
   it("el nombre de la campaña se compara sin tildes ni mayúsculas", () => {
