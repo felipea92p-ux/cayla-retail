@@ -194,7 +194,10 @@ export const PRUEBAS = [
 
   // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el
-  // umbral de Configuración y NUNCA deja salir la cifra de 4 o más; la ficha de un oculto es null; precio por talla. ROLLBACK.
+  // umbral de Configuración y NUNCA deja salir la cifra de 4 o más; la ficha de un oculto es null; precio por talla. Y UN SOLO
+  // PRECIO (fn_tienda_precio_talla): la ficha, la bolsa, el catálogo y el look dicen el mismo precio de la misma prenda (con y sin
+  // precio propio, campaña del modelo y de la categoría, «Todas»), ofrecen las mismas tallas (ninguna a S/ 0) y romper la pieza común
+  // las cambia a todas juntas. ROLLBACK.
   "pruebas:tienda-ficha",
   // La propuesta k de la ficha de la tienda online (ADR-0408): «otra persona ya separó la última» solo cuando los pedidos web por
   // confirmar de OTROS clientes que recogen en esa tienda (y no vencieron) cubren lo libre de esa talla ahí (la pieza de la ficha);
@@ -209,8 +212,9 @@ export const PRUEBAS = [
 
   // Los looks de la tienda online (ADR-0408, actividad 11): es el módulo de la Vitrina web (sin él no se lee ni se guarda); 2 a 4
   // prendas que se venden, y para mostrarlo cada una se ve en la web; la versión frena a la segunda persona; el lugar va de 1 a N sin
-  // huecos; un look con una prenda que dejó de verse (o eliminada) no sale en la tienda; el precio de cada prenda es EXACTAMENTE el de
-  // `tienda_catalogo` en esa tienda (con mutantes que lo prueban) y las tallas dicen «hay», nunca la cifra. ROLLBACK.
+  // huecos; un look con una prenda que dejó de verse (o eliminada) no sale en la tienda; cada prenda vale EXACTAMENTE lo de la ficha
+  // para las tallas de SU color en esa tienda (y el ERP muestra el mismo total), sus tallas son las que ofrece la ficha (ninguna a
+  // S/ 0) y dicen «hay», nunca la cifra (con mutantes que lo prueban). ROLLBACK.
   "pruebas:vitrina-looks",
 
   // El motor del pedido web (ADR-0408, actividades 7-9): separar no toca el stock; confirmar reserva con el motor de Apartados
@@ -231,11 +235,13 @@ export const PRUEBAS = [
   // El Club en la cuenta de la tienda online (ADR-0408, actividad 12): favoritos y «Avísame» idempotentes y solo de su cuenta (la
   // ajena no se toca), con sus topes; «hay» sin Cuarentena ni lo apartado no anota; «Mi cuenta» con el cumpleaños y el vale de la
   // caja, las novedades (primera llegada, sin carga inicial) desde la visita anterior; «Esperan una talla» del ERP con el módulo y
-  // sin datos personales; y seis mutantes que la prueba nota. ROLLBACK.
+  // sin datos personales; un favorito que ya no se ve en la web no cuenta en el globo del corazón; una espera anotada en una tienda
+  // que después se escondió se lee como «cualquier tienda» en todas partes (y llega); y los mutantes que la prueba nota. ROLLBACK.
   "pruebas:tienda-club",
   // El aviso al entrar de la tienda online (ADR-0408, Felipe 2026-10-14): solo lo que hoy está a favor de la persona —el cumpleaños
   // disponible, el vale disponible y la talla que esperaba y llegó—, lo MISMO que dice «Mi cuenta» ficha por ficha, sin escribir nada
-  // (no mueve la visita de «Mi cuenta») y solo de `tienda_web`; dos mutantes que la prueba nota. ROLLBACK.
+  // (no mueve la visita de «Mi cuenta») y solo de `tienda_web`; una espera en una tienda que se escondió de la web es «cualquier
+  // tienda»; tres mutantes que la prueba nota. ROLLBACK.
   "pruebas:tienda-avisos",
 
   // Cobrar dentro del pedido web (ADR-0408, act. 9): la hoja sabe si hay caja abierta y quién anuló cada pago; lo anulado con
