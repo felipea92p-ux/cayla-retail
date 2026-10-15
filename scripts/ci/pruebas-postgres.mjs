@@ -351,6 +351,9 @@ export const PRUEBAS = [
   // ADR-0409 (/chaos de Producción 2026-10-14): el token sigue al contenido en seis funciones del Taller, el IGV de una factura
   // de insumos va de 0 a 18 %, y un NaN en sus montos rebota en la tabla. Con controles.
   "pruebas:produccion-token-y-montos",
+  // ADR-0415 (recomendaciones de /chaos aplicadas): precio y costo de prenda hasta S/ 5 000; la entrega de una orden no es anterior a
+  // hoy; al cerrar, hasta el doble de lo pedido por talla. Con controles.
+  "pruebas:recomendaciones-produccion-catalogo",
 
   // El efectivo de una caja abierta nunca queda bajo cero (/chaos 2026-10-13): egreso, reembolso, vuelto de un cambio, anular
   // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
