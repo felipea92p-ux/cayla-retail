@@ -288,5 +288,5 @@ Felipe decidió cómo salir sin costos nuevos y sin dominio por ahora; el primer
   en la web en cada fila (29 881 veces por carga) porque Postgres metía sus CTE dentro de la consulta. Se materializan; lo vigila el
   escenario 0 de `pruebas:tienda-inicio`.
 - **Las fotos no dependen de una variable en producción:** `TIENDA_FOTOS_ORIGEN` llegaba a la tienda al funcionar pero no al compilar, y
-  el optimizador rechazaba todas las fotos (400). En la versión de producción de Vercel, `next.config.ts` acepta el almacén de CAYLA
-  aunque la variable falte.
+  el optimizador rechazaba todas las fotos (400). En toda compilación de producción, `next.config.ts` acepta el almacén de CAYLA
+  aunque la variable falte (con `NODE_ENV`: la tienda solo lee sus variables y las de Next, `lib/candados.test.ts`).
