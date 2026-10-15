@@ -23,11 +23,12 @@ export function configAuth(): ConfigAuth | null {
 export const tieneCookieDeSesion = (nombres: readonly string[]) =>
   nombres.some((nombre) => nombre === COOKIE_SESION || /^tienda-sesion\.\d+$/.test(nombre));
 
-/** Las páginas de quien no tiene cuenta. Con sesión, el proxy lleva a «Mi cuenta» (la maqueta lleva al Inicio, que todavía no
- *  existe: lo arma otra actividad, y entonces cambia `INICIO_CON_CUENTA`). */
+/** Las páginas de quien no tiene cuenta. Con sesión, el proxy lleva al catálogo (la maqueta lleva al Inicio, que arma la
+ *  actividad 5: entonces cambia `INICIO_CON_CUENTA`). */
 const SOLO_SIN_CUENTA = new Set(["/", "/entrar", "/crear-cuenta", "/olvide-mi-contrasena"]);
-const SOLO_CON_CUENTA = new Set(["/cuenta"]);
-export const INICIO_CON_CUENTA = "/cuenta";
+/** Las que piden cuenta: «Mi cuenta» y todo el catálogo (sin cuenta solo se ve la portada, maqueta v4). */
+const soloConCuenta = (ruta: string) => ruta === "/cuenta" || ruta === "/catalogo" || ruta.startsWith("/catalogo/");
+export const INICIO_CON_CUENTA = "/catalogo";
 
 /**
  * A dónde manda el proxy, o null para seguir. Solo navegaciones (GET/HEAD): una acción del servidor viaja como POST a la misma
@@ -36,6 +37,6 @@ export const INICIO_CON_CUENTA = "/cuenta";
 export function redireccionDelProxy(ruta: string, metodo: string, usuario: "si" | "no" | "no_se"): string | null {
   if (metodo !== "GET" && metodo !== "HEAD") return null;
   if (usuario === "si" && SOLO_SIN_CUENTA.has(ruta)) return INICIO_CON_CUENTA;
-  if (usuario === "no" && SOLO_CON_CUENTA.has(ruta)) return "/entrar";
+  if (usuario === "no" && soloConCuenta(ruta)) return "/entrar";
   return null;
 }

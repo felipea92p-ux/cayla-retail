@@ -4,10 +4,16 @@ import { Isotipo } from "./Isotipo";
 
 /**
  * La cabecera. Sin cuenta: a la derecha, «Entrar» y «Crear mi cuenta» (la de la página donde ya se está no se repite). Con
- * cuenta (`conCuenta`): «Mi cuenta» y «Salir», como la maqueta. Lo dice la página: la portada no lee la sesión (así se guarda
- * en caché) y a quien tiene sesión el proxy lo lleva a «Mi cuenta»; las páginas de la cuenta sí la leen.
+ * cuenta (`conCuenta`): «Mi cuenta» (o «Catálogo», si ya se está en «Mi cuenta») y «Salir». Lo dice la página: la portada no lee
+ * la sesión (así se guarda en caché) y a quien tiene sesión el proxy lo lleva al catálogo; la cuenta y el catálogo sí la leen.
  */
-export function Cabecera({ conCuenta = false, enPagina }: { conCuenta?: boolean; enPagina?: "entrar" | "crear-cuenta" | "cuenta" }) {
+export function Cabecera({
+  conCuenta = false,
+  enPagina,
+}: {
+  conCuenta?: boolean;
+  enPagina?: "entrar" | "crear-cuenta" | "cuenta" | "catalogo";
+}) {
   return (
     <header className="t-cab">
       <div className="t-cab-fila">
@@ -18,7 +24,12 @@ export function Cabecera({ conCuenta = false, enPagina }: { conCuenta?: boolean;
         <span className="t-esp" />
         {conCuenta ? (
           <>
-            {enPagina !== "cuenta" && (
+            {/* Dos botones caben en el celular: desde «Mi cuenta» se va al catálogo, y desde el catálogo, a «Mi cuenta». */}
+            {enPagina === "cuenta" ? (
+              <Link className="t-btn t-btn-sec t-btn-chico" href="/catalogo">
+                Catálogo
+              </Link>
+            ) : (
               <Link className="t-btn t-btn-sec t-btn-chico" href="/cuenta">
                 Mi cuenta
               </Link>

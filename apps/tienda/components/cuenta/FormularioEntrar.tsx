@@ -4,6 +4,7 @@ import { isAuthApiError } from "@supabase/supabase-js";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { INICIO_CON_CUENTA } from "@/lib/sesion";
 import { clienteNavegador } from "@/lib/auth-navegador";
 import { CLAVE_MINIMA, correoValido, MENSAJES, normalizarCorreo } from "@/lib/cuentas";
 import { CajaClave } from "./CajaClave";
@@ -29,7 +30,7 @@ export function FormularioEntrar() {
       }
       const { error: fallo } = await cliente.auth.signInWithPassword({ email: normalizarCorreo(correo), password: clave });
       if (!fallo) {
-        router.replace("/cuenta");
+        router.replace(INICIO_CON_CUENTA);
         router.refresh();
         return;
       }
