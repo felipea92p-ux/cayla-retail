@@ -16,7 +16,8 @@ import { camposDelReparto } from "@/lib/plan-compra-guia";
 import { RPC_GUARDAR_MINIMO } from "@/lib/plan-compra-reparto";
 
 // El mínimo por tienda del reparto (ADR-0372, act. 2026-10-12 · Felipe: Lima casi no vende todavía; «un mínimo que fija un líder»). Por cada
-// tienda activa, un % opcional: en blanco, le toca según lo que vende. Solo un líder lo fija (la base lo exige). Guarda solo lo que cambió.
+// tienda activa, un % opcional: en blanco, le toca según lo que vende. Lo fija quien tiene el módulo Plan de campaña, sea o no líder (la base
+// lo exige; ADR-0362, decisión 64). Guarda solo lo que cambió.
 
 export function RepartoModal({
   planId,

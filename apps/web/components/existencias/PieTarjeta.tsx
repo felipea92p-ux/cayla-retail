@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ComponentType } from "react";
-import { ArrowLeftRight, Check, ChevronDown, ClipboardList, Eye, PencilLine, Truck, Warehouse } from "lucide-react";
+import { ArrowLeftRight, Check, ClipboardList, Eye, PencilLine, Truck, Warehouse } from "lucide-react";
 import { IconoPercha } from "@/components/ui/IconoPercha";
 import type { BotonTarjeta, ClaveAccion, OpcionMas } from "@/lib/existencias-acciones";
 
@@ -84,10 +84,13 @@ export function PieTarjeta({
         aria-expanded={abierto}
         aria-label={`Más acciones de ${etiqueta}`}
         onClick={() => setAbierto((a) => !a)}
-        className={`${estiloBoton} shrink-0 border-tinta/15 font-medium text-tinta hover:border-tinta/30 ${abierto ? "bg-hueso" : "bg-papel"}`}
+        // El menú «Más» del sistema (ronda 13): la cara del secundario de `MenuAcciones` con su flecha que gira, a 32 px como su vecino.
+        className="btn-cayla btn-secundario inline-flex h-8 min-h-8 shrink-0 items-center gap-2 px-3 py-0 text-[12.5px]"
       >
         Más
-        <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform duration-200 motion-reduce:transition-none ${abierto ? "rotate-180" : ""}`} strokeWidth={1.8} />
+        <svg aria-hidden viewBox="0 0 10 6" className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla motion-reduce:transition-none ${abierto ? "-rotate-180" : ""}`}>
+          <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />
+        </svg>
       </button>
 
       {abierto && (

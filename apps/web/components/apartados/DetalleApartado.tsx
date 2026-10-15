@@ -11,7 +11,7 @@ import { Boton } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
-import { BarraApilada } from "@/components/ui/BarraApilada";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Aviso } from "@/components/ui/Aviso";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -204,13 +204,7 @@ function VistaDetalle({
             </div>
           ))}
         </dl>
-        <BarraApilada
-          decorativa
-          sinEntrada
-          alto={8}
-          total={a.total}
-          segmentos={[{ clave: "pagado", nombre: "Pagado", valor: Math.min(a.adelanto, a.total), clase: "bg-tinta" }]}
-        />
+        <BarraAvance pct={(Math.min(a.adelanto, a.total) / a.total) * 100} decorativa />
         {conEstante && a.estante && abierto && (
           <p className="inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-[11px] text-tinta/80">
             <Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}

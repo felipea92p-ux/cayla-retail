@@ -60,7 +60,11 @@ const HUELLAS: Huella[] = [
   { marca: "recibido_con_tope", frase: "El vuelto pasa de S/\u00a0500: revisa con cuánto paga el cliente y vuelve a intentar." },
   { marca: "_montos_finitos", frase: "Uno de los montos no es un número válido. Revísalo y vuelve a intentar." },
   // Nombres con tope en Catálogo (/chaos 2026-10-14, 20261014182000): la pantalla ya corta antes; esto es el respaldo.
+  // Precio y costo de una prenda hasta S/ 5 000 (20261015152000, ADR-0415): la pantalla corta antes; esto es el respaldo.
+  { marca: "_precio_con_tope", frase: "Un precio o un costo pasa de S/\u00a05000: revisa que no falte el punto (59.90, no 5990)." },
   { marca: "_textos_con_tope", frase: "Un nombre o una descripción es demasiado largo. Acórtalo y vuelve a intentar." },
+  // Montos con tope en Finanzas (/chaos 2026-10-14, 20261015002000, ADR-0412): un gasto o un movimiento de dinero, hasta un millón de soles.
+  { marca: "_monto_con_tope", frase: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero y vuelve a intentar." },
   // Costo atípico (20260930120000 y siguientes): un costo por prenda fuera de lo normal (sin costo, mayor que el precio,
   // más del doble o menos de dos tercios del vigente) no entra al costo de la prenda sin que un líder lo confirme.
   // ORDEN: `costo_atipico_sin_lider` va ANTES que `costo_atipico`, porque la búsqueda es por «contiene» y la segunda marca
@@ -169,6 +173,9 @@ const HUELLAS: Huella[] = [
     marca: "variantes_producto_talla_color_unico",
     frase: "Ese producto ya tiene esa talla y ese color. Búscalo en el catálogo: el código que escaneaste puede ser un duplicado de la etiqueta.",
   },
+  // La ficha de un cliente (/chaos 2026-10-15, 20261015154000, ADR-0416): la pantalla ya lo frena; esto es el respaldo.
+  { marca: "clientas_con_algun_dato", frase: "La ficha necesita al menos el documento, el nombre o el celular." },
+  { marca: "clientas_cumple_fecha_real", frase: "Ese cumpleaños no existe: revisa el día y el mes." },
   {
     // Un documento, una clienta: `clientas_dni_unico` (20260922140000) pasó a `clientas_documento_unico`, por tipo y
     // número, en 20260930160000 (ADR-0288 D-2). `registrar_clienta` hace upsert por documento y `editar_clienta` lo

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type ReactNode, type Ref } from "react";
-import { ArrowUpDown, CircleAlert, LayoutGrid, Link2, ListChecks, Palette, Rows3, Ruler, ScanLine, Shirt, Table2, Tag } from "lucide-react";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
+import { ArrowUpDown, CircleAlert, LayoutGrid, ListChecks, Palette, Rows3, Ruler, ScanLine, Shirt, Table2, Tag } from "lucide-react";
 import { BotonFiltros, DesplegablePildora, FilaPildoras, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Modal } from "@/components/ui/Modal";
 import { BotonSonidoConfirmar } from "@/components/BotonSonidoConfirmar";
@@ -148,16 +149,6 @@ export function FiltrosExistencias({
     }
   }
 
-  /** El enlace de esta misma lista: todo lo filtrado vive en la URL. */
-  async function copiarEnlace() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      // Existencias muestra el stock de la sede de quien la abre (salvo un líder mirando otra con `?ubicacion=`): se dice.
-      avisar.exito("Enlace copiado", { detalle: "Quien lo abra ve los mismos filtros sobre el stock de su sede." });
-    } catch {
-      avisar.error("No se pudo copiar el enlace", { detalle: "Cópialo desde la barra de direcciones del navegador." });
-    }
-  }
 
   // Con los atajos a la vista (sede que separa piso y almacén), el atajo encendido ya dice qué «Hoy» o «Condición» está puesto: su chip
   // repetiría lo mismo en otra fila. Los demás filtros (categoría, talla, color, marca) sí van como chip. Una condición SIN atajo
@@ -430,16 +421,19 @@ export function FiltrosExistencias({
             «Filtros ▸ Vista». */}
         {!orden && (
           <div className="order-4 ml-auto flex shrink-0 items-center xl:order-3">
-            <button
-              type="button"
-              onClick={copiarEnlace}
-              data-guia="existencias.copiar-enlace"
-              aria-label="Copiar enlace de esta lista"
-              title="Copiar enlace de esta lista"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-tinta/60 transition-colors hover:text-tinta"
+            {/* Copiar es la pieza del sistema (ronda 13): todo lo filtrado vive en la URL. Existencias muestra el stock de la sede de
+                quien la abre (salvo un líder mirando otra con `?ubicacion=`): se dice al copiar. */}
+            <BotonCopiar
+              texto={() => window.location.href}
+              que="el enlace de esta lista"
+              icono="enlace"
+              soloIconoEnCelular
+              className="h-9 min-h-9 py-0"
+              guia="existencias.copiar-enlace"
+              alCopiar={() => avisar.exito("Enlace copiado", { detalle: "Quien lo abra ve los mismos filtros sobre el stock de su sede." })}
             >
-              <Link2 aria-hidden className="h-4 w-4" strokeWidth={1.6} />
-            </button>
+              Copiar enlace
+            </BotonCopiar>
           </div>
         )}
 

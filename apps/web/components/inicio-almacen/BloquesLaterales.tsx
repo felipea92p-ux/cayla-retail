@@ -1,4 +1,5 @@
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { Anillo } from "@/components/ui/Anillo";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import Link from "next/link";
 import type { CSSProperties } from "react";
@@ -57,10 +58,7 @@ function Kpi({ etiqueta, valor, sub, aro }: { etiqueta: string; valor: number | 
       </p>
       <p className="ia-s">{sub}</p>
       {aro !== undefined && aro !== null && (
-        <svg className="ia-ring ia-l" viewBox="0 0 44 44" aria-hidden>
-          <circle className="ia-bg" cx="22" cy="22" r="18" pathLength="100" />
-          <circle className="ia-fg" cx="22" cy="22" r="18" pathLength="100" style={{ "--off": 100 - aro } as CSSProperties} />
-        </svg>
+        <Anillo pct={aro} tamano="chico" decorativa className="ia-k-anillo" />
       )}
     </div>
   );

@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { DETALLE_TARDA, MENSAJE_ESPERA, clasificarPeticion, claveNavegacion, type MensajeEspera } from "@/lib/espera-reglas";
 import { marcarFichas, marcarLoaderALaVista } from "@/lib/espera-estado";
 import { entradaActiva, suscribirEntrada } from "@/lib/entrada-estado";
+import { anotarEscrituraSinRespuesta } from "@/lib/refresco-tras-corte";
 
 /* ====================================================================
    El loader general (ADR-0149) — UNO solo, a pantalla completa.
@@ -119,8 +120,10 @@ const sinEspera = new Map<string, number>();
 
 /**
  * Anuncia que la próxima navegación a `href` es la de un buscador que filtra por URL: el loader no la cubre.
- * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta. Única otra excepción (Felipe, 2026-10-08): el refresco que sigue a
- * bajar al piso o subir al almacén desde el panel de Existencias (`PanelTalla`), que ya confirma con el aviso destacado y no debe tapar la lista.
+ * La usa `useBusquedaEnUrl`; una pantalla no la llama suelta. Las otras excepciones: el refresco que sigue a bajar al piso o subir
+ * al almacén desde el panel de Existencias (`PanelTalla`, Felipe 2026-10-08), que ya confirma con el aviso destacado y no debe tapar la
+ * lista, y los dos refrescos que nadie pidió: el de un precio que cambió (`PreciosEnVivo`) y el que sigue a un guardado sin respuesta
+ * (`RefrescoTrasCorte`, ADR-0411), que no deben dejar `inert` la pantalla bajo quien escribe.
  */
 export function navegacionSinEspera(href: string) {
   sinEspera.set(claveNavegacion(new URL(href, window.location.href)), Date.now() + MS_ANUNCIO);
@@ -182,6 +185,7 @@ function instalarInterceptor() {
     if (!clasificacion) return original(input, init);
 
     const soltar = tomarFicha(clasificacion.tipo === "guardado" ? PRIORIDAD.guardado : PRIORIDAD.carga, MENSAJE_ESPERA);
+    const tipo = clasificacion.tipo;
     return original(input, init).then(
       (res) => {
         hastaElFinal(res).then(soltar, soltar);
@@ -189,6 +193,9 @@ function instalarInterceptor() {
       },
       (err) => {
         soltar();
+        // Un guardado que se quedó sin respuesta pudo confirmarse igual en la base (ADR-0410): la pantalla se vuelve a
+        // leer sola cuando la base responda, para que «revisa si ya aparece registrado» mire datos de ahora (ADR-0411).
+        if (tipo === "guardado") anotarEscrituraSinRespuesta(window.location.pathname);
         throw err;
       },
     );

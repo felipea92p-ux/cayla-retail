@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Anillo } from "@/components/ui/Anillo";
 import { useCountUp } from "@/lib/useCountUp";
 import { Wallet } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
@@ -41,13 +42,6 @@ function Cuenta({ valor, formato }: { valor: number; formato: (n: number) => str
 export function VeredictoCaja({ hoy, ayer, ahoraMin }: Omit<Props, "horaCierreMin">) {
   const v = useMemo(() => veredicto(hoy, ayer, ahoraMin), [hoy, ayer, ahoraMin]);
   const pct = Math.min(100, v.pctDelDiaDeAyer);
-  const C = 2 * Math.PI * 54;
-  // El anillo se llena una vez montado (transición CSS), no se dibuja ya lleno.
-  const [lleno, setLleno] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => requestAnimationFrame(() => setLleno(true)));
-    return () => cancelAnimationFrame(id);
-  }, []);
   // Una sola idea, en soles y hablándole a quien vende: cuánto falta para igualar ayer y cómo va a esta hora. Sin dos porcentajes
   // distintos (el del día y el de la hora) que se lean como una contradicción.
   const difHora = v.hoy - v.ayerAEstaHora;
@@ -87,15 +81,12 @@ export function VeredictoCaja({ hoy, ayer, ahoraMin }: Omit<Props, "horaCierreMi
           <span>Venta promedio <b>{soles(v.ticketPromedio)}</b></span>
         </p>
       </div>
-      <div className="cmp-anillo" role="img" aria-label={`Llevas ${soles(v.hoy)} de los ${soles(v.ayerDia)} de ayer`}>
-        <svg viewBox="0 0 132 132" aria-hidden>
-          <circle cx="66" cy="66" r="54" fill="none" strokeWidth="10" className="cmp-anillo-pista" />
-          <circle cx="66" cy="66" r="54" fill="none" strokeWidth="10" className="cmp-anillo-arco" strokeDasharray={C} strokeDashoffset={lleno ? C * (1 - pct / 100) : C} />
-        </svg>
-        <div className="cmp-anillo-centro">
+      {/* El anillo del sistema (ronda 13), grande y sobre la tinta del titular: se cierra al llegar y pasa a verde al alcanzar a ayer. */}
+      <div className="cmp-anillo">
+        <Anillo pct={pct} tamano="grande" sobreTinta etiqueta={`Llevas ${soles(v.hoy)} de los ${soles(v.ayerDia)} de ayer`}>
           <b className="cmp-anillo-monto"><Cuenta valor={v.hoy} formato={soles} /></b>
-          <span>de {soles(v.ayerDia)}<br />de ayer</span>
-        </div>
+          <span className="cmp-anillo-de">de {soles(v.ayerDia)}<br />de ayer</span>
+        </Anillo>
       </div>
     </section>
   );

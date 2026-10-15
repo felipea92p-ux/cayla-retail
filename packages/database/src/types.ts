@@ -6364,6 +6364,7 @@ export type Database = {
           p_items: Json
           p_motivo: string
           p_motivo_codigo: string
+          p_token?: string
           p_ubicacion_id: string
           p_venta_id: string
         }
