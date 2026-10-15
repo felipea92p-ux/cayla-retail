@@ -173,6 +173,8 @@ const HUELLAS: Huella[] = [
     marca: "variantes_producto_talla_color_unico",
     frase: "Ese producto ya tiene esa talla y ese color. Búscalo en el catálogo: el código que escaneaste puede ser un duplicado de la etiqueta.",
   },
+  // Las fechas de una factura de compra (/chaos de Compras 2026-10-15, 20261015170000, ADR-0421): la pantalla ya lo frena.
+  { marca: "compras_vence_despues_de_emitir", frase: "El vencimiento no puede ser anterior a la emisión: revisa las fechas del documento." },
   // La ficha de un cliente (/chaos 2026-10-15, 20261015154000, ADR-0416): la pantalla ya lo frena; esto es el respaldo.
   { marca: "clientas_con_algun_dato", frase: "La ficha necesita al menos el documento, el nombre o el celular." },
   { marca: "clientas_cumple_fecha_real", frase: "Ese cumpleaños no existe: revisa el día y el mes." },

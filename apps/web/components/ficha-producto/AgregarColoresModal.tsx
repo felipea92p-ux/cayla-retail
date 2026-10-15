@@ -34,6 +34,7 @@ import {
 import { ElegirUnColor, MatrizNuevas, MontosNuevas, PieModal, PuntoColor, VistaPreviaCodigos, type ContextoFicha } from "./piezas";
 import { useSubirFotos } from "./useSubirFotos";
 import { Aviso } from "@/components/ui/Aviso";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // «Llegó un color nuevo» (Shopify «Add another value», mostrando ANTES las combinaciones y dejando desmarcar, como
 // Lightspeed X-Series): se eligen los colores como en el alta (ElegirColores: los más usados en la categoría, el buscador
@@ -135,7 +136,7 @@ export function AgregarColoresModal({
   const clasificadas = clasificarCombinaciones(base, combos);
   const nacen = clasificadas.filter((c) => c.queHace === "nueva").length;
   const vuelven = clasificadas.filter((c) => c.queHace === "reactiva");
-  const precioOk = precio.trim() !== "" && precioValido(Number(precio), admitePrecioCero);
+  const precioOk = precio.trim() !== "" && precioValido(numeroDeMonto(precio), admitePrecioCero);
 
   const faltaPrimero = eraSinColor && !colorDeLasQueTiene;
   const puede = !noSePuedeCorregir && !faltaPrimero && !choque && !bloqueo && (combos.length > 0 || !!destinoPrimero) && (nacen === 0 || precioOk);

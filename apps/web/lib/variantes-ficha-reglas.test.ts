@@ -578,6 +578,19 @@ describe("precio y costo en bloque", () => {
     expect(aplicarEnBloque(filas, "precio", "todas", "0").error).toBe("Escribe un precio mayor que 0.");
   });
 
+  it("el monto con coma decimal se entiende y viaja como número (ADR-0419); «12.500» no se adivina", () => {
+    const filas = filasDeProducto([variante("a", "NEG", "t-s"), variante("b", "NEG", "t-m")], N);
+    const r = aplicarEnBloque(filas, "precio", "todas", "65,50");
+    expect({ aplicadas: r.aplicadas, error: r.error }).toEqual({ aplicadas: 2, error: null });
+    expect(payloadVariantes(r.filas).map((v) => v.precio)).toEqual([65.5, 65.5]);
+    expect(aplicarEnBloque(filas, "costo", "todas", "12.500").error).toBe("Escribe un costo de 0 o más.");
+  });
+
+  it("el aviso de costo sobre precio y el tope del catálogo leen la coma igual (ADR-0419 con ADR-0415)", () => {
+    expect(avisoCostoSobrePrecio("59,90", "70,00")).toMatch(/pierdes S\/\u00a010\.10/);
+    expect(avisoCostoSobrePrecio("59,90", "50,00")).toBeNull();
+  });
+
   it("en Empaque (fuera de los motores) el precio puede ser 0, nunca negativo", () => {
     const filas = filasDeProducto([variante("a", "ARN", "t-s"), variante("b", "ARN", "t-m")], N);
     const r = aplicarEnBloque(filas, "precio", "todas", "0", true);
