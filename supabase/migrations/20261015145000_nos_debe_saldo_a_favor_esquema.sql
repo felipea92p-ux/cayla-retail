@@ -107,6 +107,18 @@ create table if not exists retail.compra_notas_proveedor_documentos (
 comment on table retail.compra_notas_proveedor_documentos is
   'ADR-0362 fase 5b (actividad 3): qué documentos internos (compra_notas_credito, interna) respalda cada nota de crédito del proveedor. Uno por documento.';
 
+-- Ningún monto es NaN ni infinito (ADR-0421, la regla de toda tabla de Compras con montos): `monto = subtotal + igv` e `igv > 0` los dejan
+-- pasar (Postgres ordena NaN encima de todo número). `abs(x) < 'Infinity'` es falso para NaN, +∞ y −∞.
+do $c$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'compra_notas_proveedor_montos_finitos'
+                    and conrelid = 'retail.compra_notas_proveedor'::regclass) then
+    alter table retail.compra_notas_proveedor add constraint compra_notas_proveedor_montos_finitos
+      check (abs(subtotal) < 'Infinity' and abs(igv) < 'Infinity' and abs(monto) < 'Infinity');
+  end if;
+end;
+$c$;
+
 alter table retail.compra_notas_proveedor enable row level security;
 alter table retail.compra_notas_proveedor_documentos enable row level security;
 revoke all on table retail.compra_notas_proveedor from anon, authenticated;
@@ -176,6 +188,9 @@ begin
   end if;
   if to_regclass('retail.compra_notas_proveedor') is null or to_regclass('retail.compra_notas_proveedor_documentos') is null then
     raise exception 'faltan las tablas de la nota de crédito del proveedor';
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'compra_notas_proveedor_montos_finitos') then
+    raise exception 'falta el candado de montos finitos de la nota del proveedor';
   end if;
   if (select count(*) from pg_trigger where not tgisinternal
         and tgrelid in ('retail.compra_notas_proveedor'::regclass, 'retail.compra_notas_proveedor_documentos'::regclass)) <> 3 then
