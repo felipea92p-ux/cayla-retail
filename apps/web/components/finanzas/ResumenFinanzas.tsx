@@ -8,6 +8,9 @@ import { CabeceraBloque, Superficie } from "@/components/finanzas/kit";
 import { GraficoSemanas } from "@/components/finanzas/GraficoSemanas";
 import { VerPorPagar } from "@/components/finanzas/PorPagarAcciones";
 import { ResumenDecidir } from "@/components/finanzas/ResumenDecidir";
+import { Confianza } from "@/components/finanzas/Confianza";
+import type { Confianza as ConfianzaDatos } from "@/lib/finanzas-confianza";
+import type { Lectura } from "@/lib/resumen-finanzas";
 import { soles } from "@/lib/flujo-caja-reglas";
 import { avisoAntesDelCorte, mesDelCorte } from "@/lib/finanzas-arranque-reglas";
 import { mesNombre } from "@/lib/resultados-reglas";
@@ -41,7 +44,7 @@ import { CalendarX, ChartColumn, Target, Wallet } from "lucide-react";
 const entra = (i: number) => ({ className: "anim-entra", style: { ["--i" as string]: i } as CSSProperties });
 const mayuscula = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}`;
 
-export function ResumenFinanzasPanel({ resumen, falla, acceso }: { resumen: ResumenFinanzas | null; falla: string | null; acceso: Acceso }) {
+export function ResumenFinanzasPanel({ resumen, falla, confianza, acceso }: { resumen: ResumenFinanzas | null; falla: string | null; confianza: Lectura<ConfianzaDatos | null>; acceso: Acceso }) {
   if (!resumen) {
     return (
       <div className="space-y-6">
@@ -80,6 +83,13 @@ export function ResumenFinanzasPanel({ resumen, falla, acceso }: { resumen: Resu
             </div>
           ))}
         </section>
+      )}
+
+      {/* ADR-0417: qué tan cierto es el número del mes y qué falta para que lo sea. Si no se pudo medir, no se dibuja (nunca un 0 % falso). */}
+      {confianza.datos && (
+        <div {...entra(3)}>
+          <Confianza confianza={confianza.datos} guia="fin-resumen.confianza" />
+        </div>
       )}
 
       <section className="fin-cifras fin-cinco" aria-label="Los números del mes" data-guia="fin-resumen.cifras">

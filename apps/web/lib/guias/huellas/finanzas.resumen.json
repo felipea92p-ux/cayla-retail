@@ -2,7 +2,7 @@
   "guia": "finanzas.resumen",
   "ruta": "/finanzas/resumen",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 12,
+  "total": 13,
   "controles": {
     "components/MediosDePago.tsx": [
       "Desplegable «cambiar(i,»",
@@ -16,6 +16,9 @@
       "CampoTexto «Fecha del pago»",
       "ComboResponsable «(sin nombre)»",
       "Boton «{responsable.motivo ?? undefined}»"
+    ],
+    "components/finanzas/Confianza.tsx": [
+      "Link «{p.accion}»"
     ],
     "components/finanzas/ResumenDecidir.tsx": [
       "Link «fin-resumen.aviso-accion»",

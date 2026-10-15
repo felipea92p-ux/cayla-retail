@@ -113,6 +113,10 @@ export const PRUEBAS = [
   // al regularizar manda el real, el diario lo asienta solo, fn_costo_estimado_resumen cuenta lo estimado; permisos; pegar dos veces. ROLLBACK.
   "pruebas:costo-estimado-venta-sin-prenda",
 
+  // El medidor de confianza de Finanzas (ADR-0417): los siete hechos salen y cada uno se mueve con su dato; por sede; permisos;
+  // pegar dos veces. ROLLBACK.
+  "pruebas:finanzas-confianza",
+
   "pruebas:registrar-cambio",
 
   // No se cambia por una prenda sin precio (ADR-0385): un cambio por una prenda en S/ 0 (ni la bolsa de obsequio) se rechaza sin

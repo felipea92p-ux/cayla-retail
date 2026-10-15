@@ -70,6 +70,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       texto: "Para cuántos días alcanza tu plata si mañana no vendieras nada, qué día del mes CAYLA ya cubrió sus costos y cómo vas contra la meta de ventas. El color de la línea dice si va bien o pide atención.",
     },
     {
+      id: "confianza",
+      ancla: "fin-resumen.confianza",
+      opcional: true,
+      titulo: "Qué tan seguro es el número",
+      texto: "Un número de Finanzas solo es tan cierto como lo que los otros módulos registraron. Este medidor dice cuánto confiar en él y qué falta: el costo de las prendas sin registrar, los alquileres cargados, las facturas, el banco cuadrado. Cada cosa que falta lleva a la pantalla donde se arregla.",
+    },
+    {
       id: "cifras",
       ancla: "fin-resumen.cifras",
       titulo: "Los números del mes",

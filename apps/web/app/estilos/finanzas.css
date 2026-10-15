@@ -1905,3 +1905,106 @@
     }
   }
 }
+
+/* ---- El medidor de confianza (ADR-0417, Fase 1): un arco que se dibuja hasta el porcentaje, la frase y las piezas. ---- */
+@layer components {
+  .fin-confianza {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .fin-confianza-cab {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .fin-confianza-arco {
+    position: relative;
+    flex: none;
+    width: 132px;
+  }
+  .fin-confianza-arco svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .fin-confianza-pista,
+  .fin-confianza-valor {
+    fill: none;
+    stroke-width: 9;
+    stroke-linecap: round;
+  }
+  .fin-confianza-pista {
+    stroke: var(--color-hueso);
+  }
+  .fin-confianza-valor {
+    stroke: var(--color-verde);
+    stroke-dasharray: 1;
+    animation: fin-confianza-dibuja 900ms var(--ease-cayla) backwards;
+  }
+  .fin-confianza[data-nivel="medio"] .fin-confianza-valor {
+    stroke: var(--color-ambar);
+  }
+  .fin-confianza[data-nivel="bajo"] .fin-confianza-valor {
+    stroke: var(--color-rojo-profundo);
+  }
+  @keyframes fin-confianza-dibuja {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
+  .fin-confianza-pct {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 2px;
+    text-align: center;
+    font-family: var(--font-serif);
+    font-size: 26px;
+    line-height: 1;
+    color: var(--color-tinta);
+  }
+  .fin-confianza-piezas {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 18px;
+  }
+  .fin-confianza-piezas > li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-sand);
+    min-width: 0;
+  }
+  .fin-confianza-piezas > li > div > b {
+    display: block;
+    font-weight: 600;
+    font-size: 13.5px;
+  }
+  .fin-confianza-piezas > li > div > p {
+    font-size: 13px;
+    color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre papel y hueso (ADR-0336: desde 64 % pasa) */
+  }
+  @media (max-width: 720px) {
+    .fin-confianza-cab {
+      flex-direction: column-reverse;
+      align-items: stretch;
+    }
+    .fin-confianza-arco {
+      width: 120px;
+    }
+    .fin-confianza-piezas {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fin-confianza-valor {
+      animation: none;
+    }
+  }
+}
