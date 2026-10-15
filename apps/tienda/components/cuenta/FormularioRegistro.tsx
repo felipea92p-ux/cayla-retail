@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { confirmarCodigo, consultarCorreo, consultarDni, pedirCodigo, reenviarCodigo, type RespuestaCodigo } from "@/app/acciones/cuenta";
+import { confirmarCodigo, consultarCorreo, consultarDni, crearCuenta, obtenerCodigo, type RespuestaCrear, type RespuestaDelCodigo } from "@/app/acciones/cuenta";
 import {
   arregloCorreo,
   campoQueSigue,
   CLAVE_MAXIMA,
+  CODIGO_VENCE_MIN,
+  codigoLimpio,
   correoValido,
+  cuentaRegresiva,
   cumpleTexto,
   estadoRegistro,
   faltanCaracteres,
@@ -28,22 +31,26 @@ import {
   type Dia,
   type Registro,
 } from "@/lib/cuentas";
+import { codigoDelCorreoActual, codigoParaProbar, type CodigoDelCorreo } from "@/lib/correo-confirmado";
 import { Icono } from "../Icono";
 import { Isotipo } from "../Isotipo";
 import { CajaClave } from "./CajaClave";
 import { Campo, Resultado } from "./CampoGuiado";
-import { PasoCodigo, type InicioCodigo } from "./PasoCodigo";
 
 // «Crea tu cuenta» (maqueta v4, `vRegistro` y `guiaRegistro`). Cada campo dice su estado en su título (✓ Listo · Sigue aquí ·
 // Revisa) y debajo qué le falta o qué está mal; el de abajo dice todo lo que falta y el botón se enciende cuando no falta nada.
 // Mientras se escribe, el correo y el DNI se revisan en la base (si ya tienen cuenta) y el DNI trae el nombre del padrón a medias.
 // El nombre no se escribe (Felipe 2026-10-15): si el padrón no lo encuentra o no responde, no se crea la cuenta, y el DNI ofrece
 // «Volver a intentar».
-// Actividad 2b: «Soy mayor de 18 años» (obligatoria), «Avisos del Club por WhatsApp» (opcional, con el texto aprobado del Club) y,
-// al terminar, un código al correo: la cuenta y la ficha nacen recién con el código bueno (`PasoCodigo`).
+// Actividad 2b: «Soy mayor de 18 años» (obligatoria) y «Avisos del Club por WhatsApp» (opcional, con el texto aprobado del Club).
+// El código del correo (Felipe 2026-10-15: «al lado del correo debería existir un botón de obtener código y abajo un input para
+// colocarlo»): «Obtener código» al lado del correo; la caja del código aparece debajo, con «Reenviar» y su espera, y se revisa sola
+// con sus 6 números; con el bueno, «Correo confirmado». «Crear mi cuenta» se prende recién con el correo confirmado y lo demás
+// completo, y el servidor vuelve a exigir esa confirmación (`lib/correo-confirmado.ts`). Cambiar el correo deja sin valor el código.
 
 const ID: Record<CampoProblema, string> = {
   correo: "registro-correo",
+  codigo: "registro-codigo",
   clave: "registro-clave",
   dni: "registro-dni",
   cel: "registro-cel",
@@ -51,15 +58,15 @@ const ID: Record<CampoProblema, string> = {
   mayor: "registro-mayor",
   acepta: "registro-acepta",
   avisos: "registro-avisos",
-  codigo: "registro-codigo",
 };
+const ID_CREAR = "registro-crear";
 
 /** Cuánto se espera después de la última letra antes de preguntarle a la base. */
 const ESPERA_CORREO_MS = 700;
 const ESPERA_DNI_MS = 250;
 
-type ProblemaDeDatos = Extract<RespuestaCodigo, { paso: "datos" }>;
-const NO_DISPONIBLE: ProblemaDeDatos = { paso: "datos", campo: null, mensaje: MENSAJES.noDisponible };
+const NO_DISPONIBLE: RespuestaCrear = { campo: null, mensaje: MENSAJES.noDisponible };
+const SIN_RESPUESTA: RespuestaDelCodigo = { estado: "codigo", enviado: false, mensaje: MENSAJES.codigoNoEnviado, tono: "error", espera: null };
 
 export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia; casilla: CasillaWhatsapp | null }) {
   const [r, setR] = useState<Registro>(REGISTRO_VACIO);
@@ -69,8 +76,24 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [casilla, setCasilla] = useState<CasillaWhatsapp | null>(casillaInicial);
   const [avisoCasilla, setAvisoCasilla] = useState<string | null>(null);
-  const [codigo, setCodigo] = useState<InicioCodigo | null>(null);
+  // El código del correo, bajo el correo: sin pedir, enviado (a qué correo y hasta cuándo esperar para otro) o confirmado.
+  const [codigo, setCodigo] = useState<CodigoDelCorreo>({ estado: "sin_pedir" });
+  const [valorCodigo, setValorCodigo] = useState("");
+  // Lo que el servidor dijo del correo al pedir el código (lo acaba de confirmar otro aparato): bajo su caja, mientras sea ese.
+  const [avisoCorreo, setAvisoCorreo] = useState<{ correo: string; texto: string } | null>(null);
+  const [ahora, setAhora] = useState(() => Date.now());
   const [enviando, iniciar] = useTransition();
+  const [pidiendo, iniciarPedido] = useTransition();
+  const [probando, iniciarPrueba] = useTransition();
+  // A dónde va el cursor cuando la pantalla cambia (la caja del código aparece, o se va con el correo confirmado). Se hace después de
+  // pintar: antes, la caja nueva todavía no existe y el botón todavía está apagado.
+  const [enfocar, setEnfocar] = useState<{ id: string; seleccionar?: boolean } | null>(null);
+  useEffect(() => {
+    if (!enfocar) return;
+    const caja = document.getElementById(enfocar.id);
+    caja?.focus();
+    if (enfocar.seleccionar && caja instanceof HTMLInputElement) caja.select();
+  }, [enfocar]);
 
   const correo = normalizarCorreo(r.correo);
   const dniCompleto = /^\d{8}$/.test(r.dni);
@@ -107,7 +130,16 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     };
   }, [correo, correoRevisado.valor]);
 
-  const estado = estadoRegistro(r, { correo: consultaCorreo, dni: consultaDni }, hoy);
+  // El código vale para el correo escrito AHORA: si la persona lo cambia, el de antes deja de valer (y se pide otro).
+  const codigoActual = codigoDelCorreoActual(codigo, correo);
+  const restan = codigoActual.estado === "enviado" ? Math.max(0, Math.ceil((codigoActual.hasta - ahora) / 1000)) : 0;
+  useEffect(() => {
+    if (restan <= 0) return;
+    const reloj = setInterval(() => setAhora(Date.now()), 1000);
+    return () => clearInterval(reloj);
+  }, [restan]);
+
+  const estado = estadoRegistro(r, { correo: consultaCorreo, dni: consultaDni, codigo }, hoy);
   const faltan = faltanRegistro(estado);
   const sigue = campoQueSigue(estado, enFoco);
   const marca = (campo: CampoRegistro) => marcaDe(estado[campo], sigue === campo);
@@ -116,9 +148,91 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     setR((actual) => ({ ...actual, ...cambio }));
   };
   const foco = (campo: CampoRegistro) => ({ alEntrar: () => setEnFoco(campo), alSalir: () => setEnFoco(null) });
+  // «Obtener código» se prende con un correo bien escrito que no es de otra cuenta ni de otra persona (lo que ya dijo la base).
+  const puedeObtener = estado.correo === "ok" && codigoActual.estado === "sin_pedir" && !pidiendo;
 
-  function aplicarError(e: ProblemaDeDatos) {
-    if (e.campo === "correo" && e.mensaje === MENSAJES.correoRepetido) setCorreoRevisado({ valor: correo, estado: "repetido" });
+  /**
+   * Lo que contesta el servidor del código: confirmado, enviado (con su mensaje y su espera) o un problema del correo. `t`: cuándo
+   * contestó (de ahí corre la espera para pedir otro).
+   */
+  function aplicarCodigo(respuesta: RespuestaDelCodigo, correoPedido: string, probado: string | null, t: number) {
+    setAvisoCorreo(null);
+    if (respuesta.estado === "confirmado") {
+      setCodigo({ estado: "confirmado", correo: correoPedido });
+      setValorCodigo("");
+      // La caja del código se va: el cursor pasa a lo primero que falta de lo demás (o al botón, si ya no falta nada).
+      const siguiente = faltan.find(([campo]) => campo !== "correo" && campo !== "codigo")?.[0];
+      setEnfocar({ id: siguiente ? ID[siguiente] : ID_CREAR });
+      return;
+    }
+    if (respuesta.estado === "correo") {
+      setCodigo({ estado: "sin_pedir" });
+      if (respuesta.repetido) setCorreoRevisado({ valor: correoPedido, estado: "repetido" });
+      else setAvisoCorreo({ correo: correoPedido, texto: respuesta.mensaje });
+      return;
+    }
+    setAhora(t);
+    // La caja de ESE correo, si ya estaba a la vista (al pedirlo o al probarlo).
+    const previo = codigo.estado === "enviado" && codigo.correo === correoPedido ? codigo : null;
+    if (!respuesta.enviado && !previo) {
+      // No se mandó nada y no había código: el porqué va bajo el correo, junto a «Obtener código».
+      setCodigo({ estado: "sin_pedir" });
+      if (respuesta.mensaje) setAvisoCorreo({ correo: correoPedido, texto: respuesta.mensaje });
+      return;
+    }
+    // Llegó un código nuevo: anula el anterior (lo que había salido mal o vencido ya no cuenta).
+    const nuevo = probado === null && respuesta.tono === "ok";
+    setCodigo({
+      estado: "enviado",
+      correo: correoPedido,
+      hasta: respuesta.espera !== null ? t + respuesta.espera * 1000 : (previo?.hasta ?? t),
+      mensaje: respuesta.mensaje ? { texto: respuesta.mensaje, tono: respuesta.tono } : null,
+      // Venció o se gastaron los intentos: ningún código escrito sirve hasta pedir uno nuevo.
+      necesitaNuevo: respuesta.codigo === "vencido" || respuesta.codigo === "bloqueado" ? true : nuevo ? false : (previo?.necesitaNuevo ?? false),
+      // El que salió mal no se vuelve a probar solo (gastaría otro intento) hasta que se cambia.
+      malo: probado !== null && respuesta.codigo ? probado : nuevo ? null : (previo?.malo ?? null),
+    });
+    // Con el código recién mandado, el cursor espera en su caja; uno que salió mal queda marcado para escribirlo encima.
+    setEnfocar({ id: ID.codigo, seleccionar: probado !== null });
+  }
+
+  /** «Obtener código» y «Reenviar». */
+  function pedirCodigo(reenvio: boolean) {
+    if (pidiendo || (!reenvio && !puedeObtener) || (reenvio && restan > 0)) return;
+    const correoPedido = correo;
+    setAvisoCorreo(null);
+    setErrorGeneral(null);
+    if (reenvio) setValorCodigo("");
+    iniciarPedido(async () => {
+      const respuesta = await obtenerCodigo(correoPedido, reenvio).catch((): RespuestaDelCodigo => SIN_RESPUESTA);
+      aplicarCodigo(respuesta, correoPedido, null, Date.now());
+    });
+  }
+
+  /** La caja del código: con sus 6 números se revisa sola (si no es el mismo que ya salió mal). */
+  function cambiarCodigo(texto: string) {
+    const valor = codigoLimpio(texto);
+    setValorCodigo(valor);
+    // Al corregirlo, el error se va; si hace falta un código nuevo, el aviso se queda hasta pedirlo.
+    if (codigoActual.estado === "enviado" && codigoActual.mensaje?.tono === "error" && !codigoActual.necesitaNuevo && valor !== codigoActual.malo) {
+      setCodigo({ ...codigoActual, mensaje: null });
+    }
+    if (probando || !codigoParaProbar(codigoActual, valor)) return;
+    const correoPedido = correo;
+    iniciarPrueba(async () => {
+      const respuesta = await confirmarCodigo(correoPedido, valor).catch(
+        (): RespuestaDelCodigo => ({ estado: "codigo", enviado: true, mensaje: MENSAJES.codigoNoProbado, tono: "error", espera: null }),
+      );
+      aplicarCodigo(respuesta, correoPedido, valor, Date.now());
+    });
+  }
+
+  function aplicarError(e: RespuestaCrear) {
+    if (e.campo === "codigo") {
+      // La confirmación ya no vale (venció, o el correo recibió otro código): hay que pedir uno nuevo.
+      setCodigo({ estado: "sin_pedir" });
+      setAvisoCorreo({ correo, texto: e.mensaje });
+    } else if (e.campo === "correo" && e.mensaje === MENSAJES.correoRepetido) setCorreoRevisado({ valor: correo, estado: "repetido" });
     // El correo de contacto de otra ficha: bajo su campo, sin «Entrar» ni «Olvidé mi contraseña» (esa persona no tiene cuenta).
     else if (e.campo === "correo" && e.mensaje === MENSAJES.correoDeOtraPersona) setCorreoRevisado({ valor: correo, estado: "de_otra_persona" });
     else if (e.campo === "dni" && e.mensaje === MENSAJES.dniRepetido) setDniRevisado({ valor: r.dni, estado: { estado: "repetido" } });
@@ -139,50 +253,18 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
       setR((actual) => ({ ...actual, avisos: false }));
       setAvisoCasilla(e.mensaje);
     } else setErrorGeneral(e.mensaje);
-    const id = e.campo ? ID[e.campo] : null;
-    // Si vuelve del paso del código, el formulario aparece recién en el próximo cuadro.
-    if (id) window.setTimeout(() => document.getElementById(id)?.focus(), 0);
+    // Al campo del problema (el del código vive en el correo: ahí está «Obtener código»).
+    if (e.campo) setEnfocar({ id: ID[e.campo === "codigo" ? "correo" : e.campo] });
   }
 
-  /** «Mandarme el código»: si sale bien, pasa al paso del código. */
-  function pedir() {
+  /** «Crear mi cuenta»: con todo completo y el correo confirmado. Si sale bien, el servidor lleva a «Mi cuenta». */
+  function crear() {
     if (faltan.length > 0 || enviando) return;
     setErrorGeneral(null);
     iniciar(async () => {
-      const respuesta = await pedirCodigo({ registro: r, casilla: casilla?.version ?? null }).catch((): RespuestaCodigo => NO_DISPONIBLE);
-      if (respuesta.paso === "datos") return aplicarError(respuesta);
-      const t = Date.now();
-      setCodigo({ mensaje: respuesta.mensaje ? { texto: respuesta.mensaje, tono: respuesta.tono } : null, desde: t, hasta: t + (respuesta.espera ?? 0) * 1000 });
+      const respuesta = await crearCuenta({ registro: r, casilla: casilla?.version ?? null }).catch((): RespuestaCrear => NO_DISPONIBLE);
+      if (respuesta) aplicarError(respuesta);
     });
-  }
-
-  /** Lo que contesta el servidor en el paso del código: si el problema es de los datos, se vuelve a ellos con el problema en su campo. */
-  function enElCodigo(respuesta: RespuestaCodigo | undefined) {
-    if (!respuesta) return undefined;
-    if (respuesta.paso === "codigo") return respuesta;
-    setCodigo(null);
-    aplicarError(respuesta);
-    return undefined;
-  }
-
-  if (codigo) {
-    return (
-      <PasoCodigo
-        correo={correo}
-        inicio={codigo}
-        confirmar={async (valor) =>
-          enElCodigo(
-            await confirmarCodigo({ registro: r, casilla: casilla?.version ?? null, codigo: valor }).catch(
-              (): RespuestaCodigo => ({ paso: "codigo", mensaje: MENSAJES.codigoNoProbado, tono: "error", espera: null }),
-            ),
-          )
-        }
-        reenviar={async () =>
-          enElCodigo(await reenviarCodigo(correo).catch((): RespuestaCodigo => ({ paso: "codigo", mensaje: MENSAJES.codigoNoEnviado, tono: "error", espera: null })))
-        }
-        volver={() => setCodigo(null)}
-      />
-    );
   }
 
   const delClub = (consultaDni.estado === "encontrado" || consultaDni.estado === "sin_nombre") && consultaDni.delClub;
@@ -197,6 +279,12 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     </span>
   );
   const sugerencia = arregloCorreo(r.correo);
+  const avisoDelCorreo = avisoCorreo && avisoCorreo.correo === correo ? avisoCorreo.texto : null;
+  // Lo que sigue es pedir el código: «Obtener código» lleva la luz (la caja del código todavía no existe).
+  const obtenerSigue = sigue === "codigo" && codigoActual.estado === "sin_pedir";
+  // «Revisa» en el código: hace falta uno nuevo, o el escrito es el mismo que ya salió mal.
+  const codigoMalo =
+    codigoActual.estado === "enviado" && (codigoActual.necesitaNuevo || (codigoActual.malo !== null && codigoActual.malo === valorCodigo));
 
   return (
     <form
@@ -204,7 +292,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
-        pedir();
+        crear();
       }}
     >
       <div>
@@ -216,20 +304,40 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
       </div>
 
       <Campo campo="correo" idCaja={ID.correo} etiqueta="Correo" marca={marca("correo")} {...foco("correo")}>
-        <input
-          id={ID.correo}
-          className="w-caja"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          autoCapitalize="none"
-          spellCheck={false}
-          placeholder="tucorreo@gmail.com" // sugerir-fijo: el ejemplo es la forma de un correo, no depende de nada elegido antes
-          value={r.correo}
-          onChange={(e) => cambiar({ correo: e.target.value })}
-          aria-describedby={`${ID.correo}-res`}
-          aria-invalid={estado.correo === "mal" || estado.correo === "repetido" || undefined}
-        />
+        {/* «Obtener código» al lado del correo (Felipe 2026-10-15); con el correo confirmado, el botón se va y queda el ✓. */}
+        <div className="w-correo-fila">
+          <input
+            id={ID.correo}
+            className="w-caja"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="tucorreo@gmail.com" // sugerir-fijo: el ejemplo es la forma de un correo, no depende de nada elegido antes
+            value={r.correo}
+            onChange={(e) => cambiar({ correo: e.target.value })}
+            aria-describedby={`${ID.correo}-res`}
+            aria-invalid={estado.correo === "mal" || estado.correo === "repetido" || undefined}
+          />
+          {codigoActual.estado === "sin_pedir" && (
+            <button
+              type="button"
+              className={`t-btn t-btn-sec w-obtener${obtenerSigue ? " w-obtener-sigue" : ""}`}
+              onClick={() => pedirCodigo(false)}
+              // En el botón, lo que sigue es pedir el código (no el correo, que ya está listo): la luz se queda en él.
+              onFocus={(e) => {
+                e.stopPropagation();
+                setEnFoco("codigo");
+              }}
+              disabled={!puedeObtener}
+              aria-busy={pidiendo || undefined}
+              aria-describedby={`${ID.correo}-res`}
+            >
+              {pidiendo ? "Mandando…" : MENSAJES.codigoObtener}
+            </button>
+          )}
+        </div>
         <Resultado id={ID.correo}>
           {estado.correo === "repetido" && consultaCorreo === "de_otra_persona" ? (
             <span className="w-res-error">{MENSAJES.correoDeOtraPersona}</span>
@@ -249,11 +357,57 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
             </>
           ) : estado.correo === "mal" ? (
             <span className="w-res-error">{MENSAJES.correoMal}</span>
+          ) : codigoActual.estado === "confirmado" ? (
+            <span className="w-res-ok">
+              <Icono nombre="check" />
+              {MENSAJES.correoConfirmado}
+            </span>
+          ) : avisoDelCorreo ? (
+            <span className="w-res-aviso">{avisoDelCorreo}</span>
+          ) : codigoActual.estado === "sin_pedir" && estado.correo === "ok" ? (
+            <p className="w-ayuda">{MENSAJES.codigoAntes}</p>
           ) : (
             <p className="w-ayuda">{MENSAJES.correoAyuda}</p>
           )}
         </Resultado>
       </Campo>
+
+      {/* La caja del código, DEBAJO del correo, apenas se pide: se revisa sola con sus 6 números. */}
+      {codigoActual.estado === "enviado" && (
+        <Campo campo="codigo" idCaja={ID.codigo} etiqueta="Código" marca={codigoMalo ? "error" : marca("codigo")} {...foco("codigo")}>
+          <input
+            id={ID.codigo}
+            className="w-caja num w-codigo"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="6 números" // sugerir-fijo: el código siempre tiene 6 números, no depende de nada elegido antes
+            value={valorCodigo}
+            onChange={(e) => cambiarCodigo(e.target.value)}
+            aria-describedby={`${ID.codigo}-res`}
+            aria-invalid={codigoMalo || undefined}
+            aria-busy={probando || undefined}
+          />
+          <Resultado id={ID.codigo}>
+            {probando ? (
+              <p className="w-ayuda">Revisando tu código…</p>
+            ) : codigoActual.mensaje ? (
+              <span className={codigoActual.mensaje.tono === "error" ? "w-res-error" : codigoActual.mensaje.tono === "aviso" ? "w-res-aviso" : "w-res-ok"}>
+                {codigoActual.mensaje.texto}
+              </span>
+            ) : (
+              <p className="w-ayuda">
+                Te lo mandamos a <b className="w-correo">{correo}</b>. Vence en {CODIGO_VENCE_MIN} minutos. {MENSAJES.codigoAyuda}
+              </p>
+            )}
+          </Resultado>
+          {/* Fuera de la línea que se anuncia: la cuenta regresiva cambia cada segundo y no debe leerse en voz alta cada vez. */}
+          <span className="w-res-acc w-codigo-acc">
+            <button type="button" className="w-enlace" onClick={() => pedirCodigo(true)} disabled={restan > 0 || pidiendo}>
+              {pidiendo ? "Mandando otro código…" : restan > 0 ? `Reenviar en ${cuentaRegresiva(restan)}` : "Reenviar"}
+            </button>
+          </span>
+        </Campo>
+      )}
 
       <Campo campo="clave" idCaja={ID.clave} etiqueta="Contraseña" marca={marca("clave")} {...foco("clave")}>
         <CajaClave
@@ -471,7 +625,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
             </>
           ) : (
             <>
-              Todo listo. El código llega a <b className="w-correo">{correo}</b>
+              Todo listo. Tu cuenta se crea con <b className="w-correo">{correo}</b>
             </>
           )}
         </p>
@@ -480,8 +634,9 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
             {errorGeneral}
           </p>
         )}
-        <button className="t-btn t-btn-ancho" type="submit" disabled={faltan.length > 0 || enviando} aria-busy={enviando || undefined}>
-          {enviando ? "Mandando tu código…" : "Mandarme el código"}
+        {/* Se prende recién con el correo confirmado y lo demás completo; el servidor vuelve a exigir la confirmación. */}
+        <button id={ID_CREAR} className="t-btn t-btn-ancho" type="submit" disabled={faltan.length > 0 || enviando} aria-busy={enviando || undefined}>
+          {enviando ? "Creando tu cuenta…" : "Crear mi cuenta"}
         </button>
       </div>
     </form>

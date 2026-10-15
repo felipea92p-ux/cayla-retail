@@ -12,10 +12,10 @@ import {
   enMinutos,
   errorDeRegistro,
   escalaEnPalabras,
-  esquemaConfirmarCodigo,
-  esquemaPedirCodigo,
+  esquemaCrearCuenta,
   estadoCelular,
   estadoClave,
+  estadoCodigo,
   estadoCorreo,
   estadoCumple,
   estadoDni,
@@ -43,9 +43,22 @@ import {
   type ConsultaDni,
   type Registro,
 } from "./cuentas";
+import type { CodigoDelCorreo } from "./correo-confirmado";
 
 const HOY = { anio: 2026, mes: 10, dia: 14 };
 const ENCONTRADO: ConsultaDni = { estado: "encontrado", aMedias: "María P. S.", delClub: false };
+/** El correo de LISTO, confirmado con su código (bajo el correo, Felipe 2026-10-15). */
+const CONFIRMADO: CodigoDelCorreo = { estado: "confirmado", correo: "maria.perez@gmail.com" };
+const SIN_PEDIR: CodigoDelCorreo = { estado: "sin_pedir" };
+const enviado = (correo: string, cambios: Partial<Extract<CodigoDelCorreo, { estado: "enviado" }>> = {}): CodigoDelCorreo => ({
+  estado: "enviado",
+  correo,
+  hasta: 0,
+  mensaje: null,
+  necesitaNuevo: false,
+  malo: null,
+  ...cambios,
+});
 const LISTO: Registro = {
   correo: "maria.perez@gmail.com",
   clave: "clave-segura",
@@ -191,31 +204,37 @@ describe("el DNI y el nombre", () => {
 
   it("el nombre nunca se escribe: el registro no tiene caja de nombre y el servidor no lo lee (lo que llegue de más se descarta)", () => {
     expect(Object.keys(REGISTRO_VACIO)).not.toContain("nombre");
-    const conNombre = esquemaPedirCodigo.safeParse({ registro: { ...LISTO, nombre: "Nombre Escrito A Mano" }, casilla: null });
+    const conNombre = esquemaCrearCuenta.safeParse({ registro: { ...LISTO, nombre: "Nombre Escrito A Mano" }, casilla: null });
     expect(conNombre.success && "nombre" in conNombre.data.registro).toBe(false);
   });
 });
 
 describe("la guía del registro", () => {
   it("sin nada escrito falta todo menos los avisos (opcionales): el nombre no es un campo, sale del DNI", () => {
-    const e = estadoRegistro(REGISTRO_VACIO, { correo: "sin_revisar", dni: { estado: "sin_revisar" } }, HOY);
-    expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "clave", "dni", "cel", "cumple", "mayor", "acepta"]);
+    const e = estadoRegistro(REGISTRO_VACIO, { correo: "sin_revisar", dni: { estado: "sin_revisar" }, codigo: SIN_PEDIR }, HOY);
+    expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "codigo", "clave", "dni", "cel", "cumple", "mayor", "acepta"]);
     expect(textoFaltan(faltanRegistro(e))).toBe(
-      "tu correo, tu contraseña, tu DNI, tu celular, tu cumpleaños, confirmar que eres mayor de 18 y aceptar los términos",
+      "tu correo, confirmar tu correo, tu contraseña, tu DNI, tu celular, tu cumpleaños, confirmar que eres mayor de 18 y aceptar los términos",
     );
     // Las dos casillas nuevas nacen sin marcar: el «sí» es un toque de la persona.
     expect(REGISTRO_VACIO).toMatchObject({ mayor: false, avisos: false });
   });
 
   it("«Soy mayor de 18 años» es obligatoria aunque el año diga que sí; los avisos nunca faltan", () => {
-    const sinMayor = estadoRegistro({ ...LISTO, mayor: false, cumple: { d: "14", m: "10", a: "1990" } }, { correo: "libre", dni: ENCONTRADO }, HOY);
+    const sinMayor = estadoRegistro(
+      { ...LISTO, mayor: false, cumple: { d: "14", m: "10", a: "1990" } },
+      { correo: "libre", dni: ENCONTRADO, codigo: CONFIRMADO },
+      HOY,
+    );
     expect(faltanRegistro(sinMayor).map(([campo]) => campo)).toEqual(["mayor"]);
     expect(campoQueSigue(sinMayor, null)).toBe("mayor");
-    for (const avisos of [true, false]) expect(faltanRegistro(estadoRegistro({ ...LISTO, avisos }, { correo: "libre", dni: ENCONTRADO }, HOY))).toEqual([]);
+    for (const avisos of [true, false]) {
+      expect(faltanRegistro(estadoRegistro({ ...LISTO, avisos }, { correo: "libre", dni: ENCONTRADO, codigo: CONFIRMADO }, HOY))).toEqual([]);
+    }
   });
 
-  it("todo listo: no falta nada", () => {
-    const e = estadoRegistro(LISTO, { correo: "libre", dni: ENCONTRADO }, HOY);
+  it("todo listo: no falta nada (con el correo confirmado)", () => {
+    const e = estadoRegistro(LISTO, { correo: "libre", dni: ENCONTRADO, codigo: CONFIRMADO }, HOY);
     expect(faltanRegistro(e)).toEqual([]);
     expect(textoFaltan([])).toBe("");
   });
@@ -223,7 +242,7 @@ describe("la guía del registro", () => {
   it("un correo repetido, un menor de 18 o un DNI sin el nombre del padrón aparecen en «Falta»", () => {
     const e = estadoRegistro(
       { ...LISTO, cumple: { d: "1", m: "1", a: "2015" } },
-      { correo: "repetido", dni: { estado: "sin_nombre", motivo: "no_encontrado", delClub: false } },
+      { correo: "repetido", dni: { estado: "sin_nombre", motivo: "no_encontrado", delClub: false }, codigo: CONFIRMADO },
       HOY,
     );
     expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "dni", "cumple"]);
@@ -232,10 +251,52 @@ describe("la guía del registro", () => {
   });
 
   it("se enciende el primero que falta; mientras se escribe en uno, la luz se queda ahí (y no salta si ya está listo)", () => {
-    const e = estadoRegistro({ ...LISTO, clave: "corta", celular: "" }, { correo: "libre", dni: ENCONTRADO }, HOY);
+    const e = estadoRegistro({ ...LISTO, clave: "corta", celular: "" }, { correo: "libre", dni: ENCONTRADO, codigo: CONFIRMADO }, HOY);
     expect(campoQueSigue(e, null)).toBe("clave");
     expect(campoQueSigue(e, "cel")).toBe("cel");
     expect(campoQueSigue(e, "correo")).toBeNull();
+  });
+});
+
+describe("el código bajo el correo (Felipe 2026-10-15: «Obtener código» al lado y la caja debajo)", () => {
+  const estadoCon = (codigo: CodigoDelCorreo, r: Registro = LISTO) => estadoRegistro(r, { correo: "libre", dni: ENCONTRADO, codigo }, HOY);
+
+  it("el orden de la guía es correo, código y lo demás: con el correo listo, lo que sigue es pedir el código", () => {
+    const e = estadoCon(SIN_PEDIR, { ...REGISTRO_VACIO, correo: LISTO.correo });
+    expect(faltanRegistro(e).map(([campo]) => campo).slice(0, 2)).toEqual(["codigo", "clave"]);
+    expect(campoQueSigue(e, null)).toBe("codigo");
+    // Mientras está en el botón «Obtener código» (o en la caja), la luz no se va de ahí.
+    expect(campoQueSigue(e, "codigo")).toBe("codigo");
+  });
+
+  it("«Crear mi cuenta» se prende recién con el correo confirmado: pedido o escrito no basta", () => {
+    expect(faltanRegistro(estadoCon(SIN_PEDIR)).map(([campo]) => campo)).toEqual(["codigo"]);
+    expect(faltanRegistro(estadoCon(enviado(LISTO.correo))).map(([campo]) => campo)).toEqual(["codigo"]);
+    expect(textoFaltan(faltanRegistro(estadoCon(SIN_PEDIR)))).toBe("confirmar tu correo");
+    expect(faltanRegistro(estadoCon(CONFIRMADO))).toEqual([]);
+  });
+
+  it("cambiar el correo después de pedir (o confirmar) el código lo deja sin valor: el de antes no cuenta para el nuevo", () => {
+    const otro: Registro = { ...LISTO, correo: "otra.persona@gmail.com" };
+    expect(estadoCodigo(otro.correo, CONFIRMADO)).toBe("falta");
+    expect(estadoCodigo(otro.correo, enviado(LISTO.correo, { necesitaNuevo: true }))).toBe("falta");
+    expect(faltanRegistro(estadoCon(CONFIRMADO, otro)).map(([campo]) => campo)).toEqual(["codigo"]);
+    // Volver al correo confirmado (sin pedir otro código) lo recupera: la confirmación era de ESE correo.
+    expect(estadoCodigo(` ${LISTO.correo.toUpperCase()} `, CONFIRMADO)).toBe("ok");
+  });
+
+  it("un código vencido o sin intentos queda en «Revisa» hasta pedir otro; uno pedido y sin escribir, falta", () => {
+    expect(estadoCodigo(LISTO.correo, enviado(LISTO.correo))).toBe("falta");
+    expect(estadoCodigo(LISTO.correo, enviado(LISTO.correo, { malo: "123456" }))).toBe("falta");
+    expect(estadoCodigo(LISTO.correo, enviado(LISTO.correo, { necesitaNuevo: true }))).toBe("mal");
+    expect(marcaDe(estadoCodigo(LISTO.correo, enviado(LISTO.correo, { necesitaNuevo: true })), true)).toBe("error");
+  });
+
+  it("los textos del botón y del ✓, y el porqué si se intenta crear sin confirmar", () => {
+    expect(MENSAJES.codigoObtener).toBe("Obtener código");
+    expect(MENSAJES.correoConfirmado).toBe("Correo confirmado");
+    expect(MENSAJES.codigoSinConfirmar).toMatch(/Obtener código/);
+    expect(MENSAJES.codigoAntes).toMatch(/Obtener código/);
   });
 
   it("la marca de cada campo: ✓ listo, revisa, sigue aquí o nada", () => {
@@ -292,13 +353,14 @@ describe("lo que el servidor vuelve a revisar", () => {
     expect(MENSAJES.cuentaCerrada).toMatch(/cuenta nueva/);
   });
 
-  it("lo que manda el formulario: el registro con sus casillas, la versión de la casilla que leyó y, al crear, el código", () => {
-    expect(esquemaPedirCodigo.safeParse({ registro: LISTO, casilla: 2 }).success).toBe(true);
-    expect(esquemaPedirCodigo.safeParse({ registro: LISTO, casilla: null }).success).toBe(true);
-    expect(esquemaPedirCodigo.safeParse({ registro: { ...LISTO, mayor: undefined }, casilla: 2 }).success).toBe(false);
-    expect(esquemaPedirCodigo.safeParse({ registro: LISTO, casilla: 0 }).success).toBe(false);
-    expect(esquemaConfirmarCodigo.safeParse({ registro: LISTO, casilla: null, codigo: "123456" }).success).toBe(true);
-    expect(esquemaConfirmarCodigo.safeParse({ registro: LISTO, casilla: null }).success).toBe(false);
+  it("lo que manda «Crear mi cuenta»: el registro con sus casillas y la versión de la casilla que leyó; el código no viaja", () => {
+    expect(esquemaCrearCuenta.safeParse({ registro: LISTO, casilla: 2 }).success).toBe(true);
+    expect(esquemaCrearCuenta.safeParse({ registro: LISTO, casilla: null }).success).toBe(true);
+    expect(esquemaCrearCuenta.safeParse({ registro: { ...LISTO, mayor: undefined }, casilla: 2 }).success).toBe(false);
+    expect(esquemaCrearCuenta.safeParse({ registro: LISTO, casilla: 0 }).success).toBe(false);
+    // Un «código» o un «confirmado» que mande el navegador se descarta: lo que cuenta es la prueba firmada de este aparato.
+    const conCodigo = esquemaCrearCuenta.safeParse({ registro: LISTO, casilla: null, codigo: "123456", confirmado: true });
+    expect(conCodigo.success && Object.keys(conCodigo.data)).toEqual(["registro", "casilla"]);
   });
 });
 

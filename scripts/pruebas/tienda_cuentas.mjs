@@ -9,12 +9,15 @@
  *      publicidad citando la casilla (ni el club, ni registrada por otro, ni con otro texto).
  *   2. Mientras se escribe: `tienda_consultar_correo` y `tienda_consultar_documento` dicen libre / repetido / archivada /
  *      del club, cuentan un intento de consulta (y uno inválido no lo cuenta) y frenan a los 20 por ip y hora.
- *   3. Antes de mandar el código: `tienda_revisar_registro` cuenta un intento de registro, frena por ip (5), documento (3) y
+ *   3. Antes de crear la cuenta: `tienda_revisar_registro` cuenta un intento de registro, frena por ip (5), documento (3) y
  *      celular (3), y dice si el correo o el DNI ya tienen cuenta o si la ficha está archivada.
  *   4. El código (actividad 2b): `tienda_reservar_envio` deja mandar uno, después pide esperar 60 s, frena a los 5 por hora y
  *      durante un bloqueo, solo reenvía a un correo que ya pidió el suyo, y limpia lo que lleva un día sin moverse;
  *      `tienda_anotar_invitado` guarda el usuario invitado; `tienda_intento_de_codigo` deja probar 5 veces (el quinto deja el
- *      bloqueo de 15 minutos, y después ese código ya no sirve), y dice cuándo venció.
+ *      bloqueo de 15 minutos, y después ese código ya no sirve), y dice cuándo venció. Desde el 2026-10-15 el código se pide y se
+ *      confirma bajo el correo (con el correo solo) y la cuenta se crea después: lo que ese orden necesita de la base también se
+ *      prueba (el código confirmado sirve aunque venza antes de terminar el formulario; si otro aparato pide un código entretanto,
+ *      el intento se vuelve a anotar y la cuenta se crea).
  *   5. `tienda_registrar_cuenta`: SIN el código confirmado de ese correo y ese usuario, no hay cuenta (`cuenta_sin_codigo`);
  *      sin «Soy mayor de 18 años», tampoco. Con un DNI nuevo crea la ficha (origen web, socia con código, celular normalizado,
  *      cumpleaños como el Club, sin persona) y la cuenta, se lleva el pendiente y anota la actividad sin datos suyos; con una
@@ -516,6 +519,45 @@ function main() {
       select :'e1' || '|' || :'e2' || '|' || (${intento(c1)} ->> 'estado');
       rollback;`),
     "vencido|enviar|puede",
+  );
+
+  // El código bajo el correo (Felipe 2026-10-15, `apps/tienda/app/acciones/cuenta.ts`): «Obtener código» llega con el correo solo
+  // (la consulta cuenta el tope por ip), el código se confirma apenas llega y la cuenta se crea después, al terminar el formulario.
+  const c6 = correoNuevo("bajo");
+  const u6 = randomUUID();
+  const r6 = registrar({ correo: c6, usuario: u6, sinCodigo: true });
+  esperarValor(
+    "el código bajo el correo: la primera vez se manda con el correo solo (la consulta cuenta el tope por ip; sin DNI ni celular), y el código confirmado sirve para crear la cuenta aunque ya haya vencido (se crea al terminar el formulario)",
+    correr(`${PREPARAR}
+      select retail.tienda_consultar_correo('${c6}', '${huella()}') ->> 'estado' as e1 \\gset
+      select ${reservar(c6)} ->> 'estado' as e2 \\gset
+      select retail.tienda_anotar_invitado('${c6}', '${u6}') as anotado \\gset
+      select ${intento(c6)} ->> 'estado' as e3 \\gset
+      update retail.cuentas_web_pendientes set vence_en = now() - interval '1 minute' where correo = '${c6}';
+      select pg_temp.intento($q$${r6.sql}$q$) as e4 \\gset
+      select :'e1' || '|' || :'e2' || '|' || :'anotado' || '|' || :'e3' || '#' || :'e4' || '#' ||
+             (select count(*) from retail.cuentas_web where usuario_web_id = '${u6}');
+      rollback;`),
+    "libre|enviar|t|puede#ok#1",
+  );
+  const c7 = correoNuevo("otro-aparato");
+  const u7 = randomUUID();
+  const r7 = registrar({ correo: c7, usuario: u7, sinCodigo: true });
+  esperarValor(
+    "si otro aparato pide un código para ese correo mientras esta persona termina el formulario, su pedido deja el pendiente sin el código probado (cuenta_sin_codigo); el servidor vuelve a anotar el intento (con la prueba firmada de este aparato) y la cuenta se crea",
+    correr(`${PREPARAR}
+      select ${reservar(c7)} as _r \\gset
+      select retail.tienda_anotar_invitado('${c7}', '${u7}') as _a \\gset
+      select ${intento(c7)} as _i \\gset
+      update retail.cuentas_web_pendientes set ultimo_envio_en = now() - interval '61 seconds' where correo = '${c7}';
+      select ${reservar(c7)} ->> 'estado' as e1 \\gset
+      select pg_temp.intento($q$${r7.sql}$q$) as e2 \\gset
+      select ${intento(c7)} ->> 'estado' as e3 \\gset
+      select pg_temp.intento($q$${r7.sql}$q$) as e4 \\gset
+      select :'e1' || '#' || :'e2' || '#' || :'e3' || '#' || :'e4' || '#' ||
+             (select count(*) from retail.cuentas_web where usuario_web_id = '${u7}');
+      rollback;`),
+    "enviar#P0001|cuenta_sin_codigo|codigo#puede#ok#1",
   );
 
   console.log("— tienda_registrar_cuenta —");

@@ -1,5 +1,6 @@
 import "server-only";
 import { isAuthApiError, isAuthRetryableFetchError, type SupabaseClient } from "@supabase/supabase-js";
+import { CONFIRMACION_DURA_MIN } from "./correo-confirmado";
 import { leerMiCuentaEnBase } from "./cuentas-servidor";
 import { usuarioBorradoEnBase, usuariosPorBorrarEnBase } from "./entrada-servidor";
 import { clienteSuelto } from "./sesion-servidor";
@@ -37,15 +38,20 @@ export async function barrerCuentasCerradas(admin: SupabaseClient, limite = 50):
   return { borrados, pendientes: usuarios.length - borrados };
 }
 
-/** Un usuario confirmado hace menos que esto puede estar a mitad de crear su cuenta en otra pestaña: no se toca. */
-const RECIEN_CONFIRMADO_MS = 2 * 60_000;
+/**
+ * Un usuario confirmado hace menos que esto puede estar a mitad de crear su cuenta: no se toca. Desde que el código se confirma bajo
+ * el correo (Felipe 2026-10-15), entre confirmar y «Crear mi cuenta» la persona llena el resto del formulario: se respeta lo mismo
+ * que dura su confirmación (30 minutos, `CONFIRMACION_DURA_MIN`). Antes eran 2 minutos: confirmar y crear iban juntos.
+ */
+const RECIEN_CONFIRMADO_MS = CONFIRMACION_DURA_MIN * 60_000;
 
-export type Invitacion = { estado: "invitado"; usuarioWebId: string } | { estado: "tiene_cuenta" } | { estado: "no_disponible" };
+/** `ocupado`: el correo lo acaba de confirmar otro aparato y todavía puede estar creando su cuenta (no se le manda otro código). */
+export type Invitacion = { estado: "invitado"; usuarioWebId: string } | { estado: "tiene_cuenta" } | { estado: "ocupado" } | { estado: "no_disponible" };
 
 /**
  * Manda el código a ese correo. Si el correo ya es de un usuario CONFIRMADO (un intento que se rompió después del código, o una
  * cuenta de antes de la 2b sin terminar) y la base dice que no tiene cuenta, se borra y se invita de nuevo: un correo nunca queda
- * tomado por alguien que no terminó.
+ * tomado por alguien que no terminó. Si lo confirmó hace poco (otro aparato a mitad del formulario), `ocupado`.
  */
 export async function invitarCorreo(admin: SupabaseClient, correo: string): Promise<Invitacion> {
   for (let vuelta = 0; vuelta < 2; vuelta++) {
@@ -60,6 +66,7 @@ export async function invitarCorreo(admin: SupabaseClient, correo: string): Prom
     if (!id) return { estado: "no_disponible" };
     const quedo = await borrarSiNoTieneCuenta(admin, id, { respetarRecientes: true });
     if (quedo === "tiene_cuenta") return { estado: "tiene_cuenta" };
+    if (quedo === "reciente") return { estado: "ocupado" };
     if (quedo !== "borrado") return { estado: "no_disponible" };
   }
   return { estado: "no_disponible" };
@@ -78,7 +85,8 @@ export type Borrado = "borrado" | "tiene_cuenta" | "reciente" | "quedo_suelto";
 
 /**
  * Borra un usuario del proyecto de clientes SOLO si la base CONTESTA que no tiene cuenta. Con `respetarRecientes`, no borra uno
- * confirmado hace menos de 2 minutos (puede estar creando su cuenta en otra pestaña). Si la base no contesta, no borra nada.
+ * confirmado hace menos de 30 minutos (puede estar llenando lo demás para crear su cuenta, en otro aparato). Si la base no contesta,
+ * no borra nada.
  */
 export async function borrarSiNoTieneCuenta(admin: SupabaseClient, id: string, { respetarRecientes }: { respetarRecientes: boolean }): Promise<Borrado> {
   const cuenta = await leerMiCuentaEnBase(id);
@@ -103,14 +111,15 @@ export async function limpiarInvitados(admin: SupabaseClient, ids: readonly stri
   await Promise.allSettled(ids.slice(0, 20).map((id) => borrarSiNoTieneCuenta(admin, id, { respetarRecientes: true })));
 }
 
-export type Confirmacion = { estado: "confirmado"; usuarioWebId: string } | { estado: "codigo_malo" } | { estado: "no_disponible" };
+export type Verificacion = { estado: "confirmado"; usuarioWebId: string } | { estado: "codigo_malo" } | { estado: "no_disponible" };
 
 /**
- * El código que llegó al correo: si es el bueno, el usuario queda confirmado y se le pone la contraseña que eligió (con la llave
- * secreta: no hace falta abrir sesión). La sesión que abre la verificación se cierra enseguida: se entra recién con la cuenta
- * creada. Uno equivocado, vencido, anulado por otro más nuevo o de otro correo → `codigo_malo`.
+ * El código que llegó al correo, apenas se escribe bajo el correo (Felipe 2026-10-15): si es el bueno, el usuario queda confirmado.
+ * La sesión que abre la verificación se cierra enseguida (se entra recién con la cuenta creada) y la contraseña se pone al crear la
+ * cuenta (`ponerClave`): a esta altura la persona quizá ni la escribió. Uno equivocado, vencido, anulado por otro más nuevo o de otro
+ * correo → `codigo_malo`.
  */
-export async function confirmarCorreo(admin: SupabaseClient, correo: string, codigo: string, clave: string): Promise<Confirmacion> {
+export async function verificarCodigo(correo: string, codigo: string): Promise<Verificacion> {
   const suelto = clienteSuelto();
   if (!suelto) return { estado: "no_disponible" };
   const verificado = await suelto.auth.verifyOtp({ email: correo, token: codigo, type: "invite" });
@@ -123,12 +132,25 @@ export async function confirmarCorreo(admin: SupabaseClient, correo: string, cod
   }
   const id = verificado.data.user?.id;
   await suelto.auth.signOut({ scope: "local" }).catch(() => undefined);
-  if (!id) return { estado: "no_disponible" };
+  return id ? { estado: "confirmado", usuarioWebId: id } : { estado: "no_disponible" };
+}
+
+/**
+ * ¿Ese usuario existe y confirmó su correo? Lo pregunta el servidor al crear la cuenta, además de leer la confirmación firmada de
+ * este aparato: si otro aparato pidió un código nuevo para ese correo, el usuario pudo cambiar. `sin_respuesta` si el proyecto de
+ * clientes no contesta (no se crea nada).
+ */
+export async function estaConfirmado(admin: SupabaseClient, id: string): Promise<"si" | "no" | "sin_respuesta"> {
+  const { data, error } = await admin.auth.admin.getUserById(id);
+  if (error?.status === 404) return "no";
+  if (error || !data.user) return "sin_respuesta";
+  return data.user.email_confirmed_at || data.user.confirmed_at ? "si" : "no";
+}
+
+/** La contraseña que eligió, puesta con la llave secreta justo antes de crear la cuenta (sin abrir sesión). */
+export async function ponerClave(admin: SupabaseClient, id: string, clave: string): Promise<boolean> {
   const { error } = await admin.auth.admin.updateUserById(id, { password: clave });
-  if (error) {
-    console.error(JSON.stringify({ evento: "tienda_poner_clave_fallo", codigo: error.code ?? null, estado: error.status ?? null }));
-    await borrarSiNoTieneCuenta(admin, id, { respetarRecientes: false });
-    return { estado: "no_disponible" };
-  }
-  return { estado: "confirmado", usuarioWebId: id };
+  if (!error) return true;
+  console.error(JSON.stringify({ evento: "tienda_poner_clave_fallo", codigo: error.code ?? null, estado: error.status ?? null }));
+  return false;
 }

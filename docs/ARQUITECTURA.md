@@ -1815,11 +1815,16 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
 - Crear la cuenta pide un código de 6 cifras al correo (actividad 2b, ADR-0408 act. b): el proyecto de clientes lo manda con su invitación
   (`apps/tienda/supabase/plantillas/codigo.html`) y lo verifica; la base lleva los topes y lo que queda a medias: `tienda_reservar_envio`
   (cada envío y reenvío), `tienda_anotar_invitado`, `tienda_intento_de_codigo` (cada intento se cuenta ANTES de probarse; al quinto, 15
-  minutos de bloqueo) y `cuentas_web_pendientes` (sin datos de la persona). El orden: código → contraseña → `tienda_registrar_cuenta`; si
-  la base dice que no, el servidor borra el usuario (`lib/usuarios-servidor.ts`). La casilla «Soy mayor de 18 años» la exige la base; la de
+  minutos de bloqueo) y `cuentas_web_pendientes` (sin datos de la persona). Desde el 2026-10-15 el código va **bajo el correo** (Felipe):
+  `FormularioRegistro` → `app/acciones/cuenta.ts` `obtenerCodigo` (al lado del correo, y «Reenviar»: `tienda_consultar_correo`, que cuenta
+  el tope por ip, → `tienda_reservar_envio` → invitar → `tienda_anotar_invitado`) y `confirmarCodigo` (la caja de debajo, con sus 6
+  números: `tienda_intento_de_codigo` → verificar → la prueba firmada del aparato, una cookie httpOnly de 30 minutos,
+  `lib/correo-confirmado.ts` y `-servidor.ts`). `crearCuenta` («Crear mi cuenta») vuelve a exigir esa prueba y el usuario confirmado →
+  `tienda_revisar_registro` → nombre del padrón → contraseña → `tienda_registrar_cuenta`; si la base dice que no, la confirmación se queda
+  para corregir y reintentar (`lib/usuarios-servidor.ts` limpia lo abandonado). La casilla «Soy mayor de 18 años» la exige la base; la de
   avisos del Club por WhatsApp (`tienda_casilla_whatsapp`, el texto vigente del cartel) queda en `club_permisos` con medio `tienda_web`.
   Un correo es de una sola persona (`20261015054000`/`055000`): con el correo de contacto de OTRA ficha, `tienda_revisar_registro` dice
-  `correo_de_otra_persona` antes del código y `FormularioRegistro` lo pone bajo el campo, sin decir de quién es.
+  `correo_de_otra_persona` al crear la cuenta (se sabe recién con el DNI) y `FormularioRegistro` lo pone bajo el campo, sin decir de quién es.
 - Entrar cuenta para el Club y la cuenta que se cierra (`20261015055000`, **sin pegar en producción**): `app/acciones/entrada.ts`
   `anotarEntrada` → `lib/entrada-servidor.ts` → `retail.tienda_anotar_entrada` (al iniciar sesión en `FormularioEntrar`, al crear la
   cuenta y, como mucho una vez al día por sesión, desde `components/cuenta/EntradaDelDia.tsx` en `MarcoCuenta`/`MarcoCatalogo`, con la

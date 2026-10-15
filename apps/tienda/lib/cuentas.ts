@@ -1,13 +1,15 @@
 import { nombreAMedias, nombresYApellidos } from "@cayla-retail/shared";
 import { z } from "zod";
+import { codigoDelCorreoActual, type CodigoDelCorreo } from "./correo-confirmado";
 
 // Las reglas de la cuenta de la tienda online (ADR-0408, actividades 2 y 2b). Lo que la página de registro dice de cada campo
 // (falta, mal, repetido, listo), la sugerencia de «gmial.com», el cumpleaños como lo guarda el Club, las dos casillas («Soy
 // mayor de 18 años» y los avisos por WhatsApp), el código que confirma el correo, lo que el servidor vuelve a revisar antes de
 // crear nada, y cómo se leen las respuestas de la base. Lógica pura, sin red: la usan el formulario (navegador), las acciones
 // (servidor) y sus pruebas. Sale de la maqueta aprobada (`docs/maquetas/tienda-online-2026-10`: `estadoRegistro`,
-// `ARREGLOS_CORREO`, `guiaRegistro`, `vEntrar`, `vOlvide`); el paso del código y las casillas, de lo que Felipe decidió el
-// 2026-10-14 (actividad 2b).
+// `ARREGLOS_CORREO`, `guiaRegistro`, `vEntrar`, `vOlvide`); el código y las casillas, de lo que Felipe decidió el 2026-10-14
+// (actividad 2b). Desde el 2026-10-15 el código no es un paso al final: «Obtener código» va al lado del correo y la caja del código
+// debajo, y «Crear mi cuenta» se prende recién con el correo confirmado (`lib/correo-confirmado.ts`).
 //
 // Quien decide de verdad es la base (`retail.tienda_registrar_cuenta`): esto solo evita mandar lo que la base rechazaría y dice
 // por qué, con las mismas palabras en la pantalla y en el servidor.
@@ -111,7 +113,8 @@ export const REGISTRO_VACIO: Registro = {
 
 /**
  * Lo que dijo la base del correo mientras se escribía. `sin_revisar`: todavía no se preguntó (o no contestó). `de_otra_persona`: al
- * pedir el código, la base dijo que es el correo de contacto de OTRA ficha (un correo es de una sola persona, Felipe 2026-10-14).
+ * crear la cuenta, la base dijo que es el correo de contacto de OTRA ficha (un correo es de una sola persona, Felipe 2026-10-14). Se
+ * sabe recién con el DNI (el correo de su propia ficha sí sirve), así que con el correo solo, «Obtener código» no lo puede saber.
  */
 export type ConsultaCorreo = "sin_revisar" | "libre" | "repetido" | "de_otra_persona";
 
@@ -127,15 +130,19 @@ export type ConsultaDni =
   | { estado: "repetido" }
   | { estado: "archivada" };
 
-/** Lo que la persona tiene que completar (los avisos por WhatsApp son opcionales: nunca «faltan»). El nombre no: sale del DNI. */
-export type CampoRegistro = "correo" | "clave" | "dni" | "cel" | "cumple" | "mayor" | "acepta";
-/** A dónde lleva un problema: un campo, la casilla opcional de los avisos o la caja del código. */
-export type CampoProblema = CampoRegistro | "avisos" | "codigo";
+/**
+ * Lo que la persona tiene que completar (los avisos por WhatsApp son opcionales: nunca «faltan»). El nombre no: sale del DNI. El
+ * código va justo después del correo (Felipe 2026-10-15): se confirma ahí mismo, antes de lo demás.
+ */
+export type CampoRegistro = "correo" | "codigo" | "clave" | "dni" | "cel" | "cumple" | "mayor" | "acepta";
+/** A dónde lleva un problema: un campo o la casilla opcional de los avisos. */
+export type CampoProblema = CampoRegistro | "avisos";
 export type EstadoCampo = "falta" | "mal" | "repetido" | "buscando" | "ok";
 
 /** El orden de la página y cómo se nombra cada campo en «Falta: …». */
 export const CAMPOS_REGISTRO: readonly (readonly [CampoRegistro, string])[] = [
   ["correo", "tu correo"],
+  ["codigo", "confirmar tu correo"],
   ["clave", "tu contraseña"],
   ["dni", "tu DNI"],
   ["cel", "tu celular"],
@@ -230,12 +237,27 @@ export function mensajeSinNombre(motivo: "no_encontrado" | "sin_padron" | "limit
   return motivo === "no_encontrado" ? MENSAJES.dniNoEncontrado : motivo === "limite" ? MENSAJES.dniLimite : MENSAJES.dniSinPadron;
 }
 
+/**
+ * El código del correo escrito AHORA: listo si ese correo quedó confirmado; «Revisa» si el código venció o se gastaron sus intentos
+ * (hace falta otro); si no, falta. Un código pedido para otro correo no cuenta (`codigoDelCorreoActual`).
+ */
+export function estadoCodigo(correo: string, codigo: CodigoDelCorreo): EstadoCampo {
+  const actual = codigoDelCorreoActual(codigo, normalizarCorreo(correo));
+  if (actual.estado === "confirmado") return "ok";
+  return actual.estado === "enviado" && actual.necesitaNuevo ? "mal" : "falta";
+}
+
 export type EstadoRegistro = Record<CampoRegistro, EstadoCampo> & { motivoCumple?: "fecha" | "menor" };
 
-export function estadoRegistro(r: Registro, consultas: { correo: ConsultaCorreo; dni: ConsultaDni }, hoy: Dia): EstadoRegistro {
+export function estadoRegistro(
+  r: Registro,
+  consultas: { correo: ConsultaCorreo; dni: ConsultaDni; codigo: CodigoDelCorreo },
+  hoy: Dia,
+): EstadoRegistro {
   const cumple = estadoCumple(r.cumple, hoy);
   return {
     correo: estadoCorreo(r.correo, consultas.correo),
+    codigo: estadoCodigo(r.correo, consultas.codigo),
     clave: estadoClave(r.clave),
     dni: estadoDni(r.dni, consultas.dni),
     cel: estadoCelular(r.celular),
@@ -313,6 +335,16 @@ export const MENSAJES = {
   noDisponible: "No pudimos crear tu cuenta ahora. Intenta de nuevo en unos minutos.",
   limite: "Hiciste muchos intentos seguidos. Espera un rato y vuelve a intentarlo.",
   codigoAyuda: "Son 6 números. Si no lo ves, revisa también tu carpeta de spam.",
+  // El código bajo el correo (Felipe 2026-10-15): «Obtener código» al lado, la caja debajo y, con el bueno, «Correo confirmado».
+  codigoObtener: "Obtener código",
+  codigoAntes: "Toca «Obtener código»: te llega un código de 6 números a este correo.",
+  correoConfirmado: "Correo confirmado",
+  codigoSinConfirmar: "Primero confirma tu correo: toca «Obtener código» y escribe los 6 números que te llegan.",
+  // El correo lo acaba de confirmar otro aparato y todavía puede estar creando su cuenta: no se le manda otro código por un rato.
+  correoOcupado: "Este correo se está confirmando en otro aparato. Termina ahí, o espera unos minutos y vuelve a intentar.",
+  // El último código sigue sirviendo (se pidió hace menos de un minuto, desde aquí o desde otro aparato).
+  codigoReciente: "Ya te mandamos un código hace poco: revisa tu correo.",
+  codigoIncompleto: "Escribe los 6 números del código.",
   codigoVencido: "Ese código ya no sirve. Pide uno nuevo.",
   codigoSinPedir: "Pide un código nuevo para confirmar tu correo.",
   codigoNuevo: "Te mandamos un código nuevo. Usa el último que te llegó.",
@@ -373,7 +405,7 @@ export const mensajeCodigoEsperar = (segundos: number) => `Te mandamos uno hace 
 
 /* ------------------------------------------------------------------ Lo que el servidor vuelve a revisar */
 
-/** Lo que manda el formulario al pedir el código y al crear la cuenta. El servidor no confía en nada de esto: lo revisa todo. */
+/** Lo que manda el formulario al crear la cuenta. El servidor no confía en nada de esto: lo revisa todo. */
 export const esquemaRegistro = z.object({
   correo: z.string().max(400),
   clave: z.string().max(400),
@@ -385,10 +417,11 @@ export const esquemaRegistro = z.object({
   avisos: z.boolean(),
 });
 
-/** Con el registro, la versión de la casilla de los avisos que la persona leyó (null si no se le mostró). */
-export const esquemaPedirCodigo = z.object({ registro: esquemaRegistro, casilla: z.number().int().positive().nullable() });
-/** …y, para crear la cuenta, el código que le llegó. */
-export const esquemaConfirmarCodigo = esquemaPedirCodigo.extend({ codigo: z.string().max(40) });
+/**
+ * «Crear mi cuenta»: el registro y la versión de la casilla de los avisos que la persona leyó (null si no se le mostró). El código
+ * NO viaja aquí: se confirmó antes, bajo el correo, y lo que el servidor exige es la prueba firmada de este aparato.
+ */
+export const esquemaCrearCuenta = z.object({ registro: esquemaRegistro, casilla: z.number().int().positive().nullable() });
 
 export type ProblemaRegistro = { campo: CampoProblema | null; mensaje: string };
 

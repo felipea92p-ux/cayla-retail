@@ -64,6 +64,12 @@
 .w-check-res { padding-left: 30px; }
 
 /* ---- El código del correo (actividad 2b) ---- */
+/* «Obtener código» al lado del correo (Felipe 2026-10-15): la caja se estira y el botón queda a su medida, del mismo alto. Cuando
+   lo que sigue es pedir el código, el botón lleva la luz ámbar de «Sigue aquí», como una caja. */
+.w-correo-fila { display: flex; gap: 8px; align-items: stretch; }
+.w-correo-fila .w-caja { flex: 1; min-width: 0; }
+.t-btn.w-obtener { flex: none; padding-inline: 16px; font-size: 13px; }
+.t-btn-sec.w-obtener-sigue { box-shadow: inset 0 0 0 1.5px var(--tinta), 0 0 0 3px color-mix(in srgb, var(--ambar) 30%, transparent); }
 .w-caja.w-codigo { font-size: 24px; letter-spacing: .35em; text-align: center; }
 .w-caja.w-codigo::placeholder { font-size: 15px; letter-spacing: normal; }
 .w-caja.w-codigo::selection { background: color-mix(in srgb, var(--ambar) 28%, transparent); color: var(--tinta); }

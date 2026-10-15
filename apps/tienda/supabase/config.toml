@@ -107,8 +107,8 @@ otp_expiry = 1800
 subject = "Crea tu contraseña nueva · CAYLA"
 content_path = "./supabase/plantillas/recuperar.html"
 
-# El código para crear la cuenta (actividad 2b). La invitación crea el usuario SIN contraseña; la cuenta (y la contraseña) se
-# guardan recién cuando la persona escribe el código en la tienda.
+# El código para crear la cuenta (actividad 2b). La invitación crea el usuario SIN contraseña; el código se escribe bajo el correo
+# (Felipe 2026-10-15) y la cuenta (y la contraseña) se guardan recién con «Crear mi cuenta», con el correo ya confirmado.
 [auth.email.template.invite]
 subject = "Tu código para crear tu cuenta · CAYLA"
 content_path = "./supabase/plantillas/codigo.html"
