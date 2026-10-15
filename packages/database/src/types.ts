@@ -5842,6 +5842,32 @@ export type Database = {
         Args: { p_cambios: Json }
         Returns: Json
       }
+      // Ventas ▸ Pedidos web (ADR-0408, actividad 8; motor 20261014235000, ERP 20261015010000 y 20261015011000). Los plazos son
+      // opcionales: sin ellos, la base usa los de Configuración ▸ Tienda web.
+      fn_pedidos_web_tablero: { Args: { p_ubicacion_id: string }; Returns: Json }
+      fn_pedidos_web_por_confirmar: { Args: { p_ubicacion_id: string }; Returns: number | null }
+      fn_pedido_web_detalle: { Args: { p_pedido_id: string }; Returns: Json }
+      confirmar_pedido_web: {
+        Args: { p_pedido_id: string; p_lineas: Json; p_horas_para_confirmar?: number }
+        Returns: Json
+      }
+      no_confirmar_pedido_web: {
+        Args: { p_pedido_id: string; p_motivo: string; p_horas_para_confirmar?: number }
+        Returns: Json
+      }
+      anular_pedido_web: { Args: { p_pedido_id: string; p_motivo: string }; Returns: Json }
+      reservar_linea_pedido_web: {
+        Args: { p_linea_id: string; p_ubicacion_id?: string; p_sububicacion_id?: string }
+        Returns: Json
+      }
+      enviar_pedido_web_desde: {
+        Args: { p_pedido_id: string; p_ubicacion_origen_id: string; p_fecha_estimada_llegada: string; p_token?: string }
+        Returns: Json
+      }
+      fn_apartados_de_pedidos_web: {
+        Args: { p_ubicacion_id: string }
+        Returns: { apartado_id: string; pedido_codigo: string; tienda_pedido: string; para_otra_tienda: boolean }[]
+      }
       unirse_al_club: {
         Args: {
           p_clienta_id: string

@@ -334,7 +334,7 @@ select pg_temp.huella(:'va');`);
     "despacho_pendientes",
     // ADR-0408: una prenda que un cliente pidió por la web (con su precio, y quizá su pago) es historia: frena el borrado aunque
     // nunca haya movido stock (se puede separar algo que está por conseguir). Las líneas no se borran (pedido_web_lineas_sin_borrar);
-    // hoy la frena su llave a variantes con el aviso genérico. Que `fn_producto_se_puede_eliminar` lo diga con nombre es pendiente.
+    // renglón 25 de `fn_producto_historia` (20261015011000, act. 8): Catálogo dice «tiene pedidos web» y no ofrece «Eliminar».
     "pedido_web_lineas",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
