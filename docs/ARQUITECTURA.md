@@ -1810,7 +1810,9 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   tienda solo «alcanza / hay / se vende» (nunca la cifra). «Separar» → `retail.tienda_separar(usuario_web_id, ubicacion_id, lineas,
   token)`: vuelve a calcular cada precio (`fn_bolsa_web_precios`, la misma regla de la bolsa) contra el que el cliente vio, llama a
   `crear_pedido_web` (no toca el stock) y, en la misma transacción, cierra las esperas de «Avísame» de esa cuenta por las prendas que
-  separó (`esperas_web.pedido_web_id`); la marca de la cookie hace que dos toques den el mismo pedido. `/bolsa/separado/[numero]`
+  separó (`esperas_web.pedido_web_id`); la marca de la cookie hace que dos toques den el mismo pedido. Un cliente tiene a lo sumo 3
+  separaciones «por confirmar» vigentes a la vez (Felipe, 2026-10-14; la constante `c_tope_por_confirmar`, mirada después de la marca;
+  hint `tienda_separar_tope` con el tope en `detail`). `/bolsa/separado/[numero]`
   («¡Listo, lo separaste!», el WhatsApp con el mensaje armado al número de la tienda), `/cuenta/pedidos` y `/cuenta/pedidos/[numero]`
   → `lib/pedidos-servidor.ts` → `retail.tienda_mis_pedidos` / `retail.tienda_pedido` (envuelven `fn_pedidos_web_de_clienta` con los
   plazos de `configuracion_tienda_web`; solo los de esa cuenta). Las piezas que pone la integración en la ficha, las tarjetas y la
