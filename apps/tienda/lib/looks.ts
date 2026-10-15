@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { cuantasPrendas, precioTarjeta, soles, type PrecioTarjeta } from "./catalogo";
+import { precioTarjeta, soles, type PrecioTarjeta } from "./catalogo";
 
 // «Arma tu look» (ADR-0408, actividad 11; maqueta v4, `vLooks`, `vLook`, `lamina`, `lookInfo`; propuesta h): las combinaciones que el ERP
 // arma en Vitrina web ▸ Looks, tal como las devuelven `retail.tienda_looks(p_sede)` y `retail.tienda_look(p_id, p_sede)`. La base decide qué
@@ -148,9 +148,28 @@ export function interpretarLook(dato: unknown): { sede: string | null; look: Loo
 
 /* ---------------- Lo que se dibuja ---------------- */
 
-/** El precio de una prenda del look, con la misma regla de la tarjeta del catálogo: lo que paga y, si hay campaña, el precio tachado. */
+/** «1 prenda», «3 prendas». */
+const cuantasPrendas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
+
+/** El precio de una prenda del look, con la misma regla de la tarjeta del catálogo: lo que paga y, si hay campaña, el precio tachado.
+ *  La tarjeta pide una prenda entera del catálogo; lo que el look no trae (colores, fotos, el nivel, Lo nuevo, el puesto) no cuenta
+ *  para el precio y va vacío. */
 export const precioDePieza = (p: PiezaLook): PrecioTarjeta =>
-  precioTarjeta({ ...p.prenda, codigo: null, colores: [], fotos: [] });
+  precioTarjeta({
+    id: p.prenda.id,
+    codigo: null,
+    nombre: p.prenda.nombre,
+    categoria: p.prenda.categoria,
+    precio: p.prenda.precio,
+    precioFinal: p.prenda.precioFinal,
+    desde: p.prenda.desde,
+    campana: p.prenda.campana ? { id: null, nombre: p.prenda.campana.nombre, pct: p.prenda.campana.pct, hasta: null } : null,
+    colores: [],
+    fotos: [],
+    stock: null,
+    nuevo: null,
+    vendidos: null,
+  });
 
 /** «El look completo S/ 304.70» (o «Desde …» si una campaña no toca todas las tallas de alguna prenda). */
 export const totalDelLook = (l: Pick<Look, "totalFinal" | "desde">): string => `${l.desde ? "Desde " : ""}${soles(l.totalFinal)}`;
