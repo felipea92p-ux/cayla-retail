@@ -670,7 +670,12 @@ export function ClientaFichaModal({
                   con «Anonimizar» (su cuenta de la tienda se cierra): el texto lo sigue. */}
               {avisoArchivo && (
                 <Aviso tono="atencion" titulo={avisoArchivo.titulo}>
-                  <span className="block">{avisoArchivo.pedidos.join(" · ")}</span>
+                  {/* Un renglón por pedido: con dos, los «·» de uno no se mezclan con los del otro. */}
+                  {avisoArchivo.pedidos.map((linea) => (
+                    <span key={linea} className="block">
+                      {linea}
+                    </span>
+                  ))}
                   <span className="mt-1 block">{avisoArchivo.texto}</span>
                 </Aviso>
               )}

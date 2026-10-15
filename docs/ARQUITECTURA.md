@@ -1066,7 +1066,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   caja cerrada → `punto-de-venta/CajaCerrada` (persiana y cartel «Cerrado» sobre el área de trabajo, POS `inert` detrás; su único
   botón abre `AbrirCajaFormV2`; textos en `lib/caja-cerrada-reglas.ts` con el último cierre de `getUltimoCierre`, ADR-0301);
   píldora «Hoy» → `punto-de-venta/ResumenDeHoy` con `lib/useVentasDeHoy.ts` (`fn_ventas_del_dia`, leída en el `Promise.all` de la
-  página; al cambiar de sede manda la lectura nueva del servidor, regla `alDiaConElServidor` de `lib/vender-hoy-reglas.ts`); clienta → `punto-de-venta/ClientaDelTicket` (RPC `buscar_clienta`; si no está, la registra ahí mismo con `registrar_clienta`, tipo de documento y padrón; la venta la liga con `p_cliente_id` de `registrar_venta`, ADR-0288 tanda 1a); «no había» → `punto-de-venta/AnotarNoHabia`
+  página; al cambiar de sede manda la lectura nueva del servidor, regla `alDiaConElServidor` de `lib/vender-hoy-reglas.ts`); clienta → `punto-de-venta/ClientaDelTicket` (RPC `buscar_clienta`; si no está, la registra ahí mismo con `registrar_clienta`, tipo de documento y padrón, y dice si ese documento ya tenía ficha o si se reactivó —`fichaConDocumento` + `lib/alta-clienta-reglas.ts`—; la venta la liga con `p_cliente_id` de `registrar_venta`, ADR-0288 tanda 1a); «no había» → `punto-de-venta/AnotarNoHabia`
   (`lib/pedidos-no-atendidos-acciones.ts` → RPC `registrar_pedido_no_atendido` con `p_motivo = 'no_habia_talla'`, firmada con el responsable; «¿se la probó y no la llevó?» al quitar una prenda → `punto-de-venta/SeProboNoLlevo` (misma RPC con `p_motivo = 'se_probo_no_llevo'` y `p_razon`; la prenda quitada la guarda `PuntoDeVenta` y la pone en el `arriba` del ticket; lógica en `lib/se-probo-reglas.ts`, ADR-0288 tanda 1d); Apartar → `/vender/apartados?prendas=` (`lib/apartar-desde-ticket.ts`);
   buscador → `lib/vender-buscador-reglas.ts`. Bajo `lg` el
   ticket vive en `<Modal variante="ticket">` y se abre con la barra fija de cobro.
@@ -1134,11 +1134,20 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `ClientaFichaModal.tsx` (ver/editar/archivar, `<Modal variante="hoja">`) +
   `NuevaClientaModal.tsx` (si el documento ya tiene ficha lo dice con su nombre, `buscar_clienta`, y la abre en vez de crear otra) →
   `lib/clientas-acciones.ts` → RPC `buscar_clienta`,
-  `registrar_clienta`, `editar_clienta` (documento con tipo: `p_documento_tipo` + `p_documento_numero`, ADR-0288; al fijar el documento ligan sus compras anteriores con `fn_ligar_ventas_por_documento`; candado optimista `version`, ADR-0193 reusado; el documento de otra ficha dice de cuál es),
+  `registrar_clienta`, `editar_clienta` (documento con tipo: `p_documento_tipo` + `p_documento_numero`, ADR-0288; al fijar el documento ligan sus compras anteriores con `fn_ligar_ventas_por_documento`; candado optimista `version`, ADR-0193 reusado; el documento de otra ficha dice de cuál es;
+  desde `20261015123000`, **sin pegar en producción**, también el **correo de contacto**: `p_correo` al final —nulo = no se toca, vacío =
+  se borra—, mal escrito → `correo_invalido`, de otra ficha o con el que entra a la tienda online la cuenta de otra → `correo_de_otra_ficha`
+  con el nombre de esa ficha; la hoja lo dice bajo la caja del correo con `lib/correo-clienta-reglas.ts`, que también lo muestra a medias a
+  quien no es líder. Nunca cambia el correo de entrada de la tienda, `cuentas_web.correo`),
   `archivar_clienta`/`reactivar_clienta`, `exportar_clientas`. **Sin «Unir fichas» desde el 2026-10-14** (Felipe: el documento y el
   correo son de una sola persona): `unir_clientas` (D-99) se borró en `20261015054000`, que además hace único el correo
   (`clientas_correo_unico` y el disparador `fn_correo_de_una_persona`, que también mira `cuentas_web`); `clientas_fusiones` queda como
-  historia. Y `exportar_clientas`
+  historia. `cargarFichaClienta` lee además `fn_clienta_tienda_online` (`20261015123000`: si tiene cuenta abierta en la tienda online
+  —sin su correo— y sus pedidos web en curso; `lib/clienta-tienda-online-reglas.ts`): la hoja de archivar AVISA si hay un pedido en
+  curso (no lo frena) y dice qué pasa al archivar o al anonimizar, y «Editar» dice que el correo de entrada no cambia desde ahí. Las dos
+  altas (`NuevaClientaModal` y el ticket de Vender) leen la ficha con ese documento justo antes de `registrar_clienta`
+  (`fichaConDocumento`) y dicen lo que hizo la base: «Cliente registrado», «Ya tenía ficha» o «Ficha reactivada»
+  (`lib/alta-clienta-reglas.ts`). Y `exportar_clientas`
   (solo Admin, D-109/G.4), `fn_clienta_compras/cambios/devoluciones/separaciones`
   (`security definer`, cruzan sede a propósito). Talla deducida (D-101) y «te falta N
   para frecuente» (D-103) calculadas al leer en `lib/clienta-actividad-reglas.ts`
@@ -1169,7 +1178,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   el QR del cartel o del ticket: `lib/club-pagina.ts` → `fn_club_pagina` (como `anon`) → `components/clientas/RegistroClub.tsx`
   (guía de foco `lib/club-registro-guia.ts`) y `PaginaLegalClub.tsx`. Acciones de servidor `app/actions/club-registro.ts`
   (`consultarNombre`, `registrarme`) con la llave de servicio → `club_intento` (ip y documento en huella con sal,
-  `lib/club-intentos.ts`), `consultarPadron` y `registrarse_en_el_club`. Reglas en `lib/club-registro-reglas.ts`.
+  `lib/club-intentos.ts`), `consultarPadron` y `registrarse_en_el_club`. Reglas en `lib/club-registro-reglas.ts`. El correo que la base
+  no acepta (el de otra persona, `correo_repetido`) se dice bajo la caja del correo y no cuenta como listo mientras siga escrito
+  (`correoRechazado`/`rechazoDelCorreo`, la guía lo pide y «Unirme» espera), como en la tienda online; lo demás sigue bajo el botón.
 - QR del club (ADR-0288 act. g, G-1): uno por tienda, a `/club/<uuid>`, solo en el cartel `/clientas/cartel` (`CartelClub.tsx`),
   que arma su enlace con `lib/club-qr-reglas.ts` (`cartelesDelClub`); el ticket impreso ya no lleva QR del club (act. j). El cartel es el
   diseño C «Invitación» (2026-10-01, `app/estilos/cartel-club.css`): sus cifras (% del cumpleaños, vale menor y mayor de la
