@@ -35,7 +35,7 @@
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «Buscar»",
+      "BotonBuscar «) : ( campoNumero )»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/EscanerCamara.tsx": [

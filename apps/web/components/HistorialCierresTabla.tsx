@@ -91,7 +91,7 @@ export function HistorialCierresTabla({ cierres, pie }: { cierres: CierreCaja[];
                       </span>
                       <span data-guia="caja-historial.diferencia" className={`flex items-center gap-2.5 whitespace-nowrap font-semibold ${r.texto}`}>
                         <span className={`grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full ${r.fondo}`} aria-hidden>
-                          <Icono className="h-3 w-3 text-papel" strokeWidth={3} />
+                          <Icono /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-3 w-3 text-papel" strokeWidth={3} />
                         </span>
                         {textoResultado(c.diferencia)}
                       </span>

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { largoDocumento, soloDigitos, validarDocumento } from "@cayla-retail/shared";
 import type { RespuestaPadron } from "@/lib/padron";
 import { Ayuda } from "@/components/Ayuda";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { CampoTexto } from "@/components/ui/campos";
 
 // Campo de identificación de la clienta para un comprobante: se tipea el número
 // y el sistema muestra a quién pertenece ANTES de emitir.
@@ -239,17 +240,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
         // alto siempre (ver <Campo>), así que se compensa con margen.
         <div className="flex items-end gap-3">
           <div className="flex-1">{campoNumero}</div>
-          <Boton
-            type="button"
-            peso="fantasma"
-            className="mb-[1.15rem] h-9 shrink-0 py-0"
-            onClick={buscar}
-            cargando={actual?.fase === "cargando"}
-            textoCargando="Buscando…"
-            disabled={!puedeBuscar}
-          >
-            Buscar
-          </Boton>
+          <BotonBuscar className="mb-[1.15rem] h-9 shrink-0 py-0" onClick={buscar} cargando={actual?.fase === "cargando"} disabled={!puedeBuscar} />
         </div>
       ) : (
         campoNumero

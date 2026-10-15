@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Plus, Undo2 } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -1115,10 +1116,7 @@ export function ProductoForm({
     return (
       <span className="inline-flex flex-wrap items-center gap-x-2 text-ambar">
         antes: {c.antes}
-        <button type="button" onClick={() => deshacerCampo(campo)} className="label-cayla inline-flex items-center gap-1 text-[10.5px] text-taupe hover:text-rojo">
-          <Undo2 aria-hidden className="h-3 w-3" />
-          Deshacer
-        </button>
+        <BotonDeshacer onClick={() => deshacerCampo(campo)} className="text-[12px]" />
       </span>
     );
   }
@@ -1655,9 +1653,7 @@ export function ProductoForm({
                     <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
                     <span className="min-w-0">
                       Se corrige al guardar: <b className="font-semibold">{c.texto}</b>. Conserva su stock y su historia.{" "}
-                      <button type="button" disabled={loading} onClick={() => deshacerCorreccion(c.claves, c.destino)} className="btn-cayla btn-enlace text-[12px]">
-                        Deshacer
-                      </button>
+                      <BotonDeshacer disabled={loading} onClick={() => deshacerCorreccion(c.claves, c.destino)} className="text-[12px]" />
                     </span>
                   </li>
                 ))}
@@ -1675,9 +1671,7 @@ export function ProductoForm({
                         {u > 0
                           ? `. Sus ${u} u. (contando todas las sedes, no solo la tabla de arriba) siguen en el inventario, pero ya no se podrán vender en ninguna: si existen, véndelas antes o pide un ajuste.`
                           : "."}{" "}
-                        <button type="button" disabled={loading} onClick={() => setFilas((actual) => devolverColor(actual, c))} className="btn-cayla btn-enlace text-[12px]">
-                          Deshacer
-                        </button>
+                        <BotonDeshacer disabled={loading} onClick={() => setFilas((actual) => devolverColor(actual, c))} className="text-[12px]" />
                       </span>
                     </li>
                   );
@@ -1697,9 +1691,7 @@ export function ProductoForm({
                         {u > 0
                           ? `. Sus ${u} u. (contando todas las sedes, no solo la tabla de arriba) siguen en el inventario, pero ya no se podrán vender en ninguna: si existen, véndelas antes o pide un ajuste.`
                           : "."}{" "}
-                        <button type="button" disabled={loading} onClick={() => setFilas((actual) => devolverTalla(actual, t))} className="btn-cayla btn-enlace text-[12px]">
-                          Deshacer
-                        </button>
+                        <BotonDeshacer disabled={loading} onClick={() => setFilas((actual) => devolverTalla(actual, t))} className="text-[12px]" />
                       </span>
                     </li>
                   );
@@ -1717,7 +1709,7 @@ export function ProductoForm({
               {/* Solo abren su ventana (nada se guarda hasta «Revisar y guardar»): `aria-haspopup` lo dice al lector y deja que la guía las abra. */}
               <button type="button" id="variantes-agregar-color" aria-haspopup="dialog" data-guia="editar.agregar-color" className="taller-agregar-color justify-start @lg:justify-center" disabled={loading} onClick={() => setAgregandoColor(true)}>
                 <span aria-hidden className="taller-agregar-icono">
-                  <Plus strokeWidth={2.5} className="h-3.5 w-3.5" />
+                  <Plus className="h-3.5 w-3.5" />
                 </span>
                 <span className="taller-agregar-texto">
                   <b>Agregar color</b>
@@ -1726,7 +1718,7 @@ export function ProductoForm({
               </button>
               <button type="button" aria-haspopup="dialog" data-guia="editar.agregar-talla" className="taller-agregar-color justify-start @lg:justify-center" disabled={loading || filas.length === 0} onClick={() => setAgregandoTalla(true)}>
                 <span aria-hidden className="taller-agregar-icono">
-                  <Plus strokeWidth={2.5} className="h-3.5 w-3.5" />
+                  <Plus className="h-3.5 w-3.5" />
                 </span>
                 <span className="taller-agregar-texto">
                   <b>Agregar talla</b>

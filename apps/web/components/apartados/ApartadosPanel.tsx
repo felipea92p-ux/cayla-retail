@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Globito } from "@/components/ui/Globito";
 import { Bookmark, Clock, ShoppingBag, SlidersHorizontal } from "lucide-react";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import type { ResumenApartados } from "@/lib/separaciones";
@@ -204,9 +205,7 @@ export function ApartadosPanel(props: Props) {
           >
             {p.icono}
             {p.etiqueta}
-            {!!p.insignia && (
-              <span className="absolute top-2 left-[calc(50%+6px)] grid h-[17px] min-w-[17px] place-items-center rounded-full bg-rojo px-1 text-[10px] text-papel">{p.insignia}</span>
-            )}
+            <Globito n={p.insignia ?? 0} pide esquina etiqueta="necesitan algo" className="absolute top-2 left-[calc(50%+6px)]" />
           </button>
         ))}
       </nav>

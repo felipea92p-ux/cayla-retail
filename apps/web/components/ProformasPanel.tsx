@@ -130,7 +130,7 @@ export function ProformasPanel({
               </p>
             )}
           </div>
-          <BotonCompacto variante="primario" data-guia="proformas.nueva" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={() => setNueva(true)}>
+          <BotonCompacto variante="primario" data-guia="proformas.nueva" icono={<Plus aria-hidden />} onClick={() => setNueva(true)}>
             Nueva proforma
           </BotonCompacto>
         </div>

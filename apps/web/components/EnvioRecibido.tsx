@@ -46,7 +46,7 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
       {ok.sinConexion ? (
         // Sin conexión no hay «visto» verde: todavía no se registró nada. Nube tachada en ámbar, quieta.
         <span aria-hidden className="mb-2 grid h-[76px] w-[76px] place-items-center rounded-full border-2 border-ambar text-ambar-profundo">
-          <CloudOff className="h-8 w-8" strokeWidth={1.6} />
+          <CloudOff /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ className="h-8 w-8" strokeWidth={1.5} />
         </span>
       ) : (
         <span aria-hidden className="relative mb-2 block h-[76px] w-[76px]">

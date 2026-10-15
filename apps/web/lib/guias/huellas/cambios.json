@@ -5,7 +5,7 @@
   "total": 39,
   "controles": {
     "components/BuscadorVentas.tsx": [
-      "button «Buscar»",
+      "BotonBuscar «(sin nombre)»",
       "button «posventa.escanear»",
       "button «posventa.sin-comprobante»",
       "Desplegable «)»"

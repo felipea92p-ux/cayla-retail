@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties, type KeyboardEvent } from "react";
+import { Globito } from "@/components/ui/Globito";
 import { Plus } from "lucide-react";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { colorInicial, puntosAVista, resumenDePrenda, type GrupoCatalogo, type PrendaCatalogo } from "@/lib/catalogo-grupos";
@@ -10,7 +11,6 @@ import { SIZES_OPCIONES_VENDER, SIZES_TARJETA_VENDER as SIZES_FOTO } from "@/lib
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { motivoNoCobrable, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { estiloMosaicoColor } from "@/lib/color-prenda-reglas";
-import { Badge } from "@/components/ui/badge";
 import { MosaicoPrenda } from "@/components/MosaicoPrenda";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -238,11 +238,7 @@ export function TarjetaPrenda({ prenda, bloqueado, carrito, indice, pulsoTope, o
       )}
 
       {/* El globito se re-asienta cada vez que cambia la cantidad (`key`). */}
-      {enCarrito > 0 && (
-        <Badge key={`globo-${enCarrito}`} className="anim-pop pointer-events-none absolute top-2 right-2 z-20 h-6 min-w-6 rounded-full px-1.5 text-xs">
-          {enCarrito}
-        </Badge>
-      )}
+      <Globito n={enCarrito} esquina late etiqueta="en el ticket" className="absolute top-2 right-2 z-20" />
     </article>
   );
 }

@@ -624,7 +624,7 @@ function TarjetasRoles({
           data-guia="roles.nuevo"
           className="grid min-h-[150px] place-content-center justify-items-center gap-1.5 rounded-2xl border border-dashed border-taupe/60 text-[14px] font-semibold text-taupe transition-colors duration-200 ease-cayla hover:border-taupe hover:text-tinta"
         >
-          <Plus aria-hidden className="h-6 w-6" strokeWidth={1.6} />
+          <Plus /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ aria-hidden className="h-6 w-6" strokeWidth={1.5} />
           Nuevo rol
         </button>
       </div>

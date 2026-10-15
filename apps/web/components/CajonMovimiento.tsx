@@ -145,7 +145,7 @@ function Seccion({ icono: Icono, titulo, children }: { icono?: typeof FileText; 
       {/* El título de un grupo del cajón (ADR-0358, ronda 7): versalitas con su raya; el ícono, si lo trae, va con él. */}
       <TituloGrupo className="mb-3">
         <span className="inline-flex items-center gap-1.5">
-          {Icono && <Icono aria-hidden className="h-3.5 w-3.5 text-tinta/70" strokeWidth={1.8} />}
+          {Icono && <Icono aria-hidden className="h-3.5 w-3.5 text-tinta/70" />}
           {titulo}
         </span>
       </TituloGrupo>
@@ -183,7 +183,7 @@ function ListaPrendas({ items }: { items: ItemPrenda[] }) {
       {!expandido && items.length > TOPE && (
         <button type="button" onClick={() => setExpandido(true)} className="flex w-full items-center justify-center gap-1 border-t border-sand py-3 text-[13.5px] text-taupe hover:text-tinta">
           Ver las {items.length - TOPE} restantes
-          <ChevronDown aria-hidden className="h-4 w-4" strokeWidth={1.6} />
+          <ChevronDown aria-hidden className="h-4 w-4" />
         </button>
       )}
     </div>
@@ -197,12 +197,12 @@ function FilaEnlace({ link, onVerVenta }: { link: ConsultarLink; onVerVenta?: ()
   const abre = Boolean(link.href) || (link.onClick === "abrir_venta" && Boolean(onVerVenta));
   const cuerpo = (
     <>
-      <Icono aria-hidden className="h-[18px] w-[18px] shrink-0 text-tinta/70" strokeWidth={1.6} />
+      <Icono aria-hidden className="h-4 w-4 shrink-0 text-tinta/70" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14.5px] text-tinta">{link.texto}</span>
         {link.detalle && <span className="block truncate text-[13px] text-taupe">{link.detalle}</span>}
       </span>
-      {abre && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/50" strokeWidth={1.6} />}
+      {abre && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/50" />}
     </>
   );
   const clase = "flex min-h-12 w-full items-center gap-3 border-b border-sand py-2 text-left last:border-b-0";
@@ -354,7 +354,7 @@ export function CajonMovimiento({
               aria-label="Cerrar"
               className="absolute right-5 top-5 z-10 rounded-full p-1.5 text-tinta transition-colors hover:bg-tinta/[0.05] hover:text-rojo"
             >
-              <X aria-hidden className="h-5 w-5" strokeWidth={1.5} />
+              <X aria-hidden className="h-5 w-5" />
             </button>
 
             <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-[30px] pb-8 pt-8">

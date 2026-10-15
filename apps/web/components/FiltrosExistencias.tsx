@@ -287,7 +287,7 @@ export function FiltrosExistencias({
                   onClick={() => verComo.onValor(valor)}
                   className="label-cayla inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[11px] text-tinta/60 transition-colors hover:text-tinta aria-pressed:bg-papel aria-pressed:text-tinta aria-pressed:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-tinta)_12%,transparent)]"
                 >
-                  <Icono aria-hidden className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
+                  <Icono aria-hidden className="h-3.5 w-3.5 shrink-0" />
                   {texto}
                 </button>
               ))}
@@ -377,7 +377,7 @@ export function FiltrosExistencias({
               title="Escanear etiqueta"
               className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sand bg-papel text-tinta/70 transition-colors hover:border-taupe hover:text-tinta sm:inline-flex"
             >
-              <ScanLine aria-hidden className="h-[18px] w-[18px]" strokeWidth={1.6} />
+              <ScanLine aria-hidden className="h-4 w-4" />
             </button>
           )}
           {/* «Filtros»: solo el icono, con cuántos hay puestos en la esquina (2026-10-06). */}

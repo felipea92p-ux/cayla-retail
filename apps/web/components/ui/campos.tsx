@@ -975,7 +975,7 @@ function conMas(children: ReactNode): ReactNode {
   if (typeof primero !== "string" || !/^\s*\+\s/.test(primero)) return children;
   return (
     <span className="flex items-center gap-1.5">
-      <Plus aria-hidden className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} />
+      <Plus aria-hidden className="h-3.5 w-3.5 shrink-0" />
       <span>
         {primero.replace(/^\s*\+\s*/, "")}
         {partes.slice(1)}

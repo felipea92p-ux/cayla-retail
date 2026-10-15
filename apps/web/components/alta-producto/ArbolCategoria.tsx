@@ -196,7 +196,7 @@ export function ArbolCategoria({
                 <path d={verTodas ? "M6 15l6-6 6 6" : "M6 9l6 6 6-6"} />
               </svg>
               <span className="min-w-0">
-                <span className="block text-sm font-medium leading-tight">{verTodas ? "Ver menos" : "Ver más"}</span>
+                <span className="block text-sm font-medium leading-tight">{/* unificar-fijo: una tecla más entre las tarjetas de familia (dice lo que esconde), no el pie de una lista */}{verTodas ? "Ver menos" : "Ver más"}</span>
                 {/* Los nombres de lo escondido, no «3 más»: quien busca zapatos tiene que leer «Calzado» para saber dónde tocar. */}
                 <span className="line-clamp-2 text-xs text-tinta/55" title={nombresOcultos}>
                   {verTodas ? "Solo las principales" : nombresOcultos}

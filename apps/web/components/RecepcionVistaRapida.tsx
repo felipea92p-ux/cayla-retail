@@ -117,7 +117,7 @@ export function RecepcionVistaRapida({
               <div className="mt-5 flex items-center justify-between gap-3">
                 <span className="label-cayla text-[10.5px] text-tinta/55">Cómo llegó {r.documento}</span>
                 <Chip tono={faltan > 0 ? "ambar" : "verde"}>
-                  {faltan === 0 && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" strokeWidth={2.4} style={{ "--d": "300ms" } as CSSProperties} />}
+                  {faltan === 0 && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" style={{ "--d": "300ms" } as CSSProperties} />}
                   {faltan > 0 ? `Faltan ${faltan}` : "Completa"}
                 </Chip>
               </div>

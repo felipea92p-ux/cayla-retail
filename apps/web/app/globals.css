@@ -57,6 +57,7 @@
 @import "./estilos/barra-apilada.css";
 @import "./estilos/avance-anillo-copiar.css";
 @import "./estilos/graficos-tiempo.css";
+@import "./estilos/globito-vermas.css";
 @import "./estilos/liquidacion.css";
 /* Plan del piso ▸ Propuesta: el riel de perchas (maqueta A, ADR-0352 act. 2026-10-11) y el color de cada grupo (--grupo-N). */
 @import "./estilos/plan-piso.css";
@@ -2247,7 +2248,7 @@ html[data-buscando] [data-resultados] {
   .hilo-n--apagado {
     border-color: color-mix(in srgb, var(--color-tinta) 25%, transparent);
   }
-  .hilo-n svg {
+  .hilo-n svg { /* unificar-fijo: el círculo punteado de un campo opcional (guía de foco), no un ícono */
     position: absolute;
     inset: 1px;
     width: calc(100% - 2px);
@@ -2853,7 +2854,7 @@ input[role="combobox"]::-webkit-contacts-auto-fill-button {
     .hoja-cobro-nombre-corto { display: inline; }
   }
   .hoja-cobro-icono { display: block; width: 52%; height: 52%; color: var(--cd); transition: color 300ms, width 350ms var(--ease-cayla), height 350ms var(--ease-cayla); }
-  .hoja-cobro-icono svg { stroke-width: 1.25; }
+  .hoja-cobro-icono svg { stroke-width: 1.5; } /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */
   .hoja-cobro-medio.es-elegido { background: var(--cd); border-color: var(--cd); color: var(--color-crema); }
   .hoja-cobro-medio.es-elegido .hoja-cobro-icono { color: var(--color-crema); }
   /* Las letras de adentro de las burbujas, elegido el medio. Yape: la burbuja va RELLENA (crema), así que su «S/» va en

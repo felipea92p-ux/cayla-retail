@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { Anillo } from "@/components/ui/Anillo";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
@@ -1052,7 +1053,7 @@ export function RecepcionEnvio({
               >
                 {recienMarcada?.id === c.id && <span key={recienMarcada.n} aria-hidden className="anim-destello-fila pointer-events-none absolute inset-0" />}
                 <span aria-hidden className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[5px] border-[1.5px] ${marcada ? "border-tinta bg-tinta text-crema" : "border-tinta/45 bg-papel"}`}>
-                  {marcada && <Check className="check-trazo h-3 w-3" strokeWidth={3} style={{ "--d": "0ms" } as CSSProperties} />}
+                  {marcada && <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="check-trazo h-3 w-3" strokeWidth={3} style={{ "--d": "0ms" } as CSSProperties} />}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14.5px] font-semibold text-tinta">
@@ -1092,7 +1093,7 @@ export function RecepcionEnvio({
               <div className="card-cayla flex min-h-[10rem] flex-col items-center justify-center gap-2 p-8 text-center">
                 {/* el camión rueda sobre un camino punteado y da la vuelta en cada extremo: adorno, se detiene con movimiento reducido */}
                 <div aria-hidden className="relative mb-2 h-12 w-full max-w-[22rem] overflow-hidden">
-                  <Truck strokeWidth={1.5} className="recibir-camion absolute bottom-[-4px] left-1/2 -ml-[15px] h-[30px] w-[30px] text-tinta/65" />
+                  <Truck /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ strokeWidth={1.5} className="recibir-camion absolute bottom-[-4px] left-1/2 -ml-[15px] h-[30px] w-[30px] text-tinta/65" />
                   <span className="recibir-camino absolute inset-x-0 bottom-0 block h-[2px]" />
                 </div>
                 <p className="font-display text-xl text-tinta">¿Qué llegó?</p>
@@ -1113,7 +1114,7 @@ export function RecepcionEnvio({
               <section className="card-cayla anim-entra grid overflow-hidden @xl:grid-cols-2 @[44rem]:grid-cols-[1.25fr_1fr_1fr]" style={{ "--i": 0 } as CSSProperties}>
                 <div className="flex items-center gap-4 p-5">
                   <span aria-hidden className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-sand bg-sand/50 text-tinta/65">
-                    <Truck className="h-[22px] w-[22px]" strokeWidth={1.6} />
+                    <Truck className="h-5 w-5" />
                   </span>
                   <div className="min-w-0">
                     <p className="font-display text-[21px] leading-tight text-tinta">{tituloEnvio}</p>
@@ -1290,9 +1291,7 @@ export function RecepcionEnvio({
                       {ultimaLectura.texto}
                     </span>
                     {ultimaLectura.deshacer && (
-                      <button type="button" onClick={deshacerLectura} className="btn-cayla btn-enlace text-xs">
-                        Deshacer
-                      </button>
+                      <BotonDeshacer onClick={deshacerLectura} className="text-xs" />
                     )}
                     {ultimaLectura.agregar && (
                       <button type="button" onClick={agregarYReleer} className="btn-cayla btn-sutil btn-chico">
@@ -1334,7 +1333,7 @@ export function RecepcionEnvio({
                         <div key={c.id} className="border-t border-tinta/10 first:border-t-0">
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-sand/30 px-5 py-3">
                             <button type="button" onClick={() => setAbiertos((a) => ({ ...a, [c.id]: !abierto }))} aria-expanded={abierto} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                              <ChevronRight aria-hidden className={`h-[18px] w-[18px] shrink-0 text-tinta/55 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`} />
+                              <ChevronRight aria-hidden className={`h-4 w-4 shrink-0 text-tinta/55 transition-transform duration-300 ease-cayla ${abierto ? "rotate-90" : ""}`} />
                               <Ini nombre={c.proveedorNombre} />
                               <span className="min-w-0">
                                 <span className="flex flex-wrap items-center gap-2 text-[15px] font-semibold text-tinta">
@@ -1744,7 +1743,7 @@ function EstadoDeLinea({ estado, faltan, decision, onEditar }: { estado: EstadoL
   return (
     <span className="anim-asentar flex flex-col items-start gap-1">
       <Chip tono={CHIP_ESTADO[estado]}>
-        {estado === "completa" && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" strokeWidth={2.4} style={{ "--d": "0ms" } as CSSProperties} />}
+        {estado === "completa" && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" style={{ "--d": "0ms" } as CSSProperties} />}
         {ETIQUETA_ESTADO[estado](faltan)}
       </Chip>
       {decision && <ResumenDecision decision={decision} onEditar={onEditar} />}

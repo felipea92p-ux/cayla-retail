@@ -129,7 +129,7 @@ export function MatrizRecepcion({
                           } ${sinNada ? "opacity-40" : ""}`}
                         >
                           <button type="button" tabIndex={-1} disabled={deshabilitada || sinNada || texto === ""} aria-label={`Restar a ${nombre}`} onClick={() => onValor(v.id, pasoCantidad(texto, -1))} className={BOTON_PASO}>
-                            <Minus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
+                            <Minus aria-hidden className="h-3 w-3" />
                           </button>
                           <input /* unificar-fijo: la celda de una matriz de tallas y colores, no un campo de formulario */
                             type="text"
@@ -147,7 +147,7 @@ export function MatrizRecepcion({
                             className={`w-8 border-0 bg-transparent py-1.5 text-center text-sm tabular-nums outline-none placeholder:text-tinta/25 sm:w-9 ${deMas ? "font-semibold text-ambar" : "text-tinta"}`}
                           />
                           <button type="button" tabIndex={-1} disabled={deshabilitada || sinNada} aria-label={`Sumar a ${nombre}`} onClick={() => onValor(v.id, pasoCantidad(texto, 1))} className={BOTON_PASO}>
-                            <Plus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
+                            <Plus aria-hidden className="h-3 w-3" />
                           </button>
                         </span>
                       </span>

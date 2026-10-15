@@ -232,7 +232,7 @@ export function AgregarColoresModal({
                           etiqueta={`Agregar foto de ${n.color(codigo)}`}
                           className="grid aspect-[4/5] w-10 shrink-0 place-items-center rounded-md border-[1.5px] border-dashed border-taupe/55 bg-hueso/35 text-taupe transition-colors hover:border-tinta hover:text-tinta disabled:opacity-50"
                         >
-                          <Camera aria-hidden className="h-4 w-4" strokeWidth={1.6} />
+                          <Camera aria-hidden className="h-4 w-4" />
                         </BotonFoto>
                       )}
                       <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-tinta">
