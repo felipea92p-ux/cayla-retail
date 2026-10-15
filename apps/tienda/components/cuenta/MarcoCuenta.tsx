@@ -1,4 +1,4 @@
-import { cuantosFavoritos } from "@/lib/cabecera-servidor";
+import { cuantosFavoritos, nombreDeLaCuenta } from "@/lib/cabecera-servidor";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { datosDeCabecera } from "@/lib/inicio";
 import { leerPortada } from "@/lib/portada-servidor";
@@ -29,10 +29,11 @@ export async function MarcoCuenta({
   conPie?: boolean;
   corta?: boolean;
 }) {
-  const [{ campana }, catalogo, favoritos] = await Promise.all([
+  const [{ campana }, catalogo, favoritos, nombre] = await Promise.all([
     leerPortada(),
     conCuenta ? leerCatalogo(null) : Promise.resolve(null),
     conCuenta ? cuantosFavoritos() : Promise.resolve(null),
+    conCuenta ? nombreDeLaCuenta() : Promise.resolve(null),
   ]);
   return (
     <div className="tienda">
@@ -44,6 +45,7 @@ export async function MarcoCuenta({
           datos={datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN)}
           actual={enPagina === "cuenta" ? "cuenta" : null}
           favoritos={favoritos}
+          nombre={nombre}
           bolsa={<BotonBolsa />}
         />
       ) : (

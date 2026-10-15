@@ -1,5 +1,5 @@
 import type { Prenda } from "@/lib/catalogo";
-import { cuantosFavoritos } from "@/lib/cabecera-servidor";
+import { cuantosFavoritos, nombreDeLaCuenta } from "@/lib/cabecera-servidor";
 import { datosDeCabecera } from "@/lib/inicio";
 import { anioLima } from "@/lib/portada";
 import { BotonBolsa } from "./bolsa/BotonBolsa";
@@ -31,12 +31,12 @@ export async function MarcoCatalogo({
   children: React.ReactNode;
 }) {
   const datos = datosDeCabecera(prendas, sede, process.env.TIENDA_FOTOS_ORIGEN);
-  const favoritos = await cuantosFavoritos();
+  const [favoritos, nombre] = await Promise.all([cuantosFavoritos(), nombreDeLaCuenta()]);
   return (
     <>
       {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
       <EntradaDelDia />
-      <CabeceraConCuenta datos={datos} actual={actual} favoritos={favoritos} bolsa={<BotonBolsa />} />
+      <CabeceraConCuenta datos={datos} actual={actual} favoritos={favoritos} nombre={nombre} bolsa={<BotonBolsa />} />
       {/* Con una sola tienda en la web no hay nada que elegir. */}
       {filtro && filtro.length > 2 && <FiltroTienda opciones={filtro} />}
       <main className="t-pagina t-pagina-catalogo">

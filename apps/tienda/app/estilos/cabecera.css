@@ -93,3 +93,23 @@
 @keyframes t-bajar-centro { from { opacity: 0; transform: translate(-50%, -12px); } }
 @keyframes t-entrar-izq { from { transform: translateX(-100%); } }
 @keyframes t-subir { from { opacity: 0; transform: translateY(18px); } }
+
+/* El menú de la persona (Felipe 2026-10-15): el nombre, «Mi perfil» y «Cerrar sesión». Baja del ícono, alineado a la derecha. */
+.t-persona { position: relative; display: inline-flex; }
+.t-persona-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 42; min-width: 220px; padding: 8px;
+  background: var(--papel); border: 1px solid var(--sand); border-radius: 10px; box-shadow: 0 22px 40px -22px var(--sombra);
+  animation: t-bajar .22s var(--ease) both;
+}
+.t-persona-hola { margin: 4px 10px 8px; padding-bottom: 10px; border-bottom: 1px solid var(--sand); font-size: 14px; color: var(--taupe); }
+.t-persona-hola b { color: var(--tinta); font-weight: 600; }
+.t-persona-menu form { margin: 0; }
+.t-persona-op {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 8px 10px; border: 0; border-radius: 7px;
+  background: none; color: var(--tinta); font: inherit; font-size: 14px; text-align: left; text-decoration: none; cursor: pointer;
+}
+.t-persona-op:hover, .t-persona-op:focus-visible { background: var(--hueso); outline: none; }
+.t-persona-op[aria-current="page"] { font-weight: 600; }
+.t-persona-op:disabled { opacity: .65; cursor: progress; }
+.t-persona-op svg { width: 18px; height: 18px; flex: none; }
+@media (prefers-reduced-motion: reduce) { .t-persona-menu { animation: none; } }
