@@ -84,8 +84,9 @@ import { registrarComprobanteOrden } from "@/lib/ordenes-compra-acciones";
 // envío se repite igual (también tras un corte de señal).
 //
 // La guía de foco (CLAUDE.md «Guía de foco»): cada bloque se enciende cuando es lo que sigue y «Falta: …» sobre el botón lleva a cada cosa.
-// Sale de `camposDelComprobante`. El tipo de papel y cómo se paga arrancan con un valor puesto que importa (cambian el IGV y el pago):
-// hasta que se eligen son «sugeridos» y nunca bloquean.
+// Sale de `camposDelComprobante`. El tipo de papel, cómo se paga y el medio del pago al contado arrancan VACÍOS y se eligen siempre
+// (Felipe 2026-10-13, /formidable): un valor de fábrica que cambia el IGV o de dónde sale la plata no se adivina, y la prueba ciega
+// guardaba sin darse cuenta factura, crédito, IGV y transferencia que no eran su caso. Sin tipo, el total es el de la orden, sin IGV.
 
 const TITULO = "mb-1 text-[13px] font-semibold text-tinta";
 // El título de un campo de la cabecera: una sola línea de alto fijo, así las cajas de al lado quedan alineadas en cualquier estado de la guía.
@@ -113,10 +114,8 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
     return precargarLineas(orden, () => `r${++n}`);
   });
   const contador = useRef(lineas.length);
-  const [tipo, setTipo] = useState<TipoComprobante>("factura");
-  const [tipoElegido, setTipoElegido] = useState(false);
-  const [condicion, setCondicion] = useState<CondicionComprobante>("credito");
-  const [condicionElegida, setCondicionElegida] = useState(false);
+  const [tipo, setTipo] = useState<TipoComprobante | "">("");
+  const [condicion, setCondicion] = useState<CondicionComprobante | "">("");
   const [serie, setSerie] = useState("");
   const [numero, setNumero] = useState("");
   const [emision, setEmision] = useState(hoy);
@@ -124,7 +123,8 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
   const [vencimientoEditado, setVencimientoEditado] = useState<string | null>(null);
   const [sumaIgv, setSumaIgv] = useState(true);
   const [totalDelPapel, setTotalDelPapel] = useState("");
-  const [pagos, setPagos] = useState<LineaPago[]>(() => [lineaPagoVacia()]);
+  // El medio tampoco viene puesto: la persona dice con qué pagó (el «Sale de» se propone recién cuando lo elige).
+  const [pagos, setPagos] = useState<LineaPago[]>(() => [{ ...lineaPagoVacia(), metodo: "" }]);
   const [nota, setNota] = useState("");
   const [guardando, setGuardando] = useState(false);
   // Ya quedó registrado y la pantalla se está yendo a la lista: el botón no se vuelve a ofrecer en ese ratito (un segundo clic aquí
@@ -158,7 +158,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
   );
   const totales = totalesComprobante(lineas, { tipo, sumaIgv, totalDelPapel });
   const totalSoles = totales.totalCentimos / 100;
-  const campos = camposDelComprobante(borrador, ctx, { tipo: tipoElegido, condicion: condicionElegida }, { pide: !esPersona, listo: responsable.listo, motivo: responsable.motivo });
+  const campos = camposDelComprobante(borrador, ctx, { tipo: tipo !== "", condicion: condicion !== "" }, { pide: !esPersona, listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos, { enModal: false });
 
   // Lo que llegó completo no se marca con ✓ (regla 4 de la guía): quien entra a copiar un papel no necesita leer diez tildes. Si algo se
@@ -306,14 +306,13 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
 
   function elegirTipo(t: TipoComprobante) {
     setTipo(t);
-    setTipoElegido(true);
   }
 
   return (
     <div className="space-y-6">
       <EncabezadoPagina
         sede={sede}
-        titulo={`Comprobante de ${numeroOrdenCompra(orden.numero)}`}
+        titulo={`Compra de ${numeroOrdenCompra(orden.numero)}`}
         subtitulo={`${orden.proveedor.nombre}${destino ? ` · llega a ${destino.nombre}` : " · por repartir"}${orden.deudaDe ? ` · la deuda queda en ${orden.deudaDe.nombre}` : ""}. ${palabras.copia}: lo que falta de la orden ya viene puesto.`}
         volver={<Volver href="/compras/ordenes" a="Órdenes de compra" />}
       >
@@ -369,6 +368,7 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                   id="oc-tipo"
                   caja
                   etiqueta="Tipo de papel"
+                  marcador="Elige el papel"
                   valor={tipo}
                   onValor={(t) => elegirTipo(t as TipoComprobante)}
                   opciones={TIPOS_COMPROBANTE.map((t) => ({ valor: t.valor, texto: t.texto }))}
@@ -432,7 +432,6 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                 onCambio={(c) => {
                   const cond = c as CondicionComprobante;
                   setCondicion(cond);
-                  setCondicionElegida(true);
                   // Al pasar a contado, el único medio arranca con el total.
                   const unico = pagos.length === 1 ? pagos[0] : undefined;
                   if (cond === "contado" && unico) setPagos([{ ...unico, monto: totalSoles > 0 ? totalSoles.toFixed(2) : "" }]);
@@ -442,7 +441,13 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                   { clave: "contado", etiqueta: "Contado", guia: "comprobante.contado" },
                 ]}
               />
-              <p className="mt-1.5 text-xs text-taupe">{condicion === "contado" ? "Se registra con su pago por el total." : "Queda en Por pagar hasta saldarse."}</p>
+              <p className="mt-1.5 text-xs text-taupe">
+                {condicion === "contado"
+                  ? "Se registra con su pago por el total."
+                  : condicion === "credito"
+                    ? "Queda en Por pagar hasta saldarse."
+                    : "Al contado se registra con su pago; a crédito queda en Por pagar."}
+              </p>
             </CampoGuiado>
             <CampoGuiado id="vencimiento" guia={guia}>
               {/* Al contado no hay vencimiento: el título queda sin marca (no es un campo de la guía). */}
@@ -459,8 +464,10 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
                 />
               </fieldset>
               <p className="mt-1.5 text-xs text-taupe">
-                {condicion !== "credito" ? (
+                {condicion === "contado" ? (
                   "Al contado no hay vencimiento."
+                ) : condicion === "" ? (
+                  "Solo a crédito hay vencimiento."
                 ) : vencimientoEditado === null ? (
                   `Sugerido: emisión + ${plazoDias ?? 30} días${plazoDias != null ? `, el plazo de ${orden.proveedor.nombre}` : ""}.`
                 ) : (
@@ -656,8 +663,8 @@ export function RegistrarComprobanteOrden({ orden, datos, sede, hoy }: Props) {
           )}
           <div className="pie-acciones">
             <BotonEnlace href="/compras/ordenes">Cancelar</BotonEnlace>
-            <Boton type="submit" peso="primario" cargando={guardando} disabled={registrado} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {registrado ? "Registrado" : guardando ? "Registrando…" : palabras.boton}
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Registrando…" disabled={registrado} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {registrado ? "Registrado" : palabras.boton}
             </Boton>
           </div>
         </section>

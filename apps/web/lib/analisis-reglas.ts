@@ -2,7 +2,8 @@
 // servidor (el resumen de cada tienda) y cada pestaña, así una prenda cae en el mismo grupo en Hoy, en su carril y en su ficha.
 //
 // Las cifras son las de la maqueta aprobada por Felipe (2026-10-06, artifact TBSFBD1nikBu8FeShiKMMp): se acaba lo que dura dos
-// semanas o menos al ritmo de lo vendido en los días de ventas que tiene la tienda, hasta 30 (2026-10-07: antes siempre entre 30); se vigila lo que lleva un mes quieto; se liquida desde el umbral que eligió la tienda
+// semanas o menos al ritmo de lo vendido desde que la prenda se colgó (2026-10-14; antes, los días de ventas de la tienda, y antes
+// siempre 30), nunca en menos de una semana; se vigila lo que lleva un mes quieto; se liquida desde el umbral que eligió la tienda
 // (60 días por defecto, uno para todos); en rojo, lo de más de 3 meses. El sistema NO decide si pedirla a otra tienda o
 // comprarla (decisión 7): todo lo que se acaba aparece para comprar y, si otra tienda la tiene, se dice cuántas tiene.
 
@@ -42,14 +43,37 @@ export function diasDeVentas(primeraVenta: string | null | undefined, hoy: strin
   return Math.min(VENTANA_VENTAS, Math.max(1, diasEntreFechas(primeraVenta, hoy) + 1));
 }
 
+/**
+ * El ritmo de una prenda se mide en los días que estuvo COLGADA (Felipe 2026-10-12, decidido el 2026-10-14 con su piso): una blusa
+ * colgada hace 4 días que vendió 2 vende ~0,5 por día, no 2 entre los 15 días de la tienda. Nunca en menos de una semana (una venta
+ * suelta de ayer no dice «1 por día») ni en más de los días de ventas de la tienda (hasta 30: lo que mide `vendidas30`).
+ */
+export const DIAS_MINIMOS_RITMO = 7;
+
+/**
+ * Entre cuántos días se divide lo vendido de una prenda: desde que salió al piso (`salioAlPiso`, hoy incluido), con el piso de
+ * `DIAS_MINIMOS_RITMO` y el techo de los días de ventas de la tienda. Sin saber cuándo salió, los de la tienda (como antes).
+ */
+export function ventanaDeRitmo(salioAlPiso: string | null | undefined, hoy: string, diasTienda: number): number {
+  const tienda = Math.min(VENTANA_VENTAS, Math.max(1, Math.round(diasTienda)));
+  if (!salioAlPiso) return tienda;
+  return Math.min(tienda, Math.max(DIAS_MINIMOS_RITMO, diasEntreFechas(salioAlPiso, hoy) + 1));
+}
+
+/** Cada talla con su ventana de ritmo (`ventanaDeRitmo`), y los días de la tienda para rearmarla en el modelo. */
+export function conVentanaDeRitmo<T extends Pick<PrendaAnalisis, "salioAlPiso">>(tallas: readonly T[], hoy: string, diasTienda: number): (T & { diasDeVentas: number; diasDeVentasTienda: number })[] {
+  return tallas.map((t) => ({ ...t, diasDeVentas: ventanaDeRitmo(t.salioAlPiso, hoy, diasTienda), diasDeVentasTienda: diasTienda }));
+}
+
 /** Cuántas prendas muestran las listas cortas de Hoy. */
 export const PRENDAS_EN_LISTA = 5;
 
-export type GrupoAnalisis = "comprar" | "enviar" | "liquidar" | "vigila";
+/** «duda»: quieta, pero alguna unidad colgada puede ser una venta sin registrar (ADR-0357, act. 2026-10-14): no se sabe, no se liquida. */
+export type GrupoAnalisis = "comprar" | "enviar" | "liquidar" | "vigila" | "duda";
 /** Los grupos de «Se está acabando» y de «No se vende», en el orden de su carril. */
 export const GRUPOS_ACABA: readonly GrupoAnalisis[] = ["comprar"];
 export const GRUPOS_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar"];
-export const GRUPOS_CARRIL_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar", "vigila"];
+export const GRUPOS_CARRIL_QUIETAS: readonly GrupoAnalisis[] = ["enviar", "liquidar", "duda", "vigila"];
 
 /**
  * Nunca salió al piso (20261007120000): tiene unidades guardadas en mi tienda y la base no sabe de ninguna vez en su piso de venta
@@ -65,9 +89,9 @@ export const totalEnTienda = (p: Pick<PrendaAnalisis, "piso" | "almacen">): numb
 export const porLlegar = (p: Pick<PrendaAnalisis, "llega">): number => p.llega.reduce((s, x) => s + x.cantidad, 0);
 
 /**
- * Cuántos días le quedan al ritmo de lo vendido en los días de ventas de la tienda (`diasDeVentas`, hasta 30; Felipe 2026-10-07:
- * una tienda con 8 días en el ERP no divide entre 30): 0 si ya no hay; al menos 1 si queda algo; null si no se vendió (no se
- * acaba: no tiene ritmo).
+ * Cuántos días le quedan al ritmo de lo vendido en su ventana (`diasDeVentas`: los días que estuvo colgada, de 7 a los días de ventas
+ * de la tienda, `ventanaDeRitmo`; si falta, 30): 0 si ya no hay; al menos 1 si queda algo; null si no se vendió (no se acaba: no tiene
+ * ritmo).
  */
 export function diasQueQuedan(p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasDeVentas">): number | null {
   if (p.vendidas30 <= 0) return null;
@@ -100,18 +124,28 @@ export function otraSedeQueLaTiene(otras: readonly PrendaEnOtraSede[]): PrendaEn
   return [...con].sort((a, b) => b.stock - a.stock || b.vendidas30 - a.vendidas30 || a.sedeId.localeCompare(b.sedeId))[0];
 }
 
+/** Desde cuántos días sin venderse se liquida esta prenda: el p90 de la vara de su tipo o, sin ella, «Liquidar desde». */
+export const umbralLiquidar = (p: Pick<PrendaAnalisis, "umbrales">, liquidarDesde: number): number => p.umbrales?.liquidar ?? liquidarDesde;
+/** Desde cuántos días sin venderse se vigila esta prenda: el p75 de la vara de su tipo o, sin ella, un mes. */
+export const umbralVigilar = (p: Pick<PrendaAnalisis, "umbrales">): number => p.umbrales?.vigila ?? DIAS_VIGILAR;
+
 /**
- * El grupo de una prenda, o null si no pide nada (se vende bien, o lleva menos de un mes quieta). Una prenda vive en UN solo
- * grupo: lo que se acaba se compra; lo quieto desde el umbral se manda a donde sí se vende (si otra tienda vendió 2 o más) o
- * se liquida; lo quieto desde un mes, se vigila.
+ * El grupo de una prenda, o null si no pide nada (se vende bien, o todavía no lleva quieta lo que se vigila). Una prenda vive en UN
+ * solo grupo: lo que se acaba se compra; lo quieto desde el umbral de liquidar se manda a donde sí se vende (si otra tienda vendió 2
+ * o más) o se liquida; lo quieto desde el umbral de vigilar, se vigila. Los umbrales son los de la vara de su tipo (p90 y p75,
+ * `analisis-vara.ts`; ADR-0357, act. 2026-10-14) o, sin ella, «Liquidar desde» y un mes. Lo quieto con una unidad que puede ser una
+ * venta sin registrar (`enDuda`, la cuenta de Frescura) no se manda ni se liquida: va a «duda» hasta que se registre esa venta.
  */
 export function grupoDe(
-  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas">,
+  p: Pick<PrendaAnalisis, "piso" | "almacen" | "vendidas30" | "diasSinVender" | "otras" | "diasDeVentas" | "enDuda" | "umbrales">,
   liquidarDesde: number,
 ): GrupoAnalisis | null {
   if (seEstaAcabando(p)) return "comprar";
   if (p.vendidas30 > 0 || p.diasSinVender === null || totalEnTienda(p) === 0) return null;
-  if (p.diasSinVender < liquidarDesde) return p.diasSinVender >= DIAS_VIGILAR ? "vigila" : null;
+  const liquidar = umbralLiquidar(p, liquidarDesde);
+  if (p.diasSinVender < liquidar && p.diasSinVender < umbralVigilar(p)) return null;
+  if ((p.enDuda ?? 0) > 0) return "duda";
+  if (p.diasSinVender < liquidar) return "vigila";
   const vende = sedeQueMasVende(p.otras);
   if (vende && vende.vendidas30 >= VENDIDAS_PARA_ENVIAR) return "enviar";
   return "liquidar";

@@ -3,6 +3,7 @@ import {
   calcularTotales,
   diasHasta,
   estadoVisible,
+  etiquetaTipo,
   filtrarComprobantes,
   primerErrorComprobante,
   redondear2,
@@ -140,5 +141,13 @@ describe("estadoVisible", () => {
   it("los días se cuentan desde hoy", () => {
     expect(diasHasta("2026-09-25", "2026-09-20")).toBe(5);
     expect(diasHasta("2026-09-10", "2026-09-20")).toBe(-10);
+  });
+});
+
+describe("etiquetaTipo", () => {
+  it("nombra los tres tipos del líder y «sin comprobante», que llega del papel de una orden de insumos (ADR-0362, fase 7 parte 2)", () => {
+    expect([etiquetaTipo("factura"), etiquetaTipo("nota_venta", true)]).toEqual(["Factura", "N. venta"]);
+    expect([etiquetaTipo("sin_comprobante"), etiquetaTipo("sin_comprobante", true)]).toEqual(["Sin comprobante", "Sin comp."]);
+    expect(etiquetaTipo("otro")).toBe("otro");
   });
 });

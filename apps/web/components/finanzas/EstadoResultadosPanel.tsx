@@ -350,7 +350,7 @@ function OrigenCifra({ origen: { concepto: k, columna: c }, mes, onCerrar }: { o
       }
       subtitulo={`${mesTitulo(mes)} · ${solesER(Math.abs(k.valor(c)))}`}
       onClose={onCerrar}
-      ancho="max-w-[560px]"
+      tamano="mediana"
     >
       <p className="text-[13px] leading-relaxed text-taupe" data-guia="fin-resultados.origen">
         <b className="font-semibold text-tinta">Sale de</b> {fuentes.join("; ")}.

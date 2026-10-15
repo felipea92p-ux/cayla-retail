@@ -54,7 +54,22 @@ const SIN_MIGRACION = process.argv.includes("--sin-migracion");
 const DOS_SESIONES = Boolean(process.env.CI) || CONTENEDOR !== COMPARTIDO || process.argv.includes("--dos-sesiones");
 const MIGRACIONES = SIN_MIGRACION
   ? ""
-  : ["20261013015000_nos_debe.sql"]
+  : [
+      // ADR-0393: 20261013015000 (la 5a) ya no se recarga. Ya está en producción, y desde 20261013172000 sus dos bloques sobre
+      // recibir_despacho (validar y saldar la reposición) viven en fn_recepcion_cerrar: re-pegarla encima falla a propósito (sus anclas
+      // ya no están ahí). Se recarga la cadena que hoy escribe lo que esta prueba mira, en su orden.
+      "20261013170000_recepcion_un_solo_camino_de_cierre.sql",
+      // ADR-0393: el conteo guardado; recibir_despacho deja también el conteo de cada línea.
+      "20261013171000_conteo_de_envio.sql",
+      // ADR-0393: el cierre único (fn_recepcion_cerrar) con la reposición adentro, y los pendientes.
+      "20261013172000_cerrar_conteo_con_pendientes.sql",
+      // ADR-0393: «Hacer ahora» con lo pendiente y el número del aviso.
+      "20261013173000_resolver_pendiente_de_envio.sql",
+      // ADR-0393: reabrir un envío recibido; «Nos debe» lee lo que vale.
+      "20261013180000_reabrir_envio.sql",
+      // ADR-0393: lo que llega sin aviso, con el mismo conteo.
+      "20261013183000_envio_sin_aviso.sql",
+    ]
       .map((f) =>
         readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8")
           .replace(/^set lock_timeout.*$/m, "")

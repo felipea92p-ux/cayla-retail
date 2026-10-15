@@ -72,7 +72,6 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
       subtitulo={ubicacionEtiqueta}
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
-      ancho={r ? "max-w-md" : "max-w-sm"}
     >
       {(cerrar) => (
         <div className="space-y-4">

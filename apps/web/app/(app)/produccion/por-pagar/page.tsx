@@ -20,7 +20,7 @@ export default async function PorPagarProduccionPage() {
   const [comprobantes, deuda, igv] = await Promise.all([getComprobantesProduccion(), getDeudaConsolidada(), getIgvDelMes()]);
   return (
     <div className="space-y-6">
-      <PorPagarProduccionPanel comprobantes={comprobantes} deuda={deuda} igv={igv} hoy={hoyLima()} />
+      <PorPagarProduccionPanel sede={persona.ubicacionEtiqueta} comprobantes={comprobantes} deuda={deuda} igv={igv} hoy={hoyLima()} />
     </div>
   );
 }

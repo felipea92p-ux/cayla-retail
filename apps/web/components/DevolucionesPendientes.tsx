@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Check, Clock, Loader2 } from "lucide-react";
+import { AlertTriangle, Check, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -391,9 +391,9 @@ function PanelResolver({
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>
-            <BotonRojo onClick={aprobar} disabled={cargando || !!revision.bloqueo || !responsable.listo}>
-              {cargando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
-              {cargando ? "Aprobando…" : "Aprobar devolución"}
+            <BotonRojo onClick={aprobar} cargando={cargando} textoCargando="Aprobando…" disabled={!!revision.bloqueo || !responsable.listo}>
+              <Check className="h-4 w-4" aria-hidden />
+              Aprobar devolución
             </BotonRojo>
           </div>
         </div>
@@ -425,9 +425,8 @@ function PanelResolver({
             <BotonSecundario onClick={cancelar} disabled={cargando}>
               Cancelar
             </BotonSecundario>
-            <BotonPrincipal onClick={rechazar} disabled={cargando || !responsable.listo}>
-              {cargando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-              {cargando ? "Rechazando…" : "Rechazar devolución"}
+            <BotonPrincipal onClick={rechazar} cargando={cargando} textoCargando="Rechazando…" disabled={!responsable.listo}>
+              Rechazar devolución
             </BotonPrincipal>
           </div>
         </div>

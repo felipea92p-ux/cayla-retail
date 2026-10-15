@@ -61,6 +61,7 @@ import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { apartadoArmado, avisosDelApartado } from "@/lib/apartados-cambio-de-sede";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Casilla } from "@/components/ui/Casilla";
+import { Boton } from "@/components/ui/campos";
 
 type Linea = { varianteId: string; cantidad: number };
 
@@ -463,7 +464,7 @@ export function ApartarVista({
       const { clientas, error } = await buscarClienta(t);
       if (error) {
         setBuscandoClienta(false);
-        return avisar.error(traducirError(error, "buscar al cliente"));
+        return avisar.error(traducirError(error, "buscar al cliente", { lectura: true }));
       }
       // Con 8 dígitos se busca un DNI y con 9 un celular. Un carné o un pasaporte con esos mismos dígitos es otra persona
       // (ADR-0288 D-2): manda la coincidencia exacta con lo que se buscó.
@@ -907,9 +908,9 @@ export function ApartarVista({
                           etiqueta={conClienta ? "Buscar al cliente por DNI o celular" : "Buscar al cliente por DNI"}
                           className="min-w-0 flex-1"
                         />
-                        <button type="button" onClick={buscarFicha} disabled={buscandoClienta || !largosBuscables.includes(soloDigitos(clientaQ).length)} className="btn-cayla btn-secundario h-10 shrink-0">
-                          {buscandoClienta ? "Buscando…" : "Buscar"}
-                        </button>
+                        <Boton cargando={buscandoClienta} textoCargando="Buscando…" type="button" onClick={buscarFicha} disabled={buscandoClienta || !largosBuscables.includes(soloDigitos(clientaQ).length)} className="h-10 shrink-0">
+                          Buscar
+                        </Boton>
                       </div>
                     )}
                     {sinFicha === "padron" && (
@@ -1043,7 +1044,7 @@ export function ApartarVista({
                   hacia arriba: debajo solo está el botón. Sin caja abierta no se muestra: no hay nada que firmar. */}
               {cajaAbierta && <ComboResponsable control={responsable} deshabilitado={enviando} />}
               <button type="button" disabled={enviando || !cajaAbierta || !responsable.listo} title={cajaAbierta ? (responsable.motivo ?? undefined) : undefined} onClick={confirmar} className={`${BOTON_PRINCIPAL} max-lg:hidden`}>
-                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Confirmar apartado"}</span>
+                <span className="label-cayla flex items-center gap-2.5 text-[11px]"><Bookmark className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Confirmar apartado" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}</span>
                 <span className="font-display text-xl tabular-nums">{money(adelanto)}</span>
               </button>
               <p className={`text-center text-xs ${intento && Object.keys(errores).length ? "text-rojo-profundo" : "text-tinta/55"}`}>
@@ -1086,7 +1087,7 @@ export function ApartarVista({
         <BarraMovil
           etiqueta={`Adelanto hoy · saldo ${money(total - adelanto)}`}
           monto={adelanto}
-          accion={enviando ? "Guardando…" : "Confirmar"}
+          accion={enviando ? "Guardando…" : "Confirmar" /* unificar-fijo: el botón grande del mostrador con el monto (spike de Vender), como «Cobrar» */}
           icono={<Check className="h-4 w-4" aria-hidden />}
           deshabilitado={enviando || !cajaAbierta || !responsable.listo}
           onClick={confirmar}

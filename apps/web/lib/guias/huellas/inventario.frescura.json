@@ -2,7 +2,7 @@
   "guia": "inventario.frescura",
   "ruta": "/gestion/frescura",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 48,
+  "total": 49,
   "controles": {
     "components/frescura/CifraSinSaber.tsx": [
       "button «¿Por qué?»"
@@ -25,12 +25,12 @@
       "ComboResponsable «)»",
       "button «Ver»",
       "button «No, todavía no»",
-      "button «{responsable.motivo ?? guia.frase ?? undefined}»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
       "input «{o.titulo}»",
       "CampoTexto «{guia.etiqueta(\"nota\", \"¿Qué pasó? (opcional)\")}»",
       "ComboResponsable «(sin nombre)»",
       "button «No»",
-      "button «{responsable.motivo ?? guia.frase ?? undefined}» #2"
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
     ],
     "components/frescura/FrescuraDetalle.tsx": [
       "button «Anotar otra decisión»",
@@ -41,7 +41,7 @@
     ],
     "components/frescura/FrescuraFila.tsx": [
       "button «frescura.prenda-nombre»",
-      "button «{enviando ? \"Anotando…\" : accion.verbo}»",
+      "Boton «{accion.verbo}»",
       "Link «{accion.verbo}»",
       "button «{accion.verbo}»",
       "button «¿Por qué?»",
@@ -53,6 +53,7 @@
       "DesplegablePildora «Estado»",
       "button «Por decidir»",
       "button «Decididas»",
+      "BotonLimpiar «Limpiar filtros»",
       "button «Ver todas las prendas (»",
       "button «Ver todas las prendas»",
       "button «Limpiar filtros»",

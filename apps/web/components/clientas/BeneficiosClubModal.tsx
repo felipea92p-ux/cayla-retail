@@ -49,7 +49,7 @@ export function BeneficiosClubModal({
       subtitulo="El cupón de cumpleaños y el vale de aniversario de cada miembro, para las 3 tiendas."
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) =>
         lectura.valores ? (
@@ -195,7 +195,7 @@ function FormularioBeneficios({ vigentes, cerrar, onGuardado }: { vigentes: Bene
             title={responsable.motivo ?? guia.frase ?? (sinCambios ? "No cambiaste ningún beneficio." : undefined)}
             className={sinCambios ? "" : guia.claseConfirmar}
           >
-            {guardando ? "Guardando…" : "Guardar"}
+            Guardar
           </Boton>
         </div>
       </div>

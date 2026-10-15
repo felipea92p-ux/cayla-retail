@@ -33,6 +33,7 @@
  */
 
 import { mensajeErrorResponsable } from "./responsable-reglas";
+import { montosSinCorte } from "./montos-sin-corte";
 
 /** La forma del error de supabase-js, sin acoplarnos a su tipo. */
 export type ErrorEscritura = {
@@ -56,7 +57,7 @@ type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
   // Montos de Ventas y Caja (/chaos 2026-10-13, 20261013204000): el respaldo de la tabla cuando una pantalla no lo frenó antes.
-  { marca: "recibido_con_tope", frase: "El vuelto pasa de S/ 500: revisa con cuánto paga el cliente y vuelve a intentar." },
+  { marca: "recibido_con_tope", frase: "El vuelto pasa de S/\u00a0500: revisa con cuánto paga el cliente y vuelve a intentar." },
   { marca: "_montos_finitos", frase: "Uno de los montos no es un número válido. Revísalo y vuelve a intentar." },
   // Nombres con tope en Catálogo (/chaos 2026-10-14, 20261014182000): la pantalla ya corta antes; esto es el respaldo.
   { marca: "_textos_con_tope", frase: "Un nombre o una descripción es demasiado largo. Acórtalo y vuelve a intentar." },
@@ -571,7 +572,7 @@ const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["aniversario_no_disponible", "Este miembro no tiene un vale de aniversario disponible (pudo vencer, o su año de club todavía no cuenta)."],
   ["aniversario_ya_canjeado", "Este miembro ya usó su vale de aniversario de este año de club."],
   ["aniversario_sin_monto", "En esta venta no queda nada que descontar con el vale de aniversario: no se usa."],
-  ["aniversario_cubre_todo", "El vale de aniversario cubre toda la compra, y una venta en S/ 0 no se puede registrar. Agrega otra prenda o cobra esta compra sin el vale."],
+  ["aniversario_cubre_todo", "El vale de aniversario cubre toda la compra, y una venta en S/\u00a00 no se puede registrar. Agrega otra prenda o cobra esta compra sin el vale."],
   ["aniversario_descuento_distinto", "El descuento del vale de aniversario no coincide con el que calcula el sistema. Vuelve a abrir el cobro."],
 ]);
 
@@ -617,7 +618,10 @@ export function esSinModulo(error: ErrorEscritura): boolean {
   return !!error && !!error.hint && HINT_SIN_MODULO.test(error.hint) && !!error.message;
 }
 
-/** Textos que delatan que ni siquiera se llegó al servidor. */
+/**
+ * Textos que delatan que la RESPUESTA no llegó. No dicen si la petición salió: el navegador escribe lo mismo cuando no había
+ * internet que cuando la base guardó y la respuesta se perdió de vuelta (/chaos de Producción, ADR-0409 y ADR-0410).
+ */
 const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed", "aborted"];
 
 /**
@@ -625,7 +629,8 @@ const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed
  * bifurcar ANTES de mostrar nada — la cola de ventas offline (`lib/ventas-offline.ts`,
  * BACKLOG "resiliencia sin internet") la reusa para decidir si una venta se encola en vez
  * de mostrarse como fallo. Misma lista `SIN_RED` que `traducirError` ya usaba: una sola
- * fuente de verdad para "esto no llegó al servidor" (principio 4).
+ * fuente de verdad para «la respuesta no llegó» (principio 4). Que la respuesta no llegue no
+ * quiere decir que la base no haya guardado: por eso la venta se encola con la MISMA marca.
  */
 export function esFalloDeRed(error: ErrorEscritura): boolean {
   if (!error) return false;
@@ -703,18 +708,30 @@ export function esVersionCambiada(error: ErrorEscritura): boolean {
  *
  * `contexto` describe la acción en el idioma del negocio ("registrar la venta", "cerrar la
  * caja"), no la RPC: termina dentro de la frase que ella lee con prisa.
- * `confirmarAntesDeRepetir`: para escrituras de dinero, donde repetir a ciegas duplica el movimiento.
+ *
+ * UN CORTE DE RED NO DICE SI SE GUARDÓ (ADR-0410). La conexión puede cortarse DESPUÉS de que la base guardó y antes de que
+ * la respuesta llegue, y el navegador lo cuenta igual que si la petición nunca hubiera salido. Hasta el 2026-10-14 la frase
+ * de siempre decía «No se guardó nada — vuelve a intentar», y solo las pantallas que pedían `confirmarAntesDeRepetir` decían
+ * la verdad: en Ingresar insumo un lote que SÍ entró se anunció como no guardado (/chaos, ADR-0409), y en una pantalla sin
+ * token repetir duplica lo hecho. Ahora toda escritura dice que no se sabe y pide mirar antes de repetir.
+ * `lectura`: el error es de una LECTURA (cargar, buscar, revisar antes de borrar): ahí no hay nada que pudo guardarse, y la
+ * frase dice solo que se cortó la conexión.
+ * `confirmarAntesDeRepetir`: lo que pedían las escrituras de dinero antes de ADR-0410. Ya es lo de siempre y no cambia
+ * nada; queda mientras haya pantallas que la pasan.
+ *
+ * Los montos de la frase no se parten al bajar de renglón: el mensaje de la base trae «S/ 25.00» con un espacio normal
+ * (`raise exception '… S/ % …'`, en 38 migraciones), y aquí pasa al espacio que no se parte, como `soles` (ADR-0413).
  */
-export function traducirError(error: ErrorEscritura, contexto: string, opciones: { confirmarAntesDeRepetir?: boolean } = {}): string {
+export function traducirError(error: ErrorEscritura, contexto: string, opciones: { lectura?: boolean; confirmarAntesDeRepetir?: boolean } = {}): string {
+  return montosSinCorte(fraseDelError(error, contexto, opciones));
+}
+
+function fraseDelError(error: ErrorEscritura, contexto: string, opciones: { lectura?: boolean; confirmarAntesDeRepetir?: boolean }): string {
   if (!error) return `No se pudo ${contexto}.`;
 
   if (esFalloDeRed(error)) {
-    // Con plata de por medio la conexión puede cortarse DESPUÉS de que la base guardó y antes de que la respuesta
-    // llegue: decir «no se guardó nada» invitaría a repetir el pago y duplicarlo. Ahí se dice la verdad: no se sabe.
-    if (opciones.confirmarAntesDeRepetir) {
-      return `Se cortó la conexión mientras se intentaba ${contexto}: no podemos confirmar si llegó a guardarse. Antes de volver a intentarlo, revisa si ya aparece registrado.`;
-    }
-    return `No se pudo ${contexto}: la conexión falló antes de llegar al servidor. No se guardó nada — revisa el internet y vuelve a intentar.`;
+    if (opciones.lectura) return `No se pudo ${contexto}: se cortó la conexión. Revisa el internet y vuelve a intentar.`;
+    return `Se cortó la conexión mientras se intentaba ${contexto}: no podemos confirmar si llegó a guardarse. Antes de volver a intentarlo, revisa si ya aparece registrado.`;
   }
 
   // El combo «Responsable» (ADR-0161/0162): la base rechaza con 42501 y un `hint` estable. Va antes de las huellas:

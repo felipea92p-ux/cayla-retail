@@ -269,7 +269,7 @@ export function SeriesPanel({
                   Cancelar
                 </Boton>
                 <Boton type="submit" peso="primario" cargando={loading}>
-                  {loading ? "Guardando…" : "Registrar serie"}
+                  Registrar serie
                 </Boton>
               </div>
             </form>
@@ -334,7 +334,7 @@ function ModalArchivarSerie({ serie, onClose }: { serie: SerieComprobante; onClo
             <Boton type="button" peso="fantasma" onClick={cerrar}>
               Cancelar
             </Boton>
-            <Boton
+            <Boton textoCargando="Archivando…"
               type="submit"
               peso="primario"
              
@@ -342,7 +342,7 @@ function ModalArchivarSerie({ serie, onClose }: { serie: SerieComprobante; onClo
               disabled={!responsable.listo}
               title={responsable.motivo ?? undefined}
             >
-              {loading ? "Archivando…" : "Archivar"}
+              Archivar
             </Boton>
           </div>
         </form>

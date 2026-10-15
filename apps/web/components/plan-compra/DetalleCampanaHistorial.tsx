@@ -28,7 +28,7 @@ import { Vacio } from "@/components/ui/Vacio";
 // Sinatra no sabe qué prendas se vendieron: antes del ERP, el detalle es el día a día de la campaña (contra un día normal) y la MISMA
 // campaña año por año. Las prendas y los colores existen desde que vende el ERP: para eso, un enlace a Resultados.
 
-const solesSinCentimos = (n: number) => `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+const solesSinCentimos = (n: number) => `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 const DIAS_SEMANA = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const diaDeSemana = (iso: string) => DIAS_SEMANA[new Date(`${iso}T12:00:00Z`).getUTCDay()];
 
@@ -97,7 +97,7 @@ export function DetalleCampanaHistorial({
   const maxDia = Math.max(1, ...(detalle?.dias ?? []).map((d) => d.soles), detalle?.diaNormal ?? 0);
 
   return (
-    <Modal titulo={`${campana.nombre} ${anio}`} subtitulo={`Del ${fechaCortaES(campana.desde)} al ${fechaCortaES(campana.hasta)}: día a día y la misma campaña en cada año.`} onClose={onClose} variante="hoja" ancho="max-w-2xl" conCerrar>
+    <Modal titulo={`${campana.nombre} ${anio}`} subtitulo={`Del ${fechaCortaES(campana.desde)} al ${fechaCortaES(campana.hasta)}: día a día y la misma campaña en cada año.`} onClose={onClose} variante="hoja" tamano="ancha" conCerrar>
       <div className="space-y-6">
         {historial.tiendas.length > 1 && (
           <div role="group" aria-label="Tienda" className="flex flex-wrap gap-2">

@@ -3,7 +3,7 @@
 import { Modal } from "@/components/ui/Modal";
 import { AvisoIntentoIncierto } from "@/components/ui/AvisoIntentoIncierto";
 
-const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /**
  * Vender, cuando no se sabe si un cobro se guardó (`useIntento` en duda, /chaos 2026-10-13): la respuesta de la base se perdió
@@ -35,7 +35,6 @@ export function CobroEnDuda({
       subtitulo={`${soles(total)} · ${prendas} ${prendas === 1 ? "prenda" : "prendas"}`}
       onClose={() => {}}
       bloqueado
-      ancho="max-w-md"
     >
       <div className="space-y-4">
         <AvisoIntentoIncierto onRevisar={onRevisar} revisando={revisando} onReintentar={onReintentar} reintentando={reintentando} />

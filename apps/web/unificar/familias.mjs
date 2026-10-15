@@ -239,7 +239,7 @@ const BASE = [
     grupo: "Textos",
     nombre: "Títulos de pantalla",
     funcion: "El nombre grande de la pantalla, arriba.",
-    pieza: "`<EncabezadoPagina>` (Ventas, Inventario, Catálogo ▸ Productos); `<CabeceraPantalla>` (Finanzas)",
+    pieza: "`<EncabezadoPagina>` en todo el ERP; `<CabeceraPantalla>` solo en Finanzas (decidido el 2026-10-14)",
     gobierna: ["ADR-0220", "ADR-0195", "ADR-0254"],
   },
   {
@@ -281,8 +281,8 @@ const BASE = [
     grupo: "Hojas",
     nombre: "Hojas y modales",
     funcion: "La ventana que se abre encima de la pantalla.",
-    pieza: "`<Modal>` / `<ModalRuta>` (components/ui/Modal.tsx)",
-    gobierna: ["ADR-0136"],
+    pieza: "`<Modal>` / `<ModalRuta>` (components/ui/Modal.tsx): una cara, tres anchos (`tamano`) y una salida a la vista (decidido el 2026-10-14)",
+    gobierna: ["ADR-0136", "ADR-0358"],
   },
   {
     id: "avatar",
@@ -824,7 +824,7 @@ export const DECISIONES = {
     "fecha": "2026-10-13",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/accion.ver.md",
-    "elegida": "P1 · llevar a ver algo en otra pantalla es siempre el botón secundario con la flecha a la derecha que avanza 4 px (<BotonVer>), nunca negro ni con «→» escrito; dentro de una frase, el enlace; junto a un resumen, <EnlaceVer>; elegida tocándola el 2026-10-13",
+    "elegida": "P1 · llevar a ver algo en otra pantalla es siempre el botón secundario con la flecha a la derecha que avanza 4 px (<BotonVer>), nunca negro ni con «→» escrito; dentro de una frase, el enlace; junto a un resumen, <EnlaceVer>; elegida tocándola el 2026-10-13. Al lado de una fila de una lista (los pendientes del turno en Caja), «Ver» es el enlace del sistema (`btn-cayla btn-enlace`): la fila no crece (P1, elegida el 2026-10-14)",
     "pieza": "components/ui/BotonDescargar.tsx",
     "tambien": [],
     "ventana": 6,
@@ -832,7 +832,9 @@ export const DECISIONES = {
       // Un botón NEGRO que solo lleva a otra pantalla («Ver en Existencias», «Ir a Caja», «Abrir ficha completa»): es <BotonVer>.
       "<(?:Link|BotonEnlace|a)\\b[^>]*?(?:\\bbtn-primario\\b|peso=\"primario\")[^>]*>\\s*\\n(?:\\s*<[^>]*\\/>\\s*\\n)?\\s*(?:Ver|Ir a|Abrir ficha)\\b",
       // «→» escrito a mano en un botón del sistema que lleva a otro lado: la flecha la dibuja la pieza.
-      "\\bbtn-(?:primario|secundario|sutil)\\b[^\\n]*(?:\\n[^\\n]*){0,2}?\\n\\s*(?:Ver|Ir a|Abrir)\\b[^\\n]*→"
+      "\\bbtn-(?:primario|secundario|sutil)\\b[^\\n]*(?:\\n[^\\n]*){0,2}?\\n\\s*(?:Ver|Ir a|Abrir)\\b[^\\n]*→",
+      // El «Ver» de una fila hecho a mano (un botoncito de 11 px con borde): es el enlace del sistema.
+      "<(?:Link|a|button)\\b(?:[^>]|=>)*?\\btext-\\[11px\\](?:[^>]|=>)*>\\s*Ver\\s*<"
     ],
     "deuda": [],
     "excepciones": []
@@ -877,7 +879,7 @@ export const DECISIONES = {
     "fecha": "2026-10-14",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
     "registro": "docs/unificar/accion.imprimir.md",
-    "elegida": "P1 · <BotonImprimir>: siempre con la impresora a la izquierda y «Imprimir» + qué; negro solo si imprimir ES el paso (el ticket después de vender, las etiquetas de lo que acaba de llegar), si no secundario; «o guardar en PDF» va en la frase de al lado; la hoja sale de la impresora al pasar el mouse; elegida tocándola el 2026-10-14",
+    "elegida": "P1 · <BotonImprimir>: siempre con la impresora a la izquierda y «Imprimir» + qué; negro solo si imprimir ES el paso (el ticket después de vender, las etiquetas de lo que acaba de llegar), si no secundario; «o guardar en PDF» va en la frase de al lado; la hoja sale de la impresora al pasar el mouse; elegida tocándola el 2026-10-14. La impresora es SOLO de lo que imprime en ese momento: «Etiquetas», que lleva a la pantalla de etiquetas, lleva la etiqueta (<Tag>) en Productos y en Existencias (P1, elegida el 2026-10-14)",
     "pieza": "components/ui/BotonImprimir.tsx",
     "tambien": ["app/globals.css"],
     "ventana": 3,
@@ -891,11 +893,95 @@ export const DECISIONES = {
     ],
     "deuda": [],
     "excepciones": [
-      { "archivo": "components/ProductosTabla.tsx", "motivo": "«Etiquetas» lleva a la pantalla de etiquetas (y antes cuenta si hay unidades): es ver en otra pantalla, en la tabla de Productos (ADR-0254)" },
-      { "archivo": "components/vista-rapida/VistaRapidaProducto.tsx", "motivo": "«Etiquetas» de la vista rápida lleva a la pantalla de etiquetas; la vista rápida es decidida a propósito (ADR-0136)" },
       { "archivo": "components/OpcionesComprobante.tsx", "motivo": "«Imprimir de nuevo» es una opción de una lista (abre el PDF), no un botón" },
       { "archivo": "components/apartados/TodosVista.tsx", "motivo": "fila compacta del mostrador: reimprimir es un ícono con su nombre para el lector, junto al de WhatsApp" },
       { "archivo": "components/GuiaImpresion.tsx", "motivo": "la guía de impresión DIBUJA el botón de la pantalla de etiquetas para explicarlo; no es un botón" }
+    ]
+  },
+  "titulo-pagina": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/titulo-pagina.md",
+    "elegida": "P1 · la cabecera de Inventario (<EncabezadoPagina>) en todas las pantallas menos Finanzas: arriba la sede y la fecha con su hilo, el nombre del menú en 46 px, la frase y los botones a la derecha; la vuelta es la flecha a la izquierda de la línea de la sede y lo que dice de dónde se llegó va tras la fecha (`detalle`); Finanzas conserva la de su spike (<CabeceraPantalla>, ADR-0195); elegida mirando las fotos de cada pantalla el 2026-10-14",
+    "pieza": "components/ui/EncabezadoPagina.tsx",
+    "tambien": ["components/ui/CabeceraPantalla.tsx"],
+    "firmas": [
+      // El título de una pantalla dibujado a mano en la serif de la casa (con su sobretítulo en versalitas al lado): es <EncabezadoPagina>.
+      "<h1\\b(?:[^>]|=>)*\\bfont-display\\b",
+      // La cabecera de Finanzas fuera de Finanzas.
+      "<CabeceraPantalla\\b"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/GastosPanel.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
+      { "archivo": "components/ImpuestosPanel.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
+      { "archivo": "components/finanzas/ResumenFinanzas.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
+      { "archivo": "components/finanzas/CierreMes.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
+      { "archivo": "components/finanzas/CabeceraDinero.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
+      { "archivo": "components/finanzas/CabeceraReportes.tsx", "motivo": "Finanzas conserva la cabecera de su spike (ADR-0195)" },
+      { "archivo": "app/(app)/productos/[id]/historial/page.tsx", "motivo": "la página «Historial» de la vista rápida es decidida a propósito (ADR-0354, ADR-0136 act. 2026-10-05)" },
+      { "archivo": "components/PantallaNoEncontrada.tsx", "motivo": "un estado (la pantalla que no existe), no la cabecera de una pantalla del menú" },
+      { "archivo": "components/ProduccionSoloEnTaller.tsx", "motivo": "un estado (Producción solo se ve parado en el Taller), no la cabecera de una pantalla" },
+      { "archivo": "app/(app)/sin-acceso/page.tsx", "motivo": "un estado (tu rol no ve este módulo), no la cabecera de una pantalla" },
+      { "archivo": "app/(app)/error.tsx", "motivo": "un estado (la pantalla se cayó), no la cabecera de una pantalla" },
+      { "archivo": "app/(app)/global/elige-sede/page.tsx", "motivo": "un estado (en CAYLA Global esta pantalla pide una sede), no la cabecera de una pantalla" },
+      { "archivo": "components/plan-compra/ExportarPlan.tsx", "motivo": "la hoja del plan de campaña que se imprime o se guarda: es papel, no una pantalla" },
+      { "archivo": "components/clientas/piezas-club-publico.tsx", "motivo": "la página pública del club, para el cliente fuera del ERP, con su propio diseño" },
+      { "archivo": "components/clientas/PaginaLegalClub.tsx", "motivo": "la página legal del club, pública y fuera del ERP, con su propio diseño" }
+    ]
+  },
+  "accion.guardar": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.guardar.md",
+    "elegida": "P1 · mientras guarda, el botón dice «Guardando…» (u otro verbo, `textoCargando`: «Anulando…», «Desactivando…», «Imprimiendo…») y corre el hilo de abajo, sin cambiar de ancho, y se apaga para que un doble clic no guarde dos veces; lo hace la pieza con `cargando` (`<Boton>`, `BotonCompacto` y los botones del flujo del mostrador); elegida tocándola el 2026-10-14",
+    "pieza": "components/ui/campos.tsx",
+    "tambien": ["components/ui/BotonCompacto.tsx", "components/FlujoGuiado.tsx"],
+    "firmas": [
+      // La palabra de espera escrita a mano en el botón: la pone la pieza con `cargando`.
+      "\\?\\s*\"Guardando…\"\\s*:",
+      // La rueda que gira dentro de un botón que guarda: la espera es el hilo de la pieza.
+      "<Loader2\\b[^>]*animate-spin"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.editar": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.editar.md",
+    "elegida": "P1 · abrir la edición de algo entero es el botón secundario con el lápiz (<BotonEditar>), nunca negro; en una fila o una tarjeta de una lista, el lápiz solo de 32 px con «Editar …» para el lector (<LapizEditar>); dentro de una frase o de una hoja, el enlace (ronda 9); elegida tocándola el 2026-10-14",
+    "pieza": "components/ui/BotonEditar.tsx",
+    "tambien": [],
+    "ventana": 3,
+    "firmas": [
+      // El lápiz dibujado fuera de la pieza (un «Editar» a mano).
+      "<Pencil\\b",
+      // «Editar» negro, sutil o en versalitas: es <BotonEditar> o <LapizEditar>.
+      "(?:\\bbtn-primario\\b|peso=\"primario\"|\\bbtn-sutil\\b|peso=\"discreto\"|<AccionTarjeta\\b)(?:[^>]|=>)*>\\s*Editar\\b"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/vista-rapida/VistaRapidaProducto.tsx", "motivo": "la vista rápida de un producto es de diseño propio (ADR-0136 act. 2026-10-05); su «Editar» ya es el secundario con el lápiz, con la cara de sus botones" },
+      { "archivo": "components/ficha-producto/MatrizStockFicha.tsx", "motivo": "la ficha de stock: el lápiz de corregir un color va junto al tacho, los dos con su borde, y el chico de la celda es la pista de que la talla se edita al tocarla" }
+    ]
+  },
+  "modal": {
+    "fecha": "2026-10-14",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/modal.md",
+    "elegida": "P1 · P1 · P1 · toda hoja con la misma cara (papel, sin sombra, título serif de 24 px y la frase en taupe), tres anchos con nombre (`tamano`: angosta 448, mediana 576, ancha 768) y una salida a la vista (la × si solo se lee, «Cancelar» si guarda, nunca las dos); las de diseño propio conservan su `ancho` con su motivo; elegidas tocándolas el 2026-10-14",
+    "pieza": "components/ui/Modal.tsx",
+    "tambien": ["components/ui/ModalRuta.tsx"],
+    "firmas": [
+      // Un ancho a medida (`max-w-…`): la hoja recibe un tamaño con nombre.
+      "\\bancho=(?:\"[^\"]*max-w|\\{\"[^\"]*max-w|\\{`[^`]*max-w)",
+      // El título de 26 px de antes: toda hoja tiene el mismo título.
+      "\\btituloGrande\\b"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/NuevaOrdenProduccionForm.tsx", "motivo": "Nueva orden de producción es de diseño propio (la matriz y la barra de la ficha): conserva su ancho" }
     ]
   },
   "grafico.barra": {

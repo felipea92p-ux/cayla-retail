@@ -1,5 +1,5 @@
 import { Ayuda } from "@/components/Ayuda";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { Chip } from "@/components/ui/Chip";
 import { celda, Encabezado, fila, Tabla, type Columna } from "@/components/ui/Tabla";
 import { TiendasRendimiento } from "@/components/rendimiento/TiendasRendimiento";
@@ -43,10 +43,11 @@ export default async function RendimientoPage({ searchParams }: { searchParams: 
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Gestión"
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede={varias ? "Todas las tiendas" : (elegida?.nombre ?? persona.ubicacionEtiqueta)}
         titulo="Rendimiento"
-        bajada={
+        subtitulo={
           // Una frase corta y el «!» con el resto (Felipe, 2026-10-03, como Productos): las notas de abajo explicaban cada cifra y no se leían.
           <>
             {varias

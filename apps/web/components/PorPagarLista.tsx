@@ -650,7 +650,7 @@ function FilaPorPagar({
             <span className="truncate">{c.nota}</span>
           </span>
         )}
-        <span className="block text-xs text-tinta/55">Emitida {diaMes(c.fechaEmision)}</span>
+        <span className="block text-xs text-tinta/70">Emitida {diaMes(c.fechaEmision)}</span>
         <span className={`mt-1 block text-xs @[40rem]:hidden ${colorVence}`}>{vence}</span>
         {/* Lo que el proveedor todavía debe acreditar por un faltante cerrado: parte de este saldo que no
             hay que pagar. Va bajo el proveedor (la columna con sitio). Es su propio enlace al comprobante,
@@ -664,7 +664,7 @@ function FilaPorPagar({
       </div>
       <div className={`hidden @[40rem]:block ${sellada ? "opacity-55" : ""}`}>
         <span className={`block text-sm ${colorVence}`}>{vence}</span>
-        {c.fechaVencimiento && <span className="block text-xs tabular-nums text-tinta/55">{diaMes(c.fechaVencimiento)}</span>}
+        {c.fechaVencimiento && <span className="block text-xs tabular-nums text-tinta/70">{diaMes(c.fechaVencimiento)}</span>}
         {/* Plazo consumido (emisión → vencimiento): «vence en 14 días» no dice si era un plazo de 15 o de 60. */}
         {plazo && (
           <span className="mt-[5px] block h-[3px] w-[5.5rem] overflow-hidden rounded-full bg-sand" title={`${plazo.usados} de ${plazo.total} días de plazo consumidos`}>
@@ -673,8 +673,8 @@ function FilaPorPagar({
         )}
       </div>
       <div className={`hidden text-right tabular-nums @[56rem]:block ${sellada ? "opacity-55" : ""}`}>
-        <span className={`block text-sm ${c.pagado > 0 ? "text-tinta" : "text-tinta/55"}`}>{c.pagado > 0 ? soles(c.pagado) : "Sin pagos"}</span>
-        <span className="block text-xs text-tinta/55">de {soles(c.total)}</span>
+        <span className={`block text-sm ${c.pagado > 0 ? "text-tinta" : "text-tinta/70"}`}>{c.pagado > 0 ? soles(c.pagado) : "Sin pagos"}</span>
+        <span className="block text-xs text-tinta/70">de {soles(c.total)}</span>
         {c.pagado > 0 && (
           <span className="ml-auto mt-[5px] block h-[3px] w-[5.5rem] overflow-hidden rounded-full bg-sand" title={`${Math.round(pctPagado * 100)} % pagado`}>
             <span className="anim-crece-x block h-full rounded-full bg-verde transition-[width] duration-700 ease-cayla" style={{ width: `${Math.round(pctPagado * 100)}%`, ["--i" as string]: posicion }} />

@@ -805,7 +805,7 @@ export function NuevoProductoForm({
           .join(" · ")
       : "",
     4: [
-      precioNum > 0 ? `S/ ${precioNum.toFixed(2)}` : null,
+      precioNum > 0 ? `S/\u00a0${precioNum.toFixed(2)}` : null,
       stock.total > 0 ? `${plural(stock.total, "unidad", "unidades")} · ${destinoTexto}` : sinStockVigente ? "Sin stock todavía" : null,
     ]
       .filter(Boolean)

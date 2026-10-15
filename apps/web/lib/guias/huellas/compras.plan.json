@@ -2,12 +2,13 @@
   "guia": "compras.plan",
   "ruta": "/compras/plan",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 83,
+  "total": 87,
   "controles": {
     "components/colaboradores/CajonFicha.tsx": [
       "button «Cerrar»"
     ],
     "components/plan-compra/AvisoStock.tsx": [
+      "BotonVer «Ir a Conteo»",
       "Boton «Ver qué falta»"
     ],
     "components/plan-compra/CampanasArchivadasModal.tsx": [
@@ -26,11 +27,15 @@
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? (cambio ? undefined : \"No cambiaste nada\")}»"
     ],
+    "components/plan-compra/ExportarPlan.tsx": [
+      "BotonImprimir «Imprimir la lista»",
+      "BotonDescargar «Descargar Excel»"
+    ],
     "components/plan-compra/FilaCategoria.tsx": [
       "button «plan.categoria»"
     ],
     "components/plan-compra/FormularioCategoria.tsx": [
-      "button «Usar el del catálogo: S/»",
+      "button «Usar el del catálogo: S/&nbsp;»",
       "Boton «Usar estos tres»",
       "Boton «Proponer el normal desde lo vendido»",
       "CampoTexto «Flojo, prendas»",
@@ -78,6 +83,7 @@
       "Boton «Campaña nueva» #2",
       "Boton «Ver campañas archivadas»",
       "Boton «plan.resumen»",
+      "BotonDescargar «Descargar la lista»",
       "Boton «plan.empezar»",
       "Boton «Restaurar…»",
       "BotonEnlace «{aviso.verResultados}»",

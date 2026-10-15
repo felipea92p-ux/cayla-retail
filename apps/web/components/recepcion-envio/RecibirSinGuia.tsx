@@ -23,8 +23,10 @@ export function RecibirSinGuia({ orden, sede }: { orden: OrdenDirecta; sede: str
   const [abierta, setAbierta] = useState(false);
   return (
     <>
+      {/* «Llegó esta orden» y no «Recibir sin guía»: junto a «¿Llegó algo sin aviso?», dos «sin» se confundían (formidable, lista aparte
+          del 2026-10-14). Esta fila es una orden de Compras que está en la lista; lo que no está en la lista va por «sin aviso». */}
       <Boton type="button" onClick={() => setAbierta(true)}>
-        Recibir sin guía
+        Llegó esta orden
       </Boton>
       {abierta && <HojaRecibirSinGuia orden={orden} sede={sede} onCerrar={() => setAbierta(false)} />}
     </>
@@ -109,8 +111,8 @@ function HojaRecibirSinGuia({ orden, sede, onCerrar }: { orden: OrdenDirecta; se
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Abriendo…" : "Empezar a recibir"}
+            <Boton textoCargando="Abriendo…" type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              Empezar a recibir
             </Boton>
           </div>
         </form>

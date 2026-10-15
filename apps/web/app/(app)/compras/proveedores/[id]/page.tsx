@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { accionesDeCompraDe, puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { usaModulo } from "@/lib/modulos";
-import { getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor } from "@/lib/proveedores";
+import { getCambiosBancarios, getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
 import { ChevronRight, Receipt } from "lucide-react";
@@ -18,12 +18,14 @@ import { PistaPlazo } from "@/components/ui/PistaPlazo";
 import { ProveedorAcciones } from "@/components/ProveedorAcciones";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
+import { CambiosCuentaProveedor } from "@/components/CambiosCuentaProveedor";
 import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
 import { NosDebeProveedor } from "@/components/nos-debe/NosDebeProveedor";
 import { Volver } from "@/components/ui/Volver";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Ficha de un proveedor (maqueta 09, ADR-0111): prenda terminada (vía Compras) e insumos del Taller
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
@@ -52,7 +54,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const siDinero = <T,>(leer: () => Promise<T>): Promise<T | null> => (verMontos ? leer() : Promise.resolve(null));
 
-  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, nosDebe] = await Promise.all([
+  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, cambiosCuenta, nosDebe] = await Promise.all([
     getProveedor(id),
     siDinero(() => getProveedorMetricasCompras(id)),
     esLider ? getProveedorMetricasInsumos(id) : Promise.resolve(null),
@@ -62,6 +64,8 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
     getProveedores(),
     siDinero(() => getCreditosProveedor(id)),
     getMarcasPorProveedor(), // ADR-0140: opcional; si falla llega `null` y la ficha se pinta sin marcas
+    // Cambios de cuenta (Felipe 2026-10-13): opcional como las marcas; si falla, la ficha se pinta sin el historial.
+    getCambiosBancarios(id).catch(() => []),
     // «Nos debe» (ADR-0362, fase 5a): las prendas por reponer. Con los mismos ojos que el saldo a favor (los montos de la ficha); si la base
     // todavía no lo sabe contar, llega vacío y la ficha sale como antes.
     siDinero(() => getNosDebeProveedor(id)),
@@ -91,21 +95,22 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-6">
-      <div className="anim-entra">
-        <Volver href="/compras/proveedores" a="Proveedores" />
-        <div data-voz="cabecera" className="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-          <div className="flex min-w-0 items-start gap-4" data-guia="proveedor-ficha.cabecera">
-            <span aria-hidden className="font-display grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sand text-2xl text-tinta">
-              {proveedor.nombre.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
-            </span>
-            <div className="min-w-0">
-            <h1 className="font-display text-2xl text-tinta">{proveedor.nombre}</h1>
-            <p className="mt-1 text-sm text-tinta/65">
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14): el nombre del proveedor de título, sus datos de
+          frase y lo que se sabe de él (marcas, crédito, cómo cobra) como estados bajo la frase. */}
+      <div data-guia="proveedor-ficha.cabecera">
+        <EncabezadoPagina
+          sede="Todas las tiendas"
+          volver={<Volver href="/compras/proveedores" a="Proveedores" />}
+          titulo={proveedor.nombre}
+          subtitulo={
+            <>
               {proveedor.ruc ?? "Sin RUC"} · {proveedor.contacto ?? "Sin contacto"}
               {proveedor.rubros.length > 0 && <> · {proveedor.rubros.join(", ")}</>}
               {!proveedor.activo && <> · Desactivado</>}
-            </p>
-            <div className="mt-2.5 flex flex-wrap gap-2">
+            </>
+          }
+          pie={
+            <div className="flex flex-wrap gap-2">
               {marcas.map((marca) => (
                 <Chip key={marca} versalitas={false}>
                   {marca}
@@ -118,10 +123,9 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               {proveedor.banco && <Chip>{proveedor.banco}</Chip>}
               {proveedor.telefono && <Chip>WhatsApp {proveedor.telefono}</Chip>}
             </div>
-            </div>
-          </div>
-          <ProveedorAcciones proveedor={proveedor} rubros={rubrosConConteo(directorio.filter((p) => p.activo)).map((r) => r.etiqueta)} />
-        </div>
+          }
+          acciones={<ProveedorAcciones proveedor={proveedor} rubros={rubrosConConteo(directorio.filter((p) => p.activo)).map((r) => r.etiqueta)} />}
+        />
       </div>
 
       {paso && (
@@ -131,6 +135,8 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       )}
 
       <ProveedorCuentasFicha proveedor={proveedor} rubros={rubrosConConteo(directorio.filter((p) => p.activo)).map((r) => r.etiqueta)} />
+
+      <CambiosCuentaProveedor cambios={cambiosCuenta} />
 
       {m && (
       <section className="space-y-3">

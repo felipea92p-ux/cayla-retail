@@ -9,12 +9,14 @@
 // Lo URGENTE no se puede ocultar: es el canal que no se apaga (Square, Zebra; investigación en el README del spike).
 
 import type { ClaveModulo } from "./modulos";
+import { diasDesde, type PendientesDeLaSede } from "./recepcion-conteo-reglas";
 import type { Permiso } from "./menu";
 import { DIAS_PARA_VENCER } from "./por-regularizar-reglas";
 import { HORAS_REINTENTO_AUTOMATICO } from "./transmision-reglas";
 import { DIAS_PARA_PREGUNTAR } from "./pedidos-con-cliente-reglas";
 import { DIAS_PARA_ENVIAR } from "./para-enviar-reglas";
 import { hrefPerdidas, type AvisoPerdidas } from "./perdidas-reglas";
+import { montosSinCorte } from "./montos-sin-corte";
 
 export type NivelAviso = "urgente" | "toca" | "info" | "aldia" | "sinleer";
 
@@ -32,7 +34,9 @@ export type ClaveAviso =
   | "perdidas"
   | "regularizar"
   | "porPagar"
+  | "cuentasBancarias"
   | "recibir"
+  | "porTerminar"
   | "reponer"
   | "fotos"
   | "completar";
@@ -84,8 +88,12 @@ export type FuentesAvisos = {
   prendasVencidas?: number | null;
   /** Deuda con proveedores: lo vencido y lo que vence en los próximos 7 días. */
   porPagar?: { vencidas: number; montoVencido: number; semana: number; montoSemana: number } | null;
+  /** Proveedores que cambiaron su cuenta bancaria en los últimos 7 días (20261013161000). Solo se lee para el líder. */
+  cuentasBancarias?: { cambios: number; proveedores: number; ultimoProveedorId: string | null; ultimoProveedor: string | null; ultimoEn?: string | null } | null;
   /** Facturas de mercadería que aún le faltan a esta sede, con la primera («F001-2231 · Confecciones Andina») para el detalle. */
   porRecibir?: { facturas: number; primera: string | null } | null;
+  /** ADR-0393 (decisión 4): lo recibido en la sede que todavía no está en el stock (por separar, por poner tallas, por crear). */
+  recibidoPorTerminar?: PendientesDeLaSede | null;
   /** Tallas «por colgar» de la sede y sus unidades guardadas: la misma cuenta que «Para hoy» de Existencias (`porColgarDeLaSede`),
    *  con la decisión del motor del piso (`lib/piso-plan.ts`). `enPausa` = cuántas tallas esperan el cuadre del piso (ADR-0328,
    *  decisión 5): con el piso sin cuadrar `tallas` es 0 y el aviso dice esa cifra, nunca «al día». */
@@ -96,7 +104,7 @@ export type FuentesAvisos = {
   porCompletar?: number | null;
 };
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
 const plural = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
 const SIN_LEER = "No se pudo leer. Lo demás de esta pantalla sí está al día.";
 
@@ -355,6 +363,28 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       urgenteSi: "Cuando ya venció",
     });
   }
+  // Felipe 2026-10-13 (auditoría, punto 18): un proveedor cambió su cuenta bancaria esta semana. El pago no se bloquea: se le
+  // avisa al líder para que la confirme con el proveedor antes de pagar. No se oculta: es plata que puede salir a la cuenta
+  // equivocada, y cambiar la cuenta justo antes de un pago es la forma más común de desviarlo.
+  if (f.cuentasBancarias !== undefined) {
+    const c = f.cuentasBancarias;
+    const n = c === null ? null : c.proveedores;
+    avisos.push({
+      clave: "cuentasBancarias",
+      grupo: "Compras",
+      titulo: "Cuentas de proveedor que cambiaron",
+      cantidad: n,
+      nivel: nivelDe(n, "toca"),
+      ahora: !n ? "" : `Confirma ${n === 1 ? "la cuenta nueva" : `${n} cuentas nuevas`} antes de pagar`,
+      detalle:
+        c === null ? SIN_LEER
+          : n === 0 ? "Ningún proveedor cambió su cuenta esta semana."
+            : n === 1 ? `${c.ultimoProveedor ?? "Un proveedor"} cambió su cuenta para cobrar: confírmala con él antes de pagarle.`
+              : `${n} proveedores cambiaron su cuenta esta semana; el último, ${c.ultimoProveedor ?? "uno sin nombre"}.`,
+      href: n === 1 && c?.ultimoProveedorId ? `/compras/proveedores/${c.ultimoProveedorId}` : "/compras/proveedores",
+      ocultable: false,
+    });
+  }
   // Inicio de Almacén (2026-09-30). Mercadería de compras que aún le falta a esta sede.
   if (f.porRecibir !== undefined) {
     const r = f.porRecibir;
@@ -372,6 +402,31 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
       // ADR-0330: las facturas se reciben en la vista contra factura; `/recibir` a secas es la puerta «Llegó mercadería».
       href: "/recibir?vista=factura",
       ocultable: true,
+    });
+  }
+  // ADR-0393 (decisión 4): lo contado al recibir que todavía no se puede vender (sin tallas, sin separar o por crear). Más de 7 días
+  // es urgente: es lo que el ADR vigila («los pendientes se vuelven el cajón donde se olvida la mercadería»).
+  if (f.recibidoPorTerminar !== undefined) {
+    const r = f.recibidoPorTerminar;
+    const n = r === null ? null : r.total;
+    const dias = r ? diasDesde(r.desde) : null;
+    const partes = r
+      ? [r.porSeparar ? `${r.porSeparar} por separar` : null, r.porDetallar ? `${r.porDetallar} por poner tallas` : null, r.porCrear ? `${r.porCrear} por crear` : null].filter(Boolean)
+      : [];
+    avisos.push({
+      clave: "porTerminar",
+      grupo: "Inventario",
+      titulo: "Recibido por terminar",
+      cantidad: n,
+      nivel: nivelDe(n, dias != null && dias > 7 ? "urgente" : "toca"),
+      ahora: n ? `Termina ${n} ${plural(n, "prenda recibida", "prendas recibidas")}` : "",
+      detalle:
+        r === null ? SIN_LEER
+          : !n ? "Todo lo recibido ya está en el stock."
+            : `Contadas y en el almacén, pero sin poder venderse: ${partes.join(", ")}${dias != null && dias > 0 ? `. Lo más antiguo, de hace ${dias === 1 ? "1 día" : `${dias} días`}` : ""}.`,
+      href: "/recibir",
+      ocultable: true,
+      urgenteSi: "Cuando lo más antiguo pasa de 7 días",
     });
   }
   // «Por colgar» (2026-10-04): la fila de «Para hoy» en Existencias, con su misma cifra (tallas, `porColgarDeLaSede`, con la decisión
@@ -658,7 +713,7 @@ export function armarEquipo(turno: FilaTurno[], actividad: FilaActividad[] | nul
       m = { personaId: a.persona_id, nombre: primerNombre(a.persona_nombre), estado: null, ventas: 0, monto: 0, ultima: null };
       porId.set(a.persona_id, m);
     }
-    m.ultima ??= { hora: a.ocurrio_at, texto: a.descripcion };
+    m.ultima ??= { hora: a.ocurrio_at, texto: montosSinCorte(a.descripcion) }; // la descripción la escribe Postgres
     if (a.accion === "venta_registrada") {
       const total = Number((a.detalle as { total?: unknown } | null)?.total ?? 0);
       m.ventas = (m.ventas ?? 0) + 1;

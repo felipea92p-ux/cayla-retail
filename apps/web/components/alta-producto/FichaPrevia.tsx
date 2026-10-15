@@ -6,6 +6,7 @@ import { HojaParecidas } from "@/components/alta-producto/HojaParecidas";
 import { TiraParecidas } from "@/components/alta-producto/TiraParecidas";
 import { fechaCorta } from "@/lib/etiqueta-vigencia";
 import type { AlertaVista } from "@/lib/parecidas-alta-vista";
+import { Boton } from "@/components/ui/campos";
 
 // «Prendas parecidas» (Fase 1, 2026-09-30): si el formulario pasa `parecidas`, la alerta va bajo la ficha (escritorio), la tira
 // «2 prendas parecidas · Ver» sobre la barra de abajo (celular y tablet) y la hoja «Ver y comparar» se monta aquí (es un portal: se ve igual con el
@@ -61,7 +62,7 @@ export type ParecidasFicha = {
   hoja: ComponentProps<typeof HojaParecidas> | null;
 };
 
-const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /** «Siguiente: Elige el tejido.» —un toque que lleva al campo— o «Todo listo para crear.». Lo usan la ficha y la barra del celular. */
 function Siguiente({ d, clase }: { d: DatosFicha; clase: string }) {
@@ -133,7 +134,7 @@ function Tarjeta({ d }: { d: DatosFicha }) {
             <span className="flex items-baseline gap-2 whitespace-nowrap">
               {d.campana && d.precio !== null && <span className="text-sm tabular-nums text-taupe line-through">{soles(d.precio)}</span>}
               <span className="font-display text-[22px] tabular-nums text-tinta">
-                {d.campana ? soles(d.campana.precioFinal) : d.precio !== null ? soles(d.precio) : <Vacio>S/ —</Vacio>}
+                {d.campana ? soles(d.campana.precioFinal) : d.precio !== null ? soles(d.precio) : <Vacio>S/&nbsp;—</Vacio>}
               </span>
             </span>
           </div>
@@ -250,16 +251,16 @@ export function FichaPrevia({
           <div className="min-w-0 flex-1 text-[12.5px]">
             <b className="block truncate text-sm text-tinta">{datos.nombre || "Nuevo producto"}</b>
             <span className="tabular-nums text-taupe">
-              {datos.codigo ?? "—"} · {datos.variantes ?? 0} var. · {datos.precio !== null ? soles(datos.precio) : "S/ —"}
+              {datos.codigo ?? "—"} · {datos.variantes ?? 0} var. · {datos.precio !== null ? soles(datos.precio) : "S/\u00a0—"}
               {datos.hoy !== null && datos.hoy > 0 && ` · ${datos.hoy} hoy`}
             </span>
           </div>
           <button type="button" onClick={() => setVerMovil((v) => !v)} aria-expanded={verMovil} className="btn-cayla btn-secundario px-3">
             {verMovil ? "Ocultar" : "Ver"}
           </button>
-          <button type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined} className="btn-cayla btn-primario">
-            {cargando ? "Creando…" : "Crear"}
-          </button>
+          <Boton peso="primario" cargando={cargando} textoCargando="Creando…" type="submit" disabled={deshabilitado} title={datos.siguiente ?? undefined}>
+            Crear
+          </Boton>
         </div>
         <Siguiente d={datos} clase="mt-1 text-xs" />
       </div>

@@ -69,7 +69,7 @@ describe("lo que falta en «Registrar su pago»", () => {
     expect(sePuedeConfirmar(camposPagarDeuda({ cuentaId: "bcp", monto: "15", nota: "" }, 20, CUENTAS, PERSONA))).toBe(true);
   });
   it("no más de lo que debe y mayor que cero (la base lo frena igual)", () => {
-    expect(problemaDeMontoDeuda("21", 20)).toBe("Debe S/ 20.00: no puede pagar más.");
+    expect(problemaDeMontoDeuda("21", 20)).toBe("Debe S/\u00a020.00: no puede pagar más.");
     expect(problemaDeMontoDeuda("0", 20)).toBe("El monto tiene que ser mayor que cero.");
     expect(problemaDeMontoDeuda("0.29", 20)).toBeNull();
     expect(problemaDeMontoDeuda("20", 20)).toBeNull();
@@ -80,7 +80,7 @@ describe("lo que falta en «Registrar su pago»", () => {
     ]);
   });
   it("el botón dice cuánto se registra", () => {
-    expect(frasePagarDeuda(15)).toBe("Registrar pago de S/ 15.00");
+    expect(frasePagarDeuda(15)).toBe("Registrar pago de S/\u00a015.00");
     expect(frasePagarDeuda(null)).toBe("Registrar el pago");
   });
 });

@@ -186,7 +186,7 @@ export function AjustarInventarioModal({
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
         if (errCarga) {
-          avisar.error(traducirError(errCarga, "cargar las variantes del producto"));
+          avisar.error(traducirError(errCarga, "cargar las variantes del producto", { lectura: true }));
           setCargando(false);
           return;
         }
@@ -438,7 +438,6 @@ export function AjustarInventarioModal({
       subtitulo="Corrige lo que hay de cada talla"
       onClose={onClose}
       alCerrarEnfocar={alCerrarEnfocar}
-      ancho="max-w-md"
       bloqueado={enviando}
       lateral={prenda && prenda.fotoUrl !== undefined ? <FotoDePrenda fotoUrl={prenda.fotoUrl} colorHex={prenda.colorHex} {...categoriaDe(prenda)} /> : undefined}
     >

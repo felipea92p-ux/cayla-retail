@@ -77,7 +77,7 @@
       "button «{r.nombre}»",
       "ComboResponsable «(sin nombre)»",
       "button «Cancelar»",
-      "button «{responsable.motivo ?? undefined}»"
+      "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/colaboradores/EquipoLista.tsx": [
       "button «{guia}»",

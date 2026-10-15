@@ -429,19 +429,25 @@ export function problemaDeCuenta(cuentaId: string, cuentas: readonly CuentaOpcio
 /**
  * Hasta cuánto se puede devolver (Felipe 2026-10-14, /formidable E2; lo mismo que exige `devolver_fondo` desde 20261014212000). Con una
  * rendición por aprobar, el faltante que ya declaró sale del fondo recién al aprobarla: lo que de verdad tiene en la mano es el saldo menos
- * ese faltante. Devolver «lo de los libros» y aprobar después dejaba el fondo debiendo y debido por la misma plata.
+ * ese faltante. Devolver «lo de los libros» y aprobar después dejaba el fondo debiendo y debido por la misma plata. `libros` y `faltante`
+ * van con el tope para que la hoja diga de dónde sale (decisión 83).
  */
-export type TopeDevolucion = { monto: number; porRendicion: boolean };
+export type TopeDevolucion = { monto: number; porRendicion: boolean; libros: number; faltante: number };
 
 export function topeDevolucion(saldo: number, faltantePorAprobar = 0): TopeDevolucion {
-  if (faltantePorAprobar > CENTAVO) return { monto: Math.max(saldo - faltantePorAprobar, 0), porRendicion: true };
-  return { monto: saldo, porRendicion: false };
+  if (faltantePorAprobar > CENTAVO)
+    return { monto: Math.max(saldo - faltantePorAprobar, 0), porRendicion: true, libros: saldo, faltante: faltantePorAprobar };
+  return { monto: saldo, porRendicion: false, libros: saldo, faltante: 0 };
 }
 
-/** La bajada de la hoja de devolución: cuánto tiene, dicho como lo cuenta la base. */
+/**
+ * La bajada de la hoja de devolución: cuánto puede devolver, dicho como lo cuenta la base. Con una rendición por aprobar nombra las dos
+ * cifras (Felipe 2026-10-14, decisión 83): la tabla dice lo de los libros y la hoja, menos; una prueba ciega no supo cuál era la buena. Va
+ * con lo que falta, no con «lo que dijo tener»: si después de rendir le entregaron más, lo que dijo tener ya no es el tope.
+ */
 export function subtituloDevolver(tope: TopeDevolucion): string {
   return tope.porRendicion
-    ? `Tiene ${soles(tope.monto)} en la mano: lo que declaró en su rendición, que espera aprobación.`
+    ? `Los libros dicen ${soles(tope.libros)}, pero a su rendición por aprobar le faltan ${soles(tope.faltante)}: puede devolver hasta ${soles(tope.monto)}.`
     : `Tiene ${soles(tope.monto)} en su fondo.`;
 }
 
@@ -453,7 +459,7 @@ export function problemaDeMonto(textoMonto: string, tope?: number | TopeDevoluci
   const t = typeof tope === "number" ? topeDevolucion(tope) : tope;
   if (t != null && m > t.monto + CENTAVO / 10) {
     return t.porRendicion
-      ? `Con su rendición por aprobar, tiene ${soles(Math.max(t.monto, 0))} en la mano: no puede devolver más.`
+      ? `Puede devolver hasta ${soles(Math.max(t.monto, 0))}: a su rendición por aprobar le faltan ${soles(t.faltante)}.`
       : `Tiene ${soles(Math.max(t.monto, 0))} en su fondo: no puede devolver más.`;
   }
   return null;

@@ -348,6 +348,9 @@ export const PRUEBAS = [
   "pruebas:traslado-sobrantes",
   // ADR-0405 (/chaos de Catálogo 2026-10-14): precio y costo NaN y nombres sin tope rebotan en la tabla. Con control.
   "pruebas:catalogo-montos-y-textos",
+  // ADR-0409 (/chaos de Producción 2026-10-14): el token sigue al contenido en seis funciones del Taller, el IGV de una factura
+  // de insumos va de 0 a 18 %, y un NaN en sus montos rebota en la tabla. Con controles.
+  "pruebas:produccion-token-y-montos",
 
   // El efectivo de una caja abierta nunca queda bajo cero (/chaos 2026-10-13): egreso, reembolso, vuelto de un cambio, anular
   // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
@@ -380,6 +383,7 @@ export const PRUEBAS = [
   // Cuarentena no sale hacia la clienta (PL-78): un disparador en movimientos rechaza venta, cambio y apartado
   // desde una sububicación Cuarentena; liquidar sigue. Control con el disparador deshecho. Cada caso: ROLLBACK.
   "pruebas:cuarentena-no-se-vende",
+  "pruebas:datos-sensibles-proveedores",
 
   // La cuarentena no se ajusta a mano (ADR-0328 act. 10): un disparador en movimientos rechaza todo `ajuste` sobre una
   // sububicación Cuarentena (descuadraría el stock contra prendas_danadas); sus puertas propias siguen y abrir_conteo
@@ -1017,6 +1021,27 @@ export const PRUEBAS = [
   // papel hasta su cupo; faltante y sobrante con causa; quien hizo la orden no la recibe; token y costo atípico. ROLLBACK siempre.
   "pruebas:recepcion-de-envio",
 
+  // El conteo guardado de un envío (ADR-0393): lo contado queda en la base línea por línea; gana el último con aviso de lo que pisó;
+  // lo separado no pasa de lo contado ni trae prendas ajenas; lo de fuera de la guía; el formulario de la fase 4 deja su conteo; un
+  // envío cerrado no se cuenta. ROLLBACK siempre.
+  "pruebas:conteo-de-envio",
+
+  // Cerrar lo contado con pendientes y «Hacer ahora» (ADR-0393, actividad 3): entra solo lo que tiene talla y color; lo demás queda
+  // pendiente («detalle», «crear») o sin separar; lo que faltó se mide con lo contado; quien cierra firma lo que vio; «Hacer ahora» entra
+  // como el cierre (costo del cierre, papel hasta su cupo), nunca más de lo que queda ni dos veces; la base no deja descuadrar una línea
+  // aunque se escriba a mano; el número del aviso por sede. ROLLBACK siempre.
+  "pruebas:pendientes-de-envio",
+
+  // Reabrir un envío recibido (ADR-0393, actividad 4; decisión 5): lo que faltó deja de valer sin borrarse y sale de «Nos debe», lo
+  // pendiente vuelve al borrador, lo que entró no se toca ni entra dos veces, y queda el rastro; no se reabre si Compras ya resolvió.
+  // ROLLBACK, salvo los dos casos de dos sesiones (reabrir y resolver la deuda a la vez): commitean un envío de prueba y lo borran.
+  "pruebas:reabrir-envio",
+
+  // El envío sin aviso (ADR-0393, actividad 4; decisiones 2 y 10): la sede lo abre al llegar, lo cuenta por categoría y lo cierra
+  // con los mismos pendientes; nada sobra ni deja deuda; el costo solo lo escribe quien ve el dinero de Compras (ADR-0330) y lo que
+  // entra sin costo no toca el de la prenda. ROLLBACK siempre.
+  "pruebas:envio-sin-aviso",
+
   // «Nos debe» (ADR-0362, fase 5a): solo un faltante «no vino» es deuda del proveedor; se salda con la prenda, a mano con nota o en la
   // próxima recepción (la más antigua primero), nunca más de lo debido (tampoco con dos sesiones a la vez); lo resuelto solo se agrega;
   // saldo a favor y depósito, «todavía no». ROLLBACK, salvo el caso de dos sesiones: commitea un envío de prueba y lo borra al terminar.
@@ -1028,6 +1053,13 @@ export const PRUEBAS = [
   // anular con motivo; la firma de la decisión 39 (persona sola, terminal con combo). ROLLBACK, salvo los dos casos de dos sesiones
   // (editar a la vez y crear con el mismo id): commitean una orden de prueba y la borran al terminar.
   "pruebas:ordenes-insumo",
+  // El comprobante de la orden de insumos (ADR-0362, fase 7 parte 2 · actividad 1): solo con el módulo; los cuatro tipos (el SC- de la
+  // secuencia de la empresa), el IGV de la factura de 0 % a 18 %, 3 decimales de cantidad y 4 de costo; de más y fuera de la orden se
+  // aceptan y se avisan; el doble envío; el papel único entre los vigentes; la orden con papel no se edita (ni se anula con papel
+  // vigente); la recepción de siempre no recibe el papel de una orden. ROLLBACK.
+  "pruebas:comprobante-orden-insumo",
+  // ADR-0362 fase 7 parte 2, actividad 3: recibir en el Taller contra la orden de insumos (con un caso de dos sesiones que hace COMMIT).
+  "pruebas:recepcion-orden-insumo",
 
   // Fondos por rendir (ADR-0362, fase 6 · actividad 1): el módulo es la llave; la primera entrega crea el fondo de la persona (1413) y
   // las demás suman en el mismo; nadie se entrega plata a sí mismo, registra su propia devolución ni anula su propio fondo; lo del líder

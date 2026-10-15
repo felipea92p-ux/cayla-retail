@@ -3,7 +3,7 @@ import { cuadra, etiquetaDestino } from "@/lib/caja-cierre-reglas";
 import { estadoCierre, rachaDeCierres } from "@/lib/historial-cierres-reglas";
 
 function money(n: number) {
-  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function cuando(iso: string) {

@@ -10,18 +10,18 @@
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «{actual?.fase === \"cargando\" ? \"Buscando…\" : \"Buscar\"}»",
+      "Boton «Buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
-      "button «Editar»",
+      "LapizEditar «)»",
       "button «{`Copiar ${etiqueta.toLowerCase()}»"
     ],
     "components/ProveedorAcciones.tsx": [
       "BotonAncla «WhatsApp»",
       "Boton «Copiar CCI»",
-      "Boton «proveedor-ficha.editar»",
+      "BotonEditar «→() => setEditando(true)»",
       "BotonEnlace «Registrar factura»"
     ],
     "components/ProveedorModal.tsx": [
@@ -52,7 +52,7 @@
       "CampoTexto «Nota (opcional)»",
       "ComboResponsable «Cancelar»",
       "button «Cancelar»",
-      "button «{loading ? \"Registrando…\" : \"Registrar reembolso\"}»"
+      "Boton «Registrar reembolso»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

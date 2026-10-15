@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { Flag, FunnelX, Receipt } from "lucide-react";
-import { Modal } from "@/components/ui/Modal";
+import { ANCHO_HOJA, Modal } from "@/components/ui/Modal";
 import { getDetalleCierre, type DetalleCierre, type EventoCaja } from "@/app/actions/caja";
 import type { CierreCaja } from "@/lib/caja";
 import { etiquetaDestino } from "@/lib/caja-cierre-reglas";
@@ -16,7 +16,7 @@ import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 function money(n: number) {
-  return (n >= 0 ? "S/ " : "-S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n >= 0 ? "S/\u00a0" : "-S/\u00a0") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function hora(iso: string) {
@@ -72,7 +72,7 @@ export function useDetalleCierre() {
 }
 
 /** El ancho de la hoja con el detalle: deja las tres tarjetas del cierre en una fila (en celular y tablet pasan a una sola columna). */
-export const ANCHO_DETALLE_CIERRE = "max-w-5xl";
+export const ANCHO_DETALLE_CIERRE = ANCHO_HOJA.ancha;
 
 type FiltroFlujo = "todo" | "ventas" | "cajon";
 const FILTROS: [FiltroFlujo, string][] = [
@@ -99,7 +99,7 @@ const TEXTO_ESTADO = (estado: keyof typeof COLOR_ESTADO, dif: number) => (estado
 /** El modal de un cierre cuando no hay una hoja de atrás a la que volver (la página `/caja/historial`). */
 export function DetalleCierreModal({ cierre, detalle, cargando, error, onClose }: { cierre: CierreCaja; detalle: DetalleCierre | null; cargando: boolean; error: boolean; onClose: () => void }) {
   return (
-    <Modal conCerrar titulo={tituloDelCierre(cierre)} subtitulo={bajadaDelCierre(cierre)} onClose={onClose} ancho={ANCHO_DETALLE_CIERRE}>
+    <Modal conCerrar titulo={tituloDelCierre(cierre)} subtitulo={bajadaDelCierre(cierre)} onClose={onClose} tamano="ancha">
       <DetalleCierreContenido cierre={cierre} detalle={detalle} cargando={cargando} error={error} />
     </Modal>
   );
@@ -485,7 +485,7 @@ function CobrosPorMedio({ cobros }: { cobros: DetalleCierre["cobros"] }) {
           return <circle key={m.clave} cx="75" cy="75" r={r} fill="none" strokeWidth="16" strokeDasharray={`${largo} ${C - largo}`} strokeDashoffset={-antes} transform="rotate(-90 75 75)" style={{ stroke: COLOR_MEDIO[m.clave] }} />;
         })}
         <text x="75" y="75" textAnchor="middle" fontSize="22" className="font-display fill-tinta">
-          {`S/ ${Math.round(cobros.total).toLocaleString("es-PE")}`}
+          {`S/\u00a0${Math.round(cobros.total).toLocaleString("es-PE")}`}
         </text>
         <text x="75" y="93" textAnchor="middle" fontSize="11" className="fill-tinta/60">
           cobrado

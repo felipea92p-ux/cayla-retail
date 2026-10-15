@@ -824,6 +824,13 @@ export const GUIA_PROVEEDOR: Guia = {
       texto: "Su cuenta, CCI, Yape o Plin y el titular, cada uno con su «Copiar». Salen tapados a medias porque son datos de otra persona; «Ver completos» los muestra.",
     },
     {
+      id: "cambios-cuenta",
+      ancla: "proveedor-ficha.cambios-cuenta",
+      titulo: "Cambios de la cuenta",
+      texto: "Cada vez que alguien cambió la cuenta, el CCI, el Yape o el titular: qué cambió, cuándo y quién. Antes de pagar a una cuenta que cambió, confírmala con el proveedor por teléfono.",
+      opcional: true,
+    },
+    {
       id: "editar",
       ancla: "proveedor-ficha.editar",
       titulo: "Corregir sus datos",
@@ -1673,7 +1680,7 @@ export const GUIA_EDITAR_ORDEN: Guia = {
   ],
 };
 
-// Registrar el comprobante de una orden (ADR-0362, fase 2). Pantalla interna: se llega desde «Registrar comprobante» en la orden abierta y
+// Registrar el comprobante de una orden (ADR-0362, fase 2). Pantalla interna: se llega desde «Registrar la compra» en la orden abierta y
 // no se ofrece sola. Es dinero (deja una deuda por pagar, o un pago si es al contado), así que la guía solo EXPLICA: el único toque del
 // piloto es cambiar «Crédito» ↔ «Contado» para mostrar el bloque del pago, que es de pantalla y se deshace al salir. Nunca escribe un
 // ejemplo (ADR-0290: serie y número son los del papel de cada proveedor, no hay uno que valga para todos).
@@ -1683,7 +1690,7 @@ export const GUIA_EDITAR_ORDEN: Guia = {
 export const GUIA_COMPROBANTE_ORDEN: Guia = {
   id: "compras.ordenes.comprobante.id",
   ruta: "/compras/ordenes/comprobante/[id]",
-  titulo: "Registrar comprobante de orden",
+  titulo: "Registrar la compra de una orden",
   resumen: "Copiar el papel que dio el proveedor por lo que le pediste, o registrar la compra sin comprobante: lo que falta de la orden ya viene puesto.",
   pasos: [
     {
@@ -1762,9 +1769,9 @@ export const GUIA_COMPROBANTE_ORDEN: Guia = {
       id: "registrar",
       ancla: "comprobante.registrar",
       preparar: [{ tipo: "clic", ancla: "comprobante.credito" }],
-      titulo: "Registrar el comprobante",
+      titulo: "Registrar la compra",
       // Al registrar, la pantalla vuelve a la LISTA de órdenes con la orden marcada (`hrefOrdenGuardada`), no a la orden.
-      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta. «Registrar comprobante» (o «Registrar sin comprobante») deja la compra por pagar, o pagada si fue al contado, y vuelves a la lista. «Cancelar» sale sin guardar. En la demo no lo tocamos.",
+      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta. «Registrar la compra» (o «Registrar sin comprobante») deja la compra por pagar, o pagada si fue al contado, y vuelves a la lista. «Cancelar» sale sin guardar. En la demo no lo tocamos.",
     },
     {
       id: "fin",
@@ -2086,28 +2093,28 @@ export const GUIA_FONDOS: Guia = {
       ancla: "fondos.revisar",
       opcional: true,
       titulo: "Revisar una rendición",
-      texto: "Abre cada pago y gasto con su foto. Si falta plata y la persona explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda. No aprueba quien le entregó la plata ni la dueña. En la demo no la aprobamos.",
+      texto: "Abre cada pago y gasto con su foto. Si falta plata y explicó qué pasó, eliges si lo asume CAYLA o queda como su deuda; sin explicación es deuda, y la hoja dice en cuánto queda la suya. Quien le entregó la plata no la aprueba: puede revisarla y devolverla para que la corrija. En la demo no la aprobamos.",
     },
     {
       id: "cifras",
       ancla: "fondos.cifras",
       opcional: true,
       titulo: "Toda la empresa",
-      texto: "Cuánto tienen en la mano todas las personas juntas, cuánto les entregaste desde el primer fondo y cuánto devolvieron.",
+      texto: "Cuánto tienen en la mano todas las personas juntas, cuánto se entregó desde el primer fondo y cuánto devolvieron.",
     },
     {
       id: "lista",
       ancla: "fondos.lista",
       opcional: true,
       titulo: "Quién tiene plata",
-      texto: "Una fila por persona: su sede, para qué fue la última entrega, cuánto le entregaste, cuánto devolvió y lo que tiene en la mano. Si rindió y espera, o si debe por un faltante, lo dice debajo de su nombre.",
+      texto: "Una fila por persona: su sede, para qué fue la última entrega, cuánto se le entregó, cuánto devolvió y lo que tiene en la mano. Si rindió y espera, lo que dijo tener sale bajo su cifra; si debe por un faltante, lo dice bajo su nombre.",
     },
     {
       id: "devolver",
       ancla: "fondos.devolver",
       opcional: true,
       titulo: "Lo que devuelve",
-      texto: "Cuando te devuelve lo que sobró, lo registra quien recibe la plata (nunca quien la devuelve): a qué banco o caja fuerte volvió y cuánto. No puede devolver más de lo que tiene.",
+      texto: "Cuando te devuelve lo que sobró, lo registra quien recibe la plata (nunca quien la devuelve): a qué banco o caja fuerte volvió y cuánto. Si su rendición espera aprobación, la hoja dice cuánto le falta y hasta cuánto puede devolver.",
     },
     {
       id: "pagar-deuda",

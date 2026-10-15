@@ -26,6 +26,14 @@ describe("órdenes de insumos: un segundo clic en el mismo instante no vuelve a 
     expect(candadoAntesDe(f, "crearOrdenInsumo")).toEqual({ declara: true, revisaAntes: true, poneAntes: true, suelta: true });
     expect(f.indexOf("enVuelo.current = true;")).toBeLessThan(f.indexOf("await editarOrdenInsumo("));
   });
+  it("«Registrar comprobante» pone el candado antes de registrar el papel (fase 7 parte 2)", () => {
+    expect(candadoAntesDe(leer("components/ordenes-insumo/RegistrarComprobanteOrdenInsumo.tsx"), "registrarComprobanteOrdenInsumo")).toEqual({
+      declara: true,
+      revisaAntes: true,
+      poneAntes: true,
+      suelta: true,
+    });
+  });
   it("la hoja «Anular orden» pone el candado antes de anular", () => {
     expect(candadoAntesDe(leer("components/ordenes-insumo/AccionesOrdenInsumo.tsx"), "anularOrdenInsumo")).toEqual({
       declara: true,

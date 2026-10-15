@@ -181,16 +181,33 @@ describe("no re-traduce lo que las RPC ya dicen bien", () => {
 });
 
 describe("los bordes de red y el fallback", () => {
-  it("si no se llegó al servidor, lo dice y aclara que no se guardó nada", () => {
-    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar la venta");
-    expect(salida).toContain("No se guardó nada");
+  // ADR-0410: «Failed to fetch» sale igual si la petición nunca salió que si la base guardó y se perdió la respuesta
+  // (/chaos de Producción: un lote de insumo entró y la pantalla dijo «No se guardó nada»).
+  it.each(["TypeError: Failed to fetch", "NetworkError when attempting to fetch resource.", "Load failed", "TypeError: fetch failed", "AbortError: signal is aborted without reason"])(
+    "una escritura cortada (%s) no promete que no se guardó: pide revisar antes de repetir",
+    (message) => {
+      const salida = traducirError({ message }, "ingresar el insumo");
+      expect(salida).toBe(
+        "Se cortó la conexión mientras se intentaba ingresar el insumo: no podemos confirmar si llegó a guardarse. Antes de volver a intentarlo, revisa si ya aparece registrado."
+      );
+      expect(salida).not.toMatch(/no se guardó/i);
+    }
+  );
+
+  it("`confirmarAntesDeRepetir` ya es lo de siempre: misma frase con o sin la opción", () => {
+    const corte = { message: "TypeError: Failed to fetch" };
+    expect(traducirError(corte, "registrar el pago", { confirmarAntesDeRepetir: true })).toBe(traducirError(corte, "registrar el pago"));
   });
 
-  it("con dinero de por medio no afirma que no se guardó: pide revisar antes de repetir", () => {
-    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar el pago", { confirmarAntesDeRepetir: true });
-    expect(salida).not.toContain("No se guardó nada");
-    expect(salida).toContain("no podemos confirmar");
-    expect(salida).toContain("registrar el pago");
+  it("una lectura cortada dice solo que se cortó la conexión: no habla de guardar", () => {
+    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "cargar las prendas", { lectura: true });
+    expect(salida).toBe("No se pudo cargar las prendas: se cortó la conexión. Revisa el internet y vuelve a intentar.");
+    expect(salida).not.toMatch(/guard/i);
+  });
+
+  it("`lectura` no cambia lo que no es corte de red: la base respondió", () => {
+    const delaRpc = "No tienes permiso para ver esa caja";
+    expect(traducirError({ message: delaRpc, code: "P0001" }, "cargar la caja", { lectura: true })).toBe(delaRpc);
   });
 
   it("lo desconocido no se traga: cae con el texto crudo detrás de «Código:»", () => {
@@ -815,7 +832,7 @@ describe("montos de Ventas y Caja", () => {
   it("el vuelto de más y el monto que no es número", () => {
     expect(
       traducirError({ message: 'new row for relation "venta_pagos" violates check constraint "venta_pagos_recibido_con_tope"', code: "23514" }, "registrar la venta"),
-    ).toMatch(/vuelto pasa de S\/ 500/);
+    ).toMatch(/vuelto pasa de S\/\u00a0500/);
     expect(
       traducirError({ message: 'new row for relation "cajas" violates check constraint "cajas_montos_finitos"', code: "23514" }, "abrir la caja"),
     ).toMatch(/no es un número válido/);

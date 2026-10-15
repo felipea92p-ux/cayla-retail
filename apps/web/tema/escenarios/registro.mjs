@@ -912,15 +912,25 @@ ESCENARIOS.push(
         )}`,
       )(pagina),
   },
-  { id: "recibir.proveedor", ruta: "/recibir", cuentas: INVENTARIO, abre: "[role=listbox]", nombre: "Recibir · la lista de proveedores", preparar: clicRol("combobox", /Proveedor/i) },
+  // «¿De quién es?» es la lista de «Llegó mercadería» (fase 4) y la de «¿Llegó algo sin aviso?» (ADR-0393), según lo que tenga la base.
+  { id: "recibir.proveedor", ruta: "/recibir", cuentas: INVENTARIO, abre: "[role=listbox]", nombre: "Recibir · la lista de proveedores", preparar: clicRol("combobox", /Proveedor|De quién es/i) },
   {
     id: "recibir.prenda",
     ruta: "/recibir",
     cuentas: INVENTARIO,
-    nombre: "Recibir · una prenda buscada",
+    nombre: "Recibir · una prenda buscada (con ADR-0393: un proveedor elegido en «¿Llegó algo sin aviso?»)",
     async preparar(pagina) {
-      await pagina.getByPlaceholder(/Escanea o busca la prenda/i).first().fill("Vestido");
-      await esperar(pagina, 1800);
+      const buscador = pagina.getByPlaceholder(/Escanea o busca la prenda/i).first();
+      if (await buscador.count()) {
+        await buscador.fill("Vestido");
+        await esperar(pagina, 1800);
+        return;
+      }
+      // Con ADR-0393 la puerta no busca prendas (se cuentan en el envío): lo que cambia de cara es el proveedor elegido (y su factura).
+      await pagina.getByRole("combobox", { name: /De quién es/i }).first().click({ timeout: 8000 });
+      await esperar(pagina, 600);
+      await pagina.getByRole("option").first().click({ timeout: 8000 });
+      await esperar(pagina, 900);
     },
   },
 );
@@ -1095,6 +1105,21 @@ ESCENARIOS.push(
   { id: "fondos.pagar-deuda", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Registrar su pago» (la deuda de un faltante)", preparar: clicRol("button", /^Registrar su pago/i) },
   { id: "fondos.anular", ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Anular» un movimiento", preparar: clicRol("button", /^Anular$/) },
   { id: "fondos.revisar", soloPorId: true, ruta: "/compras/fondos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Fondos por rendir · «Revisar» una rendición (necesita una por aprobar)", preparar: clicRol("button", /^Revisar$/) },
+  // La lista de lo rendido que no se puede leer (decisión 81): la lectura falla SOLO en la red de la auditoría (no se toca la base), y la
+  // hoja dice que no pudo, con «Volver a intentar». `limpiar` quita la ruta.
+  {
+    id: "fondos.revisar-sin-lista",
+    soloPorId: true,
+    ruta: "/compras/fondos",
+    cuentas: ["admin"],
+    abre: "[role=dialog] >> text=No pude traer lo que rindió",
+    nombre: "Fondos por rendir · «Revisar» cuando la lista de lo rendido no se puede leer",
+    async preparar(pagina) {
+      await pagina.route(/\/rpc\/fn_rendicion_fondo_items/, (ruta) => ruta.fulfill({ status: 500, contentType: "application/json", body: '{"message":"simulada"}' }));
+      await clicRol("button", /^Revisar$/)(pagina);
+    },
+    limpiar: (pagina) => pagina.unroute(/\/rpc\/fn_rendicion_fondo_items/).catch(() => {}),
+  },
   { id: "ordenes.gasto-viaje", ruta: "/compras/ordenes", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Órdenes de compra · la hoja «Gasto del viaje»", preparar: clicRol("button", /Gasto del viaje/i) },
   {
     id: "ordenes.gasto-viaje-orden",
@@ -1105,6 +1130,20 @@ ESCENARIOS.push(
     preparar: secuencia(clicRol("button", /Gasto del viaje/i), clicRol("button", /Agregar una orden/i)),
   },
   { id: "ordenes.rendir", ruta: "/compras/ordenes", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Órdenes de compra · «Rendir» desde «Tu fondo»", preparar: clicRol("button", /^(Rendir|Ver tu rendición)/) },
+  // «Rendir» con la lista de lo que no se rindió sin poder leerse (decisión 81): falla solo en la red de la auditoría.
+  {
+    id: "ordenes.rendir-sin-lista",
+    soloPorId: true,
+    ruta: "/compras/ordenes",
+    cuentas: ["admin"],
+    abre: "[role=dialog] >> text=No pude traer la lista",
+    nombre: "Órdenes de compra · «Rendir» cuando la lista de lo que no se rindió no se puede leer",
+    async preparar(pagina) {
+      await pagina.route(/\/rpc\/fn_mi_ciclo_fondo/, (ruta) => ruta.fulfill({ status: 500, contentType: "application/json", body: '{"message":"simulada"}' }));
+      await clicRol("button", /^Rendir$/)(pagina);
+    },
+    limpiar: (pagina) => pagina.unroute(/\/rpc\/fn_mi_ciclo_fondo/).catch(() => {}),
+  },
   {
     id: "ordenes.traerla-costo",
     ruta: "/compras/ordenes/ver/[id]",
@@ -1133,6 +1172,8 @@ ESCENARIOS.push(
   { id: "oi.insumo", ruta: "/ordenes-insumos/nueva", cuentas: ["admin-taller"], abre: "[role=listbox]", nombre: "Nueva orden de insumos · la lista de «Insumo» (código y unidad)", preparar: async (pagina) => { await pagina.getByLabel("Insumo de la línea 1").click({ timeout: 8000 }); await esperar(pagina, 800); } },
   { id: "oi.anular", ruta: "/ordenes-insumos/ver/[id]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Órdenes de insumos · la hoja «Anular orden»", preparar: secuencia(async (pagina) => irA(`/ordenes-insumos/ver/${idDeOrdenInsumo()}`)(pagina), clicRol("button", /^Anular orden$/)) },
   { id: "oi.editar", ruta: "/ordenes-insumos/editar/[id]", cuentas: ["admin-taller"], abre: "h1", nombre: "Órdenes de insumos · «Editar OI-…»", preparar: async (pagina) => irA(`/ordenes-insumos/editar/${idDeOrdenInsumo()}`)(pagina) },
+  { id: "oi.comprobante", ruta: "/ordenes-insumos/comprobante/[id]", cuentas: ["admin-taller"], abre: "h1", nombre: "Órdenes de insumos · «Comprobante de OI-…» (el papel del proveedor)", preparar: async (pagina) => irA(`/ordenes-insumos/comprobante/${idDeOrdenInsumo()}`)(pagina) },
+  { id: "oi.recibir", ruta: "/produccion/recibir", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Recibir · la hoja de una orden de insumos", preparar: async (pagina) => { await pagina.locator('[data-guia="prod-recibir.ordenes"] button:not([disabled])').filter({ hasText: /^Recibir$/ }).first().click({ timeout: 8000 }); await esperar(pagina, 1200); } },
 );
 
 // ---------- «Nos debe» (ADR-0362, fase 5a) ----------
@@ -1215,6 +1256,57 @@ ESCENARIOS.push(
   { id: "actividad.persona", ruta: "/actividad", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Actividad · la lista «Persona»", preparar: clicRol("combobox", /^Persona/i) },
   { id: "actividad.hoy", ruta: "/actividad", cuentas: ["admin"], nombre: "Actividad · el período «Hoy»", preparar: clicRol("button", /^Hoy/i) },
   { id: "etiquetas.previa", ruta: "/etiquetas-de-precio", cuentas: ["admin"], abre: "input[aria-label^='Etiquetas de']", nombre: "Etiquetas de precio · la vista previa (papel fijo)", preparar: async (pagina) => { await irA(`/etiquetas-de-precio?producto=${idDeProductoCualquiera()}`)(pagina); await esperar(pagina, 2500); } },
+);
+
+// ---------- Recibir contando primero (ADR-0393) ----------
+// La cara A de `/recibir/envio/[id]`. Solo por id (`--escenario`): necesitan la base con las migraciones 20261013170000–183000 y un
+// envío de Trujillo abierto (contar, agregar, cerrar) o cerrado con algo para después («Para después», «Hacer ahora», reabrir). Los ve
+// Micaela (integrante, Trujillo, con Recibir). Sin ADR-0393 en la base, el escenario lo dice en vez de auditar la fase 4 en falso.
+const exigirAdr0393 = () => {
+  if (consultarLocal("select to_regclass('retail.despacho_pendientes') is not null") !== "t") {
+    throw new Error("la base local no tiene ADR-0393 (migraciones 20261013170000–183000): la pantalla del envío sigue siendo la de la fase 4");
+  }
+};
+const envioDeTrujillo = (condicion) => {
+  exigirAdr0393();
+  const id = consultarLocal(
+    `select d.id from retail.despachos d join retail.ubicaciones u on u.id = d.ubicacion_destino_id where u.nombre ilike '%trujillo%' and ${condicion} order by d.numero desc limit 1`,
+  );
+  if (!id) throw new Error(`no hay un envío de Trujillo que cumpla «${condicion}» en la base local`);
+  return id;
+};
+const ENVIO_ABIERTO = "d.estado = 'abierto'";
+// «Para después» tiene algo si hay un pendiente anotado (tallas o crear) o prendas sin separar (esas no se anotan: salen de las cuentas).
+const ENVIO_CON_PENDIENTES =
+  "d.estado = 'cerrado' and (exists (select 1 from retail.despacho_pendientes p where p.despacho_id = d.id and p.estado = 'pendiente') or exists (select 1 from retail.fn_envio_cuentas(array[d.id]) c where c.sin_separar > 0))";
+const irAlEnvio = (condicion) => async (pagina) => irA(`/recibir/envio/${envioDeTrujillo(condicion)}`)(pagina);
+// «Describir ahora» solo sale en la categoría que tiene nuevas sin describir: se elige un envío abierto que las tenga y se recorren sus
+// categorías (elegir una no guarda nada) hasta dar con el botón.
+// Felipe 2026-10-14: un envío sin aviso abierto que todavía no sabe de quién es (al cerrar pide «¿De quién llegó?»).
+const ENVIO_SIN_PROVEEDOR =
+  "d.estado = 'abierto' and exists (select 1 from retail.despachos_sin_aviso s where s.despacho_id = d.id and s.proveedor_id is null) and exists (select 1 from retail.despacho_conteos k where k.despacho_id = d.id)";
+const ENVIO_CON_NUEVAS =
+  "d.estado = 'abierto' and exists (select 1 from retail.despacho_conteos c, jsonb_array_elements(c.separado->'nuevas') n where c.despacho_id = d.id and n->>'descripcion' is null and (n->>'cantidad')::int > 0)";
+const abrirDescribir = async (pagina) => {
+  const boton = pagina.getByRole("button", { name: /Describir ahora/ }).first();
+  const categorias = pagina.locator('[data-guia="recepcion.categorias"] button.rc-cat-item');
+  for (let i = 0, n = await categorias.count(); i < n && !(await boton.isVisible().catch(() => false)); i++) {
+    await categorias.nth(i).click({ timeout: 8000 });
+    await esperar(pagina, 500);
+  }
+  await boton.click({ timeout: 8000 });
+  await esperar(pagina, 1100);
+};
+const RECEPCION = ["integrante"];
+ESCENARIOS.push(
+  { id: "recepcion.contar", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: '[data-guia="recepcion.categorias"]', nombre: "Recibir un envío · Contar (la lista y el contador)", preparar: irAlEnvio(ENVIO_ABIERTO) },
+  { id: "recepcion.agregar", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: "[role=dialog]", nombre: "Recibir un envío · la hoja «Agregar lo que llegó»", preparar: secuencia(irAlEnvio(ENVIO_ABIERTO), async (pagina) => { await pagina.locator('[data-guia="recepcion.agregar"]').first().click({ timeout: 8000 }); await esperar(pagina, 1100); }) },
+  { id: "recepcion.describir", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: "[role=dialog]", nombre: "Recibir un envío · la hoja «Describir lo nuevo»", preparar: secuencia(irAlEnvio(ENVIO_CON_NUEVAS), abrirDescribir) },
+  { id: "recepcion.de-quien", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: '[data-guia="recepcion.de-quien"]', nombre: "Recibir un envío · Cerrar sin proveedor («¿De quién llegó?»)", preparar: secuencia(irAlEnvio(ENVIO_SIN_PROVEEDOR), async (pagina) => { await pagina.locator('[data-guia="recepcion.pasar-a-cerrar"]').first().click({ timeout: 8000 }); await esperar(pagina, 1200); }) },
+  { id: "recepcion.cerrar", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: '[data-guia="recepcion.tabla-cierre"]', nombre: "Recibir un envío · Cerrar (la tabla y el pie)", preparar: secuencia(irAlEnvio(ENVIO_ABIERTO), async (pagina) => { await pagina.locator('[data-guia="recepcion.pasar-a-cerrar"]').first().click({ timeout: 8000 }); await esperar(pagina, 1200); }) },
+  { id: "recepcion.cerrado", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: '[data-guia="recepcion.para-despues"]', nombre: "Recibir un envío · cerrado, con «Para después»", preparar: irAlEnvio(ENVIO_CON_PENDIENTES) },
+  { id: "recepcion.hacer-ahora", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: "[role=dialog]", nombre: "Recibir un envío · la hoja «Hacer ahora» (separar)", preparar: secuencia(irAlEnvio(ENVIO_CON_PENDIENTES), clicRol("button", /^Hacer ahora$/)) },
+  { id: "recepcion.reabrir", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: "[role=dialog]", nombre: "Recibir un envío · la hoja «Reabrir»", preparar: secuencia(irAlEnvio(ENVIO_CON_PENDIENTES), clicRol("button", /Reabrir el conteo/)) },
 );
 
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el

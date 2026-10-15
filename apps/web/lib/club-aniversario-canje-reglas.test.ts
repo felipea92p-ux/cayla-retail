@@ -175,9 +175,9 @@ describe("filaDelVale: la fila de la caja", () => {
 
   it("«Vale de aniversario · S/ 30 · hasta el 30 nov» con «Usar vale»; puesto, «Quitar»", () => {
     const f = filaDelVale(disponible, false, false)!;
-    expect(`${f.destacado} · ${f.resto}`).toBe("Vale de aniversario · S/ 30 · hasta el 30 nov");
+    expect(`${f.destacado} · ${f.resto}`).toBe("Vale de aniversario · S/\u00a030 · hasta el 30 nov");
     expect(f.boton).toEqual({ texto: "Usar vale", primario: true, accion: "usar" });
-    expect(f.pildora).toEqual({ texto: "Usar vale S/ 30", accion: "usar" });
+    expect(f.pildora).toEqual({ texto: "Usar vale S/\u00a030", accion: "usar" });
     const puesto = filaDelVale(disponible, true, false)!;
     expect(puesto.boton).toEqual({ texto: "Quitar", primario: false, accion: "quitar" });
     expect(puesto.pildora).toEqual({ texto: "Quitar vale", accion: "quitar" });
@@ -198,23 +198,23 @@ describe("filaDelVale: la fila de la caja", () => {
 
   it("sin vale no hay fila; sin fecha, solo el monto", () => {
     expect(filaDelVale({ tipo: "nada" }, false, false)).toBeNull();
-    expect(filaDelVale({ ...disponible, vence: null, monto: 30.5 }, false, false)!.resto).toBe("S/ 30.50");
+    expect(filaDelVale({ ...disponible, vence: null, monto: 30.5 }, false, false)!.resto).toBe("S/\u00a030.50");
   });
 });
 
 describe("los textos", () => {
   it("el monto del vale y las líneas del pie, de «Venta registrada» y del papel", () => {
-    expect(solesDelVale(30)).toBe("S/ 30");
-    expect(solesDelVale(30.5)).toBe("S/ 30.50");
+    expect(solesDelVale(30)).toBe("S/\u00a030");
+    expect(solesDelVale(30.5)).toBe("S/\u00a030.50");
     expect(TEXTO_PIE_VALE).toBe("Vale de aniversario del club");
-    expect(ayudaPieVale(30, 30, 144.1)).toMatch(/S\/ 30 sobre toda la compra \(S\/144\.10\)/);
+    expect(ayudaPieVale(30, 30, 144.1)).toMatch(/S\/\u00a030 sobre toda la compra \(S\/144\.10\)/);
     expect(ayudaPieVale(30, 25, 25)).toMatch(/se usa S\/25\.00 y no queda saldo/);
     expect(textoValeCobrado(30)).toMatch(/^Vale de aniversario usado \(−S\/30\.00\)/);
     expect(textoValeEnElRecibo(30)).toBe("Incluye vale de aniversario del club: -30.00");
   });
 
   it("cuando se apaga solo o se corta la conexión, lo dice", () => {
-    expect(avisoValeApagado("sin_conexion", 30).titulo).toBe("Se quitó el vale de aniversario (S/ 30)");
+    expect(avisoValeApagado("sin_conexion", 30).titulo).toBe("Se quitó el vale de aniversario (S/\u00a030)");
     expect(avisoValeApagado("no_disponible", 30).detalle).toMatch(/volvió a su precio/);
     expect(valeSinConexion().detalle).toMatch(/no la duplica/);
   });

@@ -164,7 +164,9 @@ describe("«Sin comprobante», el cuarto tipo (decisión 50, Felipe 2026-10-12)"
       boton: "Registrar sin comprobante",
       sinIgv: "Sin comprobante no hay IGV: lo que pagaste es el costo.",
     });
-    expect(palabrasDelTipo("boleta")).toMatchObject({ total: "Total del papel", seccion: "Lo que dice el papel", boton: "Registrar comprobante" });
+    expect(palabrasDelTipo("boleta")).toMatchObject({ total: "Total del papel", seccion: "Lo que dice el papel", boton: "Registrar la compra" });
+    // Sin papel elegido todavía (la pantalla arranca así): no habla de «una comprobante», dice que elija.
+    expect(palabrasDelTipo("").sinIgv).toBe("Solo una factura suma el IGV aparte: elige qué papel te dieron.");
     expect(palabrasDelTipo("boleta").sinIgv).toBe("Una boleta no lleva IGV aparte: el costo del papel es el costo.");
     expect(palabrasDelTipo("factura").sinIgv).toBeNull();
   });
@@ -385,7 +387,7 @@ describe("problemaDeLinea: lo mismo que rechaza la función", () => {
     expect(problemaDeLinea(renglon({ costo: "12.345" }), CTX)).toMatch(/dos decimales/);
     expect(problemaDeLinea(renglon({ costo: "-1" }), CTX)).toMatch(/dos decimales/);
     expect(problemaDeLinea(renglon({ costo: "100000" }), CTX)).toMatch(/dos decimales/);
-    expect(problemaDeLinea(renglon({ costo: "1.500" }), CTX)).toMatch(/S\/ 1500/);
+    expect(problemaDeLinea(renglon({ costo: "1.500" }), CTX)).toMatch(/S\/\u00a01500/);
   });
   it("el precio de venta es opcional, pero si se escribe tiene que ser un monto", () => {
     expect(problemaDeLinea(renglon({ precioVenta: "" }), CTX)).toBeNull();
@@ -418,15 +420,27 @@ describe("fechas y pago", () => {
     const efectivo = { metodo: "efectivo", referencia: "" };
     expect(sumaDePago([{ ...efectivo, monto: "100.50" }, { ...efectivo, monto: "50" }])).toEqual({ centimos: 15050, problema: null });
     expect(problemaDePago([{ ...efectivo, monto: "150.50" }], 15050)).toBeNull();
-    expect(problemaDePago([{ ...efectivo, monto: "150.49" }], 15050)).toMatch(/Al contado el pago es el total \(S\/ 150\.50\); vas en S\/ 150\.49/);
+    expect(problemaDePago([{ ...efectivo, monto: "150.49" }], 15050)).toMatch(/Al contado el pago es el total \(S\/\u00a0150\.50\); vas en S\/\u00a0150\.49/);
     expect(problemaDePago([], 15050)).toBe("Agrega el medio de pago.");
     expect(problemaDePago([{ ...efectivo, monto: "" }], 15050)).toMatch(/mayor a cero/);
     expect(problemaDePago([{ ...efectivo, monto: "0" }], 15050)).toMatch(/mayor a cero/);
     expect(problemaDePago([{ ...efectivo, monto: "10.555" }], 15050)).toMatch(/dos decimales/);
+    // El medio no viene puesto (Felipe 2026-10-13, /formidable): sin elegirlo, el pago no está listo aunque el monto cuadre.
+    expect(problemaDePago([{ monto: "150.50", metodo: "", referencia: "" }], 15050)).toMatch(/Elige con qué se pagó/);
   });
 });
 
 describe("la guía de foco sale de las reglas de la función", () => {
+  it("la pantalla arranca el tipo y la condición VACÍOS: son lo que falta y bloquean hasta elegirlos (Felipe 2026-10-13)", () => {
+    const vacio = camposDelComprobante(borrador({ tipo: "", condicion: "" }), CTX, { tipo: false, condicion: false }, SIN_TERMINAL);
+    expect(vacio.find((c) => c.id === "tipo")).toMatchObject({ requerido: true, hecho: false, pendiente: expect.stringMatching(/^Elige qué papel/) });
+    expect(vacio.find((c) => c.id === "condicion")).toMatchObject({ requerido: true, hecho: false, pendiente: expect.stringMatching(/^Elige si lo pagas/) });
+    // Sin condición no entran ni el vencimiento ni el pago; sin tipo, el total no suma IGV (es el de la orden).
+    expect(vacio.map((c) => c.id)).not.toContain("vencimiento");
+    expect(vacio.map((c) => c.id)).not.toContain("pago");
+    expect(primerProblema(borrador({ tipo: "", condicion: "" }), CTX)).toMatch(/^Elige qué papel/);
+    expect(totalesComprobante(borrador().lineas, { tipo: "", sumaIgv: true }).igvCentimos).toBe(0);
+  });
   it("tipo y condición traen un valor que importa: son «sugeridos» hasta que la persona los elige, y nunca bloquean", () => {
     const sinElegir = camposDelComprobante(borrador(), CTX, { tipo: false, condicion: false }, SIN_TERMINAL);
     const tipo = sinElegir.find((c) => c.id === "tipo")!;
@@ -527,6 +541,7 @@ describe("lo que viaja a la base", () => {
     expect(pagoParaBase([{ monto: "0", metodo: "efectivo", referencia: "" }])).toBeNull();
     expect(pagoParaBase([{ monto: "10.555", metodo: "efectivo", referencia: "" }])).toBeNull();
     expect(pagoParaBase([{ monto: "10", metodo: "efectivo", referencia: "" }, { monto: "x", metodo: "yape", referencia: "" }])).toBeNull();
+    expect(pagoParaBase([{ monto: "10", metodo: "", referencia: "" }])).toBeNull();
   });
   it("a crédito: con vencimiento y sin pago; el IGV se suma solo en una factura que lo pide", () => {
     const args = argsRegistrarComprobante(borrador({ serie: " f001 ", numero: " 123 ", nota: " Llegó en bolsa " }), { ordenId: ORDEN, token: TOKEN, pago: [{ monto: 1, metodo: "efectivo" }] });
@@ -613,8 +628,8 @@ describe("lo que vuelve de la base", () => {
     expect(resumenDeAvisos(muchos)?.detalle).toMatch(/Prenda 3: 2 unidades que no estaban en la orden · y 2 más\./);
   });
   it("dice qué quedó: por pagar o pagado al contado", () => {
-    expect(detalleDeRegistro("OC-000129", { total: 1486.8, saldo: 1486.8 })).toBe("OC-000129 · Queda en Por pagar S/ 1,486.80");
-    expect(detalleDeRegistro("OC-000129", { total: 1486.8, saldo: 0 })).toBe("OC-000129 · Pagado al contado S/ 1,486.80");
+    expect(detalleDeRegistro("OC-000129", { total: 1486.8, saldo: 1486.8 })).toBe("OC-000129 · Queda en Por pagar S/\u00a01,486.80");
+    expect(detalleDeRegistro("OC-000129", { total: 1486.8, saldo: 0 })).toBe("OC-000129 · Pagado al contado S/\u00a01,486.80");
   });
 });
 
@@ -626,6 +641,10 @@ describe("cortes de señal y otros envíos", () => {
   it("reconoce cuando la base dice que ese envío ya se guardó con otros datos", () => {
     expect(esEnvioConOtrosDatos("Ese envío ya se guardó con otros datos: recarga la pantalla")).toBe(true);
     expect(esEnvioConOtrosDatos("Ese comprobante ya está registrado")).toBe(false);
+    // El `token_reusado` de la base: tras un corte, la persona corrigió algo y reintentó (/chaos 2026-10-14): también ofrece «Recargar».
+    expect(
+      esEnvioConOtrosDatos("Lo que mandas ahora no es lo que se mandó la primera vez. Revisa si el envío anterior se guardó antes de volver a intentar."),
+    ).toBe(true);
     expect(esEnvioConOtrosDatos(null)).toBe(false);
   });
 });

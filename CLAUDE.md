@@ -159,7 +159,7 @@ efecto del sistema: velo con desenfoque → hoja que sube 18 px y crece → cont
 55 ms de desfase) → salida corta.** No definas otra animación de entrada de modal ni reimplementes el overlay
 (`fixed inset-0`): si una pieza no debe entrar en cascada, `data-sin-cascada`. Lo único que un modal agrega por su cuenta
 son respuestas a una acción dentro del contenido (barra que se llena, cifra que cuenta, «visto» que se dibuja) con
-`--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida», el giro del botón mientras la base responde y las rayas
+`--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, todas señales y no adorno: el punto que late en el chip «Vencida», el hilo que barre el botón mientras la base responde (antes, su giro; ronda 12 de `/unificar`) y las rayas
 del círculo punteado de un campo opcional en la guía de foco, ADR-0136 act. c; y, solo en la persiana de «Caja cerrada» de Vender, el
 cartel que se mece al colgarse y sus bucles suaves, ADR-0136 act. d / ADR-0301; y, en el Observatorio del Admin, el latido de una
 tienda con caja abierta, el cometa de un traslado en camino y el halo de un aviso urgente, ADR-0322; y la **vista rápida de producto** de
@@ -200,14 +200,14 @@ importa desde ambos lados.
 **El ERP usa la guía oficial «CAYLA Dynamic»: los colores salen SOLO de los tokens de `apps/web/app/globals.css`**
 (crema, papel, tinta, rojo, rojo-profundo, sand, taupe, verde, ámbar, hueso, pizarra). Nunca un hex suelto. Pantalla nueva
 o rediseñada: cabecera → cifras (`TarjetaCifra`) → filtros y tabla en UNA tarjeta (`Tabla`, `caja` en los campos,
-`pildora-cayla`) → nota en hueso (`nota-cayla`). **La cabecera es la de su módulo:** en Ventas, Inventario y Catálogo ▸
-Productos (esta última desde el 2026-09-28, ADR-0254; el resto de Catálogo sigue sin decidir),
+`pildora-cayla`) → nota en hueso (`nota-cayla`). **La cabecera es una sola en todo el ERP menos Finanzas (Felipe 2026-10-14,
+`/unificar`, ADR-0358 y ADR-0220 act.):**
 `<EncabezadoPagina>` (`components/ui/EncabezadoPagina.tsx`: sede y fecha arriba con el hilo taupe → título de 46 px con el
 nombre del menú, nunca la sede → frase; a la derecha, las cifras o el reloj y, si la pantalla no los tiene, sus acciones
 (prop `acciones`: bajan solas bajo la frase si la derecha está ocupada); la vuelta es una flecha a la izquierda de la línea de
-sede (`volver={<Volver href a />}`, Felipe 2026-10-06; desde la tarde de ese día es la única cara de la vuelta en todo el ERP, ADR-0358) y bajo la frase van solo estados; ADR-0220 y sus actualizaciones);
-en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). En cualquier otro módulo la cabecera está sin decidir:
-pregúntale a Felipe antes de elegir. Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
+sede (`volver={<Volver href a />}`, Felipe 2026-10-06; desde la tarde de ese día es la única cara de la vuelta en todo el ERP, ADR-0358) y bajo la frase van solo estados (`pie`);
+la frase es opcional y lo que diga de dónde se llegó («Productos · Blusa Emma») va tras la fecha (`detalle`); ADR-0220 y sus actualizaciones);
+solo en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). Lo vigila `lib/unificar.test.ts` (`titulo-pagina`). Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
 contraste medido y lo que quedó fuera (formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`. **El modo oscuro entró el
 2026-10-05 sobre esos mismos tokens: ver «Modo oscuro» más abajo.**
@@ -282,13 +282,16 @@ se parecen, no está terminada. Lo que se aparta del spike a propósito queda es
 respuesta.** Se usa SIEMPRE al cargar una pantalla, al presionar un botón que guarda y al cambiar de sede — y se activa solo:
 parchea `window.fetch` y `lib/espera-reglas.ts` (`clasificarPeticion`, lógica pura y testeada) decide qué es `'carga'` o
 `'guardado'`. **No construyas otro overlay de carga a pantalla completa ni dejes un «Cargando…» suelto**; un botón o una
-pantalla nueva no tiene que hacer nada para tenerlo. Los botones conservan su giro «Guardando…» (el loader se suma), y un
+pantalla nueva no tiene que hacer nada para tenerlo. Los botones conservan su «Guardando…» con el hilo (`<Boton cargando>`, ronda 12 de `/unificar`; el loader se suma), y un
 `Suspense` de una sección dentro de una pantalla sigue siendo esqueleto parcial, no el loader global.
 **El aviso de éxito (`avisar.*`, esquina superior derecha) sale DESPUÉS del loader, nunca encima** (`lib/espera-estado.ts`): el
 loader dice «espera, se está procesando» y el aviso dice «listo, se guardó bien». Mientras haya una petición en curso o el
 loader esté a la vista, ningún aviso se pinta; al liberarse aparecen. Nadie tiene que coordinarlos: se llama
 `avisar.exito(...)` en el mismo instante en que responde la base y el aviso sale solo. Un guardado tan rápido que el loader ni
-llega a verse (< 200 ms) muestra su aviso apenas termina. Detalle en la «Actualización 2026-09-21» del ADR-0149.
+llega a verse (< 200 ms) muestra su aviso apenas termina. **Un aviso que ya se vio no vuelve** si otra petición ocupa la
+pantalla (volvería con reloj nuevo y un «Deshacer» viejo), **un aviso con botón dura 7 s como mínimo**, y **un clic en un aviso no cierra la hoja
+ni el cajón abierto**: la pila es rama (`DismissableLayer.Branch`) de toda capa de Radix, sin que ninguna hoja haga nada
+(`lib/avisos-reglas.ts`, `lib/hojas-avisos.test.ts`; ADR-0146 act. 2026-10-14). Detalle en la «Actualización 2026-09-21» del ADR-0149.
 
 Para lo que no pasa por `fetch`: `useEsperando(activo, mensaje?)` (hook), `esperar(mensaje?) → fin()` (imperativo) y
 `<EsperaPantalla />` en cada `loading.tsx`. Una petición que no debe bloquear lleva el header `x-espera: no`. **Al agregar una
@@ -527,10 +530,14 @@ dice si se unifica. Detalle: `docs/adr/0358-unificar-una-funcion-una-pieza.md` y
 | Avatares (`avatar`) | `<AvatarPersona tamano={24|32|40|80} deTurno terminal>` y `<PilaPersonas mas>`: iniciales en serif sobre arena, la foto que entra con un fundido, el punto verde de turno, la pila que se abre. Nunca un círculo de iniciales a mano | 2026-10-13 |
 | Descargar un archivo (`accion.exportar`) | `<BotonDescargar href \| onClick cargando chico>` (`components/ui/BotonDescargar.tsx`): «Descargar» + qué («Descargar Excel», «Descargar el mes»), el secundario con el ícono de descarga que baja 2 px al pasar el mouse y el hilo mientras se arma el archivo; con `href`, `<a download>` (sin loader). Nunca «Exportar» ni solo un ícono | 2026-10-13 |
 | Abrir los filtros (`accion.filtrar`) | `<BotonFiltros abierto activos soloIcono>` (`components/ui/FiltrosPildora.tsx`): una píldora más («Filtros» en letra normal; abierta, borde tinta y la flecha roja), cuántos hay puestos en el globito de los títulos; `soloIcono`: en el celular, el ícono con su punto. Nunca un botón de filtros a mano ni «Filtros · 2» escrito | 2026-10-13 |
-| Ver en otra pantalla (`accion.ver`) | `<BotonVer href alNavegar \| onClick chico>` (`components/ui/BotonDescargar.tsx`): el secundario con la flecha que avanza 4 px. Nunca negro ni con «→» escrito; en una frase, el enlace; junto a un resumen, `<EnlaceVer>`; la acción de un vacío sigue negra | 2026-10-13 |
+| Ver en otra pantalla (`accion.ver`) | `<BotonVer href alNavegar \| onClick chico>` (`components/ui/BotonDescargar.tsx`): el secundario con la flecha que avanza 4 px. Nunca negro ni con «→» escrito; en una frase, el enlace; junto a un resumen, `<EnlaceVer>`; al lado de una fila de una lista (los pendientes de Caja), `btn-cayla btn-enlace`; la acción de un vacío sigue negra | 2026-10-13 · 2026-10-14 |
 | Cancelar y el pie de una hoja (`accion.cancelar`) | La clase `pie-acciones` (o `<PieAcciones izquierda>`, `components/ui/PieAcciones.tsx`): «Cancelar» es `<Boton peso="fantasma">` (o `btn-cayla btn-secundario`) a su medida, ANTES del botón que guarda, los dos a la derecha; lo que borra va solo a la izquierda (`izquierda` o `mr-auto`); en el celular, mitades. Combina con `pie-hoja-fijo`. Nunca un «Cancelar» a media fila en escritorio, sutil, en versalitas ni después de «Guardar» | 2026-10-14 |
 | Limpiar los filtros (`accion.limpiar`) | `<FiltroPuesto onQuitar etiqueta>` (cada filtro puesto: la píldora de los vacíos, tinta con su ✕) y `<BotonLimpiar>` («Limpiar todo» o «Limpiar filtros»: una píldora punteada con el embudo tachado), `components/ui/FiltrosPuestos.tsx`. En la hoja de filtros del celular, «Limpiar» es el secundario; en el calendario o dentro de una frase, `btn-enlace`. Nunca «Quitar filtros» ni versalitas a mano | 2026-10-14 |
-| Imprimir (`accion.imprimir`) | `<BotonImprimir href \| onClick peso chico>` (`components/ui/BotonImprimir.tsx`): la impresora a la izquierda y «Imprimir» + qué («Imprimir ticket», «Imprimir la orden»); `peso="primario"` solo si imprimir ES el paso de esa pantalla; «o guardar en PDF» va en la frase de al lado o en su `title`. Nunca un `<Printer>` a mano ni «Imprimir o guardar PDF» | 2026-10-14 |
+| Imprimir (`accion.imprimir`) | `<BotonImprimir href \| onClick peso chico>` (`components/ui/BotonImprimir.tsx`): la impresora a la izquierda y «Imprimir» + qué («Imprimir ticket», «Imprimir la orden»); `peso="primario"` solo si imprimir ES el paso de esa pantalla; «o guardar en PDF» va en la frase de al lado o en su `title`. La impresora es solo de lo que imprime ya: «Etiquetas», que lleva a su pantalla, lleva la etiqueta (`<Tag>`). Nunca un `<Printer>` a mano ni «Imprimir o guardar PDF» | 2026-10-14 |
+| La cabecera de una pantalla (`titulo-pagina`) | `<EncabezadoPagina sede titulo subtitulo acciones volver detalle pie>` en toda pantalla menos Finanzas (ver «Paleta y orden de pantalla»); `<CabeceraPantalla>` solo en Finanzas. Nunca un `<h1>` en la serif dibujado a mano | 2026-10-14 |
+| Mientras guarda (`accion.guardar`) | `<Boton cargando>` (también `BotonCompacto` y los botones del flujo del mostrador): la palabra pasa a «Guardando…» (u otro verbo con `textoCargando`: «Anulando…», «Desactivando…»), corre el hilo y el botón se apaga, sin cambiar de ancho. Todo botón que guarda pasa `cargando` (también en `false`). Nunca `{guardando ? "Guardando…" : …}` a mano ni una rueda que gira | 2026-10-14 |
+| Editar algo (`accion.editar`) | `<BotonEditar href \| onClick chico>` (`components/ui/BotonEditar.tsx`): el secundario con el lápiz, nunca negro; en una fila o una tarjeta de una lista (muchas iguales), `<LapizEditar que href \| onClick>`: el lápiz solo de 32 px con «Editar <que>» para el lector; dentro de una frase o de una hoja, el enlace. Nunca un `<Pencil>` a mano | 2026-10-14 |
+| Las hojas (`modal`) | `<Modal>` con UNA cara (papel, sin sombra, título serif de 24 px, la frase en taupe), un ancho con nombre (`tamano="angosta"` 448 —el de fábrica—, `"mediana"` 576, `"ancha"` 768; `ancho` a medida solo en una hoja de diseño propio, con su `unificar-fijo`) y **una salida a la vista**: `conCerrar` (la ×) si la hoja solo se lee, «Cancelar» en su pie si guarda, nunca las dos (si cambia de modo, `conCerrar={modo === "ver"}`) | 2026-10-14 |
 
 ## Guías interactivas: una demo por pantalla, siempre al día (regla — ADR-0389, Felipe 2026-10-07)
 

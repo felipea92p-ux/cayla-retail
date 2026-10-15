@@ -290,8 +290,13 @@ export const ETIQUETA_MOTIVO_NOTA: Record<string, string> = {
   otro: "Otro",
 };
 
+/**
+ * «S/ 1,234.50». Entre «S/» y la cifra va un espacio que no se parte (`\u00a0`, como lo escribe el propio `Intl` en es-PE): un renglón
+ * nunca deja «S/» sola al final y la cifra en el siguiente («su deuda pasa de S/ ⏎ 25.00»). Así se escribe todo monto del ERP
+ * (`lib/montos-sin-corte.test.ts`, ADR-0413).
+ */
 export function soles(n: number): string {
-  return `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function fechaCorta(iso: string | null): string {

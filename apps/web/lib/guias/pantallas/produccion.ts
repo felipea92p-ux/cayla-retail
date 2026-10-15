@@ -20,16 +20,16 @@ export const GUIA_PROD_RESUMEN: Guia = {
       texto: "Esta es la mirada del líder sobre el Taller: qué está urgente, qué modelos conviene producir y si alcanza la tela. Todo sale de las órdenes, los insumos y las ventas de las tiendas. Es una demo: no se abre ni se paga nada.",
     },
     {
-      id: "miradas",
-      ancla: "produccion.miradas",
-      titulo: "Hoy y Eficiencia",
-      texto: "«Hoy» es esta pantalla: lo que hay que decidir. «Eficiencia» te lleva a cuánto cuesta de verdad cada prenda que sale del Taller, período a período.",
-    },
-    {
       id: "acciones",
       ancla: "prod-resumen.acciones",
       titulo: "Ir a las órdenes",
       texto: "«Ver órdenes» abre el tablero de lo que se está fabricando; «Nueva orden» te lleva ahí mismo con la ventana para abrir una corrida. Te llevan a otra pantalla, así que en la demo no los tocamos.",
+    },
+    {
+      id: "miradas",
+      ancla: "produccion.miradas",
+      titulo: "Hoy y Eficiencia",
+      texto: "«Hoy» es esta pantalla: lo que hay que decidir. «Eficiencia» te lleva a cuánto cuesta de verdad cada prenda que sale del Taller, período a período.",
     },
     {
       id: "cifras",
@@ -269,7 +269,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "resumen",
       ancla: "prod-orden-nueva.resumen",
       titulo: "La orden, tal como va quedando",
-      texto: "A la derecha ves la orden mientras la armas: la prenda, cuántas son, a cuánto se vende, el costo y el margen que queda, y la fecha. El costo por prenda se calcula solo: 12 prendas con S/ 240 de costo salen a S/ 20 cada una.",
+      texto: "A la derecha ves la orden mientras la armas: la prenda, cuántas son, a cuánto se vende, el costo y el margen que queda, y la fecha. El costo por prenda se calcula solo: 12 prendas con S/\u00a0240 de costo salen a S/\u00a020 cada una.",
     },
     {
       id: "entrega",
@@ -397,23 +397,38 @@ export const GUIA_PROD_RECIBIR: Guia = {
   id: "produccion.recibir",
   ruta: "/produccion/recibir",
   titulo: "Recibir insumos",
-  resumen: "Anotar la tela y los avíos que llegan al Taller contra la factura del proveedor.",
+  resumen: "Anotar la tela y los avíos que llegan al Taller contra su orden de insumos o contra la factura del proveedor.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "Lo que llega al Taller",
-      texto: "Cuando un proveedor trae tela o avíos, aquí lo anotas contra su factura. Solo se ven cantidades, no dinero. Cada cosa que llega abre un lote en Insumos. Es una demo: no se recibe nada.",
+      texto: "Cuando un proveedor trae tela o avíos, aquí lo anotas contra su orden de insumos o contra su factura. Contra una orden ves también su costo, para corregirlo si el papel dice otro. Cada cosa que llega abre un lote en Insumos. Es una demo: no se recibe nada.",
     },
     {
       id: "cifras",
       ancla: "prod-recibir.cifras",
       titulo: "Lo que falta llegar",
-      texto: "Cuántas facturas esperan mercadería, cuántos insumos todavía no llegan y cuántas facturas llegaron solo en parte.",
+      texto: "Cuántos pedidos (órdenes de insumos y facturas) esperan mercadería, cuántos insumos todavía no llegan y cuántos llegaron solo en parte.",
+    },
+    {
+      id: "ordenes",
+      ancla: "prod-recibir.ordenes",
+      opcional: true,
+      titulo: "Órdenes de insumos por recibir",
+      texto: "Lo que se pidió con una orden de insumos y todavía no llega, aunque su factura no haya llegado. Debajo, cada insumo con lo que queda; «fuera de la orden» es algo que trajo su factura sin estar pedido, y también se recibe aquí.",
+    },
+    {
+      id: "orden",
+      ancla: "prod-recibir.orden",
+      opcional: true,
+      titulo: "Recibir una orden",
+      texto: "«Recibir» abre la hoja para anotar cuánto llegó de cada insumo, con el costo de esa orden (lo corriges si el papel dice otro) y el código de lote si lo trae; si el resto no va a llegar, lo marcas con su motivo. Quien hizo la orden no la recibe. En la demo no lo tocamos.",
     },
     {
       id: "lista",
       ancla: "prod-recibir.lista",
+      opcional: true,
       titulo: "Facturas por recibir",
       texto: "Cada factura del proveedor con lo que todavía falta, de la que lleva más tiempo esperando a la más nueva. Si no hay ninguna, es que nadie registró una factura de tela o avíos: se registra primero en Facturas de insumos.",
     },
@@ -942,6 +957,13 @@ export const GUIA_ORDENES_INSUMO: Guia = {
       texto: "Toca una fila y la orden se abre en una ventana encima de la lista, sin perder tu búsqueda: ahí la lees, la imprimes o la guardas en PDF para el proveedor, la editas o la anulas. Cierras con la ✕ o Escape y vuelves aquí.",
     },
     {
+      id: "nos-debe",
+      ancla: "oi-lista.nos-debe",
+      opcional: true,
+      titulo: "Lo que el proveedor nos debe",
+      texto: "Si algo de una orden no va a llegar, el Taller lo anota al recibir: la fila dice «Nos debe» y cuánto, a su costo. Lo ves completo al abrir la orden.",
+    },
+    {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
@@ -970,7 +992,7 @@ const PASOS_FORMULARIO_OI = {
     ancla: "oi-form.linea",
     opcional: true,
     titulo: "Cada línea",
-    texto: "El insumo (por su nombre o su código), una descripción si ayuda, la cantidad en su unidad con hasta tres decimales (12.5 metros) y el precio por esa unidad con hasta cuatro (un botón a S/ 0.0350). El descuento va en % o en soles; al lado, el subtotal. La ✕ quita la línea.",
+    texto: "El insumo (por su nombre o su código), una descripción si ayuda, la cantidad en su unidad con hasta tres decimales (12.5 metros) y el precio por esa unidad con hasta cuatro (un botón a S/\u00a00.0350). El descuento va en % o en soles; al lado, el subtotal. La ✕ quita la línea.",
   },
   unidadCambiada: {
     id: "unidad-cambiada",
@@ -1028,7 +1050,7 @@ export const GUIA_ORDEN_INSUMO: Guia = {
   id: "ordenes-insumos.ver.id",
   ruta: "/ordenes-insumos/ver/[id]",
   titulo: "Una orden de insumos",
-  resumen: "Lo que se le pidió a un proveedor del Taller: para imprimirla, corregirla o anularla.",
+  resumen: "Lo que se le pidió a un proveedor del Taller: para imprimirla, registrar su papel, corregirla o anularla.",
   pasos: [
     {
       id: "bienvenida",
@@ -1056,6 +1078,55 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       texto: "Una fila por insumo: su nombre y su código, cuánto en su unidad, el precio de cada una (con cuatro decimales si los usa), el descuento y el subtotal. Abajo, cuánto se pidió de cada unidad y el total.",
     },
     {
+      id: "papel-linea",
+      ancla: "oi.papel-linea",
+      opcional: true,
+      titulo: "Cuánto llegó en papel",
+      texto: "Si la orden ya tiene papel, cada línea dice cuánto llegó ya en comprobantes («10 de 12.5 metros»): en verde si llegó todo, en ámbar si el papel trae más de lo pedido.",
+    },
+    {
+      id: "recibido-linea",
+      ancla: "oi.recibido-linea",
+      opcional: true,
+      titulo: "Cuánto llegó al Taller",
+      texto: "Si ya llegó algo, cada línea dice cuánto entró al Taller («10 de 12.5 metros»), contra lo pedido o lo facturado, lo que sea más. Lo que falta se recibe en Producción ▸ Recibir.",
+    },
+    {
+      id: "no-llego-linea",
+      ancla: "oi.no-llego-linea",
+      opcional: true,
+      titulo: "Lo que no llegó de cada línea",
+      texto: "Si el Taller anotó que el resto de una línea no va a llegar, la línea lo dice en ámbar («No llegó: 4.5 metros»): ya no se espera.",
+    },
+    {
+      id: "fuera-de-orden",
+      ancla: "oi.fuera-de-orden",
+      opcional: true,
+      titulo: "Lo que no estaba en la orden",
+      texto: "Si un papel trajo algo que no se pidió, aparece aquí con su papel y su monto, y cuánto llegó al Taller o si no va a llegar. Por eso un papel puede sumar más que la orden.",
+    },
+    {
+      id: "comprobantes",
+      ancla: "oi.comprobantes",
+      opcional: true,
+      titulo: "Sus comprobantes",
+      texto: "Los papeles que el proveedor dio por esta orden, del más reciente al más antiguo, con su total y si siguen vigentes. Mientras tenga uno vigente, la orden no se edita ni se anula. Si el papel está mal, tu líder lo anula y lo vuelves a registrar, salvo que lo que respalda ya haya llegado o se haya anotado.",
+    },
+    {
+      id: "no-llego",
+      ancla: "oi.no-llego",
+      opcional: true,
+      titulo: "Lo que el proveedor nos debe",
+      texto: "Cada cosa que no va a llegar, con su motivo, quién lo anotó y su costo, y abajo el total que el proveedor nos debe. Queda anotado en la orden.",
+    },
+    {
+      id: "recibido",
+      ancla: "oi.recibido",
+      opcional: true,
+      titulo: "Con insumos recibidos",
+      texto: "Si ya llegaron insumos de esta orden al Taller, ya no se edita ni se anula: lo recibido es stock. Si hay que pedir otra cosa, se hace otra orden.",
+    },
+    {
       id: "versiones",
       ancla: "oi.versiones",
       opcional: true,
@@ -1072,7 +1143,7 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       id: "acciones",
       ancla: "oi.acciones",
       titulo: "Lo que haces con ella",
-      texto: "Los botones de esta orden. Mientras esté generada la puedes imprimir, corregir o anular; una anulada solo se imprime.",
+      texto: "Los botones de esta orden. Mientras esté generada la puedes imprimir, registrar su papel, corregir o anular; una anulada solo se imprime.",
     },
     {
       id: "imprimir",
@@ -1085,7 +1156,14 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       ancla: "oi.editar",
       opcional: true,
       titulo: "Corregirla",
-      texto: "«Editar» abre la orden en su formulario para corregirla, solo mientras está generada. Te lleva a otra pantalla, así que en la demo no lo tocamos.",
+      texto: "«Editar» abre la orden en su formulario para corregirla, solo mientras está generada, sin papel y sin nada recibido. Te lleva a otra pantalla, así que en la demo no lo tocamos.",
+    },
+    {
+      id: "registrar-comprobante",
+      ancla: "oi.registrar-comprobante",
+      opcional: true,
+      titulo: "Registrar su comprobante",
+      texto: "Cuando llega el papel del proveedor (o si no te dio ninguno), «Registrar la compra» lo copia con lo que falta de la orden ya puesto. Te lleva a otra pantalla, así que en la demo no lo tocamos.",
     },
     {
       id: "anular",
@@ -1099,6 +1177,112 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes leer una orden de insumos. Si la abriste desde la lista, la ✕ o Escape te devuelven a ella. Para repasarlo: Mi perfil ▸ Demo ▸ Una orden de insumos.",
+    },
+  ],
+};
+
+// El papel de una orden de insumos (ADR-0362, fase 7 parte 2 · actividad 1). Pantalla interna: se llega desde «Registrar la compra» en
+// la orden abierta y no se ofrece sola. Registrar deja una deuda, así que la guía solo EXPLICA y el piloto no toca nada: ni elige el tipo ni
+// escribe una serie (ADR-0290: es la del papel del proveedor, no hay una que valga para todos), ni elige cómo se paga: desde /formidable
+// (2026-10-14) nada viene puesto, y una demo que eligiera «Contado» para mostrar el pago dejaría elegido algo que la persona no eligió.
+export const GUIA_COMPROBANTE_ORDEN_INSUMO: Guia = {
+  id: "ordenes-insumos.comprobante.id",
+  ruta: "/ordenes-insumos/comprobante/[id]",
+  titulo: "Registrar comprobante de insumos",
+  resumen: "Copiar el papel que dio el proveedor del Taller por una orden, o registrar la compra sin comprobante: lo que falta de la orden ya viene puesto.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Copiar el papel del proveedor",
+      texto: "Aquí registras el papel que el proveedor del Taller te dio por una orden: factura, boleta o nota de venta; si no te dio ninguno, «sin comprobante». Lo que falta de la orden ya viene puesto y tú corriges lo que no coincida. Es una demo: no se registra nada.",
+    },
+    {
+      id: "anulada",
+      ancla: "oi-comprobante.anulada",
+      opcional: true,
+      titulo: "Una anulada no recibe papel",
+      texto: "Esta orden está anulada: ya no se le registra comprobante. «Ver la orden» la abre; si todavía hace falta pedir eso, crea una orden nueva.",
+    },
+    {
+      id: "cifras",
+      ancla: "oi-comprobante.cifras",
+      titulo: "El total del papel, al día",
+      // «Arriba», sin «a la derecha»: en un celular la cifra baja bajo el título, a la izquierda.
+      texto: "Arriba se va sumando el total de lo que copias, para compararlo con el total impreso en el papel antes de registrar. Sin comprobante, es el total de la compra.",
+    },
+    {
+      id: "aviso",
+      ancla: "oi-comprobante.aviso",
+      opcional: true,
+      titulo: "Si ya hay papel registrado",
+      texto: "Si la orden ya tiene comprobantes, aquí te avisa. Abajo viene solo lo que todavía no llegó en papel; si ya llegó todo, otro papel se acepta y lo que pase de lo pedido queda avisado como «de más».",
+    },
+    {
+      id: "papel",
+      ancla: "oi-comprobante.papel",
+      titulo: "Qué papel es y cómo se paga",
+      texto: "Nada viene elegido: eliges qué papel te dieron (boleta, nota de venta o factura; si ninguno, «Sin comprobante») y copias su serie, número y fecha. Después, cómo se paga: a crédito lo paga tu líder («Vence el» trae el plazo del proveedor); al contado se registra con su pago. El IGV de 18 % se suma solo en una factura.",
+    },
+    {
+      id: "sin-papel",
+      ancla: "oi-comprobante.sin-papel",
+      opcional: true,
+      titulo: "Una compra sin comprobante",
+      texto: "Si el proveedor no te dio ningún papel, no hay serie ni número que copiar: la compra se guarda con un número interno (SC-000001) para que el contador sepa que no tiene comprobante. No lleva IGV y no entra al Registro de Compras de Impuestos.",
+    },
+    {
+      id: "renglones",
+      ancla: "oi-comprobante.renglones",
+      titulo: "Lo que dice el papel",
+      texto: "Una fila por cada renglón del papel (sin comprobante, por cada cosa que compraste), con lo que falta de la orden ya puesto. Lo que trae de más se acepta y queda avisado; lo que no trae, lo quitas con la ✕.",
+    },
+    {
+      id: "renglon",
+      ancla: "oi-comprobante.renglon",
+      opcional: true,
+      titulo: "Cada renglón",
+      texto: "El insumo, con cuánto pediste y cuánto llegó ya en papel; la cantidad en su unidad (metros, conos…), con hasta tres decimales; el costo por unidad —sin IGV si el papel lo discrimina—, con hasta cuatro; y el subtotal.",
+    },
+    {
+      id: "sin-poner",
+      ancla: "oi-comprobante.sin-poner",
+      opcional: true,
+      titulo: "Lo que quedó sin poner",
+      texto: "Las líneas de la orden que no pusiste en este papel, con cuánto pediste y cuánto llegó ya en papel. «Poner en el papel» («Poner en la compra», sin comprobante) la trae de vuelta con su costo.",
+    },
+    {
+      id: "fuera",
+      ancla: "oi-comprobante.fuera",
+      titulo: "Un insumo que no estaba en la orden",
+      texto: "Si te facturaron un insumo que no estaba en la orden, lo agregas aquí, elegido del catálogo de insumos. Se acepta y queda avisado. En la demo no agregamos nada.",
+    },
+    {
+      id: "totales",
+      ancla: "oi-comprobante.totales",
+      titulo: "Subtotal, IGV y total",
+      texto: "Se calculan solos con los renglones: compáralos con el papel antes de registrar. En una factura con IGV, si el papel dice otro total por unos centavos, escríbelo abajo: ese total manda y el IGV se ajusta. En los demás, el IGV dice «No lleva».",
+    },
+    {
+      id: "pago",
+      ancla: "oi-comprobante.pago",
+      // Aparece solo al elegir «Contado»: la demo no lo elige (ver arriba), así que este paso se ve si la persona ya lo eligió.
+      opcional: true,
+      titulo: "Si se paga al contado",
+      texto: "Al contado se registra con su pago por el total: eliges el medio (efectivo, Yape, transferencia…), de dónde sale —una cuenta de la empresa o tu fondo por rendir— y, si hace falta, lo divides en varios medios. A crédito no se paga ahora: lo paga tu líder.",
+    },
+    {
+      id: "registrar",
+      ancla: "oi-comprobante.registrar",
+      titulo: "Registrar la compra",
+      // Al registrar, la pantalla vuelve a la LISTA de órdenes con la orden marcada (`hrefOrdenInsumoGuardada`), no a la orden.
+      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta y, con todo listo, lo que vas a registrar. «Registrar la compra» (o «Registrar sin comprobante») lo deja por pagar, o pagado si fue al contado, y vuelves a la lista. En la demo no lo tocamos.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes copiar el papel de un proveedor del Taller. La flecha de arriba te devuelve a la lista. Para repasarlo: Mi perfil ▸ Demo ▸ Esta pantalla.",
     },
   ],
 };
@@ -1121,6 +1305,13 @@ export const GUIA_EDITAR_ORDEN_INSUMO: Guia = {
       opcional: true,
       titulo: "Una anulada no se edita",
       texto: "Esta orden está anulada y ya no se puede cambiar. «Ver la orden» la abre; si todavía hace falta pedir eso, crea una orden nueva.",
+    },
+    {
+      id: "con-comprobante",
+      ancla: "oi-form.con-comprobante",
+      opcional: true,
+      titulo: "Con papel o recibida, ya no se edita",
+      texto: "Esta orden ya tiene un comprobante registrado o insumos recibidos en el Taller: sus líneas quedaron atadas a ese papel o a sus lotes y ya no se cambian. «Ver la orden» la abre; si hay que pedir otra cosa, crea otra orden.",
     },
     {
       id: "cifras",
