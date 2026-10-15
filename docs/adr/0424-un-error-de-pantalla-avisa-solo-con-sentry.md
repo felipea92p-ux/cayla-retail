@@ -83,6 +83,7 @@ diseño.
 - **Alguien arma un mensaje de error con el nombre de una persona** (`throw new Error(\`No se pudo cobrar a ${clienta.nombre}\`)`): la limpieza
   borra números y correos, no nombres sueltos. Regla: un error lleva ids, nunca nombres.
 - **Felipe no pone `SENTRY_AUTH_TOKEN`:** los avisos llegan igual, pero con la línea del código comprimido (sin mapas).
+- **Una variable nueva del armado no se declara en `turbo.json`:** Turborepo solo le pasa al armado las que conoce (ver la actualización de abajo).
 
 ## Para encenderlo (Felipe)
 
@@ -99,3 +100,18 @@ Sin el paso 2, la web funciona igual que antes y la tarjeta sigue diciendo «avi
 `lib/errores-navegador.ts` y `lib/errores-sentry-navegador.ts` (la carga diferida), `instrumentation.ts`, `instrumentation-client.ts`,
 `components/ContextoDeErrores.tsx`, `next.config.ts` (`withSentryConfig` y `NEXT_PUBLIC_ENTORNO`), y las tres barreras: `app/(app)/error.tsx`,
 `app/(app)/vender/comprobantes/error.tsx`, `app/global-error.tsx`.
+
+## Actualización 2026-10-15 (b) — Turborepo no dejaba pasar `SENTRY_AUTH_TOKEN`: los mapas no se subían
+
+- **Qué pasó:** la primera publicación con Sentry (`db7ecbdd`, publicada a mano a las 20:13 UTC porque a Vercel no le llegó el aviso de la
+  fusión) quedó con Sentry encendido —en el JavaScript publicado están el DSN y el entorno «production»—, pero el armado dijo «No auth token
+  provided. Will not create release». En Vercel la web se arma con Turborepo (`web:build`), que en modo estricto solo le pasa a una tarea las
+  variables que declara `turbo.json`. Las `NEXT_PUBLIC_*` pasan solas (Turborepo las infiere de Next), y `SENTRY_AUTH_TOKEN` no. Los avisos
+  llegaban, pero apuntando al código comprimido.
+- **Lo que se hace:** `turbo.json` declara `SENTRY_AUTH_TOKEN` en `passThroughEnv` de `build`: llega a la tarea pero no entra a la huella de
+  la caché (una llave nueva no tiene por qué invalidar lo ya armado, y su valor no queda en ningún archivo). Comprobado con
+  `turbo run build --filter web --dry=json`: con el cambio, `web#build` la recibe; sin él, no.
+- **Lo que no cambia:** las demás de la misma advertencia de Vercel (`LUCODE_TOKEN`, `PADRON_TOKEN`, `CRON_SECRET`…) se leen al RESPONDER, en
+  las funciones del servidor, que Vercel arma con todas las variables del proyecto: Turborepo no las toca y funcionan igual.
+- **Cómo se ve que quedó:** en el log del primer armado después de fusionar, Sentry dice que subió los mapas (y no «No auth token provided»).
+
