@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 
 const RAIZ = join(__dirname, "..");
 
-const CARPETAS = ["components/orden-pagina", "components/ordenes-lista", "components/orden-produccion", "components/produccion-resumen", "components/proveedores-produccion"];
+const CARPETAS = ["components/orden-pagina", "components/ordenes-lista", "components/orden-produccion", "components/produccion-resumen", "components/proveedores-produccion", "components/insumos-taller"];
 const ARCHIVOS = [
   "components/NuevaOrdenProduccionForm.tsx",
   "components/OrdenCierre.tsx",
@@ -37,6 +37,9 @@ const ARCHIVOS = [
   "lib/tarifas-servicios-reglas.ts",
   "lib/tarifas-servicios-guia.ts",
   "lib/tela-del-taller-reglas.ts",
+  "lib/insumos-ficha-reglas.ts",
+  "lib/insumos-guia.ts",
+  "lib/sugerencias-insumos.ts",
 ];
 
 /** Lo que no se le dice a quien trabaja en el Taller, y lo que se dice en su lugar. */

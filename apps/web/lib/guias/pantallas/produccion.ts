@@ -610,7 +610,14 @@ export const GUIA_PROD_INSUMOS: Guia = {
       id: "cifras",
       ancla: "prod-insumos.cifras",
       titulo: "Cómo están los insumos",
-      texto: "Cuántos insumos están bajo su mínimo (hay que pedir), cuánto dinero hay en insumos si eres líder, y cuántas telas y avíos hay en el catálogo.",
+      texto: "Cuántos insumos están bajo su mínimo (hay que pedir) y cuántas telas y avíos hay en el catálogo.",
+    },
+    {
+      id: "capital",
+      ancla: "prod-insumos.capital",
+      opcional: true,
+      titulo: "El capital, bajo un toque",
+      texto: "Solo el líder: «Ver el capital en insumos» muestra cuánto dinero hay en tela y avíos, a costo de cada lote. No está de portada a propósito: es una cifra que se mira cuando hace falta.",
     },
     {
       id: "lista",
@@ -623,7 +630,14 @@ export const GUIA_PROD_INSUMOS: Guia = {
       ancla: "prod-insumos.fila",
       opcional: true,
       titulo: "Sus lotes",
-      texto: "Al tocar un insumo se despliegan sus lotes: de cuándo es cada uno, cuánto queda de lo que entró y cuál se descuenta primero («1º»). Desde ahí también le ingresas un lote nuevo a ese insumo.",
+      texto: "Al tocar un insumo se despliegan sus lotes: de cuándo es cada uno, cuánto queda de lo que entró y cuál se descuenta primero («1º»). Quien ve Producción en el Taller ve también el costo de cada lote. El líder le ingresa lotes desde ahí.",
+    },
+    {
+      id: "ficha",
+      ancla: "prod-insumos.ficha",
+      opcional: true,
+      titulo: "De qué tejido y color es",
+      texto: "Bajo el nombre, de qué tejido y de qué color es la tela. Con eso «Nueva orden» propone sola la tela del color de la prenda. «Sin tejido ni color» quiere decir que todavía nadie lo anotó.",
     },
     {
       id: "libro",
@@ -648,6 +662,13 @@ export const GUIA_PROD_INSUMOS: Guia = {
       texto: "Un código corto para reconocerlo rápido y el nombre con que lo llama el Taller.",
     },
     {
+      id: "modal-ficha",
+      ancla: "prod-insumo-nuevo.ficha",
+      opcional: true,
+      titulo: "De qué tejido y color es",
+      texto: "Si es tela, de qué tejido y de qué color; un avío solo pide el color. No es obligatorio, pero con eso «Nueva orden» propone la tela del color de la prenda en vez de buscarla a mano.",
+    },
+    {
       id: "modal-minimo",
       ancla: "prod-insumo-nuevo.minimo",
       opcional: true,
@@ -667,6 +688,21 @@ export const GUIA_PROD_INSUMOS: Guia = {
       opcional: true,
       titulo: "Agregarlo al catálogo",
       texto: "Eliges quién lo agrega y tocas «Agregar al catálogo». Después le ingresas su primer lote. En la demo no lo agregamos: cerramos la ventana.",
+    },
+    {
+      id: "ficha-campos",
+      ancla: "prod-ficha-tela.campos",
+      opcional: true,
+      preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "prod-insumos.fila-cabecera" }, { tipo: "clic", ancla: "prod-insumos.editar-ficha" }],
+      titulo: "Completar la ficha de una tela",
+      texto: "Para una tela que ya está en el catálogo: «Completar tejido y color» (o «Editar la ficha») abre esta ventana. Eliges el tejido y el color con el mismo vocabulario de las prendas; con ellos «Nueva orden» sabe qué tela ofrecer.",
+    },
+    {
+      id: "ficha-cierre",
+      ancla: "prod-ficha-tela.cierre",
+      opcional: true,
+      titulo: "Guardar la ficha",
+      texto: "Eliges quién lo anota y tocas «Guardar la ficha». Cambiar la ficha no mueve stock ni costos. En la demo no guardamos: cerramos la ventana.",
     },
     {
       id: "fin",

@@ -8,118 +8,13 @@ import { soles } from "@/lib/compras-reglas";
 import { avisar } from "@/components/ui/Avisos";
 import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
-import { TIPOS_INSUMO, UNIDADES_INSUMO, cantidadTexto, type TipoInsumo, type UnidadInsumo } from "@/lib/insumos-reglas";
+import { UNIDADES_INSUMO, cantidadTexto } from "@/lib/insumos-reglas";
 import type { InsumoVista } from "@/lib/insumos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 
-// Dos formularios de Insumos (ADR-0133, F3). Los dos son solo de líder: uno crea el catálogo, el otro mete dinero
-// (el costo del lote). Con `<Modal>` del sistema (ADR-0136): no se define otra animación ni otro overlay.
-
-/** Unidad que se propone según el tipo: la tela se compra por metro; un avío casi siempre por unidad. */
-const UNIDAD_SUGERIDA: Record<TipoInsumo, UnidadInsumo> = { tela: "metro", avio: "unidad" };
-
-export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
-  const router = useRouter();
-  const [tipo, setTipo] = useState<TipoInsumo>("tela");
-  const [unidad, setUnidad] = useState<UnidadInsumo>("metro");
-  const [codigo, setCodigo] = useState("");
-  const [nombre, setNombre] = useState("");
-  const [merma, setMerma] = useState("");
-  const [minimo, setMinimo] = useState("");
-  const [nota, setNota] = useState("");
-  const [cargando, setCargando] = useState(false);
-  // Responsable (ADR-0161 act. d): el alta queda en `insumos.creado_por` (lo pone un disparador leyendo el combo).
-  const responsable = useResponsable();
-
-  function cambiarTipo(t: TipoInsumo) {
-    setTipo(t);
-    setUnidad(UNIDAD_SUGERIDA[t]);
-  }
-
-  async function guardar(e: React.FormEvent) {
-    e.preventDefault();
-    const mermaPct = merma.trim() === "" ? 0 : Number(merma) / 100;
-    if (!codigo.trim() || !nombre.trim()) {
-      avisar.error("Ponle un código y un nombre al insumo.");
-      return;
-    }
-    if (!(mermaPct >= 0 && mermaPct < 0.5)) {
-      avisar.error("La merma va de 0 % a menos de 50 %.");
-      return;
-    }
-    if (!responsable.listo) {
-      if (responsable.motivo) avisar.error(responsable.motivo);
-      return;
-    }
-    setCargando(true);
-    const { error } = await firmar(
-      createClient()
-        .from("insumos")
-        .insert({
-          codigo: codigo.trim().toUpperCase(),
-          nombre: nombre.trim(),
-          tipo,
-          unidad_medida: unidad,
-          merma_pct: mermaPct,
-          stock_minimo: minimo.trim() === "" ? null : Number(minimo),
-          nota: nota.trim() || null,
-        }),
-      responsable.firma(),
-    );
-    setCargando(false);
-    responsable.despues(error);
-    if (error) {
-      // 23505 = código repetido: la base lo impide con su restricción única.
-      avisar.error(error.code === "23505" ? "Ya hay un insumo con ese código." : traducirError(error, "crear el insumo"));
-      return;
-    }
-    avisar.exito(`${nombre.trim()} entró al catálogo`, { detalle: "Ahora puedes ingresar su primer lote." });
-    router.refresh();
-    onClose();
-  }
-
-  return (
-    <Modal titulo="Nuevo insumo" subtitulo="Tela o avío que el Taller compra" onClose={onClose} ancho="max-w-md">
-      <form onSubmit={guardar} className="space-y-4">
-        <div data-guia="prod-insumo-nuevo.tipo" className="grid grid-cols-2 gap-3">
-          <CampoSelect etiqueta="Tipo" valor={tipo} onValor={(v) => cambiarTipo(v)} opciones={TIPOS_INSUMO.map((t) => ({ valor: t.valor, texto: t.etiqueta }))} />
-          <CampoSelect
-            etiqueta="Se mide en"
-            valor={unidad}
-            onValor={(v) => setUnidad(v)}
-            opciones={Object.entries(UNIDADES_INSUMO).map(([k, u]) => ({ valor: k as UnidadInsumo, texto: u.larga }))}
-          />
-        </div>
-        <div data-guia="prod-insumo-nuevo.nombre" className="grid grid-cols-[7rem_1fr] gap-3">
-          <CampoTexto etiqueta="Código" mono placeholder="LIN-01" value={codigo} onChange={(e) => setCodigo(e.target.value)} maxLength={20} />
-          <CampoTexto etiqueta="Nombre" placeholder="Lino lavado crudo" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-        </div>
-        <div data-guia="prod-insumo-nuevo.minimo" className="grid grid-cols-2 gap-3">
-          <CampoTexto
-            etiqueta="Mínimo"
-            pie={`Avisa cuando quede menos de esto (${UNIDADES_INSUMO[unidad].corta})`}
-            inputMode="decimal"
-            placeholder="Sin mínimo"
-            value={minimo}
-            onChange={(e) => setMinimo(e.target.value)}
-          />
-          <CampoTexto etiqueta="Merma al cortar (%)" pie="Lo que se pierde de cada corte" inputMode="decimal" placeholder="0" value={merma} onChange={(e) => setMerma(e.target.value)} />
-        </div>
-        <div data-guia="prod-insumo-nuevo.nota">
-          <CampoTexto etiqueta="Nota" placeholder="Ancho, composición, proveedor habitual…" value={nota} onChange={(e) => setNota(e.target.value)} />
-        </div>
-        <div data-guia="prod-insumo-nuevo.cierre" className="space-y-4">
-          <ComboResponsable control={responsable} deshabilitado={cargando} />
-          <Boton peso="primario" type="submit" cargando={cargando} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-            {cargando ? "Guardando…" : "Agregar al catálogo"}
-          </Boton>
-        </div>
-      </form>
-    </Modal>
-  );
-}
+// Ingresar un lote de insumo (ADR-0133, F3): solo del líder, mete dinero (el costo del lote). «Nuevo insumo» vive en `components/insumos-taller/` desde la actividad 8e. Con `<Modal>` del sistema (ADR-0136): no se define otra animación ni otro overlay.
 
 export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClose }: { insumos: InsumoVista[]; insumoInicialId: string | null; tallerId: string; onClose: () => void }) {
   const router = useRouter();
