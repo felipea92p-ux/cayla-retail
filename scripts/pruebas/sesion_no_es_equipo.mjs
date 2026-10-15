@@ -11,7 +11,12 @@
  *   B. El líder lee el catálogo, las sedes, los proveedores y los módulos, y da de alta un color.
  *   C. Una colaboradora activa lee el catálogo y las sedes.
  *   D. Una terminal de tienda (cuenta de aparato, sin persona) lee el catálogo y las sedes.
- *   E. La migración se puede volver a pegar.
+ *   E. Las dos migraciones se pueden volver a pegar.
+ *   F. A esa misma cuenta, las funciones de personas no le dan nombres ni fotos, la meta y el fondo de caja la rechazan,
+ *      el saldo por tienda de una factura le llega vacío, las piezas internas (meta del mes, horas, recalcular compras) no
+ *      se pueden llamar, y no sube archivos a los buckets de retail.
+ *   G. El líder ve nombres, la meta del día y el saldo por tienda, y sube una foto de prenda; una terminal ve la meta del
+ *      día de su tienda.
  *
  * CÓMO. Cada caso en su transacción con ROLLBACK (nunca se commitea nada en el Postgres local compartido). Cada transacción
  * pega primero la migración: en local prueba el cambio aunque todavía no se haya aplicado, y en el CI (donde ya está)
@@ -27,7 +32,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACIONES = ["20261015221000_lecturas_de_retail_solo_para_el_equipo.sql"].map((m) =>
+const MIGRACIONES = [
+  "20261015221000_lecturas_de_retail_solo_para_el_equipo.sql",
+  "20261015222000_funciones_y_subidas_solo_para_el_equipo.sql",
+].map((m) =>
   readFileSync(join(RAIZ, "supabase", "migrations", m), "utf8"),
 );
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
@@ -152,10 +160,53 @@ select pg_temp.intento($$insert into retail.colores (codigo, nombre) values ('ZZ
   esperar("una terminal de tienda lee el catálogo y las sedes", r.ok && vistas.length === CATALOGO.length && vistas.every((n) => n > 0), r);
 }
 
-// E. Se puede volver a pegar.
+// E. Se pueden volver a pegar.
 {
   const r = correr(`${MIGRACIONES.join("\n")}\nselect 'repegada';`);
-  esperar("la migración se puede pegar dos veces", ultima(r) === "repegada", r);
+  esperar("las dos migraciones se pueden pegar dos veces", ultima(r) === "repegada", r);
+}
+
+// Lo que se pide como «postgres» antes de cambiar de cuenta: los ids que se consultan y una sede.
+const IDS = `
+select id as felipe_persona from public.personas where auth_user_id = '${FELIPE}' \\gset
+select id as trujillo from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
+`;
+const SUBIR_FOTO = `pg_temp.intento($$insert into storage.objects (bucket_id, name) values ('retail-productos-fotos', 'prueba/sesion-no-es-equipo.jpg')$$)`;
+
+// F. La cuenta de Dynamic que no es de retail, contra las funciones y las subidas.
+{
+  const r = correr(`${IDS}${comoCuenta(DE_DYNAMIC)}
+select (select count(*) from retail.fn_nombres_personas(array[:'felipe_persona']::uuid[])) || '|' ||
+       (select count(*) from retail.fn_fotos_personas(array[:'felipe_persona']::uuid[])) || '|' ||
+       pg_temp.intento(format('select * from retail.fn_parametros_caja(%L, current_date)', :'trujillo')) || '|' ||
+       pg_temp.intento(format('select retail.fn_meta_mes(%L, current_date)', :'trujillo')) || '|' ||
+       coalesce(retail.fn_saldo_de_tienda(gen_random_uuid(), :'trujillo')::text, 'vacío') || '|' ||
+       pg_temp.intento(format('select * from retail.fn_rendimiento_horas_nucleo(array[%L]::uuid[], current_date)', :'trujillo')) || '|' ||
+       pg_temp.intento('select retail.recalcular_compras()') || '|' ||
+       ${SUBIR_FOTO};`);
+  const [nombres, fotos, parametros, metaMes, saldo, horas, recalcular, subida] = (ultima(r) ?? "").split("|");
+  esperar("a una cuenta que no es de retail, fn_nombres_personas y fn_fotos_personas no le dan nada", r.ok && nombres === "0" && fotos === "0", r);
+  esperar("…fn_parametros_caja la rechaza", parametros?.includes("no es del equipo"), parametros ?? r);
+  esperar("…meta del mes, horas y recalcular compras no se pueden llamar",
+    [metaMes, horas, recalcular].every((m) => m?.includes("permission denied")), [metaMes, horas, recalcular]);
+  esperar("…y el saldo por tienda le llega vacío (al equipo, con una factura cualquiera, le llega 0.00)", saldo === "vacío", saldo ?? r);
+  esperar("…y no sube archivos a un bucket de retail", subida !== undefined && subida !== "ok", subida ?? r);
+}
+
+// G. El líder y una terminal, igual que siempre.
+{
+  const lider = correr(`${IDS}${comoCuenta(FELIPE)}
+select (select count(*) from retail.fn_nombres_personas(array[:'felipe_persona']::uuid[])) || '|' ||
+       pg_temp.intento(format('select * from retail.fn_parametros_caja(%L, current_date)', :'trujillo')) || '|' ||
+       coalesce(retail.fn_saldo_de_tienda(gen_random_uuid(), :'trujillo')::text, 'vacío') || '|' ||
+       ${SUBIR_FOTO};`);
+  const [nombres, parametros, saldo, subida] = (ultima(lider) ?? "").split("|");
+  esperar("el líder ve nombres, la meta del día y el saldo por tienda, y sube una foto de prenda",
+    nombres === "1" && parametros === "ok" && saldo === "0.00" && subida === "ok", lider);
+
+  const terminal = correr(`${IDS}${comoCuenta(TERMINAL)}
+select pg_temp.intento(format('select * from retail.fn_parametros_caja(%L, current_date)', :'trujillo'));`);
+  esperar("una terminal ve la meta del día de su tienda", ultima(terminal) === "ok", terminal);
 }
 
 console.log(fallos ? `\n${fallos} caso(s) fallaron` : "\nTodo en verde");
