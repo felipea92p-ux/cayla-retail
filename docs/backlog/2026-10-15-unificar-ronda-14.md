@@ -1,0 +1,9 @@
+## 🧩 /unificar, ronda 14: la línea, las barras por tiempo, la barra a escala y la dona (2026-10-15, ADR-0358) — solo web, sin migración; rama `claude/unificar-ronda-14`
+
+- [x] **Página de elegir** con cuatro preguntas y demos vivas; Felipe eligió las cuatro P1.
+- [x] **Piezas:** `<Linea>` (serie, referencia, proyección, ejes, cifra, guía continua o por punto, «ahora», puntos, minY) y `<BarrasTiempo>` (destacada, cifras, meta, referencia, negativas, rayada, encima, debajo, respuesta). CSS en `app/estilos/graficos-tiempo.css`. `BarrasMensuales` es la pieza por mes.
+- [x] **Migrado:** líneas de Caja, Rendimiento, el plan de campaña y la ficha de un proveedor; barras de Rendimiento (por hora y por día), el cierre de una caja, Comercial, «Dónde ganas y dónde pierdes», los cierres anteriores, el historial de una campaña, la vista rápida de un proveedor, Por pagar y el Historial; barras a escala del Taller, el plan de compra (×3) y año por año; la deuda por proveedor y la dona de lo cobrado, a la barra apilada. Borrados `pulsoDeVentas`, `mediaMovil`, `ventanaDeSuavizado` y el CSS muerto (`cmp-horas`, `cmp-barra`, `cmp-tip`, `taller-pista`…).
+- [x] Decisiones con firmas en `familias.mjs` (deuda 0, probadas contra el código de antes: 4 · 7 · 4); la dona deja de ser excepción del anillo y el Taller de la barra de avance.
+- [ ] **Mirar en la tienda** la venta acumulada y «Dónde ganas y dónde pierdes» de Caja (la base local tiene la caja cerrada), el plan de campaña («Ver la curva»), el costo de un proveedor con dos compras o más, Comercial y el cierre de una caja con ventas.
+- [ ] **«Cómo cerró cada día»** (historial de cierres) conserva su diseño de la maqueta del 2026-10-12: si Felipe la quiere con la pieza, es su decisión.
+- [ ] **Ronda 15:** los íconos; y si alcanza, `contador` y los botones que quedan (`accion.buscar`, `accion.siguiente`, `accion.anterior`, `accion.deshacer`).
