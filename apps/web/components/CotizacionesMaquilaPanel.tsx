@@ -16,6 +16,8 @@ import { chipDeCotizacion, detalleDeCotizacion, masRecientePorCategoria, ordenar
 import { sumarDias } from "@/lib/fechas-lima";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { MONTO_ILEGIBLE, montoIlegible, numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // D-82: cotización real de un taller externo para maquilar cada tipo de prenda — sin RPC de
 // escritura, mismo criterio que `codigos_descuento` (CodigosDescuentoPanel.tsx): la RLS de la
@@ -42,7 +44,7 @@ export function CotizacionesMaquilaPanel({ cotizaciones, categorias, hoy }: { co
               prenda: la más reciente. Renovar es cargar una cotización nueva; ninguna se edita para &ldquo;actualizarla&rdquo;.
             </p>
           </div>
-          <BotonCompacto variante="primario" data-guia="prod-cotizaciones.nueva" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={() => setCreando(true)}>
+          <BotonCompacto variante="primario" data-guia="prod-cotizaciones.nueva" icono={<Plus aria-hidden />} onClick={() => setCreando(true)}>
             Nueva cotización
           </BotonCompacto>
         </div>
@@ -135,7 +137,7 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
       avisar.error("Elige el tipo de prenda.");
       return;
     }
-    const monto = Number(precio);
+    const monto = numeroDeMonto(precio);
     if (!precio || Number.isNaN(monto) || monto < 0) {
       avisar.error("El precio de maquila no puede ser negativo.", { enfocar: "cotizacion-precio" });
       return;
@@ -188,10 +190,9 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
           <CampoTexto
             id="cotizacion-precio"
             etiqueta="Precio de maquila (S/, por prenda)"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
+            {...atributosMontoTexto(precio)}
+            tono={montoIlegible(precio) ? "error" : undefined}
+            pie={montoIlegible(precio) ? MONTO_ILEGIBLE : undefined}
             value={precio}
             onChange={(e) => setPrecio(e.target.value)}
             placeholder="22.50"

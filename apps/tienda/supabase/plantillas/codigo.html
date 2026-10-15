@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es">
+  <!--
+    El correo con el código para crear la cuenta en la tienda online (ADR-0408, actividad 2b). Lo manda el proyecto de inicio de
+    sesión de los clientes con su invitación (`inviteUserByEmail`): la cuenta se crea recién cuando la persona escribe este código
+    en la tienda. `{{ .Token }}` es el código de 6 cifras; vence a los 30 minutos (`otp_expiry`) y uno nuevo anula el anterior.
+    Los colores van escritos (son los de la paleta CAYLA): un correo no lee las variables de la hoja de estilos de la tienda.
+    El código va en letra sin serifa: los números de Georgia suben y bajan (un «1» parece más chico que un «8») y se copian mal.
+  -->
+  <body style="margin:0;padding:24px 12px;background:#f5f0e8;font-family:Arial,Helvetica,sans-serif;color:#1a1a18">
+    <div style="max-width:480px;margin:0 auto;background:#fbf8f2;border:1px solid #e8e0d0;border-radius:14px;padding:28px 24px">
+      <p style="margin:0 0 6px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#805c4c;font-weight:bold">CAYLA · Tienda online</p>
+      <h1 style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-weight:normal;font-size:28px;line-height:1.1">Tu código para crear tu cuenta</h1>
+      <p style="margin:0 0 18px;font-size:15px;line-height:1.5">Escríbelo en la tienda online para terminar de crear tu cuenta:</p>
+      <p style="margin:0 0 22px;font-family:Arial,Helvetica,sans-serif;font-size:36px;font-weight:bold;letter-spacing:.24em;line-height:1">{{ .Token }}</p>
+      <p style="margin:0;font-size:13px;line-height:1.5;color:#5b5b55">Vence en 30 minutos. Si no estás creando una cuenta en CAYLA, ignora este correo: sin este código nadie puede usar tu correo.</p>
+    </div>
+  </body>
+</html>

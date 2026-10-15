@@ -1,4 +1,5 @@
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { Anillo } from "@/components/ui/Anillo";
 import { SinFoto, categoriaDe } from "@/components/ui/PrendaCelda";
 import Link from "next/link";
 import type { CSSProperties } from "react";
@@ -129,10 +130,7 @@ function SigueAhora({
 }) {
   const aro = (
     <div className="ia-fila">
-      <svg className="ia-ring" viewBox="0 0 44 44" aria-hidden>
-        <circle className="ia-bg" cx="22" cy="22" r="18" pathLength="100" />
-        <circle className="ia-fg" cx="22" cy="22" r="18" pathLength="100" style={{ "--off": 100 - avance.pct } as CSSProperties} />
-      </svg>
+      <Anillo pct={avance.pct} tamano="chico" decorativa />
       <p className="ia-t">
         <b>
           <CifraAlVer valor={avance.alDia} /> de {avance.total}

@@ -64,7 +64,7 @@
       "button «existencias.escanear»",
       "BotonFiltros «{alLadoDeFiltros}»",
       "BotonLimpiar «Limpiar filtros»",
-      "button «existencias.copiar-enlace»",
+      "BotonCopiar «el enlace de esta lista»",
       "button «Limpiar»",
       "button «Ver»"
     ],
@@ -164,7 +164,7 @@
       "Pestanas «(sin nombre)»",
       "button «{`${c.color ?? \"Sin color\"}»",
       "button «{lectura}»",
-      "button «existencias.cajon-codigo»",
+      "BotonCopiar «el código de esta talla»",
       "button «→() => alAccionar(a.clave)»",
       "button «Ver piso y almacén»",
       "button «{lectura}» #2",
@@ -174,10 +174,10 @@
     "components/existencias/ParaHoy.tsx": [
       "Link «{contenido}»",
       "button «{contenido}»",
-      "button «→() => setAbiertoMovil((v) => !v)»",
       "button «Ver cuáles»",
       "Boton «)»",
-      "button «{todas ? \"Ver menos\" : `Ver ${ocultas}»"
+      "button «→() => setAbiertoMovil((v) => !v)»",
+      "BotonVerMas «)»"
     ],
     "components/existencias/PieTarjeta.tsx": [
       "button «existencias.colgar»",

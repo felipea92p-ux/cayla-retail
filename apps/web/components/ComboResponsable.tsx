@@ -219,7 +219,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         {elegido ? (
           <AvatarPersona personaId={elegido.personaId} nombre={elegido.nombre} tamano={32} />
         ) : (
-          <UserRound className="h-[18px] w-[18px] flex-none" aria-hidden />
+          <UserRound className="h-4 w-4 flex-none" aria-hidden />
         )}
         <span className={`min-w-0 flex-1 truncate text-sm ${elegido ? "" : "text-tinta/65"}`}>
           {cargando ? "Leyendo quién está de turno…" : elegido ? (cortos.get(elegido.nombre) ?? elegido.nombre) : control.pregunta}

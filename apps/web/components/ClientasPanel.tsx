@@ -264,6 +264,12 @@ export function ClientasPanel({
             setAbriendoAlta(false);
             refrescar();
           }}
+          // Ese documento ya tenía ficha (un documento es de una sola persona): se abre la suya en vez de crear otra.
+          onAbrirFicha={(id) => {
+            setAbriendoAlta(false);
+            setFichaAbiertaId(id);
+            refrescar();
+          }}
         />
       )}
 

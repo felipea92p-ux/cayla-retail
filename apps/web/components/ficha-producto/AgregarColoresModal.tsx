@@ -34,6 +34,7 @@ import {
 import { ElegirUnColor, MatrizNuevas, MontosNuevas, PieModal, PuntoColor, VistaPreviaCodigos, type ContextoFicha } from "./piezas";
 import { useSubirFotos } from "./useSubirFotos";
 import { Aviso } from "@/components/ui/Aviso";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // «Llegó un color nuevo» (Shopify «Add another value», mostrando ANTES las combinaciones y dejando desmarcar, como
 // Lightspeed X-Series): se eligen los colores como en el alta (ElegirColores: los más usados en la categoría, el buscador
@@ -135,7 +136,7 @@ export function AgregarColoresModal({
   const clasificadas = clasificarCombinaciones(base, combos);
   const nacen = clasificadas.filter((c) => c.queHace === "nueva").length;
   const vuelven = clasificadas.filter((c) => c.queHace === "reactiva");
-  const precioOk = precio.trim() !== "" && precioValido(Number(precio), admitePrecioCero);
+  const precioOk = precio.trim() !== "" && precioValido(numeroDeMonto(precio), admitePrecioCero);
 
   const faltaPrimero = eraSinColor && !colorDeLasQueTiene;
   const puede = !noSePuedeCorregir && !faltaPrimero && !choque && !bloqueo && (combos.length > 0 || !!destinoPrimero) && (nacen === 0 || precioOk);
@@ -232,7 +233,7 @@ export function AgregarColoresModal({
                           etiqueta={`Agregar foto de ${n.color(codigo)}`}
                           className="grid aspect-[4/5] w-10 shrink-0 place-items-center rounded-md border-[1.5px] border-dashed border-taupe/55 bg-hueso/35 text-taupe transition-colors hover:border-tinta hover:text-tinta disabled:opacity-50"
                         >
-                          <Camera aria-hidden className="h-4 w-4" strokeWidth={1.6} />
+                          <Camera aria-hidden className="h-4 w-4" />
                         </BotonFoto>
                       )}
                       <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-tinta">

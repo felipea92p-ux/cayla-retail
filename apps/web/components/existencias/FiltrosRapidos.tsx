@@ -93,11 +93,11 @@ export function FiltrosRapidos({
                 puesto ? TONO_ENCENDIDO[a.clave] : "border-tinta/15 bg-papel text-tinta/75 hover:border-tinta/30 hover:text-tinta"
               }`}
             >
-              <Icono aria-hidden className="h-4 w-4 shrink-0" strokeWidth={1.6} />
+              <Icono aria-hidden className="h-4 w-4 shrink-0" />
               <span>{a.texto}</span>
               {pausado ? (
                 <b aria-hidden className={`ml-0.5 grid h-[18px] w-[18px] place-items-center rounded-full ${puesto ? "bg-tinta/10" : "bg-pizarra/10 text-pizarra"}`}>
-                  <Pause className="h-2.5 w-2.5" strokeWidth={3} />
+                  <Pause /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-2.5 w-2.5" strokeWidth={3} />
                 </b>
               ) : (
                 cuenta !== null && (

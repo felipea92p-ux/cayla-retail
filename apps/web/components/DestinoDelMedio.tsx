@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { Check, Copy } from "lucide-react";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import type { DestinoDelMedio as Destino, FilaDestino } from "@/lib/destino-de-pago";
 
 // A dónde va la plata con el medio que se acaba de elegir (ADR-0134), en UNA línea y sin cajas: transferencia o
@@ -47,34 +46,15 @@ export function DestinoDelMedio({ destino, enlaceFicha, className = "" }: { dest
   );
 }
 
+// Copiar es la pieza del sistema (<BotonCopiar>, ronda 13): el ícono junto al dato, que se vuelve ✓ y dice «Copiado».
 function DatoCopiable({ fila }: { fila: FilaDestino }) {
-  const [copiado, setCopiado] = useState(false);
-
-  async function copiar() {
-    try {
-      await navigator.clipboard.writeText(fila.copiar);
-      setCopiado(true);
-      window.setTimeout(() => setCopiado(false), 1400);
-    } catch {
-      // Sin permiso del portapapeles el valor sigue a la vista: se puede seleccionar y copiar a mano.
-    }
-  }
-
+  const nombre = fila.etiqueta.toLowerCase();
+  const que = nombre === "cuenta" ? "la cuenta" : nombre === "cci" ? "el CCI" : `el ${fila.etiqueta}`;
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className="label-cayla text-[10px] text-tinta/55">{fila.etiqueta}</span>
       <span className="tabular-nums tracking-[0.02em] text-tinta select-all">{fila.valor}</span>
-      <button
-        type="button"
-        onClick={copiar}
-        aria-label={`Copiar ${fila.etiqueta}`}
-        className={`inline-flex h-5 w-5 items-center justify-center rounded-full transition-colors ${copiado ? "bg-verde/15 text-verde-profundo" : "text-tinta/45 hover:bg-tinta/10 hover:text-tinta"}`}
-      >
-        {copiado ? <Check aria-hidden className="h-3 w-3" /> : <Copy aria-hidden className="h-3 w-3" />}
-        <span aria-live="polite" className="sr-only">
-          {copiado ? "Copiado" : ""}
-        </span>
-      </button>
+      <BotonCopiar forma="icono" texto={fila.copiar} que={que} className="-my-2" />
     </span>
   );
 }

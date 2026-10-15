@@ -10,16 +10,16 @@
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «Buscar»",
+      "BotonBuscar «) : ( campoNumero )»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/CuentasProveedor.tsx": [
       "button «{ver ? \"Ocultar\" : \"Ver completos\"}»",
-      "LapizEditar «)»",
-      "button «{`Copiar ${etiqueta.toLowerCase()}»"
+      "LapizEditar «la cuenta»",
+      "BotonCopiar «{que}»"
     ],
     "components/PagoPiezas.tsx": [
-      "button «{`Copiar ${etiqueta.toLowerCase()}»",
+      "BotonCopiar «{que}»",
       "Boton «Listo»",
       "button «{ETIQUETA_METODO_PAGO[v] ?? v}»",
       "CampoFecha «Fecha del pago»",
@@ -33,7 +33,7 @@
     ],
     "components/ProveedorAcciones.tsx": [
       "BotonAncla «WhatsApp»",
-      "Boton «Copiar CCI»",
+      "BotonCopiar «el CCI»",
       "BotonEditar «→() => setEditando(true)»",
       "BotonEnlace «Registrar factura»"
     ],

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Lock, Plus, SearchX, ShieldCheck, Users } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
@@ -623,7 +624,7 @@ function TarjetasRoles({
           data-guia="roles.nuevo"
           className="grid min-h-[150px] place-content-center justify-items-center gap-1.5 rounded-2xl border border-dashed border-taupe/60 text-[14px] font-semibold text-taupe transition-colors duration-200 ease-cayla hover:border-taupe hover:text-tinta"
         >
-          <Plus aria-hidden className="h-6 w-6" strokeWidth={1.6} />
+          <Plus /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ aria-hidden className="h-6 w-6" strokeWidth={1.5} />
           Nuevo rol
         </button>
       </div>
@@ -679,9 +680,8 @@ function TarjetaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolV
         ))}
         {muestra.length > 8 && <span className="grid h-7 place-items-center px-1 text-[11.5px] font-semibold text-tinta/60">+{muestra.length - 8}</span>}
       </span>
-      <span aria-hidden className="block h-1.5 overflow-hidden rounded-full bg-hueso">
-        <span className={`block h-full rounded-full transition-[width] duration-500 ease-cayla ${rol.fijo ? "bg-taupe" : "bg-tinta"}`} style={{ width: `${Math.round((n / de) * 100)}%` }} />
-      </span>
+      {/* Cuántos módulos ve el rol: una medida, no un avance (un rol con todos no está «listo»): siempre en tinta. */}
+      <BarraAvance pct={(n / de) * 100} tono="tinta" decorativa />
       <span className="flex items-center justify-between gap-2 text-[12.5px] text-tinta/60">
         <PilaPersonas>
           {(cuentas ?? []).slice(0, 4).map((c) => (

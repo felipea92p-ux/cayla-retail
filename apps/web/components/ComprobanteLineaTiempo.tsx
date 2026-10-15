@@ -53,7 +53,7 @@ function Nodo({ nodo }: { nodo: NodoLinea }) {
     <div className="cd-nodo" data-estado={nodo.estado} role="listitem">
       <div className={`cd-pt ${pon ? "anim-pop" : ""}`} onAnimationEnd={() => setPon(false)}>
         {/* Al pasar a «hecho» el ícono cambia de componente (Package/Banknote → Check): React lo monta de nuevo y el tilde se traza (`check-trazo`). */}
-        <Icono aria-hidden className={`h-[15px] w-[15px] ${Icono === Check ? "check-trazo" : ""}`} style={{ "--d": "250ms" } as React.CSSProperties} />
+        <Icono aria-hidden className={`h-4 w-4 ${Icono === Check ? "check-trazo" : ""}`} style={{ "--d": "250ms" } as React.CSSProperties} />
       </div>
       <p className="label-cayla text-[11px] text-tinta/65">{nodo.titulo}</p>
       <p className="-mt-1 text-xs text-tinta/55">{nodo.detalle}</p>

@@ -181,6 +181,36 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   si solo se lee, «Cancelar» si guarda, nunca las dos). Migrado el mismo día: 140 botones que esperaban a mano (dos codemods), 22 «Editar»,
   146 anchos y unas 30 salidas; deuda 0 en las tres. La salida no tiene firma (depende de si la hoja guarda). Registros: `accion.guardar.md`,
   `accion.editar.md`, `modal.md`.
+- **2026-10-15 · ronda 13, la barra de avance, el anillo, copiar y el menú «Más», tocándolos** (fuentes en `docs/unificar/rondas/13/`). De la
+  familia `grafico` salieron dos familias propias, `grafico.avance` y `grafico.anillo` (las líneas y las barras por hora o por día quedan para
+  la ronda 14, y los íconos para la 15). Felipe eligió P1 en las cuatro: **una barra de avance con tres altos** (fina 3 · normal 6 · gruesa 12)
+  en tinta que pasa a verde al completarse, y el rojo o el ámbar los pone la pantalla (`<BarraAvance>`, que reemplaza también a la homónima
+  del detalle de un comprobante); **un anillo en tres tamaños** (chico 40 · mediano 72 · grande 160), el arco de tinta que pasa a verde al
+  cerrarse, la cifra adentro (`<Anillo>`); **copiar**: junto a un dato, el ícono solo, y suelto, «Copiar …», los dos con «✓ Copiado» sin
+  cambiar de ancho (`<BotonCopiar>`, que además copia por el camino viejo si el navegador no deja); y **el menú**: «Más ▾» con su palabra
+  donde cabe y el «⋯» solo de 32 px en una fila de una lista (`<MenuAcciones>`, `<BotonPuntos>`). Migrado el mismo día: unas 40 barras en
+  27 archivos, 9 anillos, 12 «copiar» y 3 menús; deuda 0 en las cuatro. Las del Observatorio, Análisis, Finanzas y los pases de Traslados
+  quedan por su ADR. Registros: `grafico.avance.md`, `grafico.anillo.md`, `accion.copiar.md`, `accion.menu.md`.
+- **2026-10-15 · ronda 14, la línea, las barras por tiempo, la barra a escala y la dona, tocándolas** (fuentes en `docs/unificar/rondas/14/`).
+  `grafico` quedó repartida en familias propias: `grafico.linea`, `grafico.barras` y `grafico.escala` se suman a la barra apilada, la de
+  avance y el anillo. Felipe eligió P1 en las cuatro: **la línea** de tinta con su área, la referencia en taupe punteado, tres rayas con sus
+  montos, la cifra final y una guía con su globito (`<Linea>`; en una fila, `<Sparkline>`); **las barras por tiempo** en arena con la que
+  importa en tinta y su cifra, la meta una rayita, el rojo o el ámbar de la pantalla y un globito (`<BarrasTiempo>`); **la barra a escala**,
+  la de avance en tinta (la más larga no está «lista»); y **la dona de lo cobrado pasa a la barra apilada**, como «Cómo se pagó» del Historial.
+  Lo que estaba bien o mal deja de ir en el color de la línea (la brecha de Caja, el rojo del plan, el verde o ámbar del costo de un
+  proveedor): lo dicen el titular y el globito. Migrado el mismo día: 4 líneas, 11 grupos de barras, 5 barras a escala y la dona; deuda 0.
+  Se quedan por su decisión «Cómo cerró cada día» de Caja (Felipe, 2026-10-12), las tarjetas de Facturación, Finanzas, Análisis y el
+  Observatorio. Registros: `grafico.linea.md`, `grafico.barras.md`, `grafico.escala.md` y la actualización de `grafico.barra.md`.
+- **2026-10-15 · ronda 15, los íconos, el globito con número, «Ver más», «Deshacer» y «Buscar», mirando y tocando** (fuentes en
+  `docs/unificar/rondas/15/`). Felipe eligió P1 en las cinco: **los íconos** con el grosor de fábrica de lucide (2) y cuatro tamaños según
+  el lugar (12 en una insignia, 14 junto a un texto, 16 en un botón o un campo, 20 junto a un título o en una tecla grande); la marca sobre un
+  punto lleno lleva 3, como la casilla, y un ícono grande (24 px o más) 1,5, como el de un vacío, las dos con su `unificar-fijo`; **el
+  globito** de las pestañas en todas partes (`<Globito>`; `Insignia` pasa a ser un `<Globito pide>`): gris suave, ámbar suave si pide algo,
+  lleno con su anillo en la esquina, crema dentro de un botón negro y rojo solo para un error; **«Ver más»**, la franja al pie de la lista de
+  Inicio de Almacén con las filas que bajan en su lugar (`<BotonVerMas>` + `<FilasDeMas>`); **«Deshacer»**, el enlace con la flecha curva
+  (`<BotonDeshacer>`); y **«Buscar»** al apretar, el secundario con la lupa (`<BotonBuscar>`). Migrado el mismo día: 89 archivos de íconos, 9
+  globitos, 4 «Ver más», 7 «Deshacer» y 5 «Buscar»; deuda 0. El marco (lateral y cabecera) dibuja con 1,5 y queda para decidir aparte.
+  Registros: `icono.md`, `contador.md`, `accion.siguiente.md`, `accion.deshacer.md` y `accion.buscar.md`.
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en

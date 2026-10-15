@@ -402,7 +402,7 @@ function FilaAviso({
   return (
     <li className="flex gap-4 px-5 py-4 max-sm:flex-col max-sm:gap-3" data-guia="avisos.fila">
       <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl max-sm:hidden ${envio ? "bg-verde/15 text-verde" : "bg-hueso text-taupe"}`} aria-hidden>
-        <Icono className="h-[18px] w-[18px]" strokeWidth={1.5} />
+        <Icono className="h-5 w-5" />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -441,7 +441,7 @@ function FilaAviso({
         ) : (
           <Boton peso="primario" className="!py-2.5 max-sm:flex-1" onClick={onEnviar} cargando={enCurso} textoCargando="Anotando…" disabled={ocupado || bloqueo !== null} title={bloqueo ?? "Abre WhatsApp Web con su número y el texto listos"}>
             <span className="inline-flex items-center gap-1.5">
-              <MessageCircle className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+              <MessageCircle className="h-3.5 w-3.5" aria-hidden />
               Enviar
             </span>
           </Boton>

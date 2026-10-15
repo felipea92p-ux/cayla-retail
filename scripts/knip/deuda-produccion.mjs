@@ -59,7 +59,7 @@ export const DEUDA = [
   "apps/web/lib/panel-serie.ts: INDICE_SEMANA_PASADA", // 2026-09-12 · 0af2f1b54
   "apps/web/lib/panel-serie.ts: indiceEnSerie", // 2026-09-12 · 0af2f1b54
   "apps/web/lib/panel-serie.ts: inicioDeLaVentana", // 2026-09-12 · 0af2f1b54
-  // Nunca tuvieron pantalla en main (18).
+  // Nunca tuvieron pantalla en main (17).
   "apps/web/lib/plan-piso-familias.ts: textoDeRepartoParaLector", // nunca · nació 2026-10-12 · 3b1fafcc3
   "apps/web/lib/frescura-piso.ts: conteoDeFamilia", // nunca · nació 2026-10-10 · bd5b3c6f7
   "apps/web/lib/motor-demanda-reglas.ts: faltasDe", // nunca · nació 2026-10-05 · #823
@@ -70,7 +70,6 @@ export const DEUDA = [
   "apps/web/lib/alta-producto.ts: pasoAlcanzable", // nunca · nació 2026-09-25 · #395
   "apps/web/lib/por-pagar-consolidado-reglas.ts: ordenarPorVencimiento", // nunca · nació 2026-09-25 · #396
   "apps/web/lib/presupuesto-reglas.ts: filasQueSePasan", // nunca · nació 2026-09-25 · #396
-  "apps/web/lib/sin-conexion-reglas.ts: pantallaSinConexion", // nunca · nació 2026-09-25 · #436
   "apps/web/lib/configuracion-reglas.ts: textoEfecto", // nunca · nació 2026-09-24 · #390
   "apps/web/lib/reparto-reglas.ts: textoTeToca", // nunca · nació 2026-09-19 · #203
   "apps/web/lib/caja-panel-reglas.ts: egresosElevados", // nunca · nació 2026-09-18 · #128

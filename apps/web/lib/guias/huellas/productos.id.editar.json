@@ -28,7 +28,7 @@
       "Casilla «{`Igualar ${t.sede}»"
     ],
     "components/ProductoForm.tsx": [
-      "button «Deshacer»",
+      "BotonDeshacer «);»",
       "CampoTexto «Referencia»",
       "ComboBuscable «(sin nombre)»",
       "CampoTexto «Descripción (opcional)»",
@@ -38,9 +38,9 @@
       "CampoSelect «Temporada (opcional)»",
       "button «Temporada por color»",
       "CampoSelect «);»",
-      "button «Deshacer» #2",
-      "button «Deshacer» #3",
-      "button «Deshacer» #4",
+      "BotonDeshacer «))»",
+      "BotonDeshacer «);» #2",
+      "BotonDeshacer «);» #3",
       "button «editar.agregar-color»",
       "button «editar.agregar-talla»",
       "button «Ir a»"

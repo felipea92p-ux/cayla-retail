@@ -15,6 +15,7 @@
 
 import { enEscala } from "./color-escala";
 import { agruparPorFamilia } from "./colores-familias";
+import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 
 const CONECTORES = ["de", "del", "la", "las", "el", "los", "con", "y", "e", "o", "en", "al", "para", "por", "sin"];
 
@@ -253,6 +254,9 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   if (e.celdaSinPrecio) p.push({ bloque: "precio", texto: textoCeldaSinPrecio(e.celdaSinPrecio) });
   const costo = Number(e.costoBase);
   if (e.costoBase.trim() !== "" && (!Number.isFinite(costo) || costo < 0)) p.push({ bloque: "precio", texto: "El costo no puede ser negativo." });
+  // ADR-0415: hasta S/ 5 000 (la base lo rechaza igual con `variantes_precio_con_tope`).
+  if (precio > MAX_PRECIO_PRENDA) p.push({ bloque: "precio", texto: FRASE_PRECIO_CON_TOPE });
+  if (costo > MAX_PRECIO_PRENDA) p.push({ bloque: "precio", texto: FRASE_COSTO_CON_TOPE });
   // Decidir el stock es obligatorio, no llenarlo: «ninguna» es una respuesta válida, pero tiene que darse. Sin esto, un
   // producto creado con prisa quedaba en 0 y su stock se metía después como «Reposición», sin rastro de que era la carga.
   if (e.stockInvalidas > 0) p.push({ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." });

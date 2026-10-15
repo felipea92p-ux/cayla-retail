@@ -23,7 +23,7 @@ export function AvisoTrasladosEnCamino({ traslados, sedeNombre, veTraslados }: {
 
   return (
     <aside data-guia="recibir.aviso-traslados" aria-label="Traslados de otras sedes en camino" className="nota-cayla anim-entra flex flex-wrap items-center gap-x-4 gap-y-2">
-      <Truck aria-hidden strokeWidth={1.5} className="h-5 w-5 shrink-0 text-taupe" />
+      <Truck aria-hidden className="h-5 w-5 shrink-0 text-taupe" />
       <p className="min-w-0 flex-1 basis-64">
         <strong>{titulo}</strong> Eso no se recibe en esta pantalla: se cuenta y se confirma en Traslados, donde también eliges si va al piso de venta o al almacén.
       </p>

@@ -147,7 +147,7 @@ export function EnvioCerrado({
             {lista.map((p, i) => (
               <li key={`${p.tipo}-${p.linea}-${i}`} className="rc-pend" data-tipo={p.tipo}>
                 <span aria-hidden className="rc-cat-ic" data-tamano="chico">
-                  {p.tipo === "separar" ? <Layers className="h-[18px] w-[18px]" /> : p.tipo === "detalle" ? <ListChecks className="h-[18px] w-[18px]" /> : <Sparkles className="h-[18px] w-[18px]" />}
+                  {p.tipo === "separar" ? <Layers className="h-4 w-4" /> : p.tipo === "detalle" ? <ListChecks className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
                 </span>
                 <span className="min-w-0">
                   <b className="block text-[14.5px] text-tinta">{p.titulo}</b>

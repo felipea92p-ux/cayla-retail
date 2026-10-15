@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -60,7 +60,6 @@ export function NotaCreditoDetalle({
   /** «Llegó su nota de crédito» (fase 5b): adjuntar la nota del proveedor a este documento interno. */
   onAdjuntar: (id: string) => void;
 }) {
-  const [copiado, setCopiado] = useState(false);
   const chip = chipEstado(f);
   const pasos = pasosDeNota(f);
   const sugerencia = siguientePaso(f);
@@ -74,27 +73,6 @@ export function NotaCreditoDetalle({
   // después. Los usos no dicen de cuál nota salieron (ver `repartoFifo`): se dice así, no se inventa.
   const delProveedor = movimientos.filter((m) => m.tipo !== "nota_credito");
 
-  async function copiar() {
-    const texto = mensajeParaProveedor(f);
-    try {
-      await navigator.clipboard.writeText(texto);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = texto;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.append(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-      } catch {
-        /* sin portapapeles: el texto igual está a la vista para copiarlo a mano */
-      }
-      ta.remove();
-    }
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 2200);
-  }
 
   const titulo = f.clase === "pendiente" ? `Nota por reclamar · ${f.documento}` : nombreDeNotaDeCredito(f.serieNumero);
 
@@ -183,17 +161,9 @@ export function NotaCreditoDetalle({
             <section>
               <TituloGrupo className="mb-2">Mensaje para el proveedor</TituloGrupo>
               <p className="whitespace-pre-line rounded-xl border border-dashed border-tinta/25 px-3.5 py-3 text-[13px] leading-relaxed text-tinta/80">{mensajeParaProveedor(f)}</p>
-              <button type="button" onClick={copiar} className={`label-cayla mt-1.5 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] transition-colors ${copiado ? "bg-verde/10 text-verde-profundo" : "text-tinta/55 hover:text-rojo"}`}>
-                {copiado ? (
-                  <>
-                    <Check aria-hidden className="anim-tilde h-3.5 w-3.5" /> Copiado
-                  </>
-                ) : (
-                  <>
-                    <Copy aria-hidden className="h-3.5 w-3.5" /> Copiar mensaje
-                  </>
-                )}
-              </button>
+              <BotonCopiar texto={() => mensajeParaProveedor(f)} que="el mensaje para el proveedor" className="mt-2">
+                Copiar mensaje
+              </BotonCopiar>
             </section>
           )}
 
@@ -255,9 +225,7 @@ function Parte({ etiqueta, monto, fraccion, tono }: { etiqueta: string; monto: s
     <div className="grid grid-cols-[1fr_auto] items-baseline gap-x-3.5 gap-y-0.5">
       <span className="text-[13.5px] text-tinta/80">{etiqueta}</span>
       <span className={`font-semibold tabular-nums ${tono === "verde" ? "text-verde-profundo" : "text-tinta"}`}>{monto}</span>
-      <span aria-hidden className="col-span-2 mt-0.5 h-[5px] overflow-hidden rounded-full bg-sand">
-        <i className={`anim-crece-x block h-full origin-left rounded-full ${tono === "verde" ? "bg-verde" : "bg-tinta"}`} style={{ width: `${Math.max(0, Math.min(100, fraccion * 100))}%` }} />
-      </span>
+      <BarraAvance pct={fraccion * 100} tono={tono} decorativa className="col-span-2 mt-0.5" />
     </div>
   );
 }

@@ -28,6 +28,7 @@ export function DocumentoDelComprobante({
   nombre,
   onNombre,
   sinNumero,
+  nombreDeFicha,
 }: {
   tipoComprobante: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
   /** El documento de identidad de una boleta o nota de venta. En una factura no se usa: siempre es RUC. */
@@ -39,6 +40,9 @@ export function DocumentoDelComprobante({
   onNombre: (v: string) => void;
   /** Qué pasa si se deja sin número (boleta y nota de venta: salen a «Cliente varios»). Lo mismo que `ConsultaDocumento`. */
   sinNumero?: string;
+  /** El nombre de la ficha del cliente del ticket cuando el comprobante lleva SU documento (`nombreDeFichaParaComprobante`).
+   *  Con él, el DNI no vuelve a consultar el padrón: ya se consultó al registrarlo (Felipe 2026-10-15). */
+  nombreDeFicha?: string | null;
 }) {
   if (tipoComprobante === "factura") {
     return <ConsultaDocumento tipo="ruc" obligatorio numero={numero} onNumero={onNumero} nombre={nombre} onNombre={onNombre} />;
@@ -56,7 +60,16 @@ export function DocumentoDelComprobante({
         }}
       />
       {identidad === "dni" ? (
-        <ConsultaDocumento tipo="dni" obligatorio={false} numero={numero} onNumero={onNumero} nombre={nombre} onNombre={onNombre} sinNumero={sinNumero} />
+        <ConsultaDocumento
+          tipo="dni"
+          obligatorio={false}
+          numero={numero}
+          onNumero={onNumero}
+          nombre={nombre}
+          onNombre={onNombre}
+          sinNumero={sinNumero}
+          conocido={nombreDeFicha ? { nombre: nombreDeFicha, origen: "De la ficha del cliente" } : null}
+        />
       ) : (
         // Un solo `div` con el número y el nombre, igual que `ConsultaDocumento` con el DNI: la hoja de cobro
         // (`.hoja-cobro-doc` en globals.css) los acomoda lado a lado por esa forma. Con un Fragment, los dos

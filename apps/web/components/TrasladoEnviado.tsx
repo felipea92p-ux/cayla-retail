@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import Link from "next/link";
 import { avisar, enfocar } from "@/components/ui/Avisos";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
@@ -100,16 +101,10 @@ export function TrasladoEnviado({
     return () => window.removeEventListener("resize", ajustar);
   }, [mensaje]);
 
-  async function copiar() {
-    try {
-      await navigator.clipboard.writeText(mensaje);
-      avisar.exito("Mensaje copiado", { detalle: `Pégalo en el chat de ${destino}.` });
-    } catch {
-      // Sin permiso o sin portapapeles: el texto queda marcado para que lo copie a mano.
-      areaMensaje.current?.focus();
-      areaMensaje.current?.select();
-      avisar.error("No se pudo copiar solo", { detalle: "El mensaje quedó marcado: cópialo con Ctrl+C (o mantén pulsado en el celular)." });
-    }
+  // Sin permiso o sin portapapeles: además del aviso de la pieza, el texto queda marcado para que lo copie a mano.
+  function marcarMensaje() {
+    areaMensaje.current?.focus();
+    areaMensaje.current?.select();
   }
 
   return (
@@ -159,9 +154,9 @@ export function TrasladoEnviado({
           <a href={enlaceWhatsAppA(whatsappDestino, mensaje)} target="_blank" rel="noopener noreferrer" className="btn-cayla btn-primario">
             Abrir WhatsApp
           </a>
-          <button type="button" onClick={copiar} className="btn-cayla btn-secundario">
+          <BotonCopiar texto={mensaje} que="el mensaje" alCopiar={() => avisar.exito("Mensaje copiado", { detalle: `Pégalo en el chat de ${destino}.` })} alFallar={marcarMensaje}>
             Copiar mensaje
-          </button>
+          </BotonCopiar>
         </div>
         {sinChatDirecto && (
           <p className="text-xs text-taupe">{destino} no tiene un WhatsApp guardado: WhatsApp te va a preguntar a quién se lo mandas.</p>

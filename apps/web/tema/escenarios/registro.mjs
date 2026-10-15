@@ -591,7 +591,7 @@ ESCENARIOS.push(
     },
   },
   // Comprobantes
-  { id: "comprobantes.opciones", ruta: "/vender/comprobantes/emitidos", cuentas: ["admin", "terminal-ventas"], abre: "[role=dialog]", nombre: "Comprobantes · «Opciones» de un comprobante", preparar: clicRol("button", /Opciones de/i) },
+  { id: "comprobantes.opciones", ruta: "/vender/comprobantes/emitidos", cuentas: ["admin", "terminal-ventas"], abre: "[role=dialog]", nombre: "Comprobantes · el «⋯» de un comprobante", preparar: clicRol("button", /Más acciones de/i) },
   { id: "comprobantes.reintentar", ruta: "/vender/comprobantes/emitidos", cuentas: ["admin", "terminal-ventas"], abre: "[role=dialog]", nombre: "Comprobantes · «Reintentar» (transmitir a SUNAT)", preparar: clicRol("button", /^Reintentar/i) },
   { id: "comprobantes.tipo", ruta: "/vender/comprobantes/emitidos", cuentas: ["admin", "terminal-ventas"], abre: "[role=listbox],[role=menu]", nombre: "Comprobantes · la lista del filtro «Tipo»", preparar: clicRol("button", /^Tipo/i) },
   { id: "comprobantes.ayuda", ruta: "/vender/comprobantes/proformas", cuentas: ["admin", "terminal-ventas"], nombre: "Comprobantes · la ayuda «Qué es Proforma»", preparar: clicRol("button", /Qué es Proforma/i) },
@@ -1235,10 +1235,107 @@ const idDeProductoCualquiera = () => consultarLocal("select id from retail.produ
 ESCENARIOS.push(
   { id: "clientas.nuevo", ruta: "/clientas", cuentas: ["admin", "terminal-ventas", "integrante"], abre: "[role=dialog]", nombre: "Clientes · «Nuevo cliente»", preparar: clicRol("button", /Nuevo cliente/i) },
   { id: "clientas.ficha", ruta: "/clientas", cuentas: ["admin", "terminal-ventas", "integrante"], abre: "[role=dialog]", nombre: "Clientes · la ficha de una clienta", preparar: clicRol("button", /^Camila Torres/i) },
+  // «Editar» con el correo (20261015123000): uno mal escrito dice su error BAJO la caja (el que no se guarda: no escribe en la base).
+  {
+    id: "clientas.ficha-editar",
+    ruta: "/clientas",
+    cuentas: ["admin", "integrante"],
+    abre: "[role=dialog]",
+    nombre: "Clientes · «Editar» de la ficha, con el correo mal escrito",
+    async preparar(pagina) {
+      await clicRol("button", /^Camila Torres/i)(pagina);
+      await clicRol("button", /^Editar/i)(pagina);
+      await pagina.locator("#ficha-cliente-correo").fill("correo@incompleto");
+      await pagina.locator("#ficha-cliente-correo").press("Tab");
+      await esperar(pagina, 900);
+    },
+  },
+  // «Archivar» con un pedido de la tienda online en curso: el aviso. La base local no suele tener un pedido web de Camila, así que el
+  // escenario contesta él la lectura (`fn_clienta_tienda_online`, sin escribir nada); lo que se dibuja es la hoja real. Como el pedido
+  // está PAGADO, el interruptor «Anonimizar» sale apagado y dice por qué (20261015131000).
+  {
+    id: "clientas.ficha-archivar",
+    ruta: "/clientas",
+    cuentas: ["admin", "integrante"],
+    abre: "[role=dialog]",
+    nombre: "Clientes · «Archivar» con un pedido de la tienda online en curso",
+    async preparar(pagina) {
+      await pagina.route(/\/rpc\/fn_clienta_tienda_online/, (ruta) =>
+        ruta.fulfill({ json: { cuenta_web: true, pedidos_en_curso: [{ codigo: "W-0012", estado: "pagado", tienda: "Tienda Trujillo" }] } }),
+      );
+      await clicRol("button", /^Camila Torres/i)(pagina);
+      await clicRol("button", /^Archivar$/)(pagina);
+    },
+    limpiar: (pagina) => pagina.unroute(/\/rpc\/fn_clienta_tienda_online/).catch(() => {}),
+  },
+  // «Restablecer acceso a la tienda web» (Felipe 2026-10-15, 20261015132000). La base local no suele tener a Camila con cuenta web: el
+  // escenario contesta él las dos lecturas (sin escribir nada). El bloque de la ficha, con un restablecimiento pendiente…
+  {
+    id: "clientas.ficha-tienda-online",
+    ruta: "/clientas",
+    cuentas: ["admin", "integrante"],
+    abre: '[data-guia="clientas.ficha-tienda-online"]',
+    nombre: "Clientes · la ficha con su cuenta de la tienda online y un restablecimiento pendiente",
+    async preparar(pagina) {
+      await pagina.route(/\/rpc\/fn_clienta_tienda_online/, (ruta) => ruta.fulfill({ json: { cuenta_web: true, pedidos_en_curso: [] } }));
+      await pagina.route(/\/rpc\/fn_clienta_acceso_web/, (ruta) =>
+        ruta.fulfill({
+          json: {
+            cuenta_web: true,
+            restablecer: { correo: "camila.nueva@gmail.com", pedido_en: new Date().toISOString(), vence_en: new Date(Date.now() + 864e5).toISOString(), ultimo_envio_en: new Date().toISOString(), envios: 1 },
+          },
+        }),
+      );
+      await clicRol("button", /^Camila Torres/i)(pagina);
+      await esperar(pagina, 900);
+    },
+    limpiar: async (pagina) => {
+      await pagina.unroute(/\/rpc\/fn_clienta_tienda_online/).catch(() => {});
+      await pagina.unroute(/\/rpc\/fn_clienta_acceso_web/).catch(() => {});
+    },
+  },
+  // …y su hoja, con el correo nuevo mal escrito (dice su error BAJO la caja; no se manda nada).
+  {
+    id: "clientas.ficha-restablecer",
+    ruta: "/clientas",
+    cuentas: ["admin", "integrante"],
+    abre: "#ficha-acceso-web-correo",
+    nombre: "Clientes · «Restablecer acceso» de la tienda online, con el correo mal escrito",
+    async preparar(pagina) {
+      await pagina.route(/\/rpc\/fn_clienta_tienda_online/, (ruta) => ruta.fulfill({ json: { cuenta_web: true, pedidos_en_curso: [] } }));
+      await pagina.route(/\/rpc\/fn_clienta_acceso_web/, (ruta) => ruta.fulfill({ json: { cuenta_web: true, restablecer: null } }));
+      await clicRol("button", /^Camila Torres/i)(pagina);
+      await clicRol("button", /^Restablecer acceso$/)(pagina);
+      await pagina.locator("#ficha-acceso-web-correo").fill("correo@incompleto");
+      await pagina.locator("#ficha-acceso-web-correo").press("Tab");
+      await esperar(pagina, 900);
+    },
+    limpiar: async (pagina) => {
+      await pagina.unroute(/\/rpc\/fn_clienta_tienda_online/).catch(() => {});
+      await pagina.unroute(/\/rpc\/fn_clienta_acceso_web/).catch(() => {});
+    },
+  },
   { id: "clientas.acciones", ruta: "/clientas", cuentas: ["admin"], abre: "[role=menu]", nombre: "Clientes · «Más acciones»", preparar: clicRol("button", /Más acciones de Clientes/i) },
   { id: "clientas.buscar", ruta: "/clientas", cuentas: ["admin", "terminal-ventas"], nombre: "Clientes · una búsqueda", async preparar(pagina) { await pagina.getByPlaceholder(/DNI, celular/i).first().fill("Rosa"); await esperar(pagina, 1800); } },
   { id: "avisos.beneficios", ruta: "/clientas/avisos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Avisos · «Beneficios del club»", preparar: clicRol("button", /Beneficios del club/i) },
   { id: "avisos.cumpleanos", ruta: "/clientas/avisos", cuentas: ["admin"], nombre: "Avisos · la pestaña «Cumpleaños»", preparar: clicRol("button", /^Cumpleaños/i) },
+  // Clientes ▸ Recomendaciones (ADR-0408): la hoja de la primera de la lista (sin leer: con la respuesta y «Marcar como leída») y el filtro
+  // «Estado» abierto. La base local no trae recomendaciones (las escribe un cliente desde la tienda online): quien audita las crea con
+  // `tienda_recomendar` y las deja como estaban. Ninguno guarda: abren y eligen.
+  {
+    id: "recomendaciones.hoja",
+    soloPorId: true,
+    ruta: "/clientas/recomendaciones",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Recomendaciones · la hoja de una recomendación",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="recomendaciones.fila"] button').first().click({ timeout: 8000 });
+      await pagina.locator("[role=dialog]").first().waitFor({ timeout: 15000 });
+      await esperar(pagina, 1200);
+    },
+  },
+  { id: "recomendaciones.estado", ruta: "/clientas/recomendaciones", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Recomendaciones · el filtro «Estado»", preparar: clicRol("button", /^Estado/i) },
   { id: "comercial.ayuda", ruta: "/comercial", cuentas: ["admin"], nombre: "Comercial · la ayuda «Qué cuenta como venta»", preparar: clicRol("button", /Qué es Qué cuenta como venta/i) },
   { id: "calidad.ayuda", ruta: "/comercial/calidad", cuentas: ["admin"], nombre: "Calidad de datos · la ayuda «Cómo se lee»", preparar: clicRol("button", /Qué es Cómo se lee/i) },
   { id: "buscar.resultados", ruta: "/buscar", cuentas: ["admin", "integrante", "terminal-ventas"], nombre: "Buscar · los resultados de una prenda", preparar: llenar(/SKU, referencia, talla, color/i, "Vestido") },
@@ -1246,6 +1343,7 @@ ESCENARIOS.push(
   { id: "colaboradores.terminal", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · la ficha de una terminal", preparar: clicRol("button", /^Almacén Trujillo/i) },
   { id: "colaboradores.roles", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · «Roles y accesos»", preparar: clicRol("button", /^Roles y accesos/i) },
   { id: "colaboradores.rol", ruta: "/colaboradores", cuentas: ["admin"], nombre: "Colaboradores · el detalle de un rol", preparar: secuencia(clicRol("button", /^Roles y accesos/i), async (pagina) => { await pagina.getByRole("button", { name: /Integrante/i }).first().click({ timeout: 8000 }); await esperar(pagina, 1200); }) },
+  { id: "configuracion.tienda-web", ruta: "/configuracion", cuentas: ["admin"], abre: '[data-guia="config.tienda-web-sedes"]', nombre: "Configuración · «Tienda web» (ADR-0408)", preparar: clicPestana(/^Tienda web/i) },
   { id: "configuracion.caja", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Caja y avisos»", preparar: clicPestana(/Caja y avisos/i) },
   { id: "configuracion.cuentas", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Cuentas y cobros»", preparar: clicPestana(/Cuentas y cobros/i) },
   { id: "configuracion.gastos", ruta: "/configuracion", cuentas: ["admin"], nombre: "Configuración · «Gastos fijos»", preparar: clicPestana(/Gastos fijos/i) },
@@ -1307,6 +1405,247 @@ ESCENARIOS.push(
   { id: "recepcion.cerrado", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: '[data-guia="recepcion.para-despues"]', nombre: "Recibir un envío · cerrado, con «Para después»", preparar: irAlEnvio(ENVIO_CON_PENDIENTES) },
   { id: "recepcion.hacer-ahora", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: "[role=dialog]", nombre: "Recibir un envío · la hoja «Hacer ahora» (separar)", preparar: secuencia(irAlEnvio(ENVIO_CON_PENDIENTES), clicRol("button", /^Hacer ahora$/)) },
   { id: "recepcion.reabrir", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: "[role=dialog]", nombre: "Recibir un envío · la hoja «Reabrir»", preparar: secuencia(irAlEnvio(ENVIO_CON_PENDIENTES), clicRol("button", /Reabrir el conteo/)) },
+);
+
+// Catálogo ▸ Vitrina web (ADR-0408, actividad 3): la hoja de un modelo y la de mostrar u ocultar (se elige el primer modelo de la lista).
+ESCENARIOS.push(
+  {
+    id: "vitrina.hoja-modelo",
+    ruta: "/productos/vitrina",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Vitrina web · la hoja de un modelo (mostrar, Lo nuevo y lo que ve el cliente)",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="vitrina.abrir"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+  {
+    id: "vitrina.lote-mostrar",
+    ruta: "/productos/vitrina",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Vitrina web · mostrar en la web los elegidos",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="vitrina.casilla"] input').first().check({ timeout: 8000 });
+      await esperar(pagina, 600);
+      await pagina.locator('[data-guia="vitrina.lote-mostrar"]').click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+  // Vitrina web ▸ Esperan una talla (ADR-0408, actividad 12): la lista filtrada por «Ya llegaron» (la cifra que filtra, puesta) y la
+  // búsqueda que no encuentra nada (el vacío con la lupa tachada).
+  {
+    id: "vitrina.esperan-llegaron",
+    ruta: "/productos/vitrina/esperan",
+    cuentas: ["admin"],
+    abre: '[data-guia="esperan.cifras"] button[aria-pressed=true]',
+    nombre: "Esperan una talla · el filtro «Ya llegaron»",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="esperan.cifras"] button').filter({ hasText: /Ya llegaron/i }).first().click({ timeout: 8000 });
+      await esperar(pagina, 900);
+    },
+  },
+  {
+    id: "vitrina.esperan-sin-coincidencias",
+    ruta: "/productos/vitrina/esperan",
+    cuentas: ["admin"],
+    abre: ".vacio",
+    nombre: "Esperan una talla · una búsqueda que no encuentra nada",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="esperan.buscador"] input').first().fill("zzz-nada", { timeout: 8000 });
+      await esperar(pagina, 900);
+    },
+  },
+);
+
+// Ventas ▸ Pedidos web (ADR-0408, actividad 8): la hoja de un pedido (por confirmar, «No se puede confirmar», ya confirmado con «Anular»,
+// «Reservarla») y la de enviar a otra tienda. Solo por id: la base local no trae pedidos web (los separa un cliente en la tienda online); quien audita
+// los crea con `crear_pedido_web` en la sede de la cuenta (y los deja como estaban). Ninguno guarda: abren y cambian de vista.
+const abrirPedidoWeb = async (pagina) => {
+  await pagina.locator('[data-guia="pedidos-web.abrir"]').first().click({ timeout: 8000 });
+  await pagina.locator("[role=dialog]").first().waitFor({ timeout: 15000 });
+  await esperar(pagina, 1200);
+};
+ESCENARIOS.push(
+  { id: "pedidos-web.confirmar", soloPorId: true, ruta: "/vender/pedidos-web", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Pedidos web · la hoja de un pedido por confirmar", preparar: abrirPedidoWeb },
+  { id: "pedidos-web.no-confirmar", soloPorId: true, ruta: "/vender/pedidos-web", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Pedidos web · «No se puede confirmar» (el motivo)", preparar: secuencia(abrirPedidoWeb, clicRol("button", /^No se puede confirmar$/)) },
+  {
+    id: "pedidos-web.anular",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · un pedido confirmado y «Anular» (el motivo)",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=cobrar"), abrirPedidoWeb, clicRol("button", /^Anular$/)),
+  },
+  {
+    // Una prenda que estaba por conseguir y ya llegó a la tienda: «Reservarla» abre su paso (de dónde sale y quién).
+    id: "pedidos-web.reservar",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · reservar lo que llegó",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=cobrar"), abrirPedidoWeb, clicRol("button", /^Reservarla$/)),
+  },
+  {
+    id: "pedidos-web.enviar",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · enviar a la tienda del pedido",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="pedidos-web.enviar"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+);
+
+// Vitrina web ▸ Looks (ADR-0408, actividad 11): la hoja de un look nuevo, la de uno que ya existe y la de mostrar u ocultar. Las dos
+// últimas necesitan un look en la base local (se elige el primero de la lista).
+ESCENARIOS.push(
+  {
+    id: "looks.nuevo",
+    ruta: "/productos/vitrina/looks",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Vitrina web ▸ Looks · la hoja de un look nuevo",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="looks.nuevo"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+  {
+    id: "looks.editar",
+    ruta: "/productos/vitrina/looks",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Vitrina web ▸ Looks · la hoja de un look (sus prendas, si se ve y su lugar)",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="looks.abrir"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+  {
+    id: "looks.mostrar",
+    ruta: "/productos/vitrina/looks",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Vitrina web ▸ Looks · mostrar u ocultar un look",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="looks.interruptor"] button').first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+);
+
+// Cobrar dentro del pedido web (ADR-0408, actividad 9): «Registrar un pago» encima del primer pedido de «Por cobrar» (con Yape y su n.º,
+// o con efectivo) y «Devolver un pago» de un pedido anulado que ya había pagado (el primero de «Cerrados»). Solo por id: la base local
+// necesita esos pedidos (quien audita los crea con `crear_pedido_web`, los confirma y les anota un pago; y los deja como estaban). Ninguno
+// guarda: abren la hoja y eligen.
+const abrirRegistrarPago = async (pagina) => {
+  await pagina.locator('[data-guia="pedido-web.pagar"]').first().click({ timeout: 8000 });
+  await pagina.getByRole("dialog", { name: "Registrar un pago" }).waitFor({ timeout: 15000 });
+  await esperar(pagina, 1000);
+};
+const conPedidoPorCobrar = secuencia(irA("/vender/pedidos-web?pestana=cobrar"), abrirPedidoWeb, abrirRegistrarPago);
+ESCENARIOS.push(
+  {
+    id: "pedidos-web.pagar",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · registrar un pago con Yape (el n.º de operación)",
+    preparar: secuencia(conPedidoPorCobrar, clicRol("radio", /^Yape$/)),
+  },
+  {
+    id: "pedidos-web.pagar-efectivo",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · registrar un pago en efectivo (entra a la caja)",
+    preparar: secuencia(conPedidoPorCobrar, clicRol("radio", /^Efectivo$/)),
+  },
+  {
+    id: "pedidos-web.devolver",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · devolver un pago de un pedido anulado",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=cerrados"), abrirPedidoWeb, clicRol("button", /^Devolver$/)),
+  },
+);
+
+// Entregar un pedido web (ADR-0408, actividad 10): la hoja de un pedido pagado y listo (su boleta, el código y «Entregar») y la misma con
+// un código escrito. Solo por id: la base local necesita un pedido pagado completo en «Por entregar» (quien audita lo crea, lo confirma y
+// lo paga con la caja abierta; y lo deja como estaba). Ninguno guarda: abren la hoja y escriben.
+ESCENARIOS.push(
+  {
+    id: "pedidos-web.entregar",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · entregar un pedido pagado (la boleta y el código)",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb),
+  },
+  {
+    id: "pedidos-web.entregar-codigo",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · entregar con el código escrito",
+    async preparar(pagina) {
+      await secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb)(pagina);
+      await pagina.locator('[data-guia="pedido-web.codigo"] input').first().fill("1234", { timeout: 8000 });
+      await esperar(pagina, 600);
+    },
+  },
+);
+
+// Anular un pedido web PAGADO (ADR-0408, 20261015114000): la hoja «Anular el pedido» encima del primer pedido de «Por entregar» (lo que
+// pasa con sus prendas, su plata y su boleta), la misma con un motivo elegido, y un pedido pagado y anulado en «Cerrados» (lo devuelto
+// y cómo quedó su boleta). Solo por id: la base local necesita un pedido pagado completo y otro anulado después de pagarse (quien
+// audita los crea, los confirma, los paga y anula uno; y los deja como estaban). Ninguno guarda: abren la hoja y eligen.
+const abrirAnularPedido = async (pagina) => {
+  await pagina.locator('[data-guia="pedido-web.anular-pagado"]').first().click({ timeout: 8000 });
+  await pagina.getByRole("dialog", { name: "Anular el pedido" }).waitFor({ timeout: 15000 });
+  await esperar(pagina, 1000);
+};
+ESCENARIOS.push(
+  {
+    id: "pedidos-web.anular-pagado",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · anular un pedido pagado (sus prendas, su plata y su boleta)",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb, abrirAnularPedido),
+  },
+  {
+    id: "pedidos-web.anular-pagado-motivo",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · anular un pedido pagado con su motivo elegido",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb, abrirAnularPedido, clicRol("radio", /^El cliente desistió$/)),
+  },
+  {
+    id: "pedidos-web.anulado-pagado",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · un pedido pagado y anulado (lo devuelto y cómo quedó su boleta)",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=cerrados"), abrirPedidoWeb),
+  },
 );
 
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el

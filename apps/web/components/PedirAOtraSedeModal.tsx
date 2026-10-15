@@ -118,7 +118,7 @@ function Contador({ etiqueta, cantidad, tope, enviando, onCambiar }: { etiqueta:
         onClick={() => onCambiar(-1)}
         className="btn-cayla btn-sutil h-9 w-9 justify-center p-0"
       >
-        <Minus aria-hidden className="h-4 w-4" strokeWidth={1.75} />
+        <Minus aria-hidden className="h-4 w-4" />
       </button>
       <span className="w-7 text-center tabular-nums font-semibold text-tinta" aria-live="polite">
         {cantidad}
@@ -130,7 +130,7 @@ function Contador({ etiqueta, cantidad, tope, enviando, onCambiar }: { etiqueta:
         onClick={() => onCambiar(1)}
         className="btn-cayla btn-sutil h-9 w-9 justify-center p-0"
       >
-        <Plus aria-hidden className="h-4 w-4" strokeWidth={1.75} />
+        <Plus aria-hidden className="h-4 w-4" />
       </button>
     </div>
   );
