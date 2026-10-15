@@ -1150,7 +1150,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   curso (no lo frena) y dice qué pasa al archivar o al anonimizar, y «Editar» dice que el correo de entrada no cambia desde ahí. Las dos
   altas (`NuevaClientaModal` y el ticket de Vender) leen la ficha con ese documento justo antes de `registrar_clienta`
   (`fichaConDocumento`) y dicen lo que hizo la base: «Cliente registrado», «Ya tenía ficha» o «Ficha reactivada»
-  (`lib/alta-clienta-reglas.ts`). Y `exportar_clientas`
+  (`lib/alta-clienta-reglas.ts`). **El nombre de una ficha con DNI o RUC sale del padrón y no se escribe** (Felipe 2026-10-15,
+  `20261015133000`, **sin pegar en producción**): las dos altas y «Editar» dibujan `components/clientas/NombreDelPadron.tsx` (la caja
+  llena y bloqueada, «Del padrón», o el aviso con «Volver a intentar»; «Actualizar desde el padrón» en «Editar»), con la lógica en
+  `lib/nombre-del-padron-reglas.ts`; la consulta es `GET /api/padron?…&para=ficha`, que además anota la lectura en la base
+  (`lib/padron-lecturas.ts` → `retail.fn_anotar_lectura_padron`, con la llave de servicio). La base lo exige: los disparadores
+  `clientas_nombre_del_padron_alta`/`_cambio` (`fn_nombre_de_ficha_del_padron`) rechazan (`nombre_sin_padron`) un nombre con DNI/RUC
+  sin una lectura del padrón de la última hora (`padron_lecturas`, solo huellas) y uno con números en carné o pasaporte
+  (`nombre_con_numeros`); una sesión de dueño de la base (pruebas, SQL Editor) queda fuera. El cartel del Club anota su lectura igual
+  (`app/actions/club-registro.ts`) y la tienda, con `tienda_anotar_lectura_padron`. Prueba: `pnpm pruebas:nombre-del-padron`. Y `exportar_clientas`
   (solo Admin, D-109/G.4), `fn_clienta_compras/cambios/devoluciones/separaciones`
   (`security definer`, cruzan sede a propósito). Talla deducida (D-101) y «te falta N
   para frecuente» (D-103) calculadas al leer en `lib/clienta-actividad-reglas.ts`
@@ -1773,6 +1781,8 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   3 s, con interruptor de circuito) → proveedor de pago. Si las dos fallan, la
   ruta usa el nombre de un comprobante anterior de ese documento (`comprobantes`,
   memoria durable propia). Para RUC, SUNAT público no informa estado ni condición.
+  Con `para=ficha` (el nombre de una ficha, 2026-10-15) no usa ese historial —solo vale el padrón— y anota la lectura en la base
+  (`anotada`); `sinNombre` dice si no lo encontró o no respondió.
 
 - `/api/observatorio` y `/api/observatorio/tienda?u=<id>` → `GET`, solo lectura y solo Admin (403 si no): lo que el Observatorio vuelve a leer
   cada 30 s (`getDatosObservatorio`) y el panel de una tienda (`getDatosTienda`; la tienda se valida contra `getUbicaciones`). Si la base no responde,
