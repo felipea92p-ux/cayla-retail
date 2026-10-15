@@ -3,7 +3,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient, isAuthRetryableFetchError, type SupabaseClient } from "@supabase/supabase-js";
-import { COOKIE_SESION, configAuth, tieneCookieDeSesion } from "./sesion";
+import { COOKIE_SESION, configAuth, OPCIONES_COOKIE_SESION, tieneCookieDeSesion } from "./sesion";
 
 // La sesión de los clientes, del lado del servidor (ADR-0408, decisión 2). Habla con el proyecto de inicio de sesión de los
 // CLIENTES, nunca con el del ERP. La llave secreta de ese proyecto (`TIENDA_AUTH_SERVICE_KEY`) se lee solo aquí y solo sirve
@@ -17,7 +17,7 @@ export async function clienteSesion(): Promise<SupabaseClient | null> {
   if (!ajustes) return null;
   const almacen = await cookies();
   return createServerClient(ajustes.url, ajustes.llavePublica, {
-    cookieOptions: { name: COOKIE_SESION },
+    cookieOptions: OPCIONES_COOKIE_SESION,
     cookies: {
       getAll: () => almacen.getAll(),
       setAll(lista) {

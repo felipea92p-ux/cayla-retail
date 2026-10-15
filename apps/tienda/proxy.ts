@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
-import { COOKIE_SESION, configAuth, redireccionDelProxy, tieneCookieDeSesion } from "@/lib/sesion";
+import { configAuth, OPCIONES_COOKIE_SESION, redireccionDelProxy, tieneCookieDeSesion } from "@/lib/sesion";
 
 // La barrera por delante de la tienda (Next 16 llama `proxy` a lo que antes era `middleware`). Hace dos cosas:
 //   1. Refresca la sesión del cliente: una página no puede escribir cookies, y sin esto la sesión se vencería a la hora
@@ -20,7 +20,7 @@ export async function proxy(request: NextRequest) {
 
   let respuesta = NextResponse.next({ request });
   const supabase = createServerClient(ajustes.url, ajustes.llavePublica, {
-    cookieOptions: { name: COOKIE_SESION },
+    cookieOptions: OPCIONES_COOKIE_SESION,
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll(lista, cabeceras) {

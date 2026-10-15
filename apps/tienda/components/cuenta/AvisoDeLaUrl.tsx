@@ -31,7 +31,9 @@ const DURACION_MS = 3600;
 export function AvisoDeLaUrl() {
   const parametros = useSearchParams();
   const clave = parametros.get("aviso") ?? "";
-  const texto = AVISOS[clave];
+  // Solo las claves de la lista: con `?aviso=__proto__` (o `constructor`) una búsqueda suelta devolvía lo heredado de todo objeto y la
+  // página se caía al dibujarlo.
+  const texto = Object.hasOwn(AVISOS, clave) ? AVISOS[clave] : undefined;
 
   useEffect(() => {
     if (!texto) return;
