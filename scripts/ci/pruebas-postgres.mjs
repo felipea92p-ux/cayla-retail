@@ -810,6 +810,11 @@ export const PRUEBAS = [
   // pegar 20261015054000 después aborta sin pisar nada. ROLLBACK.
   "pruebas:clientas-correo-ficha",
 
+  // El nombre de la ficha sale del padrón (Felipe 2026-10-15, 20261015133000): por la API (la web, el servidor del Club, la tienda)
+  // un DNI solo guarda un nombre que un servidor anotó como lectura del padrón en la última hora (`nombre_sin_padron`); carné y
+  // pasaporte, sin números (`nombre_con_numeros`); las lecturas, solo su huella y solo para service_role y tienda_web. ROLLBACK.
+  "pruebas:nombre-del-padron",
+
   // Celular para la boleta (ADR-0288, «Actualización 2026-10-03 (o)», actividad 2): `agregar_celular_clienta` SOLO AGREGA. A
   // una ficha sin celular se lo deja normalizado (versión +1, una línea de actividad sin datos personales); a una que ya
   // tiene uno —el mismo u otro, también una socia con publicidad— no la toca y responde false (sin `revoca`); lo inválido,
