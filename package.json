@@ -199,6 +199,7 @@
     "pruebas:gastos-igv-perdido": "node scripts/pruebas/gastos_igv_perdido.mjs",
     "pruebas:fondos-entradas": "node scripts/pruebas/fondos_entradas.mjs",
     "pruebas:plan-compra-historia": "node scripts/pruebas/plan_compra_historia.mjs",
+    "pruebas:plan-compra-minimo": "node scripts/pruebas/plan_compra_minimo_con_modulo.mjs",
     "pruebas:roles": "node scripts/pruebas/roles_por_modulo.mjs",
     "pruebas:roles-cobertura": "node scripts/pruebas/roles_cobertura_modulos.mjs",
     "pruebas:roles-lider-editable": "node scripts/pruebas/roles_lider_editable.mjs",
