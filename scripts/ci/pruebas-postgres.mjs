@@ -880,8 +880,9 @@ export const PRUEBAS = [
   "pruebas:club-permisos",
 
   // Club de clientas, tanda 1c (ADR-0288 D-5): el cumpleaños con un canje por año. `registrar_venta` con
-  // `p_canjear_cumpleanos` recalcula la parte del club de cada línea (`round((precio − descuento_sin_club) × pct / 100, 2)`,
-  // en cascada: 20 % → 28 %; la misma tabla de paridad que la regla de la web) y rechaza un monto distinto, un canje fuera
+  // `p_canjear_cumpleanos` recalcula la parte del club de cada línea (`fn_descuento_campana(precio − descuento_sin_club, pct)`:
+  // el precio que queda al S/ 0.10 de abajo, ADR-0403 act. 2026-10-15; en cascada: 20 % → 28 %; la misma tabla de paridad que
+  // la regla de la web), acepta la cuenta vieja de una caja sin recargar (transición) y rechaza un monto distinto, un canje fuera
   // de su mes, de una no socia o sin clienta, y el segundo del año (único parcial de `club_canjes`); la parte del club no
   // cuenta para el costo, el tope D-67, el código, el 35 % ni el argumento; anular libera el canje y una devolución no;
   // `resumen_clienta_caja` dice disponible, % y canjeado; una sola firma, md5 «después» = vivas, pegar las tres partes
