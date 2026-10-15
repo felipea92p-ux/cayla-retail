@@ -23,7 +23,7 @@ Maqueta: `docs/maquetas/tienda-online-2026-10/` (`index.html` + `README.md`, con
    (correo y DNI únicos, entra al Club con origen web, cumpleaños como `clientas`), nombre por DNI compartido, topes por IP y documento.
    Demostrable: crear cuenta, ver rechazado un DNI o correo repetido, entrar, recuperar la contraseña con el correo de prueba local y
    salir. (1,5)
-3. ✅ **Vitrina web y catálogo publicado** (integrada 2026-10-14; en curso la 3b, sin precio web) — `vitrina_productos`; módulo `vitrina_web` (nace solo para el líder): encender con precio web,
+3. ✅ **Vitrina web y catálogo publicado** (integrada 2026-10-14, con la 3b: sin precio web) — `vitrina_productos`; módulo `vitrina_web` (nace solo para el líder): encender con precio web,
    lote, fijar en Lo nuevo; la tienda lista lo publicado con su precio web y la campaña (ADR-0403). Demostrable: encender un modelo en el
    ERP y verlo en la tienda con su precio. (1,5)
 4. **Ficha con stock por tienda y filtro por sede** — niveles por tienda, color y talla (nunca la cifra de 4 o más). Demostrable: vender
@@ -99,10 +99,14 @@ Total ≈ 14 sesiones. Las pantallas del ERP cumplen las reglas del repo (guía 
 
 ### Lo que dejaron la actividad 3 y el motor del pedido (integrados el 2026-10-14)
 
-- [ ] **Actividad 3b (en curso):** sin precio web. El catálogo muestra el precio de tienda de la sede elegida y, con «Todas», el mayor;
-  la Vitrina queda para mostrar u ocultar y Lo nuevo (ADR-0408 act. c). Su migración `20261014225000` se corrige en su lugar (no está en
-  producción). Para probarla, la base local recibe las migraciones de precio por sede de `main` (20261010100000–20261011110000) y la de
-  ADR-0403 (20261014173000), que le faltaban.
+- [x] **Actividad 3b (integrada 2026-10-14):** sin precio web. `tienda_catalogo(p_sede)` da el precio de tienda de la sede elegida
+  (`fn_precio_en_sede`, el modelo vale lo de su talla más cara) y, con «Todas», el mayor entre las tiendas de la web; la campaña va encima
+  talla por talla (ADR-0403) y «Desde» solo sale si la campaña no toca todas las tallas igual. `?sede=` lleva el nombre web de la tienda
+  (`lib/sede-elegida.ts`); una tienda escondida se lee como «Todas»; sin ninguna tienda en la web, el precio de la grilla. Las píldoras
+  «Ver lo que hay en» salen con 2 tiendas o más. La Vitrina queda para mostrar u ocultar y Lo nuevo. La base local recibió las 13
+  migraciones de precio por sede de `main` y la de ADR-0403, que le faltaban (sin anotarlas en `schema_migrations`).
+- [ ] **Por la 3b, para la actividad 4:** «Ver lo que hay en» hoy solo cambia el precio; con la 4 también filtra por lo que hay en esa tienda
+  (como la maqueta). Recordar la tienda elegida entre visitas, si hace falta, va con la 7 (el cliente elige una tienda para recoger todo).
 - [x] **El catálogo pide cuenta** (`(catalogo)/layout.tsx` y el proxy): sin sesión manda a «Entrar»; con sesión, la portada lleva al
   catálogo hasta que exista el Inicio de la actividad 5.
 - [ ] **No están en producción:** `20261014225000_vitrina_web.sql`, `20261014235000_pedidos_web_modelo.sql` y
