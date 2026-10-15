@@ -61,3 +61,15 @@ export function lecturaCampoMonto(texto: string): { valor: number; ilegible: boo
   const n = leerMontoPlata(texto);
   return n === null ? { valor: 0, ilegible: true } : { valor: n, ilegible: false };
 }
+
+/** El reemplazo de `Number(texto)` en un campo de plata que guarda lo escrito como texto: vacío es 0 (como `Number`), lo que no se
+ *  entiende es `NaN` (así `> 0` es falso y `|| 0` da 0: ningún botón guarda un monto adivinado), y lo demás se lee con `leerMontoPlata`. */
+export function numeroDeMonto(texto: string): number {
+  if (texto.trim() === "") return 0;
+  return leerMontoPlata(texto) ?? Number.NaN;
+}
+
+/** El campo dice que no entendió lo escrito: hay algo y no se lee. */
+export function montoIlegible(texto: string): boolean {
+  return lecturaCampoMonto(texto).ilegible;
+}

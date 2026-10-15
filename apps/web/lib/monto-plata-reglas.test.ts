@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lecturaCampoMonto, leerMontoPlata } from "./monto-plata-reglas";
+import { lecturaCampoMonto, leerMontoPlata, montoIlegible, numeroDeMonto } from "./monto-plata-reglas";
 
 describe("leerMontoPlata (el monto de una hoja del fondo, /chaos 2026-10-14)", () => {
   it("la coma decimal se entiende: «1299,50» es S/ 1,299.50 y «150,5» es S/ 150.50 (antes, 129 950 y 1 505)", () => {
@@ -59,5 +59,23 @@ describe("lecturaCampoMonto: lo que `CampoMonto` le avisa al padre (ADR-0419, /c
   });
   it("un negativo pasa tal cual: la hoja dice «tiene que ser mayor que cero»", () => {
     expect(lecturaCampoMonto("-5")).toEqual({ valor: -5, ilegible: false });
+  });
+});
+
+describe("numeroDeMonto: el reemplazo de `Number(texto)` en los campos de plata que guardan texto (ADR-0419)", () => {
+  it("lee la coma decimal donde `Number` daba NaN, y vacío sigue siendo 0 como con `Number`", () => {
+    expect(numeroDeMonto("2,5")).toBe(2.5);
+    expect(numeroDeMonto("1.299,50")).toBe(1299.5);
+    expect(numeroDeMonto("12.40")).toBe(12.4);
+    expect(numeroDeMonto("")).toBe(0);
+    expect(numeroDeMonto("  ")).toBe(0);
+  });
+  it("lo que no se entiende es NaN: `> 0` es falso y `|| 0` da 0, así que ningún botón guarda un monto adivinado", () => {
+    for (const t of ["12.500", "abc", "1e3", "0x10"]) expect(numeroDeMonto(t), t).toBeNaN();
+  });
+  it("montoIlegible marca el campo solo si hay algo escrito que no se entiende", () => {
+    expect(montoIlegible("")).toBe(false);
+    expect(montoIlegible("2,5")).toBe(false);
+    expect(montoIlegible("12.500")).toBe(true);
   });
 });

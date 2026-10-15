@@ -39,11 +39,26 @@ prueba: `lecturaCampoMonto` en `lib/monto-plata-reglas.ts`.
 - Alguien escribe «12.500» queriendo decir doce mil quinientos: el campo lo marca y no deja seguir hasta escribirlo como «12500» o
   «12,500». Es a propósito.
 
+## Actualización 2026-10-15 (b): todos los campos de plata y el arqueo de Caja
+
+Felipe: «haz esta tarea aquí» (los demás campos de plata) y, preguntado por Caja, **«Caja entra»**: se deja la decisión del 2026-10-14 (Caja con su
+propio lector) porque el del arqueo leía «1299,50» como 129 950.
+
+- **Una sola regla para leer plata escrita.** `leerMonto` de Caja (`caja-cierre-reglas.ts`: abrir caja, arqueo y traslado del cierre) ahora
+  es `leerMontoPlata`. Cambia una cosa a la vista: «10.005» (céntimos de más) ya no se redondea a 10.01, se pide de nuevo, como en el resto.
+- **Los 11 campos de plata que eran `type="number"` propios** pasan a texto con teclado decimal (`atributosMontoTexto`, en `CampoMonto.tsx`) y se
+  leen con `numeroDeMonto` donde decía `Number(…)`: vacío es 0 como antes y lo que no se entiende es `NaN`, que ningún `> 0` deja pasar.
+  Son: los pagos de la venta (`LineasPago`), «Otro monto recibido» del cobro (`HojaDeCobro`, con su borrador de texto para no perder la coma
+  a mitad de escribir), el descuento en soles del ticket (`PuntoDeVentaTicket` y `PuntoDeVenta`), el monto a devolver (`DevolucionesPendientes`),
+  el ingreso o egreso de Caja (`MovimientoCajaModal`), el costo en Llegó mercadería (`fijarCosto` ya no convierte en cada tecla), el costo de
+  un extra en Recibir envío, el costo en Compras (`requisitosDeCompra` frena un costo ilegible: «La línea N tiene un costo que no se
+  entiende»), el precio de maquila, y el precio y costo de la ficha, de Agregar colores o tallas y del cambio en bloque
+  (`variantes-ficha-reglas.ts`).
+- Un costo ilegible en Llegó mercadería y en Recibir envío no viaja: el aviso dice cómo escribirlo y el cursor va al campo.
+- Quedan con `type="number"` solo cantidades, porcentajes (descuento %, IGV %), días y copias: no son plata.
+
 ## Lo que queda (no entra aquí)
 
-- **25 archivos con `<input type="number">` propios**, que no pasan por `CampoMonto`. Varios son plata: `LineasPago` (los pagos de la
-  venta), `MovimientoCajaModal`, `HojaDeCobro` (el «Recibido»), `DevolucionesFlujo`, `CambioReemplazo`, `NuevaProformaModal`, `CompraFormV2`,
-  `ProductoForm` (el precio); otros son cantidades. Cada uno es su propia pantalla.
-- **Ocho lectores de montos distintos** en `lib/` (`leerMonto` de Caja, de Precio por sede, del filtro de precio y de corregir el pago;
-  `parsearMonto` de Gastos y de Configuración; `parseMontoNota`; `leerNumero` de Compras). El de Caja borra las comas («1299,50» →
-  129 950); Felipe dijo el 2026-10-14 que Caja sigue con el suyo hasta que él lo decida.
+- **Porcentajes con coma** («12,5 %» en el descuento o el IGV) siguen siendo `type="number"`: no son plata, pero tienen el mismo problema.
+- **Los demás lectores de montos de `lib/`** (`leerMonto` de Precio por sede, del filtro de precio y de corregir el pago; `parsearMonto` de Gastos y
+  de Configuración; `parseMontoNota`; `leerNumero` de Compras) leen texto que ya acepta la coma, cada uno a su manera: unificarlos es otro paso.

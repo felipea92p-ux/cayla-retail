@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MONTO_ILEGIBLE, lecturaCampoMonto } from "@/lib/monto-plata-reglas";
+import { MONTO_ILEGIBLE, lecturaCampoMonto, montoIlegible } from "@/lib/monto-plata-reglas";
 
 /**
  * Campo de un monto en soles que se puede vaciar y reescribir sin que se le pegue un «0», y que entiende la coma decimal.
@@ -45,7 +45,7 @@ export function CampoMonto({
       placeholder="0.00"
       value={borrador ?? String(valor)}
       disabled={disabled}
-      className={`${className ?? ""} aria-[invalid=true]:text-rojo-profundo aria-[invalid=true]:underline aria-[invalid=true]:decoration-rojo aria-[invalid=true]:decoration-wavy`}
+      className={`${className ?? ""} ${CLASE_MONTO_ILEGIBLE}`}
       onFocus={(e) => {
         if (valor === 0) setBorrador("");
         else e.currentTarget.select();
@@ -58,4 +58,25 @@ export function CampoMonto({
       onBlur={() => setBorrador((b) => (b !== null && lecturaCampoMonto(b).ilegible ? b : null))}
     />
   );
+}
+
+/** Lo escrito que no se entiende se ve en rojo con un subrayado ondulado (lo pone `aria-invalid`). Un `<input>` propio la suma a su clase;
+ *  un `CampoTexto` dice el porqué en su pie (`tono="error"`). */
+export const CLASE_MONTO_ILEGIBLE =
+  "aria-[invalid=true]:text-rojo-profundo aria-[invalid=true]:underline aria-[invalid=true]:decoration-rojo aria-[invalid=true]:decoration-wavy";
+
+/**
+ * Para un campo de plata que guarda lo escrito como TEXTO y no puede ser un `CampoMonto` (su padre lee el texto, lleva su propia caja o
+ * etiqueta): campo de texto con teclado decimal, marcado en rojo si no se entiende. Se lee con `numeroDeMonto` (`lib/monto-plata-reglas.ts`),
+ * nunca con `Number(…)`. ADR-0419: el `type="number"` del navegador borraba la coma («2,5» → 25).
+ */
+export function atributosMontoTexto(texto: string) {
+  const ilegible = montoIlegible(texto);
+  return {
+    type: "text",
+    inputMode: "decimal",
+    autoComplete: "off",
+    "aria-invalid": ilegible || undefined,
+    title: ilegible ? MONTO_ILEGIBLE : undefined,
+  } as const;
 }

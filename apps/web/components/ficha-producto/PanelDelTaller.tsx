@@ -11,6 +11,7 @@ import { rangoDePrecios, tonoDeBarra } from "@/lib/matriz-ficha-reglas";
 import { useSubirFotos, type FotoSubida } from "./useSubirFotos";
 import type { ContextoFicha } from "./piezas";
 import type { StockFicha } from "./useStockFicha";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // Panel del taller (maqueta B, Felipe 2026-10-02): la columna derecha que usa el ancho que ADR-0257 dejó libre. Es la identidad
 // visual de la prenda en vivo —la foto del color elegido, sus colores, el stock por talla de ese color, el precio y lo que le falta—
@@ -73,7 +74,7 @@ export function PanelDelTaller({
 
   const precios = filas
     .filter((f) => f.activo)
-    .map((f) => Number(f.precio))
+    .map((f) => numeroDeMonto(f.precio))
     .filter((p) => p > 0);
   const primerSinFoto = colores.find(sinFoto) ?? null;
   const pendiente = pendientes[0];
