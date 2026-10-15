@@ -34,8 +34,10 @@ export function BotonBuscar({
 }) {
   return (
     <Boton type={type} onClick={onClick} disabled={disabled} {...(cargando !== undefined ? { cargando, textoCargando: "Buscando…" } : {})} peso={peso} className={className} data-guia={guia}>
-      <Search aria-hidden size={TAMANOS_ICONO.control} className="shrink-0" />
-      {children}
+      <span className="flex items-center gap-2">
+        <Search aria-hidden size={TAMANOS_ICONO.control} className="-my-1 shrink-0" />
+        {children}
+      </span>
     </Boton>
   );
 }

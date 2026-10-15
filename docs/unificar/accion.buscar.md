@@ -16,6 +16,8 @@ Cambios y Devoluciones, la pantalla Buscar). Mientras consulta, «Buscando…» 
 **Deuda 0.** La consulta de DNI o RUC, unir clientes (la ficha de un cliente), buscar al cliente de un apartado, la búsqueda de una venta en
 Cambios y Devoluciones, y la pantalla Buscar.
 
+A 375 px, en Cambios (claro y oscuro): ![«Buscar» con su lupa en el mostrador](capturas/ronda15-375.jpg)
+
 ## Firmas
 
 Un `<Boton>` o un `<button>` cuyo texto es «Buscar» (hasta 3 líneas). Con el código de antes reconoce 5 archivos.

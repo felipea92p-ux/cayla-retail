@@ -48,7 +48,7 @@ grandes «Escanear prenda» del celular, de 18–19 a 20. También el ícono de 
 
 ![Antes: las opciones de un comprobante, con 18 px y trazo 1,75](capturas/icono.antes.jpg)
 
-![Después (aplicado en vivo para elegir): 20 px y trazo 2](capturas/icono.despues-en-vivo.jpg)
+![Después, con el código migrado: 20 px y trazo 2](capturas/icono.despues.jpg)
 
 **Se quedan, por su decisión:** el marco (el lateral, la cabecera y su botón «Demo», y el ícono de cada módulo en Roles, que copia al
 lateral) dibuja con 1,5 y quedó fuera del censo desde la ronda 1: **Felipe decide aparte si pasa a 2**. Los pases de Traslados (ADR-0355), el

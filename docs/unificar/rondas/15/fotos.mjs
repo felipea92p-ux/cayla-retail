@@ -6,7 +6,7 @@ import { porClave } from "../../../tema/cuentas.mjs";
 import { abrirContexto } from "../../../tema/motor/sesion.mjs";
 import { ESCENARIOS } from "../../../tema/escenarios/registro.mjs";
 const B = process.env.B ?? "http://localhost:3110";
-const OUT = "unificar/.salida/elegir-ronda15/img";
+const OUT = process.env.OUT ?? "unificar/.salida/elegir-ronda15/img"; // DESPUES=1: solo la foto del código de hoy, sin propuestas en vivo
 mkdirSync(OUT, { recursive: true });
 // [cuenta, ruta, pie, selector del recorte, alto máximo]
 // [cuenta, ruta, pie, selector de lo que se fotografía, ancho mínimo del recorte, alto máximo]
@@ -22,7 +22,7 @@ const PANTALLAS = [
 // Lo que se aplica en vivo. Las marcas de una casilla o de un filtro son de su pieza (ronda 6) y no se tocan.
 const FUERA = ':is([class*="casilla"], [class*="pildora-filtro"], .vacio-cayla, [class*="aviso-cayla"], aside:not(main aside), header:not(main header), .papel-fijo, [data-papel])';
 const TRAZO = (n, fijo = false) => `svg.lucide:not(${FUERA} svg) { stroke-width: ${n}${fijo ? "px" : ""} !important; } ${fijo ? `svg.lucide:not(${FUERA} svg) * { vector-effect: non-scaling-stroke; }` : ""}`;
-const OPCIONES = [
+const OPCIONES = process.env.DESPUES ? [["despues", "A", null, null]] : [
   ["trazo", "A", null, null],
   ["trazo", "P1", TRAZO(2), null],
   ["trazo", "P2", TRAZO(1.75), null],

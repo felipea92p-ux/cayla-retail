@@ -33,6 +33,8 @@ mouse la franja se oscurece apenas. Con «reducir movimiento», sin transición.
 (el enlace: es una lista dentro de la ficha) y Finanzas ▸ Resumen (el enlace). Las tres últimas ahora despliegan sus filas en su lugar; antes
 aparecían de golpe.
 
+![Después: Existencias ▸ Pendientes, abierta](capturas/accion.siguiente.despues.jpg)
+
 **Se queda:** la tecla «Ver más» de las familias de Nuevo producto, que es una tarjeta más entre las de familia y dice lo que esconde
 («Calzado, Accesorios…»), no el pie de una lista (`unificar-fijo` en la línea).
 
