@@ -14,7 +14,8 @@
  *      (ni el cambio, ni movimientos, ni stock movido).
  *   3. Por una prenda en S/ 0 de una familia fuera de los motores (la bolsa de obsequio): TAMBIÉN se rechaza. Un cambio por
  *      una bolsa gratis sería una devolución completa por la puerta de atrás (decisión del ADR-0385).
- *   4. Una prenda con precio base 0 y precio propio en esta tienda se cambia al de la tienda (se mira el precio que se cobra).
+ *   4. Una prenda con precio base 0 y precio propio en esta tienda TAMBIÉN se rechaza: desde el 2026-10-15 una talla a 0 en la grilla
+ *      vale 0 en toda tienda (`20261015121000_talla_en_cero_sigue_en_cero.sql`); antes se cambiaba al precio de la tienda.
  *   5. La migración se puede pegar dos veces.
  *
  * CÓMO. Cada caso en su transacción con ROLLBACK (nunca se commitea nada), como Felipe (líder) con `request.jwt.claim.sub`.
@@ -128,14 +129,16 @@ ${CAMBIAR}`);
   esperar("3 · por una prenda en S/ 0 de una familia fuera de los motores (la bolsa de obsequio) también se rechaza", r.ok && /^cambio_sin_precio/.test(r.lineas[0] ?? ""), r.ok ? r.lineas : r.mensaje);
 }
 {
+  // CAMBIÓ el 2026-10-15 («La talla de S/ 0 sigue en S/ 0», Felipe; `20261015121000_talla_en_cero_sigue_en_cero.sql`). Hasta ese día
+  // una prenda en 0 con precio propio en la tienda se cambiaba al de la tienda. Ahora una talla a 0 en la grilla vale 0 en TODA tienda:
+  // el precio de la tienda ya no la rescata, sigue siendo una prenda sin precio y el cambio se rechaza como en el caso 2.
   const r = correr(`select producto_id as p_new from retail.variantes where id = :'v_new' \\gset
 select retail.poner_precio_sede(:'p_new', :'ubic', 99, 'prueba automatizada') as _ps \\gset
 update retail.variantes set precio = 0 where id = :'v_new';
 ${CAMBIAR}
-select diferencia from retail.cambios where venta_item_id = :'venta_item';
-select (99 - (:'precio_old_sede')::numeric);`);
+${QUEDO}`);
   const l = r.ok ? r.lineas : [];
-  esperar("4 · con precio base 0 y precio propio en la tienda, se cambia al de la tienda", r.ok && l[0] === "ok" && Number(l[1]) === Number(l[2]), r.ok ? l : r.mensaje);
+  esperar("4 · con precio base 0 y precio propio en la tienda, igual se rechaza: vale 0 en toda tienda (cambio_sin_precio, nada escrito)", r.ok && /^cambio_sin_precio :: Vestido Sofía \(/.test(l[0] ?? "") && l[1] === "0|0|0", r.ok ? l : r.mensaje);
 }
 {
   const sql = readFileSync(MIGRACION, "utf8");

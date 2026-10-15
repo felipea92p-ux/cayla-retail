@@ -432,6 +432,19 @@ select concat_ws(',',
   "false,t,tienda_separar_no_publicada",
 );
 escenario(
+  // «La talla de S/ 0 sigue en S/ 0» (Felipe 2026-10-15, `20261015121000`): el precio propio de una tienda no alcanza a la talla que vale 0
+  // en la grilla. Antes, con un precio propio en Trujillo, la bolsa la ofrecía a ese precio en Trujillo y con «Todas» (el mayor).
+  "con precio propio en la tienda, la talla de S/ 0 SIGUE sin ofrecerse: ni en esa tienda ni con «Todas», y «Separar» no la separa al precio de la tienda",
+  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 2);
+update retail.variantes set precio = 0 where id = :'v';
+select retail.poner_precio_sede(:'prod_v', :'tru', :'p_v'::numeric + 10, 'Prueba de la bolsa') is not null as _p \\gset
+select concat_ws(',',
+  retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, :'tru') -> 'lineas' -> 0 ->> 'disponible',
+  retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, null) -> 'lineas' -> 0 ->> 'disponible',
+  ${hint(separarTexto(bolsa(L("v", 1, ":'p_v'::numeric + 10"))))});`,
+  "false,false,tienda_separar_no_publicada",
+);
+escenario(
   "una bolsa torcida no separa: vacía, mal escrita, cantidad 0, precio con 3 decimales, la misma prenda dos veces o más de 20",
   `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 25);
 select string_agg(x.h, ',' order by x.n) from (values

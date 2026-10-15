@@ -632,15 +632,18 @@ function main() {
       rollback;`),
     "0|9",
   );
+  // CAMBIÓ el 2026-10-15 («La talla de S/ 0 sigue en S/ 0», Felipe; `20261015121000_talla_en_cero_sigue_en_cero.sql`). Hasta ese día,
+  // con precio propio en Trujillo la talla de S/ 0 salía en el look en Trujillo y con «Todas»; ahora vale 0 en toda tienda y no sale en
+  // ninguna. Lo que se sigue exigiendo es lo mismo: el look ofrece EXACTAMENTE las tallas de la ficha.
   esperarValor(
-    "las tallas del look son EXACTAMENTE las que ofrece la ficha en esa tienda: una talla a S/ 0 (ADR-0384) no sale; con precio propio en Trujillo sale en Trujillo y con «Todas» (el mayor), no en Lima",
+    "las tallas del look son EXACTAMENTE las que ofrece la ficha en esa tienda: una talla a S/ 0 (ADR-0384) no sale, tampoco con precio propio en Trujillo (ni en Trujillo, ni con «Todas», ni en Lima)",
     correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${crear("look", { ps: piezas(["emma", "NEG"], ["carla", "BEI"]) })}
       update retail.variantes set precio = 0 where sku = 'BLU-EMMA-NEG-L';
       ${TALLAS_CONTRA_FICHA("look")}${TALLAS_CONTRA_FICHA("look", "tru")}
       ${precioEnTienda("emma", "tru", "99.90")}
       ${TALLAS_CONTRA_FICHA("look", "tru")}${TALLAS_CONTRA_FICHA("look")}${TALLAS_CONTRA_FICHA("look", "lim")}
       rollback;`),
-    "0|S,M\n0|S,M\n0|S,M,L\n0|S,M,L\n0|S,M",
+    "0|S,M\n0|S,M\n0|S,M\n0|S,M\n0|S,M",
   );
   esperarValor(
     "el total del look en el ERP (con «Todas») es el de la tienda: cada prenda en SU color, también con una campaña de un solo color",
