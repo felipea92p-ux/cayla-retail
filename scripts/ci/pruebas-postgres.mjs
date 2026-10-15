@@ -196,6 +196,10 @@ export const PRUEBAS = [
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el
   // umbral de Configuración y NUNCA deja salir la cifra de 4 o más; la ficha de un oculto es null; precio por talla. ROLLBACK.
   "pruebas:tienda-ficha",
+  // La propuesta k de la ficha de la tienda online (ADR-0408): «otra persona ya separó la última» solo cuando los pedidos web por
+  // confirmar de OTROS clientes que recogen en esa tienda (y no vencieron) cubren lo libre de esa talla ahí (la pieza de la ficha);
+  // lo propio, otra tienda, lo vencido y lo confirmado no cuentan; nunca una cifra ni quién; solo tienda_web. ROLLBACK.
+  "pruebas:tienda-separadas",
 
   // El Inicio de la tienda online (ADR-0408, actividad 5): «Lo nuevo» por el PRIMER ingreso a una tienda en 30 días (no el Taller, no
   // una devolución), fijado o quitado en la Vitrina; «Más vendidos» por unidades en 30 días, 20 puestos y sin las cifras; ninguno con
@@ -229,10 +233,6 @@ export const PRUEBAS = [
   // caja, las novedades (primera llegada, sin carga inicial) desde la visita anterior; «Esperan una talla» del ERP con el módulo y
   // sin datos personales; y seis mutantes que la prueba nota. ROLLBACK.
   "pruebas:tienda-club",
-  // La propuesta k de la ficha de la tienda online (ADR-0408): «otra persona ya separó la última» solo cuando los pedidos web por
-  // confirmar de OTROS clientes que recogen en esa tienda (y no vencieron) cubren lo libre de esa talla ahí (la pieza de la ficha);
-  // lo propio, otra tienda, lo vencido y lo confirmado no cuentan; nunca una cifra ni quién; solo tienda_web. ROLLBACK.
-  "pruebas:tienda-separadas",
 
   // Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
   // La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.
