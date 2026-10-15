@@ -1526,7 +1526,23 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `anular_pago_pedido_web` (el efectivo sale de la caja abierta del día). La lógica pura: `lib/pedidos-web-cobro-reglas.ts`; la guía de
   foco: `camposPago` y `camposAnularPago` en `lib/pedidos-web-guia.ts`. El detalle trae `caja_abierta` y quién anuló cada pago, y la lista
   conserva lo anulado con plata por devolver (`20261015041000_pedidos_web_cobrar.sql`; el token, `20261015042000_pedidos_web_cobrar_token.sql`;
-  sin aplicar en producción). La boleta al quedar pagado completo y la entrega son la actividad 10.
+  sin aplicar en producción).
+  **La boleta y entregar** (actividad 10): con el pago que completa el total, `registrar_pago_pedido_web` hace nacer en la MISMA
+  transacción la venta del pedido (`fn_pedido_web_vender`: completada, en la caja abierta de su tienda, una línea de venta por prenda
+  —`pedido_web_lineas.venta_item_id`— y UN pago `anticipo` por lo pagado) y su boleta por el total con `emitir_comprobante`, PENDIENTE; la
+  hoja la manda a SUNAT con `enviarVentaASunat` (`lib/envio-sunat.ts`, el camino de Vender) y, si Lucode no responde, queda en la cola
+  (`pendiente_reintento`). Ese pago pide la caja abierta aunque sea digital (`problemaDeCaja` en `lib/pedidos-web-cobro-reglas.ts`). En
+  «Por entregar», `PedidoWebHoja.tsx` muestra la boleta (`fn_pedido_web_detalle` → `boleta`, `venta_id`, `entregado_por`; nunca el código)
+  y, con todo en la tienda, el código de 4 cifras que el cliente muestra + Responsable → `useIntento("entregar_pedido_web")` →
+  `entregar_pedido_web` (cada prenda deja su reserva —apartado cerrado «entregada»— y sale del stock con la salida de su línea de venta;
+  `fn_resolver_intento` revisa una entrega en duda). Mientras no se entrega, su venta no se anula, cambia ni devuelve (`anular_venta`,
+  `fn_exigir_linea_venta_disponible` y los disparadores de `cambios`/`devolucion_items`). La guía de foco: `camposEntregar`. En
+  Finanzas, cada pago sella su cuenta (`pedido_web_pagos.cuenta_dinero_id`, `fn_pedido_web_pagos_sellar`); su efectivo es «efectivo de
+  clientes» en el flujo (`fn_flujo_lineas`); lo digital entra a Cuentas y dinero (`fn_dinero_libro`); el diario lo entra contra
+  «Adelantos de clientes» (122) con `fn_asientos_pedidos_web` y la venta lo aplica; y el Balance lo cuenta en sus dos caminos
+  (`fn_bal_anticipos`: lo pagado que todavía no es venta; `fn_bal_stock`: lo vendido sin entregar ya no es mercadería; `fn_bal_causas_dinero`). Migraciones
+  `20261015051000_pedidos_web_venta_al_pagar.sql`, `20261015052000_pedidos_web_entregar.sql` y `20261015053000_pedidos_web_en_finanzas.sql`
+  (sin aplicar en producción); prueba `pnpm pruebas:pedidos-web-entregar`.
 
 - **Configuración** (2026-09-24, ADR-0195 F1; módulo `configuracion`, solo líder por ahora; se entra desde el perfil, como
   Colaboradores): `/configuracion` → `lib/configuracion.ts` (`fn_configuracion_tiendas`) + `lib/configuracion-reglas.ts` (lógica
@@ -1857,7 +1873,9 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   para el cliente (`porQueSeCerro` de `lib/pedidos.ts`), nunca con la etiqueta del ERP. Las piezas que pone la integración en la ficha y
   las tarjetas: `components/bolsa/AgregarALaBolsa.tsx` (`AgregarALaBolsa`, `AgregarRapido`); `components/bolsa/BotonBolsa.tsx` ya está en
   la cabecera con cuenta.
-  Migraciones `20261015021000`, `20261015022000` y `20261015023000`; prueba en la base: `pnpm pruebas:tienda-bolsa`.
+  Migraciones `20261015021000`, `20261015022000` y `20261015023000`; prueba en la base: `pnpm pruebas:tienda-bolsa`. Desde la actividad 10,
+  cada pedido trae el número de su boleta (`boleta` en `fn_pedidos_web_de_clienta`, `20261015052000`): pagado y listo, el código para
+  recoger y la boleta; entregado, la boleta, cuándo lo recogió y el plazo de cambio (7 días, en cualquier tienda).
 - «Mi cuenta» abre con «Mis pedidos» (`components/cuenta/MisPedidosEnLaCuenta.tsx` → `leerMisPedidos`: los tres últimos y el camino a
   `/cuenta/pedidos`), antes de los bloques del Club.
 - El Club en la cuenta (actividad 12): `/cuenta` → `lib/club-servidor.ts` `leerMiClubEnBase()` → `retail.tienda_mi_club(usuario)`: sus
