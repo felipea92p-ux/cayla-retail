@@ -1,6 +1,7 @@
 import { exigirModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { leerVitrina } from "@/lib/vitrina-reglas";
+import { personasQueEsperan } from "@/lib/vitrina-esperan-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { VitrinaPantalla } from "@/components/vitrina/VitrinaPantalla";
@@ -13,7 +14,8 @@ export default async function VitrinaPage() {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("vitrina_web");
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_vitrina_modelos");
+  // La cifra «Esperan una talla» (actividad 12) se lee a la vez; si falla, la cifra lo dice y la vitrina se ve igual.
+  const [{ data, error }, esperan] = await Promise.all([supabase.rpc("fn_vitrina_modelos"), supabase.rpc("fn_vitrina_esperan")]);
 
   return (
     <div className="space-y-6">
@@ -27,7 +29,7 @@ export default async function VitrinaPage() {
           Recarga la página; si sigue, avísale al líder.
         </Aviso>
       ) : (
-        <VitrinaPantalla lectura={leerVitrina(data)} />
+        <VitrinaPantalla lectura={leerVitrina(data)} esperan={esperan.error ? null : personasQueEsperan(esperan.data)} />
       )}
     </div>
   );

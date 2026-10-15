@@ -37,7 +37,7 @@ const PLANTILLA = "grid-cols-[1.5rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[1.5rem
  * fila muestra u oculta ese modelo, y marcar varios abre la barra para mostrarlos u ocultarlos juntos. Toda escritura pasa por una hoja
  * con el combo «Responsable» (ADR-0162).
  */
-export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
+export function VitrinaPantalla({ lectura, esperan }: { lectura: LecturaVitrina; /** Personas que esperan una talla (actividad 12); `null`: no se pudo leer. */ esperan: number | null }) {
   const router = useRouter();
   const [modelos, setModelos] = useState(lectura.modelos);
   // Lo que trae el servidor al refrescar manda (sin un efecto: se ajusta al dibujar, como pide React).
@@ -70,7 +70,7 @@ export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-2" data-guia="vitrina.cifras">
+      <div className="grid gap-3 sm:grid-cols-3" data-guia="vitrina.cifras">
         <TarjetaCifra
           punto="verde"
           etiqueta="Se ven en la web"
@@ -92,6 +92,18 @@ export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
           onClick={() => alternarFiltro("sin_stock")}
         >
           {cifras.sinStock > 0 ? "Se ven, pero no hay qué separar" : "Todos los que se ven tienen algo"}
+        </TarjetaCifra>
+        {/* Lo que piden los clientes con «Avísame» (actividad 12, maqueta: «Esperan una talla · Tocaron «Avísame»»): lleva a su lista. */}
+        <TarjetaCifra
+          punto={esperan ? "ambar" : "neutro"}
+          etiqueta="Esperan una talla"
+          className="anim-entra"
+          style={{ ["--i" as string]: 2 }}
+          valor={esperan === null ? null : <CifraQueCuenta valor={esperan} alMontar />}
+          noSePudoLeer={esperan === null}
+          href="/productos/vitrina/esperan"
+        >
+          {esperan === null ? "No se pudo leer: entra para volver a intentar" : esperan === 1 ? "Persona que tocó «Avísame»" : "Personas que tocaron «Avísame»"}
         </TarjetaCifra>
       </div>
 

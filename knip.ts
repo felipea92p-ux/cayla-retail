@@ -102,6 +102,9 @@ const config: KnipConfig = {
         // su primer uso, porque la ficha, las tarjetas y la cabecera las arman a la vez las actividades 4 y 5. Salen de aquí cuando la
         // integración de la tienda los ponga en su lugar.
         "components/bolsa/{AgregarALaBolsa,BotonBolsa}.tsx",
+        // «Avísame cuando llegue» (actividad 12) nace antes que la ficha que lo usa (actividad 4): sale de aquí cuando la integración
+        // lo ponga en la ficha.
+        "components/club/BotonAvisame.tsx",
       ],
     },
     "packages/*": {

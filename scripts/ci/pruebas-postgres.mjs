@@ -218,6 +218,11 @@ export const PRUEBAS = [
   // confirmar SIN tocar el stock y la misma marca da el mismo pedido; cada cliente ve solo sus pedidos (el código de recojo, recién
   // listo); el cierre programado usa el plazo de Configuración ▸ Tienda web; solo tienda_web y service_role. ROLLBACK.
   "pruebas:tienda-bolsa",
+  // El Club en la cuenta de la tienda online (ADR-0408, actividad 12): favoritos y «Avísame» idempotentes y solo de su cuenta (la
+  // ajena no se toca), con sus topes; «hay» sin Cuarentena ni lo apartado no anota; «Mi cuenta» con el cumpleaños y el vale de la
+  // caja, las novedades (primera llegada, sin carga inicial) desde la visita anterior; «Esperan una talla» del ERP con el módulo y
+  // sin datos personales; y seis mutantes que la prueba nota. ROLLBACK.
+  "pruebas:tienda-club",
 
   // Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
   // La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.

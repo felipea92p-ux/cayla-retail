@@ -8,6 +8,9 @@ const TRAZOS = {
   regalo: <><rect x="4" y="9" width="16" height="11" rx="1.5" /><path d="M3 9h18V6H3zM12 6v14M12 6c-1.5-3-5-3-5-1s3 1 5 1Zm0 0c1.5-3 5-3 5-1s-3 1-5 1Z" /></>,
   ticket: <><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4V7Z" /><path d="M10 7v10" /></>,
   chispa: <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" />,
+  // El Club en la cuenta (actividad 12): el corazón de favoritos y la campana de «Avísame cuando llegue».
+  corazon: <path d="M12 20s-7-4.6-7-10.1A4 4 0 0 1 12 7.6a4 4 0 0 1 7 2.3C19 15.4 12 20 12 20Z" />,
+  campana: <><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></>,
   pedido: <><path d="M6 3h9l3 3v15H6z" /><path d="M9 9h6M9 13h6M9 17h3" /></>,
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   // La bolsa y los pedidos (actividad 7): el plazo para confirmar y la prenda que la tienda trae de otra. El reloj también dice,

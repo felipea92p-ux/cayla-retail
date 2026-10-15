@@ -5821,6 +5821,8 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: Json
       }
+      // Vitrina web ▸ Esperan una talla (ADR-0408, actividad 12; 20261015030000): lo que esperan los clientes, sin datos personales.
+      fn_vitrina_esperan: { Args: never; Returns: Json }
       // Vitrina web (ADR-0408, actividad 3; 20261014225000). Sin precio web: en la web vale el precio de cada tienda.
       fn_vitrina_modelos: { Args: never; Returns: Json }
       vitrina_guardar_modelo: {
