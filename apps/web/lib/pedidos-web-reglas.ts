@@ -8,8 +8,10 @@
 //            pide `confirmar_pedido_web`, y lo que todavía falta para poder confirmar; y los mensajes de WhatsApp de la maqueta.
 //   ASUME:   que la base manda (permisos, stock, plazos, transiciones): lo que aquí se calcula es para mostrar y para no ofrecer lo que
 //            la base rechazaría. Los plazos (24 h, 48 h, 7 días) llegan de Configuración ▸ Tienda web en la lectura, nunca escritos aquí.
-//   NO HACE: entregar (actividad 10). Lo de cobrar (registrar y anular un pago) vive en `pedidos-web-cobro-reglas.ts` (actividad 9);
-//            aquí solo se lee lo que pagó cada pedido y lo que queda por devolver de uno anulado.
+//            Entregar (actividad 10): el código de 4 cifras como lo escribe la persona, lo que falta para poder entregar, la boleta y en
+//            qué va su envío a SUNAT, y los mensajes para avisarle que ya puede recogerlo (o que no lo recoge).
+//   NO HACE: lo de cobrar (registrar y anular un pago) vive en `pedidos-web-cobro-reglas.ts` (actividad 9); aquí solo se lee lo que
+//            pagó cada pedido y lo que queda por devolver de uno anulado. Nunca compara el código: lo compara la base.
 
 import { diaLima, hoyLima, sumarDias } from "./fechas-lima";
 import { enlaceWhatsAppA } from "./facturacion-comprobantes-reglas";
@@ -138,6 +140,9 @@ export type PagoDeLista = {
   anuladoMotivo: string | null;
 };
 
+/** La boleta del pedido (nace al quedar pagado completo, ADR-0408 act. 10) y en qué va su envío a SUNAT (`comprobantes.estado`). */
+export type BoletaWeb = { comprobanteId: string; texto: string; estado: string };
+
 export type PedidoDetalle = {
   id: string;
   codigo: string;
@@ -167,6 +172,10 @@ export type PedidoDetalle = {
   /** ¿La tienda del pedido tiene su caja abierta? (para ofrecer el efectivo al cobrar y al devolver). null = no se sabe (una base sin la
    *  actividad 9): no se bloquea nada y decide la base. */
   cajaAbierta: boolean | null;
+  /** La venta del pedido pagado completo, su boleta y quién lo entregó (actividad 10). null antes de pagarse (o en una base sin ella). */
+  ventaId: string | null;
+  boleta: BoletaWeb | null;
+  entregadoPor: string | null;
 };
 
 type Crudo = Record<string, unknown>;
@@ -263,6 +272,13 @@ export function leerTablero(data: unknown): TableroPedidosWeb {
   return { plazos: leerPlazos(t.plazos), pedidos, cobradoHoy: numero(t.cobrado_hoy), paraEnviar };
 }
 
+function leerBoleta(x: unknown): BoletaWeb | null {
+  const b = obj(x);
+  const comprobanteId = texto(b.comprobante_id);
+  const t = texto(b.texto);
+  return comprobanteId && t ? { comprobanteId, texto: t, estado: texto(b.estado) ?? "pendiente" } : null;
+}
+
 /** Lo de `fn_pedido_web_detalle`. null si no trae un pedido. */
 export function leerDetalle(data: unknown): PedidoDetalle | null {
   const d = obj(data);
@@ -299,6 +315,9 @@ export function leerDetalle(data: unknown): PedidoDetalle | null {
       ...(texto(lugares.piso_venta) ? { piso: texto(lugares.piso_venta)! } : {}),
     },
     cajaAbierta: typeof d.caja_abierta === "boolean" ? d.caja_abierta : null,
+    ventaId: texto(d.venta_id),
+    boleta: leerBoleta(d.boleta),
+    entregadoPor: texto(d.entregado_por),
     pagos: lista(d.pagos).map((x): PagoDeLista => {
       const g = obj(x);
       return {
@@ -465,7 +484,7 @@ export function estadoVisible(
     if (p.sinRecoger)
       return { texto: `Sin recoger · pagó ${p.pagadoEn ? haceCuanto(p.pagadoEn, ahora) : ""}`.trim(), tono: "rojo", vivo: false, accion: "Escríbele para que pase a recogerlo" };
     if (!p.listoParaRecoger) return { texto: "Pagado · espera una prenda", tono: "pizarra", vivo: false, accion: "Avísale cuando llegue" };
-    return { texto: "Pagado · por entregar", tono: "verde", vivo: false, accion: "Se entrega cuando venga a recogerlo" };
+    return { texto: "Pagado · por entregar", tono: "verde", vivo: false, accion: "Entrégalo con su código" };
   }
   if (p.estado === "entregado") return { texto: "Entregado", tono: "neutro", vivo: false, accion: "" };
   if (p.estado === "vencido") return { texto: "Se cerró sin confirmar", tono: "apagado", vivo: false, accion: "" };
@@ -686,10 +705,54 @@ export function faltaDeLlegada(fecha: string, hoy: string): string | null {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
+// Entregar con el código de 4 cifras (actividad 10)
+// ---------------------------------------------------------------------------------------------------------------------------
+
+/** El código como se guarda: solo cifras (al dictarlo se cuela un espacio o un guion), hasta 4. */
+export function limpiarCodigo(texto: string): string {
+  return texto.replace(/\D/g, "").slice(0, 4);
+}
+
+/** Lo que le falta al código para mandarlo, o null. La forma (4 cifras); si es EL del pedido lo dice la base, nunca la pantalla. */
+export function problemaDelCodigo(codigo: string): string | null {
+  if (codigo === "") return "Escribe el código que el cliente ve en su pedido.";
+  if (!/^\d{4}$/.test(codigo)) return "El código tiene 4 cifras.";
+  return null;
+}
+
+/** Las prendas que todavía no están en la tienda del pedido (por conseguir, en camino o reservadas en otra): sin ellas no se entrega.
+ *  La misma regla de `entregar_pedido_web` (todo reservado en la tienda del pedido). */
+export function faltanParaEntregar(lineas: readonly Pick<LineaDetalle, "estado" | "ubicacionId" | "referencia" | "talla">[], tiendaPedidoId: string): string[] {
+  return lineas
+    .filter((l) => l.estado !== "quitada" && l.estado !== "entregada" && (l.estado !== "reservada" || l.ubicacionId !== tiendaPedidoId))
+    .map((l) => [l.referencia, l.talla].filter(Boolean).join(" · "));
+}
+
+/** En qué va el envío de la boleta a SUNAT, en palabras de tienda (la cola de Lucode, ADR-0005/0009). */
+export function estadoDeBoleta(estado: string): { texto: string; tono: TonoEstado } {
+  if (estado === "aceptado") return { texto: "Aceptada por SUNAT", tono: "verde" };
+  if (estado === "enviado") return { texto: "Enviada a SUNAT", tono: "pizarra" };
+  if (estado === "rechazado") return { texto: "SUNAT la rechazó", tono: "rojo" };
+  if (estado === "anulado" || estado === "no_emitido") return { texto: "Anulada", tono: "apagado" };
+  return { texto: "En cola para SUNAT", tono: "pizarra" };
+}
+
+/** Lo que dijo la base al entregar, en el campo del código si es por él (mal escrito o de otro pedido). */
+export function errorDeEntrega(
+  error: { message?: string; hint?: string | null } | null | undefined,
+): { enElCodigo: boolean; titulo: string; detalle: string } | null {
+  const hint = error?.hint ?? "";
+  const detalle = (error?.message ?? "").trim();
+  if (hint === "pedido_web_codigo" || hint === "pedido_web_codigo_incorrecto") return { enElCodigo: true, titulo: "Revisa el código", detalle };
+  if (hint === "pedido_web_no_listo") return { enElCodigo: false, titulo: "Todavía no se puede entregar", detalle };
+  return null;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------
 // WhatsApp (se abre en wa.me: lo manda la persona, nunca el sistema)
 // ---------------------------------------------------------------------------------------------------------------------------
 
-export type PlantillaWhatsapp = "libre" | "confirmado" | "cobro" | "sinstock" | "devolucion";
+export type PlantillaWhatsapp = "libre" | "confirmado" | "cobro" | "sinstock" | "devolucion" | "listo" | "norecoge";
 
 const primerNombre = (nombre: string) => nombre.trim().split(/\s+/)[0] ?? nombre;
 
@@ -707,6 +770,10 @@ export function mensajeWhatsapp(
     return `Hola ${n}, te escribimos de ${tienda} por tu pedido ${p.codigo}: quedó anulado y te devolvemos ${soles(p.pagado)}. ¿Cómo prefieres recibirlo?`;
   if (plantilla === "sinstock")
     return `Hola ${n}, revisamos tu pedido ${p.codigo} y una prenda ya no está en ${tienda}. ¿Te ofrecemos otra talla, otro color o traerla de otra tienda?`;
+  if (plantilla === "listo")
+    return `Hola ${n}, tu pedido ${p.codigo} ya está listo para recoger en ${tienda}${p.tiendaWeb.direccion ? ` (${p.tiendaWeb.direccion})` : ""}. Muestra en caja el código de tu pedido: lo ves en «Mis pedidos».`;
+  if (plantilla === "norecoge")
+    return `Hola ${n}, tu pedido ${p.codigo} te espera en ${tienda}. ¿Cuándo pasas a recogerlo? Muestra en caja el código de tu pedido.`;
   return `Hola ${n}, te escribimos de ${tienda} por tu pedido ${p.codigo}.`;
 }
 
@@ -748,6 +815,11 @@ export function errorDePedidoWeb(
     pedido_web_fecha: "Revisa la fecha",
     pedido_web_nada_que_enviar: "No hay nada que enviar",
     pedido_web_descontinuada: "Esa prenda está descontinuada",
+    pedido_web_codigo: "Revisa el código",
+    pedido_web_codigo_incorrecto: "Ese código no es de este pedido",
+    pedido_web_no_listo: "Todavía no se puede entregar",
+    pedido_web_por_entregar: "El pedido todavía no se entrega",
+    pedido_web_sin_caja: "No hay una caja abierta",
   };
   return { titulo: titulos[hint] ?? "No se pudo guardar", detalle: mensaje, yaEstaba: hint === "pedido_web_estado", releer };
 }

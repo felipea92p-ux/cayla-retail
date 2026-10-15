@@ -6,6 +6,7 @@ import {
   MOTIVOS_ANULAR_PAGO,
   avisoTrasPagar,
   ayudaDelMonto,
+  completaElPedido,
   despuesDelPago,
   detalleDelPago,
   efectoDeAnular,
@@ -13,10 +14,12 @@ import {
   esAdelanto,
   esDigital,
   estadoDelPago,
+  faltaLeerLaVenta,
   limpiarOperacion,
   montoDeFabrica,
   pagoParaLaBase,
   porDevolver,
+  problemaDeCaja,
   problemaDeOperacion,
   problemaDelMedio,
   problemaDelMonto,
@@ -24,12 +27,14 @@ import {
   problemaParaAnular,
   sePuedeAnular,
   textoDelPago,
+  ventaDelPago,
   type MedioPagoWeb,
 } from "./pedidos-web-cobro-reglas";
 import type { EstadoPedidoWeb, LineaDetalle, PagoDeLista } from "./pedidos-web-reglas";
 
 const MIGRACIONES = join(__dirname, "../../../supabase/migrations");
 const COBROS = readFileSync(join(MIGRACIONES, "20261015000000_pedidos_web_cobros.sql"), "utf8");
+const VENTA_AL_PAGAR = readFileSync(join(MIGRACIONES, "20261015051000_pedidos_web_venta_al_pagar.sql"), "utf8");
 const AHORA = Date.parse("2026-10-14T15:00:00Z");
 
 const linea = (estado: LineaDetalle["estado"]) => ({ estado }) as LineaDetalle;
@@ -125,13 +130,58 @@ describe("El adelanto de lo que se consigue (Felipe: cuánto, lo decide la tiend
     expect(ayudaDelMonto({ lineas: [linea("reservada")], pagado: 0 })).toBe("Puede ser una parte: el resto se registra después.");
   });
   it("lo que queda después del pago, y el aviso al registrarlo", () => {
-    expect(despuesDelPago(100, "100")).toBe("Con este pago queda pagado completo.");
+    expect(despuesDelPago(100, "100")).toBe("Con este pago queda pagado completo y sale su boleta.");
     expect(despuesDelPago(100, "30,5")).toBe("Después de este pago faltan S/ 69.50.");
     expect(despuesDelPago(100, "")).toBeNull();
     expect(despuesDelPago(100, "101")).toBeNull();
     expect(avisoTrasPagar(30, "efectivo", { falta: 70, estado_pedido: "confirmado" })).toEqual({ titulo: "Pago de S/ 30.00 registrado", detalle: "Faltan S/ 70.00. Entró a la caja." });
     expect(avisoTrasPagar(70, "yape", { falta: 0, estado_pedido: "pagado" })).toEqual({ titulo: "Pago de S/ 70.00 registrado", detalle: "El pedido quedó pagado completo." });
     expect(avisoTrasPagar(10, "plin", null).detalle).toBe("Todavía falta una parte.");
+  });
+});
+
+describe("El pago que completa el total: nace la venta con su boleta (actividad 10)", () => {
+  it("completa el pedido el monto que es exactamente lo que falta (como lo escribe una persona)", () => {
+    expect(completaElPedido("100", 100)).toBe(true);
+    expect(completaElPedido("S/ 99,90", 99.9)).toBe(true);
+    expect(completaElPedido("99.89", 99.9)).toBe(false);
+    expect(completaElPedido("", 100)).toBe(false);
+    expect(completaElPedido("100", 0)).toBe(false);
+  });
+  it("ese pago pide la caja abierta aunque sea por Yape; uno parcial, no; sin saber de la caja, decide la base", () => {
+    expect(problemaDeCaja({ monto: "100" }, 100, false, "Tienda Lima")).toBe(
+      "Con este pago queda pagado completo y sale su boleta, que va en la caja del día: abre la caja de Tienda Lima.",
+    );
+    expect(problemaDeCaja({ monto: "30" }, 100, false, "T")).toBeNull();
+    expect(problemaDeCaja({ monto: "100" }, 100, true, "T")).toBeNull();
+    expect(problemaDeCaja({ monto: "100" }, 100, null, "T")).toBeNull();
+    expect(problemaDelPago({ monto: "100", medio: "yape", operacion: "04812793" }, 100, false, "T")).toMatch(/abre la caja de T/);
+    expect(problemaDelPago({ monto: "40", medio: "yape", operacion: "04812793" }, 100, false, "T")).toBeNull();
+  });
+  it("es la misma regla de la base: registrar_pago_pedido_web la exige ANTES de anotar, cuando el monto es lo que falta", () => {
+    expect(VENTA_AL_PAGAR).toContain("if p_monto = p.total - p.pagado\n     and not exists (select 1 from retail.cajas cj where cj.ubicacion_id = p.ubicacion_id and cj.estado = 'abierta') then");
+  });
+  it("el aviso nombra la boleta que salió, y la venta se manda a SUNAT solo si quedó pagado completo", () => {
+    expect(avisoTrasPagar(70, "yape", { falta: 0, estado_pedido: "pagado", boleta: "B002-000003" }).detalle).toBe(
+      "El pedido quedó pagado completo. Salió su boleta B002-000003.",
+    );
+    expect(avisoTrasPagar(70, "efectivo", { falta: 0, estado_pedido: "pagado", boleta: "B002-000003" }).detalle).toBe(
+      "El pedido quedó pagado completo. Salió su boleta B002-000003. Entró a la caja.",
+    );
+    expect(ventaDelPago({ estado_pedido: "pagado", venta_id: "v-1" })).toBe("v-1");
+    expect(ventaDelPago({ estado_pedido: "confirmado", venta_id: null })).toBeNull();
+    expect(ventaDelPago({ estado_pedido: "pagado", venta_id: "" })).toBeNull();
+    expect(ventaDelPago(null)).toBeNull();
+  });
+
+  // /chaos 2026-10-15 (RS-03): con la respuesta perdida, «Revisar si se guardó» devuelve el pago sin su venta; la boleta quedaba
+  // esperando a la cola en vez de salir ya.
+  it("revisar un pago que completó el pedido pide leer su venta para mandar la boleta; con la venta a mano o sin completar, no", () => {
+    expect(faltaLeerLaVenta({ estado_pedido: "pagado" })).toBe(true);
+    expect(faltaLeerLaVenta({ estado_pedido: "pagado", venta_id: null })).toBe(true);
+    expect(faltaLeerLaVenta({ estado_pedido: "pagado", venta_id: "v-1" })).toBe(false);
+    expect(faltaLeerLaVenta({ estado_pedido: "confirmado" })).toBe(false);
+    expect(faltaLeerLaVenta(null)).toBe(false);
   });
 });
 

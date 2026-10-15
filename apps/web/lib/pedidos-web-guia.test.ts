@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { sePuedeConfirmar } from "./guia-campos";
-import { camposAnularPago, camposConfirmar, camposEnviar, camposMotivo, camposPago, camposReservar, campoDeLinea } from "./pedidos-web-guia";
-import { faltaDeLlegada, problemaParaConfirmar, type DecisionLinea } from "./pedidos-web-reglas";
+import { camposAnularPago, camposConfirmar, camposEntregar, camposEnviar, camposMotivo, camposPago, camposReservar, campoDeLinea } from "./pedidos-web-guia";
+import { faltaDeLlegada, problemaDelCodigo, problemaParaConfirmar, type DecisionLinea } from "./pedidos-web-reglas";
 import { MEDIOS_PAGO_WEB, problemaDelPago, problemaParaAnular, type FormPago, type MedioPagoWeb, type MotivoAnularPago } from "./pedidos-web-cobro-reglas";
 import { sumarDias } from "./fechas-lima";
 
@@ -140,5 +140,35 @@ describe("Anular o devolver un pago: la guía", () => {
   it("con efectivo, la caja va primero (sin ella no hay de dónde sacar la plata)", () => {
     expect(camposAnularPago({ medio: "efectivo", motivo: null, cajaAbierta: false, tienda: "T", ...listo }).map((c) => c.id)).toEqual(["caja", "motivo", "responsable"]);
     expect(camposAnularPago({ medio: "plin", motivo: null, cajaAbierta: false, tienda: "T", ...listo }).map((c) => c.id)).toEqual(["motivo", "responsable"]);
+  });
+});
+
+describe("El pago que completa el total: la guía pide la caja (actividad 10)", () => {
+  it("solo cuando el pago completa el pedido y la tienda no tiene caja abierta, antes del responsable", () => {
+    const ids = (monto: string, caja: boolean | null) =>
+      camposPago({ form: { monto, medio: "yape", operacion: "04812793" }, falta: 100, cajaAbierta: caja, tienda: "T", ...listo }).map((c) => c.id);
+    expect(ids("100", false)).toEqual(["monto", "medio", "operacion", "caja", "responsable"]);
+    expect(ids("40", false)).toEqual(["monto", "medio", "operacion", "responsable"]);
+    expect(ids("100", true)).toEqual(["monto", "medio", "operacion", "responsable"]);
+  });
+});
+
+describe("Entregar: la guía (actividad 10)", () => {
+  const CODIGOS = ["", "1", "209", "2094", "0000", "9999"];
+  // La guía no inventa reglas: el código está hecho exactamente cuando `problemaDelCodigo` (la forma que exige la base) no tiene nada.
+  it("se puede entregar exactamente cuando el código tiene su forma y hay responsable", () => {
+    for (const codigo of CODIGOS)
+      for (const responsableListo of [true, false]) {
+        const campos = camposEntregar({ codigo, responsableListo, responsableMotivo: responsableListo ? null : "Elige quién entrega" });
+        expect(sePuedeConfirmar(campos), JSON.stringify({ codigo, responsableListo })).toBe(problemaDelCodigo(codigo) === null && responsableListo);
+      }
+  });
+  it("el código va primero y el responsable cierra la lista", () => {
+    expect(camposEntregar({ codigo: "", ...listo }).map((c) => c.id)).toEqual(["codigo", "responsable"]);
+  });
+  it("el código que la base rechazó (de otro pedido) vuelve a faltar, con la frase de la base", () => {
+    const campos = camposEntregar({ codigo: "2094", rechazo: "Ese código no es el del pedido W-0007.", ...listo });
+    expect(sePuedeConfirmar(campos)).toBe(false);
+    expect(campos[0]?.pendiente).toBe("Ese código no es el del pedido W-0007.");
   });
 });

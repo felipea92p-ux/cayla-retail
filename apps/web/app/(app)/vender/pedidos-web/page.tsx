@@ -39,7 +39,7 @@ export default async function PedidosWebPage({ searchParams }: { searchParams: P
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
         titulo="Pedidos web"
-        subtitulo={`Lo que separaron en la web para ${persona.ubicacionEtiqueta}: revisa el stock, confírmalo y registra sus pagos.`}
+        subtitulo={`Lo que separaron en la web para ${persona.ubicacionEtiqueta}: revisa el stock, confírmalo, registra sus pagos y entrégalo.`}
       />
       {tablero.error ? (
         <Aviso tono="error" titulo="No se pudieron leer los pedidos web">

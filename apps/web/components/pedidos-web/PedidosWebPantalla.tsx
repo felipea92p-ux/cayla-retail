@@ -233,6 +233,7 @@ export function PedidosWebPantalla({
               etiqueta: p.etiqueta,
               conteo: grupos[p.clave].length,
               ...(p.clave === "confirmar" && grupos.confirmar.length > 0 ? { pide: "esperan confirmación" } : {}),
+              ...(p.clave === "entregar" ? { guia: "pedidos-web.pestana-entregar" } : {}),
             }))}
           />
         </div>
@@ -265,7 +266,8 @@ export function PedidosWebPantalla({
         <p>
           Separar no toca el stock: la prenda se reserva recién cuando confirmas, y sale del stock al entregarla. Un pedido por confirmar se
           cierra solo a las {plazos.horasParaConfirmar} horas. Los pagos se registran dentro de cada pedido: el efectivo entra a la caja
-          abierta. Los pedidos web van aparte de los apartados de tienda.
+          abierta, y con el pago que lo completa sale su boleta. Se entrega con el código de 4 cifras que el cliente ve en su pedido. Los
+          pedidos web van aparte de los apartados de tienda.
         </p>
       </div>
 
@@ -284,6 +286,12 @@ export function PedidosWebPantalla({
               // Anulado con plata por devolver: la hoja sigue abierta y el pedido se relee ya. Si se cierra, al cerrar.
               if (opciones?.sigueAbierta) router.refresh();
               else refrescarAlCerrar.current = true;
+              return;
+            }
+            if (estado === "entregado") {
+              // Entregado (actividad 10): la hoja se cierra y, al cerrarse, la lista se pone al día con el pedido en «Cerrados».
+              setPestana("cerrados");
+              refrescarAlCerrar.current = true;
               return;
             }
             if (estado === "confirmado") setPestana("cobrar");

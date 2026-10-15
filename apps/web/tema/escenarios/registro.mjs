@@ -1482,6 +1482,34 @@ ESCENARIOS.push(
   },
 );
 
+// Entregar un pedido web (ADR-0408, actividad 10): la hoja de un pedido pagado y listo (su boleta, el código y «Entregar») y la misma con
+// un código escrito. Solo por id: la base local necesita un pedido pagado completo en «Por entregar» (quien audita lo crea, lo confirma y
+// lo paga con la caja abierta; y lo deja como estaba). Ninguno guarda: abren la hoja y escriben.
+ESCENARIOS.push(
+  {
+    id: "pedidos-web.entregar",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · entregar un pedido pagado (la boleta y el código)",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb),
+  },
+  {
+    id: "pedidos-web.entregar-codigo",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · entregar con el código escrito",
+    async preparar(pagina) {
+      await secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb)(pagina);
+      await pagina.locator('[data-guia="pedido-web.codigo"] input').first().fill("1234", { timeout: 8000 });
+      await esperar(pagina, 600);
+    },
+  },
+);
+
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
 // Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
 ESCENARIOS.push(

@@ -9,8 +9,10 @@
 //            lee cada pago (y si se puede anular); y llevar cada error de la base al campo que lo causó.
 //   ASUME:   que la base manda (permisos, caja, el n.º que no se repite, el total): esto es para no ofrecer lo que la base rechazaría y
 //            para decirlo en palabras de tienda. Que un pedido se cobra solo «confirmado» y un pago se anula en uno confirmado o anulado.
-//   NO HACE: emitir la boleta (sale al quedar pagado completo, ADR-0408 DECIDÍ 9: la emite la actividad 10, con el OK de Felipe), ni
-//            cobrar con una pasarela (sus pagos solo se leen).
+//            Con el pago que COMPLETA el total nace la venta del pedido con su boleta (actividad 10), que va en la caja del día de su
+//            tienda: ese pago pide la caja abierta aunque sea por Yape (la base lo dice antes de anotar nada).
+//   NO HACE: emitir la boleta (la emite la base en la misma transacción; la pantalla solo la manda a SUNAT por el camino de Vender),
+//            ni cobrar con una pasarela (sus pagos solo se leen).
 
 import { leerMonto, soles } from "./precio-sede-reglas";
 import { haceCuanto } from "./vender-hoy-reglas";
@@ -69,9 +71,27 @@ export function problemaDeOperacion(medio: MedioPagoWeb | null, operacion: strin
   return null;
 }
 
+/** ¿Con este monto el pedido queda pagado completo? (Ahí nace su venta con su boleta, actividad 10.) */
+export function completaElPedido(texto: string, falta: number): boolean {
+  const monto = leerMonto(texto);
+  return monto !== null && falta > 0 && Math.abs(monto - falta) < 0.005;
+}
+
+/** El pago que completa el total hace nacer la venta con su boleta, que va en la caja del día de la tienda del pedido: sin caja
+ *  abierta no se registra, ni por Yape (la misma regla de `registrar_pago_pedido_web`). `cajaAbierta` null = no se sabe: decide la base. */
+export function problemaDeCaja(f: Pick<FormPago, "monto">, falta: number, cajaAbierta: boolean | null, tienda: string): string | null {
+  if (cajaAbierta !== false || !completaElPedido(f.monto, falta)) return null;
+  return `Con este pago queda pagado completo y sale su boleta, que va en la caja del día: abre la caja de ${tienda}.`;
+}
+
 /** El primer reparo para registrar el pago (en el orden de la hoja), o null si se puede. Es lo que apaga el botón. */
 export function problemaDelPago(f: FormPago, falta: number, cajaAbierta: boolean | null, tienda: string): string | null {
-  return problemaDelMonto(f.monto, falta) ?? problemaDelMedio(f.medio, cajaAbierta, tienda) ?? problemaDeOperacion(f.medio, f.operacion);
+  return (
+    problemaDelMonto(f.monto, falta) ??
+    problemaDelMedio(f.medio, cajaAbierta, tienda) ??
+    problemaDeOperacion(f.medio, f.operacion) ??
+    problemaDeCaja(f, falta, cajaAbierta, tienda)
+  );
 }
 
 /** Lo que se manda a `registrar_pago_pedido_web` (sin la marca: la pone `useIntento`). null si todavía no se puede. */
@@ -109,18 +129,37 @@ export function despuesDelPago(falta: number, texto: string): string | null {
   const monto = leerMonto(texto);
   if (monto === null || monto > falta + 0.001) return null;
   const queda = Math.round((falta - monto) * 100) / 100;
-  return queda <= 0 ? "Con este pago queda pagado completo." : `Después de este pago faltan ${soles(queda)}.`;
+  return queda <= 0 ? "Con este pago queda pagado completo y sale su boleta." : `Después de este pago faltan ${soles(queda)}.`;
 }
 
-/** Lo que dice el aviso de éxito al registrar. `respuesta`: lo que devolvió la base (`falta` y `estado_pedido`). */
-export function avisoTrasPagar(monto: number, medio: MedioPagoWeb, respuesta: { falta?: unknown; estado_pedido?: unknown } | null): { titulo: string; detalle: string } {
+/** Lo que dice el aviso de éxito al registrar. `respuesta`: lo que devolvió la base (`falta`, `estado_pedido` y, pagado completo, la
+ *  `boleta` que nació con él). */
+export function avisoTrasPagar(
+  monto: number,
+  medio: MedioPagoWeb,
+  respuesta: { falta?: unknown; estado_pedido?: unknown; boleta?: unknown } | null,
+): { titulo: string; detalle: string } {
   const falta = Number(respuesta?.falta);
   const pagado = respuesta?.estado_pedido === "pagado" || (Number.isFinite(falta) && falta <= 0);
   const enCaja = medio === "efectivo" ? " Entró a la caja." : "";
+  const boleta = typeof respuesta?.boleta === "string" && respuesta.boleta.trim() !== "" ? ` Salió su boleta ${respuesta.boleta}.` : "";
   return {
     titulo: `Pago de ${soles(monto)} registrado`,
-    detalle: pagado ? `El pedido quedó pagado completo.${enCaja}` : `${Number.isFinite(falta) ? `Faltan ${soles(falta)}.` : "Todavía falta una parte."}${enCaja}`,
+    detalle: pagado
+      ? `El pedido quedó pagado completo.${boleta}${enCaja}`
+      : `${Number.isFinite(falta) ? `Faltan ${soles(falta)}.` : "Todavía falta una parte."}${enCaja}`,
   };
+}
+
+/** La venta del pedido que acaba de quedar pagado completo (para mandar su boleta a SUNAT por el camino de Vender), o null. */
+export function ventaDelPago(respuesta: { estado_pedido?: unknown; venta_id?: unknown } | null): string | null {
+  return respuesta?.estado_pedido === "pagado" && typeof respuesta.venta_id === "string" && respuesta.venta_id !== "" ? respuesta.venta_id : null;
+}
+
+/** El pago dejó el pedido pagado completo pero la respuesta no trae su venta: pasa al revisar un pago en duda («Revisar si se
+ *  guardó» devuelve el pago, no la venta). Hay que leerla para mandar la boleta ya; si no, igual saldría con la cola en unos minutos. */
+export function faltaLeerLaVenta(respuesta: { estado_pedido?: unknown; venta_id?: unknown } | null): boolean {
+  return respuesta?.estado_pedido === "pagado" && ventaDelPago(respuesta) === null;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------

@@ -1,17 +1,18 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { MessageCircle, PackageSearch, Wallet } from "lucide-react";
+import { MessageCircle, PackageSearch, ReceiptText, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
-import { Boton, BotonAncla } from "@/components/ui/campos";
+import { Boton, BotonAncla, CampoTexto } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { Vacio } from "@/components/ui/Vacio";
 import { avisar } from "@/components/ui/Avisos";
+import { AvisoIntentoIncierto, avisarCongelado } from "@/components/ui/AvisoIntentoIncierto";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -19,11 +20,13 @@ import { MiniPrenda } from "@/components/pedidos-web/PedidosWebPantalla";
 import { createClient } from "@/lib/supabase/client";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
+import { useIntento } from "@/lib/useIntento";
+import { huellaDe } from "@/lib/intento-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import { hoyLima } from "@/lib/fechas-lima";
 import { haceCuanto } from "@/lib/vender-hoy-reglas";
 import { soles } from "@/lib/precio-sede-reglas";
-import { camposConfirmar, camposMotivo, camposReservar, campoDeLinea } from "@/lib/pedidos-web-guia";
+import { camposConfirmar, camposEntregar, camposMotivo, camposReservar, campoDeLinea } from "@/lib/pedidos-web-guia";
 import { detalleDelPago, esAdelanto, estadoDelPago, porDevolver, sePuedeAnular, textoDelPago } from "@/lib/pedidos-web-cobro-reglas";
 import {
   avisosDeLinea,
@@ -31,12 +34,16 @@ import {
   decisionDeFabrica,
   decisionesParaLaBase,
   enlaceWhatsappPedido,
+  errorDeEntrega,
   errorDePedidoWeb,
+  estadoDeBoleta,
   estadoDeLinea,
   estadoVisible,
+  faltanParaEntregar,
   fechaCorta,
   fechasSugeridas,
   libresAqui,
+  limpiarCodigo,
   lugarDeFabrica,
   MOTIVOS_ANULAR,
   MOTIVOS_NO_CONFIRMAR,
@@ -46,6 +53,7 @@ import {
   textoCierre,
   textoDeDonde,
   textoDisponible,
+  type BoletaWeb,
   type DecisionLinea,
   type EstadoPedidoWeb,
   type LineaDetalle,
@@ -69,9 +77,11 @@ const AVISO_CON_BOTON =
  *   · confirmado: dónde está cada prenda (reservada, por traer, en camino, por conseguir), sus pagos y «Registrar pago» (la hoja de
  *     encima, actividad 9: si espera una prenda por conseguir, el adelanto lo decide la tienda), anular un pago mal anotado, y
  *     «Anular» el pedido con su motivo (lo reservado vuelve a estar disponible; si ya pagó, la hoja se queda abierta con lo que hay
- *     que devolverle). Entregar es la actividad 10;
+ *     que devolverle);
+ *   · pagado (actividad 10): su boleta (salió al pagarse) y, si todo está en la tienda, «Entregar» con el código de 4 cifras que el
+ *     cliente muestra (la base lo compara: mal escrito, nada se entrega); si algo falta, qué; y el aviso de los días sin recoger;
  *   · anulado con plata del cliente: cada pago «por devolver», con «Devolver» (la plata sale de la caja de hoy si es efectivo);
- *   · pagado, entregado o cerrado: para leer.
+ *   · entregado o cerrado: para leer (entregado, con su boleta y quién lo entregó).
  * Todo lo que guarda firma con el «Responsable» (ADR-0162) y no cambia qué decide la base: si otra caja ya lo tocó, lo dice.
  */
 export function PedidoWebHoja({
@@ -115,6 +125,14 @@ export function PedidoWebHoja({
   const [guardando, setGuardando] = useState(false);
   // «Confirmado» recién: la hoja lo celebra una vez con su aviso y el mensaje para el cliente.
   const [recien, setRecien] = useState<"confirmado" | null>(null);
+  // Entregar (actividad 10): el código que el cliente muestra, lo que la base rechazó de él y el aviso de toda la hoja. La marca del
+  // envío sigue a lo que se manda (`useIntento`): un doble clic devuelve la MISMA entrega; si la respuesta se pierde, la hoja se congela
+  // hasta saber si quedó.
+  const [codigo, setCodigo] = useState("");
+  const [rechazoCodigo, setRechazoCodigo] = useState<string | null>(null);
+  const [errorEntrega, setErrorEntrega] = useState<{ titulo: string; detalle: string } | null>(null);
+  const [revisando, setRevisando] = useState(false);
+  const entrega = useIntento("entregar_pedido_web");
   // Un doble clic no manda dos veces: el estado de React llega tarde dentro de un mismo clic.
   const enVuelo = useRef(false);
   // Las prendas que la base rechazó por «ya no está libre» (otra caja confirmó antes la última): cuando llega el pedido releído,
@@ -137,7 +155,11 @@ export function PedidoWebHoja({
   const camposRevisar = camposConfirmar({ lineas: p.lineas, decisiones, hoy, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
   const camposCierre = camposMotivo({ motivo, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
   const camposDeReservar = camposReservar({ responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
-  const guia = useGuiaCampos(modo === "revisar" ? camposRevisar : modo === "reservar" ? camposDeReservar : camposCierre);
+  const camposDeEntregar = camposEntregar({ codigo, rechazo: rechazoCodigo, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
+  const guia = useGuiaCampos(
+    modo === "revisar" ? (p.estado === "pagado" ? camposDeEntregar : camposRevisar) : modo === "reservar" ? camposDeReservar : camposCierre,
+  );
+  const faltan = faltanParaEntregar(p.lineas, p.ubicacionId);
   const reservar = (l: LineaDetalle) => {
     setReservando({ linea: l, lugar: lugarDeFabrica(l) });
     setModo("reservar");
@@ -235,6 +257,63 @@ export function PedidoWebHoja({
     cerrar();
   }
 
+  /** Entregar con el código (actividad 10). La base decide: el código, que todo esté en la tienda, el permiso y que no se haya entregado. */
+  async function entregar(cerrar: () => void) {
+    if (!guia.puedeConfirmar) return;
+    setErrorEntrega(null);
+    const params = { p_pedido_id: p.id, p_codigo: codigo };
+    const res = await entrega.enviar(huellaDe(params), (token, senal) =>
+      firmar(createClient().rpc("entregar_pedido_web", { ...params, p_token: token }), responsable.firma()).abortSignal(senal),
+    );
+    if (res.tipo === "ocupado") return;
+    if (res.tipo === "congelado") return avisarCongelado(avisar);
+    responsable.despues(res.tipo === "error" || res.tipo === "incierto" ? res.error : null);
+    // En duda: la hoja lo dice sobre los botones y se congela hasta saber qué pasó.
+    if (res.tipo === "incierto") return;
+    if (res.tipo === "error") {
+      const propia = errorDeEntrega(res.error);
+      if (propia?.enElCodigo) {
+        // Mal escrito o de otro pedido: bajo el código, que vuelve a faltar hasta que se cambie.
+        setRechazoCodigo(propia.detalle);
+        return;
+      }
+      const general = errorDePedidoWeb(res.error);
+      if (general?.yaEstaba) {
+        // Otra caja ya lo entregó (o el pedido cambió): se muestra cómo quedó.
+        avisar.aviso(general.titulo, { detalle: general.detalle });
+        onCambio(p.estado);
+        return;
+      }
+      setErrorEntrega(propia ?? general ?? { titulo: "No se pudo entregar", detalle: traducirError(res.error, "entregar el pedido") });
+      return;
+    }
+    const datos = res.tipo === "ok" ? ((res.data as Record<string, unknown> | null) ?? null) : res.datos;
+    const boleta = typeof datos?.boleta === "string" ? datos.boleta : p.boleta?.texto;
+    avisar.exito(`Pedido ${p.codigo} entregado`, {
+      detalle: `Sus prendas salieron del stock.${boleta ? ` La boleta ${boleta} ya había salido al pagarse.` : ""}`,
+    });
+    // La lista se pone al día al cerrar la hoja (como al anular): el pedido pasa a «Cerrados».
+    onCambio("entregado");
+    cerrar();
+  }
+
+  async function revisarEntrega(cerrar: () => void) {
+    setRevisando(true);
+    const res = await entrega.revisar();
+    setRevisando(false);
+    if (res.tipo === "hecho") {
+      avisar.exito(`Pedido ${p.codigo} entregado`, { detalle: "Sus prendas salieron del stock." });
+      onCambio("entregado");
+      cerrar();
+      return;
+    }
+    if (res.tipo === "no_llego") {
+      avisar.aviso("El pedido no se entregó", { detalle: "No se guardó nada. Revisa el código y vuelve a entregarlo." });
+      return;
+    }
+    avisar.error("Todavía no hay respuesta", { detalle: "Revisa el internet y vuelve a tocar «Revisar si se guardó»." });
+  }
+
   const subtitulo = `Separado ${haceCuanto(p.creadoEn, ahora)} · lo recoge en ${p.tiendaWeb.nombre}`;
 
   return (
@@ -251,7 +330,7 @@ export function PedidoWebHoja({
       onClose={onClose}
       variante="hoja"
       tamano="mediana"
-      bloqueado={guardando}
+      bloqueado={guardando || entrega.enviando || entrega.incierto}
       conCerrar
       // Al abrir se LEE primero (quién pidió y qué): el foco va a la hoja, no a la ✕ ni al primer botón (Tab entra igual).
       focoEnLaHoja
@@ -537,9 +616,95 @@ export function PedidoWebHoja({
             </>
           )}
 
-          {!porConfirmar && p.estado !== "confirmado" && modo !== "reservar" && (
+          {p.estado === "pagado" && modo === "revisar" && (
             <>
-              <LineasDelPedido pedido={p} tiendaId={tiendaId} onEnviar={onEnviar} onReservar={p.estado === "pagado" ? reservar : undefined} />
+              {p.sinRecoger && (
+                <Aviso
+                  tono="error"
+                  titulo={`Pagó ${p.pagadoEn ? haceCuanto(p.pagadoEn, ahora) : ""} y no lo recoge`}
+                  className={AVISO_CON_BOTON}
+                  accion={
+                    <BotonAncla href={whatsapp("norecoge")} target="_blank" rel="noopener noreferrer" className="btn-chico">
+                      <MessageCircle aria-hidden className="h-4 w-4" />
+                      Escribirle por WhatsApp
+                    </BotonAncla>
+                  }
+                >
+                  Ya pagó: el pedido no se libera solo. Escríbele y, si no lo va a recoger, decídelo con tu líder.
+                </Aviso>
+              )}
+              <LineasDelPedido pedido={p} tiendaId={tiendaId} onEnviar={onEnviar} onReservar={reservar} />
+              <BloqueDinero pedido={p} ahora={ahora} />
+              <BloqueBoleta boleta={p.boleta} />
+              {faltan.length > 0 ? (
+                <Aviso tono="info" titulo="Todavía no se puede entregar">
+                  Falta que llegue a {p.tienda}: {faltan.join(", ")}. Se entrega cuando todo esté aquí: avísale al cliente cuando esté.
+                </Aviso>
+              ) : (
+                <>
+                  <CampoGuiado id="codigo" guia={guia}>
+                    <div data-guia="pedido-web.codigo">
+                      <CampoTexto
+                        etiqueta={guia.etiqueta("codigo", "Código para recoger")}
+                        mono
+                        inputMode="numeric"
+                        // Sin maxLength: el navegador cortaría «20 94» pegado en «20 9» antes de limpiarlo (/chaos 2026-10-15); las
+                        // 4 cifras las deja limpiarCodigo.
+                        value={codigo}
+                        onChange={(e) => {
+                          setCodigo(limpiarCodigo(e.target.value));
+                          setRechazoCodigo(null);
+                          setErrorEntrega(null);
+                        }}
+                        tono={rechazoCodigo ? "error" : undefined}
+                        pie={rechazoCodigo ?? "Pídeselo al cliente: lo ve en su pedido, en «Mis pedidos»."}
+                        disabled={entrega.incierto}
+                      />
+                    </div>
+                  </CampoGuiado>
+                  <CampoGuiado id="responsable" guia={guia}>
+                    <ComboResponsable control={responsable} deshabilitado={entrega.enviando || entrega.incierto} />
+                  </CampoGuiado>
+                  <p className="text-[12.5px] text-taupe">Al entregar, sus prendas salen del stock. La boleta ya salió cuando quedó pagado.</p>
+                  {/* El aviso de toda la hoja va en el pie pegado: con la hoja larga, debajo quedaba tapado (como «Registrar un pago»). */}
+                  <div className="pie-hoja-fijo space-y-2 pt-2">
+                    {errorEntrega && (
+                      <Aviso tono="error" titulo={errorEntrega.titulo}>
+                        {errorEntrega.detalle}
+                      </Aviso>
+                    )}
+                    {entrega.incierto ? (
+                      <AvisoIntentoIncierto onRevisar={() => revisarEntrega(cerrar)} revisando={revisando} />
+                    ) : errorEntrega ? null : (
+                      <PieGuia guia={guia} />
+                    )}
+                    <PieAcciones guia="pedido-web.entregar">
+                      <BotonAncla href={whatsapp(p.sinRecoger ? "norecoge" : "listo")} target="_blank" rel="noopener noreferrer">
+                        <MessageCircle aria-hidden className="h-4 w-4" />
+                        WhatsApp
+                      </BotonAncla>
+                      <Boton
+                        type="button"
+                        peso="primario"
+                        cargando={entrega.enviando}
+                        textoCargando="Entregando…"
+                        disabled={!guia.puedeConfirmar || revisando}
+                        title={guia.frase ?? undefined}
+                        className={guia.claseConfirmar}
+                        onClick={() => entregar(cerrar)}
+                      >
+                        {entrega.incierto ? "Volver a intentar" : "Entregar"}
+                      </Boton>
+                    </PieAcciones>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {!porConfirmar && p.estado !== "confirmado" && p.estado !== "pagado" && modo !== "reservar" && (
+            <>
+              <LineasDelPedido pedido={p} tiendaId={tiendaId} onEnviar={onEnviar} />
               {porDevolver(p) > 0 && (
                 <Aviso
                   tono="atencion"
@@ -558,16 +723,13 @@ export function PedidoWebHoja({
               {lineasVivas.length > 0 && p.estado !== "vencido" && (
                 <BloqueDinero pedido={p} ahora={ahora} onAnularPago={p.estado === "anulado" ? onAnularPago : undefined} />
               )}
+              {p.estado === "entregado" && <BloqueBoleta boleta={p.boleta} />}
               <Aviso tono="info">
-                {p.estado === "pagado"
-                  ? p.listoParaRecoger
-                    ? "Pagado completo. Se entrega cuando venga a recogerlo."
-                    : "Pagado completo. Falta que llegue una prenda: avísale cuando esté."
-                  : p.estado === "entregado"
-                    ? `Entregado ${p.entregadoEn ? haceCuanto(p.entregadoEn, ahora) : ""}.`
-                    : p.estado === "vencido"
-                      ? `Se cerró solo: nadie lo confirmó en ${p.plazos.horasParaConfirmar} horas. Nada se había reservado.`
-                      : `Anulado: ${textoCierre(p.cierreMotivo).toLocaleLowerCase("es")}.`}
+                {p.estado === "entregado"
+                  ? `Entregado ${p.entregadoEn ? haceCuanto(p.entregadoEn, ahora) : ""}${p.entregadoPor ? ` por ${p.entregadoPor}` : ""}. Sus prendas salieron del stock.`
+                  : p.estado === "vencido"
+                    ? `Se cerró solo: nadie lo confirmó en ${p.plazos.horasParaConfirmar} horas. Nada se había reservado.`
+                    : `Anulado: ${textoCierre(p.cierreMotivo).toLocaleLowerCase("es")}.`}
               </Aviso>
             </>
           )}
@@ -593,6 +755,23 @@ function BloqueCliente({ pedido: p, whatsapp }: { pedido: PedidoDetalle; whatsap
         WhatsApp
       </BotonAncla>
     </div>
+  );
+}
+
+/** La boleta del pedido (salió sola al quedar pagado completo) y en qué va su envío a SUNAT. Sin boleta (una base sin la actividad 10),
+ *  nada. */
+function BloqueBoleta({ boleta }: { boleta: BoletaWeb | null }) {
+  if (!boleta) return null;
+  const estado = estadoDeBoleta(boleta.estado);
+  return (
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-tinta" data-guia="pedido-web.boleta">
+      <ReceiptText aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
+      <span>
+        Boleta <b className="tabular-nums">{boleta.texto}</b>
+      </span>
+      <Chip tono={estado.tono}>{estado.texto}</Chip>
+      <span className="text-[12.5px] text-taupe">Salió al quedar pagado completo.</span>
+    </p>
   );
 }
 
