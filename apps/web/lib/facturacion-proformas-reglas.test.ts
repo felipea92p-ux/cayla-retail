@@ -149,7 +149,7 @@ describe("franjaDeProformas", () => {
     expect(franjaDeProformas({ vigentes: 1, monto: 88.5, porVencer: 0, vencidas: 0 })).toEqual({
       hay: true,
       vigentes: "1 vigente",
-      monto: "S/ 88.50",
+      monto: "S/\u00a088.50",
       porVencer: "0 por vencer",
       urgente: false,
     });
@@ -179,7 +179,7 @@ describe("confirmacionDeConversion", () => {
   it("una vencida avisa hace cuánto venció y que se cobraría al precio de la cotización", () => {
     expect(confirmacionDeConversion(proforma({ vencida: true, vence_at: enHoras(-72), total: 88.5 }), AHORA)).toEqual({
       titulo: "Esta proforma venció hace 3 d.",
-      detalle: "Se cobraría con el precio de la cotización (S/ 88.50), no con el de hoy. Si ya cambió, renuévala.",
+      detalle: "Se cobraría con el precio de la cotización (S/\u00a088.50), no con el de hoy. Si ya cambió, renuévala.",
       casilla: "Sí, cobrarla al precio de entonces",
     });
   });

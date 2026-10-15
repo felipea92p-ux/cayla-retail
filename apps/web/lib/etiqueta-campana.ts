@@ -55,7 +55,7 @@ export type PrendaConCosto = { id: string; categoriaId: string | null; precio: n
  *  una causa: si la prenda a su precio —o otra tienda— también queda bajo el costo, el texto no insinúa que arreglar esa tienda basta.
  *  (Un separador, no un paréntesis: el nombre ya lleva uno.) */
 export function nombreBajoCosto(p: Pick<PrendaConCosto, "nombre" | "enSede" | "precio">): string {
-  return p.enSede ? `${p.nombre} · precio más bajo: S/ ${p.precio.toFixed(2)} en ${p.enSede}` : p.nombre;
+  return p.enSede ? `${p.nombre} · precio más bajo: S/\u00a0${p.precio.toFixed(2)} en ${p.enSede}` : p.nombre;
 }
 
 /** Las prendas del alcance de una campaña que quedarían con precio menor que su costo.

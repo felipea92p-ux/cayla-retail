@@ -12,7 +12,7 @@ import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { FotoPrenda } from "@/components/ui/FotoPrenda";
-import type { HojaDeModelo } from "@/lib/produccion-hoja-modelo";
+import { lineaDeOrigen, type HojaDeModelo } from "@/lib/produccion-hoja-modelo";
 import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
 import { FilaQueAbreLaHoja } from "@/components/produccion-resumen/FilaQueAbreLaHoja";
 import { ProveedorFichasDeColor } from "@/components/produccion-resumen/FichasDeColor";
@@ -234,6 +234,7 @@ export function ResumenProduccionPanel({
               {modelos.map((m, i) => {
                 const pct = m.diasRed === null ? 0 : Math.min(100, (m.diasRed / maxDias) * 100);
                 const agotadas = textoAgotadas(agotadasQueSeVendian(m));
+                const origen = lineaDeOrigen(hojas[m.productoId]?.ficha ?? null);
                 return (
                   <li key={m.productoId} className="border-b border-tinta/10 last:border-b-0">
                     <FilaQueAbreLaHoja
@@ -246,6 +247,12 @@ export function ResumenProduccionPanel({
                         <FotoModelo productoId={m.productoId} presentaciones={presentaciones} ancho={32} className="w-8" />
                         <span className="min-w-0">
                           <span className="line-clamp-2 break-words text-[14px] leading-snug text-tinta">{m.referencia}</span>
+                          {/* De quién es y a quién se le compra: a la vista en la lista, sin abrir la hoja (Felipe 2026-10-15). */}
+                          {origen && (
+                            <span data-origen className="line-clamp-2 break-words text-xs text-tinta/65">
+                              {origen}
+                            </span>
+                          )}
                           <span className="block text-xs text-tinta/65 lg:hidden">
                             stock {m.stockRed} · {m.ritmoDia ? `${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}/sem. · ${baseDelRitmo(m.ventasBase).corto}` : "sin ritmo"}
                           </span>

@@ -161,7 +161,7 @@ export function bloqueoDeAprobacion(p: Pick<ProductoPorRevisar, "precioMin" | "p
   if (p.admitePrecioCero || p.precioMin === null || p.precioMin > 0) return null;
   return {
     motivo: "precio",
-    texto: p.precioMax !== null && p.precioMax > 0 ? "Tiene variantes en S/ 0" : "No tiene precio",
+    texto: p.precioMax !== null && p.precioMax > 0 ? "Tiene variantes en S/\u00a00" : "No tiene precio",
     queHacer: "Ponle precio en su ficha y vuelve a aprobarla; mientras tanto, la caja no la deja vender. Si se creó por error, recházala.",
   };
 }

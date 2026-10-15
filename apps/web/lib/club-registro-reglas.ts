@@ -116,7 +116,7 @@ export function esUuid(texto: string): boolean {
 
 /** «S/ 20»; con céntimos, «S/ 25.50» (como se escribe un precio en la tienda). */
 export function formatoSoles(monto: number): string {
-  return `S/ ${Number.isInteger(monto) ? String(monto) : monto.toFixed(2)}`;
+  return `S/\u00a0${Number.isInteger(monto) ? String(monto) : monto.toFixed(2)}`;
 }
 
 /** «10»; con decimales, «12.5». Va antes de « %». */

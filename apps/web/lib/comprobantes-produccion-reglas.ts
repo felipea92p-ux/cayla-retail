@@ -27,7 +27,11 @@ export const IGV_PORCENTAJE = 18;
 
 export function etiquetaTipo(tipo: string, corta = false): string {
   const t = TIPOS_COMPROBANTE.find((x) => x.valor === tipo);
-  return t ? (corta ? t.corta : t.etiqueta) : tipo;
+  if (t) return corta ? t.corta : t.etiqueta;
+  // El papel de una orden de insumos puede ser «sin comprobante» (ADR-0362, fase 7 parte 2): la lista del líder lo nombra, aunque su
+  // formulario no lo ofrezca (`registrar_comprobante_produccion` sigue con los tres tipos de siempre).
+  if (tipo === "sin_comprobante") return corta ? "Sin comp." : "Sin comprobante";
+  return tipo;
 }
 
 export function etiquetaMetodo(metodo: string): string {
@@ -96,7 +100,7 @@ export function primerErrorComprobante(f: FormComprobante, hoy: string): string 
     if (!(papel >= 0)) return "El total del papel no es un número válido.";
     const { total } = calcularTotales(llenas, f.tipo);
     const tolerancia = 0.01 * (llenas.length + 1);
-    if (Math.abs(papel - total) > tolerancia + 1e-9) return `El total del papel (S/ ${papel.toFixed(2)}) no cuadra con las líneas (S/ ${total.toFixed(2)}): revisa cantidades y costos.`;
+    if (Math.abs(papel - total) > tolerancia + 1e-9) return `El total del papel (S/\u00a0${papel.toFixed(2)}) no cuadra con las líneas (S/\u00a0${total.toFixed(2)}): revisa cantidades y costos.`;
   }
   return null;
 }

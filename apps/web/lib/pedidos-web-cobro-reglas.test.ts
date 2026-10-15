@@ -59,14 +59,14 @@ describe("Lo que se escribe: las mismas reglas que registrar_pago_pedido_web", (
   it("el monto como lo escribe una persona: con coma, con «S/», con hasta dos decimales y más de cero", () => {
     expect(problemaDelMonto("", 100)).toBe("Escribe el monto.");
     expect(problemaDelMonto("  ", 100)).toBe("Escribe el monto.");
-    for (const bien of ["12,50", "12.50", "S/ 12.50", "s/12,5", "100", "100.00", " 7 "]) expect(problemaDelMonto(bien, 100), bien).toBeNull();
+    for (const bien of ["12,50", "12.50", "S/ 12.50", "S/\u00a012.50", "s/12,5", "100", "100.00", " 7 "]) expect(problemaDelMonto(bien, 100), bien).toBeNull();
     for (const mal of ["0", "0.00", "-5", "5.001", "abc", "1,950.50", "12,5,0", "NaN", "Infinity", "1e3"])
-      expect(problemaDelMonto(mal, 5000), mal).toMatch(/más de S\/ 0, con hasta dos decimales/);
+      expect(problemaDelMonto(mal, 5000), mal).toMatch(/más de S\/\u00a00, con hasta dos decimales/);
   });
 
   it("nunca más de lo que falta (lo justo sí; un céntimo más, no)", () => {
     expect(problemaDelMonto("58.30", 58.3)).toBeNull();
-    expect(problemaDelMonto("58.31", 58.3)).toBe("Es más de lo que falta (S/ 58.30).");
+    expect(problemaDelMonto("58.31", 58.3)).toBe("Es más de lo que falta (S/\u00a058.30).");
   });
 
   it("el medio: hay que elegirlo; el efectivo pide la caja abierta (sin saberlo, no se bloquea: decide la base)", () => {
@@ -131,11 +131,11 @@ describe("El adelanto de lo que se consigue (Felipe: cuánto, lo decide la tiend
   });
   it("lo que queda después del pago, y el aviso al registrarlo", () => {
     expect(despuesDelPago(100, "100")).toBe("Con este pago queda pagado completo y sale su boleta.");
-    expect(despuesDelPago(100, "30,5")).toBe("Después de este pago faltan S/ 69.50.");
+    expect(despuesDelPago(100, "30,5")).toBe("Después de este pago faltan S/\u00a069.50.");
     expect(despuesDelPago(100, "")).toBeNull();
     expect(despuesDelPago(100, "101")).toBeNull();
-    expect(avisoTrasPagar(30, "efectivo", { falta: 70, estado_pedido: "confirmado" })).toEqual({ titulo: "Pago de S/ 30.00 registrado", detalle: "Faltan S/ 70.00. Entró a la caja." });
-    expect(avisoTrasPagar(70, "yape", { falta: 0, estado_pedido: "pagado" })).toEqual({ titulo: "Pago de S/ 70.00 registrado", detalle: "El pedido quedó pagado completo." });
+    expect(avisoTrasPagar(30, "efectivo", { falta: 70, estado_pedido: "confirmado" })).toEqual({ titulo: "Pago de S/\u00a030.00 registrado", detalle: "Faltan S/\u00a070.00. Entró a la caja." });
+    expect(avisoTrasPagar(70, "yape", { falta: 0, estado_pedido: "pagado" })).toEqual({ titulo: "Pago de S/\u00a070.00 registrado", detalle: "El pedido quedó pagado completo." });
     expect(avisoTrasPagar(10, "plin", null).detalle).toBe("Todavía falta una parte.");
   });
 });
@@ -143,7 +143,7 @@ describe("El adelanto de lo que se consigue (Felipe: cuánto, lo decide la tiend
 describe("El pago que completa el total: nace la venta con su boleta (actividad 10)", () => {
   it("completa el pedido el monto que es exactamente lo que falta (como lo escribe una persona)", () => {
     expect(completaElPedido("100", 100)).toBe(true);
-    expect(completaElPedido("S/ 99,90", 99.9)).toBe(true);
+    expect(completaElPedido("S/\u00a099,90", 99.9)).toBe(true);
     expect(completaElPedido("99.89", 99.9)).toBe(false);
     expect(completaElPedido("", 100)).toBe(false);
     expect(completaElPedido("100", 0)).toBe(false);
@@ -203,7 +203,7 @@ describe("Anular o devolver un pago", () => {
     expect(problemaParaAnular(pago({ medio: "yape" }), "error_al_anotar", false, "T")).toBeNull();
   });
   it("dice qué pasa con la plata: el efectivo sale de la caja de HOY; lo digital no mueve la caja", () => {
-    expect(efectoDeAnular(pago({ medio: "efectivo", monto: 30 }), null, "Tienda Trujillo")).toMatch(/^Salen S\/ 30\.00 de la caja abierta de Tienda Trujillo, la de hoy/);
+    expect(efectoDeAnular(pago({ medio: "efectivo", monto: 30 }), null, "Tienda Trujillo")).toMatch(/^Salen S\/\u00a030\.00 de la caja abierta de Tienda Trujillo, la de hoy/);
     expect(efectoDeAnular(pago({ medio: "yape" }), "error_al_anotar", "T")).toBe("No mueve la caja: solo deja de contar como pagado.");
     expect(efectoDeAnular(pago({ medio: "plin" }), "devuelto_al_cliente", "T")).toBe("No mueve la caja: devuélveselo por Plin o por transferencia y avísale por WhatsApp.");
     expect(efectoDeAnular(pago({ medio: "transferencia" }), null, "T")).toBe("No mueve la caja: devuélveselo por transferencia y avísale por WhatsApp.");
@@ -216,8 +216,8 @@ describe("Anular o devolver un pago", () => {
 
 describe("Cómo se lee un pago", () => {
   it("el monto, el medio y el n.º; cuándo, quién y si entró a la caja", () => {
-    expect(textoDelPago(pago({}))).toBe("S/ 50.00 · Yape · op. 04812793");
-    expect(textoDelPago(pago({ medio: "efectivo", numeroOperacion: null, monto: 20 }))).toBe("S/ 20.00 · Efectivo");
+    expect(textoDelPago(pago({}))).toBe("S/\u00a050.00 · Yape · op. 04812793");
+    expect(textoDelPago(pago({ medio: "efectivo", numeroOperacion: null, monto: 20 }))).toBe("S/\u00a020.00 · Efectivo");
     expect(detalleDelPago(pago({}), AHORA, "Tienda Trujillo")).toBe("hace 2 h · por Rosa");
     expect(detalleDelPago(pago({ medio: "efectivo", enCaja: true }), AHORA, "Tienda Trujillo")).toBe("hace 2 h · por Rosa · entró a la caja de Tienda Trujillo");
   });
@@ -226,7 +226,7 @@ describe("Cómo se lee un pago", () => {
     expect(detalleDelPago(anulado, AHORA, "Tienda Lima")).toBe("Anulado hace 30 min · por Kiara · se le devolvió al cliente · salió de la caja de Tienda Lima");
   });
   it("uno de la pasarela que no cupo dice por qué (su observación)", () => {
-    expect(detalleDelPago(pago({ origen: "pasarela", estado: "por_revisar", observacion: "La pasarela cobró S/ 50.00…" }), AHORA, "T")).toBe("La pasarela cobró S/ 50.00…");
+    expect(detalleDelPago(pago({ origen: "pasarela", estado: "por_revisar", observacion: "La pasarela cobró S/\u00a050.00…" }), AHORA, "T")).toBe("La pasarela cobró S/\u00a050.00…");
   });
   it("la insignia: nada si es lo normal; anulado, por revisar, pendiente o rechazado; y en un pedido anulado, por devolver", () => {
     expect(estadoDelPago(pago({}), "confirmado")).toBeNull();

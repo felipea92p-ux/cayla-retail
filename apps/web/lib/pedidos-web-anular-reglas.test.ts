@@ -148,7 +148,7 @@ describe("qué falta para anular (lo mismo que rechazaría la base, en el orden 
     expect(problemaParaAnularPagado({ ...listo, pasarela: true, cajaAbierta: false })?.campo).toBe("pasarela");
     expect(problemaParaAnularPagado({ ...listo, cajaAbierta: false, motivo: null })).toEqual({
       campo: "caja",
-      detalle: "Hay que devolverle S/ 30.00 en efectivo: abre la caja de Trujillo.",
+      detalle: "Hay que devolverle S/\u00a030.00 en efectivo: abre la caja de Trujillo.",
     });
     expect(problemaParaAnularPagado({ ...listo, efectivo: 0, cajaAbierta: false })).toBeNull();
     expect(problemaParaAnularPagado({ ...listo, motivo: null })?.campo).toBe("motivo");
@@ -174,12 +174,12 @@ describe("lo que dijo la base", () => {
     expect(avisoTrasAnular("W-0007", r, "Trujillo")).toEqual({
       titulo: "Pedido W-0007 anulado",
       detalle:
-        "Se le devolvieron S/ 189.90 (S/ 30.00 en efectivo, de la caja de Trujillo). Sus prendas volvieron a estar libres. Su boleta B001-000013 se anula con la nota de crédito BC01-000001, que sale sola a SUNAT.",
+        "Se le devolvieron S/\u00a0189.90 (S/\u00a030.00 en efectivo, de la caja de Trujillo). Sus prendas volvieron a estar libres. Su boleta B001-000013 se anula con la nota de crédito BC01-000001, que sale sola a SUNAT.",
     });
   });
   it("la boleta liberada lo dice; sin pagos, también", () => {
     const r = leerRespuestaAnulacion({ boleta: { texto: "B001-000014", estado: "no_emitido" }, devuelto: [{ medio: "plin", monto: 20 }] });
-    expect(avisoTrasAnular("W-0008", r, "Lima").detalle).toBe("Se le devolvieron S/ 20.00. Sus prendas volvieron a estar libres. Su boleta B001-000014 se liberó sin enviarla.");
+    expect(avisoTrasAnular("W-0008", r, "Lima").detalle).toBe("Se le devolvieron S/\u00a020.00. Sus prendas volvieron a estar libres. Su boleta B001-000014 se liberó sin enviarla.");
     expect(avisoTrasAnular("W-0009", leerRespuestaAnulacion(null), "Lima").detalle).toBe("No había pagos que devolver. Sus prendas volvieron a estar libres.");
   });
   it("cada error a su lugar: el pedido que cambió se relee; la boleta, la caja y el motivo, en su sitio", () => {
@@ -189,7 +189,7 @@ describe("lo que dijo la base", () => {
     expect(errorDeAnularPagado({ hint: "pedido_web_sin_serie_nota", message: "x" }, h)?.campo).toBe("boleta");
     expect(errorDeAnularPagado({ hint: "pedido_web_sin_caja", message: "x" }, h)?.campo).toBe("caja");
     expect(errorDeAnularPagado({ hint: "efectivo_insuficiente", message: "usa otro medio" }, h)?.detalle).toBe(
-      "La caja de hoy de Trujillo no tiene los S/ 30.00 en efectivo que hay que devolverle. No se anuló nada: completa la caja o espera a que entre efectivo.",
+      "La caja de hoy de Trujillo no tiene los S/\u00a030.00 en efectivo que hay que devolverle. No se anuló nada: completa la caja o espera a que entre efectivo.",
     );
     expect(errorDeAnularPagado({ hint: "pedido_web_motivo", message: "x" }, h)?.campo).toBe("motivo");
     expect(errorDeAnularPagado({ hint: "otra_cosa", message: "x" }, h)).toBeNull();

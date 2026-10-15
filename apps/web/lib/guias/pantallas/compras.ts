@@ -824,6 +824,13 @@ export const GUIA_PROVEEDOR: Guia = {
       texto: "Su cuenta, CCI, Yape o Plin y el titular, cada uno con su «Copiar». Salen tapados a medias porque son datos de otra persona; «Ver completos» los muestra.",
     },
     {
+      id: "cambios-cuenta",
+      ancla: "proveedor-ficha.cambios-cuenta",
+      titulo: "Cambios de la cuenta",
+      texto: "Cada vez que alguien cambió la cuenta, el CCI, el Yape o el titular: qué cambió, cuándo y quién. Antes de pagar a una cuenta que cambió, confírmala con el proveedor por teléfono.",
+      opcional: true,
+    },
+    {
       id: "editar",
       ancla: "proveedor-ficha.editar",
       titulo: "Corregir sus datos",
@@ -1673,7 +1680,7 @@ export const GUIA_EDITAR_ORDEN: Guia = {
   ],
 };
 
-// Registrar el comprobante de una orden (ADR-0362, fase 2). Pantalla interna: se llega desde «Registrar comprobante» en la orden abierta y
+// Registrar el comprobante de una orden (ADR-0362, fase 2). Pantalla interna: se llega desde «Registrar la compra» en la orden abierta y
 // no se ofrece sola. Es dinero (deja una deuda por pagar, o un pago si es al contado), así que la guía solo EXPLICA: el único toque del
 // piloto es cambiar «Crédito» ↔ «Contado» para mostrar el bloque del pago, que es de pantalla y se deshace al salir. Nunca escribe un
 // ejemplo (ADR-0290: serie y número son los del papel de cada proveedor, no hay uno que valga para todos).
@@ -1683,7 +1690,7 @@ export const GUIA_EDITAR_ORDEN: Guia = {
 export const GUIA_COMPROBANTE_ORDEN: Guia = {
   id: "compras.ordenes.comprobante.id",
   ruta: "/compras/ordenes/comprobante/[id]",
-  titulo: "Registrar comprobante de orden",
+  titulo: "Registrar la compra de una orden",
   resumen: "Copiar el papel que dio el proveedor por lo que le pediste, o registrar la compra sin comprobante: lo que falta de la orden ya viene puesto.",
   pasos: [
     {
@@ -1762,9 +1769,9 @@ export const GUIA_COMPROBANTE_ORDEN: Guia = {
       id: "registrar",
       ancla: "comprobante.registrar",
       preparar: [{ tipo: "clic", ancla: "comprobante.credito" }],
-      titulo: "Registrar el comprobante",
+      titulo: "Registrar la compra",
       // Al registrar, la pantalla vuelve a la LISTA de órdenes con la orden marcada (`hrefOrdenGuardada`), no a la orden.
-      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta. «Registrar comprobante» (o «Registrar sin comprobante») deja la compra por pagar, o pagada si fue al contado, y vuelves a la lista. «Cancelar» sale sin guardar. En la demo no lo tocamos.",
+      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta. «Registrar la compra» (o «Registrar sin comprobante») deja la compra por pagar, o pagada si fue al contado, y vuelves a la lista. «Cancelar» sale sin guardar. En la demo no lo tocamos.",
     },
     {
       id: "fin",

@@ -372,7 +372,7 @@ export function ExistenciasTarjetas({
               </span>
               {p.precio != null && (
                 <span className="flex flex-col items-end self-start">
-                  <span className="font-display text-[15px] tabular-nums text-tinta">S/ {p.precio.toFixed(2)}</span>
+                  <span className="font-display text-[15px] tabular-nums text-tinta">S/&nbsp;{p.precio.toFixed(2)}</span>
                   {/* Precio propio de esta sede (Felipe 2026-10-09): distinto del de las demás tiendas. */}
                   {p.precioDeSede && <span className="whitespace-nowrap text-[10.5px] font-semibold text-ambar-profundo">Precio de esta tienda</span>}
                 </span>

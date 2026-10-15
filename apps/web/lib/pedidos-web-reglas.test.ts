@@ -123,13 +123,13 @@ describe("Leer lo que manda la base", () => {
       caja_abierta: false,
       pagos: [
         { pago_id: "g1", origen: "tienda", medio: "efectivo", monto: "30", estado: "anulado", registrado_en: "2026-10-14T10:00:00Z", registrado_por: "Rosa", en_caja: true, anulado_en: "2026-10-14T11:00:00Z", anulado_por: "Kiara", anulado_motivo: "devuelto_al_cliente" },
-        { pago_id: "g2", origen: "pasarela", medio: "tarjeta", monto: 20, estado: "por_revisar", observacion: "La pasarela cobró S/ 20.00, pero…" },
+        { pago_id: "g2", origen: "pasarela", medio: "tarjeta", monto: 20, estado: "por_revisar", observacion: "La pasarela cobró S/\u00a020.00, pero…" },
         { pago_id: "g3", origen: "raro", medio: "yape", monto: 5, estado: "aprobado", numero_operacion: "04812793" },
       ],
     })!;
     expect(d.cajaAbierta).toBe(false);
     expect(d.pagos[0]).toMatchObject({ id: "g1", origen: "tienda", monto: 30, enCaja: true, anuladoPor: "Kiara", anuladoMotivo: "devuelto_al_cliente" });
-    expect(d.pagos[1]).toMatchObject({ origen: "pasarela", estado: "por_revisar", observacion: "La pasarela cobró S/ 20.00, pero…", anuladoEn: null });
+    expect(d.pagos[1]).toMatchObject({ origen: "pasarela", estado: "por_revisar", observacion: "La pasarela cobró S/\u00a020.00, pero…", anuladoEn: null });
     // Un origen que no se entiende se lee como de la tienda (lo que la hoja deja anular lo decide la base igual).
     expect(d.pagos[2]).toMatchObject({ origen: "tienda", numeroOperacion: "04812793" });
   });
@@ -184,7 +184,7 @@ describe("La lista", () => {
     );
     expect(c).toMatchObject({ porDevolver: 0.3, pedidosPorDevolver: 2 });
     expect(estadoVisible(pedido({ estado: "anulado", pagado: 30 }), AHORA)).toMatchObject({
-      texto: "Anulado · por devolver S/ 30.00",
+      texto: "Anulado · por devolver S/\u00a030.00",
       tono: "rojo",
       accion: "Devuélvele lo que pagó",
     });
@@ -195,7 +195,7 @@ describe("La lista", () => {
     expect(estadoVisible(pedido({ venceEn: new Date(AHORA + 2 * 3_600_000).toISOString() }), AHORA)).toMatchObject({ tono: "rojo", vivo: true, texto: "Por confirmar · vence en 2 h" });
     expect(estadoVisible(pedido({ venceEn: new Date(AHORA + 20 * 3_600_000).toISOString() }), AHORA)).toMatchObject({ tono: "ambar", vivo: false });
     expect(estadoVisible(pedido({ estado: "confirmado", sinPagar: true, confirmadoEn: new Date(AHORA - 50 * 3_600_000).toISOString() }), AHORA).tono).toBe("rojo");
-    expect(estadoVisible(pedido({ estado: "confirmado", falta: 69.9 }), AHORA).texto).toBe("Por cobrar · falta S/ 69.90");
+    expect(estadoVisible(pedido({ estado: "confirmado", falta: 69.9 }), AHORA).texto).toBe("Por cobrar · falta S/\u00a069.90");
     expect(estadoVisible(pedido({ estado: "pagado", listoParaRecoger: false }), AHORA).texto).toBe("Pagado · espera una prenda");
     expect(plazoCorto(30_000)).toBe("1 min");
   });
@@ -334,13 +334,13 @@ describe("El cliente y WhatsApp", () => {
 
   it("los mensajes de la maqueta, con el primer nombre y la dirección de Configuración", () => {
     expect(mensajeWhatsapp(p, "confirmado")).toBe(
-      "Hola Andrea, confirmamos tu pedido W-0012 en CAYLA Trujillo (S/ 229.80). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda? Lo recoges en Jr. Pizarro 123.",
+      "Hola Andrea, confirmamos tu pedido W-0012 en CAYLA Trujillo (S/\u00a0229.80). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda? Lo recoges en Jr. Pizarro 123.",
     );
-    expect(mensajeWhatsapp(p, "cobro")).toMatch(/Falta pagar S\/ 229\.80/);
+    expect(mensajeWhatsapp(p, "cobro")).toMatch(/Falta pagar S\/\u00a0229\.80/);
     expect(mensajeWhatsapp(p, "sinstock")).toMatch(/una prenda ya no está/);
     // Actividad 9: un pedido anulado que ya había pagado.
     expect(mensajeWhatsapp(p, "devolucion")).toBe(
-      "Hola Andrea, te escribimos de CAYLA Trujillo por tu pedido W-0012: quedó anulado y te devolvemos S/ 50.00. ¿Cómo prefieres recibirlo?",
+      "Hola Andrea, te escribimos de CAYLA Trujillo por tu pedido W-0012: quedó anulado y te devolvemos S/\u00a050.00. ¿Cómo prefieres recibirlo?",
     );
     // Actividad 10: listo para recoger, y el que no viene. Nunca dicen el código (lo ve el cliente en su pedido).
     expect(mensajeWhatsapp(p, "listo")).toBe(

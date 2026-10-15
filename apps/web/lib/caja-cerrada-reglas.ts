@@ -17,7 +17,7 @@ export type CierreAnterior = {
 export const TIEMPOS_SALIDA = { giro: 1200, subida: 1150 } as const;
 
 function soles(n: number): string {
-  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 /** «hoy, 08:10», «ayer, 21:04» o «el 28/09, 21:04», en hora de Lima. */

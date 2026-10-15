@@ -159,6 +159,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/ordenes-insumos": { estado: "no-aplica", motivo: "Lista de órdenes de insumos (ADR-0362, fase 7): se mira, se busca y se filtra, no se llena. Lo que se llena (proveedor, taller, líneas) vive en «Nueva orden de insumos», con su guía." },
   "/ordenes-insumos/@modal/(.)ver/[id]": { estado: "no-aplica", motivo: "Una orden de insumos abierta sobre la lista: se lee, no se llena. Anularla es una hoja con su propia guía (registro de modales)." },
   "/ordenes-insumos/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar la ventana, no dibuja nada." },
+  "/ordenes-insumos/comprobante/[id]": { estado: "aplicada", evidencia: ["components/ordenes-insumo/RegistrarComprobanteOrdenInsumo.tsx"] },
   "/ordenes-insumos/editar/[id]": { estado: "aplicada", evidencia: ["components/ordenes-insumo/NuevaOrdenInsumo.tsx"] },
   "/ordenes-insumos/nueva": { estado: "aplicada", evidencia: ["components/ordenes-insumo/NuevaOrdenInsumo.tsx"] },
   "/ordenes-insumos/ver/[id]": { estado: "no-aplica", motivo: "Una orden de insumos en página completa, lo que se ve al recargar la ventana: se lee, no se llena." },
@@ -410,6 +411,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0362 (fase 7): «Anular orden» de una orden de insumos. Falta lo que `anular_orden_insumo` rechazaría: el motivo (hasta 300 letras)
   // y, desde una terminal, quién la anula.
   "components/ordenes-insumo/AccionesOrdenInsumo.tsx": { estado: "aplicada", evidencia: ["components/ordenes-insumo/AccionesOrdenInsumo.tsx"] },
+  "components/ordenes-insumo/RecibirOrdenInsumoModal.tsx": { estado: "aplicada", evidencia: ["components/ordenes-insumo/RecibirOrdenInsumoModal.tsx"] },
   // ADR-0362 (fase 4): la hoja de la prenda al recibir («Es nueva» y «+ talla o color»). Falta lo que `crear_producto_con_variantes` rechazaría
   // (nombre con una letra o un número, precio mayor que 0, tejido y patrón si la familia los pide) más lo que Nuevo producto exige (al menos
   // una talla si la categoría las tiene); al sumar, que haya algo nuevo que crear. Los colores son opcionales.

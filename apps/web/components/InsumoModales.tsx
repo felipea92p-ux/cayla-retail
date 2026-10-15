@@ -166,7 +166,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      avisar.error(traducirError(error, "ingresar el insumo"));
+      avisar.error(traducirError(error, "ingresar el insumo", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(`${cantidadTexto(q, unidad)} de ${insumo.nombre} entraron`, {

@@ -33,6 +33,7 @@
  */
 
 import { mensajeErrorResponsable } from "./responsable-reglas";
+import { montosSinCorte } from "./montos-sin-corte";
 
 /** La forma del error de supabase-js, sin acoplarnos a su tipo. */
 export type ErrorEscritura = {
@@ -56,7 +57,7 @@ type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
   // Montos de Ventas y Caja (/chaos 2026-10-13, 20261013204000): el respaldo de la tabla cuando una pantalla no lo frenó antes.
-  { marca: "recibido_con_tope", frase: "El vuelto pasa de S/ 500: revisa con cuánto paga el cliente y vuelve a intentar." },
+  { marca: "recibido_con_tope", frase: "El vuelto pasa de S/\u00a0500: revisa con cuánto paga el cliente y vuelve a intentar." },
   { marca: "_montos_finitos", frase: "Uno de los montos no es un número válido. Revísalo y vuelve a intentar." },
   // Nombres con tope en Catálogo (/chaos 2026-10-14, 20261014182000): la pantalla ya corta antes; esto es el respaldo.
   { marca: "_textos_con_tope", frase: "Un nombre o una descripción es demasiado largo. Acórtalo y vuelve a intentar." },
@@ -585,7 +586,7 @@ const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["aniversario_no_disponible", "Este miembro no tiene un vale de aniversario disponible (pudo vencer, o su año de club todavía no cuenta)."],
   ["aniversario_ya_canjeado", "Este miembro ya usó su vale de aniversario de este año de club."],
   ["aniversario_sin_monto", "En esta venta no queda nada que descontar con el vale de aniversario: no se usa."],
-  ["aniversario_cubre_todo", "El vale de aniversario cubre toda la compra, y una venta en S/ 0 no se puede registrar. Agrega otra prenda o cobra esta compra sin el vale."],
+  ["aniversario_cubre_todo", "El vale de aniversario cubre toda la compra, y una venta en S/\u00a00 no se puede registrar. Agrega otra prenda o cobra esta compra sin el vale."],
   ["aniversario_descuento_distinto", "El descuento del vale de aniversario no coincide con el que calcula el sistema. Vuelve a abrir el cobro."],
 ]);
 
@@ -731,8 +732,15 @@ export function esVersionCambiada(error: ErrorEscritura): boolean {
  * frase dice solo que se cortó la conexión.
  * `confirmarAntesDeRepetir`: lo que pedían las escrituras de dinero antes de ADR-0410. Ya es lo de siempre y no cambia
  * nada; queda mientras haya pantallas que la pasan.
+ *
+ * Los montos de la frase no se parten al bajar de renglón: el mensaje de la base trae «S/ 25.00» con un espacio normal
+ * (`raise exception '… S/ % …'`, en 38 migraciones), y aquí pasa al espacio que no se parte, como `soles` (ADR-0413).
  */
 export function traducirError(error: ErrorEscritura, contexto: string, opciones: { lectura?: boolean; confirmarAntesDeRepetir?: boolean } = {}): string {
+  return montosSinCorte(fraseDelError(error, contexto, opciones));
+}
+
+function fraseDelError(error: ErrorEscritura, contexto: string, opciones: { lectura?: boolean; confirmarAntesDeRepetir?: boolean }): string {
   if (!error) return `No se pudo ${contexto}.`;
 
   if (esFalloDeRed(error)) {

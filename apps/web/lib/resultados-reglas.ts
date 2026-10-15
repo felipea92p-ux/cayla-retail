@@ -222,7 +222,7 @@ export function conceptosER(columnas: readonly FilaER[]): ConceptoER[] {
 /** «S/ 44,100» y «−S/ 19,850» (el signo menos de verdad, no el guion), sin céntimos: como el spike. */
 export function solesER(v: number): string {
   const r = Math.round(v);
-  return `${r < 0 ? "−" : ""}S/ ${Math.abs(r).toLocaleString("es-PE")}`;
+  return `${r < 0 ? "−" : ""}S/\u00a0${Math.abs(r).toLocaleString("es-PE")}`;
 }
 
 /** «53,7 %» (coma decimal, como el spike), o null si no hay base (dividir entre cero no es un porcentaje). */
@@ -395,7 +395,7 @@ export function fuentesDe(clave: string): string[] {
   if (clave === "g655") return ["activos_fijos dados de baja", "lo que faltaba depreciar el día de la baja"];
   if (clave === "g6599") return ["cajas: lo contado − lo que decía el sistema al cerrar, y lo contado al abrir − el fondo que quedó", "un sobrante resta"];
   if (clave === "g6598")
-    return ["venta_pagos: lo que no se cobró por redondear el efectivo al múltiplo de S/ 0.10, hacia abajo (Ley 29571)", "una venta anulada lo devuelve: queda en cero"];
+    return ["venta_pagos: lo que no se cobró por redondear el efectivo al múltiplo de S/\u00a00.10, hacia abajo (Ley 29571)", "una venta anulada lo devuelve: queda en cero"];
   return ["gastos vigentes con fecha del mes, sin el IGV de su factura", "menos las notas de crédito de su proveedor"];
 }
 

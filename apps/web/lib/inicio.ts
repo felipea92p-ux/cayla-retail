@@ -15,6 +15,7 @@ import { getPedidosPorAtender, leerParaEnviar, leerPedidosConCliente } from "@/l
 import { paraEnviarAtrasadas } from "@/lib/para-enviar-reglas";
 import { ahoraSinRespuesta, leAvisaSinRespuesta, pedidosSinRespuesta, textoSinRespuesta } from "@/lib/pedidos-por-atender-reglas";
 import { resumenParaElInicio } from "@/lib/pedidos-con-cliente-reglas";
+import { getCuentasBancariasCambiadas } from "@/lib/proveedores";
 
 // Lecturas del bloque «Hoy» del Inicio. La líder reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
 // `getVentasMismaHoraSemanaAnterior`, `fn_parametros_caja` — antes `ubicaciones.meta_venta_diaria`) para que las dos pantallas nunca
@@ -126,7 +127,7 @@ export async function getFuentesAvisos(
 ): Promise<FuentesAvisos> {
   const supabase: Supabase = await createClient();
   const { ubicacionId, ve } = cuenta;
-  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, recibidoPorTerminar] = await Promise.all([
+  const [apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar] = await Promise.all([
     ve("apartados")
       ? tolerarLectura("los apartados", async () => resumirApartados(await getApartadosAbiertos(ubicacionId, { esTerminal: cuenta.esTerminal }), hoyLima()))
       : undefined,
@@ -166,11 +167,13 @@ export async function getFuentesAvisos(
     // ADR-0328 act. 17 (decisión del 2026-10-04): lo subido «para enviar» que lleva más de 3 días, en el Inicio de esa sede
     // (para quien ve Traslados, donde está la lista y «Armar el envío»). No suma al número del menú.
     ve("traslados") ? leerParaEnviar(ubicacionId).then((f) => (f === null ? null : paraEnviarAtrasadas(f, new Date().toISOString()))) : undefined,
+    // Felipe 2026-10-13: el aviso de cuentas bancarias que cambiaron es para el líder, y lleva a Proveedores.
+    cuenta.esLider && ve("proveedores") ? getCuentasBancariasCambiadas() : undefined,
     // ADR-0393 (decisión 4): lo recibido que todavía no está en el stock, para quien ve Recibir. Si la base todavía no cuenta primero
     // (sin sus migraciones), el aviso no existe; si no responde, «no se pudo leer».
     ve("recibir") ? recibirContandoDisponible(ubicacionId).then((r) => (r.disponible ? r.pendientes : undefined)) : undefined,
   ]);
-  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, recibidoPorTerminar };
+  return { ...base, apartados, devoluciones, pedidos, conteoAbierto, porPagar, perdidas, pedidosSinRespuesta: pedidosSinRespuestaLeidos, pedidosCliente, paraEnviar, cuentasBancarias, recibidoPorTerminar };
 }
 
 /** Quién está hoy en la sede (asistencia de Dynamic) y, si la cuenta ve la actividad (ADR-0207), qué hizo cada una. */

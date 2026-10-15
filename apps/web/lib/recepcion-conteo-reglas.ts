@@ -621,7 +621,7 @@ export function leerCostoCierre(t: string): { valor: number | null; problema: st
   const l = leerNumero(t, 2);
   if (l.tipo === "vacio") return { valor: null, problema: null };
   if (l.tipo === "mal") return { valor: null, problema: l.motivo === "negativo" ? "El costo no puede ser negativo" : "Escribe el costo solo con números (ej. 25.50)" };
-  if (l.escalado > 9999999) return { valor: null, problema: "El costo va de S/ 0 a S/ 99 999.99" };
+  if (l.escalado > 9999999) return { valor: null, problema: "El costo va de S/\u00a00 a S/\u00a099 999.99" };
   return { valor: l.escalado / 100, problema: null };
 }
 

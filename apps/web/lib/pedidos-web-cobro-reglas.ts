@@ -50,7 +50,7 @@ export type FormPago = { monto: string; medio: MedioPagoWeb | null; operacion: s
 export function problemaDelMonto(texto: string, falta: number): string | null {
   if (texto.trim() === "") return "Escribe el monto.";
   const monto = leerMonto(texto);
-  if (monto === null) return "Escribe el monto: más de S/ 0, con hasta dos decimales.";
+  if (monto === null) return "Escribe el monto: más de S/\u00a00, con hasta dos decimales.";
   if (monto > falta + 0.001) return `Es más de lo que falta (${soles(falta)}).`;
   return null;
 }

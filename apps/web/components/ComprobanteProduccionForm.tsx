@@ -140,7 +140,7 @@ export function ComprobanteProduccionForm({
     responsable.despues(err);
     setCargando(false);
     if (err) {
-      avisar.error(traducirError(err, "registrar el comprobante"));
+      avisar.error(traducirError(err, "registrar el comprobante", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(`${serie.trim().toUpperCase()}-${numero.trim()} registrado`, {

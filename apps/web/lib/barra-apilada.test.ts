@@ -67,9 +67,9 @@ describe("BarraApilada · solo se lee", () => {
 
 describe("BarraApilada · el resumen lo puede decir la pantalla", () => {
   it("`formato` dice las cifras y `etiqueta` reemplaza el resumen entero", () => {
-    const soles = (n: number) => `S/ ${n.toFixed(2)}`;
-    expect(html({ formato: soles, unidad: "soles" })).toContain('aria-label="S/ 42586.80 soles. Vencida: S/ 5133.60 · 8–30 días: S/ 37453.20"');
-    expect(html({ etiqueta: "Deuda por vencimiento: Vencida S/ 5,133.60, 8–30 días S/ 37,453.20" })).toContain('aria-label="Deuda por vencimiento: Vencida S/ 5,133.60, 8–30 días S/ 37,453.20"');
+    const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
+    expect(html({ formato: soles, unidad: "soles" })).toContain('aria-label="S/\u00a042586.80 soles. Vencida: S/\u00a05133.60 · 8–30 días: S/\u00a037453.20"');
+    expect(html({ etiqueta: "Deuda por vencimiento: Vencida S/\u00a05,133.60, 8–30 días S/\u00a037,453.20" })).toContain('aria-label="Deuda por vencimiento: Vencida S/\u00a05,133.60, 8–30 días S/\u00a037,453.20"');
   });
 });
 
@@ -77,11 +77,11 @@ describe("BarraApilada · responde (los tramos son botones)", () => {
   const respuesta = { onApuntar: () => {}, onElegir: () => {}, accion: "Filtrar la lista" };
 
   it("el grupo lleva su resumen y cada tramo es un botón con su nombre y lo que hace", () => {
-    const h = html({ respuesta, formato: (n) => `S/ ${n}` });
+    const h = html({ respuesta, formato: (n) => `S/\u00a0${n}` });
     expect(h).toContain('role="group"');
     expect(h).not.toContain('role="img"');
-    expect(h).toContain('aria-label="Vencida: S/ 5133.6. Filtrar la lista"');
-    expect(h).toContain('aria-label="8–30 días: S/ 37453.2. Filtrar la lista"');
+    expect(h).toContain('aria-label="Vencida: S/\u00a05133.6. Filtrar la lista"');
+    expect(h).toContain('aria-label="8–30 días: S/\u00a037453.2. Filtrar la lista"');
     expect(h.match(/<button/g)).toHaveLength(2);
   });
 
@@ -150,10 +150,10 @@ describe("BarraApilada · lo que piden las barras de Compras", () => {
 
   it("`oculto` no lo oye el lector y `etiqueta` de un botón reemplaza la automática", () => {
     const h = html({
-      segmentos: [{ clave: "a", nombre: "A", valor: 1, clase: "bg-tinta", etiqueta: "A: S/ 1, 50 % de la deuda" }, { clave: "resto", nombre: "Resto", valor: 1, clase: "bg-sand", inerte: true, oculto: true }],
+      segmentos: [{ clave: "a", nombre: "A", valor: 1, clase: "bg-tinta", etiqueta: "A: S/\u00a01, 50 % de la deuda" }, { clave: "resto", nombre: "Resto", valor: 1, clase: "bg-sand", inerte: true, oculto: true }],
       respuesta: { onApuntar: () => {} },
     });
-    expect(h).toContain('aria-label="A: S/ 1, 50 % de la deuda"');
+    expect(h).toContain('aria-label="A: S/\u00a01, 50 % de la deuda"');
     expect(h).toMatch(/<span aria-hidden="true"[^>]*class="barra-tramo anim-crece-x"/);
   });
 
@@ -222,7 +222,7 @@ describe("BarraApilada · lo que pidió la revisión de la migración", () => {
 
   it("una barra `decorativa` no pone texto al pasar el mouse; una que se lee, sí, con la cifra bien dicha", () => {
     expect(html({ decorativa: true })).not.toContain("title=");
-    expect(html({ formato: (n) => `S/ ${n}` })).toContain('title="Vencida: S/ 5133.6"');
+    expect(html({ formato: (n) => `S/\u00a0${n}` })).toContain('title="Vencida: S/\u00a05133.6"');
   });
 
   it("`decorativa` gana a `respuesta`: sus tramos no serían enfocables dentro de algo oculto", () => {

@@ -850,7 +850,7 @@ describe("montos de Ventas y Caja", () => {
   it("el vuelto de más y el monto que no es número", () => {
     expect(
       traducirError({ message: 'new row for relation "venta_pagos" violates check constraint "venta_pagos_recibido_con_tope"', code: "23514" }, "registrar la venta"),
-    ).toMatch(/vuelto pasa de S\/ 500/);
+    ).toMatch(/vuelto pasa de S\/\u00a0500/);
     expect(
       traducirError({ message: 'new row for relation "cajas" violates check constraint "cajas_montos_finitos"', code: "23514" }, "abrir la caja"),
     ).toMatch(/no es un número válido/);

@@ -16,7 +16,7 @@ import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 
 function money(n: number) {
-  return (n >= 0 ? "S/ " : "-S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n >= 0 ? "S/\u00a0" : "-S/\u00a0") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function hora(iso: string) {
@@ -485,7 +485,7 @@ function CobrosPorMedio({ cobros }: { cobros: DetalleCierre["cobros"] }) {
           return <circle key={m.clave} cx="75" cy="75" r={r} fill="none" strokeWidth="16" strokeDasharray={`${largo} ${C - largo}`} strokeDashoffset={-antes} transform="rotate(-90 75 75)" style={{ stroke: COLOR_MEDIO[m.clave] }} />;
         })}
         <text x="75" y="75" textAnchor="middle" fontSize="22" className="font-display fill-tinta">
-          {`S/ ${Math.round(cobros.total).toLocaleString("es-PE")}`}
+          {`S/\u00a0${Math.round(cobros.total).toLocaleString("es-PE")}`}
         </text>
         <text x="75" y="93" textAnchor="middle" fontSize="11" className="fill-tinta/60">
           cobrado

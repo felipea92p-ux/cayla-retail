@@ -806,7 +806,7 @@ describe("variantesParaResumen — la barra y la hoja cuentan la sección con UN
     expect(r.frases).toEqual(["1 variante se desactiva", "2 variantes se agregan", "3 variantes cambian de color o talla", "1 precio cambia"]);
     expect(agruparCambios(r.cambios)).toEqual([
       { clave: "desactivan", titulo: "Se desactivan", lineas: [{ texto: "Negro S", detalle: "8 u. en stock" }], cantidad: 1, nota: NOTA_DESACTIVADAS_CON_STOCK },
-      { clave: "agregan", titulo: "Se agregan", lineas: [{ texto: "2 variantes: Azul S, Azul M", detalle: "S/ 59.90" }], cantidad: 2, nota: NACEN_SIN_UNIDADES },
+      { clave: "agregan", titulo: "Se agregan", lineas: [{ texto: "2 variantes: Azul S, Azul M", detalle: "S/\u00a059.90" }], cantidad: 2, nota: NACEN_SIN_UNIDADES },
       {
         clave: "identidad",
         titulo: "Color o talla corregidos",
@@ -814,7 +814,7 @@ describe("variantesParaResumen — la barra y la hoja cuentan la sección con UN
         cantidad: 3,
         nota: NOTA_CORREGIDAS,
       },
-      { clave: "precios", titulo: "Precios", lineas: [{ texto: "Negro M", antes: "S/ 59.90", despues: "S/ 64.90" }], cantidad: 1 },
+      { clave: "precios", titulo: "Precios", lineas: [{ texto: "Negro M", antes: "S/\u00a059.90", despues: "S/\u00a064.90" }], cantidad: 1 },
     ]);
   });
 

@@ -102,6 +102,7 @@ import {
   GUIA_NUEVA_ORDEN_INSUMO,
   GUIA_ORDEN_INSUMO,
   GUIA_EDITAR_ORDEN_INSUMO,
+  GUIA_COMPROBANTE_ORDEN_INSUMO,
 } from "./pantallas/produccion";
 import {
   GUIA_ACTIVIDAD,
@@ -214,6 +215,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_NUEVA_ORDEN_INSUMO,
   GUIA_ORDEN_INSUMO,
   GUIA_EDITAR_ORDEN_INSUMO,
+  GUIA_COMPROBANTE_ORDEN_INSUMO,
   GUIA_INICIO,
   GUIA_ACTIVIDAD,
   GUIA_BUSCAR,
@@ -329,6 +331,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/ordenes-insumos": { estado: "aplicada", guia: GUIA_ORDENES_INSUMO.id },
   "/ordenes-insumos/@modal/(.)ver/[id]": { estado: "no-aplica", motivo: "La misma vista que /ordenes-insumos/ver/[id] abierta como hoja sobre la lista: comparte su guía." },
   "/ordenes-insumos/@modal/[...catchAll]": { estado: "no-aplica", motivo: "Ruta técnica de una ranura paralela: devuelve vacío para cerrar la ventana, no dibuja nada." },
+  "/ordenes-insumos/comprobante/[id]": { estado: "aplicada", guia: GUIA_COMPROBANTE_ORDEN_INSUMO.id },
   "/ordenes-insumos/editar/[id]": { estado: "aplicada", guia: GUIA_EDITAR_ORDEN_INSUMO.id },
   "/ordenes-insumos/nueva": { estado: "aplicada", guia: GUIA_NUEVA_ORDEN_INSUMO.id },
   "/ordenes-insumos/ver/[id]": { estado: "aplicada", guia: GUIA_ORDEN_INSUMO.id },

@@ -70,6 +70,12 @@ export function hrefLiquidar(prendas: readonly Pick<PrendaAnalisis, "varianteId"
   return urlEtiquetasDePrecio({ variantes: tallas.map((p) => p.varianteId) }, RUTA_ANALISIS);
 }
 
+/** «Registrar ventas»: la cola de ventas sin su prenda (Por regularizar), si la cuenta la ve (ADR-0357, act. 2026-10-14). */
+export const HREF_POR_REGULARIZAR = "/inventario/por-regularizar";
+export function hrefRegistrarVentas(a: Pick<AccesoAnalisis, "regularizar">): string | null {
+  return a.regularizar ? HREF_POR_REGULARIZAR : null;
+}
+
 /** «Reponer»: bajar al piso lo que está guardado (una de cada una). null si nada tiene almacén o la cuenta no ve Existencias. */
 export function hrefReponerPiso(prendas: readonly Pick<PrendaAnalisis, "varianteId" | "almacen">[], a: Pick<AccesoAnalisis, "existencias">): string | null {
   if (!a.existencias) return null;

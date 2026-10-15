@@ -46,7 +46,7 @@ import { DesplegablePildora } from "@/components/ui/FiltrosPildora";
 // las columnas viajan en una variable que pone la <Tabla> (`--columnas-historial`); en celular también (cada celda dice su tienda).
 const PLANTILLA_HISTORIAL = "grid-cols-[var(--columnas-historial)]";
 
-const solesSinCentimos = (n: number) => `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+const solesSinCentimos = (n: number) => `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 
 function Celda({ c, anio }: { c: CeldaHistorial; anio: number }) {
   const m = c.medida;

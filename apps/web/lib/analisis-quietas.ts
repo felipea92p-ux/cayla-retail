@@ -4,7 +4,8 @@
 // cada tienda y dice a qué tienda va «Enviar todas». Las cifras de dibujo son las de la maqueta aprobada por Felipe (2026-10-06).
 
 import type { EdadInventario, PrendaAnalisis } from "./analisis-tipos";
-import { DIAS_EJE_QUIETAS, DIAS_TRES_MESES, GRUPOS_CARRIL_QUIETAS, grupoDe, ordenQuietas, plural, prendasDe, sedeQueMasVende, totalEnTienda } from "./analisis-reglas";
+import { diasEntreFechas } from "./fechas-lima";
+import { DIAS_EJE_QUIETAS, DIAS_TRES_MESES, GRUPOS_CARRIL_QUIETAS, grupoDe, ordenQuietas, plural, prendasDe, sedeQueMasVende, totalEnTienda, umbralLiquidar } from "./analisis-reglas";
 
 /** Las cifras grandes de arriba: cuántos modelos están quietos y cuánta plata hay en ellos. */
 export type CifrasQuietas = {
@@ -98,22 +99,49 @@ export type ZonaQuieta = "urg" | "ate" | "nd";
  */
 const CIFRA_A_LA_IZQUIERDA_DESDE = 0.8;
 
-/** Una prenda en el carril «Días sin venderse»: dónde cae su punto, de qué color va su aro y de qué lado va su cifra. */
-export function pistaQuieta(dias: number, liquidarDesde: number): { n: number; zona: ZonaQuieta; cifraALaIzquierda: boolean } {
-  const n = enEje(dias, finDelEje(liquidarDesde));
-  const zona: ZonaQuieta = dias >= DIAS_TRES_MESES ? "urg" : dias >= liquidarDesde ? "ate" : "nd";
-  return { n, zona, cifraALaIzquierda: n > CIFRA_A_LA_IZQUIERDA_DESDE };
+/**
+ * Una prenda en el carril «Días sin venderse»: dónde cae su punto, de qué color va su aro, de qué lado va su cifra y dónde empieza SU
+ * zona de liquidar (`umbral`: el de su tipo, ADR-0357 act. 2026-10-14; sin él, «Liquidar desde»). El eje es el mismo para todas.
+ */
+export function pistaQuieta(dias: number, liquidarDesde: number, umbral: number = liquidarDesde): { n: number; zona: ZonaQuieta; cifraALaIzquierda: boolean; liquidar: number } {
+  const fin = finDelEje(liquidarDesde);
+  const n = enEje(dias, fin);
+  const zona: ZonaQuieta = dias >= DIAS_TRES_MESES ? "urg" : dias >= umbral ? "ate" : "nd";
+  return { n, zona, cifraALaIzquierda: n > CIFRA_A_LA_IZQUIERDA_DESDE, liquidar: enEje(umbral, fin) * 100 };
+}
+
+/**
+ * La marca «Liquidar» del eje: solo si todas las filas del carril se liquidan desde el mismo día (si cada tipo tiene el suyo, cada fila
+ * lo dibuja en su pista y una marca común mentiría). Sin filas, la de «Liquidar desde».
+ */
+export function marcaLiquidarComun(prendas: readonly Pick<PrendaAnalisis, "umbrales">[], liquidarDesde: number): number | null {
+  const umbrales = new Set(prendas.map((p) => umbralLiquidar(p, liquidarDesde)));
+  if (umbrales.size === 0) return liquidarDesde;
+  return umbrales.size === 1 ? [...umbrales][0]! : null;
+}
+
+/**
+ * La nota del carril: con qué se mide cada tipo (ADR-0357, act. 2026-10-14). Con la vara de su tipo, «Liquidar desde» es solo el
+ * respaldo de los tipos que todavía no tienen ventas para su ritmo; sin Frescura, se mide todo con «Liquidar desde».
+ */
+export function notaDeUmbrales(prendas: readonly Pick<PrendaAnalisis, "umbrales">[], frescura: "ok" | "sin_modulo" | "fallo" | "no_aplica"): string {
+  if (frescura !== "ok") return "Sin el ritmo de cada tipo (Frescura del piso), todo se mide con «Liquidar desde».";
+  const con = prendas.filter((p) => p.umbrales).length;
+  if (con === 0) return "Ningún tipo tiene todavía ventas para medir su ritmo: todo se mide con «Liquidar desde».";
+  if (con === prendas.length) return "Cada tipo se mide con lo que tardan en venderse los suyos en tu piso.";
+  return "Cada tipo se mide con lo que tardan en venderse los suyos en tu piso; «Liquidar desde» vale para los que todavía no tienen ritmo.";
 }
 
 /** Las prendas de cada grupo del carril, cada uno de lo que más espera a lo que menos. Una prenda cae en uno solo. */
-export function gruposQuietas<T extends PrendaAnalisis>(prendas: readonly T[], liquidarDesde: number): { enviar: T[]; liquidar: T[]; vigila: T[] } {
-  const grupos = { enviar: [] as T[], liquidar: [] as T[], vigila: [] as T[] };
+export function gruposQuietas<T extends PrendaAnalisis>(prendas: readonly T[], liquidarDesde: number): { enviar: T[]; liquidar: T[]; duda: T[]; vigila: T[] } {
+  const grupos = { enviar: [] as T[], liquidar: [] as T[], duda: [] as T[], vigila: [] as T[] };
   for (const p of prendas) {
     const g = grupoDe(p, liquidarDesde);
-    if (g === "enviar" || g === "liquidar" || g === "vigila") grupos[g].push(p);
+    if (g === "enviar" || g === "liquidar" || g === "duda" || g === "vigila") grupos[g].push(p);
   }
   grupos.enviar.sort(ordenQuietas);
   grupos.liquidar.sort(ordenQuietas);
+  grupos.duda.sort(ordenQuietas);
   grupos.vigila.sort(ordenQuietas);
   return grupos;
 }
@@ -161,22 +189,41 @@ export function barraDeEdad(edad: EdadInventario): { total: number; tramos: Tram
   };
 }
 
-export type VacioQuietas = "todo-se-mueve" | "sin-datos";
-
 /**
- * Lo que dice la pestaña cuando no hay carril (con las prendas de la tienda, sin buscar): «todo-se-mueve» si ninguna lleva un
- * mes sin venderse; «sin-datos» si no llegó ni una prenda y algo falló al leer (principio 9: nunca «todo se mueve» por un
- * error; la misma regla que «Se está acabando»); null si hay carril. Con «Liquidar desde» de 30 días o más no depende de él (el
- * control solo pasa prendas de un grupo a otro); con menos, puede sumar al carril las que ya llevan ese tiempo sin venderse. Nunca
- * saca una.
+ * Si «No se vende» puede decir algo de esta tienda (ADR-0357, act. 2026-10-14; tarea #2): algún modelo con algo en la tienda lleva en el
+ * piso, desde que salió, al menos lo que se espera para liquidarlo (el p90 de su tipo o «Liquidar desde»). Si ninguno llegó todavía
+ * —una tienda que vende en el ERP hace menos días que el umbral, o todo se colgó hace poco—, que nada esté quieto no es una buena
+ * noticia: todavía no se puede saber.
  */
-export function vacioQuietas(prendas: readonly PrendaAnalisis[], liquidarDesde: number, fallas: number): VacioQuietas | null {
-  if (prendasDe(prendas, GRUPOS_CARRIL_QUIETAS, liquidarDesde).length > 0) return null;
-  return prendas.length === 0 && fallas > 0 ? "sin-datos" : "todo-se-mueve";
+export function puedeJuzgarQuietas(prendas: readonly Pick<PrendaAnalisis, "piso" | "almacen" | "salioAlPiso" | "umbrales">[], liquidarDesde: number, hoy: string): boolean {
+  return prendas.some((p) => totalEnTienda(p) > 0 && p.salioAlPiso !== null && diasEntreFechas(p.salioAlPiso, hoy) >= umbralLiquidar(p, liquidarDesde));
 }
 
-/** El título y la línea de cada vacío («sin-datos» dice lo mismo que en «Se está acabando»). */
+/** «Todavía no se puede saber: …» con el umbral que manda (el de cada tipo, o «Liquidar desde» si ningún tipo tiene ritmo). */
+export function lineaTodaviaNoQuietas(prendas: readonly Pick<PrendaAnalisis, "piso" | "almacen" | "salioAlPiso" | "umbrales">[], liquidarDesde: number): string {
+  if (!prendas.some((p) => totalEnTienda(p) > 0 && p.salioAlPiso !== null)) return "No hay nada colgado que juzgar todavía.";
+  return prendas.some((p) => p.umbrales)
+    ? "Ningún modelo lleva aún lo que tarda su tipo en venderse."
+    : `Ningún modelo lleva aún ${liquidarDesde} ${plural(liquidarDesde, "día", "días")} en el piso.`;
+}
+
+export type VacioQuietas = "todo-se-mueve" | "todavia-no" | "sin-datos";
+
+/**
+ * Lo que dice la pestaña cuando no hay carril (con las prendas de la tienda, sin buscar): «sin-datos» si no llegó ni una prenda y algo
+ * falló al leer (principio 9: nunca «todo se mueve» por un error; la misma regla que «Se está acabando»); «todavia-no» si ningún modelo
+ * lleva aún en el piso lo que se espera para juzgarlo (`puedeJuzgarQuietas`: nunca «todo se mueve» por no haber esperado); si no,
+ * «todo-se-mueve»; null si hay carril.
+ */
+export function vacioQuietas(prendas: readonly PrendaAnalisis[], liquidarDesde: number, fallas: number, hoy?: string): VacioQuietas | null {
+  if (prendasDe(prendas, GRUPOS_CARRIL_QUIETAS, liquidarDesde).length > 0) return null;
+  if (prendas.length === 0 && fallas > 0) return "sin-datos";
+  return hoy !== undefined && !puedeJuzgarQuietas(prendas, liquidarDesde, hoy) ? "todavia-no" : "todo-se-mueve";
+}
+
+/** El título y la línea de cada vacío («sin-datos» dice lo mismo que en «Se está acabando»; «todavia-no» lleva su línea aparte). */
 export const TEXTO_VACIO_QUIETAS: Record<VacioQuietas, { titulo: string; linea: string }> = {
-  "todo-se-mueve": { titulo: "Todo se mueve", linea: "Ningún modelo lleva más de un mes sin venderse." },
+  "todo-se-mueve": { titulo: "Todo se mueve", linea: "Ningún modelo lleva sin venderse más de lo que se vigila." },
+  "todavia-no": { titulo: "Todavía no se puede saber", linea: "Ningún modelo lleva aún en el piso lo que se espera." },
   "sin-datos": { titulo: "No pude ver tus prendas", linea: "Vuelve a intentarlo en un rato." },
 };
