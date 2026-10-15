@@ -35,8 +35,9 @@ const config: KnipConfig = {
   compilers: { css: importsDelCss },
   ignoreExportsUsedInFile: true,
   // `supabase` es la CLI (en el CI va por `npx supabase`, no como dependencia) y `uptime`, el comando del sistema que lee la carga
-  // de la máquina en `scripts/carga/carga.mjs`.
-  ignoreBinaries: ["supabase", "uptime"],
+  // de la máquina en `scripts/carga/carga.mjs`; `openssl`, el del sistema, que arma el certificado de prueba del experimento
+  // `scripts/investigacion/reintento-post-cortado.mjs`.
+  ignoreBinaries: ["supabase", "uptime", "openssl"],
   workspaces: {
     ".": {
       // Los scripts de la raíz se corren a mano, desde las skills o desde el CI: cada uno es un punto de entrada, y también lo que

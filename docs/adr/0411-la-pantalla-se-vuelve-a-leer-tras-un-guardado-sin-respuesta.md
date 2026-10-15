@@ -71,7 +71,7 @@ traductor (ADR-0410, «Inventario»). La pantalla 251 lo olvidaría.
 En la verificación, cada clic llegó **tres veces** a la base: Chrome reintenta por su cuenta una petición, aunque sea POST, cuando la conexión
 reutilizada se cierra sin haber recibido nada (`ERR_EMPTY_RESPONSE`). Ingresar insumo lleva marca (`p_token`) y la base devolvió el mismo lote
 las tres veces: hubo un lote por hoja. **Una escritura sin marca, en ese mismo corte, podría guardarse tres veces con un solo clic.** Se observó
-en local, con HTTP/1.1 detrás de un proxy; no está medido con el HTTP/2 de Supabase en producción. No se toca aquí: va al backlog.
+en local, con HTTP/1.1 detrás de un proxy. **Medido el 2026-10-15** con HTTP/1.1 y HTTP/2, y leído en el código de Chromium (HTTP/3 incluido): pasa en los tres, y si solo se corta el primer envío la pantalla recibe un OK y la base guardó dos veces, sin ningún error que active este refresco. Detalle, inventario y propuesta: `docs/investigacion/2026-10-15-reintento-de-post-cortado.md`.
 
 ## Cómo se verificó
 

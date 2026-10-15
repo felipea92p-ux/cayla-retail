@@ -8,6 +8,12 @@
 - [x] Navegador local con un proxy que corta la respuesta después de que la base guardó: refresco con red, sin refresco sin red hasta
       `online`, y espera a que la persona deje de teclear. Base local restaurada a su foto.
 - [ ] OK de Felipe y PR con `/abrir-pr`. Convive con ADR-0410 (`claude/happy-euler-dda937`): no tocan los mismos archivos.
-- [ ] **Chrome repite un POST cortado** (`ERR_EMPTY_RESPONSE` en una conexión reutilizada): en local, cada clic de Ingresar insumo llegó tres
-      veces a la base y la marca lo dejó en un lote. Medir si pasa con el HTTP/2 de Supabase en producción y, si pasa, qué escrituras sin
-      `p_token` quedan expuestas (las 114 sin marca de ADR-0410).
+- [x] **Chrome repite un POST cortado:** medido el 2026-10-15 con HTTP/1.1 y HTTP/2 y leído en Chromium (HTTP/3 incluido): sí, y si solo se
+      corta el primer envío la pantalla recibe un OK y la base guardó dos veces. Informe:
+      `docs/investigacion/2026-10-15-reintento-de-post-cortado.md`; experimento: `scripts/investigacion/reintento-post-cortado.mjs`.
+- [ ] **`p_token` en `crear_devolucion`** (Devoluciones): con una línea de 2 o más unidades, un reenvío crea otra devolución pendiente;
+      aprobada, reembolso doble y dos notas de crédito. Migración (reemplazo anclado) + pantalla. Toca dinero, stock y SUNAT: OK de Felipe.
+- [ ] **`p_token` en las otras cinco que pueden duplicar:** `registrar_consumo_insumo`, `devolver_insumo_de_produccion`, `cerrar_linea_compra`,
+      `reasignar_reparto_compra`, `crear_proforma` (en ese orden). OK de Felipe.
+- [ ] **Decidir la marca por petición (`x-intento` + `db_pre_request`)** para las 141 funciones sin marca: escribir el ADR, primero en modo
+      «solo anotar» para medir cuántos reenvíos hay. Toca la configuración de PostgREST del proyecto compartido con Dynamic: decide Felipe.
