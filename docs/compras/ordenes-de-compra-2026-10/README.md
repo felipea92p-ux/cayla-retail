@@ -1,8 +1,28 @@
-# Órdenes de compra — estado vivo (2026-10-13, 13:00)
+# Órdenes de compra — estado vivo (2026-10-15)
 
-> Felipe NO cambió de cuenta: la misma sesión siguió (worktree `.claude/worktrees/rediseno-modulo-colaboradores-c962d9`). **Esta sección
-> manda sobre todo lo de abajo.** Las decisiones 1–64 viven en `docs/adr/0362-ordenes-de-compra-y-despacho-a-sedes.md`. Avance: **~76 de
-> 100** (pesos 15/20/12/15/10/18/10; la fase 7 parte 1 ya está en producción).
+> **Esta sección manda sobre todo lo de abajo**, que queda como historia. Las decisiones 1–88 viven en
+> `docs/adr/0362-ordenes-de-compra-y-despacho-a-sedes.md`. Avance: **~96 de 100** (pesos 15/20/12/15/10/18/10; falta la fase 5b, ≈4).
+
+## Estado al 2026-10-15
+
+- **En `main` y en producción:** las fases 1, 2, 3, 4, 5a, 6 (PR #1055, con los cambios de /formidable de Fondos en #1088) y 7 completa:
+  la parte 1 (la orden de insumos, #1019) y la parte 2 (el papel y la recepción en el Taller, **#1098, fusionado el 2026-10-15**; sus
+  siete migraciones `20261015015000` … `20261015043000` y `20261015112000`, pegadas en orden y una sola vez, con las huellas iguales al
+  banco). Detalle de la 7.2: ADR-0362, «Fase 7, parte 2», y `contrato-ordenes-de-insumos.md`.
+- **Decisión 64 («Fijar un mínimo» del Plan con el módulo):** hecha el 2026-10-15 (`20261015141000`, con `pruebas:plan-compra-minimo`) y
+  en producción (allá `20261015141027`, huella igual al banco); además, el plan se bloquea al sumar los mínimos, para que dos personas a la
+  vez no pasen del 100 %.
+- **Falta:**
+  - **Fase 5b, la plata de «Nos debe»** (≈4; contrato `contrato-nos-debe.md`, decisiones 14, 24, 27 y 58–61): mueve dinero y toca la
+    contabilidad; espera la lista aprobada por Felipe y, donde haga falta, al contador.
+  - La lista de compras del Taller desde la orden de producción (decisión 62: después).
+  - De Felipe, transversales: la coma decimal y el piso y techo de las fechas (los g2 de /chaos de la fase 7.2).
+  - Pruebas con personas: repetir las ciegas sobre lo nuevo y probar con alguien del Taller que no hizo la orden.
+
+## Historia: el estado del 2026-10-13 (13:00)
+
+> Felipe NO cambió de cuenta: la misma sesión siguió (worktree `.claude/worktrees/rediseno-modulo-colaboradores-c962d9`). Las decisiones
+> 1–64 vivían en el ADR-0362. Avance de entonces: ~76 de 100 (la fase 7 parte 1 ya estaba en producción).
 
 ## En producción (pegado y verificado por huella contra el banco)
 
