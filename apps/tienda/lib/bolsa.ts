@@ -79,6 +79,15 @@ export function agregarUna(
   return { lineas, sedeId: b.sedeId ?? sedeId, marca };
 }
 
+/** Varias prendas de una vez (un look: una por prenda con su talla), todas o ninguna: si no caben todas, `null` y la bolsa no cambia.
+ *  La misma prenda dos veces suma dos. */
+export function agregarVarias(b: Bolsa, varianteIds: readonly string[], { marca }: { marca: string }): Bolsa | null {
+  if (varianteIds.length === 0 || unidades(b) + varianteIds.length > TOPE_PRENDAS) return null;
+  let nueva = b;
+  for (const v of varianteIds) nueva = agregarUna(nueva, v, { marca }) ?? nueva;
+  return nueva;
+}
+
 /**
  * «Quitar» saca UNA (maqueta: `w-quitar`). `vista`: cuántas veía el cliente al tocar; si ya no son esas (un doble toque, otra
  * pestaña), no saca nada: así dos toques seguidos sacan una sola.
@@ -148,6 +157,16 @@ export type LineaEnBase = PrendaEnLaBolsa | PrendaQueYaNoEsta;
 export type BolsaEnBase = { sedeId: string | null; sedes: Sede[]; lineas: LineaEnBase[] };
 
 export const yaNoEsta = (l: LineaEnBase): l is PrendaQueYaNoEsta => "noEsta" in l;
+
+/** Lo que dice la base de una prenda que se quiere agregar (preguntada con TODAS las que llevaría): si entra, si ya no está en la
+ *  tienda online, o si se agotó (no alcanza en ninguna tienda de la web). La misma regla para una prenda (la ficha, la tarjeta) y para
+ *  cada prenda de un look. */
+export function revisarParaAgregar(
+  linea: LineaEnBase | undefined,
+): { tipo: "entra"; linea: PrendaEnLaBolsa } | { tipo: "no_esta" } | { tipo: "agotada" } {
+  if (!linea || yaNoEsta(linea)) return { tipo: "no_esta" };
+  return linea.alcanzaEnTotal ? { tipo: "entra", linea } : { tipo: "agotada" };
+}
 
 /** La respuesta de la base; `null` si no tiene forma de bolsa (la página dice que no pudo cargarla). */
 export function interpretarBolsaEnBase(dato: unknown): BolsaEnBase | null {
@@ -338,4 +357,6 @@ export const avisoAgregada = (p: Pick<PrendaEnLaBolsa, "nombre" | "color" | "tal
 export const AGREGAR_AGOTADA = "Esa talla ya no está en ninguna tienda.";
 export const AGREGAR_NO_ESTA = "Esa prenda ya no está en la tienda online.";
 export const AGREGAR_LLENA = `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas.`;
+/** Un look entra entero o no entra (no se parte por falta de lugar). */
+export const AGREGAR_LLENA_LOOK = `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas: quita alguna para agregar el look.`;
 export const AGREGAR_SIN_RESPUESTA = "No pudimos agregarla ahora. Vuelve a intentarlo en un momento.";

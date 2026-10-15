@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   alternarTalla,
+  avisoDelLook,
   cejaDeLook,
   hrefDePieza,
   hrefLook,
@@ -14,6 +15,7 @@ import {
   tallasIniciales,
   textoAgregar,
   totalDelLook,
+  variantesParaLaBolsa,
   type Look,
 } from "./looks";
 
@@ -144,5 +146,47 @@ describe("elegir las tallas (propuesta h)", () => {
     expect(look.piezas.map(sinTallasPorAhora)).toEqual([false, false, true]);
     expect(textoAgregar(1)).toBe("Agregar 1 prenda a mi bolsa");
     expect(textoAgregar(3)).toBe("Agregar 3 prendas a mi bolsa");
+  });
+});
+
+describe("el look a la bolsa", () => {
+  const emma = { varianteId: ID(5), productoId: ID(1), nombre: "Blusa Emma", color: "Negro", talla: "S" };
+  const falda = { varianteId: ID(6), productoId: ID(2), nombre: "Falda Renata", color: "Negro", talla: "Única" };
+  const vestido = { varianteId: ID(7), productoId: ID(3), nombre: "Vestido Sofía", color: "Negro", talla: "M" };
+
+  it("del navegador solo pasan de 1 a 4 ids de la base (sin precios, sin nombres)", () => {
+    expect(variantesParaLaBolsa([ID(5), ID(6)])).toEqual([ID(5), ID(6)]);
+    expect(variantesParaLaBolsa([ID(1), ID(2), ID(3), ID(4)])).toHaveLength(4);
+    const conLetras = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+    expect(variantesParaLaBolsa([conLetras])).toEqual([conLetras]);
+    for (const malo of [[], [ID(1), ID(2), ID(3), ID(4), ID(5)], ["no-es-un-id"], [conLetras.toUpperCase()], ID(5), null, [{ id: ID(5), precio: 1 }]]) {
+      expect(variantesParaLaBolsa(malo), JSON.stringify(malo)).toBeNull();
+    }
+  });
+
+  it("entraron todas: la hoja se cierra y el aviso dice cuántas y de qué look (como la maqueta)", () => {
+    expect(avisoDelLook("Fin de semana", [emma, falda], { agregadas: [ID(5), ID(6)], agotadas: [], noEstan: [] })).toEqual({
+      cerrar: true,
+      texto: "Agregaste 2 prendas del look «Fin de semana» a tu bolsa.",
+    });
+    expect(avisoDelLook("Fin de semana", [falda], { agregadas: [ID(6)], agotadas: [], noEstan: [] }).texto).toBe(
+      "Agregaste 1 prenda del look «Fin de semana» a tu bolsa.",
+    );
+  });
+
+  it("entraron algunas: la hoja se cierra y el aviso dice cuál quedó fuera y por qué", () => {
+    expect(avisoDelLook("Fin de semana", [emma, falda, vestido], { agregadas: [ID(5)], agotadas: [ID(6)], noEstan: [ID(7)] })).toEqual({
+      cerrar: true,
+      texto:
+        "Agregaste 1 prenda del look «Fin de semana» a tu bolsa. Falda Renata (Única) ya no está en ninguna tienda. Vestido Sofía (M) ya no está en la tienda online.",
+    });
+  });
+
+  it("no entró ninguna: la hoja sigue abierta y lo dice ahí, para elegir otra talla", () => {
+    expect(avisoDelLook("Fin de semana", [emma, falda], { agregadas: [], agotadas: [ID(5), ID(6)], noEstan: [] })).toEqual({
+      cerrar: false,
+      texto: "Blusa Emma (S) y Falda Renata (Única) ya no están en ninguna tienda. Elige otra talla o vuelve a intentarlo.",
+    });
+    expect(avisoDelLook("X", [emma], { agregadas: [], agotadas: [], noEstan: [] }).cerrar).toBe(false);
   });
 });

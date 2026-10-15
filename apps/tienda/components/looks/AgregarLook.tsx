@@ -17,10 +17,8 @@ import { Foto } from "./Lamina";
 /**
  * «Agregar el look a mi bolsa» (maqueta v4, `t-look-bolsa` y la hoja `look-tallas`; propuesta h): abre una hoja con cada prenda del look y
  * sus tallas; la que no hay se ve tachada y no se elige, y la prenda sin ninguna talla no se agrega. «Agregar N prendas a mi bolsa» le pasa
- * a `alAgregar` una línea por prenda elegida (la variante: modelo, color y talla).
- *
- * La bolsa es de la actividad 7: mientras no la conecten (`alAgregar` sin pasar), las tallas se eligen igual y el botón final queda apagado
- * con una línea que dice que llega pronto. Nada se guarda aquí.
+ * a `alAgregar` una línea por prenda elegida (la variante: modelo, color y talla). Si `alAgregar` dice por qué no se pudo, la hoja sigue
+ * abierta y lo dice sobre el botón (para elegir otra talla); si no, se cierra. Nada se guarda aquí: lo guarda la bolsa.
  */
 export function AgregarLook({
   look,
@@ -30,26 +28,32 @@ export function AgregarLook({
   look: Look;
   /** El origen del almacén público de fotos (`TIENDA_FOTOS_ORIGEN`): solo esas fotos pasan por el optimizador. */
   origenFotos: string | undefined;
-  /** Lo conecta la integración con la bolsa (actividad 7). Sin él, el botón final queda apagado y dice que llega pronto. */
-  alAgregar?: (lineas: LineaLook[]) => void | Promise<void>;
+  /** Agrega las líneas a la bolsa (`AgregarLookALaBolsa`). Devuelve null si salió bien (la hoja se cierra) o el porqué en una o dos
+   *  frases (la hoja sigue abierta y lo muestra). */
+  alAgregar: (lineas: LineaLook[]) => Promise<string | null>;
 }) {
   const hoja = useRef<HTMLDialogElement>(null);
   const idTitulo = useId();
+  const idMotivo = useId();
   const [elegidas, setElegidas] = useState(() => tallasIniciales(look));
   const [enviando, setEnviando] = useState(false);
+  const [motivo, setMotivo] = useState<string | null>(null);
   const lineas = lineasDelLook(look, elegidas);
 
   const abrir = () => {
     setElegidas(tallasIniciales(look));
+    setMotivo(null);
     hoja.current?.showModal();
   };
   const cerrar = () => hoja.current?.close();
   const agregar = async () => {
-    if (!alAgregar || lineas.length === 0 || enviando) return;
+    if (lineas.length === 0 || enviando) return;
     setEnviando(true);
+    setMotivo(null);
     try {
-      await alAgregar(lineas);
-      cerrar();
+      const porque = await alAgregar(lineas);
+      if (porque) setMotivo(porque);
+      else cerrar();
     } finally {
       setEnviando(false);
     }
@@ -74,10 +78,7 @@ export function AgregarLook({
           <div className="t-look-hoja-cab">
             <h2 id={idTitulo}>{look.nombre}</h2>
             <button type="button" className="t-look-cerrar" onClick={cerrar} aria-label="Cerrar">
-              {/* El mismo trazo de «cerrar» de la maqueta. Cuando la cabecera (actividad 5) lo sume a `Icono`, se usa de ahí. */}
-              <svg className="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" aria-hidden="true">
-                <path d="M6 6l12 12M18 6L6 18" />
-              </svg>
+              <Icono nombre="cerrar" />
             </button>
           </div>
           <p className="t-look-hoja-texto">Elige la talla de cada prenda. La que no tiene talla disponible no se agrega.</p>
@@ -104,7 +105,10 @@ export function AgregarLook({
                           aria-pressed={elegidas[p.posicion] === t.varianteId}
                           disabled={!t.hay}
                           title={t.hay ? undefined : "No hay esta talla por ahora"}
-                          onClick={() => setElegidas((e) => alternarTalla(e, look, p.posicion, t.varianteId))}
+                          onClick={() => {
+                            setMotivo(null);
+                            setElegidas((e) => alternarTalla(e, look, p.posicion, t.varianteId));
+                          }}
                         >
                           {t.talla}
                         </button>
@@ -116,15 +120,22 @@ export function AgregarLook({
               );
             })}
           </ul>
-          <button className="t-btn t-btn-ancho" type="button" disabled={!alAgregar || lineas.length === 0 || enviando} onClick={agregar}>
-            <Icono nombre="bolsa" />
-            {textoAgregar(lineas.length)}
-          </button>
-          {!alAgregar && (
-            <p className="t-look-hoja-nota" role="note">
-              Muy pronto podrás agregar el look a tu bolsa desde aquí.
+          {motivo && (
+            <p className="t-look-hoja-motivo" id={idMotivo} role="alert">
+              {motivo}
             </p>
           )}
+          <button
+            className="t-btn t-btn-ancho"
+            type="button"
+            disabled={lineas.length === 0 || enviando}
+            aria-busy={enviando}
+            aria-describedby={motivo ? idMotivo : undefined}
+            onClick={agregar}
+          >
+            <Icono nombre="bolsa" />
+            {enviando ? "Agregando…" : textoAgregar(lineas.length)}
+          </button>
         </div>
       </dialog>
     </>
