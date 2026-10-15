@@ -6,7 +6,8 @@
 // CONTRATO
 //   PROMETE: toda combinación de finalidad, acción y medio tiene un título (y una fila «volvió a aceptar» de una miembro que ya estaba no se llama «Se unió») (un medio que la web no conoce se dice tal cual,
 //            nunca se esconde el evento); el punto del evento: club en taupe, publicidad que llega en verde, que se va en ámbar.
-//   ASUME:   los medios de `club_permisos_medio_valido` (tanda 1b, más `qr_web` del camino B y `pagina_cartel` de la 1g).
+//   ASUME:   los medios de `club_permisos_medio_valido` (tanda 1b, más `qr_web` del camino B, `pagina_cartel` de la 1g y
+//            `tienda_web` de la tienda online, ADR-0408).
 //   NO HACE: no ordena (la base ya la trae de la más vieja a la más nueva).
 
 export type FilaPermiso = {
@@ -30,6 +31,8 @@ export const MEDIO_LEGIBLE: Readonly<Record<string, string>> = {
   qr_web: "desde la página de su QR",
   // Tanda 1g (G-1, G-10): ella se unió sola, escaneando el cartel de la tienda (sin quién registró: lo hizo ella).
   pagina_cartel: "se registró por su cuenta desde el cartel",
+  // Tienda online (ADR-0408): marcó «Avisos del Club por WhatsApp» al crear su cuenta (solo da la publicidad; lo hizo ella).
+  tienda_web: "desde su cuenta en la tienda online",
   whatsapp_propio: "escribió por su cuenta a la tienda",
   baja_whatsapp: "escribió BAJA",
   cambio_celular: "cambió su celular",

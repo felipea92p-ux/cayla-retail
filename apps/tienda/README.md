@@ -19,10 +19,18 @@ Viven en un proyecto de inicio de sesión **aparte**, solo de clientes (ADR-0408
 ERP cada cuenta es una fila de `cuentas_web` unida a su ficha del Club, y la tienda llega a ella por `tienda_registrar_cuenta`,
 `tienda_mi_cuenta` y sus hermanas (`20261014223000` y `20261014224000`).
 
-- **Crear la cuenta** lo hace el servidor (`app/acciones/cuenta.ts`) en un orden seguro: la base revisa el correo, el DNI y los
-  topes del cartel del Club (`club_intento`) → se crea el usuario de inicio de sesión → la base crea la cuenta y la deja en el
-  Club, todo o nada. Si la base dice que no, el usuario recién creado se borra (salvo que la base diga que ya tiene cuenta o no
-  conteste: entonces no se borra nada, y al entrar la tienda deja crear la cuenta otra vez).
+- **Crear la cuenta** lo hace el servidor (`app/acciones/cuenta.ts`), y la cuenta nace recién con el **código de 6 cifras** que
+  llega al correo (actividad 2b). «Mandarme el código»: la base revisa el correo, el DNI y los topes del cartel del Club
+  (`club_intento`) → reserva el envío (`tienda_reservar_envio`: 60 s entre uno y otro, 5 por hora) → el proyecto de clientes
+  **invita** el correo (un usuario sin contraseña, que no puede entrar; el correo usa `supabase/plantillas/codigo.html`) →
+  `tienda_anotar_invitado`. «Crear mi cuenta» con el código: la base cuenta el intento (`tienda_intento_de_codigo`: 5 por código;
+  con el quinto, 15 minutos de bloqueo; vence a los 30) → el proyecto de clientes verifica el código y se le pone la contraseña →
+  la base crea la cuenta y la deja en el Club, todo o nada (`tienda_registrar_cuenta`, que exige el código de ESE correo y ese
+  usuario). Si la base dice que no, el usuario se borra (`lib/usuarios-servidor.ts`). Una invitación sin terminar no deja el
+  correo tomado: pedir otro código invita de nuevo al mismo usuario, y los pendientes de más de un día se limpian solos.
+- **Las casillas**: «Soy mayor de 18 años» (obligatoria; la base también la exige) y «Avisos del Club por WhatsApp» (opcional,
+  con el texto aprobado del Club, `tienda_casilla_whatsapp`): marcada, la base anota el permiso de publicidad del Club con origen
+  `tienda_web`, solo para el celular que la persona escribió.
 - **Entrar** y **pedir el enlace de «Olvidé mi contraseña»** se hacen desde el navegador (`lib/auth-navegador.ts`): así el
   proyecto de clientes pone sus topes a la ip de cada persona. El enlace del correo lleva a `/nueva-contrasena`, que canjea su
   código recién al guardar (un lector de correos que abre enlaces solo no lo gasta).
@@ -43,7 +51,9 @@ ERP cada cuenta es una fila de `cuentas_web` unida a su ficha del Club, y la tie
 2. `pnpm --filter tienda rol-local` crea el usuario `tienda_web_local` (solo local).
 3. La pila del proyecto de clientes (su configuración está en `apps/tienda/supabase/`, puertos 58420–58429):
    `npx supabase start --workdir apps/tienda -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor`.
-   El buzón de prueba, donde llega el correo de «Olvidé mi contraseña», está en http://127.0.0.1:58424.
+   El buzón de prueba, donde llegan el código para crear la cuenta y el correo de «Olvidé mi contraseña», está en
+   http://127.0.0.1:58424. Si cambias una plantilla de `supabase/plantillas/`, la pila se reinicia para leerla
+   (`npx supabase stop --workdir apps/tienda` y el `start` de arriba).
 4. `cp apps/tienda/.env.example apps/tienda/.env.local` y pon en `TIENDA_AUTH_SERVICE_KEY` la `SECRET_KEY` de
    `npx supabase status --workdir apps/tienda -o env`. Para no consultar DNI reales mientras pruebas: `TIENDA_PADRON_SUNAT_PUBLICO=no`
    (la persona escribe su nombre).

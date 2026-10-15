@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   arregloCorreo,
+  avisoAlCrear,
   campoQueSigue,
   celularNormalizado,
+  codigoCompleto,
+  codigoLimpio,
   correoValido,
+  cuentaRegresiva,
   cumpleTexto,
+  enMinutos,
   errorDeRegistro,
   escalaEnPalabras,
+  esquemaConfirmarCodigo,
+  esquemaPedirCodigo,
   estadoCelular,
   estadoClave,
   estadoCorreo,
@@ -19,9 +26,16 @@ import {
   hoyLima,
   ipDeLaPeticion,
   leerBeneficios,
+  leerCasillaWhatsapp,
+  leerIntentoDeCodigo,
   leerMiCuenta,
+  leerReserva,
   marcaDe,
   MENSAJES,
+  mensajeCodigoBloqueado,
+  mensajeCodigoEsperar,
+  mensajeCodigoLimite,
+  mensajeCodigoMalo,
   nombreDelPadron,
   problemaRegistro,
   REGISTRO_VACIO,
@@ -39,8 +53,11 @@ const LISTO: Registro = {
   nombre: "",
   celular: "987654321",
   cumple: { d: "14", m: "10", a: "" },
+  mayor: true,
   acepta: true,
+  avisos: false,
 };
+const USUARIO = "6f1d2c3b-4a59-4e6f-8a7b-9c0d1e2f3a4b";
 
 describe("el correo", () => {
   it("pide algo@algo.algo con al menos dos letras al final, sin importar mayúsculas ni espacios", () => {
@@ -168,10 +185,21 @@ describe("el DNI y el nombre", () => {
 });
 
 describe("la guía del registro", () => {
-  it("sin nada escrito falta todo menos el nombre (que el padrón todavía puede dar)", () => {
+  it("sin nada escrito falta todo menos el nombre (que el padrón todavía puede dar) y los avisos (opcionales)", () => {
     const e = estadoRegistro(REGISTRO_VACIO, { correo: "sin_revisar", dni: { estado: "sin_revisar" } }, HOY);
-    expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "clave", "dni", "cel", "cumple", "acepta"]);
-    expect(textoFaltan(faltanRegistro(e))).toBe("tu correo, tu contraseña, tu DNI, tu celular, tu cumpleaños y aceptar los términos");
+    expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "clave", "dni", "cel", "cumple", "mayor", "acepta"]);
+    expect(textoFaltan(faltanRegistro(e))).toBe(
+      "tu correo, tu contraseña, tu DNI, tu celular, tu cumpleaños, confirmar que eres mayor de 18 y aceptar los términos",
+    );
+    // Las dos casillas nuevas nacen sin marcar: el «sí» es un toque de la persona.
+    expect(REGISTRO_VACIO).toMatchObject({ mayor: false, avisos: false });
+  });
+
+  it("«Soy mayor de 18 años» es obligatoria aunque el año diga que sí; los avisos nunca faltan", () => {
+    const sinMayor = estadoRegistro({ ...LISTO, mayor: false, cumple: { d: "14", m: "10", a: "1990" } }, { correo: "libre", dni: ENCONTRADO }, HOY);
+    expect(faltanRegistro(sinMayor).map(([campo]) => campo)).toEqual(["mayor"]);
+    expect(campoQueSigue(sinMayor, null)).toBe("mayor");
+    for (const avisos of [true, false]) expect(faltanRegistro(estadoRegistro({ ...LISTO, avisos }, { correo: "libre", dni: ENCONTRADO }, HOY))).toEqual([]);
   });
 
   it("todo listo: no falta nada", () => {
@@ -216,7 +244,10 @@ describe("lo que el servidor vuelve a revisar", () => {
     expect(problemaRegistro({ ...LISTO, celular: "887654321" }, HOY)?.campo).toBe("cel");
     expect(problemaRegistro({ ...LISTO, cumple: { d: "31", m: "4", a: "" } }, HOY)).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMal });
     expect(problemaRegistro({ ...LISTO, cumple: { d: "1", m: "1", a: "2015" } }, HOY)).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMenor });
+    expect(problemaRegistro({ ...LISTO, mayor: false }, HOY)).toEqual({ campo: "mayor", mensaje: MENSAJES.mayorFalta });
     expect(problemaRegistro({ ...LISTO, acepta: false }, HOY)?.campo).toBe("acepta");
+    // Los avisos son opcionales: con o sin ellos, el registro pasa.
+    expect(problemaRegistro({ ...LISTO, avisos: true }, HOY)).toBeNull();
   });
 
   it("lo que rechaza la base, en palabras y con su campo", () => {
@@ -225,9 +256,94 @@ describe("lo que el servidor vuelve a revisar", () => {
     expect(errorDeRegistro("cuenta_archivada", "dni")).toEqual({ campo: "dni", mensaje: MENSAJES.dniArchivada });
     expect(errorDeRegistro("cuenta_menor", "cumple")).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMenor });
     expect(errorDeRegistro("cuenta_datos_invalidos", "celular").campo).toBe("cel");
+    expect(errorDeRegistro("cuenta_datos_invalidos", "mayor")).toEqual({ campo: "mayor", mensaje: MENSAJES.mayorFalta });
+    expect(errorDeRegistro("cuenta_sin_codigo", "codigo")).toEqual({ campo: "codigo", mensaje: MENSAJES.codigoSinPedir });
+    expect(errorDeRegistro("cuenta_texto_cambio", "avisos")).toEqual({ campo: "avisos", mensaje: MENSAJES.avisosCambio });
+    expect(errorDeRegistro("cuenta_sin_texto", "avisos").campo).toBe("avisos");
     expect(errorDeRegistro("cuenta_datos_invalidos", "usuario")).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
     expect(errorDeRegistro("cuenta_ya_existe", null)).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
     expect(errorDeRegistro(undefined, undefined)).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
+  });
+
+  it("lo que manda el formulario: el registro con sus casillas, la versión de la casilla que leyó y, al crear, el código", () => {
+    expect(esquemaPedirCodigo.safeParse({ registro: LISTO, casilla: 2 }).success).toBe(true);
+    expect(esquemaPedirCodigo.safeParse({ registro: LISTO, casilla: null }).success).toBe(true);
+    expect(esquemaPedirCodigo.safeParse({ registro: { ...LISTO, mayor: undefined }, casilla: 2 }).success).toBe(false);
+    expect(esquemaPedirCodigo.safeParse({ registro: LISTO, casilla: 0 }).success).toBe(false);
+    expect(esquemaConfirmarCodigo.safeParse({ registro: LISTO, casilla: null, codigo: "123456" }).success).toBe(true);
+    expect(esquemaConfirmarCodigo.safeParse({ registro: LISTO, casilla: null }).success).toBe(false);
+  });
+});
+
+describe("el código que confirma el correo", () => {
+  it("se escribe o se pega: solo cuentan sus 6 cifras", () => {
+    expect(codigoLimpio("Tu código: 123 456")).toBe("123456");
+    expect(codigoLimpio("1234567")).toBe("123456");
+    expect(codigoCompleto("123456")).toBe(true);
+    for (const corto of ["", "12345", "12345a"]) expect(codigoCompleto(corto)).toBe(false);
+  });
+
+  it("dice cuánto falta para pedir otro, y los minutos en singular y en plural", () => {
+    expect(cuentaRegresiva(45)).toBe("0:45");
+    expect(cuentaRegresiva(60)).toBe("1:00");
+    expect(cuentaRegresiva(0.2)).toBe("0:01");
+    expect(cuentaRegresiva(-3)).toBe("0:00");
+    expect(enMinutos(1)).toBe("1 minuto");
+    expect(enMinutos(15)).toBe("15 minutos");
+  });
+
+  it("un código equivocado dice cuántos intentos quedan; sin intentos, cuánto esperar", () => {
+    expect(mensajeCodigoMalo(4)).toBe("Ese código no es. Te quedan 4 intentos.");
+    expect(mensajeCodigoMalo(1)).toBe("Ese código no es. Te queda 1 intento.");
+    expect(mensajeCodigoMalo(0)).toBe("Ese código no es. Ya no quedan intentos: espera 15 minutos y pide otro.");
+    expect(mensajeCodigoBloqueado(12)).toBe("Hiciste muchos intentos. Espera 12 minutos y pide un código nuevo.");
+    expect(mensajeCodigoLimite(1)).toBe("Ya te mandamos 5 códigos. Puedes pedir otro en 1 minuto.");
+    expect(mensajeCodigoEsperar(45)).toBe("Te mandamos uno hace poco. Puedes pedir otro en 0:45.");
+  });
+
+  it("lee lo que contesta la base al reservar un envío (y los invitados viejos que hay que limpiar)", () => {
+    expect(leerReserva({ estado: "enviar", usuario_web_id: USUARIO, limpiar: [USUARIO, "no-es-un-id", 7] })).toEqual({
+      estado: "enviar",
+      usuarioWebId: USUARIO,
+      limpiar: [USUARIO],
+    });
+    expect(leerReserva({ estado: "enviar", usuario_web_id: null, limpiar: [] })).toEqual({ estado: "enviar", usuarioWebId: null, limpiar: [] });
+    expect(leerReserva({ estado: "esperar", segundos: 42, limpiar: [] })).toEqual({ estado: "esperar", segundos: 42, limpiar: [] });
+    expect(leerReserva({ estado: "limite", minutos: 25 })).toEqual({ estado: "limite", minutos: 25, limpiar: [] });
+    expect(leerReserva({ estado: "bloqueado", minutos: 9 })).toMatchObject({ estado: "bloqueado", minutos: 9 });
+    for (const estado of ["correo_repetido", "invalido", "sin_codigo"]) expect(leerReserva({ estado })).toEqual({ estado, limpiar: [] });
+    for (const raro of [null, "enviar", {}, { estado: "otro" }]) expect(leerReserva(raro).estado).toBe("sin_respuesta");
+  });
+
+  it("lee lo que contesta la base antes de probar un código", () => {
+    expect(leerIntentoDeCodigo({ estado: "puede", quedan: 3 })).toEqual({ estado: "puede", quedan: 3 });
+    expect(leerIntentoDeCodigo({ estado: "puede", quedan: 0 })).toEqual({ estado: "puede", quedan: 0 });
+    expect(leerIntentoDeCodigo({ estado: "bloqueado", minutos: 14 })).toEqual({ estado: "bloqueado", minutos: 14 });
+    expect(leerIntentoDeCodigo({ estado: "bloqueado" })).toEqual({ estado: "bloqueado", minutos: 15 });
+    expect(leerIntentoDeCodigo({ estado: "vencido" })).toEqual({ estado: "vencido" });
+    expect(leerIntentoDeCodigo({ estado: "sin_codigo" })).toEqual({ estado: "sin_codigo" });
+    // Sin «quedan», no se prueba nada: mejor no dejar probar que dejar probar sin cuenta.
+    for (const raro of [null, { estado: "puede" }, { estado: "puede", quedan: -1 }, { estado: "x" }]) expect(leerIntentoDeCodigo(raro).estado).toBe("sin_respuesta");
+  });
+});
+
+describe("los avisos del Club por WhatsApp", () => {
+  it("la casilla muestra el texto aprobado tal cual, con su versión", () => {
+    const texto = "Quiero recibir por WhatsApp novedades y promociones de CAYLA.";
+    expect(leerCasillaWhatsapp({ version: 2, texto })).toEqual({ version: 2, texto });
+    expect(leerCasillaWhatsapp({ version: 2, texto: `  ${texto}\n` })).toEqual({ version: 2, texto });
+  });
+
+  it("sin texto, con una forma rara o con un marcador que la tienda no sabe completar, no se ofrecen (nunca un texto a medias)", () => {
+    for (const raro of [null, {}, { version: 0, texto: "x" }, { version: 2, texto: "   " }, { version: "2", texto: "x" }]) expect(leerCasillaWhatsapp(raro)).toBeNull();
+    expect(leerCasillaWhatsapp({ version: 3, texto: "Acepto los avisos de la tienda {tienda}." })).toBeNull();
+  });
+
+  it("después de crear la cuenta: bienvenida o unida, y si los avisos quedaron sin activar por otro celular, lo dice «Mi cuenta»", () => {
+    expect(avisoAlCrear(false, "no")).toBe("bienvenida");
+    expect(avisoAlCrear(false, "activados")).toBe("bienvenida");
+    expect(avisoAlCrear(true, "ya_estaban")).toBe("unida");
+    expect(avisoAlCrear(true, "celular_distinto")).toBe("avisos-sin-activar");
   });
 });
 

@@ -12,6 +12,8 @@ const AVISOS: Record<string, string> = {
   salir: "Saliste de tu cuenta.",
   bienvenida: "Listo: ya eres miembro del Club CAYLA.",
   unida: "Listo: tu cuenta quedó unida a tu ficha del Club CAYLA.",
+  // Los avisos por WhatsApp no se activaron (su ficha tiene otro celular): «Mi cuenta» lo explica en una nota que se queda.
+  "avisos-sin-activar": "Listo: tu cuenta quedó unida a tu ficha del Club CAYLA.",
   clave: "Listo: cambiaste tu contraseña.",
   "clave-igual": MENSAJES.claveIgual,
   "cuenta-creada": "Tu cuenta quedó creada. Entra con tu correo y tu contraseña.",
