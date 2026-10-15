@@ -13,7 +13,7 @@
  * QUÉ PRUEBA
  *   PARTE 1 (la rutina de anonimizar)
  *     A. Estructura: una sola `fn_clienta_anonimizar` (la de 4), que nadie de la API ejecuta; `archivar_clienta` y la conservación,
- *        con el md5 de siempre (no se tocaron).
+ *        con el md5 de su última migración (aquí no se tocan; `archivar_clienta` la cambió después la regla del líder, ADR-0416).
  *     B. La espera: anonimizar desde el ERP con un pedido web pagado sin entregar → `anonimizar_pedido_web_pagado` (con el código) y
  *        nada cambia; por confirmar o confirmado, anonimiza igual (la hoja avisa); archivar sin anonimizar, igual; entregado o
  *        anulado, anonimiza.
@@ -89,6 +89,15 @@ if (!ARCHIVAR_1G || !CONSERVACION_WEB) {
   console.error("✗ No encontré el md5 de archivar_clienta (1g) o de fn_club_anonimizar_inactivas (20261015055000).");
   process.exit(2);
 }
+// La tienda no toca archivar_clienta (su espera vive en la rutina), pero ADR-0416 («anonimizar es de un líder», 20261015155000) sí,
+// después de la 1g: su «antes» tiene que ser el «después» de la 1g (la cadena no se corta) y su «después» es el md5 de hoy.
+const ANONIMIZAR_LIDER = readFileSync("supabase/migrations/20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql", "utf8");
+const ARCHIVAR_LIDER = /\('retail\.archivar_clienta\(uuid,text,boolean,integer\)',\s+'([0-9a-f]{32})',\s+'([0-9a-f]{32})'\)/.exec(ANONIMIZAR_LIDER);
+if (!ARCHIVAR_LIDER || ARCHIVAR_LIDER[1] !== ARCHIVAR_1G) {
+  console.error("✗ La tabla de versiones de 20261015155000 debería cambiar archivar_clienta partiendo del «después» de la 1g.");
+  process.exit(2);
+}
+const ARCHIVAR_HOY = ARCHIVAR_LIDER[2];
 
 const ARGS_PSQL = ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
 function correr(sql) {
@@ -216,10 +225,10 @@ escenario(
   "1\nt\nf",
 );
 escenario(
-  "archivar_clienta y la conservación no se tocaron (su md5 es el de la 1g y el de 20261015055000) y la llaman con tres argumentos",
+  "archivar_clienta y la conservación no se tocaron aquí (su md5 es el de la regla del líder, 20261015155000, y el de 20261015055000) y la llaman con tres argumentos",
   `select string_agg(${MD5_NORM("p.prosrc")}, '|' order by p.proname) from pg_proc p
     where p.oid in ('retail.archivar_clienta(uuid,text,boolean,integer)'::regprocedure, 'retail.fn_club_anonimizar_inactivas()'::regprocedure);`,
-  `${ARCHIVAR_1G}|${CONSERVACION_WEB}`,
+  `${ARCHIVAR_HOY}|${CONSERVACION_WEB}`,
 );
 
 seccion("— PARTE 1 · B. Anonimizar espera un pedido web pagado —");
