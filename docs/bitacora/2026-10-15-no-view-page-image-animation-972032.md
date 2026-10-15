@@ -9,3 +9,14 @@ escrito igual debajo. Las patas son la misma foto recortada por una elipse fija 
 deforma; es una excepción a la regla de movimiento pedida por Felipe (ADR-0136 act. 2026-10-15) y se queda quieto con movimiento reducido.
 Felipe se lleva: `components/ui/Aventurero.tsx` y `app/estilos/aventurero.css`, probado en local en claro, oscuro y 375 px; y un
 pendiente que el meme destapa: «lo está dando todo» promete que alguien se entera, y hoy nadie recibe un aviso cuando una pantalla se cae.
+
+## 2026-10-15 (Un error de pantalla avisa solo: Sentry, como Dynamic)
+Qué hice: conecté el ERP a Sentry (proyecto «cayla-retail» en la misma cuenta que Dynamic): avisan los errores del servidor, los del
+navegador y los que no pueden perderse (`capturarError`: Lucode, SUNAT, las tareas programadas). La tarjeta de error ahora dice que a
+Felipe le llega el aviso. Lo probé contra un Sentry de mentira en local, provocando cuatro errores, y la prueba encontró que el SDK mandaba la
+cookie de sesión de Supabase aunque se le pedía no mandar datos personales: la limpieza pasó a lista blanca y la repetición salió sin fugas.
+Por qué así: Felipe eligió Sentry sobre un registro propio porque le escribe un correo apenas aparece un error nuevo, con la línea exacta.
+Importado de entrada sumaba 57,6 KB a cada pantalla; ahora se descarga cuando la pantalla ya está lista y cada pantalla suma 2,5 KB.
+Felipe se lleva: ADR-0424, con los tres pasos para encenderlo (crear el proyecto, dos variables en Vercel, publicar). Hasta entonces la web
+funciona igual que antes.
+

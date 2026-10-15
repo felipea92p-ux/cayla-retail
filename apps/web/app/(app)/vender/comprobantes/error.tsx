@@ -4,6 +4,8 @@ import { startTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Aventurero } from "@/components/ui/Aventurero";
+import { AVISA_SOLO, avisarError } from "@/lib/errores-navegador";
+import { siSigueIgual } from "@/lib/errores-reglas";
 
 // Barrera de error de UNA vista de Facturación. Vive dentro del layout, así que la
 // cabecera y las pestañas siguen ahí y las otras vistas siguen funcionando. Con `exigir()`
@@ -14,7 +16,7 @@ export default function ErrorDeVista({ error, reset }: { error: Error & { digest
   const router = useRouter();
 
   useEffect(() => {
-    console.error("Vista de Facturación caída:", error);
+    avisarError(error, "facturacion");
   }, [error]);
 
   return (
@@ -28,7 +30,7 @@ export default function ErrorDeVista({ error, reset }: { error: Error & { digest
           Algo falló al traer la información y no mostramos nada a propósito: preferimos no enseñarte un número equivocado.
           Las otras vistas siguen funcionando.
         </p>
-        <p className="mt-2 text-sm text-tinta/75">Suele ser un corte momentáneo de conexión. Reintenta; si sigue igual, avisa a Felipe.</p>
+        <p className="mt-2 text-sm text-tinta/75">Suele ser un corte momentáneo de conexión. {siSigueIgual(AVISA_SOLO)}</p>
         <div className="mt-6 flex justify-center">
           {/* `reset` a secas no basta: en Next 16 solo vuelve a pintar esta barrera con la respuesta que
               ya llegó, y esa trae el mismo error — la tarjeta reaparecería sola y el botón parecería no

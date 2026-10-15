@@ -51,8 +51,10 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
    (ADR-0005, ADR-0009), la consulta de padrón DNI/RUC (ADR-0008: primero el servicio
    público y gratis de SUNAT, sin contrato; si no responde o no lo encuentra, apis.net.pe
    de pago) y la fila de `public.personas` que trae Dynamic
-   (`retail.fn_es_admin()` devuelve `false` sin error si falta); el sistema se degrada con
-   gracia, nunca pierde datos. Culqi y Shopify se investigaron pero no se integraron
+   (`retail.fn_es_admin()` devuelve `false` sin error si falta); y Sentry, el aviso de errores
+   (ADR-0424: si no responde, el aviso se pierde en silencio y la pantalla sigue igual; nunca le
+   manda la sesión, una búsqueda ni un DNI, y un mensaje de error lleva ids, nunca nombres); el
+   sistema se degrada con gracia, nunca pierde datos. Culqi y Shopify se investigaron pero no se integraron
    (docs/investigacion/2026-09-23-tarjeta-pos-y-canal-online.md).
 10. **Ergonomía = potencia** — un colaborador de sede sin formación técnica debe
     operar el sistema sin fricción.

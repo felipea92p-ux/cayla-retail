@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect } from "react";
 import { Aventurero } from "@/components/ui/Aventurero";
+import { AVISA_SOLO, avisarError } from "@/lib/errores-navegador";
+import { siSigueIgual } from "@/lib/errores-reglas";
 
 // Barrera de error de todo el mundo (app). Antes no existía ninguna: si una pantalla
 // reventaba, salía la página de error por defecto de Next —en inglés, con jerga de
@@ -23,16 +25,16 @@ export default function ErrorDeSeccion({
   const router = useRouter();
 
   useEffect(() => {
-    // El detalle va a la consola del servidor/navegador para poder diagnosticarlo; en
-    // producción Next reemplaza el mensaje por un digest, así que no se filtra el error
-    // de Postgres a la pantalla — pero el digest sí permite encontrarlo en los logs.
-    console.error("Pantalla caída:", error);
+    // El detalle va a la consola del navegador y, si nació aquí, a Sentry (ADR-0424); si nació en el servidor ya lo avisó el
+    // servidor. En producción Next reemplaza el mensaje por un digest, así que no se filtra el error de Postgres a la pantalla —
+    // pero el digest sí permite encontrarlo en Sentry y en los logs.
+    avisarError(error, "app");
   }, [error]);
 
   return (
     <div className="flex min-h-[50vh] items-center justify-center">
       {/* Aventurero (2026-10-15) abre la tarjeta, a sangre; el texto de siempre dice qué hacer. El meme dice que alguien lo está
-          resolviendo, pero nadie recibe un aviso solo cuando una pantalla se cae: por eso el «avisa a Felipe» y el código siguen. */}
+          resolviendo: desde el ADR-0424 es cierto en producción (Sentry le escribe a Felipe), y el texto lo dice; el código sigue. */}
       <div className="card-cayla anim-entrada w-full max-w-md overflow-hidden text-center">
         <Aventurero motivo="error" />
         <div className="p-8 pt-6">
@@ -42,9 +44,7 @@ export default function ErrorDeSeccion({
             Algo falló al traer la información. No se muestra nada a propósito: preferimos no enseñarte
             un número equivocado.
           </p>
-          <p className="mt-2 text-sm text-tinta/75">
-            Suele ser un corte momentáneo de conexión. Reintenta; si sigue igual, avisa a Felipe.
-          </p>
+          <p className="mt-2 text-sm text-tinta/75">Suele ser un corte momentáneo de conexión. {siSigueIgual(AVISA_SOLO)}</p>
 
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             {/* `reset` a secas no basta: en Next 16 solo vuelve a pintar esta barrera con la respuesta que

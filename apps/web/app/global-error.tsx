@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
+import { AVISA_SOLO, avisarError } from "@/lib/errores-navegador";
+import { siSigueIgual } from "@/lib/errores-reglas";
 import { Aventurero } from "@/components/ui/Aventurero";
 // Sin globals.css, la hoja de Aventurero se trae aquí directo (la de la app la importa globals.css).
 import "./estilos/aventurero.css";
@@ -43,6 +46,9 @@ export default function ErrorGlobal({
   error: Error & { digest?: string };
   unstable_retry: () => void;
 }) {
+  // Si el layout raíz reventó en el servidor, ya lo avisó el servidor (ADR-0424); si nació en el navegador, se avisa aquí.
+  useEffect(() => avisarError(error, "global"), [error]);
+
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
@@ -80,7 +86,7 @@ export default function ErrorGlobal({
             El sistema no pudo arrancar
           </h1>
           <p style={{ margin: "12px 0 0", fontSize: "15px", lineHeight: 1.5, color: "color-mix(in srgb, var(--ge-texto) 75%, transparent)" }}>
-            Esto no es un problema de tu computadora. Reintenta; si sigue igual, avisa a Felipe.
+            Esto no es un problema de tu computadora. {siSigueIgual(AVISA_SOLO)}
           </p>
           <button
             onClick={() => unstable_retry()}
