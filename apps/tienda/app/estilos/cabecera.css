@@ -21,20 +21,49 @@
 .t-nav-b.oferta { color: var(--rojo-profundo); }
 .t-nav-b .ic { width: 14px; height: 14px; }
 
-/* ---- El menú «Ropa»: se abre al pasar el mouse o con el teclado (Tab), bajo toda la cabecera ---- */
+/* ---- Los menús «Ropa» y «Accesorios» (lib/grupos.ts): se abren al pasar el mouse o con el teclado (Tab), bajo toda la cabecera.
+   Cada grupo es una columna y cada categoría lleva la foto de una de sus prendas (para reconocerla sin leer); a la derecha, lo último
+   que llegó, con tantas prendas como quepan (las que no caben, en filas de alto 0). Felipe 2026-10-15: «podría verse mucho mejor». ---- */
 .t-mega-envol { height: 100%; display: flex; }
-.t-mega { position: absolute; left: 0; right: 0; top: 100%; background: var(--papel); border-bottom: 1px solid var(--sand); box-shadow: 0 30px 50px -36px var(--sombra); padding: 28px 40px 32px; display: none; grid-template-columns: repeat(3, minmax(0, 170px)) minmax(0, 1fr); gap: 36px; }
-.t-mega-envol:hover .t-mega, .t-mega-envol:focus-within .t-mega { display: grid; animation: t-bajar .28s var(--ease) both; }
-.t-mega h4 { margin: 0 0 10px; font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
+.t-mega { position: absolute; left: 0; right: 0; top: 100%; background: var(--papel); border-bottom: 1px solid var(--sand); box-shadow: 0 30px 50px -36px var(--sombra); padding: 26px 40px 30px; display: none; }
+.t-mega-envol:hover .t-mega, .t-mega-envol:focus-within .t-mega { display: block; animation: t-bajar .28s var(--ease) both; }
+.t-mega-in { max-width: 1440px; margin: 0 auto; display: grid; grid-template-columns: repeat(var(--grupos), minmax(0, 210px)) minmax(0, 1fr); gap: 0 22px; align-items: start; }
+.t-mega h4 { margin: 0 0 8px; font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
+.t-mega h4 a { color: inherit; }
+.t-mega h4 a:hover { color: var(--rojo-profundo); }
 .t-mega ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.t-mega li a { padding: 5px 0; font-size: 14px; color: var(--tinta); display: flex; gap: 8px; align-items: baseline; }
-.t-mega li a small { color: var(--tinta-60); font-size: 11.5px; }
-.t-mega li a:hover { color: var(--rojo-profundo); }
-.t-mega-foto { justify-self: end; max-width: 420px; width: 100%; background: var(--t-foto); border-radius: 6px; display: grid; grid-template-columns: 150px 1fr; align-items: center; gap: 18px; overflow: hidden; color: var(--t-tinta-fija); }
-.t-mega-foto .t-card-foto { aspect-ratio: auto; height: 186px; border-radius: 0; }
-.t-mega-foto > span { display: flex; flex-direction: column; gap: 4px; padding-right: 16px; }
-.t-mega-foto b { font-family: var(--serif); font-size: 26px; font-weight: 500; line-height: 1; }
-.t-mega-foto small { font-size: 12.5px; color: color-mix(in srgb, var(--t-tinta-fija) 72%, transparent); }
+.t-mega-cat { display: grid; grid-template-columns: 42px minmax(0, max-content) 1fr; align-items: center; gap: 10px; margin-left: -6px; padding: 5px 12px 5px 6px; border-radius: 12px; font-size: 14px; color: var(--tinta); transition: background-color .2s var(--ease); }
+.t-mega-cat-nom { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .2s; }
+.t-mega-cat small { justify-self: start; color: var(--tinta-60); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.t-mega-cat:hover { background: var(--hueso); }
+.t-mega-cat:hover .t-mega-cat-nom { color: var(--rojo-profundo); }
+.t-mega-cat:focus-visible, .t-mega h4 a:focus-visible, .t-mega-prenda:focus-visible, .t-mega-recien-cab a:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+/* La foto de la categoría: la prenda ENTERA en su estudio (contain), en un cuadro redondeado; recortada en círculo, un cinturón o un
+   pantalón no se reconocían. Se llama `t-mega-mini` porque `t-mini` ya es de las miniaturas de la bolsa (las hojas son globales). */
+.t-mega-mini { position: relative; width: 42px; height: 42px; border-radius: 8px; overflow: hidden; display: block; background: var(--t-foto); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t-tinta-fija) 8%, transparent); transition: transform .35s var(--ease); }
+.t-mega-cat:hover .t-mega-mini { transform: scale(1.08); }
+.t-mega-mini .t-card-foto { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
+.t-mega-mini .t-card-foto img { padding: 3px; }
+.t-mega-mini .pz { width: 70%; }
+/* Lo último que llegó: una vitrina que se apaga sola si no le queda lugar (menos de 2 prendas). */
+.t-mega-recien { min-width: 0; container-type: inline-size; }
+.t-mega-recien-in { border-left: 1px solid var(--sand); padding-left: 24px; }
+@container (max-width: 230px) { .t-mega-recien-in { display: none; } }
+.t-mega-recien-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.t-mega-recien-cab a { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--rojo-profundo); }
+.t-mega-recien-cab a .ic { width: 14px; height: 14px; transition: transform .25s var(--ease); }
+.t-mega-recien-cab a:hover .ic { transform: translateX(3px); }
+.t-mega-recien-fila { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); grid-template-rows: auto; grid-auto-rows: 0; gap: 0 14px; overflow: hidden; margin-top: 4px; }
+.t-mega-prenda { min-width: 0; display: flex; flex-direction: column; gap: 4px; color: var(--tinta); }
+.t-mega-prenda > span { display: block; border-radius: 4px; overflow: hidden; }
+.t-mega-prenda .t-card-foto { transition: transform .5s var(--ease); }
+.t-mega-prenda:hover .t-card-foto { transform: scale(1.03); }
+.t-mega-prenda b { margin-top: 4px; font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-mega-prenda small { font-size: 12.5px; font-weight: 600; }
+.t-mega-prenda small[data-oferta] { color: var(--rojo-profundo); }
+@media (prefers-reduced-motion: reduce) {
+  .t-mega-cat, .t-mega-mini, .t-mega-prenda .t-card-foto, .t-mega-recien-cab a .ic { transition: none; }
+}
 
 /* ---- El velo de las hojas ---- */
 .t-velo { position: fixed; inset: 0; z-index: 40; background: var(--velo); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: t-aparecer .25s var(--ease) both; }
@@ -53,6 +82,8 @@
 .t-menu-grandes a:nth-child(5) { animation-delay: 200ms; }
 .t-menu-cats { padding: 10px 20px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
 .t-menu-cats a { padding: 9px 0; font-size: 14px; color: var(--tinta); }
+.t-menu-cats h4 { grid-column: 1 / -1; margin: 6px 0 2px; font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--taupe); }
+.t-menu-cats + .t-menu-cats { padding-top: 0; }
 .t-menu-pie { margin-top: auto; padding: 16px 20px 22px; border-top: 1px solid var(--sand); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 
 /* ---- El buscador: baja desde arriba; en la computadora, al centro ---- */

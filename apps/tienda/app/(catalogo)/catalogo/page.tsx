@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ElegidoALaVista } from "@/components/ElegidoALaVista";
 import { Icono } from "@/components/Icono";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
@@ -21,6 +22,7 @@ import {
   type Lista,
 } from "@/lib/catalogo";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
+import { delGrupo, grupoDe, gruposDe, leerGrupo, MENUS, tituloPartido } from "@/lib/grupos";
 import { fechaLarga, pctTexto } from "@/lib/portada";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { leerSesion } from "@/lib/sesion-servidor";
@@ -38,7 +40,10 @@ const TITULOS: Record<Lista, string> = {
 };
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  return { title: `${TITULOS[leerLista((await searchParams).lista)]} · CAYLA` };
+  const sp = await searchParams;
+  const lista = leerLista(sp.lista);
+  const grupo = lista === "todo" && !leerCategoria(sp.categoria) ? leerGrupo(sp.grupo) : null;
+  return { title: `${grupo?.nombre ?? TITULOS[lista]} · CAYLA` };
 }
 
 // Las listas del catálogo (maqueta v4, `vLista` y `filtroTienda`): toda la ropa, Lo nuevo, las ofertas (con una tarjeta por campaña),
@@ -52,6 +57,9 @@ export default async function Catalogo({ searchParams }: Props) {
   const lista = leerLista(sp.lista);
   const orden = leerOrden(sp.orden);
   const categoria = leerCategoria(sp.categoria);
+  // Un grupo de categorías (lib/grupos.ts: «Arriba», «Bolsos y accesorios»…), el de los títulos de los menús de la cabecera. Con una
+  // categoría elegida no hace falta: ella dice su grupo.
+  const grupoPedido = categoria ? null : leerGrupo(sp.grupo);
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
   const esFavoritos = lista === "favoritos";
@@ -74,12 +82,37 @@ export default async function Catalogo({ searchParams }: Props) {
   const campana = campanas.find((c) => c.id === leerCampana(sp.campana))?.id ?? null;
   const deLaLista = filtrarYOrdenar(base, { categoria: null, orden: "destacado", lista, campana });
   const categorias = categoriasDe(deLaLista);
-  const vista = filtrarYOrdenar(base, { categoria, orden, lista, campana });
-  const enOtras = prendas && !esFavoritos ? filtrarYOrdenar(prendas, { categoria, orden, lista, campana }).length - vista.length : 0;
+  const grupos = gruposDe(deLaLista);
+  const vista = delGrupo(filtrarYOrdenar(base, { categoria, orden, lista, campana }), grupoPedido);
+  const enOtras = prendas && !esFavoritos ? delGrupo(filtrarYOrdenar(prendas, { categoria, orden, lista, campana }), grupoPedido).length - vista.length : 0;
   const categoriaElegida = categoriasDe(prendas ?? []).find((c) => c.clave === categoria) ?? null;
+  // El grupo encendido: el pedido o el de la categoría elegida.
+  const grupoActivo = grupoPedido ?? (categoria ? grupoDe(categoria) : null);
+  const delActivo = grupoActivo ? grupos.find((g) => g.clave === grupoActivo.clave) ?? null : null;
+  // Con muchas categorías y más de un grupo, primero los grupos y, debajo, las categorías del grupo encendido (Felipe 2026-10-15: 28
+  // píldoras en tres filas «podría verse mucho mejor»). Con pocas (los favoritos, una tienda chica), todas de una vez.
+  const porGrupos = grupos.length > 1 && categorias.length > 8;
   const cab = cabeceraDeLista(lista);
-  const href = (cambios: { sede?: string | null; categoria?: string | null; orden?: typeof orden; campana?: string | null }) =>
-    hrefLista({ sede, categoria, orden, lista, campana, ...cambios });
+  // En «Toda la ropa», el título dice lo que se está viendo: la categoría (con su grupo arriba) o el grupo (con su menú arriba).
+  const ceja =
+    lista === "todo" && categoriaElegida
+      ? grupoDe(categoriaElegida.clave).nombre
+      : lista === "todo" && grupoPedido
+        ? MENUS.find((m) => m.clave === grupoPedido.menu)?.nombre ?? cab.ceja
+        : cab.ceja;
+  const titulo =
+    lista === "todo" && categoriaElegida
+      ? tituloPartido(categoriaElegida.nombre)
+      : lista === "todo" && grupoPedido
+        ? tituloPartido(grupoPedido.nombre)
+        : cab.titulo;
+  const href = (cambios: {
+    sede?: string | null;
+    categoria?: string | null;
+    orden?: typeof orden;
+    campana?: string | null;
+    grupo?: string | null;
+  }) => hrefLista({ sede, categoria, orden, lista, campana, grupo: grupoPedido?.clave ?? null, ...cambios });
   // El origen del almacén público de fotos (no es una llave): solo sus fotos pasan por el optimizador de Next.
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
 
@@ -93,16 +126,14 @@ export default async function Catalogo({ searchParams }: Props) {
         ...sedes.map((s) => ({ nombre: s.nombre, href: href({ sede: claveDeSede(s.nombre) }), actual: elegida?.id === s.id })),
       ]}
     >
+      {/* Sin migas («Inicio / Toda la ropa»): en una lista de arriba del todo solo repetían el título, y el logo ya lleva al Inicio
+          (Felipe 2026-10-15). La ficha y los pedidos sí las llevan: ahí dicen de dónde se vino. */}
       <div className="t-ancho">
-        <nav className="t-ruta" aria-label="Estás en">
-          <Link href={sede ? `/inicio?sede=${encodeURIComponent(sede)}` : "/inicio"}>Inicio</Link>
-          <span aria-hidden="true">/</span>
-          <span>{TITULOS[lista]}</span>
-        </nav>
         <header className="t-lista-cab">
-          <span className="t-ceja">{cab.ceja}</span>
+          <span className="t-ceja">{ceja}</span>
           <h1>
-            {cab.titulo[0]} <em>{cab.titulo[1]}</em>
+            {titulo[0] ? `${titulo[0]} ` : null}
+            <em>{titulo[1]}</em>
           </h1>
           {cab.frase && <p>{cab.frase}</p>}
         </header>
@@ -166,7 +197,54 @@ export default async function Catalogo({ searchParams }: Props) {
               </nav>
             )}
             <div className="t-filtros">
-              {categorias.length > 1 ? (
+              {porGrupos ? (
+                <div className="t-filtros-niveles">
+                  <nav className="t-pildoras" aria-label="Qué ver">
+                    <Link
+                      className="t-pildora"
+                      href={href({ grupo: null, categoria: null })}
+                      aria-current={grupoActivo === null ? "true" : undefined}
+                      scroll={false}
+                    >
+                      Todo <small>{deLaLista.length}</small>
+                    </Link>
+                    {grupos.map((g) => (
+                      <Link
+                        key={g.clave}
+                        className="t-pildora"
+                        href={href({ grupo: g.clave, categoria: null })}
+                        aria-current={grupoActivo?.clave === g.clave ? "true" : undefined}
+                        scroll={false}
+                      >
+                        {g.nombre} <small>{g.cuantas}</small>
+                      </Link>
+                    ))}
+                  </nav>
+                  {delActivo && delActivo.categorias.length > 1 && (
+                    <nav className="t-subcats" aria-label={`Categorías de ${delActivo.nombre}`}>
+                      <Link
+                        className="t-subcat"
+                        href={href({ grupo: delActivo.clave, categoria: null })}
+                        aria-current={categoria === null ? "true" : undefined}
+                        scroll={false}
+                      >
+                        Todo
+                      </Link>
+                      {delActivo.categorias.map((c) => (
+                        <Link
+                          key={c.clave}
+                          className="t-subcat"
+                          href={href({ categoria: c.clave })}
+                          aria-current={categoria === c.clave ? "true" : undefined}
+                          scroll={false}
+                        >
+                          {c.nombre} <small>{c.cuantas}</small>
+                        </Link>
+                      ))}
+                    </nav>
+                  )}
+                </div>
+              ) : categorias.length > 1 ? (
                 <nav className="t-pildoras" aria-label="Categoría">
                   <Link className="t-pildora" href={href({ categoria: null })} aria-current={categoria === null ? "true" : undefined}>
                     Todas <small>{deLaLista.length}</small>
@@ -190,8 +268,13 @@ export default async function Catalogo({ searchParams }: Props) {
                 </Link>
               </div>
             </div>
+            <ElegidoALaVista selector=".t-filtros .t-pildoras, .t-filtros .t-subcats" />
             <p className="t-conteo" aria-live="polite">
-              {conteoDeLista(vista.length, { categoria: categoriaElegida?.nombre ?? null, tienda: esFavoritos ? null : elegida?.nombre ?? null, enOtras })}
+              {conteoDeLista(vista.length, {
+                categoria: categoriaElegida?.nombre ?? grupoPedido?.nombre ?? null,
+                tienda: esFavoritos ? null : elegida?.nombre ?? null,
+                enOtras,
+              })}
             </p>
             {vista.length > 0 ? (
               <div className="t-grilla">

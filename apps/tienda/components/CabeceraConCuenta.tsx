@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { salir } from "@/app/acciones/cuenta";
 import { buscarEn, resaltar } from "@/lib/buscador";
-import type { DatosCabecera } from "@/lib/inicio";
+import type { DatosCabecera, FotoChica, MenuCabecera } from "@/lib/inicio";
 import { FotoTarjeta } from "./FotoTarjeta";
 import { Icono } from "./Icono";
 import { Isotipo } from "./Isotipo";
@@ -18,8 +18,8 @@ export type SeccionActual = "inicio" | "nuevo" | "vendidos" | "ofertas" | "looks
 const etiquetaFavoritos = (n: number | null) => (n ? `Favoritos: ${n} ${n === 1 ? "guardado" : "guardados"}` : "Favoritos");
 
 /**
- * La cabecera de quien tiene cuenta (maqueta v4, `cabT`): en el celular, el menú a la izquierda; en la computadora, «Lo nuevo», «Ropa»
- * (con sus categorías en columnas y la tarjeta de lo último que llegó), «Arma tu look», «Más vendidos» y «Ofertas». A la derecha, el
+ * La cabecera de quien tiene cuenta (maqueta v4, `cabT`): en el celular, el menú a la izquierda; en la computadora, «Lo nuevo», «Ropa» y
+ * «Accesorios» (cada uno abre sus grupos de categorías con fotos y lo último que llegó), «Arma tu look», «Más vendidos» y «Ofertas». A la derecha, el
  * buscador (busca mientras se escribe, por nombre, categoría o color, sin tildes ni mayúsculas), el corazón de los favoritos con cuántos
  * hay (solo en la computadora: en el celular están en el menú), la persona (abre su menú: el nombre, «Mi perfil» y «Cerrar sesión») y la
  * bolsa con su globo. Todos los enlaces llevan la tienda elegida, menos los favoritos (son de la persona, no de una tienda).
@@ -87,49 +87,9 @@ export function CabeceraConCuenta({
             <Link className="t-nav-b" href={datos.nuevo.href} aria-current={marca("nuevo")}>
               Lo nuevo
             </Link>
-            {datos.columnas.length > 0 && (
-              <div className="t-mega-envol">
-                <button type="button" className="t-nav-b" aria-haspopup="true">
-                  Ropa <Icono nombre="chevron" />
-                </button>
-                <div className="t-mega">
-                  {datos.columnas.map((c) => (
-                    <div key={c.titulo}>
-                      <h4>{c.titulo}</h4>
-                      <ul>
-                        {c.categorias.map((x) => (
-                          <li key={x.clave}>
-                            <Link href={x.href}>
-                              {x.nombre} <small>{x.cuantas}</small>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                  {datos.destacada && (
-                    <Link className="t-mega-foto" href={datos.nuevo.href}>
-                      <FotoTarjeta
-                        foto={datos.destacada.foto}
-                        segunda={null}
-                        optimizar={[datos.destacada.optimizar, false]}
-                        nombre={datos.destacada.nombre}
-                        forma={datos.destacada.forma}
-                        color={datos.destacada.color}
-                        tamanos="150px"
-                      />
-                      <span>
-                        <small>Recién llegado</small>
-                        <b>Lo nuevo</b>
-                        <small>
-                          {datos.nuevo.cuantas} {datos.nuevo.cuantas === 1 ? "prenda" : "prendas"} de los últimos 30 días
-                        </small>
-                      </span>
-                    </Link>
-                  )}
-                </div>
-              </div>
-            )}
+            {datos.menus.map((m) => (
+              <MenuGrande key={m.clave} menu={m} hrefNuevo={datos.nuevo.href} />
+            ))}
             <Link className="t-nav-b" href={datos.looks} aria-current={marca("looks")}>
               Arma tu look
             </Link>
@@ -157,6 +117,84 @@ export function CabeceraConCuenta({
       {hoja === "menu" && <HojaMenu datos={datos} favoritos={favoritos} cerrar={cerrar} />}
       {hoja === "buscar" && <HojaBuscar datos={datos} cerrar={cerrar} />}
     </>
+  );
+}
+
+/**
+ * Un menú de la computadora («Ropa», «Accesorios»; lib/grupos.ts): se abre al pasar el mouse o con el teclado (Tab), bajo toda la
+ * cabecera. Cada grupo es una columna con su título (lleva a todo el grupo) y sus categorías, cada una con la foto de una de sus prendas
+ * para reconocerla de un vistazo; a la derecha, lo último que llegó de ese menú (Felipe 2026-10-15: el menú «Ropa» era una lista de
+ * texto con un hueco al medio y una columna de 17 filas que mezclaba la ropa con los aretes y el maquillaje).
+ */
+function MenuGrande({ menu, hrefNuevo }: { menu: MenuCabecera; hrefNuevo: string }) {
+  return (
+    <div className="t-mega-envol">
+      <button type="button" className="t-nav-b" aria-haspopup="true">
+        {menu.nombre} <Icono nombre="chevron" />
+      </button>
+      <div className="t-mega">
+        <div className="t-mega-in" style={{ "--grupos": menu.grupos.length } as React.CSSProperties}>
+          {menu.grupos.map((g) => (
+            <div key={g.clave} className="t-mega-grupo">
+              <h4>
+                <Link href={g.href}>{g.nombre}</Link>
+              </h4>
+              <ul>
+                {g.categorias.map((c) => (
+                  <li key={c.clave}>
+                    <Link className="t-mega-cat" href={c.href}>
+                      <span className="t-mega-mini" aria-hidden="true">
+                        <FotoChicaDe foto={c.foto} tamanos="40px" />
+                      </span>
+                      <span className="t-mega-cat-nom">{c.nombre}</span>
+                      <small>{c.cuantas}</small>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          {menu.recien.length > 0 && (
+            <div className="t-mega-recien">
+              <div className="t-mega-recien-in">
+                <div className="t-mega-recien-cab">
+                  <h4>Recién llegado</h4>
+                  <Link href={hrefNuevo}>
+                    Ver lo nuevo <Icono nombre="flecha" />
+                  </Link>
+                </div>
+                <div className="t-mega-recien-fila">
+                  {menu.recien.map((p) => (
+                    <Link key={p.id} className="t-mega-prenda" href={p.href}>
+                      <span aria-hidden="true">
+                        <FotoChicaDe foto={p.foto} tamanos="140px" />
+                      </span>
+                      <b>{p.nombre}</b>
+                      <small data-oferta={p.oferta ? "" : undefined}>{p.precio}</small>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** La foto chica de una categoría o de una prenda del menú (sin foto, su silueta en su color). */
+function FotoChicaDe({ foto, tamanos }: { foto: FotoChica; tamanos: string }) {
+  return (
+    <FotoTarjeta
+      foto={foto.foto}
+      segunda={null}
+      optimizar={[foto.optimizar, false]}
+      nombre={foto.nombre}
+      forma={foto.forma}
+      color={foto.color}
+      tamanos={tamanos}
+    />
   );
 }
 
@@ -235,7 +273,7 @@ function BotonSalir() {
 }
 
 /** El menú del celular (maqueta, hoja «menu»): lo grande arriba (con «Arma tu look» y los favoritos, que en el celular no van en la
- *  fila de arriba), las categorías en dos columnas y la ayuda al pie. */
+ *  fila de arriba), las categorías en dos columnas bajo su menú («Ropa», «Accesorios») y la ayuda al pie. */
 function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favoritos: number | null; cerrar: () => void }) {
   return (
     <div className="t-menu" role="dialog" aria-modal="true" aria-label="Menú">
@@ -265,15 +303,16 @@ function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favorito
           Ofertas <small>{datos.ofertas.cuantas}</small>
         </Link>
       </nav>
-      {datos.categorias.length > 0 && (
-        <nav className="t-menu-cats" aria-label="Categorías">
-          {datos.categorias.map((c) => (
+      {datos.menus.map((m) => (
+        <nav key={m.clave} className="t-menu-cats" aria-label={m.nombre}>
+          <h4>{m.nombre}</h4>
+          {m.grupos.flatMap((g) => g.categorias).map((c) => (
             <Link key={c.clave} href={c.href} onClick={cerrar}>
               {c.nombre}
             </Link>
           ))}
         </nav>
-      )}
+      ))}
       <div className="t-menu-pie">
         <Link className="t-enlace" href="/cuenta" onClick={cerrar}>
           Mi cuenta y mis pedidos

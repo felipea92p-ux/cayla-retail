@@ -348,17 +348,21 @@ export function hrefLista({
   orden,
   lista = "todo",
   campana = null,
+  grupo = null,
 }: {
   sede?: string | null;
   categoria: string | null;
   orden: Orden;
   lista?: Lista;
   campana?: string | null;
+  /** Un grupo de categorías (`lib/grupos.ts`, «Arriba», «Bolsos y accesorios»…). Con una categoría elegida no va: ella ya dice el grupo. */
+  grupo?: string | null;
 }): string {
   const q = new URLSearchParams();
   if (lista !== "todo") q.set("lista", lista);
   if (sede) q.set("sede", sede);
   if (categoria) q.set("categoria", categoria);
+  else if (grupo) q.set("grupo", grupo);
   if (lista === "ofertas" && campana) q.set("campana", campana);
   if (orden !== "destacado") q.set("orden", orden);
   const s = q.toString();

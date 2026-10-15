@@ -41,6 +41,21 @@
 .t-orden a:hover { border-color: var(--taupe); }
 .t-orden .ic { width: 14px; height: 14px; }
 .t-conteo { font-size: 12.5px; color: var(--tinta-60); margin: -4px 0 14px; }
+/* Los filtros en dos niveles (Felipe 2026-10-15): los grupos como píldoras y, debajo, las categorías del grupo encendido, como pestañas
+   con su raya roja. En el celular, cada fila se desliza sola. */
+.t-filtros-niveles { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.t-filtros:has(.t-filtros-niveles) { align-items: flex-start; }
+.t-subcats { display: flex; gap: 2px 20px; overflow-x: auto; scrollbar-width: none; padding: 4px 2px 2px; animation: t-subcats .35s var(--ease) both; }
+.t-subcats::-webkit-scrollbar { display: none; }
+.t-subcat { flex: none; position: relative; padding: 5px 0 7px; font-size: 13px; color: var(--tinta-60); white-space: nowrap; transition: color .2s; }
+.t-subcat small { margin-left: 3px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.t-subcat::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px; background: var(--rojo); transform: scaleX(0); transform-origin: left; transition: transform .3s var(--ease); }
+.t-subcat:hover { color: var(--tinta); }
+.t-subcat[aria-current="true"] { color: var(--tinta); font-weight: 600; }
+.t-subcat[aria-current="true"]::after { transform: scaleX(1); }
+.t-subcat:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 4px; }
+@keyframes t-subcats { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .t-subcats { animation: none; } .t-subcat::after { transition: none; } }
 
 /* ---- La grilla ---- */
 .t-grilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 10px; }
