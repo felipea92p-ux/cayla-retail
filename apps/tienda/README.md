@@ -59,4 +59,14 @@ ERP cada cuenta es una fila de `cuentas_web` unida a su ficha del Club, y la tie
    (la persona escribe su nombre).
 5. `pnpm --filter tienda dev` → http://localhost:3100 (o «tienda-dev» en `.claude/launch.json`).
 
-Pruebas: `pnpm --filter tienda test`, `typecheck` y `lint`; en la base, `pnpm pruebas:tienda-puerta` y `pnpm pruebas:tienda-cuentas`.
+## El Club en la cuenta
+
+«Mi cuenta» muestra lo del Club de ESA persona (actividad 12): su descuento de cumpleaños y su vale por aniversario con las mismas
+funciones que cobra la caja, «Novedades para ti» (lo que llegó desde su visita anterior), sus favoritos y lo que espera
+(`tienda_mi_club`, `20261015025000`). El corazón (`components/club/BotonFavorito.tsx`) y «Avísame cuando llegue»
+(`components/club/BotonAvisame.tsx`) guardan con `tienda_favorito` y `tienda_avisame` (`20261015024000`): por modelo el corazón, y por
+prenda y tienda la espera; si la prenda ya hay, no se anota. Lo que esperan los clientes lo ve el ERP en Vitrina web ▸ Esperan una talla
+(`fn_vitrina_esperan`, `20261015030000`), sin datos de nadie. El aviso de que llegó está en la cuenta, nunca por WhatsApp.
+
+Pruebas: `pnpm --filter tienda test`, `typecheck` y `lint`; en la base, `pnpm pruebas:tienda-puerta`, `pnpm pruebas:tienda-cuentas` y
+`pnpm pruebas:tienda-club`.

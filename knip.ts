@@ -100,6 +100,11 @@ const config: KnipConfig = {
         // `scripts/rol-local.mjs` crea el usuario de la base LOCAL (`pnpm --filter tienda rol-local`): solo en la corrida normal.
         "scripts/**/*.mjs",
       ],
+      ignore: [
+        // «Avísame cuando llegue» (actividad 12) nace antes que la ficha que lo usa (actividad 4): sale de aquí cuando la integración
+        // lo ponga en la ficha.
+        "components/club/BotonAvisame.tsx",
+      ],
     },
     "packages/*": {
       project: ["src/**/*.{ts,css}!"],

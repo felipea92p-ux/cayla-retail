@@ -168,6 +168,10 @@ const DEL_COBRO = ["agregar_celular_clienta"];
 // ficha de quien crea o tiene su cuenta (lo prueba a fondo scripts/pruebas/tienda_cuentas.mjs). El vigilante las cuenta y les deja
 // pasar eso, y solo eso.
 const DE_LA_TIENDA = ["tienda_consultar_documento", "tienda_mi_cuenta", "tienda_registrar_cuenta", "tienda_revisar_registro"];
+// Y la de «Mi cuenta» del Club (ADR-0408, actividad 12, 20261015025000): `tienda_mi_club` le devuelve a quien tiene la cuenta SU
+// cumpleaños (día y mes), si es miembro y lo de su aniversario, para mostrarle sus beneficios con las reglas que cobra la caja. Igual
+// que las de arriba: sin módulo a propósito, solo `tienda_web` la ejecuta, y la prueba a fondo scripts/pruebas/tienda_club.mjs.
+DE_LA_TIENDA.push("tienda_mi_club");
 
 // Las de los pedidos web (ADR-0408, 20261014235000) que muestran al cliente de un pedido: el detalle y la lista de una tienda.
 // Con el candado de SU módulo, `pedidos_web` (`fn_pedido_web_exigir`), como las de Avisos: quien atiende el pedido ve solo lo que
@@ -676,6 +680,10 @@ const LISTA_BLANCA = ["fn_ventas_del_dia", "separar_prendas", "bajar_al_piso", "
 // ficha («Mis pedidos»), sin ninguna columna de ella; y fn_pedido_web_reglas (el disparador del pedido) solo lee fusionada_en_id
 // para dejar que el pedido siga a su ficha cuando se une a otra. Las dos primeras no las ejecuta nadie de la API.
 LISTA_BLANCA.push("crear_pedido_web", "fn_pedidos_web_de_clienta", "fn_pedido_web_reglas");
+// Y desde el Club en la cuenta (ADR-0408, actividad 12, 20261015024000), dos que solo preguntan si la ficha de la cuenta está
+// archivada (con la ficha archivada la cuenta ya no agrega favoritos ni esperas) y no devuelven nada de ella: tienda_favorito y
+// tienda_avisame. Solo las ejecuta `tienda_web` (lo prueba scripts/pruebas/tienda_club.mjs).
+LISTA_BLANCA.push("tienda_favorito", "tienda_avisame");
 /** La condición del vigilante: sin el candado del módulo (en el código, no en un comentario), salvo las de la página. */
 const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.proname not in (${[...DE_LA_PAGINA, ...DEL_SERVIDOR, ...DE_LA_TIENDA].map((n) => `'${n}'`).join(", ")})
   and not (x.proname in (${DE_AVISOS.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''avisos_club''\\)')
@@ -688,7 +696,7 @@ const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' orde
  where (x.proname ~ 'clienta' or x.retorna ~* 'clientas' or x.src ~* '(\\mclientas\\M|telefono_whatsapp|whatsapp_consentimiento_en|cumple_dia|cumple_mes)')
    and ${condicion};\n`;
 caso(
-  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g, la 1 del cobro (agregar_celular_clienta) las 4 de la tienda online y las 2 de los pedidos web, y todas llevan el candado del módulo salvo las 2 de la página, las 2 del servidor y las 4 de la tienda (las de Avisos y las de los pedidos web, el de su módulo)",
+  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 11, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g, la 1 del cobro (agregar_celular_clienta) las 5 de la tienda online y las 2 de los pedidos web, y todas llevan el candado del módulo salvo las 2 de la página, las 2 del servidor y las 5 de la tienda (las de Avisos y las de los pedidos web, el de su módulo)",
   VIGILANTE("true") + VIGILANTE(SIN_EL_CANDADO),
   `${[...LAS_11, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_LA_TIENDA, ...DE_PEDIDOS_WEB].sort().join(",")}\nninguna`
 );
