@@ -73,7 +73,7 @@
 .t-aviso-club-envol { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .32s var(--ease), opacity .22s var(--ease); }
 .t-aviso-club-envol[data-cerrado] { grid-template-rows: 0fr; opacity: 0; }
 .t-aviso-club-pliegue { min-height: 0; overflow: hidden; }
-.t-aviso-club { margin-block: 14px 4px; padding: 16px; border-radius: 14px; background: var(--papel); border: 1px solid color-mix(in srgb, var(--verde) 45%, var(--sand)); display: flex; flex-direction: column; gap: 14px; animation: t-aviso-entra .45s var(--ease) both; }
+.t-aviso-club { margin-block: 14px 16px; padding: 16px; border-radius: 14px; background: var(--papel); border: 1px solid color-mix(in srgb, var(--verde) 45%, var(--sand)); display: flex; flex-direction: column; gap: 14px; animation: t-aviso-entra .45s var(--ease) both; }
 .t-aviso-club-cuerpo { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .t-aviso-club .t-ceja { color: var(--verde); }
 .t-aviso-club-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
@@ -95,10 +95,9 @@
 }
 @container tienda (min-width: 960px) {
   .t-looks-inicio { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-columns: auto; gap: 32px; margin: 0; padding: 0; overflow: visible; }
-  .t-aviso-club { margin-block: 22px 6px; padding: 18px 22px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 28px; }
+  .t-aviso-club { margin-block: 22px; padding: 18px 22px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 28px; }
   .t-aviso-club-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px 24px; }
   .t-aviso-club-acc { flex-direction: column; align-items: flex-end; justify-content: center; }
-}
   .t-collage { height: 480px; }
   .t-polaroid { width: 44%; }
   .t-circs { justify-content: center; gap: 26px; padding-top: 30px; }
