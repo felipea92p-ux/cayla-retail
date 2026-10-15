@@ -34,16 +34,23 @@ export type Hero =
 
 const conFotoPrimero = (a: Prenda, b: Prenda) => Number(fotosDeTarjeta(b)[0] !== null) - Number(fotosDeTarjeta(a)[0] !== null);
 
-/** El héroe del Inicio (maqueta: la campaña vigente; si no hay, «Lo nuevo»). Las prendas del collage, las que tienen foto primero. */
+/**
+ * El héroe del Inicio (maqueta: la campaña vigente; si no hay, «Lo nuevo»). Las prendas del collage, las que tienen foto primero.
+ * La campaña sale solo si tiene alguna prenda suya que baja de precio en lo que se ve (Felipe 2026-10-15): el primer día en
+ * producción el Aniversario no tenía ninguna prenda publicada, el collage quedaba vacío y «Ver la campaña» llevaba a una lista sin
+ * nada. Sin prendas suyas, la portada pasa a «Lo nuevo» (o a la marca), y la campaña vuelve sola cuando se le publiquen prendas.
+ */
 export function heroDelInicio(campana: Campana | null, prendas: readonly Prenda[]): Hero {
   if (campana) {
     const suyas = prendas.filter((p) => enOferta(p) && p.campana && normalizar(p.campana.nombre) === normalizar(campana.nombre));
-    return {
-      tipo: "campana",
-      campana,
-      piezas: [...suyas].sort(conFotoPrimero).slice(0, 3),
-      campanaId: suyas.find((p) => p.campana?.id)?.campana?.id ?? null,
-    };
+    if (suyas.length > 0) {
+      return {
+        tipo: "campana",
+        campana,
+        piezas: [...suyas].sort(conFotoPrimero).slice(0, 3),
+        campanaId: suyas.find((p) => p.campana?.id)?.campana?.id ?? null,
+      };
+    }
   }
   const nuevas = prendas.filter((p) => p.nuevo);
   if (nuevas.length > 0) return { tipo: "nuevo", piezas: [...nuevas].sort((a, b) => conFotoPrimero(a, b) || porLlegada(a, b)).slice(0, 3) };
