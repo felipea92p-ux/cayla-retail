@@ -51,6 +51,9 @@
 
 ## Lo que queda para Felipe
 
+> **Actualización 2026-10-15:** las dos preguntas de abajo se resolvieron con la recomendación (Felipe: «aplica tus recomendaciones»), en ADR-0415: la entrega no es anterior a hoy, y al cerrar se acepta hasta el doble de lo pedido por talla.
+
+
 - **¿Una orden puede prometer entrega en 1990?** `abrir_produccion` acepta una fecha de entrega pasada (PRO-06).
 - **¿Se puede cerrar una orden con más prendas buenas que las pedidas?** Hoy se acepta (9 de 6, PRO-08). Puede ser legítimo (el corte rindió
   más), así que es una regla de negocio, no un candado obvio.
