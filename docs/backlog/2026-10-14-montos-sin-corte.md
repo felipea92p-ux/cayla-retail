@@ -6,5 +6,5 @@ ADR-0413. Sin migración.
   que llega de la base; prueba guardiana `lib/montos-sin-corte.test.ts`.
 - [ ] Felipe: el texto que se guarda en la cola de Lucode (`lib/ya-emitido-reglas.ts`, `enCola`) sigue con espacio normal a propósito
   (lo de SUNAT no se toca sin ti). Si se muestra partido en «Por reintentar», se arregla al mostrarlo, no al guardarlo.
-- [ ] Si aparece otro lugar que muestra un texto de la base con montos sin pasar por `traducirError` (el panel de Actividad, por ejemplo),
-  pasarlo por `montosSinCorte` al dibujarlo.
+- [ ] Si aparece otro lugar que muestra un texto de la base con montos sin pasar por `traducirError`, pasarlo por `montosSinCorte`
+  al dibujarlo. Ya lo hacen la lista de Actividad, la última acción del Inicio y los errores de Liquidación (#1093).
