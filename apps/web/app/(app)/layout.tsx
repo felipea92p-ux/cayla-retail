@@ -9,6 +9,7 @@ import { SedeActivaProveedor } from "@/components/SedeActiva";
 import { ColasSinConexion } from "@/components/ColasSinConexion";
 import { PreciosEnVivo } from "@/components/PreciosEnVivo";
 import { RefrescoTrasCorte } from "@/components/RefrescoTrasCorte";
+import { ContextoDeErrores } from "@/components/ContextoDeErrores";
 import { SinConexion } from "@/components/SinConexion";
 import { VersionNueva } from "@/components/VersionNueva";
 import { RecordatorioCierreCaja } from "@/components/RecordatorioCierreCaja";
@@ -67,6 +68,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* Recién iniciada la sesión, la app espera a que el velo del colibrí tape la pantalla para mostrarse (Felipe 2026-10-13, «se ve el inicio»).
           Va fuera de todo `loading.tsx` (ninguno la envuelve), así mientras tanto queda el login a la vista. Fuera de esa entrada no hace nada. */}
       <EsperaAlVelo />
+      {/* Quién y dónde, para el aviso a Felipe cuando una pantalla se cae (ADR-0424): el id de la cuenta, la sede y el rol, sin nombres. */}
+      <ContextoDeErrores cuenta={persona.personaId} sede={persona.ubicacionEtiqueta} rol={persona.rol} />
       {/* La sede activa y quién inició sesión, para el combo «Responsable» (ADR-0161, A11), sin pasarlas por props a cada pantalla. */}
       <SedeActivaProveedor
         ubicacionId={persona.ubicacionId}

@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 // El optimizador de imágenes solo acepta fotos del Storage PÚBLICO de nuestro Supabase (las de prendas,
 // `retail-productos-fotos`), nada de otro host: sin lista cerrada, `/_next/image?url=…` serviría de proxy a
@@ -14,7 +15,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.N
 const versionDeEstaCompilacion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || "desarrollo";
 
 const nextConfig: NextConfig = {
-  env: { NEXT_PUBLIC_BUILD_ID: versionDeEstaCompilacion },
+  // En qué entorno corre esta versión (ADR-0424), escrito dentro del código al armarla: Sentry solo avisa en `production`. Vercel da
+  // `VERCEL_ENV` al armar (production, preview); en local no existe y queda «local». Se escribe aquí y no se lee de
+  // `NEXT_PUBLIC_VERCEL_ENV` porque esa depende de una casilla del panel de Vercel.
+  env: { NEXT_PUBLIC_BUILD_ID: versionDeEstaCompilacion, NEXT_PUBLIC_ENTORNO: process.env.VERCEL_ENV ?? "local" },
 
   images: {
     remotePatterns: supabaseUrl
@@ -126,4 +130,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Sentry (ADR-0424): al terminar el armado sube los mapas del código a Sentry (así un aviso dice la línea exacta, no la del código
+// comprimido) y después los borra, para no publicarlos. Necesita `SENTRY_AUTH_TOKEN`, que Felipe pone en Vercel: sin esa llave
+// (en local, en el CI) no genera ni sube mapas y el armado sigue igual. Lo que hace Sentry en ejecución está en `instrumentation*.ts`.
+export default withSentryConfig(nextConfig, {
+  org: "cayla",
+  project: "cayla-retail",
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN, deleteSourcemapsAfterUpload: true },
+  widenClientFileUpload: true,
+  silent: !process.env.CI,
+  telemetry: false,
+});
