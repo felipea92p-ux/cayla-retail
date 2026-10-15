@@ -307,7 +307,16 @@ export function RegistroClub({ ubicacionId, paginaInicial }: { ubicacionId: stri
             <Pie id={`${ID.numero}-pie`} error={errorDocumento}>
               {AYUDA.documento}
             </Pie>
-            {esDni && <ConfirmarDni consulta={consulta} numero={r.documentoNumero} onSi={confirmarDni} onCorregir={corregirDni} />}
+            {esDni && (
+              <ConfirmarDni
+                consulta={consulta}
+                numero={r.documentoNumero}
+                onSi={confirmarDni}
+                onCorregir={corregirDni}
+                onReintentar={() => pedirNombre(r.documentoNumero)}
+                deshabilitado={enviando}
+              />
+            )}
           </TarjetaCampo>
 
           {!esDni && (
@@ -332,7 +341,10 @@ export function RegistroClub({ ubicacionId, paginaInicial }: { ubicacionId: stri
                 onChange={(e) => setR((x) => ({ ...x, nombre: e.target.value }))}
                 onBlur={() => marcarSalida("nombre")}
               />
-              <Pie id={`${ID.nombre}-pie`} error={errorNombre} />
+              {/* Tal cual está en el documento (Felipe 2026-10-15). Un número se dice apenas se escribe: ningún nombre lo lleva. */}
+              <Pie id={`${ID.nombre}-pie`} error={errorNombre ?? (/[0-9]/.test(r.nombre) ? (problemas.nombre ?? null) : null)}>
+                {AYUDA.nombre}
+              </Pie>
             </TarjetaCampo>
           )}
 
@@ -620,8 +632,25 @@ function FilaCasilla({
   );
 }
 
-/** «¿Eres Mariela Q. R.?» bajo el DNI: buscando, la pregunta con «Sí, soy yo» / «No, corregir», confirmado, o por qué no se pudo. */
-function ConfirmarDni({ consulta, numero, onSi, onCorregir }: { consulta: Consulta; numero: string; onSi: () => void; onCorregir: () => void }) {
+/**
+ * «¿Eres Mariela Q. R.?» bajo el DNI: buscando, la pregunta con «Sí, soy yo» / «No, corregir», confirmado, o por qué no se pudo. Sin
+ * el nombre del padrón no se une (Felipe 2026-10-15): el porqué va con «Volver a intentar», que vuelve a preguntar por el mismo DNI.
+ */
+function ConfirmarDni({
+  consulta,
+  numero,
+  onSi,
+  onCorregir,
+  onReintentar,
+  deshabilitado,
+}: {
+  consulta: Consulta;
+  numero: string;
+  onSi: () => void;
+  onCorregir: () => void;
+  onReintentar: () => void;
+  deshabilitado: boolean;
+}) {
   if (consulta.estado === "nada" || consulta.numero !== numero) return null;
   if (consulta.estado === "buscando") {
     return (
@@ -632,9 +661,14 @@ function ConfirmarDni({ consulta, numero, onSi, onCorregir }: { consulta: Consul
   }
   if (consulta.estado === "fallo") {
     return (
-      <p role="alert" className="club-error-texto anim-revelar">
-        {consulta.mensaje}
-      </p>
+      <div role="alert" className="anim-revelar">
+        <p className="club-error-texto">{consulta.mensaje}</p>
+        <div className="club-eres-botones">
+          <button type="button" onClick={onReintentar} disabled={deshabilitado} className="club-boton-chico club-boton-chico-secundario">
+            Volver a intentar
+          </button>
+        </div>
+      </div>
     );
   }
   if (consulta.estado === "confirmado") {

@@ -253,7 +253,21 @@ describe("lo que ella escribe: UNA regla para la pantalla, su guía y el servido
     const pasaporte = { ...BIEN, documentoTipo: "pasaporte" as const, documentoNumero: "AB123456", dniConfirmado: false, nombre: "Ana Torres" };
     expect(problemasRegistro(pasaporte, HOY)).toEqual({});
     expect(problemasRegistro({ ...pasaporte, documentoNumero: "" }, HOY).documento).toBe("Escribe el número de tu documento.");
-    expect(problemasRegistro({ ...pasaporte, nombre: " A " }, HOY).nombre).toBe("Escribe tus nombres y apellidos.");
+    expect(problemasRegistro({ ...pasaporte, nombre: " A " }, HOY).nombre).toBe("Escribe tus nombres y apellidos, tal cual están en tu documento.");
+  });
+
+  it("con carné o pasaporte el nombre va tal cual está en el documento: sin números (Felipe 2026-10-15); con DNI, no se escribe", () => {
+    const pasaporte = { ...BIEN, documentoTipo: "pasaporte" as const, documentoNumero: "AB123456", dniConfirmado: false };
+    expect(problemasRegistro({ ...pasaporte, nombre: "Ana 2 Torres" }, HOY).nombre).toBe("Tu nombre no lleva números: escríbelo tal cual está en tu documento.");
+    expect(problemasRegistro({ ...pasaporte, documentoTipo: "carne_extranjeria", documentoNumero: "001234567", nombre: "A1" }, HOY).nombre).toMatch(/no lleva números/);
+    expect(problemasRegistro({ ...pasaporte, nombre: "Mary O'Neil Ñaupari" }, HOY).nombre).toBeUndefined();
+    // Con DNI el nombre lo trae el padrón: lo que diga la caja del nombre (aunque traiga números) no cuenta.
+    expect(problemasRegistro({ ...BIEN, nombre: "Ana 2" }, HOY).nombre).toBeUndefined();
+  });
+
+  it("lo que dice la base del nombre (20261015133000), en palabras para ella", () => {
+    expect(errorDeLaBase("nombre_sin_padron")).toEqual({ mensaje: MENSAJE.sinPadron, campo: "documento" });
+    expect(errorDeLaBase("nombre_con_numeros")).toEqual({ mensaje: "Tu nombre no lleva números: escríbelo tal cual está en tu documento.", campo: "nombre" });
   });
 
   it("el celular: obligatorio, 9 dígitos que empiezan en 9; pegado con +51 y espacios sirve", () => {

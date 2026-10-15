@@ -182,6 +182,8 @@ export type Trozo = string | { fuerte: string };
 export const AYUDA = {
   documento: "Lo usamos para reconocerte en caja y aplicar tus cupones.",
   padron: "Lo tomamos del padrón público para que tu nombre quede bien escrito.",
+  // Carné o pasaporte (Felipe 2026-10-15): el nombre se escribe tal cual está en el documento.
+  nombre: "Tal cual está en tu documento: nombres y apellidos, sin números.",
   celular: "Aquí te llegarán nuestras novedades y tus cupones.",
   nacimiento: "Para tu cupón de cumpleaños.",
   correo: "Opcional. Solo para contactarte si lo necesitamos.",
@@ -286,7 +288,11 @@ export function problemasRegistro(r: RegistroEscrito, hoy: string): Partial<Reco
     if (mal) p.documento = mal;
     else if (esDni && !r.dniConfirmado) p.documento = "Confirma que el nombre que aparece es el tuyo.";
   }
-  if (!esDni && r.nombre.replace(/\s+/g, " ").trim().length < 3) p.nombre = "Escribe tus nombres y apellidos.";
+  // Carné o pasaporte: tal cual está en el documento, que nunca lleva números en el nombre (Felipe 2026-10-15). Con DNI el nombre
+  // sale del padrón (el servidor lo vuelve a leer y lo anota: `registrarme`).
+  const nombre = r.nombre.replace(/\s+/g, " ").trim();
+  if (!esDni && /[0-9]/.test(nombre)) p.nombre = "Tu nombre no lleva números: escríbelo tal cual está en tu documento.";
+  else if (!esDni && nombre.length < 3) p.nombre = "Escribe tus nombres y apellidos, tal cual están en tu documento.";
 
   const celular = soloDigitos(r.celular);
   if (celular === "") p.celular = "Escribe tu celular con WhatsApp.";
@@ -452,6 +458,12 @@ export function errorDeLaBase(hint: string | null | undefined): { mensaje: strin
     // El correo de otra ficha (o de la cuenta web de otra ficha): 20261015054000. No dice de quién.
     case "correo_repetido":
       return { mensaje: MENSAJE.correoRepetido, campo: "correo" };
+    // El nombre (20261015133000): con DNI, la base no encontró la lectura del padrón (no se pudo anotar o venció); se vuelve a
+    // intentar. Con carné o pasaporte, traía números (la página ya lo dice antes; esto es la red).
+    case "nombre_sin_padron":
+      return { mensaje: MENSAJE.sinPadron, campo: "documento" };
+    case "nombre_con_numeros":
+      return { mensaje: "Tu nombre no lleva números: escríbelo tal cual está en tu documento.", campo: "nombre" };
     default:
       return { mensaje: MENSAJE.noDisponible, campo: null };
   }
