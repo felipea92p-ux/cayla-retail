@@ -173,6 +173,9 @@ const HUELLAS: Huella[] = [
     marca: "variantes_producto_talla_color_unico",
     frase: "Ese producto ya tiene esa talla y ese color. Búscalo en el catálogo: el código que escaneaste puede ser un duplicado de la etiqueta.",
   },
+  // La ficha de un cliente (/chaos 2026-10-15, 20261015154000, ADR-0416): la pantalla ya lo frena; esto es el respaldo.
+  { marca: "clientas_con_algun_dato", frase: "La ficha necesita al menos el documento, el nombre o el celular." },
+  { marca: "clientas_cumple_fecha_real", frase: "Ese cumpleaños no existe: revisa el día y el mes." },
   {
     // Un documento, una clienta: `clientas_dni_unico` (20260922140000) pasó a `clientas_documento_unico`, por tipo y
     // número, en 20260930160000 (ADR-0288 D-2). `registrar_clienta` hace upsert por documento y `editar_clienta` lo

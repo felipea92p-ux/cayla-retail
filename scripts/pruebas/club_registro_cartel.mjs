@@ -90,7 +90,17 @@ const NO_REPETIR_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(NO_REP
 const NO_REPETIR_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(NO_REPETIR)?.[1];
 const REGISTRARSE = "retail.registrarse_en_el_club(uuid,text,text,text,text,date,text,boolean,boolean,boolean,jsonb,boolean)";
 /** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18, registrarse_en_el_club) o el de la PARTE 8. */
-const despuesHoy = (v) => (v.firma === RV_HOY ? REDONDEO_DESPUES : v.firma === REGISTRARSE ? NO_REPETIR_DESPUES : v.despues) ?? "NO_EXISTE";
+// ADR-0416 (anonimizar es de un líder) volvió a tocar archivar_clienta con su propia tabla de versiones: su «antes» es el «después» de
+// esta PARTE 8, y su «después» es el de hoy.
+const ANONIMIZAR_LIDER = readFileSync(join(RAIZ, "supabase", "migrations", "20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql"), "utf8");
+const ARCHIVAR = "retail.archivar_clienta(uuid,text,boolean,integer)";
+const ARCHIVAR_POSTERIOR = /\('retail\.archivar_clienta\(uuid,text,boolean,integer\)',\s+'([0-9a-f]{32})',\s+'([0-9a-f]{32})'\)/.exec(ANONIMIZAR_LIDER);
+if (!ARCHIVAR_POSTERIOR || VERSIONES.find((v) => v.firma === ARCHIVAR)?.despues !== ARCHIVAR_POSTERIOR[1]) {
+  console.error("✗ La tabla de versiones de 20261015155000 debería partir del «después» de archivar_clienta de esta PARTE 8.");
+  process.exit(1);
+}
+const despuesHoy = (v) =>
+  (v.firma === RV_HOY ? REDONDEO_DESPUES : v.firma === REGISTRARSE ? NO_REPETIR_DESPUES : v.firma === ARCHIVAR ? ARCHIVAR_POSTERIOR[2] : v.despues) ?? "NO_EXISTE";
 
 // Los textos vigentes (docs/club/texto-legal-registro-v2.md): la PARTE 4 sembró la v1 y 20261002160000 publicó la v2 sin género
 // (ADR-0288 act. k). El cuerpo de cada sección.
