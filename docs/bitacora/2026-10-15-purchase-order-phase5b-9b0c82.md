@@ -16,7 +16,8 @@ la transacción. Lo devuelto no se cierra en el comprobante, porque sí llegó.
 
 Felipe se lleva: la plata de lo que no llegó o llegó dañado vuelve al toque, con la cuenta puente mientras falta la nota del proveedor, y
 un aviso que no se oculta mientras ese IGV no se regularice.
+Las dos migraciones están en producción desde el 2026-10-15, con su OK: las 16 funciones quedaron con la misma huella que el banco.
 Queda para él:
-- pegar las dos migraciones en producción (ya verificadas con solo lectura: 22 anclas y 2 huellas en su lugar);
-- los 3 cambios que propone `/formidable`;
-- el contador, para la 4019.
+- los 3 cambios que propone `/formidable`, en otro PR después de la prueba ciega;
+- el contador, para la 4019;
+- el volcado de producción, en una sesión aparte: hay 19 tablas nuevas de otros módulos que necesitan dueño en el aviario.

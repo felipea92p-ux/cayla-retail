@@ -1427,7 +1427,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `HojaReposicion.tsx` (`lib/nos-debe-acciones.ts` → `resolver_deuda_proveedor`); la orden nueva/editar lee `fn_nos_debe_resumen`
   (`getDatosNuevaOrden`, aviso); la recepción ofrece la causa `reposicion_faltante` con `deudas_del_proveedor` de `fn_envio_detalle`, y
   `recibir_despacho` reparte la reposición entre las deudas (`proveedor_deuda_resoluciones`). Lógica pura en `lib/nos-debe-reglas.ts`.
-- **La plata de «Nos debe»** (ADR-0362, fase 5b, 2026-10-15; migraciones `20261015145000` y `20261015150000`, **sin pegar**).
+- **La plata de «Nos debe»** (ADR-0362, fase 5b, 2026-10-15; migraciones `20261015145000` y `20261015150000`, en producción desde el
+  2026-10-15).
   - **La ficha del proveedor:**
     - `HojaSaldoAFavor.tsx` y `HojaDeposito.tsx` → `lib/nos-debe-acciones.ts`: `resolver_deuda_proveedor` (forma `saldo_a_favor`),
       `registrar_deposito_deuda` y la lectura `fn_deuda_valor`.

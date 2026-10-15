@@ -1,4 +1,4 @@
-## 💸 ADR-0362, fase 5b: la plata de «Nos debe» (2026-10-15) — migraciones `20261015145000` y `20261015150000`, **sin pegar en producción**; rama `claude/purchase-order-phase5b-9b0c82`
+## 💸 ADR-0362, fase 5b: la plata de «Nos debe» (2026-10-15) — migraciones `20261015145000` y `20261015150000`, **en producción desde el 2026-10-15**; rama `claude/purchase-order-phase5b-9b0c82`
 
 - [x] **«Pasar a saldo a favor»** con documento interno DI-…; con factura, su IGV a la cuenta puente 4019 (Felipe 2026-10-15).
 - [x] **«Llegó su nota de crédito»** (la 07 del proveedor, adjunta a los documentos internos; Impuestos y el Diario la cuentan desde su fecha).
@@ -15,11 +15,18 @@
   - permisos y entradas raras: resisten;
   - INV-19 e INV-20 nuevas, vivas: detectan lo que se corrompe a propósito;
   - un hallazgo de gravedad 2, arreglado: la nota del proveedor aceptaba NaN en la tabla.
-- [x] **Producción, solo lectura (2026-10-15):** las 22 anclas y las 2 huellas que exigen las migraciones están en su lugar, y las migraciones todavía no están pegadas.
-- [ ] **Pegar en producción** `20261015145000` y luego `20261015150000`, con el OK de Felipe. Después, refrescar el volcado y el diccionario (`pnpm datos:generar:produccion`).
-- [ ] **`/formidable`:**
-  - Los 3 cambios propuestos esperan el OK de Felipe ([compras-nos-debe-plata](../formidable/compras-nos-debe-plata.md)).
-  - Falta la prueba ciega y la de una colaboradora real.
+- [x] **En producción (2026-10-15, con el OK de Felipe):** `20261015145000` y después `20261015150000` (allá `20261015233508` y `20261015234146`).
+  - Antes, solo lectura: las 22 anclas y las 2 huellas en su lugar, sin filas que los candados nuevos tuvieran que revisar, y lo que las
+    funciones usan al correr (firmas, columnas, valores permitidos) igual al banco.
+  - Después: las 16 funciones con la misma huella que el banco y los mismos permisos; las 22 anclas, «ya aplicado»; las tablas nuevas, con
+    RLS y sin lectura directa. Las dos migraciones de seguridad que otra sesión pegó antes (`20261015221000`, `20261015222000`) no tocan
+    nada de esta fase.
+- [ ] **Refrescar el volcado y el diccionario** (`pnpm datos:refrescar`, ver `docs/datos/generado/COMO-REFRESCAR.md`): queda aparte.
+  Producción ya tiene 21 tablas que el volcado no conoce: las 2 de esta fase y 19 de la tienda online, el padrón, Apartados y los datos
+  bancarios de los proveedores. Cada una necesita su pájaro en `scripts/datos/aviario.mjs`, y elegir el dueño de tablas de otros módulos
+  no es de esta fase.
+- [ ] **`/formidable`:** los 3 cambios propuestos ([compras-nos-debe-plata](../formidable/compras-nos-debe-plata.md)) van en otro PR,
+  después de la prueba ciega (Felipe 2026-10-15). Falta también la prueba con una colaboradora real.
 - [ ] **El contador:** el código y el nombre de la 4019; si la devolución de una dañada de factura necesita otra cosa que la nota 07.
 - [ ] **Sin construir, por decisión (Felipe 2026-10-15):**
   - devolver con deuda lo que devolvió un cliente o reportó la tienda;

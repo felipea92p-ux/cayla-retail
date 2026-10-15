@@ -169,7 +169,10 @@ el IGV de la 4019. **«Depositó»** (59), con Proveedores: el documento interno
 operación; el depósito tiene que ser exactamente eso. **El aviso del IGV** (61), en Inicio sin poder ocultarse y en el Observatorio.
 **Devolver al proveedor lo que llegó dañado** (60): desde Dañadas, con Existencias; queda como deuda «por reponer» (causa `devuelta`) con
 las mismas tres salidas, y su documento interno es por devolución, sobre el comprobante donde esas prendas se recibieron. De paso, la
-ficha del proveedor muestra el saldo a favor a quien solo tiene Proveedores (salía S/ 0).
+ficha del proveedor muestra el saldo a favor a quien solo tiene Proveedores (salía S/ 0). Migraciones `20261015145000` (el esquema) y
+`20261015150000` (las funciones); prueba `pnpm pruebas:nos-debe` (41 casos). **En producción desde el 2026-10-15** (allá `20261015233508`
+y `20261015234146`), pegadas en ese orden con el OK de Felipe: las 16 funciones que crean o reescriben tienen la misma huella (md5 de su
+definición) que en el banco donde corrieron las pruebas, y los 22 reemplazos anclados quedaron aplicados.
 
 Por defecto *(provisional, revisar con Felipe y el contador)*: el código y el nombre de la 4019; el monto de la nota del proveedor se
 escribe y tiene que coincidir con los documentos que respalda, y una nota puede respaldar varios documentos internos del mismo
