@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aplazamientosSinFecha, detalleDeFila, historialDelApartado, motivoFechaAplazar, opcionesAplazar, textoDiasMas } from "./apartado-detalle-reglas";
+import { aplazamientoTrasCorte, aplazamientosSinFecha, detalleDeFila, hojaDetalle, historialDelApartado, motivoFechaAplazar, opcionesAplazar, textoDiasMas } from "./apartado-detalle-reglas";
 import type { Apartado } from "./separaciones-reglas";
 
 const apartado = (extra: Partial<Apartado> = {}): Apartado => ({
@@ -119,5 +119,30 @@ describe("motivoFechaAplazar: las mismas frases que la base", () => {
   it("cuántos días más", () => {
     expect(textoDiasMas("2026-09-29", "2026-09-30")).toBe("1 día más");
     expect(textoDiasMas("2026-09-29", "2026-10-06")).toBe("7 días más");
+  });
+});
+
+describe("hojaDetalle: la hoja nunca queda trabada al volver (chaos 2026-10-15, semilla 1415)", () => {
+  it("tras guardar, volver al detalle la destraba aunque el formulario no alcance a avisar que terminó", () => {
+    let e = hojaDetalle({ modo: "ver", ocupado: false }, { tipo: "ir", modo: "aplazar" });
+    e = hojaDetalle(e, { tipo: "ocupado", valor: true });
+    e = hojaDetalle(e, { tipo: "volver" });
+    expect(e).toEqual({ modo: "ver", ocupado: false });
+  });
+  it("cambiar de modo también la destraba; «ocupado» solo cambia ese dato", () => {
+    expect(hojaDetalle({ modo: "ver", ocupado: true }, { tipo: "ir", modo: "abonar" })).toEqual({ modo: "abonar", ocupado: false });
+    expect(hojaDetalle({ modo: "abonar", ocupado: false }, { tipo: "ocupado", valor: true })).toEqual({ modo: "abonar", ocupado: true });
+  });
+});
+
+describe("tras un corte al aplazar, releer dice si quedó (chaos RS-03, semilla 1415)", () => {
+  it("quedó si el vencimiento releído ya es la fecha que se mandó", () => {
+    expect(aplazamientoTrasCorte({ venceEl: "2026-10-25" }, "2026-10-25")).toBe("quedo");
+  });
+  it("no quedó si sigue la fecha de antes: se puede reintentar la MISMA fecha (la base no la cuenta dos veces)", () => {
+    expect(aplazamientoTrasCorte({ venceEl: "2026-10-22" }, "2026-10-25")).toBe("reintentar");
+  });
+  it("sin nada en duda, no hay nada que comprobar", () => {
+    expect(aplazamientoTrasCorte({ venceEl: "2026-10-22" }, null)).toBe("nada");
   });
 });

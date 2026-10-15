@@ -78,7 +78,7 @@
       "Boton «{aplazar.bloqueo ?? undefined}»",
       "Boton «Registrar abono»",
       "Boton «Entregar»",
-      "button «→() => setEleccion(x.dias)»",
+      "button «→() => setEleccion({ dias: x.dias, fecha: x.fecha»",
       "button «Otra fecha»",
       "CampoFecha «Recoge hasta el»",
       "ComboResponsable «Cancelar»",

@@ -6,5 +6,8 @@
 - [x] Base: `aplazar_separacion` (2 veces, tope 30 días, idempotente por fecha), `extender_separacion` = aplazar 7 días, `fn_detalle_separacion`. Suite `separaciones.mjs` 90/90 (7 nuevas).
 - [x] Verificado en Chrome sin ventana contra una pila propia: escritorio, 375 px, oscuro; aplazar y abonar guardan y el historial se actualiza; cero errores de consola.
 - [ ] **Pegar `20261015151000` en producción ANTES de publicar la web** (con el OK de Felipe; una sola parte, sin políticas).
-- [ ] `/chaos` de la hoja de aplazar no corrido (base local compartida atrasada al 30-sep); el doble clic y los topes sí están probados en la suite de la base.
-- [ ] `/formidable` no corrido.
+- [x] `/chaos` (semilla 1415, pila propia): 22 ataques, 0 violaciones nuevas; los 4 hallazgos de la hoja cerrados con su prueba y repetidos con la misma semilla.
+- [x] `/formidable`: ciega ✓ (6 toques, 0 errores evitables); los 3 cambios hechos (destrabar y foco, «2 pagos» y el aviso del abono, releer tras un corte). Leyes 7,6 · oficio 6.
+- [ ] **De Felipe:** «2,5» se guarda como 25 en `CampoMonto` (29 campos del ERP, también el cobro de Vender).
+- [ ] **De Felipe:** permisos del detalle (ver chat de la sesión; no se versiona).
+- [ ] Repetir la prueba ciega sobre la hoja ya arreglada; botones del pie y × a 44 px en el celular (piezas del sistema).

@@ -174,3 +174,29 @@ export function textoDiasMas(desde: string, fecha: string): string {
   const n = diasEntreFechas(desde, fecha);
   return `${n} ${n === 1 ? "día" : "días"} más`;
 }
+
+/** Los tres modos de la hoja de detalle: leer, registrar un abono o aplazar. */
+export type ModoDetalle = "ver" | "abonar" | "aplazar";
+/** `ocupado`: algo va en camino a la base y la hoja no se deja cerrar (la × apagada, Escape quieto). */
+export type HojaDetalle = { modo: ModoDetalle; ocupado: boolean };
+export type AccionHoja = { tipo: "ir"; modo: ModoDetalle } | { tipo: "ocupado"; valor: boolean } | { tipo: "volver" };
+
+/**
+ * El estado de la hoja. Cambiar de modo la deja SIEMPRE libre: el formulario que guardó se desmonta en el mismo instante en que
+ * avisa que terminó, y ese último aviso («ya no estoy ocupado») se perdía. La hoja quedaba con la × apagada y Escape sin efecto
+ * (/chaos 2026-10-15, lo encontró la prueba ciega).
+ */
+export function hojaDetalle(e: HojaDetalle, a: AccionHoja): HojaDetalle {
+  if (a.tipo === "ocupado") return { ...e, ocupado: a.valor };
+  return { modo: a.tipo === "volver" ? "ver" : a.modo, ocupado: false };
+}
+
+/**
+ * Después de un corte al aplazar (la base pudo guardar y la respuesta no llegar), la pantalla relee el apartado y decide con esto:
+ * «quedo» si el vencimiento ya es la fecha que se mandó; «reintentar» si sigue el de antes (repetir la MISMA fecha es seguro: la base
+ * no la cuenta dos veces). Antes la hoja decía «revisa si ya aparece registrado» y seguía mostrando el historial viejo (/chaos RS-03).
+ */
+export function aplazamientoTrasCorte(a: Pick<Apartado, "venceEl">, enDuda: string | null): "nada" | "quedo" | "reintentar" {
+  if (!enDuda) return "nada";
+  return a.venceEl === enDuda ? "quedo" : "reintentar";
+}

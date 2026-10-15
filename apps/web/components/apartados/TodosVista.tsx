@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Archive, Bell, Check, MessageCircle, Printer, SearchX, SlidersHorizontal } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { ResumenApartados } from "@/lib/separaciones";
@@ -16,6 +16,7 @@ import {
   formatoCelular,
   paraQuienPedido,
   textoDevolucion,
+  textoPagosDeFila,
   textoEstadoPedido,
   type Apartado,
   type PedidoApartado,
@@ -168,7 +169,13 @@ export function TodosVista({
   const [devolver, setDevolver] = useState<Apartado | null>(null);
   // El detalle de un apartado (ADR-0414): se abre al tocar la fila, o directo en «Aplazar» desde su botón. Se guarda el id, no la fila:
   // al abonar o aplazar la página se refresca y el detalle lee el apartado ya cambiado.
-  const [detalle, setDetalle] = useState<{ id: string; modo: ModoDetalle } | null>(null);
+  const [detalle, setDetalleCrudo] = useState<{ id: string; modo: ModoDetalle } | null>(null);
+  // El botón del nombre de la fila que abrió la hoja: al cerrarla, el foco vuelve ahí (si no, caía al fondo de la página: TEC-06).
+  const filaQueAbrio = useRef<HTMLElement | null>(null);
+  const setDetalle = (d: { id: string; modo: ModoDetalle } | null) => {
+    if (d) filaQueAbrio.current = document.querySelector<HTMLElement>(`[data-detalle-de="${d.id}"]`);
+    setDetalleCrudo(d);
+  };
   // «Reimprimir» (ADR-0367): el ticket de cualquier apartado de la lista, abierto o cerrado.
   const [reimprimir, setReimprimir] = useState<Apartado | null>(null);
   // Recordar (Apartados v2, paso 1): la cola del día o una sola clienta desde su fila. Lo avisado en esta visita se
@@ -483,6 +490,7 @@ export function TodosVista({
                           type="button"
                           onClick={() => setDetalle({ id: a.id, modo: "ver" })}
                           aria-label={`Ver el detalle del apartado ${a.codigo} de ${a.nombres} ${a.apellidos}`}
+                          data-detalle-de={a.id}
                           className="block max-w-full truncate text-left font-semibold text-tinta hover:underline focus-visible:underline"
                         >
                           {a.nombres} {a.apellidos}
@@ -508,9 +516,7 @@ export function TodosVista({
                       <b className="font-semibold">{money(a.adelanto)}</b> <span className="text-xs text-tinta/55">de {money(a.total)}</span>
                       <p className="text-xs text-tinta/60">
                         {a.estado === "liberada" ? `por ${textoDevolucion(a)}` : a.estado === "abierta" ? `saldo ${money(a.saldo)}` : "cerrado"}
-                        {conAbonos && a.pagos.some((p) => p.abono) && (
-                          <span className="text-verde-profundo"> · {a.pagos.filter((p) => p.abono).length} {a.pagos.filter((p) => p.abono).length === 1 ? "abono" : "abonos"}</span>
-                        )}
+                        {textoPagosDeFila(a.pagos) && <span className="text-verde-profundo"> · {textoPagosDeFila(a.pagos)}</span>}
                       </p>
                     </div>
                     <div className="space-y-1">
@@ -605,6 +611,7 @@ export function TodosVista({
               conEstante={conEstante}
               prendas={prendas}
               modoInicial={detalle.modo}
+              alCerrarEnfocar={filaQueAbrio}
               onEntregar={(id) => {
                 setDetalle(null);
                 irAEntregar(id);

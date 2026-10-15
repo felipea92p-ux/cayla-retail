@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useReducer, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Bookmark, CalendarClock, MessageCircle, ShoppingBag, Undo2, Unlock, Wallet } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
@@ -19,24 +19,27 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { AbonarFormulario, type UbicacionApartado } from "@/components/apartados/ModalesApartado";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { diaLima, horaLima, sumarDias } from "@/lib/fechas-lima";
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
 import { EXTENSIONES_MAX, estadoVisible, formatoCelular, type Apartado } from "@/lib/separaciones-reglas";
 import {
+  aplazamientoTrasCorte,
   aplazamientosSinFecha,
   detalleDeFila,
+  hojaDetalle,
   historialDelApartado,
   motivoFechaAplazar,
   opcionesAplazar,
   textoDiasMas,
   type DetalleApartado,
   type EventoApartado,
+  type ModoDetalle,
 } from "@/lib/apartado-detalle-reglas";
 
-export type ModoDetalle = "ver" | "abonar" | "aplazar";
+export type { ModoDetalle } from "@/lib/apartado-detalle-reglas";
 
 /** «jue, 25 sep · 16:34»: el día y la hora exactos de Lima. */
 const cuando = (instante: string) => [fechaCorta(diaLima(instante)), horaLima(instante)].filter(Boolean).join(" · ");
@@ -57,6 +60,7 @@ export function DetalleApartadoModal({
   conEstante,
   prendas,
   modoInicial = "ver",
+  alCerrarEnfocar,
   onEntregar,
   onClose,
 }: {
@@ -72,11 +76,14 @@ export function DetalleApartadoModal({
   prendas: VarianteBusqueda[];
   /** Desde el botón «Aplazar» de la fila se abre directo en ese modo, y al terminar o cancelar se cierra. */
   modoInicial?: ModoDetalle;
+  /** A dónde vuelve el foco al cerrar: la fila que la abrió (si no, cae al fondo de la página). */
+  alCerrarEnfocar?: RefObject<HTMLElement | null>;
   onEntregar: (id: string) => void;
   onClose: () => void;
 }) {
-  const [modo, setModo] = useState<ModoDetalle>(modoInicial);
-  const [ocupado, setOcupado] = useState(false);
+  const [{ modo, ocupado }, despachar] = useReducer(hojaDetalle, { modo: modoInicial, ocupado: false });
+  const setModo = (m: ModoDetalle) => despachar(m === "ver" ? { tipo: "volver" } : { tipo: "ir", modo: m });
+  const setOcupado = useMemo(() => (valor: boolean) => despachar({ tipo: "ocupado", valor }), []);
   // Se vuelve a leer cada vez que la lista trae el apartado cambiado (un abono o un aplazamiento recién guardado).
   const clave = `${a.id}|${a.estado}|${a.adelanto}|${a.venceEl}|${a.extensiones}`;
   const [lectura, setLectura] = useState<{ clave: string; detalle: DetalleApartado | null; fallo: boolean } | null>(null);
@@ -103,7 +110,7 @@ export function DetalleApartadoModal({
       : `${a.nombres} ${a.apellidos} · ${a.codigo} · la prenda sigue guardada`;
 
   return (
-    <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose} tamano="mediana" conCerrar={modo === "ver"} bloqueado={ocupado}>
+    <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose} tamano="mediana" conCerrar={modo === "ver"} bloqueado={ocupado} alCerrarEnfocar={alCerrarEnfocar}>
       {(cerrar) => {
         // Lo que se abrió directo en un modo (desde la fila) se cierra al terminar; lo que se abrió desde el detalle vuelve a él.
         const volver = () => (modoInicial === "ver" ? setModo("ver") : cerrar());
@@ -378,13 +385,24 @@ function AplazarFormulario({
 }) {
   const router = useRouter();
   const o = opcionesAplazar(a, hoy);
-  // Nada elegido de entrada: es la fecha que se le promete al cliente, la elige quien atiende.
-  const [eleccion, setEleccion] = useState<number | "otra" | null>(null);
+  // Nada elegido de entrada: es la fecha que se le promete al cliente, la elige quien atiende. Un atajo guarda la FECHA, no los días: si
+  // tras un corte el apartado se relee ya aplazado, «+3» no se vuelve a contar desde la fecha nueva.
+  const [eleccion, setEleccion] = useState<{ dias: number; fecha: string } | "otra" | null>(null);
   const [otra, setOtra] = useState("");
-  const fecha = eleccion === "otra" ? otra : (o.atajos.find((x) => x.dias === eleccion)?.fecha ?? "");
-  const motivo = motivoFechaAplazar(fecha, o);
+  const fecha = eleccion === "otra" ? otra : (eleccion?.fecha ?? "");
+  const [enDuda, setEnDuda] = useState<string | null>(null);
+  const trasCorte = aplazamientoTrasCorte(a, enDuda);
+  const motivo = trasCorte === "quedo" ? null : motivoFechaAplazar(fecha, o);
   const [enviando, setEnviando] = useState(false);
   useEffect(() => onOcupado(enviando), [enviando, onOcupado]);
+  // Tras el corte la página se relee: si el apartado ya vence en la fecha mandada, quedó, y se dice así.
+  useEffect(() => {
+    if (trasCorte !== "quedo" || !enDuda) return;
+    avisar.exito("Sí quedó: apartado aplazado", { detalle: `${a.nombres} recoge hasta el ${fechaCorta(enDuda)}. Avísale por WhatsApp.` });
+    onListo();
+    // Solo cuando la relectura trae la respuesta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trasCorte]);
   const responsable = useResponsable(ubicacion, { modo: "atencion" }); // módulo Punto de venta: «¿Quién está atendiendo?», vacío al abrir
 
   const guia = useGuiaCampos([
@@ -398,7 +416,15 @@ function AplazarFormulario({
     const { data, error } = await firmar(createClient().rpc("aplazar_separacion" as never, { p_separacion_id: a.id, p_vence_el: fecha } as never), responsable.firma());
     setEnviando(false);
     responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "aplazar el apartado"));
+    if (error) {
+      avisar.error(traducirError(error, "aplazar el apartado"));
+      // Pudo guardarse y perderse la respuesta: se relee el apartado y la hoja lo resuelve sola (arriba).
+      if (esFalloDeRed(error)) {
+        setEnDuda(fecha);
+        router.refresh();
+      }
+      return;
+    }
     avisar.exito("Apartado aplazado", { detalle: `${a.nombres} recoge hasta el ${fechaCorta(String(data ?? fecha))}. Avísale por WhatsApp.` });
     router.refresh();
     onListo();
@@ -426,14 +452,14 @@ function AplazarFormulario({
               key={x.dias}
               type="button"
               role="radio"
-              aria-checked={eleccion === x.dias}
+              aria-checked={eleccion !== null && eleccion !== "otra" && eleccion.dias === x.dias}
               disabled={!x.cabe || Boolean(o.bloqueo)}
               title={x.cabe ? undefined : `Pasa el tope: se guarda como mucho hasta el ${fechaCorta(o.tope)}`}
-              onClick={() => setEleccion(x.dias)}
-              className={`flex flex-col items-center justify-center rounded-xl border px-2 py-2.5 text-center transition-colors disabled:opacity-45 ${eleccion === x.dias ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel hover:border-taupe"}`}
+              onClick={() => setEleccion({ dias: x.dias, fecha: x.fecha })}
+              className={`flex flex-col items-center justify-center rounded-xl border px-2 py-2.5 text-center transition-colors disabled:opacity-45 ${eleccion !== null && eleccion !== "otra" && eleccion.dias === x.dias ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel hover:border-taupe"}`}
             >
               <span className="text-sm font-semibold">+{x.dias} días</span>
-              <span className={`text-[11.5px] ${eleccion === x.dias ? "text-crema/80" : "text-tinta/60"}`}>{fechaCorta(x.fecha)}</span>
+              <span className={`text-[11.5px] ${eleccion !== null && eleccion !== "otra" && eleccion.dias === x.dias ? "text-crema/80" : "text-tinta/60"}`}>{fechaCorta(x.fecha)}</span>
             </button>
           ))}
           <button
@@ -467,7 +493,12 @@ function AplazarFormulario({
           {o.restantes - 1 === 0 ? "Es el último aplazamiento que le queda." : `Después le queda ${o.restantes - 1} aplazamiento más.`}
         </p>
       )}
-      {o.bloqueo && <Aviso tono="atencion" chico>{o.bloqueo}</Aviso>}
+      {o.bloqueo && !enDuda && <Aviso tono="atencion" chico>{o.bloqueo}</Aviso>}
+      {trasCorte === "reintentar" && (
+        <Aviso tono="atencion" chico>
+          Se cortó la conexión. Si se guardó, esta hoja se cierra sola en unos segundos; si no, vuelve a tocar «Aplazar al {fechaCorta(enDuda)}»: no se cuenta dos veces.
+        </Aviso>
+      )}
 
       <CampoGuiado id="responsable" guia={guia}>
         <ComboResponsable control={responsable} deshabilitado={enviando} />

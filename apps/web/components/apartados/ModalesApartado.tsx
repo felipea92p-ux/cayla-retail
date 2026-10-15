@@ -19,6 +19,7 @@ import {
   AVISO_DIAS,
   FUNCIONES_APARTADOS,
   PRESETS_APARTADOS,
+  avisoDeAbono,
   diasEsperaPorAbono,
   presetDe,
   type FuncionApartados,
@@ -668,7 +669,7 @@ export function AbonarFormulario({
   function abonado(datos: { vence_el?: string; saldo?: number } | null, cerrar: () => void) {
     const r = datos ?? {};
     avisar.exito(`Abono de ${money(monto)} anotado`, {
-      detalle: `${apartado.nombres}: ${Number(r.saldo ?? saldo - monto) > 0 ? `falta ${money(Number(r.saldo ?? saldo - monto))}` : "ya pagó todo"}${esperar && r.vence_el ? ` · recoge hasta el ${fechaCorta(r.vence_el)}` : ""}. Sale su boleta de anticipo.`,
+      detalle: avisoDeAbono(apartado, { saldo: Number(r.saldo ?? saldo - monto), venceEl: esperar && r.vence_el ? r.vence_el : null }),
     });
     router.refresh();
     cerrar();
