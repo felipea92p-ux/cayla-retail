@@ -353,6 +353,9 @@ export const TEXTO_REGLA: Record<string, string> = {
   merma_traslado: "Faltó en un traslado (en la sede que lo envió)",
   anticipo: "Adelantos de separaciones",
   anticipo_devuelto: "Adelantos devueltos",
+  // ADR-0408 act. 10: lo que un cliente paga por su pedido web antes de que sea una venta (y lo que se anula).
+  pedido_web_pago: "Pagos de pedidos web",
+  pedido_web_pago_anulado: "Pagos de pedidos web anulados",
   gasto: "Gastos",
   compra: "Facturas de mercadería",
   activo: "Activos fijos",
