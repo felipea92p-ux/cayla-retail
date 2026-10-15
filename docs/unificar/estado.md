@@ -36,5 +36,7 @@ ellas. Los círculos de ícono de Devoluciones y «Confirmar cambios» no eran p
 
 ![Después: la insignia de estado](capturas/estado.pildoras.jpg)
 
+![Después, en Existencias](capturas/estado.pildoras-despues.jpg)
+
 **Firma:** una píldora redonda con el fondo suave de un tono (verde, ámbar, rojo, pizarra, taupe, arena o tinta), letra de 10 a 12 px y su
 relleno de píldora. Deuda 0.
