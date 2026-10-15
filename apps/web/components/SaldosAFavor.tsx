@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { soles } from "@/lib/compras-reglas";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 
@@ -40,9 +41,7 @@ export function SaldosAFavor({ saldos, indice = 0 }: { saldos: SaldoAFavor[]; /*
                 </p>
                 {/* Cuánto de la deuda cubre el saldo a favor: la proporción se ve sin leer las cifras. Se llena una vez al llegar. */}
                 {s.deuda > 0 && (
-                  <div aria-hidden className="mt-2 h-[5px] max-w-[21rem] overflow-hidden rounded-full bg-sand">
-                    <div className="anim-crece-x h-full origin-left rounded-full bg-verde" style={{ width: `${Math.min(100, Math.round((cubre / s.deuda) * 100))}%` }} />
-                  </div>
+                  <BarraAvance pct={(cubre / s.deuda) * 100} decorativa className="mt-2 max-w-[21rem]" />
                 )}
               </div>
               <div className="flex items-center gap-4">

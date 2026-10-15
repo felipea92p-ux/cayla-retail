@@ -16,7 +16,7 @@
       "DesplegablePildora «Tipo»",
       "DesplegablePildora «Tienda»",
       "DesplegablePildora «Estado»",
-      "BotonCompacto «comprobantes.opciones»",
+      "BotonPuntos «{`${ETIQUETA_TIPO[c.tipo]}»",
       "CampoTexto «Motivo»",
       "ComboResponsable «Cancelar»",
       "Boton «Cancelar»",

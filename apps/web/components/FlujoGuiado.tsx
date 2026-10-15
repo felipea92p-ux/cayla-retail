@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode, type RefObject } from "react";
+import { Anillo } from "@/components/ui/Anillo";
 import { AlertTriangle, Check, Clock } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { Volver } from "@/components/ui/Volver";
@@ -148,27 +149,6 @@ function Pasos({ pasos, actual, onIr }: { pasos: readonly string[]; actual: numb
   );
 }
 
-/** El anillo de «cuántas revisiones van»: se llena solo al ir cumpliéndose. */
-function AnilloProgreso({ pct }: { pct: number }) {
-  return (
-    <svg viewBox="0 0 36 36" className="anillo-progreso h-full w-full" aria-hidden>
-      <circle cx="18" cy="18" r="15.9155" fill="none" stroke="currentColor" strokeOpacity=".16" strokeWidth="3" />
-      <circle
-        className="rg"
-        cx="18"
-        cy="18"
-        r="15.9155"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-        transform="rotate(-90 18 18)"
-        style={{ strokeDasharray: `${pct} 100` }}
-      />
-    </svg>
-  );
-}
-
 /** "Lo que el sistema revisa": las validaciones en vivo, pegadas al costado en escritorio.
  *  Arriba, un anillo con cuántas van cumplidas (un aviso —como el plazo vencido en una
  *  devolución— no frena, así que cuenta como revisado) y el plazo de la compra, verde o
@@ -177,21 +157,17 @@ function AnilloProgreso({ pct }: { pct: number }) {
 export function PanelValidaciones({ validaciones, impacto, guia }: { validaciones: readonly Validacion[]; impacto?: ImpactoOperacion | null; /** Ancla de la guía (ADR-0389). */ guia?: string }) {
   const total = validaciones.length;
   const cumplidas = validaciones.filter((v) => v.estado === "ok" || v.estado === "aviso").length;
-  const completo = cumplidas === total;
   const plazo = validaciones.find((v) => v.clave === "plazo");
   return (
     <aside data-guia={guia} className="grid gap-4 self-start lg:sticky lg:top-24">
       <div className="rounded-[22px] bg-papel p-6 ring-1 ring-tinta/[0.07]">
         <div className="mb-5 flex items-center gap-4">
-          <div className={`relative h-[68px] w-[68px] shrink-0 transition-colors duration-500 ${completo ? "text-verde" : "text-ambar"}`}>
-            <AnilloProgreso pct={total ? (cumplidas / total) * 100 : 0} />
-            <span aria-hidden className="font-display absolute inset-0 grid place-items-center text-xl tabular-nums text-tinta">
+          {/* El anillo del sistema (ronda 13): en tinta mientras faltan revisiones y verde cuando están todas. */}
+          <Anillo pct={total ? (cumplidas / total) * 100 : 0} tamano="mediano" etiqueta={`${cumplidas} de ${total} revisiones cumplidas`}>
+            <span className="font-display text-xl font-normal">
               {cumplidas}/{total}
             </span>
-            <span className="sr-only">
-              {cumplidas} de {total} revisiones cumplidas
-            </span>
-          </div>
+          </Anillo>
           <div className="min-w-0 space-y-1.5">
             <TituloSeccion nivel={3}>Lo que revisa el sistema</TituloSeccion>
             {plazo &&

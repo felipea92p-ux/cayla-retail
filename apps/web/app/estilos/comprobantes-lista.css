@@ -11,7 +11,6 @@
      · .cmp-ind       el indicador que VIAJA entre pestañas / entre Emisión y Vencimiento.
      · .cmp-fila      fila de la tabla: entra escalonada, barrita de acento y flecha al pasar el mouse.
                       Con `data-recien`, la orden recién guardada: barrita verde puesta y un tinte suave.
-     · .cmp-mini      barra de 3 px con el avance real de recepción / pago.
      · .cmp-punto-vivo el punto que late en el chip «Vencida» (única animación en bucle de la lista).
      · .cmp-sk        esqueleto brillante de la carga (loading.tsx).
    `backwards` en todas las entradas: al terminar no retienen `transform`, que pisaría el reacomodo
@@ -60,18 +59,15 @@
   }
   .cmp-viva:hover .cmp-flecha { transform: translateX(4px); }
 
-  /* ---------- Barras: reparto (4 px) y avance (3 px) ---------- */
-  .cmp-reparto,
-  .cmp-mini {
+  /* ---------- Barra: reparto (4 px). El avance de cada fila es la barra de avance del sistema (<BarraAvance>, ronda 13). ---------- */
+  .cmp-reparto {
     display: block;
     overflow: hidden;
     border-radius: 999px;
     background: var(--color-sand);
   }
   .cmp-reparto { height: 4px; margin-top: 0.625rem; }
-  .cmp-mini { height: 3px; width: 88%; margin-top: 0.375rem; }
-  .cmp-reparto > i,
-  .cmp-mini > i {
+  .cmp-reparto > i {
     display: block;
     height: 100%;
     border-radius: 999px;
@@ -81,7 +77,6 @@
     transition: transform 560ms var(--ease-cayla);
   }
   .cmp-reparto > i { animation: cmp-llena 560ms var(--ease-cayla) 380ms backwards; }
-  .cmp-mini > i { background: var(--color-ambar); animation: cmp-llena 560ms var(--ease-cayla) 250ms backwards; }
   .cmp-reparto-rojo { background: var(--color-rojo); }
   .cmp-reparto-ambar { background: var(--color-ambar); }
 
@@ -184,13 +179,11 @@
   @media (prefers-reduced-motion: reduce) {
     /* El resultado sin el viaje: entradas y llenados a un instante, lo que se repite se detiene. */
     .cmp-fila,
-    .cmp-reparto > i,
-    .cmp-mini > i {
+    .cmp-reparto > i {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
     .cmp-reparto > i,
-    .cmp-mini > i,
     .cmp-ind,
     .cmp-flecha,
     .cmp-flecha-fila,

@@ -49,7 +49,7 @@
       "SegmentoDeslizante «Dónde está parado»"
     ],
     "components/TerminalesModales.tsx": [
-      "Boton «{copiado === \"si\" ? \"Copiado\" : \"Copiar\"}»",
+      "BotonCopiar «el correo y la clave»",
       "Boton «Listo»",
       "CampoSelect «Tienda»",
       "CampoTexto «Nombre»",
