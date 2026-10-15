@@ -131,6 +131,7 @@
     "pruebas:tienda-club": "node scripts/pruebas/tienda_club.mjs",
     "pruebas:pedidos-web-cobrar": "node scripts/pruebas/pedidos_web_cobrar.mjs",
     "pruebas:pedidos-web-entregar": "node scripts/pruebas/pedidos_web_entregar.mjs",
+    "pruebas:pedidos-web-anular": "node scripts/pruebas/pedidos_web_anular.mjs",
     "pruebas:tienda-avisos": "node scripts/pruebas/tienda_avisos_al_entrar.mjs",
     "pruebas:redondeo-efectivo": "node scripts/pruebas/redondeo_efectivo.mjs",
     "pruebas:prendas-por-regularizar": "node scripts/pruebas/prendas_por_regularizar.mjs",
