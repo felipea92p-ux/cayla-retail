@@ -105,6 +105,19 @@ select retail.vitrina_mostrar(array[${LETRAS.map((l) => `:'p_${l}'`).join(", ")}
   const PUESTOS = `(select string_agg(upper(right(x ->> 'nombre', 1)) || '=' || coalesce(x ->> 'vendidos', '·'), ' ' order by x ->> 'nombre')
       from jsonb_array_elements(retail.tienda_catalogo() -> 'prendas') x where x ->> 'nombre' ilike 'zz inicio %')`;
 
+  // ---------------------------------------------------------------- 0. Rápido (20261015215000)
+  // El primer día en producción, con 1 658 tallas publicadas, una carga del catálogo calculaba 29 881 veces qué tiendas se ven en
+  // la web (24 s; la base la cortaba a los 5). Con las CTE de `fn_tienda_precio_talla` materializadas son 2, tenga las tallas que
+  // tenga: aquí 8 prendas de prueba, que con el error darían 16 llamadas o más.
+  valor(
+    "el catálogo pregunta qué tiendas se ven en la web una vez por carga, no una vez por talla (20261015215000)",
+    `${PREPARAR}set local track_functions = 'all';
+select count(*) from jsonb_array_elements(retail.tienda_catalogo() -> 'prendas') x where x ->> 'nombre' ilike 'zz inicio %';
+select calls <= 2 from pg_stat_xact_user_functions where schemaname = 'retail' and funcname = 'fn_tienda_sedes_web';
+rollback;`,
+    `${LETRAS.length}\nt`,
+  );
+
   // ---------------------------------------------------------------- 1. Lo nuevo
   valor(
     "sin ninguna llegada a una tienda, nada está en Lo nuevo",

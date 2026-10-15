@@ -20,3 +20,9 @@ Importado de entrada sumaba 57,6 KB a cada pantalla; ahora se descarga cuando la
 Felipe se lleva: ADR-0424, con los tres pasos para encenderlo (crear el proyecto, dos variables en Vercel, publicar). Hasta entonces la web
 funciona igual que antes.
 
+
+## 2026-10-15 (Sentry: los mapas del código llegan al armado)
+Qué hice: publiqué a mano en producción la fusión de #1115 (a Vercel no le llegó el aviso) y vi que Sentry quedó encendido pero sin mapas: el
+armado corre con Turborepo, que no dejaba pasar `SENTRY_AUTH_TOKEN`. Lo declaré en `passThroughEnv` de `build` en `turbo.json`.
+Por qué así: `passThroughEnv` le da la llave al armado sin meterla en la huella de la caché; comprobado con el ensayo de Turborepo.
+Felipe se lleva: después de fusionar, el log del armado tiene que decir que subió los mapas; desde ahí, cada aviso de Sentry trae la línea exacta.
