@@ -834,9 +834,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `EtiquetaLiquidacion.tsx` y se imprime con `useImprimirLiquidacion` (la misma hoja de la Brother). Vender
   (`PuntoDeVenta.tsx:agregarPiezaLiquidacion`) manda la línea con `pieza_liquidacion_codigo` a `registrar_venta`.
 - `/productos/vitrina` (Catálogo ▸ Vitrina web, módulo `vitrina_web`, ADR-0408 act. 3) → `page.tsx` lee `fn_vitrina_modelos` →
-  `VitrinaPantalla.tsx` (cifras, buscador, lista con casilla e interruptor, barra fija del lote) + `VitrinaModeloHoja.tsx`
-  (`vitrina_guardar_modelo`: mostrar, precio web, Lo nuevo y descripción) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`,
-  `vitrina_cambiar_precios`); reglas en `lib/vitrina-reglas.ts`, guía de foco en `lib/vitrina-guia.ts`.
+  `VitrinaPantalla.tsx` (cifras, buscador, lista con casilla e interruptor, barra fija de los elegidos) + `VitrinaModeloHoja.tsx`
+  (`vitrina_guardar_modelo`: mostrar, Lo nuevo y descripción) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`: mostrar u ocultar uno o
+  varios); reglas en `lib/vitrina-reglas.ts`, guía de foco en `lib/vitrina-guia.ts`. Sin precio web (Felipe, 2026-10-14): en la web
+  vale el de cada tienda (`fn_precio_en_sede`).
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +

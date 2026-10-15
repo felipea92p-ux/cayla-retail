@@ -4,19 +4,22 @@
  *
  * QUÉ PRUEBA. `20261014225000_vitrina_web.sql`:
  *   1. Permisos: el módulo `vitrina_web` nace sin rol (solo el líder lo ve); sin el módulo no se lee ni se guarda nada; con el
- *      módulo, una integrante guarda pero no ve el costo. La tabla no la lee nadie directo (ni el ERP ni la tienda) y
- *      `tienda_catalogo` es solo de `tienda_web`.
- *   2. La hoja de un modelo (`vitrina_guardar_modelo`): el precio web nace al encenderlo, nunca bajo el costo ni inválido, tres
- *      estados de «Lo nuevo», la descripción limpia, la versión que frena a la segunda persona, apagar no borra y cada cambio
- *      deja su línea en la Actividad con quién lo hizo (y sin cambios, ninguna).
- *   3. Los lotes: `vitrina_mostrar` (el que nunca estuvo entra con su precio de tienda; el que estuvo, con el suyo; todo o nada)
- *      y `vitrina_cambiar_precios` (versión por modelo, el costo, la forma del pedido; todo o nada).
- *   4. `tienda_catalogo`: solo lo publicado y vendible, con el precio WEB y el de la campaña con la regla de la caja
- *      (`fn_campanas_por_variante` + `fn_descuento_campana`, ADR-0403), la de mayor descuento por talla, «desde» cuando la campaña
- *      toca solo algunas tallas, sus colores activos y solo las fotos del almacén público.
+ *      módulo, una integrante guarda y firma ella. La tabla no la lee nadie directo (ni el ERP ni la tienda) y `tienda_catalogo` es
+ *      solo de `tienda_web`. No queda nada del precio web de la primera versión.
+ *   2. La hoja de un modelo (`vitrina_guardar_modelo`): mostrar u ocultar, tres estados de «Lo nuevo», la descripción limpia, la
+ *      versión que frena a la segunda persona, ocultar no borra y cada cambio deja su línea en la Actividad con quién lo hizo (y sin
+ *      cambios, ninguna).
+ *   3. El lote: `vitrina_mostrar` (el que nunca estuvo entra; el que estuvo, vuelve; todo o nada).
+ *   4. `tienda_catalogo(p_sede)`: solo lo publicado y vendible, al precio de la tienda elegida (`fn_precio_en_sede`) o, con «Todas»,
+ *      al MAYOR entre las tiendas que se ven en la web (Felipe, 2026-10-14); una tienda escondida o un id cualquiera se leen como
+ *      «Todas»; encima, la campaña con la regla de la caja (`fn_campanas_por_variante` + `fn_descuento_campana`, ADR-0403), la de
+ *      mayor descuento por talla, «desde» solo cuando la campaña no toca a todas las tallas por igual, sus colores activos y solo
+ *      las fotos del almacén público.
+ *   5. La migración se puede volver a correr, también sobre una base que tenía la versión vieja (con precio web).
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder) o Micaela (integrante de Trujillo): nunca se
- * commitea nada en el Postgres local que comparten los worktrees. Cada uno parte con la vitrina vacía y sin campañas.
+ * commitea nada en el Postgres local que comparten los worktrees. Cada uno parte con la vitrina vacía, sin campañas y sin tiendas
+ * en la web; los que miran el precio por tienda muestran Trujillo y Lima en la web (`SEDES_EN_LA_WEB`).
  *
  * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=supabase/migrations/20261014225000_vitrina_web.sql` mete la migración dentro de cada
  * transacción. Sin la variable, prueba lo que la base ya tiene (lo que hace el CI).
@@ -26,7 +29,8 @@
  * ADR-0403 (`20261014173000`): una base local atrasada lo dice y no lo cuenta; el CI arma la base con todas las migraciones.
  *
  * DA POR SENTADO: el seed (Felipe líder, Micaela integrante, «Blusa Emma» a S/ 79.90 con costo de hasta S/ 35.46 en 6 tallas BEI
- * y NEG, «Falda Renata» a S/ 74.90 y «Vestido Sofía» a S/ 149.90) y la migración 20261014220000 (rol `tienda_web`).
+ * y NEG, «Falda Renata» y «Vestido Sofía»; Tienda Trujillo y Tienda Lima abiertas), el precio de tienda (`fn_precio_en_sede`,
+ * 20261011100000), el rol `tienda_web` (20261014220000) y las tiendas de la web (`tienda_sedes`, 20261014231000).
  *
  * USO
  *   pnpm pruebas:vitrina-web    → necesita el stack local (`npx supabase start`)
@@ -78,18 +82,29 @@ function esperarError(nombre, r, contiene) {
   esperar(nombre, !r.ok && r.mensaje.includes(contiene), r.ok ? `no falló: ${r.salida}` : `falló distinto: ${r.mensaje}`);
 }
 
-// ---- El punto de partida de cada escenario: la vitrina vacía, sin campañas y como Felipe ----
+// ---- El punto de partida de cada escenario: la vitrina vacía, sin campañas, sin tiendas en la web y como Felipe ----
 const PREPARAR = `
 begin;
 ${APLICAR_ANTES}
 set local request.jwt.claim.sub = '${FELIPE}';
 update retail.vitrina_productos set publicado = false where publicado;
 update retail.etiquetas set activo = false where activo and descuento_pct is not null;
+update retail.ubicacion_datos_web set mostrar = false where mostrar;
 select id as emma from retail.productos where referencia = 'Blusa Emma' \\gset
 select id as falda from retail.productos where referencia = 'Falda Renata' \\gset
 select id as vestido from retail.productos where referencia = 'Vestido Sofía' \\gset
 select id as cat_blusas from retail.categorias where id = (select categoria_id from retail.productos where id = :'emma') \\gset
+select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
+select id as lim from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select retail.fn_hoy_lima() as hoy \\gset
+`;
+/** Trujillo y Lima se ven en la web (nombre, dirección y WhatsApp: lo que pide `fn_sede_web_falta`). */
+const SEDES_EN_LA_WEB = `
+update retail.ubicaciones set whatsapp_numero = '987000001' where id = :'tru';
+update retail.ubicaciones set whatsapp_numero = '987000002' where id = :'lim';
+insert into retail.ubicacion_datos_web (ubicacion_id, nombre_web, direccion, mostrar)
+values (:'tru', 'ZZ Trujillo', 'Av. de prueba 1', true), (:'lim', 'ZZ Lima', 'Av. de prueba 2', true)
+on conflict (ubicacion_id) do update set nombre_web = excluded.nombre_web, direccion = excluded.direccion, mostrar = true;
 `;
 /** Solo lee el catálogo de la base, con la migración puesta si se prueba antes de aplicarla. */
 const EN_LA_BASE = `begin;\n${APLICAR_ANTES}\n`;
@@ -98,9 +113,11 @@ const MODULO_A_INTEGRANTE = `insert into retail.rol_modulos (rol_id, modulo) val
 const COMO_TIENDA = `grant tienda_web to current_user with set true;\nset local role tienda_web;\n`;
 
 /** Guardar un modelo (la hoja). `version`: «null» o una expresión SQL. */
-const guardar = (prod, { publicado = true, precio = "74.90", nuevo = "automatico", desc = "null", version = "null" } = {}) =>
-  `select retail.vitrina_guardar_modelo(:'${prod}', ${publicado}, ${precio}, '${nuevo}', ${desc}, ${version})`;
+const guardar = (prod, { publicado = true, nuevo = "automatico", desc = "null", version = "null" } = {}) =>
+  `select retail.vitrina_guardar_modelo(:'${prod}', ${publicado}, '${nuevo}', ${desc}, ${version})`;
 const VERSION = (prod) => `(select version from retail.vitrina_productos where producto_id = :'${prod}')`;
+/** El precio propio de una tienda, por la única puerta (`poner_precio_sede`: módulo, costo y motivo). */
+const precioEnTienda = (prod, sede, precio) => `select retail.poner_precio_sede(:'${prod}', :'${sede}', ${precio}, 'Prueba de la vitrina') \\gset\n`;
 /** Una campaña de prueba a nombre de Felipe (la base aprueba sola la etiqueta de un líder). Deja :etq. */
 const campana = (nombre, pct, { estilo = "campana", desde = "null", hasta = "null" } = {}) => {
   const fecha = (x) => (x === "null" ? "null" : `(:'hoy'::date + ${x})`);
@@ -111,8 +128,12 @@ const aTodasLasTallas = (prod) =>
   `insert into retail.variante_etiquetas (variante_id, etiqueta_id) select v.id, :'etq' from retail.variantes v where v.producto_id = :'${prod}' and v.activo;\n`;
 const aUnColor = (prod, color) =>
   `insert into retail.variante_etiquetas (variante_id, etiqueta_id) select v.id, :'etq' from retail.variantes v where v.producto_id = :'${prod}' and v.activo and v.color_codigo = '${color}';\n`;
-/** La prenda de Emma en el catálogo de la tienda (o «ninguna»). */
-const EN_CATALOGO = (prod) => `(select x from jsonb_array_elements(retail.tienda_catalogo() -> 'prendas') x where x ->> 'id' = :'${prod}')`;
+/** La prenda en el catálogo de la tienda, con «Todas» o con la tienda `sede` (una variable de psql). */
+const EN_CATALOGO = (prod, sede = null) =>
+  `(select x from jsonb_array_elements(retail.tienda_catalogo(${sede ? `:'${sede}'` : "null"}) -> 'prendas') x where x ->> 'id' = :'${prod}')`;
+/** precio | precio_final | desde, de una prenda con «Todas» o con una tienda. */
+const PRECIOS = (prod, sede = null) =>
+  `(select concat_ws('|', x ->> 'precio', x ->> 'precio_final', x ->> 'desde') from ${EN_CATALOGO(prod, sede)} t(x))`;
 const ACTIVIDAD = `(select count(*) from retail.actividad where modulo = 'vitrina_web')`;
 
 function main() {
@@ -122,8 +143,8 @@ function main() {
     process.exit(2);
   }
   if (!APLICAR_ANTES) {
-    const hay = correr("select count(*) from pg_proc where proname = 'tienda_catalogo' and pronamespace = 'retail'::regnamespace;");
-    if (hay.salida !== "1") {
+    const hay = correr("select to_regprocedure('retail.tienda_catalogo(uuid)') is not null;");
+    if (hay.salida !== "t") {
       console.error(`Falta la vitrina web: aplica ${MIGRACION} o corre con APLICAR_ANTES=${MIGRACION}`);
       process.exit(2);
     }
@@ -145,26 +166,25 @@ function main() {
     ["leer la vitrina", `select retail.fn_vitrina_modelos();`],
     ["guardar un modelo", `${guardar("emma")};`],
     ["mostrar varios", `select retail.vitrina_mostrar(array[:'emma']::uuid[], true);`],
-    ["cambiar precios", `select retail.vitrina_cambiar_precios(jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'precio_web', 70, 'version', null)));`],
   ]) {
     esperarError(`sin el módulo no se puede ${que}`, correr(`${PREPARAR}${COMO_MICAELA}${sql}\nrollback;`), "vitrina_web_sin_modulo");
   }
   esperarValor(
-    "con el módulo en su rol, la integrante guarda y firma ella; no ve el costo",
+    "con el módulo en su rol, la integrante guarda y firma ella",
     correr(`${PREPARAR}${MODULO_A_INTEGRANTE}${COMO_MICAELA}
-      select (${guardar("emma")}) -> 'vitrina' ->> 'precio_web';
+      select (${guardar("emma")}) -> 'vitrina' ->> 'publicado';
       select (select p.nombres from public.personas p where p.id = vp.actualizado_por) from retail.vitrina_productos vp where vp.producto_id = :'emma';
-      select concat_ws('|', retail.fn_vitrina_modelos() ->> 've_costos',
-        (select count(*) from jsonb_array_elements(retail.fn_vitrina_modelos() -> 'modelos') m where m ? 'costo' and m -> 'costo' <> 'null'::jsonb));
       rollback;`),
-    "74.90\nMicaela\nfalse|0",
+    "true\nMicaela",
   );
   esperarValor(
-    "el líder sí ve el costo (el más alto de las tallas activas)",
-    correr(`${PREPARAR}select concat_ws('|', retail.fn_vitrina_modelos() ->> 've_costos',
-        (select m ->> 'costo' from jsonb_array_elements(retail.fn_vitrina_modelos() -> 'modelos') m where m ->> 'id' = :'emma'));
+    "la vitrina del ERP no trae precio ni costo (el precio es el de cada tienda y se cambia en la ficha)",
+    correr(`${PREPARAR}${guardar("emma")} \\gset
+      select concat_ws('|', (select string_agg(k, ',' order by k) from jsonb_object_keys(m) k), (select string_agg(k, ',' order by k) from jsonb_object_keys(m -> 'vitrina') k),
+          (select string_agg(k, ',' order by k) from jsonb_object_keys(retail.fn_vitrina_modelos()) k))
+        from jsonb_array_elements(retail.fn_vitrina_modelos() -> 'modelos') m where m ->> 'id' = :'emma';
       rollback;`),
-    "true|35.46",
+    "categoria,codigo,colores,descripcion,familia,foto,id,nombre,prefijo,publicable,stock,tallas,vitrina|actualizado_en,actualizado_por,descripcion_web,en_lo_nuevo,publicado,publicado_en,version|modelos,tiendas",
   );
   esperarValor(
     "nadie lee la tabla directo (ni el ERP, ni un visitante, ni la tienda)",
@@ -179,13 +199,13 @@ function main() {
         bool_or(has_function_privilege('anon', p.oid, 'EXECUTE')), bool_or(has_function_privilege('tienda_web', p.oid, 'EXECUTE')),
         bool_and(has_function_privilege('authenticated', p.oid, 'EXECUTE')), count(*))
       from pg_proc p where p.pronamespace = 'retail'::regnamespace
-        and p.proname in ('vitrina_guardar_modelo', 'vitrina_mostrar', 'vitrina_cambiar_precios', 'fn_vitrina_modelos');\nrollback;`),
-    "f|f|t|4",
+        and p.proname in ('vitrina_guardar_modelo', 'vitrina_mostrar', 'fn_vitrina_modelos');\nrollback;`),
+    "f|f|t|3",
   );
   esperarValor(
     "las piezas internas no las llama nadie desde afuera",
     correr(`${EN_LA_BASE}select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
-        and p.proname in ('fn_vitrina_publicable', 'fn_vitrina_bajo_costo', 'fn_vitrina_precio_valido', 'fn_vitrina_soles', 'fn_vitrina_lista_nombres', 'fn_vitrina_anotar', 'fn_vitrina_modelo_json')
+        and p.proname in ('fn_vitrina_publicable', 'fn_vitrina_lista_nombres', 'fn_vitrina_anotar', 'fn_vitrina_modelo_json')
         and (has_function_privilege('authenticated', p.oid, 'EXECUTE') or has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('tienda_web', p.oid, 'EXECUTE'));\nrollback;`),
     "0",
   );
@@ -194,29 +214,34 @@ function main() {
     correr(`${EN_LA_BASE}select concat_ws('|', p.prosecdef, exists (select 1 from unnest(p.proconfig) x where x like 'search\\_path=%'),
         has_function_privilege('public', p.oid, 'EXECUTE'), has_function_privilege('anon', p.oid, 'EXECUTE'),
         has_function_privilege('authenticated', p.oid, 'EXECUTE'), has_function_privilege('tienda_web', p.oid, 'EXECUTE'))
-      from pg_proc p where p.oid = 'retail.tienda_catalogo()'::regprocedure;\nrollback;`),
+      from pg_proc p where p.oid = 'retail.tienda_catalogo(uuid)'::regprocedure;\nrollback;`),
     "t|t|f|f|f|t",
+  );
+  esperarValor(
+    "no queda nada del precio web: ni su columna, ni sus funciones, ni el catálogo sin tienda",
+    correr(`${EN_LA_BASE}select concat_ws('|',
+        (select count(*) from information_schema.columns where table_schema = 'retail' and table_name = 'vitrina_productos' and column_name = 'precio_web'),
+        (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
+          and p.proname in ('vitrina_cambiar_precios', 'fn_vitrina_bajo_costo', 'fn_vitrina_precio_valido', 'fn_vitrina_soles')),
+        (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('tienda_catalogo', 'vitrina_guardar_modelo', 'fn_vitrina_modelo_json')));\nrollback;`),
+    "0|0|3",
   );
 
   // ---------------------------------------------------------------- 2. La hoja de un modelo
   console.log("— Guardar un modelo —");
   esperarValor(
-    "encender: nace con su precio web, se ve, versión 1, con fecha, y una línea en la Actividad a nombre de Felipe",
+    "mostrar: se ve, versión 1, con fecha, y una línea en la Actividad a nombre de Felipe",
     correr(`${PREPARAR}select ${ACTIVIDAD} as antes \\gset
       select (${guardar("emma")}) -> 'vitrina' ->> 'version';
-      select concat_ws('|', publicado, precio_web, en_lo_nuevo, publicado_en is not null) from retail.vitrina_productos where producto_id = :'emma';
+      select concat_ws('|', publicado, en_lo_nuevo, publicado_en is not null) from retail.vitrina_productos where producto_id = :'emma';
       select concat_ws('|', ${ACTIVIDAD} - :antes, a.accion, a.descripcion, (select p.nombres from public.personas p where p.id = a.persona_id))
         from retail.actividad a where a.modulo = 'vitrina_web' order by a.id desc limit 1;
       rollback;`),
-    "1\nt|74.90|automatico|t\n1|vitrina_guardada|«Blusa Emma»: se ve en la web · precio web S/ 74.90|Felipe",
+    "1\nt|automatico|t\n1|vitrina_guardada|«Blusa Emma»: se ve en la web|Felipe",
   );
-  esperarError("un precio web bajo el costo no se guarda (ni para el líder)", correr(`${PREPARAR}${guardar("emma", { precio: "35.45" })};\nrollback;`), "vitrina_precio_bajo_costo");
-  esperarValor("justo en el costo sí se guarda", correr(`${PREPARAR}select (${guardar("emma", { precio: "35.46" })}) -> 'vitrina' ->> 'precio_web';\nrollback;`), "35.46");
-  for (const precio of ["0", "-1", "74.999", "'NaN'::numeric", "'Infinity'::numeric", "100000", "null"]) {
-    esperarError(`un precio web ${precio} no se guarda`, correr(`${PREPARAR}${guardar("emma", { precio })};\nrollback;`), "vitrina_precio_invalido");
-  }
   esperarError("«Lo nuevo» solo acepta automático, fijo o quitado", correr(`${PREPARAR}${guardar("emma", { nuevo: "siempre" })};\nrollback;`), "vitrina_datos_invalidos");
   esperarError("una descripción de más de 600 letras no se guarda", correr(`${PREPARAR}${guardar("emma", { desc: "repeat('a', 601)" })};\nrollback;`), "vitrina_datos_invalidos");
+  esperarError("sin decir si se ve, no se guarda", correr(`${PREPARAR}${guardar("emma", { publicado: "null" })};\nrollback;`), "vitrina_datos_invalidos");
   esperarValor(
     "la descripción se guarda limpia; vacía queda en blanco (sale la del catálogo)",
     correr(`${PREPARAR}${guardar("emma", { desc: "'  Lino   liviano,  cae bien '" })} \\gset
@@ -229,12 +254,12 @@ function main() {
   esperarError(
     "con una versión vieja (otra persona lo cambió), no se guarda",
     correr(`${PREPARAR}${guardar("emma")} \\gset
-      ${guardar("emma", { precio: "70", version: VERSION("emma") })} \\gset
-      ${guardar("emma", { precio: "72", version: "1" })};
+      ${guardar("emma", { nuevo: "fijo", version: VERSION("emma") })} \\gset
+      ${guardar("emma", { nuevo: "quitado", version: "1" })};
       rollback;`),
     "vitrina_cambio_otro",
   );
-  esperarError("encender «por primera vez» algo que ya está en la vitrina (sin versión) no pisa", correr(`${PREPARAR}${guardar("emma")} \\gset\n${guardar("emma", { precio: "70" })};\nrollback;`), "vitrina_cambio_otro");
+  esperarError("mostrar «por primera vez» algo que ya está en la vitrina (sin versión) no pisa", correr(`${PREPARAR}${guardar("emma")} \\gset\n${guardar("emma", { nuevo: "fijo" })};\nrollback;`), "vitrina_cambio_otro");
   esperarError("una versión para un modelo que nunca estuvo en la vitrina, tampoco", correr(`${PREPARAR}${guardar("emma", { version: "3" })};\nrollback;`), "vitrina_cambio_otro");
   esperarValor(
     "guardar lo mismo no cambia la versión ni anota nada",
@@ -248,19 +273,36 @@ function main() {
   esperarValor(
     "cambiar varias cosas a la vez: una sola línea que las dice todas, y la versión sube",
     correr(`${PREPARAR}${guardar("emma")} \\gset
-      ${guardar("emma", { precio: "69.90", nuevo: "fijo", desc: "'Nueva'", version: "1" })} \\gset
+      ${guardar("emma", { nuevo: "fijo", desc: "'Nueva'", version: "1" })} \\gset
       select concat_ws('|', v.version, v.en_lo_nuevo, (select a.descripcion from retail.actividad a where a.modulo = 'vitrina_web' order by a.id desc limit 1))
         from retail.vitrina_productos v where v.producto_id = :'emma';
       rollback;`),
-    "2|fijo|«Blusa Emma»: precio web S/ 74.90 → S/ 69.90 · fijado en Lo nuevo · cambió su descripción para la web",
+    "2|fijo|«Blusa Emma»: fijado en Lo nuevo · cambió su descripción para la web",
   );
   esperarValor(
-    "apagar no borra: queda la fila, oculta y con su precio",
-    correr(`${PREPARAR}${guardar("emma", { precio: "69.90" })} \\gset
-      ${guardar("emma", { publicado: false, precio: "69.90", version: "1" })} \\gset
-      select concat_ws('|', count(*), bool_and(not publicado), max(precio_web)) from retail.vitrina_productos where producto_id = :'emma';
+    "ocultar no borra: queda la fila, oculta, con lo suyo de Lo nuevo",
+    correr(`${PREPARAR}${guardar("emma", { nuevo: "fijo" })} \\gset
+      ${guardar("emma", { publicado: false, nuevo: "fijo", version: "1" })} \\gset
+      select concat_ws('|', count(*), bool_and(not publicado), max(en_lo_nuevo), max(version)) from retail.vitrina_productos where producto_id = :'emma';
+      select descripcion from retail.actividad where modulo = 'vitrina_web' order by id desc limit 1;
       rollback;`),
-    "1|t|69.90",
+    "1|t|fijo|2\n«Blusa Emma»: ya no se ve en la web",
+  );
+  esperarValor(
+    "uno que nunca estuvo, dejado oculto, automático y sin descripción: no deja fila ni anota (no hay nada que guardar)",
+    correr(`${PREPARAR}select ${ACTIVIDAD} as antes \\gset
+      select coalesce(jsonb_typeof((${guardar("emma", { publicado: false })}) -> 'vitrina'), 'sin');
+      select concat_ws('|', (select count(*) from retail.vitrina_productos where producto_id = :'emma'), ${ACTIVIDAD} - :antes);
+      rollback;`),
+    "null\n0|0",
+  );
+  esperarValor(
+    "uno que nunca estuvo, oculto pero fijado en Lo nuevo: deja su fila oculta y lo anota",
+    correr(`${PREPARAR}${guardar("emma", { publicado: false, nuevo: "fijo" })} \\gset
+      select concat_ws('|', count(*), bool_and(not publicado), max(en_lo_nuevo), bool_and(publicado_en is null)) from retail.vitrina_productos where producto_id = :'emma';
+      select descripcion from retail.actividad where modulo = 'vitrina_web' order by id desc limit 1;
+      rollback;`),
+    "1|t|fijo|t\n«Blusa Emma»: queda oculto · fijado en Lo nuevo",
   );
   esperarError(
     "un modelo descontinuado no se muestra",
@@ -276,13 +318,20 @@ function main() {
       rollback;`),
     "vitrina_no_publicable",
   );
+  esperarError(
+    "un modelo sin precio (todas sus tallas activas a S/ 0) no se muestra",
+    correr(`${PREPARAR}update retail.variantes set precio = 0 where producto_id = :'emma';
+      ${guardar("emma")};
+      rollback;`),
+    "vitrina_no_publicable",
+  );
   esperarValor(
     "eliminar un producto sin historia que estuvo en la vitrina: su fila se va con él (es configuración de la ficha)",
     correr(`${PREPARAR}select categoria_id as cat, marca_id as marca, proveedor_id as prov from retail.productos where id = :'emma' \\gset
       select talla_id as t1, color_codigo as c1 from retail.variantes where producto_id = :'emma' order by sku limit 1 \\gset
       insert into retail.productos (referencia, categoria_id, marca_id, proveedor_id) values ('ZZ Vitrina virgen', :'cat', :'marca', :'prov') returning id as zz \\gset
       insert into retail.variantes (producto_id, sku, precio, talla_id, color_codigo) values (:'zz', 'ZZ-VITRINA-1', 50, :'t1', :'c1');
-      ${guardar("zz", { precio: "50" })} \\gset
+      ${guardar("zz")} \\gset
       select retail.eliminar_producto(:'zz') is not null;
       select concat_ws('|', (select count(*) from retail.productos where id = :'zz'), (select count(*) from retail.vitrina_productos where producto_id = :'zz'));
       rollback;`),
@@ -290,31 +339,31 @@ function main() {
   );
   esperarError(
     "la «Prenda sin registrar» no se muestra",
-    correr(`${PREPARAR}select retail.vitrina_guardar_modelo('11111111-1111-4111-8111-111111111111', true, 10, 'automatico', null, null);
+    correr(`${PREPARAR}select retail.vitrina_guardar_modelo('11111111-1111-4111-8111-111111111111', true, 'automatico', null, null);
       rollback;`),
     "vitrina_no_publicable",
   );
 
-  // ---------------------------------------------------------------- 3. Los lotes
+  // ---------------------------------------------------------------- 3. El lote
   console.log("— Mostrar y ocultar varios —");
   esperarValor(
-    "mostrar dos que nunca estuvieron: entran con su precio de tienda y una sola línea en la Actividad",
+    "mostrar dos que nunca estuvieron: entran y una sola línea en la Actividad",
     correr(`${PREPARAR}select ${ACTIVIDAD} as antes \\gset
       select retail.vitrina_mostrar(array[:'emma', :'falda']::uuid[], true) ->> 'cambiados';
-      select string_agg(p.referencia || '=' || v.precio_web || '/' || v.publicado, ',' order by p.referencia)
+      select string_agg(p.referencia || '=' || v.publicado || '/' || v.en_lo_nuevo, ',' order by p.referencia)
         from retail.vitrina_productos v join retail.productos p on p.id = v.producto_id where v.producto_id in (:'emma', :'falda');
       select concat_ws('|', ${ACTIVIDAD} - :antes, (select descripcion from retail.actividad where modulo = 'vitrina_web' order by id desc limit 1));
       rollback;`),
-    "2\nBlusa Emma=79.90/true,Falda Renata=74.90/true\n1|mostró en la web 2 modelos: Blusa Emma y Falda Renata",
+    "2\nBlusa Emma=true/automatico,Falda Renata=true/automatico\n1|mostró en la web 2 modelos: Blusa Emma y Falda Renata",
   );
   esperarValor(
-    "ocultar guarda el precio web; volver a mostrar lo trae con ese precio (no con el de tienda)",
-    correr(`${PREPARAR}${guardar("emma", { precio: "69.90" })} \\gset
+    "ocultar y volver a mostrar: la misma fila, con su versión que sube",
+    correr(`${PREPARAR}${guardar("emma", { nuevo: "fijo" })} \\gset
       select retail.vitrina_mostrar(array[:'emma']::uuid[], false) ->> 'cambiados';
       select retail.vitrina_mostrar(array[:'emma']::uuid[], true) ->> 'cambiados';
-      select concat_ws('|', publicado, precio_web, version) from retail.vitrina_productos where producto_id = :'emma';
+      select concat_ws('|', count(*), bool_and(publicado), max(en_lo_nuevo), max(version)) from retail.vitrina_productos where producto_id = :'emma';
       rollback;`),
-    "1\n1\nt|69.90|3",
+    "1\n1\n1|t|fijo|3",
   );
   esperarValor(
     "mostrar lo que ya se ve, u ocultar lo que nunca estuvo, no cambia nada",
@@ -335,19 +384,11 @@ function main() {
     })(),
   );
   esperarError(
-    "un modelo sin precio de tienda no entra a la web por el lote",
+    "un modelo sin precio no entra a la web por el lote",
     correr(`${PREPARAR}update retail.variantes set precio = 0 where producto_id = :'emma';
       select retail.vitrina_mostrar(array[:'emma']::uuid[], true);
       rollback;`),
-    "vitrina_sin_precio",
-  );
-  esperarError(
-    "un modelo que hoy cuesta más que su precio web no vuelve a la web por el lote",
-    correr(`${PREPARAR}${guardar("emma", { publicado: false, precio: "40" })} \\gset
-      update retail.variantes set costo = 45 where producto_id = :'emma';
-      select retail.vitrina_mostrar(array[:'emma']::uuid[], true);
-      rollback;`),
-    "vitrina_precio_bajo_costo",
+    "vitrina_no_publicable",
   );
   for (const [caso, arreglo] of [
     ["vacía", "array[]::uuid[]"],
@@ -357,69 +398,18 @@ function main() {
     esperarError(`una lista ${caso} no se acepta`, correr(`${PREPARAR}select retail.vitrina_mostrar(${arreglo}, true);\nrollback;`), "vitrina_datos_invalidos");
   }
 
-  console.log("— Cambiar el precio web de varios —");
-  esperarValor(
-    "cambia los que tienen la versión leída; el que nunca estuvo entra oculto con ese precio",
-    correr(`${PREPARAR}${guardar("emma")} \\gset
-      select retail.vitrina_cambiar_precios(jsonb_build_array(
-        jsonb_build_object('producto_id', :'emma', 'precio_web', 70, 'version', 1),
-        jsonb_build_object('producto_id', :'falda', 'precio_web', 64.9, 'version', null))) ->> 'cambiados';
-      select string_agg(p.referencia || '=' || v.precio_web || '/' || v.publicado || '/' || v.version, ',' order by p.referencia)
-        from retail.vitrina_productos v join retail.productos p on p.id = v.producto_id where v.producto_id in (:'emma', :'falda');
-      rollback;`),
-    "2\nBlusa Emma=70.00/true/2,Falda Renata=64.90/false/1",
-  );
-  esperar(
-    "con la versión vieja de uno, no cambia ninguno y lo nombra",
-    (() => {
-      const r = correr(`${PREPARAR}${guardar("emma")} \\gset
-        ${guardar("falda")} \\gset
-        select retail.vitrina_cambiar_precios(jsonb_build_array(
-          jsonb_build_object('producto_id', :'emma', 'precio_web', 70, 'version', 1),
-          jsonb_build_object('producto_id', :'falda', 'precio_web', 60, 'version', 9)));
-        rollback;`);
-      return !r.ok && r.mensaje.includes("vitrina_cambio_otro") && r.mensaje.includes("Falda Renata") && !r.mensaje.includes("Blusa Emma");
-    })(),
-  );
-  esperar(
-    "si uno queda bajo el costo, no cambia ninguno y lo nombra",
-    (() => {
-      const r = correr(`${PREPARAR}${guardar("emma")} \\gset
-        select retail.vitrina_cambiar_precios(jsonb_build_array(
-          jsonb_build_object('producto_id', :'emma', 'precio_web', 30, 'version', 1),
-          jsonb_build_object('producto_id', :'falda', 'precio_web', 60, 'version', null)));
-        rollback;`);
-      return !r.ok && r.mensaje.includes("vitrina_precio_bajo_costo") && r.mensaje.includes("Blusa Emma");
-    })(),
-  );
-  for (const [caso, cambios] of [
-    ["que no es una lista", "jsonb_build_object('producto_id', :'emma')"],
-    ["vacío", "'[]'::jsonb"],
-    ["con un id que no es id", "jsonb_build_array(jsonb_build_object('producto_id', 'emma', 'precio_web', 70))"],
-    ["con el precio escrito como texto", "jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'precio_web', '70'))"],
-    ["con una versión rara", "jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'precio_web', 70, 'version', 1.5))"],
-    ["con el mismo modelo dos veces", "jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'precio_web', 70), jsonb_build_object('producto_id', :'emma', 'precio_web', 71))"],
-  ]) {
-    esperarError(`un pedido ${caso} no se acepta`, correr(`${PREPARAR}select retail.vitrina_cambiar_precios(${cambios});\nrollback;`), "vitrina_datos_invalidos");
-  }
-  esperarError(
-    "un precio de tres decimales no se acepta",
-    correr(`${PREPARAR}select retail.vitrina_cambiar_precios(jsonb_build_array(jsonb_build_object('producto_id', :'emma', 'precio_web', 70.005)));\nrollback;`),
-    "vitrina_precio_invalido",
-  );
-
   // ---------------------------------------------------------------- 4. El catálogo de la tienda
-  console.log("— El catálogo de la tienda —");
-  esperarValor("sin nada publicado, el catálogo está vacío", correr(`${PREPARAR}select retail.tienda_catalogo()::text;\nrollback;`), '{"prendas": []}');
+  console.log("— El catálogo de la tienda: lo que se ve —");
+  esperarValor("sin nada publicado, el catálogo está vacío", correr(`${PREPARAR}select retail.tienda_catalogo()::text;\nrollback;`), '{"sede": null, "prendas": []}');
   esperarValor(
-    "lo publicado sale con su precio web, sin campaña, y sus colores con nombre y color",
+    "lo publicado sale con el precio de la prenda (sin tiendas en la web), sin campaña, y sus colores con nombre y color",
     correr(`${PREPARAR}${guardar("emma")} \\gset
-      select concat_ws('|', x ->> 'nombre', x -> 'categoria' ->> 'nombre', x ->> 'precio_web', x ->> 'precio', x ->> 'precio_hasta',
+      select concat_ws('|', x ->> 'nombre', x -> 'categoria' ->> 'nombre', x ->> 'precio', x ->> 'precio_final', x ->> 'desde',
           jsonb_typeof(x -> 'campana'), (select string_agg(c ->> 'codigo' || ':' || (c ->> 'hex'), ',' order by c ->> 'codigo') from jsonb_array_elements(x -> 'colores') c),
           jsonb_array_length(x -> 'fotos'))
         from ${EN_CATALOGO("emma")} t(x);
       rollback;`),
-    "Blusa Emma|Camisas y Blusas|74.90|74.90|74.90|null|BEI:#D5BA98,NEG:#2D2C2F|0",
+    "Blusa Emma|Camisas y Blusas|79.90|79.90|false|null|BEI:#D5BA98,NEG:#2D2C2F|0",
   );
   esperarValor(
     "oculto, descontinuado o de prueba: no sale",
@@ -433,22 +423,81 @@ function main() {
       rollback;`),
     "0",
   );
+
+  console.log("— El precio: el de la tienda elegida, y con «Todas» el mayor —");
   esperarValor(
-    "una campaña que toca todas sus tallas: el precio de la campaña sobre el precio WEB (no el de tienda), con la regla de la caja",
-    correr(`${PREPARAR}${guardar("emma", { precio: "70.00" })} \\gset
-      ${campana("ZZ Aniversario", 10)}${aTodasLasTallas("emma")}
-      select concat_ws('|', x ->> 'precio', x ->> 'precio_hasta', x -> 'campana' ->> 'nombre', x -> 'campana' ->> 'pct',
-          (x ->> 'precio')::numeric = 70.00 - retail.fn_descuento_campana(70.00, 10))
-        from ${EN_CATALOGO("emma")} t(x);
+    "con «Todas», el MAYOR entre las tiendas de la web (sin «Desde»); con Trujillo, el suyo; con Lima, el de la prenda",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${guardar("emma")} \\gset
+      ${precioEnTienda("emma", "tru", "69.90")}
+      select ${PRECIOS("emma")};
+      select ${PRECIOS("emma", "tru")};
+      select ${PRECIOS("emma", "lim")};
       rollback;`),
-    "63.00|63.00|ZZ Aniversario|10.00|t",
+    "79.90|79.90|false\n69.90|69.90|false\n79.90|79.90|false",
+  );
+  esperarValor(
+    "el mayor aunque el caro sea el precio propio de una tienda",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${guardar("emma")} \\gset
+      ${precioEnTienda("emma", "lim", "89.90")}
+      select ${PRECIOS("emma")};
+      select ${PRECIOS("emma", "tru")};
+      rollback;`),
+    "89.90|89.90|false\n79.90|79.90|false",
+  );
+  esperarValor(
+    "la respuesta dice qué tienda usó: la elegida, o nada con «Todas»",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}select concat_ws('|', retail.tienda_catalogo(:'tru') ->> 'sede' = :'tru', coalesce(retail.tienda_catalogo() ->> 'sede', 'todas'));
+      rollback;`),
+    "t|todas",
+  );
+  esperarValor(
+    "una tienda que no se ve en la web no cuenta para «Todas» ni se puede elegir; un id cualquiera tampoco",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${guardar("emma")} \\gset
+      ${precioEnTienda("emma", "lim", "89.90")}
+      update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'lim';
+      select ${PRECIOS("emma")};
+      select concat_ws('|', coalesce(retail.tienda_catalogo(:'lim') ->> 'sede', 'todas'), (select x ->> 'precio' from ${EN_CATALOGO("emma", "lim")} t(x)));
+      select coalesce(retail.tienda_catalogo(gen_random_uuid()) ->> 'sede', 'todas');
+      rollback;`),
+    "79.90|79.90|false\ntodas|79.90\ntodas",
+  );
+  esperarValor(
+    "una tienda que pierde su WhatsApp sale sola de la web, y su precio deja de contar",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${guardar("emma")} \\gset
+      ${precioEnTienda("emma", "lim", "89.90")}
+      update retail.ubicaciones set whatsapp_numero = null where id = :'lim';
+      select ${PRECIOS("emma")};
+      rollback;`),
+    "79.90|79.90|false",
+  );
+  esperarValor(
+    "tallas a precios distintos en la grilla: el modelo vale lo más de sus tallas, sin «Desde»",
+    correr(`${PREPARAR}${guardar("emma")} \\gset
+      update retail.variantes set precio = 89.90 where id = (select id from retail.variantes where producto_id = :'emma' and activo order by sku limit 1);
+      select ${PRECIOS("emma")};
+      rollback;`),
+    "89.90|89.90|false",
+  );
+
+  console.log("— La campaña, encima del precio de la tienda —");
+  esperarValor(
+    "una campaña en todas sus tallas: sobre el precio de cada tienda, con la regla de la caja, sin «Desde»",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${guardar("emma")} \\gset
+      ${precioEnTienda("emma", "tru", "69.90")}
+      ${campana("ZZ Aniversario", 10)}${aTodasLasTallas("emma")}
+      select concat_ws('|', x ->> 'precio', (x ->> 'precio_final')::numeric = 79.90 - retail.fn_descuento_campana(79.90, 10), x ->> 'desde',
+          x -> 'campana' ->> 'nombre', x -> 'campana' ->> 'pct') from ${EN_CATALOGO("emma")} t(x);
+      select concat_ws('|', x ->> 'precio', (x ->> 'precio_final')::numeric = 69.90 - retail.fn_descuento_campana(69.90, 10), x ->> 'desde')
+        from ${EN_CATALOGO("emma", "tru")} t(x);
+      rollback;`),
+    "79.90|t|false|ZZ Aniversario|10.00\n69.90|t|false",
   );
   {
-    const r = correr(`${PREPARAR}${guardar("emma", { precio: "79.90" })} \\gset
+    const r = correr(`${PREPARAR}${guardar("emma")} \\gset
       ${campana("ZZ Aniversario", 20)}${aTodasLasTallas("emma")}
-      select concat_ws('|', x ->> 'precio', (x ->> 'precio')::numeric = 79.90 - retail.fn_descuento_campana(79.90, 20)) from ${EN_CATALOGO("emma")} t(x);
+      select concat_ws('|', x ->> 'precio_final', (x ->> 'precio_final')::numeric = 79.90 - retail.fn_descuento_campana(79.90, 20)) from ${EN_CATALOGO("emma")} t(x);
       rollback;`);
-    esperar("el precio de campaña es el de la caja: precio web − fn_descuento_campana", r.ok && r.salida.endsWith("|t"), r.ok ? r.salida : r.mensaje);
+    esperar("el precio de campaña es el de la caja: precio de la tienda − fn_descuento_campana", r.ok && r.salida.endsWith("|t"), r.ok ? r.salida : r.mensaje);
     if (conAdr0403) {
       esperar("ADR-0403: S/ 79.90 con 20 % → S/ 63.90 (baja al múltiplo de S/ 0.10, sin céntimos sueltos)", r.ok && r.salida === "63.90|t", r.ok ? r.salida : r.mensaje);
     } else {
@@ -457,38 +506,51 @@ function main() {
     }
   }
   esperarValor(
-    "si la campaña toca solo un color: «desde» el precio con campaña hasta el precio web",
-    correr(`${PREPARAR}${guardar("emma", { precio: "70.00" })} \\gset
+    "una campaña en un solo color: «Desde» lo menos que se paga con campaña, y el precio del modelo tachado",
+    correr(`${PREPARAR}${guardar("emma")} \\gset
       ${campana("ZZ Negro", 10)}${aUnColor("emma", "NEG")}
-      select concat_ws('|', x ->> 'precio', x ->> 'precio_hasta', x -> 'campana' ->> 'nombre') from ${EN_CATALOGO("emma")} t(x);
+      select concat_ws('|', x ->> 'precio', (x ->> 'precio_final')::numeric = 79.90 - retail.fn_descuento_campana(79.90, 10), x ->> 'desde', x -> 'campana' ->> 'nombre')
+        from ${EN_CATALOGO("emma")} t(x);
       rollback;`),
-    "63.00|70.00|ZZ Negro",
+    "79.90|t|true|ZZ Negro",
+  );
+  esperarValor(
+    "dos % distintos en sus tallas: «Desde» el menor precio, con la campaña que lo da",
+    correr(`${PREPARAR}${guardar("emma")} \\gset
+      ${campana("ZZ Beige", 10)}${aUnColor("emma", "BEI")}${campana("ZZ Negro", 30)}${aUnColor("emma", "NEG")}
+      select concat_ws('|', (x ->> 'precio_final')::numeric = 79.90 - retail.fn_descuento_campana(79.90, 30), x ->> 'desde', x -> 'campana' ->> 'nombre')
+        from ${EN_CATALOGO("emma")} t(x);
+      rollback;`),
+    "t|true|ZZ Negro",
   );
   esperarValor(
     "dos campañas sobre la misma talla: gana la de mayor descuento (como en la caja)",
-    correr(`${PREPARAR}${guardar("emma", { precio: "70.00" })} \\gset
+    correr(`${PREPARAR}${guardar("emma")} \\gset
       ${campana("ZZ Chica", 10)}${aTodasLasTallas("emma")}${campana("ZZ Grande", 30)}${aTodasLasTallas("emma")}
-      select concat_ws('|', x ->> 'precio', x -> 'campana' ->> 'nombre', x -> 'campana' ->> 'pct') from ${EN_CATALOGO("emma")} t(x);
+      select concat_ws('|', (x ->> 'precio_final')::numeric = 79.90 - retail.fn_descuento_campana(79.90, 30), x ->> 'desde', x -> 'campana' ->> 'nombre', x -> 'campana' ->> 'pct')
+        from ${EN_CATALOGO("emma")} t(x);
       rollback;`),
-    "49.00|ZZ Grande|30.00",
+    "t|false|ZZ Grande|30.00",
   );
   esperarValor(
     "una campaña que entra por la categoría también cuenta, y una «de urgencia» con descuento también (como en la caja)",
-    correr(`${PREPARAR}${guardar("emma", { precio: "70.00" })} \\gset
+    correr(`${PREPARAR}${guardar("emma")} \\gset
       ${campana("ZZ Liquidar", 20, { estilo: "urgencia" })}
       insert into retail.etiqueta_categorias (etiqueta_id, categoria_id) values (:'etq', :'cat_blusas');
-      select concat_ws('|', x ->> 'precio', x -> 'campana' ->> 'nombre') from ${EN_CATALOGO("emma")} t(x);
+      select concat_ws('|', (x ->> 'precio_final')::numeric = 79.90 - retail.fn_descuento_campana(79.90, 20), x -> 'campana' ->> 'nombre') from ${EN_CATALOGO("emma")} t(x);
       rollback;`),
-    "56.00|ZZ Liquidar",
+    "t|ZZ Liquidar",
   );
   esperarValor(
     "una campaña que ya terminó o que empieza mañana no baja el precio",
-    correr(`${PREPARAR}${guardar("emma", { precio: "70.00" })} \\gset
+    correr(`${PREPARAR}${guardar("emma")} \\gset
       ${campana("ZZ Pasada", 30, { hasta: -1 })}${aTodasLasTallas("emma")}${campana("ZZ Futura", 40, { desde: 1 })}${aTodasLasTallas("emma")}
-      select concat_ws('|', x ->> 'precio', jsonb_typeof(x -> 'campana')) from ${EN_CATALOGO("emma")} t(x);
+      select concat_ws('|', ${PRECIOS("emma")}, jsonb_typeof(x -> 'campana')) from ${EN_CATALOGO("emma")} t(x);
       rollback;`),
-    "70.00|null",
+    "79.90|79.90|false|null",
   );
+
+  console.log("— El catálogo de la tienda: lo demás —");
   esperarValor(
     "solo los colores de las tallas activas (una talla inactiva de otro color no lo trae)",
     correr(`${PREPARAR}${guardar("emma")} \\gset
@@ -528,14 +590,14 @@ function main() {
     correr(`${PREPARAR}${guardar("emma")} \\gset
       select string_agg(k, ',' order by k) from ${EN_CATALOGO("emma")} t(x), jsonb_object_keys(x) k;
       rollback;`),
-    "campana,categoria,codigo,colores,fotos,id,nombre,precio,precio_hasta,precio_web",
+    "campana,categoria,codigo,colores,desde,fotos,id,nombre,precio,precio_final",
   );
   esperarValor(
-    "como tienda_web: el catálogo responde y la tabla se niega",
-    correr(`${PREPARAR}${guardar("emma")} \\gset
-      ${COMO_TIENDA}select jsonb_array_length(retail.tienda_catalogo() -> 'prendas');
+    "como tienda_web: el catálogo responde (con «Todas» y con una tienda) y la tabla se niega",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${guardar("emma")} \\gset
+      ${COMO_TIENDA}select concat_ws('|', jsonb_array_length(retail.tienda_catalogo() -> 'prendas'), jsonb_array_length(retail.tienda_catalogo(:'tru') -> 'prendas'));
       rollback;`),
-    "1",
+    "1|1",
   );
   esperarError(
     "como tienda_web, leer la vitrina directo se niega",
@@ -555,6 +617,29 @@ function main() {
     "se puede volver a correr (dos veces seguidas, como un segundo pegado)",
     correr(`begin;\n${sql}\n${sql}\nselect count(*) from retail.modulos where clave = 'vitrina_web';\nrollback;`),
     "1",
+  );
+  esperarValor(
+    "sobre una base con la versión vieja (precio web y sus funciones) deja todo como en una nueva, sin perder las filas",
+    correr(`begin;
+      ${APLICAR_ANTES}
+      set local request.jwt.claim.sub = '${FELIPE}';
+      select id as emma from retail.productos where referencia = 'Blusa Emma' \\gset
+      ${guardar("emma", { nuevo: "fijo" })} \\gset
+      alter table retail.vitrina_productos add column precio_web numeric(12, 2) not null default 10 check (precio_web > 0);
+      create function retail.vitrina_cambiar_precios(p_cambios jsonb) returns jsonb language sql as $$ select '{}'::jsonb $$;
+      create function retail.tienda_catalogo() returns jsonb language sql as $$ select '{}'::jsonb $$;
+      create function retail.vitrina_guardar_modelo(uuid, boolean, numeric, text, text, integer) returns jsonb language sql as $$ select '{}'::jsonb $$;
+      update retail.modulos set incluye = 'Elegir qué modelos se ven en la tienda online y a qué precio web' where clave = 'vitrina_web';
+      ${sql}
+      select concat_ws('|',
+        (select count(*) from information_schema.columns where table_schema = 'retail' and table_name = 'vitrina_productos' and column_name = 'precio_web'),
+        to_regprocedure('retail.vitrina_cambiar_precios(jsonb)') is null, to_regprocedure('retail.tienda_catalogo()') is null,
+        to_regprocedure('retail.vitrina_guardar_modelo(uuid, boolean, numeric, text, text, integer)') is null,
+        (select incluye not like '%precio%' from retail.modulos where clave = 'vitrina_web'),
+        (select en_lo_nuevo from retail.vitrina_productos where producto_id = :'emma'),
+        jsonb_typeof(retail.tienda_catalogo() -> 'prendas'));
+      rollback;`),
+    "0|t|t|t|t|fijo|array",
   );
 
   console.log(`\n${total - fallos}/${total} escenarios en verde${omitidos ? ` (${omitidos} omitido por la base local atrasada)` : ""}.`);

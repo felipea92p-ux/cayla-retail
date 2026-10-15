@@ -1308,29 +1308,29 @@ ESCENARIOS.push(
   { id: "recepcion.reabrir", soloPorId: true, ruta: "/recibir/envio/[id]", cuentas: RECEPCION, abre: "[role=dialog]", nombre: "Recibir un envío · la hoja «Reabrir»", preparar: secuencia(irAlEnvio(ENVIO_CON_PENDIENTES), clicRol("button", /Reabrir el conteo/)) },
 );
 
-// Catálogo ▸ Vitrina web (ADR-0408, actividad 3): la hoja de un modelo y la del lote (se elige el primer modelo de la lista).
+// Catálogo ▸ Vitrina web (ADR-0408, actividad 3): la hoja de un modelo y la de mostrar u ocultar (se elige el primer modelo de la lista).
 ESCENARIOS.push(
   {
     id: "vitrina.hoja-modelo",
     ruta: "/productos/vitrina",
     cuentas: ["admin"],
     abre: "[role=dialog]",
-    nombre: "Vitrina web · la hoja de un modelo (precio web, Lo nuevo y lo que ve el cliente)",
+    nombre: "Vitrina web · la hoja de un modelo (mostrar, Lo nuevo y lo que ve el cliente)",
     async preparar(pagina) {
       await pagina.locator('[data-guia="vitrina.abrir"]').first().click({ timeout: 8000 });
       await esperar(pagina, 1200);
     },
   },
   {
-    id: "vitrina.lote-precio",
+    id: "vitrina.lote-mostrar",
     ruta: "/productos/vitrina",
     cuentas: ["admin"],
     abre: "[role=dialog]",
-    nombre: "Vitrina web · cambiar el precio web de los elegidos",
+    nombre: "Vitrina web · mostrar en la web los elegidos",
     async preparar(pagina) {
       await pagina.locator('[data-guia="vitrina.casilla"] input').first().check({ timeout: 8000 });
       await esperar(pagina, 600);
-      await pagina.locator('[data-guia="vitrina.lote-precio"]').click({ timeout: 8000 });
+      await pagina.locator('[data-guia="vitrina.lote-mostrar"]').click({ timeout: 8000 });
       await esperar(pagina, 1200);
     },
   },

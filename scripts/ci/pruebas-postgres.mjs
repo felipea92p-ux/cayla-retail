@@ -186,9 +186,10 @@ export const PRUEBAS = [
   "pruebas:tienda-cuentas",
 
   // La Vitrina web y el catálogo de la tienda online (ADR-0408, actividad 3): el módulo nace sin rol y sin él no se lee ni guarda;
-  // el precio web nunca bajo el costo, la versión frena a la segunda persona, los lotes son todo o nada y cada cambio deja su
-  // línea en la Actividad; `tienda_catalogo` (solo de `tienda_web`) da solo lo publicado, con el precio de campaña de la caja
-  // (ADR-0403) sobre el precio web, sus colores activos y las fotos del almacén público. ROLLBACK.
+  // la versión frena a la segunda persona, mostrar varios es todo o nada y cada cambio deja su línea en la Actividad;
+  // `tienda_catalogo` (solo de `tienda_web`) da solo lo publicado, al precio de la tienda elegida o, con «Todas», al mayor entre las
+  // tiendas de la web (no hay precio web), con la campaña de la caja encima (ADR-0403), sus colores activos y las fotos del almacén
+  // público. ROLLBACK.
   "pruebas:vitrina-web",
 
   // El motor del pedido web (ADR-0408, actividades 7-9): separar no toca el stock; confirmar reserva con el motor de Apartados

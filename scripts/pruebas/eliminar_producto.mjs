@@ -314,8 +314,8 @@ select pg_temp.huella(:'va');`);
 {
   // `producto_origen` (ADR-0292) es SUYA: es un dato que nace con la ficha (en qué sede se registró) y se va con ella por su
   // `on delete cascade`; no es historia y no frena el borrado.
-  // `vitrina_productos` (ADR-0408, actividad 3) es SUYA: el precio web y si se ve en la tienda online son configuración de la
-  // ficha, como sus fotos, y se van con ella por su `on delete cascade` (quién lo cambió y cuándo queda en `actividad`).
+  // `vitrina_productos` (ADR-0408, actividad 3) es SUYA: si se ve en la tienda online y cómo entra a Lo nuevo son configuración de
+  // la ficha, como sus fotos, y se van con ella por su `on delete cascade` (quién lo cambió y cuándo queda en `actividad`).
   const SUYAS = ["variantes", "stock", "codigos_barras", "producto_fotos", "variante_etiquetas", "producto_color_temporadas", "producto_origen", "vitrina_productos"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",

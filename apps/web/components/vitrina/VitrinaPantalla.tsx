@@ -13,32 +13,29 @@ import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { Encabezado, Tabla, fila } from "@/components/ui/Tabla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Vacio } from "@/components/ui/Vacio";
-import { VitrinaLoteHoja, type ModoLote } from "@/components/vitrina/VitrinaLoteHoja";
+import { VitrinaLoteHoja } from "@/components/vitrina/VitrinaLoteHoja";
 import { VitrinaModeloHoja } from "@/components/vitrina/VitrinaModeloHoja";
 import {
   cifrasDe,
   coloresSinFoto,
-  diferenciaCorta,
   filtrarVitrina,
-  margenSinIgv,
-  MARGEN_BAJO,
-  precioConCampana,
   stockEnTiendas,
   type FiltroVitrina,
   type LecturaVitrina,
   type ModeloVitrina,
+  type ModoLote,
 } from "@/lib/vitrina-reglas";
-import { soles } from "@/lib/precio-sede-reglas";
 
-
-type Abierta = { id: string; encender: boolean };
+// En el celular la fila es una tarjeta: casilla, modelo e interruptor arriba y lo libre en cada tienda bajo el nombre; desde `sm`,
+// columnas.
+const PLANTILLA = "grid-cols-[1.5rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_12rem_4.5rem]";
 
 /**
- * Catálogo ▸ Vitrina web (ADR-0408, actividad 3; maqueta v4, «vitrina»): todos los modelos que se pueden vender, con su precio web,
- * su stock libre en cada tienda y si se ven en la web. Tocar un modelo abre su hoja (precio web, Lo nuevo y lo que ve el cliente);
- * encender el interruptor de uno que nunca estuvo abre esa hoja para fijar su precio (el precio web nace al encenderlo); apagarlo
- * pide confirmar. Marcar varios abre el lote: cambiar el precio web, mostrar u ocultar. Toda escritura pasa por una hoja con el combo
- * «Responsable» (ADR-0162).
+ * Catálogo ▸ Vitrina web (ADR-0408, actividad 3; maqueta v4, «vitrina»): todos los modelos que se pueden vender, con su stock libre en
+ * cada tienda y si se ven en la web. No hay precio web: en la web cada modelo vale lo que vale en la tienda que el cliente elige (y con
+ * «Todas», lo más que vale entre ellas). Tocar un modelo abre su hoja (mostrar, Lo nuevo y lo que ve el cliente); el interruptor de una
+ * fila muestra u oculta ese modelo, y marcar varios abre la barra para mostrarlos u ocultarlos juntos. Toda escritura pasa por una hoja
+ * con el combo «Responsable» (ADR-0162).
  */
 export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
   const router = useRouter();
@@ -52,18 +49,14 @@ export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
   const [filtro, setFiltro] = useState<FiltroVitrina>("todos");
   const [texto, setTexto] = useState("");
   const [elegidos, setElegidos] = useState<string[]>([]);
-  const [abierta, setAbierta] = useState<Abierta | null>(null);
+  const [abierto, setAbierto] = useState<string | null>(null);
   const [lote, setLote] = useState<{ modo: ModoLote; ids: string[] } | null>(null);
 
-  const { veCostos, tiendas } = lectura;
+  const { tiendas } = lectura;
   const cifras = cifrasDe(modelos);
   const visibles = filtrarVitrina(modelos, filtro, texto);
   const elegidosVisibles = visibles.filter((m) => elegidos.includes(m.id));
-  // En el celular la fila es una tarjeta: casilla, modelo e interruptor arriba y el precio bajo el nombre; desde `sm`, columnas.
-  const plantilla = veCostos
-    ? "grid-cols-[1.5rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_10.5rem_4.5rem] lg:grid-cols-[1.5rem_minmax(0,1fr)_10.5rem_4.5rem_10rem_4.5rem]"
-    : "grid-cols-[1.5rem_minmax(0,1fr)_2.75rem] sm:grid-cols-[1.5rem_minmax(0,1fr)_10.5rem_4.5rem] lg:grid-cols-[1.5rem_minmax(0,1fr)_10.5rem_10rem_4.5rem]";
-  const modeloAbierto = abierta ? modelos.find((m) => m.id === abierta.id) ?? null : null;
+  const modeloAbierto = abierto ? modelos.find((m) => m.id === abierto) ?? null : null;
   const delLote = lote ? modelos.filter((m) => lote.ids.includes(m.id)) : [];
 
   const alternarFiltro = (f: FiltroVitrina) => setFiltro((actual) => (actual === f ? "todos" : f));
@@ -73,12 +66,6 @@ export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
   const actualizar = (nuevo: ModeloVitrina) => {
     setModelos((ms) => ms.map((m) => (m.id === nuevo.id ? nuevo : m)));
     router.refresh();
-  };
-
-  // El interruptor: encender abre la hoja para fijar el precio web; apagar pide confirmar (con quién lo hace).
-  const alInterruptor = (m: ModeloVitrina) => {
-    if (m.vitrina?.publicado) setLote({ modo: "ocultar", ids: [m.id] });
-    else setAbierta({ id: m.id, encender: true });
   };
 
   return (
@@ -121,7 +108,7 @@ export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
             />
           </div>
           <p className="min-w-[12rem] flex-1 text-[13px] text-taupe" data-guia="vitrina.ayuda">
-            Toca un modelo para cambiar su precio web o Lo nuevo. Marca varios para cambiarlos juntos.
+            Toca un modelo para ver lo que ve el cliente o cambiar Lo nuevo. Marca varios para mostrarlos u ocultarlos juntos.
           </p>
         </div>
 
@@ -132,7 +119,7 @@ export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
             </Vacio>
           ) : modelos.length === 0 ? (
             <Vacio icono={<MonitorSmartphone />} titulo="Todavía no hay modelos para la web">
-              Los modelos que se pueden vender (activos y con alguna talla) aparecen aquí para mostrarlos en la tienda online.
+              Los modelos que se pueden vender (activos y con alguna talla con precio) aparecen aquí para mostrarlos en la tienda online.
             </Vacio>
           ) : (
             <Vacio icono={<MonitorSmartphone />} tamano="chico">
@@ -142,7 +129,7 @@ export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
         ) : (
           <Tabla className="rounded-none border-0 shadow-none" guia="vitrina.lista">
             <Encabezado
-              plantilla={plantilla}
+              plantilla={PLANTILLA}
               columnas={[
                 {
                   titulo: (
@@ -159,9 +146,7 @@ export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
                   ),
                 },
                 { titulo: "Modelo" },
-                { titulo: "Precio web", alinear: "der" },
-                ...(veCostos ? [{ titulo: "Margen", alinear: "der" as const, desdeLg: true, ayuda: "Del precio que paga el cliente (con la campaña, si hay), sin IGV" }] : []),
-                { titulo: "Libre en tiendas", desdeLg: true },
+                { titulo: "Libre en tiendas" },
                 { titulo: "En la web", alinear: "der" },
               ]}
             />
@@ -169,13 +154,11 @@ export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
               <FilaModelo
                 key={m.id}
                 modelo={m}
-                plantilla={plantilla}
-                veCostos={veCostos}
                 tiendas={tiendas}
                 elegido={elegidos.includes(m.id)}
                 onElegir={() => alternar(m.id)}
-                onAbrir={() => setAbierta({ id: m.id, encender: false })}
-                onInterruptor={() => alInterruptor(m)}
+                onAbrir={() => setAbierto(m.id)}
+                onInterruptor={() => setLote({ modo: m.vitrina?.publicado ? "ocultar" : "mostrar", ids: [m.id] })}
               />
             ))}
           </Tabla>
@@ -184,13 +167,14 @@ export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
 
       <div className="nota-cayla space-y-2 text-[13px]" data-guia="vitrina.nota">
         <p>
-          El precio web vale para todas las tallas y colores del modelo. Las campañas se aplican sobre él con la misma regla de la caja. Las
-          fotos, los colores y las tallas salen de su ficha en Catálogo ▸ Productos.
+          En la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto entre ellas. Las campañas se
+          aplican encima con la misma regla de la caja. El precio, las fotos, los colores y las tallas se cambian en su ficha, en Catálogo ▸
+          Productos.
         </p>
       </div>
 
-      {/* Lo elegido para el lote: abajo, pegado al borde, a la vista aunque la lista sea larga (la misma barra de «Pagar juntos»).
-          El aire de abajo es para que no tape la última fila. */}
+      {/* Lo elegido: abajo, pegado al borde, a la vista aunque la lista sea larga (la misma barra de «Pagar juntos»). El aire de abajo es
+          para que no tape la última fila. */}
       {elegidos.length > 0 && <div aria-hidden className="h-20" />}
       <BarraFija
         visible={elegidos.length > 0}
@@ -207,33 +191,20 @@ export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
         }
         acciones={
           <span className="flex flex-wrap items-center gap-2">
-            <Boton type="button" aria-haspopup="dialog" data-guia="vitrina.lote-precio" onClick={() => setLote({ modo: "precio", ids: elegidos })}>
-              Cambiar precio web
-            </Boton>
             <Boton type="button" aria-haspopup="dialog" onClick={() => setLote({ modo: "ocultar", ids: elegidos })}>
               Ocultar
             </Boton>
-            <Boton type="button" peso="primario" aria-haspopup="dialog" onClick={() => setLote({ modo: "mostrar", ids: elegidos })}>
+            <Boton type="button" peso="primario" aria-haspopup="dialog" data-guia="vitrina.lote-mostrar" onClick={() => setLote({ modo: "mostrar", ids: elegidos })}>
               Mostrar en la web
             </Boton>
           </span>
         }
       />
-      {modeloAbierto && (
-        <VitrinaModeloHoja
-          key={modeloAbierto.id}
-          modelo={modeloAbierto}
-          veCostos={veCostos}
-          encender={abierta?.encender ?? false}
-          onClose={() => setAbierta(null)}
-          onGuardado={actualizar}
-        />
-      )}
+      {modeloAbierto && <VitrinaModeloHoja key={modeloAbierto.id} modelo={modeloAbierto} onClose={() => setAbierto(null)} onGuardado={actualizar} />}
       {lote && delLote.length > 0 && (
         <VitrinaLoteHoja
           modo={lote.modo}
           modelos={delLote}
-          veCostos={veCostos}
           onClose={() => setLote(null)}
           onHecho={() => {
             setLote(null);
@@ -246,12 +217,10 @@ export function VitrinaPantalla({ lectura }: { lectura: LecturaVitrina }) {
   );
 }
 
-/** Una fila: la casilla para el lote, el modelo (que abre su hoja), el precio web, el margen (solo el líder), lo libre en cada tienda
- *  y el interruptor. La fila entera también abre la hoja con el mouse; la casilla y el interruptor no la disparan. */
+/** Una fila: la casilla para elegir varios, el modelo (que abre su hoja), lo libre en cada tienda y el interruptor. La fila entera
+ *  también abre la hoja con el mouse; la casilla y el interruptor no la disparan. */
 function FilaModelo({
   modelo: m,
-  plantilla,
-  veCostos,
   tiendas,
   elegido,
   onElegir,
@@ -259,8 +228,6 @@ function FilaModelo({
   onInterruptor,
 }: {
   modelo: ModeloVitrina;
-  plantilla: string;
-  veCostos: boolean;
   tiendas: LecturaVitrina["tiendas"];
   elegido: boolean;
   onElegir: () => void;
@@ -269,10 +236,7 @@ function FilaModelo({
 }) {
   const v = m.vitrina;
   const publicado = Boolean(v?.publicado);
-  const conCampana = v && m.campana ? precioConCampana(v.precioWeb, m.campana.pct) : null;
-  const margen = veCostos && v ? margenSinIgv(conCampana ?? v.precioWeb, m.costo) : null;
   const sinFoto = coloresSinFoto(m);
-  const frente = v ? diferenciaCorta(v.precioWeb, m.precioTienda) : null;
   return (
     <div
       role="row"
@@ -281,7 +245,7 @@ function FilaModelo({
         if (!e.currentTarget.contains(e.target as Node) || (e.target as HTMLElement).closest("a,button,input,label")) return;
         onAbrir();
       }}
-      className={`${fila(plantilla, "cursor-pointer items-center sm:items-center")} ${elegido ? "bg-rojo/[0.045]" : ""}`}
+      className={`${fila(PLANTILLA, "cursor-pointer items-center sm:items-center")} ${elegido ? "bg-rojo/[0.045]" : ""}`}
     >
       <span data-guia="vitrina.casilla" className="row-span-2 pt-0.5 sm:row-span-1">
         <Casilla marcada={elegido} onCambio={onElegir} etiqueta={`Elegir ${m.nombre}`} />
@@ -304,50 +268,16 @@ function FilaModelo({
               .filter(Boolean)
               .join(" · ")}
           </span>
-          {(!m.publicable || v?.enLoNuevo !== "automatico" || m.campana) && (
+          {(!m.publicable || (v && v.enLoNuevo !== "automatico")) && (
             <span className="mt-1 flex flex-wrap gap-1.5">
               {!m.publicable && <Chip tono="ambar">{publicado ? "Ya no se vende: no se ve" : "No se puede vender"}</Chip>}
               {v?.enLoNuevo === "fijo" && <Chip tono="verde">Fijado en Lo nuevo</Chip>}
               {v?.enLoNuevo === "quitado" && <Chip tono="neutro">Fuera de Lo nuevo</Chip>}
-              {m.campana && (
-                <Chip tono="pizarra">
-                  −{m.campana.pct} % {m.campana.nombre}
-                </Chip>
-              )}
             </span>
           )}
         </span>
       </span>
-      <span className="col-start-2 row-start-2 flex flex-col items-start tabular-nums sm:col-start-auto sm:row-start-auto sm:items-end sm:text-right">
-        {v ? (
-          <>
-            <span className="whitespace-nowrap font-semibold text-tinta">{soles(v.precioWeb)}</span>
-            {m.precioTienda !== null && (
-              <span className="text-[12px] text-taupe">
-                Tienda {soles(m.precioTienda)}
-                {frente ? ` · ${frente}` : ""}
-              </span>
-            )}
-            {conCampana !== null && (
-              <span className="text-[12px] text-taupe">
-                {m.campana?.todas ? "" : "desde "}
-                {soles(conCampana)} con campaña
-              </span>
-            )}
-          </>
-        ) : (
-          <>
-            <span className="text-taupe">—</span>
-            {m.precioTienda !== null && <span className="whitespace-nowrap text-[12px] text-taupe">Tienda {soles(m.precioTienda)}</span>}
-          </>
-        )}
-      </span>
-      {veCostos && (
-        <span className={`hidden text-right tabular-nums lg:block ${margen !== null && margen < MARGEN_BAJO ? "text-ambar-profundo" : "text-tinta"}`}>
-          {margen === null ? <span className="text-taupe">—</span> : `${Math.round(margen * 100)} %`}
-        </span>
-      )}
-      <span className="hidden text-[13px] tabular-nums text-tinta lg:block">
+      <span className="col-start-2 row-start-2 text-[13px] tabular-nums text-tinta sm:col-start-auto sm:row-start-auto">
         {stockEnTiendas(m, tiendas).map((s, i) => (
           <span key={s.sede} className={s.cantidad === 0 ? "text-tinta/40" : ""}>
             {i > 0 && <span className="text-taupe"> · </span>}

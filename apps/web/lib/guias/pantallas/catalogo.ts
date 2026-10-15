@@ -1407,19 +1407,20 @@ export const GUIA_LIQUIDACION: Guia = {
   alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "liquidacion.buscador" }],
 };
 
-// Catálogo ▸ Vitrina web (ADR-0408, actividad 3). La hoja de un modelo se abre tocando su nombre; el lote, marcando una casilla. La demo
-// nunca guarda: explica «Guardar» y «Aplicar» con la pieza encendida y cierra sin tocarlos.
+// Catálogo ▸ Vitrina web (ADR-0408, actividad 3). La hoja de un modelo se abre tocando su nombre; la de mostrar u ocultar, desde el
+// interruptor de una fila o marcando casillas. No hay precio web (Felipe, 2026-10-14): en la web vale el de cada tienda. La demo nunca
+// guarda: explica «Guardar» y «Mostrar» con la pieza encendida y cierra sin tocarlos.
 export const GUIA_VITRINA: Guia = {
   id: "productos.vitrina",
   ruta: "/productos/vitrina",
   titulo: "Vitrina web",
-  resumen: "Qué modelos se ven en la tienda online y a qué precio.",
+  resumen: "Qué modelos se ven en la tienda online y cómo entran a Lo nuevo.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "La vitrina de la tienda online",
-      texto: "Aquí eliges qué modelos se ven en la tienda online de CAYLA y a qué precio. El cliente los ve con sus fotos, sus colores y lo que hay en cada tienda. Es una demo: no se guarda nada.",
+      texto: "Aquí eliges qué modelos se ven en la tienda online de CAYLA. El cliente los ve con sus fotos, sus colores y el precio de la tienda que elige. Es una demo: no se guarda nada.",
     },
     {
       id: "cifras",
@@ -1441,21 +1442,21 @@ export const GUIA_VITRINA: Guia = {
       opcional: true,
       preparar: [{ tipo: "vaciar", ancla: "vitrina.buscador" }],
       titulo: "Todos los modelos que se venden",
-      texto: "Cada modelo con su precio web (debajo, el de tienda y el de la campaña si hay una), lo libre en cada tienda y si se ve en la web.",
+      texto: "Cada modelo con lo libre en cada tienda y si se ve en la web. El precio no se pone aquí: en la web vale lo mismo que en la tienda que el cliente elige.",
     },
     {
       id: "ayuda",
       ancla: "vitrina.ayuda",
       opcional: true,
       titulo: "Uno o varios",
-      texto: "Toca un modelo para cambiar su precio web o Lo nuevo. Marca varios con su casilla para cambiarlos juntos.",
+      texto: "Toca un modelo para ver lo que ve el cliente o cambiar Lo nuevo. Marca varios con su casilla para mostrarlos u ocultarlos juntos.",
     },
     {
       id: "interruptor",
       ancla: "vitrina.interruptor",
       opcional: true,
       titulo: "Mostrar u ocultar",
-      texto: "Préndelo para mostrar el modelo: se abre su hoja para fijar el precio web, que nace ahí. Apagarlo lo oculta y guarda su precio para cuando vuelva.",
+      texto: "Préndelo para mostrar el modelo en la web y apágalo para ocultarlo. Antes te pide confirmar quién lo hace. Ocultar no borra nada: lo vuelves a mostrar cuando quieras.",
     },
     {
       id: "abrir",
@@ -1471,14 +1472,7 @@ export const GUIA_VITRINA: Guia = {
       preparar: [{ tipo: "clic", ancla: "vitrina.abrir" }],
       prepararSoloAlAvanzar: true,
       titulo: "Se ve o no se ve",
-      texto: "Este interruptor decide si el modelo sale en la tienda online, con todos sus colores y tallas.",
-    },
-    {
-      id: "modelo-precio",
-      ancla: "vitrina-modelo.precio",
-      opcional: true,
-      titulo: "El precio web",
-      texto: "Vale para todas sus tallas y colores. Ves cuánto queda frente a la tienda y, si hay una campaña, el precio con su descuento: la misma cuenta de la caja. No puede quedar por debajo del costo.",
+      texto: "Este interruptor decide si el modelo sale en la tienda online, con todos sus colores y tallas, al precio de cada tienda.",
     },
     {
       id: "modelo-lo-nuevo",
@@ -1514,7 +1508,7 @@ export const GUIA_VITRINA: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Varios a la vez",
-      texto: "Marca la casilla de varios modelos (o la de arriba, para toda la lista) y aparece una barra para cambiarlos juntos.",
+      texto: "Marca la casilla de varios modelos (o la de arriba, para toda la lista) y aparece una barra para mostrarlos u ocultarlos juntos.",
     },
     {
       id: "seleccion",
@@ -1523,24 +1517,16 @@ export const GUIA_VITRINA: Guia = {
       preparar: [{ tipo: "clic", ancla: "vitrina.casilla" }],
       prepararSoloAlAvanzar: true,
       titulo: "Lo que haces con los elegidos",
-      texto: "Cambiar su precio web, mostrarlos u ocultarlos. Cada uno abre una hoja que dice qué le pasa a cada modelo y pide quién lo hace. Mostrar uno que nunca estuvo lo pone con su precio de tienda.",
+      texto: "Mostrarlos en la web u ocultarlos, todos de una vez. «Desmarcar todos» limpia la selección.",
     },
     {
-      id: "lote-cuanto",
-      ancla: "vitrina-lote.cuanto",
+      id: "lote-lista",
+      ancla: "vitrina-lote.lista",
       opcional: true,
-      preparar: [{ tipo: "clic", ancla: "vitrina.lote-precio" }],
+      preparar: [{ tipo: "clic", ancla: "vitrina.lote-mostrar" }],
       prepararSoloAlAvanzar: true,
-      titulo: "Subir o bajar el precio web",
-      texto: "Eliges si sube o baja y cuánto, en soles o en porcentaje. Mira, escribimos 10.",
-      demostrar: [{ tipo: "escribir", ancla: "vitrina-lote.cuanto", texto: "10" }],
-    },
-    {
-      id: "lote-vista",
-      ancla: "vitrina-lote.vista",
-      opcional: true,
-      titulo: "Cómo queda cada uno",
-      texto: "Antes de aplicar ves el precio de hoy y el nuevo de cada modelo. Se cambian todos juntos o ninguno. En la demo cerramos sin aplicar.",
+      titulo: "Qué le pasa a cada uno",
+      texto: "Antes de mostrarlos ves qué le pasa a cada modelo: el que ya se ve sigue igual y el que no se puede vender no entra. Se muestran todos juntos o ninguno, y pide quién lo hace. En la demo cerramos sin mostrar.",
     },
     {
       id: "nota",
@@ -1548,13 +1534,13 @@ export const GUIA_VITRINA: Guia = {
       preparar: [{ tipo: "escape" }, { tipo: "clic", ancla: "vitrina.desmarcar", siEsta: true }],
       prepararSoloAlAvanzar: true,
       titulo: "De dónde sale cada cosa",
-      texto: "El precio web es solo de la web: el de la tienda no cambia. Las fotos, los colores y las tallas salen de la ficha del modelo en Catálogo ▸ Productos.",
+      texto: "En la web cada modelo vale lo mismo que en la tienda que el cliente elige; con «Todas», el precio más alto. El precio, las fotos, los colores y las tallas se cambian en la ficha del modelo, en Catálogo ▸ Productos.",
     },
     {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes mostrar un modelo en la web, ponerle su precio y cambiar varios a la vez. Para repasarlo: Mi perfil ▸ Demo ▸ Vitrina web.",
+      texto: "Ya sabes mostrar u ocultar un modelo en la web, uno o varios a la vez. Para repasarlo: Mi perfil ▸ Demo ▸ Vitrina web.",
     },
   ],
   alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "vitrina.buscador" }],
