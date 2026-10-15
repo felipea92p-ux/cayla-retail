@@ -52,6 +52,8 @@ curva de tendencia se fue, y con ella `pulsoDeVentas`, `mediaMovil` y `ventanaDe
 
 ![Después: el pulso del Historial](capturas/grafico.barras.historial.jpg)
 
+En oscuro, el cierre de una caja (las barras por hora y lo cobrado con la barra apilada): ![El cierre en oscuro](capturas/ronda14-oscuro.jpg)
+
 **Se quedan, por su decisión:** «Cómo cerró cada día» del historial de cierres (la maqueta «Lo que se contó» que Felipe eligió el
 2026-10-12: varias barras por día, el hueco punteado de lo que faltó, cada barra abre su cierre, quieta a propósito), las barras de las
 tarjetas de Facturación (ADR-0124), las de Finanzas (ADR-0195) y las de Análisis (ADR-0357).
