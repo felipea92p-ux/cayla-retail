@@ -99,8 +99,8 @@ export default async function TerminosDelClub() {
           <section>
             <h2>7. Conservación de datos</h2>
             <p>
-              Si pasan 3 años desde tu última compra, tu ficha se anonimiza de forma automática y dejas de ser miembro (ver la Política de
-              privacidad, punto 6).
+              Si pasan 3 años desde tu última compra o tu última entrada a tu cuenta web, tu ficha se anonimiza de forma automática, dejas de
+              ser miembro y tu cuenta web se cierra (ver la Política de privacidad, punto 6).
             </p>
           </section>
         </article>

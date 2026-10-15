@@ -76,8 +76,13 @@ describe("candados de la tienda", () => {
   // Las cuentas de los clientes (actividad 2): su proyecto de inicio de sesión es otro, y la tienda lo nombra con lo suyo.
   it("las variables de entorno son de la tienda: TIENDA_* en el servidor y, en el navegador, solo la dirección y la llave pública del proyecto de clientes", () => {
     expect(variables.length).toBeGreaterThan(0);
-    // Ni una variable del ERP (las de su Supabase, su sal del club, su padrón…): la tienda tiene las suyas.
-    expect(variables.filter((v) => !/^(TIENDA_|NEXT_PUBLIC_TIENDA_)/.test(v.nombre) && v.nombre !== "NODE_ENV").map((v) => `${v.ruta}: ${v.nombre}`)).toEqual([]);
+    // Ni una variable del ERP (las de su Supabase, su sal del club, su padrón…): la tienda tiene las suyas. La excepción es
+    // `CRON_SECRET`, que no es del ERP sino de Vercel: es el nombre con que Vercel firma sus trabajos programados en CADA proyecto (el
+    // de la tienda tiene la suya), y solo la lee la ruta del cron de la tienda.
+    expect(
+      variables.filter((v) => !/^(TIENDA_|NEXT_PUBLIC_TIENDA_)/.test(v.nombre) && v.nombre !== "NODE_ENV" && v.nombre !== "CRON_SECRET").map((v) => `${v.ruta}: ${v.nombre}`),
+    ).toEqual([]);
+    expect(variables.filter((v) => v.nombre === "CRON_SECRET").map((v) => v.ruta)).toEqual(["app/api/cuentas-cerradas/route.ts"]);
     const publicas = new Set(FUENTES.flatMap(({ texto }) => [...texto.matchAll(/\bNEXT_PUBLIC_[A-Z0-9_]+/g)].map((m) => m[0])));
     expect([...publicas].sort()).toEqual(["NEXT_PUBLIC_TIENDA_AUTH_ANON_KEY", "NEXT_PUBLIC_TIENDA_AUTH_URL"]);
   });

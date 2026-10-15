@@ -786,6 +786,12 @@ export const PRUEBAS = [
   // corre con BASE_DESECHABLE=1, no aquí).
   "pruebas:clientas-modulo",
 
+  // Un correo y un documento, una persona (Felipe 2026-10-14): el correo de otra ficha o de la cuenta web de otra ficha se
+  // rechaza sin decir de quién es (ficha, cartel, tienda), también con dos escrituras a la vez y en una base sin la tienda;
+  // `unir_clientas` ya no existe; entrar a la web cuenta para la conservación de 3 años; y al anonimizarse la ficha, su cuenta
+  // web se cierra en la misma escritura (sin correo, usuario, favoritos ni esperas) y su usuario queda por borrar. ROLLBACK.
+  "pruebas:clientas-correo",
+
   // Celular para la boleta (ADR-0288, «Actualización 2026-10-03 (o)», actividad 2): `agregar_celular_clienta` SOLO AGREGA. A
   // una ficha sin celular se lo deja normalizado (versión +1, una línea de actividad sin datos personales); a una que ya
   // tiene uno —el mismo u otro, también una socia con publicidad— no la toca y responde false (sin `revoca`); lo inválido,

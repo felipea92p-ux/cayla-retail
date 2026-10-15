@@ -82,6 +82,11 @@ describe("el correo", () => {
     expect(estadoCorreo("ana@gmail.com", "repetido")).toBe("repetido");
     expect(estadoCorreo("ana@gmail.com", "sin_revisar")).toBe("ok");
   });
+
+  it("el correo de contacto de OTRA ficha tampoco sirve: el campo queda en rojo y falta en «Falta: …»", () => {
+    expect(estadoCorreo("ana@gmail.com", "de_otra_persona")).toBe("repetido");
+    expect(marcaDe(estadoCorreo("ana@gmail.com", "de_otra_persona"), false)).toBe("error");
+  });
 });
 
 describe("la contraseña", () => {
@@ -263,6 +268,16 @@ describe("lo que el servidor vuelve a revisar", () => {
     expect(errorDeRegistro("cuenta_datos_invalidos", "usuario")).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
     expect(errorDeRegistro("cuenta_ya_existe", null)).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
     expect(errorDeRegistro(undefined, undefined)).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
+  });
+
+  it("el correo de otra persona (20261015054000): va a la caja del correo y no dice de quién es", () => {
+    expect(errorDeRegistro("correo_repetido", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.correoDeOtraPersona });
+    // Ni un nombre, ni un DNI, ni «la ficha de…»: la tienda nunca revela de quién es un correo.
+    expect(MENSAJES.correoDeOtraPersona).not.toMatch(/ficha de|DNI \d|nombre de/i);
+    expect(MENSAJES.correoDeOtraPersona).not.toBe(MENSAJES.correoRepetido);
+    // La cuenta cerrada lo dice sin culpar a nadie y con el camino de vuelta.
+    expect(MENSAJES.cuentaCerrada).toMatch(/3 años/);
+    expect(MENSAJES.cuentaCerrada).toMatch(/cuenta nueva/);
   });
 
   it("lo que manda el formulario: el registro con sus casillas, la versión de la casilla que leyó y, al crear, el código", () => {

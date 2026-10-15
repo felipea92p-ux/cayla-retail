@@ -4,6 +4,7 @@ import { datosDeCabecera } from "@/lib/inicio";
 import { anioLima } from "@/lib/portada";
 import { BotonBolsa } from "./bolsa/BotonBolsa";
 import { CabeceraConCuenta, type SeccionActual } from "./CabeceraConCuenta";
+import { EntradaDelDia } from "./cuenta/EntradaDelDia";
 import { FiltroTienda, type OpcionTienda } from "./FiltroTienda";
 import { Pie } from "./Pie";
 
@@ -33,6 +34,8 @@ export async function MarcoCatalogo({
   const favoritos = await cuantosFavoritos();
   return (
     <>
+      {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
+      <EntradaDelDia />
       <CabeceraConCuenta datos={datos} actual={actual} favoritos={favoritos} bolsa={<BotonBolsa />} />
       {/* Con una sola tienda en la web no hay nada que elegir. */}
       {filtro && filtro.length > 2 && <FiltroTienda opciones={filtro} />}

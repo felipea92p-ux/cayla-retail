@@ -106,9 +106,10 @@ export default async function Privacidad() {
           <section>
             <h2>6. Cuánto tiempo los guardamos</h2>
             <p>
-              Mientras tengas tu cuenta y seas miembro del club. Si pasan 3 años desde tu última compra, anonimizamos tu ficha de forma
-              automática, como en el Club CAYLA (qué pasa con tu cuenta web en ese caso, por definir con CAYLA). Lo mismo si pides la
-              cancelación antes. Los comprobantes de pago se conservan el tiempo que exige la ley tributaria.
+              Mientras tengas tu cuenta y seas miembro del club. Si pasan 3 años desde tu última compra o tu última entrada a tu cuenta
+              web, anonimizamos tu ficha de forma automática, como en el Club CAYLA, y cerramos tu cuenta web: borramos tu correo, quitamos
+              tus favoritos y tus avisos de «Avísame cuando llegue», y ya no puedes entrar con ella. Lo mismo si pides la cancelación antes.
+              Los comprobantes de pago se conservan el tiempo que exige la ley tributaria.
             </p>
           </section>
 

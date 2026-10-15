@@ -26,7 +26,8 @@ import { aResumenCompras, type FilaResumenCompras } from "@/lib/clientas-lista-r
 // (política `clientas_select`). Esta capa nunca es la única puerta: la base la vuelve a exigir.
 //
 // Paso 2 del acta (docs/datos/DECISIONES-2026-09-26-clientas.md sección H): editar, archivar/
-// anonimizar, unir y exportar se suman al alta y la búsqueda que ya existían (D-76/D-77).
+// anonimizar y exportar se suman al alta y la búsqueda que ya existían (D-76/D-77). «Unir fichas» (D-99) se retiró el
+// 2026-10-14 (Felipe: el documento y el correo son de una sola persona; `unir_clientas` se borró en 20261015054000).
 // Candado optimista (ADR-0193 reusado): cada acción que edita manda `version`, y si la base
 // devuelve PT409, `error-escritura.ts` ya lo traduce sin que esta capa haga nada especial.
 //
@@ -49,7 +50,6 @@ export type DatosAlta = {
 export type ResultadoBusqueda = { clientas: Clienta[]; error: ErrorEscritura };
 export type ResultadoAlta = { id: string | null; error: ErrorEscritura };
 export type ResultadoVersion = { version: number | null; error: ErrorEscritura };
-export type ResultadoUnion = { clienta: Clienta | null; error: ErrorEscritura };
 
 /** `undefined` si el texto viene vacío tras recortarlo — así la RPC (que espera `smallint`,
  *  no admite `''`) recibe `null`, nunca una cadena vacía. */
@@ -126,32 +126,10 @@ export async function reactivarClienta(id: string, version: number, firma: Firma
   return { version: data ?? null, error };
 }
 
-/** D-99: junta dos fichas (celular primero, documento después) en una sola transacción — mueve sus
- *  ventas/separaciones/pedidos y anonimiza a la perdedora. No hay deshacer: el rastro completo
- *  queda en `retail.clientas_fusiones`. */
-export async function unirClientas(
-  mantenerId: string,
-  fusionarId: string,
-  versionMantener: number,
-  versionFusionar: number,
-  firma: Firma | null,
-): Promise<ResultadoUnion> {
-  const { data, error } = await firmar(
-    createClient().rpc("unir_clientas", {
-      p_mantener_id: mantenerId,
-      p_fusionar_id: fusionarId,
-      p_version_mantener_esperada: versionMantener,
-      p_version_fusionar_esperada: versionFusionar,
-    }),
-    firma,
-  );
-  return { clienta: data ? aClienta(data) : null, error };
-}
-
 export type ResultadoFicha = { ficha: FichaClienta | null; error: ErrorEscritura };
 
 /** La ficha completa (clienta + su actividad), leída DESDE EL NAVEGADOR — para abrirla al hacer
- *  clic en una fila y para refrescarla tras editar/archivar/unir, sin depender de un Server
+ *  clic en una fila y para refrescarla tras editar o archivar, sin depender de un Server
  *  Component. Es la única lectura de la ficha: su gemela del servidor (`getFichaClienta`)
  *  ya no la llamaba nadie y se borró el 2026-10-14 (ADR-0406).
  *  Tanda 1f (ADR-0288): más su sede y frecuente con compra neta (`fn_clienta_su_sede`, la regla de la lista). Esa sexta

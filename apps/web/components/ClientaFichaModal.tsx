@@ -22,28 +22,22 @@ import { cajaDelProblemaCumple, cumpleCompleto, problemaCumple, type CumpleEscri
 import { avisoCambioDeCelular, cumpleLegible, faltaParaSerSocia } from "@/lib/club-clientas-reglas";
 import { registrarBajaWhatsapp } from "@/lib/club-acciones";
 import type { CampoDeGuia } from "@/lib/guia-campos";
-import {
-  archivarClienta,
-  buscarClienta,
-  cargarFichaClienta,
-  editarClienta,
-  reactivarClienta,
-  unirClientas,
-  type DatosEdicion,
-} from "@/lib/clientas-acciones";
+import { archivarClienta, cargarFichaClienta, editarClienta, reactivarClienta, type DatosEdicion } from "@/lib/clientas-acciones";
 // Tanda 1f (ADR-0288 «Actualización 2026-09-30 (f)»): su sede y frecuente con compra neta, las preferencias y la historia del
 // permiso. Viven en piezas aparte; aquí solo se enganchan.
 import { frecuenteDeLaFicha, suSedeDeLaFicha } from "@/lib/clientas-lista-reglas";
 import { PreferenciasClienta } from "@/components/clientas/PreferenciasClienta";
 import { HistoriaPermisos } from "@/components/clientas/HistoriaPermisos";
-import { ShoppingBag, SearchX } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 
 /** Lo que muestra la hoja: la ficha, o una de sus acciones (cada una responde adentro del mismo panel, ADR-0136). Del club
  *  queda «Registrar su BAJA» (`baja`): desde la tanda 1g (ADR-0288, G-1, G-7) ella se une sola desde el cartel, así que la
- *  ficha ya no une al club, no muestra un QR personal ni registra «Llegó su mensaje». */
-type Modo = "ver" | "editar" | "archivar" | "unir" | "baja";
+ *  ficha ya no une al club, no muestra un QR personal ni registra «Llegó su mensaje». Tampoco une fichas (Felipe 2026-10-14:
+ *  el documento y el correo son de una sola persona, así que no nacen fichas repetidas; `unir_clientas` se borró en
+ *  20261015054000). */
+type Modo = "ver" | "editar" | "archivar" | "baja";
 /** Las pestañas de la ficha: lo del club (permisos y preferencias) por un lado y lo que hizo en las tiendas por otro. */
 type Vista = "club" | "actividad";
 
@@ -75,12 +69,12 @@ function datosDeEdicion(c: Clienta): DatosEdicion {
  * reglas que validan cada acción abajo (y que la base vuelve a exigir): no agregan ninguna.
  *   · editar: el documento, si se escribe, completo (D-2); a una socia no se le puede borrar el celular, el documento ni el
  *     nombre (`socia_sin_celular`, `socia_sin_documento`, CL-1); el año del cumpleaños, si se escribe, completo.
- *   · archivar: el motivo. · unir: la otra ficha. · baja: solo quién lo hace. · En todas, quién lo hace.
+ *   · archivar: el motivo. · baja: solo quién lo hace. · En todas, quién lo hace.
  */
 function camposDeLaGuia(
   modo: Modo,
   c: Clienta | null,
-  estado: { edicion: DatosEdicion | null; motivoArchivo: string; anonimizar: boolean; aFusionar: Clienta | null },
+  estado: { edicion: DatosEdicion | null; motivoArchivo: string; anonimizar: boolean },
   responsableListo: boolean,
   anioActual: number,
 ): CampoDeGuia[] {
@@ -130,8 +124,6 @@ function camposDeLaGuia(
         { id: "anonimizar", nombre: "Anonimizar", requerido: false, hecho: estado.anonimizar, pendiente: "" },
         quien,
       ];
-    case "unir":
-      return [{ id: "otra", nombre: "La otra ficha", requerido: true, hecho: estado.aFusionar !== null, pendiente: "Busca y elige la otra ficha de este cliente." }, quien];
     case "baja":
       return [quien];
     case "ver":
@@ -141,10 +133,10 @@ function camposDeLaGuia(
 
 /**
  * La ficha completa de una clienta (paso 2 del acta, `docs/datos/DECISIONES-2026-09-26-clientas.md`
- * sección H): ver su actividad, editar con candado optimista (ADR-0193 reusado), archivar/
- * anonimizar (Ley 29733, nunca `delete`) y unir con otra ficha (D-99). UN solo `<Modal
- * variante="hoja">` que cambia de contenido por `modo` — ADR-0136 no anida modales, cada acción
- * responde adentro del mismo panel.
+ * sección H): ver su actividad, editar con candado optimista (ADR-0193 reusado) y archivar/
+ * anonimizar (Ley 29733, nunca `delete`). «Unir con otra ficha» (D-99) se retiró el 2026-10-14: el documento y el correo
+ * son de una sola persona. UN solo `<Modal variante="hoja">` que cambia de contenido por `modo` — ADR-0136 no anida
+ * modales, cada acción responde adentro del mismo panel.
  *
  * ADR-0288: la ficha dice dónde está frente al club (`estadoClub`). Desde la tanda 1g (G-1, G-2, G-7) ella se une sola
  * escaneando el cartel y ahí decide si quiere publicidad (G-12): la ficha no une al club ni marca la publicidad. Lo único del
@@ -169,9 +161,6 @@ export function ClientaFichaModal({
   const [edicion, setEdicion] = useState<DatosEdicion | null>(null);
   const [motivoArchivo, setMotivoArchivo] = useState("");
   const [anonimizar, setAnonimizar] = useState(false);
-  const [terminoUnir, setTerminoUnir] = useState("");
-  const [resultadosUnir, setResultadosUnir] = useState<Clienta[] | null>(null);
-  const [aFusionar, setAFusionar] = useState<Clienta | null>(null);
   const [guardando, setGuardando] = useState(false);
   // La pestaña de la ficha («ver»). `null` = la de siempre: «Club» si es miembro y «Actividad» si no.
   const [vista, setVista] = useState<Vista | null>(null);
@@ -195,7 +184,7 @@ export function ClientaFichaModal({
   }, [id]);
 
   const guia = useGuiaCampos(
-    camposDeLaGuia(modo, ficha?.clienta ?? null, { edicion, motivoArchivo, anonimizar, aFusionar }, responsable.listo, anioActual),
+    camposDeLaGuia(modo, ficha?.clienta ?? null, { edicion, motivoArchivo, anonimizar }, responsable.listo, anioActual),
   );
 
   async function cargar() {
@@ -315,30 +304,6 @@ export function ClientaFichaModal({
     await guardarAccion(() => reactivarClienta(id, c.version, firma), "reactivar la ficha", () => avisar.exito("Cliente reactivado"));
   }
 
-  async function onBuscarParaUnir(e: React.FormEvent) {
-    e.preventDefault();
-    if (terminoUnir.trim() === "") {
-      setResultadosUnir(null);
-      return;
-    }
-    const { clientas, error } = await buscarClienta(terminoUnir);
-    if (error) {
-      avisar.error(traducirError(error, "buscar la otra ficha", { lectura: true }));
-      return;
-    }
-    setResultadosUnir(clientas.filter((otra) => otra.id !== id));
-  }
-
-  async function onUnir() {
-    if (!aFusionar) return;
-    const firma = responsable.firma();
-    await guardarAccion(
-      () => unirClientas(id, aFusionar.id, c.version, aFusionar.version, firma),
-      "unir las dos fichas",
-      () => avisar.exito("Fichas unidas", { detalle: "Sus ventas, cambios y apartados ahora están en esta ficha." }),
-    );
-  }
-
   // ---- El club: su BAJA (ADR-0288 tanda 1b; desde la 1g, lo único del club que se registra en la ficha) ----
 
   async function onBaja() {
@@ -381,7 +346,7 @@ export function ClientaFichaModal({
       onClose={onClose}
       variante="hoja"
       tamano="ancha"
-      // Una salida a la vista (ADR-0358, ronda 12): mirando la ficha, la ×; editando, archivando o uniendo, «Cancelar».
+      // Una salida a la vista (ADR-0358, ronda 12): mirando la ficha, la ×; editando, archivando o con la BAJA, «Cancelar».
       conCerrar={modo === "ver"}
     >
       {() => (
@@ -540,18 +505,6 @@ export function ClientaFichaModal({
                     type="button"
                     className="btn-cayla btn-sutil"
                     onClick={() => {
-                      setTerminoUnir("");
-                      setResultadosUnir(null);
-                      setAFusionar(null);
-                      setModo("unir");
-                    }}
-                  >
-                    Unir con otra ficha
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-cayla btn-sutil"
-                    onClick={() => {
                       setMotivoArchivo("");
                       setAnonimizar(false);
                       setModo("archivar");
@@ -658,63 +611,6 @@ export function ClientaFichaModal({
                   className={guia.claseConfirmar}
                 >
                   {anonimizar ? "Anonimizar" : "Archivar"}
-                </Boton>
-              </div>
-            </div>
-          )}
-
-          {modo === "unir" && (
-            <div className="space-y-4">
-              <p className="text-sm text-tinta/70">
-                Busca la otra ficha de este mismo cliente (la que se creó con su celular, por ejemplo). Sus ventas, cambios y apartados
-                pasan a <strong>esta</strong> ficha; la otra queda anonimizada y archivada.
-              </p>
-              <CampoGuiado id="otra" guia={guia} titulo="La otra ficha" className="space-y-3">
-                <form onSubmit={onBuscarParaUnir} className="flex items-end gap-3">
-                  <div className="max-w-sm flex-1">
-                    <CampoTexto etiqueta="Buscar" value={terminoUnir} onChange={(e) => setTerminoUnir(e.target.value)} placeholder="Documento, WhatsApp o nombre…" /* sugerir-fijo: qué se puede buscar en la libreta; no depende de nada elegido antes */ />
-                  </div>
-                  <Boton type="submit">Buscar</Boton>
-                </form>
-                {resultadosUnir !== null && (
-                  <div className="space-y-2">
-                    {resultadosUnir.length === 0 ? (
-                      <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<SearchX />}>Sin coincidencias.</Vacio>
-                    ) : (
-                      resultadosUnir.map((otra) => (
-                        <button
-                          key={otra.id}
-                          type="button"
-                          onClick={() => setAFusionar(otra)}
-                          className={`card-cayla flex w-full items-center justify-between gap-4 p-3 text-left ${aFusionar?.id === otra.id ? "ring-2 ring-rojo" : ""}`}
-                        >
-                          <span className="text-sm text-tinta">{otra.nombre ?? "Sin nombre"}</span>
-                          <span className="text-xs text-tinta/65">
-                            {/* Unir no se puede deshacer: para comparar las dos fichas, el número completo a quien sea que una. */}
-                            {Object.values(contactoVisible(otra, true)).filter(Boolean).join(" · ")}
-                          </span>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </CampoGuiado>
-              <CampoGuiado id="responsable" guia={guia}>
-                <ComboResponsable control={responsable} deshabilitado={guardando} />
-              </CampoGuiado>
-              <PieGuia guia={guia} listo="Todo listo para unir." />
-              <div className="flex justify-end gap-3 pt-2">
-                {volverAVer}
-                <Boton textoCargando="Uniendo…"
-                  type="button"
-                  peso="primario"
-                  cargando={guardando}
-                  onClick={onUnir}
-                  disabled={!aFusionar || !responsable.listo}
-                  title={guia.frase ?? undefined}
-                  className={guia.claseConfirmar}
-                >
-                  Unir a esta ficha
                 </Boton>
               </div>
             </div>

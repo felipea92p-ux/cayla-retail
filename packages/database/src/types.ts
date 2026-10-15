@@ -6078,38 +6078,6 @@ export type Database = {
         Args: { p_id: string; p_version_esperada?: number }
         Returns: number
       }
-      unir_clientas: {
-        Args: {
-          p_mantener_id: string
-          p_fusionar_id: string
-          p_version_mantener_esperada?: number
-          p_version_fusionar_esperada?: number
-        }
-        Returns: {
-          anonimizada: boolean
-          archivada_en: string | null
-          archivada_por: string | null
-          created_at: string
-          created_por: string | null
-          cumple_dia: number | null
-          cumple_mes: number | null
-          documento_numero: string | null
-          documento_tipo: string
-          club_desde: string | null
-          codigo_club: string | null
-          cumple_anio: number | null
-          publicidad_desde: string | null
-          fusionada_en_id: string | null
-          id: string
-          motivo_archivo: string | null
-          nombre: string | null
-          tallas: Json | null
-          telefono_whatsapp: string | null
-          version: number
-          whatsapp_consentimiento_en: string | null
-          preferencias: Json
-        }
-      }
       exportar_clientas: {
         Args: never
         Returns: {

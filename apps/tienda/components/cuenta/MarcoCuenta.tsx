@@ -8,6 +8,7 @@ import { BotonBolsa } from "../bolsa/BotonBolsa";
 import { Cabecera } from "../Cabecera";
 import { CabeceraConCuenta } from "../CabeceraConCuenta";
 import { Pie } from "../Pie";
+import { EntradaDelDia } from "./EntradaDelDia";
 
 /**
  * El marco de las páginas de la cuenta y de ayuda, el mismo de la portada: la franja de arriba (con la campaña vigente), la cabecera,
@@ -36,6 +37,8 @@ export async function MarcoCuenta({
   return (
     <div className="tienda">
       <Anuncio frases={anuncios(campana)} />
+      {/* Entrar a la web cuenta como actividad del Club: se anota una vez al día por sesión (y al iniciar sesión, en «Entrar»). */}
+      {conCuenta && <EntradaDelDia />}
       {conCuenta ? (
         <CabeceraConCuenta
           datos={datosDeCabecera(catalogo?.prendas ?? [], null, process.env.TIENDA_FOTOS_ORIGEN)}

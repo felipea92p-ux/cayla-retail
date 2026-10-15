@@ -1131,10 +1131,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   ADR-0249, **migraciones `20260928140000` a `180000` sin pegar en producción** — el nodo
   `clientas` del menú pasó de `futura` a `viva`) → `lib/clientas.ts:getListaClientas`
   (lectura server; la ficha la lee el navegador, `cargarFichaClienta`) → `ClientasPanel.tsx` (lista + buscador + alta) +
-  `ClientaFichaModal.tsx` (ver/editar/archivar/unir, `<Modal variante="hoja">`) +
-  `NuevaClientaModal.tsx` → `lib/clientas-acciones.ts` → RPC `buscar_clienta`,
-  `registrar_clienta`, `editar_clienta` (documento con tipo: `p_documento_tipo` + `p_documento_numero`, ADR-0288; al fijar el documento ligan sus compras anteriores con `fn_ligar_ventas_por_documento`; candado optimista `version`, ADR-0193 reusado),
-  `archivar_clienta`/`reactivar_clienta`, `unir_clientas` (D-99), `exportar_clientas`
+  `ClientaFichaModal.tsx` (ver/editar/archivar, `<Modal variante="hoja">`) +
+  `NuevaClientaModal.tsx` (si el documento ya tiene ficha lo dice con su nombre, `buscar_clienta`, y la abre en vez de crear otra) →
+  `lib/clientas-acciones.ts` → RPC `buscar_clienta`,
+  `registrar_clienta`, `editar_clienta` (documento con tipo: `p_documento_tipo` + `p_documento_numero`, ADR-0288; al fijar el documento ligan sus compras anteriores con `fn_ligar_ventas_por_documento`; candado optimista `version`, ADR-0193 reusado; el documento de otra ficha dice de cuál es),
+  `archivar_clienta`/`reactivar_clienta`, `exportar_clientas`. **Sin «Unir fichas» desde el 2026-10-14** (Felipe: el documento y el
+  correo son de una sola persona): `unir_clientas` (D-99) se borró en `20261015054000`, que además hace único el correo
+  (`clientas_correo_unico` y el disparador `fn_correo_de_una_persona`, que también mira `cuentas_web`); `clientas_fusiones` queda como
+  historia. Y `exportar_clientas`
   (solo Admin, D-109/G.4), `fn_clienta_compras/cambios/devoluciones/separaciones`
   (`security definer`, cruzan sede a propósito). Talla deducida (D-101) y «te falta N
   para frecuente» (D-103) calculadas al leer en `lib/clienta-actividad-reglas.ts`
@@ -1185,7 +1189,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`lib/rutas-cron.ts`); sin `CRON_SECRET` o con otra clave, 401. Si falla, esa semana queda como hueco y la pestaña Historia lo muestra como hueco, no como cero.
 - `GET /api/club/conservacion` (cron diario 08:00 UTC = 03:00 Lima, `vercel.json`; ADR-0288 G-15) → `crearClienteAdmin()` →
   `fn_club_anonimizar_inactivas()`. `CRON_SECRET` lo comprueban la ruta y `proxy.ts` (`lib/rutas-cron.ts`, que también
-  sirve al cron de SUNAT).
+  sirve al cron de SUNAT). Desde `20261015055000` (**sin pegar en producción**) cuenta los 3 años desde la última compra **o la última
+  entrada a la cuenta web** (`cuentas_web.ultima_entrada_en`, o su creación), no toca a quien tiene un pedido web en curso, y al
+  anonimizar cierra su cuenta web en la misma escritura (disparador `clientas_cuenta_web_al_anonimizar`; ver «La tienda online»).
 - `GET /api/pedidos-web/cerrar-vencidos` (cron cada 15 minutos, `vercel.json`; ADR-0408 DECIDÍ 8, tienda online actividad 7; **sin
   pegar en producción**) → `crearClienteAdmin()` → `fn_cerrar_pedidos_web_sin_confirmar()` (solo `service_role`): lee el plazo de
   Configuración ▸ Tienda web y cierra con él lo que nadie confirmó (`fn_cerrar_pedidos_web_vencidos` del motor). Devuelve
@@ -1782,6 +1788,15 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   minutos de bloqueo) y `cuentas_web_pendientes` (sin datos de la persona). El orden: código → contraseña → `tienda_registrar_cuenta`; si
   la base dice que no, el servidor borra el usuario (`lib/usuarios-servidor.ts`). La casilla «Soy mayor de 18 años» la exige la base; la de
   avisos del Club por WhatsApp (`tienda_casilla_whatsapp`, el texto vigente del cartel) queda en `club_permisos` con medio `tienda_web`.
+  Un correo es de una sola persona (`20261015054000`/`055000`): con el correo de contacto de OTRA ficha, `tienda_revisar_registro` dice
+  `correo_de_otra_persona` antes del código y `FormularioRegistro` lo pone bajo el campo, sin decir de quién es.
+- Entrar cuenta para el Club y la cuenta que se cierra (`20261015055000`, **sin pegar en producción**): `app/acciones/entrada.ts`
+  `anotarEntrada` → `lib/entrada-servidor.ts` → `retail.tienda_anotar_entrada` (al iniciar sesión en `FormularioEntrar`, al crear la
+  cuenta y, como mucho una vez al día por sesión, desde `components/cuenta/EntradaDelDia.tsx` en `MarcoCuenta`/`MarcoCatalogo`, con la
+  marca `tienda-entrada` de `lib/entrada.ts`). Si responde `cerrada` (la ficha se anonimizó), el servidor borra el usuario del proyecto
+  de clientes (`borrarUsuarioDeCuentaCerrada`), cierra la sesión y «Entrar» lo explica. `GET /api/cuentas-cerradas` (cron de
+  `apps/tienda/vercel.json`, 08:30 UTC = 03:30 Lima; `pasaComoCron` de `lib/cron.ts` con `CRON_SECRET`) → `barrerCuentasCerradas` →
+  `tienda_usuarios_por_borrar` + `deleteUser` + `tienda_usuario_borrado`. Prueba en la base: `pnpm pruebas:clientas-correo`.
 - `/catalogo` (grupo `(catalogo)`, con cuenta: el proxy y el layout) → `lib/tiendas-servidor.ts` `leerSedes()` (las píldoras «Ver lo
   que hay en», `?sede=` con el nombre web de la tienda: `lib/sede-elegida.ts`) y `lib/catalogo-servidor.ts` `leerCatalogo(sede)` →
   `retail.tienda_catalogo(p_sede)`: lo publicado en la Vitrina web al precio de esa tienda (`fn_precio_en_sede`) o, con «Todas», al

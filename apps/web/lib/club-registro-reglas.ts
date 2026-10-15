@@ -268,6 +268,8 @@ export const MENSAJE = {
   datos: "Revisa tus datos: algo no quedó bien escrito.",
   textosCambiaron: "Los textos del Club cambiaron mientras los leías. Léelos otra vez y vuelve a marcar las casillas.",
   noDisponible: "No pudimos completar tu registro ahora. Inténtalo de nuevo en un momento o acércate a caja.",
+  // Un correo es de una sola persona (Felipe 2026-10-14). Sin decir de quién es: la página es pública.
+  correoRepetido: "Ese correo ya está registrado con otros datos. Usa otro o déjalo vacío: es opcional.",
 } as const;
 
 /**
@@ -447,6 +449,9 @@ export function errorDeLaBase(hint: string | null | undefined): { mensaje: strin
       return { mensaje: "Tu celular tiene 9 dígitos y empieza con 9.", campo: "celular" };
     case "club_datos_invalidos":
       return { mensaje: MENSAJE.datos, campo: null };
+    // El correo de otra ficha (o de la cuenta web de otra ficha): 20261015054000. No dice de quién.
+    case "correo_repetido":
+      return { mensaje: MENSAJE.correoRepetido, campo: "correo" };
     default:
       return { mensaje: MENSAJE.noDisponible, campo: null };
   }
