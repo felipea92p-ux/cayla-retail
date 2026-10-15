@@ -1,8 +1,9 @@
-# Contrato · órdenes de insumos del Taller (ADR-0362, fase 7) — parte 1 construida (provisional), el resto espera a Felipe
+# Contrato · órdenes de insumos del Taller (ADR-0362, fase 7) — partes 1 y 2 construidas
 
 Escrito la noche del 2026-10-12 para que la fase 7 arranque apenas Felipe responda. **La parte 1 (la orden: puntos 1 y 4 de «Lo que se
-construiría») se construyó esa misma noche, con lo no decidido marcado provisional** (ver «Cambios al construir»); el comprobante y la
-recepción del Taller (puntos 2 y 3) esperan sus respuestas. El anexo del
+construiría») se construyó esa misma noche, con lo no decidido marcado provisional** (ver «Cambios al construir»). **La parte 2
+(el comprobante y la recepción del Taller, puntos 2 y 3) se construyó el 2026-10-14**, con las respuestas de Felipe (decisiones 52, 53,
+62, 63, 84 y 85): ver «Cambios al construir la parte 2». El anexo del
 2026-10-08 (`insumos-por-orden-de-compra.md`) recomendaba UNIR prenda e insumo en una sola orden; **Felipe decidió lo contrario**
 (decisiones 25, 28 y 47) y eso manda.
 
@@ -33,7 +34,7 @@ recepción del Taller (puntos 2 y 3) esperan sus respuestas. El anexo del
 4. **Pantallas:** lista, nueva, ver, editar y anular la orden (copiando las de la fase 1, con la línea «insumo + cantidad en su unidad»
    en vez de «categoría + marca»); el comprobante y la recepción del Taller.
 
-## Preguntas que faltan (para el cuadro de preguntas de Felipe; recomendada primero)
+## Preguntas que faltaban (respondidas: 1 → decisión 52 · 2 → 53 · 3 → 62 · 4 → 63, todas con la recomendada)
 
 1. **¿Dónde vive en el menú?** (a, recomendada) Producción ▸ «Órdenes de insumos» (junto a Insumos y Comprobantes del Taller);
    (b) Compras ▸ «Órdenes de insumos».
@@ -60,3 +61,19 @@ recepción del Taller (puntos 2 y 3) esperan sus respuestas. El anexo del
   «Entrega en los próximos 7 días») se calculan leyendo las órdenes generadas de a 100, hasta 1000.
 - Sin cambios a lo de la fase 1: la orden de tienda, sus tablas y sus funciones no se tocan.
 
+## Cambios al construir la parte 2 (2026-10-14)
+
+- **El papel es un comprobante del Taller** (`comprobantes_produccion` con `orden_insumo_id`; cada línea, con su `orden_insumo_item_id` o
+  un insumo que no estaba en la orden, decisión 43), así Por pagar del Taller lo lee sin cambios. Los cuatro tipos (50), con
+  «Sin comprobante» incluido. **Al contado (84)**, lo paga quien lo registra, desde una cuenta o desde «Mi fondo»; al crédito, con su
+  vencimiento sugerido por el plazo del proveedor, y lo paga el líder después.
+- **La recepción vieja del Taller no recibe un papel de orden** (`recibir_comprobante_produccion` lo rechaza y
+  `fn_lineas_comprobantes_produccion` no lo lista): la tela de una orden entra solo por la orden, en Producción ▸ Recibir.
+- **Recibir contra la orden:** una recepción por entrega (`orden_insumo_recepciones`) y, por línea que llega, un lote con su movimiento,
+  juntos; nunca más de lo que queda. El costo, el del papel (si la línea tiene uno solo vigente) o el neto de la orden, y quien recibe lo
+  corrige (53). Quien hizo la orden no la recibe (17).
+- **Lo que no llegó (85):** «El resto no va a llegar» con su motivo; queda anotado en la orden (`orden_insumo_cierres`) como lo que el
+  proveedor nos debe, a la vista en la orden y en la lista. Cómo se salda, con la fase 5b.
+- **Candados nuevos de la orden:** con un papel (aunque se anule después) ya no se edita; con un papel vigente o algo recibido, no se anula.
+- **Abierto (de /chaos, espera a Felipe):** anular el papel de una orden en Producción ▸ Comprobantes no mira lo recibido ni lo anotado de
+  la orden (gravedad 1). Detalle en el ADR-0362, «Fase 7, parte 2».

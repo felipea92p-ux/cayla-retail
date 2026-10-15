@@ -102,6 +102,8 @@
 | 81 | Aprobar sin ver la lista | **«Aprobar» espera a que se vea lo que se rindió.** Si la lista no se puede leer, «Revisar», «Ver tu rendición» y «Rendir» lo dicen («No pude traer lo que rindió») con «Volver a intentar», en vez de dibujar una lista vacía; la lectura se corta a los 10 s. La base ya relee y rechaza si algo cambió: esto cuida que quien aprueba vea lo que aprueba. Nació de /formidable (2026-10-14, cambio 2) (Felipe 2026-10-14) |
 | 82 | La cuenta de una persona, dicha entera | **El faltante dice en cuánto queda la deuda** («su deuda pasa de S/ 25.00 a S/ 30.00»), en «Revisar», en «Rendir», en «Ver tu rendición» y en el botón «Aprobar: su deuda sube a S/ 30.00»; la fila de quien rindió dice «dice S/ 375.00 · por aprobar» bajo lo de los libros; quien no puede aprobar ve «Revisar» en secundario; «Ver tu rendición» lee la explicación de la propia rendición (`fn_mi_rendicion_abierta`, `20261014222000`) para no decir «quien la revisa decide» cuando sin explicación es deuda (54); y palabras de tienda: «1 gasto y 1 entrega» (no «2 filas»), «Entregado» (no «Le entregaste»), «Lo que entró y salió de su fondo», «otra persona que revise los fondos» (también en `fn_rendicion_quien_no_aprueba`). Nació de /formidable (2026-10-14, cambio 3) (Felipe 2026-10-14) |
 | 83 | Devolver con una rendición por aprobar: las dos cifras | **La hoja de devolución dice las dos cifras y de dónde sale el tope**: «Los libros dicen S/ 380.00, pero a su rendición por aprobar le faltan S/ 5.00: puede devolver hasta S/ 375.00» (reemplaza la frase de la hoja de la 79; el tope no cambia). La cifra grande de la tabla y de «Tienen en la mano» sigue siendo la de los libros. Va con lo que falta y no con «lo que dijo tener»: si después de rendir le entregaron más, lo que dijo tener ya no es el tope. Y un monto dentro de una frase no se parte entre «S/» y la cifra (`solesSinCorte`). Nació de la prueba ciega repetida de /formidable (2026-10-14): con S/ 380 en la tabla y S/ 375 en la hoja, no supo cuál era la buena (Felipe 2026-10-14) |
+| 84 | Pagar al contado el papel del Taller | **Como en tienda**: quien registra el papel de una orden de insumos lo paga en el acto desde una cuenta de la empresa o desde «Mi fondo»; lo que se paga después de un papel al crédito sigue con el líder, en Por pagar del Taller (Felipe 2026-10-14) |
+| 85 | Lo que no llegó de una orden de insumos | **Anotado en la orden**: «el resto no va a llegar» cierra lo pendiente de esa línea y queda como lo que el proveedor nos debe, a la vista en la orden y en la lista; cómo se salda (reposición, saldo a favor o reembolso) llega con la fase 5b (Felipe 2026-10-14) |
 
 **Fase 2 (aprobada por Felipe el 2026-10-12, 11 actividades, rama `claude/purchase-order-phase2-9b0c82`):** 1 · las acciones de Compras
 dejan de ser «solo del líder» (ADR-0387) · 2 · qué tiendas se ven y a nombre de quién se paga · 3 · las líneas por «categoría + marca»
@@ -163,8 +165,8 @@ insumos del Taller** (`OI-000001`, su propio correlativo: 28) con su **módulo p
 delegable: quien lo tiene ve y hace todo en estas órdenes, con sus precios, sin ver el resto de la plata del Taller). Proveedor de
 `proveedores_produccion`, destino un taller y líneas de insumo con la cantidad en su unidad (hasta 3 decimales) y el precio con hasta 4
 decimales, como los comprobantes y los lotes del Taller. Crear, ver, editar, anular e imprimir o guardar el PDF, con las mismas reglas que
-la orden de tienda: versión contra la edición simultánea, firma del responsable (39), número que no se libera. **Sin construir (espera a
-Felipe):** el comprobante de la orden y la recepción en el Taller (las preguntas 2 a 4 del contrato).
+la orden de tienda: versión contra la edición simultánea, firma del responsable (39), número que no se libera. **El comprobante de la orden y la recepción
+en el Taller** (las preguntas 2 a 4 del contrato) se construyeron en la parte 2, abajo.
 
 Por defecto *(provisional, revisar con Felipe)*: la entrada vive en Producción ▸ Abastecimiento (la opción recomendada de la pregunta 1),
 pero con ruta propia, `/ordenes-insumos`, porque todo lo que cuelga de `/produccion` exige el módulo de Producción; el destino es
@@ -379,6 +381,63 @@ ticket no da crédito; la factura de un gasto del viaje va al registro sin razó
 crédito, la proporción se calcula sobre el total ORIGINAL de la factura (como la regla de la actividad 6). **Finanzas ▸ Gastos** todavía
 dice «Sin comprobante» en un gasto del viaje con factura (su papel vive en `gastos_viaje` y `fn_gastos_lista` solo mira `compras`): queda
 como tarea aparte.
+
+**Fase 7, parte 2 (2026-10-14, rama `claude/purchase-order-phase7-2-9b0c82`; lista de 5 actividades aprobada por Felipe el 2026-10-14): el
+papel y la recepción de la orden de insumos en el Taller** (decisiones 17, 18, 25, 28, 29, 47, 52, 53, 62, 63, 84 y 85). Migraciones
+`20261015015000` y `…020000` (el papel al crédito), `…034000` (al contado), `…035000` y `…040000` (recibir contra la orden) y `…043000` (lo
+que no llegó); pruebas `pnpm pruebas:comprobante-orden-insumo` (23 casos) y `pnpm pruebas:recepcion-orden-insumo` (18, con dos sesiones a la
+vez). Contrato: `contrato-ordenes-de-insumos.md`. **Se pegan en ese orden y una sola vez:** volver a pegar la `…020000` después de la
+`…034000` deshace el contado (pasó en el banco de pruebas y lo encontró /chaos).
+
+```
+DECIDÍ: el papel de una orden de insumos es un comprobante del Taller como cualquier otro (`comprobantes_produccion` con `orden_insumo_id`,
+        y cada línea con su `orden_insumo_item_id`): Por pagar del Taller, sus pagos y su lista lo leen sin cambios. Lo registra quien
+        tiene «Órdenes de insumos» (47) y, al contado, lo paga en el acto desde una cuenta o desde «Mi fondo» (84; el disparador de los
+        pagos del Taller aprendió el fondo con la misma regla de la fase 6: solo su dueña, nunca una terminal). El mismo papel (proveedor,
+        serie y número) no puede estar vigente dos veces (índice único parcial `comprobantes_produccion_papel_vigente_unico`). Una orden
+        con un papel, aunque después se anule, ya no se edita; con un papel vigente o algo recibido, no se anula.
+DESCARTÉ: una tabla propia para el papel de la orden (Por pagar, el Diario y los pagos del Taller tendrían que leer dos tablas); dejar
+        que la recepción vieja del Taller (`recibir_comprobante_produccion`) reciba un papel de orden: serían dos caminos para la misma
+        tela, así que lo rechaza y `fn_lineas_comprobantes_produccion` no lo lista.
+SE ROMPE SI: una función nueva recibe el papel de una orden por fuera de la orden, o el papel se pega fuera de orden (ver arriba).
+```
+
+```
+DECIDÍ: recibir contra la orden escribe una recepción (`orden_insumo_recepciones`, que solo se agrega) y, por cada línea que llega, un
+        lote con su movimiento de compra EN LA MISMA transacción y en el taller de la orden, nunca más de lo que queda (lo mayor entre lo
+        pedido y lo facturado en papeles vigentes, menos lo recibido y lo anotado). El costo del lote lo ve y lo corrige quien recibe
+        (53): el del papel si la línea tiene uno solo vigente; si no, el neto de la orden. Quien hizo la orden no la recibe (17), y la
+        recepción la exige el módulo Producción en la función (deja de ser un módulo «solo de pantalla» en la prueba de cobertura). La
+        orden se bloquea `for update`: dos recepciones, o una recepción y una edición o una anulación, se ponen en fila (probado con dos
+        sesiones y con una ráfaga de diez).
+DESCARTÉ: recibir en esta hoja lo que no tiene orden (sigue la recepción contra el papel: «Facturas sin orden»); una excepción para que
+        el líder reciba lo que él pidió (la 17 no la tiene).
+SE ROMPE SI: una función nueva abre lotes de una orden sin bloquear la orden: dos personas recibirían lo mismo.
+```
+
+```
+DECIDÍ: lo que no va a llegar se anota en la orden (85): `orden_insumo_cierres` (solo se agrega), con su cantidad, el costo de ese día y
+        su motivo (faltó, se devolvió al proveedor, otro). La orden lo muestra («No llegó» y «El proveedor nos debe S/ …») y la lista
+        lleva el chip «Nos debe», que se lee aparte con `fn_ordenes_insumo_nos_debe`.
+DESCARTÉ: cerrar la línea sin monto (la deuda no se vería en ningún lado); que `fn_ordenes_insumo` trajera la deuda: cambiar lo que
+        devuelve una función obliga a borrarla y crearla de nuevo, y rompía la prueba de la parte 1.
+SE ROMPE SI: anular el papel de una orden deja sin respaldo lo anotado o lo recibido. /chaos lo encontró (gravedad 1, abajo) y su
+        arreglo espera el OK de Felipe.
+```
+
+Por defecto *(provisional, revisar con Felipe)*: en la hoja de Recibir, una cantidad **en blanco es todo lo que queda** y «0» que de ese
+insumo no llegó nada; el código del lote, si se deja en blanco, es el número de la orden («OI-000123», y «/2», «/3» si ese insumo ya abrió
+lote con él); el motivo de lo que no llega arranca en «Faltó mercadería»; el vencimiento del crédito se sugiere con el plazo del proveedor
+(30 días si su ficha no lo dice). Visto de paso: el Diario no asienta los pagos del Taller (era así antes de esta fase; la prueba de la
+fase 6 lo dice).
+
+**/chaos de la parte 2 (2026-10-14, semilla 1072; banco propio).** 84 casos en la base, 11 de concurrencia con COMMIT y 21 en el
+navegador: resiste el doble clic, la red cortada y perdida, las dos pestañas, la ráfaga de diez sesiones, NaN e Infinito, ids ajenos, los
+permisos y las fechas futuras. Quedan abiertos, **esperando el OK de Felipe**: **1 de gravedad 1** —anular el papel de una orden desde
+Producción ▸ Comprobantes deja lo recibido o lo anotado como «no llegará» sin respaldo (la orden sigue diciendo «El proveedor nos debe»
+por un papel anulado; a la vez que se recibe, los dos pasan)—; 3 de gravedad 2 (la coma decimal, transversal; una emisión de 1900, también
+en el papel de Compras; textos sin tope en la base, solo por la API) y 2 de gravedad 4 (el porqué de un número que no vale, solo con el
+mouse encima; tras un corte, corregir el papel no ofrece «Recargar»). Tablero: `docs/chaos/README.md`.
 
 ## Fuente: el brief de Felipe
 
