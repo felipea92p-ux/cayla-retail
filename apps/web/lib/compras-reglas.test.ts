@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  problemaDeFechasEIgv,
   codigoDeLinea,
   comprobanteDeFilaOperativa,
   costoBase,
@@ -357,5 +358,20 @@ describe("fechaCorta: una fecha o un instante, siempre el día de Lima", () => {
     expect(fechaCorta("2026-10-13T03:17:00+00:00")).toBe("12/10/2026");
     expect(fechaCorta("2026-10-13 03:17:00+00")).toBe("12/10/2026");
     expect(fechaCorta("2026-10-12T15:00:00.123+00:00")).toBe("12/10/2026");
+  });
+});
+
+// /chaos de Compras 2026-10-15 (ADR-0421): lo mismo que la base exige, dicho antes de mandar.
+describe("problemaDeFechasEIgv", () => {
+  const base = { fechaEmision: "2026-10-15", fechaVencimiento: "2026-10-25", igvPorcentaje: 18, hoy: "2026-10-15" };
+  it("una factura normal pasa (también al contado, sin vencimiento, y con IGV 0)", () => {
+    expect(problemaDeFechasEIgv(base)).toBeNull();
+    expect(problemaDeFechasEIgv({ ...base, fechaVencimiento: null, igvPorcentaje: 0 })).toBeNull();
+  });
+  it("IGV fuera de 0–18, emisión futura y vencimiento antes de la emisión", () => {
+    expect(problemaDeFechasEIgv({ ...base, igvPorcentaje: 180 })).toMatch(/0 % a 18 %/);
+    expect(problemaDeFechasEIgv({ ...base, igvPorcentaje: Number.NaN })).toMatch(/0 % a 18 %/);
+    expect(problemaDeFechasEIgv({ ...base, fechaEmision: "2030-01-01", fechaVencimiento: null })).toMatch(/no puede ser futura/);
+    expect(problemaDeFechasEIgv({ ...base, fechaVencimiento: "2026-10-01" })).toMatch(/anterior a la emisión/);
   });
 });

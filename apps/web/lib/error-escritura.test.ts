@@ -808,6 +808,15 @@ describe("clasificarFalloDeSubida — ¿esto que falló al subir es un rechazo d
 
 // ADR-0328 (20261004204000, en producción desde el 5-oct): `regularizar_prenda` rechaza a quien vendió la prenda (salvo el líder firmando
 // él mismo) con 42501 y un hint propio. Sin su huella caería al genérico con «Código: …»; y no es un rechazo del combo «Responsable».
+// /chaos de Compras 2026-10-15 (ADR-0421): una factura que vence antes de emitirse rebota en castellano.
+describe("las fechas de una factura de compra", () => {
+  it("el vencimiento antes de la emisión", () => {
+    expect(
+      traducirError({ message: 'new row for relation "compras" violates check constraint "compras_vence_despues_de_emitir"', code: "23514" }, "registrar el comprobante"),
+    ).toMatch(/vencimiento no puede ser anterior a la emisión/);
+  });
+});
+
 describe("regularizar la propia venta (ADR-0328)", () => {
   it("dice, en palabras de tienda, que lo haga otra persona o un líder", () => {
     const salida = traducirError(
