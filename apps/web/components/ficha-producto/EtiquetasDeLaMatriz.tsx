@@ -1,6 +1,7 @@
 "use client";
 
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { TarjetaMuestraBase } from "@/components/alta-producto/GrillaMuestras";
 import { GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, estiloConocido } from "@/lib/etiqueta-grupos";
 import { cuentaEtiqueta } from "@/lib/matriz-ficha-reglas";
@@ -104,12 +105,7 @@ export function EtiquetasDeLaMatriz({
                   <span className="px-0.5 text-[10.5px] tabular-nums text-taupe">
                     {c.con === 0 ? "ninguna talla" : c.con === c.de ? "todas las tallas" : `${c.con} de ${c.de} tallas`}
                   </span>
-                  <span aria-hidden className="mx-0.5 mb-0.5 block h-[3px] overflow-hidden rounded-full bg-sand/70">
-                    <span
-                      className="block h-full rounded-full bg-tinta/70 transition-[width] duration-300 ease-cayla motion-reduce:transition-none"
-                      style={{ width: c.de > 0 ? `${(c.con / c.de) * 100}%` : "0%" }}
-                    />
-                  </span>
+                  <BarraAvance pct={c.de > 0 ? (c.con / c.de) * 100 : 0} alto="fina" decorativa className="mx-0.5 mb-0.5 w-auto" />
                 </TarjetaMuestraBase>
               );
             })}

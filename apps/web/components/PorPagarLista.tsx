@@ -1,6 +1,7 @@
 "use client";
 
 import { Chip } from "@/components/ui/Chip";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -575,7 +576,7 @@ function FilaPorPagar({
   const colorVence = tramo === "vencidas" ? "text-rojo" : tramo === "semana" ? "text-ambar-profundo" : "text-tinta";
   const vence = c.fechaVencimiento ? etiquetaVence(c.fechaVencimiento, ahora) : "Sin fecha";
   const plazo = plazoConsumido(c, ahora);
-  const colorPlazo = tramo === "vencidas" ? "bg-rojo" : tramo === "semana" ? "bg-ambar" : "bg-tinta/45";
+  const tonoPlazo = tramo === "vencidas" ? "rojo" : tramo === "semana" ? "ambar" : "tinta";
   const pctPagado = c.total > 0 ? Math.min(1, c.pagado / c.total) : 0;
 
   // La cifra que cambió cuenta hasta su valor nuevo, y la fila que recibió un pago (sin saldarse) se enciende en verde.
@@ -667,18 +668,14 @@ function FilaPorPagar({
         {c.fechaVencimiento && <span className="block text-xs tabular-nums text-tinta/70">{diaMes(c.fechaVencimiento)}</span>}
         {/* Plazo consumido (emisión → vencimiento): «vence en 14 días» no dice si era un plazo de 15 o de 60. */}
         {plazo && (
-          <span className="mt-[5px] block h-[3px] w-[5.5rem] overflow-hidden rounded-full bg-sand" title={`${plazo.usados} de ${plazo.total} días de plazo consumidos`}>
-            <span className={`anim-crece-x block h-full rounded-full ${colorPlazo}`} style={{ width: `${Math.round(plazo.fraccion * 100)}%`, ["--i" as string]: posicion }} />
-          </span>
+          <BarraAvance pct={plazo.fraccion * 100} alto="fina" tono={tonoPlazo} decorativa indice={posicion} title={`${plazo.usados} de ${plazo.total} días de plazo consumidos`} className="mt-[5px] w-[5.5rem]" />
         )}
       </div>
       <div className={`hidden text-right tabular-nums @[56rem]:block ${sellada ? "opacity-55" : ""}`}>
         <span className={`block text-sm ${c.pagado > 0 ? "text-tinta" : "text-tinta/70"}`}>{c.pagado > 0 ? soles(c.pagado) : "Sin pagos"}</span>
         <span className="block text-xs text-tinta/70">de {soles(c.total)}</span>
         {c.pagado > 0 && (
-          <span className="ml-auto mt-[5px] block h-[3px] w-[5.5rem] overflow-hidden rounded-full bg-sand" title={`${Math.round(pctPagado * 100)} % pagado`}>
-            <span className="anim-crece-x block h-full rounded-full bg-verde transition-[width] duration-700 ease-cayla" style={{ width: `${Math.round(pctPagado * 100)}%`, ["--i" as string]: posicion }} />
-          </span>
+          <BarraAvance pct={pctPagado * 100} alto="fina" decorativa indice={posicion} title={`${Math.round(pctPagado * 100)} % pagado`} className="ml-auto mt-[5px] w-[5.5rem]" />
         )}
       </div>
       <div className={`shrink-0 text-right ${sellada ? "opacity-55" : ""}`}>

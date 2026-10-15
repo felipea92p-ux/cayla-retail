@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Check, Copy } from "lucide-react";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { ETIQUETA_METODO } from "@/lib/compras-reglas";
 import {
   billeterasTexto,
@@ -60,22 +60,10 @@ export function CuentasProveedor({
   className?: string;
 }) {
   const [ver, setVer] = useState(false);
-  const [copiado, setCopiado] = useState<string | null>(null);
   const filas = filasDe(datos, ver);
   const cobraEnEfectivo = datos.formaPagoPreferida === "efectivo";
   const sinNada = filas.length === 0;
   const forma = datos.formaPagoPreferida ? (ETIQUETA_METODO[datos.formaPagoPreferida] ?? datos.formaPagoPreferida) : null;
-
-  async function copiar(f: Fila) {
-    try {
-      await navigator.clipboard.writeText(f.copiar);
-      setCopiado(f.clave);
-      window.setTimeout(() => setCopiado((c) => (c === f.clave ? null : c)), 1500);
-    } catch {
-      // Sin permiso del portapapeles el valor sigue a la vista con «Ver completos»: se puede copiar a mano.
-      setVer(true);
-    }
-  }
 
   return (
     <div className={`anim-revelar rounded-xl border p-4 ${sinNada && !cobraEnEfectivo ? "border-ambar/30 bg-ambar/[0.06]" : "border-sand bg-sand/40"} ${className}`}>
@@ -108,7 +96,7 @@ export function CuentasProveedor({
       {filas.length > 0 && (
         <dl className="mt-3 divide-y divide-tinta/10 border-t border-tinta/10">
           {filas.map((f) => (
-            <FilaDato key={f.clave} etiqueta={f.etiqueta} valor={f.mostrar} copiado={copiado === f.clave} onCopiar={() => copiar(f)} />
+            <FilaDato key={f.clave} etiqueta={f.etiqueta} valor={f.mostrar} copiar={f.copiar} alFallar={() => setVer(true)} />
           ))}
         </dl>
       )}
@@ -133,22 +121,16 @@ export function CuentasProveedor({
   );
 }
 
-function FilaDato({ etiqueta, valor, copiado, onCopiar }: { etiqueta: string; valor: ReactNode; copiado: boolean; onCopiar: () => void }) {
+// Copiar es la pieza del sistema (<BotonCopiar>, ronda 13): el ícono junto al dato. Sin permiso del portapapeles, además del aviso,
+// se muestran los datos completos («Ver completos») para copiarlos a mano.
+function FilaDato({ etiqueta, valor, copiar, alFallar }: { etiqueta: string; valor: ReactNode; copiar: string; alFallar: () => void }) {
+  const nombre = etiqueta.toLowerCase();
+  const que = nombre === "cuenta" ? "la cuenta" : nombre === "cci" ? "el CCI" : `el ${etiqueta}`;
   return (
     <div className="grid grid-cols-[6.5rem_1fr_auto] items-center gap-3 py-2">
       <dt className="label-cayla text-[10px] text-tinta/55">{etiqueta}</dt>
       <dd className="min-w-0 break-all text-sm tabular-nums tracking-[0.02em] text-tinta">{valor}</dd>
-      <button
-        type="button"
-        onClick={onCopiar}
-        aria-label={`Copiar ${etiqueta.toLowerCase()}`}
-        className={`label-cayla inline-flex min-w-[5.5rem] items-center justify-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] transition-colors duration-300 ${
-          copiado ? "anim-pop border-verde/55 bg-verde/10 text-verde-profundo" : "border-tinta/15 text-tinta/65 hover:border-tinta hover:text-tinta"
-        }`}
-      >
-        {copiado ? <Check aria-hidden className="h-3 w-3" /> : <Copy aria-hidden className="h-3 w-3" />}
-        <span aria-live="polite">{copiado ? "Copiado" : "Copiar"}</span>
-      </button>
+      <BotonCopiar forma="icono" texto={copiar} que={que} alFallar={alFallar} className="-my-1" />
     </div>
   );
 }

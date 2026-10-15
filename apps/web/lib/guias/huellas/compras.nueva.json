@@ -54,7 +54,7 @@
     ],
     "components/DestinoDelMedio.tsx": [
       "Link «Agregar en su ficha ↗»",
-      "button «{`Copiar ${fila.etiqueta}»"
+      "BotonCopiar «{que}»"
     ],
     "components/LineasPago.tsx": [
       "button «Usar»",

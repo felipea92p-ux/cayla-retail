@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
@@ -287,12 +288,7 @@ export function PagoJuntosModal({
                       />
                     </div>
                     {/* La cascada: cuánto del pago recibe este comprobante. Verde = queda en cero; rojo = se pasa del saldo. */}
-                    <div aria-hidden className="mt-1.5 h-1 overflow-hidden rounded-full bg-sand sm:col-span-3">
-                      <div
-                        className={`h-full origin-left rounded-full transition-[transform,background-color] duration-500 ease-cayla ${pasa ? "bg-rojo" : llena ? "bg-verde" : "bg-tinta"}`}
-                        style={{ transform: `scaleX(${armada && c.saldo > 0 ? Math.min(1, aplicado / c.saldo) : 0})` }}
-                      />
-                    </div>
+                    <BarraAvance pct={armada && c.saldo > 0 ? (aplicado / c.saldo) * 100 : 0} alto="fina" tono={pasa ? "rojo" : llena ? "verde" : "tinta"} decorativa className="mt-1.5 sm:col-span-3" />
                     <span className={`mt-1 flex min-h-[18px] items-center gap-1.5 text-xs sm:col-start-4 sm:justify-end ${pasa || invalido ? "text-rojo" : llena ? "text-verde-profundo" : "text-tinta/55"}`} aria-live="polite">
                       {invalido ? (
                         "Monto no válido"

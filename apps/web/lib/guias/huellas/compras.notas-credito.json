@@ -5,7 +5,7 @@
   "total": 43,
   "controles": {
     "components/NotaCreditoDetalle.tsx": [
-      "button «→copiar»",
+      "BotonCopiar «el mensaje para el proveedor»",
       "Boton «Registrar la nota»"
     ],
     "components/NotaCreditoVistaRapida.tsx": [
