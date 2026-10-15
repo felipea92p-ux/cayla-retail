@@ -423,7 +423,7 @@ export const GUIA_PROD_RECIBIR: Guia = {
       ancla: "prod-recibir.orden",
       opcional: true,
       titulo: "Recibir una orden",
-      texto: "«Recibir» abre la hoja para anotar cuánto llegó de cada insumo, con el costo de esa orden (lo corriges si el papel dice otro) y el código de lote si lo trae. Quien hizo la orden no la recibe: la recibe otra persona del Taller. En la demo no lo tocamos.",
+      texto: "«Recibir» abre la hoja para anotar cuánto llegó de cada insumo, con el costo de esa orden (lo corriges si el papel dice otro) y el código de lote si lo trae; si el resto no va a llegar, lo marcas con su motivo. Quien hizo la orden no la recibe. En la demo no lo tocamos.",
     },
     {
       id: "lista",
@@ -957,6 +957,13 @@ export const GUIA_ORDENES_INSUMO: Guia = {
       texto: "Toca una fila y la orden se abre en una ventana encima de la lista, sin perder tu búsqueda: ahí la lees, la imprimes o la guardas en PDF para el proveedor, la editas o la anulas. Cierras con la ✕ o Escape y vuelves aquí.",
     },
     {
+      id: "nos-debe",
+      ancla: "oi-lista.nos-debe",
+      opcional: true,
+      titulo: "Lo que el proveedor nos debe",
+      texto: "Si algo de una orden no va a llegar, el Taller lo anota al recibir: la fila dice «Nos debe» y cuánto, a su costo. Lo ves completo al abrir la orden.",
+    },
+    {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
@@ -1085,11 +1092,25 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       texto: "Si ya llegó algo, cada línea dice cuánto entró al Taller («10 de 12.5 metros»), contra lo pedido o lo facturado, lo que sea más. Lo que falta se recibe en Producción ▸ Recibir.",
     },
     {
+      id: "no-llego-linea",
+      ancla: "oi.no-llego-linea",
+      opcional: true,
+      titulo: "Lo que no llegó de cada línea",
+      texto: "Si el Taller anotó que el resto de una línea no va a llegar, la línea lo dice en ámbar («No llegó: 4.5 metros»): ya no se espera.",
+    },
+    {
       id: "comprobantes",
       ancla: "oi.comprobantes",
       opcional: true,
       titulo: "Sus comprobantes",
       texto: "Los papeles que el proveedor dio por esta orden, del más reciente al más antiguo, con su total y si siguen vigentes. Mientras tenga uno vigente, la orden no se edita ni se anula; si el papel está mal, tu líder lo anula y lo vuelves a registrar.",
+    },
+    {
+      id: "no-llego",
+      ancla: "oi.no-llego",
+      opcional: true,
+      titulo: "Lo que el proveedor nos debe",
+      texto: "Cada cosa que no va a llegar, con su motivo, quién lo anotó y su costo, y abajo el total que el proveedor nos debe. Queda anotado en la orden.",
     },
     {
       id: "recibido",

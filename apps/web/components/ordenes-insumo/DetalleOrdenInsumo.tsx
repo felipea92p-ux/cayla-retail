@@ -6,6 +6,7 @@ import { fechaCorta, soles } from "@/lib/compras-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { etiquetaRubro } from "@/lib/proveedores-produccion-reglas";
 import { textoDeTipo, type TipoComprobante } from "@/lib/comprobante-orden-reglas";
+import { MOTIVOS_CIERRE } from "@/lib/recibir-produccion-reglas";
 import {
   papelDeOrdenInsumo,
   pedidasDeLaOrden,
@@ -20,6 +21,7 @@ import {
   nombreUnidad,
   precioUnitarioTexto,
   textoCantidades,
+  type CierreDeOrdenInsumo,
   type DetalleOrdenInsumo as Detalle,
 } from "@/lib/ordenes-insumo-reglas";
 
@@ -30,6 +32,9 @@ import {
 // con la cantidad EN SU UNIDAD («12.5 metros»), el precio por esa unidad (con sus cuatro decimales si los usa: «S/ 0.0350»), el descuento
 // y el subtotal; abajo, cuánto se pidió de cada unidad —nunca metros sumados con conos—, el total, la nota, lo que la orden decía antes de
 // cada edición y quién la creó. Una anulada lo dice primero, con su motivo: es lo único que importa de ella.
+//
+// Lo que no llegó (fase 7 parte 2, actividad 4): cada línea dice cuánto se cerró («No llegó: 4.5 metros») y, bajo los papeles, «Lo que no
+// llegó» lista cada cierre con su motivo, quién lo anotó y lo que el proveedor nos debe a su costo. Cómo se salda llega con la fase 5b.
 //
 // Con papel (fase 7 parte 2): cada línea dice cuánto llegó ya en comprobantes («Llegó en papel: 10 de 12.5 metros») y, bajo la tabla, van los
 // papeles de la orden. Sin «Anular» aquí: anular un papel del Taller es del líder (Producción ▸ Comprobantes), y la nota lo dice para que
@@ -54,6 +59,13 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
   // «Llegó al Taller» (actividad 3): solo cuando ya entró algo.
   const papel = papelDeOrdenInsumo(pedidas);
   const recepcion = recepcionDeOrdenInsumo(pedidas);
+  const nosDebe = d.cierres.reduce((s, c) => s + c.importe, 0);
+  // ¿Queda algo por recibir? Lo mayor entre lo pedido y lo facturado, menos lo recibido y lo que se cerró (en milésimas: sin flotantes).
+  const mil = (n: number) => Math.round(n * 1000);
+  const quedaPorRecibir = pedidas.some(
+    (l) =>
+      mil(Math.max(l.cantidad, l.facturado)) - mil(l.recibido) - d.cierres.filter((c) => l.itemId !== null && c.itemId === l.itemId).reduce((s, c) => s + mil(c.cantidad), 0) > 0,
+  );
   return (
     <div className="@container space-y-5">
       {d.estado === "anulada" && (
@@ -102,7 +114,13 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
           />
         </div>
         {pedidas.map((l) => (
-          <LineaDetalle key={l.posicion} l={l} conPapel={papel !== null} conRecepcion={recepcion !== null} />
+          <LineaDetalle
+            key={l.posicion}
+            l={l}
+            conPapel={papel !== null}
+            conRecepcion={recepcion !== null}
+            noLlego={d.cierres.filter((c) => l.itemId !== null && c.itemId === l.itemId)}
+          />
         ))}
         <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-3">
           <span className="text-sm text-taupe">
@@ -117,10 +135,12 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
 
       <ComprobantesDeOrdenInsumo orden={d} />
 
+      <LoQueNoLlego cierres={d.cierres} nosDebe={nosDebe} />
+
       {/* Con algo recibido en el Taller (actividad 3), la orden ya no se edita ni se anula: lo dice para que nadie busque el botón. */}
       {recepcion && d.estado === "generada" && (
         <p data-guia="oi.recibido" className="nota-cayla">
-          Ya llegaron insumos de esta orden al Taller: no se edita ni se anula. Lo que falta se recibe en Producción ▸ Recibir.
+          Ya llegaron insumos de esta orden al Taller: no se edita ni se anula.{quedaPorRecibir ? " Lo que falta se recibe en Producción ▸ Recibir." : ""}
         </p>
       )}
 
@@ -169,6 +189,7 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
         <Chip tono={estado.tono}>{estado.texto}</Chip>
         {papel && <Chip tono={papel === "completa" ? "verde" : "ambar"}>{papel === "completa" ? "Papel completo" : "Papel en parte"}</Chip>}
         {recepcion && <Chip tono={recepcion === "completa" ? "verde" : "ambar"}>{recepcion === "completa" ? "Llegó todo" : "Llegó en parte"}</Chip>}
+        {d.cierres.length > 0 && <Chip tono="ambar">Nos debe</Chip>}
         <span>
           Creada por {d.creadaPor ?? "alguien sin nombre en Dynamic"} el {creada.dia} a las {creada.hora}
           {editada && ` · editada por ${d.actualizadaPor ?? "alguien sin nombre en Dynamic"} el ${editada.dia} a las ${editada.hora}`}
@@ -178,7 +199,8 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
   );
 }
 
-function LineaDetalle({ l, conPapel, conRecepcion }: { l: PedidaInsumo; conPapel: boolean; conRecepcion: boolean }) {
+function LineaDetalle({ l, conPapel, conRecepcion, noLlego }: { l: PedidaInsumo; conPapel: boolean; conRecepcion: boolean; noLlego: CierreDeOrdenInsumo[] }) {
+  const cerrado = noLlego.reduce((s, c) => s + c.cantidad, 0);
   const unidadCambio = l.unidadActual != null && l.unidadActual !== l.unidadMedida;
   return (
     <div className={fila(PLANTILLA)}>
@@ -202,6 +224,11 @@ function LineaDetalle({ l, conPapel, conRecepcion }: { l: PedidaInsumo; conPapel
             className={`mt-0.5 block text-xs tabular-nums ${l.recibido >= Math.max(l.cantidad, l.facturado) ? "text-verde-profundo" : "text-taupe"}`}
           >
             Llegó al Taller: {textoRecibidoDeLineaInsumo(l)}
+          </span>
+        )}
+        {cerrado > 0 && (
+          <span data-guia="oi.no-llego-linea" className="mt-0.5 block text-xs tabular-nums text-ambar">
+            No llegó: {cantidadConUnidad(cerrado, l.unidadMedida)}
           </span>
         )}
         {/* Sin columnas: la cuenta entera, cada cifra sin partirse («S/» no queda solo al final de un renglón). */}
@@ -290,6 +317,43 @@ function ComprobantesDeOrdenInsumo({ orden: d }: { orden: Detalle }) {
             : "Como esta orden ya tuvo comprobante, no se edita. Si hace falta, registra el papel de nuevo."}
         </p>
       )}
+    </section>
+  );
+}
+
+const MOTIVO: Record<CierreDeOrdenInsumo["motivo"], string> = Object.fromEntries(MOTIVOS_CIERRE.map((m) => [m.valor, m.etiqueta])) as Record<
+  CierreDeOrdenInsumo["motivo"],
+  string
+>;
+
+// Lo que no llegó (actividad 4): cada cierre con su motivo, quién lo anotó y cuándo, y lo que el proveedor nos debe a su costo.
+function LoQueNoLlego({ cierres, nosDebe }: { cierres: CierreDeOrdenInsumo[]; nosDebe: number }) {
+  if (cierres.length === 0) return null;
+  return (
+    <section aria-label="Lo que no llegó" data-guia="oi.no-llego" className="space-y-2">
+      <TituloGrupo nota="el proveedor nos lo debe">Lo que no llegó</TituloGrupo>
+      <ul className="divide-y divide-sand rounded-xl border border-sand">
+        {cierres.map((c) => {
+          const cuando = c.creadoEn ? diaYHoraLima(c.creadoEn) : null;
+          return (
+            <li key={c.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
+              <span className="min-w-0 text-tinta">
+                {c.insumo} <span className="whitespace-nowrap tabular-nums">· {cantidadConUnidad(c.cantidad, c.unidad)}</span>
+                <span className="block text-xs text-taupe">
+                  {MOTIVO[c.motivo]}
+                  {c.nota ? ` · «${c.nota}»` : ""}
+                  {cuando ? ` · ${c.por ?? "alguien"} lo anotó el ${cuando.dia}` : ""}
+                </span>
+              </span>
+              <span className="whitespace-nowrap tabular-nums text-tinta">{soles(c.importe)}</span>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="flex items-baseline justify-between gap-4 px-1 text-sm">
+        <span className="text-taupe">El proveedor nos debe</span>
+        <b className="font-display text-lg font-normal tabular-nums text-tinta">{soles(nosDebe)}</b>
+      </p>
     </section>
   );
 }

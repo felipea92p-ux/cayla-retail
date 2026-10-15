@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   argsRecibirOrdenInsumo,
   camposDeRecepcionOI,
+  cierraLinea,
+  cierresQueSeAnotan,
   detalleDeRecepcionOI,
   entradaInicialOI,
   esMiOrden,
@@ -10,6 +12,7 @@ import {
   llegoAlgo,
   lotesQueSeAbren,
   milesimasQueLlegan,
+  milesimasQueQuedan,
   problemaDeLineaRecepcion,
   type EntradaRecepcionOI,
   type LineaOIPorRecibir,
@@ -100,6 +103,44 @@ describe("recibir contra la orden de insumos: lo que falta (las reglas de la bas
   });
 });
 
+describe("recibir contra la orden de insumos: lo que no va a llegar (actividad 4)", () => {
+  it("cierra lo que queda DESPUÉS de lo que llega ahora, solo si se marcó y todavía queda algo", () => {
+    const l = linea("i1"); // quedan 2.5 m
+    expect(milesimasQueQuedan(l, { llego: "1" })).toBe(1500);
+    expect(milesimasQueQuedan(l, { llego: "" })).toBe(0);
+    expect([cierraLinea(l, { llego: "1", noLlegara: true }), cierraLinea(l, { llego: "", noLlegara: true }), cierraLinea(l, { llego: "1", noLlegara: false })]).toEqual([
+      true,
+      false,
+      false,
+    ]);
+  });
+
+  it("N3: «0» y que el resto no va a llegar pide el costo (para anotar lo que nos debe); «0» solo, no", () => {
+    expect(problemaDeLineaRecepcion(linea("i2"), entrada(linea("i2"), { llego: "0", noLlegara: true, costo: "" }))).toBe("Escribe el costo por cono (0 si no tuvo costo).");
+    expect(problemaDeLineaRecepcion(linea("i2"), entrada(linea("i2"), { llego: "0", noLlegara: true }))).toBeNull();
+    expect(problemaDeLineaRecepcion(linea("i2"), entrada(linea("i2"), { llego: "0", costo: "" }))).toBeNull();
+  });
+
+  it("N2: si solo se anota lo que no llega, ya hay algo que registrar; viaja con `cierre` y cantidad 0", () => {
+    const o = orden();
+    const es = o.lineas.map((l) => (l.itemId === "i2" ? entrada(l, { llego: "0", noLlegara: true, motivo: "devolucion" }) : entrada(l, { llego: "0" })));
+    expect(cierresQueSeAnotan(o, es)).toBe(1);
+    expect(camposDeRecepcionOI(o, es, "", { listo: true, motivo: null }).filter((c) => c.requerido && !c.hecho)).toEqual([]);
+    expect(argsRecibirOrdenInsumo(o, es, { tallerId: "t1", nota: "", token: "tok" }).p_lineas).toEqual([
+      { orden_insumo_item_id: "i2", cantidad: "0", costo_unitario: "3.125", cierre: { motivo: "devolucion" } },
+    ]);
+  });
+
+  it("N1: llega una parte y el resto se cierra en la misma línea; con todo lo que queda no hay nada que cerrar", () => {
+    const o = orden();
+    const es = [entrada(linea("i1"), { llego: "1", noLlegara: true }), entrada(linea("i2"), { noLlegara: true }), entrada(linea("x1"), { llego: "0" })];
+    expect(argsRecibirOrdenInsumo(o, es, { tallerId: "t1", nota: "", token: "tok" }).p_lineas).toEqual([
+      { orden_insumo_item_id: "i1", cantidad: "1", costo_unitario: "10", cierre: { motivo: "faltante" } },
+      { orden_insumo_item_id: "i2", cantidad: "4", costo_unitario: "3.125" },
+    ]);
+  });
+});
+
 describe("recibir contra la orden de insumos: lo que viaja y lo que vuelve", () => {
   it("solo las líneas de las que llega algo, cada una por su id (de la orden o del papel), con el costo que se ve, como texto", () => {
     const o = orden();
@@ -118,10 +159,11 @@ describe("recibir contra la orden de insumos: lo que viaja y lo que vuelve", () 
   });
 
   it("lo que contesta la base y el aviso de la esquina", () => {
-    const r = leerResultadoRecepcionOI({ recepcion_id: "r1", orden_id: "o1", documento: "OI-000012", lotes: 2, queda: true, repetido: false });
-    expect(r).toEqual({ recepcionId: "r1", documento: "OI-000012", lotes: 2, queda: true, repetido: false });
+    const r = leerResultadoRecepcionOI({ recepcion_id: "r1", orden_id: "o1", documento: "OI-000012", lotes: 2, cierres: 1, queda: true, repetido: false });
+    expect(r).toEqual({ recepcionId: "r1", documento: "OI-000012", lotes: 2, cierres: 1, queda: true, repetido: false });
     expect(leerResultadoRecepcionOI({ documento: "OI-000012" })).toBeNull();
-    expect(detalleDeRecepcionOI({ lotes: 2, queda: true })).toBe("Se abrieron 2 lotes. Todavía queda algo por recibir de esta orden.");
-    expect(detalleDeRecepcionOI({ lotes: 1, queda: false })).toBe("Se abrió 1 lote. Llegó todo lo de esta orden.");
+    expect(detalleDeRecepcionOI({ lotes: 2, cierres: 0, queda: true })).toBe("Se abrieron 2 lotes. Todavía queda algo por recibir de esta orden.");
+    expect(detalleDeRecepcionOI({ lotes: 1, cierres: 1, queda: false })).toBe("Se abrió 1 lote y quedó anotado 1 insumo que no va a llegar. Ya no queda nada por recibir de esta orden.");
+    expect(detalleDeRecepcionOI({ lotes: 0, cierres: 2, queda: true })).toBe("Quedaron anotados 2 insumos que no van a llegar. Todavía queda algo por recibir de esta orden.");
   });
 });

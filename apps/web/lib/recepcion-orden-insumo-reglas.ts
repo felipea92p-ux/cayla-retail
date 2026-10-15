@@ -10,6 +10,8 @@
 // Como la recepción del papel (`recibir-produccion-reglas.ts`): «Llegó» en blanco es todo lo que queda (lo más común) y «0» es que de ese
 // insumo no llegó nada esta vez. A diferencia de ella, quien recibe una ORDEN ve y corrige el costo de lo que recibe (decisión 53): viene
 // puesto el sugerido (el del papel si la línea tiene uno solo; si no, el neto de la orden) y es el costo con que el lote entra al Taller.
+// Lo que NO va a llegar (actividad 4, «anotada en la orden»): «El resto no va a llegar», con su motivo, cierra todo lo que quede después de
+// lo que llega ahora; queda en la orden como lo que el proveedor nos debe, a ese mismo costo.
 
 import type { CampoDeGuia } from "./guia-campos";
 import { aTexto } from "./orden-compra-alta";
@@ -23,6 +25,10 @@ import {
   nombreUnidad,
 } from "./ordenes-insumo-reglas";
 import { costoParaCaja } from "./comprobante-orden-insumo-reglas";
+import { MOTIVOS_CIERRE, type MotivoCierre } from "./recibir-produccion-reglas";
+
+/** Por qué no va a llegar el resto: los mismos motivos que la recepción del papel. */
+export { MOTIVOS_CIERRE as MOTIVOS_NO_LLEGA };
 
 export const RPC_ORDENES_INSUMO_POR_RECIBIR = "fn_ordenes_insumo_por_recibir";
 export const RPC_RECIBIR_ORDEN_INSUMO = "recibir_orden_insumo";
@@ -141,11 +147,12 @@ export const llegoAlgo = (o: Pick<OrdenInsumoPorRecibir, "lineas">): boolean => 
 // Lo que se escribe en la hoja
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-/** Por cada línea: cuánto llegó (vacío = todo lo que queda), el costo por unidad y un código de lote opcional. */
-export type EntradaRecepcionOI = { itemId: string; llego: string; costo: string; codigoLote: string };
+/** Por cada línea: cuánto llegó (vacío = todo lo que queda), el costo por unidad, un código de lote opcional y si el resto no va a
+ *  llegar (con su motivo). */
+export type EntradaRecepcionOI = { itemId: string; llego: string; costo: string; codigoLote: string; noLlegara: boolean; motivo: MotivoCierre };
 
 export function entradaInicialOI(l: Pick<LineaOIPorRecibir, "itemId" | "costo">): EntradaRecepcionOI {
-  return { itemId: l.itemId, llego: "", costo: costoParaCaja(Math.round(l.costo * 10_000)), codigoLote: "" };
+  return { itemId: l.itemId, llego: "", costo: costoParaCaja(Math.round(l.costo * 10_000)), codigoLote: "", noLlegara: false, motivo: "faltante" };
 }
 
 const milesimas = (n: number) => Math.round(n * 1000);
@@ -157,6 +164,18 @@ export function milesimasQueLlegan(l: Pick<LineaOIPorRecibir, "queda">, e: Pick<
   return c.tipo === "ok" ? c.escalado : null;
 }
 
+/** Lo que queda de una línea después de lo que llega ahora, en milésimas (nunca menos de cero); null si «Llegó» no se entiende. */
+export function milesimasQueQuedan(l: Pick<LineaOIPorRecibir, "queda">, e: Pick<EntradaRecepcionOI, "llego">): number | null {
+  const m = milesimasQueLlegan(l, e);
+  return m == null ? null : Math.max(0, milesimas(l.queda) - m);
+}
+
+/** ¿Esta línea cierra lo que queda? Solo si se marcó «no va a llegar» y, después de lo que llega ahora, todavía queda algo. */
+export function cierraLinea(l: Pick<LineaOIPorRecibir, "queda">, e: Pick<EntradaRecepcionOI, "llego" | "noLlegara">): boolean {
+  const resto = milesimasQueQuedan(l, e);
+  return e.noLlegara && resto != null && resto > 0;
+}
+
 /** El primer problema de una línea, en una frase para quien recibe; null si está lista (llegue algo o no). */
 export function problemaDeLineaRecepcion(l: LineaOIPorRecibir, e: EntradaRecepcionOI): string | null {
   const plural = nombreUnidad(l.unidad);
@@ -165,7 +184,8 @@ export function problemaDeLineaRecepcion(l: LineaOIPorRecibir, e: EntradaRecepci
     if (c.tipo === "mal" && c.motivo === "ambiguo") return dudaDeCantidadInsumo(e.llego, l.unidad);
     if (c.tipo !== "ok" || c.escalado > TOPES_INSUMO.cantidadMilesimas) return `Lo que llegó va en ${plural}, con hasta tres decimales.`;
     if (c.escalado > milesimas(l.queda)) return `De ${l.insumo} solo quedan ${cantidadConUnidad(l.queda, l.unidad)} por recibir.`;
-    if (c.escalado === 0) return null; // de este insumo no llegó nada esta vez
+    // De este insumo no llegó nada esta vez: está bien, salvo que el resto no vaya a llegar (entonces se anota a su costo).
+    if (c.escalado === 0 && !cierraLinea(l, e)) return null;
   }
   const costo = leerPrecioInsumo(e.costo);
   if (costo.tipo === "vacio") return `Escribe el costo por ${nombreUnidad(l.unidad, 1)} (0 si no tuvo costo).`;
@@ -173,6 +193,14 @@ export function problemaDeLineaRecepcion(l: LineaOIPorRecibir, e: EntradaRecepci
   if (costo.tipo === "mal" || costo.escalado > TOPES_INSUMO.precioDiezmilesimas) return "El costo va de S/ 0 a S/ 99 999.9999, con hasta cuatro decimales.";
   if (e.codigoLote.trim().length > TOPES_RECEPCION_OI.codigoLote) return `El código de lote va hasta ${TOPES_RECEPCION_OI.codigoLote} letras.`;
   return null;
+}
+
+/** Cuántas líneas se cierran porque el resto no va a llegar. */
+export function cierresQueSeAnotan(o: Pick<OrdenInsumoPorRecibir, "lineas">, entradas: readonly EntradaRecepcionOI[]): number {
+  return o.lineas.filter((l) => {
+    const e = entradas.find((x) => x.itemId === l.itemId);
+    return e ? cierraLinea(l, e) : false;
+  }).length;
 }
 
 /** Cuántos lotes se van a abrir: uno por línea de la que llega algo. */
@@ -196,8 +224,14 @@ export function camposDeRecepcionOI(
     const problema = problemaDeLineaRecepcion(l, e);
     return { id: `linea-${l.itemId}`, nombre: l.insumo, requerido: true, hecho: problema === null, pendiente: problema ?? "" };
   });
-  if (campos.every((c) => c.hecho) && lotesQueSeAbren(o, entradas) === 0) {
-    campos.push({ id: "llega", nombre: "Lo que llegó", requerido: true, hecho: false, pendiente: "Escribe cuánto llegó de al menos un insumo." });
+  if (campos.every((c) => c.hecho) && lotesQueSeAbren(o, entradas) === 0 && cierresQueSeAnotan(o, entradas) === 0) {
+    campos.push({
+      id: "llega",
+      nombre: "Lo que llegó",
+      requerido: true,
+      hecho: false,
+      pendiente: "Escribe cuánto llegó de al menos un insumo, o marca lo que no va a llegar.",
+    });
   }
   const notaLarga = nota.trim().length > TOPES_RECEPCION_OI.nota;
   campos.push({
@@ -215,9 +249,8 @@ export function camposDeRecepcionOI(
 // Lo que viaja a la base (números como TEXTO canónico) y lo que vuelve
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-export type LineaRecepcionParaBase =
-  | { orden_insumo_item_id: string; cantidad: string; costo_unitario: string; codigo_lote?: string }
-  | { comprobante_item_id: string; cantidad: string; costo_unitario: string; codigo_lote?: string };
+type NumerosDeRecepcion = { cantidad: string; costo_unitario: string; codigo_lote?: string; cierre?: { motivo: MotivoCierre } };
+export type LineaRecepcionParaBase = ({ orden_insumo_item_id: string } | { comprobante_item_id: string }) & NumerosDeRecepcion;
 
 export type ArgsRecibirOrdenInsumo = {
   p_orden_id: string;
@@ -227,8 +260,8 @@ export type ArgsRecibirOrdenInsumo = {
   p_token: string;
 };
 
-/** Los argumentos de `recibir_orden_insumo`: solo las líneas de las que llega algo, con el costo que se ve en la hoja (el sugerido o el
- *  corregido). Solo se llama con la hoja lista (la guía sin nada requerido pendiente). */
+/** Los argumentos de `recibir_orden_insumo`: solo las líneas de las que llega algo o que cierran lo que queda (con su motivo), con el
+ *  costo que se ve en la hoja (el sugerido o el corregido). Solo se llama con la hoja lista (la guía sin nada requerido pendiente). */
 export function argsRecibirOrdenInsumo(
   o: OrdenInsumoPorRecibir,
   entradas: readonly EntradaRecepcionOI[],
@@ -238,11 +271,13 @@ export function argsRecibirOrdenInsumo(
     const e = entradas.find((x) => x.itemId === l.itemId) ?? entradaInicialOI(l);
     const m = milesimasQueLlegan(l, e);
     const costo = leerPrecioInsumo(e.costo);
-    if (m == null || m <= 0 || costo.tipo !== "ok") return [];
-    const numeros = {
+    const cierra = cierraLinea(l, e);
+    if (m == null || costo.tipo !== "ok" || (m <= 0 && !cierra)) return [];
+    const numeros: NumerosDeRecepcion = {
       cantidad: aTexto(m, 3, { recortar: true }),
       costo_unitario: aTexto(costo.escalado, 4, { recortar: true }),
-      ...(e.codigoLote.trim() ? { codigo_lote: e.codigoLote.trim() } : {}),
+      ...(e.codigoLote.trim() && m > 0 ? { codigo_lote: e.codigoLote.trim() } : {}),
+      ...(cierra ? { cierre: { motivo: e.motivo } } : {}),
     };
     return [l.tipo === "orden" ? { orden_insumo_item_id: l.itemId, ...numeros } : { comprobante_item_id: l.itemId, ...numeros }];
   });
@@ -250,7 +285,7 @@ export function argsRecibirOrdenInsumo(
   return { p_orden_id: o.id, p_ubicacion_id: tallerId, p_lineas: lineas, ...(notaLimpia ? { p_nota: notaLimpia } : {}), p_token: token };
 }
 
-export type ResultadoRecepcionOI = { recepcionId: string; documento: string; lotes: number; queda: boolean; repetido: boolean };
+export type ResultadoRecepcionOI = { recepcionId: string; documento: string; lotes: number; cierres: number; queda: boolean; repetido: boolean };
 
 /** Lee lo que contesta `recibir_orden_insumo`; null si no llegó la recepción (la base contestó otra cosa). */
 export function leerResultadoRecepcionOI(data: unknown): ResultadoRecepcionOI | null {
@@ -260,11 +295,14 @@ export function leerResultadoRecepcionOI(data: unknown): ResultadoRecepcionOI | 
   const recepcionId = texto(r.recepcion_id);
   const documento = texto(r.documento);
   if (!recepcionId || !documento) return null;
-  return { recepcionId, documento, lotes: cifra(r.lotes) ?? 0, queda: r.queda === true, repetido: r.repetido === true };
+  return { recepcionId, documento, lotes: cifra(r.lotes) ?? 0, cierres: cifra(r.cierres) ?? 0, queda: r.queda === true, repetido: r.repetido === true };
 }
 
-/** «Se abrieron 2 lotes. Todavía queda por recibir.» — lo que dice el aviso de la esquina. */
-export function detalleDeRecepcionOI(r: Pick<ResultadoRecepcionOI, "lotes" | "queda">): string {
-  const lotes = r.lotes === 1 ? "Se abrió 1 lote" : `Se abrieron ${r.lotes} lotes`;
-  return `${lotes}. ${r.queda ? "Todavía queda algo por recibir de esta orden." : "Llegó todo lo de esta orden."}`;
+/** «Se abrieron 2 lotes y quedó anotado 1 insumo que no va a llegar. Todavía queda algo por recibir.» — el aviso de la esquina. */
+export function detalleDeRecepcionOI(r: Pick<ResultadoRecepcionOI, "lotes" | "cierres" | "queda">): string {
+  const lotes = r.lotes > 0 ? (r.lotes === 1 ? "Se abrió 1 lote" : `Se abrieron ${r.lotes} lotes`) : null;
+  const anotados = r.cierres === 1 ? "quedó anotado 1 insumo que no va a llegar" : `quedaron anotados ${r.cierres} insumos que no van a llegar`;
+  const cierres = r.cierres > 0 ? (lotes ? anotados : anotados.charAt(0).toUpperCase() + anotados.slice(1)) : null;
+  const hecho = [lotes, cierres].filter(Boolean).join(" y ");
+  return `${hecho}. ${r.queda ? "Todavía queda algo por recibir de esta orden." : "Ya no queda nada por recibir de esta orden."}`;
 }

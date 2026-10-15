@@ -14,6 +14,7 @@ import {
   leerCantidadInsumo,
   leerCantidades,
   leerDetalleOrdenInsumo,
+  leerNosDebe,
   leerFilaOrdenInsumo,
   leerFilasOrdenesInsumo,
   leerOpcionesOrdenInsumo,
@@ -190,6 +191,10 @@ describe("leer la lista y la orden sin confiar en su forma", () => {
         { id: "c0", tipo: "factura", documento: "F001-1", estado: "perdida" },
       ],
       plazo_credito_dias: 15,
+      cierres: [
+        { id: "k1", item_id: "it1", posicion: 1, insumo: "Lino crudo", unidad: "metro", cantidad: 2.5, costo_unitario: 25.5, importe: 63.75, motivo: "faltante", creado_en: "2026-10-14T20:00:00Z", por: "Sandra" },
+        { id: "k2", insumo: "Raro", unidad: "metro", cantidad: 1, motivo: "perdido" },
+      ],
     });
     expect(d).toMatchObject({ numero: 7, version: 2, proveedor: { ruc: "20999888771", rubro: "tela" }, destino: { nombre: "Taller" }, total: 627.75 });
     expect(d?.lineas).toHaveLength(2);
@@ -199,11 +204,18 @@ describe("leer la lista y la orden sin confiar en su forma", () => {
     expect(d?.facturacion).toEqual([{ posicion: 1, itemId: "it1", facturado: 10.5, recibido: 8 }, { posicion: 2, itemId: "it2", facturado: 0, recibido: 0 }]);
     expect(d?.comprobantes.map((c) => [c.documento, c.estado, c.total])).toEqual([["F001-77", "vigente", 315.95], ["SC-000004", "anulada", 10]]);
     expect(d?.plazoCreditoDias).toBe(15);
+    // Lo que no llegó (actividad 4): un cierre con un motivo que no existe se descarta.
+    expect(d?.cierres.map((c) => [c.insumo, c.cantidad, c.importe, c.motivo, c.por])).toEqual([["Lino crudo", 2.5, 63.75, "faltante", "Sandra"]]);
     // Una base sin la fase 7 parte 2 no trae ni lo uno ni lo otro: listas vacías.
     expect(leerDetalleOrdenInsumo({ id: "o1", numero: 1, estado: "generada", proveedor: { id: "p1", nombre: "X" }, destino: { id: "t1", nombre: "T" }, fecha_emision: "2026-10-13", creada_en: "2026-10-13T15:00:00Z", lineas: [] }))
-      .toMatchObject({ facturacion: [], comprobantes: [], plazoCreditoDias: null });
+      .toMatchObject({ facturacion: [], comprobantes: [], plazoCreditoDias: null, cierres: [] });
     expect(leerDetalleOrdenInsumo(null)).toBeNull();
     expect(leerDetalleOrdenInsumo({ id: "o1" })).toBeNull();
+  });
+  it("lo que nos debe cada orden de la lista: sin cierres no hay marca; una fila rara se descarta", () => {
+    const m = leerNosDebe([{ orden_id: "o1", cierres: 2, nos_debe: "57.50" }, { orden_id: "o2", cierres: 0, nos_debe: 0 }, { cierres: 1 }, null]);
+    expect([...m.entries()]).toEqual([["o1", { cierres: 2, monto: 57.5 }]]);
+    expect(leerNosDebe(null).size).toBe(0);
   });
   it("editar y anular: solo una generada; con papel, lo mismo que rechaza la base", () => {
     const papel = (estado: "vigente" | "anulada") =>

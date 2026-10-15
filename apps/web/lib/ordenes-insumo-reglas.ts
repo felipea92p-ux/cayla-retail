@@ -34,6 +34,8 @@ export const RPC_EDITAR_ORDEN_INSUMO = "editar_orden_insumo";
 export const RPC_ANULAR_ORDEN_INSUMO = "anular_orden_insumo";
 /** El papel del proveedor de una orden de insumos (fase 7 parte 2 · actividad 1, 20261015020000). */
 export const RPC_REGISTRAR_COMPROBANTE_ORDEN_INSUMO = "registrar_comprobante_orden_insumo";
+/** Lo que el proveedor nos debe, orden por orden, para las filas de la lista (fase 7 parte 2 · actividad 4, 20261015043000). */
+export const RPC_NOS_DEBE_ORDENES_INSUMO = "fn_ordenes_insumo_nos_debe";
 
 /** La base reconoció el mismo id con OTRO pedido: la orden ya se había guardado con lo de antes (`crear_orden_insumo`). */
 export const HINT_INSUMO_YA_GUARDADA = "orden_insumo_ya_guardada";
@@ -267,7 +269,25 @@ export type OrdenInsumoFila = {
   total: number;
   creadaPorNombre: string | null;
   creadaEn: string;
+  /** Lo que no llegó (fase 7 parte 2, actividad 4): cuántas líneas se cerraron y lo que el proveedor nos debe. null si nada. */
+  nosDebe?: NosDebeOrden | null;
 };
+
+export type NosDebeOrden = { cierres: number; monto: number };
+
+/** Lee `fn_ordenes_insumo_nos_debe`: orden → lo que nos debe. Una fila rara se descarta. */
+export function leerNosDebe(data: unknown): Map<string, NosDebeOrden> {
+  const salida = new Map<string, NosDebeOrden>();
+  for (const f of Array.isArray(data) ? data : []) {
+    if (!f || typeof f !== "object") continue;
+    const r = f as Record<string, unknown>;
+    const id = texto(r.orden_id);
+    const cierres = cifra(r.cierres);
+    const monto = cifra(r.nos_debe);
+    if (id && cierres != null && cierres > 0) salida.set(id, { cierres, monto: monto ?? 0 });
+  }
+  return salida;
+}
 
 /** Lee una fila de `fn_ordenes_insumo`; `null` si le falta algo que la lista necesita (se descarta, no se inventa). */
 export function leerFilaOrdenInsumo(f: unknown): OrdenInsumoFila | null {
@@ -349,6 +369,23 @@ export type PapelDeOrdenInsumo = {
   estado: "vigente" | "anulada";
 };
 
+/** Lo que no llegó de una línea (fase 7 parte 2, actividad 4): lo que el proveedor nos debe, con su costo al cerrarse. */
+export type CierreDeOrdenInsumo = {
+  id: string;
+  /** La línea pedida; null si es algo que el papel trajo fuera de la orden. */
+  itemId: string | null;
+  posicion: number | null;
+  insumo: string;
+  unidad: string;
+  cantidad: number;
+  costoUnitario: number;
+  importe: number;
+  motivo: "faltante" | "devolucion" | "otro";
+  nota: string | null;
+  creadoEn: string | null;
+  por: string | null;
+};
+
 export type DetalleOrdenInsumo = {
   id: string;
   numero: number;
@@ -377,6 +414,8 @@ export type DetalleOrdenInsumo = {
   comprobantes: PapelDeOrdenInsumo[];
   /** El plazo de crédito del proveedor, para sugerir el vencimiento del papel; null si su ficha no lo dice. */
   plazoCreditoDias: number | null;
+  /** Lo que no llegó (vacío si nada, o si la base todavía no lo trae). */
+  cierres: CierreDeOrdenInsumo[];
 };
 
 function leerLineas(data: unknown): LineaOrdenInsumo[] {
@@ -481,6 +520,37 @@ function leerPapeles(data: unknown): PapelDeOrdenInsumo[] {
     .filter((c): c is PapelDeOrdenInsumo => c !== null);
 }
 
+const MOTIVOS: readonly CierreDeOrdenInsumo["motivo"][] = ["faltante", "devolucion", "otro"];
+
+function leerCierres(data: unknown): CierreDeOrdenInsumo[] {
+  return (Array.isArray(data) ? data : [])
+    .map((c): CierreDeOrdenInsumo | null => {
+      if (!c || typeof c !== "object") return null;
+      const r = c as Record<string, unknown>;
+      const id = texto(r.id);
+      const insumo = texto(r.insumo);
+      const unidad = texto(r.unidad);
+      const cantidad = cifra(r.cantidad);
+      const motivo = MOTIVOS.find((m) => m === r.motivo);
+      if (!id || !insumo || !unidad || cantidad == null || !motivo) return null;
+      return {
+        id,
+        itemId: texto(r.item_id),
+        posicion: cifra(r.posicion),
+        insumo,
+        unidad,
+        cantidad,
+        costoUnitario: cifra(r.costo_unitario) ?? 0,
+        importe: cifra(r.importe) ?? 0,
+        motivo,
+        nota: texto(r.nota),
+        creadoEn: texto(r.creado_en),
+        por: texto(r.por),
+      };
+    })
+    .filter((c): c is CierreDeOrdenInsumo => c !== null);
+}
+
 /** Lee `fn_orden_insumo`; null si no llegó una orden (no existe, o la respuesta no se entiende). Una línea rara se descarta. */
 export function leerDetalleOrdenInsumo(data: unknown): DetalleOrdenInsumo | null {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
@@ -521,6 +591,7 @@ export function leerDetalleOrdenInsumo(data: unknown): DetalleOrdenInsumo | null
     facturacion: leerFacturacion(d.facturacion, d.recepcion),
     comprobantes: leerPapeles(d.comprobantes),
     plazoCreditoDias: cifra(d.plazo_credito_dias),
+    cierres: leerCierres(d.cierres),
   };
 }
 

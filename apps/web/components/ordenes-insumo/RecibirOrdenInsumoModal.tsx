@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoTexto, Desplegable } from "@/components/ui/campos";
+import { Casilla } from "@/components/ui/Casilla";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -16,22 +17,26 @@ import { fechaCorta } from "@/lib/compras-reglas";
 import { cantidadConUnidad, nombreUnidad } from "@/lib/ordenes-insumo-reglas";
 import { esEnvioConOtrosDatos } from "@/lib/comprobante-orden-reglas";
 import {
+  MOTIVOS_NO_LLEGA,
   TOPES_RECEPCION_OI,
   argsRecibirOrdenInsumo,
   camposDeRecepcionOI,
+  cierresQueSeAnotan,
   detalleDeRecepcionOI,
   entradaInicialOI,
   lotesQueSeAbren,
   milesimasQueLlegan,
+  milesimasQueQuedan,
   type EntradaRecepcionOI,
   type LineaOIPorRecibir,
   type OrdenInsumoPorRecibir,
 } from "@/lib/recepcion-orden-insumo-reglas";
 import { recibirOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
 
-// Recibir en el Taller contra una orden de insumos (ADR-0362, fase 7 parte 2 · actividad 3), desde Producción ▸ Recibir. Por cada línea con
-// algo por recibir: cuánto llegó (en blanco = todo lo que queda; «0» = nada esta vez, como la recepción del papel), el costo por unidad y un
-// código de lote opcional. Quien recibe ve y corrige el costo de ESA orden (decisión 53): viene puesto el sugerido —el del papel si la línea
+// Recibir en el Taller contra una orden de insumos (ADR-0362, fase 7 parte 2 · actividades 3 y 4), desde Producción ▸ Recibir. Por cada
+// línea con algo por recibir: cuánto llegó (en blanco = todo lo que queda; «0» = nada esta vez, como la recepción del papel), el costo por
+// unidad, un código de lote opcional y, si después de lo que llega todavía queda algo, «El resto no va a llegar» con su motivo (actividad
+// 4: queda anotado en la orden como lo que el proveedor nos debe, a ese costo). Quien recibe ve y corrige el costo de ESA orden (decisión 53): viene puesto el sugerido —el del papel si la línea
 // tiene uno solo; si no, el neto de la orden— y es el costo con que el lote entra al Taller (PEPS). Lo que el papel trajo fuera de la orden
 // (decisión 43) se recibe aquí también. Cada línea que llega abre UN lote con su movimiento de compra.
 //
@@ -73,6 +78,13 @@ export function RecibirOrdenInsumoModal({
   const campos = camposDeRecepcionOI(o, entradas, nota, { listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos);
   const lotes = lotesQueSeAbren(o, entradas);
+  const cierres = cierresQueSeAnotan(o, entradas);
+  const listo = [
+    lotes > 0 ? (lotes === 1 ? "Se abrirá 1 lote" : `Se abrirán ${lotes} lotes`) : null,
+    cierres > 0 ? (cierres === 1 ? "quedará anotado 1 insumo que no va a llegar" : `quedarán anotados ${cierres} insumos que no van a llegar`) : null,
+  ]
+    .filter(Boolean)
+    .join(" y ");
 
   useEffect(() => {
     if (error) avisoError.current?.focus();
@@ -195,7 +207,7 @@ export function RecibirOrdenInsumoModal({
               {error.texto}
             </Aviso>
           )}
-          <PieGuia guia={guia} listo={lotes === 1 ? "Se abrirá 1 lote." : `Se abrirán ${lotes} lotes, uno por cada insumo que llegó.`} />
+          <PieGuia guia={guia} listo={listo ? `${listo.charAt(0).toUpperCase()}${listo.slice(1)}.` : "Todo listo para registrar."} />
           <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
@@ -226,6 +238,7 @@ function LineaParaRecibir({
   onCambio: (c: Partial<EntradaRecepcionOI>) => void;
 }) {
   const m = milesimasQueLlegan(l, e);
+  const resto = milesimasQueQuedan(l, e);
   const porUnidad = nombreUnidad(l.unidad, 1);
   const contexto = [
     l.pedido != null ? `pediste ${cantidadConUnidad(l.pedido, l.unidad)}` : null,
@@ -296,6 +309,30 @@ function LineaParaRecibir({
             />
           </div>
         </div>
+        {/* Lo que no va a llegar (actividad 4): solo si se escribió cuánto llegó y todavía queda algo (en blanco llega todo). */}
+        {e.llego.trim() !== "" && resto != null && resto > 0 && (
+          <div className="mt-2.5 space-y-2">
+            <label className="flex items-center gap-2 text-[13px] text-tinta/80">
+              <Casilla
+                marcada={e.noLlegara}
+                onCambio={() => onCambio({ noLlegara: !e.noLlegara })}
+                etiqueta={`El resto de ${l.insumo} (${cantidadConUnidad(resto / 1000, l.unidad)}) no va a llegar`}
+              />
+              El resto ({cantidadConUnidad(resto / 1000, l.unidad)}) no va a llegar
+            </label>
+            {e.noLlegara ? (
+              <Desplegable
+                etiquetaAccesible={`Por qué no va a llegar el resto de ${l.insumo}`}
+                valor={e.motivo}
+                onValor={(v) => onCambio({ motivo: v })}
+                opciones={MOTIVOS_NO_LLEGA.map((x) => ({ valor: x.valor, texto: x.etiqueta }))}
+              />
+            ) : (
+              m != null && m > 0 && <p className="text-xs text-taupe">El resto seguirá pendiente: podrás recibirlo en otra entrega.</p>
+            )}
+            {e.noLlegara && <p className="text-xs text-taupe">Queda anotado en la orden como lo que el proveedor nos debe, a este costo.</p>}
+          </div>
+        )}
       </CampoGuiado>
     </li>
   );

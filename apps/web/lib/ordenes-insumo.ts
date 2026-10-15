@@ -4,12 +4,14 @@ import { hoyLima } from "@/lib/fechas-lima";
 import {
   RPC_DETALLE_ORDEN_INSUMO,
   RPC_LISTA_ORDENES_INSUMO,
+  RPC_NOS_DEBE_ORDENES_INSUMO,
   RPC_OPCIONES_ORDEN_INSUMO,
   RPC_SIGUIENTE_ORDEN_INSUMO,
   argsListaInsumo,
   cifrasDeOrdenesInsumo,
   leerDetalleOrdenInsumo,
   leerFilasOrdenesInsumo,
+  leerNosDebe,
   leerOpcionesOrdenInsumo,
   type CifrasOrdenesInsumo,
   type DatosOrdenInsumo,
@@ -40,7 +42,19 @@ export async function listarOrdenesInsumo(filtros: FiltrosListaInsumo): Promise<
     console.error(`${RPC_LISTA_ORDENES_INSUMO}: ${error.message}`);
     return { filas: [], falla: FALLA_LISTA };
   }
-  return { filas: leerFilasOrdenesInsumo(data), falla: null };
+  const filas = leerFilasOrdenesInsumo(data);
+  // Lo que no llegó (fase 7 parte 2, actividad 4): una lectura aparte, para las órdenes de esta página. Es un adorno de la lista: si no
+  // responde (o la base todavía no la tiene), las filas se muestran igual, sin la marca.
+  if (filas.length > 0) {
+    const ids = filas.map((f) => f.id);
+    const res = await (supabase.rpc(RPC_NOS_DEBE_ORDENES_INSUMO as never, { p_ids: ids } as never) as unknown as Respuesta);
+    if (res.error) console.error(`${RPC_NOS_DEBE_ORDENES_INSUMO}: ${res.error.message}`);
+    else {
+      const deuda = leerNosDebe(res.data);
+      for (const f of filas) f.nosDebe = deuda.get(f.id) ?? null;
+    }
+  }
+  return { filas, falla: null };
 }
 
 /**

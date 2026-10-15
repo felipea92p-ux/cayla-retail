@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * Pruebas de la recepción en el Taller contra la orden de insumos (ADR-0362, fase 7 parte 2, actividad 3) — migraciones
- * `20261015035000_orden_insumo_recepcion_esquema.sql` (el libro de recepciones de una orden y la orden en el lote) y
+ * Pruebas de la recepción en el Taller contra la orden de insumos (ADR-0362, fase 7 parte 2, actividades 3 y 4) — migraciones
+ * `20261015035000_orden_insumo_recepcion_esquema.sql` (el libro de recepciones de una orden y la orden en el lote),
  * `20261015040000_orden_insumo_recepcion_funciones.sql` (`fn_ordenes_insumo_por_recibir`, `recibir_orden_insumo`, los candados de editar y
- * anular y lo recibido en el detalle). Contrato: docs/compras/ordenes-de-compra-2026-10/contrato-ordenes-de-insumos.md (punto 3). CAYLA V2.
+ * anular y lo recibido en el detalle) y `20261015043000_orden_insumo_lo_que_no_llego.sql` (lo que no va a llegar, anotado en la orden y
+ * en la lista). Contrato: docs/compras/ordenes-de-compra-2026-10/contrato-ordenes-de-insumos.md (punto 3). CAYLA V2.
  *
  * LO QUE VIGILA. Que lo que llega al Taller entre contra su orden aunque el papel no haya llegado (decisión 9), con las reglas de la
  * recepción del Taller: un lote y su movimiento de compra juntos, nunca más de lo que queda (lo mayor entre lo pedido y lo facturado, menos
@@ -20,7 +21,9 @@
  *   Q  CANTIDADES MALAS: cuatro decimales, cero, NaN, una línea de otra orden, repetida, sin líneas.
  *   I  DOBLE ENVÍO: el mismo token y contenido devuelve la misma recepción; con otro contenido, `token_reusado`.
  *   K  CANDADO: con algo recibido no se edita ni se anula. Orden anulada; una tienda no recibe insumos.
- *   L  EL LIBRO: no se edita ni se borra.
+ *   N  LO QUE NO LLEGÓ (actividad 4): se cierra el resto al recibir (o solo se cierra, con «0»), deja de estar pendiente y queda en la
+ *      orden y en la lista como lo que el proveedor nos debe, a su costo; los cierres que no se entienden, rechazados.
+ *   L  EL LIBRO: no se edita ni se borra (las recepciones y lo que no llegó).
  *   S  LA FORMA: security definer con search_path; `authenticated` sí, `anon` no; lo interno, cerrado.
  *   2S DOS SESIONES A LA VEZ: reciben todo lo que queda de la misma línea; la segunda espera la orden y lee que ya no queda: un solo lote. Hace
  *      COMMIT de una orden de prueba y la borra al terminar, así que NO corre contra la base local compartida: solo en el CI (cada tanda
@@ -53,6 +56,7 @@ const MIGRACION = sinCandadosDePegado(
     "20261015034000_orden_insumo_comprobante_contado.sql",
     "20261015035000_orden_insumo_recepcion_esquema.sql",
     "20261015040000_orden_insumo_recepcion_funciones.sql",
+    "20261015043000_orden_insumo_lo_que_no_llego.sql",
   ]
     .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
     .join("\n"),
@@ -182,7 +186,7 @@ function caso(nombre, sql, esperado) {
 }
 
 caso(
-  "M1 las cinco migraciones se vuelven a cargar sin error",
+  "M1 las seis migraciones se vuelven a cargar sin error",
   `select (to_regprocedure('retail.recibir_orden_insumo(uuid, uuid, jsonb, text, uuid)') is not null)::text;`,
   "true"
 );
@@ -293,6 +297,54 @@ caso(
   "true|true|1|token_reusado"
 );
 
+// ---------- Lo que no llegó (actividad 4) ----------
+const conCierre = (item, cantidad, motivo, extra = "") =>
+  `jsonb_build_array(jsonb_build_object('orden_insumo_item_id', ${item}, 'cantidad', '${cantidad}', 'cierre', jsonb_build_object('motivo', '${motivo}')${extra}))`;
+caso(
+  "N1 al recibir 8 de 12.5 m, el resto (4.5 m) no va a llegar: deja de estar pendiente y queda en la orden y en la lista como lo que nos debe (S/ 45.00)",
+  `select pg_temp.recibe(:'o1', :'taller', ${conCierre(":'i1'", "8", "faltante")}) as r \\gset
+   select concat_ws('|', pg_temp.j(:'r') ->> 'lotes', pg_temp.j(:'r') ->> 'cierres',
+     (select l.cantidad_ingresada from retail.insumo_lotes l where l.orden_insumo_item_id = :'i1'),
+     (select k.cantidad || ':' || k.costo_unitario || ':' || k.motivo || ':' || (k.usuario_id = :'felipe_p') from retail.orden_insumo_cierres k where k.orden_insumo_item_id = :'i1'),
+     -- La lectura trae todas las líneas de la orden (la web oculta las que ya no tienen nada que recibir).
+     (select coalesce(string_agg(l ->> 'queda', ','), 'ya no aparece') from jsonb_array_elements(retail.fn_ordenes_insumo_por_recibir(:'taller')) o, jsonb_array_elements(o -> 'lineas') l
+       where (o ->> 'id')::uuid = :'o1' and (l ->> 'item_id')::uuid = :'i1'),
+     (select string_agg(c ->> 'insumo' || ':' || (c ->> 'cantidad') || ':' || (c ->> 'importe') || ':' || (c ->> 'motivo'), ',') from jsonb_array_elements(retail.fn_orden_insumo(:'o1') -> 'cierres') c),
+     (select f.cierres || ':' || f.nos_debe from retail.fn_ordenes_insumo_nos_debe(array[:'o1']::uuid[]) f where f.orden_id = :'o1'));`,
+  "1|1|8.000|4.500:10.0000:faltante:true|0.000|Lino Crudo CI Recepción:4.500:45.00:faltante|1:45.00"
+);
+caso(
+  "N2 sin que llegue nada («0»), solo se anota que no va a llegar: una recepción sin lotes y su cierre al costo de la orden (4 conos a S/ 3.125)",
+  `select pg_temp.recibe(:'o1', :'taller', ${conCierre(":'i2'", "0", "devolucion")}) as r \\gset
+   select concat_ws('|', pg_temp.j(:'r') ->> 'lotes', pg_temp.j(:'r') ->> 'cierres',
+     (select count(*) from retail.insumo_lotes l where l.orden_insumo_item_id = :'i2'),
+     (select k.cantidad || ':' || round(k.cantidad * k.costo_unitario, 2) || ':' || k.motivo from retail.orden_insumo_cierres k where k.orden_insumo_item_id = :'i2'));`,
+  "0|1|0|4.000:12.50:devolucion"
+);
+caso(
+  "N3 cierres que no se entienden: «0» sin cierre, cierre sin nada que cerrar, motivo raro, cierre que no es un objeto; nada queda escrito",
+  `select concat_ws(',',
+     split_part(pg_temp.eh(pg_temp.recibe(:'o1', :'taller', ${una(":'i1'", "0")})), '|', 2),
+     split_part(pg_temp.eh(pg_temp.recibe(:'o1', :'taller', ${conCierre(":'i1'", "12.5", "faltante")})), '|', 2),
+     split_part(pg_temp.eh(pg_temp.recibe(:'o1', :'taller', ${conCierre(":'i1'", "1", "perdido")})), '|', 2),
+     split_part(pg_temp.eh(pg_temp.recibe(:'o1', :'taller', ${una(":'i1'", "1", ", 'cierre', 'sí'")})), '|', 2),
+     (select count(*) from retail.orden_insumo_cierres k where k.orden_insumo_id = :'o1'),
+     (select count(*) from retail.orden_insumo_recepciones r where r.orden_insumo_id = :'o1'));`,
+  "recibir_orden_insumo_cantidad,recibir_orden_insumo_cierre,recibir_orden_insumo_cierre,recibir_orden_insumo_cierre,0,0"
+);
+caso(
+  "N4 lo que el papel trajo fuera de la orden también se cierra: de 10 botones llegan 6 y los otros 4 quedan como deuda, ligados a la línea del papel",
+  `${MICAELA_CON_MODULO}${como(MICAELA)}${FIRMA_PAPEL}
+   select retail.registrar_comprobante_orden_insumo(:'o1', 'boleta', 'B001', '902', jsonb_build_array(
+     jsonb_build_object('insumo_id', :'boton', 'cantidad', '10', 'costo_unitario', '0.20')), null, 'credito', retail.fn_hoy_lima() + 30) \\g /dev/null
+   select x.id as bx from retail.comprobantes_produccion_items x join retail.comprobantes_produccion c on c.id = x.comprobante_id
+    where c.orden_insumo_id = :'o1' and x.orden_insumo_item_id is null \\gset
+   ${como(FELIPE)}${SIN_FIRMA}
+   select pg_temp.recibe(:'o1', :'taller', jsonb_build_array(jsonb_build_object('comprobante_item_id', :'bx', 'cantidad', '6', 'cierre', jsonb_build_object('motivo', 'otro', 'nota', 'se rompieron')))) \\g /dev/null
+   select (select k.cantidad || ':' || k.costo_unitario || ':' || coalesce(k.nota, '') || ':' || (k.orden_insumo_item_id is null) from retail.orden_insumo_cierres k where k.comprobante_item_id = :'bx');`,
+  "4.000:0.2000:se rompieron:true"
+);
+
 caso(
   "K1 con algo recibido la orden ya no se edita ni se anula (orden_insumo_con_recepcion)",
   `select pg_temp.recibe(:'o1', :'taller', ${una(":'i1'", "1")}) \\g /dev/null
@@ -316,13 +368,15 @@ caso(
   "P0001|orden_insumo_anulada,P0001|recibir_otro_taller"
 );
 caso(
-  "L1 el libro de recepciones de una orden no se edita ni se borra",
-  `select (pg_temp.j(pg_temp.recibe(:'o1', :'taller', ${una(":'i1'", "1")})) ->> 'recepcion_id') as r \\gset
+  "L1 los libros de una orden no se editan ni se borran: lo recibido y lo que no llegó",
+  `select (pg_temp.j(pg_temp.recibe(:'o1', :'taller', ${conCierre(":'i1'", "1", "faltante")})) ->> 'recepcion_id') as r \\gset
    reset role;
    select concat_ws(',',
      pg_temp.eh(pg_temp.intento($$update retail.orden_insumo_recepciones set nota = 'x' where id = '$$ || :'r' || $$'$$)),
-     pg_temp.eh(pg_temp.intento($$delete from retail.orden_insumo_recepciones where id = '$$ || :'r' || $$'$$)));`,
-  "42501|,42501|"
+     pg_temp.eh(pg_temp.intento($$delete from retail.orden_insumo_recepciones where id = '$$ || :'r' || $$'$$)),
+     pg_temp.eh(pg_temp.intento($$update retail.orden_insumo_cierres set cantidad = 1 where recepcion_id = '$$ || :'r' || $$'$$)),
+     pg_temp.eh(pg_temp.intento($$delete from retail.orden_insumo_cierres where recepcion_id = '$$ || :'r' || $$'$$)));`,
+  "42501|,42501|,42501|,42501|"
 );
 caso(
   "S1 la forma: security definer con search_path; authenticated lee y recibe, anon no; lo interno, cerrado",
@@ -350,6 +404,7 @@ create temp table _prov on commit drop as select p.id from retail.proveedores_pr
 create temp table _ord on commit drop as select o.id from retail.ordenes_insumo o where o.proveedor_id in (select id from _prov);
 create temp table _lot on commit drop as select l.id from retail.insumo_lotes l
   where l.orden_insumo_item_id in (select i.id from retail.orden_insumo_items i where i.orden_insumo_id in (select id from _ord));
+delete from retail.orden_insumo_cierres k where k.orden_insumo_id in (select id from _ord);
 delete from retail.movimientos_insumo m where m.insumo_lote_id in (select id from _lot);
 delete from retail.insumo_lotes l where l.id in (select id from _lot);
 delete from retail.orden_insumo_recepciones r where r.orden_insumo_id in (select id from _ord);
