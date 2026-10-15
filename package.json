@@ -61,6 +61,7 @@
     "pruebas:perdidas": "node scripts/pruebas/perdidas.mjs",
     "pruebas:resumen-finanzas": "node scripts/pruebas/resumen_finanzas.mjs",
     "pruebas:finanzas-arranque": "node scripts/pruebas/finanzas_arranque.mjs",
+    "pruebas:costo-estimado-venta-sin-prenda": "node scripts/pruebas/costo_estimado_venta_sin_prenda.mjs",
     "pruebas:totales-caja-historial": "node scripts/pruebas/totales_caja_e_historial.mjs",
     "pruebas:fn-aplicar-movimiento": "node scripts/pruebas/fn_aplicar_movimiento.mjs",
     "pruebas:apartar-stock": "node scripts/pruebas/apartar_stock.mjs",
