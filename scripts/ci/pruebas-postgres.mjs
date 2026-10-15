@@ -192,6 +192,12 @@ export const PRUEBAS = [
   // público. ROLLBACK.
   "pruebas:vitrina-web",
 
+  // Los looks de la tienda online (ADR-0408, actividad 11): es el módulo de la Vitrina web (sin él no se lee ni se guarda); 2 a 4
+  // prendas que se venden, y para mostrarlo cada una se ve en la web; la versión frena a la segunda persona; el lugar va de 1 a N sin
+  // huecos; un look con una prenda que dejó de verse (o eliminada) no sale en la tienda; el precio de cada prenda es EXACTAMENTE el de
+  // `tienda_catalogo` en esa tienda (con mutantes que lo prueban) y las tallas dicen «hay», nunca la cifra. ROLLBACK.
+  "pruebas:vitrina-looks",
+
   // El motor del pedido web (ADR-0408, actividades 7-9): separar no toca el stock; confirmar reserva con el motor de Apartados
   // (almacén primero) y Vender ya no la vende; dos por la última (uno reserva, el otro sin stock, y quién separó antes, también
   // con dos sesiones a la vez); anular libera; el cierre de 24 h no toca lo confirmado; un pago nunca pasa el total; el n.º de

@@ -185,6 +185,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ADR-0408 (actividad 3): Catálogo ▸ Vitrina web. Lo que se llena vive en sus dos hojas: la del modelo (precio web —lo que la base
   // rechaza: vacío, inválido o bajo el costo—, descripción opcional y quién lo cambia) y la del lote (cuánto subir o bajar, y quién).
   "/productos/vitrina": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaModeloHoja.tsx", "components/vitrina/VitrinaLoteHoja.tsx"] },
+  // ADR-0408 (actividad 11): Vitrina web ▸ Looks. Lo que se llena vive en sus dos hojas: la del look (nombre, de 2 a 4 prendas, que se vean
+  // en la web si se va a mostrar, y quién lo cambia; la frase es opcional y el lugar viene puesto) y la de mostrar u ocultar (quién).
+  "/productos/vitrina/looks": { estado: "aplicada", evidencia: ["components/vitrina/LookHoja.tsx", "components/vitrina/LookMostrarHoja.tsx"] },
   "/productos/por-revisar": { estado: "no-aplica", motivo: "Cola de solo lectura de las prendas que alguien propuso (ADR-0371): cada fila trae sus datos y dos botones, Aprobar y Rechazar; no hay campos que llenar ni pasos que seguir. Lo único que se elige —quién firma— vive en la hoja de cada decisión (components/RevisarProductoHoja.tsx)." },
   // ---- recibir ----
   // ADR-0330: la puerta «Llegó mercadería» trae su guía (proveedor → prendas → quién recibe). La rama «contra factura»
@@ -412,4 +415,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   // lo cambia. La descripción para la web es opcional, y no hay precio que llenar (es el de cada tienda, Felipe 2026-10-14).
   "components/vitrina/VitrinaModeloHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaModeloHoja.tsx"] },
   "components/vitrina/VitrinaLoteHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaLoteHoja.tsx"] },
+  // ADR-0408 (actividad 11): las hojas de los looks. «Falta» es lo que `vitrina_guardar_look` y `vitrina_mostrar_look` rechazarían: el
+  // nombre (hasta 60 letras), de 2 a 4 prendas, que cada una se vea en la web si el look se va a mostrar, y quién lo cambia. La frase es
+  // opcional; «Mostrar en la web» y el lugar ya vienen elegidos.
+  "components/vitrina/LookHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/LookHoja.tsx"] },
+  "components/vitrina/LookMostrarHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/LookMostrarHoja.tsx"] },
 };

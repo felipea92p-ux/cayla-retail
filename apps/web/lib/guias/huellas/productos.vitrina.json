@@ -2,7 +2,7 @@
   "guia": "productos.vitrina",
   "ruta": "/productos/vitrina",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 18,
+  "total": 19,
   "controles": {
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",
@@ -29,6 +29,9 @@
       "Casilla «{`Elegir ${m.nombre}»",
       "button «vitrina.abrir»",
       "button «{`${m.nombre}»"
+    ],
+    "components/vitrina/VitrinaPestanas.tsx": [
+      "Pestanas «);»"
     ]
   }
 }

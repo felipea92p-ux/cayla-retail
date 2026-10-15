@@ -5837,6 +5837,24 @@ export type Database = {
         Args: { p_producto_ids: string[]; p_publicado: boolean }
         Returns: Json
       }
+      // Vitrina web ▸ Looks (ADR-0408, actividad 11; 20261015031000): las combinaciones de «Arma tu look».
+      fn_vitrina_looks: { Args: never; Returns: Json }
+      vitrina_guardar_look: {
+        Args: {
+          p_look_id: string | null
+          p_nombre: string
+          p_frase: string | null
+          p_publicado: boolean
+          p_piezas: Json
+          p_lugar: number | null
+          p_version: number | null
+        }
+        Returns: Json
+      }
+      vitrina_mostrar_look: {
+        Args: { p_look_id: string; p_publicado: boolean; p_version: number }
+        Returns: Json
+      }
       unirse_al_club: {
         Args: {
           p_clienta_id: string

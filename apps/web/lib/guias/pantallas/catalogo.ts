@@ -1423,6 +1423,12 @@ export const GUIA_VITRINA: Guia = {
       texto: "Aquí eliges qué modelos se ven en la tienda online de CAYLA. El cliente los ve con sus fotos, sus colores y el precio de la tienda que elige. Es una demo: no se guarda nada.",
     },
     {
+      id: "pestanas",
+      ancla: "vitrina.pestanas",
+      titulo: "Modelos y looks",
+      texto: "La vitrina tiene dos partes: aquí, los modelos que se ven en la web; en Looks, las combinaciones de «Arma tu look», que se arman con estos mismos modelos.",
+    },
+    {
       id: "cifras",
       ancla: "vitrina.cifras",
       titulo: "Cómo está la vitrina",
@@ -1544,4 +1550,128 @@ export const GUIA_VITRINA: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "vitrina.buscador" }],
+};
+
+// Catálogo ▸ Vitrina web ▸ Looks (ADR-0408, actividad 11). Es una pestaña de la Vitrina (el mismo módulo). La hoja de un look se abre con
+// «Nuevo look» o tocando su nombre; la de mostrar u ocultar, con el interruptor de su fila. La demo nunca guarda: escribe un nombre de
+// ejemplo en un look nuevo, explica el resto con la pieza encendida y cierra sin tocar «Guardar look».
+export const GUIA_VITRINA_LOOKS: Guia = {
+  id: "productos.vitrina.looks",
+  ruta: "/productos/vitrina/looks",
+  titulo: "Looks de la vitrina",
+  resumen: "Las combinaciones de «Arma tu look» que ve el cliente en la tienda online.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Arma tu look",
+      texto: "Aquí armas los looks de la tienda online: de 2 a 4 prendas que se ven bien juntas. El cliente los ve armados y los agrega completos, eligiendo la talla de cada prenda. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "pestanas",
+      ancla: "vitrina.pestanas",
+      titulo: "Modelos y looks",
+      texto: "La vitrina tiene dos partes: Modelos (qué prendas se ven en la web) y Looks. Un look solo lleva prendas que se ven en la web.",
+    },
+    {
+      id: "cifras",
+      ancla: "looks.cifras",
+      titulo: "Cómo están los looks",
+      texto: "Cuántos se ven en la web, y cuántos están encendidos pero no salen porque una prenda suya dejó de verse. Toca una tarjeta y la lista se queda solo con esos.",
+    },
+    {
+      id: "lista",
+      ancla: "looks.lista",
+      opcional: true,
+      titulo: "Los looks, en su orden",
+      texto: "Salen en la tienda en este orden: el número es su lugar. Cada uno con sus prendas y lo que cuesta todo con «Todas» (el precio más alto entre las tiendas). Si uno encendido no se ve, la fila dice qué prenda falta.",
+    },
+    {
+      id: "interruptor",
+      ancla: "looks.interruptor",
+      opcional: true,
+      titulo: "Mostrar u ocultar",
+      texto: "Préndelo para que el look salga en la tienda y apágalo para esconderlo. Antes te pide quién lo hace. Ocultar no borra nada: lo vuelves a mostrar cuando quieras.",
+    },
+    {
+      id: "abrir",
+      ancla: "looks.abrir",
+      opcional: true,
+      titulo: "Cambiar un look",
+      texto: "Toca un look para cambiar su nombre, sus prendas, sus colores o su lugar.",
+    },
+    {
+      id: "ayuda",
+      ancla: "looks.ayuda",
+      opcional: true,
+      titulo: "Lo que haces aquí",
+      texto: "Tocas un look para cambiarlo y su interruptor lo muestra u oculta. Para uno nuevo, el botón de al lado.",
+    },
+    {
+      id: "nuevo",
+      ancla: "looks.nuevo",
+      titulo: "Un look nuevo",
+      texto: "Para armar uno nuevo (te lo abrimos). Necesitas al menos dos modelos que se vean en la web.",
+    },
+    {
+      id: "look-nombre",
+      ancla: "look.nombre",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "looks.nuevo" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "Su nombre y su frase",
+      texto: "Un nombre que diga para qué es y, si quieres, una frase que cuente cómo se lleva. El cliente los lee en la tienda. Mira, le ponemos uno.",
+      demostrar: [{ tipo: "escribir", ancla: "look.nombre", texto: "Fin de semana en la ciudad" }],
+    },
+    {
+      id: "look-prendas",
+      ancla: "look.prendas",
+      opcional: true,
+      titulo: "De 2 a 4 prendas",
+      texto: "Busca cada prenda por su nombre y elige su color: solo salen las que se ven en la web. El orden es el de la lámina de la tienda; la ✕ la quita.",
+    },
+    {
+      id: "look-mostrar",
+      ancla: "look.mostrar",
+      opcional: true,
+      titulo: "Mostrar en la web",
+      texto: "Encendido, sale en «Arma tu look». Para eso todas sus prendas tienen que verse en la web; apagado, lo guardas para después.",
+    },
+    {
+      id: "look-lugar",
+      ancla: "look.lugar",
+      opcional: true,
+      titulo: "Su lugar",
+      texto: "En qué lugar sale entre los looks de la tienda. El primero es el que el cliente ve primero; los demás se corren solos.",
+    },
+    {
+      id: "look-responsable",
+      ancla: "look.responsable",
+      opcional: true,
+      titulo: "Quién lo cambia",
+      texto: "Como en todo el ERP, queda anotado quién hizo el cambio y cuándo (lo ves en Actividad).",
+    },
+    {
+      id: "look-guardar",
+      ancla: "look.guardar",
+      opcional: true,
+      titulo: "Guardar el look",
+      texto: "Guarda todo junto. Si otra persona lo cambió mientras lo tenías abierto, te avisa y no pisa nada. En la demo cerramos sin guardar.",
+    },
+    {
+      id: "nota",
+      ancla: "looks.nota",
+      preparar: [{ tipo: "escape" }],
+      prepararSoloAlAvanzar: true,
+      titulo: "Qué precio ve el cliente",
+      texto: "El de la tienda que elige (con «Todas», el más alto) y la campaña encima, prenda por prenda. Un look solo sale si todas sus prendas se ven en la web.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes armar un look, mostrarlo y ordenarlo. Para repasarlo: Mi perfil ▸ Demo ▸ Looks de la vitrina.",
+    },
+  ],
+  alSalir: [{ tipo: "escape" }],
 };

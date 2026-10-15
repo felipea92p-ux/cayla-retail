@@ -120,6 +120,7 @@
     "pruebas:tienda-web-configuracion": "node scripts/pruebas/tienda_web_configuracion.mjs",
     "pruebas:tienda-cuentas": "node scripts/pruebas/tienda_cuentas.mjs",
     "pruebas:vitrina-web": "node scripts/pruebas/vitrina_web.mjs",
+    "pruebas:vitrina-looks": "node scripts/pruebas/vitrina_looks.mjs",
     "pruebas:pedidos-web-motor": "node scripts/pruebas/pedidos_web_motor.mjs",
     "pruebas:redondeo-efectivo": "node scripts/pruebas/redondeo_efectivo.mjs",
     "pruebas:prendas-por-regularizar": "node scripts/pruebas/prendas_por_regularizar.mjs",
