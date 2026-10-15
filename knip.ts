@@ -97,6 +97,12 @@ const config: KnipConfig = {
         // `scripts/rol-local.mjs` crea el usuario de la base LOCAL (`pnpm --filter tienda rol-local`): solo en la corrida normal.
         "scripts/**/*.mjs",
       ],
+      ignore: [
+        // «Agregar a la bolsa» (la ficha y las tarjetas) y el ícono de la bolsa de la cabecera (actividad 7, ADR-0408): nacen antes que
+        // su primer uso, porque la ficha, las tarjetas y la cabecera las arman a la vez las actividades 4 y 5. Salen de aquí cuando la
+        // integración de la tienda los ponga en su lugar.
+        "components/bolsa/{AgregarALaBolsa,BotonBolsa}.tsx",
+      ],
     },
     "packages/*": {
       project: ["src/**/*.{ts,css}!"],

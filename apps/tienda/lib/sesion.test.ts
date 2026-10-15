@@ -12,9 +12,11 @@ describe("a dónde lleva el proxy", () => {
     }
   });
 
-  it("sin sesión, el Inicio, el catálogo (y lo que cuelga de él) y «Mi cuenta» llevan a «Entrar»; la portada y lo público no", () => {
-    for (const ruta of ["/inicio", "/cuenta", "/catalogo", "/catalogo/abc"]) expect(redireccionDelProxy(ruta, "GET", "no")).toBe("/entrar");
-    for (const ruta of ["/", "/tiendas", "/privacidad", "/terminos-del-club", "/como-separar", "/cambios-y-devoluciones", "/catalogos", "/inicios"]) {
+  it("sin sesión, el Inicio, el catálogo, la bolsa y «Mi cuenta» (y lo que cuelga de ellos) llevan a «Entrar»; la portada y lo público no", () => {
+    for (const ruta of ["/inicio", "/cuenta", "/cuenta/pedidos", "/cuenta/pedidos/W-0001", "/catalogo", "/catalogo/abc", "/bolsa", "/bolsa/separado/W-0001"]) {
+      expect(redireccionDelProxy(ruta, "GET", "no"), ruta).toBe("/entrar");
+    }
+    for (const ruta of ["/", "/tiendas", "/privacidad", "/terminos-del-club", "/como-separar", "/cambios-y-devoluciones", "/catalogos", "/inicios", "/bolsas", "/cuentas"]) {
       expect(redireccionDelProxy(ruta, "GET", "no")).toBeNull();
     }
   });

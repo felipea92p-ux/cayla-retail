@@ -1,0 +1,278 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { volverASeparar } from "@/app/acciones/bolsa";
+import { CuentaAtras } from "@/components/bolsa/CuentaAtras";
+import { PrendaDelPedido } from "@/components/bolsa/PrendaDelPedido";
+import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
+import { Icono } from "@/components/Icono";
+import { soles } from "@/lib/catalogo";
+import {
+  codigoDeLaUrl,
+  diaCorto,
+  enlaceDelPedido,
+  fechaCorta,
+  fechaLarga,
+  hitos,
+  hora,
+  MOTIVO_DE_CIERRE,
+  nombreTienda,
+  vivas,
+  type Pedido,
+  type Plazos,
+} from "@/lib/pedidos";
+import { leerPedido } from "@/lib/pedidos-servidor";
+import { leerSesion } from "@/lib/sesion-servidor";
+import { whatsappLegible } from "@/lib/tiendas";
+import "../../../estilos/catalogo.css";
+import "../../../estilos/bolsa.css";
+
+export const metadata: Metadata = { title: "Mi pedido · CAYLA", robots: { index: false, follow: false } };
+
+/**
+ * El estado de un pedido (maqueta v4, `vPedido`): en qué va (separado → confirmado → pagado → entregado), sus prendas, cuánto falta
+ * pagar y, cuando está listo para recoger, el código de 4 cifras que se muestra en caja (propuesta m). Solo si es de esta cuenta: el
+ * de otro cliente responde como uno que no existe. Todo se coordina por WhatsApp con la tienda.
+ */
+export default async function MiPedido({ params }: { params: Promise<{ numero: string }> }) {
+  const codigo = codigoDeLaUrl((await params).numero);
+  if (!codigo) notFound();
+  const sesion = await leerSesion();
+  if (sesion.estado === "sin_sesion") redirect("/entrar");
+  const lectura = sesion.estado === "con_sesion" ? await leerPedido(sesion.usuarioId, codigo) : { estado: "sin_respuesta" as const };
+  if (lectura.estado === "no_esta" || lectura.estado === "sin_cuenta") notFound();
+  if (lectura.estado === "sin_respuesta") {
+    return (
+      <MarcoCuenta conCuenta enPagina="cuenta" conPie>
+        <div className="t-ancho">
+          <div className="t-vacio" role="status">
+            <Icono nombre="pedido" />
+            <h3>No pudimos cargar tu pedido</h3>
+            <p>Es un problema de conexión de nuestro lado. Vuelve a intentarlo en un momento.</p>
+            <Link className="t-btn" href={`/cuenta/pedidos/${codigo}`}>
+              Volver a intentar
+            </Link>
+          </div>
+        </div>
+      </MarcoCuenta>
+    );
+  }
+
+  const { pedido: p, plazos } = lectura;
+  const tienda = nombreTienda(p.tienda.nombre);
+  const conDinero = p.estado === "confirmado" || p.estado === "pagado" || p.estado === "entregado";
+  return (
+    <MarcoCuenta conCuenta enPagina="cuenta" conPie>
+      <div className="t-ancho t-angosto">
+        <div className="w-ficha t-pedido">
+          <nav className="t-ruta" aria-label="Estás en">
+            <Link href="/cuenta">Mi cuenta</Link>
+            <span aria-hidden="true">/</span>
+            <Link href="/cuenta/pedidos">Mis pedidos</Link>
+            <span aria-hidden="true">/</span>
+            <span>
+              Pedido <span className="t-codigo">{p.codigo}</span>
+            </span>
+          </nav>
+          <div className="w-estado-cab">
+            <Cabeza p={p} tienda={tienda} plazos={plazos} />
+          </div>
+          <Extra p={p} tienda={tienda} />
+
+          <div className="w-tarjeta">
+            <ol className="w-linea">
+              {hitos(p).map((h) => (
+                <li key={h.nombre} className="w-hito" data-e={h.estado}>
+                  <span className="w-hito-p">{h.estado === "hecho" && <Icono nombre="check" />}</span>
+                  <span>
+                    {h.nombre}
+                    {h.cuando && (
+                      <small>
+                        {fechaCorta(h.cuando)}, {hora(h.cuando)}
+                      </small>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="w-tarjeta">
+            <span className="w-lbl">
+              Pedido <span className="t-codigo">{p.codigo}</span> · {tienda}
+            </span>
+            {vivas(p).map((l, i) => (
+              <PrendaDelPedido key={`${l.varianteId}-${i}`} linea={l} />
+            ))}
+            <div className="w-resumen">
+              {conDinero && (
+                <div>
+                  <span>Entrega</span>
+                  <span>Recojo en {tienda}</span>
+                </div>
+              )}
+              <div className="tot">
+                <span>Total</span>
+                <span className="num">{soles(p.total)}</span>
+              </div>
+              {conDinero && (
+                <div>
+                  <span>Pagado</span>
+                  <span className="num">{soles(p.pagado)}</span>
+                </div>
+              )}
+              {conDinero && p.falta > 0 && (
+                <div>
+                  <span>
+                    <b>Falta pagar</b>
+                  </span>
+                  <span className="num">
+                    <b>{soles(p.falta)}</b>
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="w-info">
+            <Icono nombre="chat" />
+            <span>
+              <b>Todo se coordina por WhatsApp</b>
+              <small>
+                {tienda}
+                {p.tienda.whatsapp ? ` · ${whatsappLegible(p.tienda.whatsapp)}` : ""}
+              </small>
+            </span>
+          </div>
+        </div>
+      </div>
+    </MarcoCuenta>
+  );
+}
+
+/** Lo de arriba según el estado (maqueta, `vPedido`). */
+function Cabeza({ p, tienda, plazos }: { p: Pedido; tienda: string; plazos: Plazos }) {
+  switch (p.estado) {
+    case "por_confirmar":
+      return (
+        <>
+          <span className="w-estado-chip t-ambar">Por confirmar</span>
+          <h1 className="w-titulo">
+            Falta que <em>{tienda}</em> lo confirme.
+          </h1>
+          <p className="w-texto-sec">
+            Ya lo separaste. Falta que la tienda revise que todo esté y te confirme.
+            {p.venceEn && (
+              <>
+                {" "}
+                Si nadie lo confirma, se cierra en <CuentaAtras hasta={p.venceEn} />.
+              </>
+            )}
+          </p>
+        </>
+      );
+    case "confirmado": {
+      const llegan = vivas(p)
+        .flatMap((l) => (l.estado === "por_conseguir" && l.fechaCompromiso ? [l.fechaCompromiso] : []))
+        .sort();
+      return (
+        <>
+          <span className="w-estado-chip t-verde">Confirmado</span>
+          <h1 className="w-titulo">
+            ¡Confirmado! <em>Ya es tuyo.</em>
+          </h1>
+          <p className="w-texto-sec">
+            {tienda} lo guardó para ti. {llegan.length > 0 && `Una prenda llega el ${diaCorto(llegan[llegan.length - 1])} y te avisan. `}
+            {p.pagado > 0 ? `Ya pagaste una parte: falta ${soles(p.falta)}.` : "Coordina el pago por WhatsApp."}
+          </p>
+        </>
+      );
+    }
+    case "pagado":
+      return p.listoParaRecoger ? (
+        <>
+          <span className="w-estado-chip t-verde">Pagado · listo para recoger</span>
+          <h1 className="w-titulo">
+            Te espera en <em>{p.tienda.nombre}.</em>
+          </h1>
+        </>
+      ) : (
+        <>
+          <span className="w-estado-chip t-verde">Pagado</span>
+          <h1 className="w-titulo">
+            Ya pagaste <em>todo.</em>
+          </h1>
+          <p className="w-texto-sec">{tienda} te avisa por WhatsApp cuando esté listo para recoger.</p>
+        </>
+      );
+    case "entregado":
+      return (
+        <>
+          <span className="w-estado-chip t-neutro">Entregado</span>
+          <h1 className="w-titulo">
+            ¡Gracias por comprar <em>en CAYLA!</em>
+          </h1>
+        </>
+      );
+    case "vencido":
+      return (
+        <>
+          <span className="w-estado-chip t-neutro">Se cerró</span>
+          <h1 className="w-titulo">
+            Pasaron {plazos.horasParaConfirmar} horas <em>sin confirmar.</em>
+          </h1>
+          <p className="w-texto-sec">El pedido se cerró porque la tienda no llegó a confirmarlo. Puedes volver a separarlo.</p>
+        </>
+      );
+    case "anulado":
+      return (
+        <>
+          <span className="w-estado-chip t-rojo">Anulado</span>
+          <h1 className="w-titulo">
+            La tienda <em>anuló el pedido.</em>
+          </h1>
+          <p className="w-texto-sec">
+            {p.cierreMotivo && MOTIVO_DE_CIERRE[p.cierreMotivo] ? `${MOTIVO_DE_CIERRE[p.cierreMotivo]}. ` : ""}Si tienes dudas, escríbele a{" "}
+            {tienda}.
+          </p>
+        </>
+      );
+  }
+}
+
+/** El botón o la caja de cada estado: WhatsApp por confirmar, el código para recoger, «Volver a separar». */
+function Extra({ p, tienda }: { p: Pedido; tienda: string }) {
+  if (p.estado === "por_confirmar") {
+    const enlace = enlaceDelPedido(p);
+    return enlace ? (
+      <a className="t-btn t-btn-ancho t-btn-wsp" href={enlace} target="_blank" rel="noopener noreferrer">
+        <Icono nombre="chat" />
+        Enviar por WhatsApp
+      </a>
+    ) : (
+      <p className="w-texto-sec">
+        Escríbele a {tienda} con tu número de pedido, <span className="t-codigo">{p.codigo}</span>.
+      </p>
+    );
+  }
+  if (p.estado === "pagado" && p.listoParaRecoger && p.codigoRecojo) {
+    return (
+      <div className="w-codigo-caja">
+        <small>Muestra este código en caja</small>
+        <span className="w-codigo-recojo num">{p.codigoRecojo}</span>
+        {p.recogerHasta && <small>Recoge hasta el {fechaLarga(p.recogerHasta)}</small>}
+      </div>
+    );
+  }
+  if (p.estado === "vencido") {
+    return (
+      <form action={volverASeparar}>
+        <input type="hidden" name="codigo" value={p.codigo} />
+        <button className="t-btn t-btn-ancho" type="submit">
+          Volver a separar
+        </button>
+      </form>
+    );
+  }
+  return null;
+}
