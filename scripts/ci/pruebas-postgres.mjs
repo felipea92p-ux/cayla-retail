@@ -233,6 +233,10 @@ export const PRUEBAS = [
   // caja, las novedades (primera llegada, sin carga inicial) desde la visita anterior; «Esperan una talla» del ERP con el módulo y
   // sin datos personales; y seis mutantes que la prueba nota. ROLLBACK.
   "pruebas:tienda-club",
+  // El aviso al entrar de la tienda online (ADR-0408, Felipe 2026-10-14): solo lo que hoy está a favor de la persona —el cumpleaños
+  // disponible, el vale disponible y la talla que esperaba y llegó—, lo MISMO que dice «Mi cuenta» ficha por ficha, sin escribir nada
+  // (no mueve la visita de «Mi cuenta») y solo de `tienda_web`; dos mutantes que la prueba nota. ROLLBACK.
+  "pruebas:tienda-avisos",
 
   // Cobrar dentro del pedido web (ADR-0408, act. 9): la hoja sabe si hay caja abierta y quién anuló cada pago; lo anulado con
   // plata por devolver no sale de la lista; un adelanto y el resto lo dejan pagado; el n.º de operación no se repite (también con

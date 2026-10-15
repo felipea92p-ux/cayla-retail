@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import { Anuncio } from "@/components/Anuncio";
-import { Cabecera } from "@/components/Cabecera";
+import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
-import { Pie } from "@/components/Pie";
-import { leerPortada } from "@/lib/portada-servidor";
+import { hrefDelInicio } from "@/lib/inicio";
+import { claveDeSede } from "@/lib/sede-elegida";
+import { haySesion } from "@/lib/sesion-servidor";
 import { leerSedes } from "@/lib/tiendas-servidor";
-import { anioLima, anuncios } from "@/lib/portada";
 import "../estilos/tiendas.css";
+// «Ver solo lo que hay aquí» (`.t-tienda-ver`) vive con el Inicio, que es donde se estrenó.
+import "../estilos/inicio.css";
 
-// Nuestras tiendas (ADR-0408, actividad 6): la página del pie «Nuestras tiendas», sin cuenta. Lo que el ERP cambia en
-// Configuración ▸ Tienda web aparece solo, como en la portada (la página se guarda 5 minutos); sin base, lo dice en una línea.
-export const revalidate = 300;
+// Nuestras tiendas (ADR-0408, actividad 6): la página del pie «Nuestras tiendas», con y sin cuenta. Sin cuenta, la cabecera de la portada;
+// con cuenta, la de la tienda (el menú, los favoritos, «Mi cuenta» y la bolsa) y, en cada tienda, «Ver solo lo que hay aquí», que lleva al
+// Inicio con esa tienda elegida (maqueta v4, `seccionTiendas` con cuenta). Se arma en cada visita porque la cabecera depende de la sesión
+// (antes se guardaba 5 minutos): lo que el ERP cambia en Configuración ▸ Tienda web se ve al recargar; sin base, lo dice en una línea.
 
 export const metadata: Metadata = {
   title: "Nuestras tiendas · CAYLA",
@@ -18,15 +20,13 @@ export const metadata: Metadata = {
 };
 
 export default async function Tiendas() {
-  const [{ campana }, sedes] = await Promise.all([leerPortada(), leerSedes()]);
+  const [conCuenta, sedes] = await Promise.all([haySesion(), leerSedes()]);
+  const ver = conCuenta
+    ? Object.fromEntries(sedes.map((s) => [s.id, { href: hrefDelInicio(claveDeSede(s.nombre)), actual: false }]))
+    : undefined;
   return (
-    <div className="tienda">
-      <Anuncio frases={anuncios(campana)} />
-      <Cabecera />
-      <main className="t-pagina t-pagina-corta">
-        <NuestrasTiendas sedes={sedes} enPagina />
-        <Pie anio={anioLima()} />
-      </main>
-    </div>
+    <MarcoCuenta conCuenta={conCuenta} conPie corta>
+      <NuestrasTiendas sedes={sedes} enPagina ver={ver} />
+    </MarcoCuenta>
   );
 }

@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FiltroTienda } from "@/components/FiltroTienda";
 import { Icono } from "@/components/Icono";
 import { Lamina } from "@/components/looks/Lamina";
+import { MarcoCatalogo } from "@/components/MarcoCatalogo";
+import { leerCatalogo } from "@/lib/catalogo-servidor";
+import { hrefDelInicio } from "@/lib/inicio";
 import { cejaDeLook, hrefLook, hrefLooks, lineaDeLook } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { hayEnTienda } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../estilos/looks.css";
 
@@ -13,30 +16,33 @@ export const metadata: Metadata = { title: "Arma tu look · CAYLA" };
 
 // «Arma tu look» (maqueta v4, `vLooks`): las combinaciones que el ERP arma en Vitrina web ▸ Looks, en su orden, cada una con su lámina, su
 // frase y lo que cuesta completa en la tienda elegida («Ver lo que hay en»; con «Todas», al mayor entre las tiendas de la web). Se lee en
-// cada visita: lo que se enciende o se apaga en el ERP se ve al recargar. Pide cuenta como el catálogo (el layout del grupo).
+// cada visita: lo que se enciende o se apaga en el ERP se ve al recargar. Pide cuenta como el catálogo (el layout del grupo y el proxy), y
+// lleva su marco: la cabecera (con «Arma tu look» marcado), la franja de la tienda y el pie.
 export default async function Looks({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const lectura = await leerLooks(pedida?.id ?? null);
+  const [lectura, catalogo] = await Promise.all([leerLooks(pedida?.id ?? null), leerCatalogo(pedida?.id ?? null)]);
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = lectura?.sede ? sedes.find((s) => s.id === lectura.sede) ?? null : null;
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
+  // La cabecera (el menú y el buscador) dice lo mismo que el catálogo de esa tienda.
+  const prendas = (catalogo?.prendas ?? []).filter((p) => hayEnTienda(p.stock, elegida?.id ?? null));
 
   return (
-    <>
-      {sedes.length > 1 && (
-        <FiltroTienda
-          opciones={[
-            { nombre: "Todas", href: hrefLooks(null), actual: elegida === null },
-            ...sedes.map((s) => ({ nombre: s.nombre, href: hrefLooks(claveDeSede(s.nombre)), actual: elegida?.id === s.id })),
-          ]}
-        />
-      )}
+    <MarcoCatalogo
+      prendas={prendas}
+      sede={sede}
+      actual="looks"
+      filtro={[
+        { nombre: "Todas", href: hrefLooks(null), actual: elegida === null },
+        ...sedes.map((s) => ({ nombre: s.nombre, href: hrefLooks(claveDeSede(s.nombre)), actual: elegida?.id === s.id })),
+      ]}
+    >
       <div className="t-ancho">
         <nav className="t-ruta" aria-label="Estás en">
-          <Link href="/">Inicio</Link>
+          <Link href={hrefDelInicio(sede)}>Inicio</Link>
           <span aria-hidden="true">/</span>
           <span>Arma tu look</span>
         </nav>
@@ -79,6 +85,6 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
           </div>
         )}
       </div>
-    </>
+    </MarcoCatalogo>
   );
 }

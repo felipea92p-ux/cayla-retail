@@ -58,7 +58,9 @@ a.t-pieza:hover { transform: rotate(0deg) scale(1.05); z-index: 4; }
 .t-look-talla[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
 .t-look-talla:disabled { opacity: .45; text-decoration: line-through; cursor: not-allowed; }
 .t-look-agotada { margin-top: 6px; color: var(--ambar); font-weight: 600; }
-.t-look-hoja-nota { margin: 0; text-align: center; color: var(--tinta-60); font-size: 13px; }
+/* Por qué no entró (se agotó mientras la miraba, la bolsa está llena): sobre el botón, para elegir otra talla sin cerrar la hoja. Ámbar,
+   como «No hay tallas por ahora»: no es un error de la persona. */
+.t-look-hoja-motivo { margin: 0; padding: 10px 14px; border-radius: 12px; background: color-mix(in srgb, var(--ambar) 11%, var(--papel)); color: var(--ambar); font-size: 13px; font-weight: 600; line-height: 1.45; animation: t-look-motivo .3s var(--ease) both; }
 
 /* El foco del teclado, visible sobre crema y sobre el oscuro. */
 .t-look-talla:focus-visible, .t-look-cerrar:focus-visible, .t-look-item .t-card-nom:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
@@ -81,3 +83,4 @@ a.t-pieza:hover { transform: rotate(0deg) scale(1.05); z-index: 4; }
 }
 @keyframes t-look-hoja-sube { from { transform: translateY(100%); } }
 @keyframes t-look-hoja-centro { from { opacity: 0; transform: translate(-50%, -46%) scale(.97); } }
+@keyframes t-look-motivo { from { opacity: 0; transform: translateY(4px); } }

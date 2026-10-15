@@ -222,3 +222,49 @@ export const textoAgregar = (n: number): string => `Agregar ${cuantasPrendas(n)}
 
 /** ¿La prenda no tiene ninguna talla disponible? Se ve, pero no se agrega. */
 export const sinTallasPorAhora = (p: PiezaLook): boolean => p.tallas.length > 0 && p.tallas.every((t) => !t.hay);
+
+/* ---------------- El look a la bolsa ---------------- */
+
+const ID_DE_LA_BASE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** Lo que llega del navegador al agregar un look: de 1 a 4 prendas (un look tiene hasta 4), cada una el id de su variante tal como lo da
+ *  la base. Cualquier otra cosa, `null`: no se agrega nada. Ni precios ni nombres: eso lo vuelve a decir la base. */
+export function variantesParaLaBolsa(dato: unknown): string[] | null {
+  const r = z.array(z.string().regex(ID_DE_LA_BASE)).min(1).max(4).safeParse(dato);
+  return r.success ? r.data : null;
+}
+
+/** Lo que respondió la bolsa: qué variantes entraron y cuáles no (y por qué). */
+export type ResultadoDelLook = { agregadas: readonly string[]; agotadas: readonly string[]; noEstan: readonly string[] };
+
+/** «Blusa Emma (M)», «Blusa Emma (M) y Falda Renata (Única)». */
+function nombresDe(lineas: readonly LineaLook[]): string {
+  const n = lineas.map((l) => `${l.nombre} (${l.talla})`);
+  return n.length <= 1 ? n.join("") : `${n.slice(0, -1).join(", ")} y ${n[n.length - 1]}`;
+}
+
+/** Por qué no entraron, en una o dos frases («Falda Renata (M) ya no está en ninguna tienda.»). Vacío si entraron todas. */
+function lasQueNoEntraron(lineas: readonly LineaLook[], r: ResultadoDelLook): string {
+  const de = (ids: readonly string[]) => lineas.filter((l) => ids.includes(l.varianteId));
+  const agotadas = de(r.agotadas);
+  const noEstan = de(r.noEstan);
+  return [
+    agotadas.length ? `${nombresDe(agotadas)} ya no ${agotadas.length === 1 ? "está" : "están"} en ninguna tienda.` : "",
+    noEstan.length ? `${nombresDe(noEstan)} ya no ${noEstan.length === 1 ? "está" : "están"} en la tienda online.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
+ * Lo que se le dice al cliente después de «Agregar N prendas a mi bolsa» (maqueta, `t-look-agregar`). Si entró al menos una, la hoja se
+ * cierra y el aviso de abajo dice cuántas («Agregaste 3 prendas del look «Fin de semana» a tu bolsa.») y, si alguna no entró, cuál y por
+ * qué. Si no entró ninguna, la hoja sigue abierta y lo dice ahí, para que elija otra talla.
+ */
+export function avisoDelLook(nombreLook: string, lineas: readonly LineaLook[], r: ResultadoDelLook): { cerrar: boolean; texto: string } {
+  const faltan = lasQueNoEntraron(lineas, r);
+  if (r.agregadas.length === 0) {
+    return { cerrar: false, texto: `${faltan || "No pudimos agregar las prendas."} Elige otra talla o vuelve a intentarlo.` };
+  }
+  return { cerrar: true, texto: `Agregaste ${cuantasPrendas(r.agregadas.length)} del look «${nombreLook}» a tu bolsa.${faltan ? ` ${faltan}` : ""}` };
+}

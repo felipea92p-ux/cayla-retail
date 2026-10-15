@@ -25,10 +25,10 @@ export const tieneCookieDeSesion = (nombres: readonly string[]) =>
 
 /** Las páginas de quien no tiene cuenta. Con sesión, el proxy lleva al Inicio (maqueta v4: entrar o crear la cuenta lleva ahí). */
 const SOLO_SIN_CUENTA = new Set(["/", "/entrar", "/crear-cuenta", "/olvide-mi-contrasena"]);
-/** Las que piden cuenta: el Inicio, «Mi cuenta» (con sus pedidos), todo el catálogo y la bolsa (sin cuenta solo se ve la portada,
- * maqueta v4). */
+/** Las que piden cuenta: el Inicio, «Mi cuenta» (con sus pedidos), todo el catálogo, «Arma tu look» y la bolsa (sin cuenta solo se ve
+ * la portada, maqueta v4). */
 const soloConCuenta = (ruta: string) =>
-  ["/inicio", "/cuenta", "/catalogo", "/bolsa"].some((base) => ruta === base || ruta.startsWith(`${base}/`));
+  ["/inicio", "/cuenta", "/catalogo", "/looks", "/bolsa"].some((base) => ruta === base || ruta.startsWith(`${base}/`));
 export const INICIO_CON_CUENTA = "/inicio";
 
 /**

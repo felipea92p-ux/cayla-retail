@@ -35,10 +35,10 @@ export const leerMiClubEnBase = (usuarioWebId: string): Promise<LecturaClub> =>
   );
 
 /**
- * Los favoritos y las esperas de esa cuenta, para dibujar el corazón de cada tarjeta, «Tus favoritos» y el «Te avisaremos» de la
- * ficha. null si la base no contesta o no hay cuenta: los botones se dibujan como «no guardado» (guardar y avisar son idempotentes,
- * así que tocar uno que ya estaba no duplica nada). Una vez por petición: el marco del catálogo (`app/(catalogo)/layout.tsx`, que
- * se lo da a todas las tarjetas) y la página la comparten.
+ * Los favoritos y las esperas de esa cuenta, para dibujar el corazón de cada tarjeta, el «Te avisaremos» de la ficha y el globo del
+ * corazón de la cabecera (`lib/cabecera-servidor.ts`). null si la base no contesta o no hay cuenta: los botones se dibujan como «no
+ * guardado» (guardar y avisar son idempotentes, así que tocar uno que ya estaba no duplica nada) y el corazón va sin globo. Una sola
+ * lectura por petición (`cache` de React): la cabecera y las tarjetas de la misma página la comparten.
  */
 export const leerGuardadosEnBase = cache(
   (usuarioWebId: string): Promise<Guardados | null> =>

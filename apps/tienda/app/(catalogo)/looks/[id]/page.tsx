@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { z } from "zod";
-import { FiltroTienda } from "@/components/FiltroTienda";
 import { Icono } from "@/components/Icono";
-import { AgregarLook } from "@/components/looks/AgregarLook";
+import { AgregarLookALaBolsa } from "@/components/looks/AgregarLookALaBolsa";
 import { Foto, Lamina } from "@/components/looks/Lamina";
+import { MarcoCatalogo } from "@/components/MarcoCatalogo";
+import { leerCatalogo } from "@/lib/catalogo-servidor";
+import { hrefDelInicio } from "@/lib/inicio";
 import { hrefDePieza, hrefLook, hrefLooks, precioDePieza, totalDelLook } from "@/lib/looks";
 import { leerLook } from "@/lib/looks-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { hayEnTienda } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../../estilos/looks.css";
 
@@ -24,30 +27,40 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
 }
 
 // Un look abierto (maqueta v4, `vLook` y `lookInfo`): la lámina, «Look N de M», su nombre y su frase, cada prenda con su color y lo que cuesta
-// en la tienda elegida, el total del look completo y «Agregar el look a mi bolsa», que pide la talla de cada prenda (propuesta h).
+// en la tienda elegida, el total del look completo y «Agregar el look a mi bolsa», que pide la talla de cada prenda (propuesta h) y lo agrega
+// a la bolsa con las mismas reglas que una prenda suelta. Lleva el marco de la tienda: la cabecera, la franja de la tienda y el pie.
 export default async function LookAbierto({ params, searchParams }: Props) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const lectura = esId(id) ? await leerLook(id, pedida?.id ?? null) : { sede: null, look: null };
+  const [lectura, catalogo] = await Promise.all([
+    esId(id) ? leerLook(id, pedida?.id ?? null) : Promise.resolve({ sede: null, look: null }),
+    leerCatalogo(pedida?.id ?? null),
+  ]);
   const elegida = lectura?.sede ? sedes.find((s) => s.id === lectura.sede) ?? null : null;
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const look = lectura?.look ?? null;
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
+  // La cabecera (el menú y el buscador) dice lo mismo que el catálogo de esa tienda.
+  const prendas = (catalogo?.prendas ?? []).filter((p) => hayEnTienda(p.stock, elegida?.id ?? null));
 
   return (
-    <>
-      {sedes.length > 1 && look && (
-        <FiltroTienda
-          opciones={[
-            { nombre: "Todas", href: hrefLook(look.id, null), actual: elegida === null },
-            ...sedes.map((s) => ({ nombre: s.nombre, href: hrefLook(look.id, claveDeSede(s.nombre)), actual: elegida?.id === s.id })),
-          ]}
-        />
-      )}
+    <MarcoCatalogo
+      prendas={prendas}
+      sede={sede}
+      actual="looks"
+      filtro={
+        look
+          ? [
+              { nombre: "Todas", href: hrefLook(look.id, null), actual: elegida === null },
+              ...sedes.map((s) => ({ nombre: s.nombre, href: hrefLook(look.id, claveDeSede(s.nombre)), actual: elegida?.id === s.id })),
+            ]
+          : null
+      }
+    >
       <div className="t-ancho">
         <nav className="t-ruta" aria-label="Estás en">
-          <Link href="/">Inicio</Link>
+          <Link href={hrefDelInicio(sede)}>Inicio</Link>
           <span aria-hidden="true">/</span>
           <Link href={hrefLooks(sede)}>Arma tu look</Link>
           {look && (
@@ -115,11 +128,11 @@ export default async function LookAbierto({ params, searchParams }: Props) {
                 <span>El look completo</span>
                 <b className="num">{totalDelLook(look)}</b>
               </div>
-              <AgregarLook look={look} origenFotos={origenFotos} />
+              <AgregarLookALaBolsa look={look} origenFotos={origenFotos} sedeId={elegida?.id ?? null} />
             </div>
           </div>
         )}
       </div>
-    </>
+    </MarcoCatalogo>
   );
 }

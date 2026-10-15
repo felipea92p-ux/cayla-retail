@@ -7,16 +7,34 @@ import type { DatosCabecera } from "@/lib/inicio";
 import { FotoTarjeta } from "./FotoTarjeta";
 import { Icono } from "./Icono";
 import { Isotipo } from "./Isotipo";
+// El globo rojo de la bolsa y del corazón (`.t-globo`).
+import "@/app/estilos/bolsa.css";
 
-export type SeccionActual = "inicio" | "nuevo" | "vendidos" | "ofertas" | "cuenta" | null;
+export type SeccionActual = "inicio" | "nuevo" | "vendidos" | "ofertas" | "looks" | "favoritos" | "cuenta" | null;
+
+/** «3 favoritos», «1 favorito»: lo que oye el lector en el corazón. */
+const etiquetaFavoritos = (n: number | null) => (n ? `Favoritos: ${n} ${n === 1 ? "guardado" : "guardados"}` : "Favoritos");
 
 /**
  * La cabecera de quien tiene cuenta (maqueta v4, `cabT`): en el celular, el menú a la izquierda; en la computadora, «Lo nuevo», «Ropa»
- * (con sus categorías en columnas y la tarjeta de lo último que llegó), «Más vendidos» y «Ofertas». A la derecha, el buscador (busca
- * mientras se escribe, por nombre, categoría o color, sin tildes ni mayúsculas) y «Mi cuenta». Todos los enlaces llevan la tienda
- * elegida. La bolsa llega con la actividad 7: su lugar es el hueco marcado al final de la fila.
+ * (con sus categorías en columnas y la tarjeta de lo último que llegó), «Arma tu look», «Más vendidos» y «Ofertas». A la derecha, el
+ * buscador (busca mientras se escribe, por nombre, categoría o color, sin tildes ni mayúsculas), el corazón de los favoritos con cuántos
+ * hay (solo en la computadora: en el celular están en el menú), «Mi cuenta» y la bolsa con su globo. Todos los enlaces llevan la tienda
+ * elegida, menos los favoritos (son de la persona, no de una tienda).
  */
-export function CabeceraConCuenta({ datos, actual = null }: { datos: DatosCabecera; actual?: SeccionActual }) {
+export function CabeceraConCuenta({
+  datos,
+  actual = null,
+  favoritos = null,
+  bolsa = null,
+}: {
+  datos: DatosCabecera;
+  actual?: SeccionActual;
+  /** Cuántos modelos guardó con el corazón; null si no se sabe (la base no contestó): el corazón va sin globo. */
+  favoritos?: number | null;
+  /** La bolsa con su globo (`components/bolsa/BotonBolsa.tsx`, de servidor: lee la cookie de la bolsa). La pone el marco. */
+  bolsa?: React.ReactNode;
+}) {
   const [hoja, setHoja] = useState<"menu" | "buscar" | null>(null);
   const disparador = useRef<HTMLButtonElement | null>(null);
 
@@ -107,6 +125,9 @@ export function CabeceraConCuenta({ datos, actual = null }: { datos: DatosCabece
                 </div>
               </div>
             )}
+            <Link className="t-nav-b" href={datos.looks} aria-current={marca("looks")}>
+              Arma tu look
+            </Link>
             <Link className="t-nav-b" href={datos.vendidos.href} aria-current={marca("vendidos")}>
               Más vendidos
             </Link>
@@ -118,22 +139,27 @@ export function CabeceraConCuenta({ datos, actual = null }: { datos: DatosCabece
           <button type="button" className="t-ico" aria-label="Buscar" onClick={(e) => abrir("buscar", e.currentTarget)}>
             <Icono nombre="lupa" />
           </button>
+          <Link className="t-ico t-solo-grande" href={datos.favoritos} aria-label={etiquetaFavoritos(favoritos)} aria-current={marca("favoritos")}>
+            <Icono nombre="corazon" />
+            {favoritos ? <span className="t-globo">{favoritos}</span> : null}
+          </Link>
           <Link className="t-ico" href="/cuenta" aria-label="Mi cuenta" aria-current={marca("cuenta")}>
             <Icono nombre="persona" />
           </Link>
-          {/* Actividad 7: aquí va la bolsa (el ícono con su globo de cuántas prendas lleva). */}
+          {bolsa}
         </div>
       </header>
 
       {hoja && <div className="t-velo" aria-hidden="true" onClick={cerrar} />}
-      {hoja === "menu" && <HojaMenu datos={datos} cerrar={cerrar} />}
+      {hoja === "menu" && <HojaMenu datos={datos} favoritos={favoritos} cerrar={cerrar} />}
       {hoja === "buscar" && <HojaBuscar datos={datos} cerrar={cerrar} />}
     </>
   );
 }
 
-/** El menú del celular (maqueta, hoja «menu»): lo grande arriba, las categorías en dos columnas y la ayuda al pie. */
-function HojaMenu({ datos, cerrar }: { datos: DatosCabecera; cerrar: () => void }) {
+/** El menú del celular (maqueta, hoja «menu»): lo grande arriba (con «Arma tu look» y los favoritos, que en el celular no van en la
+ *  fila de arriba), las categorías en dos columnas y la ayuda al pie. */
+function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favoritos: number | null; cerrar: () => void }) {
   return (
     <div className="t-menu" role="dialog" aria-modal="true" aria-label="Menú">
       <div className="t-menu-cab">
@@ -149,8 +175,14 @@ function HojaMenu({ datos, cerrar }: { datos: DatosCabecera; cerrar: () => void 
         <Link href={datos.nuevo.href} onClick={cerrar}>
           Lo nuevo <small>{datos.nuevo.cuantas}</small>
         </Link>
+        <Link href={datos.looks} onClick={cerrar}>
+          Arma tu look
+        </Link>
         <Link href={datos.vendidos.href} onClick={cerrar}>
           Más vendidos
+        </Link>
+        <Link href={datos.favoritos} onClick={cerrar}>
+          Favoritos {favoritos ? <small>{favoritos}</small> : null}
         </Link>
         <Link className="oferta" href={datos.ofertas.href} onClick={cerrar}>
           Ofertas <small>{datos.ofertas.cuantas}</small>
@@ -167,7 +199,7 @@ function HojaMenu({ datos, cerrar }: { datos: DatosCabecera; cerrar: () => void 
       )}
       <div className="t-menu-pie">
         <Link className="t-enlace" href="/cuenta" onClick={cerrar}>
-          Mi cuenta
+          Mi cuenta y mis pedidos
         </Link>
         <Link className="t-enlace" href="/como-separar" onClick={cerrar}>
           Cómo separar

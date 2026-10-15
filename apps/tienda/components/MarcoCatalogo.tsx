@@ -1,17 +1,20 @@
 import type { Prenda } from "@/lib/catalogo";
+import { cuantosFavoritos } from "@/lib/cabecera-servidor";
 import { datosDeCabecera } from "@/lib/inicio";
 import { anioLima } from "@/lib/portada";
+import { BotonBolsa } from "./bolsa/BotonBolsa";
 import { CabeceraConCuenta, type SeccionActual } from "./CabeceraConCuenta";
 import { FiltroTienda, type OpcionTienda } from "./FiltroTienda";
 import { Pie } from "./Pie";
 
 /**
- * El marco de las páginas de quien tiene cuenta (el Inicio, el catálogo, la ficha): la cabecera con el buscador y el menú, la franja
- * «Ver lo que hay en» (si hay más de una tienda en la web), el contenido y el pie. La franja de arriba la pone el layout. La cabecera
- * se arma con el catálogo que la página ya leyó, filtrado por la tienda elegida: los conteos del menú y el buscador dicen lo mismo
- * que la página.
+ * El marco de las páginas de quien tiene cuenta (el Inicio, el catálogo, la ficha, «Arma tu look»): la cabecera con el buscador, el
+ * menú, los favoritos y la bolsa, la franja «Ver lo que hay en» (si hay más de una tienda en la web), el contenido y el pie. La franja de
+ * arriba la pone el layout. La cabecera se arma con el catálogo que la página ya leyó, filtrado por la tienda elegida: los conteos del
+ * menú y el buscador dicen lo mismo que la página. La bolsa es un componente de servidor (lee su cookie) y entra a la cabecera, que es
+ * del navegador, como una pieza ya dibujada.
  */
-export function MarcoCatalogo({
+export async function MarcoCatalogo({
   prendas,
   sede,
   filtro = null,
@@ -27,14 +30,15 @@ export function MarcoCatalogo({
   children: React.ReactNode;
 }) {
   const datos = datosDeCabecera(prendas, sede, process.env.TIENDA_FOTOS_ORIGEN);
+  const favoritos = await cuantosFavoritos();
   return (
     <>
-      <CabeceraConCuenta datos={datos} actual={actual} />
+      <CabeceraConCuenta datos={datos} actual={actual} favoritos={favoritos} bolsa={<BotonBolsa />} />
       {/* Con una sola tienda en la web no hay nada que elegir. */}
       {filtro && filtro.length > 2 && <FiltroTienda opciones={filtro} />}
       <main className="t-pagina t-pagina-catalogo">
         {children}
-        <Pie anio={anioLima()} conCuenta />
+        <Pie anio={anioLima()} conCuenta sede={sede} />
       </main>
     </>
   );

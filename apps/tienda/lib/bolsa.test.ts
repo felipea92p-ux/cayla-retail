@@ -3,12 +3,16 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   agregarUna,
+  agregarVarias,
   BOLSA_VACIA,
   elegirSede,
   escribirBolsa,
   interpretarBolsaEnBase,
   leerBolsa,
   quitarUna,
+  respuestaDeSeparar,
+  revisarParaAgregar,
+  SEPARAR_SIN_RESPUESTA,
   sinPrendas,
   textoDeLaMarca,
   TOPE_PRENDAS,
@@ -76,6 +80,23 @@ describe("la cookie de la bolsa", () => {
     expect(agregarUna({ lineas: [{ varianteId: A, cantidad: TOPE_PRENDAS }], sedeId: null, marca: null }, B, { marca: M1 })).toBeNull();
   });
 
+  it("un look entra entero o no entra: varias de una vez, la misma dos veces suma dos, y si no caben todas la bolsa no cambia", () => {
+    const b: Bolsa = { lineas: [{ varianteId: A, cantidad: 1 }], sedeId: TRU, marca: M1 };
+    expect(agregarVarias(b, [A, B], { marca: M2 })).toEqual({
+      lineas: [
+        { varianteId: A, cantidad: 2 },
+        { varianteId: B, cantidad: 1 },
+      ],
+      sedeId: TRU,
+      marca: M2,
+    });
+    expect(agregarVarias(BOLSA_VACIA, [B, B], { marca: M1 })?.lineas).toEqual([{ varianteId: B, cantidad: 2 }]);
+    const casiLlena: Bolsa = { lineas: [{ varianteId: A, cantidad: TOPE_PRENDAS - 1 }], sedeId: null, marca: null };
+    expect(agregarVarias(casiLlena, [B], { marca: M1 })).not.toBeNull();
+    expect(agregarVarias(casiLlena, [B, M2], { marca: M1 })).toBeNull();
+    expect(agregarVarias(b, [], { marca: M1 })).toBeNull();
+  });
+
   it("«Quitar» saca UNA, y solo si el cliente veía esa cantidad (dos toques seguidos sacan una sola)", () => {
     const b: Bolsa = {
       lineas: [
@@ -136,6 +157,21 @@ describe("lo que dice la base", () => {
     ]);
     expect(b.lineas.map((l) => ("noEsta" in l ? "no" : "si"))).toEqual(["si", "no", "no"]);
     expect(interpretarBolsaEnBase({ nada: true })).toBeNull();
+  });
+
+  it("al agregar (una prenda o un look): entra si alcanza en alguna tienda; si no alcanza, agotada; sin respuesta o fuera, no está", () => {
+    const b = enBase(null, [
+      lineaBase(A, 1, { [TRU]: [true, true] }),
+      lineaBase(B, 2, { [TRU]: [false, true], [LIM]: [false, false] }),
+      { variante_id: M2, cantidad: 1, disponible: false },
+    ]);
+    const tipo = (id: string) => revisarParaAgregar(b.lineas.find((l) => l.varianteId === id)).tipo;
+    expect(tipo(A)).toBe("entra");
+    expect(tipo(B)).toBe("agotada");
+    expect(tipo(M2)).toBe("no_esta");
+    expect(tipo(M1)).toBe("no_esta");
+    const entra = revisarParaAgregar(b.lineas[0]);
+    expect(entra.tipo === "entra" && entra.linea.nombre).toBe("Blusa Valentina");
   });
 });
 
@@ -238,6 +274,26 @@ describe("las marcas que dice cada prenda", () => {
     ];
     for (const t of textos) expect(t).not.toMatch(/\d/);
     expect(textoDeLaMarca({ tipo: "nada" })).toBeNull();
+  });
+});
+
+describe("lo que dice «Separar» cuando no separa", () => {
+  it("con 3 separaciones esperando confirmación (el tope de la base): lo dice claro y lleva a «Mis pedidos»", () => {
+    const r = respuestaDeSeparar("tienda_separar_tope");
+    expect(r.mensaje).toBe(
+      "Ya tienes 3 separaciones esperando que la tienda confirme. Cuando te confirmen una (o se cierre), puedes separar otra.",
+    );
+    expect(r.enlace).toEqual({ texto: "Ver mis pedidos", href: "/cuenta/pedidos" });
+  });
+
+  it("cada negativa conocida dice su frase, sin camino aparte; lo que la base no explica, «no pudimos separar ahora»", () => {
+    expect(respuestaDeSeparar("tienda_separar_precio")).toEqual({
+      mensaje: "El precio de una prenda cambió. Revisa tu bolsa y vuelve a tocar «Separar».",
+      enlace: null,
+    });
+    for (const raro of [null, "otra_cosa", "toString", "__proto__"]) {
+      expect(respuestaDeSeparar(raro), String(raro)).toEqual({ mensaje: SEPARAR_SIN_RESPUESTA, enlace: null });
+    }
   });
 });
 

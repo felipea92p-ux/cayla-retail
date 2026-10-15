@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { hrefLista } from "@/lib/catalogo";
+import { hrefLooks } from "@/lib/looks";
 import { Isotipo } from "./Isotipo";
 
 type Columna = { titulo: string; enlaces: [string, string][] };
@@ -8,14 +10,25 @@ const AYUDA: Columna = {
   enlaces: [["Cómo separar", "/como-separar"], ["Cambios y devoluciones", "/cambios-y-devoluciones"], ["Nuestras tiendas", "/tiendas"]],
 };
 
-/** Sin cuenta, la cuenta se crea o se recupera; con cuenta (`conCuenta`), las listas para comprar (maqueta, `pieTienda`) y la cuenta
- *  desde «Club CAYLA». «Arma tu look» se suma con la actividad 11. */
-const columnas = (conCuenta: boolean): Columna[] => [
+/** Las listas para comprar (maqueta, `pieTienda`), con la tienda elegida en «Ver lo que hay en» (como la cabecera). */
+const comprar = (sede: string | null): Columna => {
+  const lista = (l: "nuevo" | "ofertas" | "vendidos") => hrefLista({ sede, categoria: null, orden: "destacado", lista: l });
+  return {
+    titulo: "Comprar",
+    enlaces: [
+      ["Lo nuevo", lista("nuevo")],
+      ["Ofertas", lista("ofertas")],
+      ["Más vendidos", lista("vendidos")],
+      ["Arma tu look", hrefLooks(sede)],
+      ["Toda la ropa", hrefLista({ sede, categoria: null, orden: "destacado" })],
+    ],
+  };
+};
+
+/** Sin cuenta, la cuenta se crea o se recupera; con cuenta (`conCuenta`), las listas para comprar y la cuenta desde «Club CAYLA». */
+const columnas = (conCuenta: boolean, sede: string | null): Columna[] => [
   conCuenta
-    ? {
-        titulo: "Comprar",
-        enlaces: [["Lo nuevo", "/catalogo?lista=nuevo"], ["Ofertas", "/catalogo?lista=ofertas"], ["Más vendidos", "/catalogo?lista=vendidos"], ["Toda la ropa", "/catalogo"]],
-      }
+    ? comprar(sede)
     : { titulo: "Tu cuenta", enlaces: [["Crear mi cuenta", "/crear-cuenta"], ["Entrar", "/entrar"], ["Olvidé mi contraseña", "/olvide-mi-contrasena"]] },
   AYUDA,
   {
@@ -24,8 +37,8 @@ const columnas = (conCuenta: boolean): Columna[] => [
   },
 ];
 
-/** El pie: la marca, la cuenta, la ayuda y lo legal. */
-export function Pie({ anio, conCuenta = false }: { anio: number; conCuenta?: boolean }) {
+/** El pie: la marca, la cuenta, la ayuda y lo legal. `sede`: la clave de la tienda elegida (o null con «Todas»), solo con cuenta. */
+export function Pie({ anio, conCuenta = false, sede = null }: { anio: number; conCuenta?: boolean; sede?: string | null }) {
   return (
     <footer className="t-pie">
       <div className="t-ancho">
@@ -37,7 +50,7 @@ export function Pie({ anio, conCuenta = false }: { anio: number; conCuenta?: boo
             </Link>
             <p>Separa online, confirma por WhatsApp y recoge en tu tienda.</p>
           </div>
-          {columnas(conCuenta).map((c) => (
+          {columnas(conCuenta, sede).map((c) => (
             <div key={c.titulo}>
               <h4>{c.titulo}</h4>
               <ul>

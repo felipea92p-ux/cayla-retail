@@ -15,8 +15,8 @@ import {
   fechaLarga,
   hitos,
   hora,
-  MOTIVO_DE_CIERRE,
   nombreTienda,
+  porQueSeCerro,
   vivas,
   type Pedido,
   type Plazos,
@@ -232,8 +232,8 @@ function Cabeza({ p, tienda, plazos }: { p: Pedido; tienda: string; plazos: Plaz
             La tienda <em>anuló el pedido.</em>
           </h1>
           <p className="w-texto-sec">
-            {p.cierreMotivo && MOTIVO_DE_CIERRE[p.cierreMotivo] ? `${MOTIVO_DE_CIERRE[p.cierreMotivo]}. ` : ""}Si tienes dudas, escríbele a{" "}
-            {tienda}.
+            {/* La frase es para el cliente, no el motivo como lo eligió la tienda en el ERP (`porQueSeCerro`). */}
+            {porQueSeCerro(p.cierreMotivo)} Si tienes dudas, escríbele a {tienda}.
           </p>
         </>
       );
