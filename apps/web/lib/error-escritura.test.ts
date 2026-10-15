@@ -852,3 +852,12 @@ describe("montos y nombres de Catálogo", () => {
     ).toMatch(/demasiado largo/);
   });
 });
+
+// ADR-0415: un precio o un costo de más de S/ 5 000 rebota en castellano.
+describe("el tope del precio de una prenda", () => {
+  it("dice qué revisar", () => {
+    expect(
+      traducirError({ message: 'new row for relation "variantes" violates check constraint "variantes_precio_con_tope"', code: "23514" }, "guardar el producto"),
+    ).toMatch(/pasa de S\/ 5000: revisa que no falte el punto/);
+  });
+});

@@ -214,6 +214,28 @@ export function totalBuenas(buenas: Record<string, number | string>): number {
   return Object.values(buenas).reduce<number>((s, v) => s + Math.max(0, Math.floor(Number(v) || 0)), 0);
 }
 
+/** Lo más que puede anotarse como bueno de una talla (ADR-0415): el doble de lo pedido, o 5 más si la talla es chica. Que salgan
+ *  algunas más es real (el corte rindió); más que eso es casi siempre un cero de más. La base dice lo mismo (`buenas_de_mas`). */
+export function topeDeBuenas(plan: number): number {
+  return Math.max(plan * 2, plan + 5);
+}
+
+/** La frase de la primera talla que pasa el tope, para decirlo antes de mandar; null si todas caben. */
+export function problemaDeBuenas(lineas: readonly { varianteId: string; cantidadPlan: number }[], buenas: Readonly<Record<string, number | string>>): string | null {
+  for (const l of lineas) {
+    const anotadas = Math.max(0, Math.floor(Number(buenas[l.varianteId]) || 0));
+    if (anotadas > topeDeBuenas(l.cantidadPlan)) {
+      return `De una talla se pidieron ${l.cantidadPlan} y anotaste ${anotadas} buenas: más del doble de lo pedido. Revisa la cantidad; si de verdad salieron tantas, anota hasta ${topeDeBuenas(l.cantidadPlan)} y abre otra orden con el resto.`;
+    }
+  }
+  return null;
+}
+
+/** La entrega es una promesa del Taller: no puede ser antes de hoy (ADR-0415, `entrega_pasada`). Vacía es válida (es opcional). */
+export function problemaDeEntrega(fecha: string, hoy: string): string | null {
+  return fecha !== "" && fecha < hoy ? "La entrega no puede ser antes de hoy: elige el día en que el Taller la va a entregar, o déjala en blanco." : null;
+}
+
 /** Lo planeado que no salió bueno (segundas o pérdidas). Nunca negativo. */
 export function segundas(plan: number, buenas: number): number {
   return Math.max(0, plan - buenas);
