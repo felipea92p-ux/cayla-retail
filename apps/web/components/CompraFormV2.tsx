@@ -29,7 +29,7 @@ import { ayudaDeCosto, costoConocido, progresoDeCompra, requisitosDeCompra } fro
 import { AyudaCostoLinea, BarraProgreso, BotonRegistrar, CifraCompra, ListaPendientes, NumeroTramo, TextoQueSeAsienta, type EstadoRegistro } from "@/components/CompraFormProgreso";
 import { detalleProveedorCombo, type DatosPagoProveedor } from "@/lib/proveedores-reglas";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
-import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A_FAVOR, seEnviaLinea, soles, totalesDeLasLineasQueSeEnvian } from "@/lib/compras-reglas";
+import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A_FAVOR, problemaDeFechasEIgv, seEnviaLinea, soles, totalesDeLasLineasQueSeEnvian } from "@/lib/compras-reglas";
 import { destinosParaRpc, repartirEnPartesIguales, repartoSoloDe, tiendaGestora, unidadesPorTienda, type RepartoLinea } from "@/lib/reparto-reglas";
 import { Casilla } from "@/components/ui/Casilla";
 import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
@@ -397,6 +397,9 @@ export function CompraFormV2({
     // seguridad (Enter, un envío forzado): la base vuelve a exigir todo en `registrar_compra`.
     const pendiente = requisitos.find((r) => !r.ok);
     if (pendiente) return void (pendiente.error && avisar.error(pendiente.error.mensaje, { enfocar: pendiente.error.enfocar }));
+    // ADR-0421: el IGV, la emisión y el vencimiento, como los exige la base (dicho antes de mandar).
+    const fechasOIgv = problemaDeFechasEIgv({ fechaEmision, fechaVencimiento: condicion === "credito" ? fechaVencimiento : null, igvPorcentaje: igvEfectivo, hoy: hoyISO() });
+    if (fechasOIgv) return void avisar.error(fechasOIgv);
     const pagosRpc = hayPago ? lineasPagoParaRpc(pagos, cuentas.cuentas) : null;
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
@@ -683,7 +686,7 @@ export function CompraFormV2({
               mono
               type="number"
               min={0}
-              max={100}
+              max={18}
               step="1"
               value={discriminaIgv(tipo) ? igvPorcentaje : "0"}
               onChange={(e) => setIgvPorcentaje(e.target.value)}

@@ -206,6 +206,7 @@ describe("dos modos: atender a la clienta u otra operación (Felipe, 2026-09-23)
     "apartados/ApartarVista.tsx",
     "apartados/EntregarVista.tsx",
     "apartados/ModalesApartado.tsx",
+    "apartados/DetalleApartado.tsx",
   ];
   const conCombo = (readdirSync(COMPONENTES, { recursive: true }) as string[])
     .filter((f) => f.endsWith(".tsx"))
