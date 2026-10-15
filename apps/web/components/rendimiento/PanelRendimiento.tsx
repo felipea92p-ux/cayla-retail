@@ -196,7 +196,7 @@ export function PanelRendimiento({
           <TarjetaCifra etiqueta={`Meta ${t.meta}`} valor={`${pctMeta} %`}>
             {res.soles >= res.meta ? `Superada por ${SOLES.format(res.soles - res.meta)}` : `Faltan ${SOLES.format(res.meta - res.soles)} de ${SOLES.format(res.meta)}`}
             {res.tocabaPct !== null && ` · a hoy tocaba ${res.tocabaPct} %`}
-            <BarraAvance pct={pctMeta} marca={res.tocabaPct} />
+            <BarraAvance pct={pctMeta} marca={res.tocabaPct} etiqueta={`Vendido contra la meta ${t.meta}`} className="mt-2" />
           </TarjetaCifra>
         )}
 
@@ -353,7 +353,7 @@ export function PanelRendimiento({
                   <div className="min-w-0">
                     {av !== null ? (
                       <>
-                        <BarraAvance pct={av} marca={vista === "mes" ? res.tocabaPct : marcaRitmo} />
+                        <BarraAvance pct={av} alto="fina" marca={vista === "mes" ? res.tocabaPct : marcaRitmo} etiqueta="Avance contra su meta" className="mt-2" />
                         <p className="mt-1 text-xs tabular-nums text-taupe">
                           {av} %{lectura && <> · {lectura}</>}
                           {marcaRitmo !== null && marcaRitmo < 100 && <> · ritmo {marcaRitmo} %</>}

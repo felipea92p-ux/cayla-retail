@@ -1,6 +1,6 @@
-import { BarraAvance } from "@/components/ComprobanteAvance";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { BotonReasignar, type LineaReasignable } from "@/components/ReasignarReparto";
-import { fraccion, tonoDeAvance } from "@/lib/comprobante-linea-tiempo";
+import { fraccion } from "@/lib/comprobante-linea-tiempo";
 import { fechaCorta, type CompraResumen, type LineaCompra } from "@/lib/compras-reglas";
 import type { RepartoDeCompra } from "@/lib/compras-reparto";
 import { diaLima } from "@/lib/fechas-lima";
@@ -169,7 +169,7 @@ export function RepartoPorTienda({
                     <span className="text-sm text-tinta">
                       <b className="font-semibold">{t.recibido}</b>/{t.asignado}
                     </span>
-                    <BarraAvance fina avance={avance} tono={tonoDeAvance(avance)} etiqueta={`${nombreDe(t.ubicacionId)}: ${t.recibido} de ${t.asignado}`} />
+                    <BarraAvance pct={avance * 100} alto="fina" etiqueta={nombreDe(t.ubicacionId)} texto={`${t.recibido} de ${t.asignado}`} className="mt-1" />
                     <span className="mt-1 block text-[11px] text-tinta/55">{t.pendiente > 0 ? `faltan ${t.pendiente}` : "completa"}</span>
                   </td>
                 );

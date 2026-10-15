@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { exigirModulo } from "@/lib/persona-actual";
 import { listarCompras, getResumenCompras, filtrosDesdeParams, getProveedoresActivos, ETIQUETA_TIPO_DOCUMENTO, soles, type ParamsCompras } from "@/lib/compras";
 import { getNotasPendientes, getResumenComprasExtra } from "@/lib/compras-indicadores";
@@ -306,12 +306,8 @@ export default async function ComprasPage({ searchParams }: { searchParams: Prom
   );
 }
 
-/** Barra fina de 3 px con el avance real bajo el subtexto de Recepción/Pago. `pct` 0–1; `null` = sin avance parcial, no se dibuja. */
+/** La barra de avance fina (ronda 13) bajo el subtexto de Recepción/Pago. `pct` 0–1; `null` = sin avance parcial, no se dibuja. */
 function AvanceFino({ pct }: { pct: number | null }) {
   if (pct == null) return null;
-  return (
-    <span aria-hidden className="cmp-mini">
-      <i style={{ "--p": pct.toFixed(3) } as CSSProperties} />
-    </span>
-  );
+  return <BarraAvance pct={pct * 100} alto="fina" decorativa className="mt-1.5 w-[88%]" />;
 }

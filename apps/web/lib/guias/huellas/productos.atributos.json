@@ -10,7 +10,7 @@
     "components/ColoresLista.tsx": [
       "BotonFiltro «Todos»",
       "BotonFiltro «{g.texto}»",
-      "LapizEditar «)»",
+      "LapizEditar «{c.nombre}»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
       "CampoTexto «{guia.etiqueta(\"codigo\", \"Código (3 letras)\")}»",
       "CampoSelect «{guia.etiqueta(\"familia\", \"Familia\")}»",

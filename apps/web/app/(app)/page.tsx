@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -318,9 +319,7 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
           r.meta ? (
             <TarjetaCifra etiqueta="Meta del día" valor={`${r.meta.pct} %`}>
               Faltan {formatoSoles(r.meta.falta)} de {formatoSoles(r.meta.meta)}
-              <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-tinta/10" aria-hidden>
-                <span className="block h-full rounded-full bg-verde" style={{ width: `${r.meta.barra}%` }} />
-              </span>
+              <BarraAvance pct={r.meta.barra} decorativa className="mt-2" />
             </TarjetaCifra>
           ) : (
             <TarjetaCifra etiqueta="Meta del día" valor={null}>

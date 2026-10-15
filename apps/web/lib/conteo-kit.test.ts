@@ -94,11 +94,12 @@ describe("ResumenConteo", () => {
     expect(t).toContain("18 de 37 variantes verificadas");
     expect(t).toContain("37 variantes · 18 verificadas · 19 pendientes · 2 con diferencia");
     expect(html).toContain('role="progressbar"');
-    expect(html).toContain('aria-valuenow="18"');
-    expect(html).toContain('aria-valuemax="37"');
+    // La barra de avance del sistema (ronda 13): el avance en porcentaje y, para el lector, las cantidades en palabras.
+    expect(html).toContain('aria-valuenow="49"');
+    expect(html).toContain('aria-valuemax="100"');
     expect(html).toContain('aria-valuemin="0"');
     expect(html).toContain('aria-valuetext="18 de 37 variantes verificadas"');
-    expect(html).toContain("width:49%");
+    expect(html).toContain("--p:49%");
   });
 
   it("«con diferencia» se omite si no hay, pero su lugar se reserva para que la línea no salte", () => {
@@ -130,7 +131,7 @@ describe("ResumenConteo", () => {
   it("singular: «0 de 1 variante verificada»", () => {
     const html = renderToStaticMarkup(createElement(ResumenConteo, { resumen: { variantes: 1, verificadas: 0, pendientes: 1, conDiferencia: 0 }, variante: "progreso" }));
     expect(LIMPIO(html)).toBe("0 de 1 variante verificada");
-    expect(html).toContain("width:0%");
+    expect(html).toContain("--p:0%");
   });
 
   it("«revision»: el total y el desglose, con los ceros dichos", () => {
@@ -156,8 +157,8 @@ describe("ResumenConteo", () => {
 
   it("la barra nunca pasa de 100 % ni se rompe con cero variantes", () => {
     const de = (resumen: { variantes: number; verificadas: number; pendientes: number; conDiferencia: number }) => renderToStaticMarkup(createElement(ResumenConteo, { resumen, variante: "progreso" }));
-    expect(de({ variantes: 5, verificadas: 9, pendientes: 0, conDiferencia: 0 })).toContain("width:100%");
-    expect(de({ variantes: 0, verificadas: 0, pendientes: 0, conDiferencia: 0 })).toContain("width:0%");
+    expect(de({ variantes: 5, verificadas: 9, pendientes: 0, conDiferencia: 0 })).toContain("--p:100%");
+    expect(de({ variantes: 0, verificadas: 0, pendientes: 0, conDiferencia: 0 })).toContain("--p:0%");
   });
 });
 

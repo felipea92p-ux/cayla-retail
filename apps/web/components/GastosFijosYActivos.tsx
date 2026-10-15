@@ -35,6 +35,7 @@ import {
 import { Boton, BotonEnlace } from "@/components/ui/campos";
 import { Vacio } from "@/components/ui/Vacio";
 import { CalendarClock, Laptop } from "lucide-react";
+import { MAX_DESCRIPCION_GASTO } from "@/lib/finanzas-topes";
 import { BotonEditar, LapizEditar } from "@/components/ui/BotonEditar";
 
 // Finanzas ▸ Gastos, pestañas «Fijos del mes» y «Activos fijos» (ADR-0195 F2b), y la lista de fijos de Configuración,
@@ -407,7 +408,7 @@ export function GastoFijoModal({
   return (
     <Modal variante="hoja" titulo={fijo ? "Editar gasto fijo" : "Nuevo gasto fijo"} subtitulo="Lo que se paga todos los meses. Es un recordatorio: cuenta cuando se registra con lo que llegó." onClose={onCerrar} tamano="mediana">
       <CampoFin etiqueta="Qué se paga" htmlFor="fijo-descripcion">
-        <InputFin id="fijo-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Alquiler del local" />
+        <InputFin id="fijo-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Alquiler del local" maxLength={MAX_DESCRIPCION_GASTO} />
       </CampoFin>
       <div className="fin-dos-campos">
         <CampoFin etiqueta="Categoría" htmlFor="fijo-categoria" ayuda={cat ? `Va a la cuenta ${cat.cuenta}.` : undefined}>

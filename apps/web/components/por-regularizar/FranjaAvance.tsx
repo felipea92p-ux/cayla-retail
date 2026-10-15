@@ -3,6 +3,7 @@
 import { avanceDe, textoDePendientes } from "@/lib/por-regularizar-mesa";
 import { DIAS_PARA_VENCER } from "@/lib/por-regularizar-reglas";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { PorQue } from "./PorQue";
 
 /**
@@ -39,9 +40,7 @@ export function FranjaAvance({
           </b>
           <span>{textoDePendientes(pendientes)}</span>
         </p>
-        <div className="vsr-f-bar" role="progressbar" aria-label="Avance de esta visita" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(proporcion * 100)}>
-          <i style={{ transform: `scaleX(${proporcion})` }} />
-        </div>
+        <BarraAvance pct={proporcion * 100} etiqueta="Avance de esta visita" />
       </div>
       {vencidas > 0 && (
         <button type="button" className="vsr-venc" aria-pressed={soloVencidas} onClick={onVencidas}>

@@ -57,7 +57,7 @@
     "components/marcas/TarjetaMarca.tsx": [
       "button «Reactivar»",
       "button «marcas.editar»",
-      "LapizEditar «) )»"
+      "LapizEditar «{m.nombre}»"
     ]
   }
 }

@@ -11,7 +11,6 @@ import {
   lineaDeTiempo,
   resumenDePago,
   textoFechaHito,
-  tonoDeAvance,
   type EntradaLineaTiempo,
 } from "./comprobante-linea-tiempo";
 
@@ -105,14 +104,6 @@ describe("lineaDeTiempo", () => {
   });
 });
 
-describe("tonoDeAvance", () => {
-  it("verde completo, ámbar a medias, neutro sin nada, rojo si hay alerta", () => {
-    expect(tonoDeAvance(1)).toBe("verde");
-    expect(tonoDeAvance(0.4)).toBe("ambar");
-    expect(tonoDeAvance(0)).toBe("neutro");
-    expect(tonoDeAvance(0.4, { alerta: true })).toBe("rojo");
-  });
-});
 
 describe("idsNuevos", () => {
   it("devuelve solo lo que no se había visto", () => {

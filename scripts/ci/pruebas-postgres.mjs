@@ -354,11 +354,17 @@ export const PRUEBAS = [
   // ADR-0409 (/chaos de Producción 2026-10-14): el token sigue al contenido en seis funciones del Taller, el IGV de una factura
   // de insumos va de 0 a 18 %, y un NaN en sus montos rebota en la tabla. Con controles.
   "pruebas:produccion-token-y-montos",
+  // ADR-0415 (recomendaciones de /chaos aplicadas): precio y costo de prenda hasta S/ 5 000; la entrega de una orden no es anterior a
+  // hoy; al cerrar, hasta el doble de lo pedido por talla. Con controles.
+  "pruebas:recomendaciones-produccion-catalogo",
 
   // El efectivo de una caja abierta nunca queda bajo cero (/chaos 2026-10-13): egreso, reembolso, vuelto de un cambio, anular
   // y corregir el pago; el borde exacto en S/ 0; la cifra solo para quien cierra la caja; el segundo retiro espera al primero.
   // Con control. Disparadores diferidos: cada caso corre `set constraints all immediate` y termina en ROLLBACK.
   "pruebas:caja-efectivo-no-negativo",
+  // ADR-0412 (/chaos de Finanzas 2026-10-14): NaN, tope de S/ 1 000 000 y textos con tope en Finanzas; la caja fuerte no queda bajo
+  // cero (disparadores diferidos: cada caso corre `set constraints all immediate`); un gasto anterior al inicio de Finanzas. Con controles.
+  "pruebas:finanzas-montos-y-caja-fuerte",
 
   // Montos válidos en Ventas y Caja (/chaos 2026-10-13): ni NaN ni infinito en apertura, cierre (tampoco en blanco), egresos y
   // reembolsos; el vuelto con tope de S/ 500; el reembolso de una devolución ≥ 0 y con uno de los cinco medios. Con controles.
@@ -823,6 +829,11 @@ export const PRUEBAS = [
   // Cada caso termina en ROLLBACK.
   "pruebas:crear-devolucion-motivo",
 
+  // La devolución lleva marca (20261015162000): el mismo token (un reenvío del navegador o un doble clic) devuelve la misma
+  // devolución, con otro contenido se rechaza (token_reusado), sin token sigue igual, y un reenvío simultáneo espera al primero
+  // (dos sesiones de psql). Cada caso termina en ROLLBACK.
+  "pruebas:crear-devolucion-token",
+
   // Pedido no atendido en 1 toque (D-79, ADR-0152): se anota con un producto del catálogo o con descripción libre, uno sin
   // ninguno de los dos se rechaza (en la RPC y en el CHECK), el candado de ubicación es real y un pedido no se resuelve dos
   // veces. Cada caso termina en ROLLBACK.
@@ -987,6 +998,11 @@ export const PRUEBAS = [
   // lo fija un líder y se hereda; la propuesta trae lo vendido en 90 días, la misma campaña del año anterior, el multiplicador real de la
   // tienda y si la categoría se agotó (sin Cuarentena); los resultados, lo vendido por prenda y a qué % se vendió lo de después. ROLLBACK.
   "pruebas:plan-compra-historia",
+
+  // «Fijar un mínimo» con el módulo (ADR-0362, decisión 64): lo fija quien tiene «Plan de campaña», sea o no líder; sin el módulo,
+  // 42501; la suma de una campaña no pasa de 100 % ni con dos personas a la vez (el plan se bloquea: la segunda espera y se rechaza).
+  // ROLLBACK en todo, menos el caso de las dos sesiones, que confirma sobre un plan de prueba y lo borra al terminar.
+  "pruebas:plan-compra-minimo",
 
   // Órdenes de compra (ADR-0362, fase 1): el módulo nace en Compras sin rol; solo quien lo tiene lee la lista (42501 si no) y, con
   // él, ve las órdenes de TODAS las sedes; nadie lee las tablas directo; la lista suma bien (descuento incluido), filtra por destino,
