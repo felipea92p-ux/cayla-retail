@@ -93,13 +93,12 @@ select 'ok|bordes';`);
   esperar("lo válido entra igual: precio y costo normales, 80 y 500 letras en el producto, 80 en la marca y en la categoría", r.ok && r.salida.includes("ok|bordes"), r.error);
 }
 
-// Se puede pegar dos veces, y cada candado queda validado.
+// Se puede pegar dos veces, y cada candado queda validado. Se cuentan SOLO los de esta migración: otras (Finanzas, ADR-0412) también
+// ponen candados `*_textos_con_tope`, y contarlos todos daba 14 en vez de 11.
 {
   const r = correr(`begin;\n${MIG}\n${MIG}
 select 'validados|' || count(*) filter (where convalidated) || '/' || count(*) from pg_constraint
- where conname like '%_montos_finitos' and conrelid in ('retail.variantes'::regclass, 'retail.precios_sede'::regclass, 'retail.precios_sede_prenda'::regclass,
-   'retail.parametros_liquidacion'::regclass, 'retail.piezas_liquidacion'::regclass, 'retail.piezas_liquidacion_etiquetas'::regclass)
-    or conname like '%_textos_con_tope';`);
+ where conname in (${CANDADOS.map((c) => `'${c.nombre}'`).join(", ")});`);
   esperar("la migración se puede pegar dos veces y sus 11 candados quedan validados", r.ok && r.salida.includes("validados|11/11"), r.salida || r.error);
 }
 
