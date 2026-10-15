@@ -272,7 +272,8 @@ export const porQueSeCerro = (motivo: string | null): string =>
 export function textoDeDevolucion(p: Pick<Pedido, "estado" | "devuelto" | "pagado">): string | null {
   if (p.estado !== "anulado") return null;
   const monto = Math.round((p.devuelto + p.pagado) * 100) / 100;
-  return monto > 0 ? `Se te devuelve lo que pagaste, ${soles(monto)}, por el mismo medio con el que pagaste.` : null;
+  // «S/» y la cifra con un espacio que no se parte: en el celular «S/» no queda sola al final de un renglón (ADR-0413).
+  return monto > 0 ? `Se te devuelve lo que pagaste, ${soles(monto).replace(" ", "\u00a0")}, por el mismo medio con el que pagaste.` : null;
 }
 
 /** «¿Necesitas cambiarlo?» de un pedido entregado, con el MISMO plazo que imprime su boleta (`tienda_ayuda`, el de la caja): la web y la

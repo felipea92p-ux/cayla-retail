@@ -121,8 +121,8 @@ describe("lo que dice la base", () => {
 
   it("se le dice que se le devuelve la plata: lo devuelto más lo que la tienda todavía tiene por devolver; sin haber pagado, nada", () => {
     const anulado = (devuelto: number, pagado: number) => unoDe(pedidoBase({ estado: "anulado", cierre_motivo: "cliente_desistio", devuelto, pagado }));
-    expect(textoDeDevolucion(anulado(189.9, 0))).toBe("Se te devuelve lo que pagaste, S/ 189.90, por el mismo medio con el que pagaste.");
-    expect(textoDeDevolucion(anulado(20, 30))).toBe("Se te devuelve lo que pagaste, S/ 50.00, por el mismo medio con el que pagaste.");
+    expect(textoDeDevolucion(anulado(189.9, 0))).toBe("Se te devuelve lo que pagaste, S/\u00a0189.90, por el mismo medio con el que pagaste.");
+    expect(textoDeDevolucion(anulado(20, 30))).toBe("Se te devuelve lo que pagaste, S/\u00a050.00, por el mismo medio con el que pagaste.");
     expect(textoDeDevolucion(anulado(0, 0))).toBeNull();
     expect(textoDeDevolucion(unoDe(pedidoBase({ estado: "pagado", pagado: 228.8, falta: 0 })))).toBeNull();
   });
