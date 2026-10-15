@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Desplegable } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { alcancesDeBloque, aplicarEnBloque, type CampoBloque, type FilaFicha, type NombresFicha } from "@/lib/variantes-ficha-reglas";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
 
 // Precio o costo en bloque: «Cambiar [Precio|Costo] de [Todas | Color: Negro | Talla: S] a [monto] · Aplicar». Es la
 // fila de grupo de Shopify («si cambias el precio del grupo, cambia en todas sus variantes») y el «Price extra» de Odoo,
@@ -124,11 +125,8 @@ export function CambiarEnBloque({
             S/
           </span>
           <input
-            className="self-stretch py-0 tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-            type="number"
-            min={0}
-            step="0.01"
-            inputMode="decimal"
+            className={`self-stretch py-0 tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
+            {...atributosMontoTexto(monto)}
             id="variantes-bloque-monto"
             aria-label={campo === "precio" ? "Nuevo precio" : "Nuevo costo"}
             placeholder="0.00"

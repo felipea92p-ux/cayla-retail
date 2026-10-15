@@ -24,6 +24,8 @@ import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@
 import { Aviso } from "@/components/ui/Aviso";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 /**
  * «Por aprobar» (2026-09-18): las devoluciones que una colaboradora registró y un líder
@@ -217,7 +219,7 @@ function PanelResolver({
   const cuentas = useCuentasParaElegir("cobro", ubicacion.ubicacionId, modo === "aprobar");
   const [cuentaElegida, setCuentaElegida] = useState<string | null>(null);
 
-  const montoNumero = monto.trim() === "" ? null : Number(monto);
+  const montoNumero = monto.trim() === "" ? null : numeroDeMonto(monto);
   const hayReembolso = montoNumero !== null && montoNumero > 0;
   const conCuenta = hayReembolso && metodo !== "efectivo";
   const hayCuentas = cuentas.listo && hayCuentasPara(cuentas.cuentas, "cobro", metodo);
@@ -316,15 +318,12 @@ function PanelResolver({
               <div className="mt-1 flex items-center gap-2">
                 <input
                   id={`monto-${d.id}`}
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  inputMode="decimal"
+                  {...atributosMontoTexto(monto)}
                   autoFocus
                   value={monto}
                   onChange={(e) => setMonto(e.target.value)}
                   placeholder="S/ 0.00"
-                  className="caja-campo-input w-36 text-sm tabular-nums"
+                  className={`caja-campo-input w-36 text-sm tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                 />
                 <button
                   type="button"

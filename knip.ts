@@ -35,8 +35,9 @@ const config: KnipConfig = {
   compilers: { css: importsDelCss },
   ignoreExportsUsedInFile: true,
   // `supabase` es la CLI (en el CI va por `npx supabase`, no como dependencia) y `uptime`, el comando del sistema que lee la carga
-  // de la máquina en `scripts/carga/carga.mjs`.
-  ignoreBinaries: ["supabase", "uptime"],
+  // de la máquina en `scripts/carga/carga.mjs`; `openssl`, el del sistema, que arma el certificado de prueba del experimento
+  // `scripts/investigacion/reintento-post-cortado.mjs`.
+  ignoreBinaries: ["supabase", "uptime", "openssl"],
   workspaces: {
     ".": {
       // Los scripts de la raíz se corren a mano, desde las skills o desde el CI: cada uno es un punto de entrada, y también lo que
@@ -81,9 +82,6 @@ const config: KnipConfig = {
           }
         : {}),
       ignore: [
-        // La pieza de «Cancelar y el pie de una hoja», elegida por Felipe el 2026-10-14 (ronda 11 de /unificar, ADR-0358): nace
-        // antes que sus primeros usos. Sale de aquí cuando la use la primera hoja.
-        "components/ui/PieAcciones.tsx",
         // «Mis partes de compras» dejó de dibujarse con ADR-0387 (2026-10-12), que dice que se retira junto con
         // `lib/compras-mi-parte*.ts` y la página `/compras/parte/[compraId]`. Su lectura es la única que llama
         // `fn_mis_partes_de_compras`: quitarla deja esa función de la base sin llamador (`pruebas:roles-cobertura` lo marca),
