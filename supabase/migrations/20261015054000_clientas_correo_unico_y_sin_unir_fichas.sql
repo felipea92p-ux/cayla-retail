@@ -73,7 +73,7 @@ begin
       -- firma                                                                                    antes (producción, la de la 1b)       despues (este archivo)
       ('retail.editar_clienta(uuid,text,text,text,text,smallint,smallint,smallint,jsonb,integer)', 'e00a9edb0e8781417504abb7c361a226',  '2f8480789502382d85f53404e1488065'),
       ('retail.unir_clientas(uuid,uuid,integer,integer)',                                          '575bfff00b96a24f838d3f0f1959d29c',  null),
-      ('retail.fn_correo_de_una_persona()',                                                        null,                                '8ada798863bdf976e1d3a75e1f71d639')
+      ('retail.fn_correo_de_una_persona()',                                                        null,                                '8f07eaf874bc477543d61ead3e33c83b')
     ) as t(firma, antes, despues)
   loop
     v_md5 := (select md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\*.*?\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\s+', '', 'g'))
@@ -118,6 +118,7 @@ as $$
 declare
   v_correo text := lower(btrim(new.correo));
   v_ficha uuid;
+  v_de_otra boolean;
 begin
   if v_correo is null or v_correo = '' then
     return new;
@@ -130,9 +131,13 @@ begin
   -- Dos escrituras del mismo correo a la vez (una ficha y una cuenta web, o dos fichas) hacen fila aquí: la segunda despierta
   -- cuando la primera confirma, y su consulta de abajo ya la ve.
   perform pg_advisory_xact_lock(hashtextextended('correo_de_una_persona:' || v_correo, 0));
-  if exists (select 1 from retail.clientas c where lower(btrim(c.correo)) = v_correo and c.id is distinct from v_ficha)
-     or (to_regclass('retail.cuentas_web') is not null
-         and exists (select 1 from retail.cuentas_web w where w.correo = v_correo and w.clienta_id is distinct from v_ficha)) then
+  v_de_otra := exists (select 1 from retail.clientas c where lower(btrim(c.correo)) = v_correo and c.id is distinct from v_ficha);
+  -- La cuenta web de otra ficha, en su PROPIA sentencia y solo si la tabla existe: PL/pgSQL prepara cada sentencia recién al
+  -- ejecutarla, y una sola expresión con las dos tablas fallaría (42P01) en una base sin la tienda online, con el cartel del Club.
+  if not v_de_otra and to_regclass('retail.cuentas_web') is not null then
+    v_de_otra := exists (select 1 from retail.cuentas_web w where w.correo = v_correo and w.clienta_id is distinct from v_ficha);
+  end if;
+  if v_de_otra then
     raise exception 'Ese correo ya está registrado con los datos de otra persona.'
       using errcode = '23505', hint = 'correo_repetido', detail = 'correo';
   end if;
