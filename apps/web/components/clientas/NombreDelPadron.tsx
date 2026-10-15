@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Lock } from "lucide-react";
 import { CampoTexto } from "@/components/ui/campos";
 import { Aviso } from "@/components/ui/Aviso";
 import { Chip } from "@/components/ui/Chip";
@@ -99,6 +100,7 @@ export function NombreDelPadron({
   actualizable = false,
   deshabilitado = false,
   guia,
+  conMarca = (titulo) => titulo,
 }: {
   padron: PadronDeFicha;
   donde: DondeDelNombre;
@@ -111,6 +113,8 @@ export function NombreDelPadron({
   deshabilitado?: boolean;
   /** Ancla de la guía interactiva (ADR-0389). */
   guia?: string;
+  /** La marca de la guía de foco en el título (✓, «Sigue aquí»…): `(t) => guia.etiqueta("nombre", t)`. */
+  conMarca?: (titulo: ReactNode) => ReactNode;
 }) {
   if (padron.estado === "no_encontrado" || padron.estado === "sin_respuesta") {
     const aviso = avisoSinNombreDelPadron(padron.estado, donde);
@@ -138,7 +142,13 @@ export function NombreDelPadron({
         id={ID_NOMBRE_DEL_PADRON}
         etiqueta={
           <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-            Nombre
+            {/* El candado dice, antes de leer nada, que esta caja no se escribe (ley 5 de Formidable: ver antes que leer). */}
+            {conMarca(
+              <span className="inline-flex items-center gap-1">
+                Nombre
+                <Lock className="h-3 w-3" aria-hidden />
+              </span>,
+            )}
             {confirmado && <Chip tono="verde">Del padrón</Chip>}
           </span>
         }

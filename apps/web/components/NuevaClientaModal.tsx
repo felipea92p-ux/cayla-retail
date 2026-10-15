@@ -194,7 +194,14 @@ export function NuevaClientaModal({
               pasaporte se escribe tal cual está en el documento. */}
           <CampoGuiado id="nombre" guia={guia}>
             {esDni ? (
-              <NombreDelPadron padron={padron} donde="alta" onConsultar={consultar} deshabilitado={guardando} guia="clientas.nuevo-nombre" />
+              <NombreDelPadron
+                padron={padron}
+                donde="alta"
+                onConsultar={consultar}
+                deshabilitado={guardando}
+                guia="clientas.nuevo-nombre"
+                conMarca={(titulo) => guia.etiqueta("nombre", titulo)}
+              />
             ) : (
               <div data-guia="clientas.nuevo-nombre">
                 <CampoTexto

@@ -711,7 +711,13 @@ function RegistrarClientaEnTicket({
           sin cliente—; con carné o pasaporte se escribe tal cual está en el documento. */}
       <CampoGuiado id="nombre" guia={guia}>
         {esDni ? (
-          <NombreDelPadron padron={padron} donde="venta" onConsultar={consultar} deshabilitado={guardando} />
+          <NombreDelPadron
+            padron={padron}
+            donde="venta"
+            onConsultar={consultar}
+            deshabilitado={guardando}
+            conMarca={(titulo) => guia.etiqueta("nombre", titulo)}
+          />
         ) : (
           <CampoTexto
             id={ID_NOMBRE}

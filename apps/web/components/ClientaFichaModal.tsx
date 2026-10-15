@@ -660,6 +660,7 @@ export function ClientaFichaModal({
                     deAntes={mismoDni ? (c.nombre ?? "") : null}
                     actualizable={mismoDni}
                     deshabilitado={guardando}
+                    conMarca={(titulo) => guia.etiqueta("nombre", titulo)}
                   />
                 ) : (
                   <CampoTexto
