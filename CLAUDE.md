@@ -53,7 +53,10 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
    de pago) y la fila de `public.personas` que trae Dynamic
    (`retail.fn_es_admin()` devuelve `false` sin error si falta); y Sentry, el aviso de errores
    (ADR-0424: si no responde, el aviso se pierde en silencio y la pantalla sigue igual; nunca le
-   manda la sesión, una búsqueda ni un DNI, y un mensaje de error lleva ids, nunca nombres); el
+   manda la sesión, una búsqueda ni un DNI, y un mensaje de error lleva ids, nunca nombres); y
+   la publicación en Vercel (ADR-0425: si el aviso de GitHub no le llega, nadie lo reintenta; el
+   «Vigía de Vercel» de Actions mira el último commit de `main` y, sin marca de Vercel a los 3 min,
+   lo pide al Deploy Hook y deja un aviso «Producción atrás de main»); el
    sistema se degrada con gracia, nunca pierde datos. Culqi y Shopify se investigaron pero no se integraron
    (docs/investigacion/2026-09-23-tarjeta-pos-y-canal-online.md).
 10. **Ergonomía = potencia** — un colaborador de sede sin formación técnica debe
