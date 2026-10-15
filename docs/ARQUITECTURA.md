@@ -1147,7 +1147,11 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`clientas_correo_unico` y el disparador `fn_correo_de_una_persona`, que también mira `cuentas_web`); `clientas_fusiones` queda como
   historia. `cargarFichaClienta` lee además `fn_clienta_tienda_online` (`20261015123000`: si tiene cuenta abierta en la tienda online
   —sin su correo— y sus pedidos web en curso; `lib/clienta-tienda-online-reglas.ts`): la hoja de archivar AVISA si hay un pedido en
-  curso (no lo frena) y dice qué pasa al archivar o al anonimizar, y «Editar» dice que el correo de entrada no cambia desde ahí. Las dos
+  curso (no lo frena) y dice qué pasa al archivar o al anonimizar, y «Editar» dice que el correo de entrada no cambia desde ahí. Desde
+  `20261015131000` (**sin pegar en producción**) anonimizar ESPERA si hay un pedido web pagado sin entregar (la base:
+  `anonimizar_pedido_web_pagado`; la hoja apaga el interruptor y dice por qué, `frenaAnonimizar`). Y desde `20261015132000` la ficha muestra
+  su cuenta de la tienda online con «Restablecer acceso» (`components/clientas/TiendaOnlineDeLaFicha.tsx`: `fn_clienta_acceso_web` y la ruta
+  `/api/clientas/acceso-web`). Las dos
   altas (`NuevaClientaModal` y el ticket de Vender) leen la ficha con ese documento justo antes de `registrar_clienta`
   (`fichaConDocumento`) y dicen lo que hizo la base: «Cliente registrado», «Ya tenía ficha» o «Ficha reactivada»
   (`lib/alta-clienta-reglas.ts`). Y `exportar_clientas`
@@ -1782,6 +1786,12 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   «se ve el inicio»). Sin sesión o sin acceso responde con la redirección de `requirePersonaActualV2`; el login no la sigue y, como con cualquier
   fallo o una espera de más de 5 s, entra por `/`, el camino de siempre. `Cache-Control: private, no-store`. ADR-0136 act. 2026-10-13 (e).
 
+- `/api/clientas/acceso-web` → `POST` desde la ficha de un cliente, «Restablecer acceso» a la tienda online (2026-10-15,
+  `20261015132000`): `restablecer_acceso_tienda_web` (con la firma del Responsable) deja pedido el cambio del correo de entrada y
+  devuelve una ficha de un solo uso, que la ruta le pasa a la tienda (`POST ${TIENDA_URL}/api/restablecer-acceso`) para que mande el
+  código; la ficha nunca llega al navegador. Reglas puras en `lib/acceso-web-reglas.ts`. Sin `TIENDA_URL` o sin respuesta de la tienda,
+  el pedido queda y el cliente pide su código desde la tienda.
+
 Sin sesión, `middleware.ts` devuelve `401` JSON a `/api/*` en vez de redirigir
 a `/login` — un `fetch()` seguiría el redirect y recibiría HTML.
 
@@ -1827,6 +1837,16 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   de clientes (`borrarUsuarioDeCuentaCerrada`), cierra la sesión y «Entrar» lo explica. `GET /api/cuentas-cerradas` (cron de
   `apps/tienda/vercel.json`, 08:30 UTC = 03:30 Lima; `pasaComoCron` de `lib/cron.ts` con `CRON_SECRET`) → `barrerCuentasCerradas` →
   `tienda_usuarios_por_borrar` + `deleteUser` + `tienda_usuario_borrado`. Prueba en la base: `pnpm pruebas:clientas-correo`.
+- «Mi cuenta» (Felipe 2026-10-15, `20261015131000` y `20261015132000`, **sin pegar en producción**): `app/acciones/mi-cuenta.ts` →
+  `lib/mi-cuenta-servidor.ts` (reglas puras en `lib/mi-cuenta.ts`). `/cuenta/correo` («Cambiar mi correo»: su contraseña con
+  `tienda_intento_de_clave`/`tienda_clave_correcta`, `tienda_pedir_cambio_correo`, el código SOLO al correo nuevo con el «cambio de correo»
+  del proyecto de clientes y su plantilla `correo-nuevo.html`, `tienda_intento_cambio_correo`, y `tienda_correo_confirmado` con el correo
+  que el PROYECTO dice que quedó; `/cuenta` lo concilia si la base no contestó). `/restablecer-acceso` (pública: el código que pidió una
+  tienda desde la ficha del ERP, `tienda_restablecer_reenviar`/`tienda_restablecer_intento`, y la contraseña nueva, todo junto) y
+  `POST /api/restablecer-acceso` (el primer código, con la ficha de un solo uso del ERP: `tienda_restablecer_enviar`). `/cuenta/eliminar`
+  (`tienda_antes_de_eliminar` y `tienda_eliminar_mi_cuenta`: frena con un pedido web en curso o un apartado abierto; si no, la
+  anonimización de siempre, `fn_clienta_anonimizar(…, 'tienda_web')`, y se borra su usuario del proyecto de clientes). La forma del correo
+  con código es la de «Crear cuenta» (`components/cuenta/CorreoConCodigo.tsx`). Prueba en la base: `pnpm pruebas:tienda-mi-cuenta`.
 - `/catalogo` (grupo `(catalogo)`, con cuenta: el proxy y el layout) → `lib/tiendas-servidor.ts` `leerSedes()` (las píldoras «Ver lo
   que hay en», `?sede=` con el nombre web de la tienda: `lib/sede-elegida.ts`) y `lib/catalogo-servidor.ts` `leerCatalogo(sede)` →
   `retail.tienda_catalogo(p_sede)`: lo publicado en la Vitrina web al precio de esa tienda (`fn_precio_en_sede`) o, con «Todas», al

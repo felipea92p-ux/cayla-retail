@@ -1249,7 +1249,8 @@ ESCENARIOS.push(
     },
   },
   // «Archivar» con un pedido de la tienda online en curso: el aviso. La base local no suele tener un pedido web de Camila, así que el
-  // escenario contesta él la lectura (`fn_clienta_tienda_online`, sin escribir nada); lo que se dibuja es la hoja real.
+  // escenario contesta él la lectura (`fn_clienta_tienda_online`, sin escribir nada); lo que se dibuja es la hoja real. Como el pedido
+  // está PAGADO, el interruptor «Anonimizar» sale apagado y dice por qué (20261015131000).
   {
     id: "clientas.ficha-archivar",
     ruta: "/clientas",
@@ -1264,6 +1265,53 @@ ESCENARIOS.push(
       await clicRol("button", /^Archivar$/)(pagina);
     },
     limpiar: (pagina) => pagina.unroute(/\/rpc\/fn_clienta_tienda_online/).catch(() => {}),
+  },
+  // «Restablecer acceso a la tienda web» (Felipe 2026-10-15, 20261015132000). La base local no suele tener a Camila con cuenta web: el
+  // escenario contesta él las dos lecturas (sin escribir nada). El bloque de la ficha, con un restablecimiento pendiente…
+  {
+    id: "clientas.ficha-tienda-online",
+    ruta: "/clientas",
+    cuentas: ["admin", "integrante"],
+    abre: '[data-guia="clientas.ficha-tienda-online"]',
+    nombre: "Clientes · la ficha con su cuenta de la tienda online y un restablecimiento pendiente",
+    async preparar(pagina) {
+      await pagina.route(/\/rpc\/fn_clienta_tienda_online/, (ruta) => ruta.fulfill({ json: { cuenta_web: true, pedidos_en_curso: [] } }));
+      await pagina.route(/\/rpc\/fn_clienta_acceso_web/, (ruta) =>
+        ruta.fulfill({
+          json: {
+            cuenta_web: true,
+            restablecer: { correo: "camila.nueva@gmail.com", pedido_en: new Date().toISOString(), vence_en: new Date(Date.now() + 864e5).toISOString(), ultimo_envio_en: new Date().toISOString(), envios: 1 },
+          },
+        }),
+      );
+      await clicRol("button", /^Camila Torres/i)(pagina);
+      await esperar(pagina, 900);
+    },
+    limpiar: async (pagina) => {
+      await pagina.unroute(/\/rpc\/fn_clienta_tienda_online/).catch(() => {});
+      await pagina.unroute(/\/rpc\/fn_clienta_acceso_web/).catch(() => {});
+    },
+  },
+  // …y su hoja, con el correo nuevo mal escrito (dice su error BAJO la caja; no se manda nada).
+  {
+    id: "clientas.ficha-restablecer",
+    ruta: "/clientas",
+    cuentas: ["admin", "integrante"],
+    abre: "#ficha-acceso-web-correo",
+    nombre: "Clientes · «Restablecer acceso» de la tienda online, con el correo mal escrito",
+    async preparar(pagina) {
+      await pagina.route(/\/rpc\/fn_clienta_tienda_online/, (ruta) => ruta.fulfill({ json: { cuenta_web: true, pedidos_en_curso: [] } }));
+      await pagina.route(/\/rpc\/fn_clienta_acceso_web/, (ruta) => ruta.fulfill({ json: { cuenta_web: true, restablecer: null } }));
+      await clicRol("button", /^Camila Torres/i)(pagina);
+      await clicRol("button", /^Restablecer acceso$/)(pagina);
+      await pagina.locator("#ficha-acceso-web-correo").fill("correo@incompleto");
+      await pagina.locator("#ficha-acceso-web-correo").press("Tab");
+      await esperar(pagina, 900);
+    },
+    limpiar: async (pagina) => {
+      await pagina.unroute(/\/rpc\/fn_clienta_tienda_online/).catch(() => {});
+      await pagina.unroute(/\/rpc\/fn_clienta_acceso_web/).catch(() => {});
+    },
   },
   { id: "clientas.acciones", ruta: "/clientas", cuentas: ["admin"], abre: "[role=menu]", nombre: "Clientes · «Más acciones»", preparar: clicRol("button", /Más acciones de Clientes/i) },
   { id: "clientas.buscar", ruta: "/clientas", cuentas: ["admin", "terminal-ventas"], nombre: "Clientes · una búsqueda", async preparar(pagina) { await pagina.getByPlaceholder(/DNI, celular/i).first().fill("Rosa"); await esperar(pagina, 1800); } },

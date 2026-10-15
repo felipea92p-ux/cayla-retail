@@ -144,11 +144,18 @@ export const GUIA_CLIENTES: Guia = {
       texto: "Sus compras en todas las tiendas, sus cambios, devoluciones y apartados, y la talla que suele llevar.",
     },
     {
+      id: "ficha-tienda-online",
+      ancla: "clientas.ficha-tienda-online",
+      opcional: true,
+      titulo: "Su cuenta de la tienda online",
+      texto: "Si tiene cuenta en la tienda online, aquí lo ves. Si perdió su correo y ya no puede entrar, «Restablecer acceso» le manda un código a su correo nuevo: con él lo confirma y crea su contraseña. Hasta entonces nada cambia. En la demo no lo tocamos.",
+    },
+    {
       id: "ficha-acciones",
       ancla: "clientas.ficha-acciones",
       opcional: true,
       titulo: "Archivar",
-      texto: "«Archivar» la saca de la libreta sin borrar su historia; si vuelve y la registras con su documento, se reactiva sola. Si tiene un pedido de la tienda online en curso, te avisa antes. En la demo no la tocamos.",
+      texto: "«Archivar» la saca de la libreta sin borrar su historia; si vuelve y la registras con su documento, se reactiva sola. Si tiene un pedido de la tienda online en curso, te avisa antes; con uno pagado, sus datos no se borran hasta que lo recoja. En la demo no la tocamos.",
     },
     {
       id: "pie",

@@ -25,7 +25,9 @@ import type { CampoDeGuia } from "@/lib/guia-campos";
 import { archivarClienta, cargarFichaClienta, editarClienta, reactivarClienta, type DatosEdicion } from "@/lib/clientas-acciones";
 // El correo de contacto (Felipe 2026-10-15, 20261015123000) y lo que la ficha tiene en la tienda online (el aviso al archivar).
 import { correoVisible, esRechazoDelCorreo, normalizarCorreo, problemaCorreo, rechazoVigente, type RechazoCorreo } from "@/lib/correo-clienta-reglas";
-import { avisoAlArchivar, notaDelCorreoDeEntrada, pieDeAnonimizar } from "@/lib/clienta-tienda-online-reglas";
+import { avisoAlArchivar, frenaAnonimizar, notaDelCorreoDeEntrada, pieDeAnonimizar } from "@/lib/clienta-tienda-online-reglas";
+// «Restablecer acceso a la tienda web» (Felipe 2026-10-15, 20261015132000): su bloque y su hoja viven aparte; aquí solo se enganchan.
+import { RestablecerAccesoWeb, TiendaOnlineDeLaFicha } from "@/components/clientas/TiendaOnlineDeLaFicha";
 import { Aviso } from "@/components/ui/Aviso";
 // Tanda 1f (ADR-0288 «Actualización 2026-09-30 (f)»): su sede y frecuente con compra neta, las preferencias y la historia del
 // permiso. Viven en piezas aparte; aquí solo se enganchan.
@@ -41,7 +43,7 @@ import { BotonEditar } from "@/components/ui/BotonEditar";
  *  ficha ya no une al club, no muestra un QR personal ni registra «Llegó su mensaje». Tampoco une fichas (Felipe 2026-10-14:
  *  el documento y el correo son de una sola persona, así que no nacen fichas repetidas; `unir_clientas` se borró en
  *  20261015054000). */
-type Modo = "ver" | "editar" | "archivar" | "baja";
+type Modo = "ver" | "editar" | "archivar" | "baja" | "acceso-web";
 /** Las pestañas de la ficha: lo del club (permisos y preferencias) por un lado y lo que hizo en las tiendas por otro. */
 type Vista = "club" | "actividad";
 
@@ -145,6 +147,7 @@ function camposDeLaGuia(
     case "baja":
       return [quien];
     case "ver":
+    case "acceso-web": // su guía vive en RestablecerAccesoWeb (components/clientas/TiendaOnlineDeLaFicha.tsx)
       return [];
   }
 }
@@ -246,6 +249,8 @@ export function ClientaFichaModal({
   // Lo que tiene en la tienda online: el aviso de archivar con un pedido en curso (cambia con «Anonimizar») y la nota del correo.
   const avisoArchivo = avisoAlArchivar(ficha.tiendaOnline ?? null, anonimizar);
   const notaCorreo = notaDelCorreoDeEntrada(ficha.tiendaOnline ?? null);
+  // Con un pedido web PAGADO y sin entregar, anonimizar espera (20261015131000): el interruptor se apaga y dice por qué.
+  const esperaAnonimizar = frenaAnonimizar(ficha.tiendaOnline ?? null);
   // Bajo la caja del correo: lo que dijo la base de ese correo, o que está mal escrito (cuando ya salió de la caja).
   const pieCorreo = edicion && (salioDelCorreo || rechazoVigente(rechazoCorreo, edicion.correo)) ? problemaDelCorreo : null;
   const enClub = estadoClub(c);
@@ -555,6 +560,8 @@ export function ClientaFichaModal({
                 </div>
               )}
 
+              {activa && ficha.tiendaOnline?.cuentaWeb && <TiendaOnlineDeLaFicha clientaId={c.id} verCompleto={verCompleto} onRestablecer={() => setModo("acceso-web")} />}
+
               {/* Lo que se hace pocas veces va abajo y discreto; lo de todos los días («Editar») está arriba. */}
               {activa ? (
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-sand pt-3" data-guia="clientas.ficha-acciones">
@@ -686,8 +693,9 @@ export function ClientaFichaModal({
                 <Interruptor
                   activo={anonimizar}
                   onActivo={setAnonimizar}
+                  disabled={esperaAnonimizar !== null}
                   etiqueta={guia.etiqueta("anonimizar", "Anonimizar sus datos personales (Ley 29733)")}
-                  pie={pieDeAnonimizar(ficha.tiendaOnline ?? null)}
+                  pie={esperaAnonimizar ?? pieDeAnonimizar(ficha.tiendaOnline ?? null)}
                 />
               </CampoGuiado>
               <CampoGuiado id="responsable" guia={guia}>
@@ -709,6 +717,10 @@ export function ClientaFichaModal({
                 </Boton>
               </div>
             </div>
+          )}
+
+          {modo === "acceso-web" && (
+            <RestablecerAccesoWeb clientaId={c.id} verCompleto={verCompleto} responsable={responsable} onCancelar={() => setModo("ver")} onListo={() => setModo("ver")} />
           )}
 
           {modo === "baja" && (

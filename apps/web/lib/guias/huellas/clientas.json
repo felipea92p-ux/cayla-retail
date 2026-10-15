@@ -2,7 +2,7 @@
   "guia": "clientas",
   "ruta": "/clientas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 42,
+  "total": 47,
   "controles": {
     "components/CampoDocumentoClienta.tsx": [
       "CampoSelect «{etiqueta}»",
@@ -52,6 +52,13 @@
       "ComboResponsable «(sin nombre)»",
       "Boton «Deshacer»",
       "Boton «Guardar preferencias»"
+    ],
+    "components/clientas/TiendaOnlineDeLaFicha.tsx": [
+      "Boton «Restablecer acceso»",
+      "CampoTexto «{guia.etiqueta(\"correo\", \"Correo nuevo\")}»",
+      "ComboResponsable «Cancelar»",
+      "Boton «Cancelar»",
+      "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/clientas/club-piezas.tsx": [
       "CampoTexto «{etiqueta}»",

@@ -6081,6 +6081,11 @@ export type Database = {
         Args: { p_id: string; p_version_esperada?: number }
         Returns: number
       }
+      // 20261015132000: deja pedido el cambio del correo de entrada de su cuenta web y devuelve la ficha de un solo uso (solo el servidor).
+      restablecer_acceso_tienda_web: {
+        Args: { p_clienta_id: string; p_correo: string }
+        Returns: Json
+      }
       exportar_clientas: {
         Args: never
         Returns: {
@@ -6133,6 +6138,11 @@ export type Database = {
         Returns: { separacion_id: string; codigo: string; fecha: string; estado: string; total: number; vence_el: string }[]
       }
       fn_clienta_tienda_online: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      // «Restablecer acceso a la tienda web» (20261015132000): la cuenta web y el restablecimiento pendiente de la ficha.
+      fn_clienta_acceso_web: {
         Args: { p_id: string }
         Returns: Json
       }
