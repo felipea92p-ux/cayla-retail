@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
 import { Check, MessageCircle, Minus, Plus, Trash2 } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
@@ -569,9 +570,7 @@ export function RecordarModal({
         <div className="space-y-4">
           {varias && (
             <>
-              <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-sand">
-                <span className="block h-full rounded-full bg-tinta transition-[width] duration-500 ease-[var(--ease-cayla)]" style={{ width: `${(hechas.size / cola.length) * 100}%` }} />
-              </div>
+              <BarraAvance pct={(hechas.size / cola.length) * 100} decorativa />
               <ul className="divide-y divide-sand overflow-hidden rounded-xl border border-sand">
                 {cola.map((a, i) => (
                   <li key={a.id}>
@@ -732,9 +731,7 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
               Todo · {money(saldo)}
             </button>
           </div>
-          <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-sand">
-            <span className="block h-full rounded-full bg-tinta transition-[width] duration-500 ease-[var(--ease-cayla)]" style={{ width: `${Math.min(100, ((apartado.adelanto + Math.max(0, monto)) / apartado.total) * 100)}%` }} />
-          </div>
+          <BarraAvance pct={((apartado.adelanto + Math.max(0, monto)) / apartado.total) * 100} decorativa />
           <p className="flex justify-between text-xs text-tinta/60 tabular-nums">
             <span>Pagado {money(apartado.adelanto + Math.max(0, monto))} de {money(apartado.total)}</span>
             <b className="text-tinta">Queda {money(Math.max(0, saldo - monto))}</b>

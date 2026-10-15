@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { soles } from "@/lib/compras-reglas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { DIAS_RITMO_RECIENTE } from "@/lib/inventario-reglas";
@@ -275,11 +276,13 @@ export function ResumenProduccionPanel({
                           <span className="text-xs text-tinta/65">Sin ventas medidas</span>
                         ) : (
                           <>
-                            <span className="relative block h-2 rounded-full bg-sand" role="img" aria-label={m.stockRed <= 0 ? "Agotado en las tiendas" : `${textoDiasDeStock(m.stockRed, m.diasRed)} de stock`}>
-                              <span className="absolute inset-y-0 left-0 rounded-full bg-tinta" style={{ width: `${pct}%` }} />
-                              <span aria-hidden className="absolute -top-0.5 h-3 w-px bg-tinta/45" style={{ left: `${(7 / maxDias) * 100}%` }} />
-                              <span aria-hidden className="absolute -top-0.5 h-3 w-px bg-tinta/45" style={{ left: `${(30 / maxDias) * 100}%` }} />
-                            </span>
+                            {/* Días de stock en las tiendas, con las rayitas de 7 y 30 días: una medida, no un avance (nunca pasa a verde). */}
+                            <BarraAvance
+                              pct={pct}
+                              tono="tinta"
+                              marca={[(7 / maxDias) * 100, (30 / maxDias) * 100]}
+                              etiqueta={m.stockRed <= 0 ? "Agotado en las tiendas" : `${textoDiasDeStock(m.stockRed, m.diasRed)} de stock`}
+                            />
                             <span className="mt-1 block text-xs tabular-nums text-tinta/65">
                               {textoDiasDeStock(m.stockRed, m.diasRed)}{m.stockTaller > 0 ? ` · +${m.stockTaller} en el Taller` : ""}
                             </span>

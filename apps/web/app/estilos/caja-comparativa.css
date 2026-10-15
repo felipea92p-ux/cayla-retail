@@ -18,20 +18,17 @@
 .cmp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .cmp-chips span { border: 1px solid color-mix(in srgb, var(--color-crema) 22%, transparent); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; color: color-mix(in srgb, var(--color-crema) 86%, transparent); }
 .cmp-chips b { color: var(--color-crema); font-weight: 700; }
-.cmp-anillo { position: relative; width: 168px; height: 168px; flex: none; }
-.cmp-anillo svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-.cmp-anillo-pista { stroke: color-mix(in srgb, var(--color-crema) 14%, transparent); }
-.cmp-anillo-arco { stroke: var(--color-metodo-efectivo); stroke-linecap: round; transition: stroke-dashoffset 1.2s var(--ease-cayla); }
-.cmp-anillo-centro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-.cmp-anillo-centro b { font-family: var(--font-display, "EB Garamond", Georgia, serif); font-weight: 400; font-size: 34px; line-height: 1; }
-.cmp-anillo-centro span { margin-top: 5px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.25; color: color-mix(in srgb, var(--color-crema) 70%, transparent); max-width: 110px; }
+/* El anillo es la pieza del sistema (<Anillo tamano="grande" sobreTinta>, ronda 13 de /unificar); aquí solo su lugar y su cifra. */
+.cmp-anillo { flex: none; }
+.cmp-anillo-monto { font-family: var(--font-display, "EB Garamond", Georgia, serif); font-weight: 400; font-size: 30px; line-height: 1; }
+.cmp-anillo-de { margin-top: 5px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.25; color: color-mix(in srgb, var(--color-crema) 70%, transparent); max-width: 110px; }
 /* En oscuro el héroe se invierte con el tema (`tinta` pasa a ser la crema) y el dorado del efectivo, que es color de DATO y no
    cambia, quedaba en 2.2:1 sobre él. La cifra se oscurece hacia el texto del héroe (`crema`, que en oscuro es la tinta de fondo):
    4.6:1, el mismo recurso que la ventanita del gráfico (`.cmp-tip-baja`). En claro sigue el dorado puro (ADR-0336). */
 @media screen {
   :root[data-tema="oscuro"] .cmp-frase em { color: color-mix(in srgb, var(--color-metodo-efectivo) 60%, var(--color-crema)); }
 }
-@container (max-width: 900px) { .cmp-heroe { grid-template-columns: 1fr; padding: 22px 20px; } .cmp-frase { font-size: 40px; } .cmp-anillo { width: 132px; height: 132px; } }
+@container (max-width: 900px) { .cmp-heroe { grid-template-columns: 1fr; padding: 22px 20px; } .cmp-frase { font-size: 40px; } }
 /* En el celular el anillo solo repite lo que dicen el titular y las etiquetas: se oculta y queda un titular más compacto. */
 @container (max-width: 560px) { .cmp-anillo { display: none; } .cmp-frase { font-size: 34px; } }
 
@@ -80,6 +77,6 @@
 @keyframes cmp-crece { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .cmp-anillo-arco, .cmp-revelar, .cmp-pista-barra, .cmp-pista-marca { transition-duration: 1ms !important; }
+  .cmp-revelar, .cmp-pista-barra, .cmp-pista-marca { transition-duration: 1ms !important; }
   .cmp-barra { animation: none; }
 }
