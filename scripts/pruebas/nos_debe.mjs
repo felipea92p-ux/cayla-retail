@@ -7,8 +7,9 @@
  * envío) y se cierra con la prenda (decisión 14): a mano con una nota, o en la próxima recepción marcando lo de más como «Es la reposición
  * de lo que faltó», que salda las deudas de la más antigua a la más nueva. Que lo resuelto nunca pase de lo debido —ni con dos personas a
  * la vez—, que solo un «No vino» sea deuda y que lo resuelto no se cambie ni se borre. Y la fase 5b (actividad 1, migraciones
- * `20261015145000` y `20261015150000`, actividades 1 y 2): «Pasar a saldo a favor» cierra en el papel lo que no llegó, registra el
- * documento interno DI-… que baja la deuda del comprobante (con su IGV si es una factura), deja el resto a favor y no entra a Impuestos.
+ * `20261015145000` y `20261015150000`, actividades 1 a 3): «Pasar a saldo a favor» cierra en el papel lo que no llegó, registra el
+ * documento interno DI-… que baja la deuda del comprobante (con su IGV si es una factura), deja el resto a favor y no entra a Impuestos; y
+ * «Llegó su nota de crédito» le adjunta la nota del proveedor, que desde su fecha baja el crédito fiscal.
  *
  * QUÉ PRUEBA (cada caso en su transacción con ROLLBACK; la migración se carga DOS veces dentro de cada caso, así se prueba que se puede
  * pegar dos veces y corre con la base al día). Micaela es de Tienda Trujillo y no es líder (un rol de prueba con los módulos que pide cada
@@ -25,6 +26,10 @@
  *      puente 4019 (no baja el crédito fiscal ni entra a Impuestos), y si ya estaba pagada queda entera a favor; lo que no se facturó no
  *      tiene plata; Proveedores sí, Recibir solo no; el mismo token devuelve lo mismo; una nota del proveedor no usa la serie DI- ni vuelve
  *      a acreditar lo que ya saldó un DI.
+ *   V  LA NOTA DEL PROVEEDOR (5b, actividad 3, «Llegó su nota de crédito»): se adjunta a documentos internos de una factura sin mover
+ *      plata; desde su fecha baja el crédito fiscal (Impuestos, registro de compras) y el Diario saca su IGV de la cuenta puente; lo que no
+ *      se acepta (sin Notas de crédito, otro comprobante, serie, fecha, monto distinto); una nota para dos documentos; la tabla sola no
+ *      deja dos notas para un documento ni se edita.
  *   P  PERMISOS: Proveedores o Recibir resuelven; la plata de Compras y Órdenes de compra solo leen; sin módulos, 42501; sin elegir
  *      responsable, no.
  *   R  EN LA RECEPCIÓN: la reposición salda la más antigua primero y no pasa de lo debido; no salda una deuda de la misma recepción;
@@ -724,6 +729,153 @@ caso(
     "P0001||B001-902 ya tiene documentos internos por lo que no llegó: la nota del proveedor se adjunta a ellos con «Llegó su nota de crédito»",
 );
 
+// V. LA NOTA DEL PROVEEDOR (fase 5b, actividad 3: «Llegó su nota de crédito») ------------------------------------------------
+// Un error con la fecha del día adentro se compara sin ella.
+const SIN_FECHA = (expr) => `regexp_replace(${expr}, '[0-9]{2}/[0-9]{2}/[0-9]{4}', 'DD/MM/AAAA', 'g')`;
+const ADJUNTA = (ids, serie, fecha, monto, token = "'null'") =>
+  `pg_temp.intento(format('select retail.adjuntar_nota_proveedor(array[%s]::uuid[], %L, %s, %s, %s)', ${ids}, ${serie}, ${fecha}, ${monto}, ${token}))`;
+caso(
+  "V1 «Llegó su nota de crédito»: la nota del proveedor se adjunta al documento interno de la factura sin mover plata; desde su fecha, su IGV baja el crédito fiscal (Impuestos y registro) y sale de la cuenta puente en el Diario; el mismo token no hace otra",
+  `${PAPEL("fac", "factura", "F001", "901", [["l1", 10, 20]])}
+   ${rolDeMicaela("recibir", "proveedores")}
+   ${DEUDA("x1", "l1", 10, 7)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.resuelve(:'x1', 'saldo_a_favor', 3, null, null) as a \\gset
+   reset role;
+   select (:'a'::jsonb -> 'documentos' -> 0 ->> 'nota_credito_id') as di \\gset
+   select c.saldo as saldo_antes from retail.compras c where c.id = :'fac' \\gset
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select coalesce(sum(igv_notas_credito), 0) as nc_antes from retail.fn_igv_credito_fiscal(retail.fn_hoy_lima()) \\gset
+   select gen_random_uuid() as tok \\gset
+   select retail.adjuntar_nota_proveedor(array[:'di']::uuid[], ' fc01-000777 ', retail.fn_hoy_lima(), 70.80, :'tok') as np \\gset
+   select retail.adjuntar_nota_proveedor(array[:'di']::uuid[], 'FC01-000777', retail.fn_hoy_lima(), 70.80, :'tok') as np2 \\gset
+   select pg_temp.intento(format('select retail.adjuntar_nota_proveedor(array[%L]::uuid[], %L, retail.fn_hoy_lima(), 70.80, %L)', :'di', 'FC01-000778', :'tok')) as otro \\gset
+   select coalesce(sum(igv_notas_credito), 0) as nc_despues from retail.fn_igv_credito_fiscal(retail.fn_hoy_lima()) \\gset
+   select coalesce(string_agg(x.cuenta || ':' || x.debe || ':' || x.haber, ',' order by x.cuenta), '-') as diario,
+          coalesce(min(x.glosa) filter (where x.cuenta = '4019'), '-') as glosa
+     from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), null) x where x.origen_id = (:'np'::jsonb ->> 'nota_proveedor_id')::uuid \\gset
+   select coalesce(string_agg((t.nota_credito_id = :'di')::text || ':' || t.serie_numero || ':' || (t.fecha = retail.fn_hoy_lima()), ','), '-') as tablero
+     from retail.fn_notas_proveedor_tablero() t where t.nota_credito_id = :'di' \\gset
+   select count(*) as reg from retail.fn_impuestos_registro_compras(retail.fn_hoy_lima()) r
+    where r.tipo = 'nota_credito' and r.serie = 'FC01' and r.numero = '000777' and r.ref_serie = 'F001' and r.ref_numero = '901'
+      and r.igv = -10.80 and r.base = -60.00 and r.total = -70.80 and r.da_credito \\gset
+   reset role;
+   select concat_ws(' / ', ${CLAVES(":'np'::jsonb")},
+     (:'np'::jsonb ->> 'serie_numero') || ':' || (:'np'::jsonb ->> 'subtotal') || ':' || (:'np'::jsonb ->> 'igv') || ':' || (:'np'::jsonb ->> 'monto')
+       || ':' || ${DI("(:'np'::jsonb -> 'documentos' ->> 0)")} || ':' || (:'np'::jsonb ->> 'comprobante'),
+     ((:'np'::jsonb ->> 'nota_proveedor_id') = (:'np2'::jsonb ->> 'nota_proveedor_id'))::text, :'otro',
+     ((select c.saldo from retail.compras c where c.id = :'fac') = :'saldo_antes'::numeric)::text,
+     (select count(*) from retail.proveedor_creditos k where k.proveedor_id = :'prov') || ' en el libro',
+     (:'nc_despues'::numeric - :'nc_antes'::numeric)::text,
+     (select count(*) from retail.fn_impuestos_compras(retail.fn_hoy_lima(), retail.fn_hoy_lima()) x
+       where x.id = (:'np'::jsonb ->> 'nota_proveedor_id')::uuid and x.origen = 'nota_credito' and x.igv = -10.80 and x.da_credito) || ' en Impuestos',
+     :'reg' || ' en el registro', :'diario', :'glosa', :'tablero',
+     (select string_agg(a.modulo || ':' || ${DI("a.descripcion")} || ':' || (a.persona_id = :'felipe_p'), ',') from retail.actividad a
+       where a.accion = 'nota_proveedor_adjunta' and a.detalle ->> 'compra_id' = :'fac'));`,
+  [
+    "comprobante,documentos,fecha,igv,monto,nota_proveedor_id,serie_numero,subtotal",
+    "FC01-000777:60.00:10.80:70.80:DI-N:F001-901",
+    "true",
+    "P0001|nota_proveedor_otros_datos|Eso ya se guardó con otros datos: recarga la pantalla",
+    "true",
+    "0 en el libro",
+    "10.80",
+    "1 en Impuestos",
+    "1 en el registro",
+    "4011:0:10.80,4019:10.80:0",
+    "Nota de crédito FC01-000777 del proveedor: el IGV sale de por regularizar",
+    "true:FC01-000777:true",
+    "notas_credito:adjuntó la nota FC01-000777 de Proveedor Nos Debe Prueba a DI-N (F001-901):true",
+  ].join(" / "),
+);
+caso(
+  "V2 la nota del proveedor: sin Notas de crédito, 42501; solo a documentos internos de UNA factura; la serie, la fecha y el monto como el papel (y el monto igual a lo que no llegó); sin escribir nada",
+  `${PAPEL("fac", "factura", "F001", "901", [["l1", 10, 20]])}
+   ${PAPEL("fac2", "factura", "F001", "902", [["l2", 6, 30]])}
+   ${PAPEL("bol", "boleta", "B001", "903", [["l3", 4, 25]])}
+   ${rolDeMicaela("recibir", "proveedores")}
+   ${DEUDA("x1", "l1", 10, 7)}
+   ${DEUDA("x2", "l2", 6, 4, "vc_s")}
+   ${DEUDA("x3", "l3", 4, 3)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select (pg_temp.resuelve(:'x1', 'saldo_a_favor', 1, null, null) -> 'documentos' -> 0 ->> 'nota_credito_id') as di1 \\gset
+   select (pg_temp.resuelve(:'x2', 'saldo_a_favor', 2, null, null) -> 'documentos' -> 0 ->> 'nota_credito_id') as di3 \\gset
+   select (pg_temp.resuelve(:'x3', 'saldo_a_favor', 1, null, null) -> 'documentos' -> 0 ->> 'nota_credito_id') as di4 \\gset
+   select ${ADJUNTA("quote_literal(:'di1')", "'FC01-1'", "'retail.fn_hoy_lima()'", "'23.60'")} as sin_modulo \\gset
+   reset role;
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select concat_ws(' / ',
+     :'sin_modulo',
+     ${ADJUNTA("''", "'FC01-1'", "'retail.fn_hoy_lima()'", "'23.60'")},
+     ${ADJUNTA("quote_literal(:'di4')", "'FC01-1'", "'retail.fn_hoy_lima()'", "'25.00'")},
+     ${ADJUNTA("quote_literal(:'di1') || ', ' || quote_literal(:'di3')", "'FC01-1'", "'retail.fn_hoy_lima()'", "'94.40'")},
+     ${ADJUNTA("quote_literal(:'di1')", "'  '", "'retail.fn_hoy_lima()'", "'23.60'")},
+     ${ADJUNTA("quote_literal(:'di1')", "'di-000001'", "'retail.fn_hoy_lima()'", "'23.60'")},
+     ${ADJUNTA("quote_literal(:'di1')", "repeat('9', 31)", "'retail.fn_hoy_lima()'", "'23.60'")},
+     ${ADJUNTA("quote_literal(:'di1')", "'FC01-1'", "'retail.fn_hoy_lima() + 1'", "'23.60'")},
+     ${SIN_FECHA(ADJUNTA("quote_literal(:'di1')", "'FC01-1'", "'retail.fn_hoy_lima() - 1'", "'23.60'"))},
+     ${ADJUNTA("quote_literal(:'di1')", "'FC01-1'", "'retail.fn_hoy_lima()'", "'23.00'")},
+     ${ADJUNTA("quote_literal(:'di1')", "'FC01-1'", "'retail.fn_hoy_lima()'", "'23.601'")},
+     ${ADJUNTA("quote_literal(:'di1')", "'FC01-1'", "'null'", "'23.60'")}) as r \\gset
+   reset role;
+   select :'r' || ' / ' || (select count(*) from retail.compra_notas_proveedor p where p.compra_id in (:'fac', :'fac2', :'bol')) || ' notas del proveedor';`,
+  [
+    "42501|nota_proveedor_sin_modulo|Adjuntar la nota de crédito de un proveedor necesita el módulo «Notas de crédito» en tu rol",
+    "P0001|nota_proveedor_documentos|Elige qué documento interno respalda la nota",
+    "P0001|nota_proveedor_documentos|La nota del proveedor solo se adjunta a documentos internos de una factura: recarga la pantalla",
+    "P0001|nota_proveedor_documentos|Una nota del proveedor es de un solo comprobante: elige documentos internos del mismo",
+    "P0001|nota_proveedor_serie|Escribe la serie y el número de la nota del proveedor",
+    "P0001|nota_proveedor_serie|La serie DI- es de los documentos internos de CAYLA: escribe la de la nota del proveedor",
+    "P0001|nota_proveedor_serie|La serie y el número de la nota van hasta 30 letras",
+    "P0001|nota_proveedor_fecha|La fecha de la nota no puede ser futura",
+    "P0001|nota_proveedor_fecha|La nota no puede ser anterior al comprobante (emitido el DD/MM/AAAA)",
+    "P0001|nota_proveedor_monto|La nota dice S/ 23.00, pero lo que no llegó suma S/ 23.60 (base S/ 20.00 + IGV S/ 3.60): pídele al proveedor que la corrija",
+    "P0001|nota_proveedor_monto|El monto de la nota admite como máximo 2 decimales",
+    "P0001|nota_proveedor_fecha|Elige la fecha de la nota",
+    "0 notas del proveedor",
+  ].join(" / "),
+);
+caso(
+  "V3 una nota para dos documentos internos del mismo comprobante; después, cada uno ya tiene la suya y la serie no se repite; la tabla sola tampoco deja dos notas para un documento, ni editar ni borrar",
+  `${PAPEL("fac", "factura", "F001", "901", [["l1", 10, 20]])}
+   ${rolDeMicaela("recibir", "proveedores")}
+   ${DEUDA("x1", "l1", 10, 7)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select (pg_temp.resuelve(:'x1', 'saldo_a_favor', 1, null, null) -> 'documentos' -> 0 ->> 'nota_credito_id') as di1 \\gset
+   select (pg_temp.resuelve(:'x1', 'saldo_a_favor', 1, null, null) -> 'documentos' -> 0 ->> 'nota_credito_id') as di2 \\gset
+   select (pg_temp.resuelve(:'x1', 'saldo_a_favor', 1, null, null) -> 'documentos' -> 0 ->> 'nota_credito_id') as di3 \\gset
+   reset role;
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.adjuntar_nota_proveedor(array[:'di1', :'di2']::uuid[], 'FC01-5', retail.fn_hoy_lima(), 47.20, null) as np \\gset
+   select concat_ws(' / ',
+     ${ADJUNTA("quote_literal(:'di3')", "'FC01-5'", "'retail.fn_hoy_lima()'", "'23.60'")},
+     ${ADJUNTA("quote_literal(:'di1')", "'FC01-6'", "'retail.fn_hoy_lima()'", "'23.60'")}) as despues \\gset
+   select count(*) as tablero from retail.fn_notas_proveedor_tablero() t where t.nota_credito_id in (:'di1', :'di2') and t.serie_numero = 'FC01-5' \\gset
+   reset role;
+   select concat_ws(' / ',
+     (:'np'::jsonb ->> 'monto') || ':' || (:'np'::jsonb ->> 'igv') || ':' || jsonb_array_length(:'np'::jsonb -> 'documentos'),
+     ${DI(":'despues'")},
+     :'tablero' || ' en el tablero',
+     pg_temp.intento(format($q$with n as (insert into retail.compra_notas_proveedor (compra_id, serie_numero, fecha, subtotal, igv, monto)
+                                          values (%L, 'FC01-9', retail.fn_hoy_lima(), 20, 3.60, 23.60) returning id)
+                               insert into retail.compra_notas_proveedor_documentos (nota_proveedor_id, nota_credito_id) select n.id, %L from n$q$,
+                             :'fac', :'di1')),
+     pg_temp.intento($q$update retail.compra_notas_proveedor set fecha = fecha$q$),
+     pg_temp.intento($q$delete from retail.compra_notas_proveedor_documentos$q$),
+     pg_temp.intento(format($q$insert into retail.compra_notas_proveedor (compra_id, serie_numero, fecha, subtotal, igv, monto)
+                               values (%L, 'FC01-10', retail.fn_hoy_lima(), 20, 0, 20)$q$, :'fac')));`,
+  [
+    "47.20:7.20:2",
+    "P0001|nota_proveedor_serie|La nota FC01-5 ya está registrada en F001-901",
+    "P0001|nota_proveedor_ya_adjunta|Ya tiene su nota del proveedor: DI-N (FC01-5). Recarga la pantalla",
+    "2 en el tablero",
+    "23505||duplicate key value violates unique constraint \"compra_notas_proveedor_documentos_una\"",
+    "P0001||Los cierres de línea y las notas de crédito no se editan ni se borran. Para corregir un error, registra un documento nuevo — así queda constancia de qué pasó.",
+    "P0001||Los cierres de línea y las notas de crédito no se editan ni se borran. Para corregir un error, registra un documento nuevo — así queda constancia de qué pasó.",
+    "23514||new row for relation \"compra_notas_proveedor\" violates check constraint \"compra_notas_proveedor_cifras\"",
+  ].join(" / "),
+);
+
 // P. PERMISOS ---------------------------------------------------------------------------------------------------------------
 caso(
   "P1 sin módulos (solo Existencias): 42501 al leer, al ver el resumen y al resolver; tampoco una deuda que no existe se adivina",
@@ -1023,6 +1175,28 @@ caso(
         and p.proname in ('recibir_despacho', 'fn_envio_detalle')),
      (select count(*) from retail.acciones_sin_responsable where (clave like '%deuda%' and clave not like 'fondo%') or clave like 'nos_debe%'));`,
   "3,t,t,f,6,f,t,0,f,f,f,2,0",
+);
+
+// La fase 5b: lo que lee y escribe la web, security definer con authenticated y sin anon; lo interno, cerrado; las tablas de la nota del
+// proveedor, con RLS, sin políticas y sin lectura directa.
+const PUBLICAS_5B = "('fn_deuda_valor', 'adjuntar_nota_proveedor', 'fn_notas_proveedor_tablero')";
+const INTERNAS_5B = "('fn_deuda_papel', 'fn_deuda_valor_de', 'fn_pasar_deuda_a_saldo_a_favor', 'fn_deuda_documentos_de', 'fn_nota_proveedor_resumen', " +
+  "'fn_asientos_nota_proveedor')";
+caso(
+  "S2 la fase 5b: las públicas security definer, authenticated sí y anon no; las internas cerradas; las tablas de la nota del proveedor con RLS, sin políticas y sin lectura directa",
+  `select concat_ws(',',
+     (select count(*) ${DE_RETAIL(PUBLICAS_5B)}),
+     (select bool_and(p.prosecdef) ${DE_RETAIL(PUBLICAS_5B)}),
+     (select bool_and(has_function_privilege('authenticated', p.oid, 'execute')) ${DE_RETAIL(PUBLICAS_5B)}),
+     (select bool_or(has_function_privilege('anon', p.oid, 'execute')) ${DE_RETAIL(PUBLICAS_5B)}),
+     (select count(*) ${DE_RETAIL(INTERNAS_5B)}),
+     (select bool_or(has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute')) ${DE_RETAIL(INTERNAS_5B)}),
+     (select bool_and(c.relrowsecurity) from pg_class c where c.oid in ('retail.compra_notas_proveedor'::regclass, 'retail.compra_notas_proveedor_documentos'::regclass)),
+     (select count(*) from pg_policies where schemaname = 'retail' and tablename in ('compra_notas_proveedor', 'compra_notas_proveedor_documentos')),
+     has_table_privilege('authenticated', 'retail.compra_notas_proveedor', 'select'),
+     has_table_privilege('authenticated', 'retail.compra_notas_proveedor_documentos', 'select'),
+     has_table_privilege('anon', 'retail.compra_notas_proveedor', 'select'));`,
+  "3,t,t,f,6,f,t,0,f,f,f",
 );
 
 // C. DOS SESIONES A LA VEZ --------------------------------------------------------------------------------------------------

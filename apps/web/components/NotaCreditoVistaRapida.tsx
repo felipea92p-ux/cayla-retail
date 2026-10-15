@@ -41,6 +41,7 @@ export function NotaCreditoVistaRapida({
   onCerrar,
   onNavegar,
   onRegistrar,
+  onAdjuntar,
   onDetalle,
 }: {
   nota: FilaVista;
@@ -48,6 +49,8 @@ export function NotaCreditoVistaRapida({
   onCerrar: () => void;
   onNavegar: (delta: 1 | -1) => void;
   onRegistrar: (compraId: string) => void;
+  /** «Llegó su nota de crédito» (fase 5b): adjuntar la nota del proveedor a este documento interno. */
+  onAdjuntar: (id: string) => void;
   onDetalle: (id: string) => void;
 }) {
   const [cerrando, setCerrando] = useState(false);
@@ -115,7 +118,6 @@ export function NotaCreditoVistaRapida({
                 <Chip tono={chip.tono}>{chip.texto}</Chip>
                 {f.clase === "pendiente" && !f.bloqueada && <Chip tono={f.tramo === "urgente" ? "rojo" : f.tramo === "medio" ? "ambar" : "neutro"}>{hace(f.edadDias)}</Chip>}
                 {f.motivo && <Chip tono="neutro">{ETIQUETA_MOTIVO_NOTA[f.motivo] ?? f.motivo}</Chip>}
-                {faltaNotaDelProveedor(f) && <Chip tono="ambar">Falta su nota de crédito</Chip>}
               </div>
 
               <dl className="grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">
@@ -154,6 +156,10 @@ export function NotaCreditoVistaRapida({
                   className="btn-cayla btn-primario"
                 >
                   {f.bloqueada ? "Aún no se puede" : "Registrar nota"}
+                </button>
+              ) : faltaNotaDelProveedor(f) ? (
+                <button type="button" onClick={() => onAdjuntar(f.id)} className="btn-cayla btn-primario">
+                  Llegó su nota de crédito
                 </button>
               ) : null}
               <button type="button" onClick={() => onDetalle(f.id)} className="btn-cayla btn-secundario">

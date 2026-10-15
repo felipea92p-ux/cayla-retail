@@ -556,7 +556,7 @@ export const GUIA_NOTAS_CREDITO: Guia = {
       ancla: "notas-credito.estados",
       preparar: [{ tipo: "vaciar", ancla: "notas-credito.buscador" }],
       titulo: "Por reclamar, emitidas, aplicadas",
-      texto: "«Por reclamar»: el proveedor te debe una nota (por un faltante) y todavía no llega. «Emitidas»: ya llegaron. «Aplicadas»: ya bajaron deuda o te devolvieron la plata. «Todas» las junta (te la mostramos).",
+      texto: "«Por reclamar»: el proveedor te debe una nota (por un faltante) y todavía no llega; también la de una factura cuya plata ya volvió con un documento interno, y solo falta el papel. «Emitidas»: ya llegaron. «Aplicadas»: ya bajaron deuda o te devolvieron la plata. «Todas» las junta (te la mostramos).",
     },
     {
       id: "estado-todas",
@@ -601,7 +601,7 @@ export const GUIA_NOTAS_CREDITO: Guia = {
       ancla: "notas-credito.vista-acciones",
       opcional: true,
       titulo: "Registrar, ver o ir a la factura",
-      texto: "Cuando por fin llega una nota que esperabas, la registras desde aquí y ya viene con su factura elegida. También ves su detalle o abres la factura de origen. Con las flechas pasas a la siguiente.",
+      texto: "Cuando por fin llega una nota que esperabas, la registras desde aquí y ya viene con su factura elegida; si era de un documento interno, «Llegó su nota de crédito» la adjunta sin mover plata. También ves su detalle o abres la factura de origen. Con las flechas pasas a la siguiente.",
     },
     {
       id: "atajos",

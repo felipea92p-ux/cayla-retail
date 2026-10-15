@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261015150000_nos_debe_saldo_a_favor.sql — CAYLA V2 · ADR-0362, fase 5b, actividades 1 y 2 (parte 2 de 2: las funciones). Va después de
+-- 20261015150000_nos_debe_saldo_a_favor.sql — CAYLA V2 · ADR-0362, fase 5b, actividades 1 a 3 (parte 2 de 2: las funciones). Va después de
 -- 20261015145000_nos_debe_saldo_a_favor_esquema.sql. Contrato: docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md.
 --
 -- EL PROBLEMA PRIMERO. Una deuda del proveedor solo se saldaba con la prenda. Si no la va a mandar, la plata pagada por ella no volvía.
@@ -30,6 +30,12 @@
 --      sigue cuadrando contra Impuestos (`fn_conciliacion_contable`). Y una nota del
 --      proveedor (`fn_insertar_nota_credito_compra`) no puede usar la serie DI- ni ser una nota por faltante de un comprobante que ya tiene
 --      documentos internos: esa nota se adjunta al documento interno (actividad 3).
+--   7. «Llegó su nota de crédito» (actividad 3): `adjuntar_nota_proveedor` ata la nota 07 del proveedor a los documentos internos de una
+--      factura que respalda, sin mover plata (eso ya lo hizo el documento): pide el módulo Notas de crédito, que la nota diga lo mismo que
+--      esos documentos (el monto se escribe como dice el papel, y tiene que coincidir), y respeta el mes cerrado. Desde la fecha de esa nota:
+--      Impuestos la cuenta como nota de crédito (`fn_impuestos_compras`, `fn_impuestos_registro_compras`, `fn_igv_credito_fiscal`,
+--      `resumen_compras_extra`: REEMPLAZOS ANCLADOS) y el Diario saca su IGV de la cuenta puente 4019 y baja el crédito fiscal (4011,
+--      `fn_asientos_nota_proveedor`). El tablero de Notas de crédito lee qué documentos ya tienen su nota (`fn_notas_proveedor_tablero`).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe). UNA parte, después de 20261015145000. Sin tablas, sin políticas, sin `drop trigger`
 -- (ADR-0195), sin `select … into` dentro de textos entre comillas (ADR-0288). Las reescrituras y los reemplazos abortan SIN TOCAR NADA si la
@@ -698,7 +704,282 @@ $v$,
 $n$,
   1);
 
--- ---------- 8. Permisos ----------
+-- ---------- 8. «Llegó su nota de crédito»: la nota del proveedor que respalda documentos internos (actividad 3) ----------
+-- Lo que devuelve: la nota y los documentos que respalda. Interna (la usan la función de abajo y su reintento).
+create or replace function retail.fn_nota_proveedor_resumen(p_id uuid)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+  select jsonb_build_object('nota_proveedor_id', p.id, 'serie_numero', p.serie_numero, 'fecha', p.fecha, 'subtotal', p.subtotal, 'igv', p.igv,
+                            'monto', p.monto, 'comprobante', c.documento,
+                            'documentos', coalesce((select jsonb_agg(n.serie_numero order by n.serie_numero)
+                                                      from retail.compra_notas_proveedor_documentos d
+                                                      join retail.compra_notas_credito n on n.id = d.nota_credito_id
+                                                     where d.nota_proveedor_id = p.id), '[]'::jsonb))
+    from retail.compra_notas_proveedor p
+    join retail.compras c on c.id = p.compra_id
+   where p.id = p_id;
+$$;
+
+create or replace function retail.adjuntar_nota_proveedor(p_documentos uuid[], p_serie_numero text, p_fecha date, p_monto numeric, p_token uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_serie text := upper(btrim(coalesce(p_serie_numero, '')));
+  v_ids uuid[];
+  v_n integer;
+  v_compras integer;
+  v_compra uuid;
+  v_c record;
+  v_actor uuid;
+  v_huella text;
+  v_existente record;
+  v_ya text;
+  v_base numeric(12, 2);
+  v_igv numeric(12, 2);
+  v_monto numeric(12, 2);
+  v_id uuid;
+  v_docs text;
+  v_hoy date := retail.fn_hoy_lima();
+begin
+  -- Es del módulo Notas de crédito, como registrar una nota del proveedor (`fn_puede_registrar_notas_credito`).
+  if retail.fn_puede_registrar_notas_credito() is not true then
+    raise exception 'Adjuntar la nota de crédito de un proveedor necesita el módulo «Notas de crédito» en tu rol'
+      using errcode = '42501', hint = 'nota_proveedor_sin_modulo';
+  end if;
+
+  -- Qué respalda: documentos internos de una FACTURA (con IGV), todos de un mismo comprobante.
+  v_ids := array(select distinct x from unnest(coalesce(p_documentos, '{}'::uuid[])) x where x is not null order by 1);
+  if cardinality(v_ids) = 0 then
+    raise exception 'Elige qué documento interno respalda la nota' using hint = 'nota_proveedor_documentos';
+  end if;
+  select count(*), count(distinct n.compra_id), min(n.compra_id::text)::uuid into v_n, v_compras, v_compra
+    from retail.compra_notas_credito n
+   where n.id = any (v_ids) and n.interna and n.igv > 0;
+  if v_n <> cardinality(v_ids) then
+    raise exception 'La nota del proveedor solo se adjunta a documentos internos de una factura: recarga la pantalla' using hint = 'nota_proveedor_documentos';
+  end if;
+  if v_compras <> 1 then
+    raise exception 'Una nota del proveedor es de un solo comprobante: elige documentos internos del mismo' using hint = 'nota_proveedor_documentos';
+  end if;
+  if not retail.fn_compra_es_de_mis_tiendas(v_compra) then
+    raise exception 'Ese comprobante lo gestiona otra tienda: su nota la adjunta ella (o un líder)' using errcode = '42501', hint = 'nota_proveedor_sin_modulo';
+  end if;
+
+  -- El comprobante se bloquea: dos personas adjuntando a la vez se ponen en fila, y todo lo de abajo se mira después de esperar.
+  select c.id, c.documento, c.estado, c.fecha_emision, c.proveedor_id, c.ubicacion_gestion_id, pr.nombre as proveedor into v_c
+    from retail.compras c join retail.proveedores pr on pr.id = c.proveedor_id
+   where c.id = v_compra
+     for update of c;
+  if v_c.estado <> 'vigente' then
+    raise exception '% está anulado: no recibe notas de crédito', v_c.documento using hint = 'nota_proveedor_anulado';
+  end if;
+
+  v_actor := retail.fn_actor_persona_id(true);
+  v_huella := md5(array_to_string(v_ids, ',') || '|' || v_serie || '|' || coalesce(p_fecha::text, '') || '|' || coalesce(round(p_monto, 2)::text, ''));
+
+  -- El mismo pedido otra vez (doble clic, corte de señal) devuelve lo mismo; el mismo token con otros datos, no.
+  if p_token is not null then
+    select p.id, p.huella into v_existente from retail.compra_notas_proveedor p where p.token_cliente = p_token;
+    if found then
+      if v_existente.huella = v_huella then
+        return retail.fn_nota_proveedor_resumen(v_existente.id);
+      end if;
+      raise exception 'Eso ya se guardó con otros datos: recarga la pantalla' using hint = 'nota_proveedor_otros_datos';
+    end if;
+  end if;
+
+  -- Cada documento interno, una sola nota del proveedor.
+  select string_agg(n.serie_numero || ' (' || p.serie_numero || ')', ', ' order by n.serie_numero) into v_ya
+    from retail.compra_notas_proveedor_documentos d
+    join retail.compra_notas_credito n on n.id = d.nota_credito_id
+    join retail.compra_notas_proveedor p on p.id = d.nota_proveedor_id
+   where d.nota_credito_id = any (v_ids);
+  if v_ya is not null then
+    raise exception 'Ya tiene su nota del proveedor: %. Recarga la pantalla', v_ya using hint = 'nota_proveedor_ya_adjunta';
+  end if;
+
+  -- La serie: la del proveedor, que no se repite en el comprobante (ni entre sus notas de crédito).
+  if v_serie = '' then
+    raise exception 'Escribe la serie y el número de la nota del proveedor' using hint = 'nota_proveedor_serie';
+  end if;
+  if v_serie like 'DI-%' then
+    raise exception 'La serie DI- es de los documentos internos de CAYLA: escribe la de la nota del proveedor' using hint = 'nota_proveedor_serie';
+  end if;
+  if length(v_serie) > 30 then
+    raise exception 'La serie y el número de la nota van hasta 30 letras' using hint = 'nota_proveedor_serie';
+  end if;
+  if exists (select 1 from retail.compra_notas_credito n where n.compra_id = v_compra and n.serie_numero = v_serie)
+     or exists (select 1 from retail.compra_notas_proveedor p where p.compra_id = v_compra and p.serie_numero = v_serie) then
+    raise exception 'La nota % ya está registrada en %', v_serie, v_c.documento using hint = 'nota_proveedor_serie';
+  end if;
+
+  -- La fecha: la de la nota, ni futura ni anterior al comprobante (como cualquier nota de crédito). El mes cerrado lo frena su disparador.
+  if p_fecha is null then
+    raise exception 'Elige la fecha de la nota' using hint = 'nota_proveedor_fecha';
+  end if;
+  if p_fecha > v_hoy then
+    raise exception 'La fecha de la nota no puede ser futura' using hint = 'nota_proveedor_fecha';
+  end if;
+  if p_fecha < v_c.fecha_emision then
+    raise exception 'La nota no puede ser anterior al comprobante (emitido el %)', to_char(v_c.fecha_emision, 'DD/MM/YYYY')
+      using hint = 'nota_proveedor_fecha';
+  end if;
+
+  -- El monto: como lo dice el papel, y tiene que ser lo mismo que los documentos que respalda (la plata ya volvió con ellos: una nota por
+  -- otra cifra es un error del proveedor, que la corrige él).
+  select coalesce(sum(n.subtotal), 0), coalesce(sum(n.igv), 0), coalesce(sum(n.monto), 0) into v_base, v_igv, v_monto
+    from retail.compra_notas_credito n where n.id = any (v_ids);
+  if p_monto is null or p_monto <= 0 then
+    raise exception 'Escribe el monto de la nota, como lo dice el papel' using hint = 'nota_proveedor_monto';
+  end if;
+  if p_monto <> round(p_monto, 2) then
+    raise exception 'El monto de la nota admite como máximo 2 decimales' using hint = 'nota_proveedor_monto';
+  end if;
+  if p_monto <> v_monto then
+    raise exception 'La nota dice S/ %, pero lo que no llegó suma S/ % (base S/ % + IGV S/ %): pídele al proveedor que la corrija',
+      to_char(p_monto, 'FM999999990.00'), to_char(v_monto, 'FM999999990.00'), to_char(v_base, 'FM999999990.00'), to_char(v_igv, 'FM999999990.00')
+      using hint = 'nota_proveedor_monto';
+  end if;
+
+  begin
+    insert into retail.compra_notas_proveedor (compra_id, serie_numero, fecha, subtotal, igv, monto, usuario_id, token_cliente, huella)
+    values (v_compra, v_serie, p_fecha, v_base, v_igv, v_monto, v_actor, p_token, v_huella)
+    returning id into v_id;
+    insert into retail.compra_notas_proveedor_documentos (nota_proveedor_id, nota_credito_id)
+    select v_id, x from unnest(v_ids) x;
+  exception when unique_violation then
+    raise exception 'Eso ya se guardó: recarga la pantalla' using hint = 'nota_proveedor_otros_datos';
+  end;
+
+  -- Actividad (ADR-0207), sin montos, en el módulo donde vive el botón. Si falla, igual queda.
+  begin
+    select string_agg(n.serie_numero, ', ' order by n.serie_numero) into v_docs from retail.compra_notas_credito n where n.id = any (v_ids);
+    perform retail.fn_actividad_anotar('notas_credito', 'nota_proveedor_adjunta',
+      'adjuntó la nota ' || v_serie || ' de ' || v_c.proveedor || ' a ' || coalesce(v_docs, '') || ' (' || coalesce(v_c.documento, '') || ')',
+      v_actor, retail.fn_actividad_terminal_ahora(), v_c.ubicacion_gestion_id, null, 'compra_notas_proveedor', v_id::text, now(),
+      jsonb_build_object('compra_id', v_compra, 'documentos', to_jsonb(v_ids)), 'vivo');
+  exception when others then
+    raise warning 'actividad: no se anotó la nota del proveedor % (%)', v_id, sqlerrm;
+  end;
+
+  return retail.fn_nota_proveedor_resumen(v_id);
+end;
+$$;
+comment on function retail.adjuntar_nota_proveedor(uuid[], text, date, numeric, uuid) is
+  'ADR-0362 fase 5b (actividad 3): «Llegó su nota de crédito». Ata la nota 07 del proveedor a los documentos internos de una factura que respalda, sin mover plata; desde su fecha, su IGV baja el crédito fiscal (Impuestos y Diario). Módulo Notas de crédito.';
+
+-- El tablero de Notas de crédito: qué documentos internos ya tienen su nota del proveedor. Con el mismo candado que el tablero.
+create or replace function retail.fn_notas_proveedor_tablero()
+returns table (nota_credito_id uuid, nota_proveedor_id uuid, serie_numero text, fecha date)
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+  select retail.fn_exige_dinero_de_compras('las notas de crédito de proveedores');
+  select d.nota_credito_id, p.id, p.serie_numero, p.fecha
+    from retail.compra_notas_proveedor_documentos d
+    join retail.compra_notas_proveedor p on p.id = d.nota_proveedor_id
+   where retail.fn_compra_es_de_mis_tiendas(p.compra_id);
+$$;
+comment on function retail.fn_notas_proveedor_tablero() is
+  'ADR-0362 fase 5b (actividad 3): los documentos internos que ya tienen su nota del proveedor, para el tablero de Notas de crédito.';
+
+-- El Diario: la nota del proveedor saca el IGV de la cuenta puente (debe 4019) y baja el crédito fiscal (haber 4011), en su fecha.
+create or replace function retail.fn_asientos_nota_proveedor(p_desde date, p_hasta date, p_todo boolean, p_ubics uuid[])
+returns table (f date, ubicacion_id uuid, asiento text, regla text, cuenta text, debe numeric, haber numeric, ot text, oid uuid, glosa text)
+language sql stable set search_path = retail, public, extensions as $$
+  with np as (
+    select p.id, c.ubicacion_gestion_id as ubicacion_id, p.fecha, p.igv, p.serie_numero
+      from retail.compra_notas_proveedor p
+      join retail.compras c on c.id = p.compra_id
+     where c.estado = 'vigente' and p.fecha between p_desde and p_hasta and (p_todo or c.ubicacion_gestion_id = any (p_ubics))
+  )
+  select np.fecha, np.ubicacion_id, 'nota_proveedor:' || np.id, 'nota_proveedor', '4019', np.igv, 0::numeric,
+         'compra_notas_proveedor', np.id, 'Nota de crédito ' || np.serie_numero || ' del proveedor: el IGV sale de por regularizar'
+    from np
+  union all
+  select np.fecha, np.ubicacion_id, 'nota_proveedor:' || np.id, 'nota_proveedor', '4011', 0::numeric, np.igv,
+         'compra_notas_proveedor', np.id, 'Baja el IGV descontable'
+    from np;
+$$;
+
+select pg_temp.reemplazar(
+  'retail.fn_asientos(date, date, uuid)',
+  $v$union all select * from l_nc union all select * from l_pago$v$,
+  $n$union all select * from l_nc
+    -- ADR-0362 fase 5b, actividad 3: la nota del proveedor saca el IGV de la cuenta puente y baja el crédito fiscal, en su mes.
+    union all select * from retail.fn_asientos_nota_proveedor(p_desde, p_hasta, v_todo, v_ubics) union all select * from l_pago$n$,
+  1);
+
+-- Impuestos: la nota del proveedor es una nota de crédito ante SUNAT, en el mes de su fecha (origen `nota_credito`, como las demás: así
+-- `fn_impuestos_igv_meses` y el panel la suman sin cambios). Se inserta ANTES de la rama de las notas, que el WHERE de esa rama es el
+-- comienzo del texto que dejó 20261014153000 y partirlo haría que esa migración no se pudiera volver a pegar.
+select pg_temp.reemplazar(
+  'retail.fn_impuestos_compras(date, date)',
+  $v$  select 'nota_credito', n.id, k.naturaleza, n.fecha, 'nota_credito', -n.subtotal, -n.igv, -n.monto, k.tipo = 'factura'
+$v$,
+  $n$  -- ADR-0362 fase 5b, actividad 3: la nota de crédito del proveedor que respalda documentos internos de una factura.
+  select 'nota_credito', p.id, k.naturaleza, p.fecha, 'nota_credito', -p.subtotal, -p.igv, -p.monto, k.tipo = 'factura'
+    from retail.compra_notas_proveedor p
+    join retail.compras k on k.id = p.compra_id
+   where k.estado = 'vigente' and p.fecha between p_desde and p_hasta
+  union all
+  select 'nota_credito', n.id, k.naturaleza, n.fecha, 'nota_credito', -n.subtotal, -n.igv, -n.monto, k.tipo = 'factura'
+$n$,
+  1);
+
+select pg_temp.reemplazar(
+  'retail.fn_impuestos_registro_compras(date)',
+  $v$    select 'nota_credito', k.naturaleza, n.fecha, null, 'nota_credito',
+$v$,
+  $n$    -- ADR-0362 fase 5b, actividad 3: la nota de crédito del proveedor que respalda documentos internos de una factura.
+    select 'nota_credito', k.naturaleza, p.fecha, null, 'nota_credito',
+           split_part(p.serie_numero, '-', 1),
+           nullif(substr(p.serie_numero, length(split_part(p.serie_numero, '-', 1)) + 2), ''),
+           pr.ruc, pr.nombre,
+           -p.subtotal, -p.igv, 0::numeric, -p.monto, k.tipo = 'factura',
+           k.fecha_emision, k.tipo, k.serie, k.numero,
+           coalesce(ug.nombre, case when k.naturaleza <> 'mercaderia' then 'De la empresa' end)
+      from retail.compra_notas_proveedor p
+      join retail.compras k on k.id = p.compra_id
+      join retail.proveedores pr on pr.id = k.proveedor_id
+      left join retail.ubicaciones ug on ug.id = k.ubicacion_gestion_id
+     where k.estado = 'vigente' and p.fecha between v_ini and v_fin
+    union all
+    select 'nota_credito', k.naturaleza, n.fecha, null, 'nota_credito',
+$n$,
+  1);
+
+select pg_temp.reemplazar(
+  'retail.fn_igv_credito_fiscal(date)',
+  $v$  nc as (select coalesce(sum(n.igv), 0) as v from retail.compra_notas_credito n join retail.compras k on k.id = n.compra_id, m$v$,
+  $n$  nc as (select coalesce(sum(n.igv), 0)
+                 -- ADR-0362 fase 5b, actividad 3: la nota del proveedor que respalda documentos internos baja el crédito fiscal en su mes.
+                 + coalesce((select sum(p.igv) from retail.compra_notas_proveedor p join retail.compras kp on kp.id = p.compra_id, m mp
+                              where kp.estado = 'vigente' and p.fecha >= mp.ini and p.fecha < mp.ini + interval '1 month'), 0) as v
+           from retail.compra_notas_credito n join retail.compras k on k.id = n.compra_id, m$n$,
+  1);
+
+select pg_temp.reemplazar(
+  'retail.resumen_compras_extra()',
+  $v$      select coalesce(sum(nc.igv), 0)
+      from retail.compra_notas_credito nc$v$,
+  $n$      select coalesce(sum(nc.igv), 0)
+             -- ADR-0362 fase 5b, actividad 3: la nota del proveedor que respalda documentos internos.
+             + coalesce((select sum(p.igv) from retail.compra_notas_proveedor p join retail.compras cp on cp.id = p.compra_id
+                          where p.fecha >= $1 and p.fecha < $2 and cp.estado = 'vigente' and fn_compra_es_de_mis_tiendas(cp.id)), 0)
+      from retail.compra_notas_credito nc$n$,
+  1);
+
+-- ---------- 9. Permisos ----------
 revoke all on function retail.fn_deuda_papel(uuid, integer) from public, anon, authenticated;
 grant execute on function retail.fn_deuda_papel(uuid, integer) to service_role;
 revoke all on function retail.fn_deuda_valor_de(uuid, integer) from public, anon, authenticated;
@@ -712,6 +993,13 @@ grant execute on function retail.fn_deuda_valor(uuid, integer) to authenticated,
 revoke all on function retail.resolver_deuda_proveedor(uuid, text, integer, text, uuid) from public, anon;
 grant execute on function retail.resolver_deuda_proveedor(uuid, text, integer, text, uuid) to authenticated, service_role;
 revoke all on function retail.fn_nos_debe_deuda(uuid) from public, anon;
+revoke all on function retail.fn_nota_proveedor_resumen(uuid) from public, anon, authenticated;
+grant execute on function retail.fn_nota_proveedor_resumen(uuid) to service_role;
+revoke all on function retail.fn_asientos_nota_proveedor(date, date, boolean, uuid[]) from public, anon, authenticated;
+revoke all on function retail.adjuntar_nota_proveedor(uuid[], text, date, numeric, uuid) from public, anon;
+grant execute on function retail.adjuntar_nota_proveedor(uuid[], text, date, numeric, uuid) to authenticated, service_role;
+revoke all on function retail.fn_notas_proveedor_tablero() from public, anon;
+grant execute on function retail.fn_notas_proveedor_tablero() to authenticated, service_role;
 
 reset lock_timeout;
 
@@ -738,6 +1026,15 @@ begin
   end if;
   if position('nos_debe_todavia_no' in pg_get_functiondef('retail.fn_pasar_deuda_a_saldo_a_favor(uuid, integer, text, uuid, text, uuid, uuid, text)'::regprocedure)) > 0 then
     raise exception 'pasar a saldo a favor todavía no acepta facturas';
+  end if;
+  if position('fn_asientos_nota_proveedor' in pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure)) = 0 then
+    raise exception 'el Diario todavía no lee la nota del proveedor';
+  end if;
+  if position('compra_notas_proveedor' in pg_get_functiondef('retail.fn_impuestos_compras(date, date)'::regprocedure)) = 0
+     or position('compra_notas_proveedor' in pg_get_functiondef('retail.fn_impuestos_registro_compras(date)'::regprocedure)) = 0
+     or position('compra_notas_proveedor' in pg_get_functiondef('retail.fn_igv_credito_fiscal(date)'::regprocedure)) = 0
+     or position('compra_notas_proveedor' in pg_get_functiondef('retail.resumen_compras_extra()'::regprocedure)) = 0 then
+    raise exception 'Impuestos todavía no cuenta la nota del proveedor';
   end if;
   if position('La serie DI- es de los documentos internos' in pg_get_functiondef('retail.fn_insertar_nota_credito_compra(uuid, text, date, numeric, text, text, uuid, uuid)'::regprocedure)) = 0 then
     raise exception 'una nota del proveedor todavía puede usar la serie DI-';

@@ -46,7 +46,20 @@ import { EnlaceVer } from "@/components/ui/EnlaceVer";
    dibuja al copiar el mensaje — respuesta a un clic, 320 ms, una sola vez.
    ==================================================================== */
 
-export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar }: { nota: FilaVista; movimientos: MovimientoFavor[]; onCerrar: () => void; onRegistrar: (compraId: string) => void }) {
+export function NotaCreditoDetalle({
+  nota: f,
+  movimientos,
+  onCerrar,
+  onRegistrar,
+  onAdjuntar,
+}: {
+  nota: FilaVista;
+  movimientos: MovimientoFavor[];
+  onCerrar: () => void;
+  onRegistrar: (compraId: string) => void;
+  /** «Llegó su nota de crédito» (fase 5b): adjuntar la nota del proveedor a este documento interno. */
+  onAdjuntar: (id: string) => void;
+}) {
   const [copiado, setCopiado] = useState(false);
   const chip = chipEstado(f);
   const pasos = pasosDeNota(f);
@@ -93,7 +106,6 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
             <Chip tono={chip.tono}>{chip.texto}</Chip>
             {f.clase === "pendiente" && !f.bloqueada && <Chip tono={f.tramo === "urgente" ? "rojo" : f.tramo === "medio" ? "ambar" : "neutro"}>{hace(f.edadDias)}</Chip>}
             {f.motivo && <Chip tono="neutro">{ETIQUETA_MOTIVO_NOTA[f.motivo] ?? f.motivo}</Chip>}
-            {faltaNota && <Chip tono="ambar">Falta su nota de crédito</Chip>}
           </div>
 
           <dl className="grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">
@@ -213,6 +225,11 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
             {f.clase === "pendiente" && !f.bloqueada && (
               <Boton type="button" peso="primario" onClick={() => onRegistrar(f.compraId)}>
                 Registrar la nota
+              </Boton>
+            )}
+            {faltaNota && (
+              <Boton type="button" peso="primario" onClick={() => onAdjuntar(f.id)}>
+                Llegó su nota de crédito
               </Boton>
             )}
           </div>

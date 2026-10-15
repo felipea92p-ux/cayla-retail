@@ -1,5 +1,6 @@
 import { diaLima, diasEntreFechas } from "./fechas-lima";
 import { soles } from "./compras-reglas";
+import { nombreMes } from "./impuestos-reglas";
 import { MARGEN_NOTA, reparteNota, type ReparteNota } from "./recepciones-reglas";
 
 /* ====================================================================
@@ -34,12 +35,12 @@ export function nombreDeNotaDeCredito(serie: string | null | undefined): string 
 }
 
 /**
- * ¿Falta la nota de crédito del proveedor (la 07)? Solo en un documento interno de una FACTURA (con IGV, fase 5b actividad 2): la plata ya
- * volvió, pero su IGV no baja el crédito fiscal sin la nota del proveedor y espera en la cuenta puente 4019. Con boleta, nota de venta o sin
- * comprobante no hay IGV que regularizar: el documento interno basta.
+ * ¿Falta la nota de crédito del proveedor (la 07)? Solo en un documento interno de una FACTURA (con IGV, fase 5b actividad 2) que todavía no
+ * la tiene adjunta (actividad 3): la plata ya volvió, pero su IGV no baja el crédito fiscal sin la nota del proveedor y espera en la cuenta
+ * puente 4019. Con boleta, nota de venta o sin comprobante no hay IGV que regularizar: el documento interno basta.
  */
-export const faltaNotaDelProveedor = (f: Pick<FilaTablero, "clase" | "serieNumero" | "igv">): boolean =>
-  f.clase === "nota" && esDocumentoInterno(f.serieNumero) && f.igv > 0;
+export const faltaNotaDelProveedor = (f: Pick<FilaTablero, "clase" | "serieNumero" | "igv" | "notaProveedor">): boolean =>
+  f.clase === "nota" && esDocumentoInterno(f.serieNumero) && f.igv > 0 && !f.notaProveedor;
 
 /** `'pendiente'` = un faltante cerrado que todavía espera su nota; `'nota'` = una nota ya registrada. */
 export type ClaseFila = "nota" | "pendiente";
@@ -81,6 +82,8 @@ export type FilaTablero = {
    * nota por faltante YA se puede registrar. En una nota registrada siempre es `true`.
    */
   resuelto: boolean;
+  /** En un documento interno: la nota de crédito del proveedor que lo respalda, si ya llegó (`fn_notas_proveedor_tablero`, fase 5b). */
+  notaProveedor: { id: string; serie: string; fecha: string } | null;
 };
 
 /** Un movimiento del libro `proveedor_creditos` (lo devuelve `fn_proveedor_creditos`). */
@@ -239,19 +242,21 @@ export function armarFilas(
     const bloqueada = f.clase === "pendiente" && !f.resuelto;
     return {
       ...f,
-      estado: f.clase === "pendiente" ? "por_reclamar" : vivo > 0.004 ? "emitida" : "aplicada",
+      // Un documento interno de una factura sin la nota del proveedor también se reclama (fase 5b): la plata ya volvió, falta el papel.
+      estado: f.clase === "pendiente" || faltaNotaDelProveedor(f) ? "por_reclamar" : vivo > 0.004 ? "emitida" : "aplicada",
       edadDias,
       tramo: tramoUrgencia(edadDias),
       vivo,
       devuelto: dev ? { monto: dev.monto, fecha: dev.fecha, metodo: dev.metodo, referencia: dev.referencia } : null,
       bloqueada,
-      textoBuscable: [f.serieNumero, f.nota, f.motivo].filter(Boolean).join(" "),
+      textoBuscable: [f.serieNumero, f.nota, f.motivo, f.notaProveedor?.serie].filter(Boolean).join(" "),
     };
   });
 }
 
 /** El chip de estado, ya resuelto: una nota cuyo sobrante volvió a CAYLA dice «Devuelta», no «Aplicada». */
 export function chipEstado(f: FilaVista): { tono: "ambar" | "verde" | "neutro"; texto: string } {
+  if (faltaNotaDelProveedor(f)) return { tono: "ambar", texto: "Falta su nota de crédito" };
   if (f.estado === "por_reclamar") return f.bloqueada ? { tono: "neutro", texto: "Falta cerrar" } : { tono: "ambar", texto: "Por reclamar" };
   if (f.estado === "emitida") return { tono: "verde", texto: "Emitida" };
   return f.devuelto ? { tono: "verde", texto: "Devuelta" } : { tono: "neutro", texto: "Aplicada" };
@@ -260,6 +265,8 @@ export function chipEstado(f: FilaVista): { tono: "ambar" | "verde" | "neutro"; 
 /** La línea chica bajo el monto: adónde fue el dinero de esa fila. */
 export function destinoTexto(f: FilaVista, dinero: (n: number) => string = soles): string {
   if (f.clase === "pendiente") return "esperado";
+  // Lo que espera es el papel, no la plata: esa ya volvió con el documento interno.
+  if (faltaNotaDelProveedor(f)) return f.vivo > 0.004 ? `A favor ${dinero(f.vivo)}` : "la plata ya volvió";
   if (f.estado === "emitida") return `A favor ${dinero(f.vivo)}`;
   if (f.devuelto) return `Devuelto el ${f.devuelto.fecha.slice(8, 10)}/${f.devuelto.fecha.slice(5, 7)}`;
   return "bajó la deuda";
@@ -328,7 +335,8 @@ export function agruparTablero(filas: FilaVista[], modo: "urgencia" | "proveedor
     return [...mapa.entries()]
       .map(([proveedorId, fs]) => {
         const ordenadas = [...fs].sort(ordenarFilas);
-        const pend = ordenadas.filter((f) => f.estado === "por_reclamar");
+        // Lo que falta COBRAR: un documento interno que espera la nota del proveedor ya devolvió su plata.
+        const pend = ordenadas.filter((f) => f.estado === "por_reclamar" && f.clase === "pendiente");
         return {
           clave: `prov:${proveedorId}`,
           titulo: fs[0].proveedorNombre,
@@ -357,7 +365,9 @@ export function agruparTablero(filas: FilaVista[], modo: "urgencia" | "proveedor
 // ---------------------------------------------------------------------------
 
 export type CifrasTablero = {
-  porReclamar: { monto: number; cantidad: number; masVieja: number; tramos: Record<TramoUrgencia, number> };
+  /** `monto`: lo que falta cobrar (las notas por faltante); `porPedir`: los documentos internos de una factura que esperan la nota del
+   *  proveedor (la plata ya volvió; su IGV espera). `cantidad` y `tramos` cuentan los dos. */
+  porReclamar: { monto: number; cantidad: number; masVieja: number; tramos: Record<TramoUrgencia, number>; porPedir: { cantidad: number; igv: number } };
   emitidasMes: { monto: number; cantidad: number; bajaronDeuda: number; devueltos: number; aFavor: number };
   saldoFavorTotal: number;
   aplicadoMes: { total: number; bajoDeuda: number; devuelto: number };
@@ -381,12 +391,14 @@ export function cifrasTablero(filas: FilaVista[], p: { mes: string; saldoPorProv
   );
   const devueltoLibro = centavos(p.movimientos.filter((m) => m.tipo === "reembolso" && m.fecha.slice(0, 7) === p.mes).reduce((a, m) => a + m.monto, 0));
 
+  const porPedir = pend.filter((f) => faltaNotaDelProveedor(f));
   return {
     porReclamar: {
-      monto: centavos(pend.reduce((a, f) => a + f.monto, 0)),
+      monto: centavos(pend.filter((f) => f.clase === "pendiente").reduce((a, f) => a + f.monto, 0)),
       cantidad: pend.length,
       masVieja: pend.reduce((m, f) => Math.max(m, f.edadDias), 0),
       tramos,
+      porPedir: { cantidad: porPedir.length, igv: centavos(porPedir.reduce((a, f) => a + f.igv, 0)) },
     },
     emitidasMes: { monto: emitido, cantidad: delMes.length, bajaronDeuda: bajaron, devueltos: devueltosMes, aFavor: centavos(emitido - bajaron - devueltosMes) },
     saldoFavorTotal: centavos(Object.values(p.saldoPorProveedor).reduce((a, s) => a + Math.max(0, s), 0)),
@@ -623,6 +635,15 @@ export function pasosDeNota(f: FilaVista, dinero: (n: number) => string = soles)
   else if (f.aFavor > 0.004 && !f.devuelto) pasos.push({ clave: "Aplicada", titulo: "Aplicada", detalle: "Su saldo ya se usó en pagos", fecha: null, estado: "hecho" });
   if (faltaNotaDelProveedor(f)) {
     pasos.push({ clave: "Falta su nota", titulo: "Falta su nota de crédito", detalle: `Por ${dinero(f.monto)}: hasta que llegue, su IGV queda en espera`, fecha: null, estado: "ahora" });
+  } else if (f.notaProveedor) {
+    // Llegó (fase 5b, actividad 3): su IGV bajó el crédito fiscal del mes de esa nota.
+    pasos.push({
+      clave: "Su nota",
+      titulo: `Nota ${f.notaProveedor.serie} del proveedor`,
+      detalle: `Su IGV bajó el crédito fiscal de ${nombreMes(f.notaProveedor.fecha.slice(0, 7))}`,
+      fecha: dm(f.notaProveedor.fecha),
+      estado: "hecho",
+    });
   }
   return pasos;
 }
@@ -656,7 +677,10 @@ export function siguientePaso(f: FilaVista, dinero: (n: number) => string = sole
   }
   // Un documento interno de una factura: la plata ya volvió, pero su IGV espera la nota del proveedor (fase 5b, actividad 2).
   if (faltaNotaDelProveedor(f)) {
-    return { tono: "aviso", texto: `La plata ya volvió. Falta la nota de crédito de ${f.proveedorNombre} por ${dinero(f.monto)} contra ${f.documento}: pídesela. Hasta que llegue, sus ${dinero(f.igv)} de IGV quedan en espera.` };
+    return {
+      tono: f.edadDias > DIAS_URGENCIA_RECLAMO ? "actuar" : "aviso",
+      texto: `La plata ya volvió. Falta la nota de crédito de ${f.proveedorNombre} por ${dinero(f.monto)} contra ${f.documento}: pídesela y, cuando llegue, adjúntala con «Llegó su nota de crédito». Hasta entonces, sus ${dinero(f.igv)} de IGV quedan en espera.`,
+    };
   }
   if (f.estado === "emitida") {
     return { tono: "bien", texto: `Quedan ${dinero(f.vivo)} a tu favor con ${f.proveedorNombre}. Se te ofrecen al pagar: tú decides si los usas o pides el reembolso.` };
