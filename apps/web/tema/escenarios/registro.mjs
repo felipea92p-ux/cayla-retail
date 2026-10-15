@@ -1173,6 +1173,7 @@ ESCENARIOS.push(
   { id: "oi.anular", ruta: "/ordenes-insumos/ver/[id]", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Órdenes de insumos · la hoja «Anular orden»", preparar: secuencia(async (pagina) => irA(`/ordenes-insumos/ver/${idDeOrdenInsumo()}`)(pagina), clicRol("button", /^Anular orden$/)) },
   { id: "oi.editar", ruta: "/ordenes-insumos/editar/[id]", cuentas: ["admin-taller"], abre: "h1", nombre: "Órdenes de insumos · «Editar OI-…»", preparar: async (pagina) => irA(`/ordenes-insumos/editar/${idDeOrdenInsumo()}`)(pagina) },
   { id: "oi.comprobante", ruta: "/ordenes-insumos/comprobante/[id]", cuentas: ["admin-taller"], abre: "h1", nombre: "Órdenes de insumos · «Comprobante de OI-…» (el papel del proveedor)", preparar: async (pagina) => irA(`/ordenes-insumos/comprobante/${idDeOrdenInsumo()}`)(pagina) },
+  { id: "oi.recibir", ruta: "/produccion/recibir", cuentas: ["admin-taller"], abre: "[role=dialog]", nombre: "Recibir · la hoja de una orden de insumos", preparar: async (pagina) => { await pagina.locator('[data-guia="prod-recibir.ordenes"] button:not([disabled])').filter({ hasText: /^Recibir$/ }).first().click({ timeout: 8000 }); await esperar(pagina, 1200); } },
 );
 
 // ---------- «Nos debe» (ADR-0362, fase 5a) ----------

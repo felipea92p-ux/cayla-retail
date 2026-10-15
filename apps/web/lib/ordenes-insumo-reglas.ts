@@ -333,8 +333,9 @@ export type VersionOrdenInsumo = {
   total: number;
 };
 
-/** Lo facturado de una línea de la orden (fase 7 parte 2): lo que dicen sus papeles vigentes, en la unidad de la línea. */
-export type FacturadoDeLinea = { posicion: number; itemId: string; facturado: number };
+/** Lo facturado de una línea de la orden (fase 7 parte 2, actividad 1): lo que dicen sus papeles vigentes, en la unidad de la línea; y lo
+ *  que ya entró al Taller (actividad 3, `recepcion`; 0 si la base todavía no lo trae). */
+export type FacturadoDeLinea = { posicion: number; itemId: string; facturado: number; recibido: number };
 
 /** Un papel del proveedor de la orden (fase 7 parte 2), vigente o anulado. «Sin comprobante» trae su número interno SC-…. */
 export type PapelDeOrdenInsumo = {
@@ -434,7 +435,16 @@ function leerVersiones(data: unknown): VersionOrdenInsumo[] {
     .sort((a, b) => a.version - b.version);
 }
 
-function leerFacturacion(data: unknown): FacturadoDeLinea[] {
+function leerFacturacion(data: unknown, recepcion: unknown): FacturadoDeLinea[] {
+  // Lo recibido llega en su propia clave (`recepcion`, 20261015040000), por posición.
+  const recibidoPor = new Map<number, number>();
+  for (const x of Array.isArray(recepcion) ? recepcion : []) {
+    if (!x || typeof x !== "object") continue;
+    const r = x as Record<string, unknown>;
+    const posicion = cifra(r.posicion);
+    const recibido = cifra(r.recibido);
+    if (posicion != null && recibido != null) recibidoPor.set(posicion, recibido);
+  }
   return (Array.isArray(data) ? data : [])
     .map((f): FacturadoDeLinea | null => {
       if (!f || typeof f !== "object") return null;
@@ -442,7 +452,7 @@ function leerFacturacion(data: unknown): FacturadoDeLinea[] {
       const posicion = cifra(r.posicion);
       const itemId = texto(r.item_id);
       const facturado = cifra(r.facturado);
-      return posicion == null || !itemId || facturado == null ? null : { posicion, itemId, facturado };
+      return posicion == null || !itemId || facturado == null ? null : { posicion, itemId, facturado, recibido: recibidoPor.get(posicion) ?? 0 };
     })
     .filter((f): f is FacturadoDeLinea => f !== null);
 }
@@ -508,21 +518,25 @@ export function leerDetalleOrdenInsumo(data: unknown): DetalleOrdenInsumo | null
     cantidades: leerCantidades(d.cantidades),
     total: cifra(d.total) ?? 0,
     versiones: leerVersiones(d.versiones),
-    facturacion: leerFacturacion(d.facturacion),
+    facturacion: leerFacturacion(d.facturacion, d.recepcion),
     comprobantes: leerPapeles(d.comprobantes),
     plazoCreditoDias: cifra(d.plazo_credito_dias),
   };
 }
 
+/** ¿Ya entró algo de esta orden al Taller? (fase 7 parte 2, actividad 3). */
+export const tieneRecibidoInsumo = (d: Pick<DetalleOrdenInsumo, "facturacion">): boolean => d.facturacion.some((f) => f.recibido > 0);
+
 /**
  * «Editar» y «Anular orden»: lo mismo que rechazan `editar_orden_insumo` y `anular_orden_insumo` (que siguen siendo el candado). Solo una
  * generada; y con papel (fase 7 parte 2): una orden que tuvo papel —aunque se haya anulado— ya no se edita (editar borra sus líneas, y
- * las del comprobante del Taller no se tocan), y con su papel VIGENTE tampoco se anula (primero se anula el papel).
+ * las del comprobante del Taller no se tocan), y con su papel VIGENTE tampoco se anula (primero se anula el papel). Con algo recibido en el
+ * Taller (actividad 3), ni una cosa ni la otra: los lotes apuntan a sus líneas y lo recibido ya es stock.
  */
-export const puedeEditarOrdenInsumo = (d: Pick<DetalleOrdenInsumo, "estado" | "comprobantes">): boolean =>
-  d.estado === "generada" && d.comprobantes.length === 0;
-export const puedeAnularOrdenInsumo = (d: Pick<DetalleOrdenInsumo, "estado" | "comprobantes">): boolean =>
-  d.estado === "generada" && !d.comprobantes.some((c) => c.estado === "vigente");
+export const puedeEditarOrdenInsumo = (d: Pick<DetalleOrdenInsumo, "estado" | "comprobantes" | "facturacion">): boolean =>
+  d.estado === "generada" && d.comprobantes.length === 0 && !tieneRecibidoInsumo(d);
+export const puedeAnularOrdenInsumo = (d: Pick<DetalleOrdenInsumo, "estado" | "comprobantes" | "facturacion">): boolean =>
+  d.estado === "generada" && !d.comprobantes.some((c) => c.estado === "vigente") && !tieneRecibidoInsumo(d);
 /** «Registrar comprobante»: una orden generada (la base no le registra papel a una anulada). */
 export const puedeRegistrarComprobanteInsumo = (d: Pick<DetalleOrdenInsumo, "estado">): boolean => d.estado === "generada";
 

@@ -5,6 +5,12 @@ import type { ErrorDeBase } from "@/lib/ordenes-compra-acciones";
 import type { ArgsCrearOrdenInsumo, ArgsEditarOrdenInsumo } from "@/lib/orden-insumo-alta";
 import { leerResultadoPapelInsumo, type ArgsRegistrarPapelInsumo, type ResultadoPapelInsumo } from "@/lib/comprobante-orden-insumo-reglas";
 import {
+  RPC_RECIBIR_ORDEN_INSUMO,
+  leerResultadoRecepcionOI,
+  type ArgsRecibirOrdenInsumo,
+  type ResultadoRecepcionOI,
+} from "@/lib/recepcion-orden-insumo-reglas";
+import {
   RPC_ANULAR_ORDEN_INSUMO,
   RPC_CREAR_ORDEN_INSUMO,
   RPC_EDITAR_ORDEN_INSUMO,
@@ -67,4 +73,14 @@ export async function registrarComprobanteOrdenInsumo(
 ): Promise<{ resultado: ResultadoPapelInsumo | null; error: ErrorDeBase }> {
   const { data, error } = await firmar(createClient().rpc(RPC_REGISTRAR_COMPROBANTE_ORDEN_INSUMO as never, args as never), firma);
   return { resultado: error ? null : leerResultadoPapelInsumo(data), error: error ?? null };
+}
+
+/** Recibe en el Taller contra la orden (fase 7 parte 2, actividad 3). Firma el responsable del combo, como la recepción de siempre.
+ *  `args.p_token` lo genera la hoja una vez: el mismo envío repetido devuelve la misma recepción (`repetido`). */
+export async function recibirOrdenInsumo(
+  args: ArgsRecibirOrdenInsumo,
+  firma: Firma | FirmaOmitida | null,
+): Promise<{ resultado: ResultadoRecepcionOI | null; error: ErrorDeBase }> {
+  const { data, error } = await firmar(createClient().rpc(RPC_RECIBIR_ORDEN_INSUMO as never, args as never), firma);
+  return { resultado: error ? null : leerResultadoRecepcionOI(data), error: error ?? null };
 }

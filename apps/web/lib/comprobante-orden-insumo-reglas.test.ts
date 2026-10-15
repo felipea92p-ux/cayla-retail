@@ -15,9 +15,11 @@ import {
   pendienteMilesimas,
   precargarPapelInsumo,
   primerProblemaPapelInsumo,
+  recepcionDeOrdenInsumo,
   problemaDeRenglonInsumo,
   resumenDeAvisosInsumo,
   textoPapelDeLineaInsumo,
+  textoRecibidoDeLineaInsumo,
   totalesPapelInsumo,
   type BorradorPapelInsumo,
   type ContextoPapelInsumo,
@@ -46,8 +48,8 @@ const HILO = linea({ posicion: 2, insumoId: "i-hilo", insumo: "Hilo", unidadMedi
 const DETALLE: Pick<DetalleOrdenInsumo, "lineas" | "facturacion"> = {
   lineas: [LINO, HILO],
   facturacion: [
-    { posicion: 1, itemId: "it-lino", facturado: 0 },
-    { posicion: 2, itemId: "it-hilo", facturado: 0 },
+    { posicion: 1, itemId: "it-lino", facturado: 0, recibido: 0 },
+    { posicion: 2, itemId: "it-hilo", facturado: 0, recibido: 0 },
   ],
 };
 
@@ -83,7 +85,7 @@ const borrador = (o: Partial<BorradorPapelInsumo> = {}): BorradorPapelInsumo => 
 
 describe("el papel de una orden de insumos: las líneas de la orden", () => {
   it("cada línea con su id y lo facturado, por posición; sin id (una base sin la fase), no se pone en el papel", () => {
-    const pedidas = pedidasDeLaOrden({ ...DETALLE, facturacion: [{ posicion: 1, itemId: "it-lino", facturado: 10 }] });
+    const pedidas = pedidasDeLaOrden({ ...DETALLE, facturacion: [{ posicion: 1, itemId: "it-lino", facturado: 10, recibido: 0 }] });
     expect(pedidas.map((p) => [p.posicion, p.itemId, p.facturado])).toEqual([
       [1, "it-lino", 10],
       [2, null, 0],
@@ -111,7 +113,7 @@ describe("el papel de una orden de insumos: las líneas de la orden", () => {
 
   it("el papel de la orden y lo que dice cada línea: nada, en parte, completa, de más", () => {
     const con = (lino: number, hilo: number) =>
-      pedidasDeLaOrden({ ...DETALLE, facturacion: [{ posicion: 1, itemId: "it-lino", facturado: lino }, { posicion: 2, itemId: "it-hilo", facturado: hilo }] });
+      pedidasDeLaOrden({ ...DETALLE, facturacion: [{ posicion: 1, itemId: "it-lino", facturado: lino, recibido: 0 }, { posicion: 2, itemId: "it-hilo", facturado: hilo, recibido: 0 }] });
     expect(papelDeOrdenInsumo(con(0, 0))).toBeNull();
     expect(papelDeOrdenInsumo(con(10, 0))).toBe("en_parte");
     expect(papelDeOrdenInsumo(con(12.5, 4))).toBe("completa");
@@ -121,9 +123,19 @@ describe("el papel de una orden de insumos: las líneas de la orden", () => {
     expect(textoPapelDeLineaInsumo({ cantidad: 1, facturado: 0, unidadMedida: "cono" })).toBe("0 de 1 cono");
   });
 
+  it("lo que ya entró al Taller (actividad 3): nada, en parte, todo; contra lo pedido o lo facturado, lo mayor", () => {
+    const l = (cantidad: number, facturado: number, recibido: number) => ({ cantidad, facturado, recibido, unidadMedida: "metro" });
+    expect(recepcionDeOrdenInsumo([l(12.5, 0, 0)])).toBeNull();
+    expect(recepcionDeOrdenInsumo([l(12.5, 0, 10)])).toBe("en_parte");
+    expect(recepcionDeOrdenInsumo([l(12.5, 15, 12.5)])).toBe("en_parte");
+    expect(recepcionDeOrdenInsumo([l(12.5, 15, 15), l(4, 0, 4)])).toBe("completa");
+    expect(textoRecibidoDeLineaInsumo(l(12.5, 0, 10))).toBe("10 de 12.5 metros");
+    expect(textoRecibidoDeLineaInsumo(l(12.5, 15, 15))).toBe("15 de 15 metros");
+  });
+
   it("la precarga pone lo pendiente con su costo; lo que ya llegó del todo se ofrece aparte", () => {
     let n = 0;
-    const pedidas = pedidasDeLaOrden({ ...DETALLE, facturacion: [{ posicion: 1, itemId: "it-lino", facturado: 10 }, { posicion: 2, itemId: "it-hilo", facturado: 4 }] });
+    const pedidas = pedidasDeLaOrden({ ...DETALLE, facturacion: [{ posicion: 1, itemId: "it-lino", facturado: 10, recibido: 0 }, { posicion: 2, itemId: "it-hilo", facturado: 4, recibido: 0 }] });
     const lineas = precargarPapelInsumo(pedidas, () => `r${++n}`);
     expect(lineas).toEqual([{ clave: "r1", ordenItemId: "it-lino", insumoId: "i-lino", cantidad: "2.5", costo: "10.00" }]);
     expect(pedidasSinRenglonInsumo(pedidas, lineas).map((p) => p.itemId)).toEqual(["it-hilo"]);
@@ -227,7 +239,7 @@ describe("el papel de una orden de insumos: de más, lo que viaja y lo que vuelv
     expect(deMasPorLineaInsumo([renglon({ cantidad: "15" })], pedidas)).toEqual([
       { itemId: "it-lino", posicion: 1, insumo: "Lino crudo", unidad: "metro", pedido: 12.5, facturadoAntes: 0, estaVez: 15, deMas: 2.5 },
     ]);
-    const conAntes = pedidasDeLaOrden({ ...DETALLE, facturacion: [{ posicion: 1, itemId: "it-lino", facturado: 10 }, DETALLE.facturacion[1]!] });
+    const conAntes = pedidasDeLaOrden({ ...DETALLE, facturacion: [{ posicion: 1, itemId: "it-lino", facturado: 10, recibido: 0 }, DETALLE.facturacion[1]!] });
     expect(deMasPorLineaInsumo([renglon({ cantidad: "5" })], conAntes).map((d) => d.deMas)).toEqual([2.5]);
     expect(deMasPorLineaInsumo([renglon({ cantidad: "2.5" })], conAntes)).toEqual([]);
   });

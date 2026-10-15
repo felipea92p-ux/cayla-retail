@@ -183,6 +183,7 @@ describe("leer la lista y la orden sin confiar en su forma", () => {
       total: 627.75,
       versiones: [{ version: 1, reemplazada_por: "Felipe", reemplazada_en: "2026-10-13T16:00:00Z", datos: { proveedor: { nombre: "Otro" }, total: 100, lineas: [] } }],
       facturacion: [{ posicion: 1, item_id: "it1", facturado: 10.5 }, { posicion: 2, item_id: "it2", facturado: 0 }, { posicion: 3 }],
+      recepcion: [{ posicion: 1, item_id: "it1", recibido: 8 }, { posicion: 9, recibido: "x" }],
       comprobantes: [
         { id: "c2", tipo: "factura", documento: "F001-77", fecha_emision: "2026-10-14", condicion: "credito", fecha_vencimiento: "2026-11-13", total: 315.95, estado: "vigente" },
         { id: "c1", tipo: "sin_comprobante", documento: "SC-000004", fecha_emision: "2026-10-13", condicion: "credito", fecha_vencimiento: "2026-10-20", total: 10, estado: "anulada" },
@@ -195,7 +196,7 @@ describe("leer la lista y la orden sin confiar en su forma", () => {
     expect(d?.versiones).toEqual([{ version: 1, reemplazadaPor: "Felipe", reemplazadaEn: "2026-10-13T16:00:00Z", proveedor: "Otro", fechaEntregaEstimada: null, lineas: [], total: 100 }]);
     expect(lineasConUnidadCambiada(d!).map((l) => l.posicion)).toEqual([1]);
     // Lo facturado y los papeles (fase 7 parte 2): lo raro se descarta, no tumba el detalle.
-    expect(d?.facturacion).toEqual([{ posicion: 1, itemId: "it1", facturado: 10.5 }, { posicion: 2, itemId: "it2", facturado: 0 }]);
+    expect(d?.facturacion).toEqual([{ posicion: 1, itemId: "it1", facturado: 10.5, recibido: 8 }, { posicion: 2, itemId: "it2", facturado: 0, recibido: 0 }]);
     expect(d?.comprobantes.map((c) => [c.documento, c.estado, c.total])).toEqual([["F001-77", "vigente", 315.95], ["SC-000004", "anulada", 10]]);
     expect(d?.plazoCreditoDias).toBe(15);
     // Una base sin la fase 7 parte 2 no trae ni lo uno ni lo otro: listas vacías.
@@ -207,15 +208,18 @@ describe("leer la lista y la orden sin confiar en su forma", () => {
   it("editar y anular: solo una generada; con papel, lo mismo que rechaza la base", () => {
     const papel = (estado: "vigente" | "anulada") =>
       ({ id: "c", tipo: "factura", documento: "F001-1", fechaEmision: null, condicion: "credito", fechaVencimiento: null, total: 1, estado });
-    const sinPapel = { comprobantes: [] };
+    const sinPapel = { comprobantes: [], facturacion: [] };
     expect([puedeEditarOrdenInsumo({ estado: "generada", ...sinPapel }), puedeAnularOrdenInsumo({ estado: "generada", ...sinPapel })]).toEqual([true, true]);
     expect([puedeEditarOrdenInsumo({ estado: "anulada", ...sinPapel }), puedeAnularOrdenInsumo({ estado: "anulada", ...sinPapel })]).toEqual([false, false]);
     // Con su papel vigente: ni se edita ni se anula (primero se anula el papel).
-    const vigente = { estado: "generada" as const, comprobantes: [papel("vigente")] };
+    const vigente = { estado: "generada" as const, comprobantes: [papel("vigente")], facturacion: [] };
     expect([puedeEditarOrdenInsumo(vigente), puedeAnularOrdenInsumo(vigente)]).toEqual([false, false]);
     // Con su papel anulado: ya no se edita (las líneas del papel no se tocan), pero sí se anula.
-    const anulado = { estado: "generada" as const, comprobantes: [papel("anulada")] };
+    const anulado = { estado: "generada" as const, comprobantes: [papel("anulada")], facturacion: [] };
     expect([puedeEditarOrdenInsumo(anulado), puedeAnularOrdenInsumo(anulado)]).toEqual([false, true]);
+    // Con algo recibido en el Taller (actividad 3), ni se edita ni se anula, tenga papel o no.
+    const recibida = { estado: "generada" as const, comprobantes: [], facturacion: [{ posicion: 1, itemId: "i", facturado: 0, recibido: 2 }] };
+    expect([puedeEditarOrdenInsumo(recibida), puedeAnularOrdenInsumo(recibida)]).toEqual([false, false]);
     expect([puedeRegistrarComprobanteInsumo({ estado: "generada" }), puedeRegistrarComprobanteInsumo({ estado: "anulada" })]).toEqual([true, false]);
   });
   it("las opciones del formulario: lo que no tiene lo justo se descarta; una respuesta que no se entiende es null", () => {

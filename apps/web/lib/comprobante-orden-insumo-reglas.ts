@@ -62,6 +62,8 @@ export type PedidaInsumo = LineaOrdenInsumo & {
   itemId: string | null;
   /** En la unidad de la línea. */
   facturado: number;
+  /** Lo que ya entró al Taller (actividad 3), en la unidad de la línea. */
+  recibido: number;
 };
 
 /** Las líneas de la orden con su id y lo facturado, por posición (`fn_orden_insumo` → `facturacion`). */
@@ -69,7 +71,7 @@ export function pedidasDeLaOrden(d: Pick<DetalleOrdenInsumo, "lineas" | "factura
   const porPosicion = new Map(d.facturacion.map((f) => [f.posicion, f]));
   return d.lineas.map((l) => {
     const f = porPosicion.get(l.posicion);
-    return { ...l, itemId: f?.itemId ?? null, facturado: f?.facturado ?? 0 };
+    return { ...l, itemId: f?.itemId ?? null, facturado: f?.facturado ?? 0, recibido: f?.recibido ?? 0 };
   });
 }
 
@@ -96,6 +98,18 @@ export function textoPapelDeLineaInsumo(p: Pick<PedidaInsumo, "cantidad" | "fact
   const base = `${cifraDeCantidad(p.facturado)} de ${cantidadConUnidad(p.cantidad, p.unidadMedida)}`;
   const deMas = milesimas(p.facturado) - milesimas(p.cantidad);
   return deMas > 0 ? `${base} · ${cifraDeCantidad(deMas / 1000)} de más` : base;
+}
+
+/** Lo que ya entró al Taller de la orden entera (actividad 3): null si todavía nada; «completa» si de cada línea llegó lo pedido o lo
+ *  facturado, lo mayor (lo mismo que deja de ofrecer Producción ▸ Recibir); «en_parte» si no. */
+export function recepcionDeOrdenInsumo(pedidas: readonly Pick<PedidaInsumo, "cantidad" | "facturado" | "recibido">[]): "en_parte" | "completa" | null {
+  if (!pedidas.some((p) => p.recibido > 0)) return null;
+  return pedidas.every((p) => milesimas(p.recibido) >= Math.max(milesimas(p.cantidad), milesimas(p.facturado))) ? "completa" : "en_parte";
+}
+
+/** «10 de 12.5 metros» (contra lo pedido, o lo facturado si es más): lo que dice cada línea de la orden abierta. */
+export function textoRecibidoDeLineaInsumo(p: Pick<PedidaInsumo, "cantidad" | "facturado" | "recibido" | "unidadMedida">): string {
+  return `${cifraDeCantidad(p.recibido)} de ${cantidadConUnidad(Math.max(p.cantidad, p.facturado), p.unidadMedida)}`;
 }
 
 /** Medio hacia arriba de un cociente de enteros positivos, en BigInt (lo que hace `round` de Postgres con un `numeric` positivo). */

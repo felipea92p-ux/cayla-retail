@@ -12,8 +12,8 @@ import { BotonEnlace } from "@/components/ui/campos";
 import { NuevaOrdenInsumo } from "@/components/ordenes-insumo/NuevaOrdenInsumo";
 
 // Editar una orden de insumos (ADR-0362, fase 7 · actividad 2): el mismo formulario que «Nueva orden de insumos», con la orden como está.
-// Solo se edita una orden «generada»; una anulada lo dice y lleva a verla. Una que tuvo papel (fase 7 parte 2) tampoco: sus líneas quedaron
-// atadas al comprobante y editar las borraría. Las reglas viven en `editar_orden_insumo` (las de crear, y lo que no se toca no se vuelve a
+// Solo se edita una orden «generada»; una anulada lo dice y lleva a verla. Una que tuvo papel o de la que ya llegó algo al Taller (fase 7
+// parte 2) tampoco: sus líneas quedaron atadas al comprobante o a sus lotes, y editar las borraría. Las reglas viven en `editar_orden_insumo` (las de crear, y lo que no se toca no se vuelve a
 // juzgar).
 //
 // El formulario se monta con `key` = la versión de la orden: si otra persona la guardó mientras se editaba, «Recargar» vuelve a pedir
@@ -84,10 +84,15 @@ export default async function EditarOrdenInsumoPage({ params }: { params: Promis
         <Aviso
           tono="atencion"
           guia="oi-form.con-comprobante"
-          titulo="Esta orden ya tiene un comprobante registrado: ya no se edita"
+          titulo={
+            detalle.comprobantes.length > 0
+              ? "Esta orden ya tiene un comprobante registrado: ya no se edita"
+              : "Esta orden ya tiene insumos recibidos en el Taller: ya no se edita"
+          }
           accion={<BotonEnlace href={`${RUTA_ORDENES_INSUMO}/ver/${detalle.id}`}>Ver la orden</BotonEnlace>}
         >
-          Sus líneas quedaron atadas a su papel. Si hay que pedir otra cosa, crea otra orden.
+          {detalle.comprobantes.length > 0 ? "Sus líneas quedaron atadas a su papel." : "Lo que llegó ya es stock del Taller."} Si hay que pedir otra
+          cosa, crea otra orden.
         </Aviso>
       </div>
     );

@@ -383,6 +383,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0362 (fase 7): «Anular orden» de una orden de insumos. Falta lo que `anular_orden_insumo` rechazaría: el motivo (hasta 300 letras)
   // y, desde una terminal, quién la anula.
   "components/ordenes-insumo/AccionesOrdenInsumo.tsx": { estado: "aplicada", evidencia: ["components/ordenes-insumo/AccionesOrdenInsumo.tsx"] },
+  "components/ordenes-insumo/RecibirOrdenInsumoModal.tsx": { estado: "aplicada", evidencia: ["components/ordenes-insumo/RecibirOrdenInsumoModal.tsx"] },
   // ADR-0362 (fase 4): la hoja de la prenda al recibir («Es nueva» y «+ talla o color»). Falta lo que `crear_producto_con_variantes` rechazaría
   // (nombre con una letra o un número, precio mayor que 0, tejido y patrón si la familia los pide) más lo que Nuevo producto exige (al menos
   // una talla si la categoría las tiene); al sumar, que haya algo nuevo que crear. Los colores son opcionales.

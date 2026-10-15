@@ -6,7 +6,14 @@ import { fechaCorta, soles } from "@/lib/compras-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { etiquetaRubro } from "@/lib/proveedores-produccion-reglas";
 import { textoDeTipo, type TipoComprobante } from "@/lib/comprobante-orden-reglas";
-import { papelDeOrdenInsumo, pedidasDeLaOrden, textoPapelDeLineaInsumo, type PedidaInsumo } from "@/lib/comprobante-orden-insumo-reglas";
+import {
+  papelDeOrdenInsumo,
+  pedidasDeLaOrden,
+  recepcionDeOrdenInsumo,
+  textoPapelDeLineaInsumo,
+  textoRecibidoDeLineaInsumo,
+  type PedidaInsumo,
+} from "@/lib/comprobante-orden-insumo-reglas";
 import {
   ESTADO_ORDEN,
   cantidadConUnidad,
@@ -43,8 +50,10 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
   const editada = d.actualizadaEn ? diaYHoraLima(d.actualizadaEn) : null;
   const anulada = d.anuladaEn ? diaYHoraLima(d.anuladaEn) : null;
   const pedidas = pedidasDeLaOrden(d);
-  // «Llegó en papel» solo cuando la orden ya tiene algo en papel: en una sin papel, «0 de 12.5 metros» en cada línea sería ruido.
+  // «Llegó en papel» solo cuando la orden ya tiene algo en papel: en una sin papel, «0 de 12.5 metros» en cada línea sería ruido. Lo mismo
+  // «Llegó al Taller» (actividad 3): solo cuando ya entró algo.
   const papel = papelDeOrdenInsumo(pedidas);
+  const recepcion = recepcionDeOrdenInsumo(pedidas);
   return (
     <div className="@container space-y-5">
       {d.estado === "anulada" && (
@@ -93,7 +102,7 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
           />
         </div>
         {pedidas.map((l) => (
-          <LineaDetalle key={l.posicion} l={l} conPapel={papel !== null} />
+          <LineaDetalle key={l.posicion} l={l} conPapel={papel !== null} conRecepcion={recepcion !== null} />
         ))}
         <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-3">
           <span className="text-sm text-taupe">
@@ -107,6 +116,13 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
       </Tabla>
 
       <ComprobantesDeOrdenInsumo orden={d} />
+
+      {/* Con algo recibido en el Taller (actividad 3), la orden ya no se edita ni se anula: lo dice para que nadie busque el botón. */}
+      {recepcion && d.estado === "generada" && (
+        <p data-guia="oi.recibido" className="nota-cayla">
+          Ya llegaron insumos de esta orden al Taller: no se edita ni se anula. Lo que falta se recibe en Producción ▸ Recibir.
+        </p>
+      )}
 
       {/* Con su rótulo, como en el papel: sin él, una barra gris se leía como un aviso o un estado. */}
       {d.nota && (
@@ -152,6 +168,7 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
       <p data-guia="oi.pie" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">
         <Chip tono={estado.tono}>{estado.texto}</Chip>
         {papel && <Chip tono={papel === "completa" ? "verde" : "ambar"}>{papel === "completa" ? "Papel completo" : "Papel en parte"}</Chip>}
+        {recepcion && <Chip tono={recepcion === "completa" ? "verde" : "ambar"}>{recepcion === "completa" ? "Llegó todo" : "Llegó en parte"}</Chip>}
         <span>
           Creada por {d.creadaPor ?? "alguien sin nombre en Dynamic"} el {creada.dia} a las {creada.hora}
           {editada && ` · editada por ${d.actualizadaPor ?? "alguien sin nombre en Dynamic"} el ${editada.dia} a las ${editada.hora}`}
@@ -161,7 +178,7 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
   );
 }
 
-function LineaDetalle({ l, conPapel }: { l: PedidaInsumo; conPapel: boolean }) {
+function LineaDetalle({ l, conPapel, conRecepcion }: { l: PedidaInsumo; conPapel: boolean; conRecepcion: boolean }) {
   const unidadCambio = l.unidadActual != null && l.unidadActual !== l.unidadMedida;
   return (
     <div className={fila(PLANTILLA)}>
@@ -177,6 +194,14 @@ function LineaDetalle({ l, conPapel }: { l: PedidaInsumo; conPapel: boolean }) {
             className={`mt-0.5 block text-xs tabular-nums ${l.facturado > l.cantidad ? "text-ambar" : l.facturado >= l.cantidad ? "text-verde-profundo" : "text-taupe"}`}
           >
             Llegó en papel: {textoPapelDeLineaInsumo(l)}
+          </span>
+        )}
+        {conRecepcion && (
+          <span
+            data-guia="oi.recibido-linea"
+            className={`mt-0.5 block text-xs tabular-nums ${l.recibido >= Math.max(l.cantidad, l.facturado) ? "text-verde-profundo" : "text-taupe"}`}
+          >
+            Llegó al Taller: {textoRecibidoDeLineaInsumo(l)}
           </span>
         )}
         {/* Sin columnas: la cuenta entera, cada cifra sin partirse («S/» no queda solo al final de un renglón). */}
