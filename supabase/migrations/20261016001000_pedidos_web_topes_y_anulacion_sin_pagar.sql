@@ -2,7 +2,7 @@
 -- 20261016001000_pedidos_web_topes_y_anulacion_sin_pagar.sql — CAYLA V2 · Tienda online (ADR-0408)
 -- Los pedidos web que nadie paga se anulan solos, una persona no separa media tienda, y un pago digital lo anota el líder.
 --
--- EL PROBLEMA PRIMERO. Con la tienda online abierta a cualquiera que cree una cuenta, tres cosas que el piloto resolvía «a mano»
+-- EL PROBLEMA PRIMERO. Con la tienda online abierta a cualquiera que cree una cuenta, cuatro cosas que el piloto resolvía «a mano»
 -- quedan sin dueño:
 --   1. Un pedido confirmado reserva las prendas (salen del «hay» de todas las tiendas). Si el cliente nunca paga, la prenda queda
 --      apartada hasta que alguien en la tienda lo anule; a las 48 h el ERP solo AVISA. Con decenas de cuentas, eso es stock que
@@ -70,6 +70,7 @@ begin
   end if;
 end;
 $f$;
+
 -- Las funciones que se parchan, contra su md5 de producción del 2026-10-15 (antes) y el de este archivo (después).
 do $$
 declare
