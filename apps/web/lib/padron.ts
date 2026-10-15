@@ -34,4 +34,9 @@ export type RespuestaPadron = {
   advertencias: string[];
   /** Solo cuando fuente = "ninguna": por qué no se pudo. */
   motivo: string | null;
+  /** Solo con `para=ficha` (el nombre de una ficha de cliente, 20261015133000): el servidor anotó esta lectura en la base, así que el
+   *  nombre se puede guardar en la ficha. false en las demás consultas (comprobantes, proveedores) y si no se pudo anotar. */
+  anotada: boolean;
+  /** Cuando el padrón no dio el nombre: si no tiene ese número (`no_encontrado`) o no contestó (`sin_respuesta`). null si lo dio. */
+  sinNombre: "no_encontrado" | "sin_respuesta" | null;
 };

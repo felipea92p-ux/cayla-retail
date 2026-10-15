@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { TEXTO_MARCA, type MarcaCampo } from "@/lib/cuentas";
 
 // Las dos piezas de cada campo de la cuenta (maqueta v4, `guiaRegistro`): el campo con su título y su marca (✓ Listo · Sigue
-// aquí · Revisa), y lo que dice debajo. Las usan el registro y el paso del código, para que los dos se vean y se lean igual.
+// aquí · Revisa), y lo que dice debajo. Las usa cada campo del registro, también la caja del código bajo el correo.
 
 /** Un campo con su título, su marca y lo que dice debajo. La luz («Sigue aquí») no se va de él mientras tenga el foco. */
 export function Campo({

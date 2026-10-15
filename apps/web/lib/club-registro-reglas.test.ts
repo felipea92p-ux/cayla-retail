@@ -253,7 +253,21 @@ describe("lo que ella escribe: UNA regla para la pantalla, su guía y el servido
     const pasaporte = { ...BIEN, documentoTipo: "pasaporte" as const, documentoNumero: "AB123456", dniConfirmado: false, nombre: "Ana Torres" };
     expect(problemasRegistro(pasaporte, HOY)).toEqual({});
     expect(problemasRegistro({ ...pasaporte, documentoNumero: "" }, HOY).documento).toBe("Escribe el número de tu documento.");
-    expect(problemasRegistro({ ...pasaporte, nombre: " A " }, HOY).nombre).toBe("Escribe tus nombres y apellidos.");
+    expect(problemasRegistro({ ...pasaporte, nombre: " A " }, HOY).nombre).toBe("Escribe tus nombres y apellidos, tal cual están en tu documento.");
+  });
+
+  it("con carné o pasaporte el nombre va tal cual está en el documento: sin números (Felipe 2026-10-15); con DNI, no se escribe", () => {
+    const pasaporte = { ...BIEN, documentoTipo: "pasaporte" as const, documentoNumero: "AB123456", dniConfirmado: false };
+    expect(problemasRegistro({ ...pasaporte, nombre: "Ana 2 Torres" }, HOY).nombre).toBe("Tu nombre no lleva números: escríbelo tal cual está en tu documento.");
+    expect(problemasRegistro({ ...pasaporte, documentoTipo: "carne_extranjeria", documentoNumero: "001234567", nombre: "A1" }, HOY).nombre).toMatch(/no lleva números/);
+    expect(problemasRegistro({ ...pasaporte, nombre: "Mary O'Neil Ñaupari" }, HOY).nombre).toBeUndefined();
+    // Con DNI el nombre lo trae el padrón: lo que diga la caja del nombre (aunque traiga números) no cuenta.
+    expect(problemasRegistro({ ...BIEN, nombre: "Ana 2" }, HOY).nombre).toBeUndefined();
+  });
+
+  it("lo que dice la base del nombre (20261015133000), en palabras para ella", () => {
+    expect(errorDeLaBase("nombre_sin_padron")).toEqual({ mensaje: MENSAJE.sinPadron, campo: "documento" });
+    expect(errorDeLaBase("nombre_con_numeros")).toEqual({ mensaje: "Tu nombre no lleva números: escríbelo tal cual está en tu documento.", campo: "nombre" });
   });
 
   it("el celular: obligatorio, 9 dígitos que empiezan en 9; pegado con +51 y espacios sirve", () => {
@@ -415,8 +429,10 @@ describe("después de «Unirme»", () => {
 
   it("nuevo: bienvenida (sin género) con su nombre y su código; con WhatsApp, el saludo a la tienda con su nombre y su código", () => {
     const b = bienvenida(listo, pagina());
-    expect(b.titulo).toBe("¡Te damos la bienvenida, Lucía!");
-    expect(b.bajada).toBe("Ya eres miembro del Club CAYLA.");
+    // Cómo se confirma el Club (Felipe 2026-10-15): «¡Listo!» arriba y «Te damos la bienvenida…» debajo, sin repetir «bienvenida».
+    expect(b.titulo).toBe("¡Listo, Lucía!");
+    expect(b.bajada).toBe("Te damos la bienvenida al Club CAYLA.");
+    expect(`${b.titulo} ${b.bajada}`.match(/bienvenida/gi)).toHaveLength(1);
     expect(b.saludo?.titulo).toBe("Último paso: salúdanos por WhatsApp");
     // A la tienda del cartel: la que le contesta y le escribe después.
     expect(b.saludo?.boton).toBe("Saludar a Tienda TRU");
@@ -443,7 +459,7 @@ describe("después de «Unirme»", () => {
 
   it("sin su nombre corto, la bienvenida no dice «null» y el saludo no deja marcadores ni espacios dobles", () => {
     const b = bienvenida({ ...listo, nombre: null }, pagina());
-    expect(b.titulo).toBe("¡Te damos la bienvenida!");
+    expect(b.titulo).toBe("¡Listo!");
     const saludo = decodeURIComponent(b.saludo!.enlace.split("text=")[1]!);
     expect(saludo).not.toMatch(/\{|\}|null| {2}| \./);
     expect(saludo).toContain("(C-0142)");

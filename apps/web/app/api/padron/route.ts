@@ -1,8 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { soloDigitos, validarDocumento } from "@cayla-retail/shared";
 import { advertenciasDe, consultarPadron, type DatosPadron, type RespuestaPadron } from "@/lib/padron";
+import { anotarLecturaPadron } from "@/lib/padron-lecturas";
 
-// GET /api/padron?tipo=dni|ruc&numero=XXXXXXXX
+// GET /api/padron?tipo=dni|ruc&numero=XXXXXXXX[&para=ficha]
+//
+// `para=ficha` (Felipe 2026-10-15, 20261015133000): el nombre es para una FICHA de cliente (Vender, Clientes, «Editar» de la ficha),
+// donde con DNI no se escribe a mano. Entonces no se busca en comprobantes anteriores (un nombre de ahí pudo escribirse a mano) y,
+// si el padrón contestó, el servidor ANOTA la lectura en la base (`anotarLecturaPadron`): sin esa anotación la base no acepta el
+// nombre. `anotada` dice si quedó.
 //
 // CONTRATO
 //   PROMETE: para un documento válido, devolver siempre 200 con la mejor
@@ -40,6 +46,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tipo = searchParams.get("tipo");
   const numero = soloDigitos(searchParams.get("numero") ?? "");
+  const paraFicha = searchParams.get("para") === "ficha";
 
   if (tipo !== "dni" && tipo !== "ruc") {
     return Response.json({ error: "tipo debe ser dni o ruc" }, { status: 400 });
@@ -79,14 +86,17 @@ export async function GET(request: Request) {
   // Esta SÍ ignora su error a propósito, y es la única del archivo: es una memoria de
   // conveniencia. Si falla, todavía queda preguntarle al padrón — degradarse a la ruta
   // lenta es correcto; tumbar la consulta por un caché frío, no.
-  const { data: previo } = await supabase
-    .from("comprobantes")
-    .select("cliente_nombre")
-    .eq("cliente_num_doc", numero)
-    .not("cliente_nombre", "is", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Para una ficha no: ahí el nombre de un DNI sale solo del padrón (ver arriba).
+  const { data: previo } = paraFicha
+    ? { data: null }
+    : await supabase
+        .from("comprobantes")
+        .select("cliente_nombre")
+        .eq("cliente_num_doc", numero)
+        .not("cliente_nombre", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
   // 2) Padrón oficial. Refina o confirma lo anterior; con el proveedor de pago, para
   //    RUC además trae estado y condición, que cambian con el tiempo y no se
@@ -106,6 +116,9 @@ export async function GET(request: Request) {
       via: consulta.origen,
       advertencias: advertenciasDe(datos),
       motivo: null,
+      // Antes de contestar: así, cuando quien atiende ve el nombre y toca «Registrar», la base ya tiene la lectura.
+      anotada: paraFicha ? await anotarLecturaPadron(tipo, numero, datos.nombre) : false,
+      sinNombre: null,
     };
     return Response.json(respuesta);
   }
@@ -122,6 +135,8 @@ export async function GET(request: Request) {
       via: null,
       advertencias: [],
       motivo: null,
+      anotada: false,
+      sinNombre: consulta.motivo === "no_encontrado" ? "no_encontrado" : "sin_respuesta",
     };
     return Response.json(respuesta);
   }
@@ -137,6 +152,8 @@ export async function GET(request: Request) {
     via: null,
     advertencias: [],
     motivo: consulta.detalle,
+    anotada: false,
+    sinNombre: consulta.motivo === "no_encontrado" ? "no_encontrado" : "sin_respuesta",
   };
   return Response.json(respuesta);
 }

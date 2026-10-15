@@ -1152,7 +1152,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   curso (no lo frena) y dice qué pasa al archivar o al anonimizar, y «Editar» dice que el correo de entrada no cambia desde ahí. Las dos
   altas (`NuevaClientaModal` y el ticket de Vender) leen la ficha con ese documento justo antes de `registrar_clienta`
   (`fichaConDocumento`) y dicen lo que hizo la base: «Cliente registrado», «Ya tenía ficha» o «Ficha reactivada»
-  (`lib/alta-clienta-reglas.ts`). Y `exportar_clientas`
+  (`lib/alta-clienta-reglas.ts`). **El nombre de una ficha con DNI o RUC sale del padrón y no se escribe** (Felipe 2026-10-15,
+  `20261015133000`, **sin pegar en producción**): las dos altas y «Editar» dibujan `components/clientas/NombreDelPadron.tsx` (la caja
+  llena y bloqueada, «Del padrón», o el aviso con «Volver a intentar»; «Actualizar desde el padrón» en «Editar»), con la lógica en
+  `lib/nombre-del-padron-reglas.ts`; la consulta es `GET /api/padron?…&para=ficha`, que además anota la lectura en la base
+  (`lib/padron-lecturas.ts` → `retail.fn_anotar_lectura_padron`, con la llave de servicio). La base lo exige: los disparadores
+  `clientas_nombre_del_padron_alta`/`_cambio` (`fn_nombre_de_ficha_del_padron`) rechazan (`nombre_sin_padron`) un nombre con DNI/RUC
+  sin una lectura del padrón de la última hora (`padron_lecturas`, solo huellas) y uno con números en carné o pasaporte
+  (`nombre_con_numeros`); una sesión de dueño de la base (pruebas, SQL Editor) queda fuera. El cartel del Club anota su lectura igual
+  (`app/actions/club-registro.ts`) y la tienda, con `tienda_anotar_lectura_padron`. Prueba: `pnpm pruebas:nombre-del-padron`. Y `exportar_clientas`
   (solo Admin, D-109/G.4), `fn_clienta_compras/cambios/devoluciones/separaciones`
   (`security definer`, cruzan sede a propósito). Talla deducida (D-101) y «te falta N
   para frecuente» (D-103) calculadas al leer en `lib/clienta-actividad-reglas.ts`
@@ -1805,6 +1813,8 @@ cuando hace falta hablar con algo que no es Postgres, o devolver un archivo.
   3 s, con interruptor de circuito) → proveedor de pago. Si las dos fallan, la
   ruta usa el nombre de un comprobante anterior de ese documento (`comprobantes`,
   memoria durable propia). Para RUC, SUNAT público no informa estado ni condición.
+  Con `para=ficha` (el nombre de una ficha, 2026-10-15) no usa ese historial —solo vale el padrón— y anota la lectura en la base
+  (`anotada`); `sinNombre` dice si no lo encontró o no respondió.
 
 - `/api/observatorio` y `/api/observatorio/tienda?u=<id>` → `GET`, solo lectura y solo Admin (403 si no): lo que el Observatorio vuelve a leer
   cada 30 s (`getDatosObservatorio`) y el panel de una tienda (`getDatosTienda`; la tienda se valida contra `getUbicaciones`). Si la base no responde,
@@ -1847,11 +1857,16 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
 - Crear la cuenta pide un código de 6 cifras al correo (actividad 2b, ADR-0408 act. b): el proyecto de clientes lo manda con su invitación
   (`apps/tienda/supabase/plantillas/codigo.html`) y lo verifica; la base lleva los topes y lo que queda a medias: `tienda_reservar_envio`
   (cada envío y reenvío), `tienda_anotar_invitado`, `tienda_intento_de_codigo` (cada intento se cuenta ANTES de probarse; al quinto, 15
-  minutos de bloqueo) y `cuentas_web_pendientes` (sin datos de la persona). El orden: código → contraseña → `tienda_registrar_cuenta`; si
-  la base dice que no, el servidor borra el usuario (`lib/usuarios-servidor.ts`). La casilla «Soy mayor de 18 años» la exige la base; la de
+  minutos de bloqueo) y `cuentas_web_pendientes` (sin datos de la persona). Desde el 2026-10-15 el código va **bajo el correo** (Felipe):
+  `FormularioRegistro` → `app/acciones/cuenta.ts` `obtenerCodigo` (al lado del correo, y «Reenviar»: `tienda_consultar_correo`, que cuenta
+  el tope por ip, → `tienda_reservar_envio` → invitar → `tienda_anotar_invitado`) y `confirmarCodigo` (la caja de debajo, con sus 6
+  números: `tienda_intento_de_codigo` → verificar → la prueba firmada del aparato, una cookie httpOnly de 30 minutos,
+  `lib/correo-confirmado.ts` y `-servidor.ts`). `crearCuenta` («Crear mi cuenta») vuelve a exigir esa prueba y el usuario confirmado →
+  `tienda_revisar_registro` → nombre del padrón → contraseña → `tienda_registrar_cuenta`; si la base dice que no, la confirmación se queda
+  para corregir y reintentar (`lib/usuarios-servidor.ts` limpia lo abandonado). La casilla «Soy mayor de 18 años» la exige la base; la de
   avisos del Club por WhatsApp (`tienda_casilla_whatsapp`, el texto vigente del cartel) queda en `club_permisos` con medio `tienda_web`.
   Un correo es de una sola persona (`20261015054000`/`055000`): con el correo de contacto de OTRA ficha, `tienda_revisar_registro` dice
-  `correo_de_otra_persona` antes del código y `FormularioRegistro` lo pone bajo el campo, sin decir de quién es.
+  `correo_de_otra_persona` al crear la cuenta (se sabe recién con el DNI) y `FormularioRegistro` lo pone bajo el campo, sin decir de quién es.
 - Entrar cuenta para el Club y la cuenta que se cierra (`20261015055000`, **sin pegar en producción**): `app/acciones/entrada.ts`
   `anotarEntrada` → `lib/entrada-servidor.ts` → `retail.tienda_anotar_entrada` (al iniciar sesión en `FormularioEntrar`, al crear la
   cuenta y, como mucho una vez al día por sesión, desde `components/cuenta/EntradaDelDia.tsx` en `MarcoCuenta`/`MarcoCatalogo`, con la

@@ -1,6 +1,7 @@
 "use server";
 
 import { consultarPadron } from "@/lib/padron";
+import { anotarLecturaPadron } from "@/lib/padron-lecturas";
 import { crearClienteAdmin } from "@/lib/supabase-admin";
 import { huellaDeLaIp, huellaDelDocumento } from "@/lib/club-intentos";
 import { leerPaginaClub } from "@/lib/club-pagina";
@@ -71,8 +72,10 @@ export async function consultarNombre(ubicacionId: string, numero: string): Prom
 
 /**
  * «Unirme al Club CAYLA». Vuelve a revisar todo con la MISMA regla de la pantalla (`problemasRegistro`); con DNI vuelve a
- * consultar el padrón y usa ESE nombre (no el que diga el navegador, `p_nombre_del_padron = true`). Si un texto cambió mientras
- * lo leía (`club_texto_cambio`), devuelve los nuevos para que los lea y vuelva a marcar las casillas.
+ * consultar el padrón y usa ESE nombre (no el que diga el navegador, `p_nombre_del_padron = true`), y anota la lectura en la base
+ * antes de registrar: sin ella la ficha no acepta el nombre (Felipe 2026-10-15, 20261015133000). Si el padrón no responde o la
+ * lectura no se pudo anotar, no se une (se vuelve a intentar). Si un texto cambió mientras lo leía (`club_texto_cambio`), devuelve
+ * los nuevos para que los lea y vuelva a marcar las casillas.
  */
 export async function registrarme(entrada: DatosRegistro): Promise<RespuestaRegistro> {
   const d = leerDatosRegistro(entrada);
@@ -91,6 +94,7 @@ export async function registrarme(entrada: DatosRegistro): Promise<RespuestaRegi
     if (d.documentoTipo === "dni") {
       const r = await consultarPadron("dni", numero);
       if (!r.ok) return { estado: "error", mensaje: r.motivo === "no_encontrado" ? MENSAJE.dniNoEncontrado : MENSAJE.sinPadron, campo: "documento" };
+      if (!(await anotarLecturaPadron("dni", numero, r.datos.nombre))) return { estado: "error", mensaje: MENSAJE.sinPadron, campo: "documento" };
       nombrePadron = r.datos.nombre;
     }
 

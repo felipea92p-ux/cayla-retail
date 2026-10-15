@@ -6144,6 +6144,10 @@ export type Database = {
         Args: { p_id: string }
         Returns: Json
       }
+      fn_anotar_lectura_padron: {
+        Args: { p_tipo: string; p_numero: string; p_nombre: string }
+        Returns: undefined
+      }
       fn_clientas_lista: {
         Args: { p_termino?: string; p_filtro?: string; p_limite?: number; p_desde?: number }
         Returns: {

@@ -1,13 +1,15 @@
 import { nombreAMedias, nombresYApellidos } from "@cayla-retail/shared";
 import { z } from "zod";
+import { codigoDelCorreoActual, type CodigoDelCorreo } from "./correo-confirmado";
 
 // Las reglas de la cuenta de la tienda online (ADR-0408, actividades 2 y 2b). Lo que la página de registro dice de cada campo
 // (falta, mal, repetido, listo), la sugerencia de «gmial.com», el cumpleaños como lo guarda el Club, las dos casillas («Soy
 // mayor de 18 años» y los avisos por WhatsApp), el código que confirma el correo, lo que el servidor vuelve a revisar antes de
 // crear nada, y cómo se leen las respuestas de la base. Lógica pura, sin red: la usan el formulario (navegador), las acciones
 // (servidor) y sus pruebas. Sale de la maqueta aprobada (`docs/maquetas/tienda-online-2026-10`: `estadoRegistro`,
-// `ARREGLOS_CORREO`, `guiaRegistro`, `vEntrar`, `vOlvide`); el paso del código y las casillas, de lo que Felipe decidió el
-// 2026-10-14 (actividad 2b).
+// `ARREGLOS_CORREO`, `guiaRegistro`, `vEntrar`, `vOlvide`); el código y las casillas, de lo que Felipe decidió el 2026-10-14
+// (actividad 2b). Desde el 2026-10-15 el código no es un paso al final: «Obtener código» va al lado del correo y la caja del código
+// debajo, y «Crear mi cuenta» se prende recién con el correo confirmado (`lib/correo-confirmado.ts`).
 //
 // Quien decide de verdad es la base (`retail.tienda_registrar_cuenta`): esto solo evita mandar lo que la base rechazaría y dice
 // por qué, con las mismas palabras en la pantalla y en el servidor.
@@ -87,9 +89,8 @@ export type Cumple = { d: string; m: string; a: string };
 export type Registro = {
   correo: string;
   clave: string;
+  /** Con él, el servidor trae el nombre del padrón. El nombre no se escribe (Felipe 2026-10-15): sin el padrón no hay cuenta. */
   dni: string;
-  /** Solo cuando el padrón no dio el nombre: lo escribe la persona. */
-  nombre: string;
   celular: string;
   cumple: Cumple;
   /** «Soy mayor de 18 años»: obligatoria (la base también la exige). */
@@ -103,7 +104,6 @@ export const REGISTRO_VACIO: Registro = {
   correo: "",
   clave: "",
   dni: "",
-  nombre: "",
   celular: "",
   cumple: { d: "", m: "", a: "" },
   mayor: false,
@@ -113,11 +113,15 @@ export const REGISTRO_VACIO: Registro = {
 
 /**
  * Lo que dijo la base del correo mientras se escribía. `sin_revisar`: todavía no se preguntó (o no contestó). `de_otra_persona`: al
- * pedir el código, la base dijo que es el correo de contacto de OTRA ficha (un correo es de una sola persona, Felipe 2026-10-14).
+ * crear la cuenta, la base dijo que es el correo de contacto de OTRA ficha (un correo es de una sola persona, Felipe 2026-10-14). Se
+ * sabe recién con el DNI (el correo de su propia ficha sí sirve), así que con el correo solo, «Obtener código» no lo puede saber.
  */
 export type ConsultaCorreo = "sin_revisar" | "libre" | "repetido" | "de_otra_persona";
 
-/** Lo que dijo el servidor del DNI. `sin_nombre`: el DNI está libre pero el nombre lo escribe la persona. */
+/**
+ * Lo que dijo el servidor del DNI. `sin_nombre`: el DNI está libre, pero el padrón no dio el nombre (no lo encontró, no respondió o
+ * se buscó demasiadas veces): sin el nombre del padrón no se crea la cuenta (Felipe 2026-10-15), y se puede volver a intentar.
+ */
 export type ConsultaDni =
   | { estado: "sin_revisar" }
   | { estado: "buscando" }
@@ -126,18 +130,21 @@ export type ConsultaDni =
   | { estado: "repetido" }
   | { estado: "archivada" };
 
-/** Lo que la persona tiene que completar (los avisos por WhatsApp son opcionales: nunca «faltan»). */
-export type CampoRegistro = "correo" | "clave" | "dni" | "nombre" | "cel" | "cumple" | "mayor" | "acepta";
-/** A dónde lleva un problema: un campo, la casilla opcional de los avisos o la caja del código. */
-export type CampoProblema = CampoRegistro | "avisos" | "codigo";
+/**
+ * Lo que la persona tiene que completar (los avisos por WhatsApp son opcionales: nunca «faltan»). El nombre no: sale del DNI. El
+ * código va justo después del correo (Felipe 2026-10-15): se confirma ahí mismo, antes de lo demás.
+ */
+export type CampoRegistro = "correo" | "codigo" | "clave" | "dni" | "cel" | "cumple" | "mayor" | "acepta";
+/** A dónde lleva un problema: un campo o la casilla opcional de los avisos. */
+export type CampoProblema = CampoRegistro | "avisos";
 export type EstadoCampo = "falta" | "mal" | "repetido" | "buscando" | "ok";
 
 /** El orden de la página y cómo se nombra cada campo en «Falta: …». */
 export const CAMPOS_REGISTRO: readonly (readonly [CampoRegistro, string])[] = [
   ["correo", "tu correo"],
+  ["codigo", "confirmar tu correo"],
   ["clave", "tu contraseña"],
   ["dni", "tu DNI"],
-  ["nombre", "tu nombre"],
   ["cel", "tu celular"],
   ["cumple", "tu cumpleaños"],
   ["mayor", "confirmar que eres mayor de 18"],
@@ -190,25 +197,26 @@ function cumplio18(a: number, m: number, d: number, hoy: Dia): boolean {
   return cumple18[0] < h[0] || (cumple18[0] === h[0] && (cumple18[1] < h[1] || (cumple18[1] === h[1] && cumple18[2] <= h[2])));
 }
 
+/**
+ * El DNI: falta hasta las 8 cifras; después, lo que dijo el servidor. Sin el nombre del padrón (`sin_nombre`) el DNI queda en «Revisa»
+ * y no se crea la cuenta: el nombre no se escribe a mano (Felipe 2026-10-15).
+ */
 export function estadoDni(dni: string, consulta: ConsultaDni): EstadoCampo {
   if (!/^\d{8}$/.test(dni)) return "falta";
   switch (consulta.estado) {
     case "repetido":
       return "repetido";
     case "archivada":
+    case "sin_nombre":
       return "mal";
     case "encontrado":
-    case "sin_nombre":
       return "ok";
     default:
       return "buscando";
   }
 }
 
-/** El nombre escrito a mano: solo hace falta si el padrón no lo dio. */
-export const pideNombre = (consulta: ConsultaDni) => consulta.estado === "sin_nombre";
-
-export const nombreLimpio = (nombre: string) => nombre.replace(/\s+/g, " ").trim();
+const nombreLimpio = (nombre: string) => nombre.replace(/\s+/g, " ").trim();
 
 /**
  * El nombre del padrón como se guarda y como se muestra (las mismas reglas del Club del ERP, `packages/shared`): para la ficha,
@@ -224,22 +232,34 @@ export function nombreDelPadron(nombre: string, origen: "sunat_publico" | "prove
   return { nombre: nombreLimpio(`${partes.nombres} ${partes.apellidos}`), aMedias };
 }
 
-export function estadoNombre(nombre: string, consulta: ConsultaDni): EstadoCampo {
-  if (!pideNombre(consulta)) return "ok";
-  const n = nombreLimpio(nombre);
-  if (n.length > 200) return "mal";
-  return n.length >= 3 && /\p{L}/u.test(n) ? "ok" : "falta";
+/** Lo que dice el DNI cuando el padrón no dio el nombre: por qué, y que sin él no hay cuenta. Va con «Volver a intentar». */
+export function mensajeSinNombre(motivo: "no_encontrado" | "sin_padron" | "limite"): string {
+  return motivo === "no_encontrado" ? MENSAJES.dniNoEncontrado : motivo === "limite" ? MENSAJES.dniLimite : MENSAJES.dniSinPadron;
+}
+
+/**
+ * El código del correo escrito AHORA: listo si ese correo quedó confirmado; «Revisa» si el código venció o se gastaron sus intentos
+ * (hace falta otro); si no, falta. Un código pedido para otro correo no cuenta (`codigoDelCorreoActual`).
+ */
+export function estadoCodigo(correo: string, codigo: CodigoDelCorreo): EstadoCampo {
+  const actual = codigoDelCorreoActual(codigo, normalizarCorreo(correo));
+  if (actual.estado === "confirmado") return "ok";
+  return actual.estado === "enviado" && actual.necesitaNuevo ? "mal" : "falta";
 }
 
 export type EstadoRegistro = Record<CampoRegistro, EstadoCampo> & { motivoCumple?: "fecha" | "menor" };
 
-export function estadoRegistro(r: Registro, consultas: { correo: ConsultaCorreo; dni: ConsultaDni }, hoy: Dia): EstadoRegistro {
+export function estadoRegistro(
+  r: Registro,
+  consultas: { correo: ConsultaCorreo; dni: ConsultaDni; codigo: CodigoDelCorreo },
+  hoy: Dia,
+): EstadoRegistro {
   const cumple = estadoCumple(r.cumple, hoy);
   return {
     correo: estadoCorreo(r.correo, consultas.correo),
+    codigo: estadoCodigo(r.correo, consultas.codigo),
     clave: estadoClave(r.clave),
     dni: estadoDni(r.dni, consultas.dni),
-    nombre: estadoNombre(r.nombre, consultas.dni),
     cel: estadoCelular(r.celular),
     cumple: cumple.estado,
     motivoCumple: cumple.motivo,
@@ -295,10 +315,11 @@ export const MENSAJES = {
   dniRepetido: "Ya hay una cuenta con este DNI.",
   dniArchivada: "Para crear tu cuenta necesitamos revisar tus datos en tienda: acércate a cualquier tienda CAYLA.",
   dniDelClub: "Ya eras del Club CAYLA: tu cuenta se une a tu ficha",
-  dniNoEncontrado: "No encontramos tu nombre con ese DNI. Revisa el número; si está bien, escribe tu nombre abajo.",
-  dniSinPadron: "No pudimos buscar tu nombre ahora. Escríbelo abajo, tal como está en tu DNI.",
-  dniLimite: "Hiciste muchas búsquedas seguidas. Escribe tu nombre abajo, tal como está en tu DNI.",
-  nombreAyuda: "Tal como está en tu DNI: así sale en tu boleta.",
+  // El nombre sale del padrón y no se escribe (Felipe 2026-10-15): sin él no se crea la cuenta. Cada uno va con «Volver a intentar».
+  dniDelPadron: "Del padrón: así sale en tu boleta.",
+  dniNoEncontrado: "No encontramos tu nombre con ese DNI. Revisa el número: sin tu nombre del padrón no podemos crear tu cuenta.",
+  dniSinPadron: "No pudimos buscar tu nombre ahora. Sin él no podemos crear tu cuenta: vuelve a intentar en un momento.",
+  dniLimite: "Hiciste muchas búsquedas seguidas. Espera un rato y vuelve a intentar.",
   celAyuda: "Por aquí te escribe la tienda por tus pedidos.",
   celMal: "El celular empieza en 9.",
   cumpleAyuda: "Día y mes; el año es opcional. Es para tu descuento de cumpleaños.",
@@ -314,6 +335,16 @@ export const MENSAJES = {
   noDisponible: "No pudimos crear tu cuenta ahora. Intenta de nuevo en unos minutos.",
   limite: "Hiciste muchos intentos seguidos. Espera un rato y vuelve a intentarlo.",
   codigoAyuda: "Son 6 números. Si no lo ves, revisa también tu carpeta de spam.",
+  // El código bajo el correo (Felipe 2026-10-15): «Obtener código» al lado, la caja debajo y, con el bueno, «Correo confirmado».
+  codigoObtener: "Obtener código",
+  codigoAntes: "Toca «Obtener código»: te llega un código de 6 números a este correo.",
+  correoConfirmado: "Correo confirmado",
+  codigoSinConfirmar: "Primero confirma tu correo: toca «Obtener código» y escribe los 6 números que te llegan.",
+  // El correo lo acaba de confirmar otro aparato y todavía puede estar creando su cuenta: no se le manda otro código por un rato.
+  correoOcupado: "Este correo se está confirmando en otro aparato. Termina ahí, o espera unos minutos y vuelve a intentar.",
+  // El último código sigue sirviendo (se pidió hace menos de un minuto, desde aquí o desde otro aparato).
+  codigoReciente: "Ya te mandamos un código hace poco: revisa tu correo.",
+  codigoIncompleto: "Escribe los 6 números del código.",
   codigoVencido: "Ese código ya no sirve. Pide uno nuevo.",
   codigoSinPedir: "Pide un código nuevo para confirmar tu correo.",
   codigoNuevo: "Te mandamos un código nuevo. Usa el último que te llegó.",
@@ -374,12 +405,11 @@ export const mensajeCodigoEsperar = (segundos: number) => `Te mandamos uno hace 
 
 /* ------------------------------------------------------------------ Lo que el servidor vuelve a revisar */
 
-/** Lo que manda el formulario al pedir el código y al crear la cuenta. El servidor no confía en nada de esto: lo revisa todo. */
+/** Lo que manda el formulario al crear la cuenta. El servidor no confía en nada de esto: lo revisa todo. */
 export const esquemaRegistro = z.object({
   correo: z.string().max(400),
   clave: z.string().max(400),
   dni: z.string().max(40),
-  nombre: z.string().max(400),
   celular: z.string().max(40),
   cumple: z.object({ d: z.string().max(4), m: z.string().max(4), a: z.string().max(8) }),
   mayor: z.boolean(),
@@ -387,10 +417,11 @@ export const esquemaRegistro = z.object({
   avisos: z.boolean(),
 });
 
-/** Con el registro, la versión de la casilla de los avisos que la persona leyó (null si no se le mostró). */
-export const esquemaPedirCodigo = z.object({ registro: esquemaRegistro, casilla: z.number().int().positive().nullable() });
-/** …y, para crear la cuenta, el código que le llegó. */
-export const esquemaConfirmarCodigo = esquemaPedirCodigo.extend({ codigo: z.string().max(40) });
+/**
+ * «Crear mi cuenta»: el registro y la versión de la casilla de los avisos que la persona leyó (null si no se le mostró). El código
+ * NO viaja aquí: se confirmó antes, bajo el correo, y lo que el servidor exige es la prueba firmada de este aparato.
+ */
+export const esquemaCrearCuenta = z.object({ registro: esquemaRegistro, casilla: z.number().int().positive().nullable() });
 
 export type ProblemaRegistro = { campo: CampoProblema | null; mensaje: string };
 
@@ -399,7 +430,6 @@ export function problemaRegistro(r: Registro, hoy: Dia): ProblemaRegistro | null
   if (!correoValido(r.correo)) return { campo: "correo", mensaje: MENSAJES.correoMal };
   if (estadoClave(r.clave) !== "ok") return { campo: "clave", mensaje: r.clave.length > CLAVE_MAXIMA ? MENSAJES.claveLarga : MENSAJES.claveAyuda };
   if (!/^\d{8}$/.test(r.dni)) return { campo: "dni", mensaje: "El DNI tiene 8 dígitos." };
-  if (nombreLimpio(r.nombre).length > 200) return { campo: "nombre", mensaje: "El nombre es demasiado largo." };
   if (estadoCelular(r.celular) !== "ok") return { campo: "cel", mensaje: "El celular tiene 9 dígitos y empieza en 9." };
   const cumple = estadoCumple(r.cumple, hoy);
   if (cumple.estado !== "ok") return { campo: "cumple", mensaje: cumple.motivo === "menor" ? MENSAJES.cumpleMenor : MENSAJES.cumpleMal };
@@ -413,7 +443,8 @@ export function problemaRegistro(r: Registro, hoy: Dia): ProblemaRegistro | null
 const CAMPO_DE_LA_BASE: Record<string, CampoRegistro> = {
   correo: "correo",
   dni: "dni",
-  nombre: "nombre",
+  // El nombre sale del DNI (no hay caja de nombre): lo que diga la base del nombre se dice en el DNI.
+  nombre: "dni",
   celular: "cel",
   cumple: "cumple",
   mayor: "mayor",
@@ -440,12 +471,16 @@ export function errorDeRegistro(hint: string | null | undefined, detalle: string
     case "cuenta_texto_cambio":
     case "cuenta_sin_texto":
       return { campo: "avisos", mensaje: MENSAJES.avisosCambio };
+    // La base no encontró la lectura del padrón del nombre (20261015133000): no se pudo anotar, o venció. Se vuelve a intentar.
+    case "nombre_sin_padron":
+      return { campo: "dni", mensaje: MENSAJES.dniSinPadron };
     case "cuenta_datos_invalidos": {
+      // Un problema con el nombre (falta el del padrón) se dice en el DNI, con su propio mensaje.
+      if (detalle === "nombre") return { campo: "dni", mensaje: MENSAJES.dniSinPadron };
       const campo = CAMPO_DE_LA_BASE[detalle ?? ""] ?? null;
       const mensajes: Partial<Record<CampoRegistro, string>> = {
         correo: MENSAJES.correoMal,
         dni: "El DNI tiene 8 dígitos.",
-        nombre: "Escribe tus nombres y apellidos, tal como están en tu DNI.",
         cel: "El celular tiene 9 dígitos y empieza en 9.",
         cumple: MENSAJES.cumpleMal,
         mayor: MENSAJES.mayorFalta,

@@ -19,15 +19,22 @@ Viven en un proyecto de inicio de sesión **aparte**, solo de clientes (ADR-0408
 ERP cada cuenta es una fila de `cuentas_web` unida a su ficha del Club, y la tienda llega a ella por `tienda_registrar_cuenta`,
 `tienda_mi_cuenta` y sus hermanas (`20261014223000` y `20261014224000`).
 
-- **Crear la cuenta** lo hace el servidor (`app/acciones/cuenta.ts`), y la cuenta nace recién con el **código de 6 cifras** que
-  llega al correo (actividad 2b). «Mandarme el código»: la base revisa el correo, el DNI y los topes del cartel del Club
-  (`club_intento`) → reserva el envío (`tienda_reservar_envio`: 60 s entre uno y otro, 5 por hora) → el proyecto de clientes
-  **invita** el correo (un usuario sin contraseña, que no puede entrar; el correo usa `supabase/plantillas/codigo.html`) →
-  `tienda_anotar_invitado`. «Crear mi cuenta» con el código: la base cuenta el intento (`tienda_intento_de_codigo`: 5 por código;
-  con el quinto, 15 minutos de bloqueo; vence a los 30) → el proyecto de clientes verifica el código y se le pone la contraseña →
-  la base crea la cuenta y la deja en el Club, todo o nada (`tienda_registrar_cuenta`, que exige el código de ESE correo y ese
-  usuario). Si la base dice que no, el usuario se borra (`lib/usuarios-servidor.ts`). Una invitación sin terminar no deja el
-  correo tomado: pedir otro código invita de nuevo al mismo usuario, y los pendientes de más de un día se limpian solos.
+- **Crear la cuenta** lo hace el servidor (`app/acciones/cuenta.ts`), y la cuenta nace recién con el correo confirmado con el
+  **código de 6 cifras** (actividad 2b), que desde el 2026-10-15 se pide y se escribe **bajo el correo**, antes de lo demás.
+  «Obtener código», al lado del correo: la base cuenta la consulta (`tienda_consultar_correo`, con los topes por ip del cartel del
+  Club, `club_intento`) y dice si el correo ya tiene cuenta → reserva el envío (`tienda_reservar_envio`: 60 s entre uno y otro, 5
+  por hora) → el proyecto de clientes **invita** el correo (un usuario sin contraseña, que no puede entrar; el correo usa
+  `supabase/plantillas/codigo.html`) → `tienda_anotar_invitado`. La caja del código, debajo, se revisa sola con sus 6 números: la
+  base cuenta el intento (`tienda_intento_de_codigo`: 5 por código; con el quinto, 15 minutos de bloqueo; vence a los 30) → el
+  proyecto de clientes lo verifica → el servidor deja en el aparato una **prueba firmada** de que confirmó ESE correo (una cookie
+  httpOnly que dura 30 minutos, `lib/correo-confirmado.ts`). «Crear mi cuenta» vuelve a exigir esa prueba y que el usuario siga
+  confirmado (nunca lo que diga el navegador) → la base revisa el correo, el DNI y los topes (`tienda_revisar_registro`) → el
+  nombre del padrón → la contraseña → la base crea la cuenta y la deja en el Club, todo o nada (`tienda_registrar_cuenta`, que
+  exige el pendiente de ESE correo y ese usuario con su código probado). Si algo dice que no, la confirmación se queda: se arregla
+  el dato y se vuelve a crear, sin otro código. Ningún correo queda tomado por quien no lo confirmó: pedir otro código invita de
+  nuevo al mismo usuario; uno confirmado sin cuenta se respeta 30 minutos (puede estar terminando en otro aparato) y después se
+  borra; si la persona cambia de correo, el usuario del correo de antes se borra en el acto; y los pendientes de más de un día se
+  limpian solos (`lib/usuarios-servidor.ts`).
 - **Las casillas**: «Soy mayor de 18 años» (obligatoria; la base también la exige) y «Avisos del Club por WhatsApp» (opcional,
   con el texto aprobado del Club, `tienda_casilla_whatsapp`): marcada, la base anota el permiso de publicidad del Club con origen
   `tienda_web`, solo para el celular que la persona escribió.

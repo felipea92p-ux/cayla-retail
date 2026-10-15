@@ -182,6 +182,8 @@ export type Trozo = string | { fuerte: string };
 export const AYUDA = {
   documento: "Lo usamos para reconocerte en caja y aplicar tus cupones.",
   padron: "Lo tomamos del padrón público para que tu nombre quede bien escrito.",
+  // Carné o pasaporte (Felipe 2026-10-15): el nombre se escribe tal cual está en el documento.
+  nombre: "Tal cual está en tu documento: nombres y apellidos, sin números.",
   celular: "Aquí te llegarán nuestras novedades y tus cupones.",
   nacimiento: "Para tu cupón de cumpleaños.",
   correo: "Opcional. Solo para contactarte si lo necesitamos.",
@@ -286,7 +288,11 @@ export function problemasRegistro(r: RegistroEscrito, hoy: string): Partial<Reco
     if (mal) p.documento = mal;
     else if (esDni && !r.dniConfirmado) p.documento = "Confirma que el nombre que aparece es el tuyo.";
   }
-  if (!esDni && r.nombre.replace(/\s+/g, " ").trim().length < 3) p.nombre = "Escribe tus nombres y apellidos.";
+  // Carné o pasaporte: tal cual está en el documento, que nunca lleva números en el nombre (Felipe 2026-10-15). Con DNI el nombre
+  // sale del padrón (el servidor lo vuelve a leer y lo anota: `registrarme`).
+  const nombre = r.nombre.replace(/\s+/g, " ").trim();
+  if (!esDni && /[0-9]/.test(nombre)) p.nombre = "Tu nombre no lleva números: escríbelo tal cual está en tu documento.";
+  else if (!esDni && nombre.length < 3) p.nombre = "Escribe tus nombres y apellidos, tal cual están en tu documento.";
 
   const celular = soloDigitos(r.celular);
   if (celular === "") p.celular = "Escribe tu celular con WhatsApp.";
@@ -452,6 +458,12 @@ export function errorDeLaBase(hint: string | null | undefined): { mensaje: strin
     // El correo de otra ficha (o de la cuenta web de otra ficha): 20261015054000. No dice de quién.
     case "correo_repetido":
       return { mensaje: MENSAJE.correoRepetido, campo: "correo" };
+    // El nombre (20261015133000): con DNI, la base no encontró la lectura del padrón (no se pudo anotar o venció); se vuelve a
+    // intentar. Con carné o pasaporte, traía números (la página ya lo dice antes; esto es la red).
+    case "nombre_sin_padron":
+      return { mensaje: MENSAJE.sinPadron, campo: "documento" };
+    case "nombre_con_numeros":
+      return { mensaje: "Tu nombre no lleva números: escríbelo tal cual está en tu documento.", campo: "nombre" };
     default:
       return { mensaje: MENSAJE.noDisponible, campo: null };
   }
@@ -507,7 +519,7 @@ export function ipDeLaPeticion(reenviadaPor: string | null | undefined, real: st
 
 export type Bienvenida = {
   titulo: string;
-  /** La línea bajo el título: «Ya eres miembro…», o desde cuándo lo es si ya lo era. */
+  /** La línea bajo el título: «Te damos la bienvenida…», o desde cuándo es miembro si ya lo era. */
   bajada: string;
   /** Solo si marcó la casilla de WhatsApp y la tienda tiene número (ADR-0288 G-6, G-12). */
   saludo: { titulo: string; parrafo: string; boton: string; enlace: string } | null;
@@ -515,8 +527,10 @@ export type Bienvenida = {
 
 /**
  * Lo que ve al terminar (diseño aprobado el 2026-10-01; su código va en su tarjeta de miembro, que dibuja la página). Nuevo:
- * «¡Te damos la bienvenida, {nombre}!» y «Ya eres miembro del Club CAYLA.». Ya era miembro: «Actualizamos tus datos» y desde
- * cuándo lo es. Sin género: sirve igual a un cliente o a una clienta (Felipe, 2026-10-02).
+ * «¡Listo, {nombre}!» y «Te damos la bienvenida al Club CAYLA.» (cómo se confirma el Club, Felipe 2026-10-15: la misma frase al
+ * terminar de crear la cuenta en la tienda; «bienvenida» una sola vez). Ya era miembro: «Actualizamos tus datos» y desde cuándo lo
+ * es («Eres miembro del Club CAYLA», como se le dice a quien ya es). Sin género: sirve igual a un cliente o a una clienta (Felipe,
+ * 2026-10-02).
  * Con la casilla de WhatsApp, el último paso: saludar a la tienda del cartel con su código (así guarda el número oficial y la
  * conversación la empieza ella). Sin texto `saludo` vigente, el chat se abre sin mensaje.
  */
@@ -529,12 +543,12 @@ export function bienvenida(r: Extract<RespuestaRegistro, { estado: "listo" }>, p
     : "";
   const enlace = r.conPublicidad ? enlaceQrClub(p.whatsapp, mensaje) : null;
   return {
-    titulo: r.eraSocia ? "Actualizamos tus datos" : `¡Te damos la bienvenida${r.nombre ? `, ${r.nombre}` : ""}!`,
+    titulo: r.eraSocia ? "Actualizamos tus datos" : `¡Listo${r.nombre ? `, ${r.nombre}` : ""}!`,
     bajada: r.eraSocia
       ? desde
         ? `Eres miembro del Club CAYLA desde el ${desde}.`
         : "Ya eras miembro del Club CAYLA."
-      : "Ya eres miembro del Club CAYLA.",
+      : "Te damos la bienvenida al Club CAYLA.",
     saludo: enlace
       ? {
           titulo: "Último paso: salúdanos por WhatsApp",

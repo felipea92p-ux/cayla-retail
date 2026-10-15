@@ -165,7 +165,7 @@ export const GUIA_PUNTO_DE_VENTA: Guia = {
       opcional: true,
       ...CAJA_ABIERTA,
       titulo: "El cliente",
-      texto: "Busca al cliente por su nombre, DNI o celular. Si es miembro del club, aquí ves su cumpleaños y sus beneficios, y la venta le suma a su historial.",
+      texto: "Busca al cliente por su nombre, DNI o celular. Si es miembro del club, aquí ves su cumpleaños y sus beneficios, y la venta le suma a su historial. Si no está, lo registras con su documento: con DNI el nombre lo trae el padrón; si no responde, vendes sin cliente.",
     },
     {
       id: "bolsas",

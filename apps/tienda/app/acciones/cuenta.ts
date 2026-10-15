@@ -1,8 +1,15 @@
 "use server";
 
-import { isAuthApiError, isAuthRetryableFetchError } from "@supabase/supabase-js";
+import { isAuthApiError, isAuthRetryableFetchError, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import {
+  borrarConfirmacion,
+  confirmacionDeEsteAparato,
+  guardarConfirmacion,
+  hayLlaveDeConfirmacion,
+  usuarioConfirmadoDeEsteAparato,
+} from "@/lib/correo-confirmado-servidor";
 import { COOKIE_ENTRADA, ENTRADA_DURA_S, marcaDeEntrada } from "@/lib/entrada";
 import { anotarEntradaEnBase, usuarioBorradoEnBase } from "@/lib/entrada-servidor";
 import {
@@ -14,8 +21,7 @@ import {
   codigoLimpio,
   correoValido,
   errorDeRegistro,
-  esquemaConfirmarCodigo,
-  esquemaPedirCodigo,
+  esquemaCrearCuenta,
   estadoClave,
   hoyLima,
   MENSAJES,
@@ -23,7 +29,7 @@ import {
   mensajeCodigoEsperar,
   mensajeCodigoLimite,
   mensajeCodigoMalo,
-  nombreLimpio,
+  mensajeSinNombre,
   normalizarCorreo,
   problemaRegistro,
   TEXTOS_VERSION,
@@ -31,7 +37,6 @@ import {
   type CasillaWhatsapp,
   type ConsultaCorreo,
   type ConsultaDni,
-  type Registro,
 } from "@/lib/cuentas";
 import {
   anotarInvitadoEnBase,
@@ -43,16 +48,19 @@ import {
   registrarCuentaEnBase,
   reservarEnvioEnBase,
   revisarRegistroEnBase,
+  type DatosCuenta,
 } from "@/lib/cuentas-servidor";
 import { huellas } from "@/lib/intentos-servidor";
-import { buscarNombre } from "@/lib/padron-servidor";
+import { anotarLecturaDelPadron, buscarNombre } from "@/lib/padron-servidor";
 import { borrarCookiesDeSesion, clienteAdmin, clienteSesion, leerSesion } from "@/lib/sesion-servidor";
-import { borrarSiNoTieneCuenta, confirmarCorreo, invitarCorreo, limpiarInvitados } from "@/lib/usuarios-servidor";
+import { borrarSiNoTieneCuenta, estaConfirmado, invitarCorreo, limpiarInvitados, ponerClave, verificarCodigo } from "@/lib/usuarios-servidor";
 
 // Las acciones de la cuenta de la tienda online (ADR-0408, actividades 2 y 2b). Las llama una persona sin sesión, como POST a la
 // página donde están: no confían en nada de lo que llega (lo vuelven a revisar con las reglas de `lib/cuentas.ts`) y la base
 // decide (`retail.tienda_*`, que cuenta los intentos y valida todo otra vez). Ninguna respuesta trae datos de otra persona: el
 // nombre del padrón sale a medias. En los registros del servidor nunca va un correo, un DNI, un celular, un nombre ni un código.
+// Desde el 2026-10-15 el código se pide y se confirma bajo el correo, antes de lo demás («Obtener código»), y «Crear mi cuenta»
+// vuelve a exigir esa confirmación: la prueba firmada de este aparato (`lib/correo-confirmado.ts`), nunca lo que diga el navegador.
 
 /* ------------------------------------------------------------------ Mientras se escribe */
 
@@ -67,7 +75,8 @@ export async function consultarCorreo(correo: unknown): Promise<ConsultaCorreo> 
 
 /**
  * Con los 8 dígitos: si ese DNI ya tiene cuenta, si su ficha está archivada, si ya era del Club, y su nombre del padrón A MEDIAS
- * («Maria P. S.»). Nunca el nombre completo. Si el padrón no lo encuentra o no responde, la persona escribe su nombre.
+ * («Maria P. S.»). Nunca el nombre completo. Si el padrón no lo encuentra o no responde, no se puede crear la cuenta: el nombre no se
+ * escribe a mano (Felipe 2026-10-15), y la página ofrece «Volver a intentar».
  */
 export async function consultarDni(dni: unknown): Promise<ConsultaDni> {
   if (typeof dni !== "string" || !/^\d{8}$/.test(dni)) return { estado: "sin_revisar" };
@@ -82,214 +91,281 @@ export async function consultarDni(dni: unknown): Promise<ConsultaDni> {
   return { estado: "sin_nombre", motivo: padron.estado, delClub: enBase.delClub };
 }
 
-/* ------------------------------------------------------------------ Crear la cuenta: el código y la cuenta (actividad 2b) */
+/* ------------------------------------------------------------------ El código, bajo el correo (Felipe 2026-10-15) */
 
 /**
- * Lo que contesta cada paso. `datos`: la persona se queda (o vuelve) en sus datos, con el problema en su campo. `codigo`: está en
- * el paso del código, con lo que dice bajo la caja (o nada), cuántos segundos faltan para poder pedir otro (null: los que ya
- * corrían) y, si el código que probó no sirve, por qué (`malo`: se escribe otra vez; `vencido`: hace falta uno nuevo;
- * `bloqueado`: hay que esperar y pedir uno nuevo). Crear la cuenta bien no contesta: lleva a «Mi cuenta».
+ * Lo que contestan «Obtener código», «Reenviar» y la caja del código. `confirmado`: el correo quedó confirmado en ESTE aparato.
+ * `correo`: el código no se pide, por algo del correo (`repetido`: ya tiene cuenta; si no, lo que dice `mensaje`). `codigo`: lo que
+ * dice la caja del código (o nada); `enviado`: hay un código mandado a ese correo que puede servir (la caja aparece); cuántos
+ * segundos faltan para poder pedir otro (null: los que ya corrían) y, si el código que probó no sirve, por qué (`malo`: se escribe
+ * otra vez; `vencido`: hace falta uno nuevo; `bloqueado`: hay que esperar y pedir uno nuevo).
  */
-export type RespuestaCodigo =
-  | { paso: "datos"; campo: CampoProblema | null; mensaje: string; casilla?: CasillaWhatsapp | null }
-  | { paso: "codigo"; mensaje: string | null; tono: "error" | "aviso" | "ok"; espera: number | null; codigo?: "malo" | "vencido" | "bloqueado" };
+export type RespuestaDelCodigo =
+  | { estado: "confirmado" }
+  | { estado: "correo"; repetido: boolean; mensaje: string }
+  | {
+      estado: "codigo";
+      enviado: boolean;
+      mensaje: string | null;
+      tono: "error" | "aviso" | "ok";
+      espera: number | null;
+      codigo?: "malo" | "vencido" | "bloqueado";
+    };
 
-const enDatos = (campo: CampoProblema | null, mensaje: string): RespuestaCodigo => ({ paso: "datos", campo, mensaje });
-const enCodigo = (mensaje: string | null, tono: "error" | "aviso" | "ok", espera: number | null, codigo?: "malo" | "vencido" | "bloqueado"): RespuestaCodigo => ({
-  paso: "codigo",
-  mensaje,
-  tono,
-  espera,
-  ...(codigo ? { codigo } : {}),
-});
+const enCorreo = (mensaje: string, repetido = false): RespuestaDelCodigo => ({ estado: "correo", repetido, mensaje });
+const enCodigo = (
+  enviado: boolean,
+  mensaje: string | null,
+  tono: "error" | "aviso" | "ok",
+  espera: number | null,
+  codigo?: "malo" | "vencido" | "bloqueado",
+): RespuestaDelCodigo => ({ estado: "codigo", enviado, mensaje, tono, espera, ...(codigo ? { codigo } : {}) });
 
 /**
- * «Mandarme el código». El orden seguro (principio 9): (1) la base revisa el correo, el DNI y los topes (y cuenta el intento,
- * con sus topes por ip, documento y celular); (2) el nombre: el del padrón, o el que escribió si el padrón no lo da; (3) los
- * avisos: el texto que leyó sigue siendo el vigente; (4) la base reserva el envío (60 s entre uno y otro, 5 por hora) y (5) el
- * proyecto de clientes manda el código. Hasta el código bueno no existe ni la cuenta ni la ficha.
+ * «Obtener código», al lado del correo (y «Reenviar», con `reenvio`). Solo viaja el correo: el resto del formulario puede estar
+ * vacío. El orden seguro (principio 9): (1) si este aparato ya confirmó ESE correo, no se manda otro; si había confirmado OTRO (la
+ * persona cambió el correo), ese usuario se borra y el correo de antes queda libre; (2) la primera vez, la base cuenta la consulta
+ * (sus topes por ip) y dice si el correo ya tiene cuenta; (3) la base reserva el envío (60 s entre uno y otro, 5 por hora, nada
+ * mientras dure un bloqueo); (4) el proyecto de clientes manda el código. Ni la cuenta ni la ficha existen todavía.
  */
-export async function pedirCodigo(entrada: unknown): Promise<RespuestaCodigo> {
-  const leido = esquemaPedirCodigo.safeParse(entrada);
-  if (!leido.success) return enDatos(null, MENSAJES.noDisponible);
-  const { registro: r, casilla } = leido.data;
-  const problema = problemaRegistro(r, hoyLima());
-  if (problema) return enDatos(problema.campo, problema.mensaje);
-
+export async function obtenerCodigo(correoEscrito: unknown, reenvio: unknown): Promise<RespuestaDelCodigo> {
+  if (typeof correoEscrito !== "string" || !correoValido(correoEscrito)) return enCorreo(MENSAJES.correoMal);
+  const correo = normalizarCorreo(correoEscrito);
   const admin = clienteAdmin();
-  const h = await huellas(r.dni);
-  if (!admin || !h?.documento) {
-    console.error(JSON.stringify({ evento: "tienda_cuentas_sin_configurar", admin: !!admin, huellas: !!h }));
-    return enDatos(null, MENSAJES.noDisponible);
-  }
-  const correo = normalizarCorreo(r.correo);
-
-  // 1. La base revisa antes de mandar nada (y cuenta el intento).
-  const revision = await revisarRegistroEnBase(correo, r.dni, celularNormalizado(r.celular), h.ip, h.documento);
-  if (revision.estado !== "ok") {
-    if (revision.estado === "limite") return enDatos(null, MENSAJES.limite);
-    if (revision.estado === "correo_repetido") return enDatos("correo", MENSAJES.correoRepetido);
-    // Un correo es de una sola persona: el de contacto de otra ficha no sirve para esta cuenta (sin decir de quién es).
-    if (revision.estado === "correo_de_otra_persona") return enDatos("correo", MENSAJES.correoDeOtraPersona);
-    if (revision.estado === "dni_repetido") return enDatos("dni", MENSAJES.dniRepetido);
-    if (revision.estado === "archivada") return enDatos("dni", MENSAJES.dniArchivada);
-    if (revision.estado === "invalido") {
-      const e = errorDeRegistro("cuenta_datos_invalidos", revision.campo);
-      return enDatos(e.campo, e.mensaje);
-    }
-    return enDatos(null, MENSAJES.noDisponible);
+  if (!admin) {
+    console.error(JSON.stringify({ evento: "tienda_cuentas_sin_configurar", admin: false }));
+    return enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
   }
 
-  // 2. El nombre: que no falte después del código.
-  const nombre = await nombreParaLaCuenta(r);
-  if (!nombre) return enDatos("nombre", "Escribe tus nombres y apellidos, tal como están en tu DNI.");
+  // 1. Lo que este aparato ya confirmó.
+  const propia = await confirmacionDeEsteAparato(correo);
+  if (propia && (await estaConfirmado(admin, propia.usuarioWebId)) === "si") return { estado: "confirmado" };
+  if (!propia) await soltarCorreoAnterior(admin);
 
-  // 3. Los avisos citan el texto que leyó: si cambió, que lo vuelva a leer antes de recibir el código.
-  if (r.avisos) {
-    const vigente = await leerCasillaDeAvisos();
-    if (!vigente || vigente.version !== casilla) return { paso: "datos", campo: "avisos", mensaje: MENSAJES.avisosCambio, casilla: vigente };
+  // 2. La primera vez, la consulta: cuenta el intento por ip (así nadie manda códigos a correos ajenos sin tope) y dice si ya hay
+  //    una cuenta con ese correo. «Reenviar» no la repite: la base solo reenvía a un correo que ya pidió su código.
+  if (reenvio !== true) {
+    const h = await huellas();
+    if (!h) return enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
+    const consulta = await consultarCorreoEnBase(correo, h.ip);
+    if (consulta === "repetido") return enCorreo(MENSAJES.correoRepetido, true);
+    if (consulta === "limite") return enCorreo(MENSAJES.limite);
+    if (consulta === "invalido") return enCorreo(MENSAJES.correoMal);
+    if (consulta !== "libre") return enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
   }
 
-  // 4 y 5. El código.
-  return mandarCodigo(correo, false);
+  // 3 y 4. El código.
+  return mandarCodigo(admin, correo, reenvio === true);
 }
 
-/** «Pedir otro código», en el paso del código. Solo para un correo que ya pidió el suyo (la base lo exige). */
-export async function reenviarCodigo(correo: unknown): Promise<RespuestaCodigo> {
-  if (typeof correo !== "string" || !correoValido(correo)) return enDatos("correo", MENSAJES.correoMal);
-  return mandarCodigo(normalizarCorreo(correo), true);
+/**
+ * Si este aparato había confirmado OTRO correo (la persona lo cambió), ese usuario se borra, si no tiene cuenta: el correo de antes
+ * queda libre en el acto (sin esperar sus 30 minutos) y su prueba se va. Es de este aparato: lo dice su prueba firmada.
+ */
+async function soltarCorreoAnterior(admin: SupabaseClient): Promise<void> {
+  const anterior = await usuarioConfirmadoDeEsteAparato();
+  if (!anterior) return;
+  await borrarSiNoTieneCuenta(admin, anterior, { respetarRecientes: false });
+  await borrarConfirmacion();
 }
 
-async function mandarCodigo(correo: string, reenvio: boolean): Promise<RespuestaCodigo> {
-  const admin = clienteAdmin();
-  if (!admin) return reenvio ? enCodigo(MENSAJES.codigoNoEnviado, "error", null) : enDatos(null, MENSAJES.noDisponible);
+async function mandarCodigo(admin: SupabaseClient, correo: string, reenvio: boolean): Promise<RespuestaDelCodigo> {
   const reserva = await reservarEnvioEnBase(correo, reenvio);
   // Lo que nadie terminó (pendientes de otros correos que llevan un día quietos): sus usuarios invitados se van, sin esperar.
   const limpieza = reserva.limpiar.length ? limpiarInvitados(admin, reserva.limpiar) : Promise.resolve();
 
-  let respuesta: RespuestaCodigo;
+  let respuesta: RespuestaDelCodigo;
   switch (reserva.estado) {
     case "enviar": {
       const invitacion = await invitarCorreo(admin, correo);
-      if (invitacion.estado === "tiene_cuenta") respuesta = enDatos("correo", MENSAJES.correoRepetido);
-      else if (invitacion.estado !== "invitado") respuesta = reenvio ? enCodigo(MENSAJES.codigoNoEnviado, "error", null) : enDatos(null, MENSAJES.codigoNoEnviado);
+      if (invitacion.estado === "tiene_cuenta") respuesta = enCorreo(MENSAJES.correoRepetido, true);
+      // Otro aparato acaba de confirmar este correo y puede estar terminando su cuenta: no se le manda otro código por un rato.
+      else if (invitacion.estado === "ocupado") respuesta = enCorreo(MENSAJES.correoOcupado);
       // Sin el usuario anotado, la base no dejaría crear la cuenta con ese código: mejor decirlo ahora.
-      else if ((await anotarInvitadoEnBase(correo, invitacion.usuarioWebId)) !== true)
-        respuesta = reenvio ? enCodigo(MENSAJES.codigoNoEnviado, "error", null) : enDatos(null, MENSAJES.codigoNoEnviado);
-      else respuesta = enCodigo(reenvio ? MENSAJES.codigoNuevo : null, "ok", CODIGO_ESPERA_S);
+      else if (invitacion.estado !== "invitado" || (await anotarInvitadoEnBase(correo, invitacion.usuarioWebId)) !== true)
+        respuesta = enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
+      else respuesta = enCodigo(true, reenvio ? MENSAJES.codigoNuevo : null, "ok", CODIGO_ESPERA_S);
       break;
     }
     case "esperar":
-      // El último código sigue sirviendo: se va (o se queda) en el paso del código.
-      respuesta = enCodigo(reenvio ? mensajeCodigoEsperar(reserva.segundos) : "Ya te mandamos un código hace poco: revisa tu correo.", "aviso", reserva.segundos);
+      // El último código sigue sirviendo: la caja aparece (o se queda) para escribirlo.
+      respuesta = enCodigo(true, reenvio ? mensajeCodigoEsperar(reserva.segundos) : MENSAJES.codigoReciente, "aviso", reserva.segundos);
       break;
     case "limite":
-      respuesta = enCodigo(mensajeCodigoLimite(reserva.minutos), "aviso", reserva.minutos * 60);
+      respuesta = enCodigo(true, mensajeCodigoLimite(reserva.minutos), "aviso", reserva.minutos * 60);
       break;
     case "bloqueado":
-      respuesta = reenvio
-        ? enCodigo(mensajeCodigoBloqueado(reserva.minutos), "error", reserva.minutos * 60, "bloqueado")
-        : enDatos(null, mensajeCodigoBloqueado(reserva.minutos));
+      respuesta = enCodigo(true, mensajeCodigoBloqueado(reserva.minutos), "error", reserva.minutos * 60, "bloqueado");
       break;
     case "correo_repetido":
-      respuesta = enDatos("correo", MENSAJES.correoRepetido);
+      respuesta = enCorreo(MENSAJES.correoRepetido, true);
       break;
     case "invalido":
-      respuesta = enDatos("correo", MENSAJES.correoMal);
+      respuesta = enCorreo(MENSAJES.correoMal);
       break;
     case "sin_codigo":
-      respuesta = enDatos(null, MENSAJES.codigoSinPedir);
+      // «Reenviar» de un correo sin código pedido en el último día: se pide de nuevo con «Obtener código».
+      respuesta = enCorreo(MENSAJES.codigoSinPedir);
       break;
     default:
-      respuesta = reenvio ? enCodigo(MENSAJES.codigoNoEnviado, "error", null) : enDatos(null, MENSAJES.noDisponible);
+      respuesta = enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
   }
   await limpieza;
   return respuesta;
 }
 
 /**
- * «Crear mi cuenta», con el código. El orden seguro: (1) los datos y el nombre, otra vez; (2) la base cuenta el intento ANTES de
- * probarlo (5 por código; con el quinto, 15 minutos de bloqueo); (3) el proyecto de clientes verifica el código y se le pone la
- * contraseña; (4) la cuenta en la base, todo o nada (exige el correo pendiente de ESTE usuario). Si (4) dice que no, el usuario de
- * (3) se borra para no dejarlo suelto, salvo que ya tenga cuenta (un doble envío) o la base no conteste. (5) Entra y va a «Mi
- * cuenta».
+ * La caja del código, apenas tiene sus 6 números. El orden seguro: (1) la base cuenta el intento ANTES de probarlo (5 por código;
+ * con el quinto, 15 minutos de bloqueo); (2) el proyecto de clientes lo verifica (uno de otro correo no sirve; uno nuevo anula el
+ * anterior) y (3) este aparato guarda la prueba firmada de que confirmó ESE correo (`lib/correo-confirmado.ts`). La cuenta todavía
+ * no existe: nace con «Crear mi cuenta», que vuelve a exigir esa prueba.
  */
-export async function confirmarCodigo(entrada: unknown): Promise<RespuestaCodigo> {
-  const leido = esquemaConfirmarCodigo.safeParse(entrada);
-  if (!leido.success) return enDatos(null, MENSAJES.noDisponible);
+export async function confirmarCodigo(correoEscrito: unknown, codigoEscrito: unknown): Promise<RespuestaDelCodigo> {
+  if (typeof correoEscrito !== "string" || !correoValido(correoEscrito)) return enCorreo(MENSAJES.correoMal);
+  const correo = normalizarCorreo(correoEscrito);
+  const codigo = typeof codigoEscrito === "string" ? codigoLimpio(codigoEscrito) : "";
+  if (!codigoCompleto(codigo)) return enCodigo(true, MENSAJES.codigoIncompleto, "error", null);
+  // Sin la llave de la prueba, un código bueno quedaría gastado sin dejar nada: se dice antes de probarlo.
+  if (!hayLlaveDeConfirmacion()) {
+    console.error(JSON.stringify({ evento: "tienda_cuentas_sin_configurar", llave: false }));
+    return enCodigo(true, MENSAJES.codigoNoProbado, "error", null);
+  }
+
+  // 1. ¿Se puede probar? (Cuenta el intento.)
+  const intento = await intentoDeCodigoEnBase(correo);
+  if (intento.estado === "bloqueado") return enCodigo(true, mensajeCodigoBloqueado(intento.minutos), "error", intento.minutos * 60, "bloqueado");
+  if (intento.estado === "vencido") return enCodigo(true, MENSAJES.codigoVencido, "error", 0, "vencido");
+  if (intento.estado === "sin_codigo") return enCorreo(MENSAJES.codigoSinPedir);
+  if (intento.estado !== "puede") return enCodigo(true, MENSAJES.codigoNoProbado, "error", null);
+
+  // 2. El código, en el proyecto de clientes.
+  const verificado = await verificarCodigo(correo, codigo);
+  if (verificado.estado === "codigo_malo") {
+    // Con el quinto equivocado la base ya dejó el bloqueo: «Reenviar» espera esos minutos.
+    return intento.quedan > 0
+      ? enCodigo(true, mensajeCodigoMalo(intento.quedan), "error", null, "malo")
+      : enCodigo(true, mensajeCodigoMalo(0), "error", CODIGO_BLOQUEO_MIN * 60, "bloqueado");
+  }
+  if (verificado.estado !== "confirmado") return enCodigo(true, MENSAJES.codigoNoProbado, "error", null);
+
+  // 3. La prueba de este aparato.
+  if (!(await guardarConfirmacion(correo, verificado.usuarioWebId))) return enCodigo(true, MENSAJES.codigoNoProbado, "error", null);
+  return { estado: "confirmado" };
+}
+
+/* ------------------------------------------------------------------ Crear la cuenta */
+
+/** Lo que dice «Crear mi cuenta» si no la crea (si la crea, lleva a «Mi cuenta»): el problema, en su campo. */
+export type RespuestaCrear = { campo: CampoProblema | null; mensaje: string; casilla?: CasillaWhatsapp | null };
+
+const sinCrear = (campo: CampoProblema | null, mensaje: string): RespuestaCrear => ({ campo, mensaje });
+
+/**
+ * «Crear mi cuenta», con el correo ya confirmado bajo el correo. El orden seguro (principio 9): (1) los datos, otra vez (nada de lo
+ * que diga el navegador cuenta); (2) la prueba firmada de que ESTE aparato confirmó ESE correo con su código, y su usuario,
+ * confirmado en el proyecto de clientes; (3) la base revisa el correo, el DNI y los topes (y cuenta el intento); (4) los avisos: el
+ * texto que leyó sigue siendo el vigente; (5) el nombre del padrón, anotado en la base (sin él no hay ficha); (6) la contraseña que
+ * eligió; (7) la cuenta en la base, todo o nada (exige el correo pendiente de ESE usuario con su código probado). Si algo dice que
+ * no, la confirmación se queda: se arregla el dato y se vuelve a tocar «Crear mi cuenta», sin pedir otro código. (8) Entra y va a
+ * «Mi cuenta».
+ */
+export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
+  const leido = esquemaCrearCuenta.safeParse(entrada);
+  if (!leido.success) return sinCrear(null, MENSAJES.noDisponible);
   const { registro: r, casilla } = leido.data;
   const problema = problemaRegistro(r, hoyLima());
-  if (problema) return enDatos(problema.campo, problema.mensaje);
-  const codigo = codigoLimpio(leido.data.codigo);
-  if (!codigoCompleto(codigo)) return enCodigo("Escribe los 6 números del código.", "error", null);
+  if (problema) return problema;
 
   const admin = clienteAdmin();
   const sesion = await clienteSesion();
-  if (!admin || !sesion) {
-    console.error(JSON.stringify({ evento: "tienda_cuentas_sin_configurar", admin: !!admin, sesion: !!sesion }));
-    return enCodigo(MENSAJES.noDisponible, "error", null);
+  const h = await huellas(r.dni);
+  if (!admin || !sesion || !h?.documento) {
+    console.error(JSON.stringify({ evento: "tienda_cuentas_sin_configurar", admin: !!admin, sesion: !!sesion, huellas: !!h }));
+    return sinCrear(null, MENSAJES.noDisponible);
   }
   const correo = normalizarCorreo(r.correo);
 
-  // 1. El nombre (antes de gastar un intento).
-  const nombre = await nombreParaLaCuenta(r);
-  if (!nombre) return enDatos("nombre", "Escribe tus nombres y apellidos, tal como están en tu DNI.");
-
-  // 2. ¿Se puede probar? (Cuenta el intento.)
-  const intento = await intentoDeCodigoEnBase(correo);
-  if (intento.estado === "bloqueado") return enCodigo(mensajeCodigoBloqueado(intento.minutos), "error", intento.minutos * 60, "bloqueado");
-  if (intento.estado === "vencido") return enCodigo(MENSAJES.codigoVencido, "error", 0, "vencido");
-  if (intento.estado === "sin_codigo") return enDatos(null, MENSAJES.codigoSinPedir);
-  if (intento.estado !== "puede") return enCodigo(MENSAJES.codigoNoProbado, "error", null);
-
-  // 3. El código, en el proyecto de clientes.
-  const confirmado = await confirmarCorreo(admin, correo, codigo, r.clave);
-  if (confirmado.estado === "codigo_malo") {
-    // Con el quinto equivocado la base ya dejó el bloqueo: «Pedir otro código» espera esos minutos.
-    return intento.quedan > 0
-      ? enCodigo(mensajeCodigoMalo(intento.quedan), "error", null, "malo")
-      : enCodigo(mensajeCodigoMalo(0), "error", CODIGO_BLOQUEO_MIN * 60, "bloqueado");
+  // 2. Sin el código no hay cuenta: la prueba de este aparato, para ESTE correo, y su usuario confirmado.
+  const confirmacion = await confirmacionDeEsteAparato(correo);
+  if (!confirmacion) return sinCrear("codigo", MENSAJES.codigoSinConfirmar);
+  const usuarioWebId = confirmacion.usuarioWebId;
+  const confirmado = await estaConfirmado(admin, usuarioWebId);
+  if (confirmado === "sin_respuesta") return sinCrear(null, MENSAJES.noDisponible);
+  if (confirmado === "no") {
+    await borrarConfirmacion();
+    return sinCrear("codigo", MENSAJES.codigoSinPedir);
   }
-  if (confirmado.estado !== "confirmado") return enCodigo(MENSAJES.codigoNoProbado, "error", null);
 
-  // 4. La cuenta en la base.
-  const [dia, mes] = [Number(r.cumple.d), Number(r.cumple.m)];
-  const registro = await registrarCuentaEnBase({
-    usuarioWebId: confirmado.usuarioWebId,
+  // 3. La base revisa (y cuenta el intento).
+  const revision = await revisarRegistroEnBase(correo, r.dni, celularNormalizado(r.celular), h.ip, h.documento);
+  if (revision.estado !== "ok") {
+    if (revision.estado === "limite") return sinCrear(null, MENSAJES.limite);
+    if (revision.estado === "correo_repetido") return sinCrear("correo", MENSAJES.correoRepetido);
+    // Un correo es de una sola persona: el de contacto de otra ficha no sirve para esta cuenta (sin decir de quién es).
+    if (revision.estado === "correo_de_otra_persona") return sinCrear("correo", MENSAJES.correoDeOtraPersona);
+    if (revision.estado === "dni_repetido") return sinCrear("dni", MENSAJES.dniRepetido);
+    if (revision.estado === "archivada") return sinCrear("dni", MENSAJES.dniArchivada);
+    if (revision.estado === "invalido") return errorDeRegistro("cuenta_datos_invalidos", revision.campo);
+    return sinCrear(null, MENSAJES.noDisponible);
+  }
+
+  // 4. Los avisos citan el texto que leyó: si cambió, que lo vuelva a leer.
+  if (r.avisos) {
+    const vigente = await leerCasillaDeAvisos();
+    if (!vigente || vigente.version !== casilla) return { campo: "avisos", mensaje: MENSAJES.avisosCambio, casilla: vigente };
+  }
+
+  // 5. El nombre del padrón, anotado en la base: sin esa lectura la ficha no lo acepta.
+  const nombre = await nombreParaLaCuenta(r.dni, true);
+  if (nombre.estado !== "ok") return sinCrear("dni", mensajeSinNombre(nombre.estado));
+
+  // 6. La contraseña.
+  if (!(await ponerClave(admin, usuarioWebId, r.clave))) return sinCrear(null, MENSAJES.noDisponible);
+
+  // 7. La cuenta en la base.
+  const datos: DatosCuenta = {
+    usuarioWebId,
     correo,
     dni: r.dni,
     nombre: nombre.nombre,
-    nombreDelPadron: nombre.delPadron,
+    nombreDelPadron: true,
     celular: celularNormalizado(r.celular),
-    cumpleDia: dia,
-    cumpleMes: mes,
+    cumpleDia: Number(r.cumple.d),
+    cumpleMes: Number(r.cumple.m),
     cumpleAnio: r.cumple.a ? Number(r.cumple.a) : null,
     mayorDeEdad: r.mayor,
     avisosWhatsapp: r.avisos,
     casillaVersion: r.avisos ? casilla : null,
     textos: TEXTOS_VERSION,
-  });
-  let aviso = "bienvenida";
-  if (registro.ok) {
-    aviso = avisoAlCrear(registro.seUnioASuFicha, registro.avisos);
-  } else {
-    const quedo = await borrarSiNoTieneCuenta(admin, confirmado.usuarioWebId, { respetarRecientes: false });
-    if (quedo !== "tiene_cuenta") {
-      if (quedo !== "borrado") console.error(JSON.stringify({ evento: "tienda_usuario_sin_cuenta", usuario_web_id: confirmado.usuarioWebId }));
-      const e = errorDeRegistro(registro.hint, registro.detalle);
-      // El código ya se usó: para cualquier arreglo hace falta otro, así que se vuelve a los datos (con el texto nuevo de los
-      // avisos, si fue eso lo que cambió).
-      if (e.campo === "avisos") return { paso: "datos", campo: "avisos", mensaje: e.mensaje, casilla: await leerCasillaDeAvisos() };
-      return enDatos(e.campo === "codigo" ? null : e.campo, e.mensaje);
-    }
+  };
+  let registro = await registrarCuentaEnBase(datos);
+  // Otro aparato pidió un código para este correo mientras esta persona llenaba lo demás: ese pedido dejó el pendiente sin su código
+  // probado (no le llegó ningún código: el correo estaba confirmado aquí). Este aparato ya lo había confirmado (su prueba firmada y
+  // su usuario confirmado): se vuelve a anotar el intento y se crea, una sola vez.
+  if (!registro.ok && registro.hint === "cuenta_sin_codigo" && (await intentoDeCodigoEnBase(correo)).estado === "puede") {
+    registro = await registrarCuentaEnBase(datos);
   }
+  // Un doble envío: la cuenta de este mismo usuario ya quedó creada con el primero. Se entra.
+  const yaEstaba = !registro.ok && registro.hint === "cuenta_ya_existe";
+  if (!registro.ok && !yaEstaba) {
+    const e = errorDeRegistro(registro.hint, registro.detalle);
+    if (e.campo === "codigo") {
+      // Sin el pendiente de este usuario, su confirmación ya no sirve: el usuario se va (el correo queda libre) y se pide otro código.
+      await borrarSiNoTieneCuenta(admin, usuarioWebId, { respetarRecientes: false });
+      await borrarConfirmacion();
+    }
+    if (e.campo === "avisos") return { ...e, casilla: await leerCasillaDeAvisos() };
+    return e;
+  }
+  const aviso = registro.ok ? avisoAlCrear(registro.seUnioASuFicha, registro.avisos) : "bienvenida";
+  await borrarConfirmacion();
 
-  // 5. Entrar. Si el proyecto de clientes no contesta justo ahora, la cuenta igual quedó: que entre con su correo.
+  // 8. Entrar. Si el proyecto de clientes no contesta justo ahora, la cuenta igual quedó: que entre con su correo.
   const { error } = await sesion.auth.signInWithPassword({ email: correo, password: r.clave });
   if (error) redirect("/entrar?aviso=cuenta-creada");
   // Crear la cuenta también es entrar (la conservación del Club ya la cuenta por `creada_en`): se anota y se deja la marca del día,
   // así el marco de «Mi cuenta» no vuelve a preguntar hoy.
-  if ((await anotarEntradaEnBase(confirmado.usuarioWebId)) === "anotada") await marcarEntradaDeHoy(confirmado.usuarioWebId);
+  if ((await anotarEntradaEnBase(usuarioWebId)) === "anotada") await marcarEntradaDeHoy(usuarioWebId);
   redirect(`/cuenta?aviso=${aviso}`);
 }
 
@@ -304,13 +380,19 @@ async function marcarEntradaDeHoy(usuarioWebId: string): Promise<void> {
   });
 }
 
-/** El nombre que va a la cuenta: el del padrón (consultado aquí: el del navegador no cuenta) o, si no lo da, el que escribió.
- *  null si no hay ninguno. */
-async function nombreParaLaCuenta(r: Registro): Promise<{ nombre: string; delPadron: boolean } | null> {
-  const padron = await buscarNombre(r.dni);
-  if (padron.estado === "encontrado") return { nombre: padron.nombre, delPadron: true };
-  const escrito = nombreLimpio(r.nombre);
-  return escrito.length >= 3 ? { nombre: escrito, delPadron: false } : null;
+/**
+ * El nombre que va a la cuenta: SOLO el del padrón, consultado aquí (lo que diga el navegador no cuenta; Felipe 2026-10-15: sin la
+ * API no se registra). `anotar`: justo antes de crear la cuenta, deja la lectura en la base (`tienda_anotar_lectura_padron`), que es
+ * lo que la ficha exige para aceptar el nombre; si no se pudo anotar, se lee como que el padrón no respondió (se vuelve a intentar).
+ */
+async function nombreParaLaCuenta(
+  dni: string,
+  anotar: boolean,
+): Promise<{ estado: "ok"; nombre: string } | { estado: "no_encontrado" | "sin_padron" }> {
+  const padron = await buscarNombre(dni);
+  if (padron.estado !== "encontrado") return { estado: padron.estado };
+  if (anotar && !(await anotarLecturaDelPadron(dni, padron.nombre))) return { estado: "sin_padron" };
+  return { estado: "ok", nombre: padron.nombre };
 }
 
 /* ------------------------------------------------------------------ Salir y rehacer */
