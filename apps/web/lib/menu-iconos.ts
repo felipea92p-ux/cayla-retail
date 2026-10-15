@@ -142,6 +142,9 @@ export const TRAZOS_MENU: Record<ClaveIcono, string> = {
   club: "M18 21a8 8 0 0 0-16 0 M5 8a5 5 0 1 0 10 0a5 5 0 1 0 -10 0 M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3", // lucide «users-round»
   // Globo de conversación: Clientas ▸ Avisos, los mensajes por WhatsApp que la tienda le manda a cada socia.
   avisos: "M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z",
+  // Foco encendido: Clientes ▸ Recomendaciones (ADR-0408), la idea que un cliente le deja a CAYLA desde la tienda online. No el globo de
+  // «Avisos» (lo que la tienda le manda a él) ni el corazón de las fichas: lo que ÉL propone.
+  recomendaciones: "M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5 M9 18h6 M10 22h4", // lucide «lightbulb»
 };
 
 /* ------------------------------------------------------------------
