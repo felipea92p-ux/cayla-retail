@@ -1786,6 +1786,20 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las piezas
   internas de las dos lecturas (`fn_tienda_nivel`, `fn_tienda_umbral`, `fn_tienda_sedes_web`, `fn_tienda_disponible`, `fn_tienda_precios`)
   no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones rotas a propósito).
+- La ficha y las tarjetas conectadas (integración de las actividades 4, 5, 7, 11 y 12): en la ficha, `lib/ficha.ts` `botonDeLaFicha` decide
+  el botón principal («Elige tu talla»; `components/bolsa/AgregarALaBolsa.tsx` si esa talla hay en alguna tienda de la web;
+  `components/club/BotonAvisame.tsx` si no hay en ninguna, con lo ya pedido de `leerGuardadosEnBase`) y a su derecha va el corazón
+  (`BotonFavorito forma="ficha"`); «Ver mi bolsa (N)» lee la cookie (`lib/bolsa-servidor.ts` `cuantasEnLaBolsa`); en el celular, el botón y
+  el corazón van en la barra de abajo (`.t-pdp-barra`, pegada mientras se ve la prenda y lo de abajo). La propuesta k («Otra persona ya
+  separó la última en Trujillo…», `avisoOtrosSepararon`) sale de `lib/ficha-servidor.ts` `leerSeparadasPorOtros` →
+  `retail.tienda_separadas_por_otros(usuario, modelo, tienda)` (`20261015044000`): por talla, solo sí o no según si los pedidos web por
+  confirmar de OTROS clientes que recogen ahí (sin vencer) cubren lo libre de `fn_tienda_disponible`; prueba: `pnpm pruebas:tienda-separadas`.
+  «Combínalo con» es el primer look que la lleva (`leerLooks` → `combinaCon`). La tarjeta (`components/TarjetaPrenda.tsx`) lleva el corazón
+  y, desde 960 px, «Agregar» con la talla (`components/RapidoDeTarjeta.tsx`: pide las tallas al quedarse el mouse, `app/acciones/tarjeta.ts`
+  `tallasParaAgregar` → la ficha de ese modelo; el catálogo no trae tallas y no cambia de forma). Lo guardado lo lee el marco del catálogo
+  (`app/(catalogo)/layout.tsx`, una vez por petición) y lo reparte a toda tarjeta (`components/club/Guardados.tsx` `ProveedorGuardados`):
+  los corazones del mismo modelo cambian juntos. «Tus favoritos» es `/catalogo?lista=favoritos` (`lib/catalogo.ts` `deFavoritos`; no se
+  filtra por la tienda elegida); «Mi cuenta» usa la misma tarjeta, con `guardado` dicho por la página.
 - `/inicio` (el Inicio con cuenta, actividad 5; adonde lleva el proxy a quien tiene sesión, `INICIO_CON_CUENTA`) → `leerPortada()`
   (la campaña del héroe), `leerSedes()` y `leerCatalogo(sede)`: desde `20261015013000`, cada prenda de `retail.tienda_catalogo` trae
   también `nuevo` ({dias} si su PRIMER ingreso a una tienda, `fn_es_llegada`, fue hace 30 días o menos, o si está fijada en la Vitrina;
@@ -1817,7 +1831,7 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   beneficios con las reglas que cobra la caja (`fn_club_beneficios`, `fn_club_aniversario_calculo`, `club_canjes`), «Novedades para ti»
   (la primera llegada a una tienda de la web desde su visita ANTERIOR, `cuentas_web_visitas`, `fn_tienda_novedades`), sus favoritos y
   sus esperas; las prendas las dibuja `TarjetaPrenda` con el catálogo (`leerCatalogo(null)`). Textos en `lib/club.ts`, bloques en
-  `components/club/BloquesDelClub.tsx`. Los botones que pondrá la ficha: `components/club/BotonFavorito.tsx` →
+  `components/club/BloquesDelClub.tsx`. Los botones (en la ficha y en cada tarjeta): `components/club/BotonFavorito.tsx` →
   `app/acciones/club.ts` `guardarFavorito` → `tienda_favorito` (tabla `favoritos_web`) y `components/club/BotonAvisame.tsx` →
   `pedirAviso` → `tienda_avisame` (tabla `esperas_web`, por prenda y tienda; si hay, no anota); «Quitar» → `tienda_quitar_avisame`;
   lo ya guardado, `leerGuardadosEnBase()` → `tienda_mis_favoritos_y_esperas`. Prueba en la base: `pnpm pruebas:tienda-club`.
