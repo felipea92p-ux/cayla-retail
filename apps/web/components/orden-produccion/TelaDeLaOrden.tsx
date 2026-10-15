@@ -5,12 +5,13 @@ import { CampoGuiado } from "@/components/guia-de-foco/CampoGuiado";
 import type { GuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { QuitarColor } from "@/components/orden-produccion/AgregarColor";
 import { Aviso } from "@/components/ui/Aviso";
+import { Casilla } from "@/components/ui/Casilla";
 import { Chip } from "@/components/ui/Chip";
 import { Boton, CampoSelect, CampoTexto, type Opcion } from "@/components/ui/campos";
 import { campoEtiqueta } from "@/components/ui/Modal";
 import { UNIDADES_INSUMO, cantidadTexto, type UnidadInsumo } from "@/lib/insumos-reglas";
 import { soles } from "@/lib/orden-ficha-reglas";
-import { consumoSugerido, metrosAPedir, veredictoTela, type InsumoDelTaller, type ProblemaTela, type TelaBorrador } from "@/lib/orden-tela-reglas";
+import { consumoSugerido, metrosAPedir, veredictoTela, type InsumoDelTaller, type OfertaDeConsumo, type ProblemaTela, type TelaBorrador } from "@/lib/orden-tela-reglas";
 
 // «Tela de la orden», el bloque de la hoja «Nueva orden de producción» (ADR-0400, decisión 6; «Pantallas» punto 3). Una FILA por color que la orden
 // fabrica: la muestra del color y cuántas prendas son, la tela del estante (primero las del tejido del modelo, las demás bajo «Otras telas»), cuánto
@@ -54,6 +55,12 @@ export type PropsTelaDeLaOrden = {
   guia: GuiaCampos;
   /** Lo que dijo `problemasTela` (por índice en `telas`). */
   problemas: ProblemaTela[];
+  /** El consumo escrito contra lo que dice el modelo (`ofertaDeConsumoDelModelo`): decide si se ofrece el interruptor, se avisa o no se dice nada. */
+  ofertaConsumo: OfertaDeConsumo;
+  /** Corregir lo que el modelo YA dice es de quien edita el catálogo (la base lo vuelve a comprobar). */
+  puedeCorregirConsumo: boolean;
+  fijarConsumo: boolean;
+  onFijarConsumo: (v: boolean) => void;
 };
 
 /** «44 m», «12 unid.»: la unidad corta del catálogo de Insumos; una unidad que el catálogo no conoce sale tal cual. */
@@ -63,9 +70,12 @@ function cantidad(n: number, unidad: string): string {
 
 const unidadCorta = (unidad: string) => (unidad in UNIDADES_INSUMO ? UNIDADES_INSUMO[unidad as UnidadInsumo].corta : unidad);
 
+/** El consumo por prenda con sus tres decimales («1.35 m»): `cantidad` redondea los metros a uno y 1.35 saldría «1.4 m». */
+const porPrenda = (n: number, unidad: string) => `${n.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: 3 })} ${unidadCorta(unidad)}`;
+
 const FILA_VACIA = (colorCodigo: string | null): TelaBorrador => ({ insumoId: null, colorCodigo, consumoPorPrenda: "" });
 
-export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre, colores, comprometido, consumoDeclarado, conCostos, costoPorMetro, guia, problemas }: PropsTelaDeLaOrden) {
+export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre, colores, comprometido, consumoDeclarado, conCostos, costoPorMetro, guia, problemas, ofertaConsumo, puedeCorregirConsumo, fijarConsumo, onFijarConsumo }: PropsTelaDeLaOrden) {
   const porId = new Map(insumos.map((i) => [i.id, i] as const));
   const esAvio = (t: TelaBorrador) => (t.insumoId ? porId.get(t.insumoId)?.tipo === "avio" : false);
 
@@ -216,6 +226,30 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
               </div>
             );
           })}
+
+          {ofertaConsumo.tipo !== "ninguna" && (
+            <div data-guia="prod-orden-nueva.consumo-modelo" className="space-y-1.5 px-3.5 py-3">
+              {ofertaConsumo.tipo === "primera" ? (
+                <p className="text-[12.5px] text-tinta/70">
+                  Es la primera orden de este modelo: queda anotado que lleva <b className="font-semibold">{porPrenda(ofertaConsumo.nuevo, ofertaConsumo.unidad)}</b> por prenda. Lo medido al pasar un lote al stock lo corrige.
+                </p>
+              ) : puedeCorregirConsumo ? (
+                <>
+                  <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-tinta">
+                    <Casilla marcada={fijarConsumo} onCambio={() => onFijarConsumo(!fijarConsumo)} etiqueta="Dejar este consumo como el del modelo" />
+                    Dejar <b className="font-semibold">{porPrenda(ofertaConsumo.nuevo, ofertaConsumo.unidad)}</b> por prenda como el consumo del modelo
+                  </label>
+                  <p className="pl-[34px] text-[12.5px] text-tinta/70">
+                    Hoy el modelo dice {porPrenda(ofertaConsumo.actual, ofertaConsumo.unidad)} ({ofertaConsumo.fuente === "medido" ? "lo medido en las órdenes cerradas" : "lo que se anotó en una orden o se declaró"}). Sin marcar, solo esta orden usa lo que escribiste.
+                  </p>
+                </>
+              ) : (
+                <p className="text-[12.5px] text-tinta/70">
+                  El modelo dice {porPrenda(ofertaConsumo.actual, ofertaConsumo.unidad)} por prenda y escribiste otra cifra: solo esta orden usa la tuya. Para cambiar el consumo del modelo, pídeselo a quien edita el catálogo.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Los avíos van para toda la orden (sin color), plegados: casi siempre la pregunta es solo la tela. */}
           {(avios.length > 0 || aviosDelEstante.length > 0) && (

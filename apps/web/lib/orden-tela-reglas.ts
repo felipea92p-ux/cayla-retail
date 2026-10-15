@@ -70,6 +70,34 @@ export function consumoSugerido(declarado: { telaPorPrenda: number; fuente: "dec
   return declarado.telaPorPrenda.toFixed(3);
 }
 
+/**
+ * El consumo de la primera tela de la orden contra lo que ya dice el modelo (`producto_consumos`), para el interruptor «Dejar este consumo como el del modelo» (Felipe, 2026-10-15).
+ *  · `ninguna`: no hay tela con consumo escrito, o lo escrito es lo mismo que dice el modelo: no hay nada que ofrecer.
+ *  · `primera`: el modelo todavía no dice nada; esta orden lo deja declarado sola (sin interruptor ni permiso: es lo de siempre).
+ *  · `corregir`: el modelo dice otra cosa. Corregirlo es de quien edita el catálogo; a los demás se les dice que solo esta orden usa lo escrito.
+ * Solo cuenta la PRIMERA tela (la base escribe una sola, `producto_consumos.tela_por_prenda`); un avío no cuenta.
+ */
+export type OfertaDeConsumo =
+  | { tipo: "ninguna" }
+  | { tipo: "primera"; nuevo: number; unidad: string }
+  | { tipo: "corregir"; nuevo: number; actual: number; fuente: "declarado" | "medido"; unidad: string };
+
+export function ofertaDeConsumoDelModelo(
+  telas: readonly TelaBorrador[],
+  insumos: readonly InsumoDelTaller[],
+  declarado: { telaPorPrenda: number; fuente: "declarado" | "medido" } | null,
+): OfertaDeConsumo {
+  for (const t of telas) {
+    const insumo = t.insumoId ? insumos.find((i) => i.id === t.insumoId) : undefined;
+    if (!insumo || insumo.tipo !== "tela") continue;
+    const nuevo = leerConsumo(t.consumoPorPrenda);
+    if (nuevo === null) continue;
+    if (!declarado || !(declarado.telaPorPrenda > 0)) return { tipo: "primera", nuevo, unidad: insumo.unidad };
+    return aMilesimas(nuevo) === aMilesimas(declarado.telaPorPrenda) ? { tipo: "ninguna" } : { tipo: "corregir", nuevo, actual: declarado.telaPorPrenda, fuente: declarado.fuente, unidad: insumo.unidad };
+  }
+  return { tipo: "ninguna" };
+}
+
 /** A tres decimales como la base (`round(x, 3)` de numeric: la mitad sube). `toPrecision(15)` quita el ruido binario (1.2 × 30 × 1.05 = 37.800000000000004). */
 export function aMilesimas(n: number): number {
   return Math.round(Number((n * 1000).toPrecision(15))) / 1000;

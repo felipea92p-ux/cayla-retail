@@ -314,6 +314,39 @@ caso(
   (o) => /^OK:\d+,1\.350:medido$/.test(o)
 );
 caso(
+  "A12 «Dejar este consumo como el del modelo» (fijar_consumo_modelo): quien edita el catálogo corrige lo que el modelo ya decía, aun lo medido, con el consumo de la primera tela de la orden",
+  `insert into retail.producto_consumos (producto_id, tela_por_prenda, fuente) values (:'prod', 1.350, 'medido');
+   select pg_temp.abre(${APERTURA(", 'fijar_consumo_modelo', true")}, ${ESPINA}, ${LINO()}) as r \\gset
+   select :'r' || ',' || (select tela_por_prenda || ':' || fuente from retail.producto_consumos where producto_id = :'prod');`,
+  (o) => /^OK:\d+,1\.200:declarado$/.test(o)
+);
+caso(
+  "A13 quien no edita el catálogo no corrige lo que el modelo ya dice: 42501 con su motivo, el consumo queda igual y NO se gasta número (se comprueba antes de abrir)",
+  `insert into retail.producto_consumos (producto_id, tela_por_prenda, fuente) values (:'prod', 1.350, 'declarado');
+   reset role;
+   update retail.colaboradores set ubicacion_asignada_id = :'taller' where persona_id = :'micaela_p';
+   insert into retail.rol_modulos (rol_id, modulo) select c.rol_id, 'produccion' from retail.colaboradores c where c.persona_id = :'micaela_p' on conflict do nothing;
+   -- Que su rol NO edite el catálogo (el seed le da Productos y Atributos): fn_puede_editar_catalogo es líder o esos módulos.
+   delete from retail.rol_modulos where modulo in ('productos', 'atributos') and rol_id = (select c.rol_id from retail.colaboradores c where c.persona_id = :'micaela_p');
+   select last_value as antes from retail.producciones_numero_seq \\gset
+   ${como(MICAELA)}
+   select pg_temp.eh(pg_temp.abre(${APERTURA(", 'fijar_consumo_modelo', true")}, ${ESPINA}, ${LINO()})) as r \\gset
+   ${como(FELIPE)}
+   select concat_ws(',', :'r', (select tela_por_prenda from retail.producto_consumos where producto_id = :'prod'), (select last_value = :'antes' from retail.producciones_numero_seq));`,
+  "42501|consumo_modelo_sin_permiso,1.350,t"
+);
+caso(
+  "A14 donde el modelo todavía no dice nada no hace falta permiso: quien opera el Taller abre la orden con el interruptor y la primera tela deja el consumo declarado",
+  `reset role;
+   update retail.colaboradores set ubicacion_asignada_id = :'taller' where persona_id = :'micaela_p';
+   insert into retail.rol_modulos (rol_id, modulo) select c.rol_id, 'produccion' from retail.colaboradores c where c.persona_id = :'micaela_p' on conflict do nothing;
+   ${como(MICAELA)}
+   select pg_temp.abre(${APERTURA(", 'fijar_consumo_modelo', true")}, ${ESPINA}, ${LINO()}) as r \\gset
+   ${como(FELIPE)}
+   select :'r' || ',' || (select tela_por_prenda || ':' || fuente from retail.producto_consumos where producto_id = :'prod');`,
+  (o) => /^OK:\d+,1\.200:declarado$/.test(o)
+);
+caso(
   "A11 el modelo nuevo entra por la misma puerta (envuelve a abrir_produccion_con_modelo_nuevo): nace el modelo, la orden y sus fases",
   `select pg_temp.abre(jsonb_build_object(
        'modelo_nuevo', true, 'ubicacion_id', :'taller', 'referencia', 'Zz Fases Prueba Modelo', 'categoria_id', :'cat', 'precio', '89',

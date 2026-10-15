@@ -503,7 +503,7 @@ as $$
 declare
   v_ubicacion uuid; v_token uuid; v_fecha date; v_es_muestra boolean; v_nota text; v_id uuid; v_numero integer; v_producto uuid;
   v_fases jsonb; v_insumos jsonb; v_lineas jsonb; v_f jsonb; v_i jsonb; v_actor uuid; v_plan integer; v_referencia text;
-  v_servicios text; v_existia boolean := false; v_tipo text;
+  v_servicios text; v_existia boolean := false; v_tipo text; v_fijar boolean; v_fijo boolean := false;
 begin
   if p_apertura is null or jsonb_typeof(p_apertura) <> 'object' then
     raise exception 'Falta lo que abre la orden' using hint = 'apertura_invalida';
@@ -512,6 +512,7 @@ begin
     v_ubicacion := nullif(p_apertura ->> 'ubicacion_id', '')::uuid;
     v_token := nullif(p_apertura ->> 'token', '')::uuid;
     v_fecha := nullif(p_apertura ->> 'fecha_entrega', '')::date;
+    v_fijar := coalesce((p_apertura ->> 'fijar_consumo_modelo')::boolean, false);
   exception when others then
     raise exception 'Los datos de la orden no son válidos' using hint = 'apertura_invalida';
   end;
@@ -533,6 +534,12 @@ begin
   end if;
   v_es_muestra := coalesce((p_apertura ->> 'es_muestra')::boolean, false);
   v_nota := nullif(btrim(coalesce(p_apertura ->> 'nota', '')), '');
+  -- «Dejar este consumo como el del modelo» (Felipe, 2026-10-15): corregir lo que el modelo YA dice es de quien edita el catálogo. Se comprueba ANTES de abrir: una orden rechazada no gasta número.
+  -- Donde el modelo todavía no dice nada (o es un modelo nuevo) no hace falta permiso: la primera orden lo deja declarado, como siempre.
+  if v_fijar and not coalesce((p_apertura ->> 'modelo_nuevo')::boolean, false) and not retail.fn_puede_editar_catalogo()
+     and exists (select 1 from retail.producto_consumos c where c.producto_id = nullif(p_apertura ->> 'producto_id', '')::uuid) then
+    raise exception 'Corregir el consumo que dice el modelo es de quien edita el catálogo' using errcode = '42501', hint = 'consumo_modelo_sin_permiso';
+  end if;
 
   -- Las fases se validan ANTES de abrir: una orden sin fases válidas no se abre (y no gasta número).
   v_fases := retail.fn_produccion_fases_normalizar(p_fases);
@@ -576,11 +583,19 @@ begin
     values (v_id, (v_i ->> 'insumo_id')::uuid, v_i ->> 'color_codigo', (v_i ->> 'consumo_por_prenda')::numeric,
       (v_i ->> 'cantidad_plan')::numeric, v_i ->> 'nota');
     -- Se escribe una vez en el modelo (ADR-0400, decisión 6): la primera tela de la primera orden deja declarado cuánto lleva la prenda.
-    -- Lo medido al cerrar lo corrige; lo declarado nunca pisa lo medido.
+    -- Lo medido al cerrar lo corrige; lo declarado nunca pisa lo medido. SALVO que quien edita el catálogo lo pida a propósito
+    -- (`fijar_consumo_modelo`, el interruptor de Nueva orden): entonces la primera tela de esta orden es el consumo declarado del modelo, y lo medido al cerrar lo vuelve a corregir.
     if exists (select 1 from retail.insumos i where i.id = (v_i ->> 'insumo_id')::uuid and i.tipo = 'tela') then
-      insert into retail.producto_consumos (producto_id, tela_por_prenda, fuente, actualizado_por)
-      values (v_producto, (v_i ->> 'consumo_por_prenda')::numeric, 'declarado', v_actor)
-      on conflict (producto_id) do nothing;
+      if v_fijar and not v_fijo then
+        insert into retail.producto_consumos (producto_id, tela_por_prenda, fuente, actualizado_por)
+        values (v_producto, (v_i ->> 'consumo_por_prenda')::numeric, 'declarado', v_actor)
+        on conflict (producto_id) do update set tela_por_prenda = excluded.tela_por_prenda, fuente = 'declarado', actualizado_por = excluded.actualizado_por, updated_at = now();
+        v_fijo := true;
+      else
+        insert into retail.producto_consumos (producto_id, tela_por_prenda, fuente, actualizado_por)
+        values (v_producto, (v_i ->> 'consumo_por_prenda')::numeric, 'declarado', v_actor)
+        on conflict (producto_id) do nothing;
+      end if;
     end if;
   end loop;
 
@@ -599,7 +614,7 @@ begin
         || coalesce(' · afuera: ' || v_servicios, ' · todo en el Taller'),
       v_actor, retail.fn_actividad_terminal_ahora(), v_ubicacion, v_ubicacion,
       'produccion', v_id::text, now(),
-      jsonb_build_object('produccion_id', v_id, 'numero', v_numero, 'fases', jsonb_array_length(v_fases), 'insumos', jsonb_array_length(v_insumos)),
+      jsonb_build_object('produccion_id', v_id, 'numero', v_numero, 'fases', jsonb_array_length(v_fases), 'insumos', jsonb_array_length(v_insumos), 'consumo_del_modelo', v_fijo),
       'vivo');
   exception when others then
     raise warning 'actividad: no se anotó la apertura de la orden % (%)', v_numero, sqlerrm;

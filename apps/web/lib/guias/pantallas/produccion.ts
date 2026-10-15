@@ -270,6 +270,13 @@ export const GUIA_PROD_ORDENES: Guia = {
       texto: "Por cada color eliges la tela del estante y cuántos metros lleva cada prenda (el modelo ya lo sugiere si se escribió una vez). La orden te dice cuántos metros pedir y si alcanza con lo que hay. Es opcional: sin tela la orden se abre igual.",
     },
     {
+      id: "consumo-modelo",
+      ancla: "prod-orden-nueva.consumo-modelo",
+      opcional: true,
+      titulo: "El consumo del modelo",
+      texto: "Si escribes un consumo distinto del que dice el modelo, quien edita el catálogo puede marcar «Dejar este consumo como el del modelo» para que las próximas órdenes lo propongan. Sin marcar, solo esta orden usa el tuyo. En la primera orden de un modelo, queda anotado solo.",
+    },
+    {
       id: "resumen",
       ancla: "prod-orden-nueva.resumen",
       titulo: "La orden, tal como va quedando",

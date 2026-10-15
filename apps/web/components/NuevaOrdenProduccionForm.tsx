@@ -33,7 +33,7 @@ import { FichaOrden } from "@/components/orden-produccion/FichaOrden";
 import { FasesDeLaOrden } from "@/components/orden-produccion/FasesDeLaOrden";
 import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion/TelaDeLaOrden";
 import { costoServiciosEstimado, faseDe, fasesEncendidas, fasesIniciales, fasesParaRpc, problemasFases, proveedoresQueSirven, textoQuien, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
-import { coloresDeLaOrden, consumoSugerido, insumosParaRpc, metrosAPedir, problemasTela, telasSugeridas, type InsumoDelTaller, type TelaBorrador } from "@/lib/orden-tela-reglas";
+import { coloresDeLaOrden, consumoSugerido, insumosParaRpc, metrosAPedir, ofertaDeConsumoDelModelo, problemasTela, telasSugeridas, type InsumoDelTaller, type TelaBorrador } from "@/lib/orden-tela-reglas";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { tipoAlElegir, urgentesDeLaRed } from "@/lib/orden-modelo-reglas";
 import { cantidadesAlCambiarColores, lineasDeModeloExistente, tablaDeModeloExistente, tablaDeModeloNuevo } from "@/lib/orden-tabla-reglas";
@@ -185,6 +185,8 @@ export function NuevaOrdenProduccionForm({
   const [fases, setFases] = useState<FaseBorrador[]>(() => fasesIniciales());
   // Lo que la persona eligió de tela (null = no tocó nada: manda la sugerencia). Las filas que se ven se DERIVAN de la sugerencia más esto, sin efectos.
   const [telasManual, setTelasManual] = useState<TelaBorrador[] | null>(null);
+  // «Dejar este consumo como el del modelo»: apagado de fábrica; solo vale si el modelo ya dice otra cosa y quien abre edita el catálogo (`ofertaConsumo`).
+  const [fijarConsumo, setFijarConsumo] = useState(false);
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -324,6 +326,8 @@ export function NuevaOrdenProduccionForm({
   }, [telasManual, telasSugeridasAhora]);
   const problemasDeFases = useMemo(() => problemasFases(fases, { hoy, proveedores: proveedoresServicio, lista: listaDePrecios }), [fases, hoy, proveedoresServicio, listaDePrecios]);
   const problemasDeTela = useMemo(() => problemasTela(telas, { insumos: insumosDelTaller, colores: coloresOrden }), [telas, insumosDelTaller, coloresOrden]);
+  const ofertaConsumo = useMemo(() => ofertaDeConsumoDelModelo(telas, insumosDelTaller, consumoDeclarado), [telas, insumosDelTaller, consumoDeclarado]);
+  const fijarElConsumo = fijarConsumo && !esNuevo && ofertaConsumo.tipo === "corregir" && puedeEditarCatalogo;
   // Los costos ya no se teclean: la tela sale de los metros a pedir × el costo del lote que se usaría (solo quien ve costos), y los servicios de la tarifa congelada.
   const conCostos = decision !== null;
   const costoPorMetro = useMemo(
@@ -564,6 +568,8 @@ export function NuevaOrdenProduccionForm({
             fecha_entrega: fechaEntrega || null,
             nota: nota.trim() || null,
             token: token.current,
+            // Solo cuando se marcó a propósito: la base lo vuelve a comprobar (corregir lo que el modelo ya dice es de quien edita el catálogo).
+            ...(fijarElConsumo ? { fijar_consumo_modelo: true } : {}),
           },
           p_fases: fasesParaRpc(fases, listaDePrecios, hoy),
           p_insumos: insumosParaRpc(telas),
@@ -782,6 +788,10 @@ export function NuevaOrdenProduccionForm({
               costoPorMetro={costoPorMetro}
               guia={guia}
               problemas={problemasDeTela}
+              ofertaConsumo={ofertaConsumo}
+              puedeCorregirConsumo={puedeEditarCatalogo}
+              fijarConsumo={fijarElConsumo}
+              onFijarConsumo={setFijarConsumo}
             />
             {opciones?.fallo && (
               <Aviso tono="info" chico>

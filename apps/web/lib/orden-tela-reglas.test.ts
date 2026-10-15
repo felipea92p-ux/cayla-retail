@@ -10,6 +10,7 @@ import {
   insumosParaRpc,
   leerConsumo,
   metrosAPedir,
+  ofertaDeConsumoDelModelo,
   problemasTela,
   telasSugeridas,
   veredictoTela,
@@ -266,5 +267,44 @@ describe("la pantalla no promete lo que la base rechaza, ni frena lo que la base
     }
     expect(sinProblemas).toBeGreaterThan(20);
     expect(conTela).toBeGreaterThan(10);
+  });
+});
+
+describe("ofertaDeConsumoDelModelo (el interruptor «Dejar este consumo como el del modelo»)", () => {
+  const lino = tela("lino");
+  const boton = { ...tela("boton"), tipo: "avio" as const, unidad: "unidad" };
+  const filas = (...consumos: [string | null, string][]): TelaBorrador[] => consumos.map(([insumoId, consumoPorPrenda]) => ({ insumoId, colorCodigo: null, consumoPorPrenda }));
+  const declarado = (telaPorPrenda: number, fuente: "declarado" | "medido" = "declarado") => ({ telaPorPrenda, fuente });
+
+  it("sin tela con consumo escrito no hay nada que ofrecer (ni con tela elegida y consumo vacío o roto)", () => {
+    expect(ofertaDeConsumoDelModelo([], [lino], declarado(1.2))).toEqual({ tipo: "ninguna" });
+    expect(ofertaDeConsumoDelModelo(filas(["lino", ""]), [lino], declarado(1.2))).toEqual({ tipo: "ninguna" });
+    expect(ofertaDeConsumoDelModelo(filas(["lino", "abc"]), [lino], declarado(1.2))).toEqual({ tipo: "ninguna" });
+    expect(ofertaDeConsumoDelModelo(filas([null, "1.5"]), [lino], declarado(1.2))).toEqual({ tipo: "ninguna" });
+  });
+
+  it("si el modelo todavía no dice nada, esta orden lo deja declarado sola (sin interruptor)", () => {
+    expect(ofertaDeConsumoDelModelo(filas(["lino", "1.2"]), [lino], null)).toEqual({ tipo: "primera", nuevo: 1.2, unidad: "metro" });
+    expect(ofertaDeConsumoDelModelo(filas(["lino", "1.2"]), [lino], declarado(0))).toMatchObject({ tipo: "primera" });
+  });
+
+  it("lo escrito igual a lo que dice el modelo (a tres decimales) no ofrece nada; distinto, ofrece corregir y dice de dónde viene lo de hoy", () => {
+    expect(ofertaDeConsumoDelModelo(filas(["lino", "1.2"]), [lino], declarado(1.2))).toEqual({ tipo: "ninguna" });
+    expect(ofertaDeConsumoDelModelo(filas(["lino", "1,200"]), [lino], declarado(1.2))).toEqual({ tipo: "ninguna" });
+    expect(ofertaDeConsumoDelModelo(filas(["lino", "1.35"]), [lino], declarado(1.2, "medido"))).toEqual({ tipo: "corregir", nuevo: 1.35, actual: 1.2, fuente: "medido", unidad: "metro" });
+  });
+
+  it("cuenta la PRIMERA tela con consumo; un avío antes no cuenta, y una tela sin consumo se salta", () => {
+    expect(ofertaDeConsumoDelModelo(filas(["boton", "4"], ["lino", ""], ["lino", "1.5"]), [lino, boton], declarado(1.2))).toMatchObject({ tipo: "corregir", nuevo: 1.5 });
+    expect(ofertaDeConsumoDelModelo(filas(["boton", "4"]), [lino, boton], declarado(1.2))).toEqual({ tipo: "ninguna" });
+  });
+});
+
+describe("paridad del interruptor con la base", () => {
+  it("la apertura lee `fijar_consumo_modelo`, rechaza con 42501 a quien no edita el catálogo y comprueba ANTES de abrir", () => {
+    const sql = readFileSync(join(__dirname, "../../..", MIGRACION), "utf8");
+    expect(sql).toContain("'fijar_consumo_modelo'");
+    expect(sql).toContain("hint = 'consumo_modelo_sin_permiso'");
+    expect(sql.indexOf("consumo_modelo_sin_permiso")).toBeLessThan(sql.indexOf("v_id := retail.abrir_produccion("));
   });
 });
