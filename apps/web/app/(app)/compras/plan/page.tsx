@@ -18,8 +18,8 @@ export default async function PlanCompraPage({ searchParams }: { searchParams: P
       campanas={campanas}
       puedeContar={veModulo(persona, "conteos")}
       veAnalisis={veModulo(persona, "analisis")}
-      // Solo para «Fijar un mínimo» por tienda: `guardar_plan_compra_minimo` (de main, 20261012164000) todavía pide ser líder en la base.
-      // El tope y el % de lo que sobra ya son de quien tiene el módulo (ADR-0387).
+      // Solo para «Campaña nueva»: `crear_campana_con_plan` escribe en Etiquetas y sigue pidiendo ser líder en la base. El tope, el % de
+      // lo que sobra y el mínimo por tienda ya son de quien tiene el módulo (ADR-0387; ADR-0362, decisión 64).
       esLider={persona.rol === "lider"}
       planPedidoNoExiste={planPedidoNoExiste}
       propuesta={propuesta}

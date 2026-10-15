@@ -31,7 +31,7 @@ describe("los porcentajes de cada tienda", () => {
   });
 });
 
-describe("los mínimos que fija un líder", () => {
+describe("los mínimos por tienda", () => {
   it("de 1 a 90, en blanco = sin mínimo, y la suma no pasa de 100", () => {
     expect(problemasDeLosMinimos({ lim: "10", aqp: "" })).toEqual({ porTienda: {}, suma: null });
     expect(problemasDeLosMinimos({ lim: "0", aqp: "95" }).porTienda).toEqual({ lim: "De 1 a 90 %, o en blanco para no fijar mínimo.", aqp: "De 1 a 90 %, o en blanco para no fijar mínimo." });
