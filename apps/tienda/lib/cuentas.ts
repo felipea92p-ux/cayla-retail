@@ -1,4 +1,4 @@
-import { nombreAMedias, nombresYApellidos } from "@cayla-retail/shared";
+import { problemaDocumento, TIPOS_DOCUMENTO_CLIENTA, type TipoDocumentoClienta } from "@cayla-retail/shared";
 import { z } from "zod";
 import { codigoDelCorreoActual, type CodigoDelCorreo } from "./correo-confirmado";
 
@@ -89,8 +89,16 @@ export type Cumple = { d: string; m: string; a: string };
 export type Registro = {
   correo: string;
   clave: string;
-  /** Con él, el servidor trae el nombre del padrón. El nombre no se escribe (Felipe 2026-10-15): sin el padrón no hay cuenta. */
-  dni: string;
+  /**
+   * DNI, carné de extranjería o pasaporte (Felipe 2026-10-15: la tienda acepta los tres, «como en las tiendas»). Con DNI el servidor
+   * trae el nombre del padrón y no se escribe: sin el padrón no hay cuenta. Con carné o pasaporte, el nombre se escribe tal cual está
+   * en el documento, en dos cajas (`nombres`, `apellidos`) que se guardan con los nombres primero.
+   */
+  documentoTipo: TipoDocumentoClienta;
+  documento: string;
+  /** Solo con carné o pasaporte. */
+  nombres: string;
+  apellidos: string;
   celular: string;
   cumple: Cumple;
   /** «Soy mayor de 18 años»: obligatoria (la base también la exige). */
@@ -103,7 +111,10 @@ export type Registro = {
 export const REGISTRO_VACIO: Registro = {
   correo: "",
   clave: "",
-  dni: "",
+  documentoTipo: "dni",
+  documento: "",
+  nombres: "",
+  apellidos: "",
   celular: "",
   cumple: { d: "", m: "", a: "" },
   mayor: false,
@@ -119,13 +130,15 @@ export const REGISTRO_VACIO: Registro = {
 export type ConsultaCorreo = "sin_revisar" | "libre" | "repetido" | "de_otra_persona";
 
 /**
- * Lo que dijo el servidor del DNI. `sin_nombre`: el DNI está libre, pero el padrón no dio el nombre (no lo encontró, no respondió o
- * se buscó demasiadas veces): sin el nombre del padrón no se crea la cuenta (Felipe 2026-10-15), y se puede volver a intentar.
+ * Lo que dijo el servidor del documento. Con DNI: `encontrado` (el padrón dio el nombre, a medias) o `sin_nombre` (el DNI está
+ * libre, pero el padrón no lo encontró, no respondió o se buscó demasiadas veces: sin el nombre del padrón no se crea la cuenta,
+ * Felipe 2026-10-15, y se puede volver a intentar). Con carné o pasaporte: `libre` (el nombre se escribe).
  */
-export type ConsultaDni =
+export type ConsultaDocumento =
   | { estado: "sin_revisar" }
   | { estado: "buscando" }
   | { estado: "encontrado"; aMedias: string; delClub: boolean }
+  | { estado: "libre"; delClub: boolean }
   | { estado: "sin_nombre"; motivo: "no_encontrado" | "sin_padron" | "limite"; delClub: boolean }
   | { estado: "repetido" }
   | { estado: "archivada" };
@@ -134,7 +147,7 @@ export type ConsultaDni =
  * Lo que la persona tiene que completar (los avisos por WhatsApp son opcionales: nunca «faltan»). El nombre no: sale del DNI. El
  * código va justo después del correo (Felipe 2026-10-15): se confirma ahí mismo, antes de lo demás.
  */
-export type CampoRegistro = "correo" | "codigo" | "clave" | "dni" | "cel" | "cumple" | "mayor" | "acepta";
+export type CampoRegistro = "correo" | "codigo" | "clave" | "documento" | "nombres" | "apellidos" | "cel" | "cumple" | "mayor" | "acepta";
 /** A dónde lleva un problema: un campo o la casilla opcional de los avisos. */
 export type CampoProblema = CampoRegistro | "avisos";
 export type EstadoCampo = "falta" | "mal" | "repetido" | "buscando" | "ok";
@@ -144,7 +157,10 @@ export const CAMPOS_REGISTRO: readonly (readonly [CampoRegistro, string])[] = [
   ["correo", "tu correo"],
   ["codigo", "confirmar tu correo"],
   ["clave", "tu contraseña"],
-  ["dni", "tu DNI"],
+  ["documento", "tu documento"],
+  // Solo con carné o pasaporte (con DNI el nombre sale del padrón y estos dos quedan listos solos).
+  ["nombres", "tus nombres"],
+  ["apellidos", "tus apellidos"],
   ["cel", "tu celular"],
   ["cumple", "tu cumpleaños"],
   ["mayor", "confirmar que eres mayor de 18"],
@@ -197,12 +213,20 @@ function cumplio18(a: number, m: number, d: number, hoy: Dia): boolean {
   return cumple18[0] < h[0] || (cumple18[0] === h[0] && (cumple18[1] < h[1] || (cumple18[1] === h[1] && cumple18[2] <= h[2])));
 }
 
+/** «DNI», «carné de extranjería», «pasaporte», en una frase. */
+export const nombreDelDocumento = (tipo: TipoDocumentoClienta) =>
+  tipo === "dni" ? "DNI" : (TIPOS_DOCUMENTO_CLIENTA.find((t) => t.valor === tipo)?.etiqueta ?? "documento").toLocaleLowerCase("es");
+
+/** El número escrito, completo para su tipo (las MISMAS reglas que la caja, `packages/shared`): DNI de 8, carné o pasaporte de 6 a 12. */
+export const documentoCompleto = (tipo: TipoDocumentoClienta, numero: string) =>
+  numero.length >= (tipo === "dni" ? 8 : 6) && problemaDocumento(tipo, numero) === null;
+
 /**
- * El DNI: falta hasta las 8 cifras; después, lo que dijo el servidor. Sin el nombre del padrón (`sin_nombre`) el DNI queda en «Revisa»
- * y no se crea la cuenta: el nombre no se escribe a mano (Felipe 2026-10-15).
+ * El documento: falta hasta que está completo; después, lo que dijo el servidor. Con DNI, sin el nombre del padrón (`sin_nombre`)
+ * queda en «Revisa» y no se crea la cuenta: el nombre no se escribe a mano (Felipe 2026-10-15).
  */
-export function estadoDni(dni: string, consulta: ConsultaDni): EstadoCampo {
-  if (!/^\d{8}$/.test(dni)) return "falta";
+export function estadoDocumento(tipo: TipoDocumentoClienta, numero: string, consulta: ConsultaDocumento): EstadoCampo {
+  if (!documentoCompleto(tipo, numero)) return numero.length > (tipo === "dni" ? 8 : 12) ? "mal" : "falta";
   switch (consulta.estado) {
     case "repetido":
       return "repetido";
@@ -210,27 +234,36 @@ export function estadoDni(dni: string, consulta: ConsultaDni): EstadoCampo {
     case "sin_nombre":
       return "mal";
     case "encontrado":
+    case "libre":
       return "ok";
     default:
       return "buscando";
   }
 }
 
-const nombreLimpio = (nombre: string) => nombre.replace(/\s+/g, " ").trim();
+/** Lo que dice la caja del número según el documento elegido: la sugerencia sigue al tipo (ADR-0290), igual que en la caja del ERP. */
+export const ayudaDelNumero = (tipo: TipoDocumentoClienta) => (tipo === "dni" ? "8 dígitos" : "6 a 12 letras o números");
+
+/** La caja del número de ese tipo: hasta qué largo y con qué teclado. */
+export const cajaDelNumero = (tipo: TipoDocumentoClienta) =>
+  tipo === "dni" ? { largo: 8, teclado: "numeric" as const } : { largo: 12, teclado: "text" as const };
+
+/** El tope de una caja del nombre (la base acepta hasta 200 en todo el nombre). */
+export const MAX_PARTE_NOMBRE = 90;
 
 /**
- * El nombre del padrón como se guarda y como se muestra (las mismas reglas del Club del ERP, `packages/shared`): para la ficha,
- * nombres y después apellidos, con mayúscula inicial («Maria Fernanda Perez Salas»: así el «Hola, Maria» toma el nombre y no el
- * apellido); para confirmar en pantalla, a medias («Maria P. S.»), que no revela el nombre completo de nadie (ADR-0288 G-3).
- * SUNAT público trae primero los apellidos; el proveedor de pago, primero los nombres. null si no se entiende.
+ * Una caja del nombre escrito (carné o pasaporte): tal cual está en el documento, sin números (la base también lo exige:
+ * `nombre_con_numeros`). Con DNI no hay caja: el nombre sale del padrón.
  */
-export function nombreDelPadron(nombre: string, origen: "sunat_publico" | "proveedor"): { nombre: string; aMedias: string } | null {
-  const orden = origen === "sunat_publico" ? "apellidos_primero" : "nombres_primero";
-  const partes = nombresYApellidos(nombre, orden);
-  const aMedias = nombreAMedias(nombre, orden);
-  if (!partes || !aMedias) return null;
-  return { nombre: nombreLimpio(`${partes.nombres} ${partes.apellidos}`), aMedias };
+export function estadoParteNombre(tipo: TipoDocumentoClienta, texto: string): EstadoCampo {
+  if (tipo === "dni") return "ok";
+  const t = texto.replace(/\s+/g, " ").trim();
+  if (/[0-9]/.test(t) || t.length > MAX_PARTE_NOMBRE) return "mal";
+  return t.length >= 2 ? "ok" : "falta";
 }
+
+/** El nombre escrito que se guarda: los nombres primero y después los apellidos, como el del padrón («María Pérez García»). */
+export const nombreEscrito = (r: Pick<Registro, "nombres" | "apellidos">) => `${r.nombres} ${r.apellidos}`.replace(/\s+/g, " ").trim();
 
 /** Lo que dice el DNI cuando el padrón no dio el nombre: por qué, y que sin él no hay cuenta. Va con «Volver a intentar». */
 export function mensajeSinNombre(motivo: "no_encontrado" | "sin_padron" | "limite"): string {
@@ -251,7 +284,7 @@ export type EstadoRegistro = Record<CampoRegistro, EstadoCampo> & { motivoCumple
 
 export function estadoRegistro(
   r: Registro,
-  consultas: { correo: ConsultaCorreo; dni: ConsultaDni; codigo: CodigoDelCorreo },
+  consultas: { correo: ConsultaCorreo; documento: ConsultaDocumento; codigo: CodigoDelCorreo },
   hoy: Dia,
 ): EstadoRegistro {
   const cumple = estadoCumple(r.cumple, hoy);
@@ -259,7 +292,9 @@ export function estadoRegistro(
     correo: estadoCorreo(r.correo, consultas.correo),
     codigo: estadoCodigo(r.correo, consultas.codigo),
     clave: estadoClave(r.clave),
-    dni: estadoDni(r.dni, consultas.dni),
+    documento: estadoDocumento(r.documentoTipo, r.documento, consultas.documento),
+    nombres: estadoParteNombre(r.documentoTipo, r.nombres),
+    apellidos: estadoParteNombre(r.documentoTipo, r.apellidos),
     cel: estadoCelular(r.celular),
     cumple: cumple.estado,
     motivoCumple: cumple.motivo,
@@ -311,6 +346,13 @@ export const MENSAJES = {
   claveAyuda: "8 caracteres o más. Solo tú la sabes.",
   claveLarga: "Tu contraseña puede tener hasta 72 caracteres.",
   dniAyuda: "Buscamos tu nombre solo, para tu boleta. Cada DNI tiene una sola cuenta.",
+  // Carné de extranjería o pasaporte (Felipe 2026-10-15): el nombre se escribe tal cual está en el documento.
+  documentoAyuda: "Como está en tu documento. Cada documento tiene una sola cuenta.",
+  documentoRevisando: "Revisando tu documento…",
+  nombresAyuda: "Tal cual están en tu documento, sin números.",
+  apellidosAyuda: "Tal cual están en tu documento, sin números.",
+  nombreConNumeros: "Tu nombre no lleva números: escríbelo tal cual está en tu documento.",
+  documentoLibre: "Ahora escribe tus nombres y tus apellidos, tal cual están en tu documento.",
   dniBuscando: "Buscando tu nombre…",
   dniRepetido: "Ya hay una cuenta con este DNI.",
   dniArchivada: "Para crear tu cuenta necesitamos revisar tus datos en tienda: acércate a cualquier tienda CAYLA.",
@@ -363,6 +405,10 @@ export const MENSAJES = {
   claveNoDisponible: "No pudimos guardar tu contraseña ahora. Intenta de nuevo en unos minutos.",
 } as const;
 
+/** «Ya hay una cuenta con este DNI / carné de extranjería / pasaporte.» */
+export const documentoRepetido = (tipo: TipoDocumentoClienta) =>
+  tipo === "dni" ? MENSAJES.dniRepetido : `Ya hay una cuenta con este ${nombreDelDocumento(tipo)}.`;
+
 /** «Te faltan 3 caracteres.» / «Te falta 1 carácter.» */
 export function faltanCaracteres(clave: string): string | null {
   if (!clave || clave.length >= CLAVE_MINIMA) return null;
@@ -411,7 +457,10 @@ export const mensajeCodigoEsperar = (segundos: number) => `Te mandamos uno hace 
 export const esquemaRegistro = z.object({
   correo: z.string().max(400),
   clave: z.string().max(400),
-  dni: z.string().max(40),
+  documentoTipo: z.enum(["dni", "carne_extranjeria", "pasaporte"]),
+  documento: z.string().max(40),
+  nombres: z.string().max(400),
+  apellidos: z.string().max(400),
   celular: z.string().max(40),
   cumple: z.object({ d: z.string().max(4), m: z.string().max(4), a: z.string().max(8) }),
   mayor: z.boolean(),
@@ -431,7 +480,13 @@ export type ProblemaRegistro = { campo: CampoProblema | null; mensaje: string };
 export function problemaRegistro(r: Registro, hoy: Dia): ProblemaRegistro | null {
   if (!correoValido(r.correo)) return { campo: "correo", mensaje: MENSAJES.correoMal };
   if (estadoClave(r.clave) !== "ok") return { campo: "clave", mensaje: r.clave.length > CLAVE_MAXIMA ? MENSAJES.claveLarga : MENSAJES.claveAyuda };
-  if (!/^\d{8}$/.test(r.dni)) return { campo: "dni", mensaje: "El DNI tiene 8 dígitos." };
+  if (!documentoCompleto(r.documentoTipo, r.documento)) {
+    return { campo: "documento", mensaje: problemaDocumento(r.documentoTipo, r.documento) ?? `Escribe tu ${nombreDelDocumento(r.documentoTipo)}.` };
+  }
+  for (const campo of ["nombres", "apellidos"] as const) {
+    const e = estadoParteNombre(r.documentoTipo, r[campo]);
+    if (e !== "ok") return { campo, mensaje: e === "mal" ? MENSAJES.nombreConNumeros : `Escribe tus ${campo}, tal cual están en tu documento.` };
+  }
   if (estadoCelular(r.celular) !== "ok") return { campo: "cel", mensaje: "El celular tiene 9 dígitos y empieza en 9." };
   const cumple = estadoCumple(r.cumple, hoy);
   if (cumple.estado !== "ok") return { campo: "cumple", mensaje: cumple.motivo === "menor" ? MENSAJES.cumpleMenor : MENSAJES.cumpleMal };
@@ -444,17 +499,24 @@ export function problemaRegistro(r: Registro, hoy: Dia): ProblemaRegistro | null
 
 const CAMPO_DE_LA_BASE: Record<string, CampoRegistro> = {
   correo: "correo",
-  dni: "dni",
-  // El nombre sale del DNI (no hay caja de nombre): lo que diga la base del nombre se dice en el DNI.
-  nombre: "dni",
+  // `dni` es el documento de la cuenta, sea cual sea su tipo (20261015161000).
+  dni: "documento",
+  // Con DNI el nombre sale del padrón (no hay caja de nombre): lo que diga la base del nombre se dice en el documento.
+  nombre: "documento",
   celular: "cel",
   cumple: "cumple",
   mayor: "mayor",
   acepta: "acepta",
 };
 
-/** El rechazo de `tienda_registrar_cuenta` (su hint y su detail) en palabras para la persona, con el campo al que lleva. */
-export function errorDeRegistro(hint: string | null | undefined, detalle: string | null | undefined): ProblemaRegistro {
+/**
+ * El rechazo de `tienda_registrar_cuenta` (su hint y su detail) en palabras para la persona, con el campo al que lleva. `tipo`: el
+ * documento elegido (con carné o pasaporte, un problema del nombre va a sus cajas).
+ */
+export function errorDeRegistro(hint: string | null | undefined, detalle: string | null | undefined, tipo: TipoDocumentoClienta = "dni"): ProblemaRegistro {
+  if (tipo !== "dni" && (hint === "nombre_con_numeros" || (hint === "cuenta_datos_invalidos" && detalle === "nombre"))) {
+    return { campo: "nombres", mensaje: MENSAJES.nombreConNumeros };
+  }
   switch (hint) {
     case "cuenta_correo_repetido":
       return { campo: "correo", mensaje: MENSAJES.correoRepetido };
@@ -463,9 +525,9 @@ export function errorDeRegistro(hint: string | null | undefined, detalle: string
     case "correo_repetido":
       return { campo: "correo", mensaje: MENSAJES.correoDeOtraPersona };
     case "cuenta_dni_repetido":
-      return { campo: "dni", mensaje: MENSAJES.dniRepetido };
+      return { campo: "documento", mensaje: documentoRepetido(tipo) };
     case "cuenta_archivada":
-      return { campo: "dni", mensaje: MENSAJES.dniArchivada };
+      return { campo: "documento", mensaje: MENSAJES.dniArchivada };
     case "cuenta_menor":
       return { campo: "cumple", mensaje: MENSAJES.cumpleMenor };
     case "cuenta_sin_codigo":
@@ -475,14 +537,14 @@ export function errorDeRegistro(hint: string | null | undefined, detalle: string
       return { campo: "avisos", mensaje: MENSAJES.avisosCambio };
     // La base no encontró la lectura del padrón del nombre (20261015133000): no se pudo anotar, o venció. Se vuelve a intentar.
     case "nombre_sin_padron":
-      return { campo: "dni", mensaje: MENSAJES.dniSinPadron };
+      return { campo: "documento", mensaje: MENSAJES.dniSinPadron };
     case "cuenta_datos_invalidos": {
       // Un problema con el nombre (falta el del padrón) se dice en el DNI, con su propio mensaje.
-      if (detalle === "nombre") return { campo: "dni", mensaje: MENSAJES.dniSinPadron };
+      if (detalle === "nombre") return { campo: "documento", mensaje: MENSAJES.dniSinPadron };
       const campo = CAMPO_DE_LA_BASE[detalle ?? ""] ?? null;
       const mensajes: Partial<Record<CampoRegistro, string>> = {
         correo: MENSAJES.correoMal,
-        dni: "El DNI tiene 8 dígitos.",
+        documento: tipo === "dni" ? "El DNI tiene 8 dígitos." : `El ${nombreDelDocumento(tipo)} tiene de 6 a 12 letras o números, sin guiones.`,
         cel: "El celular tiene 9 dígitos y empieza en 9.",
         cumple: MENSAJES.cumpleMal,
         mayor: MENSAJES.mayorFalta,

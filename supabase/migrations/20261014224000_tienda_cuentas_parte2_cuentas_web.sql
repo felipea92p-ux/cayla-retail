@@ -19,7 +19,12 @@
 --      y hasta cuándo está bloqueado. Ni DNI, ni nombre, ni celular: lo de la persona viaja recién con la cuenta.
 --   3. Las funciones de la puerta de la tienda (rol `tienda_web`, ADR-0408 decisión 3), cada una cerrada a public, anon y
 --      authenticated y validando ella misma todo lo que recibe:
---      · `tienda_consultar_correo(correo, ip_hash)` y `tienda_consultar_documento(dni, ip_hash, documento_hash)`: lo que la
+--      (Felipe 2026-10-15: la tienda acepta también carné de extranjería y pasaporte, «como en las tiendas». Las tres que reciben un
+--      documento llevan al final su tipo, `p_documento_tipo`: `dni` (por defecto), `carne_extranjeria` o `pasaporte`, y lo validan
+--      y lo buscan con ESE tipo (`fn_documento_clienta`, las mismas reglas de la caja). Con carné o pasaporte el nombre se escribe
+--      tal cual está en el documento: no viene del padrón. Los nombres del contrato (`dni_repetido`, `cuenta_dni_repetido`, detail
+--      `dni`) dicen desde entonces «el documento de la cuenta», sea cual sea su tipo.)
+--      · `tienda_consultar_correo(correo, ip_hash)` y `tienda_consultar_documento(numero, ip_hash, documento_hash, tipo)`: lo que la
 --        página de registro dice mientras se escribe («ya hay una cuenta con este correo / DNI», «ya eras del club»). Cada
 --        una cuenta un intento de CONSULTA en `club_intentos_registro` (`club_intento`, ADR-0288 G-10): 20 por ip y hora.
 --      · `tienda_revisar_registro(correo, dni, celular, ip_hash, documento_hash)`: lo que el servidor de la tienda pregunta
@@ -188,7 +193,8 @@ $$;
 comment on function retail.tienda_consultar_correo(text, text) is
   'Tienda online (ADR-0408): ¿ya hay una cuenta con este correo? {estado: invalido | limite | repetido | libre}. Cuenta un intento de consulta (club_intento, 20 por ip y hora). Solo la llama tienda_web.';
 
-create or replace function retail.tienda_consultar_documento(p_dni text, p_ip_hash text, p_documento_hash text)
+create or replace function retail.tienda_consultar_documento(p_documento_numero text, p_ip_hash text, p_documento_hash text,
+                                                             p_documento_tipo text default 'dni')
 returns jsonb
 language plpgsql
 volatile
@@ -196,17 +202,18 @@ security definer
 set search_path = retail, public
 as $$
 declare
-  v_dni text;
+  v_tipo text := lower(btrim(coalesce(p_documento_tipo, 'dni')));
+  v_numero text;
   v_ficha uuid;
   v_archivada boolean;
   v_del_club boolean;
 begin
   begin
-    v_dni := retail.fn_documento_clienta('dni', p_dni);
+    v_numero := retail.fn_documento_clienta(v_tipo, p_documento_numero);
   exception when sqlstate '22023' then
-    v_dni := null;
+    v_numero := null;
   end;
-  if v_dni is null then
+  if v_numero is null then
     return jsonb_build_object('estado', 'invalido');
   end if;
   if not retail.club_intento('consulta', p_ip_hash, p_documento_hash, null) then
@@ -215,7 +222,7 @@ begin
   for v_ficha, v_archivada, v_del_club in
     select c.id, c.archivada_en is not null, c.club_desde is not null
       from retail.clientas c
-     where c.documento_tipo = 'dni' and c.documento_numero = v_dni
+     where c.documento_tipo = v_tipo and c.documento_numero = v_numero
   loop
     exit;
   end loop;
@@ -228,12 +235,12 @@ begin
   return jsonb_build_object('estado', 'libre', 'del_club', coalesce(v_del_club, false));
 end;
 $$;
-comment on function retail.tienda_consultar_documento(text, text, text) is
+comment on function retail.tienda_consultar_documento(text, text, text, text) is
   'Tienda online (ADR-0408): ¿este DNI ya tiene cuenta, o es de una ficha archivada? {estado: invalido | limite | repetido | archivada | libre, del_club}. del_club: la ficha de ese DNI ya es del Club (la cuenta se unirá a ella). Cuenta un intento de consulta. Solo la llama tienda_web.';
 
 -- ---------- 4. lo que el servidor revisa antes de crear el usuario de inicio de sesión ----------
-create or replace function retail.tienda_revisar_registro(p_correo text, p_dni text, p_celular text, p_ip_hash text,
-                                                          p_documento_hash text)
+create or replace function retail.tienda_revisar_registro(p_correo text, p_documento_numero text, p_celular text, p_ip_hash text,
+                                                          p_documento_hash text, p_documento_tipo text default 'dni')
 returns jsonb
 language plpgsql
 volatile
@@ -242,7 +249,8 @@ set search_path = retail, public
 as $$
 declare
   v_correo text := retail.fn_cuenta_web_correo(p_correo);
-  v_dni text;
+  v_tipo text := lower(btrim(coalesce(p_documento_tipo, 'dni')));
+  v_numero text;
   v_celular text := retail.fn_celular_normalizado(p_celular);
   v_ficha uuid;
   v_archivada boolean;
@@ -251,11 +259,11 @@ begin
     return jsonb_build_object('estado', 'invalido', 'campo', 'correo');
   end if;
   begin
-    v_dni := retail.fn_documento_clienta('dni', p_dni);
+    v_numero := retail.fn_documento_clienta(v_tipo, p_documento_numero);
   exception when sqlstate '22023' then
-    v_dni := null;
+    v_numero := null;
   end;
-  if v_dni is null then
+  if v_numero is null then
     return jsonb_build_object('estado', 'invalido', 'campo', 'dni');
   end if;
   if v_celular is null or v_celular !~ '^9[0-9]{8}$' then
@@ -270,7 +278,7 @@ begin
   for v_ficha, v_archivada in
     select c.id, c.archivada_en is not null
       from retail.clientas c
-     where c.documento_tipo = 'dni' and c.documento_numero = v_dni
+     where c.documento_tipo = v_tipo and c.documento_numero = v_numero
   loop
     exit;
   end loop;
@@ -283,7 +291,7 @@ begin
   return jsonb_build_object('estado', 'ok');
 end;
 $$;
-comment on function retail.tienda_revisar_registro(text, text, text, text, text) is
+comment on function retail.tienda_revisar_registro(text, text, text, text, text, text) is
   'Tienda online (ADR-0408): lo que el servidor de la tienda pregunta ANTES de crear el usuario en el proyecto de clientes. {estado: invalido (campo) | limite | correo_repetido | dni_repetido | archivada | ok}. Cuenta un intento de registro (club_intento: 5 por ip, 3 por documento y 3 por celular, por hora). No escribe nada más. Solo la llama tienda_web.';
 
 -- ---------- 4b. el código que confirma el correo (actividad 2b) ----------
@@ -466,7 +474,7 @@ drop function if exists retail.tienda_registrar_cuenta(uuid, text, text, text, b
 create or replace function retail.tienda_registrar_cuenta(
   p_usuario_web_id uuid,
   p_correo text,
-  p_dni text,
+  p_documento_numero text,
   p_nombre text,
   p_nombre_del_padron boolean,
   p_celular text,
@@ -477,7 +485,8 @@ create or replace function retail.tienda_registrar_cuenta(
   p_mayor_de_edad boolean,
   p_avisos_whatsapp boolean,
   p_casilla_version integer,
-  p_textos text
+  p_textos text,
+  p_documento_tipo text default 'dni'
 )
 returns jsonb
 language plpgsql
@@ -489,7 +498,8 @@ declare
   v_hoy date := retail.fn_hoy_lima();
   v_ahora timestamptz := now();
   v_correo text := retail.fn_cuenta_web_correo(p_correo);
-  v_dni text;
+  v_tipo text := lower(btrim(coalesce(p_documento_tipo, 'dni')));
+  v_numero text;
   v_nombre text := nullif(regexp_replace(btrim(coalesce(p_nombre, '')), '\s+', ' ', 'g'), '');
   v_del_padron boolean := coalesce(p_nombre_del_padron, false);
   v_avisos boolean := coalesce(p_avisos_whatsapp, false);
@@ -518,15 +528,22 @@ begin
     raise exception 'Revisa tu correo.' using errcode = '22023', hint = 'cuenta_datos_invalidos', detail = 'correo';
   end if;
   begin
-    v_dni := retail.fn_documento_clienta('dni', p_dni);
+    v_numero := retail.fn_documento_clienta(v_tipo, p_documento_numero);
   exception when sqlstate '22023' then
-    v_dni := null;
+    v_numero := null;
   end;
-  if v_dni is null then
-    raise exception 'El DNI tiene 8 dígitos.' using errcode = '22023', hint = 'cuenta_datos_invalidos', detail = 'dni';
+  if v_numero is null then
+    raise exception '%', case v_tipo when 'dni' then 'El DNI tiene 8 dígitos.'
+                             else 'El documento tiene de 6 a 12 letras o números, sin guiones.' end
+      using errcode = '22023', hint = 'cuenta_datos_invalidos', detail = 'dni';
   end if;
   if v_nombre is not null and char_length(v_nombre) > 200 then
     raise exception 'El nombre es demasiado largo.' using errcode = '22023', hint = 'cuenta_datos_invalidos', detail = 'nombre';
+  end if;
+  -- Carné de extranjería o pasaporte (Felipe 2026-10-15): el nombre se escribe tal cual está en el documento; no viene del padrón.
+  if v_del_padron and v_tipo <> 'dni' then
+    raise exception 'Con carné de extranjería o pasaporte el nombre se escribe tal cual está en el documento.'
+      using errcode = '22023', hint = 'cuenta_datos_invalidos', detail = 'nombre';
   end if;
   if v_del_padron and v_nombre is null then
     raise exception 'Falta el nombre del padrón.' using errcode = '22023', hint = 'cuenta_datos_invalidos', detail = 'nombre';
@@ -594,7 +611,7 @@ begin
     for v_id, v_archivada, v_club_desde, v_codigo, v_nombre_actual in
       select c.id, c.archivada_en is not null, c.club_desde, c.codigo_club, c.nombre
         from retail.clientas c
-       where c.documento_tipo = 'dni' and c.documento_numero = v_dni
+       where c.documento_tipo = v_tipo and c.documento_numero = v_numero
          for update
     loop
       exit;
@@ -607,7 +624,7 @@ begin
     v_codigo := retail.fn_club_codigo_nuevo();
     insert into retail.clientas (documento_tipo, documento_numero, nombre, telefono_whatsapp, cumple_dia, cumple_mes,
                                  cumple_anio, correo, registro_origen, created_por, club_desde, codigo_club)
-    values ('dni', v_dni, v_nombre, v_celular, p_cumple_dia::smallint, p_cumple_mes::smallint, p_cumple_anio::smallint,
+    values (v_tipo, v_numero, v_nombre, v_celular, p_cumple_dia::smallint, p_cumple_mes::smallint, p_cumple_anio::smallint,
             v_correo, 'web', null, v_ahora, v_codigo)
     on conflict (documento_tipo, documento_numero) where documento_numero is not null do nothing
     returning id into v_id;
@@ -615,8 +632,8 @@ begin
       v_nueva := true;
       v_nombre_final := v_nombre;
       v_club_desde := null;
-      -- CL-27: sus compras anteriores con ese DNI pasan a su ficha (como en caja y en el cartel).
-      v_ligadas := retail.fn_ligar_ventas_por_documento(v_id, 'dni', v_dni);
+      -- CL-27: sus compras anteriores con ese documento pasan a su ficha (como en caja y en el cartel).
+      v_ligadas := retail.fn_ligar_ventas_por_documento(v_id, v_tipo, v_numero);
       exit;
     end if;
   end loop;
@@ -718,7 +735,7 @@ begin
   );
 end;
 $$;
-comment on function retail.tienda_registrar_cuenta(uuid, text, text, text, boolean, text, integer, integer, integer, boolean, boolean, boolean, integer, text) is
+comment on function retail.tienda_registrar_cuenta(uuid, text, text, text, boolean, text, integer, integer, integer, boolean, boolean, boolean, integer, text, text) is
   'Tienda online (ADR-0408, actividades 2 y 2b): crea la cuenta (cuentas_web) y deja a la persona en el Club, todo o nada, recién después de que confirmó su correo con el código (exige el pendiente de ese correo y ese usuario: cuenta_sin_codigo). Exige «Soy mayor de 18 años». Si el DNI ya es de una ficha, se une a ella completando solo lo vacío (el nombre del padrón sí reemplaza, G-4); si no, crea la ficha con registro_origen = web. Con los avisos por WhatsApp, anota el permiso de publicidad del Club (medio tienda_web, la casilla vigente) y publicidad_desde, solo para el celular que escribió. Rechaza con hint: cuenta_datos_invalidos (detail = campo, también mayor), cuenta_menor, cuenta_sin_codigo, cuenta_texto_cambio, cuenta_correo_repetido, cuenta_dni_repetido, cuenta_archivada, cuenta_ya_existe. Devuelve {codigo_club, era_del_club, se_unio_a_su_ficha, nombre_corto, avisos_whatsapp: no | activados | ya_estaban | celular_distinto}. Solo la llama tienda_web.';
 
 -- ---------- 6. «Mi cuenta» ----------
@@ -778,24 +795,24 @@ comment on function retail.tienda_casilla_whatsapp() is
 
 -- ---------- 8. la puerta: solo tienda_web ----------
 revoke all on function retail.tienda_consultar_correo(text, text) from public, anon, authenticated;
-revoke all on function retail.tienda_consultar_documento(text, text, text) from public, anon, authenticated;
-revoke all on function retail.tienda_revisar_registro(text, text, text, text, text) from public, anon, authenticated;
+revoke all on function retail.tienda_consultar_documento(text, text, text, text) from public, anon, authenticated;
+revoke all on function retail.tienda_revisar_registro(text, text, text, text, text, text) from public, anon, authenticated;
 revoke all on function retail.tienda_reservar_envio(text, boolean) from public, anon, authenticated;
 revoke all on function retail.tienda_anotar_invitado(text, uuid) from public, anon, authenticated;
 revoke all on function retail.tienda_intento_de_codigo(text) from public, anon, authenticated;
-revoke all on function retail.tienda_registrar_cuenta(uuid, text, text, text, boolean, text, integer, integer, integer, boolean, boolean, boolean, integer, text)
+revoke all on function retail.tienda_registrar_cuenta(uuid, text, text, text, boolean, text, integer, integer, integer, boolean, boolean, boolean, integer, text, text)
   from public, anon, authenticated;
 revoke all on function retail.tienda_mi_cuenta(uuid) from public, anon, authenticated;
 revoke all on function retail.tienda_club_beneficios() from public, anon, authenticated;
 revoke all on function retail.tienda_casilla_whatsapp() from public, anon, authenticated;
 
 grant execute on function retail.tienda_consultar_correo(text, text) to tienda_web;
-grant execute on function retail.tienda_consultar_documento(text, text, text) to tienda_web;
-grant execute on function retail.tienda_revisar_registro(text, text, text, text, text) to tienda_web;
+grant execute on function retail.tienda_consultar_documento(text, text, text, text) to tienda_web;
+grant execute on function retail.tienda_revisar_registro(text, text, text, text, text, text) to tienda_web;
 grant execute on function retail.tienda_reservar_envio(text, boolean) to tienda_web;
 grant execute on function retail.tienda_anotar_invitado(text, uuid) to tienda_web;
 grant execute on function retail.tienda_intento_de_codigo(text) to tienda_web;
-grant execute on function retail.tienda_registrar_cuenta(uuid, text, text, text, boolean, text, integer, integer, integer, boolean, boolean, boolean, integer, text)
+grant execute on function retail.tienda_registrar_cuenta(uuid, text, text, text, boolean, text, integer, integer, integer, boolean, boolean, boolean, integer, text, text)
   to tienda_web;
 grant execute on function retail.tienda_mi_cuenta(uuid) to tienda_web;
 grant execute on function retail.tienda_club_beneficios() to tienda_web;

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { nombreAMedias } from "@cayla-retail/shared";
+import { normalizarRespuestaPadron } from "@cayla-retail/shared/padron";
 import {
   arregloCorreo,
   avisoAlCrear,
@@ -18,7 +20,11 @@ import {
   estadoCodigo,
   estadoCorreo,
   estadoCumple,
-  estadoDni,
+  estadoDocumento,
+  estadoParteNombre,
+  nombreEscrito,
+  ayudaDelNumero,
+  documentoRepetido,
   estadoRegistro,
   faltanCaracteres,
   faltanRegistro,
@@ -36,17 +42,16 @@ import {
   mensajeCodigoLimite,
   mensajeCodigoMalo,
   mensajeSinNombre,
-  nombreDelPadron,
   problemaRegistro,
   REGISTRO_VACIO,
   textoFaltan,
-  type ConsultaDni,
+  type ConsultaDocumento,
   type Registro,
 } from "./cuentas";
 import type { CodigoDelCorreo } from "./correo-confirmado";
 
 const HOY = { anio: 2026, mes: 10, dia: 14 };
-const ENCONTRADO: ConsultaDni = { estado: "encontrado", aMedias: "María P. S.", delClub: false };
+const ENCONTRADO: ConsultaDocumento = { estado: "encontrado", aMedias: "María P. S.", delClub: false };
 /** El correo de LISTO, confirmado con su código (bajo el correo, Felipe 2026-10-15). */
 const CONFIRMADO: CodigoDelCorreo = { estado: "confirmado", correo: "maria.perez@gmail.com" };
 const SIN_PEDIR: CodigoDelCorreo = { estado: "sin_pedir" };
@@ -62,7 +67,10 @@ const enviado = (correo: string, cambios: Partial<Extract<CodigoDelCorreo, { est
 const LISTO: Registro = {
   correo: "maria.perez@gmail.com",
   clave: "clave-segura",
-  dni: "45871236",
+  documentoTipo: "dni",
+  documento: "45871236",
+  nombres: "",
+  apellidos: "",
   celular: "987654321",
   cumple: { d: "14", m: "10", a: "" },
   mayor: true,
@@ -174,17 +182,17 @@ describe("el cumpleaños, como lo guarda el Club", () => {
 
 describe("el DNI y el nombre", () => {
   it("falta hasta las 8 cifras; después, lo que dijo el servidor", () => {
-    expect(estadoDni("4587123", { estado: "sin_revisar" })).toBe("falta");
-    expect(estadoDni("45871236", { estado: "sin_revisar" })).toBe("buscando");
-    expect(estadoDni("45871236", { estado: "buscando" })).toBe("buscando");
-    expect(estadoDni("45871236", ENCONTRADO)).toBe("ok");
-    expect(estadoDni("45871236", { estado: "repetido" })).toBe("repetido");
-    expect(estadoDni("45871236", { estado: "archivada" })).toBe("mal");
+    expect(estadoDocumento("dni", "4587123", { estado: "sin_revisar" })).toBe("falta");
+    expect(estadoDocumento("dni", "45871236", { estado: "sin_revisar" })).toBe("buscando");
+    expect(estadoDocumento("dni", "45871236", { estado: "buscando" })).toBe("buscando");
+    expect(estadoDocumento("dni", "45871236", ENCONTRADO)).toBe("ok");
+    expect(estadoDocumento("dni", "45871236", { estado: "repetido" })).toBe("repetido");
+    expect(estadoDocumento("dni", "45871236", { estado: "archivada" })).toBe("mal");
   });
 
   it("sin el nombre del padrón no hay cuenta: el DNI queda en «Revisa» y dice por qué (Felipe 2026-10-15: el nombre no se escribe)", () => {
     for (const motivo of ["no_encontrado", "sin_padron", "limite"] as const) {
-      expect(estadoDni("45871236", { estado: "sin_nombre", motivo, delClub: false })).toBe("mal");
+      expect(estadoDocumento("dni", "45871236", { estado: "sin_nombre", motivo, delClub: false })).toBe("mal");
     }
     expect(mensajeSinNombre("no_encontrado")).toBe(MENSAJES.dniNoEncontrado);
     expect(mensajeSinNombre("sin_padron")).toBe(MENSAJES.dniSinPadron);
@@ -195,26 +203,82 @@ describe("el DNI y el nombre", () => {
     expect(MENSAJES.dniSinPadron).toMatch(/no podemos crear tu cuenta/);
   });
 
-  it("el nombre del padrón se guarda con los nombres primero y se muestra a medias (SUNAT trae primero los apellidos)", () => {
-    expect(nombreDelPadron("PEREZ SALAS MARIA FERNANDA", "sunat_publico")).toEqual({ nombre: "Maria Fernanda Perez Salas", aMedias: "Maria P. S." });
-    expect(nombreDelPadron("MARIA FERNANDA PEREZ SALAS", "proveedor")).toEqual({ nombre: "Maria Fernanda Perez Salas", aMedias: "Maria P. S." });
-    expect(nombreDelPadron("DE LA CRUZ PEREZ ÑUSTA", "sunat_publico")).toEqual({ nombre: "Ñusta de la Cruz Perez", aMedias: "Ñusta C. P." });
-    expect(nombreDelPadron("   ", "proveedor")).toBeNull();
+  it("el nombre del padrón se guarda con los nombres primero y se muestra a medias: la regla única de packages/shared", () => {
+    // La consulta al padrón ya devuelve el nombre así (`normalizarRespuestaPadron`); la tienda lo guarda tal cual y muestra
+    // `nombreAMedias`. Sus casos viven en apps/web/lib/nombre-de-persona.test.ts; aquí, que la tienda use la misma pieza.
+    const leido = normalizarRespuestaPadron("dni", "09950001", { nombre: "PAREDES SOTO,LUCÍA ANDREA" })!;
+    expect(leido.nombre).toBe("Lucía Andrea Paredes Soto");
+    expect(nombreAMedias(leido)).toBe("Lucía P. S.");
   });
 
-  it("el nombre nunca se escribe: el registro no tiene caja de nombre y el servidor no lo lee (lo que llegue de más se descarta)", () => {
+  it("con DNI el nombre nunca se escribe: el registro no tiene caja de «nombre» y el servidor no la lee (lo que llegue de más se descarta)", () => {
     expect(Object.keys(REGISTRO_VACIO)).not.toContain("nombre");
+    // Con DNI las cajas del nombre escrito (solo de carné y pasaporte) quedan listas solas: no son un campo que falte.
+    expect(estadoParteNombre("dni", "")).toBe("ok");
     const conNombre = esquemaCrearCuenta.safeParse({ registro: { ...LISTO, nombre: "Nombre Escrito A Mano" }, casilla: null });
     expect(conNombre.success && "nombre" in conNombre.data.registro).toBe(false);
   });
 });
 
+describe("carné de extranjería y pasaporte (Felipe 2026-10-15: «como en las tiendas»)", () => {
+  const CARNE: Registro = { ...LISTO, documentoTipo: "carne_extranjeria", documento: "001234567", nombres: "Ana Lucía", apellidos: "Torres Ruiz" };
+  const LIBRE: ConsultaDocumento = { estado: "libre", delClub: false };
+
+  it("el número sigue las MISMAS reglas que la caja: de 6 a 12 letras o números; la base dice si está libre", () => {
+    expect(estadoDocumento("pasaporte", "AB123", { estado: "sin_revisar" })).toBe("falta");
+    expect(estadoDocumento("pasaporte", "AB1234", { estado: "sin_revisar" })).toBe("buscando");
+    expect(estadoDocumento("pasaporte", "AB1234", LIBRE)).toBe("ok");
+    expect(estadoDocumento("carne_extranjeria", "001234567", { estado: "repetido" })).toBe("repetido");
+    expect(estadoDocumento("carne_extranjeria", "001234567", { estado: "archivada" })).toBe("mal");
+    expect(documentoRepetido("pasaporte")).toBe("Ya hay una cuenta con este pasaporte.");
+    expect(documentoRepetido("carne_extranjeria")).toBe("Ya hay una cuenta con este carné de extranjería.");
+  });
+
+  it("la sugerencia del número sigue al tipo elegido (y vuelve con él)", () => {
+    expect(ayudaDelNumero("dni")).toBe("8 dígitos");
+    expect(ayudaDelNumero("carne_extranjeria")).toBe("6 a 12 letras o números");
+    expect(ayudaDelNumero("pasaporte")).toBe("6 a 12 letras o números");
+    expect(ayudaDelNumero("dni")).toBe("8 dígitos");
+  });
+
+  it("el nombre se escribe tal cual, en dos cajas, sin números; se guarda con los nombres primero", () => {
+    expect(estadoParteNombre("pasaporte", "")).toBe("falta");
+    expect(estadoParteNombre("pasaporte", "Ana")).toBe("ok");
+    expect(estadoParteNombre("pasaporte", "Ana 2")).toBe("mal");
+    expect(nombreEscrito({ nombres: "  Ana  Lucía ", apellidos: "Torres   Ruiz " })).toBe("Ana Lucía Torres Ruiz");
+  });
+
+  it("la guía pide el documento y después los nombres y los apellidos; listo, no falta nada", () => {
+    const vacio = estadoRegistro({ ...CARNE, nombres: "", apellidos: "" }, { correo: "libre", documento: LIBRE, codigo: CONFIRMADO }, HOY);
+    expect(faltanRegistro(vacio).map(([campo]) => campo)).toEqual(["nombres", "apellidos"]);
+    expect(textoFaltan(faltanRegistro(vacio))).toBe("tus nombres y tus apellidos");
+    expect(faltanRegistro(estadoRegistro(CARNE, { correo: "libre", documento: LIBRE, codigo: CONFIRMADO }, HOY))).toEqual([]);
+  });
+
+  it("el servidor vuelve a revisar el número y las dos cajas", () => {
+    expect(problemaRegistro(CARNE, HOY)).toBeNull();
+    expect(problemaRegistro({ ...CARNE, documento: "AB12" }, HOY)).toEqual({
+      campo: "documento",
+      mensaje: "El carné de extranjería tiene de 6 a 12 letras o números, sin guiones.",
+    });
+    expect(problemaRegistro({ ...CARNE, apellidos: "Torres 2" }, HOY)).toEqual({ campo: "apellidos", mensaje: MENSAJES.nombreConNumeros });
+    expect(problemaRegistro({ ...CARNE, nombres: " " }, HOY)?.campo).toBe("nombres");
+    // El tipo viaja y la base lo vuelve a revisar: uno que no existe no pasa el esquema.
+    expect(esquemaCrearCuenta.safeParse({ registro: { ...CARNE, documentoTipo: "ruc" }, casilla: null }).success).toBe(false);
+  });
+
+  it("lo que rechaza la base del nombre escrito va a sus cajas; un documento repetido dice cuál", () => {
+    expect(errorDeRegistro("nombre_con_numeros", "nombre", "pasaporte")).toEqual({ campo: "nombres", mensaje: MENSAJES.nombreConNumeros });
+    expect(errorDeRegistro("cuenta_dni_repetido", "dni", "pasaporte")).toEqual({ campo: "documento", mensaje: "Ya hay una cuenta con este pasaporte." });
+  });
+});
+
 describe("la guía del registro", () => {
   it("sin nada escrito falta todo menos los avisos (opcionales): el nombre no es un campo, sale del DNI", () => {
-    const e = estadoRegistro(REGISTRO_VACIO, { correo: "sin_revisar", dni: { estado: "sin_revisar" }, codigo: SIN_PEDIR }, HOY);
-    expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "codigo", "clave", "dni", "cel", "cumple", "mayor", "acepta"]);
+    const e = estadoRegistro(REGISTRO_VACIO, { correo: "sin_revisar", documento: { estado: "sin_revisar" }, codigo: SIN_PEDIR }, HOY);
+    expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "codigo", "clave", "documento", "cel", "cumple", "mayor", "acepta"]);
     expect(textoFaltan(faltanRegistro(e))).toBe(
-      "tu correo, confirmar tu correo, tu contraseña, tu DNI, tu celular, tu cumpleaños, confirmar que eres mayor de 18 y aceptar los términos",
+      "tu correo, confirmar tu correo, tu contraseña, tu documento, tu celular, tu cumpleaños, confirmar que eres mayor de 18 y aceptar los términos",
     );
     // Las dos casillas nuevas nacen sin marcar: el «sí» es un toque de la persona.
     expect(REGISTRO_VACIO).toMatchObject({ mayor: false, avisos: false });
@@ -223,18 +287,18 @@ describe("la guía del registro", () => {
   it("«Soy mayor de 18 años» es obligatoria aunque el año diga que sí; los avisos nunca faltan", () => {
     const sinMayor = estadoRegistro(
       { ...LISTO, mayor: false, cumple: { d: "14", m: "10", a: "1990" } },
-      { correo: "libre", dni: ENCONTRADO, codigo: CONFIRMADO },
+      { correo: "libre", documento: ENCONTRADO, codigo: CONFIRMADO },
       HOY,
     );
     expect(faltanRegistro(sinMayor).map(([campo]) => campo)).toEqual(["mayor"]);
     expect(campoQueSigue(sinMayor, null)).toBe("mayor");
     for (const avisos of [true, false]) {
-      expect(faltanRegistro(estadoRegistro({ ...LISTO, avisos }, { correo: "libre", dni: ENCONTRADO, codigo: CONFIRMADO }, HOY))).toEqual([]);
+      expect(faltanRegistro(estadoRegistro({ ...LISTO, avisos }, { correo: "libre", documento: ENCONTRADO, codigo: CONFIRMADO }, HOY))).toEqual([]);
     }
   });
 
   it("todo listo: no falta nada (con el correo confirmado)", () => {
-    const e = estadoRegistro(LISTO, { correo: "libre", dni: ENCONTRADO, codigo: CONFIRMADO }, HOY);
+    const e = estadoRegistro(LISTO, { correo: "libre", documento: ENCONTRADO, codigo: CONFIRMADO }, HOY);
     expect(faltanRegistro(e)).toEqual([]);
     expect(textoFaltan([])).toBe("");
   });
@@ -242,16 +306,16 @@ describe("la guía del registro", () => {
   it("un correo repetido, un menor de 18 o un DNI sin el nombre del padrón aparecen en «Falta»", () => {
     const e = estadoRegistro(
       { ...LISTO, cumple: { d: "1", m: "1", a: "2015" } },
-      { correo: "repetido", dni: { estado: "sin_nombre", motivo: "no_encontrado", delClub: false }, codigo: CONFIRMADO },
+      { correo: "repetido", documento: { estado: "sin_nombre", motivo: "no_encontrado", delClub: false }, codigo: CONFIRMADO },
       HOY,
     );
-    expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "dni", "cumple"]);
+    expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "documento", "cumple"]);
     expect(e.motivoCumple).toBe("menor");
-    expect(textoFaltan(faltanRegistro(e))).toBe("tu correo, tu DNI y tu cumpleaños");
+    expect(textoFaltan(faltanRegistro(e))).toBe("tu correo, tu documento y tu cumpleaños");
   });
 
   it("se enciende el primero que falta; mientras se escribe en uno, la luz se queda ahí (y no salta si ya está listo)", () => {
-    const e = estadoRegistro({ ...LISTO, clave: "corta", celular: "" }, { correo: "libre", dni: ENCONTRADO, codigo: CONFIRMADO }, HOY);
+    const e = estadoRegistro({ ...LISTO, clave: "corta", celular: "" }, { correo: "libre", documento: ENCONTRADO, codigo: CONFIRMADO }, HOY);
     expect(campoQueSigue(e, null)).toBe("clave");
     expect(campoQueSigue(e, "cel")).toBe("cel");
     expect(campoQueSigue(e, "correo")).toBeNull();
@@ -259,7 +323,7 @@ describe("la guía del registro", () => {
 });
 
 describe("el código bajo el correo (Felipe 2026-10-15: «Obtener código» al lado y la caja debajo)", () => {
-  const estadoCon = (codigo: CodigoDelCorreo, r: Registro = LISTO) => estadoRegistro(r, { correo: "libre", dni: ENCONTRADO, codigo }, HOY);
+  const estadoCon = (codigo: CodigoDelCorreo, r: Registro = LISTO) => estadoRegistro(r, { correo: "libre", documento: ENCONTRADO, codigo }, HOY);
 
   it("el orden de la guía es correo, código y lo demás: con el correo listo, lo que sigue es pedir el código", () => {
     const e = estadoCon(SIN_PEDIR, { ...REGISTRO_VACIO, correo: LISTO.correo });
@@ -313,7 +377,7 @@ describe("lo que el servidor vuelve a revisar", () => {
     expect(problemaRegistro(LISTO, HOY)).toBeNull();
     expect(problemaRegistro({ ...LISTO, correo: "maria@gmail" }, HOY)?.campo).toBe("correo");
     expect(problemaRegistro({ ...LISTO, clave: "corta" }, HOY)?.campo).toBe("clave");
-    expect(problemaRegistro({ ...LISTO, dni: "4587123" }, HOY)?.campo).toBe("dni");
+    expect(problemaRegistro({ ...LISTO, documento: "4587123" }, HOY)?.campo).toBe("documento");
     expect(problemaRegistro({ ...LISTO, celular: "887654321" }, HOY)?.campo).toBe("cel");
     expect(problemaRegistro({ ...LISTO, cumple: { d: "31", m: "4", a: "" } }, HOY)).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMal });
     expect(problemaRegistro({ ...LISTO, cumple: { d: "1", m: "1", a: "2015" } }, HOY)).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMenor });
@@ -325,8 +389,8 @@ describe("lo que el servidor vuelve a revisar", () => {
 
   it("lo que rechaza la base, en palabras y con su campo", () => {
     expect(errorDeRegistro("cuenta_correo_repetido", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.correoRepetido });
-    expect(errorDeRegistro("cuenta_dni_repetido", "dni")).toEqual({ campo: "dni", mensaje: MENSAJES.dniRepetido });
-    expect(errorDeRegistro("cuenta_archivada", "dni")).toEqual({ campo: "dni", mensaje: MENSAJES.dniArchivada });
+    expect(errorDeRegistro("cuenta_dni_repetido", "dni")).toEqual({ campo: "documento", mensaje: MENSAJES.dniRepetido });
+    expect(errorDeRegistro("cuenta_archivada", "dni")).toEqual({ campo: "documento", mensaje: MENSAJES.dniArchivada });
     expect(errorDeRegistro("cuenta_menor", "cumple")).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMenor });
     expect(errorDeRegistro("cuenta_datos_invalidos", "celular").campo).toBe("cel");
     expect(errorDeRegistro("cuenta_datos_invalidos", "mayor")).toEqual({ campo: "mayor", mensaje: MENSAJES.mayorFalta });
@@ -339,8 +403,8 @@ describe("lo que el servidor vuelve a revisar", () => {
   });
 
   it("el nombre que la base no acepta (20261015133000) se dice en el DNI, con «Volver a intentar»: no hay caja de nombre", () => {
-    expect(errorDeRegistro("nombre_sin_padron", "nombre")).toEqual({ campo: "dni", mensaje: MENSAJES.dniSinPadron });
-    expect(errorDeRegistro("cuenta_datos_invalidos", "nombre")).toEqual({ campo: "dni", mensaje: MENSAJES.dniSinPadron });
+    expect(errorDeRegistro("nombre_sin_padron", "nombre")).toEqual({ campo: "documento", mensaje: MENSAJES.dniSinPadron });
+    expect(errorDeRegistro("cuenta_datos_invalidos", "nombre")).toEqual({ campo: "documento", mensaje: MENSAJES.dniSinPadron });
   });
 
   it("el correo de otra persona (20261015054000): va a la caja del correo y no dice de quién es", () => {

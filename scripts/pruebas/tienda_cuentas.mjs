@@ -155,6 +155,7 @@ function registrar(cambios = {}) {
     usuario: randomUUID(),
     correo: correoNuevo(),
     dni: DNI.nuevo,
+    tipo: "dni",
     nombre: "Lucía Fernanda Pérez Salas",
     padron: true,
     celular: "+51 987 654 321",
@@ -174,7 +175,7 @@ function registrar(cambios = {}) {
   const t = (v) => (v === null ? "null" : `'${String(v).replace(/'/g, "''")}'`);
   const num = (v) => (v === null ? "null" : String(v));
   const uuid = (v) => (v === null ? "null" : `'${v}'`);
-  const llamada = `select retail.tienda_registrar_cuenta(${uuid(d.usuario)}::uuid, ${t(d.correo)}, ${t(d.dni)}, ${t(d.nombre)}, ${d.padron}, ${t(d.celular)}, ${num(d.dia)}, ${num(d.mes)}, ${num(d.anio)}, ${d.acepta}, ${d.mayor}, ${d.avisos}, ${num(d.casilla)}, ${t(d.textos)})`;
+  const llamada = `select retail.tienda_registrar_cuenta(${uuid(d.usuario)}::uuid, ${t(d.correo)}, ${t(d.dni)}, ${t(d.nombre)}, ${d.padron}, ${t(d.celular)}, ${num(d.dia)}, ${num(d.mes)}, ${num(d.anio)}, ${d.acepta}, ${d.mayor}, ${d.avisos}, ${num(d.casilla)}, ${t(d.textos)}, ${t(d.tipo)})`;
   const expr = d.sinCodigo
     ? `(${llamada})`
     : `pg_temp.con_codigo(${t(d.correo)}, ${uuid(d.codigoDe ?? d.usuario)}::uuid, $r$${llamada}$r$, ${d.intentosDelCodigo})`;
@@ -218,12 +219,13 @@ function main() {
   );
   const FUNCIONES = [
     "tienda_consultar_correo(text,text)",
-    "tienda_consultar_documento(text,text,text)",
-    "tienda_revisar_registro(text,text,text,text,text)",
+    // Con el tipo de documento al final (DNI, carné de extranjería o pasaporte, 20261015161000).
+    "tienda_consultar_documento(text,text,text,text)",
+    "tienda_revisar_registro(text,text,text,text,text,text)",
     "tienda_reservar_envio(text,boolean)",
     "tienda_anotar_invitado(text,uuid)",
     "tienda_intento_de_codigo(text)",
-    "tienda_registrar_cuenta(uuid,text,text,text,boolean,text,integer,integer,integer,boolean,boolean,boolean,integer,text)",
+    "tienda_registrar_cuenta(uuid,text,text,text,boolean,text,integer,integer,integer,boolean,boolean,boolean,integer,text,text)",
     "tienda_mi_cuenta(uuid)",
     "tienda_club_beneficios()",
     "tienda_casilla_whatsapp()",
@@ -767,6 +769,61 @@ function main() {
       rollback;`),
     "aplicado\nlibre|repetido|correo_repetido",
   );
+
+  console.log("— Carné de extranjería y pasaporte (Felipe 2026-10-15) —");
+  {
+    // Una ficha de caja con pasaporte, ya del Club (como las que registra la caja o el cartel con un extranjero).
+    const CON_PASAPORTE = `${PREPARAR}
+      insert into retail.clientas (documento_tipo, documento_numero, nombre, telefono_whatsapp, club_desde, codigo_club)
+      values ('pasaporte', 'ZZ0999001', 'Paola Pasaporte', '987000333', now() - interval '30 days', retail.fn_club_codigo_nuevo());`;
+    esperarValor(
+      "consultar: el carné libre (en minúsculas también), el pasaporte de una ficha del Club, el mismo número con otro tipo es otro documento, y un formato o un tipo que no es",
+      correr(`${CON_PASAPORTE}
+        select (retail.tienda_consultar_documento('zz0999002', '${huella()}', '${huella("d")}', 'carne_extranjeria') ->> 'estado') || '|' ||
+               (retail.tienda_consultar_documento('ZZ0999001', '${huella()}', '${huella("d")}', 'pasaporte') ->> 'del_club') || '|' ||
+               (retail.tienda_consultar_documento('ZZ0999001', '${huella()}', '${huella("d")}', 'carne_extranjeria') ->> 'del_club') || '|' ||
+               (retail.tienda_consultar_documento('AB12', '${huella()}', '${huella("d")}', 'pasaporte') ->> 'estado') || '|' ||
+               (retail.tienda_consultar_documento('${DNI.otro}', '${huella()}', '${huella("d")}', 'ruc') ->> 'estado') || '|' ||
+               (retail.tienda_consultar_documento('${DNI.socia}', '${huella()}', '${huella("d")}') ->> 'del_club');
+        rollback;`),
+      "libre|true|false|invalido|invalido|true",
+    );
+    esperarValor(
+      "revisar antes del código: un pasaporte libre pasa; uno de 5 caracteres, no",
+      correr(`${CON_PASAPORTE}
+        select (retail.tienda_revisar_registro('${correoNuevo()}', 'ZZ0999003', '987654300', '${huella()}', '${huella("d")}', 'pasaporte') ->> 'estado') || '|' ||
+               (retail.tienda_revisar_registro('${correoNuevo()}', 'AB123', '987654301', '${huella()}', '${huella("d")}', 'pasaporte') ->> 'campo');
+        rollback;`),
+      "ok|dni",
+    );
+    const nuevo = registrar({ dni: "zz0999004", tipo: "carne_extranjeria", nombre: "  Ana Lucía   Torres Ruiz ", padron: false });
+    const repetido = registrar({ dni: "ZZ0999004", tipo: "carne_extranjeria", nombre: "Ana Torres", padron: false });
+    const unida = registrar({ dni: "ZZ0999001", tipo: "pasaporte", nombre: "Otro Nombre Escrito", padron: false });
+    esperarValor(
+      "crear la cuenta con carné: la ficha nace con su tipo, su número normalizado y el nombre escrito (nombres primero); el mismo carné otra vez, no; con pasaporte se une a su ficha sin cambiarle el nombre",
+      correr(`${CON_PASAPORTE}
+        select (${nuevo.expr}) ->> 'se_unio_a_su_ficha';
+        select c.documento_tipo || '|' || c.documento_numero || '|' || c.nombre || '|' || c.registro_origen || '|' || (c.club_desde is not null)::text
+          from retail.clientas c where c.documento_numero = 'ZZ0999004';
+        select pg_temp.intento($q$${repetido.sql}$q$);
+        select (${unida.expr}) ->> 'se_unio_a_su_ficha';
+        select c.nombre || '|' || (select count(*) from retail.cuentas_web w where w.clienta_id = c.id)
+          from retail.clientas c where c.documento_tipo = 'pasaporte' and c.documento_numero = 'ZZ0999001';
+        rollback;`),
+      "false\ncarne_extranjeria|ZZ0999004|Ana Lucía Torres Ruiz|web|true\nP0001|cuenta_dni_repetido|dni\ntrue\nPaola Pasaporte|1",
+    );
+    const casosDoc = [
+      ["con carné, «el nombre es del padrón» no vale: el padrón es solo del DNI", registrar({ dni: "ZZ0999005", tipo: "carne_extranjeria", nombre: "Ana Torres", padron: true }).sql, "22023|cuenta_datos_invalidos|nombre"],
+      ["un pasaporte de 5 caracteres", registrar({ dni: "AB123", tipo: "pasaporte", nombre: "Ana Torres", padron: false }).sql, "22023|cuenta_datos_invalidos|dni"],
+      ["un tipo que la ficha no conoce (RUC)", registrar({ dni: DNI.otro, tipo: "ruc", nombre: "Ana Torres", padron: false }).sql, "22023|cuenta_datos_invalidos|dni"],
+      ["con pasaporte y sin nombre", registrar({ dni: "ZZ0999006", tipo: "pasaporte", nombre: null, padron: false }).sql, "22023|cuenta_datos_invalidos|nombre"],
+    ];
+    for (const [nombre, sql, esperado] of casosDoc) {
+      esperarValor(`rechaza ${nombre}, y no escribe nada`, correr(`${CON_PASAPORTE}
+        select pg_temp.intento($q$${sql}$q$) || '#' || (select count(*) from retail.cuentas_web);
+        rollback;`), `${esperado}#0`);
+    }
+  }
 
   console.log("— Como tienda_web —");
   const COMO_TIENDA = `grant tienda_web to current_user with set true;\nset local role tienda_web;\n`;

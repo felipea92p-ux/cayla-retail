@@ -23,8 +23,6 @@ import {
   marcadoresDePagina,
   mensajeDeConsulta,
   nacimientoIso,
-  nombreAMedias,
-  nombresYApellidos,
   problemasRegistro,
   rechazoDelCorreo,
   respuestaDeRegistro,
@@ -195,51 +193,8 @@ describe("los textos aprobados de la página (docs/club/texto-legal-registro-v2.
   });
 });
 
-describe("el nombre del padrón en las cajas Nombres y Apellidos (Apartados, ADR-0367)", () => {
-  it("SUNAT público trae los apellidos primero", () => {
-    expect(nombresYApellidos("PEREZ SALAS LUCIA MARIA", "apellidos_primero")).toEqual({ nombres: "Lucia Maria", apellidos: "Perez Salas" });
-    expect(nombresYApellidos("DE LA CRUZ PEREZ ÑUSTA", "apellidos_primero")).toEqual({ nombres: "Ñusta", apellidos: "de la Cruz Perez" });
-  });
-  it("el proveedor de pago trae los nombres primero", () => {
-    expect(nombresYApellidos("MARIA DEL CARMEN PEREZ SALAS", "nombres_primero")).toEqual({ nombres: "Maria del Carmen", apellidos: "Perez Salas" });
-  });
-  it("con coma manda la coma; sin nombre, null", () => {
-    expect(nombresYApellidos("PÉREZ SALAS, LUCÍA", "nombres_primero")).toEqual({ nombres: "Lucía", apellidos: "Pérez Salas" });
-    expect(nombresYApellidos("   ", "apellidos_primero")).toBeNull();
-    expect(nombresYApellidos(null, "apellidos_primero")).toBeNull();
-  });
-});
-
-describe("su nombre a medias: confirma que tipeó bien sin revelar el nombre completo de nadie", () => {
-  it("con los nombres primero (el proveedor arma «nombres paterno materno»)", () => {
-    expect(nombreAMedias("LUCIA PEREZ SALAS", "nombres_primero")).toBe("Lucia P. S.");
-    expect(nombreAMedias("MARIA DEL CARMEN PEREZ SALAS", "nombres_primero")).toBe("Maria P. S.");
-    expect(nombreAMedias("ANA TORRES", "nombres_primero")).toBe("Ana T.");
-  });
-
-  it("con los apellidos primero (SUNAT público: «apellidos y nombres»)", () => {
-    expect(nombreAMedias("TORRES RUIZ ANA", "apellidos_primero")).toBe("Ana T. R.");
-    expect(nombreAMedias("  torres ruiz ana maría  ", "apellidos_primero")).toBe("Ana T. R.");
-    expect(nombreAMedias("DE LA CRUZ PEREZ ÑUSTA", "apellidos_primero")).toBe("Ñusta C. P.");
-  });
-
-  it("con coma se sabe qué es qué, sea cual sea la fuente", () => {
-    expect(nombreAMedias("PÉREZ SALAS, LUCÍA", "nombres_primero")).toBe("Lucía P. S.");
-  });
-
-  it("nunca devuelve el nombre completo ni un apellido entero junto a su nombre", () => {
-    for (const [nombre, orden] of [
-      ["LUCIA PEREZ SALAS", "nombres_primero"],
-      ["TORRES RUIZ ANA", "apellidos_primero"],
-      ["MARIA DEL CARMEN PEREZ SALAS", "nombres_primero"],
-    ] as const) {
-      const corto = nombreAMedias(nombre, orden)!;
-      expect(corto.split(" ").filter((p) => !p.endsWith(".")).length, nombre).toBe(1);
-    }
-    expect(nombreAMedias("", "nombres_primero")).toBeNull();
-    expect(nombreAMedias(null, "apellidos_primero")).toBeNull();
-  });
-});
+// El nombre del padrón a medias («Lucía P. S.») y partido en nombres y apellidos: desde el 2026-10-15 es UNA regla para todo el
+// sistema, con los nombres primero, y sus pruebas viven en `lib/nombre-de-persona.test.ts`.
 
 describe("lo que ella escribe: UNA regla para la pantalla, su guía y el servidor", () => {
   it("todo bien: nada que decir", () => {

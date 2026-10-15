@@ -199,7 +199,7 @@ function main() {
                  to_regclass('retail.clientas_fusiones') is not null;`),
     "t|t|t|t",
   );
-  const NUEVAS = ["tienda_anotar_entrada(uuid)", "tienda_revisar_registro(text,text,text,text,text)", "tienda_usuario_borrado(uuid)", "tienda_usuarios_por_borrar(integer)"];
+  const NUEVAS = ["tienda_anotar_entrada(uuid)", "tienda_revisar_registro(text,text,text,text,text,text)", "tienda_usuario_borrado(uuid)", "tienda_usuarios_por_borrar(integer)"];
   esperarValor(
     "las funciones de la tienda: security definer, con su search_path, solo para tienda_web",
     caso(`select string_agg(f || ':' || (p.prosecdef and exists (select 1 from unnest(p.proconfig) x where x like 'search\\_path=%'))::text || ':' ||

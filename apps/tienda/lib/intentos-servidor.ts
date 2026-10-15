@@ -1,6 +1,7 @@
 import "server-only";
 import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
+import type { TipoDocumentoClienta } from "@cayla-retail/shared";
 import { ipDeLaPeticion } from "./cuentas";
 
 // Las huellas con que la base cuenta los intentos de la tienda (`club_intento`, los mismos topes del cartel del Club: ADR-0288
@@ -20,8 +21,11 @@ const huella = (s: string, valor: string) => createHmac("sha256", s).update(valo
 
 export type Huellas = { ip: string; documento: string | null };
 
-/** La huella de la ip de quien llama y, si se pasa, la de su DNI. null si falta la sal. */
-export async function huellas(dni?: string): Promise<Huellas | null> {
+/**
+ * La huella de la ip de quien llama y, si se pasa, la de su documento, con su tipo (un DNI y un pasaporte con los mismos caracteres
+ * no se cuentan juntos; como `huellaDelDocumento` del ERP). null si falta la sal.
+ */
+export async function huellas(documento?: { tipo: TipoDocumentoClienta; numero: string }): Promise<Huellas | null> {
   const s = sal();
   if (!s) {
     console.error(JSON.stringify({ evento: "tienda_sin_sal_de_intentos" }));
@@ -30,6 +34,6 @@ export async function huellas(dni?: string): Promise<Huellas | null> {
   const h = await headers();
   return {
     ip: huella(s, `ip:${ipDeLaPeticion(h.get("x-forwarded-for"), h.get("x-real-ip"))}`),
-    documento: dni ? huella(s, `doc:dni:${dni}`) : null,
+    documento: documento ? huella(s, `doc:${documento.tipo}:${documento.numero}`) : null,
   };
 }
