@@ -5,6 +5,7 @@ import { rehacerCuenta, salir } from "@/app/acciones/cuenta";
 import { BeneficiosDelClub, NovedadesParaTi, TeAvisamos, TusFavoritos } from "@/components/club/BloquesDelClub";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { MisPedidosEnLaCuenta } from "@/components/cuenta/MisPedidosEnLaCuenta";
+import { TuCuentaWeb } from "@/components/cuenta/TuCuentaWeb";
 import { TarjetaClub } from "@/components/TarjetaClub";
 import type { Prenda } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
@@ -12,11 +13,13 @@ import { fraseDeLaCabecera } from "@/lib/club";
 import { leerMiClubEnBase } from "@/lib/club-servidor";
 import { hoyLima, MENSAJES } from "@/lib/cuentas";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
+import { conciliarCorreo } from "@/lib/mi-cuenta-servidor";
 import { leerMisPedidos } from "@/lib/pedidos-servidor";
 import { anioLima } from "@/lib/portada";
 import { leerSesion } from "@/lib/sesion-servidor";
 import "../estilos/catalogo.css";
 import "../estilos/club.css";
+import "../estilos/mi-cuenta.css";
 
 export const metadata: Metadata = { title: "Mi cuenta · CAYLA", robots: { index: false, follow: false } };
 
@@ -70,6 +73,8 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
   }
 
   const { cuenta } = lectura;
+  // El correo de entrada: el que dice el proyecto de clientes manda (un código confirmado que la base no llegó a anotar se concilia).
+  const correoDeEntrada = await conciliarCorreo(sesion.usuarioId, sesion.correo, cuenta.correo);
   const hoy = hoyLima();
   const miClub = club.estado === "ok" ? club.club : null;
   // Las prendas del catálogo por su modelo: el mismo precio (con «Todas», el mayor) y las mismas fotos que la lista.
@@ -131,6 +136,8 @@ export default async function MiCuenta({ searchParams }: { searchParams: Promise
                 </Link>
               </div>
             )}
+            {/* Su correo de entrada, «Cambiar mi correo» y «Eliminar mi cuenta» (Felipe 2026-10-15). */}
+            <TuCuentaWeb correo={correoDeEntrada} />
           </div>
         </div>
       </div>

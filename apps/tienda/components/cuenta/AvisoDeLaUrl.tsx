@@ -17,6 +17,12 @@ const AVISOS: Record<string, string> = {
   clave: "Listo: cambiaste tu contraseña.",
   "clave-igual": MENSAJES.claveIgual,
   "cuenta-creada": "Tu cuenta quedó creada. Entra con tu correo y tu contraseña.",
+  // «Mi cuenta» (Felipe 2026-10-15): cambiar el correo, restablecer el acceso pedido en tienda y eliminar la cuenta.
+  correo: "Listo: ahora entras con tu correo nuevo.",
+  "acceso-restablecido": "Listo: recuperaste tu cuenta. Desde ahora entras con tu correo nuevo.",
+  "acceso-restablecido-entra": "Listo: tu correo nuevo y tu contraseña quedaron. Entra con ellos.",
+  "acceso-sin-clave": "Tu correo nuevo quedó confirmado. Pide aquí el enlace para crear tu contraseña.",
+  "cuenta-eliminada": "Listo: eliminamos tu cuenta y tus datos.",
 };
 
 const DURACION_MS = 3600;

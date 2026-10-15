@@ -111,6 +111,14 @@ export function FormularioOlvide({ enlaceVencido = false }: { enlaceVencido?: bo
       <Link className="w-enlace" href="/entrar">
         Volver a entrar
       </Link>
+      {/* Quien ya no tiene ese correo no recibe el enlace: lo restablece una tienda (Felipe 2026-10-15). */}
+      <p className="w-nota">
+        ¿Ya no usas ese correo? En cualquier tienda CAYLA, con tu DNI, te ayudamos a cambiarlo. Si ya lo pediste en tienda,{" "}
+        <Link className="w-enlace" href="/restablecer-acceso">
+          escribe aquí tu código
+        </Link>
+        .
+      </p>
     </form>
   );
 }

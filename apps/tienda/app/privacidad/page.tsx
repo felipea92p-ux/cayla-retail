@@ -40,7 +40,7 @@ export default async function Privacidad() {
             <ul>
               <li>
                 Los que nos das al crear tu cuenta: tu correo y tu contraseña, tu DNI, tus nombres y apellidos, tu celular y tu cumpleaños
-                (día y mes; el año, si quieres).
+                (día y mes; el año, si quieres). Si después cambias el correo con que entras, el nuevo reemplaza al anterior.
               </li>
               <li>Tu nombre lo tomamos del padrón público a partir de tu DNI, para que quede bien escrito. Si no lo encontramos, lo escribes tú.</li>
               <li>Tu contraseña la guarda cifrada el servicio de inicio de sesión: nadie en CAYLA puede verla.</li>
@@ -95,7 +95,8 @@ export default async function Privacidad() {
                 <b>La consulta del padrón</b> (servicio de consulta de DNI, Perú), solo para obtener tu nombre a partir de tu DNI.
               </li>
               <li>
-                <b>El servicio de correo</b> que te manda el enlace para crear una contraseña nueva.
+                <b>El servicio de correo</b> que te manda los códigos para confirmar tu correo, el enlace para crear una contraseña nueva y
+                el aviso cuando cambia el correo de tu cuenta.
               </li>
               <li>
                 <b>Lucode</b> (proveedor de servicios electrónicos) y <b>SUNAT</b>, para los comprobantes de pago.
@@ -108,8 +109,10 @@ export default async function Privacidad() {
             <p>
               Mientras tengas tu cuenta y seas miembro del club. Si pasan 3 años desde tu última compra o tu última entrada a tu cuenta
               web, anonimizamos tu ficha de forma automática, como en el Club CAYLA, y cerramos tu cuenta web: borramos tu correo, quitamos
-              tus favoritos y tus avisos de «Avísame cuando llegue», y ya no puedes entrar con ella. Lo mismo si pides la cancelación antes.
-              Los comprobantes de pago se conservan el tiempo que exige la ley tributaria.
+              tus favoritos y tus avisos de «Avísame cuando llegue», y ya no puedes entrar con ella. Lo mismo, cuando quieras, si eliminas
+              tu cuenta en «Mi cuenta» ▸ «Eliminar mi cuenta» o pides la cancelación en una tienda: dejas de ser miembro del club. Si tienes
+              un pedido web o un apartado pendiente, primero lo recoges o le pides a la tienda que lo anule. Los comprobantes de pago se
+              conservan el tiempo que exige la ley tributaria, sin tus datos.
             </p>
           </section>
 
@@ -117,8 +120,10 @@ export default async function Privacidad() {
             <h2>7. Tus derechos</h2>
             <p>
               Puedes acceder a tus datos, rectificarlos, pedir su cancelación, oponerte a su uso y revocar tus autorizaciones, gratis: en
-              cualquier tienda CAYLA, con tu documento, o escribiendo a caylaperu@gmail.com desde el correo de tu cuenta. Te respondemos
-              dentro de los plazos de la Ley 29733 y su reglamento. Si no estás conforme, puedes acudir a la Autoridad Nacional de
+              cualquier tienda CAYLA, con tu documento, o escribiendo a caylaperu@gmail.com desde el correo de tu cuenta. Algunas las haces
+              tú mismo en «Mi cuenta»: cambiar el correo con que entras (con un código que te llega al correo nuevo) y eliminar tu cuenta.
+              Si ya no puedes entrar porque perdiste tu correo, en cualquier tienda CAYLA, con tu DNI, te ayudamos a cambiarlo. Te
+              respondemos dentro de los plazos de la Ley 29733 y su reglamento. Si no estás conforme, puedes acudir a la Autoridad Nacional de
               Protección de Datos Personales del Ministerio de Justicia y Derechos Humanos.
             </p>
           </section>

@@ -47,7 +47,8 @@ export function clienteSuelto(): SupabaseClient | null {
 }
 
 export type LecturaSesion =
-  | { estado: "con_sesion"; usuarioId: string }
+  /** `correo`: el de entrada que dice el proyecto de clientes (lo usa «Mi cuenta» para conciliar un cambio de correo, 20261015132000). */
+  | { estado: "con_sesion"; usuarioId: string; correo: string | null }
   | { estado: "sin_sesion" }
   /** El proyecto de clientes no contestó: no se sabe. Nadie se queda sin su cuenta por eso, y nada se borra. */
   | { estado: "sin_respuesta" };
@@ -60,7 +61,7 @@ export const leerSesion = cache(async (): Promise<LecturaSesion> => {
   const cliente = await clienteSesion();
   if (!cliente) return { estado: "sin_sesion" };
   const { data, error } = await cliente.auth.getUser();
-  if (data.user) return { estado: "con_sesion", usuarioId: data.user.id };
+  if (data.user) return { estado: "con_sesion", usuarioId: data.user.id, correo: data.user.email ?? null };
   return error && isAuthRetryableFetchError(error) ? { estado: "sin_respuesta" } : { estado: "sin_sesion" };
 });
 
