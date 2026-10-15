@@ -2,11 +2,20 @@
   "guia": "vender.pedidos-web",
   "ruta": "/vender/pedidos-web",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 56,
+  "total": 65,
   "controles": {
     "components/pedidos-web/AnularPagoHoja.tsx": [
       "BotonVer «Ir a Caja»",
       "SegmentoDeslizante «Por qué se anula el pago»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
+    "components/pedidos-web/AnularPedidoPagadoHoja.tsx": [
+      "BotonVer «Ir a Caja»",
+      "BotonVer «{irPorLaBoleta.texto}»",
+      "Boton «Revisar de nuevo»",
+      "SegmentoDeslizante «Por qué se anula el pedido»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
@@ -40,12 +49,14 @@
       "Boton «Cancelar» #3",
       "Boton «{guia.frase ?? undefined}» #4",
       "BotonAncla «Escribirle por WhatsApp» #3",
+      "BotonAncla «WhatsApp» #2",
       "CampoTexto «{guia.etiqueta(\"codigo\", \"Código para recoger\")}»",
       "ComboResponsable «Al entregar, sus prendas salen del stock. La boleta ya salió»",
-      "BotonAncla «WhatsApp» #2",
+      "BotonAncla «WhatsApp» #3",
       "Boton «{guia.frase ?? undefined}» #5",
       "BotonAncla «Escribirle por WhatsApp» #4",
-      "BotonAncla «WhatsApp» #3",
+      "BotonAncla «WhatsApp» #4",
+      "Boton «pedido-web.anular-pagado»",
       "button «Deshacer»",
       "button «(sin nombre)» #2",
       "SegmentoDeslizante «{`Qué hacer con ${l.referencia}»",

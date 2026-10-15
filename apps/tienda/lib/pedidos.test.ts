@@ -11,6 +11,7 @@ import {
   nombreTienda,
   porQueSeCerro,
   textoCambiarlo,
+  textoDeDevolucion,
   vivas,
   type Pedido,
 } from "./pedidos";
@@ -111,6 +112,21 @@ describe("lo que dice la base", () => {
     expect(unoDe(pedidoBase()).boleta).toBeNull();
   });
 
+  it("anulado (20261015115000): lo devuelto y la nota de crédito se leen; una nota rara o una base sin eso no tumban el pedido", () => {
+    const p = unoDe(pedidoBase({ estado: "anulado", cierre_motivo: "no_se_puede_entregar", devuelto: 189.9, nota_credito: "BC01-000001" }));
+    expect([p.devuelto, p.notaCredito]).toEqual([189.9, "BC01-000001"]);
+    expect(unoDe(pedidoBase({ estado: "anulado", nota_credito: "<i>x</i>", devuelto: -3 }))).toMatchObject({ devuelto: 0, notaCredito: null });
+    expect(unoDe(pedidoBase())).toMatchObject({ devuelto: 0, notaCredito: null });
+  });
+
+  it("se le dice que se le devuelve la plata: lo devuelto más lo que la tienda todavía tiene por devolver; sin haber pagado, nada", () => {
+    const anulado = (devuelto: number, pagado: number) => unoDe(pedidoBase({ estado: "anulado", cierre_motivo: "cliente_desistio", devuelto, pagado }));
+    expect(textoDeDevolucion(anulado(189.9, 0))).toBe("Se te devuelve lo que pagaste, S/ 189.90, por el mismo medio con el que pagaste.");
+    expect(textoDeDevolucion(anulado(20, 30))).toBe("Se te devuelve lo que pagaste, S/ 50.00, por el mismo medio con el que pagaste.");
+    expect(textoDeDevolucion(anulado(0, 0))).toBeNull();
+    expect(textoDeDevolucion(unoDe(pedidoBase({ estado: "pagado", pagado: 228.8, falta: 0 })))).toBeNull();
+  });
+
   it("«¿Necesitas cambiarlo?» de un pedido entregado dice el plazo de la boleta (el de la caja), nunca uno escrito a mano", () => {
     expect(textoCambiarlo(15)).toBe("Tienes 15 días para cambiarlo en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.");
     expect(textoCambiarlo(1)).toBe("Tienes 1 día para cambiarlo en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.");
@@ -162,8 +178,9 @@ describe("la línea de tiempo y el reloj", () => {
 });
 
 describe("por qué se cerró, dicho para el cliente (Felipe, 2026-10-14)", () => {
-  // Los motivos que acepta la base: al no confirmar (no_confirmar_pedido_web) y al anular uno confirmado (anular_pedido_web).
-  const MOTIVOS_DE_LA_BASE = ["sin_stock", "cliente_no_respondio", "cliente_desistio", "cliente_no_pago", "error_en_pedido"];
+  // Los motivos que acepta la base: al no confirmar (no_confirmar_pedido_web), al anular uno confirmado (anular_pedido_web) y al
+  // anular uno pagado (anular_pedido_web_pagado).
+  const MOTIVOS_DE_LA_BASE = ["sin_stock", "cliente_no_respondio", "cliente_desistio", "cliente_no_pago", "error_en_pedido", "no_se_puede_entregar"];
 
   it("cada motivo de la base tiene su frase, escrita para el cliente: ninguna habla «del cliente» ni repite la etiqueta del ERP", () => {
     const frases = MOTIVOS_DE_LA_BASE.map(porQueSeCerro);

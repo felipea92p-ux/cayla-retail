@@ -28,6 +28,7 @@ import { haceCuanto } from "@/lib/vender-hoy-reglas";
 import { soles } from "@/lib/precio-sede-reglas";
 import { camposConfirmar, camposEntregar, camposMotivo, camposReservar, campoDeLinea } from "@/lib/pedidos-web-guia";
 import { detalleDelPago, esAdelanto, estadoDelPago, porDevolver, sePuedeAnular, textoDelPago } from "@/lib/pedidos-web-cobro-reglas";
+import { devueltoAlCliente } from "@/lib/pedidos-web-anular-reglas";
 import {
   avisosDeLinea,
   datosDelCliente,
@@ -58,6 +59,7 @@ import {
   type EstadoPedidoWeb,
   type LineaDetalle,
   type LugarWeb,
+  type NotaCreditoWeb,
   type PagoDeLista,
   type PedidoDetalle,
   type PlantillaWhatsapp,
@@ -79,9 +81,11 @@ const AVISO_CON_BOTON =
  *     «Anular» el pedido con su motivo (lo reservado vuelve a estar disponible; si ya pagó, la hoja se queda abierta con lo que hay
  *     que devolverle);
  *   · pagado (actividad 10): su boleta (salió al pagarse) y, si todo está en la tienda, «Entregar» con el código de 4 cifras que el
- *     cliente muestra (la base lo compara: mal escrito, nada se entrega); si algo falta, qué; y el aviso de los días sin recoger;
+ *     cliente muestra (la base lo compara: mal escrito, nada se entrega); si algo falta, qué; y el aviso de los días sin recoger. Y, si
+ *     no se va a entregar, «Anular pedido» (la hoja de encima: devuelve la plata y anula su venta y su boleta, Felipe 2026-10-15);
  *   · anulado con plata del cliente: cada pago «por devolver», con «Devolver» (la plata sale de la caja de hoy si es efectivo);
- *   · entregado o cerrado: para leer (entregado, con su boleta y quién lo entregó).
+ *   · entregado o cerrado: para leer (entregado, con su boleta y quién lo entregó; anulado después de pagarse, con lo que se le devolvió
+ *     y cómo quedó su boleta: liberada o anulada con su nota de crédito).
  * Todo lo que guarda firma con el «Responsable» (ADR-0162) y no cambia qué decide la base: si otra caja ya lo tocó, lo dice.
  */
 export function PedidoWebHoja({
@@ -95,6 +99,7 @@ export function PedidoWebHoja({
   onReleer,
   onPagar,
   onAnularPago,
+  onAnularPedido,
 }: {
   pedido: PedidoDetalle;
   tiendaId: string;
@@ -108,6 +113,8 @@ export function PedidoWebHoja({
   onPagar: () => void;
   /** Abrir «Anular un pago» (o «Devolver», en un pedido anulado) encima de esta hoja. */
   onAnularPago: (pago: PagoDeLista) => void;
+  /** Abrir «Anular el pedido» encima de esta hoja: un pedido PAGADO que no se va a entregar (devuelve la plata y anula su boleta). */
+  onAnularPedido: () => void;
   /** Enviar a la tienda del pedido lo reservado en `desdeId` (solo quien opera esa tienda). */
   onEnviar: (desdeId: string) => void;
   /** Volver a leer el pedido (lo que muestra la hoja ya no es cierto: otra caja se llevó la última). */
@@ -637,9 +644,17 @@ export function PedidoWebHoja({
               <BloqueDinero pedido={p} ahora={ahora} />
               <BloqueBoleta boleta={p.boleta} />
               {faltan.length > 0 ? (
-                <Aviso tono="info" titulo="Todavía no se puede entregar">
-                  Falta que llegue a {p.tienda}: {faltan.join(", ")}. Se entrega cuando todo esté aquí: avísale al cliente cuando esté.
-                </Aviso>
+                <>
+                  <Aviso tono="info" titulo="Todavía no se puede entregar">
+                    Falta que llegue a {p.tienda}: {faltan.join(", ")}. Se entrega cuando todo esté aquí: avísale al cliente cuando esté.
+                  </Aviso>
+                  <PieAcciones izquierda={<BotonAnularPedido onClick={onAnularPedido} />}>
+                    <BotonAncla href={whatsapp(p.sinRecoger ? "norecoge" : "libre")} target="_blank" rel="noopener noreferrer">
+                      <MessageCircle aria-hidden className="h-4 w-4" />
+                      WhatsApp
+                    </BotonAncla>
+                  </PieAcciones>
+                </>
               ) : (
                 <>
                   <CampoGuiado id="codigo" guia={guia}>
@@ -678,7 +693,7 @@ export function PedidoWebHoja({
                     ) : errorEntrega ? null : (
                       <PieGuia guia={guia} />
                     )}
-                    <PieAcciones guia="pedido-web.entregar">
+                    <PieAcciones guia="pedido-web.entregar" izquierda={<BotonAnularPedido onClick={onAnularPedido} deshabilitado={entrega.enviando || entrega.incierto} />}>
                       <BotonAncla href={whatsapp(p.sinRecoger ? "norecoge" : "listo")} target="_blank" rel="noopener noreferrer">
                         <MessageCircle aria-hidden className="h-4 w-4" />
                         WhatsApp
@@ -724,12 +739,15 @@ export function PedidoWebHoja({
                 <BloqueDinero pedido={p} ahora={ahora} onAnularPago={p.estado === "anulado" ? onAnularPago : undefined} />
               )}
               {p.estado === "entregado" && <BloqueBoleta boleta={p.boleta} />}
+              {p.estado === "anulado" && p.ventaId && <BloqueBoleta boleta={p.boleta} nota={p.notaCredito} anulado />}
               <Aviso tono="info">
                 {p.estado === "entregado"
                   ? `Entregado ${p.entregadoEn ? haceCuanto(p.entregadoEn, ahora) : ""}${p.entregadoPor ? ` por ${p.entregadoPor}` : ""}. Sus prendas salieron del stock.`
                   : p.estado === "vencido"
                     ? `Se cerró solo: nadie lo confirmó en ${p.plazos.horasParaConfirmar} horas. Nada se había reservado.`
-                    : `Anulado: ${textoCierre(p.cierreMotivo).toLocaleLowerCase("es")}.`}
+                    : p.ventaId
+                      ? `Anulado después de pagarse: ${textoCierre(p.cierreMotivo).toLocaleLowerCase("es")}. Sus prendas volvieron a estar libres y se le devolvió lo que pagó.`
+                      : `Anulado: ${textoCierre(p.cierreMotivo).toLocaleLowerCase("es")}.`}
               </Aviso>
             </>
           )}
@@ -759,19 +777,50 @@ function BloqueCliente({ pedido: p, whatsapp }: { pedido: PedidoDetalle; whatsap
 }
 
 /** La boleta del pedido (salió sola al quedar pagado completo) y en qué va su envío a SUNAT. Sin boleta (una base sin la actividad 10),
- *  nada. */
-function BloqueBoleta({ boleta }: { boleta: BoletaWeb | null }) {
+ *  nada. `anulado`: el pedido se anuló después de pagarse; la boleta se liberó sin enviarla o la anuló su `nota` de crédito. */
+function BloqueBoleta({ boleta, nota = null, anulado = false }: { boleta: BoletaWeb | null; nota?: NotaCreditoWeb | null; anulado?: boolean }) {
   if (!boleta) return null;
   const estado = estadoDeBoleta(boleta.estado);
+  const estadoNota = nota ? estadoDeBoleta(nota.estado) : null;
   return (
-    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-tinta" data-guia="pedido-web.boleta">
-      <ReceiptText aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
-      <span>
-        Boleta <b className="tabular-nums">{boleta.texto}</b>
-      </span>
-      <Chip tono={estado.tono}>{estado.texto}</Chip>
-      <span className="text-[12.5px] text-taupe">Salió al quedar pagado completo.</span>
-    </p>
+    <div className="space-y-1" data-guia={anulado ? undefined : "pedido-web.boleta"}>
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-tinta">
+        <ReceiptText aria-hidden className="h-4 w-4 shrink-0 text-taupe" />
+        <span>
+          Boleta <b className="tabular-nums">{boleta.texto}</b>
+        </span>
+        <Chip tono={estado.tono}>{estado.texto}</Chip>
+        <span className="text-[12.5px] text-taupe">
+          {!anulado ? "Salió al quedar pagado completo." : nota ? "La anula su nota de crédito." : boleta.estado === "no_emitido" ? "Se liberó sin enviarla a SUNAT." : ""}
+        </span>
+      </p>
+      {nota && estadoNota && (
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-6 text-[13px] text-tinta">
+          <span>
+            Nota de crédito <b className="tabular-nums">{nota.texto}</b>
+          </span>
+          <Chip tono={estadoNota.tono}>{estadoNota.texto}</Chip>
+          <span className="text-[12.5px] text-taupe">
+            Por {soles(nota.total)}:{" "}
+            {nota.estado === "aceptado"
+              ? "SUNAT la aceptó."
+              : nota.estado === "rechazado"
+                ? "SUNAT la rechazó; revísala en Comprobantes."
+                : "sale sola a SUNAT por la cola de siempre."}
+          </span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** «Anular pedido» de un pedido pagado: rojo desde el principio y a la izquierda del pie (lo peligroso, ADR-0358). Abre su hoja: no
+ *  guarda nada (la demo la puede abrir). */
+function BotonAnularPedido({ onClick, deshabilitado = false }: { onClick: () => void; deshabilitado?: boolean }) {
+  return (
+    <Boton type="button" peso="peligro" aria-haspopup="dialog" onClick={onClick} disabled={deshabilitado} data-guia="pedido-web.anular-pagado">
+      Anular pedido
+    </Boton>
   );
 }
 
@@ -977,6 +1026,8 @@ function BloqueDinero({
 }) {
   const devolver = porDevolver(p);
   const anulado = p.estado === "anulado";
+  // Anulado sin nada por devolver y con algo ya devuelto (un pedido pagado que se anuló): dice lo que se le devolvió.
+  const devuelto = anulado && devolver === 0 ? devueltoAlCliente(p) : 0;
   return (
     <div className="space-y-2 rounded-xl border border-sand px-4 py-3" data-guia="pedido-web.dinero">
       <dl className="grid grid-cols-3 gap-3 text-center">
@@ -989,9 +1040,9 @@ function BloqueDinero({
           <dd className="font-display text-xl tabular-nums text-tinta">{soles(p.pagado)}</dd>
         </div>
         <div>
-          <dt className="text-[12px] text-taupe">{anulado ? "Por devolver" : "Falta"}</dt>
+          <dt className="text-[12px] text-taupe">{anulado ? (devuelto > 0 ? "Devuelto" : "Por devolver") : "Falta"}</dt>
           <dd className={`font-display text-xl tabular-nums ${anulado ? (devolver > 0 ? "text-rojo-profundo" : "text-verde") : p.falta > 0 ? "text-ambar-profundo" : "text-verde"}`}>
-            {soles(anulado ? devolver : p.falta)}
+            {soles(anulado ? (devuelto > 0 ? devuelto : devolver) : p.falta)}
           </dd>
         </div>
       </dl>

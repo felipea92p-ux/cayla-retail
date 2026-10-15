@@ -18,6 +18,7 @@ import { PedidoWebHoja } from "@/components/pedidos-web/PedidoWebHoja";
 import { EnviarPedidoWebHoja } from "@/components/pedidos-web/EnviarPedidoWebHoja";
 import { RegistrarPagoHoja } from "@/components/pedidos-web/RegistrarPagoHoja";
 import { AnularPagoHoja } from "@/components/pedidos-web/AnularPagoHoja";
+import { AnularPedidoPagadoHoja } from "@/components/pedidos-web/AnularPedidoPagadoHoja";
 import { haceCuanto } from "@/lib/vender-hoy-reglas";
 import { soles } from "@/lib/precio-sede-reglas";
 import {
@@ -67,8 +68,9 @@ export function MiniPrenda({ prenda, tamano = "sm" }: { prenda: PrendaWeb; taman
  * Ventas ▸ Pedidos web (ADR-0408, actividad 8; maqueta v4, «Pedidos web»): las cifras de la tienda (cada una lleva a su pestaña),
  * lo que otra tienda espera de aquí («Para enviar»), y la lista en sus cuatro pestañas. Tocar un pedido lo abre (la URL lo recuerda:
  * `?pedido=`). La hoja confirma, no confirma o anula; lo de enviar abre su propia hoja, y cobrar (actividad 9) también: «Registrar un
- * pago» y «Anular un pago» (o «Devolver») se abren ENCIMA de la del pedido, que se pone al día al guardar. Toda escritura pasa por
- * una hoja con el combo «Responsable» (ADR-0162).
+ * pago» y «Anular un pago» (o «Devolver») se abren ENCIMA de la del pedido, que se pone al día al guardar; y «Anular el pedido» de uno
+ * pagado (devuelve la plata y anula su boleta, Felipe 2026-10-15), igual. Toda escritura pasa por una hoja con el combo «Responsable»
+ * (ADR-0162).
  */
 export function PedidosWebPantalla({
   tablero,
@@ -111,6 +113,7 @@ export function PedidosWebPantalla({
   // Cobrar dentro del pedido (actividad 9): las hojas que se abren encima de la del pedido abierto.
   const [pagando, setPagando] = useState(false);
   const [anulandoPago, setAnulandoPago] = useState<PagoDeLista | null>(null);
+  const [anulandoPedido, setAnulandoPedido] = useState(false);
   // Un pedido cerrado o anulado se refresca DESPUÉS de cambiar la URL al cerrar la hoja: un refresco pedido antes se perdía.
   const refrescarAlCerrar = useRef(false);
 
@@ -124,12 +127,14 @@ export function PedidosWebPantalla({
     setCerradoId(null);
     setPagando(false);
     setAnulandoPago(null);
+    setAnulandoPedido(false);
     router.push(urlCon({ pedido: id }), { scroll: false });
   };
   const cerrar = () => {
     if (detalle) setCerradoId(detalle.id);
     setPagando(false);
     setAnulandoPago(null);
+    setAnulandoPedido(false);
     window.history.replaceState(null, "", urlCon({}));
     if (refrescarAlCerrar.current) {
       refrescarAlCerrar.current = false;
@@ -312,6 +317,11 @@ export function PedidosWebPantalla({
           onReleer={() => router.refresh()}
           onPagar={() => setPagando(true)}
           onAnularPago={(g) => setAnulandoPago(g)}
+          onAnularPedido={() => {
+            // Lo que pasa con la boleta cambia en segundos (sale a SUNAT, la aceptan): la hoja de anular se abre con el pedido releído.
+            setAnulandoPedido(true);
+            router.refresh();
+          }}
         />
       )}
       {abierto && pagando && (
@@ -336,6 +346,21 @@ export function PedidosWebPantalla({
           onClose={() => setAnulandoPago(null)}
           onAnulado={() => {
             setRecien(abierto.id);
+            router.refresh();
+          }}
+        />
+      )}
+      {abierto && anulandoPedido && (
+        <AnularPedidoPagadoHoja
+          key={`anular-pedido-${abierto.id}`}
+          pedido={abierto}
+          onClose={() => setAnulandoPedido(false)}
+          onReleer={() => router.refresh()}
+          onAnulado={() => {
+            // La hoja del pedido se queda abierta y se relee: muestra lo que se devolvió y cómo quedó su boleta. En la lista pasa a
+            // «Cerrados».
+            setRecien(abierto.id);
+            setPestana("cerrados");
             router.refresh();
           }}
         />

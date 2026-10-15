@@ -349,8 +349,8 @@ export const GUIA_APARTADOS: Guia = {
 
 // Ventas ▸ Pedidos web (ADR-0408, act. 8, 9 y 10). El piloto abre el primer pedido de la lista y, si hay algo para enviar a otra tienda, su
 // hoja; si el pedido ya está confirmado, abre «Registrar un pago», elige Yape y escribe un n.º de ejemplo; y si hay algo pagado, pasa a
-// «Por entregar», abre el primero y escribe un código de ejemplo. Nunca confirma, cierra, anula, envía, registra ni entrega: esos
-// botones se explican encendidos. Lo que se ve depende del pedido que abre (por confirmar o ya
+// «Por entregar», abre el primero, escribe un código de ejemplo y abre «Anular el pedido» (lo que pasaría con sus prendas, su plata y su
+// boleta) y elige un motivo. Nunca confirma, cierra, anula, envía, registra, devuelve ni entrega: esos botones se explican encendidos. Lo que se ve depende del pedido que abre (por confirmar o ya
 // confirmado), por eso los pasos de la hoja son opcionales.
 export const GUIA_PEDIDOS_WEB: Guia = {
   id: "vender.pedidos-web",
@@ -534,9 +534,54 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       texto: "«Entregar» saca sus prendas del stock a nombre de quien está de turno, y el pedido pasa a «Cerrados». «WhatsApp» le escribe que ya puede recogerlo. En la demo no se entrega nada.",
     },
     {
+      id: "anular-pagado",
+      ancla: "pedido-web.anular-pagado",
+      opcional: true,
+      titulo: "Si ya no se va a entregar",
+      texto: "Si el cliente desiste, hubo un error o la tienda no puede entregarlo, «Anular pedido» deshace todo de una vez: sus prendas vuelven a estar libres, se le devuelve lo que pagó y su boleta se anula. Antes, te dice qué va a pasar.",
+    },
+    {
+      id: "anular-prendas",
+      ancla: "anular-pedido.prendas",
+      opcional: true,
+      requiere: ["pedido-web.anular-pagado"],
+      preparar: [{ tipo: "clic", ancla: "pedido-web.anular-pagado" }],
+      titulo: "Qué pasa con sus prendas",
+      texto: "Cada una vuelve a estar libre donde está, también la que se reservó en otra tienda. Nunca salieron del stock: no hay nada que volver a ingresar.",
+    },
+    {
+      id: "anular-plata",
+      ancla: "anular-pedido.plata",
+      opcional: true,
+      titulo: "Qué pasa con su plata",
+      texto: "Cada pago se le devuelve por su medio. El efectivo sale de la caja abierta de hoy, aunque haya pagado otro día: sin caja abierta, o si no alcanza, no se anula nada.",
+    },
+    {
+      id: "anular-boleta",
+      ancla: "anular-pedido.boleta",
+      opcional: true,
+      titulo: "Qué pasa con su boleta",
+      texto: "Si nunca se mandó a SUNAT, se libera sin enviarla. Si SUNAT ya la aceptó, sale sola su nota de crédito. Si se está mandando o pudo llegar, te dice qué hacer y espera.",
+    },
+    {
+      id: "anular-motivo",
+      ancla: "anular-pedido.motivo",
+      opcional: true,
+      demostrar: [{ tipo: "clic", ancla: "anular-pedido.motivo-primero" }],
+      titulo: "Por qué se anula",
+      texto: "El cliente desistió, hubo un error en el pedido o la tienda no lo puede entregar. El cliente lo ve en su pedido, con una frase escrita para él.",
+    },
+    {
+      id: "anular-acciones",
+      ancla: "anular-pedido.acciones",
+      opcional: true,
+      titulo: "Anularlo",
+      texto: "«Anular y devolver» lo hace todo junto, a nombre de quien está de turno: o queda todo anulado o no cambia nada. En la demo no se anula nada.",
+    },
+    {
       id: "nota",
       ancla: "pedidos-web.nota",
-      // Dos: la hoja de pagar (si se abrió) y la del pedido. Un Escape sin nada que cerrar no hace nada.
+      // Dos: la de anular el pedido (si se abrió) y la del pedido. Un Escape sin nada que cerrar no hace nada.
       preparar: [{ tipo: "escape" }, { tipo: "escape" }],
       titulo: "Lo que conviene saber",
       texto: "Separar no toca el stock: la prenda se reserva al confirmar y sale del stock al entregarla. Los pagos se anotan dentro de cada pedido (el efectivo, en la caja abierta) y con el que lo completa sale su boleta. Se entrega con el código del cliente. Los pedidos web van aparte de los apartados de la tienda.",
@@ -545,7 +590,7 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes revisar, confirmar, cobrar y entregar un pedido web. Para repasarlo: Mi perfil ▸ Demo ▸ Pedidos web.",
+      texto: "Ya sabes revisar, confirmar, cobrar, entregar y anular un pedido web. Para repasarlo: Mi perfil ▸ Demo ▸ Pedidos web.",
     },
   ],
   alSalir: [{ tipo: "escape" }],

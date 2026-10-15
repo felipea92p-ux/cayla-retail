@@ -143,6 +143,21 @@ export type PagoDeLista = {
 /** La boleta del pedido (nace al quedar pagado completo, ADR-0408 act. 10) y en qué va su envío a SUNAT (`comprobantes.estado`). */
 export type BoletaWeb = { comprobanteId: string; texto: string; estado: string };
 
+/** Qué le pasaría a la boleta si el pedido pagado se anula AHORA (`fn_pedido_web_camino_boleta`, 20261015114000: la misma regla que
+ *  aplica la anulación): «liberar» (nunca se intentó mandar), «nota_credito» (SUNAT la aceptó), «nada» (rechazada o ya anulada) o
+ *  «esperar» (todavía no se puede: `explicacion` dice qué hacer). */
+export type CaminoBoleta = {
+  camino: "liberar" | "nota_credito" | "nada" | "esperar";
+  texto: string | null;
+  estado: string | null;
+  total: number | null;
+  explicacion: string;
+  hint: string | null;
+};
+
+/** La nota de crédito que anuló la boleta de un pedido pagado y anulado. */
+export type NotaCreditoWeb = { comprobanteId: string; texto: string; estado: string; total: number };
+
 export type PedidoDetalle = {
   id: string;
   codigo: string;
@@ -176,6 +191,10 @@ export type PedidoDetalle = {
   ventaId: string | null;
   boleta: BoletaWeb | null;
   entregadoPor: string | null;
+  /** Pagado: qué le pasaría a su boleta si se anula ahora. null en otro estado (o en una base sin la anulación de un pagado). */
+  anulacionBoleta: CaminoBoleta | null;
+  /** Anulado después de pagarse: la nota de crédito que anuló su boleta (si nació). */
+  notaCredito: NotaCreditoWeb | null;
 };
 
 type Crudo = Record<string, unknown>;
@@ -279,6 +298,31 @@ function leerBoleta(x: unknown): BoletaWeb | null {
   return comprobanteId && t ? { comprobanteId, texto: t, estado: texto(b.estado) ?? "pendiente" } : null;
 }
 
+const CAMINOS: readonly CaminoBoleta["camino"][] = ["liberar", "nota_credito", "nada", "esperar"];
+
+/** Lo de `anulacion_boleta`. Un camino que la web no conoce se lee «esperar» (no se ofrece anular: decide la base). */
+export function leerCaminoBoleta(x: unknown): CaminoBoleta | null {
+  const c = obj(x);
+  const explicacion = texto(c.explicacion);
+  if (!explicacion) return null;
+  const camino = CAMINOS.includes(c.camino as CaminoBoleta["camino"]) ? (c.camino as CaminoBoleta["camino"]) : "esperar";
+  return {
+    camino,
+    texto: texto(c.texto),
+    estado: texto(c.estado),
+    total: c.total === null || c.total === undefined ? null : numero(c.total),
+    explicacion,
+    hint: texto(c.hint),
+  };
+}
+
+function leerNotaCredito(x: unknown): NotaCreditoWeb | null {
+  const n = obj(x);
+  const comprobanteId = texto(n.comprobante_id);
+  const t = texto(n.texto);
+  return comprobanteId && t ? { comprobanteId, texto: t, estado: texto(n.estado) ?? "pendiente", total: numero(n.total) } : null;
+}
+
 /** Lo de `fn_pedido_web_detalle`. null si no trae un pedido. */
 export function leerDetalle(data: unknown): PedidoDetalle | null {
   const d = obj(data);
@@ -318,6 +362,8 @@ export function leerDetalle(data: unknown): PedidoDetalle | null {
     ventaId: texto(d.venta_id),
     boleta: leerBoleta(d.boleta),
     entregadoPor: texto(d.entregado_por),
+    anulacionBoleta: leerCaminoBoleta(d.anulacion_boleta),
+    notaCredito: leerNotaCredito(d.nota_credito),
     pagos: lista(d.pagos).map((x): PagoDeLista => {
       const g = obj(x);
       return {
@@ -499,6 +545,9 @@ export function estadoVisible(
 
 export type MotivoNoConfirmar = "sin_stock" | "cliente_no_respondio" | "cliente_desistio";
 export type MotivoAnular = "cliente_no_pago" | "cliente_desistio" | "error_en_pedido";
+/** Los de un pedido PAGADO (`anular_pedido_web_pagado`): «no pagó» no aplica; «no se puede entregar» es de la tienda (la prenda se dañó,
+ *  se perdió o la que se conseguía no llegó). */
+export type MotivoAnularPagado = "cliente_desistio" | "error_en_pedido" | "no_se_puede_entregar";
 
 export const MOTIVOS_NO_CONFIRMAR: readonly { clave: MotivoNoConfirmar; etiqueta: string }[] = [
   { clave: "sin_stock", etiqueta: "No hay stock" },
@@ -510,11 +559,16 @@ export const MOTIVOS_ANULAR: readonly { clave: MotivoAnular; etiqueta: string }[
   { clave: "cliente_desistio", etiqueta: "El cliente desistió" },
   { clave: "error_en_pedido", etiqueta: "Error en el pedido" },
 ];
+export const MOTIVOS_ANULAR_PAGADO: readonly { clave: MotivoAnularPagado; etiqueta: string }[] = [
+  { clave: "cliente_desistio", etiqueta: "El cliente desistió" },
+  { clave: "error_en_pedido", etiqueta: "Error en el pedido" },
+  { clave: "no_se_puede_entregar", etiqueta: "No se puede entregar" },
+];
 
 /** Por qué se cerró un pedido, como lo leería la tienda. */
 export function textoCierre(motivo: string | null): string {
   if (motivo === "sin_confirmar") return "Nadie lo confirmó a tiempo: se cerró solo";
-  const m = [...MOTIVOS_NO_CONFIRMAR, ...MOTIVOS_ANULAR].find((x) => x.clave === motivo);
+  const m = [...MOTIVOS_NO_CONFIRMAR, ...MOTIVOS_ANULAR, ...MOTIVOS_ANULAR_PAGADO].find((x) => x.clave === motivo);
   return m ? m.etiqueta : "Se cerró";
 }
 

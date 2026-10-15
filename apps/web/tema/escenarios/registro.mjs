@@ -1510,6 +1510,45 @@ ESCENARIOS.push(
   },
 );
 
+// Anular un pedido web PAGADO (ADR-0408, 20261015114000): la hoja «Anular el pedido» encima del primer pedido de «Por entregar» (lo que
+// pasa con sus prendas, su plata y su boleta), la misma con un motivo elegido, y un pedido pagado y anulado en «Cerrados» (lo devuelto
+// y cómo quedó su boleta). Solo por id: la base local necesita un pedido pagado completo y otro anulado después de pagarse (quien
+// audita los crea, los confirma, los paga y anula uno; y los deja como estaban). Ninguno guarda: abren la hoja y eligen.
+const abrirAnularPedido = async (pagina) => {
+  await pagina.locator('[data-guia="pedido-web.anular-pagado"]').first().click({ timeout: 8000 });
+  await pagina.getByRole("dialog", { name: "Anular el pedido" }).waitFor({ timeout: 15000 });
+  await esperar(pagina, 1000);
+};
+ESCENARIOS.push(
+  {
+    id: "pedidos-web.anular-pagado",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · anular un pedido pagado (sus prendas, su plata y su boleta)",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb, abrirAnularPedido),
+  },
+  {
+    id: "pedidos-web.anular-pagado-motivo",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · anular un pedido pagado con su motivo elegido",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=entregar"), abrirPedidoWeb, abrirAnularPedido, clicRol("radio", /^El cliente desistió$/)),
+  },
+  {
+    id: "pedidos-web.anulado-pagado",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · un pedido pagado y anulado (lo devuelto y cómo quedó su boleta)",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=cerrados"), abrirPedidoWeb),
+  },
+);
+
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
 // Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
 ESCENARIOS.push(

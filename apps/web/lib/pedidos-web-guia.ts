@@ -1,10 +1,19 @@
 // La guía de foco de las hojas de Ventas ▸ Pedidos web (ADR-0284, ADR-0408 act. 8 y 9). No agrega reglas: cada «falta» es exactamente
 // lo que `confirmar_pedido_web`, `no_confirmar_pedido_web`, `anular_pedido_web`, `reservar_linea_pedido_web`, `enviar_pedido_web_desde`,
-// `registrar_pago_pedido_web` y `anular_pago_pedido_web` rechazarían (o lo que apaga el botón), y la prueba lo compara contra
-// `problemaParaConfirmar`, `faltaDeLlegada`, `problemaDelPago` y `problemaParaAnular`.
+// `registrar_pago_pedido_web`, `anular_pago_pedido_web` y `anular_pedido_web_pagado` rechazarían (o lo que apaga el botón), y la prueba lo
+// compara contra `problemaParaConfirmar`, `faltaDeLlegada`, `problemaDelPago`, `problemaParaAnular` y `problemaParaAnularPagado`.
 
 import type { CampoDeGuia } from "./guia-campos";
-import { faltaDeDecision, faltaDeLlegada, problemaDelCodigo, type DecisionLinea, type LineaDetalle } from "./pedidos-web-reglas";
+import {
+  faltaDeDecision,
+  faltaDeLlegada,
+  problemaDelCodigo,
+  type CaminoBoleta,
+  type DecisionLinea,
+  type LineaDetalle,
+  type MotivoAnularPagado,
+} from "./pedidos-web-reglas";
+import { problemaParaAnularPagado } from "./pedidos-web-anular-reglas";
 import {
   esDigital,
   problemaDeCaja,
@@ -110,6 +119,29 @@ export function camposAnularPago(
   if (h.medio === "efectivo") {
     const caja = problemaParaAnular({ medio: h.medio }, "devuelto_al_cliente", h.cajaAbierta, h.tienda);
     campos.push({ id: "caja", nombre: "Caja abierta", requerido: true, hecho: caja === null, pendiente: caja ?? "" });
+  }
+  campos.push({ id: "motivo", nombre: "Por qué", requerido: true, hecho: h.motivo !== null, pendiente: "Elige por qué se anula." });
+  return [...campos, responsable(h)];
+}
+
+/** Anular un pedido PAGADO (20261015114000): en el orden de la hoja, que su boleta se pueda anular ya (si no, la frase de la base dice qué
+ *  hacer: se está enviando, pudo llegar a SUNAT, falta la serie de nota de crédito…), que no tenga un cobro de la pasarela, la caja abierta
+ *  de hoy si hay efectivo que devolver, el motivo y quién lo hace. Cada «falta» es el reparo de `problemaParaAnularPagado`. */
+export function camposAnularPagado(
+  h: { camino: CaminoBoleta | null; efectivo: number; cajaAbierta: boolean | null; tienda: string; pasarela: boolean; motivo: MotivoAnularPagado | null } & Responsable,
+): CampoDeGuia[] {
+  const sinMotivo = { ...h, motivo: "cliente_desistio" as const };
+  const campos: CampoDeGuia[] = [];
+  const boleta = h.camino?.camino === "esperar" ? h.camino.explicacion : null;
+  campos.push({ id: "boleta", nombre: "La boleta", requerido: true, hecho: boleta === null, pendiente: boleta ?? "" });
+  if (h.pasarela) {
+    const pasarela = problemaParaAnularPagado({ ...sinMotivo, camino: null });
+    campos.push({ id: "pasarela", nombre: "El cobro de la pasarela", requerido: true, hecho: false, pendiente: pasarela?.detalle ?? "" });
+  }
+  if (h.efectivo > 0) {
+    const caja = problemaParaAnularPagado({ ...sinMotivo, camino: null, pasarela: false });
+    // «La caja de hoy» y no «Caja abierta»: también falta cuando la caja está abierta pero no tiene ese efectivo (lo dice la base).
+    campos.push({ id: "caja", nombre: "La caja de hoy", requerido: true, hecho: caja === null, pendiente: caja?.detalle ?? "" });
   }
   campos.push({ id: "motivo", nombre: "Por qué", requerido: true, hecho: h.motivo !== null, pendiente: "Elige por qué se anula." });
   return [...campos, responsable(h)];
