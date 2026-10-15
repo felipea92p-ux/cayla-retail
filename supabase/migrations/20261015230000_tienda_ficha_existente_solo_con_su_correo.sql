@@ -31,7 +31,7 @@
 -- detiene sin tocar nada. El ancla tiene que aparecer una sola vez.
 --
 -- PRODUCCIÓN. Una sola parte, idempotente (se puede pegar dos veces). Solo reemplaza dos funciones de la tienda: no toca tablas ni
--- políticas. Va junto con 20261015231000 (el cartel del Club no pisa una ficha que ya existía): sin esa, el correo de una ficha se
+-- políticas. Va junto con 20261015232000 (el cartel del Club no escribe en una ficha que ya existía): sin esa, el correo de una ficha se
 -- podía cambiar desde el cartel con solo el documento. Publicar antes la tienda de este PR (entiende `cuenta_ficha_sin_tu_correo` y
 -- `en_tienda`); si se pega antes, la tienda de hoy muestra «no disponible» en esos dos casos, sin guardar nada mal.
 -- ============================================================================
