@@ -7,13 +7,14 @@ import type { MetodoPago } from "@cayla-retail/shared";
 import { filtrarPrendasV2, type PrendaBuscableV2 } from "./buscar-prenda-v2";
 import { TOPE_VUELTO, UNIDAD_EFECTIVO, efectivoACobrar, redondeoDelEfectivo } from "./redondeo-efectivo-reglas";
 import type { ReservaEnOrigen } from "./pedidos-con-cliente-reglas";
-import { diaLima } from "./fechas-lima";
+import { diaLima, diaMes } from "./fechas-lima";
 
 /** D3 (Felipe, 2026-09-22): 7 días para recoger, aviso cuando faltan 2, 2 días para decidir tras vencer. */
 export const PLAZO_DIAS = 7;
 export const AVISO_DIAS = 2;
 export const GRACIA_DIAS = 2;
-export const EXTENSIONES_MAX = 1;
+/** Cuántas veces se aplaza un apartado: 1 hasta el 2026-10-15; 2 desde ADR-0414 (Felipe), con el tope de 30 días desde que se apartó. */
+export const EXTENSIONES_MAX = 2;
 /** SUNAT: una boleta de más de S/700 identifica a la compradora. */
 export const TOPE_BOLETA_SIN_DNI = 700;
 
@@ -428,6 +429,21 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
 export const TOPE_SEPARACIONES = 200;
 
 // ---- Abonos (Apartados v2, paso 2 — 20260927100000) ----------------------------------------------------------------
+
+/** «2 pagos» en la fila del Historial: el adelanto y los abonos, todos. Con un solo pago no dice nada (ya lo dice «pagó S/…»). Antes la
+ *  fila contaba solo los abonos («1 abono») y un cliente que pagó dos veces parecía haber pagado una (prueba ciega, 2026-10-15). */
+export function textoPagosDeFila(pagos: readonly PagoApartado[]): string | null {
+  return pagos.length > 1 ? `${pagos.length} pagos` : null;
+}
+
+/** El detalle del aviso «Abono de S/… anotado». La boleta de anticipo solo existe en los apartados viejos: desde ADR-0399 el abono no
+ *  emite comprobante, y nombrarla mandaba a buscar un papel que no salió (/chaos 2026-10-15). */
+export function avisoDeAbono(a: Pick<Apartado, "nombres" | "comprobanteAnticipo">, r: { saldo: number; venceEl: string | null }): string {
+  const nombre = a.nombres.split(/\s+/)[0] || a.nombres;
+  const falta = r.saldo > 0 ? `falta S/${r.saldo.toFixed(2)}` : "ya pagó todo";
+  const hasta = r.venceEl ? ` · recoge hasta el ${diaMes(r.venceEl)}` : "";
+  return `${nombre}: ${falta}${hasta}.${esConstancia(a) ? "" : " Sale su boleta de anticipo."}`;
+}
 
 /**
  * Cuántos días más se la espera si al abonar se elige «esperarla» (Felipe, 2026-09-26): 2, o 3 si el abono cubre la

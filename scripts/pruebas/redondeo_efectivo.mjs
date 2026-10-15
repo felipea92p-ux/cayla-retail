@@ -663,6 +663,8 @@ rollback;`);
     fn_bal_causas_dinero: "Solo lee separacion_pagos.",
     fn_calcular_esperado_caja: "Suma el monto de la fila de EFECTIVO: ya es lo físico (múltiplo de 0.10). No se toca.",
     fn_comparativa_caja: "Caja compara hoy contra ayer (ADR-0319): devuelve la fila de redondeo como una más, a propósito, para que el total vendido coincida con el de Vender y el historial (como fn_totales_historial_ventas); la pantalla la deja fuera de «Cómo te pagaron» (`metodosComparados`). No se parchó.",
+    fn_detalle_separacion:
+      "El historial de un apartado (ADR-0414): lista cada fila de separacion_pagos (adelanto y abonos, que no se redondean, ADR-0311 §7) con su fecha y quién cobró. Solo lee, no suma pagos ni toca venta_pagos.",
     fn_dinero_libro: "Filtra por medios explícitos (yape, plin, tarjeta, transferencia, qr): el redondeo queda fuera.",
     fn_flujo_caja_proyeccion: "Filtra por medios explícitos: el redondeo queda fuera.",
     fn_flujo_lineas: "Efectivo = metodo 'efectivo' (lo físico), igual que fn_calcular_esperado_caja. No se toca.",

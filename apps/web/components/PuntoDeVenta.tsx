@@ -116,7 +116,7 @@ import {
   type CelularEnFicha,
 } from "@/lib/celular-ficha-reglas";
 import { problemaDocumentoComprobante } from "@/lib/documento-comprobante-reglas";
-import { clientaDeTicketGuardado } from "@/lib/clienta-ticket-reglas";
+import { clientaDeTicketGuardado, nombreDeFichaParaComprobante } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
@@ -2104,6 +2104,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               nombre={clienteNombre}
               onNombre={setClienteNombre}
               sinNumero={tipoComprobante === "factura" ? undefined : "Sin documento sale a «Cliente varios»."}
+              nombreDeFicha={nombreDeFichaParaComprobante(clienta, clienteDocIdentidad, clienteNumDoc)}
             />
             {/* Un solo hijo a propósito: `.hoja-cobro-doc > fieldset > div:has(> :nth-child(2))` (globals.css) acomoda en dos columnas
                 todo `div` con dos hijos, y esta caja va en su propia fila. */}
