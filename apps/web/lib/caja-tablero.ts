@@ -157,7 +157,7 @@ async function leerPosventa(cajaId: string): Promise<ContextoTableroCaja["posven
         en: c.created_at,
         tipo: "cambio" as const,
         hora: diaYHoraLima(c.created_at).hora,
-        texto: dif === 0 ? "Cambio · sin diferencia de precio" : `Cambio · ${dif > 0 ? "pagó" : "se le devolvió"} S/ ${Math.abs(dif).toFixed(2)}`,
+        texto: dif === 0 ? "Cambio · sin diferencia de precio" : `Cambio · ${dif > 0 ? "pagó" : "se le devolvió"} S/\u00a0${Math.abs(dif).toFixed(2)}`,
         efectivo,
       };
     }),
@@ -169,7 +169,7 @@ async function leerPosventa(cajaId: string): Promise<ContextoTableroCaja["posven
         en: d.created_at,
         tipo: "devolucion" as const,
         hora: diaYHoraLima(d.created_at).hora,
-        texto: monto > 0 ? `Devolución · S/ ${monto.toFixed(2)} por ${d.reembolso_metodo ?? "—"}` : "Devolución · sin reembolso",
+        texto: monto > 0 ? `Devolución · S/\u00a0${monto.toFixed(2)} por ${d.reembolso_metodo ?? "—"}` : "Devolución · sin reembolso",
         efectivo,
       };
     }),

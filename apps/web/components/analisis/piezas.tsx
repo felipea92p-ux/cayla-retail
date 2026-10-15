@@ -188,7 +188,7 @@ export function Cuenta({ valor }: { valor: number }) {
 export const pct = (parte: number, total: number): number => (total > 0 ? Math.round((parte / total) * 100) : 0);
 
 /** Soles sin decimales, como se lee en tienda: «S/ 1,250». */
-export const soles = (n: number): string => `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+export const soles = (n: number): string => `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 
 /** Una cifra grande de arriba (la `numero()` de la maqueta): el número, qué es y su detalle. */
 export function Numero({ valor, et, sub }: { valor: string; et: ReactNode; sub: ReactNode }) {

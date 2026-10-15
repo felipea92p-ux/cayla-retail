@@ -228,7 +228,7 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
   else if (f.pagos.some((p) => !(p.monto > 0))) e.pago = "Cada medio lleva un monto mayor a cero.";
   else if (adelanto > total) e.pago = "El adelanto no puede pasar el total.";
   else if (f.pagos.some((p) => p.metodo === "efectivo" && p.recibido !== undefined && p.recibido < p.monto)) e.pago = "Lo recibido en efectivo no alcanza.";
-  else if (vueltoDelAdelanto(f.pagos) > TOPE_VUELTO) e.pago = `El vuelto pasa de S/ ${TOPE_VUELTO}: revisa cuánto entregó.`;
+  else if (vueltoDelAdelanto(f.pagos) > TOPE_VUELTO) e.pago = `El vuelto pasa de S/\u00a0${TOPE_VUELTO}: revisa cuánto entregó.`;
   if (f.devolucionMedio === "transferencia") {
     if (soloDigitos(f.devolucionCci).length !== 20) e.devolucion = "El CCI tiene 20 dígitos.";
   } else {
@@ -323,7 +323,7 @@ export function cobroDelSaldo(pagos: readonly PagoAdelanto[], saldo: number, red
 }
 
 /** Lo que se le dice a quien cobra cuando el efectivo del saldo no llega a una moneda de S/ 0.10 (los 0.07 que sobran tras un Yape). */
-export const AVISO_EFECTIVO_SIN_MONEDA = `El efectivo no puede ser menos de S/ ${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
+export const AVISO_EFECTIVO_SIN_MONEDA = `El efectivo no puede ser menos de S/\u00a0${UNIDAD_EFECTIVO.toFixed(2)}: cóbralo con otro medio.`;
 
 /** Texto de «cómo se le devuelve», para la boleta y las listas. El CCI nunca se muestra completo. */
 export function textoDevolucion(a: Pick<Apartado, "devolucionMedio" | "devolucionNumero" | "devolucionCciFinal">): string {

@@ -47,7 +47,7 @@ export function motivoTrasladoInvalido(p: {
   referencia: string;
 }): string | null {
   if (p.trasladado < 0) return "El monto a trasladar no puede ser negativo.";
-  if (p.trasladado > p.contado + 0.001) return `No puedes trasladar más de lo que contaste (S/ ${p.contado.toFixed(2)}).`;
+  if (p.trasladado > p.contado + 0.001) return `No puedes trasladar más de lo que contaste (S/\u00a0${p.contado.toFixed(2)}).`;
   if (p.trasladado === 0) return null;
   if (!p.destino) return "Elige a dónde va el efectivo que trasladas.";
   const elegido = DESTINOS_TRASLADO.find((d) => d.valor === p.destino);

@@ -479,11 +479,11 @@ describe("lo que más rinde", () => {
   });
 
   it("dice los soles con dos decimales y su tooltip en palabras de tienda", () => {
-    expect(solesRinde(1.3)).toBe("S/ 1.30");
-    expect(solesRinde(0)).toBe("S/ 0.00");
-    expect(solesRinde(-0.2)).toBe("S/ −0.20");
-    expect(tipRinde({ categoria: "Polos", porSol: 1.1 })).toBe("Por cada S/ 1 que tienes en Polos, ganaste S/ 1.10 en 90 días");
-    expect(tipRinde({ categoria: "Gorros", porSol: -0.25 })).toBe("Por cada S/ 1 que tienes en Gorros, perdiste S/ 0.25 en 90 días");
+    expect(solesRinde(1.3)).toBe("S/\u00a01.30");
+    expect(solesRinde(0)).toBe("S/\u00a00.00");
+    expect(solesRinde(-0.2)).toBe("S/\u00a0−0.20");
+    expect(tipRinde({ categoria: "Polos", porSol: 1.1 })).toBe("Por cada S/\u00a01 que tienes en Polos, ganaste S/\u00a01.10 en 90 días");
+    expect(tipRinde({ categoria: "Gorros", porSol: -0.25 })).toBe("Por cada S/\u00a01 que tienes en Gorros, perdiste S/\u00a00.25 en 90 días");
   });
 
   it("sin nada que mostrar: si la base no respondió, eso; si no, que todavía no alcanza", () => {

@@ -471,7 +471,7 @@ export function RegistrarGastoModal({
             <InputFin id="gasto-monto" inputMode="decimal" value={b.monto} readOnly={!!egreso} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
           </CampoFin>
           <CampoFin etiqueta="IGV" ayuda={b.comprobante === "factura" ? "Descontable: sale del total (18 %)." : "Solo la factura da IGV descontable."}>
-            <SalidaFin>{b.comprobante === "factura" ? soles(igv) : "S/ 0.00"}</SalidaFin>
+            <SalidaFin>{b.comprobante === "factura" ? soles(igv) : "S/\u00a00.00"}</SalidaFin>
           </CampoFin>
         </div>
 

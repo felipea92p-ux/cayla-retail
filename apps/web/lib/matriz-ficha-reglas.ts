@@ -243,7 +243,7 @@ export function rangoDePrecios(precios: readonly number[]): string {
   const max = Math.max(...precios);
   const conCentimos = precios.some((p) => !Number.isInteger(p));
   const f = (p: number) => (conCentimos ? p.toFixed(2) : String(p));
-  return min === max ? `S/ ${f(min)}` : `S/ ${f(min)}–${f(max)}`;
+  return min === max ? `S/\u00a0${f(min)}` : `S/\u00a0${f(min)}–${f(max)}`;
 }
 
 // ---------------------------------------------------------------------------

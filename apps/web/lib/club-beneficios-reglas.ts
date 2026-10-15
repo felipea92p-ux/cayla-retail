@@ -108,7 +108,7 @@ export function escalaParaGuardar(escala: readonly number[]): { anio: number; mo
   return escala.map((monto, i) => ({ anio: i + 1, monto }));
 }
 
-const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 const anioDe = (i: number) => (i === ANIOS_ESCALA - 1 ? `Vale del año ${i + 1} en adelante` : `Vale del año ${i + 1}`);
 
 /** Lo que cambia respecto de lo vigente, en palabras: «Cumpleaños: 10 % → 12 %». Vacío si no cambió nada (no hay qué guardar). */

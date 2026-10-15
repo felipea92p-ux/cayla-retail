@@ -3,7 +3,7 @@ import { lineasDeLaProforma, numeroDeProforma, totalesDeLineas, type Proforma } 
 import type { FotoDePrenda } from "@/lib/proformas";
 import { fechaHoraLima } from "@/lib/recibo-reglas";
 
-const s = (n: number) => `S/ ${n.toFixed(2)}`;
+const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 const ETIQUETA = "mr-[3pt] inline-block rounded-full border border-black/20 px-[5pt] text-[7pt] leading-[11pt] text-black/60";
 
 /**

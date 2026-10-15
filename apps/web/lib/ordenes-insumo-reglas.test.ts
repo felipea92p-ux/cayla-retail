@@ -106,7 +106,7 @@ describe("leer lo que se tipea: tres decimales en la cantidad, cuatro en el prec
   it("la duda se dice con la unidad y las dos lecturas", () => {
     expect(dudaDeCantidadInsumo("1.500", "metro")).toBe("¿«1.500» son 1500 metros o 1.5 metros? Escríbelo sin punto (1500) o así: 1.5.");
     expect(dudaDeCantidadInsumo("1.000", "unidad")).toBe("¿«1.000» son 1000 unidades o 1 unidad? Escríbelo sin punto (1000) o así: 1.");
-    expect(dudaDePrecioInsumo("1.500")).toBe("¿«1.500» es S/ 1500 o S/ 1.50? Escríbelo sin punto (1500) o con dos decimales (1.50).");
+    expect(dudaDePrecioInsumo("1.500")).toBe("¿«1.500» es S/\u00a01500 o S/\u00a01.50? Escríbelo sin punto (1500) o con dos decimales (1.50).");
   });
 });
 
@@ -132,10 +132,10 @@ describe("las unidades: cada una con lo suyo, nunca metros sumados con conos", (
     expect(leerCantidades(null)).toEqual([]);
   });
   it("el precio con dos decimales si no usa más, con los cuatro si los usa (un botón)", () => {
-    expect(precioUnitarioTexto(25.5)).toBe("S/ 25.50");
-    expect(precioUnitarioTexto(0.035)).toBe("S/ 0.0350");
-    expect(precioUnitarioTexto(13.3333)).toBe("S/ 13.3333");
-    expect(precioUnitarioTexto(1250)).toBe("S/ 1,250.00");
+    expect(precioUnitarioTexto(25.5)).toBe("S/\u00a025.50");
+    expect(precioUnitarioTexto(0.035)).toBe("S/\u00a00.0350");
+    expect(precioUnitarioTexto(13.3333)).toBe("S/\u00a013.3333");
+    expect(precioUnitarioTexto(1250)).toBe("S/\u00a01,250.00");
   });
 });
 

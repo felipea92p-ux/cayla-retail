@@ -276,8 +276,8 @@ describe("agruparCambios — lo que lee la hoja «Revisa y guarda los cambios»"
     const grupos = agruparCambios(r.cambios);
     expect(grupos.map((g) => g.clave)).toEqual(["desactivan", "activan", "agregan", "precios", "etiquetas", "fotos", "datos"]);
     expect(grupos.map((g) => g.titulo)).toEqual(["Se desactivan", "Se activan", "Se agregan", "Precios", "Etiquetas", "Fotos", "Datos de la prenda"]);
-    expect(grupos.find((g) => g.clave === "agregan")?.lineas).toEqual([{ texto: "Rojo M", detalle: "S/ 80.50" }]);
-    expect(grupos.find((g) => g.clave === "precios")?.lineas).toEqual([{ texto: "Gris XS", antes: "S/ 90", despues: "S/ 95" }]);
+    expect(grupos.find((g) => g.clave === "agregan")?.lineas).toEqual([{ texto: "Rojo M", detalle: "S/\u00a080.50" }]);
+    expect(grupos.find((g) => g.clave === "precios")?.lineas).toEqual([{ texto: "Gris XS", antes: "S/\u00a090", despues: "S/\u00a095" }]);
     expect(grupos.find((g) => g.clave === "etiquetas")?.lineas).toEqual([{ texto: "Beige S", detalle: "+ Etiqueta e1" }]);
     expect(grupos.find((g) => g.clave === "fotos")?.lineas).toEqual([{ texto: "Se quitan 2 fotos" }, { texto: "Cambia la foto principal" }]);
   });
@@ -349,8 +349,8 @@ describe("agruparCambios — correcciones, precios en bloque y variantes nuevas 
       clave: "precios",
       titulo: "Precios",
       lineas: [
-        { texto: "3 variantes: Sin color S, Sin color M, Sin color L", antes: "S/ 90", despues: "S/ 99.90" },
-        { texto: "Azul S", antes: "S/ 90", despues: "S/ 120" },
+        { texto: "3 variantes: Sin color S, Sin color M, Sin color L", antes: "S/\u00a090", despues: "S/\u00a099.90" },
+        { texto: "Azul S", antes: "S/\u00a090", despues: "S/\u00a0120" },
       ],
       cantidad: 4,
     });
@@ -360,7 +360,7 @@ describe("agruparCambios — correcciones, precios en bloque y variantes nuevas 
     const muchas = prenda(["XS", "S", "M", "L", "XL", "XXL"].map((t) => conEjes(t, "Negro", t)));
     const ahora = prenda(muchas.variantes.map((v) => ({ ...v, costo: "55" })));
     const costos = agruparCambios(resumenDeCambios(muchas, ahora, nombres).cambios)[0];
-    expect(costos.lineas).toEqual([{ texto: "6 variantes: Negro XS, Negro S, Negro M y 3 más", antes: "S/ 60", despues: "S/ 55" }]);
+    expect(costos.lineas).toEqual([{ texto: "6 variantes: Negro XS, Negro S, Negro M y 3 más", antes: "S/\u00a060", despues: "S/\u00a055" }]);
   });
 
   it("«Agregar color» son variantes nuevas con el mismo precio: una línea, y la nota de que nacen sin unidades", () => {
@@ -369,7 +369,7 @@ describe("agruparCambios — correcciones, precios en bloque y variantes nuevas 
     expect(agregan).toEqual({
       clave: "agregan",
       titulo: "Se agregan",
-      lineas: [{ texto: "2 variantes: Verde S, Verde M", detalle: "S/ 90" }],
+      lineas: [{ texto: "2 variantes: Verde S, Verde M", detalle: "S/\u00a090" }],
       cantidad: 2,
       nota: NACEN_SIN_UNIDADES,
     });
@@ -410,11 +410,11 @@ describe("textoDeSalidaDeFicha — lo que dice «¿Salir sin guardar?»", () => 
 
 describe("formatoPrecio y formatoCosto", () => {
   it("enteros sin decimales, fracciones con dos, y el vacío se dice", () => {
-    expect(formatoPrecio("90")).toBe("S/ 90");
-    expect(formatoPrecio("90.5")).toBe("S/ 90.50");
+    expect(formatoPrecio("90")).toBe("S/\u00a090");
+    expect(formatoPrecio("90.5")).toBe("S/\u00a090.50");
     expect(formatoPrecio("")).toBe("sin precio");
     expect(formatoPrecio("  ")).toBe("sin precio");
     expect(formatoCosto("")).toBe("sin costo");
-    expect(formatoCosto("60")).toBe("S/ 60");
+    expect(formatoCosto("60")).toBe("S/\u00a060");
   });
 });

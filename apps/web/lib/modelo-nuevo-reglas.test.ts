@@ -198,13 +198,13 @@ describe("dinero y nombre: lo que la base rechaza se dice antes (/chaos 2026-10-
     const pp = (precio: string, esMuestra = false) => problemaDePrecio(borrador({ precio, esMuestra }));
     expect(pp("40")).toBeNull();
     expect(pp("0.01")).toBeNull();
-    expect(pp("0.001")).toBe("El precio mínimo es S/ 0.01.");
+    expect(pp("0.001")).toBe("El precio mínimo es S/\u00a00.01.");
     expect(pp("0")).toBe("Pon el precio a tienda. Una muestra sí puede ir sin precio.");
     expect(pp("")).toBe("Pon el precio a tienda. Una muestra sí puede ir sin precio.");
     expect(pp("0.001", true)).toBeNull();
     expect(pp("", true)).toBeNull();
     expect(pp("99999.99")).toBeNull();
-    expect(pp("100000")).toBe("El precio no puede pasar de S/ 99,999.99.");
+    expect(pp("100000")).toBe("El precio no puede pasar de S/\u00a099,999.99.");
     expect(pp("1e9")).toBe("El precio tiene que ser un número, por ejemplo 12.50.");
     expect(pp("-1", true)).toBe("El precio no puede ser negativo.");
   });
@@ -221,7 +221,7 @@ describe("dinero y nombre: lo que la base rechaza se dice antes (/chaos 2026-10-
     expect(c("12,50")).toBe("Escribe el costo de la tela con punto, por ejemplo 12.50.");
     expect(c("", "S/ 50")).toBe("El costo de los avíos tiene que ser un número, por ejemplo 12.50.");
     expect(c("", "", "-0.01")).toBe("El costo de la maquila no puede ser negativo.");
-    expect(c("1000000")).toBe("El costo de la tela no puede pasar de S/ 999,999.99.");
+    expect(c("1000000")).toBe("El costo de la tela no puede pasar de S/\u00a0999,999.99.");
     expect(c("1e9")).toBe("El costo de la tela tiene que ser un número, por ejemplo 12.50.");
     expect(c("12,50", "S/ 5")).toBe("Escribe el costo de la tela con punto, por ejemplo 12.50.");
   });

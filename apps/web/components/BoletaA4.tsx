@@ -5,7 +5,7 @@ import { EMISOR, type Emisor } from "@/lib/emisor";
 import { lineasA4, numeroA4 } from "@/lib/boleta-a4-reglas";
 import { desglosaIgv, fechaHoraLima, LEY_REDONDEO, montoEnLetras, NOMBRE_METODO, TEXTO_REDONDEO, textoQrSunat, TITULO_DOCUMENTO, type ReciboVenta } from "@/lib/recibo-reglas";
 
-const s = (n: number) => `S/ ${n.toFixed(2)}`;
+const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 // Tinte suave para los encabezados: se imprime con `print-color-adjust: exact` pero, si la
 // impresora es en blanco y negro, el filete y el texto siguen diciendo todo.
 /** El texto chico y de bajo contraste del margen izquierdo, como el que ponía Alegra (allá, a la derecha). */

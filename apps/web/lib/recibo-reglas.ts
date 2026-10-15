@@ -80,9 +80,9 @@ export const NOMBRE_METODO: Record<MetodoPagoVenta, string> = {
 
 /** Cómo se dice el redondeo del efectivo en el papel y en las pantallas de la venta (ADR-0311). */
 export const TEXTO_REDONDEO = "Redondeo de efectivo";
-export const LEY_REDONDEO = "Ley 29571: el efectivo se cobra al múltiplo de S/ 0.10, hacia abajo";
+export const LEY_REDONDEO = "Ley 29571: el efectivo se cobra al múltiplo de S/\u00a00.10, hacia abajo";
 /** Lo mismo, corto: una línea del ticket de 80 mm no pasa de ~44 caracteres sin salirse del papel. */
-export const LEY_REDONDEO_TICKET = "Ley 29571: múltiplo de S/ 0.10, hacia abajo";
+export const LEY_REDONDEO_TICKET = "Ley 29571: múltiplo de S/\u00a00.10, hacia abajo";
 
 /** `B001-000002`: el mismo formato de 6 dígitos que ya muestra el resto de la app. */
 export function textoNumeroRecibo(r: { serie: string; numero: number }): string {

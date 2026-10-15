@@ -661,7 +661,7 @@ export function MatrizStockFicha({
         aria-label={`${campo === "precio" ? "Precio" : "Costo"} de ${etiqueta}`}
         value={valor}
         disabled={deshabilitado}
-        title={cambiado ? `Antes S/ ${texto(antes!)} · se guarda con «Revisar y guardar»` : undefined}
+        title={cambiado ? `Antes S/\u00a0${texto(antes!)} · se guarda con «Revisar y guardar»` : undefined}
         onChange={(e) => onCambioFila(f.clave, { [campo]: limpiarPrecio(e.target.value) })}
         onFocus={(e) => e.currentTarget.select()}
         className={`w-[58px] rounded-[7px] border border-transparent bg-hueso px-0.5 py-1.5 text-center text-[13px] tabular-nums outline-none focus:border-taupe focus:bg-papel @lg:w-[66px] ${

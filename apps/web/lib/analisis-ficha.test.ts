@@ -95,25 +95,25 @@ describe("el chip de la prenda (el título de su grupo)", () => {
 
 describe("el dinero, como se lee en tienda", () => {
   it("entero sin decimales; con céntimos, dos; sin dato, «—»", () => {
-    expect(solesFicha(60)).toBe("S/ 60");
-    expect(solesFicha(59.9)).toBe("S/ 59.90");
-    expect(solesFicha(1250)).toBe("S/ 1,250");
-    expect(solesFicha(0)).toBe("S/ 0");
+    expect(solesFicha(60)).toBe("S/\u00a060");
+    expect(solesFicha(59.9)).toBe("S/\u00a059.90");
+    expect(solesFicha(1250)).toBe("S/\u00a01,250");
+    expect(solesFicha(0)).toBe("S/\u00a00");
     expect(solesFicha(null)).toBe("—");
     expect(solesFicha(Number.NaN)).toBe("—");
-    expect(solesFicha(-5)).toBe("−S/ 5");
+    expect(solesFicha(-5)).toBe("−S/\u00a05");
   });
   it("lo que se gana por cada una es precio menos costo, sin arrastrar el error de los decimales", () => {
-    expect(dineroDe({ precio: 60, costo: 27 })).toEqual({ costo: "S/ 27", ganas: "S/ 33" });
-    expect(dineroDe({ precio: 79.9, costo: 32.92 })).toEqual({ costo: "S/ 32.92", ganas: "S/ 46.98" });
+    expect(dineroDe({ precio: 60, costo: 27 })).toEqual({ costo: "S/\u00a027", ganas: "S/\u00a033" });
+    expect(dineroDe({ precio: 79.9, costo: 32.92 })).toEqual({ costo: "S/\u00a032.92", ganas: "S/\u00a046.98" });
   });
   it("si falta el precio o el costo, «—» (nunca una ganancia inventada)", () => {
     expect(dineroDe({ precio: 60, costo: null })).toEqual({ costo: "—", ganas: "—" });
-    expect(dineroDe({ precio: null, costo: 27 })).toEqual({ costo: "S/ 27", ganas: "—" });
+    expect(dineroDe({ precio: null, costo: 27 })).toEqual({ costo: "S/\u00a027", ganas: "—" });
   });
   it("la línea bajo el nombre: color, talla y precio", () => {
-    expect(subtituloFicha({ color: "Celeste", talla: "S", precio: 60 })).toBe("Celeste · talla S · S/ 60");
-    expect(subtituloFicha({ color: "Negro", talla: "Estándar", precio: 59.9 })).toBe("Negro · talla Estándar · S/ 59.90");
+    expect(subtituloFicha({ color: "Celeste", talla: "S", precio: 60 })).toBe("Celeste · talla S · S/\u00a060");
+    expect(subtituloFicha({ color: "Negro", talla: "Estándar", precio: 59.9 })).toBe("Negro · talla Estándar · S/\u00a059.90");
     expect(subtituloFicha({ color: "Celeste", talla: "S", precio: null })).toBe("Celeste · talla S");
   });
 });
@@ -372,6 +372,6 @@ describe("el modelo en tu tienda: frase, tabla y otras tiendas (opción B, Felip
 
   it("el subtítulo dice sus colores y tallas, y el precio «desde» el menor si varía", () => {
     const conPrecios = modeloDe([prenda({ varianteId: "p1", color: "Arena", talla: "S", precio: 100 }), prenda({ varianteId: "p2", color: "Tostado", talla: "M", precio: 90 })], HOY_FICHA);
-    expect(subtituloFicha(conPrecios)).toBe("2 colores · S, M · desde S/ 90");
+    expect(subtituloFicha(conPrecios)).toBe("2 colores · S, M · desde S/\u00a090");
   });
 });

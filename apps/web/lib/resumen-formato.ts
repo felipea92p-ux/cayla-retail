@@ -23,7 +23,7 @@ export function formatoCoberturaDias(dias: number): string {
 
 /** «S/ 51,870» — sin céntimos: es una cifra para decidir, no para cuadrar. */
 export function formatoSoles(monto: number): string {
-  return `S/ ${Math.round(monto).toLocaleString("en-US")}`;
+  return `S/\u00a0${Math.round(monto).toLocaleString("en-US")}`;
 }
 
 /** «Tienda Trujillo» → «Trujillo»; el Taller y lo demás quedan igual. Para

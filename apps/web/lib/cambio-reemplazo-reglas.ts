@@ -81,7 +81,7 @@ export function agruparCatalogo(catalogo: readonly VarianteCatalogo[]): Map<stri
 export function opcionesDePrenda(linea: LineaVentaReciente, porProducto: Map<string, VarianteCatalogo[]>, elegidoId?: string): OpcionCombo<string>[] {
   const otras = [...porProducto.entries()]
     .filter(([id, vs]) => id !== linea.productoId && (id === elegidoId || vs.some((v) => v.stockAqui > 0)))
-    .map(([id, vs]) => ({ valor: id, texto: vs[0]!.referencia, detalle: `desde S/ ${Math.min(...vs.map((v) => v.precio)).toFixed(2)}` }))
+    .map(([id, vs]) => ({ valor: id, texto: vs[0]!.referencia, detalle: `desde S/\u00a0${Math.min(...vs.map((v) => v.precio)).toFixed(2)}` }))
     .sort((a, b) => a.texto.localeCompare(b.texto, "es"));
   return [{ valor: linea.productoId, texto: linea.referencia, detalle: "la que compró" }, ...otras];
 }

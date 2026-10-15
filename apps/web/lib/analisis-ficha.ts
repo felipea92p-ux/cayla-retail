@@ -57,7 +57,7 @@ export function solesFicha(n: number | null): string {
   const centimos = Math.round(Math.abs(n) * 100);
   const decimales = centimos % 100 === 0 ? 0 : 2;
   const texto = (centimos / 100).toLocaleString("es-PE", { minimumFractionDigits: decimales, maximumFractionDigits: decimales });
-  return `${n < 0 && centimos > 0 ? "−" : ""}S/ ${texto}`;
+  return `${n < 0 && centimos > 0 ? "−" : ""}S/\u00a0${texto}`;
 }
 
 /** La línea bajo el nombre: «Celeste · talla S · S/ 60» (sin precio, sin esa parte). */

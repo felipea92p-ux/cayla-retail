@@ -517,13 +517,13 @@ export function escalaRinde(rinde: readonly { porSol: number }[]): number {
 }
 
 /** «S/ 1.30» (con signo menos si se perdió). */
-export const solesRinde = (n: number): string => `S/ ${n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}`;
+export const solesRinde = (n: number): string => `S/\u00a0${n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}`;
 
 /** El tooltip de cada fila: «Por cada S/ 1 que tienes en Polos, ganaste S/ 1.10 en 90 días». */
 export function tipRinde(r: { categoria: string; porSol: number }): string {
   return r.porSol < 0
-    ? `Por cada S/ 1 que tienes en ${r.categoria}, perdiste ${solesRinde(-r.porSol)} en ${DIAS_RINDE} días`
-    : `Por cada S/ 1 que tienes en ${r.categoria}, ganaste ${solesRinde(r.porSol)} en ${DIAS_RINDE} días`;
+    ? `Por cada S/\u00a01 que tienes en ${r.categoria}, perdiste ${solesRinde(-r.porSol)} en ${DIAS_RINDE} días`
+    : `Por cada S/\u00a01 que tienes en ${r.categoria}, ganaste ${solesRinde(r.porSol)} en ${DIAS_RINDE} días`;
 }
 
 /** Qué dice la tarjeta cuando no hay nada que mostrar: si no se pudo leer, eso; si no, que todavía no alcanza. */

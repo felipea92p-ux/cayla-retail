@@ -376,7 +376,7 @@ function BloqueRinde() {
     <section className="tarjeta bloque entra" style={{ ["--i" as string]: 4 }}>
       <div className="b-cab">
         <h3 className="b-tit">Lo que más rinde</h3>
-        <span className="b-nota">Por cada S/ 1 en ropa · {DIAS_RINDE} días</span>
+        <span className="b-nota">Por cada S/&nbsp;1 en ropa · {DIAS_RINDE} días</span>
       </div>
       {filas.length === 0 ? (
         <p className="b-nota">{notaRindeVacio(datos.fallas)}</p>
@@ -414,7 +414,7 @@ function BloqueRinde() {
               <i style={{ background: "var(--color-grafico-neutro)", borderRadius: "50%" }} />
               Rinde poco: compra menos
             </span>
-            <span>Línea punteada = S/ 1</span>
+            <span>Línea punteada = S/&nbsp;1</span>
           </div>
         </>
       )}

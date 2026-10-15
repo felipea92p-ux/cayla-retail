@@ -303,7 +303,7 @@ describe("armarEquipo", () => {
       { ocurrio_at: "2026-09-26T15:00:00Z", accion: "caja_abierta", descripcion: "abrió la caja", persona_id: "f", persona_nombre: "Felipe Alvarez", detalle: {} },
     ]);
     const micaela = e.find((m) => m.personaId === "m")!;
-    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([2, 289, "vendió 2 prendas por S/ 189"]);
+    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([2, 289, "vendió 2 prendas por S/\u00a0189"]);
     const felipe = e.find((m) => m.personaId === "f")!;
     expect([felipe.nombre, felipe.estado]).toEqual(["Felipe A.", null]);
   });
@@ -315,9 +315,9 @@ describe("armarEquipo", () => {
       { ocurrio_at: "2026-09-26T21:00:00Z", accion: "venta_registrada", descripcion: "vendió 1 prenda por S/ 100", persona_id: "m", persona_nombre: "Micaela Quispe", detalle: { total: 100 }, tabla: "ventas", registro_id: "v-anulada" },
     ]);
     const micaela = e.find((m) => m.personaId === "m")!;
-    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([1, 189, "vendió 2 prendas por S/ 189"]);
+    expect([micaela.ventas, micaela.monto, micaela.ultima?.texto]).toEqual([1, 189, "vendió 2 prendas por S/\u00a0189"]);
     // Quien anuló sí muestra que anuló (es una acción suya, no una venta).
-    expect(e.find((m) => m.personaId === "l")!.ultima?.texto).toBe("anuló la venta B004-000009 de S/ 100");
+    expect(e.find((m) => m.personaId === "l")!.ultima?.texto).toBe("anuló la venta B004-000009 de S/\u00a0100");
   });
 
   it("una venta de prueba anulada desaparece del todo: ni venta, ni «vendió…», ni «anuló…»", () => {
