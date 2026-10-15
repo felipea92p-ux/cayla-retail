@@ -91,7 +91,7 @@ describe("el margen se mide con el precio más bajo de cualquier tienda (ADR-037
 
   it("nadie vuelve a medir el margen con el precio de la grilla a secas: todo `semaforoMargen(` de una pantalla pasa por `precioParaMargen`", () => {
     const leer = (ruta: string) => readFileSync(join(__dirname, "..", ruta), "utf8");
-    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx", "components/OrdenesTablero.tsx", "lib/produccion-reglas.ts"]) {
+    for (const ruta of ["components/NuevaOrdenProduccionForm.tsx", "components/OrdenTarjeta.tsx", "components/OrdenPanel.tsx", "lib/produccion-reglas.ts"]) {
       const llamadas = leer(ruta).match(/semaforoMargen\([^)]*\)\)?/g) ?? [];
       // La definición (`export function semaforoMargen(precioVenta: number, ...)`) no es una llamada.
       for (const l of llamadas.filter((x) => !x.includes("precioVenta: number"))) expect(l, `${ruta}: ${l}`).toMatch(/precioParaMargen/);

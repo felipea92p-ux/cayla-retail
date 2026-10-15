@@ -1002,6 +1002,10 @@ export const PRUEBAS = [
   // sin saberlo, la fase vuelve a «no empezó» y la anulación no se anula. ROLLBACK.
   "pruebas:produccion-anulaciones",
 
+  // La lista de Órdenes del Taller en una lectura (ADR-0400, actividad 5): lo mismo que la página de cada orden, sin costos, con su tope de históricas y
+  // «al stock este mes» exacto. ROLLBACK.
+  "pruebas:produccion-lista",
+
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
   // terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160

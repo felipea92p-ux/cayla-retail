@@ -270,3 +270,29 @@ Hechas con commit: **1** (`baef5cfa6`, esquema y apertura), **2** (`b65155eef`, 
 **Lo que NO se hizo, y por qué.** No se puede anular una anulación («si te equivocaste, anota la salida otra vez»), ni editar la cantidad de una Salida («se anula y se anota de nuevo»); tampoco una tabla `produccion_anulaciones` con un `where not exists` en cada suma.
 
 **Cómo se verificó.** `pnpm pruebas:produccion-anulaciones` (18 casos en ROLLBACK: la fila contraria, los siete rechazos, «taller equivocado», el tope por lo neto, Acabado que ya usó las buenas, la línea de tiempo, el signo por disparadores, las puertas por módulo y por sede, la forma) más las dos suites de antes sin cambios (24 y 29). En el navegador, sobre una orden de prueba local: anular la vuelta devuelve el devengado a 0, la salida pasa a poder anularse, anularla deja «Cambiar quién» a la vista, y un doble clic deja UNA anulación.
+
+## Actualización 2026-10-15 (c) · actividad 5: la lista de Órdenes (vista A, elegida por Felipe)
+
+**Qué cambió en pantalla.** `/produccion/ordenes` deja de ser el tablero por etapa (cuatro columnas, tarjetas, «Terminadas ▸» desplegable, «Margen promedio») y pasa a la lista de la lámina:
+cabecera única (`EncabezadoPagina`: «Órdenes», con «Nueva orden»), **«Hoy en el Taller»** (una `TarjetaCifra` por fase —Por cortar, En costura, En acabado, y Bordado, Estampado o Lavandería solo si algún lote está ahí— que
+filtra al tocarse, más «Al stock este mes»), y UNA tarjeta con las pestañas **En curso · Muestras · Terminadas** (`Pestanas`), las píldoras **Todas · Afuera · Piden algo** (y **Listas para el stock**
+si hay), el `Buscador` (por modelo, color o número, sin tildes) y la `Tabla`: la prenda (48 px), `OP-000012`, cuántas, el chip de fase **con quién la tiene** («En costura · afuera» / «Confecciones del Norte · 48 afuera»),
+cuántos días lleva ahí, la entrega («vie 23 oct · en 4 días») y, si pide algo, rojo **solo por las tres causas** con «¿Por qué?» que se abre en una línea. Se ordena por entrega (la más cercana primero). A 1024 px la
+tarjeta de la tabla pasa a tres columnas (las prendas van en la línea del número, la entrega en la de la fase); a 375, una columna.
+
+**De dónde salen los datos (una sola fórmula).** `fn_ordenes_produccion_lista(p_ubicacion_id, p_historicas)` (migración `20261015005000`, solo lectura, sin políticas ni `alter`) llama a `fn_orden_produccion` de cada orden
+—las en proceso, todas; de las terminadas o anuladas, las 40 más recientes— y devuelve su lectura sin `costos` y con solo el último movimiento. La web arma cada fila con las MISMAS reglas puras de la página de la orden
+(`estadoDeLaOrden`, `quienDeFase`, `rojoDeLaOrden`): la lista y la página no pueden contradecirse. Los costos del Taller no viajan a una pantalla que no los muestra. «Al stock este mes» se cuenta en la base (lotes, no muestras,
+mes de Lima), no sobre lo que trae la lista. Si la lectura falla, la pantalla lo dice (`Aviso`); nunca una lista vacía que parezca «no hay órdenes». El primer uso dice «Todavía no se abrió ninguna orden» (hallazgo H-B4 del
+Formidable de línea base), ya no «todo lo abierto ya se cerró».
+
+**Órdenes de antes de las fases.** Las abiertas antes de la migración 154000 no tienen ninguna fase (en la base local, OP-000001 a OP-000006). La página de la orden ya dice «se sigue desde la lista»; la lista las lee de sus etapas
+de siempre (`conEtapasDeAntes`: «Por cortar», «En confección · afuera», «En acabado», o «Lista para pasar al stock») con la nota «Orden de antes de las fases», y al tocarlas abren el cajón de siempre (`OrdenPanel`), no una página
+sin fases. Sigue siendo el único camino a «Pasar al stock», «Anular» y «Revertir» hasta la actividad 6.
+
+**Lo que se fue.** El tablero por columnas, `OrdenTarjeta` (la tarjeta; quedan `semaforoDeOrden` y `ChipEntrega`, que el panel usa) y `useFlipCajas` (el viaje de la tarjeta entre columnas). El «Margen promedio» de la cabecera: no está en la
+lámina elegida y el margen sigue a la vista en el panel de cada orden y en la hoja de Nueva orden (ADR-0370).
+
+**Cómo se verificó.** `pnpm pruebas:produccion-lista` (9 casos en ROLLBACK: la fila es idéntica a la de la página en orden, líneas, fases y tela; sin costos y con el último movimiento; los límites de históricas; «al stock este mes»
+sin muestras ni otro mes; las puertas por módulo y sede; solo lectura), 39 pruebas de las reglas puras con paridad contra el SQL, la guía interactiva de 20 pasos recorrida a 1440 y a 375 px (el «¿Por qué?» se abre solo, sin tocar nada),
+`tema:auditar` a 1440, 1024 y 375 sin hallazgos, y el navegador: la explicación se abre bajo su fila, la fila lleva a su página y una orden antigua abre el cajón.

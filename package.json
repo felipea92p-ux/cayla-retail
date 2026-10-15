@@ -183,6 +183,7 @@
     "pruebas:produccion-fases": "node scripts/pruebas/produccion_fases.mjs",
     "pruebas:produccion-avances": "node scripts/pruebas/produccion_avances.mjs",
     "pruebas:produccion-anulaciones": "node scripts/pruebas/produccion_anulaciones.mjs",
+    "pruebas:produccion-lista": "node scripts/pruebas/produccion_lista.mjs",
     "pruebas:plan-compra-historia": "node scripts/pruebas/plan_compra_historia.mjs",
     "pruebas:roles": "node scripts/pruebas/roles_por_modulo.mjs",
     "pruebas:roles-cobertura": "node scripts/pruebas/roles_cobertura_modulos.mjs",

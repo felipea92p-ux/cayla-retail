@@ -858,7 +858,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`abrir_produccion_con_modelo_nuevo`, ADR-0361 segunda parte) y nace `pendiente` si quien lo crea no edita el catálogo.
   **«Nueva orden» abre con el modelo (ADR-0396, A1, 2026-10-13):** `components/orden-produccion/ElegirModelo.tsx` (buscador con `Buscador`, la prenda de cada modelo, «Se están acabando»
   para el líder y «Crear un modelo nuevo» fija al pie) y su tarjeta; las reglas puras —lista, tipo deducido, «se acaba en N días» con la MISMA regla del Resumen
-  (`filasPorModelo`) y órdenes abiertas/recientes— viven en `lib/orden-modelo-reglas.ts`. `OrdenesTablero` le pasa a la hoja las órdenes abiertas y recientes; `getModelosProducibles`
+  (`filasPorModelo`) y órdenes abiertas/recientes— viven en `lib/orden-modelo-reglas.ts`. `OrdenesLista` le pasa a la hoja las órdenes abiertas y recientes; `getModelosProducibles`
   trae ahora el prefijo y la familia de la categoría para la prenda sin foto (ADR-0333).
   **Quién firma (ADR-0285):** un solo combo «Responsable», el recuadro `QuienRegistra` arriba de los pasos
   (`components/alta-producto/IdentidadAlta.tsx`); esa identidad firma la prenda y los guardados de mitad de formulario (marca,
@@ -937,7 +937,7 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   El análisis y las tareas que siguen: `docs/pantallas/produccion.md`.
 - **Nueva orden con decisión (F5, solo líder):** `app/(app)/produccion/ordenes/page.tsx` → `lib/decision-produccion.ts:getDecisionProduccion` (ritmo y stock de cada sede por `getFilasRecientesDeSede` →
   `fn_resumen_variantes`; consumo real de órdenes cerradas; saldo de Insumos; lo facturado por llegar) + `lib/produccion-decision-reglas.ts` (puro: demanda de la red, curva sugerida, rendimiento medido, ¿alcanza?) →
-  `OrdenesTablero.tsx` → `NuevaOrdenProduccionForm.tsx`. Sin esquema nuevo.
+  `OrdenesLista.tsx` → `NuevaOrdenProduccionForm.tsx`. Sin esquema nuevo.
 - **Candado del dinero de Producción (F4e, D-G):** `authenticated` no tiene SELECT sobre `insumo_lotes.costo_unitario`, `movimientos_insumo.costo_unitario` ni `producciones.costo_*` (privilegio por columna).
   El líder los lee por `fn_costos_insumos_taller` y `fn_costos_producciones` (`lib/insumos.ts`, `lib/produccion.ts`); las RPC `security definer` los leen por su dueño. `v_insumo_saldos` cerrada.
 - `/produccion/recibir` (Taller: líder y colaborador del Taller, SIN montos) → `lib/recibir-produccion.ts` (RPC `fn_lineas_comprobantes_produccion`: solo cantidades) +
@@ -952,9 +952,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `comprobantes_produccion_items`, `comprobantes_produccion_pagos` (RLS solo-líder, sin grants de escritura, líneas y pagos inmutables). No toca `compras`.
 - `/produccion/ordenes` → `lib/produccion.ts` (`getTaller`, `getOrdenesProduccion`,
   `getModelosProducibles`; lectura con `exigir()`) + `lib/produccion-reglas.ts`
-  (puro: etapas, semáforo de margen, costo unitario) → `OrdenesTablero.tsx`
-  (tablero por etapa + muestras + terminadas / anuladas; tarjeta `OrdenTarjeta`, panel `OrdenPanel`
-  con `MatrizOrden` y `OrdenCierre`; RPC `set_etapa_produccion`,
+  (puro: etapas, semáforo de margen, costo unitario) → `components/ordenes-lista/OrdenesLista.tsx` (ADR-0400, actividad 5: **la lista**, ya no el tablero por etapa).
+  Las filas salen de `lib/ordenes-lista.ts:getListaDeOrdenes` → RPC de lectura `fn_ordenes_produccion_lista` (migración `20261015005000`: de cada orden, lo MISMO que
+  `fn_orden_produccion` para su página, sin costos y con solo el último movimiento, más «al stock este mes» exacto) → `lib/ordenes-lista-reglas.ts` (puro: `filaDeLaLista`
+  con las reglas de la página —`estadoDeLaOrden`, `quienDeFase`, `rojoDeLaOrden`—, «Hoy en el Taller» por fase, pestañas En curso · Muestras · Terminadas, píldoras, búsqueda,
+  orden por entrega). Cada fila (`FilaDeOrden.tsx`, un enlace que la cubre más un botón «¿Por qué?») lleva a `/produccion/ordenes/OP-000012`; una orden abierta ANTES de las fases
+  (sin ninguna) se lee de sus etapas de siempre (`conEtapasDeAntes`) y se abre en el panel `OrdenPanel` (`?orden=<id>`, también el destino de «Pasar al stock» y «Anular» de la
+  página hasta la actividad 6) con `MatrizOrden` y `OrdenCierre`; RPC `set_etapa_produccion`,
   `cerrar_produccion`, `anular_produccion`, `revertir_produccion`) y
   `NuevaOrdenProduccionForm.tsx` (RPC `abrir_produccion` con `p_token`; con el selector «Ya existe / Modelo nuevo» y la opción «Modelo nuevo» llama en cambio a
   `abrir_produccion_con_modelo_nuevo`, que crea el modelo, sus variantes y la orden en una transacción con el mismo `p_token`, ADR-0361: reglas puras en

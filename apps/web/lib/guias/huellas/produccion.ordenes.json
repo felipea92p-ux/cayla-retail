@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes",
   "ruta": "/produccion/ordenes",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 100,
+  "total": 101,
   "controles": {
     "components/AvisoCostoAtipico.tsx": [
       "Boton «{textoCorregir}»",
@@ -72,16 +72,6 @@
       "Boton «Volver sin cerrar»",
       "Boton «Revertir cierre»"
     ],
-    "components/OrdenTarjeta.tsx": [
-      "button «prod-ordenes.tarjeta»"
-    ],
-    "components/OrdenesTablero.tsx": [
-      "Boton «prod-ordenes.nueva»",
-      "Boton «+ Crear el primer modelo»",
-      "Boton «Abrir una orden»",
-      "button «Terminadas (»",
-      "button «{o.referencia}»"
-    ],
     "components/SelectorColor.tsx": [
       "input «Elegir color con el selector»",
       "CampoTexto «{etiqueta}»"
@@ -145,6 +135,17 @@
       "CampoSelect «Avío»",
       "CampoTexto «{`${insumo ? unidadCorta(insumo.unidad) : \"unid.\"}»",
       "Boton «+ Agregar avío»"
+    ],
+    "components/ordenes-lista/FilaDeOrden.tsx": [
+      "button «{`Abrir ${f.numeroTexto}»",
+      "Link «{`Abrir ${f.numeroTexto}»",
+      "button «{guiaPorque ? \"prod-ordenes.porque\" : undefined}»"
+    ],
+    "components/ordenes-lista/OrdenesLista.tsx": [
+      "Boton «prod-ordenes.nueva»",
+      "Pestanas «(sin nombre)»",
+      "button «{f.texto}»",
+      "Boton «+ Crear el primer modelo»"
     ]
   }
 }
