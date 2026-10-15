@@ -76,7 +76,8 @@ oscuro, 375 px, caos con plata, /formidable.
 **Fase 5b · la plata de «Nos debe» (≈4)** — contrato `contrato-nos-debe.md`; decisiones 14, 24, 27 y 58–61. Cuatro actividades:
 (1) «Pasar a saldo a favor»: documento interno ya, marcado «falta su nota de crédito» hasta que llegue la nota del proveedor (58; boleta,
 nota de venta o sin comprobante: interno sin IGV); (2) «Depositó» desde la ficha del proveedor, con el módulo Proveedores (59); (3) devolver
-una dañada al proveedor desde la cuarentena, la hace quien tiene Recibir (no solo el líder), queda como deuda «por reponer» (60);
+una dañada al proveedor desde la cuarentena, la hace quien tiene Existencias (no solo el líder; Felipe 2026-10-15: solo lo que llegó
+dañado en una recepción, el grupo entero), queda como deuda «por reponer» (60);
 (4) aviso del IGV en Inicio que no se oculta (61). Ojo: hoy el saldo a favor solo nace de una nota de crédito (`proveedor_creditos`); el
 documento interno es una forma nueva y hay que cuidar el signo de `fn_saldo_favor_proveedor` y el Balance (ver el contrato).
 
