@@ -11,14 +11,17 @@ import {
   type Prenda,
 } from "@/lib/catalogo";
 import type { NotaStock } from "@/lib/stock";
+import { BotonFavorito } from "./club/BotonFavorito";
 import { FotoTarjeta } from "./FotoTarjeta";
+import { RapidoDeTarjeta } from "./RapidoDeTarjeta";
 
 /**
  * La tarjeta de una prenda en la grilla (maqueta v4, `tarjeta`): su foto (o su silueta), sus insignias (el puesto en Más vendidos, la
- * campaña y «Nuevo»), su nombre, el precio que paga el cliente en la tienda elegida (con el precio del modelo tachado si hay
- * descuento), sus colores y la nota de cuánto hay («Quedan 2 en Lima», «Solo en Trujillo», `notaDeStock`). La foto y el nombre llevan
- * a su ficha, con la tienda elegida. Lo que la maqueta suma después —el corazón de favoritos y «Agregar»— llega con sus actividades
- * (12 y 7).
+ * campaña y «Nuevo»), el corazón de favoritos arriba a la derecha (actividad 12), «Agregar» con la talla al pasar el mouse (actividad
+ * 7, desde 960 px), su nombre, el precio que paga el cliente en la tienda elegida (con el precio del modelo tachado si hay descuento),
+ * sus colores y la nota de cuánto hay («Quedan 2 en Lima», «Solo en Trujillo», `notaDeStock`). La foto y el nombre llevan a su
+ * ficha, con la tienda elegida. El corazón sabe solo si está guardado (`ProveedorGuardados`, en el marco del catálogo); fuera de él
+ * («Mi cuenta») se lo dice `guardado`.
  */
 export function TarjetaPrenda({
   prenda,
@@ -27,6 +30,7 @@ export function TarjetaPrenda({
   nota = null,
   puesto = null,
   sinNuevo = false,
+  guardado,
 }: {
   prenda: Prenda;
   sede: string | null;
@@ -36,6 +40,8 @@ export function TarjetaPrenda({
   puesto?: number | null;
   /** En Lo nuevo no hace falta decir «Nuevo» en cada tarjeta. */
   sinNuevo?: boolean;
+  /** Si el corazón ya está guardado; sin él, lo dice el marco del catálogo. */
+  guardado?: boolean;
 }) {
   const [foto, segunda] = fotosDeTarjeta(prenda);
   const precio = precioTarjeta(prenda);
@@ -45,24 +51,28 @@ export function TarjetaPrenda({
   const href = hrefDePrenda(prenda, sede);
   return (
     <article className="t-card">
-      {/* La foto repite el enlace del nombre: fuera del Tab y del lector, para que cada tarjeta sea UNA parada con el teclado. */}
-      <Link href={href} className="t-card-media" tabIndex={-1} aria-hidden="true">
-        <FotoTarjeta
-          foto={foto}
-          segunda={segunda}
-          optimizar={[foto ? fotoOptimizable(foto, origenFotos) : false, segunda ? fotoOptimizable(segunda, origenFotos) : false]}
-          nombre={prenda.nombre}
-          forma={formaDe(prenda.categoria?.prefijo)}
-          color={colorDeDibujo(prenda)}
-        />
-        {(puesto || oferta || nueva) && (
-          <span className="t-insignias">
-            {puesto && <span className="t-insignia">N.º {puesto}</span>}
-            {oferta && <span className="t-insignia oferta">{oferta}</span>}
-            {nueva && <span className="t-insignia nuevo">Nuevo</span>}
-          </span>
-        )}
-      </Link>
+      <div className="t-card-media">
+        {/* La foto repite el enlace del nombre: fuera del Tab y del lector, para que la prenda sea UNA parada con el teclado. */}
+        <Link href={href} className="t-card-enlace" tabIndex={-1} aria-hidden="true">
+          <FotoTarjeta
+            foto={foto}
+            segunda={segunda}
+            optimizar={[foto ? fotoOptimizable(foto, origenFotos) : false, segunda ? fotoOptimizable(segunda, origenFotos) : false]}
+            nombre={prenda.nombre}
+            forma={formaDe(prenda.categoria?.prefijo)}
+            color={colorDeDibujo(prenda)}
+          />
+          {(puesto || oferta || nueva) && (
+            <span className="t-insignias">
+              {puesto && <span className="t-insignia">N.º {puesto}</span>}
+              {oferta && <span className="t-insignia oferta">{oferta}</span>}
+              {nueva && <span className="t-insignia nuevo">Nuevo</span>}
+            </span>
+          )}
+        </Link>
+        <RapidoDeTarjeta productoId={prenda.id} sede={sede} />
+        <BotonFavorito productoId={prenda.id} nombre={prenda.nombre} guardado={guardado} />
+      </div>
       <div className="t-card-info">
         <Link href={href} className="t-card-nom">
           {prenda.nombre}

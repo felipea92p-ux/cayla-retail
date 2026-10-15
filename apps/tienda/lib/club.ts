@@ -350,15 +350,13 @@ export function textoBotonAvisame(talla: string): string {
   return sinNombre(talla) ? "Avísame cuando llegue" : `Avísame cuando llegue la ${talla.trim()}`;
 }
 
-/** @public Sin uso fuera de sus pruebas hasta que la ficha (actividad 4) ponga `BotonAvisame`, que es quien la usa.
- *  Lo que oye el lector de pantalla: el botón y, con una tienda elegida, dónde («… a Trujillo»). */
+/** Lo que oye el lector de pantalla: el botón y, con una tienda elegida, dónde («… a Trujillo»). */
 export function etiquetaBotonAvisame(talla: string, sedeNombre: string | null): string {
   const que = textoBotonAvisame(talla);
   return sedeNombre ? `${que} a ${sedeNombre}` : que;
 }
 
-/** @public Sin uso fuera de sus pruebas hasta que la ficha (actividad 4) ponga `BotonAvisame`, que es quien la usa.
- *  El aviso de abajo después de pedirlo (maqueta, `agregarAviso`). */
+/** El aviso de abajo después de pedirlo (maqueta, `agregarAviso`). */
 export function textoAvisoAnotado(talla: string, sedeNombre: string | null): string {
   const que = sinNombre(talla) ? "cuando llegue" : `cuando llegue la talla ${talla.trim()}`;
   return `Te avisaremos en tu cuenta ${que}${sedeNombre ? ` a ${sedeNombre}` : ""}.`;
@@ -400,8 +398,7 @@ export function mensajeFavorito(estado: EstadoFavorito): string | null {
   }
 }
 
-/** @public Sin uso fuera de sus pruebas hasta que la ficha (actividad 4) ponga `BotonAvisame`, que es quien la usa.
- *  Lo que dice el aviso de abajo cuando «Avísame» no se anotó. */
+/** Lo que dice el aviso de abajo cuando «Avísame» no se anotó. */
 export function mensajeAviso(estado: Exclude<EstadoAviso, "anotada">): string {
   switch (estado) {
     case "hay":

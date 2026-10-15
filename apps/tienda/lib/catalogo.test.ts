@@ -5,6 +5,7 @@ import {
   categoriasDe,
   colorDeDibujo,
   conteoDeLista,
+  deFavoritos,
   filtrarYOrdenar,
   formaDe,
   fotoOptimizable,
@@ -328,5 +329,41 @@ describe("las listas: Lo nuevo, las ofertas y Más vendidos (actividad 5)", () =
     expect(hrefLista({ lista: "ofertas", campana: ANIV, categoria: null, orden: "destacado" })).toBe(`/catalogo?lista=ofertas&campana=${ANIV}`);
     expect(hrefLista({ lista: "nuevo", campana: ANIV, categoria: null, orden: "destacado" })).toBe("/catalogo?lista=nuevo");
     expect(hrefLista({ lista: "todo", campana: ANIV, categoria: null, orden: "destacado" })).toBe("/catalogo");
+  });
+
+  it("«Tus favoritos»: su dirección exacta (la del corazón de la cabecera), su ceja, título, bajada y vacío", () => {
+    expect(leerLista("favoritos")).toBe("favoritos");
+    expect(hrefLista({ lista: "favoritos", categoria: null, orden: "destacado" })).toBe("/catalogo?lista=favoritos");
+    expect(cabeceraDeLista("favoritos")).toEqual({
+      ceja: "Guardado por ti",
+      titulo: ["Tus", "favoritos"],
+      frase: "Lo que marcaste con el corazón.",
+      vacio: { titulo: "Aún no guardas nada", texto: "Toca el corazón de una prenda para guardarla." },
+    });
+    expect(nombreOrden("destacado", "favoritos")).toBe("Destacado");
+  });
+
+  it("los favoritos: lo guardado en su orden (lo último primero), sin lo que ya no está en la tienda online, y todos van en su lista", () => {
+    const [a, b, c] = lista;
+    expect(nombres(deFavoritos(lista, [c.id, "ya-no-se-ve", a.id]))).toEqual(["Blusa C", "Blusa A"]);
+    expect(deFavoritos(lista, new Set<string>())).toEqual([]);
+    expect(deFavoritos([], [a.id, b.id])).toEqual([]);
+    // Ya vienen elegidos: la lista no deja a nadie fuera, y por precio se ordenan igual que las demás.
+    expect(nombres(filtrarYOrdenar(deFavoritos(lista, [b.id, c.id, a.id]), { categoria: null, orden: "destacado", lista: "favoritos" }))).toEqual([
+      "Blusa B",
+      "Blusa C",
+      "Blusa A",
+    ]);
+    expect(nombres(filtrarYOrdenar(deFavoritos(lista, [b.id, c.id]), { categoria: null, orden: "precio-asc", lista: "favoritos" }))).toEqual([
+      "Blusa C",
+      "Blusa B",
+    ]);
+  });
+});
+
+describe("el precio de la tarjeta, para otras piezas (la prenda de un look)", () => {
+  it("pide solo el precio, lo que se paga y «desde»", () => {
+    expect(precioTarjeta({ precio: 79.9, precioFinal: 63.9, desde: true })).toEqual({ principal: "Desde S/ 63.90", anterior: "S/ 79.90", oferta: true });
+    expect(precioTarjeta({ precio: 79.9, precioFinal: 79.9, desde: false })).toEqual({ principal: "S/ 79.90", anterior: null, oferta: false });
   });
 });

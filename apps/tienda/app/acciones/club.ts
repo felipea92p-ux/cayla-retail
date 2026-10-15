@@ -24,8 +24,7 @@ export async function guardarFavorito(productoId: unknown, guardar: unknown): Pr
   return guardarFavoritoEnBase(quien, id.data, guardar);
 }
 
-/** @public Sin uso hasta que la ficha (actividad 4) ponga `BotonAvisame`, que es quien la llama.
- *  «Avísame cuando llegue» esa prenda en esa tienda (`null`: en cualquier tienda de la web). */
+/** «Avísame cuando llegue» esa prenda en esa tienda (`null`: en cualquier tienda de la web). La llama `BotonAvisame`, en la ficha. */
 export async function pedirAviso(varianteId: unknown, sedeId: unknown): Promise<{ estado: EstadoAviso; esperaId: string | null }> {
   const variante = esquemaId.safeParse(varianteId);
   const sede = sedeId === null ? { success: true as const, data: null } : esquemaId.safeParse(sedeId);

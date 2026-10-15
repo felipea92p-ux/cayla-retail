@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { formaDe, fotoOptimizable } from "@/lib/catalogo";
+import { claveEspera } from "@/lib/club";
 import {
+  avisoOtrosSepararon,
+  botonDeLaFicha,
   campanaDeLaFicha,
   chipCampana,
   colorInicial,
@@ -16,6 +20,9 @@ import {
   type Ficha,
 } from "@/lib/ficha";
 import { leyendaNiveles, textoNivel, tonoNivel } from "@/lib/stock";
+import { AgregarALaBolsa } from "./bolsa/AgregarALaBolsa";
+import { BotonAvisame } from "./club/BotonAvisame";
+import { BotonFavorito } from "./club/BotonFavorito";
 import { DibujoPrenda } from "./DibujoPrenda";
 import { Icono } from "./Icono";
 
@@ -24,8 +31,10 @@ import { Icono } from "./Icono";
  * la primera grande y las demás de a dos), el nombre, el precio en la tienda elegida con su campaña, los colores, las tallas y CUÁNTO
  * HAY EN CADA TIENDA del color elegido, como nivel («Hay», 3, 2, «Última», «—»), con la tienda elegida y la talla resaltadas.
  *
- * El botón para agregarla a la bolsa llega con la actividad 7: su lugar es el hueco marcado abajo, debajo de la tabla, y lo que necesita
- * ya está aquí (la variante elegida, con su id y su precio en la tienda elegida).
+ * Debajo de la tabla, el botón principal (`botonDeLaFicha`): «Elige tu talla» apagado, «Agregar a la bolsa» si esa talla hay en alguna
+ * tienda de la web o «Avísame cuando llegue» si no hay en ninguna; a su derecha, el corazón. Antes, si otros ya separaron lo que queda
+ * en la tienda elegida, la propuesta k; después, «Ver mi bolsa (N)». En el celular el botón y el corazón van en la barra de abajo, que
+ * queda pegada mientras se ve la prenda y lo que va debajo (`children`: «Combínalo con», «También te puede gustar»).
  */
 export function FichaPrenda({
   ficha,
@@ -34,6 +43,10 @@ export function FichaPrenda({
   origenFotos,
   chips = [],
   cambios,
+  esperas = [],
+  enLaBolsa = 0,
+  separadas = [],
+  children,
 }: {
   ficha: Ficha;
   /** La tienda de «Ver lo que hay en» (su id), o null con «Todas». */
@@ -45,6 +58,14 @@ export function FichaPrenda({
   chips?: { texto: string; tono?: "nuevo" }[];
   /** «Cambios»: como en tienda, con el plazo de la caja (`lib/ayuda.ts`, el mismo de «Cambios y devoluciones»). */
   cambios: string;
+  /** Lo que la cuenta ya pidió con «Avísame» (`claveEspera`: prenda y tienda). */
+  esperas?: readonly string[];
+  /** Cuántas prendas lleva la bolsa (la cookie): «Ver mi bolsa (N)». */
+  enLaBolsa?: number;
+  /** Las tallas cuyo resto en la tienda elegida ya separaron otros clientes (propuesta k; solo con una tienda elegida). */
+  separadas?: readonly string[];
+  /** Lo que va debajo de la ficha: la barra del celular queda pegada abajo mientras se ve. */
+  children?: React.ReactNode;
 }) {
   const [color, setColor] = useState(() => colorInicial(ficha, colorPedido));
   const tallas = tallasDelColor(ficha, color);
@@ -58,6 +79,20 @@ export function FichaPrenda({
   const campana = chipCampana(campanaVista);
   const hasta = campanaVista?.hasta ?? null;
   const hayTiendas = ficha.sedes.length > 0;
+  const tiendaElegida = ficha.sedes.find((s) => s.id === sedeElegida) ?? null;
+  const boton = botonDeLaFicha(elegida);
+  const tallaElegida = tallas.find((t) => t.variante === elegida)?.talla.nombre ?? "";
+  const yaSeparadas = useMemo(() => new Set(separadas), [separadas]);
+  const otrosSepararon = avisoOtrosSepararon(elegida, tiendaElegida, yaSeparadas);
+
+  // «Avísame» ya pedido: lo que trae el servidor, más lo que se anota aquí (el botón está dos veces: en la fila y en la barra).
+  const huellaEsperas = esperas.join(",");
+  const [esperasDelServidor, setEsperasDelServidor] = useState(huellaEsperas);
+  const [anotadas, setAnotadas] = useState<ReadonlySet<string>>(() => new Set(esperas));
+  if (esperasDelServidor !== huellaEsperas) {
+    setEsperasDelServidor(huellaEsperas);
+    setAnotadas(new Set(esperas));
+  }
 
   function elegirColor(codigo: string) {
     setColor(codigo);
@@ -66,123 +101,162 @@ export function FichaPrenda({
     if (!nuevas.some((t) => t.talla.id === tallaId)) setTallaId(nuevas.length === 1 ? nuevas[0].talla.id : null);
   }
 
+  /** El botón principal y el corazón, en la fila de la computadora o en la barra del celular. */
+  function botones(clase: string) {
+    const clave = boton.tipo === "avisame" ? claveEspera(boton.varianteId, sedeElegida) : "";
+    return (
+      <div className={clase}>
+        {boton.tipo === "avisame" ? (
+          <BotonAvisame
+            key={clave}
+            varianteId={boton.varianteId}
+            talla={tallaElegida}
+            sedeId={sedeElegida}
+            sedeNombre={tiendaElegida?.nombre ?? null}
+            pedido={anotadas.has(clave)}
+            alAnotar={() => setAnotadas((antes) => new Set(antes).add(clave))}
+          />
+        ) : (
+          <AgregarALaBolsa varianteId={boton.tipo === "agregar" ? boton.varianteId : null} sedeId={sedeElegida} />
+        )}
+        <BotonFavorito productoId={ficha.id} nombre={ficha.nombre} forma="ficha" />
+      </div>
+    );
+  }
+
   return (
-    <div className="t-pdp">
-      {/* Otra clave por color: al cambiarlo, la tira vuelve a su primera foto (la del color nuevo). */}
-      <Galeria key={color} ficha={ficha} color={color} hex={colorElegido.hex} origenFotos={origenFotos} />
+    <>
+      <div className="t-pdp">
+        {/* Otra clave por color: al cambiarlo, la tira vuelve a su primera foto (la del color nuevo). */}
+        <Galeria key={color} ficha={ficha} color={color} hex={colorElegido.hex} origenFotos={origenFotos} />
 
-      <div className="t-pdp-info">
-        <div>
-          {(chips.length > 0 || campana) && (
-            <div className="t-pdp-chips">
-              {chips.map((c) => (
-                <span key={c.texto} className={`t-chip${c.tono ? ` ${c.tono}` : ""}`}>
-                  {c.tono === "nuevo" && <Icono nombre="chispa" />}
-                  {c.texto}
-                </span>
-              ))}
-              {campana && <span className="t-chip oferta">{campana}</span>}
-            </div>
-          )}
-          <h1>{ficha.nombre}</h1>
-        </div>
-
-        <div className="t-bloque t-bloque-precio">
-          <span className={`t-precio grande${precio.oferta ? " oferta" : ""}`}>
-            <b className="num">{precio.principal}</b>
-            {precio.anterior && (
-              <s className="num">
-                <span className="t-sr">Antes </span>
-                {precio.anterior}
-              </s>
+        <div className="t-pdp-info">
+          <div>
+            {(chips.length > 0 || campana) && (
+              <div className="t-pdp-chips">
+                {chips.map((c) => (
+                  <span key={c.texto} className={`t-chip${c.tono ? ` ${c.tono}` : ""}`}>
+                    {c.tono === "nuevo" && <Icono nombre="chispa" />}
+                    {c.texto}
+                  </span>
+                ))}
+                {campana && <span className="t-chip oferta">{campana}</span>}
+              </div>
             )}
-          </span>
-          {precio.oferta && hasta && <FaltaCampana hasta={hasta} />}
-          {!delPrecio && <span className="t-precio-nota">Elige tu talla para ver su precio exacto.</span>}
-        </div>
-
-        <div className="t-bloque">
-          <span className="t-etq">
-            <span>
-              Color <b>{colorElegido.nombre}</b>
-            </span>
-          </span>
-          <div className="t-swatches" role="group" aria-label="Color">
-            {ficha.colores.map((c) => (
-              <button
-                key={c.codigo}
-                type="button"
-                className="t-swatch"
-                data-color-dato
-                style={c.hex ? { background: c.hex } : undefined}
-                aria-pressed={c.codigo === color}
-                aria-label={c.nombre}
-                title={c.nombre}
-                onClick={() => elegirColor(c.codigo)}
-              />
-            ))}
+            <h1>{ficha.nombre}</h1>
           </div>
-          {!colorElegido.foto && ficha.fotos.length > 0 && <span className="t-swatch-nota">Este color aún no tiene foto: la ves en otro color.</span>}
-        </div>
 
-        <div className="t-bloque">
-          <span className="t-etq">
-            <span>
-              Talla{elegida && tallas.length > 1 && <b> {tallas.find((t) => t.variante === elegida)?.talla.nombre}</b>}
+          <div className="t-bloque t-bloque-precio">
+            <span className={`t-precio grande${precio.oferta ? " oferta" : ""}`}>
+              <b className="num">{precio.principal}</b>
+              {precio.anterior && (
+                <s className="num">
+                  <span className="t-sr">Antes </span>
+                  {precio.anterior}
+                </s>
+              )}
             </span>
-          </span>
-          <div className="t-tallas" role="group" aria-label="Talla">
-            {tallas.map(({ talla, variante }) => {
-              const nota = notaDeTalla(variante, sedeElegida, hayTiendas);
-              return (
+            {precio.oferta && hasta && <FaltaCampana hasta={hasta} />}
+            {!delPrecio && <span className="t-precio-nota">Elige tu talla para ver su precio exacto.</span>}
+          </div>
+
+          <div className="t-bloque">
+            <span className="t-etq">
+              <span>
+                Color <b>{colorElegido.nombre}</b>
+              </span>
+            </span>
+            <div className="t-swatches" role="group" aria-label="Color">
+              {ficha.colores.map((c) => (
                 <button
-                  key={variante.id}
+                  key={c.codigo}
                   type="button"
-                  className="t-talla"
-                  aria-pressed={talla.id === tallaId}
-                  data-agotada={nota ? "" : undefined}
-                  onClick={() => setTallaId(talla.id === tallaId && tallas.length > 1 ? null : talla.id)}
-                >
-                  {talla.nombre}
-                  {nota && <small>{nota}</small>}
-                </button>
-              );
-            })}
+                  className="t-swatch"
+                  data-color-dato
+                  style={c.hex ? { background: c.hex } : undefined}
+                  aria-pressed={c.codigo === color}
+                  aria-label={c.nombre}
+                  title={c.nombre}
+                  onClick={() => elegirColor(c.codigo)}
+                />
+              ))}
+            </div>
+            {!colorElegido.foto && ficha.fotos.length > 0 && <span className="t-swatch-nota">Este color aún no tiene foto: la ves en otro color.</span>}
           </div>
-        </div>
 
-        <TablaStock ficha={ficha} color={color} colorNombre={colorElegido.nombre} tallaId={tallaId} sedeElegida={sedeElegida} />
+          <div className="t-bloque">
+            <span className="t-etq">
+              <span>
+                Talla{elegida && tallas.length > 1 && <b> {tallaElegida}</b>}
+              </span>
+            </span>
+            <div className="t-tallas" role="group" aria-label="Talla">
+              {tallas.map(({ talla, variante }) => {
+                const nota = notaDeTalla(variante, sedeElegida, hayTiendas);
+                return (
+                  <button
+                    key={variante.id}
+                    type="button"
+                    className="t-talla"
+                    aria-pressed={talla.id === tallaId}
+                    data-agotada={nota ? "" : undefined}
+                    onClick={() => setTallaId(talla.id === tallaId && tallas.length > 1 ? null : talla.id)}
+                  >
+                    {talla.nombre}
+                    {nota && <small>{nota}</small>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-        {/* Actividad 7: aquí va «Agregar a la bolsa» (con `elegida.id` y su precio en la tienda elegida) y, en el celular, la barra
-            fija de abajo. */}
+          <TablaStock ficha={ficha} color={color} colorNombre={colorElegido.nombre} tallaId={tallaId} sedeElegida={sedeElegida} />
 
-        <div className="t-acordeon">
-          <details open>
-            <summary>
-              Cómo funciona separar <Icono nombre="chevron" />
-            </summary>
-            <p>
-              Agrega tus prendas, elige tu tienda y toca «Separar». Se crea tu pedido con su número; lo mandas por WhatsApp y la tienda
-              revisa que esté y te confirma. No pagas nada en la web: el pago se coordina por WhatsApp y lo recoges en tu tienda.
+          {otrosSepararon && (
+            <p className="t-aviso-suave" role="status">
+              <Icono nombre="reloj" />
+              <span>{otrosSepararon}</span>
             </p>
-          </details>
-          {ficha.descripcion && (
+          )}
+
+          {botones("t-cta-linea t-pdp-cta")}
+          {enLaBolsa > 0 && (
+            <Link className="t-enlace t-ver-bolsa" href="/bolsa">
+              Ver mi bolsa ({enLaBolsa})
+            </Link>
+          )}
+
+          <div className="t-acordeon">
+            <details open>
+              <summary>
+                Cómo funciona separar <Icono nombre="chevron" />
+              </summary>
+              <p>
+                Agrega tus prendas, elige tu tienda y toca «Separar». Se crea tu pedido con su número; lo mandas por WhatsApp y la tienda
+                revisa que esté y te confirma. No pagas nada en la web: el pago se coordina por WhatsApp y lo recoges en tu tienda.
+              </p>
+            </details>
+            {ficha.descripcion && (
+              <details>
+                <summary>
+                  Detalles <Icono nombre="chevron" />
+                </summary>
+                <p>{ficha.descripcion}</p>
+              </details>
+            )}
             <details>
               <summary>
-                Detalles <Icono nombre="chevron" />
+                Cambios <Icono nombre="chevron" />
               </summary>
-              <p>{ficha.descripcion}</p>
+              <p>{cambios}</p>
             </details>
-          )}
-          <details>
-            <summary>
-              Cambios <Icono nombre="chevron" />
-            </summary>
-            <p>{cambios}</p>
-          </details>
+          </div>
         </div>
       </div>
-    </div>
+      {children}
+      {/* En el celular, la barra de abajo (maqueta, `pie` de `vProducto`): pegada al borde mientras se ve la prenda y lo de abajo. */}
+      <div className="t-pdp-barra">{botones("t-cta-linea")}</div>
+    </>
   );
 }
 

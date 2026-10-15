@@ -1,19 +1,26 @@
 import { describe, expect, it } from "vitest";
+import type { Prenda } from "./catalogo";
 import {
+  avisoOtrosSepararon,
+  botonDeLaFicha,
   campanaDeLaFicha,
   chipCampana,
   chipsDelCatalogo,
   colorInicial,
+  combinaCon,
   esIdDePrenda,
   faltaParaTerminar,
   fotosDelColor,
   interpretarFicha,
+  interpretarSeparadas,
   notaDeTalla,
   precioDeLaFicha,
   tallaDelPrecio,
   tallasDelColor,
+  tallasRapidas,
   type Ficha,
 } from "./ficha";
+import type { Look } from "./looks";
 
 const TRU = "f775651f-62c8-4ff4-a414-b5614026d0cd";
 const LIM = "2d97d322-8a0a-4cd5-99c4-70e52b9c01db";
@@ -140,13 +147,13 @@ describe("al elegir color y talla", () => {
     expect(fotosDelColor({ ...ficha, fotos: [] }, "NEG")).toEqual({ fotos: [], enOtroColor: false });
   });
 
-  it("la nota de la talla: «Otra tienda» si la elegida no tiene y otra sí, «No hay» si ninguna; sin tiendas, nada", () => {
+  it("la nota de la talla: «Otra tienda» si la elegida no tiene y otra sí, «Avísame» si ninguna; sin tiendas, nada", () => {
     const [negS, negM, negL, beiS, beiM] = ficha.variantes;
     expect(notaDeTalla(negS, LIM, true)).toBe("Otra tienda");
     expect(notaDeTalla(negM, LIM, true)).toBeNull();
-    expect(notaDeTalla(negL, TRU, true)).toBe("No hay");
+    expect(notaDeTalla(negL, TRU, true)).toBe("Avísame");
     expect(notaDeTalla(beiS, null, true)).toBeNull();
-    expect(notaDeTalla(negL, null, true)).toBe("No hay");
+    expect(notaDeTalla(negL, null, true)).toBe("Avísame");
     expect(notaDeTalla(beiM, TRU, true)).toBe("Otra tienda");
     expect(notaDeTalla(negL, null, false)).toBeNull();
   });
@@ -198,5 +205,77 @@ describe("los chips que salen del catálogo (actividad 5)", () => {
     // Sin la prenda en el catálogo (o sin base), ningún chip: nunca se afirma lo que no se sabe.
     expect(chipsDelCatalogo({ nuevo: null, vendidos: null })).toEqual([]);
     expect(chipsDelCatalogo(null)).toEqual([]);
+  });
+});
+
+describe("lo que la ficha conecta: el botón, la propuesta k, «Agregar» de la tarjeta y «Combínalo con»", () => {
+  const [negS, negM, negL, beiS, beiM] = ficha.variantes;
+  const TRUJILLO = { id: TRU, nombre: "Trujillo" };
+
+  it("el botón: sin talla «Elige tu talla»; si hay en ALGUNA tienda, agregar (aunque no en la elegida); si no hay en ninguna, «Avísame»", () => {
+    expect(botonDeLaFicha(null)).toEqual({ tipo: "elige" });
+    expect(botonDeLaFicha(negS)).toEqual({ tipo: "agregar", varianteId: negS.id });
+    expect(botonDeLaFicha(beiM)).toEqual({ tipo: "agregar", varianteId: beiM.id });
+    expect(botonDeLaFicha(negL)).toEqual({ tipo: "avisame", varianteId: negL.id });
+  });
+
+  it("la propuesta k: «la última» si queda una en esa tienda, «las que quedan» si hay más; nada sin tienda, sin talla o sin nada libre ahí", () => {
+    const separadas = new Set([beiS.id, negM.id, beiM.id]);
+    expect(avisoOtrosSepararon(beiS, TRUJILLO, separadas)).toBe(
+      "Otra persona ya separó la última en Trujillo. Igual puedes separarla: la tienda te confirma o te ofrece otra opción.",
+    );
+    expect(avisoOtrosSepararon(negM, TRUJILLO, separadas)).toBe(
+      "Otras personas ya separaron las que quedan en Trujillo. Igual puedes separarla: la tienda te confirma o te ofrece otra opción.",
+    );
+    // La base no dijo que sí para esa talla; nada libre en Trujillo; sin tienda («Todas») o sin talla elegida.
+    expect(avisoOtrosSepararon(negS, TRUJILLO, separadas)).toBeNull();
+    expect(avisoOtrosSepararon(beiM, TRUJILLO, separadas)).toBeNull();
+    expect(avisoOtrosSepararon(beiS, null, separadas)).toBeNull();
+    expect(avisoOtrosSepararon(null, TRUJILLO, separadas)).toBeNull();
+  });
+
+  it("lo que dice la base de la propuesta k: solo las tallas con sí; lo raro se lee como «nadie» (nunca frena)", () => {
+    expect([...interpretarSeparadas({ [negS.id]: true, [negM.id]: false })]).toEqual([negS.id]);
+    for (const raro of [null, undefined, "x", 3, [], { "no-es-un-id": true }, { [negS.id]: "sí" }, { [negS.id]: 1 }]) {
+      expect(interpretarSeparadas(raro).size).toBe(0);
+    }
+  });
+
+  it("«Agregar» de la tarjeta: el primer color con algo en la tienda elegida (o en alguna) y sus tallas, tachadas las que no hay ahí", () => {
+    expect(tallasRapidas(ficha, null)).toEqual([
+      { talla: "S", varianteId: negS.id },
+      { talla: "M", varianteId: negM.id },
+      { talla: "L", varianteId: null },
+    ]);
+    expect(tallasRapidas(ficha, LIM)).toEqual([
+      { talla: "S", varianteId: null },
+      { talla: "M", varianteId: negM.id },
+      { talla: "L", varianteId: null },
+    ]);
+    // Negro sin nada: el primer color que tiene algo es el beige.
+    const sinNegro = { ...ficha, variantes: ficha.variantes.map((v) => (v.color === "NEG" ? { ...v, total: 0 as const, stock: { [TRU]: 0 as const, [LIM]: 0 as const } } : v)) };
+    expect(tallasRapidas(sinNegro, TRU)).toEqual([
+      { talla: "S", varianteId: beiS.id },
+      { talla: "M", varianteId: null },
+    ]);
+    // Nada en ninguna tienda: no hay «Agregar».
+    expect(tallasRapidas({ ...ficha, variantes: ficha.variantes.map((v) => ({ ...v, total: 0 as const, stock: {} })) }, null)).toEqual([]);
+  });
+
+  it("«Combínalo con»: el PRIMER look que la lleva y sus otras prendas, como las trae el catálogo; sin look, nada", () => {
+    const prenda = (id: string) => ({ id, nombre: `Prenda ${id.slice(-1)}` }) as Prenda;
+    const pieza = (id: string, posicion: number) => ({ posicion, prenda: { id } });
+    const look = (id: string, ids: string[]) => ({ id, nombre: `Look ${id}`, piezas: ids.map(pieza) }) as unknown as Look;
+    const [A, B, C, D] = ["a", "b", "c", "d"].map((x) => `00000000-0000-4000-8000-00000000000${x}`);
+    const catalogo = [prenda(A), prenda(B), prenda(C)];
+    const looks = [look("1", [B, C]), look("2", [A, B, D]), look("3", [A, C])];
+    // A está en los looks 2 y 3: manda el 2 (el primero), y D ya no se ve (no está en el catálogo).
+    expect(combinaCon(looks, A, catalogo)).toEqual({ look: looks[1], prendas: [prenda(B)] });
+    expect(combinaCon(looks, C, catalogo)?.prendas.map((p) => p.id)).toEqual([B]);
+    expect(combinaCon(looks, D, catalogo)?.prendas.map((p) => p.id)).toEqual([A, B]);
+    // Sin un look que la lleve, o si las otras prendas del look ya no se ven, la sección no sale.
+    expect(combinaCon(looks, "00000000-0000-4000-8000-00000000000e", catalogo)).toBeNull();
+    expect(combinaCon([look("4", [A, D])], A, catalogo)).toBeNull();
+    expect(combinaCon([], A, catalogo)).toBeNull();
   });
 });
