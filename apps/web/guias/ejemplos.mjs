@@ -193,6 +193,12 @@ export const EJEMPLOS = {
   "/produccion/eficiencia": { cuenta: "admin-taller" },
   "/produccion/insumos": { cuenta: "admin-taller" },
   "/produccion/ordenes": { cuenta: "admin-taller" },
+  // La orden en proceso más reciente con fases a la que todavía le falta cortar (la página de una orden, ADR-0400): es la que tiene «Terminé N» y «Cambiar quién» a la vista.
+  "/produccion/ordenes/[numero]": {
+    cuenta: "admin-taller",
+    sinDatos: "select case when to_regclass('retail.produccion_fases') is null then 'la base local no tiene las fases de la orden (migración 20261014154000)' when query_to_xml('select 1 from retail.producciones where estado = ''en_proceso'' limit 1', false, true, '')::text = '' then 'no hay ninguna orden en proceso en la base local' end",
+    url: () => `/produccion/ordenes/${id("select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id) order by (coalesce((select sum(a.cantidad) from retail.produccion_avances a join retail.produccion_fases f on f.id = a.fase_id where f.produccion_id = p.id and f.clave = 'corte'), 0) < p.cantidad_plan) desc, p.numero desc limit 1")}`,
+  },
   "/produccion/por-pagar": { cuenta: "admin-taller" },
   "/produccion/proveedores": { cuenta: "admin-taller" },
   "/produccion/recibir": { cuenta: "admin-taller" },

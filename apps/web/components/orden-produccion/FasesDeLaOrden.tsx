@@ -176,7 +176,9 @@ export function FasesDeLaOrden({ fases, onFases, proveedores, tarifas, totalPren
   );
 }
 
-function FilaFase({
+/** Una fila del bloque: la fase con su quién, su proveedor, tarifa, mínimo, fecha y fijo. La usa también «Cambiar quién» de la página de la orden (`components/orden-pagina/CambiarQuienModal.tsx`):
+ *  sin `onApagar` no hay la × que apaga la fase (cambiar quién no la quita de la ruta). */
+export function FilaFase({
   fase,
   totalPrendas,
   hoy,
@@ -195,7 +197,7 @@ function FilaFase({
   opcionesProveedor: Opcion<string>[];
   problemas: ProblemaFase[];
   onCambiar: (parche: Partial<FaseBorrador>) => void;
-  onApagar: () => void;
+  onApagar?: () => void;
 }) {
   const def = faseDe(fase.clave);
   const nombreEnFrase = def.nombre.toLocaleLowerCase("es");
@@ -234,7 +236,7 @@ function FilaFase({
           <p className="flex items-center gap-1.5 font-display text-[17px] leading-tight text-tinta">
             {def.nombre}
             {/* La misma × de una fila de color (A2): apagar una fase opcional no borra lo escrito en ella; si vuelve a encenderse, reaparece. */}
-            {!def.siempre && <QuitarColor nombre={def.nombre} onQuitar={onApagar} />}
+            {!def.siempre && onApagar && <QuitarColor nombre={def.nombre} onQuitar={onApagar} />}
           </p>
           <p className="mt-0.5 text-[12.5px] leading-snug text-tinta/65">{def.ayuda}</p>
         </div>

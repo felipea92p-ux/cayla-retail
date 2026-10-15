@@ -294,6 +294,123 @@ export const GUIA_PROD_ORDENES: Guia = {
   alSalir: [{ tipo: "escape" }],
 };
 
+// ---- La orden en su propia página (ADR-0400, actividad 3; vista D de la lámina) ----
+// El piloto abre la hoja «Terminé» y la de «Cambiar quién» para mostrar sus campos y las cierra con Escape sin anotar nada: ninguna de las dos se guarda en la demo.
+export const GUIA_PROD_ORDEN: Guia = {
+  id: "produccion.ordenes.numero",
+  ruta: "/produccion/ordenes/[numero]",
+  titulo: "Una orden de producción",
+  resumen: "Un lote que se fabrica en el Taller: en qué fase va, quién tiene cada una, la tela, el costo y todo lo que se anotó.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Una orden por dentro",
+      texto: "Aquí ves un lote que se fabrica en el Taller: qué prenda es, en qué fase va, quién tiene cada fase, la tela, el costo y todo lo que se anotó. Es una demo: no se anota ni se cambia nada.",
+    },
+    {
+      id: "ficha",
+      ancla: "prod-orden.ficha",
+      titulo: "Qué se fabrica y cómo va",
+      texto: "La prenda, dónde está la orden, sus colores y tallas, a cuánto se vende y quién la abrió. Debajo dice qué sigue. Arriba, a la derecha, van las cifras: cuántas prendas, para cuándo y cuánto ha costado hasta hoy.",
+    },
+    {
+      id: "atencion",
+      ancla: "prod-orden.atencion",
+      opcional: true,
+      titulo: "Cuando la orden pide atención",
+      texto: "Si la entrega ya pasó, la tela no alcanza o hace días que nadie anota nada, aparece esta insignia. «¿Por qué?» te dice cuál de las tres es, con su fecha o su cantidad.",
+    },
+    {
+      id: "fases",
+      ancla: "prod-orden.fases",
+      titulo: "Las fases del lote",
+      texto: "Corte, Costura y Acabado, y Bordado, Estampado o Lavandería si la orden los lleva. Cada fase dice quién la hace —el Taller o un servicio de afuera—, cuántas prendas van y para cuándo lo prometió. ✓ es hecha; la encendida es en la que se está.",
+    },
+    {
+      id: "fase-actual",
+      ancla: "prod-orden.fase-actual",
+      opcional: true,
+      titulo: "La fase en que se está",
+      texto: "Es la que toca ahora. Si la hace el Taller, aquí anotas «Terminé N». Si la hace un servicio de afuera, se anota lo que sale (Salida) y lo que vuelve (Vuelta), con las buenas, las segundas y las que faltan.",
+    },
+    {
+      id: "terminar",
+      ancla: "prod-orden.terminar",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Anotar lo que terminaste",
+      texto: "«Terminé» abre una hoja para decir cuántas prendas terminaste, por talla y color. Te la abrimos para mostrártela; no se anota nada.",
+    },
+    {
+      id: "cantidades",
+      ancla: "prod-orden-terminar.cantidades",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "prod-orden.terminar" }],
+      titulo: "Cuántas terminaste",
+      texto: "Ya viene escrito lo que falta de cada talla y color: si terminaste todo, no cambias nada; si no, bajas lo que aún no está. «Llenar todas con» repite un número. Solo las prendas buenas pasan a la fase que sigue.",
+    },
+    {
+      id: "responsable",
+      ancla: "prod-orden-terminar.cierre",
+      opcional: true,
+      titulo: "Quién lo anota",
+      texto: "Eliges quién anota y guardas con el botón de abajo. Si te equivocas, «Deshacer» en el aviso o en la línea de tiempo lo vuelve atrás sin borrar el historial. En la demo cerramos la hoja sin anotar.",
+    },
+    {
+      id: "cambiar-quien",
+      ancla: "prod-orden.cambiar-quien",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Cambiar quién la hace",
+      texto: "Mientras una fase no empiece puedes cambiar si la hace el Taller o sale afuera, y a quién. Cuando se anota el primer avance o la primera salida, ya no se cambia.",
+    },
+    {
+      id: "quien-fase",
+      ancla: "prod-orden-quien.fase",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "prod-orden.cambiar-quien" }],
+      titulo: "Taller o afuera",
+      texto: "Eliges Taller o Afuera. Si sale afuera: a qué servicio, cuánto cobra por prenda (su lista de precios lo sugiere), desde cuántas prendas cobra y para cuándo lo promete. En la demo no guardamos el cambio.",
+    },
+    {
+      id: "tela",
+      ancla: "prod-orden.tela",
+      preparar: [{ tipo: "escape" }],
+      titulo: "La tela",
+      texto: "Por cada tela y color: cuánta pide el plan, cuánta se usó y cuánta hay en el estante. «Alcanza» o «Faltan N m» te dice si se puede terminar la orden con lo que hay.",
+    },
+    {
+      id: "costo",
+      ancla: "prod-orden.costo",
+      opcional: true,
+      titulo: "El costo",
+      texto: "Lo estimado contra lo real: la tela, los avíos y cada servicio de afuera, el total y lo que sale por prenda. Nadie lo escribe: sale de la tela usada y de lo que cada servicio devolvió. Donde aún no hay real, dice cuándo lo habrá.",
+    },
+    {
+      id: "linea-de-tiempo",
+      ancla: "prod-orden.linea-de-tiempo",
+      titulo: "Todo lo que pasó",
+      texto: "Quién anotó qué y cuándo, del más reciente al más viejo y agrupado por día. Lo que se anotó de una vez va junto. «Deshacer» aparece en la última anotación y la vuelve atrás.",
+    },
+    {
+      id: "acciones",
+      ancla: "prod-orden.acciones",
+      opcional: true,
+      titulo: "Pasar al stock o anular",
+      texto: "«Pasar al stock» aparece cuando todas las fases terminaron: las prendas buenas entran al stock del Taller. «Anular» cancela la orden si se abrió por error. En la demo no tocamos ninguno.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      preparar: [{ tipo: "escape" }],
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer una orden. La flecha de arriba te devuelve a la lista de Órdenes. Para repasarlo: Mi perfil ▸ Demo ▸ Una orden de producción.",
+    },
+  ],
+  alSalir: [{ tipo: "escape" }],
+};
+
 export const GUIA_PROD_INSUMOS: Guia = {
   id: "produccion.insumos",
   ruta: "/produccion/insumos",

@@ -201,6 +201,17 @@ caso(
   "t,t,OP-000012"
 );
 
+// N2: el candado de columnas del dinero deja leer el número, no el costo.
+caso(
+  "N2 una cuenta de la API (authenticated) lee el número de la orden por columna, pero no los costos: el candado de dinero sigue en pie",
+  `reset role;
+   select concat_ws(',',
+     has_column_privilege('authenticated', 'retail.producciones', 'numero', 'select'),
+     has_column_privilege('authenticated', 'retail.producciones', 'costo_tela', 'select'),
+     has_column_privilege('authenticated', 'retail.producciones', 'costo_unitario', 'select'));`,
+  "t,f,f"
+);
+
 // A. ABRIR ----------------------------------------------------------------------------------------------------------------------
 caso(
   "A1 abre con Corte (Taller), Costura (afuera, S/ 4.50, mínimo 50, prometida +7) y Acabado, y lino 1.2 m por prenda del primer color: 3 fases en su secuencia, tarifa congelada, plan = 1.2 × 30 × 1.05",

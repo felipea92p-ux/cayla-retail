@@ -58,6 +58,10 @@ alter table retail.producciones alter column numero set not null;
 alter sequence retail.producciones_numero_seq owned by retail.producciones.numero;
 create unique index if not exists producciones_numero_unico on retail.producciones (numero);
 comment on column retail.producciones.numero is 'ADR-0400: el número de la orden (OP-000012 en pantalla). Identifica, no cuenta: anular no lo libera.';
+-- `producciones` tiene el candado de columnas del dinero (20260921151000): toda columna NUEVA queda fuera para `authenticated` hasta que se le dé su
+-- `grant select (nueva)` (lo dice esa migración, línea 24). El número no es dinero y la pantalla resuelve `/produccion/ordenes/OP-000012` por él.
+-- Sin esta línea la página no encuentra la orden en la base de producción (la API responde «permission denied for table producciones»).
+grant select (numero) on retail.producciones to authenticated;
 
 create or replace function retail.fn_produccion_numero_texto(p_numero integer) returns text
 language sql immutable

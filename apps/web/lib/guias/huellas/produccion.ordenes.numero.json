@@ -1,0 +1,93 @@
+{
+  "guia": "produccion.ordenes.numero",
+  "ruta": "/produccion/ordenes/[numero]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 53,
+  "controles": {
+    "app/(app)/produccion/ordenes/[numero]/page.tsx": [
+      "Volver «; if (!puedeVerProduccion(persona)) return»",
+      "BotonEnlace «Ver las órdenes»"
+    ],
+    "components/SelectorColor.tsx": [
+      "input «Elegir color con el selector»",
+      "CampoTexto «{etiqueta}»"
+    ],
+    "components/alta-producto/ElegirColores.tsx": [
+      "button «{`Quitar ${c.nombre}»",
+      "ComboBuscable «setCarta((v) => !v)»",
+      "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
+      "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
+      "button «{c.nombre}»"
+    ],
+    "components/alta-producto/IdentidadAlta.tsx": [
+      "ComboResponsable «);»",
+      "button «Ir a elegir»"
+    ],
+    "components/alta-producto/MatrizCantidades.tsx": [
+      "SegmentoDeslizante «Qué escribes en la tabla»",
+      "input «1»",
+      "button «{`Restar a ${etiqueta}»",
+      "input «{`${preguntaCelda}»",
+      "button «{`Sumar a ${etiqueta}»",
+      "input «{`${enCostos ? \"Costo\" : \"Precio\"}»"
+    ],
+    "components/alta-producto/NuevoColorAlta.tsx": [
+      "CampoTexto «Nombre del color»",
+      "Desplegable «setCodigoEscrito(normaliz»",
+      "CampoTexto «Código»",
+      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "button «Cancelar»",
+      "button «Elegir»"
+    ],
+    "components/alta-producto/piezas.tsx": [
+      "button «→onClick»",
+      "button «›»"
+    ],
+    "components/orden-pagina/AccionesDeLaOrden.tsx": [
+      "BotonEnlace «Anular»",
+      "BotonEnlace «Pasar al stock»"
+    ],
+    "components/orden-pagina/AnotarAvanceModal.tsx": [
+      "CampoTexto «Nota»",
+      "ComboResponsable «avisoSalida.pedirAccion(onClo»",
+      "button «Cancelar»",
+      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/CambiarQuienModal.tsx": [
+      "ComboResponsable «avisoSalida.pedirA»",
+      "button «Cancelar»",
+      "button «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/DeshacerAvanceModal.tsx": [
+      "ComboResponsable «Cancelar»",
+      "button «Cancelar»",
+      "button «{responsable.motivo ?? undefined}»"
+    ],
+    "components/orden-pagina/LineaDeTiempo.tsx": [
+      "button «Deshacer»"
+    ],
+    "components/orden-pagina/PideAtencion.tsx": [
+      "button «{abierto ? \"Ocultar\" : \"¿Por qué?\"}»"
+    ],
+    "components/orden-pagina/RutaDeFases.tsx": [
+      "Boton «{fase.actual ? \"prod-orden.terminar\" : undefined}»",
+      "Boton «Salida»",
+      "Boton «Vuelta»",
+      "button «{fase.id === idDeLaQueCambia ? \"prod-orden.cambiar-quien\" : undefined}»"
+    ],
+    "components/orden-produccion/AgregarColor.tsx": [
+      "button «{`Quitar ${nombre}»",
+      "Boton «{abierto ? \"Listo con los colores\" : \"+ Agregar color\"}»"
+    ],
+    "components/orden-produccion/FasesDeLaOrden.tsx": [
+      "SegmentoDeslizante «{`Quién hace ${nombreEnFrase}»",
+      "SegmentoDeslizante «{`Dónde va el ${nombreEnFrase}»",
+      "CampoSelect «Proveedor»",
+      "CampoMonto «Por prenda»",
+      "CampoTexto «Cantidad mínima»",
+      "CampoFecha «Prometido para»",
+      "CampoMonto «Fijo por orden»",
+      "button «+ fijo por orden (ponchado, matriz)»"
+    ]
+  }
+}

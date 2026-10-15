@@ -1065,6 +1065,18 @@ ESCENARIOS.push(
   { id: "produccion.eficiencia-mes", ruta: "/produccion/eficiencia", cuentas: ["admin-taller"], nombre: "Producción · Eficiencia de otro mes", preparar: clicRol("radio", /Sep 2026/i) },
 );
 
+// ---------- La orden de producción en su página (ADR-0400, actividad 3) ----------
+// La página de una orden en proceso (con una fase del Taller por anotar) y sus dos hojas: «Terminé N» (la tabla de cantidades
+// precargada con lo que falta) y «Cambiar quién» (la fila de la fase). Ninguna se guarda: solo se abren.
+// La orden en proceso más reciente con fases a la que todavía le falta cortar (así «Terminé N» y «Cambiar quién» están a la vista).
+const numeroDeOrdenEnProceso = () => consultarLocal("select 'OP-' || lpad(p.numero::text, 6, '0') from retail.producciones p where p.estado = 'en_proceso' and exists (select 1 from retail.produccion_fases f where f.produccion_id = p.id) order by (coalesce((select sum(a.cantidad) from retail.produccion_avances a join retail.produccion_fases f on f.id = a.fase_id where f.produccion_id = p.id and f.clave = 'corte'), 0) < p.cantidad_plan) desc, p.numero desc limit 1");
+const irALaOrden = async (pagina) => irA(`/produccion/ordenes/${numeroDeOrdenEnProceso()}`)(pagina);
+ESCENARIOS.push(
+  { id: "produccion.orden-pagina", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: '[data-guia="prod-orden.fases"]', nombre: "Producción · una orden en su propia página: ficha, fases, tela, costo y línea de tiempo", preparar: irALaOrden },
+  { id: "produccion.orden-terminar", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: "[role=dialog] [data-matriz-mover]", nombre: "Producción · una orden: la hoja «Terminé» con la tabla de cantidades precargada", preparar: secuencia(irALaOrden, clicRol("button", /^Terminé \d+$/)) },
+  { id: "produccion.orden-cambiar-quien", ruta: "/produccion/ordenes/[numero]", cuentas: ["admin-taller"], abre: '[role=dialog] [data-campo="fase"]', nombre: "Producción · una orden: la hoja «Cambiar quién» de una fase que no empezó", preparar: secuencia(irALaOrden, clicRol("button", /^Cambiar quién$/, { exact: true })) },
+);
+
 // ---------- Órdenes de compra (ADR-0362, fase 1) ----------
 // La ventana de una orden, su hoja «Anular orden» y «Editar» necesitan una orden «generada»: la primera de la base local.
 const idDeOrdenCompra = () => consultarLocal("select id from retail.ordenes_compra where estado = 'generada' order by numero limit 1");

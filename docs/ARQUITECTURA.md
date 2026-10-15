@@ -907,6 +907,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   hasta que exista el Resumen (F6). Plan por fases: `docs/PLAN-PRODUCCION.md`.
 
 **Producción (Taller)**
+- `/produccion/ordenes/[numero]` (ADR-0400, 2026-10-14; `OP-000012` en pantalla) → `lib/orden-pagina.ts:getOrdenProduccionPagina` (resuelve `producciones.numero`, que lleva su
+  `grant select (numero)` por el candado de columnas del dinero; lee la RPC `fn_orden_produccion`: orden, líneas, fases con su estado derivado y `por_variante`, tela, costos,
+  línea de tiempo y permisos, todo en una lectura) + `lib/orden-pagina-reglas.ts` y `lib/orden-pagina-guia.ts` (puros) → `components/orden-pagina/` (`FichaDeLaOrden`,
+  `RutaDeFases`, `TelaDeLaOrdenVista`, `CostoDeLaOrden`, `LineaDeTiempo`, `AccionesDeLaOrden`; hojas `AnotarAvanceModal` → RPC `registrar_avance`, `CambiarQuienModal` →
+  `cambiar_quien_fase`, `DeshacerAvanceModal` → `deshacer_avance`). Las fases (`produccion_fases`) y lo anotado (`produccion_avances`, `produccion_salidas`,
+  `produccion_vueltas`; solo se agrega, nunca se edita) las escriben solo funciones `security definer` (RLS sin políticas); `registrar_salida` y `registrar_vuelta` existen en
+  la base y su pantalla llega en la actividad 4. La hoja «Nueva orden» abre por `abrir_orden_produccion` (envuelve a `abrir_produccion` y `abrir_produccion_con_modelo_nuevo`) y
+  lee `fn_nueva_orden_opciones` (servicios con su lista de precios, consumo por modelo, tela comprometida) por `lib/produccion.ts:getOpcionesNuevaOrden`.
 - `/produccion/insumos` → `lib/insumos.ts:getInsumosDelTaller` (saldo derivado del ledger `movimientos_insumo`; costos recortados en el servidor si no es líder) +
   `lib/insumos-reglas.ts` (puro) → `InsumosPanel.tsx`, `InsumoModales.tsx` (INSERT en `insumos`; RPC `recibir_insumo`). Desde la orden,
   `OrdenInsumos.tsx` llama `registrar_consumo_insumo`. Devolver: RPC `devolver_insumo_de_produccion` (vuelve al último lote del que salió la orden, F3b); `anular_produccion` devuelve lo descontado; el costo de tela/avíos de la orden es neto (`fn_recalcular_costo_insumos_produccion`).
