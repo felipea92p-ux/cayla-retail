@@ -2,7 +2,7 @@
   "guia": "produccion.por-pagar",
   "ruta": "/produccion/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 10,
+  "total": 11,
   "controles": {
     "components/MediosDePago.tsx": [
       "Desplegable «cambiar(i,»",
@@ -19,6 +19,9 @@
     ],
     "components/PorPagarProduccionPanel.tsx": [
       "Boton «prod-por-pagar.pagar»"
+    ],
+    "components/ProduccionSoloLider.tsx": [
+      "BotonEnlace «Ir a Órdenes»"
     ]
   }
 }

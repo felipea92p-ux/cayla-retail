@@ -8,6 +8,10 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { agotadasQueSeVendian, baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoAgotadas, textoDiasDeStock, type CifrasResumen, type Decision, type DecisionesOcultas, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
+import { textoDePedido } from "@/lib/orden-pagina-reglas";
+import type { CifraDeFase } from "@/lib/ordenes-lista-reglas";
+import { Aviso } from "@/components/ui/Aviso";
+import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
@@ -59,6 +63,7 @@ export function ResumenProduccionPanel({ sede,
   hojas,
   fichasDeColor,
   telas,
+  hoyEnElTaller,
   falloRed,
 }: { sede: string;
   /** Cómo se dibuja cada modelo (foto, o color y categoría): por `productoId`. Vacío si el catálogo no se pudo leer: se dibuja la percha. */
@@ -75,6 +80,8 @@ export function ResumenProduccionPanel({ sede,
   /** El vocabulario de colores con su ficha (qué transmite y con qué se combina): la hoja de cada modelo la usa bajo su foto. Una sola vez para todo el panel. Vacío si no se pudo leer: la hoja no dice nada del color. */
   fichasDeColor: ColorConFicha[];
   telas: FilaTela[];
+  /** Dónde está cada orden abierta (una tarjeta por fase) y su frase. `null`: la lectura falló (se dice y se manda a Órdenes). */
+  hoyEnElTaller: { cifras: CifraDeFase[]; dato: string } | null;
   falloRed: string | null;
 }) {
   const maxDias = 60; // la escala de la barra: hasta el techo de «alta cobertura» de Inventario
@@ -202,6 +209,34 @@ export function ResumenProduccionPanel({ sede,
         )}
       </section>
 
+      <section data-guia="prod-resumen.hoy" aria-label="Hoy en el Taller" className="space-y-3">
+        <TituloSeccion dato={hoyEnElTaller?.dato} accion={<EnlaceVer href="/produccion/ordenes">Ver las órdenes</EnlaceVer>}>
+          Hoy en el Taller
+        </TituloSeccion>
+        {hoyEnElTaller === null ? (
+          <Aviso tono="atencion" titulo="No pudimos leer dónde está cada orden">
+            Míralas en Órdenes. Lo demás de esta pantalla sigue en pie.
+          </Aviso>
+        ) : (
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(9.5rem, 1fr))" }}>
+            {hoyEnElTaller.cifras.map((c, i) => (
+              <TarjetaCifra
+                key={c.clave}
+                etiqueta={c.titulo}
+                punto={c.lotes === 0 ? "neutro" : c.atencion ? "ambar" : "verde"}
+                valor={<CifraQueCuenta valor={c.lotes} alMontar />}
+                unidad={c.lotes === 1 ? "lote" : "lotes"}
+                href="/produccion/ordenes"
+                className="anim-entra"
+                style={{ ["--i" as string]: i }}
+              >
+                {c.contexto}
+              </TarjetaCifra>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section data-guia="prod-resumen.que-producir" id="produce" aria-label="Qué producir" className="space-y-2.5">
         <TituloSeccion dato="días que dura el stock de las tiendas al ritmo medido · marcas en 7 y 30 días">¿Qué producir?</TituloSeccion>
         {falloRed && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{falloRed}</p>}
@@ -288,7 +323,7 @@ export function ResumenProduccionPanel({ sede,
       </section>
 
       <section data-guia="prod-resumen.tela" aria-label="Alcanza la tela" className="space-y-2.5">
-        <TituloSeccion dato="lo que hay y lo que viene facturado, contra lo que las órdenes abiertas todavía necesitan">¿Alcanza la tela?</TituloSeccion>
+        <TituloSeccion dato="lo que hay y lo facturado por recibir, contra lo que las órdenes abiertas todavía necesitan · lo pedido se muestra aparte">¿Alcanza la tela?</TituloSeccion>
         {telas.length === 0 ? (
           <p className="card-cayla p-5 text-sm text-tinta/70">
             No hay telas en el catálogo.{" "}
@@ -306,6 +341,12 @@ export function ResumenProduccionPanel({ sede,
                   <span className="block text-xs text-tinta/65">
                     hay {cantidadTexto(t.saldo, t.unidad)} · {t.porLlegar > 0 ? `${cantidadTexto(t.porLlegar, t.unidad)} facturados por recibir` : "nada por recibir"}
                   </span>
+                  {t.pedidos.length > 0 && (
+                    <span className="block text-xs text-tinta/65">
+                      Pedido: {t.pedidos.slice(0, 2).map(textoDePedido).join("; ")}
+                      {t.pedidos.length > 2 ? ` y ${t.pedidos.length - 2} más` : ""}
+                    </span>
+                  )}
                 </span>
                 <span className="hidden text-right text-[13px] tabular-nums text-tinta sm:block">{t.piden > 0 ? `piden ${cantidadTexto(t.piden, t.unidad)}` : <span className="text-tinta/65">—</span>}</span>
                 <span className="sm:justify-self-end">
@@ -316,7 +357,13 @@ export function ResumenProduccionPanel({ sede,
                   ) : t.estado === "alcanza_si_llega" ? (
                     <Chip tono="ambar">Alcanza si llega</Chip>
                   ) : (
-                    <Chip tono="ambar">Faltan {cantidadTexto(t.faltan, t.unidad)}</Chip>
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:justify-end">
+                      <Chip tono="ambar">Faltan {cantidadTexto(t.faltan, t.unidad)}</Chip>
+                      {/* La salida de «faltan» es PEDIR (o mirar lo ya pedido), no registrar una factura que todavía no existe. */}
+                      <BotonEnlace href={t.pedidos.length > 0 ? "/ordenes-insumos" : "/ordenes-insumos/nueva"} peso="discreto">
+                        {t.pedidos.length > 0 ? "Ver los pedidos" : "Pedir"}
+                      </BotonEnlace>
+                    </span>
                   )}
                 </span>
               </li>
@@ -324,7 +371,7 @@ export function ResumenProduccionPanel({ sede,
           </ul>
         )}
         <p className="text-xs text-tinta/65">
-          «Piden» se calcula con el consumo real medido de las órdenes cerradas de cada modelo; un modelo sin órdenes cerradas con tela usada todavía no aporta demanda.
+          «Piden» es lo que las órdenes abiertas todavía tienen que usar de la tela que declararon (su plan menos lo ya descontado: la misma cuenta de «Nueva orden»); una orden que no declara tela se cuenta con el consumo medido de su modelo. Lo pedido se muestra, no se suma: una orden de insumos no sabe si ya llegó.
         </p>
       </section>
     </div>

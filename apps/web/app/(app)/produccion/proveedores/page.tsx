@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { puedeVerProduccion } from "@/lib/produccion-menu";
 import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
+import { ProduccionSoloLider } from "@/components/ProduccionSoloLider";
 import { getProveedoresProduccion } from "@/lib/proveedores-produccion";
 import { getTarifasDeServicios } from "@/lib/tarifas-servicios";
 import { hoyLima } from "@/lib/fechas-lima";
@@ -19,7 +20,7 @@ export default async function ProveedoresProduccionPage({ searchParams }: { sear
     if (!persona.puedeCambiarUbicacion) redirect("/");
     return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
   }
-  if (persona.rol !== "lider") redirect("/produccion/ordenes");
+  if (persona.rol !== "lider") return <ProduccionSoloLider titulo="Proveedores" />;
 
   const [proveedores, tarifas] = await Promise.all([getProveedoresProduccion(), getTarifasDeServicios()]);
   return (

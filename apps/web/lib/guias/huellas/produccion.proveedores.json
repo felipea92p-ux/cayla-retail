@@ -2,8 +2,11 @@
   "guia": "produccion.proveedores",
   "ruta": "/produccion/proveedores",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 37,
+  "total": 38,
   "controles": {
+    "components/ProduccionSoloLider.tsx": [
+      "BotonEnlace «Ir a Órdenes»"
+    ],
     "components/ProveedorProduccionModal.tsx": [
       "CampoTexto «Nombre o razón social»",
       "button «{r.ayuda}»",

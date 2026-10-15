@@ -11,6 +11,8 @@ import { DIAS_ENTREGA_PRONTO, estadoEntrega, etapaActual, etapasDe, urlLlevarATi
 import { DIAS_OBJETIVO_PRODUCCION, repartirFalta, type DemandaVariante, type Rendimiento } from "./produccion-decision-reglas";
 import { compararTallas } from "./tallas";
 import { tramosPorPagar } from "./por-pagar-produccion-reglas";
+import { textoDePedido, type PedidoDeInsumo } from "./orden-pagina-reglas";
+import type { TelaDelTallerLeida } from "./tela-del-taller-reglas";
 
 const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
@@ -80,6 +82,31 @@ export function demandaDeInsumos(ordenes: OrdenParaDecidir[], rendimientoPorMode
       d.ordenes.push(o.referencia);
       mapa.set(r.insumoId, d);
     }
+  }
+  return mapa;
+}
+
+/**
+ * Lo que las órdenes abiertas todavía necesitan, por insumo, con UNA sola cuenta (ADR-0400, actividad 8d): la tela que cada orden DECLARÓ —su plan menos lo ya descontado: la misma cuenta de «Nueva orden» y de la página de la
+ * orden— y, solo para las órdenes que no declaran ninguna (las de antes de las fases), el rendimiento medido de su modelo (`demandaDeInsumos`). Si la base no pudo contestar (`declarada` null), todas se cuentan con el
+ * medido, como antes: la pantalla se degrada, no se rompe.
+ */
+export function demandaDelTaller(
+  declarada: Pick<TelaDelTallerLeida, "telas" | "sinDeclarar"> | null,
+  ordenes: OrdenParaDecidir[],
+  rendimientoPorModelo: Record<string, Rendimiento[]>,
+  consumoNeto: ConsumoNetoPorOrden,
+): Map<string, DemandaInsumo> {
+  if (!declarada) return demandaDeInsumos(ordenes, rendimientoPorModelo, consumoNeto);
+  const mapa = new Map<string, DemandaInsumo>();
+  for (const t of declarada.telas) if (t.comprometido > 1e-9) mapa.set(t.insumoId, { insumoId: t.insumoId, necesita: t.comprometido, ordenes: [...new Set(t.ordenes)] });
+  const sinDeclarar = new Set(declarada.sinDeclarar.map((o) => o.id));
+  for (const d of demandaDeInsumos(ordenes.filter((o) => sinDeclarar.has(o.id)), rendimientoPorModelo, consumoNeto).values()) {
+    const previa = mapa.get(d.insumoId);
+    if (previa) {
+      previa.necesita += d.necesita;
+      previa.ordenes = [...new Set([...previa.ordenes, ...d.ordenes])];
+    } else mapa.set(d.insumoId, { ...d, ordenes: [...new Set(d.ordenes)] });
   }
   return mapa;
 }
@@ -318,6 +345,8 @@ export type ContextoDecisiones = {
   modelos: FilaModelo[];
   /** El Taller, de donde salen las prendas que «Trasladar al piso» lleva. Sin él no se dibuja esa tarjeta (la fila de la tabla sí dice el estado). */
   tallerId?: string | null;
+  /** Las órdenes de insumos generadas de cada tela (por insumo): se muestran en la tarjeta de «falta tela», no se suman a lo que hay. Sin ellas la tarjeta no las nombra. */
+  pedidos?: Map<string, PedidoDeInsumo[]>;
 };
 
 const MAX_TARJETAS = 7;
@@ -469,13 +498,17 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
         accion: { texto: "Recibir mercadería", href: "/produccion/recibir" },
       });
     } else {
+      // Lo pedido se MUESTRA, no se suma: una orden de insumos no se liga a la recepción, así que lo que ya llegó estaría contado dos veces. Con pedidos, la salida es mirarlos; sin ellos, pedir.
+      const pedidos = c.pedidos?.get(i.id) ?? [];
+      const nombrados = pedidos.slice(0, 2).map(textoDePedido).join("; ");
+      const yaPedido = pedidos.length > 0 ? ` Ya hay pedidos: ${nombrados}${pedidos.length > 2 ? ` y ${pedidos.length - 2} más` : ""}. Si ya llegaron, anótalos en Recibir.` : "";
       out.push({
         id: `insumo-${i.id}`,
         severidad: 3,
         tipo: "insumo",
         titulo: `Faltan ${cantidadTexto(falta - porLlegar, i.unidad)} de ${i.nombre} para lo que hay que cortar`,
-        detalle: `${pide}${porLlegar > 0 ? `; ya viene ${cantidadTexto(porLlegar, i.unidad)} facturado` : ""}. No alcanza ni contando lo que viene.`,
-        accion: { texto: "Registrar el comprobante", href: "/produccion/comprobantes" },
+        detalle: `${pide}${porLlegar > 0 ? `; ya viene ${cantidadTexto(porLlegar, i.unidad)} facturado` : ""}. No alcanza ni contando lo que viene.${yaPedido}`,
+        accion: pedidos.length > 0 ? { texto: "Ver los pedidos", href: "/ordenes-insumos" } : { texto: i.tipo === "tela" ? "Pedir la tela" : "Pedir los avíos", href: "/ordenes-insumos/nueva" },
       });
     }
   }
@@ -600,16 +633,18 @@ export type FilaTela = {
   piden: number;
   estado: "sin_demanda" | "alcanza" | "alcanza_si_llega" | "falta";
   faltan: number;
+  /** Las órdenes de insumos generadas de esta tela, la más nueva primero: se muestran, no se suman a lo que hay. */
+  pedidos: PedidoDeInsumo[];
 };
 
-export function filasDeTela(insumos: InsumoParaDecidir[], demanda: Map<string, DemandaInsumo>, llegadas: LlegadaPendiente[]): FilaTela[] {
+export function filasDeTela(insumos: InsumoParaDecidir[], demanda: Map<string, DemandaInsumo>, llegadas: LlegadaPendiente[], pedidos: Map<string, PedidoDeInsumo[]> = new Map()): FilaTela[] {
   return insumos
     .filter((i) => i.tipo === "tela")
     .map((i) => {
       const piden = demanda.get(i.id)?.necesita ?? 0;
       const porLlegar = llegadas.filter((l) => l.insumoId === i.id).reduce((s, l) => s + Math.max(0, l.pendiente), 0);
       const estado: FilaTela["estado"] = piden <= 1e-9 ? "sin_demanda" : i.saldo + 1e-9 >= piden ? "alcanza" : i.saldo + porLlegar + 1e-9 >= piden ? "alcanza_si_llega" : "falta";
-      return { insumoId: i.id, nombre: i.nombre, unidad: i.unidad, saldo: i.saldo, porLlegar, piden, estado, faltan: estado === "falta" ? piden - i.saldo - porLlegar : 0 };
+      return { insumoId: i.id, nombre: i.nombre, unidad: i.unidad, saldo: i.saldo, porLlegar, piden, estado, faltan: estado === "falta" ? piden - i.saldo - porLlegar : 0, pedidos: pedidos.get(i.id) ?? [] };
     })
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }

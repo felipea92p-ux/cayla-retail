@@ -112,6 +112,23 @@ export type InsumoPagina = {
 
 export type PedidoDeInsumo = { numeroTexto: string; proveedor: string; cantidad: number; unidad: string; fechaEntrega: string | null };
 
+/** Las órdenes de insumos de una tela como las manda la base (`fn_tela_pendiente_de_la_orden`, `fn_tela_del_taller`). Lo que no se entiende se descarta. */
+export function leerPedidosDeInsumo(crudo: unknown): PedidoDeInsumo[] {
+  if (!Array.isArray(crudo)) return [];
+  return crudo.flatMap((x): PedidoDeInsumo[] => {
+    if (!esObjeto(x)) return [];
+    const numeroTexto = texto(x.numero_texto);
+    const cantidad = numero(x.cantidad);
+    if (!numeroTexto || cantidad === null) return [];
+    return [{ numeroTexto, proveedor: texto(x.proveedor) ?? "un proveedor", cantidad, unidad: texto(x.unidad) ?? "unidad", fechaEntrega: texto(x.fecha_entrega) }];
+  });
+}
+
+/** «OI-000003 · 50 m a Textiles Andinos · llega el vie 23 oct»: un pedido en una línea. */
+export function textoDePedido(p: PedidoDeInsumo): string {
+  return `${p.numeroTexto} · ${cantidadConUnidad(p.cantidad, p.unidad)} a ${p.proveedor}${p.fechaEntrega ? ` · llega el ${diaCorto(p.fechaEntrega)}` : ""}`;
+}
+
 export type CostosPagina = {
   telaEstimado: number;
   aviosEstimado: number;
@@ -274,14 +291,7 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
     if (!esObjeto(t)) continue;
     const insumoId = texto(t.insumo_id);
     if (!insumoId) continue;
-    const pedidos = lista(t.pedidos).flatMap((x): PedidoDeInsumo[] => {
-      if (!esObjeto(x)) return [];
-      const numeroTexto = texto(x.numero_texto);
-      const cantidad = numero(x.cantidad);
-      if (!numeroTexto || cantidad === null) return [];
-      return [{ numeroTexto, proveedor: texto(x.proveedor) ?? "un proveedor", cantidad, unidad: texto(x.unidad) ?? "unidad", fechaEntrega: texto(x.fecha_entrega) }];
-    });
-    pendientes.set(insumoId, { comprometidoOtras: Math.max(numero(t.comprometido_otras) ?? 0, 0), pedidos });
+    pendientes.set(insumoId, { comprometidoOtras: Math.max(numero(t.comprometido_otras) ?? 0, 0), pedidos: leerPedidosDeInsumo(t.pedidos) });
   }
   return {
     orden: {
@@ -674,7 +684,7 @@ export function filasDeTela(insumos: readonly InsumoPagina[]): FilaDeTela[] {
       faltan: v.alcanza ? null : cantidadConUnidad(v.faltan, base.unidad),
       faltanNumero: v.alcanza ? null : v.faltan,
       reservadoPorOtras: comprometida > 0 ? `Otras órdenes ya reservan ${cantidadConUnidad(comprometida, base.unidad)}` : null,
-      pedidos: base.pedidos.map((p) => `${p.numeroTexto} · ${cantidadConUnidad(p.cantidad, p.unidad)} a ${p.proveedor}${p.fechaEntrega ? ` · llega el ${diaCorto(p.fechaEntrega)}` : ""}`),
+      pedidos: base.pedidos.map(textoDePedido),
     };
   });
 }

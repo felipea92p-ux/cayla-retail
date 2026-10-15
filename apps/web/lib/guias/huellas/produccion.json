@@ -2,15 +2,19 @@
   "guia": "produccion",
   "ruta": "/produccion",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 15,
+  "total": 17,
   "controles": {
+    "components/ProduccionSoloLider.tsx": [
+      "BotonEnlace «Ir a Órdenes»"
+    ],
     "components/ResumenProduccionPanel.tsx": [
       "BotonEnlace «Ver órdenes»",
       "BotonEnlace «+ Nueva orden»",
       "Pestanas «0 ? \"ambar\" : \"verde\"»",
       "Link «{d.accion.texto}»",
       "Link «{o.cantidad}»",
-      "Link «Cárgalas en Insumos»"
+      "Link «Cárgalas en Insumos»",
+      "BotonEnlace «{t.pedidos.length > 0 ? \"Ver los pedidos\" : \"Pedir\"}»"
     ],
     "components/produccion-resumen/FilaQueAbreLaHoja.tsx": [
       "button «{guia}»"

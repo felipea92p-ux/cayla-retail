@@ -28,6 +28,7 @@ const ARCHIVOS = [
   "components/PorPagarProduccionPanel.tsx",
   "components/EficienciaTallerPanel.tsx",
   "components/CotizacionesMaquilaPanel.tsx",
+  "components/ProduccionSoloLider.tsx",
   "lib/guias/pantallas/produccion.ts",
   "lib/produccion-reglas.ts",
   "lib/produccion-decisiones.ts",
@@ -35,6 +36,7 @@ const ARCHIVOS = [
   "lib/eficiencia-reglas.ts",
   "lib/tarifas-servicios-reglas.ts",
   "lib/tarifas-servicios-guia.ts",
+  "lib/tela-del-taller-reglas.ts",
 ];
 
 /** Lo que no se le dice a quien trabaja en el Taller, y lo que se dice en su lugar. */

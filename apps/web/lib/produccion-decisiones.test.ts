@@ -9,6 +9,7 @@ import {
   cifrasResumen,
   decisionesDeProduccion,
   demandaDeInsumos,
+  demandaDelTaller,
   filasDeTela,
   filasPorModelo,
   baseDelRitmo,
@@ -105,7 +106,7 @@ describe("decisionesDeProduccion", () => {
     expect(decisionesDeProduccion(contexto({ insumos: [insumo("lino", { saldo: 220 })], demanda }))).toEqual([]);
   });
 
-  it("falta tela y no alcanza ni con lo facturado: pide registrar el comprobante", () => {
+  it("falta tela y no alcanza ni con lo facturado: lleva a PEDIRLA, no a registrar un comprobante", () => {
     const d = decisionesDeProduccion(
       contexto({
         insumos: [insumo("lino", { saldo: 50 })],
@@ -115,7 +116,23 @@ describe("decisionesDeProduccion", () => {
     );
     expect(d[0].tipo).toBe("insumo");
     expect(d[0].titulo).toContain("Faltan 110 m");
-    expect(d[0].accion.href).toBe("/produccion/comprobantes");
+    expect(d[0].accion).toEqual({ texto: "Pedir la tela", href: "/ordenes-insumos/nueva" });
+  });
+
+  it("con un pedido ya hecho de esa tela, la tarjeta lo nombra (no lo suma) y lleva a verlo; sin pedidos, a pedir; un avío dice «los avíos»", () => {
+    const base = { insumos: [insumo("lino", { saldo: 50 })], demanda: new Map([["lino", { insumoId: "lino", necesita: 200, ordenes: ["Blusa a"] }]]) };
+    const pedido = { numeroTexto: "OI-000003", proveedor: "Textiles Andinos", cantidad: 100, unidad: "metro", fechaEntrega: "2026-10-23" };
+    const [con] = decisionesDeProduccion(contexto({ ...base, pedidos: new Map([["lino", [pedido]]]) }));
+    expect(con.titulo).toContain("Faltan 150 m");
+    expect(con.detalle).toContain("Ya hay pedidos: OI-000003 · 100 m a Textiles Andinos");
+    expect(con.detalle).toContain("Si ya llegaron, anótalos en Recibir");
+    expect(con.accion).toEqual({ texto: "Ver los pedidos", href: "/ordenes-insumos" });
+    const [tres] = decisionesDeProduccion(contexto({ ...base, pedidos: new Map([["lino", [pedido, { ...pedido, numeroTexto: "OI-000002" }, { ...pedido, numeroTexto: "OI-000001" }]]]) }));
+    expect(tres.detalle).toContain("y 1 más");
+    const [sin] = decisionesDeProduccion(contexto(base));
+    expect(sin.detalle).not.toContain("pedidos");
+    const [avio] = decisionesDeProduccion(contexto({ insumos: [insumo("boton", { saldo: 5, tipo: "avio", unidad: "unidad" })], demanda: new Map([["boton", { insumoId: "boton", necesita: 80, ordenes: ["Blusa a"] }]]) }));
+    expect(avio.accion.texto).toBe("Pedir los avíos");
   });
 
   it("plata: vencido en severidad 3, por vencer en 2; sin deuda no hay tarjeta", () => {
@@ -767,5 +784,53 @@ describe("filasDeTela", () => {
       [{ insumoId: "b", documento: "F1", proveedor: "X", pendiente: 50 }, { insumoId: "c", documento: "F2", proveedor: "X", pendiente: 30 }]
     );
     expect(f.map((x) => [x.insumoId, x.estado, x.faltan])).toEqual([["a", "alcanza", 0], ["b", "alcanza_si_llega", 0], ["c", "falta", 50], ["d", "sin_demanda", 0]]);
+  });
+});
+
+describe("demandaDelTaller: UNA cuenta de lo que piden las órdenes abiertas (ADR-0400, actividad 8d)", () => {
+  const rendimiento = { p1: [rend("lino", 2.5)] };
+  const declarada = (telas: { insumoId: string; comprometido: number; ordenes?: string[] }[], sinDeclarar: string[] = []) => ({
+    telas: telas.map((t) => ({ insumoId: t.insumoId, comprometido: t.comprometido, ordenes: t.ordenes ?? [], pedidos: [] })),
+    sinDeclarar: sinDeclarar.map((id) => ({ id, productoId: "p1", referencia: `Blusa ${id}` })),
+  });
+
+  it("lo declarado manda: se toma lo comprometido de la base y NO el rendimiento medido de sus órdenes", () => {
+    const d = demandaDelTaller(declarada([{ insumoId: "lino", comprometido: 37.8, ordenes: ["Blusa a"] }]), [orden("a")], rendimiento, {});
+    expect([...d.values()]).toEqual([{ insumoId: "lino", necesita: 37.8, ordenes: ["Blusa a"] }]);
+  });
+
+  it("una orden sin tela declarada sigue contándose con el rendimiento medido de su modelo, y se suma a lo declarado de la misma tela", () => {
+    const d = demandaDelTaller(declarada([{ insumoId: "lino", comprometido: 30, ordenes: ["Blusa a"] }], ["b"]), [orden("a"), orden("b")], rendimiento, {});
+    expect(d.get("lino")).toEqual({ insumoId: "lino", necesita: 130, ordenes: ["Blusa a", "Blusa b"] });
+  });
+
+  it("las órdenes que sí declaran no se cuentan dos veces por su rendimiento", () => {
+    const d = demandaDelTaller(declarada([]), [orden("a")], rendimiento, {});
+    expect(d.size).toBe(0);
+  });
+
+  it("una tela comprometida en cero no aparece, y los modelos repetidos se nombran una vez", () => {
+    expect(demandaDelTaller(declarada([{ insumoId: "lino", comprometido: 0 }]), [], rendimiento, {}).size).toBe(0);
+    const d = demandaDelTaller(declarada([{ insumoId: "lino", comprometido: 10, ordenes: ["Blusa a", "Blusa a"] }]), [], rendimiento, {});
+    expect(d.get("lino")?.ordenes).toEqual(["Blusa a"]);
+  });
+
+  it("si la base no pudo contestar, todas las órdenes se cuentan con el rendimiento medido, como antes", () => {
+    const d = demandaDelTaller(null, [orden("a")], rendimiento, {});
+    expect(d.get("lino")?.necesita).toBe(100);
+  });
+
+  it("una orden de muestra declara tela y SÍ la reserva (el estante no es suyo ni de otra); sin declarar sigue sin contar", () => {
+    const d = demandaDelTaller(declarada([{ insumoId: "lino", comprometido: 12, ordenes: ["Muestra"] }], ["m"]), [orden("m", { esMuestra: true })], rendimiento, {});
+    expect(d.get("lino")?.necesita).toBe(12);
+  });
+});
+
+describe("filasDeTela con pedidos", () => {
+  it("cada fila trae los pedidos de su tela (más nuevo primero, tal como llegan) y el estado no los suma", () => {
+    const pedido = { numeroTexto: "OI-000003", proveedor: "Textiles Andinos", cantidad: 500, unidad: "metro", fechaEntrega: null };
+    const f = filasDeTela([insumo("lino", { saldo: 50 })], new Map([["lino", { insumoId: "lino", necesita: 200, ordenes: ["Blusa a"] }]]), [], new Map([["lino", [pedido]]]));
+    expect(f[0]).toMatchObject({ estado: "falta", faltan: 150, pedidos: [pedido] });
+    expect(filasDeTela([insumo("lino")], new Map(), [])[0].pedidos).toEqual([]);
   });
 });

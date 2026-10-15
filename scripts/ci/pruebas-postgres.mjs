@@ -1016,6 +1016,9 @@ export const PRUEBAS = [
   // La lista de precios de los servicios de afuera (ADR-0400, actividad 8): tarifa nueva desde hoy, historia, solo el líder, sin monto en la actividad. ROLLBACK.
   "pruebas:produccion-tarifas",
 
+  // La tela del Taller (ADR-0400, actividad 8d): lo comprometido (la cuenta de Nueva orden y de la página), lo pedido y las órdenes sin tela declarada. ROLLBACK.
+  "pruebas:produccion-tela-del-taller",
+
   // Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
   // fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
   // terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160
