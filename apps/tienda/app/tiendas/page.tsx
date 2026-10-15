@@ -6,6 +6,8 @@ import { claveDeSede } from "@/lib/sede-elegida";
 import { haySesion } from "@/lib/sesion-servidor";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../estilos/tiendas.css";
+// «Ver solo lo que hay aquí» (`.t-tienda-ver`) vive con el Inicio, que es donde se estrenó.
+import "../estilos/inicio.css";
 
 // Nuestras tiendas (ADR-0408, actividad 6): la página del pie «Nuestras tiendas», con y sin cuenta. Sin cuenta, la cabecera de la portada;
 // con cuenta, la de la tienda (el menú, los favoritos, «Mi cuenta» y la bolsa) y, en cada tienda, «Ver solo lo que hay aquí», que lleva al

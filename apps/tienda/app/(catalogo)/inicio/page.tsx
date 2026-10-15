@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
+import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
 import { CuentaRegresiva } from "@/components/CuentaRegresiva";
 import { FotoTarjeta } from "@/components/FotoTarjeta";
 import { Icono } from "@/components/Icono";
 import { Isotipo } from "@/components/Isotipo";
+import { Lamina } from "@/components/looks/Lamina";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
 import { SeccionClub } from "@/components/SeccionClub";
@@ -25,6 +27,10 @@ import {
 } from "@/lib/catalogo";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { categoriasDelInicio, heroDelInicio, type Hero } from "@/lib/inicio";
+import { avisoAlEntrar } from "@/lib/inicio-aviso";
+import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
+import { cejaDeLook, hrefLook, hrefLooks, lineaDeLook } from "@/lib/looks";
+import { leerLooks } from "@/lib/looks-servidor";
 import { leerPortada } from "@/lib/portada-servidor";
 import { anioLima, fechaCorta, fechaLarga, partirTitulo, pctTexto } from "@/lib/portada";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
@@ -32,6 +38,7 @@ import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../estilos/tiendas.css";
+import "../../estilos/looks.css";
 import "../../estilos/inicio.css";
 
 export const metadata: Metadata = { title: "Inicio · CAYLA" };
@@ -47,17 +54,30 @@ const hrefInicio = (sede: string | null, oferta: string | null = null) => {
   return s ? `/inicio?${s}` : "/inicio";
 };
 
-// El Inicio de quien tiene cuenta (maqueta v4, `vInicio`): el héroe de la campaña vigente (o «Lo nuevo» si no hay), las categorías, Lo
-// nuevo, las ofertas de cada campaña, los más vendidos (sin cifras), cómo se separa, el Club y nuestras tiendas. Todo respeta la tienda
-// elegida en «Ver lo que hay en»: el precio es el de esa tienda y, si hay una elegida, solo sale lo que hay en ella. Una sola lectura
-// del catálogo (`tienda_catalogo` ya trae Lo nuevo y el puesto en Más vendidos); se lee en cada visita.
+// El Inicio de quien tiene cuenta (maqueta v4, `vInicio`): arriba, si tiene algo del Club a su favor que todavía no cerró, el aviso al
+// entrar (Felipe, 2026-10-14: es adonde se llega al iniciar sesión); el héroe de la campaña vigente (o «Lo nuevo» si no hay), las
+// categorías, Lo nuevo, «Arma tu look» (si hay looks), las ofertas de cada campaña, los más vendidos (sin cifras), cómo se separa, el Club
+// y nuestras tiendas. Todo respeta la tienda elegida en «Ver lo que hay en»: el precio es el de esa tienda y, si hay una elegida, solo
+// sale lo que hay en ella. Una sola lectura del catálogo (`tienda_catalogo` ya trae Lo nuevo y el puesto en Más vendidos); se lee en
+// cada visita.
 export default async function Inicio({ searchParams }: Props) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const [catalogo, { campana }, sesion] = await Promise.all([leerCatalogo(pedida?.id ?? null), leerPortada(), leerSesion()]);
-  const lectura = sesion.estado === "con_sesion" ? await leerMiCuentaEnBase(sesion.usuarioId) : null;
+  const [catalogo, { campana }, sesion, lecturaLooks] = await Promise.all([
+    leerCatalogo(pedida?.id ?? null),
+    leerPortada(),
+    leerSesion(),
+    leerLooks(pedida?.id ?? null),
+  ]);
+  const [lectura, avisos, vistos] =
+    sesion.estado === "con_sesion"
+      ? await Promise.all([leerMiCuentaEnBase(sesion.usuarioId), leerAvisosDelClub(sesion.usuarioId), avisosVistos()])
+      : [null, null, new Set<string>()];
   const cuenta = lectura?.estado === "cuenta" ? lectura.cuenta : null;
+  const aviso = avisos ? avisoAlEntrar(avisos, vistos) : null;
+  // Sin looks (o si la base no los dio), la sección no sale.
+  const looks = lecturaLooks?.looks ?? [];
 
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = catalogo?.sede ? sedes.find((s) => s.id === catalogo.sede) ?? null : null;
@@ -88,6 +108,7 @@ export default async function Inicio({ searchParams }: Props) {
         ...sedes.map((s) => ({ nombre: s.nombre, href: hrefInicio(claveDeSede(s.nombre)), actual: elegida?.id === s.id })),
       ]}
     >
+      {aviso && avisos && <AvisoAlEntrar aviso={aviso} activas={avisos.map((a) => a.clave)} />}
       <Heroe hero={hero} sede={sede} origenFotos={origenFotos} verCampana={lista("ofertas", hero.tipo === "campana" ? hero.campanaId : null)} verNuevo={nuevos.length > 0 ? lista("nuevo") : null} />
 
       {catalogo === null ? (
@@ -145,6 +166,34 @@ export default async function Inicio({ searchParams }: Props) {
               <div className="t-carril">
                 {nuevos.slice(0, 10).map((p) => (
                   <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={nota(p)} sinNuevo />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {looks.length > 0 && (
+            <section className="t-sec t-ancho" aria-labelledby="arma-tu-look">
+              <div className="t-sec-cab">
+                <div>
+                  <span className="t-ceja">Combinaciones listas</span>
+                  <h2 id="arma-tu-look">
+                    Arma tu <em>look</em>
+                  </h2>
+                  <p>Prendas que se ven bien juntas. Agrega el look completo y eliges cada talla en un solo paso.</p>
+                </div>
+                <Link className="t-ver" href={hrefLooks(sede)}>
+                  Ver todos <b>{looks.length}</b>
+                  <Icono nombre="flecha" />
+                </Link>
+              </div>
+              <div className="t-looks-inicio">
+                {looks.slice(0, 3).map((l) => (
+                  <Link key={l.id} className="t-look-card" href={hrefLook(l.id, sede)}>
+                    <Lamina look={l} sede={sede} origenFotos={origenFotos} enlaces={false} />
+                    <span className="t-ceja">{cejaDeLook(l)}</span>
+                    <h3>{l.nombre}</h3>
+                    <small>{lineaDeLook(l)}</small>
+                  </Link>
                 ))}
               </div>
             </section>
