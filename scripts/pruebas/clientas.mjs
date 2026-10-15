@@ -410,42 +410,34 @@ update retail.clientas set nombre = 'se coló un nombre real' where id = :'id'::
 );
 
 // ---------------------------------------------------------------------------
-// 13: unir_clientas — D-99, una transacción que mueve ventas/separaciones/pedidos
+// 13: ya no se unen fichas (Felipe 2026-10-14, 20261015054000) — el documento y el correo son de una sola persona
 // ---------------------------------------------------------------------------
+// «Unir fichas» (D-99) se borró: con el documento y el correo únicos no nacen fichas repetidas. Lo que cuidaba (no perder la
+// historia) lo cuida ahora no dejar repetir: el documento de otra ficha se rechaza diciendo de cuál es. La historia de las uniones
+// de antes (`clientas_fusiones`) se queda. Lo prueba a fondo `clientas_correo_y_cuenta_web.mjs`.
 
 exito(
-  "unir_clientas mueve una venta y un pedido no atendido a la ficha que se queda, y anonimiza a la perdedora",
+  "ya no se unen fichas: unir_clientas no existe y clientas_fusiones (la historia) sigue",
   comoPersona(
     FELIPE,
-    `select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
-select retail.registrar_clienta('dni', '90444120', 'Se Queda', '987444120', null, null) as mantiene \\gset
-select retail.registrar_clienta('dni', null, 'Se Une', '987444121', null, null) as fusiona \\gset
-insert into retail.ventas (id, ubicacion_id, cliente_id, estado, es_prueba) values (gen_random_uuid(), :'ubic'::uuid, :'fusiona'::uuid, 'completada', true) returning id as venta \\gset
-insert into retail.pedidos_no_atendidos (id, ubicacion_id, descripcion_libre, clienta_id, created_at, resuelto)
-  values (gen_random_uuid(), :'ubic'::uuid, 'prueba clientas.mjs', :'fusiona'::uuid, now(), false);
-select (retail.unir_clientas(:'mantiene'::uuid, :'fusiona'::uuid, 1, 1)).documento_numero as dni_ganadora \\gset
-select
-  (select cliente_id from retail.ventas where id = :'venta'::uuid) = :'mantiene'::uuid,
-  (select documento_numero is null and nombre = 'Clienta anonimizada' and anonimizada and fusionada_en_id = :'mantiene'::uuid from retail.clientas where id = :'fusiona'::uuid),
-  (select ventas_movidas from retail.clientas_fusiones where clienta_fusionada_id = :'fusiona'::uuid);
+    `select to_regprocedure('retail.unir_clientas(uuid,uuid,integer,integer)') is null, to_regclass('retail.clientas_fusiones') is not null;
 rollback;
 `
   ),
-  ([ventaMovida, perdedoraOk, ventasMovidas]) => ventaMovida === "t" && perdedoraOk === "t" && ventasMovidas === "1"
+  ([sinUnir, conHistoria]) => sinUnir === "t" && conHistoria === "t"
 );
 
 error(
-  "unir_clientas contra una ficha que ya se unió a otra se rechaza (no se fusiona dos veces)",
+  "editar una ficha con el documento de OTRA ficha se rechaza y dice de cuál es (ya no ofrece «Unir con otra ficha»)",
   comoPersona(
     FELIPE,
-    `select retail.registrar_clienta('dni', '90444122', 'Primera', null, null, null) as a \\gset
-select retail.registrar_clienta('dni', '90444123', 'Segunda', null, null, null) as b \\gset
-select retail.registrar_clienta('dni', null, 'Tercera', '987444124', null, null) as c \\gset
-select retail.unir_clientas(:'a'::uuid, :'c'::uuid, 1, 1) as v1 \\gset
-select retail.unir_clientas(:'b'::uuid, :'c'::uuid, 1, 1);
+    `update retail.configuracion_empresa set exige_responsable = false;
+select retail.registrar_clienta('dni', '90444122', 'Primera Con Documento', null, null, null) as a \\gset
+select retail.registrar_clienta('dni', null, 'Segunda Sin Documento', '987444124', null, null) as b \\gset
+select retail.editar_clienta(:'b'::uuid, 'dni', '90444122', 'Segunda Sin Documento', '987444124', null, null, null, null, null);
 `
   ),
-  "ya está archivada o ya se unió a otra"
+  "Ese documento ya es de la ficha de Primera Con Documento"
 );
 
 // ---------------------------------------------------------------------------

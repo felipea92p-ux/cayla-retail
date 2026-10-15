@@ -98,6 +98,8 @@ where v.estado <> 'anulada'
   -- Dentro del plazo de cambio (15 días de Lima, \`fn_dias_plazo_cambio\`, 20261012222000): una venta vieja la rechaza ese
   -- candado ANTES de llegar al de la línea, que es lo que esta suite mide.
   and retail.fn_hoy_lima() - (v.created_at at time zone 'America/Lima')::date <= 15
+  -- La prenda de un pedido web que todavía no se entrega no se cambia ni se devuelve (ADR-0408 act. 10): la rechaza ese candado.
+  and not exists (select 1 from retail.pedido_web_lineas pwl where pwl.venta_item_id = vi.id and pwl.estado <> 'entregada')
 order by v.created_at desc
 limit 1;`);
   if (!fila) return null;

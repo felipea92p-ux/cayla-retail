@@ -170,6 +170,108 @@ export const PRUEBAS = [
   // dos veces. ROLLBACK.
   "pruebas:campana-redondeo",
 
+  // La puerta de la tienda online (ADR-0408): el rol `tienda_web` no toca ninguna tabla y solo ejecuta `retail.tienda_*`
+  // (nada más que anon), cada una security definer y cerrada a public, anon y authenticated; y la portada elige bien la
+  // campaña vigente. ROLLBACK.
+  "pruebas:tienda-puerta",
+
+  // Configuración ▸ Tienda web (ADR-0408, act. 6): la web solo muestra tiendas encendidas, abiertas y completas (nombre web,
+  // dirección y el WhatsApp del QR del club, un solo número); no se enciende una incompleta ni se repite un nombre; los plazos
+  // no van en cero ni negativos y el umbral no pasa de 3; guarda el líder o quien tiene Configuración, y tienda_web solo lee
+  // tienda_sedes. ROLLBACK.
+  "pruebas:tienda-web-configuracion",
+
+  // Las cuentas de la tienda online (ADR-0408, actividad 2): correo y DNI únicos, los topes del cartel (club_intento) al
+  // consultar y al registrar, la cuenta que se une a la ficha del Club sin pisar sus datos, el menor de 18 y el cumpleaños
+  // imposible rechazados sin escribir nada, y `cuentas_web` cerrada a todos. ROLLBACK.
+  "pruebas:tienda-cuentas",
+
+  // La Vitrina web y el catálogo de la tienda online (ADR-0408, actividad 3): el módulo nace sin rol y sin él no se lee ni guarda;
+  // la versión frena a la segunda persona, mostrar varios es todo o nada y cada cambio deja su línea en la Actividad;
+  // `tienda_catalogo` (solo de `tienda_web`) da solo lo publicado, al precio de la tienda elegida o, con «Todas», al mayor entre las
+  // tiendas de la web (no hay precio web), con la campaña de la caja encima (ADR-0403), sus colores activos y las fotos del almacén
+  // público. ROLLBACK.
+  "pruebas:vitrina-web",
+
+  // La ficha de la tienda online y cuánto hay en cada tienda (ADR-0408, actividad 4): el nivel («hay», 3, 2, «Última», «—») cuenta
+  // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el
+  // umbral de Configuración y NUNCA deja salir la cifra de 4 o más; la ficha de un oculto es null; precio por talla. Y UN SOLO
+  // PRECIO (fn_tienda_precio_talla): la ficha, la bolsa, el catálogo y el look dicen el mismo precio de la misma prenda (con y sin
+  // precio propio, campaña del modelo y de la categoría, «Todas»), ofrecen las mismas tallas (ninguna a S/ 0) y romper la pieza común
+  // las cambia a todas juntas. ROLLBACK.
+  "pruebas:tienda-ficha",
+  // La propuesta k de la ficha de la tienda online (ADR-0408): «otra persona ya separó la última» solo cuando los pedidos web por
+  // confirmar de OTROS clientes que recogen en esa tienda (y no vencieron) cubren lo libre de esa talla ahí (la pieza de la ficha);
+  // lo propio, otra tienda, lo vencido y lo confirmado no cuentan; nunca una cifra ni quién; solo tienda_web. ROLLBACK.
+  "pruebas:tienda-separadas",
+
+  // Una tienda solo tiene piso, almacén y Cuarentena (ADR-0408, integración; Felipe 2026-10-15): así la web («hay») y la confirmación
+  // de un pedido web cuentan lo mismo. Un rack, un lugar sin tipo o un rack traído del Taller se niegan; el Taller sigue con sus racks;
+  // control sin el disparador. ROLLBACK.
+  "pruebas:tienda-lugares",
+
+  // El Inicio de la tienda online (ADR-0408, actividad 5): «Lo nuevo» por el PRIMER ingreso a una tienda en 30 días (no el Taller, no
+  // una devolución), fijado o quitado en la Vitrina; «Más vendidos» por unidades en 30 días, 20 puestos y sin las cifras; ninguno con
+  // las familias fuera de los motores (bolsas). Y los plazos de la ayuda: los de Configuración ▸ Tienda web y el de cambio de la caja.
+  // ROLLBACK.
+  "pruebas:tienda-inicio",
+
+  // Los looks de la tienda online (ADR-0408, actividad 11): es el módulo de la Vitrina web (sin él no se lee ni se guarda); 2 a 4
+  // prendas que se venden, y para mostrarlo cada una se ve en la web; la versión frena a la segunda persona; el lugar va de 1 a N sin
+  // huecos; un look con una prenda que dejó de verse (o eliminada) no sale en la tienda; cada prenda vale EXACTAMENTE lo de la ficha
+  // para las tallas de SU color en esa tienda (y el ERP muestra el mismo total), sus tallas son las que ofrece la ficha (ninguna a
+  // S/ 0) y dicen «hay», nunca la cifra (con mutantes que lo prueban). ROLLBACK.
+  "pruebas:vitrina-looks",
+
+  // El motor del pedido web (ADR-0408, actividades 7-9): separar no toca el stock; confirmar reserva con el motor de Apartados
+  // (almacén primero) y Vender ya no la vende; dos por la última (uno reserva, el otro sin stock, y quién separó antes, también
+  // con dos sesiones a la vez); anular libera; el cierre de 24 h no toca lo confirmado; un pago nunca pasa el total; el n.º de
+  // operación y el aviso de la pasarela no se duplican; el efectivo en la caja abierta; permisos y transiciones imposibles. ROLLBACK.
+  "pruebas:pedidos-web-motor",
+
+  // Pedidos web en el ERP (ADR-0408, act. 8): el módulo nace solo del líder y su candado es `fn_pedido_web_exigir`; los plazos
+  // salen de Configuración ▸ Tienda web; el aviso de 48 h calla con adelanto y una prenda por conseguir o en camino; enviar desde
+  // otra tienda arma un traslado que se reserva solo al llegar (y vuelve si se anula); Catálogo dice «tiene pedidos web». ROLLBACK.
+  "pruebas:pedidos-web-erp",
+  // La bolsa y «Separar» de la tienda online (ADR-0408, actividad 7): la bolsa da el precio de la tienda elegida (o el mayor) con
+  // la campaña y solo «alcanza / hay» por tienda, nunca la cifra; separar vuelve a calcular cada precio, crea el pedido por
+  // confirmar SIN tocar el stock y la misma marca da el mismo pedido; cada cliente ve solo sus pedidos (el código de recojo, recién
+  // listo); el cierre programado usa el plazo de Configuración ▸ Tienda web; solo tienda_web y service_role. ROLLBACK.
+  "pruebas:tienda-bolsa",
+  // El Club en la cuenta de la tienda online (ADR-0408, actividad 12): favoritos y «Avísame» idempotentes y solo de su cuenta (la
+  // ajena no se toca), con sus topes; «hay» sin Cuarentena ni lo apartado no anota; «Mi cuenta» con el cumpleaños y el vale de la
+  // caja, las novedades (primera llegada, sin carga inicial) desde la visita anterior; «Esperan una talla» del ERP con el módulo y
+  // sin datos personales; un favorito que ya no se ve en la web no cuenta en el globo del corazón; una espera anotada en una tienda
+  // que después se escondió se lee como «cualquier tienda» en todas partes (y llega); y los mutantes que la prueba nota. ROLLBACK.
+  "pruebas:tienda-club",
+  // El aviso al entrar de la tienda online (ADR-0408, Felipe 2026-10-14): solo lo que hoy está a favor de la persona —el cumpleaños
+  // disponible, el vale disponible y la talla que esperaba y llegó—, lo MISMO que dice «Mi cuenta» ficha por ficha, sin escribir nada
+  // (no mueve la visita de «Mi cuenta») y solo de `tienda_web`; una espera en una tienda que se escondió de la web es «cualquier
+  // tienda»; tres mutantes que la prueba nota. ROLLBACK.
+  "pruebas:tienda-avisos",
+  // Recomendaciones (ADR-0408, Felipe 2026-10-15): la tienda escribe por su puerta (texto limpio de 10 a 1000 letras, una tienda de la
+  // web o CAYLA en general, 3 por día, la misma marca no se guarda dos veces) y ve solo las suyas; el ERP lee con su nombre, marca,
+  // responde una vez y archiva, solo con el módulo y firmado; los candados de la fila; al anonimizar se quedan sin su nombre ni sus
+  // datos; y los mutantes (puerta, tope, marca, módulo, anonimización) que la prueba nota. ROLLBACK.
+  "pruebas:recomendaciones-web",
+
+  // Cobrar dentro del pedido web (ADR-0408, act. 9): la hoja sabe si hay caja abierta y quién anuló cada pago; lo anulado con
+  // plata por devolver no sale de la lista; un adelanto y el resto lo dejan pagado; el n.º de operación no se repite (también con
+  // dos sesiones a la vez); el efectivo en el cuadre, y el anulado sale de la caja abierta del día (si la tiene); el token sigue
+  // al contenido y la hoja puede preguntar por un pago en duda. ROLLBACK.
+  "pruebas:pedidos-web-cobrar",
+
+  // Entregar un pedido web y su boleta (ADR-0408, act. 10): con el pago que completa el total nace la venta (una línea por prenda,
+  // un «anticipo» por lo pagado, en la caja abierta) y su boleta PENDIENTE, sin tocar el stock; entregar con el código de 4 cifras
+  // saca cada prenda con la salida de su línea de venta (mal escrito, nada); dos veces no duplica; lo que viaja no se entrega; la
+  // venta por entregar no se anula, cambia ni devuelve; Finanzas cuenta su efectivo como el de Apartados. ROLLBACK.
+  "pruebas:pedidos-web-entregar",
+
+  // Anular un pedido web PAGADO que no se entregó (ADR-0408, Felipe 2026-10-15): todo o nada; las prendas vuelven a estar libres, cada
+  // pago se devuelve por su medio (el efectivo, de la caja de hoy), la venta se anula entera y la boleta se libera sin transmitir o sale
+  // su nota de crédito; si se está mandando o pudo llegar a SUNAT, nada; Finanzas sigue cuadrando. ROLLBACK.
+  "pruebas:pedidos-web-anular",
+
   // Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
   // La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.
   "pruebas:redondeo-efectivo",
@@ -721,6 +823,31 @@ export const PRUEBAS = [
   // conexiones: la segunda espera en la lectura de la ficha). Cada caso termina en ROLLBACK (la carrera con COMMIT solo
   // corre con BASE_DESECHABLE=1, no aquí).
   "pruebas:clientas-modulo",
+
+  // Un correo y un documento, una persona (Felipe 2026-10-14): el correo de otra ficha o de la cuenta web de otra ficha se
+  // rechaza sin decir de quién es (ficha, cartel, tienda), también con dos escrituras a la vez y en una base sin la tienda;
+  // `unir_clientas` ya no existe; entrar a la web cuenta para la conservación de 3 años; y al anonimizarse la ficha, su cuenta
+  // web se cierra en la misma escritura (sin correo, usuario, favoritos ni esperas) y su usuario queda por borrar. ROLLBACK.
+  "pruebas:clientas-correo",
+
+  // El correo en «Editar» de la ficha (Felipe 2026-10-15, 20261015123000): `editar_clienta` (una sola firma, la de 11) lo guarda
+  // normalizado, sin `p_correo` no lo toca y vacío lo borra; mal escrito → `correo_invalido`; el de otra ficha o con el que entra a
+  // la tienda online la cuenta de otra → `correo_de_otra_ficha`, diciendo de cuál (también sin el disparador); nunca cambia el correo
+  // de la cuenta web. `fn_clienta_tienda_online`: si tiene cuenta abierta y sus pedidos web en curso, con el candado del módulo. Y
+  // pegar 20261015054000 después aborta sin pisar nada. ROLLBACK.
+  "pruebas:clientas-correo-ficha",
+
+  // El nombre de la ficha sale del padrón (Felipe 2026-10-15, 20261015133000): por la API (la web, el servidor del Club, la tienda)
+  // un DNI solo guarda un nombre que un servidor anotó como lectura del padrón en la última hora (`nombre_sin_padron`); carné y
+  // pasaporte, sin números (`nombre_con_numeros`); las lecturas, solo su huella y solo para service_role y tienda_web. ROLLBACK.
+  "pruebas:nombre-del-padron",
+  // «Mi cuenta» de la tienda online (Felipe 2026-10-15, 20261015131000 y 20261015132000): anonimizar espera un pedido web PAGADO (en
+  // los tres caminos) y «a pedido suyo» va sin persona y con su nota; cambiar el correo de entrada (los topes de la 2b, el correo de una
+  // sola persona sin decir de quién, el reenvío solo al correo pedido, el código de 5 intentos) y aplicarlo solo si se pidió;
+  // «Restablecer acceso» desde el ERP (módulo, Responsable, la ficha de un uso guardada como sha256, la página pública con su tope por
+  // ip); los intentos de contraseña; «Eliminar cuenta» (frena con pedidos en curso o apartados abiertos; si no, anonimiza y cierra la
+  // cuenta); la limpieza al cerrarse por cualquier camino; todo como tienda_web; y el pegado. ROLLBACK.
+  "pruebas:tienda-mi-cuenta",
 
   // Celular para la boleta (ADR-0288, «Actualización 2026-10-03 (o)», actividad 2): `agregar_celular_clienta` SOLO AGREGA. A
   // una ficha sin celular se lo deja normalizado (versión +1, una línea de actividad sin datos personales); a una que ya

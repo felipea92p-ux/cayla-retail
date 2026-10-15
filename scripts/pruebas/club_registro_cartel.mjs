@@ -89,9 +89,32 @@ const NO_REPETIR = leer("supabase", "migrations", "20261003235000_club_no_repeti
 const NO_REPETIR_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(NO_REPETIR)?.[1];
 const NO_REPETIR_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(NO_REPETIR)?.[1];
 const REGISTRARSE = "retail.registrarse_en_el_club(uuid,text,text,text,text,date,text,boolean,boolean,boolean,jsonb,boolean)";
-/** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18, registrarse_en_el_club) o el de la PARTE 8. */
+// 20261015055000_tienda_cuentas_entrada_y_cierre.sql cambió fn_club_anonimizar_inactivas (Felipe 2026-10-14: entrar a la cuenta de la
+// tienda online también cuenta como actividad; un pedido web en curso la frena), partiendo del «después» de la PARTE 8. Su tabla de
+// versiones tiene el mismo formato; la cadena no se corta.
+const ENTRADA_WEB = leer("supabase", "migrations", "20261015055000_tienda_cuentas_entrada_y_cierre.sql");
+const CONSERVACION = "retail.fn_club_anonimizar_inactivas()";
+const CONSERVACION_WEB = [...ENTRADA_WEB.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)]
+  .map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }))
+  .find((v) => v.firma === CONSERVACION);
+if (!CONSERVACION_WEB || CONSERVACION_WEB.antes !== VERSIONES.find((v) => v.firma === CONSERVACION)?.despues) {
+  console.error("✗ La tabla de versiones de 20261015055000 debería cambiar fn_club_anonimizar_inactivas partiendo del «después» de la PARTE 8.");
+  process.exit(1);
+}
+// 20261015131000_clientas_anonimizar_espera_pedido_pagado.sql (Felipe 2026-10-15: anonimizar espera un pedido web pagado, y «a pedido
+// suyo» desde la tienda online) cambió la FIRMA de la rutina de anonimizar: creó la de 4 parámetros y BORRÓ la de 3 («después»: que no
+// exista), partiendo del «después» de la PARTE 8. La cadena no se corta.
+const ESPERA_PEDIDO = leer("supabase", "migrations", "20261015131000_clientas_anonimizar_espera_pedido_pagado.sql");
+const ANONIMIZAR_3 = "retail.fn_clienta_anonimizar(uuid,uuid,boolean)";
+const ANONIMIZAR_ESPERA = [...ESPERA_PEDIDO.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)]
+  .map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }))
+  .find((v) => v.firma === ANONIMIZAR_3);
+if (!ANONIMIZAR_ESPERA || ANONIMIZAR_ESPERA.despues !== null || ANONIMIZAR_ESPERA.antes !== VERSIONES.find((v) => v.firma === ANONIMIZAR_3)?.despues) {
+  console.error("✗ La tabla de versiones de 20261015131000 debería borrar la fn_clienta_anonimizar de 3 parámetros partiendo del «después» de la PARTE 8.");
+  process.exit(1);
+}
 // ADR-0416 (anonimizar es de un líder) volvió a tocar archivar_clienta con su propia tabla de versiones: su «antes» es el «después» de
-// esta PARTE 8, y su «después» es el de hoy.
+// esta PARTE 8, y su «después» es el de hoy. (La tienda online no toca archivar_clienta: su espera vive en la rutina, 20261015131000.)
 const ANONIMIZAR_LIDER = readFileSync(join(RAIZ, "supabase", "migrations", "20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql"), "utf8");
 const ARCHIVAR = "retail.archivar_clienta(uuid,text,boolean,integer)";
 const ARCHIVAR_POSTERIOR = /\('retail\.archivar_clienta\(uuid,text,boolean,integer\)',\s+'([0-9a-f]{32})',\s+'([0-9a-f]{32})'\)/.exec(ANONIMIZAR_LIDER);
@@ -99,8 +122,20 @@ if (!ARCHIVAR_POSTERIOR || VERSIONES.find((v) => v.firma === ARCHIVAR)?.despues 
   console.error("✗ La tabla de versiones de 20261015155000 debería partir del «después» de archivar_clienta de esta PARTE 8.");
   process.exit(1);
 }
+/** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18, registrarse_en_el_club, la
+ *  conservación, la rutina de anonimizar —que ya no existe con 3 parámetros—, archivar_clienta) o el de la PARTE 8. */
 const despuesHoy = (v) =>
-  (v.firma === RV_HOY ? REDONDEO_DESPUES : v.firma === REGISTRARSE ? NO_REPETIR_DESPUES : v.firma === ARCHIVAR ? ARCHIVAR_POSTERIOR[2] : v.despues) ?? "NO_EXISTE";
+  (v.firma === RV_HOY
+    ? REDONDEO_DESPUES
+    : v.firma === REGISTRARSE
+      ? NO_REPETIR_DESPUES
+      : v.firma === CONSERVACION
+        ? CONSERVACION_WEB.despues
+        : v.firma === ANONIMIZAR_3
+          ? ANONIMIZAR_ESPERA.despues
+          : v.firma === ARCHIVAR
+            ? ARCHIVAR_POSTERIOR[2]
+            : v.despues) ?? "NO_EXISTE";
 
 // Los textos vigentes (docs/club/texto-legal-registro-v2.md): la PARTE 4 sembró la v1 y 20261002160000 publicó la v2 sin género
 // (ADR-0288 act. k). El cuerpo de cada sección.

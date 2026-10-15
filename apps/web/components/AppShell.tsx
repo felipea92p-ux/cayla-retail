@@ -125,6 +125,8 @@ type Props = {
   /** Traslados que esperan una acción de quien mira y pedidos de otras sedes que esperan a esta («Te piden», ADR-0328
    *  act. 17): `getNumeroDelMenuTraslados`. `null` = no se pudo calcular: el menú sale igual, sin número. */
   trasladosPorAtender?: number | null;
+  /** Pedidos web que esperan confirmación en la tienda activa (`getPedidosWebPorConfirmar`, ADR-0408 act. 8). `null` = sin número. */
+  pedidosWebPorConfirmar?: number | null;
   /** Estado inicial del lateral, leído de la cookie en el servidor (sin parpadeo al cargar). */
   lateralPlegado?: boolean;
   children: React.ReactNode;
@@ -662,7 +664,7 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
 // tableros por categoría y los dos rieles del plan); al mudarse al grupo «Gestión» conservan el ancho. «/rendimiento» no cuelga de ahí y sigue igual.
 const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/gestion", "/recibir", "/caja", "/cambios", "/devoluciones", "/produccion", "/colaboradores", "/etiquetas-de-precio", "/rotulos"];
 
-export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPlegado = false, children }: Props) {
+export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
   const [perfilAbierto, setPerfilAbierto] = useState(false);
   // «Demo» de Mi perfil (ADR-0389): el selector de guías interactivas.
@@ -788,7 +790,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     ubicacionTipo: persona.ubicacionTipo,
     terminal: !!persona.terminal,
     modulos: persona.modulos ?? null,
-    contadores: { trasladosPorAtender },
+    contadores: { trasladosPorAtender, pedidosWebPorConfirmar },
   });
   // Buscador global (cabecera): toda pantalla que ESTE perfil ve, sin importar en qué grupo vive —
   // mismo filtro por rol que ya resolvió `menuPara`, no uno nuevo.

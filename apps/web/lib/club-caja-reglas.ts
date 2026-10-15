@@ -25,6 +25,7 @@ import { PCT_CUMPLE_POR_DEFECTO, pctLegible } from "./club-cumple-canje-reglas";
 import { lineaDeClienta, type ClientaDelTicket } from "./clienta-ticket-reglas";
 import { normalizarNumeroDocumento, problemaDocumento, type TipoDocumentoClienta } from "./documento-clienta-reglas";
 import type { CampoDeGuia } from "./guia-campos";
+import { origenDelNombre, pendienteDelNombre, type PadronDeFicha } from "./nombre-del-padron-reglas";
 
 /* ------------------------------------------------------------------ Lo que la caja sabe del club al abrir Vender */
 
@@ -141,35 +142,40 @@ export function problemaCelularOpcional(celular: string): string | null {
 export type HojaRegistrar = {
   documentoTipo: TipoDocumentoClienta;
   documentoNumero: string;
+  /** Con carné o pasaporte, lo escrito. Con DNI no cuenta: el nombre es el que trajo el padrón (`padron`). */
   nombre: string;
+  /** Con DNI: lo que dijo el padrón del número escrito (Felipe 2026-10-15: sin el padrón no se registra). */
+  padron: PadronDeFicha;
   responsableListo: boolean;
   responsableMotivo: string | null;
 };
 
-/** Un nombre de verdad: el spike pide 3 letras como mínimo (`modalRegistrar`, `nOk`); con DNI lo trae el padrón. */
-export const nombreSuficiente = (nombre: string) => nombre.trim().length >= 3;
-
 /**
- * Registrar a una clienta (tanda 1g, G-2): SOLO su documento. Con DNI el nombre llega del padrón DENTRO del mismo bloque (si
- * no responde, se escribe ahí); con carné o pasaporte, en su propio bloque. El celular y el cumpleaños ya no se piden: los
- * escribe ella al unirse desde el cartel, y «Editar» de su ficha los corrige. Y quién registra. Es la MISMA regla en Cobrar
- * (`ClientaDelTicket`) y en Clientas ▸ Nueva clienta (`NuevaClientaModal`).
+ * Registrar a una clienta (tanda 1g, G-2): SOLO su documento y su nombre. Con DNI el nombre lo trae el padrón y no se escribe: si
+ * el padrón no responde o no lo encuentra, no se registra (Felipe 2026-10-15, `lib/nombre-del-padron-reglas.ts`); con carné o
+ * pasaporte se escribe tal cual, sin números. El celular y el cumpleaños ya no se piden: los escribe ella al unirse desde el cartel,
+ * y «Editar» de su ficha los corrige. Y quién registra. Es la MISMA regla en Cobrar (`ClientaDelTicket`) y en Clientas ▸ Nueva
+ * clienta (`NuevaClientaModal`).
  */
 export function camposDeRegistrar(h: HojaRegistrar): CampoDeGuia[] {
-  const esDni = h.documentoTipo === "dni";
   const problema = problemaDocumento(h.documentoTipo, h.documentoNumero);
-  const documentoBien = normalizarNumeroDocumento(h.documentoNumero) !== "" && problema === null;
-  const nombreBien = nombreSuficiente(h.nombre);
+  const sinNumero = normalizarNumeroDocumento(h.documentoNumero) === "";
+  const pendienteNombre = pendienteDelNombre(h.documentoTipo, h.padron, h.nombre);
   return [
     {
       id: "documento",
-      // Con DNI, el nombre vive en este mismo bloque: si el documento ya está y falta el nombre, lo que falta es el nombre.
-      nombre: esDni && documentoBien && !nombreBien ? "Nombre" : "Documento",
+      nombre: "Documento",
       requerido: true,
-      hecho: documentoBien && (!esDni || nombreBien),
-      pendiente: normalizarNumeroDocumento(h.documentoNumero) === "" ? "Elige el tipo y escribe el número." : (problema ?? "Escribe su nombre."),
+      hecho: !sinNumero && problema === null,
+      pendiente: sinNumero ? "Elige el tipo y escribe el número." : (problema ?? ""),
     },
-    ...(esDni ? [] : [{ id: "nombre", nombre: "Nombre", requerido: true, hecho: nombreBien, pendiente: "Escribe su nombre." }]),
+    {
+      id: "nombre",
+      nombre: origenDelNombre(h.documentoTipo) === "padron" ? "Nombre del padrón" : "Nombre",
+      requerido: true,
+      hecho: pendienteNombre === null,
+      pendiente: pendienteNombre ?? "",
+    },
     { id: "responsable", nombre: "Quién registra", requerido: true, hecho: h.responsableListo, pendiente: h.responsableMotivo ?? "Elige quién registra." },
   ];
 }
