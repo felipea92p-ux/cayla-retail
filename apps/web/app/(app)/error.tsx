@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect } from "react";
+import { Aventurero } from "@/components/ui/Aventurero";
 
 // Barrera de error de todo el mundo (app). Antes no existía ninguna: si una pantalla
 // reventaba, salía la página de error por defecto de Next —en inglés, con jerga de
@@ -30,49 +31,54 @@ export default function ErrorDeSeccion({
 
   return (
     <div className="flex min-h-[50vh] items-center justify-center">
-      <div className="card-cayla anim-entrada max-w-md p-8 text-center">
-        <p className="label-cayla text-[11px] text-rojo">No se pudo cargar</p>
-        <h1 className="font-display mt-2 text-2xl text-tinta">Esta pantalla no está mostrando datos</h1>
-        <p className="mt-3 text-sm text-tinta/75">
-          Algo falló al traer la información. No se muestra nada a propósito: preferimos no enseñarte
-          un número equivocado.
-        </p>
-        <p className="mt-2 text-sm text-tinta/75">
-          Suele ser un corte momentáneo de conexión. Reintenta; si sigue igual, avisa a Felipe.
-        </p>
-
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-          {/* `reset` a secas no basta: en Next 16 solo vuelve a pintar esta barrera con la respuesta que
-              ya llegó, y esa trae el mismo error — la tarjeta reaparece aunque la causa (un corte de red)
-              ya se haya ido, y la persona en el mostrador ve que «Reintentar» no hace nada.
-              `router.refresh()` vuelve a pedir los datos al servidor; van juntos en `startTransition`
-              (lo mismo que hace `unstable_retry`, sin depender de una API inestable). Mismo patrón que
-              `vender/comprobantes/error.tsx`. */}
-          <button
-            onClick={() =>
-              startTransition(() => {
-                router.refresh();
-                reset();
-              })
-            }
-            className="btn-cayla btn-primario"
-          >
-            Reintentar
-          </button>
-          <Link
-            href="/"
-            className="btn-cayla btn-secundario"
-          >
-            Volver al inicio
-          </Link>
-        </div>
-
-        {error.digest && (
-          // Le sirve a quien lea los logs para encontrar ESTE fallo entre todos.
-          <p className="mt-5 text-xs text-tinta/65">
-            Código: <span className="font-mono">{error.digest}</span>
+      {/* Aventurero (2026-10-15) abre la tarjeta, a sangre; el texto de siempre dice qué hacer. El meme dice que alguien lo está
+          resolviendo, pero nadie recibe un aviso solo cuando una pantalla se cae: por eso el «avisa a Felipe» y el código siguen. */}
+      <div className="card-cayla anim-entrada w-full max-w-md overflow-hidden text-center">
+        <Aventurero motivo="error" />
+        <div className="p-8 pt-6">
+          <p className="label-cayla text-[11px] text-rojo">No se pudo cargar</p>
+          <h1 className="font-display mt-2 text-2xl text-tinta">Esta pantalla no está mostrando datos</h1>
+          <p className="mt-3 text-sm text-tinta/75">
+            Algo falló al traer la información. No se muestra nada a propósito: preferimos no enseñarte
+            un número equivocado.
           </p>
-        )}
+          <p className="mt-2 text-sm text-tinta/75">
+            Suele ser un corte momentáneo de conexión. Reintenta; si sigue igual, avisa a Felipe.
+          </p>
+
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            {/* `reset` a secas no basta: en Next 16 solo vuelve a pintar esta barrera con la respuesta que
+                ya llegó, y esa trae el mismo error — la tarjeta reaparece aunque la causa (un corte de red)
+                ya se haya ido, y la persona en el mostrador ve que «Reintentar» no hace nada.
+                `router.refresh()` vuelve a pedir los datos al servidor; van juntos en `startTransition`
+                (lo mismo que hace `unstable_retry`, sin depender de una API inestable). Mismo patrón que
+                `vender/comprobantes/error.tsx`. */}
+            <button
+              onClick={() =>
+                startTransition(() => {
+                  router.refresh();
+                  reset();
+                })
+              }
+              className="btn-cayla btn-primario"
+            >
+              Reintentar
+            </button>
+            <Link
+              href="/"
+              className="btn-cayla btn-secundario"
+            >
+              Volver al inicio
+            </Link>
+          </div>
+
+          {error.digest && (
+            // Le sirve a quien lea los logs para encontrar ESTE fallo entre todos.
+            <p className="mt-5 text-xs text-tinta/65">
+              Código: <span className="font-mono">{error.digest}</span>
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

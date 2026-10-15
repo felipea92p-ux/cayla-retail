@@ -1,6 +1,9 @@
 "use client";
 
 import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
+import { Aventurero } from "@/components/ui/Aventurero";
+// Sin globals.css, la hoja de Aventurero se trae aquí directo (la de la app la importa globals.css).
+import "./estilos/aventurero.css";
 
 // Último recurso: se usa solo cuando revienta el layout raíz, donde ni siquiera existe
 // el armazón de la app. Por eso trae su propio <html> y <body> — no hay nada arriba que
@@ -24,9 +27,14 @@ import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
 // pantalla, la que casi nadie ve ni prueba a mano, y deja que Next mantenga el reintento en vez de copiarlo
 // aquí. El precio es que es API inestable: `errores-reintentar.test.ts` falla si una versión nueva de Next
 // la quita, y entonces la salida es el patrón de `(app)/error.tsx` (o una recarga completa).
+//
+// Aventurero (2026-10-15) también está aquí, sobre el título: es la pantalla de error más rara de todas, y la única que se pinta sin
+// los tokens. Su texto usa los dos colores FIJOS de la paleta (iguales en claro y en oscuro: van sobre una foto), así que se
+// declaran aquí con los valores de globals.css.
 const ESTILOS =
-  "html{color-scheme:light;--ge-fondo:#f5f0e8;--ge-texto:#1a1a18;--ge-acento:#b8412d}" +
-  'html[data-tema="oscuro"]{color-scheme:dark;--ge-fondo:#1a1a18;--ge-texto:#f5f0e8;--ge-acento:#e8806a}';
+  "html{color-scheme:light;--ge-fondo:#f5f0e8;--ge-texto:#1a1a18;--ge-acento:#b8412d;--color-tinta-fija:#1a1a18;--color-crema-fija:#f5f0e8}" +
+  'html[data-tema="oscuro"]{color-scheme:dark;--ge-fondo:#1a1a18;--ge-texto:#f5f0e8;--ge-acento:#e8806a}' +
+  ".ge-aventurero{margin:0 0 24px;border-radius:12px;overflow:hidden}";
 
 export default function ErrorGlobal({
   error,
@@ -54,7 +62,8 @@ export default function ErrorGlobal({
           padding: "24px",
         }}
       >
-        <div style={{ maxWidth: "28rem", textAlign: "center" }}>
+        <div style={{ maxWidth: "28rem", width: "100%", textAlign: "center" }}>
+          <Aventurero motivo="error" className="ge-aventurero" />
           <p
             style={{
               margin: 0,

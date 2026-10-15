@@ -428,3 +428,24 @@ destello y un latido en el botón principal, pétalos que caen una vez y la tarj
 - **Dónde vive:** la espera en `lib/entrada-estado.ts` (`veloPendiente`, `marcarVeloCubierto`; con su prueba), el umbral en `lib/login-entrada.ts` (`veloCubre`,
   `MS_TOPE_DEL_VELO`), `EsperaAlVelo` y el aviso de la capa en `components/login/EntradaColibri.tsx`, la consulta en `app/api/aterrizaje/route.ts` y lo que el login hace con
   su respuesta en `lib/login-aterrizaje.ts`.
+
+## Actualización 2026-10-15 — Aventurero: el gato que teclea en «Sin acceso» y en los errores, pedido por Felipe
+
+- **Qué:** las pantallas donde la persona NO llega a lo que buscaba —«Sin acceso» (su rol no ve el módulo, o no ve ninguna pantalla) y las
+  cuatro barreras de error (la de la app, la de una vista de Facturación y la global)— abren con un meme: la foto de Aventurero, un gato
+  naranja con las patas en el teclado, y en letra de meme (Impact, o Anton donde no hay Impact) «Aventurero decidió / que no puedes ver
+  esto» o «Aventurero lo está dando todo / para solucionarlo». Sus **patas se mueven en bucle**: en un error teclea apurado, las dos por
+  turno (un golpe cada ~0,4 s); en «Sin acceso» da dos toques con la de atrás, levanta la de adelante, la sostiene y la deja caer (el Enter
+  de quien decidió), y descansa casi 2 s antes de repetir.
+- **Por qué se admite:** lo pidió Felipe («que le animes las patas al gatito»). Es adorno, no señal: quitarlo no pierde información, porque
+  lo que hay que hacer (reintentar, a quién pedir el acceso, el código del error) lo sigue diciendo el texto de la tarjeta, que no cambió.
+  Lo que sí cambió: «Sin acceso» de una cuenta que no ve NINGUNA pantalla ya no ofrece «Volver al inicio» (el Inicio la devolvía ahí), sino
+  «Ya me lo activaron», para entrar después de que un líder le active algo.
+- **Cómo se mueve sin deformar la foto:** cada pata es la misma foto otra vez, recortada por una elipse difusa que no se mueve, y girada
+  3–4,5° desde su codo: dentro de la elipse la pata se levanta y deja ver el teclado; fuera, la foto sigue quieta. Sube con la curva de
+  entrada (--ease-cayla) y cae con la de salida (--ease-salida); nunca baja de donde estaba, así que no hay rebote.
+- **Los límites:** sin rebote, solo los dos colores fijos (`tinta-fija`, `crema-fija`: el texto va sobre una foto, igual en claro y en
+  oscuro), y con `prefers-reduced-motion` el gato se queda quieto.
+- **Dónde vive:** `apps/web/components/ui/Aventurero.tsx`, `apps/web/app/estilos/aventurero.css` (que también importa `global-error.tsx`,
+  pintada sin globals.css) y la foto en `apps/web/public/aventurero.webp` (recortada para que el texto no tape al gato; la pantalla del
+  monitor y el teléfono no se leen a ese tamaño).
