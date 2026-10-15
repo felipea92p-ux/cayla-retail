@@ -1380,6 +1380,46 @@ ESCENARIOS.push(
   },
 );
 
+// Cobrar dentro del pedido web (ADR-0408, actividad 9): «Registrar un pago» encima del primer pedido de «Por cobrar» (con Yape y su n.º,
+// o con efectivo) y «Devolver un pago» de un pedido anulado que ya había pagado (el primero de «Cerrados»). Solo por id: la base local
+// necesita esos pedidos (quien audita los crea con `crear_pedido_web`, los confirma y les anota un pago; y los deja como estaban). Ninguno
+// guarda: abren la hoja y eligen.
+const abrirRegistrarPago = async (pagina) => {
+  await pagina.locator('[data-guia="pedido-web.pagar"]').first().click({ timeout: 8000 });
+  await pagina.getByRole("dialog", { name: "Registrar un pago" }).waitFor({ timeout: 15000 });
+  await esperar(pagina, 1000);
+};
+const conPedidoPorCobrar = secuencia(irA("/vender/pedidos-web?pestana=cobrar"), abrirPedidoWeb, abrirRegistrarPago);
+ESCENARIOS.push(
+  {
+    id: "pedidos-web.pagar",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · registrar un pago con Yape (el n.º de operación)",
+    preparar: secuencia(conPedidoPorCobrar, clicRol("radio", /^Yape$/)),
+  },
+  {
+    id: "pedidos-web.pagar-efectivo",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · registrar un pago en efectivo (entra a la caja)",
+    preparar: secuencia(conPedidoPorCobrar, clicRol("radio", /^Efectivo$/)),
+  },
+  {
+    id: "pedidos-web.devolver",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · devolver un pago de un pedido anulado",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=cerrados"), abrirPedidoWeb, clicRol("button", /^Devolver$/)),
+  },
+);
+
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
 // Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
 ESCENARIOS.push(

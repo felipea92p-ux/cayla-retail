@@ -347,9 +347,10 @@ export const GUIA_APARTADOS: Guia = {
   ],
 };
 
-// Ventas ▸ Pedidos web (ADR-0408, act. 8). El piloto abre el primer pedido de la lista y, si hay algo para enviar a otra tienda, su
-// hoja; nunca confirma, cierra, anula ni envía: esos botones se explican encendidos. Lo que se ve depende del pedido que abre (por
-// confirmar o ya confirmado), por eso los pasos de la hoja son opcionales.
+// Ventas ▸ Pedidos web (ADR-0408, act. 8 y 9). El piloto abre el primer pedido de la lista y, si hay algo para enviar a otra tienda, su
+// hoja; si el pedido ya está confirmado, abre «Registrar un pago», elige Yape y escribe un n.º de ejemplo. Nunca confirma, cierra,
+// anula, envía ni registra: esos botones se explican encendidos. Lo que se ve depende del pedido que abre (por confirmar o ya
+// confirmado), por eso los pasos de la hoja son opcionales.
 export const GUIA_PEDIDOS_WEB: Guia = {
   id: "vender.pedidos-web",
   ruta: "/vender/pedidos-web",
@@ -366,7 +367,7 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       id: "cifras",
       ancla: "pedidos-web.cifras",
       titulo: "Cómo va tu tienda",
-      texto: "Cuántos esperan que los confirmes y cuándo vence el primero, cuánto falta cobrar, cuántos pagaron y esperan recoger, y lo cobrado hoy. Toca una cifra y la lista muestra esos pedidos.",
+      texto: "Cuántos esperan que los confirmes y cuándo vence el primero, cuánto falta cobrar, cuántos pagaron y esperan recoger, y lo cobrado hoy (o, si un pedido anulado ya había pagado, lo que falta devolverle). Toca una cifra y la lista muestra esos pedidos.",
     },
     {
       id: "para-enviar",
@@ -459,20 +460,59 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       ancla: "pedido-web.dinero",
       opcional: true,
       titulo: "Lo que pagó",
-      texto: "El total, lo pagado y lo que falta. La boleta sale cuando el pedido queda pagado completo. Si lo anulas, sus prendas vuelven a estar disponibles.",
+      texto: "El total, lo pagado y lo que falta, con cada pago: quién lo registró y si entró a la caja. Uno mal anotado se anula con su motivo (si fue efectivo, sale de la caja abierta de hoy). Si el pedido se anula después de pagar, aquí se registra lo que le devuelves.",
+    },
+    {
+      id: "pagar",
+      ancla: "pedido-web.pagar",
+      opcional: true,
+      titulo: "Registrar un pago",
+      texto: "Cuando el cliente te paga por Yape, Plin, transferencia o en la tienda, lo anotas aquí. Puede ser una parte: si espera una prenda por conseguir, el adelanto lo decides tú y el resto se cobra al recoger.",
+    },
+    {
+      id: "pago-monto",
+      ancla: "pago.monto",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "pedido-web.pagar", siEsta: true }],
+      titulo: "Cuánto pagó",
+      texto: "Viene puesto lo que falta; cámbialo si pagó una parte. Nunca puede pasar lo que falta.",
+    },
+    {
+      id: "pago-medio",
+      ancla: "pago.medio",
+      opcional: true,
+      demostrar: [{ tipo: "clic", ancla: "pago.medio-yape" }],
+      titulo: "Cómo pagó",
+      texto: "Yape, Plin, transferencia o efectivo. El efectivo entra a la caja abierta de la tienda: sin caja abierta, no se cobra en efectivo.",
+    },
+    {
+      id: "pago-operacion",
+      ancla: "pago.operacion",
+      opcional: true,
+      demostrar: [{ tipo: "escribir", ancla: "pago.operacion", texto: "04812793" }],
+      titulo: "El n.º de operación",
+      texto: "El que sale en tu app o en el banco. No se repite: si ya se anotó en otro pedido, te lo dice. Confírmalo en la app, porque una foto se puede editar.",
+    },
+    {
+      id: "pago-acciones",
+      ancla: "pago.acciones",
+      opcional: true,
+      titulo: "Registrarlo",
+      texto: "«Registrar» lo anota a nombre de quien está de turno. Cuando lo pagado llega al total, el pedido queda pagado y pasa a «Por entregar». En la demo no se registra nada.",
     },
     {
       id: "nota",
       ancla: "pedidos-web.nota",
-      preparar: [{ tipo: "escape" }],
+      // Dos: la hoja de pagar (si se abrió) y la del pedido. Un Escape sin nada que cerrar no hace nada.
+      preparar: [{ tipo: "escape" }, { tipo: "escape" }],
       titulo: "Lo que conviene saber",
-      texto: "Separar no toca el stock: la prenda se reserva al confirmar y sale del stock al entregarla. Los pedidos web van aparte de los apartados de la tienda.",
+      texto: "Separar no toca el stock: la prenda se reserva al confirmar y sale del stock al entregarla. Los pagos se anotan dentro de cada pedido (el efectivo, en la caja abierta). Los pedidos web van aparte de los apartados de la tienda.",
     },
     {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes revisar y confirmar un pedido web. Para repasarlo: Mi perfil ▸ Demo ▸ Pedidos web.",
+      texto: "Ya sabes revisar, confirmar y cobrar un pedido web. Para repasarlo: Mi perfil ▸ Demo ▸ Pedidos web.",
     },
   ],
   alSalir: [{ tipo: "escape" }],

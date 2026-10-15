@@ -1,9 +1,20 @@
-// La guía de foco de las hojas de Ventas ▸ Pedidos web (ADR-0284, ADR-0408 act. 8). No agrega reglas: cada «falta» es exactamente
-// lo que `confirmar_pedido_web`, `no_confirmar_pedido_web`, `anular_pedido_web`, `reservar_linea_pedido_web` y `enviar_pedido_web_desde`
-// rechazarían (o lo que apaga el botón), y la prueba lo compara contra `problemaParaConfirmar` y `faltaDeLlegada`.
+// La guía de foco de las hojas de Ventas ▸ Pedidos web (ADR-0284, ADR-0408 act. 8 y 9). No agrega reglas: cada «falta» es exactamente
+// lo que `confirmar_pedido_web`, `no_confirmar_pedido_web`, `anular_pedido_web`, `reservar_linea_pedido_web`, `enviar_pedido_web_desde`,
+// `registrar_pago_pedido_web` y `anular_pago_pedido_web` rechazarían (o lo que apaga el botón), y la prueba lo compara contra
+// `problemaParaConfirmar`, `faltaDeLlegada`, `problemaDelPago` y `problemaParaAnular`.
 
 import type { CampoDeGuia } from "./guia-campos";
 import { faltaDeDecision, faltaDeLlegada, type DecisionLinea, type LineaDetalle } from "./pedidos-web-reglas";
+import {
+  esDigital,
+  problemaDeOperacion,
+  problemaDelMedio,
+  problemaDelMonto,
+  problemaParaAnular,
+  type CampoDelPago,
+  type FormPago,
+  type MotivoAnularPago,
+} from "./pedidos-web-cobro-reglas";
 
 type Responsable = { responsableListo: boolean; responsableMotivo: string | null };
 
@@ -57,4 +68,38 @@ export function camposReservar(h: Responsable): CampoDeGuia[] {
 export function camposEnviar(h: { llega: string; hoy: string } & Responsable): CampoDeGuia[] {
   const falta = faltaDeLlegada(h.llega, h.hoy);
   return [{ id: "llega", nombre: "Cuándo llega", requerido: true, hecho: falta === null, pendiente: falta ?? "" }, responsable(h)];
+}
+
+/** Registrar un pago: cuánto, cómo pagó, su n.º de operación (solo si es digital: el efectivo no lo lleva y la guía no lo pide) y quién
+ *  lo registra. El efectivo sin caja abierta deja el medio «por hacer»: la base no lo cobraría. `rechazo`: lo que la base acaba de
+ *  rechazar de un campo (el n.º que ya se usó en otro pedido): ese campo vuelve a faltar, con la frase de la base, hasta que se cambie. */
+export function camposPago(
+  h: { form: FormPago; falta: number; cajaAbierta: boolean | null; tienda: string; rechazo?: { campo: CampoDelPago; detalle: string } | null } & Responsable,
+): CampoDeGuia[] {
+  const rechazado = (campo: CampoDelPago) => (h.rechazo?.campo === campo ? h.rechazo.detalle : null);
+  const monto = rechazado("monto") ?? problemaDelMonto(h.form.monto, h.falta);
+  const medio = rechazado("medio") ?? problemaDelMedio(h.form.medio, h.cajaAbierta, h.tienda);
+  const campos: CampoDeGuia[] = [
+    { id: "monto", nombre: "Monto", requerido: true, hecho: monto === null, pendiente: monto ?? "" },
+    { id: "medio", nombre: "Cómo pagó", requerido: true, hecho: medio === null, pendiente: medio ?? "" },
+  ];
+  if (esDigital(h.form.medio)) {
+    const operacion = rechazado("operacion") ?? problemaDeOperacion(h.form.medio, h.form.operacion);
+    campos.push({ id: "operacion", nombre: "N.º de operación", requerido: true, hecho: operacion === null, pendiente: operacion ?? "" });
+  }
+  return [...campos, responsable(h)];
+}
+
+/** Anular (o devolver) un pago: por qué y quién lo hace. Si es efectivo, primero la caja abierta de hoy (de ella sale la plata): sin
+ *  caja, falta eso antes que nada. */
+export function camposAnularPago(
+  h: { medio: string; motivo: MotivoAnularPago | null; cajaAbierta: boolean | null; tienda: string } & Responsable,
+): CampoDeGuia[] {
+  const campos: CampoDeGuia[] = [];
+  if (h.medio === "efectivo") {
+    const caja = problemaParaAnular({ medio: h.medio }, "devuelto_al_cliente", h.cajaAbierta, h.tienda);
+    campos.push({ id: "caja", nombre: "Caja abierta", requerido: true, hecho: caja === null, pendiente: caja ?? "" });
+  }
+  campos.push({ id: "motivo", nombre: "Por qué", requerido: true, hecho: h.motivo !== null, pendiente: "Elige por qué se anula." });
+  return [...campos, responsable(h)];
 }
