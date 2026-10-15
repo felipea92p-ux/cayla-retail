@@ -127,6 +127,7 @@ export const PRUEBAS = [
   // dicen; la líder de la sede y el Admin cambian la meta del mes con motivo y con historial que no se borra; cada estado imposible se rechaza;
   // `fn_mi_meta` da solo lo mío. Crea las tablas de horarios de Dynamic DENTRO de cada transacción. ROLLBACK.
   "pruebas:metas-persona",
+  "pruebas:gestion-meta-y-adjunto",
 
   // Ventas por hora y prendas por venta de Rendimiento (fn_rendimiento_detalle): agrupa por día y hora de LIMA, no cuenta prueba, anuladas,
   // otra tienda ni otro día, cuadra con fn_rendimiento_serie, y quien no ve esa tienda recibe 42501. ROLLBACK.

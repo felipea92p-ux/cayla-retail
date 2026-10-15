@@ -30,6 +30,7 @@
     "pruebas:observatorio": "node scripts/pruebas/observatorio.mjs",
     "pruebas:mis-ventas": "node scripts/pruebas/mis_ventas_del_dia.mjs",
     "pruebas:metas-persona": "node scripts/pruebas/metas_persona.mjs",
+    "pruebas:gestion-meta-y-adjunto": "node scripts/pruebas/gestion_meta_y_adjunto.mjs",
     "pruebas:rendimiento-detalle": "node scripts/pruebas/rendimiento_detalle.mjs",
     "pruebas:actividad-inventario": "node scripts/pruebas/actividad_inventario.mjs",
     "pruebas:actividad-productos": "node scripts/pruebas/actividad_productos.mjs",
