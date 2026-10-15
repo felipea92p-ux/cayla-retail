@@ -1373,7 +1373,7 @@ export const GUIA_RECIBIR: Guia = {
       ancla: "recibir.envios-oc",
       opcional: true,
       titulo: "Lo que viene de una orden de compra",
-      texto: "Arriba, lo que Compras mandó a tu sede: cada envío con «Recibir» («Seguir recibiendo» si ya se abrió, también uno que llegó sin aviso) y cada orden que llegó sin guía con «Llegó esta orden», que arma su envío para contarlo. Si tú hiciste la orden, la recibe otra persona.",
+      texto: "Arriba, lo que Compras mandó a tu sede: toca la fila de tu envío o su botón «Recibir» («Seguir recibiendo» si ya se abrió, también uno que llegó sin aviso); cada orden que llegó sin guía va con «Llegó esta orden», que arma su envío para contarlo. Si tú hiciste la orden, la recibe otra persona.",
     },
     {
       // ADR-0393 (decisión 4): sale solo si lo recibido en la sede tiene algo por terminar.

@@ -68,12 +68,14 @@ export function palabrasDelTipo(tipo: TipoComprobante | ""): {
       : "Pon lo que compraste: elige de la orden aquí abajo, o agrega algo que no estaba.",
     sinPoner: papel ? "De la orden, sin poner en este papel" : "De la orden, sin poner en esta compra",
     poner: papel ? "Poner en el papel" : "Poner en la compra",
-    boton: papel ? "Registrar comprobante" : "Registrar sin comprobante",
+    boton: papel ? "Registrar la compra" : "Registrar sin comprobante",
     sinIgv: discriminaIgv(tipo)
       ? null
-      : papel
-        ? `Una ${textoDeTipo(tipo).toLowerCase()} no lleva IGV aparte: el costo del papel es el costo.`
-        : "Sin comprobante no hay IGV: lo que pagaste es el costo.",
+      : tipo === ""
+        ? "Solo una factura suma el IGV aparte: elige qué papel te dieron."
+        : papel
+          ? `Una ${textoDeTipo(tipo).toLowerCase()} no lleva IGV aparte: el costo del papel es el costo.`
+          : "Sin comprobante no hay IGV: lo que pagaste es el costo.",
   };
 }
 
@@ -114,7 +116,7 @@ export type DatosDelComprobante = {
 /** Qué decir cuando se corta la señal al registrar. El pedido pudo llegar a la base y perderse solo la respuesta: reintentar sin cambiar
  *  nada es seguro (el mismo token con los mismos datos devuelve el mismo comprobante, sin repetir nada). */
 export const AVISO_DE_CORTE_COMPROBANTE =
-  "Se cortó la conexión y no sabemos si el comprobante llegó a registrarse. Vuelve a pulsar «Registrar comprobante» sin cambiar nada: si ya se registró, no se repite.";
+  "Se cortó la conexión y no sabemos si el comprobante llegó a registrarse. Vuelve a pulsar «Registrar la compra» sin cambiar nada: si ya se registró, no se repite.";
 
 /** Lo que la base contesta cuando el mismo envío se repite con otros datos (la pantalla ofrece «Recargar»). */
 export function esEnvioConOtrosDatos(mensaje: string | null | undefined): boolean {
@@ -413,6 +415,8 @@ export function sumaDePago(pagos: readonly PagoBorrador[]): { centimos: number; 
   if (pagos.length === 0) return { centimos: null, problema: "Agrega el medio de pago." };
   let suma = 0;
   for (const p of pagos) {
+    // El medio no viene puesto (Felipe 2026-10-13, /formidable): se elige siempre, porque de él sale de qué cuenta se paga.
+    if (!p.metodo) return { centimos: null, problema: "Elige con qué se pagó: efectivo, transferencia, Yape…" };
     const m = leerNumero(p.monto, 2);
     if (m.tipo === "vacio" || (m.tipo === "ok" && m.escalado === 0)) return { centimos: null, problema: "Cada medio de pago necesita un monto mayor a cero." };
     if (m.tipo === "mal") return { centimos: null, problema: "El monto del pago va en soles, con hasta dos decimales." };
@@ -432,8 +436,9 @@ export function problemaDePago(pagos: readonly PagoBorrador[], totalCentimos: nu
 }
 
 /** Los campos de la guía de foco, en el orden de la pantalla. `hecho` y `requerido` son las reglas de la base: la guía no inventa
- *  ninguna. El tipo y la condición arrancan con un valor de fábrica que IMPORTA (cambia el IGV y si hay vencimiento o pago): hasta
- *  que la persona los elige —aunque elija el mismo— son «sugeridos»: la luz pasa por ellos y nunca bloquean (ADR-0284 act. h). */
+ *  ninguna. La pantalla arranca el tipo y la condición VACÍOS (Felipe 2026-10-13, /formidable): vacíos, son lo que falta. Si un
+ *  llamador los trae puestos sin que la persona los haya elegido (`elegido` en falso), son «sugeridos»: la luz pasa por ellos y no
+ *  bloquean (ADR-0284 act. h). */
 export function camposDelComprobante(
   b: BorradorComprobante,
   ctx: ContextoComprobante,
@@ -613,7 +618,7 @@ export function pagoParaBase(
   const salida: PagoParaBase[] = [];
   for (const p of pagos) {
     const monto = leerNumero(p.monto, 2);
-    if (monto.tipo !== "ok" || monto.escalado <= 0) return null;
+    if (!p.metodo || monto.tipo !== "ok" || monto.escalado <= 0) return null;
     const referencia = textoParaBase(p.referencia);
     const cuenta = p.metodo === METODO_SALDO_A_FAVOR ? null : cuentaDe(p);
     salida.push({ monto: monto.escalado / 100, metodo: p.metodo, ...(referencia ? { referencia } : {}), ...(cuenta ? { cuenta_id: cuenta } : {}) });

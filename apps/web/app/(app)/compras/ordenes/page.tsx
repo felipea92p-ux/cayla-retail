@@ -19,6 +19,7 @@ import {
   recienDe,
   textoDestino,
   vacioDeLista,
+  vacioEnOtrasSedes,
   type FiltrosLista,
   type ParamsLista,
 } from "@/lib/ordenes-compra-reglas";
@@ -96,6 +97,11 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
   const filtros = filtrosDeLista(params, { sedeActual: persona.ubicacionId, destinos: idsElegibles });
   const { filas: leidas, falla } = await listarOrdenesCompra(filtros, porEnviar);
   const { filas, cursorSiguiente } = paginaDeOrdenes(leidas);
+  // Lo buscado no está en la sede elegida: se mira si está en otra, para no decir «no existe» de una orden que sí existe (/formidable).
+  const enOtrasSedes =
+    filas.length === 0 && !falla && filtros.q && filtros.destino !== TODAS && !filtros.porEnviar
+      ? vacioEnOtrasSedes(filtros, (await listarOrdenesCompra({ ...filtros, destino: TODAS, antesDe: null })).filas)
+      : null;
 
   const nuevaOrden = (
     <BotonEnlace href="/compras/ordenes/nueva" peso="primario" data-guia="ordenes.nueva">
@@ -231,7 +237,7 @@ export default async function OrdenesCompraPage({ searchParams }: { searchParams
             {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
             <div data-resultados data-guia="ordenes.lista" className="divide-y divide-sand">
               {filas.length === 0 ? (
-                <VacioFiltrado filtros={filtros} nombreDestino={nombreDe(filtros.destino)} nuevaOrden={nuevaOrden} />
+                <VacioFiltrado filtros={filtros} nombreDestino={nombreDe(filtros.destino)} nuevaOrden={nuevaOrden} enOtrasSedes={enOtrasSedes} />
               ) : (
                 <>
                   {/* Los títulos, solo con la tabla en columnas (el `Encabezado` decide por la ventana; esta caja, por la tabla). */}
@@ -356,8 +362,37 @@ function CifraGeneradas({
 }
 
 /** La lista quedó vacía por los filtros o la búsqueda: dice qué se está mirando, deja quitar cada filtro y ofrece el camino. */
-function VacioFiltrado({ filtros, nombreDestino, nuevaOrden }: { filtros: FiltrosLista; nombreDestino: string | null; nuevaOrden: ReactNode }) {
+function VacioFiltrado({
+  filtros,
+  nombreDestino,
+  nuevaOrden,
+  enOtrasSedes,
+}: {
+  filtros: FiltrosLista;
+  nombreDestino: string | null;
+  nuevaOrden: ReactNode;
+  enOtrasSedes: ReturnType<typeof vacioEnOtrasSedes>;
+}) {
   const v = vacioDeLista(filtros, nombreDestino);
+  if (enOtrasSedes) {
+    return (
+      <Vacio
+        icono={<SearchX />}
+        titulo={enOtrasSedes.titulo}
+        filtros={v.filtros}
+        acciones={
+          <>
+            <BotonEnlace href={enOtrasSedes.href} peso="primario" /* unificar-fijo: la acción de un vacío (ronda 5): ahí, ir a otra pantalla es el paso principal */>
+              Ver en todas las sedes
+            </BotonEnlace>
+            <BotonEnlace href={hrefLista(filtros, { q: "" })}>Borrar la búsqueda</BotonEnlace>
+          </>
+        }
+      >
+        {enOtrasSedes.frase}
+      </Vacio>
+    );
+  }
   return (
     <Vacio
       icono={filtros.q ? <SearchX /> : <FunnelX />}
