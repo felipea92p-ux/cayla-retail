@@ -1198,6 +1198,18 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `deshacer_aviso_enviado`; «Pidió BAJA» con `registrar_baja_whatsapp`) + `BeneficiosClubModal.tsx` (líder,
   `guardar_beneficios_club`), vía `lib/club-avisos-acciones.ts`. Reglas puras en `lib/club-avisos-reglas.ts`,
   `lib/club-beneficios-reglas.ts` y la guía en `lib/club-beneficios-guia.ts`.
+- `/clientas/recomendaciones` (ADR-0408, Felipe 2026-10-15; módulo **`recomendaciones`**, nace solo para el líder; migraciones
+  `20261015134000` y `20261015135000`, **sin pegar en producción**): lo que los clientes le recomiendan a CAYLA desde la tienda online,
+  siempre con su nombre. Tercera hija del grupo Clientes (después de Avisos); `app/(app)/clientas/layout.tsx` también la deja pasar y
+  `recomendaciones/layout.tsx` pide `recomendaciones`. Son de todas las tiendas: en CAYLA Global pide elegir una sede, como Avisos.
+  `page.tsx` → RPC `fn_recomendaciones` (todas, con el nombre y el enlace a la ficha; sin nombre si la ficha se anonimizó) →
+  `lib/recomendaciones-reglas.ts` (puro: lectura, estados, filtros, cifras, lo que la base dice) → `components/recomendaciones/
+  RecomendacionesPantalla.tsx` (cifras que filtran, buscador, píldoras de estado y tienda, `?r=<id>` abre la hoja) +
+  `RecomendacionHoja.tsx`: «Marcar como leída» (`marcar_recomendacion_leida`), «Responder» (`responder_recomendacion`, de 2 a 400 letras,
+  una sola vez: la misma respuesta otra vez no hace nada; otra encima, `recomendacion_ya_respondida`) y «Archivar»/«Sacar del archivo»
+  (`archivar_recomendacion`, con «Deshacer»). Las tres firman con el responsable (`fn_actor_persona_id(true)`) y anotan su línea en
+  Actividad (sin el texto ni el nombre). La guía de la respuesta, en `lib/recomendaciones-guia.ts`. Prueba en la base:
+  `pnpm pruebas:recomendaciones-web` (con mutantes).
 - `GET /api/inventario/espacio-piso` (cron semanal, lunes 08:00 UTC = 03:00 Lima, `vercel.json`; ADR-0329) → `crearClienteAdmin()` → RPC `fn_registrar_espacio_piso`
   (solo el servidor: toma la foto de hoy del espacio del piso de cada tienda con piso de venta; todo o nada e idempotente por día). Registrada en `RUTAS_DE_CRON`
   (`lib/rutas-cron.ts`); sin `CRON_SECRET` o con otra clave, 401. Si falla, esa semana queda como hueco y la pestaña Historia lo muestra como hueco, no como cero.
@@ -1924,6 +1936,20 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   «Tus favoritos»; `tienda_mi_club` sí los trae todos, y «Mi cuenta» dice cuántos ya no están en la tienda online). Una espera anotada
   en una tienda que después se escondió de la web se lee como «cualquier tienda» en «Mi cuenta», en el aviso al entrar, en lo guardado
   y en el ERP (`fn_tienda_sede_elegida`). Prueba en la base: `pnpm pruebas:tienda-club` (secciones F y T).
+- `/recomendaciones` (ADR-0408, Felipe 2026-10-15; con cuenta: `lib/sesion.ts`; `20261015134000`, **sin pegar en producción**): el
+  cliente le escribe a CAYLA lo que quiera recomendar, sobre una tienda de la web o «CAYLA en general», y ve lo que ya mandó con la
+  respuesta. El enlace va en el pie con cuenta (`components/Pie.tsx`) y en el menú de la cabecera (`CabeceraConCuenta.tsx`). `page.tsx` →
+  `lib/recomendaciones-servidor.ts` `leerMisRecomendaciones` → `retail.tienda_mis_recomendaciones(usuario)` (las suyas, su estado para
+  el cliente —recibida, leída o respondida— y cuántas lleva hoy), `leerMiCuentaEnBase` (su nombre, que va con la recomendación) y
+  `leerSedes()`; «Enviar» →
+  `components/recomendaciones/FormularioRecomendacion.tsx` → `app/acciones/recomendaciones.ts` `enviarRecomendacion` →
+  `recomendarEnBase` → `retail.tienda_recomendar(usuario, texto, tienda, marca)`: limpia el texto (de 10 a 1000 letras, contadas como
+  el contador de la página, `lib/recomendaciones.ts`), pone el tope (3 por día de Lima, `fn_recomendaciones_tope`) y no duplica (la
+  marca del borrador: dos toques o un reintento devuelven la misma). Responde `{estado}`, nunca un error de negocio. Lo que ya mandó lo
+  dibuja `components/recomendaciones/MisRecomendaciones.tsx`. Tabla `recomendaciones_web` (cuenta y ficha; sin políticas: solo sus
+  funciones). Al anonimizar la ficha (disparador `clientas_recomendaciones_al_anonimizar`), sus recomendaciones se quedan, pero el ERP
+  ya no la nombra y del texto y la respuesta se quitan su nombre, DNI, celular y correo (`[…]`). Prueba en la base:
+  `pnpm pruebas:recomendaciones-web`.
 - `/looks` y `/looks/[id]` («Arma tu look», actividad 11; grupo `(catalogo)`, con cuenta) → `lib/looks-servidor.ts` `leerLooks(sede)` y
   `leerLook(id, sede)` → `retail.tienda_looks(p_sede)` y `retail.tienda_look(p_id, p_sede)`: los looks encendidos con TODAS sus prendas a
   la vista, en su orden, con la lámina (x, y, ancho y giro de cada prenda), lo que vale cada prenda en SU color en la tienda del catálogo
