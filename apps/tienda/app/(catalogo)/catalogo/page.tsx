@@ -87,7 +87,7 @@ export default async function Catalogo({ searchParams }: Props) {
     <MarcoCatalogo
       prendas={enLaTienda}
       sede={sede}
-      actual={lista === "todo" || lista === "favoritos" ? null : lista}
+      actual={lista === "todo" ? null : lista}
       filtro={[
         { nombre: "Todas", href: href({ sede: null }), actual: elegida === null },
         ...sedes.map((s) => ({ nombre: s.nombre, href: href({ sede: claveDeSede(s.nombre) }), actual: elegida?.id === s.id })),

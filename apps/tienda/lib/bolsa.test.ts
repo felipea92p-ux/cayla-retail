@@ -278,12 +278,22 @@ describe("las marcas que dice cada prenda", () => {
 });
 
 describe("lo que dice «Separar» cuando no separa", () => {
-  it("con 3 separaciones esperando confirmación (el tope de la base): lo dice claro y lleva a «Mis pedidos»", () => {
-    const r = respuestaDeSeparar("tienda_separar_tope");
+  it("con el tope de separaciones esperando confirmación: dice el número que manda la base y lleva a «Mis pedidos»", () => {
+    const r = respuestaDeSeparar("tienda_separar_tope", "3");
     expect(r.mensaje).toBe(
       "Ya tienes 3 separaciones esperando que la tienda confirme. Cuando te confirmen una (o se cierre), puedes separar otra.",
     );
     expect(r.enlace).toEqual({ texto: "Ver mis pedidos", href: "/cuenta/pedidos" });
+    // El número es el de la base, no uno escrito en la tienda.
+    expect(respuestaDeSeparar("tienda_separar_tope", "5").mensaje).toMatch(/^Ya tienes 5 separaciones/);
+    // Sin un número que se pueda leer, la frase no inventa uno.
+    for (const detalle of [null, "", "tres", "0", "-1", "999"]) {
+      const sin = respuestaDeSeparar("tienda_separar_tope", detalle);
+      expect(sin.mensaje).toBe(
+        "Ya tienes el máximo de separaciones esperando que la tienda confirme. Cuando te confirmen una (o se cierre), puedes separar otra.",
+      );
+      expect(sin.enlace).toEqual({ texto: "Ver mis pedidos", href: "/cuenta/pedidos" });
+    }
   });
 
   it("cada negativa conocida dice su frase, sin camino aparte; lo que la base no explica, «no pudimos separar ahora»", () => {

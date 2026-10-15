@@ -175,7 +175,7 @@ export async function separar(_previo: EstadoSeparar, datos: FormData): Promise<
   const r = await separarEnBase(sesion.usuarioId, sede, vistas, marca);
   if (!r.ok) {
     refresh();
-    return { ...respuestaDeSeparar(r.hint), marca };
+    return { ...respuestaDeSeparar(r.hint, r.detalle), marca };
   }
   await guardarBolsa(sinPrendas(bolsa));
   redirect(`/bolsa/separado/${r.codigo}`);

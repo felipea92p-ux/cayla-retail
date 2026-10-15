@@ -113,7 +113,7 @@ export function FichaPrenda({
             talla={tallaElegida}
             sedeId={sedeElegida}
             sedeNombre={tiendaElegida?.nombre ?? null}
-            pedido={anotadas.has(clave)}
+            pedido={anotadas.has(clave) || (boton.tipo === "avisame" && anotadas.has(claveEspera(boton.varianteId, null)))}
             alAnotar={() => setAnotadas((antes) => new Set(antes).add(clave))}
           />
         ) : (
