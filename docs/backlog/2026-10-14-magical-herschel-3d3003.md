@@ -15,8 +15,10 @@
       `devoluciones.token_cliente` + índice único, `p_token` al final, `fn_intento_con_huella`, devuelve la devolución ya guardada) y
       `DevolucionesFlujo.tsx` manda la marca (viaja con la devolución a medio armar al cambiar de sede); el aviso de un corte ya no se
       titula «No se registró» sino «No sabemos si se registró». Prueba `pnpm pruebas:crear-devolucion-token` (7 casos, en el CI).
-- [ ] **Pegar `20261015162000` en producción ANTES de publicar la web.** Una web nueva contra la base sin la migración falla con «Could
-      not find the function» (`datos:comparar` ya lo marca); una web vieja sigue funcionando con la base nueva.
+- [x] **`20261015162000` EN PRODUCCIÓN el 2026-10-15** (pegada por Claude con OK de Felipe, por el MCP; versión registrada
+      `20261015160914`). Antes de pegar se comprobó que la lógica viva de producción era la misma que la local (solo cambiaban dos
+      comentarios); después, que la función, la columna y el índice tienen en producción la misma huella de `deriva.sql` que en local.
+- [ ] El diccionario (`docs/datos/generado/`) recoge `devoluciones.token_cliente` y la firma nueva con el próximo volcado de producción.
 - [ ] **`p_token` en las otras cinco que pueden duplicar:** `registrar_consumo_insumo`, `devolver_insumo_de_produccion`, `cerrar_linea_compra`,
       `reasignar_reparto_compra`, `crear_proforma` (en ese orden). OK de Felipe.
 - [ ] **Decidir la marca por petición (`x-intento` + `db_pre_request`)** para las 141 funciones sin marca: escribir el ADR, primero en modo
