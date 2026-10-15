@@ -498,7 +498,7 @@ export function TodosVista({
                         <p className="text-xs text-tinta/60 tabular-nums">
                           {ver.celular && a.celular && `${formatoCelular(a.celular)} · `}<span className="font-mono">{a.codigo}</span>
                           {ver.estante && conEstante && a.estante && (
-                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-[10.5px] text-tinta/80"><Archive className="h-2.5 w-2.5" aria-hidden />{a.estante}</span>
+                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-[10.5px] text-tinta/80"><Archive className="h-3 w-3" aria-hidden />{a.estante}</span>
                           )}
                         </p>
                         {ver.asesora && a.asesora && <p className="text-[11.5px] text-tinta/55">atendió {a.asesora}</p>}

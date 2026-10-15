@@ -201,6 +201,16 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   proveedor): lo dicen el titular y el globito. Migrado el mismo día: 4 líneas, 11 grupos de barras, 5 barras a escala y la dona; deuda 0.
   Se quedan por su decisión «Cómo cerró cada día» de Caja (Felipe, 2026-10-12), las tarjetas de Facturación, Finanzas, Análisis y el
   Observatorio. Registros: `grafico.linea.md`, `grafico.barras.md`, `grafico.escala.md` y la actualización de `grafico.barra.md`.
+- **2026-10-15 · ronda 15, los íconos, el globito con número, «Ver más», «Deshacer» y «Buscar», mirando y tocando** (fuentes en
+  `docs/unificar/rondas/15/`). Felipe eligió P1 en las cinco: **los íconos** con el grosor de fábrica de lucide (2) y cuatro tamaños según
+  el lugar (12 en una insignia, 14 junto a un texto, 16 en un botón o un campo, 20 junto a un título o en una tecla grande); la marca sobre un
+  punto lleno lleva 3, como la casilla, y un ícono grande (24 px o más) 1,5, como el de un vacío, las dos con su `unificar-fijo`; **el
+  globito** de las pestañas en todas partes (`<Globito>`; `Insignia` pasa a ser un `<Globito pide>`): gris suave, ámbar suave si pide algo,
+  lleno con su anillo en la esquina, crema dentro de un botón negro y rojo solo para un error; **«Ver más»**, la franja al pie de la lista de
+  Inicio de Almacén con las filas que bajan en su lugar (`<BotonVerMas>` + `<FilasDeMas>`); **«Deshacer»**, el enlace con la flecha curva
+  (`<BotonDeshacer>`); y **«Buscar»** al apretar, el secundario con la lupa (`<BotonBuscar>`). Migrado el mismo día: 89 archivos de íconos, 9
+  globitos, 4 «Ver más», 7 «Deshacer» y 5 «Buscar»; deuda 0. El marco (lateral y cabecera) dibuja con 1,5 y queda para decidir aparte.
+  Registros: `icono.md`, `contador.md`, `accion.siguiente.md`, `accion.deshacer.md` y `accion.buscar.md`.
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en

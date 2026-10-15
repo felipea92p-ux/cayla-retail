@@ -11,7 +11,7 @@
     ],
     "components/EditarMarcaModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre de la marca\")}»",
-      "button «Deshacer»",
+      "BotonDeshacer «) : sePuedeQuitar(p) ? (»",
       "button «Quitar»",
       "button «Quitar» #2",
       "button «Quitar» #3",

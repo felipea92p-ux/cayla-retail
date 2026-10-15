@@ -737,41 +737,6 @@
     transform: translateX(4px);
     color: var(--color-rojo);
   }
-  .ia-mas {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 550ms var(--ease-cayla);
-  }
-  .ia-mas.ia-on {
-    grid-template-rows: 1fr;
-  }
-  .ia-mas > div {
-    overflow: hidden;
-  }
-  .ia-vm {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 13px;
-    border-top: 1px solid var(--ia-t08);
-    color: var(--color-taupe);
-    font-size: 13.5px;
-    font-weight: 500;
-    transition: background 260ms var(--ease-cayla);
-  }
-  .ia-vm:hover {
-    background: var(--ia-t05);
-  }
-  .ia-vm svg.ia-ic {
-    width: 15px;
-    height: 15px;
-    transition: transform 400ms var(--ease-cayla);
-  }
-  .ia-vm.ia-on svg.ia-ic {
-    transform: rotate(180deg);
-  }
   .ia-dial {
     display: flex;
     align-items: center;

@@ -198,7 +198,7 @@ export function PuenteUnion({
             <div className="vsr-formas" data-guia="regularizar.formas" role="group" aria-label="Cómo estaba esta prenda en el sistema">
               {(["ya_registrada", "llego_nueva"] as const).map((f) => (
                 <button key={f} type="button" className="vsr-forma" aria-pressed={forma === f} onClick={() => onForma(f)} disabled={guardando || hecho}>
-                  {f === "ya_registrada" ? <Tag aria-hidden strokeWidth={1.6} /> : <Box aria-hidden strokeWidth={1.6} />}
+                  {f === "ya_registrada" ? <Tag aria-hidden /> : <Box aria-hidden />}
                   <span>
                     <b>
                       {FORMAS[f].titulo}

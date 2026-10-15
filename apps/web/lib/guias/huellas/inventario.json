@@ -170,10 +170,10 @@
     "components/existencias/ParaHoy.tsx": [
       "Link «{contenido}»",
       "button «{contenido}»",
-      "button «→() => setAbiertoMovil((v) => !v)»",
       "button «Ver cuáles»",
       "Boton «)»",
-      "button «{todas ? \"Ver menos\" : `Ver ${ocultas}»"
+      "button «→() => setAbiertoMovil((v) => !v)»",
+      "BotonVerMas «)»"
     ],
     "components/existencias/PieTarjeta.tsx": [
       "button «existencias.colgar»",

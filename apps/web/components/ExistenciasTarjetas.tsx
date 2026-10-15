@@ -125,7 +125,7 @@ function ColumnasTallas({
               {(marca === "cumple" || marca === "principal") &&
                 (Simbolo ? (
                   <span aria-hidden className={`grid h-3.5 w-3.5 place-items-center rounded-full bg-papel shadow-[0_0_0_1.25px_currentColor] ${TONO_INSIGNIA[tono]}`}>
-                    <Simbolo aria-hidden className="h-2.5 w-2.5" strokeWidth={2.6} />
+                    <Simbolo /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden className="h-2.5 w-2.5" strokeWidth={3} />
                   </span>
                 ) : (
                   <i aria-hidden className={`h-1.5 w-1.5 rounded-full ${TONO_PUNTO[tono]}`} />

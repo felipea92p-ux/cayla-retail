@@ -23,7 +23,7 @@ function BotonAccion({ icono: Icono, texto, onClick, peligro = false }: { icono:
         peligro ? "border-sand text-rojo hover:border-rojo/50" : "border-sand text-tinta hover:border-taupe"
       }`}
     >
-      <Icono aria-hidden className={`h-5 w-5 ${peligro ? "text-rojo" : "text-taupe"}`} strokeWidth={1.6} />
+      <Icono aria-hidden className={`h-5 w-5 ${peligro ? "text-rojo" : "text-taupe"}`} />
       {texto}
     </button>
   );

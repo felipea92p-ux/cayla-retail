@@ -323,7 +323,7 @@ export function OrdenPanel({
                     <ul className="mt-3 space-y-1.5 text-[13px]">
                       {costo.partes.map((p) => (
                         <li key={p.clave} className="flex items-center gap-2.5">
-                          <MuestraTramo clase={COLOR_PARTE[p.clave]} className="h-2.5 w-2.5 rounded-sm" />
+                          <MuestraTramo /* unificar-fijo: el cuadrito de color de una leyenda, no un ícono */ clase={COLOR_PARTE[p.clave]} className="h-2.5 w-2.5 rounded-sm" />
                           <span className="text-tinta/80">{p.etiqueta}</span>
                           <span className="ml-auto tabular-nums text-tinta/75">{soles(p.valor)}</span>
                         </li>

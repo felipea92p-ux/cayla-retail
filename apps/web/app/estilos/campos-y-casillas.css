@@ -137,7 +137,7 @@
     padding: 0 0.75rem;
     border-bottom: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent);
   }
-  .combo-buscar svg { width: 15px; height: 15px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); } /* contraste: gráfico sobre papel */
+  .combo-buscar svg { width: 16px; height: 16px; flex-shrink: 0; color: color-mix(in srgb, var(--color-tinta) 50%, transparent); } /* contraste: gráfico sobre papel */
   .combo-buscar input {
     min-width: 0;
     flex: 1;
@@ -182,7 +182,7 @@
     cursor: pointer;
   }
   .pildora-filtro[data-quitable] .pildora-filtro-boton { padding-right: 4px; }
-  .pildora-filtro-icono { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.6; transition: opacity 220ms; }
+  .pildora-filtro-icono { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.6; transition: opacity 220ms; }
   .pildora-filtro:hover .pildora-filtro-icono,
   .pildora-filtro[data-puesta] .pildora-filtro-icono { opacity: 0.8; }
   .pildora-filtro[data-puesta] .pildora-filtro-nombre { opacity: 0.75; }
@@ -375,7 +375,7 @@
     transform: translateX(-4px);
     transition: opacity 200ms var(--ease-cayla), transform 200ms var(--ease-cayla);
   }
-  .sugerencia-tecla svg { width: 11px; height: 11px; }
+  .sugerencia-tecla svg { width: 12px; height: 12px; }
   .sugerencia[data-activa] .sugerencia-tecla { opacity: 1; transform: none; }
 }
 

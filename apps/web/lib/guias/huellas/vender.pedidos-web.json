@@ -57,7 +57,7 @@
       "BotonAncla «Escribirle por WhatsApp» #4",
       "BotonAncla «WhatsApp» #4",
       "Boton «pedido-web.anular-pagado»",
-      "button «Deshacer»",
+      "BotonDeshacer «) : aqui ? (»",
       "button «(sin nombre)» #2",
       "SegmentoDeslizante «{`Qué hacer con ${l.referencia}»",
       "button «{f.etiqueta}»",

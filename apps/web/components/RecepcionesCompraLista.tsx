@@ -131,7 +131,7 @@ export function RecepcionesCompraLista({
         </span>
         <span className={celda("izq", "overflow-visible")}>
           <Chip tono={completa ? "verde" : "ambar"}>
-            {completa && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" strokeWidth={2.4} style={{ "--d": "0ms" } as CSSProperties} />}
+            {completa && <Check aria-hidden className="check-trazo -ml-0.5 mr-1 inline h-3 w-3" style={{ "--d": "0ms" } as CSSProperties} />}
             {completa ? "Completa" : `Faltan ${r.faltante}`}
           </Chip>
         </span>

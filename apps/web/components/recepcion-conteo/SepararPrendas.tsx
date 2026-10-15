@@ -155,7 +155,7 @@ export function SepararPrendas({
         {descritas.map((n) => (
           <li key={n.descripcion} className="rc-fila-sep" data-nueva>
             <span className="rc-cat-ic" data-tamano="chico" aria-hidden>
-              <Sparkles className="h-[18px] w-[18px]" />
+              <Sparkles className="h-4 w-4" />
             </span>
             <span className="min-w-0">
               <b className="block truncate text-[14.5px] text-tinta">{n.descripcion}</b>
@@ -171,7 +171,7 @@ export function SepararPrendas({
 
         <li className="rc-fila-sep" data-nueva>
           <span className="rc-cat-ic" data-tamano="chico" aria-hidden>
-            <Sparkles className="h-[18px] w-[18px]" />
+            <Sparkles className="h-4 w-4" />
           </span>
           <span className="min-w-0">
             <b className="block text-[14.5px] text-tinta">Nuevas, no están en el catálogo</b>

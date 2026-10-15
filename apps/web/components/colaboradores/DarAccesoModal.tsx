@@ -142,7 +142,7 @@ export function DarAccesoModal({
                           <span className="block truncate text-xs text-tinta/60">{[d.sede, d.correo].filter(Boolean).join(" · ")}</span>
                         </span>
                         <span className={`grid h-6 w-6 place-items-center rounded-full ${marcada ? "bg-tinta text-crema" : "border-2 border-sand text-transparent"}`}>
-                          <Check aria-hidden className="h-3.5 w-3.5" strokeWidth={2.5} />
+                          <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden className="h-3.5 w-3.5" strokeWidth={3} />
                         </span>
                       </button>
                     </li>

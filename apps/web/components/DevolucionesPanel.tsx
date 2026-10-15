@@ -398,7 +398,7 @@ export function DevolucionesPanel({
           }}
           className="flex h-14 flex-1 items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.98]"
         >
-          <ScanLine size={18} aria-hidden />
+          <ScanLine size={20} aria-hidden />
           Escanear prenda
         </button>
         <button

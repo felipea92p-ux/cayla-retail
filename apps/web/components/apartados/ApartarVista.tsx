@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
@@ -62,7 +63,6 @@ import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { apartadoArmado, avisosDelApartado } from "@/lib/apartados-cambio-de-sede";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Casilla } from "@/components/ui/Casilla";
-import { Boton } from "@/components/ui/campos";
 
 type Linea = { varianteId: string; cantidad: number };
 
@@ -911,9 +911,7 @@ export function ApartarVista({
                           etiqueta={conClienta ? "Buscar al cliente por DNI o celular" : "Buscar al cliente por DNI"}
                           className="min-w-0 flex-1"
                         />
-                        <Boton cargando={buscandoClienta} textoCargando="Buscando…" type="button" onClick={buscarFicha} disabled={buscandoClienta || !largosBuscables.includes(soloDigitos(clientaQ).length)} className="h-10 shrink-0">
-                          Buscar
-                        </Boton>
+                        <BotonBuscar cargando={buscandoClienta} onClick={buscarFicha} disabled={buscandoClienta || !largosBuscables.includes(soloDigitos(clientaQ).length)} className="h-10 shrink-0" />
                       </div>
                     )}
                     {sinFicha === "padron" && (

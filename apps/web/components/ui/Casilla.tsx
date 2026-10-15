@@ -40,8 +40,8 @@ export function Casilla({
         className="casilla-input"
       />
       <span aria-hidden className="casilla-fondo" />
-      <Check aria-hidden strokeWidth={3} className="casilla-marca casilla-visto" />
-      <Minus aria-hidden strokeWidth={3} className="casilla-marca casilla-medio" />
+      <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden strokeWidth={3} className="casilla-marca casilla-visto" />
+      <Minus /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden strokeWidth={3} className="casilla-marca casilla-medio" />
     </span>
   );
 }

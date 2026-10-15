@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { Modal } from "@/components/ui/Modal";
@@ -134,9 +135,7 @@ export function EditarMarcaModal({
                       </span>
                     </span>
                     {quitado ? (
-                      <button type="button" onClick={() => cambiar(() => setQuitar((q) => q.filter((x) => x !== p.id)))} className={accion}>
-                        Deshacer
-                      </button>
+                      <BotonDeshacer onClick={() => cambiar(() => setQuitar((q) => q.filter((x) => x !== p.id)))} className="shrink-0 text-xs" />
                     ) : sePuedeQuitar(p) ? (
                       <button type="button" onClick={() => cambiar(() => setQuitar((q) => [...q, p.id]))} className={accion}>
                         Quitar

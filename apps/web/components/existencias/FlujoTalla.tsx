@@ -124,7 +124,7 @@ function LadoDelViaje({ lado, destino = false }: { lado: LadoMovido; destino?: b
   return (
     <div className={`rounded-2xl border px-3 py-2.5 text-center ${destino ? "border-verde/40 bg-verde/[0.08]" : "border-sand bg-crema"}`}>
       <p className="flex items-center justify-center gap-1.5 text-[12.5px] text-taupe">
-        <Ico aria-hidden className="h-3.5 w-3.5" strokeWidth={1.6} />
+        <Ico aria-hidden className="h-3.5 w-3.5" />
         {lado.lugar === "piso" ? "En el piso" : "Almacén"}
       </p>
       <b className={`block font-display text-[38px] font-medium leading-[1.05] tabular-nums ${destino ? "text-verde" : "text-tinta"}`}>{lado.despues}</b>
@@ -650,7 +650,7 @@ export function FlujoTalla({
                   <LadoDelViaje lado={viaje.de} />
                   <span aria-hidden className="flex flex-col items-center gap-1 text-taupe">
                     <b className="rounded-full bg-tinta px-2.5 py-0.5 text-[13px] text-papel tabular-nums">{d.n ?? 0}</b>
-                    <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
+                    <ArrowRight className="h-4 w-4" />
                   </span>
                   <LadoDelViaje lado={viaje.a} destino />
                 </div>
@@ -1101,7 +1101,7 @@ export function FlujoTalla({
             className={`flex-[2] ${completo ? "hilo-seguir" : ""}`}
           >
             <span className="flex items-center justify-center gap-2">
-              {ultimo && <IconoFinal aria-hidden className="-my-1 h-[18px] w-[18px]" strokeWidth={1.6} />}
+              {ultimo && <IconoFinal aria-hidden className="-my-1 h-4 w-4" />}
               {ultimo ? (tipo === "danada" ? textoBotonReportar(d.n ?? 0, incierto) : incierto ? "Confirmar de nuevo" : verboFinal(tipo, d, nombreSede(d.sedeId))) : "Continuar"}
               {!ultimo && <ArrowRight aria-hidden className="-my-1 h-4 w-4" />}
               <kbd className="ml-1 hidden rounded border border-crema/30 px-1 text-[11px] font-normal text-crema/80 sm:inline">↵</kbd>

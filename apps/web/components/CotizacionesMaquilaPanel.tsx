@@ -44,7 +44,7 @@ export function CotizacionesMaquilaPanel({ cotizaciones, categorias, hoy }: { co
               prenda: la más reciente. Renovar es cargar una cotización nueva; ninguna se edita para &ldquo;actualizarla&rdquo;.
             </p>
           </div>
-          <BotonCompacto variante="primario" data-guia="prod-cotizaciones.nueva" icono={<Plus aria-hidden strokeWidth={1.75} />} onClick={() => setCreando(true)}>
+          <BotonCompacto variante="primario" data-guia="prod-cotizaciones.nueva" icono={<Plus aria-hidden />} onClick={() => setCreando(true)}>
             Nueva cotización
           </BotonCompacto>
         </div>

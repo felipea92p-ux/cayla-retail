@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { MessageCircle, PackageSearch, ReceiptText, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
@@ -868,9 +869,7 @@ function LineaPorConfirmar({
       {quitada ? (
         <p className="flex flex-wrap items-center gap-x-3 text-[13px] text-taupe">
           Se quita del pedido al confirmar (sale del total). Avísale al cliente por WhatsApp.
-          <button type="button" className="btn-enlace" disabled={deshabilitado} onClick={() => onDecision(decisionDeFabrica(l, tiendaId))}>
-            Deshacer
-          </button>
+          <BotonDeshacer disabled={deshabilitado} onClick={() => onDecision(decisionDeFabrica(l, tiendaId))} />
         </p>
       ) : aqui ? (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px]">

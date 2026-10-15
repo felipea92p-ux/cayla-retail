@@ -779,7 +779,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
   return (
     <div className="grid grid-cols-1 divide-y divide-sand rounded-xl border border-sand bg-papel sm:grid-cols-3 sm:divide-x sm:divide-y-0">
       <div className={bloque}>
-        <UserRound aria-hidden strokeWidth={1.5} className="h-8 w-8 shrink-0 text-taupe" />
+        <UserRound aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
         <div className="min-w-0 flex-1">
           <p className="text-xs text-tinta/70">Responsable</p>
           {mostrarCombo ? (
@@ -802,7 +802,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
         </div>
       </div>
       <div className={bloque}>
-        <Clock aria-hidden strokeWidth={1.5} className="h-8 w-8 shrink-0 text-taupe" />
+        <Clock aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
         <div className="min-w-0">
           <p className="text-xs text-tinta/70">Inicio del conteo</p>
           <p className="text-base font-medium tabular-nums text-tinta">{textoInicio(creadoEn)}</p>

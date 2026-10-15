@@ -67,12 +67,12 @@ export function PieTarjeta({
             boton.tipo === "colgar" && boton.sugerido ? "border-ambar/40 bg-ambar/[0.12] text-ambar-profundo hover:border-ambar/60" : "border-tinta/15 bg-papel text-tinta hover:border-tinta/30"
           }`}
         >
-          {boton.tipo === "colgar" ? <IconoPercha aria-hidden className="h-4 w-4 shrink-0" strokeWidth={1.7} /> : <Eye aria-hidden className="h-4 w-4 shrink-0" strokeWidth={1.7} />}
+          {boton.tipo === "colgar" ? <IconoPercha aria-hidden className="h-4 w-4 shrink-0" /> : <Eye aria-hidden className="h-4 w-4 shrink-0" />}
           <span className="truncate">{boton.etiqueta}</span>
         </button>
       ) : (
         <span className={`flex min-w-0 flex-1 items-center gap-1.5 pl-0.5 text-[12.5px] font-semibold ${boton.tipo === "agotada" ? "text-rojo-profundo" : boton.tipo === "sinColgar" ? "text-ambar-profundo" : "text-verde"}`}>
-          {boton.tipo === "ok" && <Check aria-hidden className="h-[15px] w-[15px] shrink-0" strokeWidth={2.2} />}
+          {boton.tipo === "ok" && <Check aria-hidden className="h-4 w-4 shrink-0" />}
           <span className="truncate">{boton.etiqueta}</span>
         </span>
       )}
@@ -126,7 +126,7 @@ export function PieTarjeta({
                 }}
                 className={`flex w-full items-start gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] outline-none transition-colors focus-visible:bg-hueso ${apagada ? "cursor-not-allowed text-tinta/45" : "text-tinta hover:bg-hueso"}`}
               >
-                <Ico aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" strokeWidth={1.6} />
+                <Ico aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
                 <span className="min-w-0">
                   {o.etiqueta}
                   {o.motivo && <span className="mt-0.5 block text-[11.5px] leading-snug text-tinta/55">{o.motivo}</span>}

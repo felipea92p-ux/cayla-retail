@@ -286,7 +286,7 @@ function SeccionHoy({ hoy, esLider, miMeta }: { hoy: HoyDeLaSede; esLider: boole
       <section data-guia="inicio.hoy">
         <Etiqueta>{titulo}</Etiqueta>
         <div className="card-cayla flex items-start gap-3 px-4 py-3.5 text-sm text-tinta/80 sm:px-5">
-          <Icono clave="caja" className="mt-0.5 size-[18px] text-tinta/60" />
+          <Icono clave="caja" className="mt-0.5 size-4 text-tinta/60" />
           <p>
             <span className="font-semibold text-tinta">{esLider ? "Aún sin ventas hoy." : "Aún no tienes ventas hoy."}</span> {caja}
             {esLider && r.meta ? ` · meta ${formatoSoles(r.meta.meta)}` : ""}.
@@ -429,7 +429,7 @@ function Accesos({ accesos }: { accesos: AccesoRapido[] }) {
             href={a.href}
             className="card-cayla flex flex-col items-center gap-1.5 px-1.5 py-3 text-center text-xs text-tinta transition-colors hover:bg-tinta/5 hover:text-rojo"
           >
-            <Icono clave={a.icono} className="size-[22px]" />
+            <Icono clave={a.icono} className="size-5" />
             {a.etiqueta}
           </Link>
         ))}

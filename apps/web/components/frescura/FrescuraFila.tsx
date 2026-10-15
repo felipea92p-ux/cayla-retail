@@ -54,7 +54,7 @@ function QueHacer({ fila, decision }: { fila: FilaVista; decision: FilaDeDecisio
     <div className="flex flex-col items-start gap-1.5">
       {decision && <Decision d={decision} />}
       <span className="flex items-start gap-1.5 text-[13.5px] leading-snug">
-        <Icono aria-hidden strokeWidth={1.6} className="mt-0.5 h-3.5 w-3.5 shrink-0 text-taupe" />
+        <Icono aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0 text-taupe" />
         <span>{primera.texto}</span>
       </span>
       {otras.length > 0 && <span className="pl-5 text-[12.5px] text-taupe">y {otras.length} más en el detalle</span>}

@@ -208,7 +208,7 @@ export function HojaDeCobro({
                     {varios && pago && indice === libre && <span className="hoja-cobro-resto">Resto</span>}
                     {pago && (
                       <span className="hoja-cobro-marca">
-                        <Check className="h-3.5 w-3.5" strokeWidth={2.8} aria-hidden />
+                        <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
                       </span>
                     )}
                     <span className="hoja-cobro-icono">{iconoMetodo(m, "h-full w-full")}</span>
@@ -401,7 +401,7 @@ function CabezaPaso({
           hecho ? "border-verde bg-verde text-crema" : "border-rojo text-rojo-profundo"
         }`}
       >
-        {hecho ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : numero}
+        {hecho ? <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-3.5 w-3.5" strokeWidth={3} aria-hidden /> : numero}
       </span>
       <h3 className="label-cayla whitespace-nowrap text-[15px] font-bold text-tinta">{/* unificar-fijo: la cabeza numerada de un paso del cobro, con su pista y su estado */}{titulo}</h3>
       {pista && (

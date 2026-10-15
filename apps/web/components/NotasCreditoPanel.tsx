@@ -320,7 +320,7 @@ export function NotasCreditoPanel({ filas: crudas, saldoPorProveedor, movimiento
               <span className="anim-entra inline-flex items-center gap-2 rounded-full border border-tinta/25 py-1 pl-3 pr-1.5 text-[12.5px] text-tinta">
                 {ETIQUETA_BANDA[banda]}
                 <button type="button" onClick={() => setBanda(null)} aria-label="Quitar filtro de antigüedad" className="grid h-[18px] w-[18px] place-items-center rounded-full text-tinta/55 transition-colors hover:bg-tinta hover:text-crema">
-                  <X aria-hidden className="h-2.5 w-2.5" />
+                  <X aria-hidden className="h-3 w-3" />
                 </button>
               </span>
             </div>

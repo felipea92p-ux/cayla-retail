@@ -25,7 +25,7 @@
       "Boton «{guia.frase ?? undefined}»",
       "ComboResponsable «{volverAVer}» #3",
       "Boton «{responsable.motivo ?? undefined}»",
-      "button «{todas ? \"Ver menos\" : `Ver las ${total}»"
+      "BotonVerMas «)»"
     ],
     "components/ClientasPanel.tsx": [
       "BotonDescargar «Solo un Admin puede descargar la lista completa»",

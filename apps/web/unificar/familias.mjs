@@ -1169,6 +1169,107 @@ export const DECISIONES = {
     "deuda": [],
     "excepciones": []
   },
+  "icono": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/icono.md",
+    "elegida": "P1 en las dos preguntas · el grosor de fábrica de lucide (2) en todos, y cuatro tamaños según el lugar: 12 en una insignia, 14 junto a un texto, 16 en un botón o un campo, 20 junto a un título o en una tecla grande; la marca sobre un punto lleno lleva 3 (como la casilla) y el ícono grande (24 px o más) 1,5 (como el de un vacío); elegida mirando las fotos el 2026-10-15",
+    "pieza": "lib/iconos.ts",
+    "tambien": ["app/estilos/vacio-aviso-buscador.css"],
+    "ventana": 8,
+    "firmas": [
+      // Un ícono (un componente en mayúscula) con un grosor que no es el de fábrica.
+      "<[A-Z][\\w.]*\\b(?:[^>]|=>)*?\\bstrokeWidth=(?:\\{|\")(?!2(?:\\}|\"))[\\d.]+",
+      // Un ícono con un tamaño fuera de la escala (10, 11, 13, 15, 17, 18, 19 o 22 px), por `size` o por su clase.
+      "<[A-Z][\\w.]*\\b(?:[^>]|=>)*?\\bsize=\\{(?:10|11|13|15|17|18|19|22)\\}",
+      "<[A-Z][\\w.]*\\b(?:[^>]|=>)*?className=(?:\"|\\{`|\\{\")[^\"`]*\\b(?:size|h|w)-(?:2\\.5|4\\.5|\\[(?:10|11|13|15|17|18|19|22)px\\])",
+      // Lo mismo en un CSS: un svg con otro grosor o con un tamaño fuera de la escala.
+      "svg[^{,]*\\{[^}]*?stroke-width:\\s*(?!2\\s*;)[\\d.]+",
+      "svg[^{,]*\\{[^}]*?\\bwidth:\\s*(?:10|11|13|15|17|18|19|22)px"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/AppShell.tsx", "motivo": "el marco (lateral y cabecera): fuera del censo desde la ronda 1; su trazo de 1,5 se decide aparte (docs/unificar/icono.md)" },
+      { "archivo": "components/guias/BotonDemo.tsx", "motivo": "el botón «Demo» de la cabecera: es del marco, como el lateral (docs/unificar/icono.md)" },
+      { "archivo": "components/colaboradores/IconoModulo.tsx", "motivo": "dibuja el ícono del menú de cada módulo, igual que el lateral (el marco)" },
+      { "archivo": "components/traslados-pases/PasePedido.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
+      { "archivo": "components/traslados-pases/PaseTraslado.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
+      { "archivo": "components/traslados-pases/ReversoPase.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
+      { "archivo": "app/estilos/traslados-pases.css", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
+      { "archivo": "components/GastoRapidoModal.tsx", "motivo": "el gasto rápido de Caja: la ★ que se dibuja y el sello de «listo» (ADR-0368)" },
+      { "archivo": "components/MosaicoPrenda.tsx", "motivo": "la prenda sin foto: el ícono de su categoría es un dibujo sobre el color (ADR-0333)" },
+      { "archivo": "components/vista-rapida/MatrizUnidades.tsx", "motivo": "la vista rápida de producto, con su movimiento propio (ADR-0136 act. 2026-10-05)" },
+      { "archivo": "app/estilos/vista-rapida.css", "motivo": "la vista rápida de producto, con su movimiento propio (ADR-0136 act. 2026-10-05)" },
+      { "archivo": "app/estilos/historial-prenda.css", "motivo": "el historial de una prenda, con su hilo y sus nudos (ADR-0354)" },
+      { "archivo": "app/estilos/movimientos-sellos.css", "motivo": "los sellos de Movimientos (ADR-0353)" },
+      { "archivo": "app/estilos/observatorio.css", "motivo": "el Observatorio del Admin (ADR-0322)" },
+      { "archivo": "app/estilos/analisis.css", "motivo": "Análisis tiene su diseño propio (ADR-0357)" },
+      { "archivo": "app/estilos/analisis-hoy.css", "motivo": "Análisis tiene su diseño propio (ADR-0357)" },
+      { "archivo": "app/estilos/analisis-pedir.css", "motivo": "Análisis tiene su diseño propio (ADR-0357)" },
+      { "archivo": "app/estilos/ventas-sin-registrar.css", "motivo": "la mesa de Ventas sin registrar (ADR-0360)" },
+      { "archivo": "app/estilos/inicio-almacen.css", "motivo": "Inicio de Almacén dibuja su propio juego de íconos (ADR-0292)" },
+      { "archivo": "app/estilos/club-publico.css", "motivo": "la página pública del club: la ven los clientes, fuera del ERP" },
+      { "archivo": "app/estilos/recepcion-conteo.css", "motivo": "la balanza de Recibir es un dibujo de 120 px, no un ícono" }
+    ]
+  },
+  "contador": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/contador.md",
+    "elegida": "P1 · el globito de las pestañas en todas partes (20 px, gris suave); si te pide algo, ámbar suave; en la esquina de un ícono o un botón, lleno con su anillo (tinta, o ámbar si pide); dentro de un botón negro, crema suave; rojo solo si dice un error; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/Globito.tsx",
+    "tambien": ["components/ui/Insignia.tsx", "app/estilos/globito-vermas.css"],
+    "firmas": [
+      // Un globito con número a mano: redondo, chico (16 a 24 px), con letra de 9,5 a 11 px y un fondo lleno.
+      "className=(?:\"|\\{`)(?=[^\"`]*\\brounded-full\\b)(?=[^\"`]*\\b(?:min-w-(?:4|5|6|\\[1[5-9]px\\])|h-\\[1[5-8]px\\])(?![\\w-]))(?=[^\"`]*\\btext-\\[(?:9\\.5|10|10\\.5|11)px\\])(?=[^\"`]*\\bbg-(?:rojo|ambar|tinta|crema|papel)(?![\\w-]))",
+      // El «te pide algo» en ámbar suave a mano.
+      "className=(?:\"|\\{`)(?=[^\"`]*\\brounded-full\\b)(?=[^\"`]*\\bbg-ambar\\/\\[?0?\\.1)(?=[^\"`]*\\btabular-nums\\b)(?=[^\"`]*\\btext-\\[11px\\])"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.siguiente": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.siguiente.md",
+    "elegida": "P1 · «Ver más / Ver menos» es la franja al pie de la lista de Inicio de Almacén: «Ver 3 más» en taupe con la flecha que da media vuelta, y las filas bajan en su lugar; en una lista suelta, el enlace con la misma flecha. «Siguiente» y «Anterior» ya los resuelven la paginación (ronda 8) y los pasos a paso; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/VerMas.tsx",
+    "tambien": ["components/inicio-almacen/VerMas.tsx", "app/estilos/globito-vermas.css"],
+    "firmas": [
+      // Un «Ver más / Ver menos» a mano: el texto que dice al abrir.
+      "\\bVer menos\\b"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.deshacer": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.deshacer.md",
+    "elegida": "P1 · el enlace (la acción chica que corrige una sola cosa, ronda 9) con la flecha curva delante; el «Deshacer» de un aviso es del aviso; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BotonDeshacer.tsx",
+    "ventana": 3,
+    "firmas": [
+      // Un botón «Deshacer» escrito a mano.
+      ">\\s*Deshacer\\s*</"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.buscar": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.buscar.md",
+    "elegida": "P1 · lo que busca recién al apretar (el padrón de SUNAT, unir dos clientes) es el secundario con la lupa; el primario solo si buscar es el paso de esa hoja; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BotonBuscar.tsx",
+    "ventana": 3,
+    "firmas": [
+      // Un botón «Buscar» escrito a mano.
+      ">\\s*Buscar\\s*</(?:Boton|button)>"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
 };
 
 export const FAMILIAS = [...BASE, ...ACCIONES].map((f) => ({ ...f, decision: DECISIONES[f.id] ?? null }));

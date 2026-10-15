@@ -106,7 +106,7 @@ export function BotonQuitarFoto({
       // `before:` agranda el área que se toca sin agrandar el círculo (queda sobre una miniatura de 34 px).
       className={`absolute z-[1] grid ${grande ? "h-7 w-7" : "h-5 w-5"} place-items-center rounded-full bg-tinta text-crema shadow-sm transition-colors before:absolute before:-inset-1 before:content-[''] hover:bg-rojo-profundo disabled:opacity-40 ${className}`}
     >
-      <X aria-hidden className="h-3 w-3" strokeWidth={2.2} />
+      <X /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ aria-hidden className="h-3 w-3" strokeWidth={3} />
     </button>
   );
 }
