@@ -1732,6 +1732,12 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `tienda_consultar_documento`, `tienda_revisar_registro`, `tienda_registrar_cuenta` (une la cuenta a su ficha del Club o la crea con
   origen `web`), `tienda_mi_cuenta` y `tienda_club_beneficios`; los topes, con `club_intento` (`lib/intentos-servidor.ts`). El nombre por
   DNI sale de `packages/shared` (`padron.ts`), el mismo que usa el ERP. Prueba en la base: `pnpm pruebas:tienda-cuentas`.
+- Crear la cuenta pide un código de 6 cifras al correo (actividad 2b, ADR-0408 act. b): el proyecto de clientes lo manda con su invitación
+  (`apps/tienda/supabase/plantillas/codigo.html`) y lo verifica; la base lleva los topes y lo que queda a medias: `tienda_reservar_envio`
+  (cada envío y reenvío), `tienda_anotar_invitado`, `tienda_intento_de_codigo` (cada intento se cuenta ANTES de probarse; al quinto, 15
+  minutos de bloqueo) y `cuentas_web_pendientes` (sin datos de la persona). El orden: código → contraseña → `tienda_registrar_cuenta`; si
+  la base dice que no, el servidor borra el usuario (`lib/usuarios-servidor.ts`). La casilla «Soy mayor de 18 años» la exige la base; la de
+  avisos del Club por WhatsApp (`tienda_casilla_whatsapp`, el texto vigente del cartel) queda en `club_permisos` con medio `tienda_web`.
 - `/catalogo` (grupo `(catalogo)`, todavía sin candado de cuenta) → `lib/catalogo-servidor.ts` `leerCatalogo()` →
   `retail.tienda_catalogo()`: lo publicado en la Vitrina web con su precio web y el de la campaña (la regla de la caja,
   ADR-0403), sus colores y hasta dos fotos del almacén público; `lib/catalogo.ts` filtra por categoría y ordena, y
