@@ -8,7 +8,14 @@ import type { NextConfig } from "next";
 // Las demás imágenes de Storage siguen `unoptimized`.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL) : null;
 
+// La versión de ESTA compilación: el commit que Vercel construye (su `VERCEL_GIT_COMMIT_SHA`; si faltara, el id del despliegue).
+// Queda grabada en el JavaScript de cada pestaña y en la ruta `/api/version`; cuando difieren, la pestaña avisa «hay una versión
+// nueva» (ADR-0422, `lib/version-nueva-reglas.ts`). Fuera de Vercel (`next dev`) vale «desarrollo» y no se compara con nada.
+const versionDeEstaCompilacion = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || "desarrollo";
+
 const nextConfig: NextConfig = {
+  env: { NEXT_PUBLIC_BUILD_ID: versionDeEstaCompilacion },
+
   images: {
     remotePatterns: supabaseUrl
       ? [
