@@ -395,30 +395,7 @@
   overflow-wrap: anywhere;
   line-height: 1.25;
 }
-.taller-pista {
-  height: 8px;
-  background: var(--color-hueso);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.taller-relleno {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--color-verde);
-  transition: width 320ms var(--ease-cayla);
-  animation: taller-crece 560ms var(--ease-cayla) both;
-}
-.taller-relleno[data-tono="bajo"] {
-  background: var(--color-ambar);
-}
-.taller-relleno[data-tono="cero"] {
-  background: color-mix(in oklab, var(--color-tinta) 15%, transparent);
-}
-@keyframes taller-crece {
-  from {
-    width: 0;
-  }
-}
+/* La barra de cada talla es la barra de avance del sistema en tinta (<BarraAvance>, ronda 14 de /unificar). */
 .taller-rango {
   font-family: var(--font-serif);
   font-weight: 600;
@@ -485,7 +462,6 @@
   .taller-fila-nueva,
   .taller-banner-nueva,
   .taller-panel,
-  .taller-relleno,
   .taller-hilo::after,
   .taller-foto-grande[data-flash="true"],
   .taller-foto-img {
@@ -493,7 +469,6 @@
   }
   .taller-sec-cuerpo,
   .taller-chev,
-  .taller-relleno,
   .taller-swatch {
     transition: none;
   }

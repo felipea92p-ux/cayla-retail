@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Anillo } from "@/components/ui/Anillo";
+import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
+import { Linea } from "@/components/ui/Linea";
 import { useCountUp } from "@/lib/useCountUp";
 import { Wallet } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
@@ -127,106 +129,51 @@ function Delta({ a, b }: { a: number; b: number }) {
   return <span className={`cmp-delta ${p > 0 ? "cmp-delta-sube" : "cmp-delta-baja"}`}>{p > 0 ? "▲" : "▼"} {r} %</span>;
 }
 
-/** Venta acumulada del día: hoy (hasta ahora) contra ayer (día completo), con la brecha sombreada y un cursor que lee cada hora. */
+/** Venta acumulada del día: hoy (hasta ahora) contra ayer (día completo), con un cursor que lee cada minuto. Es la línea del sistema
+ *  (ronda 14 de /unificar): lo de hoy en tinta con su área, ayer en taupe punteado; si vas arriba o abajo lo dicen el titular y el globito. */
 export function GraficoAcumulado({ hoy, ayer, ahoraMin, horaCierreMin }: Props) {
   const curva = useMemo(() => curvaAcumulada(hoy, ayer, ahoraMin, horaCierreMin), [hoy, ayer, ahoraMin, horaCierreMin]);
-  // El gráfico mide su ancho real: así en el celular el texto y los puntos conservan su tamaño en vez de encogerse con el dibujo.
-  const [ancho, setAncho] = useState(640);
-  const caja = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = caja.current;
-    if (!el) return;
-    const medir = () => setAncho(Math.max(260, Math.min(640, Math.round(el.getBoundingClientRect().width))));
-    medir();
-    const ro = new ResizeObserver(medir);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  const W = ancho, H = 240, L = ancho < 420 ? 36 : 44, R = 14, T = 16, B = 26;
-  const pasoHoras = ancho < 420 ? 240 : 120;
+  const lineaHoy = useMemo(() => curva.hoy.map((p) => ({ x: p.minuto, y: p.monto })), [curva]);
+  const lineaAyer = useMemo(() => curva.ayer.map((p) => ({ x: p.minuto, y: p.monto })), [curva]);
   const max = Math.max(4000, Math.ceil(Math.max(...curva.hoy.map((p) => p.monto), ...curva.ayer.map((p) => p.monto), 1) / 2000) * 2000);
-  const x = (m: number) => L + ((m - curva.desdeMin) / (curva.hastaMin - curva.desdeMin)) * (W - L - R);
-  const y = (v: number) => T + (H - T - B) * (1 - v / max);
-  const trazo = (pts: { minuto: number; monto: number }[]) => pts.map((q, i) => `${i ? "L" : "M"}${x(q.minuto).toFixed(1)} ${y(q.monto).toFixed(1)}`).join("");
   const ultimo = curva.hoy[curva.hoy.length - 1]!;
-  const ayerAhora = valorEn(curva.ayer, ahoraMin);
-
-  // La brecha: entre las dos líneas, verde donde vas arriba y ámbar donde vas abajo.
-  const brecha = curva.hoy.slice(1).map((b, i) => {
-    const a = curva.hoy[i]!;
-    const ra = valorEn(curva.ayer, a.minuto), rb = valorEn(curva.ayer, b.minuto);
-    const sube = (a.monto - ra + b.monto - rb) / 2 >= 0;
-    return { puntos: `${x(a.minuto)},${y(a.monto)} ${x(b.minuto)},${y(b.monto)} ${x(b.minuto)},${y(rb)} ${x(a.minuto)},${y(ra)}`, sube };
-  });
-
-  const [revelado, setRevelado] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => requestAnimationFrame(() => setRevelado(true)));
-    return () => cancelAnimationFrame(id);
-  }, []);
-  const [cursor, setCursor] = useState<number | null>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const alMover = (e: React.MouseEvent<SVGSVGElement>) => {
-    const r = svgRef.current!.getBoundingClientRect();
-    const px = ((e.clientX - r.left) / r.width) * W;
-    const m = curva.desdeMin + ((px - L) / (W - L - R)) * (curva.hastaMin - curva.desdeMin);
-    // El cursor solo recorre lo que ya pasó: llega hasta la hora actual, donde está el punto de hoy.
-    setCursor(Math.max(curva.desdeMin, Math.min(ahoraMin, m)));
-  };
-  const cH = cursor === null ? null : valorEn(curva.hoy, cursor);
-  const cA = cursor === null ? null : valorEn(curva.ayer, cursor);
-
   const horas: number[] = [];
-  for (let m = curva.desdeMin; m <= curva.hastaMin; m += pasoHoras) horas.push(m);
-  const lineas = [0, 1, 2, 3, 4].map((i) => (max / 4) * i);
+  for (let m = curva.desdeMin; m <= curva.hastaMin; m += 120) horas.push(m);
 
   return (
     <div data-guia="caja.acumulada" className="card-cayla anim-sube p-5" style={{ "--i": 4 } as CSSProperties}>
       <p className="text-sm font-bold text-tinta">Venta acumulada del día</p>
       <p className="text-xs text-tinta/50">Pasa el mouse por la línea: cada hora te dice cuánto ganas o pierdes</p>
-      <div ref={caja} className="relative mt-2">
-        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="block w-full overflow-visible" role="img" aria-label="Venta acumulada por hora, hoy contra ayer" onMouseMove={alMover} onMouseLeave={() => setCursor(null)}>
-          <defs>
-            <clipPath id="cmp-revelar"><rect x="0" y="0" height={H} width={revelado ? W : 0} className="cmp-revelar" /></clipPath>
-          </defs>
-          {lineas.map((v) => (
-            <g key={v}>
-              <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="var(--color-sand)" />
-              <text x={L - 8} y={y(v) + 3} textAnchor="end" className="cmp-eje">{v >= 1000 ? `${(v / 1000).toLocaleString("es-PE")} mil` : v}</text>
-            </g>
-          ))}
-          {horas.map((m) => <text key={m} x={x(m)} y={H - 6} textAnchor="middle" className="cmp-eje">{m / 60}h</text>)}
-          <g clipPath="url(#cmp-revelar)">
-            {brecha.map((b, i) => <polygon key={i} points={b.puntos} fill={b.sube ? "color-mix(in srgb, var(--color-verde) 22%, transparent)" : "color-mix(in srgb, var(--color-grafico-baja) 24%, transparent)"} />)}
-            <path d={trazo(curva.ayer)} fill="none" stroke="var(--color-taupe)" strokeWidth="2.5" strokeDasharray="6 5" />
-            <path d={trazo(curva.hoy)} fill="none" stroke="var(--color-tinta)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-            <line x1={x(ahoraMin)} x2={x(ahoraMin)} y1={T} y2={H - B} stroke="var(--color-tinta)" strokeOpacity=".35" strokeDasharray="2 3" />
-            <text x={x(ahoraMin) + 5} y={T + 8} className="cmp-eje cmp-eje-ahora">ahora {horaTexto(ahoraMin)}</text>
-            <circle cx={x(ultimo.minuto)} cy={y(ultimo.monto)} r="5.5" fill="var(--color-tinta)" stroke="var(--color-papel)" strokeWidth="2" />
-            <circle cx={x(ahoraMin)} cy={y(ayerAhora)} r="4.5" fill="var(--color-papel)" stroke="var(--color-taupe)" strokeWidth="2" />
-          </g>
-          {cursor !== null && cH !== null && cA !== null && (
-            <g>
-              <line x1={x(cursor)} x2={x(cursor)} y1={T} y2={H - B} stroke="var(--color-tinta)" strokeOpacity=".35" />
-              <circle cx={x(cursor)} cy={y(cH)} r="5" fill="var(--color-tinta)" />
-              <circle cx={x(cursor)} cy={y(cA)} r="4.5" fill="var(--color-papel)" stroke="var(--color-taupe)" strokeWidth="2" />
-            </g>
-          )}
-        </svg>
-        {cursor !== null && cH !== null && cA !== null && (
-          <div className="cmp-tip" style={{ left: `${(x(cursor) / W) * 100}%`, top: `${(y(cH) / H) * 100}%` } as CSSProperties}>
-            <span className="opacity-65 dark:opacity-85">hasta las {horaTexto(cursor)}</span>
-            <span>Hoy <b>{soles(cH)}</b></span>
-            <span>Ayer <b>{soles(cA)}</b></span>
-            <b className={cH >= cA ? "cmp-tip-sube" : "cmp-tip-baja"}>{cH >= cA ? "▲ +" : "▼ −"}{soles(Math.abs(cH - cA))}</b>
-          </div>
-        )}
-      </div>
+      <Linea
+        className="mt-2"
+        serie={lineaHoy}
+        referencia={lineaAyer}
+        desde={curva.desdeMin}
+        hasta={curva.hastaMin}
+        maxY={max}
+        marcasX={horas.map((m) => ({ x: m, texto: `${m / 60}h` }))}
+        ahora={{ x: ahoraMin, texto: `ahora ${horaTexto(ahoraMin)}` }}
+        cifra={soles(ultimo.monto)}
+        continuo
+        guiaHasta={ahoraMin}
+        leer={(m) => {
+          const cH = valorEn(curva.hoy, m);
+          const cA = valorEn(curva.ayer, m);
+          return (
+            <>
+              <span className="block opacity-65 dark:opacity-85">hasta las {horaTexto(m)}</span>
+              <span className="block">Hoy <b>{soles(cH)}</b></span>
+              <span className="block">Ayer <b>{soles(cA)}</b></span>
+              <b className={`block ${cH >= cA ? "cmp-tip-sube" : "cmp-tip-baja"}`}>{cH >= cA ? "▲ +" : "▼ −"}{soles(Math.abs(cH - cA))}</b>
+            </>
+          );
+        }}
+        alto={240}
+        etiqueta="Venta acumulada por hora, hoy contra ayer"
+      />
       <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-tinta/65">
         <span><i className="cmp-leyenda" style={{ borderColor: "var(--color-tinta)" }} />Hoy, hasta ahora</span>
         <span><i className="cmp-leyenda cmp-leyenda-raya" style={{ borderColor: "var(--color-taupe)" }} />Ayer, día completo</span>
-        <span><i className="cmp-cuadro" style={{ background: "color-mix(in srgb, var(--color-verde) 30%, transparent)" }} />hoy vas por encima de ayer</span>
-        <span><i className="cmp-cuadro" style={{ background: "color-mix(in srgb, var(--color-grafico-baja) 32%, transparent)" }} />hoy vas por debajo de ayer</span>
       </p>
     </div>
   );
@@ -270,31 +217,29 @@ export function ComoTePagaron({ hoy, ayer }: Pick<Props, "hoy" | "ayer">) {
 export function DondeGanasYPierdes({ hoy, ayer, ahoraMin }: Omit<Props, "horaCierreMin">) {
   const filas = useMemo(() => horasComparadas(hoy, ayer, ahoraMin), [hoy, ayer, ahoraMin]);
   const { mejor, peor } = mejorYPeorHora(filas);
-  const mx = Math.max(1, ...filas.map((f) => Math.abs(f.diferencia)));
   const rotulo = (f: HoraComparada) => (f.enCurso ? `${f.hora}:00–${horaTexto(ahoraMin)}` : `${f.hora}–${f.hora + 1}h`);
   return (
     <div data-guia="caja.donde-ganas" className="card-cayla anim-sube p-5" style={{ "--i": 6 } as CSSProperties}>
       <p className="text-sm font-bold text-tinta">Dónde ganas y dónde pierdes</p>
       <p className="text-xs text-tinta/65">Cada barra es una hora: lo que vendiste hoy en ella, menos lo que vendiste ayer en esa misma hora</p>
       <p className="mt-2 flex flex-wrap gap-x-4 text-xs font-semibold"><span className="text-verde-profundo">▲ Hacia arriba: vendiste más que ayer</span><span className="text-ambar">▼ Hacia abajo: vendiste menos que ayer</span></p>
-      <div className="cmp-horas" style={{ gridTemplateColumns: `repeat(${filas.length}, minmax(0, 1fr))` }}>
-        <div className="cmp-horas-eje" aria-hidden />
-        {filas.map((f, i) => {
-          const alto = Math.max(2, Math.round((Math.abs(f.diferencia) / mx) * 62));
-          const sube = f.diferencia >= 0;
-          return (
-            <div key={f.hora} className="cmp-hora" title={`${rotulo(f)} · hoy ${soles(f.hoy)} · ayer ${soles(f.ayer)}`}>
-              <div className="cmp-hora-mitad">
-                {sube && <><span className="cmp-hora-val text-verde-profundo">+{Math.round(f.diferencia)}</span><span className={`cmp-barra cmp-barra-sube ${f.enCurso ? "cmp-barra-parcial" : ""}`} style={{ height: `${alto}%`, "--j": i } as CSSProperties} /></>}
-              </div>
-              <div className="cmp-hora-mitad cmp-hora-baja">
-                {!sube && <><span className={`cmp-barra cmp-barra-baja ${f.enCurso ? "cmp-barra-parcial" : ""}`} style={{ height: `${alto}%`, "--j": i } as CSSProperties} /><span className="cmp-hora-val text-ambar">−{Math.round(-f.diferencia)}</span></>}
-              </div>
-              <span className="cmp-hora-rotulo">{rotulo(f)}{f.enCurso && <><br /><b className="text-taupe-profundo">en curso</b></>}</span>
-            </div>
-          );
-        })}
-      </div>
+      {/* Las barras por tiempo del sistema (ronda 14): hacia arriba en verde lo que vendiste de más, hacia abajo en ámbar lo de menos. */}
+      <BarrasTiempo
+        className="mt-4"
+        alto={150}
+        cifras="todas"
+        barras={filas.map((f) => ({
+          clave: String(f.hora),
+          valor: f.diferencia,
+          etiqueta: rotulo(f),
+          fuerte: f.enCurso,
+          tono: f.diferencia >= 0 ? "verde" : "ambar",
+          rayada: f.enCurso,
+          cifra: f.diferencia >= 0 ? `+${Math.round(f.diferencia)}` : `−${Math.round(-f.diferencia)}`,
+          tip: `${rotulo(f)}${f.enCurso ? " (en curso)" : ""} · hoy ${soles(f.hoy)} · ayer ${soles(f.ayer)}`,
+        }))}
+        etiqueta="Dónde ganas y dónde pierdes: cada hora de hoy menos la misma hora de ayer"
+      />
       <p className="mt-3 text-xs text-tinta/65"><b>La barra rayada es la hora que aún no termina:</b> se compara solo hasta los mismos minutos de ayer.</p>
       <p className="mt-3 rounded-xl bg-hueso px-3.5 py-3 text-[13.5px] text-tinta">
         {mejor ? <>Tu mejor hora fue la de las <b>{mejor.hora}:00</b> (+{soles(mejor.diferencia)}). </> : <>Todavía no superas a ayer en ninguna hora. </>}
