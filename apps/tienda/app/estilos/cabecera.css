@@ -106,6 +106,10 @@
 .t-resultado small { color: var(--tinta-60); font-size: 12px; }
 .t-resultado mark { background: color-mix(in srgb, var(--ambar) 22%, transparent); color: inherit; border-radius: 2px; }
 .t-resultado b { font-size: 13.5px; font-variant-numeric: tabular-nums; }
+/* Una prenda en oferta dice su precio en rojo, como la tarjeta del catálogo. */
+.t-resultado b[data-oferta] { color: var(--rojo-profundo); }
+.t-resultados-cuenta { display: block; margin-bottom: 2px; }
+.t-sugerencias-centro { justify-content: center; margin-top: 4px; }
 .t-resultado:hover { background: color-mix(in srgb, var(--tinta) 4%, transparent); }
 .t-vacio-chico { padding: 24px 8px; }
 

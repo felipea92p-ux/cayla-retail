@@ -372,51 +372,70 @@ function HojaBuscar({ datos, cerrar }: { datos: DatosCabecera; cerrar: () => voi
             </>
           )
         ) : encontradas.length === 0 ? (
-          <div className="t-vacio t-vacio-chico">
-            <Icono nombre="lupa" />
-            <h3>No encontramos «{q.trim()}»</h3>
-            <p>Prueba con otra palabra: un color, una prenda o un nombre.</p>
-          </div>
+          <>
+            <div className="t-vacio t-vacio-chico">
+              <Icono nombre="lupa" />
+              <h3>No encontramos «{q.trim()}»</h3>
+              <p>Prueba con otra palabra: un color, una prenda o un nombre.</p>
+            </div>
+            {/* Sin resultados, no es un callejón sin salida: las categorías siguen a un toque. */}
+            {datos.sugerencias.length > 0 && (
+              <div className="t-sugerencias t-sugerencias-centro">
+                {datos.sugerencias.map((s) => (
+                  <button key={s} type="button" className="t-pildora" onClick={() => setQ(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         ) : (
-          <ul className="t-resultados">
-            {encontradas.map((i) => {
-              const partes = resaltar(i.nombre, q);
-              return (
-                <li key={i.id}>
-                  <Link className="t-resultado" href={i.href} onClick={cerrar}>
-                    <FotoTarjeta
-                      foto={i.foto}
-                      segunda={null}
-                      optimizar={[i.optimizar, false]}
-                      nombre=""
-                      forma={i.forma}
-                      color={i.color}
-                      tamanos="52px"
-                    />
-                    <span>
-                      {/* El nombre en su propia caja: suelto, cada trozo sería una línea de la columna. */}
-                      <span className="t-resultado-nom">
-                        {partes ? (
-                          <>
-                            {partes[0]}
-                            <mark>{partes[1]}</mark>
-                            {partes[2]}
-                          </>
-                        ) : (
-                          i.nombre
-                        )}
+          <>
+            <span className="t-ceja t-resultados-cuenta">
+              {encontradas.length} {encontradas.length === 1 ? "prenda" : "prendas"}
+            </span>
+            <ul className="t-resultados">
+              {encontradas.map((i) => {
+                const partes = resaltar(i.nombre, q);
+                return (
+                  <li key={i.id}>
+                    <Link className="t-resultado" href={i.href} onClick={cerrar}>
+                      <FotoTarjeta
+                        foto={i.foto}
+                        segunda={null}
+                        optimizar={[i.optimizar, false]}
+                        nombre=""
+                        forma={i.forma}
+                        color={i.color}
+                        tamanos="52px"
+                      />
+                      <span>
+                        {/* El nombre en su propia caja: suelto, cada trozo sería una línea de la columna. */}
+                        <span className="t-resultado-nom">
+                          {partes ? (
+                            <>
+                              {partes[0]}
+                              <mark>{partes[1]}</mark>
+                              {partes[2]}
+                            </>
+                          ) : (
+                            i.nombre
+                          )}
+                        </span>
+                        <small>
+                          {i.categoria ?? "CAYLA"}
+                          {i.oferta ? ` · ${i.oferta}` : ""}
+                        </small>
                       </span>
-                      <small>
-                        {i.categoria ?? "CAYLA"}
-                        {i.oferta ? ` · ${i.oferta}` : ""}
-                      </small>
-                    </span>
-                    <b className="num">{i.precio}</b>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+                      <b className="num" data-oferta={i.oferta ? "" : undefined}>
+                        {i.precio}
+                      </b>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </div>
     </div>
