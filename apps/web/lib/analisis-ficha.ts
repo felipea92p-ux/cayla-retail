@@ -16,7 +16,7 @@ import {
   sedeQueMasVende,
   totalEnTienda,
 } from "./analisis-reglas";
-import { hrefComprar, hrefEnviar, hrefLiquidar, hrefReponerPiso } from "./analisis-acciones";
+import { hrefComprar, hrefEnviar, hrefLiquidar, hrefRegistrarVentas, hrefReponerPiso } from "./analisis-acciones";
 import { estiloMosaicoColor } from "./color-prenda-reglas";
 import { queTiene } from "./analisis-modelo";
 import { diaAntes, fechaCorta } from "./motor-demanda-reglas";
@@ -39,6 +39,7 @@ const CHIP_GRUPO: Record<GrupoAnalisis, { est: EstadoFicha; texto: string }> = {
   enviar: { est: "ate", texto: "Mándalas a donde sí se venden" },
   liquidar: { est: "ate", texto: "Liquidar" },
   vigila: { est: "nd", texto: "Vigílalas" },
+  duda: { est: "nd", texto: "Aún no se sabe" },
 };
 
 /**
@@ -128,10 +129,22 @@ export function hechosDe(
     const dias = p.diasSinVender ?? 0;
     const grave = dias >= DIAS_TRES_MESES;
     agregar(grave ? "urg" : "reloj", grave ? "rojo" : "ambar", `${dias} ${plural(dias, "día", "días")}`, "en el piso sin venderse");
+    // Contra qué se juzgó (ADR-0357, act. 2026-10-14): lo que tardan los de su tipo que sí se vendieron en el piso de la tienda.
+    if (p.umbrales) agregar("reloj", "pizarra", `${p.umbrales.liquidar} ${plural(p.umbrales.liquidar, "día", "días")}`, "tardan 9 de cada 10 de su tipo");
     agregar("caja", "taupe", `Tienes ${tienes}`, `${p.piso} en el piso`);
     const vende = grupo === "enviar" ? sedeQueMasVende(p.otras) : null;
     if (vende) agregar("camion", "ambar", `${codigoDe(sedes, vende.sedeId)} vendió ${vende.vendidas30}`, "este mes");
     if (grupo === "liquidar") agregar("etiqueta", grave ? "rojo" : "ambar", "Liquidar", "tú eliges cuánto");
+    return hechos;
+  }
+
+  // Quieta, pero alguna unidad colgada puede ser una venta sin registrar (ADR-0357, act. 2026-10-14): los días sin venderse no son ciertos.
+  if (grupo === "duda") {
+    const dias = p.diasSinVender ?? 0;
+    const n = p.enDuda ?? 0;
+    agregar("reloj", "pizarra", `${dias} ${plural(dias, "día", "días")}`, "sin una venta registrada");
+    agregar("flechas", "pizarra", `${n} en duda`, plural(n, "puede ser una venta sin registrar", "pueden ser ventas sin registrar"));
+    agregar("caja", "taupe", `Tienes ${tienes}`, `${p.piso} en el piso`);
     return hechos;
   }
 
@@ -319,7 +332,7 @@ export type AccionFicha = { texto: string; href: string };
 
 /**
  * El botón principal según el grupo, como la fila de su carril: «Comprar», «Enviar a Arequipa» (la tienda que más la vende),
- * «Liquidar» o, lo que nunca salió al piso, «Bajar al piso». null si va bien o solo se vigila, o si la cuenta no ve el destino (un
+ * «Liquidar», «Registrar ventas» (lo que puede haberse vendido sin registrar) o, lo que nunca salió al piso, «Bajar al piso». null si va bien o solo se vigila, o si la cuenta no ve el destino (un
  * botón que lleva a «Sin acceso» no se dibuja).
  */
 export function accionPrincipal(
@@ -346,6 +359,10 @@ export function accionPrincipal(
   if (grupo === "liquidar") {
     const href = hrefLiquidar([p], acceso);
     return href ? { texto: "Liquidar", href } : null;
+  }
+  if (grupo === "duda") {
+    const href = hrefRegistrarVentas(acceso);
+    return href ? { texto: "Registrar ventas", href } : null;
   }
   return null;
 }

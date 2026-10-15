@@ -40,6 +40,6 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Pro
     planCompra: veModulo(persona, "plan_compra") && puede(persona, "verDineroCompras"),
   };
 
-  const datos = await getDatosAnalisis(ubicacionActiva);
+  const datos = await getDatosAnalisis(ubicacionActiva, { conFrescura: acceso.frescura });
   return <AnalisisPantalla datos={datos} acceso={acceso} vistaInicial={leerVista(params.vista)} busquedaInicial={leerBusqueda(params.q)} queFaltaInicial={leerQueFalta(params[PARAM_QUE_FALTA])} />;
 }

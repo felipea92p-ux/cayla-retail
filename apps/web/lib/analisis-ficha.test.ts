@@ -85,6 +85,7 @@ describe("el chip de la prenda (el título de su grupo)", () => {
     expect(chipDeGrupo("enviar")).toEqual({ est: "ate", texto: "Mándalas a donde sí se venden" });
     expect(chipDeGrupo("liquidar")).toEqual({ est: "ate", texto: "Liquidar" });
     expect(chipDeGrupo("vigila")).toEqual({ est: "nd", texto: "Vigílalas" });
+    expect(chipDeGrupo("duda")).toEqual({ est: "nd", texto: "Aún no se sabe" });
     expect(chipDeGrupo(null)).toEqual({ est: "bien", texto: "Va bien" });
     // Guardada y nunca colgada: no «va bien», nadie la vio (20261007120000). Un grupo manda sobre eso.
     expect(chipDeGrupo(null, true)).toEqual({ est: "ate", texto: "Nunca salió al piso" });
@@ -255,6 +256,23 @@ describe("los botones del pie", () => {
     expect(accionPrincipal(p, "liquidar", SEDES, { ...TODO, etiquetas: false })).toBeNull();
     expect(accionPrincipal(p, "vigila", SEDES, TODO)).toBeNull();
     expect(accionPrincipal(p, null, SEDES, TODO)).toBeNull();
+  });
+
+  it("lo quieto con la vara de su tipo dice contra qué se juzgó (ADR-0357, act. 2026-10-14)", () => {
+    const p = prenda({ piso: 2, diasSinVender: 8, umbrales: { vigila: 3, liquidar: 6, vara: "hoy", vendidas: 30 } });
+    expect(hechosDe(p, "liquidar", SEDES).map((h) => [h.valor, h.etiqueta].join(" · "))).toEqual([
+      "8 días · en el piso sin venderse",
+      "6 días · tardan 9 de cada 10 de su tipo",
+      "Tienes 2 · 2 en el piso",
+      "Liquidar · tú eliges cuánto",
+    ]);
+  });
+
+  it("lo que puede haberse vendido sin registrar: «Registrar ventas» (Por regularizar), y sus tarjetitas lo dicen; sin Existencias, sin botón", () => {
+    const p = prenda({ piso: 2, diasSinVender: 80, enDuda: 1 });
+    expect(accionPrincipal(p, "duda", SEDES, TODO)).toEqual({ texto: "Registrar ventas", href: "/inventario/por-regularizar" });
+    expect(accionPrincipal(p, "duda", SEDES, { ...TODO, regularizar: false })).toBeNull();
+    expect(leer(p)).toEqual(["80 días · sin una venta registrada", "1 en duda · puede ser una venta sin registrar", "Tienes 2 · 2 en el piso"]);
   });
 
   it("nunca salió al piso: «Bajar al piso» (Reponer a piso con ella); sin Existencias, sin botón", () => {

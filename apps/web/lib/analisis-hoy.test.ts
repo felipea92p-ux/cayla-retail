@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { PrendaAnalisis, PrendaEnOtraSede } from "./analisis-tipos";
 import {
   ALTO_COLUMNA,
+  conLoRegistrado,
+  estadoSinNada,
+  vacioQuietasHoy,
   grosorCamino,
   altoNecesario,
   CAB_SE_QUEDAN,
@@ -113,6 +116,45 @@ describe("las cuatro tarjetas", () => {
   it("una quieta va en rojo desde los 3 meses", () => {
     expect(estadoQuieta(89)).toBe("ate");
     expect(estadoQuieta(90)).toBe("urg");
+  });
+});
+
+// Tarea #2 de docs/pantallas/gestion-analisis.md (2026-10-14): ninguna tarjeta dice «Va bien» cuando no puede saberlo.
+describe("una tarjeta sin nada no dice «Va bien» si no puede saberlo", () => {
+  // Datos inventados: hoy 14 de octubre; la tienda vende en el ERP desde el 30 de setiembre (14 días) y «Liquidar desde» es 15.
+  const HOY14 = "2026-10-14";
+  const colgada = (salio: string, extra: Partial<PrendaAnalisis> = {}) => prenda({ piso: 2, almacen: 1, salioAlPiso: salio, ...extra });
+
+  it("con los datos confiables, «Va bien»; con el aviso de datos incompletos, «Para saber» y «Con lo registrado»", () => {
+    expect(estadoSinNada(true)).toBe("bien");
+    expect(estadoSinNada(false)).toBe("info");
+    expect(conLoRegistrado("Nada se está acabando.", true)).toBe("Nada se está acabando.");
+    expect(conLoRegistrado("Nada se está acabando.", false)).toBe("Con lo registrado, nada se está acabando.");
+  });
+
+  it("si ningún modelo lleva aún en el piso lo que se espera para liquidarlo, «Todavía no se puede saber» (nunca «Va bien»)", () => {
+    const tienda = [colgada("2026-09-30"), colgada("2026-10-10")];
+    const v = vacioQuietasHoy(tienda, 15, HOY14, true);
+    expect(v.est).toBe("info");
+    expect(v.texto).toBe("Todavía no se puede saber. Ningún modelo lleva aún 15 días en el piso.");
+  });
+
+  it("desde que alguno llega al umbral, que nada esté quieto sí dice algo (y con datos incompletos, «con lo registrado»)", () => {
+    const tienda = [colgada("2026-09-29"), colgada("2026-10-10")];
+    expect(vacioQuietasHoy(tienda, 15, HOY14, true)).toEqual({ est: "bien", texto: "Nada lleva 15 días sin venderse." });
+    expect(vacioQuietasHoy(tienda, 15, HOY14, false)).toEqual({ est: "info", texto: "Con lo registrado, nada lleva 15 días sin venderse." });
+  });
+
+  it("con la vara de su tipo, el umbral es el de cada uno", () => {
+    const polos = { vigila: 3, liquidar: 5, vara: "hoy" as const, vendidas: 30 };
+    expect(vacioQuietasHoy([colgada("2026-10-12", { umbrales: polos })], 15, HOY14, true).texto).toBe(
+      "Todavía no se puede saber. Ningún modelo lleva aún lo que tarda su tipo en venderse.",
+    );
+    expect(vacioQuietasHoy([colgada("2026-10-08", { umbrales: polos })], 15, HOY14, true)).toEqual({ est: "bien", texto: "Nada está quieto para lo que tarda su tipo." });
+  });
+
+  it("sin nada colgado, tampoco «Va bien»", () => {
+    expect(vacioQuietasHoy([prenda({ almacen: 3 })], 15, HOY14, true)).toEqual({ est: "info", texto: "Todavía no se puede saber. No hay nada colgado que juzgar todavía." });
   });
 });
 
