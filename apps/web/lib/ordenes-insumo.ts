@@ -15,6 +15,7 @@ import {
   type DatosOrdenInsumo,
   type DetalleOrdenInsumo,
   type FiltrosListaInsumo,
+  type InsumoOpcion,
   type OrdenInsumoFila,
 } from "@/lib/ordenes-insumo-reglas";
 
@@ -136,4 +137,27 @@ export async function getDatosEditarOrdenInsumo(id: string): Promise<{ datos: Da
   }
   // `falla` es solo la de leer la orden: la de las listas ya viaja en `datos.falla` y el formulario la muestra.
   return { datos: { ...datos, proveedores, talleres, insumos }, detalle, falla };
+}
+
+/**
+ * Lo que necesita «Registrar comprobante» de una orden de insumos (fase 7 parte 2): la orden —con lo facturado de cada línea y el plazo
+ * del proveedor— y los insumos sin archivar, para poner uno que no estaba en la orden (decisión 43). Si los insumos no cargan, el
+ * formulario sirve igual para lo pedido y lo dice (`fallaListas`): nunca un combo vacío que parezca «no hay insumos».
+ */
+export async function getDatosComprobanteOrdenInsumo(
+  id: string,
+): Promise<{ detalle: DetalleOrdenInsumo | null; falla: string | null; insumos: InsumoOpcion[]; fallaListas: string | null }> {
+  const supabase = await createClient();
+  const [{ detalle, falla }, resOpciones] = await Promise.all([
+    getDetalleOrdenInsumo(id),
+    supabase.rpc(RPC_OPCIONES_ORDEN_INSUMO as never) as unknown as Respuesta,
+  ]);
+  const opciones = resOpciones.error ? null : leerOpcionesOrdenInsumo(resOpciones.data);
+  if (!opciones) console.error(`[ordenes-insumo] comprobante: ${resOpciones.error?.message ?? "respuesta que no se entiende"}`);
+  return {
+    detalle,
+    falla,
+    insumos: opciones?.insumos ?? [],
+    fallaListas: opciones ? null : "No se pudieron leer los insumos: por ahora solo se puede poner lo que está en la orden. Vuelve a intentarlo en un momento.",
+  };
 }

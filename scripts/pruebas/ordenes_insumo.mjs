@@ -293,7 +293,8 @@ caso(
   `${MIGRACION}
    set local search_path = retail, public, extensions;
    select (select count(*) from retail.modulos where clave = 'ordenes_insumos') || ',' ||
-          (select string_agg(clave, '+' order by clave) from retail.acciones_sin_responsable where clave like 'orden_insumo_%');`,
+          (select string_agg(clave, '+' order by clave) from retail.acciones_sin_responsable
+             where clave in ('orden_insumo_crear', 'orden_insumo_editar', 'orden_insumo_anular'));`,
   "1,orden_insumo_anular+orden_insumo_crear+orden_insumo_editar"
 );
 caso(

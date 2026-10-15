@@ -1,9 +1,12 @@
 import { Chip } from "@/components/ui/Chip";
 import { Aviso } from "@/components/ui/Aviso";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
+import { TituloGrupo } from "@/components/ui/TituloSeccion";
 import { fechaCorta, soles } from "@/lib/compras-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { etiquetaRubro } from "@/lib/proveedores-produccion-reglas";
+import { textoDeTipo, type TipoComprobante } from "@/lib/comprobante-orden-reglas";
+import { papelDeOrdenInsumo, pedidasDeLaOrden, textoPapelDeLineaInsumo, type PedidaInsumo } from "@/lib/comprobante-orden-insumo-reglas";
 import {
   ESTADO_ORDEN,
   cantidadConUnidad,
@@ -11,7 +14,6 @@ import {
   precioUnitarioTexto,
   textoCantidades,
   type DetalleOrdenInsumo as Detalle,
-  type LineaOrdenInsumo,
 } from "@/lib/ordenes-insumo-reglas";
 
 // Una orden de insumos por dentro (ADR-0362, fase 7 · actividad 2): lo mismo en la ventana que se abre sobre la lista y en la página que
@@ -21,6 +23,11 @@ import {
 // con la cantidad EN SU UNIDAD («12.5 metros»), el precio por esa unidad (con sus cuatro decimales si los usa: «S/ 0.0350»), el descuento
 // y el subtotal; abajo, cuánto se pidió de cada unidad —nunca metros sumados con conos—, el total, la nota, lo que la orden decía antes de
 // cada edición y quién la creó. Una anulada lo dice primero, con su motivo: es lo único que importa de ella.
+//
+// Con papel (fase 7 parte 2): cada línea dice cuánto llegó ya en comprobantes («Llegó en papel: 10 de 12.5 metros») y, bajo la tabla, van los
+// papeles de la orden. Sin «Anular» aquí: anular un papel del Taller es del líder (Producción ▸ Comprobantes), y la nota lo dice para que
+// nadie busque un botón que no está. Todo con tolerancia: una base que todavía no los cuenta no trae nada de esto y la orden se ve como
+// siempre.
 //
 // # · Insumo (código y descripción) · Cantidad · Precio u. · Descuento · Subtotal. Las columnas las decide el ANCHO DISPONIBLE
 // (`@container`), no la ventana: con menos de 40 rem la cuenta de la línea va en un renglón bajo el insumo.
@@ -35,6 +42,9 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
   const creada = diaYHoraLima(d.creadaEn);
   const editada = d.actualizadaEn ? diaYHoraLima(d.actualizadaEn) : null;
   const anulada = d.anuladaEn ? diaYHoraLima(d.anuladaEn) : null;
+  const pedidas = pedidasDeLaOrden(d);
+  // «Llegó en papel» solo cuando la orden ya tiene algo en papel: en una sin papel, «0 de 12.5 metros» en cada línea sería ruido.
+  const papel = papelDeOrdenInsumo(pedidas);
   return (
     <div className="@container space-y-5">
       {d.estado === "anulada" && (
@@ -82,8 +92,8 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
             ]}
           />
         </div>
-        {d.lineas.map((l) => (
-          <LineaDetalle key={l.posicion} l={l} />
+        {pedidas.map((l) => (
+          <LineaDetalle key={l.posicion} l={l} conPapel={papel !== null} />
         ))}
         <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-3">
           <span className="text-sm text-taupe">
@@ -95,6 +105,8 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
           </span>
         </div>
       </Tabla>
+
+      <ComprobantesDeOrdenInsumo orden={d} />
 
       {/* Con su rótulo, como en el papel: sin él, una barra gris se leía como un aviso o un estado. */}
       {d.nota && (
@@ -139,6 +151,7 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
 
       <p data-guia="oi.pie" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">
         <Chip tono={estado.tono}>{estado.texto}</Chip>
+        {papel && <Chip tono={papel === "completa" ? "verde" : "ambar"}>{papel === "completa" ? "Papel completo" : "Papel en parte"}</Chip>}
         <span>
           Creada por {d.creadaPor ?? "alguien sin nombre en Dynamic"} el {creada.dia} a las {creada.hora}
           {editada && ` · editada por ${d.actualizadaPor ?? "alguien sin nombre en Dynamic"} el ${editada.dia} a las ${editada.hora}`}
@@ -148,7 +161,7 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
   );
 }
 
-function LineaDetalle({ l }: { l: LineaOrdenInsumo }) {
+function LineaDetalle({ l, conPapel }: { l: PedidaInsumo; conPapel: boolean }) {
   const unidadCambio = l.unidadActual != null && l.unidadActual !== l.unidadMedida;
   return (
     <div className={fila(PLANTILLA)}>
@@ -158,6 +171,14 @@ function LineaDetalle({ l }: { l: LineaOrdenInsumo }) {
         <span className="block text-xs text-taupe">{[l.codigo, l.descripcion].filter(Boolean).join(" · ")}</span>
         {/* La orden guarda la unidad del día en que se hizo; si el catálogo la cambió después, se avisa (editarla pide la nueva). */}
         {unidadCambio && <span className="block text-xs text-ambar">Hoy este insumo se pide en {nombreUnidad(l.unidadActual!)}</span>}
+        {conPapel && (
+          <span
+            data-guia="oi.papel-linea"
+            className={`mt-0.5 block text-xs tabular-nums ${l.facturado > l.cantidad ? "text-ambar" : l.facturado >= l.cantidad ? "text-verde-profundo" : "text-taupe"}`}
+          >
+            Llegó en papel: {textoPapelDeLineaInsumo(l)}
+          </span>
+        )}
         {/* Sin columnas: la cuenta entera, cada cifra sin partirse («S/» no queda solo al final de un renglón). */}
         <span className="mt-1 block text-sm tabular-nums text-tinta/80 @min-[40rem]:hidden">
           <span className="whitespace-nowrap">{cantidadConUnidad(l.cantidad, l.unidadMedida)}</span> ×{" "}
@@ -188,5 +209,62 @@ function LineaDetalle({ l }: { l: LineaOrdenInsumo }) {
       </span>
       <span className={`${CIFRA} font-medium text-tinta`}>{soles(l.subtotal)}</span>
     </div>
+  );
+}
+
+// Los papeles de una orden (fase 7 parte 2): del más reciente al más antiguo, vigentes y anulados. Documento · Tipo · Emisión · Vence ·
+// Total · Estado; sin columnas, lo demás en un renglón bajo el documento.
+const PLANTILLA_PAPEL = "@min-[40rem]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_5.5rem_5.5rem_7rem_6rem]";
+
+function ComprobantesDeOrdenInsumo({ orden: d }: { orden: Detalle }) {
+  if (d.comprobantes.length === 0) return null;
+  const vigente = d.comprobantes.some((c) => c.estado === "vigente");
+  return (
+    <section aria-label="Comprobantes de la orden" data-guia="oi.comprobantes" className="space-y-2">
+      <TituloGrupo nota="el papel que ya llegó">Comprobantes</TituloGrupo>
+      <Tabla>
+        <div className="hidden @min-[40rem]:block">
+          <Encabezado
+            plantilla={PLANTILLA_PAPEL}
+            columnas={[
+              { titulo: "Documento" },
+              { titulo: "Tipo" },
+              { titulo: "Emisión", alinear: "der" },
+              { titulo: "Vence", alinear: "der" },
+              { titulo: "Total", alinear: "der" },
+              { titulo: "Estado" },
+            ]}
+          />
+        </div>
+        {d.comprobantes.map((c) => (
+          <div key={c.id} className={fila(PLANTILLA_PAPEL)}>
+            <span className={celda("izq", "font-medium tabular-nums text-tinta")}>{c.documento}</span>
+            <span className={celda("izq", "whitespace-normal text-sm text-tinta/80")}>
+              {textoDeTipo(c.tipo as TipoComprobante)}
+              {c.condicion === "credito" ? " · Crédito" : c.condicion === "contado" ? " · Contado" : ""}
+              {/* Sin columnas: lo demás en un renglón, con su contexto. */}
+              <span className="mt-0.5 block text-xs tabular-nums text-taupe @min-[40rem]:hidden">
+                {c.fechaEmision ? `${fechaCorta(c.fechaEmision)} · ` : ""}
+                {c.fechaVencimiento ? `vence ${fechaCorta(c.fechaVencimiento)} · ` : ""}
+                <span className="whitespace-nowrap">{soles(c.total)}</span>
+              </span>
+            </span>
+            <span className={`${CIFRA} text-tinta/80`}>{c.fechaEmision ? fechaCorta(c.fechaEmision) : "—"}</span>
+            <span className={`${CIFRA} text-tinta/80`}>{c.fechaVencimiento ? fechaCorta(c.fechaVencimiento) : "—"}</span>
+            <span className={`${CIFRA} text-tinta`}>{soles(c.total)}</span>
+            <span className="min-w-0">
+              <Chip tono={c.estado === "vigente" ? "neutro" : "apagado"}>{c.estado === "vigente" ? "Vigente" : "Anulado"}</Chip>
+            </span>
+          </div>
+        ))}
+      </Tabla>
+      {d.estado === "generada" && (
+        <p className="nota-cayla">
+          {vigente
+            ? "Mientras tenga un comprobante vigente, la orden no se edita ni se anula. Si el papel está mal, pídele a tu líder que lo anule y vuelve a registrarlo."
+            : "Como esta orden ya tuvo comprobante, no se edita. Si hace falta, registra el papel de nuevo."}
+        </p>
+      )}
+    </section>
   );
 }

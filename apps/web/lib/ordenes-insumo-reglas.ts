@@ -32,6 +32,8 @@ export const RPC_SIGUIENTE_ORDEN_INSUMO = "fn_ordenes_insumo_siguiente";
 export const RPC_CREAR_ORDEN_INSUMO = "crear_orden_insumo";
 export const RPC_EDITAR_ORDEN_INSUMO = "editar_orden_insumo";
 export const RPC_ANULAR_ORDEN_INSUMO = "anular_orden_insumo";
+/** El papel del proveedor de una orden de insumos (fase 7 parte 2 · actividad 1, 20261015020000). */
+export const RPC_REGISTRAR_COMPROBANTE_ORDEN_INSUMO = "registrar_comprobante_orden_insumo";
 
 /** La base reconoció el mismo id con OTRO pedido: la orden ya se había guardado con lo de antes (`crear_orden_insumo`). */
 export const HINT_INSUMO_YA_GUARDADA = "orden_insumo_ya_guardada";
@@ -331,6 +333,21 @@ export type VersionOrdenInsumo = {
   total: number;
 };
 
+/** Lo facturado de una línea de la orden (fase 7 parte 2): lo que dicen sus papeles vigentes, en la unidad de la línea. */
+export type FacturadoDeLinea = { posicion: number; itemId: string; facturado: number };
+
+/** Un papel del proveedor de la orden (fase 7 parte 2), vigente o anulado. «Sin comprobante» trae su número interno SC-…. */
+export type PapelDeOrdenInsumo = {
+  id: string;
+  tipo: string;
+  documento: string;
+  fechaEmision: string | null;
+  condicion: string | null;
+  fechaVencimiento: string | null;
+  total: number;
+  estado: "vigente" | "anulada";
+};
+
 export type DetalleOrdenInsumo = {
   id: string;
   numero: number;
@@ -353,6 +370,12 @@ export type DetalleOrdenInsumo = {
   total: number;
   /** De la más vieja a la más nueva; vacía si nunca se editó. */
   versiones: VersionOrdenInsumo[];
+  /** Lo facturado de cada línea, por posición (vacío si la base todavía no lo trae). */
+  facturacion: FacturadoDeLinea[];
+  /** Sus papeles, del más nuevo al más viejo. */
+  comprobantes: PapelDeOrdenInsumo[];
+  /** El plazo de crédito del proveedor, para sugerir el vencimiento del papel; null si su ficha no lo dice. */
+  plazoCreditoDias: number | null;
 };
 
 function leerLineas(data: unknown): LineaOrdenInsumo[] {
@@ -411,6 +434,43 @@ function leerVersiones(data: unknown): VersionOrdenInsumo[] {
     .sort((a, b) => a.version - b.version);
 }
 
+function leerFacturacion(data: unknown): FacturadoDeLinea[] {
+  return (Array.isArray(data) ? data : [])
+    .map((f): FacturadoDeLinea | null => {
+      if (!f || typeof f !== "object") return null;
+      const r = f as Record<string, unknown>;
+      const posicion = cifra(r.posicion);
+      const itemId = texto(r.item_id);
+      const facturado = cifra(r.facturado);
+      return posicion == null || !itemId || facturado == null ? null : { posicion, itemId, facturado };
+    })
+    .filter((f): f is FacturadoDeLinea => f !== null);
+}
+
+function leerPapeles(data: unknown): PapelDeOrdenInsumo[] {
+  return (Array.isArray(data) ? data : [])
+    .map((c): PapelDeOrdenInsumo | null => {
+      if (!c || typeof c !== "object") return null;
+      const r = c as Record<string, unknown>;
+      const id = texto(r.id);
+      const tipo = texto(r.tipo);
+      const documento = texto(r.documento);
+      const estado = r.estado === "vigente" || r.estado === "anulada" ? r.estado : null;
+      if (!id || !tipo || !documento || !estado) return null;
+      return {
+        id,
+        tipo,
+        documento,
+        fechaEmision: texto(r.fecha_emision),
+        condicion: texto(r.condicion),
+        fechaVencimiento: texto(r.fecha_vencimiento),
+        total: cifra(r.total) ?? 0,
+        estado,
+      };
+    })
+    .filter((c): c is PapelDeOrdenInsumo => c !== null);
+}
+
 /** Lee `fn_orden_insumo`; null si no llegó una orden (no existe, o la respuesta no se entiende). Una línea rara se descarta. */
 export function leerDetalleOrdenInsumo(data: unknown): DetalleOrdenInsumo | null {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
@@ -448,13 +508,23 @@ export function leerDetalleOrdenInsumo(data: unknown): DetalleOrdenInsumo | null
     cantidades: leerCantidades(d.cantidades),
     total: cifra(d.total) ?? 0,
     versiones: leerVersiones(d.versiones),
+    facturacion: leerFacturacion(d.facturacion),
+    comprobantes: leerPapeles(d.comprobantes),
+    plazoCreditoDias: cifra(d.plazo_credito_dias),
   };
 }
 
-/** «Editar» y «Anular orden»: solo una generada. Lo mismo que rechazan `editar_orden_insumo` y `anular_orden_insumo` (que siguen
- *  siendo el candado); el comprobante y la recepción del Taller, cuando lleguen, sumarán aquí su propia regla, como la fase 2. */
-export const puedeEditarOrdenInsumo = (d: Pick<DetalleOrdenInsumo, "estado">): boolean => d.estado === "generada";
-export const puedeAnularOrdenInsumo = (d: Pick<DetalleOrdenInsumo, "estado">): boolean => d.estado === "generada";
+/**
+ * «Editar» y «Anular orden»: lo mismo que rechazan `editar_orden_insumo` y `anular_orden_insumo` (que siguen siendo el candado). Solo una
+ * generada; y con papel (fase 7 parte 2): una orden que tuvo papel —aunque se haya anulado— ya no se edita (editar borra sus líneas, y
+ * las del comprobante del Taller no se tocan), y con su papel VIGENTE tampoco se anula (primero se anula el papel).
+ */
+export const puedeEditarOrdenInsumo = (d: Pick<DetalleOrdenInsumo, "estado" | "comprobantes">): boolean =>
+  d.estado === "generada" && d.comprobantes.length === 0;
+export const puedeAnularOrdenInsumo = (d: Pick<DetalleOrdenInsumo, "estado" | "comprobantes">): boolean =>
+  d.estado === "generada" && !d.comprobantes.some((c) => c.estado === "vigente");
+/** «Registrar comprobante»: una orden generada (la base no le registra papel a una anulada). */
+export const puedeRegistrarComprobanteInsumo = (d: Pick<DetalleOrdenInsumo, "estado">): boolean => d.estado === "generada";
 
 /** Las líneas cuya unidad cambió desde que se hizo la orden (alguien cambió la del insumo en el catálogo). */
 export function lineasConUnidadCambiada(d: Pick<DetalleOrdenInsumo, "lineas">): LineaOrdenInsumo[] {

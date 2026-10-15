@@ -1028,7 +1028,7 @@ export const GUIA_ORDEN_INSUMO: Guia = {
   id: "ordenes-insumos.ver.id",
   ruta: "/ordenes-insumos/ver/[id]",
   titulo: "Una orden de insumos",
-  resumen: "Lo que se le pidió a un proveedor del Taller: para imprimirla, corregirla o anularla.",
+  resumen: "Lo que se le pidió a un proveedor del Taller: para imprimirla, registrar su papel, corregirla o anularla.",
   pasos: [
     {
       id: "bienvenida",
@@ -1056,6 +1056,20 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       texto: "Una fila por insumo: su nombre y su código, cuánto en su unidad, el precio de cada una (con cuatro decimales si los usa), el descuento y el subtotal. Abajo, cuánto se pidió de cada unidad y el total.",
     },
     {
+      id: "papel-linea",
+      ancla: "oi.papel-linea",
+      opcional: true,
+      titulo: "Cuánto llegó en papel",
+      texto: "Si la orden ya tiene papel, cada línea dice cuánto llegó ya en comprobantes («10 de 12.5 metros»): en verde si llegó todo, en ámbar si el papel trae más de lo pedido.",
+    },
+    {
+      id: "comprobantes",
+      ancla: "oi.comprobantes",
+      opcional: true,
+      titulo: "Sus comprobantes",
+      texto: "Los papeles que el proveedor dio por esta orden, del más reciente al más antiguo, con su total y si siguen vigentes. Mientras tenga uno vigente, la orden no se edita ni se anula; si el papel está mal, tu líder lo anula y lo vuelves a registrar.",
+    },
+    {
       id: "versiones",
       ancla: "oi.versiones",
       opcional: true,
@@ -1072,7 +1086,7 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       id: "acciones",
       ancla: "oi.acciones",
       titulo: "Lo que haces con ella",
-      texto: "Los botones de esta orden. Mientras esté generada la puedes imprimir, corregir o anular; una anulada solo se imprime.",
+      texto: "Los botones de esta orden. Mientras esté generada la puedes imprimir, registrar su papel, corregir o anular; una anulada solo se imprime.",
     },
     {
       id: "imprimir",
@@ -1085,7 +1099,14 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       ancla: "oi.editar",
       opcional: true,
       titulo: "Corregirla",
-      texto: "«Editar» abre la orden en su formulario para corregirla, solo mientras está generada. Te lleva a otra pantalla, así que en la demo no lo tocamos.",
+      texto: "«Editar» abre la orden en su formulario para corregirla, solo mientras está generada y sin papel. Te lleva a otra pantalla, así que en la demo no lo tocamos.",
+    },
+    {
+      id: "registrar-comprobante",
+      ancla: "oi.registrar-comprobante",
+      opcional: true,
+      titulo: "Registrar su comprobante",
+      texto: "Cuando llega el papel del proveedor (o si no te dio ninguno), «Registrar comprobante» lo copia con lo que falta de la orden ya puesto. Te lleva a otra pantalla, así que en la demo no lo tocamos.",
     },
     {
       id: "anular",
@@ -1099,6 +1120,108 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       ancla: null,
       titulo: "¡Listo!",
       texto: "Ya sabes leer una orden de insumos. Si la abriste desde la lista, la ✕ o Escape te devuelven a ella. Para repasarlo: Mi perfil ▸ Demo ▸ Una orden de insumos.",
+    },
+  ],
+};
+
+// El papel de una orden de insumos (ADR-0362, fase 7 parte 2 · actividad 1). Pantalla interna: se llega desde «Registrar comprobante» en
+// la orden abierta y no se ofrece sola. Registrar deja una deuda, así que la guía solo EXPLICA y el piloto no toca nada: ni elige el tipo ni
+// escribe una serie (ADR-0290: es la del papel del proveedor, no hay una que valga para todos).
+export const GUIA_COMPROBANTE_ORDEN_INSUMO: Guia = {
+  id: "ordenes-insumos.comprobante.id",
+  ruta: "/ordenes-insumos/comprobante/[id]",
+  titulo: "Registrar comprobante de insumos",
+  resumen: "Copiar el papel que dio el proveedor del Taller por una orden, o registrar la compra sin comprobante: lo que falta de la orden ya viene puesto.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Copiar el papel del proveedor",
+      texto: "Aquí registras el papel que el proveedor del Taller te dio por una orden: factura, boleta o nota de venta; si no te dio ninguno, «sin comprobante». Lo que falta de la orden ya viene puesto y tú corriges lo que no coincida. Es una demo: no se registra nada.",
+    },
+    {
+      id: "anulada",
+      ancla: "oi-comprobante.anulada",
+      opcional: true,
+      titulo: "Una anulada no recibe papel",
+      texto: "Esta orden está anulada: ya no se le registra comprobante. «Ver la orden» la abre; si todavía hace falta pedir eso, crea una orden nueva.",
+    },
+    {
+      id: "cifras",
+      ancla: "oi-comprobante.cifras",
+      titulo: "El total del papel, al día",
+      // «Arriba», sin «a la derecha»: en un celular la cifra baja bajo el título, a la izquierda.
+      texto: "Arriba se va sumando el total de lo que copias, para compararlo con el total impreso en el papel antes de registrar. Sin comprobante, es el total de la compra.",
+    },
+    {
+      id: "aviso",
+      ancla: "oi-comprobante.aviso",
+      opcional: true,
+      titulo: "Si ya hay papel registrado",
+      texto: "Si la orden ya tiene comprobantes, aquí te avisa. Abajo viene solo lo que todavía no llegó en papel; si ya llegó todo, otro papel se acepta y lo que pase de lo pedido queda avisado como «de más».",
+    },
+    {
+      id: "papel",
+      ancla: "oi-comprobante.papel",
+      titulo: "Qué papel es",
+      texto: "Elige qué papel te dieron (boleta, nota de venta o factura) y copia su serie, su número y su fecha; si no te dieron ninguno, elige «Sin comprobante». «Vence el» viene con el plazo del proveedor. El interruptor suma el IGV de 18 %, solo en una factura.",
+    },
+    {
+      id: "sin-papel",
+      ancla: "oi-comprobante.sin-papel",
+      opcional: true,
+      titulo: "Una compra sin comprobante",
+      texto: "Si el proveedor no te dio ningún papel, no hay serie ni número que copiar: la compra se guarda con un número interno (SC-000001) para que el contador sepa que no tiene comprobante. No lleva IGV y no entra al Registro de Compras de Impuestos.",
+    },
+    {
+      id: "credito",
+      ancla: "oi-comprobante.credito",
+      titulo: "Queda por pagar",
+      texto: "Por ahora el papel de una orden de insumos se registra al crédito: queda por pagar en el Taller hasta su vencimiento, y lo paga tu líder.",
+    },
+    {
+      id: "renglones",
+      ancla: "oi-comprobante.renglones",
+      titulo: "Lo que dice el papel",
+      texto: "Una fila por cada renglón del papel (sin comprobante, por cada cosa que compraste), con lo que falta de la orden ya puesto. Lo que trae de más se acepta y queda avisado; lo que no trae, lo quitas con la ✕.",
+    },
+    {
+      id: "renglon",
+      ancla: "oi-comprobante.renglon",
+      opcional: true,
+      titulo: "Cada renglón",
+      texto: "El insumo, con cuánto pediste y cuánto llegó ya en papel; la cantidad en su unidad (metros, conos…), con hasta tres decimales; el costo por unidad —sin IGV si el papel lo discrimina—, con hasta cuatro; y el subtotal.",
+    },
+    {
+      id: "sin-poner",
+      ancla: "oi-comprobante.sin-poner",
+      opcional: true,
+      titulo: "Lo que quedó sin poner",
+      texto: "Las líneas de la orden que no pusiste en este papel, con cuánto pediste y cuánto llegó ya en papel. «Poner en el papel» («Poner en la compra», sin comprobante) la trae de vuelta con su costo.",
+    },
+    {
+      id: "fuera",
+      ancla: "oi-comprobante.fuera",
+      titulo: "Un insumo que no estaba en la orden",
+      texto: "Si te facturaron un insumo que no estaba en la orden, lo agregas aquí, elegido del catálogo de insumos. Se acepta y queda avisado. En la demo no agregamos nada.",
+    },
+    {
+      id: "totales",
+      ancla: "oi-comprobante.totales",
+      titulo: "Subtotal, IGV y total",
+      texto: "Se calculan solos con los renglones: compáralos con el papel antes de registrar. En una factura con IGV, si el papel dice otro total por unos centavos, escríbelo abajo: ese total manda y el IGV se ajusta. En los demás, el IGV dice «No lleva».",
+    },
+    {
+      id: "registrar",
+      ancla: "oi-comprobante.registrar",
+      titulo: "Registrar el comprobante",
+      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta. «Registrar comprobante» (o «Registrar sin comprobante») lo deja por pagar y vuelves a la lista. «Cancelar» sale sin guardar. En la demo no lo tocamos.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes copiar el papel de un proveedor del Taller. La flecha de arriba te devuelve a la lista. Para repasarlo: Mi perfil ▸ Demo ▸ Esta pantalla.",
     },
   ],
 };
@@ -1121,6 +1244,13 @@ export const GUIA_EDITAR_ORDEN_INSUMO: Guia = {
       opcional: true,
       titulo: "Una anulada no se edita",
       texto: "Esta orden está anulada y ya no se puede cambiar. «Ver la orden» la abre; si todavía hace falta pedir eso, crea una orden nueva.",
+    },
+    {
+      id: "con-comprobante",
+      ancla: "oi-form.con-comprobante",
+      opcional: true,
+      titulo: "Con papel ya no se edita",
+      texto: "Esta orden ya tiene un comprobante registrado: sus líneas quedaron atadas a ese papel y ya no se cambian. «Ver la orden» la abre; si hay que pedir otra cosa, crea otra orden.",
     },
     {
       id: "cifras",

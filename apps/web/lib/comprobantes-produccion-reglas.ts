@@ -27,7 +27,11 @@ export const IGV_PORCENTAJE = 18;
 
 export function etiquetaTipo(tipo: string, corta = false): string {
   const t = TIPOS_COMPROBANTE.find((x) => x.valor === tipo);
-  return t ? (corta ? t.corta : t.etiqueta) : tipo;
+  if (t) return corta ? t.corta : t.etiqueta;
+  // El papel de una orden de insumos puede ser «sin comprobante» (ADR-0362, fase 7 parte 2): la lista del líder lo nombra, aunque su
+  // formulario no lo ofrezca (`registrar_comprobante_produccion` sigue con los tres tipos de siempre).
+  if (tipo === "sin_comprobante") return corta ? "Sin comp." : "Sin comprobante";
+  return tipo;
 }
 
 export function etiquetaMetodo(metodo: string): string {

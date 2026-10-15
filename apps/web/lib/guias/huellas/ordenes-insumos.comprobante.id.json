@@ -1,0 +1,35 @@
+{
+  "guia": "ordenes-insumos.comprobante.id",
+  "ruta": "/ordenes-insumos/comprobante/[id]",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 23,
+  "controles": {
+    "app/(app)/ordenes-insumos/comprobante/[id]/page.tsx": [
+      "Volver «; const subtitulo = \"El papel que te dio el proveedor del»",
+      "BotonEnlace «Ver las órdenes de insumos»",
+      "BotonEnlace «Ver la orden»"
+    ],
+    "components/ordenes-insumo/RegistrarComprobanteOrdenInsumo.tsx": [
+      "Volver «(sin nombre)»",
+      "SegmentoDeslizante «Tipo de papel»",
+      "CampoSelect «Tipo de papel»",
+      "CampoTexto «Serie»",
+      "CampoTexto «Número»",
+      "CampoFecha «{palabras.emision}»",
+      "CampoFecha «Vence el»",
+      "button «Volver al sugerido (»",
+      "Boton «{palabras.poner}»",
+      "Boton «oi-comprobante.fuera»",
+      "CampoTexto «Total que dice el papel, en soles»",
+      "CampoTexto «Nota»",
+      "ComboResponsable «)»",
+      "Boton «Recargar»",
+      "BotonEnlace «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "button «{`Quitar el renglón ${numero}»",
+      "ComboBuscable «(sin nombre)»",
+      "CampoTexto «{`Cantidad del renglón ${numero}»",
+      "CampoTexto «{`Costo por ${porUnidad}»"
+    ]
+  }
+}
