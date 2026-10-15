@@ -54,7 +54,8 @@ export const consultarDocumentoEnBase = (dni: string, ipHash: string, documentoH
   );
 
 export type RespuestaRevision = {
-  estado: "ok" | "limite" | "correo_repetido" | "dni_repetido" | "archivada" | "invalido" | "sin_respuesta";
+  /** `correo_de_otra_persona`: es el correo de contacto de OTRA ficha del Club (un correo es de una sola persona, 20261015055000). */
+  estado: "ok" | "limite" | "correo_repetido" | "correo_de_otra_persona" | "dni_repetido" | "archivada" | "invalido" | "sin_respuesta";
   campo?: string;
 };
 
@@ -65,7 +66,7 @@ export const revisarRegistroEnBase = (correo: string, dni: string, celular: stri
     async (db) => {
       const [fila] = await db`select retail.tienda_revisar_registro(${correo}::text, ${dni}::text, ${celular}::text, ${ipHash}::text, ${documentoHash}::text) as r`;
       const estado = ESTADO(fila?.r);
-      const conocidos = ["ok", "limite", "correo_repetido", "dni_repetido", "archivada", "invalido"] as const;
+      const conocidos = ["ok", "limite", "correo_repetido", "correo_de_otra_persona", "dni_repetido", "archivada", "invalido"] as const;
       const campo = (fila?.r as { campo?: unknown }).campo;
       return conocidos.includes(estado as (typeof conocidos)[number])
         ? { estado: estado as (typeof conocidos)[number], ...(typeof campo === "string" ? { campo } : {}) }
@@ -164,8 +165,11 @@ export async function registrarCuentaEnBase(d: DatosCuenta): Promise<ResultadoRe
   } catch (error) {
     const e = error as { hint?: unknown; detail?: unknown; code?: unknown; message?: unknown };
     const hint = typeof e.hint === "string" ? e.hint : null;
-    // Sin el mensaje de la base en el registro: puede traer datos de la persona. El código y el hint bastan.
-    if (!hint?.startsWith("cuenta_")) console.error(JSON.stringify({ evento: "tienda_registrar_cuenta_fallo", codigo: e.code ?? null, hint }));
+    // Sin el mensaje de la base en el registro: puede traer datos de la persona. El código y el hint bastan. Un rechazo de negocio
+    // (los `cuenta_*` y el correo de otra persona, `correo_repetido`) no es una falla.
+    if (!hint?.startsWith("cuenta_") && hint !== "correo_repetido") {
+      console.error(JSON.stringify({ evento: "tienda_registrar_cuenta_fallo", codigo: e.code ?? null, hint }));
+    }
     return { ok: false, hint, detalle: typeof e.detail === "string" ? e.detail : null };
   }
 }

@@ -1,7 +1,10 @@
 "use server";
 
 import { isAuthApiError, isAuthRetryableFetchError } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { COOKIE_ENTRADA, ENTRADA_DURA_S, marcaDeEntrada } from "@/lib/entrada";
+import { anotarEntradaEnBase, usuarioBorradoEnBase } from "@/lib/entrada-servidor";
 import {
   avisoAlCrear,
   CODIGO_BLOQUEO_MIN,
@@ -126,6 +129,8 @@ export async function pedirCodigo(entrada: unknown): Promise<RespuestaCodigo> {
   if (revision.estado !== "ok") {
     if (revision.estado === "limite") return enDatos(null, MENSAJES.limite);
     if (revision.estado === "correo_repetido") return enDatos("correo", MENSAJES.correoRepetido);
+    // Un correo es de una sola persona: el de contacto de otra ficha no sirve para esta cuenta (sin decir de quién es).
+    if (revision.estado === "correo_de_otra_persona") return enDatos("correo", MENSAJES.correoDeOtraPersona);
     if (revision.estado === "dni_repetido") return enDatos("dni", MENSAJES.dniRepetido);
     if (revision.estado === "archivada") return enDatos("dni", MENSAJES.dniArchivada);
     if (revision.estado === "invalido") {
@@ -282,7 +287,21 @@ export async function confirmarCodigo(entrada: unknown): Promise<RespuestaCodigo
   // 5. Entrar. Si el proyecto de clientes no contesta justo ahora, la cuenta igual quedó: que entre con su correo.
   const { error } = await sesion.auth.signInWithPassword({ email: correo, password: r.clave });
   if (error) redirect("/entrar?aviso=cuenta-creada");
+  // Crear la cuenta también es entrar (la conservación del Club ya la cuenta por `creada_en`): se anota y se deja la marca del día,
+  // así el marco de «Mi cuenta» no vuelve a preguntar hoy.
+  if ((await anotarEntradaEnBase(confirmado.usuarioWebId)) === "anotada") await marcarEntradaDeHoy(confirmado.usuarioWebId);
   redirect(`/cuenta?aviso=${aviso}`);
+}
+
+/** La marca de «hoy ya se anotó la entrada» de este aparato (la misma que deja `anotarEntrada`). */
+async function marcarEntradaDeHoy(usuarioWebId: string): Promise<void> {
+  (await cookies()).set(COOKIE_ENTRADA, marcaDeEntrada(usuarioWebId), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: ENTRADA_DURA_S,
+  });
 }
 
 /** El nombre que va a la cuenta: el del padrón (consultado aquí: el del navegador no cuenta) o, si no lo da, el que escribió.
@@ -301,6 +320,8 @@ export async function salir(): Promise<void> {
   const sesion = await clienteSesion();
   if (sesion) await sesion.auth.signOut({ scope: "local" }).catch(() => undefined);
   await borrarCookiesDeSesion();
+  // La marca de la entrada de hoy es de esta sesión: la próxima que entre en este aparato se anota igual.
+  (await cookies()).delete(COOKIE_ENTRADA);
   redirect("/?aviso=salir");
 }
 
@@ -315,6 +336,9 @@ export async function rehacerCuenta(): Promise<void> {
     const admin = clienteAdmin();
     const { error } = admin ? await admin.auth.admin.deleteUser(lectura.usuarioId) : { error: null };
     if (error && error.status !== 404) console.error(JSON.stringify({ evento: "tienda_rehacer_cuenta_fallo", usuario_web_id: lectura.usuarioId }));
+    // Si era el usuario de una cuenta CERRADA (su ficha se anonimizó hoy mismo, con la sesión abierta), la base lo anota como borrado;
+    // si no lo era, no cambia nada.
+    else if (admin) await usuarioBorradoEnBase(lectura.usuarioId);
   }
   const sesion = await clienteSesion();
   if (sesion) await sesion.auth.signOut({ scope: "local" }).catch(() => undefined);

@@ -38,6 +38,24 @@ ERP cada cuenta es una fila de `cuentas_web` unida a su ficha del Club, y la tie
   sesión, del Inicio, el catálogo y «Mi cuenta» a «Entrar»).
 - La llave secreta del proyecto de clientes solo la lee `lib/sesion-servidor.ts`; la cookie se llama `tienda-sesion` (en local
   el ERP también vive en `localhost` y no deben pisarse).
+- **Un correo es de una sola persona** (Felipe 2026-10-14, `20261015054000`): el correo de contacto de OTRA ficha del Club no sirve
+  para crear la cuenta. `tienda_revisar_registro` lo dice antes de mandar el código (`correo_de_otra_persona`) y la tienda responde
+  sin decir de quién es (`MENSAJES.correoDeOtraPersona`); si alguien lo toma entre el código y «Crear mi cuenta», la base lo frena igual
+  (`correo_repetido`).
+
+## Entrar cuenta para el Club, y la cuenta que se cierra
+
+El Club guarda los datos de una persona 3 años desde su última compra **o su última entrada a su cuenta web** (Felipe 2026-10-14;
+Términos del Club, 7, y Privacidad, 6). La base lo lleva en `cuentas_web.ultima_entrada_en` (`20261015055000`):
+
+- **La entrada se anota** con `tienda_anotar_entrada` (`app/acciones/entrada.ts`) al iniciar sesión («Entrar»), al crear la cuenta y,
+  si la sesión sigue abierta otro día, una vez al día desde el marco de las páginas con cuenta (`components/cuenta/EntradaDelDia.tsx`,
+  con la marca `tienda-entrada` de este aparato). Nunca en cada petición: `proxy.ts` no le pregunta nada a la base.
+- **Si aun así la ficha se anonimiza** (la conservación del ERP, o porque lo pidió en tienda), la base cierra su cuenta web en la
+  misma escritura: sin correo ni usuario, con sus favoritos y sus esperas quitados (no borrados). Ninguna función `tienda_*` la vuelve a
+  encontrar. Su usuario del proyecto de clientes queda «por borrar» y lo borra este servidor: cuando la persona intenta entrar
+  (`tienda_anotar_entrada` dice `cerrada`: se borra el usuario, se cierra la sesión y «Entrar» lo explica) y, si nunca vuelve, la ruta
+  programada `/api/cuentas-cerradas` (`vercel.json`, cada madrugada a las 03:30 de Lima, con `CRON_SECRET`).
 
 ## Cómo se ordena el código
 
@@ -72,6 +90,7 @@ prenda y tienda la espera; si la prenda ya hay, no se anota. Lo que esperan los 
 Pruebas: `pnpm --filter tienda test`, `typecheck` y `lint`; en la base, `pnpm pruebas:tienda-puerta`, `pnpm pruebas:tienda-cuentas`,
 `pnpm pruebas:vitrina-web`, `pnpm pruebas:tienda-ficha` (cuánto hay en cada tienda), `pnpm pruebas:tienda-inicio` («Lo nuevo», «Más
 vendidos» y los plazos de la ayuda), `pnpm pruebas:tienda-separadas` («otra persona ya separó la última»), `pnpm pruebas:tienda-bolsa`,
-`pnpm pruebas:tienda-club` (también la regla única de «hay» y de «nuevo») y `pnpm pruebas:tienda-avisos` (el aviso del Club al entrar);
+`pnpm pruebas:tienda-club` (también la regla única de «hay» y de «nuevo»), `pnpm pruebas:tienda-avisos` (el aviso del Club al entrar)
+y `pnpm pruebas:clientas-correo` (un correo, una persona; la entrada que cuenta para el Club y la cuenta que se cierra);
 las de la ficha, el Inicio, la bolsa y «otra persona ya separó», con `-- --mutantes`, además contra versiones rotas a propósito de su
 migración.

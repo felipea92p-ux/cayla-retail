@@ -1,6 +1,7 @@
 import "server-only";
 import { isAuthApiError, isAuthRetryableFetchError, type SupabaseClient } from "@supabase/supabase-js";
 import { leerMiCuentaEnBase } from "./cuentas-servidor";
+import { usuarioBorradoEnBase, usuariosPorBorrarEnBase } from "./entrada-servidor";
 import { clienteSuelto } from "./sesion-servidor";
 
 // Los usuarios del proyecto de inicio de sesión de los CLIENTES al crear una cuenta (ADR-0408, actividad 2b). El código que
@@ -8,6 +9,33 @@ import { clienteSuelto } from "./sesion-servidor";
 // ya estaba invitado, y le manda un código de 6 cifras; uno nuevo anula el anterior, y el de otro correo no sirve (medido el
 // 2026-10-14 en local). Los topes (cuántos códigos, cuántos intentos) los lleva la base, no este proyecto: no frena nada solo.
 // Nunca va a un registro un correo, un código ni una contraseña: solo qué pasó.
+//
+// Y al final de la vida de una cuenta (`20261015055000`): cuando su ficha se anonimiza (3 años sin comprar ni entrar, o lo pidió en
+// tienda), la base la cierra y deja su usuario «por borrar». La base no puede borrarlo (es otro proyecto): lo borra este servidor
+// cuando la persona intenta entrar y, si nunca vuelve, la ruta programada de cada madrugada (`/api/cuentas-cerradas`).
+
+/**
+ * Borra del proyecto de clientes el usuario de una cuenta cerrada (que ya no esté es lo mismo) y se lo anota a la base. Devuelve
+ * si quedó borrado; si el proyecto no contesta, la próxima entrada o la próxima madrugada lo vuelven a intentar.
+ */
+export async function borrarUsuarioDeCuentaCerrada(admin: SupabaseClient, usuarioWebId: string): Promise<boolean> {
+  const { error } = await admin.auth.admin.deleteUser(usuarioWebId);
+  if (error && error.status !== 404) {
+    console.error(JSON.stringify({ evento: "tienda_borrar_usuario_cerrado_fallo", usuario_web_id: usuarioWebId, estado: error.status ?? null }));
+    return false;
+  }
+  return (await usuarioBorradoEnBase(usuarioWebId)) !== null;
+}
+
+/** La madrugada: borra hasta `limite` usuarios de cuentas cerradas que nadie borró todavía. null si la base no contestó. */
+export async function barrerCuentasCerradas(admin: SupabaseClient, limite = 50): Promise<{ borrados: number; pendientes: number } | null> {
+  const usuarios = await usuariosPorBorrarEnBase(limite);
+  if (usuarios === null) return null;
+  let borrados = 0;
+  // De a uno: son pocos (los que cumplieron 3 años sin volver ese día) y así un fallo no tapa a los demás.
+  for (const id of usuarios) if (await borrarUsuarioDeCuentaCerrada(admin, id)) borrados++;
+  return { borrados, pendientes: usuarios.length - borrados };
+}
 
 /** Un usuario confirmado hace menos que esto puede estar a mitad de crear su cuenta en otra pestaña: no se toca. */
 const RECIEN_CONFIRMADO_MS = 2 * 60_000;

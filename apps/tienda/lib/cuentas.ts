@@ -282,6 +282,8 @@ export const MENSAJES = {
   correoAyuda: "Escríbelo bien: si olvidas tu contraseña, te llega un enlace a este correo.",
   correoMal: "A este correo le falta algo: revisa lo que va después de la @.",
   correoRepetido: "Ya hay una cuenta con este correo.",
+  // Un correo es de una sola persona (Felipe 2026-10-14): es el correo de contacto de otra ficha del Club. Nunca se dice de quién.
+  correoDeOtraPersona: "Este correo ya está registrado en CAYLA con otros datos. Usa otro correo o, si es tuyo, acércate a una tienda CAYLA y lo revisamos.",
   claveAyuda: "8 caracteres o más. Solo tú la sabes.",
   claveLarga: "Tu contraseña puede tener hasta 72 caracteres.",
   dniAyuda: "Buscamos tu nombre solo, para tu boleta. Cada DNI tiene una sola cuenta.",
@@ -316,6 +318,8 @@ export const MENSAJES = {
   entrarMal: "El correo o la contraseña no coinciden. Revísalos o recupera tu contraseña.",
   entrarLimite: "Hiciste muchos intentos seguidos. Espera unos minutos y vuelve a intentarlo.",
   entrarNoDisponible: "No pudimos entrar ahora. Intenta de nuevo en unos minutos.",
+  // Su ficha se anonimizó (3 años sin comprar ni entrar, o lo pidió en tienda) y la cuenta se cerró: Términos del Club, 7; Privacidad, 6.
+  cuentaCerrada: "Tu cuenta se cerró y borramos tus datos: pasaron 3 años sin compras ni entradas a tu cuenta, o lo pediste en una tienda CAYLA. Si quieres volver, crea una cuenta nueva.",
   olvideNoDisponible: "No pudimos mandarte el enlace ahora. Intenta de nuevo en unos minutos.",
   enlaceVencido: "El enlace venció o ya se usó. Pide otro: te llega en un momento.",
   claveIgual: "Esa ya era tu contraseña: entraste con ella.",
@@ -417,6 +421,10 @@ export function errorDeRegistro(hint: string | null | undefined, detalle: string
   switch (hint) {
     case "cuenta_correo_repetido":
       return { campo: "correo", mensaje: MENSAJES.correoRepetido };
+    // El correo de otra ficha o de la cuenta web de otra ficha (el disparador `fn_correo_de_una_persona`, 20261015054000): lo dice
+    // antes `tienda_revisar_registro`; esto es la red si otra persona lo tomó entre el código y «Crear mi cuenta».
+    case "correo_repetido":
+      return { campo: "correo", mensaje: MENSAJES.correoDeOtraPersona };
     case "cuenta_dni_repetido":
       return { campo: "dni", mensaje: MENSAJES.dniRepetido };
     case "cuenta_archivada":
