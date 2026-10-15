@@ -840,7 +840,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   vale el de cada tienda (`fn_precio_en_sede`). Solo ropa en la web (Felipe, 2026-10-15, `20261015122000`): la regla es
   `fn_vitrina_por_que_no` (empaque, sin precio, no se vende; `fn_vitrina_publicable` = «no hay porqué»), lo de una familia fuera de los
   motores (bolsas, cajas) no se muestra ni se guarda y la tienda no lo ve aunque haya quedado publicado; la fila dice «Solo en la caja»
-  con el interruptor apagado (`razonNoSeMuestra`, `interruptorEncendido`).
+  con el interruptor apagado (`razonNoSeMuestra`, `interruptorEncendido`). «Sin precio» es que ninguna tienda que se ve en la web lo
+  ofrece, con la regla del precio de la tienda (`fn_tienda_precio_talla` con «Todas»; Felipe 2026-10-15: la ropa en S/ 0 en su ficha con
+  precio propio en una tienda de la web SÍ se muestra): la fila dice «Sin precio» y la hoja, que se le pone en su ficha.
   La cifra «Esperan una talla» (ADR-0408 act. 12) la lee el mismo `page.tsx` con `fn_vitrina_esperan` y lleva a
   `/productos/vitrina/esperan` (Vitrina web ▸ Esperan una talla, mismo módulo, sin menú propio) → `page.tsx` lee `fn_vitrina_esperan` →
   `components/vitrina/EsperanPantalla.tsx` (cifras que filtran, buscador, píldoras de tienda, la lista por prenda y tienda); reglas en

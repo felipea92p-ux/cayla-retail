@@ -199,10 +199,42 @@ describe("solo ropa en la web (Felipe 2026-10-15): el empaque se vende en la caj
   it("las otras razones siguen como estaban (ámbar), y lo que se puede mostrar no tiene razón", () => {
     expect(razonNoSeMuestra(emma)).toBeNull();
     expect(razonNoSeMuestra(modelo({ publicable: false, porQueNo: "no_se_vende", vitrina: null }))).toMatchObject({ chip: "No se puede vender", tono: "ambar" });
-    expect(razonNoSeMuestra(modelo({ publicable: false, porQueNo: null }))).toMatchObject({ chip: "Ya no se vende: no se ve", tono: "ambar" });
-    expect(razonNoSeMuestra(modelo({ publicable: false, porQueNo: "sin_precio" }))?.frase).toMatch(/tallas activas con precio/);
+    expect(razonNoSeMuestra(modelo({ publicable: false, porQueNo: "no_se_vende", vitrina: null }))?.frase).toBe(
+      "No se puede mostrar: está descontinuado, es de prueba o no tiene tallas activas.",
+    );
+    // Una base sin el porqué (anterior a 20261015122000): la razón de siempre, que también nombra el precio.
+    expect(razonNoSeMuestra(modelo({ publicable: false, porQueNo: null }))).toMatchObject({
+      chip: "Ya no se vende: no se ve",
+      tono: "ambar",
+      frase: expect.stringMatching(/tallas activas con precio/),
+    });
     expect(interruptorEncendido(emma)).toBe(true);
     expect(interruptorEncendido(modelo({ publicable: false, porQueNo: "no_se_vende" }))).toBe(true);
+  });
+
+  it("sin precio en ninguna tienda de la web (el precio es el de la tienda, Felipe 2026-10-15): la fila dice «Sin precio» y la hoja dónde ponérselo, no «descontinuado»", () => {
+    const sinPrecio = modelo({ publicable: false, porQueNo: "sin_precio", vitrina: null });
+    const sinPrecioEncendido = modelo({ publicable: false, porQueNo: "sin_precio" });
+    expect(razonNoSeMuestra(sinPrecio)).toEqual({
+      chip: "Sin precio",
+      tono: "ambar",
+      frase:
+        "No se puede mostrar: no tiene precio en ninguna tienda que se ve en la web. Ponle precio en su ficha, en Catálogo ▸ Productos: el de la prenda o el de una de esas tiendas.",
+    });
+    expect(razonNoSeMuestra(sinPrecioEncendido)?.chip).toBe("Sin precio: no se ve");
+    expect(razonNoSeMuestra(sinPrecio)?.frase).not.toMatch(/descontinuado/);
+    // Mostrar no lo cambia y dice por qué; el que quedó encendido sigue sin verse; ocultarlo solo lo apaga.
+    expect(queLePasa(sinPrecio, "mostrar")).toEqual({ texto: "No se puede mostrar: sin precio en las tiendas de la web", cambia: false });
+    expect(queLePasa(sinPrecioEncendido, "mostrar")).toEqual({ texto: "Sin precio en la web: no se ve", cambia: false });
+    expect(queLePasa(sinPrecioEncendido, "ocultar")).toEqual({ texto: "Se apaga: ya no se veía", cambia: true });
+    expect(seVeEnLaWeb(sinPrecioEncendido)).toBe(false);
+    // Los otros porqués en el lote: descontinuado o de prueba, y una base sin el porqué (la razón de siempre).
+    expect(queLePasa(modelo({ publicable: false, porQueNo: "no_se_vende", vitrina: null }), "mostrar").texto).toBe(
+      "No se puede mostrar: descontinuado, de prueba o sin tallas activas",
+    );
+    expect(queLePasa(modelo({ publicable: false, porQueNo: null, vitrina: null }), "mostrar").texto).toBe(
+      "No se puede mostrar: descontinuado, de prueba o sin tallas con precio",
+    );
   });
 
   it("mostrar el empaque no lo cambia (y dice por qué); ocultar el que quedó encendido solo lo apaga", () => {

@@ -15,6 +15,12 @@
  *      «Todas»; encima, la campaña con la regla de la caja (`fn_campanas_por_variante` + `fn_descuento_campana`, ADR-0403), la de
  *      mayor descuento por talla, «desde» solo cuando la campaña no toca a todas las tallas por igual, sus colores activos y solo
  *      las fotos del almacén público.
+ *   4b. Solo ropa en la web (`20261015122000`): lo que es empaque no se muestra, con su porqué y su mutante.
+ *   4c. El precio es el de la tienda (Felipe 2026-10-15, `20261015122000`): la ropa con todas sus tallas en S/ 0 en su ficha y precio
+ *      propio en una tienda que se ve en la web SE PUEDE mostrar, y la web la ofrece ahí y con «Todas» a ese precio, y no en las otras;
+ *      «sin precio» es que ninguna tienda de la web la ofrece (`fn_tienda_precio_talla`), dicho en la hoja, el lote y la pantalla. El
+ *      atajo de la regla dice lo mismo que `fn_tienda_precio_talla` en TODO el catálogo; tres mutantes (mirar solo la ficha, un atajo
+ *      que deja pasar el 0 y la pieza común rota) y la prueba los ve.
  *   5. La migración se puede volver a correr, también sobre una base que tenía la versión vieja (con precio web).
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder) o Micaela (integrante de Trujillo): nunca se
@@ -631,14 +637,17 @@ function main() {
     );
   }
   {
+    // `carla` (Pantalón Carla) se pone en S/ 0 en todas sus tallas, sin precio de tienda (y sin tiendas en la web): «sin precio».
     const r = correr(`${PREPARAR}${comoEmpaque("falda")}update retail.productos set estado = 'descontinuado' where id = :'vestido';
-      select retail.vitrina_mostrar(array[:'emma', :'falda', :'vestido']::uuid[], true);
+      select id as carla from retail.productos where referencia = 'Pantalón Carla' \\gset
+      update retail.variantes set precio = 0 where producto_id = :'carla';
+      select retail.vitrina_mostrar(array[:'emma', :'falda', :'vestido', :'carla']::uuid[], true);
       rollback;`);
     esperar(
-      "el lote es todo o nada y nombra aparte lo que es empaque y lo que no se vende",
+      "el lote es todo o nada y nombra aparte lo que es empaque, lo que no tiene precio en la web y lo que no se vende",
       !r.ok &&
         r.mensaje.includes(
-          "No se pueden mostrar: Falda Renata (no son ropa: se venden desde el ticket, en la caja); Vestido Sofía (descontinuados, de prueba o sin tallas activas con precio). Quítalos de la selección.",
+          "No se pueden mostrar: Falda Renata (no son ropa: se venden desde el ticket, en la caja); Pantalón Carla (sin precio en ninguna tienda que se ve en la web); Vestido Sofía (descontinuados, de prueba o sin tallas activas). Quítalos de la selección.",
         ),
       r.ok ? r.salida : r.mensaje,
     );
@@ -694,6 +703,134 @@ ${guardar("emma")} \\gset
 select retail.fn_vitrina_publicable(:'emma');
 rollback;`);
     esperar("MUTANTE la regla sin la línea del empaque: la bolsa se puede mostrar otra vez, y la prueba lo ve", r.ok && r.salida.split("\n").at(-1) === "t", r.ok ? r.salida : r.mensaje);
+  }
+
+  // ---------------------------------------------------------------- 4c. El precio es el de la tienda
+  // Felipe, 2026-10-15 («el precio de la prenda siempre es el de la tienda», `20261015121000`): la ropa se vende al precio propio de una
+  // tienda aunque su ficha diga S/ 0, y la tienda online la ofrece ahí (y con «Todas», al mayor). La Vitrina pregunta «¿tiene precio?»
+  // con la MISMA regla (`fn_tienda_precio_talla` con «Todas», `20261015122000`): «sin precio» es que NINGUNA talla se ofrece a más de
+  // S/ 0 en NINGUNA tienda de la web. Su atajo (una talla con precio en la ficha ya se ofrece en toda tienda) tiene que decir lo mismo
+  // que la regla en TODO el catálogo, y cada pieza tiene su mutante.
+  console.log("— El precio es el de la tienda —");
+  /** Todas las tallas de un modelo en S/ 0 en su ficha (dentro de la transacción). */
+  const enCero = (prod) => `update retail.variantes set precio = 0 where producto_id = :'${prod}';\n`;
+  /** Rompe una función de la base a propósito, dentro de la transacción. Si el texto a romper ya no está, el mutante está vacío y falla. */
+  const mutar = (firma, de, a) => `do $m$
+declare d text := pg_get_functiondef('${firma}'::regprocedure);
+begin
+  if position($q$${de}$q$ in d) = 0 then raise exception 'mutante vacío: ${firma} no tiene «%»', $q$${de}$q$; end if;
+  execute replace(d, $q$${de}$q$, $q$${a}$q$);
+end $m$;\n`;
+  esperarValor(
+    "ROPA con TODAS sus tallas en S/ 0 en su ficha y precio propio en Trujillo (que se ve en la web): se puede mostrar —la hoja la guarda, sin porqué— y la web la ofrece en Trujillo y con «Todas» a ese precio, y no en Lima",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${enCero("emma")}${precioEnTienda("emma", "tru", "99.90")}
+      select concat_ws('|', coalesce(retail.fn_vitrina_por_que_no(:'emma'), 'sin porqué'), retail.fn_vitrina_publicable(:'emma'));
+      select (${guardar("emma")}) -> 'vitrina' ->> 'publicado';
+      select ${PRECIOS("emma")};
+      select ${PRECIOS("emma", "tru")};
+      select coalesce(${PRECIOS("emma", "lim")}, 'no sale en Lima');
+      rollback;`),
+    "sin porqué|t\ntrue\n99.90|99.90|false\n99.90|99.90|false\nno sale en Lima",
+  );
+  esperarValor(
+    "el lote también: la blusa con su precio solo en Trujillo y la falda con el suyo solo en Lima entran las dos, y cada una sale solo donde tiene precio (y con «Todas»)",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${enCero("emma")}${enCero("falda")}${precioEnTienda("emma", "tru", "99.90")}${precioEnTienda("falda", "lim", "89.90")}
+      select retail.vitrina_mostrar(array[:'emma', :'falda']::uuid[], true) ->> 'cambiados';
+      select concat_ws('|', ${PRECIOS("falda")}, ${PRECIOS("falda", "lim")}, coalesce(${PRECIOS("falda", "tru")}, 'no sale en Trujillo'));
+      rollback;`),
+    "2\n89.90|89.90|false|89.90|89.90|false|no sale en Trujillo",
+  );
+  esperarValor(
+    "«sin precio» es que NINGUNA tienda de la web la ofrece: en S/ 0 sin precio de tienda, o con su precio solo en una tienda que no se ve en la web; al verse esa tienda, sí se puede mostrar",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${enCero("emma")}${enCero("falda")}${precioEnTienda("falda", "lim", "89.90")}
+      update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'lim';
+      select concat_ws('|', retail.fn_vitrina_por_que_no(:'emma'), retail.fn_vitrina_por_que_no(:'falda'), retail.fn_vitrina_publicable(:'falda'));
+      update retail.ubicacion_datos_web set mostrar = true where ubicacion_id = :'lim';
+      select concat_ws('|', retail.fn_vitrina_por_que_no(:'emma'), coalesce(retail.fn_vitrina_por_que_no(:'falda'), 'sin porqué'), retail.fn_vitrina_publicable(:'falda'));
+      rollback;`),
+    "sin_precio|sin_precio|f\nsin_precio|sin porqué|t",
+  );
+  {
+    const r = correr(`${PREPARAR}${SEDES_EN_LA_WEB}${enCero("emma")}${guardar("emma")};\nrollback;`);
+    esperar(
+      "la hoja dice por qué no se muestra la ropa sin precio en la web y qué hacer (no «descontinuado o de prueba»)",
+      !r.ok &&
+        r.mensaje.includes("vitrina_no_publicable") &&
+        r.mensaje.includes(
+          "«Blusa Emma» no se puede mostrar: no tiene precio en ninguna tienda que se ve en la web. Ponle precio en su ficha: el de la prenda o el de una de esas tiendas.",
+        ),
+      r.ok ? r.salida : r.mensaje,
+    );
+  }
+  esperarValor(
+    "la pantalla de la Vitrina: la ropa en S/ 0 con precio en Trujillo sale como se puede mostrar, sin porqué; la que estuvo en la vitrina y ya no tiene precio en ninguna tienda de la web sale con «sin_precio» y su interruptor como estaba",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${guardar("falda")} \\gset
+      ${enCero("emma")}${enCero("falda")}${precioEnTienda("emma", "tru", "99.90")}
+      select concat_ws('|',
+          (select concat_ws(',', m ->> 'publicable', coalesce(m ->> 'por_que_no', 'sin porqué'))
+             from jsonb_array_elements(retail.fn_vitrina_modelos() -> 'modelos') m where m ->> 'id' = :'emma'),
+          (select concat_ws(',', m ->> 'publicable', m ->> 'por_que_no', m -> 'vitrina' ->> 'publicado')
+             from jsonb_array_elements(retail.fn_vitrina_modelos() -> 'modelos') m where m ->> 'id' = :'falda'));
+      rollback;`),
+    "true,sin porqué|false,sin_precio,true",
+  );
+  /** Cuántos modelos dicen «sin precio» distinto de lo que dice la regla del precio de la tienda (`fn_tienda_precio_talla` con «Todas»,
+   *  ¿ofrece alguna talla activa?). Solo cuenta la ropa que pasa las otras preguntas (se vende y no es empaque). */
+  const DESACUERDOS = `create function pg_temp.desacuerdos() returns bigint language sql as $f$
+  select count(*) from retail.productos p
+   where coalesce(retail.fn_vitrina_por_que_no(p.id), 'se puede') in ('se puede', 'sin_precio')
+     and coalesce(retail.fn_vitrina_por_que_no(p.id) = 'sin_precio', false) is distinct from not exists (
+           select 1
+             from retail.fn_tienda_precio_talla(array(select v.id from retail.variantes v where v.producto_id = p.id and v.activo), null) t
+            where t.se_ofrece)
+$f$;\n`;
+  const VEREDICTO = `select concat_ws('|', pg_temp.desacuerdos(), coalesce(retail.fn_vitrina_por_que_no(:'emma'), 'se puede'),
+    coalesce(retail.fn_vitrina_por_que_no(:'falda'), 'se puede'));\n`;
+  esperarValor(
+    "el atajo y la regla del precio de la tienda dicen lo mismo en TODO el catálogo: sin cambios; con la blusa en 0 y precio en Trujillo y la falda en 0 sin precio; con Trujillo escondida; y sin tiendas en la web (la grilla)",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${DESACUERDOS}${VEREDICTO}
+      ${enCero("emma")}${enCero("falda")}${precioEnTienda("emma", "tru", "99.90")}${VEREDICTO}
+      update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'tru';
+      ${VEREDICTO}
+      update retail.ubicacion_datos_web set mostrar = false where mostrar;
+      ${VEREDICTO}
+      rollback;`),
+    "0|se puede|se puede\n0|se puede|sin_precio\n0|sin_precio|sin_precio\n0|sin_precio|sin_precio",
+  );
+  {
+    // La versión de antes: «sin precio» miraba solo la ficha (la grilla).
+    const r = correr(`${PREPARAR}${SEDES_EN_LA_WEB}${enCero("emma")}${precioEnTienda("emma", "tru", "99.90")}
+${mutar("retail.fn_vitrina_por_que_no(uuid)", "where t.se_ofrece) then 'sin_precio'", "where false) then 'sin_precio'")}
+select coalesce(retail.fn_vitrina_por_que_no(:'emma'), 'se puede');
+rollback;`);
+    esperar(
+      "MUTANTE la Vitrina vuelve a mirar solo la ficha: la ropa en S/ 0 con precio en Trujillo dice «sin precio» otra vez, y la prueba lo ve",
+      r.ok && r.salida.split("\n").at(-1) === "sin_precio",
+      r.ok ? r.salida : r.mensaje,
+    );
+  }
+  {
+    const r = correr(`${PREPARAR}${SEDES_EN_LA_WEB}${DESACUERDOS}${enCero("falda")}
+${mutar("retail.fn_vitrina_por_que_no(uuid)", "v.activo and v.precio > 0) then null", "v.activo and v.precio >= 0) then null")}
+select concat_ws('|', pg_temp.desacuerdos() > 0, coalesce(retail.fn_vitrina_por_que_no(:'falda'), 'se puede'));
+rollback;`);
+    esperar(
+      "MUTANTE el atajo deja pasar la ropa sin precio (mira «≥ 0»): la falda en S/ 0 se podría mostrar, y la prueba lo ve (el atajo ya no dice lo mismo que la regla)",
+      r.ok && r.salida.split("\n").at(-1) === "t|se puede",
+      r.ok ? r.salida : r.mensaje,
+    );
+  }
+  {
+    // Romper la regla del precio de la tienda a propósito cambia también lo que dice la Vitrina: es la misma pieza, sin cuenta propia.
+    const r = correr(`${PREPARAR}${SEDES_EN_LA_WEB}${enCero("falda")}
+${mutar("retail.fn_tienda_precio_talla(uuid[], uuid)", "x.activo and coalesce(x.precio_lista, 0) > 0,", "x.activo,")}
+select coalesce(retail.fn_vitrina_por_que_no(:'falda'), 'se puede');
+rollback;`);
+    esperar(
+      "MUTANTE la regla del precio de la tienda ofrece una talla a S/ 0: la Vitrina deja mostrar la falda sin precio JUNTO con la tienda (no tiene su propia cuenta)",
+      r.ok && r.salida.split("\n").at(-1) === "se puede",
+      r.ok ? r.salida : r.mensaje,
+    );
   }
 
   // ---------------------------------------------------------------- 5. La migración
