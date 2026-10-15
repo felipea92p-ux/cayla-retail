@@ -3,9 +3,10 @@
 //
 // Es la gemela de `comprobante-orden-reglas.ts` (el papel de una orden de tienda, fase 2) con las medidas del Taller: un INSUMO del
 // catálogo en vez de categoría + marca, la cantidad con hasta tres decimales en la unidad de la línea y el costo con hasta cuatro (las
-// cuentas exactas de `ordenes-insumo-reglas.ts`), la factura que suma su IGV o no (18 % o 0 %), y —en esta actividad— solo al crédito: el
-// contado llega en la actividad 2. Lo que no cambia entre las dos (los cuatro tipos de papel, la serie de ejemplo, las fechas, las palabras
-// de «sin comprobante», el aviso de corte) se toma de allá.
+// cuentas exactas de `ordenes-insumo-reglas.ts`) y la factura que suma su IGV o no (18 % o 0 %). Al crédito (actividad 1) o al contado
+// (actividad 2, «como en tienda»: desde una cuenta de la empresa o desde el fondo de quien paga). Lo que no cambia entre las dos (los
+// cuatro tipos de papel, la serie de ejemplo, las fechas, el pago al contado, las palabras de «sin comprobante», el aviso de corte) se toma
+// de allá.
 //
 //   PROMETE: precargar el papel con lo que la orden todavía no tiene en papel (lo pendiente de cada línea y su costo neto por unidad);
 //   calcular subtotal, IGV y total como `registrar_comprobante_orden_insumo`; decir qué le falta con las MISMAS reglas que esa función (de
@@ -23,7 +24,11 @@ import {
   discriminaIgv,
   pidePapel,
   problemaDeEmision,
+  problemaDePago,
   problemaDeVencimiento,
+  type CondicionComprobante,
+  type PagoBorrador,
+  type PagoParaBase,
   type TipoComprobante,
 } from "./comprobante-orden-reglas";
 import {
@@ -136,20 +141,23 @@ export type LineaPapelInsumo = {
   costo: string;
 };
 
-/** Todo lo que la pantalla le llena a la función. `tipo` vacío = todavía sin elegir. Al crédito siempre, en esta actividad. */
+/** Todo lo que la pantalla le llena a la función. `tipo` y `condicion` vacíos = todavía sin elegir. */
 export type BorradorPapelInsumo = {
   tipo: TipoComprobante | "";
   serie: string;
   numero: string;
   /** `aaaa-mm-dd`. */
   emision: string;
-  /** El vencimiento que corre ahora (el sugerido si la persona no lo escribió). */
+  condicion: CondicionComprobante | "";
+  /** El vencimiento que corre ahora (el sugerido si la persona no lo escribió). Solo cuenta al crédito. */
   vencimiento: string;
   /** Solo se mira en una factura. */
   sumaIgv: boolean;
   /** El total que dice el papel (opcional, solo factura con IGV): cuadra el redondeo del IGV por centavos. */
   totalDelPapel: string;
   lineas: LineaPapelInsumo[];
+  /** Al contado: los medios de pago (lo mismo que cada línea de `LineasPago`). */
+  pagos: PagoBorrador[];
   nota: string;
 };
 
@@ -288,14 +296,14 @@ export function problemaDeRenglonInsumo(l: LineaPapelInsumo, ctx: Pick<ContextoP
 
 /**
  * Los campos de la guía de foco, en el orden de la pantalla. `hecho` y `requerido` son las reglas de la base: la guía no inventa ninguna
- * (lo vigila la prueba, contra los casos de `scripts/pruebas/comprobante_orden_insumo.mjs`). El tipo de papel arranca con un valor de
- * fábrica que importa (cambia el IGV y si hay serie): hasta que la persona lo elige —aunque elija el mismo— es «sugerido»: la luz pasa por
- * él y nunca bloquea (ADR-0284 act. h). `responsable` solo cuenta en una terminal (decisión 39).
+ * (lo vigila la prueba, contra los casos de `scripts/pruebas/comprobante_orden_insumo.mjs`). El tipo de papel y cómo se paga arrancan con un
+ * valor de fábrica que importa (cambian el IGV, si hay serie, y si hay vencimiento o pago): hasta que la persona los elige —aunque elija el
+ * mismo— son «sugeridos»: la luz pasa por ellos y nunca bloquean (ADR-0284 act. h). `responsable` solo cuenta en una terminal (decisión 39).
  */
 export function camposDelPapelInsumo(
   b: BorradorPapelInsumo,
   ctx: ContextoPapelInsumo,
-  elegido: { tipo: boolean },
+  elegido: { tipo: boolean; condicion: boolean },
   responsable: { pide: boolean; listo: boolean; motivo: string | null },
 ): CampoDeGuia[] {
   const campos: CampoDeGuia[] = [];
@@ -317,8 +325,19 @@ export function camposDelPapelInsumo(
   }
   const problemaEmision = problemaDeEmision(b.emision, ctx.hoy);
   campos.push({ id: "emision", nombre: pidePapel(b.tipo) ? "Fecha de emisión" : "Fecha de la compra", requerido: true, hecho: problemaEmision === null, pendiente: problemaEmision ?? "" });
-  const problemaVence = problemaDeVencimiento(b.vencimiento, b.emision);
-  campos.push({ id: "vencimiento", nombre: "Vence el", requerido: true, hecho: problemaVence === null, pendiente: problemaVence ?? "" });
+  const condicionValida = b.condicion !== "";
+  campos.push({
+    id: "condicion",
+    nombre: "Cómo se paga",
+    requerido: !condicionValida,
+    sugerido: condicionValida && !elegido.condicion,
+    hecho: condicionValida && elegido.condicion,
+    pendiente: condicionValida ? "Confirma si lo pagas al contado o a crédito." : "Elige si lo pagas al contado o a crédito.",
+  });
+  if (b.condicion === "credito") {
+    const problemaVence = problemaDeVencimiento(b.vencimiento, b.emision);
+    campos.push({ id: "vencimiento", nombre: "Vence el", requerido: true, hecho: problemaVence === null, pendiente: problemaVence ?? "" });
+  }
   if (b.lineas.length === 0) {
     campos.push({ id: "lineas", nombre: "Insumos del papel", requerido: true, hecho: false, pendiente: "Pon al menos un insumo del papel." });
   }
@@ -340,6 +359,11 @@ export function camposDelPapelInsumo(
   if (totales.problemaTotalDelPapel) {
     campos.push({ id: "total-papel", nombre: "Total del papel", requerido: true, hecho: false, pendiente: totales.problemaTotalDelPapel });
   }
+  // Al contado el pago es EXACTAMENTE el total (la base lo exige); la cuenta (o el fondo) la valida la base al guardar.
+  if (b.condicion === "contado") {
+    const problema = problemaDePago(b.pagos, totales.totalCentimos);
+    campos.push({ id: "pago", nombre: "Pago", requerido: true, hecho: problema === null, pendiente: problema ?? "" });
+  }
   const notaLarga = b.nota.trim().length > TOPES_PAPEL_INSUMO.nota;
   campos.push({
     id: "nota",
@@ -357,7 +381,7 @@ export function camposDelPapelInsumo(
 /** El primer problema que impide registrar (o null): lo mismo que la guía, dicho de una vez. Es la red de seguridad de «Registrar»; la
  *  base vuelve a exigir todo. */
 export function primerProblemaPapelInsumo(b: BorradorPapelInsumo, ctx: ContextoPapelInsumo): string | null {
-  const falta = camposDelPapelInsumo(b, ctx, { tipo: true }, { pide: false, listo: true, motivo: null }).find((c) => c.requerido && !c.hecho);
+  const falta = camposDelPapelInsumo(b, ctx, { tipo: true, condicion: true }, { pide: false, listo: true, motivo: null }).find((c) => c.requerido && !c.hecho);
   return falta ? falta.pendiente : null;
 }
 
@@ -423,22 +447,30 @@ export type ArgsRegistrarPapelInsumo = {
   p_numero: string;
   p_lineas: RenglonInsumoParaBase[];
   p_fecha_emision: string;
-  p_condicion: "credito";
-  p_fecha_vencimiento: string;
+  p_condicion: CondicionComprobante;
+  /** Solo al crédito. */
+  p_fecha_vencimiento?: string;
   /** 18 en una factura con «Sumar IGV»; 0 en lo demás (la base solo lo mira en una factura). */
   p_igv_porcentaje: number;
   /** El total que dice el papel, solo cuando cuadra el redondeo de una factura con IGV. */
   p_total?: string;
+  /** Solo al contado: el que arma `pagoParaBase`, con la cuenta de «Sale de» de cada medio (o el fondo de quien paga). */
+  p_pago?: PagoParaBase[];
   p_nota?: string;
   p_token: string;
 };
 
 /**
  * Los argumentos de `registrar_comprobante_orden_insumo`. Un renglón de una línea pedida nombra la línea (la base pone su insumo); uno que
- * no estaba en la orden, su insumo. `token` se genera una vez y se reusa en cada reintento: la base devuelve el mismo papel si el envío es
- * el mismo. Solo se llama con el papel listo (la guía sin nada requerido pendiente).
+ * no estaba en la orden, su insumo. `pago` es el que arma `pagoParaBase`: solo viaja al contado (al crédito la base lo rechaza), y el
+ * vencimiento solo al crédito. `token` se genera una vez y se reusa en cada reintento: la base devuelve el mismo papel si el envío es el
+ * mismo. Solo se llama con el papel listo (la guía sin nada requerido pendiente).
  */
-export function argsRegistrarPapelInsumo(b: BorradorPapelInsumo, { ordenId, token }: { ordenId: string; token: string }): ArgsRegistrarPapelInsumo {
+export function argsRegistrarPapelInsumo(
+  b: BorradorPapelInsumo,
+  { ordenId, token, pago = null }: { ordenId: string; token: string; pago?: PagoParaBase[] | null },
+): ArgsRegistrarPapelInsumo {
+  const condicion = b.condicion as CondicionComprobante;
   const totales = totalesPapelInsumo(b);
   const nota = textoParaBase(b.nota);
   const lineas = b.lineas.map((l): RenglonInsumoParaBase => {
@@ -457,10 +489,11 @@ export function argsRegistrarPapelInsumo(b: BorradorPapelInsumo, { ordenId, toke
     p_numero: pidePapel(b.tipo) ? textoParaBase(b.numero) : "",
     p_lineas: lineas,
     p_fecha_emision: b.emision,
-    p_condicion: "credito",
-    p_fecha_vencimiento: b.vencimiento,
+    p_condicion: condicion,
+    ...(condicion === "credito" ? { p_fecha_vencimiento: b.vencimiento } : {}),
     p_igv_porcentaje: sumaIgvPapel(b) ? IGV_PAPEL_INSUMO : 0,
     ...(totales.usaTotalDelPapel ? { p_total: aTexto(totales.totalCentimos, 2) } : {}),
+    ...(condicion === "contado" && pago ? { p_pago: pago } : {}),
     ...(nota ? { p_nota: nota } : {}),
     p_token: token,
   };
@@ -479,6 +512,8 @@ export type ResultadoPapelInsumo = {
   /** Serie y número, «F001-77» o «SC-000004». */
   documento: string;
   total: number;
+  /** `credito` o `contado` (null si la base no lo dijo). */
+  condicion: CondicionComprobante | null;
   /** El mismo envío llegó dos veces (doble clic, reintento sin señal): es el papel que ya estaba. */
   repetido: boolean;
   avisos: AvisoPapelInsumo[];
@@ -516,7 +551,8 @@ export function leerResultadoPapelInsumo(data: unknown): ResultadoPapelInsumo | 
       return null;
     })
     .filter((a): a is AvisoPapelInsumo => a !== null);
-  return { comprobanteId, documento, total: cifra(r.total) ?? 0, repetido: r.repetido === true, avisos };
+  const condicion = r.condicion === "credito" || r.condicion === "contado" ? r.condicion : null;
+  return { comprobanteId, documento, total: cifra(r.total) ?? 0, condicion, repetido: r.repetido === true, avisos };
 }
 
 /** Los avisos de «de más» y «fuera de la orden», dichos en una o dos frases para el aviso de la esquina (nunca bloquean). */
@@ -535,7 +571,8 @@ export function resumenDeAvisosInsumo(avisos: readonly AvisoPapelInsumo[]): { ti
   return { titulo, detalle: `${mostradas.join(" · ")}${resto > 0 ? ` · y ${resto} más` : ""}. Quedó registrado igual.` };
 }
 
-/** «OI-000012 · Queda por pagar S/ 164.02»: lo que quedó, dicho para el aviso de la esquina (al crédito, lo paga el líder después). */
-export function detalleDeRegistroInsumo(numeroOrden: string, total: number): string {
-  return `${numeroOrden} · Queda por pagar ${soles(total)}`;
+/** «OI-000012 · Queda por pagar S/ 164.02» (al crédito, lo paga el líder después) o «OI-000012 · Pagado al contado S/ 164.02»: lo que
+ *  quedó, dicho para el aviso de la esquina. */
+export function detalleDeRegistroInsumo(numeroOrden: string, r: Pick<ResultadoPapelInsumo, "total" | "condicion">): string {
+  return `${numeroOrden} · ${r.condicion === "contado" ? "Pagado al contado" : "Queda por pagar"} ${soles(r.total)}`;
 }

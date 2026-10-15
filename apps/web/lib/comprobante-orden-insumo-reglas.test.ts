@@ -71,10 +71,12 @@ const borrador = (o: Partial<BorradorPapelInsumo> = {}): BorradorPapelInsumo => 
   serie: "F001",
   numero: "77",
   emision: "2026-10-14",
+  condicion: "credito",
   vencimiento: "2026-11-13",
   sumaIgv: true,
   totalDelPapel: "",
   lineas: [renglon(), renglon({ clave: "r2", ordenItemId: "it-hilo", insumoId: "i-hilo", cantidad: "4", costo: "3.50" })],
+  pagos: [],
   nota: "",
   ...o,
 });
@@ -177,7 +179,7 @@ describe("el papel de una orden de insumos: lo que falta (las reglas de la base)
   });
 
   it("C1: sin vencimiento, vencimiento antes de la emisión, emisión futura, sin tipo, sin serie", () => {
-    const faltan = (b: BorradorPapelInsumo) => camposDelPapelInsumo(b, CTX, { tipo: true }, { pide: false, listo: true, motivo: null }).filter((c) => c.requerido && !c.hecho).map((c) => c.id);
+    const faltan = (b: BorradorPapelInsumo) => camposDelPapelInsumo(b, CTX, { tipo: true, condicion: true }, { pide: false, listo: true, motivo: null }).filter((c) => c.requerido && !c.hecho).map((c) => c.id);
     expect(faltan(borrador())).toEqual([]);
     expect(faltan(borrador({ vencimiento: "" }))).toEqual(["vencimiento"]);
     expect(faltan(borrador({ vencimiento: "2026-10-13" }))).toEqual(["vencimiento"]);
@@ -187,18 +189,33 @@ describe("el papel de una orden de insumos: lo que falta (las reglas de la base)
     expect(faltan(borrador({ lineas: [] }))).toEqual(["lineas"]);
   });
 
+  it("CC: al contado no pide vencimiento y pide el pago por el total exacto; cómo se paga es «sugerido» hasta que se elige", () => {
+    const campos = (b: BorradorPapelInsumo, condicion = true) => camposDelPapelInsumo(b, CTX, { tipo: true, condicion }, { pide: false, listo: true, motivo: null });
+    const faltan = (b: BorradorPapelInsumo) => campos(b).filter((c) => c.requerido && !c.hecho).map((c) => [c.id, c.pendiente]);
+    const contado = (pagos: { monto: string; metodo: string; referencia: string }[]) => borrador({ tipo: "boleta", condicion: "contado", vencimiento: "", pagos });
+    expect(campos(contado([])).map((c) => c.id)).not.toContain("vencimiento");
+    expect(faltan(contado([]))).toEqual([["pago", "Agrega el medio de pago."]]);
+    expect(faltan(contado([{ monto: "100", metodo: "efectivo", referencia: "" }]))).toEqual([["pago", "Al contado el pago es el total (S/\u00a0139.00); vas en S/\u00a0100.00."]]);
+    expect(faltan(contado([{ monto: "0", metodo: "efectivo", referencia: "" }]))[0]?.[1]).toBe("Cada medio de pago necesita un monto mayor a cero.");
+    expect(faltan(contado([{ monto: "139.001", metodo: "efectivo", referencia: "" }]))[0]?.[1]).toBe("El monto del pago va en soles, con hasta dos decimales.");
+    expect(faltan(contado([{ monto: "100", metodo: "efectivo", referencia: "" }, { monto: "39", metodo: "yape", referencia: "" }]))).toEqual([]);
+    const condicion = campos(borrador(), false).find((c) => c.id === "condicion");
+    expect([condicion?.requerido, condicion?.sugerido, condicion?.hecho]).toEqual([false, true, false]);
+    expect(faltan(borrador({ condicion: "" })).map(([id]) => id)).toEqual(["condicion"]);
+  });
+
   it("T2: sin comprobante no pide serie ni número", () => {
-    const ids = camposDelPapelInsumo(borrador({ tipo: "sin_comprobante", serie: "", numero: "" }), CTX, { tipo: true }, { pide: false, listo: true, motivo: null }).map((c) => c.id);
+    const ids = camposDelPapelInsumo(borrador({ tipo: "sin_comprobante", serie: "", numero: "" }), CTX, { tipo: true, condicion: true }, { pide: false, listo: true, motivo: null }).map((c) => c.id);
     expect(ids).not.toContain("serie");
     expect(ids).not.toContain("numero");
     expect(primerProblemaPapelInsumo(borrador({ tipo: "sin_comprobante", serie: "", numero: "" }), CTX)).toBeNull();
   });
 
   it("el tipo de papel es «sugerido» hasta que se elige; la nota solo bloquea si se pasa; el responsable, solo en una terminal", () => {
-    const tipo = camposDelPapelInsumo(borrador(), CTX, { tipo: false }, { pide: false, listo: true, motivo: null }).find((c) => c.id === "tipo");
+    const tipo = camposDelPapelInsumo(borrador(), CTX, { tipo: false, condicion: true }, { pide: false, listo: true, motivo: null }).find((c) => c.id === "tipo");
     expect([tipo?.requerido, tipo?.sugerido, tipo?.hecho]).toEqual([false, true, false]);
     expect(primerProblemaPapelInsumo(borrador({ nota: "x".repeat(501) }), CTX)).toMatch(/hasta 500 letras/);
-    const conTerminal = camposDelPapelInsumo(borrador(), CTX, { tipo: true }, { pide: true, listo: false, motivo: null });
+    const conTerminal = camposDelPapelInsumo(borrador(), CTX, { tipo: true, condicion: true }, { pide: true, listo: false, motivo: null });
     expect(conTerminal.find((c) => c.id === "responsable")).toMatchObject({ requerido: true, hecho: false });
   });
 });
@@ -241,6 +258,11 @@ describe("el papel de una orden de insumos: de más, lo que viaja y lo que vuelv
     const sc = argsRegistrarPapelInsumo(borrador({ tipo: "sin_comprobante" }), { ordenId: "o1", token: "t2" });
     expect([sc.p_serie, sc.p_numero, sc.p_igv_porcentaje, "p_total" in sc, "p_nota" in sc]).toEqual(["", "", 0, false, false]);
     expect(argsRegistrarPapelInsumo(borrador({ sumaIgv: false }), { ordenId: "o1", token: "t3" }).p_igv_porcentaje).toBe(0);
+    // Al contado viaja el pago (con su cuenta) y no el vencimiento; al crédito, al revés (un pago al crédito no viaja aunque llegue).
+    const pago = [{ monto: 164.02, metodo: "efectivo", cuenta_id: "fondo-de-micaela" }];
+    const contado = argsRegistrarPapelInsumo(borrador({ condicion: "contado", vencimiento: "2026-11-13" }), { ordenId: "o1", token: "t4", pago });
+    expect([contado.p_condicion, "p_fecha_vencimiento" in contado, contado.p_pago]).toEqual(["contado", false, pago]);
+    expect("p_pago" in argsRegistrarPapelInsumo(borrador(), { ordenId: "o1", token: "t5", pago })).toBe(false);
   });
 
   it("lo que vuelve: el documento y los avisos; un aviso raro se descarta; sin papel, null", () => {
@@ -257,7 +279,7 @@ describe("el papel de una orden de insumos: de más, lo que viaja y lo que vuelv
         { tipo: "otro" },
       ],
     });
-    expect(r).toMatchObject({ comprobanteId: "c1", documento: "F001-77", total: 164.02, repetido: false });
+    expect(r).toMatchObject({ comprobanteId: "c1", documento: "F001-77", total: 164.02, condicion: "credito", repetido: false });
     expect(r?.avisos).toHaveLength(2);
     expect(resumenDeAvisosInsumo(r!.avisos)).toEqual({
       titulo: "El papel no calza del todo con la orden",
@@ -266,6 +288,7 @@ describe("el papel de una orden de insumos: de más, lo que viaja y lo que vuelv
     expect(resumenDeAvisosInsumo([])).toBeNull();
     expect(leerResultadoPapelInsumo({ documento: "F001-77" })).toBeNull();
     expect(leerResultadoPapelInsumo([{ comprobante_id: "c1", documento: "SC-000004", repetido: true }])).toMatchObject({ repetido: true, avisos: [] });
-    expect(detalleDeRegistroInsumo("OI-000012", 164.02)).toBe("OI-000012 · Queda por pagar S/ 164.02");
+    expect(detalleDeRegistroInsumo("OI-000012", { total: 164.02, condicion: "credito" })).toBe("OI-000012 · Queda por pagar S/ 164.02");
+    expect(detalleDeRegistroInsumo("OI-000012", { total: 164.02, condicion: "contado" })).toBe("OI-000012 · Pagado al contado S/ 164.02");
   });
 });

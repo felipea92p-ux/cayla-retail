@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * Pruebas del comprobante de la orden de insumos del Taller (ADR-0362, fase 7 parte 2, actividad 1) — migraciones
+ * Pruebas del comprobante de la orden de insumos del Taller (ADR-0362, fase 7 parte 2, actividades 1 y 2) — migraciones
  * `20261015015000_orden_insumo_comprobante_esquema.sql` (la orden y la línea de la orden en el comprobante del Taller, el tipo
- * «sin comprobante») y `20261015020000_orden_insumo_comprobante_funciones.sql` (`registrar_comprobante_orden_insumo`, su resultado, el
- * candado de editar y anular, la recepción de siempre que ya no toma el papel de una orden y el detalle con lo facturado). Contrato:
+ * «sin comprobante»), `20261015020000_orden_insumo_comprobante_funciones.sql` (`registrar_comprobante_orden_insumo`, su resultado, el
+ * candado de editar y anular, la recepción de siempre que ya no toma el papel de una orden y el detalle con lo facturado) y
+ * `20261015034000_orden_insumo_comprobante_contado.sql` (el contado: desde una cuenta de la empresa o desde el fondo de quien paga). Contrato:
  * docs/compras/ordenes-de-compra-2026-10/contrato-ordenes-de-insumos.md (punto 2). CAYLA V2.
  *
  * LO QUE VIGILA. Que quien compra para el Taller con «Órdenes de insumos» (decisión 47) deje el papel ligado a su orden con las reglas de
@@ -22,7 +23,11 @@
  *   A  AVISOS (decisión 43): de más y fuera de la orden en un papel; de más entre dos papeles.
  *   I  DOBLE ENVÍO: el mismo token y contenido devuelve el mismo papel; con otro contenido, `token_reusado`.
  *   R  EL MISMO PAPEL: repetido no; anulado, sí.
- *   C  CONDICIONES: contado (llega en la actividad 2), vencimiento, emisión futura, pago al crédito, tipo y serie.
+ *   C  CONDICIONES: contado sin pago, vencimiento, emisión futura, pago al crédito, tipo y serie.
+ *   CC AL CONTADO (actividad 2): desde una cuenta, por el total y sin vencimiento, la plata sale de esa cuenta en el libro del dinero; el
+ *      mismo envío no paga dos veces; los pagos que no cuadran o no se entienden, rechazados.
+ *   CF DESDE «MI FONDO» (actividad 2): la dueña paga desde su fondo y su saldo baja (el pago entra a su rendición como «pago»); desde el
+ *      fondo de otra persona, no.
  *   K  CANDADO: con papel vigente no se edita ni se anula; anulado el papel, se edita y su línea queda sin enlace. Orden anulada.
  *   V  RECEPCIÓN DE SIEMPRE: rechaza el papel de una orden y no lo lista; el papel suelto sigue.
  *   D  DETALLE: lo facturado por línea y los papeles de la orden.
@@ -48,7 +53,11 @@ const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const BASE = arg("--base", "postgres");
 const sinCandadosDePegado = (sql) => sql.replace(/^set lock_timeout.*$/gm, "").replace(/^reset lock_timeout;$/gm, "");
 const MIGRACION = sinCandadosDePegado(
-  ["20261015015000_orden_insumo_comprobante_esquema.sql", "20261015020000_orden_insumo_comprobante_funciones.sql"]
+  [
+    "20261015015000_orden_insumo_comprobante_esquema.sql",
+    "20261015020000_orden_insumo_comprobante_funciones.sql",
+    "20261015034000_orden_insumo_comprobante_contado.sql",
+  ]
     .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
     .join("\n"),
 );
@@ -159,7 +168,7 @@ function caso(nombre, sql, esperado) {
 }
 
 caso(
-  "M1 las dos migraciones se vuelven a cargar sin error y la clave de la firma queda una vez",
+  "M1 las tres migraciones se vuelven a cargar sin error y la clave de la firma queda una vez",
   `${MIGRACION}
    set local search_path = retail, public, extensions;
    select count(*) from retail.acciones_sin_responsable where clave = 'orden_insumo_comprobante';`,
@@ -284,7 +293,7 @@ caso(
   "P0001|comprobante_orden_insumo_repetido|F001-50"
 );
 caso(
-  "C1 al contado (llega en la actividad 2), sin vencimiento, vencimiento antes de la emisión, emisión futura, pago al crédito, tipo y serie",
+  "C1 al contado sin pago, sin vencimiento, vencimiento antes de la emisión, emisión futura, pago al crédito, tipo y serie",
   `select concat_ws(',',
      split_part(pg_temp.eh(pg_temp.registra(:'oc', 'factura', 'F001', '60', ${LINEAS}, p_condicion => 'contado', p_venc => null)), '|', 2),
      split_part(pg_temp.eh(pg_temp.registra(:'oc', 'factura', 'F001', '61', ${LINEAS}, p_venc => null)), '|', 2),
@@ -294,7 +303,7 @@ caso(
      split_part(pg_temp.eh(pg_temp.registra(:'oc', 'recibo', 'R1', '65', ${LINEAS})), '|', 2),
      split_part(pg_temp.eh(pg_temp.registra(:'oc', 'factura', ' ', '66', ${LINEAS})), '|', 2));`,
   [
-    "comprobante_orden_insumo_contado",
+    "comprobante_orden_insumo_sin_pago",
     "comprobante_orden_insumo_vencimiento",
     "comprobante_orden_insumo_vencimiento",
     "comprobante_orden_insumo_emision",
@@ -302,6 +311,81 @@ caso(
     "comprobante_orden_insumo_tipo",
     "comprobante_orden_insumo_serie",
   ].join(",")
+);
+
+// ---------- Al contado (actividad 2) ----------
+// Una cuenta de banco de la empresa solo de esta prueba; y la entrega de Felipe al fondo de Micaela (`:fondo`), con su firma.
+const BANCO = `insert into retail.cuentas_dinero (nombre, tipo, cuenta_contable, saldo_inicial, saldo_desde, orden)
+  values ('BCP prueba papel Taller', 'banco', '104', 5000, retail.fn_hoy_lima() - 30, 60) returning id as bcp \\gset
+`;
+const FONDO_DE_MICAELA = `${BANCO}${como(FELIPE)}${encabezados({ "x-responsable-omitido": "fondo_entregar" })}
+select retail.entregar_fondo(:'micaela_p', :'bcp', 500, 'Compras del Taller', null, null) \\g /dev/null
+select c.id as fondo from retail.cuentas_dinero c where c.tipo = 'fondo' and c.persona_id = :'micaela_p' \\gset
+${MICAELA_CON_MODULO}${como(MICAELA)}${FIRMA_PAPEL}`;
+const pagoDe = (monto, cuenta, extra = "") => `jsonb_build_array(jsonb_build_object('metodo', 'transferencia', 'monto', '${monto}', 'cuenta_id', ${cuenta}${extra}))`;
+
+caso(
+  "CC1 al contado desde una cuenta: el pago es el total, el papel queda sin vencimiento, la plata sale de esa cuenta y el mismo envío no paga dos veces",
+  `${BANCO}select gen_random_uuid() as tok \\gset
+   select pg_temp.registra(:'oc', 'boleta', 'B001', '200', ${LINEAS}, p_condicion => 'contado', p_venc => null,
+     p_pago => ${pagoDe("139.00", ":'bcp'")}, p_token => :'tok') as r \\gset
+   select pg_temp.registra(:'oc', 'boleta', 'B001', '200', ${LINEAS}, p_condicion => 'contado', p_venc => null,
+     p_pago => ${pagoDe("139.00", ":'bcp'")}, p_token => :'tok') as r2 \\gset
+   select (pg_temp.j(:'r') ->> 'comprobante_id') as c \\gset
+   select concat_ws('|', pg_temp.j(:'r') ->> 'condicion', pg_temp.j(:'r2') ->> 'repetido',
+     (select coalesce(c.fecha_vencimiento::text, 'sin vencimiento') || ':' || c.total from retail.comprobantes_produccion c where c.id = :'c'),
+     (select count(*) || ':' || sum(p.monto) || ':' || bool_and(p.cuenta_dinero_id = :'bcp') from retail.comprobantes_produccion_pagos p where p.comprobante_id = :'c'),
+     (select l.monto || ':' || l.origen from retail.fn_dinero_libro(retail.fn_hoy_lima()) l
+       where l.cuenta_id = :'bcp' and l.clave like 'pagoprod:%'));`,
+  "contado|true|sin vencimiento:139.00|1:139.00:true|-139.00:pago"
+);
+caso(
+  "CC2 pagos que no cuadran: suma distinta del total, saldo a favor, tres decimales, fecha futura, antes de la emisión, NaN, cuenta ilegible y vacío",
+  `${BANCO}select concat_ws(',',
+     split_part(pg_temp.eh(pg_temp.registra(:'oc', 'boleta', 'B001', '210', ${LINEAS}, p_condicion => 'contado', p_venc => null, p_pago => ${pagoDe("100.00", ":'bcp'")})), '|', 2),
+     split_part(pg_temp.eh(pg_temp.registra(:'oc', 'boleta', 'B001', '211', ${LINEAS}, p_condicion => 'contado', p_venc => null,
+       p_pago => '[{"metodo":"saldo_a_favor","monto":"139.00"}]'::jsonb)), '|', 2),
+     split_part(pg_temp.eh(pg_temp.registra(:'oc', 'boleta', 'B001', '212', ${LINEAS}, p_condicion => 'contado', p_venc => null, p_pago => ${pagoDe("139.001", ":'bcp'")})), '|', 2),
+     split_part(pg_temp.eh(pg_temp.registra(:'oc', 'boleta', 'B001', '213', ${LINEAS}, p_condicion => 'contado', p_venc => null,
+       p_pago => ${pagoDe("139.00", ":'bcp'", ", 'fecha', retail.fn_hoy_lima() + 1")})), '|', 2),
+     split_part(pg_temp.eh(pg_temp.registra(:'oc', 'boleta', 'B001', '214', ${LINEAS}, p_condicion => 'contado', p_venc => null, p_emision => retail.fn_hoy_lima() - 5,
+       p_pago => ${pagoDe("139.00", ":'bcp'", ", 'fecha', retail.fn_hoy_lima() - 6")})), '|', 2),
+     split_part(pg_temp.eh(pg_temp.registra(:'oc', 'boleta', 'B001', '215', ${LINEAS}, p_condicion => 'contado', p_venc => null, p_pago => ${pagoDe("NaN", ":'bcp'")})), '|', 2),
+     split_part(pg_temp.eh(pg_temp.registra(:'oc', 'boleta', 'B001', '216', ${LINEAS}, p_condicion => 'contado', p_venc => null, p_pago => ${pagoDe("139.00", "'xyz'")})), '|', 2),
+     split_part(pg_temp.eh(pg_temp.registra(:'oc', 'boleta', 'B001', '217', ${LINEAS}, p_condicion => 'contado', p_venc => null, p_pago => '[]'::jsonb)), '|', 2),
+     (select count(*) from retail.comprobantes_produccion c where c.orden_insumo_id = :'oc'));`,
+  [
+    "comprobante_orden_insumo_pago",
+    "comprobante_orden_insumo_pago",
+    "comprobante_orden_insumo_pago",
+    "comprobante_orden_insumo_pago",
+    "comprobante_orden_insumo_pago",
+    "comprobante_orden_insumo_pago",
+    "comprobante_orden_insumo_pago",
+    "comprobante_orden_insumo_sin_pago",
+    "0",
+  ].join(",")
+);
+caso(
+  "CF1 desde «Mi fondo»: la dueña paga la factura (S/ 164.02) y su fondo baja de S/ 500 a S/ 335.98; el pago entra a su rendición como «pago»",
+  `${FONDO_DE_MICAELA}
+   select pg_temp.registra(:'oc', 'factura', 'F001', '220', ${LINEAS}, p_condicion => 'contado', p_venc => null,
+     p_pago => jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', '164.02', 'cuenta_id', :'fondo'))) as r \\gset
+   select p.id as pago from retail.comprobantes_produccion_pagos p where p.comprobante_id = (pg_temp.j(:'r') ->> 'comprobante_id')::uuid \\gset
+   select concat_ws('|', pg_temp.j(:'r') ->> 'documento',
+     (select sum(l.monto) from retail.fn_dinero_libro(retail.fn_hoy_lima()) l where l.cuenta_id = :'fondo'),
+     (select l.origen from retail.fn_dinero_libro(retail.fn_hoy_lima()) l where l.clave = 'pagoprod:' || :'pago'),
+     (select d.tipo || ':' || coalesce(d.con_foto::text, 'sin foto que pedir') from retail.fn_fondo_items_detalle(array['pagoprod:' || :'pago']) d));`,
+  "F001-220|335.98|pago|pagoprod:sin foto que pedir"
+);
+caso(
+  "CF2 desde el fondo de otra persona, no: Felipe no paga con el fondo de Micaela (42501 / fondo_ajeno) y no queda nada",
+  `${FONDO_DE_MICAELA}${como(FELIPE)}${FIRMA_PAPEL}
+   select concat_ws('|',
+     pg_temp.eh(pg_temp.registra(:'oc', 'factura', 'F001', '230', ${LINEAS}, p_condicion => 'contado', p_venc => null,
+       p_pago => jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', '164.02', 'cuenta_id', :'fondo')))),
+     (select count(*) from retail.comprobantes_produccion c where c.orden_insumo_id = :'oc'));`,
+  "42501|fondo_ajeno|0"
 );
 
 caso(

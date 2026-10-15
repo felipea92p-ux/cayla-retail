@@ -1163,8 +1163,8 @@ export const GUIA_COMPROBANTE_ORDEN_INSUMO: Guia = {
     {
       id: "papel",
       ancla: "oi-comprobante.papel",
-      titulo: "Qué papel es",
-      texto: "Elige qué papel te dieron (boleta, nota de venta o factura) y copia su serie, su número y su fecha; si no te dieron ninguno, elige «Sin comprobante». «Vence el» viene con el plazo del proveedor. El interruptor suma el IGV de 18 %, solo en una factura.",
+      titulo: "Qué papel es y cómo se paga",
+      texto: "Elige qué papel te dieron (boleta, nota de venta o factura) y copia su serie, su número y su fecha; si no te dieron ninguno, «Sin comprobante». Después, si va a crédito (lo paga tu líder; «Vence el» viene con el plazo del proveedor) o al contado. El interruptor suma el IGV de 18 %, solo en una factura.",
     },
     {
       id: "sin-papel",
@@ -1172,12 +1172,6 @@ export const GUIA_COMPROBANTE_ORDEN_INSUMO: Guia = {
       opcional: true,
       titulo: "Una compra sin comprobante",
       texto: "Si el proveedor no te dio ningún papel, no hay serie ni número que copiar: la compra se guarda con un número interno (SC-000001) para que el contador sepa que no tiene comprobante. No lleva IGV y no entra al Registro de Compras de Impuestos.",
-    },
-    {
-      id: "credito",
-      ancla: "oi-comprobante.credito",
-      titulo: "Queda por pagar",
-      texto: "Por ahora el papel de una orden de insumos se registra al crédito: queda por pagar en el Taller hasta su vencimiento, y lo paga tu líder.",
     },
     {
       id: "renglones",
@@ -1212,10 +1206,19 @@ export const GUIA_COMPROBANTE_ORDEN_INSUMO: Guia = {
       texto: "Se calculan solos con los renglones: compáralos con el papel antes de registrar. En una factura con IGV, si el papel dice otro total por unos centavos, escríbelo abajo: ese total manda y el IGV se ajusta. En los demás, el IGV dice «No lleva».",
     },
     {
+      id: "pago",
+      ancla: "oi-comprobante.pago",
+      preparar: [{ tipo: "clic", ancla: "oi-comprobante.contado" }],
+      titulo: "Si se paga al contado",
+      texto: "Al contado se registra con su pago por el total: eliges el medio (efectivo, Yape, transferencia…), de dónde sale —una cuenta de la empresa o tu fondo por rendir— y, si hace falta, lo divides en varios medios. A crédito no se paga ahora: lo paga tu líder.",
+    },
+    {
       id: "registrar",
       ancla: "oi-comprobante.registrar",
+      preparar: [{ tipo: "clic", ancla: "oi-comprobante.credito" }],
       titulo: "Registrar el comprobante",
-      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta. «Registrar comprobante» (o «Registrar sin comprobante») lo deja por pagar y vuelves a la lista. «Cancelar» sale sin guardar. En la demo no lo tocamos.",
+      // Al registrar, la pantalla vuelve a la LISTA de órdenes con la orden marcada (`hrefOrdenInsumoGuardada`), no a la orden.
+      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta. «Registrar comprobante» (o «Registrar sin comprobante») lo deja por pagar, o pagado si fue al contado, y vuelves a la lista. «Cancelar» sale sin guardar. En la demo no lo tocamos.",
     },
     {
       id: "fin",
@@ -1224,6 +1227,7 @@ export const GUIA_COMPROBANTE_ORDEN_INSUMO: Guia = {
       texto: "Ya sabes copiar el papel de un proveedor del Taller. La flecha de arriba te devuelve a la lista. Para repasarlo: Mi perfil ▸ Demo ▸ Esta pantalla.",
     },
   ],
+  alSalir: [{ tipo: "clic", ancla: "oi-comprobante.credito", siEsta: true }],
 };
 
 export const GUIA_EDITAR_ORDEN_INSUMO: Guia = {

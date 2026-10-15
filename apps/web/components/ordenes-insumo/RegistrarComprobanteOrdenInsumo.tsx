@@ -17,11 +17,14 @@ import { avisar } from "@/components/ui/Avisos";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useSedeActiva } from "@/components/SedeActiva";
+import { LineasPago, lineaPagoVacia, type LineaPago } from "@/components/LineasPago";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { MarcaCampo } from "@/components/alta-producto/guia";
 import { ConMarca } from "@/components/ficha-producto/TiraFicha";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
+import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
 import { firmaOmitida } from "@/lib/responsable-omitido";
 import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import type { EstadoCampo } from "@/lib/guia-campos";
@@ -33,12 +36,14 @@ import {
   TIPOS_COMPROBANTE,
   discriminaIgv,
   esEnvioConOtrosDatos,
+  pagoParaBase,
   palabrasDelTipo,
   pidePapel,
   problemaDeEmision,
   sugerirSerie,
   tituloDeRegistro,
   vencimientoSugerido,
+  type CondicionComprobante,
   type TipoComprobante,
 } from "@/lib/comprobante-orden-reglas";
 import {
@@ -82,8 +87,9 @@ import { registrarComprobanteOrdenInsumo } from "@/lib/ordenes-insumo-acciones";
 // registra. Las reglas viven en `registrar_comprobante_orden_insumo` (la base las vuelve a exigir todas); aquí se espeja lo que esa función
 // rechazaría (`lib/comprobante-orden-insumo-reglas.ts`) para decirlo antes de pulsar.
 //
-// Por ahora se registra AL CRÉDITO: queda por pagar en el Taller y lo paga el líder. El contado (pagar desde una cuenta o desde «Mi fondo»)
-// llega en la actividad 2.
+// Cómo se paga (actividad 2, «como en tienda»): AL CRÉDITO queda por pagar en el Taller y lo paga el líder después; AL CONTADO se registra
+// con su pago por el total, desde una cuenta de la empresa o desde el fondo por rendir de quien paga («Mi fondo», primero en «Sale de» si
+// tiene uno). La base valida la cuenta de cada medio y que el fondo sea de quien paga.
 //
 // Lo que ya viene puesto: cada línea de la orden con lo que todavía no llegó en papel y su costo neto por unidad (precio menos su
 // descuento). Lo que el papel trae de más se acepta y queda avisado; un insumo que no estaba en la orden se agrega del catálogo
@@ -124,6 +130,8 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
   const contador = useRef(lineas.length);
   const [tipo, setTipo] = useState<TipoComprobante>("factura");
   const [tipoElegido, setTipoElegido] = useState(false);
+  const [condicion, setCondicion] = useState<CondicionComprobante>("credito");
+  const [condicionElegida, setCondicionElegida] = useState(false);
   const [serie, setSerie] = useState("");
   const [numero, setNumero] = useState("");
   const [emision, setEmision] = useState(hoy);
@@ -131,6 +139,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
   const [vencimientoEditado, setVencimientoEditado] = useState<string | null>(null);
   const [sumaIgv, setSumaIgv] = useState(true);
   const [totalDelPapel, setTotalDelPapel] = useState("");
+  const [pagos, setPagos] = useState<LineaPago[]>(() => [lineaPagoVacia()]);
   const [nota, setNota] = useState("");
   const [guardando, setGuardando] = useState(false);
   // Ya quedó registrado y la pantalla se está yendo a la lista: el botón no se vuelve a ofrecer en ese ratito.
@@ -144,11 +153,13 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
 
   const esPersona = Boolean(useSedeActiva()?.personaSesionId);
   const responsable = useResponsable();
+  // Las cuentas de la empresa para «Sale de» (como el comprobante del Taller: sin tienda) y, primero, el fondo de quien paga si tiene uno.
+  const cuentas = useCuentasParaElegir("pago", null, condicion === "contado", { conMiFondo: true });
 
   const plazoDias = orden.plazoCreditoDias;
   const sugerido = vencimientoSugerido(emision, plazoDias);
   const vencimiento = vencimientoEditado ?? sugerido;
-  const borrador: BorradorPapelInsumo = { tipo, serie, numero, emision, vencimiento, sumaIgv, totalDelPapel, lineas, nota };
+  const borrador: BorradorPapelInsumo = { tipo, serie, numero, emision, condicion, vencimiento, sumaIgv, totalDelPapel, lineas, pagos, nota };
 
   const ctx: ContextoPapelInsumo = useMemo(
     () => ({
@@ -160,7 +171,12 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
   );
   const totales = totalesPapelInsumo(borrador);
   const totalSoles = totales.totalCentimos / 100;
-  const campos = camposDelPapelInsumo(borrador, ctx, { tipo: tipoElegido }, { pide: !esPersona, listo: responsable.listo, motivo: responsable.motivo });
+  const campos = camposDelPapelInsumo(
+    borrador,
+    ctx,
+    { tipo: tipoElegido, condicion: condicionElegida },
+    { pide: !esPersona, listo: responsable.listo, motivo: responsable.motivo },
+  );
   const guia = useGuiaCampos(campos, { enModal: false });
 
   // Lo que llegó completo no se marca con ✓ (regla 4 de la guía): quien entra a copiar un papel no necesita leer diez tildes. Si algo se
@@ -172,8 +188,17 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
   };
   const etiqueta = (id: string, texto: ReactNode) => <ConMarca estado={estadoVisible(id)}>{texto}</ConMarca>;
 
+  // Al contado con un solo medio, el monto ES el total y acompaña a los renglones mientras se tipean. Con dos o más medios, la persona
+  // reparte a mano. Ajustado en el render (estado derivado), no en un efecto.
+  const [totalPrevio, setTotalPrevio] = useState(totales.totalCentimos);
+  if (totales.totalCentimos !== totalPrevio) {
+    setTotalPrevio(totales.totalCentimos);
+    const unico = pagos.length === 1 ? pagos[0] : undefined;
+    if (condicion === "contado" && unico) setPagos([{ ...unico, monto: totalSoles > 0 ? totalSoles.toFixed(2) : "" }]);
+  }
+
   // «¿Salir sin guardar?»: cuenta lo que la persona llenó o cambió (el papel viene precargado de la orden).
-  const fotoActual = JSON.stringify({ tipo, serie, numero, emision, vencimientoEditado, sumaIgv, totalDelPapel, lineas, nota });
+  const fotoActual = JSON.stringify({ tipo, serie, numero, emision, condicion, vencimientoEditado, sumaIgv, totalDelPapel, lineas, pagos, nota });
   const [fotoAlAbrir] = useState(fotoActual);
   const avisoSalida = useSalidaSinGuardar(
     fotoActual !== fotoAlAbrir,
@@ -240,12 +265,18 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
       setError({ texto: problema, recargar: false });
       return;
     }
+    // Cada medio lleva su cuenta de «Sale de»: la que se eligió mientras siga sirviendo para ese medio, o la que la base propone.
+    const pago = condicion === "contado" ? pagoParaBase(pagos, (p) => cuentaEfectiva(cuentas.cuentas, "pago", p.metodo, p.cuentaId)) : null;
+    if (condicion === "contado" && !pago) {
+      setError({ texto: "Cada medio de pago necesita un monto mayor a cero.", recargar: false });
+      return;
+    }
     enVuelo.current = true;
     try {
       setError(null);
       setGuardando(true);
       const firma = esPersona ? firmaOmitida("orden_insumo_comprobante") : responsable.firma();
-      const { resultado, error: falla } = await registrarComprobanteOrdenInsumo(argsRegistrarPapelInsumo(borrador, { ordenId: orden.id, token }), firma);
+      const { resultado, error: falla } = await registrarComprobanteOrdenInsumo(argsRegistrarPapelInsumo(borrador, { ordenId: orden.id, token, pago }), firma);
       if (!esPersona) responsable.despues(falla);
       if (falla) {
         setGuardando(false);
@@ -260,7 +291,7 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
       const nombreOrden = numeroOrdenInsumo(orden.numero);
       if (resultado) {
         avisar.exito(tituloDeRegistro(tipo, resultado.documento), {
-          detalle: detalleDeRegistroInsumo(nombreOrden, resultado.total),
+          detalle: detalleDeRegistroInsumo(nombreOrden, resultado),
           // «Vuelve a la orden»: la lista la deja marcada y desde aquí se abre encima de ella.
           accion: { texto: "Ver la orden", onClick: () => router.push(`${RUTA_ORDENES_INSUMO}/ver/${orden.id}`) },
           duracion: 9000,
@@ -402,11 +433,48 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
                 pie={problemaEmision ?? undefined}
               />
             </CampoGuiado>
-            <CampoGuiado id="vencimiento" guia={guia}>
-              <p className={TITULO_FIJO}>{etiqueta("vencimiento", "Vence el")}</p>
-              <CampoFecha id="oi-vencimiento" caja etiqueta="Vence el" valor={vencimiento} onValor={setVencimientoEditado} required />
+            <CampoGuiado id="condicion" guia={guia} className="@min-[28rem]:col-span-2">
+              <p className={TITULO_FIJO}>{etiqueta("condicion", "Cómo se paga")}</p>
+              <SegmentoDeslizante
+                etiqueta="Cómo se paga"
+                valor={condicion}
+                onCambio={(c) => {
+                  const cond = c as CondicionComprobante;
+                  setCondicion(cond);
+                  setCondicionElegida(true);
+                  // Al pasar a contado, el único medio arranca con el total.
+                  const unico = pagos.length === 1 ? pagos[0] : undefined;
+                  if (cond === "contado" && unico) setPagos([{ ...unico, monto: totalSoles > 0 ? totalSoles.toFixed(2) : "" }]);
+                }}
+                opciones={[
+                  { clave: "credito", etiqueta: "Crédito", guia: "oi-comprobante.credito" },
+                  { clave: "contado", etiqueta: "Contado", guia: "oi-comprobante.contado" },
+                ]}
+              />
               <p className="mt-1.5 text-xs text-taupe">
-                {vencimientoEditado === null ? (
+                {condicion === "contado"
+                  ? "Se registra con su pago por el total: desde una cuenta de la empresa o desde tu fondo."
+                  : "Queda por pagar en el Taller hasta su vencimiento; lo paga tu líder."}
+              </p>
+            </CampoGuiado>
+            <CampoGuiado id="vencimiento" guia={guia}>
+              {/* Al contado no hay vencimiento: el título queda sin marca (no es un campo de la guía). */}
+              <p className={TITULO_FIJO}>{condicion === "credito" ? etiqueta("vencimiento", "Vence el") : "Vence el"}</p>
+              <fieldset disabled={condicion !== "credito"} className={`m-0 min-w-0 border-0 p-0 transition-opacity duration-300 ${condicion === "credito" ? "" : "opacity-45"}`}>
+                <CampoFecha
+                  id="oi-vencimiento"
+                  caja
+                  etiqueta="Vence el"
+                  valor={condicion === "credito" ? vencimiento : ""}
+                  onValor={setVencimientoEditado}
+                  required={condicion === "credito"}
+                  disabled={condicion !== "credito"}
+                />
+              </fieldset>
+              <p className="mt-1.5 text-xs text-taupe">
+                {condicion !== "credito" ? (
+                  "Al contado no hay vencimiento."
+                ) : vencimientoEditado === null ? (
                   `Sugerido: emisión + ${plazoDias ?? 30} días${plazoDias != null ? `, el plazo de ${orden.proveedor.nombre}` : ""}.`
                 ) : (
                   <>
@@ -418,13 +486,6 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
                 )}
               </p>
             </CampoGuiado>
-            <div data-guia="oi-comprobante.credito" className="@min-[28rem]:col-span-2">
-              <p className={TITULO_FIJO}>Cómo se paga</p>
-              <p className="text-sm text-tinta">
-                <Chip tono="pizarra">Al crédito</Chip>
-              </p>
-              <p className="mt-1.5 text-xs text-taupe">Queda por pagar en el Taller hasta la fecha de vencimiento; lo paga tu líder.</p>
-            </div>
             <div className="@min-[28rem]:col-span-2">
               <Interruptor
                 activo={conIgv}
@@ -555,6 +616,22 @@ export function RegistrarComprobanteOrdenInsumo({ orden, insumos, fallaListas, s
             )}
           </div>
         </section>
+
+        {condicion === "contado" && (
+          <section data-guia="oi-comprobante.pago" className="card-cayla space-y-3 p-4 sm:p-5 anim-revelar" aria-label="Pago al contado">
+            <CampoGuiado id="pago" guia={guia} titulo="Pago al contado" ayuda={`Total ${soles(totalSoles)}`}>
+              <LineasPago
+                id="oi-comprobante-pagos"
+                lineas={pagos}
+                onLineas={setPagos}
+                objetivo={totalSoles}
+                totalComprobante={totalSoles}
+                exacto
+                cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }}
+              />
+            </CampoGuiado>
+          </section>
+        )}
 
         <section data-guia="oi-comprobante.registrar" className="space-y-3" aria-label="Registrar">
           <CampoGuiado id="nota" guia={guia} className="max-w-2xl">
