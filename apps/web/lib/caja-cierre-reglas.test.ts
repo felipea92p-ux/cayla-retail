@@ -9,10 +9,18 @@ import {
 } from "./caja-cierre-reglas";
 
 describe("leerMonto", () => {
-  it("lee montos con coma de miles y redondea a céntimos", () => {
+  it("lee montos con coma de miles", () => {
     expect(leerMonto("1,950.50")).toBe(1950.5);
     expect(leerMonto(" 200 ")).toBe(200);
-    expect(leerMonto("10.005")).toBe(10.01);
+  });
+  it("la coma decimal se entiende (ADR-0419, Felipe 2026-10-15): «1299,50» es 1 299.50, no 129 950", () => {
+    expect(leerMonto("1299,50")).toBe(1299.5);
+    expect(leerMonto("150,5")).toBe(150.5);
+    expect(leerMonto("1.299,50")).toBe(1299.5);
+  });
+  it("lo que no se entiende no se adivina: «10.005» (céntimos de más) y «12.500» son null, como en el resto del ERP", () => {
+    expect(leerMonto("10.005")).toBeNull();
+    expect(leerMonto("12.500")).toBeNull();
   });
   it("vacío o ilegible es null, no cero", () => {
     expect(leerMonto("")).toBeNull();

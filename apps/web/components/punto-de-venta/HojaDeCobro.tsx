@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, FileText, Receipt, StickyNote } from "lucide-react";
 import type { MetodoPagoVenta } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import { lecturaDelRecibido, montosSugeridos, type PagoAplicado } from "@/lib/vender-reglas";
 import { LEY_REDONDEO, NOMBRE_METODO, TEXTO_REDONDEO } from "@/lib/recibo-reglas";
-import { CampoMonto } from "@/components/ui/CampoMonto";
+import { CLASE_MONTO_ILEGIBLE, CampoMonto, atributosMontoTexto } from "@/components/ui/CampoMonto";
 import { iconoMetodo } from "@/components/PuntoDeVentaTicket";
 import { money } from "@/components/PuntoDeVenta";
 import { Volver } from "@/components/ui/Volver";
+import { montoIlegible, numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 type TipoVenta = Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
 
@@ -114,6 +115,9 @@ export function HojaDeCobro({
   tipos?: readonly TipoVenta[];
 }) {
   const cuerpoRef = useRef<HTMLDivElement>(null);
+  // «Otro»: lo escrito se guarda como texto mientras se edita (con coma y todo) y se lee con la regla de plata (ADR-0419): convertirlo en
+  // cada tecla borraba la coma de «2,» a mitad de escribir. Lo que no se entiende no cuenta como recibido y queda en rojo.
+  const [otroTexto, setOtroTexto] = useState<string | null>(null);
   // Al elegir el comprobante aparece el documento del cliente; en una hoja baja puede quedar bajo el pliegue. Entonces el cuerpo
   // baja lo justo para mostrarlo (`block: "nearest"`: si ya se ve entero, no se mueve). Lo disparó un toque en un botón, nunca
   // una tecla en un campo de texto de la hoja (guía de foco, regla 6), y sin movimiento con `prefers-reduced-motion`.
@@ -280,15 +284,18 @@ export function HojaDeCobro({
                           <span className="text-xs text-tinta/50">S/</span>
                           <input // unificar-fijo: el billete «Otro» es una baldosa más de la hoja de cobro (hoja-cobro-billete)
                             aria-label="Otro monto recibido"
-                            type="number"
-                            inputMode="decimal"
-                            min={0}
-                            step="0.01"
+                            {...atributosMontoTexto(otroTexto ?? "")}
                             placeholder="Otro" // sugerir-fijo: es la casilla para un monto que no está en los billetes sugeridos
-                            value={recibido !== undefined && !enSugeridos ? recibido : ""}
-                            onChange={(e) => onRecibido(e.target.value === "" ? null : Number(e.target.value))}
+                            value={otroTexto ?? (recibido !== undefined && !enSugeridos ? String(recibido) : "")}
+                            onChange={(e) => {
+                              const texto = e.target.value;
+                              setOtroTexto(texto);
+                              const n = numeroDeMonto(texto);
+                              onRecibido(texto.trim() === "" || Number.isNaN(n) ? null : n);
+                            }}
+                            onBlur={() => setOtroTexto((t) => (t !== null && montoIlegible(t) ? t : null))}
                             disabled={bloqueado}
-                            className="w-full min-w-0 bg-transparent text-right font-display text-2xl text-tinta outline-none placeholder:text-tinta/35 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            className={`w-full min-w-0 bg-transparent text-right font-display text-2xl text-tinta outline-none placeholder:text-tinta/35 ${CLASE_MONTO_ILEGIBLE}`}
                           />
                         </label>
                       </div>

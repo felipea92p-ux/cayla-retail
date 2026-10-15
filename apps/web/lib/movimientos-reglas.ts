@@ -1,7 +1,7 @@
 // Relativo, no `@/`: vitest no resuelve el alias y este archivo tiene pruebas.
 import { ETIQUETA_TIPO, type EstadoComprobante, type TipoComprobante } from "./comprobantes-reglas";
 import type { Cantidades } from "./inventario-reglas";
-import { hoyLima } from "./fechas-lima";
+import { esFechaQueExiste, hoyLima } from "./fechas-lima";
 
 // Reglas de lectura de Movimientos, sin nada de servidor: las importan los
 // componentes cliente (lista, filtros, detalle). Las lecturas contra Postgres
@@ -488,13 +488,8 @@ export type FiltrosResueltos = FiltrosMovimientos & {
   sub: TokenSububicacion | null;
 };
 
-// Una fecha con la forma `aaaa-mm-dd` Y que existe: «2026-02-31» tiene la forma pero no existe, y Postgres la rechazaba con la
-// pantalla caída (/chaos 2026-10-14). Se comprueba que el día vuelva igual después de pasar por el calendario.
-const esFecha = (v?: string) => {
-  if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
-  const t = Date.parse(`${v}T00:00:00Z`);
-  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === v;
-};
+// Una fecha con la forma `aaaa-mm-dd` Y que existe (/chaos 2026-10-14): la regla vive en `fechas-lima.ts`, la misma de Compras.
+const esFecha = (v?: string) => esFechaQueExiste(v);
 const esUuid = (v?: string) => !!v && /^[0-9a-f-]{36}$/i.test(v);
 // Un motivo es texto libre en la base, pero lo que llega por URL se acota a lo que un
 // motivo puede ser: minúsculas, dígitos y guion bajo.

@@ -59,6 +59,13 @@ describe("requisitosDeCompra · repartir entre tiendas (ADR-0139)", () => {
     expect(requisitosDeCompra(e)[2]).toMatchObject({ ok: false, falta: "Falta el costo de la línea 1", error: { enfocar: "compra-linea-0-costo" } });
   });
 
+  it("el costo con coma decimal cuenta (ADR-0419) y uno que no se entiende frena como uno sin escribir", () => {
+    const ok = con({ lineas: [{ productoId: "p1", cantidad: 2, costoUnitario: "39,90" }] });
+    expect(requisitosDeCompra(ok)[2]).toMatchObject({ ok: true });
+    const mal = con({ lineas: [{ productoId: "p1", cantidad: 2, costoUnitario: "12.500" }] });
+    expect(requisitosDeCompra(mal)[2]).toMatchObject({ ok: false, falta: "La línea 1 tiene un costo que no se entiende", error: { enfocar: "compra-linea-0-costo" } });
+  });
+
   it("un renglón sin producto es un renglón de más: no exige reparto", () => {
     const e = con({ repartir: true, lineas: [linea(24, { [T]: 24 }), { productoId: "", cantidad: 1, costoUnitario: "", reparto: {} }] });
     expect(pendientes(e)).toEqual([]);
