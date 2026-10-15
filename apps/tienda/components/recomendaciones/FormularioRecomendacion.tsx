@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { enviarRecomendacion } from "@/app/acciones/recomendaciones";
 import { nombreTienda } from "@/lib/pedidos";
 import {
-  MAXIMO,
   MENSAJE_SIN_RED,
   MINIMO,
   claveDelBorrador,
@@ -161,8 +160,8 @@ export function FormularioRecomendacion({
                 : "Escribe con tus palabras: la leemos tal cual."}
           </span>
           <span id="recomendacion-cuenta" className="r-cuenta" data-tono={cuenta.tono}>
-            {cuenta.texto}
-            <span className="t-sr"> letras de {MAXIMO}</span>
+            <span aria-hidden>{cuenta.texto}</span>
+            <span className="t-sr">{cuenta.lector}</span>
           </span>
         </div>
       </div>

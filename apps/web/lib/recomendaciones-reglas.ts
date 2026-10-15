@@ -135,8 +135,8 @@ export const INSIGNIA: Record<EstadoRecomendacion, { texto: string; tono: "ambar
 /** «Tienda Trujillo» o «CAYLA en general». */
 export const sobreQue = (r: Pick<Recomendacion, "tienda">) => r.tienda?.nombre ?? "CAYLA en general";
 
-/** Quién la escribió, como se lee en la lista: su nombre, o que su ficha se anonimizó. */
-export const deQuien = (r: Pick<Recomendacion, "cliente">) => r.cliente?.nombre ?? "Sin nombre (ficha anonimizada)";
+/** Quién la escribió, como se lee en la lista: su nombre, o «Sin nombre» si su ficha se anonimizó (la hoja y el título del botón dicen por qué). */
+export const deQuien = (r: Pick<Recomendacion, "cliente">) => r.cliente?.nombre ?? "Sin nombre";
 
 /** Cuándo, en hora de Lima: «15/10 · 10:42». */
 export function cuando(instanteIso: string): string {
@@ -262,6 +262,16 @@ export const sePuedeResponder = (r: Pick<Recomendacion, "respuesta" | "archivada
  *  solo mientras está sin leer: el botón la marca leída). Archivar o sacar del archivo no piden más. Es la regla que la guía refleja. */
 export function problemaParaConfirmar(r: Pick<Recomendacion, "leidaEn" | "respuesta" | "archivadaEn" | "cliente">, respuesta: string): string | null {
   return sePuedeResponder(r) ? problemaDeRespuesta(respuesta, r.leidaEn !== null) : null;
+}
+
+/** El aviso de un error que esta pantalla sabe decir mejor que el mensaje general: sin red (marcar, responder lo mismo y archivar no se
+ *  repiten, así que reintentar es seguro) y otra persona que respondió mientras tanto (la hoja ya muestra su respuesta). null: el de
+ *  siempre (`traducirError`). */
+export function avisoDelError(e: { hint?: string | null }, sinRed: boolean): { titulo: string; detalle: string } | null {
+  if (sinRed) return { titulo: "Se cortó la conexión", detalle: "Vuelve a intentarlo: si ya había llegado, no se repite." };
+  if (e.hint === "recomendacion_ya_respondida")
+    return { titulo: "Ya le respondieron", detalle: "Otra persona le respondió mientras la tenías abierta: ahora ves su respuesta." };
+  return null;
 }
 
 /** Lo que dijo la base y pide releer la lista (otra persona ya respondió, o ya no existe). */

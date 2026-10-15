@@ -46,10 +46,10 @@ describe("el texto, contado como lo cuenta la base", () => {
   });
 
   it("el contador avisa cerca del final y dice cuánto se pasó", () => {
-    expect(contador("hola")).toEqual({ texto: `4 / ${MAXIMO}`, tono: "normal" });
+    expect(contador("hola")).toEqual({ texto: `4 / ${MAXIMO}`, lector: `4 de ${MAXIMO} letras`, tono: "normal" });
     expect(contador("a".repeat(MAXIMO - 100)).tono).toBe("cerca");
-    expect(contador("a".repeat(MAXIMO + 1))).toEqual({ texto: "Te pasaste por 1 letra", tono: "pasado" });
-    expect(contador("a".repeat(MAXIMO + 5))).toEqual({ texto: "Te pasaste por 5 letras", tono: "pasado" });
+    expect(contador("a".repeat(MAXIMO + 1))).toEqual({ texto: "Te pasaste por 1 letra", lector: "Te pasaste por 1 letra", tono: "pasado" });
+    expect(contador("a".repeat(MAXIMO + 5))).toEqual({ texto: "Te pasaste por 5 letras", lector: "Te pasaste por 5 letras", tono: "pasado" });
   });
 
   it("la marca del borrador sigue al texto limpio y a la tienda: lo mismo con otros espacios es lo mismo; otra tienda, otra", () => {

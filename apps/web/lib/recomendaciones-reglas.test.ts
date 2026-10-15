@@ -5,6 +5,7 @@ import {
   MAX_RESPUESTA,
   OPCIONES_ESTADO,
   accionPrincipal,
+  avisoDelError,
   cifrasDe,
   deQuien,
   esFiltroEstado,
@@ -74,7 +75,7 @@ describe("lo que devuelve fn_recomendaciones", () => {
       .recomendaciones[0]!;
     expect(r.cliente).toBeNull();
     expect(r.tienda).toBeNull();
-    expect(deQuien(r)).toBe("Sin nombre (ficha anonimizada)");
+    expect(deQuien(r)).toBe("Sin nombre");
     expect(sobreQue(r)).toBe("CAYLA en general");
   });
 
@@ -203,6 +204,13 @@ describe("la respuesta", () => {
     expect(accionPrincipal(rec({ respuesta: "Ya" }), "Otra")).toBeNull();
     expect(accionPrincipal(rec({ archivadaEn: "2026-10-15T17:00:00Z" }), "Hola")).toBeNull();
     expect(accionPrincipal(rec({ cliente: null }), "Hola")).toBeNull();
+  });
+
+  it("los avisos propios: sin red (reintentar es seguro) y otra persona que respondió antes; lo demás, el mensaje de siempre", () => {
+    expect(avisoDelError({ hint: null }, true)).toEqual({ titulo: "Se cortó la conexión", detalle: "Vuelve a intentarlo: si ya había llegado, no se repite." });
+    expect(avisoDelError({ hint: "recomendacion_ya_respondida" }, false)?.titulo).toBe("Ya le respondieron");
+    expect(avisoDelError({ hint: "recomendacion_respuesta_larga" }, false)).toBeNull();
+    expect(avisoDelError({}, false)).toBeNull();
   });
 
   it("lo que dice la base y pide releer la lista", () => {

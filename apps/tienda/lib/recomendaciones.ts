@@ -35,11 +35,15 @@ export function problemaDelTexto(texto: string): "corto" | "largo" | null {
 
 export const sePuedeEnviar = (texto: string) => letras(texto) >= MINIMO && letras(texto) <= MAXIMO;
 
-/** «Te quedan 120 letras» cerca del final; «Te pasaste por 3 letras» después. */
-export function contador(texto: string): { texto: string; tono: "normal" | "cerca" | "pasado" } {
+/** Lo que dice el contador a la vista («79 / 1000»; «Te pasaste por 3 letras» después del tope) y lo que oye un lector de pantalla
+ *  («79 de 1000 letras»). Cerca del final (las últimas 100) cambia de tono. */
+export function contador(texto: string): { texto: string; lector: string; tono: "normal" | "cerca" | "pasado" } {
   const n = letras(texto);
-  if (n > MAXIMO) return { texto: `Te pasaste por ${n - MAXIMO} ${n - MAXIMO === 1 ? "letra" : "letras"}`, tono: "pasado" };
-  return { texto: `${n} / ${MAXIMO}`, tono: n >= MAXIMO - 100 ? "cerca" : "normal" };
+  if (n > MAXIMO) {
+    const pasado = `Te pasaste por ${n - MAXIMO} ${n - MAXIMO === 1 ? "letra" : "letras"}`;
+    return { texto: pasado, lector: pasado, tono: "pasado" };
+  }
+  return { texto: `${n} / ${MAXIMO}`, lector: `${n} de ${MAXIMO} letras`, tono: n >= MAXIMO - 100 ? "cerca" : "normal" };
 }
 
 /** La marca de un borrador: la misma mientras no cambien el texto ni la tienda (un reintento con lo mismo es la misma recomendación; la

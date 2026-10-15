@@ -15,13 +15,14 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { createClient } from "@/lib/supabase/client";
 import { firmar } from "@/lib/responsable-reglas";
 import { useResponsable } from "@/lib/useResponsable";
-import { traducirError } from "@/lib/error-escritura";
+import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { haceCuanto } from "@/lib/vender-hoy-reglas";
 import { camposRecomendacion } from "@/lib/recomendaciones-guia";
 import {
   INSIGNIA,
   MAX_RESPUESTA,
   accionPrincipal,
+  avisoDelError,
   cuando,
   estadoDe,
   hrefFicha,
@@ -87,7 +88,9 @@ export function RecomendacionHoja({
     setGuardando(null);
     responsable.despues(error);
     if (error) {
-      avisar.error(traducirError(error, que === "respondida" ? "enviar la respuesta" : que === "leida" ? "marcarla como leída" : "archivarla"));
+      const propio = avisoDelError(error, esFalloDeRed(error));
+      if (propio) avisar.error(propio.titulo, { detalle: propio.detalle });
+      else avisar.error(traducirError(error, que === "respondida" ? "enviar la respuesta" : que === "leida" ? "marcarla como leída" : "archivarla"));
       // Otra persona ya la respondió (o ya no está): la lista se relee para que se vea lo que hay de verdad.
       if (pideReleer(error.hint)) onCambio(r.id);
       return;
@@ -127,6 +130,8 @@ export function RecomendacionHoja({
       onClose={onClose}
       tamano="mediana"
       bloqueado={guardando !== null}
+      // Primero se LEE lo que escribió el cliente: el foco va a la hoja (no a «Archivar» ni a la respuesta); Tab entra a los controles.
+      focoEnLaHoja
     >
       {(cerrar) => (
         <div className="space-y-4">

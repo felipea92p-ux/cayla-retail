@@ -247,6 +247,7 @@ export function RecomendacionesPantalla({
                         ev.stopPropagation();
                         abrir(r.id);
                       }}
+                      title={r.cliente ? undefined : "Su ficha se anonimizó: la recomendación se queda, sin su nombre"}
                       className={`min-w-0 truncate text-left hover:text-rojo-profundo ${r.cliente ? "text-tinta" : "italic text-taupe"} ${e === "sin_leer" ? "font-semibold" : ""}`}
                     >
                       {deQuien(r)}
