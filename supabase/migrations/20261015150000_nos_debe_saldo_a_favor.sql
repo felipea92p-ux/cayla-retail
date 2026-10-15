@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261015150000_nos_debe_saldo_a_favor.sql — CAYLA V2 · ADR-0362, fase 5b, actividades 1 a 3 (parte 2 de 2: las funciones). Va después de
+-- 20261015150000_nos_debe_saldo_a_favor.sql — CAYLA V2 · ADR-0362, fase 5b, actividades 1 a 4 (parte 2 de 2: las funciones). Va después de
 -- 20261015145000_nos_debe_saldo_a_favor_esquema.sql. Contrato: docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md.
 --
 -- EL PROBLEMA PRIMERO. Una deuda del proveedor solo se saldaba con la prenda. Si no la va a mandar, la plata pagada por ella no volvía.
@@ -36,6 +36,10 @@
 --      Impuestos la cuenta como nota de crédito (`fn_impuestos_compras`, `fn_impuestos_registro_compras`, `fn_igv_credito_fiscal`,
 --      `resumen_compras_extra`: REEMPLAZOS ANCLADOS) y el Diario saca su IGV de la cuenta puente 4019 y baja el crédito fiscal (4011,
 --      `fn_asientos_nota_proveedor`). El tablero de Notas de crédito lee qué documentos ya tienen su nota (`fn_notas_proveedor_tablero`).
+--   8. El aviso del IGV (actividad 4): `fn_igv_en_espera` dice al Inicio y al Observatorio cuánto IGV de lo que no llegó falta regularizar:
+--      los documentos internos de una factura que esperan la nota del proveedor (su IGV, en la cuenta puente) y las prendas de una factura
+--      que no llegaron y nadie resolvió (su IGV sigue en el crédito fiscal sin la mercadería). Cada parte, solo para quien puede hacer algo
+--      con ella (Notas de crédito; ver lo que debe un proveedor); para los demás, nula.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe). UNA parte, después de 20261015145000. Sin tablas, sin políticas, sin `drop trigger`
 -- (ADR-0195), sin `select … into` dentro de textos entre comillas (ADR-0288). Las reescrituras y los reemplazos abortan SIN TOCAR NADA si la
@@ -979,6 +983,63 @@ select pg_temp.reemplazar(
       from retail.compra_notas_credito nc$n$,
   1);
 
+-- ---------- 8b. El aviso del IGV (actividad 4) ----------
+create or replace function retail.fn_igv_en_espera()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  v_sin_nota jsonb;
+  v_faltantes jsonb;
+begin
+  -- Las notas del proveedor por pedir: de quien las adjunta (Notas de crédito), en sus tiendas, como el tablero.
+  if retail.fn_puede_registrar_notas_credito() then
+    select jsonb_build_object('documentos', count(*), 'facturas', count(distinct n.compra_id), 'igv', coalesce(sum(n.igv), 0),
+                              'desde', min(n.fecha))
+      into v_sin_nota
+      from retail.compra_notas_credito n
+      join retail.compras c on c.id = n.compra_id
+     where n.interna and n.igv > 0 and c.estado = 'vigente' and retail.fn_compra_es_de_mis_tiendas(c.id)
+       and not exists (select 1 from retail.compra_notas_proveedor_documentos d where d.nota_credito_id = n.id);
+  end if;
+
+  -- Las prendas de una factura que no llegaron y siguen sin resolver: de quien ve lo que debe un proveedor (como `fn_nos_debe_resumen`,
+  -- de toda la empresa). Su IGV sale del papel (`fn_deuda_valor_de`): solo cuenta lo que está en una factura con IGV.
+  if retail.fn_ve_plata_de_proveedores() then
+    with abiertas as (
+      select x.id, x.proveedor_id, x.creado_en,
+             (x.cantidad - coalesce((select sum(r.cantidad) from retail.proveedor_deuda_resoluciones r where r.diferencia_id = x.id), 0))::integer as pendiente
+        from retail.despacho_diferencias_vigentes x
+       where x.tipo = 'faltante' and x.causa = 'no_vino'
+    ),
+    con_igv as (
+      select a.id, a.proveedor_id, a.creado_en, p ->> 'compra_id' as compra_id, (p ->> 'cantidad')::integer as prendas, (p ->> 'igv')::numeric as igv
+        from abiertas a
+       cross join lateral jsonb_array_elements(retail.fn_deuda_valor_de(a.id, a.pendiente) -> 'papeles') p
+       where a.pendiente > 0 and (p ->> 'igv')::numeric > 0
+    ),
+    resumen as (
+      select count(distinct id) as deudas, count(distinct compra_id) as facturas, coalesce(sum(prendas), 0) as prendas,
+             coalesce(sum(igv), 0) as igv, count(distinct proveedor_id) as proveedores, min(proveedor_id::text) as uno, min(creado_en) as desde
+        from con_igv
+    )
+    select jsonb_build_object('deudas', r.deudas, 'facturas', r.facturas, 'prendas', r.prendas, 'igv', r.igv, 'proveedores', r.proveedores,
+                              'proveedor_id', case when r.proveedores = 1 then r.uno end,
+                              'proveedor', case when r.proveedores = 1 then (select pr.nombre from retail.proveedores pr where pr.id = r.uno::uuid) end,
+                              'desde', r.desde)
+      into v_faltantes
+      from resumen r;
+  end if;
+
+  return jsonb_build_object('sin_nota', v_sin_nota, 'faltantes', v_faltantes);
+end;
+$$;
+comment on function retail.fn_igv_en_espera() is
+  'ADR-0362 fase 5b (actividad 4): el aviso del IGV del Inicio y del Observatorio. Notas del proveedor por pedir (documentos internos de una factura sin su nota) y prendas de una factura que no llegaron y siguen sin resolver, con su IGV. Cada parte, nula para quien no puede hacer nada con ella.';
+
 -- ---------- 9. Permisos ----------
 revoke all on function retail.fn_deuda_papel(uuid, integer) from public, anon, authenticated;
 grant execute on function retail.fn_deuda_papel(uuid, integer) to service_role;
@@ -1000,6 +1061,8 @@ revoke all on function retail.adjuntar_nota_proveedor(uuid[], text, date, numeri
 grant execute on function retail.adjuntar_nota_proveedor(uuid[], text, date, numeric, uuid) to authenticated, service_role;
 revoke all on function retail.fn_notas_proveedor_tablero() from public, anon;
 grant execute on function retail.fn_notas_proveedor_tablero() to authenticated, service_role;
+revoke all on function retail.fn_igv_en_espera() from public, anon;
+grant execute on function retail.fn_igv_en_espera() to authenticated, service_role;
 
 reset lock_timeout;
 
@@ -1026,6 +1089,9 @@ begin
   end if;
   if position('nos_debe_todavia_no' in pg_get_functiondef('retail.fn_pasar_deuda_a_saldo_a_favor(uuid, integer, text, uuid, text, uuid, uuid, text)'::regprocedure)) > 0 then
     raise exception 'pasar a saldo a favor todavía no acepta facturas';
+  end if;
+  if to_regprocedure('retail.fn_igv_en_espera()') is null then
+    raise exception 'falta el aviso del IGV (fn_igv_en_espera)';
   end if;
   if position('fn_asientos_nota_proveedor' in pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure)) = 0 then
     raise exception 'el Diario todavía no lee la nota del proveedor';

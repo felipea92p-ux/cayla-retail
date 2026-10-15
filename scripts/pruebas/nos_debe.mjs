@@ -30,6 +30,8 @@
  *      plata; desde su fecha baja el crédito fiscal (Impuestos, registro de compras) y el Diario saca su IGV de la cuenta puente; lo que no
  *      se acepta (sin Notas de crédito, otro comprobante, serie, fecha, monto distinto); una nota para dos documentos; la tabla sola no
  *      deja dos notas para un documento ni se edita.
+ *   I  EL AVISO DEL IGV (5b, actividad 4): `fn_igv_en_espera` cuenta las prendas de una factura que no llegaron y los documentos que
+ *      esperan la nota del proveedor, con su IGV; salen al resolver o adjuntar; cada parte, solo para quien puede actuar.
  *   P  PERMISOS: Proveedores o Recibir resuelven; la plata de Compras y Órdenes de compra solo leen; sin módulos, 42501; sin elegir
  *      responsable, no.
  *   R  EN LA RECEPCIÓN: la reposición salda la más antigua primero y no pasa de lo debido; no salda una deuda de la misma recepción;
@@ -876,6 +878,45 @@ caso(
   ].join(" / "),
 );
 
+// I. EL AVISO DEL IGV (fase 5b, actividad 4) ------------------------------------------------------------------------------------
+// `fn_igv_en_espera` cuenta en toda la base: el caso compara contra lo que había al empezar (el banco puede traer datos).
+caso(
+  "I1 el aviso del IGV: las prendas de una factura que no llegaron (no las de una boleta) y los documentos que esperan su nota, con su IGV; salen al resolver o adjuntar; cada parte solo para quien puede actuar",
+  `create function pg_temp.igv(j jsonb, b jsonb) returns text language sql as $f$
+     select coalesce(((j -> 'sin_nota' ->> 'documentos')::int - coalesce((b -> 'sin_nota' ->> 'documentos')::int, 0)) || ':'
+              || ((j -> 'sin_nota' ->> 'igv')::numeric - coalesce((b -> 'sin_nota' ->> 'igv')::numeric, 0)), 'nulo')
+       || ' | ' || coalesce(((j -> 'faltantes' ->> 'prendas')::int - coalesce((b -> 'faltantes' ->> 'prendas')::int, 0)) || ':'
+              || ((j -> 'faltantes' ->> 'facturas')::int - coalesce((b -> 'faltantes' ->> 'facturas')::int, 0)) || ':'
+              || ((j -> 'faltantes' ->> 'igv')::numeric - coalesce((b -> 'faltantes' ->> 'igv')::numeric, 0)), 'nulo')
+   $f$;
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.fn_igv_en_espera() as base \\gset
+   reset role;
+   ${PAPEL("fac", "factura", "F001", "901", [["l1", 10, 20]])}
+   ${PAPEL("bol", "boleta", "B001", "903", [["l3", 4, 25]])}
+   ${rolDeMicaela("recibir", "proveedores")}
+   ${DEUDA("x1", "l1", 10, 7)}
+   ${DEUDA("x3", "l3", 4, 3)}
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.fn_igv_en_espera() as antes \\gset
+   reset role;
+   ${como(MICAELA)}${EN_TIENDA}
+   select (pg_temp.resuelve(:'x1', 'saldo_a_favor', 2, null, null) -> 'documentos' -> 0 ->> 'nota_credito_id') as di \\gset
+   select retail.fn_igv_en_espera() as micaela \\gset
+   reset role;
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.fn_igv_en_espera() as medio \\gset
+   select retail.adjuntar_nota_proveedor(array[:'di']::uuid[], 'FC01-77', retail.fn_hoy_lima(), 47.20, null) is not null as adjunta \\gset
+   select retail.fn_igv_en_espera() as despues \\gset
+   reset role;
+   ${MICAELA_CON("recibir")}
+   select retail.fn_igv_en_espera() as solo_recibir \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.igv(:'antes', :'base'), pg_temp.igv(:'micaela', :'base'), pg_temp.igv(:'medio', :'base'),
+     pg_temp.igv(:'despues', :'base'), pg_temp.igv(:'solo_recibir', :'base'));`,
+  ["0:0 | 3:1:10.80", "nulo | 1:1:3.60", "1:7.20 | 1:1:3.60", "0:0 | 1:1:3.60", "nulo | nulo"].join(" / "),
+);
+
 // P. PERMISOS ---------------------------------------------------------------------------------------------------------------
 caso(
   "P1 sin módulos (solo Existencias): 42501 al leer, al ver el resumen y al resolver; tampoco una deuda que no existe se adivina",
@@ -1179,7 +1220,7 @@ caso(
 
 // La fase 5b: lo que lee y escribe la web, security definer con authenticated y sin anon; lo interno, cerrado; las tablas de la nota del
 // proveedor, con RLS, sin políticas y sin lectura directa.
-const PUBLICAS_5B = "('fn_deuda_valor', 'adjuntar_nota_proveedor', 'fn_notas_proveedor_tablero')";
+const PUBLICAS_5B = "('fn_deuda_valor', 'adjuntar_nota_proveedor', 'fn_notas_proveedor_tablero', 'fn_igv_en_espera')";
 const INTERNAS_5B = "('fn_deuda_papel', 'fn_deuda_valor_de', 'fn_pasar_deuda_a_saldo_a_favor', 'fn_deuda_documentos_de', 'fn_nota_proveedor_resumen', " +
   "'fn_asientos_nota_proveedor')";
 caso(
@@ -1196,7 +1237,7 @@ caso(
      has_table_privilege('authenticated', 'retail.compra_notas_proveedor', 'select'),
      has_table_privilege('authenticated', 'retail.compra_notas_proveedor_documentos', 'select'),
      has_table_privilege('anon', 'retail.compra_notas_proveedor', 'select'));`,
-  "3,t,t,f,6,f,t,0,f,f,f",
+  "4,t,t,f,6,f,t,0,f,f,f",
 );
 
 // C. DOS SESIONES A LA VEZ --------------------------------------------------------------------------------------------------
