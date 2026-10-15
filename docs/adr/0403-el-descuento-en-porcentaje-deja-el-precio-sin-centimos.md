@@ -112,5 +112,8 @@ y la propiedad de S/ 0.00 a S/ 300.00 con 6 % (precio múltiplo de 0.10, nunca m
 ventana contra la pila, escritorio y 375 px sin desborde): Falda Ariana a S/ 64.90 con «Canjear 10 %» → «−S/6.50», total S/ 58.40; el
 cobro con tarjeta y boleta guardó `descuento_club_unitario` 6.50, subtotal 58.40 y `club_canjes.monto` 6.50.
 
-**Producción:** pegar `20261015182000_cumpleanos_precio_sin_centimos.sql` (una parte, solo una función) **antes** de publicar la web. La
-transición se quita con su propia migración una vez que todas las cajas hayan recargado después de la publicación.
+**Producción: PEGADO el 2026-10-15 (~13:36 Lima)** con la orden de Felipe, antes de publicar la web: sonda de solo lectura (huella de
+`registrar_venta` `87a7ac58…`, cada ancla una vez, 0 canjes de cumpleaños vivos), ensayo de la migración entera terminado en excepción
+(producción intacta después) y `apply_migration` (registrada como `20261015183602`). Después: huella `d6a866b1…` (la del ensayo), una sola
+firma, permisos solo para `authenticated`, la cuenta nueva y una transición. La transición se quita con su propia migración una vez que
+todas las cajas hayan recargado después de la publicación.
