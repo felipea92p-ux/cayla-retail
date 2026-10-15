@@ -652,18 +652,19 @@ function main() {
       rollback;`),
     "0|9",
   );
-  // CAMBIÓ el 2026-10-15 («La talla de S/ 0 sigue en S/ 0», Felipe; `20261015121000_talla_en_cero_sigue_en_cero.sql`). Hasta ese día,
-  // con precio propio en Trujillo la talla de S/ 0 salía en el look en Trujillo y con «Todas»; ahora vale 0 en toda tienda y no sale en
-  // ninguna. Lo que se sigue exigiendo es lo mismo: el look ofrece EXACTAMENTE las tallas de la ficha.
+  // La ROPA vale el precio de la tienda aunque su ficha diga S/ 0 en una talla (Felipe 2026-10-15: «el precio de la prenda siempre debe
+  // ser el mismo de la tienda», `20261015121000_talla_en_cero_sigue_en_cero.sql`): con precio propio en Trujillo, la talla de Blusa Emma
+  // en S/ 0 sale en el look en Trujillo y con «Todas» (el mayor), y no en Lima. Solo la talla de OBSEQUIO (Empaque) sigue en S/ 0, y esa
+  // ni va en un look (en la web solo va ropa). Lo que se exige siempre: el look ofrece EXACTAMENTE las tallas de la ficha.
   esperarValor(
-    "las tallas del look son EXACTAMENTE las que ofrece la ficha en esa tienda: una talla a S/ 0 (ADR-0384) no sale, tampoco con precio propio en Trujillo (ni en Trujillo, ni con «Todas», ni en Lima)",
+    "las tallas del look son EXACTAMENTE las que ofrece la ficha en esa tienda: una talla a S/ 0 (ADR-0384) no sale; con precio propio en Trujillo, la de ropa sale en Trujillo y con «Todas» (el mayor), no en Lima",
     correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${crear("look", { ps: piezas(["emma", "NEG"], ["carla", "BEI"]) })}
       update retail.variantes set precio = 0 where sku = 'BLU-EMMA-NEG-L';
       ${TALLAS_CONTRA_FICHA("look")}${TALLAS_CONTRA_FICHA("look", "tru")}
       ${precioEnTienda("emma", "tru", "99.90")}
       ${TALLAS_CONTRA_FICHA("look", "tru")}${TALLAS_CONTRA_FICHA("look")}${TALLAS_CONTRA_FICHA("look", "lim")}
       rollback;`),
-    "0|S,M\n0|S,M\n0|S,M\n0|S,M\n0|S,M",
+    "0|S,M\n0|S,M\n0|S,M,L\n0|S,M,L\n0|S,M",
   );
   esperarValor(
     "el total del look en el ERP (con «Todas») es el de la tienda: cada prenda en SU color, también con una campaña de un solo color",

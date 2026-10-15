@@ -25,9 +25,11 @@
  *      (`fn_precio_en_sede` + `fn_descuento_campana`). La prenda de un look vale lo de SU color (una campaña solo en el negro no le
  *      pone «Desde» a la beige). Romper la pieza común a propósito cambia a las cuatro JUNTAS.
  *  10. LO QUE SE OFRECE: una talla a S/ 0 (ADR-0384) no la ofrece la ficha, ni el look, ni la bolsa; «Separar» no la separa y «Avísame»
- *      no la anota — tampoco con precio propio en una tienda (desde el 2026-10-15 la talla de S/ 0 sigue en S/ 0 en toda tienda,
- *      `20261015121000`), con un mutante de `fn_precio_en_sede` que lo prueba. La tienda elegida es una sola regla
- *      (`fn_tienda_sede_elegida`): una escondida es «Todas» en las cuatro.
+ *      no la anota. Con precio propio en Trujillo, la de ROPA se ofrece en Trujillo y con «Todas» a ese precio, se separa ahí y no en
+ *      Lima (Felipe 2026-10-15: «el precio de la prenda siempre debe ser el mismo de la tienda», `20261015121000`); la de OBSEQUIO (una
+ *      familia fuera de los motores) sigue en S/ 0 aunque la tienda le ponga precio; con un mutante de `fn_precio_en_sede` que confunde
+ *      la ropa con el obsequio, y la prueba lo ve. La tienda elegida es una sola regla (`fn_tienda_sede_elegida`): una escondida es
+ *      «Todas» en las cuatro.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder): nunca se commitea nada en el Postgres local que
  * comparten los worktrees. Cada uno parte con la vitrina vacía, sin campañas, con Trujillo y Lima en la web, el umbral en 3 y el
@@ -594,30 +596,52 @@ end $f$;
       rollback;`,
     "ficha=S,M|look=S,M|bolsa=S,M\ntienda_separar_no_publicada|no_disponible|no_disponible",
   );
-  // CAMBIÓ el 2026-10-15 («La talla de S/ 0 sigue en S/ 0», Felipe; `20261015121000_talla_en_cero_sigue_en_cero.sql`). Hasta ese día
-  // el precio propio de Trujillo alcanzaba también a la talla de S/ 0, y la web la ofrecía en Trujillo y con «Todas» (el mayor: bastaba
-  // UNA tienda con precio propio para venderla en la web). Ahora vale 0 en toda tienda (`fn_precio_en_sede`) y no se ofrece en ninguna.
+  // CAMBIÓ el 2026-10-15 (Felipe: «el precio de la prenda siempre debe ser el mismo de la tienda»; `20261015121000_talla_en_cero_sigue_en_cero.sql`).
+  // La ROPA vale el precio de la tienda aunque su ficha diga S/ 0 en una talla: con precio propio en Trujillo, esa talla se ofrece en
+  // Trujillo y con «Todas» (el mayor) a ese precio, y no en Lima, donde sigue sin precio. Solo la talla de OBSEQUIO (una familia fuera de
+  // los motores) sigue en S/ 0 aunque la tienda le ponga precio. (La primera versión de esa migración, sin pegar, tampoco ofrecía la de
+  // ropa: el mutante de abajo es esa confusión.)
   const CERO_CON_PRECIO_PROPIO = `${PREPARAR}${CON_LOOK}${CON_CUENTA}${poner("neg_l", "tru", "tru_piso", 3)}update retail.variantes set precio = 0 where id = :'neg_l';
       select retail.poner_precio_sede(:'emma', :'tru', 99.90, 'Prueba de lo que se ofrece') \\gset\n`;
-  const NI_SEPARAR_NI_AVISAME = `select concat_ws('|',
+  /** El precio de esa talla en las cuatro (ficha, bolsa, catálogo y look) en Trujillo y con «Todas»; «Separar» y «Avísame» en Trujillo
+   *  y en Lima. */
+  const A_ESE_PRECIO = `select concat_ws(' ', 'Trujillo=' || pg_temp.un_precio(:'neg_l', :'tru', :'look', 99.90, null, null),
+                       'Todas=' || pg_temp.un_precio(:'neg_l', null, :'look', 99.90, null, null));
+      select concat_ws('|',
         pg_temp.hint(format('select retail.tienda_separar(%L, %L, %L, %L)', :'usr', :'tru',
                             jsonb_build_array(jsonb_build_object('variante_id', :'neg_l', 'cantidad', 1, 'precio', 99.90)), gen_random_uuid())),
-        retail.tienda_avisame(:'usr', :'neg_l', :'tru') ->> 'estado');\n`;
+        pg_temp.hint(format('select retail.tienda_separar(%L, %L, %L, %L)', :'usr', :'lim',
+                            jsonb_build_array(jsonb_build_object('variante_id', :'neg_l', 'cantidad', 1, 'precio', 99.90)), gen_random_uuid())),
+        retail.tienda_avisame(:'usr', :'neg_l', :'tru') ->> 'estado', retail.tienda_avisame(:'usr', :'neg_l', :'lim') ->> 'estado');\n`;
   valor(
-    "con precio propio en Trujillo, la talla de S/ 0 en la grilla SIGUE sin ofrecerse: ni en Trujillo, ni con «Todas», ni en Lima (la ficha, el look y la bolsa), y «Separar» no la separa al precio de Trujillo",
-    `${CERO_CON_PRECIO_PROPIO}${OFRECEN("tru")}${OFRECEN()}${OFRECEN("lim")}${NI_SEPARAR_NI_AVISAME}rollback;`,
-    "ficha=S,M|look=S,M|bolsa=S,M\nficha=S,M|look=S,M|bolsa=S,M\nficha=S,M|look=S,M|bolsa=S,M\ntienda_separar_no_publicada|no_disponible",
+    "ROPA · con precio propio en Trujillo, la talla que su ficha deja en S/ 0 se ofrece en Trujillo y con «Todas» (el mayor) a ese precio —la ficha, el look, la bolsa y el catálogo—, y no en Lima; «Separar» la separa en Trujillo y no en Lima, y «Avísame» la ve en Trujillo",
+    `${CERO_CON_PRECIO_PROPIO}${OFRECEN("tru")}${OFRECEN()}${OFRECEN("lim")}${A_ESE_PRECIO}rollback;`,
+    "ficha=S,M,L|look=S,M,L|bolsa=S,M,L\nficha=S,M,L|look=S,M,L|bolsa=S,M,L\nficha=S,M|look=S,M|bolsa=S,M\nTrujillo=ok Todas=ok\nok|tienda_separar_no_publicada|hay|no_disponible",
   );
   valor(
-    "MUTANTE fn_precio_en_sede sin la regla del 0: la talla de obsequio vuelve a ofrecerse en Trujillo y con «Todas», en las tres JUNTAS (ninguna decide por su cuenta)",
+    "MUTANTE fn_precio_en_sede confunde la ropa con el obsequio: la talla de ropa en S/ 0 deja de ofrecerse en Trujillo y con «Todas», en las tres JUNTAS (ninguna decide por su cuenta)",
     `${CERO_CON_PRECIO_PROPIO}do $m$
 declare d text := pg_get_functiondef('retail.fn_precio_en_sede(uuid, uuid)'::regprocedure);
 begin
-  if position('case when v.precio = 0 then v.precio' in d) = 0 then raise exception 'mutante vacío: fn_precio_en_sede no tiene la regla del 0'; end if;
-  execute replace(d, 'case when v.precio = 0 then v.precio', 'case when false then v.precio');
+  if position('retail.fn_categoria_admite_precio_cero(pr.categoria_id)' in d) = 0 then
+    raise exception 'mutante vacío: fn_precio_en_sede no pregunta la categoría de la prenda';
+  end if;
+  execute replace(d, 'retail.fn_categoria_admite_precio_cero(pr.categoria_id)', 'true');
 end $m$;
       ${OFRECEN("tru")}${OFRECEN()}${OFRECEN("lim")}rollback;`,
-    "ficha=S,M,L|look=S,M,L|bolsa=S,M,L\nficha=S,M,L|look=S,M,L|bolsa=S,M,L\nficha=S,M|look=S,M|bolsa=S,M",
+    "ficha=S,M|look=S,M|bolsa=S,M\nficha=S,M|look=S,M|bolsa=S,M\nficha=S,M|look=S,M|bolsa=S,M",
+  );
+  valor(
+    "OBSEQUIO · con la familia de la prenda fuera de los motores (su talla en S/ 0 es de obsequio), el precio propio de Trujillo NO la alcanza: la pieza común del precio la deja en S/ 0 y sin ofrecer, en Trujillo y con «Todas», mientras la otra talla vale lo de Trujillo (y el modelo ni se muestra: en la web solo va ropa)",
+    `${CERO_CON_PRECIO_PROPIO}update retail.familias set entra_a_motores = false
+        where codigo = (select c.familia from retail.categorias c join retail.productos p on p.categoria_id = c.id where p.id = :'emma');
+      select concat_ws('|',
+        (select precio_lista::text || '/' || se_ofrece::text from retail.fn_tienda_precio_talla(array[:'neg_l']::uuid[], :'tru')),
+        (select precio_lista::text || '/' || se_ofrece::text from retail.fn_tienda_precio_talla(array[:'neg_l']::uuid[], null)),
+        (select precio_lista::text || '/' || se_ofrece::text from retail.fn_tienda_precio_talla(array[:'neg_m']::uuid[], :'tru')),
+        (retail.tienda_ficha(:'emma', :'tru') is null)::text);
+      rollback;`,
+    "0.00/false|0.00/false|99.90/true|true",
   );
   valor(
     "una tienda escondida se lee como «Todas» en las cuatro (fn_tienda_sede_elegida): elegir Lima, ya fuera de la web, es el precio de Trujillo",

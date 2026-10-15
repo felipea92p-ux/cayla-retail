@@ -14,10 +14,12 @@
  *   · (2026-10-10) una talla nueva o reactivada vale el precio de la tienda sin escribir nada; un precio de tienda que queda igual a
  *     la grilla se quita solo al final de la transacción (no a medio guardado); Apartar guarda la línea al precio de la tienda; el
  *     cambio de la misma prenda vale lo que se pagó en la tienda de la compra; el filtro del catálogo usa el precio de la tienda.
- *   · (2026-10-15, `20261015121000_talla_en_cero_sigue_en_cero.sql`) «La talla de S/ 0 sigue en S/ 0»: una talla a 0 en la grilla (la
- *     bolsa de obsequio) vale 0 en toda tienda aunque la prenda tenga precio propio ahí — en la regla, en Vender (`fn_precios_en_sede`),
- *     en el filtro del catálogo y en la caja —; poner, quitar y «quedó igual a la grilla» miran solo las tallas con precio; con
- *     MUTANTES que rompen la regla a propósito y la prueba lo ve.
+ *   · (2026-10-15, `20261015121000_talla_en_cero_sigue_en_cero.sql`) La talla de OBSEQUIO —S/ 0 en una categoría que admite el 0
+ *     (Empaque, `fn_categoria_admite_precio_cero`)— vale 0 en toda tienda aunque la bolsa tenga precio propio ahí; la ROPA vale el precio
+ *     de la tienda aunque su ficha diga S/ 0 en una talla (Felipe: «el precio de la prenda siempre debe ser el mismo de la tienda»), y en
+ *     una tienda sin precio propio sigue sin precio. En la regla, en Vender (`fn_precios_en_sede`), en el filtro del catálogo, en la caja,
+ *     al poner, al quitar, en «quedó igual a la grilla» y en la ficha; con MUTANTES que confunden la ropa con el obsequio (y al revés) en
+ *     cada una de las seis funciones que lo preguntan, y la prueba lo ve.
  *
  * CÓMO. Cada escenario en su transacción con ROLLBACK (como `historial_prenda.mjs`): la base compartida queda igual.
  *
@@ -55,9 +57,11 @@ const PRELUDIO = `
 select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
 select id as taller from retail.ubicaciones where tipo = 'taller' limit 1 \\gset
--- Una prenda con al menos dos variantes activas al mismo precio general.
-select v.producto_id as p1, min(v.precio) as general from retail.variantes v
- where v.activo group by v.producto_id having count(*) >= 2 and min(v.precio) = max(v.precio) and min(v.precio) > 10
+-- Una prenda de ROPA (su familia cuenta en los motores, así que no admite el precio 0: 24-31 la usan como ropa) con al menos dos
+-- variantes activas al mismo precio general.
+select v.producto_id as p1, min(v.precio) as general from retail.variantes v join retail.productos pr on pr.id = v.producto_id
+ where v.activo and retail.fn_categoria_entra_a_motores(pr.categoria_id)
+ group by v.producto_id having count(*) >= 2 and min(v.precio) = max(v.precio) and min(v.precio) > 10
  order by v.producto_id limit 1 \\gset
 select count(*) as nvar from retail.variantes where producto_id = :'p1' and activo \\gset
 select id as v1 from retail.variantes where producto_id = :'p1' and activo order by id limit 1 \\gset
@@ -578,9 +582,13 @@ select concat_ws('|',
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
-// 24-29. (2026-10-15) «La talla de S/ 0 sigue en S/ 0» (`20261015121000_talla_en_cero_sigue_en_cero.sql`). El precio de una tienda es
-//        de la prenda, pero una talla que vale 0 en la grilla —la bolsa de obsequio, ADR-0384— vale 0 en TODA tienda. Antes la de obsequio
-//        pasaba a cobrarse el precio de la bolsa en la tienda que le ponía uno propio, y la web la ofrecía a ese precio.
+// 24-31. (2026-10-15, `20261015121000_talla_en_cero_sigue_en_cero.sql`) La talla de OBSEQUIO sigue en S/ 0; la ropa vale el precio de la
+//        tienda. El precio de una tienda es de la prenda y vale para todas sus tallas —también la de ropa que su ficha deja en S/ 0
+//        (Felipe: «el precio de la prenda siempre debe ser el mismo de la tienda»)— menos la de obsequio: S/ 0 en una categoría que admite
+//        el 0 (Empaque, `fn_categoria_admite_precio_cero`, ADR-0384), que vale 0 en TODA tienda. Antes la de obsequio pasaba a cobrarse el
+//        precio de la bolsa en la tienda que le ponía uno propio. Seis funciones preguntan «¿es la de obsequio?» (la regla, el filtro del
+//        catálogo, poner, quitar, depurar y la ficha; Vender sale de la regla): los escenarios 24-30 cruzan las seis con una bolsa y con
+//        ropa, y los MUTANTES (31) confunden la ropa con el obsequio, y al revés, en cada una.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Una bolsa de una familia fuera de los motores (como «Empaque»): su talla de obsequio a S/ 0 (`:v_obs`, costo 0.80) y la grande a
@@ -609,7 +617,21 @@ const LO_QUE_DICEN = `select concat_ws('|', :n,
   (select precio from retail.fn_productos_filtro(p_ubicacion_id => :'tru') where variante_id = :'v_obs'),
   (select precio from retail.fn_productos_filtro(p_ubicacion_id => :'tru') where variante_id = :'v_gra'),
   (select variantes from retail.fn_precios_sede_producto(:'bolsa') where ubicacion_id = :'tru'));`;
-/** Rompe a propósito UNA función viva dentro de la transacción (vuelve con el ROLLBACK): `de` tiene que estar en su definición. */
+/** Una prenda de ROPA (`:p1`) con una talla en S/ 0 en su ficha (`:v1`: la que el conteo propone «en 0 para que la complete el Líder»)
+ *  y precio propio en Trujillo (`:general` + 10). */
+const ROPA_EN_CERO = `update retail.variantes set precio = 0 where id = :'v1';
+select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'La ropa vale lo de la tienda') as n \\gset
+`;
+/** Lo que dicen de esa talla: ¿el precio cubre todas las tallas? | la regla en Trujillo (¿el de la tienda?) y en Lima | Vender en
+ *  Trujillo (¿la ve al precio de la tienda?) y en Lima (¿es excepción?) | el filtro del catálogo en Trujillo y en Lima | la ficha. */
+const LO_QUE_DICE_LA_ROPA = `select concat_ws('|', (:n = :nvar)::text,
+  (retail.fn_precio_en_sede(:'v1', :'tru') = :general + 10)::text, retail.fn_precio_en_sede(:'v1', :'lima'),
+  coalesce(((select precio from retail.fn_precios_en_sede(:'tru') where variante_id = :'v1') = :general + 10)::text, '-'),
+  (select count(*) from retail.fn_precios_en_sede(:'lima') where variante_id = :'v1'),
+  coalesce(((select precio from retail.fn_productos_filtro(p_ubicacion_id => :'tru') where variante_id = :'v1') = :general + 10)::text, '-'),
+  (select precio from retail.fn_productos_filtro(p_ubicacion_id => :'lima') where variante_id = :'v1'),
+  coalesce(((select variantes from retail.fn_precios_sede_producto(:'p1') where ubicacion_id = :'tru') = :nvar)::text, '-'));`;
+/** Rompe a propósito UNA función viva dentro de la transacción (vuelve con el ROLLBACK): cambia TODAS las apariciones de `de`. */
 const MUTAR = (nombre, de, a) => `do $m$
 declare d text := (select pg_get_functiondef(p.oid) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                     where n.nspname = 'retail' and p.proname = '${nombre}');
@@ -619,19 +641,32 @@ begin
 end $m$;
 `;
 
-// 24. La regla, Vender (y su «Agregar bolsa»: la de obsequio no está entre las excepciones de la tienda, así que la pantalla la muestra
-//     en 0), el filtro del catálogo y la ficha: la de obsequio sigue en 0 en Trujillo; la grande vale lo de Trujillo y, en Lima, lo suyo.
-{
-  const r = correr(FELIPE, `${EMPAQUE}${PONER_BOLSA_EN_TRUJILLO}${LO_QUE_DICEN}`);
-  esperar(
-    "la talla de S/ 0 sigue en S/ 0 en la tienda con precio propio (la regla, Vender, el filtro y la ficha); la grande toma el de la tienda",
-    ultima(r) === "1|0.00|3.00|2.50|0|3.00|0.00|3.00|1",
-    r,
-  );
-}
+/** Los escenarios de la regla: se corren tal cual (24-30) y, en 31, contra cada mutante. `espera`: la última línea o «falla:<texto>». */
+const REGLA = [];
+const regla = (clave, nombre, uid, sql, espera) => REGLA.push({ clave, nombre, uid, sql, espera });
+const cumple = (r, espera) => (espera.startsWith("falla:") ? fallaCon(r, espera.slice("falla:".length)) : ultima(r) === espera);
 
-// 25. La caja de Trujillo cobra la de obsequio a S/ 0 junto a la grande a su precio propio; mandarla al precio de la tienda se rechaza
-//     («el precio cambió»). La bolsa es de una familia fuera de los motores: el 0 vale (ADR-0384).
+// 24. La regla, Vender (y su «Agregar bolsa»), el filtro del catálogo y la ficha. La bolsa: la de obsequio sigue en 0 en Trujillo (no está
+//     entre las excepciones de la tienda, así que la pantalla la muestra en 0) y la grande vale lo de Trujillo. La ropa: la talla que su
+//     ficha deja en 0 vale lo de Trujillo en Trujillo, en las cinco lecturas, y en Lima, sin precio propio, sigue en 0.
+regla(
+  "24a",
+  "BOLSA · la talla de obsequio sigue en S/ 0 en la tienda con precio propio (la regla, Vender, el filtro y la ficha); la grande toma el de la tienda",
+  FELIPE,
+  `${EMPAQUE}${PONER_BOLSA_EN_TRUJILLO}${LO_QUE_DICEN}`,
+  "1|0.00|3.00|2.50|0|3.00|0.00|3.00|1",
+);
+regla(
+  "24b",
+  "ROPA · la talla que su ficha deja en S/ 0 vale el precio de Trujillo en Trujillo (la regla, Vender, el filtro y la ficha la cubren) y en Lima sigue en S/ 0",
+  FELIPE,
+  `${ROPA_EN_CERO}${LO_QUE_DICE_LA_ROPA}`,
+  "true|true|0.00|true|0|true|0.00|true",
+);
+
+// 25. La caja de Trujillo. La bolsa: la de obsequio a S/ 0 junto a la grande a su precio propio; mandarla al precio de la tienda se
+//     rechaza («el precio cambió»); la bolsa es de una familia fuera de los motores: el 0 vale (ADR-0384). La ropa: la talla en 0 se
+//     cobra al precio de Trujillo (que en Lima no se venda lo prueba `pruebas:registrar-venta`).
 {
   const base = `${montarSede("tru")}${EMPAQUE}${conStock("v_obs", "tru")}${conStock("v_gra", "tru")}${PONER_BOLSA_EN_TRUJILLO}`;
   const vender = (obsequio) => `
@@ -641,59 +676,133 @@ select retail.registrar_venta(:'tru',
   jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', 3.00 + ${obsequio})),
   null, gen_random_uuid()) as venta_id \\gset
 select string_agg(precio_unitario::text, ',' order by precio_unitario) from retail.venta_items where venta_id = :'venta_id';`;
-  const bien = correr(MICAELA, base + vender("0"));
-  esperar("la caja de Trujillo cobra la de obsequio a S/ 0 y la grande a S/ 3.00, su precio propio", ultima(bien) === "0.00,3.00", bien);
-  const caro = correr(MICAELA, base + vender("3.00"));
-  esperar("cobrar la de obsequio al precio de la tienda se rechaza («el precio cambió»)", fallaCon(caro, "venta_precio_cambiado"), caro);
+  regla("25a", "BOLSA · la caja de Trujillo cobra la de obsequio a S/ 0 y la grande a S/ 3.00, su precio propio", MICAELA, base + vender("0"), "0.00,3.00");
+  regla("25b", "BOLSA · cobrar la de obsequio al precio de la tienda se rechaza («el precio cambió»)", MICAELA, base + vender("3.00"), "falla:venta_precio_cambiado");
+  regla(
+    "25c",
+    "ROPA · la caja de Trujillo cobra la talla que su ficha deja en S/ 0 al precio de Trujillo",
+    MICAELA,
+    `${montarSede("tru")}${PRENDA_BASE}${conStock("vv", "tru")}
+update retail.variantes set precio = 0 where id = :'vv';
+select retail.poner_precio_sede(:'vp', :'tru', :vv_general + 10, 'La talla en 0 vale lo de la tienda') as _p \\gset
+select retail.registrar_venta(:'tru',
+  jsonb_build_array(jsonb_build_object('variante_id', :'vv', 'cantidad', 1, 'precio_unitario', :vv_general + 10)),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', :vv_general + 10)),
+  null, gen_random_uuid()) as venta_id \\gset
+select (precio_unitario = :vv_general + 10)::text from retail.venta_items where venta_id = :'venta_id';`,
+    "true",
+  );
 }
 
-// 26. Poner el precio de una tienda mira las tallas CON precio: la de obsequio no cuenta para «ya es el precio de la prenda», ni para
-//     el piso del costo, ni se anota en su historial; y a una prenda con todas sus tallas en 0 no se le pone (no cambiaría nada).
+// 26. Poner el precio de una tienda a la BOLSA mira las tallas que alcanza: la de obsequio no cuenta para «ya es el precio de la prenda»,
+//     ni para el piso del costo, ni se anota en su historial; y a una bolsa con todas sus tallas de obsequio no se le pone (no cambiaría
+//     nada).
 {
   const historial = (v) => `(select count(*) from retail.historial_producto_cambios where campo = 'precio_sede' and entidad_id = :'${v}')`;
-  const igual = correr(FELIPE, `${EMPAQUE}select retail.poner_precio_sede(:'bolsa', :'tru', 2.50, 'Igual a la grande');`);
-  esperar("al precio de la grande (la única con precio) es «ya es el precio de la prenda», aunque la de obsequio valga 0", fallaCon(igual, "ya es el precio de la prenda"), igual);
-  const piso = correr(FELIPE, `${EMPAQUE}update retail.variantes set costo = 9.00 where id = :'v_obs';
+  regla("26a", "BOLSA · al precio de la grande (la única que alcanza) es «ya es el precio de la prenda», aunque la de obsequio valga 0", FELIPE,
+    `${EMPAQUE}select retail.poner_precio_sede(:'bolsa', :'tru', 2.50, 'Igual a la grande');`, "falla:ya es el precio de la prenda");
+  regla("26b", "BOLSA · el costo de la de obsequio no frena el precio de la tienda, y su historial no se anota (solo el de la grande)", FELIPE,
+    `${EMPAQUE}update retail.variantes set costo = 9.00 where id = :'v_obs';
 select retail.poner_precio_sede(:'bolsa', :'tru', 3.00, 'El obsequio cuesta más') as n \\gset
-select concat_ws('|', :n, ${historial("v_obs")}, ${historial("v_gra")});`);
-  esperar("el costo de la de obsequio no frena el precio de la tienda, y su historial no se anota (solo el de la grande)", ultima(piso) === "1|0|1", piso);
-  const bajo = correr(FELIPE, `${EMPAQUE}update retail.variantes set costo = 3.50 where id = :'v_gra';
-select retail.poner_precio_sede(:'bolsa', :'tru', 3.00, 'Bajo el costo de la grande');`);
-  esperar("el costo de la grande sí frena el precio de la tienda", fallaCon(bajo, "por debajo de lo que cuesta"), bajo);
-  const todas = correr(FELIPE, `${EMPAQUE}update retail.variantes set precio = 0 where id = :'v_gra';
-select retail.poner_precio_sede(:'bolsa', :'tru', 3.00, 'Todo se regala');`);
-  esperar("a una prenda con todas sus tallas en 0 no se le pone precio de tienda (no cambiaría nada) y lo dice", fallaCon(todas, "valen 0"), todas);
+select concat_ws('|', :n, ${historial("v_obs")}, ${historial("v_gra")});`, "1|0|1");
+  regla("26c", "BOLSA · el costo de la grande sí frena el precio de la tienda", FELIPE,
+    `${EMPAQUE}update retail.variantes set costo = 3.50 where id = :'v_gra';
+select retail.poner_precio_sede(:'bolsa', :'tru', 3.00, 'Bajo el costo de la grande');`, "falla:por debajo de lo que cuesta");
+  regla("26d", "BOLSA · a una bolsa con todas sus tallas de obsequio no se le pone precio de tienda (no cambiaría nada) y lo dice", FELIPE,
+    `${EMPAQUE}update retail.variantes set precio = 0 where id = :'v_gra';
+select retail.poner_precio_sede(:'bolsa', :'tru', 3.00, 'Todo se regala');`, "falla:valen 0");
 }
 
-// 27. Quitarlo y «quedó igual a la grilla» también miran las tallas con precio: la grande al precio de la tienda lo quita solo aunque
-//     la de obsequio siga en 0; quitarlo no anota la de obsequio; y sin ninguna talla con precio el de la tienda queda guardado y sin
-//     efecto, como con todas las tallas apagadas (vuelve a valer si una talla recibe precio).
+// 27. Poner el precio de una tienda a la ROPA cubre también la talla en 0: a una prenda con TODAS sus tallas en 0 sí se le pone (en esa
+//     tienda pasa a venderse a ese precio, en Lima sigue sin precio, y cada talla se anota); con una talla en 0, el precio de las demás
+//     no es «ya el precio de la prenda» (la talla en 0 pasa a valerlo); y el costo de la talla en 0 cuenta para el piso.
+regla(
+  "27a",
+  "ROPA · a una prenda con TODAS sus tallas en S/ 0 sí se le pone precio de tienda: las cubre todas, valen ese precio en Trujillo y 0 en Lima, y cada una se anota",
+  FELIPE,
+  `update retail.variantes set precio = 0 where producto_id = :'p1' and activo;
+select retail.poner_precio_sede(:'p1', :'tru', :general, 'Toda la prenda estaba en 0') as n \\gset
+select concat_ws('|', (:n = :nvar)::text,
+  (select bool_and(retail.fn_precio_en_sede(v.id, :'tru') = :general and retail.fn_precio_en_sede(v.id, :'lima') = 0)
+     from retail.variantes v where v.producto_id = :'p1' and v.activo)::text,
+  ((select count(*) from retail.historial_producto_cambios h join retail.variantes v on v.id = h.entidad_id
+     where h.campo = 'precio_sede' and h.created_at = now() and v.producto_id = :'p1') = :nvar)::text,
+  coalesce(((select variantes from retail.fn_precios_sede_producto(:'p1') where ubicacion_id = :'tru') = :nvar)::text, '-'));`,
+  "true|true|true|true",
+);
+regla(
+  "27b",
+  "ROPA · con una talla en S/ 0, el precio de las demás NO es «ya el precio de la prenda»: la talla en 0 pasa a valerlo en esta tienda",
+  FELIPE,
+  `update retail.variantes set precio = 0 where id = :'v1';
+select retail.poner_precio_sede(:'p1', :'tru', :general, 'La talla en 0 vale lo de las demás') as n \\gset
+select concat_ws('|', (:n = :nvar)::text, (retail.fn_precio_en_sede(:'v1', :'tru') = :general)::text);`,
+  "true|true",
+);
+regla(
+  "27c",
+  "ROPA · el costo de la talla en S/ 0 sí frena el precio de la tienda (la cubre)",
+  FELIPE,
+  `update retail.variantes set precio = 0, costo = :general + 5 where id = :'v1';
+select retail.poner_precio_sede(:'p1', :'tru', :general, 'Bajo el costo de la talla en 0');`,
+  "falla:por debajo de lo que cuesta",
+);
+
+// 28. Quitar y «quedó igual a la grilla» en la BOLSA: la grande al precio de la tienda lo quita solo aunque la de obsequio siga en 0;
+//     quitarlo no anota la de obsequio; y sin ninguna talla que alcanzar el de la tienda queda guardado y sin efecto, como con todas las
+//     tallas apagadas (vuelve a valer si una talla recibe precio).
 {
   const historialObsequio = `(select count(*) from retail.historial_producto_cambios where campo = 'precio_sede' and entidad_id = :'v_obs')`;
-  const solo = correr(FELIPE, `${EMPAQUE}${PONER_BOLSA_EN_TRUJILLO}update retail.variantes set precio = 3.00 where id = :'v_gra';
+  regla("28a", "BOLSA · con la grande al precio de la tienda, el de la tienda se quita solo aunque la de obsequio siga en 0 (y ella no se anota)", FELIPE,
+    `${EMPAQUE}${PONER_BOLSA_EN_TRUJILLO}update retail.variantes set precio = 3.00 where id = :'v_gra';
 set constraints all immediate;
 select concat_ws('|',
   (select count(*) from retail.precios_sede_prenda where producto_id = :'bolsa' and archivado_en is null),
   (select archivado_motivo from retail.precios_sede_prenda where producto_id = :'bolsa' order by created_at desc limit 1),
-  ${historialObsequio}, retail.fn_precio_en_sede(:'v_obs', :'tru'));`);
-  esperar(
-    "con la grande al precio de la tienda, el de la tienda se quita solo aunque la de obsequio siga en 0 (y ella no se anota)",
-    ultima(solo) === "0|Quedó igual al precio de la prenda|0|0.00",
-    solo,
-  );
-  const quitar = correr(FELIPE, `${EMPAQUE}${PONER_BOLSA_EN_TRUJILLO}select retail.quitar_precio_sede(:'bolsa', :'tru', 'Ya no') as q \\gset
-select concat_ws('|', :q, ${historialObsequio});`);
-  esperar("quitar el precio de la tienda cuenta y anota solo la grande", ultima(quitar) === "1|0", quitar);
-  const dormido = correr(FELIPE, `${EMPAQUE}${PONER_BOLSA_EN_TRUJILLO}update retail.variantes set precio = 0 where id = :'v_gra';
+  ${historialObsequio}, retail.fn_precio_en_sede(:'v_obs', :'tru'));`, "0|Quedó igual al precio de la prenda|0|0.00");
+  regla("28b", "BOLSA · quitar el precio de la tienda cuenta y anota solo la grande", FELIPE,
+    `${EMPAQUE}${PONER_BOLSA_EN_TRUJILLO}select retail.quitar_precio_sede(:'bolsa', :'tru', 'Ya no') as q \\gset
+select concat_ws('|', :q, ${historialObsequio});`, "1|0");
+  regla("28c", "BOLSA · sin ninguna talla que alcanzar, el de la tienda queda guardado y sin efecto: todo vale 0 y Vender no ve excepciones", FELIPE,
+    `${EMPAQUE}${PONER_BOLSA_EN_TRUJILLO}update retail.variantes set precio = 0 where id = :'v_gra';
 set constraints all immediate;
 select concat_ws('|',
   (select count(*) from retail.precios_sede_prenda where producto_id = :'bolsa' and archivado_en is null),
   retail.fn_precio_en_sede(:'v_gra', :'tru'),
-  (select count(*) from retail.fn_precios_en_sede(:'tru') f join retail.variantes v on v.id = f.variante_id where v.producto_id = :'bolsa'));`);
-  esperar("sin ninguna talla con precio, el de la tienda queda guardado y sin efecto: todo vale 0 y Vender no ve excepciones", ultima(dormido) === "1|0.00|0", dormido);
+  (select count(*) from retail.fn_precios_en_sede(:'tru') f join retail.variantes v on v.id = f.variante_id where v.producto_id = :'bolsa'));`, "1|0.00|0");
 }
 
-// 28. El filtro del catálogo escribe la regla de fn_precio_en_sede a mano (para no llamar una función por variante): las dos dicen lo
+// 29. Quitar y «quedó igual a la grilla» en la ROPA: con una talla en 0 y las demás al precio de la tienda, el de la tienda NO se quita
+//     solo (la talla en 0 quedaría sin precio en esta tienda); quitarlo a mano anota todas las tallas, también la de 0, que vuelve a quedar
+//     sin precio; y cuando la talla en 0 recibe en su ficha el precio de la tienda, todas quedan iguales y se quita solo. «Se quita solo»
+//     es el disparador diferido de `variantes` (`variantes_depurar_precio_de_tienda_si_tiene`): solo mira las tallas que cambian cuando la
+//     prenda YA tiene precio de tienda, así que en cada escenario el precio de la tienda va antes que el cambio de la grilla.
+{
+  const TALLA_EN_CERO_AL_PRECIO_DE_LAS_DEMAS = `update retail.variantes set precio = 0 where id = :'v1';
+select retail.poner_precio_sede(:'p1', :'tru', :general, 'La talla en 0 vale lo de las demás') as _p \\gset
+`;
+  regla("29a", "ROPA · con una talla en S/ 0 y las demás al precio de la tienda, el de la tienda NO se quita solo: la talla en 0 lo perdería", FELIPE,
+    `select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Más cara aquí') as _p \\gset
+update retail.variantes set precio = :general + 10 where producto_id = :'p1' and activo and id <> :'v1';
+update retail.variantes set precio = 0 where id = :'v1';
+set constraints all immediate;
+select concat_ws('|', (select count(*) from retail.precios_sede_prenda where producto_id = :'p1' and ubicacion_id = :'tru' and archivado_en is null),
+  (retail.fn_precio_en_sede(:'v1', :'tru') = :general + 10)::text);`, "1|true");
+  regla("29b", "ROPA · quitarlo a mano cuenta y anota todas las tallas, también la de S/ 0, que vuelve a quedar sin precio en esa tienda", FELIPE,
+    `${ROPA_EN_CERO}select retail.quitar_precio_sede(:'p1', :'tru', 'Ya no') as q \\gset
+select concat_ws('|', (:q = :nvar)::text,
+  (select count(*) from retail.historial_producto_cambios
+    where campo = 'precio_sede' and entidad_id = :'v1' and created_at = now() and valor_nuevo::jsonb ->> 'propio' = 'false'),
+  retail.fn_precio_en_sede(:'v1', :'tru'));`, "true|1|0.00");
+  regla("29c", "ROPA · cuando la talla en S/ 0 recibe en su ficha el precio de la tienda, todas quedan iguales y el de la tienda se quita solo", FELIPE,
+    `${TALLA_EN_CERO_AL_PRECIO_DE_LAS_DEMAS}update retail.variantes set precio = :general where id = :'v1';
+set constraints all immediate;
+select concat_ws('|', (select count(*) from retail.precios_sede_prenda where producto_id = :'p1' and ubicacion_id = :'tru' and archivado_en is null),
+  (select archivado_motivo from retail.precios_sede_prenda where producto_id = :'p1' and ubicacion_id = :'tru' order by created_at desc limit 1));`,
+    "0|Quedó igual al precio de la prenda");
+}
+
+// 30. El filtro del catálogo escribe la regla de fn_precio_en_sede a mano (para no llamar una función por variante): las dos dicen lo
 //     mismo en CADA variante, en Trujillo, en Lima y sin tienda, con precios propios, la de obsequio y una prenda de ropa en 0.
 const FILTRO_Y_REGLA = `select string_agg(s.n || '=' || (select count(*) from retail.fn_productos_filtro(p_ubicacion_id => s.id) f
                                        where f.precio is distinct from retail.fn_precio_en_sede(f.variante_id, s.id)), ',' order by s.n)
@@ -703,21 +812,46 @@ select retail.poner_precio_sede(:'p1', :'tru', :general + 10, 'Más cara aquí')
 select retail.poner_precio_sede(:'p1', :'lima', :general - 5, 'Más barata aquí') as _r \\gset
 update retail.variantes set precio = 0 where id = :'v1';
 `;
-{
-  const r = correr(FELIPE, `${CON_PRECIOS_PROPIOS}${FILTRO_Y_REGLA}`);
-  esperar("el filtro del catálogo y fn_precio_en_sede dicen lo mismo en cada variante (Trujillo, Lima y sin tienda)", ultima(r) === "Lima=0,sin tienda=0,Trujillo=0", r);
+regla(
+  "30",
+  "el filtro del catálogo y fn_precio_en_sede dicen lo mismo en cada variante (Trujillo, Lima y sin tienda), con la bolsa y con la ropa en 0",
+  FELIPE,
+  `${CON_PRECIOS_PROPIOS}${FILTRO_Y_REGLA}`,
+  "Lima=0,sin tienda=0,Trujillo=0",
+);
+
+for (const c of REGLA) {
+  const r = correr(c.uid, c.sql);
+  esperar(`${c.clave} · ${c.nombre}`, cumple(r, c.espera), r);
 }
 
-// 29. MUTANTES: la prueba no está ciega. Cada uno rompe la regla en UN lugar (dentro de la transacción) y algún escenario lo ve.
+// 31. MUTANTES: la prueba no está ciega. Cada uno rompe la regla en UNA de las seis funciones (dentro de la transacción, vuelve con el
+//     ROLLBACK): «ropa → obsequio» toma toda talla en 0 por la de obsequio (`true` en vez de la categoría) y «obsequio → ropa» le pone el
+//     precio de la tienda a la de obsequio (`false`). Cada uno lo tiene que matar al menos uno de los escenarios que dice (`mata`).
 {
-  const r = correr(FELIPE, `${EMPAQUE}${PONER_BOLSA_EN_TRUJILLO}${MUTAR("fn_precio_en_sede", "case when v.precio = 0 then v.precio", "case when false then v.precio")}${LO_QUE_DICEN}`);
-  esperar(
-    "MUTANTE fn_precio_en_sede sin la regla del 0: la de obsequio vuelve a valer S/ 3.00 en la regla y en Vender, y la prueba lo ve",
-    ultima(r) === "1|3.00|3.00|2.50|1|3.00|0.00|3.00|1",
-    r,
-  );
-  const f = correr(FELIPE, `${CON_PRECIOS_PROPIOS}${MUTAR("fn_productos_filtro", "case when v.precio = 0 then v.precio", "case when false then v.precio")}${FILTRO_Y_REGLA}`);
-  esperar("MUTANTE el filtro del catálogo sin la regla del 0: deja de coincidir con fn_precio_en_sede, y la prueba lo ve", f.ok && ultima(f) !== "Lima=0,sin tienda=0,Trujillo=0", f);
+  const EN_PR = "retail.fn_categoria_admite_precio_cero(pr.categoria_id)";
+  const EN_P = "retail.fn_categoria_admite_precio_cero(p.categoria_id)";
+  const MUTANTES = [
+    ["fn_precio_en_sede", EN_PR, ["24b", "25c"], ["24a", "25a"]],
+    ["fn_productos_filtro", EN_P, ["24b", "30"], ["24a", "30"]],
+    ["poner_precio_sede", EN_PR, ["24b", "27a"], ["24a", "26a"]],
+    ["quitar_precio_sede", EN_PR, ["29b"], ["28b"]],
+    ["fn_precio_sede_depurar", EN_PR, ["29a"], ["28a", "28c"]],
+    ["fn_precios_sede_producto", EN_PR, ["24b", "27a"], ["24a"]],
+  ];
+  for (const [funcion, de, mataRopa, mataObsequio] of MUTANTES) {
+    for (const [sentido, a, mata] of [["ropa → obsequio", "true", mataRopa], ["obsequio → ropa", "false", mataObsequio]]) {
+      // El texto a romper tiene que estar en la función viva: si no, el mutante «moriría» por su propio error y la prueba mentiría.
+      const hay = correr(FELIPE, `select position($q$${de}$q$ in pg_get_functiondef(p.oid)) > 0 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'retail' and p.proname = '${funcion}';`);
+      if (ultima(hay) !== "t") {
+        esperar(`MUTANTE ${funcion} (${sentido}): la función ya no pregunta «${de}» (actualiza el mutante)`, false, hay);
+        continue;
+      }
+      const quien = REGLA.filter((c) => mata.includes(c.clave)).find((c) => cumple(correr(c.uid, MUTAR(funcion, de, a) + c.sql), c.espera) === false);
+      esperar(`MUTANTE ${funcion} (${sentido}): ${quien ? `lo ve el escenario ${quien.clave}` : `VIVO, no lo ve ${mata.join(" ni ")}`}`, !!quien, null);
+    }
+  }
 }
 
 // 13. Guardián: toda función que cobra, aparta, cotiza, cambia o regulariza toma el precio de `fn_precio_en_sede` — y en TODAS
