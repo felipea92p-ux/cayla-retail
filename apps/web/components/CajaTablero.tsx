@@ -5,6 +5,7 @@
 // `lib/caja-tablero.ts`.
 
 import Link from "next/link";
+import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowLeftRight,
@@ -744,24 +745,21 @@ function VistaGrafico({ cierres }: { cierres: CierreCaja[] }) {
       return dia ? [{ dia, montoCierreSistema: c.montoCierreSistema, diferencia: c.diferencia }] : [];
     }),
   );
-  const max = Math.max(...dias.map((d) => d.esperado), 0.0001);
   return (
     <div>
-      <div className="flex h-32 items-end gap-2 border-b border-sand">
-        {dias.map((d) => (
-          <div key={d.dia} title={`${diaCorto(`${d.dia}T17:00:00Z`)} · ${soles0(d.esperado)} · ${d.peor.texto}`} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
-            <span className="h-2 w-2 rounded-full" style={{ background: COLOR_CUADRE[d.peor.clave] }} />
-            <span className="w-[70%] rounded-t bg-[var(--color-grafico-neutro)]" style={{ height: `${Math.max(2, (d.esperado / max) * 85)}%` }} />
-          </div>
-        ))}
-      </div>
-      <div className="mt-1 flex gap-2 text-[10px] text-tinta/50">
-        {dias.map((d) => (
-          <span key={d.dia} className="flex-1 text-center">
-            {Number(d.dia.slice(8))}
-          </span>
-        ))}
-      </div>
+      {/* Las barras por tiempo del sistema (ronda 14 de /unificar): el esperado de cada día, con el punto de cómo cuadró encima. */}
+      <BarrasTiempo
+        alto={128}
+        barras={dias.map((d) => ({
+          clave: d.dia,
+          valor: d.esperado,
+          etiqueta: String(Number(d.dia.slice(8))),
+          tip: `${diaCorto(`${d.dia}T17:00:00Z`)} · ${soles0(d.esperado)} · ${d.peor.texto}`,
+          encima: <span aria-hidden className="block h-2 w-2 rounded-full" style={{ background: COLOR_CUADRE[d.peor.clave] }} />,
+        }))}
+        cifras="ninguna"
+        etiqueta="El efectivo esperado de cada día, con cómo cuadró"
+      />
       <Leyenda />
     </div>
   );

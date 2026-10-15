@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { conPreciosMasBajos, esProducible, conPreciosMasBajosDeModelos, costoUnitario, parsearLineasPrellenadas, precioParaMargen, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION, LEYENDA_SEMAFORO, TEXTO_SEMAFORO } from "./produccion-reglas";
+import { conPreciosMasBajos, esProducible, problemaDeBuenas, problemaDeEntrega, topeDeBuenas, conPreciosMasBajosDeModelos, costoUnitario, parsearLineasPrellenadas, precioParaMargen, semaforoMargen, urlLlevarATiendas, ETAPAS_MUESTRA, ETAPAS_PRODUCCION, LEYENDA_SEMAFORO, TEXTO_SEMAFORO } from "./produccion-reglas";
 
 describe("semaforoMargen", () => {
   it("gana con 60% o más de margen", () => {
@@ -369,5 +369,28 @@ describe("esProducible (Resumen de Producción: qué se le ofrece a la líder pa
   });
   it("cualquiera de los motivos basta: un descontinuado de prueba y de bolsas sigue fuera", () => {
     expect(esProducible({ estado: "descontinuado", estado_alta: "pendiente", es_prueba: true, categoria_id: "bolsas" }, apagadas)).toBe(false);
+  });
+});
+
+// ADR-0415 (recomendaciones de /chaos): hasta el doble de lo pedido por talla, y una entrega que no es anterior a hoy.
+describe("las buenas de una talla tienen techo", () => {
+  it("el doble de lo pedido, o 5 más si la talla es chica", () => {
+    expect([topeDeBuenas(6), topeDeBuenas(10), topeDeBuenas(1), topeDeBuenas(0)]).toEqual([12, 20, 6, 5]);
+  });
+  it("dice la primera talla que se pasa; si todas caben, nada", () => {
+    const lineas = [{ varianteId: "a", cantidadPlan: 6 }, { varianteId: "b", cantidadPlan: 1 }];
+    expect(problemaDeBuenas(lineas, { a: 12, b: 6 })).toBeNull();
+    expect(problemaDeBuenas(lineas, { a: "9", b: "2" })).toBeNull();
+    expect(problemaDeBuenas(lineas, { a: 60, b: 1 })).toMatch(/se pidieron 6 y anotaste 60 buenas.*hasta 12/);
+    expect(problemaDeBuenas(lineas, { a: 6, b: 7 })).toMatch(/se pidieron 1 y anotaste 7/);
+  });
+});
+
+describe("la entrega no es anterior a hoy", () => {
+  it("ayer o 1990 no; hoy, más adelante o en blanco sí", () => {
+    const hoy = "2026-10-15";
+    expect(problemaDeEntrega("1990-01-01", hoy)).toMatch(/no puede ser antes de hoy/);
+    expect(problemaDeEntrega("2026-10-14", hoy)).not.toBeNull();
+    for (const f of ["2026-10-15", "2026-11-01", ""]) expect(problemaDeEntrega(f, hoy)).toBeNull();
   });
 });

@@ -130,6 +130,17 @@ const VERSIONES_1G = [...PASO_1G.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(nu
   antes: m[3] ?? null,
   despues: m[5] ?? null,
 }));
+
+// Tandas posteriores a la 1g que vuelven a tocar una de sus funciones, con su propia tabla de versiones (ADR-0416: anonimizar
+// es de un líder). El «después» de HOY es el de la última; y la cadena no se corta: su «antes» es el «después» de la 1g.
+for (const archivo of ["20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql"]) {
+  const texto = readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8");
+  for (const m of texto.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)) {
+    const v = VERSIONES_1G.find((x) => x.firma === m[1]);
+    if (!v || v.despues !== (m[3] ?? null)) throw new Error(`${archivo}: su «antes» de ${m[1]} no es el «después» de la 1g`);
+    v.despues = m[5] ?? null;
+  }
+}
 const REHECHAS_1G = {
   "retail.resumen_clienta_caja": "create function",
   "retail.archivar_clienta": "create or replace function",
@@ -161,8 +172,23 @@ const cuerpoDe = (nombre) => {
   const [texto, crea] = nombre in REHECHAS_1G ? [PASO_1G, REHECHAS_1G[nombre]] : [MIGRACION, "create or replace function"];
   const ini = texto.indexOf(`${crea} ${nombre}(`);
   const a = texto.indexOf("$$", ini) + 2;
-  return texto.slice(a, texto.indexOf("$$", a));
+  return conPosteriores(nombre, texto.slice(a, texto.indexOf("$$", a)));
 };
+/** Los reemplazos anclados que tandas posteriores le hicieron (ADR-0416: anonimizar es de un líder), aplicados como en la base:
+ *  el bloque antes de la primera aparición del ancla. */
+function conPosteriores(nombre, cuerpo) {
+  let resultado = cuerpo;
+  for (const archivo of ["20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql"]) {
+    const texto = readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8");
+    for (const m of texto.matchAll(/select pg_temp\.insertar_antes\(\s*'(retail\.[a-z_]+)\([^']*\)',\s*\$v\$([\s\S]*?)\$v\$, \d+,\s*\$v\$([\s\S]*?)\$v\$,/g)) {
+      if (m[1] !== nombre) continue;
+      const i = resultado.indexOf(m[2]);
+      if (i < 0) throw new Error(`${archivo}: el ancla de ${nombre} no está en su cuerpo de la 1g`);
+      resultado = resultado.slice(0, i) + m[3] + resultado.slice(i);
+    }
+  }
+  return resultado;
+}
 // El bloque del legado (sección 18), solo: con la 1g encima, la migración entera ya no se puede volver a pegar.
 const BLOQUE_LEGADO = MIGRACION.slice(MIGRACION.indexOf("do $legado$"), MIGRACION.indexOf("$legado$;") + "$legado$;".length);
 if (!BLOQUE_LEGADO.startsWith("do $legado$")) {

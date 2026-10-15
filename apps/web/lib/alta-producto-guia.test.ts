@@ -334,3 +334,22 @@ describe("enFoco — «Sigue aquí» espera a que la persona termine de escribir
     expect(estadosDeCampos(campos, 4, "stock").precio).toBe("falta");
   });
 });
+
+// ADR-0415: un precio o un costo de más de S/ 5 000 deja el precio por hacer, con la misma frase que `problemasAlta`.
+describe("el tope del precio (ADR-0415): la guía y `problemasAlta` lo dicen igual", () => {
+  it.each([
+    ["precio de 5990 (el punto que falta)", { precioBase: "5990" }, /^El precio pasa de S\/ 5000/],
+    ["costo de 5990", { costoBase: "5990" }, /^El costo pasa de S\/ 5000/],
+  ] as const)("%s", (_caso, e, frase) => {
+    const estado = { ...completo, ...e };
+    const precio = camposDelAlta(estado, extraCompleto).find((c) => c.id === "precio");
+    const problema = problemasAlta(estado).find((p) => p.bloque === "precio");
+    expect(precio?.hecho).toBe(false);
+    expect(problema?.texto).toMatch(frase);
+    expect(precio?.pendiente).toBe(problema?.texto);
+  });
+  it("S/ 5 000 justos sí", () => {
+    const estado = { ...completo, precioBase: "5000", costoBase: "5000" };
+    expect(problemasAlta(estado).some((p) => p.bloque === "precio")).toBe(false);
+  });
+});
