@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261015145000_nos_debe_saldo_a_favor_esquema.sql — CAYLA V2 · ADR-0362, fase 5b, actividades 1 a 3 (parte 1 de 2: el esquema). Las funciones
+-- 20261015145000_nos_debe_saldo_a_favor_esquema.sql — CAYLA V2 · ADR-0362, fase 5b, actividades 1 a 6 (parte 1 de 2: el esquema). Las funciones
 -- van en 20261015150000_nos_debe_saldo_a_favor.sql. Contrato: docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md.
 --
 -- EL PROBLEMA PRIMERO. Una deuda del proveedor («2 polos que no vinieron en la ENV-000061») solo se podía saldar con la prenda («Llegó la
@@ -27,6 +27,10 @@
 --      sola nota. Va en una tabla aparte porque `compra_notas_credito` no se edita (`compra_notas_credito_inmutables`) y porque una nota del
 --      proveedor que no mueve plata no puede sumarse a las que sí lo hacen (el saldo del comprobante las cuenta). Se escriben y se leen solo
 --      por funciones `security definer` (RLS encendido sin políticas) y no se editan ni se borran; el mes cerrado no las recibe.
+--   7. Lo que se devuelve al proveedor por llegar dañado (actividad 6a, decisión 60; Felipe 2026-10-15: solo lo que llegó dañado en una
+--      recepción, el grupo entero, lo hace quien tiene Existencias) queda como deuda «por reponer», con las mismas salidas que un faltante: es
+--      un faltante más de `despacho_diferencias`, de la línea del envío donde llegó, con la causa nueva `devuelta` y la prenda de la cuarentena
+--      que lo originó (`prenda_danada_id`: una deuda por prenda, y solo esa causa la lleva). Lo escribe `devolver_danada_al_proveedor`.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe). UNA parte, ANTES de 20261015150000. Sin políticas ni `drop trigger` (ADR-0195) y sin
 -- `select … into` dentro de textos entre comillas (ADR-0288). Re-ejecutable. Al 2026-10-15 producción no tiene notas de crédito, deudas ni
@@ -117,6 +121,37 @@ create or replace trigger compra_notas_proveedor_documentos_inmutables before up
 create or replace trigger compra_notas_proveedor_mes_abierto before insert on retail.compra_notas_proveedor
   for each row execute function retail.fn_candado_compra_notas_credito();
 
+-- 7. La deuda de lo devuelto por llegar dañado (actividad 6a). Un solo `alter` por cambio: re-ejecutable (se borra y se vuelve a poner).
+alter table retail.despacho_diferencias
+  drop constraint if exists despacho_diferencias_causa,
+  add constraint despacho_diferencias_causa check (
+    (tipo = 'faltante' and causa = any (array['no_vino', 'se_perdio', 'otra_sede', 'devuelta']))
+    or (tipo = 'sobrante' and causa = any (array['regalo', 'cobra_aparte', 'proxima_compra', 'reposicion_faltante'])));
+alter table retail.despacho_diferencias add column if not exists prenda_danada_id uuid references retail.prendas_danadas (id);
+comment on column retail.despacho_diferencias.prenda_danada_id is
+  'ADR-0362 fase 5b (actividad 6a): la prenda de la cuarentena que se devolvió al proveedor por llegar dañada. Solo en la causa devuelta; una deuda por prenda.';
+alter table retail.despacho_diferencias
+  drop constraint if exists despacho_diferencias_devuelta_con_su_prenda,
+  add constraint despacho_diferencias_devuelta_con_su_prenda check ((causa = 'devuelta') = (prenda_danada_id is not null));
+create unique index if not exists despacho_diferencias_una_por_prenda on retail.despacho_diferencias (prenda_danada_id)
+  where prenda_danada_id is not null;
+-- Lo que faltó o sobró en el conteo es UNO por línea vigente (20261013180000). Lo devuelto por llegar dañado no es del conteo: puede haber
+-- varias deudas en una línea (una por prenda: tallas distintas) y convivir con lo que no vino. El único se rehace sin ellas, con su mismo
+-- nombre (ninguna función lo usa como árbitro de un `on conflict`); solo si todavía no las deja fuera.
+do $i$
+begin
+  if position('devuelta' in coalesce(pg_get_indexdef(to_regclass('retail.despacho_diferencias_linea_vigente_unica')), '')) = 0 then
+    drop index if exists retail.despacho_diferencias_linea_vigente_unica;
+    create unique index despacho_diferencias_linea_vigente_unica on retail.despacho_diferencias (despacho_id, despacho_item_id)
+      where despacho_item_id is not null and vigente and causa <> 'devuelta';
+  end if;
+end;
+$i$;
+-- La vista de lo que vale hoy (20261013180000) es `select *` de la tabla y fija sus columnas al crearse: con la columna nueva se vuelve a
+-- crear (create or replace la agrega al final; los permisos se quedan), o no la vería.
+create or replace view retail.despacho_diferencias_vigentes as
+  select * from retail.despacho_diferencias where vigente;
+
 reset lock_timeout;
 
 -- Comprobación: si algo no quedó, el pegado falla y no se aplica nada.
@@ -145,6 +180,17 @@ begin
   if (select count(*) from pg_trigger where not tgisinternal
         and tgrelid in ('retail.compra_notas_proveedor'::regclass, 'retail.compra_notas_proveedor_documentos'::regclass)) <> 3 then
     raise exception 'faltan los candados de la nota de crédito del proveedor (no se edita, mes cerrado)';
+  end if;
+  if position('devuelta' in pg_get_constraintdef((select c.oid from pg_constraint c
+                                                   where c.conrelid = 'retail.despacho_diferencias'::regclass
+                                                     and c.conname = 'despacho_diferencias_causa'))) = 0
+     or not exists (select 1 from information_schema.columns
+                     where table_schema = 'retail' and table_name = 'despacho_diferencias' and column_name = 'prenda_danada_id')
+     or to_regclass('retail.despacho_diferencias_una_por_prenda') is null
+     or position('devuelta' in coalesce(pg_get_indexdef(to_regclass('retail.despacho_diferencias_linea_vigente_unica')), '')) = 0
+     or not exists (select 1 from information_schema.columns
+                     where table_schema = 'retail' and table_name = 'despacho_diferencias_vigentes' and column_name = 'prenda_danada_id') then
+    raise exception 'falta la deuda de lo devuelto por llegar dañado (causa devuelta, prenda_danada_id)';
   end if;
 end;
 $$;

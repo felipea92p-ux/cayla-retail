@@ -51,6 +51,8 @@ import {
   nombreDeDeuda,
   opcionReposicion,
   pendienteDe,
+  porQueDebe,
+  porQueDebeEnFrase,
   problemaDeNota,
   queDebe,
   queDebeElProveedor,
@@ -934,5 +936,29 @@ describe("lo que dice «Depositó»: antes del botón, al terminar y en el histo
     expect(textoDeResolucion({ forma: "deposito", cantidad: 1, envio: null, documento: null, monto: null, nota: null, por: null, fecha: null }, HOY)).toBe(
       "1 se pagó con un depósito",
     );
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Lo devuelto por llegar dañado (fase 5b, actividad 6a): una deuda más, que dice por qué
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+describe("por qué la debe: lo que no vino o lo que se le devolvió", () => {
+  it("lee la causa; sin ella, «no vino» (una base de antes de la 6a)", () => {
+    expect(deuda().causa).toBe("no_vino");
+    expect(leerNosDebe({ abiertas: [{ ...FILA, causa: "devuelta" }] })!.abiertas[0]!.causa).toBe("devuelta");
+    expect(leerNosDebe({ abiertas: [{ ...FILA, causa: "rara" }] })!.abiertas[0]!.causa).toBe("no_vino");
+  });
+
+  it("lo dice en una línea y dentro de una frase, sin género", () => {
+    expect(porQueDebe(deuda(), HOY)).toBe("Faltaron en ENV-000061 · Tienda Trujillo · hace 3 días");
+    expect(porQueDebe(deuda({ causa: "devuelta", fecha: "2026-10-15T15:00:00Z" }), HOY)).toBe(
+      "Llegaron con daño en ENV-000061 · Tienda Trujillo · se devolvieron hoy",
+    );
+    expect(porQueDebe(deuda({ causa: "devuelta", cantidad: 1, fecha: "2026-10-15T15:00:00Z" }), HOY)).toBe(
+      "Llegó con daño en ENV-000061 · Tienda Trujillo · se devolvió hoy",
+    );
+    expect(porQueDebeEnFrase(deuda({ causa: "devuelta", fecha: null }), HOY)).toBe("llegaron con daño en ENV-000061 · Tienda Trujillo");
+    expect(porQueDebeEnFrase(deuda(), HOY)).toBe("faltaron en ENV-000061 · Tienda Trujillo · hace 3 días");
   });
 });

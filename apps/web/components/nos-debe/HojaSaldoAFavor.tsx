@@ -22,7 +22,6 @@ import {
   cantidadDePrendas,
   cuantoVale,
   detalleDeSaldoAFavor,
-  dondeFalto,
   fraseNotaDeLaFactura,
   fraseSaldoAFavor,
   leerCantidadSaldoAFavor,
@@ -30,6 +29,7 @@ import {
   mensajeDeNosDebe,
   nombreDeDeuda,
   pasablesASaldo,
+  porQueDebeEnFrase,
   queDebe,
   sugiereRecargarNosDebe,
   textoBotonSaldoAFavor,
@@ -172,8 +172,8 @@ function HojaSaldoAFavor({
         >
           <p className="text-sm text-tinta/80">
             {/* Con factura, con su IGV: es lo que vuelve, y lo mismo que dice «Vale» más abajo. */}
-            Te debe <b className="font-semibold text-tinta">{queDebe(deuda)}</b> ({deuda.montoConIgv != null ? `${soles(deuda.montoConIgv)} con IGV` : soles(deuda.montoPendiente)}): faltaron en{" "}
-            {dondeFalto(deuda, hoy)}.
+            Te debe <b className="font-semibold text-tinta">{queDebe(deuda)}</b> ({deuda.montoConIgv != null ? `${soles(deuda.montoConIgv)} con IGV` : soles(deuda.montoPendiente)}):{" "}
+            {porQueDebeEnFrase(deuda, hoy)}.
           </p>
           <p className="nota-cayla text-[13px]">
             Úsalo si el proveedor no las va a mandar. Se registra un documento interno por lo que pagaste por ellas: baja lo que le debes por ese

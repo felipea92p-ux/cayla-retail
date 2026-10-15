@@ -191,6 +191,8 @@ ${atrapa(
   "retail.registrar_deposito_deuda(p_dif, p_cantidad, p_nota, p_token, p_dep)",
 )}
 ${atrapa("debe", "p_prov uuid", "retail.fn_proveedor_nos_debe(p_prov)")}
+${atrapa("devuelve", "p_id uuid, p_nota text, p_token uuid", "retail.devolver_danada_al_proveedor(p_id, p_nota, p_token)")}
+${atrapa("devolvibles", "p_ubic uuid", "retail.fn_danadas_devolvibles(p_ubic)")}
 ${atrapa("resumen", "p_nada integer", "retail.fn_nos_debe_resumen()")}
 ${atrapa("detalle", "p_id uuid", "retail.fn_envio_detalle(p_id)")}
 
@@ -351,7 +353,7 @@ const SIN_DEPOSITO = "P0001|nos_debe_deposito_monto|Faltan los datos del depósi
 const FORMA = "P0001|nos_debe_forma|No se entiende cómo se resolvió la deuda: elige «Llegó la reposición», «Pasar a saldo a favor» o «Depositó»";
 const SIN_PAPEL_TODO =
   "P0001|nos_debe_sin_papel|Esas prendas no están en ningún comprobante con cupo: no se facturaron, así que no hay plata que pasar a saldo a favor. Si el proveedor las cobra después, regístralo y vuelve a intentarlo";
-const NO_ES_DEUDA = "P0001|nos_debe_no_es_deuda|Eso no es una deuda del proveedor: solo lo que «no vino» se repone";
+const NO_ES_DEUDA = "P0001|nos_debe_no_es_deuda|Eso no es una deuda del proveedor: solo se repone lo que «no vino» o lo que le devolviste";
 
 // N. LA DEUDA -------------------------------------------------------------------------------------------------------------
 caso(
@@ -395,8 +397,8 @@ caso(
     "OK",
     "abiertas,cerradas,deudas,monto,monto_con_igv,proveedor,unidades",
     "1:3:60.00:60.00:1:0",
-    "anotado_por,cantidad,categoria,con_igv,costo_unitario,descripcion,despacho_id,diferencia_id,envio,estado,fecha,marca,monto," +
-      "monto_pendiente,monto_pendiente_con_igv,nota,orden,papel,pendiente,proveedor,resoluciones,resuelto,saldada_en,sede,sin_papel",
+    "anotado_por,cantidad,categoria,causa,con_igv,costo_unitario,descripcion,despacho_id,diferencia_id,envio,estado,fecha,marca,monto," +
+      "monto_pendiente,monto_pendiente_con_igv,nota,orden,papel,pendiente,prenda_danada_id,proveedor,resoluciones,resuelto,saldada_en,sede,sin_papel",
     "ENV:Tienda Trujillo:OC1:Polos Nos Debe:Marca Nos Debe Prueba:Polo básico:3:0:3:por_reponer:20.00:60.00:60.00:false:-:sin papel:" +
       "Faltó una bolsa:Micaela Vendedora:0:true",
     "Proveedor Nos Debe Prueba:1:3:60.00:60.00:categoria,categoria_id,marca,marca_id,monto,unidades=Polos Nos Debe·Marca Nos Debe Prueba·3·60.00",
@@ -1363,7 +1365,7 @@ caso(
 // La fase 5b: lo que lee y escribe la web, security definer con authenticated y sin anon; lo interno, cerrado; las tablas de la nota del
 // proveedor, con RLS, sin políticas y sin lectura directa.
 const PUBLICAS_5B = "('fn_deuda_valor', 'adjuntar_nota_proveedor', 'fn_notas_proveedor_tablero', 'fn_igv_en_espera', 'fn_saldo_favor_visible', " +
-  "'registrar_deposito_deuda')";
+  "'registrar_deposito_deuda', 'devolver_danada_al_proveedor', 'fn_danadas_devolvibles')";
 const INTERNAS_5B = "('fn_deuda_papel', 'fn_deuda_valor_de', 'fn_pasar_deuda_a_saldo_a_favor', 'fn_deuda_documentos_de', 'fn_nota_proveedor_resumen', " +
   "'fn_asientos_nota_proveedor')";
 caso(
@@ -1380,7 +1382,211 @@ caso(
      has_table_privilege('authenticated', 'retail.compra_notas_proveedor', 'select'),
      has_table_privilege('authenticated', 'retail.compra_notas_proveedor_documentos', 'select'),
      has_table_privilege('anon', 'retail.compra_notas_proveedor', 'select'));`,
-  "6,t,t,f,6,f,t,0,f,f,f",
+  "8,t,t,f,6,f,t,0,f,f,f",
+);
+
+// E. «DEVOLVER AL PROVEEDOR» LO QUE LLEGÓ DAÑADO (fase 5b, actividad 6a) -------------------------------------------------------------
+// Felipe 2026-10-15: solo lo que llegó dañado en una recepción, el grupo entero, lo hace quien tiene Existencias. Queda como deuda «por
+// reponer» (causa `devuelta`) con las mismas salidas que un faltante; su plata llega con la actividad 6b.
+const VD = (v, cantidad, danadas) => J({ variante_id: `:'${v}'`, cantidad, danadas, danada_solucion: "'sin_solucion'" });
+/**
+ * Lo que llega dañado: Felipe envía `enviadas` de la línea `l`; Micaela (que ya tiene Recibir) las recibe todas, `danadas` dañadas y sin
+ * arreglo. El envío queda en :d_<x>, su línea en :di_<x>, la respuesta de la recepción en :rec_<x> y la prenda de la cuarentena en :<x>.
+ */
+const DANADA = (x, l, enviadas, danadas, variante = "vp_s") => `
+${ENVIA(`d_${x}`, [[l, enviadas]])}${ITEM(`d_${x}`, l, `di_${x}`)}
+${como(MICAELA)}${EN_TIENDA}
+${ABRE(`d_${x}`)}
+select pg_temp.e(${RECIBE(`d_${x}`, A(LIN(`di_${x}`, [VD(variante, enviadas, danadas)])))}) as rec_${x} \\gset
+reset role;
+select pd.id as ${x} from retail.prendas_danadas pd
+  join retail.despacho_recibidos r on r.movimiento_danada_id = pd.movimiento_entrada_id
+ where r.despacho_id = :'d_${x}' \\gset
+`;
+const CUARENTENA = (v) =>
+  `coalesce((select s.cantidad from retail.stock s join retail.sububicaciones sb on sb.id = s.sububicacion_id
+              where s.variante_id = :'${v}' and s.ubicacion_id = :'tru' and sb.tipo = 'cuarentena'), 0)`;
+caso(
+  "E1 «Devolver al proveedor» lo que llegó dañado: sale de la cuarentena sin tocar lo recibido, queda devuelta a SU proveedor y nace la deuda «por reponer» (causa devuelta) que lee «Nos debe»; el mismo token no repite; la actividad",
+  `${rolDeMicaela("recibir", "existencias")}
+   ${DANADA("p1", "l1", 5, 2)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.devolvibles(:'tru') as antes \\gset
+   select gen_random_uuid() as tok \\gset
+   select pg_temp.devuelve(:'p1', 'La tela vino rota', :'tok') as r \\gset
+   select pg_temp.devuelve(:'p1', 'La tela vino rota', :'tok') as r2 \\gset
+   select pg_temp.devolvibles(:'tru') as despues \\gset
+   select pg_temp.debe(:'prov') as nd \\gset
+   reset role;
+   select concat_ws(' / ', :'rec_p1', pg_temp.e(:'r'::jsonb),
+     (:'r'::jsonb ->> 'ya_registrada') || ':' || (:'r2'::jsonb ->> 'ya_registrada') || ':'
+       || ((:'r'::jsonb ->> 'diferencia_id') = (:'r2'::jsonb ->> 'diferencia_id')) || ':' || (:'r'::jsonb ->> 'proveedor'),
+     (select count(*) || ':' || min(e ->> 'proveedor') || ':' || min(${limpio("e ->> 'envio'")}) || ':' || min(e ->> 'arreglo')
+        from jsonb_array_elements(:'antes'::jsonb) e where e ->> 'id' = :'p1'),
+     (select count(*) from jsonb_array_elements(:'despues'::jsonb) e where e ->> 'id' = :'p1') || ' después',
+     (select pd.estado || ':' || (pd.proveedor_id = :'prov') || ':' || m.motivo || ':' || m.cantidad || ':' || (m.compra_item_id is null) || ':' || pd.nota
+        from retail.prendas_danadas pd join retail.movimientos m on m.id = pd.movimiento_salida_id where pd.id = :'p1'),
+     ${CUARENTENA("vp_s")} || ' en cuarentena',
+     (select x.tipo || ':' || x.causa || ':' || x.cantidad || ':' || x.costo_unitario || ':' || (x.despacho_id = :'d_p1') || ':'
+             || (x.despacho_item_id = :'di_p1') || ':' || x.vigente || ':' || x.nota
+        from retail.despacho_diferencias x where x.prenda_danada_id = :'p1'),
+     (select d ->> 'causa' || ':' || (d ->> 'pendiente') || ':' || (d ->> 'sin_papel') || ':' || (d ->> 'monto_pendiente') || ':'
+             || ((d ->> 'prenda_danada_id') = :'p1')
+        from jsonb_array_elements(:'nd'::jsonb -> 'abiertas') d where d ->> 'diferencia_id' = (:'r'::jsonb ->> 'diferencia_id')),
+     (select string_agg(a.modulo || ':' || ${limpio("a.descripcion")}, ',') from retail.actividad a
+       where a.accion = 'danada_devuelta' and a.detalle ->> 'prenda_danada_id' = :'p1'));`,
+  [
+    "OK",
+    "OK",
+    "false:true:true:Proveedor Nos Debe Prueba",
+    "1:Proveedor Nos Debe Prueba:ENV:Sin arreglo",
+    "0 después",
+    "devuelta_proveedor:true:cuarentena_devuelta_proveedor:2:true:La tela vino rota",
+    "0 en cuarentena",
+    "faltante:devuelta:2:20.00:true:true:true:La tela vino rota",
+    "devuelta:2:2:40.00:true",
+    "existencias:devolvió al proveedor Proveedor Nos Debe Prueba: 2 de Polos Nos Debe (llegaron con daño en ENV)",
+  ].join(" / "),
+);
+caso(
+  "E2 «Devolver al proveedor» lo que no se acepta: sin Existencias, 42501; sin responsable; sin token; nota larga; lo que no llegó dañado en una recepción; ya resuelta; el mismo token con otra nota; sin escribir nada",
+  `${rolDeMicaela("recibir", "existencias")}
+   ${DANADA("p1", "l1", 5, 2)}
+   ${como(MICAELA)}${EN_TIENDA}
+   -- Una prenda buena del almacén se reporta dañada en la tienda: llega a Dañadas por otro camino.
+   select (retail.reportar_danada(:'tru', :'vp_s', 1, 'almacen', 'Mancha en la manga', gen_random_uuid()) ->> 'id') as rep \\gset
+   select gen_random_uuid() as tok \\gset
+   select concat_ws(' / ',
+     pg_temp.e(pg_temp.devuelve(:'p1', null, null)),
+     pg_temp.e(pg_temp.devuelve(:'p1', repeat('x', 201), gen_random_uuid())),
+     pg_temp.e(pg_temp.devuelve(:'rep', null, gen_random_uuid()))) as r \\gset
+   ${SIN_ENCABEZADOS}
+   select pg_temp.e(pg_temp.devuelve(:'p1', null, gen_random_uuid())) as sin_resp \\gset
+   reset role;
+   ${MICAELA_CON("recibir")}
+   select pg_temp.e(pg_temp.devuelve(:'p1', null, gen_random_uuid())) as sin_modulo \\gset
+   reset role;
+   select concat_ws(' / ', :'r', :'sin_resp', :'sin_modulo',
+     (select estado from retail.prendas_danadas where id = :'p1'),
+     (select count(*) from retail.despacho_diferencias where prenda_danada_id = :'p1') || ' deudas') as antes \\gset
+   ${MICAELA_CON("recibir", "existencias")}
+   select pg_temp.e(pg_temp.devuelve(:'p1', null, :'tok')) as primera \\gset
+   select pg_temp.e(pg_temp.devuelve(:'p1', 'otra nota', :'tok')) as otra_nota \\gset
+   select pg_temp.e(pg_temp.devuelve(:'p1', null, gen_random_uuid())) as otra_vez \\gset
+   reset role;
+   select concat_ws(' / ', :'antes', :'primera', :'otra_nota', :'otra_vez');`,
+  [
+    "P0001|danada_devolver_sin_token|Falta la marca de este intento. Cierra la ventana y vuelve a abrirla.",
+    "P0001|danada_devolver_nota_larga|La nota va hasta 200 letras",
+    "P0001|danada_devolver_no_es_de_recepcion|Solo se devuelve al proveedor lo que llegó dañado en una recepción: esta prenda llegó a Dañadas de otra forma.",
+    "42501|responsable_requerido|Elige quién hace esta operación",
+    "42501|danada_devolver_sin_modulo|Devolver al proveedor una prenda dañada necesita el módulo Existencias en tu rol",
+    "en_cuarentena",
+    "0 deudas",
+    "OK",
+    "P0001|token_reusado|Lo que mandas ahora no es lo que se mandó la primera vez. Revisa si el envío anterior se guardó antes de volver a intentar.",
+    "P0001|danada_devolver_ya_resuelta|Esta prenda ya se resolvió como «Devuelta al proveedor». Recarga la pantalla.",
+  ].join(" / "),
+);
+caso(
+  "E3 lo devuelto se salda como un faltante: «Llegó la reposición» a mano y la reposición que llega en otra recepción; su plata todavía no (sin papel hasta la actividad 6b)",
+  `${rolDeMicaela("recibir", "existencias", "proveedores")}
+   ${DANADA("p1", "l1", 5, 3)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.devuelve(:'p1', null, gen_random_uuid()) ->> 'diferencia_id' as x \\gset
+   select pg_temp.e(pg_temp.resuelve(:'x', 'repuesta', 1, 'La trajo el chofer', null)) as mano \\gset
+   select pg_temp.e(pg_temp.resuelve(:'x', 'saldo_a_favor', 1, null, null)) as plata \\gset
+   reset role;
+   select ${ESTADO("x")} as tras_mano \\gset
+   -- Otro envío de la misma línea trae 2 de más: son la reposición de lo devuelto.
+   ${ENVIA("d2", [["l1", 3]])}${ITEM("d2", "l1")}
+   ${como(MICAELA)}${EN_TIENDA}
+   ${ABRE("d2")}
+   select pg_temp.e(${RECIBE("d2", A(LIN("di_l1", [V("vp_s", 5)], { sobr: "reposicion_faltante" })))}) as rec2 \\gset
+   select pg_temp.debe(:'prov') as nd \\gset
+   reset role;
+   select concat_ws(' / ', :'mano', :'plata', :'tras_mano', :'rec2', ${ESTADO("x")},
+     (select string_agg(r.forma || ':' || r.cantidad || ':' || coalesce((r.despacho_id = :'d2')::text, 'a mano'), ',' order by r.cantidad)
+        from retail.proveedor_deuda_resoluciones r where r.diferencia_id = :'x'),
+     (select d ->> 'estado' from jsonb_array_elements(:'nd'::jsonb -> 'cerradas') d where d ->> 'diferencia_id' = :'x'));`,
+  [
+    "OK",
+    "P0001|nos_debe_sin_papel|Esas prendas no están en ningún comprobante con cupo: no se facturaron, así que no hay plata que pasar a saldo a favor. Si el proveedor las cobra después, regístralo y vuelve a intentarlo",
+    "1/3",
+    "OK",
+    "3/3",
+    "repuesta:1:a mano,repuesta:2:true",
+    "saldada",
+  ].join(" / "),
+);
+caso(
+  "E4 reabrir el envío donde llegó dañada no apaga la deuda de lo devuelto (no es del conteo); lo que faltó en ese envío, sí",
+  `${rolDeMicaela("recibir", "existencias")}
+   ${ENVIA("d_p1", [["l1", 5]])}${ITEM("d_p1", "l1", "di_p1")}
+   ${como(MICAELA)}${EN_TIENDA}
+   ${ABRE("d_p1")}
+   -- Llegan 4 de 5 (1 no vino) y 2 de las 4, dañadas.
+   select pg_temp.e(${RECIBE("d_p1", A(LIN("di_p1", [VD("vp_s", 4, 2)], { falt: "no_vino" })))}) as rec \\gset
+   reset role;
+   select pd.id as p1 from retail.prendas_danadas pd join retail.despacho_recibidos r on r.movimiento_danada_id = pd.movimiento_entrada_id
+    where r.despacho_id = :'d_p1' \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.e(pg_temp.devuelve(:'p1', null, gen_random_uuid())) as dev \\gset
+   reset role;
+   select version as v_d_p1 from retail.despachos where id = :'d_p1' \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.intento(format('select retail.reabrir_envio(%L, %s, %L, gen_random_uuid())', :'d_p1', :v_d_p1, 'Encontramos la que faltaba')) as reabre \\gset
+   reset role;
+   select concat_ws(' / ', :'rec', :'dev', :'reabre',
+     (select string_agg(x.causa || ':' || x.vigente, ',' order by x.causa) from retail.despacho_diferencias x where x.despacho_id = :'d_p1'));`,
+  "OK / OK / SIN_ERROR / devuelta:true,no_vino:false",
+);
+caso(
+  "E6 dos tallas dañadas de la misma línea son dos deudas, que conviven con lo que no vino en esa línea; «Nos debe» las suma",
+  `${rolDeMicaela("recibir", "existencias")}
+   ${ENVIA("d_p", [["l1", 6]])}${ITEM("d_p", "l1", "di_p")}
+   ${como(MICAELA)}${EN_TIENDA}
+   ${ABRE("d_p")}
+   -- Llegan 5 de 6 (1 no vino): 3 S (2 dañadas) y 2 M (1 dañada).
+   select pg_temp.e(${RECIBE("d_p", A(LIN("di_p", [VD("vp_s", 3, 2), VD("vp_m", 2, 1)], { falt: "no_vino" })))}) as rec \\gset
+   reset role;
+   select (select pd.id from retail.prendas_danadas pd join retail.despacho_recibidos r on r.movimiento_danada_id = pd.movimiento_entrada_id
+            where r.despacho_id = :'d_p' and r.variante_id = :'vp_s') as ps,
+          (select pd.id from retail.prendas_danadas pd join retail.despacho_recibidos r on r.movimiento_danada_id = pd.movimiento_entrada_id
+            where r.despacho_id = :'d_p' and r.variante_id = :'vp_m') as pm \\gset
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.e(pg_temp.devuelve(:'ps', null, gen_random_uuid())) as dev_s \\gset
+   select pg_temp.e(pg_temp.devuelve(:'pm', null, gen_random_uuid())) as dev_m \\gset
+   select pg_temp.debe(:'prov') as nd \\gset
+   reset role;
+   select concat_ws(' / ', :'rec', :'dev_s', :'dev_m',
+     (select string_agg(x.causa || ':' || x.cantidad, ',' order by x.causa, x.cantidad) from retail.despacho_diferencias_vigentes x where x.despacho_id = :'d_p'),
+     (:'nd'::jsonb ->> 'unidades') || ' por reponer');`,
+  "OK / OK / OK / devuelta:1,devuelta:2,no_vino:1 / 4 por reponer",
+);
+caso(
+  "E5 la tabla sola: la deuda de lo devuelto no nace sin la función con el envío cerrado, no nace sin su prenda, es una por prenda y no se edita",
+  `${rolDeMicaela("recibir", "existencias")}
+   ${DANADA("p1", "l1", 5, 2)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.devuelve(:'p1', null, gen_random_uuid()) ->> 'diferencia_id' as x \\gset
+   reset role;
+   select concat_ws(' / ',
+     pg_temp.intento(format($q$insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, tipo, causa, cantidad, costo_unitario, creado_por, prenda_danada_id)
+       values (%L, %L, %L, %L, 'faltante', 'devuelta', 1, 20, %L, %L)$q$, :'d_p1', :'di_p1', :'prov', :'cat', :'micaela_p', :'p1')),
+     pg_temp.intento(format($q$select set_config('retail.devolviendo_danada', 'si', true);
+       insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, tipo, causa, cantidad, costo_unitario, creado_por)
+       values (%L, %L, %L, %L, 'faltante', 'devuelta', 1, 20, %L)$q$, :'d_p1', :'di_p1', :'prov', :'cat', :'micaela_p')),
+     pg_temp.intento(format($q$select set_config('retail.devolviendo_danada', 'si', true);
+       insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, tipo, causa, cantidad, costo_unitario, creado_por, prenda_danada_id)
+       values (%L, %L, %L, %L, 'faltante', 'devuelta', 1, 20, %L, %L)$q$, :'d_p1', :'di_p1', :'prov', :'cat', :'micaela_p', :'p1')),
+     pg_temp.intento(format($q$update retail.despacho_diferencias set cantidad = 1 where id = %L$q$, :'x')));`,
+  [
+    "23514|recepcion_envio_no_abierto|Solo se anota lo que llegó de un envío abierto",
+    "23514||new row for relation \"despacho_diferencias\" violates check constraint \"despacho_diferencias_devuelta_con_su_prenda\"",
+    "23505||duplicate key value violates unique constraint \"despacho_diferencias_una_por_prenda\"",
+    "42501|recepcion_inmutable|Lo que se recibió de un envío no se cambia ni se borra: queda como se cerró",
+  ].join(" / "),
 );
 
 // C. DOS SESIONES A LA VEZ --------------------------------------------------------------------------------------------------

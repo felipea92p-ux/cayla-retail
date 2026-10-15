@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20261015150000_nos_debe_saldo_a_favor.sql — CAYLA V2 · ADR-0362, fase 5b, actividades 1 a 5 (parte 2 de 2: las funciones). Va después de
+-- 20261015150000_nos_debe_saldo_a_favor.sql — CAYLA V2 · ADR-0362, fase 5b, actividades 1 a 6 (parte 2 de 2: las funciones). Va después de
 -- 20261015145000_nos_debe_saldo_a_favor_esquema.sql. Contrato: docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md.
 --
 -- EL PROBLEMA PRIMERO. Una deuda del proveedor solo se saldaba con la prenda. Si no la va a mandar, la plata pagada por ella no volvía.
@@ -47,6 +47,15 @@
 --      20261013180000 y sus pruebas): el depósito le llega en un ajuste de la transacción, `retail.deposito_de_deuda`. Y
 --      `fn_saldo_favor_visible`: el saldo a favor que lee la ficha, con el permiso de quien ve la plata de los proveedores (con Proveedores
 --      solo, la ficha decía S/ 0: `fn_saldo_favor_proveedor` suma con los permisos de quien mira, y la tabla no le muestra las filas).
+--  10. «Devolver al proveedor» lo que llegó dañado (actividad 6a, decisión 60; Felipe 2026-10-15: solo lo que llegó dañado en una recepción,
+--      el grupo entero, lo hace quien tiene Existencias). `devolver_danada_al_proveedor` saca la prenda de la cuarentena
+--      (`cuarentena_devuelta_proveedor`, sin tocar lo recibido del comprobante), la marca devuelta a SU proveedor (el de la recepción, no
+--      uno escrito a mano) y deja la deuda «por reponer»: un faltante más de la línea del envío donde llegó, con la causa `devuelta`
+--      (20261015145000). Lo que lee o salda una deuda la reconoce (REEMPLAZOS ANCLADOS de «causa = no_vino» en las lecturas de «Nos
+--      debe», en el cierre de la recepción que salda con la reposición, en el Plan de campaña y en el candado de las resoluciones). El
+--      candado de lo recibido deja nacer esa deuda con el envío cerrado, solo desde esa función; reabrir el envío no la apaga (no es del
+--      conteo). `fn_danadas_devolvibles` le dice a Existencias cuáles de su cuarentena se pueden devolver. Su plata (saldo a favor,
+--      depósito) llega con la actividad 6b: hasta entonces no tiene papel y se salda con la reposición.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe). UNA parte, después de 20261015145000. Sin tablas, sin políticas, sin `drop trigger`
 -- (ADR-0195), sin `select … into` dentro de textos entre comillas (ADR-0288). Las reescrituras y los reemplazos abortan SIN TOCAR NADA si la
@@ -112,13 +121,16 @@ declare
   v_resto integer := greatest(coalesce(p_cantidad, 0), 0);
   v_fila record;
   v_n integer := 0;
+  v_causa text;
 begin
-  select di.orden_compra_item_id, di.compra_item_id
-    into v_oci, v_ci_nombrado
+  select di.orden_compra_item_id, di.compra_item_id, x.causa
+    into v_oci, v_ci_nombrado, v_causa
     from retail.despacho_diferencias_vigentes x
     join retail.despacho_items di on di.id = x.despacho_item_id
    where x.id = p_diferencia_id;
-  if v_oci is null or v_resto = 0 then
+  -- Lo devuelto por llegar dañado (actividad 6a) sí llegó: el cupo de la línea no es suyo (es de lo que todavía no vino). Su papel llega
+  -- con la actividad 6b; hasta entonces, ninguno (se salda con la reposición).
+  if v_oci is null or v_resto = 0 or v_causa = 'devuelta' then
     return;
   end if;
   -- La misma regla del cupo que la recepción (fn_recepcion_cerrar, decisión 9): primero la línea que nombra el envío, después las más antiguas.
@@ -423,8 +435,8 @@ begin
   if not found then
     raise exception 'Esa deuda no existe: recarga la pantalla' using hint = 'nos_debe_no_existe';
   end if;
-  if v_deuda.tipo <> 'faltante' or v_deuda.causa <> 'no_vino' then
-    raise exception 'Eso no es una deuda del proveedor: solo lo que «no vino» se repone' using hint = 'nos_debe_no_es_deuda';
+  if v_deuda.tipo <> 'faltante' or v_deuda.causa not in ('no_vino', 'devuelta') then
+    raise exception 'Eso no es una deuda del proveedor: solo se repone lo que «no vino» o lo que le devolviste' using hint = 'nos_debe_no_es_deuda';
   end if;
 
   -- Doble clic o reintento sin red: lo mismo ya se guardó y se devuelve, aunque quien lo hizo ya no esté de turno (comprobar algo
@@ -649,6 +661,9 @@ set search_path = retail, public, extensions
 as $$
   select jsonb_build_object(
            'diferencia_id', x.id,
+           -- Actividad 6a: «no_vino» (faltó en la recepción) o «devuelta» (llegó dañada y se le devolvió); con su prenda de la cuarentena.
+           'causa', x.causa,
+           'prenda_danada_id', x.prenda_danada_id,
            'despacho_id', x.despacho_id,
            'envio', retail.fn_envio_numero_texto(d.numero),
            'sede', jsonb_build_object('id', u.id, 'nombre', u.nombre),
@@ -721,7 +736,7 @@ as $$
        limit 1
     ) pa on true
    where x.id = p_diferencia_id
-     and x.tipo = 'faltante' and x.causa = 'no_vino';
+     and x.tipo = 'faltante' and x.causa in ('no_vino', 'devuelta');
 $$;
 
 -- ---------- 6. El documento interno no es un documento de SUNAT ----------
@@ -1172,6 +1187,201 @@ $$;
 comment on function retail.fn_saldo_favor_visible(uuid) is
   'ADR-0362 fase 5b (actividad 5): el saldo a favor de un proveedor para la ficha y Por pagar, con el permiso de ver la plata de los proveedores (con Proveedores solo, fn_saldo_favor_proveedor daba 0).';
 
+-- ---------- 8d. «Devolver al proveedor» lo que llegó dañado (actividad 6a) ----------
+-- Lo que lee o salda una deuda reconoce la causa `devuelta`: las lecturas de «Nos debe» (la ficha, el resumen de la orden nueva, lo
+-- pendiente de una categoría y marca, lo que debe el proveedor de un envío), el cierre de la recepción (la reposición que llega salda la
+-- deuda más antigua, también la de lo devuelto), el Plan de campaña (lo que falta llegar) y el candado de las resoluciones.
+do $r$
+declare
+  v_f record;
+begin
+  for v_f in
+    select * from (values
+      ('retail.fn_nos_debe_del_envio(uuid)', 1),
+      ('retail.fn_nos_debe_pendiente(uuid, uuid, uuid, uuid)', 1),
+      ('retail.fn_nos_debe_resumen()', 1),
+      ('retail.fn_proveedor_nos_debe(uuid)', 1),
+      ('retail.fn_plan_compra_pedido(uuid)', 1),
+      ('retail.fn_recepcion_cerrar(uuid, uuid, jsonb, jsonb, text, uuid, text)', 2)
+    ) as t(firma, veces)
+  loop
+    perform pg_temp.reemplazar(v_f.firma, $v$x.causa = 'no_vino'$v$, $n$x.causa in ('no_vino', 'devuelta')$n$, v_f.veces);
+  end loop;
+end;
+$r$;
+select pg_temp.reemplazar('retail.fn_proveedor_deuda_resoluciones_candado()',
+                          $v$v_deuda.causa <> 'no_vino'$v$, $n$v_deuda.causa not in ('no_vino', 'devuelta')$n$, 1);
+
+-- El candado de lo recibido (`despacho_diferencias_fija`): lo que faltó o sobró se anota con el envío abierto, nunca después. La deuda de lo
+-- devuelto nace con el envío ya cerrado, y solo desde `devolver_danada_al_proveedor`, que lo avisa con `retail.devolviendo_danada` (como
+-- `resolver_pendiente_envio` con `retail.resolviendo_pendiente`). La causa se lee por `to_jsonb(new)`: el disparador es de dos tablas.
+select pg_temp.reemplazar(
+  'retail.fn_recepcion_despacho_fija()',
+  $v$and current_setting('retail.resolviendo_pendiente', true) = 'si'))) then$v$,
+  $n$and current_setting('retail.resolviendo_pendiente', true) = 'si')
+                         or (d.estado = 'cerrado' and tg_table_name = 'despacho_diferencias'
+                             and (to_jsonb(new) ->> 'causa') = 'devuelta'
+                             and current_setting('retail.devolviendo_danada', true) = 'si'))) then$n$,
+  1);
+
+-- Reabrir un envío apaga lo que faltó o sobró en su conteo (el próximo cierre escribe lo suyo). Lo devuelto por llegar dañado no es del
+-- conteo: la prenda ya salió de la cuarentena y su deuda sigue.
+select pg_temp.reemplazar(
+  'retail.reabrir_envio(uuid, integer, text, uuid)',
+  $v$update retail.despacho_diferencias x set vigente = false where x.despacho_id = p_despacho_id and x.vigente;$v$,
+  $n$update retail.despacho_diferencias x set vigente = false where x.despacho_id = p_despacho_id and x.vigente and x.causa <> 'devuelta';$n$,
+  1);
+
+-- Cuáles de la cuarentena de una sede se pueden devolver al proveedor (Existencias): las que llegaron dañadas en una recepción, en una
+-- línea de la guía (lo que llegó de más no es deuda de nadie), con su proveedor y su envío.
+create or replace function retail.fn_danadas_devolvibles(p_ubicacion_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+begin
+  if retail.fn_ve_modulo('existencias') is not true then
+    raise exception 'Ver qué prendas dañadas se pueden devolver al proveedor necesita el módulo Existencias en tu rol'
+      using errcode = '42501', hint = 'danada_devolver_sin_modulo';
+  end if;
+  return coalesce((
+    select jsonb_agg(jsonb_build_object('id', pd.id, 'proveedor_id', r.proveedor_id, 'proveedor', pr.nombre,
+                                        'envio', retail.fn_envio_numero_texto(d.numero), 'despacho_id', r.despacho_id,
+                                        'llego_en', r.creado_en, 'arreglo', pd.nota)
+                     order by pd.created_at, pd.id)
+      from retail.prendas_danadas pd
+      join retail.despacho_recibidos r on r.movimiento_danada_id = pd.movimiento_entrada_id and r.despacho_item_id is not null
+      join retail.despachos d on d.id = r.despacho_id
+      join retail.proveedores pr on pr.id = r.proveedor_id
+     where pd.ubicacion_id = p_ubicacion_id
+       and pd.estado = 'en_cuarentena'
+  ), '[]'::jsonb);
+end;
+$$;
+comment on function retail.fn_danadas_devolvibles(uuid) is
+  'ADR-0362 fase 5b (actividad 6a): las prendas de la cuarentena de una sede que llegaron dañadas en una recepción y se pueden devolver al proveedor. Con Existencias.';
+
+-- Devolver al proveedor lo que llegó dañado: sale de la cuarentena, se marca devuelta a su proveedor y queda la deuda «por reponer». El
+-- grupo entero (Felipe 2026-10-15), como las demás salidas de la cuarentena. Con Existencias, como «Se arregló».
+create or replace function retail.devolver_danada_al_proveedor(p_id uuid, p_nota text, p_token uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = retail, public, extensions
+as $$
+declare
+  pd retail.prendas_danadas%rowtype;
+  v_nota text := nullif(btrim(coalesce(p_nota, '')), '');
+  v_origen record;
+  v_repetido boolean;
+  v_actor uuid;
+  v_cuarentena uuid;
+  v_mov uuid;
+  v_dif uuid;
+  v_desc text;
+begin
+  if p_token is null then
+    raise exception 'Falta la marca de este intento. Cierra la ventana y vuelve a abrirla.' using hint = 'danada_devolver_sin_token';
+  end if;
+  -- Lo devuelve quien ve Existencias (decisión 60; Felipe 2026-10-15), como «Se arregló»: liquidar, botar y donar siguen del líder.
+  if retail.fn_ve_modulo('existencias') is not true then
+    raise exception 'Devolver al proveedor una prenda dañada necesita el módulo Existencias en tu rol'
+      using errcode = '42501', hint = 'danada_devolver_sin_modulo';
+  end if;
+  if char_length(v_nota) > 200 then
+    raise exception 'La nota va hasta 200 letras' using hint = 'danada_devolver_nota_larga';
+  end if;
+
+  -- La prenda, con candado: dos personas que la deciden a la vez se esperan, y la segunda ve lo que hizo la primera.
+  select * into pd from retail.prendas_danadas where id = p_id for update;
+  if not found then
+    raise exception 'Esa prenda dañada ya no está en la lista. Recarga la pantalla.' using hint = 'danada_devolver_no_existe';
+  end if;
+
+  -- El token sigue al contenido: el mismo token con otra prenda u otra nota se rechaza; el mismo pedido repetido (se perdió la respuesta)
+  -- devuelve lo hecho, sin error.
+  v_repetido := exists (select 1 from retail.intentos_con_token i where i.operacion = 'devolver_danada_al_proveedor' and i.token = p_token);
+  perform retail.fn_intento_con_huella('devolver_danada_al_proveedor', p_token, md5(jsonb_build_array(p_id, v_nota)::text));
+  if pd.estado <> 'en_cuarentena' then
+    if v_repetido and pd.estado = 'devuelta_proveedor' then
+      return jsonb_build_object('ya_registrada', true, 'id', pd.id, 'unidades', pd.cantidad,
+                                'diferencia_id', (select x.id from retail.despacho_diferencias_vigentes x where x.prenda_danada_id = pd.id),
+                                'proveedor', (select pr.nombre from retail.proveedores pr where pr.id = pd.proveedor_id));
+    end if;
+    raise exception 'Esta prenda ya se resolvió como «%». Recarga la pantalla.',
+      case pd.estado when 'se_arreglo' then 'Se arregló' when 'liquidada' then 'Liquidada' when 'se_boto' then 'Se botó'
+                     when 'donada' then 'Donada' when 'devuelta_proveedor' then 'Devuelta al proveedor' else pd.estado end
+      using hint = 'danada_devolver_ya_resuelta';
+  end if;
+
+  -- Solo lo que llegó dañado en una recepción (Felipe 2026-10-15): tiene su proveedor, su envío y la línea de la guía donde llegó.
+  select r.despacho_id, r.despacho_item_id, r.proveedor_id, r.categoria_id, r.marca_id, r.costo_unitario,
+         d.numero as envio_numero, pr.nombre as proveedor, c.nombre as categoria, oci.precio_unitario
+    into v_origen
+    from retail.despacho_recibidos r
+    join retail.despachos d on d.id = r.despacho_id
+    join retail.proveedores pr on pr.id = r.proveedor_id
+    join retail.categorias c on c.id = r.categoria_id
+    left join retail.despacho_items di on di.id = r.despacho_item_id
+    left join retail.orden_compra_items oci on oci.id = di.orden_compra_item_id
+   where r.movimiento_danada_id = pd.movimiento_entrada_id;
+  if not found then
+    raise exception 'Solo se devuelve al proveedor lo que llegó dañado en una recepción: esta prenda llegó a Dañadas de otra forma.'
+      using hint = 'danada_devolver_no_es_de_recepcion';
+  end if;
+  if v_origen.despacho_item_id is null then
+    raise exception 'Esta prenda llegó de más, fuera de la guía del envío: no queda como deuda del proveedor. Elige otro destino.'
+      using hint = 'danada_devolver_fuera_de_guia';
+  end if;
+
+  v_actor := retail.fn_actor_persona_id(true);
+  if v_actor is null then
+    raise exception 'Elige quién hace esta operación' using errcode = '42501', hint = 'responsable_requerido';
+  end if;
+
+  -- Sale de la cuarentena SIN `compra_item_id`: si lo llevara, el comprobante la contaría como recibida otra vez.
+  v_cuarentena := (select s.id from retail.sububicaciones s where s.ubicacion_id = pd.ubicacion_id and s.tipo = 'cuarentena');
+  insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, usuario_id, nota)
+  values (pd.variante_id, pd.ubicacion_id, v_cuarentena, 'salida', pd.cantidad, 'cuarentena_devuelta_proveedor', v_actor, v_nota)
+  returning id into v_mov;
+  perform retail.fn_aplicar_movimiento(v_mov);
+
+  update retail.prendas_danadas
+     set estado = 'devuelta_proveedor', proveedor_id = v_origen.proveedor_id, movimiento_salida_id = v_mov,
+         resuelto_por = v_actor, resuelto_en = now(), nota = coalesce(v_nota, pd.nota)
+   where id = p_id;
+
+  -- La deuda «por reponer»: un faltante más de la línea del envío donde llegó dañada, al costo con que se recibió.
+  perform set_config('retail.devolviendo_danada', 'si', true);
+  insert into retail.despacho_diferencias (despacho_id, despacho_item_id, proveedor_id, categoria_id, marca_id, tipo, causa, cantidad,
+                                           costo_unitario, nota, creado_por, prenda_danada_id)
+  values (v_origen.despacho_id, v_origen.despacho_item_id, v_origen.proveedor_id, v_origen.categoria_id, v_origen.marca_id, 'faltante',
+          'devuelta', pd.cantidad, coalesce(v_origen.costo_unitario, v_origen.precio_unitario, 0), v_nota, v_actor, pd.id)
+  returning id into v_dif;
+  perform set_config('retail.devolviendo_danada', '', true);
+
+  -- Actividad (ADR-0207), sin montos. Si falla, igual queda.
+  v_desc := left('devolvió al proveedor ' || v_origen.proveedor || ': ' || pd.cantidad || ' de ' || v_origen.categoria
+                 || ' (llegaron con daño en ' || retail.fn_envio_numero_texto(v_origen.envio_numero) || ')', 300);
+  begin
+    perform retail.fn_actividad_anotar('existencias', 'danada_devuelta', v_desc, v_actor, retail.fn_actividad_terminal_ahora(),
+                                       pd.ubicacion_id, null, 'prendas_danadas', pd.id::text, now(),
+                                       jsonb_build_object('prenda_danada_id', pd.id, 'diferencia_id', v_dif, 'proveedor_id', v_origen.proveedor_id,
+                                                          'cantidad', pd.cantidad, 'despacho_id', v_origen.despacho_id),
+                                       'vivo');
+  exception when others then
+    raise warning 'actividad: no se anotó la devolución de la prenda dañada % (%)', pd.id, sqlerrm;
+  end;
+
+  return jsonb_build_object('ya_registrada', false, 'id', pd.id, 'unidades', pd.cantidad, 'diferencia_id', v_dif,
+                            'proveedor', v_origen.proveedor, 'deuda', retail.fn_nos_debe_deuda(v_dif));
+end;
+$$;
+comment on function retail.devolver_danada_al_proveedor(uuid, text, uuid) is
+  'ADR-0362 fase 5b (actividad 6a, decisión 60): devuelve al proveedor lo que llegó dañado en una recepción. Sale de la cuarentena, queda devuelta a su proveedor y nace la deuda «por reponer» (causa devuelta). Con Existencias.';
+
 -- ---------- 9. Permisos ----------
 revoke all on function retail.fn_deuda_papel(uuid, integer) from public, anon, authenticated;
 grant execute on function retail.fn_deuda_papel(uuid, integer) to service_role;
@@ -1199,6 +1409,10 @@ revoke all on function retail.fn_saldo_favor_visible(uuid) from public, anon;
 grant execute on function retail.fn_saldo_favor_visible(uuid) to authenticated, service_role;
 revoke all on function retail.fn_igv_en_espera() from public, anon;
 grant execute on function retail.fn_igv_en_espera() to authenticated, service_role;
+revoke all on function retail.fn_danadas_devolvibles(uuid) from public, anon;
+grant execute on function retail.fn_danadas_devolvibles(uuid) to authenticated, service_role;
+revoke all on function retail.devolver_danada_al_proveedor(uuid, text, uuid) from public, anon;
+grant execute on function retail.devolver_danada_al_proveedor(uuid, text, uuid) to authenticated, service_role;
 
 reset lock_timeout;
 
@@ -1247,6 +1461,17 @@ begin
   end if;
   if position('La serie DI- es de los documentos internos' in pg_get_functiondef('retail.fn_insertar_nota_credito_compra(uuid, text, date, numeric, text, text, uuid, uuid)'::regprocedure)) = 0 then
     raise exception 'una nota del proveedor todavía puede usar la serie DI-';
+  end if;
+  if to_regprocedure('retail.devolver_danada_al_proveedor(uuid, text, uuid)') is null
+     or to_regprocedure('retail.fn_danadas_devolvibles(uuid)') is null
+     or position('devolviendo_danada' in pg_get_functiondef('retail.fn_recepcion_despacho_fija()'::regprocedure)) = 0
+     or position($t$x.causa <> 'devuelta'$t$ in pg_get_functiondef('retail.reabrir_envio(uuid, integer, text, uuid)'::regprocedure)) = 0 then
+    raise exception 'falta devolver al proveedor lo que llegó dañado (la función, el candado de lo recibido o reabrir)';
+  end if;
+  if position($t$'devuelta'$t$ in pg_get_functiondef('retail.fn_proveedor_nos_debe(uuid)'::regprocedure)) = 0
+     or position($t$'devuelta'$t$ in pg_get_functiondef('retail.fn_recepcion_cerrar(uuid, uuid, jsonb, jsonb, text, uuid, text)'::regprocedure)) = 0
+     or position($t$'devuelta'$t$ in pg_get_functiondef('retail.fn_proveedor_deuda_resoluciones_candado()'::regprocedure)) = 0 then
+    raise exception 'lo devuelto por llegar dañado todavía no es una deuda para «Nos debe» o la recepción';
   end if;
 end;
 $$;

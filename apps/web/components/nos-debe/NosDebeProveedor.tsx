@@ -7,8 +7,8 @@ import { soles } from "@/lib/compras-reglas";
 import {
   avanceDeDeuda,
   cantidadDePrendas,
-  dondeFalto,
   nombreDeDeuda,
+  porQueDebe,
   queDebe,
   textoDeDeuda,
   textoDeResolucion,
@@ -60,7 +60,7 @@ export function NosDebeProveedor({
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 pb-3 pt-4">
             <div>
               <p className="font-display text-lg text-tinta">Prendas por reponer</p>
-              <p className="text-xs text-tinta/65">Lo que faltó en una recepción y el proveedor no mandó.</p>
+              <p className="text-xs text-tinta/65">Lo que faltó o llegó dañado en una recepción y el proveedor todavía no repone.</p>
             </div>
             {unidades > 0 && (
               <p className="text-right text-sm tabular-nums text-tinta">
@@ -79,7 +79,7 @@ export function NosDebeProveedor({
           ) : abiertas.length === 0 ? (
             <div className="border-t border-tinta/10 px-5 py-4">
               <Vacio tamano="chico" alinear="izquierda" icono={<PackageCheck />}>
-                No te debe prendas. Cuando en una recepción falte algo y elijas «No vino», aparece aquí.
+                No te debe prendas. Aparece aquí lo que falte en una recepción («No vino») y lo que le devuelvas desde Dañadas por llegar dañado.
               </Vacio>
             </div>
           ) : (
@@ -108,7 +108,7 @@ export function NosDebeProveedor({
                       {d.marca && <> · {d.marca}</>}
                       {d.descripcion && <span className="text-tinta/65"> · {d.descripcion}</span>}
                     </p>
-                    <p className="text-xs text-tinta/65">Faltaron en {dondeFalto(d, hoy)}</p>
+                    <p className="text-xs text-tinta/65">{porQueDebe(d, hoy)}</p>
                     {d.resoluciones.map((r, i) => (
                       <p key={i} className="text-xs text-verde">
                         {textoDeResolucion(r, hoy)}
@@ -147,10 +147,14 @@ function FilaDeuda({
           {d.descripcion && <span className="text-tinta/65"> · {d.descripcion}</span>}
         </p>
         <p className="mt-0.5 text-xs text-tinta/65" title={[nombreDeDeuda(d), d.orden].filter(Boolean).join(" · ")}>
-          Faltaron en {dondeFalto(d, hoy)}
+          {porQueDebe(d, hoy)}
           {avance && <> · {avance}</>}
         </p>
-        {d.nota && <p className="mt-0.5 truncate text-xs text-tinta/65">Nota de la recepción: «{d.nota}»</p>}
+        {d.nota && (
+          <p className="mt-0.5 truncate text-xs text-tinta/65">
+            Nota de la {d.causa === "devuelta" ? "devolución" : "recepción"}: «{d.nota}»
+          </p>
+        )}
       </div>
       <div className="flex items-center justify-between gap-3 @min-[56rem]:justify-end">
         <p className="text-right">

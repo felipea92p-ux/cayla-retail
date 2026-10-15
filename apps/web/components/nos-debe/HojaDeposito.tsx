@@ -27,7 +27,6 @@ import {
   cantidadDePrendas,
   cuantoVale,
   detalleDeDeposito,
-  dondeFalto,
   fraseDeposito,
   fraseNotaDeLaFactura,
   fraseSinDeposito,
@@ -36,6 +35,7 @@ import {
   mensajeDeNosDebe,
   nombreDeDeuda,
   pasablesASaldo,
+  porQueDebeEnFrase,
   problemasDeposito,
   queDebe,
   sugiereRecargarNosDebe,
@@ -200,8 +200,8 @@ function HojaDeposito({
           className="space-y-4"
         >
           <p className="text-sm text-tinta/80">
-            Te debe <b className="font-semibold text-tinta">{queDebe(deuda)}</b> ({deuda.montoConIgv != null ? `${soles(deuda.montoConIgv)} con IGV` : soles(deuda.montoPendiente)}): faltaron en{" "}
-            {dondeFalto(deuda, hoy)}.
+            Te debe <b className="font-semibold text-tinta">{queDebe(deuda)}</b> ({deuda.montoConIgv != null ? `${soles(deuda.montoConIgv)} con IGV` : soles(deuda.montoPendiente)}):{" "}
+            {porQueDebeEnFrase(deuda, hoy)}.
           </p>
           <p className="nota-cayla text-[13px]">
             Úsalo si el proveedor no las va a mandar y ya te devolvió la plata. Se registra un documento interno por lo que pagaste por ellas y el

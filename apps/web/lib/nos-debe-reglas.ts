@@ -77,6 +77,8 @@ export type ResolucionDeuda = {
 export type DeudaProveedor = {
   /** La fila de `despacho_diferencias`: lo que `resolver_deuda_proveedor` nombra. */
   diferenciaId: string;
+  /** Por qué la debe: faltó en la recepción («no_vino») o llegó dañada y se le devolvió («devuelta», fase 5b, actividad 6a). */
+  causa: "no_vino" | "devuelta";
   /** Dónde faltó: «ENV-000061». */
   envio: string | null;
   sede: string | null;
@@ -146,6 +148,7 @@ function leerDeuda(f: unknown): DeudaProveedor | null {
   const envio = objeto(r.envio) ?? objeto(r.despacho);
   return {
     diferenciaId,
+    causa: texto(r.causa) === "devuelta" ? "devuelta" : "no_vino",
     envio: numeroEnvio(envio ? envio.numero : (r.envio ?? r.numero_envio ?? r.despacho_numero)),
     sede: nombreDe(r.sede) ?? texto(r.sede_nombre),
     sedeId: idDe(r, "sede") ?? texto(r.ubicacion_destino_id),
@@ -344,6 +347,26 @@ export function cuandoFue(fecha: string | null | undefined, hoy: string): string
 /** «ENV-000061 · Tienda Trujillo · hace 3 días»: dónde y cuándo faltó. */
 export function dondeFalto(d: Pick<DeudaProveedor, "envio" | "sede" | "fecha">, hoy: string): string {
   return [d.envio, d.sede, cuandoFue(d.fecha, hoy)].filter(Boolean).join(" · ");
+}
+
+/**
+ * Por qué la debe, en una línea: «Faltaron en ENV-000061 · Tienda Trujillo · hace 3 días» o, si llegó dañada y se le devolvió (fase 5b,
+ * actividad 6a), «Llegaron con daño en ENV-000061 · Tienda Trujillo · se devolvieron hoy». Sin género: puede ser una chompa o un polo.
+ */
+export function porQueDebe(d: Pick<DeudaProveedor, "envio" | "sede" | "fecha" | "causa" | "cantidad">, hoy: string): string {
+  if (d.causa === "devuelta") {
+    const una = d.cantidad === 1;
+    const cuando = cuandoFue(d.fecha, hoy);
+    const donde = [d.envio, d.sede].filter(Boolean).join(" · ");
+    return `${una ? "Llegó" : "Llegaron"} con daño${donde ? ` en ${donde}` : ""}${cuando ? ` · ${una ? "se devolvió" : "se devolvieron"} ${cuando}` : ""}`;
+  }
+  return `Faltaron en ${dondeFalto(d, hoy)}`;
+}
+
+/** Lo mismo, dentro de una frase («Te debe 2 polos (S/ 40.00): faltaron en …»). */
+export function porQueDebeEnFrase(d: Pick<DeudaProveedor, "envio" | "sede" | "fecha" | "causa" | "cantidad">, hoy: string): string {
+  const t = porQueDebe(d, hoy);
+  return t.charAt(0).toLowerCase() + t.slice(1);
 }
 
 /** «2 chompas · S/ 84.00 · ENV-000061 · Tienda Trujillo · hace 3 días»: una deuda en una línea. */
