@@ -8,12 +8,14 @@
  *   A. La bolsa (`tienda_bolsa`): el precio de la tienda elegida o, sin tienda, el mayor de la web, con la campaña de la caja
  *      encima; en cada tienda de la web, si alcanza, si hay y si se vende ahí, siempre como sí/no (nunca la cifra), y lo MISMO que
  *      dice la ficha (la regla única de «hay», 20261015012000: ni la Cuarentena, ni lo apartado, ni el Taller); lo que ya no se puede
- *      separar vuelve sin nombre ni foto; la entrada torcida (de la cookie) no la rompe.
+ *      separar vuelve sin nombre ni foto; la entrada torcida (de la cookie) no la rompe. El precio es la regla única de la ficha
+ *      (`fn_tienda_precio_talla`, 20261015012000): que la bolsa, la ficha, el catálogo y el look digan el mismo precio, y que romper esa
+ *      pieza las cambie a todas juntas, lo prueba `pnpm pruebas:tienda-ficha` (secciones 9 y 10, con sus mutantes).
  *   B. «Separar» (`tienda_separar`): crea el pedido «por confirmar» con el precio de la tienda de recojo y su campaña, SIN
  *      tocar el stock ni el libro; dos toques con la misma marca dan el mismo pedido (aunque entretanto cambie el precio); la
  *      marca de otro no devuelve su pedido; un precio que no cuadra, lo que ya no está en la Vitrina, lo que no se vende en esa
- *      tienda, lo agotado (también lo que solo está en el Taller o en una tienda escondida: la regla de la ficha), una tienda
- *      escondida, sin cuenta o una bolsa torcida no separan NADA. A lo sumo 3 separaciones «por confirmar» a la vez por cliente
+ *      tienda, lo agotado (también lo que solo está en el Taller o en una tienda escondida: la regla de la ficha), una talla que esa
+ *      tienda no ofrece (a S/ 0, ADR-0384), una tienda escondida, sin cuenta o una bolsa torcida no separan NADA. A lo sumo 3 separaciones «por confirmar» a la vez por cliente
  *      (`tienda_separar_tope`, decisión de Felipe 2026-10-14): la marca se mira antes que el tope, y lo confirmado o vencido no
  *      cuenta. Que «Separar» cierre las esperas de «Avísame» lo prueba `pnpm pruebas:tienda-club` (S).
  *   C. «Mis pedidos» (`tienda_mis_pedidos`, `tienda_pedido`): cada cliente ve SOLO lo suyo (el número de otro responde igual
@@ -409,6 +411,19 @@ select string_agg(x.h, ',' order by x.n) from (values
   "tienda_separar_no_publicada,tienda_separar_no_se_vende,tienda_separar_agotada,tienda_separar_tienda,tienda_sin_cuenta,tienda_separar_marca,tienda_separar_tienda",
 );
 escenario(
+  // Lo que se ofrece es la regla del precio de la ficha (fn_tienda_precio_talla, `se_ofrece`): una talla a S/ 0 en esa tienda es de
+  // empaque (ADR-0384) y no se ofrece en la web, aunque haya stock y el modelo se siga viendo. Lo cruzado con la ficha y el look vive en
+  // pruebas:tienda-ficha (sección 10).
+  "una talla a S/ 0 (la de obsequio, ADR-0384) no se ofrece aunque haya stock y el modelo se vea: la bolsa la devuelve sin precio y «Separar» no la separa",
+  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 2);
+update retail.variantes set precio = 0 where id = :'v';
+select concat_ws(',',
+  retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, :'tru') -> 'lineas' -> 0 ->> 'disponible',
+  retail.fn_vitrina_publicable(:'prod_v'),
+  ${hint(separarTexto(bolsa(L("v", 1, "0"))))});`,
+  "false,t,tienda_separar_no_publicada",
+);
+escenario(
   "una bolsa torcida no separa: vacía, mal escrita, cantidad 0, precio con 3 decimales, la misma prenda dos veces o más de 20",
   `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 25);
 select string_agg(x.h, ',' order by x.n) from (values
@@ -530,6 +545,7 @@ escenario(
   (select count(*) from unnest(array['anon', 'authenticated', 'tienda_web']) r
     where has_function_privilege(r, 'retail.fn_cerrar_pedidos_web_sin_confirmar()', 'EXECUTE')
        or has_function_privilege(r, 'retail.fn_bolsa_web_precios(uuid[], uuid[])', 'EXECUTE')
+       or has_function_privilege(r, 'retail.fn_tienda_precio_talla(uuid[], uuid)', 'EXECUTE')
        or has_function_privilege(r, 'retail.fn_bolsa_web_prenda(uuid)', 'EXECUTE')
        or has_function_privilege(r, 'retail.crear_pedido_web(uuid, uuid, jsonb, uuid)', 'EXECUTE')
        or has_function_privilege(r, 'retail.fn_pedidos_web_de_clienta(uuid, integer, integer)', 'EXECUTE')),
@@ -556,8 +572,12 @@ seccion("— F. Las migraciones —");
 
 const MUTANTES = [
   ["no compara el precio que vio el cliente", 0, "if p.precio <> r.precio then", "if false then"],
-  ["cobra el precio de «Todas» y no el de la tienda de recojo", 0, "fn_bolsa_web_precios(array[r.variante_id], array[p_ubicacion_id])", "fn_bolsa_web_precios(array[r.variante_id], v_sedes)"],
-  ["se olvida de la campaña", 0, "coalesce(retail.fn_descuento_campana(b.precio_lista, c.descuento_pct), 0) as descuento", "0::numeric as descuento"],
+  ["cobra el precio de «Todas» y no el de la tienda de recojo", 0, "fn_tienda_precio_talla(array[r.variante_id], p_ubicacion_id)", "fn_tienda_precio_talla(array[r.variante_id], null)"],
+  // La campaña y la regla del precio viven en la pieza común (fn_tienda_precio_talla, 20261015012000): sus mutantes los corre
+  // `pnpm pruebas:tienda-ficha -- --mutantes`, que cruza la bolsa con la ficha, el catálogo y el look (sección 9).
+  ["la bolsa muestra el precio de «Todas» aunque haya tienda elegida", 0, "from retail.fn_tienda_precio_talla(array(select en.variante_id from entrada en), v_sede) pr", "from retail.fn_tienda_precio_talla(array(select en.variante_id from entrada en), null) pr"],
+  ["la bolsa deja separar una talla que no se ofrece (sin mirar la regla del precio)", 0, "coalesce(pr.se_ofrece, false) and coalesce(vp.publicado, false)", "coalesce(vp.publicado, false)"],
+  ["«Separar» separa una talla que esa tienda no ofrece", 0, "if not coalesce(p.se_ofrece, false) then", "if false then"],
   ["separa lo que ya no está en la Vitrina", 0, "where v.id = r.variante_id and v.activo and vp.publicado and retail.fn_vitrina_publicable(v.producto_id)) then", "where v.id = r.variante_id) then"],
   ["separa lo que no se vende en esa tienda", 0, "if not retail.fn_variante_permitida_en_sede(r.variante_id, p_ubicacion_id) then", "if false then"],
   ["separa lo agotado", 0, "if v_libres < r.cantidad then", "if false then"],

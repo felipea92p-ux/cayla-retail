@@ -10,12 +10,16 @@
  *      tiene que verse en la web; el nombre no se repite; la versión frena a la segunda persona; sin cambios no escribe; cambiar las
  *      prendas las reemplaza en su lámina y deja en la Actividad cómo eran; el lugar se reparte de 1 a N sin huecos.
  *   3. Mostrar u ocultar desde la lista (ocultar no borra) y qué pasa cuando una prenda deja de verse o se elimina del catálogo.
- *   4. La tienda: solo los looks encendidos y completos, en su orden; el precio de CADA prenda es EXACTAMENTE el de `tienda_catalogo`
- *      para esa tienda (la de la sede elegida, el mayor con «Todas», la campaña encima) y el total es la suma; las tallas en su orden,
- *      con «hay» y nunca la cifra, y ese «hay» es el total de la talla en la ficha (la regla única, 20261015012000); nada del ERP.
+ *   4. La tienda: solo los looks encendidos y completos, en su orden; el precio de CADA prenda es EXACTAMENTE el de la ficha para las
+ *      tallas de SU color en esa tienda (la regla única del precio, `fn_tienda_precio_talla`, 20261015012000: la de la sede elegida, el
+ *      mayor con «Todas», la campaña encima), y el total es la suma; una campaña solo en el negro no le pone «Desde» a la prenda negra ni
+ *      se le pega a la beige; el total del ERP con «Todas» es el de la tienda; las tallas son EXACTAMENTE las que ofrece la ficha en esa
+ *      tienda (ninguna a S/ 0, ADR-0384), en su orden, con «hay» y nunca la cifra, y ese «hay» es el total de la talla en la ficha (la
+ *      regla única, 20261015012000); nada del ERP. Que la ficha, la bolsa, el catálogo y el look digan el mismo precio, y que romper la
+ *      pieza común los cambie a todos juntos, lo prueba `pnpm pruebas:tienda-ficha` (secciones 9 y 10).
  *   5. Mutantes: la prueba se pone roja si alguien cambia el precio por el de la grilla, si la tienda ignora la sede elegida, si el
- *      look cuenta «hay» con su propia regla o si se le quita a guardar o a mostrar el candado del módulo (cada mutante vive solo
- *      dentro de su transacción).
+ *      look cuenta «hay» con su propia regla, si lista tallas que la ficha no ofrece o si se le quita a guardar o a mostrar el candado
+ *      del módulo (cada mutante vive solo dentro de su transacción).
  *   6. Las migraciones se pueden volver a correr.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder) o Micaela (integrante de Trujillo): nunca se commitea
@@ -145,25 +149,49 @@ const PIEZA = (look, prod, sede = null) =>
 const ACTIVIDAD = `(select count(*) from retail.actividad where modulo = 'vitrina_web' and tabla = 'vitrina_looks')`;
 
 /**
- * EL CANDADO DEL PRECIO: cuántas prendas de los looks de la tienda NO valen exactamente lo que dice `tienda_catalogo` para esa misma tienda
- * (precio, precio final, «desde» y campaña), más los looks cuyo total no es la suma. Tiene que dar 0. `|N` al final: cuántas prendas se
- * compararon (si fueran 0 la prueba no probaría nada).
+ * EL CANDADO DEL PRECIO: cuántas tallas de las prendas de los looks de la tienda NO valen lo mismo en el look y en la FICHA, en esa misma
+ * tienda (precio, precio final y campaña de cada talla del color de la prenda; y sin «desde»: en estos escenarios cada color cuesta lo
+ * mismo en todas sus tallas, así que la prenda del look vale exactamente lo de cada talla), más los looks cuyo total no es la suma. Tiene
+ * que dar 0. `|N` al final: cuántas tallas se compararon (si fueran 0 la prueba no probaría nada). Que la ficha diga lo mismo que la bolsa
+ * y el catálogo lo prueba pruebas:tienda-ficha (sección 9).
  */
 const DIFERENCIAS = (sede = null) => {
   const s = sede ? `:'${sede}'` : "null";
-  return `(select concat_ws('|',
-      (select count(*) from jsonb_array_elements(retail.tienda_looks(${s}) -> 'looks') l
+  const TALLAS_DE_SU_COLOR = `jsonb_array_elements(retail.tienda_looks(${s}) -> 'looks') l
          cross join jsonb_array_elements(l -> 'piezas') pz
-         left join lateral (select c from jsonb_array_elements(retail.tienda_catalogo(${s}) -> 'prendas') c where c ->> 'id' = pz -> 'prenda' ->> 'id') k on true
-        where k.c is null
-           or (pz -> 'prenda' -> 'precio') is distinct from (k.c -> 'precio')
-           or (pz -> 'prenda' -> 'precio_final') is distinct from (k.c -> 'precio_final')
-           or (pz -> 'prenda' -> 'desde') is distinct from (k.c -> 'desde')
-           or (pz -> 'prenda' -> 'campana') is distinct from (k.c -> 'campana'))
+         cross join lateral (select x from jsonb_array_elements(retail.tienda_ficha((pz -> 'prenda' ->> 'id')::uuid, ${s}) -> 'prenda' -> 'variantes') x
+                              where x ->> 'color' = pz -> 'color' ->> 'codigo') f`;
+  return `(select concat_ws('|',
+      (select count(*) from ${TALLAS_DE_SU_COLOR}
+        where (pz -> 'prenda' -> 'precio') is distinct from (f.x -> 'precio')
+           or (pz -> 'prenda' -> 'precio_final') is distinct from (f.x -> 'precio_final')
+           or (pz -> 'prenda' -> 'campana' -> 'nombre') is distinct from (f.x -> 'campana' -> 'nombre')
+           or (pz -> 'prenda' ->> 'desde')::boolean)
+      + (select count(*) from jsonb_array_elements(retail.tienda_looks(${s}) -> 'looks') l cross join jsonb_array_elements(l -> 'piezas') pz
+          where not exists (select 1 from jsonb_array_elements(retail.tienda_ficha((pz -> 'prenda' ->> 'id')::uuid, ${s}) -> 'prenda' -> 'variantes') x
+                             where x ->> 'color' = pz -> 'color' ->> 'codigo'))
       + (select count(*) from jsonb_array_elements(retail.tienda_looks(${s}) -> 'looks') l
           where (l ->> 'total_final')::numeric <> (select sum((pz -> 'prenda' ->> 'precio_final')::numeric) from jsonb_array_elements(l -> 'piezas') pz)
              or (l ->> 'total')::numeric <> (select sum((pz -> 'prenda' ->> 'precio')::numeric) from jsonb_array_elements(l -> 'piezas') pz)),
-      (select count(*) from jsonb_array_elements(retail.tienda_looks(${s}) -> 'looks') l cross join jsonb_array_elements(l -> 'piezas') pz)))`;
+      (select count(*) from ${TALLAS_DE_SU_COLOR})))`;
+};
+/**
+ * LO QUE SE OFRECE: cuántas tallas del look no son una talla de la ficha de ese color en esa tienda, o al revés (tiene que dar 0), y las
+ * tallas de Blusa Emma negra en el look (`|S,M,L`).
+ */
+const TALLAS_CONTRA_FICHA = (look, sede = null) => {
+  const s = sede ? `:'${sede}'` : "null";
+  return `select concat_ws('|',
+      (select count(*) from jsonb_array_elements(retail.tienda_look(:'${look}', ${s}) -> 'look' -> 'piezas') pz, jsonb_array_elements(pz -> 'tallas') ta
+        where not exists (select 1 from jsonb_array_elements(retail.tienda_ficha((pz -> 'prenda' ->> 'id')::uuid, ${s}) -> 'prenda' -> 'variantes') x
+                           where x ->> 'id' = ta ->> 'variante_id' and x ->> 'color' = pz -> 'color' ->> 'codigo'))
+      + (select count(*) from jsonb_array_elements(retail.tienda_look(:'${look}', ${s}) -> 'look' -> 'piezas') pz,
+               jsonb_array_elements(retail.tienda_ficha((pz -> 'prenda' ->> 'id')::uuid, ${s}) -> 'prenda' -> 'variantes') x
+          where x ->> 'color' = pz -> 'color' ->> 'codigo'
+            and not exists (select 1 from jsonb_array_elements(pz -> 'tallas') ta where ta ->> 'variante_id' = x ->> 'id')),
+      (select string_agg(ta ->> 'talla', ',' order by o) from jsonb_array_elements(retail.tienda_look(:'${look}', ${s}) -> 'look' -> 'piezas') pz,
+              jsonb_array_elements(pz -> 'tallas') with ordinality u(ta, o)
+        where pz -> 'prenda' ->> 'id' = :'emma'));\n`;
 };
 /** El escenario del precio: Lima cobra más la blusa, Trujillo menos la falda, el vestido con campaña y la falda negra con otra. */
 const ESCENA_PRECIOS = `${SEDES_EN_LA_WEB}${EN_LA_VITRINA}
@@ -492,13 +520,13 @@ function main() {
     "ZZ A:1/2,ZZ C:2/2\n2|2|null|null|null",
   );
   esperarValor(
-    "EL PRECIO: cada prenda vale exactamente lo de tienda_catalogo en esa tienda, con «Todas», con Trujillo y con Lima, y el total es la suma",
+    "EL PRECIO: cada prenda vale exactamente lo que dice la ficha de las tallas de SU color en esa tienda (la regla única del precio), con «Todas», con Trujillo y con Lima, y el total es la suma",
     correr(`${PREPARAR}${ESCENA_PRECIOS}
       select ${DIFERENCIAS()};
       select ${DIFERENCIAS("tru")};
       select ${DIFERENCIAS("lim")};
       rollback;`),
-    "0|5\n0|5\n0|5",
+    "0|16\n0|16\n0|16",
   );
   esperarValor(
     "…y el escenario sí distingue las tiendas: la blusa vale más en Lima (y con «Todas»), la falda menos en Trujillo",
@@ -512,13 +540,17 @@ function main() {
     "89.90|79.90|89.90|74.90|69.90|74.90\nt|todas|todas",
   );
   esperarValor(
-    "la campaña va encima con la regla de la caja (el vestido −10 %), la de un solo color dice «desde» y el total también",
-    correr(`${PREPARAR}${ESCENA_PRECIOS}
+    "la campaña va encima con la regla de la caja (el vestido −10 %); la de un solo color le da a la falda NEGRA su precio de campaña exacto (sin «desde») y a la BEIGE ninguna; la tarjeta del modelo sí dice «desde»",
+    correr(`${PREPARAR}${ESCENA_PRECIOS}${crear("look3", { nombre: "ZZ Tarde", ps: piezas(["falda", "BEI"], ["emma", "NEG"]) })}
       select concat_ws('|', (${PIEZA("look", "vestido")} -> 'prenda' ->> 'precio_final')::numeric = 149.90 - retail.fn_descuento_campana(149.90, 10),
-          ${PIEZA("look", "vestido")} -> 'prenda' -> 'campana' ->> 'nombre', ${PIEZA("look", "falda")} -> 'prenda' ->> 'desde',
-          ${EN_TIENDA("look")} ->> 'desde', ${EN_TIENDA("look2")} ->> 'desde');
+          ${PIEZA("look", "vestido")} -> 'prenda' -> 'campana' ->> 'nombre',
+          ${PIEZA("look", "falda")} -> 'prenda' ->> 'desde', (${PIEZA("look", "falda")} -> 'prenda' ->> 'precio_final')::numeric = 74.90 - retail.fn_descuento_campana(74.90, 20),
+          ${PIEZA("look", "falda")} -> 'prenda' -> 'campana' ->> 'nombre', ${EN_TIENDA("look")} ->> 'desde',
+          ${PIEZA("look3", "falda")} -> 'prenda' ->> 'precio_final', coalesce(${PIEZA("look3", "falda")} -> 'prenda' ->> 'campana', 'sin campaña'),
+          ${EN_TIENDA("look3")} ->> 'desde', ${EN_TIENDA("look2")} ->> 'desde',
+          (select x ->> 'desde' from jsonb_array_elements(retail.tienda_catalogo() -> 'prendas') x where x ->> 'id' = :'falda'));
       rollback;`),
-    "t|ZZ Aniversario|true|true|false",
+    "t|ZZ Aniversario|false|t|ZZ Negro|false|74.90|sin campaña|false|false|true",
   );
   esperarValor(
     "la lámina viaja a la tienda (x, y, ancho, giro) con el color de cada prenda y su foto (la de su color o la principal)",
@@ -601,6 +633,25 @@ function main() {
     "0|9",
   );
   esperarValor(
+    "las tallas del look son EXACTAMENTE las que ofrece la ficha en esa tienda: una talla a S/ 0 (ADR-0384) no sale; con precio propio en Trujillo sale en Trujillo y con «Todas» (el mayor), no en Lima",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${crear("look", { ps: piezas(["emma", "NEG"], ["carla", "BEI"]) })}
+      update retail.variantes set precio = 0 where sku = 'BLU-EMMA-NEG-L';
+      ${TALLAS_CONTRA_FICHA("look")}${TALLAS_CONTRA_FICHA("look", "tru")}
+      ${precioEnTienda("emma", "tru", "99.90")}
+      ${TALLAS_CONTRA_FICHA("look", "tru")}${TALLAS_CONTRA_FICHA("look")}${TALLAS_CONTRA_FICHA("look", "lim")}
+      rollback;`),
+    "0|S,M\n0|S,M\n0|S,M,L\n0|S,M,L\n0|S,M",
+  );
+  esperarValor(
+    "el total del look en el ERP (con «Todas») es el de la tienda: cada prenda en SU color, también con una campaña de un solo color",
+    correr(`${PREPARAR}${ESCENA_PRECIOS}${crear("look3", { nombre: "ZZ Tarde", ps: piezas(["falda", "BEI"], ["emma", "NEG"]) })}
+      select string_agg(concat_ws(':', x ->> 'nombre', (x ->> 'total')::numeric = (t ->> 'total_final')::numeric, x ->> 'desde', t ->> 'desde'), ',' order by x ->> 'nombre')
+        from jsonb_array_elements(retail.fn_vitrina_looks() -> 'looks') x
+        join lateral (select l from jsonb_array_elements(retail.tienda_looks() -> 'looks') l where l ->> 'id' = x ->> 'id') k(t) on true;
+      rollback;`),
+    "ZZ Fin de semana:t:false:false,ZZ Noche:t:false:false,ZZ Tarde:t:false:false",
+  );
+  esperarValor(
     "nada del ERP ni la cifra del stock en lo que ve la tienda",
     correr(`${PREPARAR}${EN_LA_VITRINA}${crear("look")}
       select string_agg(k, ',' order by k) from jsonb_object_keys(retail.tienda_look(:'look') -> 'look') k;
@@ -637,7 +688,7 @@ function main() {
   console.log("— Mutantes (si la prueba no los ve, no prueba nada) —");
   {
     const r = correr(`${PREPARAR}${ESCENA_PRECIOS}
-      ${MUTAR("retail.fn_tienda_looks_json(jsonb, uuid[], uuid, boolean)", "'precio', x.prenda -> 'precio',", "'precio', (select to_jsonb(max(va.precio)) from retail.variantes va where va.producto_id = x.producto_id and va.activo),")}
+      ${MUTAR("retail.fn_tienda_looks_json(jsonb, uuid[], uuid, boolean)", "'precio', pr.resumen_precio,", "'precio', (select max(va.precio) from retail.variantes va where va.producto_id = x.producto_id and va.activo),")}
       select ${DIFERENCIAS("lim")};
       rollback;`);
     esperar("el precio de la grilla en vez del de la tienda: el candado del precio lo ve", r.ok && !r.salida.startsWith("0|"), r.ok ? r.salida : r.mensaje);
@@ -656,6 +707,27 @@ function main() {
       ${LOOK_CONTRA_FICHA}
       rollback;`);
     esperar("el look con su propia cuenta de «hay» (cuenta el Taller): la comparación con la ficha lo ve", r.ok && !r.salida.startsWith("0|"), r.ok ? r.salida : r.mensaje);
+  }
+  {
+    // El look con su propia lista de tallas (toda talla activa de su color, también la de S/ 0): la comparación con la ficha lo ve.
+    const r = correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${crear("look", { ps: piezas(["emma", "NEG"], ["carla", "BEI"]) })}
+      update retail.variantes set precio = 0 where sku = 'BLU-EMMA-NEG-L';
+      ${MUTAR("retail.fn_tienda_looks_json(jsonb, uuid[], uuid, boolean)", "from ofrecido o\n                        left join retail.tallas ta",
+              "from (select v.id as variante_id, v.talla_id, v.producto_id, v.color_codigo from retail.variantes v where v.activo) o\n                        left join retail.tallas ta")}
+      ${TALLAS_CONTRA_FICHA("look")}
+      rollback;`);
+    esperar("el look con su propia lista de tallas (también las de S/ 0 que la ficha no ofrece): la comparación con la ficha lo ve", r.ok && !r.salida.startsWith("0|"), r.ok ? r.salida : r.mensaje);
+  }
+  {
+    // El total del ERP con el precio del MODELO (el de la tarjeta) y no el de cada color: con la campaña solo en la falda negra, el total
+    // del ERP deja de ser el de la tienda.
+    const r = correr(`${PREPARAR}${ESCENA_PRECIOS}${crear("look3", { nombre: "ZZ Tarde", ps: piezas(["falda", "BEI"], ["emma", "NEG"]) })}
+      ${MUTAR("retail.fn_vitrina_looks_json(uuid[], jsonb)", "sum(pr.resumen_final) filter (where x.se_ve) as total", "sum((x.prenda ->> 'precio_final')::numeric) filter (where x.se_ve) as total")}
+      select string_agg(((x ->> 'total')::numeric = (t ->> 'total_final')::numeric)::text, ',' order by x ->> 'nombre')
+        from jsonb_array_elements(retail.fn_vitrina_looks() -> 'looks') x
+        join lateral (select l from jsonb_array_elements(retail.tienda_looks() -> 'looks') l where l ->> 'id' = x ->> 'id') k(t) on true;
+      rollback;`);
+    esperar("el total del ERP con el precio del modelo y no el de su color: la comparación con la tienda lo ve", r.ok && r.salida.includes("false"), r.ok ? r.salida : r.mensaje);
   }
   {
     const r = correr(`${PREPARAR}${EN_LA_VITRINA}
