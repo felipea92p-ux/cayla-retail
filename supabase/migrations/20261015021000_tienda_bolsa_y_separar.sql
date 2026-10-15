@@ -39,9 +39,18 @@
 --     El detalle (`detail`) dice qué prenda: la página la marca.
 --   · Solo se recoge en una tienda que se ve en la web (`tienda_separar_tienda`).
 --   · La misma marca nunca crea dos pedidos, y la marca de otro cliente no devuelve su pedido (`pedido_web_token`).
+--   · Un cliente tiene a lo sumo 3 separaciones esperando que la tienda confirme (decisión de Felipe, 2026-10-14): la cuarta se
+--     rechaza con `tienda_separar_tope` (`detail` = el tope, para que la página lo diga sin escribirlo a mano) y no se escribe nada.
+--     Cuentan solo sus pedidos «por confirmar» VIGENTES (`fn_pedidos_web_estado_hoy`, la regla del motor: lo que ya pasó las horas
+--     de Configuración ▸ Tienda web se lee vencido aunque el cierre programado no haya corrido); lo confirmado, pagado, anulado o
+--     vencido no. El tope se mira DESPUÉS de la marca: el reintento de un «Separar» que ya se guardó devuelve su pedido aunque haya
+--     3 abiertos. Dos «Separar» de la misma cuenta a la vez se turnan (la fila de la cuenta queda tomada): no pasan de 3 entre los dos.
 --
 -- DECIDÍ: validar en la base y no en la tienda (principio 2: la cookie la escribe el navegador). Comparar el precio que el
 --   cliente vio, y no recalcularlo en silencio: si una campaña terminó a medianoche, que lo vea antes de separar.
+-- DECIDÍ: el 3 vive en un solo lugar, la constante `c_tope_por_confirmar` de `tienda_separar` (la única que crea pedidos web desde
+--   la tienda); el mensaje y el `detail` lo leen de ahí. Si un día Felipe quiere moverlo desde Configuración ▸ Tienda web, se cambia
+--   esa línea por una lectura de `configuracion_tienda_web`, sin tocar a nadie más.
 -- DESCARTÉ: guardar la bolsa en la base (una tabla por cliente): agregar no compromete nada (propuesta f), así que no hay
 --   nada que la base tenga que custodiar hasta «Separar»; y una bolsa en la base pide limpiar las abandonadas.
 --
@@ -63,7 +72,8 @@ begin
      or to_regprocedure('retail.fn_tienda_sedes_web()') is null then
     raise exception 'Falta la regla de «hay» de la tienda: pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
   end if;
-  if to_regprocedure('retail.crear_pedido_web(uuid, uuid, jsonb, uuid)') is null then
+  if to_regprocedure('retail.crear_pedido_web(uuid, uuid, jsonb, uuid)') is null
+     or to_regprocedure('retail.fn_pedidos_web_estado_hoy(integer, integer, integer, uuid, uuid, uuid)') is null then
     raise exception 'Falta el motor del pedido web: pega antes 20261014235000_pedidos_web_modelo.sql.';
   end if;
 end
@@ -247,8 +257,10 @@ set search_path = retail, public, extensions
 as $fn$
 declare
   c_tope constant integer := 20;  -- el mismo tope de cordura de crear_pedido_web: una bolsa lleva hasta 20 prendas
+  c_tope_por_confirmar constant integer := 3;  -- separaciones esperando que la tienda confirme, a la vez (Felipe, 2026-10-14)
   v_cuenta uuid;
   v_clienta uuid;
+  v_por_confirmar integer;
   v_existente retail.pedidos_web%rowtype;
   v_sedes uuid[];
   v_unidades integer := 0;
@@ -282,6 +294,20 @@ begin
       raise exception 'Esa marca de «Separar» es de otro cliente.' using errcode = '22023', hint = 'pedido_web_token';
     end if;
     return jsonb_build_object('codigo', v_existente.codigo, 'ya_estaba', true);
+  end if;
+
+  -- El tope de separaciones esperando confirmación, DESPUÉS de la marca (el reintento de una que ya se guardó pasó arriba). Cuenta
+  -- lo «por confirmar» vigente con la regla del motor (`fn_pedidos_web_estado_hoy`: pasado el plazo de Configuración ▸ Tienda web
+  -- se lee vencido); los otros dos plazos no cambian el estado. La fila de la cuenta, tomada arriba, turna dos «Separar» a la vez.
+  v_por_confirmar := (select count(*)
+                        from retail.fn_pedidos_web_estado_hoy(
+                               coalesce((select c.horas_para_confirmar from retail.configuracion_tienda_web c where c.id), 24),
+                               48, 7, null, null, v_clienta) x
+                       where x.estado = 'por_confirmar');
+  if v_por_confirmar >= c_tope_por_confirmar then
+    raise exception 'Ya tienes % separaciones esperando que la tienda confirme. Cuando confirme alguna, puedes separar otra.',
+      c_tope_por_confirmar
+      using errcode = '22023', hint = 'tienda_separar_tope', detail = c_tope_por_confirmar::text;
   end if;
 
   v_sedes := retail.fn_tienda_sedes_web();
@@ -381,7 +407,7 @@ end;
 $fn$;
 
 comment on function retail.tienda_separar(uuid, uuid, jsonb, uuid) is
-  'Tienda online (ADR-0408, act. 7): «Separar». Valida la cuenta, la tienda de recojo (una de la web) y cada prenda (en la Vitrina, se vende ahí, quedan en alguna tienda de la web según fn_tienda_libre, la regla de «hay» de la ficha) con el precio que el cliente vio contra fn_bolsa_web_precios de esa tienda, llama a crear_pedido_web (no toca el stock) y cierra las esperas de «Avísame» de esa cuenta por esas prendas (esperas_web.pedido_web_id). La misma marca devuelve el mismo pedido. {codigo, ya_estaba}. Rechaza con hint: tienda_sin_cuenta, tienda_separar_marca, tienda_separar_tienda, tienda_separar_no_publicada, tienda_separar_no_se_vende, tienda_separar_precio, tienda_separar_agotada (detail = la prenda), pedido_web_*. Solo la llama tienda_web.';
+  'Tienda online (ADR-0408, act. 7): «Separar». Valida la cuenta, la tienda de recojo (una de la web) y cada prenda (en la Vitrina, se vende ahí, quedan en alguna tienda de la web según fn_tienda_libre, la regla de «hay» de la ficha) con el precio que el cliente vio contra fn_bolsa_web_precios de esa tienda, llama a crear_pedido_web (no toca el stock) y cierra las esperas de «Avísame» de esa cuenta por esas prendas (esperas_web.pedido_web_id). La misma marca devuelve el mismo pedido. Un tope de separaciones por confirmar a la vez por cliente (c_tope_por_confirmar, mirado después de la marca). {codigo, ya_estaba}. Rechaza con hint: tienda_sin_cuenta, tienda_separar_marca, tienda_separar_tope (detail = el tope), tienda_separar_tienda, tienda_separar_no_publicada, tienda_separar_no_se_vende, tienda_separar_precio, tienda_separar_agotada (detail = la prenda), pedido_web_*. Solo la llama tienda_web.';
 
 -- ---------- 5. Quién ejecuta qué ----------
 -- Postgres le da EXECUTE a PUBLIC a toda función nueva, y `0005_grants.sql` a `authenticated`: se quita a todos.

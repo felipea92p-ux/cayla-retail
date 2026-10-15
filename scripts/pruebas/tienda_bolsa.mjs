@@ -13,8 +13,9 @@
  *      tocar el stock ni el libro; dos toques con la misma marca dan el mismo pedido (aunque entretanto cambie el precio); la
  *      marca de otro no devuelve su pedido; un precio que no cuadra, lo que ya no está en la Vitrina, lo que no se vende en esa
  *      tienda, lo agotado (también lo que solo está en el Taller o en una tienda escondida: la regla de la ficha), una tienda
- *      escondida, sin cuenta o una bolsa torcida no separan NADA. Que «Separar» cierre las esperas de «Avísame» lo prueba
- *      `pnpm pruebas:tienda-club` (S).
+ *      escondida, sin cuenta o una bolsa torcida no separan NADA. A lo sumo 3 separaciones «por confirmar» a la vez por cliente
+ *      (`tienda_separar_tope`, decisión de Felipe 2026-10-14): la marca se mira antes que el tope, y lo confirmado o vencido no
+ *      cuenta. Que «Separar» cierre las esperas de «Avísame» lo prueba `pnpm pruebas:tienda-club` (S).
  *   C. «Mis pedidos» (`tienda_mis_pedidos`, `tienda_pedido`): cada cliente ve SOLO lo suyo (el número de otro responde igual
  *      que uno que no existe); el código de 4 cifras sale solo cuando está listo para recoger; los plazos son los de
  *      Configuración ▸ Tienda web; cada prenda trae cómo se ve y la tienda su nombre web y su WhatsApp.
@@ -359,6 +360,28 @@ select concat_ws(',', (select estado from retail.pedidos_web where codigo = :'c1
   "por_confirmar,t",
 );
 escenario(
+  // Decisión de Felipe (2026-10-14): a lo sumo 3 separaciones «por confirmar» a la vez por cliente. La marca se mira ANTES que el tope.
+  "el tope de 3 por confirmar: la cuarta se rechaza (tienda_separar_tope, con el tope en el detalle); el reintento con la MISMA marca devuelve su pedido; lo de otro cliente no cuenta; al confirmarse una o al vencer otra, se separa de nuevo",
+  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 10);
+select gen_random_uuid() as tok1 \\gset
+${separar("c1", bolsa(L("v")), { token: ":'tok1'" })}
+${separar("c2", bolsa(L("v")))}
+${separar("c3", bolsa(L("v")))}
+select pg_temp.probar(${separarTexto(bolsa(L("v")))}) as cuarta \\gset
+select retail.tienda_separar(:'usr_a', :'tru', ${bolsa(L("v"))}, :'tok1') as otra_vez \\gset
+${separar("cb", bolsa(L("v")), { usr: "usr_b" })}
+select id as p1 from retail.pedidos_web where codigo = :'c1' \\gset
+select retail.confirmar_pedido_web(:'p1', pg_temp.todas(:'p1', 'reservar')) is not null as _c \\gset
+${separar("c4", bolsa(L("v")))}
+select pg_temp.probar(${separarTexto(bolsa(L("v")))}) as quinta \\gset
+${VIAJAR(`update retail.pedidos_web set creado_en = now() - interval '25 hours' where codigo = :'c2';`)}
+${separar("c5", bolsa(L("v")))}
+select concat_ws(',', split_part(:'cuarta', '|', 2), split_part(:'cuarta', '|', 4),
+  (:'otra_vez')::jsonb ->> 'codigo' = :'c1', (:'otra_vez')::jsonb ->> 'ya_estaba', length(:'cb') > 0, length(:'c4') > 0,
+  split_part(:'quinta', '|', 2), length(:'c5') > 0, (select count(*) from retail.pedidos_web where clienta_id = :'cli_a'));`,
+  "tienda_separar_tope,3,t,true,t,t,tienda_separar_tope,t,5",
+);
+escenario(
   "lo que solo está en el Taller o en una tienda escondida no se separa: «Separar» lee la regla de la ficha, que dice que no hay",
   `select id as taller from retail.ubicaciones where tipo = 'taller' order by nombre limit 1 \\gset
 insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada) values (:'v2', :'taller', null, 3, 0)
@@ -538,6 +561,15 @@ const MUTANTES = [
   ["separa lo que ya no está en la Vitrina", 0, "where v.id = r.variante_id and v.activo and vp.publicado and retail.fn_vitrina_publicable(v.producto_id)) then", "where v.id = r.variante_id) then"],
   ["separa lo que no se vende en esa tienda", 0, "if not retail.fn_variante_permitida_en_sede(r.variante_id, p_ubicacion_id) then", "if false then"],
   ["separa lo agotado", 0, "if v_libres < r.cantidad then", "if false then"],
+  ["sin tope de separaciones por confirmar", 0, "if v_por_confirmar >= c_tope_por_confirmar then", "if false then"],
+  ["el tope cuenta también lo ya confirmado", 0, "where x.estado = 'por_confirmar');", "where x.estado in ('por_confirmar', 'confirmado'));"],
+  ["el tope cuenta lo vencido (sin el plazo de Configuración)", 0,
+    "coalesce((select c.horas_para_confirmar from retail.configuracion_tienda_web c where c.id), 24),", "100000,"],
+  ["el tope se mira ANTES de la marca (el reintento de un pedido ya guardado se rechaza)", 0,
+    "  perform pg_advisory_xact_lock(hashtextextended('pedidos_web:' || p_token::text, 0));\n  select * into v_existente",
+    "  if (select count(*) from retail.pedidos_web w where w.clienta_id = v_clienta and w.estado = 'por_confirmar') >= 3 then\n" +
+      "    raise exception 'tope' using hint = 'tienda_separar_tope';\n  end if;\n" +
+      "  perform pg_advisory_xact_lock(hashtextextended('pedidos_web:' || p_token::text, 0));\n  select * into v_existente"],
   ["«Separar» con su propia cuenta de «hay» (cuenta el Taller y las tiendas escondidas)", 0,
     "v_libres := retail.fn_tienda_libre(r.variante_id, v_sedes);",
     "v_libres := retail.fn_tienda_libre(r.variante_id, (select array_agg(u.id) from retail.ubicaciones u));"],
