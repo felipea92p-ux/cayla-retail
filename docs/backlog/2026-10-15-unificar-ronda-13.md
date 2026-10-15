@@ -10,4 +10,4 @@
 - [ ] **La página pública del club** conserva su barra de avance (excepción): decidir si toma la pieza.
 - [ ] **`accion.buscar`:** el censo la encontró con una sola forma (el secundario «Buscar»); registrarla cuando Felipe la confirme.
 - [ ] **Ronda 14:** las líneas (Caja, Rendimiento, el plan de campaña, la evolución de un proveedor) y las barras por hora o por día (Rendimiento, el cierre de caja, Comercial, Comprobantes), más las de comparación a escala (Proveedores, la ficha del Taller, el plan de compra) y la dona de lo cobrado. **Ronda 15:** los íconos.
-- [ ] **Disco:** la caché de Turbopack de esta worktree (`apps/web/.next/dev/cache`) llegó a 17 GB y la sesión no tiene permiso para borrarla.
+- [x] **Disco:** la caché de Turbopack de esta worktree (`apps/web/.next/dev/cache`) llegó a 22 GB; Felipe la borró el 2026-10-15 (la sesión no tiene permiso). Vuelve a crecer al compilar: mirar `df -h /` antes de cada censo.
