@@ -1,7 +1,8 @@
 # ADR-0415 · Recomendaciones de /chaos aplicadas: la entrega no es pasada, las buenas tienen techo, el precio de una prenda también
 
 - **Fecha:** 2026-10-15 · **Estado:** construido y verificado en local (suite de base con controles, suites vecinas, vitest). **Las dos
-  migraciones NO están en producción:** esperan el OK de Felipe. Rama `claude/recomendaciones-prod-catalogo-5c56e1`.
+  migraciones están en producción** desde el 2026-10-15 (con el OK de Felipe): 6 candados validados y las tres funciones del Taller
+  idénticas a local. Rama `claude/recomendaciones-prod-catalogo-5c56e1`, PR #1101.
 - **Pedido:** Felipe, 2026-10-15: «pega las migraciones y aplica tus recomendaciones para el resto». Las preguntas abiertas de ADR-0405
   (Catálogo) y ADR-0409 (Producción) se resuelven aquí con la recomendación, medida contra los datos de producción del 2026-10-15.
 - **Cierra:** «Lo que queda para Felipe» de ADR-0405 y de ADR-0409.
