@@ -1733,10 +1733,12 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `tienda_consultar_documento`, `tienda_revisar_registro`, `tienda_registrar_cuenta` (une la cuenta a su ficha del Club o la crea con
   origen `web`), `tienda_mi_cuenta` y `tienda_club_beneficios`; los topes, con `club_intento` (`lib/intentos-servidor.ts`). El nombre por
   DNI sale de `packages/shared` (`padron.ts`), el mismo que usa el ERP. Prueba en la base: `pnpm pruebas:tienda-cuentas`.
-- `/catalogo` (grupo `(catalogo)`, todavía sin candado de cuenta) → `lib/catalogo-servidor.ts` `leerCatalogo()` →
-  `retail.tienda_catalogo()`: lo publicado en la Vitrina web con su precio web y el de la campaña (la regla de la caja,
-  ADR-0403), sus colores y hasta dos fotos del almacén público; `lib/catalogo.ts` filtra por categoría y ordena, y
-  `components/TarjetaPrenda.tsx` dibuja la tarjeta. Si la base no responde, la página dice que no se pudo cargar.
+- `/catalogo` (grupo `(catalogo)`, con cuenta: el proxy y el layout) → `lib/tiendas-servidor.ts` `leerSedes()` (las píldoras «Ver lo
+  que hay en», `?sede=` con el nombre web de la tienda: `lib/sede-elegida.ts`) y `lib/catalogo-servidor.ts` `leerCatalogo(sede)` →
+  `retail.tienda_catalogo(p_sede)`: lo publicado en la Vitrina web al precio de esa tienda (`fn_precio_en_sede`) o, con «Todas», al
+  mayor entre las tiendas de la web, con la campaña encima (la regla de la caja, ADR-0403), sus colores y hasta dos fotos del almacén
+  público; `lib/catalogo.ts` filtra por categoría y ordena, y `components/TarjetaPrenda.tsx` dibuja la tarjeta. Si la base no
+  responde, la página dice que no se pudo cargar.
 
 ---
 

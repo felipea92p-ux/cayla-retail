@@ -14,15 +14,16 @@ import { FotoTarjeta } from "./FotoTarjeta";
 
 /**
  * La tarjeta de una prenda en la grilla (maqueta v4, `tarjeta`): su foto (o su silueta), la insignia de la campaña, su nombre, el precio
- * que paga el cliente (con el precio web tachado si hay descuento) y sus colores. La foto y el nombre llevan a su ficha. Lo que la
- * maqueta suma después —el corazón de favoritos, «Agregar» y cuánto hay en cada tienda— llega con sus actividades (12, 7 y 4).
+ * que paga el cliente en la tienda elegida (con el precio del modelo tachado si hay descuento) y sus colores. La foto y el nombre llevan
+ * a su ficha, con la tienda elegida. Lo que la maqueta suma después —el corazón de favoritos, «Agregar» y cuánto hay en cada tienda—
+ * llega con sus actividades (12, 7 y 4).
  */
-export function TarjetaPrenda({ prenda, origenFotos }: { prenda: Prenda; origenFotos: string | undefined }) {
+export function TarjetaPrenda({ prenda, sede, origenFotos }: { prenda: Prenda; sede: string | null; origenFotos: string | undefined }) {
   const [foto, segunda] = fotosDeTarjeta(prenda);
   const precio = precioTarjeta(prenda);
   const oferta = insigniaOferta(prenda);
   const { visibles, mas } = muestras(prenda);
-  const href = hrefDePrenda(prenda);
+  const href = hrefDePrenda(prenda, sede);
   return (
     <article className="t-card">
       {/* La foto repite el enlace del nombre: fuera del Tab y del lector, para que cada tarjeta sea UNA parada con el teclado. */}
