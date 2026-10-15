@@ -901,7 +901,7 @@ export const GUIA_PROVEEDOR: Guia = {
       ancla: "proveedor-ficha.deuda",
       opcional: true,
       titulo: "Cada prenda por reponer",
-      texto: "Cada faltante que en una recepción se marcó «No vino» es una deuda: cuántas y de qué, en qué envío y sede faltaron, hace cuánto y cuánto valen. Se cierra cuando llegan.",
+      texto: "Cada faltante que en una recepción se marcó «No vino» es una deuda, y también lo que le devuelves desde Dañadas por llegar dañado: cuántas y de qué, en qué envío y sede, hace cuánto y cuánto valen. Se cierra cuando llegan o vuelve la plata.",
     },
     {
       id: "reposicion",
@@ -925,7 +925,7 @@ export const GUIA_PROVEEDOR: Guia = {
       opcional: true,
       preparar: [{ tipo: "escape" }],
       titulo: "Pasar a saldo a favor",
-      texto: "Si el proveedor no va a mandar lo que faltó, pásalo a saldo a favor: un documento interno por lo que pagaste baja lo que le debes por ese comprobante o, si ya lo pagaste, queda a favor para tu próximo pago. Lo que no se facturó no se pasa.",
+      texto: "Si el proveedor no va a mandar lo que faltó o lo que le devolviste, pásalo a saldo a favor: un documento interno por lo que pagaste baja lo que le debes por ese comprobante o, si ya lo pagaste, queda a favor para tu próximo pago. Lo que no se facturó no se pasa.",
     },
     {
       id: "hoja-saldo-a-favor",

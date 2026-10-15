@@ -1489,7 +1489,7 @@ caso(
   ].join(" / "),
 );
 caso(
-  "E3 lo devuelto se salda como un faltante: «Llegó la reposición» a mano y la reposición que llega en otra recepción; su plata todavía no (sin papel hasta la actividad 6b)",
+  "E3 lo devuelto se salda como un faltante: «Llegó la reposición» a mano y la reposición que llega en otra recepción; lo que se recibió sin comprobante no tiene plata que pasar",
   `${rolDeMicaela("recibir", "existencias", "proveedores")}
    ${DANADA("p1", "l1", 5, 3)}
    ${como(MICAELA)}${EN_TIENDA}
@@ -1563,6 +1563,65 @@ caso(
      (select string_agg(x.causa || ':' || x.cantidad, ',' order by x.causa, x.cantidad) from retail.despacho_diferencias_vigentes x where x.despacho_id = :'d_p'),
      (:'nd'::jsonb ->> 'unidades') || ' por reponer');`,
   "OK / OK / OK / devuelta:1,devuelta:2,no_vino:1 / 4 por reponer",
+);
+caso(
+  "E7 lo devuelto, a saldo a favor (6b): el documento interno es por devolución, sobre el comprobante donde se recibió, sin cerrar nada (sí llegó); lo recibido no cambia; queda a favor si ya se pagó",
+  `${PAPEL("bol", "boleta", "B001", "903", [["l1", 5, 20]])}
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.registrar_pago_compra(:'bol', 100.00, 'transferencia') as pg \\gset
+   reset role;
+   ${rolDeMicaela("recibir", "existencias", "proveedores")}
+   ${DANADA("p1", "l1", 5, 2)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.devuelve(:'p1', null, gen_random_uuid()) ->> 'diferencia_id' as x \\gset
+   select pg_temp.debe(:'prov') as nd \\gset
+   select pg_temp.resuelve(:'x', 'saldo_a_favor', 2, null, null) as a \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'a'::jsonb),
+     (select d ->> 'sin_papel' || ':' || (d ->> 'monto_pendiente') from jsonb_array_elements(:'nd'::jsonb -> 'abiertas') d where d ->> 'diferencia_id' = :'x'),
+     (select ${DI("d ->> 'documento'")} || ':' || (d ->> 'comprobante') || ':' || (d ->> 'cantidad') || ':' || (d ->> 'monto') || ':' || (d ->> 'baja_deuda') || ':' || (d ->> 'a_favor')
+        from jsonb_array_elements(:'a'::jsonb -> 'documentos') d),
+     (select n.motivo || ':' || (n.cierre_id is null) || ':' || n.interna from retail.compra_notas_credito n where n.compra_id = :'bol'),
+     (select count(*) from retail.compra_item_cierres k join retail.compra_items ci on ci.id = k.compra_item_id where ci.compra_id = :'bol') || ' cierres',
+     (select sum(m.cantidad) from retail.movimientos m join retail.compra_items ci on ci.id = m.compra_item_id where ci.compra_id = :'bol') || ' recibidas',
+     retail.fn_saldo_favor_proveedor(:'prov'), ${ESTADO("x")});`,
+  "OK / 0:40.00 / DI-N:B001-903:2:40.00:0.00:40.00 / devolucion:true:true / 0 cierres / 5 recibidas / 40.00 / 2/2",
+);
+caso(
+  "E8 lo devuelto de una factura (6b): el aviso del IGV lo cuenta mientras nadie lo resuelve; «Depositó» devuelve con su IGV, que espera la nota del proveedor en la cuenta puente",
+  `${PAPEL("fac", "factura", "F001", "905", [["l1", 5, 20]])}
+   ${FUERTE}
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.registrar_pago_compra(:'fac', 118.00, 'transferencia') as pg \\gset
+   select retail.fn_igv_en_espera() as base \\gset
+   reset role;
+   ${rolDeMicaela("recibir", "existencias", "proveedores")}
+   ${DANADA("p1", "l1", 5, 2)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.devuelve(:'p1', null, gen_random_uuid()) ->> 'diferencia_id' as x \\gset
+   reset role;
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.fn_igv_en_espera() as antes \\gset
+   reset role;
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.deposita(:'x', 2, 'Lo devolvió por las dañadas', null, ${DEPOSITO("47.20")}) as d \\gset
+   reset role;
+   select (:'d'::jsonb -> 'documentos' -> 0 ->> 'nota_credito_id') as nc \\gset
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.fn_igv_en_espera() as despues \\gset
+   select coalesce(string_agg(z.cuenta || ':' || z.debe || ':' || z.haber, ',' order by z.cuenta), '-') as diario
+     from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), null) z where z.origen_id = :'nc' \\gset
+   reset role;
+   select concat_ws(' / ',
+     ((:'antes'::jsonb -> 'faltantes' ->> 'prendas')::int - coalesce((:'base'::jsonb -> 'faltantes' ->> 'prendas')::int, 0)) || ':'
+       || ((:'antes'::jsonb -> 'faltantes' ->> 'igv')::numeric - coalesce((:'base'::jsonb -> 'faltantes' ->> 'igv')::numeric, 0)),
+     pg_temp.e(:'d'::jsonb),
+     (select n.motivo || ':' || n.monto || ':' || n.igv from retail.compra_notas_credito n where n.id = :'nc'),
+     (select string_agg(k.tipo || ':' || k.monto, ',' order by k.tipo) from retail.proveedor_creditos k where k.proveedor_id = :'prov'),
+     coalesce((:'despues'::jsonb -> 'faltantes' ->> 'prendas')::int, 0) - coalesce((:'base'::jsonb -> 'faltantes' ->> 'prendas')::int, 0),
+     ((:'despues'::jsonb -> 'sin_nota' ->> 'igv')::numeric - coalesce((:'base'::jsonb -> 'sin_nota' ->> 'igv')::numeric, 0)),
+     :'diario');`,
+  "2:7.20 / OK / devolucion:47.20:7.20 / nota_credito:47.20,reembolso:47.20 / 0 / 7.20 / 201:0:40.00,4019:0:7.20,421:47.20:0",
 );
 caso(
   "E5 la tabla sola: la deuda de lo devuelto no nace sin la función con el envío cerrado, no nace sin su prenda, es una por prenda y no se edita",

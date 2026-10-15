@@ -34,13 +34,13 @@ describe("las frases del aviso", () => {
     expect(textoNotasPorPedir({ facturas: 1, igv: 10.8 }, soles).ahora).toBe("Pide la nota de crédito de 1 factura");
     expect(textoNotasPorPedir({ facturas: 0, igv: 0 }, soles)).toEqual({ detalle: "Ninguna factura espera la nota de su proveedor.", ahora: "" });
   });
-  it("las prendas que no llegaron: su IGV está en el crédito fiscal sin la mercadería", () => {
+  it("las prendas que no llegaron o se devolvieron por daño: su IGV está en el crédito fiscal sin la mercadería", () => {
     expect(textoPrendasSinLlegar({ prendas: 3, facturas: 2, igv: 10.8 }, soles)).toEqual({
-      detalle: "3 prendas de 2 facturas no llegaron: su IGV (S/\u00a010.80) está en tu crédito fiscal sin la mercadería. Anota que llegaron o pásalas a saldo a favor.",
-      ahora: "Resuelve 3 prendas que no llegaron",
+      detalle: "3 prendas de 2 facturas no llegaron o se devolvieron por daño: su IGV (S/\u00a010.80) está en tu crédito fiscal sin la mercadería. Anota que llegaron o pásalas a saldo a favor.",
+      ahora: "Resuelve 3 prendas que te deben",
     });
     expect(textoPrendasSinLlegar({ prendas: 1, facturas: 1, igv: 3.6 }, soles).detalle).toBe(
-      "1 prenda de 1 factura no llegó: su IGV (S/\u00a03.60) está en tu crédito fiscal sin la mercadería. Anota que llegó o pásala a saldo a favor.",
+      "1 prenda de 1 factura no llegó o se devolvió por daño: su IGV (S/\u00a03.60) está en tu crédito fiscal sin la mercadería. Anota que llegó o pásala a saldo a favor.",
     );
     expect(textoPrendasSinLlegar({ prendas: 0, facturas: 0, igv: 0 }, soles).ahora).toBe("");
   });

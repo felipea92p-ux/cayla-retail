@@ -56,12 +56,12 @@ export function textoNotasPorPedir(s: Pick<IgvSinNota, "facturas" | "igv">, sole
   };
 }
 
-/** El aviso de las prendas de factura que no llegaron, en palabras de tienda. */
+/** El aviso de las prendas de factura que no llegaron (o que se devolvieron por llegar dañadas, actividad 6b), en palabras de tienda. */
 export function textoPrendasSinLlegar(f: Pick<IgvFaltantes, "prendas" | "facturas" | "igv">, soles: (n: number) => string): { detalle: string; ahora: string } {
   if (f.prendas === 0) return { detalle: "Ninguna prenda de una factura espera reposición.", ahora: "" };
   return {
-    detalle: `${f.prendas} ${plural(f.prendas, "prenda", "prendas")} de ${f.facturas} ${plural(f.facturas, "factura", "facturas")} no ${plural(f.prendas, "llegó", "llegaron")}: su IGV (${soles(f.igv)}) está en tu crédito fiscal sin la mercadería. ${plural(f.prendas, "Anota que llegó o pásala", "Anota que llegaron o pásalas")} a saldo a favor.`,
-    ahora: `Resuelve ${f.prendas} ${plural(f.prendas, "prenda que no llegó", "prendas que no llegaron")}`,
+    detalle: `${f.prendas} ${plural(f.prendas, "prenda", "prendas")} de ${f.facturas} ${plural(f.facturas, "factura", "facturas")} no ${plural(f.prendas, "llegó o se devolvió", "llegaron o se devolvieron")} por daño: su IGV (${soles(f.igv)}) está en tu crédito fiscal sin la mercadería. ${plural(f.prendas, "Anota que llegó o pásala", "Anota que llegaron o pásalas")} a saldo a favor.`,
+    ahora: `Resuelve ${f.prendas} ${plural(f.prendas, "prenda que te deben", "prendas que te deben")}`,
   };
 }
 

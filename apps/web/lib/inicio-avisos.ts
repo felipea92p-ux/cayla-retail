@@ -421,7 +421,7 @@ export function avisosInicio(f: FuentesAvisos): Aviso[] {
     avisos.push({
       clave: "prendasSinLlegar",
       grupo: "Compras",
-      titulo: "Prendas de factura que no llegaron",
+      titulo: "Prendas de factura que te deben",
       cantidad: n,
       nivel: nivelDe(n, "toca"),
       ahora: t?.ahora ?? "",

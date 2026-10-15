@@ -136,7 +136,7 @@ describe("avisosInicio", () => {
   it("las prendas de factura que no llegaron llevan a la ficha del proveedor (o al directorio) y no se ocultan", () => {
     const [a] = avisosInicio({ prendasSinLlegar: { prendas: 3, facturas: 1, igv: 10.8, proveedores: 1, proveedorId: "p1" } });
     expect(a).toMatchObject({ clave: "prendasSinLlegar", grupo: "Compras", cantidad: 3, nivel: "toca", href: "/compras/proveedores/p1", ocultable: false });
-    expect(a!.ahora).toBe("Resuelve 3 prendas que no llegaron");
+    expect(a!.ahora).toBe("Resuelve 3 prendas que te deben");
     expect(avisosInicio({ prendasSinLlegar: { prendas: 4, facturas: 2, igv: 14.4, proveedores: 2, proveedorId: null } })[0]!.href).toBe("/compras/proveedores");
     expect(avisosInicio({ prendasSinLlegar: { prendas: 0, facturas: 0, igv: 0, proveedores: 0, proveedorId: null } })[0]!.nivel).toBe("aldia");
     // Ninguno de los dos se apaga desde «Ajustar».

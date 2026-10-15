@@ -54,8 +54,12 @@
 --      (20261015145000). Lo que lee o salda una deuda la reconoce (REEMPLAZOS ANCLADOS de «causa = no_vino» en las lecturas de «Nos
 --      debe», en el cierre de la recepción que salda con la reposición, en el Plan de campaña y en el candado de las resoluciones). El
 --      candado de lo recibido deja nacer esa deuda con el envío cerrado, solo desde esa función; reabrir el envío no la apaga (no es del
---      conteo). `fn_danadas_devolvibles` le dice a Existencias cuáles de su cuarentena se pueden devolver. Su plata (saldo a favor,
---      depósito) llega con la actividad 6b: hasta entonces no tiene papel y se salda con la reposición.
+--      conteo). `fn_danadas_devolvibles` le dice a Existencias cuáles de su cuarentena se pueden devolver.
+--  11. La plata de lo devuelto (actividad 6b): «Pasar a saldo a favor» y «Depositó» también para lo que se devolvió por llegar dañado. Su
+--      papel es la línea del comprobante donde esas prendas se RECIBIERON (la fila de lo recibido de la prenda): sí llegaron, así que no
+--      se cierra nada en el comprobante (no hay «por recibir» que bajar) y el documento interno es por DEVOLUCIÓN (motivo `devolucion`),
+--      con su IGV a la cuenta puente si es una factura, igual que el de un faltante. El aviso del IGV y la hoja que dice cuánto vale la
+--      cuentan (`fn_igv_en_espera`, `fn_deuda_valor`).
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe). UNA parte, después de 20261015145000. Sin tablas, sin políticas, sin `drop trigger`
 -- (ADR-0195), sin `select … into` dentro de textos entre comillas (ADR-0288). Las reescrituras y los reemplazos abortan SIN TOCAR NADA si la
@@ -128,9 +132,37 @@ begin
     from retail.despacho_diferencias_vigentes x
     join retail.despacho_items di on di.id = x.despacho_item_id
    where x.id = p_diferencia_id;
-  -- Lo devuelto por llegar dañado (actividad 6a) sí llegó: el cupo de la línea no es suyo (es de lo que todavía no vino). Su papel llega
-  -- con la actividad 6b; hasta entonces, ninguno (se salda con la reposición).
-  if v_oci is null or v_resto = 0 or v_causa = 'devuelta' then
+  if v_oci is null or v_resto = 0 then
+    return;
+  end if;
+  -- Lo devuelto por llegar dañado (actividades 6a y 6b) sí llegó: el cupo de la línea no es suyo (es de lo que todavía no vino). Su papel
+  -- es la línea del comprobante donde se RECIBIÓ, la que anotó la recepción en la fila de lo recibido de esa prenda; lo que la deuda pide
+  -- ya está acotado a lo pendiente (el resolvedor). Lo que se recibió sin papel, o en un comprobante anulado, no se pagó: ninguno.
+  if v_causa = 'devuelta' then
+    for v_fila in
+      select ci.id as ci_id, ci.compra_id as c_id, ci.costo_unitario as costo, c.tipo as c_tipo,
+             (c.tipo = 'factura' and coalesce(c.igv, 0) > 0) as c_con_igv, c.documento as c_documento, c.proveedor_id as c_proveedor,
+             c.subtotal as c_subtotal, c.igv as c_igv
+        from retail.despacho_diferencias_vigentes x
+        join retail.prendas_danadas pd on pd.id = x.prenda_danada_id
+        join retail.despacho_recibidos r on r.movimiento_danada_id = pd.movimiento_entrada_id
+        join retail.compra_items ci on ci.id = r.compra_item_id
+        join retail.compras c on c.id = ci.compra_id and c.estado = 'vigente'
+       where x.id = p_diferencia_id
+    loop
+      orden := 1;
+      compra_id := v_fila.c_id;
+      compra_item_id := v_fila.ci_id;
+      toma := v_resto;
+      costo_unitario := v_fila.costo;
+      tipo := v_fila.c_tipo;
+      con_igv := v_fila.c_con_igv;
+      documento := v_fila.c_documento;
+      proveedor_id := v_fila.c_proveedor;
+      subtotal := v_fila.c_subtotal;
+      igv := v_fila.c_igv;
+      return next;
+    end loop;
     return;
   end if;
   -- La misma regla del cupo que la recepción (fn_recepcion_cerrar, decisión 9): primero la línea que nombra el envío, después las más antiguas.
@@ -233,7 +265,7 @@ begin
   if v_cantidad is null then
     v_cantidad := (select x.cantidad - coalesce((select sum(r.cantidad) from retail.proveedor_deuda_resoluciones r where r.diferencia_id = x.id), 0)
                      from retail.despacho_diferencias_vigentes x
-                    where x.id = p_diferencia_id and x.tipo = 'faltante' and x.causa = 'no_vino')::integer;
+                    where x.id = p_diferencia_id and x.tipo = 'faltante' and x.causa in ('no_vino', 'devuelta'))::integer;
   end if;
   if v_cantidad is null then
     raise exception 'Esa deuda no existe: recarga la pantalla' using hint = 'nos_debe_no_existe';
@@ -286,10 +318,11 @@ declare
   v_primera_res uuid;
   v_hoy date := coalesce(p_fecha, retail.fn_hoy_lima());
   v_docs jsonb := '[]'::jsonb;
+  v_devuelta boolean;
 begin
   -- Los comprobantes de esa línea pedida se bloquean, en orden: dos personas pasando deudas del mismo papel, un pago o una recepción a la
   -- vez se ponen en fila, y el cupo y el saldo se miran después de esperar.
-  select di.orden_compra_item_id into v_oci
+  select di.orden_compra_item_id, x.causa = 'devuelta' into v_oci, v_devuelta
     from retail.despacho_diferencias_vigentes x
     join retail.despacho_items di on di.id = x.despacho_item_id
    where x.id = p_diferencia_id;
@@ -316,14 +349,17 @@ begin
     v_primer_cierre := null;
     v_base := 0;
     v_cantidad := 0;
-    -- Los cierres: esas prendas ya no se esperan en el comprobante (bajan lo «por recibir» al costo del papel).
+    -- Los cierres: esas prendas ya no se esperan en el comprobante (bajan lo «por recibir» al costo del papel). Lo devuelto por llegar
+    -- dañado sí llegó (actividad 6b): no hay nada que cerrar, el documento es por la devolución.
     for v_linea in
       select e from jsonb_array_elements(v_reparto) e where (e ->> 'compra_id')::uuid = v_compra order by (e ->> 'orden')::integer
     loop
-      insert into retail.compra_item_cierres (compra_item_id, cantidad, motivo, nota, usuario_id, ubicacion_id)
-      values ((v_linea ->> 'compra_item_id')::uuid, (v_linea ->> 'toma')::integer, 'no_llego', p_texto_cierre, p_actor, p_ubicacion_id)
-      returning id into v_cierre;
-      v_primer_cierre := coalesce(v_primer_cierre, v_cierre);
+      if not v_devuelta then
+        insert into retail.compra_item_cierres (compra_item_id, cantidad, motivo, nota, usuario_id, ubicacion_id)
+        values ((v_linea ->> 'compra_item_id')::uuid, (v_linea ->> 'toma')::integer, 'no_llego', p_texto_cierre, p_actor, p_ubicacion_id)
+        returning id into v_cierre;
+        v_primer_cierre := coalesce(v_primer_cierre, v_cierre);
+      end if;
       v_base := v_base + (v_linea ->> 'toma')::integer * (v_linea ->> 'costo_unitario')::numeric;
       v_cantidad := v_cantidad + (v_linea ->> 'toma')::integer;
     end loop;
@@ -350,7 +386,8 @@ begin
     v_doc := 'DI-' || lpad(nextval('retail.compra_notas_internas_seq')::text, 6, '0');
     insert into retail.compra_notas_credito (compra_id, cierre_id, serie_numero, fecha, subtotal, igv, monto, aplicado, motivo, nota, usuario_id,
                                              interna)
-    values (v_compra, v_primer_cierre, v_doc, v_hoy, v_monto - v_igv, v_igv, v_monto, v_aplicado, 'faltante', p_nota, p_actor, true)
+    values (v_compra, v_primer_cierre, v_doc, v_hoy, v_monto - v_igv, v_igv, v_monto, v_aplicado,
+            case when v_devuelta then 'devolucion' else 'faltante' end, p_nota, p_actor, true)
     returning id into v_nota_id;
     if v_excedente > 0 then
       insert into retail.proveedor_creditos (proveedor_id, tipo, monto, fecha, compra_id, nota_credito_id, usuario_id)
@@ -531,7 +568,7 @@ begin
       v_plata := retail.fn_pasar_deuda_a_saldo_a_favor(
         p_diferencia_id, p_cantidad, v_nota, p_token, v_huella, v_actor, v_deuda.ubicacion_destino_id,
         left(case when v_forma = 'deposito' then 'Las pagó con un depósito: ' || p_cantidad else 'Pasó a saldo a favor ' || p_cantidad end
-             || ' de ' || v_deuda.que || ' (faltaron en la ' || retail.fn_envio_numero_texto(v_deuda.envio_numero) || ')', 300),
+             || ' de ' || v_deuda.que || case when v_deuda.causa = 'devuelta' then ' (se devolvieron por daño, de la ' else ' (faltaron en la ' end || retail.fn_envio_numero_texto(v_deuda.envio_numero) || ')', 300),
         v_forma, case when v_forma = 'deposito' then v_dep_fecha end);
       v_id := (v_plata ->> 'resolucion_id')::uuid;
       if v_forma = 'deposito' then
@@ -575,21 +612,21 @@ begin
                                     'envio', retail.fn_envio_numero_texto(v_deuda.envio_numero), 'proveedor_id', v_deuda.proveedor_id,
                                     'forma', v_forma, 'cantidad', p_cantidad);
     if v_forma = 'saldo_a_favor' then
-      v_desc := 'pasó a saldo a favor ' || p_cantidad || ' de ' || v_deuda.que || ' que debe ' || v_deuda.proveedor || ' (faltaron en la '
+      v_desc := 'pasó a saldo a favor ' || p_cantidad || ' de ' || v_deuda.que || ' que debe ' || v_deuda.proveedor || case when v_deuda.causa = 'devuelta' then ' (se devolvieron por daño, de la ' else ' (faltaron en la ' end
         || retail.fn_envio_numero_texto(v_deuda.envio_numero) || '): '
         || coalesce((select string_agg(e ->> 'documento', ', ') from jsonb_array_elements(v_plata -> 'documentos') e), '');
       perform retail.fn_actividad_anotar('proveedores', 'deuda_saldo_a_favor', v_desc, v_actor, retail.fn_actividad_terminal_ahora(),
                                          v_deuda.ubicacion_destino_id, null, 'proveedor_deuda_resoluciones', v_id::text, now(),
                                          v_detalle || jsonb_build_object('documentos', v_plata -> 'documentos'), 'vivo');
     elsif v_forma = 'deposito' then
-      v_desc := 'registró que ' || v_deuda.proveedor || ' depositó lo de ' || p_cantidad || ' de ' || v_deuda.que || ' (faltaron en la '
+      v_desc := 'registró que ' || v_deuda.proveedor || ' depositó lo de ' || p_cantidad || ' de ' || v_deuda.que || case when v_deuda.causa = 'devuelta' then ' (se devolvieron por daño, de la ' else ' (faltaron en la ' end
         || retail.fn_envio_numero_texto(v_deuda.envio_numero) || '): '
         || coalesce((select string_agg(e ->> 'documento', ', ') from jsonb_array_elements(v_plata -> 'documentos') e), '');
       perform retail.fn_actividad_anotar('proveedores', 'deuda_deposito', v_desc, v_actor, retail.fn_actividad_terminal_ahora(),
                                          v_deuda.ubicacion_destino_id, null, 'proveedor_deuda_resoluciones', v_id::text, now(),
                                          v_detalle || jsonb_build_object('documentos', v_plata -> 'documentos'), 'vivo');
     else
-      v_desc := 'marcó que ' || v_deuda.proveedor || ' repuso ' || p_cantidad || ' de ' || v_deuda.que || ' (faltaron en la '
+      v_desc := 'marcó que ' || v_deuda.proveedor || ' repuso ' || p_cantidad || ' de ' || v_deuda.que || case when v_deuda.causa = 'devuelta' then ' (se devolvieron por daño, de la ' else ' (faltaron en la ' end
         || retail.fn_envio_numero_texto(v_deuda.envio_numero) || ')';
       if retail.fn_ve_modulo('proveedores') then
         perform retail.fn_actividad_anotar('proveedores', 'deuda_repuesta', v_desc, v_actor, retail.fn_actividad_terminal_ahora(),
@@ -1139,7 +1176,7 @@ begin
       select x.id, x.proveedor_id, x.creado_en,
              (x.cantidad - coalesce((select sum(r.cantidad) from retail.proveedor_deuda_resoluciones r where r.diferencia_id = x.id), 0))::integer as pendiente
         from retail.despacho_diferencias_vigentes x
-       where x.tipo = 'faltante' and x.causa = 'no_vino'
+       where x.tipo = 'faltante' and x.causa in ('no_vino', 'devuelta')
     ),
     con_igv as (
       select a.id, a.proveedor_id, a.creado_en, p ->> 'compra_id' as compra_id, (p ->> 'cantidad')::integer as prendas, (p ->> 'igv')::numeric as igv
