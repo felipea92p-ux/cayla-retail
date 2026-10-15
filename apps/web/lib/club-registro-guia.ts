@@ -11,11 +11,14 @@ import { problemasRegistro, type RegistroEscrito } from "./club-registro-reglas"
 /**
  * Los campos de la página, en el orden en que se ven. `pendienteDocumento`: lo que la consulta del padrón está diciendo ahora
  * («Buscando tu DNI…», «No encontramos ese DNI…»), que es más útil que el «confirma tu nombre» genérico; no cambia qué está hecho.
+ * `rechazoCorreo`: lo que el servidor dijo del correo que sigue escrito (el de otra persona, `rechazoDelCorreo`). No es una regla
+ * nueva: es la respuesta de la base a ESE correo, y mientras siga escrito el correo no está listo (Felipe 2026-10-15).
  */
-export function camposDelRegistro(r: RegistroEscrito, hoy: string, pendienteDocumento?: string | null): CampoDeGuia[] {
+export function camposDelRegistro(r: RegistroEscrito, hoy: string, pendienteDocumento?: string | null, rechazoCorreo?: string | null): CampoDeGuia[] {
   const p = problemasRegistro(r, hoy);
   const esDni = r.documentoTipo === "dni";
   const correoEscrito = r.correo.trim() !== "";
+  const problemaCorreo = rechazoCorreo ?? p.correo ?? null;
   return [
     {
       id: "documento",
@@ -27,8 +30,8 @@ export function camposDelRegistro(r: RegistroEscrito, hoy: string, pendienteDocu
     ...(esDni ? [] : [{ id: "nombre", nombre: "Nombres y apellidos", requerido: true, hecho: !p.nombre, pendiente: p.nombre ?? "" }]),
     { id: "celular", nombre: "Celular", requerido: true, hecho: !p.celular, pendiente: p.celular ?? "" },
     { id: "nacimiento", nombre: "Fecha de nacimiento", requerido: true, hecho: !p.nacimiento, pendiente: p.nacimiento ?? "" },
-    // Opcional: vacío no falta; mal escrito sí bloquea (la base lo rechazaría igual).
-    { id: "correo", nombre: "Correo", requerido: Boolean(p.correo), hecho: correoEscrito && !p.correo, pendiente: p.correo ?? "" },
+    // Opcional: vacío no falta; mal escrito, o el que la base no aceptó, sí bloquea (la base lo rechazaría igual).
+    { id: "correo", nombre: "Correo", requerido: Boolean(problemaCorreo), hecho: correoEscrito && !problemaCorreo, pendiente: problemaCorreo ?? "" },
     { id: "mayor", nombre: "Mayor de 18 años", requerido: true, hecho: !p.mayor, pendiente: p.mayor ?? "" },
     { id: "terminos", nombre: "Política y Términos", requerido: true, hecho: !p.terminos, pendiente: p.terminos ?? "" },
     { id: "publicidad", nombre: "WhatsApp", requerido: false, hecho: r.aceptaPublicidad, pendiente: "" },

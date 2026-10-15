@@ -457,6 +457,27 @@ export function errorDeLaBase(hint: string | null | undefined): { mensaje: strin
   }
 }
 
+/**
+ * El correo que el servidor no aceptó (el de otra persona, `correo_repetido`; o uno que su revisión vio mal escrito), con lo que
+ * estaba escrito (Felipe 2026-10-15). Mientras la caja diga ESE correo, el mensaje va bajo ella —no bajo el botón— y el correo no
+ * cuenta como listo: la guía lo pide y «Unirme» espera. Si lo cambia o lo borra (es opcional), vuelve a valer lo de siempre. Como la
+ * tienda online («el correo de otra persona», `FormularioRegistro`). Sin decir de quién es: la página es pública.
+ */
+export type CorreoRechazado = { correo: string; mensaje: string };
+
+/** El correo como se compara: en minúsculas y sin espacios alrededor (así lo guarda la base). */
+const correoComparable = (texto: string) => texto.trim().toLowerCase();
+
+/** Lo que contestó «Unirme», si es un rechazo del correo; null si es otra cosa (que sigue diciéndose bajo el botón). */
+export function correoRechazado(res: RespuestaRegistro, r: RegistroEscrito): CorreoRechazado | null {
+  return res.estado === "error" && res.campo === "correo" ? { correo: correoComparable(r.correo), mensaje: res.mensaje } : null;
+}
+
+/** El mensaje si la caja todavía dice el correo rechazado; null si ya escribió otro (o lo borró). */
+export function rechazoDelCorreo(rechazo: CorreoRechazado | null, correo: string): string | null {
+  return rechazo && rechazo.correo !== "" && correoComparable(correo) === rechazo.correo ? rechazo.mensaje : null;
+}
+
 /** La fila de `registrarse_en_el_club` → lo que ve ella. null si la base no devolvió su código (no se le dice «listo» sin él). */
 export function respuestaDeRegistro(
   fila: { codigo_club?: unknown; club_desde?: unknown; era_socia?: unknown; nombre_corto?: unknown } | null | undefined,
