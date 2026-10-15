@@ -143,9 +143,24 @@ Total ≈ 14 sesiones. Las pantallas del ERP cumplen las reglas del repo (guía 
 - [x] **Integrado** (2026-10-15): la talla de obsequio sigue en S/ 0 y la Vitrina solo publica ropa (`20261015121000`, `122000`); el correo
   en «Editar ficha» del ERP, el aviso al archivar con un pedido web en curso, Vender que dice si ya tenía ficha y el correo del cartel bajo
   su campo (`20261015123000`).
-- [ ] **En construcción** (agentes, 2026-10-15): anular un pedido pagado con su boleta (cualquiera con el módulo); la ropa al precio de la
-  tienda aunque su ficha diga S/ 0; «Cambiar mi correo» y «Eliminar cuenta» en Mi cuenta, «Restablecer acceso» en la ficha del ERP y la
-  anonimización que espera a un pedido pagado; el nombre siempre del padrón; «Recomendaciones» (tienda y módulo nuevo del ERP).
+- [x] **Integrado** (2026-10-15): anular un pedido pagado con su boleta (`20261015114000`, `115000`); la ropa al precio de la tienda aunque su
+  ficha diga S/ 0 (`121000`, editada en su lugar); la Vitrina y «Separar» con el precio de la tienda (`122000` y `021000`, en su lugar);
+  «Recomendaciones» (`134000`, `135000`, módulo `recomendaciones`, nace solo para el líder); el nombre del padrón, «Obtener código» junto
+  al correo y las frases del Club (`133000`); y, de la sesión, el ✓ de cada paso con fecha en «Mis pedidos» y «1 no se vende ahí» en la bolsa.
+- [ ] **En construcción** (agente, 2026-10-15): «Cambiar mi correo» y «Eliminar cuenta» en Mi cuenta, «Restablecer acceso» en la ficha del
+  ERP y la anonimización que espera a un pedido pagado (`131000`, `132000`). Después: los nombres primero en todo el sistema (una sola regla
+  en `packages/shared`) y la tienda que acepta carné de extranjería y pasaporte (Felipe, 2026-10-15).
+- [ ] **Pendientes chicos que salieron al integrar** (no frenan el PR):
+  - la ficha de una prenda que no se vende en la tienda elegida debería decir «No se vende en Lima: mírala en Trujillo», no «ya no está»;
+  - en el celular, los motivos de «Anular el pedido» no se ven todos (el `SegmentoDeslizante`): decidir con Felipe, mirando, qué pieza usar;
+  - avisar al cliente en el aviso al entrar cuando CAYLA le responde una recomendación;
+  - un enlace a «Recomendaciones» desde «Mi cuenta»;
+  - revisar las fichas viejas con DNI y nombre escrito a mano («Actualizar desde el padrón»);
+  - el caso de dos aparatos pidiendo código para el mismo correo (el segundo gasta un envío);
+  - `/formidable` de las pantallas nuevas (tienda: ficha, bolsa, Mi cuenta; ERP: Pedidos web, Vitrina web, Recomendaciones).
+- [ ] **Tareas aparte sugeridas** (fuera de esta rama): `pruebas:igv-fase6` falla en `main` entre las 19:00 y las 24:00 de Lima; el caso
+  (j4) de `pruebas:club-cumpleanos` quedó viejo frente al «token sigue al contenido»; los documentos de los datos de prueba; y el foco que
+  se pierde al cerrar una hoja anidada (`Modal`).
 - [ ] **Antes del PR:** volver a verificar en una base limpia con todo junto; `/chaos` y `/formidable` de las pantallas nuevas del ERP y de la
   tienda; `pnpm datos:comparar`.
 
@@ -166,6 +181,7 @@ Total ≈ 14 sesiones. Las pantallas del ERP cumplen las reglas del repo (guía 
 5. **Configurar antes de abrir:** Configuración ▸ Tienda web (qué tiendas se ven, su WhatsApp, dirección y horario), las cuentas de cobro de
    cada tienda (Yape, Plin, transferencia), los módulos `vitrina_web` y `pedidos_web` a los roles que los atiendan, y la Vitrina.
 6. **La boleta real por Lucode:** solo con el OK de Felipe y después de hablar con su contador (abajo).
+   Antes, probar en el sandbox de Lucode la nota de crédito de un pedido pagado que se anula.
 7. **Después:** `pnpm datos:generar:produccion` y `pnpm datos:comparar`.
 
 ### Pendientes que no son de construcción

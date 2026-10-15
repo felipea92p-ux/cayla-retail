@@ -245,9 +245,24 @@ Y quedó así, por decisión técnica:
 - **«Recomendaciones» en la tienda:** el cliente escribe libremente sugerencias para una tienda o para CAYLA, siempre con su nombre; se
   leen y se responden en un módulo nuevo del ERP, «Recomendaciones», que nace solo para el líder.
 
+Y, al revisar lo que entregaron esos agentes, también el 2026-10-15:
+- **Cómo se habla del Club:** para invitar, «Crea tu cuenta y forma parte del Club CAYLA»; al confirmar (crear la cuenta o unirse en el
+  cartel), «¡Listo! Te damos la bienvenida al Club CAYLA»; para quien ya es, «Eres miembro del Club CAYLA». Nunca «ya eres del club».
+- **El código del correo se pide junto al correo** («Obtener código» al lado y la caja del código debajo), en «Crear cuenta» y en «Cambiar
+  mi correo»; sin el correo confirmado no se crea la cuenta (el servidor lo exige con una cookie firmada, no el navegador).
+- **El nombre del padrón va con los nombres primero en todo el sistema** («María Pérez García»; el saludo usa el nombre), una sola regla
+  en `packages/shared`. Si el padrón no responde al cobrar, la caja puede escribir el nombre solo en la boleta (la ficha espera al
+  padrón). La tienda web acepta también carné de extranjería y pasaporte, con el nombre escrito tal cual está en el documento.
+- **Recomendaciones**, con lo que recomendó su agente: la respuesta se escribe una vez; hasta 3 por día por cliente; el cliente lee
+  «CAYLA te respondió» (el ERP guarda quién); al anonimizar la ficha quedan sin datos personales; quien tiene el módulo ve las de todas
+  las tiendas.
+- **La Vitrina y «Separar» usan el precio de la tienda:** «sin precio» es que ninguna tienda de la web la ofrece; separar en una tienda
+  donde no tiene precio dice «no se vende en esa tienda» (`no_se_vende`), y la bolsa no promete traerla de otra.
+
 **Por confirmar con el contador antes de abrir** (no lo decide el código): si un adelanto cobrado antes de entregar pide su propio
 comprobante (hoy la boleta sale una vez, al quedar pagado completo, como en Apartados); los asientos de la cuenta 122 y la mercadería
-vendida sin entregar; y la nota de crédito al anular un pedido pagado. **Antes de abrir la tienda:** configurar las cuentas de cobro
+vendida sin entregar; la nota de crédito al anular un pedido pagado (tipo 01, anulación, o 06, devolución total) y, si
+el cobro fue en otro mes, en qué mes cuenta. **Antes de abrir la tienda:** configurar las cuentas de cobro
 (Yape, Plin, transferencia) de cada tienda, y publicar los textos finales del Club (la regla de 3 años ahora dice «desde tu última compra
 o tu última entrada a tu cuenta web») y de privacidad y términos, que siguen en borrador.
 
