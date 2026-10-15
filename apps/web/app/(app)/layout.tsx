@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { SedeActivaProveedor } from "@/components/SedeActiva";
 import { ColasSinConexion } from "@/components/ColasSinConexion";
 import { PreciosEnVivo } from "@/components/PreciosEnVivo";
+import { RefrescoTrasCorte } from "@/components/RefrescoTrasCorte";
 import { SinConexion } from "@/components/SinConexion";
 import { RecordatorioCierreCaja } from "@/components/RecordatorioCierreCaja";
 import { EsperaAlVelo } from "@/components/login/EntradaColibri";
@@ -75,6 +76,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <ColasSinConexion />
         {/* Precio o campaña cambiados desde otra pestaña o caja: la pantalla abierta se pone al día sola (2026-10-08). */}
         <PreciosEnVivo />
+        {/* Un guardado que se quedó sin respuesta (ADR-0410): la pantalla se vuelve a leer sola cuando la base responda (ADR-0411). */}
+        <RefrescoTrasCorte />
         {/* «Es hora de cerrar caja» (ADR-0305): desde la hora de cierre de la tienda hasta que la caja se cierra, en toda pantalla. */}
         {recibeRecordatorio && <RecordatorioCierreCaja inicial={recordatorioCierre} />}
       </SedeActivaProveedor>

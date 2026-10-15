@@ -12,6 +12,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { TEXTO_TIPO_CUENTA, TIPOS_QUE_SE_AGREGAN, type CuentaDinero, type TipoCuenta } from "@/lib/cuentas-dinero-reglas";
 import { cambiosDeCuenta, formInicial, leerDetalleCuenta, salidaDeCuenta, textoUsos, type DetalleCuenta, type FormCuenta } from "@/lib/cuenta-editar-reglas";
+import { MAX_NOMBRE_CUENTA, MAX_NUMERO_CUENTA } from "@/lib/finanzas-topes";
 import { Boton } from "@/components/ui/campos";
 
 // Configuración ▸ Cuentas y cobros ▸ «Editar cuenta» (ADR-0195 F3, actualización 2026-09-25). Lo que se puede cambiar lo
@@ -98,7 +99,7 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
       {falla && <p className="nota-cayla mb-4">{falla}</p>}
 
       <CampoFin etiqueta="Nombre" htmlFor="ed-cta-nombre">
-        <InputFin id="ed-cta-nombre" value={form.nombre} disabled={bloqueado} onChange={(e) => poner({ nombre: e.target.value })} />
+        <InputFin id="ed-cta-nombre" value={form.nombre} disabled={bloqueado} onChange={(e) => poner({ nombre: e.target.value })} maxLength={MAX_NOMBRE_CUENTA} />
       </CampoFin>
 
       {detalle?.automatica ? (
@@ -123,7 +124,7 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
               />
             </CampoFin>
             <CampoFin etiqueta="Número (opcional)" htmlFor="ed-cta-numero">
-              <InputFin id="ed-cta-numero" value={form.numero} disabled={bloqueado} onChange={(e) => poner({ numero: e.target.value })} placeholder="•••• 1942" />
+              <InputFin id="ed-cta-numero" value={form.numero} disabled={bloqueado} onChange={(e) => poner({ numero: e.target.value })} placeholder="•••• 1942" maxLength={MAX_NUMERO_CUENTA} />
             </CampoFin>
           </div>
           <div className="fin-dos-campos">

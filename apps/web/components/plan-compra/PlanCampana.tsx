@@ -96,8 +96,8 @@ export function PlanCampana({
   puedeContar: boolean;
   /** Ve Análisis: el simulador ofrece el acceso a «Qué pedir», prenda por prenda. */
   veAnalisis?: boolean;
-  /** Solo para «Fijar un mínimo» por tienda: su función de la base todavía pide ser líder. El resto del plan es de quien tiene el
-   *  módulo (ADR-0387). */
+  /** Solo para «Campaña nueva»: escribe en Catálogo ▸ Etiquetas y sigue siendo de un líder. El resto del plan, el mínimo por tienda
+   *  incluido, es de quien tiene el módulo (ADR-0387; ADR-0362, decisión 64). */
   esLider: boolean;
   /** La URL pedía una campaña que no existe (vieja o escrita a mano): se muestra la más reciente y se dice. */
   planPedidoNoExiste?: boolean;
@@ -477,19 +477,17 @@ export function PlanCampana({
           )}
 
           {hechos && hechos.planId === plan.plan.id && hechos.tiendasActivas.length > 1 && (
-            // El reparto entre tiendas (Felipe 2026-10-12): según lo que vende cada una; el mínimo de la que vende poco (Lima) lo fija, por ahora,
-            // solo un líder: `guardar_plan_compra_minimo` todavía lo exige en la base (pasarlo al módulo, ADR-0387, espera el OK de Felipe).
+            // El reparto entre tiendas (Felipe 2026-10-12): según lo que vende cada una; el mínimo de la que vende poco (Lima) lo fija quien
+            // tiene el módulo, sea o no líder (ADR-0362, decisión 64; la base lo exige también).
             <div data-guia="plan.reparto" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-hueso px-4 py-3 text-[13px] text-tinta/80">
               <span className="min-w-0 basis-full">
                 Lo que conviene tener se reparte entre las tiendas según lo que vende cada una
                 {fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos) ? `; con mínimo: ${fraseDeLosMinimos(hechos.tiendasActivas, hechos.minimos)}` : ""}. El
                 detalle, en la hoja de cada categoría.
               </span>
-              {esLider && (
-                <Boton peso="discreto" onClick={() => setEditandoReparto(true)}>
-                  {hechos.minimos.size > 0 ? "Cambiar los mínimos" : "Fijar un mínimo"}
-                </Boton>
-              )}
+              <Boton peso="discreto" onClick={() => setEditandoReparto(true)}>
+                {hechos.minimos.size > 0 ? "Cambiar los mínimos" : "Fijar un mínimo"}
+              </Boton>
             </div>
           )}
 
