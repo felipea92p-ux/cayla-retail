@@ -24,6 +24,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { haceCuanto } from "@/lib/vender-hoy-reglas";
 import { soles } from "@/lib/precio-sede-reglas";
 import { camposConfirmar, camposMotivo, camposReservar, campoDeLinea } from "@/lib/pedidos-web-guia";
+import { detalleDelPago, esAdelanto, estadoDelPago, porDevolver, sePuedeAnular, textoDelPago } from "@/lib/pedidos-web-cobro-reglas";
 import {
   avisosDeLinea,
   datosDelCliente,
@@ -49,6 +50,7 @@ import {
   type EstadoPedidoWeb,
   type LineaDetalle,
   type LugarWeb,
+  type PagoDeLista,
   type PedidoDetalle,
   type PlantillaWhatsapp,
 } from "@/lib/pedidos-web-reglas";
@@ -64,8 +66,11 @@ const AVISO_CON_BOTON =
  *   · por confirmar: qué pasa con cada prenda (de qué lugar sale —el almacén primero—, traerla de otra tienda, conseguirla para
  *     una fecha o quitarla), los avisos de «la última» y de quién la separó antes, y «Confirmar»; o «No se puede confirmar» con su
  *     motivo;
- *   · confirmado: dónde está cada prenda (reservada, por traer, en camino, por conseguir), lo cobrado y «Anular» con su motivo
- *     (lo reservado vuelve a estar disponible). Cobrar y entregar son las actividades 9 y 10;
+ *   · confirmado: dónde está cada prenda (reservada, por traer, en camino, por conseguir), sus pagos y «Registrar pago» (la hoja de
+ *     encima, actividad 9: si espera una prenda por conseguir, el adelanto lo decide la tienda), anular un pago mal anotado, y
+ *     «Anular» el pedido con su motivo (lo reservado vuelve a estar disponible; si ya pagó, la hoja se queda abierta con lo que hay
+ *     que devolverle). Entregar es la actividad 10;
+ *   · anulado con plata del cliente: cada pago «por devolver», con «Devolver» (la plata sale de la caja de hoy si es efectivo);
  *   · pagado, entregado o cerrado: para leer.
  * Todo lo que guarda firma con el «Responsable» (ADR-0162) y no cambia qué decide la base: si otra caja ya lo tocó, lo dice.
  */
@@ -78,14 +83,21 @@ export function PedidoWebHoja({
   onCambio,
   onEnviar,
   onReleer,
+  onPagar,
+  onAnularPago,
 }: {
   pedido: PedidoDetalle;
   tiendaId: string;
   tienda: string;
   ahora: number;
   onClose: () => void;
-  /** La base cambió el pedido (confirmado, cerrado, anulado o una prenda reservada): la lista se pone al día. */
-  onCambio: (estado: EstadoPedidoWeb) => void;
+  /** La base cambió el pedido (confirmado, cerrado, anulado o una prenda reservada): la lista se pone al día. `sigueAbierta`: la hoja
+   *  no se cierra (anulado con plata por devolver): el pedido se relee ya, no al cerrar. */
+  onCambio: (estado: EstadoPedidoWeb, opciones?: { sigueAbierta?: boolean }) => void;
+  /** Abrir «Registrar un pago» encima de esta hoja (actividad 9). */
+  onPagar: () => void;
+  /** Abrir «Anular un pago» (o «Devolver», en un pedido anulado) encima de esta hoja. */
+  onAnularPago: (pago: PagoDeLista) => void;
   /** Enviar a la tienda del pedido lo reservado en `desdeId` (solo quien opera esa tienda). */
   onEnviar: (desdeId: string) => void;
   /** Volver a leer el pedido (lo que muestra la hoja ya no es cierto: otra caja se llevó la última). */
@@ -205,6 +217,14 @@ export function PedidoWebHoja({
         detalle: lineasPorConseguir(decisiones) > 0 ? "Se reservó lo que había; lo demás queda por conseguir." : "Sus prendas quedaron reservadas.",
       });
       onCambio("confirmado");
+      return;
+    }
+    if (accion === "anular" && p.pagado > 0) {
+      // Ya pagó algo: la hoja se queda abierta para lo que sigue, devolverle su plata (en cada pago, «Devolver»).
+      avisar.exito(`Pedido ${p.codigo} anulado`, { detalle: `Lo reservado volvió a estar disponible. Falta devolverle ${soles(p.pagado)}.` });
+      setModo("revisar");
+      setMotivo(null);
+      onCambio("anulado", { sigueAbierta: true });
       return;
     }
     avisar.exito(accion === "anular" ? `Pedido ${p.codigo} anulado` : `Pedido ${p.codigo} cerrado`, {
@@ -383,7 +403,13 @@ export function PedidoWebHoja({
                 </Aviso>
               )}
               <LineasDelPedido pedido={p} tiendaId={tiendaId} onEnviar={onEnviar} onReservar={reservar} />
-              <BloqueDinero pedido={p} ahora={ahora} />
+              <BloqueDinero pedido={p} ahora={ahora} onAnularPago={onAnularPago} />
+              {esAdelanto(p) && (
+                <Aviso tono="info" titulo="Espera una prenda por conseguir">
+                  Llega para el {fechaCorta(p.lineas.find((l) => l.estado === "por_conseguir")?.fechaCompromiso ?? null)}. Cobra un adelanto ahora
+                  (tú decides cuánto) y el resto cuando la recoja.
+                </Aviso>
+              )}
               <p className="text-[12.5px] text-taupe">La boleta sale cuando el pedido queda pagado completo.</p>
               <PieAcciones
                 izquierda={
@@ -396,6 +422,15 @@ export function PedidoWebHoja({
                   <MessageCircle aria-hidden className="h-4 w-4" />
                   WhatsApp
                 </BotonAncla>
+                <Boton type="button" peso="primario" aria-haspopup="dialog" onClick={onPagar} data-guia="pedido-web.pagar">
+                  {/* En el celular el pie se reparte en mitades: ahí solo «Registrar pago» (lo que falta ya está arriba). */}
+                  <span className="inline-flex items-center gap-2">
+                    <Wallet aria-hidden className="h-4 w-4 max-sm:hidden" />
+                    <span>
+                      Registrar pago<span className="max-sm:hidden"> · falta {soles(p.falta)}</span>
+                    </span>
+                  </span>
+                </Boton>
               </PieAcciones>
             </>
           )}
@@ -505,7 +540,24 @@ export function PedidoWebHoja({
           {!porConfirmar && p.estado !== "confirmado" && modo !== "reservar" && (
             <>
               <LineasDelPedido pedido={p} tiendaId={tiendaId} onEnviar={onEnviar} onReservar={p.estado === "pagado" ? reservar : undefined} />
-              {lineasVivas.length > 0 && p.estado !== "vencido" && <BloqueDinero pedido={p} ahora={ahora} />}
+              {porDevolver(p) > 0 && (
+                <Aviso
+                  tono="atencion"
+                  titulo={`Falta devolverle ${soles(porDevolver(p))}`}
+                  className={AVISO_CON_BOTON}
+                  accion={
+                    <BotonAncla href={whatsapp("devolucion")} target="_blank" rel="noopener noreferrer" className="btn-chico">
+                      <MessageCircle aria-hidden className="h-4 w-4" />
+                      Escribirle por WhatsApp
+                    </BotonAncla>
+                  }
+                >
+                  El pedido está anulado y ya había pagado. Coordina cómo se lo devuelves y regístralo en cada pago con «Devolver».
+                </Aviso>
+              )}
+              {lineasVivas.length > 0 && p.estado !== "vencido" && (
+                <BloqueDinero pedido={p} ahora={ahora} onAnularPago={p.estado === "anulado" ? onAnularPago : undefined} />
+              )}
               <Aviso tono="info">
                 {p.estado === "pagado"
                   ? p.listoParaRecoger
@@ -732,9 +784,20 @@ function LineasDelPedido({
   );
 }
 
-/** Total, pagado y lo que falta, con sus pagos (solo para leer: cobrar es la actividad 9). */
-function BloqueDinero({ pedido: p, ahora }: { pedido: PedidoDetalle; ahora: number }) {
-  const pagos = p.pagos.filter((g) => g.estado === "aprobado");
+/** Total, lo pagado y lo que falta (o, anulado, lo que hay que devolver), con cada pago: quién lo registró, si entró a la caja, si se
+ *  anuló (tachado, con quién y por qué) y, si todavía se puede, su «Anular» (o «Devolver», en un pedido anulado). */
+function BloqueDinero({
+  pedido: p,
+  ahora,
+  onAnularPago,
+}: {
+  pedido: PedidoDetalle;
+  ahora: number;
+  /** Sin esto, los pagos solo se leen (un pedido pagado completo: devolverle ya es una nota de crédito). */
+  onAnularPago?: (pago: PagoDeLista) => void;
+}) {
+  const devolver = porDevolver(p);
+  const anulado = p.estado === "anulado";
   return (
     <div className="space-y-2 rounded-xl border border-sand px-4 py-3" data-guia="pedido-web.dinero">
       <dl className="grid grid-cols-3 gap-3 text-center">
@@ -747,31 +810,41 @@ function BloqueDinero({ pedido: p, ahora }: { pedido: PedidoDetalle; ahora: numb
           <dd className="font-display text-xl tabular-nums text-tinta">{soles(p.pagado)}</dd>
         </div>
         <div>
-          <dt className="text-[12px] text-taupe">Falta</dt>
-          <dd className={`font-display text-xl tabular-nums ${p.falta > 0 ? "text-ambar-profundo" : "text-verde"}`}>{soles(p.falta)}</dd>
+          <dt className="text-[12px] text-taupe">{anulado ? "Por devolver" : "Falta"}</dt>
+          <dd className={`font-display text-xl tabular-nums ${anulado ? (devolver > 0 ? "text-rojo-profundo" : "text-verde") : p.falta > 0 ? "text-ambar-profundo" : "text-verde"}`}>
+            {soles(anulado ? devolver : p.falta)}
+          </dd>
         </div>
       </dl>
-      {pagos.length === 0 ? (
+      {p.pagos.length === 0 ? (
         <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<Wallet />}>
           Todavía no registra pagos.
         </Vacio>
       ) : (
-        <ul className="space-y-1 text-[13px]">
-          {pagos.map((g) => (
-            <li key={g.id} className="flex flex-wrap justify-between gap-x-3">
-              <span className="text-tinta">
-                {soles(g.monto)} · {g.medio}
-                {g.numeroOperacion ? ` · op. ${g.numeroOperacion}` : ""}
-              </span>
-              <span className="text-taupe">
-                {haceCuanto(g.registradoEn, ahora)}
-                {g.registradoPor ? ` · por ${g.registradoPor}` : ""}
-              </span>
-            </li>
-          ))}
+        <ul className="divide-y divide-sand text-[13px]">
+          {p.pagos.map((g) => {
+            const chip = estadoDelPago(g, p.estado);
+            const tachado = g.estado === "anulado" || g.estado === "rechazado";
+            return (
+              <li key={g.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
+                <span className="min-w-0 flex-1 basis-56">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className={`tabular-nums ${tachado ? "text-taupe line-through decoration-tinta/40" : "text-tinta"}`}>{textoDelPago(g)}</span>
+                    {chip && <Chip tono={chip.tono}>{chip.texto}</Chip>}
+                  </span>
+                  <span className="block text-[12px] text-taupe">{detalleDelPago(g, ahora, p.tienda)}</span>
+                </span>
+                {onAnularPago && sePuedeAnular(g, p.estado) && (
+                  <Boton type="button" peso="peligro" className="btn-chico" aria-haspopup="dialog" onClick={() => onAnularPago(g)}>
+                    {anulado ? "Devolver" : "Anular pago"}
+                  </Boton>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
-      {p.lineas.some((l) => l.estado === "por_conseguir") && (
+      {p.lineas.some((l) => l.estado === "por_conseguir") && !esAdelanto(p) && (
         <p className="text-[12.5px] text-taupe">Espera una prenda: llega para el {fechaCorta(p.lineas.find((l) => l.estado === "por_conseguir")?.fechaCompromiso ?? null)}.</p>
       )}
     </div>

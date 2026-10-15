@@ -1518,7 +1518,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `pedidosWebPorConfirmar`). Existencias rotula la reserva de un pedido web en «Apartados» (`fn_apartados_de_pedidos_web` en
   `lib/apartados.ts`; sin «Liberar») y Catálogo dice «tiene pedidos web» (renglón 25 de `fn_producto_historia`). Migraciones
   `20261015010000_pedidos_web_erp.sql` y `20261015011000_pedidos_web_en_catalogo_y_existencias.sql` (sin aplicar en producción).
-  Cobrar y entregar son las actividades 9 y 10.
+  **Cobrar** (actividad 9): en la hoja de un pedido confirmado, «Registrar pago» abre encima `RegistrarPagoHoja.tsx` (monto —el
+  adelanto de lo que se consigue no viene puesto—, `components/ui/FichasMedio.tsx` para el medio, n.º de operación si es digital,
+  Responsable; `useIntento("registrar_pago_pedido_web")` → `registrar_pago_pedido_web`, que anota la huella del token y la revisa
+  `fn_resolver_intento`); cada pago vivo tiene «Anular pago» (o «Devolver», en un pedido anulado con plata) → `AnularPagoHoja.tsx` →
+  `anular_pago_pedido_web` (el efectivo sale de la caja abierta del día). La lógica pura: `lib/pedidos-web-cobro-reglas.ts`; la guía de
+  foco: `camposPago` y `camposAnularPago` en `lib/pedidos-web-guia.ts`. El detalle trae `caja_abierta` y quién anuló cada pago, y la lista
+  conserva lo anulado con plata por devolver (`20261015041000_pedidos_web_cobrar.sql`; el token, `20261015042000_pedidos_web_cobrar_token.sql`;
+  sin aplicar en producción). La boleta al quedar pagado completo y la entrega son la actividad 10.
 
 - **Configuración** (2026-09-24, ADR-0195 F1; módulo `configuracion`, solo líder por ahora; se entra desde el perfil, como
   Colaboradores): `/configuracion` → `lib/configuracion.ts` (`fn_configuracion_tiendas`) + `lib/configuracion-reglas.ts` (lógica

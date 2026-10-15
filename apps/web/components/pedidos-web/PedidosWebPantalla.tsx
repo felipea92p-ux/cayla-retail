@@ -16,6 +16,8 @@ import { Vacio } from "@/components/ui/Vacio";
 import { Aviso } from "@/components/ui/Aviso";
 import { PedidoWebHoja } from "@/components/pedidos-web/PedidoWebHoja";
 import { EnviarPedidoWebHoja } from "@/components/pedidos-web/EnviarPedidoWebHoja";
+import { RegistrarPagoHoja } from "@/components/pedidos-web/RegistrarPagoHoja";
+import { AnularPagoHoja } from "@/components/pedidos-web/AnularPagoHoja";
 import { haceCuanto } from "@/lib/vender-hoy-reglas";
 import { soles } from "@/lib/precio-sede-reglas";
 import {
@@ -27,6 +29,7 @@ import {
   plazoCorto,
   URGENTE_MS,
   type EnvioPorHacer,
+  type PagoDeLista,
   type ParaEnviar,
   type PedidoDeLista,
   type PedidoDetalle,
@@ -63,8 +66,9 @@ export function MiniPrenda({ prenda, tamano = "sm" }: { prenda: PrendaWeb; taman
 /**
  * Ventas ▸ Pedidos web (ADR-0408, actividad 8; maqueta v4, «Pedidos web»): las cifras de la tienda (cada una lleva a su pestaña),
  * lo que otra tienda espera de aquí («Para enviar»), y la lista en sus cuatro pestañas. Tocar un pedido lo abre (la URL lo recuerda:
- * `?pedido=`). La hoja confirma, no confirma o anula; lo de enviar abre su propia hoja. Toda escritura pasa por una hoja con el combo
- * «Responsable» (ADR-0162).
+ * `?pedido=`). La hoja confirma, no confirma o anula; lo de enviar abre su propia hoja, y cobrar (actividad 9) también: «Registrar un
+ * pago» y «Anular un pago» (o «Devolver») se abren ENCIMA de la del pedido, que se pone al día al guardar. Toda escritura pasa por
+ * una hoja con el combo «Responsable» (ADR-0162).
  */
 export function PedidosWebPantalla({
   tablero,
@@ -85,9 +89,13 @@ export function PedidosWebPantalla({
 }) {
   const router = useRouter();
   const grupos = agruparPorPestana(tablero.pedidos);
-  // La pestaña de entrada: la pedida en la URL, o la primera con algo (empezando por lo que vence).
+  // La pestaña de entrada: la pedida en la URL, o la primera con algo (empezando por lo que vence); si no hay nada abierto pero queda
+  // plata por devolver de un anulado, «Cerrados» (es lo único que falta hacer).
   const [pestana, setPestana] = useState<PestanaPedidos>(
-    () => pestanaInicial ?? (["confirmar", "cobrar", "entregar"] as const).find((p) => grupos[p].length > 0) ?? "confirmar",
+    () =>
+      pestanaInicial ??
+      (["confirmar", "cobrar", "entregar"] as const).find((p) => grupos[p].length > 0) ??
+      (grupos.cerrados.some((p) => p.estado === "anulado" && p.pagado > 0) ? "cerrados" : "confirmar"),
   );
   // «Ahora» parte de la hora del servidor (el primer dibujo es idéntico en los dos lados) y avanza cada minuto: «vence en 3 h».
   const [ahora, setAhora] = useState(() => Date.parse(ahoraIso));
@@ -100,6 +108,9 @@ export function PedidosWebPantalla({
   // Cerrar la hoja no vuelve a pedir la página: se esconde y la URL pierde su `?pedido=` (sin recargar).
   const [cerradoId, setCerradoId] = useState<string | null>(null);
   const [enviando, setEnviando] = useState<EnvioPorHacer | null>(null);
+  // Cobrar dentro del pedido (actividad 9): las hojas que se abren encima de la del pedido abierto.
+  const [pagando, setPagando] = useState(false);
+  const [anulandoPago, setAnulandoPago] = useState<PagoDeLista | null>(null);
   // Un pedido cerrado o anulado se refresca DESPUÉS de cambiar la URL al cerrar la hoja: un refresco pedido antes se perdía.
   const refrescarAlCerrar = useRef(false);
 
@@ -111,10 +122,14 @@ export function PedidosWebPantalla({
   const urlCon = (extra: Record<string, string>) => `${RUTA}?${new URLSearchParams({ pestana, ...extra }).toString()}`;
   const abrir = (id: string) => {
     setCerradoId(null);
+    setPagando(false);
+    setAnulandoPago(null);
     router.push(urlCon({ pedido: id }), { scroll: false });
   };
   const cerrar = () => {
     if (detalle) setCerradoId(detalle.id);
+    setPagando(false);
+    setAnulandoPago(null);
     window.history.replaceState(null, "", urlCon({}));
     if (refrescarAlCerrar.current) {
       refrescarAlCerrar.current = false;
@@ -172,15 +187,30 @@ export function PedidosWebPantalla({
         >
           {cifras.sinRecoger > 0 ? `${cifras.sinRecoger} sin recoger hace más de ${plazos.diasAvisoSinRecoger} días` : "Pagados"}
         </TarjetaCifra>
-        <TarjetaCifra
-          punto="neutro"
-          etiqueta="Cobrado hoy"
-          className="anim-entra"
-          style={{ ["--i" as string]: 3 }}
-          valor={<CifraQueCuenta valor={cifras.cobradoHoy} formato="soles" alMontar />}
-        >
-          En pedidos web
-        </TarjetaCifra>
+        {cifras.porDevolver > 0 ? (
+          // Plata de clientes en pedidos anulados: lo que falta hacer con el dinero va primero (lleva a «Cerrados»).
+          <TarjetaCifra
+            punto="rojo"
+            etiqueta="Cobrado hoy"
+            className="anim-entra"
+            style={{ ["--i" as string]: 3 }}
+            valor={<CifraQueCuenta valor={cifras.cobradoHoy} formato="soles" alMontar />}
+            activa={pestana === "cerrados"}
+            onClick={() => cambiarPestana("cerrados")}
+          >
+            {`${soles(cifras.porDevolver)} por devolver en ${cifras.pedidosPorDevolver} ${cifras.pedidosPorDevolver === 1 ? "pedido anulado" : "pedidos anulados"}`}
+          </TarjetaCifra>
+        ) : (
+          <TarjetaCifra
+            punto="neutro"
+            etiqueta="Cobrado hoy"
+            className="anim-entra"
+            style={{ ["--i" as string]: 3 }}
+            valor={<CifraQueCuenta valor={cifras.cobradoHoy} formato="soles" alMontar />}
+          >
+            En pedidos web
+          </TarjetaCifra>
+        )}
       </div>
 
       {tablero.paraEnviar.length > 0 && (
@@ -234,7 +264,8 @@ export function PedidosWebPantalla({
       <div className="nota-cayla space-y-2 text-[13px]" data-guia="pedidos-web.nota">
         <p>
           Separar no toca el stock: la prenda se reserva recién cuando confirmas, y sale del stock al entregarla. Un pedido por confirmar se
-          cierra solo a las {plazos.horasParaConfirmar} horas. Los pedidos web van aparte de los apartados de tienda.
+          cierra solo a las {plazos.horasParaConfirmar} horas. Los pagos se registran dentro de cada pedido: el efectivo entra a la caja
+          abierta. Los pedidos web van aparte de los apartados de tienda.
         </p>
       </div>
 
@@ -246,11 +277,13 @@ export function PedidosWebPantalla({
           tienda={tienda}
           ahora={ahora}
           onClose={cerrar}
-          onCambio={(estado) => {
+          onCambio={(estado, opciones) => {
             setRecien(abierto.id);
             if (estado === "anulado") {
               setPestana("cerrados");
-              refrescarAlCerrar.current = true;
+              // Anulado con plata por devolver: la hoja sigue abierta y el pedido se relee ya. Si se cierra, al cerrar.
+              if (opciones?.sigueAbierta) router.refresh();
+              else refrescarAlCerrar.current = true;
               return;
             }
             if (estado === "confirmado") setPestana("cobrar");
@@ -269,6 +302,34 @@ export function PedidosWebPantalla({
             });
           }}
           onReleer={() => router.refresh()}
+          onPagar={() => setPagando(true)}
+          onAnularPago={(g) => setAnulandoPago(g)}
+        />
+      )}
+      {abierto && pagando && (
+        <RegistrarPagoHoja
+          key={`pago-${abierto.id}`}
+          pedido={abierto}
+          onClose={() => setPagando(false)}
+          onRegistrado={(estado) => {
+            setRecien(abierto.id);
+            // Pagado completo: en la lista pasa a «Por entregar».
+            if (estado === "pagado") setPestana("entregar");
+            router.refresh();
+          }}
+        />
+      )}
+      {abierto && anulandoPago && (
+        <AnularPagoHoja
+          key={`anular-${anulandoPago.id}`}
+          pedido={abierto}
+          pago={anulandoPago}
+          ahora={ahora}
+          onClose={() => setAnulandoPago(null)}
+          onAnulado={() => {
+            setRecien(abierto.id);
+            router.refresh();
+          }}
         />
       )}
       {enviando && (

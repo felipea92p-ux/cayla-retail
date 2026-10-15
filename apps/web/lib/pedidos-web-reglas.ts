@@ -8,7 +8,8 @@
 //            pide `confirmar_pedido_web`, y lo que todavía falta para poder confirmar; y los mensajes de WhatsApp de la maqueta.
 //   ASUME:   que la base manda (permisos, stock, plazos, transiciones): lo que aquí se calcula es para mostrar y para no ofrecer lo que
 //            la base rechazaría. Los plazos (24 h, 48 h, 7 días) llegan de Configuración ▸ Tienda web en la lectura, nunca escritos aquí.
-//   NO HACE: cobrar ni entregar (actividades 9 y 10): solo dice lo que falta.
+//   NO HACE: entregar (actividad 10). Lo de cobrar (registrar y anular un pago) vive en `pedidos-web-cobro-reglas.ts` (actividad 9);
+//            aquí solo se lee lo que pagó cada pedido y lo que queda por devolver de uno anulado.
 
 import { diaLima, hoyLima, sumarDias } from "./fechas-lima";
 import { enlaceWhatsAppA } from "./facturacion-comprobantes-reglas";
@@ -118,7 +119,24 @@ export type LineaDetalle = PrendaWeb & {
   traslado: TrasladoDeLinea | null;
 };
 
-export type PagoDeLista = { id: string; medio: string; monto: number; estado: string; numeroOperacion: string | null; registradoEn: string; registradoPor: string | null; enCaja: boolean };
+export type PagoDeLista = {
+  id: string;
+  /** «tienda» (lo anotó la sede) o «pasarela» (el aviso de un cobro en línea, futuro). */
+  origen: "tienda" | "pasarela";
+  medio: string;
+  monto: number;
+  /** aprobado · anulado · y, de una pasarela, pendiente · rechazado · por_revisar. */
+  estado: string;
+  numeroOperacion: string | null;
+  /** Lo que explica un pago «por revisar» de la pasarela. */
+  observacion: string | null;
+  registradoEn: string;
+  registradoPor: string | null;
+  enCaja: boolean;
+  anuladoEn: string | null;
+  anuladoPor: string | null;
+  anuladoMotivo: string | null;
+};
 
 export type PedidoDetalle = {
   id: string;
@@ -146,6 +164,9 @@ export type PedidoDetalle = {
   tiendaWeb: { nombre: string; direccion: string | null; horario: string | null };
   /** Los lugares de la tienda del pedido, para elegir de dónde sale cada prenda. */
   lugares: Partial<Record<LugarWeb, string>>;
+  /** ¿La tienda del pedido tiene su caja abierta? (para ofrecer el efectivo al cobrar y al devolver). null = no se sabe (una base sin la
+   *  actividad 9): no se bloquea nada y decide la base. */
+  cajaAbierta: boolean | null;
 };
 
 type Crudo = Record<string, unknown>;
@@ -277,17 +298,23 @@ export function leerDetalle(data: unknown): PedidoDetalle | null {
       ...(texto(lugares.almacen_tienda) ? { almacen: texto(lugares.almacen_tienda)! } : {}),
       ...(texto(lugares.piso_venta) ? { piso: texto(lugares.piso_venta)! } : {}),
     },
-    pagos: lista(d.pagos).map((x) => {
+    cajaAbierta: typeof d.caja_abierta === "boolean" ? d.caja_abierta : null,
+    pagos: lista(d.pagos).map((x): PagoDeLista => {
       const g = obj(x);
       return {
         id: texto(g.pago_id) ?? "",
+        origen: g.origen === "pasarela" ? "pasarela" : "tienda",
         medio: texto(g.medio) ?? "",
         monto: numero(g.monto),
         estado: texto(g.estado) ?? "",
         numeroOperacion: texto(g.numero_operacion),
+        observacion: texto(g.observacion),
         registradoEn: texto(g.registrado_en) ?? "",
         registradoPor: texto(g.registrado_por),
         enCaja: booleano(g.en_caja),
+        anuladoEn: texto(g.anulado_en),
+        anuladoPor: texto(g.anulado_por),
+        anuladoMotivo: texto(g.anulado_motivo),
       };
     }),
     lineas: lista(d.lineas)
@@ -384,12 +411,16 @@ export type CifrasPedidosWeb = {
   porEntregar: number;
   sinRecoger: number;
   cobradoHoy: number;
+  /** Lo que la tienda todavía tiene de clientes en pedidos anulados (se les devuelve anulando cada pago), y en cuántos pedidos. */
+  porDevolver: number;
+  pedidosPorDevolver: number;
 };
 
 export function cifrasDe(t: Pick<TableroPedidosWeb, "pedidos" | "cobradoHoy">, ahora: number): CifrasPedidosWeb {
   const porConfirmar = t.pedidos.filter((p) => p.estado === "por_confirmar");
   const confirmados = t.pedidos.filter((p) => p.estado === "confirmado");
   const pagados = t.pedidos.filter((p) => p.estado === "pagado");
+  const conPlata = t.pedidos.filter((p) => p.estado === "anulado" && p.pagado > 0);
   const vencen = porConfirmar.map((p) => (p.venceEn ? Date.parse(p.venceEn) - ahora : null)).filter((x): x is number => x !== null);
   return {
     porConfirmar: porConfirmar.length,
@@ -400,6 +431,8 @@ export function cifrasDe(t: Pick<TableroPedidosWeb, "pedidos" | "cobradoHoy">, a
     porEntregar: pagados.length,
     sinRecoger: pagados.filter((p) => p.sinRecoger).length,
     cobradoHoy: t.cobradoHoy,
+    porDevolver: Math.round(conPlata.reduce((a, p) => a + p.pagado, 0) * 100) / 100,
+    pedidosPorDevolver: conPlata.length,
   };
 }
 
@@ -410,7 +443,7 @@ export type TonoEstado = "ambar" | "rojo" | "pizarra" | "verde" | "neutro" | "ap
 
 /** En qué está el pedido y qué toca hacer, en palabras de tienda (la maqueta, `chipEstado` y `accionTexto`). */
 export function estadoVisible(
-  p: Pick<PedidoDeLista, "estado" | "venceEn" | "confirmadoEn" | "pagadoEn" | "falta" | "sinPagar" | "sinRecoger" | "listoParaRecoger">,
+  p: Pick<PedidoDeLista, "estado" | "venceEn" | "confirmadoEn" | "pagadoEn" | "falta" | "pagado" | "sinPagar" | "sinRecoger" | "listoParaRecoger">,
   ahora: number,
 ): { texto: string; tono: TonoEstado; vivo: boolean; accion: string } {
   if (p.estado === "por_confirmar") {
@@ -426,7 +459,7 @@ export function estadoVisible(
         vivo: false,
         accion: "Escríbele y decide si lo anulas",
       };
-    return { texto: `Por cobrar · falta ${soles(p.falta)}`, tono: "pizarra", vivo: false, accion: "Coordina su pago por WhatsApp" };
+    return { texto: `Por cobrar · falta ${soles(p.falta)}`, tono: "pizarra", vivo: false, accion: "Registra su pago cuando lo haga" };
   }
   if (p.estado === "pagado") {
     if (p.sinRecoger)
@@ -436,6 +469,8 @@ export function estadoVisible(
   }
   if (p.estado === "entregado") return { texto: "Entregado", tono: "neutro", vivo: false, accion: "" };
   if (p.estado === "vencido") return { texto: "Se cerró sin confirmar", tono: "apagado", vivo: false, accion: "" };
+  // Anulado con plata del cliente todavía en la tienda (ADR-0408 act. 9): es lo que falta hacer con él.
+  if (p.pagado > 0) return { texto: `Anulado · por devolver ${soles(p.pagado)}`, tono: "rojo", vivo: false, accion: "Devuélvele lo que pagó" };
   return { texto: "Anulado", tono: "apagado", vivo: false, accion: "" };
 }
 
@@ -654,13 +689,13 @@ export function faltaDeLlegada(fecha: string, hoy: string): string | null {
 // WhatsApp (se abre en wa.me: lo manda la persona, nunca el sistema)
 // ---------------------------------------------------------------------------------------------------------------------------
 
-export type PlantillaWhatsapp = "libre" | "confirmado" | "cobro" | "sinstock";
+export type PlantillaWhatsapp = "libre" | "confirmado" | "cobro" | "sinstock" | "devolucion";
 
 const primerNombre = (nombre: string) => nombre.trim().split(/\s+/)[0] ?? nombre;
 
 /** Los mensajes de la maqueta (`plantilla`), con la tienda y la dirección de Configuración ▸ Tienda web. */
 export function mensajeWhatsapp(
-  p: Pick<PedidoDetalle, "codigo" | "total" | "falta" | "cliente" | "tiendaWeb">,
+  p: Pick<PedidoDetalle, "codigo" | "total" | "falta" | "pagado" | "cliente" | "tiendaWeb">,
   plantilla: PlantillaWhatsapp,
 ): string {
   const n = primerNombre(p.cliente.nombre);
@@ -668,6 +703,8 @@ export function mensajeWhatsapp(
   if (plantilla === "confirmado")
     return `Hola ${n}, confirmamos tu pedido ${p.codigo} en ${tienda} (${soles(p.total)}). ¿Cómo prefieres pagar: Yape, Plin, transferencia o en tienda?${p.tiendaWeb.direccion ? ` Lo recoges en ${p.tiendaWeb.direccion}.` : ""}`;
   if (plantilla === "cobro") return `Hola ${n}, te escribimos por tu pedido ${p.codigo}. Falta pagar ${soles(p.falta)}. ¿Te pasamos los datos para el Yape?`;
+  if (plantilla === "devolucion")
+    return `Hola ${n}, te escribimos de ${tienda} por tu pedido ${p.codigo}: quedó anulado y te devolvemos ${soles(p.pagado)}. ¿Cómo prefieres recibirlo?`;
   if (plantilla === "sinstock")
     return `Hola ${n}, revisamos tu pedido ${p.codigo} y una prenda ya no está en ${tienda}. ¿Te ofrecemos otra talla, otro color o traerla de otra tienda?`;
   return `Hola ${n}, te escribimos de ${tienda} por tu pedido ${p.codigo}.`;

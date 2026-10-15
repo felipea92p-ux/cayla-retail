@@ -2,8 +2,15 @@
   "guia": "vender.pedidos-web",
   "ruta": "/vender/pedidos-web",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 35,
+  "total": 50,
   "controles": {
+    "components/pedidos-web/AnularPagoHoja.tsx": [
+      "BotonVer «Ir a Caja»",
+      "SegmentoDeslizante «Por qué se anula el pago»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
+    ],
     "components/pedidos-web/EnviarPedidoWebHoja.tsx": [
       "CampoFecha «{guia.etiqueta(\"llega\", \"¿Cuándo llega?\")}»",
       "ComboResponsable «Cancelar»",
@@ -23,6 +30,7 @@
       "BotonAncla «Avisarle por WhatsApp»",
       "Boton «Anular»",
       "BotonAncla «WhatsApp»",
+      "Boton «pedido-web.pagar»",
       "button «(sin nombre)»",
       "ComboResponsable «Llegó lo que faltaba: queda separada para el cliente y deja»",
       "Boton «Cancelar» #2",
@@ -31,6 +39,7 @@
       "ComboResponsable «setModo(\"revisar\")»",
       "Boton «Cancelar» #3",
       "Boton «{guia.frase ?? undefined}» #4",
+      "BotonAncla «Escribirle por WhatsApp» #3",
       "BotonAncla «WhatsApp» #2",
       "button «Deshacer»",
       "button «(sin nombre)» #2",
@@ -38,12 +47,22 @@
       "button «{f.etiqueta}»",
       "Boton «Quitar del pedido»",
       "Boton «Reservarla»",
-      "Boton «Enviar desde»"
+      "Boton «Enviar desde»",
+      "Boton «{anulado ? \"Devolver\" : \"Anular pago\"}»"
     ],
     "components/pedidos-web/PedidosWebPantalla.tsx": [
       "Pestanas «(sin nombre)»",
       "button «{primera ? \"pedidos-web.abrir\" : undefined}»",
       "Boton «{i === 0 ? \"pedidos-web.enviar\" : undefined}»"
+    ],
+    "components/pedidos-web/RegistrarPagoHoja.tsx": [
+      "CampoMonto «{guia.etiqueta(\"monto\", \"Monto\")}»",
+      "button «Todo lo que falta ·»",
+      "BotonVer «Ir a Caja»",
+      "CampoTexto «{guia.etiqueta(\"operacion\", \"N.º de operación\")}»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»"
     ]
   }
 }

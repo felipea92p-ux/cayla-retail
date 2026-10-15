@@ -106,6 +106,27 @@ describe("Leer lo que manda la base", () => {
     expect(d.lineas[0]!.disponible.otras).toHaveLength(1);
     expect(d.lineas[1]!.disponible.otras).toHaveLength(0);
     expect(leerDetalle({ codigo: "W-1" })).toBeNull();
+    // Sin la actividad 9 en la base no se sabe de la caja: null, y la hoja no bloquea el efectivo (decide la base).
+    expect(d.cajaAbierta).toBeNull();
+  });
+
+  it("el detalle trae la caja y cada pago con su origen, quién lo registró y, si se anuló, quién, cuándo y por qué (actividad 9)", () => {
+    const d = leerDetalle({
+      pedido_id: "p",
+      codigo: "W-0010",
+      estado: "confirmado",
+      caja_abierta: false,
+      pagos: [
+        { pago_id: "g1", origen: "tienda", medio: "efectivo", monto: "30", estado: "anulado", registrado_en: "2026-10-14T10:00:00Z", registrado_por: "Rosa", en_caja: true, anulado_en: "2026-10-14T11:00:00Z", anulado_por: "Kiara", anulado_motivo: "devuelto_al_cliente" },
+        { pago_id: "g2", origen: "pasarela", medio: "tarjeta", monto: 20, estado: "por_revisar", observacion: "La pasarela cobró S/ 20.00, pero…" },
+        { pago_id: "g3", origen: "raro", medio: "yape", monto: 5, estado: "aprobado", numero_operacion: "04812793" },
+      ],
+    })!;
+    expect(d.cajaAbierta).toBe(false);
+    expect(d.pagos[0]).toMatchObject({ id: "g1", origen: "tienda", monto: 30, enCaja: true, anuladoPor: "Kiara", anuladoMotivo: "devuelto_al_cliente" });
+    expect(d.pagos[1]).toMatchObject({ origen: "pasarela", estado: "por_revisar", observacion: "La pasarela cobró S/ 20.00, pero…", anuladoEn: null });
+    // Un origen que no se entiende se lee como de la tienda (lo que la hoja deja anular lo decide la base igual).
+    expect(d.pagos[2]).toMatchObject({ origen: "tienda", numeroOperacion: "04812793" });
   });
 });
 
@@ -140,6 +161,29 @@ describe("La lista", () => {
       AHORA,
     );
     expect(c).toMatchObject({ porConfirmar: 2, proximoVenceEnMs: 2 * 3_600_000, porCobrar: 0.3, confirmados: 2, sinPagar: 1, porEntregar: 1, sinRecoger: 1, cobradoHoy: 50 });
+    expect(c).toMatchObject({ porDevolver: 0, pedidosPorDevolver: 0 });
+  });
+
+  it("lo que hay que devolver: la plata de los pedidos anulados que ya habían pagado (sin errores de centavos)", () => {
+    const c = cifrasDe(
+      {
+        pedidos: [
+          pedido({ estado: "anulado", pagado: 0.1 }),
+          pedido({ estado: "anulado", pagado: 0.2 }),
+          pedido({ estado: "anulado", pagado: 0 }),
+          pedido({ estado: "confirmado", pagado: 40, falta: 60 }),
+        ],
+        cobradoHoy: 0,
+      },
+      AHORA,
+    );
+    expect(c).toMatchObject({ porDevolver: 0.3, pedidosPorDevolver: 2 });
+    expect(estadoVisible(pedido({ estado: "anulado", pagado: 30 }), AHORA)).toMatchObject({
+      texto: "Anulado · por devolver S/ 30.00",
+      tono: "rojo",
+      accion: "Devuélvele lo que pagó",
+    });
+    expect(estadoVisible(pedido({ estado: "anulado", pagado: 0 }), AHORA)).toMatchObject({ texto: "Anulado", tono: "apagado" });
   });
 
   it("en qué está: a menos de 3 horas de cerrarse solo, en rojo y latiendo; sin pagar, en rojo", () => {
@@ -274,6 +318,7 @@ describe("El cliente y WhatsApp", () => {
     codigo: "W-0012",
     total: 229.8,
     falta: 229.8,
+    pagado: 50,
     cliente: { nombre: "Andrea Demo Web", celular: "900000440", documento: "••••4415", miembroDelClub: true },
     tiendaWeb: { nombre: "Trujillo", direccion: "Jr. Pizarro 123", horario: null },
   };
@@ -288,5 +333,9 @@ describe("El cliente y WhatsApp", () => {
     );
     expect(mensajeWhatsapp(p, "cobro")).toMatch(/Falta pagar S\/ 229\.80/);
     expect(mensajeWhatsapp(p, "sinstock")).toMatch(/una prenda ya no está/);
+    // Actividad 9: un pedido anulado que ya había pagado.
+    expect(mensajeWhatsapp(p, "devolucion")).toBe(
+      "Hola Andrea, te escribimos de CAYLA Trujillo por tu pedido W-0012: quedó anulado y te devolvemos S/ 50.00. ¿Cómo prefieres recibirlo?",
+    );
   });
 });

@@ -230,6 +230,12 @@ export const PRUEBAS = [
   // sin datos personales; y seis mutantes que la prueba nota. ROLLBACK.
   "pruebas:tienda-club",
 
+  // Cobrar dentro del pedido web (ADR-0408, act. 9): la hoja sabe si hay caja abierta y quién anuló cada pago; lo anulado con
+  // plata por devolver no sale de la lista; un adelanto y el resto lo dejan pagado; el n.º de operación no se repite (también con
+  // dos sesiones a la vez); el efectivo en el cuadre, y el anulado sale de la caja abierta del día (si la tiene); el token sigue
+  // al contenido y la hoja puede preguntar por un pago en duda. ROLLBACK.
+  "pruebas:pedidos-web-cobrar",
+
   // Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
   // La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.
   "pruebas:redondeo-efectivo",
