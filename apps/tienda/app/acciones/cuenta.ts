@@ -149,17 +149,15 @@ export async function obtenerCodigo(correoEscrito: unknown, reenvio: unknown): P
   if (propia && (await estaConfirmado(admin, propia.usuarioWebId)) === "si") return { estado: "confirmado" };
   if (!propia) await soltarCorreoAnterior(admin);
 
-  // 2. La primera vez, la consulta: cuenta el intento por ip (así nadie manda códigos a correos ajenos sin tope) y dice si ya hay
-  //    una cuenta con ese correo. «Reenviar» no la repite: la base solo reenvía a un correo que ya pidió su código.
-  if (reenvio !== true) {
-    const h = await huellas();
-    if (!h) return enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
-    const consulta = await consultarCorreoEnBase(correo, h.ip);
-    if (consulta === "repetido") return enCorreo(MENSAJES.correoRepetido, true);
-    if (consulta === "limite") return enCorreo(MENSAJES.limite);
-    if (consulta === "invalido") return enCorreo(MENSAJES.correoMal);
-    if (consulta !== "libre") return enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
-  }
+  // 2. La consulta: cuenta el intento por ip (así nadie manda códigos a correos ajenos sin tope) y dice si ya hay una cuenta con ese
+  //    correo. «Reenviar» también la cuenta (Felipe 2026-10-15, D6): si no, una ip mandaba hasta 5 códigos por cada correo consultado.
+  const h = await huellas();
+  if (!h) return enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
+  const consulta = await consultarCorreoEnBase(correo, h.ip);
+  if (consulta === "repetido") return enCorreo(MENSAJES.correoRepetido, true);
+  if (consulta === "limite") return enCorreo(MENSAJES.limite);
+  if (consulta === "invalido") return enCorreo(MENSAJES.correoMal);
+  if (consulta !== "libre") return enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
 
   // 3 y 4. El código.
   return mandarCodigo(admin, correo, reenvio === true);

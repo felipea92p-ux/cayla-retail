@@ -94,6 +94,16 @@ const REGISTRARSE = "retail.registrarse_en_el_club(uuid,text,text,text,text,date
 const SIN_PISAR = leer("supabase", "migrations", "20261015232000_club_cartel_no_escribe_en_una_ficha_existente.sql");
 const SIN_PISAR_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(SIN_PISAR)?.[1];
 const SIN_PISAR_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(SIN_PISAR)?.[1];
+// 20261016000000_club_intento_freno_por_ip_documento_y_dia.sql cambió club_intento (candado por ip, tope antes de anotar, topes por documento y
+// del día), partiendo del «después» de la PARTE 8: su «después» es el vivo de HOY.
+const FRENO = leer("supabase", "migrations", "20261016000000_club_intento_freno_por_ip_documento_y_dia.sql");
+const FRENO_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(FRENO)?.[1];
+const FRENO_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(FRENO)?.[1];
+const CLUB_INTENTO = "retail.club_intento(text,text,text,text)";
+if (!FRENO_ANTES || FRENO_ANTES !== VERSIONES.find((v) => v.firma === CLUB_INTENTO)?.despues) {
+  console.error("✗ 20261016000000 debería cambiar club_intento partiendo del «después» de la PARTE 8.");
+  process.exit(1);
+}
 if (!SIN_PISAR_ANTES || SIN_PISAR_ANTES !== NO_REPETIR_DESPUES) {
   console.error("✗ 20261015232000 debería cambiar registrarse_en_el_club partiendo del «después» de 20261003235000.");
   process.exit(1);
@@ -138,6 +148,8 @@ const despuesHoy = (v) =>
     ? REDONDEO_DESPUES
     : v.firma === REGISTRARSE
       ? SIN_PISAR_DESPUES
+      : v.firma === CLUB_INTENTO
+        ? FRENO_DESPUES
       : v.firma === CONSERVACION
         ? CONSERVACION_WEB.despues
         : v.firma === ANONIMIZAR_3
@@ -467,17 +479,41 @@ select :'f' <> :'a', (select anonimizada and documento_numero is null and club_d
 // g. Los límites del cartel
 // =====================================================================================================================
 caso(
-  "(g) club_intento: 20 consultas por ip en la hora pasan y la 21 no (otra ip, sí); 5 registros por ip pasan y el 6 no; 3 por celular y 3 por documento (desde ips distintas) pasan y el 4 no; el celular se guarda normalizado",
+  "(g) club_intento: 20 consultas por ip en la hora pasan y la 21 no (otra ip, sí), y la que no pasa NO se anota; 5 registros por ip pasan y el 6 no; 3 por celular y 3 por documento (desde ips distintas) pasan y el 4 no; el celular se guarda normalizado",
   comoServidor +
-    `select string_agg(retail.club_intento('consulta', 'ip-a', 'doc-x', null)::text, ',') from generate_series(1, 21);
-select retail.club_intento('consulta', 'ip-b', 'doc-x', null);
+    `select string_agg(retail.club_intento('consulta', 'ip-a', 'doc-a' || g, null)::text, ',') from generate_series(1, 21) g;
+select retail.club_intento('consulta', 'ip-b', 'doc-b', null);
 select string_agg(retail.club_intento('registro', 'ip-c', 'doc-' || g, '96688700' || g)::text, ',') from generate_series(1, 6) g;
 select string_agg(retail.club_intento('registro', 'ip-d' || g, 'doc-d' || g, '+51 966 887 999')::text, ',') from generate_series(1, 4) g;
 select string_agg(retail.club_intento('registro', 'ip-e' || g, 'doc-e', '96688800' || g)::text, ',') from generate_series(1, 4) g;
 reset role;
 select count(*) from retail.club_intentos_registro where celular = '966887999';
+select count(*) from retail.club_intentos_registro where ip_hash = 'ip-a';
 `,
-  `${Array(20).fill("true").join(",")},false\nt\n${Array(5).fill("true").join(",")},false\ntrue,true,true,false\ntrue,true,true,false\n4`
+  `${Array(20).fill("true").join(",")},false\nt\n${Array(5).fill("true").join(",")},false\ntrue,true,true,false\ntrue,true,true,false\n3\n20`
+);
+caso(
+  "(g) la consulta de un DNI: 5 por documento y hora, aunque cambie de ip (la 6 no); 300 al día en toda CAYLA (la 301 no, ni con otra ip ni otro documento); la consulta de un correo (sin documento) no entra en esos topes",
+  comoServidor +
+    `select string_agg(retail.club_intento('consulta', 'ip-f' || g, 'doc-f', null)::text, ',') from generate_series(1, 6) g;
+reset role;
+insert into retail.club_intentos_registro (tipo, ip_hash, documento_hash, creado_en)
+  select 'consulta', 'ip-dia-' || g, 'doc-dia-' || g, now() - interval '1 minute' from generate_series(1, 300 - (select count(*) from retail.club_intentos_registro
+    where tipo = 'consulta' and documento_hash is not null and creado_en >= (date_trunc('day', now() at time zone 'America/Lima') at time zone 'America/Lima'))::integer) g;
+` + comoServidor +
+    `select retail.club_intento('consulta', 'ip-g', 'doc-g', null), retail.club_intento('consulta', 'ip-g', null, null);
+`,
+  `true,true,true,true,true,false\nf|t`
+);
+caso(
+  "(g) los intentos de más de un día se van solos (de a poco) con la siguiente llamada",
+  `reset role;
+insert into retail.club_intentos_registro (tipo, ip_hash, creado_en) select 'consulta', 'ip-viejo', now() - interval '2 days' from generate_series(1, 3);
+` + comoServidor + `select retail.club_intento('consulta', 'ip-h', null, null);
+reset role;
+select count(*) from retail.club_intentos_registro where ip_hash = 'ip-viejo';
+`,
+  "t\n0"
 );
 
 // =====================================================================================================================
