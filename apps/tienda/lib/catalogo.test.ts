@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   categoriasDe,
   colorDeDibujo,
-  cuantasPrendas,
+  conteoDeLista,
   filtrarYOrdenar,
   formaDe,
   fotoOptimizable,
@@ -50,6 +50,17 @@ describe("interpretarCatalogo", () => {
     expect(interpretarCatalogo({ sede: TRUJILLO, prendas: [EMMA] })?.sede).toBe(TRUJILLO);
     // Una tienda que llega rara se lee como «Todas» (la lista se ve igual).
     expect(interpretarCatalogo({ sede: "trujillo", prendas: [EMMA] })).toMatchObject({ sede: null, prendas: [{ nombre: "Blusa Emma" }] });
+  });
+
+  it("lee el nivel de cada tienda (actividad 4); uno raro —o una cifra de 4 o más— deja la prenda sin dato de stock, pero visible", () => {
+    const conStock = leer({ ...EMMA, stock: { total: "hay", sedes: { [TRUJILLO]: 2 } } });
+    expect(conStock.stock).toEqual({ total: "hay", sedes: { [TRUJILLO]: 2 } });
+    expect(emma.stock).toBeNull();
+    for (const raro of [{ total: 7, sedes: {} }, { total: "hay", sedes: { [TRUJILLO]: 4 } }, { total: "Hay", sedes: {} }, "hay"]) {
+      const p = leer({ ...EMMA, stock: raro });
+      expect(p.nombre).toBe("Blusa Emma");
+      expect(p.stock).toBeNull();
+    }
   });
 
   it("una prenda con un dato raro se descarta sola; las demás se ven", () => {
@@ -187,8 +198,14 @@ describe("la lista: categorías y orden", () => {
     expect(hrefLista({ categoria: "Ropa & más", orden: "destacado" })).toBe("/catalogo?categoria=Ropa+%26+m%C3%A1s");
   });
 
-  it("cuántas prendas, en singular y plural", () => {
-    expect(cuantasPrendas(1)).toBe("1 prenda");
-    expect(cuantasPrendas(12)).toBe("12 prendas");
+  it("cuántas hay: en singular y plural, con la categoría, la tienda elegida y lo que hay en las otras", () => {
+    const sin = { categoria: null, tienda: null, enOtras: 0 };
+    expect(conteoDeLista(1, sin)).toBe("1 prenda");
+    expect(conteoDeLista(12, sin)).toBe("12 prendas");
+    expect(conteoDeLista(12, { ...sin, categoria: "Faldas" })).toBe("12 prendas en Faldas");
+    expect(conteoDeLista(5, { ...sin, tienda: "Trujillo", enOtras: 3 })).toBe("5 prendas en Trujillo · 3 más en otras tiendas");
+    expect(conteoDeLista(2, { categoria: "Faldas", tienda: "Trujillo", enOtras: 0 })).toBe("2 prendas de Faldas en Trujillo");
+    // Sin tienda elegida no hay «otras tiendas».
+    expect(conteoDeLista(4, { ...sin, enOtras: 3 })).toBe("4 prendas");
   });
 });

@@ -5,8 +5,8 @@ export type OpcionTienda = { nombre: string; href: string; actual: boolean };
 
 /**
  * «Ver lo que hay en: Todas · Arequipa · Lima · Trujillo» (maqueta v4, `filtroTienda`): la franja bajo la cabecera para elegir la tienda.
- * Elegirla cambia el precio que se ve (el de esa tienda; con «Todas», el mayor entre las tiendas de la web). Son enlaces: la tienda
- * elegida va en la dirección y se puede compartir. Cuánto hay en cada tienda llega con la ficha (actividad 4).
+ * Elegirla cambia el precio que se ve (el de esa tienda; con «Todas», el mayor entre las tiendas de la web) y deja solo lo que hay en
+ * ella (actividad 4). Son enlaces: la tienda elegida va en la dirección y se puede compartir.
  */
 export function FiltroTienda({ opciones }: { opciones: OpcionTienda[] }) {
   return (

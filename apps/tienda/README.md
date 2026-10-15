@@ -59,4 +59,6 @@ ERP cada cuenta es una fila de `cuentas_web` unida a su ficha del Club, y la tie
    (la persona escribe su nombre).
 5. `pnpm --filter tienda dev` → http://localhost:3100 (o «tienda-dev» en `.claude/launch.json`).
 
-Pruebas: `pnpm --filter tienda test`, `typecheck` y `lint`; en la base, `pnpm pruebas:tienda-puerta` y `pnpm pruebas:tienda-cuentas`.
+Pruebas: `pnpm --filter tienda test`, `typecheck` y `lint`; en la base, `pnpm pruebas:tienda-puerta`, `pnpm pruebas:tienda-cuentas`,
+`pnpm pruebas:vitrina-web` y `pnpm pruebas:tienda-ficha` (cuánto hay en cada tienda; con `-- --mutantes`, además contra versiones rotas a
+propósito de su migración).

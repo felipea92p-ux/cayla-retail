@@ -1744,7 +1744,18 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `retail.tienda_catalogo(p_sede)`: lo publicado en la Vitrina web al precio de esa tienda (`fn_precio_en_sede`) o, con «Todas», al
   mayor entre las tiendas de la web, con la campaña encima (la regla de la caja, ADR-0403), sus colores y hasta dos fotos del almacén
   público; `lib/catalogo.ts` filtra por categoría y ordena, y `components/TarjetaPrenda.tsx` dibuja la tarjeta. Si la base no
-  responde, la página dice que no se pudo cargar.
+  responde, la página dice que no se pudo cargar. Desde la actividad 4 (`20261015012000`) cada prenda trae también su NIVEL en cada
+  tienda de la web y en todas (`stock`: «hay», 3, 2, 1 o 0, nunca la cifra de 4 o más; `fn_tienda_nivel` con el umbral de
+  `configuracion_tienda_web`): con una tienda elegida, la lista deja solo lo que hay en ella («N más en otras tiendas») y cada tarjeta
+  dice su nota (`lib/stock.ts` `notaDeStock`: «Quedan 2 en Lima», «Solo en Trujillo», «Quedan pocas»).
+- `/catalogo/[id]` (la ficha, actividad 4) → `lib/ficha-servidor.ts` `leerFicha(id, sede)` → `retail.tienda_ficha(p_producto, p_sede)`:
+  el modelo publicado con su precio y campaña, colores, tallas en el orden de la tienda, sus fotos del almacén público y, por talla, su
+  precio en la tienda elegida y su nivel en cada tienda (lo libre de `fn_existencias_base`: piso + almacén, sin Cuarentena ni lo apartado,
+  que incluye las reservas de los pedidos web; sin el Taller ni las tiendas escondidas). `null` si el modelo no se ve en la web (la página
+  responde «Esta prenda ya no está»). `lib/ficha.ts` decide qué se ve al elegir color y talla, y `components/FichaPrenda.tsx` dibuja las
+  fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las piezas
+  internas de las dos lecturas (`fn_tienda_nivel`, `fn_tienda_umbral`, `fn_tienda_sedes_web`, `fn_tienda_disponible`, `fn_tienda_precios`)
+  no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones rotas a propósito).
 
 ---
 

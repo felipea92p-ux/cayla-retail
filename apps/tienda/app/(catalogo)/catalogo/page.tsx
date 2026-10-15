@@ -6,7 +6,7 @@ import { TarjetaPrenda } from "@/components/TarjetaPrenda";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import {
   categoriasDe,
-  cuantasPrendas,
+  conteoDeLista,
   filtrarYOrdenar,
   hrefLista,
   leerCategoria,
@@ -15,13 +15,15 @@ import {
   siguienteOrden,
 } from "@/lib/catalogo";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 
 export const metadata: Metadata = { title: "Toda la ropa · CAYLA" };
 
 // El catálogo publicado (maqueta v4, `vLista` y `filtroTienda`): lo que el ERP muestra en Catálogo ▸ Vitrina web, al precio de la
-// tienda que el cliente elige en «Ver lo que hay en» o, con «Todas», al mayor entre las tiendas de la web, con la campaña encima. Se
-// lee en cada visita (la dirección trae la tienda, la categoría y el orden): lo que se enciende o se apaga en el ERP se ve al recargar.
+// tienda que el cliente elige en «Ver lo que hay en» o, con «Todas», al mayor entre las tiendas de la web, con la campaña encima. Con
+// una tienda elegida, solo lo que hay en ella («N más en otras tiendas»), y cada tarjeta dice cuánto queda como nivel, nunca la cifra.
+// Se lee en cada visita (la dirección trae la tienda, la categoría y el orden): lo que se enciende, se apaga o se vende se ve al recargar.
 export default async function Catalogo({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const orden = leerOrden(sp.orden);
@@ -33,9 +35,12 @@ export default async function Catalogo({ searchParams }: { searchParams: Promise
   const elegida = catalogo?.sede ? sedes.find((s) => s.id === catalogo.sede) ?? null : null;
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const prendas = catalogo?.prendas ?? null;
-  const categorias = prendas ? categoriasDe(prendas) : [];
-  const lista = prendas ? filtrarYOrdenar(prendas, { categoria, orden }) : [];
-  const categoriaElegida = categorias.find((c) => c.clave === categoria) ?? null;
+  // Con una tienda elegida, solo lo que hay en ella (maqueta, `hayEnFiltro`): las categorías y el conteo salen de ahí.
+  const enLaTienda = prendas ? prendas.filter((p) => hayEnTienda(p.stock, elegida?.id ?? null)) : [];
+  const categorias = categoriasDe(enLaTienda);
+  const lista = filtrarYOrdenar(enLaTienda, { categoria, orden });
+  const enOtras = prendas ? filtrarYOrdenar(prendas, { categoria, orden }).length - lista.length : 0;
+  const categoriaElegida = categoriasDe(prendas ?? []).find((c) => c.clave === categoria) ?? null;
   // El origen del almacén público de fotos (no es una llave): solo sus fotos pasan por el optimizador de Next.
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
 
@@ -87,7 +92,7 @@ export default async function Catalogo({ searchParams }: { searchParams: Promise
               {categorias.length > 1 ? (
                 <nav className="t-pildoras" aria-label="Categoría">
                   <Link className="t-pildora" href={hrefLista({ sede, categoria: null, orden })} aria-current={categoria === null ? "true" : undefined}>
-                    Todas <small>{prendas.length}</small>
+                    Todas <small>{enLaTienda.length}</small>
                   </Link>
                   {categorias.map((c) => (
                     <Link key={c.clave} className="t-pildora" href={hrefLista({ sede, categoria: c.clave, orden })} aria-current={categoria === c.clave ? "true" : undefined}>
@@ -106,14 +111,22 @@ export default async function Catalogo({ searchParams }: { searchParams: Promise
               </div>
             </div>
             <p className="t-conteo" aria-live="polite">
-              {cuantasPrendas(lista.length)}
-              {categoriaElegida ? ` en ${categoriaElegida.nombre}` : ""}
+              {conteoDeLista(lista.length, { categoria: categoriaElegida?.nombre ?? null, tienda: elegida?.nombre ?? null, enOtras })}
             </p>
             {lista.length > 0 ? (
               <div className="t-grilla">
                 {lista.map((p) => (
-                  <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} />
+                  <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} />
                 ))}
+              </div>
+            ) : elegida ? (
+              <div className="t-vacio">
+                <Icono nombre="tienda" />
+                <h3>No hay prendas aquí en {elegida.nombre}</h3>
+                <p>Prueba con otra tienda o mira todas.</p>
+                <Link className="t-btn" href={hrefLista({ sede: null, categoria, orden })}>
+                  Ver todas las tiendas
+                </Link>
               </div>
             ) : (
               <div className="t-vacio">
