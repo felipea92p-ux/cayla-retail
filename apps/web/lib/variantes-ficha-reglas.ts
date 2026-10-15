@@ -29,6 +29,7 @@ import type { VarianteFicha } from "./producto-cambios-reglas";
 import { compararTallas } from "./tallas";
 import { SIN_PROPIA } from "./temporada-reglas";
 import { numeroDeMonto } from "./monto-plata-reglas";
+import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 
 // ---------------------------------------------------------------------------
 // Tipos
@@ -583,7 +584,7 @@ function masComun(valores: readonly string[]): string {
 }
 
 const normalizarMonto = (v: string) => {
-  const n = Number(v);
+  const n = numeroDeMonto(v);
   return v.trim() === "" || !Number.isFinite(n) ? "" : String(Number(n.toFixed(2)));
 };
 
@@ -957,6 +958,18 @@ export type CategoriaElegida = {
  * vendería gratis sin que nadie lo note. Solo lo de una familia fuera de los motores (Empaque) admite 0: la bolsa de obsequio,
  * que Vender muestra como «Obsequio» y no declara a SUNAT (ADR-0377). La base acepta 0 en las dos (`variantes_precio_check`).
  */
+/** «el costo (S/ 70.00) es mayor que el precio (S/ 59.90): pierdes S/ 10.10 en cada venta…». Solo un aviso (ADR-0415): vender por debajo
+ *  del costo puede ser a propósito (liquidar). Sin precio o sin costo válidos, o con alguno sobre el tope (ya es un error), nada. */
+export function avisoCostoSobrePrecio(precioTexto: string, costoTexto: string): string | null {
+  if (precioTexto.trim() === "" || costoTexto.trim() === "") return null;
+  const precio = numeroDeMonto(precioTexto);
+  const costo = numeroDeMonto(costoTexto);
+  if (!Number.isFinite(precio) || !Number.isFinite(costo) || precio <= 0 || costo <= precio) return null;
+  if (precio > MAX_PRECIO_PRENDA || costo > MAX_PRECIO_PRENDA) return null;
+  const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
+  return `el costo (${s(costo)}) es mayor que el precio (${s(precio)}): pierdes ${s(costo - precio)} en cada venta. Si es a propósito (para liquidarla), guarda igual.`;
+}
+
 export function precioValido(precio: number, admitePrecioCero = false): boolean {
   return Number.isFinite(precio) && (admitePrecioCero ? precio >= 0 : precio > 0);
 }
@@ -979,6 +992,16 @@ export function problemasVariantes(filas: readonly FilaFicha[], n: NombresFicha,
     if (!f.costoFijo && f.costo.trim() !== "" && (!Number.isFinite(costo) || costo < 0)) {
       p.push({ texto: `El costo de ${nombreVariante(f, n)} no puede ser negativo.`, bloquea: true, clave: f.clave });
     }
+    // ADR-0415: hasta S/ 5 000 (la base lo rechaza igual), y un aviso —no un candado— si se vende por debajo de lo que cuesta.
+    const precio = numeroDeMonto(f.precio);
+    if (f.precio.trim() !== "" && precio > MAX_PRECIO_PRENDA) {
+      p.push({ texto: `${nombreVariante(f, n)}: ${FRASE_PRECIO_CON_TOPE.charAt(0).toLowerCase()}${FRASE_PRECIO_CON_TOPE.slice(1)}`, bloquea: true, clave: f.clave });
+    }
+    if (!f.costoFijo && f.costo.trim() !== "" && costo > MAX_PRECIO_PRENDA) {
+      p.push({ texto: `${nombreVariante(f, n)}: ${FRASE_COSTO_CON_TOPE.charAt(0).toLowerCase()}${FRASE_COSTO_CON_TOPE.slice(1)}`, bloquea: true, clave: f.clave });
+    }
+    const aviso = avisoCostoSobrePrecio(f.precio, f.costo);
+    if (aviso) p.push({ texto: `${nombreVariante(f, n)}: ${aviso}`, bloquea: false, clave: f.clave });
   }
   const vistas = new Set<string>();
   for (const f of filas) {

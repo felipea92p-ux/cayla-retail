@@ -37,6 +37,9 @@
 
 ## Lo que queda para Felipe
 
+> **Actualización 2026-10-15:** las dos preguntas de abajo se resolvieron con la recomendación (Felipe: «aplica tus recomendaciones»), en ADR-0415: tope de S/ 5 000 con aviso de costo sobre precio, y el precio de catálogo sigue en manos de quien ve Productos.
+
+
 - **¿Un tope para el precio?** Un precio de S/ 1 000 000 000 o un costo mayor que el precio entran sin aviso: un 5990 tipeado por 59.90
   pasaría. Un costo mayor que el precio puede ser legítimo (liquidar), así que es una regla de negocio, no un candado obvio.
 - **¿El precio de catálogo es solo del líder?** Una integrante con el módulo Productos cambia el precio de toda la cadena (ADR-0306:
