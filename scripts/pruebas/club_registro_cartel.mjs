@@ -113,8 +113,17 @@ if (!ANONIMIZAR_ESPERA || ANONIMIZAR_ESPERA.despues !== null || ANONIMIZAR_ESPER
   console.error("✗ La tabla de versiones de 20261015131000 debería borrar la fn_clienta_anonimizar de 3 parámetros partiendo del «después» de la PARTE 8.");
   process.exit(1);
 }
+// ADR-0416 (anonimizar es de un líder) volvió a tocar archivar_clienta con su propia tabla de versiones: su «antes» es el «después» de
+// esta PARTE 8, y su «después» es el de hoy. (La tienda online no toca archivar_clienta: su espera vive en la rutina, 20261015131000.)
+const ANONIMIZAR_LIDER = readFileSync(join(RAIZ, "supabase", "migrations", "20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql"), "utf8");
+const ARCHIVAR = "retail.archivar_clienta(uuid,text,boolean,integer)";
+const ARCHIVAR_POSTERIOR = /\('retail\.archivar_clienta\(uuid,text,boolean,integer\)',\s+'([0-9a-f]{32})',\s+'([0-9a-f]{32})'\)/.exec(ANONIMIZAR_LIDER);
+if (!ARCHIVAR_POSTERIOR || VERSIONES.find((v) => v.firma === ARCHIVAR)?.despues !== ARCHIVAR_POSTERIOR[1]) {
+  console.error("✗ La tabla de versiones de 20261015155000 debería partir del «después» de archivar_clienta de esta PARTE 8.");
+  process.exit(1);
+}
 /** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18, registrarse_en_el_club, la
- *  conservación, la rutina de anonimizar —que ya no existe con 3 parámetros—) o el de la PARTE 8. */
+ *  conservación, la rutina de anonimizar —que ya no existe con 3 parámetros—, archivar_clienta) o el de la PARTE 8. */
 const despuesHoy = (v) =>
   (v.firma === RV_HOY
     ? REDONDEO_DESPUES
@@ -124,7 +133,9 @@ const despuesHoy = (v) =>
         ? CONSERVACION_WEB.despues
         : v.firma === ANONIMIZAR_3
           ? ANONIMIZAR_ESPERA.despues
-          : v.despues) ?? "NO_EXISTE";
+          : v.firma === ARCHIVAR
+            ? ARCHIVAR_POSTERIOR[2]
+            : v.despues) ?? "NO_EXISTE";
 
 // Los textos vigentes (docs/club/texto-legal-registro-v2.md): la PARTE 4 sembró la v1 y 20261002160000 publicó la v2 sin género
 // (ADR-0288 act. k). El cuerpo de cada sección.

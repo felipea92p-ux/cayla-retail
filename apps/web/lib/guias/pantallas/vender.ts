@@ -321,7 +321,7 @@ export const GUIA_APARTADOS: Guia = {
       ancla: "apartados.lista",
       opcional: true,
       titulo: "La lista",
-      texto: "Cada apartado con su cliente, sus prendas y su plazo. Si vence y el cliente no vuelve, la prenda regresa al stock sola y aquí te avisa que falta devolverle el adelanto. La impresora vuelve a imprimir su ticket.",
+      texto: "Toca un apartado para ver todo: cada pago con su día y hora, cómo pagó y quién lo cobró. Desde ahí registras un abono o lo aplazas 3 días, 7 o hasta otra fecha. Si vence y no vuelve, la prenda regresa al stock sola y aquí te avisa que falta devolverle el adelanto.",
     },
     {
       id: "pedidos",

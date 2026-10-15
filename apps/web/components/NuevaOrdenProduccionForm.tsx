@@ -23,7 +23,8 @@ import { MotorEnProduccion } from "@/components/motor-demanda/MotorEnProduccion"
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, analizarInsumos, cantidadesDeLaCurva, cantidadesInicialesDeNuevaOrden, costoMaterialesPorPrenda, sugerirCurva } from "@/lib/produccion-decision-reglas";
-import { costoUnitario, precioParaMargen, semaforoMargen, TEXTO_SEMAFORO, type Semaforo } from "@/lib/produccion-reglas";
+import { costoUnitario, precioParaMargen, problemaDeEntrega, semaforoMargen, TEXTO_SEMAFORO, type Semaforo } from "@/lib/produccion-reglas";
+import { hoyLima } from "@/lib/fechas-lima";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
@@ -369,6 +370,11 @@ export function NuevaOrdenProduccionForm({
       avisar.error(faltas[0].texto);
       return;
     }
+    const entregaMala = problemaDeEntrega(fechaEntrega, hoyLima());
+    if (entregaMala) {
+      avisar.error(entregaMala);
+      return;
+    }
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
@@ -433,6 +439,12 @@ export function NuevaOrdenProduccionForm({
     const costoMalo = problemaDeCostos({ tela, avios, maquila });
     if (costoMalo) {
       avisar.error(costoMalo);
+      return;
+    }
+    // ADR-0415: la entrega es una promesa; no puede ser antes de hoy (la base dice lo mismo, `entrega_pasada`).
+    const entregaMala = problemaDeEntrega(fechaEntrega, hoyLima());
+    if (entregaMala) {
+      avisar.error(entregaMala);
       return;
     }
     if (!responsable.listo) {
@@ -709,7 +721,7 @@ export function NuevaOrdenProduccionForm({
         </CampoGuiado>
 
         <div data-guia="prod-orden-nueva.entrega" className="grid gap-4 sm:grid-cols-2">
-          <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
+          <CampoTexto etiqueta="Fecha de entrega" pie="Opcional" type="date" min={hoyLima()} value={fechaEntrega} onChange={(e) => setFechaEntrega(e.target.value)} />
           <CampoTexto etiqueta="Nota" pie="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} placeholder={sugerirNotaDeOrden(tipo)} maxLength={MAX_NOTA_ORDEN_BASE} />
         </div>
 

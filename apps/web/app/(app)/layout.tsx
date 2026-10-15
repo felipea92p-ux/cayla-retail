@@ -8,7 +8,9 @@ import { AppShell } from "@/components/AppShell";
 import { SedeActivaProveedor } from "@/components/SedeActiva";
 import { ColasSinConexion } from "@/components/ColasSinConexion";
 import { PreciosEnVivo } from "@/components/PreciosEnVivo";
+import { RefrescoTrasCorte } from "@/components/RefrescoTrasCorte";
 import { SinConexion } from "@/components/SinConexion";
+import { VersionNueva } from "@/components/VersionNueva";
 import { RecordatorioCierreCaja } from "@/components/RecordatorioCierreCaja";
 import { EsperaAlVelo } from "@/components/login/EntradaColibri";
 import { getRecordatorioCierre, recibeRecordatorioCierre } from "@/lib/recordatorio-cierre";
@@ -76,11 +78,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Service worker, copias por persona y aviso «sin conexión / copia guardada» (ADR-0210). `generadoEn` sella
             esta carga: en una copia servida sin red, es la hora de la copia. */}
         <SinConexion cuenta={persona.personaId ?? `terminal:${persona.nombre}`} generadoEn={new Date().toISOString()} />
+        {/* «Hay una versión nueva de CAYLA» (ADR-0422): quien tiene el ERP abierto desde antes de la última publicación lo sabe y actualiza cuando termina. */}
+        <VersionNueva />
         {children}
         {/* Sube lo guardado sin conexión (ADR-0210) desde cualquier pantalla. */}
         <ColasSinConexion />
         {/* Precio o campaña cambiados desde otra pestaña o caja: la pantalla abierta se pone al día sola (2026-10-08). */}
         <PreciosEnVivo />
+        {/* Un guardado que se quedó sin respuesta (ADR-0410): la pantalla se vuelve a leer sola cuando la base responda (ADR-0411). */}
+        <RefrescoTrasCorte />
         {/* «Es hora de cerrar caja» (ADR-0305): desde la hora de cierre de la tienda hasta que la caja se cierra, en toda pantalla. */}
         {recibeRecordatorio && <RecordatorioCierreCaja inicial={recordatorioCierre} />}
       </SedeActivaProveedor>

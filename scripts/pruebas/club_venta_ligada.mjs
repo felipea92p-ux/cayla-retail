@@ -127,6 +127,17 @@ const PASO_1G = readFileSync(join(RAIZ, "supabase", "migrations", "2026100121070
 const VERSIONES_1G = [
   ...PASO_1G.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
 ].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+
+// Tandas posteriores a la 1g que vuelven a tocar una de sus funciones, con su propia tabla de versiones (ADR-0416: anonimizar
+// es de un líder). El «después» de HOY es el de la última; y la cadena no se corta: su «antes» es el «después» de la 1g.
+for (const archivo of ["20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql"]) {
+  const texto = readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8");
+  for (const m of texto.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)) {
+    const v = VERSIONES_1G.find((x) => x.firma === m[1]);
+    if (!v || v.despues !== (m[3] ?? null)) throw new Error(`${archivo}: su «antes» de ${m[1]} no es el «después» de la 1g`);
+    v.despues = m[5] ?? null;
+  }
+}
 const RV_1C = VERSIONES_1C.find((w) => w.firma.startsWith("retail.registrar_venta(") && w.antes === null)?.firma;
 const cortadas1g = [...VERSIONES_1C, ...VERSIONES_1B].filter((v) => v.despues && VERSIONES_1G.some((w) => w.firma === v.firma && w.antes !== v.despues));
 if (!VERSIONES_1G.some((w) => w.firma === RV_1C && w.antes) || cortadas1g.length) {

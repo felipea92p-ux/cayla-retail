@@ -146,10 +146,13 @@ function compra(v, { prov = "prov1", destino = "taller", lineas = [24], costo = 
       return `jsonb_build_object('producto_id', :'${p}', ${va ? `'variante_id', :'${va}', ` : ""}'cantidad', ${c}, 'costo_unitario', ${k}, 'confirma_costo', true)`;
     })
     .join(", ");
+  // Una factura «vencida» se emitió antes de vencer: desde ADR-0421 la base no acepta un vencimiento anterior a la emisión
+  // (`compras_vence_despues_de_emitir`). Sin emisión explícita, la del día que vence si ya venció; si no, hoy.
+  const emisionReal = emision === HOY ? `least(${HOY}, ${vence})` : emision;
   return `
 select retail.registrar_compra(:'${prov}', '${serie}', '${numero}' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10), 'credito', :'${destino}',
   jsonb_build_array(${items}),
-  p_tipo => '${tipo}', p_fecha_emision => ${emision}, p_fecha_vencimiento => ${vence}, p_igv_porcentaje => ${igv}${estimada ? `, p_fecha_estimada_llegada => ${estimada}` : ""}) as ${v} \\gset
+  p_tipo => '${tipo}', p_fecha_emision => ${emisionReal}, p_fecha_vencimiento => ${vence}, p_igv_porcentaje => ${igv}${estimada ? `, p_fecha_estimada_llegada => ${estimada}` : ""}) as ${v} \\gset
 select (array_agg(id order by cantidad desc))[1] as ${v}_item, (array_agg(id order by cantidad desc))[2] as ${v}_item2
   from retail.compra_items where compra_id = :'${v}' \\gset
 select documento as ${v}_doc from retail.compras where id = :'${v}' \\gset
@@ -976,7 +979,7 @@ exito(
     `${BASE}${nuevoProv("prov3")}
 select count(retail.registrar_compra(:'prov3', 'TST', 'B' || g || substr(replace(gen_random_uuid()::text, '-', ''), 1, 8), 'credito', :'taller',
   jsonb_build_array(jsonb_build_object('producto_id', :'prod', 'variante_id', :'var', 'cantidad', 1, 'costo_unitario', 10, 'confirma_costo', true)),
-  p_fecha_emision => retail.fn_hoy_lima(), p_fecha_vencimiento => retail.fn_hoy_lima() - 1)) as _n from generate_series(1, 60) g \\gset
+  p_fecha_emision => retail.fn_hoy_lima() - 1, p_fecha_vencimiento => retail.fn_hoy_lima() - 1)) as _n from generate_series(1, 60) g \\gset
 select (select comprobantes from retail.por_pagar_tramos(p_proveedor_id => :'prov3') where tramo = 'vencidas'),
   (select saldo from retail.por_pagar_tramos(p_proveedor_id => :'prov3') where tramo = 'vencidas'),
   (select count(*) from retail.listar_compras(p_limite => 50, p_con_saldo => true, p_proveedor_id => :'prov3'));
@@ -1144,7 +1147,10 @@ exito(
   "demora promedio: dos guías de 2 (recibida a las 22:30 de Lima) y 6 días dan 4.0 sobre las mismas filas (universo aislado con fechas del futuro lejano, sin mezclar el seed)",
   comoPersona(
     FELIPE,
-    `${BASE}${compra("c1", { emision: dia(400), vence: dia(410) })}${compra("c2", { emision: dia(400), vence: dia(410) })}
+    // Un universo aislado en el futuro lejano: `registrar_compra` ya no acepta una emisión futura (ADR-0421), así que se registran hoy y la
+    // prueba mueve la emisión a dentro de 400 días por la tabla (solo para no mezclarse con el seed).
+    `${BASE}${compra("c1", { vence: dia(410) })}${compra("c2", { vence: dia(410) })}
+update retail.compras set fecha_emision = ${dia(400)} where id in (:'c1', :'c2');
 ${recibe("c1_item", 24, { lote: "l1" })}${fechaLote("l1", `${dia(400)} + 2`, "22:30")}${recibe("c2_item", 24, { lote: "l2" })}${fechaLote("l2", `${dia(400)} + 6`)}
 select r.dias_entrega_promedio, r.recepciones, r.unidades_recibidas, r.comprobantes_recibidos, r.entregas_completas from retail.resumen_recepciones(${dia(399)}) r;
 rollback;

@@ -123,6 +123,17 @@ const PASO_1G = leer("20261001210700_club_paso1g_parte8_funciones.sql");
 const VERSIONES_1G = [
   ...PASO_1G.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g),
 ].map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }));
+
+// Tandas posteriores a la 1g que vuelven a tocar una de sus funciones, con su propia tabla de versiones (ADR-0416: anonimizar
+// es de un líder). El «después» de HOY es el de la última; y la cadena no se corta: su «antes» es el «después» de la 1g.
+for (const archivo of ["20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql"]) {
+  const texto = readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8");
+  for (const m of texto.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)) {
+    const v = VERSIONES_1G.find((x) => x.firma === m[1]);
+    if (!v || v.despues !== (m[3] ?? null)) throw new Error(`${archivo}: su «antes» de ${m[1]} no es el «después» de la 1g`);
+    v.despues = m[5] ?? null;
+  }
+}
 const cortadas1g = VERSIONES_1G.filter((w) => w.antes && VERSIONES_1B.some((v) => v.firma === w.firma && v.despues !== w.antes));
 if (!VERSIONES_1G.some((w) => w.firma === "retail.archivar_clienta(uuid,text,boolean,integer)") || cortadas1g.length) {
   console.error(`✗ La tabla de versiones de la 1g debería tener archivar_clienta con el «después» de la 1b como «antes»; no calzan: ${cortadas1g.map((v) => v.firma).join(", ")}.`);

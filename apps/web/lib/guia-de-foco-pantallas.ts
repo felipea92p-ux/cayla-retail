@@ -381,6 +381,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/alta-producto/HojaParecidas.tsx": { estado: "no-aplica", motivo: "Hoja «Ver y comparar» de Nuevo producto: un solo campo (el buscador, opcional) y una respuesta por prenda («Es el mismo diseño» o «No, es otro diseño»); lo que falta y lo que sigue lo dicen la alerta del resumen y el pie del paso 2, que ya llevan la guía." },
   // ADR-0357 (Análisis v4): «Liquidar desde … para todas las tiendas». El número se mueve en «No se vende»; esta hoja solo lo confirma.
   "components/analisis/HojaLiquidarDesde.tsx": { estado: "no-aplica", motivo: "Hoja de confirmación de UN solo control (quién lo cambia, el combo Responsable): dice el nuevo «Liquidar desde» y cuántas prendas de tu tienda entran a «Liquidar»; el botón se apaga hasta elegir y dice por qué." },
+  // ADR-0414: el detalle de un apartado. Solo se llena al aplazar: hasta cuándo (+3, +7 u otra fecha) y quién atiende, lo mismo que apaga
+  // «Aplazar». El modo «Registrar abono» es el formulario de `ModalesApartado.tsx` (pendiente, se cuenta allí).
+  "components/apartados/DetalleApartado.tsx": { estado: "aplicada", evidencia: ["components/apartados/DetalleApartado.tsx"] },
   "components/apartados/ModalesApartado.tsx": PENDIENTE, // 22 controles
   "components/conteo/AltaAlVuelo.tsx": PENDIENTE, // 7 controles
   "components/conteo/CancelarConteoModal.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica

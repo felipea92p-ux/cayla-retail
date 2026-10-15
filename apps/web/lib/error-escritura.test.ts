@@ -685,6 +685,20 @@ describe("documento de la clienta y venta ligada a su ficha (ADR-0288)", () => {
 
 // ADR-0288 tanda 1c (20260930230200): el canje del cumpleaños en `registrar_venta`. Llegan como P0001 con su frase; si la
 // frase no llega, cada hint tiene la suya (nunca el genérico con «Código:»).
+// /chaos de Clientes 2026-10-15 (20261015154000, ADR-0416): la ficha vacía y el cumpleaños que no existe rebotan en castellano.
+describe("la ficha de un cliente (ADR-0416)", () => {
+  it("una ficha sin documento, nombre ni celular", () => {
+    expect(
+      traducirError({ message: 'new row for relation "clientas" violates check constraint "clientas_con_algun_dato"', code: "23514" }, "registrar la clienta"),
+    ).toBe("La ficha necesita al menos el documento, el nombre o el celular.");
+  });
+  it("un cumpleaños que no existe", () => {
+    expect(
+      traducirError({ message: 'new row for relation "clientas" violates check constraint "clientas_cumple_fecha_real"', code: "23514" }, "registrar la clienta"),
+    ).toBe("Ese cumpleaños no existe: revisa el día y el mes.");
+  });
+});
+
 describe("club de clientas: el canje del cumpleaños (ADR-0288 tanda 1c)", () => {
   const HINTS = [
     "cumple_sin_clienta",
@@ -812,6 +826,15 @@ describe("clasificarFalloDeSubida — ¿esto que falló al subir es un rechazo d
 
 // ADR-0328 (20261004204000, en producción desde el 5-oct): `regularizar_prenda` rechaza a quien vendió la prenda (salvo el líder firmando
 // él mismo) con 42501 y un hint propio. Sin su huella caería al genérico con «Código: …»; y no es un rechazo del combo «Responsable».
+// /chaos de Compras 2026-10-15 (ADR-0421): una factura que vence antes de emitirse rebota en castellano.
+describe("las fechas de una factura de compra", () => {
+  it("el vencimiento antes de la emisión", () => {
+    expect(
+      traducirError({ message: 'new row for relation "compras" violates check constraint "compras_vence_despues_de_emitir"', code: "23514" }, "registrar el comprobante"),
+    ).toMatch(/vencimiento no puede ser anterior a la emisión/);
+  });
+});
+
 describe("regularizar la propia venta (ADR-0328)", () => {
   it("dice, en palabras de tienda, que lo haga otra persona o un líder", () => {
     const salida = traducirError(
@@ -854,6 +877,15 @@ describe("montos de Ventas y Caja", () => {
     expect(
       traducirError({ message: 'new row for relation "cajas" violates check constraint "cajas_montos_finitos"', code: "23514" }, "abrir la caja"),
     ).toMatch(/no es un número válido/);
+  });
+});
+
+// ADR-0415: un precio o un costo de más de S/ 5 000 rebota en castellano.
+describe("el tope del precio de una prenda", () => {
+  it("dice qué revisar", () => {
+    expect(
+      traducirError({ message: 'new row for relation "variantes" violates check constraint "variantes_precio_con_tope"', code: "23514" }, "guardar el producto"),
+    ).toMatch(/pasa de S\/ 5000: revisa que no falte el punto/);
   });
 });
 

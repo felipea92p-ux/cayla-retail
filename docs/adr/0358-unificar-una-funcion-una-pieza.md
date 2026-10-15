@@ -191,6 +191,16 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   donde cabe y el «⋯» solo de 32 px en una fila de una lista (`<MenuAcciones>`, `<BotonPuntos>`). Migrado el mismo día: unas 40 barras en
   27 archivos, 9 anillos, 12 «copiar» y 3 menús; deuda 0 en las cuatro. Las del Observatorio, Análisis, Finanzas y los pases de Traslados
   quedan por su ADR. Registros: `grafico.avance.md`, `grafico.anillo.md`, `accion.copiar.md`, `accion.menu.md`.
+- **2026-10-15 · ronda 14, la línea, las barras por tiempo, la barra a escala y la dona, tocándolas** (fuentes en `docs/unificar/rondas/14/`).
+  `grafico` quedó repartida en familias propias: `grafico.linea`, `grafico.barras` y `grafico.escala` se suman a la barra apilada, la de
+  avance y el anillo. Felipe eligió P1 en las cuatro: **la línea** de tinta con su área, la referencia en taupe punteado, tres rayas con sus
+  montos, la cifra final y una guía con su globito (`<Linea>`; en una fila, `<Sparkline>`); **las barras por tiempo** en arena con la que
+  importa en tinta y su cifra, la meta una rayita, el rojo o el ámbar de la pantalla y un globito (`<BarrasTiempo>`); **la barra a escala**,
+  la de avance en tinta (la más larga no está «lista»); y **la dona de lo cobrado pasa a la barra apilada**, como «Cómo se pagó» del Historial.
+  Lo que estaba bien o mal deja de ir en el color de la línea (la brecha de Caja, el rojo del plan, el verde o ámbar del costo de un
+  proveedor): lo dicen el titular y el globito. Migrado el mismo día: 4 líneas, 11 grupos de barras, 5 barras a escala y la dona; deuda 0.
+  Se quedan por su decisión «Cómo cerró cada día» de Caja (Felipe, 2026-10-12), las tarjetas de Facturación, Finanzas, Análisis y el
+  Observatorio. Registros: `grafico.linea.md`, `grafico.barras.md`, `grafico.escala.md` y la actualización de `grafico.barra.md`.
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en

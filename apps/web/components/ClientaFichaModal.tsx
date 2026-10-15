@@ -770,12 +770,17 @@ export function ClientaFichaModal({
                 <CampoTexto etiqueta={guia.etiqueta("motivo", "Motivo")} value={motivoArchivo} onChange={(e) => setMotivoArchivo(e.target.value)} placeholder="Ya no compra, cerró su número…" />
               </CampoGuiado>
               <CampoGuiado id="anonimizar" guia={guia}>
+                {/* ADR-0416: anonimizar no tiene vuelta atrás, lo hace un líder (`verCompleto` es ser líder; la base lo exige igual). */}
                 <Interruptor
-                  activo={anonimizar}
+                  activo={anonimizar && verCompleto}
                   onActivo={setAnonimizar}
-                  disabled={esperaAnonimizar !== null}
+                  disabled={!verCompleto || esperaAnonimizar !== null}
                   etiqueta={guia.etiqueta("anonimizar", "Anonimizar sus datos personales (Ley 29733)")}
-                  pie={esperaAnonimizar ?? pieDeAnonimizar(ficha.tiendaOnline ?? null)}
+                  pie={
+                    verCompleto
+                      ? (esperaAnonimizar ?? pieDeAnonimizar(ficha.tiendaOnline ?? null))
+                      : "Borra sus datos personales y no se puede deshacer: lo hace un líder. Tú puedes archivarla."
+                  }
                 />
               </CampoGuiado>
               <CampoGuiado id="responsable" guia={guia}>
@@ -788,7 +793,7 @@ export function ClientaFichaModal({
                   type="button"
                   peso="primario"
                   cargando={guardando}
-                  onClick={() => onArchivar(anonimizar)}
+                  onClick={() => onArchivar(anonimizar && verCompleto)}
                   disabled={!responsable.listo}
                   title={guia.frase ?? undefined}
                   className={guia.claseConfirmar}
