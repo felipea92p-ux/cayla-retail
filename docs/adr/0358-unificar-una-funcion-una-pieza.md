@@ -181,6 +181,16 @@ antes de cada visita (pasó en la primera corrida: 39 de 77 pantallas sin cubrir
   si solo se lee, «Cancelar» si guarda, nunca las dos). Migrado el mismo día: 140 botones que esperaban a mano (dos codemods), 22 «Editar»,
   146 anchos y unas 30 salidas; deuda 0 en las tres. La salida no tiene firma (depende de si la hoja guarda). Registros: `accion.guardar.md`,
   `accion.editar.md`, `modal.md`.
+- **2026-10-15 · ronda 13, la barra de avance, el anillo, copiar y el menú «Más», tocándolos** (fuentes en `docs/unificar/rondas/13/`). De la
+  familia `grafico` salieron dos familias propias, `grafico.avance` y `grafico.anillo` (las líneas y las barras por hora o por día quedan para
+  la ronda 14, y los íconos para la 15). Felipe eligió P1 en las cuatro: **una barra de avance con tres altos** (fina 3 · normal 6 · gruesa 12)
+  en tinta que pasa a verde al completarse, y el rojo o el ámbar los pone la pantalla (`<BarraAvance>`, que reemplaza también a la homónima
+  del detalle de un comprobante); **un anillo en tres tamaños** (chico 40 · mediano 72 · grande 160), el arco de tinta que pasa a verde al
+  cerrarse, la cifra adentro (`<Anillo>`); **copiar**: junto a un dato, el ícono solo, y suelto, «Copiar …», los dos con «✓ Copiado» sin
+  cambiar de ancho (`<BotonCopiar>`, que además copia por el camino viejo si el navegador no deja); y **el menú**: «Más ▾» con su palabra
+  donde cabe y el «⋯» solo de 32 px en una fila de una lista (`<MenuAcciones>`, `<BotonPuntos>`). Migrado el mismo día: unas 40 barras en
+  27 archivos, 9 anillos, 12 «copiar» y 3 menús; deuda 0 en las cuatro. Las del Observatorio, Análisis, Finanzas y los pases de Traslados
+  quedan por su ADR. Registros: `grafico.avance.md`, `grafico.anillo.md`, `accion.copiar.md`, `accion.menu.md`.
 
 **Número:** este ADR nació como 0354; al traer `main` el 2026-10-06, el 0354 (historial de la prenda), el 0355 (billetera de Traslados) y el 0356
 (caos) ya estaban tomados, y pasó a 0357; horas después `main` trajo el 0357 de Análisis v4 y pasó a **0358**. Su fila en

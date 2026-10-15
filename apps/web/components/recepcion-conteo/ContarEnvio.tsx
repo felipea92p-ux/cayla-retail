@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { ArrowLeft, ArrowRight, Minus, Plus } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
@@ -482,9 +483,8 @@ function ContadorDeLinea({
           )}
         </div>
         <div className="flex flex-col items-center gap-2">
-          <div className="rc-barra" aria-hidden>
-            <i style={{ width: `${fraccion * 100}%`, background: `var(--color-${v.tono === "verde" ? "verde" : v.tono === "ambar" ? "ambar" : "taupe"})` }} />
-          </div>
+          {/* El color lo pone el veredicto de la línea (coincide o no con lo que dijeron), no el avance. */}
+          <BarraAvance pct={fraccion * 100} alto="gruesa" tono={v.tono === "verde" ? "verde" : v.tono === "ambar" ? "ambar" : "tinta"} decorativa className="max-w-[520px]" />
           <Chip tono={v.tono === "neutro" ? "neutro" : v.tono}>{v.texto}</Chip>
           {(linea.conteo?.enStock ?? 0) > 0 && (
             <p className="text-xs text-taupe">Ya entraron {textoPrendas(linea.conteo?.enStock ?? 0)} al stock: lo contado no baja de ahí.</p>

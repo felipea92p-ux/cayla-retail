@@ -1,10 +1,11 @@
 "use client";
 
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent as KeyboardEventReact } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArrowLeftRight, Bandage, BookOpen, Check, ChevronRight, Copy, History, PencilLine, ShoppingBag, SignpostBig, Tag, Truck, Warehouse, ZoomIn } from "lucide-react";
+import { Archive, ArrowLeftRight, Bandage, BookOpen, Check, ChevronRight, History, PencilLine, ShoppingBag, SignpostBig, Tag, Truck, Warehouse, ZoomIn } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Pestanas } from "@/components/ui/Pestanas";
 import { Chip } from "@/components/ui/Chip";
@@ -415,16 +416,6 @@ export function PanelTalla({
     lanzar("pedir", mejor ? { para: "reponer", origenId: mejor.id, n: 1 } : {}, mejor ? 2 : 0);
   }
 
-  async function copiarCodigo() {
-    if (!codigo) return;
-    try {
-      await navigator.clipboard.writeText(codigo);
-      avisar.exito(`Código copiado: ${codigo}`);
-    } catch {
-      avisar.error("No se pudo copiar el código", { detalle: "Selecciónalo con el mouse y cópialo." });
-    }
-  }
-
   function alTeclear(e: KeyboardEventReact<HTMLDivElement>) {
     const antes = ultimaTecla.current;
     ultimaTecla.current = e.timeStamp;
@@ -716,17 +707,12 @@ export function PanelTalla({
                       </p>
                     )}
                     {/* El código es de la TALLA, no de la prenda: va junto a la talla, y se copia de un toque (para Buscar o Vender). */}
+                    {/* Copiar es la pieza del sistema (ronda 13): el código a la vista y, junto a él, el ícono que lo copia. */}
                     {codigo && (
-                      <button
-                        type="button"
-                        onClick={copiarCodigo}
-                        data-guia="existencias.cajon-codigo"
-                        title="Copiar el código de esta talla"
-                        className="inline-flex w-fit items-center gap-1.5 rounded-lg px-1.5 py-1 text-[12.5px] text-taupe transition-colors hover:bg-hueso hover:text-tinta"
-                      >
-                        código <b className="font-mono text-[12.5px] font-semibold text-tinta">{codigo}</b>
-                        <Copy aria-hidden className="h-3.5 w-3.5" strokeWidth={2} />
-                      </button>
+                      <span data-guia="existencias.cajon-codigo" className="inline-flex w-fit items-center gap-1 px-1.5 py-1 text-[12.5px] text-taupe">
+                        código <b className="font-mono text-[12.5px] font-semibold text-tinta select-all">{codigo}</b>
+                        <BotonCopiar forma="icono" texto={codigo} que="el código de esta talla" alCopiar={() => avisar.exito(`Código copiado: ${codigo}`)} className="-my-1.5" />
+                      </span>
                     )}
                   </>
                 )}
@@ -857,7 +843,7 @@ export function PanelTalla({
                         {/* ¿Cómo se vende? A la vista (antes plegado bajo «¿Cómo se vende?»). */}
                         {(ritmo || vendidasTalla !== null) && (
                           <div data-guia="existencias.cajon-ritmo" className="flex items-center gap-3 rounded-xl bg-hueso px-3 py-2.5 text-sm text-tinta/85">
-                            {ritmo && <AroSemanas ritmo={ritmoColor} tam={40} />}
+                            {ritmo && <AroSemanas ritmo={ritmoColor} />}
                             <div className="min-w-0">
                               {ritmo && <p>{prenda.color ? `${prenda.color}: ${ritmo.charAt(0).toLocaleLowerCase("es")}${ritmo.slice(1)}` : ritmo}</p>}
                               {vendidasTalla !== null && (

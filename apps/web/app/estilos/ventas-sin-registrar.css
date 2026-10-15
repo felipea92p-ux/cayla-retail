@@ -36,8 +36,6 @@
   .vsr-f-prog { flex: 1 1 18rem; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
   .vsr-f-top { display: flex; align-items: baseline; gap: 0.625rem; font-size: 14px; color: var(--vsr-t65); }
   .vsr-f-n { font-family: var(--font-serif); font-size: 36px; line-height: 1; color: var(--color-tinta); font-variant-numeric: tabular-nums; }
-  .vsr-f-bar { height: 6px; border-radius: 3px; background: var(--color-sand); overflow: hidden; }
-  .vsr-f-bar > i { display: block; height: 100%; border-radius: 3px; background: var(--color-verde); transform-origin: left; transition: transform 1s var(--ease-cayla); }
   .vsr-venc {
     display: inline-flex;
     align-items: center;

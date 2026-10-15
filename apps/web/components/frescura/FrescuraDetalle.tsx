@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
 import { Info, NotebookPen } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
@@ -130,18 +131,11 @@ export type ContextoDecision = {
   vigenteId: string | null;
 };
 
-/** La barra «día 3 de 7»: se llena al abrir (200–500 ms, sin rebote; sin movimiento con `prefers-reduced-motion`). */
+/** La barra «día 3 de 7»: la barra de avance del sistema (ronda 13), que se llena al abrir. */
 function BarraDias({ dia, de }: { dia: number; de: number }) {
-  const [lleno, setLleno] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setLleno(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
   return (
     <div className="mt-2.5 flex items-center gap-2.5">
-      <div role="progressbar" aria-valuemin={1} aria-valuemax={de} aria-valuenow={dia} aria-label={`Día ${dia} de ${de}`} className="h-1.5 flex-1 overflow-hidden rounded-full bg-sand">
-        <div className="h-full rounded-full bg-tinta/55 transition-[width] duration-500 ease-cayla motion-reduce:transition-none" style={{ width: lleno ? `${(dia / de) * 100}%` : "0%" }} />
-      </div>
+      <BarraAvance pct={(dia / de) * 100} etiqueta={`Día ${dia} de ${de}`} className="min-w-0 flex-1" />
       <span className="text-[12px] tabular-nums text-taupe">
         día {dia} de {de}
       </span>

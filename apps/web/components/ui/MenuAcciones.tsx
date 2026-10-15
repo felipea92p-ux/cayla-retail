@@ -1,5 +1,6 @@
 "use client";
 
+import { MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -39,11 +40,28 @@ function colocar(r: DOMRect, alto: number): Posicion {
  * estimado y, ya montado, con su alto REAL: una opción con `motivo` ocupa varias líneas, y con el estimado el menú se
  * abría hacia abajo y «Desactivar» quedaba fuera de la pantalla del celular (revisión 2026-09-28). Se cierra con Escape,
  * con un clic afuera, al desplazarse la página (no el propio menú) o al cambiar el tamaño de la ventana, y devuelve el
- * foco al botón. Flechas arriba y abajo recorren las opciones. Sin animación de entrada a propósito: es un menú, no un modal.
+ * foco al botón. Flechas arriba y abajo recorren las opciones. La lista entra como la de un combo (`anim-revelar`, 240 ms): es
+ * un menú, no un modal.
  *
- * `texto` (Clientas, 2026-09-30): el mismo menú detrás de un botón secundario con palabra («Más ▾») en vez del «⋯», para la
- * cabecera de una pantalla, donde las acciones de vez en cuando no deben ocupar una fila entera cada una.
+ * El menú «Más» es una sola pieza (ADR-0358, ronda 13, Felipe eligió P1 el 2026-10-15; registro: docs/unificar/accion.menu.md):
+ * donde cabe la palabra —la cabecera, una tarjeta, una barra—, `texto="Más"`: el secundario «Más ▾» (Clientes, 2026-09-30). En una
+ * fila de una lista (muchas iguales: los roles, los comprobantes), sin `texto`: el «⋯» solo de 32 px, sin borde, como el lápiz de
+ * Editar, con `etiqueta` («Más acciones de Vendedora») al pasar el mouse y para el lector.
  */
+/** La cara del «⋯» de una fila: 32 px, sin borde, como el lápiz de Editar; se rellena de hueso al pasar el mouse y mientras está abierto. */
+const CLASE_PUNTOS =
+  "grid h-8 w-8 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors duration-200 ease-cayla hover:bg-hueso hover:text-tinta aria-expanded:bg-hueso aria-expanded:text-tinta disabled:cursor-not-allowed disabled:opacity-45";
+
+/** El mismo «⋯» cuando abre una hoja en vez de una lista (las opciones de un comprobante): `que` va en «Más acciones de <que>». */
+export function BotonPuntos({ que, onClick, className = "", guia }: { que: string; onClick: () => void; className?: string; guia?: string }) {
+  const nombre = `Más acciones de ${que}`;
+  return (
+    <button type="button" aria-label={nombre} title={nombre} aria-haspopup="dialog" onClick={onClick} data-guia={guia} className={`${CLASE_PUNTOS} ${className}`}>
+      <MoreHorizontal aria-hidden className="h-4 w-4" />
+    </button>
+  );
+}
+
 export function MenuAcciones({
   etiqueta,
   items,
@@ -135,12 +153,9 @@ export function MenuAcciones({
         aria-haspopup="menu"
         aria-expanded={abierto}
         disabled={deshabilitado}
+        title={texto ? undefined : etiqueta}
         onClick={() => setAbierto((a) => !a)}
-        className={
-          texto
-            ? "btn-cayla btn-secundario inline-flex items-center gap-2"
-            : "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-tinta/20 text-lg leading-none text-tinta/75 transition-colors hover:border-tinta/40 hover:text-tinta disabled:opacity-40"
-        }
+        className={texto ? "btn-cayla btn-secundario inline-flex items-center gap-2" : CLASE_PUNTOS}
       >
         {texto ? (
           <>
@@ -150,7 +165,7 @@ export function MenuAcciones({
             </svg>
           </>
         ) : (
-          <span aria-hidden>⋯</span>
+          <MoreHorizontal aria-hidden className="h-4 w-4" />
         )}
       </button>
       {abierto &&
@@ -162,7 +177,7 @@ export function MenuAcciones({
             aria-label={etiqueta}
             onKeyDown={alTeclear}
             style={{ top: pos.top, left: pos.left, width: ANCHO, maxHeight: pos.maxHeight }}
-            className={`card-cayla fixed z-[60] py-1.5 text-sm ${pos.maxHeight ? "overflow-y-auto overscroll-contain" : ""}`}
+            className={`card-cayla anim-revelar fixed z-[60] py-1.5 text-sm ${pos.maxHeight ? "overflow-y-auto overscroll-contain" : ""}`}
           >
             {items.map((it) => (
               <button

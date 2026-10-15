@@ -1,3 +1,4 @@
+import { Anillo } from "@/components/ui/Anillo";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Chip } from "@/components/ui/Chip";
 import { Etiqueta } from "@/components/inicio/TarjetasInicio";
@@ -10,35 +11,13 @@ import { formatoSoles } from "@/lib/resumen-formato";
 // Propuesta final de Felipe, 2026-10-03 (docs/maquetas/rendimiento-vistas-2026-10/inicio-final.html): el anillo del día arriba,
 // «Lo que va bien» debajo y «Tu mes» al final. Los tres son Server Components: no necesitan JavaScript.
 
-const R = 54;
-const CIRCUNFERENCIA = 2 * Math.PI * R;
-
-/** El anillo de su meta de hoy: se llena hasta el 100 % y ahí se queda (el número del centro es el que dice cuánto). */
-function Anillo({ pct, vendido, meta }: { pct: number; vendido: number; meta: number }) {
-  const lleno = Math.min(100, Math.max(0, pct)) / 100;
+/** El anillo de su meta de hoy (la pieza del sistema, ronda 13): se cierra hasta el 100 % y pasa a verde; el número del centro dice cuánto. */
+function AnilloDelDia({ pct, vendido, meta }: { pct: number; vendido: number; meta: number }) {
   return (
-    <div className="relative size-[150px] shrink-0">
-      <svg viewBox="0 0 130 130" className="size-full -rotate-90" role="img" aria-label={`Llevas ${formatoSoles(vendido)} de ${formatoSoles(meta)}, ${pct} % de tu meta de hoy`}>
-        <circle cx="65" cy="65" r={R} fill="none" strokeWidth="12" className="stroke-tinta/10" />
-        <circle
-          cx="65"
-          cy="65"
-          r={R}
-          fill="none"
-          strokeWidth="12"
-          strokeLinecap="round"
-          className="stroke-verde"
-          strokeDasharray={CIRCUNFERENCIA}
-          strokeDashoffset={CIRCUNFERENCIA * (1 - lleno)}
-        />
-      </svg>
-      <div className="absolute inset-0 grid place-items-center text-center">
-        <div>
-          <p className="font-display text-[30px] leading-none text-tinta tabular-nums">{formatoSoles(vendido)}</p>
-          <p className="mt-1 text-xs text-tinta/65">de {formatoSoles(meta)}</p>
-        </div>
-      </div>
-    </div>
+    <Anillo pct={pct} tamano="grande" etiqueta={`Llevas ${formatoSoles(vendido)} de ${formatoSoles(meta)}, ${pct} % de tu meta de hoy`}>
+      <span className="font-display text-[30px] leading-none text-tinta tabular-nums">{formatoSoles(vendido)}</span>
+      <span className="mt-1 text-xs text-tinta/65">de {formatoSoles(meta)}</span>
+    </Anillo>
   );
 }
 
@@ -66,7 +45,7 @@ export function SeccionMiMeta({ miMeta, cajaAbierta, titulo }: { miMeta: MiMeta;
     <section data-guia="inicio.hoy">
       <Etiqueta>{`Tu meta de hoy`}</Etiqueta>
       <div className="card-cayla flex flex-col items-center gap-4 p-5 text-center sm:flex-row sm:text-left">
-        <Anillo pct={r.hoy.pct} vendido={r.hoy.vendido} meta={r.hoy.meta} />
+        <AnilloDelDia pct={r.hoy.pct} vendido={r.hoy.vendido} meta={r.hoy.meta} />
         <div className="min-w-0">
           <p className="font-display text-[22px] leading-tight text-tinta">{frase}</p>
           <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
@@ -145,7 +124,7 @@ export function SeccionTuMes({ miMeta }: { miMeta: MiMeta }) {
             de {formatoSoles(m.meta)} · <b className="font-semibold text-tinta">{m.pct ?? 0} %</b>
           </p>
         </div>
-        <BarraAvance pct={m.pct ?? 0} marca={m.tocabaPct} className="mt-3" />
+        <BarraAvance pct={m.pct ?? 0} marca={m.tocabaPct} etiqueta="Tu mes contra tu meta" className="mt-3" />
         <p className="mt-3 text-[13px] text-tinta/80">
           {hito.falta > 0 ? (
             <>
