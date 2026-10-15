@@ -4,11 +4,14 @@ import {
   coloresSinFoto,
   descripcionParaGuardar,
   errorDeVitrina,
+  esEmpaque,
   filtrarVitrina,
+  interruptorEncendido,
   leerVitrina,
   libreEnTiendas,
   modeloDeJson,
   queLePasa,
+  razonNoSeMuestra,
   seVeEnLaWeb,
   stockEnTiendas,
   textoLoNuevo,
@@ -162,6 +165,56 @@ describe("mostrar u ocultar: lo que le pasa a cada uno (lo mismo que hace `vitri
     expect(queLePasa(emma, "ocultar")).toEqual({ texto: "Deja de verse", cambia: true });
     expect(queLePasa(oculto, "ocultar")).toMatchObject({ cambia: false });
     expect(queLePasa(nunca, "ocultar")).toMatchObject({ cambia: false });
+  });
+});
+
+describe("solo ropa en la web (Felipe 2026-10-15): el empaque se vende en la caja", () => {
+  // Una bolsa como la devuelve la base desde 20261015122000: no se puede mostrar y dice por qué.
+  const JSON_BOLSA = { ...JSON_EMMA, id: "b1", nombre: "Bolsa de papel CAYLA", categoria: "Bolsas", publicable: false, por_que_no: "empaque", vitrina: null };
+  const bolsa = modeloDeJson(JSON_BOLSA)!;
+  // La que quedó encendida antes de la regla: su fila de la Vitrina sigue «publicada», pero ya no se ve.
+  const bolsaDeAntes = modeloDeJson({ ...JSON_BOLSA, vitrina: JSON_EMMA.vitrina })!;
+
+  it("lee el porqué de la base; uno que se puede mostrar no tiene porqué, y un dato raro o una base sin el campo no inventan uno", () => {
+    expect(bolsa.porQueNo).toBe("empaque");
+    expect(emma.porQueNo).toBeNull();
+    expect(modeloDeJson({ ...JSON_EMMA, por_que_no: "empaque" })?.porQueNo).toBeNull();
+    expect(modeloDeJson({ ...JSON_BOLSA, por_que_no: "porque sí" })?.porQueNo).toBeNull();
+    expect(modeloDeJson({ ...JSON_BOLSA, por_que_no: undefined })?.porQueNo).toBeNull();
+    expect(modeloDeJson({ ...JSON_BOLSA, por_que_no: "sin_precio" })?.porQueNo).toBe("sin_precio");
+  });
+
+  it("el empaque: la fila dice «Solo en la caja» (sin alarma), la hoja explica que no es ropa y el interruptor queda apagado, también el que estaba encendido", () => {
+    expect(esEmpaque(bolsa)).toBe(true);
+    expect(razonNoSeMuestra(bolsa)).toEqual({
+      chip: "Solo en la caja",
+      tono: "neutro",
+      frase: "No va en la web: no es ropa (es empaque, como las bolsas). Se vende desde el ticket, en la caja.",
+    });
+    expect(interruptorEncendido(bolsa)).toBe(false);
+    expect(interruptorEncendido(bolsaDeAntes)).toBe(false);
+    expect(seVeEnLaWeb(bolsaDeAntes)).toBe(false);
+  });
+
+  it("las otras razones siguen como estaban (ámbar), y lo que se puede mostrar no tiene razón", () => {
+    expect(razonNoSeMuestra(emma)).toBeNull();
+    expect(razonNoSeMuestra(modelo({ publicable: false, porQueNo: "no_se_vende", vitrina: null }))).toMatchObject({ chip: "No se puede vender", tono: "ambar" });
+    expect(razonNoSeMuestra(modelo({ publicable: false, porQueNo: null }))).toMatchObject({ chip: "Ya no se vende: no se ve", tono: "ambar" });
+    expect(razonNoSeMuestra(modelo({ publicable: false, porQueNo: "sin_precio" }))?.frase).toMatch(/tallas activas con precio/);
+    expect(interruptorEncendido(emma)).toBe(true);
+    expect(interruptorEncendido(modelo({ publicable: false, porQueNo: "no_se_vende" }))).toBe(true);
+  });
+
+  it("mostrar el empaque no lo cambia (y dice por qué); ocultar el que quedó encendido solo lo apaga", () => {
+    expect(queLePasa(bolsa, "mostrar")).toEqual({ texto: "No es ropa: se vende en la caja", cambia: false });
+    expect(queLePasa(bolsaDeAntes, "mostrar")).toEqual({ texto: "No es ropa: se vende en la caja", cambia: false });
+    expect(queLePasa(bolsaDeAntes, "ocultar")).toEqual({ texto: "Se apaga: ya no se veía", cambia: true });
+    expect(queLePasa(bolsa, "ocultar")).toMatchObject({ cambia: false });
+  });
+
+  it("la cifra «se ven en la web» no cuenta el empaque, aunque haya quedado encendido", () => {
+    expect(cifrasDe([emma, bolsa, bolsaDeAntes])).toMatchObject({ seVen: 1, total: 3 });
+    expect(filtrarVitrina([emma, bolsa, bolsaDeAntes], "en_la_web", "").map((m) => m.id)).toEqual(["e1"]);
   });
 });
 

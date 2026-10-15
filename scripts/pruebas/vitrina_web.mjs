@@ -184,7 +184,8 @@ function main() {
           (select string_agg(k, ',' order by k) from jsonb_object_keys(retail.fn_vitrina_modelos()) k))
         from jsonb_array_elements(retail.fn_vitrina_modelos() -> 'modelos') m where m ->> 'id' = :'emma';
       rollback;`),
-    "categoria,codigo,colores,descripcion,familia,foto,id,nombre,prefijo,publicable,stock,tallas,vitrina|actualizado_en,actualizado_por,descripcion_web,en_lo_nuevo,publicado,publicado_en,version|modelos,tiendas",
+    // `por_que_no` (20261015122000): por qué no se puede mostrar (empaque, sin precio, no se vende), para que la fila lo diga.
+    "categoria,codigo,colores,descripcion,familia,foto,id,nombre,por_que_no,prefijo,publicable,stock,tallas,vitrina|actualizado_en,actualizado_por,descripcion_web,en_lo_nuevo,publicado,publicado_en,version|modelos,tiendas",
   );
   esperarValor(
     "nadie lee la tabla directo (ni el ERP, ni un visitante, ni la tienda)",
@@ -611,6 +612,89 @@ function main() {
     correr(`${PREPARAR}${COMO_TIENDA}${guardar("emma")};\nrollback;`),
     "permission denied",
   );
+
+  // ---------------------------------------------------------------- 4b. Solo ropa en la web
+  // Felipe, 2026-10-15 (`20261015122000_vitrina_solo_ropa.sql`): lo de una familia fuera de los motores (bolsas, cajas, empaque) se vende
+  // desde el ticket, en la caja. La Vitrina no lo deja mostrar, con su porqué, y la tienda no lo muestra aunque haya quedado publicado.
+  console.log("— Solo ropa en la web —");
+  /** Pasa un modelo del seed a una familia fuera de los motores («ZZ Empaque», como la de las bolsas), dentro de la transacción. */
+  const comoEmpaque = (prod) => `insert into retail.familias (codigo, nombre, entra_a_motores) values ('zzempaque', 'ZZ Empaque', false)
+      on conflict (codigo) do nothing;
+      insert into retail.categorias (nombre, familia, prefijo) values ('ZZ Bolsas ${prod}', 'zzempaque', upper('Q${prod.slice(0, 2)}')) returning id as cat_${prod} \\gset
+      update retail.productos set categoria_id = :'cat_${prod}' where id = :'${prod}';\n`;
+  {
+    const r = correr(`${PREPARAR}${comoEmpaque("emma")}${guardar("emma")};\nrollback;`);
+    esperar(
+      "una bolsa (familia fuera de los motores) no se muestra: la hoja la niega diciendo que no es ropa y que se vende en la caja",
+      !r.ok && r.mensaje.includes("vitrina_no_publicable") && r.mensaje.includes("«Blusa Emma» no se puede mostrar: no es ropa, es de ZZ Empaque. Se vende desde el ticket, en la caja."),
+      r.ok ? r.salida : r.mensaje,
+    );
+  }
+  {
+    const r = correr(`${PREPARAR}${comoEmpaque("falda")}update retail.productos set estado = 'descontinuado' where id = :'vestido';
+      select retail.vitrina_mostrar(array[:'emma', :'falda', :'vestido']::uuid[], true);
+      rollback;`);
+    esperar(
+      "el lote es todo o nada y nombra aparte lo que es empaque y lo que no se vende",
+      !r.ok &&
+        r.mensaje.includes(
+          "No se pueden mostrar: Falda Renata (no son ropa: se venden desde el ticket, en la caja); Vestido Sofía (descontinuados, de prueba o sin tallas activas con precio). Quítalos de la selección.",
+        ),
+      r.ok ? r.salida : r.mensaje,
+    );
+  }
+  esperarValor(
+    "la regla y su porqué: empaque (también con todas sus tallas en 0, como la de obsequio), «no se vende» (una bolsa de prueba), «sin precio» (ropa en 0), «no existe»; y «se puede mostrar» es no tener porqué en TODO el catálogo",
+    correr(`${PREPARAR}${comoEmpaque("emma")}${comoEmpaque("falda")}
+      update retail.variantes set precio = 0 where producto_id = :'falda';
+      update retail.productos set es_prueba = true where id = :'falda';
+      update retail.variantes set precio = 0 where producto_id = :'vestido';
+      select concat_ws('|', retail.fn_vitrina_por_que_no(:'emma'), retail.fn_vitrina_por_que_no(:'falda'),
+          retail.fn_vitrina_por_que_no(:'vestido'), retail.fn_vitrina_por_que_no(:'cat_blusas'));
+      update retail.productos set es_prueba = false where id = :'falda';
+      select concat_ws('|', retail.fn_vitrina_por_que_no(:'falda'), retail.fn_vitrina_publicable(:'falda'),
+          (select count(*) from retail.productos p where retail.fn_vitrina_publicable(p.id) is distinct from (retail.fn_vitrina_por_que_no(p.id) is null)));
+      rollback;`),
+    "empaque|no_se_vende|sin_precio|no_existe\nempaque|f|0",
+  );
+  esperarValor(
+    "un modelo publicado ANTES de pasar a una familia fuera de los motores no sale en el catálogo, ni en la ficha, ni en la bolsa del cliente; su fila de la Vitrina queda como estaba y vuelve a verse si la familia vuelve a contar",
+    correr(`${PREPARAR}${guardar("emma")} \\gset
+      ${comoEmpaque("emma")}
+      select v.id as v_emma from retail.variantes v where v.producto_id = :'emma' and v.activo order by v.id limit 1 \\gset
+      select concat_ws('|', coalesce(${EN_CATALOGO("emma")} ->> 'nombre', 'no sale'), coalesce(retail.tienda_ficha(:'emma')::text, 'null'),
+          retail.tienda_bolsa(jsonb_build_array(jsonb_build_object('variante_id', :'v_emma', 'cantidad', 1)), null) -> 'lineas' -> 0 ->> 'disponible',
+          (select publicado from retail.vitrina_productos where producto_id = :'emma'));
+      update retail.familias set entra_a_motores = true where codigo = 'zzempaque';
+      select coalesce(${EN_CATALOGO("emma")} ->> 'nombre', 'no sale');
+      rollback;`),
+    "no sale|null|false|t\nBlusa Emma",
+  );
+  esperarValor(
+    "la pantalla de la Vitrina lista la bolsa con su porqué y sin poder mostrarse (también la que nunca estuvo: se vende, en la caja); una de prueba no sale",
+    correr(`${PREPARAR}${comoEmpaque("emma")}${comoEmpaque("falda")}update retail.productos set es_prueba = true where id = :'falda';
+      select concat_ws('|', (select concat_ws(',', m ->> 'publicable', m ->> 'por_que_no', coalesce(m -> 'vitrina' ->> 'publicado', 'nunca'))
+                               from jsonb_array_elements(retail.fn_vitrina_modelos() -> 'modelos') m where m ->> 'id' = :'emma'),
+          (select count(*) from jsonb_array_elements(retail.fn_vitrina_modelos() -> 'modelos') m where m ->> 'id' = :'falda'),
+          (select m ->> 'por_que_no' is null and (m ->> 'publicable')::boolean
+             from jsonb_array_elements(retail.fn_vitrina_modelos() -> 'modelos') m where m ->> 'id' = :'vestido'));
+      rollback;`),
+    "false,empaque,nunca|0|t",
+  );
+  {
+    const r = correr(`${PREPARAR}${comoEmpaque("emma")}do $m$
+declare d text := pg_get_functiondef('retail.fn_vitrina_por_que_no(uuid)'::regprocedure);
+begin
+  if position('when not retail.fn_categoria_entra_a_motores(p.categoria_id) then ''empaque''' in d) = 0 then
+    raise exception 'mutante vacío: fn_vitrina_por_que_no no tiene la línea del empaque';
+  end if;
+  execute replace(d, 'when not retail.fn_categoria_entra_a_motores(p.categoria_id) then ''empaque''', 'when false then ''empaque''');
+end $m$;
+${guardar("emma")} \\gset
+select retail.fn_vitrina_publicable(:'emma');
+rollback;`);
+    esperar("MUTANTE la regla sin la línea del empaque: la bolsa se puede mostrar otra vez, y la prueba lo ve", r.ok && r.salida.split("\n").at(-1) === "t", r.ok ? r.salida : r.mensaje);
+  }
 
   // ---------------------------------------------------------------- 5. La migración
   console.log("— La migración —");

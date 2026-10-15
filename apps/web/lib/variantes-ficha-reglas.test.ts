@@ -602,6 +602,10 @@ describe("precio y costo en bloque", () => {
     it("una talla desactivada no cuenta (la base mira solo las activas)", () => {
       expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 20 }), variante("b", "NEG", "t-m", { costo: 99, activo: false })))).toBe(20);
     });
+    it("una talla a 0 en la grilla (la de obsequio) no cuenta: el precio de la tienda no la alcanza (2026-10-15)", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 1 }), variante("b", "NEG", "t-m", { costo: 9, precio: 0 })))).toBe(1);
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 9, precio: 0 })))).toBeNull();
+    });
     it("lo que se está escribiendo no cuenta: manda lo guardado", () => {
       const [f] = filas(variante("a", "NEG", "t-s", { costo: 20 }));
       expect(costoMaximoGuardado([{ ...f!, costo: "500" }])).toBe(20);

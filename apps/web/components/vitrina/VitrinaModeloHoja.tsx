@@ -20,8 +20,10 @@ import {
   coloresSinFoto,
   descripcionParaGuardar,
   errorDeVitrina,
+  esEmpaque,
   MAX_DESCRIPCION_WEB,
   modeloDeJson,
+  razonNoSeMuestra,
   textoLoNuevo,
   type EnLoNuevo,
   type ModeloVitrina,
@@ -60,6 +62,7 @@ export function VitrinaModeloHoja({
 
   const guia = useGuiaCampos(camposDeModelo({ descripcion, responsableListo: responsable.listo, responsableMotivo: responsable.motivo }));
   const sinFotoPropia = coloresSinFoto(modelo);
+  const razon = razonNoSeMuestra(modelo);
   const descripcionFinal = descripcionParaGuardar(descripcion, modelo.descripcion);
   // Lo que ya está guardado (o, si nunca estuvo, lo de fábrica: oculto, automático y con la descripción del catálogo).
   const sinCambios =
@@ -140,9 +143,10 @@ export function VitrinaModeloHoja({
             etiqueta="Mostrar en la web"
             pie="Se ve con todos sus colores y tallas, al precio de cada tienda. El cliente lo separa y lo recoge en su tienda."
           />
-          {!modelo.publicable && (
-            <Aviso tono="atencion" chico>
-              No se puede mostrar: está descontinuado, es de prueba o no tiene tallas activas con precio.
+          {/* Por qué no se puede mostrar: el empaque (se vende en la caja, «Solo ropa en la web») es un dato, no un problema. */}
+          {razon && (
+            <Aviso tono={esEmpaque(modelo) ? "info" : "atencion"} chico>
+              {razon.frase}
             </Aviso>
           )}
         </div>

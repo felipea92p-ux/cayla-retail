@@ -480,6 +480,26 @@ function main() {
       rollback;`),
     "0\n0",
   );
+  // Solo ropa en la web (Felipe 2026-10-15, `20261015122000_vitrina_solo_ropa.sql`): una bolsa, una caja o el empaque (una familia fuera
+  // de los motores) se vende desde el ticket, en la caja; no va en la web ni en un look.
+  const comoEmpaque = (prod) => `insert into retail.familias (codigo, nombre, entra_a_motores) values ('zzempaque', 'ZZ Empaque', false);
+      insert into retail.categorias (nombre, familia, prefijo) values ('ZZ Bolsas', 'zzempaque', 'ZZB') returning id as cat_bolsa \\gset
+      update retail.productos set categoria_id = :'cat_bolsa' where id = :'${prod}';\n`;
+  esperarError(
+    "no se guarda un look con una bolsa (familia fuera de los motores): no es ropa, y el porqué lo dice",
+    correr(`${PREPARAR}${EN_LA_VITRINA}${comoEmpaque("falda")}select ${guardar()};\nrollback;`),
+    "no va en un look: no es ropa",
+  );
+  esperarValor(
+    "un look con una prenda que pasó a una familia fuera de los motores sale de la tienda (con «Todas» y en cada tienda) y el ERP dice cuál",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${crear("look")}${comoEmpaque("falda")}
+      select concat_ws('|', jsonb_array_length(retail.tienda_looks() -> 'looks'), jsonb_array_length(retail.tienda_looks(:'tru') -> 'looks'),
+          coalesce(retail.tienda_look(:'look') ->> 'look', 'null'),
+          (select concat_ws(',', x ->> 'publicado', x ->> 'se_ve', (select string_agg(p ->> 'nombre', '+') from jsonb_array_elements(x -> 'piezas') p where not (p ->> 'se_ve')::boolean))
+             from jsonb_array_elements(retail.fn_vitrina_looks() -> 'looks') x where x ->> 'id' = :'look'));
+      rollback;`),
+    "0|0|null|true,false,Falda Renata",
+  );
   // «ZZ Virgen»: una prenda sin historia (nunca se movió), la única que `eliminar_producto` deja eliminar.
   const CON_VIRGEN_ELIMINADA = `${PREPARAR}${EN_LA_VITRINA}
       select categoria_id as cat, marca_id as marca, proveedor_id as prov from retail.productos where id = :'emma' \\gset
@@ -632,15 +652,18 @@ function main() {
       rollback;`),
     "0|9",
   );
+  // CAMBIÓ el 2026-10-15 («La talla de S/ 0 sigue en S/ 0», Felipe; `20261015121000_talla_en_cero_sigue_en_cero.sql`). Hasta ese día,
+  // con precio propio en Trujillo la talla de S/ 0 salía en el look en Trujillo y con «Todas»; ahora vale 0 en toda tienda y no sale en
+  // ninguna. Lo que se sigue exigiendo es lo mismo: el look ofrece EXACTAMENTE las tallas de la ficha.
   esperarValor(
-    "las tallas del look son EXACTAMENTE las que ofrece la ficha en esa tienda: una talla a S/ 0 (ADR-0384) no sale; con precio propio en Trujillo sale en Trujillo y con «Todas» (el mayor), no en Lima",
+    "las tallas del look son EXACTAMENTE las que ofrece la ficha en esa tienda: una talla a S/ 0 (ADR-0384) no sale, tampoco con precio propio en Trujillo (ni en Trujillo, ni con «Todas», ni en Lima)",
     correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${crear("look", { ps: piezas(["emma", "NEG"], ["carla", "BEI"]) })}
       update retail.variantes set precio = 0 where sku = 'BLU-EMMA-NEG-L';
       ${TALLAS_CONTRA_FICHA("look")}${TALLAS_CONTRA_FICHA("look", "tru")}
       ${precioEnTienda("emma", "tru", "99.90")}
       ${TALLAS_CONTRA_FICHA("look", "tru")}${TALLAS_CONTRA_FICHA("look")}${TALLAS_CONTRA_FICHA("look", "lim")}
       rollback;`),
-    "0|S,M\n0|S,M\n0|S,M,L\n0|S,M,L\n0|S,M",
+    "0|S,M\n0|S,M\n0|S,M\n0|S,M\n0|S,M",
   );
   esperarValor(
     "el total del look en el ERP (con «Todas») es el de la tienda: cada prenda en SU color, también con una campaña de un solo color",

@@ -151,12 +151,18 @@ select retail.vitrina_mostrar(array[${LETRAS.map((l) => `:'p_${l}'`).join(", ")}
       rollback;`,
     "A=5/la primera B=·/sin llegada C=·/la primera",
   );
+  // CAMBIÓ el 2026-10-15 («Solo ropa en la web», Felipe; `20261015122000_vitrina_solo_ropa.sql`): una bolsa ya no sale en el catálogo de
+  // la tienda aunque haya quedado publicada (antes salía, sin «nuevo»). La regla de Lo nuevo sigue sin las bolsas por su cuenta (la lee
+  // también «Novedades para ti»): la segunda línea la pregunta directo, y así su mutante sigue a la vista.
   valor(
-    "una familia fuera de los motores (bolsas) no entra a Lo nuevo, ni recién llegada ni fijada",
+    "una familia fuera de los motores (bolsas) no entra a Lo nuevo, ni recién llegada ni fijada (ni siquiera sale en el catálogo)",
     `${PREPARAR}${comoBolsa("a")}${llego("a", "tru", 1)}update retail.productos set categoria_id = :'cat_bolsa' where id = :'p_b';
       ${enLoNuevo("b", "fijo")}${llego("c", "tru", 1)}
-      select ${NUEVO};\nrollback;`,
-    "A=· B=· C=1 D=· E=· F=· G=· H=·",
+      select ${NUEVO};
+      select string_agg(upper(right(p.referencia, 1)) || '=' || coalesce(n.dias::text, 'nuevo'), ' ' order by p.referencia)
+        from retail.fn_tienda_lo_nuevo(array[:'p_a', :'p_b', :'p_c']::uuid[]) n join retail.productos p on p.id = n.producto_id;
+      rollback;`,
+    "C=1 D=· E=· F=· G=· H=·\nC=1",
   );
 
   // ---------------------------------------------------------------- 2. Más vendidos
@@ -178,10 +184,15 @@ select retail.vitrina_mostrar(array[${LETRAS.map((l) => `:'p_${l}'`).join(", ")}
       select ${PUESTOS};\nrollback;`,
     "A=2 B=1 C=· D=· E=· F=· G=· H=·",
   );
+  // CAMBIÓ el 2026-10-15 («Solo ropa en la web», `20261015122000`): la bolsa ya no sale en el catálogo; la segunda línea pregunta a la
+  // regla de Más vendidos directo (sigue sin las bolsas por su cuenta, y su mutante sigue a la vista).
   valor(
-    "una familia fuera de los motores (bolsas) no entra a Más vendidos aunque se venda más que todo",
-    `${PREPARAR}${comoBolsa("a")}${vendio("a", 99)}${vendio("b", 1)}select ${PUESTOS};\nrollback;`,
-    "A=· B=1 C=· D=· E=· F=· G=· H=·",
+    "una familia fuera de los motores (bolsas) no entra a Más vendidos aunque se venda más que todo (ni siquiera sale en el catálogo)",
+    `${PREPARAR}${comoBolsa("a")}${vendio("a", 99)}${vendio("b", 1)}select ${PUESTOS};
+      select string_agg(upper(right(p.referencia, 1)) || '=' || r.puesto, ' ' order by p.referencia)
+        from retail.fn_tienda_mas_vendidos(array[:'p_a', :'p_b']::uuid[]) r join retail.productos p on p.id = r.producto_id;
+      rollback;`,
+    "B=1 C=· D=· E=· F=· G=· H=·\nB=1",
   );
   valor(
     "solo 20 puestos: con 22 modelos vendidos, los dos que menos se vendieron no tienen puesto",
