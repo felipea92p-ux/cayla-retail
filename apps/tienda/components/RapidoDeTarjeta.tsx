@@ -12,7 +12,9 @@ import { AgregarRapido } from "./bolsa/AgregarALaBolsa";
  */
 export function RapidoDeTarjeta({ productoId, sede }: { productoId: string; sede: string | null }) {
   const ancla = useRef<HTMLDivElement>(null);
-  const [rapido, setRapido] = useState<Rapido | null>(null);
+  // Lo pedido lleva la tienda con que se pidió: si el cliente cambia de tienda, lo de la otra no se muestra (se vuelve a pedir).
+  const clave = `${productoId}|${sede ?? ""}`;
+  const [rapido, setRapido] = useState<{ clave: string; datos: Rapido } | null>(null);
 
   useEffect(() => {
     const tarjeta = ancla.current?.closest(".t-card");
@@ -28,7 +30,7 @@ export function RapidoDeTarjeta({ productoId, sede }: { productoId: string; sede
       tallasParaAgregar(productoId, sede)
         .then((r) => {
           if (!vivo) return;
-          if (r) setRapido(r);
+          if (r) setRapido({ clave: `${productoId}|${sede ?? ""}`, datos: r });
           else pedido = false; // sin respuesta: la próxima pasada del mouse vuelve a intentar
         })
         .catch(() => {
@@ -54,7 +56,7 @@ export function RapidoDeTarjeta({ productoId, sede }: { productoId: string; sede
 
   return (
     <div ref={ancla} className="t-rapido-ancla">
-      {rapido && <AgregarRapido tallas={rapido.tallas} sedeId={rapido.sedeId} />}
+      {rapido?.clave === clave && <AgregarRapido tallas={rapido.datos.tallas} sedeId={rapido.datos.sedeId} />}
     </div>
   );
 }
