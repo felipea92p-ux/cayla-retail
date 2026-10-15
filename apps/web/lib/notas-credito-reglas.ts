@@ -25,6 +25,15 @@ import { MARGEN_NOTA, reparteNota, type ReparteNota } from "./recepciones-reglas
 // ---------------------------------------------------------------------------
 
 /** `'pendiente'` = un faltante cerrado que todavía espera su nota; `'nota'` = una nota ya registrada. */
+/** ¿Es un documento interno de CAYLA (ADR-0362 fase 5b: lo que no llegó, pasado a saldo a favor)? La base garantiza que su serie, y solo la
+ *  suya, empieza con «DI-» (candado `compra_notas_credito_interna_serie`). */
+export const esDocumentoInterno = (serie: string | null | undefined): boolean => typeof serie === "string" && serie.trim().toUpperCase().startsWith("DI-");
+
+/** «Nota de crédito F001-123» o «Documento interno DI-000001»: un documento interno no es una nota del proveedor. */
+export function nombreDeNotaDeCredito(serie: string | null | undefined): string {
+  return `${esDocumentoInterno(serie) ? "Documento interno" : "Nota de crédito"} ${serie ?? ""}`.trim();
+}
+
 export type ClaseFila = "nota" | "pendiente";
 
 /**

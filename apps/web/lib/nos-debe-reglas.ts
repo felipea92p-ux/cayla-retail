@@ -9,8 +9,9 @@
 //   NO HACE: no habla con la base ni decide permisos (Proveedores, Recibir u Órdenes de compra los decide cada función).
 //
 // El contrato con la base: docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md. La deuda ES la fila de `despacho_diferencias` con
-// `tipo = 'faltante'` y `causa = 'no_vino'`; lo resuelto vive en `proveedor_deuda_resoluciones` (solo se agregan filas). La fase 5a solo
-// cierra una deuda con la prenda («repuesta»); pasarla a saldo a favor o cobrar un depósito espera a Felipe y al contador (fase 5b).
+// `tipo = 'faltante'` y `causa = 'no_vino'`; lo resuelto vive en `proveedor_deuda_resoluciones` (solo se agregan filas). La fase 5a cierra
+// una deuda con la prenda («repuesta»); la 5b (actividad 1), también con plata: «Pasar a saldo a favor» registra un documento interno DI-…
+// que baja lo que se le debe al comprobante y deja el resto a favor (decisión 58). «Depositó» llega en la actividad 5.
 
 import { soles } from "./compras-reglas";
 import { diaLima, diasEntreFechas } from "./fechas-lima";
@@ -27,11 +28,13 @@ export const RPC_NOS_DEBE = "fn_proveedor_nos_debe";
 export const RPC_NOS_DEBE_RESUMEN = "fn_nos_debe_resumen";
 /** Escritura: abre el loader («guardado»). */
 export const RPC_RESOLVER_DEUDA = "resolver_deuda_proveedor";
+/** Lectura: cuánto vale pasar N prendas de una deuda a saldo a favor (al costo del papel). */
+export const RPC_DEUDA_VALOR = "fn_deuda_valor";
 
 /** Lo que acepta `resolver_deuda_proveedor`: la nota, como la de una diferencia de la recepción (hasta 300 letras). */
 export const TOPES_REPOSICION = { nota: 300 } as const;
 
-/** Las formas de cerrar una deuda. En la fase 5a solo se usa «repuesta»: las otras dos responden «todavía no» hasta la 5b. */
+/** Las formas de cerrar una deuda: con la prenda («repuesta»), a saldo a favor (5b, actividad 1) o con un depósito (5b, actividad 5). */
 export type FormaResolucion = "repuesta" | "saldo_a_favor" | "deposito";
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -61,6 +64,9 @@ export type ResolucionDeuda = {
   cantidad: number;
   /** El envío donde llegó la reposición («ENV-000075»), si llegó en una recepción. */
   envio: string | null;
+  /** El documento con que se saldó con plata («DI-000001»), y su monto. */
+  documento: string | null;
+  monto: number | null;
   nota: string | null;
   /** Quién la anotó. */
   por: string | null;
@@ -91,8 +97,10 @@ export type DeudaProveedor = {
   /** Lo que falta reponer: la deuda sigue abierta mientras sea mayor que 0. */
   pendiente: number;
   costoUnitario: number | null;
-  /** Pendiente × costo de la línea, SIN IGV [provisional del contrato]. */
+  /** Lo pendiente, SIN IGV: al costo del papel (lo que CAYLA paga); lo que nadie facturó, al costo con que se recibió. */
   montoPendiente: number;
+  /** De lo pendiente, cuántas no están en ningún comprobante con cupo: no se pagaron, así que no se pasan a saldo a favor. */
+  sinPapel: number;
   /** El papel de esa compra era una factura con IGV: lo pagado por esas prendas lleva además su 18 %. `null` = la base no lo dice. */
   conIgv: boolean | null;
   /** Lo pendiente con su IGV, si la base lo manda. */
@@ -112,6 +120,8 @@ function leerResolucion(f: unknown): ResolucionDeuda | null {
     forma: texto(r.forma) ?? "repuesta",
     cantidad,
     envio: numeroEnvio(envio ? envio.numero : (r.envio ?? r.numero_envio ?? r.despacho_numero)),
+    documento: texto(r.documento),
+    monto: cifra(r.monto),
     nota: texto(r.nota),
     por: nombreDe(r.creado_por) ?? texto(r.por) ?? texto(r.creado_por_nombre),
     fecha: texto(r.creado_en) ?? texto(r.fecha),
@@ -148,6 +158,7 @@ function leerDeuda(f: unknown): DeudaProveedor | null {
     pendiente,
     costoUnitario,
     montoPendiente: Math.max(0, cifra(r.monto_pendiente) ?? redondear(pendiente * (costoUnitario ?? 0))),
+    sinPapel: Math.max(0, Math.min(pendiente, cifra(r.sin_papel) ?? 0)),
     conIgv: booleano(r.con_igv) ?? booleano(r.factura_con_igv) ?? booleano(r.incluye_igv),
     montoConIgv: cifra(r.monto_pendiente_con_igv) ?? cifra(r.monto_con_igv),
     nota: texto(r.nota),
@@ -336,10 +347,37 @@ export function textoDeDeuda(d: DeudaProveedor, hoy: string): string {
   return [queDebe(d), soles(d.montoPendiente), dondeFalto(d, hoy)].filter(Boolean).join(" · ");
 }
 
-/** «ya llegó 1 de 3»: solo si ya llegó una parte. */
-export function avanceDeDeuda(d: Pick<DeudaProveedor, "cantidad" | "resuelto" | "pendiente">): string | null {
+/**
+ * Lo ya saldado de una deuda a medias, por cómo se saldó: «ya llegó 1 de 3», «ya pasaron 2 de 3 a saldo a favor», «de 3, ya llegó 1 y 1
+ * pasó a saldo a favor». Lo que pasó a saldo a favor NO llegó: decirlo así haría buscar en el piso prendas que nunca vinieron. Si la base no
+ * manda el detalle, todo lo saldado se dice «llegó» (era la única forma antes de la fase 5b).
+ */
+export function avanceDeDeuda(d: Pick<DeudaProveedor, "cantidad" | "resuelto" | "pendiente" | "resoluciones">): string | null {
   if (d.resuelto <= 0 || d.pendiente <= 0) return null;
-  return `ya ${d.resuelto === 1 ? "llegó 1" : `llegaron ${d.resuelto.toLocaleString("es-PE")}`} de ${d.cantidad.toLocaleString("es-PE")}`;
+  const suma = (forma: (f: string) => boolean) => d.resoluciones.filter((r) => forma(r.forma)).reduce((a, r) => a + r.cantidad, 0);
+  const aSaldo = suma((f) => f === "saldo_a_favor");
+  const conDeposito = suma((f) => f === "deposito");
+  const llegaron = Math.max(0, d.resuelto - aSaldo - conDeposito);
+  const de = d.cantidad.toLocaleString("es-PE");
+  const n = (x: number) => x.toLocaleString("es-PE");
+  const partes = [
+    llegaron > 0 ? { sola: llegaron === 1 ? `llegó 1 de ${de}` : `llegaron ${n(llegaron)} de ${de}`, junta: llegaron === 1 ? "llegó 1" : `llegaron ${n(llegaron)}` } : null,
+    aSaldo > 0
+      ? {
+          sola: aSaldo === 1 ? `pasó 1 de ${de} a saldo a favor` : `pasaron ${n(aSaldo)} de ${de} a saldo a favor`,
+          junta: aSaldo === 1 ? "1 pasó a saldo a favor" : `${n(aSaldo)} pasaron a saldo a favor`,
+        }
+      : null,
+    conDeposito > 0
+      ? {
+          sola: conDeposito === 1 ? `se pagó 1 de ${de} con un depósito` : `se pagaron ${n(conDeposito)} de ${de} con un depósito`,
+          junta: conDeposito === 1 ? "1 se pagó con un depósito" : `${n(conDeposito)} se pagaron con un depósito`,
+        }
+      : null,
+  ].filter((p) => p !== null);
+  if (partes.length === 1) return `ya ${partes[0]!.sola}`;
+  const juntas = partes.map((p) => p.junta);
+  return `de ${de}, ya ${juntas.slice(0, -1).join(", ")} y ${juntas[juntas.length - 1]}`;
 }
 
 /** Cómo se cerró una deuda: «Llegaron 2 en ENV-000075 · Sandra Quispe · hoy», «Llegó 1, anotado a mano («La trajo el chofer») · …». */
@@ -349,7 +387,7 @@ export function textoDeResolucion(r: ResolucionDeuda, hoy: string): string {
   const llego = r.cantidad === 1 ? "Llegó 1" : `Llegaron ${cuantas}`;
   const como =
     r.forma === "saldo_a_favor"
-      ? `${cuantas} a saldo a favor`
+      ? `${cuantas} a saldo a favor${r.documento ? ` con el ${r.documento}${r.monto != null ? ` (${soles(r.monto)})` : ""}` : ""}`
       : r.forma === "deposito"
         ? `${cuantas} pagadas con un depósito`
         : r.envio
@@ -472,6 +510,191 @@ export function leerResultadoResolucion(data: unknown): ResultadoResolucion | nu
 export function detalleDeReposicion(proveedor: string, d: Pick<DeudaProveedor, "pendiente" | "categoria">, anotadas: number, r: ResultadoResolucion | null): string {
   const queda = r?.pendiente ?? Math.max(0, d.pendiente - anotadas);
   return queda > 0 ? `Todavía te debe ${cantidadDePrendas(queda, d.categoria)} de esto.` : `${proveedor} ya no te debe nada de esto.`;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// La hoja «Pasar a saldo a favor» (`resolver_deuda_proveedor` con `p_forma = 'saldo_a_favor'`, fase 5b, actividad 1)
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+/** Cuántas se pueden pasar a saldo a favor: lo pendiente que está en un comprobante con cupo (lo que no se facturó no se pagó). */
+export const pasablesASaldo = (d: Pick<DeudaProveedor, "pendiente" | "sinPapel">): number => Math.max(0, d.pendiente - d.sinPapel);
+
+export type BorradorSaldoAFavor = { cantidad: string; nota: string };
+
+/** Viene puesto todo lo que se puede pasar; la nota, vacía (es opcional). */
+export const borradorSaldoAFavor = (d: Pick<DeudaProveedor, "pendiente" | "sinPapel">): BorradorSaldoAFavor => ({
+  cantidad: String(Math.max(1, pasablesASaldo(d))),
+  nota: "",
+});
+
+/** La cantidad escrita: un entero de 1 a lo que se puede pasar, como exige la base. */
+export function leerCantidadSaldoAFavor(t: string, pasables: number, categoria: string | null = null): { n: number | null; problema: string | null } {
+  const limpio = t.trim();
+  if (limpio === "") return { n: null, problema: "Escribe cuántas pasan a saldo a favor." };
+  if (!/^\d{1,4}$/.test(limpio)) return { n: null, problema: "Escribe solo el número de prendas, sin letras ni decimales." };
+  const n = Number(limpio);
+  if (n < 1) return { n: null, problema: "Tiene que ser al menos 1." };
+  if (n > pasables) return { n: null, problema: `Se pueden pasar ${cantidadDePrendas(pasables, categoria)}: las demás no se facturaron.` };
+  return { n, problema: null };
+}
+
+/** La nota, opcional y hasta 300 letras. */
+export function problemaDeNotaOpcional(t: string): string | null {
+  return textoParaBase(t).length > TOPES_REPOSICION.nota ? `La nota va hasta ${TOPES_REPOSICION.nota} letras.` : null;
+}
+
+/**
+ * Los campos de la guía de la hoja, de lo que `resolver_deuda_proveedor` rechaza con `saldo_a_favor`: la cantidad (de 1 a lo que está en un
+ * comprobante con cupo), la nota (opcional, hasta 300 letras) y quién lo hace (el combo «Responsable»). La cantidad viene puesta y es
+ * «sugerida» hasta que se toca (ADR-0284 act. h).
+ */
+export function camposSaldoAFavor(
+  b: BorradorSaldoAFavor,
+  d: Pick<DeudaProveedor, "pendiente" | "sinPapel"> & { categoria?: string | null },
+  responsable: { listo: boolean; motivo: string | null },
+  tocados: { cantidad?: boolean } = {},
+): CampoDeGuia[] {
+  const pasables = pasablesASaldo(d);
+  const campos: CampoDeGuia[] = [];
+  if (pasables > 1) {
+    const { problema } = leerCantidadSaldoAFavor(b.cantidad, pasables, d.categoria ?? null);
+    campos.push(
+      problema === null && !tocados.cantidad
+        ? { id: "cantidad", nombre: "Cuántas pasan", requerido: false, sugerido: true, hecho: false, pendiente: "Revisa cuántas pasan: viene puesto todo lo que se puede." }
+        : { id: "cantidad", nombre: "Cuántas pasan", requerido: true, hecho: problema === null, pendiente: problema ?? "" },
+    );
+  }
+  const problemaNota = problemaDeNotaOpcional(b.nota);
+  campos.push(
+    problemaNota
+      ? { id: "nota", nombre: "Nota", requerido: true, hecho: false, pendiente: problemaNota }
+      : { id: "nota", nombre: "Nota", requerido: false, hecho: textoParaBase(b.nota) !== "", pendiente: "" },
+  );
+  campos.push({ id: "responsable", nombre: "Quién lo hace", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién lo hace." });
+  return campos;
+}
+
+/** Cuántas se pasan: lo escrito si es válido; si solo se puede pasar 1, 1. */
+export function cantidadASaldo(b: BorradorSaldoAFavor, d: Pick<DeudaProveedor, "pendiente" | "sinPapel">): number | null {
+  const pasables = pasablesASaldo(d);
+  if (pasables <= 0) return null;
+  return pasables === 1 ? 1 : leerCantidadSaldoAFavor(b.cantidad, pasables).n;
+}
+
+/** Los argumentos de `resolver_deuda_proveedor` para pasar a saldo a favor. Solo se llama con la hoja lista. */
+export function argsSaldoAFavor(d: Pick<DeudaProveedor, "diferenciaId" | "pendiente" | "sinPapel">, b: BorradorSaldoAFavor, token: string): ArgsResolverDeuda {
+  return { p_diferencia_id: d.diferenciaId, p_forma: "saldo_a_favor", p_cantidad: cantidadASaldo(b, d) ?? 0, p_nota: textoParaBase(b.nota), p_token: token };
+}
+
+/** «Pasar 2 a saldo a favor» / «Pasar 1 a saldo a favor»: el botón dice lo que se pasa. */
+export function textoBotonSaldoAFavor(n: number | null): string {
+  if (n == null || n <= 0) return "Pasar a saldo a favor";
+  return `Pasar ${n.toLocaleString("es-PE")} a saldo a favor`;
+}
+
+/** Un comprobante del reparto: cuánto vale lo que se pasa y cómo se reparte entre su deuda y el saldo a favor. */
+export type PapelDelValor = { documento: string; tipo: string | null; cantidad: number; monto: number; bajaDeuda: number; aFavor: number };
+
+/** Lo que contesta `fn_deuda_valor`: cuánto vale pasar N prendas, y cómo. */
+export type ValorDeDeuda = {
+  cantidad: number;
+  conPapel: number;
+  sinPapel: number;
+  monto: number;
+  igv: number;
+  bajaDeuda: number;
+  aFavor: number;
+  conFactura: boolean;
+  papeles: PapelDelValor[];
+};
+
+/** Lee `fn_deuda_valor`. `null` si no llegó un objeto que se entienda (la hoja no muestra el monto, pero deja pasar: la base decide). */
+export function leerValorDeDeuda(data: unknown): ValorDeDeuda | null {
+  const r = objeto(Array.isArray(data) ? data[0] : data);
+  if (!r) return null;
+  const cantidad = cifra(r.cantidad);
+  const monto = cifra(r.monto);
+  if (cantidad == null || monto == null) return null;
+  const papeles = lista(r.papeles)
+    .map((f): PapelDelValor | null => {
+      const x = objeto(f);
+      const documento = x ? texto(x.documento) : null;
+      if (!x || !documento) return null;
+      return {
+        documento,
+        tipo: texto(x.tipo),
+        cantidad: cifra(x.cantidad) ?? 0,
+        monto: cifra(x.monto) ?? 0,
+        bajaDeuda: cifra(x.baja_deuda) ?? 0,
+        aFavor: cifra(x.a_favor) ?? 0,
+      };
+    })
+    .filter((x): x is PapelDelValor => x !== null);
+  return {
+    cantidad,
+    conPapel: cifra(r.con_papel) ?? 0,
+    sinPapel: cifra(r.sin_papel) ?? 0,
+    monto,
+    igv: cifra(r.igv) ?? 0,
+    bajaDeuda: cifra(r.baja_deuda) ?? 0,
+    aFavor: cifra(r.a_favor) ?? 0,
+    conFactura: booleano(r.con_factura) ?? false,
+    papeles,
+  };
+}
+
+/**
+ * Qué va a pasar, en una frase, antes del botón: «Baja S/ 40.00 de lo que le debes por la boleta B001-902.» / «Ya pagaste la boleta
+ * B001-902: los S/ 60.00 quedan a favor de Textiles Andina y se descuentan de tu próximo pago.» / las dos cosas, si alcanza para parte.
+ */
+export function fraseSaldoAFavor(proveedor: string, v: ValorDeDeuda): string {
+  const papeles = v.papeles.map((x) => `${x.tipo ? `${nombreDeTipoDePapel(x.tipo)} ` : ""}${x.documento}`);
+  const cuales = papeles.length > 0 ? new Intl.ListFormat("es", { type: "conjunction" }).format(papeles) : "su comprobante";
+  if (v.aFavor <= 0) return `Baja ${soles(v.bajaDeuda)} de lo que le debes por ${cuales}.`;
+  if (v.bajaDeuda <= 0) return `Ya pagaste ${cuales}: los ${soles(v.aFavor)} quedan a favor de ${proveedor} y se descuentan de tu próximo pago.`;
+  return `Baja ${soles(v.bajaDeuda)} de lo que le debes por ${cuales}, y ${soles(v.aFavor)} quedan a favor de ${proveedor} para tu próximo pago.`;
+}
+
+/** «la boleta», «la nota de venta», «la factura», «la compra sin comprobante»: el papel, nombrado. */
+function nombreDeTipoDePapel(tipo: string): string {
+  return tipo === "boleta" ? "la boleta" : tipo === "nota_venta" ? "la nota de venta" : tipo === "factura" ? "la factura" : tipo === "sin_comprobante" ? "la compra" : "el comprobante";
+}
+
+/** Un documento interno que nació al pasar a saldo a favor (lo que contesta `resolver_deuda_proveedor`). */
+export type DocumentoInterno = { documento: string; comprobante: string | null; cantidad: number; monto: number; bajaDeuda: number; aFavor: number };
+
+/** Lee los `documentos` de la respuesta de `resolver_deuda_proveedor`. Una fila rara se descarta. */
+export function leerDocumentosInternos(data: unknown): DocumentoInterno[] {
+  const r = objeto(Array.isArray(data) ? data[0] : data);
+  return lista(r?.documentos)
+    .map((f): DocumentoInterno | null => {
+      const x = objeto(f);
+      const documento = x ? texto(x.documento) : null;
+      if (!x || !documento) return null;
+      return {
+        documento,
+        comprobante: texto(x.comprobante),
+        cantidad: cifra(x.cantidad) ?? 0,
+        monto: cifra(x.monto) ?? 0,
+        bajaDeuda: cifra(x.baja_deuda) ?? 0,
+        aFavor: cifra(x.a_favor) ?? 0,
+      };
+    })
+    .filter((x): x is DocumentoInterno => x !== null);
+}
+
+/** El aviso de éxito: «DI-000001 por S/ 40.00: bajó lo que le debes por B001-902.» / «… S/ 60.00 a favor para tu próximo pago.» */
+export function detalleDeSaldoAFavor(docs: DocumentoInterno[]): string {
+  if (docs.length === 0) return "Quedó anotado en la ficha del proveedor.";
+  return docs
+    .map((x) => {
+      const partes = [
+        x.bajaDeuda > 0 ? `bajó ${soles(x.bajaDeuda)} de lo que le debes${x.comprobante ? ` por ${x.comprobante}` : ""}` : null,
+        x.aFavor > 0 ? `${soles(x.aFavor)} quedan a favor para tu próximo pago` : null,
+      ].filter(Boolean);
+      return `${x.documento} por ${soles(x.monto)}: ${partes.join(" y ")}.`;
+    })
+    .join(" ");
 }
 
 /** Qué decir cuando se corta la señal al anotar: pudo guardarse. Reintentar sin cambiar nada es seguro (el mismo token no anota dos veces). */

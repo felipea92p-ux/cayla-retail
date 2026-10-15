@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { esDocumentoInterno } from "./notas-credito-reglas";
 
 // Saldo a favor de los proveedores (ADR-0111, corrección 2026-09-18): lo que un proveedor le debe a CAYLA
 // porque una nota de crédito superó lo que se le debía de su comprobante (típico: factura al contado, que
@@ -76,3 +77,8 @@ export const ETIQUETA_MOVIMIENTO_CREDITO: Record<TipoMovimientoCredito, string> 
   aplicacion: "Usado en un pago",
   reembolso: "Reembolso del proveedor",
 };
+
+/** Cómo se llama un movimiento del saldo a favor: un documento interno no es una nota de crédito del proveedor. */
+export function etiquetaMovimientoCredito(m: Pick<MovimientoCredito, "tipo" | "notaSerieNumero">): string {
+  return m.tipo === "nota_credito" && esDocumentoInterno(m.notaSerieNumero) ? "Lo que no llegó, a saldo a favor" : ETIQUETA_MOVIMIENTO_CREDITO[m.tipo];
+}

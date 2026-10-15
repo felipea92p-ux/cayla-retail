@@ -28,6 +28,7 @@ import {
   cifrasTablero,
   destinoTexto,
   diaDelCierre,
+  esDocumentoInterno,
   filtrarTablero,
   hace,
   type Banda,
@@ -459,7 +460,7 @@ function FilaNota({
             <Resaltado texto={f.documento} busqueda={busqueda} />
           </span>
           {" · "}
-          {f.clase === "pendiente" ? `${f.unidadesCerradas.toLocaleString("es-PE")} ${f.unidadesCerradas === 1 ? "unidad cerrada" : "unidades cerradas"} sin llegar` : <>{<Resaltado texto={f.serieNumero ?? ""} busqueda={busqueda} />}{f.nota ? ` · ${f.nota}` : ""}</>}
+          {f.clase === "pendiente" ? `${f.unidadesCerradas.toLocaleString("es-PE")} ${f.unidadesCerradas === 1 ? "unidad cerrada" : "unidades cerradas"} sin llegar` : <>{<Resaltado texto={f.serieNumero ?? ""} busqueda={busqueda} />}{esDocumentoInterno(f.serieNumero) ? " · documento interno" : ""}{f.nota ? ` · ${f.nota}` : ""}</>}
         </span>
         {/* En celular las columnas de motivo/estado no existen: sus chips bajan acá. */}
         <span className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:hidden">

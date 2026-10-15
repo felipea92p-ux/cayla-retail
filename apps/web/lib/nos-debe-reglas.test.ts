@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   argsResolverDeuda,
+  argsSaldoAFavor,
   avanceDeDeuda,
+  borradorSaldoAFavor,
+  camposSaldoAFavor,
+  cantidadASaldo,
+  detalleDeSaldoAFavor,
+  fraseSaldoAFavor,
+  leerCantidadSaldoAFavor,
+  leerDocumentosInternos,
+  leerValorDeDeuda,
+  pasablesASaldo,
+  problemaDeNotaOpcional,
+  textoBotonSaldoAFavor,
   borradorReposicion,
   camposReposicion,
   cantidadAnotada,
@@ -154,14 +166,28 @@ describe("una deuda en palabras de tienda", () => {
     expect(avanceDeDeuda(deuda({ cantidad: 2, resuelto: 2, pendiente: 0 }))).toBeNull();
   });
 
+  it("lo que pasó a saldo a favor no se dice «llegó» (fase 5b)", () => {
+    const r = (forma: string, cantidad: number) => ({ forma, cantidad, envio: null, documento: null, monto: null, nota: null, por: null, fecha: HOY });
+    // Lo que se vio en el banco: 2 de 3 a saldo a favor decía «ya llegaron 2 de 3».
+    expect(avanceDeDeuda(deuda({ cantidad: 3, resuelto: 2, pendiente: 1, resoluciones: [r("saldo_a_favor", 2)] }))).toBe("ya pasaron 2 de 3 a saldo a favor");
+    expect(avanceDeDeuda(deuda({ cantidad: 3, resuelto: 1, pendiente: 2, resoluciones: [r("saldo_a_favor", 1)] }))).toBe("ya pasó 1 de 3 a saldo a favor");
+    expect(avanceDeDeuda(deuda({ cantidad: 3, resuelto: 1, pendiente: 2, resoluciones: [r("repuesta", 1)] }))).toBe("ya llegó 1 de 3");
+    expect(avanceDeDeuda(deuda({ cantidad: 5, resuelto: 3, pendiente: 2, resoluciones: [r("repuesta", 1), r("saldo_a_favor", 2)] }))).toBe(
+      "de 5, ya llegó 1 y 2 pasaron a saldo a favor",
+    );
+    expect(avanceDeDeuda(deuda({ cantidad: 6, resuelto: 3, pendiente: 3, resoluciones: [r("repuesta", 1), r("saldo_a_favor", 1), r("deposito", 1)] }))).toBe(
+      "de 6, ya llegó 1, 1 pasó a saldo a favor y 1 se pagó con un depósito",
+    );
+  });
+
   it("cómo se cerró: en un envío o a mano", () => {
-    expect(textoDeResolucion({ forma: "repuesta", cantidad: 2, envio: "ENV-000075", nota: null, por: "Sandra Ruiz", fecha: "2026-10-15T15:00:00Z" }, HOY)).toBe(
+    expect(textoDeResolucion({ forma: "repuesta", cantidad: 2, envio: "ENV-000075", documento: null, monto: null, nota: null, por: "Sandra Ruiz", fecha: "2026-10-15T15:00:00Z" }, HOY)).toBe(
       "Llegaron 2 en ENV-000075 · Sandra Ruiz · hoy",
     );
-    expect(textoDeResolucion({ forma: "repuesta", cantidad: 1, envio: null, nota: "La trajo el chofer", por: null, fecha: "2026-10-14" }, HOY)).toBe(
+    expect(textoDeResolucion({ forma: "repuesta", cantidad: 1, envio: null, documento: null, monto: null, nota: "La trajo el chofer", por: null, fecha: "2026-10-14" }, HOY)).toBe(
       "Llegó 1, anotado a mano («La trajo el chofer») · ayer",
     );
-    expect(textoDeResolucion({ forma: "repuesta", cantidad: 3, envio: null, nota: null, por: "Felipe Alvarez", fecha: null }, HOY)).toBe("Llegaron 3, anotado a mano · Felipe Alvarez");
+    expect(textoDeResolucion({ forma: "repuesta", cantidad: 3, envio: null, documento: null, monto: null, nota: null, por: "Felipe Alvarez", fecha: null }, HOY)).toBe("Llegaron 3, anotado a mano · Felipe Alvarez");
   });
 });
 
@@ -552,3 +578,104 @@ describe("cubrirReposiciones: cuántas puede cubrir cada una (espejo de recibir_
     expect(cubrirReposiciones(null, [{ id: "a", proveedorId: "p1", categoriaId: "c1", marcaId: "m1", cantidad: 1 }]).get("a")!.problema).not.toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Fase 5b, actividad 1: «Pasar a saldo a favor» (resolver_deuda_proveedor con forma «saldo_a_favor»)
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+describe("pasar a saldo a favor: cuántas se pueden y cómo se cerró", () => {
+  it("lo que no está en un comprobante no se pasa (no se pagó)", () => {
+    expect(pasablesASaldo(deuda())).toBe(2);
+    expect(pasablesASaldo(deuda({ sinPapel: 1 }))).toBe(1);
+    expect(pasablesASaldo(deuda({ sinPapel: 2 }))).toBe(0);
+    expect(leerNosDebe({ abiertas: [{ ...FILA, sin_papel: 1 }] })!.abiertas[0]!.sinPapel).toBe(1);
+    // Una base sin la 5b no manda `sin_papel`: se asume que todo tiene papel (la base igual decide).
+    expect(deuda().sinPapel).toBe(0);
+    expect(borradorSaldoAFavor(deuda({ sinPapel: 1 }))).toEqual({ cantidad: "1", nota: "" });
+  });
+
+  it("la resolución dice su documento y su monto", () => {
+    expect(
+      textoDeResolucion({ forma: "saldo_a_favor", cantidad: 2, envio: null, documento: "DI-000001", monto: 84, nota: null, por: "Micaela Vendedora", fecha: "2026-10-15T15:00:00Z" }, HOY),
+    ).toBe("2 a saldo a favor con el DI-000001 (S/\u00a084.00) · Micaela Vendedora · hoy");
+    expect(textoDeResolucion({ forma: "saldo_a_favor", cantidad: 1, envio: null, documento: null, monto: null, nota: null, por: null, fecha: null }, HOY)).toBe(
+      "1 a saldo a favor",
+    );
+    expect(leerNosDebe({ abiertas: [{ ...FILA, resoluciones: [{ forma: "saldo_a_favor", cantidad: 1, documento: "DI-000002", monto: 42 }] }] })!.abiertas[0]!.resoluciones[0]).toMatchObject({
+      documento: "DI-000002",
+      monto: 42,
+    });
+  });
+});
+
+describe("la hoja «Pasar a saldo a favor»: espejo de lo que rechaza la base", () => {
+  const listo = { listo: true, motivo: null };
+  it("la cantidad, de 1 a lo que se puede pasar", () => {
+    expect(leerCantidadSaldoAFavor("", 2).problema).toBe("Escribe cuántas pasan a saldo a favor.");
+    expect(leerCantidadSaldoAFavor("1,5", 2).problema).toBe("Escribe solo el número de prendas, sin letras ni decimales.");
+    expect(leerCantidadSaldoAFavor("0", 2).problema).toBe("Tiene que ser al menos 1.");
+    expect(leerCantidadSaldoAFavor("3", 2, "Chompas").problema).toBe("Se pueden pasar 2 chompas: las demás no se facturaron.");
+    expect(leerCantidadSaldoAFavor("2", 2)).toEqual({ n: 2, problema: null });
+  });
+
+  it("la nota es opcional y hasta 300 letras", () => {
+    expect(problemaDeNotaOpcional("")).toBeNull();
+    expect(problemaDeNotaOpcional("x".repeat(301))).toBe("La nota va hasta 300 letras.");
+    const campos = camposSaldoAFavor({ cantidad: "2", nota: "" }, deuda(), listo);
+    expect(campos.find((c) => c.id === "nota")).toMatchObject({ requerido: false });
+    expect(sePuedeConfirmar(campos)).toBe(true);
+    expect(sePuedeConfirmar(camposSaldoAFavor({ cantidad: "2", nota: "x".repeat(301) }, deuda(), listo))).toBe(false);
+  });
+
+  it("la cantidad viene puesta y es sugerida; puesta mal, bloquea; sin responsable, no", () => {
+    expect(camposSaldoAFavor(borradorSaldoAFavor(deuda()), deuda(), listo)[0]).toMatchObject({ id: "cantidad", sugerido: true, requerido: false });
+    expect(sePuedeConfirmar(camposSaldoAFavor({ cantidad: "3", nota: "" }, deuda(), listo, { cantidad: true }))).toBe(false);
+    expect(sePuedeConfirmar(camposSaldoAFavor({ cantidad: "2", nota: "" }, deuda(), { listo: false, motivo: "Elige quién lo hace." }))).toBe(false);
+    // Con una sola que se pueda pasar no se pregunta cuántas.
+    expect(camposSaldoAFavor({ cantidad: "", nota: "" }, deuda({ sinPapel: 1 }), listo).some((c) => c.id === "cantidad")).toBe(false);
+    expect(cantidadASaldo({ cantidad: "", nota: "" }, deuda({ sinPapel: 1 }))).toBe(1);
+  });
+
+  it("los argumentos y el botón", () => {
+    expect(argsSaldoAFavor(deuda(), { cantidad: "2", nota: "  No lo va a mandar  " }, "tok")).toEqual({
+      p_diferencia_id: "dif-1",
+      p_forma: "saldo_a_favor",
+      p_cantidad: 2,
+      p_nota: "No lo va a mandar",
+      p_token: "tok",
+    });
+    expect(argsSaldoAFavor(deuda(), { cantidad: "1", nota: "" }, "tok").p_nota).toBe("");
+    expect(textoBotonSaldoAFavor(null)).toBe("Pasar a saldo a favor");
+    expect(textoBotonSaldoAFavor(2)).toBe("Pasar 2 a saldo a favor");
+  });
+});
+
+describe("cuánto vale y adónde va (fn_deuda_valor) y lo que vuelve", () => {
+  const VALOR = {
+    cantidad: 2, con_papel: 2, sin_papel: 0, base: 84, igv: 0, monto: 84, baja_deuda: 84, a_favor: 0, con_factura: false,
+    papeles: [{ compra_id: "c1", documento: "B001-902", tipo: "boleta", cantidad: 2, base: 84, igv: 0, monto: 84, saldo: 200, baja_deuda: 84, a_favor: 0 }],
+  };
+  it("lee la respuesta y descarta lo raro", () => {
+    expect(leerValorDeDeuda(VALOR)).toMatchObject({ monto: 84, bajaDeuda: 84, aFavor: 0, papeles: [{ documento: "B001-902", tipo: "boleta" }] });
+    expect(leerValorDeDeuda(null)).toBeNull();
+    expect(leerValorDeDeuda({ cantidad: "x" })).toBeNull();
+    expect(leerValorDeDeuda({ ...VALOR, papeles: [{ sin: "documento" }] })!.papeles).toEqual([]);
+  });
+  it("la frase antes del botón: baja la deuda, queda a favor, o las dos", () => {
+    const v = leerValorDeDeuda(VALOR)!;
+    expect(fraseSaldoAFavor("Textiles Andina", v)).toBe("Baja S/\u00a084.00 de lo que le debes por la boleta B001-902.");
+    expect(fraseSaldoAFavor("Textiles Andina", { ...v, bajaDeuda: 0, aFavor: 84 })).toBe(
+      "Ya pagaste la boleta B001-902: los S/\u00a084.00 quedan a favor de Textiles Andina y se descuentan de tu próximo pago.",
+    );
+    expect(fraseSaldoAFavor("Textiles Andina", { ...v, bajaDeuda: 24, aFavor: 60 })).toBe(
+      "Baja S/\u00a024.00 de lo que le debes por la boleta B001-902, y S/\u00a060.00 quedan a favor de Textiles Andina para tu próximo pago.",
+    );
+  });
+  it("los documentos que nacieron y el aviso de éxito", () => {
+    const docs = leerDocumentosInternos({ documentos: [{ documento: "DI-000001", comprobante: "B001-902", cantidad: 2, monto: 84, baja_deuda: 24, a_favor: 60 }, { nada: 1 }] });
+    expect(docs).toHaveLength(1);
+    expect(detalleDeSaldoAFavor(docs)).toBe("DI-000001 por S/\u00a084.00: bajó S/\u00a024.00 de lo que le debes por B001-902 y S/\u00a060.00 quedan a favor para tu próximo pago.");
+    expect(detalleDeSaldoAFavor([])).toBe("Quedó anotado en la ficha del proveedor.");
+  });
+});
+

@@ -16,10 +16,12 @@ import {
   type NosDebe,
 } from "@/lib/nos-debe-reglas";
 import { BotonReposicion } from "./HojaReposicion";
+import { BotonSaldoAFavor } from "./HojaSaldoAFavor";
 
 // «Nos debe» en la ficha del proveedor (ADR-0362, fase 5a, decisiones 14 y 24): lo que el proveedor le debe a CAYLA, junto. Primero las
 // PRENDAS por reponer (cada faltante «No vino» de una recepción es una deuda: «2 chompas · S/ 84.00 · ENV-000061 · Tienda Trujillo · hace 3
-// días»), cada una con «Llegó la reposición»; abajo, las que se cerraron en los últimos 90 días (plegadas si son muchas). Debajo, la PLATA:
+// días»), cada una con «Llegó la reposición» y, si el proveedor no la va a mandar, «Pasar a saldo a favor» (fase 5b, decisión 58: un documento
+// interno por lo que se pagó); abajo, las que se cerraron en los últimos 90 días (plegadas si son muchas). Debajo, la PLATA:
 // el saldo a favor de siempre (`children`), que esta sección envuelve. Una debajo de la otra y a todo el ancho: lado a lado, en una laptop
 // con el menú abierto, cada deuda se partía en cuatro renglones. Sin estado propio: sirve desde la página del servidor; lo único que se
 // toca es el botón, que abre su hoja.
@@ -32,6 +34,7 @@ export function NosDebeProveedor({
   falla,
   proveedorNombre,
   hoy,
+  puedeSaldoAFavor = false,
   children,
 }: {
   /** `null` con `falla` = la base no respondió. */
@@ -39,6 +42,8 @@ export function NosDebeProveedor({
   falla: string | null;
   proveedorNombre: string;
   hoy: string;
+  /** Pasar a saldo a favor mueve plata: Proveedores o líder (`fn_puede_gestionar_proveedores`, la misma regla que la base). */
+  puedeSaldoAFavor?: boolean;
   /** El saldo a favor (la plata que el proveedor debe). */
   children?: ReactNode;
 }) {
@@ -78,7 +83,7 @@ export function NosDebeProveedor({
           ) : (
             <ul className="divide-y divide-tinta/10 border-t border-tinta/10">
               {abiertas.map((d) => (
-                <FilaDeuda key={d.diferenciaId} deuda={d} proveedorNombre={proveedorNombre} hoy={hoy} />
+                <FilaDeuda key={d.diferenciaId} deuda={d} proveedorNombre={proveedorNombre} hoy={hoy} puedeSaldoAFavor={puedeSaldoAFavor} />
               ))}
             </ul>
           )}
@@ -87,7 +92,7 @@ export function NosDebeProveedor({
             <details data-guia="proveedor-ficha.nos-debe-cerradas" className="group border-t border-tinta/10" open={cerradas.length <= CERRADAS_A_LA_VISTA}>
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-[13px] text-tinta/75 hover:text-tinta [&::-webkit-details-marker]:hidden">
                 <span>
-                  Ya repuestas en los últimos 90 días <span className="tabular-nums">({cerradas.length.toLocaleString("es-PE")})</span>
+                  Ya saldadas en los últimos 90 días <span className="tabular-nums">({cerradas.length.toLocaleString("es-PE")})</span>
                 </span>
                 <ChevronDown aria-hidden className="h-4 w-4 shrink-0 transition-transform duration-300 ease-cayla group-open:rotate-180" />
               </summary>
@@ -117,7 +122,17 @@ export function NosDebeProveedor({
   );
 }
 
-function FilaDeuda({ deuda: d, proveedorNombre, hoy }: { deuda: DeudaProveedor; proveedorNombre: string; hoy: string }) {
+function FilaDeuda({
+  deuda: d,
+  proveedorNombre,
+  hoy,
+  puedeSaldoAFavor,
+}: {
+  deuda: DeudaProveedor;
+  proveedorNombre: string;
+  hoy: string;
+  puedeSaldoAFavor: boolean;
+}) {
   const avance = avanceDeDeuda(d);
   return (
     <li data-guia="proveedor-ficha.deuda" aria-label={textoDeDeuda(d, hoy)} className="grid gap-x-4 gap-y-2 px-5 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
@@ -138,7 +153,10 @@ function FilaDeuda({ deuda: d, proveedorNombre, hoy }: { deuda: DeudaProveedor; 
           <span className="block text-sm tabular-nums text-tinta">{soles(d.montoPendiente)}</span>
           {d.conIgv && <span className="block text-[11px] text-taupe">{d.montoConIgv != null ? `${soles(d.montoConIgv)} con IGV` : "sin IGV"}</span>}
         </p>
-        <BotonReposicion deuda={d} proveedorNombre={proveedorNombre} hoy={hoy} />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {puedeSaldoAFavor && <BotonSaldoAFavor deuda={d} proveedorNombre={proveedorNombre} hoy={hoy} />}
+          <BotonReposicion deuda={d} proveedorNombre={proveedorNombre} hoy={hoy} />
+        </div>
       </div>
     </li>
   );

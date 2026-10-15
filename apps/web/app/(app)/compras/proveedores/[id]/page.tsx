@@ -211,7 +211,14 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
       {/* «Nos debe» (ADR-0362, fase 5a): las prendas por reponer y, a su lado, el saldo a favor de siempre (la plata). Si la base todavía
           no cuenta las prendas, el saldo a favor queda solo, como antes. */}
       {nosDebe && (nosDebe.nosDebe || nosDebe.falla) ? (
-        <NosDebeProveedor nosDebe={nosDebe.nosDebe} falla={nosDebe.falla} proveedorNombre={proveedor.nombre} hoy={hoyLima()}>
+        <NosDebeProveedor
+          nosDebe={nosDebe.nosDebe}
+          falla={nosDebe.falla}
+          proveedorNombre={proveedor.nombre}
+          hoy={hoyLima()}
+          // Pasar a saldo a favor mueve plata: la misma regla que `resolver_deuda_proveedor` (fn_puede_gestionar_proveedores).
+          puedeSaldoAFavor={esLider || usaModulo(persona.rol, persona.modulos, "proveedores")}
+        >
           {m && creditos && <SaldoFavorProveedor proveedorId={id} proveedorNombre={proveedor.nombre} saldo={creditos.saldo} movimientos={creditos.movimientos} tieneDeuda={m.saldo > 0} puedeReembolsar={accionesDeCompraDe(persona).pagar} />}
         </NosDebeProveedor>
       ) : (

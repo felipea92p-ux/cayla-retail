@@ -14,6 +14,7 @@ import {
   diaDelCierre,
   hace,
   mensajeParaProveedor,
+  nombreDeNotaDeCredito,
   pasosDeNota,
   siguientePaso,
   type FilaVista,
@@ -77,7 +78,7 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
     setTimeout(() => setCopiado(false), 2200);
   }
 
-  const titulo = f.clase === "pendiente" ? `Nota por reclamar · ${f.documento}` : `Nota de crédito ${f.serieNumero ?? ""}`;
+  const titulo = f.clase === "pendiente" ? `Nota por reclamar · ${f.documento}` : nombreDeNotaDeCredito(f.serieNumero);
 
   return (
     <Modal titulo={titulo} subtitulo={`${f.proveedorNombre} · ${f.clase === "pendiente" ? `cerrado el ${diaMes(diaDelCierre(f))}` : `registrada el ${diaMes(f.fecha)}`}`} variante="papel" tamano="ancha" onClose={onCerrar}>
@@ -187,7 +188,7 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
                 <Movimiento fecha={diaDelCierre(f)} titulo="Cierre por faltante" detalle={`${f.unidadesCerradas.toLocaleString("es-PE")} ${f.unidadesCerradas === 1 ? "unidad" : "unidades"} en ${f.documento}`} monto={soles(f.monto)} />
               ) : (
                 <>
-                  <Movimiento fecha={f.fecha} titulo={`Nota ${f.serieNumero ?? ""} registrada`} detalle={f.nota ?? ETIQUETA_MOTIVO_NOTA[f.motivo ?? "otro"] ?? ""} monto={soles(f.monto)} />
+                  <Movimiento fecha={f.fecha} titulo={`${nombreDeNotaDeCredito(f.serieNumero)} registrada`} detalle={f.nota ?? ETIQUETA_MOTIVO_NOTA[f.motivo ?? "otro"] ?? ""} monto={soles(f.monto)} />
                   {delProveedor.map((m) => (
                     <Movimiento
                       key={m.id}

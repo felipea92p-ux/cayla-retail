@@ -407,4 +407,5 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0362 (fase 5a): «Llegó la reposición» en la ficha del proveedor. Falta lo que `resolver_deuda_proveedor` rechazaría: cuántas (de 1 a lo
   // que debe; viene puesto todo, «sugerido» hasta que se toca, y con una sola no se pregunta), cómo llegó (la nota, obligatoria) y quién lo anota.
   "components/nos-debe/HojaReposicion.tsx": { estado: "aplicada", evidencia: ["components/nos-debe/HojaReposicion.tsx"] },
+  "components/nos-debe/HojaSaldoAFavor.tsx": { estado: "aplicada", evidencia: ["components/nos-debe/HojaSaldoAFavor.tsx"] },
 };

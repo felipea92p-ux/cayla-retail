@@ -919,13 +919,30 @@ export const GUIA_PROVEEDOR: Guia = {
       texto: "Cuántas llegaron (viene puesto todo lo que debía), cómo llegaron y quién lo anota. Solo anota que el proveedor cumplió: no suma prendas al stock. Al anotarlo, queda en el historial de la deuda. En la demo no lo tocamos.",
     },
     {
+      // Cierra la hoja de la reposición antes de mostrar el otro camino.
+      id: "saldo-a-favor",
+      ancla: "proveedor-ficha.saldo-a-favor",
+      opcional: true,
+      preparar: [{ tipo: "escape" }],
+      titulo: "Pasar a saldo a favor",
+      texto: "Si el proveedor no va a mandar lo que faltó, pásalo a saldo a favor: un documento interno por lo que pagaste baja lo que le debes por ese comprobante o, si ya lo pagaste, queda a favor para tu próximo pago. Lo que no se facturó no se pasa.",
+    },
+    {
+      id: "hoja-saldo-a-favor",
+      ancla: "proveedor-ficha.hoja-saldo-a-favor",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "proveedor-ficha.saldo-a-favor", siEsta: true }],
+      titulo: "Cuánto vale y adónde va",
+      texto: "Cuántas pasan (viene puesto todo lo que se puede), cuánto valen al costo de su comprobante y cuánto baja de tu deuda o queda a favor. La nota es opcional. Al pasarlo nace el documento interno DI-…, que queda en el historial. En la demo no lo tocamos.",
+    },
+    {
       // Cierra la hoja aunque este paso se salte (no hay cerradas): `preparar` corre antes de ver si el paso aplica.
       id: "cerradas",
       ancla: "proveedor-ficha.nos-debe-cerradas",
       opcional: true,
       preparar: [{ tipo: "escape" }],
-      titulo: "Ya repuestas",
-      texto: "Las deudas que se cerraron en los últimos 90 días, con cuándo y cómo llegó cada reposición. Si son muchas, se pliegan: tócalas para verlas.",
+      titulo: "Ya saldadas",
+      texto: "Las deudas que se cerraron en los últimos 90 días, con cuándo y cómo se saldó cada parte: la reposición que llegó o lo que pasó a saldo a favor. Si son muchas, se pliegan: tócalas para verlas.",
     },
     {
       id: "saldo-favor",
