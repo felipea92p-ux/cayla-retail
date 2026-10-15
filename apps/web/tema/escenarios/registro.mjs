@@ -1334,6 +1334,30 @@ ESCENARIOS.push(
       await esperar(pagina, 1200);
     },
   },
+  // Vitrina web ▸ Esperan una talla (ADR-0408, actividad 12): la lista filtrada por «Ya llegaron» (la cifra que filtra, puesta) y la
+  // búsqueda que no encuentra nada (el vacío con la lupa tachada).
+  {
+    id: "vitrina.esperan-llegaron",
+    ruta: "/productos/vitrina/esperan",
+    cuentas: ["admin"],
+    abre: '[data-guia="esperan.cifras"] button[aria-pressed=true]',
+    nombre: "Esperan una talla · el filtro «Ya llegaron»",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="esperan.cifras"] button').filter({ hasText: /Ya llegaron/i }).first().click({ timeout: 8000 });
+      await esperar(pagina, 900);
+    },
+  },
+  {
+    id: "vitrina.esperan-sin-coincidencias",
+    ruta: "/productos/vitrina/esperan",
+    cuentas: ["admin"],
+    abre: ".vacio",
+    nombre: "Esperan una talla · una búsqueda que no encuentra nada",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="esperan.buscador"] input').first().fill("zzz-nada", { timeout: 8000 });
+      await esperar(pagina, 900);
+    },
+  },
 );
 
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el

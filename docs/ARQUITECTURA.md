@@ -838,6 +838,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`vitrina_guardar_modelo`: mostrar, Lo nuevo y descripción) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`: mostrar u ocultar uno o
   varios); reglas en `lib/vitrina-reglas.ts`, guía de foco en `lib/vitrina-guia.ts`. Sin precio web (Felipe, 2026-10-14): en la web
   vale el de cada tienda (`fn_precio_en_sede`).
+  La cifra «Esperan una talla» (ADR-0408 act. 12) la lee el mismo `page.tsx` con `fn_vitrina_esperan` y lleva a
+  `/productos/vitrina/esperan` (Vitrina web ▸ Esperan una talla, mismo módulo, sin menú propio) → `page.tsx` lee `fn_vitrina_esperan` →
+  `components/vitrina/EsperanPantalla.tsx` (cifras que filtran, buscador, píldoras de tienda, la lista por prenda y tienda); reglas en
+  `lib/vitrina-esperan-reglas.ts`. Solo lee y sin datos personales: lo que los clientes pidieron con «Avísame» (`esperas_web`).
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +
@@ -1745,6 +1749,14 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   mayor entre las tiendas de la web, con la campaña encima (la regla de la caja, ADR-0403), sus colores y hasta dos fotos del almacén
   público; `lib/catalogo.ts` filtra por categoría y ordena, y `components/TarjetaPrenda.tsx` dibuja la tarjeta. Si la base no
   responde, la página dice que no se pudo cargar.
+- El Club en la cuenta (actividad 12): `/cuenta` → `lib/club-servidor.ts` `leerMiClubEnBase()` → `retail.tienda_mi_club(usuario)`: sus
+  beneficios con las reglas que cobra la caja (`fn_club_beneficios`, `fn_club_aniversario_calculo`, `club_canjes`), «Novedades para ti»
+  (la primera llegada a una tienda de la web desde su visita ANTERIOR, `cuentas_web_visitas`, `fn_tienda_novedades`), sus favoritos y
+  sus esperas; las prendas las dibuja `TarjetaPrenda` con el catálogo (`leerCatalogo(null)`). Textos en `lib/club.ts`, bloques en
+  `components/club/BloquesDelClub.tsx`. Los botones que pondrá la ficha: `components/club/BotonFavorito.tsx` →
+  `app/acciones/club.ts` `guardarFavorito` → `tienda_favorito` (tabla `favoritos_web`) y `components/club/BotonAvisame.tsx` →
+  `pedirAviso` → `tienda_avisame` (tabla `esperas_web`, por prenda y tienda; si hay, no anota); «Quitar» → `tienda_quitar_avisame`;
+  lo ya guardado, `leerGuardadosEnBase()` → `tienda_mis_favoritos_y_esperas`. Prueba en la base: `pnpm pruebas:tienda-club`.
 
 ---
 

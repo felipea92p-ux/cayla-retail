@@ -1426,7 +1426,7 @@ export const GUIA_VITRINA: Guia = {
       id: "cifras",
       ancla: "vitrina.cifras",
       titulo: "Cómo está la vitrina",
-      texto: "Cuántos modelos se ven en la web, y cuántos de esos no tienen nada en ninguna tienda: se ven, pero no hay qué separar. Toca una tarjeta y la lista se queda solo con esos.",
+      texto: "Cuántos modelos se ven en la web y cuántos no tienen nada en ninguna tienda (toca una y la lista se queda con esos). «Esperan una talla» son los clientes que tocaron «Avísame»: tócala para ver qué esperan.",
     },
     {
       id: "buscador",
@@ -1544,4 +1544,71 @@ export const GUIA_VITRINA: Guia = {
     },
   ],
   alSalir: [{ tipo: "escape" }, { tipo: "vaciar", ancla: "vitrina.buscador" }],
+};
+
+// Catálogo ▸ Vitrina web ▸ Esperan una talla (ADR-0408, actividad 12). Se llega desde la cifra de la Vitrina. Solo lee: lo que los
+// clientes de la tienda online pidieron con «Avísame», por prenda y tienda, sin datos de nadie. La demo no toca nada que guarde
+// (no hay): escribe un ejemplo en el buscador y elige una tienda.
+export const GUIA_VITRINA_ESPERAN: Guia = {
+  id: "productos.vitrina.esperan",
+  ruta: "/productos/vitrina/esperan",
+  titulo: "Esperan una talla",
+  resumen: "Lo que los clientes de la tienda online esperan que llegue, por talla y tienda.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "Lo que esperan los clientes",
+      texto: "Aquí ves lo que los clientes de la tienda online pidieron con «Avísame cuando llegue»: una talla que no había en la tienda que eligieron. Sirve para saber qué traer o qué comprar. Es una demo: no se guarda nada.",
+    },
+    {
+      id: "cifras",
+      ancla: "esperan.cifras",
+      titulo: "En tres números",
+      texto: "Cuántas personas esperan algo, cuántas tallas siguen faltando y cuántas ya llegaron. Toca «Tallas que faltan» o «Ya llegaron» y la lista se queda solo con esas.",
+    },
+    {
+      id: "buscador",
+      ancla: "esperan.buscador",
+      opcional: true,
+      titulo: "Busca un modelo",
+      texto: "Por el nombre del modelo, su código, el color o la talla. Mira, buscamos uno de la lista.",
+      demostrar: [{ tipo: "escribir", ancla: "esperan.buscador", texto: { palabraDe: "esperan.modelo" } }],
+    },
+    {
+      id: "tiendas",
+      ancla: "esperan.tiendas",
+      opcional: true,
+      preparar: [{ tipo: "vaciar", ancla: "esperan.buscador" }],
+      titulo: "Por tienda",
+      texto: "Lo que esperan en cada tienda. «Cualquier tienda» es quien eligió «Todas» en la web: le sirve la que llegue primero a cualquiera.",
+    },
+    {
+      id: "lista",
+      ancla: "esperan.lista",
+      opcional: true,
+      titulo: "Cada talla que esperan",
+      texto: "El modelo con su color y su talla, la tienda donde la esperan, cuántas personas y desde cuándo. Aquí no salen nombres: solo cuántas personas.",
+    },
+    {
+      id: "ahora",
+      ancla: "esperan.ahora",
+      opcional: true,
+      titulo: "Qué puedes hacer",
+      texto: "Si dice «Hay en» otra tienda (con cuántas libres), pídela a esa tienda con un traslado. «Ya llegó»: ya está a la venta, y quien la esperaba lo ve en su cuenta. «No hay en ninguna tienda»: tenla en cuenta al comprar.",
+    },
+    {
+      id: "nota",
+      ancla: "esperan.nota",
+      titulo: "Cómo se entera el cliente",
+      texto: "Su cuenta de la tienda online le dice «¡Llegó!» apenas hay donde la espera. No se le escribe por WhatsApp: el Club no manda mensajes personales.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes ver lo que esperan los clientes y qué pedir. Llegas aquí desde la cifra «Esperan una talla» de la Vitrina web. Para repasarlo: Mi perfil ▸ Demo ▸ Esperan una talla.",
+    },
+  ],
+  alSalir: [{ tipo: "vaciar", ancla: "esperan.buscador" }],
 };
