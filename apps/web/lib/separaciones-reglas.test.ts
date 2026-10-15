@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   adelantoDe,
+  avisoDeAbono,
+  textoPagosDeFila,
   AVISO_EFECTIVO_SIN_MONEDA,
   apartadoDeFila,
   avanceDelPlazo,
@@ -405,5 +407,20 @@ describe("el tope del vuelto en el adelanto", () => {
   it("un adelanto en efectivo con más de S/ 500 de vuelto pide revisar", () => {
     expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 30, recibido: 530 }] }), 179).pago).toBeUndefined();
     expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 30, recibido: 530.01 }] }), 179).pago).toMatch(/vuelto pasa de S\/\u00a0500/);
+  });
+});
+
+describe("lo que se lee de los pagos no miente (chaos y prueba ciega 2026-10-15)", () => {
+  const pago = (abono: boolean) => ({ metodo: "yape" as const, monto: 10, fecha: "2026-10-15T15:00:00Z", abono });
+  it("la fila cuenta TODOS los pagos (adelanto y abonos), no solo los abonos: «1 abono» con dos pagos confundía", () => {
+    expect(textoPagosDeFila([pago(false)])).toBeNull();
+    expect(textoPagosDeFila([pago(false), pago(true)])).toBe("2 pagos");
+    expect(textoPagosDeFila([pago(false), pago(true), pago(true)])).toBe("3 pagos");
+  });
+  it("el aviso del abono solo nombra una boleta de anticipo si el apartado es de los viejos que la emiten (ADR-0399)", () => {
+    const nuevo = apartado({ comprobanteAnticipo: null });
+    expect(avisoDeAbono(nuevo, { saldo: 24.9, venceEl: null })).toBe("Ana: falta S/24.90.");
+    expect(avisoDeAbono(nuevo, { saldo: 0, venceEl: "2026-10-25" })).toBe("Ana: ya pagó todo · recoge hasta el 25/10.");
+    expect(avisoDeAbono(apartado(), { saldo: 24.9, venceEl: null })).toBe("Ana: falta S/24.90. Sale su boleta de anticipo.");
   });
 });

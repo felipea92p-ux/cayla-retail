@@ -5,7 +5,13 @@
  * Desde la tanda 1a del club (ADR-0288), la venta queda ligada a su ficha (`p_cliente_id`) y el documento tiene tipo. La
  * pregunta del club (tanda 1b) vive aparte, en `club-caja-reglas.ts`. Lo que NO hace todavía: «es para regalo» (tanda 1d).
  */
-import { documentoLegible, tipoDocumentoDe, type TipoDocumentoClienta } from "./documento-clienta-reglas";
+import {
+  documentoLegible,
+  documentoParaComprobante,
+  normalizarNumeroDocumento,
+  tipoDocumentoDe,
+  type TipoDocumentoClienta,
+} from "./documento-clienta-reglas";
 
 /** ADR-0288 D-2: el documento con su tipo (antes, `dni`). */
 export type ClientaDelTicket = {
@@ -27,6 +33,25 @@ export function lineaDeClienta(c: ClientaDelTicket): { titulo: string; detalle: 
   const titulo = c.nombre?.trim() || documento || (c.celular ? `Cel. ${c.celular}` : "Cliente sin nombre");
   const partes = [documento && c.nombre?.trim() ? documento : null, c.celular ? `Cel. ${c.celular}` : null].filter(Boolean);
   return { titulo, detalle: partes.join(" · ") };
+}
+
+/**
+ * El nombre que la ficha de la clienta del ticket ya tiene para el documento del comprobante, o `null` si hay que preguntarle
+ * al padrón. Al registrarla, su DNI ya pasó por el padrón (o, si no respondió, el nombre se escribió a mano): volver a
+ * consultarlo al elegir boleta repite lo que ya se sabe y gasta una consulta (Felipe 2026-10-15). Es la misma regla que
+ * Apartados: primero la ficha, después el padrón.
+ * Vale solo mientras el comprobante lleve SU documento: con un dígito corregido ya es otra persona, y se consulta. Sin
+ * nombre en la ficha no hay nada que ahorrar: también se consulta.
+ */
+export function nombreDeFichaParaComprobante(
+  clienta: ClientaDelTicket | null,
+  tipo: TipoDocumentoClienta,
+  numero: string,
+): string | null {
+  const nombre = clienta?.nombre?.trim();
+  const doc = clienta ? documentoParaComprobante(clienta.documentoTipo, clienta.documentoNumero) : null;
+  if (!nombre || !doc) return null;
+  return doc.tipo === tipo && doc.numero === normalizarNumeroDocumento(numero) ? nombre : null;
 }
 
 /**
