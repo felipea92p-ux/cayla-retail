@@ -20,9 +20,11 @@
 --        fn_cerrar_pedidos_web_vencidos → la ruta programada (cron): cierra lo que nadie confirmó a tiempo.
 --        fn_pedidos_web_sede / fn_pedido_web → el ERP lee la lista y el detalle (con los avisos de 48 h y 7 días).
 --        fn_pedidos_web_de_clienta     → la tienda lee «Mis pedidos».
---   3. Dos disparadores sobre tablas que ya existen, sin cambiarles nada más:
+--   3. Un disparador sobre una tabla que ya existe, sin cambiarle nada más:
 --      · `apartados`: una reserva de un pedido web no se libera desde Apartados (solo desde Pedidos web).
---      · `clientas`: si la ficha del cliente se une a otra (`unir_clientas`), sus pedidos web la siguen.
+--      (Hasta el 2026-10-14 había otro en `clientas`, para que los pedidos siguieran a la ficha al unirla con otra. Ya no se unen
+--      fichas —Felipe: el documento y el correo son de una sola persona; `unir_clientas` se borró en 20261015054000—, así que el
+--      cliente de un pedido web no cambia nunca.)
 --
 -- LA VIDA DE UN PEDIDO (estados de `pedidos_web.estado`):
 --
@@ -81,8 +83,8 @@
 --   · NO valida precios contra la Vitrina (actividad 7) ni da de alta el módulo (actividad 8).
 --
 -- PRODUCCIÓN. NO está aplicada. Se pega en el SQL Editor tal cual (todo lleva `retail.`), y se puede volver a pegar. No crea
--- políticas ni usa `drop trigger`: crear los disparadores de `apartados` y `clientas` toma un candado breve de esas tablas
--- (con `lock_timeout = 3s`: si una tienda las tiene tomadas, falla sin tocar nada y se vuelve a pegar). Ningún `select … into`
+-- políticas ni usa `drop trigger`: crear el disparador de `apartados` toma un candado breve de esa tabla
+-- (con `lock_timeout = 3s`: si una tienda la tiene tomada, falla sin tocar nada y se vuelve a pegar). Ningún `select … into`
 -- dentro de un texto entre comillas. Después se pega `20261015000000_pedidos_web_cobros.sql`.
 -- ============================================================================
 
@@ -301,10 +303,9 @@ begin
     raise exception 'El número, la tienda, el código para recoger y la fecha de un pedido web no se cambian.'
       using errcode = '23514', hint = 'pedido_web_inmutable';
   end if;
-  -- El cliente solo cambia cuando su ficha se une a otra (unir_clientas): el pedido sigue a la ficha que queda.
-  if new.clienta_id is distinct from old.clienta_id
-     and new.clienta_id is distinct from (select c.fusionada_en_id from retail.clientas c where c.id = old.clienta_id) then
-    raise exception 'El cliente de un pedido web no se cambia: solo sigue a su ficha cuando esta se une a otra.'
+  -- El cliente de un pedido no cambia nunca (desde el 2026-10-14 ya no se unen fichas: un documento y un correo, una persona).
+  if new.clienta_id is distinct from old.clienta_id then
+    raise exception 'El cliente de un pedido web no se cambia.'
       using errcode = '23514', hint = 'pedido_web_inmutable';
   end if;
   if new.estado is distinct from old.estado and not (
@@ -694,26 +695,6 @@ create or replace trigger apartados_de_pedidos_web
         or old.ubicacion_id is distinct from new.ubicacion_id or old.sububicacion_id is distinct from new.sububicacion_id
         or old.cantidad is distinct from new.cantidad)
   execute function retail.fn_apartado_de_pedido_web();
-
--- `clientas`: si la ficha se une a otra (unir_clientas la deja anonimizada con `fusionada_en_id`), sus pedidos web pasan a la
--- ficha que queda, así el cliente los sigue viendo en «Mis pedidos». Sin tocar `unir_clientas`.
-create or replace function retail.fn_pedidos_web_siguen_a_la_ficha()
-returns trigger
-language plpgsql
-security definer
-set search_path = retail, public, extensions
-as $$
-begin
-  update retail.pedidos_web w set clienta_id = new.fusionada_en_id where w.clienta_id = new.id;
-  return null;
-end;
-$$;
-
-create or replace trigger clientas_pedidos_web_siguen_a_la_ficha
-  after update of fusionada_en_id on retail.clientas
-  for each row
-  when (new.fusionada_en_id is not null and old.fusionada_en_id is distinct from new.fusionada_en_id)
-  execute function retail.fn_pedidos_web_siguen_a_la_ficha();
 
 -- ----------------------------------------------------------------------------
 -- 6. Piezas internas que comparten las funciones
@@ -1559,7 +1540,6 @@ revoke all on function retail.fn_pedidos_web_sin_borrar() from public, anon, aut
 revoke all on function retail.fn_pedido_web_verificar(uuid) from public, anon, authenticated;
 revoke all on function retail.fn_pedido_web_coherente() from public, anon, authenticated;
 revoke all on function retail.fn_apartado_de_pedido_web() from public, anon, authenticated;
-revoke all on function retail.fn_pedidos_web_siguen_a_la_ficha() from public, anon, authenticated;
 revoke all on function retail.fn_pedido_web_plazos_validos(integer, integer, integer) from public, anon, authenticated;
 revoke all on function retail.fn_pedido_web_exigir(uuid) from public, anon, authenticated;
 revoke all on function retail.fn_pedido_web_actor() from public, anon, authenticated;

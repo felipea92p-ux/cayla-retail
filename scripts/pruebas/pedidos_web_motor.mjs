@@ -880,15 +880,18 @@ select string_agg(${hint("x.llamada")}, ',' order by x.n) from (values
 ) x(n, llamada);`,
     "pedido_web_no_se_borra,pedido_web_no_se_borra,pedido_web_no_se_borra,pedido_web_no_se_borra,pedido_web_pago_inmutable,pedido_web_transicion",
   );
+  // Desde 20261015054000 ya no se unen fichas (Felipe 2026-10-14: el documento y el correo son de una sola persona): el cliente de un
+  // pedido no cambia NUNCA. Ni a mano, ni porque una ficha figure unida a otra (como dejaría una unión de antes: se arma a mano).
   escenario(
-    "si la ficha del cliente se une a otra (unir_clientas), sus pedidos la siguen; a mano, el cliente de un pedido no se cambia",
+    "el cliente de un pedido web no se cambia nunca: ni a mano, ni siguiendo a una ficha que figura unida a otra (ya no se unen fichas)",
     `${separar("a")}
 insert into retail.clientas (nombre, telefono_whatsapp) values ('ZZ Otra ficha', '999777666') returning id as otra \\gset
 select ${hint(`format('update retail.pedidos_web set clienta_id = %L where id = %L', :'otra', :'a')`)} as amano \\gset
 update retail.clientas set documento_numero = null, nombre = 'Clienta anonimizada', telefono_whatsapp = null, anonimizada = true,
        archivada_en = now(), motivo_archivo = 'prueba pedidos web', fusionada_en_id = :'otra' where id = :'cli';
-select :'amano' || '|' || ((select clienta_id from retail.pedidos_web where id = :'a') = :'otra'::uuid)::text;`,
-    "pedido_web_inmutable|true",
+select ${hint(`format('update retail.pedidos_web set clienta_id = %L where id = %L', :'otra', :'a')`)} as unida \\gset
+select :'amano' || '|' || :'unida' || '|' || ((select clienta_id from retail.pedidos_web where id = :'a') = :'cli'::uuid)::text;`,
+    "pedido_web_inmutable|pedido_web_inmutable|true",
   );
 
   // ===================================================================================================================
