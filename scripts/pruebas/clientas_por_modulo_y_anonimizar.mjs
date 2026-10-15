@@ -689,6 +689,10 @@ LISTA_BLANCA.push("crear_pedido_web", "fn_pedidos_web_de_clienta", "fn_pedido_we
 // archivada (con la ficha archivada la cuenta ya no agrega favoritos ni esperas) y no devuelven nada de ella: tienda_favorito y
 // tienda_avisame. Solo las ejecuta `tienda_web` (lo prueba scripts/pruebas/tienda_club.mjs).
 LISTA_BLANCA.push("tienda_favorito", "tienda_avisame");
+// Y la venta de un pedido web (ADR-0408, actividad 10, 20261015051000): fn_pedido_web_vender lee el DNI y el nombre de la ficha del
+// pedido para emitir su boleta (como registrar_venta con el cliente del cobro) y no devuelve nada de ella. No la ejecuta nadie de la
+// API: solo la llama registrar_pago_pedido_web, que ya exige el módulo «Pedidos web» (lo prueba scripts/pruebas/pedidos_web_entregar.mjs).
+LISTA_BLANCA.push("fn_pedido_web_vender");
 /** La condición del vigilante: sin el candado del módulo (en el código, no en un comentario), salvo las de la página. */
 const SIN_EL_CANDADO = `x.src !~ 'fn_exigir_modulo\\(''clientas''\\)' and x.proname not in (${[...DE_LA_PAGINA, ...DEL_SERVIDOR, ...DE_LA_TIENDA].map((n) => `'${n}'`).join(", ")})
   and not (x.proname in (${DE_AVISOS.map((n) => `'${n}'`).join(", ")}) and x.src ~ 'fn_exigir_modulo\\(''avisos_club''\\)')

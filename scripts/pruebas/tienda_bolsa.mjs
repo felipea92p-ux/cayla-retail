@@ -186,6 +186,14 @@ values (:'prod_v', true, now()), (:'prod_v2', true, now())
 on conflict (producto_id) do update set publicado = true, publicado_en = now();
 ${AYUDAS}
 select pg_temp.vaciar(:'v', :'tru'), pg_temp.vaciar(:'v', :'lim'), pg_temp.vaciar(:'v2', :'tru'), pg_temp.vaciar(:'v2', :'lim');
+-- ADR-0408 act. 10: el pago que completa un pedido hace nacer su venta con su boleta, que va en la caja del día de su tienda: una caja
+-- abierta en las dos tiendas y una serie de boleta propia de la prueba (en el seed local Lima y Trujillo comparten B001). Solo aquí.
+update retail.series_comprobantes
+   set serie = case tipo when 'boleta' then 'B' else 'F' end || case when ubicacion_id = :'tru' then 'T98' else 'L98' end, siguiente_numero = 1
+ where ubicacion_id in (:'tru', :'lim') and tipo in ('boleta', 'factura') and archivada_at is null;
+select coalesce((select id from retail.cajas where ubicacion_id = :'tru' and estado = 'abierta'), retail.abrir_caja(:'tru', 0, 'prueba bolsa: la caja del día')) is not null
+   and coalesce((select id from retail.cajas where ubicacion_id = :'lim' and estado = 'abierta'), retail.abrir_caja(:'lim', 0, 'prueba bolsa: la caja del día')) is not null
+    as _cajas \\gset
 -- Dos clientes con cuenta web (su usuario del proyecto de clientes es un id cualquiera: aquí no se entra a ningún lado).
 insert into retail.clientas (nombre, telefono_whatsapp) values ('ZZ Cliente A tienda web', '999888771') returning id as cli_a \\gset
 insert into retail.clientas (nombre, telefono_whatsapp) values ('ZZ Cliente B tienda web', '999888772') returning id as cli_b \\gset

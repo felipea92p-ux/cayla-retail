@@ -189,6 +189,13 @@ ${lugares("Tienda Lima", "lim")}
 ${prendaNueva(1)}
 ${prendaNueva(2)}
 ${AYUDAS}
+-- ADR-0408 act. 10: el pago que completa un pedido hace nacer su venta con su boleta, que va en la caja del día de su tienda. Cada
+-- escenario parte con una caja abierta en las dos tiendas y una serie de boleta propia de la prueba (en el seed local Lima y Trujillo
+-- comparten B001; en producción cada tienda tiene la suya). Solo dentro de esta transacción.
+update retail.series_comprobantes
+   set serie = case tipo when 'boleta' then 'B' else 'F' end || case when ubicacion_id = :'tru' then 'T98' else 'L98' end, siguiente_numero = 1
+ where ubicacion_id in (:'tru', :'lim') and tipo in ('boleta', 'factura') and archivada_at is null;
+select pg_temp.caja(:'tru') is not null and pg_temp.caja(:'lim') is not null as _cajas \\gset
 insert into retail.clientas (nombre, telefono_whatsapp) values ('ZZ Cliente pedidos web ERP', '999888771') returning id as cli \\gset
 update retail.configuracion_tienda_web set horas_para_confirmar = 24, horas_aviso_sin_pagar = 48, dias_aviso_sin_recoger = 7 where id;
 `;
