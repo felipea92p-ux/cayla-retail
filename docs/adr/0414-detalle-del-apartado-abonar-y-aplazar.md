@@ -1,8 +1,8 @@
 # ADR-0414 · El detalle de un apartado: su historial completo, abonar y aplazar desde ahí
 
 - **Fecha:** 2026-10-15 · **Estado:** construido y verificado en local (suite de base, vitest completo, la hoja en el navegador).
-  **La migración `20261015151000` NO está en producción:** va antes de publicar la web (la hoja nueva llama a `aplazar_separacion` y
-  `fn_detalle_separacion`). Rama `claude/apartados-details-management-e49c2c`.
+  **La migración `20261015151000` está en producción desde el 2026-10-15** (versión `20261015161341`, con el OK de Felipe: sonda, ensayo
+  revertido y huellas md5 `aplazar_separacion` 8269c00f…, `extender_separacion` 42dd994d…, `fn_detalle_separacion` 0864d2dd…). Rama `claude/apartados-details-management-e49c2c`.
 - **Decisión de Felipe (2026-10-15):** «debería poder hacer clic para que te despliegue todos los detalles de ese apartado, si hubo más
   abonos, cuándo fueron, con la hora y fecha exacta, cómo los abonó, y que desde ese modal se puedan registrar abonos y aplazar la fecha de
   vencimiento». Al preguntarle: aplazar con **+3 días, +7 días o una fecha elegida**, con tope (**2 aplazamientos, nunca más de 30 días
