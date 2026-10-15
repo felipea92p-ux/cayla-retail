@@ -38,8 +38,8 @@ export type RespuestaAgregar =
   { estado: "agregada"; mensaje: string; cuantas: number } | { estado: "sin_sesion" } | { estado: "no"; mensaje: string };
 
 /**
- * @public «Agregar a la bolsa» de la ficha y «Agregar» con la talla de las tarjetas (`components/bolsa/AgregarALaBolsa.tsx`):
- * los pone la integración de la tienda en la ficha y en las tarjetas (actividades 4 y 5). `sedeId`: la tienda que el cliente venía
+ * «Agregar a la bolsa» de la ficha y «Agregar» con la talla de las tarjetas (`components/bolsa/AgregarALaBolsa.tsx`,
+ * `components/RapidoDeTarjeta.tsx`). `sedeId`: la tienda que el cliente venía
  * mirando («Ver lo que hay en»); queda elegida para recoger si todavía no eligió otra (maqueta).
  *
  * Como la maqueta, no deja agregar más de lo que hay en las tiendas de la web («Esa talla ya no está en ninguna tienda»).

@@ -71,5 +71,7 @@ prenda y tienda la espera; si la prenda ya hay, no se anota. Lo que esperan los 
 
 Pruebas: `pnpm --filter tienda test`, `typecheck` y `lint`; en la base, `pnpm pruebas:tienda-puerta`, `pnpm pruebas:tienda-cuentas`,
 `pnpm pruebas:vitrina-web`, `pnpm pruebas:tienda-ficha` (cuánto hay en cada tienda), `pnpm pruebas:tienda-inicio` («Lo nuevo», «Más
-vendidos» y los plazos de la ayuda), `pnpm pruebas:tienda-bolsa` y `pnpm pruebas:tienda-club`; las de la ficha y el Inicio, con
-`-- --mutantes`, además contra versiones rotas a propósito de su migración.
+vendidos» y los plazos de la ayuda), `pnpm pruebas:tienda-separadas` («otra persona ya separó la última»), `pnpm pruebas:tienda-bolsa`,
+`pnpm pruebas:tienda-club` (también la regla única de «hay» y de «nuevo») y `pnpm pruebas:tienda-avisos` (el aviso del Club al entrar);
+las de la ficha, el Inicio, la bolsa y «otra persona ya separó», con `-- --mutantes`, además contra versiones rotas a propósito de su
+migración.
