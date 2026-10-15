@@ -40,6 +40,8 @@ piso» (su lista propia, anclada a la tarjeta, se queda). Clientes, Marcas y Por
 
 ![Después: el «Más» en el pie de cada tarjeta de Existencias](capturas/accion.menu.despues.jpg)
 
+A 375 px, en oscuro (el «⋯» de cada comprobante, de 44 px para el dedo): ![Facturación a 375 px](capturas/ronda13-375.jpg)
+
 ## Firmas
 
 Los tres puntos dibujados fuera de la pieza (`<MoreHorizontal>`, `<MoreVertical>`, `<Ellipsis>`, o «⋯» como texto de un botón). Con el código
