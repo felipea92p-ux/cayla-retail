@@ -24,9 +24,18 @@
 --          (`fn_existencias_base.disponible`: piso + almacén + lo que no tiene lugar, sin Cuarentena y sin lo apartado; lo apartado
 --          incluye las reservas de los pedidos web, ADR-0408 DECIDÍ 4). Solo tallas activas y solo tiendas de la web: el Taller
 --          y una tienda escondida no cuentan.
+--        · `fn_tienda_libre(prenda, tiendas)` — la misma cifra para UNA prenda en esas tiendas (la suma de `fn_tienda_disponible`):
+--          no es otra regla, es la forma corta para quien pregunta por una sola talla («Separar», «Avísame»).
 --        · `fn_tienda_precios(productos, tiendas)` — por talla: su precio en la(s) tienda(s) y la campaña de la caja (ADR-0403),
 --          y el resumen del modelo que usa la tarjeta (el mismo cálculo de la actividad 3, ahora escrito una sola vez para el
 --          catálogo y la ficha).
+--
+-- UNA SOLA REGLA DE «HAY» (integración de la tienda, 2026-10-15). Todo lo que en la tienda dice si una prenda HAY —la ficha y el
+-- catálogo (aquí), la bolsa y «Separar» (20261015021000), «Arma tu look» (20261015032000), «Avísame» (20261015024000), las
+-- esperas y «llegó» de «Mi cuenta» (20261015025000) y «Esperan una talla» del ERP (20261015030000)— lee `fn_tienda_disponible`
+-- con las tiendas de `fn_tienda_sedes_web()`. Ninguna vuelve a sumar `stock` ni a decidir qué tiendas cuentan: así la ficha no
+-- puede decir «hay» y el look «no hay» de la misma prenda. Lo vigila `pnpm pruebas:tienda-club` (sección R: una prenda en
+-- Cuarentena o reservada por un pedido web dice «no hay» en todas a la vez, y romper esta función a propósito las rompe todas).
 --
 -- QUÉ SE GARANTIZA Y DÓNDE
 --   · La cifra exacta de 4 o más no sale: todo nivel pasa por `fn_tienda_nivel`, que solo devuelve 0, 1, 2, 3 o «hay» (la prueba
@@ -140,7 +149,22 @@ as $$
 $$;
 
 comment on function retail.fn_tienda_disponible(uuid[], uuid[]) is
-  'Tienda online (ADR-0408): lo libre por talla y tienda, de fn_existencias_base (ADR-0270: sin Cuarentena ni apartado), solo tallas activas y solo las tiendas pedidas. Interna: la cifra exacta nunca sale de la base (pasa por fn_tienda_nivel).';
+  'Tienda online (ADR-0408): LA regla de «hay» de toda la tienda. Lo libre por talla y tienda, de fn_existencias_base (ADR-0270: sin Cuarentena ni apartado, que incluye las reservas de los pedidos web), solo tallas activas y solo las tiendas pedidas (fn_tienda_sedes_web: sin el Taller ni las escondidas). La leen la ficha, el catálogo, la bolsa, «Separar», los looks, «Avísame», «Mi cuenta» y «Esperan una talla». Interna: la cifra exacta nunca sale a la web (pasa por fn_tienda_nivel).';
+
+-- Lo libre de UNA prenda en esas tiendas: la suma de `fn_tienda_disponible` (no otra regla). Para quien pregunta por una sola talla.
+create or replace function retail.fn_tienda_libre(p_variante_id uuid, p_sedes uuid[])
+returns integer
+language sql
+stable
+set search_path = retail, public
+as $$
+  select coalesce(sum(d.disponible), 0)::integer
+    from retail.fn_tienda_disponible(array(select v.producto_id from retail.variantes v where v.id = p_variante_id), p_sedes) d
+   where d.variante_id = p_variante_id
+$$;
+
+comment on function retail.fn_tienda_libre(uuid, uuid[]) is
+  'Tienda online (ADR-0408): lo libre de una prenda (talla y color) en esas tiendas: la suma de fn_tienda_disponible, la regla única de «hay». La usan «Separar» y «Avísame». Interna.';
 
 -- ---------- 3. El precio por talla y el de la tarjeta (una sola vez para el catálogo y la ficha) ----------
 -- Por cada talla activa con precio de los modelos pedidos: su precio en `p_precio_de` (la tienda elegida, o el MAYOR entre las
@@ -220,6 +244,7 @@ revoke all on function retail.fn_tienda_nivel(integer, integer) from public, ano
 revoke all on function retail.fn_tienda_umbral() from public, anon, authenticated;
 revoke all on function retail.fn_tienda_sedes_web() from public, anon, authenticated;
 revoke all on function retail.fn_tienda_disponible(uuid[], uuid[]) from public, anon, authenticated;
+revoke all on function retail.fn_tienda_libre(uuid, uuid[]) from public, anon, authenticated;
 revoke all on function retail.fn_tienda_precios(uuid[], uuid[]) from public, anon, authenticated;
 
 -- ---------- 4. El catálogo de la tienda, ahora con cuánto hay en cada tienda ----------
@@ -449,7 +474,8 @@ begin
     end if;
   end loop;
   foreach f in array array['retail.fn_tienda_nivel(integer, integer)', 'retail.fn_tienda_umbral()', 'retail.fn_tienda_sedes_web()',
-                           'retail.fn_tienda_disponible(uuid[], uuid[])', 'retail.fn_tienda_precios(uuid[], uuid[])'] loop
+                           'retail.fn_tienda_disponible(uuid[], uuid[])', 'retail.fn_tienda_libre(uuid, uuid[])',
+                           'retail.fn_tienda_precios(uuid[], uuid[])'] loop
     if has_function_privilege('anon', f, 'EXECUTE') or has_function_privilege('authenticated', f, 'EXECUTE')
        or has_function_privilege('tienda_web', f, 'EXECUTE') then
       raise exception 'tienda ficha: % es interna y nadie de afuera la llama', f;

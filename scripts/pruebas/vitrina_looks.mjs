@@ -12,9 +12,10 @@
  *   3. Mostrar u ocultar desde la lista (ocultar no borra) y qué pasa cuando una prenda deja de verse o se elimina del catálogo.
  *   4. La tienda: solo los looks encendidos y completos, en su orden; el precio de CADA prenda es EXACTAMENTE el de `tienda_catalogo`
  *      para esa tienda (la de la sede elegida, el mayor con «Todas», la campaña encima) y el total es la suma; las tallas en su orden,
- *      con «hay» y nunca la cifra; nada del ERP.
- *   5. Mutantes: la prueba se pone roja si alguien cambia el precio por el de la grilla, si la tienda ignora la sede elegida o si se le
- *      quita a guardar o a mostrar el candado del módulo (cada mutante vive solo dentro de su transacción).
+ *      con «hay» y nunca la cifra, y ese «hay» es el total de la talla en la ficha (la regla única, 20261015012000); nada del ERP.
+ *   5. Mutantes: la prueba se pone roja si alguien cambia el precio por el de la grilla, si la tienda ignora la sede elegida, si el
+ *      look cuenta «hay» con su propia regla o si se le quita a guardar o a mostrar el candado del módulo (cada mutante vive solo
+ *      dentro de su transacción).
  *   6. Las migraciones se pueden volver a correr.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder) o Micaela (integrante de Trujillo): nunca se commitea
@@ -558,6 +559,36 @@ function main() {
       rollback;`),
     "S=true,M=false,L=false 28=false,30=false,32=true,34=false\n28=false,30=false,32=false,34=false",
   );
+  // La regla única de «hay» (20261015012000): el look lee la misma pieza que la ficha. Con Cuarentena, lo apartado, el Taller y una tienda
+  // que sale de la web, ninguna talla puede decir «hay» en el look y «no hay» en la ficha (su total), ni al revés.
+  const STOCK_DE_LA_REGLA = `
+      select id as sub_alm_tru from retail.sububicaciones where ubicacion_id = :'tru' and tipo = 'almacen_tienda' \\gset
+      select id as sub_piso_lim from retail.sububicaciones where ubicacion_id = :'lim' and tipo = 'piso_venta' \\gset
+      select id as sub_cua_lim from retail.sububicaciones where ubicacion_id = :'lim' and tipo = 'cuarentena' \\gset
+      select id as taller from retail.ubicaciones where tipo = 'taller' limit 1 \\gset
+      delete from retail.stock where variante_id in (select id from retail.variantes where producto_id in (:'emma', :'carla'));
+      insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada)
+        select v.id, :'tru'::uuid, :'sub_alm_tru'::uuid, 1, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'emma' and v.color_codigo = 'BEI' and t.valor = 'S'
+        union all select v.id, :'lim'::uuid, :'sub_piso_lim'::uuid, 2, 2 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'emma' and v.color_codigo = 'BEI' and t.valor = 'M'
+        union all select v.id, :'lim'::uuid, :'sub_cua_lim'::uuid, 3, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'emma' and v.color_codigo = 'BEI' and t.valor = 'L'
+        union all select v.id, :'taller'::uuid, null::uuid, 5, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'emma' and v.color_codigo = 'BEI' and t.valor = 'L'
+        union all select v.id, :'lim'::uuid, :'sub_piso_lim'::uuid, 1, 0 from retail.variantes v join retail.tallas t on t.id = v.talla_id where v.producto_id = :'carla' and v.color_codigo = 'BEI' and t.valor = '32';
+      ${crear("look", { ps: piezas(["emma", "BEI"], ["carla", "BEI"]) })}`;
+  /** Cuántas tallas del look dicen distinto que la ficha (`hay` contra el total de la talla) | cuántas se compararon | cuántas «hay». */
+  const LOOK_CONTRA_FICHA = `select count(*) filter (where (ta ->> 'hay')::boolean is distinct from (coalesce(f.x ->> 'total', '0') <> '0'))
+             || '|' || count(*) || '|' || count(*) filter (where (ta ->> 'hay')::boolean)
+        from jsonb_array_elements(retail.tienda_look(:'look') -> 'look' -> 'piezas') pz
+        cross join jsonb_array_elements(pz -> 'tallas') ta
+        left join lateral (select x from jsonb_array_elements(retail.tienda_ficha((pz -> 'prenda' ->> 'id')::uuid) -> 'prenda' -> 'variantes') x
+                            where x ->> 'id' = ta ->> 'variante_id') f on true;\n`;
+  esperarValor(
+    "el «hay» de cada talla del look es el total de la ficha (la misma regla): ninguna dice «hay» en una y «no hay» en la otra, tampoco al sacar Lima de la web",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${STOCK_DE_LA_REGLA}${LOOK_CONTRA_FICHA}
+      update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'lim';
+      ${LOOK_CONTRA_FICHA}
+      rollback;`),
+    "0|7|2\n0|7|1",
+  );
   esperarValor(
     "cada talla trae su variante (la de ese modelo, color y talla) para que la bolsa sepa qué agregar",
     correr(`${PREPARAR}${EN_LA_VITRINA}${crear("look")}
@@ -617,6 +648,14 @@ function main() {
       select ${DIFERENCIAS("tru")};
       rollback;`);
     esperar("la tienda que ignora la sede elegida (siempre «Todas»): el candado del precio lo ve", r.ok && !r.salida.startsWith("0|"), r.ok ? r.salida : r.mensaje);
+  }
+  {
+    // El look con su propia cuenta de «hay» (todas las ubicaciones, también el Taller): la ficha no cambia y la comparación lo ve.
+    const r = correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${STOCK_DE_LA_REGLA}
+      ${MUTAR("retail.fn_tienda_looks_json(jsonb, uuid[], uuid, boolean)", "else '{}'::uuid[] end, p_sedes) d", "else '{}'::uuid[] end, (select array_agg(u.id) from retail.ubicaciones u)) d")}
+      ${LOOK_CONTRA_FICHA}
+      rollback;`);
+    esperar("el look con su propia cuenta de «hay» (cuenta el Taller): la comparación con la ficha lo ve", r.ok && !r.salida.startsWith("0|"), r.ok ? r.salida : r.mensaje);
   }
   {
     const r = correr(`${PREPARAR}${EN_LA_VITRINA}

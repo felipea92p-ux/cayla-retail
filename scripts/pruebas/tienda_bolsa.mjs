@@ -6,12 +6,15 @@
  * QUÉ PRUEBA. `20261015021000_tienda_bolsa_y_separar.sql`, `20261015022000_tienda_mis_pedidos.sql` y
  * `20261015023000_pedidos_web_cierre_programado.sql`:
  *   A. La bolsa (`tienda_bolsa`): el precio de la tienda elegida o, sin tienda, el mayor de la web, con la campaña de la caja
- *      encima; en cada tienda de la web, si alcanza, si hay y si se vende ahí, siempre como sí/no (nunca la cifra); lo que ya
- *      no se puede separar vuelve sin nombre ni foto; la entrada torcida (de la cookie) no la rompe.
+ *      encima; en cada tienda de la web, si alcanza, si hay y si se vende ahí, siempre como sí/no (nunca la cifra), y lo MISMO que
+ *      dice la ficha (la regla única de «hay», 20261015012000: ni la Cuarentena, ni lo apartado, ni el Taller); lo que ya no se puede
+ *      separar vuelve sin nombre ni foto; la entrada torcida (de la cookie) no la rompe.
  *   B. «Separar» (`tienda_separar`): crea el pedido «por confirmar» con el precio de la tienda de recojo y su campaña, SIN
  *      tocar el stock ni el libro; dos toques con la misma marca dan el mismo pedido (aunque entretanto cambie el precio); la
  *      marca de otro no devuelve su pedido; un precio que no cuadra, lo que ya no está en la Vitrina, lo que no se vende en esa
- *      tienda, lo agotado, una tienda escondida, sin cuenta o una bolsa torcida no separan NADA.
+ *      tienda, lo agotado (también lo que solo está en el Taller o en una tienda escondida: la regla de la ficha), una tienda
+ *      escondida, sin cuenta o una bolsa torcida no separan NADA. Que «Separar» cierre las esperas de «Avísame» lo prueba
+ *      `pnpm pruebas:tienda-club` (S).
  *   C. «Mis pedidos» (`tienda_mis_pedidos`, `tienda_pedido`): cada cliente ve SOLO lo suyo (el número de otro responde igual
  *      que uno que no existe); el código de 4 cifras sale solo cuando está listo para recoger; los plazos son los de
  *      Configuración ▸ Tienda web; cada prenda trae cómo se ve y la tienda su nombre web y su WhatsApp.
@@ -255,6 +258,27 @@ select concat_ws(',',
   "t,t,true,t,boolean",
 );
 escenario(
+  // La regla única de «hay» (20261015012000): la bolsa lee la misma pieza que la ficha. Lo cruzado con «Avísame», el look, «Mi cuenta»
+  // y el ERP vive en pruebas:tienda-club (R); aquí, la bolsa contra la ficha de la misma prenda, tienda por tienda.
+  "la bolsa dice lo mismo que la ficha, tienda por tienda: ni la Cuarentena, ni lo apartado, ni el Taller cuentan (v: 1 libre en Trujillo; v2: solo en el Taller)",
+  `select id as tru_cua from retail.sububicaciones where ubicacion_id = :'tru' and tipo = 'cuarentena' order by id limit 1 \\gset
+select id as taller from retail.ubicaciones where tipo = 'taller' order by nombre limit 1 \\gset
+select pg_temp.dejar(:'v', :'tru', :'tru_piso', 1), pg_temp.dejar(:'v', :'tru', :'tru_cua', 2), pg_temp.dejar(:'v', :'lim', :'lim_piso', 1);
+select pg_temp.vaciar(:'v', :'lim');
+insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada)
+values (:'v', :'taller', null, 5, 0), (:'v2', :'taller', null, 3, 0)
+on conflict on constraint stock_variante_ubicacion_sububicacion_key do update set cantidad = excluded.cantidad, cantidad_apartada = 0;
+select string_agg(t.linea, ' | ' order by t.n) from (
+  select p.n, string_agg(concat_ws('/', coalesce(b.l -> 'en_sedes' -> s.id::text ->> 'hay', '·'), coalesce(f.x -> 'stock' ->> s.id::text, '·')), ' '
+                         order by s.o) || ' total ' || concat_ws('/', b.l ->> 'alcanza_en_total', f.x ->> 'total') as linea
+    from (values (1, :'v'::uuid, :'prod_v'::uuid), (2, :'v2'::uuid, :'prod_v2'::uuid)) p (n, v, prod)
+    cross join lateral (select retail.tienda_bolsa(jsonb_build_array(jsonb_build_object('variante_id', p.v, 'cantidad', 1)), null) -> 'lineas' -> 0 as l) b
+    cross join lateral (select x from jsonb_array_elements(retail.tienda_ficha(p.prod) -> 'prenda' -> 'variantes') x where x ->> 'id' = p.v::text) f
+    cross join (values (1, :'tru'::uuid), (2, :'lim'::uuid)) s (o, id)
+   group by p.n, b.l, f.x) t;`,
+  "true/1 false/0 total true/1 | false/0 false/0 total false/0",
+);
+escenario(
   "lo que ya no se puede separar (oculto en la Vitrina, descontinuado o que no existe) vuelve SIN nombre ni foto",
   `update retail.vitrina_productos set publicado = false where producto_id = :'prod_v2';
 select retail.tienda_bolsa(${bolsa(
@@ -333,6 +357,17 @@ select pg_temp.huella(:'v') as h \\gset
 ${separar("c1", bolsa(L("v")))}
 select concat_ws(',', (select estado from retail.pedidos_web where codigo = :'c1'), pg_temp.huella(:'v') = :'h');`,
   "por_confirmar,t",
+);
+escenario(
+  "lo que solo está en el Taller o en una tienda escondida no se separa: «Separar» lee la regla de la ficha, que dice que no hay",
+  `select id as taller from retail.ubicaciones where tipo = 'taller' order by nombre limit 1 \\gset
+insert into retail.stock (variante_id, ubicacion_id, sububicacion_id, cantidad, cantidad_apartada) values (:'v2', :'taller', null, 3, 0)
+on conflict on constraint stock_variante_ubicacion_sububicacion_key do update set cantidad = excluded.cantidad, cantidad_apartada = 0;
+select pg_temp.dejar(:'v2', :'lim', :'lim_piso', 2);
+update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'lim';
+select concat_ws(',', (select x ->> 'total' from jsonb_array_elements(retail.tienda_ficha(:'prod_v2') -> 'prenda' -> 'variantes') x where x ->> 'id' = :'v2'),
+  ${hint(separarTexto(bolsa(L("v2"))))});`,
+  "0,tienda_separar_agotada",
 );
 escenario(
   "no separa: oculta en la Vitrina, no se vende en esa tienda, agotada en la web, tienda escondida, sin cuenta, sin marca",
@@ -503,6 +538,12 @@ const MUTANTES = [
   ["separa lo que ya no está en la Vitrina", 0, "where v.id = r.variante_id and v.activo and vp.publicado and retail.fn_vitrina_publicable(v.producto_id)) then", "where v.id = r.variante_id) then"],
   ["separa lo que no se vende en esa tienda", 0, "if not retail.fn_variante_permitida_en_sede(r.variante_id, p_ubicacion_id) then", "if false then"],
   ["separa lo agotado", 0, "if v_libres < r.cantidad then", "if false then"],
+  ["«Separar» con su propia cuenta de «hay» (cuenta el Taller y las tiendas escondidas)", 0,
+    "v_libres := retail.fn_tienda_libre(r.variante_id, v_sedes);",
+    "v_libres := retail.fn_tienda_libre(r.variante_id, (select array_agg(u.id) from retail.ubicaciones u));"],
+  ["la bolsa con su propia cuenta de «hay» (cuenta el Taller y las tiendas escondidas)", 0,
+    "where v.id in (select en.variante_id from entrada en)), v_sedes) x",
+    "where v.id in (select en.variante_id from entrada en)), (select array_agg(u.id) from retail.ubicaciones u)) x"],
   ["recoge en una tienda escondida", 0, "if p_ubicacion_id is null or not (p_ubicacion_id = any (v_sedes)) then", "if p_ubicacion_id is null then"],
   ["la marca no protege el segundo toque", 0, "  if found then\n    if v_existente.clienta_id <> v_clienta then", "  if false then\n    if v_existente.clienta_id <> v_clienta then"],
   ["la bolsa muestra lo que no se puede separar", 0, "case when not l.se_puede", "case when false"],

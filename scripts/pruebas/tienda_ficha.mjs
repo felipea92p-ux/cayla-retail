@@ -9,6 +9,8 @@
  *      1–3 aunque llegue otro.
  *   3. Lo que se cuenta: piso + almacén + lo sin lugar de cada tienda de la web, sin Cuarentena, sin lo apartado, sin el Taller y
  *      sin las tallas retiradas. Vender una unidad (registrar_venta) y apartarla (apartar_stock) bajan el nivel al instante.
+ *      `fn_tienda_libre` (la misma cifra para UNA prenda, la que leen «Separar» y «Avísame») dice lo mismo que la ficha. Que TODA la
+ *      tienda use esta regla (bolsa, looks, «Avísame», «Mi cuenta», «Esperan una talla») lo prueba `pnpm pruebas:tienda-club` (R).
  *   4. La cifra exacta de 4 o más NUNCA sale: cada nivel de la ficha y del catálogo, con 37 unidades en una talla y con el umbral
  *      en 3, 2 y 1, es 0, un número hasta el umbral o «hay».
  *   5. Una tienda que no se ve en la web no aparece ni cuenta, y elegirla es «Todas».
@@ -159,8 +161,8 @@ select retail.vitrina_mostrar(array[:'emma']::uuid[], true) \\gset
     `begin;\n${aplicarAntes}\nselect concat_ws('|', count(*), count(*) filter (where has_function_privilege('anon', p.oid, 'EXECUTE')
         or has_function_privilege('authenticated', p.oid, 'EXECUTE') or has_function_privilege('tienda_web', p.oid, 'EXECUTE')))
       from pg_proc p where p.pronamespace = 'retail'::regnamespace
-        and p.proname in ('fn_tienda_nivel', 'fn_tienda_umbral', 'fn_tienda_sedes_web', 'fn_tienda_disponible', 'fn_tienda_precios');\nrollback;`,
-    "5|0",
+        and p.proname in ('fn_tienda_nivel', 'fn_tienda_umbral', 'fn_tienda_sedes_web', 'fn_tienda_disponible', 'fn_tienda_libre', 'fn_tienda_precios');\nrollback;`,
+    "6|0",
   );
   valor(
     "como tienda_web: la ficha y el catálogo responden",
@@ -188,6 +190,17 @@ select retail.vitrina_mostrar(array[:'emma']::uuid[], true) \\gset
     "la ficha, talla por talla: piso + almacén, sin lo apartado, sin Cuarentena y sin el Taller (Trujillo | Lima | total)",
     `${PREPARAR}${STOCK}select ${CELDAS()};\nrollback;`,
     "NEG/S=3|0|3,NEG/M=hay|2|hay,NEG/L=2|0|2,BEI/S=1|0|1,BEI/M=0|0|0,BEI/L=0|0|0",
+  );
+  valor(
+    // La forma corta de la regla para UNA prenda («Separar», «Avísame»): la suma de fn_tienda_disponible en las tiendas pedidas.
+    "fn_tienda_libre de cada talla es la misma cifra de la ficha (Trujillo | Lima | las dos): ni la Cuarentena ni lo apartado ni el Taller",
+    `${PREPARAR}${STOCK}select string_agg(x.c || '/' || x.t || '=' || concat_ws('|', retail.fn_tienda_libre(x.v, array[:'tru']::uuid[]),
+          retail.fn_tienda_libre(x.v, array[:'lim']::uuid[]), retail.fn_tienda_libre(x.v, array[:'tru', :'lim']::uuid[])), ',' order by x.o)
+        from (values (1, 'NEG', 'S', :'neg_s'::uuid), (2, 'NEG', 'M', :'neg_m'::uuid), (3, 'NEG', 'L', :'neg_l'::uuid),
+                     (4, 'BEI', 'S', :'bei_s'::uuid), (5, 'BEI', 'M', :'bei_m'::uuid), (6, 'BEI', 'L', :'bei_l'::uuid)) as x (o, c, t, v);
+      select concat_ws('|', retail.fn_tienda_libre(:'neg_m', null), retail.fn_tienda_libre(gen_random_uuid(), array[:'tru']::uuid[]));
+      rollback;`,
+    "NEG/S=3|0|3,NEG/M=5|2|7,NEG/L=2|0|2,BEI/S=1|0|1,BEI/M=0|0|0,BEI/L=0|0|0\n0|0",
   );
   valor(
     "lo que no tiene lugar (una tienda que no separa piso y almacén) también cuenta",
@@ -426,6 +439,7 @@ const MUTANTES = [
   ["lo apartado cuenta", [[LIBRE, "select e.variante_id, e.producto_id, e.ubicacion_id, e.fisico - e.danado\n"], [CON_ALGO, "and e.fisico - e.danado > 0"]]],
   ["lo que no tiene lugar no cuenta", [[LIBRE, "select e.variante_id, e.producto_id, e.ubicacion_id, e.piso_libre + e.almacen_libre\n"], [CON_ALGO, "and e.piso_libre + e.almacen_libre > 0"]]],
   ["el Taller y las tiendas escondidas cuentan", [["where e.ubicacion_id = any (coalesce(p_sedes, '{}'::uuid[]))", "where true"]]],
+  ["fn_tienda_libre no suma las tiendas (se queda con la mayor)", [["select coalesce(sum(d.disponible), 0)::integer", "select coalesce(max(d.disponible), 0)::integer"]]],
   ["el umbral de Configuración no se lee", [["select c.quedan_pocas_desde from retail.configuracion_tienda_web c where c.id", "select 3"]]],
   ["la ficha de un modelo oculto se lee", [["where vp.producto_id = p_producto and vp.publicado)", "where vp.producto_id = p_producto)"]]],
   ["una tienda cualquiera se puede elegir", [["if p_sede = any (v_sedes) then", "if p_sede is not null then"]]],

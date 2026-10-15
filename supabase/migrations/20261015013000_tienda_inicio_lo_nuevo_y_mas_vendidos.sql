@@ -20,6 +20,10 @@
 --   Las familias que no son mercadería de piso (bolsas, cajas: `familias.entra_a_motores = false`, ADR-0377) no entran a ninguno de los
 --   dos: se pregunta `fn_categoria_entra_a_motores`, la única regla.
 --   Dos piezas internas nuevas, que nadie de afuera llama: `fn_tienda_lo_nuevo(productos)` y `fn_tienda_mas_vendidos(productos)`.
+--   `fn_tienda_lo_nuevo` es LA regla de «nuevo» de toda la tienda: además de los días, devuelve CUÁNDO llegó por primera vez
+--   (`llego`), y «Novedades para ti» de «Mi cuenta» (`fn_tienda_novedades`, 20261015025000) la llama y se queda con lo que llegó
+--   desde la visita anterior: nunca una segunda copia de la regla (integración de la tienda, 2026-10-15). El catálogo no saca `llego`
+--   a la web: solo los días.
 -- Y `retail.tienda_ayuda()`: los plazos que prometen «Cómo separar» y «Cambios y devoluciones», leídos de donde ya viven y nunca
 --   escritos a mano en la página: las horas para que la tienda confirme y los días para recoger, de Configuración ▸ Tienda web
 --   (`configuracion_tienda_web`), y los días para cambiar una prenda, los de la caja (`fn_dias_plazo_cambio`, R-38: el mismo número que
@@ -34,7 +38,9 @@
 --
 -- PRODUCCIÓN. NO está aplicada (actividad 13, con el OK de Felipe, después de 20261015012000; necesita `fn_categoria_entra_a_motores`
 -- (20261010231000), `fn_dias_plazo_cambio` (20261012222000) y `configuracion_tienda_web` (20261014231000)). Una sola parte, re-ejecutable: solo `create or replace function`, `comment`, `revoke` y
--- `grant`; sin tablas, políticas ni disparadores (ADR-0195). Ningún `select … into` dentro de un texto entre comillas (ADR-0288).
+-- `grant`, y un `drop function if exists` de `fn_tienda_lo_nuevo` antes de crearla (su respuesta ganó la columna `llego`: Postgres no
+-- deja cambiar con `create or replace` lo que devuelve una función; borrar una función no toma las tablas de `auth` ni de `storage`).
+-- Sin tablas, políticas ni disparadores (ADR-0195). Ningún `select … into` dentro de un texto entre comillas (ADR-0288).
 -- Prueba: `pnpm pruebas:tienda-inicio`.
 -- ============================================================================
 
@@ -63,9 +69,12 @@ end
 $$;
 
 -- ---------- 1. Lo nuevo ----------
--- Los modelos pedidos que están en «Lo nuevo», con hace cuántos días llegaron a una tienda por primera vez (solo si son 30 o menos).
+-- Los modelos pedidos que están en «Lo nuevo», con hace cuántos días llegaron a una tienda por primera vez (solo si son 30 o menos) y
+-- CUÁNDO fue esa primera llegada (`llego`; vacío en un fijado que nunca llegó). `llego` es para «Novedades para ti»
+-- (`fn_tienda_novedades`): la web solo ve los días.
+drop function if exists retail.fn_tienda_lo_nuevo(uuid[]);
 create or replace function retail.fn_tienda_lo_nuevo(p_producto_ids uuid[])
-returns table (producto_id uuid, dias integer)
+returns table (producto_id uuid, dias integer, llego timestamptz)
 language sql
 stable
 set search_path = retail, public
@@ -81,7 +90,7 @@ as $$
      group by v.producto_id
   ),
   modelos as (
-    select p.id, vp.en_lo_nuevo,
+    select p.id, vp.en_lo_nuevo, ll.primera,
            retail.fn_hoy_lima() - (ll.primera at time zone 'America/Lima')::date as dias
       from retail.productos p
       join retail.vitrina_productos vp on vp.producto_id = p.id
@@ -89,14 +98,14 @@ as $$
      where p.id = any (coalesce(p_producto_ids, '{}'::uuid[]))
        and retail.fn_categoria_entra_a_motores(p.categoria_id)
   )
-  select m.id, case when m.dias between 0 and 30 then m.dias end
+  select m.id, case when m.dias between 0 and 30 then m.dias end, m.primera
     from modelos m
    where m.en_lo_nuevo = 'fijo'
       or (m.en_lo_nuevo = 'automatico' and m.dias between 0 and 30)
 $$;
 
 comment on function retail.fn_tienda_lo_nuevo(uuid[]) is
-  'Tienda online (ADR-0408, DECIDÍ 7): los modelos en «Lo nuevo» — primer ingreso a una tienda (fn_es_llegada) hace 30 días o menos, o fijados en la Vitrina; nunca los quitados ni las familias fuera de los motores — con hace cuántos días llegaron (solo hasta 30). Interna: la usa tienda_catalogo.';
+  'Tienda online (ADR-0408, DECIDÍ 7): LA regla de «nuevo». Los modelos en «Lo nuevo» — primer ingreso a una tienda (fn_es_llegada: sin el Taller ni las devoluciones) hace 30 días o menos, o fijados en la Vitrina; nunca los quitados ni las familias fuera de los motores — con hace cuántos días llegaron (solo hasta 30) y cuándo fue esa primera llegada (llego). Interna: la usan tienda_catalogo (solo los días) y fn_tienda_novedades («Novedades para ti»: lo que llegó desde la visita anterior).';
 
 -- ---------- 2. Más vendidos ----------
 -- El puesto de cada modelo pedido en «Más vendidos» (1 a 20): unidades vendidas en 30 días en toda la red (la definición de
