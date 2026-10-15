@@ -206,6 +206,11 @@ DE_LA_TIENDA.push("tienda_mis_avisos_del_club");
 // aprobada—, nunca la ficha entera. Las prueba a fondo scripts/pruebas/pedidos_web_motor.mjs.
 const DE_PEDIDOS_WEB = ["fn_pedido_web", "fn_pedidos_web_sede"];
 
+// Y la de la ficha y la tienda online (Felipe 2026-10-15, 20261015123000): `fn_clienta_tienda_online` le dice a la hoja de la ficha si
+// el cliente tiene cuenta en la tienda online (sí o no, sin su correo de entrada) y sus pedidos web en curso, para avisar al archivar.
+// Con el candado del módulo, como las demás lecturas de la ficha (la prueba a fondo scripts/pruebas/clientas_correo_en_la_ficha.mjs).
+const DE_LA_FICHA_Y_LA_TIENDA = ["fn_clienta_tienda_online"];
+
 // Seed local: Felipe (líder y admin), Micaela (integrante de Trujillo, con Clientas por su rol).
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const MICAELA = "22222222-2222-4222-8222-000000000003";
@@ -722,9 +727,9 @@ const VIGILANTE = (condicion) => `select coalesce(string_agg(x.proname, ',' orde
  where (x.proname ~ 'clienta' or x.retorna ~* 'clientas' or x.src ~* '(\\mclientas\\M|telefono_whatsapp|whatsapp_consentimiento_en|cumple_dia|cumple_mes)')
    and ${condicion};\n`;
 caso(
-  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 10, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g, la 1 del cobro (agregar_celular_clienta) las 5 de la tienda online y las 2 de los pedidos web, y todas llevan el candado del módulo salvo las 2 de la página, las 2 del servidor y las 5 de la tienda (las de Avisos y las de los pedidos web, el de su módulo)",
+  "(5) vigilante: las funciones security definer que tocan la ficha son exactamente las 10, las 6 del club (tanda 1b), las 2 de la página pública (camino B), las 6 de la lista y la ficha (tanda 1f) las 5 de la tanda 1g, la 1 del cobro (agregar_celular_clienta) las 5 de la tienda online, las 2 de los pedidos web y la 1 de la ficha y la tienda online (fn_clienta_tienda_online), y todas llevan el candado del módulo salvo las 2 de la página, las 2 del servidor y las 5 de la tienda (las de Avisos y las de los pedidos web, el de su módulo)",
   VIGILANTE("true") + VIGILANTE(SIN_EL_CANDADO),
-  `${[...LAS_DE_LA_FICHA, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_LA_TIENDA, ...DE_PEDIDOS_WEB].sort().join(",")}\nninguna`
+  `${[...LAS_DE_LA_FICHA, ...DEL_CLUB, ...DE_LA_PAGINA, ...DE_LA_1F, ...DE_LA_1G, ...DE_AVISOS, ...DEL_SERVIDOR, ...DEL_COBRO, ...DE_LA_TIENDA, ...DE_PEDIDOS_WEB, ...DE_LA_FICHA_Y_LA_TIENDA].sort().join(",")}\nninguna`
 );
 caso(
   "(5) el vigilante muerde: una función NUEVA que devuelve el DNI sin el candado (o con el candado solo en un comentario) sale nombrada",

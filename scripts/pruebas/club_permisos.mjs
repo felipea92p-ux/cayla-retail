@@ -164,21 +164,39 @@ if (cortadasCorreo.length || !VERSIONES_CORREO.some((w) => w.firma === EDITAR) |
   console.error(`✗ La tabla de versiones de 20261015054000 debería partir del «después» de la 1b (editar_clienta) y borrar unir_clientas; no calzan: ${cortadasCorreo.map((v) => v.firma).join(", ")}.`);
   process.exit(1);
 }
-/** El md5 que cada firma tiene que tener HOY: el de 20261015054000 si la tocó, el «después» de la 1g si la rehízo, o el de esta migración. */
+// Y 20261015123000 (Felipe 2026-10-15: el correo en «Editar» de la ficha) rehízo editar_clienta OTRA vez: le sumó `p_correo` al
+// final, así que su firma cambió (creó la de 11 y BORRÓ la de 10), partiendo del «después» de 20261015054000.
+const CORREO_FICHA = readFileSync(join(RAIZ, "supabase", "migrations", "20261015123000_clientas_correo_en_la_ficha.sql"), "utf8");
+const VERSIONES_FICHA = [...CORREO_FICHA.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)].map(
+  (m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }),
+);
+const REHECHAS_FICHA = { "retail.editar_clienta": "create or replace function" };
+/** La firma de editar_clienta que vive HOY: la que creó 20261015123000 (la de 11, con p_correo). */
+const EDITAR_HOY = VERSIONES_FICHA.find((w) => w.firma.startsWith("retail.editar_clienta(") && w.antes === null)?.firma;
+const editarEnLaFicha = VERSIONES_FICHA.find((w) => w.firma === EDITAR);
+if (!EDITAR_HOY || editarEnLaFicha?.despues !== null || editarEnLaFicha?.antes !== VERSIONES_CORREO.find((w) => w.firma === EDITAR)?.despues) {
+  console.error("✗ La tabla de versiones de 20261015123000 debería borrar la editar_clienta de 10 partiendo del «después» de 20261015054000 y crear la de 11.");
+  process.exit(1);
+}
+/** El md5 que cada firma tiene que tener HOY: el de 20261015123000 o el de 20261015054000 si la tocaron, el «después» de la 1g si
+ *  la rehízo, o el de esta migración. */
 const despuesHoy = (firma, despues) => {
+  const f = VERSIONES_FICHA.find((x) => x.firma === firma);
   const k = VERSIONES_CORREO.find((x) => x.firma === firma);
   const g = VERSIONES_1G.find((x) => x.firma === firma);
-  return (k ? k.despues : g ? g.despues : despues) ?? "NO_EXISTE";
+  return (f ? f.despues : k ? k.despues : g ? g.despues : despues) ?? "NO_EXISTE";
 };
-/** El cuerpo (lo que queda entre `$$` y `$$`) con que el archivo crea una función: es su `prosrc` vivo (el de la 1g o el de
- *  20261015054000, si la rehicieron). */
+/** El cuerpo (lo que queda entre `$$` y `$$`) con que el archivo crea una función: es su `prosrc` vivo (el de la 1g, el de
+ *  20261015054000 o el de 20261015123000, si la rehicieron). */
 const cuerpoDe = (nombre) => {
   const [texto, crea] =
-    nombre in REHECHAS_CORREO
-      ? [CORREO_UNICO, REHECHAS_CORREO[nombre]]
-      : nombre in REHECHAS_1G
-        ? [PASO_1G, REHECHAS_1G[nombre]]
-        : [MIGRACION, "create or replace function"];
+    nombre in REHECHAS_FICHA
+      ? [CORREO_FICHA, REHECHAS_FICHA[nombre]]
+      : nombre in REHECHAS_CORREO
+        ? [CORREO_UNICO, REHECHAS_CORREO[nombre]]
+        : nombre in REHECHAS_1G
+          ? [PASO_1G, REHECHAS_1G[nombre]]
+          : [MIGRACION, "create or replace function"];
   const ini = texto.indexOf(`${crea} ${nombre}(`);
   const a = texto.indexOf("$$", ini) + 2;
   return texto.slice(a, texto.indexOf("$$", a));
@@ -209,7 +227,7 @@ const DE_LA_WEB = [
   "retail.fn_club_textos_vigentes()",
   "retail.guardar_whatsapp_tienda(uuid,text)",
   REGISTRAR,
-  EDITAR,
+  EDITAR_HOY,
   CREAR_INVITACION,
 ];
 // Las de la página pública: EXECUTE para anon y authenticated, nunca PUBLIC.
@@ -754,7 +772,7 @@ caso(
   `select string_agg(p.proname || '=' || (select count(*) from pg_proc q where q.pronamespace = p.pronamespace and q.proname = p.proname), ',' order by p.proname)
   from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('registrar_clienta', 'editar_clienta', 'unirse_al_club');
 select pg_get_function_identity_arguments(oid) ~ 'whatsapp_consentimiento|p_acepta_whatsapp|p_revoca_whatsapp', pg_get_function_identity_arguments(oid) ~ 'p_cumple_anio smallint'
-  from pg_proc where oid in ('${REGISTRAR}'::regprocedure, '${EDITAR}'::regprocedure) order by proname;
+  from pg_proc where oid in ('${REGISTRAR}'::regprocedure, '${EDITAR_HOY}'::regprocedure) order by proname;
 ` + como(FELIPE) + intento(`select retail.registrar_clienta(p_documento_numero => '90660801', p_acepta_whatsapp => true)`),
   "editar_clienta=1,registrar_clienta=1,unirse_al_club=1\nf|t\nf|t\n42883|function retail.registrar_clienta(p_documento_numero => unknown, p_acepta_whatsapp => boolean) does not exist"
 );
@@ -1315,14 +1333,14 @@ caso(
 // l. Estructura y pegado
 // =====================================================================================================================
 caso(
-  "(l) los md5 «después» de la sección 0 son los de las funciones vivas (las dos firmas viejas ya no existen; archivar_clienta, con el de la 1g, que la rehízo)",
+  "(l) los md5 «después» de la sección 0 son los de las funciones vivas (las dos firmas viejas ya no existen; archivar_clienta, con el de la 1g, que la rehízo; la editar_clienta de 10 tampoco: 20261015123000 la cambió por la de 11)",
   VERSIONES.map(
     (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
   ).join(""),
   VERSIONES.map((v) => despuesHoy(v.firma, v.despues)).join("\n")
 );
 caso(
-  `(l) las ${CREADAS.length} funciones que crea el archivo están vivas con el cuerpo del archivo (una sola firma cada una; las tres que rehízo la 1g y editar_clienta, que rehízo 20261015054000, con el suyo; unir_clientas, que esa misma borró, ya no existe)`,
+  `(l) las ${CREADAS.length} funciones que crea el archivo están vivas con el cuerpo del archivo (una sola firma cada una; las tres que rehízo la 1g y editar_clienta, que rehicieron 20261015054000 y 20261015123000, con el de la última; unir_clientas, que 20261015054000 borró, ya no existe)`,
   CREADAS.map(
     (f) =>
       `select '${f}' || ':' || count(*) || ':' || coalesce(bool_and(${md5Norm("p.prosrc")} = ${md5Norm(`$cuerpo_1b$${cuerpoDe(f)}$cuerpo_1b$`)})::text, '') from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = '${f.slice(7)}';\n`

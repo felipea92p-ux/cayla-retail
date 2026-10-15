@@ -49,6 +49,19 @@ const PARTE_1 = "supabase/migrations/20261015054000_clientas_correo_unico_y_sin_
 const PARTE_2 = "supabase/migrations/20261015055000_tienda_cuentas_entrada_y_cierre.sql";
 const SQL_1 = readFileSync(PARTE_1, "utf8");
 const SQL_2 = readFileSync(PARTE_2, "utf8");
+// 20261015123000 (Felipe 2026-10-15: el correo en «Editar» de la ficha) cambió la firma de editar_clienta: creó la de 11 (con
+// p_correo) y borró la de 10. Volver a pegar la PARTE 1 encima aborta A PROPÓSITO (su candado no encuentra la de 10; lo prueba
+// clientas_correo_en_la_ficha.mjs). Los casos de K que vuelven a pegarla empiezan por dejar editar_clienta como la dejó la PARTE 1
+// (su texto, sacado de ese archivo), dentro de la transacción que se revierte.
+const EDITAR_DE_LA_PARTE_1 = (() => {
+  const ini = SQL_1.indexOf("create or replace function retail.editar_clienta(");
+  const fin = SQL_1.indexOf("\n$$;", ini);
+  if (ini < 0 || fin < 0) throw new Error(`No encontré editar_clienta en ${PARTE_1}`);
+  return SQL_1.slice(ini, fin + "\n$$;".length);
+})();
+const COMO_LA_DEJO_LA_PARTE_1 = `drop function if exists retail.editar_clienta(uuid, text, text, text, text, smallint, smallint, smallint, jsonb, integer, text);
+${EDITAR_DE_LA_PARTE_1}
+`;
 const APLICAR_ANTES = process.env.APLICAR_ANTES === "1";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
 const TEXTOS = "borrador-2026-10-14";
@@ -409,13 +422,13 @@ function main() {
   console.log("— K. El pegado —");
   esperarValor(
     "las dos partes se pueden pegar dos veces, y después todo sigue igual (el correo de otra ficha y la entrada)",
-    caso(`${SQL_1}\n${SQL_2}\n${SQL_1}\n${SQL_2}\nset local search_path = retail, public, extensions;
+    caso(`${COMO_LA_DEJO_LA_PARTE_1}${SQL_1}\n${SQL_2}\n${SQL_1}\n${SQL_2}\nset local search_path = retail, public, extensions;
           select pg_temp.corto(pg_temp.intento(format('update retail.clientas set correo = %L where id = %L', 'zz.ana@ejemplo.com', :'bea')));
           select pg_temp.cuenta(:'bea', 'zz.bea.web@ejemplo.com') as u \\gset
           select retail.tienda_anotar_entrada(:'u') ->> 'estado';`),
     "23505|correo_repetido|correo\nanotada",
   );
-  const repetidos = caso(`drop index retail.clientas_correo_unico;
+  const repetidos = caso(`${COMO_LA_DEJO_LA_PARTE_1}drop index retail.clientas_correo_unico;
           alter table retail.clientas disable trigger clientas_correo_de_una_persona_cambio;
           update retail.clientas set correo = 'zz.ana@ejemplo.com' where id = :'bea';
           ${SQL_1}`);
