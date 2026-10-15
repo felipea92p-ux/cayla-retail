@@ -5,12 +5,12 @@
   "total": 46,
   "controles": {
     "app/(app)/compras/proveedores/[id]/page.tsx": [
-      "Volver «(sin nombre)»",
+      "Volver «/compras/proveedores»",
       "Link «{celdas}»"
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "BotonBuscar «) : ( campoNumero )»",
+      "BotonBuscar «→buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/CuentasProveedor.tsx": [
@@ -50,7 +50,7 @@
       "button «{t}»",
       "CampoTexto «Referencia»",
       "CampoTexto «Nota (opcional)»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «Registrar reembolso»"
     ],
@@ -61,7 +61,7 @@
       "Boton «proveedor-ficha.reposicion»",
       "CampoTexto «Cuántas llegaron»",
       "CampoTexto «Cómo llegó»",
-      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"

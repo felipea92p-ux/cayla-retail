@@ -17,11 +17,11 @@
       "input «{`Monto a pagar de ${compra.documento}»",
       "input «Total del pago»",
       "button «Todo ·»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{`Registrar pago de ${soles(suma)}»",
       "CampoTexto «Motivo»",
-      "ComboResponsable «Volver»",
+      "ComboResponsable «{responsable}» #2",
       "button «Volver»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -29,7 +29,7 @@
       "button «{TITULO[f.k]}»"
     ],
     "components/FiltrosCompras.tsx": [
-      "BotonFiltros «, accionesDespues, ].map( (contr»",
+      "BotonFiltros «→() => setPanelAbierto((v) => !v)»",
       "DesplegablePildora «Proveedor»",
       "DesplegablePildora «Pago»",
       "DesplegablePildora «Recepción»",
@@ -55,7 +55,7 @@
       "button «Solo lo vencido ·»",
       "button «{`Descontar mi saldo a favor con ${proveedorNombre}»",
       "CampoFecha «Fecha del pago»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{credito > 0 ? `Registrar pago de ${soles(total)}»"
     ],

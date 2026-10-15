@@ -1169,6 +1169,19 @@ export const DECISIONES = {
     "deuda": [],
     "excepciones": []
   },
+  "estado": {
+    "fecha": "2026-10-07",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/estado.md",
+    "elegida": "`<Chip>`, como ya era (ronda 2, mirando); el candado llegó el 2026-10-15 (ronda 16, P1): las 12 píldoras de color que quedaban a mano pasan a `<Chip>`, con su punto si dicen un estado y sin punto (`versalitas={false}`) si nombran algo",
+    "pieza": "components/ui/Chip.tsx",
+    "firmas": [
+      // Una insignia de estado a mano: una píldora redonda con el fondo suave de un tono, su texto chico y su relleno de píldora.
+      "className=(?:\"|\\{`)(?=[^\"`]*\\brounded-full\\b)(?=[^\"`]*\\bbg-(?:verde|ambar|rojo|pizarra|taupe|sand|tinta)\\/(?:\\[?0?\\.?\\d+\\]?)(?![\\w-]))(?=[^\"`]*\\btext-(?:xs|\\[1[012](?:\\.5)?px\\])(?![\\w-]))(?=[^\"`]*\\bpx-(?:1\\.5|2|2\\.5|3)\\b)"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
   "icono": {
     "fecha": "2026-10-15",
     "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
@@ -1189,9 +1202,8 @@ export const DECISIONES = {
     ],
     "deuda": [],
     "excepciones": [
-      { "archivo": "components/AppShell.tsx", "motivo": "el marco (lateral y cabecera): fuera del censo desde la ronda 1; su trazo de 1,5 se decide aparte (docs/unificar/icono.md)" },
-      { "archivo": "components/guias/BotonDemo.tsx", "motivo": "el botón «Demo» de la cabecera: es del marco, como el lateral (docs/unificar/icono.md)" },
-      { "archivo": "components/colaboradores/IconoModulo.tsx", "motivo": "dibuja el ícono del menú de cada módulo, igual que el lateral (el marco)" },
+      { "archivo": "components/guias/BotonDemo.tsx", "motivo": "el botón «Demo» de la cabecera es del marco, que se queda en trazo 1,5 (Felipe, ronda 16, P2)" },
+      { "archivo": "components/colaboradores/IconoModulo.tsx", "motivo": "dibuja el ícono del menú de cada módulo con el juego del marco (1,7 a 16 px, para que su línea se vea como la del lateral)" },
       { "archivo": "components/traslados-pases/PasePedido.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
       { "archivo": "components/traslados-pases/PaseTraslado.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
       { "archivo": "components/traslados-pases/ReversoPase.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },

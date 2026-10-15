@@ -18,7 +18,7 @@
     ],
     "components/NotasCreditoPanel.tsx": [
       "Boton «notas-credito.registrar»",
-      "Pestanas «(sin nombre)»",
+      "Pestanas «→(v) => setVista(v as \"notas\" | \"saldos\")»",
       "button «{`notas-credito.estado-${p.clave}»",
       "SegmentoDeslizante «Cómo agrupar»",
       "button «Quitar filtro de antigüedad»",
@@ -40,7 +40,7 @@
       "CampoFecha «Fecha en que lo devuelve»",
       "input «Op. 00881230»",
       "button «Usar»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «(sin nombre)»",
       "button «{titulo}»",
@@ -52,7 +52,7 @@
       "button «{t}»",
       "CampoTexto «Referencia»",
       "CampoTexto «Nota (opcional)»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «Registrar reembolso»"
     ],

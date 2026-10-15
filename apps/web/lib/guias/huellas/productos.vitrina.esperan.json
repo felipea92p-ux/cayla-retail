@@ -5,7 +5,7 @@
   "total": 5,
   "controles": {
     "app/(app)/productos/vitrina/esperan/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/productos/vitrina»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",

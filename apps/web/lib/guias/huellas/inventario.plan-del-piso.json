@@ -23,9 +23,9 @@
       "button «Entendido»",
       "Boton «Descartar»",
       "Boton «Revisar y guardar»",
-      "Desplegable «(sin nombre)»",
+      "Desplegable «{preparado ?? c.grupoClave ?? \"\"}»",
       "button «{`Confirmar ${c.categoria}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{choque ? undefined : (responsable.motivo ?? guia.frase ?? undefined)}»"
     ],
@@ -34,7 +34,7 @@
       "button «{resumenDeFila(l)}»"
     ],
     "components/plan-piso/PlanDelPisoPestanas.tsx": [
-      "Pestanas «(sin nombre)»"
+      "Pestanas «{items}»"
     ],
     "components/plan-piso/PorQue.tsx": [
       "button «plan-piso.por-que»"

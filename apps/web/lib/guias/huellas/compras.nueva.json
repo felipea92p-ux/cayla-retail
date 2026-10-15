@@ -5,12 +5,12 @@
   "total": 53,
   "controles": {
     "app/(app)/compras/nueva/page.tsx": [
-      "Volver «(sin nombre)»",
+      "Volver «/compras»",
       "BotonEnlace «Ir a Proveedores»",
       "BotonEnlace «Ir a Productos»"
     ],
     "components/AdjuntosCompra.tsx": [
-      "input «input.current?.click()»",
+      "input «(sin nombre)»",
       "Boton «{texto}»",
       "button «{`Quitar ${f.name}»",
       "a «{a.nombre}»",
@@ -29,7 +29,7 @@
     ],
     "components/CompraFormV2.tsx": [
       "Link «Regístralo en Proveedores»",
-      "ComboBuscable «(sin nombre)»",
+      "ComboBuscable «{proveedorId}»",
       "SegmentoDeslizante «Tipo de documento»",
       "CampoTexto «Serie»",
       "CampoTexto «Número»",
@@ -41,15 +41,15 @@
       "button «Volver a la sugerida (»",
       "CampoTexto «IGV %»",
       "button «Repartir todas en partes iguales»",
-      "ComboBuscable «elegirVariante(i, id)»",
-      "Desplegable «actualizarLinea(i,»",
+      "ComboBuscable «{`compra-linea-${i}»",
+      "Desplegable «{l.varianteId}»",
       "input «Cantidad»",
       "input «Costo unitario»",
       "button «Quitar»",
       "Boton «+ Agregar línea»",
       "Casilla «Registrar un pago ahora»",
       "CampoTexto «Nota (opcional)»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»"
     ],
     "components/DestinoDelMedio.tsx": [
@@ -68,7 +68,7 @@
       "CampoSelect «Mercadería destinada a»",
       "SegmentoDeslizante «Destino de la mercadería»",
       "button «{bloqueada ? \"Tiene que quedar al menos una tienda\" : undefined}»",
-      "Desplegable «)»",
+      "Desplegable «{ubicacionId}»",
       "input «{`Unidades para ${t.nombre}»",
       "button «Partes iguales»"
     ],

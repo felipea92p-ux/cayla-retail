@@ -10,22 +10,22 @@
     ],
     "components/ClientaFichaModal.tsx": [
       "Boton «Cancelar»",
-      "Pestanas «(sin nombre)»",
-      "BotonEditar «)»",
+      "Pestanas «{[ ...(conClub ? [{ clave: \"club\", etiqueta: \"Club\"}»",
+      "BotonEditar «(sin nombre)»",
       "Boton «Registrar su BAJA»",
       "button «Archivar»",
-      "ComboResponsable «Reactivar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Reactivar»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
-      "CampoTexto «(sin nombre)»",
-      "ComboResponsable «{volverAVer}»",
+      "CampoTexto «{ID_CORREO}»",
+      "ComboResponsable «{responsable}» #2",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
       "CampoTexto «{guia.etiqueta(\"motivo\", \"Motivo\")}»",
-      "ComboResponsable «{volverAVer}» #2",
+      "ComboResponsable «{responsable}» #3",
       "Boton «{guia.frase ?? undefined}»",
-      "ComboResponsable «{volverAVer}» #3",
+      "ComboResponsable «{responsable}» #4",
       "Boton «{responsable.motivo ?? undefined}»",
-      "BotonVerMas «)»"
+      "BotonVerMas «{`Ver las ${total}»"
     ],
     "components/ClientasPanel.tsx": [
       "BotonDescargar «Solo un Admin puede descargar la lista completa»",
@@ -38,7 +38,7 @@
     "components/NuevaClientaModal.tsx": [
       "button «Abrir su ficha»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre completo\")}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -49,14 +49,14 @@
     ],
     "components/clientas/PreferenciasClienta.tsx": [
       "button «{o.valor}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Deshacer»",
       "Boton «Guardar preferencias»"
     ],
     "components/clientas/TiendaOnlineDeLaFicha.tsx": [
       "Boton «Restablecer acceso»",
       "CampoTexto «{guia.etiqueta(\"correo\", \"Correo nuevo\")}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],

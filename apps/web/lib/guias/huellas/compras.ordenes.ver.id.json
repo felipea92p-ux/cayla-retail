@@ -5,7 +5,7 @@
   "total": 42,
   "controles": {
     "app/(app)/compras/ordenes/ver/[id]/page.tsx": [
-      "Volver «; if (falla || !detalle)»",
+      "Volver «/compras/ordenes»",
       "BotonEnlace «Ver las órdenes de compra»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
@@ -17,24 +17,24 @@
       "BotonEnlace «orden.enviar»",
       "Boton «Anular orden»",
       "CampoTexto «Por qué se anula»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/ordenes-compra/BotonEditarOrden.tsx": [
-      "BotonEditar «);»"
+      "BotonEditar «{`/compras/ordenes/editar/${id}»"
     ],
     "components/ordenes-compra/ComprobantesDeOrden.tsx": [
       "Boton «orden.anular-comprobante»",
       "CampoTexto «Por qué se anula»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/ordenes-compra/EnviosDeOrden.tsx": [
       "Boton «orden.anular-envio»",
       "CampoTexto «Por qué se anula»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
@@ -51,12 +51,12 @@
       "CampoTexto «Serie y número»",
       "CampoTexto «RUC de quien te lo dio»",
       "button «{`Quitar ${o.numero}»",
-      "ComboBuscable «) : disponibles !== null && ordenes.length === 0 ? (»",
+      "ComboBuscable «{paraAgregar}»",
       "Boton «→() => setAgregando(true)»",
       "SegmentoDeslizante «Cómo pagaste»",
       "CampoSelect «Cómo pagaste»",
       "CampoTexto «{concepto === \"otro\" ? \"¿Qué se pagó?\" : \"Nota\"}»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ]
