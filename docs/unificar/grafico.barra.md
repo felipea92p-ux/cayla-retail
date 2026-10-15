@@ -157,3 +157,12 @@ es su cara: pista de arena con hilo de 2 px, tramos que entran creciendo y se re
 quietos. Verificado tras traer `main`: el tablero de «Cómo está el piso» se ve bien con la pieza ampliada (pista, hilo, mismas etiquetas para el lector),
 `tema:auditar --escenario frescura.tablero` sin hallazgos, 386 archivos de pruebas en verde y la deuda en 0. **Pendiente, a pedido de Felipe de no tocar Frescura:** su leyenda dibuja el cuadrito a mano (`inline-block … rounded-full ${s.clase}`)
 y con un tono translúcido queda más claro que su tramo; usar `<MuestraTramo>` lo arregla.
+
+## La dona de lo cobrado (ronda 14, 2026-10-15)
+
+El cierre de una caja repartía lo cobrado por medio de pago en una dona de 150 px (la única del ERP), con el total al centro. Felipe eligió
+(P1, tocándola en la página de la ronda 14) que pase a esta pieza, como «Cómo se pagó» del Historial: el total arriba en serif, la barra de
+12 px con un tramo por medio en su color y, debajo, la lista con medio, monto, porcentaje y cuántas ventas. Migrada el mismo día
+(`CierreCajaDetalle.tsx`); la firma de los anillos (`grafico.anillo`) ya no la exime.
+
+![P1: lo cobrado en el turno con la barra apilada](capturas/grafico.barra.dona.propuesta.jpg)

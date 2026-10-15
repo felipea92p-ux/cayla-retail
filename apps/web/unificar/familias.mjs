@@ -223,7 +223,7 @@ const BASE = [
     grupo: "Datos",
     nombre: "Gráficos",
     funcion: "Barras, líneas o donas que muestran una evolución o un reparto.",
-    pieza: "las líneas y las barras por hora o por día, sin decidir (ronda 14); hoy `Sparkline` y `BarrasMensuales` (components/ui/). La barra apilada, la de avance y el anillo ya son familias propias",
+    pieza: "repartida en familias propias: la barra apilada (`grafico.barra`), la de avance (`grafico.avance`), el anillo (`grafico.anillo`), la línea (`grafico.linea`), las barras por tiempo (`grafico.barras`) y la barra a escala (`grafico.escala`)",
     gobierna: ["ADR-0169"],
   },
   {
@@ -241,6 +241,30 @@ const BASE = [
     funcion: "Una barra fina que se llena: cuánto va de algo contra su total o su meta (lo vendido contra la meta, lo contado, lo pagado de una factura).",
     pieza: "`<BarraAvance>` (components/ui/BarraAvance.tsx), ADR-0358 (ronda 13); las del Observatorio (ADR-0322), Análisis (ADR-0357) y Finanzas (ADR-0195) tienen su diseño por decisión",
     gobierna: ["ADR-0169", "ADR-0136", "ADR-0322", "ADR-0357", "ADR-0195"],
+  },
+  {
+    id: "grafico.linea",
+    grupo: "Datos",
+    nombre: "Línea",
+    funcion: "Una línea que muestra cómo va algo en el tiempo, casi siempre contra una referencia (ayer, la meta, el plan).",
+    pieza: "`<Linea>` (components/ui/Linea.tsx) y, en una fila, `<Sparkline>`, ADR-0358 (ronda 14); las del Observatorio (ADR-0322) y Análisis (ADR-0357) tienen su diseño por decisión",
+    gobierna: ["ADR-0169", "ADR-0136", "ADR-0319", "ADR-0325", "ADR-0372", "ADR-0128"],
+  },
+  {
+    id: "grafico.barras",
+    grupo: "Datos",
+    nombre: "Barras por tiempo",
+    funcion: "Una barra por hora, día, semana o mes: cuánto se vendió o cuánto vence en cada una.",
+    pieza: "`<BarrasTiempo>` (components/ui/BarrasTiempo.tsx), ADR-0358 (ronda 14); las de Análisis (ADR-0357), Finanzas (ADR-0195), las tarjetas de Facturación (ADR-0124) y «Cómo cerró cada día» (Felipe, 2026-10-12) tienen su diseño por decisión",
+    gobierna: ["ADR-0169", "ADR-0136", "ADR-0319", "ADR-0325", "ADR-0147", "ADR-0372", "ADR-0128"],
+  },
+  {
+    id: "grafico.escala",
+    grupo: "Datos",
+    nombre: "Barra a escala",
+    funcion: "Una fila por cosa (un proveedor, una talla, una tienda) con una barra a escala de la mayor.",
+    pieza: "la barra de avance en tinta (`<BarraAvance tono=\"tinta\">`), ADR-0358 (ronda 14); con dos partes (lo vencido y lo que no), la barra apilada medida contra el mayor (`total`)",
+    gobierna: ["ADR-0169", "ADR-0352", "ADR-0357", "ADR-0322"],
   },
   {
     id: "grafico.anillo",
@@ -1043,8 +1067,7 @@ export const DECISIONES = {
     ],
     "deuda": [],
     "excepciones": [
-      { "archivo": "components/clientas/RegistroClub.tsx", "motivo": "la página pública del club es para el cliente y tiene su propia cara (club-publico.css): su barra de avance del registro no se toca sin la palabra de Felipe" },
-      { "archivo": "components/ficha-producto/PanelDelTaller.tsx", "motivo": "compara las unidades de cada talla a escala del máximo: es una barra de comparación (ronda 14), no un avance, aunque hoy diga `progressbar`" }
+      { "archivo": "components/clientas/RegistroClub.tsx", "motivo": "la página pública del club es para el cliente y tiene su propia cara (club-publico.css): su barra de avance del registro no se toca sin la palabra de Felipe" }
     ]
   },
   "grafico.anillo": {
@@ -1067,9 +1090,53 @@ export const DECISIONES = {
       { "archivo": "components/observatorio/Mapa.tsx", "motivo": "el Observatorio del Admin tiene su diseño y su movimiento por decisión (ADR-0322)" },
       { "archivo": "components/observatorio/Abajo.tsx", "motivo": "el Observatorio del Admin tiene su diseño y su movimiento por decisión (ADR-0322)" },
       { "archivo": "components/analisis/piezas.tsx", "motivo": "los gráficos de Análisis tienen su movimiento por decisión (ADR-0357)" },
-      { "archivo": "components/CierreCajaDetalle.tsx", "motivo": "la dona de lo cobrado por medio de pago reparte un total en partes: es un gráfico de reparto (ronda 14), no un avance" },
       { "archivo": "components/ui/Espera.tsx", "motivo": "el loader del sistema (ADR-0149): su círculo gira, no mide nada" },
       { "archivo": "components/traslados-pases/Billetera.tsx", "motivo": "el anillo de la billetera de pases de Traslados es parte del diseño de los pases, con su movimiento al verse (ADR-0355)" }
+    ]
+  },
+  "grafico.linea": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.linea.md",
+    "elegida": "P1 · lo de hoy en tinta (2,5 px) con un área suave, la referencia (ayer, la meta, el plan) en taupe punteado siempre igual, tres rayas de fondo con sus montos y las marcas de tiempo, el último punto con su cifra en serif; al pasar el mouse una guía salta al punto más cercano con un globito; en una fila, la mini (`Sparkline`); se dibuja una vez al verse; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/Linea.tsx",
+    "tambien": ["components/ui/Sparkline.tsx", "app/estilos/graficos-tiempo.css"],
+    "firmas": [
+      // Una línea de datos dibujada a mano: una <polyline> o un <path> armado con su propia función de trazo.
+      "<polyline\\b",
+      "\\bd=\\{(?:trazo|camino|linea)\\("
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "grafico.barras": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.barras.md",
+    "elegida": "P1 · todas en arena con las esquinas de arriba redondas y un ancho máximo de 28 px, la que importa (la hora de ahora, el mejor día, el mes en curso) en tinta con su cifra encima, la meta de cada barra una rayita taupe, la cifra sobre todas cuando se lee el monto de cada una, el rojo o el ámbar los pone la pantalla, un globito al pasar el mouse; crecen desde abajo en cascada una vez al verse; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BarrasTiempo.tsx",
+    "tambien": ["components/ui/BarrasMensuales.tsx", "app/estilos/graficos-tiempo.css"],
+    "firmas": [
+      // Una fila de barras dibujada a mano: una caja `flex` que las alinea abajo (`items-end`) con un alto fijo. Las clases, en cualquier orden.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])flex(?![\\w-]))(?=[^\"'`]*(?<![\\w-])items-end(?![\\w-]))(?=[^\"'`]*(?<![\\w-])h-(?:\\d+|\\[\\d+px\\])(?![\\w.\\[-]))"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "grafico.escala": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.escala.md",
+    "elegida": "P1 · la barra de avance de la ronda 13 en tinta y sin pasar a verde (la más larga no está «lista»): pista de arena, relleno en tinta a escala de la mayor, el nombre a la izquierda y la cifra a la derecha; lo vencido o lo que falta lo pinta la pantalla; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BarraAvance.tsx",
+    "tambien": ["components/ui/BarraApilada.tsx"],
+    "firmas": [
+      // Una pista con su relleno dibujada a mano: una fila baja (3 a 8 px) que recorta, redonda, sobre arena, hueso o tinta al 10 %.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])h-(?:1|1\\.5|2|\\[3px\\]|\\[5px\\])(?![\\w.\\[-]))(?=[^\"'`]*(?<![\\w-])overflow-hidden(?![\\w-]))(?=[^\"'`]*(?<![\\w-])rounded-full(?![\\w-]))(?=[^\"'`]*(?<![\\w-])bg-(?:sand|hueso|tinta/10)(?![\\w-]))"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/ui/AvisoDestacado.tsx", "motivo": "la barra de un aviso destacado mide cuánto le queda al aviso a la vista: no es un dato que se compare" }
     ]
   },
   "accion.copiar": {
