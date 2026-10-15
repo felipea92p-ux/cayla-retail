@@ -16,7 +16,7 @@ import {
   validarTienda,
 } from "./configuracion-reglas";
 
-const soles = (n: number) => `S/ ${n.toLocaleString("en-US")}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("en-US")}`;
 
 describe("montos y porcentajes", () => {
   it("lee montos con coma, con S/ y vacíos", () => {
@@ -65,7 +65,7 @@ describe("campañas", () => {
     expect(ordenarCampanas(cs, hoy).map((c) => c.nombre)).toEqual(["Aniversario CAYLA", "Navidad", "CyberWow", "Fiestas Patrias"]);
   });
   it("texto del efecto", () => {
-    expect(textoEfecto({ meta_pct: 25, fondo: 400 }, soles)).toBe("+25 % · fondo S/ 400");
+    expect(textoEfecto({ meta_pct: 25, fondo: 400 }, soles)).toBe("+25 % · fondo S/\u00a0400");
     expect(textoEfecto({ meta_pct: -15, fondo: null }, soles)).toBe("−15 %");
     expect(textoEfecto(undefined, soles)).toBe("lo normal");
   });
@@ -81,7 +81,7 @@ describe("caja: meta de hoy y fondo al cerrar", () => {
   });
   it("explica la meta: lo normal, la campaña que manda y cuántas rigen", () => {
     expect(explicarMeta(leerParametrosCaja(fila)!, "Lunes", soles)).toBe(
-      "Lo normal de un lunes es S/ 1,500; por Fiestas Patrias sube 25 %. Rigen 2 campañas: se usa la que más sube.",
+      "Lo normal de un lunes es S/\u00a01,500; por Fiestas Patrias sube 25 %. Rigen 2 campañas: se usa la que más sube.",
     );
     expect(explicarMeta({ ...leerParametrosCaja(fila)!, campanas: [], metaPct: 0, meta: 1500 }, "Jueves", soles)).toBe("Lo normal de un jueves.");
     expect(explicarMeta({ ...leerParametrosCaja(fila)!, campanas: [], metaPct: 0, meta: 1500 }, "Jueves", soles, "Tienda TRU")).toBe(

@@ -45,7 +45,7 @@ describe("celdaRecepcion", () => {
 
 describe("celdaPago", () => {
   it("parcial dice cuánto falta", () => {
-    expect(celdaPago(base, AHORA)).toEqual({ tono: "ambar", texto: "Parcial", sub: "Faltan S/ 3,923.60", pct: 2000 / 5923.6 });
+    expect(celdaPago(base, AHORA)).toEqual({ tono: "ambar", texto: "Parcial", sub: "Faltan S/\u00a03,923.60", pct: 2000 / 5923.6 });
   });
   it("vencida gana sobre todo", () => {
     expect(celdaPago({ ...base, vencida: true, fechaVencimiento: "2026-09-04" }, AHORA).texto).toBe("Vencida");

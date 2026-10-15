@@ -28,7 +28,7 @@ import { Volver } from "@/components/ui/Volver";
 import { Aviso } from "@/components/ui/Aviso";
 
 function money(n: number) {
-  return (n < 0 ? "-S/ " : "S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n < 0 ? "-S/\u00a0" : "S/\u00a0") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 type Esperado = {
@@ -410,7 +410,7 @@ export function CerrarCajaModalV2({
                       const cantidad = parseInt(billetes[d] ?? "", 10) || 0;
                       return (
                         <label key={d} className="grid grid-cols-[3.25rem_4rem_1fr] items-center gap-2 text-xs text-tinta/65">
-                          <b className="font-semibold text-tinta">{d >= 1 ? `S/ ${d}` : `${Math.round(d * 100)} cts`}</b>
+                          <b className="font-semibold text-tinta">{d >= 1 ? `S/\u00a0${d}` : `${Math.round(d * 100)} cts`}</b>
                           <input
                             inputMode="numeric"
                             placeholder="0"

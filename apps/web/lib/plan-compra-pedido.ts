@@ -102,6 +102,6 @@ export function avisoDelPrecio(supuesto: number | null, catalogo: number | null)
   const veces = `${pct > 0 ? "+" : "−"}${Math.abs(Math.round(pct * 100))} %`;
   return {
     pct,
-    texto: `En el catálogo hoy: S/ ${catalogo.toFixed(2)} en promedio. Supones ${veces}: el Plan calcula con tu precio, pero no cambia el de las prendas. Si de verdad va a ${pct > 0 ? "subir" : "bajar"}, cámbialo en Productos.`,
+    texto: `En el catálogo hoy: S/\u00a0${catalogo.toFixed(2)} en promedio. Supones ${veces}: el Plan calcula con tu precio, pero no cambia el de las prendas. Si de verdad va a ${pct > 0 ? "subir" : "bajar"}, cámbialo en Productos.`,
   };
 }

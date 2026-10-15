@@ -269,7 +269,7 @@ export function CerrarEnvio({
                           inputMode="decimal"
                           value={d.costo}
                           // sugerir-fijo: un costo es un monto de soles, no depende de nada elegido antes
-                          placeholder={sinAviso ? "S/ sin costo" : "S/ 0.00"}
+                          placeholder={sinAviso ? "S/\u00a0sin costo" : "S/\u00a00.00"}
                           onChange={(e) => cambiar(l.clave, { costo: e.target.value, confirmaCosto: false })}
                           tono={costo.problema ? "error" : undefined}
                           pie={costo.problema ?? undefined}

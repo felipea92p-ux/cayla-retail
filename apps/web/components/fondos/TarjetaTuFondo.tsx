@@ -48,9 +48,8 @@ export function TarjetaTuFondo({
         accion={href ? undefined : accion}
         className="w-full"
       >
-        {/* Un monto no se parte entre «S/» y la cifra al bajar de renglón. */}
-        {c.contexto.replaceAll("S/ ", "S/\u00a0")}
-        {c.aviso && <span className="mt-0.5 block text-ambar-profundo">{c.aviso.replaceAll("S/ ", "S/\u00a0")}</span>}
+        {c.contexto}
+        {c.aviso && <span className="mt-0.5 block text-ambar-profundo">{c.aviso}</span>}
       </TarjetaCifra>
     </div>
   );

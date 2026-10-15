@@ -108,7 +108,7 @@ export function PiezaLiquidacionModal({
     setRebajadaDe(antes);
     setPrecio("");
     setModo("ver");
-    avisar.exito("Precio cambiado", { detalle: `Ahora cuesta S/ ${soles(nueva.precio)}.` });
+    avisar.exito("Precio cambiado", { detalle: `Ahora cuesta S/\u00a0${soles(nueva.precio)}.` });
   }
 
   async function retirar(e: React.FormEvent) {
@@ -123,7 +123,7 @@ export function PiezaLiquidacionModal({
   const dias = diasALaVenta(pieza, hoy);
   const subtitulo =
     pieza.estado === "vendida"
-      ? `Se vendió el ${diaLima(pieza.vendidaEn) ?? "—"} a S/ ${soles(pieza.precio)}.`
+      ? `Se vendió el ${diaLima(pieza.vendidaEn) ?? "—"} a S/\u00a0${soles(pieza.precio)}.`
       : pieza.estado === "retirada"
         ? `Se retiró el ${diaLima(pieza.retiradaEn) ?? "—"}: ${pieza.motivoRetiro ?? "sin motivo"}.`
         : `A la venta ${dias <= 0 ? "desde hoy" : `hace ${tiempoALaVenta(dias)}`}${pieza.etiquetas > 1 ? `, con ${pieza.etiquetas - 1} ${pieza.etiquetas === 2 ? "rebaja" : "rebajas"}` : ""}.`;
@@ -138,7 +138,7 @@ export function PiezaLiquidacionModal({
         )}
         {rebajadaDe !== null && (
           <Aviso tono="exito" titulo="Etiqueta nueva lista">
-            Bajó de <span className="liq-tachado">S/ {soles(rebajadaDe)}</span> a S/ {soles(pieza.precio)}. Imprímela y quita la vieja de la prenda.
+            Bajó de <span className="liq-tachado">S/&nbsp;{soles(rebajadaDe)}</span> a S/&nbsp;{soles(pieza.precio)}. Imprímela y quita la vieja de la prenda.
           </Aviso>
         )}
 
@@ -148,7 +148,7 @@ export function PiezaLiquidacionModal({
           </Chip>
           {pieza.precioInicial > pieza.precio && (
             <span className="text-[13px] text-taupe">
-              Entró a <span className="liq-tachado">S/ {soles(pieza.precioInicial)}</span>
+              Entró a <span className="liq-tachado">S/&nbsp;{soles(pieza.precioInicial)}</span>
             </span>
           )}
         </div>
@@ -161,7 +161,7 @@ export function PiezaLiquidacionModal({
 
         {modo === "precio" && (
           <form onSubmit={cambiarPrecio} className="space-y-4">
-            <CampoGuiado id="precio" guia={guiaPrecio} titulo="Precio nuevo" ayuda={`Ahora: S/ ${soles(pieza.precio)} · mínimo S/ ${soles(minimo)}`}>
+            <CampoGuiado id="precio" guia={guiaPrecio} titulo="Precio nuevo" ayuda={`Ahora: S/\u00a0${soles(pieza.precio)} · mínimo S/\u00a0${soles(minimo)}`}>
               <CampoMonto etiqueta="Precio nuevo" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} autoFocus />
             </CampoGuiado>
             <CampoGuiado id="responsable" guia={guiaPrecio}>

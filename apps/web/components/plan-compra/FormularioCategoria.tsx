@@ -87,7 +87,7 @@ function PieConVuelta({ texto, monto, onVolver }: { texto: string; monto: string
       <span>{texto}</span>
       {monto && (
         <button type="button" onClick={() => onVolver(monto)} className="btn-cayla btn-enlace text-xs">
-          Usar el del catálogo: S/ {monto}
+          Usar el del catálogo: S/&nbsp;{monto}
         </button>
       )}
     </span>

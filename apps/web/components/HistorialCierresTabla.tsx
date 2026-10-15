@@ -8,7 +8,7 @@ import { agruparPorDia, estadoCierre, horaLima, quienAtendio, textoResultado, ty
 import { SeparadorDia } from "@/components/ui/TituloSeccion";
 
 function money(n: number) {
-  return "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // Las columnas de la maqueta aprobada (docs/maquetas/historial-cierres-2026-10, Felipe 2026-10-08): tienda · quién atendió

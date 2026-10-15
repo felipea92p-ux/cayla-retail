@@ -62,7 +62,7 @@ export type ParecidasFicha = {
   hoja: ComponentProps<typeof HojaParecidas> | null;
 };
 
-const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /** «Siguiente: Elige el tejido.» —un toque que lleva al campo— o «Todo listo para crear.». Lo usan la ficha y la barra del celular. */
 function Siguiente({ d, clase }: { d: DatosFicha; clase: string }) {
@@ -134,7 +134,7 @@ function Tarjeta({ d }: { d: DatosFicha }) {
             <span className="flex items-baseline gap-2 whitespace-nowrap">
               {d.campana && d.precio !== null && <span className="text-sm tabular-nums text-taupe line-through">{soles(d.precio)}</span>}
               <span className="font-display text-[22px] tabular-nums text-tinta">
-                {d.campana ? soles(d.campana.precioFinal) : d.precio !== null ? soles(d.precio) : <Vacio>S/ —</Vacio>}
+                {d.campana ? soles(d.campana.precioFinal) : d.precio !== null ? soles(d.precio) : <Vacio>S/&nbsp;—</Vacio>}
               </span>
             </span>
           </div>
@@ -251,7 +251,7 @@ export function FichaPrevia({
           <div className="min-w-0 flex-1 text-[12.5px]">
             <b className="block truncate text-sm text-tinta">{datos.nombre || "Nuevo producto"}</b>
             <span className="tabular-nums text-taupe">
-              {datos.codigo ?? "—"} · {datos.variantes ?? 0} var. · {datos.precio !== null ? soles(datos.precio) : "S/ —"}
+              {datos.codigo ?? "—"} · {datos.variantes ?? 0} var. · {datos.precio !== null ? soles(datos.precio) : "S/\u00a0—"}
               {datos.hoy !== null && datos.hoy > 0 && ` · ${datos.hoy} hoy`}
             </span>
           </div>

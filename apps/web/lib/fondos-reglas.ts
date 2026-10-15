@@ -1,5 +1,5 @@
 import { leerMontoPlata, MONTO_ILEGIBLE } from "./monto-plata-reglas";
-import { soles, solesSinCorte } from "./compras-reglas";
+import { soles } from "./compras-reglas";
 import type { CampoDeGuia } from "./guia-campos";
 import type { CuentaElegible } from "./cuenta-sellada-reglas";
 import type { Opcion } from "../components/ui/campos";
@@ -447,7 +447,7 @@ export function topeDevolucion(saldo: number, faltantePorAprobar = 0): TopeDevol
  */
 export function subtituloDevolver(tope: TopeDevolucion): string {
   return tope.porRendicion
-    ? `Los libros dicen ${solesSinCorte(tope.libros)}, pero a su rendición por aprobar le faltan ${solesSinCorte(tope.faltante)}: puede devolver hasta ${solesSinCorte(tope.monto)}.`
+    ? `Los libros dicen ${soles(tope.libros)}, pero a su rendición por aprobar le faltan ${soles(tope.faltante)}: puede devolver hasta ${soles(tope.monto)}.`
     : `Tiene ${soles(tope.monto)} en su fondo.`;
 }
 
@@ -459,7 +459,7 @@ export function problemaDeMonto(textoMonto: string, tope?: number | TopeDevoluci
   const t = typeof tope === "number" ? topeDevolucion(tope) : tope;
   if (t != null && m > t.monto + CENTAVO / 10) {
     return t.porRendicion
-      ? `Puede devolver hasta ${solesSinCorte(Math.max(t.monto, 0))}: a su rendición por aprobar le faltan ${solesSinCorte(t.faltante)}.`
+      ? `Puede devolver hasta ${soles(Math.max(t.monto, 0))}: a su rendición por aprobar le faltan ${soles(t.faltante)}.`
       : `Tiene ${soles(Math.max(t.monto, 0))} en su fondo: no puede devolver más.`;
   }
   return null;

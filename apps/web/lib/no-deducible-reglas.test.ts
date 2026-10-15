@@ -36,8 +36,8 @@ describe("el aviso al pagar", () => {
       { monto: "860", medio: "yape", tipoCuenta: "fondo" },
     ]);
     expect(a?.monto).toBe(1360);
-    expect(a?.titulo).toBe("S/ 1,360.00 quedan «no deducibles»");
-    expect(a?.texto).toMatch(/^SUNAT pide que un comprobante de S\/ 2,000 o más se pague por el banco\./);
+    expect(a?.titulo).toBe("S/\u00a01,360.00 quedan «no deducibles»");
+    expect(a?.texto).toMatch(/^SUNAT pide que un comprobante de S\/\u00a02,000 o más se pague por el banco\./);
   });
   it("debajo del umbral, todo por el banco o sin montos escritos: nada que avisar", () => {
     expect(avisoBancarizacion(1999.99, [{ monto: "1999.99", medio: "efectivo" }])).toBeNull();
@@ -65,7 +65,7 @@ describe("el aviso de «Pagar juntos» (un pago repartido entre varios comproban
       ],
     );
     expect(a?.monto).toBe(500);
-    expect(a?.titulo).toBe("S/ 500.00 quedan «no deducibles»");
+    expect(a?.titulo).toBe("S/\u00a0500.00 quedan «no deducibles»");
   });
   it("solo algunos: «hasta» lo menor entre el efectivo y lo que reciben los grandes", () => {
     const a = avisoBancarizacionLote(
@@ -76,7 +76,7 @@ describe("el aviso de «Pagar juntos» (un pago repartido entre varios comproban
       [{ monto: "1100", medio: "yape", tipoCuenta: "fondo" }],
     );
     expect(a?.monto).toBe(300);
-    expect(a?.titulo).toBe("Hasta S/ 300.00 quedan «no deducibles»");
+    expect(a?.titulo).toBe("Hasta S/\u00a0300.00 quedan «no deducibles»");
   });
   it("ningún comprobante grande que reciba plata, o todo por el banco: nada", () => {
     expect(avisoBancarizacionLote([{ total: 2500, monto: 0 }, { total: 900, monto: 900 }], [{ monto: "900", medio: "efectivo" }])).toBeNull();
@@ -105,12 +105,12 @@ describe("lo que responde la base", () => {
     const banco = { clave: "pago:x", motivo: "bancarizacion" as const, monto: 500, total: 2360, tope: 2000 };
     expect(textoNoDeducible(banco, -500)).toEqual({
       etiqueta: "No deducible",
-      porque: "Comprobante de S/ 2,360.00 pagado en efectivo o desde un fondo: SUNAT lo pide por el banco.",
+      porque: "Comprobante de S/\u00a02,360.00 pagado en efectivo o desde un fondo: SUNAT lo pide por el banco.",
     });
     const planilla = { clave: "gasto:x", motivo: "planilla_tope" as const, monto: 34.8, total: 100, tope: 45.2 };
     expect(textoNoDeducible(planilla, -50)).toEqual({
-      etiqueta: "No deducible: S/ 34.80",
-      porque: "Pasa el tope diario de la planilla de movilidad (S/ 45.20 por persona): ese día suman S/ 100.00.",
+      etiqueta: "No deducible: S/\u00a034.80",
+      porque: "Pasa el tope diario de la planilla de movilidad (S/\u00a045.20 por persona): ese día suman S/\u00a0100.00.",
     });
     expect(textoNoDeducible({ ...planilla, monto: 20 }, -20).etiqueta).toBe("No deducible");
   });

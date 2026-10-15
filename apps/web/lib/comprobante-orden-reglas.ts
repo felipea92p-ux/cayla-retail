@@ -363,7 +363,7 @@ function dudaDeCantidad(texto: string): string {
 }
 function dudaDeMonto(texto: string): string {
   const t = limpio(texto);
-  return `¿«${t}» es S/ ${t.replace(".", "")} o S/ ${t.slice(0, -1)}? Escríbelo sin punto (${t.replace(".", "")}) o con dos decimales (${t.slice(0, -1)}).`;
+  return `¿«${t}» es S/\u00a0${t.replace(".", "")} o S/\u00a0${t.slice(0, -1)}? Escríbelo sin punto (${t.replace(".", "")}) o con dos decimales (${t.slice(0, -1)}).`;
 }
 
 /** El primer problema de un renglón, en una frase para quien lo llena; null si está listo. */
@@ -382,10 +382,10 @@ export function problemaDeLinea(l: LineaComprobante, ctx: ContextoComprobante): 
   const costo = leerNumero(l.costo, 2);
   if (costo.tipo === "vacio") return "Escribe el costo por unidad (0 si no tuvo costo).";
   if (costo.tipo === "mal" && costo.motivo === "ambiguo") return dudaDeMonto(l.costo);
-  if (costo.tipo === "mal" || costo.escalado > TOPES.precioCentimos) return "El costo va de S/ 0 a S/ 99 999.99, con hasta dos decimales.";
+  if (costo.tipo === "mal" || costo.escalado > TOPES.precioCentimos) return "El costo va de S/\u00a00 a S/\u00a099 999.99, con hasta dos decimales.";
   const venta = leerNumero(l.precioVenta, 2);
   if (venta.tipo === "mal" && venta.motivo === "ambiguo") return dudaDeMonto(l.precioVenta);
-  if (venta.tipo === "mal" || (venta.tipo === "ok" && venta.escalado > TOPES.precioCentimos)) return "El precio de venta va de S/ 0 a S/ 99 999.99, con hasta dos decimales.";
+  if (venta.tipo === "mal" || (venta.tipo === "ok" && venta.escalado > TOPES.precioCentimos)) return "El precio de venta va de S/\u00a00 a S/\u00a099 999.99, con hasta dos decimales.";
   return null;
 }
 

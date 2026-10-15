@@ -370,7 +370,7 @@ export function EntregarVista({
                     {/* Menos de la moneda más chica: no hay con qué entregarlo. Lo mismo que dice el botón apagado. */}
                     {cobro.sinMoneda && (
                       <p className="rounded-lg bg-hueso px-3 py-2 text-[12.5px] leading-snug text-ambar-profundo" data-redondeo-sin-moneda>
-                        No hay moneda para <b className="font-semibold tabular-nums">{money(cobro.efectivo?.deuda ?? 0)}</b>: la más chica es S/ 0.10. Cóbralo con otro medio.
+                        No hay moneda para <b className="font-semibold tabular-nums">{money(cobro.efectivo?.deuda ?? 0)}</b>: la más chica es S/&nbsp;0.10. Cóbralo con otro medio.
                       </p>
                     )}
                     {efectivo && (cobro.efectivo?.aCobrar ?? 0) > 0 && (
@@ -391,7 +391,7 @@ export function EntregarVista({
                     {cobro.excede && <Aviso tono="error" chico>Con esos medios no hay vuelto: cobra justo {money(saldo)}.</Aviso>}
                     {cobro.falta > 0 && pagos.length > 0 && <Aviso tono="error" chico>Falta {money(cobro.falta)}</Aviso>}
                     {cobro.noAlcanza && <Aviso tono="error" chico>Lo recibido no alcanza.</Aviso>}
-                    {cobro.vueltoExcede && <Aviso tono="error" chico>El vuelto pasa de S/ 500: revisa cuánto entregó.</Aviso>}
+                    {cobro.vueltoExcede && <Aviso tono="error" chico>El vuelto pasa de S/&nbsp;500: revisa cuánto entregó.</Aviso>}
                   </fieldset>
                 )}
                 {cobro.vuelto > 0 && (
