@@ -63,11 +63,17 @@ export const GUIA_FIN_RESUMEN: Guia = {
     },
     VER,
     {
-      id: "salud",
-      ancla: "fin-resumen.salud",
+      id: "respuesta",
+      ancla: "fin-resumen.respuesta",
+      titulo: "¿Estoy ganando plata?",
+      texto: "La respuesta grande: lo que queda tuyo en lo que va del mes, después de pagar la ropa, los sueldos, los alquileres y los servicios. «¿Por qué?» abre la cuenta paso a paso: lo que vendiste, lo que costó, lo que se pagó y lo que queda.",
+    },
+    {
+      id: "ritmo",
+      ancla: "fin-resumen.ritmo",
       opcional: true,
-      titulo: "Cómo está, en tres frases",
-      texto: "Para cuántos días alcanza tu plata si mañana no vendieras nada, qué día del mes CAYLA ya cubrió sus costos y cómo vas contra la meta de ventas. El color de la línea dice si va bien o pide atención.",
+      titulo: "Tu ritmo",
+      texto: "Lo que vendes por día contra lo que hace falta por día para cubrir lo fijo del mes (sueldos, alquileres, servicios). La marca es lo necesario; la barra, lo tuyo. Debajo dice con qué cerrarías el mes si sigues así y qué día ya habrás cubierto todo.",
     },
     {
       id: "confianza",
@@ -75,6 +81,13 @@ export const GUIA_FIN_RESUMEN: Guia = {
       opcional: true,
       titulo: "Qué tan seguro es el número",
       texto: "Un número de Finanzas solo es tan cierto como lo que los otros módulos registraron. Este medidor dice cuánto confiar en él y qué falta: el costo de las prendas sin registrar, los alquileres cargados, las facturas, el banco cuadrado. Cada cosa que falta lleva a la pantalla donde se arregla.",
+    },
+    {
+      id: "lugares",
+      ancla: "fin-resumen.lugares",
+      opcional: true,
+      titulo: "Qué deja cada lugar",
+      texto: "Cada tienda y el Taller, después de pagar lo que ellos mismos causan. «Lo de toda la empresa» (contador, publicidad, oficina) va aparte y no se reparte entre las tiendas: así una tienda que deja plata no parece perder por cargar gastos que no son suyos.",
     },
     {
       id: "cifras",

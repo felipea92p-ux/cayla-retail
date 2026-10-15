@@ -2008,3 +2008,276 @@
     }
   }
 }
+
+/* ---- El Pulso (Resumen, camino A; Felipe 2026-10-15): la pregunta, la respuesta grande, la cascada, el ritmo y qué deja cada lugar. ---- */
+@layer components {
+  .fin-pulso-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    padding: 26px 16px 6px;
+  }
+  .fin-pulso-pregunta {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--color-taupe);
+  }
+  .fin-pulso-si {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+  }
+  .fin-pulso-respuesta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+    gap: 6px;
+  }
+  .fin-pulso-verbo {
+    font-family: var(--font-serif);
+    font-size: 26px;
+  }
+  .fin-pulso-monto {
+    font-family: var(--font-serif);
+    font-size: clamp(48px, 8vw, 84px);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .fin-pulso-monto[data-estado="pierde"] {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-pulso-explica {
+    max-width: 62ch;
+    font-size: 15px;
+    color: color-mix(in srgb, var(--color-tinta) 74%, transparent); /* contraste: texto sobre crema (ADR-0336: desde 64 % pasa) */
+  }
+  .fin-pulso-porque {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  .fin-pulso-cascada {
+    width: 100%;
+    max-width: 640px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+  }
+  .fin-pulso-tramo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    align-items: baseline;
+    font-size: 14px;
+  }
+  .fin-pulso-tramo-nombre small {
+    display: block;
+    font-size: 12px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre crema (ADR-0336: desde 64 % pasa) */
+  }
+  .fin-pulso-tramo-monto {
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-pulso-tramo[data-tipo="queda"] {
+    font-weight: 600;
+    padding-top: 6px;
+    border-top: 1px solid var(--color-sand);
+  }
+  .fin-pulso-tramo-barra {
+    grid-column: 1 / -1;
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-hueso);
+    overflow: hidden;
+  }
+  .fin-pulso-tramo-barra > i {
+    display: block;
+    height: 100%;
+    width: var(--w, 0%);
+    border-radius: 999px;
+    background: var(--color-tinta);
+    animation: fin-pulso-crece 700ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+  .fin-pulso-tramo[data-tipo="sale"] .fin-pulso-tramo-barra > i {
+    background: var(--color-taupe);
+  }
+  .fin-pulso-tramo[data-tipo="queda"] .fin-pulso-tramo-barra > i {
+    background: var(--color-verde);
+  }
+  @keyframes fin-pulso-crece {
+    from {
+      width: 0;
+    }
+  }
+
+  /* El ritmo: una pista con lo vendido por día y una marca donde está lo necesario. */
+  .fin-pulso-ritmo {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding-top: 18px;
+  }
+  .fin-pulso-ritmo-pista {
+    position: relative;
+    height: 14px;
+    border-radius: 999px;
+    background: var(--color-hueso);
+  }
+  .fin-pulso-ritmo-relleno {
+    display: block;
+    height: 100%;
+    width: var(--w, 0%);
+    border-radius: 999px;
+    background: var(--color-verde);
+    animation: fin-pulso-crece 900ms var(--ease-cayla) backwards;
+  }
+  .fin-pulso-ritmo[data-tono="ambar"] .fin-pulso-ritmo-relleno {
+    background: var(--color-ambar);
+  }
+  .fin-pulso-ritmo[data-tono="rojo"] .fin-pulso-ritmo-relleno {
+    background: var(--color-rojo-profundo);
+  }
+  .fin-pulso-ritmo-marca {
+    position: absolute;
+    top: -6px;
+    width: 2px;
+    height: 26px;
+    background: var(--color-tinta);
+  }
+  .fin-pulso-ritmo-marca > span {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-taupe);
+  }
+  .fin-pulso-ritmo-escala {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12.5px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-pulso-cierre {
+    margin-top: 14px;
+    font-family: var(--font-serif);
+    font-size: 19px;
+    line-height: 1.3;
+  }
+
+  /* Qué deja cada lugar: barras que salen del centro, a la derecha lo que deja y a la izquierda lo que cuesta. */
+  .fin-pulso-lugares {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .fin-pulso-lugar {
+    display: grid;
+    grid-template-columns: minmax(0, 190px) minmax(0, 1fr) 112px;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 0;
+    border-top: 1px solid var(--color-sand);
+  }
+  .fin-pulso-lugar:first-child {
+    border-top: 0;
+  }
+  .fin-pulso-lugar-nombre b {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .fin-pulso-lugar-nombre small {
+    display: block;
+    font-size: 12px;
+    color: color-mix(in srgb, var(--color-tinta) 66%, transparent); /* contraste: texto sobre papel (ADR-0336: desde 64 % pasa) */
+  }
+  .fin-pulso-lugar-eje {
+    position: relative;
+    display: block;
+    height: 10px;
+  }
+  .fin-pulso-lugar-eje::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -4px;
+    bottom: -4px;
+    width: 1px;
+    background: var(--color-sand);
+  }
+  .fin-pulso-lugar-eje > i {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: var(--w, 0%);
+    border-radius: 999px;
+    animation: fin-pulso-crece 700ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 70ms + 120ms);
+  }
+  .fin-pulso-lugar-eje > i[data-signo="mas"] {
+    left: 50%;
+    background: var(--color-verde);
+  }
+  .fin-pulso-lugar-eje > i[data-signo="menos"] {
+    right: 50%;
+    background: var(--color-rojo-profundo);
+  }
+  .fin-pulso-lugar-monto {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .fin-pulso-lugar-monto[data-signo="menos"] {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-pulso-lugar-total {
+    border-top: 2px solid var(--color-tinta);
+    font-family: var(--font-serif);
+  }
+  .fin-pulso-lugar-total .fin-pulso-lugar-nombre b,
+  .fin-pulso-lugar-total .fin-pulso-lugar-monto {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 500;
+  }
+  @media (max-width: 640px) {
+    .fin-pulso-lugar {
+      grid-template-columns: minmax(0, 1fr) 100px;
+    }
+    .fin-pulso-lugar-eje {
+      display: none;
+    }
+    .fin-pulso-ritmo-marca > span {
+      font-size: 10px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fin-pulso-tramo-barra > i,
+    .fin-pulso-ritmo-relleno,
+    .fin-pulso-lugar-eje > i {
+      animation: none;
+    }
+  }
+}
