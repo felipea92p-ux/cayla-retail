@@ -2,7 +2,7 @@
   "guia": "compras.por-pagar",
   "ruta": "/compras/por-pagar",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 73,
+  "total": 72,
   "controles": {
     "app/(app)/compras/por-pagar/page.tsx": [
       "BotonEnlace «Limpiar filtros»",
@@ -97,8 +97,7 @@
       "Link «{s.nombre}»"
     ],
     "components/SalidasDeCaja.tsx": [
-      "input «Caja disponible, para ver hasta dónde alcanza»",
-      "button «{`${s.etiqueta}»"
+      "input «Caja disponible, para ver hasta dónde alcanza»"
     ],
     "components/finanzas/CampoCuenta.tsx": [
       "CampoSelect «{etiqueta}»"

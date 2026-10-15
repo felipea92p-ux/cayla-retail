@@ -56,6 +56,7 @@
 @import "./estilos/vacio-aviso-buscador.css";
 @import "./estilos/barra-apilada.css";
 @import "./estilos/avance-anillo-copiar.css";
+@import "./estilos/graficos-tiempo.css";
 @import "./estilos/liquidacion.css";
 /* Plan del piso ▸ Propuesta: el riel de perchas (maqueta A, ADR-0352 act. 2026-10-11) y el color de cada grupo (--grupo-N). */
 @import "./estilos/plan-piso.css";
