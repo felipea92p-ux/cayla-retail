@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { ImagenDePrenda } from "@/components/ui/ImagenDePrenda";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 import { vistaDeFotos, type FotoLocal } from "@/lib/fotos-por-color-reglas";
@@ -170,18 +171,13 @@ export function PanelDelTaller({
               return (
                 <div key={f.clave} className="taller-barra-talla">
                   <b className="min-w-0 text-[12px] text-taupe">{talla}</b>
-                  <div className="taller-pista">
-                    <div
-                      className="taller-relleno"
-                      data-tono={tonoDeBarra(u)}
-                      role="progressbar"
-                      aria-valuenow={u}
-                      aria-valuemin={0}
-                      aria-valuemax={max}
-                      aria-label={`${nombre}: ${u} ${u === 1 ? "unidad" : "unidades"}`}
-                      style={{ width: esperando ? 0 : `${Math.round((u / max) * 100)}%` }}
-                    />
-                  </div>
+                  {/* La barra a escala del sistema (ronda 14 de /unificar): en tinta, ámbar si quedan pocas (lo pinta la pantalla). */}
+                  <BarraAvance
+                    pct={esperando ? 0 : (u / max) * 100}
+                    tono={tonoDeBarra(u) === "bajo" ? "ambar" : "tinta"}
+                    etiqueta={nombre}
+                    texto={`${u} ${u === 1 ? "unidad" : "unidades"}`}
+                  />
                   <span
                     className={`text-right text-[12px] tabular-nums ${cambiada ? "font-semibold text-ambar-profundo" : "text-tinta"}`}
                     title={cambiada ? (guardada ? `Antes ${stock.numeroGuardado(f.id!)} · se guarda con «Revisar y guardar»` : "Entra como stock inicial al guardar") : undefined}

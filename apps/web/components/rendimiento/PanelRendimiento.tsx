@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
 import { ChartColumn } from "lucide-react";
 import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Chip } from "@/components/ui/Chip";
@@ -245,21 +246,20 @@ export function PanelRendimiento({
           <p className="label-cayla text-[11px] text-tinta/65">Ventas por hora ({t.periodo})</p>
           {porHora.mejor ? (
             <>
-              <div className="mt-3 flex h-24 items-end gap-1" role="img" aria-label={`Ventas por hora ${t.enPeriodo}. La mejor hora fue ${etiquetaDeHora(porHora.mejor.hora)}, con ${SOLES.format(porHora.mejor.total)}.`}>
-                {porHora.horas.map((h) => {
-                  const alto = Math.max(h.total > 0 ? 6 : 2, Math.round((h.total / porHora.mejor!.total) * 100));
-                  const esMejor = h.hora === porHora.mejor!.hora;
-                  return (
-                    <div key={h.hora} className="flex h-full min-w-0 flex-1 items-end" title={`${etiquetaDeHora(h.hora)} · ${SOLES.format(h.total)} · ${h.ventas} ${plural(h.ventas, "venta", "ventas")}`}>
-                      <div className={`w-full rounded-t ${esMejor ? "bg-taupe" : h.total > 0 ? "bg-sand" : "bg-tinta/10"}`} style={{ height: `${alto}%` }} />
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-1 flex justify-between text-[11px] text-tinta/65 tabular-nums">
-                <span>{etiquetaDeHora(porHora.horas[0].hora)}</span>
-                <span>{etiquetaDeHora(porHora.horas.at(-1)!.hora)}</span>
-              </div>
+              {/* Las barras por tiempo del sistema (ronda 14): la mejor hora en tinta con su cifra; cada hora dice lo suyo al pasar el mouse. */}
+              <BarrasTiempo
+                className="mt-3"
+                alto={112}
+                barras={porHora.horas.map((h, i) => ({
+                  clave: String(h.hora),
+                  valor: h.total,
+                  etiqueta: i === 0 || i === porHora.horas.length - 1 ? etiquetaDeHora(h.hora) : "",
+                  tip: `${etiquetaDeHora(h.hora)} · ${SOLES.format(h.total)} · ${h.ventas} ${plural(h.ventas, "venta", "ventas")}`,
+                  cifra: SOLES.format(h.total),
+                }))}
+                destacada={String(porHora.mejor.hora)}
+                etiqueta={`Ventas por hora ${t.enPeriodo}. La mejor hora fue ${etiquetaDeHora(porHora.mejor.hora)}, con ${SOLES.format(porHora.mejor.total)}.`}
+              />
               <p className="mt-2 text-xs text-tinta/65">
                 La mejor franja fue la de las <b className="font-semibold text-tinta">{etiquetaDeHora(porHora.mejor.hora)}</b>: {SOLES.format(porHora.mejor.total)} en{" "}
                 {porHora.mejor.ventas} {plural(porHora.mejor.ventas, "venta", "ventas")}. Sirve para repartir turnos, no para juzgar a nadie.

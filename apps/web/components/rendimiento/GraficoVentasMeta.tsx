@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
+import { BarrasTiempo } from "@/components/ui/BarrasTiempo";
+import { Linea, topeRedondo } from "@/components/ui/Linea";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { acumulado, avance, type DiaGrafico } from "@/lib/rendimiento-meta-reglas";
@@ -28,11 +30,6 @@ const NUM = new Intl.NumberFormat("es-PE", { maximumFractionDigits: 0 });
 const ALTO_PC = 200;
 const ALTO_CELULAR = 176;
 
-/** El tope «redondo» del eje: 1, 1,5, 2, 2,5, 3, 4, 5, 6, 8 o 10 por una potencia de diez. */
-function tope(mx: number): number {
-  const mag = 10 ** Math.floor(Math.log10(Math.max(mx, 1)));
-  return [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map((k) => k * mag).find((t) => t >= mx) ?? mx;
-}
 
 function useAnchoMedido() {
   const ref = useRef<HTMLDivElement>(null);
@@ -84,7 +81,6 @@ export function GraficoVentasMeta({
   const [modo, setModo] = useState<"semana" | "mes">(inicial);
   const [sub, setSub] = useState<"acum" | "dia">("acum");
   const [ref, ancho] = useAnchoMedido();
-  const [tip, setTip] = useState<{ i: number; x: number } | null>(null);
 
   const esMes = modo === "mes";
   const dias = esMes ? mes : semana;
@@ -113,10 +109,7 @@ export function GraficoVentasMeta({
                 type="button"
                 aria-pressed={modo === clave}
                 data-guia={clave === "mes" ? "rendimiento.grafico-mes" : "rendimiento.grafico-semana"}
-                onClick={() => {
-                  setTip(null);
-                  setModo(clave);
-                }}
+                onClick={() => setModo(clave)}
                 className="pildora-cayla"
               >
                 {texto}
@@ -128,10 +121,7 @@ export function GraficoVentasMeta({
               forma="modo"
               etiqueta="Cómo ver el mes"
               valor={sub}
-              onCambio={(k) => {
-                setTip(null);
-                setSub(k as "acum" | "dia");
-              }}
+              onCambio={(k) => setSub(k as "acum" | "dia")}
               opciones={[
                 { clave: "acum", etiqueta: "Acumulado" },
                 { clave: "dia", etiqueta: "Por día" },
@@ -181,17 +171,9 @@ export function GraficoVentasMeta({
           )}
         </ul>
 
-        {/* La caja mide el ancho real; la altura no cambia nunca con la pantalla. */}
-        <div ref={ref} className="relative mt-2" style={{ height: alto }}>
-          {ancho > 0 &&
-            (acum ? (
-              <Acumulado dias={mes} W={ancho} H={alto} etiquetas={etiquetas} hayMeta={hayMeta} onTip={setTip} />
-            ) : (
-              <Barras dias={dias} W={ancho} H={alto} esMes={esMes} etiquetas={etiquetas} onTip={setTip} />
-            ))}
-          {tip !== null && ancho > 0 && (
-            <Tooltip dia={dias[tip.i]} x={tip.x} W={ancho} acumulado={acum ? acumuladoDe(mes, tip.i) : null} etiquetas={etiquetas} />
-          )}
+        {/* La caja mide el ancho real; la altura no cambia nunca con la pantalla. Las piezas del sistema (ronda 14 de /unificar). */}
+        <div ref={ref} className="mt-2">
+          {acum ? <Acumulado dias={mes} alto={alto} etiquetas={etiquetas} hayMeta={hayMeta} /> : <Barras dias={dias} alto={alto} etiquetas={etiquetas} esMes={esMes} />}
         </div>
 
         <details className="mt-3 text-xs text-taupe">
@@ -230,21 +212,8 @@ function acumuladoDe(mes: DiaGrafico[], i: number): { ventas: number | null; met
   return { ventas: a.ventas[i], meta: a.meta[i] };
 }
 
-function Tooltip({
-  dia,
-  x,
-  W,
-  acumulado: ac,
-  etiquetas,
-}: {
-  dia: DiaGrafico;
-  x: number;
-  W: number;
-  acumulado: { ventas: number | null; meta: number } | null;
-  etiquetas: Etiquetas;
-}) {
-  const ancho = 168;
-  const izq = Math.min(Math.max(x - ancho / 2, 0), Math.max(W - ancho, 0));
+/** Lo que dice el globito de un día (en las barras y en la línea). */
+function TipDia({ dia, acumulado: ac, etiquetas }: { dia: DiaGrafico; acumulado: { ventas: number | null; meta: number } | null; etiquetas: Etiquetas }) {
   const lineas: string[] = [];
   if (ac) {
     lineas.push(`${etiquetas.ventasAcum}: ${ac.ventas === null ? "—" : SOLES.format(ac.ventas)}`);
@@ -257,201 +226,64 @@ function Tooltip({
     lineas.push(dia.meta !== null ? `${etiquetas.meta}: ${SOLES.format(dia.meta)} (${avance(dia.valor, dia.meta)} %)` : "Sin meta cargada");
   }
   return (
-    <div
-      role="tooltip"
-      className="pointer-events-none absolute top-0 z-10 rounded-md bg-tinta px-2.5 py-1.5 text-[11px] leading-snug text-crema"
-      style={{ left: izq, width: ancho }}
-    >
+    <>
       <b className="block font-semibold">
         {dia.titulo}
         {dia.hoy ? ", hasta ahora" : ""}
       </b>
       {lineas.map((l) => (
-        <span key={l} className="block tabular-nums">
+        <span key={l} className="block">
           {l}
         </span>
       ))}
-    </div>
-  );
-}
-
-const IZQ = 44;
-const ARR = 20;
-const ABAJO = 24;
-const DER = 8;
-
-function Ejes({ W, H, max, derecha = DER }: { W: number; H: number; max: number; derecha?: number }) {
-  const ih = H - ARR - ABAJO;
-  return (
-    <>
-      {[0, max / 2, max].map((v) => {
-        const y = ARR + ih - (v / max) * ih;
-        return (
-          <g key={v}>
-            <line x1={IZQ} x2={W - derecha} y1={y} y2={y} stroke="var(--color-sand)" strokeWidth={1} />
-            <text x={IZQ - 6} y={y + 3.5} textAnchor="end" className="fill-taupe text-[10px] tabular-nums">
-              {NUM.format(Math.round(v))}
-            </text>
-          </g>
-        );
-      })}
     </>
   );
 }
 
-function Barras({
-  dias,
-  W,
-  H,
-  esMes,
-  etiquetas,
-  onTip,
-}: {
-  dias: DiaGrafico[];
-  W: number;
-  H: number;
-  esMes: boolean;
-  etiquetas: Etiquetas;
-  onTip: (t: { i: number; x: number } | null) => void;
-}) {
-  const iw = W - IZQ - DER;
-  const ih = H - ARR - ABAJO;
-  const n = dias.length;
-  const slot = iw / n;
-  const bw = Math.min(esMes ? 14 : 28, slot * (esMes ? 0.62 : 0.42));
-  const max = tope(Math.max(...dias.map((d) => Math.max(d.valor ?? 0, d.meta ?? 0)), 100));
-  const Y = (v: number) => ARR + ih - (v / max) * ih;
+/** Las ventas de cada día con la meta de cada uno: las barras por tiempo del sistema, el mejor día en tinta con su cifra. */
+function Barras({ dias, alto, etiquetas, esMes }: { dias: DiaGrafico[]; alto: number; etiquetas: Etiquetas; esMes: boolean }) {
   const mejor = dias.reduce((b, d, i) => ((d.valor ?? 0) > (dias[b].valor ?? 0) ? i : b), 0);
-
   return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${etiquetas.aria} ${esMes ? "por día del mes" : "de los últimos siete días"}, contra la meta de cada día`}>
-      <Ejes W={W} H={H} max={max} />
-      {dias.map((d, i) => {
-        const cx = IZQ + slot * i + slot / 2;
-        const x = cx - bw / 2;
-        const val = d.valor ?? 0;
-        const y = Y(val);
-        const h = Math.max(0, Y(0) - y);
-        const r = Math.min(4, h);
-        return (
-          <g key={d.fecha}>
-            {h > 0 && (
-              <path
-                d={`M${x},${Y(0)} V${y + r} Q${x},${y} ${x + r},${y} H${x + bw - r} Q${x + bw},${y} ${x + bw},${y + r} V${Y(0)} Z`}
-                fill="var(--color-tinta)"
-                opacity={d.hoy ? 0.62 : 1}
-              />
-            )}
-            {d.meta !== null && (
-              <line x1={cx - bw / 2 - 3} x2={cx + bw / 2 + 3} y1={Y(d.meta)} y2={Y(d.meta)} stroke="var(--color-taupe)" strokeWidth={2} strokeLinecap="round" />
-            )}
-            {d.etiqueta && (
-              <text x={cx} y={H - 7} textAnchor="middle" className={`text-[10px] ${d.hoy ? "fill-tinta font-bold" : "fill-taupe"}`}>
-                {d.etiqueta}
-              </text>
-            )}
-            {val > 0 && (i === mejor || (!esMes && d.hoy)) && (
-              <text x={cx} y={Y(Math.max(val, d.meta ?? 0)) - 7} textAnchor="middle" className="fill-tinta text-[10px] font-semibold tabular-nums">
-                {NUM.format(Math.round(val))}
-              </text>
-            )}
-            <rect
-              x={IZQ + slot * i}
-              y={ARR}
-              width={slot}
-              height={ih}
-              fill="transparent"
-              onMouseEnter={() => onTip({ i, x: cx })}
-              onMouseMove={() => onTip({ i, x: cx })}
-              onMouseLeave={() => onTip(null)}
-            />
-          </g>
-        );
-      })}
-    </svg>
+    <BarrasTiempo
+      alto={alto - 24}
+      barras={dias.map((d) => ({
+        clave: d.fecha,
+        valor: d.valor ?? 0,
+        etiqueta: d.etiqueta ?? "",
+        fuerte: d.hoy,
+        meta: d.meta,
+        cifra: NUM.format(Math.round(d.valor ?? 0)),
+        tip: <TipDia dia={d} acumulado={null} etiquetas={etiquetas} />,
+      }))}
+      destacada={(dias[mejor]?.valor ?? 0) > 0 ? dias[mejor].fecha : null}
+      etiqueta={`${etiquetas.aria} ${esMes ? "por día del mes" : "de los últimos siete días"}, contra la meta de cada día`}
+    />
   );
 }
 
-function Acumulado({
-  dias,
-  W,
-  H,
-  etiquetas,
-  hayMeta,
-  onTip,
-}: {
-  dias: DiaGrafico[];
-  W: number;
-  H: number;
-  etiquetas: Etiquetas;
-  hayMeta: boolean;
-  onTip: (t: { i: number; x: number } | null) => void;
-}) {
-  const R = 64;
-  const iw = W - IZQ - R;
-  const ih = H - ARR - ABAJO;
+/** Lo vendido en el mes, acumulado, contra la meta acumulada: la línea del sistema. */
+function Acumulado({ dias, alto, etiquetas, hayMeta }: { dias: DiaGrafico[]; alto: number; etiquetas: Etiquetas; hayMeta: boolean }) {
   const n = dias.length;
   const a = acumulado(dias);
   const fin = a.meta[n - 1] ?? 0;
-  const vendidas = a.ventas.filter((v): v is number => v !== null);
-  const ultimo = vendidas.at(-1) ?? 0;
-  const max = tope(Math.max(fin, ultimo, 100));
-  const X = (i: number) => IZQ + (n > 1 ? (i / (n - 1)) * iw : 0);
-  const Y = (v: number) => ARR + ih - (v / max) * ih;
-  const puntosVentas = vendidas.map((v, i) => `${X(i)},${Y(v)}`).join(" ");
-  // La cifra final va sobre el punto, salvo que la línea punteada de la meta pase pegada: entonces va debajo, para no pisarla.
-  const metaEnEseDia = a.meta[vendidas.length - 1] ?? 0;
-  const cercaDeLaMeta = hayMeta && vendidas.length > 0 && Math.abs(Y(metaEnEseDia) - Y(ultimo)) < 24;
-
+  const serie = a.ventas.flatMap((v, i) => (v === null ? [] : [{ x: i, y: v }]));
+  const ultimo = serie.at(-1)?.y ?? 0;
+  const conMeta = hayMeta && fin > 0;
   return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${etiquetas.ventasAcum} del mes${hayMeta ? " contra la meta acumulada" : ""}`}>
-      <Ejes W={W} H={H} max={max} derecha={R} />
-      {dias.map((d, i) =>
-        d.etiqueta ? (
-          <text key={d.fecha} x={X(i)} y={H - 7} textAnchor="middle" className={`text-[10px] ${d.hoy ? "fill-tinta font-bold" : "fill-taupe"}`}>
-            {d.etiqueta}
-          </text>
-        ) : null,
-      )}
-      {hayMeta && fin > 0 && (
-        <>
-          <polyline points={a.meta.map((m, i) => `${X(i)},${Y(m)}`).join(" ")} fill="none" stroke="var(--color-taupe)" strokeWidth={2} strokeDasharray="5 4" strokeLinejoin="round" />
-          <circle cx={X(n - 1)} cy={Y(fin)} r={4} fill="var(--color-taupe)" stroke="var(--color-papel)" strokeWidth={2} />
-          <text x={X(n - 1) + 8} y={Y(fin) + 3} className="fill-tinta text-[10px] font-semibold tabular-nums">
-            {NUM.format(Math.round(fin))}
-          </text>
-          <text x={X(n - 1) + 8} y={Y(fin) + 15} className="fill-taupe text-[10px]">
-            meta
-          </text>
-        </>
-      )}
-      {ultimo > 0 ? (
-        <>
-          <polygon points={`${X(0)},${Y(0)} ${puntosVentas} ${X(vendidas.length - 1)},${Y(0)}`} fill="var(--color-tinta)" opacity={0.07} />
-          <polyline points={puntosVentas} fill="none" stroke="var(--color-tinta)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-          <circle cx={X(vendidas.length - 1)} cy={Y(ultimo)} r={4.5} fill="var(--color-tinta)" stroke="var(--color-papel)" strokeWidth={2} />
-          <text x={X(vendidas.length - 1) - 8} y={Y(ultimo) + (cercaDeLaMeta ? 18 : -10)} textAnchor="end" className="fill-tinta text-[10px] font-semibold tabular-nums">
-            {NUM.format(Math.round(ultimo))}
-          </text>
-        </>
-      ) : (
-        <text x={IZQ + 10} y={Y(max * 0.85)} className="fill-taupe text-xs">
-          Sin ventas todavía este mes
-        </text>
-      )}
-      {dias.map((d, i) => (
-        <rect
-          key={d.fecha}
-          x={X(i) - iw / n / 2}
-          y={ARR}
-          width={iw / n}
-          height={ih}
-          fill="transparent"
-          onMouseEnter={() => onTip({ i, x: X(i) })}
-          onMouseMove={() => onTip({ i, x: X(i) })}
-          onMouseLeave={() => onTip(null)}
-        />
-      ))}
-    </svg>
+    <Linea
+      serie={ultimo > 0 ? serie : []}
+      referencia={conMeta ? a.meta.map((m, i) => ({ x: i, y: m })) : null}
+      desde={0}
+      hasta={Math.max(n - 1, 1)}
+      maxY={topeRedondo(Math.max(fin, ultimo, 100))}
+      marcasX={dias.flatMap((d, i) => (d.etiqueta ? [{ x: i, texto: d.etiqueta, fuerte: d.hoy }] : []))}
+      formatoY={(v) => NUM.format(Math.round(v))}
+      cifra={ultimo > 0 ? NUM.format(Math.round(ultimo)) : null}
+      cifraReferencia={conMeta ? { valor: NUM.format(Math.round(fin)), texto: "meta" } : null}
+      leer={(x) => <TipDia dia={dias[x]} acumulado={acumuladoDe(dias, x)} etiquetas={etiquetas} />}
+      alto={alto}
+      etiqueta={`${etiquetas.ventasAcum} del mes${conMeta ? " contra la meta acumulada" : ""}`}
+      vacio="Sin ventas todavía este mes"
+    />
   );
 }
