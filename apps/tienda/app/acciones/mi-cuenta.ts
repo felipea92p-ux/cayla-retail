@@ -331,6 +331,7 @@ export async function eliminarMiCuenta(entrada: unknown): Promise<RespuestaElimi
     if (problemaClave) return { mensaje: problemaClave, campo: "clave" };
     const r = await eliminarMiCuentaEnBase(usuarioWebId);
     if (r.estado === "en_curso") return { frena: r.frena };
+    if (r.estado === "en_tienda") return { mensaje: TEXTOS_CUENTA.eliminarEnTienda, campo: null };
     if (r.estado === "sin_respuesta") return { mensaje: TEXTOS_CUENTA.noDisponible, campo: null };
     // eliminada, o sin_cuenta: otra pestaña la eliminó en este instante. En los dos casos, lo que sigue.
   }

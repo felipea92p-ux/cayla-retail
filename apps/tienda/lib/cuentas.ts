@@ -356,7 +356,10 @@ export const MENSAJES = {
   dniBuscando: "Buscando tu nombre…",
   dniRepetido: "Ya hay una cuenta con este DNI.",
   dniArchivada: "Para crear tu cuenta necesitamos revisar tus datos en tienda: acércate a cualquier tienda CAYLA.",
-  dniDelClub: "Ya eras del Club CAYLA: tu cuenta se une a tu ficha",
+  dniDelClub: "Ya eras del Club CAYLA: tu cuenta se une a tu ficha si usas el correo que dejaste en la tienda",
+  // 20261015230000 (D7): una ficha que ya existía solo se une con el correo que ya tenía (el código prueba el correo, no el DNI).
+  fichaSinTuCorreo:
+    "Ya eres parte del Club con este documento. Para crear tu cuenta, pide en cualquier tienda CAYLA que anoten este correo en tu ficha.",
   // El nombre sale del padrón y no se escribe (Felipe 2026-10-15): sin él no se crea la cuenta. Cada uno va con «Volver a intentar».
   dniDelPadron: "Del padrón: así sale en tu boleta.",
   dniNoEncontrado: "No encontramos tu nombre con ese DNI. Revisa el número: sin tu nombre del padrón no podemos crear tu cuenta.",
@@ -528,6 +531,8 @@ export function errorDeRegistro(hint: string | null | undefined, detalle: string
       return { campo: "documento", mensaje: documentoRepetido(tipo) };
     case "cuenta_archivada":
       return { campo: "documento", mensaje: MENSAJES.dniArchivada };
+    case "cuenta_ficha_sin_tu_correo":
+      return { campo: "correo", mensaje: MENSAJES.fichaSinTuCorreo };
     case "cuenta_menor":
       return { campo: "cumple", mensaje: MENSAJES.cumpleMenor };
     case "cuenta_sin_codigo":

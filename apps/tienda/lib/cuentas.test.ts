@@ -391,6 +391,7 @@ describe("lo que el servidor vuelve a revisar", () => {
     expect(errorDeRegistro("cuenta_correo_repetido", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.correoRepetido });
     expect(errorDeRegistro("cuenta_dni_repetido", "dni")).toEqual({ campo: "documento", mensaje: MENSAJES.dniRepetido });
     expect(errorDeRegistro("cuenta_archivada", "dni")).toEqual({ campo: "documento", mensaje: MENSAJES.dniArchivada });
+    expect(errorDeRegistro("cuenta_ficha_sin_tu_correo", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.fichaSinTuCorreo });
     expect(errorDeRegistro("cuenta_menor", "cumple")).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMenor });
     expect(errorDeRegistro("cuenta_datos_invalidos", "celular").campo).toBe("cel");
     expect(errorDeRegistro("cuenta_datos_invalidos", "mayor")).toEqual({ campo: "mayor", mensaje: MENSAJES.mayorFalta });
