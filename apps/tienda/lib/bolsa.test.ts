@@ -10,7 +10,9 @@ import {
   interpretarBolsaEnBase,
   leerBolsa,
   quitarUna,
+  respuestaDeSeparar,
   revisarParaAgregar,
+  SEPARAR_SIN_RESPUESTA,
   sinPrendas,
   textoDeLaMarca,
   TOPE_PRENDAS,
@@ -272,6 +274,26 @@ describe("las marcas que dice cada prenda", () => {
     ];
     for (const t of textos) expect(t).not.toMatch(/\d/);
     expect(textoDeLaMarca({ tipo: "nada" })).toBeNull();
+  });
+});
+
+describe("lo que dice «Separar» cuando no separa", () => {
+  it("con 3 separaciones esperando confirmación (el tope de la base): lo dice claro y lleva a «Mis pedidos»", () => {
+    const r = respuestaDeSeparar("tienda_separar_tope");
+    expect(r.mensaje).toBe(
+      "Ya tienes 3 separaciones esperando que la tienda confirme. Cuando te confirmen una (o se cierre), puedes separar otra.",
+    );
+    expect(r.enlace).toEqual({ texto: "Ver mis pedidos", href: "/cuenta/pedidos" });
+  });
+
+  it("cada negativa conocida dice su frase, sin camino aparte; lo que la base no explica, «no pudimos separar ahora»", () => {
+    expect(respuestaDeSeparar("tienda_separar_precio")).toEqual({
+      mensaje: "El precio de una prenda cambió. Revisa tu bolsa y vuelve a tocar «Separar».",
+      enlace: null,
+    });
+    for (const raro of [null, "otra_cosa", "toString", "__proto__"]) {
+      expect(respuestaDeSeparar(raro), String(raro)).toEqual({ mensaje: SEPARAR_SIN_RESPUESTA, enlace: null });
+    }
   });
 });
 

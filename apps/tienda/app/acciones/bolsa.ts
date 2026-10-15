@@ -16,8 +16,8 @@ import {
   BOLSA_CAMBIO,
   elegirSede,
   esId,
-  MENSAJES_SEPARAR,
   quitarUna,
+  respuestaDeSeparar,
   revisarParaAgregar,
   SEPARAR_SIN_RESPUESTA,
   sinPrendas,
@@ -130,8 +130,9 @@ export async function elegirTiendaDeRecojo(datos: FormData): Promise<void> {
 }
 
 /** El aviso de un intento que no separó, con la marca de la bolsa de ese momento: la página lo muestra mientras la bolsa siga
- *  siendo esa (si el cliente quita una prenda o cambia de tienda, el aviso ya no corresponde y se va). */
-export type EstadoSeparar = { mensaje: string; marca: string | null } | null;
+ *  siendo esa (si el cliente quita una prenda o cambia de tienda, el aviso ya no corresponde y se va). `enlace`: adónde ir a
+ *  resolverlo, si es en otra página (con el tope de separaciones, «Mis pedidos»). */
+export type EstadoSeparar = { mensaje: string; marca: string | null; enlace?: { texto: string; href: string } | null } | null;
 
 const esquemaVistas = z
   .array(z.object({ variante_id: z.string(), cantidad: z.number().int().min(1), precio: z.number().nonnegative() }))
@@ -174,7 +175,7 @@ export async function separar(_previo: EstadoSeparar, datos: FormData): Promise<
   const r = await separarEnBase(sesion.usuarioId, sede, vistas, marca);
   if (!r.ok) {
     refresh();
-    return { mensaje: (r.hint ? MENSAJES_SEPARAR[r.hint] : undefined) ?? SEPARAR_SIN_RESPUESTA, marca };
+    return { ...respuestaDeSeparar(r.hint), marca };
   }
   await guardarBolsa(sinPrendas(bolsa));
   redirect(`/bolsa/separado/${r.codigo}`);

@@ -217,14 +217,26 @@ export const INSIGNIA: Record<EstadoPedido, { texto: string; tono: "ambar" | "ve
   anulado: { texto: "Anulado", tono: "rojo" },
 };
 
-/** Por qué la tienda cerró un pedido, con las palabras de la hoja del ERP (maqueta: «No confirmar» y «Anular»). */
-export const MOTIVO_DE_CIERRE: Record<string, string> = {
-  sin_stock: "No hay stock",
-  cliente_no_respondio: "El cliente no respondió",
-  cliente_desistio: "El cliente desistió",
-  cliente_no_pago: "El cliente no pagó",
-  error_en_pedido: "Error en el pedido",
+/**
+ * Por qué la tienda cerró un pedido, dicho PARA EL CLIENTE (Felipe, 2026-10-14). La tienda elige su motivo en la hoja del ERP con
+ * palabras de la tienda («El cliente no pagó»); el cliente lee una frase escrita para él, que explica sin acusarlo. Las claves son las
+ * que acepta la base: al no confirmar (`no_confirmar_pedido_web`: sin_stock, cliente_no_respondio, cliente_desistio) y al anular uno
+ * confirmado (`anular_pedido_web`: cliente_no_pago, cliente_desistio, error_en_pedido). El pedido que se cerró solo (vencido,
+ * `sin_confirmar`) tiene su propia explicación en la página. Solo cambia el texto: ninguna regla.
+ */
+const MOTIVO_PARA_EL_CLIENTE: Record<string, string> = {
+  sin_stock: "Cuando la tienda fue a separarlo, alguna de las prendas ya no estaba disponible.",
+  cliente_no_respondio: "La tienda no pudo comunicarse contigo para confirmarlo.",
+  cliente_desistio: "Se canceló a pedido tuyo.",
+  cliente_no_pago: "No se registró tu pago a tiempo.",
+  error_en_pedido: "Hubo un error con el pedido y la tienda tuvo que cancelarlo.",
 };
+/** Para un motivo que la tienda no conoce todavía (uno nuevo del ERP): lo neutro. */
+const MOTIVO_NEUTRO = "La tienda canceló este pedido.";
+
+/** La frase de por qué se cerró, para el cliente (la página le suma «Si tienes dudas, escríbele a CAYLA …»). */
+export const porQueSeCerro = (motivo: string | null): string =>
+  motivo !== null && Object.hasOwn(MOTIVO_PARA_EL_CLIENTE, motivo) ? MOTIVO_PARA_EL_CLIENTE[motivo] : MOTIVO_NEUTRO;
 
 export type Hito = { nombre: string; cuando: string | null; estado: "hecho" | "ahora" | "falta" };
 

@@ -335,21 +335,40 @@ export const cuantas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
 
 /* ---------------- Lo que dice el servidor al agregar o al separar ---------------- */
 
+/** Cuántas separaciones puede tener un cliente esperando que la tienda confirme, a la vez (Felipe, 2026-10-14). Lo hace cumplir la base
+ *  (`tienda_separar`, hint `tienda_separar_tope`); aquí solo se dice. Si el tope de la base cambia, este número cambia con él. */
+const TOPE_POR_CONFIRMAR = 3;
+
 /** Las respuestas de «Separar» que la base explica con su hint, en palabras de tienda. Lo demás: «no pudimos separar ahora». */
-export const MENSAJES_SEPARAR: Record<string, string> = {
+const MENSAJES_SEPARAR: Record<string, string> = {
   tienda_separar_precio: "El precio de una prenda cambió. Revisa tu bolsa y vuelve a tocar «Separar».",
   tienda_separar_agotada: "Una prenda se agotó mientras la mirabas. Quítala para separar.",
   tienda_separar_no_publicada: "Una prenda ya no está en la tienda online. Quítala para separar.",
   tienda_separar_no_se_vende: "Una prenda no se vende en esa tienda. Quítala o elige otra tienda.",
   tienda_separar_tienda: "Esa tienda no recibe pedidos de la web ahora. Elige otra.",
+  tienda_separar_tope: `Ya tienes ${TOPE_POR_CONFIRMAR} separaciones esperando que la tienda confirme. Cuando te confirmen una (o se cierre), puedes separar otra.`,
   pedido_web_muchas_prendas: `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas. Quita alguna para separar.`,
   tienda_sin_cuenta: "Tu cuenta no terminó de crearse. Entra a «Mi cuenta» para terminarla.",
   // Lo que llegó no se pudo leer (una bolsa vieja, una pestaña a medias): se vuelve a mirar la bolsa de ahora.
   pedido_web_linea_invalida: "Revisa tu bolsa y vuelve a tocar «Separar».",
   pedido_web_bolsa_vacia: "Revisa tu bolsa y vuelve a tocar «Separar».",
 };
+/** Cuando lo que hay que hacer está en otra página, el mensaje lleva su camino: con el tope, los pedidos que esperan. */
+const CAMINOS_SEPARAR: Record<string, { texto: string; href: string }> = {
+  tienda_separar_tope: { texto: "Ver mis pedidos", href: "/cuenta/pedidos" },
+};
 export const SEPARAR_SIN_RESPUESTA = "No pudimos separar ahora. Tu bolsa sigue aquí: vuelve a intentarlo en un momento.";
 export const BOLSA_CAMBIO = "Tu bolsa cambió en otra pestaña. Revísala y vuelve a tocar «Separar».";
+
+/** Lo que se le dice al cliente cuando «Separar» no separó: la frase de la negativa de la base (por su hint) y, si la hay, adónde ir.
+ *  Lo que la base no explica (o no contestó): «No pudimos separar ahora». */
+export function respuestaDeSeparar(hint: string | null): { mensaje: string; enlace: { texto: string; href: string } | null } {
+  const conocido = (m: Record<string, unknown>) => hint !== null && Object.hasOwn(m, hint);
+  return {
+    mensaje: conocido(MENSAJES_SEPARAR) ? MENSAJES_SEPARAR[hint as string] : SEPARAR_SIN_RESPUESTA,
+    enlace: conocido(CAMINOS_SEPARAR) ? CAMINOS_SEPARAR[hint as string] : null,
+  };
+}
 
 /** El aviso de abajo al agregar (maqueta, `agregarABolsa`). */
 export const avisoAgregada = (p: Pick<PrendaEnLaBolsa, "nombre" | "color" | "talla">) =>

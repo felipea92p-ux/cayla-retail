@@ -9,6 +9,7 @@ import {
   interpretarUnPedido,
   mensajeWhatsapp,
   nombreTienda,
+  porQueSeCerro,
   vivas,
   type Pedido,
 } from "./pedidos";
@@ -144,5 +145,28 @@ describe("la línea de tiempo y el reloj", () => {
   it("«Blanco · Talla M»", () => {
     expect(detalleDeLaPrenda({ color: { nombre: "Blanco", hex: null }, talla: "M" })).toBe("Blanco · Talla M");
     expect(detalleDeLaPrenda({ color: { nombre: null, hex: null }, talla: null })).toBe("");
+  });
+});
+
+describe("por qué se cerró, dicho para el cliente (Felipe, 2026-10-14)", () => {
+  // Los motivos que acepta la base: al no confirmar (no_confirmar_pedido_web) y al anular uno confirmado (anular_pedido_web).
+  const MOTIVOS_DE_LA_BASE = ["sin_stock", "cliente_no_respondio", "cliente_desistio", "cliente_no_pago", "error_en_pedido"];
+
+  it("cada motivo de la base tiene su frase, escrita para el cliente: ninguna habla «del cliente» ni repite la etiqueta del ERP", () => {
+    const frases = MOTIVOS_DE_LA_BASE.map(porQueSeCerro);
+    expect(new Set(frases).size).toBe(MOTIVOS_DE_LA_BASE.length);
+    for (const f of frases) {
+      expect(f).not.toMatch(/cliente/i);
+      expect(f).not.toBe("La tienda canceló este pedido.");
+      expect(f).toMatch(/\.$/);
+    }
+    expect(porQueSeCerro("cliente_no_pago")).toBe("No se registró tu pago a tiempo.");
+    expect(porQueSeCerro("cliente_desistio")).toBe("Se canceló a pedido tuyo.");
+  });
+
+  it("un motivo que no conoce (o ninguno) dice lo neutro", () => {
+    for (const m of [null, "otro", "motivo_nuevo_del_erp", "toString"]) {
+      expect(porQueSeCerro(m), String(m)).toBe("La tienda canceló este pedido.");
+    }
   });
 });

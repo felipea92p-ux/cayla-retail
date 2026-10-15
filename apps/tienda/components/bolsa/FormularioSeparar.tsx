@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, type ReactNode } from "react";
+import Link from "next/link";
 import { separar, type EstadoSeparar } from "@/app/acciones/bolsa";
 import { Icono } from "../Icono";
 
@@ -33,6 +34,14 @@ export function FormularioSeparar({
       {estado && estado.marca === marca ? (
         <p className="w-error-general" role="alert">
           {estado.mensaje}
+          {estado.enlace && (
+            <>
+              {" "}
+              <Link className="w-enlace" href={estado.enlace.href}>
+                {estado.enlace.texto}
+              </Link>
+            </>
+          )}
         </p>
       ) : (
         <p className="w-faltan">{nota}</p>
