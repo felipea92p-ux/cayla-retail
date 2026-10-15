@@ -20,11 +20,14 @@ import {
   cantidadConUnidad,
   dudaDeCantidadInsumo,
   dudaDePrecioInsumo,
+  importeCentimos,
   leerCantidadInsumo,
   leerPrecioInsumo,
   nombreUnidad,
 } from "./ordenes-insumo-reglas";
 import { costoParaCaja } from "./comprobante-orden-insumo-reglas";
+import { soles } from "./compras-reglas";
+import { unirConY } from "./precio-sede-reglas";
 import { MOTIVOS_CIERRE, type MotivoCierre } from "./recibir-produccion-reglas";
 
 /** Por qué no va a llegar el resto: los mismos motivos que la recepción del papel. */
@@ -210,6 +213,59 @@ export function lotesQueSeAbren(o: Pick<OrdenInsumoPorRecibir, "lineas">, entrad
     const m = e ? milesimasQueLlegan(l, e) : milesimas(l.queda);
     return m != null && m > 0;
   }).length;
+}
+
+/** Lo que el proveedor queda debiendo de una línea que se cierra, en céntimos: lo que queda × el costo de la hoja, como la base
+ *  (`round(cantidad × costo, 2)`). null si la línea no cierra o el costo no se entiende. */
+export function deudaDeLineaCentimos(l: Pick<LineaOIPorRecibir, "queda">, e: Pick<EntradaRecepcionOI, "llego" | "noLlegara" | "costo">): number | null {
+  if (!cierraLinea(l, e)) return null;
+  const resto = milesimasQueQuedan(l, e);
+  const costo = leerPrecioInsumo(e.costo);
+  return resto == null || costo.tipo !== "ok" ? null : importeCentimos(resto, costo.escalado);
+}
+
+/**
+ * Lo que pasa con lo que no llega ahora, bajo la casilla de su línea (/formidable 2026-10-14: «El resto seguirá pendiente» salía antes de
+ * marcarla y se leía como lo contrario, y «nos debe… a este costo» no decía cuánto). null si no queda resto (o «Llegó» va en blanco: llega todo).
+ */
+export function textoDelRestoOI(l: Pick<LineaOIPorRecibir, "queda" | "unidad">, e: Pick<EntradaRecepcionOI, "llego" | "noLlegara" | "costo">): string | null {
+  if (e.llego.trim() === "") return null;
+  const resto = milesimasQueQuedan(l, e);
+  if (resto == null || resto <= 0) return null;
+  const cuanto = cantidadConUnidad(resto / 1000, l.unidad);
+  if (!e.noLlegara) return `Si no va a llegar, márcalo. Si no lo marcas, lo que falta (${cuanto}) sigue pendiente para otra entrega.`;
+  const deuda = deudaDeLineaCentimos(l, e);
+  return deuda == null ? `Queda anotado en la orden: el proveedor nos debe ${cuanto}.` : `El proveedor nos debe ${cuanto}: ${soles(deuda / 100)}, al costo de arriba.`;
+}
+
+/**
+ * Lo que va a pasar al registrar, en palabras del Taller, sobre el botón (/formidable 2026-10-14: el pie contaba «3 lotes» y «1 insumo»).
+ * Dice cuánto entra de cada insumo —también lo que entra por una caja en blanco— y qué no va a llegar, con lo que nos debe el proveedor.
+ * null si no entra ni se anota nada.
+ */
+export function resumenDeRecepcionOI(o: Pick<OrdenInsumoPorRecibir, "lineas">, entradas: readonly EntradaRecepcionOI[]): string | null {
+  const entran: { texto: string; milesimas: number }[] = [];
+  const noLlegan: { texto: string; milesimas: number }[] = [];
+  let debe = 0;
+  for (const l of o.lineas) {
+    const e = entradas.find((x) => x.itemId === l.itemId) ?? entradaInicialOI(l);
+    const m = milesimasQueLlegan(l, e);
+    if (m != null && m > 0) entran.push({ texto: `${cantidadConUnidad(m / 1000, l.unidad)} de ${l.insumo}`, milesimas: m });
+    const deuda = deudaDeLineaCentimos(l, e);
+    if (deuda != null) {
+      const resto = milesimasQueQuedan(l, e) ?? 0;
+      noLlegan.push({ texto: `${cantidadConUnidad(resto / 1000, l.unidad)} de ${l.insumo}`, milesimas: resto });
+      debe += deuda;
+    }
+  }
+  // «Entra 1 metro», «entran 10 metros»; con dos o más insumos, siempre plural.
+  const plural = (xs: readonly { milesimas: number }[]) => xs.length > 1 || xs[0]?.milesimas !== 1000;
+  const lista = (xs: readonly { texto: string }[]) => unirConY(xs.map((x) => x.texto));
+  const partes = [
+    entran.length > 0 ? `${plural(entran) ? "Entran" : "Entra"} al Taller ${lista(entran)}.` : null,
+    noLlegan.length > 0 ? `No ${plural(noLlegan) ? "llegarán" : "llegará"} ${lista(noLlegan)}: el proveedor nos debe ${soles(debe / 100)}.` : null,
+  ].filter(Boolean);
+  return partes.length > 0 ? partes.join(" ") : null;
 }
 
 /** Los campos de la guía de foco, en el orden de la hoja. La guía no inventa reglas: son las de `recibir_orden_insumo`. */

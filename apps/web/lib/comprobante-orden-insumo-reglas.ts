@@ -18,7 +18,7 @@
 
 import type { CampoDeGuia } from "./guia-campos";
 import { aTexto, leerNumero, textoParaBase } from "./orden-compra-alta";
-import { soles } from "./compras-reglas";
+import { fechaCorta, soles } from "./compras-reglas";
 import {
   TOPES_COMPROBANTE,
   discriminaIgv,
@@ -41,7 +41,9 @@ import {
   leerCantidadInsumo,
   leerPrecioInsumo,
   nombreUnidad,
+  type CierreDeOrdenInsumo,
   type DetalleOrdenInsumo,
+  type FueraDeOrdenInsumo,
   type LineaOrdenInsumo,
 } from "./ordenes-insumo-reglas";
 
@@ -100,11 +102,39 @@ export function textoPapelDeLineaInsumo(p: Pick<PedidaInsumo, "cantidad" | "fact
   return deMas > 0 ? `${base} · ${cifraDeCantidad(deMas / 1000)} de más` : base;
 }
 
-/** Lo que ya entró al Taller de la orden entera (actividad 3): null si todavía nada; «completa» si de cada línea llegó lo pedido o lo
- *  facturado, lo mayor (lo mismo que deja de ofrecer Producción ▸ Recibir); «en_parte» si no. */
-export function recepcionDeOrdenInsumo(pedidas: readonly Pick<PedidaInsumo, "cantidad" | "facturado" | "recibido">[]): "en_parte" | "completa" | null {
-  if (!pedidas.some((p) => p.recibido > 0)) return null;
-  return pedidas.every((p) => milesimas(p.recibido) >= Math.max(milesimas(p.cantidad), milesimas(p.facturado))) ? "completa" : "en_parte";
+/**
+ * Cómo va la recepción de la orden entera, diciendo LO MISMO que Producción ▸ Recibir (que deja de ofrecerla cuando no queda nada):
+ * null si todavía no entró ni se anotó nada; «en_parte» si queda algo por recibir —de lo pedido o de lo que el papel trajo fuera de la
+ * orden—; «completa» si llegó todo; «cerrada» si no queda nada pero algo no va a llegar (el proveedor nos debe). Lo pendiente de una línea es
+ * lo mayor entre lo pedido y lo facturado, menos lo recibido y lo anotado. Antes no contaba lo anotado ni lo de fuera de la orden: la orden
+ * quedaba «en parte» para siempre aunque Recibir ya no la ofreciera, o decía «llegó todo» con el hilo todavía por recibir (/formidable
+ * 2026-10-14, el escéptico).
+ */
+export function recepcionDeOrdenInsumo(
+  pedidas: readonly Pick<PedidaInsumo, "itemId" | "cantidad" | "facturado" | "recibido">[],
+  cierres: readonly Pick<CierreDeOrdenInsumo, "itemId" | "cantidad">[] = [],
+  fuera: readonly Pick<FueraDeOrdenInsumo, "recibido" | "cerrado" | "queda">[] = [],
+): "en_parte" | "completa" | "cerrada" | null {
+  const anotoAlgo = cierres.length > 0 || fuera.some((f) => f.cerrado > 0);
+  if (!pedidas.some((p) => p.recibido > 0) && !fuera.some((f) => f.recibido > 0) && !anotoAlgo) return null;
+  const anotadoDe = (itemId: string | null) =>
+    itemId === null ? 0 : cierres.filter((c) => c.itemId === itemId).reduce((s, c) => s + milesimas(c.cantidad), 0);
+  const quedaAlgo =
+    pedidas.some((p) => Math.max(milesimas(p.cantidad), milesimas(p.facturado)) - milesimas(p.recibido) - anotadoDe(p.itemId) > 0) ||
+    fuera.some((f) => milesimas(f.queda) > 0);
+  if (quedaAlgo) return "en_parte";
+  return anotoAlgo ? "cerrada" : "completa";
+}
+
+/** Bajo una línea que el papel trajo fuera de la orden: «Llegó al Taller: 3 de 3 conos», con lo anotado y lo que queda si los hay. */
+export function textoDeFueraDeOrden(f: Pick<FueraDeOrdenInsumo, "facturado" | "recibido" | "cerrado" | "queda" | "unidad">): string {
+  return [
+    `Llegó al Taller: ${cifraDeCantidad(f.recibido)} de ${cantidadConUnidad(f.facturado, f.unidad)}`,
+    f.cerrado > 0 ? `No llegó: ${cantidadConUnidad(f.cerrado, f.unidad)}` : null,
+    f.queda > 0 ? `queda${f.queda === 1 ? "" : "n"} ${cantidadConUnidad(f.queda, f.unidad)} por recibir` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** «10 de 12.5 metros» (contra lo pedido, o lo facturado si es más): lo que dice cada línea de la orden abierta. */
@@ -310,9 +340,11 @@ export function problemaDeRenglonInsumo(l: LineaPapelInsumo, ctx: Pick<ContextoP
 
 /**
  * Los campos de la guía de foco, en el orden de la pantalla. `hecho` y `requerido` son las reglas de la base: la guía no inventa ninguna
- * (lo vigila la prueba, contra los casos de `scripts/pruebas/comprobante_orden_insumo.mjs`). El tipo de papel y cómo se paga arrancan con un
- * valor de fábrica que importa (cambian el IGV, si hay serie, y si hay vencimiento o pago): hasta que la persona los elige —aunque elija el
- * mismo— son «sugeridos»: la luz pasa por ellos y nunca bloquean (ADR-0284 act. h). `responsable` solo cuenta en una terminal (decisión 39).
+ * (lo vigila la prueba, contra los casos de `scripts/pruebas/comprobante_orden_insumo.mjs`). La pantalla arranca el tipo de papel y cómo se
+ * paga VACÍOS (Felipe 2026-10-14, /formidable, como Compras desde el 13/10): vacíos, son lo que falta, porque un valor de fábrica que cambia
+ * el IGV o si hay pago no se adivina (con solo serie y número se registraba una factura al crédito con IGV). Si un llamador los trae puestos
+ * sin que la persona los haya elegido (`elegido` en falso), son «sugeridos»: la luz pasa por ellos y no bloquean (ADR-0284 act. h).
+ * `responsable` solo cuenta en una terminal (decisión 39).
  */
 export function camposDelPapelInsumo(
   b: BorradorPapelInsumo,
@@ -390,6 +422,41 @@ export function camposDelPapelInsumo(
     campos.push({ id: "responsable", nombre: "Quién lo registra", requerido: true, hecho: responsable.listo, pendiente: responsable.motivo ?? "Elige quién registra el comprobante." });
   }
   return campos;
+}
+
+/** Cómo se nombra cada medio dentro de una frase («pagada con transferencia», «con Yape»). */
+const MEDIO_EN_FRASE: Record<string, string> = {
+  transferencia: "transferencia",
+  yape: "Yape",
+  plin: "Plin",
+  efectivo: "efectivo",
+  deposito: "depósito",
+  otro: "otro medio",
+};
+
+/**
+ * Lo que se va a registrar, en una línea sobre el botón (/formidable 2026-10-14: «Todo listo para registrar» no decía qué): el papel con su
+ * número, el total y cómo se paga. La pantalla la muestra cuando la guía no tiene nada pendiente; null mientras falte el tipo o cómo se paga.
+ * `cuentaDe` da el nombre de la cuenta de un medio al contado («BCP Empresa», «tu fondo»), o null si todavía no se sabe.
+ */
+export function resumenDelPapelInsumo(
+  b: Pick<BorradorPapelInsumo, "tipo" | "serie" | "numero" | "condicion" | "vencimiento" | "pagos">,
+  totalCentimos: number,
+  cuentaDe: (p: PagoBorrador) => string | null,
+): string | null {
+  if (b.tipo === "" || b.condicion === "") return null;
+  const papel =
+    b.tipo === "sin_comprobante"
+      ? "la compra sin comprobante"
+      : `${b.tipo === "factura" ? "la factura" : b.tipo === "boleta" ? "la boleta" : "la nota de venta"} ${textoParaBase(b.serie).toUpperCase()}-${textoParaBase(b.numero)}`;
+  const total = soles(totalCentimos / 100);
+  if (b.condicion === "credito") return `Vas a registrar ${papel} por ${total}, al crédito: vence el ${fechaCorta(b.vencimiento)}.`;
+  const medios = b.pagos.filter((p) => p.metodo);
+  if (medios.length === 1) {
+    const cuenta = cuentaDe(medios[0]);
+    return `Vas a registrar ${papel} por ${total}, pagada con ${MEDIO_EN_FRASE[medios[0].metodo] ?? medios[0].metodo}${cuenta ? ` desde ${cuenta}` : ""}.`;
+  }
+  return `Vas a registrar ${papel} por ${total}, pagada con ${medios.length} medios.`;
 }
 
 /** El primer problema que impide registrar (o null): lo mismo que la guía, dicho de una vez. Es la red de seguridad de «Registrar»; la

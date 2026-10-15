@@ -386,6 +386,24 @@ export type CierreDeOrdenInsumo = {
   por: string | null;
 };
 
+/** Lo que un papel de la orden trajo SIN estar en ella (decisión 43), con lo que pasó en el Taller: lo recibido, lo anotado como «no
+ *  llegará» y lo que queda (/formidable 2026-10-14: la orden no lo mostraba). Solo de papeles vigentes. */
+export type FueraDeOrdenInsumo = {
+  /** `comprobantes_produccion_items.id`. */
+  itemId: string;
+  comprobanteId: string;
+  /** El papel que lo trajo («F777-0001»). */
+  documento: string;
+  insumo: string;
+  codigo: string | null;
+  unidad: string;
+  facturado: number;
+  costoUnitario: number;
+  recibido: number;
+  cerrado: number;
+  queda: number;
+};
+
 export type DetalleOrdenInsumo = {
   id: string;
   numero: number;
@@ -416,6 +434,8 @@ export type DetalleOrdenInsumo = {
   plazoCreditoDias: number | null;
   /** Lo que no llegó (vacío si nada, o si la base todavía no lo trae). */
   cierres: CierreDeOrdenInsumo[];
+  /** Lo que sus papeles trajeron fuera de la orden (vacío si nada, o si la base todavía no lo trae). */
+  fueraDeOrden: FueraDeOrdenInsumo[];
 };
 
 function leerLineas(data: unknown): LineaOrdenInsumo[] {
@@ -551,6 +571,35 @@ function leerCierres(data: unknown): CierreDeOrdenInsumo[] {
     .filter((c): c is CierreDeOrdenInsumo => c !== null);
 }
 
+function leerFueraDeOrden(data: unknown): FueraDeOrdenInsumo[] {
+  return (Array.isArray(data) ? data : [])
+    .map((f): FueraDeOrdenInsumo | null => {
+      if (!f || typeof f !== "object") return null;
+      const r = f as Record<string, unknown>;
+      const itemId = texto(r.item_id);
+      const comprobanteId = texto(r.comprobante_id);
+      const documento = texto(r.documento);
+      const insumo = texto(r.insumo);
+      const unidad = texto(r.unidad);
+      const facturado = cifra(r.facturado);
+      if (!itemId || !comprobanteId || !documento || !insumo || !unidad || facturado == null) return null;
+      return {
+        itemId,
+        comprobanteId,
+        documento,
+        insumo,
+        codigo: texto(r.codigo),
+        unidad,
+        facturado,
+        costoUnitario: cifra(r.costo_unitario) ?? 0,
+        recibido: cifra(r.recibido) ?? 0,
+        cerrado: cifra(r.cerrado) ?? 0,
+        queda: cifra(r.queda) ?? 0,
+      };
+    })
+    .filter((f): f is FueraDeOrdenInsumo => f !== null);
+}
+
 /** Lee `fn_orden_insumo`; null si no llegó una orden (no existe, o la respuesta no se entiende). Una línea rara se descarta. */
 export function leerDetalleOrdenInsumo(data: unknown): DetalleOrdenInsumo | null {
   if (!data || typeof data !== "object" || Array.isArray(data)) return null;
@@ -592,11 +641,14 @@ export function leerDetalleOrdenInsumo(data: unknown): DetalleOrdenInsumo | null
     comprobantes: leerPapeles(d.comprobantes),
     plazoCreditoDias: cifra(d.plazo_credito_dias),
     cierres: leerCierres(d.cierres),
+    fueraDeOrden: leerFueraDeOrden(d.fuera_de_orden),
   };
 }
 
-/** ¿Ya entró algo de esta orden al Taller? (fase 7 parte 2, actividad 3). */
-export const tieneRecibidoInsumo = (d: Pick<DetalleOrdenInsumo, "facturacion">): boolean => d.facturacion.some((f) => f.recibido > 0);
+/** ¿La orden ya tiene una recepción en el Taller? (fase 7 parte 2, actividades 3 y 4): algo recibido —pedido o fuera de la orden— o algo
+ *  anotado como «no llegará». Es el mismo candado de la base (`orden_insumo_con_recepcion`: hay una recepción). */
+export const tieneRecibidoInsumo = (d: Pick<DetalleOrdenInsumo, "facturacion"> & Partial<Pick<DetalleOrdenInsumo, "cierres" | "fueraDeOrden">>): boolean =>
+  d.facturacion.some((f) => f.recibido > 0) || (d.cierres?.length ?? 0) > 0 || (d.fueraDeOrden ?? []).some((f) => f.recibido > 0);
 
 /**
  * «Editar» y «Anular orden»: lo mismo que rechazan `editar_orden_insumo` y `anular_orden_insumo` (que siguen siendo el candado). Solo una

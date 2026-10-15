@@ -11,6 +11,7 @@ import {
   papelDeOrdenInsumo,
   pedidasDeLaOrden,
   recepcionDeOrdenInsumo,
+  textoDeFueraDeOrden,
   textoPapelDeLineaInsumo,
   textoRecibidoDeLineaInsumo,
   type PedidaInsumo,
@@ -18,11 +19,13 @@ import {
 import {
   ESTADO_ORDEN,
   cantidadConUnidad,
+  importeCentimos,
   nombreUnidad,
   precioUnitarioTexto,
   textoCantidades,
   type CierreDeOrdenInsumo,
   type DetalleOrdenInsumo as Detalle,
+  type FueraDeOrdenInsumo,
 } from "@/lib/ordenes-insumo-reglas";
 
 // Una orden de insumos por dentro (ADR-0362, fase 7 · actividad 2): lo mismo en la ventana que se abre sobre la lista y en la página que
@@ -35,6 +38,10 @@ import {
 //
 // Lo que no llegó (fase 7 parte 2, actividad 4): cada línea dice cuánto se cerró («No llegó: 4.5 metros») y, bajo los papeles, «Lo que no
 // llegó» lista cada cierre con su motivo, quién lo anotó y lo que el proveedor nos debe a su costo. Cómo se salda llega con la fase 5b.
+//
+// Lo que el papel trajo fuera de la orden (decisión 43; /formidable 2026-10-14): bajo la tabla, «No estaba en la orden» lista cada línea
+// con su papel, su monto y lo que pasó en el Taller. Explica por qué un papel suma más que la orden, y la recepción de la orden (su etiqueta
+// y su nota) la cuenta: dice lo mismo que Producción ▸ Recibir.
 //
 // Con papel (fase 7 parte 2): cada línea dice cuánto llegó ya en comprobantes («Llegó en papel: 10 de 12.5 metros») y, bajo la tabla, van los
 // papeles de la orden. Sin «Anular» aquí: anular un papel del Taller es del líder (Producción ▸ Comprobantes), y la nota lo dice para que
@@ -58,14 +65,9 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
   // «Llegó en papel» solo cuando la orden ya tiene algo en papel: en una sin papel, «0 de 12.5 metros» en cada línea sería ruido. Lo mismo
   // «Llegó al Taller» (actividad 3): solo cuando ya entró algo.
   const papel = papelDeOrdenInsumo(pedidas);
-  const recepcion = recepcionDeOrdenInsumo(pedidas);
+  // Cómo va la recepción, como la ve Producción ▸ Recibir: con lo anotado como «no llegará» y lo de fuera de la orden.
+  const recepcion = recepcionDeOrdenInsumo(pedidas, d.cierres, d.fueraDeOrden);
   const nosDebe = d.cierres.reduce((s, c) => s + c.importe, 0);
-  // ¿Queda algo por recibir? Lo mayor entre lo pedido y lo facturado, menos lo recibido y lo que se cerró (en milésimas: sin flotantes).
-  const mil = (n: number) => Math.round(n * 1000);
-  const quedaPorRecibir = pedidas.some(
-    (l) =>
-      mil(Math.max(l.cantidad, l.facturado)) - mil(l.recibido) - d.cierres.filter((c) => l.itemId !== null && c.itemId === l.itemId).reduce((s, c) => s + mil(c.cantidad), 0) > 0,
-  );
   return (
     <div className="@container space-y-5">
       {d.estado === "anulada" && (
@@ -133,6 +135,8 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
         </div>
       </Tabla>
 
+      <FueraDeLaOrden fuera={d.fueraDeOrden} />
+
       <ComprobantesDeOrdenInsumo orden={d} />
 
       <LoQueNoLlego cierres={d.cierres} nosDebe={nosDebe} />
@@ -140,7 +144,7 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
       {/* Con algo recibido en el Taller (actividad 3), la orden ya no se edita ni se anula: lo dice para que nadie busque el botón. */}
       {recepcion && d.estado === "generada" && (
         <p data-guia="oi.recibido" className="nota-cayla">
-          Ya llegaron insumos de esta orden al Taller: no se edita ni se anula.{quedaPorRecibir ? " Lo que falta se recibe en Producción ▸ Recibir." : ""}
+          Ya llegaron insumos de esta orden al Taller: no se edita ni se anula.{recepcion === "en_parte" ? " Lo que falta se recibe en Producción ▸ Recibir." : ""}
         </p>
       )}
 
@@ -188,7 +192,11 @@ export function DetalleOrdenInsumo({ orden: d }: { orden: Detalle }) {
       <p data-guia="oi.pie" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">
         <Chip tono={estado.tono}>{estado.texto}</Chip>
         {papel && <Chip tono={papel === "completa" ? "verde" : "ambar"}>{papel === "completa" ? "Papel completo" : "Papel en parte"}</Chip>}
-        {recepcion && <Chip tono={recepcion === "completa" ? "verde" : "ambar"}>{recepcion === "completa" ? "Llegó todo" : "Llegó en parte"}</Chip>}
+        {recepcion && (
+          <Chip tono={recepcion === "en_parte" ? "ambar" : "verde"}>
+            {recepcion === "completa" ? "Llegó todo" : recepcion === "cerrada" ? "Recibida" : "Llegó en parte"}
+          </Chip>
+        )}
         {d.cierres.length > 0 && <Chip tono="ambar">Nos debe</Chip>}
         <span>
           Creada por {d.creadaPor ?? "alguien sin nombre en Dynamic"} el {creada.dia} a las {creada.hora}
@@ -261,6 +269,32 @@ function LineaDetalle({ l, conPapel, conRecepcion, noLlego }: { l: PedidaInsumo;
       </span>
       <span className={`${CIFRA} font-medium text-tinta`}>{soles(l.subtotal)}</span>
     </div>
+  );
+}
+
+// Lo que el papel trajo sin estar en la orden (decisión 43): cada línea con lo que pasó en el Taller, su papel y su monto (por qué el papel
+// suma más que la orden).
+function FueraDeLaOrden({ fuera }: { fuera: FueraDeOrdenInsumo[] }) {
+  if (fuera.length === 0) return null;
+  return (
+    <section aria-label="No estaba en la orden" data-guia="oi.fuera-de-orden" className="space-y-2">
+      <TituloGrupo nota="lo trajo el papel">No estaba en la orden</TituloGrupo>
+      <ul className="divide-y divide-sand rounded-xl border border-sand">
+        {fuera.map((f) => (
+          <li key={f.itemId} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
+            <span className="min-w-0 text-tinta">
+              {f.insumo} <span className="whitespace-nowrap tabular-nums">· {cantidadConUnidad(f.facturado, f.unidad)}</span>
+              <span className={`block text-xs tabular-nums ${f.queda > 0 ? "text-taupe" : f.cerrado > 0 ? "text-ambar" : "text-verde-profundo"}`}>
+                {textoDeFueraDeOrden(f)}
+              </span>
+            </span>
+            <span className="whitespace-nowrap text-xs tabular-nums text-taupe">
+              {f.documento} · {soles(importeCentimos(Math.round(f.facturado * 1000), Math.round(f.costoUnitario * 10_000)) / 100)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

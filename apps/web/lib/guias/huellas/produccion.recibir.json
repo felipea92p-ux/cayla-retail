@@ -27,7 +27,7 @@
       "CampoTexto «{`Costo por ${porUnidad}»",
       "CampoTexto «{`Código de lote de ${l.insumo}»",
       "Casilla «{`El resto de ${l.insumo}»",
-      "Desplegable «) : ( m != null && m > 0 &&»"
+      "Desplegable «)»"
     ]
   }
 }

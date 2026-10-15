@@ -18,6 +18,8 @@ import {
   recepcionDeOrdenInsumo,
   problemaDeRenglonInsumo,
   resumenDeAvisosInsumo,
+  resumenDelPapelInsumo,
+  textoDeFueraDeOrden,
   textoPapelDeLineaInsumo,
   textoRecibidoDeLineaInsumo,
   totalesPapelInsumo,
@@ -124,13 +126,38 @@ describe("el papel de una orden de insumos: las líneas de la orden", () => {
   });
 
   it("lo que ya entró al Taller (actividad 3): nada, en parte, todo; contra lo pedido o lo facturado, lo mayor", () => {
-    const l = (cantidad: number, facturado: number, recibido: number) => ({ cantidad, facturado, recibido, unidadMedida: "metro" });
+    const l = (cantidad: number, facturado: number, recibido: number, itemId = "it-lino") => ({ itemId, cantidad, facturado, recibido, unidadMedida: "metro" });
     expect(recepcionDeOrdenInsumo([l(12.5, 0, 0)])).toBeNull();
     expect(recepcionDeOrdenInsumo([l(12.5, 0, 10)])).toBe("en_parte");
     expect(recepcionDeOrdenInsumo([l(12.5, 15, 12.5)])).toBe("en_parte");
-    expect(recepcionDeOrdenInsumo([l(12.5, 15, 15), l(4, 0, 4)])).toBe("completa");
+    expect(recepcionDeOrdenInsumo([l(12.5, 15, 15), l(4, 0, 4, "it-hilo")])).toBe("completa");
     expect(textoRecibidoDeLineaInsumo(l(12.5, 0, 10))).toBe("10 de 12.5 metros");
     expect(textoRecibidoDeLineaInsumo(l(12.5, 15, 15))).toBe("15 de 15 metros");
+  });
+
+  it("dice lo mismo que Recibir: lo anotado como «no llegará» cierra la línea, y lo de fuera de la orden cuenta (/formidable 2026-10-14)", () => {
+    const l = (cantidad: number, recibido: number, itemId = "it-boton") => ({ itemId, cantidad, facturado: 0, recibido, unidadMedida: "unidad" });
+    const cierre = (cantidad: number, itemId = "it-boton") => ({ itemId, cantidad });
+    // 80 de 100 botones y los 20 restantes anotados: ya no queda nada, pero algo no llegó.
+    expect(recepcionDeOrdenInsumo([l(100, 80)], [cierre(20)])).toBe("cerrada");
+    // Sin anotarlos, sigue en parte.
+    expect(recepcionDeOrdenInsumo([l(100, 80)])).toBe("en_parte");
+    // Solo anotado (no llegó nada de nada): también cerrada.
+    expect(recepcionDeOrdenInsumo([l(4, 0)], [cierre(4)])).toBe("cerrada");
+    // Lo pedido completo, pero el hilo de fuera de la orden por recibir: en parte, no «llegó todo».
+    const hilo = (recibido: number, cerrado: number, queda: number) => ({ recibido, cerrado, queda });
+    expect(recepcionDeOrdenInsumo([l(100, 100)], [], [hilo(0, 0, 3)])).toBe("en_parte");
+    expect(recepcionDeOrdenInsumo([l(100, 100)], [], [hilo(3, 0, 0)])).toBe("completa");
+    expect(recepcionDeOrdenInsumo([l(100, 100)], [], [hilo(1, 2, 0)])).toBe("cerrada");
+    // Solo lo de fuera de la orden llegó: ya hay recepción.
+    expect(recepcionDeOrdenInsumo([l(100, 0)], [], [hilo(3, 0, 0)])).toBe("en_parte");
+  });
+
+  it("lo que trajo el papel fuera de la orden se cuenta en una línea: lo que llegó, lo que no y lo que queda", () => {
+    expect(textoDeFueraDeOrden({ facturado: 3, recibido: 3, cerrado: 0, queda: 0, unidad: "cono" })).toBe("Llegó al Taller: 3 de 3 conos");
+    expect(textoDeFueraDeOrden({ facturado: 10, recibido: 6, cerrado: 4, queda: 0, unidad: "unidad" })).toBe("Llegó al Taller: 6 de 10 unidades · No llegó: 4 unidades");
+    expect(textoDeFueraDeOrden({ facturado: 10, recibido: 0, cerrado: 0, queda: 10, unidad: "metro" })).toBe("Llegó al Taller: 0 de 10 metros · quedan 10 metros por recibir");
+    expect(textoDeFueraDeOrden({ facturado: 2, recibido: 1, cerrado: 0, queda: 1, unidad: "cono" })).toBe("Llegó al Taller: 1 de 2 conos · queda 1 cono por recibir");
   });
 
   it("la precarga pone lo pendiente con su costo; lo que ya llegó del todo se ofrece aparte", () => {
@@ -229,6 +256,49 @@ describe("el papel de una orden de insumos: lo que falta (las reglas de la base)
     expect(primerProblemaPapelInsumo(borrador({ nota: "x".repeat(501) }), CTX)).toMatch(/hasta 500 letras/);
     const conTerminal = camposDelPapelInsumo(borrador(), CTX, { tipo: true, condicion: true }, { pide: true, listo: false, motivo: null });
     expect(conTerminal.find((c) => c.id === "responsable")).toMatchObject({ requerido: true, hecho: false });
+  });
+});
+
+describe("el papel de una orden de insumos: nada viene puesto y el resumen antes del botón (/formidable 2026-10-14)", () => {
+  // Como lo llama la pantalla: lo elegido es lo que no está vacío.
+  const comoPantalla = (b: BorradorPapelInsumo) =>
+    camposDelPapelInsumo(b, CTX, { tipo: b.tipo !== "", condicion: b.condicion !== "" }, { pide: false, listo: true, motivo: null });
+
+  it("con el tipo y cómo se paga vacíos, faltan los dos (no son «sugeridos») y el botón no registra: era una factura al crédito con IGV", () => {
+    const b = borrador({ tipo: "", condicion: "" });
+    const tipo = comoPantalla(b).find((c) => c.id === "tipo");
+    const condicion = comoPantalla(b).find((c) => c.id === "condicion");
+    expect([tipo?.requerido, tipo?.sugerido, tipo?.hecho]).toEqual([true, false, false]);
+    expect([condicion?.requerido, condicion?.sugerido, condicion?.hecho]).toEqual([true, false, false]);
+    expect(primerProblemaPapelInsumo(b, CTX)).toBe("Elige qué papel te dieron: boleta, nota de venta, factura o sin comprobante.");
+    // Sin tipo, el total va sin IGV (S/ 139.00 y no S/ 164.02).
+    expect(totalesPapelInsumo(b).totalCentimos).toBe(13900);
+  });
+
+  it("al contado, el medio tampoco viene puesto: sin medio, falta el pago aunque el monto sea el total", () => {
+    const b = borrador({ tipo: "boleta", condicion: "contado", vencimiento: "", pagos: [{ monto: "139.00", metodo: "", referencia: "" }] });
+    expect(comoPantalla(b).filter((c) => c.requerido && !c.hecho).map((c) => c.id)).toEqual(["pago"]);
+  });
+
+  it("el resumen dice el papel, el total y cómo se paga; mientras falte el tipo o cómo se paga, nada", () => {
+    const sinCuenta = () => null;
+    expect(resumenDelPapelInsumo(borrador(), 16402, sinCuenta)).toBe("Vas a registrar la factura F001-77 por S/\u00a0164.02, al crédito: vence el 13/11/2026.");
+    expect(resumenDelPapelInsumo(borrador({ tipo: "sin_comprobante", serie: "", numero: "" }), 13900, sinCuenta)).toBe(
+      "Vas a registrar la compra sin comprobante por S/\u00a0139.00, al crédito: vence el 13/11/2026.",
+    );
+    const contado = (pagos: { monto: string; metodo: string; referencia: string; cuentaId?: string }[]) =>
+      borrador({ tipo: "boleta", serie: "b001", numero: " 890 ", condicion: "contado", pagos });
+    expect(resumenDelPapelInsumo(contado([{ monto: "139.00", metodo: "transferencia", referencia: "", cuentaId: "bcp" }]), 13900, (p) => (p.cuentaId === "bcp" ? "BCP Empresa" : null))).toBe(
+      "Vas a registrar la boleta B001-890 por S/\u00a0139.00, pagada con transferencia desde BCP Empresa.",
+    );
+    expect(resumenDelPapelInsumo(contado([{ monto: "139.00", metodo: "yape", referencia: "" }]), 13900, () => "tu fondo")).toBe(
+      "Vas a registrar la boleta B001-890 por S/\u00a0139.00, pagada con Yape desde tu fondo.",
+    );
+    expect(resumenDelPapelInsumo(contado([{ monto: "100", metodo: "efectivo", referencia: "" }, { monto: "39", metodo: "yape", referencia: "" }]), 13900, sinCuenta)).toBe(
+      "Vas a registrar la boleta B001-890 por S/\u00a0139.00, pagada con 2 medios.",
+    );
+    expect(resumenDelPapelInsumo(borrador({ tipo: "" }), 13900, sinCuenta)).toBeNull();
+    expect(resumenDelPapelInsumo(borrador({ condicion: "" }), 16402, sinCuenta)).toBeNull();
   });
 });
 

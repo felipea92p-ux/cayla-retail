@@ -1099,11 +1099,18 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       texto: "Si el Taller anotó que el resto de una línea no va a llegar, la línea lo dice en ámbar («No llegó: 4.5 metros»): ya no se espera.",
     },
     {
+      id: "fuera-de-orden",
+      ancla: "oi.fuera-de-orden",
+      opcional: true,
+      titulo: "Lo que no estaba en la orden",
+      texto: "Si un papel trajo algo que no se pidió, aparece aquí con su papel y su monto, y cuánto llegó al Taller o si no va a llegar. Por eso un papel puede sumar más que la orden.",
+    },
+    {
       id: "comprobantes",
       ancla: "oi.comprobantes",
       opcional: true,
       titulo: "Sus comprobantes",
-      texto: "Los papeles que el proveedor dio por esta orden, del más reciente al más antiguo, con su total y si siguen vigentes. Mientras tenga uno vigente, la orden no se edita ni se anula; si el papel está mal, tu líder lo anula y lo vuelves a registrar.",
+      texto: "Los papeles que el proveedor dio por esta orden, del más reciente al más antiguo, con su total y si siguen vigentes. Mientras tenga uno vigente, la orden no se edita ni se anula. Si el papel está mal, tu líder lo anula y lo vuelves a registrar, salvo que lo que respalda ya haya llegado o se haya anotado.",
     },
     {
       id: "no-llego",
@@ -1156,7 +1163,7 @@ export const GUIA_ORDEN_INSUMO: Guia = {
       ancla: "oi.registrar-comprobante",
       opcional: true,
       titulo: "Registrar su comprobante",
-      texto: "Cuando llega el papel del proveedor (o si no te dio ninguno), «Registrar comprobante» lo copia con lo que falta de la orden ya puesto. Te lleva a otra pantalla, así que en la demo no lo tocamos.",
+      texto: "Cuando llega el papel del proveedor (o si no te dio ninguno), «Registrar la compra» lo copia con lo que falta de la orden ya puesto. Te lleva a otra pantalla, así que en la demo no lo tocamos.",
     },
     {
       id: "anular",
@@ -1174,9 +1181,10 @@ export const GUIA_ORDEN_INSUMO: Guia = {
   ],
 };
 
-// El papel de una orden de insumos (ADR-0362, fase 7 parte 2 · actividad 1). Pantalla interna: se llega desde «Registrar comprobante» en
+// El papel de una orden de insumos (ADR-0362, fase 7 parte 2 · actividad 1). Pantalla interna: se llega desde «Registrar la compra» en
 // la orden abierta y no se ofrece sola. Registrar deja una deuda, así que la guía solo EXPLICA y el piloto no toca nada: ni elige el tipo ni
-// escribe una serie (ADR-0290: es la del papel del proveedor, no hay una que valga para todos).
+// escribe una serie (ADR-0290: es la del papel del proveedor, no hay una que valga para todos), ni elige cómo se paga: desde /formidable
+// (2026-10-14) nada viene puesto, y una demo que eligiera «Contado» para mostrar el pago dejaría elegido algo que la persona no eligió.
 export const GUIA_COMPROBANTE_ORDEN_INSUMO: Guia = {
   id: "ordenes-insumos.comprobante.id",
   ruta: "/ordenes-insumos/comprobante/[id]",
@@ -1214,7 +1222,7 @@ export const GUIA_COMPROBANTE_ORDEN_INSUMO: Guia = {
       id: "papel",
       ancla: "oi-comprobante.papel",
       titulo: "Qué papel es y cómo se paga",
-      texto: "Elige qué papel te dieron (boleta, nota de venta o factura) y copia su serie, su número y su fecha; si no te dieron ninguno, «Sin comprobante». Después, si va a crédito (lo paga tu líder; «Vence el» viene con el plazo del proveedor) o al contado. El interruptor suma el IGV de 18 %, solo en una factura.",
+      texto: "Nada viene elegido: eliges qué papel te dieron (boleta, nota de venta o factura; si ninguno, «Sin comprobante») y copias su serie, número y fecha. Después, cómo se paga: a crédito lo paga tu líder («Vence el» trae el plazo del proveedor); al contado se registra con su pago. El IGV de 18 % se suma solo en una factura.",
     },
     {
       id: "sin-papel",
@@ -1258,17 +1266,17 @@ export const GUIA_COMPROBANTE_ORDEN_INSUMO: Guia = {
     {
       id: "pago",
       ancla: "oi-comprobante.pago",
-      preparar: [{ tipo: "clic", ancla: "oi-comprobante.contado" }],
+      // Aparece solo al elegir «Contado»: la demo no lo elige (ver arriba), así que este paso se ve si la persona ya lo eligió.
+      opcional: true,
       titulo: "Si se paga al contado",
       texto: "Al contado se registra con su pago por el total: eliges el medio (efectivo, Yape, transferencia…), de dónde sale —una cuenta de la empresa o tu fondo por rendir— y, si hace falta, lo divides en varios medios. A crédito no se paga ahora: lo paga tu líder.",
     },
     {
       id: "registrar",
       ancla: "oi-comprobante.registrar",
-      preparar: [{ tipo: "clic", ancla: "oi-comprobante.credito" }],
-      titulo: "Registrar el comprobante",
+      titulo: "Registrar la compra",
       // Al registrar, la pantalla vuelve a la LISTA de órdenes con la orden marcada (`hrefOrdenInsumoGuardada`), no a la orden.
-      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta. «Registrar comprobante» (o «Registrar sin comprobante») lo deja por pagar, o pagado si fue al contado, y vuelves a la lista. «Cancelar» sale sin guardar. En la demo no lo tocamos.",
+      texto: "Una nota si hace falta; desde una terminal, quién lo registra. Encima del botón ves lo que falta y, con todo listo, lo que vas a registrar. «Registrar la compra» (o «Registrar sin comprobante») lo deja por pagar, o pagado si fue al contado, y vuelves a la lista. En la demo no lo tocamos.",
     },
     {
       id: "fin",
@@ -1277,7 +1285,6 @@ export const GUIA_COMPROBANTE_ORDEN_INSUMO: Guia = {
       texto: "Ya sabes copiar el papel de un proveedor del Taller. La flecha de arriba te devuelve a la lista. Para repasarlo: Mi perfil ▸ Demo ▸ Esta pantalla.",
     },
   ],
-  alSalir: [{ tipo: "clic", ancla: "oi-comprobante.credito", siEsta: true }],
 };
 
 export const GUIA_EDITAR_ORDEN_INSUMO: Guia = {

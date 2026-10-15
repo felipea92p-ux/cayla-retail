@@ -196,6 +196,7 @@ describe("editar: la orden guardada vuelve al formulario", () => {
     comprobantes: [],
     plazoCreditoDias: null,
     cierres: [],
+    fueraDeOrden: [],
   };
 
   it("el descuento vuelve como se escribió (en % si la línea lo recuerda, si no en soles) y el precio con sus decimales", () => {

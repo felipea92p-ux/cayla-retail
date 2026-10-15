@@ -118,9 +118,11 @@ export type DatosDelComprobante = {
 export const AVISO_DE_CORTE_COMPROBANTE =
   "Se cortó la conexión y no sabemos si el comprobante llegó a registrarse. Vuelve a pulsar «Registrar la compra» sin cambiar nada: si ya se registró, no se repite.";
 
-/** Lo que la base contesta cuando el mismo envío se repite con otros datos (la pantalla ofrece «Recargar»). */
+/** Lo que la base contesta cuando el mismo envío se repite con otros datos (la pantalla ofrece «Recargar»). También el `token_reusado` de
+ *  `fn_intento_con_huella` («Lo que mandas ahora no es lo que se mandó la primera vez»): tras un corte, si la persona corrige algo y
+ *  reintenta, ese envío ya se guardó con lo de antes y cada reintento chocaría igual; recargar muestra lo que quedó (/chaos 2026-10-14). */
 export function esEnvioConOtrosDatos(mensaje: string | null | undefined): boolean {
-  return !!mensaje && /ya se guard[óo] con otros datos/i.test(mensaje);
+  return !!mensaje && /ya se guard[óo] con otros datos|no es lo que se mand[óo] la primera vez/i.test(mensaje);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------

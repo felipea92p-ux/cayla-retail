@@ -27,7 +27,7 @@ export default async function RegistrarComprobanteOrdenInsumoPage({ params }: { 
   if (falla || !detalle) {
     return (
       <div className="space-y-6">
-        <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Registrar comprobante" subtitulo={subtitulo} volver={volver} />
+        <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo="Registrar la compra" subtitulo={subtitulo} volver={volver} />
         {falla ? (
           <Aviso tono="error" titulo="No se pudo leer la orden">
             {falla}
@@ -52,7 +52,7 @@ export default async function RegistrarComprobanteOrdenInsumoPage({ params }: { 
   }
 
   const cabecera = (
-    <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo={`Comprobante de ${numeroOrdenInsumo(detalle.numero)}`} subtitulo={subtitulo} volver={volver} />
+    <EncabezadoPagina sede={persona.ubicacionEtiqueta} titulo={`Compra de ${numeroOrdenInsumo(detalle.numero)}`} subtitulo={subtitulo} volver={volver} />
   );
 
   if (detalle.estado !== "generada") {
@@ -75,7 +75,7 @@ export default async function RegistrarComprobanteOrdenInsumoPage({ params }: { 
     return (
       <div className="space-y-6">
         {cabecera}
-        <Aviso tono="atencion" titulo="Registrar el comprobante de una orden de insumos todavía no está listo">
+        <Aviso tono="atencion" titulo="Registrar la compra de una orden de insumos todavía no está listo">
           El servidor aún no tiene esta parte. Vuelve a intentarlo más tarde; si sigue, avísale a tu líder.
         </Aviso>
       </div>

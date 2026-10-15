@@ -21,12 +21,12 @@ import {
   TOPES_RECEPCION_OI,
   argsRecibirOrdenInsumo,
   camposDeRecepcionOI,
-  cierresQueSeAnotan,
   detalleDeRecepcionOI,
   entradaInicialOI,
-  lotesQueSeAbren,
   milesimasQueLlegan,
   milesimasQueQuedan,
+  resumenDeRecepcionOI,
+  textoDelRestoOI,
   type EntradaRecepcionOI,
   type LineaOIPorRecibir,
   type OrdenInsumoPorRecibir,
@@ -77,14 +77,9 @@ export function RecibirOrdenInsumoModal({
 
   const campos = camposDeRecepcionOI(o, entradas, nota, { listo: responsable.listo, motivo: responsable.motivo });
   const guia = useGuiaCampos(campos);
-  const lotes = lotesQueSeAbren(o, entradas);
-  const cierres = cierresQueSeAnotan(o, entradas);
-  const listo = [
-    lotes > 0 ? (lotes === 1 ? "Se abrirá 1 lote" : `Se abrirán ${lotes} lotes`) : null,
-    cierres > 0 ? (cierres === 1 ? "quedará anotado 1 insumo que no va a llegar" : `quedarán anotados ${cierres} insumos que no van a llegar`) : null,
-  ]
-    .filter(Boolean)
-    .join(" y ");
+  // Sobre el botón, lo que va a pasar con cantidades: lo que entra (también lo de una caja en blanco) y lo que no va a llegar, con lo que
+  // nos debe el proveedor (/formidable 2026-10-14: el pie contaba «lotes» e «insumos»).
+  const resumen = resumenDeRecepcionOI(o, entradas);
 
   useEffect(() => {
     if (error) avisoError.current?.focus();
@@ -207,7 +202,8 @@ export function RecibirOrdenInsumoModal({
               {error.texto}
             </Aviso>
           )}
-          <PieGuia guia={guia} listo={listo ? `${listo.charAt(0).toUpperCase()}${listo.slice(1)}.` : "Todo listo para registrar."} />
+          {/* Con algo pendiente, la frase de debajo dice qué y por qué (un número que no vale ya no se explica solo con el mouse encima). */}
+          <PieGuia guia={guia} conFrase listo={resumen ?? "Todo listo para registrar."} />
           <div className="pie-hoja-fijo pie-acciones pt-1">
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
@@ -239,6 +235,7 @@ function LineaParaRecibir({
 }) {
   const m = milesimasQueLlegan(l, e);
   const resto = milesimasQueQuedan(l, e);
+  const textoDelResto = textoDelRestoOI(l, e);
   const porUnidad = nombreUnidad(l.unidad, 1);
   const contexto = [
     l.pedido != null ? `pediste ${cantidadConUnidad(l.pedido, l.unidad)}` : null,
@@ -320,17 +317,15 @@ function LineaParaRecibir({
               />
               El resto ({cantidadConUnidad(resto / 1000, l.unidad)}) no va a llegar
             </label>
-            {e.noLlegara ? (
+            {e.noLlegara && (
               <Desplegable
                 etiquetaAccesible={`Por qué no va a llegar el resto de ${l.insumo}`}
                 valor={e.motivo}
                 onValor={(v) => onCambio({ motivo: v })}
                 opciones={MOTIVOS_NO_LLEGA.map((x) => ({ valor: x.valor, texto: x.etiqueta }))}
               />
-            ) : (
-              m != null && m > 0 && <p className="text-xs text-taupe">El resto seguirá pendiente: podrás recibirlo en otra entrega.</p>
             )}
-            {e.noLlegara && <p className="text-xs text-taupe">Queda anotado en la orden como lo que el proveedor nos debe, a este costo.</p>}
+            {textoDelResto && <p className="text-xs text-taupe">{textoDelResto}</p>}
           </div>
         )}
       </CampoGuiado>

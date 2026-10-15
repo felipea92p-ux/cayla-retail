@@ -70,7 +70,7 @@ export function AccionesOrdenInsumo({ orden, empresa, lugar }: { orden: DetalleO
   const registrar = puedeRegistrarComprobanteInsumo(orden) && baseConPapelDeInsumos(orden) && (
     <BotonEnlace href={`${RUTA_ORDENES_INSUMO}/comprobante/${orden.id}`} peso="primario" data-guia="oi.registrar-comprobante">
       <span className="inline-flex items-center gap-2">
-        <ReceiptText aria-hidden className="h-3.5 w-3.5" /> Registrar comprobante
+        <ReceiptText aria-hidden className="h-3.5 w-3.5" /> Registrar la compra
       </span>
     </BotonEnlace>
   );

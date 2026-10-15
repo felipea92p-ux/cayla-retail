@@ -4,6 +4,7 @@ import {
   camposDeRecepcionOI,
   cierraLinea,
   cierresQueSeAnotan,
+  deudaDeLineaCentimos,
   detalleDeRecepcionOI,
   entradaInicialOI,
   esMiOrden,
@@ -14,6 +15,8 @@ import {
   milesimasQueLlegan,
   milesimasQueQuedan,
   problemaDeLineaRecepcion,
+  resumenDeRecepcionOI,
+  textoDelRestoOI,
   type EntradaRecepcionOI,
   type LineaOIPorRecibir,
   type OrdenInsumoPorRecibir,
@@ -138,6 +141,40 @@ describe("recibir contra la orden de insumos: lo que no va a llegar (actividad 4
       { orden_insumo_item_id: "i1", cantidad: "1", costo_unitario: "10", cierre: { motivo: "faltante" } },
       { orden_insumo_item_id: "i2", cantidad: "4", costo_unitario: "3.125" },
     ]);
+  });
+});
+
+describe("recibir contra la orden de insumos: lo que va a pasar, dicho con cantidades (/formidable 2026-10-14)", () => {
+  const o = orden();
+  const con = (cambios: Record<string, Partial<EntradaRecepcionOI>>) => o.lineas.map((l) => entrada(l, cambios[l.itemId] ?? {}));
+
+  it("el pie dice cuánto entra de cada insumo —también lo de una caja en blanco— y qué no va a llegar, con lo que nos debe el proveedor", () => {
+    expect(resumenDeRecepcionOI(o, con({}))).toBe("Entran al Taller 2.5 metros de Lino crudo, 4 conos de Hilo y 10 unidades de Botón.");
+    expect(resumenDeRecepcionOI(o, con({ i1: { llego: "1" }, i2: { llego: "0" }, x1: { llego: "6", noLlegara: true } }))).toBe(
+      "Entran al Taller 1 metro de Lino crudo y 6 unidades de Botón. No llegarán 4 unidades de Botón: el proveedor nos debe S/\u00a00.80.",
+    );
+    // Una sola cosa de una sola unidad: en singular.
+    expect(resumenDeRecepcionOI(o, con({ i1: { llego: "1" }, i2: { llego: "0" }, x1: { llego: "0" } }))).toBe("Entra al Taller 1 metro de Lino crudo.");
+    expect(resumenDeRecepcionOI(o, con({ i1: { llego: "0" }, i2: { llego: "0" }, x1: { llego: "9", noLlegara: true } }))).toBe(
+      "Entran al Taller 9 unidades de Botón. No llegará 1 unidad de Botón: el proveedor nos debe S/\u00a00.20.",
+    );
+    // Nada que registrar: el pie sigue con la guía.
+    expect(resumenDeRecepcionOI(o, con({ i1: { llego: "0" }, i2: { llego: "0" }, x1: { llego: "0" } }))).toBeNull();
+  });
+
+  it("bajo la casilla: sin marcar, qué queda pendiente; marcada, cuánto nos debe el proveedor; sin resto, nada", () => {
+    const lino = linea("i1");
+    expect(textoDelRestoOI(lino, entrada(lino))).toBeNull();
+    expect(textoDelRestoOI(lino, entrada(lino, { llego: "2.5" }))).toBeNull();
+    expect(textoDelRestoOI(lino, entrada(lino, { llego: "1" }))).toBe("Si no va a llegar, márcalo. Si no lo marcas, lo que falta (1.5 metros) sigue pendiente para otra entrega.");
+    expect(textoDelRestoOI(lino, entrada(lino, { llego: "1", noLlegara: true }))).toBe("El proveedor nos debe 1.5 metros: S/\u00a015.00, al costo de arriba.");
+    expect(textoDelRestoOI(lino, entrada(lino, { llego: "1", noLlegara: true, costo: "abc" }))).toBe("Queda anotado en la orden: el proveedor nos debe 1.5 metros.");
+  });
+
+  it("la deuda de una línea es la de la base: round(cantidad × costo, 2); 4 conos a S/ 3.125 son S/ 12.50", () => {
+    const hilo = linea("i2");
+    expect(deudaDeLineaCentimos(hilo, entrada(hilo, { llego: "0", noLlegara: true }))).toBe(1250);
+    expect(deudaDeLineaCentimos(hilo, entrada(hilo, { llego: "0" }))).toBeNull();
   });
 });
 
