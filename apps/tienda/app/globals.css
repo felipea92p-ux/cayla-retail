@@ -204,6 +204,8 @@
 html, body { margin: 0; }
 body { background: var(--crema); color: var(--tinta); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 a { color: inherit; text-decoration: none; }
+/* Como la maqueta: un botón lee con la letra de la tienda (sin esto, el navegador le pone la suya: Arial). */
+button, input, textarea { font: inherit; color: inherit; }
 .tienda { container: tienda / inline-size; min-height: 100vh; display: flex; flex-direction: column; background: var(--crema); color: var(--tinta); }
 .ic { width: 20px; height: 20px; flex: none; }
 .t-pagina { display: flex; flex-direction: column; min-height: 100%; }

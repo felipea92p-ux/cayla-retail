@@ -10,6 +10,9 @@ const TRAZOS = {
   chispa: <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z" />,
   pedido: <><path d="M6 3h9l3 3v15H6z" /><path d="M9 9h6M9 13h6M9 17h3" /></>,
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  // La bolsa y los pedidos (actividad 7): el plazo para confirmar y la prenda que la tienda trae de otra.
+  reloj: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v5l3 2" /></>,
+  traslado: <path d="M3 7h12l-3-3M21 17H9l3 3" />,
   sobre: <><rect x="3.5" y="5.5" width="17" height="13" rx="2" /><path d="M4 7l8 6 8-6" /></>,
   // Catálogo (actividad 3): el botón que cambia el orden de la lista.
   flechas: <path d="M4 8h13l-3-3M20 16H7l3 3" />,

@@ -1172,6 +1172,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - `GET /api/club/conservacion` (cron diario 08:00 UTC = 03:00 Lima, `vercel.json`; ADR-0288 G-15) → `crearClienteAdmin()` →
   `fn_club_anonimizar_inactivas()`. `CRON_SECRET` lo comprueban la ruta y `proxy.ts` (`lib/rutas-cron.ts`, que también
   sirve al cron de SUNAT).
+- `GET /api/pedidos-web/cerrar-vencidos` (cron cada 15 minutos, `vercel.json`; ADR-0408 DECIDÍ 8, tienda online actividad 7; **sin
+  pegar en producción**) → `crearClienteAdmin()` → `fn_cerrar_pedidos_web_sin_confirmar()` (solo `service_role`): lee el plazo de
+  Configuración ▸ Tienda web y cierra con él lo que nadie confirmó (`fn_cerrar_pedidos_web_vencidos` del motor). Devuelve
+  `{cerrados, horas_para_confirmar}`; sin `CRON_SECRET` o con otra clave, 401. Si no corre, nada se rompe: lo vencido ya se LEE vencido.
 - `/club/[token]` (PÚBLICA, sin sesión; `proxy.ts` deja pasar solo el prefijo `/club/`; ADR-0288 act. c) → la clienta
   confirma su publicidad desde su celular: `fn_invitacion_club` (lectura) y `confirmar_invitacion_club` (EXECUTE para
   `anon`, token de un uso que vence a los 7 días). Reglas en `lib/club-pagina-reglas.ts`.
@@ -1745,6 +1749,19 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   mayor entre las tiendas de la web, con la campaña encima (la regla de la caja, ADR-0403), sus colores y hasta dos fotos del almacén
   público; `lib/catalogo.ts` filtra por categoría y ordena, y `components/TarjetaPrenda.tsx` dibuja la tarjeta. Si la base no
   responde, la página dice que no se pudo cargar.
+- La bolsa y «Separar» (actividad 7; **sin pegar en producción**): la bolsa vive en la cookie `tienda-bolsa` (solo qué prendas y
+  cuántas, la tienda de recojo y la marca del próximo «Separar»; nunca un precio), la leen y escriben `lib/bolsa.ts` (formato, reglas y
+  lo que muestra la página) y `lib/bolsa-servidor.ts`, y la cambian SOLO las acciones de `app/acciones/bolsa.ts`: `agregarALaBolsa`
+  (pregunta antes a la base si se puede), `quitarDeLaBolsa`, `elegirTiendaDeRecojo`, `separar` y `volverASeparar`. `/bolsa` →
+  `retail.tienda_bolsa(lineas, sede)`: cada prenda al precio de la tienda elegida (sin tienda, el mayor de la web) con la campaña, y por
+  tienda solo «alcanza / hay / se vende» (nunca la cifra). «Separar» → `retail.tienda_separar(usuario_web_id, ubicacion_id, lineas,
+  token)`: vuelve a calcular cada precio (`fn_bolsa_web_precios`, la misma regla de la bolsa) contra el que el cliente vio y llama a
+  `crear_pedido_web` (no toca el stock); la marca de la cookie hace que dos toques den el mismo pedido. `/bolsa/separado/[numero]`
+  («¡Listo, lo separaste!», el WhatsApp con el mensaje armado al número de la tienda), `/cuenta/pedidos` y `/cuenta/pedidos/[numero]`
+  → `lib/pedidos-servidor.ts` → `retail.tienda_mis_pedidos` / `retail.tienda_pedido` (envuelven `fn_pedidos_web_de_clienta` con los
+  plazos de `configuracion_tienda_web`; solo los de esa cuenta). Las piezas que pone la integración en la ficha, las tarjetas y la
+  cabecera: `components/bolsa/AgregarALaBolsa.tsx` (`AgregarALaBolsa`, `AgregarRapido`) y `components/bolsa/BotonBolsa.tsx`.
+  Migraciones `20261015021000`, `20261015022000` y `20261015023000`; prueba en la base: `pnpm pruebas:tienda-bolsa`.
 
 ---
 
