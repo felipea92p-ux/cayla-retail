@@ -10,7 +10,7 @@
     ],
     "components/impresion/useImpresionBrother.tsx": [
       "button «{abierto ? \"Ocultar\" : \"Ver cómo\"}»",
-      "button «Copiar»"
+      "BotonCopiar «la línea»"
     ],
     "components/liquidacion/EtiquetarPiezaModal.tsx": [
       "Boton «+ Etiquetar otra»",

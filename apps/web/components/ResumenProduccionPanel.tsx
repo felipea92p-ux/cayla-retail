@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { soles } from "@/lib/compras-reglas";
 import { cantidadTexto } from "@/lib/insumos-reglas";
 import { DIAS_RITMO_RECIENTE } from "@/lib/inventario-reglas";
@@ -12,7 +13,7 @@ import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { FotoPrenda } from "@/components/ui/FotoPrenda";
-import type { HojaDeModelo } from "@/lib/produccion-hoja-modelo";
+import { lineaDeOrigen, type HojaDeModelo } from "@/lib/produccion-hoja-modelo";
 import type { PresentacionDeModelo } from "@/lib/produccion-presentacion";
 import { FilaQueAbreLaHoja } from "@/components/produccion-resumen/FilaQueAbreLaHoja";
 import { ProveedorFichasDeColor } from "@/components/produccion-resumen/FichasDeColor";
@@ -234,6 +235,7 @@ export function ResumenProduccionPanel({
               {modelos.map((m, i) => {
                 const pct = m.diasRed === null ? 0 : Math.min(100, (m.diasRed / maxDias) * 100);
                 const agotadas = textoAgotadas(agotadasQueSeVendian(m));
+                const origen = lineaDeOrigen(hojas[m.productoId]?.ficha ?? null);
                 return (
                   <li key={m.productoId} className="border-b border-tinta/10 last:border-b-0">
                     <FilaQueAbreLaHoja
@@ -246,6 +248,12 @@ export function ResumenProduccionPanel({
                         <FotoModelo productoId={m.productoId} presentaciones={presentaciones} ancho={32} className="w-8" />
                         <span className="min-w-0">
                           <span className="line-clamp-2 break-words text-[14px] leading-snug text-tinta">{m.referencia}</span>
+                          {/* De quién es y a quién se le compra: a la vista en la lista, sin abrir la hoja (Felipe 2026-10-15). */}
+                          {origen && (
+                            <span data-origen className="line-clamp-2 break-words text-xs text-tinta/65">
+                              {origen}
+                            </span>
+                          )}
                           <span className="block text-xs text-tinta/65 lg:hidden">
                             stock {m.stockRed} · {m.ritmoDia ? `${(Math.round(m.ritmoDia * 7 * 10) / 10).toLocaleString("es-PE")}/sem. · ${baseDelRitmo(m.ventasBase).corto}` : "sin ritmo"}
                           </span>
@@ -275,11 +283,13 @@ export function ResumenProduccionPanel({
                           <span className="text-xs text-tinta/65">Sin ventas medidas</span>
                         ) : (
                           <>
-                            <span className="relative block h-2 rounded-full bg-sand" role="img" aria-label={m.stockRed <= 0 ? "Agotado en las tiendas" : `${textoDiasDeStock(m.stockRed, m.diasRed)} de stock`}>
-                              <span className="absolute inset-y-0 left-0 rounded-full bg-tinta" style={{ width: `${pct}%` }} />
-                              <span aria-hidden className="absolute -top-0.5 h-3 w-px bg-tinta/45" style={{ left: `${(7 / maxDias) * 100}%` }} />
-                              <span aria-hidden className="absolute -top-0.5 h-3 w-px bg-tinta/45" style={{ left: `${(30 / maxDias) * 100}%` }} />
-                            </span>
+                            {/* Días de stock en las tiendas, con las rayitas de 7 y 30 días: una medida, no un avance (nunca pasa a verde). */}
+                            <BarraAvance
+                              pct={pct}
+                              tono="tinta"
+                              marca={[(7 / maxDias) * 100, (30 / maxDias) * 100]}
+                              etiqueta={m.stockRed <= 0 ? "Agotado en las tiendas" : `${textoDiasDeStock(m.stockRed, m.diasRed)} de stock`}
+                            />
                             <span className="mt-1 block text-xs tabular-nums text-tinta/65">
                               {textoDiasDeStock(m.stockRed, m.diasRed)}{m.stockTaller > 0 ? ` · +${m.stockTaller} en el Taller` : ""}
                             </span>

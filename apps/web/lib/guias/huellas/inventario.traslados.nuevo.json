@@ -21,7 +21,7 @@
     "components/TrasladoEnviado.tsx": [
       "textarea «{`Mensaje para ${destino}»",
       "a «Abrir WhatsApp»",
-      "button «Copiar mensaje»",
+      "BotonCopiar «el mensaje»",
       "Link «{id ? \"Ver el traslado\" : \"Ver traslados en curso\"}»",
       "button «Enviar otro traslado»"
     ]

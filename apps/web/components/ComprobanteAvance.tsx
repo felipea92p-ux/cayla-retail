@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { fraccion, type TonoAvance } from "@/lib/comprobante-linea-tiempo";
 
-// Barras de avance del detalle de un comprobante (ADR-0136): la de Recepción (recibido / facturado), la de
-// Pago (pagado / total), las miniaturas de cada línea y los conectores de la línea de tiempo. Todas se LLENAN:
+// El relleno de los conectores de la línea de tiempo de un comprobante (ADR-0136). Las barras de Recepción, Pago y
+// las miniaturas de cada línea son, desde la ronda 13 de /unificar (2026-10-15), la pieza única <BarraAvance>
+// (components/ui/BarraAvance.tsx). Los conectores se LLENAN:
 // al abrir parten de cero y crecen hasta el avance real; tras registrar un pago (`router.refresh()`) el
 // componente sigue montado, así que la barra continúa desde el ancho que tenía en vez de repetir la entrada.
 //
@@ -39,23 +40,6 @@ export function useLlenado(objetivo: number): { valor: number; primera: boolean 
 export function RellenoAvance({ avance, tono }: { avance: number; tono: TonoAvance }) {
   const { valor, primera } = useLlenado(avance);
   return <i className="cd-llena" data-tono={tono} data-primera={primera} style={{ "--p": valor } as React.CSSProperties} />;
-}
-
-/** Barra con su pista y su rol de accesibilidad. `fina` es la miniatura de las líneas del comprobante. */
-export function BarraAvance({ avance, tono, etiqueta, fina = false }: { avance: number; tono: TonoAvance; etiqueta: string; fina?: boolean }) {
-  const pct = Math.round(fraccion(avance, 1) * 100);
-  return (
-    <div
-      className={`w-full overflow-hidden rounded-full bg-sand ${fina ? "mt-1 h-1" : "mt-2 h-1.5"}`}
-      role="progressbar"
-      aria-valuenow={pct}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-label={etiqueta}
-    >
-      <RellenoAvance avance={avance} tono={tono} />
-    </div>
-  );
 }
 
 // Las dos tarjetas del detalle («Recepción» y «Pago», con su barra) eran `TarjetaAvance`, una copia a mano de la

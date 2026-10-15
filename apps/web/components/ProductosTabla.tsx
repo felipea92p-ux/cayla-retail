@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import Link from "next/link";
 import { ChevronRight, History, PackageOpen, PauseCircle, PlayCircle, SignpostBig, Trash2, X, FunnelX, Tag } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
@@ -389,9 +390,8 @@ function Margen({ margen }: { margen: MargenProducto | null }) {
   return (
     <span className="inline-flex items-center justify-end gap-2 whitespace-nowrap" title={margen.bajo ? `Alguna talla deja menos de ${UMBRAL_MARGEN_BAJO} %` : undefined}>
       <span className={`tabular-nums ${margen.bajo ? "text-ambar" : "text-tinta"}`}>{textoMargen(margen)}</span>
-      <span aria-hidden className="h-1 w-11 overflow-hidden rounded-full bg-hueso">
-        <span className={`block h-full rounded-full ${margen.bajo ? "bg-ambar" : "bg-verde"}`} style={{ width: `${ancho}%` }} />
-      </span>
+      {/* El margen mínimo: una medida, no un avance; el ámbar lo pone un margen bajo. */}
+      <BarraAvance pct={ancho} alto="fina" tono={margen.bajo ? "ambar" : "tinta"} decorativa className="w-11" />
     </span>
   );
 }

@@ -74,7 +74,7 @@ export function ComparativoTiendas({
                 <p className="mt-0.5 text-xs text-tinta/65">
                   {pct !== null && mes.meta !== null ? `${pct} % de ${SOLES.format(mes.meta)} este mes` : "Este mes · sin meta cargada"}
                 </p>
-                {pct !== null && <BarraAvance pct={pct} marca={mes.tocabaPct} className="mt-2.5" />}
+                {pct !== null && <BarraAvance pct={pct} marca={mes.tocabaPct} etiqueta="Vendido contra la meta del mes" className="mt-2.5" />}
               </>
             ) : (
               <p className="mt-2 text-xs text-tinta/65">No se pudieron leer las metas ahora.</p>

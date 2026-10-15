@@ -6,30 +6,14 @@ import { borrar, guardar, leer } from "@/lib/almacen-local";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { esCopiaGuardada } from "@/lib/sin-conexion-reglas";
 import { usePendientesSinSubir } from "@/lib/usePendientesSinSubir";
-import { anotarRespuestaDeLaBase, useEnLinea } from "@/lib/useEnLinea";
+import { sondearLaBase } from "@/lib/sondear-la-base";
+import { useEnLinea } from "@/lib/useEnLinea";
 
 const CLAVE_PERSONA = "cayla:sw:persona";
 /** En desarrollo el SW no se registra (serviría JavaScript viejo tras cada cambio); para probarlo: esta llave en "1". */
 const CLAVE_SW_DEV = "cayla:sw-dev";
 /** Cada cuánto se le pregunta a la base si responde mientras el navegador dice «sin red». */
 const CADA_MS_SONDA = 20_000;
-
-/** ¿Responde la base? Una lectura mínima (`/auth/v1/health`), sin loader ni sesión. */
-async function sondearLaBase(): Promise<boolean> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const clave = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !clave) return false;
-  try {
-    const control = new AbortController();
-    const corte = window.setTimeout(() => control.abort(), 8_000);
-    await fetch(`${url}/auth/v1/health`, { headers: { apikey: clave }, cache: "no-store", signal: control.signal });
-    window.clearTimeout(corte);
-    anotarRespuestaDeLaBase();
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 /**
  * Borra las copias de pantallas que guardó el service worker y las listas de turno recordadas (ADR-0210). Se llama

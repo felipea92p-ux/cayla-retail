@@ -14,7 +14,7 @@
     ],
     "components/FamiliasLista.tsx": [
       "Boton «familias.agregar»",
-      "LapizEditar «setConfirmando(confirmacionCatalogo(\"desactivar\", f.nombre,»",
+      "LapizEditar «{f.nombre}»",
       "Boton «Desactivar»",
       "Boton «Reactivar»",
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre\")}»",
