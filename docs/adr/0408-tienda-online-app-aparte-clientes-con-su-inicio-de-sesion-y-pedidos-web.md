@@ -230,6 +230,21 @@ Y quedó así, por decisión técnica:
   queda hasta recargar; la talla que llegó avisa hasta «Entendido»; un look lleva de 2 a 4 prendas sin repetir modelo y no se borra, se
   oculta.
 
+**Lo que Felipe decidió el 2026-10-15, al revisar lo que preguntaban los agentes** (se construye en la integración):
+- **El precio de la ropa es siempre el de la tienda**, aunque su ficha diga S/ 0 (en la web, con «Todas», el mayor): solo la talla de
+  obsequio de las bolsas (`fn_categoria_admite_precio_cero`) sigue en S/ 0 aunque la tienda le ponga precio a la bolsa. Si ninguna tienda
+  tiene precio y la ficha dice S/ 0, no se vende hasta que tenga precio. Reemplaza, para la ropa, lo de «la talla de S/ 0 sigue en S/ 0».
+- **Cambiar el correo de entrada a la tienda** lo hace el cliente en Mi cuenta, con un código de 6 cifras al correo nuevo; si no puede
+  entrar, se lo pide a CAYLA y **quien tiene el módulo Clientes** lo restablece desde la ficha (el cambio vale recién cuando el código del
+  correo nuevo se confirma).
+- **«Eliminar cuenta» en Mi cuenta borra la cuenta web y sus datos de la ficha** (deja de ser miembro del Club, como al anonimizar).
+  Con un pedido web en curso, primero lo recoge o pide que lo anulen; tampoco se anonimiza desde el ERP una ficha con un pedido pagado sin
+  entregar (decidido por la sesión, igual que la regla de 3 años).
+- **El nombre de un cliente con DNI o RUC viene siempre del padrón** (ADR-0008): no se escribe ni se edita, y si la API no responde no se
+  registra. Con carné de extranjería o pasaporte se escribe tal cual está en el documento.
+- **«Recomendaciones» en la tienda:** el cliente escribe libremente sugerencias para una tienda o para CAYLA, siempre con su nombre; se
+  leen y se responden en un módulo nuevo del ERP, «Recomendaciones», que nace solo para el líder.
+
 **Por confirmar con el contador antes de abrir** (no lo decide el código): si un adelanto cobrado antes de entregar pide su propio
 comprobante (hoy la boleta sale una vez, al quedar pagado completo, como en Apartados); los asientos de la cuenta 122 y la mercadería
 vendida sin entregar; y la nota de crédito al anular un pedido pagado. **Antes de abrir la tienda:** configurar las cuentas de cobro

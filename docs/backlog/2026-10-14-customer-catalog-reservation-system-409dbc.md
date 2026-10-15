@@ -140,9 +140,12 @@ Total ≈ 14 sesiones. Las pantallas del ERP cumplen las reglas del repo (guía 
 - [x] **Verificado en una base limpia, como el CI** (2026-10-15, sobre el merge con `origin/main`): las migraciones de la rama se aplican
   una por una, cada una en su transacción; 231 de 233 pruebas en verde. Las dos rojas: una prueba de esta rama que dependía de la edad del
   seed (arreglada) y `pruebas:igv-fase6`, que falla en `main` entre las 19:00 y las 24:00 de Lima (tarea aparte).
-- [ ] **En construcción** (agentes, 2026-10-15): anular un pedido pagado con su boleta (cualquiera con el módulo); la talla de obsequio
-  sigue en S/ 0 con precio propio de tienda; la Vitrina solo publica ropa; el correo en «Editar ficha» del ERP; el aviso al archivar una
-  ficha con un pedido web en curso; el mensaje de Vender al completar una ficha que ya existía; el error del correo del cartel bajo su campo.
+- [x] **Integrado** (2026-10-15): la talla de obsequio sigue en S/ 0 y la Vitrina solo publica ropa (`20261015121000`, `122000`); el correo
+  en «Editar ficha» del ERP, el aviso al archivar con un pedido web en curso, Vender que dice si ya tenía ficha y el correo del cartel bajo
+  su campo (`20261015123000`).
+- [ ] **En construcción** (agentes, 2026-10-15): anular un pedido pagado con su boleta (cualquiera con el módulo); la ropa al precio de la
+  tienda aunque su ficha diga S/ 0; «Cambiar mi correo» y «Eliminar cuenta» en Mi cuenta, «Restablecer acceso» en la ficha del ERP y la
+  anonimización que espera a un pedido pagado; el nombre siempre del padrón; «Recomendaciones» (tienda y módulo nuevo del ERP).
 - [ ] **Antes del PR:** volver a verificar en una base limpia con todo junto; `/chaos` y `/formidable` de las pantallas nuevas del ERP y de la
   tienda; `pnpm datos:comparar`.
 
