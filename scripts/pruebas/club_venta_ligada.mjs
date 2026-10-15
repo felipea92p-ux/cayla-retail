@@ -154,9 +154,15 @@ const despuesHoy = (firma, despues) => {
   const b = VERSIONES_1B.find((x) => x.firma === firma);
   return (k ? k.despues : g ? g.despues : c ? c.despues : b ? b.despues : despues) ?? "NO_EXISTE";
 };
-// Las firmas de registrar_clienta y editar_clienta que viven hoy (las de la 1b).
+// Las firmas de registrar_clienta y editar_clienta que viven hoy: la de la 1b para registrar; para editar, la que creó
+// 20261015123000 (Felipe 2026-10-15: el correo en «Editar» de la ficha, `p_correo` al final), que borró la de 10 de la 1b.
 const REGISTRAR_HOY = "retail.registrar_clienta(text,text,text,text,smallint,smallint,smallint)";
-const EDITAR_HOY = "retail.editar_clienta(uuid,text,text,text,text,smallint,smallint,smallint,jsonb,integer)";
+const CORREO_FICHA = readFileSync(join(RAIZ, "supabase", "migrations", "20261015123000_clientas_correo_en_la_ficha.sql"), "utf8");
+const EDITAR_HOY = [...CORREO_FICHA.matchAll(/\('(retail\.editar_clienta\([^']*\))',\s+null,\s+'[0-9a-f]{32}'\)/g)].map((m) => m[1])[0];
+if (EDITAR_HOY !== "retail.editar_clienta(uuid,text,text,text,text,smallint,smallint,smallint,jsonb,integer,text)") {
+  console.error(`✗ La tabla de versiones de 20261015123000 debería crear la editar_clienta de 11 (con p_correo); dice ${EDITAR_HOY}.`);
+  process.exit(1);
+}
 
 /** El cuerpo (lo que queda entre `$$` y `$$`) con que el archivo crea una función: es su `prosrc` vivo. */
 const cuerpoDe = (inicio) => {
@@ -659,7 +665,7 @@ caso(
   (o) => o.startsWith("ERROR_DE_SCRIPT") && o.includes("retail.buscar_clienta(text,boolean) cambió desde que se escribió esta migración")
 );
 caso(
-  "(g) …y no pisa NADA: funciones, permisos, columnas, candados e índices como estaban, el bloque D-1 una sola vez en registrar_venta y una sola firma (la de la 1b) de registrar_clienta y de editar_clienta",
+  "(g) …y no pisa NADA: funciones, permisos, columnas, candados e índices como estaban, el bloque D-1 una sola vez en registrar_venta y una sola firma (la de hoy) de registrar_clienta y de editar_clienta",
   // Sin ON_ERROR_STOP y dentro de un savepoint: si el candado aborta, se vuelve al savepoint para mirar qué quedó. Si NO
   // abortara, no se revierte nada y la foto lo delata.
   FOTO +

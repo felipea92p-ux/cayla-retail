@@ -18,6 +18,8 @@ import {
 import { firmar, type Firma } from "@/lib/responsable-reglas";
 import { normalizarNumeroDocumento, type TipoDocumentoClienta } from "@/lib/documento-clienta-reglas";
 import { aResumenCompras, type FilaResumenCompras } from "@/lib/clientas-lista-reglas";
+import { normalizarCorreo } from "@/lib/correo-clienta-reglas";
+import { leerTiendaOnline } from "@/lib/clienta-tienda-online-reglas";
 
 // Las escrituras y la búsqueda de /clientas: una función por RPC. Detrás de esta interfaz para
 // que el panel no sepa de Supabase (mismo criterio que `colaboradores-acciones.ts`). Todas son
@@ -64,6 +66,18 @@ export async function buscarClienta(termino: string, incluirArchivadas = false):
 }
 
 /**
+ * La ficha que tiene ESE documento (activa o archivada), o null si no hay. La leen las dos altas (/clientas y el ticket de Vender)
+ * justo antes de `registrar_clienta`, para decir lo que pasó de verdad (`resultadoDelAlta`, lib/alta-clienta-reglas.ts): la base
+ * completa o reactiva la que había en vez de crear otra. Si la lectura falla, null: el alta sigue igual y solo cambia la frase.
+ */
+export async function fichaConDocumento(tipo: TipoDocumentoClienta, numero: string): Promise<Clienta | null> {
+  const limpio = normalizarNumeroDocumento(numero);
+  if (limpio === "") return null;
+  const { clientas } = await buscarClienta(limpio, true);
+  return clientas.find((c) => c.documentoTipo === tipo && c.documentoNumero === limpio) ?? null;
+}
+
+/**
  * `firma` es la del combo «Responsable» de la pantalla que llama (`responsable.firma()`, ADR-0161): registrar una
  * clienta es operación de tienda y la base la firma con quien eligió el combo, no con la cuenta.
  */
@@ -83,10 +97,13 @@ export async function registrarClienta(datos: DatosAlta, firma: Firma | null): P
   return { id: data ?? null, error };
 }
 
-export type DatosEdicion = DatosAlta & { tallas: Record<string, string> | null };
+/** `correo`: el de CONTACTO (Felipe 2026-10-15, 20261015123000). Vacío lo borra; la base lo guarda en minúsculas. */
+export type DatosEdicion = DatosAlta & { tallas: Record<string, string> | null; correo: string };
 
 /** Editar ya no toca el club ni la publicidad (ADR-0288 D-4): su «BAJA» es `registrarBajaWhatsapp`. A una socia la base
- *  no le deja borrar el celular (hint `socia_sin_celular`). */
+ *  no le deja borrar el celular (hint `socia_sin_celular`). El correo viaja SIEMPRE, también vacío (= borrarlo): la base lee la
+ *  falta de `p_correo` como «no lo toques» (así la ficha de antes no borra correos). El de otra ficha vuelve con el hint
+ *  `correo_de_otra_ficha` y el nombre de esa ficha. El correo con que entra a la tienda online (`cuentas_web`) no cambia aquí. */
 export async function editarClienta(id: string, datos: DatosEdicion, version: number, firma: Firma | null): Promise<ResultadoVersion> {
   const { data, error } = await firmar(
     createClient().rpc("editar_clienta", {
@@ -100,6 +117,7 @@ export async function editarClienta(id: string, datos: DatosEdicion, version: nu
       p_cumple_anio: smallintOVacio(datos.cumpleAnio),
       p_tallas: datos.tallas ?? undefined,
       p_version_esperada: version,
+      p_correo: normalizarCorreo(datos.correo),
     }),
     firma,
   );
@@ -133,10 +151,12 @@ export type ResultadoFicha = { ficha: FichaClienta | null; error: ErrorEscritura
  *  Component. Es la única lectura de la ficha: su gemela del servidor (`getFichaClienta`)
  *  ya no la llamaba nadie y se borró el 2026-10-14 (ADR-0406).
  *  Tanda 1f (ADR-0288): más su sede y frecuente con compra neta (`fn_clienta_su_sede`, la regla de la lista). Esa sexta
- *  lectura no tumba la ficha si falla (la base sin la migración 20260930210000): llega `null` y la ficha sigue. */
+ *  lectura no tumba la ficha si falla (la base sin la migración 20260930210000): llega `null` y la ficha sigue.
+ *  Y la séptima (20261015123000): lo que tiene en la tienda online (`fn_clienta_tienda_online`), para avisar al archivar con un
+ *  pedido web en curso y al editar el correo. Tampoco la tumba: sin ella, la hoja no avisa. */
 export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {
   const supabase = createClient();
-  const [clienta, compras, cambios, devoluciones, separaciones, resumen] = await Promise.all([
+  const [clienta, compras, cambios, devoluciones, separaciones, resumen, tiendaOnline] = await Promise.all([
     supabase
       .from("clientas")
       .select(COLUMNAS_CLIENTA)
@@ -147,6 +167,7 @@ export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {
     supabase.rpc("fn_clienta_devoluciones", { p_id: id }),
     supabase.rpc("fn_clienta_separaciones", { p_id: id }),
     supabase.rpc("fn_clienta_su_sede", { p_clienta_id: id }),
+    supabase.rpc("fn_clienta_tienda_online", { p_id: id }),
   ]);
 
   const error = clienta.error ?? compras.error ?? cambios.error ?? devoluciones.error ?? separaciones.error;
@@ -161,6 +182,7 @@ export async function cargarFichaClienta(id: string): Promise<ResultadoFicha> {
       devoluciones: ((devoluciones.data ?? []) as FilaDevolucion[]).map(aDevolucion),
       separaciones: ((separaciones.data ?? []) as FilaSeparacion[]).map(aSeparacion),
       resumenCompras: filaResumen ? aResumenCompras(filaResumen) : null,
+      tiendaOnline: tiendaOnline.error ? null : leerTiendaOnline(tiendaOnline.data),
     },
     error: null,
   };

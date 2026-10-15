@@ -6,6 +6,7 @@ import {
   bloquesDeTexto,
   casillaTerminos,
   completarMarcadores,
+  correoRechazado,
   cuerpoLegal,
   edadCumplida,
   enlaceLegal,
@@ -25,6 +26,7 @@ import {
   nombreAMedias,
   nombresYApellidos,
   problemasRegistro,
+  rechazoDelCorreo,
   respuestaDeRegistro,
   textoLegal,
   trozosDeLinea,
@@ -376,6 +378,22 @@ describe("lo que contesta el servidor, sin revelar datos de nadie", () => {
     // La página es pública: ni un nombre, ni un documento, ni «la ficha de…».
     expect(MENSAJE.correoRepetido).not.toMatch(/ficha|DNI|documento de|nombre/i);
     expect(MENSAJE.correoRepetido).toMatch(/opcional/);
+  });
+
+  it("el correo que no se aceptó se queda pegado a lo que estaba escrito: bajo su caja mientras siga igual (Felipe 2026-10-15)", () => {
+    const r = { ...BIEN, correo: " Ana@Correo.PE " };
+    const rechazo = correoRechazado({ estado: "error", mensaje: MENSAJE.correoRepetido, campo: "correo" }, r);
+    expect(rechazo).toEqual({ correo: "ana@correo.pe", mensaje: MENSAJE.correoRepetido });
+    // El mismo correo, escrito como sea: sigue el mensaje. Otro, o vacío: ya no.
+    expect(rechazoDelCorreo(rechazo, "ana@correo.pe")).toBe(MENSAJE.correoRepetido);
+    expect(rechazoDelCorreo(rechazo, "ANA@correo.pe  ")).toBe(MENSAJE.correoRepetido);
+    expect(rechazoDelCorreo(rechazo, "ana.p@correo.pe")).toBeNull();
+    expect(rechazoDelCorreo(rechazo, "")).toBeNull();
+    expect(rechazoDelCorreo(null, "ana@correo.pe")).toBeNull();
+    // Lo que no es del correo sigue bajo el botón: sin campo, de otro campo, o una respuesta que no es un error.
+    expect(correoRechazado({ estado: "error", mensaje: MENSAJE.noDisponible, campo: null }, r)).toBeNull();
+    expect(correoRechazado({ estado: "error", mensaje: MENSAJE.archivado, campo: "documento" }, r)).toBeNull();
+    expect(correoRechazado({ estado: "textos_cambiaron", pagina: pagina() }, r)).toBeNull();
   });
 
   it("la fila de la base: sin su código no se dice «listo»; el código, en mayúsculas", () => {

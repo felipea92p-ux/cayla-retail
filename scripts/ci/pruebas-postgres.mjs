@@ -803,6 +803,13 @@ export const PRUEBAS = [
   // web se cierra en la misma escritura (sin correo, usuario, favoritos ni esperas) y su usuario queda por borrar. ROLLBACK.
   "pruebas:clientas-correo",
 
+  // El correo en «Editar» de la ficha (Felipe 2026-10-15, 20261015123000): `editar_clienta` (una sola firma, la de 11) lo guarda
+  // normalizado, sin `p_correo` no lo toca y vacío lo borra; mal escrito → `correo_invalido`; el de otra ficha o con el que entra a
+  // la tienda online la cuenta de otra → `correo_de_otra_ficha`, diciendo de cuál (también sin el disparador); nunca cambia el correo
+  // de la cuenta web. `fn_clienta_tienda_online`: si tiene cuenta abierta y sus pedidos web en curso, con el candado del módulo. Y
+  // pegar 20261015054000 después aborta sin pisar nada. ROLLBACK.
+  "pruebas:clientas-correo-ficha",
+
   // Celular para la boleta (ADR-0288, «Actualización 2026-10-03 (o)», actividad 2): `agregar_celular_clienta` SOLO AGREGA. A
   // una ficha sin celular se lo deja normalizado (versión +1, una línea de actividad sin datos personales); a una que ya
   // tiene uno —el mismo u otro, también una socia con publicidad— no la toca y responde false (sin `revoca`); lo inválido,

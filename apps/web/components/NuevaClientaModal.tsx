@@ -12,7 +12,8 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { avisar } from "@/components/ui/Avisos";
 import { traducirError } from "@/lib/error-escritura";
-import { buscarClienta, registrarClienta, type DatosAlta } from "@/lib/clientas-acciones";
+import { buscarClienta, fichaConDocumento, registrarClienta, type DatosAlta } from "@/lib/clientas-acciones";
+import { avisoDelAlta, resultadoDelAlta } from "@/lib/alta-clienta-reglas";
 import { camposDeRegistrar, nombreSuficiente } from "@/lib/club-caja-reglas";
 import { sePuedeConfirmar } from "@/lib/guia-campos";
 import type { Clienta } from "@/lib/clientas-reglas";
@@ -101,6 +102,9 @@ export function NuevaClientaModal({
       return;
     }
     setGuardando(true);
+    // La ficha con ese documento JUSTO ANTES de registrar: la que avisa arriba puede no haber llegado todavía (se pide 300 ms
+    // después de tipear). Con ella se dice lo que pasó de verdad (`resultadoDelAlta`).
+    const previa = await fichaConDocumento(alta.documentoTipo, alta.documentoNumero);
     const { id, error } = await registrarClienta(alta, responsable.firma());
     setGuardando(false);
     responsable.despues(error);
@@ -109,25 +113,22 @@ export function NuevaClientaModal({
       return;
     }
     const numero = normalizarNumeroDocumento(alta.documentoNumero) || null;
-    const quien = alta.nombre.trim() || documentoLegible(alta.documentoTipo, numero, false) || "sin nombre";
+    const quien = alta.nombre.trim() || previa?.nombre?.trim() || documentoLegible(alta.documentoTipo, numero, false) || "sin nombre";
     // Ese documento ya tenía ficha: la base no creó otra (completó la que hay, o la reactivó). Se dice así y se abre la suya.
-    if (existente && existente.id === id) {
-      avisar.exito(existente.archivadaEn ? "Ficha reactivada" : "Ya tenía ficha", {
-        detalle: existente.archivadaEn ? `${quien} vuelve con su historial.` : `${quien}: se abrió la suya, no se creó otra.`,
-      });
-      if (onAbrirFicha) {
-        onAbrirFicha(id);
-        return;
-      }
-    } else {
-      avisar.exito("Cliente registrado", { detalle: `${quien}. Para ser del club, que escanee el cartel.` });
+    const resultado = resultadoDelAlta(previa, id);
+    const aviso = avisoDelAlta(resultado, quien, "clientes");
+    avisar.exito(aviso.titulo, { detalle: aviso.detalle });
+    if (resultado !== "nueva" && onAbrirFicha) {
+      onAbrirFicha(id);
+      return;
     }
     onCreada({
       id,
       documentoTipo: alta.documentoTipo,
       documentoNumero: numero,
-      nombre: alta.nombre.trim() || null,
+      nombre: alta.nombre.trim() || previa?.nombre || null,
       telefonoWhatsapp: null,
+      correo: null,
       tienePermisoWhatsapp: false,
       clubDesde: null,
       publicidadDesde: null,

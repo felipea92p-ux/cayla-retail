@@ -37,7 +37,8 @@ import {
 } from "@/lib/clienta-ticket-reglas";
 import { ajustarNumeroAlTipo, normalizarNumeroDocumento, problemaDocumento, tipoDocumentoDe } from "@/lib/documento-clienta-reglas";
 import { sePuedeConfirmar } from "@/lib/guia-campos";
-import { registrarClienta } from "@/lib/clientas-acciones";
+import { fichaConDocumento, registrarClienta } from "@/lib/clientas-acciones";
+import { avisoDelAlta, resultadoDelAlta } from "@/lib/alta-clienta-reglas";
 import { esSinModulo, traducirError } from "@/lib/error-escritura";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { Buscador } from "@/components/ui/Buscador";
@@ -638,6 +639,9 @@ function RegistrarClientaEnTicket({
     }
 
     onGuardando(true);
+    // La ficha con ese documento JUSTO ANTES de registrar (activa o archivada): la base no crea otra, la completa o la reactiva, y
+    // la caja tiene que decir eso y no «Cliente registrado» (Felipe 2026-10-15). El buscador del ticket no muestra las archivadas.
+    const previa = await fichaConDocumento(tipo, numero);
     const { id, error } = await registrarClienta(
       {
         documentoTipo: tipo,
@@ -657,14 +661,18 @@ function RegistrarClientaEnTicket({
       if (error) responsable.despues(error);
       return void avisar.error(traducirError(error, "registrar al cliente"));
     }
+    // Si ya tenía ficha, la del ticket es esa: su nombre si no se escribió otro y su celular (la base conserva los dos al completarla).
+    const resultado = resultadoDelAlta(previa, id);
+    const deAntes = resultado === "nueva" ? null : previa;
     const nueva: ClientaDelTicket = {
       id,
-      nombre: alta.nombre.trim() || null,
+      nombre: alta.nombre.trim() || deAntes?.nombre?.trim() || null,
       documentoTipo: tipo,
       documentoNumero: numero || null,
-      celular: null,
+      celular: deAntes?.telefonoWhatsapp ?? null,
     };
-    avisar.exito("Cliente registrado", { detalle: `${lineaDeClienta(nueva).titulo}. Al cobrar, esta venta queda en su ficha. Para ser del club, que escanee el cartel.` });
+    const aviso = avisoDelAlta(resultado, lineaDeClienta(nueva).titulo, "ticket");
+    avisar.exito(aviso.titulo, { detalle: aviso.detalle });
     onRegistrada(nueva);
   }
 

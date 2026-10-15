@@ -23,6 +23,10 @@ import { avisoCambioDeCelular, cumpleLegible, faltaParaSerSocia } from "@/lib/cl
 import { registrarBajaWhatsapp } from "@/lib/club-acciones";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import { archivarClienta, cargarFichaClienta, editarClienta, reactivarClienta, type DatosEdicion } from "@/lib/clientas-acciones";
+// El correo de contacto (Felipe 2026-10-15, 20261015123000) y lo que la ficha tiene en la tienda online (el aviso al archivar).
+import { correoVisible, esRechazoDelCorreo, normalizarCorreo, problemaCorreo, rechazoVigente, type RechazoCorreo } from "@/lib/correo-clienta-reglas";
+import { avisoAlArchivar, notaDelCorreoDeEntrada, pieDeAnonimizar } from "@/lib/clienta-tienda-online-reglas";
+import { Aviso } from "@/components/ui/Aviso";
 // Tanda 1f (ADR-0288 «Actualización 2026-09-30 (f)»): su sede y frecuente con compra neta, las preferencias y la historia del
 // permiso. Viven en piezas aparte; aquí solo se enganchan.
 import { frecuenteDeLaFicha, suSedeDeLaFicha } from "@/lib/clientas-lista-reglas";
@@ -51,6 +55,9 @@ function soles(n: number): string {
 /** El cumpleaños de «Editar» como lo escriben las cajas (la ficha lo guarda en tres textos). */
 const cumpleDeEdicion = (e: DatosEdicion): CumpleEscrito => ({ dia: e.cumpleDia, mes: e.cumpleMes, anio: e.cumpleAnio });
 
+/** El id de la caja del correo: para llevarle el cursor cuando está mal o la base lo rechazó. */
+const ID_CORREO = "ficha-cliente-correo";
+
 function datosDeEdicion(c: Clienta): DatosEdicion {
   return {
     documentoTipo: c.documentoTipo,
@@ -61,6 +68,7 @@ function datosDeEdicion(c: Clienta): DatosEdicion {
     cumpleMes: c.cumpleMes?.toString() ?? "",
     cumpleAnio: c.cumpleAnio?.toString() ?? "",
     tallas: c.tallas,
+    correo: c.correo ?? "",
   };
 }
 
@@ -68,13 +76,15 @@ function datosDeEdicion(c: Clienta): DatosEdicion {
  * Los campos de la guía de foco (CLAUDE.md «Guía de foco», ADR-0284) de lo que la hoja muestra ahora. Salen de las mismas
  * reglas que validan cada acción abajo (y que la base vuelve a exigir): no agregan ninguna.
  *   · editar: el documento, si se escribe, completo (D-2); a una socia no se le puede borrar el celular, el documento ni el
- *     nombre (`socia_sin_celular`, `socia_sin_documento`, CL-1); el año del cumpleaños, si se escribe, completo.
+ *     nombre (`socia_sin_celular`, `socia_sin_documento`, CL-1); el correo, opcional, pero si se escribe bien escrito
+ *     (`correo_invalido`) y no el de otra ficha (lo que dijo la base, `correo_de_otra_ficha`, mientras siga escrito el mismo); el
+ *     año del cumpleaños, si se escribe, completo.
  *   · archivar: el motivo. · baja: solo quién lo hace. · En todas, quién lo hace.
  */
 function camposDeLaGuia(
   modo: Modo,
   c: Clienta | null,
-  estado: { edicion: DatosEdicion | null; motivoArchivo: string; anonimizar: boolean },
+  estado: { edicion: DatosEdicion | null; motivoArchivo: string; anonimizar: boolean; problemaDelCorreo: string | null },
   responsableListo: boolean,
   anioActual: number,
 ): CampoDeGuia[] {
@@ -113,6 +123,14 @@ function camposDeLaGuia(
           requerido: c.clubDesde !== null,
           hecho: e.telefonoWhatsapp.trim() !== "",
           pendiente: "Es miembro del club: su celular no se puede dejar vacío.",
+        },
+        // Opcional: vacío no falta; mal escrito o de otra ficha, sí (la base lo rechazaría igual).
+        {
+          id: "correo",
+          nombre: "Correo",
+          requerido: estado.problemaDelCorreo !== null,
+          hecho: e.correo.trim() !== "" && estado.problemaDelCorreo === null,
+          pendiente: estado.problemaDelCorreo ?? "",
         },
         cumple(cumpleDeEdicion(e)),
         quien,
@@ -162,11 +180,17 @@ export function ClientaFichaModal({
   const [motivoArchivo, setMotivoArchivo] = useState("");
   const [anonimizar, setAnonimizar] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  // El correo que la base rechazó al guardar (de otra ficha, o mal escrito): su frase va bajo la caja mientras siga escrito ese.
+  const [rechazoCorreo, setRechazoCorreo] = useState<RechazoCorreo | null>(null);
+  // Si ya salió de la caja del correo (o intentó guardar): recién ahí se dice que está mal escrito, no mientras lo tipea.
+  const [salioDelCorreo, setSalioDelCorreo] = useState(false);
   // La pestaña de la ficha («ver»). `null` = la de siempre: «Club» si es miembro y «Actividad» si no.
   const [vista, setVista] = useState<Vista | null>(null);
   const raiz = useRef<HTMLDivElement>(null);
   const responsable = useResponsable();
   const anioActual = new Date().getFullYear();
+  // Lo que está mal del correo escrito: lo que dijo la base de ESE correo o, si no, su formato (la misma regla que la base).
+  const problemaDelCorreo = edicion ? (rechazoVigente(rechazoCorreo, edicion.correo) ?? problemaCorreo(edicion.correo)) : null;
 
   // Cambiar de vista (ver → editar, Club → Actividad) acorta o alarga el contenido SIN cambiar de URL. `PaginaEstable`
   // (ADR-0185) lo toma por «un bloque que se acortó bajo el mouse» y reserva aire al fondo para no mover la vista: en
@@ -184,7 +208,7 @@ export function ClientaFichaModal({
   }, [id]);
 
   const guia = useGuiaCampos(
-    camposDeLaGuia(modo, ficha?.clienta ?? null, { edicion, motivoArchivo, anonimizar }, responsable.listo, anioActual),
+    camposDeLaGuia(modo, ficha?.clienta ?? null, { edicion, motivoArchivo, anonimizar, problemaDelCorreo }, responsable.listo, anioActual),
   );
 
   async function cargar() {
@@ -217,6 +241,13 @@ export function ClientaFichaModal({
   // 2026-10-13, auditoría punto 18). Antes se veían completos para toda cuenta con el módulo.
   const contacto = contactoVisible(c, verCompleto);
   const documento = contacto.documento;
+  // El correo de contacto, con la misma regla: completo para el líder, a medias para los demás («an•••@gmail.com»).
+  const correo = correoVisible(c.correo, verCompleto);
+  // Lo que tiene en la tienda online: el aviso de archivar con un pedido en curso (cambia con «Anonimizar») y la nota del correo.
+  const avisoArchivo = avisoAlArchivar(ficha.tiendaOnline ?? null, anonimizar);
+  const notaCorreo = notaDelCorreoDeEntrada(ficha.tiendaOnline ?? null);
+  // Bajo la caja del correo: lo que dijo la base de ese correo, o que está mal escrito (cuando ya salió de la caja).
+  const pieCorreo = edicion && (salioDelCorreo || rechazoVigente(rechazoCorreo, edicion.correo)) ? problemaDelCorreo : null;
   const enClub = estadoClub(c);
   // Solo una miembro tiene pestaña «Club» (permisos y preferencias); una ficha anonimizada no tiene nada del club que mostrar.
   const conClub = enClub !== "no_socia" && !c.anonimizada;
@@ -227,8 +258,15 @@ export function ClientaFichaModal({
   // Al editar el celular de una socia con novedades, lo que pierde, ANTES de guardar (la base se las quita sola).
   const avisoCelular = edicion ? avisoCambioDeCelular(c, edicion.telefonoWhatsapp) : null;
 
-  /** Lo común a toda acción que guarda: responsable, el aviso de la base y volver a leer la ficha. */
-  async function guardarAccion(hacer: () => Promise<{ error: ErrorEscritura }>, que: string, listo: () => void, despues?: Modo) {
+  /** Lo común a toda acción que guarda: responsable, el aviso de la base y volver a leer la ficha. `bajoSuCampo`: si el error es
+   *  de UN dato que la hoja dice bajo su caja (el correo), lo toma ella y no sale el aviso suelto (ADR-0358). */
+  async function guardarAccion(
+    hacer: () => Promise<{ error: ErrorEscritura }>,
+    que: string,
+    listo: () => void,
+    despues?: Modo,
+    bajoSuCampo?: (error: ErrorEscritura, frase: string) => boolean,
+  ) {
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
@@ -242,6 +280,7 @@ export function ClientaFichaModal({
         avisar.error(traducirError(error, que), { accion: { texto: "Recargar", onClick: () => void cargar() } });
         return;
       }
+      if (bajoSuCampo?.(error, traducirError(error, que))) return;
       avisar.error(traducirError(error, que));
       return;
     }
@@ -268,6 +307,12 @@ export function ClientaFichaModal({
       avisar.error("Es miembro del club: su documento y su nombre no se pueden dejar vacíos.", edicion.documentoNumero.trim() === "" ? { enfocar: ID_NUMERO_DOCUMENTO } : undefined);
       return;
     }
+    // El correo (opcional): mal escrito, o el mismo que la base ya rechazó, se dice bajo su caja y se lleva el cursor ahí.
+    if (problemaDelCorreo) {
+      setSalioDelCorreo(true);
+      document.getElementById(ID_CORREO)?.focus();
+      return;
+    }
     const cumpleEditado = cumpleDeEdicion(edicion);
     const problemaDelCumple = problemaCumple(cumpleEditado, anioActual);
     if (problemaDelCumple) {
@@ -276,6 +321,7 @@ export function ClientaFichaModal({
     }
     const firma = responsable.firma();
     const pierdeNovedades = avisoCelular !== null;
+    const correoEnviado = normalizarCorreo(edicion.correo);
     await guardarAccion(
       () => editarClienta(id, edicion, c.version, firma),
       "editar la ficha",
@@ -283,6 +329,15 @@ export function ClientaFichaModal({
         avisar.exito("Ficha actualizada", {
           detalle: pierdeNovedades ? "Con el celular nuevo dejó de recibir novedades: las vuelve a pedir escaneando el cartel del club." : undefined,
         }),
+      undefined,
+      // El correo de otra ficha (la base dice de cuál) o mal escrito: bajo su caja, no en un aviso suelto.
+      (error, frase) => {
+        if (!esRechazoDelCorreo(error)) return false;
+        setRechazoCorreo({ valor: correoEnviado, mensaje: frase });
+        setSalioDelCorreo(true);
+        document.getElementById(ID_CORREO)?.focus();
+        return true;
+      },
     );
   }
 
@@ -341,7 +396,7 @@ export function ClientaFichaModal({
             : c.fusionadaEnId
               ? "Esta ficha se unió a otra"
               : `Ficha archivada: ${c.motivoArchivo}`
-          : [documento, contacto.celular, c.codigoClub].filter(Boolean).join(" · ") || "Sin documento ni celular"
+          : [documento, contacto.celular, correo, c.codigoClub].filter(Boolean).join(" · ") || "Sin documento ni celular"
       }
       onClose={onClose}
       variante="hoja"
@@ -382,6 +437,8 @@ export function ClientaFichaModal({
                     className="mb-2 shrink-0 !py-2"
                     onClick={() => {
                       setEdicion(datosDeEdicion(c));
+                      setRechazoCorreo(null);
+                      setSalioDelCorreo(false);
                       setModo("editar");
                     }}
                   />
@@ -553,6 +610,31 @@ export function ClientaFichaModal({
                 {/* Recibe novedades en el celular de ahora: al cambiarlo las pierde (la base se las quita sola), y se dice antes. */}
                 {avisoCelular && <p className="nota-cayla mt-2 text-[13px]">{avisoCelular}</p>}
               </CampoGuiado>
+              {/* El correo de CONTACTO (Felipe 2026-10-15): opcional. Mal escrito, o de otra ficha (la base dice de cuál: quien edita ve
+                  el módulo), va bajo la caja. El correo con que entra a la tienda online no cambia desde aquí, y se dice. */}
+              <CampoGuiado id="correo" guia={guia}>
+                <CampoTexto
+                  id={ID_CORREO}
+                  etiqueta={guia.etiqueta(
+                    "correo",
+                    <>
+                      Correo <span className="font-normal normal-case text-tinta/45">· opcional</span>
+                    </>,
+                  )}
+                  type="email"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  maxLength={254}
+                  value={edicion.correo}
+                  onChange={(e) => setEdicion((d) => d && { ...d, correo: e.target.value })}
+                  onBlur={() => setSalioDelCorreo(true)}
+                  aria-invalid={pieCorreo ? true : undefined}
+                  pie={pieCorreo ?? "Solo para contactar al cliente si hace falta, nunca para publicidad."}
+                  tono={pieCorreo ? "error" : "neutro"}
+                />
+                {notaCorreo && <p className="nota-cayla mt-2 text-[13px]">{notaCorreo}</p>}
+              </CampoGuiado>
               <CampoGuiado id="cumple" guia={guia} titulo="Cumpleaños" ayuda="Día y mes; el año, solo si lo quiere decir">
                 <CamposCumpleanos
                   cumple={cumpleDeEdicion(edicion)}
@@ -584,6 +666,19 @@ export function ClientaFichaModal({
 
           {modo === "archivar" && (
             <div className="space-y-4">
+              {/* Un pedido de la tienda online en curso (Felipe 2026-10-15): se AVISA antes de confirmar, no se frena. Lo que pasa cambia
+                  con «Anonimizar» (su cuenta de la tienda se cierra): el texto lo sigue. */}
+              {avisoArchivo && (
+                <Aviso tono="atencion" titulo={avisoArchivo.titulo}>
+                  {/* Un renglón por pedido: con dos, los «·» de uno no se mezclan con los del otro. */}
+                  {avisoArchivo.pedidos.map((linea) => (
+                    <span key={linea} className="block">
+                      {linea}
+                    </span>
+                  ))}
+                  <span className="mt-1 block">{avisoArchivo.texto}</span>
+                </Aviso>
+              )}
               <CampoGuiado id="motivo" guia={guia}>
                 <CampoTexto etiqueta={guia.etiqueta("motivo", "Motivo")} value={motivoArchivo} onChange={(e) => setMotivoArchivo(e.target.value)} placeholder="Ya no compra, cerró su número…" />
               </CampoGuiado>
@@ -592,7 +687,7 @@ export function ClientaFichaModal({
                   activo={anonimizar}
                   onActivo={setAnonimizar}
                   etiqueta={guia.etiqueta("anonimizar", "Anonimizar sus datos personales (Ley 29733)")}
-                  pie="Borra documento, celular, cumpleaños, tallas y su lugar en el club (sale del club y de las novedades). Sus compras y apartados NO se tocan — solo desaparece quién es. No se puede deshacer."
+                  pie={pieDeAnonimizar(ficha.tiendaOnline ?? null)}
                 />
               </CampoGuiado>
               <CampoGuiado id="responsable" guia={guia}>
