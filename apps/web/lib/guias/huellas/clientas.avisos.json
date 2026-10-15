@@ -23,7 +23,7 @@
       "input «{i === ANIOS_ESCALA - 1 ? `Vale del año ${i + 1}»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»",
-      "Boton «{guardando ? \"Guardando…\" : \"Guardar\"}»",
+      "Boton «Guardar»",
       "input «{etiqueta}»"
     ]
   }

@@ -208,7 +208,7 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
       subtitulo="Cuenta tu efectivo: otra persona revisa la rendición."
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-xl"
+      tamano="mediana"
       alCerrarEnfocar={volverA}
       bloqueado={guardando || congelada}
     >
@@ -317,8 +317,8 @@ function RendirCiclo({ fondo, onClose, volverA }: { fondo: ResumenMiFondo; onClo
               Cancelar
             </Boton>
             {!vacio && (
-              <Boton type="submit" peso="primario" cargando={guardando} disabled={!congelada && (!guia.puedeConfirmar || items === null)} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-                {guardando ? "Rindiendo…" : congelada ? "Volver a intentar" : fraseRendir(cuenta)}
+              <Boton textoCargando="Rindiendo…" type="submit" peso="primario" cargando={guardando} disabled={!congelada && (!guia.puedeConfirmar || items === null)} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+                {congelada ? "Volver a intentar" : fraseRendir(cuenta)}
               </Boton>
             )}
           </div>
@@ -418,7 +418,7 @@ function RendicionAbierta({
       subtitulo="Espera que otra persona que revise los fondos la apruebe."
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-xl"
+      tamano="mediana"
       alCerrarEnfocar={volverA}
       conCerrar
     >
@@ -470,8 +470,8 @@ function RendicionAbierta({
           )}
           <div className="pie-hoja-fijo flex flex-wrap justify-end gap-3 pt-1">
             {retirando ? (
-              <Boton type="button" peso="peligro" cargando={guardando} disabled={!motivo.trim()} onClick={() => void retirar()}>
-                {guardando ? "Retirando…" : "Retirar para corregir"}
+              <Boton textoCargando="Retirando…" type="button" peso="peligro" cargando={guardando} disabled={!motivo.trim()} onClick={() => void retirar()}>
+                Retirar para corregir
               </Boton>
             ) : (
               <Boton type="button" peso="fantasma" onClick={() => setRetirando(true)}>

@@ -194,7 +194,7 @@ describe("el formulario «Registrar movimiento»", () => {
     expect(tipoDeMovimiento({ que: "dueno_pone", clase: "aporte" })).toBe("aporte");
   });
   it("sacar plata: una devolución no pasa lo que CAYLA debe; un retiro, sí se puede", () => {
-    expect(validarMovimiento({ ...base, que: "dueno_saca", clase: "devolucion_prestamo", origen: "bcp", destino: "", monto: "7000" }, ctx)).toEqual({ ok: false, error: "CAYLA te debe S/ 6,000.00: una devolución no puede ser mayor." });
+    expect(validarMovimiento({ ...base, que: "dueno_saca", clase: "devolucion_prestamo", origen: "bcp", destino: "", monto: "7000" }, ctx)).toEqual({ ok: false, error: "CAYLA te debe S/\u00a06,000.00: una devolución no puede ser mayor." });
     const r = validarMovimiento({ ...base, que: "dueno_saca", clase: "retiro", origen: "bcp", destino: "", monto: "7000" }, ctx);
     expect(r.ok && [r.valor.p_tipo, r.valor.p_cuenta_destino_id]).toEqual(["retiro", null]);
   });
@@ -215,21 +215,21 @@ describe("«¿Cuál salida?»: cada salida de la tienda con su día de Lima", ()
   const conInstante = (creadoEn: string): EgresoParaMovimiento => ({ ...salida, creadoEn });
 
   it("lo registrado a las 20:00 del 13 de octubre es del 13, aunque en UTC ya sea el 14", () => {
-    expect(textoSalida(salida)).toBe("13 oct · S/ 300.00 · Depósito bancario — Voucher 7788");
+    expect(textoSalida(salida)).toBe("13 oct · S/\u00a0300.00 · Depósito bancario — Voucher 7788");
   });
   it("el día cambia a la medianoche de Lima, no a la de UTC; el mes también", () => {
-    expect(textoSalida(conInstante("2026-10-14T04:59:00+00:00"))).toBe("13 oct · S/ 300.00 · Depósito bancario — Voucher 7788"); // 23:59 en Lima
-    expect(textoSalida(conInstante("2026-10-14T05:00:00+00:00"))).toBe("14 oct · S/ 300.00 · Depósito bancario — Voucher 7788"); // 00:00 en Lima
-    expect(textoSalida(conInstante("2026-11-01T02:30:00+00:00"))).toBe("31 oct · S/ 300.00 · Depósito bancario — Voucher 7788"); // 21:30 del 31 en Lima
+    expect(textoSalida(conInstante("2026-10-14T04:59:00+00:00"))).toBe("13 oct · S/\u00a0300.00 · Depósito bancario — Voucher 7788"); // 23:59 en Lima
+    expect(textoSalida(conInstante("2026-10-14T05:00:00+00:00"))).toBe("14 oct · S/\u00a0300.00 · Depósito bancario — Voucher 7788"); // 00:00 en Lima
+    expect(textoSalida(conInstante("2026-11-01T02:30:00+00:00"))).toBe("31 oct · S/\u00a0300.00 · Depósito bancario — Voucher 7788"); // 21:30 del 31 en Lima
   });
   it("sin instante, o con uno que no se lee, empieza por el monto: no inventa un día", () => {
-    expect(textoSalida(conInstante(""))).toBe("S/ 300.00 · Depósito bancario — Voucher 7788");
-    expect(textoSalida(conInstante("ayer"))).toBe("S/ 300.00 · Depósito bancario — Voucher 7788");
+    expect(textoSalida(conInstante(""))).toBe("S/\u00a0300.00 · Depósito bancario — Voucher 7788");
+    expect(textoSalida(conInstante("ayer"))).toBe("S/\u00a0300.00 · Depósito bancario — Voucher 7788");
     // Lo que deja `leerEgresoParaMovimiento` si la fila llegara sin `creado_en`.
-    expect(textoSalida(leerEgresoParaMovimiento({ id: "e2", caja_id: "caja-tru", monto: 300, motivo: "Depósito bancario", nota: null, marca: null }))).toBe("S/ 300.00 · Depósito bancario");
+    expect(textoSalida(leerEgresoParaMovimiento({ id: "e2", caja_id: "caja-tru", monto: 300, motivo: "Depósito bancario", nota: null, marca: null }))).toBe("S/\u00a0300.00 · Depósito bancario");
   });
   it("la nota y la marca «no es gasto» se leen igual que antes", () => {
-    expect(textoSalida({ ...salida, nota: null, marca: "deposito" })).toBe("13 oct · S/ 300.00 · Depósito bancario (marcado «no es gasto»)");
+    expect(textoSalida({ ...salida, nota: null, marca: "deposito" })).toBe("13 oct · S/\u00a0300.00 · Depósito bancario (marcado «no es gasto»)");
   });
 });
 

@@ -136,7 +136,7 @@ describe("precios de la tabla", () => {
   });
 
   it("vacía = S/ precio de venta", () => {
-    expect(textoPrecioBase("89.9")).toBe("S/ 89.90");
+    expect(textoPrecioBase("89.9")).toBe("S/\u00a089.90");
     expect(textoPrecioBase("")).toBe("el precio de venta");
   });
 });
@@ -153,7 +153,7 @@ describe("costos de la tabla", () => {
   });
 
   it("vacía = S/ costo de arriba, o sin costo (es opcional)", () => {
-    expect(textoCostoBase("1.2")).toBe("S/ 1.20");
+    expect(textoCostoBase("1.2")).toBe("S/\u00a01.20");
     expect(textoCostoBase("")).toBe("sin costo");
     expect(textoCostoBase("0")).toBe("sin costo");
   });

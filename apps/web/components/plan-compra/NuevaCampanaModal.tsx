@@ -101,7 +101,7 @@ export function NuevaCampanaModal({
       }
       onClose={onClose}
       variante="hoja"
-      ancho="max-w-lg"
+      tamano="mediana"
     >
       {(cerrar) => (
         <form

@@ -7439,6 +7439,30 @@ export type Database = {
           unidades: number
         }[]
       }
+      // 20261013161000: datos bancarios solo para quien ve Proveedores, Por pagar o Cuentas y dinero (Felipe 2026-10-13).
+      fn_puede_ver_datos_bancarios: { Args: never; Returns: boolean }
+      fn_proveedor_datos_bancarios: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          banco: string | null
+          cuenta_bancaria: string | null
+          cci: string | null
+          celular_billetera: string | null
+          billeteras: string[] | null
+          titular_cuenta: string | null
+        }[]
+      }
+      fn_proveedor_cambios_bancarios: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          campo: string
+          antes: string | null
+          despues: string | null
+          cambiado_por_nombre: string | null
+          cambiado_en: string
+        }[]
+      }
+      fn_cuentas_bancarias_cambiadas: { Args: { p_dias?: number }; Returns: Json }
       fn_proveedor_metricas_compras: {
         Args: { p_proveedor_id: string }
         Returns: {

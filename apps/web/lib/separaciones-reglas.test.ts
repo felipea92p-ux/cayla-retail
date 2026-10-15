@@ -213,7 +213,7 @@ describe("redondeo del efectivo al entregar el saldo (ADR-0311)", () => {
   it("un efectivo menor de S/ 0.10 no se puede entregar (no hay moneda): hay que cobrarlo con otro medio", () => {
     const c = cobroDelSaldo([{ metodo: "yape", monto: 29.81 }, efectivo(0.07)], 29.88, true);
     expect(c).toMatchObject({ sinMoneda: true, listo: false, falta: 0 });
-    expect(AVISO_EFECTIVO_SIN_MONEDA).toContain("S/ 0.10");
+    expect(AVISO_EFECTIVO_SIN_MONEDA).toContain("S/\u00a00.10");
     // sin el redondeo activo, el mismo cobro se entrega como siempre
     expect(cobroDelSaldo([{ metodo: "yape", monto: 29.81 }, efectivo(0.07)], 29.88).listo).toBe(true);
   });
@@ -404,6 +404,6 @@ describe("el tope del vuelto en Apartados", () => {
 describe("el tope del vuelto en el adelanto", () => {
   it("un adelanto en efectivo con más de S/ 500 de vuelto pide revisar", () => {
     expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 30, recibido: 530 }] }), 179).pago).toBeUndefined();
-    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 30, recibido: 530.01 }] }), 179).pago).toMatch(/vuelto pasa de S\/ 500/);
+    expect(erroresDelApartado(formulario({ pagos: [{ metodo: "efectivo", monto: 30, recibido: 530.01 }] }), 179).pago).toMatch(/vuelto pasa de S\/\u00a0500/);
   });
 });

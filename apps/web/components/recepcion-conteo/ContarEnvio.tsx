@@ -393,7 +393,7 @@ function ContadorDeLinea({
   };
   const fraccion = linea.dijeron ? Math.min(1, contadas / linea.dijeron) : contadas > 0 ? 1 : 0;
 
-  const llevaCuenta = guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "Guardado" : linea.conteo?.contadoPor?.nombre ? `Contó ${linea.conteo.contadoPor.nombre}` : null;
+  const llevaCuenta = guardado === "guardando" ? "Guardando…" : guardado === "guardado" ? "Guardado" : linea.conteo?.contadoPor?.nombre ? `Contó ${linea.conteo.contadoPor.nombre}` : null; // unificar-fijo: el estado de la línea mientras se guarda sola, no un botón (como la planilla de Contar)
   const nombre = linea.categoria ? linea.categoria.nombre.toLowerCase() : "prendas";
 
   return (

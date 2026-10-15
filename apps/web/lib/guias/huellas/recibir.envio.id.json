@@ -32,7 +32,7 @@
       "CampoTexto «Nombre del color»",
       "Desplegable «setCodigoEscrito(normaliz»",
       "CampoTexto «Código»",
-      "button «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
+      "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
       "button «Elegir»"
     ],
@@ -112,7 +112,7 @@
       "button «{`Quitar ${etiqueta}»",
       "button «Cambiar»",
       "Boton «Tallas y colores ahora»",
-      "Boton «Describir ahora»",
+      "BotonEditar «Describir ahora»",
       "button «{p.nombre}»",
       "button «(sin nombre)»"
     ],

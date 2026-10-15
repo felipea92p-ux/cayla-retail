@@ -96,7 +96,7 @@ function FilaCotizacion({ cotizacion: c, hoy }: { cotizacion: CotizacionMaquila;
         <p className="mt-0.5 truncate text-[13px] text-tinta/65 @min-[900px]:hidden">{c.proveedorReferencia ?? "Sin proveedor anotado"}</p>
       </div>
 
-      <p className="font-display text-lg leading-tight tabular-nums text-tinta @min-[640px]:text-right">S/ {c.precioMaquila.toFixed(2)}</p>
+      <p className="font-display text-lg leading-tight tabular-nums text-tinta @min-[640px]:text-right">S/&nbsp;{c.precioMaquila.toFixed(2)}</p>
 
       <p className="text-[13px] text-tinta/75">{textoDeVigencia(c)}</p>
 
@@ -223,9 +223,9 @@ function NuevaCotizacionModal({ categorias, onClose }: { categorias: CategoriaPa
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">
               Cancelar
             </button>
-            <button type="submit" disabled={loading} className="btn-cayla btn-primario">
-              {loading ? "Cargando…" : "Cargar cotización"}
-            </button>
+            <Boton peso="primario" cargando={loading} textoCargando="Cargando…" type="submit" disabled={loading}>
+              Cargar cotización
+            </Boton>
           </div>
         </form>
       )}

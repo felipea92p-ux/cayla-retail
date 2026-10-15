@@ -37,8 +37,6 @@ export function DescribirNuevas({
     <Modal
       titulo="Describir lo nuevo"
       subtitulo={`${categoria.nombre}: lo que sabes ahora de estas prendas. Siguen por crear: quien las cree después ya sabrá qué son.`}
-      ancho="max-w-md"
-      conCerrar
       onClose={onCerrar}
     >
       {(cerrar) => (

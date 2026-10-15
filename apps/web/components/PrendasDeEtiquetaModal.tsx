@@ -200,7 +200,7 @@ export function PrendasDeEtiquetaModal({
       : `${etiqueta.descuentoPct} % de descuento — se aplica solo en Vender a las prendas que elijas.`;
 
   return (
-    <Modal titulo={`Prendas de «${etiqueta.nombre}»`} subtitulo={subtitulo} ancho="max-w-2xl" onClose={onClose}>
+    <Modal titulo={`Prendas de «${etiqueta.nombre}»`} subtitulo={subtitulo} tamano="ancha" onClose={onClose}>
       {(cerrar) =>
         confirmando && vista ? (
           <div className="mt-5 space-y-4">

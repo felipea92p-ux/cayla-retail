@@ -72,7 +72,6 @@ export function ConfirmarCambios({
       titulo="Revisa y guarda los cambios"
       subtitulo={`Esto es lo que va a cambiar en «${nombre}». Nada se guarda hasta que confirmes.`}
       variante="hoja"
-      ancho="max-w-md"
       bloqueado={enCurso}
       onClose={onClose}
     >

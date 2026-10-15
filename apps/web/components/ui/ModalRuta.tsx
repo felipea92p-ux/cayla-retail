@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { useCallback, type ReactNode } from "react";
-import { Modal } from "@/components/ui/Modal";
+import { Modal, type TamanoHoja } from "@/components/ui/Modal";
 
 // Modal cuyo "abierto/cerrado" lo decide la URL, no un `useState`. Lo usan las
 // rutas interceptadas (`@modal/(.)...`): la página del servidor dibuja el
@@ -23,7 +23,8 @@ import { Modal } from "@/components/ui/Modal";
 export function ModalRuta({
   titulo,
   subtitulo,
-  ancho = "max-w-4xl",
+  tamano = "ancha",
+  ancho,
   alCerrar,
   acciones,
   cierre = "equis",
@@ -31,6 +32,9 @@ export function ModalRuta({
 }: {
   titulo: ReactNode;
   subtitulo?: ReactNode;
+  /** Los tres anchos de toda hoja (ADR-0358, ronda 12); por defecto `ancha`: casi siempre es el detalle de algo (una factura, una orden). */
+  tamano?: TamanoHoja;
+  /** Solo para una hoja de diseño propio (el Historial de la vista rápida), con su `unificar-fijo`. */
   ancho?: string;
   alCerrar?: string;
   /** Botones de la entidad (pagar, anular…): van al pie, a la izquierda de
@@ -46,7 +50,7 @@ export function ModalRuta({
   const cerrar = useCallback(() => (alCerrar ? router.replace(alCerrar) : router.back()), [alCerrar, router]);
 
   return (
-    <Modal titulo={titulo} subtitulo={subtitulo} ancho={ancho} onClose={cerrar}>
+    <Modal titulo={titulo} subtitulo={subtitulo} tamano={tamano} ancho={ancho} onClose={cerrar}>
       {(pedirCierre) => (
         <>
           {cierre === "equis" && (

@@ -103,7 +103,7 @@ export function calcular(
   const cResto = total - escritos.reduce((a, p) => a + aCentimos(p.monto), 0);
   if (cResto <= 0)
     return vacio(
-      `Lo escrito ya llega a S/ ${v.cobrado.toFixed(2)}: no le queda nada a ${NOMBRE_METODO[resto]}.`,
+      `Lo escrito ya llega a S/\u00a0${v.cobrado.toFixed(2)}: no le queda nada a ${NOMBRE_METODO[resto]}.`,
       deCentimos(cResto),
     );
 
@@ -124,7 +124,7 @@ export function calcular(
       montoResto: deCentimos(cResto),
       efectivo,
       problema:
-        "Menos de S/ 0.10 en efectivo no se puede entregar: pásalo a otro medio.",
+        "Menos de S/\u00a00.10 en efectivo no se puede entregar: pásalo a otro medio.",
       sinCambios: false,
     };
   }
@@ -181,7 +181,7 @@ export function cambioEnEfectivo(v: VentaACorregir, c: Calculo): number {
 /** La frase del cuadre, para el pie de la hoja y el aviso de éxito. null si el efectivo no cambia. */
 export function fraseDelCuadre(delta: number): string | null {
   if (delta === 0) return null;
-  const s = `S/ ${Math.abs(delta).toFixed(2)}`;
+  const s = `S/\u00a0${Math.abs(delta).toFixed(2)}`;
   return delta < 0
     ? `La caja va a esperar ${s} menos en efectivo.`
     : `La caja va a esperar ${s} más en efectivo.`;

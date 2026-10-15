@@ -18,7 +18,7 @@ import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { BotonFiltro } from "@/components/ui/BotonFiltro";
 import {
-  AccionTarjeta,
+
   BarraAtributos,
   BotonesPendiente,
   BotonReactivar,
@@ -32,6 +32,7 @@ import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { MuestraEditable, SelectorColor } from "@/components/SelectorColor";
 import { filtrarColores } from "@/lib/atributos-buscar";
 import { Aviso } from "@/components/ui/Aviso";
+import { LapizEditar } from "@/components/ui/BotonEditar";
 import { MAX_NOMBRE_CATALOGO } from "@/lib/catalogo-topes";
 
 /**
@@ -478,7 +479,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                         )}
                         {/* Desactivar un color vive dentro de Editar: si todavía lo usa alguna variante activa, la pantalla se bloquea y dice cuántas. */}
                         <PieTarjeta>
-                          <AccionTarjeta onClick={() => setEditando(c)} guia="atributos.color-editar">Editar</AccionTarjeta>
+                          <LapizEditar que={c.nombre} guia="atributos.color-editar" onClick={() => setEditando(c)} />
                         </PieTarjeta>
                       </>
                     )}
@@ -494,7 +495,6 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         <Modal
           titulo="Nuevo color del vocabulario"
           subtitulo="Queda disponible de inmediato para cualquier prenda nueva o existente."
-          ancho="max-w-md"
           onClose={() => setAgregando(false)}
         >
           {(cerrar) => (
@@ -627,7 +627,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       )}
 
       {rechazandoColor && (
-        <Modal titulo={`Rechazar «${rechazandoColor.nombre}»`} ancho="max-w-sm" onClose={() => setRechazandoAbierto(null)}>
+        <Modal titulo={`Rechazar «${rechazandoColor.nombre}»`} onClose={() => setRechazandoAbierto(null)}>
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
@@ -799,7 +799,7 @@ function ColorEditarModal({
   const ocupado = guardando || desactivando;
 
   return (
-    <Modal titulo={`Editar «${color.nombre}»`} ancho="max-w-md" onClose={onClose}>
+    <Modal titulo={`Editar «${color.nombre}»`} onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
           {/* Cada campo ya reserva su línea de pie; con space-y-4 encima los huecos
@@ -862,7 +862,7 @@ function ColorEditarModal({
             {/* Lo peligroso, rojo desde el principio y en el pie, como en Categorías y Familias (ADR-0358, ronda 9). Sigue pidiendo dos
                 toques: el segundo, ya armado, dice «¿Seguro? Confirmar». */}
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <Boton
+              <Boton cargando={desactivando} textoCargando="Desactivando…"
                 type="button"
                 peso="peligro"
                 onClick={() => (confirmandoDesactivar ? desactivar() : setConfirmandoDesactivar(true))}
@@ -870,7 +870,7 @@ function ColorEditarModal({
                 title={responsable.motivo ?? undefined}
                 className={confirmandoDesactivar ? "font-semibold" : ""}
               >
-                {desactivando ? "Desactivando…" : confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
+                {confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
               </Boton>
               <div className="pie-acciones">
                 <Boton type="button" peso="fantasma" onClick={cerrar} disabled={ocupado}>

@@ -269,7 +269,7 @@ export function CerrarEnvio({
                           inputMode="decimal"
                           value={d.costo}
                           // sugerir-fijo: un costo es un monto de soles, no depende de nada elegido antes
-                          placeholder={sinAviso ? "S/ sin costo" : "S/ 0.00"}
+                          placeholder={sinAviso ? "S/\u00a0sin costo" : "S/\u00a00.00"}
                           onChange={(e) => cambiar(l.clave, { costo: e.target.value, confirmaCosto: false })}
                           tono={costo.problema ? "error" : undefined}
                           pie={costo.problema ?? undefined}
@@ -449,6 +449,7 @@ export function CerrarEnvio({
                   type="submit"
                   peso="primario"
                   cargando={guardando}
+                  textoCargando="Cerrando…"
                   disabled={!guia.puedeConfirmar || esperandoGuardar}
                   title={esperandoGuardar ? "Espera: lo último que contaste se está guardando" : (guia.frase ?? undefined)}
                   className={guia.claseConfirmar}
@@ -456,7 +457,7 @@ export function CerrarEnvio({
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <Check aria-hidden className="h-4 w-4" />
-                    {guardando ? "Cerrando…" : textoBotonCerrar(contadas, sede, reabierto)}
+                    {textoBotonCerrar(contadas, sede, reabierto)}
                   </span>
                 </Boton>
               </div>

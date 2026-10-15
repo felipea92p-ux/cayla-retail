@@ -44,6 +44,7 @@ import {
   type UbicacionGastos,
 } from "@/lib/gastos-reglas";
 import { MAX_DESCRIPCION_GASTO, MAX_NOMBRE_ACTIVO } from "@/lib/finanzas-topes";
+import { Boton } from "@/components/ui/campos";
 
 // Registrar un gasto o un activo fijo (ADR-0195 F2). Una sola ventana para los casos de la vida real:
 //  · sin comprobante (mototaxi, bolsas): cómo se pagó; si fue efectivo, sale del cajón abierto de esa tienda;
@@ -392,7 +393,7 @@ export function RegistrarGastoModal({
   );
 
   return (
-    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion} ancho="max-w-[620px]" bloqueado={guardando || intento.incierto}>
+    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} antesDeCerrar={avisoSalida.pedirAccion} tamano="mediana" bloqueado={guardando || intento.incierto}>
       {/* Los campos se congelan mientras no se sabe si el gasto se guardó (la cascada de la hoja sigue igual: globals.css). */}
       <fieldset disabled={intento.incierto} className="campos-congelables min-w-0">
         {/* Orden del spike: un gasto empieza por su comprobante; un activo, por qué es, dónde está y cuánto dura. */}
@@ -471,7 +472,7 @@ export function RegistrarGastoModal({
             <InputFin id="gasto-monto" inputMode="decimal" value={b.monto} readOnly={!!egreso} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
           </CampoFin>
           <CampoFin etiqueta="IGV" ayuda={b.comprobante === "factura" ? "Descontable: sale del total (18 %)." : "Solo la factura da IGV descontable."}>
-            <SalidaFin>{b.comprobante === "factura" ? soles(igv) : "S/ 0.00"}</SalidaFin>
+            <SalidaFin>{b.comprobante === "factura" ? soles(igv) : "S/\u00a00.00"}</SalidaFin>
           </CampoFin>
         </div>
 
@@ -565,10 +566,8 @@ export function RegistrarGastoModal({
         <button type="button" className="btn-cayla btn-secundario" onClick={() => avisoSalida.pedirAccion(onCerrar)} disabled={guardando || intento.incierto}>
           Cancelar
         </button>
-        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || revisando || !responsable.listo}>
-          {guardando
-            ? "Guardando…"
-            : intento.incierto
+        <Boton peso="primario" cargando={guardando} type="button" onClick={guardar} disabled={guardando || revisando || !responsable.listo}>
+          {intento.incierto
               ? "Volver a intentar"
               : egreso
                 ? esActivo
@@ -577,7 +576,7 @@ export function RegistrarGastoModal({
                 : esActivo
                   ? "Registrar activo"
                   : "Registrar gasto"}
-        </button>
+        </Boton>
       </div>
       {avisoSalida.aviso}
     </Modal>

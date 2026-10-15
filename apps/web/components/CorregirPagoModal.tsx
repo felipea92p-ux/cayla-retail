@@ -26,7 +26,7 @@ import {
   type VentaACorregir,
 } from "@/lib/corregir-pago-reglas";
 
-const s = (n: number) => `S/ ${n.toFixed(2)}`;
+const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 const idMonto = (m: string) => `corregir-pago-monto-${m}`;
 
 /**

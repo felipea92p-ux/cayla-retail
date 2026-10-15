@@ -63,8 +63,7 @@ export function HojaModelo({ hoja, presentacion, onClose, alCerrarEnfocar }: { h
       <Modal
         variante="hoja"
         conCerrar
-        tituloGrande
-        ancho="max-w-4xl"
+        tamano="ancha"
         titulo={hoja.referencia}
         subtitulo={
           <span className="vr-meta">

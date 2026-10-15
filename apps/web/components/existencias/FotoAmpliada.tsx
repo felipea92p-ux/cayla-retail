@@ -22,7 +22,7 @@ export function FotoAmpliada({
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
 }) {
   return (
-    <Modal titulo={referencia} subtitulo={color ?? undefined} variante="hoja" ancho="max-w-2xl" conCerrar focoEnLaHoja onClose={onCerrar} alCerrarEnfocar={alCerrarEnfocar}>
+    <Modal titulo={referencia} subtitulo={color ?? undefined} variante="hoja" tamano="ancha" conCerrar focoEnLaHoja onClose={onCerrar} alCerrarEnfocar={alCerrarEnfocar}>
       <div className="grid place-items-center overflow-hidden rounded-xl bg-hueso">
         <Image
           src={fotoUrl}

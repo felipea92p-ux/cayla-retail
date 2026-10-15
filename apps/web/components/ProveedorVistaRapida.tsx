@@ -145,7 +145,7 @@ export function ProveedorVistaRapida({
                 </Link>
               )}
               {/* Desactivar es lo peligroso (rojo desde el principio, ADR-0358 ronda 7, como en la vista rápida de un producto); reactivar, no. */}
-              <Boton type="button" peso={p.activo ? "peligro" : "discreto"} cargando={cambiando} onClick={onCambiarEstado} className="px-3 py-2">
+              <Boton textoCargando={p.activo ? "Desactivando…" : "Reactivando…"} type="button" peso={p.activo ? "peligro" : "discreto"} cargando={cambiando} onClick={onCambiarEstado} className="px-3 py-2">
                 {p.activo ? "Desactivar" : "Reactivar"}
               </Boton>
               <span className="ml-auto flex items-center gap-1.5 text-xs tabular-nums text-tinta/55">

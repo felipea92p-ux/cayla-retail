@@ -7,7 +7,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { esMotivoDeAjuste, motivosDeMovimiento, referenciaObligatoria } from "@/lib/caja-panel-reglas";
 import { Modal, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
-import { Desplegable } from "@/components/ui/campos";
+import { Desplegable, Boton } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -107,7 +107,7 @@ export function MovimientoCajaModal({
   }
 
   function registrado(t: "ingreso" | "egreso") {
-    avisar.exito(`${TEXTO_TIPO[t]} de caja registrada`, { detalle: `S/ ${(Number(monto) || 0).toFixed(2)} · ${motivo}` });
+    avisar.exito(`${TEXTO_TIPO[t]} de caja registrada`, { detalle: `S/\u00a0${(Number(monto) || 0).toFixed(2)} · ${motivo}` });
     router.refresh();
     onClose();
   }
@@ -233,9 +233,9 @@ export function MovimientoCajaModal({
           <button type="button" onClick={cerrar} disabled={intento.incierto} className="btn-cayla btn-secundario">
             Cancelar
           </button>
-          <button type="submit" disabled={loading || revisando || !tipo || !motivoRapido || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
-            {loading ? "Guardando…" : intento.incierto ? "Volver a intentar" : "Registrar"}
-          </button>
+          <Boton peso="primario" cargando={loading} type="submit" disabled={loading || revisando || !tipo || !motivoRapido || !responsable.listo} title={responsable.motivo ?? undefined}>
+            {intento.incierto ? "Volver a intentar" : "Registrar"}
+          </Boton>
         </div>
       </form>
       )}

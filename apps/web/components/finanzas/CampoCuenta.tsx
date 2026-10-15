@@ -117,7 +117,9 @@ function ayudaDe({ cuentas, listo, valor, sentido = "sale", montoDelFondo }: Pro
 export function CampoSaleDe(props: PropsCampo) {
   const { cuentas, listo, clase, medio, valor, onValor, etiqueta = "Sale de", id, deshabilitado } = props;
   const hay = listo && hayCuentasPara(cuentas, clase, medio);
-  // Sin cuentas para ese medio, el combo queda bloqueado y su marcador dice por qué (antes era una opción de mentira).
+  // Sin cuentas para ese medio, el combo queda bloqueado y su marcador dice por qué (antes era una opción de mentira). Sin medio
+  // elegido todavía (una pantalla que no lo trae puesto, como la compra de una orden), espera al medio: no hay «sin cuentas» que decir.
+  const sinMedio = !medio;
   return (
     <CampoSelect
       etiqueta={etiqueta}
@@ -125,9 +127,9 @@ export function CampoSaleDe(props: PropsCampo) {
       valor={hay ? (valor ?? "") : ""}
       onValor={onValor}
       opciones={hay ? opcionesDeCuenta(cuentas, clase, medio) : []}
-      marcador={marcadorDe(listo, hay)}
+      marcador={sinMedio ? "Primero elige con qué se pagó" : marcadorDe(listo, hay)}
       deshabilitado={deshabilitado || !hay}
-      pie={ayudaDe(props, hay)}
+      pie={sinMedio ? undefined : ayudaDe(props, hay)}
     />
   );
 }

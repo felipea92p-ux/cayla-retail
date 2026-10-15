@@ -95,8 +95,8 @@ describe("cambiosDeBeneficios: qué cambia, en palabras", () => {
   it("dice cada cambio con el antes y el después; el vale del 5 se lee «en adelante»", () => {
     expect(cambiosDeBeneficios(VIGENTES, { ...VIGENTES, pct: 12, monto: 700, escala: [20, 30, 40, 50, 80] })).toEqual([
       "Cumpleaños: 10 % → 12 %",
-      "Monto en el año: S/ 600.00 → S/ 700.00",
-      "Vale del año 5 en adelante: S/ 60.00 → S/ 80.00",
+      "Monto en el año: S/\u00a0600.00 → S/\u00a0700.00",
+      "Vale del año 5 en adelante: S/\u00a060.00 → S/\u00a080.00",
     ]);
   });
 });

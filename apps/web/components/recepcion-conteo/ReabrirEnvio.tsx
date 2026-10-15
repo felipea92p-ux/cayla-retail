@@ -54,7 +54,7 @@ export function ReabrirEnvio({
   }
 
   return (
-    <Modal titulo={`Reabrir ${detalle.numero}`} subtitulo="Lo que ya entró al stock no se toca. Lo que faltó o sobró se vuelve a anotar al cerrar." ancho="max-w-md" bloqueado={guardando} conCerrar onClose={onCerrar}>
+    <Modal titulo={`Reabrir ${detalle.numero}`} subtitulo="Lo que ya entró al stock no se toca. Lo que faltó o sobró se vuelve a anotar al cerrar." bloqueado={guardando} onClose={onCerrar}>
       {(cerrar) => (
         <form
           noValidate
@@ -86,8 +86,8 @@ export function ReabrirEnvio({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} disabled={!listo} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? "Reabriendo…" : "Reabrir el conteo"}
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando="Reabriendo…" disabled={!listo} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              Reabrir el conteo
             </Boton>
           </div>
         </form>

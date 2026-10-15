@@ -185,7 +185,7 @@ describe("estado, anular y cómo se pagó", () => {
   });
 
   it("formatos del spike: cifras redondas y «23 sep»", () => {
-    expect(solesRedondo(5472.4)).toBe("S/ 5,472");
+    expect(solesRedondo(5472.4)).toBe("S/\u00a05,472");
     expect(fechaCorta("2026-09-03")).toBe("3 sep");
     expect(fechaCorta("2026-09-23", true)).toBe("23 sep 2026");
   });
@@ -373,9 +373,9 @@ describe("el IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76)", 
     expect(igvDelGasto(g!)).toEqual({ descontable: 0, perdido: 360 });
   });
   it("la fila, en dos renglones: el IGV de la factura como siempre y, debajo, lo perdido (sin ambigüedad: «¿180 era todo el IGV?»)", () => {
-    expect(igvBajoElMonto(gasto(360))).toEqual({ igv: "IGV S/ 360.00", perdido: null });
-    expect(igvBajoElMonto(hotel!)).toEqual({ igv: "IGV S/ 360.00", perdido: "perdido S/ 360.00" });
-    expect(igvBajoElMonto(alquiler!)).toEqual({ igv: "IGV S/ 360.00", perdido: "perdido S/ 180.00" });
+    expect(igvBajoElMonto(gasto(360))).toEqual({ igv: "IGV S/\u00a0360.00", perdido: null });
+    expect(igvBajoElMonto(hotel!)).toEqual({ igv: "IGV S/\u00a0360.00", perdido: "perdido S/\u00a0360.00" });
+    expect(igvBajoElMonto(alquiler!)).toEqual({ igv: "IGV S/\u00a0360.00", perdido: "perdido S/\u00a0180.00" });
     expect(igvBajoElMonto(gasto(0, 50))).toBe(null);
   });
   it("cada renglón de la fila es corto (no ensancha la columna Monto como «IGV S/ 180.00 · perdido S/ 180.00»)", () => {
@@ -390,36 +390,36 @@ describe("el IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76)", 
     }
   });
   it("el detalle dice cuánto, cómo y cuándo: el hotel pagado en efectivo el 14 oct", () => {
-    expect(textoIgvPerdido(hotel!)).toBe("S/ 360.00 · se pagó en efectivo el 14 oct");
+    expect(textoIgvPerdido(hotel!)).toBe("S/\u00a0360.00 · se pagó en efectivo el 14 oct");
     const [fondo] = conIgvPerdido([gasto(360)], [pago("hotel", "2026-10-14", 360, 2360, "fondo")]);
-    expect(textoIgvPerdido(fondo!)).toBe("S/ 360.00 · se pagó desde un fondo el 14 oct");
+    expect(textoIgvPerdido(fondo!)).toBe("S/\u00a0360.00 · se pagó desde un fondo el 14 oct");
     expect(textoIgvPerdido(gasto(360))).toBe(null);
   });
   it("el detalle de una factura pagada en partes separa los dos montos con palabras («del pago de»), o dice cuántos pagos y cuándo", () => {
-    expect(textoIgvPerdido(alquiler!)).toBe("S/ 180.00 · del pago de S/ 1,180.00 en efectivo (12 oct)");
+    expect(textoIgvPerdido(alquiler!)).toBe("S/\u00a0180.00 · del pago de S/\u00a01,180.00 en efectivo (12 oct)");
     const [dos] = conIgvPerdido([gasto(360)], [pago("hotel", "2026-10-14", 120, 786.67), pago("hotel", "2026-10-03", 120, 786.67, "fondo")]);
-    expect(textoIgvPerdido(dos!)).toBe("S/ 240.00 · de 2 pagos sin banco (3 oct y 14 oct)");
+    expect(textoIgvPerdido(dos!)).toBe("S/\u00a0240.00 · de 2 pagos sin banco (3 oct y 14 oct)");
     const [tres] = conIgvPerdido([gasto(360)], ["2026-10-03", "2026-10-09", "2026-10-14"].map((f) => pago("hotel", f, 100, 655.56)));
-    expect(textoIgvPerdido(tres!)).toBe("S/ 300.00 · de 3 pagos en efectivo (3 oct, 9 oct y 14 oct)");
+    expect(textoIgvPerdido(tres!)).toBe("S/\u00a0300.00 · de 3 pagos en efectivo (3 oct, 9 oct y 14 oct)");
   });
   it("la fecha de un pago de otro año lleva su año", () => {
     const [g] = conIgvPerdido([gasto(360, 2360, "2026-12-20")], [pago("hotel", "2027-01-05", 360, 2360)]);
-    expect(textoIgvPerdido(g!)).toBe("S/ 360.00 · se pagó en efectivo el 5 ene 2027");
+    expect(textoIgvPerdido(g!)).toBe("S/\u00a0360.00 · se pagó en efectivo el 5 ene 2027");
   });
   it("la nota dice la factura, la regla y el mes del pago con la frase de Impuestos; el mes del último pago va al enlace", () => {
     expect(notaIgvPerdido(hotel!)).toEqual({
       texto:
-        "Esta factura es de S/ 2,360: desde S/ 2,000 se paga por el banco, y SUNAT no deja descontar el IGV de lo que se pagó en efectivo o desde un fondo. Ese IGV ya está restado de lo que descuentas en octubre.",
+        "Esta factura es de S/\u00a02,360: desde S/\u00a02,000 se paga por el banco, y SUNAT no deja descontar el IGV de lo que se pagó en efectivo o desde un fondo. Ese IGV ya está restado de lo que descuentas en octubre.",
       mes: "2026-10",
     });
     expect(UMBRAL_BANCARIZACION).toBe(2000);
     expect(notaIgvPerdido(gasto(360))).toBe(null);
   });
   it("la nota aclara que la regla mira la factura aunque el pago sin banco sea menor de S/ 2,000 (la prueba ciega pensó que no le tocaba)", () => {
-    expect(notaIgvPerdido(alquiler!)!.texto).toContain("en efectivo o desde un fondo, aunque ese pago sea de menos de S/ 2,000. Ese IGV");
+    expect(notaIgvPerdido(alquiler!)!.texto).toContain("en efectivo o desde un fondo, aunque ese pago sea de menos de S/\u00a02,000. Ese IGV");
     const [dos] = conIgvPerdido([gasto(360, 2360, "2026-09-20")], [pago("hotel", "2026-11-02", 120, 786.67), pago("hotel", "2026-10-05", 120, 786.67)]);
     const n = notaIgvPerdido(dos!)!;
-    expect(n.texto).toContain("aunque cada pago sea de menos de S/ 2,000. Ese IGV ya está restado de lo que descuentas en octubre y noviembre.");
+    expect(n.texto).toContain("aunque cada pago sea de menos de S/\u00a02,000. Ese IGV ya está restado de lo que descuentas en octubre y noviembre.");
     expect(n.mes).toBe("2026-11");
     const [diciembre] = conIgvPerdido([gasto(360, 2360, "2026-12-20")], [pago("hotel", "2027-01-05", 360, 2360)]);
     expect(notaIgvPerdido(diciembre!)!.texto).toMatch(/descuentas en enero de 2027\.$/);
@@ -442,32 +442,32 @@ describe("el IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76)", 
     const p = leerPanel({ igv: "1600.00", boletas: 2, igv_perdido: { n: 1, igv: "360.00", de_otros_meses: 0 } });
     expect(p.igvDescontable).toBe(1240);
     expect(igvParaLaTarjeta(p)).toBe(1240);
-    expect(bajadaIgvDelMes(p)).toBe("Solo de facturas, menos S/ 360 que se pierde por pagar sin banco. 2 boletas sin IGV descontable.");
+    expect(bajadaIgvDelMes(p)).toBe("Solo de facturas, menos S/\u00a0360 que se pierde por pagar sin banco. 2 boletas sin IGV descontable.");
     const parte = leerPanel({ igv: 900, boletas: 0, igv_perdido: { n: 2, igv: 540, de_otros_meses: 180 } });
-    expect(bajadaIgvDelMes(parte)).toBe("Solo de facturas, menos S/ 540 que se pierde por pagar sin banco (S/ 180 de gastos de otros meses). 0 boletas sin IGV descontable.");
+    expect(bajadaIgvDelMes(parte)).toBe("Solo de facturas, menos S/\u00a0540 que se pierde por pagar sin banco (S/\u00a0180 de gastos de otros meses). 0 boletas sin IGV descontable.");
     const centimos = leerPanel({ igv: 50, boletas: 0, igv_perdido: { n: 1, igv: 0.4, de_otros_meses: 0 } });
-    expect(bajadaIgvDelMes(centimos)).toContain("menos S/ 0.40 que se pierde");
+    expect(bajadaIgvDelMes(centimos)).toContain("menos S/\u00a00.40 que se pierde");
   });
   it("la tarjeta nunca dice un negativo: si lo perdido pasa el IGV del mes, dice S/ 0 y que Impuestos resta lo que falta", () => {
     const pasa = leerPanel({ igv: 50, boletas: 1, igv_perdido: { n: 2, igv: 230, de_otros_meses: 180 } });
     expect(pasa.igvDescontable).toBe(-180);
     expect(igvParaLaTarjeta(pasa)).toBe(0);
-    expect(solesRedondo(igvParaLaTarjeta(pasa))).toBe("S/ 0");
+    expect(solesRedondo(igvParaLaTarjeta(pasa))).toBe("S/\u00a00");
     expect(bajadaIgvDelMes(pasa)).toBe(
-      "Se pierde S/ 230 por pagar sin banco (S/ 180 de gastos de otros meses), más que los S/ 50 de IGV de las facturas del mes: Impuestos resta los S/ 180 que faltan. 1 boleta sin IGV descontable.",
+      "Se pierde S/\u00a0230 por pagar sin banco (S/\u00a0180 de gastos de otros meses), más que los S/\u00a050 de IGV de las facturas del mes: Impuestos resta los S/\u00a0180 que faltan. 1 boleta sin IGV descontable.",
     );
     const sinFacturas = leerPanel({ igv: 0, boletas: 0, igv_perdido: { n: 1, igv: 180, de_otros_meses: 180 } });
     expect(igvParaLaTarjeta(sinFacturas)).toBe(0);
     expect(bajadaIgvDelMes(sinFacturas)).toBe(
-      "Las facturas del mes no traen IGV, y se pierde S/ 180 por pagar sin banco (de gastos de otros meses): Impuestos lo resta este mes. 0 boletas sin IGV descontable.",
+      "Las facturas del mes no traen IGV, y se pierde S/\u00a0180 por pagar sin banco (de gastos de otros meses): Impuestos lo resta este mes. 0 boletas sin IGV descontable.",
     );
   });
   it("la tarjeta nunca dice «S/ -0»: un IGV pagado en partes puede perder un céntimo de más al redondear cada pago", () => {
     const p = leerPanel({ igv: 360, boletas: 0, igv_perdido: { n: 3, igv: 360.01, de_otros_meses: 0 } });
     expect(p.igvDescontable).toBe(-0.01);
-    expect(solesRedondo(igvParaLaTarjeta(p))).toBe("S/ 0");
-    expect(solesRedondo(-0.3)).toBe("S/ 0");
-    expect(solesRedondo(-180)).toBe("S/ -180");
+    expect(solesRedondo(igvParaLaTarjeta(p))).toBe("S/\u00a00");
+    expect(solesRedondo(-0.3)).toBe("S/\u00a00");
+    expect(solesRedondo(-180)).toBe("S/\u00a0-180");
   });
   it("el mes del gasto dice cuando su tarjeta cuenta un IGV que se pierde por un pago de otro mes (la fila ya dice «perdido»)", () => {
     const [septiembre] = conIgvPerdido([gasto(360, 2360, "2026-09-20")], [pago("hotel", "2026-10-05", 180, 1180)]);
@@ -477,7 +477,7 @@ describe("el IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76)", 
     expect(otro).toEqual({ igv: 180, meses: ["2026-10"] });
     const p = leerPanel({ igv: 720, boletas: 0, igv_perdido: { n: 1, igv: 360, de_otros_meses: 0 } });
     expect(bajadaIgvDelMes({ ...p, mes: "2026-09" }, otro)).toBe(
-      "Solo de facturas, menos S/ 360 que se pierde por pagar sin banco. Incluye S/ 180 que se pierde por un pago sin banco de octubre: Impuestos lo resta en ese mes. 0 boletas sin IGV descontable.",
+      "Solo de facturas, menos S/\u00a0360 que se pierde por pagar sin banco. Incluye S/\u00a0180 que se pierde por un pago sin banco de octubre: Impuestos lo resta en ese mes. 0 boletas sin IGV descontable.",
     );
     expect(perdidoEnOtroMes([mismoMes!], "2026-09")).toEqual({ igv: 0, meses: [] });
     const varios = perdidoEnOtroMes(
@@ -485,7 +485,7 @@ describe("el IGV perdido por pagar sin banco (ADR-0362, fase 6, decisión 76)", 
       "2026-12",
     );
     expect(bajadaIgvDelMes({ ...leerPanel({ igv: 360, boletas: 0 }), mes: "2026-12" }, varios)).toContain(
-      "Incluye S/ 240 que se pierde por pagos sin banco de enero de 2027 y febrero de 2027: Impuestos lo resta en esos meses.",
+      "Incluye S/\u00a0240 que se pierde por pagos sin banco de enero de 2027 y febrero de 2027: Impuestos lo resta en esos meses.",
     );
   });
 });

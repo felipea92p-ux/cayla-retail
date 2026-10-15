@@ -80,7 +80,7 @@ export function ApartadosModal({
         }`;
 
   return (
-    <Modal conCerrar titulo={liberando ? "Liberar apartado" : "Apartados"} subtitulo={liberando ? undefined : subtitulo} onClose={onClose} ancho="max-w-2xl">
+    <Modal conCerrar={!liberando} titulo={liberando ? "Liberar apartado" : "Apartados"} subtitulo={liberando ? undefined : subtitulo} onClose={onClose} tamano="ancha">
       {(cerrar) =>
         liberando ? (
           <form onSubmit={liberar} className="mt-2 space-y-4" noValidate>
@@ -106,7 +106,7 @@ export function ApartadosModal({
               <Boton type="button" onClick={() => { setLiberando(null); setMotivo(""); setIntento(false); responsable.limpiar(); }} className="flex-1">
                 Volver
               </Boton>
-              <Boton
+              <Boton textoCargando="Liberando…"
                 type="submit"
                 peso="primario"
                 cargando={enviando}

@@ -522,7 +522,7 @@ export function validarMovimiento(
 }
 
 function soles2(n: number): string {
-  return `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /** Las cuentas que se ofrecen en «De» o «A» para una opción (activas; con saldo para quien las ve). */

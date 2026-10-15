@@ -12,7 +12,7 @@
       "button «{enPantalla.cambiar}»",
       "Link «Ver el conteo»",
       "Volver «void cerrar()»",
-      "button «{razonApagado ?? undefined}»"
+      "Boton «{razonApagado ?? undefined}»"
     ],
     "components/conteo/PasosConteo.tsx": [
       "button «{contenido}»"

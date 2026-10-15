@@ -226,7 +226,7 @@ export function PagoJuntosModal({
 
   return (
     <Modal
-      variante="papel"
+      variante="hoja"
       titulo={
         hecho ? (
           <span className="sr-only">Pago registrado</span>
@@ -238,7 +238,7 @@ export function PagoJuntosModal({
         )
       }
       subtitulo={hecho ? undefined : `${ordenados.length === 1 ? "1 comprobante" : `${ordenados.length} comprobantes`} · una sola transferencia`}
-      ancho="max-w-2xl"
+      tamano="ancha"
       onClose={() => (resultado.current ? onPagado(resultado.current) : onClose())}
     >
       {(cerrar) =>
@@ -434,8 +434,8 @@ export function PagoJuntosModal({
             <button type="button" onClick={cerrar} className={BTN_CANCELAR} disabled={loading}>
               Cancelar
             </button>
-            <Boton type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman}>
-              {loading ? "Registrando…" : credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
+            <Boton textoCargando="Registrando…" type="submit" peso="primario" cargando={loading} disabled={!puedeRegistrar || !mediosSuman}>
+              {credito > 0 ? `Registrar pago de ${soles(total)} (${soles(credito)} a favor)` : `Registrar pago de ${soles(total)}`}
             </Boton>
           </div>
         </form>

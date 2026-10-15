@@ -192,7 +192,7 @@ export const CIERRES_POR_PAGINA = 20;
 export function textoResultado(diferencia: number): string {
   const estado = estadoCierre(diferencia);
   if (estado === "cuadro") return "Sí, cuadró";
-  const monto = "S/ " + Math.abs(diferencia).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const monto = "S/\u00a0" + Math.abs(diferencia).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `${estado === "falto" ? "Faltaron" : "Sobraron"} ${monto}`;
 }
 

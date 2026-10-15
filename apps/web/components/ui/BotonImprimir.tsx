@@ -58,6 +58,7 @@ export function BotonImprimir(
       type="button"
       onClick={props.onClick}
       cargando={props.cargando}
+      textoCargando="Imprimiendo…"
       disabled={props.disabled}
       autoFocus={props.autoFocus}
       peso={peso}

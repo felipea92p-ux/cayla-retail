@@ -14,7 +14,7 @@
       "Link «Volver a contar»",
       "ComboResponsable «(sin nombre)»",
       "button «{responsable.motivo ?? undefined}»",
-      "button «{responsable.motivo ?? undefined}» #2",
+      "Boton «{responsable.motivo ?? undefined}»",
       "Link «Cerrar como conteo parcial»",
       "button «{textoPie}»",
       "Link «Continuar»",

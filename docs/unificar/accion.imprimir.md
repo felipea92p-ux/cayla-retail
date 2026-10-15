@@ -36,9 +36,15 @@ la guía» (el pase de traslado), «Imprimir» → «Imprimir la lista» (el pla
 normal» → «Imprimir con el precio normal» (las etiquetas de una campaña terminada). Las etiquetas de un producto recién creado pasaron a negro
 (imprimirlas es el paso que sigue).
 
-**Se quedan, con su motivo:** los «Etiquetas» de la tabla de Productos y de la vista rápida (llevan a la pantalla de etiquetas: es ver en otra
-pantalla), la opción «Imprimir de nuevo» de una lista, el ícono de reimprimir en la fila compacta de Apartados (junto al de WhatsApp) y la guía de
+**Se quedan, con su motivo:** la opción «Imprimir de nuevo» de una lista, el ícono de reimprimir en la fila compacta de Apartados (junto al de WhatsApp) y la guía de
 impresión, que DIBUJA el botón para explicarlo.
+
+## «Etiquetas» lleva la etiqueta (2026-10-14)
+
+«Etiquetas» no imprime: lleva a la pantalla donde se elige cuántas y se imprime. En Productos (la tabla y la vista rápida) tenía la impresora y en
+Existencias, la etiqueta. Felipe eligió **P1 · la etiqueta en los dos** (fuentes en [rondas/pendientes](rondas/pendientes/README.md)): la
+impresora queda solo para lo que imprime en ese momento. Se cambiaron los 5 íconos de Productos (`<Tag>`, el de Existencias) y salieron las dos
+excepciones que los dejaban con la impresora: desde hoy, una `<Printer>` fuera de la pieza vuelve a fallar en la prueba también ahí.
 
 ## Firmas
 

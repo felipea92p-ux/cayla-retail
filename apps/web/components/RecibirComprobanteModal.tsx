@@ -51,7 +51,7 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      avisar.error(traducirError(error, "registrar la recepción"));
+      avisar.error(traducirError(error, "registrar la recepción", { confirmarAntesDeRepetir: true }));
       return;
     }
     const partes = [armado.lotes > 0 ? `${armado.lotes === 1 ? "Se abrió 1 lote" : `Se abrieron ${armado.lotes} lotes`}` : null, armado.cierres.length > 0 ? `${armado.cierres.length === 1 ? "1 línea cerrada" : `${armado.cierres.length} líneas cerradas`}` : null].filter(Boolean);
@@ -61,7 +61,7 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
   }
 
   return (
-    <Modal titulo="Recibir mercadería" subtitulo={`${c.proveedor} · ${etiquetaTipo(c.tipo, true)} ${c.documento} · ${diaMes(c.fechaEmision)}`} onClose={onClose} ancho="max-w-xl">
+    <Modal titulo="Recibir mercadería" subtitulo={`${c.proveedor} · ${etiquetaTipo(c.tipo, true)} ${c.documento} · ${diaMes(c.fechaEmision)}`} onClose={onClose} tamano="mediana">
       <form onSubmit={recibir} className="space-y-4">
         <ul className="space-y-3">
           {c.pendientes.map((l) => {
@@ -127,8 +127,8 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
             {armado.error ?? (armado.lotes > 0 ? `Se abrirá${armado.lotes === 1 ? " 1 lote" : `n ${armado.lotes} lotes`}, uno por cada línea que llegó.` : "")}
           </p>
           <ComboResponsable control={responsable} deshabilitado={cargando} />
-          <Boton peso="primario" type="submit" cargando={cargando} disabled={!!armado.error || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-            {cargando ? "Registrando…" : "Registrar recepción"}
+          <Boton textoCargando="Registrando…" peso="primario" type="submit" cargando={cargando} disabled={!!armado.error || !responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
+            Registrar recepción
           </Boton>
         </div>
       </form>

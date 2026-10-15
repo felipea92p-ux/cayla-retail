@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarX, CircleCheck, Clock } from "lucide-react";
 import { leerCierresDelMes } from "@/app/actions/caja";
 import { Aviso } from "@/components/ui/Aviso";
-import { Modal } from "@/components/ui/Modal";
+import { ANCHO_HOJA, Modal } from "@/components/ui/Modal";
 import { SelectorMes } from "@/components/ui/SelectorMes";
 import { Vacio } from "@/components/ui/Vacio";
 import { Volver } from "@/components/ui/Volver";
@@ -18,7 +18,7 @@ import { EnlaceVer } from "@/components/ui/EnlaceVer";
 const claveMes = ({ anio, mes }: Mes) => `${anio}-${mes}`;
 
 function money(n: number) {
-  return (n >= 0 ? "S/ " : "-S/ ") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (n >= 0 ? "S/\u00a0" : "-S/\u00a0") + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function hora(iso: string) {
@@ -146,7 +146,7 @@ export function HistorialCierresModal({
       }
       onClose={onClose}
       // La hoja crece (o se encoge) al pasar de la lista al detalle con el mismo ritmo de las demás: `ease-cayla`, sin rebote.
-      ancho={`${abierto ? ANCHO_DETALLE_CIERRE : "max-w-xl"} transition-[max-width] duration-300 ease-cayla motion-reduce:transition-none`}
+      ancho={`${abierto ? ANCHO_DETALLE_CIERRE : ANCHO_HOJA.mediana} transition-[max-width] duration-300 ease-cayla motion-reduce:transition-none`} /* unificar-fijo: crece de mediana a ancha al abrir un cierre, con su transición */
       arriba={
         abierto ? (
           <div className="mb-3 flex items-center gap-2.5 pr-10">

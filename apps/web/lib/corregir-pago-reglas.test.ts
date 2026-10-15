@@ -123,7 +123,7 @@ describe("calcular", () => {
       { medios: ["yape", "efectivo"], montos: { yape: "79.80" } },
       true,
     );
-    expect(c.problema).toMatch(/Menos de S\/ 0.10/);
+    expect(c.problema).toMatch(/Menos de S\/\u00a00.10/);
   });
 
   it("reconoce que es lo mismo que ya estaba (también con el redondeo)", () => {
@@ -171,7 +171,7 @@ describe("el cuadre de la caja", () => {
     const c = calcular(conRedondeo, { medios: ["yape"], montos: {} }, true);
     expect(cambioEnEfectivo(conRedondeo, c)).toBe(-79.8);
     expect(fraseDelCuadre(-79.8)).toBe(
-      "La caja va a esperar S/ 79.80 menos en efectivo.",
+      "La caja va a esperar S/\u00a079.80 menos en efectivo.",
     );
   });
 
@@ -179,7 +179,7 @@ describe("el cuadre de la caja", () => {
     const c = calcular(mixta, { medios: ["efectivo"], montos: {} }, true);
     expect(cambioEnEfectivo(mixta, c)).toBe(50);
     expect(fraseDelCuadre(50)).toBe(
-      "La caja va a esperar S/ 50.00 más en efectivo.",
+      "La caja va a esperar S/\u00a050.00 más en efectivo.",
     );
     expect(fraseDelCuadre(0)).toBeNull();
   });

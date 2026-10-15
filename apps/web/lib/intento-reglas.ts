@@ -191,7 +191,7 @@ export function avisoDeTraslado(res: Resolucion, t: TrasladoEnCurso): { tono: "e
   };
 }
 
-const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /** El aviso que da Vender al resolver un cobro que quedó en el aire. */
 export function avisoDeResolucion(res: Resolucion, cobro: CobroEnCurso): { tono: "exito" | "info"; titulo: string; detalle: string } {

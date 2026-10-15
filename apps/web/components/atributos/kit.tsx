@@ -256,7 +256,7 @@ export function DesactivarTarjeta({ onClick, cambiando = false }: { onClick: () 
 /** «Reactivar» de una tarjeta desactivada. */
 export function BotonReactivar({ onClick, cambiando = false }: { onClick: () => void; cambiando?: boolean }) {
   return (
-    <Boton peso="discreto" className="w-full px-2.5! py-1.5 text-[11px] whitespace-nowrap" cargando={cambiando} onClick={onClick}>
+    <Boton textoCargando="Reactivando…" peso="discreto" className="w-full px-2.5! py-1.5 text-[11px] whitespace-nowrap" cargando={cambiando} onClick={onClick}>
       Reactivar
     </Boton>
   );

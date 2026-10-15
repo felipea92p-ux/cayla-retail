@@ -22,6 +22,7 @@ import {
 import { Buscador } from "@/components/ui/Buscador";
 import { Vacio } from "@/components/ui/Vacio";
 import { Casilla } from "@/components/ui/Casilla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Proveedores de Producción (ADR-0133, F4a; D-H): quienes le venden tela, avíos y maquila al Taller. Directorio aparte del de
 // Compras. Solo se muestra lo que la base ya sabe de cada uno —lotes recibidos, total comprado, última entrega—; el saldo y el
@@ -29,7 +30,7 @@ import { Casilla } from "@/components/ui/Casilla";
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-export function ProveedoresProduccionPanel({ proveedores }: { proveedores: ProveedorProduccion[] }) {
+export function ProveedoresProduccionPanel({ proveedores, sede }: { proveedores: ProveedorProduccion[]; /** La sede de la línea de arriba de la cabecera (el Taller). */ sede: string }) {
   const [rubro, setRubro] = useState<RubroProduccion | "todos">("todos");
   const [busqueda, setBusqueda] = useState("");
   const [verArchivados, setVerArchivados] = useState(false);
@@ -40,16 +41,17 @@ export function ProveedoresProduccionPanel({ proveedores }: { proveedores: Prove
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" className="anim-entra flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Proveedores</h1>
-          <p className="mt-1 max-w-xl text-sm text-tinta/65">Quién le vende tela, avíos y maquila al Taller. Es un directorio aparte del de Compras.</p>
-        </div>
-        <Boton peso="primario" data-guia="prod-proveedores.nuevo" onClick={() => setEditando("nuevo")}>
-          + Nuevo proveedor
-        </Boton>
-      </div>
+      {/* La cabecera de todo el ERP menos Finanzas (ADR-0358, Felipe 2026-10-14). */}
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Proveedores"
+        subtitulo="Quién le vende tela, avíos y maquila al Taller. Es un directorio aparte del de Compras."
+        acciones={
+          <Boton peso="primario" data-guia="prod-proveedores.nuevo" onClick={() => setEditando("nuevo")}>
+            + Nuevo proveedor
+          </Boton>
+        }
+      />
 
       <div data-guia="prod-proveedores.cifras" className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra punto="verde" etiqueta="Proveedores activos" className="anim-entra" style={{ ["--i" as string]: 0 }} valor={<CifraQueCuenta valor={resumen.activos} alMontar />}>

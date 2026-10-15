@@ -183,11 +183,11 @@ export function HojaPrenda({
   const nombreDeLaOrden = destino.descripcionOrden?.trim() ?? "";
   const titulo = nueva ? "Crear la prenda que llegó" : `Sumar tallas o colores a ${destino.prenda?.nombre ?? "la prenda"}`;
   const subtitulo = nueva
-    ? `${categoria?.nombre ?? "Categoría"} · ${destino.marcaNombre}. Se crea en el catálogo${destino.costoUnitario != null ? ` con el costo de esta línea (S/ ${costoComoTexto(destino.costoUnitario)})` : ""} y queda lista para contar.`
+    ? `${categoria?.nombre ?? "Categoría"} · ${destino.marcaNombre}. Se crea en el catálogo${destino.costoUnitario != null ? ` con el costo de esta línea (S/\u00a0${costoComoTexto(destino.costoUnitario)})` : ""} y queda lista para contar.`
     : "Elige las tallas y los colores que llegaron: se crean las combinaciones que la prenda todavía no tiene.";
 
   return (
-    <Modal titulo={titulo} subtitulo={subtitulo} ancho="max-w-xl" bloqueado={guardando} onClose={onCerrar}>
+    <Modal titulo={titulo} subtitulo={subtitulo} tamano="mediana" bloqueado={guardando} onClose={onCerrar}>
       {(cerrar) => (
         <form
           data-guia="recepcion.hoja-prenda"
@@ -365,8 +365,8 @@ export function HojaPrenda({
             <Boton type="button" onClick={cerrar} disabled={guardando}>
               Cancelar
             </Boton>
-            <Boton type="submit" peso="primario" cargando={guardando} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
-              {guardando ? (nueva ? "Creando…" : "Sumando…") : nueva ? "Crear y contar" : nuevas > 0 ? `Sumar ${nuevas} y contar` : "Sumar y contar"}
+            <Boton type="submit" peso="primario" cargando={guardando} textoCargando={nueva ? "Creando…" : "Sumando…"} title={guia.frase ?? undefined} className={guia.claseConfirmar}>
+              {nueva ? "Crear y contar" : nuevas > 0 ? `Sumar ${nuevas} y contar` : "Sumar y contar"}
             </Boton>
           </div>
         </form>

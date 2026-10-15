@@ -91,9 +91,9 @@ describe("el cobro en curso de Vender", () => {
   });
   it("el aviso dice lo que pasó, con el comprobante si lo hay", () => {
     const cobro = c("a", "x");
-    expect(avisoDeResolucion({ tipo: "no_llego" }, cobro)).toMatchObject({ tono: "info", titulo: "El cobro de S/ 149.90 no se registró" });
+    expect(avisoDeResolucion({ tipo: "no_llego" }, cobro)).toMatchObject({ tono: "info", titulo: "El cobro de S/\u00a0149.90 no se registró" });
     const hecho = avisoDeResolucion({ tipo: "hecho", datos: { total: 149.9, comprobante: { tipo: "boleta", serie: "B001", numero: 2 } } }, cobro);
-    expect(hecho).toMatchObject({ tono: "exito", titulo: "Tu venta de S/ 149.90 sí se registró" });
+    expect(hecho).toMatchObject({ tono: "exito", titulo: "Tu venta de S/\u00a0149.90 sí se registró" });
     expect(hecho.detalle).toContain("Boleta B001-2");
   });
 });

@@ -381,7 +381,7 @@ export function papelEnUnaLinea(g: Pick<GastoFila, "comprobanteTipo" | "comproba
 export function solesRedondo(n: number): string {
   // `|| 0`: un negativo de céntimos redondea a -0 y se escribiría «S/ -0» (el IGV del mes menos lo perdido, partido en pagos que
   // redondean cada uno, puede quedar en -0.01).
-  return `S/ ${(Math.round(n) || 0).toLocaleString("es-PE")}`;
+  return `S/\u00a0${(Math.round(n) || 0).toLocaleString("es-PE")}`;
 }
 
 const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -491,7 +491,7 @@ export function notaIgvPerdido(
   if (perdido <= 0 || pagos.length === 0) return null;
   const meses = [...new Set(pagos.map((p) => p.fecha.slice(0, 7)))].sort();
   const menores = pagos.every((p) => p.monto < UMBRAL_BANCARIZACION);
-  const tope = `S/ ${UMBRAL_BANCARIZACION.toLocaleString("es-PE")}`;
+  const tope = `S/\u00a0${UMBRAL_BANCARIZACION.toLocaleString("es-PE")}`;
   const aunque = !menores ? "" : pagos.length === 1 ? `, aunque ese pago sea de menos de ${tope}` : `, aunque cada pago sea de menos de ${tope}`;
   const texto =
     `Esta factura es de ${solesRedondo(g.montoTotal)}: desde ${tope} se paga por el banco, y SUNAT ` +

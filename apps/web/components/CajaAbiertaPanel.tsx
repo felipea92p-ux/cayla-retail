@@ -803,7 +803,7 @@ function RitmoDelDia({ ventas, abiertaEn, idsNuevos }: { ventas: VentaDelDia[]; 
 
 /** «S/ 1,700»: las cifras de la tarjeta de meta van redondas (spike de Finanzas). */
 function soles0(n: number): string {
-  return `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+  return `S/\u00a0${Math.round(n).toLocaleString("es-PE")}`;
 }
 
 function DatoMeta({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; detalle?: ReactNode }) {

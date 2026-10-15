@@ -106,7 +106,7 @@ export function personaDe(f: Pick<FilaHistorial, "usuario_id" | "usuario_nombre"
 
 // ---------- palabras ----------
 
-export const soles = (n: number | null) => (n === null || !Number.isFinite(n) ? "—" : `S/ ${n.toFixed(2)}`);
+export const soles = (n: number | null) => (n === null || !Number.isFinite(n) ? "—" : `S/\u00a0${n.toFixed(2)}`);
 const num = (v: string | null) => (v === null || v.trim() === "" || !Number.isFinite(Number(v)) ? null : Number(v));
 
 /** «S · Negro», «Negro», «S». */

@@ -148,7 +148,7 @@ export function montoDelVale(aplicado: boolean, estado: ValeEnCaja): number | nu
 /* ------------------------------------------------------------------ Los textos */
 
 /** «S/ 30» si es entero, «S/ 30.50» si no: así se dice el vale en la tarjeta (la escala es en soles redondos). */
-export const solesDelVale = (n: number) => `S/ ${Number.isInteger(n) ? String(n) : n.toFixed(2)}`;
+export const solesDelVale = (n: number) => `S/\u00a0${Number.isInteger(n) ? String(n) : n.toFixed(2)}`;
 /** Soles como los dice la caja (`money` de `PuntoDeVenta`): «S/30.00». */
 const soles = (n: number) => `S/${n.toFixed(2)}`;
 

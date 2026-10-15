@@ -73,8 +73,8 @@ describe("textoTicketCambio", () => {
   });
 
   it("lo cobrado y lo devuelto, en palabras de la clienta", () => {
-    expect(textoTicketCambio({ ...base, diferencia: 20 })).toContain("Pagaste S/ 20.00 de diferencia");
-    expect(textoTicketCambio({ ...base, comprobante: null, diferencia: -15.5 })).toContain("Te devolvimos S/ 15.50");
+    expect(textoTicketCambio({ ...base, diferencia: 20 })).toContain("Pagaste S/\u00a020.00 de diferencia");
+    expect(textoTicketCambio({ ...base, comprobante: null, diferencia: -15.5 })).toContain("Te devolvimos S/\u00a015.50");
   });
 });
 

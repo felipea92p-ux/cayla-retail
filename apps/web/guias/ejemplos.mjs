@@ -68,6 +68,12 @@ const SIN_MODULO_OI =
   "select case when to_regclass('retail.ordenes_insumo') is null or not exists (select 1 from retail.modulos where clave = 'ordenes_insumos') then 'la base local no tiene el módulo ordenes_insumos (faltan las migraciones 20261013035000 y 20261013040000): la cuenta cae en «Sin acceso»' when not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_orden_insumo_opciones') then 'la base local no tiene fn_orden_insumo_opciones (migración 20261013040000 al día): el formulario no tiene qué ofrecer' end";
 const SIN_ORDEN_INSUMO =
   "select case when to_regclass('retail.ordenes_insumo') is null or not exists (select 1 from retail.modulos where clave = 'ordenes_insumos') then 'la base local no tiene el módulo ordenes_insumos (faltan las migraciones 20261013035000 y 20261013040000): la cuenta cae en «Sin acceso»' when query_to_xml('select 1 from retail.ordenes_insumo limit 1', false, true, '')::text = '' then 'no hay ninguna orden de insumos en la base local' end";
+/** El papel de una orden de insumos (fase 7 parte 2) pide la migración 20261015020000 (el detalle trae «facturacion») y una orden generada. */
+const SIN_PAPEL_OI =
+  "select case when to_regclass('retail.ordenes_insumo') is null or not exists (select 1 from retail.modulos where clave = 'ordenes_insumos') then 'la base local no tiene el módulo ordenes_insumos (faltan las migraciones 20261013035000 y 20261013040000): la cuenta cae en «Sin acceso»' when not exists (select 1 from information_schema.columns where table_schema = 'retail' and table_name = 'comprobantes_produccion' and column_name = 'orden_insumo_id') then 'la base local no tiene el papel de una orden de insumos (migraciones 20261015015000 y 20261015020000)' when query_to_xml('select 1 from retail.ordenes_insumo where estado = ''generada'' limit 1', false, true, '')::text = '' then 'no hay ninguna orden de insumos generada en la base local' end";
+/** La que más enseña para registrar su papel: una generada sin papel todavía (todo viene puesto); si no, la generada más reciente. */
+const ORDEN_INSUMO_PARA_PAPEL =
+  "select o.id from retail.ordenes_insumo o where o.estado = 'generada' order by (not exists (select 1 from retail.comprobantes_produccion c where c.orden_insumo_id = o.id)) desc, o.creada_en desc limit 1";
 /** La orden de insumos que más enseña: una generada (con «Editar» y «Anular orden»), y entre ellas la que se editó (se ve «Lo que decía antes»). */
 const ORDEN_INSUMO_QUE_ENSENA =
   "select o.id from retail.ordenes_insumo o order by (o.estado = 'generada') desc, exists (select 1 from retail.orden_insumo_versiones v where v.orden_insumo_id = o.id) desc, o.creada_en desc limit 1";
@@ -203,4 +209,5 @@ export const EJEMPLOS = {
   "/ordenes-insumos/nueva": { cuenta: "admin-taller", sinDatos: SIN_MODULO_OI },
   "/ordenes-insumos/ver/[id]": { cuenta: "admin-taller", sinDatos: SIN_ORDEN_INSUMO, url: () => `/ordenes-insumos/ver/${id(ORDEN_INSUMO_QUE_ENSENA)}` },
   "/ordenes-insumos/editar/[id]": { cuenta: "admin-taller", sinDatos: SIN_ORDEN_INSUMO, url: () => `/ordenes-insumos/editar/${id(ORDEN_INSUMO_QUE_ENSENA)}` },
+  "/ordenes-insumos/comprobante/[id]": { cuenta: "admin-taller", sinDatos: SIN_PAPEL_OI, url: () => `/ordenes-insumos/comprobante/${id(ORDEN_INSUMO_PARA_PAPEL)}` },
 };

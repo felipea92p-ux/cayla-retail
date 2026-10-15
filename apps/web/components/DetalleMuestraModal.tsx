@@ -194,7 +194,7 @@ export function DetalleMuestraModal({
     <Modal
       titulo={muestra.nombre}
       subtitulo={cantidad === null ? (tipo === "tejido" ? "Tejido" : "Patrón") : `${tipo === "tejido" ? "Tejido" : "Patrón"} · ${textoPrendas(cantidad)}`}
-      ancho="max-w-lg"
+      tamano="mediana"
       bloqueado={guardando}
       onClose={onClose}
     >
@@ -230,7 +230,7 @@ export function DetalleMuestraModal({
 
           {puedeEditar && !pendiente && generador === null && (
             <div className="flex flex-wrap gap-2">
-              <Boton peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
+              <Boton textoCargando="Subiendo…" peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
                 <span className="inline-flex items-center gap-1.5">
                   <ImagePlus className="h-3.5 w-3.5" aria-hidden />
                   Subir foto
