@@ -13,7 +13,8 @@ import { diaLima } from "./fechas-lima";
 export const PLAZO_DIAS = 7;
 export const AVISO_DIAS = 2;
 export const GRACIA_DIAS = 2;
-export const EXTENSIONES_MAX = 1;
+/** Cuántas veces se aplaza un apartado: 1 hasta el 2026-10-15; 2 desde ADR-0414 (Felipe), con el tope de 30 días desde que se apartó. */
+export const EXTENSIONES_MAX = 2;
 /** SUNAT: una boleta de más de S/700 identifica a la compradora. */
 export const TOPE_BOLETA_SIN_DNI = 700;
 

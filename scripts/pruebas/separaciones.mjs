@@ -305,11 +305,40 @@ select retail.extender_separacion(:'sep') as nueva \\gset
 select :'nueva'::date = retail.fn_hoy_lima() + 14,
        (select vence_el = :'nueva'::date from retail.apartados a join retail.separacion_items si on si.apartado_id = a.id where si.separacion_id = :'sep'),
        (select extensiones from retail.separaciones where id = :'sep');`, (s) => s === "t|t|1");
-error("no se extiende dos veces",
+// ADR-0414 (Felipe 2026-10-15): hasta 2 aplazamientos y nunca más de 30 días desde que se apartó. `extender_separacion` es
+// «aplazar 7 días».
+error("se aplaza hasta 2 veces: la tercera no",
   `${preparar()}${separar()}
 set local request.jwt.claim.sub = '${FELIPE}';
 select retail.extender_separacion(:'sep') as _a \\gset
-select retail.extender_separacion(:'sep');`, "ya se extendió una vez");
+select retail.extender_separacion(:'sep') as _b \\gset
+select retail.extender_separacion(:'sep');`, "ya se aplazó 2 veces");
+exito("aplazar a una fecha elegida: mueve el vencimiento, cuenta 1 y anota de qué fecha a cuál y quién",
+  `${preparar()}${separar()}
+set local request.jwt.claim.sub = '${FELIPE}';
+select retail.aplazar_separacion(:'sep', retail.fn_hoy_lima() + 10) as nueva \\gset
+select :'nueva'::date = retail.fn_hoy_lima() + 10,
+       (select vence_el = :'nueva'::date from retail.apartados a join retail.separacion_items si on si.apartado_id = a.id where si.separacion_id = :'sep'),
+       (select extensiones from retail.separaciones where id = :'sep'),
+       (select count(*) || ':' || bool_and(vence_antes = retail.fn_hoy_lima() + 7 and creado_por is not null)
+          from retail.separacion_aplazamientos where separacion_id = :'sep');`, (s) => s === "t|t|1|1:true");
+exito("aplazar dos veces a la misma fecha (doble clic) cuenta una sola",
+  `${preparar()}${separar()}
+set local request.jwt.claim.sub = '${FELIPE}';
+select retail.aplazar_separacion(:'sep', retail.fn_hoy_lima() + 10) as _a \\gset
+select retail.aplazar_separacion(:'sep', retail.fn_hoy_lima() + 10) as _b \\gset
+select (select extensiones from retail.separaciones where id = :'sep'),
+       (select count(*) from retail.separacion_aplazamientos where separacion_id = :'sep');`, (s) => s === "1|1");
+error("no se aplaza a una fecha que no es posterior al vencimiento",
+  `${preparar()}${separar()}
+set local request.jwt.claim.sub = '${FELIPE}';
+select retail.aplazar_separacion(:'sep', retail.fn_hoy_lima() + 7);`, "tiene que ser después");
+error("no se aplaza más allá de 30 días desde que se apartó",
+  `${preparar()}${separar()}
+set local request.jwt.claim.sub = '${FELIPE}';
+select retail.aplazar_separacion(:'sep', retail.fn_hoy_lima() + 31);`, "como mucho 30 días");
+error("una colaboradora sin Caja no puede aplazar (D5)", `${preparar()}${separar()}
+select retail.aplazar_separacion(:'sep', retail.fn_hoy_lima() + 10);`, "Solo una líder");
 
 error("una colaboradora no puede liberar (D5)", `${preparar()}${separar()}
 select retail.liberar_separacion(:'sep', 'clienta_desistio');`, "Solo una líder");
@@ -491,6 +520,15 @@ select s.adelanto, s.vence_el = retail.fn_hoy_lima() + 7,
        (select count(*) from retail.fn_verificar_separaciones())
   from retail.separaciones s where s.id = :'sep';`,
   (x) => x === "60.00|t|1|t|0|1|0");
+exito("el detalle (ADR-0414) trae cada pago con su hora y quién lo cobró, y cada aplazamiento",
+  `${preparar(FELIPE)}${separar()}${abonar(5)}
+select retail.aplazar_separacion(:'sep', retail.fn_hoy_lima() + 10) as _ap \\gset
+select retail.fn_detalle_separacion(:'sep') as d \\gset
+select jsonb_array_length(:'d'::jsonb -> 'pagos'),
+       (select bool_and(p ->> 'por' is not null and (p ->> 'fecha')::timestamptz is not null) from jsonb_array_elements(:'d'::jsonb -> 'pagos') p),
+       (select count(*) filter (where (p ->> 'abono')::boolean) from jsonb_array_elements(:'d'::jsonb -> 'pagos') p),
+       jsonb_array_length(:'d'::jsonb -> 'aplazamientos'),
+       :'d'::jsonb ->> 'creada_por' is not null;`, (s) => s === "2|t|1|1|t");
 exito("abono en efectivo: entra al cajón como ingreso del apartado",
   `${preparar(FELIPE)}${separar()}${abonar(15, { metodo: "efectivo" })}
 select count(*), sum(monto) from retail.caja_movimientos where separacion_id = :'sep' and tipo = 'ingreso';`,

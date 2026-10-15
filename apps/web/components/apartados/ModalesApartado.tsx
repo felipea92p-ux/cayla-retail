@@ -17,7 +17,6 @@ import { traducirError } from "@/lib/error-escritura";
 import { diaLima, hoyLima } from "@/lib/fechas-lima";
 import {
   AVISO_DIAS,
-  EXTENSIONES_MAX,
   FUNCIONES_APARTADOS,
   PRESETS_APARTADOS,
   diasEsperaPorAbono,
@@ -450,51 +449,6 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
             <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Cancelar</button>
             <Boton peso="primario" cargando={enviando} textoCargando="Registrando…" type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => devolver(cerrar)}>
               Registrar devolución
-            </Boton>
-          </div>
-        </div>
-      )}
-    </Modal>
-  );
-}
-
-/** Extender el plazo 7 días (una sola vez): una confirmación breve para que quien lo hace firme con el combo. */
-export function ExtenderModal({ apartado, ubicacion, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; onClose: () => void }) {
-  const router = useRouter();
-  const [enviando, setEnviando] = useState(false);
-  // Extender guarda en la tienda (cambia la fecha límite de la clienta): pide Responsable (ADR-0161), vacío al abrir.
-  const responsable = useResponsable(ubicacion, { modo: "atencion" }); // módulo Punto de venta: «¿Quién está atendiendo?», vacío al abrir
-  const agotado = apartado.extensiones >= EXTENSIONES_MAX;
-
-  async function extender(cerrar: () => void) {
-    if (agotado || !responsable.listo) return;
-    setEnviando(true);
-    const { data, error } = await firmar(createClient().rpc("extender_separacion", { p_separacion_id: apartado.id }), responsable.firma());
-    setEnviando(false);
-    responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "extender el apartado"));
-    avisar.exito("Plazo extendido 7 días", { detalle: `${apartado.nombres} recoge hasta el ${fechaCorta(String(data))}. Avísale por WhatsApp.` });
-    router.refresh();
-    cerrar();
-  }
-
-  return (
-    <Modal titulo="¿Extender 7 días?" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo}`} onClose={onClose}>
-      {(cerrar) => (
-        <div className="space-y-4">
-          <p className="text-sm text-tinta/80">
-            Venció el <b>{fechaCorta(apartado.venceEl)}</b>. Las prendas siguen guardadas una semana más y el precio se mantiene. Solo se puede extender una vez.
-          </p>
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
-          <div className="pie-acciones">
-            <button type="button" onClick={cerrar} className="btn-cayla btn-secundario">Mejor no</button>
-            <Boton peso="primario" cargando={enviando} textoCargando="Extendiendo…"
-              type="button"
-              disabled={enviando || agotado || !responsable.listo}
-              title={agotado ? "Ya se extendió una vez." : (responsable.motivo ?? undefined)}
-              onClick={() => extender(cerrar)}
-            >
-              Extender 7 días
             </Boton>
           </div>
         </div>
