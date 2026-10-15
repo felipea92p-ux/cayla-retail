@@ -7,3 +7,6 @@ mostrador. Es la regla de Apartados: primero la ficha, después el padrón. Si s
 consulta como siempre; la factura (RUC) no cambia: su estado y condición se vuelven a mirar cada vez.
 Felipe se lleva: verificado en local a escritorio y a 375 px, mirando la red: con el DNI del cliente, cero llamadas a
 `/api/padron`; con un dígito cambiado, una; y al volver al DNI del cliente, el comprobante vuelve a llevar el nombre de su ficha.
+De punta a punta: un cliente registrado en el momento (DNI inventado, el padrón consultado UNA vez al registrarlo) → boleta →
+cobro en efectivo: B001-000004 guardada con su nombre y DNI de la ficha y la venta ligada a él, sin segunda consulta. La base
+local volvió a su foto (`estado.mjs`, «idéntico»).
