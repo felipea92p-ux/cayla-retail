@@ -117,6 +117,10 @@ export const PRUEBAS = [
   // pegar dos veces. ROLLBACK.
   "pruebas:finanzas-confianza",
 
+  // Pago de la planilla y pago a SUNAT (ADR-0417, situaciones 15 y 16): salen de un banco, el Diario baja la 41 y la 4011,
+  // candados (destino, caja fuerte, comisión, sin ser líder), anular, pegar dos veces. ROLLBACK.
+  "pruebas:pago-planilla-y-sunat",
+
   "pruebas:registrar-cambio",
 
   // No se cambia por una prenda sin precio (ADR-0385): un cambio por una prenda en S/ 0 (ni la bolsa de obsequio) se rechaza sin

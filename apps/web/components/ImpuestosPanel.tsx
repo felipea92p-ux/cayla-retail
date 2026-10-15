@@ -209,7 +209,10 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
       </Superficie>
 
       <p className="nota-cayla" data-guia="fin-impuestos.nota">
-        El pago a SUNAT todavía no se registra aquí: llega con Cuentas y dinero, porque sale de una cuenta de CAYLA. Mientras tanto, «sin pago registrado» solo dice que el sistema no lo sabe.
+        El pago a SUNAT se registra en Cuentas y dinero («Pagar a SUNAT (el IGV)», sale de un banco): baja lo que debes de IGV y el banco. El 1 % de renta a cuenta va como gasto de «Tributos». Mientras no se registre, «sin pago registrado» solo dice que el sistema no lo sabe.{" "}
+        <Link href="/finanzas/dinero" className="btn-cayla btn-enlace">
+          Registrar el pago
+        </Link>
       </p>
     </div>
   );
