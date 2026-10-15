@@ -52,7 +52,7 @@ export function TelaDelModelo({ materiales }: { materiales: MaterialesDeHoja | n
       <div>
         <TituloGrupo>Tela y avíos</TituloGrupo>
         <Vacio tamano="chico" icono={<Scissors />}>
-          Todavía no hay consumo medido de este modelo: se mide cuando se cierra una orden suya con los insumos descontados.
+          Todavía no hay consumo medido de este modelo: se mide cuando se cierra una orden suya con la tela usada.
         </Vacio>
       </div>
     );

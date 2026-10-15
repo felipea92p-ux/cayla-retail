@@ -29,7 +29,7 @@ export const GUIA_PROD_RESUMEN: Guia = {
       id: "acciones",
       ancla: "prod-resumen.acciones",
       titulo: "Ir a las órdenes",
-      texto: "«Ver órdenes» abre el tablero de lo que se está fabricando; «Nueva orden» te lleva ahí mismo con la ventana para abrir una corrida. Te llevan a otra pantalla, así que en la demo no los tocamos.",
+      texto: "«Ver órdenes» abre el tablero de lo que se está fabricando; «Nueva orden» te lleva ahí mismo con la ventana para abrir una orden. Te llevan a otra pantalla, así que en la demo no los tocamos.",
     },
     {
       id: "cifras",
@@ -61,7 +61,7 @@ export const GUIA_PROD_RESUMEN: Guia = {
       id: "que-producir",
       ancla: "prod-resumen.que-producir",
       titulo: "¿Qué producir?",
-      texto: "Los modelos que se pueden fabricar (no salen los descontinuados, los pendientes de aprobación, los de prueba ni los de familias como Empaque), primero los que más urge fabricar. Sirve para decidir la próxima corrida mirando lo que de verdad se vende en las tiendas, no a ojo.",
+      texto: "Los modelos que se pueden fabricar (no salen los descontinuados, los pendientes de aprobación, los de prueba ni los de familias como Empaque), primero los que más urge fabricar. Sirve para decidir el próximo lote mirando lo que de verdad se vende en las tiendas, no a ojo.",
     },
     {
       id: "modelo",
@@ -235,7 +235,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "nueva",
       ancla: "prod-ordenes.nueva",
       titulo: "Abrir una orden nueva",
-      texto: "Empiezas aquí cuando decides fabricar un modelo. Se abre una ventana para armar la corrida (te la abrimos para mostrarte sus partes, sin abrir ninguna orden).",
+      texto: "Empiezas aquí cuando decides fabricar un modelo. Se abre una ventana para armar el lote (te la abrimos para mostrarte sus partes, sin abrir ninguna orden).",
     },
     {
       id: "modelo",

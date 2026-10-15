@@ -35,7 +35,7 @@
     "components/OrdenCierre.tsx": [
       "CampoMonto «Tela (real)»",
       "CampoMonto «Avíos (real)»",
-      "CampoMonto «Maquila (real)»",
+      "CampoMonto «Servicios (real)»",
       "ComboResponsable «(sin nombre)»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -52,7 +52,7 @@
       "Boton «{responsable.motivo ?? undefined}» #2"
     ],
     "components/OrdenModales.tsx": [
-      "input «Por qué se cancela la corrida»",
+      "input «Por qué se cancela el lote»",
       "ComboResponsable «Volver»",
       "button «Volver»",
       "button «{responsable.motivo ?? undefined}»",
@@ -67,7 +67,7 @@
       "button «Reabrir»",
       "Link «Llevarlas a las tiendas»",
       "Link «Imprimir etiquetas de precio»",
-      "Boton «→() => setCerrando(true)»",
+      "Boton «{orden.esMuestra ? \"Dar por terminada\" : \"Pasar al stock\"}»",
       "Boton «Anular»",
       "Boton «Volver sin cerrar»",
       "Boton «Revertir cierre»"

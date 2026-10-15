@@ -36,7 +36,7 @@ export function CotizacionesMaquilaPanel({ cotizaciones, categorias, hoy }: { co
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 px-5 pt-[18px] pb-3.5">
           <div className="min-w-0 flex-1 basis-80">
             <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-            <TituloSeccion className="mt-0.5">Cotizaciones de maquila externa</TituloSeccion>
+            <TituloSeccion className="mt-0.5">Cotizaciones de servicios de afuera</TituloSeccion>
             <p className="mt-0.5 max-w-[46rem] text-xs text-tinta/65">
               Lo que cobraría un taller externo por maquilar cada tipo de prenda — la referencia contra la que se mide el Taller (D-31). Una fila por tipo de
               prenda: la más reciente. Renovar es cargar una cotización nueva; ninguna se edita para &ldquo;actualizarla&rdquo;.

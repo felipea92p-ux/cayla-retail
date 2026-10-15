@@ -235,7 +235,7 @@ export function OrdenPanel({
                         </span>
                         <p className="text-[13px] font-semibold text-tinta">{e.etiqueta}</p>
                         <p className="px-1 text-[11.5px] leading-snug text-tinta/65">
-                          {estado === "tercerizado" ? "Con maquila externa" : e.detalle}
+                          {estado === "tercerizado" ? "Afuera con un servicio" : e.detalle}
                         </p>
                         {abierta && esActual && (
                           <div className="mt-2.5 flex flex-col items-center gap-1.5">
@@ -254,10 +254,10 @@ export function OrdenPanel({
                               onClick={() =>
                                 estado === "tercerizado"
                                   ? fijarEtapa(e.clave, "pendiente", estado, `${e.etiqueta} volvió al Taller`)
-                                  : fijarEtapa(e.clave, "tercerizado", estado, `${e.etiqueta} salió a maquila externa`)
+                                  : fijarEtapa(e.clave, "tercerizado", estado, `${e.etiqueta} salió afuera`)
                               }
                             >
-                              {estado === "tercerizado" ? "Traer de vuelta" : "Enviar a maquila"}
+                              {estado === "tercerizado" ? "Traer de vuelta" : "Mandar afuera"}
                             </Boton>
                           </div>
                         )}
@@ -288,9 +288,9 @@ export function OrdenPanel({
 
             {/* -------- costo (solo el líder) -------- */}
             {esLider && (
-              <section aria-label="Costo de la corrida">
+              <section aria-label="Costo del lote">
                 <TituloGrupo className="mb-3">
-                  {orden.estado === "terminada" ? "Costo real de la corrida" : "Costo de la corrida"}
+                  {orden.estado === "terminada" ? "Costo real del lote" : "Costo del lote"}
                 </TituloGrupo>
                 <div className="flex items-end justify-between gap-4">
                   <div>
@@ -386,7 +386,7 @@ export function OrdenPanel({
             {abierta && !cerrando && (
               <>
                 <Boton peso="primario" className="flex-1" onClick={() => setCerrando(true)}>
-                  {orden.esMuestra ? "Dar por terminada" : "Cerrar al inventario"}
+                  {orden.esMuestra ? "Dar por terminada" : "Pasar al stock"}
                 </Boton>
                 <Boton peso="peligro" onClick={onAnular}>
                   Anular
