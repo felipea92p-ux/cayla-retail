@@ -26,3 +26,11 @@ Qué hice: publiqué a mano en producción la fusión de #1115 (a Vercel no le l
 armado corre con Turborepo, que no dejaba pasar `SENTRY_AUTH_TOKEN`. Lo declaré en `passThroughEnv` de `build` en `turbo.json`.
 Por qué así: `passThroughEnv` le da la llave al armado sin meterla en la huella de la caché; comprobado con el ensayo de Turborepo.
 Felipe se lleva: después de fusionar, el log del armado tiene que decir que subió los mapas; desde ahí, cada aviso de Sentry trae la línea exacta.
+
+## 2026-10-15 (Aventurero ocupa la pantalla: foto y mensaje crecen con la ventana)
+Qué hice: la tarjeta de «Sin acceso» y de los errores dejó de ser una columna de 448 px en medio de un espacio vacío. En un monitor alto, la
+foto y el mensaje van apilados con un mismo ancho, el mayor que cabe sin bajar del pliegue (1.054 px a 1920×1080); en un laptop bajo, van
+lado a lado (la foto en 3/5, sobre un paño oscuro); en el celular, a todo el ancho. Pieza común: `PantallaAventurero`.
+Por qué así: apilada, en una pantalla baja la foto quedaba angosta porque manda el alto (el error salía de 439 px a 1280×800); lado a lado
+usa el ancho que sobra. Medido en seis tamaños, en claro y oscuro: ningún tamaño de escritorio baja del pliegue.
+Felipe se lleva: la pantalla pide el ancho completo del <main>, declarado en `lib/ancho-completo.test.ts` por su pedido de que «ocupe todo el espacio».
