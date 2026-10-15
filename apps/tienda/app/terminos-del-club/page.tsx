@@ -28,7 +28,8 @@ export default async function TerminosDelClub() {
           <section>
             <h2>1. Quién puede ser miembro</h2>
             <p>
-              Personas mayores de 18 años, con DNI y un celular con WhatsApp. Unirse es gratis: al crear tu cuenta en la tienda online ya
+              Personas mayores de 18 años, con DNI, carné de extranjería o pasaporte y un celular con WhatsApp. Unirse es gratis: al crear tu
+              cuenta en la tienda online ya
               eres miembro. Si ya lo eras en tienda, tu cuenta se une a tu ficha y conservas tu código y tu fecha de miembro.
             </p>
           </section>

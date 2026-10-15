@@ -39,10 +39,14 @@ export default async function Privacidad() {
             <h2>2. Qué datos tratamos</h2>
             <ul>
               <li>
-                Los que nos das al crear tu cuenta: tu correo y tu contraseña, tu DNI, tus nombres y apellidos, tu celular y tu cumpleaños
+                Los que nos das al crear tu cuenta: tu correo y tu contraseña, tu documento (DNI, carné de extranjería o pasaporte), tus nombres
+                y apellidos, tu celular y tu cumpleaños
                 (día y mes; el año, si quieres).
               </li>
-              <li>Tu nombre lo tomamos del padrón público a partir de tu DNI, para que quede bien escrito. Si no lo encontramos, lo escribes tú.</li>
+              <li>
+                Con DNI, tu nombre lo tomamos del padrón público, para que quede bien escrito. Con carné de extranjería o pasaporte, lo
+                escribes tú, tal cual está en tu documento.
+              </li>
               <li>Tu contraseña la guarda cifrada el servicio de inicio de sesión: nadie en CAYLA puede verla.</li>
               <li>
                 Los que se generan cuando separas o compras: tus pedidos web, la tienda que elegiste, las prendas, tallas, montos y
@@ -75,7 +79,7 @@ export default async function Privacidad() {
           <section>
             <h2>4. Qué datos son obligatorios</h2>
             <p>
-              Tu correo, tu contraseña, tu DNI, tu nombre, tu celular y el día y el mes de tu cumpleaños: sin ellos no podemos darte tu
+              Tu correo, tu contraseña, tu documento, tu nombre, tu celular y el día y el mes de tu cumpleaños: sin ellos no podemos darte tu
               cuenta ni aplicar tus beneficios. El año de tu cumpleaños es opcional.
             </p>
           </section>
