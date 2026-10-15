@@ -114,8 +114,7 @@ export type PrecioTarjeta = {
   oferta: boolean;
 };
 
-/** Lo que dice el precio de la tarjeta. Pide solo el precio, lo que se paga y «desde» (la prenda de un look también la usa). */
-export function precioTarjeta<P extends Pick<Prenda, "precio" | "precioFinal" | "desde">>(p: P): PrecioTarjeta {
+export function precioTarjeta(p: Prenda): PrecioTarjeta {
   const conDescuento = p.precioFinal < p.precio;
   return {
     principal: `${conDescuento && p.desde ? "Desde " : ""}${soles(conDescuento ? p.precioFinal : p.precio)}`,

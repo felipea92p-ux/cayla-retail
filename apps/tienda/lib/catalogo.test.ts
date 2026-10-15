@@ -360,10 +360,3 @@ describe("las listas: Lo nuevo, las ofertas y Más vendidos (actividad 5)", () =
     ]);
   });
 });
-
-describe("el precio de la tarjeta, para otras piezas (la prenda de un look)", () => {
-  it("pide solo el precio, lo que se paga y «desde»", () => {
-    expect(precioTarjeta({ precio: 79.9, precioFinal: 63.9, desde: true })).toEqual({ principal: "Desde S/ 63.90", anterior: "S/ 79.90", oferta: true });
-    expect(precioTarjeta({ precio: 79.9, precioFinal: 79.9, desde: false })).toEqual({ principal: "S/ 79.90", anterior: null, oferta: false });
-  });
-});
