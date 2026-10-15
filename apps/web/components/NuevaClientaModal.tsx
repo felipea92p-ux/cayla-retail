@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto, Boton } from "@/components/ui/campos";
+import { Aviso } from "@/components/ui/Aviso";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { CampoNumeroDocumento, CampoTipoDocumento, ID_NUMERO_DOCUMENTO } from "@/components/CampoDocumentoClienta";
@@ -11,7 +12,7 @@ import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
 import { avisar } from "@/components/ui/Avisos";
 import { traducirError } from "@/lib/error-escritura";
-import { registrarClienta, type DatosAlta } from "@/lib/clientas-acciones";
+import { buscarClienta, registrarClienta, type DatosAlta } from "@/lib/clientas-acciones";
 import { camposDeRegistrar, nombreSuficiente } from "@/lib/club-caja-reglas";
 import { sePuedeConfirmar } from "@/lib/guia-campos";
 import type { Clienta } from "@/lib/clientas-reglas";
@@ -35,13 +36,48 @@ const ID_NOMBRE = "nueva-clienta-nombre";
  *  ADR-0288 tanda 1g (G-2): se registra SOLO con el documento, igual que en Cobrar —con DNI el nombre llega del padrón; con
  *  carné o pasaporte, se escribe— y quién registra. Ya no pide celular ni cumpleaños, ni une al club: ella se une sola
  *  escaneando el cartel, y ahí escribe su celular y su fecha de nacimiento (G-3). «Editar» de su ficha sigue corrigiéndolos.
- *  La guía y el botón miran la MISMA regla que Cobrar: `camposDeRegistrar` (lib/club-caja-reglas.ts, con pruebas). */
-export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; onCreada: (clienta: Clienta) => void }) {
+ *  La guía y el botón miran la MISMA regla que Cobrar: `camposDeRegistrar` (lib/club-caja-reglas.ts, con pruebas).
+ *
+ *  Un documento es de una sola persona (Felipe 2026-10-14): si ya tiene ficha, la hoja lo dice apenas el número está completo
+ *  —con su nombre: quien registra ve el módulo «Clientes»— y ofrece abrirla. «Registrar» no crea otra (la base completa la que
+ *  hay, o la reactiva si estaba archivada) y lo dice así, en vez de «Cliente registrado». */
+export function NuevaClientaModal({
+  onClose,
+  onCreada,
+  onAbrirFicha,
+}: {
+  onClose: () => void;
+  onCreada: (clienta: Clienta) => void;
+  /** Abrir la ficha que ya tiene ese documento (la lista de Clientes lo hace en su lugar). */
+  onAbrirFicha?: (id: string) => void;
+}) {
   const [alta, setAlta] = useState<DatosAlta>(ALTA_VACIA);
   const [guardando, setGuardando] = useState(false);
+  // La ficha que la base encontró con el último documento completo (activa o archivada), o null.
+  const [encontrada, setEncontrada] = useState<Clienta | null>(null);
   const responsable = useResponsable();
 
   const esDni = alta.documentoTipo === "dni";
+  const numeroListo = normalizarNumeroDocumento(alta.documentoNumero);
+  const documentoListo = numeroListo !== "" && problemaDocumento(alta.documentoTipo, alta.documentoNumero) === null;
+  // Solo vale la que es de lo que dice la caja AHORA: si cambió el número o el tipo, la de antes ya no se muestra.
+  const existente =
+    documentoListo && encontrada && encontrada.documentoTipo === alta.documentoTipo && encontrada.documentoNumero === numeroListo ? encontrada : null;
+
+  useEffect(() => {
+    if (!documentoListo) return;
+    let vigente = true;
+    const reloj = setTimeout(async () => {
+      // Una lectura (prefijo `buscar_`: el loader no tapa la hoja). Si falla, no se dice nada: al registrar decide la base.
+      const { clientas } = await buscarClienta(numeroListo, true);
+      if (!vigente) return;
+      setEncontrada(clientas.find((c) => c.documentoTipo === alta.documentoTipo && c.documentoNumero === numeroListo) ?? null);
+    }, 300);
+    return () => {
+      vigente = false;
+      clearTimeout(reloj);
+    };
+  }, [documentoListo, numeroListo, alta.documentoTipo]);
   const campos = camposDeRegistrar({
     documentoTipo: alta.documentoTipo,
     documentoNumero: alta.documentoNumero,
@@ -74,7 +110,18 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
     }
     const numero = normalizarNumeroDocumento(alta.documentoNumero) || null;
     const quien = alta.nombre.trim() || documentoLegible(alta.documentoTipo, numero, false) || "sin nombre";
-    avisar.exito("Cliente registrado", { detalle: `${quien}. Para ser del club, que escanee el cartel.` });
+    // Ese documento ya tenía ficha: la base no creó otra (completó la que hay, o la reactivó). Se dice así y se abre la suya.
+    if (existente && existente.id === id) {
+      avisar.exito(existente.archivadaEn ? "Ficha reactivada" : "Ya tenía ficha", {
+        detalle: existente.archivadaEn ? `${quien} vuelve con su historial.` : `${quien}: se abrió la suya, no se creó otra.`,
+      });
+      if (onAbrirFicha) {
+        onAbrirFicha(id);
+        return;
+      }
+    } else {
+      avisar.exito("Cliente registrado", { detalle: `${quien}. Para ser del club, que escanee el cartel.` });
+    }
     onCreada({
       id,
       documentoTipo: alta.documentoTipo,
@@ -126,6 +173,24 @@ export function NuevaClientaModal({ onClose, onCreada }: { onClose: () => void; 
               )}
             </div>
             {!esDni && <p className="mt-1 text-xs text-tinta/60">Solo el DNI se autocompleta con el padrón; carné y pasaporte llevan el nombre a mano.</p>}
+            {/* Un documento es de una sola persona: si ya tiene ficha, se dice cuál (quien registra ve el módulo «Clientes»). */}
+            {existente && (
+              <Aviso
+                tono="info"
+                className="mt-3"
+                titulo={existente.archivadaEn ? "Tiene una ficha archivada" : "Ya tiene ficha"}
+                accion={
+                  onAbrirFicha && !existente.archivadaEn ? (
+                    <button type="button" className="btn-cayla btn-enlace" onClick={() => onAbrirFicha(existente.id)}>
+                      Abrir su ficha
+                    </button>
+                  ) : undefined
+                }
+              >
+                {`${existente.nombre ?? "Sin nombre"}${existente.codigoClub ? ` (${existente.codigoClub})` : ""}`}
+                {existente.archivadaEn ? ": al registrarlo, vuelve con su historial." : ": no se crea otra ficha."}
+              </Aviso>
+            )}
           </CampoGuiado>
           {!esDni && (
             <CampoGuiado id="nombre" guia={guia} titulo="Nombre">

@@ -1128,10 +1128,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   ADR-0249, **migraciones `20260928140000` a `180000` sin pegar en producción** — el nodo
   `clientas` del menú pasó de `futura` a `viva`) → `lib/clientas.ts:getListaClientas`
   (lectura server; la ficha la lee el navegador, `cargarFichaClienta`) → `ClientasPanel.tsx` (lista + buscador + alta) +
-  `ClientaFichaModal.tsx` (ver/editar/archivar/unir, `<Modal variante="hoja">`) +
-  `NuevaClientaModal.tsx` → `lib/clientas-acciones.ts` → RPC `buscar_clienta`,
-  `registrar_clienta`, `editar_clienta` (documento con tipo: `p_documento_tipo` + `p_documento_numero`, ADR-0288; al fijar el documento ligan sus compras anteriores con `fn_ligar_ventas_por_documento`; candado optimista `version`, ADR-0193 reusado),
-  `archivar_clienta`/`reactivar_clienta`, `unir_clientas` (D-99), `exportar_clientas`
+  `ClientaFichaModal.tsx` (ver/editar/archivar, `<Modal variante="hoja">`) +
+  `NuevaClientaModal.tsx` (si el documento ya tiene ficha lo dice con su nombre, `buscar_clienta`, y la abre en vez de crear otra) →
+  `lib/clientas-acciones.ts` → RPC `buscar_clienta`,
+  `registrar_clienta`, `editar_clienta` (documento con tipo: `p_documento_tipo` + `p_documento_numero`, ADR-0288; al fijar el documento ligan sus compras anteriores con `fn_ligar_ventas_por_documento`; candado optimista `version`, ADR-0193 reusado; el documento de otra ficha dice de cuál es),
+  `archivar_clienta`/`reactivar_clienta`, `exportar_clientas`. **Sin «Unir fichas» desde el 2026-10-14** (Felipe: el documento y el
+  correo son de una sola persona): `unir_clientas` (D-99) se borró en `20261015054000`, que además hace único el correo
+  (`clientas_correo_unico` y el disparador `fn_correo_de_una_persona`, que también mira `cuentas_web`); `clientas_fusiones` queda como
+  historia. Y `exportar_clientas`
   (solo Admin, D-109/G.4), `fn_clienta_compras/cambios/devoluciones/separaciones`
   (`security definer`, cruzan sede a propósito). Talla deducida (D-101) y «te falta N
   para frecuente» (D-103) calculadas al leer en `lib/clienta-actividad-reglas.ts`

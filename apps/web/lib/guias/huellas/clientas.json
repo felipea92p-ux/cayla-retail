@@ -2,7 +2,7 @@
   "guia": "clientas",
   "ruta": "/clientas",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 46,
+  "total": 41,
   "controles": {
     "components/CampoDocumentoClienta.tsx": [
       "CampoSelect «{etiqueta}»",
@@ -13,7 +13,6 @@
       "Pestanas «(sin nombre)»",
       "BotonEditar «)»",
       "Boton «Registrar su BAJA»",
-      "button «Unir con otra ficha»",
       "button «Archivar»",
       "ComboResponsable «Reactivar»",
       "Boton «Reactivar»",
@@ -23,12 +22,7 @@
       "CampoTexto «{guia.etiqueta(\"motivo\", \"Motivo\")}»",
       "ComboResponsable «{volverAVer}» #2",
       "Boton «{guia.frase ?? undefined}»",
-      "CampoTexto «Buscar»",
-      "Boton «Buscar»",
-      "button «{otra.nombre ?? \"Sin nombre\"}»",
       "ComboResponsable «{volverAVer}» #3",
-      "Boton «{guia.frase ?? undefined}» #2",
-      "ComboResponsable «{volverAVer}» #4",
       "Boton «{responsable.motivo ?? undefined}»",
       "button «{todas ? \"Ver menos\" : `Ver las ${total}»"
     ],
@@ -46,6 +40,7 @@
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/NuevaClientaModal.tsx": [
+      "button «Abrir su ficha»",
       "CampoTexto «Nombre completo»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»",

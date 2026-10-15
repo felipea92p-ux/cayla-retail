@@ -29,7 +29,7 @@ export const GUIA_CLIENTES: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "clientas.nuevo" }],
       titulo: "Su documento",
-      texto: "Eliges DNI, carné de extranjería o pasaporte y escribes el número. Con un DNI de 8 dígitos el nombre se llena solo; con los otros, lo escribes tú.",
+      texto: "Eliges DNI, carné de extranjería o pasaporte y escribes el número. Con un DNI de 8 dígitos el nombre se llena solo; con los otros, lo escribes tú. Si ese documento ya tiene ficha, te lo dice y te deja abrirla: no se crea otra.",
     },
     {
       id: "nuevo-responsable",
@@ -147,8 +147,8 @@ export const GUIA_CLIENTES: Guia = {
       id: "ficha-acciones",
       ancla: "clientas.ficha-acciones",
       opcional: true,
-      titulo: "Unir o archivar",
-      texto: "«Unir con otra ficha» junta dos fichas de la misma persona; «Archivar» la saca de la libreta sin borrar su historia. En la demo no tocamos ninguna.",
+      titulo: "Archivar",
+      texto: "«Archivar» la saca de la libreta sin borrar su historia; si vuelve y la registras con su documento, se reactiva sola. En la demo no la tocamos.",
     },
     {
       id: "pie",

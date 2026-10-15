@@ -371,6 +371,13 @@ describe("lo que contesta el servidor, sin revelar datos de nadie", () => {
     expect(errorDeLaBase("23505")).toEqual({ mensaje: MENSAJE.noDisponible, campo: null });
   });
 
+  it("el correo de otra persona (20261015054000) va a la caja del correo y no dice de quién es", () => {
+    expect(errorDeLaBase("correo_repetido")).toEqual({ mensaje: MENSAJE.correoRepetido, campo: "correo" });
+    // La página es pública: ni un nombre, ni un documento, ni «la ficha de…».
+    expect(MENSAJE.correoRepetido).not.toMatch(/ficha|DNI|documento de|nombre/i);
+    expect(MENSAJE.correoRepetido).toMatch(/opcional/);
+  });
+
   it("la fila de la base: sin su código no se dice «listo»; el código, en mayúsculas", () => {
     expect(respuestaDeRegistro({ codigo_club: "c-0142", club_desde: "2026-09-12T15:00:00Z", era_socia: true, nombre_corto: "Lucía" }, true)).toEqual({
       estado: "listo",

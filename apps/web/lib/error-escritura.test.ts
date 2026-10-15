@@ -625,10 +625,14 @@ describe("documento de la clienta y venta ligada a su ficha (ADR-0288)", () => {
       { message: "El DNI tiene 8 dígitos.", code: "22023", hint: "documento_invalido" },
       { message: "El pasaporte tiene de 6 a 12 letras o números, sin guiones.", code: "22023", hint: "documento_invalido" },
       {
-        message: "Ese documento ya es de otra ficha. Si son la misma clienta, únelas con «Unir con otra ficha».",
+        // Desde 20261015054000 ya no se unen fichas: el mensaje dice de qué ficha es el documento.
+        message:
+          "Ese documento ya es de la ficha de Ana Pérez (C-0012, archivada). Un documento es de una sola persona: búscala en Clientes y corrige la que esté mal.",
         code: "23505",
         hint: "documento_de_otra_ficha",
       },
+      // Un correo es de una sola persona (20261015054000): el mensaje no dice de quién es.
+      { message: "Ese correo ya está registrado con los datos de otra persona.", code: "23505", hint: "correo_repetido" },
       {
         message: "Esta clienta pidió borrar sus datos: la venta no se puede guardar a su nombre. Quítala del ticket y vende sin clienta.",
         code: "P0001",
@@ -644,10 +648,12 @@ describe("documento de la clienta y venta ligada a su ficha (ADR-0288)", () => {
   });
 
   it("sin mensaje de la base, cada hint tiene su frase de respaldo (nunca el genérico)", () => {
-    for (const hint of ["documento_invalido", "documento_de_otra_ficha", "clienta_anonimizada", "clienta_no_existe"]) {
+    for (const hint of ["documento_invalido", "documento_de_otra_ficha", "correo_repetido", "clienta_anonimizada", "clienta_no_existe"]) {
       const salida = traducirError({ message: "", code: "22023", hint }, "registrar la venta");
       expect(salida, hint).not.toContain("Código:");
       expect(salida.length, hint).toBeGreaterThan(20);
+      // Ya no se unen fichas (Felipe 2026-10-14): ninguna frase manda a «unir».
+      expect(salida, hint).not.toMatch(/unir|[uú]nelas/i);
     }
   });
 
