@@ -118,6 +118,8 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
 
   function aplicarError(e: ProblemaDeDatos) {
     if (e.campo === "correo" && e.mensaje === MENSAJES.correoRepetido) setCorreoRevisado({ valor: correo, estado: "repetido" });
+    // El correo de contacto de otra ficha: bajo su campo, sin «Entrar» ni «Olvidé mi contraseña» (esa persona no tiene cuenta).
+    else if (e.campo === "correo" && e.mensaje === MENSAJES.correoDeOtraPersona) setCorreoRevisado({ valor: correo, estado: "de_otra_persona" });
     else if (e.campo === "dni" && e.mensaje === MENSAJES.dniRepetido) setDniRevisado({ valor: r.dni, estado: { estado: "repetido" } });
     else if (e.campo === "dni" && e.mensaje === MENSAJES.dniArchivada) setDniRevisado({ valor: r.dni, estado: { estado: "archivada" } });
     else if (e.campo === "nombre" && !pideNombre(consultaDni))
@@ -221,7 +223,9 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
           aria-invalid={estado.correo === "mal" || estado.correo === "repetido" || undefined}
         />
         <Resultado id={ID.correo}>
-          {estado.correo === "repetido" ? (
+          {estado.correo === "repetido" && consultaCorreo === "de_otra_persona" ? (
+            <span className="w-res-error">{MENSAJES.correoDeOtraPersona}</span>
+          ) : estado.correo === "repetido" ? (
             <>
               <span className="w-res-error">{MENSAJES.correoRepetido}</span>
               {enlacesDeCuenta}

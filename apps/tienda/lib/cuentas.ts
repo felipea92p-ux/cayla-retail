@@ -111,8 +111,11 @@ export const REGISTRO_VACIO: Registro = {
   avisos: false,
 };
 
-/** Lo que dijo la base del correo mientras se escribía. `sin_revisar`: todavía no se preguntó (o no contestó). */
-export type ConsultaCorreo = "sin_revisar" | "libre" | "repetido";
+/**
+ * Lo que dijo la base del correo mientras se escribía. `sin_revisar`: todavía no se preguntó (o no contestó). `de_otra_persona`: al
+ * pedir el código, la base dijo que es el correo de contacto de OTRA ficha (un correo es de una sola persona, Felipe 2026-10-14).
+ */
+export type ConsultaCorreo = "sin_revisar" | "libre" | "repetido" | "de_otra_persona";
 
 /** Lo que dijo el servidor del DNI. `sin_nombre`: el DNI está libre pero el nombre lo escribe la persona. */
 export type ConsultaDni =
@@ -145,7 +148,8 @@ export function estadoCorreo(correo: string, consulta: ConsultaCorreo): EstadoCa
   const c = normalizarCorreo(correo);
   if (!c) return "falta";
   if (!correoValido(c)) return (c.split("@")[1] ?? "").includes(".") ? "mal" : "falta";
-  return consulta === "repetido" ? "repetido" : "ok";
+  // El de otra persona tampoco sirve: el campo queda en rojo (y el botón apagado) hasta que escriba otro.
+  return consulta === "repetido" || consulta === "de_otra_persona" ? "repetido" : "ok";
 }
 
 export function estadoClave(clave: string): EstadoCampo {

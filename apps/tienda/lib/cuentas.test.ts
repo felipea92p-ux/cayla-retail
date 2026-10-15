@@ -82,6 +82,11 @@ describe("el correo", () => {
     expect(estadoCorreo("ana@gmail.com", "repetido")).toBe("repetido");
     expect(estadoCorreo("ana@gmail.com", "sin_revisar")).toBe("ok");
   });
+
+  it("el correo de contacto de OTRA ficha tampoco sirve: el campo queda en rojo y falta en «Falta: …»", () => {
+    expect(estadoCorreo("ana@gmail.com", "de_otra_persona")).toBe("repetido");
+    expect(marcaDe(estadoCorreo("ana@gmail.com", "de_otra_persona"), false)).toBe("error");
+  });
 });
 
 describe("la contraseña", () => {
