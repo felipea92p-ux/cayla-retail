@@ -841,7 +841,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   La cifra «Esperan una talla» (ADR-0408 act. 12) la lee el mismo `page.tsx` con `fn_vitrina_esperan` y lleva a
   `/productos/vitrina/esperan` (Vitrina web ▸ Esperan una talla, mismo módulo, sin menú propio) → `page.tsx` lee `fn_vitrina_esperan` →
   `components/vitrina/EsperanPantalla.tsx` (cifras que filtran, buscador, píldoras de tienda, la lista por prenda y tienda); reglas en
-  `lib/vitrina-esperan-reglas.ts`. Solo lee y sin datos personales: lo que los clientes pidieron con «Avísame» (`esperas_web`).
+  `lib/vitrina-esperan-reglas.ts`. Solo lee y sin datos personales: lo que los clientes pidieron con «Avísame» (`esperas_web`); «ya
+  llegó» y «dónde hay» con la regla de «hay» de la ficha de la tienda (`fn_tienda_disponible` en las tiendas de la web).
 - `/productos/vitrina/looks` (Vitrina web ▸ Looks, el mismo módulo `vitrina_web`, ADR-0408 act. 11; las dos vistas van en
   `components/vitrina/VitrinaPestanas.tsx`) → `page.tsx` lee `fn_vitrina_looks` (los looks con sus prendas, si se ven y por qué no, el
   total con «Todas», y los modelos que se ven en la web) → `LooksPantalla.tsx` (cifras, la lista en su orden con su interruptor) +
@@ -1791,8 +1792,9 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   que incluye las reservas de los pedidos web; sin el Taller ni las tiendas escondidas). `null` si el modelo no se ve en la web (la página
   responde «Esta prenda ya no está»). `lib/ficha.ts` decide qué se ve al elegir color y talla, y `components/FichaPrenda.tsx` dibuja las
   fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las piezas
-  internas de las dos lecturas (`fn_tienda_nivel`, `fn_tienda_umbral`, `fn_tienda_sedes_web`, `fn_tienda_disponible`, `fn_tienda_precios`)
-  no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones rotas a propósito).
+  internas de las dos lecturas (`fn_tienda_nivel`, `fn_tienda_umbral`, `fn_tienda_sedes_web`, `fn_tienda_disponible`, `fn_tienda_libre`,
+  `fn_tienda_precios`) no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones
+  rotas a propósito).
 - `/inicio` (el Inicio con cuenta, actividad 5; adonde lleva el proxy a quien tiene sesión, `INICIO_CON_CUENTA`) → `leerPortada()`
   (la campaña del héroe), `leerSedes()` y `leerCatalogo(sede)`: desde `20261015013000`, cada prenda de `retail.tienda_catalogo` trae
   también `nuevo` ({dias} si su PRIMER ingreso a una tienda, `fn_es_llegada`, fue hace 30 días o menos, o si está fijada en la Vitrina;
@@ -1813,8 +1815,11 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   (pregunta antes a la base si se puede), `quitarDeLaBolsa`, `elegirTiendaDeRecojo`, `separar` y `volverASeparar`. `/bolsa` →
   `retail.tienda_bolsa(lineas, sede)`: cada prenda al precio de la tienda elegida (sin tienda, el mayor de la web) con la campaña, y por
   tienda solo «alcanza / hay / se vende» (nunca la cifra). «Separar» → `retail.tienda_separar(usuario_web_id, ubicacion_id, lineas,
-  token)`: vuelve a calcular cada precio (`fn_bolsa_web_precios`, la misma regla de la bolsa) contra el que el cliente vio y llama a
-  `crear_pedido_web` (no toca el stock); la marca de la cookie hace que dos toques den el mismo pedido. `/bolsa/separado/[numero]`
+  token)`: vuelve a calcular cada precio (`fn_bolsa_web_precios`, la misma regla de la bolsa) contra el que el cliente vio, llama a
+  `crear_pedido_web` (no toca el stock) y, en la misma transacción, cierra las esperas de «Avísame» de esa cuenta por las prendas que
+  separó (`esperas_web.pedido_web_id`); la marca de la cookie hace que dos toques den el mismo pedido. Un cliente tiene a lo sumo 3
+  separaciones «por confirmar» vigentes a la vez (Felipe, 2026-10-14; la constante `c_tope_por_confirmar`, mirada después de la marca;
+  hint `tienda_separar_tope` con el tope en `detail`). `/bolsa/separado/[numero]`
   («¡Listo, lo separaste!», el WhatsApp con el mensaje armado al número de la tienda), `/cuenta/pedidos` y `/cuenta/pedidos/[numero]`
   → `lib/pedidos-servidor.ts` → `retail.tienda_mis_pedidos` / `retail.tienda_pedido` (envuelven `fn_pedidos_web_de_clienta` con los
   plazos de `configuracion_tienda_web`; solo los de esa cuenta). Las piezas que pone la integración en la ficha, las tarjetas y la
@@ -1822,19 +1827,32 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   Migraciones `20261015021000`, `20261015022000` y `20261015023000`; prueba en la base: `pnpm pruebas:tienda-bolsa`.
 - El Club en la cuenta (actividad 12): `/cuenta` → `lib/club-servidor.ts` `leerMiClubEnBase()` → `retail.tienda_mi_club(usuario)`: sus
   beneficios con las reglas que cobra la caja (`fn_club_beneficios`, `fn_club_aniversario_calculo`, `club_canjes`), «Novedades para ti»
-  (la primera llegada a una tienda de la web desde su visita ANTERIOR, `cuentas_web_visitas`, `fn_tienda_novedades`), sus favoritos y
-  sus esperas; las prendas las dibuja `TarjetaPrenda` con el catálogo (`leerCatalogo(null)`). Textos en `lib/club.ts`, bloques en
+  (lo de «Lo nuevo» —`fn_tienda_lo_nuevo`, la misma regla del catálogo— que llegó desde su visita ANTERIOR: `cuentas_web_visitas`,
+  `fn_tienda_novedades(desde)`), sus favoritos y sus esperas (con «llegó» y «dónde hay» según la regla de «hay» de la ficha); las prendas
+  las dibuja `TarjetaPrenda` con el catálogo (`leerCatalogo(null)`). Textos en `lib/club.ts`, bloques en
   `components/club/BloquesDelClub.tsx`. Los botones que pondrá la ficha: `components/club/BotonFavorito.tsx` →
   `app/acciones/club.ts` `guardarFavorito` → `tienda_favorito` (tabla `favoritos_web`) y `components/club/BotonAvisame.tsx` →
-  `pedirAviso` → `tienda_avisame` (tabla `esperas_web`, por prenda y tienda; si hay, no anota); «Quitar» → `tienda_quitar_avisame`;
-  lo ya guardado, `leerGuardadosEnBase()` → `tienda_mis_favoritos_y_esperas`. Prueba en la base: `pnpm pruebas:tienda-club`.
+  `pedirAviso` → `tienda_avisame` (tabla `esperas_web`, por prenda y tienda; si hay —`fn_tienda_libre`, la regla de la ficha—, no
+  anota); «Quitar» → `tienda_quitar_avisame`; «Separar» la cierra sola (con su pedido); lo ya guardado, `leerGuardadosEnBase()` →
+  `tienda_mis_favoritos_y_esperas`. Prueba en la base: `pnpm pruebas:tienda-club`.
 - `/looks` y `/looks/[id]` («Arma tu look», actividad 11; grupo `(catalogo)`, con cuenta) → `lib/looks-servidor.ts` `leerLooks(sede)` y
   `leerLook(id, sede)` → `retail.tienda_looks(p_sede)` y `retail.tienda_look(p_id, p_sede)`: los looks encendidos con TODAS sus prendas a
   la vista, en su orden, con la lámina (x, y, ancho y giro de cada prenda) y el precio de cada prenda tomado de `tienda_catalogo(p_sede)`
-  (no hay otra regla), el total y, en el look abierto, las tallas de cada prenda con «hay» (la cifra única de Existencias en las tiendas
-  de la web; nunca la cifra). `lib/looks.ts` valida y prepara; `components/looks/Lamina.tsx` dibuja la lámina y
+  (no hay otra regla), el total y, en el look abierto, las tallas de cada prenda con «hay» (la regla de la ficha, `fn_tienda_disponible`
+  en las tiendas de la web; nunca la cifra). `lib/looks.ts` valida y prepara; `components/looks/Lamina.tsx` dibuja la lámina y
   `components/looks/AgregarLook.tsx` la hoja de tallas, que entrega las líneas a `alAgregar` (la bolsa, actividad 7). Estilos en
   `app/estilos/looks.css`.
+- **Una sola regla de «hay» y de «nuevo»** (integración de la tienda, 2026-10-15). «Hay» —si una prenda o talla se puede llevar— lo
+  dice `fn_tienda_disponible(productos, tiendas)` (`20261015012000`: lo libre de `fn_existencias_base`, sin Cuarentena ni lo apartado
+  —que incluye las reservas de los pedidos web confirmados—, solo tallas activas) con las tiendas de `fn_tienda_sedes_web()` (sin el
+  Taller ni las escondidas; sin ninguna, ninguna), y `fn_tienda_libre(prenda, tiendas)` es su suma para una sola talla. La leen la
+  ficha y el catálogo, la bolsa y «Separar», los looks, «Avísame», las esperas de «Mi cuenta» y «Esperan una talla» del ERP; ninguna
+  suma `stock` por su cuenta (`fn_tienda_sedes_ids` queda como nombre viejo de `fn_tienda_sedes_web`). «Nuevo» lo dice
+  `fn_tienda_lo_nuevo` (`20261015013000`, que también devuelve cuándo llegó), y «Novedades para ti» la llama. Lo vigila
+  `pnpm pruebas:tienda-club` (secciones R, N y S: Cuarentena y pedido web confirmado dicen «no hay» en todas a la vez, y romper esas
+  piezas a propósito rompe a todas juntas). Al CONFIRMAR, el motor del pedido web (`fn_pedido_web_reservar`, `20261014235000`) reserva
+  fila por fila del piso, el almacén o lo sin lugar de cualquier tienda abierta: coincide con la ficha salvo en una sububicación de una
+  tienda de otro tipo (un «rack»), que la ficha cuenta y el motor no.
 
 ---
 

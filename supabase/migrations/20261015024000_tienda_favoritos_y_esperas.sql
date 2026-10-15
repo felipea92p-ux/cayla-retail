@@ -17,6 +17,8 @@
 --      (`ubicacion_id`; vacío = «en cualquier tienda de la web»). Una viva por cuenta, prenda y tienda. Quitar no borra: marca
 --      `quitada_en`. Cuándo «llegó» NO se guarda: se calcula al leer (hay stock libre en esa tienda, o en alguna de la web), igual
 --      que los plazos de los pedidos web (ADR-0408, DECIDÍ 8). Si llega y se vuelve a acabar, vuelve a esperar sola.
+--      Se CIERRA sola cuando esa misma cuenta separa esa misma prenda (`tienda_separar`, 20261015021000, en la misma transacción):
+--      `quitada_en` y el pedido que la cerró (`pedido_web_id`). Si no, sigue viva hasta que la persona la quite.
 --   3. Las funciones de la tienda (rol `tienda_web`, ADR-0408 decisión 3), cada una validando por dentro lo que recibe:
 --      · `tienda_favorito(usuario, producto, guardar)`: guarda o quita (no alterna: el mismo pedido dos veces deja lo mismo).
 --      · `tienda_avisame(usuario, variante, tienda)`: anota la espera, solo si NO hay en ese alcance (si hay, responde `hay` sin
@@ -42,9 +44,16 @@
 -- DECIDÍ: con la ficha archivada (y por eso también anonimizada o unida a otra, que la archivan) la cuenta ya no AGREGA favoritos ni
 --   esperas (`cuenta_inactiva`), pero sí puede quitarlos. Es lo más fácil de cambiar después: no junta datos nuevos de alguien cuya
 --   ficha la tienda archivó, y levantar el candado es borrar una línea.
--- DECIDÍ: «hay» es lo LIBRE (stock − apartado) fuera de Cuarentena: la misma regla con que `confirmar_pedido_web` busca la prenda
---   (20261014235000: piso, almacén de la tienda o sin lugar). Las tiendas son las que la web muestra (`tienda_sedes()`); sin
---   ninguna, las tiendas abiertas (una base sin Configuración ▸ Tienda web no deja a nadie esperando algo que está en el piso).
+-- DECIDÍ (integración de la tienda, 2026-10-15): «hay» es la regla de la FICHA, `fn_tienda_libre` / `fn_tienda_disponible`
+--   (20261015012000: piso, almacén y lo sin lugar de las tiendas de la web, sin Cuarentena ni lo apartado —que incluye las
+--   reservas de los pedidos web—, sin el Taller ni las tiendas escondidas), con las tiendas de `fn_tienda_sedes_web()`. Esta parte
+--   nació con su propia suma (`fn_tienda_libre` contaba fila por fila) y su propia lista de tiendas (`fn_tienda_sedes_ids`: sin
+--   ninguna tienda en la web, todas las abiertas): con eso «Avísame» podía responder «hay» de lo que la ficha mostraba agotado.
+--   Ahora no hay dos reglas: sin tiendas en la web, no hay en ninguna, como dice la ficha; `fn_tienda_libre` vive con la ficha y
+--   `fn_tienda_sedes_ids` queda solo como nombre viejo de `fn_tienda_sedes_web()` (la llama código hecho en paralelo).
+-- DECIDÍ (2026-10-15): «Separar» cierra las esperas de esa cuenta por las prendas que separa, y guarda con qué pedido
+--   (`pedido_web_id`): una espera quitada a mano (sin pedido) es la demanda que la tienda no tuvo; una cerrada con un pedido, una
+--   que se atendió. No se reabre sola si después el pedido no se confirma: la persona vuelve a tocar «Avísame».
 -- DECIDÍ: una tienda que no se ve en la web (escondida, o un id cualquiera) se lee como «cualquier tienda», igual que el catálogo
 --   (`tienda_catalogo`): la respuesta dice con qué tienda quedó (`sede`).
 -- DECIDÍ: el aviso es en la cuenta, nunca por WhatsApp: el Club no manda mensajes personales (ADR-0288 G-5: ni «llegó tu talla»).
@@ -55,14 +64,28 @@
 --   `eliminar_producto`); sus favoritos y esperas se van con él, como su fila de la Vitrina (`eliminar_producto.mjs`, lista SUYAS).
 --
 -- PRODUCCIÓN. NO está aplicada (actividad 13, con el OK de Felipe). Va DESPUÉS de las de la tienda (20261014220000, 223000, 224000,
--- 225000 y 231000). Una sola parte, re-ejecutable: tablas NUEVAS sin políticas y funciones; no altera ninguna tabla en uso (las
--- llaves foráneas toman un instante `productos`, `variantes`, `ubicaciones` y `cuentas_web` en modo SHARE ROW EXCLUSIVE, compatible
--- con las lecturas y las ventas; `lock_timeout` las corta a los 3 s), sin `drop trigger` (ADR-0195) y sin ningún `select … into`
--- dentro de un texto entre comillas (ADR-0288). Prueba: `pnpm pruebas:tienda-club`.
+-- 225000 y 231000), del motor del pedido web (20261014235000) y de la ficha (20261015012000). Una sola parte, re-ejecutable: tablas
+-- NUEVAS sin políticas y funciones; no altera ninguna tabla en uso (las llaves foráneas toman un instante `productos`, `variantes`,
+-- `ubicaciones`, `cuentas_web` y `pedidos_web` en modo SHARE ROW EXCLUSIVE, compatible con las lecturas y las ventas; `lock_timeout`
+-- las corta a los 3 s). El `alter table … add column if not exists` y el candado de `pedido_web_id` son solo para una base que ya
+-- tenía `esperas_web` de antes (las locales): en producción la tabla nace con ellos y no hacen nada. Sin `drop trigger`
+-- (ADR-0195), y sin ningún `select … into` dentro de un texto entre comillas (ADR-0288). Prueba: `pnpm pruebas:tienda-club`.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
+
+-- ---------- 0. Lo que esta migración da por hecho ----------
+do $$
+begin
+  if to_regprocedure('retail.fn_tienda_libre(uuid, uuid[])') is null or to_regprocedure('retail.fn_tienda_sedes_web()') is null then
+    raise exception 'Falta la regla de «hay» de la tienda: pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
+  end if;
+  if to_regclass('retail.pedidos_web') is null then
+    raise exception 'Falta el pedido web: pega antes 20261014235000_pedidos_web_modelo.sql.';
+  end if;
+end
+$$;
 
 -- ---------- 1. Las tablas ----------
 create table if not exists retail.favoritos_web (
@@ -85,8 +108,23 @@ create table if not exists retail.esperas_web (
   ubicacion_id  uuid references retail.ubicaciones (id),
   creada_en     timestamptz not null default now(),
   quitada_en    timestamptz,
-  constraint esperas_web_quitada_despues check (quitada_en is null or quitada_en >= creada_en)
+  -- El pedido con que esa cuenta separó la prenda: la espera se cerró sola al separar (vacío y quitada: la quitó la persona).
+  pedido_web_id uuid references retail.pedidos_web (id),
+  constraint esperas_web_quitada_despues check (quitada_en is null or quitada_en >= creada_en),
+  constraint esperas_web_cerrada_con_pedido check (pedido_web_id is null or quitada_en is not null)
 );
+
+-- Una base que ya tenía la tabla de antes (las locales): la columna y su candado. En producción la tabla nace con ellos.
+alter table retail.esperas_web add column if not exists pedido_web_id uuid references retail.pedidos_web (id);
+do $$
+begin
+  if not exists (select 1 from pg_constraint
+                  where conrelid = 'retail.esperas_web'::regclass and conname = 'esperas_web_cerrada_con_pedido') then
+    alter table retail.esperas_web
+      add constraint esperas_web_cerrada_con_pedido check (pedido_web_id is null or quitada_en is not null);
+  end if;
+end
+$$;
 
 -- Una espera viva por cuenta, prenda y tienda; «cualquier tienda» (null) es un valor más, no un comodín que se repite.
 create unique index if not exists esperas_web_viva_unica
@@ -96,50 +134,32 @@ create unique index if not exists esperas_web_viva_unica
 create index if not exists esperas_web_vivas_por_variante on retail.esperas_web (variante_id) where quitada_en is null;
 
 comment on table retail.esperas_web is
-  'Tienda online (ADR-0408, actividad 12): «Avísame cuando llegue». Lo que una cuenta web espera, por prenda (variante: modelo, color y talla) y tienda (ubicacion_id vacío = cualquier tienda de la web). Una viva por cuenta, prenda y tienda. Si llegó se calcula al leer (stock libre en ese alcance). Quitar marca quitada_en (no se borra: es la demanda que no se tuvo). Solo por tienda_avisame / tienda_quitar_avisame; RLS sin políticas.';
+  'Tienda online (ADR-0408, actividad 12): «Avísame cuando llegue». Lo que una cuenta web espera, por prenda (variante: modelo, color y talla) y tienda (ubicacion_id vacío = cualquier tienda de la web). Una viva por cuenta, prenda y tienda. Si llegó se calcula al leer (la regla de «hay» de la ficha, fn_tienda_libre, en ese alcance). Quitar marca quitada_en (no se borra: es la demanda que no se tuvo); separar esa prenda la cierra sola con su pedido (pedido_web_id). Solo por tienda_avisame / tienda_quitar_avisame / tienda_separar; RLS sin políticas.';
 comment on column retail.esperas_web.ubicacion_id is 'La tienda donde la espera; vacío: en cualquier tienda de la web.';
+comment on column retail.esperas_web.pedido_web_id is 'El pedido web con que esa cuenta separó la prenda: la espera se cerró sola al separar (tienda_separar). Vacío con quitada_en: la quitó la persona.';
 
 alter table retail.favoritos_web enable row level security;
 alter table retail.esperas_web enable row level security;
 revoke all on retail.favoritos_web, retail.esperas_web from public, anon, authenticated;
 
 -- ---------- 2. Piezas internas (sin EXECUTE para nadie de la API; las llaman las tienda_* como su dueño) ----------
+-- Cuánto hay y en qué tiendas NO se decide aquí: es la regla de la ficha (`fn_tienda_libre` / `fn_tienda_disponible` con
+-- `fn_tienda_sedes_web()`, 20261015012000).
 
--- Las tiendas cuyo stock cuenta para la web: las que muestra (`tienda_sedes()`, Configuración ▸ Tienda web); sin ninguna, las
--- tiendas abiertas. Ordenadas por id: el mismo arreglo para la misma base.
+-- Las tiendas cuyo stock cuenta para la web: un NOMBRE VIEJO de `fn_tienda_sedes_web()`, la lista única. Esta parte nació con su
+-- propia lista (y su respaldo: sin tiendas en la web, todas las abiertas), que podía contar una tienda que la ficha no muestra. Se
+-- queda solo para lo que ya la llama; lo nuevo usa `fn_tienda_sedes_web()`.
 create or replace function retail.fn_tienda_sedes_ids()
 returns uuid[]
 language sql
 stable
 set search_path = retail, public
 as $$
-  select coalesce(
-    nullif(array(select (s ->> 'id')::uuid
-                   from jsonb_array_elements(coalesce(retail.tienda_sedes() -> 'sedes', '[]'::jsonb)) s
-                  order by 1), '{}'::uuid[]),
-    array(select u.id from retail.ubicaciones u where u.tipo = 'tienda' and u.activo order by u.id));
+  select retail.fn_tienda_sedes_web()
 $$;
 comment on function retail.fn_tienda_sedes_ids() is
-  'Tienda online (ADR-0408, act. 12): las tiendas cuyo stock cuenta para la web (las de tienda_sedes(); sin ninguna, las tiendas abiertas). Interna.';
+  'Tienda online (ADR-0408): nombre viejo de fn_tienda_sedes_web (las tiendas que se ven en la web; sin ninguna, ninguna). Por compatibilidad: lo nuevo usa fn_tienda_sedes_web. Interna.';
 revoke all on function retail.fn_tienda_sedes_ids() from public, anon, authenticated;
-
--- Lo libre de una prenda en esas tiendas: stock − apartado, fuera de Cuarentena (la regla de confirmar_pedido_web).
-create or replace function retail.fn_tienda_libre(p_variante_id uuid, p_sedes uuid[])
-returns integer
-language sql
-stable
-set search_path = retail, public
-as $$
-  select coalesce(sum(greatest(st.cantidad - st.cantidad_apartada, 0)), 0)::integer
-    from retail.stock st
-    left join retail.sububicaciones su on su.id = st.sububicacion_id
-   where st.variante_id = p_variante_id
-     and st.ubicacion_id = any (coalesce(p_sedes, '{}'::uuid[]))
-     and (su.id is null or su.tipo in ('almacen_tienda', 'piso_venta'));
-$$;
-comment on function retail.fn_tienda_libre(uuid, uuid[]) is
-  'Tienda online (ADR-0408, act. 12): lo libre (stock − apartado) de una prenda en esas tiendas, sin Cuarentena (la regla de confirmar_pedido_web). Interna.';
-revoke all on function retail.fn_tienda_libre(uuid, uuid[]) from public, anon, authenticated;
 
 -- ¿Se ve este modelo en la web? Publicado en la Vitrina y vendible (la regla de la Vitrina).
 create or replace function retail.fn_tienda_modelo_se_ve(p_producto_id uuid)
@@ -258,12 +278,12 @@ begin
   end if;
 
   -- La tienda: una de la web; cualquier otra se lee como «cualquier tienda» (como el catálogo).
-  v_sedes := retail.fn_tienda_sedes_ids();
+  v_sedes := retail.fn_tienda_sedes_web();
   if p_ubicacion_id = any (v_sedes) then
     v_sede := p_ubicacion_id;
   end if;
 
-  -- Si hay, no se espera: se separa.
+  -- Si hay, no se espera: se separa. «Hay» es la regla de la ficha (fn_tienda_libre), en esa tienda o en cualquiera de la web.
   if retail.fn_tienda_libre(p_variante_id, case when v_sede is null then v_sedes else array[v_sede] end) > 0 then
     return jsonb_build_object('estado', 'hay', 'sede', v_sede);
   end if;
@@ -285,7 +305,7 @@ begin
 end;
 $fn$;
 comment on function retail.tienda_avisame(uuid, uuid, uuid) is
-  'Tienda online (ADR-0408, act. 12): «Avísame cuando llegue» de esa prenda en esa tienda (vacía o no web: cualquier tienda de la web). Solo si NO hay libre en ese alcance. {estado: anotada (id, sede, nueva) | hay (sede) | tope | no_disponible | cuenta_inactiva | sin_cuenta | invalido}. Solo la llama tienda_web.';
+  'Tienda online (ADR-0408, act. 12): «Avísame cuando llegue» de esa prenda en esa tienda (vacía o no web: cualquier tienda de la web). Solo si NO hay libre en ese alcance (fn_tienda_libre: la regla de «hay» de la ficha). {estado: anotada (id, sede, nueva) | hay (sede) | tope | no_disponible | cuenta_inactiva | sin_cuenta | invalido}. Solo la llama tienda_web.';
 
 -- ---------- 5. Quitar una espera ----------
 -- {estado: quitada | no_esta | sin_cuenta | invalido}. Una espera de otra cuenta responde lo mismo que una que no existe.
@@ -374,6 +394,9 @@ begin
       raise exception 'tienda club: % es interna y nadie de la API la ejecuta', v_firma;
     end if;
   end loop;
+  if retail.fn_tienda_sedes_ids() is distinct from retail.fn_tienda_sedes_web() then
+    raise exception 'tienda club: fn_tienda_sedes_ids tiene que ser la misma lista de fn_tienda_sedes_web (una sola regla de tiendas)';
+  end if;
   if has_table_privilege('tienda_web', 'retail.favoritos_web', 'SELECT') or has_table_privilege('tienda_web', 'retail.esperas_web', 'SELECT')
      or has_table_privilege('authenticated', 'retail.favoritos_web', 'SELECT') or has_table_privilege('authenticated', 'retail.esperas_web', 'SELECT') then
     raise exception 'tienda club: favoritos_web y esperas_web se leen solo por sus funciones';

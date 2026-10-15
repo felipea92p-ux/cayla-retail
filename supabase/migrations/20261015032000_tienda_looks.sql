@@ -16,20 +16,34 @@
 -- que usa el ERP para decirlo (`fn_vitrina_look_se_ve`). Si una deja de verse (se ocultó, se descontinuó, se apagó su color o se
 -- eliminó), el look entero no sale: ver «DECIDÍ» en 20261015031000.
 --
--- QUÉ TALLA «HAY». La que tiene algo disponible en alguna tienda que se ve en la web, con la cifra única de Existencias
--- (`fn_existencias_base`: lo físico menos lo dañado y lo apartado —un pedido web confirmado también aparta—, de una talla que no se
--- retiró). En cualquier tienda de la web y no solo en la elegida: el cliente elige una tienda para recoger todo y lo que falta se trae
--- con un traslado (maqueta v4, «Prendas en dos tiendas»).
+-- QUÉ TALLA «HAY». La que tiene algo disponible en alguna tienda que se ve en la web, con LA regla de «hay» de la ficha
+-- (`fn_tienda_disponible` con `fn_tienda_sedes_web()`, 20261015012000: lo físico menos lo dañado y lo apartado —un pedido web
+-- confirmado también aparta—, de una talla que no se retiró, sin el Taller ni las tiendas escondidas). Es la misma pieza que dice el
+-- total de la talla en la ficha: el look no puede decir «no hay» de lo que la ficha dice que hay (integración de la tienda,
+-- 2026-10-15). En cualquier tienda de la web y no solo en la elegida: el cliente elige una tienda para recoger todo y lo que falta se
+-- trae con un traslado (maqueta v4, «Prendas en dos tiendas»).
 --
 -- `fn_tienda_looks_json` es interna (no empieza con `tienda_`): solo la llaman las dos de arriba, como dueñas.
 --
--- PRODUCCIÓN. NO está aplicada (actividad 13, con el OK de Felipe), después de 20261015031000. Solo funciones y permisos: se pega
--- entera y se puede volver a correr. Lee `tienda_catalogo` y `tienda_sedes` (plpgsql: Postgres no las revisa al crearla).
+-- PRODUCCIÓN. NO está aplicada (actividad 13, con el OK de Felipe), después de 20261015012000 y 20261015031000. Solo funciones y
+-- permisos: se pega entera y se puede volver a correr. Lee `tienda_catalogo`, `fn_tienda_sedes_web` y `fn_tienda_disponible`.
 -- Prueba: `pnpm pruebas:vitrina-looks` (con `pnpm pruebas:tienda-puerta`, que vigila la puerta).
 -- ============================================================================
 
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
+
+-- Lo que da por hecho (si falta, no se pega nada).
+do $$
+begin
+  if to_regprocedure('retail.fn_tienda_disponible(uuid[], uuid[])') is null or to_regprocedure('retail.fn_tienda_sedes_web()') is null then
+    raise exception 'Falta la regla de «hay» de la tienda: pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
+  end if;
+  if to_regclass('retail.vitrina_looks') is null then
+    raise exception 'Faltan los looks del ERP: pega antes 20261015031000_vitrina_looks.sql.';
+  end if;
+end
+$$;
 
 -- Los looks que se ven, con sus prendas tal como las da `p_catalogo` (= `tienda_catalogo(p_sede)`). `p_id` null: todos; si no, ese
 -- (o ninguno). `p_sedes`: las tiendas de la web, para decir qué talla hay (solo con `p_con_tallas`).
@@ -61,15 +75,12 @@ as $$
        and l.piezas = (select count(*) from retail.vitrina_look_piezas pz
                         where pz.look_id = l.id and retail.fn_vitrina_look_se_ve(p_catalogo, pz.producto_id, pz.color_codigo))
   ),
-  -- Las tallas que hay en alguna tienda de la web (la cifra única de Existencias). Solo si se piden, y solo de las prendas de los looks.
+  -- Las tallas que hay en alguna tienda de la web (la regla de «hay» de la ficha). Solo si se piden, y solo de las prendas de los looks.
   disponibles as (
-    select distinct e.variante_id
-      from retail.fn_existencias_base(null, case when p_con_tallas then coalesce((
+    select distinct d.variante_id
+      from retail.fn_tienda_disponible(case when p_con_tallas then coalesce((
              select array_agg(distinct pz.producto_id) from retail.vitrina_look_piezas pz where p_id is null or pz.look_id = p_id), '{}'::uuid[])
-           else '{}'::uuid[] end) e
-     where e.ubicacion_id = any (coalesce(p_sedes, '{}'::uuid[]))
-       and not e.talla_retirada
-       and e.disponible > 0
+           else '{}'::uuid[] end, p_sedes) d
   )
   select coalesce(jsonb_agg(jsonb_build_object(
       'id', v.id,
@@ -166,7 +177,7 @@ begin
   if p_id is null then
     return jsonb_build_object('sede', v_catalogo -> 'sede', 'look', null);
   end if;
-  v_sedes := array(select (s ->> 'id')::uuid from jsonb_array_elements(coalesce(retail.tienda_sedes() -> 'sedes', '[]'::jsonb)) s);
+  v_sedes := retail.fn_tienda_sedes_web();
   return jsonb_build_object('sede', v_catalogo -> 'sede', 'look', retail.fn_tienda_looks_json(v_catalogo, v_sedes, p_id, true) -> 0);
 end;
 $fn$;

@@ -7,7 +7,8 @@
  *   1. `nuevo`: entra si su PRIMER ingreso a una tienda (`fn_es_llegada`) fue hace 30 días o menos (fecha de Lima), con los días; no
  *      entra si llegó hace 31; reponer una prenda vieja no la hace nueva; lo que solo llegó al Taller no cuenta (hasta que pasa a una
  *      tienda); una devolución no es una llegada; fijada en la Vitrina entra (sin días si llegó hace más de 30); quitada no entra
- *      aunque haya llegado ayer; una familia fuera de los motores (bolsas, ADR-0377) no entra ni fijada.
+ *      aunque haya llegado ayer; una familia fuera de los motores (bolsas, ADR-0377) no entra ni fijada. `fn_tienda_lo_nuevo` dice
+ *      además cuándo fue esa primera llegada (`llego`, para «Novedades para ti»; la web no lo ve).
  *   2. `vendidos`: el puesto por unidades vendidas en 30 días en toda la red, empate por nombre; lo vendido hace 31 días no cuenta;
  *      las familias fuera de los motores no entran; solo el puesto sale, nunca las unidades; solo 20 puestos.
  *   3. `tienda_ayuda`: las horas para confirmar y los días para recoger son los de Configuración ▸ Tienda web (y siguen al cambiarlos;
@@ -138,6 +139,19 @@ select retail.vitrina_mostrar(array[${LETRAS.map((l) => `:'p_${l}'`).join(", ")}
     "A=nuevo B=nuevo C=· D=1 E=· F=· G=· H=·",
   );
   valor(
+    // «Novedades para ti» (20261015025000) no tiene regla propia: es esto mismo filtrado por la visita anterior (pruebas:tienda-club).
+    "Lo nuevo dice también CUÁNDO llegó por primera vez (lo que lee «Novedades para ti»): la primera llegada, no la última; un fijado sin llegada, vacío",
+    `${PREPARAR}${llego("a", "tru", 5)}${llego("a", "lim", 1)}${enLoNuevo("b", "fijo")}${llego("c", "tru", 40)}${enLoNuevo("c", "fijo")}${llego("d", "tru", 45)}
+      select string_agg(upper(right(p.referencia, 1)) || '=' || coalesce(n.dias::text, '·') || '/'
+               || case when n.llego is null then 'sin llegada'
+                       when n.llego = (select min(m.created_at) from retail.movimientos m join retail.variantes v on v.id = m.variante_id
+                                        where v.producto_id = n.producto_id) then 'la primera'
+                       else 'otra' end, ' ' order by p.referencia)
+        from retail.fn_tienda_lo_nuevo(array[:'p_a', :'p_b', :'p_c', :'p_d']::uuid[]) n join retail.productos p on p.id = n.producto_id;
+      rollback;`,
+    "A=5/la primera B=·/sin llegada C=·/la primera",
+  );
+  valor(
     "una familia fuera de los motores (bolsas) no entra a Lo nuevo, ni recién llegada ni fijada",
     `${PREPARAR}${comoBolsa("a")}${llego("a", "tru", 1)}update retail.productos set categoria_id = :'cat_bolsa' where id = :'p_b';
       ${enLoNuevo("b", "fijo")}${llego("c", "tru", 1)}
@@ -261,6 +275,7 @@ function evaluar(caso) {
 // Versiones rotas a propósito: cada una tiene que hacer fallar al menos un escenario (cada cambio, en todas sus apariciones).
 const MUTANTES = [
   ["Lo nuevo por la ÚLTIMA llegada", [["select v.producto_id, min(m.created_at) as primera", "select v.producto_id, max(m.created_at) as primera"]]],
+  ["«llego» (lo que lee «Novedades para ti») no es la primera llegada", [["then m.dias end, m.primera", "then m.dias end, now()"]]],
   ["el Taller cuenta como tienda", [["and u.tipo = 'tienda'", "and u.tipo in ('tienda', 'taller')"]]],
   ["cualquier entrada es una llegada", [["and retail.fn_es_llegada(m.tipo, m.motivo, m.lote_id, m.produccion_id, m.transferencia_recepcion_id)", "and m.tipo = 'entrada'"]]],
   ["31 días en vez de 30", [["or (m.en_lo_nuevo = 'automatico' and m.dias between 0 and 30)", "or (m.en_lo_nuevo = 'automatico' and m.dias between 0 and 31)"]]],
