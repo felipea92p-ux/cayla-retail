@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { estadosDe, faltanDe, sePuedeConfirmar } from "./guia-campos";
-import { camposDeFichaDeLaTela, camposDeInsumoNuevo, problemasDeInsumoNuevo, type EntradaInsumoNuevo } from "./insumos-guia";
+import { camposDeFichaDeLaTela, camposDeIngresoDeInsumo, camposDeInsumoNuevo, ingresoListo, problemasDeInsumoNuevo, type EntradaInsumoNuevo } from "./insumos-guia";
 
 // La guía de las hojas de Insumos dice lo mismo que la hoja: se puede guardar exactamente cuando `problemasDeInsumoNuevo` no encuentra nada y alguien firma.
 
@@ -67,5 +67,29 @@ describe("la guía de la «Ficha de la tela»", () => {
     expect(faltanDe(tela).map((c) => c.id)).toEqual(["tejido", "color"]);
     expect(sePuedeConfirmar(camposDeFichaDeLaTela({ tipo: "tela", tejidoId: "t", colorCodigo: "c", responsableListo: false }))).toBe(false);
     expect(camposDeFichaDeLaTela({ tipo: "avio", tejidoId: "", colorCodigo: "", responsableListo: true }).map((c) => c.id)).toEqual(["color", "quien"]);
+  });
+});
+
+describe("la guía de «Ingresar insumo»", () => {
+  const entradas = [
+    { tieneInsumo: true, cantidad: "100", costo: "12.5" },
+    { tieneInsumo: true, cantidad: "100", costo: "0" },
+    { tieneInsumo: true, cantidad: "100", costo: "" },
+    { tieneInsumo: true, cantidad: "0", costo: "12" },
+    { tieneInsumo: true, cantidad: "", costo: "12" },
+    { tieneInsumo: true, cantidad: "abc", costo: "12" },
+    { tieneInsumo: true, cantidad: "10", costo: "-3" },
+    { tieneInsumo: false, cantidad: "10", costo: "12" },
+  ];
+  for (const e of entradas) {
+    for (const firma of [true, false]) {
+      it(`${JSON.stringify(e)}${firma ? "" : " · sin responsable"}: el botón se enciende justo cuando la hoja lo aceptaría`, () => {
+        expect(sePuedeConfirmar(camposDeIngresoDeInsumo({ ...e, responsableListo: firma }))).toBe(ingresoListo(e) && firma);
+      });
+    }
+  }
+  it("un costo de cero escrito es válido (un regalo), un costo vacío no", () => {
+    expect(ingresoListo({ tieneInsumo: true, cantidad: "5", costo: "0" })).toBe(true);
+    expect(ingresoListo({ tieneInsumo: true, cantidad: "5", costo: " " })).toBe(false);
   });
 });

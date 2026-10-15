@@ -65,3 +65,19 @@ export function camposDeFichaDeLaTela(e: EntradaFichaDeLaTela): CampoDeGuia[] {
     { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota este cambio." },
   ];
 }
+
+export type EntradaIngresoDeInsumo = { tieneInsumo: boolean; cantidad: string; costo: string; responsableListo: boolean };
+
+/** «Ingresar insumo» abre un lote: qué llegó, cuánta cantidad (mayor que cero) y a qué costo (desde cero; se escribe, aunque sea 0). La hoja no guarda con menos. */
+export function ingresoListo(e: Pick<EntradaIngresoDeInsumo, "tieneInsumo" | "cantidad" | "costo">): boolean {
+  return e.tieneInsumo && (Number(e.cantidad) || 0) > 0 && e.costo.trim() !== "" && (Number(e.costo) || 0) >= 0;
+}
+
+export function camposDeIngresoDeInsumo(e: EntradaIngresoDeInsumo): CampoDeGuia[] {
+  return [
+    { id: "insumo", nombre: "Qué llegó", requerido: true, hecho: e.tieneInsumo, pendiente: "Elige qué insumo llegó." },
+    { id: "cantidad", nombre: "Cantidad", requerido: true, hecho: (Number(e.cantidad) || 0) > 0, pendiente: "Escribe cuánto llegó (más de cero)." },
+    { id: "costo", nombre: "Costo", requerido: true, hecho: e.costo.trim() !== "" && (Number(e.costo) || 0) >= 0, pendiente: "Escribe el costo por unidad, sin IGV (0 si fue un regalo)." },
+    { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién ingresa este lote." },
+  ];
+}

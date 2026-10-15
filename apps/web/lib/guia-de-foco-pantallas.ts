@@ -24,7 +24,7 @@ export type PantallaGuia =
 export const PIEZAS_DE_LA_GUIA = ["MarcaCampo", "ConMarca", "FaltanDelPaso", "TiraFicha", "EtiquetaAhora", "CampoGuiado", "PieGuia", "useGuiaCampos"] as const;
 
 /** Cuántas pantallas siguen `pendiente`. Baja a medida que se hacen; subir es romper la regla (una pantalla nueva no nace pendiente). */
-export const PENDIENTES_HOY = 60;
+export const PENDIENTES_HOY = 59;
 
 const PENDIENTE: PantallaGuia = { estado: "pendiente" };
 
@@ -165,7 +165,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/produccion/comprobantes": PENDIENTE,
   "/produccion/cotizaciones-maquila": PENDIENTE,
   "/produccion/eficiencia": PENDIENTE,
-  "/produccion/insumos": PENDIENTE,
+  "/produccion/insumos": { estado: "aplicada", evidencia: ["components/insumos-taller/NuevoInsumoModal.tsx", "components/insumos-taller/FichaDeLaTelaModal.tsx", "components/InsumoModales.tsx"] },
   "/produccion/ordenes": { estado: "aplicada", evidencia: ["components/ModeloNuevoCampos.tsx"] },
   "/produccion/ordenes/[numero]": { estado: "no-aplica", motivo: "Una orden se lee, no se llena: la ruta de fases, la tela, el costo y la línea de tiempo. Lo que se anota vive en sus hojas «Terminé» y «Cambiar quién», cada una con su guía en el registro de modales." },
   "/produccion/por-pagar": PENDIENTE,
@@ -217,7 +217,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 /** Cuántos modales siguen `pendiente`. Baja a medida que se hacen; un modal nuevo no nace pendiente. */
-export const MODALES_PENDIENTES_HOY = 55;
+export const MODALES_PENDIENTES_HOY = 54;
 
 export const MODALES: Record<string, PantallaGuia> = {
   "components/AdjuntosCompra.tsx": PENDIENTE, // 3 controles
@@ -269,7 +269,7 @@ export const MODALES: Record<string, PantallaGuia> = {
   "components/GastosFijosYActivos.tsx": PENDIENTE, // 17 controles
   "components/GastosPanel.tsx": PENDIENTE, // 13 controles
   "components/HistorialCierresModal.tsx": { estado: "no-aplica", motivo: "Hoja de solo lectura (Felipe 2026-10-12): los cierres de un mes como tickets, con su gráfico. Lo único que se toca es el mes (SelectorMes) y el filtro Todos / Faltó / Sobró, que cambian lo que se ve al instante; no hay nada que completar ni pasos que seguir." },
-  "components/InsumoModales.tsx": PENDIENTE, // «Ingresar insumo» (el alta de insumo pasó a components/insumos-taller/, ya con guía)
+  "components/InsumoModales.tsx": { estado: "aplicada", evidencia: ["components/InsumoModales.tsx"] },
   "components/MovimientoCajaModal.tsx": PENDIENTE, // 6 controles
   "components/NuevaClientaModal.tsx": { estado: "aplicada", evidencia: ["components/NuevaClientaModal.tsx"] },
   "components/liquidacion/EtiquetarPiezaModal.tsx": { estado: "aplicada", evidencia: ["components/liquidacion/EtiquetarPiezaModal.tsx"] },

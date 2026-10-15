@@ -2,18 +2,19 @@
   "guia": "produccion.insumos",
   "ruta": "/produccion/insumos",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 32,
+  "total": 33,
   "controles": {
     "components/InsumoModales.tsx": [
-      "CampoSelect «¿Qué llegó?»",
-      "CampoTexto «{`Cantidad (${UNIDADES_INSUMO[unidad].corta}»",
-      "CampoMonto «{`Costo por ${UNIDADES_INSUMO[unidad].corta}»",
+      "CampoSelect «{guia.etiqueta(\"insumo\", \"¿Qué llegó?\")}»",
+      "CampoTexto «{guia.etiqueta(\"cantidad\", `Cantidad (${UNIDADES_INSUMO[unidad].corta}»",
+      "CampoMonto «{guia.etiqueta(\"costo\", `Costo por ${UNIDADES_INSUMO[unidad].corta}»",
       "CampoTexto «Código de lote»",
       "CampoTexto «Documento»",
       "CampoSelect «Origen»",
       "CampoTexto «Nota»",
-      "ComboResponsable «{cargando ? \"Ingresando…\" : \"Abrir lote y sumar al saldo\"}»",
-      "Boton «{responsable.motivo ?? undefined}»"
+      "ComboResponsable «(sin nombre)»",
+      "button «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/InsumosPanel.tsx": [
       "Boton «prod-insumos.nuevo»",
