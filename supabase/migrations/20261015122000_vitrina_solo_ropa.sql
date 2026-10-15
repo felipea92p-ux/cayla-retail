@@ -9,33 +9,55 @@
 -- LA REGLA (Felipe, 2026-10-15). La Vitrina no deja mostrar un modelo cuya categoría es de una familia fuera de los motores
 -- (`fn_categoria_entra_a_motores` = no), y la tienda online no lo muestra aunque haya quedado publicado antes de este cambio.
 --
+-- Y EL PRECIO ES EL DE LA TIENDA (Felipe, 2026-10-15: «el precio de la prenda siempre es el de la tienda», 20261015121000). La ropa
+-- se vende al precio propio de una tienda aunque su ficha diga S/ 0, y la tienda online ya la ofrecía así (`fn_tienda_precio_talla`):
+-- en esa tienda y, con «Todas», al mayor. Pero la Vitrina miraba solo la ficha: una prenda de ropa con TODAS sus tallas en S/ 0 en su
+-- ficha decía «sin precio» y no se dejaba mostrar, aunque Trujillo le hubiera puesto precio propio. Ahora «sin precio» es que NINGUNA
+-- talla activa se ofrece a más de S/ 0 en NINGUNA tienda de la web, con la misma regla de la tienda: lo que `fn_tienda_precio_talla`
+-- ofrece con «Todas» (el mayor entre las tiendas de la web; sin ninguna, la grilla). Así la Vitrina, la ficha, el catálogo, la bolsa y
+-- «Separar» no pueden decir dos cosas distintas de la misma prenda.
+--
 -- LO QUE HACE
 --   1. `fn_vitrina_por_que_no(modelo)` — LA regla de la Vitrina, con su porqué: null si se puede mostrar; si no, en este orden,
 --      'no_existe'; 'no_se_vende' (descontinuado, rechazado, de prueba, la «Prenda sin registrar» o sin tallas activas: no se vende en
---      ningún lado); 'empaque' (se vende, pero en la caja: su familia está fuera de los motores); 'sin_precio' (ropa sin ninguna talla
---      activa con precio). El empaque va antes que «sin precio»: la bolsa de obsequio (todas sus tallas en 0) no es «ropa sin precio».
+--      ningún lado); 'empaque' (se vende, pero en la caja: su familia está fuera de los motores); 'sin_precio' (ropa que no se ofrece
+--      en ninguna tienda de la web: ninguna talla activa con precio ahí, ni el de su ficha ni el propio de la tienda). El empaque va
+--      antes que «sin precio»: la bolsa de obsequio (todas sus tallas en 0) no es «ropa sin precio».
 --   2. `fn_vitrina_publicable(modelo)` — pasa a ser «no hay porqué» (`fn_vitrina_por_que_no(...) is null`): una sola regla. Como todo lo
 --      de la tienda pregunta por ella (el catálogo, la ficha, Lo nuevo y Más vendidos, la bolsa, «Separar», los favoritos, «Avísame»,
 --      «otra persona ya separó la última» y los looks, que leen el catálogo), un modelo de empaque que quedó publicado antes no sale
 --      en ninguno: su fila de la Vitrina queda como está (no se borra ni se cambia nada) y vuelve a verse si su familia vuelve a
---      contar en los motores.
+--      contar en los motores. Lo mismo un modelo sin precio en la web: vuelve a verse cuando una tienda de la web le pone precio.
 --   3. Lo que guarda la Vitrina se niega con su porqué: `vitrina_guardar_modelo` («no es ropa: se vende desde el ticket, en la
---      caja»), `vitrina_mostrar` (el lote nombra aparte lo que es empaque) y `vitrina_guardar_look` (una bolsa no va en un look).
+--      caja»; «no tiene precio en ninguna tienda de la web»), `vitrina_mostrar` (el lote nombra aparte lo que es empaque y lo que no
+--      tiene precio) y `vitrina_guardar_look` (una bolsa no va en un look; una prenda sin precio en la web, tampoco).
 --   4. La pantalla (Catálogo ▸ Vitrina web): `fn_vitrina_modelo_json` trae `por_que_no`, y `fn_vitrina_modelos` lista también lo que es
 --      empaque (se vende, en la caja), para que la fila diga por qué no va en la web, con el interruptor apagado.
 --
 -- DECIDÍ: la regla en una sola función con su porqué (y `publicable` = «no hay porqué»), no una línea más en `fn_vitrina_publicable` y
 --   un segundo «por qué» aparte: dos funciones que deciden lo mismo terminan diciendo cosas distintas. El empaque antes que «sin
 --   precio», y «no se vende» antes que el empaque (una bolsa de prueba no es «se vende en la caja»).
+-- DECIDÍ: «sin precio» lo dice `fn_tienda_precio_talla` (la regla del precio de toda la tienda), no una cuenta aquí. Pero se le
+--   pregunta solo cuando hace falta: una talla activa con precio en su ficha se ofrece en TODA tienda (el precio propio de una tienda
+--   es mayor que 0, `precios_sede_prenda_precio_positivo`, y `fn_precio_en_sede` solo deja en 0 la talla que ya está en 0), así que
+--   con una de esas el modelo tiene precio sin preguntar más. Medido en la base local: la pregunta a `fn_tienda_precio_talla` desde
+--   aquí cuesta ~1,5 ms por modelo (Postgres vuelve a planear su cuerpo en cada llamada anidada; el atajo, ~0,005 ms), y la Vitrina del
+--   ERP la hace hasta 4 veces por modelo (y el catálogo de la tienda, una por modelo publicado): con los ~256 modelos de producción,
+--   más de un segundo en cada lectura. Con el atajo, solo los modelos con TODAS sus tallas en S/ 0 en la ficha pagan ese costo. Que el
+--   atajo y la regla digan lo mismo en TODO el catálogo lo vigila `pruebas:vitrina-web` (sección «El precio es el de la tienda», con sus
+--   mutantes).
 -- DESCARTÉ: despublicar en la base los modelos de empaque que ya estaban publicados (sería escribir en nombre de nadie; con la regla
 --   basta para que no se vean, y su fila vuelve a servir si la familia vuelve a contar); esconder el empaque de la lista de la
---   Vitrina (sin decir por qué, alguien lo buscaría para mostrarlo).
+--   Vitrina (sin decir por qué, alguien lo buscaría para mostrarlo); mirar el precio tienda por tienda aquí (sería la segunda cuenta
+--   del «Todas» de `fn_tienda_precio_talla`).
 --
--- PRODUCCIÓN. NO está aplicada: va con la tienda online (actividad 13), DESPUÉS de 20261014225000 (la Vitrina) y 20261015031000 (los
--- looks). Una sola parte, re-ejecutable, `lock_timeout = 3s`: una función nueva y reemplazos ANCLADOS (si un trozo no está exactamente
--- una vez, se detiene sin tocar nada); sin tablas, políticas ni disparadores (ADR-0195); ningún texto de ancla lleva la palabra con la
--- que se guarda una consulta en una variable (ADR-0288). Pruebas: `pnpm pruebas:vitrina-web` (sección «Solo ropa en la web», con su
--- mutante), `pruebas:vitrina-looks`, `pruebas:tienda-inicio` y `pruebas:tienda-ficha`.
+-- PRODUCCIÓN. NO está aplicada: va con la tienda online (actividad 13), DESPUÉS de 20261014225000 (la Vitrina), 20261015012000 (la
+-- regla del precio de la tienda, `fn_tienda_precio_talla`), 20261015031000 (los looks) y 20261015121000 (el precio de la ropa es el de
+-- la tienda). Una sola parte, re-ejecutable, `lock_timeout = 3s`: una función nueva y reemplazos ANCLADOS (si un trozo no está
+-- exactamente una vez, se detiene sin tocar nada); sin tablas, políticas ni disparadores (ADR-0195); ningún texto de ancla lleva la
+-- palabra con la que se guarda una consulta en una variable (ADR-0288). Pruebas: `pnpm pruebas:vitrina-web` (secciones «Solo ropa en la
+-- web» y «El precio es el de la tienda», con sus mutantes), `pruebas:vitrina-looks`, `pruebas:tienda-inicio`, `pruebas:tienda-ficha`
+-- (sección 10) y `pruebas:tienda-bolsa`.
 -- ============================================================================
 
 set lock_timeout = '3s';
@@ -51,6 +73,9 @@ begin
   end if;
   if to_regprocedure('retail.fn_categoria_entra_a_motores(uuid)') is null then
     raise exception 'Falta retail.fn_categoria_entra_a_motores: pega antes 20261010231000_familias_entran_a_motores.sql.';
+  end if;
+  if to_regprocedure('retail.fn_tienda_precio_talla(uuid[], uuid)') is null then
+    raise exception 'Falta la regla del precio de la tienda (fn_tienda_precio_talla): pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
   end if;
 end
 $$;
@@ -93,15 +118,23 @@ as $$
     -- Solo ropa en la web (Felipe 2026-10-15): lo de una familia fuera de los motores (bolsas, cajas, empaque) se vende desde el
     -- ticket, en la caja (ADR-0377).
     when not retail.fn_categoria_entra_a_motores(p.categoria_id) then 'empaque'
-    -- Una talla a S/ 0 no se ofrece en la web (ADR-0384): sin ninguna con precio, no hay qué mostrar.
-    when not exists (select 1 from retail.variantes v where v.producto_id = p.id and v.activo and v.precio > 0) then 'sin_precio'
+    -- Sin precio: NINGUNA talla activa se ofrece a más de S/ 0 en NINGUNA tienda de la web. Lo dice la regla del precio de la tienda
+    -- (fn_tienda_precio_talla con «Todas»: el mayor entre las tiendas de la web; sin ninguna, la grilla), la misma de la ficha, el
+    -- catálogo, la bolsa y «Separar»: la ropa en S/ 0 en su ficha se muestra si una tienda de la web le puso precio propio (Felipe
+    -- 2026-10-15: «el precio de la prenda siempre es el de la tienda»). Primero lo barato: una talla activa con precio en su ficha se
+    -- ofrece en toda tienda (el precio propio de una tienda es > 0), así que con una de esas el modelo tiene precio sin preguntar más.
+    when exists (select 1 from retail.variantes v where v.producto_id = p.id and v.activo and v.precio > 0) then null
+    when not exists (select 1
+                       from retail.fn_tienda_precio_talla(
+                              array(select v.id from retail.variantes v where v.producto_id = p.id and v.activo), null) t
+                      where t.se_ofrece) then 'sin_precio'
   end
   from (select p_producto_id as id) k
   left join retail.productos p on p.id = k.id
 $$;
 
 comment on function retail.fn_vitrina_por_que_no(uuid) is
-  'Tienda online (ADR-0408): LA regla de la Vitrina web. Por qué un modelo NO se puede mostrar en la web (null: sí se puede): no_existe, no_se_vende (descontinuado, rechazado, de prueba, la Prenda sin registrar o sin tallas activas), empaque (familia fuera de los motores: se vende en la caja, 2026-10-15) o sin_precio. fn_vitrina_publicable es «no hay porqué». Interna.';
+  'Tienda online (ADR-0408): LA regla de la Vitrina web. Por qué un modelo NO se puede mostrar en la web (null: sí se puede): no_existe, no_se_vende (descontinuado, rechazado, de prueba, la Prenda sin registrar o sin tallas activas), empaque (familia fuera de los motores: se vende en la caja, 2026-10-15) o sin_precio (ninguna talla activa se ofrece en ninguna tienda de la web, con la regla del precio de la tienda fn_tienda_precio_talla: la ropa en S/ 0 en su ficha con precio propio en una tienda de la web SÍ se muestra, 2026-10-15). fn_vitrina_publicable es «no hay porqué». Interna.';
 
 revoke all on function retail.fn_vitrina_por_que_no(uuid) from public, anon, authenticated;
 
@@ -122,7 +155,7 @@ select pg_temp.reemplazar('retail.fn_vitrina_publicable(uuid)',
   1);
 
 comment on function retail.fn_vitrina_publicable(uuid) is
-  'Tienda online (ADR-0408): ¿el modelo se puede mostrar en la web? Sí si no hay porqué (fn_vitrina_por_que_no): activo, no de prueba, con alguna talla activa con precio y ROPA (no de una familia fuera de los motores, 2026-10-15). La preguntan la Vitrina y todo lo que muestra la tienda. Interna.';
+  'Tienda online (ADR-0408): ¿el modelo se puede mostrar en la web? Sí si no hay porqué (fn_vitrina_por_que_no): activo, no de prueba, ROPA (no de una familia fuera de los motores, 2026-10-15) y con alguna talla activa que se ofrece en una tienda de la web (con precio ahí: el de su ficha o el propio de la tienda, fn_tienda_precio_talla, 2026-10-15). La preguntan la Vitrina y todo lo que muestra la tienda. Interna.';
 
 -- ---------- 3. Lo que guarda la Vitrina se niega con su porqué ----------
 
@@ -141,15 +174,21 @@ select pg_temp.reemplazar('retail.vitrina_guardar_modelo(uuid, boolean, text, te
                                         join retail.familias f on f.codigo = cf.familia
                                        where pf.id = p_producto_id), 'una familia de empaque'));
     end if;
+    -- El precio es el de la tienda (Felipe 2026-10-15): sin precio en ninguna tienda de la web, no hay a cuánto ofrecerlo.
+    if retail.fn_vitrina_por_que_no(p_producto_id) = 'sin_precio' then
+      raise exception 'vitrina_no_publicable'
+        using hint = format('«%s» no se puede mostrar: no tiene precio en ninguna tienda que se ve en la web. Ponle precio en su ficha: el de la prenda o el de una de esas tiendas.', v_nombre);
+    end if;
     raise exception 'vitrina_no_publicable'
-      using hint = format('«%s» no se puede mostrar: está descontinuado, es de prueba o no tiene tallas activas con precio.', v_nombre);
+      using hint = format('«%s» no se puede mostrar: está descontinuado, es de prueba o no tiene tallas activas.', v_nombre);
   end if;$v$,
   1);
 
 select pg_temp.reemplazar('retail.vitrina_mostrar(uuid[], boolean)',
   $v$  v_no_publicables text[] := '{}';$v$,
   $v$  v_no_publicables text[] := '{}';
-  v_empaque text[] := '{}';$v$,
+  v_empaque text[] := '{}';
+  v_sin_precio text[] := '{}';$v$,
   1);
 
 select pg_temp.reemplazar('retail.vitrina_mostrar(uuid[], boolean)',
@@ -158,12 +197,13 @@ select pg_temp.reemplazar('retail.vitrina_mostrar(uuid[], boolean)',
         continue;
       end if;$v$,
   $v$      if not retail.fn_vitrina_publicable(v_id) then
-        -- Solo ropa en la web (20261015122000): lo que es empaque se nombra aparte, con su porqué.
-        if retail.fn_vitrina_por_que_no(v_id) = 'empaque' then
-          v_empaque := v_empaque || v_nombre;
-        else
-          v_no_publicables := v_no_publicables || v_nombre;
-        end if;
+        -- Solo ropa en la web, y al precio de la tienda (20261015122000): lo que es empaque y lo que no tiene precio en ninguna tienda
+        -- de la web se nombran aparte, con su porqué.
+        case retail.fn_vitrina_por_que_no(v_id)
+          when 'empaque' then v_empaque := v_empaque || v_nombre;
+          when 'sin_precio' then v_sin_precio := v_sin_precio || v_nombre;
+          else v_no_publicables := v_no_publicables || v_nombre;
+        end case;
         continue;
       end if;$v$,
   1);
@@ -174,13 +214,15 @@ select pg_temp.reemplazar('retail.vitrina_mostrar(uuid[], boolean)',
       using hint = format('No se pueden mostrar: %s (descontinuados, de prueba o sin tallas activas con precio). Quítalos de la selección.',
                           retail.fn_vitrina_lista_nombres(v_no_publicables));
   end if;$v$,
-  $v$  if cardinality(v_no_publicables) > 0 or cardinality(v_empaque) > 0 then
+  $v$  if cardinality(v_no_publicables) > 0 or cardinality(v_empaque) > 0 or cardinality(v_sin_precio) > 0 then
     raise exception 'vitrina_no_publicable'
       using hint = 'No se pueden mostrar: ' || concat_ws('; ',
         case when cardinality(v_empaque) > 0
              then retail.fn_vitrina_lista_nombres(v_empaque) || ' (no son ropa: se venden desde el ticket, en la caja)' end,
+        case when cardinality(v_sin_precio) > 0
+             then retail.fn_vitrina_lista_nombres(v_sin_precio) || ' (sin precio en ninguna tienda que se ve en la web)' end,
         case when cardinality(v_no_publicables) > 0
-             then retail.fn_vitrina_lista_nombres(v_no_publicables) || ' (descontinuados, de prueba o sin tallas activas con precio)' end)
+             then retail.fn_vitrina_lista_nombres(v_no_publicables) || ' (descontinuados, de prueba o sin tallas activas)' end)
         || '. Quítalos de la selección.';
   end if;$v$,
   1);
@@ -189,9 +231,11 @@ select pg_temp.reemplazar('retail.vitrina_guardar_look(uuid, text, text, boolean
   $v$      raise exception 'vitrina_look_prenda_invalida'
         using hint = format('«%s» no se puede usar así: está descontinuado, es de prueba o ese color ya no tiene tallas activas.', v_prenda);$v$,
   $v$      raise exception 'vitrina_look_prenda_invalida'
-        using hint = case when retail.fn_vitrina_por_que_no(v_productos[v_i]) = 'empaque'
+        using hint = case retail.fn_vitrina_por_que_no(v_productos[v_i])
                           -- Solo ropa en la web (20261015122000).
-                          then format('«%s» no va en un look: no es ropa, se vende desde el ticket, en la caja.', v_prenda)
+                          when 'empaque' then format('«%s» no va en un look: no es ropa, se vende desde el ticket, en la caja.', v_prenda)
+                          -- Al precio de la tienda (20261015122000): sin precio en ninguna tienda de la web, no se ofrece.
+                          when 'sin_precio' then format('«%s» no se puede usar así: no tiene precio en ninguna tienda que se ve en la web.', v_prenda)
                           else format('«%s» no se puede usar así: está descontinuado, es de prueba o ese color ya no tiene tallas activas.', v_prenda)
                      end;$v$,
   1);

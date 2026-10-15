@@ -16,8 +16,9 @@ import { nombreCortoSede } from "./stock-por-sede";
 
 export type EnLoNuevo = "automatico" | "fijo" | "quitado";
 /** Por qué un modelo NO se puede mostrar en la web (`fn_vitrina_por_que_no`, 20261015122000): `empaque` (de una familia fuera de los
- *  motores —bolsas, cajas—: se vende desde el ticket, en la caja; «Solo ropa en la web», Felipe 2026-10-15), `sin_precio` (ninguna talla
- *  activa con precio) o `no_se_vende` (descontinuado, de prueba o sin tallas activas). */
+ *  motores —bolsas, cajas—: se vende desde el ticket, en la caja; «Solo ropa en la web», Felipe 2026-10-15), `sin_precio` (ninguna
+ *  tienda que se ve en la web la ofrece: sin precio en su ficha ni el propio de una de esas tiendas; el precio de la prenda es siempre
+ *  el de la tienda, Felipe 2026-10-15) o `no_se_vende` (descontinuado, de prueba o sin tallas activas). */
 export type PorQueNoSeMuestra = "empaque" | "sin_precio" | "no_se_vende";
 export type ColorVitrina = { codigo: string; nombre: string; hex: string | null; foto: string | null };
 export type StockTienda = { ubicacionId: string; cantidad: number };
@@ -37,7 +38,8 @@ export type ModeloVitrina = {
   categoria: string | null;
   prefijo: string | null;
   familia: string | null;
-  /** Activo, no de prueba, con tallas activas con precio y ropa (no empaque): si no, aunque esté encendido no se ve en la web. */
+  /** Activo, no de prueba, ropa (no empaque) y con precio en alguna tienda que se ve en la web (el de su ficha o el propio de esa
+   *  tienda): si no, aunque esté encendido no se ve en la web. */
   publicable: boolean;
   /** Por qué no se puede mostrar (`null` si se puede, o si la base todavía no lo dice: entonces vale la razón de siempre). */
   porQueNo: PorQueNoSeMuestra | null;
@@ -140,10 +142,24 @@ export function razonNoSeMuestra(m: ModeloVitrina): { chip: string; tono: "neutr
   if (esEmpaque(m)) {
     return { chip: "Solo en la caja", tono: "neutro", frase: "No va en la web: no es ropa (es empaque, como las bolsas). Se vende desde el ticket, en la caja." };
   }
+  // Sin precio en ninguna tienda que se ve en la web (el precio de la prenda es siempre el de la tienda, Felipe 2026-10-15): la web no
+  // tiene a cuánto ofrecerla. Se arregla en su ficha, no aquí.
+  if (m.porQueNo === "sin_precio") {
+    return {
+      chip: m.vitrina?.publicado ? "Sin precio: no se ve" : "Sin precio",
+      tono: "ambar",
+      frase:
+        "No se puede mostrar: no tiene precio en ninguna tienda que se ve en la web. Ponle precio en su ficha, en Catálogo ▸ Productos: el de la prenda o el de una de esas tiendas.",
+    };
+  }
   return {
     chip: m.vitrina?.publicado ? "Ya no se vende: no se ve" : "No se puede vender",
     tono: "ambar",
-    frase: "No se puede mostrar: está descontinuado, es de prueba o no tiene tallas activas con precio.",
+    // Sin el porqué (una base anterior a 20261015122000), la razón de siempre, que también nombra el precio.
+    frase:
+      m.porQueNo === "no_se_vende"
+        ? "No se puede mostrar: está descontinuado, es de prueba o no tiene tallas activas."
+        : "No se puede mostrar: está descontinuado, es de prueba o no tiene tallas activas con precio.",
   };
 }
 
@@ -204,13 +220,24 @@ export type ModoLote = "mostrar" | "ocultar";
 export function queLePasa(m: ModeloVitrina, modo: ModoLote): { texto: string; cambia: boolean } {
   if (modo === "ocultar") {
     if (!m.vitrina?.publicado) return { texto: "Ya está oculto", cambia: false };
-    // Un empaque encendido antes de la regla ya no se veía: ocultarlo solo lo apaga.
-    return { texto: esEmpaque(m) ? "Se apaga: ya no se veía" : "Deja de verse", cambia: true };
+    // Encendido pero sin verse (un empaque de antes de la regla, uno sin precio en la web, uno descontinuado): ocultarlo solo lo apaga.
+    return { texto: seVeEnLaWeb(m) ? "Deja de verse" : "Se apaga: ya no se veía", cambia: true };
   }
   // Solo ropa en la web (Felipe 2026-10-15): el empaque no entra, aunque hubiera quedado encendido antes de la regla.
   if (esEmpaque(m)) return { texto: "No es ropa: se vende en la caja", cambia: false };
-  if (m.vitrina?.publicado) return { texto: m.publicable ? "Ya se ve" : "No se puede vender: no se ve", cambia: false };
-  if (!m.publicable) return { texto: "No se puede mostrar: descontinuado, de prueba o sin tallas con precio", cambia: false };
+  // Sin precio en ninguna tienda que se ve en la web (el precio es el de la tienda, Felipe 2026-10-15): no entra hasta que lo tenga.
+  const sinPrecio = m.porQueNo === "sin_precio";
+  if (m.vitrina?.publicado) {
+    return { texto: m.publicable ? "Ya se ve" : sinPrecio ? "Sin precio en la web: no se ve" : "No se puede vender: no se ve", cambia: false };
+  }
+  if (!m.publicable) {
+    const texto = sinPrecio
+      ? "No se puede mostrar: sin precio en las tiendas de la web"
+      : m.porQueNo === "no_se_vende"
+        ? "No se puede mostrar: descontinuado, de prueba o sin tallas activas"
+        : "No se puede mostrar: descontinuado, de prueba o sin tallas con precio";
+    return { texto, cambia: false };
+  }
   return { texto: "Se verá en la web", cambia: true };
 }
 

@@ -15,10 +15,11 @@
 --      `fn_bolsa_web_precios(variantes, tiendas)` queda solo como NOMBRE VIEJO de esa regla, sin cuenta propia: la llaman pruebas y
 --      código hecho en paralelo para saber qué precio mandar a «Separar». Lo nuevo usa `fn_tienda_precio_talla`.
 --   2. `tienda_bolsa(lineas, sede)` (solo `tienda_web`, solo lee): lo que la página de la bolsa necesita de cada prenda:
---      si todavía se puede separar, su precio en la tienda elegida (o, sin tienda, el mayor de la web), y en cada tienda de la
---      web si alcanza para lo que lleva, si hay alguna y si se vende ahí. Nunca la cifra: solo «alcanza / hay / no hay»
---      (ADR-0408, DECIDÍ 6). Una prenda que ya no se puede separar vuelve SIN nombre ni foto: alguien que inventa un id en su
---      cookie no aprende nada de lo que no está publicado.
+--      si todavía está en la tienda online (se ofrece en alguna tienda de la web), su precio en la tienda elegida (o, sin tienda o
+--      si ahí no se vende, el mayor de la web: el que vio en el catálogo), y en cada tienda de la web si alcanza para lo que lleva,
+--      si hay alguna y si se vende ahí (sin una etiqueta que la limite a otras tiendas y con precio en esa tienda). Nunca la cifra:
+--      solo «alcanza / hay / no hay» (ADR-0408, DECIDÍ 6). Una prenda que ya no está en la tienda online vuelve SIN nombre ni foto:
+--      alguien que inventa un id en su cookie no aprende nada de lo que no está publicado.
 --   3. `tienda_separar(usuario_web_id, ubicacion_id, lineas, token)` (solo `tienda_web`): «Separar». Recibe la cuenta que el
 --      servidor de la tienda ya validó con `getUser()`, la tienda donde recoge y lo que el cliente VIO
 --      ([{variante_id, cantidad, precio}]); vuelve a calcular cada precio y lo compara; exige que la prenda siga en la
@@ -39,9 +40,15 @@
 --
 -- REGLAS (lo que la base no deja que pase)
 --   · Un precio que no cuadra con el de la base no se guarda: `tienda_separar_precio`, y no se escribe nada.
---   · Lo que ya no está en la Vitrina no se separa (`tienda_separar_no_publicada`), lo que no se vende en esa tienda tampoco
---     (`tienda_separar_no_se_vende`) y lo que se agotó en todas las tiendas de la web tampoco (`tienda_separar_agotada`).
---     El detalle (`detail`) dice qué prenda: la página la marca.
+--   · Lo que ya no está en la tienda online no se separa (`tienda_separar_no_publicada`: oculto o que ya no se puede mostrar en la
+--     Vitrina, o una talla que no se ofrece en NINGUNA tienda de la web), lo que no se vende en esa tienda tampoco
+--     (`tienda_separar_no_se_vende`: una etiqueta que la limita a otras tiendas, o una talla sin precio en esa tienda que sí se
+--     ofrece en otra de la web) y lo que se agotó en todas las tiendas de la web tampoco (`tienda_separar_agotada`). El detalle
+--     (`detail`) dice qué prenda: la página la marca.
+--   · EL PRECIO ES EL DE LA TIENDA (Felipe, 2026-10-15; 20261015121000): la ropa con su talla en S/ 0 en la ficha y precio propio en
+--     Trujillo se vende en Trujillo y no en Lima. Separarla en Lima es «no se vende en esa tienda: quítala o elige otra», no «ya no
+--     está en la tienda online» (con «Todas», la ficha la muestra). La bolsa lo dice igual antes de tocar «Separar»: esa prenda sigue
+--     en la bolsa, con su precio, y en Lima «no se vende» (`en_sedes.<Lima>.se_vende = false`), en vez de «ya no está».
 --   · Solo se recoge en una tienda que se ve en la web (`tienda_separar_tienda`).
 --   · La misma marca nunca crea dos pedidos, y la marca de otro cliente no devuelve su pedido (`pedido_web_token`).
 --   · Un cliente tiene a lo sumo 3 separaciones esperando que la tienda confirme (decisión de Felipe, 2026-10-14): la cuarta se
@@ -174,10 +181,17 @@ begin
        order by min(c.n)
        limit 20
     ),
-    -- El precio de la tienda elegida (o, con «Todas», el mayor de la web) y la campaña: la regla de la ficha (fn_tienda_precio_talla).
-    precios as (
+    -- El precio, la campaña y si se ofrece: la regla de la ficha (fn_tienda_precio_talla). Con «Todas» (el mayor de la web) dice si
+    -- la prenda sigue en la tienda online; en cada tienda de la web, si se vende AHÍ y a cuánto (tiene precio ahí: la ropa en S/ 0 en
+    -- su ficha, solo donde la tienda le puso precio propio; Felipe 2026-10-15, 20261015121000).
+    en_la_web as (
       select pr.*
-        from retail.fn_tienda_precio_talla(array(select en.variante_id from entrada en), v_sede) pr
+        from retail.fn_tienda_precio_talla(array(select en.variante_id from entrada en), null) pr
+    ),
+    por_tienda as (
+      select s.id as ubicacion_id, pr.variante_id, pr.se_ofrece, pr.precio_lista, pr.precio, pr.campana, pr.pct
+        from unnest(v_sedes) as s (id)
+        cross join lateral retail.fn_tienda_precio_talla(array(select en.variante_id from entrada en), s.id) pr
     ),
     -- Lo libre de cada prenda en cada tienda de la web: la regla de «hay» de la ficha (fn_tienda_disponible).
     libres as (
@@ -189,13 +203,20 @@ begin
     ),
     lineas as (
       select en.n, en.variante_id, en.cantidad,
-             coalesce(pr.se_ofrece, false) and coalesce(vp.publicado, false)
+             -- Sigue en la tienda online: publicada, se puede mostrar y se ofrece en alguna tienda de la web («Todas»). Si no se vende
+             -- en la tienda elegida, igual sigue en la bolsa: la página dice «no se vende en esa tienda» (en_sedes), no «ya no está».
+             coalesce(w.se_ofrece, false) and coalesce(vp.publicado, false)
                and coalesce(retail.fn_vitrina_publicable(v.producto_id), false) as se_puede,
              pr.precio_lista, pr.precio, pr.campana, pr.pct
         from entrada en
         left join retail.variantes v on v.id = en.variante_id
         left join retail.vitrina_productos vp on vp.producto_id = v.producto_id
-        left join precios pr on pr.variante_id = en.variante_id
+        left join en_la_web w on w.variante_id = en.variante_id
+        left join por_tienda e on e.variante_id = en.variante_id and e.ubicacion_id = v_sede and e.se_ofrece
+        -- El precio que ve: el de la tienda elegida si se vende ahí; si no (o sin tienda), el de «Todas», el que vio en el catálogo.
+        cross join lateral (select e.precio_lista, e.precio, e.campana, e.pct where e.variante_id is not null
+                            union all
+                            select w.precio_lista, w.precio, w.campana, w.pct where e.variante_id is null) pr
     )
     select jsonb_build_object(
       'sede', v_sede,
@@ -214,9 +235,12 @@ begin
                                   select jsonb_object_agg(s.id::text, jsonb_build_object(
                                            'alcanza', coalesce(li.disponible, 0) >= l.cantidad,
                                            'hay', coalesce(li.disponible, 0) > 0,
-                                           'se_vende', retail.fn_variante_permitida_en_sede(l.variante_id, s.id)))
+                                           -- Se vende ahí: sin una etiqueta que la limite a otras tiendas y con precio en esa tienda.
+                                           'se_vende', retail.fn_variante_permitida_en_sede(l.variante_id, s.id)
+                                                       and coalesce(pt.se_ofrece, false)))
                                     from unnest(v_sedes) as s (id)
-                                    left join libres li on li.variante_id = l.variante_id and li.ubicacion_id = s.id), '{}'::jsonb),
+                                    left join libres li on li.variante_id = l.variante_id and li.ubicacion_id = s.id
+                                    left join por_tienda pt on pt.variante_id = l.variante_id and pt.ubicacion_id = s.id), '{}'::jsonb),
                                 'alcanza_en_total',
                                   coalesce((select sum(li.disponible) from libres li where li.variante_id = l.variante_id), 0) >= l.cantidad)
                  end
@@ -227,7 +251,7 @@ end;
 $fn$;
 
 comment on function retail.tienda_bolsa(jsonb, uuid) is
-  'Tienda online (ADR-0408, act. 7): la bolsa del cliente. {sede, sedes, lineas: [{variante_id, cantidad, disponible, …prenda, precio_lista, precio, campana, en_sedes: {<sede>: {alcanza, hay, se_vende}}, alcanza_en_total}]}. Nunca la cifra del stock. Solo la llama tienda_web.';
+  'Tienda online (ADR-0408, act. 7): la bolsa del cliente. {sede, sedes, lineas: [{variante_id, cantidad, disponible, …prenda, precio_lista, precio, campana, en_sedes: {<sede>: {alcanza, hay, se_vende}}, alcanza_en_total}]}. disponible = sigue en la tienda online (se ofrece en alguna tienda de la web, fn_tienda_precio_talla con «Todas»); el precio, el de la tienda elegida si se vende ahí y si no el de «Todas»; se_vende = sin etiqueta que la limite a otras tiendas y con precio en esa tienda (2026-10-15: la ropa en S/ 0 en su ficha se vende solo donde la tienda le puso precio). Nunca la cifra del stock. Solo la llama tienda_web.';
 
 -- ---------- 4. «Separar» ----------
 create or replace function retail.tienda_separar(p_usuario_web_id uuid, p_ubicacion_id uuid, p_lineas jsonb, p_token uuid)
@@ -333,7 +357,7 @@ begin
       raise exception 'Un pedido web lleva hasta % prendas.', c_tope using errcode = '22023', hint = 'pedido_web_muchas_prendas';
     end if;
 
-    -- Sigue en la Vitrina y se puede vender (activa, con precio en esa tienda).
+    -- Sigue en la Vitrina y se puede mostrar (activa, publicada y con precio en alguna tienda de la web: fn_vitrina_publicable).
     if not exists (select 1
                      from retail.variantes v
                      join retail.vitrina_productos vp on vp.producto_id = v.producto_id
@@ -347,9 +371,15 @@ begin
     end if;
 
     -- El precio de ESA tienda, con la campaña de hoy (la regla de la ficha, fn_tienda_precio_talla): tiene que ser el que el
-    -- cliente vio. Una talla que esa tienda no ofrece (sin precio ahí) no se separa.
+    -- cliente vio. Una talla sin precio en esa tienda no se separa ahí. Si otra tienda de la web la ofrece (la ropa en S/ 0 en su
+    -- ficha con precio propio en Trujillo: el precio de la prenda es siempre el de la tienda, Felipe 2026-10-15), «no se vende en esa
+    -- tienda» —quítala o elige otra—, lo mismo que dice la bolsa; si no la ofrece ninguna, ya no está en la tienda online.
     select x.* into p from retail.fn_tienda_precio_talla(array[r.variante_id], p_ubicacion_id) x;
     if not coalesce(p.se_ofrece, false) then
+      if exists (select 1 from retail.fn_tienda_precio_talla(array[r.variante_id], null) w where w.se_ofrece) then
+        raise exception 'Una prenda de tu bolsa no se vende en esa tienda.'
+          using errcode = '22023', hint = 'tienda_separar_no_se_vende', detail = r.variante_id::text;
+      end if;
       raise exception 'Una prenda de tu bolsa ya no está en la tienda online.'
         using errcode = '22023', hint = 'tienda_separar_no_publicada', detail = r.variante_id::text;
     end if;
@@ -390,7 +420,7 @@ end;
 $fn$;
 
 comment on function retail.tienda_separar(uuid, uuid, jsonb, uuid) is
-  'Tienda online (ADR-0408, act. 7): «Separar». Valida la cuenta, la tienda de recojo (una de la web) y cada prenda (en la Vitrina, se vende ahí, quedan en alguna tienda de la web según fn_tienda_libre, la regla de «hay» de la ficha) con el precio que el cliente vio contra fn_tienda_precio_talla de esa tienda (la regla del precio de la ficha), llama a crear_pedido_web (no toca el stock) y cierra las esperas de «Avísame» de esa cuenta por esas prendas (esperas_web.pedido_web_id). La misma marca devuelve el mismo pedido. Un tope de separaciones por confirmar a la vez por cliente (c_tope_por_confirmar, mirado después de la marca). {codigo, ya_estaba}. Rechaza con hint: tienda_sin_cuenta, tienda_separar_marca, tienda_separar_tope (detail = el tope), tienda_separar_tienda, tienda_separar_no_publicada, tienda_separar_no_se_vende, tienda_separar_precio, tienda_separar_agotada (detail = la prenda), pedido_web_*. Solo la llama tienda_web.';
+  'Tienda online (ADR-0408, act. 7): «Separar». Valida la cuenta, la tienda de recojo (una de la web) y cada prenda (en la Vitrina, se vende ahí, quedan en alguna tienda de la web según fn_tienda_libre, la regla de «hay» de la ficha) con el precio que el cliente vio contra fn_tienda_precio_talla de esa tienda (la regla del precio de la ficha), llama a crear_pedido_web (no toca el stock) y cierra las esperas de «Avísame» de esa cuenta por esas prendas (esperas_web.pedido_web_id). La misma marca devuelve el mismo pedido. Un tope de separaciones por confirmar a la vez por cliente (c_tope_por_confirmar, mirado después de la marca). {codigo, ya_estaba}. Rechaza con hint: tienda_sin_cuenta, tienda_separar_marca, tienda_separar_tope (detail = el tope), tienda_separar_tienda, tienda_separar_no_publicada (ya no está en la tienda online: oculta, no se puede mostrar o una talla que no se ofrece en ninguna tienda de la web), tienda_separar_no_se_vende (una etiqueta la limita a otras tiendas, o sin precio en esa tienda y sí en otra de la web, 2026-10-15), tienda_separar_precio, tienda_separar_agotada (detail = la prenda), pedido_web_*. Solo la llama tienda_web.';
 
 -- ---------- 5. Quién ejecuta qué ----------
 -- Postgres le da EXECUTE a PUBLIC a toda función nueva, y `0005_grants.sql` a `authenticated`: se quita a todos.

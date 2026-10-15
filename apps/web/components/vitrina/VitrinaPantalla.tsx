@@ -134,7 +134,8 @@ export function VitrinaPantalla({ lectura, esperan }: { lectura: LecturaVitrina;
             </Vacio>
           ) : modelos.length === 0 ? (
             <Vacio icono={<MonitorSmartphone />} titulo="Todavía no hay modelos para la web">
-              Los modelos que se pueden vender (activos y con alguna talla con precio) aparecen aquí para mostrarlos en la tienda online.
+              Los modelos que se pueden vender (activos y con precio en alguna tienda que se ve en la web) aparecen aquí para mostrarlos en la
+              tienda online.
             </Vacio>
           ) : (
             <Vacio icono={<MonitorSmartphone />} tamano="chico">

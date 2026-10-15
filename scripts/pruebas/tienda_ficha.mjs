@@ -26,10 +26,12 @@
  *      pone «Desde» a la beige). Romper la pieza común a propósito cambia a las cuatro JUNTAS.
  *  10. LO QUE SE OFRECE: una talla a S/ 0 (ADR-0384) no la ofrece la ficha, ni el look, ni la bolsa; «Separar» no la separa y «Avísame»
  *      no la anota. Con precio propio en Trujillo, la de ROPA se ofrece en Trujillo y con «Todas» a ese precio, se separa ahí y no en
- *      Lima (Felipe 2026-10-15: «el precio de la prenda siempre debe ser el mismo de la tienda», `20261015121000`); la de OBSEQUIO (una
- *      familia fuera de los motores) sigue en S/ 0 aunque la tienda le ponga precio; con un mutante de `fn_precio_en_sede` que confunde
- *      la ropa con el obsequio, y la prueba lo ve. La tienda elegida es una sola regla (`fn_tienda_sede_elegida`): una escondida es
- *      «Todas» en las cuatro.
+ *      Lima (Felipe 2026-10-15: «el precio de la prenda siempre debe ser el mismo de la tienda», `20261015121000`): en Lima «Separar»
+ *      dice `no_se_vende` («quítala o elige otra tienda»), no `no_publicada`, que queda para lo que no está en la tienda online. También
+ *      con la prenda ENTERA en S/ 0 en su ficha: la Vitrina la deja mostrar (`20261015122000`, la misma regla del precio) y en Lima no
+ *      sale. La de OBSEQUIO (una familia fuera de los motores) sigue en S/ 0 aunque la tienda le ponga precio. Con mutantes de
+ *      `fn_precio_en_sede` (confunde la ropa con el obsequio), de la Vitrina (mira solo la ficha) y de «Separar» (vuelve a decir «ya no
+ *      está»), y la prueba los ve. La tienda elegida es una sola regla (`fn_tienda_sede_elegida`): una escondida es «Todas» en las cuatro.
  *
  * CÓMO. Cada escenario corre en su transacción con ROLLBACK, como Felipe (líder): nunca se commitea nada en el Postgres local que
  * comparten los worktrees. Cada uno parte con la vitrina vacía, sin campañas, con Trujillo y Lima en la web, el umbral en 3 y el
@@ -569,7 +571,9 @@ exception when others then
   return coalesce(nullif(v_hint, ''), v_msg);
 end $f$;
 `;
-  /** Las tallas negras que ofrece cada una en una tienda (null = «Todas»): la ficha, el look y la bolsa (la que se puede separar). */
+  /** Las tallas negras que ofrece cada una en una tienda (null = «Todas»): la ficha, el look y la bolsa (la que se puede separar AHÍ:
+   *  sigue en la tienda online y, con una tienda elegida, se vende en esa tienda; 20261015021000: una talla que se vende en otra tienda
+   *  sigue en la bolsa, marcada «no se vende» en la elegida). */
   const OFRECEN = (sede = null) => {
     const s = sede ? `:'${sede}'` : "null";
     return `select concat_ws('|',
@@ -583,7 +587,7 @@ end $f$;
                        from jsonb_array_elements(retail.tienda_bolsa(jsonb_build_array(jsonb_build_object('variante_id', :'neg_s', 'cantidad', 1),
                               jsonb_build_object('variante_id', :'neg_m', 'cantidad', 1), jsonb_build_object('variante_id', :'neg_l', 'cantidad', 1)), ${s}) -> 'lineas') l
                        join retail.variantes v on v.id = (l ->> 'variante_id')::uuid join retail.tallas t on t.id = v.talla_id
-                      where (l ->> 'disponible')::boolean));\n`;
+                      where (l ->> 'disponible')::boolean${sede ? ` and (l -> 'en_sedes' -> ${s} ->> 'se_vende')::boolean` : ""}));\n`;
   };
   valor(
     "una talla a S/ 0 (ADR-0384) no se ofrece en NINGUNA: ni la ficha, ni el look, ni la bolsa; «Separar» no la separa y «Avísame» no la anota",
@@ -614,9 +618,72 @@ end $f$;
                             jsonb_build_array(jsonb_build_object('variante_id', :'neg_l', 'cantidad', 1, 'precio', 99.90)), gen_random_uuid())),
         retail.tienda_avisame(:'usr', :'neg_l', :'tru') ->> 'estado', retail.tienda_avisame(:'usr', :'neg_l', :'lim') ->> 'estado');\n`;
   valor(
-    "ROPA · con precio propio en Trujillo, la talla que su ficha deja en S/ 0 se ofrece en Trujillo y con «Todas» (el mayor) a ese precio —la ficha, el look, la bolsa y el catálogo—, y no en Lima; «Separar» la separa en Trujillo y no en Lima, y «Avísame» la ve en Trujillo",
+    // CAMBIÓ también el 2026-10-15 (`20261015021000`): en Lima, «Separar» dice que no se vende en esa tienda (quítala o elige otra),
+    // no que «ya no está en la tienda online»: con «Todas» y en Trujillo, la tienda la ofrece.
+    "ROPA · con precio propio en Trujillo, la talla que su ficha deja en S/ 0 se ofrece en Trujillo y con «Todas» (el mayor) a ese precio —la ficha, el look, la bolsa y el catálogo—, y no en Lima; «Separar» la separa en Trujillo y en Lima dice que no se vende ahí, y «Avísame» la ve en Trujillo",
     `${CERO_CON_PRECIO_PROPIO}${OFRECEN("tru")}${OFRECEN()}${OFRECEN("lim")}${A_ESE_PRECIO}rollback;`,
-    "ficha=S,M,L|look=S,M,L|bolsa=S,M,L\nficha=S,M,L|look=S,M,L|bolsa=S,M,L\nficha=S,M|look=S,M|bolsa=S,M\nTrujillo=ok Todas=ok\nok|tienda_separar_no_publicada|hay|no_disponible",
+    "ficha=S,M,L|look=S,M,L|bolsa=S,M,L\nficha=S,M,L|look=S,M,L|bolsa=S,M,L\nficha=S,M|look=S,M|bolsa=S,M\nTrujillo=ok Todas=ok\nok|tienda_separar_no_se_vende|hay|no_disponible",
+  );
+  // La prenda ENTERA en S/ 0 en su ficha (Felipe 2026-10-15): con precio propio en Trujillo, el modelo se muestra en la web —la Vitrina
+  // pregunta con la misma regla del precio de la tienda (`20261015122000`)— y todo lo que lee la tienda lo ofrece en Trujillo y con
+  // «Todas» a ese precio, y en Lima nada (ni la ficha, ni el catálogo, ni el look; la bolsa la deja, marcada «no se vende en Lima»).
+  // «Separar» en Lima: `no_se_vende`; si el modelo se oculta en la Vitrina: `no_publicada`.
+  const TODA_EN_CERO = `${PREPARAR}${CON_LOOK}${CON_CUENTA}${poner("neg_l", "tru", "tru_piso", 3)}update retail.variantes set precio = 0 where producto_id = :'emma';
+      select retail.poner_precio_sede(:'emma', :'tru', 99.90, 'Prueba de lo que se ofrece') \\gset\n`;
+  /** En Lima: si sale la ficha, el catálogo, el look; y la bolsa (disponible, se vende en Lima, se vende en Trujillo, su precio). */
+  const EN_LIMA = `select concat_ws('|',
+        'ficha=' || case when retail.tienda_ficha(:'emma', :'lim') is null then 'no' else 'sí' end,
+        'catalogo=' || case when exists (select 1 from jsonb_array_elements(retail.tienda_catalogo(:'lim') -> 'prendas') x where x ->> 'id' = :'emma') then 'sí' else 'no' end,
+        'look=' || case when retail.tienda_look(:'look', :'lim') ->> 'look' is null then 'no' else 'sí' end,
+        'bolsa=' || (select concat_ws(',', l ->> 'disponible', l -> 'en_sedes' -> :'lim' ->> 'se_vende', l -> 'en_sedes' -> :'tru' ->> 'se_vende', l ->> 'precio')
+                       from (select retail.tienda_bolsa(jsonb_build_array(jsonb_build_object('variante_id', :'neg_l', 'cantidad', 1)), :'lim') -> 'lineas' -> 0 as l) b));\n`;
+  /** «Separar» en Trujillo, en Lima y con el modelo oculto en la Vitrina (en Trujillo); «Avísame» en Trujillo y en Lima. */
+  const SEPARAR_TODA = `select concat_ws('|',
+        pg_temp.hint(format('select retail.tienda_separar(%L, %L, %L, %L)', :'usr', :'tru',
+                            jsonb_build_array(jsonb_build_object('variante_id', :'neg_l', 'cantidad', 1, 'precio', 99.90)), gen_random_uuid())),
+        pg_temp.hint(format('select retail.tienda_separar(%L, %L, %L, %L)', :'usr', :'lim',
+                            jsonb_build_array(jsonb_build_object('variante_id', :'neg_l', 'cantidad', 1, 'precio', 99.90)), gen_random_uuid())),
+        pg_temp.hint(format('select retail.vitrina_mostrar(array[%L]::uuid[], false); select retail.tienda_separar(%L, %L, %L, %L)', :'emma', :'usr', :'tru',
+                            jsonb_build_array(jsonb_build_object('variante_id', :'neg_l', 'cantidad', 1, 'precio', 99.90)), gen_random_uuid())),
+        retail.tienda_avisame(:'usr', :'neg_l', :'tru') ->> 'estado', retail.tienda_avisame(:'usr', :'neg_l', :'lim') ->> 'estado');\n`;
+  valor(
+    "ROPA · la prenda ENTERA en S/ 0 en su ficha, con precio propio en Trujillo: el modelo se muestra en la web; la ficha, el look, la bolsa y el catálogo la ofrecen en Trujillo y con «Todas» a ese precio; en Lima no sale (la bolsa la deja, marcada «no se vende en Lima», con el precio de Trujillo); «Separar» en Lima dice `no_se_vende`, y con el modelo oculto en la Vitrina, `no_publicada`",
+    `${TODA_EN_CERO}select concat_ws('|', retail.fn_vitrina_publicable(:'emma'), coalesce(retail.fn_vitrina_por_que_no(:'emma'), 'sin porqué'));
+      ${OFRECEN("tru")}${OFRECEN()}${EN_LIMA}
+      select concat_ws(' ', 'Trujillo=' || pg_temp.un_precio(:'neg_l', :'tru', :'look', 99.90, null, null),
+                       'Todas=' || pg_temp.un_precio(:'neg_l', null, :'look', 99.90, null, null));
+      ${SEPARAR_TODA}rollback;`,
+    "t|sin porqué\nficha=S,M,L|look=S,M,L|bolsa=S,M,L\nficha=S,M,L|look=S,M,L|bolsa=S,M,L\nficha=no|catalogo=no|look=no|bolsa=true,false,true,99.90\nTrujillo=ok Todas=ok\nok|tienda_separar_no_se_vende|tienda_separar_no_publicada|hay|no_disponible",
+  );
+  valor(
+    "MUTANTE la Vitrina vuelve a mirar solo la ficha: la prenda entera en S/ 0 con precio en Trujillo deja de mostrarse, y la ficha y «Separar» caen JUNTAS (Trujillo: ficha null, «ya no está»)",
+    `${TODA_EN_CERO}do $m$
+declare d text := pg_get_functiondef('retail.fn_vitrina_por_que_no(uuid)'::regprocedure);
+begin
+  if position($q$where t.se_ofrece) then 'sin_precio'$q$ in d) = 0 then
+    raise exception 'mutante vacío: fn_vitrina_por_que_no no le pregunta a la regla del precio de la tienda';
+  end if;
+  execute replace(d, $q$where t.se_ofrece) then 'sin_precio'$q$, $q$where false) then 'sin_precio'$q$);
+end $m$;
+      select concat_ws('|', retail.fn_vitrina_publicable(:'emma'), retail.tienda_ficha(:'emma', :'tru') is null,
+        pg_temp.hint(format('select retail.tienda_separar(%L, %L, %L, %L)', :'usr', :'tru',
+                            jsonb_build_array(jsonb_build_object('variante_id', :'neg_l', 'cantidad', 1, 'precio', 99.90)), gen_random_uuid())));
+      rollback;`,
+    "f|t|tienda_separar_no_publicada",
+  );
+  valor(
+    "MUTANTE «Separar» vuelve a decir «ya no está» en una tienda donde la talla no tiene precio: en Lima sale `no_publicada` en vez de `no_se_vende`, y la prueba lo ve",
+    `${TODA_EN_CERO}do $m$
+declare d text := pg_get_functiondef('retail.tienda_separar(uuid, uuid, jsonb, uuid)'::regprocedure);
+begin
+  if position($q$retail.fn_tienda_precio_talla(array[r.variante_id], null) w where w.se_ofrece) then$q$ in d) = 0 then
+    raise exception 'mutante vacío: tienda_separar no mira si otra tienda de la web la ofrece';
+  end if;
+  execute replace(d, $q$retail.fn_tienda_precio_talla(array[r.variante_id], null) w where w.se_ofrece) then$q$,
+                     $q$retail.fn_tienda_precio_talla(array[r.variante_id], null) w where false) then$q$);
+end $m$;
+      ${SEPARAR_TODA}rollback;`,
+    "ok|tienda_separar_no_publicada|tienda_separar_no_publicada|hay|no_disponible",
   );
   valor(
     "MUTANTE fn_precio_en_sede confunde la ropa con el obsequio: la talla de ropa en S/ 0 deja de ofrecerse en Trujillo y con «Todas», en las tres JUNTAS (ninguna decide por su cuenta)",
