@@ -1,0 +1,35 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA (ADR-0408) · actividad 5: las páginas de ayuda («Cómo separar» y «Cambios y devoluciones»).
+   Sale de la maqueta aprobada (docs/maquetas/tienda-online-2026-10: `vInfo`, `.w-pasos`, `.w-info`). La ficha, el título y el
+   texto son los de la cuenta (cuenta.css). Todo va dentro de `.w-pagina-ayuda`: la bolsa y el pedido (actividad 7) usan piezas con
+   el mismo nombre en la maqueta, y así ninguna pisa a la otra. Solo los tokens de app/globals.css: en oscuro se invierten solos.
+   ===================================================================================================== */
+
+/* En la maqueta, la parte en cursiva del título va en rojo (`.w-titulo em`); aquí, solo en la ayuda: las páginas de la cuenta
+   (actividad 2) siguen como quedaron. */
+.w-pagina-ayuda .w-titulo em { color: var(--rojo); }
+
+/* ---- Los pasos, numerados en su círculo ---- */
+.w-pagina-ayuda .w-pasos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; counter-reset: paso; }
+.w-pagina-ayuda .w-pasos li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; font-size: 14px; line-height: 1.4; counter-increment: paso; }
+.w-pagina-ayuda .w-pasos li::before {
+  content: counter(paso);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--tinta);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+.w-pagina-ayuda .w-pasos b { font-weight: 600; }
+.w-pagina-ayuda .w-pasos small { display: block; margin-top: 2px; color: var(--tinta-60); font-size: 13px; line-height: 1.45; }
+
+/* ---- Una nota con su ícono ---- */
+.w-pagina-ayuda .w-info { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--papel); border: 1px solid var(--sand); font-size: 14px; }
+.w-pagina-ayuda .w-info > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.w-pagina-ayuda .w-info b { font-weight: 600; }
+.w-pagina-ayuda .w-info small { color: var(--tinta-60); font-size: 13px; line-height: 1.45; }
+.w-pagina-ayuda .w-info .ic { width: 20px; height: 20px; flex: none; color: var(--taupe); margin-top: 1px; }
+.w-pagina-ayuda .w-info + .w-info { margin-top: -8px; }

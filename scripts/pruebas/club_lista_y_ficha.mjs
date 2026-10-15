@@ -39,6 +39,10 @@
  *      comillas fuera de `$…$`, ni `drop trigger`, ni políticas; las lecturas empiezan por el módulo, la que guarda además
  *      firma con el responsable del combo.
  *
+ * DESDE EL 2026-10-14 ya no se unen fichas (Felipe: el documento y el correo son de una sola persona; `unir_clientas` se borró en
+ * 20261015054000). Las fichas unidas de (h) e (i) son uniones de ANTES, armadas a mano como las dejaba la función
+ * (`union-de-fichas-de-antes.mjs`): lo que se sigue probando es cómo se leen y se limpian.
+ *
  * USO
  *   pnpm pruebas:club-lista-y-ficha                   → contra la base `postgres` del stack local (la del CI)
  *   pnpm pruebas:club-lista-y-ficha --base cayla_x    → contra otra base del mismo contenedor
@@ -48,6 +52,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { unionDeAntes } from "./union-de-fichas-de-antes.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -572,14 +577,15 @@ select count(*) from retail.actividad where registro_id = :'s' and accion = 'pre
   "PT409|version_cambiada\nt\n1"
 );
 caso(
-  "(h) solo una socia activa: no socia → preferencias_solo_socia; archivada → clienta_archivada; anonimizada → clienta_anonimizada; unida → clienta_unida; no existe → clienta_no_existe",
+  "(h) solo una socia activa: no socia → preferencias_solo_socia; archivada → clienta_archivada; anonimizada → clienta_anonimizada; unida (una unión de antes) → clienta_unida; no existe → clienta_no_existe",
   como(FELIPE) + ALTA("n", { numero: "71550704", nombre: "Zlf Pref No Socia", celular: "966550704" }) +
     SOCIA("ar", "71550705", "Zlf Pref Archivada", "966550705") + SOCIA("an", "71550706", "Zlf Pref Anonima", "966550706") +
     ALTA("queda", { numero: "71550707", nombre: "Zlf Pref Queda" }) + ALTA("seva", { nombre: "Zlf Pref Se Va", celular: "966550708" }) +
     `select retail.archivar_clienta(:'ar', 'prueba', false, null) as _a \\gset
 select retail.archivar_clienta(:'an', 'prueba', true, null) as _b \\gset
-select (retail.unir_clientas(:'queda', :'seva', null, null)).id as _u \\gset
-` +
+reset role;
+${unionDeAntes(":'queda'", ":'seva'")}` +
+    como(FELIPE) +
     ["n", "ar", "an", "seva"].map((a) => intentoCon(`select retail.guardar_preferencias_clienta(%L, '{"estilo": ["Clásico"]}'::jsonb, null)`, `:'${a}'`)).join("") +
     intento(`select retail.guardar_preferencias_clienta(gen_random_uuid(), '{"estilo": ["Clásico"]}'::jsonb, null)`),
   "P0001|preferencias_solo_socia\nP0001|clienta_archivada\nP0001|clienta_anonimizada\nP0001|clienta_unida\nP0001|clienta_no_existe"
@@ -599,16 +605,15 @@ reset role;
   'P0001|preferencia_invalida\nt\n0|10\n{"evita": ["Negro", "Lana"]}'
 );
 caso(
-  "(h) anonimizar las vacía (con los revoca del club), y unir vacía las de la ficha que se va; la que queda conserva las suyas",
+  "(h) anonimizar las vacía (con los revoca del club), y una unión de antes (la ficha que se fue, anonimizada) también; la que quedó conserva las suyas",
   como(FELIPE) + SOCIA("an", "71550711", "Zlf Pref Anonimizar", "966550711") + SOCIA("queda", "71550712", "Zlf Pref Unir Queda", "966550712") +
     SOCIA("seva", "71550713", "Zlf Pref Unir Seva", "966550713") +
     `select retail.guardar_preferencias_clienta(:'an', '{"ocasion": ["Trabajo"]}'::jsonb, null) as _1 \\gset
 select retail.guardar_preferencias_clienta(:'queda', '{"estilo": ["Clásico"]}'::jsonb, null) as _2 \\gset
 select retail.guardar_preferencias_clienta(:'seva', '{"estilo": ["Tendencia"]}'::jsonb, null) as _3 \\gset
 select retail.archivar_clienta(:'an', 'prueba', true, null) as _a \\gset
-select (retail.unir_clientas(:'queda', :'seva', null, null)).id as _u \\gset
 reset role;
-` + PREF("an") + PREF("seva") + PREF("queda"),
+${unionDeAntes(":'queda'", ":'seva'")}` + PREF("an") + PREF("seva") + PREF("queda"),
   '{}\n{}\n{"estilo": ["Clásico"]}'
 );
 caso(
@@ -660,11 +665,10 @@ select retail.registrar_baja_whatsapp('966550801', :'tru') as _b \\gset
   ].join("\n")
 );
 caso(
-  "(i) el legado no dice quién (null) ni texto; los eventos de la ficha que se le unió salen marcados de_otra_ficha",
+  "(i) el legado no dice quién (null) ni texto; los eventos de la ficha que se le unió (una unión de antes) salen marcados de_otra_ficha",
   como(FELIPE) + ALTA("queda", { numero: "71550802", nombre: "Zlf Historia Queda" }) + SOCIA("seva", "71550803", "Zlf Historia Seva", "966550803") +
-    `select (retail.unir_clientas(:'queda', :'seva', null, null)).id as _u \\gset
-reset role;
-insert into retail.club_permisos (clienta_id, finalidad, accion, medio, nota, created_at)
+    `reset role;
+${unionDeAntes(":'queda'", ":'seva'")}insert into retail.club_permisos (clienta_id, finalidad, accion, medio, nota, created_at)
 values (:'queda', 'club', 'otorga', 'legado', 'marcado en caja antes de ADR-0288', now() + interval '1 minute');
 ` + como(FELIPE) + HISTORIA("queda"),
   "club:otorga:caja_palabra:club:2:Tienda Lima:Felipe A.:true\nclub:otorga:legado:-:-:-:-:false"

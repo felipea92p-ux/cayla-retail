@@ -25,7 +25,7 @@ import { descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
 import { conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import { buscarClienta } from "@/lib/clientas-acciones";
-import { nombresYApellidos } from "@/lib/club-registro-reglas";
+import { nombreDePersona } from "@cayla-retail/shared";
 import type { RespuestaPadron } from "@/lib/padron";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { MQ_TELEFONO, type EstadoEscaneo, type ResultadoEscaneo } from "@/lib/escaner-reglas";
@@ -508,8 +508,10 @@ export function ApartarVista({
       const r = await fetch(`/api/padron?tipo=dni&numero=${dni}`);
       if (!r.ok) return null;
       const datos = (await r.json()) as RespuestaPadron;
-      // SUNAT público trae «apellidos nombres»; el proveedor de pago, «nombres apellidos» (`lib/padron.ts`).
-      return nombresYApellidos(datos.nombre, datos.via === "proveedor" ? "nombres_primero" : "apellidos_primero");
+      // Del padrón, ya partido y con los nombres primero (`packages/shared/src/nombre-del-padron.ts`); de una boleta anterior, junto:
+      // se parte con la misma regla (los apellidos primero, como lo escribe el padrón).
+      if (datos.nombres) return { nombres: datos.nombres, apellidos: datos.apellidos ?? "" };
+      return nombreDePersona({ junto: datos.nombre });
     } catch {
       return null;
     }

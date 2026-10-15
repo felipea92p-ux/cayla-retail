@@ -82,14 +82,21 @@ const config: KnipConfig = {
           }
         : {}),
       ignore: [
-        // La pieza de «Cancelar y el pie de una hoja», elegida por Felipe el 2026-10-14 (ronda 11 de /unificar, ADR-0358): nace
-        // antes que sus primeros usos. Sale de aquí cuando la use la primera hoja.
-        "components/ui/PieAcciones.tsx",
         // «Mis partes de compras» dejó de dibujarse con ADR-0387 (2026-10-12), que dice que se retira junto con
         // `lib/compras-mi-parte*.ts` y la página `/compras/parte/[compraId]`. Su lectura es la única que llama
         // `fn_mis_partes_de_compras`: quitarla deja esa función de la base sin llamador (`pruebas:roles-cobertura` lo marca),
         // así que el retiro va entero, con su migración y el OK de Felipe.
         "components/MisPartesDeCompras.tsx",
+      ],
+    },
+    // La tienda online (ADR-0408), una app aparte. Sus rutas y pruebas las encuentra Knip solo, como en la web.
+    "apps/tienda": {
+      project: [
+        // Lo que llega a la tienda publicada.
+        "{app,components,lib}/**/*.{ts,tsx,css}!",
+        "*.{ts,mjs,js}!",
+        // `scripts/rol-local.mjs` crea el usuario de la base LOCAL (`pnpm --filter tienda rol-local`): solo en la corrida normal.
+        "scripts/**/*.mjs",
       ],
     },
     "packages/*": {

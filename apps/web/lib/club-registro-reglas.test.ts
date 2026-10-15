@@ -6,6 +6,7 @@ import {
   bloquesDeTexto,
   casillaTerminos,
   completarMarcadores,
+  correoRechazado,
   cuerpoLegal,
   edadCumplida,
   enlaceLegal,
@@ -22,9 +23,8 @@ import {
   marcadoresDePagina,
   mensajeDeConsulta,
   nacimientoIso,
-  nombreAMedias,
-  nombresYApellidos,
   problemasRegistro,
+  rechazoDelCorreo,
   respuestaDeRegistro,
   textoLegal,
   trozosDeLinea,
@@ -193,51 +193,8 @@ describe("los textos aprobados de la página (docs/club/texto-legal-registro-v2.
   });
 });
 
-describe("el nombre del padrón en las cajas Nombres y Apellidos (Apartados, ADR-0367)", () => {
-  it("SUNAT público trae los apellidos primero", () => {
-    expect(nombresYApellidos("PEREZ SALAS LUCIA MARIA", "apellidos_primero")).toEqual({ nombres: "Lucia Maria", apellidos: "Perez Salas" });
-    expect(nombresYApellidos("DE LA CRUZ PEREZ ÑUSTA", "apellidos_primero")).toEqual({ nombres: "Ñusta", apellidos: "de la Cruz Perez" });
-  });
-  it("el proveedor de pago trae los nombres primero", () => {
-    expect(nombresYApellidos("MARIA DEL CARMEN PEREZ SALAS", "nombres_primero")).toEqual({ nombres: "Maria del Carmen", apellidos: "Perez Salas" });
-  });
-  it("con coma manda la coma; sin nombre, null", () => {
-    expect(nombresYApellidos("PÉREZ SALAS, LUCÍA", "nombres_primero")).toEqual({ nombres: "Lucía", apellidos: "Pérez Salas" });
-    expect(nombresYApellidos("   ", "apellidos_primero")).toBeNull();
-    expect(nombresYApellidos(null, "apellidos_primero")).toBeNull();
-  });
-});
-
-describe("su nombre a medias: confirma que tipeó bien sin revelar el nombre completo de nadie", () => {
-  it("con los nombres primero (el proveedor arma «nombres paterno materno»)", () => {
-    expect(nombreAMedias("LUCIA PEREZ SALAS", "nombres_primero")).toBe("Lucia P. S.");
-    expect(nombreAMedias("MARIA DEL CARMEN PEREZ SALAS", "nombres_primero")).toBe("Maria P. S.");
-    expect(nombreAMedias("ANA TORRES", "nombres_primero")).toBe("Ana T.");
-  });
-
-  it("con los apellidos primero (SUNAT público: «apellidos y nombres»)", () => {
-    expect(nombreAMedias("TORRES RUIZ ANA", "apellidos_primero")).toBe("Ana T. R.");
-    expect(nombreAMedias("  torres ruiz ana maría  ", "apellidos_primero")).toBe("Ana T. R.");
-    expect(nombreAMedias("DE LA CRUZ PEREZ ÑUSTA", "apellidos_primero")).toBe("Ñusta C. P.");
-  });
-
-  it("con coma se sabe qué es qué, sea cual sea la fuente", () => {
-    expect(nombreAMedias("PÉREZ SALAS, LUCÍA", "nombres_primero")).toBe("Lucía P. S.");
-  });
-
-  it("nunca devuelve el nombre completo ni un apellido entero junto a su nombre", () => {
-    for (const [nombre, orden] of [
-      ["LUCIA PEREZ SALAS", "nombres_primero"],
-      ["TORRES RUIZ ANA", "apellidos_primero"],
-      ["MARIA DEL CARMEN PEREZ SALAS", "nombres_primero"],
-    ] as const) {
-      const corto = nombreAMedias(nombre, orden)!;
-      expect(corto.split(" ").filter((p) => !p.endsWith(".")).length, nombre).toBe(1);
-    }
-    expect(nombreAMedias("", "nombres_primero")).toBeNull();
-    expect(nombreAMedias(null, "apellidos_primero")).toBeNull();
-  });
-});
+// El nombre del padrón a medias («Lucía P. S.») y partido en nombres y apellidos: desde el 2026-10-15 es UNA regla para todo el
+// sistema, con los nombres primero, y sus pruebas viven en `lib/nombre-de-persona.test.ts`.
 
 describe("lo que ella escribe: UNA regla para la pantalla, su guía y el servidor", () => {
   it("todo bien: nada que decir", () => {
@@ -251,7 +208,21 @@ describe("lo que ella escribe: UNA regla para la pantalla, su guía y el servido
     const pasaporte = { ...BIEN, documentoTipo: "pasaporte" as const, documentoNumero: "AB123456", dniConfirmado: false, nombre: "Ana Torres" };
     expect(problemasRegistro(pasaporte, HOY)).toEqual({});
     expect(problemasRegistro({ ...pasaporte, documentoNumero: "" }, HOY).documento).toBe("Escribe el número de tu documento.");
-    expect(problemasRegistro({ ...pasaporte, nombre: " A " }, HOY).nombre).toBe("Escribe tus nombres y apellidos.");
+    expect(problemasRegistro({ ...pasaporte, nombre: " A " }, HOY).nombre).toBe("Escribe tus nombres y apellidos, tal cual están en tu documento.");
+  });
+
+  it("con carné o pasaporte el nombre va tal cual está en el documento: sin números (Felipe 2026-10-15); con DNI, no se escribe", () => {
+    const pasaporte = { ...BIEN, documentoTipo: "pasaporte" as const, documentoNumero: "AB123456", dniConfirmado: false };
+    expect(problemasRegistro({ ...pasaporte, nombre: "Ana 2 Torres" }, HOY).nombre).toBe("Tu nombre no lleva números: escríbelo tal cual está en tu documento.");
+    expect(problemasRegistro({ ...pasaporte, documentoTipo: "carne_extranjeria", documentoNumero: "001234567", nombre: "A1" }, HOY).nombre).toMatch(/no lleva números/);
+    expect(problemasRegistro({ ...pasaporte, nombre: "Mary O'Neil Ñaupari" }, HOY).nombre).toBeUndefined();
+    // Con DNI el nombre lo trae el padrón: lo que diga la caja del nombre (aunque traiga números) no cuenta.
+    expect(problemasRegistro({ ...BIEN, nombre: "Ana 2" }, HOY).nombre).toBeUndefined();
+  });
+
+  it("lo que dice la base del nombre (20261015133000), en palabras para ella", () => {
+    expect(errorDeLaBase("nombre_sin_padron")).toEqual({ mensaje: MENSAJE.sinPadron, campo: "documento" });
+    expect(errorDeLaBase("nombre_con_numeros")).toEqual({ mensaje: "Tu nombre no lleva números: escríbelo tal cual está en tu documento.", campo: "nombre" });
   });
 
   it("el celular: obligatorio, 9 dígitos que empiezan en 9; pegado con +51 y espacios sirve", () => {
@@ -371,6 +342,29 @@ describe("lo que contesta el servidor, sin revelar datos de nadie", () => {
     expect(errorDeLaBase("23505")).toEqual({ mensaje: MENSAJE.noDisponible, campo: null });
   });
 
+  it("el correo de otra persona (20261015054000) va a la caja del correo y no dice de quién es", () => {
+    expect(errorDeLaBase("correo_repetido")).toEqual({ mensaje: MENSAJE.correoRepetido, campo: "correo" });
+    // La página es pública: ni un nombre, ni un documento, ni «la ficha de…».
+    expect(MENSAJE.correoRepetido).not.toMatch(/ficha|DNI|documento de|nombre/i);
+    expect(MENSAJE.correoRepetido).toMatch(/opcional/);
+  });
+
+  it("el correo que no se aceptó se queda pegado a lo que estaba escrito: bajo su caja mientras siga igual (Felipe 2026-10-15)", () => {
+    const r = { ...BIEN, correo: " Ana@Correo.PE " };
+    const rechazo = correoRechazado({ estado: "error", mensaje: MENSAJE.correoRepetido, campo: "correo" }, r);
+    expect(rechazo).toEqual({ correo: "ana@correo.pe", mensaje: MENSAJE.correoRepetido });
+    // El mismo correo, escrito como sea: sigue el mensaje. Otro, o vacío: ya no.
+    expect(rechazoDelCorreo(rechazo, "ana@correo.pe")).toBe(MENSAJE.correoRepetido);
+    expect(rechazoDelCorreo(rechazo, "ANA@correo.pe  ")).toBe(MENSAJE.correoRepetido);
+    expect(rechazoDelCorreo(rechazo, "ana.p@correo.pe")).toBeNull();
+    expect(rechazoDelCorreo(rechazo, "")).toBeNull();
+    expect(rechazoDelCorreo(null, "ana@correo.pe")).toBeNull();
+    // Lo que no es del correo sigue bajo el botón: sin campo, de otro campo, o una respuesta que no es un error.
+    expect(correoRechazado({ estado: "error", mensaje: MENSAJE.noDisponible, campo: null }, r)).toBeNull();
+    expect(correoRechazado({ estado: "error", mensaje: MENSAJE.archivado, campo: "documento" }, r)).toBeNull();
+    expect(correoRechazado({ estado: "textos_cambiaron", pagina: pagina() }, r)).toBeNull();
+  });
+
   it("la fila de la base: sin su código no se dice «listo»; el código, en mayúsculas", () => {
     expect(respuestaDeRegistro({ codigo_club: "c-0142", club_desde: "2026-09-12T15:00:00Z", era_socia: true, nombre_corto: "Lucía" }, true)).toEqual({
       estado: "listo",
@@ -390,8 +384,10 @@ describe("después de «Unirme»", () => {
 
   it("nuevo: bienvenida (sin género) con su nombre y su código; con WhatsApp, el saludo a la tienda con su nombre y su código", () => {
     const b = bienvenida(listo, pagina());
-    expect(b.titulo).toBe("¡Te damos la bienvenida, Lucía!");
-    expect(b.bajada).toBe("Ya eres miembro del Club CAYLA.");
+    // Cómo se confirma el Club (Felipe 2026-10-15): «¡Listo!» arriba y «Te damos la bienvenida…» debajo, sin repetir «bienvenida».
+    expect(b.titulo).toBe("¡Listo, Lucía!");
+    expect(b.bajada).toBe("Te damos la bienvenida al Club CAYLA.");
+    expect(`${b.titulo} ${b.bajada}`.match(/bienvenida/gi)).toHaveLength(1);
     expect(b.saludo?.titulo).toBe("Último paso: salúdanos por WhatsApp");
     // A la tienda del cartel: la que le contesta y le escribe después.
     expect(b.saludo?.boton).toBe("Saludar a Tienda TRU");
@@ -418,7 +414,7 @@ describe("después de «Unirme»", () => {
 
   it("sin su nombre corto, la bienvenida no dice «null» y el saludo no deja marcadores ni espacios dobles", () => {
     const b = bienvenida({ ...listo, nombre: null }, pagina());
-    expect(b.titulo).toBe("¡Te damos la bienvenida!");
+    expect(b.titulo).toBe("¡Listo!");
     const saludo = decodeURIComponent(b.saludo!.enlace.split("text=")[1]!);
     expect(saludo).not.toMatch(/\{|\}|null| {2}| \./);
     expect(saludo).toContain("(C-0142)");

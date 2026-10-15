@@ -67,6 +67,7 @@ jobs:
       alcance: ${{ steps.medir.outputs.alcance }}
       verificar: ${{ steps.medir.outputs.verificar }}
       compilar: ${{ steps.medir.outputs.compilar }}
+      compilar_tienda: ${{ steps.medir.outputs.compilar_tienda }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -257,6 +258,30 @@ jobs:
 
       - name: next build
         run: pnpm --filter web exec next build
+
+  # Compila la tienda online (ADR-0408), la app aparte de `apps/tienda`: lo mismo que «Compila la web», solo cuando el PR puede
+  # cambiar lo que ella compila. Sin `TIENDA_DB_URL`: la portada se arma sin campaña, como cuando la base no responde
+  # (lib/base.ts), y la compilación no habla con ninguna base.
+  compilar-tienda:
+    name: Compila la tienda
+    needs: alcance
+    if: ${{ !cancelled() && needs.alcance.outputs.compilar_tienda != 'no' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: next build
+        run: pnpm --filter tienda build
 
   # PARTIDO EN TANDAS (ADR-0381, 2026-10-12). Las ~180 pruebas corrían en serie sobre una base: 8–11 min, y el ruleset exige
   # la rama al día con main, así que un PR que tardaba 10 min ya estaba atrasado otra vez. Ahora corren en 4 jobs a la vez,
