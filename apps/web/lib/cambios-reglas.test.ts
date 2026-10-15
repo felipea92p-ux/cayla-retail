@@ -372,11 +372,11 @@ describe("impactoCambio", () => {
   it("caja: sin diferencia no se mueve; en efectivo sí; con otro método no pasa por el cajón", () => {
     expect(impactoCambio(base).caja.titulo).toBe("Sin diferencia de precio");
     expect(impactoCambio({ ...base, diferencia: 40 }).caja).toEqual({
-      titulo: "+ S/ 40.00 por cobrar",
+      titulo: "+ S/\u00a040.00 por cobrar",
       detalle: "En efectivo: entra al cajón y se suma al cierre de caja.",
     });
     expect(impactoCambio({ ...base, diferencia: -20, metodo: "yape" }).caja).toEqual({
-      titulo: "− S/ 20.00 a devolver",
+      titulo: "− S/\u00a020.00 a devolver",
       detalle: "Por Yape: no pasa por el cajón.",
     });
   });

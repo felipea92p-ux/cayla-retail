@@ -473,5 +473,5 @@ export function respuestaDelPiso(
 
 /** «S/ 20,222»: soles enteros, con el formato del resto del ERP (`es-PE`, como Inicio y Finanzas). */
 export function solesEnteros(n: number): string {
-  return `S/ ${Math.round(n).toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
+  return `S/\u00a0${Math.round(n).toLocaleString("es-PE", { maximumFractionDigits: 0 })}`;
 }

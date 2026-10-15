@@ -45,9 +45,9 @@ describe("bolsasDeLaCaja", () => {
 
 describe("precioDeBolsa", () => {
   it("dice el precio en soles con dos decimales y «Obsequio» cuando se regala", () => {
-    expect(precioDeBolsa(0.5)).toBe("S/ 0.50");
-    expect(precioDeBolsa(1.2)).toBe("S/ 1.20");
-    expect(precioDeBolsa(3.9)).toBe("S/ 3.90");
+    expect(precioDeBolsa(0.5)).toBe("S/\u00a00.50");
+    expect(precioDeBolsa(1.2)).toBe("S/\u00a01.20");
+    expect(precioDeBolsa(3.9)).toBe("S/\u00a03.90");
     expect(precioDeBolsa(0)).toBe("Obsequio");
   });
 });

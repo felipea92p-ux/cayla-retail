@@ -8,7 +8,7 @@ import { TEXTO_AVISO_BANCARIZACION, type AvisoBancarizacion } from "@/lib/no-ded
 // copia invisible y el aviso se dibuja encima cuando corresponde, como los destinos de cada medio en `LineasPago`. Debajo del umbral no
 // ocupa nada: ningún medio lo haría aparecer.
 
-const TITULO_MAS_LARGO = "Hasta S/ 99,999.99 quedan «no deducibles»";
+const TITULO_MAS_LARGO = "Hasta S/\u00a099,999.99 quedan «no deducibles»";
 
 export function AvisoNoDeducible({ aviso, reservar, className = "" }: { aviso: AvisoBancarizacion | null; reservar: boolean; className?: string }) {
   if (!reservar && !aviso) return null;

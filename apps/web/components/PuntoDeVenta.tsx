@@ -1271,7 +1271,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     }
     if (!leida.vigente) {
       avisar.error("Esa etiqueta ya no vale", {
-        detalle: `La prenda cuesta ahora S/ ${solesLiquidacion(pieza.precio)} (etiqueta ${pieza.codigo ?? "nueva"}). Pídele a quien la etiquetó que le pegue la nueva.`,
+        detalle: `La prenda cuesta ahora S/\u00a0${solesLiquidacion(pieza.precio)} (etiqueta ${pieza.codigo ?? "nueva"}). Pídele a quien la etiquetó que le pegue la nueva.`,
       });
       return;
     }

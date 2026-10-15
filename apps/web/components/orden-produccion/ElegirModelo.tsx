@@ -172,7 +172,7 @@ export function TarjetaModelo({ modelo, precio, onCambiar }: { modelo: ModeloPro
         <p className="truncate text-[12.5px] text-tinta/65">
           {modelo.categoria ? `${modelo.categoria} · ` : ""}
           {resumenDeModelo(modelo)}
-          {precio > 0 ? ` · se vende a S/ ${precio.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
+          {precio > 0 ? ` · se vende a S/\u00a0${precio.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ""}
         </p>
       </div>
       <button type="button" onClick={onCambiar} className="btn-cayla btn-enlace shrink-0 text-[13px]">

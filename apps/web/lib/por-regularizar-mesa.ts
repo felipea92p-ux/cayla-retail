@@ -132,7 +132,7 @@ export function buscarPrendas(
 
 // ── El puente: lo que se dice y se mide al unir ──────────────────────────────────────────────────────────────────────────────────
 
-const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /** «Se cobró S/ 10.00 menos que el oficial». */
 export function fraseDeDiferencia(diferencia: number): string {

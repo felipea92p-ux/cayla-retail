@@ -149,8 +149,8 @@ describe("cada chequeo en palabras", () => {
     expect(textoChequeo(ch("cajas", false, { abiertas: 2, desde: "2026-08-30" }), mes).detalle).toBe("Faltan cerrar 2 cajas (la primera, abierta el 30 ago)");
   });
   it("egresos: la frase del spike («Falta 1: «Depósito bancario» del 31 ago por S/ 2,300»)", () => {
-    expect(textoChequeo(unidad("Tienda Lima").chequeos[1]!, mes)).toEqual({ titulo: "Egresos de caja clasificados", detalle: "Falta 1: «Depósito bancario» del 31 ago por S/ 2,300" });
-    expect(textoChequeo(ch("egresos", false, { n: 3, monto: 2512.5, motivo: "Otro", fecha: "2026-08-20" }), mes).detalle).toBe("Faltan 3, por S/ 2,512.50 (el último, «Otro» del 20 ago)");
+    expect(textoChequeo(unidad("Tienda Lima").chequeos[1]!, mes)).toEqual({ titulo: "Egresos de caja clasificados", detalle: "Falta 1: «Depósito bancario» del 31 ago por S/\u00a02,300" });
+    expect(textoChequeo(ch("egresos", false, { n: 3, monto: 2512.5, motivo: "Otro", fecha: "2026-08-20" }), mes).detalle).toBe("Faltan 3, por S/\u00a02,512.50 (el último, «Otro» del 20 ago)");
     expect(textoChequeo(ch("egresos", true, { n: 0 }), mes).detalle).toBe("Todos dicen si son gasto, depósito o retiro");
   });
   it("regularizar, fijos y prendas sin costo", () => {
@@ -163,11 +163,11 @@ describe("cada chequeo en palabras", () => {
   it("ventas cerradas sin prenda (ADR-0337): cuántas, cuánto vendieron y que su costo es desconocido; avisa, no bloquea", () => {
     expect(textoChequeo(ch("cerrada_sin_prenda", false, { n: 2, monto: 150 }, false), mes)).toEqual({
       titulo: "Ventas cerradas sin prenda",
-      detalle: "2 ventas sin registrar (S/ 150) se cerraron sin prenda: su costo es desconocido y el margen de agosto sale más alto de lo real. Puedes cerrar igual",
+      detalle: "2 ventas sin registrar (S/\u00a0150) se cerraron sin prenda: su costo es desconocido y el margen de agosto sale más alto de lo real. Puedes cerrar igual",
     });
-    expect(textoChequeo(ch("cerrada_sin_prenda", false, { n: 1, monto: 80.5 }, false), mes).detalle).toMatch(/^1 venta sin registrar \(S\/ 80\.50\) se cerró sin prenda: su costo es desconocido/);
+    expect(textoChequeo(ch("cerrada_sin_prenda", false, { n: 1, monto: 80.5 }, false), mes).detalle).toMatch(/^1 venta sin registrar \(S\/\u00a080\.50\) se cerró sin prenda: su costo es desconocido/);
     // El monto llega de la base como numérico con decimales («1170.80»): se lee como número.
-    expect(textoChequeo(ch("cerrada_sin_prenda", false, { n: 26, monto: "1170.80" }, false), mes).detalle).toMatch(/^26 ventas sin registrar \(S\/ 1,170\.80\) se cerraron/);
+    expect(textoChequeo(ch("cerrada_sin_prenda", false, { n: 26, monto: "1170.80" }, false), mes).detalle).toMatch(/^26 ventas sin registrar \(S\/\u00a01,170\.80\) se cerraron/);
     expect(textoChequeo(ch("cerrada_sin_prenda", true, {}, false), mes).detalle).toBe("Ninguna venta se cerró sin prenda");
   });
   it("conciliación: qué banco falta y desde cuándo", () => {

@@ -12,7 +12,7 @@ import { DIAS_OBJETIVO_PRODUCCION, repartirFalta, type DemandaVariante, type Ren
 import { compararTallas } from "./tallas";
 import { tramosPorPagar } from "./por-pagar-produccion-reglas";
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 // ---------------------------------------------------------------------------

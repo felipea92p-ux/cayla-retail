@@ -18,7 +18,7 @@ import {
   type ReciboVenta,
 } from "@/lib/recibo-reglas";
 
-const s = (n: number) => `S/ ${n.toFixed(2)}`;
+const s = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /**
  * El comprobante como sale de la térmica de 80 mm: la «representación impresa» de la boleta o

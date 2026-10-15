@@ -104,7 +104,7 @@ export function textoCantidades(cantidades: readonly CantidadPorUnidad[]): strin
 export function precioUnitarioTexto(precio: number): string {
   const diezmilesimas = Math.round(precio * 10_000);
   if (diezmilesimas % 100 === 0) return soles(diezmilesimas / 10_000);
-  return `S/ ${(diezmilesimas / 10_000).toLocaleString("es-PE", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
+  return `S/\u00a0${(diezmilesimas / 10_000).toLocaleString("es-PE", { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -191,7 +191,7 @@ export function dudaDePrecioInsumo(texto: string): string {
   const t = limpio(texto);
   const miles = t.replace(".", "");
   const decimal = t.slice(0, -1); // «1.500» → «1.50»: el cero de más
-  return `¿«${t}» es S/ ${miles} o S/ ${decimal}? Escríbelo sin punto (${miles}) o con dos decimales (${decimal}).`;
+  return `¿«${t}» es S/\u00a0${miles} o S/\u00a0${decimal}? Escríbelo sin punto (${miles}) o con dos decimales (${decimal}).`;
 }
 
 /** Lo que se tipeó en una línea, para la cuenta. */

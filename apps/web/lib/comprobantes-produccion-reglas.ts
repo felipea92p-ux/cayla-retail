@@ -96,7 +96,7 @@ export function primerErrorComprobante(f: FormComprobante, hoy: string): string 
     if (!(papel >= 0)) return "El total del papel no es un número válido.";
     const { total } = calcularTotales(llenas, f.tipo);
     const tolerancia = 0.01 * (llenas.length + 1);
-    if (Math.abs(papel - total) > tolerancia + 1e-9) return `El total del papel (S/ ${papel.toFixed(2)}) no cuadra con las líneas (S/ ${total.toFixed(2)}): revisa cantidades y costos.`;
+    if (Math.abs(papel - total) > tolerancia + 1e-9) return `El total del papel (S/\u00a0${papel.toFixed(2)}) no cuadra con las líneas (S/\u00a0${total.toFixed(2)}): revisa cantidades y costos.`;
   }
   return null;
 }

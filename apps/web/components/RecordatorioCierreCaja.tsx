@@ -41,7 +41,7 @@ const PLEGAR_MS = 5_000;
 type Fase = "oculta" | "naciendo" | "viva" | "cerrada" | "saliendo";
 type Visto = { datos: DatosRecordatorioCierre; nivel: NivelRecordatorio; previo: boolean };
 
-const soles = (n: number) => "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const soles = (n: number) => "S/\u00a0" + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const reducido = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const espera = (ms: number) => (reducido() ? 0 : ms);
 

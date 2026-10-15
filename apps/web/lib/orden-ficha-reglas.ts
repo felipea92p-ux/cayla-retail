@@ -12,7 +12,7 @@ import { totalesCantidades } from "./tabla-alta-reglas";
 
 /** «S/ 1,234.50»: el formato de dinero de las pantallas de Producción. */
 export function soles(n: number): string {
-  return `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];

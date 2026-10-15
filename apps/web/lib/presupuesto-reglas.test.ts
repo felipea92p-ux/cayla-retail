@@ -84,7 +84,7 @@ describe("«Ver» y bloques", () => {
   it("lo gastado sin tope no tiene fila: se suma al pie", () => {
     const b = bloquesPpto(FILAS, TRU)[0]!;
     expect(b.sinTope).toEqual({ aLaFecha: 50, proyeccion: 155, nombres: ["Transporte y movilidad"] });
-    expect(fraseSinTope(b.sinTope)).toBe("Además, S/ 50 en rubros sin tope (Transporte y movilidad).");
+    expect(fraseSinTope(b.sinTope)).toBe("Además, S/\u00a050 en rubros sin tope (Transporte y movilidad).");
     expect(fraseSinTope(null)).toBeNull();
   });
   it("todas: tiendas, Taller, empresa y CAYLA al final", () => {
@@ -138,8 +138,8 @@ describe("cómo se escribe", () => {
   });
   it("de dónde sale «al cierre»", () => {
     const tru = (l: string) => FILAS.find((x) => x.ubicacionId === TRU && x.linea === l)!;
-    expect(explicarProyeccion(tru("ventas"))).toBe("Vas al 90,0 % de la meta de estos 10 días; al mismo ritmo cierras en S/ 32,400.");
-    expect(explicarProyeccion(tru("636"))).toMatch(/^S\/ 508 fijos/);
+    expect(explicarProyeccion(tru("ventas"))).toBe("Vas al 90,0 % de la meta de estos 10 días; al mismo ritmo cierras en S/\u00a032,400.");
+    expect(explicarProyeccion(tru("636"))).toMatch(/^S\/\u00a0508 fijos/);
     expect(explicarProyeccion(tru("631"))).toBe("Lo gastado en 10 días llevado a los 31 del mes.");
     expect(explicarProyeccion(FILAS.find((x) => x.ubicacionId === LIM)!)).toMatch(/^Sin meta/);
     expect(explicarProyeccion({ ...tru("635"), momento: "cerrado" })).toMatch(/ya terminó/);

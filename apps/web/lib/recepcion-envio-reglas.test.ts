@@ -777,7 +777,7 @@ describe("la hoja «Es nueva»", () => {
   it("el precio de venta: obligatorio y mayor que 0 al crear; opcional al sumar tallas o colores", () => {
     expect(leerPrecioVenta("59.90", true)).toEqual({ centimos: 5990, problema: null });
     expect(leerPrecioVenta("", true).problema).toBe("Escribe el precio de venta.");
-    expect(leerPrecioVenta("0", true).problema).toBe("El precio de venta tiene que ser mayor que S/ 0.");
+    expect(leerPrecioVenta("0", true).problema).toBe("El precio de venta tiene que ser mayor que S/\u00a00.");
     expect(leerPrecioVenta("", false)).toEqual({ centimos: null, problema: null });
   });
 
@@ -896,8 +896,8 @@ describe("la forma de la base de la fase 4", () => {
 
   it("el costo y el precio de venta van hasta S/ 99 999.99, como la base", () => {
     expect(leerCosto("99999.99").problema).toBeNull();
-    expect(leerCosto("100000").problema).toBe("El costo va hasta S/ 99,999.99.");
-    expect(leerPrecioVenta("100000", true).problema).toBe("El precio va hasta S/ 99,999.99.");
+    expect(leerCosto("100000").problema).toBe("El costo va hasta S/\u00a099,999.99.");
+    expect(leerPrecioVenta("100000", true).problema).toBe("El precio va hasta S/\u00a099,999.99.");
   });
 
   it("los avisos de la fase se dicen tal cual (también los que llegan con 42501); los demás siguen su camino", () => {

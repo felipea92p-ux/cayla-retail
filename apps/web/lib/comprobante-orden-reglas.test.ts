@@ -385,7 +385,7 @@ describe("problemaDeLinea: lo mismo que rechaza la función", () => {
     expect(problemaDeLinea(renglon({ costo: "12.345" }), CTX)).toMatch(/dos decimales/);
     expect(problemaDeLinea(renglon({ costo: "-1" }), CTX)).toMatch(/dos decimales/);
     expect(problemaDeLinea(renglon({ costo: "100000" }), CTX)).toMatch(/dos decimales/);
-    expect(problemaDeLinea(renglon({ costo: "1.500" }), CTX)).toMatch(/S\/ 1500/);
+    expect(problemaDeLinea(renglon({ costo: "1.500" }), CTX)).toMatch(/S\/\u00a01500/);
   });
   it("el precio de venta es opcional, pero si se escribe tiene que ser un monto", () => {
     expect(problemaDeLinea(renglon({ precioVenta: "" }), CTX)).toBeNull();
@@ -418,7 +418,7 @@ describe("fechas y pago", () => {
     const efectivo = { metodo: "efectivo", referencia: "" };
     expect(sumaDePago([{ ...efectivo, monto: "100.50" }, { ...efectivo, monto: "50" }])).toEqual({ centimos: 15050, problema: null });
     expect(problemaDePago([{ ...efectivo, monto: "150.50" }], 15050)).toBeNull();
-    expect(problemaDePago([{ ...efectivo, monto: "150.49" }], 15050)).toMatch(/Al contado el pago es el total \(S\/ 150\.50\); vas en S\/ 150\.49/);
+    expect(problemaDePago([{ ...efectivo, monto: "150.49" }], 15050)).toMatch(/Al contado el pago es el total \(S\/\u00a0150\.50\); vas en S\/\u00a0150\.49/);
     expect(problemaDePago([], 15050)).toBe("Agrega el medio de pago.");
     expect(problemaDePago([{ ...efectivo, monto: "" }], 15050)).toMatch(/mayor a cero/);
     expect(problemaDePago([{ ...efectivo, monto: "0" }], 15050)).toMatch(/mayor a cero/);
@@ -613,8 +613,8 @@ describe("lo que vuelve de la base", () => {
     expect(resumenDeAvisos(muchos)?.detalle).toMatch(/Prenda 3: 2 unidades que no estaban en la orden · y 2 más\./);
   });
   it("dice qué quedó: por pagar o pagado al contado", () => {
-    expect(detalleDeRegistro("OC-000129", { total: 1486.8, saldo: 1486.8 })).toBe("OC-000129 · Queda en Por pagar S/ 1,486.80");
-    expect(detalleDeRegistro("OC-000129", { total: 1486.8, saldo: 0 })).toBe("OC-000129 · Pagado al contado S/ 1,486.80");
+    expect(detalleDeRegistro("OC-000129", { total: 1486.8, saldo: 1486.8 })).toBe("OC-000129 · Queda en Por pagar S/\u00a01,486.80");
+    expect(detalleDeRegistro("OC-000129", { total: 1486.8, saldo: 0 })).toBe("OC-000129 · Pagado al contado S/\u00a01,486.80");
   });
 });
 

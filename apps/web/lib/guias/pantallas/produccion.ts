@@ -269,7 +269,7 @@ export const GUIA_PROD_ORDENES: Guia = {
       id: "resumen",
       ancla: "prod-orden-nueva.resumen",
       titulo: "La orden, tal como va quedando",
-      texto: "A la derecha ves la orden mientras la armas: la prenda, cuántas son, a cuánto se vende, el costo y el margen que queda, y la fecha. El costo por prenda se calcula solo: 12 prendas con S/ 240 de costo salen a S/ 20 cada una.",
+      texto: "A la derecha ves la orden mientras la armas: la prenda, cuántas son, a cuánto se vende, el costo y el margen que queda, y la fecha. El costo por prenda se calcula solo: 12 prendas con S/\u00a0240 de costo salen a S/\u00a020 cada una.",
     },
     {
       id: "entrega",
@@ -970,7 +970,7 @@ const PASOS_FORMULARIO_OI = {
     ancla: "oi-form.linea",
     opcional: true,
     titulo: "Cada línea",
-    texto: "El insumo (por su nombre o su código), una descripción si ayuda, la cantidad en su unidad con hasta tres decimales (12.5 metros) y el precio por esa unidad con hasta cuatro (un botón a S/ 0.0350). El descuento va en % o en soles; al lado, el subtotal. La ✕ quita la línea.",
+    texto: "El insumo (por su nombre o su código), una descripción si ayuda, la cantidad en su unidad con hasta tres decimales (12.5 metros) y el precio por esa unidad con hasta cuatro (un botón a S/\u00a00.0350). El descuento va en % o en soles; al lado, el subtotal. La ✕ quita la línea.",
   },
   unidadCambiada: {
     id: "unidad-cambiada",

@@ -183,7 +183,7 @@ export function HojaPrenda({
   const nombreDeLaOrden = destino.descripcionOrden?.trim() ?? "";
   const titulo = nueva ? "Crear la prenda que llegó" : `Sumar tallas o colores a ${destino.prenda?.nombre ?? "la prenda"}`;
   const subtitulo = nueva
-    ? `${categoria?.nombre ?? "Categoría"} · ${destino.marcaNombre}. Se crea en el catálogo${destino.costoUnitario != null ? ` con el costo de esta línea (S/ ${costoComoTexto(destino.costoUnitario)})` : ""} y queda lista para contar.`
+    ? `${categoria?.nombre ?? "Categoría"} · ${destino.marcaNombre}. Se crea en el catálogo${destino.costoUnitario != null ? ` con el costo de esta línea (S/\u00a0${costoComoTexto(destino.costoUnitario)})` : ""} y queda lista para contar.`
     : "Elige las tallas y los colores que llegaron: se crean las combinaciones que la prenda todavía no tiene.";
 
   return (

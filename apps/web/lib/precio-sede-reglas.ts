@@ -58,7 +58,7 @@ export function leerMonto(texto: string): number | null {
   return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
 }
 
-export const soles = (n: number) => `S/ ${n.toFixed(2)}`;
+export const soles = (n: number) => `S/\u00a0${n.toFixed(2)}`;
 
 /** Cuánto se aleja un precio del general, en fracción (0,1 = 10 % más; −0,1 = 10 % menos). Sin general → null. */
 export function diferencia(precio: number, general: number | null): number | null {

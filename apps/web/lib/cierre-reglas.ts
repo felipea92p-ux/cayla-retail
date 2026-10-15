@@ -188,7 +188,7 @@ export function bajadaUnidad(u: Unidad): string {
   return "Lo que el sistema revisa antes de dejarte cerrar.";
 }
 
-const soles = (n: number): string => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: n % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
+const soles = (n: number): string => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: n % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 /** «a, b y c». */
 export function enumerar(items: readonly string[]): string {

@@ -266,7 +266,7 @@ describe("respuestaDelPiso: la frase de la cabecera", () => {
 
 describe("solesEnteros", () => {
   it("como el resto del ERP", () => {
-    expect(solesEnteros(20222.4)).toBe("S/ 20,222");
+    expect(solesEnteros(20222.4)).toBe("S/\u00a020,222");
   });
 });
 
