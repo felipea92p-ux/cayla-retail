@@ -364,12 +364,32 @@
   "relkind": "r",
   "rls": true
  },
+ "despacho_cierres": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "despacho_conteos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "despacho_diferencias": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
+ "despacho_diferencias_vigentes": {
+  "forzado": false,
+  "relkind": "v",
+  "rls": false
+ },
  "despacho_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "despacho_pendientes": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -379,7 +399,17 @@
   "relkind": "r",
   "rls": true
  },
+ "despacho_separaciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "despachos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "despachos_sin_aviso": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -589,7 +619,17 @@
   "relkind": "r",
   "rls": true
  },
+ "orden_insumo_cierres": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "orden_insumo_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "orden_insumo_recepciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -920,6 +960,11 @@
   "rls": true
  },
  "transferencias": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "traslado_sobrantes": {
   "forzado": false,
   "relkind": "r",
   "rls": true

@@ -641,6 +641,10 @@ describe("cortes de señal y otros envíos", () => {
   it("reconoce cuando la base dice que ese envío ya se guardó con otros datos", () => {
     expect(esEnvioConOtrosDatos("Ese envío ya se guardó con otros datos: recarga la pantalla")).toBe(true);
     expect(esEnvioConOtrosDatos("Ese comprobante ya está registrado")).toBe(false);
+    // El `token_reusado` de la base: tras un corte, la persona corrigió algo y reintentó (/chaos 2026-10-14): también ofrece «Recargar».
+    expect(
+      esEnvioConOtrosDatos("Lo que mandas ahora no es lo que se mandó la primera vez. Revisa si el envío anterior se guardó antes de volver a intentar."),
+    ).toBe(true);
     expect(esEnvioConOtrosDatos(null)).toBe(false);
   });
 });

@@ -99,6 +99,9 @@ export type ItemRendicion = {
 };
 
 const TIPOS_ITEM: readonly TipoItem[] = ["mov", "pago", "gasto"];
+/** El pago de un papel del Taller (`pagoprod:`, ADR-0362 fase 7 parte 2: el de una orden de insumos pagado desde el fondo) es un pago a
+ *  proveedor como el de tiendas; su papel no tiene foto que pedir (`con_foto` llega vacío), así que no lleva insignia. */
+const TIPO_DE_CLAVE: Record<string, TipoItem> = { pagoprod: "pago" };
 
 /** Las filas de `fn_mi_ciclo_fondo` o `fn_rendicion_fondo_items`. Una fila sin clave no se puede mostrar: se descarta. */
 export function leerItemsRendicion(data: unknown): ItemRendicion[] {
@@ -113,7 +116,7 @@ export function leerItemsRendicion(data: unknown): ItemRendicion[] {
         monto: numero(f.monto) ?? 0,
         fecha: texto(f.fecha),
         detalle: texto(f.detalle) ?? "",
-        tipo: TIPOS_ITEM.includes(tipo as TipoItem) ? (tipo as TipoItem) : "otro",
+        tipo: TIPOS_ITEM.includes(tipo as TipoItem) ? (tipo as TipoItem) : (TIPO_DE_CLAVE[tipo ?? ""] ?? "otro"),
         refId: texto(f.ref_id),
         compraId: texto(f.compra_id),
         concepto: texto(f.concepto),

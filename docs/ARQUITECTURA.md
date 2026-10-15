@@ -946,6 +946,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - `/produccion/recibir` (Taller: líder y colaborador del Taller, SIN montos) → `lib/recibir-produccion.ts` (RPC `fn_lineas_comprobantes_produccion`: solo cantidades) +
   `lib/recibir-produccion-reglas.ts` (puro: agrupar, estado, armar la recepción) → `RecibirProduccionPanel.tsx`, `RecibirComprobanteModal.tsx` (RPC `recibir_comprobante_produccion`: un lote por línea,
   cierres con motivo, idempotente). Tablas `comprobantes_produccion_recepciones`, `comprobantes_produccion_cierres`; `insumo_lotes.comprobante_item_id/recepcion_id`.
+  **Desde ADR-0362 fase 7 parte 2**, arriba va la sección «Órdenes de insumos»: `lib/recepcion-orden-insumo.ts:getOrdenesInsumoPorRecibir` (RPC
+  `fn_ordenes_insumo_por_recibir`, que exige el módulo Producción y operar el taller) + `lib/recepcion-orden-insumo-reglas.ts` (puro: lo que llega,
+  lo que queda, «el resto no va a llegar», argumentos) → `components/ordenes-insumo/RecibirOrdenInsumoModal.tsx` → `lib/ordenes-insumo-acciones.ts:recibirOrdenInsumo`
+  (RPC `recibir_orden_insumo`: un lote con su movimiento por línea, en la misma transacción; lo que no llega va a `orden_insumo_cierres`; quien hizo la
+  orden no la recibe; idempotente con `p_token` y `fn_intento_con_huella`). Tablas `orden_insumo_recepciones`, `orden_insumo_cierres`;
+  `insumo_lotes.orden_insumo_item_id/orden_insumo_recepcion_id`. Los papeles de orden no salen en «Facturas sin orden»: los recibe la orden.
 - `/produccion/por-pagar` (solo líder) → `lib/comprobantes-produccion.ts` + `lib/por-pagar-produccion-reglas.ts` (tramos de vencimiento, resumen) + `lib/deuda-consolidada.ts` (D-I: RPC
   `fn_deuda_consolidada`, `fn_igv_credito_fiscal`, que LEEN `compras`/`compra_notas_credito` sin modificarlas) → `PorPagarProduccionPanel.tsx`, `PagarComprobanteProduccionModal.tsx`
   (RPC `registrar_pago_comprobante_produccion`), `MediosDePago.tsx` + `lib/medios-pago-reglas.ts` (uno o varios medios, reusable).
@@ -987,6 +993,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     versión esperada al editar) + `lib/orden-insumo-alta.ts` (guía de foco con las reglas de `fn_orden_insumo_validar`, argumentos, la orden
     guardada de vuelta al formulario —con la cantidad vacía si la unidad del insumo cambió—, dónde se dice cada rechazo) +
     `lib/sugerencias-orden-insumo.ts` (los ejemplos siguen la unidad y el tipo del insumo elegido).
+  - `/ordenes-insumos/comprobante/[id]` (fase 7 parte 2) → `lib/ordenes-insumo.ts:getDatosComprobanteOrdenInsumo` (la orden con `facturacion`,
+    `comprobantes`, `recepcion` y `cierres` de `fn_orden_insumo`, y los insumos sin archivar) + `components/ordenes-insumo/RegistrarComprobanteOrdenInsumo.tsx`
+    + `lib/comprobante-orden-insumo-reglas.ts` (puro: lo pendiente ya puesto, renglones, totales con la tolerancia por línea, guía de foco,
+    argumentos) → `lib/ordenes-insumo-acciones.ts:registrarComprobanteOrdenInsumo` (RPC `registrar_comprobante_orden_insumo`, firma
+    `orden_insumo_comprobante`; al crédito con vencimiento, o al contado con su pago desde una cuenta o «Mi fondo»: `useCuentasParaElegir`
+    con `conMiFondo`). El papel vive en `comprobantes_produccion` (con `orden_insumo_id`): Por pagar del Taller lo lee sin cambios. La lista
+    suma el chip «Nos debe» con `fn_ordenes_insumo_nos_debe` (lo anotado como «no llegará» × su costo).
 
 **Ventas / caja**
 - `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +

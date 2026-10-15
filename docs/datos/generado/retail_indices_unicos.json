@@ -425,13 +425,13 @@
   "tablename": "comprobantes"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_pkey ON retail.comprobantes_produccion USING btree (id)",
-  "indexname": "comprobantes_produccion_pkey",
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_papel_vigente_unico ON retail.comprobantes_produccion USING btree (proveedor_id, serie, numero) WHERE (estado = 'vigente'::text)",
+  "indexname": "comprobantes_produccion_papel_vigente_unico",
   "tablename": "comprobantes_produccion"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_serie_numero_unico ON retail.comprobantes_produccion USING btree (proveedor_id, serie, numero)",
-  "indexname": "comprobantes_produccion_serie_numero_unico",
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_pkey ON retail.comprobantes_produccion USING btree (id)",
+  "indexname": "comprobantes_produccion_pkey",
   "tablename": "comprobantes_produccion"
  },
  {
@@ -590,13 +590,38 @@
   "tablename": "cuentas_dinero"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX despacho_diferencias_extra_unica ON retail.despacho_diferencias USING btree (despacho_id, extra_posicion) WHERE (extra_posicion IS NOT NULL)",
-  "indexname": "despacho_diferencias_extra_unica",
+  "indexdef": "CREATE UNIQUE INDEX despacho_cierres_pkey ON retail.despacho_cierres USING btree (id)",
+  "indexname": "despacho_cierres_pkey",
+  "tablename": "despacho_cierres"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX despacho_cierres_token_key ON retail.despacho_cierres USING btree (token)",
+  "indexname": "despacho_cierres_token_key",
+  "tablename": "despacho_cierres"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX despacho_conteos_extra_unica ON retail.despacho_conteos USING btree (despacho_id, extra_posicion) WHERE (extra_posicion IS NOT NULL)",
+  "indexname": "despacho_conteos_extra_unica",
+  "tablename": "despacho_conteos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX despacho_conteos_linea_unica ON retail.despacho_conteos USING btree (despacho_id, despacho_item_id) WHERE (despacho_item_id IS NOT NULL)",
+  "indexname": "despacho_conteos_linea_unica",
+  "tablename": "despacho_conteos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX despacho_conteos_pkey ON retail.despacho_conteos USING btree (id)",
+  "indexname": "despacho_conteos_pkey",
+  "tablename": "despacho_conteos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX despacho_diferencias_extra_vigente_unica ON retail.despacho_diferencias USING btree (despacho_id, extra_posicion) WHERE ((extra_posicion IS NOT NULL) AND vigente)",
+  "indexname": "despacho_diferencias_extra_vigente_unica",
   "tablename": "despacho_diferencias"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX despacho_diferencias_linea_unica ON retail.despacho_diferencias USING btree (despacho_id, despacho_item_id) WHERE (despacho_item_id IS NOT NULL)",
-  "indexname": "despacho_diferencias_linea_unica",
+  "indexdef": "CREATE UNIQUE INDEX despacho_diferencias_linea_vigente_unica ON retail.despacho_diferencias USING btree (despacho_id, despacho_item_id) WHERE ((despacho_item_id IS NOT NULL) AND vigente)",
+  "indexname": "despacho_diferencias_linea_vigente_unica",
   "tablename": "despacho_diferencias"
  },
  {
@@ -615,6 +640,11 @@
   "tablename": "despacho_items"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX despacho_pendientes_pkey ON retail.despacho_pendientes USING btree (id)",
+  "indexname": "despacho_pendientes_pkey",
+  "tablename": "despacho_pendientes"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX despacho_recibidos_movimiento_danada_unico ON retail.despacho_recibidos USING btree (movimiento_danada_id) WHERE (movimiento_danada_id IS NOT NULL)",
   "indexname": "despacho_recibidos_movimiento_danada_unico",
   "tablename": "despacho_recibidos"
@@ -628,6 +658,16 @@
   "indexdef": "CREATE UNIQUE INDEX despacho_recibidos_pkey ON retail.despacho_recibidos USING btree (id)",
   "indexname": "despacho_recibidos_pkey",
   "tablename": "despacho_recibidos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX despacho_separaciones_pkey ON retail.despacho_separaciones USING btree (id)",
+  "indexname": "despacho_separaciones_pkey",
+  "tablename": "despacho_separaciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX despacho_separaciones_token_key ON retail.despacho_separaciones USING btree (token)",
+  "indexname": "despacho_separaciones_token_key",
+  "tablename": "despacho_separaciones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX despachos_numero_unico ON retail.despachos USING btree (numero)",
@@ -648,6 +688,11 @@
   "indexdef": "CREATE UNIQUE INDEX despachos_token_cliente_key ON retail.despachos USING btree (token_cliente)",
   "indexname": "despachos_token_cliente_key",
   "tablename": "despachos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX despachos_sin_aviso_pkey ON retail.despachos_sin_aviso USING btree (despacho_id)",
+  "indexname": "despachos_sin_aviso_pkey",
+  "tablename": "despachos_sin_aviso"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX devolucion_items_devolucion_id_venta_item_id_key ON retail.devolucion_items USING btree (devolucion_id, venta_item_id)",
@@ -1005,6 +1050,11 @@
   "tablename": "orden_compra_versiones"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX orden_insumo_cierres_pkey ON retail.orden_insumo_cierres USING btree (id)",
+  "indexname": "orden_insumo_cierres_pkey",
+  "tablename": "orden_insumo_cierres"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX orden_insumo_items_pkey ON retail.orden_insumo_items USING btree (id)",
   "indexname": "orden_insumo_items_pkey",
   "tablename": "orden_insumo_items"
@@ -1013,6 +1063,16 @@
   "indexdef": "CREATE UNIQUE INDEX orden_insumo_items_posicion_unica ON retail.orden_insumo_items USING btree (orden_insumo_id, posicion)",
   "indexname": "orden_insumo_items_posicion_unica",
   "tablename": "orden_insumo_items"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX orden_insumo_recepciones_pkey ON retail.orden_insumo_recepciones USING btree (id)",
+  "indexname": "orden_insumo_recepciones_pkey",
+  "tablename": "orden_insumo_recepciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX orden_insumo_recepciones_token_cliente_key ON retail.orden_insumo_recepciones USING btree (token_cliente)",
+  "indexname": "orden_insumo_recepciones_token_cliente_key",
+  "tablename": "orden_insumo_recepciones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX orden_insumo_versiones_pkey ON retail.orden_insumo_versiones USING btree (id)",
@@ -1638,6 +1698,16 @@
   "indexdef": "CREATE UNIQUE INDEX transferencias_token_cliente_key ON retail.transferencias USING btree (token_cliente) WHERE (token_cliente IS NOT NULL)",
   "indexname": "transferencias_token_cliente_key",
   "tablename": "transferencias"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX traslado_sobrantes_pkey ON retail.traslado_sobrantes USING btree (id)",
+  "indexname": "traslado_sobrantes_pkey",
+  "tablename": "traslado_sobrantes"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX traslado_sobrantes_transferencia_id_variante_id_key ON retail.traslado_sobrantes USING btree (transferencia_id, variante_id)",
+  "indexname": "traslado_sobrantes_transferencia_id_variante_id_key",
+  "tablename": "traslado_sobrantes"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX ubicacion_datos_fiscales_pkey ON retail.ubicacion_datos_fiscales USING btree (ubicacion_id)",

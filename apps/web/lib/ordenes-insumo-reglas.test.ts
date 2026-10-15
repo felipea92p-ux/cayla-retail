@@ -14,6 +14,7 @@ import {
   leerCantidadInsumo,
   leerCantidades,
   leerDetalleOrdenInsumo,
+  leerNosDebe,
   leerFilaOrdenInsumo,
   leerFilasOrdenesInsumo,
   leerOpcionesOrdenInsumo,
@@ -25,6 +26,7 @@ import {
   precioUnitarioTexto,
   puedeAnularOrdenInsumo,
   puedeEditarOrdenInsumo,
+  puedeRegistrarComprobanteInsumo,
   recienDeInsumo,
   textoCantidades,
   totalCentimosInsumo,
@@ -181,17 +183,56 @@ describe("leer la lista y la orden sin confiar en su forma", () => {
       cantidades: { metro: 10.5, cono: 4 },
       total: 627.75,
       versiones: [{ version: 1, reemplazada_por: "Felipe", reemplazada_en: "2026-10-13T16:00:00Z", datos: { proveedor: { nombre: "Otro" }, total: 100, lineas: [] } }],
+      facturacion: [{ posicion: 1, item_id: "it1", facturado: 10.5 }, { posicion: 2, item_id: "it2", facturado: 0 }, { posicion: 3 }],
+      recepcion: [{ posicion: 1, item_id: "it1", recibido: 8 }, { posicion: 9, recibido: "x" }],
+      comprobantes: [
+        { id: "c2", tipo: "factura", documento: "F001-77", fecha_emision: "2026-10-14", condicion: "credito", fecha_vencimiento: "2026-11-13", total: 315.95, estado: "vigente" },
+        { id: "c1", tipo: "sin_comprobante", documento: "SC-000004", fecha_emision: "2026-10-13", condicion: "credito", fecha_vencimiento: "2026-10-20", total: 10, estado: "anulada" },
+        { id: "c0", tipo: "factura", documento: "F001-1", estado: "perdida" },
+      ],
+      plazo_credito_dias: 15,
+      cierres: [
+        { id: "k1", item_id: "it1", posicion: 1, insumo: "Lino crudo", unidad: "metro", cantidad: 2.5, costo_unitario: 25.5, importe: 63.75, motivo: "faltante", creado_en: "2026-10-14T20:00:00Z", por: "Sandra" },
+        { id: "k2", insumo: "Raro", unidad: "metro", cantidad: 1, motivo: "perdido" },
+      ],
     });
     expect(d).toMatchObject({ numero: 7, version: 2, proveedor: { ruc: "20999888771", rubro: "tela" }, destino: { nombre: "Taller" }, total: 627.75 });
     expect(d?.lineas).toHaveLength(2);
     expect(d?.versiones).toEqual([{ version: 1, reemplazadaPor: "Felipe", reemplazadaEn: "2026-10-13T16:00:00Z", proveedor: "Otro", fechaEntregaEstimada: null, lineas: [], total: 100 }]);
     expect(lineasConUnidadCambiada(d!).map((l) => l.posicion)).toEqual([1]);
+    // Lo facturado y los papeles (fase 7 parte 2): lo raro se descarta, no tumba el detalle.
+    expect(d?.facturacion).toEqual([{ posicion: 1, itemId: "it1", facturado: 10.5, recibido: 8 }, { posicion: 2, itemId: "it2", facturado: 0, recibido: 0 }]);
+    expect(d?.comprobantes.map((c) => [c.documento, c.estado, c.total])).toEqual([["F001-77", "vigente", 315.95], ["SC-000004", "anulada", 10]]);
+    expect(d?.plazoCreditoDias).toBe(15);
+    // Lo que no llegó (actividad 4): un cierre con un motivo que no existe se descarta.
+    expect(d?.cierres.map((c) => [c.insumo, c.cantidad, c.importe, c.motivo, c.por])).toEqual([["Lino crudo", 2.5, 63.75, "faltante", "Sandra"]]);
+    // Una base sin la fase 7 parte 2 no trae ni lo uno ni lo otro: listas vacías.
+    expect(leerDetalleOrdenInsumo({ id: "o1", numero: 1, estado: "generada", proveedor: { id: "p1", nombre: "X" }, destino: { id: "t1", nombre: "T" }, fecha_emision: "2026-10-13", creada_en: "2026-10-13T15:00:00Z", lineas: [] }))
+      .toMatchObject({ facturacion: [], comprobantes: [], plazoCreditoDias: null, cierres: [] });
     expect(leerDetalleOrdenInsumo(null)).toBeNull();
     expect(leerDetalleOrdenInsumo({ id: "o1" })).toBeNull();
   });
-  it("editar y anular: solo una generada (lo mismo que rechaza la base)", () => {
-    expect([puedeEditarOrdenInsumo({ estado: "generada" }), puedeAnularOrdenInsumo({ estado: "generada" })]).toEqual([true, true]);
-    expect([puedeEditarOrdenInsumo({ estado: "anulada" }), puedeAnularOrdenInsumo({ estado: "anulada" })]).toEqual([false, false]);
+  it("lo que nos debe cada orden de la lista: sin cierres no hay marca; una fila rara se descarta", () => {
+    const m = leerNosDebe([{ orden_id: "o1", cierres: 2, nos_debe: "57.50" }, { orden_id: "o2", cierres: 0, nos_debe: 0 }, { cierres: 1 }, null]);
+    expect([...m.entries()]).toEqual([["o1", { cierres: 2, monto: 57.5 }]]);
+    expect(leerNosDebe(null).size).toBe(0);
+  });
+  it("editar y anular: solo una generada; con papel, lo mismo que rechaza la base", () => {
+    const papel = (estado: "vigente" | "anulada") =>
+      ({ id: "c", tipo: "factura", documento: "F001-1", fechaEmision: null, condicion: "credito", fechaVencimiento: null, total: 1, estado });
+    const sinPapel = { comprobantes: [], facturacion: [] };
+    expect([puedeEditarOrdenInsumo({ estado: "generada", ...sinPapel }), puedeAnularOrdenInsumo({ estado: "generada", ...sinPapel })]).toEqual([true, true]);
+    expect([puedeEditarOrdenInsumo({ estado: "anulada", ...sinPapel }), puedeAnularOrdenInsumo({ estado: "anulada", ...sinPapel })]).toEqual([false, false]);
+    // Con su papel vigente: ni se edita ni se anula (primero se anula el papel).
+    const vigente = { estado: "generada" as const, comprobantes: [papel("vigente")], facturacion: [] };
+    expect([puedeEditarOrdenInsumo(vigente), puedeAnularOrdenInsumo(vigente)]).toEqual([false, false]);
+    // Con su papel anulado: ya no se edita (las líneas del papel no se tocan), pero sí se anula.
+    const anulado = { estado: "generada" as const, comprobantes: [papel("anulada")], facturacion: [] };
+    expect([puedeEditarOrdenInsumo(anulado), puedeAnularOrdenInsumo(anulado)]).toEqual([false, true]);
+    // Con algo recibido en el Taller (actividad 3), ni se edita ni se anula, tenga papel o no.
+    const recibida = { estado: "generada" as const, comprobantes: [], facturacion: [{ posicion: 1, itemId: "i", facturado: 0, recibido: 2 }] };
+    expect([puedeEditarOrdenInsumo(recibida), puedeAnularOrdenInsumo(recibida)]).toEqual([false, false]);
+    expect([puedeRegistrarComprobanteInsumo({ estado: "generada" }), puedeRegistrarComprobanteInsumo({ estado: "anulada" })]).toEqual([true, false]);
   });
   it("las opciones del formulario: lo que no tiene lo justo se descarta; una respuesta que no se entiende es null", () => {
     const o = leerOpcionesOrdenInsumo({

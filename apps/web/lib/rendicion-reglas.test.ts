@@ -74,11 +74,19 @@ describe("leer lo que manda la base", () => {
       { clave: "mov:b", origen: "movimiento", monto: 500, tipo: "mov", con_foto: null },
       { clave: "z:1", tipo: "raro" },
       { tipo: "gasto" },
+      // El pago de un papel del Taller desde el fondo (ADR-0362, fase 7 parte 2): un pago a proveedor, sin foto que pedir.
+      { clave: "pagoprod:t", origen: "pago", monto: "-164.02", detalle: "Pago del Taller a Telas Peña · F001-220", tipo: "pagoprod", con_foto: null, fotos: 0 },
     ]);
     expect(items.map((i) => [i.clave, i.tipo, i.monto, i.conFoto])).toEqual([
       ["pago:a", "pago", -300, false],
       ["mov:b", "mov", 500, null],
       ["z:1", "otro", 0, null],
+      ["pagoprod:t", "pago", -164.02, null],
+    ]);
+    expect([etiquetaItem(items[3]!), textoPapel(items[3]!), resumenItems(items.filter((i) => i.tipo === "pago"))]).toEqual([
+      "Pago a proveedor",
+      null,
+      "2 pagos a proveedores",
     ]);
   });
   it("el tablero: una fila sin id o con un estado que no existe se descarta; la decisión se lee o queda en null", () => {
