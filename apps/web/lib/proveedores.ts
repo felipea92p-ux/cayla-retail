@@ -206,16 +206,73 @@ export type ProveedorFicha = {
   forma_pago_preferida: string | null;
 };
 
+// Los datos bancarios ya no se leen de la tabla (20261013161000, Felipe 2026-10-13): solo los ve quien ve Proveedores, Por
+// pagar o Cuentas y dinero, y la base los entrega por `fn_proveedor_datos_bancarios` (cero filas a quien no puede verlos:
+// la ficha queda «sin datos para pagar», nunca rota).
+const SIN_DATOS_BANCARIOS = { banco: null, cuenta_bancaria: null, cci: null, celular_billetera: null, billeteras: null, titular_cuenta: null };
+
 export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
   const supabase = await createClient();
-  return exigirOpcional(
-    await supabase
+  const [general, bancarios] = await Promise.all([
+    supabase
       .from("proveedores")
-      .select("id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, cci, celular_billetera, billeteras, titular_cuenta, activo, rubros, plazo_credito_dias, forma_pago_preferida")
+      .select("id, nombre, ruc, contacto, telefono, activo, rubros, plazo_credito_dias, forma_pago_preferida")
       .eq("id", id)
       .maybeSingle(),
-    "la ficha del proveedor"
-  );
+    supabase.rpc("fn_proveedor_datos_bancarios", { p_proveedor_id: id }),
+  ]);
+  const ficha = exigirOpcional(general, "la ficha del proveedor");
+  if (!ficha) return null;
+  // La web se publica ANTES de pegar la migración (20261013161000): mientras la función no exista en esa base (PGRST202), la cuenta
+  // se lee de la tabla como siempre. Nunca `SIN_DATOS_BANCARIOS` por un error: la edición mandaría la cuenta en blanco al guardar
+  // y `actualizar_proveedor` borraría la real.
+  if (bancarios.error?.code === "PGRST202") {
+    const comoAntes = await supabase
+      .from("proveedores")
+      .select("banco, cuenta_bancaria, cci, celular_billetera, billeteras, titular_cuenta")
+      .eq("id", id)
+      .maybeSingle();
+    return { ...ficha, ...(exigirOpcional(comoAntes, "los datos para pagar del proveedor") ?? SIN_DATOS_BANCARIOS) };
+  }
+  return { ...ficha, ...(exigir(bancarios, "los datos para pagar del proveedor")[0] ?? SIN_DATOS_BANCARIOS) };
+}
+
+/**
+ * Lo que necesita el aviso del Inicio del líder (Felipe 2026-10-13): cuántos proveedores cambiaron su cuenta bancaria en los
+ * últimos 7 días y cuál fue el último. `null` si no se pudo leer (el aviso dice «no se pudo leer», nunca «al día»).
+ */
+export async function getCuentasBancariasCambiadas(): Promise<{
+  cambios: number;
+  proveedores: number;
+  ultimoProveedorId: string | null;
+  ultimoProveedor: string | null;
+  ultimoEn: string | null;
+  primeroEn: string | null;
+} | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_cuentas_bancarias_cambiadas", { p_dias: 7 });
+  // Sin la migración todavía (PGRST202) no hay historial: nada cambió que se haya podido anotar.
+  if (error?.code === "PGRST202") return { cambios: 0, proveedores: 0, ultimoProveedorId: null, ultimoProveedor: null, ultimoEn: null, primeroEn: null };
+  if (error || !data || typeof data !== "object" || Array.isArray(data)) return null;
+  const d = data as { cambios?: number; proveedores?: number; ultimo_proveedor_id?: string | null; ultimo_proveedor?: string | null; ultimo_en?: string | null; primero_en?: string | null };
+  return {
+    cambios: Number(d.cambios ?? 0),
+    proveedores: Number(d.proveedores ?? 0),
+    ultimoProveedorId: d.ultimo_proveedor_id ?? null,
+    ultimoProveedor: d.ultimo_proveedor ?? null,
+    ultimoEn: d.ultimo_en ?? null,
+    primeroEn: d.primero_en ?? null,
+  };
+}
+
+/** Un cambio del CCI, la cuenta, el Yape o el titular (el historial de 20261013161000), del más nuevo al más viejo. */
+export type CambioBancario = { campo: string; antes: string | null; despues: string | null; cambiadoPor: string | null; cambiadoEn: string };
+
+/** Los últimos 50 cambios de cuenta de un proveedor. Vacío para quien no puede ver datos bancarios. */
+export async function getCambiosBancarios(id: string): Promise<CambioBancario[]> {
+  const supabase = await createClient();
+  const filas = exigir(await supabase.rpc("fn_proveedor_cambios_bancarios", { p_proveedor_id: id }), "los cambios de cuenta del proveedor");
+  return filas.map((f) => ({ campo: f.campo, antes: f.antes, despues: f.despues, cambiadoPor: f.cambiado_por_nombre, cambiadoEn: f.cambiado_en }));
 }
 
 // Prenda terminada, vía `compras` (fn_proveedor_metricas_compras,
