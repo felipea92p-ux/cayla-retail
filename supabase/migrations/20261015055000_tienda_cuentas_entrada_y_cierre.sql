@@ -93,7 +93,7 @@ begin
   for r in
     select * from (values
       -- firma                                                       antes (20261014224000 / 1g del club)   despues (este archivo)
-      ('retail.tienda_revisar_registro(text,text,text,text,text)',  'ddc0e4b6849535a2d2eb72183ebe51dd',    '209e78097e212578035dd5a0f2704d81'),
+      ('retail.tienda_revisar_registro(text,text,text,text,text,text)', '634ef488d7addc9f60ce383f5fd9436f', '838c2155de84707f833f3268a65d72a3'),
       ('retail.fn_club_anonimizar_inactivas()',                     'bb5b5e43cf86a237ed2f88fcb0c46df8',    '916925ce82c84429c7130d06d670b8f2'),
       ('retail.fn_cuenta_web_reglas()',                             null,                                  '3e64c51978b3b305d48d721ad911337f'),
       ('retail.fn_cuentas_web_cerrar_al_anonimizar()',              null,                                  '0cb9b5e6f24d879373420ec19cbf824d'),
@@ -311,10 +311,10 @@ comment on function retail.tienda_usuario_borrado(uuid) is
   'Tienda online (ADR-0408): anota que el servidor borró del proyecto de clientes el usuario de una cuenta cerrada (o que ya no estaba). Devuelve si había uno por borrar. Solo la llama tienda_web.';
 
 -- ---------- 6. Antes de mandar el código: el correo de otra persona ----------
--- Sobre su definición viva (20261014224000, md5 ddc0e4b6…). Suma SOLO el correo de contacto de OTRA ficha (`correo_de_otra_persona`):
+-- Sobre su definición viva (20261014224000, md5 634ef488…; con el tipo de documento desde el 2026-10-15). Suma SOLO el correo de contacto de OTRA ficha (`correo_de_otra_persona`):
 -- el de la cuenta web de otra ficha ya lo decía `correo_repetido`. Sin decir de quién es.
-create or replace function retail.tienda_revisar_registro(p_correo text, p_dni text, p_celular text, p_ip_hash text,
-                                                          p_documento_hash text)
+create or replace function retail.tienda_revisar_registro(p_correo text, p_documento_numero text, p_celular text, p_ip_hash text,
+                                                          p_documento_hash text, p_documento_tipo text default 'dni')
 returns jsonb
 language plpgsql
 volatile
@@ -323,7 +323,8 @@ set search_path = retail, public
 as $$
 declare
   v_correo text := retail.fn_cuenta_web_correo(p_correo);
-  v_dni text;
+  v_tipo text := lower(btrim(coalesce(p_documento_tipo, 'dni')));
+  v_numero text;
   v_celular text := retail.fn_celular_normalizado(p_celular);
   v_ficha uuid;
   v_archivada boolean;
@@ -332,11 +333,11 @@ begin
     return jsonb_build_object('estado', 'invalido', 'campo', 'correo');
   end if;
   begin
-    v_dni := retail.fn_documento_clienta('dni', p_dni);
+    v_numero := retail.fn_documento_clienta(v_tipo, p_documento_numero);
   exception when sqlstate '22023' then
-    v_dni := null;
+    v_numero := null;
   end;
-  if v_dni is null then
+  if v_numero is null then
     return jsonb_build_object('estado', 'invalido', 'campo', 'dni');
   end if;
   if v_celular is null or v_celular !~ '^9[0-9]{8}$' then
@@ -351,7 +352,7 @@ begin
   for v_ficha, v_archivada in
     select c.id, c.archivada_en is not null
       from retail.clientas c
-     where c.documento_tipo = 'dni' and c.documento_numero = v_dni
+     where c.documento_tipo = v_tipo and c.documento_numero = v_numero
   loop
     exit;
   end loop;
@@ -368,7 +369,7 @@ begin
   return jsonb_build_object('estado', 'ok');
 end;
 $$;
-comment on function retail.tienda_revisar_registro(text, text, text, text, text) is
+comment on function retail.tienda_revisar_registro(text, text, text, text, text, text) is
   'Tienda online (ADR-0408): lo que el servidor de la tienda pregunta ANTES de crear el usuario en el proyecto de clientes. {estado: invalido (campo) | limite | correo_repetido (ya hay una cuenta con ese correo) | correo_de_otra_persona (es el correo de contacto de otra ficha; no dice de quién) | dni_repetido | archivada | ok}. Cuenta un intento de registro (club_intento: 5 por ip, 3 por documento y 3 por celular, por hora). No escribe nada más. Solo la llama tienda_web.';
 
 -- ---------- 7. La conservación del Club: también cuenta entrar a la web ----------
@@ -423,10 +424,10 @@ comment on function retail.fn_club_anonimizar_inactivas() is
 revoke all on function retail.tienda_anotar_entrada(uuid) from public, anon, authenticated;
 revoke all on function retail.tienda_usuarios_por_borrar(integer) from public, anon, authenticated;
 revoke all on function retail.tienda_usuario_borrado(uuid) from public, anon, authenticated;
-revoke all on function retail.tienda_revisar_registro(text, text, text, text, text) from public, anon, authenticated;
+revoke all on function retail.tienda_revisar_registro(text, text, text, text, text, text) from public, anon, authenticated;
 grant execute on function retail.tienda_anotar_entrada(uuid) to tienda_web;
 grant execute on function retail.tienda_usuarios_por_borrar(integer) to tienda_web;
 grant execute on function retail.tienda_usuario_borrado(uuid) to tienda_web;
-grant execute on function retail.tienda_revisar_registro(text, text, text, text, text) to tienda_web;
+grant execute on function retail.tienda_revisar_registro(text, text, text, text, text, text) to tienda_web;
 
 reset lock_timeout;

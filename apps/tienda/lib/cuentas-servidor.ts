@@ -1,4 +1,5 @@
 import "server-only";
+import type { TipoDocumentoClienta } from "@cayla-retail/shared";
 import { base, leerConRespaldo } from "./base";
 import {
   leerBeneficios,
@@ -40,12 +41,12 @@ export type RespuestaDocumento =
   | { estado: "libre"; delClub: boolean }
   | { estado: "repetido" | "archivada" | "limite" | "invalido" | "sin_respuesta" };
 
-/** ¿Este DNI ya tiene cuenta, o es de una ficha archivada? Cuenta un intento de consulta. */
-export const consultarDocumentoEnBase = (dni: string, ipHash: string, documentoHash: string): Promise<RespuestaDocumento> =>
+/** ¿Este documento (DNI, carné o pasaporte, 20261015161000) ya tiene cuenta, o es de una ficha archivada? Cuenta un intento de consulta. */
+export const consultarDocumentoEnBase = (tipo: TipoDocumentoClienta, numero: string, ipHash: string, documentoHash: string): Promise<RespuestaDocumento> =>
   leerConRespaldo<RespuestaDocumento>(
     "tienda_consultar_documento_fallo",
     async (db) => {
-      const [fila] = await db`select retail.tienda_consultar_documento(${dni}::text, ${ipHash}::text, ${documentoHash}::text) as r`;
+      const [fila] = await db`select retail.tienda_consultar_documento(${numero}::text, ${ipHash}::text, ${documentoHash}::text, ${tipo}::text) as r`;
       const estado = ESTADO(fila?.r);
       if (estado === "libre") return { estado, delClub: (fila?.r as { del_club?: unknown }).del_club === true };
       return estado === "repetido" || estado === "archivada" || estado === "limite" || estado === "invalido" ? { estado } : { estado: "sin_respuesta" };
@@ -60,11 +61,17 @@ export type RespuestaRevision = {
 };
 
 /** Lo que se pregunta ANTES de mandar el código. Cuenta un intento de registro. */
-export const revisarRegistroEnBase = (correo: string, dni: string, celular: string, ipHash: string, documentoHash: string): Promise<RespuestaRevision> =>
+export const revisarRegistroEnBase = (
+  correo: string,
+  documento: { tipo: TipoDocumentoClienta; numero: string },
+  celular: string,
+  ipHash: string,
+  documentoHash: string,
+): Promise<RespuestaRevision> =>
   leerConRespaldo<RespuestaRevision>(
     "tienda_revisar_registro_fallo",
     async (db) => {
-      const [fila] = await db`select retail.tienda_revisar_registro(${correo}::text, ${dni}::text, ${celular}::text, ${ipHash}::text, ${documentoHash}::text) as r`;
+      const [fila] = await db`select retail.tienda_revisar_registro(${correo}::text, ${documento.numero}::text, ${celular}::text, ${ipHash}::text, ${documentoHash}::text, ${documento.tipo}::text) as r`;
       const estado = ESTADO(fila?.r);
       const conocidos = ["ok", "limite", "correo_repetido", "correo_de_otra_persona", "dni_repetido", "archivada", "invalido"] as const;
       const campo = (fila?.r as { campo?: unknown }).campo;
@@ -129,8 +136,11 @@ export const leerCasillaDeAvisos = (): Promise<CasillaWhatsapp | null> =>
 export type DatosCuenta = {
   usuarioWebId: string;
   correo: string;
-  dni: string;
+  /** DNI, carné de extranjería o pasaporte (20261015161000). */
+  documentoTipo: TipoDocumentoClienta;
+  documento: string;
   nombre: string;
+  /** Con DNI, true: el nombre es el del padrón. Con carné o pasaporte, false: el escrito tal cual. */
   nombreDelPadron: boolean;
   celular: string;
   cumpleDia: number;
@@ -155,9 +165,9 @@ export async function registrarCuentaEnBase(d: DatosCuenta): Promise<ResultadoRe
   try {
     const [fila] = await base()`
       select retail.tienda_registrar_cuenta(
-        ${d.usuarioWebId}::uuid, ${d.correo}::text, ${d.dni}::text, ${d.nombre}::text, ${d.nombreDelPadron}::boolean,
+        ${d.usuarioWebId}::uuid, ${d.correo}::text, ${d.documento}::text, ${d.nombre}::text, ${d.nombreDelPadron}::boolean,
         ${d.celular}::text, ${d.cumpleDia}::integer, ${d.cumpleMes}::integer, ${d.cumpleAnio}::integer, true,
-        ${d.mayorDeEdad}::boolean, ${d.avisosWhatsapp}::boolean, ${d.casillaVersion}::integer, ${d.textos}::text
+        ${d.mayorDeEdad}::boolean, ${d.avisosWhatsapp}::boolean, ${d.casillaVersion}::integer, ${d.textos}::text, ${d.documentoTipo}::text
       ) as r`;
     const r = (fila?.r ?? {}) as { se_unio_a_su_ficha?: unknown; era_del_club?: unknown; avisos_whatsapp?: unknown };
     const avisos = AVISOS.find((a) => a === r.avisos_whatsapp) ?? "no";
@@ -167,7 +177,7 @@ export async function registrarCuentaEnBase(d: DatosCuenta): Promise<ResultadoRe
     const hint = typeof e.hint === "string" ? e.hint : null;
     // Sin el mensaje de la base en el registro: puede traer datos de la persona. El código y el hint bastan. Un rechazo de negocio
     // (los `cuenta_*` y el correo de otra persona, `correo_repetido`) no es una falla.
-    if (!hint?.startsWith("cuenta_") && hint !== "correo_repetido") {
+    if (!hint?.startsWith("cuenta_") && hint !== "correo_repetido" && hint !== "nombre_con_numeros") {
       console.error(JSON.stringify({ evento: "tienda_registrar_cuenta_fallo", codigo: e.code ?? null, hint }));
     }
     return { ok: false, hint, detalle: typeof e.detail === "string" ? e.detail : null };

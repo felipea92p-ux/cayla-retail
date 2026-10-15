@@ -292,8 +292,8 @@ function main() {
   const pendiente = (correo, usuario) =>
     `${COMO_DUENO}insert into retail.cuentas_web_pendientes (correo, usuario_web_id, envios, primer_envio_en, ultimo_envio_en, vence_en, intentos)
      values ('${correo}', '${usuario}', 1, now(), now(), now() + interval '30 minutes', 1);\n`;
-  const cuenta = (usuario, correo, dni, nombre, delPadron) =>
-    `select pg_temp.intento($q$select retail.tienda_registrar_cuenta('${usuario}', '${correo}', '${dni}', '${nombre}', ${delPadron}, '987950041', 14, 10, null, true, true, false, null, 'borrador-2026-10-14')$q$);\n`;
+  const cuenta = (usuario, correo, dni, nombre, delPadron, tipo = "dni") =>
+    `select pg_temp.intento($q$select retail.tienda_registrar_cuenta('${usuario}', '${correo}', '${dni}', '${nombre}', ${delPadron}, '987950041', 14, 10, null, true, true, false, null, 'borrador-2026-10-14', '${tipo}')$q$);\n`;
   esperarValor(
     "sin lectura no se crea la cuenta (ni con el nombre «del padrón» ni con uno escrito a mano); con la lectura anotada por la tienda, sí",
     caso(`${pendiente(`zz.a.${CORRIDA}@ejemplo.com`, "a1a1a1a1-0000-4000-8000-000000000001")}${pendiente(
@@ -306,6 +306,17 @@ function main() {
           ${cuenta("c3c3c3c3-0000-4000-8000-000000000003", `zz.c.${CORRIDA}@ejemplo.com`, "09950043", "Prueba Tienda Con Lectura", true)}
           ${COMO_DUENO}select string_agg(documento_numero || ':' || nombre, ',' order by documento_numero) from retail.clientas where documento_numero in ('09950041', '09950042', '09950043');`),
     "P0001|nombre_sin_padron|nombre\nP0001|nombre_sin_padron|nombre\nok\n09950043:Prueba Tienda Con Lectura",
+  );
+  esperarValor(
+    "con pasaporte (la tienda acepta carné y pasaporte, Felipe 2026-10-15) el nombre se escribe, sin números; sin ellos, sí se crea",
+    caso(`${pendiente(`zz.d.${CORRIDA}@ejemplo.com`, "d4d4d4d4-0000-4000-8000-000000000004")}${pendiente(
+      `zz.e.${CORRIDA}@ejemplo.com`,
+      "e5e5e5e5-0000-4000-8000-000000000005",
+    )}${COMO_TIENDA}
+          ${cuenta("d4d4d4d4-0000-4000-8000-000000000004", `zz.d.${CORRIDA}@ejemplo.com`, "PA0995044", "Paola 44 Tienda", false, "pasaporte")}
+          ${cuenta("e5e5e5e5-0000-4000-8000-000000000005", `zz.e.${CORRIDA}@ejemplo.com`, "PA0995045", "Paola Tienda Pasaporte", false, "pasaporte")}
+          ${COMO_DUENO}select string_agg(documento_tipo || ':' || documento_numero || ':' || nombre, ',' order by documento_numero) from retail.clientas where documento_numero in ('PA0995044', 'PA0995045');`),
+    "22023|nombre_con_numeros|nombre\nok\npasaporte:PA0995045:Paola Tienda Pasaporte",
   );
 
   console.log("— F. El dueño de la base —");

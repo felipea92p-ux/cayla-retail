@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import { confirmarCodigo, consultarCorreo, consultarDni, crearCuenta, obtenerCodigo, type RespuestaCrear, type RespuestaDelCodigo } from "@/app/acciones/cuenta";
+import { ajustarNumeroAlTipo, TIPOS_DOCUMENTO_CLIENTA, type TipoDocumentoClienta } from "@cayla-retail/shared";
+import { confirmarCodigo, consultarCorreo, consultarDocumento, crearCuenta, obtenerCodigo, type RespuestaCrear, type RespuestaDelCodigo } from "@/app/acciones/cuenta";
 import {
   arregloCorreo,
+  ayudaDelNumero,
+  cajaDelNumero,
   campoQueSigue,
   CLAVE_MAXIMA,
   CODIGO_VENCE_MIN,
@@ -12,10 +15,13 @@ import {
   correoValido,
   cuentaRegresiva,
   cumpleTexto,
+  documentoCompleto,
+  documentoRepetido,
   estadoRegistro,
   faltanCaracteres,
   faltanRegistro,
   marcaDe,
+  MAX_PARTE_NOMBRE,
   MENSAJES,
   mensajeSinNombre,
   normalizarCorreo,
@@ -27,7 +33,7 @@ import {
   type CampoRegistro,
   type CasillaWhatsapp,
   type ConsultaCorreo,
-  type ConsultaDni,
+  type ConsultaDocumento,
   type Dia,
   type Registro,
 } from "@/lib/cuentas";
@@ -40,8 +46,9 @@ import { Campo, Resultado } from "./CampoGuiado";
 // «Crea tu cuenta» (maqueta v4, `vRegistro` y `guiaRegistro`). Cada campo dice su estado en su título (✓ Listo · Sigue aquí ·
 // Revisa) y debajo qué le falta o qué está mal; el de abajo dice todo lo que falta y el botón se enciende cuando no falta nada.
 // Mientras se escribe, el correo y el DNI se revisan en la base (si ya tienen cuenta) y el DNI trae el nombre del padrón a medias.
-// El nombre no se escribe (Felipe 2026-10-15): si el padrón no lo encuentra o no responde, no se crea la cuenta, y el DNI ofrece
-// «Volver a intentar».
+// Con DNI el nombre no se escribe (Felipe 2026-10-15): si el padrón no lo encuentra o no responde, no se crea la cuenta, y el DNI
+// ofrece «Volver a intentar». Con carné de extranjería o pasaporte (Felipe 2026-10-15, «como en las tiendas»), el nombre se escribe
+// tal cual está en el documento, en dos cajas (nombres y apellidos), y se guarda con los nombres primero.
 // Actividad 2b: «Soy mayor de 18 años» (obligatoria) y «Avisos del Club por WhatsApp» (opcional, con el texto aprobado del Club).
 // El código del correo (Felipe 2026-10-15: «al lado del correo debería existir un botón de obtener código y abajo un input para
 // colocarlo»): «Obtener código» al lado del correo; la caja del código aparece debajo, con «Reenviar» y su espera, y se revisa sola
@@ -52,7 +59,9 @@ const ID: Record<CampoProblema, string> = {
   correo: "registro-correo",
   codigo: "registro-codigo",
   clave: "registro-clave",
-  dni: "registro-dni",
+  documento: "registro-documento",
+  nombres: "registro-nombres",
+  apellidos: "registro-apellidos",
   cel: "registro-cel",
   cumple: "registro-cumple-dia",
   mayor: "registro-mayor",
@@ -71,7 +80,8 @@ const SIN_RESPUESTA: RespuestaDelCodigo = { estado: "codigo", enviado: false, me
 export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia; casilla: CasillaWhatsapp | null }) {
   const [r, setR] = useState<Registro>(REGISTRO_VACIO);
   const [correoRevisado, setCorreoRevisado] = useState<{ valor: string; estado: ConsultaCorreo }>({ valor: "", estado: "sin_revisar" });
-  const [dniRevisado, setDniRevisado] = useState<{ valor: string; estado: ConsultaDni }>({ valor: "", estado: { estado: "sin_revisar" } });
+  // Lo que dijo el servidor del documento escrito, con su tipo («dni:12345678»): otro tipo u otro número es otra consulta.
+  const [documentoRevisado, setDocumentoRevisado] = useState<{ valor: string; estado: ConsultaDocumento }>({ valor: "", estado: { estado: "sin_revisar" } });
   const [enFoco, setEnFoco] = useState<CampoRegistro | null>(null);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [casilla, setCasilla] = useState<CasillaWhatsapp | null>(casillaInicial);
@@ -96,25 +106,30 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
   }, [enfocar]);
 
   const correo = normalizarCorreo(r.correo);
-  const dniCompleto = /^\d{8}$/.test(r.dni);
+  const esDni = r.documentoTipo === "dni";
+  const claveDocumento = `${r.documentoTipo}:${r.documento}`;
+  const completo = documentoCompleto(r.documentoTipo, r.documento);
   const consultaCorreo: ConsultaCorreo = correoRevisado.valor === correo ? correoRevisado.estado : "sin_revisar";
-  const consultaDni: ConsultaDni =
-    dniRevisado.valor === r.dni ? dniRevisado.estado : dniCompleto ? { estado: "buscando" } : { estado: "sin_revisar" };
+  const consultaDocumento: ConsultaDocumento =
+    documentoRevisado.valor === claveDocumento ? documentoRevisado.estado : completo ? { estado: "buscando" } : { estado: "sin_revisar" };
 
-  // El DNI, apenas tiene sus 8 cifras: ¿ya tiene cuenta?, ¿era del club?, y su nombre del padrón.
+  // El documento, apenas está completo: ¿ya tiene cuenta?, ¿era del club? y, con DNI, su nombre del padrón. Con carné o pasaporte
+  // se espera un poco más (no tienen largo fijo: 6 caracteres pueden ser el comienzo de 9).
   useEffect(() => {
-    if (!dniCompleto || dniRevisado.valor === r.dni) return;
-    const dni = r.dni;
+    if (!completo || documentoRevisado.valor === claveDocumento) return;
+    const [tipo, numero, clave] = [r.documentoTipo, r.documento, claveDocumento];
     let vigente = true;
     const reloj = setTimeout(async () => {
-      const estado = await consultarDni(dni).catch((): ConsultaDni => ({ estado: "sin_nombre", motivo: "sin_padron", delClub: false }));
-      if (vigente) setDniRevisado({ valor: dni, estado });
-    }, ESPERA_DNI_MS);
+      const estado = await consultarDocumento(tipo, numero).catch(
+        (): ConsultaDocumento => ({ estado: "sin_nombre", motivo: "sin_padron", delClub: false }),
+      );
+      if (vigente) setDocumentoRevisado({ valor: clave, estado });
+    }, tipo === "dni" ? ESPERA_DNI_MS : ESPERA_CORREO_MS);
     return () => {
       vigente = false;
       clearTimeout(reloj);
     };
-  }, [r.dni, dniCompleto, dniRevisado.valor]);
+  }, [r.documentoTipo, r.documento, claveDocumento, completo, documentoRevisado.valor]);
 
   // El correo, cuando ya tiene forma de correo y dejó de escribirse: ¿ya tiene cuenta?
   useEffect(() => {
@@ -139,7 +154,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     return () => clearInterval(reloj);
   }, [restan]);
 
-  const estado = estadoRegistro(r, { correo: consultaCorreo, dni: consultaDni, codigo }, hoy);
+  const estado = estadoRegistro(r, { correo: consultaCorreo, documento: consultaDocumento, codigo }, hoy);
   const faltan = faltanRegistro(estado);
   const sigue = campoQueSigue(estado, enFoco);
   const marca = (campo: CampoRegistro) => marcaDe(estado[campo], sigue === campo);
@@ -148,6 +163,8 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     setR((actual) => ({ ...actual, ...cambio }));
   };
   const foco = (campo: CampoRegistro) => ({ alEntrar: () => setEnFoco(campo), alSalir: () => setEnFoco(null) });
+  /** Otro tipo de documento: el número se ajusta a lo que ese tipo admite (no se vacía), como en la caja del ERP. */
+  const cambiarTipo = (tipo: TipoDocumentoClienta) => cambiar({ documentoTipo: tipo, documento: ajustarNumeroAlTipo(tipo, r.documento) });
   // «Obtener código» se prende con un correo bien escrito que no es de otra cuenta ni de otra persona (lo que ya dijo la base).
   const puedeObtener = estado.correo === "ok" && codigoActual.estado === "sin_pedir" && !pidiendo;
 
@@ -235,18 +252,20 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     } else if (e.campo === "correo" && e.mensaje === MENSAJES.correoRepetido) setCorreoRevisado({ valor: correo, estado: "repetido" });
     // El correo de contacto de otra ficha: bajo su campo, sin «Entrar» ni «Olvidé mi contraseña» (esa persona no tiene cuenta).
     else if (e.campo === "correo" && e.mensaje === MENSAJES.correoDeOtraPersona) setCorreoRevisado({ valor: correo, estado: "de_otra_persona" });
-    else if (e.campo === "dni" && e.mensaje === MENSAJES.dniRepetido) setDniRevisado({ valor: r.dni, estado: { estado: "repetido" } });
-    else if (e.campo === "dni" && e.mensaje === MENSAJES.dniArchivada) setDniRevisado({ valor: r.dni, estado: { estado: "archivada" } });
-    else if (e.campo === "dni" && (e.mensaje === MENSAJES.dniSinPadron || e.mensaje === MENSAJES.dniNoEncontrado))
+    else if (e.campo === "documento" && e.mensaje === documentoRepetido(r.documentoTipo))
+      setDocumentoRevisado({ valor: claveDocumento, estado: { estado: "repetido" } });
+    else if (e.campo === "documento" && e.mensaje === MENSAJES.dniArchivada) setDocumentoRevisado({ valor: claveDocumento, estado: { estado: "archivada" } });
+    else if (e.campo === "documento" && (e.mensaje === MENSAJES.dniSinPadron || e.mensaje === MENSAJES.dniNoEncontrado))
       // El padrón ya no dio el nombre al crear: el DNI lo dice, con «Volver a intentar» (el nombre no se escribe a mano).
-      setDniRevisado({
-        valor: r.dni,
+      setDocumentoRevisado({
+        valor: claveDocumento,
         estado: {
           estado: "sin_nombre",
           motivo: e.mensaje === MENSAJES.dniNoEncontrado ? "no_encontrado" : "sin_padron",
-          delClub: (consultaDni.estado === "encontrado" || consultaDni.estado === "sin_nombre") && consultaDni.delClub,
+          delClub: delClub,
         },
       });
+    else if (e.campo === "nombres" || e.campo === "apellidos" || e.campo === "documento") setErrorGeneral(e.mensaje);
     else if (e.campo === "avisos") {
       // El texto de los avisos cambió: el nuevo se lee y se vuelve a marcar (nunca se da por aceptado uno que no leyó).
       if (e.casilla !== undefined) setCasilla(e.casilla);
@@ -267,7 +286,9 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     });
   }
 
-  const delClub = (consultaDni.estado === "encontrado" || consultaDni.estado === "sin_nombre") && consultaDni.delClub;
+  const delClub =
+    (consultaDocumento.estado === "encontrado" || consultaDocumento.estado === "sin_nombre" || consultaDocumento.estado === "libre") &&
+    consultaDocumento.delClub;
   const enlacesDeCuenta = (
     <span className="w-res-acc">
       <Link className="w-enlace" href="/entrar">
@@ -300,7 +321,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
         <h1 className="w-titulo">
           Entra al catálogo y <em>forma parte del club.</em>
         </h1>
-        <p className="w-texto-sec">Una sola vez. Con tu DNI te reconocemos en cualquier tienda y sale tu boleta.</p>
+        <p className="w-texto-sec">Una sola vez. Con tu documento te reconocemos en cualquier tienda y sale tu boleta.</p>
       </div>
 
       <Campo campo="correo" idCaja={ID.correo} etiqueta="Correo" marca={marca("correo")} {...foco("correo")}>
@@ -423,48 +444,69 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
         </Resultado>
       </Campo>
 
-      <Campo campo="dni" idCaja={ID.dni} etiqueta="DNI" marca={marca("dni")} {...foco("dni")}>
+      <Campo campo="documento" idCaja={ID.documento} etiqueta="Documento" marca={marca("documento")} {...foco("documento")}>
+        {/* El tipo (Felipe 2026-10-15: DNI, carné de extranjería o pasaporte, «como en las tiendas»). Cambiarlo no borra el número: se
+            ajusta a lo que ese tipo admite (la misma regla de la caja del ERP). */}
+        <div className="w-tipos" role="radiogroup" aria-label="Tipo de documento">
+          {TIPOS_DOCUMENTO_CLIENTA.map((t) => (
+            <button
+              key={t.valor}
+              type="button"
+              role="radio"
+              aria-checked={r.documentoTipo === t.valor}
+              className="w-tipo"
+              onClick={() => cambiarTipo(t.valor)}
+            >
+              {t.etiqueta}
+            </button>
+          ))}
+        </div>
         <input
-          id={ID.dni}
+          id={ID.documento}
           className="w-caja num"
-          inputMode="numeric"
+          inputMode={cajaDelNumero(r.documentoTipo).teclado}
+          autoCapitalize={esDni ? "none" : "characters"}
           autoComplete="off"
-          maxLength={8}
-          placeholder="8 dígitos" // sugerir-fijo: el largo de un DNI no depende de nada elegido antes
-          value={r.dni}
-          onChange={(e) => cambiar({ dni: soloDigitos(e.target.value, 8) })}
-          aria-describedby={`${ID.dni}-res`}
-          aria-invalid={estado.dni === "mal" || estado.dni === "repetido" || undefined}
+          spellCheck={false}
+          maxLength={cajaDelNumero(r.documentoTipo).largo}
+          placeholder={ayudaDelNumero(r.documentoTipo)}
+          aria-label={`Número de ${TIPOS_DOCUMENTO_CLIENTA.find((t) => t.valor === r.documentoTipo)?.etiqueta ?? "documento"}`}
+          value={r.documento}
+          onChange={(e) => cambiar({ documento: ajustarNumeroAlTipo(r.documentoTipo, e.target.value) })}
+          aria-describedby={`${ID.documento}-res`}
+          aria-invalid={estado.documento === "mal" || estado.documento === "repetido" || undefined}
         />
-        <Resultado id={ID.dni}>
-          {consultaDni.estado === "repetido" ? (
+        <Resultado id={ID.documento}>
+          {consultaDocumento.estado === "repetido" ? (
             <>
-              <span className="w-res-error">{MENSAJES.dniRepetido}</span>
+              <span className="w-res-error">{documentoRepetido(r.documentoTipo)}</span>
               {enlacesDeCuenta}
             </>
-          ) : consultaDni.estado === "archivada" ? (
+          ) : consultaDocumento.estado === "archivada" ? (
             <span className="w-res-error">{MENSAJES.dniArchivada}</span>
-          ) : consultaDni.estado === "buscando" ? (
-            <p className="w-ayuda">{MENSAJES.dniBuscando}</p>
-          ) : consultaDni.estado === "encontrado" ? (
+          ) : consultaDocumento.estado === "buscando" ? (
+            <p className="w-ayuda">{esDni ? MENSAJES.dniBuscando : MENSAJES.documentoRevisando}</p>
+          ) : consultaDocumento.estado === "encontrado" ? (
             // Su nombre del padrón, a medias (no revela el de nadie) y con su origen: no se escribe ni se cambia aquí.
             <>
               <span className="w-res-ok">
                 <Icono nombre="check" />
-                {consultaDni.aMedias}
+                {consultaDocumento.aMedias}
               </span>
               <p className="w-ayuda">{MENSAJES.dniDelPadron}</p>
             </>
-          ) : consultaDni.estado === "sin_nombre" ? (
+          ) : consultaDocumento.estado === "libre" ? (
+            <p className="w-ayuda">{MENSAJES.documentoLibre}</p>
+          ) : consultaDocumento.estado === "sin_nombre" ? (
             // Sin el nombre del padrón no hay cuenta (Felipe 2026-10-15): el porqué y «Volver a intentar», que pregunta otra vez.
             <>
-              <span className="w-res-error">{mensajeSinNombre(consultaDni.motivo)}</span>
-              <button type="button" className="w-enlace" onClick={() => setDniRevisado({ valor: "", estado: { estado: "sin_revisar" } })}>
+              <span className="w-res-error">{mensajeSinNombre(consultaDocumento.motivo)}</span>
+              <button type="button" className="w-enlace" onClick={() => setDocumentoRevisado({ valor: "", estado: { estado: "sin_revisar" } })}>
                 Volver a intentar
               </button>
             </>
           ) : (
-            <p className="w-ayuda">{MENSAJES.dniAyuda}</p>
+            <p className="w-ayuda">{esDni ? MENSAJES.dniAyuda : MENSAJES.documentoAyuda}</p>
           )}
           {delClub && (
             <span className="w-club">
@@ -474,6 +516,32 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
           )}
         </Resultado>
       </Campo>
+
+      {/* Con carné o pasaporte, el nombre se escribe tal cual está en el documento: nombres y apellidos aparte (así el documento se
+          copia línea por línea y el saludo toma el nombre, no el apellido). Con DNI no hay caja: sale del padrón. */}
+      {!esDni &&
+        (["nombres", "apellidos"] as const).map((parte) => (
+          <Campo key={parte} campo={parte} idCaja={ID[parte]} etiqueta={parte === "nombres" ? "Nombres" : "Apellidos"} marca={marca(parte)} {...foco(parte)}>
+            <input
+              id={ID[parte]}
+              className="w-caja"
+              autoComplete={parte === "nombres" ? "given-name" : "family-name"}
+              autoCapitalize="words"
+              maxLength={MAX_PARTE_NOMBRE}
+              value={r[parte]}
+              onChange={(e) => cambiar({ [parte]: e.target.value } as Partial<Registro>)}
+              aria-describedby={`${ID[parte]}-res`}
+              aria-invalid={estado[parte] === "mal" || undefined}
+            />
+            <Resultado id={ID[parte]}>
+              {estado[parte] === "mal" ? (
+                <span className="w-res-error">{MENSAJES.nombreConNumeros}</span>
+              ) : (
+                <p className="w-ayuda">{parte === "nombres" ? MENSAJES.nombresAyuda : MENSAJES.apellidosAyuda}</p>
+              )}
+            </Resultado>
+          </Campo>
+        ))}
 
       <Campo campo="cel" idCaja={ID.cel} etiqueta="Celular con WhatsApp" marca={marca("cel")} {...foco("cel")}>
         <div className="w-caja-pref">

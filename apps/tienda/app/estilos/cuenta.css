@@ -37,6 +37,13 @@
 .w-caja-clave { position: relative; }
 .w-caja-clave .w-caja { padding-right: 84px; }
 .w-ver { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: none; padding: 8px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--taupe); cursor: pointer; }
+/* El tipo de documento (Felipe 2026-10-15: DNI, carné de extranjería o pasaporte, «como en las tiendas»): tres píldoras de 44 px de
+   alto (se tocan con el dedo), la elegida en tinta. A 375 px bajan a dos filas si no caben. */
+.w-tipos { display: flex; flex-wrap: wrap; gap: 6px; }
+.w-tipo { flex: 1 1 auto; min-height: 44px; padding: 0 14px; border: 1.5px solid var(--sand); border-radius: 999px; background: var(--papel); color: var(--tinta); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background-color .2s, border-color .2s, color .2s; }
+.w-tipo:hover { border-color: var(--taupe); }
+.w-tipo[aria-checked="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+.w-tipo:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 /* El año, más ancho: «Año (opcional)» tiene que caber entero a 375 px. */
 .w-cumple { display: grid; grid-template-columns: 1fr 1fr 2.1fr; gap: 8px; }
 .w-cumple .w-caja { min-width: 0; padding-inline: 12px; }

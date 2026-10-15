@@ -1,5 +1,6 @@
 "use server";
 
+import { esTipoDocumentoClienta, type TipoDocumentoClienta } from "@cayla-retail/shared";
 import { isAuthApiError, isAuthRetryableFetchError, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -20,6 +21,8 @@ import {
   codigoCompleto,
   codigoLimpio,
   correoValido,
+  documentoCompleto,
+  documentoRepetido,
   errorDeRegistro,
   esquemaCrearCuenta,
   estadoClave,
@@ -30,13 +33,14 @@ import {
   mensajeCodigoLimite,
   mensajeCodigoMalo,
   mensajeSinNombre,
+  nombreEscrito,
   normalizarCorreo,
   problemaRegistro,
   TEXTOS_VERSION,
   type CampoProblema,
   type CasillaWhatsapp,
   type ConsultaCorreo,
-  type ConsultaDni,
+  type ConsultaDocumento,
 } from "@/lib/cuentas";
 import {
   anotarInvitadoEnBase,
@@ -74,19 +78,22 @@ export async function consultarCorreo(correo: unknown): Promise<ConsultaCorreo> 
 }
 
 /**
- * Con los 8 dígitos: si ese DNI ya tiene cuenta, si su ficha está archivada, si ya era del Club, y su nombre del padrón A MEDIAS
- * («Maria P. S.»). Nunca el nombre completo. Si el padrón no lo encuentra o no responde, no se puede crear la cuenta: el nombre no se
- * escribe a mano (Felipe 2026-10-15), y la página ofrece «Volver a intentar».
+ * Con el documento completo: si ya tiene cuenta, si su ficha está archivada, si ya era del Club y, con DNI, su nombre del padrón A
+ * MEDIAS («María P. G.»). Nunca el nombre completo. Con DNI, si el padrón no lo encuentra o no responde, no se puede crear la cuenta:
+ * el nombre no se escribe a mano (Felipe 2026-10-15), y la página ofrece «Volver a intentar». Con carné de extranjería o pasaporte
+ * (Felipe 2026-10-15, «como en las tiendas») no hay padrón: el nombre se escribe tal cual está en el documento.
  */
-export async function consultarDni(dni: unknown): Promise<ConsultaDni> {
-  if (typeof dni !== "string" || !/^\d{8}$/.test(dni)) return { estado: "sin_revisar" };
-  const h = await huellas(dni);
-  if (!h?.documento) return { estado: "sin_nombre", motivo: "sin_padron", delClub: false };
-  const enBase = await consultarDocumentoEnBase(dni, h.ip, h.documento);
+export async function consultarDocumento(tipo: unknown, numero: unknown): Promise<ConsultaDocumento> {
+  if (!esTipoDocumentoClienta(tipo) || typeof numero !== "string" || !documentoCompleto(tipo, numero)) return { estado: "sin_revisar" };
+  const h = await huellas({ tipo, numero });
+  const sinRespuesta: ConsultaDocumento = { estado: "sin_nombre", motivo: "sin_padron", delClub: false };
+  if (!h?.documento) return sinRespuesta;
+  const enBase = await consultarDocumentoEnBase(tipo, numero, h.ip, h.documento);
   if (enBase.estado === "repetido" || enBase.estado === "archivada") return { estado: enBase.estado };
   if (enBase.estado === "limite") return { estado: "sin_nombre", motivo: "limite", delClub: false };
-  if (enBase.estado !== "libre") return { estado: "sin_nombre", motivo: "sin_padron", delClub: false };
-  const padron = await buscarNombre(dni);
+  if (enBase.estado !== "libre") return sinRespuesta;
+  if (tipo !== "dni") return { estado: "libre", delClub: enBase.delClub };
+  const padron = await buscarNombre(numero);
   if (padron.estado === "encontrado") return { estado: "encontrado", aMedias: padron.aMedias, delClub: enBase.delClub };
   return { estado: "sin_nombre", motivo: padron.estado, delClub: enBase.delClub };
 }
@@ -278,7 +285,8 @@ export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
 
   const admin = clienteAdmin();
   const sesion = await clienteSesion();
-  const h = await huellas(r.dni);
+  const documento = { tipo: r.documentoTipo, numero: r.documento };
+  const h = await huellas(documento);
   if (!admin || !sesion || !h?.documento) {
     console.error(JSON.stringify({ evento: "tienda_cuentas_sin_configurar", admin: !!admin, sesion: !!sesion, huellas: !!h }));
     return sinCrear(null, MENSAJES.noDisponible);
@@ -297,15 +305,15 @@ export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
   }
 
   // 3. La base revisa (y cuenta el intento).
-  const revision = await revisarRegistroEnBase(correo, r.dni, celularNormalizado(r.celular), h.ip, h.documento);
+  const revision = await revisarRegistroEnBase(correo, documento, celularNormalizado(r.celular), h.ip, h.documento);
   if (revision.estado !== "ok") {
     if (revision.estado === "limite") return sinCrear(null, MENSAJES.limite);
     if (revision.estado === "correo_repetido") return sinCrear("correo", MENSAJES.correoRepetido);
     // Un correo es de una sola persona: el de contacto de otra ficha no sirve para esta cuenta (sin decir de quién es).
     if (revision.estado === "correo_de_otra_persona") return sinCrear("correo", MENSAJES.correoDeOtraPersona);
-    if (revision.estado === "dni_repetido") return sinCrear("dni", MENSAJES.dniRepetido);
-    if (revision.estado === "archivada") return sinCrear("dni", MENSAJES.dniArchivada);
-    if (revision.estado === "invalido") return errorDeRegistro("cuenta_datos_invalidos", revision.campo);
+    if (revision.estado === "dni_repetido") return sinCrear("documento", documentoRepetido(r.documentoTipo));
+    if (revision.estado === "archivada") return sinCrear("documento", MENSAJES.dniArchivada);
+    if (revision.estado === "invalido") return errorDeRegistro("cuenta_datos_invalidos", revision.campo, r.documentoTipo);
     return sinCrear(null, MENSAJES.noDisponible);
   }
 
@@ -315,9 +323,10 @@ export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
     if (!vigente || vigente.version !== casilla) return { campo: "avisos", mensaje: MENSAJES.avisosCambio, casilla: vigente };
   }
 
-  // 5. El nombre del padrón, anotado en la base: sin esa lectura la ficha no lo acepta.
-  const nombre = await nombreParaLaCuenta(r.dni, true);
-  if (nombre.estado !== "ok") return sinCrear("dni", mensajeSinNombre(nombre.estado));
+  // 5. El nombre. Con DNI, el del padrón, anotado en la base: sin esa lectura la ficha no lo acepta. Con carné o pasaporte, el
+  //    escrito tal cual, con los nombres primero (la base vuelve a exigir que no lleve números).
+  const nombre = await nombreParaLaCuenta(r.documentoTipo, r.documento, nombreEscrito(r));
+  if (nombre.estado !== "ok") return sinCrear("documento", mensajeSinNombre(nombre.estado));
 
   // 6. La contraseña.
   if (!(await ponerClave(admin, usuarioWebId, r.clave))) return sinCrear(null, MENSAJES.noDisponible);
@@ -326,9 +335,10 @@ export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
   const datos: DatosCuenta = {
     usuarioWebId,
     correo,
-    dni: r.dni,
+    documentoTipo: r.documentoTipo,
+    documento: r.documento,
     nombre: nombre.nombre,
-    nombreDelPadron: true,
+    nombreDelPadron: r.documentoTipo === "dni",
     celular: celularNormalizado(r.celular),
     cumpleDia: Number(r.cumple.d),
     cumpleMes: Number(r.cumple.m),
@@ -348,7 +358,7 @@ export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
   // Un doble envío: la cuenta de este mismo usuario ya quedó creada con el primero. Se entra.
   const yaEstaba = !registro.ok && registro.hint === "cuenta_ya_existe";
   if (!registro.ok && !yaEstaba) {
-    const e = errorDeRegistro(registro.hint, registro.detalle);
+    const e = errorDeRegistro(registro.hint, registro.detalle, r.documentoTipo);
     if (e.campo === "codigo") {
       // Sin el pendiente de este usuario, su confirmación ya no sirve: el usuario se va (el correo queda libre) y se pide otro código.
       await borrarSiNoTieneCuenta(admin, usuarioWebId, { respetarRecientes: false });
@@ -381,17 +391,20 @@ async function marcarEntradaDeHoy(usuarioWebId: string): Promise<void> {
 }
 
 /**
- * El nombre que va a la cuenta: SOLO el del padrón, consultado aquí (lo que diga el navegador no cuenta; Felipe 2026-10-15: sin la
- * API no se registra). `anotar`: justo antes de crear la cuenta, deja la lectura en la base (`tienda_anotar_lectura_padron`), que es
- * lo que la ficha exige para aceptar el nombre; si no se pudo anotar, se lee como que el padrón no respondió (se vuelve a intentar).
+ * El nombre que va a la cuenta. Con DNI, SOLO el del padrón, consultado aquí (lo que diga el navegador no cuenta; Felipe 2026-10-15:
+ * sin la API no se registra), con los nombres primero; justo antes de crear la cuenta deja la lectura en la base
+ * (`tienda_anotar_lectura_padron`), que es lo que la ficha exige para aceptar el nombre; si no se pudo anotar, se lee como que el
+ * padrón no respondió (se vuelve a intentar). Con carné o pasaporte, el escrito (`problemaRegistro` ya lo revisó).
  */
 async function nombreParaLaCuenta(
-  dni: string,
-  anotar: boolean,
+  tipo: TipoDocumentoClienta,
+  numero: string,
+  escrito: string,
 ): Promise<{ estado: "ok"; nombre: string } | { estado: "no_encontrado" | "sin_padron" }> {
-  const padron = await buscarNombre(dni);
+  if (tipo !== "dni") return { estado: "ok", nombre: escrito };
+  const padron = await buscarNombre(numero);
   if (padron.estado !== "encontrado") return { estado: padron.estado };
-  if (anotar && !(await anotarLecturaDelPadron(dni, padron.nombre))) return { estado: "sin_padron" };
+  if (!(await anotarLecturaDelPadron(numero, padron.nombre))) return { estado: "sin_padron" };
   return { estado: "ok", nombre: padron.nombre };
 }
 
