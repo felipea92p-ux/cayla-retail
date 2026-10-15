@@ -6,7 +6,7 @@
   "controles": {
     "app/(app)/buscar/page.tsx": [
       "CampoTexto «Buscar»",
-      "Boton «buscar.boton»"
+      "BotonBuscar «buscar.boton»"
     ]
   }
 }

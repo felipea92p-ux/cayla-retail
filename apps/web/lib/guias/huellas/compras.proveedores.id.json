@@ -10,7 +10,7 @@
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «Buscar»",
+      "BotonBuscar «) : ( campoNumero )»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/CuentasProveedor.tsx": [

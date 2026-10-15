@@ -66,7 +66,7 @@ export function FichasMedio<M extends MetodoPagoVenta>({
           >
             {elegida && (
               <span className="hoja-cobro-marca">
-                <Check className="h-3 w-3" strokeWidth={3} aria-hidden />
+                <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-3 w-3" strokeWidth={3} aria-hidden />
               </span>
             )}
             <span className="hoja-cobro-acostada">

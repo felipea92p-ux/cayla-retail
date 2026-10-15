@@ -13,7 +13,7 @@ import type { EstadoBotonCierre } from "@/lib/caja-cierre-boton-reglas";
 export function BotonCerrarCaja({ onCerrar }: { onCerrar: () => void }) {
   return (
     <button type="button" onClick={onCerrar} className="cc-boton">
-      <Lock size={18} aria-hidden /> Cerrar caja
+      <Lock size={16} aria-hidden /> Cerrar caja
     </button>
   );
 }
@@ -44,7 +44,7 @@ export function BarraCierreCaja({ estado, onCerrar }: { estado: EstadoBotonCierr
         </div>
         {onCerrar && (
           <button ref={botonRef} type="button" onClick={onCerrar} className="cc-boton">
-            <Lock size={18} aria-hidden /> Cerrar caja
+            <Lock size={16} aria-hidden /> Cerrar caja
           </button>
         )}
       </div>

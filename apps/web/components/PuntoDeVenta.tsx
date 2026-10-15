@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { Globito } from "@/components/ui/Globito";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { METODOS_PAGO, METODOS_PAGO_VENTA, type MetodoPagoVenta } from "@cayla-retail/shared";
@@ -2392,9 +2393,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
         >
           <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-crema/10">
             <ShoppingBag className="h-5 w-5" aria-hidden />
-            {prendas > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1 text-[10px] font-semibold tabular-nums">{prendas}</span>
-            )}
+            <Globito n={prendas} esquina sobreOscuro late className="absolute -right-1.5 -top-1.5" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[11px] text-crema/70">

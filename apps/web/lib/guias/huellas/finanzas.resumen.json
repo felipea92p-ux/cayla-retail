@@ -19,7 +19,7 @@
     ],
     "components/finanzas/ResumenDecidir.tsx": [
       "Link «fin-resumen.aviso-accion»",
-      "button «fin-resumen.ver-mas»"
+      "BotonVerMas «fin-resumen.ver-mas»"
     ],
     "components/finanzas/ResumenFinanzas.tsx": [
       "Link «Ver todo»"

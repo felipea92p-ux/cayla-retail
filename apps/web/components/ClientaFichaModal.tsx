@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -866,11 +867,14 @@ function SeccionActividad({ titulo, total, children }: { titulo: string; total: 
       <p className="label-cayla text-[11px] text-tinta/65">
         {titulo} <span className="tabular-nums text-tinta/45">· {total}</span>
       </p>
-      <div className="mt-2 space-y-1.5">{todas ? children : children.slice(0, FILAS_VISIBLES)}</div>
+      <div className="mt-2 space-y-1.5">{children.slice(0, FILAS_VISIBLES)}</div>
       {total > FILAS_VISIBLES && (
-        <button type="button" className="btn-cayla btn-sutil mt-1" onClick={() => setTodas((t) => !t)}>
-          {todas ? "Ver menos" : `Ver las ${total}`}
-        </button>
+        <>
+          <FilasDeMas abierto={todas}>
+            <div className="space-y-1.5 pt-1.5">{children.slice(FILAS_VISIBLES)}</div>
+          </FilasDeMas>
+          <BotonVerMas forma="enlace" abierto={todas} onCambiar={setTodas} texto={`Ver las ${total}`} className="mt-1" />
+        </>
       )}
     </div>
   );

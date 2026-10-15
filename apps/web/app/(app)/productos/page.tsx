@@ -246,8 +246,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               reemplazar={false}
               guia="productos.vista"
               opciones={[
-                { valor: "grilla", etiqueta: "Grilla", href: hrefConVista("grilla"), icono: <LayoutGrid aria-hidden strokeWidth={1.75} />, guia: "productos.vista-grilla" },
-                { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden strokeWidth={1.75} />, guia: "productos.vista-tabla" },
+                { valor: "grilla", etiqueta: "Grilla", href: hrefConVista("grilla"), icono: <LayoutGrid aria-hidden />, guia: "productos.vista-grilla" },
+                { valor: "tabla", etiqueta: "Tabla", href: hrefConVista("tabla"), icono: <Rows3 aria-hidden />, guia: "productos.vista-tabla" },
               ]}
               soloIconoEnCelular
             />
@@ -256,7 +256,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             {/* En el celular las tres acciones van en UNA fila (2026-10-09): Grilla/Tabla y Rótulos quedan en su ícono, con la
                 palabra para el lector de pantalla y al pasar el mouse; «Nuevo producto» conserva la suya. */}
             <BotonEnlace href={urlRotulos([], { productos: hrefConVista(vista) }) ?? "/rotulos"} peso="fantasma" title="Rótulos" className="max-sm:!px-3" data-guia="productos.rotulos">
-              <SignpostBig aria-hidden className="h-4 w-4" strokeWidth={1.75} />
+              <SignpostBig aria-hidden className="h-4 w-4" />
               <span className="max-sm:sr-only">Rótulos</span>
             </BotonEnlace>
             {editaCatalogo && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import Link from "next/link";
 import { Chip } from "@/components/ui/Chip";
 import type { Aviso } from "@/lib/resumen-finanzas-reglas";
@@ -14,12 +15,7 @@ const VISIBLES = 5;
 /** `parcial`: hay partes que esta cuenta no ve (se listan debajo); «nada urgente» vale para lo que sí ve. */
 export function ResumenDecidir({ avisos, parcial = false }: { avisos: Aviso[]; parcial?: boolean }) {
   const [todos, setTodos] = useState(false);
-  const vistos = todos ? avisos : avisos.slice(0, VISIBLES);
-  return (
-    <>
-      <ul className="fin-decidir">
-        {vistos.length ? (
-          vistos.map((a) => (
+  const fila = (a: Aviso) => (
             <li key={a.clave}>
               <span className="fin-punto" data-tono={a.tono} aria-hidden />
               <div className="fin-aviso min-w-0">
@@ -43,7 +39,12 @@ export function ResumenDecidir({ avisos, parcial = false }: { avisos: Aviso[]; p
                 <span />
               )}
             </li>
-          ))
+  );
+  return (
+    <>
+      <ul className="fin-decidir">
+        {avisos.length ? (
+          avisos.slice(0, VISIBLES).map(fila)
         ) : (
           <li>
             <span className="fin-punto" data-tono="verde" aria-hidden />
@@ -56,9 +57,12 @@ export function ResumenDecidir({ avisos, parcial = false }: { avisos: Aviso[]; p
         )}
       </ul>
       {avisos.length > VISIBLES && (
-        <button type="button" className="btn-cayla btn-enlace mt-2" onClick={() => setTodos((v) => !v)} aria-expanded={todos} data-guia="fin-resumen.ver-mas">
-          {todos ? "Ver menos" : `Ver ${avisos.length - VISIBLES} más`}
-        </button>
+        <>
+          <FilasDeMas abierto={todos}>
+            <ul className="fin-decidir fin-decidir-mas">{avisos.slice(VISIBLES).map(fila)}</ul>
+          </FilasDeMas>
+          <BotonVerMas forma="enlace" abierto={todos} onCambiar={setTodos} texto={`Ver ${avisos.length - VISIBLES} más`} data-guia="fin-resumen.ver-mas" className="mt-2" />
+        </>
       )}
     </>
   );

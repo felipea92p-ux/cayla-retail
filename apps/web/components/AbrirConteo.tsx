@@ -290,7 +290,7 @@ export function AbrirConteo({
                 opciones={lugares.map((l) => ({
                   valor: l.id,
                   titulo: textoLugar({ sububicacionTipo: l.tipo, sububicacionNombre: l.nombre }),
-                  icono: l.tipo === "piso_venta" ? <IconoPercha className="h-6 w-6" /> : <Package className="h-6 w-6" strokeWidth={1.5} aria-hidden />,
+                  icono: l.tipo === "piso_venta" ? <IconoPercha className="h-6 w-6" /> : <Package /* unificar-fijo: un ícono grande (24 px o más) es un dibujo: trazo 1,5, como el de un vacío (ronda 15) */ className="h-6 w-6" strokeWidth={1.5} aria-hidden />,
                   linea: ultimoPorLugar[l.id] ?? "Nunca se contó",
                   cifra: alcance ? textoVariantesRegistradas(variantesDelConteo(alcance, l.id, null) ?? 0) : null,
                 }))}
@@ -369,7 +369,7 @@ export function AbrirConteo({
                       a.tipo === "arranque" ? "border-sand bg-hueso text-tinta" : "border-ambar/35 bg-ambar/[0.07] text-tinta"
                     } ${visible ? "" : "invisible"}`}
                   >
-                    <Flag aria-hidden strokeWidth={1.5} className={`mt-0.5 h-4 w-4 shrink-0 ${a.tipo === "arranque" ? "text-taupe" : "text-ambar-profundo"}`} />
+                    <Flag aria-hidden className={`mt-0.5 h-4 w-4 shrink-0 ${a.tipo === "arranque" ? "text-taupe" : "text-ambar-profundo"}`} />
                     <span className="min-w-0">
                       <b className="font-semibold">{a.titulo}.</b> {a.texto}
                     </span>

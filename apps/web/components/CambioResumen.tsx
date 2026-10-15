@@ -112,7 +112,7 @@ export function ListaValidaciones({ validaciones }: { validaciones: readonly Val
           <li key={v.clave} className="flex gap-2.5">
             {/* Los checks se trazan uno tras otro al aparecer el panel. */}
             <Icono
-              className={`mt-0.5 h-[19px] w-[19px] shrink-0 ${clase} ${v.estado === "ok" && v.tono !== "rojo" ? "check-trazo" : ""}`}
+              className={`mt-0.5 h-5 w-5 shrink-0 ${clase} ${v.estado === "ok" && v.tono !== "rojo" ? "check-trazo" : ""}`}
               style={{ "--d": `${800 + i * 130}ms` } as CSSProperties}
               aria-hidden
             />

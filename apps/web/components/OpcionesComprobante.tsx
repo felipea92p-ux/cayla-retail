@@ -77,7 +77,7 @@ export function OpcionesComprobante({
       <div data-guia="comprobantes.opciones-acciones" className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {c.pdfUrl && (
           <a href={enlaceWhatsAppA(extra?.telefono, mensaje)} target="_blank" rel="noreferrer" className={PRIMARIA}>
-            <MessageCircle aria-hidden size={18} strokeWidth={1.75} className="shrink-0" />
+            <MessageCircle aria-hidden size={20} className="shrink-0" />
             <span>
               {tieneNumero && primerNombre ? `WhatsApp a ${primerNombre}` : "Enviar por WhatsApp"}
               <span className="block text-[12px] leading-snug text-crema/70">{tieneNumero ? "Directo a su chat, con el PDF" : "Sin número guardado: eliges el chat"}</span>
@@ -86,7 +86,7 @@ export function OpcionesComprobante({
         )}
         {c.pdfUrl && (
           <a href={c.pdfUrl} target="_blank" rel="noreferrer" className={OPCION}>
-            <FileText aria-hidden size={18} strokeWidth={1.75} className="shrink-0 text-taupe" />
+            <FileText aria-hidden size={20} className="shrink-0 text-taupe" />
             <span>
               Ver PDF<span className={BAJADA}>El comprobante tal como lo tiene SUNAT</span>
             </span>
@@ -94,7 +94,7 @@ export function OpcionesComprobante({
         )}
         {c.venta_id && (
           <button type="button" onClick={() => setViendoVenta(true)} className={OPCION}>
-            <ShoppingBag aria-hidden size={18} strokeWidth={1.75} className="shrink-0 text-taupe" />
+            <ShoppingBag aria-hidden size={20} className="shrink-0 text-taupe" />
             <span>
               Ver la venta<span className={BAJADA}>Prendas, pago y quién vendió</span>
             </span>
@@ -102,7 +102,7 @@ export function OpcionesComprobante({
         )}
         {c.pdfUrl && (
           <a href={c.pdfUrl} target="_blank" rel="noreferrer" className={OPCION}>
-            <Printer aria-hidden size={18} strokeWidth={1.75} className="shrink-0 text-taupe" />
+            <Printer aria-hidden size={20} className="shrink-0 text-taupe" />
             <span>
               Imprimir de nuevo<span className={BAJADA}>Abre el PDF para imprimir</span>
             </span>
@@ -111,13 +111,13 @@ export function OpcionesComprobante({
         {puedePosventa && (
           <>
             <Link href={posventa("/cambios")} className={OPCION}>
-              <ArrowLeftRight aria-hidden size={18} strokeWidth={1.75} className="shrink-0 text-taupe" />
+              <ArrowLeftRight aria-hidden size={20} className="shrink-0 text-taupe" />
               <span>
                 Cambio<span className={BAJADA}>Talla o color, en Posventa</span>
               </span>
             </Link>
             <Link href={posventa("/devoluciones")} className={OPCION}>
-              <Undo2 aria-hidden size={18} strokeWidth={1.75} className="shrink-0 text-taupe" />
+              <Undo2 aria-hidden size={20} className="shrink-0 text-taupe" />
               <span>
                 Devolución<span className={BAJADA}>Emite su nota de crédito</span>
               </span>
@@ -126,7 +126,7 @@ export function OpcionesComprobante({
         )}
         {extra?.notaDeCredito && (
           <Link href={posventa("/devoluciones")} className={`${OPCION} sm:col-span-2`}>
-            <Link2 aria-hidden size={18} strokeWidth={1.75} className="shrink-0 text-pizarra" />
+            <Link2 aria-hidden size={20} className="shrink-0 text-pizarra" />
             <span>
               Ya tiene la nota de crédito {extra.notaDeCredito.numero}
               <span className={BAJADA}>Se devolvió: no se puede devolver dos veces. Toca para ver la devolución.</span>
@@ -135,7 +135,7 @@ export function OpcionesComprobante({
         )}
         {esNota && extra?.corrige && (
           <div className={`${OPCION} sm:col-span-2`}>
-            <Link2 aria-hidden size={18} strokeWidth={1.75} className="shrink-0 text-pizarra" />
+            <Link2 aria-hidden size={20} className="shrink-0 text-pizarra" />
             <span>
               Corrige a {extra.corrige.numero}
               <span className={BAJADA}>{extra.devolucionId ? "Salió de una devolución aprobada." : "Nota de crédito sobre ese comprobante."}</span>

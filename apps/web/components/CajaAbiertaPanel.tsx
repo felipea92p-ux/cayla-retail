@@ -639,9 +639,9 @@ function EstadoSync({ pendientes }: { pendientes: number }) {
           ok ? "bg-verde/15 text-verde-profundo" : "bg-ambar/15 text-ambar-profundo"
         }`}
       >
-        <span aria-hidden className="relative flex h-[15px] w-[15px] items-center justify-center">
+        <span aria-hidden className="relative flex h-3.5 w-3.5 items-center justify-center">
           <span className={`anim-caja-ping absolute inset-0 rounded-full ${ok ? "bg-verde" : "bg-ambar"}`} />
-          <Icono size={15} className={`relative ${ok ? "anim-caja-check" : ""}`} />
+          <Icono size={14} className={`relative ${ok ? "anim-caja-check" : ""}`} />
         </span>
         <span className="relative">{ok ? "Todo sincronizado" : `${pendientes} venta${pendientes === 1 ? "" : "s"} sin sincronizar`}</span>
       </span>

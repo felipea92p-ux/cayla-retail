@@ -25,7 +25,7 @@
     ],
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "Boton «Buscar»",
+      "BotonBuscar «) : ( campoNumero )»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/DecisionFaltanteFila.tsx": [
@@ -60,7 +60,7 @@
       "Link «Sí, viene con la»",
       "Link «Ver las»",
       "button «No, recibir sin factura»",
-      "button «Deshacer»",
+      "BotonDeshacer «)»",
       "Link «Crearla en Nuevo producto»",
       "button «Una menos»",
       "input «Cantidad»",
@@ -111,7 +111,7 @@
       "button «{c.proveedorNombre}»",
       "button «{`Quitar ${c.documento}»",
       "Pestanas «(sin nombre)»",
-      "button «Deshacer»",
+      "BotonDeshacer «)»",
       "button «Agregar»",
       "button «→() => setAbiertos((a) => ({ ...a, [c.id]: !abierto»",
       "button «Todo llegó»",
@@ -155,7 +155,7 @@
     ],
     "components/recepcion-conteo/LlegoSinAviso.tsx": [
       "button «→() => setProveedorId(p.id)»",
-      "button «No sé de qu»",
+      "button «No sé de quién es»",
       "Link «Sí, viene con la»",
       "CampoTexto «{campos.etiqueta(\"sin-aviso-guia\", \"Número de guía (opcional)\")}»",
       "ComboResponsable «(sin nombre)»",

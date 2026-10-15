@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Globito } from "@/components/ui/Globito";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, CalendarDays, PanelRightOpen } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -310,16 +311,12 @@ export function PlanCampana({
                       aria-expanded={resumenAbierto}
                       aria-label={avisos > 0 ? `Resumen y avisos: ${avisos} ${avisos === 1 ? "aviso" : "avisos"}` : "Resumen y avisos"}
                     >
-                      <PanelRightOpen aria-hidden className="h-[18px] w-[18px]" />
+                      <PanelRightOpen aria-hidden className="h-4 w-4" />
                     </Boton>
                   </TooltipTrigger>
                   <TooltipContent sideOffset={6}>Resumen y avisos</TooltipContent>
                 </Tooltip>
-                {avisos > 0 && (
-                  <span aria-hidden className="pointer-events-none absolute -right-2 -top-2 inline-grid h-5 min-w-5 place-items-center rounded-full bg-rojo px-1 text-[11px] font-semibold leading-none text-crema ring-2 ring-crema">
-                    {avisos}
-                  </span>
-                )}
+                <Globito n={avisos} pide esquina className="absolute -right-2 -top-2" />
               </span>
             {campanas && (
               <SelectorCampana

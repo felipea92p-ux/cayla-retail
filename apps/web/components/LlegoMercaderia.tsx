@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BotonDeshacer } from "@/components/ui/BotonDeshacer";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -510,9 +511,7 @@ export function LlegoMercaderia({
                   {lectura.bueno ? "✓ " : ""}
                   {lectura.texto}{" "}
                   {lectura.varianteId && (
-                    <button type="button" onClick={deshacer} className="btn-enlace">
-                      Deshacer
-                    </button>
+                    <BotonDeshacer onClick={deshacer} />
                   )}
                   {lectura.crear && (
                     <Link href="/productos/nuevo" target="_blank" onClick={() => (fueACrear.current = true)} className="btn-enlace">

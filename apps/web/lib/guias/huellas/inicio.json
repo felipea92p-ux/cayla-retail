@@ -61,7 +61,7 @@
       "Link «{a.titulo}»"
     ],
     "components/inicio-almacen/VerMas.tsx": [
-      "button «{abierto ? \"Ver menos\" : `Ver ${cantidad}»"
+      "BotonVerMas «);»"
     ],
     "components/inicio/AjustarInicio.tsx": [
       "button «→() => setAbierto(true)»",

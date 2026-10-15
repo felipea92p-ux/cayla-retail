@@ -380,13 +380,13 @@ export function ComprobantesPanel({
                     <p className="mt-0.5 truncate text-[13px] text-tinta/65 @min-[900px]:hidden">{cliente}</p>
                     {extras[c.id]?.notaDeCredito && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-[11.5px] text-pizarra">
-                        <Link2 aria-hidden size={12} strokeWidth={1.75} />
+                        <Link2 aria-hidden size={12} />
                         Tiene {extras[c.id]!.notaDeCredito!.numero}
                       </p>
                     )}
                     {extras[c.id]?.corrige && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-[11.5px] text-pizarra">
-                        <Link2 aria-hidden size={12} strokeWidth={1.75} />
+                        <Link2 aria-hidden size={12} />
                         Corrige {extras[c.id]!.corrige!.numero}
                       </p>
                     )}

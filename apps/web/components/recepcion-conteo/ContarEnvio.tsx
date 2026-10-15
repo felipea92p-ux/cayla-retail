@@ -433,7 +433,7 @@ function ContadorDeLinea({
       <div className="space-y-3" data-guia="recepcion.numero">
         <div className="rc-numero">
           <button type="button" onClick={() => poner(contadas - 1)} disabled={contadas <= minimo} aria-label="Una menos" className="rc-paso-btn">
-            <Minus aria-hidden className="h-[22px] w-[22px]" />
+            <Minus aria-hidden className="h-5 w-5" />
           </button>
           <input // unificar-fijo: el número protagonista de la maqueta A (Felipe 2026-10-13), sin caja: se lee como una cifra
             type="text"
@@ -454,7 +454,7 @@ function ContadorDeLinea({
             }}
           />
           <button type="button" onClick={() => poner(contadas + 1)} aria-label="Una más" className="rc-paso-btn">
-            <Plus aria-hidden className="h-[22px] w-[22px]" />
+            <Plus aria-hidden className="h-5 w-5" />
           </button>
         </div>
         <div className="rc-rapidos">

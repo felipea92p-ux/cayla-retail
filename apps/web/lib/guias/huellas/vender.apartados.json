@@ -54,7 +54,7 @@
       "button «Apartar»",
       "button «←»",
       "button «Cambiar»",
-      "Boton «Buscar»",
+      "BotonBuscar «)»",
       "input «cambiar(\"apellidos\", e.target.value)»",
       "input «cambiar(\"celular\", e.target.value)»",
       "input «9 dígitos»",
