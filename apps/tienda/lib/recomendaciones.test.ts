@@ -6,6 +6,7 @@ import {
   MINIMO,
   claveDelBorrador,
   contador,
+  fraseDelCupo,
   leerEnvio,
   leerMias,
   letras,
@@ -110,6 +111,13 @@ describe("lo que responde tienda_mis_recomendaciones", () => {
   it("cuántas le quedan hoy, nunca menos de cero", () => {
     expect(quedanHoy({ tope: 3, hoy: 1 })).toBe(2);
     expect(quedanHoy({ tope: 3, hoy: 5 })).toBe(0);
+  });
+
+  it("la frase del cupo: nada si no mandó ninguna hoy, «te queda 1» en singular y «ya las enviaste» en el tope", () => {
+    expect(fraseDelCupo(3, 3)).toBe("Puedes enviarnos hasta 3 al día.");
+    expect(fraseDelCupo(3, 2)).toBe("Puedes enviarnos hasta 3 al día: hoy te quedan 2.");
+    expect(fraseDelCupo(3, 1)).toBe("Puedes enviarnos hasta 3 al día: hoy te queda 1.");
+    expect(fraseDelCupo(3, 0)).toBe("Puedes enviarnos hasta 3 al día: hoy ya las enviaste.");
   });
 
   it("para el cliente no hay «archivada»: el archivo es de la tienda", () => {

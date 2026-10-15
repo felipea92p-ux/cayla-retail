@@ -9,6 +9,7 @@ import {
   MINIMO,
   claveDelBorrador,
   contador,
+  fraseDelCupo,
   mensajeDelEnvio,
   problemaDelTexto,
   sePuedeEnviar,
@@ -169,8 +170,7 @@ export function FormularioRecomendacion({
       <p className="r-firma">
         <Icono nombre="persona" />
         <span>
-          Va con tu nombre, <b>{nombre}</b>, para que podamos responderte aquí. Puedes enviarnos hasta {tope} al día
-          {quedan < tope ? (quedan > 0 ? `: hoy te quedan ${quedan}.` : ": hoy ya las enviaste.") : "."}
+          Va con tu nombre, <b>{nombre}</b>, para que podamos responderte aquí. {fraseDelCupo(tope, quedan)}
         </span>
       </p>
 

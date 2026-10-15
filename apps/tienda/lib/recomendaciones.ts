@@ -155,3 +155,12 @@ export const INSIGNIA: Record<EstadoParaElCliente, { texto: string; tono: "neutr
 
 /** Cuántas le quedan hoy (nunca menos de cero). */
 export const quedanHoy = (m: Pick<MisRecomendaciones, "tope" | "hoy">) => Math.max(0, m.tope - m.hoy);
+
+/** La frase del cupo bajo el formulario: «Puedes enviarnos hasta 3 al día.», y si ya mandó alguna hoy, cuántas le quedan («te queda 1»,
+ *  en singular) o que ya las envió. */
+export function fraseDelCupo(tope: number, quedan: number): string {
+  const base = `Puedes enviarnos hasta ${tope} al día`;
+  if (quedan >= tope) return `${base}.`;
+  if (quedan <= 0) return `${base}: hoy ya las enviaste.`;
+  return `${base}: hoy te ${quedan === 1 ? "queda 1" : `quedan ${quedan}`}.`;
+}
