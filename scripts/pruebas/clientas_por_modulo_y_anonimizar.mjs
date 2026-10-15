@@ -172,6 +172,11 @@ const DE_LA_TIENDA = ["tienda_consultar_documento", "tienda_mi_cuenta", "tienda_
 // cumpleaños (día y mes), si es miembro y lo de su aniversario, para mostrarle sus beneficios con las reglas que cobra la caja. Igual
 // que las de arriba: sin módulo a propósito, solo `tienda_web` la ejecuta, y la prueba a fondo scripts/pruebas/tienda_club.mjs.
 DE_LA_TIENDA.push("tienda_mi_club");
+// Y el aviso del Club al entrar (ADR-0408, integración de la tienda, 20261015045000; Felipe 2026-10-14: «si no le llegan los avisos
+// por WhatsApp, cuando inicie sesión igual le debe salir algún mensaje»): `tienda_mis_avisos_del_club` lee de la ficha de quien entra
+// SU cumpleaños y lo de su aniversario, con las mismas reglas que `tienda_mi_club`, y no escribe nada. Sin módulo a propósito, solo
+// `tienda_web` la ejecuta, y la prueba a fondo scripts/pruebas/tienda_avisos_al_entrar.mjs.
+DE_LA_TIENDA.push("tienda_mis_avisos_del_club");
 
 // Las de los pedidos web (ADR-0408, 20261014235000) que muestran al cliente de un pedido: el detalle y la lista de una tienda.
 // Con el candado de SU módulo, `pedidos_web` (`fn_pedido_web_exigir`), como las de Avisos: quien atiende el pedido ve solo lo que
