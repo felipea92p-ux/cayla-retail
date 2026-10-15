@@ -5,7 +5,7 @@
 // `analisis-rinde.ts` (servidor); la cuenta, aquí, para poder probarla.
 
 import type { PrendaAnalisis } from "./analisis-tipos";
-import { esTallaUnica, nuncaSalio, plural, totalEnTienda } from "./analisis-reglas";
+import { DIAS_MINIMOS_RITMO, esTallaUnica, nuncaSalio, plural, totalEnTienda } from "./analisis-reglas";
 import { compararTallas, tipoDeTalla, type TipoTalla } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
 
@@ -120,8 +120,10 @@ export type AlcanceTipo = {
   categoria: string;
   prefijo: string | null;
   familia: string | null;
-  /** Lo que se vendió del tipo en los días de ventas de la tienda. */
+  /** Lo que se vendió del tipo en los días de ventas de la tienda: con su prenda y sin registrar. */
   vendidas: number;
+  /** De lo vendido, cuántas se cobraron sin su prenda (anotadas en caja con su tipo): ya están dentro de `vendidas`. */
+  sinPrenda: number;
   /** Lo que tienes del tipo hoy (libre, piso + almacén). */
   tiene: number;
   /** De lo que tienes, cuántas unidades nunca salieron al piso; null si la base todavía no lo sabe. */
@@ -140,32 +142,80 @@ export type AlcanceTipo = {
  * cuenta solo lo del modelo del que nada se colgó: la talla guardada de un modelo colgado ya está presentada.
  */
 export function alcancePorTipo(
-  prendas: readonly Pick<PrendaAnalisis, "categoria" | "categoriaPrefijo" | "categoriaFamilia" | "vendidas30" | "piso" | "almacen" | "salioAlPiso">[],
+  prendas: readonly Pick<PrendaAnalisis, "categoria" | "categoriaPrefijo" | "categoriaFamilia" | "vendidas30" | "piso" | "almacen" | "salioAlPiso" | "diasDeVentas">[],
   diasDeVentas: number,
   hastaNavidad: number,
   sabePiso: boolean,
+  sinPrenda: Readonly<Record<string, number>> = {},
 ): AlcanceTipo[] {
+  // El ritmo del tipo es la suma del de sus prendas, cada una en su ventana (2026-10-14: los días que estuvo colgada, `ventanaDeRitmo`);
+  // lo vendido sin registrar no tiene prenda ni ventana propia: va en los días de ventas de la tienda. Sin ventana propia, la de la tienda.
   const ventana = Math.min(30, Math.max(1, Math.round(diasDeVentas)));
+  const ventanaDe = (p: { diasDeVentas?: number }) => Math.min(30, Math.max(1, Math.round(p.diasDeVentas ?? ventana)));
+  const ritmo = new Map<string, number>();
   const porTipo = new Map<string, AlcanceTipo>();
+  const nuevo = (c: string, p: (typeof prendas)[number]): AlcanceTipo =>
+    ({ categoria: c, prefijo: p.categoriaPrefijo, familia: p.categoriaFamilia, vendidas: 0, sinPrenda: 0, tiene: 0, nunca: sabePiso ? 0 : null, dias: null, pide: false });
+  // Una prenda de cada tipo que la tienda tiene, aunque hoy no tenga ni venta ni stock: el tipo existe para sumarle lo vendido sin registrar.
+  const delTipo = new Map<string, (typeof prendas)[number]>();
   for (const p of prendas) {
+    const c = categoriaDe(p);
+    if (!delTipo.has(c)) delTipo.set(c, p);
     const vend = Math.max(0, p.vendidas30);
     const tiene = Math.max(0, totalEnTienda(p));
     if (vend === 0 && tiene === 0) continue;
-    const c = categoriaDe(p);
-    const a =
-      porTipo.get(c) ??
-      { categoria: c, prefijo: p.categoriaPrefijo, familia: p.categoriaFamilia, vendidas: 0, tiene: 0, nunca: sabePiso ? 0 : null, dias: null, pide: false };
+    const a = porTipo.get(c) ?? nuevo(c, p);
     a.vendidas += vend;
+    ritmo.set(c, (ritmo.get(c) ?? 0) + vend / ventanaDe(p));
     a.tiene += tiene;
     if (a.nunca !== null && nuncaSalio(p)) a.nunca += p.almacen;
     porTipo.set(c, a);
   }
+  // Lo vendido sin registrar de cada tipo (ADR-0357, act. 2026-10-14): la venta no dice qué prenda fue, pero sí de qué tipo, así que
+  // cuenta en el ritmo del tipo. Sin esto, un tipo que se registra poco (un tercio de sus ventas) parecía durar el triple y «llegaba» a
+  // Navidad sin llegar. Solo en los tipos que la tienda tiene: de un tipo sin ninguna prenda registrada no se sabe cuánto hay
+  // (`tiposSinRegistrar` los nombra aparte).
+  for (const [nombre, n] of Object.entries(sinPrenda)) {
+    const c = nombre.trim() || SIN_CATEGORIA;
+    const muestra = delTipo.get(c);
+    if (!muestra || !(n > 0)) continue;
+    const a = porTipo.get(c) ?? nuevo(c, muestra);
+    a.vendidas += n;
+    a.sinPrenda += n;
+    ritmo.set(c, (ritmo.get(c) ?? 0) + n / ventana);
+    porTipo.set(c, a);
+  }
   return [...porTipo.values()]
     .map((a) => {
-      const dias = a.vendidas > 0 ? a.tiene / (a.vendidas / ventana) : null;
+      const porDia = ritmo.get(a.categoria) ?? 0;
+      const dias = a.vendidas > 0 && porDia > 0 ? a.tiene / porDia : null;
       return { ...a, dias, pide: dias !== null && dias < hastaNavidad };
     })
     .sort((a, b) => (a.dias ?? Infinity) - (b.dias ?? Infinity) || b.tiene - a.tiene || a.categoria.localeCompare(b.categoria, "es"));
+}
+
+/**
+ * Los tipos que se vendieron sin registrar y que la tienda no tiene en Análisis (ninguna prenda suya con stock, ventas o llegadas): no se
+ * sabe para cuánto alcanzan, porque el sistema no tiene cuánto hay. Se nombran aparte para que esa venta no desaparezca en silencio. Del
+ * que más se vendió al que menos.
+ */
+export function tiposSinRegistrar(
+  prendas: readonly Pick<PrendaAnalisis, "categoria">[],
+  sinPrenda: Readonly<Record<string, number>>,
+): { categoria: string; vendidas: number }[] {
+  const tiene = new Set(prendas.map(categoriaDe));
+  return Object.entries(sinPrenda)
+    .map(([c, n]) => ({ categoria: c.trim() || SIN_CATEGORIA, vendidas: n }))
+    .filter((t) => t.vendidas > 0 && !tiene.has(t.categoria))
+    .sort((a, b) => b.vendidas - a.vendidas || a.categoria.localeCompare(b.categoria, "es"));
+}
+
+/** «También vendiste 11 Pulseras y 10 Relojes sin registrar: no están en el sistema, así que no se sabe para cuánto te alcanzan.» */
+export function notaTiposSinRegistrar(tipos: readonly { categoria: string; vendidas: number }[]): string {
+  const nombres = tipos.slice(0, 3).map((t) => `${t.vendidas} ${t.categoria}`);
+  const resto = tipos.length - nombres.length;
+  const lista = resto > 0 ? `${nombres.join(", ")} y ${resto} ${plural(resto, "tipo más", "tipos más")}` : nombres.length > 1 ? `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}` : (nombres[0] ?? "");
+  return `También vendiste ${lista} sin registrar: no están en el sistema, así que no se sabe para cuánto te alcanzan.`;
 }
 
 /**
@@ -205,8 +255,14 @@ export const tipoCorto = (categoria: string): string => categoria.split(" y ")[0
 /** Dónde termina el eje de «¿Para cuánto te alcanza?»: 6 meses, o más si Navidad queda más lejos (para que su línea se vea). */
 export const finEjeAlcance = (hastaNavidad: number): number => Math.max(DIAS_ALCANZA_MAX, Math.ceil(hastaNavidad * 1.15));
 
-/** «Al ritmo de los últimos 8 días»: de qué días habla todo lo de «Qué pedir». */
-export const textoRitmo = (diasDeVentas: number): string => `Al ritmo de los últimos ${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`;
+/**
+ * De qué días habla el ritmo de todo Análisis: desde que cada prenda se colgó, nunca menos de una semana y hasta los días de ventas de la
+ * tienda (2026-10-14, `ventanaDeRitmo`). Con una semana o menos de ventas, es lo mismo que «los últimos N días» y se dice así.
+ */
+export const textoRitmo = (diasDeVentas: number): string =>
+  diasDeVentas <= DIAS_MINIMOS_RITMO
+    ? `Al ritmo de los últimos ${diasDeVentas} ${plural(diasDeVentas, "día", "días")}`
+    : `Al ritmo desde que se colgó · hasta ${diasDeVentas} días`;
 
 /* ───────── «Las tallas que se llevan» ───────── */
 

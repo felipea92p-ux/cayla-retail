@@ -329,8 +329,11 @@ export type PuertaPiso = {
   cuadradoEn?: string | null;
   /** Lo PRIMERO que falta (null si pasa o si no se pudo saber). Decide la razón de la frase y el botón del aviso. */
   falta?: FaltaPuerta | null;
-  /** Ventas de los últimos 30 días sin su prenda (lo que «Registrar N sin prenda» lleva a regularizar). */
+  /** Ventas de los últimos 30 días sin su prenda. */
   sinPrenda?: number;
+  /** De ellas, las que todavía se pueden registrar (pendientes en Por regularizar, sin tope de fechas): el número de «Registrar N sin
+   *  prenda» (ADR-0357, act. 2026-10-14; las cerradas ya no vuelven). Null si no se pudo contar; sin contar (undefined), `sinPrenda`. */
+  pendientes?: number | null;
   /** Si falta «ventas con su prenda», cuál de sus tres casos (los mismos de `avisoDatosDeHoy`): sin ventas en el ERP todavía, menos de 9 de
    *  cada 10 con su prenda, o ya las lleva pero faltan días seguidos (revisión adversaria: decía «no todas llevan su prenda» aunque todas). */
   venta?: "sin_ventas" | "sin_prenda" | "racha";
@@ -384,7 +387,8 @@ export type AccesoPuerta = { existencias: boolean; conteos: boolean };
  */
 export function pasoDeLaPuerta(puerta: PuertaPiso, acceso: AccesoPuerta): { texto: string; href: string } | null {
   if (puerta === null || puerta.puedeHablar) return null;
-  return pasoParaHablar(puerta.falta ?? null, puerta.sinPrenda ?? 0, { regularizar: acceso.existencias, cuadrar: acceso.existencias, conteo: acceso.conteos });
+  const pendientes = puerta.pendientes === undefined ? (puerta.sinPrenda ?? 0) : puerta.pendientes;
+  return pasoParaHablar(puerta.falta ?? null, pendientes, { regularizar: acceso.existencias, cuadrar: acceso.existencias, conteo: acceso.conteos });
 }
 
 /** «Aún no se sabe» desde esta parte del piso, la frase no afirma nada: con tanto gris, el porcentaje de frescas podría ser otro. */

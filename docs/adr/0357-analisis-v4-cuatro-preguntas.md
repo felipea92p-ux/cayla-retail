@@ -344,7 +344,8 @@ calla (principio 9).
 - **Dos decisiones de la maqueta que no se tomaron:** «Comprar» para quien no ve Compras ni Producción (hoy el botón no se dibuja; la maqueta
   proponía que se vea y llegue como pedido al líder) y «Mandar a Tareas» cuando exista Inventario ▸ Tareas.
 - **R-21 dice que lo básico y atemporal se guarda.** La base no marca qué prenda es básica, así que «Liquidar» también la propone.
-- **R-20 pide un umbral por categoría** cuando haya 8 semanas de ventas reales. Hoy «Liquidar desde» es uno para todos.
+- ~~**R-20 pide un umbral por categoría** cuando haya 8 semanas de ventas reales. Hoy «Liquidar desde» es uno para todos.~~ Hecho el
+  2026-10-14 con la vara de Frescura (ver «Actualización 2026-10-14», 3): «Liquidar desde» queda de respaldo.
 - **`/formidable`** sobre la pantalla (obligatoria, con tablero en `docs/formidable/README.md`).
 - **«Comprar todas» cuando lo que se acaba mezcla prendas del Taller y de terceros:** hoy no se dibuja (no hay un solo destino). ¿Dos botones de
   grupo, «Pedir al taller» y «Comprar a terceros»?
@@ -361,3 +362,52 @@ calla (principio 9).
   `fn_analisis_sede` en una migración aparte, cuando la web de hoy ya no los lea.
 - **Rendimiento a futuro:** el origen recorre `compra_items` una vez por modelo; un índice `compra_items (producto_id)` lo resuelve. Es tabla de
   Compras: necesita el OK de Felipe.
+
+## Actualización 2026-10-14 — Análisis con todas las ventas y contra la vara de su tipo (tareas #1 a #4 de `docs/pantallas/gestion-analisis.md`)
+
+**El problema primero.** El análisis `/pantalla` del 2026-10-14 (con producción leída en vivo) encontró que la pantalla razonaba con el 46 % de
+las ventas de TRU (347 de 652 líneas sin prenda; AQP, el 5 %) y con un umbral que la tienda no podía alcanzar: TRU vende en el ERP desde el
+30-sep, «Liquidar desde» estaba en 15 y ninguna prenda podía llevar 15 días quieta, así que «¿Qué no se mueve?» decía «Va bien» por aritmética.
+Lo que falta tampoco se repartía parejo (de 82 % a 0 % por tipo), así que «Qué pedir» ordenaba por calidad de registro y no por demanda. Las
+decisiones de Felipe del 2026-10-12 (memoria de esa sesión; no estaban escritas aquí ni en el código) y sus cuatro respuestas del 2026-10-14:
+
+1. **Lo vendido sin registrar cuenta por tipo.** La venta cobrada con la prenda centinela trae en `prendas_por_regularizar` su categoría, talla y
+   color (el 100 % en las dos tiendas). «Qué pedir» la suma a lo vendido de su tipo (pendientes y cerradas sin prenda, en los mismos 30 días de
+   `vendidas30`; ritmo en los días de ventas de la tienda, porque no tiene prenda que se haya colgado). Un tipo vendido sin registrar que la
+   tienda no tiene en el sistema se nombra aparte («no se sabe para cuánto te alcanza»). Una lectura para Análisis y Frescura:
+   `lib/vendido-sin-registrar.ts` (paginada; Frescura la usa con sus 28 días como antes). Sin migración.
+2. **Lo que puede haberse vendido sin registrar no se liquida** (Felipe: solo las pendientes, como Frescura, ADR-0208 act. 2026-10-10 (c)).
+   Análisis lee la lectura de Frescura de su tienda (`getLecturaFrescuraDeTienda`, la misma cuenta que el Inicio) y toma `dudadas` por talla: un
+   modelo quieto con alguna unidad en duda va al grupo nuevo **«Aún no se sabe»** (`duda`), con «Registrar ventas» (Por regularizar), en vez de
+   «Liquidar», «Mándalas» o «Vigílalas». Sin el módulo Frescura no se lee (la base lo exige) y se juzga como antes; si falla, se dice.
+3. **El ritmo se mide en los días que la prenda estuvo colgada** (2026-10-12), **con piso de 7 días** (2026-10-14: una venta suelta de ayer no
+   dice «1 por día») y techo en los días de ventas de la tienda (`ventanaDeRitmo`). El modelo mide desde que se colgó cualquiera de sus tallas;
+   «Qué pedir» suma el ritmo de cada prenda en su ventana. Reemplaza la decisión 11 («el ritmo con los días que hay»): aquella dividía entre los
+   días de la tienda y lo colgado hace poco «duraba» el doble o el triple.
+4. **«Vigílalas» y «Liquidar» contra la vara de su tipo** (2026-10-12; escalones del 2026-10-14): se vigila desde el p75 y se liquida desde el
+   p90 de la vara de su categoría en Frescura, con su cascada (`varaQueJuzgo`: la del mes, la de CAYLA, la de hoy). Son «Envejeciendo» y
+   «Envejecida»: Análisis y Frescura dicen lo mismo de la misma prenda, y «Vigílalas» (muerto con cualquier «Liquidar desde» ≤ 30) vuelve.
+   **Para liquidar, la vara tiene que tener `VENTAS_PARA_JUZGAR_SOLA` (10) ventas**: con 3 ventas rápidas el p90 sale de 2 días y todo lo colgado
+   hace 3 parecería para rebajar. Sin esa vara —o sin Frescura— manda **«Liquidar desde», que queda de respaldo** (y «Vigílalas» desde un mes).
+   Cada fila del carril pinta su zona desde su propio umbral; la marca «Liquidar» del eje solo sale si todas comparten el día; la ficha dice
+   «tardan 9 de cada 10 de su tipo»; una nota dice con qué se mide cada tipo. `lib/analisis-vara.ts`.
+5. **Ninguna tarjeta dice «Va bien» cuando no puede saberlo.** Con el aviso de «Datos incompletos», una tarjeta sin nada dice «Para saber» y «Con
+   lo registrado, …» (`estadoSinNada`, `conLoRegistrado`). «¿Qué no se mueve?» y la pestaña «No se vende» dicen **«Todavía no se puede saber»**
+   mientras ningún modelo con algo en la tienda lleve en el piso lo que se espera para liquidarlo (`puedeJuzgarQuietas`).
+6. **«Ver qué falta» registra lo que se puede.** «Registrar N sin prenda» cuenta las **pendientes** (`contarPendientes`), no las de 30 días (en TRU
+   decía 347 y Por regularizar mostraba 41: las otras se cerraron sin prenda y no vuelven). Una sola regla para Análisis, Frescura y el Inicio
+   (`pasoParaHablar`, que ahora recibe las pendientes). Se dice cuántas se cerraron en los 30 días y desde qué día puede cumplirse la parte de
+   las ventas si desde hoy todo se cobra con su prenda (hoy más lo que le falta a la racha de 14 días: `fechaQueSeCumple`).
+
+**Lo que se descartó.** Escalar el ritmo de cada modelo por el % de registro de su tipo (reparte a ciegas ventas que quizás no fueron de ese modelo);
+subir «Liquidar desde» a 30 o 45 (medido el 2026-10-12, un número fijo no señala nada: el problema es que sea uno solo); usar la vara de hoy con
+pocas ventas para liquidar (dinero sobre ruido); una migración para traer `categoria_id` (el nombre de la categoría es único en la base,
+`categorias_nombre_clave_unica`, y Análisis ya agrupa por nombre).
+
+**Cómo se verifica.** `pnpm --filter web exec vitest run lib/analisis- lib/frescura-piso` (pruebas nuevas de cada regla); en TRU, después del
+deploy: «Qué pedir» muestra «vendiste 22 (14 sin su prenda)» en Faldas y la nombra entre las que no llegan; «¿Qué no se mueve?» dice «Todavía no
+se puede saber» hasta que algún modelo cumpla su umbral; «Ver qué falta» dice «Registrar 41 sin prenda» (o las pendientes de ese día).
+
+**Queda abierto.** Probar con una encargada real y pasar `/formidable` y `/chaos` (la hoja «Liquidar desde» sigue siendo la única escritura);
+«Qué pedir» contra Navidad fija o contra el Plan de campaña (tarea #5, decide Felipe); la curva de tallas de «Qué pedir» todavía no suma la talla
+de lo vendido sin registrar.
