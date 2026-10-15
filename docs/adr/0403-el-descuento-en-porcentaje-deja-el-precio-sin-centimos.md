@@ -70,6 +70,47 @@ SE ROMPE SI: la web y la base no cambian en la misma ventana: con la base nueva 
 
 ## Lo que queda abierto
 
-- **Apartados con descuento manual, el cumpleaños y los vales del club** siguen con su propia cuenta: no entraron en lo que Felipe aprobó.
+- **Apartados con descuento manual y los vales del club** siguen con su propia cuenta: no entraron en lo que Felipe aprobó. El cumpleaños
+  entró el 2026-10-15 (ver abajo); el vale de aniversario es un monto en soles, no un %, y por esta misma regla no se redondea.
 - **Una proforma ya guardada** con el descuento exacto de antes sigue válida; al llevarla al carrito, si la campaña da más, gana la campaña (ya era así).
 - Los reportes de «cuánto descuento se regaló» crecen hasta S/ 0.09 por prenda con %: es el costo de la decisión (≈ el que ADR-0311 midió para el efectivo).
+
+## Actualización 2026-10-15 — el 10 % de cumpleaños también
+
+**Decide:** Felipe, 2026-10-15, en chat, con una captura de la caja (Blusa Camisera Crop a S/ 59.90, «Cumpleaños del club · 10 % de la
+compra −S/5.99», total S/ 53.91): «al aplicar el descuento de cliente por mes de cumpleaños, no me redondea como el otro descuento, haz que
+también lo redondee para que no salgan esos céntimos de más».
+
+```
+DECIDÍ:    la parte del club de cada prenda es la MISMA regla de este ADR aplicada a lo que la prenda ya cobraba sin el club (su campaña o su
+           descuento a mano, en cascada como CL-11): club = fn_descuento_campana(precio − descuento_sin_club, pct). S/ 59.90 al 10 % → 53.91
+           → 53.90, el club pone 6.00; 79.90 con campaña de 20 % → 63.90 al 10 % → 57.51 → 57.50, el club pone 6.40 (el total sigue en 28 %).
+           En la caja es `descuentoClubLinea`, que ahora llama a `descuentoUnitarioPorPorcentaje`: una sola cuenta del % en todo el ERP.
+           La base (`registrar_venta`, migración 20261015182000, dos reemplazos anclados) la recalcula igual y, POR UN TIEMPO, también
+           acepta la cuenta vieja (`round(… × pct / 100, 2)`, con el mismo céntimo de holgura).
+DESCARTÉ:  (a) redondear el TOTAL de la compra en vez de cada prenda: el ticket impreso muestra el descuento de cada prenda y la nota de
+           crédito devuelve por prenda; con el redondeo en el total, una prenda devuelta sola saldría con céntimos y otra cuenta distinta
+           de la del cartel; (b) cambiar base y web a la vez sin aceptar la cuenta vieja: Vender nunca se recarga sola (ADR-0422) y una caja
+           abierta desde antes de publicar seguiría mandando 5.99; la diferencia llega a 9 céntimos y la holgura es de 1, así que cada
+           canje de esa caja se rechazaría con «El % del club pudo cambiar» hasta que alguien apriete F5, en plena venta; (c) aceptar la
+           cuenta vieja para siempre: deja dos reglas vivas para lo mismo, justo lo que este ADR cerró.
+SE ROMPE SI: la web se publica ANTES de pegar la migración (con la caja nueva y la base vieja, casi todo canje se rechaza con
+           `cumple_descuento_distinto`); o alguien vuelve a escribir la cuenta del club a mano con `round(… × pct / 100, 2)` en una pantalla
+           nueva; o se quita la transición mientras una caja siga abierta desde antes de la publicación.
+```
+
+**Una consecuencia que conviene saber:** con el S/ 0.10, toda prenda que cobra algo recibe algo del club, aunque cueste céntimos (una línea
+de S/ 0.04 queda en 0.00). Por eso «un canje que no regala nada» (`cumple_sin_monto`) hoy solo se alcanza con la cuenta vieja; cuando se
+quite la transición, solo con una compra que ya no cobraba nada.
+
+**Verificación (2026-10-15):** pila propia con todas las migraciones de `main` + 20261015182000 (pegada dos veces: re-ejecutable):
+`club_cumpleanos` 35/35 (caso nuevo de la transición: con 0.49 a mano la regla nueva da 8.01 y la vieja 7.94, las dos pasan y 7.97 no) con
+control negativo (sin el parche, 4 en rojo; sin la transición, 2 en rojo), y en verde `redondeo_efectivo` 90/90, `club_registro_cartel`
+38/38, `registrar_venta` 32/32, `club_aniversario` 29/29, `campana_redondeo` 16/16, `club_venta_ligada` 30/30, `club_permisos` 89/89,
+`apartados_proformas_candados`, `ventas_montos_validos` y `analisis_lecturas`. Web: `club-cumple-canje-reglas` con la tabla de paridad nueva
+y la propiedad de S/ 0.00 a S/ 300.00 con 6 % (precio múltiplo de 0.10, nunca menos que el %, a menos de 10 céntimos). Navegador (Chrome sin
+ventana contra la pila, escritorio y 375 px sin desborde): Falda Ariana a S/ 64.90 con «Canjear 10 %» → «−S/6.50», total S/ 58.40; el
+cobro con tarjeta y boleta guardó `descuento_club_unitario` 6.50, subtotal 58.40 y `club_canjes.monto` 6.50.
+
+**Producción:** pegar `20261015182000_cumpleanos_precio_sin_centimos.sql` (una parte, solo una función) **antes** de publicar la web. La
+transición se quita con su propia migración una vez que todas las cajas hayan recargado después de la publicación.
