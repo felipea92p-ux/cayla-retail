@@ -495,7 +495,7 @@ describe("el monto de un gasto tiene tope", () => {
   it("un millón entra; un sol más, no", () => {
     expect(validarGasto({ ...base, monto: "1,000,000" }, HOY).ok).toBe(true);
     const r = validarGasto({ ...base, monto: "1000000.01" }, HOY);
-    expect(r).toEqual({ ok: false, error: "El monto pasa de S/ 1 000 000: revisa que no sobre un cero." });
+    expect(r).toEqual({ ok: false, error: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero." });
   });
   it("el 9 pegado de /chaos", () => {
     expect(validarGasto({ ...base, monto: "99999999" }, HOY).ok).toBe(false);

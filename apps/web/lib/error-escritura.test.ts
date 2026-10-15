@@ -859,12 +859,12 @@ describe("montos con tope de Finanzas", () => {
     for (const candado of ["gastos_monto_con_tope", "movimientos_dinero_monto_con_tope"]) {
       expect(
         traducirError({ message: `new row for relation "gastos" violates check constraint "${candado}"`, code: "23514" }, "registrar el gasto"),
-      ).toMatch(/pasa de S\/ 1 000 000/);
+      ).toMatch(/pasa de S\/\u00a01 000 000/);
     }
   });
   it("el vuelto con tope sigue con su propia frase", () => {
     expect(
       traducirError({ message: 'new row for relation "venta_pagos" violates check constraint "venta_pagos_recibido_con_tope"', code: "23514" }, "cobrar"),
-    ).toMatch(/vuelto pasa de S\/ 500/);
+    ).toMatch(/vuelto pasa de S\/\u00a0500/);
   });
 });

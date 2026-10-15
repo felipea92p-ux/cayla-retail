@@ -294,6 +294,6 @@ describe("el monto de un movimiento tiene tope", () => {
   const ctx = { cuentas: TODAS, egresos: [], deuda: 6000, hoy };
   it("un millón entra; un sol más, no", () => {
     expect(validarMovimiento({ ...base, monto: "1000000" }, ctx).ok).toBe(true);
-    expect(validarMovimiento({ ...base, monto: "1000001" }, ctx)).toEqual({ ok: false, error: "El monto pasa de S/ 1 000 000: revisa que no sobre un cero." });
+    expect(validarMovimiento({ ...base, monto: "1000001" }, ctx)).toEqual({ ok: false, error: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero." });
   });
 });

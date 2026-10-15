@@ -84,7 +84,7 @@ export function parsearMonto(texto: string): Resultado<number> {
 
 /** Un gasto o un movimiento de dinero llega hasta S/ 1 000 000 (ADR-0412): la base lo rechaza con `<tabla>_monto_con_tope`. */
 export function montoDentroDelTope(m: Resultado<number>): Resultado<number> {
-  if (m.ok && m.valor > MAX_MONTO_FINANZAS) return { ok: false, error: "El monto pasa de S/ 1 000 000: revisa que no sobre un cero." };
+  if (m.ok && m.valor > MAX_MONTO_FINANZAS) return { ok: false, error: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero." };
   return m;
 }
 
