@@ -207,6 +207,10 @@ function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favorito
         <Link className="t-enlace" href="/tiendas" onClick={cerrar}>
           Nuestras tiendas
         </Link>
+        {/* Lo que el cliente le quiera recomendar a CAYLA (Felipe 2026-10-15), con su nombre. */}
+        <Link className="t-enlace" href="/recomendaciones" onClick={cerrar}>
+          Recomendaciones
+        </Link>
       </div>
     </div>
   );

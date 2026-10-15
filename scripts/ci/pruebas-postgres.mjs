@@ -248,6 +248,11 @@ export const PRUEBAS = [
   // (no mueve la visita de «Mi cuenta») y solo de `tienda_web`; una espera en una tienda que se escondió de la web es «cualquier
   // tienda»; tres mutantes que la prueba nota. ROLLBACK.
   "pruebas:tienda-avisos",
+  // Recomendaciones (ADR-0408, Felipe 2026-10-15): la tienda escribe por su puerta (texto limpio de 10 a 1000 letras, una tienda de la
+  // web o CAYLA en general, 3 por día, la misma marca no se guarda dos veces) y ve solo las suyas; el ERP lee con su nombre, marca,
+  // responde una vez y archiva, solo con el módulo y firmado; los candados de la fila; al anonimizar se quedan sin su nombre ni sus
+  // datos; y los mutantes (puerta, tope, marca, módulo, anonimización) que la prueba nota. ROLLBACK.
+  "pruebas:recomendaciones-web",
 
   // Cobrar dentro del pedido web (ADR-0408, act. 9): la hoja sabe si hay caja abierta y quién anuló cada pago; lo anulado con
   // plata por devolver no sale de la lista; un adelanto y el resto lo dejan pagado; el n.º de operación no se repite (también con

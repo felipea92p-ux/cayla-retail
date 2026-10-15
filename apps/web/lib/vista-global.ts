@@ -55,8 +55,9 @@ export const RUTAS_DE_LA_VISTA_GLOBAL = ["/", "/global", "/clientas", "/finanzas
 
 /** Las pantallas que cuelgan de una ruta de la lista de arriba pero trabajan en UNA sede: no se abren en CAYLA Global (mandan a
  *  elegir sede). Clientas ▸ Avisos (ADR-0288 act. g) manda los mensajes desde el WhatsApp de una tienda: sin tienda no hay desde
- *  dónde enviar, aunque las fichas sí sean de toda la empresa. */
-export const RUTAS_DE_SEDE_DENTRO_DE_LA_VISTA_GLOBAL = ["/clientas/avisos"] as const;
+ *  dónde enviar, aunque las fichas sí sean de toda la empresa. Clientas ▸ Recomendaciones (ADR-0408) lee las de todas las tiendas,
+ *  pero marcar, responder y archivar firman con el responsable de la sede donde se está parado. */
+export const RUTAS_DE_SEDE_DENTRO_DE_LA_VISTA_GLOBAL = ["/clientas/avisos", "/clientas/recomendaciones"] as const;
 
 /** Adónde se manda a quien abre, estando en CAYLA Global, una pantalla que trabaja en una sede. */
 export const RUTA_ELEGIR_SEDE = "/global/elige-sede";

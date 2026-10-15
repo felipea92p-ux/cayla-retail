@@ -25,7 +25,8 @@ const comprar = (sede: string | null): Columna => {
   };
 };
 
-/** Sin cuenta, la cuenta se crea o se recupera; con cuenta (`conCuenta`), las listas para comprar y la cuenta desde «Club CAYLA». */
+/** Sin cuenta, la cuenta se crea o se recupera; con cuenta (`conCuenta`), las listas para comprar, la cuenta desde «Club CAYLA» y
+ *  «Recomendaciones» (Felipe 2026-10-15: lo que el cliente le quiera decir a CAYLA; va con su nombre, así que solo con cuenta). */
 const columnas = (conCuenta: boolean, sede: string | null): Columna[] => [
   conCuenta
     ? comprar(sede)
@@ -33,7 +34,12 @@ const columnas = (conCuenta: boolean, sede: string | null): Columna[] => [
   AYUDA,
   {
     titulo: "CAYLA",
-    enlaces: [["Club CAYLA", conCuenta ? "/cuenta" : "/crear-cuenta"], ["Privacidad", "/privacidad"], ["Términos del club", "/terminos-del-club"]],
+    enlaces: [
+      ["Club CAYLA", conCuenta ? "/cuenta" : "/crear-cuenta"],
+      ...(conCuenta ? [["Recomendaciones", "/recomendaciones"] as [string, string]] : []),
+      ["Privacidad", "/privacidad"],
+      ["Términos del club", "/terminos-del-club"],
+    ],
   },
 ];
 

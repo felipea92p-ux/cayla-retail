@@ -46,6 +46,9 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   // ADR-0288 act. g (tanda 1g): una bandeja; lo único que se llena es quién envía (se enciende si falta). «Beneficios del club» es un modal.
   "/clientas/avisos": { estado: "aplicada", evidencia: ["components/clientas/AvisosClubPanel.tsx"] },
   "/clientas/cartel": { estado: "no-aplica", motivo: "Hoja de impresión del cartel del club: una hoja A4 por tienda con su QR; se revisa y se imprime, no hay campos que completar ni pasos." },
+  // ADR-0408 (Felipe 2026-10-15): la lista solo lee y filtra; lo que se llena vive en la hoja de cada recomendación (abierta desde la misma
+  // pantalla, `?r=`): la respuesta (opcional sin leer, obligatoria ya leída) y quién lo hace.
+  "/clientas/recomendaciones": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
   // ---- colaboradores ----
   // Rediseño del 2026-10-05 (Equipo): una lista agrupada por sede con buscador y atajos; lo que se cambia vive en la ficha.
   "/colaboradores": { estado: "no-aplica", motivo: "Lista del equipo por sede, con buscador y atajos: no hay formulario que llenar. Lo que se cambia de una persona vive en su ficha (registro de modales), y las altas por aprobar se resuelven con un botón." },
@@ -364,6 +367,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0341: Dar acceso en una hoja. Falta = lo mismo que apaga el botón: a quién, la sede, el rol (si se leyeron los roles) y quién lo da.
   "components/colaboradores/DarAccesoModal.tsx": { estado: "aplicada", evidencia: ["components/colaboradores/DarAccesoModal.tsx"] },
   "components/clientas/BeneficiosClubModal.tsx": { estado: "aplicada", evidencia: ["components/clientas/BeneficiosClubModal.tsx"] },
+  // Recomendaciones (ADR-0408): la respuesta se enciende si todavía se puede responder (sin leer, opcional: sin ella la hoja la marca
+  // leída; ya leída, falta) y después quién lo hace. «Falta» = lo que `responder_recomendacion` rechazaría (`lib/recomendaciones-guia.ts`).
+  "components/recomendaciones/RecomendacionHoja.tsx": { estado: "aplicada", evidencia: ["components/recomendaciones/RecomendacionHoja.tsx"] },
   "components/alta-producto/ElegirColores.tsx": { estado: "no-aplica", motivo: "Elegir colores sirve a la fila «Colores» de Nuevo producto, que ya lleva su guía (FilaAlta). Su hoja «Nuevo color» (2026-10-02) pide solo nombre y tono: la familia y el código se llenan solos, y lo que falta se dice al tocar «Crear y elegir»." },
   "components/alta-producto/ProponerValor.tsx": { estado: "no-aplica", motivo: "Modal «Nuevo tejido / patrón / talla» (2026-10-02): un solo campo, el nombre; «Agregar» se apaga mientras está vacío." },
   "components/alta-producto/ElegirEtiquetas.tsx": { estado: "no-aplica", motivo: "Hoja de elegir etiquetas que sirve a la fila «Etiquetas» de Nuevo producto, que ya lleva su guía (FilaAlta); elegir es opcional y «Listo» aplica lo marcado." },

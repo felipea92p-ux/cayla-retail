@@ -1269,6 +1269,23 @@ ESCENARIOS.push(
   { id: "clientas.buscar", ruta: "/clientas", cuentas: ["admin", "terminal-ventas"], nombre: "Clientes · una búsqueda", async preparar(pagina) { await pagina.getByPlaceholder(/DNI, celular/i).first().fill("Rosa"); await esperar(pagina, 1800); } },
   { id: "avisos.beneficios", ruta: "/clientas/avisos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Avisos · «Beneficios del club»", preparar: clicRol("button", /Beneficios del club/i) },
   { id: "avisos.cumpleanos", ruta: "/clientas/avisos", cuentas: ["admin"], nombre: "Avisos · la pestaña «Cumpleaños»", preparar: clicRol("button", /^Cumpleaños/i) },
+  // Clientes ▸ Recomendaciones (ADR-0408): la hoja de la primera de la lista (sin leer: con la respuesta y «Marcar como leída») y el filtro
+  // «Estado» abierto. La base local no trae recomendaciones (las escribe un cliente desde la tienda online): quien audita las crea con
+  // `tienda_recomendar` y las deja como estaban. Ninguno guarda: abren y eligen.
+  {
+    id: "recomendaciones.hoja",
+    soloPorId: true,
+    ruta: "/clientas/recomendaciones",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Recomendaciones · la hoja de una recomendación",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="recomendaciones.fila"] button').first().click({ timeout: 8000 });
+      await pagina.locator("[role=dialog]").first().waitFor({ timeout: 15000 });
+      await esperar(pagina, 1200);
+    },
+  },
+  { id: "recomendaciones.estado", ruta: "/clientas/recomendaciones", cuentas: ["admin"], abre: "[role=listbox]", nombre: "Recomendaciones · el filtro «Estado»", preparar: clicRol("button", /^Estado/i) },
   { id: "comercial.ayuda", ruta: "/comercial", cuentas: ["admin"], nombre: "Comercial · la ayuda «Qué cuenta como venta»", preparar: clicRol("button", /Qué es Qué cuenta como venta/i) },
   { id: "calidad.ayuda", ruta: "/comercial/calidad", cuentas: ["admin"], nombre: "Calidad de datos · la ayuda «Cómo se lee»", preparar: clicRol("button", /Qué es Cómo se lee/i) },
   { id: "buscar.resultados", ruta: "/buscar", cuentas: ["admin", "integrante", "terminal-ventas"], nombre: "Buscar · los resultados de una prenda", preparar: llenar(/SKU, referencia, talla, color/i, "Vestido") },

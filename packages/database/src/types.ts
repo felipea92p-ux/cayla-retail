@@ -5895,6 +5895,12 @@ export type Database = {
       entregar_pedido_web: { Args: { p_pedido_id: string; p_codigo: string; p_token?: string }; Returns: Json }
       // Anular un pedido web pagado: devuelve la plata y anula su venta y su boleta (ADR-0408; 20261015114000). El token lo pone `useIntento`.
       anular_pedido_web_pagado: { Args: { p_pedido_id: string; p_motivo: string; p_token?: string }; Returns: Json }
+      // Clientes ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15; 20261015135000): lo que los clientes recomiendan desde la tienda online,
+      // con su nombre. Las tres que escriben firman con el responsable del combo.
+      fn_recomendaciones: { Args: never; Returns: Json }
+      marcar_recomendacion_leida: { Args: { p_id: string }; Returns: Json }
+      responder_recomendacion: { Args: { p_id: string; p_respuesta: string }; Returns: Json }
+      archivar_recomendacion: { Args: { p_id: string; p_archivar: boolean }; Returns: Json }
       unirse_al_club: {
         Args: {
           p_clienta_id: string

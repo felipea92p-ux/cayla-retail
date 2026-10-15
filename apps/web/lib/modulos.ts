@@ -13,6 +13,7 @@ import { PERMISOS, type Permiso } from "./menu";
 export const CLAVES_MODULO = [
   "inicio",
   "vender", "apartados", "pedidos_web", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas", "avisos_club",
+  "recomendaciones",
   "existencias", "conteos", "traslados", "movimientos", "recibir",
   "productos", "vitrina_web", "atributos", "etiquetas", "liquidacion",
   "ordenes_compra", "facturas_compra", "por_pagar", "fondos", "proveedores", "notas_credito", "plan_compra",
@@ -65,6 +66,10 @@ export const MODULOS: readonly Modulo[] = [
   // Avisos del club (ADR-0288 act. g, G-8; 20261001210500): Clientas ▸ Avisos, los mensajes del club por mandar a las socias
   // con publicidad. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo, no al líder.
   { clave: "avisos_club", grupo: "Clientes", nombre: "Avisos del club", incluye: "Ver los mensajes del club por mandar a los miembros con WhatsApp de su tienda (cumpleaños, aniversario, novedades y rebajas en su talla), enviarlos por WhatsApp Web, deshacer un envío y anotar la BAJA" },
+  // Recomendaciones (ADR-0408, Felipe 2026-10-15; 20261015135000): lo que los clientes recomiendan desde la tienda online, SIEMPRE con
+  // su nombre. Nace SIN rol (solo el líder) y delegable: sus funciones piden este módulo. Quien lo tiene ve las de TODAS las tiendas y
+  // las de CAYLA en general, con el nombre del cliente aunque no tenga «Clientes» (la ficha, solo si la ve).
+  { clave: "recomendaciones", grupo: "Clientes", nombre: "Recomendaciones", incluye: "Leer lo que los clientes recomiendan desde la tienda online, con su nombre y sobre qué tienda es, marcarlo como leído, responderles con un texto corto que ven en su cuenta y archivarlo" },
   // «Retirar del piso» (ADR-0208, bloque 2) vive en Existencias: el texto lo nombra para que el líder sepa qué da (20260926170000).
   // «Bajada al piso» y «Ajustar stock» NO son módulos (ADR-0306, Felipe 2026-10-02): son funciones de Existencias, porque no
   // tienen entrada propia en el menú. Regla: un módulo es una entrada del menú izquierdo; quien lo ve hace todo lo de adentro.
