@@ -9,6 +9,7 @@ import {
   campanasDe,
   categoriasDe,
   conteoDeLista,
+  deFavoritos,
   filtrarYOrdenar,
   hrefLista,
   leerCampana,
@@ -19,24 +20,33 @@ import {
   siguienteOrden,
   type Lista,
 } from "@/lib/catalogo";
+import { leerGuardadosEnBase } from "@/lib/club-servidor";
 import { fechaLarga, pctTexto } from "@/lib/portada";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const TITULOS: Record<Lista, string> = { todo: "Toda la ropa", nuevo: "Lo nuevo", ofertas: "Ofertas", vendidos: "Más vendidos" };
+const TITULOS: Record<Lista, string> = {
+  todo: "Toda la ropa",
+  nuevo: "Lo nuevo",
+  ofertas: "Ofertas",
+  vendidos: "Más vendidos",
+  favoritos: "Tus favoritos",
+};
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   return { title: `${TITULOS[leerLista((await searchParams).lista)]} · CAYLA` };
 }
 
-// Las listas del catálogo (maqueta v4, `vLista` y `filtroTienda`): toda la ropa, Lo nuevo, las ofertas (con una tarjeta por campaña) y
-// los más vendidos (en su ranking), de lo que el ERP muestra en Catálogo ▸ Vitrina web, al precio de la tienda que el cliente elige en
-// «Ver lo que hay en» o, con «Todas», al mayor entre las tiendas de la web, con la campaña encima. Con una tienda elegida, solo lo que hay
-// en ella («N más en otras tiendas»), y cada tarjeta dice cuánto queda como nivel, nunca la cifra. Se lee en cada visita (la dirección
-// trae la lista, la tienda, la categoría, la campaña y el orden): lo que se enciende, se apaga o se vende se ve al recargar.
+// Las listas del catálogo (maqueta v4, `vLista` y `filtroTienda`): toda la ropa, Lo nuevo, las ofertas (con una tarjeta por campaña),
+// los más vendidos (en su ranking) y «Tus favoritos» (lo que el cliente guardó con el corazón), de lo que el ERP muestra en Catálogo ▸
+// Vitrina web, al precio de la tienda que el cliente elige en «Ver lo que hay en» o, con «Todas», al mayor entre las tiendas de la web,
+// con la campaña encima. Con una tienda elegida, solo lo que hay en ella («N más en otras tiendas»; los favoritos no: lo guardado se ve
+// igual), y cada tarjeta dice cuánto queda como nivel, nunca la cifra. Se lee en cada visita (la dirección trae la lista, la tienda, la
+// categoría, la campaña y el orden): lo que se enciende, se apaga o se vende se ve al recargar.
 export default async function Catalogo({ searchParams }: Props) {
   const sp = await searchParams;
   const lista = leerLista(sp.lista);
@@ -44,19 +54,28 @@ export default async function Catalogo({ searchParams }: Props) {
   const categoria = leerCategoria(sp.categoria);
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const catalogo = await leerCatalogo(pedida?.id ?? null);
+  const esFavoritos = lista === "favoritos";
+  const sesion = esFavoritos ? await leerSesion() : null;
+  // Lo guardado es la misma lectura del marco del catálogo (una sola consulta por visita).
+  const [catalogo, guardados] = await Promise.all([
+    leerCatalogo(pedida?.id ?? null),
+    sesion?.estado === "con_sesion" ? leerGuardadosEnBase(sesion.usuarioId) : null,
+  ]);
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = catalogo?.sede ? sedes.find((s) => s.id === catalogo.sede) ?? null : null;
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const prendas = catalogo?.prendas ?? null;
   // Con una tienda elegida, solo lo que hay en ella (maqueta, `hayEnFiltro`): las categorías, las campañas y el conteo salen de ahí.
+  // Los favoritos, no: son lo guardado, en su orden (lo último primero), haya o no en esa tienda.
   const enLaTienda = prendas ? prendas.filter((p) => hayEnTienda(p.stock, elegida?.id ?? null)) : [];
-  const campanas = lista === "ofertas" ? campanasDe(enLaTienda) : [];
+  const favoritosSinLeer = esFavoritos && guardados === null;
+  const base = esFavoritos ? deFavoritos(prendas ?? [], guardados?.favoritos ?? []) : enLaTienda;
+  const campanas = lista === "ofertas" ? campanasDe(base) : [];
   const campana = campanas.find((c) => c.id === leerCampana(sp.campana))?.id ?? null;
-  const deLaLista = filtrarYOrdenar(enLaTienda, { categoria: null, orden: "destacado", lista, campana });
+  const deLaLista = filtrarYOrdenar(base, { categoria: null, orden: "destacado", lista, campana });
   const categorias = categoriasDe(deLaLista);
-  const vista = filtrarYOrdenar(enLaTienda, { categoria, orden, lista, campana });
-  const enOtras = prendas ? filtrarYOrdenar(prendas, { categoria, orden, lista, campana }).length - vista.length : 0;
+  const vista = filtrarYOrdenar(base, { categoria, orden, lista, campana });
+  const enOtras = prendas && !esFavoritos ? filtrarYOrdenar(prendas, { categoria, orden, lista, campana }).length - vista.length : 0;
   const categoriaElegida = categoriasDe(prendas ?? []).find((c) => c.clave === categoria) ?? null;
   const cab = cabeceraDeLista(lista);
   const href = (cambios: { sede?: string | null; categoria?: string | null; orden?: typeof orden; campana?: string | null }) =>
@@ -68,7 +87,7 @@ export default async function Catalogo({ searchParams }: Props) {
     <MarcoCatalogo
       prendas={enLaTienda}
       sede={sede}
-      actual={lista === "todo" ? null : lista}
+      actual={lista === "todo" || lista === "favoritos" ? null : lista}
       filtro={[
         { nombre: "Todas", href: href({ sede: null }), actual: elegida === null },
         ...sedes.map((s) => ({ nombre: s.nombre, href: href({ sede: claveDeSede(s.nombre) }), actual: elegida?.id === s.id })),
@@ -106,10 +125,19 @@ export default async function Catalogo({ searchParams }: Props) {
               Ver nuestras tiendas
             </Link>
           </div>
-        ) : deLaLista.length === 0 && !elegida && cab.vacio ? (
+        ) : favoritosSinLeer ? (
+          <div className="t-vacio" role="status">
+            <Icono nombre="corazon" />
+            <h3>No pudimos cargar tus favoritos</h3>
+            <p>Es un problema de conexión de nuestro lado. Vuelve a intentarlo en un momento.</p>
+            <Link className="t-btn" href={href({})}>
+              Volver a intentar
+            </Link>
+          </div>
+        ) : deLaLista.length === 0 && (!elegida || esFavoritos) && cab.vacio ? (
           // La lista misma está vacía (no es la categoría ni la tienda): dice qué aparecería aquí, sin filtros ni orden que no sirven.
           <div className="t-vacio">
-            <Icono nombre="tienda" />
+            <Icono nombre={esFavoritos ? "corazon" : "tienda"} />
             <h3>{cab.vacio.titulo}</h3>
             <p>{cab.vacio.texto}</p>
             <Link className="t-btn" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
@@ -163,7 +191,7 @@ export default async function Catalogo({ searchParams }: Props) {
               </div>
             </div>
             <p className="t-conteo" aria-live="polite">
-              {conteoDeLista(vista.length, { categoria: categoriaElegida?.nombre ?? null, tienda: elegida?.nombre ?? null, enOtras })}
+              {conteoDeLista(vista.length, { categoria: categoriaElegida?.nombre ?? null, tienda: esFavoritos ? null : elegida?.nombre ?? null, enOtras })}
             </p>
             {vista.length > 0 ? (
               <div className="t-grilla">
@@ -179,7 +207,7 @@ export default async function Catalogo({ searchParams }: Props) {
                   />
                 ))}
               </div>
-            ) : elegida ? (
+            ) : elegida && !esFavoritos ? (
               <div className="t-vacio">
                 <Icono nombre="tienda" />
                 <h3>No hay prendas aquí en {elegida.nombre}</h3>

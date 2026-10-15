@@ -40,8 +40,8 @@ export async function guardarBolsa(b: Bolsa): Promise<void> {
 }
 
 /**
- * @public La cuenta del ícono de la bolsa en la cabecera (`components/bolsa/BotonBolsa.tsx`), que pone la integración de la tienda
- * (actividades 4 y 5). Lee solo la cookie: sin red y sin la base.
+ * Cuántas prendas lleva la bolsa: el globo del ícono de la cabecera (`components/bolsa/BotonBolsa.tsx`) y «Ver mi bolsa (N)» de la
+ * ficha. Lee solo la cookie: sin red y sin la base.
  */
 export async function cuantasEnLaBolsa(): Promise<number> {
   return unidades(await leerBolsaDeLaCookie());

@@ -47,7 +47,11 @@
 
 /* ---- La tarjeta de una prenda ---- */
 .t-card { position: relative; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+/* La foto con lo que va encima: el enlace a la ficha, «Agregar» con la talla (abajo, al pasar el mouse) y el corazón (arriba a la
+   derecha). Recorta lo que asoma: «Agregar» espera escondido debajo del borde. */
 .t-card-media { position: relative; display: block; overflow: hidden; border-radius: 3px; }
+.t-card-enlace { display: block; }
+.t-rapido-ancla { display: contents; }
 .t-card-foto { position: relative; display: block; width: 100%; aspect-ratio: 4 / 5; background: var(--t-foto); border-radius: 3px; overflow: hidden; }
 .t-card-foto img { object-fit: contain; mix-blend-mode: multiply; transition: opacity .5s var(--ease), transform .8s var(--ease); }
 .t-card-foto .f2 { opacity: 0; }

@@ -32,9 +32,9 @@
 .c-carril { display: grid; grid-auto-flow: column; grid-auto-columns: 47%; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px 10px; scroll-padding-inline: 16px; }
 .c-carril::-webkit-scrollbar { display: none; }
 .c-carril > * { scroll-snap-align: start; }
-.c-tarjeta { position: relative; min-width: 0; }
 
-/* ---- El corazón (maqueta: `.t-corazon` en la tarjeta, `.t-fav-grande` en la ficha) ---- */
+/* ---- El corazón (maqueta: `.t-corazon` en la tarjeta, `.t-fav-grande` en la ficha). En la tarjeta vive en la foto
+   (`.t-card-media`, catalogo.css), arriba a la derecha y por encima de «Agregar». ---- */
 .c-corazon { position: absolute; top: 6px; right: 6px; z-index: 3; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--t-papel-fijo) 82%, transparent); color: var(--t-tinta-fija); display: grid; place-items: center; cursor: pointer; transition: transform .2s var(--ease), background-color .2s; }
 .c-corazon:hover { transform: scale(1.08); background: var(--t-papel-fijo); }
 .c-corazon .ic { width: 18px; height: 18px; }

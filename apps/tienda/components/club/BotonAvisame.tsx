@@ -16,9 +16,11 @@ import "@/app/estilos/club.css";
  * Esperan una talla. Si mientras tanto llegó, la base no lo anota (`hay`): el aviso lo dice y la página se vuelve a leer, para que
  * la ficha ofrezca agregarla a la bolsa.
  *
- * Dónde va (lo pone la integración, actividad 4): en la ficha, en lugar del botón principal, cuando la talla elegida no hay en la
- * tienda elegida. `varianteId` es la prenda de ese color y esa talla; `sedeId`/`sedeNombre`, la tienda de «Ver lo que hay en» (o
- * `null`). `pedido` sale de `leerGuardadosEnBase(usuario).esperas.has(claveEspera(varianteId, sedeId))` (lib/club.ts).
+ * Dónde va: en la ficha (`FichaPrenda`), en lugar del botón principal, cuando la talla elegida no hay en ninguna tienda de la web
+ * (`botonDeLaFicha`). `varianteId` es la prenda de ese color y esa talla; `sedeId`/`sedeNombre`, la tienda de «Ver lo que hay en» (o
+ * `null`). `pedido` sale de `leerGuardadosEnBase(usuario).esperas.has(claveEspera(varianteId, sedeId))` (lib/club.ts). Un botón por
+ * prenda y tienda (la ficha le pone su `key`): uno anotado no le presta su «Te avisaremos» a la talla siguiente. `alAnotar` le
+ * cuenta a la ficha que quedó anotado (la ficha lo dibuja dos veces: en la fila y en la barra del celular).
  */
 export function BotonAvisame({
   varianteId,
@@ -26,6 +28,7 @@ export function BotonAvisame({
   sedeId = null,
   sedeNombre = null,
   pedido = false,
+  alAnotar,
 }: {
   varianteId: string;
   talla: string;
@@ -34,6 +37,7 @@ export function BotonAvisame({
   sedeNombre?: string | null;
   /** Ya lo había pedido (la página lo sabe por `leerGuardadosEnBase`). */
   pedido?: boolean;
+  alAnotar?: () => void;
 }) {
   const router = useRouter();
   const [anotado, setAnotado] = useState(pedido);
@@ -52,6 +56,7 @@ export function BotonAvisame({
       const r = await pedirAviso(varianteId, sedeId);
       if (r.estado === "anotada") {
         setAnotado(true);
+        alAnotar?.();
         mostrar(textoAvisoAnotado(talla, nombreSede), true);
         return;
       }

@@ -19,12 +19,12 @@ import { claveDeSede } from "@/lib/sede-elegida";
 import { FotoTarjeta } from "../FotoTarjeta";
 import { Icono, type NombreIcono } from "../Icono";
 import { TarjetaPrenda } from "../TarjetaPrenda";
-import { BotonFavorito } from "./BotonFavorito";
 import { QuitarEspera } from "./QuitarEspera";
 
 // Los bloques del Club en «Mi cuenta» (ADR-0408, actividad 12; maqueta v4, `vCuenta`), en el orden de la maqueta: Mis beneficios
 // del club · Novedades para ti · Favoritos · Te avisamos cuando llegue. («Mis pedidos», que va antes, es de la actividad 7.) Lo que
-// dicen sale de lib/club.ts; las prendas, del catálogo de la tienda (el mismo precio y las mismas fotos que la lista).
+// dicen sale de lib/club.ts; las prendas, del catálogo de la tienda (el mismo precio y las mismas fotos que la lista), con la misma
+// tarjeta y el mismo corazón de la tienda. «Mi cuenta» no vive en el marco del catálogo: a cada tarjeta se le dice si está guardada.
 
 function Bloque({ titulo, guia, children }: { titulo: string; guia: string; children: React.ReactNode }) {
   return (
@@ -87,16 +87,6 @@ export function BeneficiosDelClub({ club, hoy }: { club: MiClub["club"]; hoy: Di
   );
 }
 
-/** Una tarjeta del catálogo con su corazón (mientras la tarjeta no lo traiga: actividades 4 y 5). */
-function TarjetaConCorazon({ prenda, guardado, origenFotos }: { prenda: Prenda; guardado: boolean; origenFotos: string | undefined }) {
-  return (
-    <div className="c-tarjeta">
-      <TarjetaPrenda prenda={prenda} sede={null} origenFotos={origenFotos} />
-      <BotonFavorito productoId={prenda.id} nombre={prenda.nombre} guardado={guardado} />
-    </div>
-  );
-}
-
 /** Novedades para ti (propuesta i): lo que llegó desde su última visita, sin mensajes de publicidad. */
 export function NovedadesParaTi({
   novedades,
@@ -123,7 +113,7 @@ export function NovedadesParaTi({
       {enCarril.length > 0 && (
         <div className="c-carril">
           {enCarril.map((p) => (
-            <TarjetaConCorazon key={p.id} prenda={p} guardado={favoritos.has(p.id)} origenFotos={origenFotos} />
+            <TarjetaPrenda key={p.id} prenda={p} sede={null} origenFotos={origenFotos} guardado={favoritos.has(p.id)} />
           ))}
         </div>
       )}
@@ -152,7 +142,7 @@ export function TusFavoritos({
       {prendas.length > 0 ? (
         <div className="c-carril">
           {prendas.map((p) => (
-            <TarjetaConCorazon key={p.id} prenda={p} guardado origenFotos={origenFotos} />
+            <TarjetaPrenda key={p.id} prenda={p} sede={null} origenFotos={origenFotos} guardado />
           ))}
         </div>
       ) : (

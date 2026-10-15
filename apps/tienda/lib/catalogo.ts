@@ -173,9 +173,10 @@ export function fotoOptimizable(url: string, origen: string | undefined): boolea
 
 /* ---------------- La lista: cuál, categorías y orden ---------------- */
 
-/** Las listas de la maqueta (`vLista`): toda la ropa, Lo nuevo, las ofertas y los más vendidos. */
-export type Lista = "todo" | "nuevo" | "ofertas" | "vendidos";
-const LISTAS: readonly Lista[] = ["todo", "nuevo", "ofertas", "vendidos"];
+/** Las listas de la maqueta (`vLista`): toda la ropa, Lo nuevo, las ofertas, los más vendidos y «Tus favoritos» (lo que el cliente
+ *  marcó con el corazón: el corazón de la cabecera lleva a `/catalogo?lista=favoritos`). */
+export type Lista = "todo" | "nuevo" | "ofertas" | "vendidos" | "favoritos";
+const LISTAS: readonly Lista[] = ["todo", "nuevo", "ofertas", "vendidos", "favoritos"];
 
 export type Orden = "destacado" | "precio-asc" | "precio-desc";
 export const ORDENES: readonly Orden[] = ["destacado", "precio-asc", "precio-desc"];
@@ -243,6 +244,13 @@ export function cabeceraDeLista(lista: Lista): CabeceraLista {
         frase: "Los modelos que más se vendieron en los últimos 30 días, en todas nuestras tiendas.",
         vacio: { titulo: "Todavía no hay más vendidos", texto: "Aquí aparece lo que más se vende en nuestras tiendas en 30 días. Mientras tanto, mira toda la ropa." },
       };
+    case "favoritos":
+      return {
+        ceja: "Guardado por ti",
+        titulo: ["Tus", "favoritos"],
+        frase: "Lo que marcaste con el corazón.",
+        vacio: { titulo: "Aún no guardas nada", texto: "Toca el corazón de una prenda para guardarla." },
+      };
     default:
       return { ceja: "Toda la tienda", titulo: ["Toda la", "ropa"], frase: null, vacio: null };
   }
@@ -252,12 +260,23 @@ export function cabeceraDeLista(lista: Lista): CabeceraLista {
 export const enOferta = (p: Prenda): boolean => p.precioFinal < p.precio;
 
 /** ¿La prenda va en esa lista? Lo nuevo: lo que la base marcó nuevo; Más vendidos: lo que tiene puesto; las ofertas: lo que tiene
- *  descuento (y, si se eligió una campaña, de esa campaña). */
+ *  descuento (y, si se eligió una campaña, de esa campaña). Los favoritos llegan ya elegidos (`deFavoritos`): todas van. */
 export function enLaLista(p: Prenda, lista: Lista, campana: string | null = null): boolean {
   if (lista === "nuevo") return p.nuevo !== null;
   if (lista === "vendidos") return p.vendidos !== null;
   if (lista === "ofertas") return enOferta(p) && (!campana || p.campana?.id === campana);
   return true;
+}
+
+/** «Tus favoritos»: las prendas del catálogo que el cliente guardó, en el orden en que llegan (lo último guardado primero). No se
+ *  filtran por la tienda elegida (maqueta, `vLista`): lo guardado se ve aunque hoy no esté en esa tienda, y la tarjeta dice dónde
+ *  hay. Lo que ya no está en la tienda online no llega en el catálogo y no se ve. */
+export function deFavoritos(prendas: readonly Prenda[], favoritos: Iterable<string>): Prenda[] {
+  const porId = new Map(prendas.map((p) => [p.id, p]));
+  return [...favoritos].flatMap((id) => {
+    const p = porId.get(id);
+    return p ? [p] : [];
+  });
 }
 
 /** Lo nuevo, de lo que llegó hace menos a lo que llegó hace más (lo fijado sin días, al final); empate, el orden de la base. */

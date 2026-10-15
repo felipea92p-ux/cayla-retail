@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { soles, type Color, type PrecioTarjeta } from "./catalogo";
+import { soles, type Color, type PrecioTarjeta, type Prenda } from "./catalogo";
+import type { Look } from "./looks";
 import { pctTexto } from "./portada";
 import { esquemaNivel, hayAlgo, type Nivel } from "./stock";
 
@@ -158,15 +159,82 @@ export function fotosDelColor(f: Ficha, color: string): { fotos: string[]; enOtr
   return { fotos: [...propias, ...otras], enOtroColor: propias.length === 0 && otras.length > 0 };
 }
 
-/** Lo que dice debajo de una talla sin stock: «Otra tienda» si la elegida no tiene y otra sí; «No hay» si ninguna tiene. Con stock, o
- *  sin tiendas en la web, nada. */
+/** Lo que dice debajo de una talla sin stock (maqueta, `vProducto`): «Otra tienda» si la elegida no tiene y otra sí; «Avísame» si
+ *  ninguna tiene (el botón de abajo ofrece el aviso). Con stock, o sin tiendas en la web, nada. */
 export function notaDeTalla(v: Variante, sedeElegida: string | null, hayTiendas: boolean): string | null {
   if (!hayTiendas) return null;
   if (sedeElegida) {
     if (hayAlgo(v.stock[sedeElegida])) return null;
-    return hayAlgo(v.total) ? "Otra tienda" : "No hay";
+    return hayAlgo(v.total) ? "Otra tienda" : "Avísame";
   }
-  return hayAlgo(v.total) ? null : "No hay";
+  return hayAlgo(v.total) ? null : "Avísame";
+}
+
+/**
+ * El botón principal de la ficha (maqueta, `cta` de `vProducto`): sin talla elegida, «Elige tu talla» (apagado); si esa talla hay en
+ * ALGUNA tienda de la web, «Agregar a la bolsa» (si no está en la tienda elegida, la tienda la trae de otra); si no hay en ninguna,
+ * «Avísame cuando llegue».
+ */
+export type BotonDeLaFicha = { tipo: "elige" } | { tipo: "agregar"; varianteId: string } | { tipo: "avisame"; varianteId: string };
+
+export function botonDeLaFicha(elegida: Variante | null): BotonDeLaFicha {
+  if (!elegida) return { tipo: "elige" };
+  return hayAlgo(elegida.total) ? { tipo: "agregar", varianteId: elegida.id } : { tipo: "avisame", varianteId: elegida.id };
+}
+
+/**
+ * La propuesta k (maqueta, `competencia`): con una tienda y una talla elegidas, si otras personas ya separaron en la web lo que queda
+ * de esa talla en esa tienda (lo dice la base, solo sí o no: `separadas`), un aviso suave que no frena: «Otra persona ya separó la
+ * última en Trujillo. Igual puedes separarla: la tienda te confirma o te ofrece otra opción.». «La última» si el nivel en esa tienda
+ * es 1; si no, «las que quedan». Sin nada libre ahí, nada (la talla ya dice «Otra tienda»).
+ */
+export function avisoOtrosSepararon(
+  v: Variante | null,
+  sede: { id: string; nombre: string } | null,
+  separadas: ReadonlySet<string>,
+): string | null {
+  if (!v || !sede || !separadas.has(v.id)) return null;
+  const nivel = v.stock[sede.id];
+  if (!hayAlgo(nivel)) return null;
+  const quien = nivel === 1 ? "Otra persona ya separó la última" : "Otras personas ya separaron las que quedan";
+  return `${quien} en ${sede.nombre}. Igual puedes separarla: la tienda te confirma o te ofrece otra opción.`;
+}
+
+/** Lo que responde la base a «¿otros ya separaron lo que queda?» (`{"<talla>": true|false}`): las tallas con sí. Lo que llega raro
+ *  se lee como «nadie»: el aviso es una ayuda, nunca un candado. */
+export function interpretarSeparadas(dato: unknown): Set<string> {
+  const r = z.record(z.string().uuid(), z.boolean()).safeParse(dato);
+  return new Set(r.success ? Object.entries(r.data).flatMap(([id, si]) => (si ? [id] : [])) : []);
+}
+
+/**
+ * «Combínalo con» (maqueta, `combina` de `vProducto`): el PRIMER look que se ve y lleva esta prenda, y las tarjetas de sus otras
+ * prendas, en el orden del look y tal como las trae el catálogo (el mismo precio y la misma nota). Sin un look que la lleve (o si
+ * sus otras prendas ya no se ven), `null`: la sección no sale.
+ */
+export function combinaCon(looks: readonly Look[], productoId: string, prendas: readonly Prenda[]): { look: Look; prendas: Prenda[] } | null {
+  const look = looks.find((l) => l.piezas.some((x) => x.prenda.id === productoId));
+  if (!look) return null;
+  const porId = new Map(prendas.map((p) => [p.id, p]));
+  const otras = look.piezas.flatMap((x) => {
+    const p = x.prenda.id === productoId ? undefined : porId.get(x.prenda.id);
+    return p ? [p] : [];
+  });
+  return otras.length > 0 ? { look, prendas: otras } : null;
+}
+
+/** Una talla del «Agregar» rápido de la tarjeta: su nombre y la prenda que agrega (`null`: esa talla no hay, se ve tachada). */
+export type TallaRapida = { talla: string; varianteId: string | null };
+
+/**
+ * El «Agregar» rápido de la tarjeta (maqueta, `rapidoHTML`): el primer color del modelo que tiene algo en la tienda elegida (o, con
+ * «Todas», en alguna de la web) y todas sus tallas, cada una con su prenda si hay ahí. Sin ningún color con algo, nada.
+ */
+export function tallasRapidas(f: Ficha, sedeId: string | null): TallaRapida[] {
+  const hay = (v: Variante) => hayAlgo(sedeId ? v.stock[sedeId] : v.total);
+  const color = f.colores.find((c) => tallasDelColor(f, c.codigo).some(({ variante }) => hay(variante)));
+  if (!color) return [];
+  return tallasDelColor(f, color.codigo).map(({ talla, variante }) => ({ talla: talla.nombre, varianteId: hay(variante) ? variante.id : null }));
 }
 
 /**

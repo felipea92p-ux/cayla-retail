@@ -7,11 +7,16 @@ import { MarcoCatalogo } from "@/components/MarcoCatalogo";
 import { TarjetaPrenda } from "@/components/TarjetaPrenda";
 import { textoCambios } from "@/lib/ayuda";
 import { leerAyuda } from "@/lib/ayuda-servidor";
+import { cuantasEnLaBolsa } from "@/lib/bolsa-servidor";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { claveCategoria, hrefDePrenda, hrefLista } from "@/lib/catalogo";
-import { chipsDelCatalogo, esIdDePrenda } from "@/lib/ficha";
-import { leerFicha } from "@/lib/ficha-servidor";
+import { leerGuardadosEnBase } from "@/lib/club-servidor";
+import { chipsDelCatalogo, combinaCon, esIdDePrenda } from "@/lib/ficha";
+import { leerFicha, leerSeparadasPorOtros } from "@/lib/ficha-servidor";
+import { hrefLook } from "@/lib/looks";
+import { leerLooks } from "@/lib/looks-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
+import { leerSesion } from "@/lib/sesion-servidor";
 import { hayEnTienda, notaDeStock } from "@/lib/stock";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../../../estilos/ficha.css";
@@ -41,18 +46,30 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 // La ficha de una prenda (maqueta v4, `vProducto`): sus fotos, su precio en la tienda elegida (o el mayor, con «Todas») y su campaña,
 // sus colores y tallas, y CUÁNTO HAY EN CADA TIENDA como nivel. Se lee en cada visita: lo que se vende en una tienda baja el nivel al
-// recargar. Debajo, otras prendas de su categoría que hay en la tienda elegida.
+// recargar. Con su botón (agregar a la bolsa o «Avísame»), el corazón, la propuesta k (otros ya separaron lo que queda en esa tienda) y
+// «Ver mi bolsa». Debajo, «Combínalo con» (el primer look que la lleva) y otras prendas de su categoría que hay en la tienda elegida.
 export default async function FichaDePrenda(props: Props) {
   const { id, sp, sedes, pedida, ficha } = await leer(props);
-  // El plazo de cambio es el de la caja (el que imprime la boleta), el mismo de «Cambios y devoluciones».
-  const [catalogo, plazos] = await Promise.all([leerCatalogo(pedida?.id ?? null), leerAyuda()]);
+  const sesion = await leerSesion();
+  const usuario = sesion.estado === "con_sesion" ? sesion.usuarioId : null;
   // La tienda cuyo precio usó la base (si la escondieron entretanto, la base ya respondió con «Todas»).
   const elegida = ficha?.sede ? sedes.find((s) => s.id === ficha.sede) ?? null : null;
+  // El plazo de cambio es el de la caja (el que imprime la boleta), el mismo de «Cambios y devoluciones». Lo guardado (las esperas)
+  // es la misma lectura del marco del catálogo (una sola consulta por visita).
+  const [catalogo, plazos, guardados, enLaBolsa, looks, separadas] = await Promise.all([
+    leerCatalogo(pedida?.id ?? null),
+    leerAyuda(),
+    usuario ? leerGuardadosEnBase(usuario) : null,
+    cuantasEnLaBolsa(),
+    ficha ? leerLooks(pedida?.id ?? null) : null,
+    usuario && ficha && elegida ? leerSeparadasPorOtros(usuario, ficha.id, elegida.id) : new Set<string>(),
+  ]);
   const sede = elegida ? claveDeSede(elegida.nombre) : null;
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
   const clave = ficha ? claveCategoria(ficha.categoria) : null;
   const enLaTienda = (catalogo?.prendas ?? []).filter((p) => hayEnTienda(p.stock, elegida?.id ?? null));
   const similares = ficha ? enLaTienda.filter((p) => p.id !== ficha.id && claveCategoria(p.categoria) === clave).slice(0, 8) : [];
+  const combina = ficha ? combinaCon(looks?.looks ?? [], ficha.id, catalogo?.prendas ?? []) : null;
   // «Nuevo · llegó hace 4 días» y «N.º 3 en más vendidos» salen del catálogo, que ya los trae.
   const chips = chipsDelCatalogo(catalogo?.prendas.find((p) => p.id === id) ?? null);
 
@@ -95,25 +112,49 @@ export default async function FichaDePrenda(props: Props) {
             origenFotos={origenFotos}
             chips={chips}
             cambios={textoCambios(plazos)}
-          />
-        )}
+            esperas={guardados ? [...guardados.esperas.keys()] : []}
+            enLaBolsa={enLaBolsa}
+            separadas={[...separadas]}
+          >
+            {combina && (
+              <section className="t-sec" aria-labelledby="combina">
+                <div className="t-sec-cab">
+                  <div>
+                    <span className="t-ceja">{combina.look.nombre}</span>
+                    <h2 id="combina">
+                      Combínalo <em>con</em>
+                    </h2>
+                  </div>
+                  <Link className="t-ver" href={hrefLook(combina.look.id, sede)}>
+                    Ver el look <Icono nombre="flecha" />
+                  </Link>
+                </div>
+                <div className="t-carril">
+                  {combina.prendas.map((p) => (
+                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} />
+                  ))}
+                </div>
+              </section>
+            )}
 
-        {ficha && similares.length > 0 && (
-          <section className="t-sec" aria-labelledby="similares">
-            <div className="t-sec-cab">
-              <div>
-                <span className="t-ceja">{ficha.categoria?.nombre ?? "Para ti"}</span>
-                <h2 id="similares">
-                  También te <em>puede gustar</em>
-                </h2>
-              </div>
-            </div>
-            <div className="t-carril">
-              {similares.map((p) => (
-                <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} />
-              ))}
-            </div>
-          </section>
+            {similares.length > 0 && (
+              <section className="t-sec" aria-labelledby="similares">
+                <div className="t-sec-cab">
+                  <div>
+                    <span className="t-ceja">{ficha.categoria?.nombre ?? "Para ti"}</span>
+                    <h2 id="similares">
+                      También te <em>puede gustar</em>
+                    </h2>
+                  </div>
+                </div>
+                <div className="t-carril">
+                  {similares.map((p) => (
+                    <TarjetaPrenda key={p.id} prenda={p} sede={sede} origenFotos={origenFotos} nota={notaDeStock(p.stock, elegida, sedes)} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </FichaPrenda>
         )}
       </div>
     </MarcoCatalogo>

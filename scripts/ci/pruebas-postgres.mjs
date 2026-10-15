@@ -196,6 +196,10 @@ export const PRUEBAS = [
   // piso + almacén sin Cuarentena, sin lo apartado, sin el Taller ni las tiendas escondidas, baja al vender o apartar, respeta el
   // umbral de Configuración y NUNCA deja salir la cifra de 4 o más; la ficha de un oculto es null; precio por talla. ROLLBACK.
   "pruebas:tienda-ficha",
+  // La propuesta k de la ficha de la tienda online (ADR-0408): «otra persona ya separó la última» solo cuando los pedidos web por
+  // confirmar de OTROS clientes que recogen en esa tienda (y no vencieron) cubren lo libre de esa talla ahí (la pieza de la ficha);
+  // lo propio, otra tienda, lo vencido y lo confirmado no cuentan; nunca una cifra ni quién; solo tienda_web. ROLLBACK.
+  "pruebas:tienda-separadas",
 
   // El Inicio de la tienda online (ADR-0408, actividad 5): «Lo nuevo» por el PRIMER ingreso a una tienda en 30 días (no el Taller, no
   // una devolución), fijado o quitado en la Vitrina; «Más vendidos» por unidades en 30 días, 20 puestos y sin las cifras; ninguno con

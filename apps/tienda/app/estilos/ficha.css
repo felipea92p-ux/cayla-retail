@@ -73,6 +73,20 @@
 .t-stock tr.elegida td.talla-elegida { background: color-mix(in srgb, var(--rojo) 13%, transparent); }
 .t-stock-nota { margin: 0; font-size: 12px; color: var(--tinta-60); }
 
+/* ---- La propuesta k: otros ya separaron lo que queda en esa tienda. Un aviso suave (ámbar, como «por confirmar»), no un error. ---- */
+.t-aviso-suave { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--ambar) 10%, var(--papel)); font-size: 13px; line-height: 1.45; }
+.t-aviso-suave .ic { flex: none; width: 16px; height: 16px; color: var(--ambar); margin-top: 2px; }
+
+/* ---- El botón principal y el corazón (maqueta, `.t-cta-linea`): el botón a lo ancho y el corazón de 52 px a su derecha. En la
+   computadora, bajo la tabla; en el celular, en la barra de abajo, que queda pegada al borde mientras se ve la prenda y lo que va
+   debajo («Combínalo con», «También te puede gustar») y se suelta antes del pie. ---- */
+.t-cta-linea { display: grid; grid-template-columns: minmax(0, 1fr) 52px; gap: 10px; align-items: center; }
+.t-pdp-cta { display: none; }
+.t-pdp-barra { position: sticky; bottom: 0; z-index: 5; margin: 26px -16px 0; padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0px)); background: var(--crema); border-top: 1px solid var(--sand); }
+/* A 375 px, «Te avisaremos cuando llegue» cabe en una línea con menos aire a los lados. */
+.t-pdp-barra .t-btn { padding-inline: 14px; }
+.t-ver-bolsa { align-self: center; }
+
 /* ---- El acordeón ---- */
 .t-acordeon details { border-top: 1px solid var(--sand); }
 .t-acordeon details:last-child { border-bottom: 1px solid var(--sand); }
@@ -91,4 +105,6 @@
   .t-galeria .t-foto-g:first-child { grid-column: 1 / -1; }
   .t-gal-puntos { display: none; }
   .t-pdp-info { position: sticky; top: 18px; padding-top: 0; }
+  .t-pdp-cta { display: grid; }
+  .t-pdp-barra { display: none; }
 }
