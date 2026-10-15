@@ -15,6 +15,8 @@
 --   · llegaron: cada espera viva («Avísame cuando llegue») cuya prenda se ve en la web y ya tiene algo libre en su tienda (o en alguna
 --     de la web, si le daba igual), con dónde hay. La misma regla que «Te avisamos cuando llegue» de «Mi cuenta»: la regla única de
 --     «hay» de la tienda, `fn_tienda_disponible` en las tiendas de la web (`fn_tienda_sedes_web`), leída UNA vez para todas sus prendas.
+--     La tienda de la espera, con la regla con que se anota (`fn_tienda_sede_elegida`): una que después se escondió de la web es
+--     «cualquier tienda», como en «Mi cuenta» (si no, esa espera nunca «llegaba»).
 --   Sin cuenta, null. Con la ficha del Club inactiva, sin cumpleaños ni vale (como «Mi cuenta»); lo que llegó sí sale.
 --
 -- DECIDÍ: una función aparte y no `tienda_mi_club`. Esa es la lectura de «Mi cuenta» y ANOTA LA VISITA (`cuentas_web_visitas`, para
@@ -38,6 +40,18 @@
 
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
+
+-- Lo que da por hecho (si falta, no se pega nada).
+do $$
+begin
+  if to_regprocedure('retail.fn_tienda_sede_elegida(uuid, uuid[])') is null or to_regprocedure('retail.fn_tienda_disponible(uuid[], uuid[])') is null then
+    raise exception 'Faltan las reglas de «hay» y de la tienda elegida: pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
+  end if;
+  if to_regprocedure('retail.fn_tienda_modelo_se_ve(uuid)') is null or to_regclass('retail.esperas_web') is null then
+    raise exception 'Falta el Club en la cuenta: pega antes 20261015024000_tienda_favoritos_y_esperas.sql y 20261015025000_tienda_mi_club.sql.';
+  end if;
+end
+$$;
 
 create or replace function retail.tienda_mis_avisos_del_club(p_usuario_web_id uuid)
 returns jsonb
@@ -107,12 +121,14 @@ begin
   end if;
 
   -- Lo que esperaba y ya llegó: sus esperas vivas cuya prenda se ve en la web y tiene algo libre en su tienda (o en alguna de la web,
-  -- si le daba igual). «Libre» es la regla única de «hay» de la tienda (la ficha, la bolsa, «Mi cuenta»): `fn_tienda_disponible` en las
-  -- tiendas de la web, leída UNA vez para todas sus prendas.
+  -- si le daba igual o si su tienda ya no se ve en la web: fn_tienda_sede_elegida, la regla con que se anota). «Libre» es la regla única
+  -- de «hay» de la tienda (la ficha, la bolsa, «Mi cuenta»): `fn_tienda_disponible` en las tiendas de la web, leída UNA vez para todas
+  -- sus prendas.
   v_sedes := retail.fn_tienda_sedes_web();
   v_llegaron := coalesce((
     with vivas as (
-      select e.* from retail.esperas_web e where e.cuenta_web_id = v_cuenta and e.quitada_en is null
+      select e.*, retail.fn_tienda_sede_elegida(e.ubicacion_id, v_sedes) as sede_id
+        from retail.esperas_web e where e.cuenta_web_id = v_cuenta and e.quitada_en is null
     ),
     libres as (
       select d.variante_id, d.ubicacion_id
@@ -125,7 +141,7 @@ begin
              'producto', p.referencia,
              'color', co.nombre,
              'talla', t.valor,
-             'sede', case when e.ubicacion_id is null then null else coalesce(dw.nombre_web, u.nombre) end,
+             'sede', case when e.sede_id is null then null else coalesce(dw.nombre_web, u.nombre) end,
              'hay_en', to_jsonb(array(
                select coalesce(dw2.nombre_web, u2.nombre)
                  from libres l
@@ -139,10 +155,10 @@ begin
       join retail.productos p on p.id = v.producto_id
       left join retail.colores co on co.codigo = v.color_codigo
       left join retail.tallas t on t.id = v.talla_id
-      left join retail.ubicaciones u on u.id = e.ubicacion_id
-      left join retail.ubicacion_datos_web dw on dw.ubicacion_id = e.ubicacion_id
+      left join retail.ubicaciones u on u.id = e.sede_id
+      left join retail.ubicacion_datos_web dw on dw.ubicacion_id = e.sede_id
      where exists (select 1 from libres l
-                    where l.variante_id = e.variante_id and (e.ubicacion_id is null or l.ubicacion_id = e.ubicacion_id))
+                    where l.variante_id = e.variante_id and (e.sede_id is null or l.ubicacion_id = e.sede_id))
        and retail.fn_tienda_modelo_se_ve(v.producto_id)),
     '[]'::jsonb);
 

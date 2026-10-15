@@ -11,7 +11,9 @@
  *      o sin usuario: null.
  *   V. El vale sale solo DISPONIBLE, con el monto, el vencimiento y el aniversario de `fn_club_aniversario_calculo` (la cuenta de la caja).
  *   L. «Llegó»: una espera viva cuya prenda se ve en la web y tiene algo libre en SU tienda (o en alguna, si le daba igual), con dónde
- *      hay. Lo de otra tienda, lo de Cuarentena, lo apartado, lo que no se ve en la web, lo quitado y lo de otra cuenta no salen.
+ *      hay. Lo de otra tienda, lo de Cuarentena, lo apartado, lo que no se ve en la web, lo quitado y lo de otra cuenta no salen. Una
+ *      espera anotada en una tienda que después se escondió de la web se lee como «cualquier tienda» (`fn_tienda_sede_elegida`, la
+ *      regla con que se anota) y sale con lo libre de cualquier tienda de la web; si la tienda vuelve, vuelve a ser de ella.
  *   X. Dice lo MISMO que «Mi cuenta» (`tienda_mi_club`), ficha por ficha: cumpleaños disponible, vale disponible y lo que llegó. Si una
  *      de las dos cambia su regla y la otra no, esta prueba lo dice.
  *   W. No anota la visita de «Mi cuenta» (`cuentas_web_visitas`): `tienda_mi_club` sí la anota; esta no toca nada.
@@ -330,6 +332,20 @@ function main() {
     "t|0|0",
   );
 
+  esperarValor(
+    "esperaba en Lima y Lima se escondió de la web: se lee como «cualquier tienda» y sale con lo libre de Trujillo; si Lima vuelve, deja de salir (Lima sigue sin nada)",
+    escenario(`select pg_temp.esperar(:'ana_w', :'v1', :'lim') as e1 \\gset
+      select pg_temp.dejar(:'v1', :'tru', :'tru_piso', 1) as _x \\gset
+      ${AVISOS(U.ana, "a1")}
+      update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'lim';
+      ${AVISOS(U.ana, "a2")}
+      update retail.ubicacion_datos_web set mostrar = true where ubicacion_id = :'lim';
+      ${AVISOS(U.ana, "a3")}
+      select jsonb_array_length(:'a1'::jsonb -> 'llegaron') || '|' || jsonb_array_length(:'a3'::jsonb -> 'llegaron');
+      select concat_ws('|', x ->> 'id' = :'e1', coalesce(x ->> 'sede', 'cualquiera'), x ->> 'hay_en') from jsonb_array_elements(:'a2'::jsonb -> 'llegaron') x;`),
+    '0|0\nt|cualquiera|["ZZ Trujillo"]',
+  );
+
   // =================================================================================================================
   console.log("— X. Dice lo mismo que «Mi cuenta» —");
   esperarValor(
@@ -402,6 +418,17 @@ function main() {
       ${AVISOS(U.ana, "a")}
       select jsonb_array_length(:'a'::jsonb -> 'llegaron');`),
     "1",
+  );
+
+  esperarValor(
+    "MUTANTE «llegó» con la tienda guardada y no con la regla de la tienda elegida: la espera de Lima escondida no sale nunca (la prueba L lo nota)",
+    escenario(`select pg_temp.mutar('retail.tienda_mis_avisos_del_club(uuid)', 'retail.fn_tienda_sede_elegida(e.ubicacion_id, v_sedes) as sede_id', 'e.ubicacion_id as sede_id');
+      select pg_temp.esperar(:'ana_w', :'v1', :'lim') as _e \\gset
+      select pg_temp.dejar(:'v1', :'tru', :'tru_piso', 1) as _x \\gset
+      update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'lim';
+      ${AVISOS(U.ana, "a")}
+      select jsonb_array_length(:'a'::jsonb -> 'llegaron');`),
+    "0",
   );
 
   // =================================================================================================================

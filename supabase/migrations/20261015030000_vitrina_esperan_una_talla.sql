@@ -22,6 +22,11 @@
 --   aquí es lo mismo que «hay» en la ficha y que «llegó» en la cuenta del cliente (integración de la tienda, 2026-10-15; antes
 --   esta parte usaba otra suma y otra lista de tiendas). En el ERP cada tienda se llama por su nombre de siempre
 --   (`ubicaciones.nombre`) y sí se ve la cifra (es una pantalla de la tienda, no de la web).
+-- DECIDÍ (integración de la tienda, 2026-10-15): la tienda de cada espera se lee con la regla con que se anota
+--   (`fn_tienda_sede_elegida`): una espera anotada en una tienda que después se escondió de la web cuenta como «cualquier tienda»,
+--   junto con las que se anotaron así (las personas se cuentan una vez). Si no, su fila decía para siempre que no llegó, porque lo
+--   libre solo se mira en las tiendas de la web; y el cliente la ve igual en «Mi cuenta». Si la tienda vuelve a la web, vuelve a
+--   ser de ella.
 -- DECIDÍ: el permiso es el del módulo (`fn_exigir_modulo('vitrina_web')`, el mismo de la Vitrina: lo que se ve en la web y lo que
 --   la web pide van juntos). Es de toda CAYLA, no de una sede: la web es una sola.
 --
@@ -36,8 +41,9 @@ set lock_timeout = '3s';
 -- Lo que da por hecho (si falta, no se pega nada).
 do $$
 begin
-  if to_regprocedure('retail.fn_tienda_disponible(uuid[], uuid[])') is null or to_regprocedure('retail.fn_tienda_sedes_web()') is null then
-    raise exception 'Falta la regla de «hay» de la tienda: pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
+  if to_regprocedure('retail.fn_tienda_disponible(uuid[], uuid[])') is null or to_regprocedure('retail.fn_tienda_sedes_web()') is null
+     or to_regprocedure('retail.fn_tienda_sede_elegida(uuid, uuid[])') is null then
+    raise exception 'Faltan las reglas de «hay» y de la tienda elegida: pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
   end if;
   if to_regclass('retail.esperas_web') is null or to_regprocedure('retail.fn_tienda_modelo_se_ve(uuid)') is null then
     raise exception 'Falta la PARTE 1 (favoritos y esperas): pega antes 20261015024000_tienda_favoritos_y_esperas.sql.';
@@ -63,14 +69,15 @@ begin
         from retail.ubicaciones u where u.id = any (v_sedes)), '[]'::jsonb),
     'personas', (select count(distinct e.cuenta_web_id) from retail.esperas_web e where e.quitada_en is null),
     'filas', coalesce((
+      -- Por prenda y tienda; la tienda, con la regla con que se anota (una escondida es «cualquier tienda»).
       with vivas as (
-        select e.variante_id, e.ubicacion_id,
+        select e.variante_id, retail.fn_tienda_sede_elegida(e.ubicacion_id, v_sedes) as ubicacion_id,
                count(distinct e.cuenta_web_id)::integer as personas,
                min(e.creada_en) as desde,
                max(e.creada_en) as ultima
           from retail.esperas_web e
          where e.quitada_en is null
-         group by e.variante_id, e.ubicacion_id
+         group by 1, 2
       ),
       -- Lo libre de esas prendas en cada tienda de la web: la regla de «hay» de la ficha, leída una sola vez.
       libres as (
@@ -117,7 +124,7 @@ end;
 $fn$;
 
 comment on function retail.fn_vitrina_esperan() is
-  'Catálogo ▸ Vitrina web ▸ «Esperan una talla» (ADR-0408, act. 12): lo que los clientes de la web esperan (tocaron «Avísame»), por prenda y tienda: cuántas personas, desde cuándo, si ya llegó y dónde hay libre (fn_tienda_disponible en las tiendas de la web: la regla de «hay» de la ficha) y si el modelo se ve en la web. Sin datos personales. {tiendas, personas, filas}. Módulo vitrina_web. Lectura (prefijo fn_).';
+  'Catálogo ▸ Vitrina web ▸ «Esperan una talla» (ADR-0408, act. 12): lo que los clientes de la web esperan (tocaron «Avísame»), por prenda y tienda (una que ya no se ve en la web cuenta como «cualquier tienda», fn_tienda_sede_elegida): cuántas personas, desde cuándo, si ya llegó y dónde hay libre (fn_tienda_disponible en las tiendas de la web: la regla de «hay» de la ficha) y si el modelo se ve en la web. Sin datos personales. {tiendas, personas, filas}. Módulo vitrina_web. Lectura (prefijo fn_).';
 
 revoke all on function retail.fn_vitrina_esperan() from public, anon;
 grant execute on function retail.fn_vitrina_esperan() to authenticated;
