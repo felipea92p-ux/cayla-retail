@@ -280,18 +280,18 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
     return { linea, marca, importe: redondear(linea.precio * linea.cantidad) };
   });
 
-  // «Tiene todo lo que elegiste» o «Tiene 1 de 2; lo demás lo trae de otra tienda» (maqueta, `cobertura`: cuenta filas).
+  // «Tiene todo lo que elegiste» o «Tiene 1 de 2; lo demás lo trae de otra tienda» (maqueta, `cobertura`: cuenta filas). Lo que esa
+  // tienda no vende (sin precio ahí) no lo puede traer de otra: se dice aparte, «1 no se vende ahí».
   const tiendas = sedes.map((s) => {
     const total = disponibles.length;
     const ahi = disponibles.filter((l) => l.enSedes[s.id]?.alcanza && l.enSedes[s.id]?.seVende).length;
     const ninguna = disponibles.filter((l) => !l.alcanzaEnTotal).length;
-    const resto = total - ahi - ninguna;
-    const texto =
-      total === 0
-        ? null
-        : ahi === total
-          ? "Tiene todo lo que elegiste"
-          : `Tiene ${ahi} de ${total}${resto > 0 ? "; lo demás lo trae de otra tienda" : ""}`;
+    const noSeVende = disponibles.filter((l) => l.alcanzaEnTotal && l.enSedes[s.id] && !l.enSedes[s.id].seVende).length;
+    const resto = total - ahi - ninguna - noSeVende;
+    const partes = [`Tiene ${ahi} de ${total}`];
+    if (noSeVende > 0) partes.push(`${noSeVende} no se ${noSeVende === 1 ? "vende" : "venden"} ahí`);
+    if (resto > 0) partes.push("lo demás lo trae de otra tienda");
+    const texto = total === 0 ? null : ahi === total ? "Tiene todo lo que elegiste" : partes.join("; ");
     return { sede: s, elegida: s.id === sede?.id, texto };
   });
 

@@ -239,6 +239,15 @@ describe("la página de la bolsa", () => {
     expect(textoDeLaMarca(enTru.lineas[0].marca)).toBe("No se vende en Trujillo. Quítala o elige otra tienda.");
     expect(enTru.listo).toBe(false);
     expect(vistaBolsa(enBase(LIM, [linea])).listo).toBe(true);
+    // Al elegir tienda: la que no la vende no promete traerla de otra.
+    expect(enTru.tiendas.map((t) => [t.sede.nombre, t.texto])).toEqual([
+      ["Lima", "Tiene todo lo que elegiste"],
+      ["Trujillo", "Tiene 0 de 1; 1 no se vende ahí"],
+    ]);
+    const dos = vistaBolsa(
+      enBase(TRU, [linea, lineaBase(B, 1, { [TRU]: [false, false], [LIM]: [true, true] }), lineaBase(M1, 1, { [TRU]: [true, true], [LIM]: [true, true] })]),
+    );
+    expect(dos.tiendas.find((t) => t.elegida)?.texto).toBe("Tiene 1 de 3; 1 no se vende ahí; lo demás lo trae de otra tienda");
   });
 
   it("el total es lo que se paga con las campañas, y aparte cuánto ahorran; «Prendas» cuenta unidades", () => {
