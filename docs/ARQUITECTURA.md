@@ -838,6 +838,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`vitrina_guardar_modelo`: mostrar, Lo nuevo y descripción) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`: mostrar u ocultar uno o
   varios); reglas en `lib/vitrina-reglas.ts`, guía de foco en `lib/vitrina-guia.ts`. Sin precio web (Felipe, 2026-10-14): en la web
   vale el de cada tienda (`fn_precio_en_sede`).
+- `/productos/vitrina/looks` (Vitrina web ▸ Looks, el mismo módulo `vitrina_web`, ADR-0408 act. 11; las dos vistas van en
+  `components/vitrina/VitrinaPestanas.tsx`) → `page.tsx` lee `fn_vitrina_looks` (los looks con sus prendas, si se ven y por qué no, el
+  total con «Todas», y los modelos que se ven en la web) → `LooksPantalla.tsx` (cifras, la lista en su orden con su interruptor) +
+  `LookHoja.tsx` (`vitrina_guardar_look`: nombre, frase, 2 a 4 prendas con su color, si se ve y su lugar) + `LookMostrarHoja.tsx`
+  (`vitrina_mostrar_look`); reglas en `lib/vitrina-looks-reglas.ts`, guía de foco en `lib/vitrina-looks-guia.ts`. Qué se ve en la web
+  lo decide `tienda_catalogo(null)` (la misma regla del cliente). Prueba en la base: `pnpm pruebas:vitrina-looks`.
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +
@@ -1745,6 +1751,13 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   mayor entre las tiendas de la web, con la campaña encima (la regla de la caja, ADR-0403), sus colores y hasta dos fotos del almacén
   público; `lib/catalogo.ts` filtra por categoría y ordena, y `components/TarjetaPrenda.tsx` dibuja la tarjeta. Si la base no
   responde, la página dice que no se pudo cargar.
+- `/looks` y `/looks/[id]` («Arma tu look», actividad 11; grupo `(catalogo)`, con cuenta) → `lib/looks-servidor.ts` `leerLooks(sede)` y
+  `leerLook(id, sede)` → `retail.tienda_looks(p_sede)` y `retail.tienda_look(p_id, p_sede)`: los looks encendidos con TODAS sus prendas a
+  la vista, en su orden, con la lámina (x, y, ancho y giro de cada prenda) y el precio de cada prenda tomado de `tienda_catalogo(p_sede)`
+  (no hay otra regla), el total y, en el look abierto, las tallas de cada prenda con «hay» (la cifra única de Existencias en las tiendas
+  de la web; nunca la cifra). `lib/looks.ts` valida y prepara; `components/looks/Lamina.tsx` dibuja la lámina y
+  `components/looks/AgregarLook.tsx` la hoja de tallas, que entrega las líneas a `alAgregar` (la bolsa, actividad 7). Estilos en
+  `app/estilos/looks.css`.
 
 ---
 

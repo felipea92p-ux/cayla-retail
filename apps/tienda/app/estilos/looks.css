@@ -1,0 +1,83 @@
+/* =====================================================================================================
+   TIENDA ONLINE CAYLA (ADR-0408) · actividad 11: «Arma tu look» (la lista, el look abierto y la hoja de tallas).
+   Sale de la maqueta aprobada (docs/maquetas/tienda-online-2026-10, «Arma tu look»: `.t-lamina`, `.t-pieza`, `.t-look-*`). Solo tokens de
+   app/globals.css. La lámina es el «estudio» de las fotos (`--t-lamina`, `--t-foto`): igual en claro y en oscuro, como la foto misma;
+   el color de una prenda sin foto es un DATO y va en línea (`data-color-dato`).
+   ===================================================================================================== */
+
+/* ---- La lámina: las prendas del look sobre el estudio, cada una en su lugar ---- */
+.t-look { display: grid; gap: 18px; }
+.t-look-abierto { padding-top: 12px; padding-bottom: 8px; }
+.t-lamina { position: relative; aspect-ratio: 1 / 1.08; background: radial-gradient(90% 70% at 50% 40%, var(--t-foto), var(--t-lamina)); border-radius: 4px; overflow: hidden; }
+.t-pieza { position: absolute; left: var(--x); top: var(--y); width: var(--w); aspect-ratio: 4 / 5; transform: rotate(var(--r)); transition: transform .5s var(--ease); mix-blend-mode: multiply; animation: t-look-pieza .9s var(--ease) both; animation-delay: calc(var(--i) * 110ms); }
+.t-pieza .t-card-foto { height: 100%; background: transparent; border-radius: 0; }
+a.t-pieza:hover { transform: rotate(0deg) scale(1.05); z-index: 4; }
+.t-punto { position: absolute; z-index: 5; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; border: 2px solid var(--t-papel-fijo); background: var(--t-tinta-fija); color: var(--t-papel-fijo); font-size: 12px; font-weight: 700; display: grid; place-items: center; animation: t-look-punto 1.8s ease-out .8s 2; pointer-events: none; }
+
+/* ---- Lo que dice el look: su nombre, sus prendas, el total y el botón ---- */
+.t-look-info { display: flex; flex-direction: column; gap: 12px; }
+.t-look-info h1 { margin: 0; font-family: var(--serif); font-size: clamp(28px, 6cqi, 40px); font-weight: 500; line-height: 1; }
+.t-look-info > p { margin: 0; color: var(--tinta-60); font-size: 14px; }
+.t-look-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.t-look-item { display: grid; grid-template-columns: 22px 54px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--sand); }
+.t-look-item > b:first-child { font-size: 12px; width: 22px; height: 22px; border-radius: 50%; background: var(--tinta); color: var(--crema); display: grid; place-items: center; }
+.t-look-tile { position: relative; display: block; width: 54px; flex: none; border-radius: 3px; overflow: hidden; }
+.t-look-item-txt { display: flex; flex-direction: column; min-width: 0; font-size: 13px; }
+.t-look-item-txt small { color: var(--tinta-60); font-size: 12px; }
+.t-look-item .t-precio { flex-direction: column; align-items: flex-end; gap: 0; text-align: right; }
+.t-look-total { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; }
+.t-look-total b { font-family: var(--serif); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums lining-nums; }
+
+/* ---- La lista de looks ---- */
+.t-looks { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); padding-bottom: 8px; }
+.t-look-card { display: flex; flex-direction: column; gap: 10px; color: var(--tinta); }
+.t-look-card h3 { margin: 0; font-family: var(--serif); font-size: 26px; font-weight: 500; line-height: 1.05; }
+.t-look-card small { color: var(--tinta-60); font-size: 13px; }
+.t-look-card:hover h3 { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.t-look-card:focus-visible { outline: 2px solid var(--rojo); outline-offset: 4px; border-radius: 4px; }
+
+/* ---- La hoja de tallas (un <dialog>): abajo en el celular, al centro en la computadora ---- */
+.t-look-hoja { position: fixed; inset: auto 0 0 0; margin: 0; width: 100%; max-width: none; max-height: 88vh; padding: 0; border: 0; border-radius: 20px 20px 0 0; background: var(--papel); color: var(--tinta); box-shadow: 0 -24px 60px -24px var(--sombra); }
+.t-look-hoja[open] { animation: t-look-hoja-sube .35s var(--ease) both; }
+.t-look-hoja::backdrop { background: var(--velo); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.t-look-hoja-in { max-height: 88vh; overflow-y: auto; padding: 18px 18px calc(22px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; }
+.t-look-hoja-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.t-look-hoja-cab h2 { margin: 4px 0 0; font-family: var(--serif); font-size: 28px; font-weight: 500; line-height: 1.05; }
+.t-look-cerrar { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--sand); background: var(--papel); color: var(--tinta); display: grid; place-items: center; cursor: pointer; transition: border-color .15s; }
+.t-look-cerrar:hover { border-color: var(--tinta); }
+.t-look-cerrar .ic { width: 18px; height: 18px; }
+.t-look-hoja-texto { margin: 0; color: var(--tinta-60); font-size: 14px; }
+.t-look-filas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.t-look-fila { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 12px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--sand); }
+.t-look-fila .t-look-tile { width: 56px; }
+.t-look-fila-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 14px; }
+.t-look-fila-txt small { color: var(--tinta-60); font-size: 12.5px; }
+.t-look-tallas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.t-look-talla { min-width: 44px; height: 40px; padding: 0 14px; border: 1px solid var(--sand); border-radius: 999px; background: var(--crema); color: var(--tinta); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color .15s, border-color .15s, color .15s; }
+.t-look-talla:hover:not(:disabled) { border-color: var(--tinta); }
+.t-look-talla[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+.t-look-talla:disabled { opacity: .45; text-decoration: line-through; cursor: not-allowed; }
+.t-look-agotada { margin-top: 6px; color: var(--ambar); font-weight: 600; }
+.t-look-hoja-nota { margin: 0; text-align: center; color: var(--tinta-60); font-size: 13px; }
+
+/* El foco del teclado, visible sobre crema y sobre el oscuro. */
+.t-look-talla:focus-visible, .t-look-cerrar:focus-visible, .t-look-item .t-card-nom:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+
+@container tienda (min-width: 700px) {
+  .t-looks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container tienda (min-width: 960px) {
+  .t-look { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 56px; align-items: center; }
+  .t-looks { gap: 40px; }
+  .t-look-hoja { inset: 50% auto auto 50%; width: min(540px, 92vw); max-height: 86vh; border-radius: 20px; transform: translate(-50%, -50%); box-shadow: 0 30px 80px -30px var(--sombra); }
+  .t-look-hoja[open] { animation: t-look-hoja-centro .35s var(--ease) both; }
+  .t-look-hoja-in { max-height: 86vh; padding: 20px 24px 24px; }
+}
+
+@keyframes t-look-pieza { from { opacity: 0; transform: translateY(30px) rotate(calc(var(--r) * 2)) scale(.9); } }
+@keyframes t-look-punto {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--t-tinta-fija) 45%, transparent); }
+  100% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--t-tinta-fija) 0%, transparent); }
+}
+@keyframes t-look-hoja-sube { from { transform: translateY(100%); } }
+@keyframes t-look-hoja-centro { from { opacity: 0; transform: translate(-50%, -46%) scale(.97); } }
