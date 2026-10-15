@@ -1233,6 +1233,38 @@ const idDeProductoCualquiera = () => consultarLocal("select id from retail.produ
 ESCENARIOS.push(
   { id: "clientas.nuevo", ruta: "/clientas", cuentas: ["admin", "terminal-ventas", "integrante"], abre: "[role=dialog]", nombre: "Clientes · «Nuevo cliente»", preparar: clicRol("button", /Nuevo cliente/i) },
   { id: "clientas.ficha", ruta: "/clientas", cuentas: ["admin", "terminal-ventas", "integrante"], abre: "[role=dialog]", nombre: "Clientes · la ficha de una clienta", preparar: clicRol("button", /^Camila Torres/i) },
+  // «Editar» con el correo (20261015123000): uno mal escrito dice su error BAJO la caja (el que no se guarda: no escribe en la base).
+  {
+    id: "clientas.ficha-editar",
+    ruta: "/clientas",
+    cuentas: ["admin", "integrante"],
+    abre: "[role=dialog]",
+    nombre: "Clientes · «Editar» de la ficha, con el correo mal escrito",
+    async preparar(pagina) {
+      await clicRol("button", /^Camila Torres/i)(pagina);
+      await clicRol("button", /^Editar/i)(pagina);
+      await pagina.locator("#ficha-cliente-correo").fill("correo@incompleto");
+      await pagina.locator("#ficha-cliente-correo").press("Tab");
+      await esperar(pagina, 900);
+    },
+  },
+  // «Archivar» con un pedido de la tienda online en curso: el aviso. La base local no suele tener un pedido web de Camila, así que el
+  // escenario contesta él la lectura (`fn_clienta_tienda_online`, sin escribir nada); lo que se dibuja es la hoja real.
+  {
+    id: "clientas.ficha-archivar",
+    ruta: "/clientas",
+    cuentas: ["admin", "integrante"],
+    abre: "[role=dialog]",
+    nombre: "Clientes · «Archivar» con un pedido de la tienda online en curso",
+    async preparar(pagina) {
+      await pagina.route(/\/rpc\/fn_clienta_tienda_online/, (ruta) =>
+        ruta.fulfill({ json: { cuenta_web: true, pedidos_en_curso: [{ codigo: "W-0012", estado: "pagado", tienda: "Tienda Trujillo" }] } }),
+      );
+      await clicRol("button", /^Camila Torres/i)(pagina);
+      await clicRol("button", /^Archivar$/)(pagina);
+    },
+    limpiar: (pagina) => pagina.unroute(/\/rpc\/fn_clienta_tienda_online/).catch(() => {}),
+  },
   { id: "clientas.acciones", ruta: "/clientas", cuentas: ["admin"], abre: "[role=menu]", nombre: "Clientes · «Más acciones»", preparar: clicRol("button", /Más acciones de Clientes/i) },
   { id: "clientas.buscar", ruta: "/clientas", cuentas: ["admin", "terminal-ventas"], nombre: "Clientes · una búsqueda", async preparar(pagina) { await pagina.getByPlaceholder(/DNI, celular/i).first().fill("Rosa"); await esperar(pagina, 1800); } },
   { id: "avisos.beneficios", ruta: "/clientas/avisos", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Avisos · «Beneficios del club»", preparar: clicRol("button", /Beneficios del club/i) },

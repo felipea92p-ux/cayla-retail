@@ -513,7 +513,11 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  * 20261015054000: ya no se unen fichas); sin esto caerían al genérico con «Código:». Van ANTES que las huellas, como los de
  * variante: el hint es nuestro y exacto. La frase de acá es solo el respaldo por si el mensaje no llega.
  *   · `correo_repetido` (20261015054000, Felipe 2026-10-14): un correo es de una sola persona; trae `23505` y no dice de quién es
- *     (la misma frase sale en el cartel público). Hoy ninguna pantalla del ERP escribe el correo de una ficha: queda listo.
+ *     (la misma frase sale en el cartel público). En el ERP casi no llega: «Editar» de la ficha recibe el de abajo.
+ *   · `correo_de_otra_ficha` (20261015123000, Felipe 2026-10-15: «Editar» de la ficha escribe el correo): `23505`, y SÍ dice de qué
+ *     ficha es (nombre y código del club; o que con ese correo entra a la tienda online la cuenta de otra ficha): lo ve solo quien
+ *     edita fichas. La hoja lo pone bajo la caja del correo (`esRechazoDelCorreo`, lib/correo-clienta-reglas.ts).
+ *   · `correo_invalido` (20261015123000): `22023`, el correo no tiene la forma algo@algo.algo.
  *   · `clienta_anonimizada`: la ficha pidió borrar sus datos (Ley 29733) y la venta no se puede guardar a su nombre.
  *   · `clienta_no_existe`: la ficha del ticket ya no está en la libreta (típico: una venta sin conexión que llegó tarde).
  * Tanda 1b (club: socia, publicidad por WhatsApp y el número de cada tienda), con el mismo criterio:
@@ -552,6 +556,8 @@ const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["documento_invalido", "El documento del cliente no tiene el formato de su tipo: el DNI tiene 8 dígitos; el carné y el pasaporte, de 6 a 12 letras o números."],
   ["documento_de_otra_ficha", "Ese documento ya es de otra ficha. Un documento es de una sola persona: búscala en Clientes y corrige la que esté mal."],
   ["correo_repetido", "Ese correo ya está registrado con los datos de otra persona. Usa otro correo."],
+  ["correo_de_otra_ficha", "Ese correo ya es de otra ficha. Un correo es de una sola persona: búscala en Clientes y corrige la que esté mal."],
+  ["correo_invalido", "Revisa el correo: parece incompleto. Si no lo tiene, déjalo vacío."],
   ["clienta_anonimizada", "Este cliente pidió borrar sus datos: la venta no se puede guardar a su nombre. Quítalo del ticket y vende sin cliente."],
   ["clienta_no_existe", "Ese cliente ya no está en la libreta. Quítalo del ticket y vuelve a buscarlo."],
   ["club_sin_texto", "El club todavía no tiene su texto vigente para leerle al cliente, así que no se puede registrar su «sí». Avisa al líder."],

@@ -5745,6 +5745,7 @@ export type Database = {
           p_cumple_anio?: number
           p_tallas?: Json
           p_version_esperada?: number
+          p_correo?: string
         }
         Returns: number
       }
@@ -6130,6 +6131,10 @@ export type Database = {
       fn_clienta_separaciones: {
         Args: { p_id: string }
         Returns: { separacion_id: string; codigo: string; fecha: string; estado: string; total: number; vence_el: string }[]
+      }
+      fn_clienta_tienda_online: {
+        Args: { p_id: string }
+        Returns: Json
       }
       fn_clientas_lista: {
         Args: { p_termino?: string; p_filtro?: string; p_limite?: number; p_desde?: number }

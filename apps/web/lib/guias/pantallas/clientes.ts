@@ -112,7 +112,7 @@ export const GUIA_CLIENTES: Guia = {
       ancla: "clientas.ficha-editar",
       opcional: true,
       titulo: "Editar",
-      texto: "Para corregir su nombre, documento, celular o cumpleaños. En la demo no lo tocamos.",
+      texto: "Para corregir su nombre, documento, celular, correo o cumpleaños. Si el correo ya es de otra ficha, te dice de cuál. En la demo no lo tocamos.",
     },
     {
       id: "ficha-club",
@@ -148,7 +148,7 @@ export const GUIA_CLIENTES: Guia = {
       ancla: "clientas.ficha-acciones",
       opcional: true,
       titulo: "Archivar",
-      texto: "«Archivar» la saca de la libreta sin borrar su historia; si vuelve y la registras con su documento, se reactiva sola. En la demo no la tocamos.",
+      texto: "«Archivar» la saca de la libreta sin borrar su historia; si vuelve y la registras con su documento, se reactiva sola. Si tiene un pedido de la tienda online en curso, te avisa antes. En la demo no la tocamos.",
     },
     {
       id: "pie",
