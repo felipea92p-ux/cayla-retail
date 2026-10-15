@@ -753,6 +753,20 @@ function main() {
       rollback;`),
     "true|true|false\ntrue|true",
   );
+  // «Cambiar mi correo» (Felipe 2026-10-15, 20261015132000; lo prueba a fondo tienda_mi_cuenta.mjs): crear una cuenta mira el correo que
+  // la cuenta tiene HOY. El nuevo queda tomado y el de antes, libre para otra persona.
+  esperarValor(
+    "un correo cambiado en Mi cuenta: el nuevo queda tomado para crear otra cuenta (correo_repetido) y el de antes, libre",
+    correr(`${PREPARAR}
+      ${callado(r30.expr)}
+      select (retail.tienda_pedir_cambio_correo('${r30.d.usuario}', 'zz.mi.cuenta.nueva@ejemplo.com') ->> 'estado') as _p \\gset
+      select retail.tienda_correo_confirmado('${r30.d.usuario}', 'zz.mi.cuenta.nueva@ejemplo.com') ->> 'estado';
+      select (retail.tienda_consultar_correo('zz.mi.cuenta@ejemplo.com', '${huella()}') ->> 'estado') || '|' ||
+             (retail.tienda_consultar_correo('zz.mi.cuenta.nueva@ejemplo.com', '${huella()}') ->> 'estado') || '|' ||
+             (${revisar("zz.mi.cuenta.nueva@ejemplo.com", DNI.caja, "987654399", huella(), "zz-d-nueva")} ->> 'estado');
+      rollback;`),
+    "aplicado\nlibre|repetido|correo_repetido",
+  );
 
   console.log("— Como tienda_web —");
   const COMO_TIENDA = `grant tienda_web to current_user with set true;\nset local role tienda_web;\n`;

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   avisoAlArchivar,
   estadoDelPedido,
+  frenaAnonimizar,
   leerTiendaOnline,
   lineaDelPedido,
   notaDelCorreoDeEntrada,
@@ -102,7 +103,9 @@ describe("al archivar: avisa, no frena", () => {
 
 describe("el correo de entrada y lo que borra anonimizar", () => {
   it("con cuenta en la tienda online, la caja del correo dice que el de entrada no cambia aquí; sin cuenta, nada", () => {
-    expect(notaDelCorreoDeEntrada(UNO)).toBe("Tiene cuenta en la tienda online: entra con su propio correo, que no cambia desde aquí.");
+    expect(notaDelCorreoDeEntrada(UNO)).toBe(
+      "Tiene cuenta en la tienda online: entra con su propio correo, que no cambia desde aquí. Si lo perdió, usa «Restablecer acceso» en su ficha.",
+    );
     expect(notaDelCorreoDeEntrada(SIN_NADA)).toBeNull();
     expect(notaDelCorreoDeEntrada(null)).toBeNull();
   });
@@ -113,5 +116,36 @@ describe("el correo de entrada y lo que borra anonimizar", () => {
     );
     expect(pieDeAnonimizar(UNO)).toMatch(/novedades\)\. Su cuenta de la tienda online se cierra\. Sus compras/);
     expect(pieDeAnonimizar(null)).toBe(pieDeAnonimizar(SIN_NADA));
+  });
+});
+
+describe("anonimizar espera un pedido web pagado sin entregar (20261015131000)", () => {
+  it("con uno pagado, la hoja dice que todavía no y cuál es, con las palabras de la base; archivar sí se puede", () => {
+    const f = frenaAnonimizar(UNO)!;
+    expect(f).toBe(
+      "Todavía no se puede anonimizar: tiene un pedido de la tienda online pagado y sin entregar (W-0012 · Tienda Trujillo). Sus datos se pueden borrar cuando lo recoja o cuando se anule el pedido. Archivar sí se puede.",
+    );
+  });
+
+  it("solo frena lo PAGADO: por confirmar o confirmado sin pagar solo avisan", () => {
+    expect(frenaAnonimizar({ cuentaWeb: true, pedidosEnCurso: [{ codigo: "W-0020", estado: "por_confirmar", tienda: "Tienda Lima" }] })).toBeNull();
+    expect(frenaAnonimizar({ cuentaWeb: true, pedidosEnCurso: [{ codigo: "W-0021", estado: "confirmado", tienda: "" }] })).toBeNull();
+    expect(frenaAnonimizar(SIN_NADA)).toBeNull();
+    expect(frenaAnonimizar(null)).toBeNull();
+    // Con uno pagado y otro por confirmar, frena por el pagado (y solo lo nombra a él).
+    expect(frenaAnonimizar(DOS)).toMatch(/\(W-0012 · Tienda Trujillo\)/);
+    expect(frenaAnonimizar(DOS)).not.toMatch(/W-0020/);
+  });
+
+  it("con dos pagados, en plural", () => {
+    const f = frenaAnonimizar({
+      cuentaWeb: true,
+      pedidosEnCurso: [
+        { codigo: "W-0012", estado: "pagado", tienda: "Tienda Trujillo" },
+        { codigo: "W-0015", estado: "pagado", tienda: "" },
+      ],
+    })!;
+    expect(f).toMatch(/tiene 2 pedidos de la tienda online pagados y sin entregar \(W-0012 · Tienda Trujillo; W-0015\)/);
+    expect(f).toMatch(/cuando los recoja o cuando se anulen/);
   });
 });

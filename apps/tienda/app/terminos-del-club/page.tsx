@@ -100,7 +100,9 @@ export default async function TerminosDelClub() {
             <h2>7. Conservación de datos</h2>
             <p>
               Si pasan 3 años desde tu última compra o tu última entrada a tu cuenta web, tu ficha se anonimiza de forma automática, dejas de
-              ser miembro y tu cuenta web se cierra (ver la Política de privacidad, punto 6).
+              ser miembro y tu cuenta web se cierra (ver la Política de privacidad, punto 6). Puedes dejar el club antes, cuando quieras,
+              eliminando tu cuenta en «Mi cuenta» o pidiéndolo en una tienda CAYLA: pierdes tu descuento de cumpleaños y tu vale de
+              aniversario.
             </p>
           </section>
         </article>

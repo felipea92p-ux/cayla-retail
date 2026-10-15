@@ -353,8 +353,10 @@ export const MENSAJES = {
   entrarMal: "El correo o la contraseña no coinciden. Revísalos o recupera tu contraseña.",
   entrarLimite: "Hiciste muchos intentos seguidos. Espera unos minutos y vuelve a intentarlo.",
   entrarNoDisponible: "No pudimos entrar ahora. Intenta de nuevo en unos minutos.",
-  // Su ficha se anonimizó (3 años sin comprar ni entrar, o lo pidió en tienda) y la cuenta se cerró: Términos del Club, 7; Privacidad, 6.
-  cuentaCerrada: "Tu cuenta se cerró y borramos tus datos: pasaron 3 años sin compras ni entradas a tu cuenta, o lo pediste en una tienda CAYLA. Si quieres volver, crea una cuenta nueva.",
+  // Su ficha se anonimizó (3 años sin comprar ni entrar, o lo pidió: en tienda o con «Eliminar mi cuenta») y la cuenta se cerró:
+  // Términos del Club, 7; Privacidad, 6.
+  cuentaCerrada:
+    "Tu cuenta se cerró y borramos tus datos: pasaron 3 años sin compras ni entradas a tu cuenta, o pediste eliminarla (desde tu cuenta o en una tienda CAYLA). Si quieres volver, crea una cuenta nueva.",
   olvideNoDisponible: "No pudimos mandarte el enlace ahora. Intenta de nuevo en unos minutos.",
   enlaceVencido: "El enlace venció o ya se usó. Pide otro: te llega en un momento.",
   claveIgual: "Esa ya era tu contraseña: entraste con ella.",

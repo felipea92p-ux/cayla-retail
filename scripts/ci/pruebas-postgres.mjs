@@ -824,6 +824,13 @@ export const PRUEBAS = [
   // un DNI solo guarda un nombre que un servidor anotó como lectura del padrón en la última hora (`nombre_sin_padron`); carné y
   // pasaporte, sin números (`nombre_con_numeros`); las lecturas, solo su huella y solo para service_role y tienda_web. ROLLBACK.
   "pruebas:nombre-del-padron",
+  // «Mi cuenta» de la tienda online (Felipe 2026-10-15, 20261015131000 y 20261015132000): anonimizar espera un pedido web PAGADO (en
+  // los tres caminos) y «a pedido suyo» va sin persona y con su nota; cambiar el correo de entrada (los topes de la 2b, el correo de una
+  // sola persona sin decir de quién, el reenvío solo al correo pedido, el código de 5 intentos) y aplicarlo solo si se pidió;
+  // «Restablecer acceso» desde el ERP (módulo, Responsable, la ficha de un uso guardada como sha256, la página pública con su tope por
+  // ip); los intentos de contraseña; «Eliminar cuenta» (frena con pedidos en curso o apartados abiertos; si no, anonimiza y cierra la
+  // cuenta); la limpieza al cerrarse por cualquier camino; todo como tienda_web; y el pegado. ROLLBACK.
+  "pruebas:tienda-mi-cuenta",
 
   // Celular para la boleta (ADR-0288, «Actualización 2026-10-03 (o)», actividad 2): `agregar_celular_clienta` SOLO AGREGA. A
   // una ficha sin celular se lo deja normalizado (versión +1, una línea de actividad sin datos personales); a una que ya

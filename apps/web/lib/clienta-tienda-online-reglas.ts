@@ -1,7 +1,7 @@
 // La ficha de un cliente y la tienda online (ADR-0408, Felipe 2026-10-15). Lógica pura, sin React ni red: lee lo que contesta
 // `fn_clienta_tienda_online` (20261015123000) y arma lo que la hoja de la ficha dice con eso. La prueba `clienta-tienda-online-reglas.test.ts`.
 //
-// Dos cosas, y solo avisan (no frenan nada):
+// Tres cosas. Las dos primeras solo avisan; la tercera (anonimizar con un pedido PAGADO sin entregar) espera, como la base:
 //   · ARCHIVAR con un pedido web en curso (por confirmar, confirmado sin pagar o pagado sin entregar). Felipe: la hoja avisa antes de
 //     confirmar y deja seguir; la conservación del Club (3 años) ya no anonimiza sola a quien tiene un pedido en curso (20261015055000).
 //     Lo que pasa de verdad, en cada caso (las funciones de la base, no una promesa de la pantalla):
@@ -11,6 +11,7 @@
 //       - anonimizar: su cuenta de la tienda online se cierra en la misma escritura (`clientas_cuenta_web_al_anonimizar`): ya no
 //         entra a ver su pedido ni el código para recogerlo, y el pedido se queda sin su nombre ni su celular para avisarle.
 //   · EDITAR el correo de una ficha con cuenta en la tienda online: el correo con que entra allá no cambia desde aquí.
+//   · ANONIMIZAR con un pedido web pagado y sin entregar: espera (20261015131000, `frenaAnonimizar`); el interruptor se apaga y dice por qué.
 
 /** Un pedido web en curso, como lo devuelve la base. */
 export type PedidoWebEnCurso = { codigo: string; estado: "por_confirmar" | "confirmado" | "pagado"; tienda: string };
@@ -69,9 +70,27 @@ export function avisoAlArchivar(
   };
 }
 
-/** Bajo la caja del correo, si tiene cuenta en la tienda online: el correo con que entra allá no cambia aquí. */
+/** Bajo la caja del correo, si tiene cuenta en la tienda online: el correo con que entra allá no cambia aquí (lo cambia ella con un
+ *  código; si lo perdió, «Restablecer acceso», 20261015132000). */
 export function notaDelCorreoDeEntrada(t: TiendaOnlineDeLaClienta | null): string | null {
-  return t?.cuentaWeb ? "Tiene cuenta en la tienda online: entra con su propio correo, que no cambia desde aquí." : null;
+  return t?.cuentaWeb
+    ? "Tiene cuenta en la tienda online: entra con su propio correo, que no cambia desde aquí. Si lo perdió, usa «Restablecer acceso» en su ficha."
+    : null;
+}
+
+/**
+ * ¿Hay que esperar para anonimizar? Sí, con un pedido web PAGADO y sin entregar (Felipe 2026-10-15, 20261015131000): la base no anonimiza
+ * (`anonimizar_pedido_web_pagado`, en sus tres caminos) para no dejar sin dueño un pedido por el que ya pagó. Lo que dice la hoja, con
+ * las mismas palabras que la base; null si se puede. Archivar sin anonimizar sigue igual.
+ */
+export function frenaAnonimizar(t: TiendaOnlineDeLaClienta | null): string | null {
+  const pagados = t?.pedidosEnCurso.filter((p) => p.estado === "pagado") ?? [];
+  if (pagados.length === 0) return null;
+  const uno = pagados.length === 1;
+  const cuales = pagados.map((p) => [p.codigo, p.tienda].filter(Boolean).join(" · ")).join("; ");
+  return uno
+    ? `Todavía no se puede anonimizar: tiene un pedido de la tienda online pagado y sin entregar (${cuales}). Sus datos se pueden borrar cuando lo recoja o cuando se anule el pedido. Archivar sí se puede.`
+    : `Todavía no se puede anonimizar: tiene ${pagados.length} pedidos de la tienda online pagados y sin entregar (${cuales}). Sus datos se pueden borrar cuando los recoja o cuando se anulen. Archivar sí se puede.`;
 }
 
 /** Lo que borra «Anonimizar» (el pie del interruptor). Con cuenta en la tienda online, además se cierra. */

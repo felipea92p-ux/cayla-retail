@@ -21,7 +21,8 @@
  *      `tienda_registrar_cuenta` con el correo de otra ficha (la carrera que se saltó la revisión) no escribe nada.
  *   G. `editar_clienta` con el documento de otra ficha dice de cuál es (nombre, código del club, archivada).
  *   H. La entrada: `tienda_anotar_entrada` anota (también como `tienda_web`), y dice `sin_cuenta` o `cerrada`.
- *   I. El cierre: anonimizar cierra la cuenta en la misma escritura —sin correo ni usuario, con favoritos y esperas quitados—;
+ *   I. El cierre: anonimizar cierra la cuenta en la misma escritura —sin correo ni usuario, con favoritos y esperas quitados, y desde
+ *      «Mi cuenta» (20261015132000) sin su cambio de correo pendiente ni sus intentos de contraseña—;
  *      ninguna función la vuelve a encontrar; su usuario queda por borrar y se anota borrado una vez; una cuenta cerrada no se
  *      reabre; ninguna ficha anonimizada queda con una cuenta viva o con datos.
  *   J. La conservación (3 años): entrar hace poco, o haber creado la cuenta hace poco, la frena; sin compras ni entradas, anonimiza y
@@ -148,12 +149,15 @@ $f$;
 const caso = (sql) => correr(`${PREPARAR}${sql}\nrollback;`);
 const VERSIONES = `(select jsonb_object_agg(t.tipo, t.v) from (select tipo, max(version) as v from retail.club_textos
                     where tipo in ('terminos', 'privacidad', 'casilla_publicidad') group by tipo) t)`;
-// Una cuenta web de Bea con favoritos, una espera y su visita a «Mi cuenta». Deja :u (su usuario) y :cuenta.
+// Una cuenta web de Bea con favoritos, una espera y su visita a «Mi cuenta». Deja :u (su usuario) y :cuenta. Y desde «Mi cuenta»
+// (20261015132000), un cambio de correo esperando su código y dos intentos de contraseña: también son suyos y se van al cerrarse.
 const BEA_CON_CUENTA = `select pg_temp.cuenta(:'bea', 'zz.bea.web@ejemplo.com') as u \\gset
 select id as cuenta from retail.cuentas_web where usuario_web_id = :'u' \\gset
 insert into retail.favoritos_web (cuenta_web_id, producto_id) select :'cuenta', p.id from retail.productos p order by p.id limit 2;
 insert into retail.esperas_web (cuenta_web_id, variante_id) select :'cuenta', v.id from retail.variantes v order by v.id limit 1;
 insert into retail.cuentas_web_visitas (cuenta_web_id, visita_en) values (:'cuenta', now());
+insert into retail.cuentas_web_cambios_correo (cuenta_web_id, correo_nuevo, origen, vence_en) values (:'cuenta', 'zz.bea.nuevo@ejemplo.com', 'cuenta', now() + interval '1 day');
+insert into retail.cuentas_web_intentos_clave (cuenta_web_id, intentos) values (:'cuenta', 2);
 `;
 const ANONIMIZAR_BEA = `select retail.archivar_clienta(:'bea', 'pidió que la borren', true, null) as _version \\gset\n`;
 
@@ -333,13 +337,15 @@ function main() {
 
   console.log("— I. El cierre de la cuenta web al anonimizar —");
   esperarValor(
-    "anonimizar en tienda cierra la cuenta en la misma escritura: sin correo ni usuario, con el usuario por borrar, favoritos y esperas quitados",
+    "anonimizar en tienda cierra la cuenta en la misma escritura: sin correo ni usuario, con el usuario por borrar, favoritos y esperas quitados, y sin su cambio de correo pendiente ni sus intentos de contraseña",
     caso(`${BEA_CON_CUENTA}${ANONIMIZAR_BEA}
           select (cerrada_en is not null) || '|' || (correo is null) || '|' || (usuario_web_id is null) || '|' || (usuario_cerrado_id = :'u') || '|' ||
                  (usuario_borrado_en is null) from retail.cuentas_web where id = :'cuenta';
           select (select count(*) filter (where quitado_en is null) || '/' || count(*) from retail.favoritos_web where cuenta_web_id = :'cuenta') || '|' ||
-                 (select count(*) filter (where quitada_en is null) || '/' || count(*) from retail.esperas_web where cuenta_web_id = :'cuenta');`),
-    "true|true|true|true|true\n0/2|0/1",
+                 (select count(*) filter (where quitada_en is null) || '/' || count(*) from retail.esperas_web where cuenta_web_id = :'cuenta') || '|' ||
+                 (select count(*) from retail.cuentas_web_cambios_correo where cuenta_web_id = :'cuenta') || '|' ||
+                 (select count(*) from retail.cuentas_web_intentos_clave where cuenta_web_id = :'cuenta');`),
+    "true|true|true|true|true\n0/2|0/1|0|0",
   );
   esperarValor(
     "cerrada, ninguna función de la tienda la encuentra: Mi cuenta, el Club, los favoritos y los pedidos dicen «no hay cuenta»; la entrada dice «cerrada»",
@@ -379,9 +385,11 @@ function main() {
   const CUENTAS_VIVAS_DE_ANONIMIZADAS = `select count(*) from retail.cuentas_web w join retail.clientas c on c.id = w.clienta_id
            where c.anonimizada and (w.cerrada_en is null or w.correo is not null or w.usuario_web_id is not null
                                     or exists (select 1 from retail.favoritos_web f where f.cuenta_web_id = w.id and f.quitado_en is null)
-                                    or exists (select 1 from retail.esperas_web e where e.cuenta_web_id = w.id and e.quitada_en is null));`;
+                                    or exists (select 1 from retail.esperas_web e where e.cuenta_web_id = w.id and e.quitada_en is null)
+                                    or exists (select 1 from retail.cuentas_web_cambios_correo m where m.cuenta_web_id = w.id)
+                                    or exists (select 1 from retail.cuentas_web_intentos_clave i where i.cuenta_web_id = w.id));`;
   esperarValor(
-    "en toda la base: ninguna ficha anonimizada tiene una cuenta web abierta o con datos (correo, usuario, favoritos o esperas vivos)",
+    "en toda la base: ninguna ficha anonimizada tiene una cuenta web abierta o con datos (correo, usuario, favoritos o esperas vivos, un cambio de correo pendiente o intentos de contraseña)",
     caso(`${BEA_CON_CUENTA}${ANONIMIZAR_BEA}${CUENTAS_VIVAS_DE_ANONIMIZADAS}`),
     "0",
   );

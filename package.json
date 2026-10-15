@@ -231,6 +231,7 @@
     "pruebas:clientas-correo": "node scripts/pruebas/clientas_correo_y_cuenta_web.mjs",
     "pruebas:clientas-correo-ficha": "node scripts/pruebas/clientas_correo_en_la_ficha.mjs",
     "pruebas:nombre-del-padron": "node scripts/pruebas/nombre_del_padron.mjs",
+    "pruebas:tienda-mi-cuenta": "node scripts/pruebas/tienda_mi_cuenta.mjs",
     "pruebas:agregar-celular": "node scripts/pruebas/agregar_celular_clienta.mjs",
     "pruebas:club-venta-ligada": "node scripts/pruebas/club_venta_ligada.mjs",
     "pruebas:club-permisos": "node scripts/pruebas/club_permisos.mjs",

@@ -263,7 +263,9 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0288 tanda 1b: la ficha ganó las acciones del club y, con ellas, la guía en cada acción que se llena. Tanda 1g: se fueron «Unirse al
   // club», su QR y «Llegó su mensaje» (ella se une desde el cartel); quedan editar, archivar y «Registrar su BAJA» (un solo control:
   // quién la registra, dentro de la misma hoja). «Unir con otra ficha» se fue el 2026-10-14 (el documento y el correo son de una persona).
-  "components/ClientaFichaModal.tsx": { estado: "aplicada", evidencia: ["components/ClientaFichaModal.tsx"] },
+  // «Restablecer acceso» a la tienda online (2026-10-15) es otro modo de la misma hoja, con su guía en su propio archivo: el correo
+  // nuevo (obligatorio, bien escrito y no rechazado por la base) y quién lo hace.
+  "components/ClientaFichaModal.tsx": { estado: "aplicada", evidencia: ["components/ClientaFichaModal.tsx", "components/clientas/TiendaOnlineDeLaFicha.tsx"] },
   // Desde ADR-0341 solo queda aquí confirmar desactivar o reactivar una terminal («Dar acceso» se mudó a colaboradores/DarAccesoModal).
   "components/ColaboradoresModales.tsx": { estado: "no-aplica", motivo: "Confirmación de desactivar o reactivar una terminal: lo único que pide es quién lo hace (el combo de toda la pantalla) y un botón." },
   "components/ColoresLista.tsx": { estado: "aplicada", evidencia: ["components/ColoresLista.tsx"] },

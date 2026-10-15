@@ -16,8 +16,9 @@
 # En producción (actividad 13) este proyecto lo crea Felipe en Supabase, con los MISMOS ajustes de abajo puestos a mano en el
 # panel: nadie se registra por la puerta pública (solo el servidor de la tienda crea cuentas), contraseñas de 8 o más, el
 # enlace de recuperación vence en 30 minutos, la plantilla de correo de `plantillas/recuperar.html` y, en las direcciones
-# permitidas, solo la de la tienda (`https://<dominio>/nueva-contrasena`). Y un proveedor de correo propio: el que trae
-# Supabase manda muy pocos correos por hora.
+# permitidas, solo las de la tienda (`https://<dominio>/nueva-contrasena`, y desde «Mi cuenta» del 2026-10-15 también
+# `https://<dominio>/cuenta/correo` y `https://<dominio>/restablecer-acceso`: el enlace del correo del código vuelve ahí; si no
+# está permitida, cae en `site_url`). Y un proveedor de correo propio: el que trae Supabase manda muy pocos correos por hora.
 # =====================================================================================================================
 project_id = "cayla-tienda-clientes"
 
@@ -93,10 +94,16 @@ token_verifications = 30
 # El correo con contraseña está encendido (para entrar y recuperar); crear cuentas por la puerta pública, no (`enable_signup`
 # de arriba).
 enable_signup = true
-double_confirm_changes = true
+# «Cambiar mi correo» y «Restablecer acceso» (Felipe 2026-10-15): el código va SOLO al correo nuevo (plantilla de abajo) y al anterior
+# le llega un aviso (`[auth.email.notification.email_changed]`). Con esto encendido iría un código a cada correo, y el anterior es justo
+# el que quien restablece ya no tiene. En producción: «Secure email change» APAGADO.
+double_confirm_changes = false
 # El correo se confirma con un CÓDIGO de 6 cifras antes de crear la cuenta (actividad 2b, Felipe 2026-10-14): lo manda la
 # invitación de abajo, que solo usa el servidor de la tienda. Nadie entra sin haber confirmado: la invitación no tiene contraseña.
-enable_confirmations = false
+# ENCENDIDO desde «Mi cuenta» (2026-10-15): apagado, el proyecto confirma solo cualquier cambio de correo y lo aplica SIN código (medido
+# en local con GoTrue v2.196: «updateUser» cambiaba el correo en el acto). Crear la cuenta no cambia: la invitación confirma el correo.
+# En producción: «Confirm email» ENCENDIDO.
+enable_confirmations = true
 secure_password_change = false
 max_frequency = "10s"
 otp_length = 6
@@ -112,6 +119,18 @@ content_path = "./supabase/plantillas/recuperar.html"
 [auth.email.template.invite]
 subject = "Tu código para crear tu cuenta · CAYLA"
 content_path = "./supabase/plantillas/codigo.html"
+
+# El código del correo NUEVO de una cuenta (Felipe 2026-10-15): «Cambiar mi correo» en Mi cuenta y «Restablecer acceso» que pidió en
+# una tienda. Solo el código y el enlace a la página donde se escribe; nunca el enlace de confirmación del proyecto.
+[auth.email.template.email_change]
+subject = "Tu código para confirmar tu correo · CAYLA"
+content_path = "./supabase/plantillas/correo-nuevo.html"
+
+# Y el aviso al correo ANTERIOR apenas se confirma el cambio (aviso de seguridad «Email address changed»).
+[auth.email.notification.email_changed]
+enabled = true
+subject = "Cambió el correo de tu cuenta · CAYLA"
+content_path = "./supabase/plantillas/correo-cambiado.html"
 
 [auth.sms]
 enable_signup = false
