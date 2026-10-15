@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 import Link from "next/link";
+import { salir } from "@/app/acciones/cuenta";
 import { buscarEn, resaltar } from "@/lib/buscador";
 import type { DatosCabecera } from "@/lib/inicio";
 import { FotoTarjeta } from "./FotoTarjeta";
@@ -19,14 +21,15 @@ const etiquetaFavoritos = (n: number | null) => (n ? `Favoritos: ${n} ${n === 1 
  * La cabecera de quien tiene cuenta (maqueta v4, `cabT`): en el celular, el menú a la izquierda; en la computadora, «Lo nuevo», «Ropa»
  * (con sus categorías en columnas y la tarjeta de lo último que llegó), «Arma tu look», «Más vendidos» y «Ofertas». A la derecha, el
  * buscador (busca mientras se escribe, por nombre, categoría o color, sin tildes ni mayúsculas), el corazón de los favoritos con cuántos
- * hay (solo en la computadora: en el celular están en el menú), «Mi cuenta» y la bolsa con su globo. Todos los enlaces llevan la tienda
- * elegida, menos los favoritos (son de la persona, no de una tienda).
+ * hay (solo en la computadora: en el celular están en el menú), la persona (abre su menú: el nombre, «Mi perfil» y «Cerrar sesión») y la
+ * bolsa con su globo. Todos los enlaces llevan la tienda elegida, menos los favoritos (son de la persona, no de una tienda).
  */
 export function CabeceraConCuenta({
   datos,
   actual = null,
   favoritos = null,
   bolsa = null,
+  nombre = null,
 }: {
   datos: DatosCabecera;
   actual?: SeccionActual;
@@ -34,6 +37,8 @@ export function CabeceraConCuenta({
   favoritos?: number | null;
   /** La bolsa con su globo (`components/bolsa/BotonBolsa.tsx`, de servidor: lee la cookie de la bolsa). La pone el marco. */
   bolsa?: React.ReactNode;
+  /** El nombre corto de la cuenta («María»), para el saludo del menú de la persona; null si no se sabe (sale sin saludo). */
+  nombre?: string | null;
 }) {
   const [hoja, setHoja] = useState<"menu" | "buscar" | null>(null);
   const disparador = useRef<HTMLButtonElement | null>(null);
@@ -143,9 +148,7 @@ export function CabeceraConCuenta({
             <Icono nombre="corazon" />
             {favoritos ? <span className="t-globo">{favoritos}</span> : null}
           </Link>
-          <Link className="t-ico" href="/cuenta" aria-label="Mi cuenta" aria-current={marca("cuenta")}>
-            <Icono nombre="persona" />
-          </Link>
+          <MenuDeLaCuenta nombre={nombre} enCuenta={actual === "cuenta"} />
           {bolsa}
         </div>
       </header>
@@ -154,6 +157,80 @@ export function CabeceraConCuenta({
       {hoja === "menu" && <HojaMenu datos={datos} favoritos={favoritos} cerrar={cerrar} />}
       {hoja === "buscar" && <HojaBuscar datos={datos} cerrar={cerrar} />}
     </>
+  );
+}
+
+/**
+ * El menú de la persona (Felipe 2026-10-15: «al dar click en la persona debería desplegar algo con el nombre, "Mi perfil" y cerrar
+ * sesión»). Baja del ícono, en el celular y en la computadora; se cierra con Escape, al tocar fuera o al elegir. «Cerrar sesión» es la
+ * misma acción de «Mi cuenta» (`salir`) y dice «Cerrando sesión…» mientras la espera. Es un desplegable (el botón dice si está abierto y
+ * qué abre; se recorre con Tab), no un `role="menu"`: ese rol promete moverse con las flechas, y con dos opciones no hace falta.
+ */
+function MenuDeLaCuenta({ nombre, enCuenta }: { nombre: string | null; enCuenta: boolean }) {
+  const [abierto, setAbierto] = useState(false);
+  const caja = useRef<HTMLDivElement | null>(null);
+  const boton = useRef<HTMLButtonElement | null>(null);
+  const idMenu = useId();
+
+  useEffect(() => {
+    if (!abierto) return;
+    const fuera = (e: PointerEvent) => {
+      if (caja.current && !caja.current.contains(e.target as Node)) setAbierto(false);
+    };
+    const alEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setAbierto(false);
+        boton.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", fuera);
+    window.addEventListener("keydown", alEscape);
+    return () => {
+      document.removeEventListener("pointerdown", fuera);
+      window.removeEventListener("keydown", alEscape);
+    };
+  }, [abierto]);
+
+  return (
+    <div className="t-persona" ref={caja}>
+      <button
+        ref={boton}
+        type="button"
+        className="t-ico"
+        aria-label={nombre ? `Tu cuenta, ${nombre}` : "Tu cuenta"}
+        aria-expanded={abierto}
+        aria-controls={abierto ? idMenu : undefined}
+        onClick={() => setAbierto((a) => !a)}
+      >
+        <Icono nombre="persona" />
+      </button>
+      {abierto && (
+        <div className="t-persona-menu" id={idMenu}>
+          {nombre && (
+            <p className="t-persona-hola">
+              Hola, <b>{nombre}</b>
+            </p>
+          )}
+          <Link className="t-persona-op" href="/cuenta" aria-current={enCuenta ? "page" : undefined} onClick={() => setAbierto(false)}>
+            <Icono nombre="persona" />
+            Mi perfil
+          </Link>
+          <form action={salir}>
+            <BotonSalir />
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BotonSalir() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" className="t-persona-op" disabled={pending}>
+      <Icono nombre="flecha" />
+      {pending ? "Cerrando sesión…" : "Cerrar sesión"}
+    </button>
   );
 }
 
