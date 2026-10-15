@@ -197,6 +197,12 @@ export const PRUEBAS = [
   // umbral de Configuración y NUNCA deja salir la cifra de 4 o más; la ficha de un oculto es null; precio por talla. ROLLBACK.
   "pruebas:tienda-ficha",
 
+  // El Inicio de la tienda online (ADR-0408, actividad 5): «Lo nuevo» por el PRIMER ingreso a una tienda en 30 días (no el Taller, no
+  // una devolución), fijado o quitado en la Vitrina; «Más vendidos» por unidades en 30 días, 20 puestos y sin las cifras; ninguno con
+  // las familias fuera de los motores (bolsas). Y los plazos de la ayuda: los de Configuración ▸ Tienda web y el de cambio de la caja.
+  // ROLLBACK.
+  "pruebas:tienda-inicio",
+
   // El motor del pedido web (ADR-0408, actividades 7-9): separar no toca el stock; confirmar reserva con el motor de Apartados
   // (almacén primero) y Vender ya no la vende; dos por la última (uno reserva, el otro sin stock, y quién separó antes, también
   // con dos sesiones a la vez); anular libera; el cierre de 24 h no toca lo confirmado; un pago nunca pasa el total; el n.º de

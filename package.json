@@ -121,6 +121,7 @@
     "pruebas:tienda-cuentas": "node scripts/pruebas/tienda_cuentas.mjs",
     "pruebas:vitrina-web": "node scripts/pruebas/vitrina_web.mjs",
     "pruebas:tienda-ficha": "node scripts/pruebas/tienda_ficha.mjs",
+    "pruebas:tienda-inicio": "node scripts/pruebas/tienda_inicio.mjs",
     "pruebas:pedidos-web-motor": "node scripts/pruebas/pedidos_web_motor.mjs",
     "pruebas:pedidos-web-erp": "node scripts/pruebas/pedidos_web_erp.mjs",
     "pruebas:redondeo-efectivo": "node scripts/pruebas/redondeo_efectivo.mjs",

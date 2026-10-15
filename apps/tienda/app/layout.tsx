@@ -6,6 +6,10 @@ import "./globals.css";
 // Las páginas de la cuenta (crear, entrar, recuperar, «Mi cuenta», privacidad y términos) y el aviso «Listo: …», que también
 // sale en la portada al salir de la cuenta.
 import "./estilos/cuenta.css";
+// La tarjeta de una prenda, su foto o su silueta, y la cabecera de quien tiene cuenta (actividad 5: el menú, el buscador y el menú
+// «Ropa», con las fotos de las prendas). Salen en el Inicio, el catálogo, la ficha, «Mi cuenta» y las páginas de ayuda.
+import "./estilos/catalogo.css";
+import "./estilos/cabecera.css";
 
 // Las mismas dos letras del ERP y de la marca: EB Garamond para títulos, DM Sans para el texto.
 const serif = EB_Garamond({ subsets: ["latin"], variable: "--font-eb-garamond", display: "swap" });

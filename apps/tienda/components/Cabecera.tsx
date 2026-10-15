@@ -1,19 +1,12 @@
 import Link from "next/link";
-import { salir } from "@/app/acciones/cuenta";
 import { Isotipo } from "./Isotipo";
 
 /**
- * La cabecera. Sin cuenta: a la derecha, «Entrar» y «Crear mi cuenta» (la de la página donde ya se está no se repite). Con
- * cuenta (`conCuenta`): «Mi cuenta» (o «Catálogo», si ya se está en «Mi cuenta») y «Salir». Lo dice la página: la portada no lee
- * la sesión (así se guarda en caché) y a quien tiene sesión el proxy lo lleva al catálogo; la cuenta y el catálogo sí la leen.
+ * La cabecera de quien no tiene cuenta (la portada, entrar, crear la cuenta, las páginas públicas): a la derecha, «Entrar» y «Crear mi
+ * cuenta» (la de la página donde ya se está no se repite). Con cuenta, la cabecera es otra (`CabeceraConCuenta`, actividad 5: el menú,
+ * el buscador y «Mi cuenta»); a quien tiene sesión el proxy lo lleva de la portada al Inicio.
  */
-export function Cabecera({
-  conCuenta = false,
-  enPagina,
-}: {
-  conCuenta?: boolean;
-  enPagina?: "entrar" | "crear-cuenta" | "cuenta" | "catalogo";
-}) {
+export function Cabecera({ enPagina }: { enPagina?: "entrar" | "crear-cuenta" }) {
   return (
     <header className="t-cab">
       <div className="t-cab-fila">
@@ -22,37 +15,15 @@ export function Cabecera({
           <span>CAYLA</span>
         </Link>
         <span className="t-esp" />
-        {conCuenta ? (
-          <>
-            {/* Dos botones caben en el celular: desde «Mi cuenta» se va al catálogo, y desde el catálogo, a «Mi cuenta». */}
-            {enPagina === "cuenta" ? (
-              <Link className="t-btn t-btn-sec t-btn-chico" href="/catalogo">
-                Catálogo
-              </Link>
-            ) : (
-              <Link className="t-btn t-btn-sec t-btn-chico" href="/cuenta">
-                Mi cuenta
-              </Link>
-            )}
-            <form action={salir}>
-              <button className="t-btn t-btn-sec t-btn-chico" type="submit">
-                Salir
-              </button>
-            </form>
-          </>
-        ) : (
-          <>
-            {enPagina !== "entrar" && (
-              <Link className="t-btn t-btn-sec t-btn-chico" href="/entrar">
-                Entrar
-              </Link>
-            )}
-            {enPagina !== "crear-cuenta" && (
-              <Link className="t-btn t-btn-chico t-solo-grande" href="/crear-cuenta">
-                Crear mi cuenta
-              </Link>
-            )}
-          </>
+        {enPagina !== "entrar" && (
+          <Link className="t-btn t-btn-sec t-btn-chico" href="/entrar">
+            Entrar
+          </Link>
+        )}
+        {enPagina !== "crear-cuenta" && (
+          <Link className="t-btn t-btn-chico t-solo-grande" href="/crear-cuenta">
+            Crear mi cuenta
+          </Link>
         )}
       </div>
     </header>

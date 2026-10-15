@@ -33,6 +33,7 @@ export function FichaPrenda({
   colorPedido,
   origenFotos,
   chips = [],
+  cambios,
 }: {
   ficha: Ficha;
   /** La tienda de «Ver lo que hay en» (su id), o null con «Todas». */
@@ -42,6 +43,8 @@ export function FichaPrenda({
   origenFotos: string | undefined;
   /** Los chips de arriba del nombre que vienen del catálogo («Nuevo…», «N.º 3 en más vendidos»). */
   chips?: { texto: string; tono?: "nuevo" }[];
+  /** «Cambios»: como en tienda, con el plazo de la caja (`lib/ayuda.ts`, el mismo de «Cambios y devoluciones»). */
+  cambios: string;
 }) {
   const [color, setColor] = useState(() => colorInicial(ficha, colorPedido));
   const tallas = tallasDelColor(ficha, color);
@@ -175,7 +178,7 @@ export function FichaPrenda({
             <summary>
               Cambios <Icono nombre="chevron" />
             </summary>
-            <p>Igual que en tienda: puedes cambiar o devolver tu prenda dentro de 7 días, en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.</p>
+            <p>{cambios}</p>
           </details>
         </div>
       </div>

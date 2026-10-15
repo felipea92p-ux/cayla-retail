@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   campanaDeLaFicha,
   chipCampana,
+  chipsDelCatalogo,
   colorInicial,
   esIdDePrenda,
   faltaParaTerminar,
@@ -181,5 +182,21 @@ describe("al elegir color y talla", () => {
     expect(faltaParaTerminar("2026-10-21", lima("2026-10-20T23:00:00"))).toBe("1 día 0 h");
     expect(faltaParaTerminar("2026-10-21", lima("2026-10-21T18:47:51"))).toBe("05:12:08");
     expect(faltaParaTerminar("2026-10-21", lima("2026-10-22T00:00:01"))).toBeNull();
+  });
+});
+
+describe("los chips que salen del catálogo (actividad 5)", () => {
+  it("«Nuevo» con hace cuántos días llegó (o «llegó hoy»), solo «Nuevo» si está fijado sin días, y su puesto en Más vendidos", () => {
+    expect(chipsDelCatalogo({ nuevo: { dias: 4 }, vendidos: 3 })).toEqual([
+      { texto: "Nuevo · llegó hace 4 días", tono: "nuevo" },
+      { texto: "N.º 3 en más vendidos" },
+    ]);
+    expect(chipsDelCatalogo({ nuevo: { dias: 1 }, vendidos: null })).toEqual([{ texto: "Nuevo · llegó hace 1 día", tono: "nuevo" }]);
+    expect(chipsDelCatalogo({ nuevo: { dias: 0 }, vendidos: null })).toEqual([{ texto: "Nuevo · llegó hoy", tono: "nuevo" }]);
+    expect(chipsDelCatalogo({ nuevo: { dias: null }, vendidos: null })).toEqual([{ texto: "Nuevo", tono: "nuevo" }]);
+    expect(chipsDelCatalogo({ nuevo: null, vendidos: 1 })).toEqual([{ texto: "N.º 1 en más vendidos" }]);
+    // Sin la prenda en el catálogo (o sin base), ningún chip: nunca se afirma lo que no se sabe.
+    expect(chipsDelCatalogo({ nuevo: null, vendidos: null })).toEqual([]);
+    expect(chipsDelCatalogo(null)).toEqual([]);
   });
 });
