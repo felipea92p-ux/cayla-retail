@@ -123,6 +123,7 @@
     "pruebas:tienda-ficha": "node scripts/pruebas/tienda_ficha.mjs",
     "pruebas:pedidos-web-motor": "node scripts/pruebas/pedidos_web_motor.mjs",
     "pruebas:pedidos-web-erp": "node scripts/pruebas/pedidos_web_erp.mjs",
+    "pruebas:pedidos-web-cobrar": "node scripts/pruebas/pedidos_web_cobrar.mjs",
     "pruebas:redondeo-efectivo": "node scripts/pruebas/redondeo_efectivo.mjs",
     "pruebas:prendas-por-regularizar": "node scripts/pruebas/prendas_por_regularizar.mjs",
     "pruebas:piezas-liquidacion": "node scripts/pruebas/piezas_liquidacion.mjs",

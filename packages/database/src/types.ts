@@ -5863,6 +5863,13 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: { apartado_id: string; pedido_codigo: string; tienda_pedido: string; para_otra_tienda: boolean }[]
       }
+      // Cobrar dentro del pedido web (ADR-0408, actividad 9; motor 20261015000000, token 20261015042000). El efectivo no lleva n.º
+      // de operación (null); el token lo pone `useIntento`.
+      registrar_pago_pedido_web: {
+        Args: { p_pedido_id: string; p_monto: number; p_medio: string; p_numero_operacion?: string | null; p_token?: string }
+        Returns: Json
+      }
+      anular_pago_pedido_web: { Args: { p_pago_id: string; p_motivo: string }; Returns: Json }
       unirse_al_club: {
         Args: {
           p_clienta_id: string
