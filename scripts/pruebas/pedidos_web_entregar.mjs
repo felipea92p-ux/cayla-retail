@@ -648,7 +648,11 @@ select retail.fn_pedido_web_detalle(:'a') as d1 \\gset
 select concat_ws('|',
   (:'d0'::jsonb -> 'boleta' ->> 'texto') ~ '^BT97-\\d{6}$', :'d0'::jsonb -> 'boleta' ->> 'estado', (:'d0'::jsonb ->> 'venta_id') = :'venta_a',
   :'d1'::jsonb ->> 'estado', (:'d1'::jsonb ->> 'entregado_por') is not null,
-  position(:'cod_a' in :'d0') = 0 and position('codigo_recojo' in :'d0') = 0);`,
+  -- El código son 4 cifras al azar: buscarlo como TEXTO en todo el JSON daba rojo cuando aparecía por casualidad dentro de una fecha,
+  -- un id o un monto (pasó el 2026-10-15 en el CI del PR #1118). Se busca como VALOR de cualquier campo, en cualquier nivel y como
+  -- texto o como número: un código filtrado bajo cualquier nombre sigue dando rojo.
+  not jsonb_path_exists(:'d0'::jsonb, '$.** ? (@ == $c || @ == $n)', jsonb_build_object('c', :'cod_a', 'n', (:'cod_a')::int))
+    and position('codigo_recojo' in :'d0') = 0);`,
     "t|pendiente|t|entregado|t|t",
   ],
   [
