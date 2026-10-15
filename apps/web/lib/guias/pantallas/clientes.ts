@@ -29,7 +29,14 @@ export const GUIA_CLIENTES: Guia = {
       opcional: true,
       preparar: [{ tipo: "clic", ancla: "clientas.nuevo" }],
       titulo: "Su documento",
-      texto: "Eliges DNI, carné de extranjería o pasaporte y escribes el número. Con un DNI de 8 dígitos el nombre se llena solo; con los otros, lo escribes tú. Si ese documento ya tiene ficha, te lo dice y te deja abrirla: no se crea otra.",
+      texto: "Eliges DNI, carné de extranjería o pasaporte y escribes el número. Si ese documento ya tiene ficha, te lo dice y te deja abrirla: no se crea otra.",
+    },
+    {
+      id: "nuevo-nombre",
+      ancla: "clientas.nuevo-nombre",
+      opcional: true,
+      titulo: "Su nombre",
+      texto: "Con DNI, el nombre lo trae el padrón y no se escribe: si el padrón no responde o no encuentra el DNI, no se registra y tocas «Volver a intentar». Con carné o pasaporte, lo escribes tal cual está en su documento, sin números.",
     },
     {
       id: "nuevo-responsable",
@@ -112,7 +119,7 @@ export const GUIA_CLIENTES: Guia = {
       ancla: "clientas.ficha-editar",
       opcional: true,
       titulo: "Editar",
-      texto: "Para corregir su nombre, documento, celular, correo o cumpleaños. Si el correo ya es de otra ficha, te dice de cuál. En la demo no lo tocamos.",
+      texto: "Para corregir su documento, celular, correo o cumpleaños. El nombre de un DNI no se escribe: si cambió, «Actualizar desde el padrón» lo vuelve a leer. Si el correo ya es de otra ficha, te dice de cuál. En la demo no lo tocamos.",
     },
     {
       id: "ficha-club",

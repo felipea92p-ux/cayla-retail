@@ -35,17 +35,17 @@
       "Link «Siguiente ›»",
       "button «clientas.fila»"
     ],
-    "components/ConsultaDocumento.tsx": [
-      "CampoTexto «{contador ? ( <> {}»",
-      "Boton «Buscar»",
-      "CampoTexto «{etiqueta.nombre}»"
-    ],
     "components/NuevaClientaModal.tsx": [
       "button «Abrir su ficha»",
-      "CampoTexto «Nombre completo»",
+      "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre completo\")}»",
       "ComboResponsable «(sin nombre)»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
+    ],
+    "components/clientas/NombreDelPadron.tsx": [
+      "button «Volver a intentar»",
+      "CampoTexto «{padron.estado === \"consultando\" ? \"Consultando el padrón…\" : \"Lo trae el padrón\"}»",
+      "button «Actualizar desde el padrón»"
     ],
     "components/clientas/PreferenciasClienta.tsx": [
       "button «{o.valor}»",

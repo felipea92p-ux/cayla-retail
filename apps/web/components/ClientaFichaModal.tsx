@@ -9,6 +9,9 @@ import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoNumeroDocumento, CampoTipoDocumento, ID_NUMERO_DOCUMENTO } from "@/components/CampoDocumentoClienta";
 import { CampoCelular, CamposCumpleanos, ID_ANIO_CLUB, ID_CELULAR_CLUB, ID_DIA_CLUB } from "@/components/clientas/club-piezas";
+// El nombre de una ficha con DNI sale del padrón y no se edita a mano (Felipe 2026-10-15, 20261015133000).
+import { NombreDelPadron, usePadronDeFicha } from "@/components/clientas/NombreDelPadron";
+import { AYUDA_NOMBRE_ESCRITO, nombreDeLaEdicion } from "@/lib/nombre-del-padron-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
@@ -16,7 +19,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { esVersionCambiada, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { estaActiva, type Clienta, type FichaClienta } from "@/lib/clientas-reglas";
 import { deducirTallas, estadoFrecuente } from "@/lib/clienta-actividad-reglas";
-import { ajustarNumeroAlTipo, contactoVisible, problemaDocumento } from "@/lib/documento-clienta-reglas";
+import { ajustarNumeroAlTipo, contactoVisible, normalizarNumeroDocumento, problemaDocumento } from "@/lib/documento-clienta-reglas";
 import { estadoClub } from "@/lib/club-reglas";
 import { cajaDelProblemaCumple, cumpleCompleto, problemaCumple, type CumpleEscrito } from "@/lib/club-cumple-reglas";
 import { avisoCambioDeCelular, cumpleLegible, faltaParaSerSocia } from "@/lib/club-clientas-reglas";
@@ -57,6 +60,8 @@ const cumpleDeEdicion = (e: DatosEdicion): CumpleEscrito => ({ dia: e.cumpleDia,
 
 /** El id de la caja del correo: para llevarle el cursor cuando está mal o la base lo rechazó. */
 const ID_CORREO = "ficha-cliente-correo";
+/** El id de la caja del nombre escrito (carné, pasaporte o sin documento): para llevarle el cursor si le falta algo. */
+const ID_NOMBRE_ESCRITO = "ficha-cliente-nombre";
 
 function datosDeEdicion(c: Clienta): DatosEdicion {
   return {
@@ -78,13 +83,21 @@ function datosDeEdicion(c: Clienta): DatosEdicion {
  *   · editar: el documento, si se escribe, completo (D-2); a una socia no se le puede borrar el celular, el documento ni el
  *     nombre (`socia_sin_celular`, `socia_sin_documento`, CL-1); el correo, opcional, pero si se escribe bien escrito
  *     (`correo_invalido`) y no el de otra ficha (lo que dijo la base, `correo_de_otra_ficha`, mientras siga escrito el mismo); el
- *     año del cumpleaños, si se escribe, completo.
+ *     año del cumpleaños, si se escribe, completo. El nombre (Felipe 2026-10-15, `nombreDeLaEdicion`): con DNI no se escribe —si el
+ *     DNI cambió hace falta el nombre del padrón para el número nuevo (`nombre_sin_padron`)—; con carné o pasaporte, tal cual y sin
+ *     números (`nombre_con_numeros`).
  *   · archivar: el motivo. · baja: solo quién lo hace. · En todas, quién lo hace.
  */
 function camposDeLaGuia(
   modo: Modo,
   c: Clienta | null,
-  estado: { edicion: DatosEdicion | null; motivoArchivo: string; anonimizar: boolean; problemaDelCorreo: string | null },
+  estado: {
+    edicion: DatosEdicion | null;
+    motivoArchivo: string;
+    anonimizar: boolean;
+    problemaDelCorreo: string | null;
+    nombre: ReturnType<typeof nombreDeLaEdicion> | null;
+  },
   responsableListo: boolean,
   anioActual: number,
 ): CampoDeGuia[] {
@@ -116,7 +129,13 @@ function camposDeLaGuia(
           hecho: e.documentoNumero !== "" && problema === null,
           pendiente: problema ?? "Es miembro del club: su documento no se puede dejar vacío.",
         },
-        { id: "nombre", nombre: "Nombre", requerido: socia, hecho: e.nombre.trim() !== "", pendiente: "Es miembro del club: su nombre no se puede dejar vacío." },
+        {
+          id: "nombre",
+          nombre: estado.nombre?.origen === "padron" ? "Nombre del padrón" : "Nombre",
+          requerido: socia || !(estado.nombre?.listo ?? true),
+          hecho: (estado.nombre?.listo ?? false) && (estado.nombre?.nombre ?? "") !== "",
+          pendiente: estado.nombre?.pendiente ?? "Es miembro del club: su nombre no se puede dejar vacío.",
+        },
         {
           id: "celular",
           nombre: "Celular",
@@ -207,8 +226,32 @@ export function ClientaFichaModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar / cambiar id
   }, [id]);
 
+  // El nombre en «Editar» (Felipe 2026-10-15): con DNI no se escribe. Con el DNI de siempre se queda el que tenía y se ofrece
+  // «Actualizar desde el padrón»; si el DNI cambió (o pasó a DNI), el padrón se consulta solo para el número nuevo.
+  const deAntes = ficha?.clienta ?? null;
+  const numeroEditado = edicion ? normalizarNumeroDocumento(edicion.documentoNumero) : "";
+  const dniEditado = modo === "editar" && edicion?.documentoTipo === "dni";
+  const mismoDni = dniEditado && deAntes?.documentoTipo === "dni" && (deAntes.documentoNumero ?? "") === numeroEditado;
+  const { padron, consultar } = usePadronDeFicha({ numero: numeroEditado, activo: dniEditado, automatico: !mismoDni });
+  const nombreEditado =
+    edicion && deAntes
+      ? nombreDeLaEdicion({
+          tipo: edicion.documentoTipo,
+          numero: numeroEditado,
+          escrito: edicion.nombre,
+          padron,
+          deAntes: { tipo: deAntes.documentoTipo, numero: deAntes.documentoNumero, nombre: deAntes.nombre },
+        })
+      : null;
+
   const guia = useGuiaCampos(
-    camposDeLaGuia(modo, ficha?.clienta ?? null, { edicion, motivoArchivo, anonimizar, problemaDelCorreo }, responsable.listo, anioActual),
+    camposDeLaGuia(
+      modo,
+      ficha?.clienta ?? null,
+      { edicion, motivoArchivo, anonimizar, problemaDelCorreo, nombre: nombreEditado },
+      responsable.listo,
+      anioActual,
+    ),
   );
 
   async function cargar() {
@@ -303,7 +346,13 @@ export function ClientaFichaModal({
       avisar.error("Es miembro del club: su celular no se puede dejar vacío.", { enfocar: ID_CELULAR_CLUB });
       return;
     }
-    if (c.clubDesde !== null && (edicion.documentoNumero.trim() === "" || edicion.nombre.trim() === "")) {
+    // El nombre (Felipe 2026-10-15): con DNI, el que tenía o el del padrón; con carné o pasaporte, escrito tal cual y sin números.
+    if (nombreEditado && !nombreEditado.listo) {
+      avisar.error(nombreEditado.pendiente ?? "Revisa el nombre.", nombreEditado.origen === "padron" ? undefined : { enfocar: ID_NOMBRE_ESCRITO });
+      return;
+    }
+    const nombreAGuardar = nombreEditado?.nombre ?? edicion.nombre;
+    if (c.clubDesde !== null && (edicion.documentoNumero.trim() === "" || nombreAGuardar.trim() === "")) {
       avisar.error("Es miembro del club: su documento y su nombre no se pueden dejar vacíos.", edicion.documentoNumero.trim() === "" ? { enfocar: ID_NUMERO_DOCUMENTO } : undefined);
       return;
     }
@@ -323,7 +372,7 @@ export function ClientaFichaModal({
     const pierdeNovedades = avisoCelular !== null;
     const correoEnviado = normalizarCorreo(edicion.correo);
     await guardarAccion(
-      () => editarClienta(id, edicion, c.version, firma),
+      () => editarClienta(id, { ...edicion, nombre: nombreAGuardar }, c.version, firma),
       "editar la ficha",
       () =>
         avisar.exito("Ficha actualizada", {
@@ -332,6 +381,9 @@ export function ClientaFichaModal({
       undefined,
       // El correo de otra ficha (la base dice de cuál) o mal escrito: bajo su caja, no en un aviso suelto.
       (error, frase) => {
+        // La base no encontró la lectura del padrón del nombre (la hoja estuvo abierta más de una hora): se vuelve a leer, y el
+        // aviso sale como siempre.
+        if (error?.hint === "nombre_sin_padron" && nombreEditado?.origen === "padron") consultar();
         if (!esRechazoDelCorreo(error)) return false;
         setRechazoCorreo({ valor: correoEnviado, mensaje: frase });
         setSalioDelCorreo(true);
@@ -597,8 +649,35 @@ export function ClientaFichaModal({
                   onNumero={(v) => setEdicion((d) => d && { ...d, documentoNumero: v })}
                 />
               </CampoGuiado>
+              {/* El nombre (Felipe 2026-10-15): con DNI no se edita a mano —bloqueado, con «Actualizar desde el padrón»; si el DNI
+                  cambió, el padrón trae el del número nuevo—; con carné o pasaporte se escribe tal cual, sin números. */}
               <CampoGuiado id="nombre" guia={guia}>
-                <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")} value={edicion.nombre} onChange={(e) => setEdicion((d) => d && { ...d, nombre: e.target.value })} />
+                {nombreEditado?.origen === "padron" ? (
+                  <NombreDelPadron
+                    padron={padron}
+                    donde="ficha"
+                    onConsultar={consultar}
+                    deAntes={mismoDni ? (c.nombre ?? "") : null}
+                    actualizable={mismoDni}
+                    deshabilitado={guardando}
+                  />
+                ) : (
+                  <CampoTexto
+                    id={ID_NOMBRE_ESCRITO}
+                    etiqueta={guia.etiqueta("nombre", "Nombre")}
+                    maxLength={200}
+                    value={edicion.nombre}
+                    onChange={(e) => setEdicion((d) => d && { ...d, nombre: e.target.value })}
+                    pie={
+                      nombreEditado?.pendiente && /[0-9]/.test(edicion.nombre)
+                        ? nombreEditado.pendiente
+                        : nombreEditado?.origen === "escrito"
+                          ? AYUDA_NOMBRE_ESCRITO
+                          : undefined
+                    }
+                    tono={nombreEditado?.pendiente && /[0-9]/.test(edicion.nombre) ? "error" : "neutro"}
+                  />
+                )}
               </CampoGuiado>
               <CampoGuiado id="celular" guia={guia}>
                 <CampoCelular

@@ -6,8 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { avisar } from "@/components/ui/Avisos";
-import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { CampoNumeroDocumento, CampoTipoDocumento, ID_NUMERO_DOCUMENTO } from "@/components/CampoDocumentoClienta";
+import { NombreDelPadron, usePadronDeFicha } from "@/components/clientas/NombreDelPadron";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
@@ -20,7 +20,6 @@ import {
   estadoEnLaLibreta,
   filaDelCartel,
   lineaDeLaClientaEnCaja,
-  nombreSuficiente,
   type CajaDelClub,
   type PublicidadEnCaja,
 } from "@/lib/club-caja-reglas";
@@ -39,6 +38,7 @@ import { ajustarNumeroAlTipo, normalizarNumeroDocumento, problemaDocumento, tipo
 import { sePuedeConfirmar } from "@/lib/guia-campos";
 import { fichaConDocumento, registrarClienta } from "@/lib/clientas-acciones";
 import { avisoDelAlta, resultadoDelAlta } from "@/lib/alta-clienta-reglas";
+import { AYUDA_NOMBRE_ESCRITO, nombreDelAlta, pendienteDelNombre, problemaNombreEscrito } from "@/lib/nombre-del-padron-reglas";
 import { esSinModulo, traducirError } from "@/lib/error-escritura";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { Buscador } from "@/components/ui/Buscador";
@@ -65,8 +65,9 @@ const PILDORA_ACCION =
  * a nombre de quién van.
  *
  * Registrar en el ticket (ADR-0288 D-9 y tanda 1g, G-2): si no está en la libreta, se registra en la misma hoja, sin salir
- * del cobro, SOLO con su documento —tipo (DNI por defecto) y número; con DNI el nombre llega del padrón y, si el padrón no
- * responde, se escribe a mano (principio 9); con carné o pasaporte, el nombre se escribe—, y queda elegida para esta venta.
+ * del cobro, SOLO con su documento —tipo (DNI por defecto) y número; con DNI el nombre lo trae el padrón y no se escribe: si el
+ * padrón no responde, no se registra y la venta sigue sin cliente (Felipe 2026-10-15); con carné o pasaporte, el nombre se
+ * escribe tal cual—, y queda elegida para esta venta.
  * El celular y el cumpleaños los escribe ella al unirse desde el cartel.
  *
  * `puedeBuscar` (ADR-0249, actualización 2026-09-28): la libreta es del módulo «Clientas». Qué se muestra sin él lo decide
@@ -580,10 +581,10 @@ function BuscarClientaModal({
 
 /**
  * El alta del ticket (ADR-0288 D-9 y tanda 1g, G-2), dibujada como el spike del club (`modalRegistrar`) y con la misma regla
- * que el alta de /clientas (`NuevaClientaModal`): SOLO el documento (con DNI, el nombre llega del padrón en el mismo bloque;
- * con carné o pasaporte, se escribe) y quién registra, con el combo del ticket: lo que se elija aquí vale también para la
- * venta. Qué bloquea y qué sigue lo dice `camposDeRegistrar` (lib/club-caja-reglas.ts, con pruebas): la guía y el botón miran
- * la misma regla.
+ * que el alta de /clientas (`NuevaClientaModal`): SOLO el documento y su nombre (con DNI lo trae el padrón y no se escribe:
+ * `NombreDelPadron`; con carné o pasaporte, se escribe tal cual) y quién registra, con el combo del ticket: lo que se elija aquí
+ * vale también para la venta. Qué bloquea y qué sigue lo dice `camposDeRegistrar` (lib/club-caja-reglas.ts, con pruebas): la
+ * guía y el botón miran la misma regla.
  */
 function RegistrarClientaEnTicket({
   alta,
@@ -609,12 +610,18 @@ function RegistrarClientaEnTicket({
   const tipo = alta.documentoTipo;
   const esDni = tipo === "dni";
   const numero = normalizarNumeroDocumento(alta.documentoNumero);
+  // Con DNI, el nombre lo trae el padrón (Felipe 2026-10-15): con los 8 dígitos pregunta sola y la caja queda bloqueada.
+  const { padron, consultar } = usePadronDeFicha({ numero, activo: esDni, automatico: true });
+  const nombre = nombreDelAlta(tipo, padron, alta.nombre);
+  const problemaNombre = esDni ? null : problemaNombreEscrito(alta.nombre);
+  const conNumeros = problemaNombre !== null && /[0-9]/.test(alta.nombre);
 
   // Guía de foco (CLAUDE.md «Guía de foco», ADR-0284): `camposDeRegistrar` es la MISMA regla que apaga «Registrar».
   const campos = camposDeRegistrar({
     documentoTipo: tipo,
     documentoNumero: alta.documentoNumero,
     nombre: alta.nombre,
+    padron,
     responsableListo: responsable.listo,
     responsableMotivo: responsable.motivo,
   });
@@ -634,7 +641,9 @@ function RegistrarClientaEnTicket({
     if (!sePuedeConfirmar(campos)) {
       const problema = problemaDocumento(tipo, alta.documentoNumero);
       if (numero === "" || problema) return void avisar.error(problema ?? "Elige el tipo y escribe el número.", { enfocar: ID_NUMERO_DOCUMENTO });
-      if (!nombreSuficiente(alta.nombre)) return void avisar.error("Escribe su nombre.", { enfocar: esDni ? "documento-nombre" : ID_NOMBRE });
+      // Con DNI no hay caja que llenar: el aviso del padrón ya dice qué hacer. Con carné o pasaporte, se lleva el cursor al nombre.
+      const faltaNombre = pendienteDelNombre(tipo, padron, alta.nombre);
+      if (faltaNombre) return void avisar.error(faltaNombre, esDni ? undefined : { enfocar: ID_NOMBRE });
       return void avisar.error(responsable.motivo ?? "Elige quién registra.");
     }
 
@@ -646,7 +655,7 @@ function RegistrarClientaEnTicket({
       {
         documentoTipo: tipo,
         documentoNumero: numero,
-        nombre: alta.nombre,
+        nombre,
         // Tanda 1g (G-2): en caja solo el documento. El celular y el cumpleaños los escribe ella al unirse desde el cartel.
         telefonoWhatsapp: "",
         cumpleDia: "",
@@ -659,6 +668,8 @@ function RegistrarClientaEnTicket({
     if (error || !id) {
       // Solo ante un rechazo: con éxito, `despues` vaciaría el combo y soltaría a quien atiende la venta en curso.
       if (error) responsable.despues(error);
+      // La base no encontró la lectura del padrón (la hoja estuvo abierta más de una hora, o no se pudo anotar): se vuelve a leer.
+      if (error?.hint === "nombre_sin_padron") consultar();
       return void avisar.error(traducirError(error, "registrar al cliente"));
     }
     // Si ya tenía ficha, la del ticket es esa: su nombre si no se escribió otro y su celular (la base conserva los dos al completarla).
@@ -666,7 +677,7 @@ function RegistrarClientaEnTicket({
     const deAntes = resultado === "nueva" ? null : previa;
     const nueva: ClientaDelTicket = {
       id,
-      nombre: alta.nombre.trim() || deAntes?.nombre?.trim() || null,
+      nombre: nombre || deAntes?.nombre?.trim() || null,
       documentoTipo: tipo,
       documentoNumero: numero || null,
       celular: deAntes?.telefonoWhatsapp ?? null,
@@ -692,39 +703,29 @@ function RegistrarClientaEnTicket({
             debe quedar bajo el pie. */}
         <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-start gap-3 sm:grid-cols-[11rem_1fr]">
           <CampoTipoDocumento corto tipo={tipo} onTipo={(t) => onCambiar({ documentoTipo: t, documentoNumero: ajustarNumeroAlTipo(t, alta.documentoNumero) })} />
-          {esDni ? (
-            // Solo el DNI consulta el padrón (ADR-0008, ADR-0288 D-2). Si no responde, el nombre se escribe aquí mismo.
-            <ConsultaDocumento
-              tipo="dni"
-              obligatorio
-              numero={alta.documentoNumero}
-              onNumero={(v) => onCambiar({ documentoNumero: v })}
-              nombre={alta.nombre}
-              onNombre={(v) => onCambiar({ nombre: v })}
-            />
-          ) : (
-            <CampoNumeroDocumento tipo={tipo} numero={alta.documentoNumero} onNumero={(v) => onCambiar({ documentoNumero: v })} />
-          )}
+          <CampoNumeroDocumento tipo={tipo} numero={alta.documentoNumero} onNumero={(v) => onCambiar({ documentoNumero: v })} />
         </div>
-        {!esDni && (
-          <p className="mt-1 text-xs text-tinta/60">
-            Solo el DNI se autocompleta con el padrón; {tipo === "pasaporte" ? "el pasaporte" : "el carné"} lleva el nombre a mano.
-          </p>
-        )}
       </CampoGuiado>
 
-      {!esDni && (
-        <CampoGuiado id="nombre" guia={guia} titulo="Nombre">
+      {/* El nombre (Felipe 2026-10-15): con DNI lo trae el padrón y no se escribe —sin el padrón no se registra, y la venta sigue
+          sin cliente—; con carné o pasaporte se escribe tal cual está en el documento. */}
+      <CampoGuiado id="nombre" guia={guia}>
+        {esDni ? (
+          <NombreDelPadron padron={padron} donde="venta" onConsultar={consultar} deshabilitado={guardando} />
+        ) : (
           <CampoTexto
             id={ID_NOMBRE}
-            etiqueta="Nombre completo"
-            caja
-            placeholder="Nombre completo" // sugerir-fijo: nombre de la caja; el nombre de una persona no depende de nada elegido antes
+            etiqueta={guia.etiqueta("nombre", "Nombre completo")}
+            autoComplete="off"
+            maxLength={200}
             value={alta.nombre}
             onChange={(e) => onCambiar({ nombre: e.target.value })}
+            // Los números se dicen apenas se tipean (ningún nombre los lleva); lo demás que falta lo dice la guía.
+            pie={conNumeros ? problemaNombre : AYUDA_NOMBRE_ESCRITO}
+            tono={conNumeros ? "error" : "neutro"}
           />
-        </CampoGuiado>
-      )}
+        )}
+      </CampoGuiado>
 
       <CampoGuiado id="responsable" guia={guia}>
         <ComboResponsable control={responsable} deshabilitado={guardando} />

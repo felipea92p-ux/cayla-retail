@@ -518,6 +518,9 @@ const HINTS_VARIANTE: ReadonlySet<string> = new Set([
  *     ficha es (nombre y código del club; o que con ese correo entra a la tienda online la cuenta de otra ficha): lo ve solo quien
  *     edita fichas. La hoja lo pone bajo la caja del correo (`esRechazoDelCorreo`, lib/correo-clienta-reglas.ts).
  *   · `correo_invalido` (20261015123000): `22023`, el correo no tiene la forma algo@algo.algo.
+ *   · `nombre_sin_padron` (20261015133000, Felipe 2026-10-15): `P0001`, el nombre de un DNI no es una lectura del padrón anotada
+ *     por el servidor en la última hora (se escribió a mano, o la hoja quedó abierta mucho rato). Se vuelve a consultar el padrón.
+ *   · `nombre_con_numeros` (20261015133000): `22023`, el nombre escrito de un carné o un pasaporte trae números.
  *   · `clienta_anonimizada`: la ficha pidió borrar sus datos (Ley 29733) y la venta no se puede guardar a su nombre.
  *   · `clienta_no_existe`: la ficha del ticket ya no está en la libreta (típico: una venta sin conexión que llegó tarde).
  * Tanda 1b (club: socia, publicidad por WhatsApp y el número de cada tienda), con el mismo criterio:
@@ -558,6 +561,8 @@ const HINTS_CLIENTA: ReadonlyMap<string, string> = new Map([
   ["correo_repetido", "Ese correo ya está registrado con los datos de otra persona. Usa otro correo."],
   ["correo_de_otra_ficha", "Ese correo ya es de otra ficha. Un correo es de una sola persona: búscala en Clientes y corrige la que esté mal."],
   ["correo_invalido", "Revisa el correo: parece incompleto. Si no lo tiene, déjalo vacío."],
+  ["nombre_sin_padron", "El nombre de un DNI sale del padrón y no se escribe a mano. Vuelve a consultarlo y guarda el nombre que trae."],
+  ["nombre_con_numeros", "El nombre no lleva números: escríbelo tal cual está en su documento."],
   ["clienta_anonimizada", "Este cliente pidió borrar sus datos: la venta no se puede guardar a su nombre. Quítalo del ticket y vende sin cliente."],
   ["clienta_no_existe", "Ese cliente ya no está en la libreta. Quítalo del ticket y vuelve a buscarlo."],
   ["club_sin_texto", "El club todavía no tiene su texto vigente para leerle al cliente, así que no se puede registrar su «sí». Avisa al líder."],
