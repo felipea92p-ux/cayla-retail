@@ -663,9 +663,15 @@ rollback;`);
     fn_bal_causas_dinero: "Solo lee separacion_pagos.",
     fn_calcular_esperado_caja: "Suma el monto de la fila de EFECTIVO: ya es lo físico (múltiplo de 0.10). No se toca.",
     fn_comparativa_caja: "Caja compara hoy contra ayer (ADR-0319): devuelve la fila de redondeo como una más, a propósito, para que el total vendido coincida con el de Vender y el historial (como fn_totales_historial_ventas); la pantalla la deja fuera de «Cómo te pagaron» (`metodosComparados`). No se parchó.",
+    fn_detalle_separacion:
+      "El historial de un apartado (ADR-0414): lista cada fila de separacion_pagos (adelanto y abonos, que no se redondean, ADR-0311 §7) con su fecha y quién cobró. Solo lee, no suma pagos ni toca venta_pagos.",
     fn_dinero_libro: "Filtra por medios explícitos (yape, plin, tarjeta, transferencia, qr): el redondeo queda fuera.",
     fn_flujo_caja_proyeccion: "Filtra por medios explícitos: el redondeo queda fuera.",
     fn_flujo_lineas: "Efectivo = metodo 'efectivo' (lo físico), igual que fn_calcular_esperado_caja. No se toca.",
+    fn_pedido_web_vender:
+      "La venta de un pedido web (ADR-0408 act. 10, 20261015051000) se cobra con UNA fila «anticipo» por lo pagado: el efectivo entró antes, con cada pago del pedido (pedido_web_pagos), así que la venta no tiene efectivo ni fila de redondeo.",
+    fn_pedido_web_verificar:
+      "Candado diferido del pedido web (20261015051000): exige que su venta tenga exactamente UNA fila de venta_pagos, «anticipo» por lo pagado; una fila de redondeo ahí sería un estado imposible (esa venta no cobra efectivo).",
     fn_sello_caja: "Solo cuenta filas de venta_pagos_correcciones (ADR-0365) para el tablero en vivo: no suma pagos.",
     fn_resumen_caja: "PARCHADA (20261003111000): el redondeo sale de por_metodo, de otros y de ventas_otros, y viaja aparte.",
     fn_totales_historial_ventas: "Deja el redondeo como una fila más de «cómo se pagó» a propósito: la lista sigue sumando el total vendido.",

@@ -116,7 +116,8 @@ export function SociaClub({ listo, pagina, mesNacimiento, hoy }: { listo: Listo;
     <HojaClub cabeza={false}>
       <Petalos />
       <div className="club-paso club-paso-socia">
-        <svg className="club-listo" viewBox="0 0 76 76" role="img" aria-label="Listo">
+        {/* El ✓ acompaña al título, que ya dice «¡Listo…!» (Felipe 2026-10-15): el lector no lo lee dos veces. */}
+        <svg className="club-listo" viewBox="0 0 76 76" aria-hidden>
           <circle pathLength={100} cx="38" cy="38" r="35" />
           <path pathLength={100} d="M24 39 l9 9 l19 -20" />
         </svg>

@@ -81,6 +81,7 @@ import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { unionDeAntes } from "./union-de-fichas-de-antes.mjs";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
@@ -130,6 +131,17 @@ const VERSIONES_1G = [...PASO_1G.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(nu
   antes: m[3] ?? null,
   despues: m[5] ?? null,
 }));
+
+// Tandas posteriores a la 1g que vuelven a tocar una de sus funciones, con su propia tabla de versiones (ADR-0416: anonimizar
+// es de un líder). El «después» de HOY es el de la última; y la cadena no se corta: su «antes» es el «después» de la 1g.
+for (const archivo of ["20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql"]) {
+  const texto = readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8");
+  for (const m of texto.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)) {
+    const v = VERSIONES_1G.find((x) => x.firma === m[1]);
+    if (!v || v.despues !== (m[3] ?? null)) throw new Error(`${archivo}: su «antes» de ${m[1]} no es el «después» de la 1g`);
+    v.despues = m[5] ?? null;
+  }
+}
 const REHECHAS_1G = {
   "retail.resumen_clienta_caja": "create function",
   "retail.archivar_clienta": "create or replace function",
@@ -150,19 +162,71 @@ for (const f of ["retail.archivar_clienta(uuid,text,boolean,integer)", "retail.r
     process.exit(1);
   }
 }
-/** El md5 que cada firma tiene que tener HOY: el «después» de la 1g si la rehízo, o el de esta migración. */
+// Y 20261015054000 (Felipe 2026-10-14: el documento y el correo son de una sola persona) rehízo editar_clienta (el documento de
+// otra ficha dice de cuál es, sin «Unir con otra ficha») y BORRÓ unir_clientas, las dos partiendo del «después» de esta migración.
+const CORREO_UNICO = readFileSync(join(RAIZ, "supabase", "migrations", "20261015054000_clientas_correo_unico_y_sin_unir_fichas.sql"), "utf8");
+const VERSIONES_CORREO = [...CORREO_UNICO.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)].map(
+  (m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }),
+);
+const REHECHAS_CORREO = { "retail.editar_clienta": "create or replace function" };
+const BORRADAS_CORREO = ["retail.unir_clientas"];
+const cortadasCorreo = VERSIONES.filter((v) => v.despues && VERSIONES_CORREO.some((w) => w.firma === v.firma && w.antes !== v.despues));
+if (cortadasCorreo.length || !VERSIONES_CORREO.some((w) => w.firma === EDITAR) || !VERSIONES_CORREO.some((w) => w.firma.startsWith("retail.unir_clientas(") && w.despues === null)) {
+  console.error(`✗ La tabla de versiones de 20261015054000 debería partir del «después» de la 1b (editar_clienta) y borrar unir_clientas; no calzan: ${cortadasCorreo.map((v) => v.firma).join(", ")}.`);
+  process.exit(1);
+}
+// Y 20261015123000 (Felipe 2026-10-15: el correo en «Editar» de la ficha) rehízo editar_clienta OTRA vez: le sumó `p_correo` al
+// final, así que su firma cambió (creó la de 11 y BORRÓ la de 10), partiendo del «después» de 20261015054000.
+const CORREO_FICHA = readFileSync(join(RAIZ, "supabase", "migrations", "20261015123000_clientas_correo_en_la_ficha.sql"), "utf8");
+const VERSIONES_FICHA = [...CORREO_FICHA.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)].map(
+  (m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }),
+);
+const REHECHAS_FICHA = { "retail.editar_clienta": "create or replace function" };
+/** La firma de editar_clienta que vive HOY: la que creó 20261015123000 (la de 11, con p_correo). */
+const EDITAR_HOY = VERSIONES_FICHA.find((w) => w.firma.startsWith("retail.editar_clienta(") && w.antes === null)?.firma;
+const editarEnLaFicha = VERSIONES_FICHA.find((w) => w.firma === EDITAR);
+if (!EDITAR_HOY || editarEnLaFicha?.despues !== null || editarEnLaFicha?.antes !== VERSIONES_CORREO.find((w) => w.firma === EDITAR)?.despues) {
+  console.error("✗ La tabla de versiones de 20261015123000 debería borrar la editar_clienta de 10 partiendo del «después» de 20261015054000 y crear la de 11.");
+  process.exit(1);
+}
+/** El md5 que cada firma tiene que tener HOY: el de 20261015123000 o el de 20261015054000 si la tocaron, el «después» de la 1g si
+ *  la rehízo, o el de esta migración. */
 const despuesHoy = (firma, despues) => {
+  const f = VERSIONES_FICHA.find((x) => x.firma === firma);
+  const k = VERSIONES_CORREO.find((x) => x.firma === firma);
   const g = VERSIONES_1G.find((x) => x.firma === firma);
-  return (g ? g.despues : despues) ?? "NO_EXISTE";
+  return (f ? f.despues : k ? k.despues : g ? g.despues : despues) ?? "NO_EXISTE";
 };
-/** El cuerpo (lo que queda entre `$$` y `$$`) con que el archivo crea una función: es su `prosrc` vivo (el de la 1g, si
- *  la 1g la rehízo). */
+/** El cuerpo (lo que queda entre `$$` y `$$`) con que el archivo crea una función: es su `prosrc` vivo (el de la 1g, el de
+ *  20261015054000 o el de 20261015123000, si la rehicieron). */
 const cuerpoDe = (nombre) => {
-  const [texto, crea] = nombre in REHECHAS_1G ? [PASO_1G, REHECHAS_1G[nombre]] : [MIGRACION, "create or replace function"];
+  const [texto, crea] =
+    nombre in REHECHAS_FICHA
+      ? [CORREO_FICHA, REHECHAS_FICHA[nombre]]
+      : nombre in REHECHAS_CORREO
+        ? [CORREO_UNICO, REHECHAS_CORREO[nombre]]
+        : nombre in REHECHAS_1G
+          ? [PASO_1G, REHECHAS_1G[nombre]]
+          : [MIGRACION, "create or replace function"];
   const ini = texto.indexOf(`${crea} ${nombre}(`);
   const a = texto.indexOf("$$", ini) + 2;
-  return texto.slice(a, texto.indexOf("$$", a));
+  return conPosteriores(nombre, texto.slice(a, texto.indexOf("$$", a)));
 };
+/** Los reemplazos anclados que tandas posteriores le hicieron (ADR-0416: anonimizar es de un líder), aplicados como en la base:
+ *  el bloque antes de la primera aparición del ancla. */
+function conPosteriores(nombre, cuerpo) {
+  let resultado = cuerpo;
+  for (const archivo of ["20261015155000_clientas_anonimizar_lider_y_cumple_parte2.sql"]) {
+    const texto = readFileSync(join(RAIZ, "supabase", "migrations", archivo), "utf8");
+    for (const m of texto.matchAll(/select pg_temp\.insertar_antes\(\s*'(retail\.[a-z_]+)\([^']*\)',\s*\$v\$([\s\S]*?)\$v\$, \d+,\s*\$v\$([\s\S]*?)\$v\$,/g)) {
+      if (m[1] !== nombre) continue;
+      const i = resultado.indexOf(m[2]);
+      if (i < 0) throw new Error(`${archivo}: el ancla de ${nombre} no está en su cuerpo de la 1g`);
+      resultado = resultado.slice(0, i) + m[3] + resultado.slice(i);
+    }
+  }
+  return resultado;
+}
 // El bloque del legado (sección 18), solo: con la 1g encima, la migración entera ya no se puede volver a pegar.
 const BLOQUE_LEGADO = MIGRACION.slice(MIGRACION.indexOf("do $legado$"), MIGRACION.indexOf("$legado$;") + "$legado$;".length);
 if (!BLOQUE_LEGADO.startsWith("do $legado$")) {
@@ -189,7 +253,7 @@ const DE_LA_WEB = [
   "retail.fn_club_textos_vigentes()",
   "retail.guardar_whatsapp_tienda(uuid,text)",
   REGISTRAR,
-  EDITAR,
+  EDITAR_HOY,
   CREAR_INVITACION,
 ];
 // Las de la página pública: EXECUTE para anon y authenticated, nunca PUBLIC.
@@ -407,14 +471,15 @@ delete from retail.club_textos where tipo = 'club';
   "P0001|club_sin_texto"
 );
 caso(
-  "(a) ficha archivada, anonimizada, unida a otra o inexistente → clienta_archivada, clienta_anonimizada, clienta_unida, clienta_no_existe",
+  "(a) ficha archivada, anonimizada, unida a otra (una unión de antes) o inexistente → clienta_archivada, clienta_anonimizada, clienta_unida, clienta_no_existe",
   como(FELIPE) + ALTA("arch", { numero: "90660112", nombre: "Archivada Prueba", celular: "966010112" }) +
     ALTA("anon", { numero: "90660113", nombre: "Anonimizada Prueba", celular: "966010113" }) +
     ALTA("queda", { numero: "90660114", nombre: "Queda Prueba" }) + ALTA("se_va", { nombre: "Se Va Prueba", celular: "966010115" }) +
     `select retail.archivar_clienta(:'arch', 'prueba', false, null) as _a \\gset
 select retail.archivar_clienta(:'anon', 'prueba', true, null) as _b \\gset
-select (retail.unir_clientas(:'queda', :'se_va', null, null)).id as _u \\gset
-` +
+reset role;
+${unionDeAntes(":'queda'", ":'se_va'")}` +
+    como(FELIPE) +
     intentoCon(`select * from retail.unirse_al_club(%L, '966010112')`, ":'arch'") +
     intentoCon(`select * from retail.unirse_al_club(%L, '966010113')`, ":'anon'") +
     intentoCon(`select * from retail.unirse_al_club(%L, '966010115')`, ":'se_va'") +
@@ -714,39 +779,15 @@ select ${EVENTOS("n")}, (select club_desde is not null and codigo_club = :'s_cod
 );
 
 // =====================================================================================================================
-// g. Unir
+// g. Unir: ya no existe
 // =====================================================================================================================
+// Las tres pruebas de qué se llevaba la ficha que quedaba (el club más antiguo, la publicidad, el código, el celular) se fueron con
+// unir_clientas, que 20261015054000 borró (Felipe 2026-10-14: el documento y el correo son de una sola persona; en producción nunca
+// se usó). Lo que queda de esa historia (la ficha unida, que no se puede unir al club) lo prueban los casos (a) y (o).
 caso(
-  "(g) la que queda NO era socia y la que se va SÍ (con publicidad): la que queda toma su club, su publicidad, su código y SU celular; la unida queda sin nada y sus eventos se quedan con ella",
-  como(FELIPE) + ALTA("queda", { numero: "90660701", nombre: "Unir Queda Prueba", celular: "966070101" }) +
-    SOCIA("se_va", "90660702", "Unir Se Va Prueba", "966070201") +
-    `select retail.registrar_mensaje_publicidad(:'se_va', '966070201') as pub \\gset
-select club_desde as club_se_va from retail.clientas where id = :'se_va' \\gset
-select (u).codigo_club = :'se_va_codigo', (u).club_desde = :'club_se_va', (u).publicidad_desde = :'pub', (u).telefono_whatsapp
-  from (select retail.unir_clientas(:'queda', :'se_va', null, null) as u) x;
-reset role;
-select club_desde is null and publicidad_desde is null and codigo_club is null and anonimizada from retail.clientas where id = :'se_va';
-select ${EVENTOS("queda")}, ${EVENTOS("se_va")};
-`,
-  "t|t|t|966070201\nt\n0|2"
-);
-caso(
-  "(g) las dos socias: la que queda conserva SU código y toma el club más antiguo (de la otra)",
-  como(FELIPE) + SOCIA("queda", "90660703", "Unir Dos Queda Prueba", "966070301") + SOCIA("se_va", "90660704", "Unir Dos Se Va Prueba", "966070401") +
-    `reset role;
-update retail.clientas set club_desde = club_desde - interval '400 days' where id = :'se_va' returning club_desde as viejo \\gset
-${como(FELIPE)}select (u).codigo_club = :'queda_codigo', (u).club_desde = :'viejo', (u).telefono_whatsapp
-  from (select retail.unir_clientas(:'queda', :'se_va', null, null) as u) x;
-`,
-  "t|t|966070301"
-);
-caso(
-  "(g) la que queda tiene publicidad y la que se va no: se queda con su celular (el que escribió)",
-  como(FELIPE) + SOCIA("queda", "90660705", "Unir Tres Queda Prueba", "966070501") + SOCIA("se_va", "90660706", "Unir Tres Se Va Prueba", "966070601") +
-    `select retail.registrar_mensaje_publicidad(:'queda', '966070501') as _p \\gset
-select (u).telefono_whatsapp, (u).publicidad_desde is not null from (select retail.unir_clientas(:'queda', :'se_va', null, null) as u) x;
-`,
-  "966070501|t"
+  "(g) ya no se unen fichas: unir_clientas no existe",
+  `select to_regprocedure('retail.unir_clientas(uuid,uuid,integer,integer)') is null;\n`,
+  "t"
 );
 
 // =====================================================================================================================
@@ -757,7 +798,7 @@ caso(
   `select string_agg(p.proname || '=' || (select count(*) from pg_proc q where q.pronamespace = p.pronamespace and q.proname = p.proname), ',' order by p.proname)
   from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname in ('registrar_clienta', 'editar_clienta', 'unirse_al_club');
 select pg_get_function_identity_arguments(oid) ~ 'whatsapp_consentimiento|p_acepta_whatsapp|p_revoca_whatsapp', pg_get_function_identity_arguments(oid) ~ 'p_cumple_anio smallint'
-  from pg_proc where oid in ('${REGISTRAR}'::regprocedure, '${EDITAR}'::regprocedure) order by proname;
+  from pg_proc where oid in ('${REGISTRAR}'::regprocedure, '${EDITAR_HOY}'::regprocedure) order by proname;
 ` + como(FELIPE) + intento(`select retail.registrar_clienta(p_documento_numero => '90660801', p_acepta_whatsapp => true)`),
   "editar_clienta=1,registrar_clienta=1,unirse_al_club=1\nf|t\nf|t\n42883|function retail.registrar_clienta(p_documento_numero => unknown, p_acepta_whatsapp => boolean) does not exist"
 );
@@ -1040,18 +1081,7 @@ select string_agg(finalidad || ':' || medio || ':' || (registrado_por = :'person
 `,
   "t\nt\nt|2\nt\n966170199|t|t\npublicidad_whatsapp:cambio_celular:true"
 );
-caso(
-  "(n) unir no choca con el disparador: dos socias con publicidad desde celulares distintos → queda el celular de la que queda; la que queda sin publicidad y la otra con → queda el de la otra, con su publicidad",
-  como(FELIPE) + SOCIA("q1", "90661801", "Unir Cel Queda Uno Prueba", "966180101") + SOCIA("v1", "90661802", "Unir Cel Va Uno Prueba", "966180201") +
-    SOCIA("q2", "90661803", "Unir Cel Queda Dos Prueba", "966180301") + SOCIA("v2", "90661804", "Unir Cel Va Dos Prueba", "966180401") +
-    MENSAJE("q1", "966180101") + MENSAJE("v1", "966180201") + MENSAJE("v2", "966180401") + DE_AYER("q1", "v1", "q2", "v2") + como(FELIPE) +
-    `select (u).telefono_whatsapp, (u).publicidad_desde is not null from (select retail.unir_clientas(:'q1', :'v1', null, null) as u) x;
-select (u).telefono_whatsapp, (u).publicidad_desde is not null from (select retail.unir_clientas(:'q2', :'v2', null, null) as u) x;
-reset role;
-select count(*) from retail.club_permisos where clienta_id in (:'q1', :'v1', :'q2', :'v2') and accion = 'revoca';
-`,
-  "966180101|t\n966180401|t\n0"
-);
+// («Unir no choca con el disparador» se fue con unir_clientas, que 20261015054000 borró: ya no se unen fichas.)
 caso(
   "(n) la historia: un revoca por cambio_celular exige quien lo registra y solo quita publicidad (ni la da, ni quita el club); el ayudante sin responsable → responsable_requerido, y sobre una ficha sin publicidad no escribe nada",
   como(FELIPE) + SOCIA("f", "90661901", "Historia Cambio Prueba", "966190101") + `reset role;\n` +
@@ -1118,15 +1148,16 @@ select count(*), count(*) filter (where vence_en > now()) from retail.club_invit
   "t|t\n2|1"
 );
 caso(
-  "(o) crear_invitacion_club rechaza: no socia (no_es_socia), con publicidad (ya_tiene_publicidad), archivada, anonimizada, unida a otra, inexistente; sin el módulo, clientas_sin_modulo; anon no la ejecuta; y no queda ninguna invitación",
+  "(o) crear_invitacion_club rechaza: no socia (no_es_socia), con publicidad (ya_tiene_publicidad), archivada, anonimizada, unida a otra (una unión de antes), inexistente; sin el módulo, clientas_sin_modulo; anon no la ejecuta; y no queda ninguna invitación",
   como(FELIPE) + ALTA("nosocia", { numero: "90662101", nombre: "No Socia Invitada Prueba", celular: "966210101" }) +
     SOCIA("conpub", "90662102", "Con Publicidad Invitada Prueba", "966210201") + MENSAJE("conpub", "966210201") +
     SOCIA("arch", "90662103", "Archivada Invitada Prueba", "966210301") + SOCIA("anonim", "90662104", "Anonimizada Invitada Prueba", "966210401") +
     SOCIA("queda", "90662105", "Queda Invitada Prueba", "966210501") + SOCIA("se_va", "90662106", "Se Va Invitada Prueba", "966210601") +
     `select retail.archivar_clienta(:'arch', 'prueba', false, null) as _a \\gset
 select retail.archivar_clienta(:'anonim', 'prueba', true, null) as _b \\gset
-select (retail.unir_clientas(:'queda', :'se_va', null, null)).id as _u \\gset
-` +
+reset role;
+${unionDeAntes(":'queda'", ":'se_va'")}` +
+    como(FELIPE) +
     CREAR_CON("nosocia") + CREAR_CON("conpub") + CREAR_CON("arch") + CREAR_CON("anonim") + CREAR_CON("se_va") +
     intento(`select * from retail.crear_invitacion_club(gen_random_uuid())`) +
     `reset role;\ndelete from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('integrante') and modulo = 'clientas';\n` +
@@ -1227,20 +1258,7 @@ select string_agg((vence_en = now() and usada_en is null)::text, ',') from retai
     `reset role;\nselect ${QR_WEB("a")} + ${QR_WEB("b")}, (select count(*) from retail.clientas where id in (:'a', :'b') and publicidad_desde is null);\n`,
   "true,true\nvencida|true\nvencida\nvencida|true\nvencida\nvencida|true\nvencida\n0|2"
 );
-caso(
-  "(o) unir: la invitación sin usar de la ficha que se va vence ahora (NO pasa a la que queda); la de la que queda sigue vigente y sirve",
-  como(FELIPE) + SOCIA("queda", "90662801", "Unir Enlace Queda Prueba", "966280101") + SOCIA("se_va", "90662802", "Unir Enlace Se Va Prueba", "966280201") +
-    INVITAR("queda") + INVITAR("se_va") +
-    `select (retail.unir_clientas(:'queda', :'se_va', null, null)).id as _u \\gset
-reset role;
-select string_agg(case when clienta_id = :'queda' then 'queda' else 'se_va' end || ':' || (vence_en > now()), ',' order by clienta_id = :'queda' desc)
-  from retail.club_invitaciones where clienta_id in (:'queda', :'se_va');
-` +
-    comoAnon + VE_LA_PAGINA(":'se_va_token'") + CONFIRMA(":'se_va_token'") +
-    `select estado from retail.fn_invitacion_club(:'queda_token');\n` + CONFIRMA(":'queda_token'") +
-    `reset role;\nselect ${QR_WEB("queda")}, ${QR_WEB("se_va")};\n`,
-  "queda:true,se_va:false\nvencida|true\nvencida\nvigente\nusada\n1|0"
-);
+// («Unir: la invitación de la ficha que se va vence ahora» se fue con unir_clientas, que 20261015054000 borró.)
 caso(
   "(o) si mientras tanto llegó su mensaje (camino A), el enlace ya no hace falta: la página dice «usada» y confirmar no escribe otro evento ni gasta la invitación",
   como(FELIPE) + SOCIA("f", "90662901", "Camino A Primero Prueba", "966290101") + INVITAR("f") + MENSAJE("f", "966290101") +
@@ -1324,36 +1342,36 @@ caso(
     );
   }
 );
+// Eran cuatro con unir_clientas, que 20261015054000 borró: quedan tres.
 caso(
-  "(o) el orden de los candados es ficha → invitación en las cuatro funciones que toman invitaciones (crear, confirmar, archivar, unir): nunca se esperan en cruz",
+  "(o) el orden de los candados es ficha → invitación en las tres funciones que toman invitaciones (crear, confirmar, archivar): nunca se esperan en cruz",
   `select string_agg(proname || ':' || (regexp_replace(prosrc, '\\s+', ' ', 'g') ~ case proname
     when 'crear_invitacion_club' then 'from retail\\.clientas c where c\\.id = p_clienta_id for update;.*insert into retail\\.club_invitaciones'
     when 'confirmar_invitacion_club' then 'from retail\\.clientas c where c\\.id = v_clienta for update;.*from retail\\.club_invitaciones i where i\\.token = p_token for update;'
-    when 'archivar_clienta' then 'from retail\\.clientas where id = p_id for update;.*update retail\\.club_invitaciones'
-    else 'from retail\\.clientas where id = p_fusionar_id for update;.*update retail\\.club_invitaciones' end), ',' order by proname)
+    else 'from retail\\.clientas where id = p_id for update;.*update retail\\.club_invitaciones' end), ',' order by proname)
   from pg_proc where oid in ('${CREAR_INVITACION}'::regprocedure, '${CONFIRMAR_INVITACION}'::regprocedure,
-                             'retail.archivar_clienta(uuid,text,boolean,integer)'::regprocedure, 'retail.unir_clientas(uuid,uuid,integer,integer)'::regprocedure);
+                             'retail.archivar_clienta(uuid,text,boolean,integer)'::regprocedure);
 `,
-  "archivar_clienta:true,confirmar_invitacion_club:true,crear_invitacion_club:true,unir_clientas:true"
+  "archivar_clienta:true,confirmar_invitacion_club:true,crear_invitacion_club:true"
 );
 
 // =====================================================================================================================
 // l. Estructura y pegado
 // =====================================================================================================================
 caso(
-  "(l) los md5 «después» de la sección 0 son los de las funciones vivas (las dos firmas viejas ya no existen; archivar_clienta, con el de la 1g, que la rehízo)",
+  "(l) los md5 «después» de la sección 0 son los de las funciones vivas (las dos firmas viejas ya no existen; archivar_clienta, con el de la 1g, que la rehízo; la editar_clienta de 10 tampoco: 20261015123000 la cambió por la de 11)",
   VERSIONES.map(
     (v) => `select coalesce((select ${md5Norm("p.prosrc")} from pg_proc p where p.oid = to_regprocedure('${v.firma}')), 'NO_EXISTE');\n`
   ).join(""),
   VERSIONES.map((v) => despuesHoy(v.firma, v.despues)).join("\n")
 );
 caso(
-  `(l) las ${CREADAS.length} funciones que crea el archivo están vivas con el cuerpo del archivo (una sola firma cada una; las tres que rehízo la 1g, con el suyo)`,
+  `(l) las ${CREADAS.length} funciones que crea el archivo están vivas con el cuerpo del archivo (una sola firma cada una; las tres que rehízo la 1g y editar_clienta, que rehicieron 20261015054000 y 20261015123000, con el de la última; unir_clientas, que 20261015054000 borró, ya no existe)`,
   CREADAS.map(
     (f) =>
-      `select '${f}' || ':' || count(*) || ':' || bool_and(${md5Norm("p.prosrc")} = ${md5Norm(`$cuerpo_1b$${cuerpoDe(f)}$cuerpo_1b$`)}) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = '${f.slice(7)}';\n`
+      `select '${f}' || ':' || count(*) || ':' || coalesce(bool_and(${md5Norm("p.prosrc")} = ${md5Norm(`$cuerpo_1b$${cuerpoDe(f)}$cuerpo_1b$`)})::text, '') from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = '${f.slice(7)}';\n`
   ).join(""),
-  CREADAS.map((f) => `${f}:1:true`).join("\n")
+  CREADAS.map((f) => (BORRADAS_CORREO.includes(f) ? `${f}:0:` : `${f}:1:true`)).join("\n")
 );
 // Una foto de todo lo que la migración toca: funciones (cuerpo, permisos, security definer, search_path), columnas de
 // clientas y ubicaciones, candados, índices, disparadores, RLS y permisos de las tablas nuevas, y los textos. Una línea: su md5.
@@ -1446,7 +1464,7 @@ caso(
   `select string_agg(p.proname || ':' || (regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g')
             ~ '^(#variable_conflictuse_column)?declare.*?beginperformretail\\.fn_exigir_modulo\\(''clientas''\\);v_persona:=retail\\.fn_actor_persona_id\\(true\\);'), ',' order by p.proname)
   from pg_proc p where p.pronamespace = 'retail'::regnamespace
-   and p.proname in ('unirse_al_club', 'registrar_mensaje_publicidad', 'registrar_desde_whatsapp', 'registrar_clienta', 'editar_clienta', 'archivar_clienta', 'unir_clientas', 'crear_invitacion_club');
+   and p.proname in ('unirse_al_club', 'registrar_mensaje_publicidad', 'registrar_desde_whatsapp', 'registrar_clienta', 'editar_clienta', 'archivar_clienta', 'crear_invitacion_club');
 -- Tanda 1g (G-7): la BAJA, con el módulo «Clientas» o «Avisos del club», y después el responsable del combo.
 select regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '', 'g'), '--[^' || chr(10) || ']*', '', 'g'), '\\s+', '', 'g')
          ~ '^declare.*?beginifnot\\(retail\\.fn_ve_modulo\\(''clientas''\\)orretail\\.fn_ve_modulo\\(''avisos_club''\\)\\)thenperformretail\\.fn_exigir_modulo\\(''clientas''\\);endif;v_persona:=retail\\.fn_actor_persona_id\\(true\\);'
@@ -1454,7 +1472,7 @@ select regexp_replace(regexp_replace(regexp_replace(p.prosrc, '/\\*.*?\\*/', '',
 select prosrc ~ 'if not retail\\.fn_puede_configurar\\(\\) then' and prosrc ~ 'fn_actor_persona_id\\(true\\)' from pg_proc where oid = 'retail.guardar_whatsapp_tienda(uuid,text)'::regprocedure;
 select prosrc !~ 'fn_exigir_modulo' from pg_proc where oid = 'retail.fn_club_textos_vigentes()'::regprocedure;
 `,
-  "archivar_clienta:true,crear_invitacion_club:true,editar_clienta:true,registrar_clienta:true,registrar_desde_whatsapp:true,registrar_mensaje_publicidad:true,unir_clientas:true,unirse_al_club:true\nt\nt\nt"
+  "archivar_clienta:true,crear_invitacion_club:true,editar_clienta:true,registrar_clienta:true,registrar_desde_whatsapp:true,registrar_mensaje_publicidad:true,unirse_al_club:true\nt\nt\nt"
 );
 
 // Sin base de datos: lo que el SQL Editor ve del archivo. Fuera de los cuerpos `$…$` y de los comentarios: los textos entre

@@ -117,7 +117,7 @@ import {
   type CelularEnFicha,
 } from "@/lib/celular-ficha-reglas";
 import { problemaDocumentoComprobante } from "@/lib/documento-comprobante-reglas";
-import { clientaDeTicketGuardado } from "@/lib/clienta-ticket-reglas";
+import { clientaDeTicketGuardado, nombreDeFichaParaComprobante } from "@/lib/clienta-ticket-reglas";
 import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
@@ -147,6 +147,7 @@ import type { CierreAnterior } from "@/lib/caja-cerrada-reglas";
 import { ChevronUp, ShoppingBag } from "lucide-react";
 import { codigoDeLiquidacion, errorDeLiquidacion, nombreEnVenta, piezaLeidaDeJson, soles as solesLiquidacion } from "@/lib/liquidacion-reglas";
 import { Casilla } from "@/components/ui/Casilla";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -1371,7 +1372,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // descuento «no entró».
     const cedieron = carrito.filter((it) => {
       if (!it.campana || (claves.length > 0 && !claves.includes(it.claveLinea))) return false;
-      const monto = descuentoPedido(descuento.modo, Number(descuento.modo === "monto" ? descuento.monto : descuento.pct), it.precioUnitario);
+      const monto = descuentoPedido(descuento.modo, descuento.modo === "monto" ? numeroDeMonto(descuento.monto) : Number(descuento.pct), it.precioUnitario);
       return Number(monto) > 0 && descuentoResultante(it, monto).prevaleceCampana;
     });
     if (cedieron.length > 0) {
@@ -1382,7 +1383,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
     // ADR-0379: una pieza de liquidación tiene precio final; el descuento del ticket no la toca.
     setCarrito((actual) =>
       (descuento.modo === "monto"
-        ? aplicarDescuentoMonto(actual, Number(descuento.monto), claves, detalle)
+        ? aplicarDescuentoMonto(actual, numeroDeMonto(descuento.monto), claves, detalle)
         : aplicarDescuento(actual, Number(descuento.pct), claves, detalle)
       ).map((it, i) => (actual[i]?.liquidacion ? actual[i]! : it)),
     );
@@ -2104,6 +2105,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, puedeCerrarCaja, 
               nombre={clienteNombre}
               onNombre={setClienteNombre}
               sinNumero={tipoComprobante === "factura" ? undefined : "Sin documento sale a «Cliente varios»."}
+              nombreDeFicha={nombreDeFichaParaComprobante(clienta, clienteDocIdentidad, clienteNumDoc)}
             />
             {/* Un solo hijo a propósito: `.hoja-cobro-doc > fieldset > div:has(> :nth-child(2))` (globals.css) acomoda en dos columnas
                 todo `div` con dos hijos, y esta caja va en su propia fila. */}

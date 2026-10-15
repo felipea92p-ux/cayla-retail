@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { esFechaQueExiste } from "@/lib/fechas-lima";
 import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
 import {
   ADJUNTOS_BUCKET,
@@ -151,7 +152,8 @@ export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: 
 const ESTADOS_PAGO: EstadoPago[] = ["pendiente", "parcial", "pagada", "anulada"];
 const ESTADOS_RECEPCION: EstadoRecepcion[] = ["sin_recibir", "parcial", "recibida", "anulada"];
 const TIPOS_DOCUMENTO: TipoDocumentoCompra[] = ["factura", "boleta", "nota_venta", "sin_comprobante"];
-const esFecha = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
+// Una fecha que existe, no solo con la forma: «2026-02-31» tumbaba Por pagar (/chaos de Compras, ADR-0421).
+const esFecha = (v?: string) => esFechaQueExiste(v);
 
 /** Traduce la URL a filtros, descartando cualquier valor que no sea válido. */
 export function filtrosDesdeParams(p: ParamsCompras): FiltrosCompras {

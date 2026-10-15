@@ -52,6 +52,8 @@ import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje
 import { Buscador } from "@/components/ui/Buscador";
 import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerencias";
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
 
 export type ProveedorLlegada = { id: string; nombre: string; ruc: string | null; marcas: string[] };
 
@@ -279,6 +281,13 @@ export function LlegoMercaderia({
       const falta = guia.faltan[0];
       if (falta) guia.ir(falta.id);
       if (falta?.id === "llegada-responsable" && responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
+    // Un costo que no se entiende no viaja adivinado: se dice y se lleva al campo (ADR-0419).
+    const ilegible = lineas.find((l) => montoIlegible(l.costo));
+    if (ilegible) {
+      avisar.error(MONTO_ILEGIBLE);
+      formulario.current?.querySelector<HTMLInputElement>(`[data-campo="llegada-costo-${ilegible.varianteId}"]`)?.focus();
       return;
     }
     setLoading(true);
@@ -552,16 +561,13 @@ export function LlegoMercaderia({
                       </div>
                       {verMontos && (
                         <input
-                          type="number"
-                          min={0}
-                          step="0.10"
-                          inputMode="decimal"
+                          {...atributosMontoTexto(l.costo)}
                           aria-label={`Costo por prenda de ${p.referencia}`}
                           placeholder="Costo S/" // sugerir-fijo: nombra el campo y la moneda, no da un costo de ejemplo
                           data-campo={`llegada-costo-${l.varianteId}`}
                           value={l.costo}
                           onChange={(e) => cambiarLineas(fijarCosto(lineas, l.varianteId, e.target.value))}
-                          className="caja-campo-input h-8 min-h-8 w-32 px-2 text-right tabular-nums"
+                          className={`caja-campo-input h-8 min-h-8 w-32 px-2 text-right tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                         />
                       )}
                       <button type="button" aria-label={`Quitar ${p.referencia}`} onClick={() => cambiarLineas(fijarCantidad(lineas, l.varianteId, 0))} className="text-taupe hover:text-rojo">

@@ -7,9 +7,11 @@
 // es solo el canje del descuento.
 //
 // CONTRATO
-//   PROMETE: el mismo monto, al céntimo, que calcula `registrar_venta`: `round((precio − descuento_sin_club) × pct / 100, 2)`
-//            en `numeric`, donde el medio céntimo sube. Por eso cuenta en enteros (céntimos) y nunca en coma flotante: con
-//            `Math.round(x * 100) / 100`, S/ 1.45 al 10 % da 0.14 y la base da 0.15 (lo prueba el `.test.ts` de al lado).
+//   PROMETE: el mismo monto, al céntimo, que calcula `registrar_venta`: el % sobre lo que ya cobraba la prenda (precio −
+//            descuento_sin_club) con la regla única del % de la caja (ADR-0403, extendida al cumpleaños el 2026-10-15): el
+//            precio final de la prenda baja al múltiplo de S/ 0.10 de abajo y la parte del club es lo que falta para llegar
+//            ahí. S/ 59.90 al 10 % → 53.91 exacto → 53.90: el club regala 6.00, no 5.99. Su gemela en la base es
+//            `retail.fn_descuento_campana`. Por eso cuenta en enteros (céntimos) y nunca en coma flotante.
 //   ASUME:   montos y % con 2 decimales como mucho (los del catálogo, los descuentos y `club_cumple_pct`). Quien decide
 //            si la socia PUEDE canjear es la base (`resumen_clienta_caja.cumple_disponible` al leer, y
 //            `registrar_venta` al cobrar: socia, su mes en Lima, sin canje vivo este año). Esto solo evita ofrecer lo que la
@@ -19,43 +21,31 @@
 //            tienda ya lo usó, y la clienta ya se fue con el precio rebajado.
 
 import { hoyLima } from "./fechas-lima";
+import { descuentoUnitarioPorPorcentaje } from "./vender-reglas";
 
 /** El % de cumpleaños cuando la base no dice otro: el default de `configuracion_empresa.club_cumple_pct`. */
 export const PCT_CUMPLE_POR_DEFECTO = 10;
 
-/* ------------------------------------------------------------------ Aritmética exacta (la de `numeric` en Postgres) */
-// En enteros, como `descuentoDeCampana` (lib/vender-reglas.ts): céntimos para los montos y centésimas de punto para el %.
-// Los montos de la caja tienen 2 decimales (precio de catálogo y descuentos, `numeric(12,2)`) y el % también
-// (`club_cumple_pct numeric(5,2)`): con esas escalas todo es exacto. El producto más grande (S/ 100 000 al 50 %) es
-// 10^7 × 5·10^3 = 5·10^10, muy por debajo de 2^53: ningún entero pierde precisión.
+/* ------------------------------------------------------------------ Aritmética exacta (céntimos enteros) */
+// Los montos de la caja tienen 2 decimales (precio de catálogo y descuentos, `numeric(12,2)`): en céntimos enteros todo es
+// exacto, y la coma flotante no mete 22.389999… en una suma.
 
 /** Soles → céntimos exactos. Con 2 decimales, `x * 100` cae a una millonésima del entero y `Math.round` lo recupera. */
 const aCentimos = (soles: number) => Math.round(soles * 100);
-/** % → centésimas de punto exactas (12.5 → 1250). */
-const aCentesimas = (pct: number) => Math.round(pct * 100);
 /** Céntimos → soles. `285 / 100` es el double más cercano a 2.85: el mismo número que un 2.85 escrito a mano, y el JSON
  *  lo manda como «2.85». */
 const aSoles = (centimos: number) => centimos / 100;
 
-/** `numerador / denominador` (enteros, denominador > 0) redondeado al entero con el medio lejos del cero: lo que hace
- *  `round()` de Postgres con `numeric` (con `double precision` redondearía al par; la base usa `numeric`). Solo operaciones
- *  enteras exactas (`%`, resta, división exacta). */
-function dividirRedondeando(numerador: number, denominador: number): number {
-  const n = Math.abs(numerador);
-  const doble = 2 * n + denominador;
-  const q = (doble - (doble % (2 * denominador))) / (2 * denominador);
-  return numerador < 0 ? -q : q;
-}
-
 /**
- * La parte del club (cumpleaños) de UNA unidad de una prenda: `round((precio − descuento_sin_club) × pct / 100, 2)`, igual
- * que `registrar_venta`. `descuentoSinClub` es lo que la prenda ya tenía sin el cumpleaños (su campaña o su descuento a
- * mano). Ej.: 79.90 con una campaña de 16.00 → 63.90 × 10 % = 6.39 (el descuento total queda en 22.39: un 28 %).
+ * La parte del club (cumpleaños) de UNA unidad de una prenda: el % sobre lo que la prenda ya cobraba sin el cumpleaños
+ * (`descuentoSinClub`: su campaña o su descuento a mano), con la regla única del % de la caja: el precio que queda baja al
+ * múltiplo de S/ 0.10 de abajo (ADR-0403; Felipe 2026-10-15: «que también lo redondee, para que no salgan esos céntimos de
+ * más»). Ej.: 59.90 al 10 % → 53.91 → 53.90, el club pone 6.00; 79.90 con una campaña de 16.00 → 63.90 al 10 % → 57.51 →
+ * 57.50, el club pone 6.40 (el descuento total queda en 22.40: un 28 %). Siempre hacia abajo: nunca menos que el % del
+ * cartel, y de 0 a 0.09 de regalo por unidad. La base hace la misma cuenta (`fn_descuento_campana`) y rechaza otra.
  */
 export function descuentoClubLinea(precioUnitario: number, descuentoSinClub: number, pct: number): number {
-  const base = aCentimos(precioUnitario) - aCentimos(descuentoSinClub);
-  // base (céntimos) × pct (centésimas de punto) / 100 / 100 → céntimos.
-  return aSoles(dividirRedondeando(base * aCentesimas(pct), 10_000));
+  return descuentoUnitarioPorPorcentaje(aSoles(aCentimos(precioUnitario) - aCentimos(descuentoSinClub)), pct);
 }
 
 /**
@@ -291,7 +281,7 @@ export const ayudaPieCumple = (pct: number, totalSinCumple: number) =>
 export const textoCumpleCobrado = (monto: number) =>
   `Cumpleaños canjeado (−${soles(monto)}). No puede usarlo otra vez hasta el año que viene; devolver la compra tampoco lo devuelve.`;
 
-/** En el ticket impreso, que muestra el descuento de cada prenda («Dscto. -22.39 c/u»): cuánto de eso es del club. */
+/** En el ticket impreso, que muestra el descuento de cada prenda («Dscto. -22.40 c/u»): cuánto de eso es del club. */
 export const textoCumpleEnElRecibo = (pct: number, monto: number) =>
   `Incluye ${pctLegible(pct)} % de cumpleaños del club: -${monto.toFixed(2)}`;
 

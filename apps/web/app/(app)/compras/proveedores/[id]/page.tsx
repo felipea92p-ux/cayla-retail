@@ -26,6 +26,7 @@ import { Vacio } from "@/components/ui/Vacio";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { esUuid } from "@/lib/club-registro-reglas";
 
 // Ficha de un proveedor (maqueta 09, ADR-0111): prenda terminada (vía Compras) e insumos del Taller
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
@@ -52,6 +53,8 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   const verMontos = puede(persona, "verDineroCompras") || usaModulo(persona.rol, persona.modulos, "proveedores");
   const abreComprobantes = puede(persona, "verDineroCompras"); // el detalle y la lista de comprobantes son de Facturas de proveedor
   const { id } = await params;
+  // Un id que no es uuid no es un proveedor: «no existe», no la pantalla de error (/chaos de Compras, ADR-0421).
+  if (!esUuid(id)) notFound();
   const siDinero = <T,>(leer: () => Promise<T>): Promise<T | null> => (verMontos ? leer() : Promise.resolve(null));
 
   const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa, cambiosCuenta, nosDebe] = await Promise.all([

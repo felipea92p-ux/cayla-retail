@@ -14,6 +14,7 @@ import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
 import { diaLima, diaYHoraLima, hoyLima } from "./fechas-lima";
 import type { CampoDeGuia } from "./guia-campos";
 import type { FilaConCategoria } from "./categoria-de-prenda";
+import { numeroDeMonto } from "./monto-plata-reglas";
 
 /** `categoria*`: dibujan la miniatura de la prenda sin foto (el ícono de su categoría, ADR-0333). */
 export type PrendaLlegada = PrendaBuscableV2 & { productoId: string; colorHex?: string | null; fotoUrl?: string | null } & FilaConCategoria;
@@ -36,8 +37,9 @@ export function fijarCantidad(lineas: readonly LineaLlegada[], varianteId: strin
 }
 
 export function fijarCosto(lineas: readonly LineaLlegada[], varianteId: string, costo: string): LineaLlegada[] {
-  // Un negativo se recorta a 0 aquí, antes de viajar hasta el `check (costo >= 0)` de la base.
-  const limpio = costo.trim() === "" ? "" : String(Math.max(0, Number(costo) || 0));
+  // Un negativo se recorta a 0 aquí, antes de viajar hasta el `check (costo >= 0)` de la base. Lo demás se guarda como se escribe
+  // (con coma y todo) y se lee al enviar: convertirlo en cada tecla volvía «2,» en «0» a mitad de escribir (ADR-0419).
+  const limpio = costo.trim() === "" ? "" : costo.trim().startsWith("-") ? "0" : costo;
   return lineas.map((l) => (l.varianteId === varianteId ? { ...l, costo: limpio } : l));
 }
 
@@ -152,7 +154,7 @@ export function pedidoRecibirLote(p: {
     p_items: validas.map((l, n) => ({
       variante_id: l.varianteId,
       cantidad: l.cantidad,
-      ...(l.costo !== "" ? { costo_unitario: Number(l.costo) } : {}),
+      ...(l.costo !== "" ? { costo_unitario: numeroDeMonto(l.costo) } : {}),
       // Solo en el reintento tras `costo_atipico` y solo en las líneas que vio el líder (20260930122000).
       ...(p.confirmadas?.includes(n + 1) ? { confirma_costo: true } : {}),
     })),

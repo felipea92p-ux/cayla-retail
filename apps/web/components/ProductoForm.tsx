@@ -590,6 +590,9 @@ export function ProductoForm({
   });
   const avisoBloque = avisoBloqueSinAplicar(bloquePendiente);
   const avisosSinBloquear = problemas.filter((p) => !p.bloquea).map((p) => p.texto);
+  // El piso del precio de una tienda (`costoMaximoGuardado`) mira las tallas que ese precio alcanza: la de obsequio (0 en una categoría
+  // que admite el 0) no; la de ropa en 0, sí (20261015121000). Con la categoría GUARDADA, la que mira la base (`poner_precio_sede`).
+  const admiteCeroGuardada = !!categorias.find((c) => c.id === enLaBase.datos.categoriaId)?.admitePrecioCero;
 
   function aplicar(e: EstadoFicha) {
     setReferencia(e.referencia);
@@ -1641,7 +1644,7 @@ export function ProductoForm({
                 todas={preciosSede.todas}
                 tiendas={preciosSede.tiendas}
                 ubicacionActual={preciosSede.ubicacionId}
-                costoMaximo={veCosto ? costoMaximoGuardado(filas) : null}
+                costoMaximo={veCosto ? costoMaximoGuardado(filas, admiteCeroGuardada) : null}
                 deshabilitado={loading}
               />
             )}

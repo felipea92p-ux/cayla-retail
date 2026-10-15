@@ -81,6 +81,8 @@ import { ListaSugerencias, ariaDelBuscador } from "@/components/ui/ListaSugerenc
 import { MiniaturaPrenda, categoriaDe } from "@/components/ui/PrendaCelda";
 import type { FilaConCategoria } from "@/lib/categoria-de-prenda";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { MONTO_ILEGIBLE, montoIlegible } from "@/lib/monto-plata-reglas";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Lo que llega a la puerta es un envío —una agencia, una guía,
 // varios bultos— y puede traer comprobantes de VARIOS proveedores y prendas que ningún comprobante lista. Todo se
@@ -663,6 +665,13 @@ export function RecepcionEnvio({
     const excedida = lineasActivas.find((l) => cantidadLinea(l) > l.pendiente);
     if (excedida) return void avisar.error(`${excedida.referencia}: se intenta recibir ${cantidadLinea(excedida)} pero solo faltan ${excedida.pendiente}.`, { enfocar: `recibir-linea-${excedida.id}` });
     if (!ubicacionId) return void avisar.error("Elige a qué ubicación entra la mercadería.", { enfocar: "recibir-ubicacion" });
+    // Un costo que no se entiende no viaja adivinado (ADR-0419): se dice y se lleva al campo.
+    const extraIlegible = extras.findIndex((x) => !x.esRegalo && montoIlegible(x.costoUnitario));
+    if (extraIlegible >= 0) {
+      setPestana("fuera");
+      avisar.error(MONTO_ILEGIBLE);
+      return void window.setTimeout(() => document.querySelector<HTMLInputElement>(`[data-campo="envio-extra-costo-${extraIlegible}"]`)?.focus(), 60);
+    }
 
     const pedido = armarPedidoEnvio({
       ubicacionId,
@@ -1485,9 +1494,7 @@ export function RecepcionEnvio({
                               />
                             </div>
                             <input
-                              type="number"
-                              min={0}
-                              step="0.10"
+                              {...atributosMontoTexto(ex.esRegalo ? "" : ex.costoUnitario)}
                               placeholder={ex.esRegalo ? "Sin costo" : "Costo (opc.)"}
                               aria-label="Costo unitario"
                               data-campo={`envio-extra-costo-${i}`}
@@ -1495,9 +1502,10 @@ export function RecepcionEnvio({
                               value={ex.esRegalo ? "" : ex.costoUnitario}
                               onChange={(e) => {
                                 const v = e.target.value;
-                                actualizarExtra(i, { costoUnitario: v === "" ? "" : String(Math.max(0, Number(v) || 0)) });
+                                // Se guarda como se escribe (coma incluida) y se lee al enviar; un negativo queda en 0 (ADR-0419).
+                                actualizarExtra(i, { costoUnitario: v.trim() === "" ? "" : v.trim().startsWith("-") ? "0" : v });
                               }}
-                              className="caja-campo-input w-24 shrink-0 text-right tabular-nums"
+                              className={`caja-campo-input w-24 shrink-0 text-right tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                             />
                             <button type="button" onClick={() => quitarExtra(i)} className="label-cayla shrink-0 pb-2 text-[10px] text-tinta/55 hover:text-rojo">
                               Quitar

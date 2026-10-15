@@ -22,6 +22,7 @@ export type CampoAlta = "categoria" | "nombre" | "descripcion" | "marca" | "teji
 /** Cómo se ve un campo en la guía: la marca de su título y el tinte de su fila. Vive en `lib/guia-campos.ts` (lo comparten los modales). */
 export type { EstadoCampo } from "./guia-campos";
 import { siguienteDe, type EstadoCampo } from "./guia-campos";
+import { FRASE_COSTO_CON_TOPE, FRASE_PRECIO_CON_TOPE, MAX_PRECIO_PRENDA } from "./catalogo-topes";
 
 export type CampoGuia = {
   id: CampoAlta;
@@ -51,6 +52,8 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
   const precioOk = e.precioBase.trim() !== "" && Number.isFinite(precio) && precio > 0;
   const costo = Number(e.costoBase);
   const costoOk = e.costoBase.trim() === "" || (Number.isFinite(costo) && costo >= 0);
+  const precioSobreTope = precioOk && precio > MAX_PRECIO_PRENDA;
+  const costoSobreTope = e.costoBase.trim() !== "" && costo > MAX_PRECIO_PRENDA;
   const nombreOk = e.referencia.trim() !== "" && claveReferencia(e.referencia) !== "" && !e.nombreBloqueado && !e.nombreSinConfirmar && !e.comprobandoNombre;
   const configurar = (tipo: "tejidos" | "patrones") => `Habilita los ${tipo} de esta categoría.`;
 
@@ -114,9 +117,17 @@ export function camposDelAlta(e: EstadoAlta, x: ExtraGuia): CampoGuia[] {
       nombre: "Precio",
       requerido: true,
       sugerido: false,
-      hecho: precioOk && costoOk && !e.celdaSinPrecio,
-      // En el orden de `problemasAlta`: el precio de todas, la celda en 0 (ADR-0384) y el costo.
-      pendiente: !precioOk ? "Pon el precio de venta." : e.celdaSinPrecio ? textoCeldaSinPrecio(e.celdaSinPrecio) : "El costo no puede ser negativo.",
+      hecho: precioOk && costoOk && !e.celdaSinPrecio && !precioSobreTope && !costoSobreTope,
+      // En el orden de `problemasAlta`: el precio de todas, la celda en 0 (ADR-0384), el costo y el tope de S/ 5 000 (ADR-0415).
+      pendiente: !precioOk
+        ? "Pon el precio de venta."
+        : e.celdaSinPrecio
+          ? textoCeldaSinPrecio(e.celdaSinPrecio)
+          : !costoOk
+            ? "El costo no puede ser negativo."
+            : precioSobreTope
+              ? FRASE_PRECIO_CON_TOPE
+              : FRASE_COSTO_CON_TOPE,
     },
     {
       id: "stock",

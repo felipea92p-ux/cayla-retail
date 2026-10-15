@@ -29,9 +29,11 @@ import { ayudaDeCosto, costoConocido, progresoDeCompra, requisitosDeCompra } fro
 import { AyudaCostoLinea, BarraProgreso, BotonRegistrar, CifraCompra, ListaPendientes, NumeroTramo, TextoQueSeAsienta, type EstadoRegistro } from "@/components/CompraFormProgreso";
 import { detalleProveedorCombo, type DatosPagoProveedor } from "@/lib/proveedores-reglas";
 import { hoyLima, sumarDias } from "@/lib/fechas-lima";
-import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A_FAVOR, seEnviaLinea, soles, totalesDeLasLineasQueSeEnvian } from "@/lib/compras-reglas";
+import { costoBase, costoParaTipear, ETIQUETA_METODO, fechaCorta, METODO_SALDO_A_FAVOR, problemaDeFechasEIgv, seEnviaLinea, soles, totalesDeLasLineasQueSeEnvian } from "@/lib/compras-reglas";
 import { destinosParaRpc, repartirEnPartesIguales, repartoSoloDe, tiendaGestora, unidadesPorTienda, type RepartoLinea } from "@/lib/reparto-reglas";
 import { Casilla } from "@/components/ui/Casilla";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
+import { numeroDeMonto } from "@/lib/monto-plata-reglas";
 
 // Registrar una factura de proveedor (ADR-0035). Dos reglas de Felipe que
 // esta pantalla refleja pero NO decide — las decide la RPC `registrar_compra`:
@@ -252,7 +254,7 @@ export function CompraFormV2({
   // Solo hay algo que descontar en una factura con IGV; en boleta y nota de
   // venta el precio del papel ya es el costo y el selector no aparece.
   const conIgv = igvEfectivo > 0 && precioIncluyeIgv;
-  const baseDeLinea = (l: Linea) => costoBase(Number(l.costoUnitario), igvEfectivo, conIgv);
+  const baseDeLinea = (l: Linea) => costoBase(numeroDeMonto(l.costoUnitario), igvEfectivo, conIgv);
   // Las líneas que de verdad se mandan (la base numera las suyas, `linea`, desde 1, sobre esta misma lista).
   const lineasQueSeEnvian = lineas.filter(seEnviaLinea);
   const huellaDeLineas = JSON.stringify(lineasQueSeEnvian.map((l) => [l.productoId, l.varianteId, l.cantidad, baseDeLinea(l)]));
@@ -261,7 +263,7 @@ export function CompraFormV2({
   // (cantidad × precio tipeado); sin IGV, la base. El resumen sale de la
   // misma regla que aplica la RPC (`totalesCompra`), así nunca difieren. Suma EXACTAMENTE las líneas que se envían: una fila a medio
   // llenar (sin prenda o sin cantidad) no se manda a `registrar_compra`, y sumarla mostraba un total mayor al que se registraba.
-  const importeDeLinea = (l: Linea) => (conIgv ? Math.round(l.cantidad * (Number(l.costoUnitario) || 0) * 100) / 100 : l.cantidad * baseDeLinea(l));
+  const importeDeLinea = (l: Linea) => (conIgv ? Math.round(l.cantidad * (numeroDeMonto(l.costoUnitario) || 0) * 100) / 100 : l.cantidad * baseDeLinea(l));
   const { subtotal, igv, total } = totalesDeLasLineasQueSeEnvian(lineas, igvEfectivo, conIgv);
   const hayPago = condicion === "contado" || pagarAhora;
   const sumaPagos = sumaLineasPago(pagos);
@@ -395,6 +397,9 @@ export function CompraFormV2({
     // seguridad (Enter, un envío forzado): la base vuelve a exigir todo en `registrar_compra`.
     const pendiente = requisitos.find((r) => !r.ok);
     if (pendiente) return void (pendiente.error && avisar.error(pendiente.error.mensaje, { enfocar: pendiente.error.enfocar }));
+    // ADR-0421: el IGV, la emisión y el vencimiento, como los exige la base (dicho antes de mandar).
+    const fechasOIgv = problemaDeFechasEIgv({ fechaEmision, fechaVencimiento: condicion === "credito" ? fechaVencimiento : null, igvPorcentaje: igvEfectivo, hoy: hoyISO() });
+    if (fechasOIgv) return void avisar.error(fechasOIgv);
     const pagosRpc = hayPago ? lineasPagoParaRpc(pagos, cuentas.cuentas) : null;
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
@@ -681,7 +686,7 @@ export function CompraFormV2({
               mono
               type="number"
               min={0}
-              max={100}
+              max={18}
               step="1"
               value={discriminaIgv(tipo) ? igvPorcentaje : "0"}
               onChange={(e) => setIgvPorcentaje(e.target.value)}
@@ -762,16 +767,14 @@ export function CompraFormV2({
                   />
                   <div className="min-w-0">
                     <input
-                      type="number"
-                      min={0}
-                      step="0.01"
+                      {...atributosMontoTexto(l.costoUnitario)}
                       id={`compra-linea-${i}-costo`}
                       placeholder="Costo unit."
                       aria-label="Costo unitario"
                       value={l.costoUnitario}
                       onChange={(e) => actualizarLinea(i, { costoUnitario: e.target.value })}
                       onKeyDown={(e) => enterEnCosto(e, i)}
-                      className={`${NUMERO} caja-campo-input text-right tabular-nums`}
+                      className={`${NUMERO} caja-campo-input text-right tabular-nums ${CLASE_MONTO_ILEGIBLE}`}
                     />
                     <AyudaCostoLinea ayuda={ayudaDeCosto(conocido, l.costoUnitario)} onUsar={() => conocido !== null && actualizarLinea(i, { costoUnitario: String(conocido) })} />
                   </div>

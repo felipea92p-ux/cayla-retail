@@ -8,6 +8,7 @@ import { diaLima } from "./fechas-lima";
 import { codigoDeEtiqueta } from "./prenda-reglas";
 import { estadoDeMiTienda, nombreDeLineaSinPrenda } from "./reparto-reglas";
 import type { NoDeducible } from "./no-deducible-reglas";
+import { numeroDeMonto } from "./monto-plata-reglas";
 
 // La etiqueta de una línea sin prenda vive junto a `etiquetaDeLinea` (reparto-reglas); las pantallas la piden desde acá.
 export { nombreDeLineaSinPrenda };
@@ -382,7 +383,7 @@ export function totalesDeLasLineasQueSeEnvian(
   conIgv: boolean,
 ): { subtotal: number; igv: number; total: number } {
   return totalesCompra(
-    lineas.filter(seEnviaLinea).map((l) => ({ cantidad: l.cantidad, costoTipeado: Number(l.costoUnitario) })),
+    lineas.filter(seEnviaLinea).map((l) => ({ cantidad: l.cantidad, costoTipeado: typeof l.costoUnitario === "number" ? l.costoUnitario : numeroDeMonto(l.costoUnitario) })),
     igvPorcentaje,
     conIgv,
   );
@@ -505,4 +506,14 @@ export const MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE =
 /** Lo mismo para una TABLA o VISTA que la base todavía no tiene (PostgREST `PGRST205`, Postgres `42P01`). */
 export function esRelacionAusente(error: { code?: string | null } | null | undefined): boolean {
   return error?.code === "PGRST205" || error?.code === "42P01";
+}
+
+/** El IGV va de 0 % a 18 %, la emisión no es futura y el vencimiento no es anterior a la emisión: lo mismo que exige `registrar_compra`
+ *  (`igv_fuera_de_rango`, `emision_futura`) y la tabla (`compras_vence_despues_de_emitir`), dicho antes de mandar (/chaos de Compras,
+ *  ADR-0421). Fechas `aaaa-mm-dd`; sin vencimiento (al contado), no se mira. */
+export function problemaDeFechasEIgv(e: { fechaEmision: string; fechaVencimiento: string | null; igvPorcentaje: number; hoy: string }): string | null {
+  if (!(e.igvPorcentaje >= 0 && e.igvPorcentaje <= 18)) return "El IGV de la factura va de 0 % a 18 %: revisa el porcentaje.";
+  if (e.fechaEmision > e.hoy) return "La fecha de emisión no puede ser futura: revisa la fecha del documento.";
+  if (e.fechaVencimiento && e.fechaVencimiento < e.fechaEmision) return "El vencimiento no puede ser anterior a la emisión.";
+  return null;
 }

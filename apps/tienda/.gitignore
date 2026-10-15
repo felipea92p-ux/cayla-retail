@@ -1,0 +1,17 @@
+# Lo mismo que apps/web: dependencias, lo que arma Next y las variables (la plantilla sí se versiona).
+/node_modules
+/coverage
+/.next/
+/out/
+/build
+.DS_Store
+*.pem
+npm-debug.log*
+.pnpm-debug.log*
+.env*
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# La plantilla sí se versiona (va sin valores). Debe ir al final: en git gana la última regla que coincide.
+!.env.example

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { BotonVerMas, FilasDeMas } from "@/components/ui/VerMas";
 import { Modal } from "@/components/ui/Modal";
 import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
@@ -11,6 +10,9 @@ import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoNumeroDocumento, CampoTipoDocumento, ID_NUMERO_DOCUMENTO } from "@/components/CampoDocumentoClienta";
 import { CampoCelular, CamposCumpleanos, ID_ANIO_CLUB, ID_CELULAR_CLUB, ID_DIA_CLUB } from "@/components/clientas/club-piezas";
+// El nombre de una ficha con DNI sale del padrón y no se edita a mano (Felipe 2026-10-15, 20261015133000).
+import { NombreDelPadron, usePadronDeFicha } from "@/components/clientas/NombreDelPadron";
+import { AYUDA_NOMBRE_ESCRITO, nombreDeLaEdicion } from "@/lib/nombre-del-padron-reglas";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 import { useResponsable } from "@/lib/useResponsable";
@@ -18,34 +20,34 @@ import { avisar } from "@/components/ui/Avisos";
 import { esVersionCambiada, traducirError, type ErrorEscritura } from "@/lib/error-escritura";
 import { estaActiva, type Clienta, type FichaClienta } from "@/lib/clientas-reglas";
 import { deducirTallas, estadoFrecuente } from "@/lib/clienta-actividad-reglas";
-import { ajustarNumeroAlTipo, contactoVisible, problemaDocumento } from "@/lib/documento-clienta-reglas";
+import { ajustarNumeroAlTipo, contactoVisible, normalizarNumeroDocumento, problemaDocumento } from "@/lib/documento-clienta-reglas";
 import { estadoClub } from "@/lib/club-reglas";
 import { cajaDelProblemaCumple, cumpleCompleto, problemaCumple, type CumpleEscrito } from "@/lib/club-cumple-reglas";
 import { avisoCambioDeCelular, cumpleLegible, faltaParaSerSocia } from "@/lib/club-clientas-reglas";
 import { registrarBajaWhatsapp } from "@/lib/club-acciones";
 import type { CampoDeGuia } from "@/lib/guia-campos";
-import {
-  archivarClienta,
-  buscarClienta,
-  cargarFichaClienta,
-  editarClienta,
-  reactivarClienta,
-  unirClientas,
-  type DatosEdicion,
-} from "@/lib/clientas-acciones";
+import { archivarClienta, cargarFichaClienta, editarClienta, reactivarClienta, type DatosEdicion } from "@/lib/clientas-acciones";
+// El correo de contacto (Felipe 2026-10-15, 20261015123000) y lo que la ficha tiene en la tienda online (el aviso al archivar).
+import { correoVisible, esRechazoDelCorreo, normalizarCorreo, problemaCorreo, rechazoVigente, type RechazoCorreo } from "@/lib/correo-clienta-reglas";
+import { avisoAlArchivar, frenaAnonimizar, notaDelCorreoDeEntrada, pieDeAnonimizar } from "@/lib/clienta-tienda-online-reglas";
+// «Restablecer acceso a la tienda web» (Felipe 2026-10-15, 20261015132000): su bloque y su hoja viven aparte; aquí solo se enganchan.
+import { RestablecerAccesoWeb, TiendaOnlineDeLaFicha } from "@/components/clientas/TiendaOnlineDeLaFicha";
+import { Aviso } from "@/components/ui/Aviso";
 // Tanda 1f (ADR-0288 «Actualización 2026-09-30 (f)»): su sede y frecuente con compra neta, las preferencias y la historia del
 // permiso. Viven en piezas aparte; aquí solo se enganchan.
 import { frecuenteDeLaFicha, suSedeDeLaFicha } from "@/lib/clientas-lista-reglas";
 import { PreferenciasClienta } from "@/components/clientas/PreferenciasClienta";
 import { HistoriaPermisos } from "@/components/clientas/HistoriaPermisos";
-import { ShoppingBag, SearchX } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BotonEditar } from "@/components/ui/BotonEditar";
 
 /** Lo que muestra la hoja: la ficha, o una de sus acciones (cada una responde adentro del mismo panel, ADR-0136). Del club
  *  queda «Registrar su BAJA» (`baja`): desde la tanda 1g (ADR-0288, G-1, G-7) ella se une sola desde el cartel, así que la
- *  ficha ya no une al club, no muestra un QR personal ni registra «Llegó su mensaje». */
-type Modo = "ver" | "editar" | "archivar" | "unir" | "baja";
+ *  ficha ya no une al club, no muestra un QR personal ni registra «Llegó su mensaje». Tampoco une fichas (Felipe 2026-10-14:
+ *  el documento y el correo son de una sola persona, así que no nacen fichas repetidas; `unir_clientas` se borró en
+ *  20261015054000). */
+type Modo = "ver" | "editar" | "archivar" | "baja" | "acceso-web";
 /** Las pestañas de la ficha: lo del club (permisos y preferencias) por un lado y lo que hizo en las tiendas por otro. */
 type Vista = "club" | "actividad";
 
@@ -59,6 +61,11 @@ function soles(n: number): string {
 /** El cumpleaños de «Editar» como lo escriben las cajas (la ficha lo guarda en tres textos). */
 const cumpleDeEdicion = (e: DatosEdicion): CumpleEscrito => ({ dia: e.cumpleDia, mes: e.cumpleMes, anio: e.cumpleAnio });
 
+/** El id de la caja del correo: para llevarle el cursor cuando está mal o la base lo rechazó. */
+const ID_CORREO = "ficha-cliente-correo";
+/** El id de la caja del nombre escrito (carné, pasaporte o sin documento): para llevarle el cursor si le falta algo. */
+const ID_NOMBRE_ESCRITO = "ficha-cliente-nombre";
+
 function datosDeEdicion(c: Clienta): DatosEdicion {
   return {
     documentoTipo: c.documentoTipo,
@@ -69,6 +76,7 @@ function datosDeEdicion(c: Clienta): DatosEdicion {
     cumpleMes: c.cumpleMes?.toString() ?? "",
     cumpleAnio: c.cumpleAnio?.toString() ?? "",
     tallas: c.tallas,
+    correo: c.correo ?? "",
   };
 }
 
@@ -76,13 +84,23 @@ function datosDeEdicion(c: Clienta): DatosEdicion {
  * Los campos de la guía de foco (CLAUDE.md «Guía de foco», ADR-0284) de lo que la hoja muestra ahora. Salen de las mismas
  * reglas que validan cada acción abajo (y que la base vuelve a exigir): no agregan ninguna.
  *   · editar: el documento, si se escribe, completo (D-2); a una socia no se le puede borrar el celular, el documento ni el
- *     nombre (`socia_sin_celular`, `socia_sin_documento`, CL-1); el año del cumpleaños, si se escribe, completo.
- *   · archivar: el motivo. · unir: la otra ficha. · baja: solo quién lo hace. · En todas, quién lo hace.
+ *     nombre (`socia_sin_celular`, `socia_sin_documento`, CL-1); el correo, opcional, pero si se escribe bien escrito
+ *     (`correo_invalido`) y no el de otra ficha (lo que dijo la base, `correo_de_otra_ficha`, mientras siga escrito el mismo); el
+ *     año del cumpleaños, si se escribe, completo. El nombre (Felipe 2026-10-15, `nombreDeLaEdicion`): con DNI no se escribe —si el
+ *     DNI cambió hace falta el nombre del padrón para el número nuevo (`nombre_sin_padron`)—; con carné o pasaporte, tal cual y sin
+ *     números (`nombre_con_numeros`).
+ *   · archivar: el motivo. · baja: solo quién lo hace. · En todas, quién lo hace.
  */
 function camposDeLaGuia(
   modo: Modo,
   c: Clienta | null,
-  estado: { edicion: DatosEdicion | null; motivoArchivo: string; anonimizar: boolean; aFusionar: Clienta | null },
+  estado: {
+    edicion: DatosEdicion | null;
+    motivoArchivo: string;
+    anonimizar: boolean;
+    problemaDelCorreo: string | null;
+    nombre: ReturnType<typeof nombreDeLaEdicion> | null;
+  },
   responsableListo: boolean,
   anioActual: number,
 ): CampoDeGuia[] {
@@ -114,13 +132,27 @@ function camposDeLaGuia(
           hecho: e.documentoNumero !== "" && problema === null,
           pendiente: problema ?? "Es miembro del club: su documento no se puede dejar vacío.",
         },
-        { id: "nombre", nombre: "Nombre", requerido: socia, hecho: e.nombre.trim() !== "", pendiente: "Es miembro del club: su nombre no se puede dejar vacío." },
+        {
+          id: "nombre",
+          nombre: estado.nombre?.origen === "padron" ? "Nombre del padrón" : "Nombre",
+          requerido: socia || !(estado.nombre?.listo ?? true),
+          hecho: (estado.nombre?.listo ?? false) && (estado.nombre?.nombre ?? "") !== "",
+          pendiente: estado.nombre?.pendiente ?? "Es miembro del club: su nombre no se puede dejar vacío.",
+        },
         {
           id: "celular",
           nombre: "Celular",
           requerido: c.clubDesde !== null,
           hecho: e.telefonoWhatsapp.trim() !== "",
           pendiente: "Es miembro del club: su celular no se puede dejar vacío.",
+        },
+        // Opcional: vacío no falta; mal escrito o de otra ficha, sí (la base lo rechazaría igual).
+        {
+          id: "correo",
+          nombre: "Correo",
+          requerido: estado.problemaDelCorreo !== null,
+          hecho: e.correo.trim() !== "" && estado.problemaDelCorreo === null,
+          pendiente: estado.problemaDelCorreo ?? "",
         },
         cumple(cumpleDeEdicion(e)),
         quien,
@@ -132,21 +164,20 @@ function camposDeLaGuia(
         { id: "anonimizar", nombre: "Anonimizar", requerido: false, hecho: estado.anonimizar, pendiente: "" },
         quien,
       ];
-    case "unir":
-      return [{ id: "otra", nombre: "La otra ficha", requerido: true, hecho: estado.aFusionar !== null, pendiente: "Busca y elige la otra ficha de este cliente." }, quien];
     case "baja":
       return [quien];
     case "ver":
+    case "acceso-web": // su guía vive en RestablecerAccesoWeb (components/clientas/TiendaOnlineDeLaFicha.tsx)
       return [];
   }
 }
 
 /**
  * La ficha completa de una clienta (paso 2 del acta, `docs/datos/DECISIONES-2026-09-26-clientas.md`
- * sección H): ver su actividad, editar con candado optimista (ADR-0193 reusado), archivar/
- * anonimizar (Ley 29733, nunca `delete`) y unir con otra ficha (D-99). UN solo `<Modal
- * variante="hoja">` que cambia de contenido por `modo` — ADR-0136 no anida modales, cada acción
- * responde adentro del mismo panel.
+ * sección H): ver su actividad, editar con candado optimista (ADR-0193 reusado) y archivar/
+ * anonimizar (Ley 29733, nunca `delete`). «Unir con otra ficha» (D-99) se retiró el 2026-10-14: el documento y el correo
+ * son de una sola persona. UN solo `<Modal variante="hoja">` que cambia de contenido por `modo` — ADR-0136 no anida
+ * modales, cada acción responde adentro del mismo panel.
  *
  * ADR-0288: la ficha dice dónde está frente al club (`estadoClub`). Desde la tanda 1g (G-1, G-2, G-7) ella se une sola
  * escaneando el cartel y ahí decide si quiere publicidad (G-12): la ficha no une al club ni marca la publicidad. Lo único del
@@ -171,15 +202,18 @@ export function ClientaFichaModal({
   const [edicion, setEdicion] = useState<DatosEdicion | null>(null);
   const [motivoArchivo, setMotivoArchivo] = useState("");
   const [anonimizar, setAnonimizar] = useState(false);
-  const [terminoUnir, setTerminoUnir] = useState("");
-  const [resultadosUnir, setResultadosUnir] = useState<Clienta[] | null>(null);
-  const [aFusionar, setAFusionar] = useState<Clienta | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // El correo que la base rechazó al guardar (de otra ficha, o mal escrito): su frase va bajo la caja mientras siga escrito ese.
+  const [rechazoCorreo, setRechazoCorreo] = useState<RechazoCorreo | null>(null);
+  // Si ya salió de la caja del correo (o intentó guardar): recién ahí se dice que está mal escrito, no mientras lo tipea.
+  const [salioDelCorreo, setSalioDelCorreo] = useState(false);
   // La pestaña de la ficha («ver»). `null` = la de siempre: «Club» si es miembro y «Actividad» si no.
   const [vista, setVista] = useState<Vista | null>(null);
   const raiz = useRef<HTMLDivElement>(null);
   const responsable = useResponsable();
   const anioActual = new Date().getFullYear();
+  // Lo que está mal del correo escrito: lo que dijo la base de ESE correo o, si no, su formato (la misma regla que la base).
+  const problemaDelCorreo = edicion ? (rechazoVigente(rechazoCorreo, edicion.correo) ?? problemaCorreo(edicion.correo)) : null;
 
   // Cambiar de vista (ver → editar, Club → Actividad) acorta o alarga el contenido SIN cambiar de URL. `PaginaEstable`
   // (ADR-0185) lo toma por «un bloque que se acortó bajo el mouse» y reserva aire al fondo para no mover la vista: en
@@ -196,8 +230,32 @@ export function ClientaFichaModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar / cambiar id
   }, [id]);
 
+  // El nombre en «Editar» (Felipe 2026-10-15): con DNI no se escribe. Con el DNI de siempre se queda el que tenía y se ofrece
+  // «Actualizar desde el padrón»; si el DNI cambió (o pasó a DNI), el padrón se consulta solo para el número nuevo.
+  const deAntes = ficha?.clienta ?? null;
+  const numeroEditado = edicion ? normalizarNumeroDocumento(edicion.documentoNumero) : "";
+  const dniEditado = modo === "editar" && edicion?.documentoTipo === "dni";
+  const mismoDni = dniEditado && deAntes?.documentoTipo === "dni" && (deAntes.documentoNumero ?? "") === numeroEditado;
+  const { padron, consultar } = usePadronDeFicha({ numero: numeroEditado, activo: dniEditado, automatico: !mismoDni });
+  const nombreEditado =
+    edicion && deAntes
+      ? nombreDeLaEdicion({
+          tipo: edicion.documentoTipo,
+          numero: numeroEditado,
+          escrito: edicion.nombre,
+          padron,
+          deAntes: { tipo: deAntes.documentoTipo, numero: deAntes.documentoNumero, nombre: deAntes.nombre },
+        })
+      : null;
+
   const guia = useGuiaCampos(
-    camposDeLaGuia(modo, ficha?.clienta ?? null, { edicion, motivoArchivo, anonimizar, aFusionar }, responsable.listo, anioActual),
+    camposDeLaGuia(
+      modo,
+      ficha?.clienta ?? null,
+      { edicion, motivoArchivo, anonimizar, problemaDelCorreo, nombre: nombreEditado },
+      responsable.listo,
+      anioActual,
+    ),
   );
 
   async function cargar() {
@@ -230,6 +288,15 @@ export function ClientaFichaModal({
   // 2026-10-13, auditoría punto 18). Antes se veían completos para toda cuenta con el módulo.
   const contacto = contactoVisible(c, verCompleto);
   const documento = contacto.documento;
+  // El correo de contacto, con la misma regla: completo para el líder, a medias para los demás («an•••@gmail.com»).
+  const correo = correoVisible(c.correo, verCompleto);
+  // Lo que tiene en la tienda online: el aviso de archivar con un pedido en curso (cambia con «Anonimizar») y la nota del correo.
+  const avisoArchivo = avisoAlArchivar(ficha.tiendaOnline ?? null, anonimizar);
+  const notaCorreo = notaDelCorreoDeEntrada(ficha.tiendaOnline ?? null);
+  // Con un pedido web PAGADO y sin entregar, anonimizar espera (20261015131000): el interruptor se apaga y dice por qué.
+  const esperaAnonimizar = frenaAnonimizar(ficha.tiendaOnline ?? null);
+  // Bajo la caja del correo: lo que dijo la base de ese correo, o que está mal escrito (cuando ya salió de la caja).
+  const pieCorreo = edicion && (salioDelCorreo || rechazoVigente(rechazoCorreo, edicion.correo)) ? problemaDelCorreo : null;
   const enClub = estadoClub(c);
   // Solo una miembro tiene pestaña «Club» (permisos y preferencias); una ficha anonimizada no tiene nada del club que mostrar.
   const conClub = enClub !== "no_socia" && !c.anonimizada;
@@ -240,8 +307,15 @@ export function ClientaFichaModal({
   // Al editar el celular de una socia con novedades, lo que pierde, ANTES de guardar (la base se las quita sola).
   const avisoCelular = edicion ? avisoCambioDeCelular(c, edicion.telefonoWhatsapp) : null;
 
-  /** Lo común a toda acción que guarda: responsable, el aviso de la base y volver a leer la ficha. */
-  async function guardarAccion(hacer: () => Promise<{ error: ErrorEscritura }>, que: string, listo: () => void, despues?: Modo) {
+  /** Lo común a toda acción que guarda: responsable, el aviso de la base y volver a leer la ficha. `bajoSuCampo`: si el error es
+   *  de UN dato que la hoja dice bajo su caja (el correo), lo toma ella y no sale el aviso suelto (ADR-0358). */
+  async function guardarAccion(
+    hacer: () => Promise<{ error: ErrorEscritura }>,
+    que: string,
+    listo: () => void,
+    despues?: Modo,
+    bajoSuCampo?: (error: ErrorEscritura, frase: string) => boolean,
+  ) {
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
@@ -255,6 +329,7 @@ export function ClientaFichaModal({
         avisar.error(traducirError(error, que), { accion: { texto: "Recargar", onClick: () => void cargar() } });
         return;
       }
+      if (bajoSuCampo?.(error, traducirError(error, que))) return;
       avisar.error(traducirError(error, que));
       return;
     }
@@ -277,8 +352,20 @@ export function ClientaFichaModal({
       avisar.error("Es miembro del club: su celular no se puede dejar vacío.", { enfocar: ID_CELULAR_CLUB });
       return;
     }
-    if (c.clubDesde !== null && (edicion.documentoNumero.trim() === "" || edicion.nombre.trim() === "")) {
+    // El nombre (Felipe 2026-10-15): con DNI, el que tenía o el del padrón; con carné o pasaporte, escrito tal cual y sin números.
+    if (nombreEditado && !nombreEditado.listo) {
+      avisar.error(nombreEditado.pendiente ?? "Revisa el nombre.", nombreEditado.origen === "padron" ? undefined : { enfocar: ID_NOMBRE_ESCRITO });
+      return;
+    }
+    const nombreAGuardar = nombreEditado?.nombre ?? edicion.nombre;
+    if (c.clubDesde !== null && (edicion.documentoNumero.trim() === "" || nombreAGuardar.trim() === "")) {
       avisar.error("Es miembro del club: su documento y su nombre no se pueden dejar vacíos.", edicion.documentoNumero.trim() === "" ? { enfocar: ID_NUMERO_DOCUMENTO } : undefined);
+      return;
+    }
+    // El correo (opcional): mal escrito, o el mismo que la base ya rechazó, se dice bajo su caja y se lleva el cursor ahí.
+    if (problemaDelCorreo) {
+      setSalioDelCorreo(true);
+      document.getElementById(ID_CORREO)?.focus();
       return;
     }
     const cumpleEditado = cumpleDeEdicion(edicion);
@@ -289,13 +376,26 @@ export function ClientaFichaModal({
     }
     const firma = responsable.firma();
     const pierdeNovedades = avisoCelular !== null;
+    const correoEnviado = normalizarCorreo(edicion.correo);
     await guardarAccion(
-      () => editarClienta(id, edicion, c.version, firma),
+      () => editarClienta(id, { ...edicion, nombre: nombreAGuardar }, c.version, firma),
       "editar la ficha",
       () =>
         avisar.exito("Ficha actualizada", {
           detalle: pierdeNovedades ? "Con el celular nuevo dejó de recibir novedades: las vuelve a pedir escaneando el cartel del club." : undefined,
         }),
+      undefined,
+      // El correo de otra ficha (la base dice de cuál) o mal escrito: bajo su caja, no en un aviso suelto.
+      (error, frase) => {
+        // La base no encontró la lectura del padrón del nombre (la hoja estuvo abierta más de una hora): se vuelve a leer, y el
+        // aviso sale como siempre.
+        if (error?.hint === "nombre_sin_padron" && nombreEditado?.origen === "padron") consultar();
+        if (!esRechazoDelCorreo(error)) return false;
+        setRechazoCorreo({ valor: correoEnviado, mensaje: frase });
+        setSalioDelCorreo(true);
+        document.getElementById(ID_CORREO)?.focus();
+        return true;
+      },
     );
   }
 
@@ -315,30 +415,6 @@ export function ClientaFichaModal({
   async function onReactivar() {
     const firma = responsable.firma();
     await guardarAccion(() => reactivarClienta(id, c.version, firma), "reactivar la ficha", () => avisar.exito("Cliente reactivado"));
-  }
-
-  async function onBuscarParaUnir(e: React.FormEvent) {
-    e.preventDefault();
-    if (terminoUnir.trim() === "") {
-      setResultadosUnir(null);
-      return;
-    }
-    const { clientas, error } = await buscarClienta(terminoUnir);
-    if (error) {
-      avisar.error(traducirError(error, "buscar la otra ficha", { lectura: true }));
-      return;
-    }
-    setResultadosUnir(clientas.filter((otra) => otra.id !== id));
-  }
-
-  async function onUnir() {
-    if (!aFusionar) return;
-    const firma = responsable.firma();
-    await guardarAccion(
-      () => unirClientas(id, aFusionar.id, c.version, aFusionar.version, firma),
-      "unir las dos fichas",
-      () => avisar.exito("Fichas unidas", { detalle: "Sus ventas, cambios y apartados ahora están en esta ficha." }),
-    );
   }
 
   // ---- El club: su BAJA (ADR-0288 tanda 1b; desde la 1g, lo único del club que se registra en la ficha) ----
@@ -378,12 +454,12 @@ export function ClientaFichaModal({
             : c.fusionadaEnId
               ? "Esta ficha se unió a otra"
               : `Ficha archivada: ${c.motivoArchivo}`
-          : [documento, contacto.celular, c.codigoClub].filter(Boolean).join(" · ") || "Sin documento ni celular"
+          : [documento, contacto.celular, correo, c.codigoClub].filter(Boolean).join(" · ") || "Sin documento ni celular"
       }
       onClose={onClose}
       variante="hoja"
       tamano="ancha"
-      // Una salida a la vista (ADR-0358, ronda 12): mirando la ficha, la ×; editando, archivando o uniendo, «Cancelar».
+      // Una salida a la vista (ADR-0358, ronda 12): mirando la ficha, la ×; editando, archivando o con la BAJA, «Cancelar».
       conCerrar={modo === "ver"}
     >
       {() => (
@@ -419,6 +495,8 @@ export function ClientaFichaModal({
                     className="mb-2 shrink-0 !py-2"
                     onClick={() => {
                       setEdicion(datosDeEdicion(c));
+                      setRechazoCorreo(null);
+                      setSalioDelCorreo(false);
                       setModo("editar");
                     }}
                   />
@@ -535,21 +613,11 @@ export function ClientaFichaModal({
                 </div>
               )}
 
+              {activa && ficha.tiendaOnline?.cuentaWeb && <TiendaOnlineDeLaFicha clientaId={c.id} verCompleto={verCompleto} onRestablecer={() => setModo("acceso-web")} />}
+
               {/* Lo que se hace pocas veces va abajo y discreto; lo de todos los días («Editar») está arriba. */}
               {activa ? (
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-t border-sand pt-3" data-guia="clientas.ficha-acciones">
-                  <button
-                    type="button"
-                    className="btn-cayla btn-sutil"
-                    onClick={() => {
-                      setTerminoUnir("");
-                      setResultadosUnir(null);
-                      setAFusionar(null);
-                      setModo("unir");
-                    }}
-                  >
-                    Unir con otra ficha
-                  </button>
                   <button
                     type="button"
                     className="btn-cayla btn-sutil"
@@ -589,8 +657,36 @@ export function ClientaFichaModal({
                   onNumero={(v) => setEdicion((d) => d && { ...d, documentoNumero: v })}
                 />
               </CampoGuiado>
+              {/* El nombre (Felipe 2026-10-15): con DNI no se edita a mano —bloqueado, con «Actualizar desde el padrón»; si el DNI
+                  cambió, el padrón trae el del número nuevo—; con carné o pasaporte se escribe tal cual, sin números. */}
               <CampoGuiado id="nombre" guia={guia}>
-                <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")} value={edicion.nombre} onChange={(e) => setEdicion((d) => d && { ...d, nombre: e.target.value })} />
+                {nombreEditado?.origen === "padron" ? (
+                  <NombreDelPadron
+                    padron={padron}
+                    donde="ficha"
+                    onConsultar={consultar}
+                    deAntes={mismoDni ? (c.nombre ?? "") : null}
+                    actualizable={mismoDni}
+                    deshabilitado={guardando}
+                    conMarca={(titulo) => guia.etiqueta("nombre", titulo)}
+                  />
+                ) : (
+                  <CampoTexto
+                    id={ID_NOMBRE_ESCRITO}
+                    etiqueta={guia.etiqueta("nombre", "Nombre")}
+                    maxLength={200}
+                    value={edicion.nombre}
+                    onChange={(e) => setEdicion((d) => d && { ...d, nombre: e.target.value })}
+                    pie={
+                      nombreEditado?.pendiente && /[0-9]/.test(edicion.nombre)
+                        ? nombreEditado.pendiente
+                        : nombreEditado?.origen === "escrito"
+                          ? AYUDA_NOMBRE_ESCRITO
+                          : undefined
+                    }
+                    tono={nombreEditado?.pendiente && /[0-9]/.test(edicion.nombre) ? "error" : "neutro"}
+                  />
+                )}
               </CampoGuiado>
               <CampoGuiado id="celular" guia={guia}>
                 <CampoCelular
@@ -601,6 +697,31 @@ export function ClientaFichaModal({
                 />
                 {/* Recibe novedades en el celular de ahora: al cambiarlo las pierde (la base se las quita sola), y se dice antes. */}
                 {avisoCelular && <p className="nota-cayla mt-2 text-[13px]">{avisoCelular}</p>}
+              </CampoGuiado>
+              {/* El correo de CONTACTO (Felipe 2026-10-15): opcional. Mal escrito, o de otra ficha (la base dice de cuál: quien edita ve
+                  el módulo), va bajo la caja. El correo con que entra a la tienda online no cambia desde aquí, y se dice. */}
+              <CampoGuiado id="correo" guia={guia}>
+                <CampoTexto
+                  id={ID_CORREO}
+                  etiqueta={guia.etiqueta(
+                    "correo",
+                    <>
+                      Correo <span className="font-normal normal-case text-tinta/45">· opcional</span>
+                    </>,
+                  )}
+                  type="email"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  maxLength={254}
+                  value={edicion.correo}
+                  onChange={(e) => setEdicion((d) => d && { ...d, correo: e.target.value })}
+                  onBlur={() => setSalioDelCorreo(true)}
+                  aria-invalid={pieCorreo ? true : undefined}
+                  pie={pieCorreo ?? "Solo para contactar al cliente si hace falta, nunca para publicidad."}
+                  tono={pieCorreo ? "error" : "neutro"}
+                />
+                {notaCorreo && <p className="nota-cayla mt-2 text-[13px]">{notaCorreo}</p>}
               </CampoGuiado>
               <CampoGuiado id="cumple" guia={guia} titulo="Cumpleaños" ayuda="Día y mes; el año, solo si lo quiere decir">
                 <CamposCumpleanos
@@ -633,15 +754,34 @@ export function ClientaFichaModal({
 
           {modo === "archivar" && (
             <div className="space-y-4">
+              {/* Un pedido de la tienda online en curso (Felipe 2026-10-15): se AVISA antes de confirmar, no se frena. Lo que pasa cambia
+                  con «Anonimizar» (su cuenta de la tienda se cierra): el texto lo sigue. */}
+              {avisoArchivo && (
+                <Aviso tono="atencion" titulo={avisoArchivo.titulo}>
+                  {/* Un renglón por pedido: con dos, los «·» de uno no se mezclan con los del otro. */}
+                  {avisoArchivo.pedidos.map((linea) => (
+                    <span key={linea} className="block">
+                      {linea}
+                    </span>
+                  ))}
+                  <span className="mt-1 block">{avisoArchivo.texto}</span>
+                </Aviso>
+              )}
               <CampoGuiado id="motivo" guia={guia}>
                 <CampoTexto etiqueta={guia.etiqueta("motivo", "Motivo")} value={motivoArchivo} onChange={(e) => setMotivoArchivo(e.target.value)} placeholder="Ya no compra, cerró su número…" />
               </CampoGuiado>
               <CampoGuiado id="anonimizar" guia={guia}>
+                {/* ADR-0416: anonimizar no tiene vuelta atrás, lo hace un líder (`verCompleto` es ser líder; la base lo exige igual). */}
                 <Interruptor
-                  activo={anonimizar}
+                  activo={anonimizar && verCompleto}
                   onActivo={setAnonimizar}
+                  disabled={!verCompleto || esperaAnonimizar !== null}
                   etiqueta={guia.etiqueta("anonimizar", "Anonimizar sus datos personales (Ley 29733)")}
-                  pie="Borra documento, celular, cumpleaños, tallas y su lugar en el club (sale del club y de las novedades). Sus compras y apartados NO se tocan — solo desaparece quién es. No se puede deshacer."
+                  pie={
+                    verCompleto
+                      ? (esperaAnonimizar ?? pieDeAnonimizar(ficha.tiendaOnline ?? null))
+                      : "Borra sus datos personales y no se puede deshacer: lo hace un líder. Tú puedes archivarla."
+                  }
                 />
               </CampoGuiado>
               <CampoGuiado id="responsable" guia={guia}>
@@ -654,7 +794,7 @@ export function ClientaFichaModal({
                   type="button"
                   peso="primario"
                   cargando={guardando}
-                  onClick={() => onArchivar(anonimizar)}
+                  onClick={() => onArchivar(anonimizar && verCompleto)}
                   disabled={!responsable.listo}
                   title={guia.frase ?? undefined}
                   className={guia.claseConfirmar}
@@ -665,61 +805,8 @@ export function ClientaFichaModal({
             </div>
           )}
 
-          {modo === "unir" && (
-            <div className="space-y-4">
-              <p className="text-sm text-tinta/70">
-                Busca la otra ficha de este mismo cliente (la que se creó con su celular, por ejemplo). Sus ventas, cambios y apartados
-                pasan a <strong>esta</strong> ficha; la otra queda anonimizada y archivada.
-              </p>
-              <CampoGuiado id="otra" guia={guia} titulo="La otra ficha" className="space-y-3">
-                <form onSubmit={onBuscarParaUnir} className="flex items-end gap-3">
-                  <div className="max-w-sm flex-1">
-                    <CampoTexto etiqueta="Buscar" value={terminoUnir} onChange={(e) => setTerminoUnir(e.target.value)} placeholder="Documento, WhatsApp o nombre…" /* sugerir-fijo: qué se puede buscar en la libreta; no depende de nada elegido antes */ />
-                  </div>
-                  <BotonBuscar type="submit" />
-                </form>
-                {resultadosUnir !== null && (
-                  <div className="space-y-2">
-                    {resultadosUnir.length === 0 ? (
-                      <Vacio tamano="chico" alinear="izquierda" className="px-0" icono={<SearchX />}>Sin coincidencias.</Vacio>
-                    ) : (
-                      resultadosUnir.map((otra) => (
-                        <button
-                          key={otra.id}
-                          type="button"
-                          onClick={() => setAFusionar(otra)}
-                          className={`card-cayla flex w-full items-center justify-between gap-4 p-3 text-left ${aFusionar?.id === otra.id ? "ring-2 ring-rojo" : ""}`}
-                        >
-                          <span className="text-sm text-tinta">{otra.nombre ?? "Sin nombre"}</span>
-                          <span className="text-xs text-tinta/65">
-                            {/* Unir no se puede deshacer: para comparar las dos fichas, el número completo a quien sea que una. */}
-                            {Object.values(contactoVisible(otra, true)).filter(Boolean).join(" · ")}
-                          </span>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-              </CampoGuiado>
-              <CampoGuiado id="responsable" guia={guia}>
-                <ComboResponsable control={responsable} deshabilitado={guardando} />
-              </CampoGuiado>
-              <PieGuia guia={guia} listo="Todo listo para unir." />
-              <div className="flex justify-end gap-3 pt-2">
-                {volverAVer}
-                <Boton textoCargando="Uniendo…"
-                  type="button"
-                  peso="primario"
-                  cargando={guardando}
-                  onClick={onUnir}
-                  disabled={!aFusionar || !responsable.listo}
-                  title={guia.frase ?? undefined}
-                  className={guia.claseConfirmar}
-                >
-                  Unir a esta ficha
-                </Boton>
-              </div>
-            </div>
+          {modo === "acceso-web" && (
+            <RestablecerAccesoWeb clientaId={c.id} verCompleto={verCompleto} responsable={responsable} onCancelar={() => setModo("ver")} onListo={() => setModo("ver")} />
           )}
 
           {modo === "baja" && (

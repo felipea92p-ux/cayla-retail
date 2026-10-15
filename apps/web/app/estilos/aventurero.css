@@ -1,0 +1,94 @@
+/* ==================================================================
+   AVENTURERO — el gato del meme en «Sin acceso» y en las barreras de error (Felipe, 2026-10-15)
+   Componente: components/ui/Aventurero.tsx. La importan globals.css (toda la app) y global-error.tsx (que se pinta sin
+   globals.css): por eso no usa @layer, ni Tailwind, ni más tokens que los dos colores fijos, que global-error también declara.
+
+   El texto es el de los memes: Impact (o Anton donde no hay Impact), blanco con borde negro. Va sobre una FOTO, que no cambia con
+   el tema, así que sus dos colores son los fijos (ADR-0336, regla 3: lo que se escribe sobre un color de dato), iguales en claro y
+   en oscuro. El borde es un trazo detrás del relleno (`paint-order`), como el de un meme de verdad.
+
+   Movimiento (ADR-0136, act. 2026-10-15): cada pata gira unos grados desde su codo; la máscara que la recorta no se mueve, así que
+   la pata se levanta y deja ver el teclado. Sube con la curva de entrada (--ease-cayla) y cae de golpe con la de salida
+   (--ease-salida): escritas con sus números porque global-error no trae esos tokens. Sin rebote: nunca baja de donde estaba. Es un
+   bucle pedido por Felipe, y con prefers-reduced-motion el gato se queda quieto.
+     · error («lo está dando todo»): teclea apurado, las dos patas por turno, un golpe cada ~0,4 s.
+     · sin-acceso («decidió que no puedes ver esto»): dos toques con la pata de atrás, levanta la de adelante, la sostiene… y
+       Enter. Después descansa casi 2 s antes de volver a decidir.
+   ================================================================== */
+
+.aventurero {
+  margin: 0;
+}
+
+.aventurero-lienzo {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.aventurero-meme {
+  font-family: Impact, Haettenschweiler, var(--font-anton), "Arial Narrow Bold", sans-serif;
+  text-anchor: middle;
+  fill: var(--color-crema-fija);
+  stroke: var(--color-tinta-fija);
+  stroke-width: 10px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+  letter-spacing: 1px;
+}
+
+/* El giro se mide en píxeles de la foto (el `transform-origin` del codo lo pone el componente). */
+.aventurero-pata {
+  transform-box: view-box;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .aventurero[data-motivo="error"] .aventurero-pata-atras {
+    animation: aventurero-teclea-atras 1.6s infinite;
+  }
+  .aventurero[data-motivo="error"] .aventurero-pata-adelante {
+    animation: aventurero-teclea-adelante 1.6s infinite;
+  }
+  .aventurero[data-motivo="sin-acceso"] .aventurero-pata-atras {
+    animation: aventurero-duda 4.2s infinite;
+  }
+  .aventurero[data-motivo="sin-acceso"] .aventurero-pata-adelante {
+    animation: aventurero-decide 4.2s infinite;
+  }
+}
+
+/* Error: la pata de atrás golpea al 15 % y al 60 %; la de adelante, al 38 % y al 85 %. */
+@keyframes aventurero-teclea-atras {
+  0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  8% { transform: rotate(-4deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  15% { transform: rotate(0deg); }
+  45% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  53% { transform: rotate(-3.2deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  60%, 100% { transform: rotate(0deg); }
+}
+
+@keyframes aventurero-teclea-adelante {
+  0%, 23% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  31% { transform: rotate(-3.6deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  38% { transform: rotate(0deg); }
+  70% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  78% { transform: rotate(-2.8deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  85%, 100% { transform: rotate(0deg); }
+}
+
+/* Sin acceso: dos toques cortos («a ver…»)… */
+@keyframes aventurero-duda {
+  0% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  5% { transform: rotate(-3deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  9% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  14% { transform: rotate(-2.5deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  18%, 100% { transform: rotate(0deg); }
+}
+
+/* …y la decisión: la pata de adelante sube despacio, se queda arriba un momento y cae sobre la tecla. */
+@keyframes aventurero-decide {
+  0%, 26% { transform: rotate(0deg); animation-timing-function: cubic-bezier(0.32, 0.72, 0.24, 1); }
+  44% { transform: rotate(-4.5deg); }
+  52% { transform: rotate(-4.5deg); animation-timing-function: cubic-bezier(0.4, 0, 1, 1); }
+  56%, 100% { transform: rotate(0deg); }
+}

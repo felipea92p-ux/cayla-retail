@@ -1,0 +1,308 @@
+// Catálogo ▸ Vitrina web ▸ Looks (ADR-0408, actividad 11; maqueta v4, «looks-erp»): las combinaciones de 2 a 4 prendas que la tienda
+// online muestra en «Arma tu look». Lógica pura: se importa desde el servidor y desde el cliente, y se prueba con
+// `vitrina-looks-reglas.test.ts`.
+//
+// CONTRATO
+//   PROMETE: leer lo que devuelve `retail.fn_vitrina_looks()` (y cada look que devuelven `vitrina_guardar_look` y `vitrina_mostrar_look`)
+//            sin caerse ante un dato raro; decir si un look se ve y, si no, por qué, en palabras de tienda; las cifras y el filtro de la
+//            pantalla; lo que falta para guardar (lo MISMO que la base rechaza) y los errores de la base en palabras de tienda.
+//   ASUME:   que la base es la que decide (si una prenda se ve en la web, la versión, el lugar): aquí solo se adelanta para no mandar algo
+//            que va a volver rechazado.
+//   NO HACE: leer la base ni decidir permisos.
+
+/** Lo que la base acepta (`vitrina_looks`): de 2 a 4 prendas, el nombre hasta 60 letras y la frase hasta 200. */
+export const MIN_PRENDAS_LOOK = 2;
+export const MAX_PRENDAS_LOOK = 4;
+export const MAX_NOMBRE_LOOK = 60;
+export const MAX_FRASE_LOOK = 200;
+
+export type ColorLook = { codigo: string; nombre: string; hex: string | null };
+export type PiezaLook = {
+  posicion: number;
+  productoId: string;
+  nombre: string;
+  categoria: string | null;
+  prefijo: string | null;
+  familia: string | null;
+  color: ColorLook;
+  foto: string | null;
+  /** Se ve en la web en ese color (lo que ve el cliente). */
+  seVe: boolean;
+};
+export type Look = {
+  id: string;
+  nombre: string;
+  frase: string | null;
+  publicado: boolean;
+  /** Su lugar en «Arma tu look» (1 = primero). */
+  lugar: number;
+  version: number;
+  /** Cuántas prendas se guardaron; `faltan` las que se eliminaron del catálogo después. */
+  piezasDelLook: number;
+  faltan: number;
+  /** Encendido y con todas sus prendas a la vista: el cliente lo ve. */
+  seVe: boolean;
+  /** Lo que paga el cliente por el look con «Todas» (el precio más alto entre las tiendas); `null` si alguna prenda no se ve. */
+  total: number | null;
+  desde: boolean;
+  actualizadoEn: string | null;
+  actualizadoPor: string | null;
+  piezas: PiezaLook[];
+};
+export type ColorModelo = ColorLook & { foto: string | null };
+/** Un modelo que se puede poner en un look: los que hoy se ven en la web. */
+export type ModeloParaLook = {
+  id: string;
+  nombre: string;
+  categoria: string | null;
+  prefijo: string | null;
+  familia: string | null;
+  foto: string | null;
+  colores: ColorModelo[];
+};
+export type LecturaLooks = { looks: Look[]; modelos: ModeloParaLook[] };
+
+const esObjeto = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const numero = (v: unknown): number | null => {
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : Number.NaN;
+  return Number.isFinite(n) ? n : null;
+};
+const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
+const lista = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+
+function colorDeJson(v: unknown): ColorModelo | null {
+  if (!esObjeto(v)) return null;
+  const codigo = texto(v.codigo);
+  const nombre = texto(v.nombre);
+  return codigo && nombre ? { codigo, nombre, hex: texto(v.hex), foto: texto(v.foto) } : null;
+}
+
+function piezaDeJson(v: unknown): PiezaLook | null {
+  if (!esObjeto(v)) return null;
+  const productoId = texto(v.producto_id);
+  const nombre = texto(v.nombre);
+  const posicion = numero(v.posicion);
+  const color = colorDeJson(v.color);
+  if (!productoId || !nombre || posicion === null || !color) return null;
+  return {
+    posicion,
+    productoId,
+    nombre,
+    categoria: texto(v.categoria),
+    prefijo: texto(v.prefijo),
+    familia: texto(v.familia),
+    color: { codigo: color.codigo, nombre: color.nombre, hex: color.hex },
+    foto: texto(v.foto),
+    seVe: v.se_ve === true,
+  };
+}
+
+/** Un look como lo manda la base, o `null` si no trae ni su id, ni su nombre, ni su versión (no se dibuja a medias). */
+export function lookDeJson(v: unknown): Look | null {
+  if (!esObjeto(v)) return null;
+  const id = texto(v.id);
+  const nombre = texto(v.nombre);
+  const version = numero(v.version);
+  if (!id || !nombre || version === null) return null;
+  const piezas = lista(v.piezas)
+    .flatMap((p) => {
+      const leida = piezaDeJson(p);
+      return leida ? [leida] : [];
+    })
+    .sort((a, b) => a.posicion - b.posicion);
+  return {
+    id,
+    nombre,
+    frase: texto(v.frase),
+    publicado: v.publicado === true,
+    lugar: numero(v.lugar) ?? 0,
+    version,
+    piezasDelLook: numero(v.piezas_del_look) ?? piezas.length,
+    faltan: Math.max(0, numero(v.faltan) ?? 0),
+    seVe: v.se_ve === true,
+    total: numero(v.total),
+    desde: v.desde === true,
+    actualizadoEn: texto(v.actualizado_en),
+    actualizadoPor: texto(v.actualizado_por),
+    piezas,
+  };
+}
+
+function modeloDeJson(v: unknown): ModeloParaLook | null {
+  if (!esObjeto(v)) return null;
+  const id = texto(v.id);
+  const nombre = texto(v.nombre);
+  if (!id || !nombre) return null;
+  const colores = lista(v.colores).flatMap((c) => {
+    const leido = colorDeJson(c);
+    return leido ? [leido] : [];
+  });
+  // Un modelo sin colores no se puede poner en un look (no hay en qué color mostrarlo).
+  if (colores.length === 0) return null;
+  return { id, nombre, categoria: texto(v.categoria), prefijo: texto(v.prefijo), familia: texto(v.familia), foto: texto(v.foto), colores };
+}
+
+/** Lo que devuelve `fn_vitrina_looks()`. Un dato raro deja la lista vacía, nunca la pantalla caída. Los looks, en su lugar. */
+export function leerLooks(v: unknown): LecturaLooks {
+  if (!esObjeto(v)) return { looks: [], modelos: [] };
+  return {
+    looks: lista(v.looks)
+      .flatMap((l) => {
+        const leido = lookDeJson(l);
+        return leido ? [leido] : [];
+      })
+      .sort((a, b) => a.lugar - b.lugar),
+    modelos: lista(v.modelos).flatMap((m) => {
+      const leido = modeloDeJson(m);
+      return leido ? [leido] : [];
+    }),
+  };
+}
+
+/* ---------------- Lo que dice cada fila ---------------- */
+
+/** «S/ 304.70»: con un espacio que no se parte, para que «S/» no quede sola al final de un renglón (ADR-0413). */
+export const solesLook = (n: number): string =>
+  `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** «3 prendas · S/ 304.70» (o «desde S/ …» si una campaña no toca todas sus tallas); sin total si alguna prenda no se ve. */
+export function resumenLook(l: Pick<Look, "piezasDelLook" | "total" | "desde">): string {
+  const prendas = `${l.piezasDelLook} ${l.piezasDelLook === 1 ? "prenda" : "prendas"}`;
+  if (l.total === null) return prendas;
+  return `${prendas} · ${l.desde ? "desde " : ""}${solesLook(l.total)}`;
+}
+
+/** Los nombres en una frase: «Blusa Emma», «Blusa Emma y Falda Renata», «Blusa Emma, Falda Renata y Vestido Sofía». */
+export function listaDeNombres(nombres: readonly string[]): string {
+  return new Intl.ListFormat("es", { type: "conjunction" }).format(nombres);
+}
+
+/**
+ * Lo que impide que un look salga en la tienda, esté encendido o no (lo mismo que `vitrina_mostrar_look` rechazaría), en una frase;
+ * `null` si nada. Primero lo que falta del todo (una prenda eliminada del catálogo), después las que dejaron de verse en la web.
+ */
+export function loQueImpideMostrar(l: Look): string | null {
+  if (l.faltan > 0) {
+    return l.faltan === 1 ? "Le falta una prenda: se eliminó del catálogo. Ábrelo y elige otra." : `Le faltan ${l.faltan} prendas: se eliminaron del catálogo. Ábrelo y elige otras.`;
+  }
+  const ocultas = l.piezas.filter((p) => !p.seVe).map((p) => p.nombre);
+  if (ocultas.length === 0) return null;
+  return `${listaDeNombres(ocultas)} ${ocultas.length === 1 ? "ya no se ve" : "ya no se ven"} en la web. Muéstralo en Modelos o cámbialo en el look.`;
+}
+
+/** Por qué un look ENCENDIDO no se ve en la tienda; `null` si se ve (o si está oculto: eso ya lo dice su interruptor). */
+export function porQueNoSeVe(l: Look): string | null {
+  if (!l.publicado || l.seVe) return null;
+  return loQueImpideMostrar(l) ?? "No se ve en la web: recarga la pantalla.";
+}
+
+/** El estado de un look para su insignia: se ve, oculto o encendido pero sin verse (algo falta). */
+export type EstadoLook = "se_ve" | "oculto" | "no_se_ve";
+export const estadoDeLook = (l: Look): EstadoLook => (l.seVe ? "se_ve" : l.publicado ? "no_se_ve" : "oculto");
+
+/* ---------------- Cifras y filtro ---------------- */
+
+export type CifrasLooks = { seVen: number; total: number; noSeVen: number };
+
+export function cifrasLooks(looks: readonly Look[]): CifrasLooks {
+  return {
+    seVen: looks.filter((l) => l.seVe).length,
+    total: looks.length,
+    noSeVen: looks.filter((l) => estadoDeLook(l) === "no_se_ve").length,
+  };
+}
+
+export type FiltroLooks = "todos" | "en_la_web" | "no_se_ven";
+
+export function filtrarLooks(looks: readonly Look[], filtro: FiltroLooks): Look[] {
+  if (filtro === "en_la_web") return looks.filter((l) => l.seVe);
+  if (filtro === "no_se_ven") return looks.filter((l) => estadoDeLook(l) === "no_se_ve");
+  return [...looks];
+}
+
+/* ---------------- La hoja de un look ---------------- */
+
+/** Una prenda elegida en la hoja: el modelo y su color. */
+export type PiezaElegida = { productoId: string; color: string };
+
+/** El color con que entra un modelo al look: el primero con foto propia (se ve mejor en la lámina) o, si ninguno tiene, el primero. */
+export function colorInicial(m: ModeloParaLook): string {
+  return (m.colores.find((c) => c.foto) ?? m.colores[0]).codigo;
+}
+
+/** Los modelos que se pueden agregar: los que se ven en la web y todavía no están en el look. */
+export function modelosParaAgregar(modelos: readonly ModeloParaLook[], elegidas: readonly PiezaElegida[]): ModeloParaLook[] {
+  const ya = new Set(elegidas.map((p) => p.productoId));
+  return modelos.filter((m) => !ya.has(m.id));
+}
+
+/** Las prendas de un look ya guardado, como se eligen en la hoja. */
+export const piezasElegidasDe = (l: Look): PiezaElegida[] => l.piezas.map((p) => ({ productoId: p.productoId, color: p.color.codigo }));
+
+/**
+ * Las prendas elegidas que NO se ven en la web en su color (para mostrar el look, la base las rechaza): un modelo que ya no está entre los
+ * que se ven, o un color que ese modelo ya no muestra. Devuelve sus nombres, en el orden del look.
+ */
+export function prendasQueNoSeVen(elegidas: readonly PiezaElegida[], modelos: readonly ModeloParaLook[], nombres: ReadonlyMap<string, string>): string[] {
+  const porId = new Map(modelos.map((m) => [m.id, m]));
+  return elegidas
+    .filter((p) => !porId.get(p.productoId)?.colores.some((c) => c.codigo === p.color))
+    .map((p) => porId.get(p.productoId)?.nombre ?? nombres.get(p.productoId) ?? "Una prenda");
+}
+
+/** El nombre como lo guarda la base: sin espacios de más. */
+export const nombreLimpio = (s: string): string => s.replace(/\s+/g, " ").trim();
+/** La frase como la guarda la base: sin espacios de más, y vacía = sin frase. */
+export const fraseLimpia = (s: string): string | null => nombreLimpio(s) || null;
+
+/** «1.º (el primero)», «2.º», …, «4.º (el último)»: los lugares que puede ocupar el look (con él incluido). */
+export function opcionesDeLugar(cuantos: number): { valor: string; texto: string }[] {
+  const n = Math.max(1, cuantos);
+  return Array.from({ length: n }, (_, i) => {
+    const lugar = i + 1;
+    const extra = n === 1 ? "" : lugar === 1 ? " (el primero)" : lugar === n ? " (el último)" : "";
+    return { valor: String(lugar), texto: `${lugar}.º${extra}` };
+  });
+}
+
+/** Lo que se manda como `p_lugar`: solo si la persona lo cambió (si no, `null` = donde está; así una hoja abierta hace rato no lo
+ *  devuelve a un lugar viejo). Un look nuevo que se deja al final también va `null`. */
+export function lugarParaGuardar(elegido: number, inicial: number): number | null {
+  return elegido === inicial ? null : elegido;
+}
+
+/** Lo que se manda como `p_piezas`. */
+export const piezasParaGuardar = (elegidas: readonly PiezaElegida[]) => elegidas.map((p) => ({ producto_id: p.productoId, color: p.color }));
+
+/** ¿Cambió algo respecto de lo guardado? (Si no, «Guardar» solo cierra.) */
+export function lookSinCambios(
+  l: Look | null,
+  h: { nombre: string; frase: string; publicado: boolean; piezas: readonly PiezaElegida[]; lugar: number },
+): boolean {
+  if (!l) return false;
+  const antes = piezasElegidasDe(l);
+  return (
+    nombreLimpio(h.nombre) === l.nombre &&
+    fraseLimpia(h.frase) === (l.frase ?? null) &&
+    h.publicado === l.publicado &&
+    h.lugar === l.lugar &&
+    antes.length === h.piezas.length &&
+    antes.every((p, i) => p.productoId === h.piezas[i]?.productoId && p.color === h.piezas[i]?.color)
+  );
+}
+
+/* ---------------- Lo que dice la base ---------------- */
+
+/** Los rechazos de los looks en palabras de tienda; `releer`: la pantalla está vieja y conviene recargar. `null` si no es de aquí. */
+export function errorDeLook(mensaje: string): { titulo: string; detalle?: string; releer?: boolean } | null {
+  const detalle = mensaje.replace(/^[\s\S]*?vitrina_[a-z_]+\s*/, "").trim() || undefined;
+  if (/vitrina_web_sin_modulo/.test(mensaje)) return { titulo: "Tu rol no tiene la Vitrina web", detalle: "Pídele al líder que la active en Roles y accesos." };
+  if (/vitrina_look_cambio_otro/.test(mensaje)) return { titulo: "Otra persona cambió este look", detalle, releer: true };
+  if (/vitrina_look_no_existe/.test(mensaje)) return { titulo: "Ese look ya no existe", detalle, releer: true };
+  if (/vitrina_look_nombre_repetido/.test(mensaje)) return { titulo: "Ese nombre ya lo tiene otro look", detalle };
+  if (/vitrina_look_prenda_no_se_ve/.test(mensaje)) return { titulo: "Una prenda no se ve en la web", detalle, releer: true };
+  if (/vitrina_look_incompleto/.test(mensaje)) return { titulo: "Al look le falta una prenda", detalle, releer: true };
+  if (/vitrina_look_prenda_no_existe|vitrina_look_prenda_invalida/.test(mensaje)) return { titulo: "Una prenda ya no se puede usar", detalle, releer: true };
+  if (/vitrina_look_datos_invalidos/.test(mensaje)) return { titulo: "Revisa los datos del look", detalle };
+  return null;
+}

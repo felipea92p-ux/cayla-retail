@@ -317,7 +317,8 @@ error(
 select ${pagar("c1", 100, { token: ":'tok'" })} as _a \\gset
 select ${pagar("c2", 100, { token: ":'tok'" })};`
   ),
-  "ya se usó en otro comprobante"
+  // Desde ADR-0421 lo frena antes `fn_intento_con_huella` (el token con otro contenido); el candado de abajo sigue detrás.
+  "no es lo que se mandó la primera vez"
 );
 error(
   "A2 negativo · con token nuevo un pago que excede el saldo SIGUE rechazado",
@@ -432,14 +433,17 @@ select count(*) filter (where fecha = ${HOY}), count(*) from retail.compra_pagos
   ),
   ["2", "2"]
 );
+// `registrar_compra` ya no acepta una emisión futura (ADR-0421): el comprobante se registra hoy y se corre a mañana directo en la tabla,
+// para seguir probando que el piso del pago nunca supera a hoy (un comprobante viejo, de antes del candado, puede tenerla).
+const EMISION_MANANA = `update retail.compras set fecha_emision = ${HOY} + 1 where id = :'c1';\n`;
 exito(
   "M2 · detalle: un comprobante con emisión FUTURA (mañana) se puede pagar hoy (el piso nunca supera a hoy)",
-  como(FELIPE, `${BASE}${compra("c1", { emision: `${HOY} + 1` })}select ${pagar("c1", 100, { fecha: HOY })} is not null;`),
+  como(FELIPE, `${BASE}${compra("c1")}${EMISION_MANANA}select ${pagar("c1", 100, { fecha: HOY })} is not null;`),
   ["t"]
 );
 error(
   "M2 · detalle: aun con emisión futura, una fecha de ayer se rechaza",
-  como(FELIPE, `${BASE}${compra("c1", { emision: `${HOY} + 1` })}select ${pagar("c1", 100, { fecha: `${HOY} - 1` })};`),
+  como(FELIPE, `${BASE}${compra("c1")}${EMISION_MANANA}select ${pagar("c1", 100, { fecha: `${HOY} - 1` })};`),
   "es anterior a la emisión del comprobante"
 );
 

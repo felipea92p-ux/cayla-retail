@@ -192,6 +192,12 @@ describe("armarPedidoEnvio: exactamente lo que espera recibir_envio", () => {
     ]);
     expect(p.p_token).toBe("tok-1");
   });
+  it("el costo de un extra con coma decimal viaja como número (ADR-0419): «12,50» es 12.50", () => {
+    const extra: ExtraEnvio = { productoId: "p1", varianteId: "v1", cantidad: 2, costoUnitario: "12,50", proveedorId: "prov1", esRegalo: false };
+    expect(armarPedidoEnvio({ ...base, extras: [extra] }).p_extras).toEqual([
+      { proveedor_id: "prov1", variante_id: "v1", cantidad: 2, es_regalo: false, costo_unitario: 12.5 },
+    ]);
+  });
   it("guía y nota solo si se escribieron (sin espacios); el token siempre", () => {
     expect(armarPedidoEnvio(base)).not.toHaveProperty("p_numero_guia");
     expect(armarPedidoEnvio(base)).not.toHaveProperty("p_nota");
