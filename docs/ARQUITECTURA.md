@@ -1489,6 +1489,22 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (20261003135000). El adelanto y los abonos NO se redondean (`separar_prendas` y `abonar_separacion` rechazan la fila). La boleta final
   sale por el saldo exacto; el modal «Apartado entregado» y `ReciboApartado` dicen el redondeo.
 
+- **Pedidos web** (2026-10-14, ADR-0408 actividad 8; módulo propio `pedidos_web` en Ventas, nace solo del líder): `/vender/pedidos-web`
+  (`layout.tsx` con `exigirModulo`) → `page.tsx` lee `fn_pedidos_web_tablero` (la lista de la tienda activa, sus prendas en miniatura, lo
+  cobrado hoy y «Para enviar a otra tienda») y, con `?pedido=<id>`, `fn_pedido_web_detalle` → `lib/pedidos-web-reglas.ts` (lectura,
+  pestañas, cifras, decisiones de cada prenda, WhatsApp) → `components/pedidos-web/PedidosWebPantalla.tsx` (`TarjetaCifra`, `Pestanas`,
+  `Tabla`) + `PedidoWebHoja.tsx` (confirmar prenda por prenda → `confirmar_pedido_web`; «No se puede confirmar» →
+  `no_confirmar_pedido_web`; «Anular» → `anular_pedido_web`; «Reservarla», la prenda por conseguir que ya llegó a la tienda →
+  `reservar_linea_pedido_web`; si la base dice «ya no está libre», la hoja relee el pedido y esa prenda se decide de nuevo) +
+  `EnviarPedidoWebHoja.tsx` (lo reservado en otra tienda viaja en un traslado → `enviar_pedido_web_desde`; al llegar
+  se reserva solo, disparador `pedido_web_llega_en_traslado`). Guía de foco: `lib/pedidos-web-guia.ts`. Todo firma con el Responsable;
+  candado de la base `fn_pedido_web_exigir`. Los plazos (24 h, 48 h, 7 días) salen de `configuracion_tienda_web` (`fn_pedido_web_plazos`).
+  El número del menú: `lib/pedidos-web.ts` → `fn_pedidos_web_por_confirmar` (desde `app/(app)/layout.tsx`, contador
+  `pedidosWebPorConfirmar`). Existencias rotula la reserva de un pedido web en «Apartados» (`fn_apartados_de_pedidos_web` en
+  `lib/apartados.ts`; sin «Liberar») y Catálogo dice «tiene pedidos web» (renglón 25 de `fn_producto_historia`). Migraciones
+  `20261015010000_pedidos_web_erp.sql` y `20261015011000_pedidos_web_en_catalogo_y_existencias.sql` (sin aplicar en producción).
+  Cobrar y entregar son las actividades 9 y 10.
+
 - **Configuración** (2026-09-24, ADR-0195 F1; módulo `configuracion`, solo líder por ahora; se entra desde el perfil, como
   Colaboradores): `/configuracion` → `lib/configuracion.ts` (`fn_configuracion_tiendas`) + `lib/configuracion-reglas.ts` (lógica
   pura) → `ConfiguracionTiendas.tsx` → RPC `guardar_metas_tienda`, `guardar_efecto_campana` (firmadas con el responsable).

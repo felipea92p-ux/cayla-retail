@@ -119,10 +119,10 @@ export type ClaveIcono =
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
   | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas" | "club" | "avisos" | "frescura" | "pulso" | "liquidacion"
-  | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "vitrina";
+  | "gestion" | "planPiso" | "rendimiento" | "campana" | "recibirInsumos" | "ordenesInsumos" | "fondos" | "vitrina" | "pedidosWeb";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
-export type ClaveContador = "trasladosPorAtender";
+export type ClaveContador = "trasladosPorAtender" | "pedidosWebPorConfirmar";
 export type Contadores = Partial<Record<ClaveContador, number | null>>;
 
 /* ------------------------------------------------------------------
@@ -325,6 +325,10 @@ export const ARBOL: readonly Nodo[] = [
       // Apartados (ADR-0166): la clienta aparta con un adelanto y recoge pagando el saldo. Junto al Punto de venta en el
       // menú, pero con módulo propio desde el ADR-0196: el líder decide aparte quién vende y quién maneja apartados.
       { id: "venta.apartados", modulo: "apartados", etiqueta: "Apartados", estado: "viva", ruta: "/vender/apartados", icono: "apartados", pajaro: "07 Colibrí" },
+      // Pedidos web (ADR-0408, actividad 8): lo que los clientes separan en la tienda online, junto a Apartados (la maqueta aprobada,
+      // «Ventas ▸ Pedidos web»). La visibilidad la da su módulo, que nace solo para el líder. Lleva a Ventas a 7 hijas: ver
+      // `EXCEPCIONES_TOPE_HIJAS` en menu.test.ts.
+      { id: "venta.pedidosWeb", modulo: "pedidos_web", etiqueta: "Pedidos web", estado: "viva", ruta: "/vender/pedidos-web", icono: "pedidosWeb", contador: "pedidosWebPorConfirmar", pajaro: "07 Colibrí" },
       { id: "venta.caja", modulo: "caja", etiqueta: "Caja", estado: "viva", ruta: "/caja", icono: "caja", pajaro: "07 Colibrí" },
       // Historial de ventas (ADR-0147): el libro de todas las ventas; se lee tras cobrar y cuadrar y de ahí se pasa a corregir.
       { id: "venta.historial", modulo: "historial", etiqueta: "Historial", estado: "viva", ruta: "/vender/historial", icono: "historial", pajaro: "07 Colibrí" },

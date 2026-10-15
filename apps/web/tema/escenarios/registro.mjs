@@ -1336,6 +1336,50 @@ ESCENARIOS.push(
   },
 );
 
+// Ventas ▸ Pedidos web (ADR-0408, actividad 8): la hoja de un pedido (por confirmar, «No se puede confirmar», ya confirmado con «Anular»,
+// «Reservarla») y la de enviar a otra tienda. Solo por id: la base local no trae pedidos web (los separa un cliente en la tienda online); quien audita
+// los crea con `crear_pedido_web` en la sede de la cuenta (y los deja como estaban). Ninguno guarda: abren y cambian de vista.
+const abrirPedidoWeb = async (pagina) => {
+  await pagina.locator('[data-guia="pedidos-web.abrir"]').first().click({ timeout: 8000 });
+  await pagina.locator("[role=dialog]").first().waitFor({ timeout: 15000 });
+  await esperar(pagina, 1200);
+};
+ESCENARIOS.push(
+  { id: "pedidos-web.confirmar", soloPorId: true, ruta: "/vender/pedidos-web", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Pedidos web · la hoja de un pedido por confirmar", preparar: abrirPedidoWeb },
+  { id: "pedidos-web.no-confirmar", soloPorId: true, ruta: "/vender/pedidos-web", cuentas: ["admin"], abre: "[role=dialog]", nombre: "Pedidos web · «No se puede confirmar» (el motivo)", preparar: secuencia(abrirPedidoWeb, clicRol("button", /^No se puede confirmar$/)) },
+  {
+    id: "pedidos-web.anular",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · un pedido confirmado y «Anular» (el motivo)",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=cobrar"), abrirPedidoWeb, clicRol("button", /^Anular$/)),
+  },
+  {
+    // Una prenda que estaba por conseguir y ya llegó a la tienda: «Reservarla» abre su paso (de dónde sale y quién).
+    id: "pedidos-web.reservar",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · reservar lo que llegó",
+    preparar: secuencia(irA("/vender/pedidos-web?pestana=cobrar"), abrirPedidoWeb, clicRol("button", /^Reservarla$/)),
+  },
+  {
+    id: "pedidos-web.enviar",
+    soloPorId: true,
+    ruta: "/vender/pedidos-web",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Pedidos web · enviar a la tienda del pedido",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="pedidos-web.enviar"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+);
+
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
 // Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
 ESCENARIOS.push(
