@@ -1755,7 +1755,9 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
 - `/` («Nuestras tiendas», después del Club) y `/tiendas` (actividad 6) → `lib/tiendas-servidor.ts` `leerSedes()` →
   `retail.tienda_sedes()`: las tiendas encendidas en Configuración ▸ Tienda web, abiertas y con nombre web, dirección y WhatsApp
   (el del QR del club, `ubicaciones.whatsapp_numero`), por nombre web; el enlace abre un chat sin mensaje. Sin base, la portada sale
-  sin la sección y `/tiendas` lo dice en una línea. Prueba en la base: `pnpm pruebas:tienda-web-configuracion`.
+  sin la sección y `/tiendas` lo dice en una línea. Con sesión, `/tiendas` usa la cabecera con cuenta (`MarcoCuenta conCuenta`) y cada
+  tienda lleva «Ver solo lo que hay aquí» (`/inicio?sede=…`, `hrefDelInicio` de `lib/inicio.ts`); por eso se arma en cada visita. Prueba
+  en la base: `pnpm pruebas:tienda-web-configuracion`.
 - Cuentas de clientes (actividad 2): `/crear-cuenta`, `/entrar`, `/olvide-mi-contrasena`, `/nueva-contrasena`, `/cuenta`,
   `/privacidad` y `/terminos-del-club`. El inicio de sesión es el de un proyecto de autenticación PROPIO de los clientes (en local,
   la pila de `apps/tienda/supabase/`), nunca el del ERP: `lib/sesion-servidor.ts` valida a la persona con `getUser()` y la cookie se
@@ -1792,10 +1794,23 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   nunca si está quitada) y `vendidos` (su puesto, 1 a 20, por unidades vendidas en 30 días en toda la red, la definición de Catálogo ▸
   Productos; nunca las unidades), sin las familias fuera de los motores (`fn_categoria_entra_a_motores`). Piezas internas:
   `fn_tienda_lo_nuevo`, `fn_tienda_mas_vendidos`. `lib/inicio.ts` arma el héroe (la campaña o Lo nuevo), los círculos de categorías y la
-  cabecera con cuenta (`components/CabeceraConCuenta.tsx`: el menú «Ropa», el buscador que filtra mientras se escribe sobre el índice
-  que manda el servidor, `lib/buscador.ts`, y «Mi cuenta»); `components/MarcoCatalogo.tsx` es el marco de las páginas con cuenta. Las
-  listas de la maqueta son `/catalogo?lista=nuevo|ofertas|vendidos` (las ofertas, con `&campana=<id>`; `lib/catalogo.ts`). Prueba en
-  la base: `pnpm pruebas:tienda-inicio`.
+  cabecera con cuenta (`components/CabeceraConCuenta.tsx`: «Lo nuevo», el menú «Ropa», «Arma tu look», «Más vendidos» y «Ofertas»; el
+  buscador que filtra mientras se escribe sobre el índice que manda el servidor, `lib/buscador.ts`; el corazón de los favoritos con su
+  globo, solo en la computadora, a `/catalogo?lista=favoritos`; «Mi cuenta» y la bolsa). La cabecera es del navegador: el marco le pasa la
+  bolsa ya dibujada (`components/bolsa/BotonBolsa.tsx`, de servidor, lee la cookie) y cuántos favoritos hay (`lib/cabecera-servidor.ts`
+  `cuantosFavoritos()` → `leerGuardadosEnBase`, una lectura por petición con `cache`). `components/MarcoCatalogo.tsx` es el marco de las
+  páginas con cuenta (también de «Arma tu look») y `components/cuenta/MarcoCuenta.tsx` el de la cuenta y la ayuda; el pie con cuenta
+  (`components/Pie.tsx`) lleva las listas, «Arma tu look» y la tienda elegida. En el Inicio, entre Lo nuevo y las ofertas, «Arma tu
+  look» (`leerLooks(sede)`: hasta tres láminas y «Ver todos»; sin looks, no sale). Las listas de la maqueta son
+  `/catalogo?lista=nuevo|ofertas|vendidos` (las ofertas, con `&campana=<id>`; `lib/catalogo.ts`). Prueba en la base:
+  `pnpm pruebas:tienda-inicio`.
+- El aviso al entrar (Felipe, 2026-10-14: «si no le llegan los avisos por WhatsApp, cuando inicie sesión igual le debe salir algún
+  mensaje»; **sin pegar en producción**): arriba del `/inicio`, lo que la persona tiene a su favor en el Club → `lib/inicio-aviso-servidor.ts`
+  `leerAvisosDelClub()` → `retail.tienda_mis_avisos_del_club(usuario)` (`20261015045000`, `stable`: no escribe nada, tampoco la visita de
+  «Mi cuenta»): el cumpleaños disponible, el vale disponible y cada talla que esperaba y llegó, con las reglas de `tienda_mi_club`.
+  `lib/inicio-aviso.ts` (puro) lo dice con los textos de «Mi cuenta» y decide qué sale; `components/AvisoAlEntrar.tsx` lo dibuja y
+  «Entendido» → `app/acciones/inicio.ts` `entendiElAviso` lo recuerda en ese aparato con una cookie por aviso (`tienda-aviso-<clave>`,
+  con dueño). Prueba en la base: `pnpm pruebas:tienda-avisos` (compara ficha por ficha con `tienda_mi_club`).
 - `/como-separar` y `/cambios-y-devoluciones` (la ayuda, con y sin cuenta, actividad 5) → `lib/ayuda-servidor.ts` `leerAyuda()` →
   `retail.tienda_ayuda()`: las horas para que la tienda confirme y los días para recoger (`configuracion_tienda_web`) y los días para
   cambiar una prenda (`fn_dias_plazo_cambio`, el número que imprime la boleta). Sin base, la página los dice sin número. «Cómo separar»
@@ -1803,16 +1818,23 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
 - La bolsa y «Separar» (actividad 7; **sin pegar en producción**): la bolsa vive en la cookie `tienda-bolsa` (solo qué prendas y
   cuántas, la tienda de recojo y la marca del próximo «Separar»; nunca un precio), la leen y escriben `lib/bolsa.ts` (formato, reglas y
   lo que muestra la página) y `lib/bolsa-servidor.ts`, y la cambian SOLO las acciones de `app/acciones/bolsa.ts`: `agregarALaBolsa`
-  (pregunta antes a la base si se puede), `quitarDeLaBolsa`, `elegirTiendaDeRecojo`, `separar` y `volverASeparar`. `/bolsa` →
+  (pregunta antes a la base si se puede), `agregarLookALaBolsa` (un look: todas sus prendas con la misma regla, `revisarParaAgregar`),
+  `quitarDeLaBolsa`, `elegirTiendaDeRecojo`, `separar` y `volverASeparar`. `/bolsa` →
   `retail.tienda_bolsa(lineas, sede)`: cada prenda al precio de la tienda elegida (sin tienda, el mayor de la web) con la campaña, y por
   tienda solo «alcanza / hay / se vende» (nunca la cifra). «Separar» → `retail.tienda_separar(usuario_web_id, ubicacion_id, lineas,
   token)`: vuelve a calcular cada precio (`fn_bolsa_web_precios`, la misma regla de la bolsa) contra el que el cliente vio y llama a
-  `crear_pedido_web` (no toca el stock); la marca de la cookie hace que dos toques den el mismo pedido. `/bolsa/separado/[numero]`
+  `crear_pedido_web` (no toca el stock); la marca de la cookie hace que dos toques den el mismo pedido. Cada negativa de la base (su
+  hint) se dice con `respuestaDeSeparar` de `lib/bolsa.ts`; el tope de 3 separaciones por confirmar (`tienda_separar_tope`) lleva el
+  camino a «Mis pedidos». `/bolsa/separado/[numero]`
   («¡Listo, lo separaste!», el WhatsApp con el mensaje armado al número de la tienda), `/cuenta/pedidos` y `/cuenta/pedidos/[numero]`
   → `lib/pedidos-servidor.ts` → `retail.tienda_mis_pedidos` / `retail.tienda_pedido` (envuelven `fn_pedidos_web_de_clienta` con los
-  plazos de `configuracion_tienda_web`; solo los de esa cuenta). Las piezas que pone la integración en la ficha, las tarjetas y la
-  cabecera: `components/bolsa/AgregarALaBolsa.tsx` (`AgregarALaBolsa`, `AgregarRapido`) y `components/bolsa/BotonBolsa.tsx`.
+  plazos de `configuracion_tienda_web`; solo los de esa cuenta). Un pedido que la tienda no confirmó o anuló dice por qué con una frase
+  para el cliente (`porQueSeCerro` de `lib/pedidos.ts`), nunca con la etiqueta del ERP. Las piezas que pone la integración en la ficha y
+  las tarjetas: `components/bolsa/AgregarALaBolsa.tsx` (`AgregarALaBolsa`, `AgregarRapido`); `components/bolsa/BotonBolsa.tsx` ya está en
+  la cabecera con cuenta.
   Migraciones `20261015021000`, `20261015022000` y `20261015023000`; prueba en la base: `pnpm pruebas:tienda-bolsa`.
+- «Mi cuenta» abre con «Mis pedidos» (`components/cuenta/MisPedidosEnLaCuenta.tsx` → `leerMisPedidos`: los tres últimos y el camino a
+  `/cuenta/pedidos`), antes de los bloques del Club.
 - El Club en la cuenta (actividad 12): `/cuenta` → `lib/club-servidor.ts` `leerMiClubEnBase()` → `retail.tienda_mi_club(usuario)`: sus
   beneficios con las reglas que cobra la caja (`fn_club_beneficios`, `fn_club_aniversario_calculo`, `club_canjes`), «Novedades para ti»
   (la primera llegada a una tienda de la web desde su visita ANTERIOR, `cuentas_web_visitas`, `fn_tienda_novedades`), sus favoritos y
@@ -1826,8 +1848,10 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   la vista, en su orden, con la lámina (x, y, ancho y giro de cada prenda) y el precio de cada prenda tomado de `tienda_catalogo(p_sede)`
   (no hay otra regla), el total y, en el look abierto, las tallas de cada prenda con «hay» (la cifra única de Existencias en las tiendas
   de la web; nunca la cifra). `lib/looks.ts` valida y prepara; `components/looks/Lamina.tsx` dibuja la lámina y
-  `components/looks/AgregarLook.tsx` la hoja de tallas, que entrega las líneas a `alAgregar` (la bolsa, actividad 7). Estilos en
-  `app/estilos/looks.css`.
+  `components/looks/AgregarLook.tsx` la hoja de tallas, que entrega las líneas a `components/looks/AgregarLookALaBolsa.tsx` →
+  `app/acciones/bolsa.ts` `agregarLookALaBolsa` (sin precios: la bolsa los pide a la base con la tienda de recojo); al terminar, el aviso
+  de abajo y el salto del globo de la bolsa. Las dos páginas llevan el marco de la tienda (`MarcoCatalogo`, con «Arma tu look» marcado) y
+  piden cuenta en el proxy (`lib/sesion.ts`). Estilos en `app/estilos/looks.css`.
 
 ---
 
