@@ -1,7 +1,8 @@
 # ADR-0416 · Clientes, Colaboradores y Configuración después de /chaos: sin `NaN`, fichas con algún dato y anonimizar es de un líder
 
 - **Fecha:** 2026-10-15 · **Estado:** construido y verificado en local (suite de base con controles, suites vecinas, vitest). **Las dos
-  migraciones NO están en producción:** esperan el OK de Felipe. Rama `claude/chaos-personas-5c56e1`.
+  migraciones están en producción** desde el 2026-10-15 (con el OK de Felipe): 22 candados validados, el candado de anonimizar en
+  `archivar_clienta` y el disparador del año de nacimiento, idénticos a local. Rama `claude/chaos-personas-5c56e1`, PR #1103.
 - **Pedido:** Felipe, 2026-10-15: «pega las migraciones y aplica tus recomendaciones para el resto». Este es el último módulo de la corrida
   del 2026-10-13 que quedaba abierto fuera de Compras (que se está reconstruyendo).
 - **Extiende:** ADR-0398, 0405, 0409, 0412 (montos finitos), ADR-0288 (club y fichas de clientes), ADR-0306 (quien ve el módulo hace lo de
