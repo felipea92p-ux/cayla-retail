@@ -171,6 +171,8 @@ const HUELLAS: Huella[] = [
     marca: "variantes_producto_talla_color_unico",
     frase: "Ese producto ya tiene esa talla y ese color. Búscalo en el catálogo: el código que escaneaste puede ser un duplicado de la etiqueta.",
   },
+  // Las fechas de una factura de compra (/chaos de Compras 2026-10-15, 20261015170000, ADR-0421): la pantalla ya lo frena.
+  { marca: "compras_vence_despues_de_emitir", frase: "El vencimiento no puede ser anterior a la emisión: revisa las fechas del documento." },
   {
     // Un documento, una clienta: `clientas_dni_unico` (20260922140000) pasó a `clientas_documento_unico`, por tipo y
     // número, en 20260930160000 (ADR-0288 D-2). `registrar_clienta` hace upsert por documento y `editar_clienta` lo

@@ -506,3 +506,13 @@ export const MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE =
 export function esRelacionAusente(error: { code?: string | null } | null | undefined): boolean {
   return error?.code === "PGRST205" || error?.code === "42P01";
 }
+
+/** El IGV va de 0 % a 18 %, la emisión no es futura y el vencimiento no es anterior a la emisión: lo mismo que exige `registrar_compra`
+ *  (`igv_fuera_de_rango`, `emision_futura`) y la tabla (`compras_vence_despues_de_emitir`), dicho antes de mandar (/chaos de Compras,
+ *  ADR-0421). Fechas `aaaa-mm-dd`; sin vencimiento (al contado), no se mira. */
+export function problemaDeFechasEIgv(e: { fechaEmision: string; fechaVencimiento: string | null; igvPorcentaje: number; hoy: string }): string | null {
+  if (!(e.igvPorcentaje >= 0 && e.igvPorcentaje <= 18)) return "El IGV de la factura va de 0 % a 18 %: revisa el porcentaje.";
+  if (e.fechaEmision > e.hoy) return "La fecha de emisión no puede ser futura: revisa la fecha del documento.";
+  if (e.fechaVencimiento && e.fechaVencimiento < e.fechaEmision) return "El vencimiento no puede ser anterior a la emisión.";
+  return null;
+}
