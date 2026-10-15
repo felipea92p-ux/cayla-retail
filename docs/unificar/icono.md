@@ -54,7 +54,9 @@ grandes «Escanear prenda» del celular, de 18–19 a 20. También el ícono de 
 lateral) dibuja con 1,5 y quedó fuera del censo desde la ronda 1. **Felipe lo decidió en la ronda 16 (P2, mirando las fotos del lateral y la
 cabecera con cada opción en vivo): se queda en 1,5**, porque a 20 px su línea (1,25 px) se ve como la de un ícono de 16 px con trazo 2 en un
 botón del contenido; con 2 el lateral se veía más marcado. Sus tamaños sueltos pasaron a la escala: el menú del celular y el botón del menú, de
-18 y 22 a 20; la lupa de la cabecera y el «Demo», de 18 a 16. Los pases de Traslados (ADR-0355), el
+18 y 22 a 20; la lupa de la cabecera y el «Demo», de 18 a 16.
+
+El menú del celular a 375 px, con sus íconos de 20 px y trazo 1,5: ![El menú del celular](capturas/ronda16-375.jpg) Los pases de Traslados (ADR-0355), el
 gasto rápido (ADR-0368), la prenda sin foto (ADR-0333), la vista rápida (ADR-0136), el historial de una prenda (ADR-0354), los sellos de
 Movimientos (ADR-0353), el Observatorio (ADR-0322), Análisis (ADR-0357), Ventas sin registrar (ADR-0360), Inicio de Almacén con su propio
 juego de íconos (ADR-0292), la página pública del club y la balanza de Recibir. Las piezas con su dibujo —el vacío, el aviso, el
