@@ -366,3 +366,16 @@ describe("el botón que abre la hoja nombra la tienda si queda una sola", () => 
     expect(textoPonerPrecio([], true)).toBeNull();
   });
 });
+
+// ADR-0415: el precio de una tienda tampoco pasa de S/ 5 000 (la base lo rechaza con `precios_sede_prenda_precio_con_tope`).
+describe("el precio de una sede tiene techo", () => {
+  const base: Parameters<typeof camposPonerPrecio>[0] = { tiendaId: "aqp", monto: "5990", general: 59.9, motivo: "Mercado", responsableListo: true, responsableMotivo: null };
+  it("5990 (el punto que falta) deja el precio por hacer, con la frase del tope", () => {
+    const precio = camposPonerPrecio(base).find((c) => c.id === "precio");
+    expect(precio?.hecho).toBe(false);
+    expect(precio?.pendiente).toMatch(/pasa de S\/ 5000/);
+  });
+  it("S/ 5 000 justos sí", () => {
+    expect(camposPonerPrecio({ ...base, monto: "5000" }).find((c) => c.id === "precio")?.hecho).toBe(true);
+  });
+});

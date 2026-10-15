@@ -60,6 +60,8 @@ const HUELLAS: Huella[] = [
   { marca: "recibido_con_tope", frase: "El vuelto pasa de S/\u00a0500: revisa con cuánto paga el cliente y vuelve a intentar." },
   { marca: "_montos_finitos", frase: "Uno de los montos no es un número válido. Revísalo y vuelve a intentar." },
   // Nombres con tope en Catálogo (/chaos 2026-10-14, 20261014182000): la pantalla ya corta antes; esto es el respaldo.
+  // Precio y costo de una prenda hasta S/ 5 000 (20261015152000, ADR-0415): la pantalla corta antes; esto es el respaldo.
+  { marca: "_precio_con_tope", frase: "Un precio o un costo pasa de S/\u00a05000: revisa que no falte el punto (59.90, no 5990)." },
   { marca: "_textos_con_tope", frase: "Un nombre o una descripción es demasiado largo. Acórtalo y vuelve a intentar." },
   // Montos con tope en Finanzas (/chaos 2026-10-14, 20261015002000, ADR-0412): un gasto o un movimiento de dinero, hasta un millón de soles.
   { marca: "_monto_con_tope", frase: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero y vuelve a intentar." },

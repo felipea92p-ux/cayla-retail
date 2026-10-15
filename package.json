@@ -233,6 +233,7 @@
     "pruebas:traslado-sobrantes": "node scripts/pruebas/traslado_sobrantes.mjs",
     "pruebas:catalogo-montos-y-textos": "node scripts/pruebas/catalogo_montos_y_textos.mjs",
     "pruebas:produccion-token-y-montos": "node scripts/pruebas/produccion_token_y_montos.mjs",
+    "pruebas:recomendaciones-produccion-catalogo": "node scripts/pruebas/recomendaciones_produccion_catalogo.mjs",
     "pruebas:caja-efectivo-no-negativo": "node scripts/pruebas/caja_efectivo_no_negativo.mjs",
     "pruebas:ventas-montos-validos": "node scripts/pruebas/ventas_montos_validos.mjs",
     "pruebas:comprobante-documento-valido": "node scripts/pruebas/comprobante_documento_valido.mjs",

@@ -64,6 +64,7 @@ import {
   type NombresFicha,
   type TemporadaElegida,
   type VarianteOrigen,
+  avisoCostoSobrePrecio,
 } from "./variantes-ficha-reglas";
 import {
   agruparCambios,
@@ -922,5 +923,28 @@ describe("conUnReintentoSiChoca — el círculo de candados que T8 no cierra (AD
     }
     expect(esChoqueDeCandados(null)).toBe(false);
     expect(esChoqueDeCandados({ code: "55P03" })).toBe(false);
+  });
+});
+
+// ADR-0415: el precio y el costo de una prenda llegan hasta S/ 5 000, y vender por debajo del costo es un aviso, no un candado.
+describe("el aviso de costo sobre precio", () => {
+  it("dice cuánto se pierde por prenda, con el espacio que no se parte", () => {
+    expect(avisoCostoSobrePrecio("59.90", "70")).toBe(
+      "el costo (S/ 70.00) es mayor que el precio (S/ 59.90): pierdes S/ 10.10 en cada venta. Si es a propósito (para liquidarla), guarda igual.",
+    );
+  });
+  it("sin aviso si el costo no pasa al precio, si falta un dato o si alguno ya pasa del tope", () => {
+    for (const [precio, costo] of [["59.90", "30"], ["59.90", "59.90"], ["", "70"], ["59.90", ""], ["5990", "6000"], ["0", "10"]]) {
+      expect(avisoCostoSobrePrecio(precio, costo)).toBeNull();
+    }
+  });
+});
+
+describe("el tope del precio en la ficha (ADR-0415)", () => {
+  it("un precio o un costo de más de S/ 5 000 bloquea; costo sobre precio solo avisa", () => {
+    const filas = filasDeProducto([variante("a", "NEG", "t-s", { precio: 5990 }), variante("b", "NEG", "t-m", { precio: 59.9, costo: 70 })], N);
+    const p = problemasVariantes(filas, N);
+    expect(p.some((x) => x.clave === "a" && x.bloquea && /pasa de S\/ 5000/.test(x.texto))).toBe(true);
+    expect(p.some((x) => x.clave === "b" && !x.bloquea && /pierdes S\/ 10\.10/.test(x.texto))).toBe(true);
   });
 });
