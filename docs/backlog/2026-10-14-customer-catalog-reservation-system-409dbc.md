@@ -23,7 +23,7 @@ Maqueta: `docs/maquetas/tienda-online-2026-10/` (`index.html` + `README.md`, con
    (correo y DNI únicos, entra al Club con origen web, cumpleaños como `clientas`), nombre por DNI compartido, topes por IP y documento.
    Demostrable: crear cuenta, ver rechazado un DNI o correo repetido, entrar, recuperar la contraseña con el correo de prueba local y
    salir. (1,5)
-3. **Vitrina web y catálogo publicado** — `vitrina_productos`; módulo `vitrina_web` (nace solo para el líder): encender con precio web,
+3. ✅ **Vitrina web y catálogo publicado** (integrada 2026-10-14; en curso la 3b, sin precio web) — `vitrina_productos`; módulo `vitrina_web` (nace solo para el líder): encender con precio web,
    lote, fijar en Lo nuevo; la tienda lista lo publicado con su precio web y la campaña (ADR-0403). Demostrable: encender un modelo en el
    ERP y verlo en la tienda con su precio. (1,5)
 4. **Ficha con stock por tienda y filtro por sede** — niveles por tienda, color y talla (nunca la cifra de 4 o más). Demostrable: vender
@@ -90,6 +90,31 @@ Total ≈ 14 sesiones. Las pantallas del ERP cumplen las reglas del repo (guía 
   sigue «pendiente» en la guía de foco porque sus otras pestañas no la tienen (la nueva sí).
 - [ ] **Base local:** le faltan `fn_sobrantes_por_revisar` y `guias_vistas` de `main` (sale un error en la consola del ERP local); no es de
   esta rama.
+
+### Lo que dejaron la actividad 3 y el motor del pedido (integrados el 2026-10-14)
+
+- [ ] **Actividad 3b (en curso):** sin precio web. El catálogo muestra el precio de tienda de la sede elegida y, con «Todas», el mayor;
+  la Vitrina queda para mostrar u ocultar y Lo nuevo (ADR-0408 act. c). Su migración `20261014225000` se corrige en su lugar (no está en
+  producción). Para probarla, la base local recibe las migraciones de precio por sede de `main` (20261010100000–20261011110000) y la de
+  ADR-0403 (20261014173000), que le faltaban.
+- [x] **El catálogo pide cuenta** (`(catalogo)/layout.tsx` y el proxy): sin sesión manda a «Entrar»; con sesión, la portada lleva al
+  catálogo hasta que exista el Inicio de la actividad 5.
+- [ ] **No están en producción:** `20261014225000_vitrina_web.sql`, `20261014235000_pedidos_web_modelo.sql` y
+  `20261015000000_pedidos_web_cobros.sql` (en ese orden, después de las de las actividades 1, 2 y 6; cada una en una sola parte, sin
+  políticas). Actividad 13, con el OK de Felipe; después, refrescar el diccionario.
+- [ ] **Para la actividad 7:** envolver `crear_pedido_web` y `fn_pedidos_web_de_clienta` en funciones `tienda_*`; validar cada precio con
+  `fn_precio_en_sede` de la sede de recojo (y la campaña, ADR-0403); la ruta programada del cierre llama a `fn_cerrar_pedidos_web_vencidos`;
+  los plazos salen de `configuracion_tienda_web` (actividad 6), no escritos a mano.
+- [ ] **Para la actividad 8:** dar de alta el módulo `pedidos_web` (sin `rol_modulos`); el traslado de una prenda reservada en otra sede;
+  rotular u ocultar las reservas «Pedido web W-…» en Apartados (liberarlas desde ahí ya está bloqueado); que el aviso de 48 h no salte a lo
+  que espera una prenda por conseguir con su adelanto pagado (ADR-0408 act. c); y que `fn_producto_se_puede_eliminar` y
+  `fn_producto_historia` digan «tiene pedidos web» (hoy lo frena la llave con el aviso genérico), con un reemplazo anclado.
+- [ ] **Para la actividad 10:** al entregar, la línea pasa a `entregada`, el apartado se cierra, la salida de venta, el código de 4 cifras y la
+  boleta por Lucode; extender el candado diferido `venta_pagos_anticipo_solo_de_apartado` (20261013155000) a los pedidos web; y la nota de
+  crédito para un pedido ya pagado.
+- [ ] **La Vitrina:** falta `/chaos` y `/formidable` de la pantalla; el ERP local muestra errores de `fn_guias_vistas`, `marcar_guia_vista`
+  y `fn_sobrantes_por_revisar` porque la base local está atrasada (no es de esta rama).
+- [ ] **Pasarela (cuando se integre):** un cobro que el pedido ya no admite queda «por revisar» y se devuelve siempre.
 
 ### Pendientes que no son de construcción
 

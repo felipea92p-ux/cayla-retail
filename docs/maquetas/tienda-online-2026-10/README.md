@@ -68,7 +68,7 @@ privado. Abierto desde el repo, cada prenda se dibuja con el ícono de su catego
 | Novedades y club | Novedades en la web, sin publicidad por WhatsApp; los avisos del club (cumpleaños, vale) siguen por WhatsApp y también en la cuenta |
 | Fotos y secciones | Las reales; Lo nuevo, Ofertas (todas las campañas vigentes), Más vendidos y Arma tu look |
 | Lo nuevo | Llegó a una tienda hace 30 días o menos; fijar o quitar desde la Vitrina |
-| Precio | Precio web propio por modelo, nace al encenderlo; el cliente ve solo ese; las campañas también se aplican sobre él |
+| Precio | ~~Precio web propio por modelo~~ → **el de la tienda elegida** (el precio de tienda de esa sede); con «Todas», el MAYOR de las sedes, para que al elegir la sede baje y nunca suba; las campañas se aplican encima (Felipe, 2026-10-14, al construir) |
 | No recoge en 7 días | Se le recuerda y decide la sede |
 | Cambios y devoluciones | Como en tienda: 7 días, en cualquier sede, con boleta y etiqueta |
 | Alcance de la construcción | Todo de una vez, como la maqueta |

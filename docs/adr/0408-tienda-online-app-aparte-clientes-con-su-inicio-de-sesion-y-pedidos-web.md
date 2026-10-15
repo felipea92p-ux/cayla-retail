@@ -59,7 +59,8 @@ salida anticipada haría fallar los conteos. **DESCARTÉ** sacarla del stock al 
 **DECIDÍ 5 — El precio web en una tabla de la vitrina, no en `productos`.**
 `vitrina_productos(producto_id, publicado, precio_web, fijo_en_nuevo, …)`: el núcleo del catálogo no se toca (principio 1). El precio de
 tienda sigue en `variantes.precio` y en `precios_sede_prenda`. La campaña se aplica sobre el precio web con la misma función y el mismo
-redondeo que la tienda física (ADR-0403: al S/ 0.10 de abajo).
+redondeo que la tienda física (ADR-0403: al S/ 0.10 de abajo). **Reemplazado en su parte de precio el 2026-10-14: no hay precio
+web; el cliente ve el precio de tienda de la sede que elige (ver «Actualización 2026-10-14 (c)»).**
 
 **DECIDÍ 6 — El stock que ve el cliente es un nivel, nunca la cifra.**
 La función devuelve «Hay» (4 o más), 3, 2, «Última» o «—». El número exacto de 4 o más nunca sale de la base hacia la web.
@@ -134,4 +135,26 @@ Y quedó así, por decisión técnica (cada una en su migración o su prueba):
 - El nombre por DNI (ADR-0008) pasó a `packages/shared`, para que la tienda y el ERP usen la misma consulta.
 - La sesión del cliente se valida contra el proyecto de clientes (`getUser()`), no solo con la cookie; la cookie se llama `tienda-sesion`
   para no pisar la del ERP.
+
+## Actualización 2026-10-14 (c): sin precio web, y lo que se decidió con la Vitrina y el motor del pedido
+
+- **No hay precio web (reemplaza el DECIDÍ 5 en su parte de precio).** El cliente ve el precio de la tienda que eligió: el precio de
+  tienda de esa sede (`fn_precio_en_sede`, el de la prenda en esa tienda o, si no tiene, el de la grilla; por modelo, el mayor de sus
+  variantes activas). Con «Todas las sedes» ve el MAYOR entre las sedes que se muestran en la web: así, al elegir su sede el precio
+  baja o se queda igual, nunca sube (Felipe). Las campañas se aplican encima con la regla de la caja (ADR-0403). `vitrina_productos`
+  queda para mostrar u ocultar y fijar en Lo nuevo; el pedido web guarda el precio de la sede donde se recoge (la actividad 7 lo valida
+  contra `fn_precio_en_sede` de esa sede).
+- **Quien tiene el módulo «Pedidos web» ve lo necesario del cliente** para coordinar por WhatsApp (nombre, celular, el DNI a medias y si
+  es del Club), tenga o no el módulo Clientes (`fn_pedido_web` y `fn_pedidos_web_sede`, con el candado de su módulo).
+- **El efectivo de un pago anulado sale de la caja abierta del día en que se devuelve**, que es cuando sale la plata; si esa caja no la
+  tiene, no se puede anular (el candado de caja que ya existe).
+- **El aviso de «confirmado y sin pagar» (48 h) no aplica a lo que espera una prenda por conseguir con su adelanto pagado:** lo decide la
+  regla que Felipe ya había aprobado («adelanto al confirmar y el resto al recoger»). Hoy el motor lo avisa igual; se ajusta en la
+  actividad 8, con la lista del ERP.
+- **El motor del pedido web** (base de las actividades 7 a 9) quedó así: `pedidos_web`, `pedido_web_lineas` (una unidad por línea) y
+  `pedido_web_pagos`, solo por funciones; estados `por_confirmar → confirmado | anulado | vencido`, `confirmado → pagado | anulado`,
+  `pagado → entregado`, con un disparador que rechaza toda otra transición; lo pagado nunca pasa el total (CHECK en la fila del pedido);
+  una reserva por línea sobre el motor de Apartados (primero el almacén); el n.º de operación único entre pagos vivos; el aviso de una
+  pasarela, idempotente por proveedor y referencia (lo que ya no cabe queda «por revisar» y se devuelve). Un pedido pagado completo no
+  se anula: eso es una nota de crédito (actividad 10).
 
