@@ -60,6 +60,13 @@ const esquemaPedido = z.object({
     .string()
     .regex(/^[1-9]\d{3}$/)
     .nullable(),
+  // El número de su boleta (actividad 10): nace al quedar pagado completo. Uno raro no tumba el pedido: no se muestra.
+  boleta: z
+    .string()
+    .regex(/^[A-Z0-9]{4}-\d{6,8}$/)
+    .nullable()
+    .catch(null)
+    .default(null),
   tienda_web: z.object({
     nombre: z.string().min(1),
     // El WhatsApp de la tienda (el del QR del club). Si la tienda lo borró, el pedido se sigue viendo, sin el botón.
@@ -102,6 +109,8 @@ export type Pedido = {
   listoParaRecoger: boolean;
   recogerHasta: string | null;
   codigoRecojo: string | null;
+  /** «B002-000013»: la boleta del pedido, desde que quedó pagado completo. */
+  boleta: string | null;
   tienda: { nombre: string; whatsapp: string | null };
   lineas: LineaPedido[];
 };
@@ -127,6 +136,7 @@ function aPedido(d: z.infer<typeof esquemaPedido>): Pedido {
     listoParaRecoger: d.listo_para_recoger,
     recogerHasta: d.recoger_hasta,
     codigoRecojo: d.codigo_recojo,
+    boleta: d.boleta,
     tienda: d.tienda_web,
     lineas: d.lineas.map((l) => ({
       varianteId: l.variante_id,
@@ -237,6 +247,14 @@ const MOTIVO_NEUTRO = "La tienda canceló este pedido.";
 /** La frase de por qué se cerró, para el cliente (la página le suma «Si tienes dudas, escríbele a CAYLA …»). */
 export const porQueSeCerro = (motivo: string | null): string =>
   motivo !== null && Object.hasOwn(MOTIVO_PARA_EL_CLIENTE, motivo) ? MOTIVO_PARA_EL_CLIENTE[motivo] : MOTIVO_NEUTRO;
+
+/** «¿Necesitas cambiarlo?» de un pedido entregado, con el MISMO plazo que imprime su boleta (`tienda_ayuda`, el de la caja): la web y la
+ *  boleta nunca dicen dos números distintos. Sin el dato, sin número: el plazo va impreso en la boleta. */
+export function textoCambiarlo(diasParaCambiar: number | null): string {
+  return diasParaCambiar !== null
+    ? `Tienes ${diasParaCambiar} ${diasParaCambiar === 1 ? "día" : "días"} para cambiarlo en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.`
+    : "Puedes cambiarlo en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta. El plazo va impreso en tu boleta.";
+}
 
 export type Hito = { nombre: string; cuando: string | null; estado: "hecho" | "ahora" | "falta" };
 

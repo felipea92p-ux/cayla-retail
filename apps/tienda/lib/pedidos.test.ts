@@ -10,6 +10,7 @@ import {
   mensajeWhatsapp,
   nombreTienda,
   porQueSeCerro,
+  textoCambiarlo,
   vivas,
   type Pedido,
 } from "./pedidos";
@@ -102,6 +103,18 @@ describe("lo que dice la base", () => {
       plazos: { horasParaConfirmar: 48, diasParaRecoger: 7 },
       pedido: null,
     });
+  });
+
+  it("la boleta (actividad 10): con su forma se lee; una rara o ninguna no tumban el pedido (no se muestra)", () => {
+    expect(unoDe(pedidoBase({ estado: "pagado", boleta: "B002-000013" })).boleta).toBe("B002-000013");
+    expect(unoDe(pedidoBase({ estado: "pagado", boleta: "<b>B002</b>" })).boleta).toBeNull();
+    expect(unoDe(pedidoBase()).boleta).toBeNull();
+  });
+
+  it("«¿Necesitas cambiarlo?» de un pedido entregado dice el plazo de la boleta (el de la caja), nunca uno escrito a mano", () => {
+    expect(textoCambiarlo(15)).toBe("Tienes 15 días para cambiarlo en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.");
+    expect(textoCambiarlo(1)).toBe("Tienes 1 día para cambiarlo en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta.");
+    expect(textoCambiarlo(null)).toBe("Puedes cambiarlo en cualquier tienda CAYLA, con tu boleta y la etiqueta puesta. El plazo va impreso en tu boleta.");
   });
 
   it("el código de 4 cifras solo se acepta con su forma", () => {

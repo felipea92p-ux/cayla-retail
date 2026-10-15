@@ -145,7 +145,11 @@ select i.id as venta_item_id, i.venta_id, i.variante_id, i.cantidad as vendido, 
  where coalesce(m.t, 0) <> i.cantidad
    -- ADR-0379: una pieza de liquidación nunca estuvo en el stock, así que su línea no descuenta nada a propósito. Lo que la
    -- cuida es INV-13 (la pieza vendida cuadra con su línea), no esta.
-   and not exists (select 1 from retail.piezas_liquidacion pl where pl.venta_item_id = i.id)`,
+   and not exists (select 1 from retail.piezas_liquidacion pl where pl.venta_item_id = i.id)
+   -- ADR-0408 act. 10: la prenda de un pedido web se vende al quedar pagado y sale del stock recién al entregarla. Mientras su
+   -- línea del pedido no se entrega, su línea de venta no tiene salida a propósito (con una, sí es violación). La cuida INV-18.
+   and not (coalesce(m.t, 0) = 0
+            and exists (select 1 from retail.pedido_web_lineas pwl where pwl.venta_item_id = i.id and pwl.estado <> 'entregada'))`,
     corrompe: `update retail.venta_items set cantidad = cantidad + 1 where ctid = (select ctid from retail.venta_items limit 1);`,
   },
   {
@@ -389,6 +393,53 @@ update retail.venta_pagos set monto = 'NaN' where ctid = (select ctid from retai
     corrompe: `alter table retail.movimientos_dinero drop constraint if exists movimientos_dinero_montos_finitos;
 set local session_replication_role = replica;
 update retail.movimientos_dinero set monto = 'NaN' where ctid = (select ctid from retail.movimientos_dinero limit 1);`,
+  },
+  {
+    id: "INV-18",
+    nombre: "pedido_web_cuadra_con_su_venta",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Un pedido web pagado o entregado tiene UNA venta (ADR-0408 act. 10): una línea de venta por prenda no quitada, cobrada con un solo «anticipo» por lo pagado, con su boleta; y cada prenda sale del stock al entregarse, nunca antes (una salida por prenda entregada, ninguna por la que todavía espera). Un pedido sin pagar no tiene venta.",
+    sql: `
+select w.id as pedido_id, w.codigo, w.estado, 'venta' as problema
+  from retail.pedidos_web w
+ where (w.estado in ('pagado', 'entregado')) <> (w.venta_id is not null)
+union all
+select w.id, w.codigo, w.estado, 'lineas'
+  from retail.pedidos_web w
+ where w.venta_id is not null
+   and (exists (select 1 from retail.pedido_web_lineas l
+                 where l.pedido_id = w.id and l.estado <> 'quitada'
+                   and not exists (select 1 from retail.venta_items vi
+                                    where vi.id = l.venta_item_id and vi.venta_id = w.venta_id and vi.variante_id = l.variante_id
+                                      and vi.cantidad = 1 and vi.precio_unitario = l.precio_lista and vi.descuento_unitario = l.descuento))
+        or exists (select 1 from retail.venta_items vi where vi.venta_id = w.venta_id
+                    and not exists (select 1 from retail.pedido_web_lineas l where l.pedido_id = w.id and l.venta_item_id = vi.id)))
+union all
+select w.id, w.codigo, w.estado, 'cobro'
+  from retail.pedidos_web w
+ where w.venta_id is not null
+   and coalesce((select string_agg(vp.metodo || ':' || vp.monto, ',') from retail.venta_pagos vp where vp.venta_id = w.venta_id), '')
+       <> 'anticipo:' || w.pagado
+union all
+select w.id, w.codigo, w.estado, 'boleta'
+  from retail.pedidos_web w
+ where w.venta_id is not null
+   and not exists (select 1 from retail.comprobantes c where c.venta_id = w.venta_id and c.tipo in ('boleta', 'factura'))
+union all
+select w.id, w.codigo, w.estado, 'salida'
+  from retail.pedidos_web w
+  join retail.pedido_web_lineas l on l.pedido_id = w.id and l.venta_item_id is not null
+ where coalesce((select sum(m.cantidad) from retail.movimientos m where m.venta_item_id = l.venta_item_id and m.tipo = 'salida'), 0)
+       <> case when l.estado = 'entregada' then 1 else 0 end
+union all
+select w.id, w.codigo, w.estado, 'entrega'
+  from retail.pedidos_web w
+ where w.estado = 'entregado'
+   and exists (select 1 from retail.pedido_web_lineas l where l.pedido_id = w.id and l.estado not in ('quitada', 'entregada'))`,
+    // Los disparadores del pedido rechazan este cambio: se apagan SOLO dentro de la transacción revertida (como INV-17).
+    corrompe: `set local session_replication_role = replica;
+update retail.pedido_web_lineas set venta_item_id = null where ctid = (select ctid from retail.pedido_web_lineas where venta_item_id is not null limit 1);`,
   },
 ];
 

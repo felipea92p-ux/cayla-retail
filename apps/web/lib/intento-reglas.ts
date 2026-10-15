@@ -42,6 +42,8 @@ export const OPERACIONES_CON_MARCA = [
   "rendir_fondo",
   // El pago de un pedido web (ADR-0408, actividad 9; 20261015042000).
   "registrar_pago_pedido_web",
+  // La entrega de un pedido web con su código (ADR-0408, actividad 10; 20261015052000).
+  "entregar_pedido_web",
 ] as const;
 export type OperacionConMarca = (typeof OPERACIONES_CON_MARCA)[number];
 

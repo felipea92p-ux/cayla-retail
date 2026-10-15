@@ -19,6 +19,7 @@ import { useIntento } from "@/lib/useIntento";
 import { huellaDe } from "@/lib/intento-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import { leerMonto, soles } from "@/lib/precio-sede-reglas";
+import { enviarVentaASunat } from "@/lib/envio-sunat";
 import { camposPago } from "@/lib/pedidos-web-guia";
 import {
   MEDIOS_PAGO_WEB,
@@ -27,10 +28,13 @@ import {
   despuesDelPago,
   errorDelPago,
   esDigital,
+  faltaLeerLaVenta,
   limpiarOperacion,
   montoDeFabrica,
   pagoParaLaBase,
+  problemaDeCaja,
   problemaDelMonto,
+  ventaDelPago,
   type CampoDelPago,
   type FormPago,
 } from "@/lib/pedidos-web-cobro-reglas";
@@ -38,12 +42,22 @@ import type { EstadoPedidoWeb, PedidoDetalle } from "@/lib/pedidos-web-reglas";
 
 type ErrorDeLaBase = { campo: CampoDelPago | null; titulo: string; detalle: string };
 
+/** Revisar un pago en duda devuelve el pago, no su venta: si ese pago completó el pedido, se lee la venta del pedido y su boleta sale
+ *  ya, por el mismo camino de siempre. Si esta lectura falla, la boleta igual sale con la cola de reintentos en unos minutos. */
+async function enviarLaBoletaDelPedido(pedidoId: string) {
+  const { data } = await createClient().rpc("fn_pedido_web_detalle", { p_pedido_id: pedidoId });
+  const venta = ventaDelPago({ estado_pedido: "pagado", venta_id: (data as { venta_id?: unknown } | null)?.venta_id });
+  if (venta) enviarVentaASunat(venta);
+}
+
 /**
  * Registrar un pago de un pedido web (ADR-0408, actividad 9; maqueta v4, «Registrar pago»): lo que el cliente pagó por WhatsApp o en
  * la tienda. Cuánto (puede ser una parte; si el pedido espera una prenda por conseguir y todavía no paga nada, es el adelanto y el
  * monto no viene puesto: cuánto lo decide la tienda), cómo (las fichas de medio de Vender), el n.º de operación si es digital (no se
  * repite en ningún pedido, propuesta a) y quién lo registra. El efectivo entra a la caja abierta de la tienda: sin caja, no se cobra.
- * Cuando lo pagado llega al total, la base deja el pedido «pagado» sola.
+ * Cuando lo pagado llega al total, la base deja el pedido «pagado» sola y, en la misma transacción, hace nacer su venta con su boleta
+ * (actividad 10), que va en la caja del día: ese pago pide la caja abierta aunque sea por Yape. La boleta sale «pendiente» y la hoja la
+ * manda a SUNAT por el mismo camino que Vender (`enviarVentaASunat`); si Lucode no responde, queda en la cola y nadie cobra de nuevo.
  *
  * La marca del envío sigue a lo que se manda (`useIntento`, como Caja y Apartados): un doble clic o un reintento con lo mismo devuelve
  * el MISMO pago; si la respuesta se pierde, la hoja se congela hasta saber si quedó («Revisar si se guardó»). La base dice la última
@@ -88,6 +102,10 @@ export function RegistrarPagoHoja({
   const montoLeido = problemaDelMonto(form.monto, p.falta) === null ? leerMonto(form.monto) : null;
 
   function terminado(datos: Record<string, unknown> | null, monto: number, medio: FormPago["medio"], cerrar: () => void) {
+    // Pagado completo: su boleta nació en la base y se declara a SUNAT como la de una venta de Vender (en segundo plano).
+    const venta = ventaDelPago(datos);
+    if (venta) enviarVentaASunat(venta);
+    else if (faltaLeerLaVenta(datos)) void enviarLaBoletaDelPedido(p.id);
     const aviso = avisoTrasPagar(monto, medio ?? "yape", datos);
     avisar.exito(aviso.titulo, { detalle: aviso.detalle });
     onRegistrado(datos?.estado_pedido === "pagado" ? "pagado" : "confirmado");
@@ -193,7 +211,21 @@ export function RegistrarPagoHoja({
                   guia={(m) => (m === "yape" ? "pago.medio-yape" : undefined)}
                 />
               </div>
-              {form.medio === "efectivo" && p.cajaAbierta === false ? (
+              {problemaDeCaja(form, p.falta, p.cajaAbierta, p.tienda) && form.medio !== "efectivo" ? (
+                // Actividad 10: el pago que completa hace nacer la boleta, que va en la caja del día (también por Yape o Plin).
+                <Aviso
+                  tono="atencion"
+                  chico
+                  className="mt-2"
+                  accion={
+                    <BotonVer href="/caja" chico>
+                      Ir a Caja
+                    </BotonVer>
+                  }
+                >
+                  {problemaDeCaja(form, p.falta, p.cajaAbierta, p.tienda)}
+                </Aviso>
+              ) : form.medio === "efectivo" && p.cajaAbierta === false ? (
                 <Aviso
                   tono="atencion"
                   chico

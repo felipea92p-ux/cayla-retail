@@ -228,6 +228,13 @@ ${elegirPrenda("v2", "and v.id <> :'v'")}
 ${AYUDAS}
 select pg_temp.descuadre(:'v') as descuadre_v, pg_temp.descuadre(:'v2') as descuadre_v2 \\gset
 select pg_temp.vaciar(:'v', :'tru'), pg_temp.vaciar(:'v', :'lim'), pg_temp.vaciar(:'v2', :'tru'), pg_temp.vaciar(:'v2', :'lim');
+-- ADR-0408 act. 10: el pago que completa un pedido hace nacer su venta con su boleta, que va en la caja del día de su tienda. Cada
+-- escenario parte con una caja abierta en las dos tiendas y una serie de boleta propia de la prueba (en el seed local Lima y Trujillo
+-- comparten B001; en producción cada tienda tiene la suya). Solo dentro de esta transacción.
+update retail.series_comprobantes
+   set serie = case tipo when 'boleta' then 'B' else 'F' end || case when ubicacion_id = :'tru' then 'T98' else 'L98' end, siguiente_numero = 1
+ where ubicacion_id in (:'tru', :'lim') and tipo in ('boleta', 'factura') and archivada_at is null;
+select pg_temp.caja(:'tru') is not null and pg_temp.caja(:'lim') is not null as _cajas \\gset
 insert into retail.clientas (nombre, telefono_whatsapp) values ('ZZ Cliente prueba pedidos web', '999888777') returning id as cli \\gset
 `;
 const PREPARAR = preparar(APLICAR_ANTES);
@@ -814,8 +821,9 @@ select string_agg(case when y.r like 'error|pedido_web_sin_modulo|%' then 'sin_m
      || '|' || (select count(*) from pg_policies where schemaname = 'retail' and tablename in ('pedidos_web', 'pedido_web_lineas', 'pedido_web_pagos'))
      || '|' || has_function_privilege('service_role', 'retail.fn_cerrar_pedidos_web_vencidos(integer)', 'EXECUTE')::text;`,
     // Las del ERP: las del motor y, desde la actividad 8 (20261015010000 y 20261015011000), enviar a la tienda del pedido, la lista,
-    // el detalle, el número del menú y los apartados que Existencias rotula. Todas con su permiso adentro.
-    "0|anular_pago_pedido_web,anular_pedido_web,confirmar_pedido_web,enviar_pedido_web_desde,fn_apartados_de_pedidos_web,fn_pedido_web,fn_pedido_web_detalle,fn_pedidos_web_por_confirmar,fn_pedidos_web_sede,fn_pedidos_web_tablero,no_confirmar_pedido_web,registrar_pago_pedido_web,reservar_linea_pedido_web|0|true|0|true",
+    // el detalle, el número del menú y los apartados que Existencias rotula; desde la actividad 10 (20261015052000), entregar con el
+    // código. Todas con su permiso adentro.
+    "0|anular_pago_pedido_web,anular_pedido_web,confirmar_pedido_web,entregar_pedido_web,enviar_pedido_web_desde,fn_apartados_de_pedidos_web,fn_pedido_web,fn_pedido_web_detalle,fn_pedidos_web_por_confirmar,fn_pedidos_web_sede,fn_pedidos_web_tablero,no_confirmar_pedido_web,registrar_pago_pedido_web,reservar_linea_pedido_web|0|true|0|true",
   );
 
   // ===================================================================================================================

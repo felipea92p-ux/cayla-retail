@@ -4,9 +4,10 @@
 // `problemaParaConfirmar`, `faltaDeLlegada`, `problemaDelPago` y `problemaParaAnular`.
 
 import type { CampoDeGuia } from "./guia-campos";
-import { faltaDeDecision, faltaDeLlegada, type DecisionLinea, type LineaDetalle } from "./pedidos-web-reglas";
+import { faltaDeDecision, faltaDeLlegada, problemaDelCodigo, type DecisionLinea, type LineaDetalle } from "./pedidos-web-reglas";
 import {
   esDigital,
+  problemaDeCaja,
   problemaDeOperacion,
   problemaDelMedio,
   problemaDelMonto,
@@ -87,7 +88,17 @@ export function camposPago(
     const operacion = rechazado("operacion") ?? problemaDeOperacion(h.form.medio, h.form.operacion);
     campos.push({ id: "operacion", nombre: "N.º de operación", requerido: true, hecho: operacion === null, pendiente: operacion ?? "" });
   }
+  // Actividad 10: el pago que completa el total hace nacer la boleta, que va en la caja del día. Sin caja abierta, falta eso.
+  const caja = problemaDeCaja(h.form, h.falta, h.cajaAbierta, h.tienda);
+  if (caja) campos.push({ id: "caja", nombre: "Caja abierta", requerido: true, hecho: false, pendiente: caja });
   return [...campos, responsable(h)];
+}
+
+/** Entregar (actividad 10): el código que el cliente muestra (4 cifras; si es EL de su pedido lo dice la base) y quién entrega.
+ *  `rechazo`: lo que la base acaba de rechazar del código (de otro pedido): falta otra vez, con la frase de la base, hasta que se cambie. */
+export function camposEntregar(h: { codigo: string; rechazo?: string | null } & Responsable): CampoDeGuia[] {
+  const codigo = h.rechazo ?? problemaDelCodigo(h.codigo);
+  return [{ id: "codigo", nombre: "Código para recoger", requerido: true, hecho: codigo === null, pendiente: codigo ?? "" }, responsable(h)];
 }
 
 /** Anular (o devolver) un pago: por qué y quién lo hace. Si es efectivo, primero la caja abierta de hoy (de ella sale la plata): sin

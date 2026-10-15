@@ -250,6 +250,12 @@ export const PRUEBAS = [
   // al contenido y la hoja puede preguntar por un pago en duda. ROLLBACK.
   "pruebas:pedidos-web-cobrar",
 
+  // Entregar un pedido web y su boleta (ADR-0408, act. 10): con el pago que completa el total nace la venta (una línea por prenda,
+  // un «anticipo» por lo pagado, en la caja abierta) y su boleta PENDIENTE, sin tocar el stock; entregar con el código de 4 cifras
+  // saca cada prenda con la salida de su línea de venta (mal escrito, nada); dos veces no duplica; lo que viaja no se entrega; la
+  // venta por entregar no se anula, cambia ni devuelve; Finanzas cuenta su efectivo como el de Apartados. ROLLBACK.
+  "pruebas:pedidos-web-entregar",
+
   // Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
   // La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.
   "pruebas:redondeo-efectivo",

@@ -347,9 +347,10 @@ export const GUIA_APARTADOS: Guia = {
   ],
 };
 
-// Ventas ▸ Pedidos web (ADR-0408, act. 8 y 9). El piloto abre el primer pedido de la lista y, si hay algo para enviar a otra tienda, su
-// hoja; si el pedido ya está confirmado, abre «Registrar un pago», elige Yape y escribe un n.º de ejemplo. Nunca confirma, cierra,
-// anula, envía ni registra: esos botones se explican encendidos. Lo que se ve depende del pedido que abre (por confirmar o ya
+// Ventas ▸ Pedidos web (ADR-0408, act. 8, 9 y 10). El piloto abre el primer pedido de la lista y, si hay algo para enviar a otra tienda, su
+// hoja; si el pedido ya está confirmado, abre «Registrar un pago», elige Yape y escribe un n.º de ejemplo; y si hay algo pagado, pasa a
+// «Por entregar», abre el primero y escribe un código de ejemplo. Nunca confirma, cierra, anula, envía, registra ni entrega: esos
+// botones se explican encendidos. Lo que se ve depende del pedido que abre (por confirmar o ya
 // confirmado), por eso los pasos de la hoja son opcionales.
 export const GUIA_PEDIDOS_WEB: Guia = {
   id: "vender.pedidos-web",
@@ -501,18 +502,50 @@ export const GUIA_PEDIDOS_WEB: Guia = {
       texto: "«Registrar» lo anota a nombre de quien está de turno. Cuando lo pagado llega al total, el pedido queda pagado y pasa a «Por entregar». En la demo no se registra nada.",
     },
     {
+      id: "por-entregar",
+      ancla: "pedidos-web.pestana-entregar",
+      opcional: true,
+      // Dos: la hoja de pagar (si se abrió) y la del pedido. Un Escape sin nada que cerrar no hace nada.
+      preparar: [{ tipo: "escape" }, { tipo: "escape" }, { tipo: "clic", ancla: "pedidos-web.pestana-entregar" }],
+      titulo: "Lo pagado, por entregar",
+      texto: "Cuando un pedido queda pagado completo, su boleta sale sola y el pedido pasa aquí hasta que el cliente venga a recogerlo. Si pasan los días y no viene, se marca en rojo.",
+    },
+    {
+      id: "boleta",
+      ancla: "pedido-web.boleta",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "pedidos-web.abrir", siEsta: true }],
+      titulo: "Su boleta",
+      texto: "Salió sola al quedar pagado completo y se manda a SUNAT por la cola de siempre: aquí ves en qué va. Si SUNAT no responde, espera en la cola; el cobro ya quedó.",
+    },
+    {
+      id: "codigo",
+      ancla: "pedido-web.codigo",
+      opcional: true,
+      demostrar: [{ tipo: "escribir", ancla: "pedido-web.codigo", texto: "1234" }],
+      titulo: "El código para recoger",
+      texto: "El cliente lo ve en su pedido, en la web. Pídeselo y escríbelo: si no es el de su pedido, no se entrega nada. Si algo todavía no llega a la tienda, aquí te dice qué falta.",
+    },
+    {
+      id: "entregar",
+      ancla: "pedido-web.entregar",
+      opcional: true,
+      titulo: "Entregarlo",
+      texto: "«Entregar» saca sus prendas del stock a nombre de quien está de turno, y el pedido pasa a «Cerrados». «WhatsApp» le escribe que ya puede recogerlo. En la demo no se entrega nada.",
+    },
+    {
       id: "nota",
       ancla: "pedidos-web.nota",
       // Dos: la hoja de pagar (si se abrió) y la del pedido. Un Escape sin nada que cerrar no hace nada.
       preparar: [{ tipo: "escape" }, { tipo: "escape" }],
       titulo: "Lo que conviene saber",
-      texto: "Separar no toca el stock: la prenda se reserva al confirmar y sale del stock al entregarla. Los pagos se anotan dentro de cada pedido (el efectivo, en la caja abierta). Los pedidos web van aparte de los apartados de la tienda.",
+      texto: "Separar no toca el stock: la prenda se reserva al confirmar y sale del stock al entregarla. Los pagos se anotan dentro de cada pedido (el efectivo, en la caja abierta) y con el que lo completa sale su boleta. Se entrega con el código del cliente. Los pedidos web van aparte de los apartados de la tienda.",
     },
     {
       id: "fin",
       ancla: null,
       titulo: "¡Listo!",
-      texto: "Ya sabes revisar, confirmar y cobrar un pedido web. Para repasarlo: Mi perfil ▸ Demo ▸ Pedidos web.",
+      texto: "Ya sabes revisar, confirmar, cobrar y entregar un pedido web. Para repasarlo: Mi perfil ▸ Demo ▸ Pedidos web.",
     },
   ],
   alSalir: [{ tipo: "escape" }],

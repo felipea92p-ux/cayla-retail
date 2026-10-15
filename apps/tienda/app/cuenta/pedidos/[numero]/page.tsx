@@ -17,10 +17,12 @@ import {
   hora,
   nombreTienda,
   porQueSeCerro,
+  textoCambiarlo,
   vivas,
   type Pedido,
   type Plazos,
 } from "@/lib/pedidos";
+import { leerAyuda } from "@/lib/ayuda-servidor";
 import { leerPedido } from "@/lib/pedidos-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 import { whatsappLegible } from "@/lib/tiendas";
@@ -61,6 +63,8 @@ export default async function MiPedido({ params }: { params: Promise<{ numero: s
   const { pedido: p, plazos } = lectura;
   const tienda = nombreTienda(p.tienda.nombre);
   const conDinero = p.estado === "confirmado" || p.estado === "pagado" || p.estado === "entregado";
+  // Entregado: el plazo para cambiarlo es el de la caja (el que imprime su boleta), el mismo de «Cambios y devoluciones».
+  const diasParaCambiar = p.estado === "entregado" ? (await leerAyuda()).diasParaCambiar : null;
   return (
     <MarcoCuenta conCuenta enPagina="cuenta" conPie>
       <div className="t-ancho t-angosto">
@@ -77,7 +81,7 @@ export default async function MiPedido({ params }: { params: Promise<{ numero: s
           <div className="w-estado-cab">
             <Cabeza p={p} tienda={tienda} plazos={plazos} />
           </div>
-          <Extra p={p} tienda={tienda} />
+          <Extra p={p} tienda={tienda} diasParaCambiar={diasParaCambiar} />
 
           <div className="w-tarjeta">
             <ol className="w-linea">
@@ -119,6 +123,12 @@ export default async function MiPedido({ params }: { params: Promise<{ numero: s
                 <div>
                   <span>Pagado</span>
                   <span className="num">{soles(p.pagado)}</span>
+                </div>
+              )}
+              {p.boleta && (
+                <div>
+                  <span>Boleta</span>
+                  <span className="num">{p.boleta}</span>
                 </div>
               )}
               {conDinero && p.falta > 0 && (
@@ -212,6 +222,11 @@ function Cabeza({ p, tienda, plazos }: { p: Pedido; tienda: string; plazos: Plaz
           <h1 className="w-titulo">
             ¡Gracias por comprar <em>en CAYLA!</em>
           </h1>
+          {p.entregadoEn && (
+            <p className="w-texto-sec">
+              Lo recogiste en {tienda} el {fechaLarga(p.entregadoEn)}.
+            </p>
+          )}
         </>
       );
     case "vencido":
@@ -241,7 +256,7 @@ function Cabeza({ p, tienda, plazos }: { p: Pedido; tienda: string; plazos: Plaz
 }
 
 /** El botón o la caja de cada estado: WhatsApp por confirmar, el código para recoger, «Volver a separar». */
-function Extra({ p, tienda }: { p: Pedido; tienda: string }) {
+function Extra({ p, tienda, diasParaCambiar }: { p: Pedido; tienda: string; diasParaCambiar: number | null }) {
   if (p.estado === "por_confirmar") {
     const enlace = enlaceDelPedido(p);
     return enlace ? (
@@ -261,6 +276,19 @@ function Extra({ p, tienda }: { p: Pedido; tienda: string }) {
         <small>Muestra este código en caja</small>
         <span className="w-codigo-recojo num">{p.codigoRecojo}</span>
         {p.recogerHasta && <small>Recoge hasta el {fechaLarga(p.recogerHasta)}</small>}
+      </div>
+    );
+  }
+  if (p.estado === "entregado") {
+    return (
+      <div className="w-info">
+        <Icono nombre="tienda" />
+        <span>
+          <b>¿Necesitas cambiarlo?</b>
+          <small>
+            {textoCambiarlo(diasParaCambiar)} <Link href="/cambios-y-devoluciones">Cambios y devoluciones</Link>
+          </small>
+        </span>
       </div>
     );
   }

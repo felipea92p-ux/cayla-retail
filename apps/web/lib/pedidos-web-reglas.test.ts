@@ -8,17 +8,22 @@ import {
   datosDelCliente,
   decisionDeFabrica,
   decisionesParaLaBase,
+  errorDeEntrega,
   errorDePedidoWeb,
+  estadoDeBoleta,
   estadoDeLinea,
   estadoVisible,
+  faltanParaEntregar,
   fechasSugeridas,
   instanteDeLlegada,
   leerDetalle,
   leerTablero,
+  limpiarCodigo,
   mensajeWhatsapp,
   MOTIVOS_ANULAR,
   MOTIVOS_NO_CONFIRMAR,
   plazoCorto,
+  problemaDelCodigo,
   rehacerDecisiones,
   sePuedeReservarYa,
   textoCierre,
@@ -337,5 +342,74 @@ describe("El cliente y WhatsApp", () => {
     expect(mensajeWhatsapp(p, "devolucion")).toBe(
       "Hola Andrea, te escribimos de CAYLA Trujillo por tu pedido W-0012: quedó anulado y te devolvemos S/ 50.00. ¿Cómo prefieres recibirlo?",
     );
+    // Actividad 10: listo para recoger, y el que no viene. Nunca dicen el código (lo ve el cliente en su pedido).
+    expect(mensajeWhatsapp(p, "listo")).toBe(
+      "Hola Andrea, tu pedido W-0012 ya está listo para recoger en CAYLA Trujillo (Jr. Pizarro 123). Muestra en caja el código de tu pedido: lo ves en «Mis pedidos».",
+    );
+    expect(mensajeWhatsapp(p, "norecoge")).toBe("Hola Andrea, tu pedido W-0012 te espera en CAYLA Trujillo. ¿Cuándo pasas a recogerlo? Muestra en caja el código de tu pedido.");
+  });
+});
+
+describe("Entregar con el código de 4 cifras (actividad 10)", () => {
+  const ENTREGAR = readFileSync(join(__dirname, "../../../supabase/migrations/20261015052000_pedidos_web_entregar.sql"), "utf8");
+
+  it("el código como lo dicta el cliente: solo cifras, hasta 4", () => {
+    expect(limpiarCodigo("20 94")).toBe("2094");
+    expect(limpiarCodigo("2-0-9-4-5")).toBe("2094");
+    expect(limpiarCodigo("ab12")).toBe("12");
+    expect(limpiarCodigo("")).toBe("");
+  });
+  it("a la pantalla le basta la forma (4 cifras), la misma que exige la base; si es EL del pedido lo dice la base", () => {
+    expect(problemaDelCodigo("")).toBe("Escribe el código que el cliente ve en su pedido.");
+    expect(problemaDelCodigo("209")).toBe("El código tiene 4 cifras.");
+    expect(problemaDelCodigo("2094")).toBeNull();
+    expect(ENTREGAR).toContain("if v_codigo !~ '^[0-9]{4}$' then");
+  });
+  it("se entrega solo con todo reservado en la tienda del pedido: lo que falta se nombra", () => {
+    const l = (estado: LineaDetalle["estado"], ubicacionId: string | null, referencia = "Blusa Emma", talla: string | null = "M") =>
+      ({ estado, ubicacionId, referencia, talla }) as Pick<LineaDetalle, "estado" | "ubicacionId" | "referencia" | "talla">;
+    expect(faltanParaEntregar([l("reservada", TRU), l("quitada", null)], TRU)).toEqual([]);
+    expect(faltanParaEntregar([l("reservada", TRU), l("por_conseguir", null, "Casaca Luna", "S")], TRU)).toEqual(["Casaca Luna · S"]);
+    expect(faltanParaEntregar([l("reservada", LIM, "Palazo", null)], TRU)).toEqual(["Palazo"]);
+    expect(faltanParaEntregar([l("entregada", TRU)], TRU)).toEqual([]);
+  });
+  it("la boleta dice en qué va su envío a SUNAT, para cada estado que admite la base", () => {
+    const estados = ["pendiente", "enviado", "aceptado", "rechazado", "anulado", "no_emitido", "pendiente_reintento", "interna"];
+    for (const e of estados) expect(estadoDeBoleta(e).texto, e).not.toBe("");
+    expect(estadoDeBoleta("pendiente")).toEqual({ texto: "En cola para SUNAT", tono: "pizarra" });
+    expect(estadoDeBoleta("pendiente_reintento")).toEqual({ texto: "En cola para SUNAT", tono: "pizarra" });
+    expect(estadoDeBoleta("aceptado")).toEqual({ texto: "Aceptada por SUNAT", tono: "verde" });
+    expect(estadoDeBoleta("rechazado").tono).toBe("rojo");
+  });
+  it("un código mal escrito o de otro pedido va bajo el código; lo que todavía no llega, en la hoja", () => {
+    expect(errorDeEntrega({ hint: "pedido_web_codigo_incorrecto", message: "Ese código no es el del pedido W-0007." })).toEqual({
+      enElCodigo: true,
+      titulo: "Revisa el código",
+      detalle: "Ese código no es el del pedido W-0007.",
+    });
+    expect(errorDeEntrega({ hint: "pedido_web_codigo", message: "4 cifras" })?.enElCodigo).toBe(true);
+    expect(errorDeEntrega({ hint: "pedido_web_no_listo", message: "falta" })?.enElCodigo).toBe(false);
+    expect(errorDeEntrega({ hint: "otra_cosa", message: "x" })).toBeNull();
+    expect(errorDePedidoWeb({ hint: "pedido_web_por_entregar", message: "x" })?.titulo).toBe("El pedido todavía no se entrega");
+    // «Ya se entregó» (otra caja, un doble clic con otra marca) no es un error de verdad: se refresca.
+    expect(errorDePedidoWeb({ hint: "pedido_web_estado", message: "ya se entregó" })?.yaEstaba).toBe(true);
+  });
+  it("lee la venta, la boleta y quién lo entregó; sin ellas (una base sin la actividad 10), nada", () => {
+    const d = leerDetalle({
+      pedido_id: "p",
+      codigo: "W-0009",
+      estado: "entregado",
+      venta_id: "v-1",
+      entregado_por: "Rosa",
+      boleta: { comprobante_id: "c-1", texto: "B002-000004", estado: "pendiente_reintento" },
+    });
+    expect(d?.ventaId).toBe("v-1");
+    expect(d?.entregadoPor).toBe("Rosa");
+    expect(d?.boleta).toEqual({ comprobanteId: "c-1", texto: "B002-000004", estado: "pendiente_reintento" });
+    const viejo = leerDetalle({ pedido_id: "p", codigo: "W-0009", estado: "pagado" });
+    expect([viejo?.ventaId, viejo?.boleta, viejo?.entregadoPor]).toEqual([null, null, null]);
+  });
+  it("en la lista, lo pagado y listo se entrega con su código", () => {
+    expect(estadoVisible(pedido({ estado: "pagado", listoParaRecoger: true, pagadoEn: "2026-10-14T10:00:00Z" }), AHORA).accion).toBe("Entrégalo con su código");
   });
 });
