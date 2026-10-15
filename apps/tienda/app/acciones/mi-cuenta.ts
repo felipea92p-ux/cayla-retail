@@ -21,7 +21,6 @@ import {
   pedirCodigoAlCorreoNuevo,
   ponerClaveNueva,
   probarClave,
-  reenviarCodigoDelCambio,
   restablecerIntentoEnBase,
   restablecerReenviarEnBase,
   verificarCodigoDelCorreo,
@@ -141,7 +140,12 @@ export async function reenviarCodigoCorreoNuevo(correo: unknown): Promise<Respue
   if (!cuenta) return noDisponible();
   const pedido = await pedirCambioDeCorreoEnBase(cuenta.usuarioWebId, nuevo, true);
   if (pedido.estado === "enviar") {
-    const envio = await reenviarCodigoDelCambio(nuevo, `${await origen()}/cuenta/correo`);
+    // Se vuelve a PEDIR el cambio con su sesión (el proyecto manda un código nuevo y el anterior deja de servir). Un «reenvío» del proyecto
+    // busca la cuenta por su correo de ANTES y, con el nuevo, no mandaba nada sin decir nada (/chaos, 2026-10-15).
+    const sesion = await clienteSesion();
+    if (!sesion) return noDisponible();
+    const envio = await pedirCodigoAlCorreoNuevo({ sesion }, nuevo, `${await origen()}/cuenta/correo`);
+    if (envio === "correo_tomado") return { ok: false, campo: "correo", mensaje: MENSAJES.correoDeOtraPersona };
     return envio === "enviado" ? { ok: true, mensaje: MENSAJES.codigoNuevo, tono: "ok", espera: 60 } : { ok: false, campo: null, mensaje: TEXTOS_CUENTA.codigoNoEnviado };
   }
   if (pedido.estado === "esperar" || pedido.estado === "limite" || pedido.estado === "bloqueado") return respuestaDelTope(pedido);
@@ -214,7 +218,11 @@ export async function pedirCodigoDeAcceso(correo: unknown): Promise<RespuestaObt
   if (!h) return noDisponible();
   const envio = await restablecerReenviarEnBase(nuevo, h.ip);
   if (envio.estado === "enviar") {
-    const r = await reenviarCodigoDelCambio(nuevo, `${await origen()}/restablecer-acceso`);
+    // Se vuelve a PEDIR el cambio en el proyecto de clientes (con una sesión de un solo uso), no solo a reenviarlo: si el primer envío
+    // nunca salió (la tienda no le contestó al ERP), allá no hay ningún cambio pendiente y un reenvío no mandaría nada (/chaos, 2026-10-15).
+    const r = envio.correoActual
+      ? await pedirCodigoAlCorreoNuevo({ correoActual: envio.correoActual }, nuevo, `${await origen()}/restablecer-acceso`)
+      : "no_disponible";
     if (r !== "enviado") return { ok: false, campo: null, mensaje: TEXTOS_CUENTA.codigoNoEnviado };
     return { ok: true, mensaje: TEXTOS_CUENTA.restablecerReenvio, tono: "ok", espera: 60 };
   }

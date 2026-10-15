@@ -21,7 +21,8 @@ export function FormularioEliminarCuenta({ correo, frena: frenaInicial }: { corr
   const [mensaje, setMensaje] = useState<{ texto: string; campo: "clave" | null } | null>(null);
   const [frena, setFrena] = useState<LoQueFrena>(frenaInicial);
   const [eliminando, iniciar] = useTransition();
-  const estado = estadoClaveActual(clave);
+  // Una contraseña que el servidor rechazó cuenta como «falta» hasta que la cambie: así no se vuelve a probar la misma (gastaría un intento).
+  const estado = mensaje?.campo === "clave" ? "falta" : estadoClaveActual(clave);
   const marca = mensaje?.campo === "clave" ? "error" : marcaDe(estado, !enFoco && estado !== "ok");
 
   function eliminar() {

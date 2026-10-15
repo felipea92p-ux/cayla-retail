@@ -42,7 +42,8 @@ export function FormularioCorreoNuevo({ correoActual }: { correoActual: string }
   const [necesitaNuevo, setNecesitaNuevo] = useState(false);
   const [hasta, setHasta] = useState(0);
   const [ahora, setAhora] = useState(0);
-  const [confirmado, setConfirmado] = useState<string | null>(null);
+  // El correo que quedó y el de antes (el de antes se guarda al confirmar: si la página se vuelve a leer, la base ya dice el nuevo).
+  const [confirmado, setConfirmado] = useState<{ nuevo: string; anterior: string } | null>(null);
   const [obteniendo, iniciarObtener] = useTransition();
   const [reenviando, iniciarReenvio] = useTransition();
   const [confirmando, iniciarConfirmar] = useTransition();
@@ -57,9 +58,19 @@ export function FormularioCorreoNuevo({ correoActual }: { correoActual: string }
 
   const normal = normalizarCorreo(correo);
   const rechazoVigente = rechazado !== null && rechazado === normal ? rechazado : null;
-  const estado = estadoCambioDeCorreo({ clave, correo, actual: correoActual, rechazado: rechazoVigente, pedidoPara, codigo, confirmado: confirmado !== null });
-  const sigue = pasoQueSigue(estado, enFoco);
   const repetido = malo !== null && malo === codigo;
+  // Una contraseña que el servidor rechazó, o un código que salió mal (o que ya no sirve), cuentan como «falta» hasta que cambien: así no se
+  // vuelve a probar lo mismo (gastaría un intento) y el pie no dice «Todo listo» con el botón apagado.
+  const estado = estadoCambioDeCorreo({
+    clave: mensajeClave ? "" : clave,
+    correo,
+    actual: correoActual,
+    rechazado: rechazoVigente,
+    pedidoPara,
+    codigo: repetido || necesitaNuevo ? "" : codigo,
+    confirmado: confirmado !== null,
+  });
+  const sigue = pasoQueSigue(estado, enFoco);
   const codigoListo = pedidoPara !== null && pedidoPara === normal && codigoCompleto(codigo) && !repetido && !necesitaNuevo;
   const puedeObtener = estado.campos.clave === "ok" && estado.campos.correo === "ok";
 
@@ -127,7 +138,7 @@ export function FormularioCorreoNuevo({ correoActual }: { correoActual: string }
         mensaje: MENSAJES.codigoNoProbado,
       }));
       if (r.ok) {
-        setConfirmado(r.correo);
+        setConfirmado({ nuevo: r.correo, anterior: correoActual });
         setMensajeCodigo(null);
         return;
       }
@@ -170,9 +181,9 @@ export function FormularioCorreoNuevo({ correoActual }: { correoActual: string }
           </h1>
         </div>
         <Campo campo="codigo" idCaja={ID.codigo} etiqueta="Correo con que entras" marca="hecho" textoMarca="✓ Correo confirmado" alEntrar={() => undefined} alSalir={() => undefined}>
-          <input id={ID.codigo} className="w-caja" value={confirmado} readOnly aria-describedby={`${ID.codigo}-res`} />
+          <input id={ID.codigo} className="w-caja" value={confirmado.nuevo} readOnly aria-describedby={`${ID.codigo}-res`} />
           <Resultado id={ID.codigo}>
-            <p className="w-ayuda">{TEXTOS_CUENTA.correoCambiado}</p>
+            <p className="w-ayuda">{TEXTOS_CUENTA.correoCambiado(confirmado.anterior)}</p>
           </Resultado>
         </Campo>
         <div className="w-pie-form">

@@ -171,7 +171,8 @@ function envioDe(error: unknown, evento: string): EnvioDelCodigo {
  * Pide el cambio del correo de entrada al correo nuevo: el proyecto le manda el código SOLO a ese correo (plantilla
  * `correo-nuevo.html`, con `volverA` como enlace a la página donde se escribe). Con la sesión de ella (cambiar mi correo) o, sin sesión
  * (restablecer en tienda), con una sesión de un solo uso que se abre con la llave secreta (un enlace mágico canjeado aquí mismo, sin
- * mandar ningún correo) y se cierra enseguida.
+ * mandar ningún correo) y se cierra enseguida. Sirve también para «Reenviar»: pedirlo otra vez manda un código nuevo y el de antes deja
+ * de servir. (El «reenvío» propio del proyecto busca la cuenta por su correo de ANTES: con el nuevo no manda nada y no avisa.)
  */
 export async function pedirCodigoAlCorreoNuevo(
   opciones: { sesion: SupabaseClient } | { correoActual: string },
@@ -196,14 +197,6 @@ export async function pedirCodigoAlCorreoNuevo(
   } finally {
     await suelto.auth.signOut({ scope: "local" }).catch(() => undefined);
   }
-}
-
-/** «Pedir otro código» de un cambio que ya está pedido en el proyecto (no hace falta la sesión): el código anterior deja de servir. */
-export async function reenviarCodigoDelCambio(correoNuevo: string, volverA: string): Promise<EnvioDelCodigo> {
-  const suelto = clienteSuelto();
-  if (!suelto) return "no_disponible";
-  const { error } = await suelto.auth.resend({ type: "email_change", email: correoNuevo, options: { emailRedirectTo: volverA } });
-  return envioDe(error, "tienda_reenviar_codigo_cambio_fallo");
 }
 
 export type VerificacionDelCorreo = { estado: "confirmado"; usuarioWebId: string; correo: string } | { estado: "codigo_malo" | "no_disponible" };

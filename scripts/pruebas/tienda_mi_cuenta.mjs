@@ -565,6 +565,14 @@ escenario(
   "sin_pedido,sin_pedido,zz.ana.nueva@ejemplo.com,esperar,invalido",
 );
 escenario(
+  "«Obtener código» cuando el primer envío nunca salió (la tienda no le contestó al ERP): enviar, con el usuario y su correo de entrada de hoy (el servidor vuelve a PEDIR el cambio en el proyecto de clientes)",
+  `${COMO_CUENTA}select ${restablecer(":'ana'", "'zz.ana.nueva@ejemplo.com'")} as _r \\gset
+   ${DE_POSTGRES}select (x ->> 'estado') || '|' || (x ->> 'usuario_web_id' = :'u_ana') || '|' || (x ->> 'correo_actual') || '|' || (x ->> 'correo_nuevo')
+     from (select ${reenviar("'zz.ana.nueva@ejemplo.com'", "'zz-ip-4'")} as x) y;
+   select envios from retail.cuentas_web_cambios_correo where cuenta_web_id = :'cuenta_ana';`,
+  "enviar|true|zz.ana.web@ejemplo.com|zz.ana.nueva@ejemplo.com\n1",
+);
+escenario(
   "el tope de consultas por ip de la página pública (20 por hora, el de la tienda y el cartel): la 21.ª dice muchos_intentos",
   `select string_agg(distinct ${est(reenviar("'zz.nadie@ejemplo.com'", "'zz-ip-tope'"))}, ',') from generate_series(1, 20);
    select ${est(reenviar("'zz.nadie@ejemplo.com'", "'zz-ip-tope'"))} || '|' || ${est(restIntento("'zz.nadie@ejemplo.com'", "'zz-ip-tope'"))};`,
@@ -752,7 +760,9 @@ const MUTANTES = [
   ["el ERP restablece sin el módulo", 1, "  perform retail.fn_exigir_modulo('clientas');\n  v_persona := retail.fn_actor_persona_id(true);", "  v_persona := retail.fn_actor_persona_id(true);"],
   ["el ERP restablece una ficha archivada", 1, "  if v_archivada then\n    raise exception 'Esta ficha está archivada", "  if false then\n    raise exception 'Esta ficha está archivada"],
   ["la página pública completa el cambio que pidió ella", 1, "where m.correo_nuevo = v_correo and m.origen = 'tienda' and (m.vence_en > now() or m.codigo_vence_en > now())", "where m.correo_nuevo = v_correo and (m.vence_en > now() or m.codigo_vence_en > now())"],
-  ["la página pública sin tope por ip", 1, "  if not retail.club_intento('consulta', p_ip_hash, null, null) then\n    return jsonb_build_object('estado', 'muchos_intentos');\n  end if;\n  v_cuenta :=", "  v_cuenta :="],
+  ["la página pública sin tope por ip", 1, "  if not retail.club_intento('consulta', p_ip_hash, null, null) then\n    return jsonb_build_object('estado', 'muchos_intentos');\n  end if;\n  for v_cuenta, v_usuario, v_actual in", "  for v_cuenta, v_usuario, v_actual in"],
+  // «Obtener código» de la página pública sin el usuario: el servidor solo podría reenviar, y si el primer envío no salió, no llega nada.
+  ["la página pública no dice de qué usuario es", 1, "jsonb_build_object('usuario_web_id', v_usuario, 'correo_actual', v_actual, 'correo_nuevo', v_correo)", "jsonb_build_object('correo_nuevo', v_correo)"],
   ["la contraseña sin bloqueo", 1, "bloqueada_hasta = case when v_intentos + 1 >= 5 then v_ahora + interval '15 minutes' end", "bloqueada_hasta = null"],
   ["eliminar no mira los pedidos en curso", 1, "if jsonb_array_length(v_frena -> 'pedidos') > 0 or", "if false or"],
   ["eliminar no mira los apartados", 1, "where s.clienta_id = p_clienta and s.estado = 'abierta'", "where false"],

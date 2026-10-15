@@ -143,7 +143,7 @@ begin
       ('retail.tienda_intento_cambio_correo(uuid,text)',              null,  '25c10e181bab6f06649268c38cd74746'),
       ('retail.tienda_correo_confirmado(uuid,text)',                  null,  '1273a486403c9ba09af028494b9067b0'),
       ('retail.tienda_restablecer_enviar(text)',                      null,  'fdadee70cb6f42ce640965cce77a8306'),
-      ('retail.tienda_restablecer_reenviar(text,text)',               null,  'c36d108602ed067cb898138641906f61'),
+      ('retail.tienda_restablecer_reenviar(text,text)',               null,  '2a39b1b73884176ccaecc47ea49f1e2d'),
       ('retail.tienda_restablecer_intento(text,text)',                null,  '96fb815675c20270ddd67389f86539dd'),
       ('retail.tienda_intento_de_clave(uuid)',                        null,  '18fefea8ddb5224e1f2b8f3a445e162d'),
       ('retail.tienda_clave_correcta(uuid)',                          null,  '6f900706c3af7887d9d132b2992bcbfd'),
@@ -657,6 +657,8 @@ as $$
 declare
   v_correo text := retail.fn_cuenta_web_correo(p_correo);
   v_cuenta uuid;
+  v_usuario uuid;
+  v_actual text;
   v_reserva jsonb;
 begin
   if v_correo is null or nullif(btrim(coalesce(p_ip_hash, '')), '') is null then
@@ -666,22 +668,29 @@ begin
   if not retail.club_intento('consulta', p_ip_hash, null, null) then
     return jsonb_build_object('estado', 'muchos_intentos');
   end if;
-  v_cuenta := (select m.cuenta_web_id
-                 from retail.cuentas_web_cambios_correo m
-                 join retail.cuentas_web w on w.id = m.cuenta_web_id
-                where m.correo_nuevo = v_correo and m.origen = 'tienda' and m.vence_en > now() and w.cerrada_en is null);
+  for v_cuenta, v_usuario, v_actual in
+    select m.cuenta_web_id, w.usuario_web_id, w.correo
+      from retail.cuentas_web_cambios_correo m
+      join retail.cuentas_web w on w.id = m.cuenta_web_id
+     where m.correo_nuevo = v_correo and m.origen = 'tienda' and m.vence_en > now() and w.cerrada_en is null
+  loop
+    exit;
+  end loop;
   if v_cuenta is null then
     return jsonb_build_object('estado', 'sin_pedido');
   end if;
   v_reserva := retail.fn_cambio_correo_reservar_envio(v_cuenta);
   if v_reserva ->> 'estado' = 'enviar' then
-    return v_reserva || jsonb_build_object('correo_nuevo', v_correo);
+    -- Con el usuario y su correo de entrada de hoy: el servidor de la tienda vuelve a PEDIR el cambio en el proyecto de clientes, no solo
+    -- a reenviarlo. Si el primer envío nunca salió (la tienda no le contestó al ERP), allá no hay ningún cambio pendiente y un simple
+    -- reenvío no mandaría nada (medido en /chaos el 2026-10-15).
+    return v_reserva || jsonb_build_object('usuario_web_id', v_usuario, 'correo_actual', v_actual, 'correo_nuevo', v_correo);
   end if;
   return v_reserva;
 end;
 $$;
 comment on function retail.tienda_restablecer_reenviar(text, text) is
-  'Tienda online (ADR-0408): «Pedir otro código» de la página pública «Restablecer mi acceso». ¿Hay un restablecimiento pedido en tienda a ese correo y se puede mandar otro código ahora? {estado: invalido | muchos_intentos (20 consultas por ip y hora) | sin_pedido | bloqueado | esperar | limite | enviar (correo_nuevo)}. La tienda responde lo mismo con sin_pedido y con enviar (nadie averigua aquí quién pidió un restablecimiento). Solo la llama tienda_web.';
+  'Tienda online (ADR-0408): «Obtener código» de la página pública «Restablecer mi acceso». ¿Hay un restablecimiento pedido en tienda a ese correo y se puede mandar otro código ahora? {estado: invalido | muchos_intentos (20 consultas por ip y hora) | sin_pedido | bloqueado | esperar | limite | enviar (usuario_web_id, correo_actual, correo_nuevo: el servidor vuelve a pedir el cambio en el proyecto de clientes, aunque el primer envío no haya salido)}. La tienda responde lo mismo con sin_pedido y con enviar (nadie averigua aquí quién pidió un restablecimiento). Solo la llama tienda_web.';
 
 create or replace function retail.tienda_restablecer_intento(p_correo text, p_ip_hash text)
 returns jsonb

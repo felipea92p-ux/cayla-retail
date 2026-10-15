@@ -47,9 +47,10 @@ export function FormularioRestablecerAcceso() {
   }, [restan]);
 
   const normal = normalizarCorreo(correo);
-  const estado = estadoRestablecer({ correo, codigo, clave });
-  const sigue = pasoQueSigue(estado, enFoco);
   const repetido = malo !== null && malo === codigo;
+  // Un código que salió mal (o que ya no sirve) cuenta como «falta» hasta que cambie: el pie no dice «Todo listo» con el botón apagado.
+  const estado = estadoRestablecer({ correo, codigo: repetido || necesitaNuevo ? "" : codigo, clave });
+  const sigue = pasoQueSigue(estado, enFoco);
   const listo = estado.faltan.length === 0 && !repetido && !necesitaNuevo && rechazado !== normal;
 
   function esperar(segundos: number | null | undefined) {

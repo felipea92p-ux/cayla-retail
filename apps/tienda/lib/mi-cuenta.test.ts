@@ -58,7 +58,7 @@ describe("la guía de «Cambiar mi correo»", () => {
     expect(estadoCambioDeCorreo(base).faltan.map(([p]) => p)).toEqual(["clave", "correo", "codigo"]);
     const conCorreo = estadoCambioDeCorreo({ ...base, clave: "secreta1", correo: NUEVO });
     expect(conCorreo.faltan.map(([p]) => p)).toEqual(["obtener", "codigo"]);
-    expect(textoDeLoQueFalta(conCorreo.faltan)).toBe("obtener el código y el código");
+    expect(textoDeLoQueFalta(conCorreo.faltan)).toBe("obtener el código y escribirlo");
     expect(textoDeLoQueFalta(estadoCambioDeCorreo(base).faltan)).toBe("tu contraseña, tu correo nuevo y el código");
   });
 
@@ -205,7 +205,10 @@ describe("eliminar la cuenta", () => {
     expect(queHacerConElPedido(f.pedidos[1]).enlace?.href).toBe("/cuenta/pedidos/W-0009");
     const apartado = queHacerConElApartado(f.apartados[0]);
     expect(apartado.titulo).toBe("Apartado SEP-0003");
+    expect(apartado.texto).toBe("Lo tienes separado en CAYLA Lima. Recógelo, o pide en la tienda que lo cierren.");
     expect(apartado.enlace).toBeNull();
+    // Una tienda sin nombre web llega con el nombre del ERP: no se vuelve «CAYLA Tienda Lima».
+    expect(queHacerConElApartado({ codigo: "SEP-1", tienda: "Tienda Lima", whatsapp: null }).texto).toMatch(/^Lo tienes separado en Tienda Lima\./);
   });
 
   it("dice qué se borra (también el Club) y qué queda (los comprobantes, sin sus datos)", () => {

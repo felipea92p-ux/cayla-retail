@@ -20,7 +20,7 @@ export const TEXTOS_CUENTA = {
   codigoNoEnviado: "No pudimos mandarte el código ahora. Intenta de nuevo en un minuto.",
   codigoSinPedir: "Pide un código nuevo: el de antes ya no sirve.",
   codigoCorreo: (correo: string) => `Te mandamos un código de 6 números a ${correo}. Escríbelo aquí; vence en 30 minutos.`,
-  correoCambiado: "Listo: ahora entras con tu correo nuevo. A tu correo de antes le avisamos del cambio.",
+  correoCambiado: (anterior: string) => `A tu correo de antes, ${anterior}, le avisamos del cambio.`,
   correoTomado: "Otra persona registró ese correo mientras lo confirmabas. Usa otro correo.",
   // Restablecer el acceso (lo pidió en una tienda CAYLA)
   restablecerAyuda: "Escribe el correo que diste en la tienda, el código que te llegó y tu contraseña nueva.",
@@ -96,7 +96,8 @@ export function estadoCambioDeCorreo(e: {
     if (clave !== "ok") faltan.push(["clave", "tu contraseña"]);
     if (correo !== "ok") faltan.push(["correo", "tu correo nuevo"]);
     else if (!pedido) faltan.push(["obtener", "obtener el código"]);
-    if (codigo !== "ok") faltan.push(["codigo", "el código"]);
+    // «Falta: obtener el código y escribirlo» (no «… y el código», que se lee dos veces).
+    if (codigo !== "ok") faltan.push(["codigo", correo === "ok" && !pedido ? "escribirlo" : "el código"]);
   }
   return { campos: { clave, correo: e.confirmado ? "ok" : correo, codigo, clave_nueva: "ok" }, faltan };
 }
@@ -318,8 +319,9 @@ export function leerEliminacion(dato: unknown): Eliminacion {
 
 /* ------------------------------------------------------------------ Lo que frena «Eliminar», en palabras de la tienda */
 
-/** «CAYLA Trujillo» (la web guarda «Trujillo»), como nombra la tienda el resto de la cuenta. */
-const enLaTienda = (tienda: string) => (/^cayla\b/i.test(tienda.trim()) ? tienda.trim() : `CAYLA ${tienda.trim()}`);
+/** «CAYLA Trujillo» (la web guarda «Trujillo»), como nombra la tienda el resto de la cuenta. Una tienda sin nombre web llega con el del
+ *  ERP («Tienda Lima»): esa se deja tal cual. */
+const enLaTienda = (tienda: string) => (/^(cayla|tienda)\b/i.test(tienda.trim()) ? tienda.trim() : `CAYLA ${tienda.trim()}`);
 
 /** Qué hacer con cada pedido o apartado que frena: una línea y su camino (ver el pedido, o escribirle a la tienda). */
 export type QueHacer = { titulo: string; texto: string; enlace: { texto: string; href: string; externo: boolean } | null };
