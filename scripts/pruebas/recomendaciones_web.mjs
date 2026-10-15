@@ -611,8 +611,10 @@ function main() {
     escenario(`select pg_temp.mutar('retail.tienda_mis_recomendaciones(uuid)', 'where r.cuenta_web_id = v_cuenta', 'where true');
       ${COMO_TIENDA}
       select ${recomienda(U.bea, "'La de Bea no la ve Ana'")} ->> 'id' as _b \\gset
-      select jsonb_array_length(retail.tienda_mis_recomendaciones('${U.ana}') -> 'recomendaciones');`),
-    "1",
+      -- Se busca la de Bea por su id, no se cuentan: en una base que ya tiene otras recomendaciones el mutante también las devuelve.
+      select exists (select 1 from jsonb_array_elements(retail.tienda_mis_recomendaciones('${U.ana}') -> 'recomendaciones') x
+                      where x ->> 'id' = :'_b')::text;`),
+    "true",
   );
   esperarValor(
     "MUTANTE responder sin mirar si quedó sin nombre: igual lo frena el candado de la fila, con otro error (la prueba A lo nota)",
