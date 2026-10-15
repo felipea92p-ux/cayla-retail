@@ -480,6 +480,26 @@ function main() {
       rollback;`),
     "0\n0",
   );
+  // Solo ropa en la web (Felipe 2026-10-15, `20261015122000_vitrina_solo_ropa.sql`): una bolsa, una caja o el empaque (una familia fuera
+  // de los motores) se vende desde el ticket, en la caja; no va en la web ni en un look.
+  const comoEmpaque = (prod) => `insert into retail.familias (codigo, nombre, entra_a_motores) values ('zzempaque', 'ZZ Empaque', false);
+      insert into retail.categorias (nombre, familia, prefijo) values ('ZZ Bolsas', 'zzempaque', 'ZZB') returning id as cat_bolsa \\gset
+      update retail.productos set categoria_id = :'cat_bolsa' where id = :'${prod}';\n`;
+  esperarError(
+    "no se guarda un look con una bolsa (familia fuera de los motores): no es ropa, y el porqué lo dice",
+    correr(`${PREPARAR}${EN_LA_VITRINA}${comoEmpaque("falda")}select ${guardar()};\nrollback;`),
+    "no va en un look: no es ropa",
+  );
+  esperarValor(
+    "un look con una prenda que pasó a una familia fuera de los motores sale de la tienda (con «Todas» y en cada tienda) y el ERP dice cuál",
+    correr(`${PREPARAR}${SEDES_EN_LA_WEB}${EN_LA_VITRINA}${crear("look")}${comoEmpaque("falda")}
+      select concat_ws('|', jsonb_array_length(retail.tienda_looks() -> 'looks'), jsonb_array_length(retail.tienda_looks(:'tru') -> 'looks'),
+          coalesce(retail.tienda_look(:'look') ->> 'look', 'null'),
+          (select concat_ws(',', x ->> 'publicado', x ->> 'se_ve', (select string_agg(p ->> 'nombre', '+') from jsonb_array_elements(x -> 'piezas') p where not (p ->> 'se_ve')::boolean))
+             from jsonb_array_elements(retail.fn_vitrina_looks() -> 'looks') x where x ->> 'id' = :'look'));
+      rollback;`),
+    "0|0|null|true,false,Falda Renata",
+  );
   // «ZZ Virgen»: una prenda sin historia (nunca se movió), la única que `eliminar_producto` deja eliminar.
   const CON_VIRGEN_ELIMINADA = `${PREPARAR}${EN_LA_VITRINA}
       select categoria_id as cat, marca_id as marca, proveedor_id as prov from retail.productos where id = :'emma' \\gset

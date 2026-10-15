@@ -18,7 +18,10 @@ import { VitrinaModeloHoja } from "@/components/vitrina/VitrinaModeloHoja";
 import {
   cifrasDe,
   coloresSinFoto,
+  esEmpaque,
   filtrarVitrina,
+  interruptorEncendido,
+  razonNoSeMuestra,
   stockEnTiendas,
   type FiltroVitrina,
   type LecturaVitrina,
@@ -247,8 +250,11 @@ function FilaModelo({
   onInterruptor: () => void;
 }) {
   const v = m.vitrina;
-  const publicado = Boolean(v?.publicado);
   const sinFoto = coloresSinFoto(m);
+  // Por qué no se puede mostrar (si no se puede): el empaque se vende en la caja y su interruptor queda apagado y quieto (Felipe
+  // 2026-10-15, «Solo ropa en la web»); lo demás, como antes.
+  const razon = razonNoSeMuestra(m);
+  const empaque = esEmpaque(m);
   return (
     <div
       role="row"
@@ -280,9 +286,9 @@ function FilaModelo({
               .filter(Boolean)
               .join(" · ")}
           </span>
-          {(!m.publicable || (v && v.enLoNuevo !== "automatico")) && (
+          {(razon || (v && v.enLoNuevo !== "automatico")) && (
             <span className="mt-1 flex flex-wrap gap-1.5">
-              {!m.publicable && <Chip tono="ambar">{publicado ? "Ya no se vende: no se ve" : "No se puede vender"}</Chip>}
+              {razon && <Chip tono={razon.tono}>{razon.chip}</Chip>}
               {v?.enLoNuevo === "fijo" && <Chip tono="verde">Fijado en Lo nuevo</Chip>}
               {v?.enLoNuevo === "quitado" && <Chip tono="neutro">Fuera de Lo nuevo</Chip>}
             </span>
@@ -301,10 +307,12 @@ function FilaModelo({
         <button
           type="button"
           role="switch" // unificar-fijo: la cara del interruptor del sistema en una fila de tabla; su título es la columna «En la web»
-          aria-checked={publicado}
+          aria-checked={interruptorEncendido(m)}
           aria-label={`${m.nombre} en la web`}
+          // El empaque no va en la web: el interruptor no se puede prender (la insignia dice por qué).
+          disabled={empaque}
           onClick={onInterruptor}
-          className="interruptor"
+          className="interruptor disabled:opacity-50"
         >
           <span aria-hidden className="interruptor-perilla" />
         </button>

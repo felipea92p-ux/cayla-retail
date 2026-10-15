@@ -15,6 +15,10 @@ import { normalizarBusqueda } from "./combo-reglas";
 import { nombreCortoSede } from "./stock-por-sede";
 
 export type EnLoNuevo = "automatico" | "fijo" | "quitado";
+/** Por qué un modelo NO se puede mostrar en la web (`fn_vitrina_por_que_no`, 20261015122000): `empaque` (de una familia fuera de los
+ *  motores —bolsas, cajas—: se vende desde el ticket, en la caja; «Solo ropa en la web», Felipe 2026-10-15), `sin_precio` (ninguna talla
+ *  activa con precio) o `no_se_vende` (descontinuado, de prueba o sin tallas activas). */
+export type PorQueNoSeMuestra = "empaque" | "sin_precio" | "no_se_vende";
 export type ColorVitrina = { codigo: string; nombre: string; hex: string | null; foto: string | null };
 export type StockTienda = { ubicacionId: string; cantidad: number };
 export type EstadoVitrina = {
@@ -33,8 +37,10 @@ export type ModeloVitrina = {
   categoria: string | null;
   prefijo: string | null;
   familia: string | null;
-  /** Activo, no de prueba y con tallas activas con precio: si no, aunque esté encendido no se ve en la web. */
+  /** Activo, no de prueba, con tallas activas con precio y ropa (no empaque): si no, aunque esté encendido no se ve en la web. */
   publicable: boolean;
+  /** Por qué no se puede mostrar (`null` si se puede, o si la base todavía no lo dice: entonces vale la razón de siempre). */
+  porQueNo: PorQueNoSeMuestra | null;
   foto: string | null;
   colores: ColorVitrina[];
   tallas: number;
@@ -56,6 +62,7 @@ const numero = (v: unknown): number | null => {
 const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
 const lista = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const esEnLoNuevo = (v: unknown): v is EnLoNuevo => v === "automatico" || v === "fijo" || v === "quitado";
+const esPorQueNo = (v: unknown): v is PorQueNoSeMuestra => v === "empaque" || v === "sin_precio" || v === "no_se_vende";
 
 function estadoDeJson(v: unknown): EstadoVitrina | null {
   if (!esObjeto(v)) return null;
@@ -86,6 +93,8 @@ export function modeloDeJson(v: unknown): ModeloVitrina | null {
     prefijo: texto(v.prefijo),
     familia: texto(v.familia),
     publicable: v.publicable === true,
+    // Un modelo que se puede mostrar no tiene porqué, diga lo que diga el dato.
+    porQueNo: v.publicable !== true && esPorQueNo(v.por_que_no) ? v.por_que_no : null,
     foto: texto(v.foto),
     colores: lista(v.colores)
       .filter(esObjeto)
@@ -116,6 +125,27 @@ export function leerVitrina(v: unknown): LecturaVitrina {
 
 /** Se ve en la web: encendido y vendible (uno descontinuado después de encenderse ya no se ve). */
 export const seVeEnLaWeb = (m: ModeloVitrina): boolean => Boolean(m.vitrina?.publicado) && m.publicable;
+
+/** Es empaque (bolsas, cajas: una familia fuera de los motores): se vende en la caja y no va en la web, nunca. Su interruptor queda
+ *  apagado aunque hubiera quedado encendido antes de la regla (Felipe 2026-10-15). */
+export const esEmpaque = (m: ModeloVitrina): boolean => m.porQueNo === "empaque";
+
+/** El interruptor de la fila: encendido si está publicado, salvo el empaque, que no va en la web (apagado y quieto). */
+export const interruptorEncendido = (m: ModeloVitrina): boolean => Boolean(m.vitrina?.publicado) && !esEmpaque(m);
+
+/** Por qué un modelo no se puede mostrar, como lo dice la pantalla: la insignia de la fila (y su tono) y la frase de la hoja. `null` si
+ *  se puede mostrar. El empaque no es un problema que arreglar (se vende en la caja): tono neutro; lo demás sí: ámbar. */
+export function razonNoSeMuestra(m: ModeloVitrina): { chip: string; tono: "neutro" | "ambar"; frase: string } | null {
+  if (m.publicable) return null;
+  if (esEmpaque(m)) {
+    return { chip: "Solo en la caja", tono: "neutro", frase: "No va en la web: no es ropa (es empaque, como las bolsas). Se vende desde el ticket, en la caja." };
+  }
+  return {
+    chip: m.vitrina?.publicado ? "Ya no se vende: no se ve" : "No se puede vender",
+    tono: "ambar",
+    frase: "No se puede mostrar: está descontinuado, es de prueba o no tiene tallas activas con precio.",
+  };
+}
 
 /** Lo libre (sin lo apartado) en todas las tiendas. */
 export const libreEnTiendas = (m: ModeloVitrina): number => m.stock.reduce((a, s) => a + Math.max(0, s.cantidad), 0);
@@ -172,7 +202,13 @@ export type ModoLote = "mostrar" | "ocultar";
 
 /** Lo que le pasa a cada modelo al mostrar u ocultar, en palabras, y si cambia (lo que `vitrina_mostrar` hace con él). */
 export function queLePasa(m: ModeloVitrina, modo: ModoLote): { texto: string; cambia: boolean } {
-  if (modo === "ocultar") return m.vitrina?.publicado ? { texto: "Deja de verse", cambia: true } : { texto: "Ya está oculto", cambia: false };
+  if (modo === "ocultar") {
+    if (!m.vitrina?.publicado) return { texto: "Ya está oculto", cambia: false };
+    // Un empaque encendido antes de la regla ya no se veía: ocultarlo solo lo apaga.
+    return { texto: esEmpaque(m) ? "Se apaga: ya no se veía" : "Deja de verse", cambia: true };
+  }
+  // Solo ropa en la web (Felipe 2026-10-15): el empaque no entra, aunque hubiera quedado encendido antes de la regla.
+  if (esEmpaque(m)) return { texto: "No es ropa: se vende en la caja", cambia: false };
   if (m.vitrina?.publicado) return { texto: m.publicable ? "Ya se ve" : "No se puede vender: no se ve", cambia: false };
   if (!m.publicable) return { texto: "No se puede mostrar: descontinuado, de prueba o sin tallas con precio", cambia: false };
   return { texto: "Se verá en la web", cambia: true };

@@ -837,7 +837,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `VitrinaPantalla.tsx` (cifras, buscador, lista con casilla e interruptor, barra fija de los elegidos) + `VitrinaModeloHoja.tsx`
   (`vitrina_guardar_modelo`: mostrar, Lo nuevo y descripción) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`: mostrar u ocultar uno o
   varios); reglas en `lib/vitrina-reglas.ts`, guía de foco en `lib/vitrina-guia.ts`. Sin precio web (Felipe, 2026-10-14): en la web
-  vale el de cada tienda (`fn_precio_en_sede`).
+  vale el de cada tienda (`fn_precio_en_sede`). Solo ropa en la web (Felipe, 2026-10-15, `20261015122000`): la regla es
+  `fn_vitrina_por_que_no` (empaque, sin precio, no se vende; `fn_vitrina_publicable` = «no hay porqué»), lo de una familia fuera de los
+  motores (bolsas, cajas) no se muestra ni se guarda y la tienda no lo ve aunque haya quedado publicado; la fila dice «Solo en la caja»
+  con el interruptor apagado (`razonNoSeMuestra`, `interruptorEncendido`).
   La cifra «Esperan una talla» (ADR-0408 act. 12) la lee el mismo `page.tsx` con `fn_vitrina_esperan` y lleva a
   `/productos/vitrina/esperan` (Vitrina web ▸ Esperan una talla, mismo módulo, sin menú propio) → `page.tsx` lee `fn_vitrina_esperan` →
   `components/vitrina/EsperanPantalla.tsx` (cifras que filtran, buscador, píldoras de tienda, la lista por prenda y tienda); reglas en
