@@ -2,7 +2,7 @@
   "guia": "produccion.ordenes.numero",
   "ruta": "/produccion/ordenes/[numero]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 65,
+  "total": 70,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
       "Volver «; if (!puedeVerProduccion(persona)) return»",
@@ -69,6 +69,12 @@
       "button «Cancelar»",
       "button «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
+    "components/orden-pagina/AnularSalidaOVueltaModal.tsx": [
+      "CampoTexto «Por qué la anulas»",
+      "ComboResponsable «avisoSalida.pedirAccion(onClo»",
+      "button «Cancelar»",
+      "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
+    ],
     "components/orden-pagina/CambiarQuienModal.tsx": [
       "ComboResponsable «avisoSalida.pedirA»",
       "button «Cancelar»",
@@ -80,6 +86,7 @@
       "button «{responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/LineaDeTiempo.tsx": [
+      "button «{primeraAnulable === e ? \"prod-orden.anular\" : undefined}»",
       "button «Deshacer»"
     ],
     "components/orden-pagina/PideAtencion.tsx": [

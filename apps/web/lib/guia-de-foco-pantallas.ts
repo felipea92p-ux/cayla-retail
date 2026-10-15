@@ -296,6 +296,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // Actividad 4: lo que sale a un servicio y lo que vuelve. «Salida»: cuántas mandas (precargado con lo que puede salir) y quién lo anota. «Vuelta»: cuántas volvieron, qué pasó con lo que no volvió bueno y quién lo anota.
   "components/orden-pagina/AnotarSalidaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AnotarSalidaModal.tsx"] },
   "components/orden-pagina/AnotarVueltaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AnotarVueltaModal.tsx"] },
+  // Actividad 4b: «Anular» una salida o una vuelta mal anotada. «Falta» = el porqué (la base lo exige, `anular_sin_motivo`) y quién lo anota.
+  "components/orden-pagina/AnularSalidaOVueltaModal.tsx": { estado: "aplicada", evidencia: ["components/orden-pagina/AnularSalidaOVueltaModal.tsx"] },
   "components/orden-pagina/DeshacerAvanceModal.tsx": { estado: "no-aplica", motivo: "Confirmación de UN solo control (quién lo deshace): el título dice qué anotación se deshace y cuántas prendas vuelven a quedar por terminar; no hay camino que indicar." },
   "components/OrdenPanel.tsx": PENDIENTE, // 1 control — un solo control: candidato a no-aplica
   "components/PagarComprobanteProduccionModal.tsx": PENDIENTE, // 3 controles

@@ -1,4 +1,4 @@
-// La guía de foco de las hojas de la página de la orden: «Terminé» (anotar lo terminado en una fase), «Cambiar quién», y la «Salida» y la «Vuelta» de un servicio (CLAUDE.md «Guía de foco», ADR-0284). Sin React ni red.
+// La guía de foco de las hojas de la página de la orden: «Terminé» (anotar lo terminado en una fase), «Cambiar quién», la «Salida» y la «Vuelta» de un servicio, y «Anular» una de las dos (CLAUDE.md «Guía de foco», ADR-0284). Sin React ni red.
 //
 // CONTRATO
 //   PROMETE: dado lo que la persona ya hizo en la hoja, la lista de campos con su «hecho» para que `useGuiaCampos` diga cuál está hecho, cuál sigue y qué falta antes del botón.
@@ -73,4 +73,18 @@ export function camposDeVuelta(e: EleccionVuelta): CampoDeGuia[] {
   if (e.hayExcepciones) campos.push({ id: "motivo", nombre: "Qué pasó", requerido: true, hecho: e.conMotivo, pendiente: "Cuéntanos qué pasó con lo que no volvió bueno." });
   campos.push({ id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota esta vuelta." });
   return campos;
+}
+
+export type EleccionAnulacion = {
+  /** Lo que `problemaDeAnulacion` dice del motivo escrito (null = la base lo aceptaría). */
+  problema: string | null;
+  responsableListo: boolean;
+};
+
+/** «Anular» una salida o una vuelta: por qué (la base lo exige, `anular_sin_motivo`) y quién lo anota. */
+export function camposDeAnulacion(e: EleccionAnulacion): CampoDeGuia[] {
+  return [
+    { id: "motivo", nombre: "Por qué la anulas", requerido: true, hecho: e.problema === null, pendiente: e.problema ?? "Cuéntanos por qué se anula." },
+    { id: "quien", nombre: "Quién lo anota", requerido: true, hecho: e.responsableListo, pendiente: "Elige quién anota esta anulación." },
+  ];
 }

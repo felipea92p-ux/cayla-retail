@@ -23,7 +23,7 @@ import { useResponsable } from "@/lib/useResponsable";
 // que ya puede salir (`cantidadesQuePuedenSalir`: lo que entró a la fase menos lo que ya salió): un clic y se manda todo; lo que todavía no sale, se baja a mano. La base no deja mandar
 // más de lo que entró (`registrar_salida`, candado por talla y color bajo el candado de la orden) y las prendas no entran ni salen del stock: solo se anota dónde están.
 //
-// Una salida no se deshace (solo se agrega, como todo lo anotado en una orden): si se mandó de más o de menos, se corrige cuando se anota la Vuelta. El número de guía es solo un texto: el
+// Una salida no se edita ni se borra (solo se agrega, como todo lo anotado en una orden): si se anotó mal, se ANULA con su motivo desde la línea de tiempo (actividad 4b) y se anota de nuevo. El número de guía es solo un texto: el
 // Taller no emite comprobantes (ADR-0400, «Lo que NO cambia»). Un doble clic no anota dos salidas: una marca síncrona corta la segunda llamada.
 
 export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina; fase: FasePagina; onClose: () => void }) {
@@ -129,7 +129,7 @@ export function AnotarSalidaModal({ datos, fase, onClose }: { datos: OrdenPagina
                 return [l?.codigo, puede > 0 ? `pueden salir ${puede}` : "no hay nada listo para mandar"].filter(Boolean).join(" · ");
               }}
             />
-            <p className="text-xs text-tinta/65">Una raya (—) es una combinación que este modelo no tiene. Una salida no se borra: si te equivocas, se corrige al anotar la vuelta.</p>
+            <p className="text-xs text-tinta/65">Una raya (—) es una combinación que este modelo no tiene. Una salida no se borra: si te equivocas, la anulas desde «Todo lo que pasó».</p>
           </CampoGuiado>
         </div>
 

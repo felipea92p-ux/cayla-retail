@@ -173,6 +173,9 @@
   .op-tiempo-cuanto { color: var(--color-taupe-profundo); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .op-tiempo-detalle { margin-top: 1px; font-size: 13px; color: var(--color-taupe-profundo); }
   .op-tiempo-deshacer { margin-top: 2px; font-size: 12.5px; }
+  /* Una salida o una vuelta ya anulada (ADR-0400, actividad 4b): sigue en la línea de tiempo, pero se lee como "ya no cuenta". */
+  .op-tiempo li[data-anulada="true"] .op-tiempo-que b,
+  .op-tiempo li[data-anulada="true"] .op-tiempo-cuanto { color: var(--color-taupe-profundo); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--color-taupe-profundo) 55%, transparent); }
 
   @media (prefers-reduced-motion: reduce) {
     .op-fase { transition: none; }

@@ -25,6 +25,8 @@ export const RPC_DESHACER_AVANCE = "deshacer_avance";
 export const RPC_CAMBIAR_QUIEN_FASE = "cambiar_quien_fase";
 export const RPC_REGISTRAR_SALIDA = "registrar_salida";
 export const RPC_REGISTRAR_VUELTA = "registrar_vuelta";
+export const RPC_ANULAR_SALIDA = "anular_salida";
+export const RPC_ANULAR_VUELTA = "anular_vuelta";
 
 /** Días sin que nadie anote nada para que la orden pida atención (ADR-0400, «Pantallas» punto 1). */
 export const DIAS_SIN_MOVERSE = 4;
@@ -33,7 +35,7 @@ export const DIAS_SIN_MOVERSE = 4;
 
 export type EstadoOrden = "en_proceso" | "terminada" | "anulada";
 export type EstadoFase = "pendiente" | "en_curso" | "hecha";
-export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta";
+export type TipoEvento = "apertura" | "avance" | "deshacer" | "salida" | "vuelta" | "anulacion";
 
 export type ProductoPagina = {
   id: string;
@@ -124,6 +126,13 @@ export type EventoTiempo = {
   avanceId: string | null;
   varianteId: string | null;
   nota: string | null;
+  /** Solo en una salida o una vuelta (ADR-0400, actividad 4b): ya la anuló otra anotación. */
+  anulada: boolean;
+  /** Solo en una salida o una vuelta: se puede anular ahora (la misma regla que `anular_salida` / `anular_vuelta`). */
+  anulable: boolean;
+  /** Solo en una anulación: qué anuló, y por qué. */
+  anula: "salida" | "vuelta" | null;
+  motivo: string | null;
 };
 
 export type OrdenPagina = {
@@ -161,7 +170,7 @@ function numero(x: unknown): number | null {
 }
 const entero = (x: unknown, defecto = 0): number => Math.round(numero(x) ?? defecto);
 const claves = new Set<string>(FASES.map((f) => f.clave));
-const TIPOS_EVENTO: ReadonlySet<string> = new Set(["apertura", "avance", "deshacer", "salida", "vuelta"]);
+const TIPOS_EVENTO: ReadonlySet<string> = new Set(["apertura", "avance", "deshacer", "salida", "vuelta", "anulacion"]);
 
 function leerFase(crudo: unknown): FasePagina | null {
   if (!esObjeto(crudo)) return null;
@@ -225,6 +234,10 @@ function leerEvento(crudo: unknown): EventoTiempo | null {
     avanceId: texto(crudo.avance_id),
     varianteId: texto(crudo.variante_id),
     nota: texto(crudo.nota),
+    anulada: crudo.anulada === true,
+    anulable: crudo.anulable === true,
+    anula: crudo.anula === "salida" || crudo.anula === "vuelta" ? crudo.anula : null,
+    motivo: texto(crudo.motivo),
   };
 }
 
@@ -732,6 +745,10 @@ export type EntradaDeTiempo = {
   cuanto: string | null;
   /** Los avances que «Deshacer» deshace: solo si TODOS los de esta entrada se pueden deshacer. `null`: no hay Deshacer. */
   avanceIds: string[] | null;
+  /** La salida o la vuelta que «Anular» anula (su id y cuál es): solo si la base dice que todavía se puede. `null`: no hay Anular. */
+  anulable: { id: string; que: "salida" | "vuelta" } | null;
+  /** Una salida o una vuelta que ya se anuló: se ve apagada, con su chip. */
+  anulada: boolean;
 };
 
 export type DiaDeTiempo = { dia: string; etiqueta: string; hoy: boolean; entradas: EntradaDeTiempo[] };
@@ -799,7 +816,11 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
       const nota = g.map((x) => x.nota).find((n): n is string => n !== null) ?? null;
       detalle = g.length > 1 ? [resumen, nota].filter(Boolean).join(" · ") || null : (e.detalle ?? null);
     } else if (e.tipo === "salida") titulo = `Salida de ${nombreFase}`;
-    else titulo = `Vuelta de ${nombreFase}`;
+    else if (e.tipo === "anulacion") {
+      titulo = `Anuló la ${e.anula ?? "anotación"} de ${nombreFase}`;
+      cuanto = e.anula === "vuelta" ? cuantas(e.cantidad, "prenda buena", "prendas buenas") : cuantas(e.cantidad, "prenda", "prendas");
+      detalle = e.motivo ? `Por qué: ${e.motivo}` : null;
+    } else titulo = `Vuelta de ${nombreFase}`;
     const todosDeshacibles = e.tipo === "avance" && g.every((x) => x.avanceId !== null);
     const entrada: EntradaDeTiempo = {
       ids: g.map((x) => x.id),
@@ -811,6 +832,8 @@ export function lineaDeTiempoAgrupada(p: OrdenPagina, hoy: string): DiaDeTiempo[
       detalle,
       cuanto,
       avanceIds: todosDeshacibles ? g.map((x) => x.avanceId as string) : null,
+      anulable: (e.tipo === "salida" || e.tipo === "vuelta") && e.anulable && !e.anulada ? { id: e.id, que: e.tipo } : null,
+      anulada: (e.tipo === "salida" || e.tipo === "vuelta") && e.anulada,
     };
     const dia = fechaLimaDe(e.cuando);
     const ultimo = dias_[dias_.length - 1];
@@ -953,4 +976,31 @@ export function devengadoDeLaRespuesta(respuesta: unknown, faseId: string): numb
   const fase = respuesta.find((f): f is { id: string; devengado?: unknown } => typeof f === "object" && f !== null && (f as { id?: unknown }).id === faseId);
   const n = Number(fase?.devengado);
   return fase && fase.devengado !== null && fase.devengado !== undefined && Number.isFinite(n) ? n : null;
+}
+
+// ---------- Anular una salida o una vuelta (ADR-0400, actividad 4b; Felipe, 2026-10-15) ----------
+
+/** El tope del «por qué» de una anulación (la base no lo limita; la hoja lo corta como el «qué pasó» de la Vuelta). */
+export const MAX_MOTIVO_ANULACION = 200;
+
+/** Lo que `anular_salida` / `anular_vuelta` rechazarían del motivo (hint `anular_sin_motivo`); `null` si lo aceptarían. */
+export function problemaDeAnulacion(motivo: string): string | null {
+  return motivo.trim() === "" ? "Cuéntanos por qué se anula." : null;
+}
+
+/** El nombre de la RPC que anula, según lo que se anula. */
+export function rpcDeAnulacion(que: "salida" | "vuelta"): string {
+  return que === "salida" ? RPC_ANULAR_SALIDA : RPC_ANULAR_VUELTA;
+}
+
+/** La frase de la hoja: lo que pasa con las prendas al anular, sin jerga. */
+export function textoQuePasaAlAnular(que: "salida" | "vuelta"): string {
+  return que === "salida"
+    ? "Las prendas dejan de contarse como enviadas y esa salida se puede anotar de nuevo. Lo anotado no se borra: queda en la línea de tiempo."
+    : "Las prendas buenas dejan de contarse como hechas y vuelven a estar afuera con el servicio. Lo anotado no se borra: queda en la línea de tiempo.";
+}
+
+/** El texto del aviso de éxito: «Anulaste la salida». */
+export function textoAnulaste(que: "salida" | "vuelta"): string {
+  return `Anulaste la ${que}`;
 }

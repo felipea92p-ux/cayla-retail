@@ -3,6 +3,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   DIAS_SIN_MOVERSE,
+  MAX_MOTIVO_ANULACION,
+  RPC_ANULAR_SALIDA,
+  RPC_ANULAR_VUELTA,
   accionesDeFase,
   avancesNuevos,
   avisoMinimoDeFase,
@@ -27,6 +30,7 @@ import {
   lineasDeSalida,
   lineasDeVuelta,
   numeroDeOrdenEnUrl,
+  problemaDeAnulacion,
   problemasDeSalida,
   problemasDeVuelta,
   puedeCambiarQuien,
@@ -34,11 +38,14 @@ import {
   quedanAfuera,
   quienDeFase,
   rojoDeLaOrden,
+  rpcDeAnulacion,
+  textoAnulaste,
   textoApertura,
   textoColoresYTallas,
   textoCosto,
   textoDeFase,
   textoMandaste,
+  textoQuePasaAlAnular,
   textoQueSigue,
   textoSeVende,
   textoTermine,
@@ -692,6 +699,94 @@ describe("Salida y Vuelta — lo que se puede mandar y lo que está afuera, por 
     });
     it("la Vuelta suma sus buenas como avance de la fase (por eso hechas cuenta lo que volvió bueno)", () => {
       expect(vuelta).toMatch(/insert into retail\.produccion_avances[\s\S]*'vuelta'/);
+    });
+  });
+});
+
+// ---------- Anular una salida o una vuelta (ADR-0400, actividad 4b) ----------
+
+describe("anular una salida o una vuelta", () => {
+  const SQL_ANULAR = readFileSync(join(RAIZ, "supabase", "migrations", "20261015160000_produccion_anular_salida_y_vuelta.sql"), "utf8");
+  const evento = (e: Record<string, unknown>) => ({ cuando: "2026-10-16T16:00:00+00:00", quien_nombre: "Rosa", fase_clave: "costura", fase_nombre: "Costura", cantidad: 20, detalle: null, avance_id: null, ...e });
+  const conEventos = (...eventos: Record<string, unknown>[]) => orden({ linea_de_tiempo: eventos.map((e, i) => evento({ id: `e-${i}`, ...e })) });
+
+  it("la lectura trae lo que la base marca en cada salida y vuelta, y por defecto nada es anulable ni está anulado", () => {
+    const [sinMarca, conMarca] = conEventos({ tipo: "salida" }, { tipo: "vuelta", anulable: true, anulada: true }).lineaDeTiempo;
+    expect(sinMarca).toMatchObject({ anulable: false, anulada: false, anula: null, motivo: null });
+    expect(conMarca).toMatchObject({ anulable: true, anulada: true });
+  });
+
+  it("una salida o una vuelta que se puede anular ofrece «Anular» con su id; una ya anulada no, y se lee apagada", () => {
+    const dias = lineaDeTiempoAgrupada(
+      conEventos(
+        { id: "s-1", tipo: "salida", anulable: true, cuando: "2026-10-16T16:00:00+00:00" },
+        { id: "v-1", tipo: "vuelta", anulable: true, anulada: false, cuando: "2026-10-16T15:00:00+00:00" },
+        { id: "s-2", tipo: "salida", anulable: false, anulada: true, cuando: "2026-10-16T14:00:00+00:00" },
+        { id: "s-3", tipo: "salida", anulable: false, anulada: false, cuando: "2026-10-16T13:00:00+00:00" }
+      ),
+      "2026-10-16"
+    );
+    const [salida, vuelta, anulada, sinAnular] = dias[0].entradas;
+    expect(salida.anulable).toEqual({ id: "s-1", que: "salida" });
+    expect(vuelta.anulable).toEqual({ id: "v-1", que: "vuelta" });
+    expect(anulada).toMatchObject({ anulable: null, anulada: true });
+    expect(sinAnular).toMatchObject({ anulable: null, anulada: false });
+  });
+
+  it("una base que marca anulable y anulada a la vez no ofrece Anular (la anulada manda)", () => {
+    const [entrada] = lineaDeTiempoAgrupada(conEventos({ id: "s-1", tipo: "salida", anulable: true, anulada: true }), "2026-10-16")[0].entradas;
+    expect(entrada.anulable).toBeNull();
+  });
+
+  it("la anulación es su propia entrada: qué anuló, cuántas prendas y por qué; nunca ofrece Anular ni se lee apagada", () => {
+    const [salida, vuelta] = lineaDeTiempoAgrupada(
+      conEventos(
+        { id: "a-1", tipo: "anulacion", anula: "salida", cantidad: 20, motivo: "me equivoqué de taller", cuando: "2026-10-16T16:00:00+00:00" },
+        { id: "a-2", tipo: "anulacion", anula: "vuelta", cantidad: 18, motivo: "la guía era de otra orden", cuando: "2026-10-16T15:00:00+00:00" }
+      ),
+      "2026-10-16"
+    )[0].entradas;
+    expect(salida).toMatchObject({ titulo: "Anuló la salida de Costura", cuanto: "20 prendas", detalle: "Por qué: me equivoqué de taller", anulable: null, anulada: false });
+    expect(vuelta).toMatchObject({ titulo: "Anuló la vuelta de Costura", cuanto: "18 prendas buenas", detalle: "Por qué: la guía era de otra orden" });
+  });
+
+  it("el motivo es obligatorio y los espacios no cuentan (como anular_sin_motivo en la base)", () => {
+    expect(problemaDeAnulacion("")).toBe("Cuéntanos por qué se anula.");
+    expect(problemaDeAnulacion("   \n ")).toBe("Cuéntanos por qué se anula.");
+    expect(problemaDeAnulacion("me equivoqué")).toBeNull();
+    expect(MAX_MOTIVO_ANULACION).toBe(200);
+  });
+
+  it("cada cosa que se anula llama a su función, y los textos hablan de salida o de vuelta", () => {
+    expect(rpcDeAnulacion("salida")).toBe(RPC_ANULAR_SALIDA);
+    expect(rpcDeAnulacion("vuelta")).toBe(RPC_ANULAR_VUELTA);
+    expect(textoAnulaste("salida")).toBe("Anulaste la salida");
+    expect(textoAnulaste("vuelta")).toBe("Anulaste la vuelta");
+    expect(textoQuePasaAlAnular("salida")).toContain("dejan de contarse como enviadas");
+    expect(textoQuePasaAlAnular("vuelta")).toContain("vuelven a estar afuera");
+    expect(textoQuePasaAlAnular("salida")).toContain("no se borra");
+  });
+
+  describe("paridad con la migración 20261015160000", () => {
+    it("las dos funciones existen con los argumentos que la hoja manda", () => {
+      expect(SQL_ANULAR).toContain(`create or replace function retail.${RPC_ANULAR_SALIDA}(p_salida_id uuid, p_motivo text)`);
+      expect(SQL_ANULAR).toContain(`create or replace function retail.${RPC_ANULAR_VUELTA}(p_vuelta_id uuid, p_motivo text)`);
+    });
+    it("el motivo es obligatorio también en la base, y los espacios no cuentan", () => {
+      expect(SQL_ANULAR).toContain("hint = 'anular_sin_motivo'");
+      expect(SQL_ANULAR).toContain("nullif(btrim(coalesce(p_motivo, '')), '')");
+    });
+    it("la línea de tiempo manda lo que la pantalla lee de cada anulación y de cada salida o vuelta", () => {
+      for (const k of ["anulada", "anulable", "anula", "motivo"]) expect(SQL_ANULAR, k).toContain(`'${k}'`);
+      expect(SQL_ANULAR).toContain("'tipo', 'anulacion'");
+      expect(SQL_ANULAR).toContain("'anula', 'salida'");
+      expect(SQL_ANULAR).toContain("'anula', 'vuelta'");
+    });
+    it("los rechazos que la pantalla puede mostrar existen como hint en la base", () => {
+      for (const h of ["anular_inexistente", "anular_es_anulacion", "anular_ya_anulada", "anular_ya_volvio", "anular_ya_avanzo"]) expect(SQL_ANULAR, h).toContain(h);
+    });
+    it("anular nunca toca el stock ni los libros: ninguna de las dos escribe en movimientos", () => {
+      expect(SQL_ANULAR).not.toMatch(/insert into retail\.(movimientos|movimientos_insumo|stock)\b/);
     });
   });
 });

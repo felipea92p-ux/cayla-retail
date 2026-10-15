@@ -357,7 +357,7 @@ caso(
    select concat_ws(',', :'a',
      ${FASE_DE(`:'j'::jsonb`, "costura", ["estado", "afuera", "salieron", "hechas"])},
      (select guia || ':' || nota || ':' || (hecho_por = :'felipe_p') from retail.produccion_salidas where fase_id = :'f_cost'),
-     (select count(*) || ':' || sum(cantidad) from retail.produccion_salida_lineas),
+     (select count(*) || ':' || sum(sl.cantidad) from retail.produccion_salida_lineas sl join retail.produccion_salidas s on s.id = sl.salida_id where s.fase_id in (select id from retail.produccion_fases where produccion_id = :'oid')),
      ${ACTIVIDAD("produccion_salida", "mandó 20 prendas de la OP-% a Costura con Confecciones Avances Prueba (guía 001-123)")},
      ${FASE_DE(`:'j'::jsonb`, "corte", ["estado"])},
      ${POR_VARIANTE("costura", "v1", ["entrada", "salieron", "afuera"])});`,
@@ -386,7 +386,7 @@ caso(
      pg_temp.eh(pg_temp.sale(:'f_cost', ${L(["v_ajena", 5])})),
      pg_temp.eh(pg_temp.sale(:'f_cost', jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', '0')))),
      pg_temp.eh(pg_temp.sale(:'f_cost', '[]'::jsonb))) as r1 \\gset
-   select :'r1' || ',' || (select count(*) from retail.produccion_salidas);`,
+   select :'r1' || ',' || (select count(*) from retail.produccion_salidas where fase_id in (select id from retail.produccion_fases where produccion_id = :'oid'));`,
   "P0001|salida_fase_del_taller,P0001|salida_excede,P0001|salida_variante_ajena,P0001|salida_cantidad_invalida,P0001|salida_sin_lineas,0"
 );
 
@@ -403,7 +403,7 @@ caso(
      ${FASE_DE(`:'j'::jsonb`, "costura", ["estado", "hechas", "afuera", "faltantes", "devengado"])},
      (select cantidad || ':' || origen || ':' || (vuelta_id is not null) from retail.produccion_avances where fase_id = :'f_cost'),
      (select guia || ':' || nota from retail.produccion_vueltas where fase_id = :'f_cost'),
-     (select buenas || ':' || segundas || ':' || faltantes || ':' || motivo from retail.produccion_vuelta_lineas),
+     (select vl.buenas || ':' || vl.segundas || ':' || vl.faltantes || ':' || vl.motivo from retail.produccion_vuelta_lineas vl join retail.produccion_vueltas vu on vu.id = vl.vuelta_id where vu.fase_id in (select id from retail.produccion_fases where produccion_id = :'oid')),
      ${ACTIVIDAD("produccion_vuelta", "recibió 18 prendas buenas de Costura (Confecciones Avances Prueba) de la OP-% · 2 faltantes")},
      pg_temp.eh(pg_temp.deshace(:'av_v')),
      ${POR_VARIANTE("costura", "v1", ["entrada", "hechas", "salieron", "volvieron_buenas", "segundas", "faltantes", "afuera"])});`,
@@ -445,7 +445,7 @@ caso(
      pg_temp.eh(pg_temp.vuelve(:'f_cost', jsonb_build_array(${VL("v1", 5, 0, 0)}, ${VL("v1", 5, 0, 0)}))),
      pg_temp.eh(pg_temp.vuelve(:'f_cost', jsonb_build_array(${VL("v_ajena", 5, 0, 0)}))),
      pg_temp.eh(pg_temp.vuelve(:'f_corte', jsonb_build_array(${VL("v1", 5, 0, 0)})))) as r1 \\gset
-   select :'r1' || ',' || (select count(*) from retail.produccion_vueltas);`,
+   select :'r1' || ',' || (select count(*) from retail.produccion_vueltas where fase_id in (select id from retail.produccion_fases where produccion_id = :'oid'));`,
   "P0001|vuelta_sin_cantidad,P0001|vuelta_cantidad_invalida,P0001|vuelta_cantidad_invalida,P0001|vuelta_sin_lineas,P0001|vuelta_variante_repetida,P0001|vuelta_variante_ajena,P0001|vuelta_fase_del_taller,0"
 );
 caso(

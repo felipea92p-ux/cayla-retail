@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { estadosDe, faltanDe, sePuedeConfirmar, siguienteDe } from "./guia-campos";
-import { camposDeAvance, camposDeCambiarQuien, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
+import { camposDeAnulacion, camposDeAvance, camposDeCambiarQuien, camposDeSalida, camposDeVuelta } from "./orden-pagina-guia";
+import { problemaDeAnulacion } from "./orden-pagina-reglas";
 import { problemasFases, type FaseBorrador, type ProveedorServicio, type TarifaDeLista } from "./orden-fases-reglas";
 
 describe("camposDeAvance — la guía coincide con lo que registrar_avance exige", () => {
@@ -89,5 +90,29 @@ describe("camposDeVuelta — la guía coincide con lo que registrar_vuelta exige
   it("con faltantes y sin motivo, sigue «qué pasó» y dice qué hacer", () => {
     const campos = camposDeVuelta({ total: 40, excesos: [], hayExcepciones: true, conMotivo: false, responsableListo: true });
     expect(siguienteDe(campos)).toMatchObject({ id: "motivo", pendiente: "Cuéntanos qué pasó con lo que no volvió bueno." });
+  });
+});
+
+describe("camposDeAnulacion — la guía coincide con lo que anular_salida y anular_vuelta exigen", () => {
+  // Las dos rechazan un motivo vacío (`anular_sin_motivo`) y exigen a alguien que firme (`fn_actor_persona_id(true)`).
+  const laBaseAcepta = (motivo: string, responsableListo: boolean) => motivo.trim() !== "" && responsableListo;
+
+  it("recorre las combinaciones: «se puede confirmar» es exactamente «la base acepta»", () => {
+    for (const motivo of ["", "   ", "me equivoqué de taller"]) {
+      for (const responsableListo of [true, false]) {
+        expect(sePuedeConfirmar(camposDeAnulacion({ problema: problemaDeAnulacion(motivo), responsableListo })), `${JSON.stringify(motivo)}/${responsableListo}`).toBe(laBaseAcepta(motivo, responsableListo));
+      }
+    }
+  });
+  it("al abrir la hoja sigue «por qué»; con el porqué escrito, «quién lo anota»", () => {
+    const sinMotivo = camposDeAnulacion({ problema: problemaDeAnulacion(""), responsableListo: false });
+    expect(siguienteDe(sinMotivo)?.id).toBe("motivo");
+    expect(faltanDe(sinMotivo).map((f) => f.id)).toEqual(["motivo", "quien"]);
+    const conMotivo = camposDeAnulacion({ problema: problemaDeAnulacion("me equivoqué"), responsableListo: false });
+    expect(siguienteDe(conMotivo)?.id).toBe("quien");
+    expect(estadosDe(conMotivo).motivo).toBe("hecho");
+  });
+  it("lo que dice la guía de lo que falta es lo mismo que dice la hoja al rechazar", () => {
+    expect(camposDeAnulacion({ problema: problemaDeAnulacion(""), responsableListo: true })[0].pendiente).toBe("Cuéntanos por qué se anula.");
   });
 });
