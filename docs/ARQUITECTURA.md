@@ -1182,7 +1182,15 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `clientas_nombre_del_padron_alta`/`_cambio` (`fn_nombre_de_ficha_del_padron`) rechazan (`nombre_sin_padron`) un nombre con DNI/RUC
   sin una lectura del padrón de la última hora (`padron_lecturas`, solo huellas) y uno con números en carné o pasaporte
   (`nombre_con_numeros`); una sesión de dueño de la base (pruebas, SQL Editor) queda fuera. El cartel del Club anota su lectura igual
-  (`app/actions/club-registro.ts`) y la tienda, con `tienda_anotar_lectura_padron`. Prueba: `pnpm pruebas:nombre-del-padron`. Y `exportar_clientas`
+  (`app/actions/club-registro.ts`) y la tienda, con `tienda_anotar_lectura_padron`. Prueba: `pnpm pruebas:nombre-del-padron`. **El nombre
+  de un DNI va con los nombres primero en todo el sistema** («María Pérez García», Felipe 2026-10-15): una sola regla en
+  `packages/shared/src/nombre-del-padron.ts` (por partes si la fuente las trae; con coma, la coma decide; junto, los apellidos primero),
+  que la consulta al padrón (`DatosPadron`: `nombre`, `nombres`, `apellidos`) aplica antes de devolverlo; `/api/padron` lo anota así, la
+  ficha lo guarda así y el saludo (`fn_club_nombre_de_pila`, la primera palabra) dice «¡Listo, María!». Las fichas de antes no se
+  reescriben: cambian con «Actualizar desde el padrón». Las reglas de formato del documento viven en
+  `packages/shared/src/documento-clienta.ts` (el ERP las re-exporta en `lib/documento-clienta-reglas.ts`): las usa también «Crear
+  cuenta» de la tienda, que acepta DNI, carné de extranjería y pasaporte (`tienda_consultar_documento`, `tienda_revisar_registro` y
+  `tienda_registrar_cuenta` llevan el tipo al final). Y `exportar_clientas`
   (solo Admin, D-109/G.4), `fn_clienta_compras/cambios/devoluciones/separaciones`
   (`security definer`, cruzan sede a propósito). Talla deducida (D-101) y «te falta N
   para frecuente» (D-103) calculadas al leer en `lib/clienta-actividad-reglas.ts`
