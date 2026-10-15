@@ -9,7 +9,7 @@ import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
-import { ETIQUETA_MOTIVO_NOTA, chipEstado, diaDelCierre, hace, nombreDeNotaDeCredito, pasosDeNota, siguientePaso, type FilaVista } from "@/lib/notas-credito-reglas";
+import { ETIQUETA_MOTIVO_NOTA, chipEstado, diaDelCierre, esDocumentoInterno, faltaNotaDelProveedor, hace, nombreDeNotaDeCredito, pasosDeNota, siguientePaso, type FilaVista } from "@/lib/notas-credito-reglas";
 import { TituloGrupo } from "@/components/ui/TituloSeccion";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
@@ -109,12 +109,13 @@ export function NotaCreditoVistaRapida({
             </div>
 
             <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-5">
-              <p className="label-cayla text-[10.5px] text-tinta/65">{f.clase === "pendiente" ? "Esperado con IGV" : "Monto de la nota"}</p>
+              <p className="label-cayla text-[10.5px] text-tinta/65">{f.clase === "pendiente" ? "Esperado con IGV" : esDocumentoInterno(f.serieNumero) ? "Monto del documento" : "Monto de la nota"}</p>
               <p className="font-display text-[40px] leading-[1.1] tabular-nums text-tinta">{soles(f.monto)}</p>
               <div className="mb-[18px] mt-2.5 flex flex-wrap gap-2">
                 <Chip tono={chip.tono}>{chip.texto}</Chip>
                 {f.clase === "pendiente" && !f.bloqueada && <Chip tono={f.tramo === "urgente" ? "rojo" : f.tramo === "medio" ? "ambar" : "neutro"}>{hace(f.edadDias)}</Chip>}
                 {f.motivo && <Chip tono="neutro">{ETIQUETA_MOTIVO_NOTA[f.motivo] ?? f.motivo}</Chip>}
+                {faltaNotaDelProveedor(f) && <Chip tono="ambar">Falta su nota de crédito</Chip>}
               </div>
 
               <dl className="grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">

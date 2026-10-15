@@ -6,7 +6,9 @@ import {
   borradorSaldoAFavor,
   camposSaldoAFavor,
   cantidadASaldo,
+  cuantoVale,
   detalleDeSaldoAFavor,
+  fraseNotaDeLaFactura,
   fraseSaldoAFavor,
   leerCantidadSaldoAFavor,
   leerDocumentosInternos,
@@ -676,6 +678,33 @@ describe("cuánto vale y adónde va (fn_deuda_valor) y lo que vuelve", () => {
     expect(docs).toHaveLength(1);
     expect(detalleDeSaldoAFavor(docs)).toBe("DI-000001 por S/\u00a084.00: bajó S/\u00a024.00 de lo que le debes por B001-902 y S/\u00a060.00 quedan a favor para tu próximo pago.");
     expect(detalleDeSaldoAFavor([])).toBe("Quedó anotado en la ficha del proveedor.");
+  });
+  it("con factura (actividad 2): el valor dice su IGV y la hoja pide la nota del proveedor", () => {
+    const FAC = {
+      cantidad: 1, con_papel: 1, sin_papel: 0, base: 20, igv: 3.6, monto: 23.6, baja_deuda: 23.6, a_favor: 0, con_factura: true,
+      papeles: [{ compra_id: "c2", documento: "F001-901", tipo: "factura", cantidad: 1, base: 20, igv: 3.6, monto: 23.6, saldo: 236, baja_deuda: 23.6, a_favor: 0 }],
+    };
+    const v = leerValorDeDeuda(FAC)!;
+    expect(cuantoVale(v)).toBe("S/\u00a023.60 con su IGV (S/\u00a020.00 + IGV S/\u00a03.60)");
+    expect(cuantoVale(leerValorDeDeuda(VALOR)!)).toBe("S/\u00a084.00");
+    const pide = "Es una factura: pídele al proveedor su nota de crédito por S/\u00a023.60 contra F001-901. Hasta que llegue, sus S/\u00a03.60 de IGV quedan en espera.";
+    expect(fraseNotaDeLaFactura(v)).toBe(pide);
+    expect(fraseNotaDeLaFactura(leerValorDeDeuda(VALOR)!)).toBeNull();
+    // Una boleta y una factura en el mismo reparto: la nota se pide solo por la factura.
+    expect(fraseNotaDeLaFactura(leerValorDeDeuda({ ...FAC, papeles: [...VALOR.papeles, ...FAC.papeles] })!)).toBe(pide);
+    // Dos facturas: sus notas, juntas.
+    const otra = { ...FAC.papeles[0], compra_id: "c3", documento: "F001-905" };
+    expect(fraseNotaDeLaFactura(leerValorDeDeuda({ ...FAC, papeles: [...FAC.papeles, otra] })!)).toBe(
+      "Es una factura: pídele al proveedor sus notas de crédito por S/\u00a047.20 contra F001-901 y F001-905. Hasta que llegue, sus S/\u00a07.20 de IGV quedan en espera.",
+    );
+    // Sin la base en la respuesta, sale del monto menos el IGV.
+    expect(leerValorDeDeuda({ ...FAC, base: undefined })!.base).toBeCloseTo(20, 2);
+  });
+  it("el aviso de éxito de una factura pide su nota", () => {
+    const docs = leerDocumentosInternos({ documentos: [{ documento: "DI-000002", comprobante: "F001-901", cantidad: 1, monto: 23.6, igv: 3.6, baja_deuda: 23.6, a_favor: 0 }] });
+    expect(detalleDeSaldoAFavor(docs)).toBe(
+      "DI-000002 por S/\u00a023.60: bajó S/\u00a023.60 de lo que le debes por F001-901. Pídele su nota de crédito por S/\u00a023.60 contra F001-901.",
+    );
   });
 });
 

@@ -7,8 +7,8 @@
  * envío) y se cierra con la prenda (decisión 14): a mano con una nota, o en la próxima recepción marcando lo de más como «Es la reposición
  * de lo que faltó», que salda las deudas de la más antigua a la más nueva. Que lo resuelto nunca pase de lo debido —ni con dos personas a
  * la vez—, que solo un «No vino» sea deuda y que lo resuelto no se cambie ni se borre. Y la fase 5b (actividad 1, migraciones
- * `20261015145000` y `20261015150000`): «Pasar a saldo a favor» con boleta, nota de venta o sin comprobante cierra en el papel lo que no
- * llegó, registra el documento interno DI-… que baja la deuda del comprobante, deja el resto a favor y no entra a Impuestos.
+ * `20261015145000` y `20261015150000`, actividades 1 y 2): «Pasar a saldo a favor» cierra en el papel lo que no llegó, registra el
+ * documento interno DI-… que baja la deuda del comprobante (con su IGV si es una factura), deja el resto a favor y no entra a Impuestos.
  *
  * QUÉ PRUEBA (cada caso en su transacción con ROLLBACK; la migración se carga DOS veces dentro de cada caso, así se prueba que se puede
  * pegar dos veces y corre con la base al día). Micaela es de Tienda Trujillo y no es líder (un rol de prueba con los módulos que pide cada
@@ -21,8 +21,10 @@
  *   B  «Depositó» todavía no (llega en la actividad 5); pasar a saldo a favor lo que nadie facturó, no; otra forma, no.
  *   A  A SALDO A FAVOR (5b, actividad 1): con boleta, el documento interno DI-… baja la deuda del comprobante (cierre «no llegó» en el
  *      papel, sin IGV), queda en la ficha y en el Diario (421 contra 201) y no en Impuestos; con el comprobante ya saldado, lo que sobra
- *      queda a favor del proveedor; con factura, todavía no (actividad 2); lo que no se facturó no tiene plata; Proveedores sí, Recibir
- *      solo no; el mismo token devuelve lo mismo; una nota del proveedor no usa la serie DI- ni vuelve a acreditar lo que ya saldó un DI.
+ *      queda a favor del proveedor; con factura (actividad 2), el documento lleva su IGV, que espera la nota del proveedor en la cuenta
+ *      puente 4019 (no baja el crédito fiscal ni entra a Impuestos), y si ya estaba pagada queda entera a favor; lo que no se facturó no
+ *      tiene plata; Proveedores sí, Recibir solo no; el mismo token devuelve lo mismo; una nota del proveedor no usa la serie DI- ni vuelve
+ *      a acreditar lo que ya saldó un DI.
  *   P  PERMISOS: Proveedores o Recibir resuelven; la plata de Compras y Órdenes de compra solo leen; sin módulos, 42501; sin elegir
  *      responsable, no.
  *   R  EN LA RECEPCIÓN: la reposición salda la más antigua primero y no pasa de lo debido; no salda una deuda de la misma recepción;
@@ -596,16 +598,67 @@ caso(
   "OK / 60.00:0.00:60.00 / 0.00 / nota_credito:60.00:true / 60.00 / Que lo descuente del próximo pedido",
 );
 caso(
-  "A3 con factura: todavía no (su IGV y su nota de crédito llegan en la actividad 2), sin escribir nada",
+  "A3 con factura: el documento interno lleva su IGV; el Diario baja la deuda (421) y lo que costó (201), y el IGV espera en la cuenta puente 4019, no en la 4011; Impuestos no cambia hasta la nota del proveedor",
   `${PAPEL("fac", "factura", "F001", "901", [["l1", 10, 20]])}
    ${rolDeMicaela("recibir", "proveedores")}
    ${DEUDA("x1", "l1", 10, 7)}
-   ${como(MICAELA)}${EN_TIENDA}
-   select pg_temp.e(pg_temp.resuelve(:'x1', 'saldo_a_favor', 1, null, null)) as r \\gset
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select coalesce(sum(igv_compras), 0) || ':' || coalesce(sum(igv_notas_credito), 0) as igv_antes from retail.fn_igv_credito_fiscal(retail.fn_hoy_lima()) \\gset
    reset role;
-   select concat_ws(' / ', :'r', ${ESTADO("x1")}, (select count(*) from retail.compra_notas_credito n where n.compra_id = :'fac'),
-     (select count(*) from retail.compra_item_cierres k join retail.compra_items i on i.id = k.compra_item_id where i.compra_id = :'fac'));`,
-  "P0001|nos_debe_todavia_no|Las prendas de una factura se pasan a saldo a favor con su IGV: todavía no / 0/3 / 0 / 0",
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.resuelve(:'x1', 'saldo_a_favor', 1, null, null) as a \\gset
+   reset role;
+   select (:'a'::jsonb -> 'documentos' -> 0 ->> 'nota_credito_id') as nc \\gset
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select coalesce(string_agg(x.cuenta || ':' || x.debe || ':' || x.haber, ',' order by x.cuenta), '-') as diario,
+          coalesce(min(x.glosa) filter (where x.cuenta = '4019'), '-') as glosa,
+          (sum(x.debe) = sum(x.haber))::text as cuadra
+     from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), null) x where x.origen_id = :'nc' \\gset
+   select coalesce(sum(igv_compras), 0) || ':' || coalesce(sum(igv_notas_credito), 0) as igv_despues from retail.fn_igv_credito_fiscal(retail.fn_hoy_lima()) \\gset
+   reset role;
+   select count(*) as imp from retail.fn_impuestos_compras(retail.fn_hoy_lima(), retail.fn_hoy_lima()) x where x.id = :'nc' \\gset
+   select concat_ws(' / ', pg_temp.e(:'a'::jsonb),
+     (select (d ->> 'comprobante') || ':' || (d ->> 'cantidad') || ':' || (d ->> 'monto') || ':' || (d ->> 'igv') || ':' || (d ->> 'baja_deuda')
+             || ':' || (d ->> 'a_favor') from jsonb_array_elements(:'a'::jsonb -> 'documentos') d),
+     (select n.interna || ':' || n.subtotal || ':' || n.igv || ':' || n.monto || ':' || n.aplicado from retail.compra_notas_credito n where n.id = :'nc'),
+     (select c.notas_credito || ':' || c.saldo from retail.compras c where c.id = :'fac'),
+     :'diario', :'glosa', :'cuadra', :'imp' || ' en Impuestos', (:'igv_antes' = :'igv_despues' and :'igv_antes' <> '0:0')::text,
+     (select k.tipo || ':' || k.nombre from retail.cuentas k where k.codigo = '4019'));`,
+  [
+    "OK",
+    "F001-901:1:23.60:3.60:23.60:0.00",
+    "true:20.00:3.60:23.60:23.60",
+    "23.60:212.40",
+    "201:0:20.00,4019:0:3.60,421:23.60:0",
+    "IGV por regularizar: falta la nota de crédito del proveedor",
+    "true",
+    "0 en Impuestos",
+    "true",
+    "pasivo:IGV por regularizar (falta la nota de crédito del proveedor)",
+  ].join(" / "),
+);
+caso(
+  "A8 con factura ya pagada: el documento interno, con su IGV, queda entero a favor del proveedor; el IGV igual espera en la cuenta puente",
+  `${PAPEL("fac", "factura", "F001", "901", [["l1", 10, 20]])}
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select retail.registrar_pago_compra(:'fac', 236.00, 'transferencia') as pg \\gset
+   reset role;
+   ${rolDeMicaela("recibir", "proveedores")}
+   ${DEUDA("x1", "l1", 10, 7)}
+   ${como(MICAELA)}${EN_TIENDA}
+   select pg_temp.resuelve(:'x1', 'saldo_a_favor', 3, null, null) as a \\gset
+   reset role;
+   select (:'a'::jsonb -> 'documentos' -> 0 ->> 'nota_credito_id') as nc \\gset
+   ${como(FELIPE)}${SIN_ENCABEZADOS}
+   select coalesce(string_agg(x.cuenta || ':' || x.debe || ':' || x.haber, ',' order by x.cuenta), '-') as diario
+     from retail.fn_asientos(retail.fn_hoy_lima(), retail.fn_hoy_lima(), null) x where x.origen_id = :'nc' \\gset
+   reset role;
+   select concat_ws(' / ', pg_temp.e(:'a'::jsonb),
+     (select (d ->> 'monto') || ':' || (d ->> 'igv') || ':' || (d ->> 'baja_deuda') || ':' || (d ->> 'a_favor') from jsonb_array_elements(:'a'::jsonb -> 'documentos') d),
+     (select c.saldo from retail.compras c where c.id = :'fac'),
+     (select string_agg(k.tipo || ':' || k.monto, ',') from retail.proveedor_creditos k where k.proveedor_id = :'prov'),
+     retail.fn_saldo_favor_proveedor(:'prov'), :'diario');`,
+  "OK / 70.80:10.80:0.00:70.80 / 0.00 / nota_credito:70.80 / 70.80 / 201:0:60.00,4019:0:10.80,421:70.80:0",
 );
 caso(
   "A4 lo que no se facturó no tiene plata: de 3, con solo 1 en el papel, pasar 3 no; pasar 1 sí, y lo que queda se valora al costo recibido",

@@ -24,7 +24,6 @@ import { MARGEN_NOTA, reparteNota, type ReparteNota } from "./recepciones-reglas
 // Lo que devuelve la base: una fila del tablero
 // ---------------------------------------------------------------------------
 
-/** `'pendiente'` = un faltante cerrado que todavía espera su nota; `'nota'` = una nota ya registrada. */
 /** ¿Es un documento interno de CAYLA (ADR-0362 fase 5b: lo que no llegó, pasado a saldo a favor)? La base garantiza que su serie, y solo la
  *  suya, empieza con «DI-» (candado `compra_notas_credito_interna_serie`). */
 export const esDocumentoInterno = (serie: string | null | undefined): boolean => typeof serie === "string" && serie.trim().toUpperCase().startsWith("DI-");
@@ -34,6 +33,15 @@ export function nombreDeNotaDeCredito(serie: string | null | undefined): string 
   return `${esDocumentoInterno(serie) ? "Documento interno" : "Nota de crédito"} ${serie ?? ""}`.trim();
 }
 
+/**
+ * ¿Falta la nota de crédito del proveedor (la 07)? Solo en un documento interno de una FACTURA (con IGV, fase 5b actividad 2): la plata ya
+ * volvió, pero su IGV no baja el crédito fiscal sin la nota del proveedor y espera en la cuenta puente 4019. Con boleta, nota de venta o sin
+ * comprobante no hay IGV que regularizar: el documento interno basta.
+ */
+export const faltaNotaDelProveedor = (f: Pick<FilaTablero, "clase" | "serieNumero" | "igv">): boolean =>
+  f.clase === "nota" && esDocumentoInterno(f.serieNumero) && f.igv > 0;
+
+/** `'pendiente'` = un faltante cerrado que todavía espera su nota; `'nota'` = una nota ya registrada. */
 export type ClaseFila = "nota" | "pendiente";
 
 /**
@@ -603,11 +611,19 @@ export function pasosDeNota(f: FilaVista, dinero: (n: number) => string = soles)
     return pasos;
   }
   pasos.push({ clave: "Origen", titulo: tituloOrigen(f.motivo), detalle: f.nota ?? ETIQUETA_MOTIVO_NOTA[f.motivo ?? "otro"] ?? "", fecha: dm(f.compraFechaEmision), estado: "hecho" });
-  pasos.push({ clave: "Nota recibida", titulo: `Nota ${f.serieNumero ?? ""} recibida`, detalle: `Registrada contra ${f.documento}`, fecha: dm(f.fecha), estado: "hecho" });
+  // Un documento interno no «se recibe»: lo registra CAYLA al pasar a saldo a favor lo que no llegó (fase 5b).
+  pasos.push(
+    esDocumentoInterno(f.serieNumero)
+      ? { clave: "Documento interno", titulo: `Documento interno ${f.serieNumero ?? ""}`, detalle: `Lo que no llegó de ${f.documento}, pasado a saldo a favor`, fecha: dm(f.fecha), estado: "hecho" }
+      : { clave: "Nota recibida", titulo: `Nota ${f.serieNumero ?? ""} recibida`, detalle: `Registrada contra ${f.documento}`, fecha: dm(f.fecha), estado: "hecho" },
+  );
   if (f.aplicado > 0.004) pasos.push({ clave: "Baja deuda", titulo: `Bajó la deuda de ${f.documento}`, detalle: `− ${dinero(f.aplicado)} de lo que se debía`, fecha: dm(f.fecha), estado: "hecho" });
   if (f.devuelto) pasos.push({ clave: "Devuelto", titulo: "Dinero devuelto", detalle: `${dinero(f.devuelto.monto)}${f.devuelto.metodo ? ` · ${f.devuelto.metodo}` : ""}`, fecha: dm(f.devuelto.fecha), estado: "hecho" });
   if (f.vivo > 0.004) pasos.push({ clave: "A favor", titulo: "Con saldo a favor sin usar", detalle: `Quedan ${dinero(f.vivo)} de ${dinero(f.aFavor)} que sobraron`, fecha: null, estado: "ahora" });
   else if (f.aFavor > 0.004 && !f.devuelto) pasos.push({ clave: "Aplicada", titulo: "Aplicada", detalle: "Su saldo ya se usó en pagos", fecha: null, estado: "hecho" });
+  if (faltaNotaDelProveedor(f)) {
+    pasos.push({ clave: "Falta su nota", titulo: "Falta su nota de crédito", detalle: `Por ${dinero(f.monto)}: hasta que llegue, su IGV queda en espera`, fecha: null, estado: "ahora" });
+  }
   return pasos;
 }
 
@@ -638,6 +654,10 @@ export function siguientePaso(f: FilaVista, dinero: (n: number) => string = sole
     }
     return { tono: "aviso", texto: `Reclámasela a ${f.proveedorNombre}: corresponde una nota por ${dinero(f.monto)} contra ${f.documento}. Cuando llegue, regístrala y elige qué pasa con el dinero que sobre.` };
   }
+  // Un documento interno de una factura: la plata ya volvió, pero su IGV espera la nota del proveedor (fase 5b, actividad 2).
+  if (faltaNotaDelProveedor(f)) {
+    return { tono: "aviso", texto: `La plata ya volvió. Falta la nota de crédito de ${f.proveedorNombre} por ${dinero(f.monto)} contra ${f.documento}: pídesela. Hasta que llegue, sus ${dinero(f.igv)} de IGV quedan en espera.` };
+  }
   if (f.estado === "emitida") {
     return { tono: "bien", texto: `Quedan ${dinero(f.vivo)} a tu favor con ${f.proveedorNombre}. Se te ofrecen al pagar: tú decides si los usas o pides el reembolso.` };
   }
@@ -657,7 +677,7 @@ export function mensajeParaProveedor(f: FilaVista, dinero: (n: number) => string
   const igv = f.igv > 0 ? f.igv : centavos(f.monto - f.monto / 1.18);
   const neto = centavos(f.monto - igv);
   return [
-    `Hola, buen día. En la recepción de ${f.documento} quedaron ${unidades} sin llegar.`,
+    `Hola, buen día. En la recepción de ${f.documento} ${f.unidadesCerradas === 1 ? "quedó" : "quedaron"} ${unidades} sin llegar.`,
     `Corresponde una nota de crédito por ${dinero(f.monto)} (base ${dinero(neto)} + IGV ${dinero(igv)}) contra ${f.documento}. ¿Nos la pueden emitir? Gracias. — CAYLA`,
   ].join("\n");
 }

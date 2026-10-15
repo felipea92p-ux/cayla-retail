@@ -1,10 +1,11 @@
 -- ============================================================================
--- 20261015150000_nos_debe_saldo_a_favor.sql — CAYLA V2 · ADR-0362, fase 5b, actividad 1 (parte 2 de 2: las funciones). Va después de
+-- 20261015150000_nos_debe_saldo_a_favor.sql — CAYLA V2 · ADR-0362, fase 5b, actividades 1 y 2 (parte 2 de 2: las funciones). Va después de
 -- 20261015145000_nos_debe_saldo_a_favor_esquema.sql. Contrato: docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md.
 --
 -- EL PROBLEMA PRIMERO. Una deuda del proveedor solo se saldaba con la prenda. Si no la va a mandar, la plata pagada por ella no volvía.
 --
--- QUÉ HACE («Pasar a saldo a favor», decisión 58; esta actividad, con boleta, nota de venta o sin comprobante: sin IGV).
+-- QUÉ HACE («Pasar a saldo a favor», decisión 58; actividad 1, con boleta, nota de venta o sin comprobante: sin IGV; actividad 2, con
+-- factura: el documento lleva su IGV, que espera la nota de crédito del proveedor en la cuenta puente 4019).
 --   1. `fn_deuda_papel` (interna): de qué líneas de comprobante salen las prendas de una deuda, con la MISMA regla del cupo que la recepción
 --      (`fn_recepcion_cerrar`): las líneas de comprobantes vigentes de esa línea pedida, con cupo (facturado − recibido − cerrado), primero
 --      la que nombra el envío y después las más antiguas. Lo que no tiene papel con cupo no se facturó: no se pagó.
@@ -16,13 +17,17 @@
 --      registra el DOCUMENTO INTERNO DI-… (`compra_notas_credito`, interna) que baja lo que se le debe a ese comprobante, deja el resto como
 --      saldo a favor en el libro de siempre (`proveedor_creditos`, tipo `nota_credito`, en positivo) y anota la resolución de la deuda con
 --      su documento. Bloquea la deuda (quien llama) y los comprobantes de esa línea pedida, en orden, antes de mirar el cupo y el saldo.
+--      Con una factura con IGV, el documento lleva su IGV con la razón IGV/subtotal del propio comprobante (la de `fn_deuda_valor_de`): la
+--      plata que vuelve es la que se pagó.
 --   4. `resolver_deuda_proveedor` (REESCRITA, con candado de huella): `saldo_a_favor` deja de decir «todavía no» y pide Proveedores (o ser
---      líder: `fn_puede_gestionar_proveedores`); con una factura sigue diciendo «todavía no» hasta la actividad 2; «Depositó», hasta la 5. Y
---      una deuda sin marca (ADR-0393: se cuenta sin marca si hace falta) ya no dice «no existe»: la marca se une con LEFT JOIN.
+--      líder: `fn_puede_gestionar_proveedores`); «Depositó» sigue diciendo «todavía no» hasta la actividad 5. Y una deuda sin marca
+--      (ADR-0393: se cuenta sin marca si hace falta) ya no dice «no existe»: la marca se une con LEFT JOIN.
 --   5. `fn_nos_debe_deuda` (REESCRITA, con candado de huella): el monto pendiente sale del papel (`fn_deuda_valor_de`; lo que no tiene papel,
 --      al costo con que se recibió), cada resolución trae su documento, y la marca se une con LEFT JOIN.
 --   6. Lo que habla con SUNAT no cuenta el documento interno (REEMPLAZOS ANCLADOS): `fn_impuestos_compras`, `fn_impuestos_registro_compras`,
---      `fn_igv_credito_fiscal` y `resumen_compras_extra`. El Diario lo nombra «Documento interno DI-…» (`fn_asientos`). Y una nota del
+--      `fn_igv_credito_fiscal` y `resumen_compras_extra`. El Diario lo nombra «Documento interno DI-…» y lleva su IGV a la cuenta puente
+--      4019, no a la 4011 (`fn_asientos`): el crédito fiscal no baja hasta la nota del proveedor, igual que en Impuestos, y el IGV del Diario
+--      sigue cuadrando contra Impuestos (`fn_conciliacion_contable`). Y una nota del
 --      proveedor (`fn_insertar_nota_credito_compra`) no puede usar la serie DI- ni ser una nota por faltante de un comprobante que ya tiene
 --      documentos internos: esa nota se adjunta al documento interno (actividad 3).
 --
@@ -271,11 +276,6 @@ begin
         || (p_cantidad - v_con_papel) || ' no se facturaron' end || ': no hay plata que pasar a saldo a favor por ellas. Pasa ' || v_con_papel
     end using hint = 'nos_debe_sin_papel';
   end if;
-  -- Con una factura, el documento interno lleva su IGV y espera la nota de crédito del proveedor: llega en la actividad 2.
-  if exists (select 1 from jsonb_array_elements(v_reparto) e where e ->> 'tipo' = 'factura') then
-    raise exception 'Las prendas de una factura se pasan a saldo a favor con su IGV: todavía no' using hint = 'nos_debe_todavia_no';
-  end if;
-
   for v_compra in
     select distinct (e ->> 'compra_id')::uuid from jsonb_array_elements(v_reparto) e order by 1
   loop
@@ -296,7 +296,11 @@ begin
 
     select c.id, c.proveedor_id, c.total, c.saldo, c.documento into v_c from retail.compras c where c.id = v_compra;
     v_base := round(v_base, 2);
-    v_igv := 0;
+    -- Con una factura con IGV, el documento lleva su IGV (actividad 2): la razón IGV/subtotal del propio comprobante, la misma de
+    -- `fn_deuda_valor_de`. Ese IGV espera la nota del proveedor en la cuenta puente 4019 (`fn_asientos`).
+    v_igv := coalesce((select case when c.tipo = 'factura' and coalesce(c.igv, 0) > 0 and c.subtotal > 0
+                                   then round(v_base * c.igv / c.subtotal, 2) else 0 end
+                         from retail.compras c where c.id = v_compra), 0);
     v_monto := v_base + v_igv;
     if v_monto <= 0 then
       raise exception 'Esas prendas costaron S/ 0 en %: no hay plata que pasar a saldo a favor', v_c.documento using hint = 'nos_debe_sin_plata';
@@ -325,7 +329,8 @@ begin
     returning id into v_res;
     v_primera_res := coalesce(v_primera_res, v_res);
     v_docs := v_docs || jsonb_build_object('documento', v_doc, 'nota_credito_id', v_nota_id, 'compra_id', v_compra, 'comprobante', v_c.documento,
-                                           'cantidad', v_cantidad, 'monto', v_monto, 'baja_deuda', v_aplicado, 'a_favor', v_excedente);
+                                           'cantidad', v_cantidad, 'monto', v_monto, 'igv', v_igv, 'baja_deuda', v_aplicado,
+                                           'a_favor', v_excedente);
   end loop;
 
   return jsonb_build_object('resolucion_id', v_primera_res, 'documentos', v_docs);
@@ -648,6 +653,14 @@ select pg_temp.reemplazar(
   $n$case when nc.serie_numero like 'DI-%' then 'Documento interno ' else 'Nota de crédito ' end || nc.serie_numero as glosa$n$,
   1);
 
+-- El IGV de un documento interno (una factura, actividad 2) no baja el crédito fiscal: va a la cuenta puente hasta la nota del proveedor.
+select pg_temp.reemplazar(
+  'retail.fn_asientos(date, date, uuid)',
+  $v$'nota_credito_prov', '4011', 0, nc.igv, 'compra_notas_credito', nc.id, 'Baja el IGV descontable'$v$,
+  $n$'nota_credito_prov', case when nc.serie_numero like 'DI-%' then '4019' else '4011' end, 0, nc.igv, 'compra_notas_credito', nc.id,
+           case when nc.serie_numero like 'DI-%' then 'IGV por regularizar: falta la nota de crédito del proveedor' else 'Baja el IGV descontable' end$n$,
+  1);
+
 -- ---------- 7. Una nota del proveedor no usa la serie DI- ni duplica lo que ya saldó un documento interno ----------
 select pg_temp.reemplazar(
   'retail.fn_insertar_nota_credito_compra(uuid, text, date, numeric, text, text, uuid, uuid)',
@@ -719,6 +732,12 @@ begin
   end if;
   if position('Documento interno ' in pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure)) = 0 then
     raise exception 'el Diario todavía llama «nota de crédito» al documento interno';
+  end if;
+  if position('''4019''' in pg_get_functiondef('retail.fn_asientos(date, date, uuid)'::regprocedure)) = 0 then
+    raise exception 'el Diario todavía baja el crédito fiscal con el IGV de un documento interno';
+  end if;
+  if position('nos_debe_todavia_no' in pg_get_functiondef('retail.fn_pasar_deuda_a_saldo_a_favor(uuid, integer, text, uuid, text, uuid, uuid, text)'::regprocedure)) > 0 then
+    raise exception 'pasar a saldo a favor todavía no acepta facturas';
   end if;
   if position('La serie DI- es de los documentos internos' in pg_get_functiondef('retail.fn_insertar_nota_credito_compra(uuid, text, date, numeric, text, text, uuid, uuid)'::regprocedure)) = 0 then
     raise exception 'una nota del proveedor todavía puede usar la serie DI-';

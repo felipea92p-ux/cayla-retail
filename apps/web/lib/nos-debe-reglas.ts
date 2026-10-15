@@ -592,14 +592,17 @@ export function textoBotonSaldoAFavor(n: number | null): string {
   return `Pasar ${n.toLocaleString("es-PE")} a saldo a favor`;
 }
 
-/** Un comprobante del reparto: cuánto vale lo que se pasa y cómo se reparte entre su deuda y el saldo a favor. */
-export type PapelDelValor = { documento: string; tipo: string | null; cantidad: number; monto: number; bajaDeuda: number; aFavor: number };
+/** Un comprobante del reparto: cuánto vale lo que se pasa (con su IGV si es una factura) y cómo se reparte entre su deuda y el saldo a favor. */
+export type PapelDelValor = { documento: string; tipo: string | null; cantidad: number; monto: number; igv: number; bajaDeuda: number; aFavor: number };
 
 /** Lo que contesta `fn_deuda_valor`: cuánto vale pasar N prendas, y cómo. */
 export type ValorDeDeuda = {
   cantidad: number;
   conPapel: number;
   sinPapel: number;
+  /** Lo que costaron, sin IGV. */
+  base: number;
+  /** Con su IGV (`base + igv`): lo que vuelve. */
   monto: number;
   igv: number;
   bajaDeuda: number;
@@ -625,6 +628,7 @@ export function leerValorDeDeuda(data: unknown): ValorDeDeuda | null {
         tipo: texto(x.tipo),
         cantidad: cifra(x.cantidad) ?? 0,
         monto: cifra(x.monto) ?? 0,
+        igv: cifra(x.igv) ?? 0,
         bajaDeuda: cifra(x.baja_deuda) ?? 0,
         aFavor: cifra(x.a_favor) ?? 0,
       };
@@ -634,6 +638,7 @@ export function leerValorDeDeuda(data: unknown): ValorDeDeuda | null {
     cantidad,
     conPapel: cifra(r.con_papel) ?? 0,
     sinPapel: cifra(r.sin_papel) ?? 0,
+    base: cifra(r.base) ?? monto - (cifra(r.igv) ?? 0),
     monto,
     igv: cifra(r.igv) ?? 0,
     bajaDeuda: cifra(r.baja_deuda) ?? 0,
@@ -655,13 +660,36 @@ export function fraseSaldoAFavor(proveedor: string, v: ValorDeDeuda): string {
   return `Baja ${soles(v.bajaDeuda)} de lo que le debes por ${cuales}, y ${soles(v.aFavor)} quedan a favor de ${proveedor} para tu próximo pago.`;
 }
 
+/**
+ * «Vale S/ 23.60 con su IGV (S/ 20.00 + IGV S/ 3.60)…»: cuánto vale, y su IGV a la vista solo si lo tiene (una factura, actividad 2). Lo que
+ * vuelve es lo que se pagó: con una factura, también su IGV.
+ */
+export function cuantoVale(v: Pick<ValorDeDeuda, "monto" | "base" | "igv">): string {
+  return v.igv > 0 ? `${soles(v.monto)} con su IGV (${soles(v.base)} + IGV ${soles(v.igv)})` : soles(v.monto);
+}
+
+/**
+ * Con una factura (fase 5b, actividad 2), el documento interno devuelve la plata pero no baja el crédito fiscal: eso lo hace la nota de
+ * crédito del proveedor (la 07), y hasta que llegue su IGV espera en la cuenta puente 4019. La frase dice qué pedirle y por cuánto. `null`
+ * sin factura: con boleta, nota de venta o sin comprobante el documento interno basta.
+ */
+export function fraseNotaDeLaFactura(v: Pick<ValorDeDeuda, "papeles">): string | null {
+  const facturas = v.papeles.filter((x) => x.igv > 0);
+  if (facturas.length === 0) return null;
+  const monto = Math.round(facturas.reduce((a, x) => a + x.monto, 0) * 100) / 100;
+  const igv = Math.round(facturas.reduce((a, x) => a + x.igv, 0) * 100) / 100;
+  const cuales = new Intl.ListFormat("es", { type: "conjunction" }).format(facturas.map((x) => x.documento));
+  const que = facturas.length === 1 ? `su nota de crédito por ${soles(monto)} contra ${cuales}` : `sus notas de crédito por ${soles(monto)} contra ${cuales}`;
+  return `Es una factura: pídele al proveedor ${que}. Hasta que llegue, sus ${soles(igv)} de IGV quedan en espera.`;
+}
+
 /** «la boleta», «la nota de venta», «la factura», «la compra sin comprobante»: el papel, nombrado. */
 function nombreDeTipoDePapel(tipo: string): string {
   return tipo === "boleta" ? "la boleta" : tipo === "nota_venta" ? "la nota de venta" : tipo === "factura" ? "la factura" : tipo === "sin_comprobante" ? "la compra" : "el comprobante";
 }
 
-/** Un documento interno que nació al pasar a saldo a favor (lo que contesta `resolver_deuda_proveedor`). */
-export type DocumentoInterno = { documento: string; comprobante: string | null; cantidad: number; monto: number; bajaDeuda: number; aFavor: number };
+/** Un documento interno que nació al pasar a saldo a favor (lo que contesta `resolver_deuda_proveedor`). `igv` > 0: el de una factura. */
+export type DocumentoInterno = { documento: string; comprobante: string | null; cantidad: number; monto: number; igv: number; bajaDeuda: number; aFavor: number };
 
 /** Lee los `documentos` de la respuesta de `resolver_deuda_proveedor`. Una fila rara se descarta. */
 export function leerDocumentosInternos(data: unknown): DocumentoInterno[] {
@@ -676,6 +704,7 @@ export function leerDocumentosInternos(data: unknown): DocumentoInterno[] {
         comprobante: texto(x.comprobante),
         cantidad: cifra(x.cantidad) ?? 0,
         monto: cifra(x.monto) ?? 0,
+        igv: cifra(x.igv) ?? 0,
         bajaDeuda: cifra(x.baja_deuda) ?? 0,
         aFavor: cifra(x.a_favor) ?? 0,
       };
@@ -683,10 +712,13 @@ export function leerDocumentosInternos(data: unknown): DocumentoInterno[] {
     .filter((x): x is DocumentoInterno => x !== null);
 }
 
-/** El aviso de éxito: «DI-000001 por S/ 40.00: bajó lo que le debes por B001-902.» / «… S/ 60.00 a favor para tu próximo pago.» */
+/**
+ * El aviso de éxito: «DI-000001 por S/ 40.00: bajó lo que le debes por B001-902.» / «… S/ 60.00 a favor para tu próximo pago.» Con una
+ * factura, además lo que falta: «Pídele su nota de crédito por S/ 23.60 contra F001-901.»
+ */
 export function detalleDeSaldoAFavor(docs: DocumentoInterno[]): string {
   if (docs.length === 0) return "Quedó anotado en la ficha del proveedor.";
-  return docs
+  const hecho = docs
     .map((x) => {
       const partes = [
         x.bajaDeuda > 0 ? `bajó ${soles(x.bajaDeuda)} de lo que le debes${x.comprobante ? ` por ${x.comprobante}` : ""}` : null,
@@ -695,6 +727,10 @@ export function detalleDeSaldoAFavor(docs: DocumentoInterno[]): string {
       return `${x.documento} por ${soles(x.monto)}: ${partes.join(" y ")}.`;
     })
     .join(" ");
+  const facturas = docs.filter((x) => x.igv > 0);
+  if (facturas.length === 0) return hecho;
+  const pide = facturas.map((x) => `${soles(x.monto)}${x.comprobante ? ` contra ${x.comprobante}` : ""}`);
+  return `${hecho} Pídele ${facturas.length === 1 ? "su nota de crédito" : "sus notas de crédito"} por ${new Intl.ListFormat("es", { type: "conjunction" }).format(pide)}.`;
 }
 
 /** Qué decir cuando se corta la señal al anotar: pudo guardarse. Reintentar sin cambiar nada es seguro (el mismo token no anota dos veces). */

@@ -29,6 +29,7 @@ import {
   destinoTexto,
   diaDelCierre,
   esDocumentoInterno,
+  faltaNotaDelProveedor,
   filtrarTablero,
   hace,
   type Banda,
@@ -466,6 +467,7 @@ function FilaNota({
         <span className="mt-1.5 flex flex-wrap items-center gap-1.5 sm:hidden">
           <Chip tono={chip.tono}>{chip.texto}</Chip>
           {f.clase === "pendiente" && <Chip tono={tonoEdad}>{hace(f.edadDias)}</Chip>}
+          {faltaNotaDelProveedor(f) && <Chip tono="ambar">Falta su nota de crédito</Chip>}
         </span>
       </span>
       <span className={celda("izq", "hidden xl:block")}>{f.motivo && <Chip tono="neutro">{ETIQUETA_MOTIVO_NOTA[f.motivo] ?? f.motivo}</Chip>}</span>
@@ -495,6 +497,12 @@ function FilaNota({
       </span>
       <span className={celda("izq", "hidden overflow-visible whitespace-normal sm:block")}>
         <Chip tono={chip.tono}>{chip.texto}</Chip>
+        {/* Un documento interno de una factura: la plata volvió, pero falta la nota del proveedor para su IGV (fase 5b). */}
+        {faltaNotaDelProveedor(f) && (
+          <span className="mt-1 block">
+            <Chip tono="ambar">Falta su nota de crédito</Chip>
+          </span>
+        )}
       </span>
       <span className={celda("der", "hidden items-center justify-end gap-2 sm:flex")}>
         {f.clase === "pendiente" && !f.bloqueada && (

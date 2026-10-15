@@ -20,8 +20,10 @@ import {
   camposSaldoAFavor,
   cantidadASaldo,
   cantidadDePrendas,
+  cuantoVale,
   detalleDeSaldoAFavor,
   dondeFalto,
+  fraseNotaDeLaFactura,
   fraseSaldoAFavor,
   leerCantidadSaldoAFavor,
   limpiarCantidadReposicion,
@@ -169,7 +171,9 @@ function HojaSaldoAFavor({
           className="space-y-4"
         >
           <p className="text-sm text-tinta/80">
-            Te debe <b className="font-semibold text-tinta">{queDebe(deuda)}</b> ({soles(deuda.montoPendiente)}): faltaron en {dondeFalto(deuda, hoy)}.
+            {/* Con factura, con su IGV: es lo que vuelve, y lo mismo que dice «Vale» más abajo. */}
+            Te debe <b className="font-semibold text-tinta">{queDebe(deuda)}</b> ({deuda.montoConIgv != null ? `${soles(deuda.montoConIgv)} con IGV` : soles(deuda.montoPendiente)}): faltaron en{" "}
+            {dondeFalto(deuda, hoy)}.
           </p>
           <p className="nota-cayla text-[13px]">
             Úsalo si el proveedor no las va a mandar. Se registra un documento interno por lo que pagaste por ellas: baja lo que le debes por ese
@@ -210,9 +214,10 @@ function HojaSaldoAFavor({
               {valorAlDia ? (
                 <>
                   <p className="text-sm text-tinta">
-                    Vale <b className="font-semibold tabular-nums">{soles(valorAlDia.monto)}</b>, lo que costaron en su comprobante.
+                    Vale <b className="font-semibold tabular-nums">{cuantoVale(valorAlDia)}</b>, lo que costaron en su comprobante.
                   </p>
                   <p className="mt-1 text-[13px] text-tinta/75">{fraseSaldoAFavor(proveedorNombre, valorAlDia)}</p>
+                  {fraseNotaDeLaFactura(valorAlDia) && <p className="mt-1 text-[13px] text-tinta/75">{fraseNotaDeLaFactura(valorAlDia)}</p>}
                 </>
               ) : (
                 <p className="text-[13px] text-tinta/65">{valor && valor.cantidad === n ? "No pude calcular cuánto vale: la base lo dirá al pasarlo." : "Calculando cuánto vale…"}</p>

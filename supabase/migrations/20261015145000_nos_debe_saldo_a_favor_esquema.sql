@@ -16,6 +16,10 @@
 --      internos no cuentan: un comprobante repartido en varios envíos puede tener varios.
 --   4. `proveedor_deuda_resoluciones.nota_credito_id`: qué documento saldó con plata cada resolución. Lo que se salda con plata (a saldo a
 --      favor; «Depositó», actividad 5) siempre lo tiene; la reposición nunca (`proveedor_deuda_resoluciones_con_plata`).
+--   5. La cuenta puente del IGV, 4019 (actividad 2; Felipe, 2026-10-15: «cuenta puente hasta la nota 07»). El documento interno de una
+--      FACTURA baja de la deuda lo que costó más su IGV, pero ese IGV no baja el crédito fiscal sin la nota de crédito del proveedor (la 07):
+--      mientras no llega, queda «por regularizar» en esta cuenta. Sin la fila, el Balance no la vería (une el Diario con `cuentas`) y dejaría
+--      de cuadrar. El código y el nombre son provisionales hasta que hable el contador [provisional del contrato].
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN (con el OK de Felipe). UNA parte, ANTES de 20261015150000. Sin políticas ni `drop trigger` (ADR-0195) y sin
 -- `select … into` dentro de textos entre comillas (ADR-0288). Re-ejecutable. Al 2026-10-15 producción no tiene notas de crédito, deudas ni
@@ -52,6 +56,11 @@ create index if not exists proveedor_deuda_resoluciones_nota_idx
 comment on column retail.proveedor_deuda_resoluciones.nota_credito_id is
   'ADR-0362 fase 5b: el documento interno (o la nota) con que se saldó con plata esta parte de la deuda. Nulo en la reposición.';
 
+-- 5. La cuenta puente del IGV de los documentos internos de una factura (provisional hasta el contador).
+insert into retail.cuentas (codigo, nombre, tipo, seccion_resultados, orden) values
+  ('4019', 'IGV por regularizar (falta la nota de crédito del proveedor)', 'pasivo', null, 8)
+on conflict (codigo) do nothing;
+
 reset lock_timeout;
 
 -- Comprobación: si algo no quedó, el pegado falla y no se aplica nada.
@@ -70,6 +79,9 @@ begin
   if not exists (select 1 from information_schema.columns
                   where table_schema = 'retail' and table_name = 'proveedor_deuda_resoluciones' and column_name = 'nota_credito_id') then
     raise exception 'falta proveedor_deuda_resoluciones.nota_credito_id';
+  end if;
+  if not exists (select 1 from retail.cuentas where codigo = '4019' and tipo = 'pasivo') then
+    raise exception 'falta la cuenta puente del IGV (4019) en el plan de cuentas';
   end if;
 end;
 $$;

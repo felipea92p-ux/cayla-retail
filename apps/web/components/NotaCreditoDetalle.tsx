@@ -12,6 +12,8 @@ import {
   ETIQUETA_MOTIVO_NOTA,
   chipEstado,
   diaDelCierre,
+  esDocumentoInterno,
+  faltaNotaDelProveedor,
   hace,
   mensajeParaProveedor,
   nombreDeNotaDeCredito,
@@ -49,7 +51,10 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
   const chip = chipEstado(f);
   const pasos = pasosDeNota(f);
   const sugerencia = siguientePaso(f);
-  const neto = Math.round((f.monto - (f.igv || f.monto - f.monto / 1.18)) * 100) / 100;
+  // Un documento interno trae su IGV exacto (0 sin factura): no se estima el 18 % de su monto.
+  const interno = esDocumentoInterno(f.serieNumero);
+  const faltaNota = faltaNotaDelProveedor(f);
+  const neto = Math.round((f.monto - (interno ? f.igv : f.igv || f.monto - f.monto / 1.18)) * 100) / 100;
   const igv = Math.round((f.monto - neto) * 100) / 100;
 
   // El libro de este proveedor, acotado a lo que toca a esta nota: lo que ella aportó y lo que salió
@@ -81,19 +86,20 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
   const titulo = f.clase === "pendiente" ? `Nota por reclamar · ${f.documento}` : nombreDeNotaDeCredito(f.serieNumero);
 
   return (
-    <Modal titulo={titulo} subtitulo={`${f.proveedorNombre} · ${f.clase === "pendiente" ? `cerrado el ${diaMes(diaDelCierre(f))}` : `registrada el ${diaMes(f.fecha)}`}`} variante="papel" tamano="ancha" onClose={onCerrar}>
+    <Modal titulo={titulo} subtitulo={`${f.proveedorNombre} · ${f.clase === "pendiente" ? `cerrado el ${diaMes(diaDelCierre(f))}` : `${interno ? "registrado" : "registrada"} el ${diaMes(f.fecha)}`}`} variante="papel" tamano="ancha" onClose={onCerrar}>
       {(cerrar) => (
         <div className="mt-4 space-y-5">
           <div className="flex flex-wrap items-center gap-2">
             <Chip tono={chip.tono}>{chip.texto}</Chip>
             {f.clase === "pendiente" && !f.bloqueada && <Chip tono={f.tramo === "urgente" ? "rojo" : f.tramo === "medio" ? "ambar" : "neutro"}>{hace(f.edadDias)}</Chip>}
             {f.motivo && <Chip tono="neutro">{ETIQUETA_MOTIVO_NOTA[f.motivo] ?? f.motivo}</Chip>}
+            {faltaNota && <Chip tono="ambar">Falta su nota de crédito</Chip>}
           </div>
 
           <dl className="grid grid-cols-3 divide-x divide-sand overflow-hidden rounded-xl border border-sand">
             <Celda k={f.clase === "pendiente" ? "Esperado" : "Monto"} v={soles(f.monto)} s="con IGV" />
             <Celda k="Base" v={soles(neto)} s="sin IGV" />
-            <Celda k="IGV" v={soles(igv)} s="crédito fiscal que resta" />
+            <Celda k="IGV" v={soles(igv)} s={faltaNota ? "en espera de la nota del proveedor" : interno && igv <= 0 ? "sin IGV" : "crédito fiscal que resta"} />
           </dl>
 
           <section>
@@ -161,7 +167,7 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
             </div>
           </section>
 
-          {f.clase === "pendiente" && !f.bloqueada && (
+          {((f.clase === "pendiente" && !f.bloqueada) || faltaNota) && (
             <section>
               <TituloGrupo className="mb-2">Mensaje para el proveedor</TituloGrupo>
               <p className="whitespace-pre-line rounded-xl border border-dashed border-tinta/25 px-3.5 py-3 text-[13px] leading-relaxed text-tinta/80">{mensajeParaProveedor(f)}</p>
@@ -188,7 +194,7 @@ export function NotaCreditoDetalle({ nota: f, movimientos, onCerrar, onRegistrar
                 <Movimiento fecha={diaDelCierre(f)} titulo="Cierre por faltante" detalle={`${f.unidadesCerradas.toLocaleString("es-PE")} ${f.unidadesCerradas === 1 ? "unidad" : "unidades"} en ${f.documento}`} monto={soles(f.monto)} />
               ) : (
                 <>
-                  <Movimiento fecha={f.fecha} titulo={`${nombreDeNotaDeCredito(f.serieNumero)} registrada`} detalle={f.nota ?? ETIQUETA_MOTIVO_NOTA[f.motivo ?? "otro"] ?? ""} monto={soles(f.monto)} />
+                  <Movimiento fecha={f.fecha} titulo={`${nombreDeNotaDeCredito(f.serieNumero)} ${interno ? "registrado" : "registrada"}`} detalle={f.nota ?? ETIQUETA_MOTIVO_NOTA[f.motivo ?? "otro"] ?? ""} monto={soles(f.monto)} />
                   {delProveedor.map((m) => (
                     <Movimiento
                       key={m.id}
