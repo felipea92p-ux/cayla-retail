@@ -10,6 +10,8 @@ ADR-0362 (decisiones 17, 18, 47, 52, 53, 62, 63 y 84 a 88). Contrato: `contrato-
 - [x] **Pegado en producción el 2026-10-15**, en este orden y una sola vez: `20261015015000` → `…020000` → `…034000` → `…035000` →
   `…040000` → `…043000` (las 16 funciones tocadas, con la misma huella que en el banco). Diccionario refrescado
   (`docs/datos/generado/`, foto del 2026-10-15 05:24 UTC). Volver a pegar la `…020000` después de la `…034000` deshace el contado.
+- [x] **`20261015112000`, pedida por el CI y pegada con el OK de Felipe (2026-10-15):** las dos columnas nuevas de `insumo_lotes` legibles
+  como sus vecinas (la guardia del candado de dinero, `pruebas:candado-dinero-produccion` caso 6, estaba en rojo). El costo sigue cerrado.
 - [x] **/chaos, gravedad 1:** anular el papel de una orden ya no deja lo recibido o lo anotado sin respaldo (`anular_comprobante_produccion`
   bloquea la orden y lo impide; decisión 86, prueba en `pruebas:recepcion-orden-insumo`).
 - [x] **/chaos, textos sin tope en la base:** código de lote hasta 40 letras, referencia del pago hasta 100, un pago hasta 20 medios.

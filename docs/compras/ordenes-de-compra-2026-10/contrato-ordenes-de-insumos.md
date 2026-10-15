@@ -83,5 +83,8 @@ construiría») se construyó esa misma noche, con lo no decidido marcado provis
   nada por recibir, también fuera de la orden.
 - **Topes en la base** (de /chaos): el código de un lote va hasta 40 letras, la referencia de un pago hasta 100 y un pago lleva hasta 20
   medios, como en la pantalla.
-- Todo lo de esta parte está **en producción desde el 2026-10-15** (las seis migraciones, en orden y una sola vez). Detalle en el ADR-0362,
-  «Fase 7, parte 2».
+- **Una columna nueva de `insumo_lotes`, `movimientos_insumo` o `producciones` nace sin poder leerse** (candado de dinero del Taller): la
+  que no es dinero se abre en su misma migración (`grant select (columna)`), o la guardia `pruebas:candado-dinero-produccion` la marca. Pasó
+  con las dos de esta parte y lo arregló `20261015112000`.
+- Todo lo de esta parte está **en producción desde el 2026-10-15** (las seis migraciones, en orden y una sola vez, y la `…112000`). Detalle
+  en el ADR-0362, «Fase 7, parte 2».

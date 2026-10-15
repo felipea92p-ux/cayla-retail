@@ -391,7 +391,9 @@ papel y la recepción de la orden de insumos en el Taller** (decisiones 17, 18, 
 que no llegó); pruebas `pnpm pruebas:comprobante-orden-insumo` (24 casos) y `pnpm pruebas:recepcion-orden-insumo` (25, con dos sesiones a la
 vez). Contrato: `contrato-ordenes-de-insumos.md`. **Se pegan en ese orden y una sola vez:** volver a pegar la `…020000` después de la
 `…034000` deshace el contado (pasó en el banco de pruebas y lo encontró /chaos). **En producción desde el 2026-10-15**, pegadas así; las 16
-funciones que tocan tienen la misma huella (md5 de su definición) que en el banco donde corrieron las pruebas.
+funciones que tocan tienen la misma huella (md5 de su definición) que en el banco donde corrieron las pruebas. Una séptima, `…112000`, la
+pidió el CI: las dos columnas nuevas de `insumo_lotes` nacieron sin permiso de lectura y el candado de dinero del Taller exige que todo lo
+que no es dinero se lea (`pruebas:candado-dinero-produccion`, caso 6). Se pegó con el OK de Felipe el mismo día; el costo sigue cerrado.
 
 ```
 DECIDÍ: el papel de una orden de insumos es un comprobante del Taller como cualquier otro (`comprobantes_produccion` con `orden_insumo_id`,

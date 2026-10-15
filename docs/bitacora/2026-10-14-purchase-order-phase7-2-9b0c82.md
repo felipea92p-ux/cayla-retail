@@ -25,4 +25,6 @@
 - **Cómo:** primero la prueba que fallaba y después el arreglo (`pruebas:comprobante-orden-insumo` 24/24, `pruebas:recepcion-orden-insumo`
   25/25, con dos sesiones a la vez), el mismo ataque con la misma semilla (resiste) y el navegador del banco. En producción: las 16 funciones
   tocadas con la misma huella que en el banco y las 55 piezas de estructura iguales. El refresco del volcado trajo también lo que otras
-  ramas habían pegado sin refrescar (el conteo de envíos y los sobrantes de traslado) y les dio pájaro.
+  ramas habían pegado sin refrescar (el conteo de envíos y los sobrantes de traslado) y les dio pájaro. El CI pidió una séptima migración
+  (`20261015112000`): las dos columnas nuevas de `insumo_lotes` nacieron sin permiso de lectura y el candado de dinero del Taller exige que se
+  lea todo lo que no es dinero; se probó en el banco (la guardia de 19/20 a 20/20) y se pegó con el OK de Felipe.
