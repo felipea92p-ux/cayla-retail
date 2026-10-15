@@ -89,6 +89,16 @@ const config: KnipConfig = {
         "components/MisPartesDeCompras.tsx",
       ],
     },
+    // La tienda online (ADR-0408), una app aparte. Sus rutas y pruebas las encuentra Knip solo, como en la web.
+    "apps/tienda": {
+      project: [
+        // Lo que llega a la tienda publicada.
+        "{app,components,lib}/**/*.{ts,tsx,css}!",
+        "*.{ts,mjs,js}!",
+        // `scripts/rol-local.mjs` crea el usuario de la base LOCAL (`pnpm --filter tienda rol-local`): solo en la corrida normal.
+        "scripts/**/*.mjs",
+      ],
+    },
     "packages/*": {
       project: ["src/**/*.{ts,css}!"],
     },

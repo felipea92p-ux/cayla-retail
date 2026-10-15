@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { camposDelRegistro } from "./club-registro-guia";
-import { problemasRegistro, type CampoRegistro, type RegistroEscrito } from "./club-registro-reglas";
+import { MENSAJE, problemasRegistro, type CampoRegistro, type RegistroEscrito } from "./club-registro-reglas";
 import { estadosDe, faltanDe, sePuedeConfirmar } from "./guia-campos";
 
 // ADR-0284: la guía de la página pública del club NO agrega reglas. Esta prueba recorre escenarios y exige que la guía diga
@@ -88,5 +88,16 @@ describe("guía de foco del registro público: dice lo mismo que la regla que ap
     const [doc] = camposDelRegistro(r, HOY, "Buscando tu DNI…");
     expect(doc).toMatchObject({ id: "documento", hecho: false, pendiente: "Buscando tu DNI…" });
     expect(camposDelRegistro(BIEN, HOY, null)[0]!.hecho).toBe(true);
+  });
+
+  it("el correo que la base no aceptó (de otra persona): mientras siga escrito, falta y frena «Unirme»; sin él, todo listo (Felipe 2026-10-15)", () => {
+    const r = { ...BIEN, correo: "ana@correo.pe" };
+    const conRechazo = camposDelRegistro(r, HOY, null, MENSAJE.correoRepetido);
+    expect(conRechazo.find((c) => c.id === "correo")).toMatchObject({ requerido: true, hecho: false, pendiente: MENSAJE.correoRepetido });
+    expect(sePuedeConfirmar(conRechazo)).toBe(false);
+    expect(estadosDe(conRechazo).correo).toBe("ahora");
+    // Lo cambió o lo borró: el rechazo ya no viene (`rechazoDelCorreo` da null) y el correo vuelve a ser opcional.
+    expect(sePuedeConfirmar(camposDelRegistro(r, HOY, null, null))).toBe(true);
+    expect(estadosDe(camposDelRegistro(r, HOY, null, null)).correo).toBe("hecho");
   });
 });

@@ -5745,6 +5745,7 @@ export type Database = {
           p_cumple_anio?: number
           p_tallas?: Json
           p_version_esperada?: number
+          p_correo?: string
         }
         Returns: number
       }
@@ -5821,6 +5822,85 @@ export type Database = {
         Args: { p_ubicacion_id: string }
         Returns: Json
       }
+      // Vitrina web ▸ Esperan una talla (ADR-0408, actividad 12; 20261015030000): lo que esperan los clientes, sin datos personales.
+      fn_vitrina_esperan: { Args: never; Returns: Json }
+      // Vitrina web (ADR-0408, actividad 3; 20261014225000). Sin precio web: en la web vale el precio de cada tienda.
+      fn_vitrina_modelos: { Args: never; Returns: Json }
+      vitrina_guardar_modelo: {
+        Args: {
+          p_producto_id: string
+          p_publicado: boolean
+          p_en_lo_nuevo: string
+          p_descripcion_web: string | null
+          p_version: number | null
+        }
+        Returns: Json
+      }
+      vitrina_mostrar: {
+        Args: { p_producto_ids: string[]; p_publicado: boolean }
+        Returns: Json
+      }
+      // Ventas ▸ Pedidos web (ADR-0408, actividad 8; motor 20261014235000, ERP 20261015010000 y 20261015011000). Los plazos son
+      // opcionales: sin ellos, la base usa los de Configuración ▸ Tienda web.
+      fn_pedidos_web_tablero: { Args: { p_ubicacion_id: string }; Returns: Json }
+      fn_pedidos_web_por_confirmar: { Args: { p_ubicacion_id: string }; Returns: number | null }
+      fn_pedido_web_detalle: { Args: { p_pedido_id: string }; Returns: Json }
+      confirmar_pedido_web: {
+        Args: { p_pedido_id: string; p_lineas: Json; p_horas_para_confirmar?: number }
+        Returns: Json
+      }
+      no_confirmar_pedido_web: {
+        Args: { p_pedido_id: string; p_motivo: string; p_horas_para_confirmar?: number }
+        Returns: Json
+      }
+      anular_pedido_web: { Args: { p_pedido_id: string; p_motivo: string }; Returns: Json }
+      reservar_linea_pedido_web: {
+        Args: { p_linea_id: string; p_ubicacion_id?: string; p_sububicacion_id?: string }
+        Returns: Json
+      }
+      enviar_pedido_web_desde: {
+        Args: { p_pedido_id: string; p_ubicacion_origen_id: string; p_fecha_estimada_llegada: string; p_token?: string }
+        Returns: Json
+      }
+      fn_apartados_de_pedidos_web: {
+        Args: { p_ubicacion_id: string }
+        Returns: { apartado_id: string; pedido_codigo: string; tienda_pedido: string; para_otra_tienda: boolean }[]
+      }
+      // Vitrina web ▸ Looks (ADR-0408, actividad 11; 20261015031000): las combinaciones de «Arma tu look».
+      fn_vitrina_looks: { Args: never; Returns: Json }
+      vitrina_guardar_look: {
+        Args: {
+          p_look_id: string | null
+          p_nombre: string
+          p_frase: string | null
+          p_publicado: boolean
+          p_piezas: Json
+          p_lugar: number | null
+          p_version: number | null
+        }
+        Returns: Json
+      }
+      vitrina_mostrar_look: {
+        Args: { p_look_id: string; p_publicado: boolean; p_version: number }
+        Returns: Json
+      }
+      // Cobrar dentro del pedido web (ADR-0408, actividad 9; motor 20261015000000, token 20261015042000). El efectivo no lleva n.º
+      // de operación (null); el token lo pone `useIntento`.
+      registrar_pago_pedido_web: {
+        Args: { p_pedido_id: string; p_monto: number; p_medio: string; p_numero_operacion?: string | null; p_token?: string }
+        Returns: Json
+      }
+      anular_pago_pedido_web: { Args: { p_pago_id: string; p_motivo: string }; Returns: Json }
+      // Entregar un pedido web con el código de 4 cifras (ADR-0408, actividad 10; 20261015052000). El token lo pone `useIntento`.
+      entregar_pedido_web: { Args: { p_pedido_id: string; p_codigo: string; p_token?: string }; Returns: Json }
+      // Anular un pedido web pagado: devuelve la plata y anula su venta y su boleta (ADR-0408; 20261015114000). El token lo pone `useIntento`.
+      anular_pedido_web_pagado: { Args: { p_pedido_id: string; p_motivo: string; p_token?: string }; Returns: Json }
+      // Clientes ▸ Recomendaciones (ADR-0408, Felipe 2026-10-15; 20261015135000): lo que los clientes recomiendan desde la tienda online,
+      // con su nombre. Las tres que escriben firman con el responsable del combo.
+      fn_recomendaciones: { Args: never; Returns: Json }
+      marcar_recomendacion_leida: { Args: { p_id: string }; Returns: Json }
+      responder_recomendacion: { Args: { p_id: string; p_respuesta: string }; Returns: Json }
+      archivar_recomendacion: { Args: { p_id: string; p_archivar: boolean }; Returns: Json }
       unirse_al_club: {
         Args: {
           p_clienta_id: string
@@ -6009,37 +6089,10 @@ export type Database = {
         Args: { p_id: string; p_version_esperada?: number }
         Returns: number
       }
-      unir_clientas: {
-        Args: {
-          p_mantener_id: string
-          p_fusionar_id: string
-          p_version_mantener_esperada?: number
-          p_version_fusionar_esperada?: number
-        }
-        Returns: {
-          anonimizada: boolean
-          archivada_en: string | null
-          archivada_por: string | null
-          created_at: string
-          created_por: string | null
-          cumple_dia: number | null
-          cumple_mes: number | null
-          documento_numero: string | null
-          documento_tipo: string
-          club_desde: string | null
-          codigo_club: string | null
-          cumple_anio: number | null
-          publicidad_desde: string | null
-          fusionada_en_id: string | null
-          id: string
-          motivo_archivo: string | null
-          nombre: string | null
-          tallas: Json | null
-          telefono_whatsapp: string | null
-          version: number
-          whatsapp_consentimiento_en: string | null
-          preferencias: Json
-        }
+      // 20261015132000: deja pedido el cambio del correo de entrada de su cuenta web y devuelve la ficha de un solo uso (solo el servidor).
+      restablecer_acceso_tienda_web: {
+        Args: { p_clienta_id: string; p_correo: string }
+        Returns: Json
       }
       exportar_clientas: {
         Args: never
@@ -6091,6 +6144,19 @@ export type Database = {
       fn_clienta_separaciones: {
         Args: { p_id: string }
         Returns: { separacion_id: string; codigo: string; fecha: string; estado: string; total: number; vence_el: string }[]
+      }
+      fn_clienta_tienda_online: {
+        Args: { p_id: string }
+        Returns: Json
+      }
+      fn_anotar_lectura_padron: {
+        Args: { p_tipo: string; p_numero: string; p_nombre: string }
+        Returns: undefined
+      }
+      // «Restablecer acceso a la tienda web» (20261015132000): la cuenta web y el restablecimiento pendiente de la ficha.
+      fn_clienta_acceso_web: {
+        Args: { p_id: string }
+        Returns: Json
       }
       fn_clientas_lista: {
         Args: { p_termino?: string; p_filtro?: string; p_limite?: number; p_desde?: number }

@@ -92,6 +92,16 @@
       ],
       "port": 8793,
       "autoPort": true
+    },
+    {
+      "name": "tienda-dev",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "pnpm --filter tienda exec next dev --port ${PORT:-3100}"
+      ],
+      "port": 3100,
+      "autoPort": true
     }
   ]
 }

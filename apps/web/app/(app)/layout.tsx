@@ -3,6 +3,7 @@ import { COOKIE_LATERAL, COOKIE_LATERAL_PLEGADO } from "@/lib/lateral-cookie";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getNumeroDelMenuTraslados } from "@/lib/traslados";
+import { getPedidosWebPorConfirmar } from "@/lib/pedidos-web";
 import { AppShell } from "@/components/AppShell";
 import { SedeActivaProveedor } from "@/components/SedeActiva";
 import { ColasSinConexion } from "@/components/ColasSinConexion";
@@ -26,10 +27,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // ADR-0275: quien ve CAYLA Global sin ser líder también tiene selector, con su propia sede y la vista global.
   // El recordatorio de cierre de caja (ADR-0305): total como el contador, solo para quien puede cerrar la caja de una tienda.
   const recibeRecordatorio = recibeRecordatorioCierre(persona);
-  const [todasLasUbicaciones, trasladosPorAtender, recordatorioCierre] = await Promise.all([
+  // «Pedidos web N» (ADR-0408, act. 8): los que esperan confirmación en la tienda activa. Solo a quien ve el módulo y parado en una
+  // tienda (la función igual responde nada sin el módulo); total como el de Traslados.
+  const vePedidosWeb = persona.ubicacionTipo === "tienda" && persona.modulos.some((m) => m.clave === "pedidos_web");
+  const [todasLasUbicaciones, trasladosPorAtender, recordatorioCierre, pedidosWebPorConfirmar] = await Promise.all([
     persona.puedeCambiarUbicacion || persona.puedeVerGlobal ? getUbicaciones() : Promise.resolve([]),
     getNumeroDelMenuTraslados(persona.ubicacionId, puede(persona, "ajustarInventario")),
     recibeRecordatorio ? getRecordatorioCierre(persona) : Promise.resolve(null),
+    vePedidosWeb ? getPedidosWebPorConfirmar(persona.ubicacionId) : Promise.resolve(null),
   ]);
 
   const ubicaciones = persona.puedeCambiarUbicacion ? todasLasUbicaciones : todasLasUbicaciones.filter((u) => u.id === persona.ubicacionId);
@@ -56,6 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       }}
       ubicaciones={ubicaciones}
       trasladosPorAtender={trasladosPorAtender}
+      pedidosWebPorConfirmar={pedidosWebPorConfirmar}
       lateralPlegado={lateralPlegado}
     >
       {/* Recién iniciada la sesión, la app espera a que el velo del colibrí tape la pantalla para mostrarse (Felipe 2026-10-13, «se ve el inicio»).

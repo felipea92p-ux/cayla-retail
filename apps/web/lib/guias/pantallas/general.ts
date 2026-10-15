@@ -951,19 +951,19 @@ export const GUIA_CONFIGURACION: Guia = {
   id: "configuracion",
   ruta: "/configuracion",
   titulo: "Configuración",
-  resumen: "Lo que se ajusta una vez y todas las pantallas leen: metas, cuentas, caja, gastos fijos e impuestos.",
+  resumen: "Lo que se ajusta una vez y todas las pantallas leen: metas, tienda web, cuentas, caja, gastos fijos e impuestos.",
   pasos: [
     {
       id: "bienvenida",
       ancla: null,
       titulo: "La configuración",
-      texto: "Aquí se ajusta lo que todas las pantallas leen: la meta de cada tienda, las cuentas de banco, los topes de gasto, el IGV. Cada cambio queda anotado con quién lo hizo. En la demo solo miramos cada sección, sin guardar nada.",
+      texto: "Aquí se ajusta lo que todas las pantallas leen: la meta de cada tienda, lo que ve el cliente en la tienda web, las cuentas de banco, los topes de gasto, el IGV. Cada cambio queda anotado con quién lo hizo. En la demo solo miramos cada sección, sin guardar nada.",
     },
     {
       id: "pestanas",
       ancla: "config.pestanas",
-      titulo: "Siete secciones",
-      texto: "Empresa, Tiendas y caja, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto e Impuestos. Te las mostramos una por una, empezando por Tiendas y caja.",
+      titulo: "Ocho secciones",
+      texto: "Empresa, Tiendas y caja, Tienda web, Cuentas y cobros, Caja y avisos, Gastos fijos, Presupuesto e Impuestos. Te las mostramos una por una, empezando por Tiendas y caja.",
     },
     {
       id: "guardado",
@@ -984,7 +984,7 @@ export const GUIA_CONFIGURACION: Guia = {
       ancla: "config.tiendas-whatsapp",
       opcional: true,
       titulo: "WhatsApp de cada tienda",
-      texto: "El número al que escriben los clientes desde el cartel del club. Sin número, esa tienda no muestra el código QR. «Ver el cartel del club» te lleva al cartel, tal como sale impreso.",
+      texto: "El número al que escriben los clientes desde el cartel del club y desde la tienda web. Sin número, esa tienda no muestra el código QR ni sale en la web. «Ver el cartel del club» te lleva al cartel, tal como sale impreso.",
     },
     {
       id: "carga-inicial",
@@ -1006,6 +1006,35 @@ export const GUIA_CONFIGURACION: Guia = {
       opcional: true,
       titulo: "Cómo lo ve la caja",
       texto: "La caja ve la meta de hoy y cuánto le falta; al cerrar, el fondo que debe dejar. Si deja menos, se le pide confirmar, no se le bloquea, y el líder lo ve. «Ver cómo se ve en Caja» te lleva a esa pantalla.",
+    },
+    {
+      id: "tienda-web-sedes",
+      ancla: "config.tienda-web-sedes",
+      opcional: true,
+      preparar: [{ tipo: "clic", ancla: "config.tab-tienda-web" }],
+      titulo: "Cada tienda en la tienda web",
+      texto: "Lo que el cliente ve de cada tienda en la tienda online: el nombre (Trujillo, no Tienda TRU), el WhatsApp donde llegan sus pedidos, la dirección para recoger y el horario. Mientras falte algo, la tarjeta dice qué y te lleva a la casilla.",
+    },
+    {
+      id: "tienda-web-mostrar",
+      ancla: "config.tienda-web-mostrar",
+      opcional: true,
+      titulo: "Se ve en la web",
+      texto: "Con nombre, WhatsApp y dirección, la tienda se puede encender: el cliente la ve y puede recoger ahí lo que separa. Apagada, no la ve. En la demo no la tocamos.",
+    },
+    {
+      id: "tienda-web-plazos",
+      ancla: "config.tienda-web-plazos",
+      opcional: true,
+      titulo: "Para todas las sedes",
+      texto: "Cuántas horas tiene la tienda para confirmar un pedido antes de que se cierre solo, cuándo avisar si no paga o no recoge, y desde cuántas prendas el cliente ve el número en vez de «Hay».",
+    },
+    {
+      id: "tienda-web-nota",
+      ancla: "config.tienda-web-nota",
+      opcional: true,
+      titulo: "Un solo WhatsApp por tienda",
+      texto: "Es el mismo número del cartel del club: cambiarlo aquí también lo cambia en Tiendas y caja. Y por ahora todo pedido web se recoge en tienda: no hay envíos.",
     },
     {
       id: "cuentas-lista",
