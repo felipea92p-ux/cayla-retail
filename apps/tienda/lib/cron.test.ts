@@ -1,19 +1,27 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { cronAutorizado, RUTAS_DE_CRON } from "./cron";
+import { pasaComoCron, RUTAS_DE_CRON } from "./cron";
 
 // La ruta programada de la tienda (borrar los usuarios de las cuentas cerradas) solo la abre la clave del cron de Vercel.
 
 describe("el cron de la tienda", () => {
+  const RUTA = "/api/cuentas-cerradas";
+
   it("pasa solo con «Bearer <CRON_SECRET>»; sin la variable, nadie", () => {
-    expect(cronAutorizado("Bearer s3creto-largo", "s3creto-largo")).toBe(true);
-    expect(cronAutorizado("Bearer otro", "s3creto-largo")).toBe(false);
-    expect(cronAutorizado("s3creto-largo", "s3creto-largo")).toBe(false);
-    expect(cronAutorizado(null, "s3creto-largo")).toBe(false);
-    expect(cronAutorizado("Bearer undefined", undefined)).toBe(false);
-    expect(cronAutorizado("Bearer ", "")).toBe(false);
-    expect(cronAutorizado("Bearer  ", " ")).toBe(false);
+    expect(pasaComoCron(RUTA, "Bearer s3creto-largo", "s3creto-largo")).toBe(true);
+    expect(pasaComoCron(RUTA, "Bearer otro", "s3creto-largo")).toBe(false);
+    expect(pasaComoCron(RUTA, "s3creto-largo", "s3creto-largo")).toBe(false);
+    expect(pasaComoCron(RUTA, null, "s3creto-largo")).toBe(false);
+    expect(pasaComoCron(RUTA, "Bearer undefined", undefined)).toBe(false);
+    expect(pasaComoCron(RUTA, "Bearer ", "")).toBe(false);
+    expect(pasaComoCron(RUTA, "Bearer  ", " ")).toBe(false);
+  });
+
+  it("la clave abre solo las rutas del cron", () => {
+    expect(pasaComoCron("/api/otra", "Bearer s3creto-largo", "s3creto-largo")).toBe(false);
+    expect(pasaComoCron("/cuenta", "Bearer s3creto-largo", "s3creto-largo")).toBe(false);
+    expect(pasaComoCron(`${RUTA}/`, "Bearer s3creto-largo", "s3creto-largo")).toBe(false);
   });
 
   it("las rutas del cron son las de vercel.json, y cada una existe", () => {

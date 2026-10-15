@@ -1,4 +1,4 @@
-import { cronAutorizado } from "@/lib/cron";
+import { pasaComoCron } from "@/lib/cron";
 import { clienteAdmin } from "@/lib/sesion-servidor";
 import { barrerCuentasCerradas } from "@/lib/usuarios-servidor";
 
@@ -12,7 +12,7 @@ import { barrerCuentasCerradas } from "@/lib/usuarios-servidor";
 // y nadie la lee: un fallo va al registro del servidor (sin correos ni datos de nadie, solo cuántos).
 
 export async function GET(request: Request) {
-  if (!cronAutorizado(request.headers.get("authorization"), process.env.CRON_SECRET)) {
+  if (!pasaComoCron(new URL(request.url).pathname, request.headers.get("authorization"), process.env.CRON_SECRET)) {
     return Response.json({ error: "No autorizado" }, { status: 401 });
   }
   const admin = clienteAdmin();
