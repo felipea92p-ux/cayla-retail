@@ -101,10 +101,30 @@ if (!CONSERVACION_WEB || CONSERVACION_WEB.antes !== VERSIONES.find((v) => v.firm
   console.error("✗ La tabla de versiones de 20261015055000 debería cambiar fn_club_anonimizar_inactivas partiendo del «después» de la PARTE 8.");
   process.exit(1);
 }
-/** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18, registrarse_en_el_club, la conservación) o el de la PARTE 8. */
+// 20261015131000_clientas_anonimizar_espera_pedido_pagado.sql (Felipe 2026-10-15: anonimizar espera un pedido web pagado, y «a pedido
+// suyo» desde la tienda online) cambió la FIRMA de la rutina de anonimizar: creó la de 4 parámetros y BORRÓ la de 3 («después»: que no
+// exista), partiendo del «después» de la PARTE 8. La cadena no se corta.
+const ESPERA_PEDIDO = leer("supabase", "migrations", "20261015131000_clientas_anonimizar_espera_pedido_pagado.sql");
+const ANONIMIZAR_3 = "retail.fn_clienta_anonimizar(uuid,uuid,boolean)";
+const ANONIMIZAR_ESPERA = [...ESPERA_PEDIDO.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)]
+  .map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }))
+  .find((v) => v.firma === ANONIMIZAR_3);
+if (!ANONIMIZAR_ESPERA || ANONIMIZAR_ESPERA.despues !== null || ANONIMIZAR_ESPERA.antes !== VERSIONES.find((v) => v.firma === ANONIMIZAR_3)?.despues) {
+  console.error("✗ La tabla de versiones de 20261015131000 debería borrar la fn_clienta_anonimizar de 3 parámetros partiendo del «después» de la PARTE 8.");
+  process.exit(1);
+}
+/** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18, registrarse_en_el_club, la
+ *  conservación, la rutina de anonimizar —que ya no existe con 3 parámetros—) o el de la PARTE 8. */
 const despuesHoy = (v) =>
-  (v.firma === RV_HOY ? REDONDEO_DESPUES : v.firma === REGISTRARSE ? NO_REPETIR_DESPUES : v.firma === CONSERVACION ? CONSERVACION_WEB.despues : v.despues) ??
-  "NO_EXISTE";
+  (v.firma === RV_HOY
+    ? REDONDEO_DESPUES
+    : v.firma === REGISTRARSE
+      ? NO_REPETIR_DESPUES
+      : v.firma === CONSERVACION
+        ? CONSERVACION_WEB.despues
+        : v.firma === ANONIMIZAR_3
+          ? ANONIMIZAR_ESPERA.despues
+          : v.despues) ?? "NO_EXISTE";
 
 // Los textos vigentes (docs/club/texto-legal-registro-v2.md): la PARTE 4 sembró la v1 y 20261002160000 publicó la v2 sin género
 // (ADR-0288 act. k). El cuerpo de cada sección.

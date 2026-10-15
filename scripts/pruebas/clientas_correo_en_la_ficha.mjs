@@ -21,7 +21,8 @@
  *      - el documento de otra ficha sigue diciendo `documento_de_otra_ficha` (el correo no lo confunde).
  *   C. `fn_clienta_tienda_online`: sin nada; con cuenta abierta (sí) y cerrada (no); los pedidos en curso (por confirmar dentro de su
  *      plazo, confirmado, pagado) con código, estado y tienda, los más viejos primero; no los demás (por confirmar pasado su plazo,
- *      vencido, anulado, entregado) ni los de otra ficha.
+ *      vencido, anulado, entregado) ni los de otra ficha. Y desde 20261015131000, anonimizar con un pedido PAGADO espera (la base lo
+ *      niega con `anonimizar_pedido_web_pagado`); archivar sin anonimizar, no.
  *   D. El módulo: sin «Clientes» en su rol, una integrante recibe `clientas_sin_modulo` en las dos, y no cambia nada.
  *   E. El pegado: dos veces; aborta si `editar_clienta` cambió en vivo; y pegar 20261015054000 después aborta sin pisar nada.
  *
@@ -264,6 +265,21 @@ function main() {
           ${COMO_CUENTA}select string_agg((p ->> 'codigo') || ':' || (p ->> 'estado') || ':' || (p ->> 'tienda'), ',')
             from jsonb_array_elements(retail.fn_clienta_tienda_online(:'bea') -> 'pedidos_en_curso') p;
           select :'p_pagado' || ':pagado:' || :'tru_nombre' || ',' || :'p_confirmado' || ':confirmado:' || :'tru_nombre' || ',' || :'p_recien' || ':por_confirmar:' || :'tru_nombre';`),
+  );
+  // Desde 20261015131000 (Felipe 2026-10-15) la hoja ya no solo AVISA del pedido PAGADO: anonimizar espera a que se entregue o se anule
+  // (la base lo niega con su hint y la hoja lo dice). Por confirmar y confirmado, la hoja sigue avisando y deja seguir; archivar sin
+  // anonimizar, igual que siempre. Lo prueba a fondo tienda_mi_cuenta.mjs (PARTE 1).
+  esperarValor(
+    "anonimizar con un pedido web PAGADO sin entregar: anonimizar_pedido_web_pagado (con su código) y no cambia nada; archivar sin anonimizar, sí",
+    caso(`${DE_POSTGRES}
+          insert into retail.pedidos_web (clienta_id, ubicacion_id, estado, total, pagado, confirmado_en, confirmado_por, pagado_en, creado_en)
+            values (:'bea', :'tru', 'pagado', 100, 100, now() - interval '4 days', :'persona_felipe', now() - interval '4 days', now() - interval '5 days') returning codigo as p_pagado \\gset
+          ${COMO_CUENTA}select split_part(r, '|', 1) || '|' || split_part(r, '|', 2) || '|' || (split_part(r, '|', 3) = :'p_pagado')
+            from (select pg_temp.intento(format('select retail.archivar_clienta(%L, %L, true, null)', :'bea', 'lo pidió')) as r) x;
+          ${DE_POSTGRES}select (archivada_en is null) || '|' || anonimizada from retail.clientas where id = :'bea';
+          ${COMO_CUENTA}select pg_temp.intento(format('select retail.archivar_clienta(%L, %L, false, null)', :'bea', 'se mudó'));
+          ${DE_POSTGRES}select (archivada_en is not null) || '|' || anonimizada from retail.clientas where id = :'bea';`),
+    "P0001|anonimizar_pedido_web_pagado|true\ntrue|false\nok\ntrue|false",
   );
 
   console.log("— D. El módulo —");
