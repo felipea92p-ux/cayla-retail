@@ -122,6 +122,7 @@
     "pruebas:vitrina-web": "node scripts/pruebas/vitrina_web.mjs",
     "pruebas:tienda-ficha": "node scripts/pruebas/tienda_ficha.mjs",
     "pruebas:tienda-separadas": "node scripts/pruebas/tienda_separadas.mjs",
+    "pruebas:tienda-lugares": "node scripts/pruebas/tienda_lugares.mjs",
     "pruebas:tienda-inicio": "node scripts/pruebas/tienda_inicio.mjs",
     "pruebas:vitrina-looks": "node scripts/pruebas/vitrina_looks.mjs",
     "pruebas:pedidos-web-motor": "node scripts/pruebas/pedidos_web_motor.mjs",

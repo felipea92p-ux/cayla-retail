@@ -204,6 +204,11 @@ export const PRUEBAS = [
   // lo propio, otra tienda, lo vencido y lo confirmado no cuentan; nunca una cifra ni quién; solo tienda_web. ROLLBACK.
   "pruebas:tienda-separadas",
 
+  // Una tienda solo tiene piso, almacén y Cuarentena (ADR-0408, integración; Felipe 2026-10-15): así la web («hay») y la confirmación
+  // de un pedido web cuentan lo mismo. Un rack, un lugar sin tipo o un rack traído del Taller se niegan; el Taller sigue con sus racks;
+  // control sin el disparador. ROLLBACK.
+  "pruebas:tienda-lugares",
+
   // El Inicio de la tienda online (ADR-0408, actividad 5): «Lo nuevo» por el PRIMER ingreso a una tienda en 30 días (no el Taller, no
   // una devolución), fijado o quitado en la Vitrina; «Más vendidos» por unidades en 30 días, 20 puestos y sin las cifras; ninguno con
   // las familias fuera de los motores (bolsas). Y los plazos de la ayuda: los de Configuración ▸ Tienda web y el de cambio de la caja.
