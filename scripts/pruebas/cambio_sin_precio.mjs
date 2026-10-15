@@ -14,13 +14,16 @@
  *      (ni el cambio, ni movimientos, ni stock movido).
  *   3. Por una prenda en S/ 0 de una familia fuera de los motores (la bolsa de obsequio): TAMBIÉN se rechaza. Un cambio por
  *      una bolsa gratis sería una devolución completa por la puerta de atrás (decisión del ADR-0385).
- *   4. Una prenda con precio base 0 y precio propio en esta tienda TAMBIÉN se rechaza: desde el 2026-10-15 una talla a 0 en la grilla
- *      vale 0 en toda tienda (`20261015121000_talla_en_cero_sigue_en_cero.sql`); antes se cambiaba al precio de la tienda.
+ *   4. (2026-10-15, `20261015121000_talla_en_cero_sigue_en_cero.sql`, Felipe: «el precio de la prenda siempre debe ser el mismo de la
+ *      tienda») Una prenda de ROPA con precio base 0 y precio propio en Trujillo se cambia en Trujillo a ese precio (se mira el precio
+ *      que se cobra); en Lima, sin precio propio, se rechaza con `cambio_sin_precio` y no queda nada escrito; y la talla de OBSEQUIO
+ *      (una familia fuera de los motores) sigue en S/ 0 aunque la tienda le ponga precio: se rechaza. Con un MUTANTE de
+ *      `fn_precio_en_sede` que confunde la ropa con el obsequio, y la prueba lo ve.
  *   5. La migración se puede pegar dos veces.
  *
  * CÓMO. Cada caso en su transacción con ROLLBACK (nunca se commitea nada), como Felipe (líder) con `request.jwt.claim.sub`.
- * La venta de partida es la de `registrar_cambio.mjs`: BLU-EMMA-NEG-M vendida en Tienda Lima y cambiada por VES-SOFI-NEG-M.
- * Vive aparte de `registrar_cambio.mjs` a propósito: ese archivo lo están tocando otros PR abiertos.
+ * La venta de partida es la de `registrar_cambio.mjs`: BLU-EMMA-NEG-M vendida en Tienda Lima (el caso 4, también en Tienda Trujillo)
+ * y cambiada por VES-SOFI-NEG-M. Vive aparte de `registrar_cambio.mjs` a propósito: ese archivo lo están tocando otros PR abiertos.
  *
  * USO
  *   pnpm pruebas:cambio-sin-precio    → con la migración ya aplicada en el Postgres local
@@ -43,17 +46,18 @@ function psql(sql) {
     { input: sql, encoding: "utf8", maxBuffer: 16 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] }
   );
 }
-function correr(sql) {
+function correr(sql, sede = "Tienda Lima") {
   try {
-    return { ok: true, lineas: psql(`begin;\n${PRELUDIO}\n${sql}\nrollback;\n`).trim().split("\n").filter((x) => x !== "") };
+    return { ok: true, lineas: psql(`begin;\n${preludio(sede)}\n${sql}\nrollback;\n`).trim().split("\n").filter((x) => x !== "") };
   } catch (e) {
     return { ok: false, mensaje: `${e.stderr ?? ""}${e.message ?? ""}` };
   }
 }
 
 // `pg_temp.intentar(sql)` devuelve «ok» o «mensaje :: detalle» en vez de abortar, para mirar el estado DESPUÉS del error.
-// Deja una venta de BLU-EMMA-NEG-M (`:venta_item`) en Tienda Lima, con caja abierta y stock de sobra de las dos prendas.
-const PRELUDIO = `
+// Deja una venta de BLU-EMMA-NEG-M (`:venta_item`) en la tienda (`:ubic`, Tienda Lima salvo que se diga otra), con caja abierta y stock
+// de sobra de las dos prendas.
+const preludio = (sede) => `
 create function pg_temp.intentar(p_sql text) returns text language plpgsql as $f$
 declare v_msg text; v_det text;
 begin
@@ -64,7 +68,8 @@ exception when others then
   return v_msg || ' :: ' || coalesce(nullif(v_det, ''), '-');
 end $f$;
 set local request.jwt.claim.sub = '${FELIPE}';
-select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
+select id as ubic from retail.ubicaciones where nombre = '${sede}' \\gset
+select id as tru from retail.ubicaciones where nombre = 'Tienda Trujillo' \\gset
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select :'ubic', 'Piso de venta', 'piso_venta'
   where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'piso_venta');
@@ -129,16 +134,64 @@ ${CAMBIAR}`);
   esperar("3 · por una prenda en S/ 0 de una familia fuera de los motores (la bolsa de obsequio) también se rechaza", r.ok && /^cambio_sin_precio/.test(r.lineas[0] ?? ""), r.ok ? r.lineas : r.mensaje);
 }
 {
-  // CAMBIÓ el 2026-10-15 («La talla de S/ 0 sigue en S/ 0», Felipe; `20261015121000_talla_en_cero_sigue_en_cero.sql`). Hasta ese día
-  // una prenda en 0 con precio propio en la tienda se cambiaba al de la tienda. Ahora una talla a 0 en la grilla vale 0 en TODA tienda:
-  // el precio de la tienda ya no la rescata, sigue siendo una prenda sin precio y el cambio se rechaza como en el caso 2.
-  const r = correr(`select producto_id as p_new from retail.variantes where id = :'v_new' \\gset
+  // CAMBIÓ el 2026-10-15 (Felipe: «el precio de la prenda siempre debe ser el mismo de la tienda»; `20261015121000_talla_en_cero_sigue_en_cero.sql`).
+  // La ROPA vale el precio de la tienda aunque su ficha diga S/ 0: en la tienda con precio propio se cambia a ese precio; en otra, sin
+  // precio propio, sigue sin precio y se rechaza como en el caso 2. Solo la talla de OBSEQUIO sigue en S/ 0 aunque la tienda le ponga
+  // precio. (La primera versión de esa migración, sin pegar, rechazaba también la ropa con precio de tienda.)
+  const ROPA_EN_CERO_CON_PRECIO_EN_TRUJILLO = `select producto_id as p_new from retail.variantes where id = :'v_new' \\gset
+select retail.poner_precio_sede(:'p_new', :'tru', 99, 'prueba automatizada') as _ps \\gset
+update retail.variantes set precio = 0 where id = :'v_new';
+`;
+  /** La diferencia que quedó en el cambio, y la que se espera: el precio de la tienda (99) menos lo que se pagó. */
+  const DIFERENCIA = `select diferencia from retail.cambios where venta_item_id = :'venta_item';
+select (99 - (:'precio_old_sede')::numeric);`;
+  const r = correr(`${ROPA_EN_CERO_CON_PRECIO_EN_TRUJILLO}${CAMBIAR}\n${DIFERENCIA}`, "Tienda Trujillo");
+  const l = r.ok ? r.lineas : [];
+  esperar(
+    "4 · ROPA con precio base 0 y precio propio en Trujillo: en Trujillo se cambia a ese precio (la diferencia sale de los S/ 99)",
+    r.ok && l[0] === "ok" && l.length === 3 && Number(l[1]) === Number(l[2]),
+    r.ok ? l : r.mensaje,
+  );
+
+  const lima = correr(`${ROPA_EN_CERO_CON_PRECIO_EN_TRUJILLO}${CAMBIAR}\n${QUEDO}`);
+  const ll = lima.ok ? lima.lineas : [];
+  esperar(
+    "    …en Lima, sin precio propio, se rechaza con cambio_sin_precio y no queda nada escrito",
+    lima.ok && /^cambio_sin_precio :: Vestido Sofía \(/.test(ll[0] ?? "") && ll[1] === "0|0|0",
+    lima.ok ? ll : lima.mensaje,
+  );
+
+  const obsequio = correr(`select producto_id as p_new from retail.variantes where id = :'v_new' \\gset
 select retail.poner_precio_sede(:'p_new', :'ubic', 99, 'prueba automatizada') as _ps \\gset
+update retail.familias set entra_a_motores = false
+  where codigo = (select c.familia from retail.categorias c join retail.productos p on p.categoria_id = c.id
+                   join retail.variantes v on v.producto_id = p.id where v.id = :'v_new');
 update retail.variantes set precio = 0 where id = :'v_new';
 ${CAMBIAR}
 ${QUEDO}`);
-  const l = r.ok ? r.lineas : [];
-  esperar("4 · con precio base 0 y precio propio en la tienda, igual se rechaza: vale 0 en toda tienda (cambio_sin_precio, nada escrito)", r.ok && /^cambio_sin_precio :: Vestido Sofía \(/.test(l[0] ?? "") && l[1] === "0|0|0", r.ok ? l : r.mensaje);
+  const lo = obsequio.ok ? obsequio.lineas : [];
+  esperar(
+    "    …y la talla de OBSEQUIO (una familia fuera de los motores) sigue en S/ 0 aunque la tienda le ponga precio: se rechaza, nada escrito",
+    obsequio.ok && /^cambio_sin_precio/.test(lo[0] ?? "") && lo[1] === "0|0|0",
+    obsequio.ok ? lo : obsequio.mensaje,
+  );
+
+  // MUTANTE: una `fn_precio_en_sede` que confunde la ropa con el obsequio (toda talla en 0 sería de obsequio): el caso de Trujillo se
+  // pone rojo. Vive solo dentro de su transacción.
+  const mutante = correr(`do $m$
+declare d text := pg_get_functiondef('retail.fn_precio_en_sede(uuid, uuid)'::regprocedure);
+begin
+  if position('retail.fn_categoria_admite_precio_cero(pr.categoria_id)' in d) = 0 then
+    raise exception 'mutante vacío: fn_precio_en_sede no pregunta la categoría de la prenda';
+  end if;
+  execute replace(d, 'retail.fn_categoria_admite_precio_cero(pr.categoria_id)', 'true');
+end $m$;
+${ROPA_EN_CERO_CON_PRECIO_EN_TRUJILLO}${CAMBIAR}`, "Tienda Trujillo");
+  esperar(
+    "    MUTANTE fn_precio_en_sede confunde la ropa con el obsequio: el cambio de Trujillo se rechaza (cambio_sin_precio), y la prueba lo ve",
+    mutante.ok && /^cambio_sin_precio/.test(mutante.lineas[0] ?? ""),
+    mutante.ok ? mutante.lineas : mutante.mensaje,
+  );
 }
 {
   const sql = readFileSync(MIGRACION, "utf8");

@@ -663,11 +663,13 @@ export function costoEfectivo(f: FilaFicha): string {
 
 /** Lo que cuesta la talla activa que MÁS cuesta, según la base (lo guardado, no lo que se está escribiendo): el piso del precio de una
  *  tienda (`poner_precio_sede`, Felipe 2026-10-11). `null` si no hay ninguna activa guardada o no se ve el costo (quien no ve el dinero
- *  recibe el costo vacío, 20260923193700). Las variantes nuevas todavía no existen para la base: no cuentan. Una talla a 0 en la grilla
- *  (la de obsequio) tampoco: el precio de la tienda no la alcanza, sigue en 0 en toda tienda (2026-10-15, 20261015121000). */
-export function costoMaximoGuardado(filas: readonly FilaFicha[]): number | null {
+ *  recibe el costo vacío, 20260923193700). Las variantes nuevas todavía no existen para la base: no cuentan. La talla de OBSEQUIO
+ *  tampoco —S/ 0 guardado en una categoría que admite el 0 (Empaque)—: el precio de la tienda no la alcanza, sigue en 0 en toda tienda.
+ *  La de ropa en S/ 0 sí cuenta: en esa tienda se vende al precio de la tienda (2026-10-15, 20261015121000). `admitePrecioCero` es el de
+ *  la categoría GUARDADA de la prenda, la que mira la base (sin dato, no: ropa). */
+export function costoMaximoGuardado(filas: readonly FilaFicha[], admitePrecioCero = false): number | null {
   const costos = filas
-    .filter((f) => f.guardada?.activo && Number(f.guardada.precio) > 0)
+    .filter((f) => f.guardada?.activo && (!admitePrecioCero || Number(f.guardada.precio) > 0))
     .map((f) => (f.guardada!.costo.trim() === "" ? NaN : Number(f.guardada!.costo)))
     .filter((n) => Number.isFinite(n) && n > 0);
   return costos.length > 0 ? Math.max(...costos) : null;

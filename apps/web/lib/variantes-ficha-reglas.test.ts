@@ -602,9 +602,17 @@ describe("precio y costo en bloque", () => {
     it("una talla desactivada no cuenta (la base mira solo las activas)", () => {
       expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 20 }), variante("b", "NEG", "t-m", { costo: 99, activo: false })))).toBe(20);
     });
-    it("una talla a 0 en la grilla (la de obsequio) no cuenta: el precio de la tienda no la alcanza (2026-10-15)", () => {
-      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 1 }), variante("b", "NEG", "t-m", { costo: 9, precio: 0 })))).toBe(1);
-      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 9, precio: 0 })))).toBeNull();
+    it("la talla de OBSEQUIO (0 guardado en una categoría que admite el 0) no cuenta: el precio de la tienda no la alcanza (2026-10-15)", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 1 }), variante("b", "NEG", "t-m", { costo: 9, precio: 0 })), true)).toBe(1);
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 9, precio: 0 })), true)).toBeNull();
+    });
+    it("la talla de ROPA en 0 sí cuenta: en esa tienda se vende al precio de la tienda (2026-10-15); sin decir la categoría, es ropa", () => {
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 1 }), variante("b", "NEG", "t-m", { costo: 9, precio: 0 })), false)).toBe(9);
+      expect(costoMaximoGuardado(filas(variante("a", "NEG", "t-s", { costo: 9, precio: 0 })))).toBe(9);
+    });
+    it("el precio que se está escribiendo no cambia qué talla es de obsequio: manda el guardado", () => {
+      const [f] = filas(variante("a", "NEG", "t-s", { costo: 9, precio: 0 }));
+      expect(costoMaximoGuardado([{ ...f!, precio: "50" }], true)).toBeNull();
     });
     it("lo que se está escribiendo no cuenta: manda lo guardado", () => {
       const [f] = filas(variante("a", "NEG", "t-s", { costo: 20 }));

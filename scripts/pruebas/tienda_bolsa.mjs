@@ -15,7 +15,8 @@
  *      tocar el stock ni el libro; dos toques con la misma marca dan el mismo pedido (aunque entretanto cambie el precio); la
  *      marca de otro no devuelve su pedido; un precio que no cuadra, lo que ya no está en la Vitrina, lo que no se vende en esa
  *      tienda, lo agotado (también lo que solo está en el Taller o en una tienda escondida: la regla de la ficha), una talla que esa
- *      tienda no ofrece (a S/ 0, ADR-0384), una tienda escondida, sin cuenta o una bolsa torcida no separan NADA. A lo sumo 3 separaciones «por confirmar» a la vez por cliente
+ *      tienda no ofrece (a S/ 0, ADR-0384; con precio propio de la tienda, la de ropa sí se ofrece y se separa ahí, 20261015121000), una
+ *      tienda escondida, sin cuenta o una bolsa torcida no separan NADA. A lo sumo 3 separaciones «por confirmar» a la vez por cliente
  *      (`tienda_separar_tope`, decisión de Felipe 2026-10-14): la marca se mira antes que el tope, y lo confirmado o vencido no
  *      cuenta. Que «Separar» cierre las esperas de «Avísame» lo prueba `pnpm pruebas:tienda-club` (S).
  *   C. «Mis pedidos» (`tienda_mis_pedidos`, `tienda_pedido`): cada cliente ve SOLO lo suyo (el número de otro responde igual
@@ -432,17 +433,23 @@ select concat_ws(',',
   "false,t,tienda_separar_no_publicada",
 );
 escenario(
-  // «La talla de S/ 0 sigue en S/ 0» (Felipe 2026-10-15, `20261015121000`): el precio propio de una tienda no alcanza a la talla que vale 0
-  // en la grilla. Antes, con un precio propio en Trujillo, la bolsa la ofrecía a ese precio en Trujillo y con «Todas» (el mayor).
-  "con precio propio en la tienda, la talla de S/ 0 SIGUE sin ofrecerse: ni en esa tienda ni con «Todas», y «Separar» no la separa al precio de la tienda",
+  // CAMBIÓ el 2026-10-15 (Felipe: «el precio de la prenda siempre debe ser el mismo de la tienda», `20261015121000`): la ROPA vale el
+  // precio de la tienda aunque su ficha diga S/ 0 en una talla. Con precio propio en Trujillo, la bolsa la ofrece en Trujillo y con
+  // «Todas» (el mayor) a ese precio, y no en Lima, donde sigue sin precio; «Separar» la separa en Trujillo y no en Lima. (La primera
+  // versión de esa migración, sin pegar, no la ofrecía en ninguna: eso queda solo para la talla de obsequio, que en la web ni se muestra.)
+  "ROPA · con precio propio en Trujillo, la talla que su ficha deja en S/ 0 se ofrece en Trujillo y con «Todas» a ese precio y no en Lima; «Separar» la separa en Trujillo y no en Lima",
   `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 2);
 update retail.variantes set precio = 0 where id = :'v';
 select retail.poner_precio_sede(:'prod_v', :'tru', :'p_v'::numeric + 10, 'Prueba de la bolsa') is not null as _p \\gset
+select retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, :'tru') -> 'lineas' -> 0 as en_tru \\gset
+select retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, null) -> 'lineas' -> 0 as en_todas \\gset
 select concat_ws(',',
-  retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, :'tru') -> 'lineas' -> 0 ->> 'disponible',
-  retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, null) -> 'lineas' -> 0 ->> 'disponible',
-  ${hint(separarTexto(bolsa(L("v", 1, ":'p_v'::numeric + 10"))))});`,
-  "false,false,tienda_separar_no_publicada",
+  (:'en_tru')::jsonb ->> 'disponible', ((:'en_tru')::jsonb ->> 'precio')::numeric = :'p_v'::numeric + 10,
+  (:'en_todas')::jsonb ->> 'disponible', ((:'en_todas')::jsonb ->> 'precio')::numeric = :'p_v'::numeric + 10,
+  retail.tienda_bolsa(${bolsa(`jsonb_build_object('variante_id', :'v', 'cantidad', 1)`)}, :'lim') -> 'lineas' -> 0 ->> 'disponible',
+  pg_temp.probar(${separarTexto(bolsa(L("v", 1, ":'p_v'::numeric + 10")))}),
+  ${hint(separarTexto(bolsa(L("v", 1, ":'p_v'::numeric + 10")), { sede: "lim" }))});`,
+  "true,t,true,t,false,ok,tienda_separar_no_publicada",
 );
 escenario(
   "una bolsa torcida no separa: vacía, mal escrita, cantidad 0, precio con 3 decimales, la misma prenda dos veces o más de 20",
