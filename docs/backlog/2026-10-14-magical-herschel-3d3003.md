@@ -11,8 +11,12 @@
 - [x] **Chrome repite un POST cortado:** medido el 2026-10-15 con HTTP/1.1 y HTTP/2 y leído en Chromium (HTTP/3 incluido): sí, y si solo se
       corta el primer envío la pantalla recibe un OK y la base guardó dos veces. Informe:
       `docs/investigacion/2026-10-15-reintento-de-post-cortado.md`; experimento: `scripts/investigacion/reintento-post-cortado.mjs`.
-- [ ] **`p_token` en `crear_devolucion`** (Devoluciones): con una línea de 2 o más unidades, un reenvío crea otra devolución pendiente;
-      aprobada, reembolso doble y dos notas de crédito. Migración (reemplazo anclado) + pantalla. Toca dinero, stock y SUNAT: OK de Felipe.
+- [x] **`p_token` en `crear_devolucion`** (Felipe 2026-10-15): migración `20261015162000_crear_devolucion_con_token.sql` (columna
+      `devoluciones.token_cliente` + índice único, `p_token` al final, `fn_intento_con_huella`, devuelve la devolución ya guardada) y
+      `DevolucionesFlujo.tsx` manda la marca (viaja con la devolución a medio armar al cambiar de sede); el aviso de un corte ya no se
+      titula «No se registró» sino «No sabemos si se registró». Prueba `pnpm pruebas:crear-devolucion-token` (7 casos, en el CI).
+- [ ] **Pegar `20261015162000` en producción ANTES de publicar la web.** Una web nueva contra la base sin la migración falla con «Could
+      not find the function» (`datos:comparar` ya lo marca); una web vieja sigue funcionando con la base nueva.
 - [ ] **`p_token` en las otras cinco que pueden duplicar:** `registrar_consumo_insumo`, `devolver_insumo_de_produccion`, `cerrar_linea_compra`,
       `reasignar_reparto_compra`, `crear_proforma` (en ese orden). OK de Felipe.
 - [ ] **Decidir la marca por petición (`x-intento` + `db_pre_request`)** para las 141 funciones sin marca: escribir el ADR, primero en modo

@@ -195,6 +195,10 @@ nada más; la próxima función que nazca sin marca vuelve a estar expuesta.
 
 **C. No hacer nada.** Es defendible solo para `crear_proforma`.
 
+**Hecho el 2026-10-15 (Felipe):** `crear_devolucion` ya lleva marca en la rama `claude/magical-herschel-3d3003` (migración
+`20261015162000`, prueba `pruebas:crear-devolucion-token`), verificado con el corte real en Devoluciones a 375 px. Falta pegarla en
+producción antes de publicar la web.
+
 **Recomendación:** empezar **ya** por B con `crear_devolucion`, la única que puede terminar en plata devuelta dos veces y dos notas de crédito
 en SUNAT. Escribir A como ADR, primero en modo «solo anotar» para medir, y decidir con datos si se activa el corte. Si A se activa, B queda
 para las pantallas que necesitan el resultado de la primera llamada (entre ellas las cuatro que hoy lo pierden: cerrar caja, aprobar
