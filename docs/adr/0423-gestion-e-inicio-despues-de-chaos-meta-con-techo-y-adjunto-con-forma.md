@@ -1,7 +1,7 @@
 # ADR-0423 · Gestión e Inicio después de /chaos: la meta tiene techo y el adjunto, la forma de la pantalla
 
 - **Fecha:** 2026-10-15 · **Estado:** construido y verificado en local (suite de base con controles, suites vecinas, el mismo ataque
-  repetido con la misma semilla). **Las dos migraciones NO están en producción:** esperan el OK de Felipe. Rama `claude/chaos-gestion-5c56e1`.
+  repetido con la misma semilla). **Las dos migraciones están en producción desde el 2026-10-15** (con el OK de Felipe, PR #1112). Rama `claude/chaos-gestion-5c56e1`.
 - **Pedido:** Felipe, 2026-10-15: «pega las migraciones y continúa con el siguiente módulo». Era el último grupo del tablero de `/chaos` sin
   corrida con arreglos: Gestión (Frescura, Plan del piso, Análisis), Inicio, Rendimiento, CAYLA Global, Actividad, Comercial y Buscar.
 - **Extiende:** ADR-0421 (Compras), ADR-0412 y ADR-0405 (textos con tope). **Complementa:** ADR-0356 (`/chaos`).
@@ -57,3 +57,7 @@ y `0eeeb824…`), cada ancla una sola vez. Después: los dos candados con `conva
   pantalla, y la tabla escrita directo.
 - Las suites vecinas: `metas-persona`, `notas-credito-modulo`, `dinero-compras-solo-lider`, `roles-por-modulo`, `roles-cobertura-modulos`.
 - El ataque repetido con la misma semilla: los 18 de la meta y del adjunto resisten.
+
+**Pegado el 2026-10-15** con el OK de Felipe, en dos llamadas y en orden. Antes: cada ancla una sola vez, sin filas y sin los candados.
+Después: `compra_adjuntos_textos_con_tope` y `compra_adjuntos_ruta_un_archivo` con `convalidated = true`; `fijar_meta_persona` y
+`registrar_adjunto_compra` idénticas a las de local (md5 `1648f62f…` y `42d0ff2d…`).
