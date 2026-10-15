@@ -6,7 +6,8 @@ import { capturarError } from "@/lib/errores";
 // (tienda online, DECIDÍ 8; actividad 7): un pedido web que nadie confirmó en su plazo se cierra solo («Se cerró sin confirmar»;
 // Felipe: 24 horas corridas). El plazo NO se escribe aquí: lo lee la base de Configuración ▸ Tienda web
 // (`fn_cerrar_pedidos_web_sin_confirmar`, que llama a `fn_cerrar_pedidos_web_vencidos` del motor con ese plazo). Esta ruta solo la
-// llama y dice cuántos cerró.
+// llama y dice cuántos cerró. Desde 20261016001000 (Felipe 2026-10-15, D9) la misma función también anula lo CONFIRMADO al que no se
+// le pagó nada en las horas de «Si no paga» (de fábrica 48), y sus prendas vuelven a estar disponibles (`fn_anular_pedidos_web_sin_pagar`).
 //
 // No es la que protege nada: un pedido pasado su plazo ya se LEE vencido aunque esta ruta no haya corrido, y nadie lo puede confirmar
 // (el motor del pedido web). Correrla dos veces a la vez es inofensivo (lo que otra está cerrando se salta).

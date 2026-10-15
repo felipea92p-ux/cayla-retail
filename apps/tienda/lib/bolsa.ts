@@ -19,6 +19,10 @@ import { interpretarSedes, type Sede } from "./tiendas";
 export const COOKIE_BOLSA = "tienda-bolsa";
 /** El mismo tope de cordura de `crear_pedido_web` (el motor del pedido web): una bolsa lleva hasta 20 prendas. */
 export const TOPE_PRENDAS = 20;
+/** Hasta 2 de una misma prenda y talla (Felipe 2026-10-15, D2): lo que acepta `retail.tienda_separar` sumando las otras separaciones
+ *  abiertas del cliente, y lo más que la bolsa le pregunta a la base (`retail.tienda_bolsa`), para que la respuesta no revele cuántas
+ *  quedan. Quien manda es la base (20261016001000); aquí solo evita llenar la bolsa de algo que no se podrá separar. */
+export const TOPE_POR_PRENDA = 2;
 /** La bolsa se queda en el aparato 30 días desde que se tocó por última vez. */
 export const DIAS_DE_LA_BOLSA = 30;
 
@@ -35,11 +39,13 @@ const NADA = "_";
 
 /** Cuántas prendas lleva (las unidades, no las filas). */
 export const unidades = (b: Pick<Bolsa, "lineas">) => b.lineas.reduce((n, l) => n + l.cantidad, 0);
+/** Cuántas lleva de UNA prenda (talla y color). */
+export const cuantasDe = (b: Pick<Bolsa, "lineas">, varianteId: string) => b.lineas.find((l) => l.varianteId === varianteId)?.cantidad ?? 0;
 
 /**
  * La cookie → la bolsa. Formato: `1.<tienda|_>.<marca|_>.<prenda>~<n>.<prenda>~<n>…` (solo letras, números, `-`, `.`, `~` y `_`:
  * nada que el navegador tenga que codificar). Lo que no tiene esa forma se descarta; la misma prenda dos veces se suma; nunca más
- * de 20 prendas.
+ * de 2 de una prenda ni de 20 prendas.
  */
 export function leerBolsa(valor: string | null | undefined): Bolsa {
   if (!valor) return BOLSA_VACIA;
@@ -50,9 +56,9 @@ export function leerBolsa(valor: string | null | undefined): Bolsa {
   for (const parte of resto) {
     const m = /^([0-9a-f-]{36})~(\d{1,2})$/.exec(parte);
     if (!m || !esId(m[1])) continue;
-    const cantidad = Math.min(Number(m[2]), TOPE_PRENDAS - total);
-    if (cantidad < 1) continue;
     const ya = lineas.find((l) => l.varianteId === m[1]);
+    const cantidad = Math.min(Number(m[2]), TOPE_PRENDAS - total, TOPE_POR_PRENDA - (ya?.cantidad ?? 0));
+    if (cantidad < 1) continue;
     if (ya) ya.cantidad += cantidad;
     else lineas.push({ varianteId: m[1], cantidad });
     total += cantidad;
@@ -65,13 +71,14 @@ export function escribirBolsa(b: Bolsa): string {
   return [VERSION, b.sedeId ?? NADA, b.marca ?? NADA, ...b.lineas.map((l) => `${l.varianteId}~${l.cantidad}`)].join(".");
 }
 
-/** Una prenda más (si cabe). Si todavía no eligió dónde recoger y venía mirando una tienda, esa queda elegida (maqueta). */
+/** Una prenda más (si cabe: hasta 20 en total y 2 de la misma). Si todavía no eligió dónde recoger y venía mirando una tienda, esa
+ *  queda elegida (maqueta). */
 export function agregarUna(
   b: Bolsa,
   varianteId: string,
   { marca, sedeId = null }: { marca: string; sedeId?: string | null },
 ): Bolsa | null {
-  if (unidades(b) >= TOPE_PRENDAS) return null;
+  if (unidades(b) >= TOPE_PRENDAS || cuantasDe(b, varianteId) >= TOPE_POR_PRENDA) return null;
   const ya = b.lineas.some((l) => l.varianteId === varianteId);
   const lineas = ya
     ? b.lineas.map((l) => (l.varianteId === varianteId ? { ...l, cantidad: l.cantidad + 1 } : l))
@@ -79,14 +86,22 @@ export function agregarUna(
   return { lineas, sedeId: b.sedeId ?? sedeId, marca };
 }
 
-/** Varias prendas de una vez (un look: una por prenda con su talla), todas o ninguna: si no caben todas, `null` y la bolsa no cambia.
- *  La misma prenda dos veces suma dos. */
+/** Varias prendas de una vez (un look: una por prenda con su talla), todas o ninguna: si no caben todas (20 en total, 2 de la misma),
+ *  `null` y la bolsa no cambia. La misma prenda dos veces suma dos. */
 export function agregarVarias(b: Bolsa, varianteIds: readonly string[], { marca }: { marca: string }): Bolsa | null {
   if (varianteIds.length === 0 || unidades(b) + varianteIds.length > TOPE_PRENDAS) return null;
   let nueva = b;
-  for (const v of varianteIds) nueva = agregarUna(nueva, v, { marca }) ?? nueva;
+  for (const v of varianteIds) {
+    const siguiente = agregarUna(nueva, v, { marca });
+    if (!siguiente) return null;
+    nueva = siguiente;
+  }
   return nueva;
 }
+
+/** ¿Agregar estas prendas dejaría alguna con más de 2 en la bolsa? (para decir por qué no entra un look, antes del tope de 20). */
+export const pasaElTopePorPrenda = (b: Pick<Bolsa, "lineas">, varianteIds: readonly string[]) =>
+  varianteIds.some((v) => cuantasDe(b, v) + varianteIds.filter((x) => x === v).length > TOPE_POR_PRENDA);
 
 /**
  * «Quitar» saca UNA (maqueta: `w-quitar`). `vista`: cuántas veía el cliente al tocar; si ya no son esas (un doble toque, otra
@@ -342,7 +357,8 @@ const MENSAJES_SEPARAR: Record<string, string> = {
   tienda_separar_no_publicada: "Una prenda ya no está en la tienda online. Quítala para separar.",
   tienda_separar_no_se_vende: "Una prenda no se vende en esa tienda. Quítala o elige otra tienda.",
   tienda_separar_tienda: "Esa tienda no recibe pedidos de la web ahora. Elige otra.",
-  tienda_separar_tope: "Ya tienes el máximo de separaciones esperando que la tienda confirme. Cuando te confirmen una (o se cierre), puedes separar otra.",
+  tienda_separar_tope: "Ya tienes el máximo de separaciones abiertas. Cuando recojas alguna (o se cierre), puedes separar otra.",
+  tienda_separar_tope_prenda: `Puedes separar hasta ${TOPE_POR_PRENDA} de la misma prenda y talla, contando las que ya separaste. Quita una para separar.`,
   pedido_web_muchas_prendas: `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas. Quita alguna para separar.`,
   tienda_sin_cuenta: "Tu cuenta no terminó de crearse. Entra a «Mi cuenta» para terminarla.",
   // Lo que llegó no se pudo leer (una bolsa vieja, una pestaña a medias): se vuelve a mirar la bolsa de ahora.
@@ -352,13 +368,15 @@ const MENSAJES_SEPARAR: Record<string, string> = {
 /** Cuando lo que hay que hacer está en otra página, el mensaje lleva su camino: con el tope, los pedidos que esperan. */
 const CAMINOS_SEPARAR: Record<string, { texto: string; href: string }> = {
   tienda_separar_tope: { texto: "Ver mis pedidos", href: "/cuenta/pedidos" },
+  tienda_separar_tope_prenda: { texto: "Ver mis pedidos", href: "/cuenta/pedidos" },
 };
 export const SEPARAR_SIN_RESPUESTA = "No pudimos separar ahora. Tu bolsa sigue aquí: vuelve a intentarlo en un momento.";
 export const BOLSA_CAMBIO = "Tu bolsa cambió en otra pestaña. Revísala y vuelve a tocar «Separar».";
 
 /** Lo que se le dice al cliente cuando «Separar» no separó: la frase de la negativa de la base (por su hint) y, si la hay, adónde ir.
- *  Lo que la base no explica (o no contestó): «No pudimos separar ahora». El tope de separaciones por confirmar (Felipe, 2026-10-14) lo
- *  hace cumplir la base (`tienda_separar`) y manda su número en `detalle`: la tienda no lo repite, para que no haya dos números. */
+ *  Lo que la base no explica (o no contestó): «No pudimos separar ahora». El tope de separaciones abiertas (Felipe, 2026-10-14; desde el
+ *  2026-10-15 cuenta también las confirmadas y pagadas sin recoger) lo hace cumplir la base (`tienda_separar`) y manda su número en
+ *  `detalle`: la tienda no lo repite, para que no haya dos números. */
 export function respuestaDeSeparar(
   hint: string | null,
   detalle: string | null = null,
@@ -368,7 +386,7 @@ export function respuestaDeSeparar(
   return {
     mensaje:
       tope !== null
-        ? `Ya tienes ${tope} ${tope === 1 ? "separación esperando" : "separaciones esperando"} que la tienda confirme. Cuando te confirmen una (o se cierre), puedes separar otra.`
+        ? `Ya tienes ${tope} ${tope === 1 ? "separación abierta" : "separaciones abiertas"}. Cuando recojas alguna (o se cierre), puedes separar otra.`
         : conocido(MENSAJES_SEPARAR)
           ? MENSAJES_SEPARAR[hint as string]
           : SEPARAR_SIN_RESPUESTA,
@@ -382,6 +400,8 @@ export const avisoAgregada = (p: Pick<PrendaEnLaBolsa, "nombre" | "color" | "tal
 export const AGREGAR_AGOTADA = "Esa talla ya no está en ninguna tienda.";
 export const AGREGAR_NO_ESTA = "Esa prenda ya no está en la tienda online.";
 export const AGREGAR_LLENA = `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas.`;
+export const AGREGAR_TOPE_PRENDA = `Puedes llevar hasta ${TOPE_POR_PRENDA} de la misma prenda y talla.`;
+export const AGREGAR_TOPE_PRENDA_LOOK = `Ya llevas ${TOPE_POR_PRENDA} de alguna de esas prendas: quita una para agregar el look.`;
 /** Un look entra entero o no entra (no se parte por falta de lugar). */
 export const AGREGAR_LLENA_LOOK = `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas: quita alguna para agregar el look.`;
 export const AGREGAR_SIN_RESPUESTA = "No pudimos agregarla ahora. Vuelve a intentarlo en un momento.";

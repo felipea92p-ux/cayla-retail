@@ -19,7 +19,7 @@ export const metadata: Metadata = {
  */
 export default async function ComoSeparar() {
   const [conCuenta, plazos, sedes] = await Promise.all([haySesion(), leerAyuda(), leerSedes()]);
-  const { confirmar, recoger } = avisosParaSeparar(plazos);
+  const { confirmar, pagar, recoger } = avisosParaSeparar(plazos);
   return (
     <MarcoCuenta conCuenta={conCuenta} conPie>
       <div className="t-ancho t-angosto w-pagina-form">
@@ -38,6 +38,7 @@ export default async function ComoSeparar() {
             ))}
           </ol>
           <Nota icono="reloj" {...confirmar} />
+          <Nota icono="ticket" {...pagar} />
           <Nota icono="tienda" {...recoger} />
         </article>
       </div>

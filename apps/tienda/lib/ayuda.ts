@@ -8,6 +8,8 @@ import { z } from "zod";
 // Los mismos rangos que la base acepta (configuracion_tienda_web); uno fuera de rango se toma como «sin dato».
 const esquemaAyuda = z.object({
   horas_para_confirmar: z.number().int().min(1).max(168).nullable().catch(null),
+  // 20261016001000: las horas para pagar un pedido confirmado (las de «Si no paga»); sin la migración no viene y queda sin dato.
+  horas_para_pagar: z.number().int().min(1).max(720).nullable().catch(null),
   dias_para_recoger: z.number().int().min(1).max(60).nullable().catch(null),
   dias_para_cambiar: z.number().int().min(1).max(365).nullable().catch(null),
 });
@@ -15,6 +17,8 @@ const esquemaAyuda = z.object({
 export type Plazos = {
   /** Horas que tiene la tienda para confirmar una separación; pasadas, se cierra sola. */
   horasParaConfirmar: number | null;
+  /** Horas para pagar un pedido ya confirmado; pasadas sin ningún pago, se anula solo (Felipe 2026-10-15, D9). */
+  horasParaPagar: number | null;
   /** Días para recoger después de pagar. */
   diasParaRecoger: number | null;
   /** Días para cambiar o devolver una prenda, como en tienda. */
@@ -22,13 +26,18 @@ export type Plazos = {
 };
 
 /** Sin base, ningún plazo: la página los dice sin número (principio 9: se degrada, no se cae ni inventa). */
-export const PLAZOS_SIN_DATOS: Plazos = { horasParaConfirmar: null, diasParaRecoger: null, diasParaCambiar: null };
+export const PLAZOS_SIN_DATOS: Plazos = { horasParaConfirmar: null, horasParaPagar: null, diasParaRecoger: null, diasParaCambiar: null };
 
 /** Lo que devuelve `tienda_ayuda()`. Un dato raro se toma como «sin dato»; los demás se usan igual. */
 export function interpretarAyuda(dato: unknown): Plazos {
   const r = esquemaAyuda.safeParse(dato);
   if (!r.success) return PLAZOS_SIN_DATOS;
-  return { horasParaConfirmar: r.data.horas_para_confirmar, diasParaRecoger: r.data.dias_para_recoger, diasParaCambiar: r.data.dias_para_cambiar };
+  return {
+    horasParaConfirmar: r.data.horas_para_confirmar,
+    horasParaPagar: r.data.horas_para_pagar,
+    diasParaRecoger: r.data.dias_para_recoger,
+    diasParaCambiar: r.data.dias_para_cambiar,
+  };
 }
 
 /** «24 horas», «1 hora», «7 días», «1 día». */
@@ -61,9 +70,11 @@ export function pasosParaSeparar(tiendas: readonly string[]): Paso[] {
   ];
 }
 
-/** Los dos avisos de «Cómo separar»: cuánto espera un pedido sin confirmar y dónde se recoge. Sin el plazo, sin número. */
-export function avisosParaSeparar(p: Plazos): { confirmar: Paso; recoger: Paso } {
+/** Los avisos de «Cómo separar»: cuánto espera un pedido sin confirmar, cuánto hay para pagarlo y dónde se recoge. Sin el plazo, sin
+ *  número. */
+export function avisosParaSeparar(p: Plazos): { confirmar: Paso; pagar: Paso; recoger: Paso } {
   const horas = p.horasParaConfirmar;
+  const paraPagar = p.horasParaPagar;
   return {
     confirmar:
       horas !== null
@@ -72,6 +83,16 @@ export function avisosParaSeparar(p: Plazos): { confirmar: Paso; recoger: Paso }
             texto: `Si en ${enHoras(horas)} nadie confirma el pedido, se cierra solo y puedes volver a separarlo.`,
           }
         : { titulo: "Si nadie lo confirma, se cierra solo", texto: "Pasado el plazo, el pedido se cierra solo y puedes volver a separarlo." },
+    pagar:
+      paraPagar !== null
+        ? {
+            titulo: `Pagas dentro de ${enHoras(paraPagar)}`,
+            texto: `Desde que la tienda confirma tu pedido tienes ${enHoras(paraPagar)} para pagarlo. Si no llega ningún pago, se anula solo y las prendas vuelven a la tienda.`,
+          }
+        : {
+            titulo: "Si no pagas, se anula solo",
+            texto: "Desde que la tienda confirma tu pedido tienes un plazo para pagarlo. Si no llega ningún pago, se anula solo y las prendas vuelven a la tienda.",
+          },
     recoger: {
       titulo: "Por ahora, todo se recoge en tienda",
       texto: `Todavía no hacemos envíos. Lo recoges en la tienda que elegiste${p.diasParaRecoger !== null ? `, hasta ${enDias(p.diasParaRecoger)} después de pagar` : ""}.`,
