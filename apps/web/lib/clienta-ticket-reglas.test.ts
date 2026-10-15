@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ALTA_VACIA, altaDesdeBusqueda, clientaDeTicketGuardado, filaDeClienta, type ClientaDelTicket } from "./clienta-ticket-reglas";
+import {
+  ALTA_VACIA,
+  altaDesdeBusqueda,
+  clientaDeTicketGuardado,
+  filaDeClienta,
+  nombreDeFichaParaComprobante,
+  type ClientaDelTicket,
+} from "./clienta-ticket-reglas";
 
 // La fila «Clienta» del Punto de venta y el módulo «Clientas» (ADR-0249, actualización 2026-09-28). La base le rechaza la
 // búsqueda de la libreta a la cuenta cuyo rol no tiene el módulo (42501 `clientas_sin_modulo`): el ticket no se la ofrece,
@@ -51,5 +58,32 @@ describe("alta en el ticket y tickets en espera (ADR-0288 tanda 1a)", () => {
     expect(clientaDeTicketGuardado({ nombre: "Sin id" })).toBeNull();
     expect(clientaDeTicketGuardado(null)).toBeNull();
     expect(clientaDeTicketGuardado("texto")).toBeNull();
+  });
+});
+
+describe("nombreDeFichaParaComprobante: la boleta no vuelve a consultar el padrón por el cliente del ticket (Felipe 2026-10-15)", () => {
+  it("con el documento del cliente en el comprobante, el nombre sale de su ficha: no se consulta otra vez", () => {
+    expect(nombreDeFichaParaComprobante(ANA, "dni", "45678912")).toBe("Ana Lozano");
+  });
+
+  it("un dígito corregido ya es otra persona: se consulta", () => {
+    expect(nombreDeFichaParaComprobante(ANA, "dni", "45678913")).toBeNull();
+    expect(nombreDeFichaParaComprobante(ANA, "dni", "")).toBeNull();
+  });
+
+  it("otro tipo de documento con los mismos caracteres tampoco es ella", () => {
+    expect(nombreDeFichaParaComprobante(ANA, "carne_extranjeria", "45678912")).toBeNull();
+  });
+
+  it("sin cliente en el ticket, o con su ficha sin nombre o sin documento, se consulta como siempre", () => {
+    expect(nombreDeFichaParaComprobante(null, "dni", "45678912")).toBeNull();
+    expect(nombreDeFichaParaComprobante({ ...ANA, nombre: "  " }, "dni", "45678912")).toBeNull();
+    expect(nombreDeFichaParaComprobante({ ...ANA, documentoNumero: null }, "dni", "45678912")).toBeNull();
+  });
+
+  it("el nombre va sin espacios sobrantes y el número se compara sin espacios ni mayúsculas", () => {
+    expect(nombreDeFichaParaComprobante({ ...ANA, nombre: " Ana Lozano " }, "dni", "4567 8912")).toBe("Ana Lozano");
+    const conCarne: ClientaDelTicket = { ...ANA, documentoTipo: "carne_extranjeria", documentoNumero: "ab12345" };
+    expect(nombreDeFichaParaComprobante(conCarne, "carne_extranjeria", "AB12345")).toBe("Ana Lozano");
   });
 });
