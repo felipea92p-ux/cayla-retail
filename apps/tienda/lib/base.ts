@@ -3,7 +3,8 @@ import postgres from "postgres";
 
 // La puerta angosta (ADR-0408): la tienda habla con la base del ERP SOLO por funciones `retail.tienda_*`, con un usuario
 // que hereda el rol `tienda_web`. Ese rol no tiene permiso sobre ninguna tabla y nunca es la llave de servicio del ERP.
-// `prepare: false` porque en producción la conexión pasa por el pooler de Supabase en modo transacción.
+// En producción la conexión pasa por el pooler de Supabase en modo SESIÓN (puerto 5432): en modo transacción (6543) las consultas
+// que la página manda a la vez se quedaban colgadas (medido el 2026-10-15: 5 de 10). `prepare: false` no estorba en ninguno de los dos.
 //
 // Cada tema lee la base desde su propio `lib/<tema>-servidor.ts` (portada, cuentas, catálogo…), siempre con `base()` o
 // `leerConRespaldo()` de aquí. Lo vigila lib/candados.test.ts.
