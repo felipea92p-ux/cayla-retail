@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, MessageCircle, Minus, Plus, Trash2 } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
@@ -636,6 +636,33 @@ const detalleVariante = (p: { color: string | null; talla: string | null; codigo
  * 2 días más, o 3 si el abono cubre la mitad o más de lo que le faltaba (Felipe, 2026-09-26).
  */
 export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apartado: Apartado; ubicacion: UbicacionApartado; cajaAbierta: boolean; onClose: () => void }) {
+  const [ocupado, setOcupado] = useState(false);
+  return (
+    <Modal titulo="Abonar a cuenta" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la prenda sigue guardada`} onClose={onClose} bloqueado={ocupado}>
+      {(cerrar) => <AbonarFormulario apartado={apartado} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onListo={cerrar} onCancelar={cerrar} onOcupado={setOcupado} />}
+    </Modal>
+  );
+}
+
+/**
+ * El cuerpo de «Abonar a cuenta», sin su hoja: lo usa `AbonarModal` y el detalle del apartado (ADR-0414), que lo muestra dentro de su
+ * propia hoja. `onOcupado` avisa mientras el abono va en camino o quedó en duda, para que la hoja no se cierre con el dinero en el aire.
+ */
+export function AbonarFormulario({
+  apartado,
+  ubicacion,
+  cajaAbierta,
+  onListo,
+  onCancelar,
+  onOcupado,
+}: {
+  apartado: Apartado;
+  ubicacion: UbicacionApartado;
+  cajaAbierta: boolean;
+  onListo: () => void;
+  onCancelar: () => void;
+  onOcupado?: (ocupado: boolean) => void;
+}) {
   const router = useRouter();
   const [metodo, setMetodo] = useState<MetodoPago>("yape");
   const [monto, setMonto] = useState(0);
@@ -645,6 +672,10 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
   const envio = useIntento("abonar_separacion");
   const enviando = envio.enviando;
   const [revisando, setRevisando] = useState(false);
+  const ocupado = enviando || envio.incierto;
+  useEffect(() => {
+    onOcupado?.(ocupado);
+  }, [ocupado, onOcupado]);
   const responsable = useResponsable(ubicacion, { modo: "atencion" });
   const saldo = apartado.saldo;
   const dias = diasEsperaPorAbono(monto, saldo);
@@ -689,82 +720,79 @@ export function AbonarModal({ apartado, ubicacion, cajaAbierta, onClose }: { apa
     cerrar();
   }
 
+  const cerrar = onListo;
   return (
-    <Modal titulo="Abonar a cuenta" subtitulo={`${apartado.nombres} ${apartado.apellidos} · ${apartado.codigo} · la prenda sigue guardada`} onClose={onClose} bloqueado={enviando || envio.incierto}>
-      {(cerrar) => (
-        <div className="space-y-4">
-          {/* En duda, nada se toca: otro monto reenviado podría cobrar el abono dos veces. */}
-          <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
-          <div className="card-cayla flex items-baseline justify-between p-4">
-            <span className="text-sm text-tinta/70">Falta pagar hoy</span>
-            <span className="font-display text-2xl tabular-nums">{money(saldo)}</span>
-          </div>
-          <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1" role="radiogroup" aria-label="Cómo paga el abono">
-            {METODOS_PAGO.map((m) => (
-              <button
-                key={m}
-                type="button"
-                role="radio"
-                aria-checked={metodo === m}
-                onClick={() => setMetodo(m)}
-                style={metodo === m ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined}
-                className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] capitalize transition-colors ${metodo === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
-              >
-                {ICONO_METODO[m]}
-                {m}
-              </button>
-            ))}
-          </div>
-          <label className="flex items-center justify-between gap-3 rounded-xl border border-sand bg-papel px-4 py-3">
-            <span className="text-sm">Abona</span>
-            <span className="flex items-center gap-1 border-b border-tinta/20 text-lg">
-              <span className="text-tinta/50">S/</span>
-              <CampoMonto aria-label="Monto del abono" valor={monto} onCambio={setMonto} className="w-24 bg-transparent py-1 text-right tabular-nums outline-none" />
-            </span>
-          </label>
-          <div className="flex flex-wrap gap-1.5">
-            {rapidos.map((x) => (
-              <button key={x} type="button" onClick={() => setMonto(x)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
-                {money(x)}
-              </button>
-            ))}
-            <button type="button" onClick={() => setMonto(saldo)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
-              Todo · {money(saldo)}
-            </button>
-          </div>
-          <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-sand">
-            <span className="block h-full rounded-full bg-tinta transition-[width] duration-500 ease-[var(--ease-cayla)]" style={{ width: `${Math.min(100, ((apartado.adelanto + Math.max(0, monto)) / apartado.total) * 100)}%` }} />
-          </div>
-          <p className="flex justify-between text-xs text-tinta/60 tabular-nums">
-            <span>Pagado {money(apartado.adelanto + Math.max(0, monto))} de {money(apartado.total)}</span>
-            <b className="text-tinta">Queda {money(Math.max(0, saldo - monto))}</b>
-          </p>
-          {monto > saldo && <Aviso tono="error" chico>El abono no puede pasar lo que falta ({money(saldo)}).</Aviso>}
-          <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85">
-            <Casilla marcada={esperar} onCambio={() => setEsperar(!esperar)} etiqueta={`Esperarla ${dias} días más`} className="mt-0.5 shrink-0" />
-            <span>
-              Esperarla {dias} días más: recoge hasta el <b>{fechaCorta(nuevaFecha)}</b>
-              <span className="block text-xs text-tinta/55">{dias === 3 ? "Abona la mitad o más de lo que le faltaba: 3 días." : "Con la mitad o más de lo que le falta serían 3 días."} Sin marcar, la fecha sigue el {fechaCorta(apartado.venceEl)}.</span>
-            </span>
-          </label>
-          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">{esConstancia(apartado) ? "El abono se suma al adelanto y no emite comprobante. Al recoger, sale una sola boleta o factura por el total." : "Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos."}</p>
-          <ComboResponsable control={responsable} deshabilitado={enviando} />
-          </fieldset>
-          {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
-          <div className="pie-acciones">
-            <button type="button" onClick={cerrar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
-            <Boton peso="primario" cargando={enviando}
-              type="button"
-              disabled={!valido || enviando || revisando || !responsable.listo || !cajaAbierta}
-              title={!cajaAbierta ? "Abre la caja para cobrar el abono." : (responsable.motivo ?? undefined)}
-              onClick={() => abonar(cerrar)}
-            >
-              {envio.incierto ? "Volver a intentar" : `Registrar abono · ${money(Math.max(0, monto))}`}
-            </Boton>
-          </div>
-        </div>
-      )}
-    </Modal>
+    <div className="space-y-4">
+      {/* En duda, nada se toca: otro monto reenviado podría cobrar el abono dos veces. */}
+      <fieldset disabled={envio.incierto} className="min-w-0 space-y-4">
+      <div className="card-cayla flex items-baseline justify-between p-4">
+        <span className="text-sm text-tinta/70">Falta pagar hoy</span>
+        <span className="font-display text-2xl tabular-nums">{money(saldo)}</span>
+      </div>
+      <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1" role="radiogroup" aria-label="Cómo paga el abono">
+        {METODOS_PAGO.map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="radio"
+            aria-checked={metodo === m}
+            onClick={() => setMetodo(m)}
+            style={metodo === m ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined}
+            className={`metodo-${m} flex h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] capitalize transition-colors ${metodo === m ? "shadow-sm" : "text-tinta/60 hover:bg-papel/60"}`}
+          >
+            {ICONO_METODO[m]}
+            {m}
+          </button>
+        ))}
+      </div>
+      <label className="flex items-center justify-between gap-3 rounded-xl border border-sand bg-papel px-4 py-3">
+        <span className="text-sm">Abona</span>
+        <span className="flex items-center gap-1 border-b border-tinta/20 text-lg">
+          <span className="text-tinta/50">S/</span>
+          <CampoMonto aria-label="Monto del abono" valor={monto} onCambio={setMonto} className="w-24 bg-transparent py-1 text-right tabular-nums outline-none" />
+        </span>
+      </label>
+      <div className="flex flex-wrap gap-1.5">
+        {rapidos.map((x) => (
+          <button key={x} type="button" onClick={() => setMonto(x)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
+            {money(x)}
+          </button>
+        ))}
+        <button type="button" onClick={() => setMonto(saldo)} className="rounded-full border border-sand px-3 py-1 text-xs tabular-nums hover:border-taupe">
+          Todo · {money(saldo)}
+        </button>
+      </div>
+      <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-sand">
+        <span className="block h-full rounded-full bg-tinta transition-[width] duration-500 ease-[var(--ease-cayla)]" style={{ width: `${Math.min(100, ((apartado.adelanto + Math.max(0, monto)) / apartado.total) * 100)}%` }} />
+      </div>
+      <p className="flex justify-between text-xs text-tinta/60 tabular-nums">
+        <span>Pagado {money(apartado.adelanto + Math.max(0, monto))} de {money(apartado.total)}</span>
+        <b className="text-tinta">Queda {money(Math.max(0, saldo - monto))}</b>
+      </p>
+      {monto > saldo && <Aviso tono="error" chico>El abono no puede pasar lo que falta ({money(saldo)}).</Aviso>}
+      <label className="flex cursor-pointer items-start gap-2.5 text-[13px] text-tinta/85">
+        <Casilla marcada={esperar} onCambio={() => setEsperar(!esperar)} etiqueta={`Esperarla ${dias} días más`} className="mt-0.5 shrink-0" />
+        <span>
+          Esperarla {dias} días más: recoge hasta el <b>{fechaCorta(nuevaFecha)}</b>
+          <span className="block text-xs text-tinta/55">{dias === 3 ? "Abona la mitad o más de lo que le faltaba: 3 días." : "Con la mitad o más de lo que le falta serían 3 días."} Sin marcar, la fecha sigue el {fechaCorta(apartado.venceEl)}.</span>
+        </span>
+      </label>
+      <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">{esConstancia(apartado) ? "El abono se suma al adelanto y no emite comprobante. Al recoger, sale una sola boleta o factura por el total." : "Sale una boleta de anticipo por el abono. Al recoger, la boleta final descuenta todos los anticipos."}</p>
+      <ComboResponsable control={responsable} deshabilitado={enviando} />
+      </fieldset>
+      {envio.incierto && <AvisoIntentoIncierto onRevisar={() => revisar(cerrar)} revisando={revisando} />}
+      <div className="pie-acciones">
+        <button type="button" onClick={onCancelar} disabled={envio.incierto} className="btn-cayla btn-secundario">Mejor no</button>
+        <Boton peso="primario" cargando={enviando}
+          type="button"
+          disabled={!valido || enviando || revisando || !responsable.listo || !cajaAbierta}
+          title={!cajaAbierta ? "Abre la caja para cobrar el abono." : (responsable.motivo ?? undefined)}
+          onClick={() => abonar(cerrar)}
+        >
+          {envio.incierto ? "Volver a intentar" : `Registrar abono · ${money(Math.max(0, monto))}`}
+        </Boton>
+      </div>
+    </div>
   );
 }
 
