@@ -132,3 +132,27 @@
   .t-carril { grid-auto-columns: calc((100% - 3 * 18px) / 4); gap: 18px; margin-inline: 0; padding-inline: 0; }
   .t-campanas { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-columns: auto; margin: 0 0 4px; padding: 0 0 18px; overflow: visible; }
 }
+
+/* Mientras llega una página con cuenta (app/(catalogo)/loading.tsx): la grilla de siempre con tarjetas vacías que brillan. El brillo es
+   el mismo de la tarjeta del Club (`brillo`, globals.css): recorre la foto vacía y no tiene nada que decir más que «ya viene». El
+   «estudio» de la foto es claro en los dos temas (`--t-foto`), así que su brillo también (`--t-papel-fijo`): con `--papel`, en oscuro
+   cruzaba una franja oscura. Quieto (prefers-reduced-motion), la foto es lisa: el degradado detenido dejaba una esquina manchada. */
+.t-esqueleto { padding-block: 28px 64px; }
+.t-esqueleto .t-card-foto {
+  background: linear-gradient(110deg, var(--t-foto) 38%, color-mix(in srgb, var(--t-foto) 55%, var(--t-papel-fijo)) 50%, var(--t-foto) 62%);
+  background-size: 260% 100%;
+  animation: brillo 1.4s linear infinite;
+}
+.t-esqueleto-linea { height: 11px; margin-top: 12px; border-radius: 3px; background: var(--hueso); }
+.t-esqueleto-linea + .t-esqueleto-linea { width: 55%; margin-top: 7px; }
+.t-solo-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .t-esqueleto .t-card-foto { animation: none; background: var(--t-foto); }
+}
+/* La lista que brilla de «Mi cuenta» y de la bolsa: un título y filas con su miniatura. */
+.t-esqueleto-lista { display: grid; gap: 18px; max-width: 760px; }
+.t-esqueleto-titulo { width: 40%; height: 30px; border-radius: 4px; background: var(--hueso); margin-bottom: 8px; }
+.t-esqueleto-fila { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 16px; align-items: center; }
+.t-esqueleto-fila .t-card-foto { width: 72px; }
+.t-esqueleto-fila .t-esqueleto-linea { margin-top: 0; }
+.t-esqueleto-fila .t-esqueleto-linea + .t-esqueleto-linea { margin-top: 9px; }
