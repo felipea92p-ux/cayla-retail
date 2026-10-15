@@ -31,7 +31,7 @@ en stock y caja. Verificado: `pnpm pruebas:anular-venta-comprobante` 12/12 (caso
 K cae), 21 pruebas de `lib/anular-comprobante-reglas.test.ts`, `tsc` y `eslint` limpios, y en el navegador local: una boleta aceptada de una caja ya
 cerrada responde 409 antes de Lucode («La caja de esta venta ya cerró…») y una de caja abierta pasa la revisión y recién ahí llama a Lucode. Queda
 abierto el caso raro de SUNAT rechazando la baja después (venta anulada con comprobante vigente): lo detectará la invariante de la Fase 1.
-Pendiente de aplicar en producción con OK de Felipe (la web no se publica antes que la migración).
+Aplicada en producción el 2026-10-14 con el OK de Felipe (versión `20261015000106`).
 
 ## 2026-10-14 (A2: «¿Es alguna de estas?» en la hoja «Prenda sin registrar»)
 Qué hice: con categoría, talla y color elegidos, la hoja muestra, antes de la descripción, las prendas del catálogo que coinciden y se
@@ -85,4 +85,4 @@ Por qué así: Felipe eligió la versión estricta: lo que sí está en el siste
 uno viejo en vez de editarlo).
 Felipe se lleva: cerrar en bloque deja de enterrar sin contar; TRU, AQP y LIM tienen que cuadrar el piso al menos una vez antes del 18, 21 y
 31. Verificado: `pnpm pruebas:cola-arranque` 56/56 (3 casos nuevos), `lib/cola-arranque-reglas.test.ts` 33, `tsc` y vitest entero en verde;
-en el navegador local la mesa muestra el aviso en vez del botón. **Pendiente de producción con OK de Felipe** (después de A1).
+en el navegador local la mesa muestra el aviso en vez del botón. Aplicada en producción el 2026-10-14 con el OK de Felipe (versión `20261015000109`).
