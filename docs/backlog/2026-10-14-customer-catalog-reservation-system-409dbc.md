@@ -19,7 +19,7 @@ Maqueta: `docs/maquetas/tienda-online-2026-10/` (`index.html` + `README.md`, con
 1. ✅ **La tienda existe y se publica sola** (hecha 2026-10-14; ver abajo) — `apps/tienda` con la marca de la maqueta y su portada, que lee la campaña vigente por la
    puerta angosta (rol `tienda_web` + `tienda_portada`); CI, ganchos y candados extendidos a la app nueva. Demostrable: la portada en
    local con la campaña de la base; CI verde. (1)
-2. ✅ **Crear cuenta, entrar, olvidé mi contraseña y salir** (integrada 2026-10-14; falta la 2b, ver abajo) — proyecto de clientes en local, `cuentas_web` + `tienda_registrar_cuenta`
+2. ✅ **Crear cuenta, entrar, olvidé mi contraseña y salir** (integrada 2026-10-14, con la 2b) — proyecto de clientes en local, `cuentas_web` + `tienda_registrar_cuenta`
    (correo y DNI únicos, entra al Club con origen web, cumpleaños como `clientas`), nombre por DNI compartido, topes por IP y documento.
    Demostrable: crear cuenta, ver rechazado un DNI o correo repetido, entrar, recuperar la contraseña con el correo de prueba local y
    salir. (1,5)
@@ -69,8 +69,14 @@ Total ≈ 14 sesiones. Las pantallas del ERP cumplen las reglas del repo (guía 
 
 ### Lo que dejaron las actividades 2 y 6 (integradas el 2026-10-14, construidas por agentes en paralelo)
 
-- [ ] **Actividad 2b (en curso):** código de 6 cifras al correo para crear la cuenta, y las casillas «Soy mayor de 18 años» (obligatoria)
-  y «Avisos del Club por WhatsApp» (opcional, permiso del Club con origen web). Decisión de Felipe, ADR-0408 act. 2026-10-14 (b).
+- [x] **Actividad 2b (integrada 2026-10-14):** código de 6 cifras al correo para crear la cuenta (vence a los 30 min; 5 intentos y 15 min
+  de bloqueo; reenvío cada 60 s, 5 por hora), «Soy mayor de 18 años» exigida también por la base y «Avisos del Club por WhatsApp»
+  opcional, anotado en `club_permisos` con medio `tienda_web`. Si la ficha ya tenía OTRO celular, la web no lo cambia y los avisos no se
+  activan (el código prueba el correo, no el DNI). Por decidir con Felipe: qué tienda le manda los avisos a quien se registró en la web
+  y todavía no compró (hoy empiezan con su primera compra).
+- [ ] **Actividad 13, proyecto de clientes (lo que suma la 2b):** la plantilla de invitación (`plantillas/codigo.html`) y su asunto, códigos de
+  6 cifras con vencimiento de 30 minutos, y subir `rate_limit.token_verifications` (todas las verificaciones salen del servidor de la tienda,
+  desde una sola IP). El «sí» al Club sigue sin anotarse en `club_permisos` mientras los textos legales sean borrador.
 - [ ] **No están en producción:** `20261014223000_tienda_cuentas_parte1_clientas.sql` (altera `clientas`: va SOLA, sin políticas),
   `20261014224000_tienda_cuentas_parte2_cuentas_web.sql` y `20261014231000_tienda_web_sedes_y_plazos.sql`. Van en la actividad 13, en
   orden y después de `20261014220000`, con el OK de Felipe; recién entonces se refresca el diccionario.
