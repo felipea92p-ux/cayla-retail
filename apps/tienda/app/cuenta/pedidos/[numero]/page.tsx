@@ -18,6 +18,7 @@ import {
   nombreTienda,
   porQueSeCerro,
   textoCambiarlo,
+  textoDeDevolucion,
   vivas,
   type Pedido,
   type Plazos,
@@ -129,6 +130,18 @@ export default async function MiPedido({ params }: { params: Promise<{ numero: s
                 <div>
                   <span>Boleta</span>
                   <span className="num">{p.boleta}</span>
+                </div>
+              )}
+              {p.estado === "anulado" && p.devuelto > 0 && (
+                <div>
+                  <span>Devuelto</span>
+                  <span className="num">{soles(p.devuelto)}</span>
+                </div>
+              )}
+              {p.notaCredito && (
+                <div>
+                  <span>Nota de crédito</span>
+                  <span className="num">{p.notaCredito}</span>
                 </div>
               )}
               {conDinero && p.falta > 0 && (
@@ -248,7 +261,7 @@ function Cabeza({ p, tienda, plazos }: { p: Pedido; tienda: string; plazos: Plaz
           </h1>
           <p className="w-texto-sec">
             {/* La frase es para el cliente, no el motivo como lo eligió la tienda en el ERP (`porQueSeCerro`). */}
-            {porQueSeCerro(p.cierreMotivo)} Si tienes dudas, escríbele a {tienda}.
+            {porQueSeCerro(p.cierreMotivo)} {textoDeDevolucion(p) ? `${textoDeDevolucion(p)} ` : ""}Si tienes dudas, escríbele a {tienda}.
           </p>
         </>
       );

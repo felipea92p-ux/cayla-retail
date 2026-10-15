@@ -822,8 +822,8 @@ select string_agg(case when y.r like 'error|pedido_web_sin_modulo|%' then 'sin_m
      || '|' || has_function_privilege('service_role', 'retail.fn_cerrar_pedidos_web_vencidos(integer)', 'EXECUTE')::text;`,
     // Las del ERP: las del motor y, desde la actividad 8 (20261015010000 y 20261015011000), enviar a la tienda del pedido, la lista,
     // el detalle, el número del menú y los apartados que Existencias rotula; desde la actividad 10 (20261015052000), entregar con el
-    // código. Todas con su permiso adentro.
-    "0|anular_pago_pedido_web,anular_pedido_web,confirmar_pedido_web,entregar_pedido_web,enviar_pedido_web_desde,fn_apartados_de_pedidos_web,fn_pedido_web,fn_pedido_web_detalle,fn_pedidos_web_por_confirmar,fn_pedidos_web_sede,fn_pedidos_web_tablero,no_confirmar_pedido_web,registrar_pago_pedido_web,reservar_linea_pedido_web|0|true|0|true",
+    // código; y desde 20261015114000, anular un pedido pagado. Todas con su permiso adentro.
+    "0|anular_pago_pedido_web,anular_pedido_web,anular_pedido_web_pagado,confirmar_pedido_web,entregar_pedido_web,enviar_pedido_web_desde,fn_apartados_de_pedidos_web,fn_pedido_web,fn_pedido_web_detalle,fn_pedidos_web_por_confirmar,fn_pedidos_web_sede,fn_pedidos_web_tablero,no_confirmar_pedido_web,registrar_pago_pedido_web,reservar_linea_pedido_web|0|true|0|true",
   );
 
   // ===================================================================================================================

@@ -55,7 +55,7 @@ export const MODULOS: readonly Modulo[] = [
   // Pedidos web (ADR-0408, actividad 8; 20261015010000): lo que los clientes separan en la tienda online para esta tienda. Nace SIN rol
   // (solo el líder) y delegable: sus funciones piden este módulo (`fn_pedido_web_exigir`) y la tienda que se opera. Quien lo tiene ve
   // del cliente solo lo necesario para coordinar por WhatsApp (nombre, celular, el DNI a medias y si es del club), tenga o no «Clientes».
-  { clave: "pedidos_web", grupo: "Ventas", nombre: "Pedidos web", incluye: "Ver los pedidos que los clientes separan en la tienda online para su tienda, confirmarlos (de dónde sale cada prenda, conseguirla para una fecha o quitarla), no confirmarlos o anularlos con su motivo, y enviar a la tienda del pedido las prendas que se reservaron aquí" },
+  { clave: "pedidos_web", grupo: "Ventas", nombre: "Pedidos web", incluye: "Ver los pedidos que los clientes separan en la tienda online para su tienda, confirmarlos (de dónde sale cada prenda, conseguirla para una fecha o quitarla), no confirmarlos o anularlos con su motivo, cobrarlos, entregarlos con su código y, si ya pagó, anularlos devolviéndole su plata (el efectivo sale de la caja abierta de hoy) y anulando su boleta, y enviar a la tienda del pedido las prendas que se reservaron aquí" },
   { clave: "caja", grupo: "Ventas", nombre: "Caja", incluye: "Abrir y cerrar caja, ingresos y egresos, ajustes de caja" },
   { clave: "cambios", grupo: "Ventas", nombre: "Cambios", incluye: "Registrar cambios de prenda" },
   { clave: "devoluciones", grupo: "Ventas", nombre: "Devoluciones", incluye: "Solicitar devoluciones" },

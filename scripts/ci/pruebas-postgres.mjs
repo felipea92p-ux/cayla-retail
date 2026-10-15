@@ -261,6 +261,11 @@ export const PRUEBAS = [
   // venta por entregar no se anula, cambia ni devuelve; Finanzas cuenta su efectivo como el de Apartados. ROLLBACK.
   "pruebas:pedidos-web-entregar",
 
+  // Anular un pedido web PAGADO que no se entregó (ADR-0408, Felipe 2026-10-15): todo o nada; las prendas vuelven a estar libres, cada
+  // pago se devuelve por su medio (el efectivo, de la caja de hoy), la venta se anula entera y la boleta se libera sin transmitir o sale
+  // su nota de crédito; si se está mandando o pudo llegar a SUNAT, nada; Finanzas sigue cuadrando. ROLLBACK.
+  "pruebas:pedidos-web-anular",
+
   // Redondeo del EFECTIVO (ADR-0311): S/ 0.10 es la moneda más chica y la ley solo permite bajar (100.19 → cobra 100.10).
   // La base (fn_redondeo_efectivo) y la caja dan lo mismo en los 99 999 montos de 0.01 a 999.99. ROLLBACK.
   "pruebas:redondeo-efectivo",

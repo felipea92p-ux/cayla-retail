@@ -1566,6 +1566,24 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`fn_bal_anticipos`: lo pagado que todavía no es venta; `fn_bal_stock`: lo vendido sin entregar ya no es mercadería; `fn_bal_causas_dinero`). Migraciones
   `20261015051000_pedidos_web_venta_al_pagar.sql`, `20261015052000_pedidos_web_entregar.sql` y `20261015053000_pedidos_web_en_finanzas.sql`
   (sin aplicar en producción); prueba `pnpm pruebas:pedidos-web-entregar`.
+  **Anular un pedido pagado** (2026-10-15, Felipe: «cualquier persona con el módulo»): en la hoja de un pedido pagado sin entregar,
+  «Anular pedido» (`btn-peligro`, a la izquierda del pie) abre encima `AnularPedidoPagadoHoja.tsx` con el pedido releído: qué pasa con sus
+  prendas (vuelven a estar libres; nada entra al stock, nunca salió), con su plata (cada pago se devuelve por su medio: el efectivo, de la
+  caja abierta HOY en su tienda, aunque se haya cobrado otro día) y con su boleta, según `fn_pedido_web_camino_boleta` (en el detalle,
+  `anulacion_boleta`): nunca intentada → se libera sin enviarla (`no_emitido`, ADR-0386); aceptada → nace su nota de crédito por el total
+  con `emitir_nota` (tipo `01`) y sale por la cola de siempre; rechazada o ya anulada → nada; enviándose, con respuesta pendiente, con baja
+  en trámite o sin serie de nota de crédito → todavía no (la frase dice qué hacer y adónde ir). Motivo (el cliente desistió · error en el
+  pedido · no se puede entregar) + Responsable → `useIntento("anular_pedido_web_pagado")` → `anular_pedido_web_pagado` (una transacción:
+  suelta las reservas, anula cada pago como «se le devolvió» con el egreso de caja del efectivo y `fn_exigir_efectivo_en_caja`, anula la
+  venta —`venta_anulacion_items` vendible, sin movimiento— y libera la boleta o emite su nota; `pedidos_web.anulacion_token` sigue al
+  contenido y `fn_resolver_intento` revisa una anulación en duda). Un cobro de la pasarela no se anula desde aquí. La base lo vigila en
+  `fn_pedido_web_verificar` (venta anulada línea por línea, un anticipo por el total, la boleta liberada o con su nota) y el chaos en
+  INV-18; el Balance cuenta lo que vuelve a ser mercadería (`fn_bal_stock`, `anulado_web`) y el diario revierte la venta contra «Adelantos
+  de clientes» (122). La lógica pura: `lib/pedidos-web-anular-reglas.ts`; la guía de foco: `camposAnularPagado` en
+  `lib/pedidos-web-guia.ts`; en la tienda, «Mis pedidos» dice lo devuelto y la nota de crédito (`devuelto`, `nota_credito` en
+  `fn_pedidos_web_de_clienta`; `textoDeDevolucion` de `apps/tienda/lib/pedidos.ts`). Migraciones `20261015114000_pedidos_web_anular_pagado.sql`
+  y `20261015115000_pedidos_web_anular_pagado_lecturas.sql` (sin aplicar en producción); prueba `pnpm pruebas:pedidos-web-anular`
+  (con `--carreras` en una pila propia).
 
 - **Configuración** (2026-09-24, ADR-0195 F1; módulo `configuracion`, solo líder por ahora; se entra desde el perfil, como
   Colaboradores): `/configuracion` → `lib/configuracion.ts` (`fn_configuracion_tiendas`) + `lib/configuracion-reglas.ts` (lógica
@@ -1909,6 +1927,9 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   Migraciones `20261015021000`, `20261015022000` y `20261015023000`; prueba en la base: `pnpm pruebas:tienda-bolsa`. Desde la actividad 10,
   cada pedido trae el número de su boleta (`boleta` en `fn_pedidos_web_de_clienta`, `20261015052000`): pagado y listo, el código para
   recoger y la boleta; entregado, la boleta, cuándo lo recogió y el plazo de cambio (7 días, en cualquier tienda).
+  Un pedido pagado que la tienda anuló (`20261015115000`) dice por qué con la frase de su motivo (también «No pudimos tener lista una de
+  tus prendas para entregártela.»), cuánto se le devuelve y por qué medio (`textoDeDevolucion`), lo devuelto (`devuelto`) y su nota de
+  crédito si su boleta ya estaba aceptada (`nota_credito`).
 - «Mi cuenta» abre con «Mis pedidos» (`components/cuenta/MisPedidosEnLaCuenta.tsx` → `leerMisPedidos`: los tres últimos y el camino a
   `/cuenta/pedidos`), antes de los bloques del Club.
 - El Club en la cuenta (actividad 12): `/cuenta` → `lib/club-servidor.ts` `leerMiClubEnBase()` → `retail.tienda_mi_club(usuario)`: sus

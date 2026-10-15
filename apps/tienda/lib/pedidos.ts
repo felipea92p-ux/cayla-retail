@@ -67,6 +67,14 @@ const esquemaPedido = z.object({
     .nullable()
     .catch(null)
     .default(null),
+  // Anulado (20261015115000): lo que se le devolvió y la nota de crédito que anuló su boleta. Una base sin eso: 0 y sin nota.
+  devuelto: z.number().nonnegative().catch(0).default(0),
+  nota_credito: z
+    .string()
+    .regex(/^[A-Z0-9]{4}-\d{6,8}$/)
+    .nullable()
+    .catch(null)
+    .default(null),
   tienda_web: z.object({
     nombre: z.string().min(1),
     // El WhatsApp de la tienda (el del QR del club). Si la tienda lo borró, el pedido se sigue viendo, sin el botón.
@@ -111,6 +119,10 @@ export type Pedido = {
   codigoRecojo: string | null;
   /** «B002-000013»: la boleta del pedido, desde que quedó pagado completo. */
   boleta: string | null;
+  /** Anulado: lo que ya se le devolvió (cada pago devuelto). */
+  devuelto: number;
+  /** Anulado después de pagarse: «BC01-000001», la nota de crédito que anuló su boleta. */
+  notaCredito: string | null;
   tienda: { nombre: string; whatsapp: string | null };
   lineas: LineaPedido[];
 };
@@ -137,6 +149,8 @@ function aPedido(d: z.infer<typeof esquemaPedido>): Pedido {
     recogerHasta: d.recoger_hasta,
     codigoRecojo: d.codigo_recojo,
     boleta: d.boleta,
+    devuelto: d.devuelto,
+    notaCredito: d.nota_credito,
     tienda: d.tienda_web,
     lineas: d.lineas.map((l) => ({
       varianteId: l.variante_id,
@@ -230,8 +244,9 @@ export const INSIGNIA: Record<EstadoPedido, { texto: string; tono: "ambar" | "ve
 /**
  * Por qué la tienda cerró un pedido, dicho PARA EL CLIENTE (Felipe, 2026-10-14). La tienda elige su motivo en la hoja del ERP con
  * palabras de la tienda («El cliente no pagó»); el cliente lee una frase escrita para él, que explica sin acusarlo. Las claves son las
- * que acepta la base: al no confirmar (`no_confirmar_pedido_web`: sin_stock, cliente_no_respondio, cliente_desistio) y al anular uno
- * confirmado (`anular_pedido_web`: cliente_no_pago, cliente_desistio, error_en_pedido). El pedido que se cerró solo (vencido,
+ * que acepta la base: al no confirmar (`no_confirmar_pedido_web`: sin_stock, cliente_no_respondio, cliente_desistio), al anular uno
+ * confirmado (`anular_pedido_web`: cliente_no_pago, cliente_desistio, error_en_pedido) y al anular uno pagado
+ * (`anular_pedido_web_pagado`: cliente_desistio, error_en_pedido, no_se_puede_entregar). El pedido que se cerró solo (vencido,
  * `sin_confirmar`) tiene su propia explicación en la página. Solo cambia el texto: ninguna regla.
  */
 const MOTIVO_PARA_EL_CLIENTE: Record<string, string> = {
@@ -240,6 +255,7 @@ const MOTIVO_PARA_EL_CLIENTE: Record<string, string> = {
   cliente_desistio: "Se canceló a pedido tuyo.",
   cliente_no_pago: "No se registró tu pago a tiempo.",
   error_en_pedido: "Hubo un error con el pedido y la tienda tuvo que cancelarlo.",
+  no_se_puede_entregar: "No pudimos tener lista una de tus prendas para entregártela.",
 };
 /** Para un motivo que la tienda no conoce todavía (uno nuevo del ERP): lo neutro. */
 const MOTIVO_NEUTRO = "La tienda canceló este pedido.";
@@ -247,6 +263,18 @@ const MOTIVO_NEUTRO = "La tienda canceló este pedido.";
 /** La frase de por qué se cerró, para el cliente (la página le suma «Si tienes dudas, escríbele a CAYLA …»). */
 export const porQueSeCerro = (motivo: string | null): string =>
   motivo !== null && Object.hasOwn(MOTIVO_PARA_EL_CLIENTE, motivo) ? MOTIVO_PARA_EL_CLIENTE[motivo] : MOTIVO_NEUTRO;
+
+/**
+ * Lo que se le devuelve a quien ya había pagado algo de un pedido anulado: lo devuelto más lo que la tienda todavía tiene por devolver
+ * (un pedido anulado antes de pagarse completo se devuelve pago por pago). La plata vuelve por el mismo medio con que se pagó: el
+ * efectivo, en la tienda. null si no había pagado nada.
+ */
+export function textoDeDevolucion(p: Pick<Pedido, "estado" | "devuelto" | "pagado">): string | null {
+  if (p.estado !== "anulado") return null;
+  const monto = Math.round((p.devuelto + p.pagado) * 100) / 100;
+  // «S/» y la cifra con un espacio que no se parte: en el celular «S/» no queda sola al final de un renglón (ADR-0413).
+  return monto > 0 ? `Se te devuelve lo que pagaste, ${soles(monto).replace(" ", "\u00a0")}, por el mismo medio con el que pagaste.` : null;
+}
 
 /** «¿Necesitas cambiarlo?» de un pedido entregado, con el MISMO plazo que imprime su boleta (`tienda_ayuda`, el de la caja): la web y la
  *  boleta nunca dicen dos números distintos. Sin el dato, sin número: el plazo va impreso en la boleta. */

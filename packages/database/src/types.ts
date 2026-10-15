@@ -5893,6 +5893,8 @@ export type Database = {
       anular_pago_pedido_web: { Args: { p_pago_id: string; p_motivo: string }; Returns: Json }
       // Entregar un pedido web con el código de 4 cifras (ADR-0408, actividad 10; 20261015052000). El token lo pone `useIntento`.
       entregar_pedido_web: { Args: { p_pedido_id: string; p_codigo: string; p_token?: string }; Returns: Json }
+      // Anular un pedido web pagado: devuelve la plata y anula su venta y su boleta (ADR-0408; 20261015114000). El token lo pone `useIntento`.
+      anular_pedido_web_pagado: { Args: { p_pedido_id: string; p_motivo: string; p_token?: string }; Returns: Json }
       unirse_al_club: {
         Args: {
           p_clienta_id: string

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { sePuedeConfirmar } from "./guia-campos";
-import { camposAnularPago, camposConfirmar, camposEntregar, camposEnviar, camposMotivo, camposPago, camposReservar, campoDeLinea } from "./pedidos-web-guia";
-import { faltaDeLlegada, problemaDelCodigo, problemaParaConfirmar, type DecisionLinea } from "./pedidos-web-reglas";
+import { camposAnularPagado, camposAnularPago, camposConfirmar, camposEntregar, camposEnviar, camposMotivo, camposPago, camposReservar, campoDeLinea } from "./pedidos-web-guia";
+import { faltaDeLlegada, problemaDelCodigo, problemaParaConfirmar, type CaminoBoleta, type DecisionLinea, type MotivoAnularPagado } from "./pedidos-web-reglas";
+import { problemaParaAnularPagado } from "./pedidos-web-anular-reglas";
 import { MEDIOS_PAGO_WEB, problemaDelPago, problemaParaAnular, type FormPago, type MedioPagoWeb, type MotivoAnularPago } from "./pedidos-web-cobro-reglas";
 import { sumarDias } from "./fechas-lima";
 
@@ -170,5 +171,31 @@ describe("Entregar: la guía (actividad 10)", () => {
     const campos = camposEntregar({ codigo: "2094", rechazo: "Ese código no es el del pedido W-0007.", ...listo });
     expect(sePuedeConfirmar(campos)).toBe(false);
     expect(campos[0]?.pendiente).toBe("Ese código no es el del pedido W-0007.");
+  });
+});
+
+describe("Anular un pedido pagado: la guía", () => {
+  const camino = (c: CaminoBoleta["camino"], hint: string | null = null): CaminoBoleta => ({ camino: c, texto: "B001-000013", estado: "pendiente", total: 10, explicacion: `por ${c}`, hint });
+  const CAMINOS: (CaminoBoleta | null)[] = [null, camino("liberar"), camino("nota_credito"), camino("nada"), camino("esperar", "pedido_web_boleta_en_camino")];
+  const MOTIVOS: (MotivoAnularPagado | null)[] = [null, "cliente_desistio", "error_en_pedido", "no_se_puede_entregar"];
+  // La guía no inventa reglas: se puede anular exactamente cuando `problemaParaAnularPagado` (lo que rechazaría la base) no tiene nada.
+  it("se puede anular exactamente cuando problemaParaAnularPagado no pone reparos, en todas las combinaciones", () => {
+    for (const c of CAMINOS)
+      for (const motivo of MOTIVOS)
+        for (const efectivo of [0, 30])
+          for (const caja of [true, false, null])
+            for (const pasarela of [false, true]) {
+              const h = { camino: c, efectivo, cajaAbierta: caja, tienda: "T", pasarela, motivo };
+              expect(sePuedeConfirmar(camposAnularPagado({ ...h, ...listo })), JSON.stringify(h)).toBe(problemaParaAnularPagado(h) === null);
+            }
+  });
+  it("en el orden de la hoja: la boleta, la pasarela, la caja (solo con efectivo), el motivo y quién; lo pendiente es la frase de la base", () => {
+    const ids = (efectivo: number, pasarela = false) =>
+      camposAnularPagado({ camino: camino("liberar"), efectivo, cajaAbierta: false, tienda: "T", pasarela, motivo: null, ...listo }).map((c) => c.id);
+    expect(ids(30)).toEqual(["boleta", "caja", "motivo", "responsable"]);
+    expect(ids(0)).toEqual(["boleta", "motivo", "responsable"]);
+    expect(ids(0, true)).toEqual(["boleta", "pasarela", "motivo", "responsable"]);
+    const esperando = camposAnularPagado({ camino: camino("esperar", "pedido_web_boleta_en_camino"), efectivo: 0, cajaAbierta: true, tienda: "T", pasarela: false, motivo: "cliente_desistio", ...listo });
+    expect(esperando[0]).toMatchObject({ id: "boleta", hecho: false, pendiente: "por esperar" });
   });
 });

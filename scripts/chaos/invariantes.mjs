@@ -399,11 +399,11 @@ update retail.movimientos_dinero set monto = 'NaN' where ctid = (select ctid fro
     nombre: "pedido_web_cuadra_con_su_venta",
     gravedad: 1,
     nivel: "cruzada",
-    dice: "Un pedido web pagado o entregado tiene UNA venta (ADR-0408 act. 10): una línea de venta por prenda no quitada, cobrada con un solo «anticipo» por lo pagado, con su boleta; y cada prenda sale del stock al entregarse, nunca antes (una salida por prenda entregada, ninguna por la que todavía espera). Un pedido sin pagar no tiene venta.",
+    dice: "Un pedido web pagado o entregado tiene UNA venta (ADR-0408 act. 10): una línea de venta por prenda no quitada, cobrada con un solo «anticipo» por el total, con su boleta; y cada prenda sale del stock al entregarse, nunca antes (una salida por prenda entregada, ninguna por la que todavía espera). Un pedido sin pagar no tiene venta. Uno anulado DESPUÉS de pagarse (20261015114000) conserva su venta, ANULADA entera, se le devolvió todo y su boleta no quedó viva ante SUNAT sin su nota de crédito.",
     sql: `
 select w.id as pedido_id, w.codigo, w.estado, 'venta' as problema
   from retail.pedidos_web w
- where (w.estado in ('pagado', 'entregado')) <> (w.venta_id is not null)
+ where (w.estado in ('pagado', 'entregado') or (w.estado = 'anulado' and w.pagado_en is not null)) <> (w.venta_id is not null)
 union all
 select w.id, w.codigo, w.estado, 'lineas'
   from retail.pedidos_web w
@@ -420,7 +420,7 @@ select w.id, w.codigo, w.estado, 'cobro'
   from retail.pedidos_web w
  where w.venta_id is not null
    and coalesce((select string_agg(vp.metodo || ':' || vp.monto, ',') from retail.venta_pagos vp where vp.venta_id = w.venta_id), '')
-       <> 'anticipo:' || w.pagado
+       <> 'anticipo:' || w.total
 union all
 select w.id, w.codigo, w.estado, 'boleta'
   from retail.pedidos_web w
@@ -436,7 +436,20 @@ union all
 select w.id, w.codigo, w.estado, 'entrega'
   from retail.pedidos_web w
  where w.estado = 'entregado'
-   and exists (select 1 from retail.pedido_web_lineas l where l.pedido_id = w.id and l.estado not in ('quitada', 'entregada'))`,
+   and exists (select 1 from retail.pedido_web_lineas l where l.pedido_id = w.id and l.estado not in ('quitada', 'entregada'))
+union all
+-- Anulado después de pagarse: su venta anulada entera (cada línea con su anulación), nada sin devolver y la boleta sin quedar viva.
+select w.id, w.codigo, w.estado, 'anulacion'
+  from retail.pedidos_web w
+  join retail.ventas v on v.id = w.venta_id
+ where w.estado = 'anulado' and w.pagado_en is not null
+   and (v.estado <> 'anulada' or w.pagado <> 0
+        or exists (select 1 from retail.venta_items vi where vi.venta_id = v.id
+                    and not exists (select 1 from retail.venta_anulacion_items ai where ai.venta_item_id = vi.id))
+        or exists (select 1 from retail.comprobantes c where c.venta_id = v.id and c.tipo in ('boleta', 'factura')
+                    and (c.estado in ('pendiente', 'pendiente_reintento', 'enviado')
+                         or (c.estado = 'aceptado' and not exists (select 1 from retail.comprobantes n
+                                                                   where n.comprobante_original_id = c.id and n.tipo = 'nota_credito')))))`,
     // Los disparadores del pedido rechazan este cambio: se apagan SOLO dentro de la transacción revertida (como INV-17).
     corrompe: `set local session_replication_role = replica;
 update retail.pedido_web_lineas set venta_item_id = null where ctid = (select ctid from retail.pedido_web_lineas where venta_item_id is not null limit 1);`,
