@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Check, ChevronDown, ChevronUp, X } from "lucide-react";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -120,9 +121,7 @@ export function RecepcionVistaRapida({
                   {faltan > 0 ? `Faltan ${faltan}` : "Completa"}
                 </Chip>
               </div>
-              <div className="mb-5 mt-2 h-1.5 overflow-hidden rounded-full bg-sand">
-                <div className={`anim-crece-x h-full rounded-full ${faltan > 0 ? "bg-ambar" : "bg-verde"}`} style={{ width: `${pct}%` }} />
-              </div>
+              <BarraAvance pct={pct} tono={faltan > 0 ? "ambar" : undefined} etiqueta="Llegó de lo facturado" className="mb-5 mt-2" />
 
               <TituloGrupo className="mb-1">Prenda por prenda</TituloGrupo>
               {detalle.length > 0 ? (

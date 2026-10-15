@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BarraAvance, type TonoBarraAvance } from "@/components/ui/BarraAvance";
 import { ChevronRight, Layers, ArrowLeftRight } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { diaLima, diaMes } from "@/lib/fechas-lima";
@@ -30,7 +31,8 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 const TONO_ESTADO: Record<EstadoInsumo["tono"], TonoChip> = { sin_saldo: "rojo", bajo: "ambar", bien: "verde", sin_minimo: "neutro" };
-const COLOR_RIEL: Record<EstadoInsumo["tono"], string> = { sin_saldo: "bg-rojo", bajo: "bg-ambar", bien: "bg-verde", sin_minimo: "bg-tinta/40" };
+// La barra de avance del sistema (ronda 13): en tinta; el rojo y el ámbar los pone el estado del insumo (sin saldo, bajo el mínimo).
+const TONO_RIEL: Record<EstadoInsumo["tono"], TonoBarraAvance> = { sin_saldo: "rojo", bajo: "ambar", bien: "tinta", sin_minimo: "tinta" };
 
 export function InsumosPanel({ datos, tallerId, esLider, sede }: { datos: InsumosDelTaller; tallerId: string; esLider: boolean; /** La sede de la línea de arriba de la cabecera (el Taller). */ sede: string }) {
   const [abiertos, setAbiertos] = useState<Record<string, boolean>>({});
@@ -210,10 +212,7 @@ function FilaInsumo({
           </p>
         </div>
         <div className="max-sm:order-3 max-sm:col-span-2">
-          <div className="relative h-2 rounded-full bg-sand" aria-hidden>
-            <span className={`anim-crece-x absolute inset-y-0 left-0 block rounded-full ${COLOR_RIEL[i.estado.tono]}`} style={{ width: `${llenado * 100}%`, ["--i" as string]: indice }} />
-            {marcaMinimo !== null && <span className="absolute -inset-y-1 w-0.5 rounded-full bg-tinta" style={{ left: `${marcaMinimo * 100}%` }} title={`Mínimo ${cantidadTexto(i.minimo ?? 0, i.unidad)}`} />}
-          </div>
+          <BarraAvance pct={llenado * 100} tono={TONO_RIEL[i.estado.tono]} marca={marcaMinimo !== null ? marcaMinimo * 100 : null} decorativa indice={indice} title={marcaMinimo !== null ? `Mínimo ${cantidadTexto(i.minimo ?? 0, i.unidad)}` : undefined} />
           <div className="mt-1.5 flex items-center justify-between text-[11.5px] text-tinta/65">
             <span>{i.minimo === null ? "sin mínimo definido" : `mínimo ${cantidadTexto(i.minimo, i.unidad)}`}</span>
             <Chip tono={TONO_ESTADO[i.estado.tono]}>{i.estado.etiqueta}</Chip>
@@ -238,9 +237,7 @@ function FilaInsumo({
                   <li key={l.id} className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto_auto] items-center gap-x-4 border-b border-tinta/[0.06] py-2.5 text-[12.5px] last:border-0">
                     <span className="truncate font-mono font-medium text-tinta">{l.codigo ?? "s/c"}</span>
                     <div className="min-w-0">
-                      <div className="h-1 overflow-hidden rounded-full bg-sand" aria-hidden>
-                        <span className="anim-crece-x block h-full rounded-full bg-tinta" style={{ width: `${Math.max(0, Math.min(1, l.saldo / l.cantidadIngresada)) * 100}%` }} />
-                      </div>
+                      <BarraAvance pct={(l.saldo / l.cantidadIngresada) * 100} alto="fina" tono="tinta" decorativa />
                       <p className="mt-1 truncate text-tinta/65">
                         {l.origen === "saldo_inicial" ? "saldo inicial" : "compra"} · {diaMes(l.ingreso)}
                         {l.documento ? ` · ${l.documento}` : ""}

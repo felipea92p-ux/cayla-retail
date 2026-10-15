@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
@@ -990,9 +991,7 @@ export function ApartarVista({
                       </button>
                     ))}
                   </div>
-                  <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-sand">
-                    <span className="block h-full rounded-full bg-tinta transition-[width] duration-500 ease-[var(--ease-cayla)]" style={{ width: `${total ? Math.min(100, (adelanto / total) * 100) : 0}%` }} />
-                  </div>
+                  <BarraAvance pct={total ? (adelanto / total) * 100 : 0} decorativa />
                   <p className="flex justify-between text-xs text-tinta/60 tabular-nums"><span>Deja {money(adelanto)}</span><span>Saldo al recoger {money(total - adelanto)}</span></p>
                   {ver("pago") && <Aviso tono="error" chico>{ver("pago")}</Aviso>}
                   {vuelto > 0 && (

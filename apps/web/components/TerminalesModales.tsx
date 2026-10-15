@@ -8,6 +8,7 @@ import { codigoDeTienda, NOMBRE_MAX, nombreOcupado, nombrePropuesto, rolesParaTe
 import type { RolVista } from "@/lib/roles-reglas";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { BotonCopiar } from "@/components/ui/BotonCopiar";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { avisar } from "@/components/ui/Avisos";
@@ -24,17 +25,6 @@ type Cerrar = () => void;
 
 /** El segundo paso: lo que hay que escribir en el aparato. No se guarda en ningún lado; al cerrar, se pierde. */
 function ClaveUnaVez({ resultado, onListo }: { resultado: Extract<ResultadoClave, { ok: true }>; onListo: () => void }) {
-  const [copiado, setCopiado] = useState<"si" | "no" | null>(null);
-
-  async function copiar() {
-    try {
-      await navigator.clipboard.writeText(`Correo: ${resultado.correo}\nClave: ${resultado.clave}`);
-      setCopiado("si");
-    } catch {
-      setCopiado("no");
-    }
-  }
-
   return (
     <div className="mt-5 space-y-4">
       <dl className="card-cayla divide-y divide-tinta/10 text-sm">
@@ -55,18 +45,14 @@ function ClaveUnaVez({ resultado, onListo }: { resultado: Extract<ResultadoClave
         por chat. Si se pierde, aquí mismo: «Cambiar clave».
       </p>
       <div className="flex gap-2">
-        <Boton type="button" peso="fantasma" className="flex-1" onClick={copiar}>
-          {copiado === "si" ? "Copiado" : "Copiar"}
-        </Boton>
+        {/* Copiar es la pieza del sistema (ronda 13): dice «✓ Copiado» y, si el navegador no deja, avisa. */}
+        <BotonCopiar texto={`Correo: ${resultado.correo}\nClave: ${resultado.clave}`} que="el correo y la clave" className="flex-1">
+          Copiar correo y clave
+        </BotonCopiar>
         <Boton type="button" peso="primario" className="flex-1" onClick={onListo}>
           Listo
         </Boton>
       </div>
-      {copiado === "no" && (
-        <Aviso tono="error" chico>
-          No se pudo copiar: selecciónala y cópiala a mano.
-        </Aviso>
-      )}
 
     </div>
   );

@@ -27,7 +27,7 @@
     ],
     "components/impresion/useImpresionBrother.tsx": [
       "button «{abierto ? \"Ocultar\" : \"Ver cómo\"}»",
-      "button «Copiar»"
+      "BotonCopiar «la línea»"
     ],
     "components/rotulos/TiraBrother.tsx": [
       "button «{`Una copia menos de ${nombre}»",
