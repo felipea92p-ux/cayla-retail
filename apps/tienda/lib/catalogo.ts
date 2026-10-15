@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { pctTexto } from "./portada";
+import { esquemaStockModelo, type StockModelo } from "./stock";
 
-// El catálogo de la tienda (ADR-0408, actividad 3): lo que se publicó en Catálogo ▸ Vitrina web, tal como lo devuelve
+// El catálogo de la tienda (ADR-0408, actividades 3 y 4): lo que se publicó en Catálogo ▸ Vitrina web, tal como lo devuelve
 // `retail.tienda_catalogo(p_sede)`. La base decide qué se ve y a qué precio: el de la tienda elegida o, con «Todas», el mayor entre las
-// tiendas de la web (no hay precio web: Felipe, 2026-10-14), con la campaña encima según la regla de la caja. Aquí solo se valida la
-// forma y se prepara lo que dibuja la tarjeta. Sin stock: los niveles por tienda son la actividad 4.
+// tiendas de la web (no hay precio web: Felipe, 2026-10-14), con la campaña encima según la regla de la caja, y cuánto hay en cada
+// tienda como NIVEL (`lib/stock.ts`), nunca la cifra. Aquí solo se valida la forma y se prepara lo que dibuja la tarjeta.
 
 const esquemaColor = z.object({
   codigo: z.string().min(1),
@@ -27,6 +28,9 @@ const esquemaPrenda = z
     campana: z.object({ nombre: z.string().min(1), pct: z.number().positive() }).nullable(),
     colores: z.array(esquemaColor),
     fotos: z.array(z.string().url()).max(2),
+    // El nivel del modelo en cada tienda de la web y en todas. Si llega raro, sin dato: la tarjeta no dice nada del stock y el
+    // filtro por tienda no la esconde (no se afirma lo que no se sabe).
+    stock: esquemaStockModelo.nullable().catch(null),
   })
   .refine((p) => p.precio_final <= p.precio);
 
@@ -42,6 +46,7 @@ export type Prenda = {
   campana: { nombre: string; pct: number } | null;
   colores: Color[];
   fotos: string[];
+  stock: StockModelo | null;
 };
 
 /** El catálogo leído: sus prendas y la tienda cuyo precio usó la base (`null`: «Todas»). */
@@ -71,6 +76,7 @@ export function interpretarCatalogo(dato: unknown): Catalogo | null {
         campana: d.campana,
         colores: d.colores,
         fotos: d.fotos,
+        stock: d.stock,
       }];
     }),
   };
@@ -131,7 +137,7 @@ const FORMA_POR_PREFIJO: Record<string, Forma> = {
 };
 export const formaDe = (prefijo: string | null | undefined): Forma => (prefijo ? FORMA_POR_PREFIJO[prefijo] ?? "percha" : "percha");
 
-/** A dónde lleva una tarjeta: la ficha de la prenda (la arma la actividad 4), con la tienda elegida si hay una. */
+/** A dónde lleva una tarjeta: la ficha de la prenda, con la tienda elegida si hay una. */
 export const hrefDePrenda = (p: Pick<Prenda, "id">, sede: string | null = null) => `/catalogo/${p.id}${sede ? `?sede=${encodeURIComponent(sede)}` : ""}`;
 
 /** ¿El optimizador de imágenes de Next puede achicar esta foto? Solo si vive en el almacén PÚBLICO de fotos de prendas del origen
@@ -208,4 +214,13 @@ export function hrefLista({ sede = null, categoria, orden }: { sede?: string | n
 }
 
 /** «12 prendas», «1 prenda». */
-export const cuantasPrendas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
+const cuantasPrendas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
+
+/**
+ * La línea de cuántas hay (maqueta, `vLista`): «12 prendas», «12 prendas en Faldas», «5 prendas en Trujillo · 3 más en otras
+ * tiendas», «2 prendas de Faldas en Trujillo». `enOtras`: las que se ven con «Todas» y no están en la tienda elegida.
+ */
+export function conteoDeLista(n: number, { categoria, tienda, enOtras }: { categoria: string | null; tienda: string | null; enOtras: number }): string {
+  const donde = tienda ? `${categoria ? ` de ${categoria}` : ""} en ${tienda}` : categoria ? ` en ${categoria}` : "";
+  return `${cuantasPrendas(n)}${donde}${tienda && enOtras > 0 ? ` · ${enOtras} más en otras tiendas` : ""}`;
+}

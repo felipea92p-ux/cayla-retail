@@ -586,11 +586,12 @@ function main() {
     "Falda Renata,Blusa Emma",
   );
   esperarValor(
-    "nada del ERP en lo que ve la tienda: sin costo, stock, versión ni quién lo cambió",
+    // `stock` son niveles por tienda («hay», 3, 2, 1, 0), no cifras: llegó con la actividad 4 (pruebas:tienda-ficha).
+    "nada del ERP en lo que ve la tienda: sin costo, cifras de stock, versión ni quién lo cambió",
     correr(`${PREPARAR}${guardar("emma")} \\gset
       select string_agg(k, ',' order by k) from ${EN_CATALOGO("emma")} t(x), jsonb_object_keys(x) k;
       rollback;`),
-    "campana,categoria,codigo,colores,desde,fotos,id,nombre,precio,precio_final",
+    "campana,categoria,codigo,colores,desde,fotos,id,nombre,precio,precio_final,stock",
   );
   esperarValor(
     "como tienda_web: el catálogo responde (con «Todas» y con una tienda) y la tabla se niega",

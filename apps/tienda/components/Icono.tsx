@@ -13,6 +13,9 @@ const TRAZOS = {
   sobre: <><rect x="3.5" y="5.5" width="17" height="13" rx="2" /><path d="M4 7l8 6 8-6" /></>,
   // Catálogo (actividad 3): el botón que cambia el orden de la lista.
   flechas: <path d="M4 8h13l-3-3M20 16H7l3 3" />,
+  // La ficha (actividad 4): el acordeón y lo que falta para que termine la campaña.
+  chevron: <path d="M7 10l5 5 5-5" />,
+  reloj: <><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5v5l3 2" /></>,
 };
 
 export type NombreIcono = keyof typeof TRAZOS;
