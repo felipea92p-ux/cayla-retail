@@ -10,12 +10,13 @@ import { describe, expect, it } from "vitest";
 // Contrato. PROMETE: que `AppShell` conserva esa regla; que el marcador vive en el Inicio de almacén; que ninguna otra pantalla o
 // componente lo escribe (una pantalla nueva que necesite ancho completo lo decide con Felipe y lo agrega acá a propósito); y que
 // «/» no entró a `SIN_TOPE_DE_ANCHO`. El Observatorio (el Inicio del Admin, ADR-0322) entró así el 2026-10-03: Felipe pidió que el
-// mapa llene la pantalla. NO PROMETE: que el diseño se vea bien a cada ancho (eso se mira en el navegador: 1920, 2560,
+// mapa llene la pantalla. La pantalla de Aventurero («Sin acceso» y las barreras de error) entró el 2026-10-15: Felipe pidió que la foto
+// y el mensaje «ocupen todo el espacio»; su tarjeta se topa sola en 72rem. NO PROMETE: que el diseño se vea bien a cada ancho (eso se mira en el navegador: 1920, 2560,
 // 3840, 1280, 768 y 375 px).
 
 const RAIZ = join(__dirname, "..");
 const MARCADOR = "data-ancho-completo";
-const QUIEN_PIDE_ANCHO_COMPLETO = ["components/inicio-almacen/InicioAlmacen.tsx", "components/observatorio/Observatorio.tsx"];
+const QUIEN_PIDE_ANCHO_COMPLETO = ["components/inicio-almacen/InicioAlmacen.tsx", "components/observatorio/Observatorio.tsx", "components/ui/Aventurero.tsx"];
 
 function archivos(dir: string): string[] {
   return readdirSync(dir).flatMap((nombre) => {
@@ -39,7 +40,7 @@ describe("ancho completo del Inicio de almacén", () => {
     expect(lista.split(",").map((r) => r.trim().replace(/"/g, ""))).not.toContain("/");
   });
 
-  it("solo el Inicio de almacén y el Observatorio escriben el marcador", () => {
+  it("solo el Inicio de almacén, el Observatorio y la pantalla de Aventurero escriben el marcador", () => {
     const quienes = archivos(RAIZ)
       .filter((f) => readFileSync(f, "utf8").includes(MARCADOR))
       .map((f) => f.slice(RAIZ.length + 1).replaceAll("\\", "/"))

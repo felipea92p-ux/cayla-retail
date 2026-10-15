@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { SCRIPT_TEMA_ANTES_DE_PINTAR } from "@/lib/tema-reglas";
 import { AVISA_SOLO, avisarError } from "@/lib/errores-navegador";
 import { siSigueIgual } from "@/lib/errores-reglas";
@@ -68,7 +68,9 @@ export default function ErrorGlobal({
           padding: "24px",
         }}
       >
-        <div style={{ maxWidth: "28rem", width: "100%", textAlign: "center" }}>
+        {/* La foto crece con la ventana, como en la app (`.aventurero-tarjeta`, aventurero.css). Aquí no hay cabecera: se reserva solo lo
+            alto del mensaje y los márgenes. */}
+        <div className="aventurero-tarjeta" style={{ textAlign: "center", "--aventurero-reservado": "19rem" } as CSSProperties}>
           <Aventurero motivo="error" className="ge-aventurero" />
           <p
             style={{
