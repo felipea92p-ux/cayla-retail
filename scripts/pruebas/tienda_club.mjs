@@ -9,7 +9,9 @@
  *      internas no las ejecuta nadie de la API; `fn_vitrina_esperan` es del ERP (authenticated), nunca de anon ni de la tienda.
  *   F. Favoritos: guardar y quitar son idempotentes (nunca «alternan»), quitar no borra y volver a guardar reactiva; solo se guarda
  *      lo que se ve en la web; sin cuenta, con datos vacíos o con la ficha archivada no se agrega nada (pero quitar sí); el tope de
- *      100; cada cuenta ve solo lo suyo.
+ *      100; cada cuenta ve solo lo suyo. Un favorito cuyo modelo ya no se ve en la web (oculto en la Vitrina, descontinuado) no cuenta
+ *      en `tienda_mis_favoritos_y_esperas` (el globo del corazón dice lo mismo que la lista «Tus favoritos», que solo dibuja lo del
+ *      catálogo); «Mi cuenta» sí lo recibe (para decir cuántos ya no están) y, si el modelo vuelve, el favorito vuelve.
  *   A. «Avísame»: se anota por prenda y tienda (o cualquier tienda) una sola vez; si HAY libre en ese alcance responde `hay` sin
  *      escribir; una tienda que no se ve en la web se lee como «cualquier tienda»; lo de Cuarentena y lo apartado no cuentan como
  *      «hay»; lo que no se ve en la web, la ficha archivada y la cuenta que no existe no anotan nada; el tope de 30.
@@ -26,6 +28,10 @@
  *   R. Una sola regla de «hay»: la ficha, la bolsa, «Separar», el look, «Avísame», «Mi cuenta» y «Esperan una talla» leen la misma
  *      pieza (`fn_tienda_disponible` con `fn_tienda_sedes_web`). Una prenda en Cuarentena, o reservada por un pedido web confirmado,
  *      dice «no hay» en todas a la vez; sin tiendas en la web, en ninguna; y romper esa pieza a propósito las rompe TODAS juntas.
+ *   T. Una tienda que se escondió de la web: una espera anotada ahí se lee como «cualquier tienda» (`fn_tienda_sede_elegida`, la misma
+ *      regla con que se anota) en «Mi cuenta», en el aviso al entrar, en lo guardado de la ficha y en «Esperan una talla» del ERP, y
+ *      «llega» con lo de cualquier tienda de la web (antes nunca llegaba). Si la tienda vuelve a la web, la espera vuelve a ser de ella.
+ *      Romper esa regla a propósito deja la espera colgada de la tienda escondida en TODAS a la vez.
  *   S. «Separar» cierra la espera: cuando una cuenta separa una prenda, sus esperas de esa prenda (en esa tienda, en otra o en
  *      cualquiera) se cierran en la misma transacción, con el pedido que las cerró; las de otras prendas y las de otras cuentas
  *      siguen; si «Separar» falla, no se cierra nada; quitarla a mano no deja pedido.
@@ -208,10 +214,15 @@ begin
   end;
   begin
     v_avisame := retail.tienda_avisame(p_otro, p_v, p_sede) ->> 'estado';
+    -- La espera de esa prenda en esa tienda o, si esa tienda ya no se ve en la web, la que se lee como «cualquier tienda» (la sección T).
     v_cuenta := (select e ->> 'llego' from jsonb_array_elements(retail.tienda_mi_club(p_quien) -> 'esperas') e
-                  where e ->> 'variante_id' = p_v::text and e -> 'sede' ->> 'id' = p_sede::text);
+                  where e ->> 'variante_id' = p_v::text
+                    and case when p_sede = any (retail.fn_tienda_sedes_web()) then e -> 'sede' ->> 'id' = p_sede::text
+                             else e -> 'sede' ->> 'id' is null end);
     v_erp := (select x ->> 'libre' from jsonb_array_elements(retail.fn_vitrina_esperan() -> 'filas') x
-               where x ->> 'variante_id' = p_v::text and x -> 'sede' ->> 'id' = p_sede::text);
+               where x ->> 'variante_id' = p_v::text
+                 and case when p_sede = any (retail.fn_tienda_sedes_web()) then x -> 'sede' ->> 'id' = p_sede::text
+                          else x -> 'sede' ->> 'id' is null end);
     raise exception 'DESHACER';
   exception when others then
     get stacked diagnostics v_msg = message_text;
@@ -460,6 +471,30 @@ function main() {
       select (retail.tienda_mis_favoritos_y_esperas('${U.bea}') -> 'favoritos') = jsonb_build_array(:'falda');
       select retail.tienda_mis_favoritos_y_esperas('${U.nadie}') is null;`),
     "t\nt\nt",
+  );
+  // El globo del corazón de la cabecera cuenta `tienda_mis_favoritos_y_esperas`; la lista «Tus favoritos» dibuja los favoritos que están en
+  // el catálogo (`deFavoritos`, apps/tienda/lib/catalogo.ts). Los dos tienen que decir lo mismo.
+  const GLOBO_Y_LISTA = (u) => `select concat_ws('|',
+        jsonb_array_length(retail.tienda_mis_favoritos_y_esperas('${u}') -> 'favoritos'),
+        (select count(*) from jsonb_array_elements_text(retail.tienda_mis_favoritos_y_esperas('${u}') -> 'favoritos') f
+          where exists (select 1 from jsonb_array_elements(retail.tienda_catalogo() -> 'prendas') c where c ->> 'id' = f)),
+        jsonb_array_length(retail.tienda_mi_club('${u}') -> 'favoritos'));\n`;
+  esperarValor(
+    "un favorito cuyo modelo se ocultó en la Vitrina o se descontinuó no cuenta: el globo dice lo mismo que «Tus favoritos»; «Mi cuenta» lo recibe igual (para decir cuántos ya no están); si vuelve, vuelve",
+    escenario(`${COMO_TIENDA}
+      select ${fav(U.ana, ":'emma'", true)} ->> 'estado' as _a \\gset
+      select ${fav(U.ana, ":'falda'", true)} ->> 'estado' as _b \\gset
+      ${GLOBO_Y_LISTA(U.ana)}
+      ${COMO_POSTGRES}update retail.vitrina_productos set publicado = false where producto_id = :'falda';
+      ${COMO_TIENDA}${GLOBO_Y_LISTA(U.ana)}
+      select (retail.tienda_mis_favoritos_y_esperas('${U.ana}') -> 'favoritos') = jsonb_build_array(:'emma');
+      ${COMO_POSTGRES}update retail.productos set estado = 'descontinuado' where id = :'emma';
+      ${COMO_TIENDA}${GLOBO_Y_LISTA(U.ana)}
+      ${COMO_POSTGRES}update retail.productos set estado = 'activo' where id = :'emma';
+      update retail.vitrina_productos set publicado = true where producto_id = :'falda';
+      ${COMO_TIENDA}${GLOBO_Y_LISTA(U.ana)}
+      ${COMO_POSTGRES}select count(*) || ':' || count(quitado_en) from retail.favoritos_web where cuenta_web_id = :'ana_w';`),
+    "2|2|2\n1|1|2\nt\n0|0|2\n2|2|2\n2:0",
   );
 
   // =================================================================================================================
@@ -794,6 +829,72 @@ function main() {
   );
 
   // =================================================================================================================
+  console.log("— T. Una tienda que se escondió de la web: su espera se lee como «cualquier tienda» —");
+  /** Lo que dicen de la espera de Ana (v1) «Mi cuenta», el aviso al entrar, lo guardado de la ficha y «Esperan una talla» del ERP:
+   *  su tienda (o «cualquiera») y si llegó; en el ERP, cuántas personas y cuánto libre. Lo que escribe (la visita) se deshace. */
+  const LA_ESPERA = `select pg_temp.la_espera(:'v1', '${U.ana}');\n`;
+  const AYUDA_T = `create function pg_temp.la_espera(p_v uuid, p_quien uuid) returns text language plpgsql as $f$
+declare v_cuenta text; v_aviso text; v_ficha text; v_erp text; v_msg text;
+begin
+  begin
+    v_cuenta := (select string_agg(coalesce(e -> 'sede' ->> 'nombre', 'cualquiera') || '/' || (e ->> 'llego'), ',')
+                   from jsonb_array_elements(retail.tienda_mi_club(p_quien) -> 'esperas') e where e ->> 'variante_id' = p_v::text);
+    raise exception 'DESHACER';
+  exception when others then
+    get stacked diagnostics v_msg = message_text;
+    if v_msg <> 'DESHACER' then v_cuenta := 'error: ' || v_msg; end if;
+  end;
+  v_aviso := coalesce((select string_agg(coalesce(e ->> 'sede', 'cualquiera'), ',')
+                         from jsonb_array_elements(retail.tienda_mis_avisos_del_club(p_quien) -> 'llegaron') e
+                        where e ->> 'producto_id' = (select producto_id from retail.variantes where id = p_v)::text), 'no llegó');
+  v_ficha := (select string_agg(coalesce(u.nombre_web, 'cualquiera'), ',')
+                from jsonb_array_elements(retail.tienda_mis_favoritos_y_esperas(p_quien) -> 'esperas') e
+                left join retail.ubicacion_datos_web u on u.ubicacion_id = (e ->> 'sede')::uuid
+               where e ->> 'variante_id' = p_v::text);
+  v_erp := (select string_agg(coalesce(x -> 'sede' ->> 'nombre', 'cualquiera') || '/' || (x ->> 'personas') || '/' || (x ->> 'libre'), ','
+                              order by x -> 'sede' ->> 'nombre' nulls last)
+              from jsonb_array_elements(retail.fn_vitrina_esperan() -> 'filas') x where x ->> 'variante_id' = p_v::text);
+  return concat_ws('|', 'cuenta=' || coalesce(v_cuenta, 'sin espera'), 'aviso=' || v_aviso, 'ficha=' || coalesce(v_ficha, 'sin espera'),
+                   'erp=' || coalesce(v_erp, 'sin fila'));
+end $f$;\n`;
+  // Ana espera v1 en Lima; Bea, en cualquier tienda. Llegan 2 a Trujillo (Lima sigue sin nada).
+  const ESPERAS_DE_LA_T = `${COMO_TIENDA}
+      select ${avisa(U.ana, ":'v1'", ":'lim'")} ->> 'estado' as _1 \\gset
+      select ${avisa(U.bea, ":'v1'", "null")} ->> 'estado' as _2 \\gset
+      ${COMO_POSTGRES}${AYUDA_T}
+      select pg_temp.dejar(:'v1', :'tru', :'tru_piso', 2) as _x \\gset\n`;
+  esperarValor(
+    "T1 Lima a la vista: la espera de Ana es de Lima y no llegó (lo que hay está en Trujillo); Lima se esconde de la web: se lee como «cualquier tienda» y llegó en TODAS (Mi cuenta, el aviso, la ficha y el ERP, que la junta con la de Bea); Lima vuelve: vuelve a ser de Lima",
+    escenario(`${ESPERAS_DE_LA_T}${LA_ESPERA}
+      update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'lim';
+      ${LA_ESPERA}
+      update retail.ubicacion_datos_web set mostrar = true where ubicacion_id = :'lim';
+      ${LA_ESPERA}
+      select count(*) || ':' || count(*) filter (where ubicacion_id = :'lim') from retail.esperas_web where cuenta_web_id = :'ana_w';`),
+    [
+      "cuenta=ZZ Lima/false|aviso=no llegó|ficha=ZZ Lima|erp=Tienda Lima/1/0,cualquiera/1/2",
+      "cuenta=cualquiera/true|aviso=cualquiera|ficha=cualquiera|erp=cualquiera/2/2",
+      "cuenta=ZZ Lima/false|aviso=no llegó|ficha=ZZ Lima|erp=Tienda Lima/1/0,cualquiera/1/2",
+      "1:1",
+    ].join("\n"),
+  );
+  esperarValor(
+    "T2 «Avísame» en esa tienda escondida anota «cualquier tienda» (la misma regla al anotar y al leer): con Lima fuera de la web y nada libre, Ana pide Lima y queda como «cualquier tienda»",
+    escenario(`update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'lim';
+      ${COMO_TIENDA}select concat_ws('|', r ->> 'estado', coalesce(r ->> 'sede', 'cualquiera')) from (select ${avisa(U.ana, ":'v1'", ":'lim'")} r) x;
+      ${COMO_POSTGRES}select count(*) || ':' || count(*) filter (where ubicacion_id is null) from retail.esperas_web where cuenta_web_id = :'ana_w';`),
+    "anotada|cualquiera\n1:1",
+  );
+  esperarValor(
+    "T3 MUTANTE la regla de la tienda elegida que no mira la web: la espera de Lima escondida queda colgada de Lima y no llega en NINGUNA (ninguna tiene su propia lectura)",
+    escenario(`${ESPERAS_DE_LA_T}select pg_temp.mutar('retail.fn_tienda_sede_elegida(uuid, uuid[])',
+                                    'select case when p_sede = any (coalesce(p_sedes, ''{}''::uuid[])) then p_sede end', 'select p_sede');
+      update retail.ubicacion_datos_web set mostrar = false where ubicacion_id = :'lim';
+      ${LA_ESPERA}`),
+    "cuenta=ZZ Lima/false|aviso=no llegó|ficha=ZZ Lima|erp=Tienda Lima/1/0,cualquiera/1/2",
+  );
+
+  // =================================================================================================================
   console.log("— S. «Separar» cierra la espera de esa cuenta por esa prenda —");
   /** Las esperas de Ana y Bea, una por línea: «quién|prenda|tienda|viva o cerrada|pedido si la cerró «Separar»». */
   const ESPERAS = `select pg_temp.esperas(array[:'ana_w', :'bea_w']::uuid[], array['ana', 'bea'], array[:'v1', :'v2']::uuid[], array['v1', 'v2'],
@@ -886,6 +987,16 @@ function main() {
       ${ESPERAS_DE_LA_S}${COMO_TIENDA}select ${SEPARA(U.ana)} ->> 'codigo' as cod \\gset
       ${COMO_POSTGRES}${ESPERAS}`),
     "ana|v1|cualquiera|cerrada|pedido # ana|v1|tru|cerrada|pedido # ana|v2|tru|cerrada|pedido # bea|v1|tru|viva|-",
+  );
+  esperarValor(
+    "MUTANTE lo guardado cuenta los favoritos que ya no se ven: el globo dice 2 y «Tus favoritos» 1 (la prueba F lo nota)",
+    escenario(`select pg_temp.mutar('retail.tienda_mis_favoritos_y_esperas(uuid)', 'and retail.fn_tienda_modelo_se_ve(f.producto_id)', '');
+      ${COMO_TIENDA}
+      select ${fav(U.ana, ":'emma'", true)} ->> 'estado' as _a \\gset
+      select ${fav(U.ana, ":'falda'", true)} ->> 'estado' as _b \\gset
+      ${COMO_POSTGRES}update retail.vitrina_productos set publicado = false where producto_id = :'falda';
+      ${COMO_TIENDA}select jsonb_array_length(retail.tienda_mis_favoritos_y_esperas('${U.ana}') -> 'favoritos');`),
+    "2",
   );
   esperarValor(
     "MUTANTE favoritos sin tope: con 100 guardados entra el 101 (la prueba F lo nota)",

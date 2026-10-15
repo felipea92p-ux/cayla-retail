@@ -842,10 +842,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `/productos/vitrina/esperan` (Vitrina web ▸ Esperan una talla, mismo módulo, sin menú propio) → `page.tsx` lee `fn_vitrina_esperan` →
   `components/vitrina/EsperanPantalla.tsx` (cifras que filtran, buscador, píldoras de tienda, la lista por prenda y tienda); reglas en
   `lib/vitrina-esperan-reglas.ts`. Solo lee y sin datos personales: lo que los clientes pidieron con «Avísame» (`esperas_web`); «ya
-  llegó» y «dónde hay» con la regla de «hay» de la ficha de la tienda (`fn_tienda_disponible` en las tiendas de la web).
+  llegó» y «dónde hay» con la regla de «hay» de la ficha de la tienda (`fn_tienda_disponible` en las tiendas de la web). Una espera
+  anotada en una tienda que después se escondió de la web cuenta como «cualquier tienda» (`fn_tienda_sede_elegida`, la regla con que se
+  anota).
 - `/productos/vitrina/looks` (Vitrina web ▸ Looks, el mismo módulo `vitrina_web`, ADR-0408 act. 11; las dos vistas van en
   `components/vitrina/VitrinaPestanas.tsx`) → `page.tsx` lee `fn_vitrina_looks` (los looks con sus prendas, si se ven y por qué no, el
-  total con «Todas», y los modelos que se ven en la web) → `LooksPantalla.tsx` (cifras, la lista en su orden con su interruptor) +
+  total con «Todas» —cada prenda, lo que vale en SU color: `fn_tienda_precios` por color, el mismo total de «Arma tu look»—, y los
+  modelos que se ven en la web) → `LooksPantalla.tsx` (cifras, la lista en su orden con su interruptor) +
   `LookHoja.tsx` (`vitrina_guardar_look`: nombre, frase, 2 a 4 prendas con su color, si se ve y su lugar) + `LookMostrarHoja.tsx`
   (`vitrina_mostrar_look`); reglas en `lib/vitrina-looks-reglas.ts`, guía de foco en `lib/vitrina-looks-guia.ts`. Qué se ve en la web
   lo decide `tienda_catalogo(null)` (la misma regla del cliente). Prueba en la base: `pnpm pruebas:vitrina-looks`.
@@ -1794,8 +1797,8 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   que incluye las reservas de los pedidos web; sin el Taller ni las tiendas escondidas). `null` si el modelo no se ve en la web (la página
   responde «Esta prenda ya no está»). `lib/ficha.ts` decide qué se ve al elegir color y talla, y `components/FichaPrenda.tsx` dibuja las
   fotos, los colores, las tallas y la tabla «Cuánto hay por tienda». Debajo, «También te puede gustar» sale de `leerCatalogo`. Las piezas
-  internas de las dos lecturas (`fn_tienda_nivel`, `fn_tienda_umbral`, `fn_tienda_sedes_web`, `fn_tienda_disponible`, `fn_tienda_libre`,
-  `fn_tienda_precios`) no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones
+  internas de las dos lecturas (`fn_tienda_nivel`, `fn_tienda_umbral`, `fn_tienda_sedes_web`, `fn_tienda_sede_elegida`,
+  `fn_tienda_disponible`, `fn_tienda_libre`, `fn_tienda_precio_talla`, `fn_tienda_precios`) no las llama nadie de afuera. Prueba en la base: `pnpm pruebas:tienda-ficha` (con `--mutantes`, contra versiones
   rotas a propósito).
 - La ficha y las tarjetas conectadas (integración de las actividades 4, 5, 7, 11 y 12): en la ficha, `lib/ficha.ts` `botonDeLaFicha` decide
   el botón principal («Elige tu talla»; `components/bolsa/AgregarALaBolsa.tsx` si esa talla hay en alguna tienda de la web;
@@ -1845,7 +1848,8 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `quitarDeLaBolsa`, `elegirTiendaDeRecojo`, `separar` y `volverASeparar`. `/bolsa` →
   `retail.tienda_bolsa(lineas, sede)`: cada prenda al precio de la tienda elegida (sin tienda, el mayor de la web) con la campaña, y por
   tienda solo «alcanza / hay / se vende» (nunca la cifra). «Separar» → `retail.tienda_separar(usuario_web_id, ubicacion_id, lineas,
-  token)`: vuelve a calcular cada precio (`fn_bolsa_web_precios`, la misma regla de la bolsa) contra el que el cliente vio, llama a
+  token)`: vuelve a calcular cada precio (`fn_tienda_precio_talla`, la regla única del precio de la tienda, la misma de la bolsa, la
+  ficha, el catálogo y el look) contra el que el cliente vio, llama a
   `crear_pedido_web` (no toca el stock) y, en la misma transacción, cierra las esperas de «Avísame» de esa cuenta por las prendas que
   separó (`esperas_web.pedido_web_id`); la marca de la cookie hace que dos toques den el mismo pedido. Un cliente tiene a lo sumo 3
   separaciones «por confirmar» vigentes a la vez (Felipe, 2026-10-14; la constante `c_tope_por_confirmar`, mirada después de la marca;
@@ -1869,16 +1873,31 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   `app/acciones/club.ts` `guardarFavorito` → `tienda_favorito` (tabla `favoritos_web`) y `components/club/BotonAvisame.tsx` →
   `pedirAviso` → `tienda_avisame` (tabla `esperas_web`, por prenda y tienda; si hay —`fn_tienda_libre`, la regla de la ficha—, no
   anota); «Quitar» → `tienda_quitar_avisame`; «Separar» la cierra sola (con su pedido); lo ya guardado, `leerGuardadosEnBase()` →
-  `tienda_mis_favoritos_y_esperas`. Prueba en la base: `pnpm pruebas:tienda-club`.
+  `tienda_mis_favoritos_y_esperas` (solo los favoritos de modelos que hoy se ven en la web: el globo del corazón cuenta lo mismo que
+  «Tus favoritos»; `tienda_mi_club` sí los trae todos, y «Mi cuenta» dice cuántos ya no están en la tienda online). Una espera anotada
+  en una tienda que después se escondió de la web se lee como «cualquier tienda» en «Mi cuenta», en el aviso al entrar, en lo guardado
+  y en el ERP (`fn_tienda_sede_elegida`). Prueba en la base: `pnpm pruebas:tienda-club` (secciones F y T).
 - `/looks` y `/looks/[id]` («Arma tu look», actividad 11; grupo `(catalogo)`, con cuenta) → `lib/looks-servidor.ts` `leerLooks(sede)` y
   `leerLook(id, sede)` → `retail.tienda_looks(p_sede)` y `retail.tienda_look(p_id, p_sede)`: los looks encendidos con TODAS sus prendas a
-  la vista, en su orden, con la lámina (x, y, ancho y giro de cada prenda) y el precio de cada prenda tomado de `tienda_catalogo(p_sede)`
-  (no hay otra regla), el total y, en el look abierto, las tallas de cada prenda con «hay» (la regla de la ficha, `fn_tienda_disponible`
-  en las tiendas de la web; nunca la cifra). `lib/looks.ts` valida y prepara; `components/looks/Lamina.tsx` dibuja la lámina y
+  la vista, en su orden, con la lámina (x, y, ancho y giro de cada prenda), lo que vale cada prenda en SU color en la tienda del catálogo
+  (`fn_tienda_precios` por color, la regla única del precio: el mismo de la ficha y de la bolsa; una campaña solo en el negro no le
+  pone «Desde» a la prenda negra ni se le pega a la beige), el total y, en el look abierto, las tallas que la ficha ofrece de cada prenda
+  en esa tienda (ninguna a S/ 0) con «hay» (la regla de la ficha, `fn_tienda_disponible` en las tiendas de la web; nunca la cifra). `lib/looks.ts` valida y prepara; `components/looks/Lamina.tsx` dibuja la lámina y
   `components/looks/AgregarLook.tsx` la hoja de tallas, que entrega las líneas a `components/looks/AgregarLookALaBolsa.tsx` →
   `app/acciones/bolsa.ts` `agregarLookALaBolsa` (sin precios: la bolsa los pide a la base con la tienda de recojo); al terminar, el aviso
   de abajo y el salto del globo de la bolsa. Las dos páginas llevan el marco de la tienda (`MarcoCatalogo`, con «Arma tu look» marcado) y
   piden cuenta en el proxy (`lib/sesion.ts`). Estilos en `app/estilos/looks.css`.
+- **Un solo precio y una sola tienda elegida** (integración de la tienda, 2026-10-15). El precio de una prenda (talla y color) en la web
+  lo dice `fn_tienda_precio_talla(prendas, tienda)` (`20261015012000`): el de la tienda elegida (`fn_precio_en_sede`) o, con «Todas», el
+  mayor entre las de la web (sin ninguna, el de la grilla), con la campaña de la caja encima (la de mayor %, `fn_descuento_campana`,
+  ADR-0403), y si se OFRECE (activa y con precio en esa tienda: una talla a S/ 0 es de empaque, ADR-0384). La leen la bolsa y
+  «Separar» directo, y la ficha, el catálogo, «Arma tu look» y el total del look en el ERP por `fn_tienda_precios(modelos, tienda,
+  por_color)`, que suma el resumen de la tarjeta (del modelo, o del modelo en un color para una prenda de un look). La tienda elegida es
+  `fn_tienda_sede_elegida(tienda, tiendas_de_la_web)`: una escondida o un id cualquiera es «Todas» (precio y stock) o «cualquier
+  tienda» (una espera de «Avísame», al anotarla y al leerla). `fn_bolsa_web_precios` queda como nombre viejo, sin regla propia. Lo
+  vigila `pnpm pruebas:tienda-ficha` (secciones 9 y 10: las cuatro dicen el mismo precio con y sin precio propio, con campaña del modelo,
+  de la categoría y las dos, con «Todas» y sin tiendas en la web; lo que se ofrece es lo mismo en la ficha, el look y la bolsa; romper
+  la pieza común las cambia a todas juntas).
 - **Una sola regla de «hay» y de «nuevo»** (integración de la tienda, 2026-10-15). «Hay» —si una prenda o talla se puede llevar— lo
   dice `fn_tienda_disponible(productos, tiendas)` (`20261015012000`: lo libre de `fn_existencias_base`, sin Cuarentena ni lo apartado
   —que incluye las reservas de los pedidos web confirmados—, solo tallas activas) con las tiendas de `fn_tienda_sedes_web()` (sin el

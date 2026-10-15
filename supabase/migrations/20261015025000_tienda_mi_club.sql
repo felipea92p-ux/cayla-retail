@@ -23,10 +23,14 @@
 --        `canjeado`, `en_camino` (su próximo aniversario, lo que lleva este año contra el umbral y el vale que le toca) o `sin_club`.
 --      · club.con_publicidad: si aceptó los avisos por WhatsApp (los términos dicen que le avisamos «solo si lo autorizaste»).
 --      · novedades: {primera, desde, total, productos (hasta 24, lo último primero)}.
---      · favoritos: sus modelos guardados (lo último primero).
+--      · favoritos: sus modelos guardados (lo último primero), TODOS: también los que ya no se ven en la web, para que «Mi cuenta» diga
+--        cuántos ya no están en la tienda online. El globo del corazón y la lista «Tus favoritos» cuentan solo los que se ven
+--        (`tienda_mis_favoritos_y_esperas`, 20261015024000).
 --      · esperas: cada una con su prenda (modelo, color, talla), su tienda (o cualquiera), si se ve en la web, si ya llegó y dónde hay.
 --        «Llegó» y «dónde hay» son la regla de «hay» de la ficha (`fn_tienda_disponible` con `fn_tienda_sedes_web()`, 20261015012000),
---        leída una vez para todas sus esperas: si la ficha dice que no hay, aquí tampoco llegó.
+--        leída una vez para todas sus esperas: si la ficha dice que no hay, aquí tampoco llegó. La tienda de la espera se lee con
+--        `fn_tienda_sede_elegida`, la misma regla con que se anota: una tienda que después se escondió de la web es «cualquier tienda»
+--        (si no, esa espera nunca «llegaba»).
 --
 -- DECIDÍ: los beneficios salen de las funciones del Club que ya cobran (`fn_club_beneficios`, `fn_club_aniversario_calculo`,
 --   `club_canjes`), nunca de una regla copiada: si Felipe cambia el % o la escala en «Beneficios del club», la cuenta lo dice sola.
@@ -62,8 +66,9 @@ begin
                   where p.oid = to_regprocedure('retail.fn_tienda_lo_nuevo(uuid[])') and 'llego' = any (p.proargnames)) then
     raise exception 'Falta «Lo nuevo» con la fecha de llegada: pega antes 20261015013000_tienda_inicio_lo_nuevo_y_mas_vendidos.sql.';
   end if;
-  if to_regprocedure('retail.fn_tienda_disponible(uuid[], uuid[])') is null or to_regprocedure('retail.fn_tienda_sedes_web()') is null then
-    raise exception 'Falta la regla de «hay» de la tienda: pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
+  if to_regprocedure('retail.fn_tienda_disponible(uuid[], uuid[])') is null or to_regprocedure('retail.fn_tienda_sedes_web()') is null
+     or to_regprocedure('retail.fn_tienda_sede_elegida(uuid, uuid[])') is null then
+    raise exception 'Faltan las reglas de «hay» y de la tienda elegida: pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
   end if;
   if to_regprocedure('retail.fn_tienda_modelo_se_ve(uuid)') is null or to_regclass('retail.esperas_web') is null then
     raise exception 'Falta la PARTE 1 (favoritos y esperas): pega antes 20261015024000_tienda_favoritos_y_esperas.sql.';
@@ -228,10 +233,12 @@ begin
      where f.cuenta_web_id = v_cuenta and f.quitado_en is null), '[]'::jsonb);
 
   -- Sus esperas vivas, con «llegó» y «dónde hay» según la regla de «hay» de la ficha (fn_tienda_disponible en las tiendas de la
-  -- web), leída UNA vez para todas sus prendas: lo que la ficha dice agotado aquí no «llegó».
+  -- web), leída UNA vez para todas sus prendas: lo que la ficha dice agotado aquí no «llegó». Su tienda, con la regla con que se
+  -- anota (fn_tienda_sede_elegida): una que ya no se ve en la web es «cualquier tienda».
   v_esperas := coalesce((
     with vivas as (
-      select e.* from retail.esperas_web e where e.cuenta_web_id = v_cuenta and e.quitada_en is null
+      select e.*, retail.fn_tienda_sede_elegida(e.ubicacion_id, v_sedes) as sede_id
+        from retail.esperas_web e where e.cuenta_web_id = v_cuenta and e.quitada_en is null
     ),
     libres as (
       select d.variante_id, d.ubicacion_id
@@ -246,12 +253,12 @@ begin
              'color', case when co.codigo is null then null
                            else jsonb_build_object('codigo', co.codigo, 'nombre', co.nombre, 'hex', co.hex) end,
              'talla', t.valor,
-             'sede', case when e.ubicacion_id is null then null
-                          else jsonb_build_object('id', e.ubicacion_id, 'nombre', coalesce(dw.nombre_web, u.nombre)) end,
+             'sede', case when e.sede_id is null then null
+                          else jsonb_build_object('id', e.sede_id, 'nombre', coalesce(dw.nombre_web, u.nombre)) end,
              'creada_en', e.creada_en,
              'se_ve', retail.fn_tienda_modelo_se_ve(v.producto_id),
              'llego', exists (select 1 from libres l
-                               where l.variante_id = e.variante_id and (e.ubicacion_id is null or l.ubicacion_id = e.ubicacion_id)),
+                               where l.variante_id = e.variante_id and (e.sede_id is null or l.ubicacion_id = e.sede_id)),
              'hay_en', to_jsonb(array(
                select coalesce(dw2.nombre_web, u2.nombre)
                  from libres l
@@ -265,8 +272,8 @@ begin
       join retail.productos p on p.id = v.producto_id
       left join retail.colores co on co.codigo = v.color_codigo
       left join retail.tallas t on t.id = v.talla_id
-      left join retail.ubicaciones u on u.id = e.ubicacion_id
-      left join retail.ubicacion_datos_web dw on dw.ubicacion_id = e.ubicacion_id), '[]'::jsonb);
+      left join retail.ubicaciones u on u.id = e.sede_id
+      left join retail.ubicacion_datos_web dw on dw.ubicacion_id = e.sede_id), '[]'::jsonb);
 
   return jsonb_build_object(
     'club', jsonb_build_object(

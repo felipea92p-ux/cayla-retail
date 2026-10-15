@@ -15,7 +15,8 @@
 --   2. Las funciones del ERP, todas con `fn_exigir_modulo('vitrina_web')` y firmadas con `fn_actor_persona_id(true)` (el combo
 --      «Responsable», ADR-0162):
 --        · `fn_vitrina_looks()` — la lectura de Vitrina web ▸ Looks: cada look con sus prendas, si se ve en la web (y si no, por qué) y
---          el total que ve el cliente con «Todas»; y los modelos que se pueden poner en un look (los que se ven en la web).
+--          el total que ve el cliente con «Todas» (cada prenda, lo que vale en SU color: `fn_tienda_precios` por color, la misma pieza
+--          de «Arma tu look» en la tienda, 20261015032000); y los modelos que se pueden poner en un look (los que se ven en la web).
 --        · `vitrina_guardar_look(…)` — crear o editar: nombre, frase, prendas, si se ve y su lugar en «Arma tu look».
 --        · `vitrina_mostrar_look(…)` — el interruptor de la lista: mostrar u ocultar.
 --      La tienda lee con `tienda_looks` y `tienda_look` (20261015032000).
@@ -39,7 +40,8 @@
 --   (no hay precio web: cada prenda vale lo de la tienda elegida y el total es la suma); borrar un look (se oculta; archivarlo sería otra
 --   decisión de Felipe); subir la `version` al cambiar el lugar (ordenar no pisa lo que otra persona está editando).
 --
--- PRODUCCIÓN. NO está aplicada (actividad 13, con el OK de Felipe), después de 20261014225000 y 20261014231000. Una sola parte,
+-- PRODUCCIÓN. NO está aplicada (actividad 13, con el OK de Felipe), después de 20261014225000, 20261014231000 y 20261015012000 (la
+-- regla del precio, que da lo que vale cada prenda en su color). Una sola parte,
 -- re-ejecutable: dos tablas NUEVAS sin políticas, funciones y el texto del módulo; no altera tablas en uso ni toca disparadores
 -- (ADR-0195). Las llaves foráneas a `productos` y `colores` toman un instante esas tablas en modo SHARE ROW EXCLUSIVE (compatible con
 -- las lecturas y las ventas; `lock_timeout` lo corta a los 3 s). Dentro de los textos entre comillas no hay ningún `select … into`
@@ -48,6 +50,15 @@
 
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
+
+-- ---------- 0. Lo que da por hecho (si falta, no se pega nada) ----------
+do $$
+begin
+  if to_regprocedure('retail.fn_tienda_precios(uuid[], uuid, boolean)') is null then
+    raise exception 'Falta la regla del precio de la tienda (fn_tienda_precios por color): pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
+  end if;
+end
+$$;
 
 -- ---------- 1. El módulo: ahora también arma los looks (sigue siendo el mismo, ADR-0306) ----------
 update retail.modulos
@@ -175,7 +186,8 @@ revoke all on function retail.fn_vitrina_look_anotar(text, text, uuid, uuid, jso
 
 -- Los looks tal como los lee la pantalla del ERP (todos, o los de `p_ids`), en su orden. `p_catalogo` es `tienda_catalogo(null)`: lo
 -- que ve el cliente con «Todas». Cada prenda dice si se ve; el look, si se ve en la web (encendido y con todas sus prendas a la vista),
--- cuántas le faltan (eliminadas del catálogo) y el total que ve el cliente con «Todas» (solo si todas sus prendas se ven).
+-- cuántas le faltan (eliminadas del catálogo) y el total que ve el cliente con «Todas» (solo si todas sus prendas se ven). Cada prenda
+-- vale lo de SU color con «Todas» (`fn_tienda_precios` por color, la regla única del precio): el mismo total que «Arma tu look».
 create or replace function retail.fn_vitrina_looks_json(p_ids uuid[], p_catalogo jsonb)
 returns jsonb
 language sql
@@ -215,14 +227,21 @@ as $$
       left join retail.colores co on co.codigo = pz.color_codigo
       left join cat ct on ct.producto_id = pz.producto_id
   ),
+  -- Lo que vale cada prenda del look en SU color, con «Todas»: el resumen por color de la regla única del precio (fn_tienda_precios).
+  precio_del_color as (
+    select distinct on (pc.producto_id, pc.color_codigo) pc.producto_id, pc.color_codigo, pc.resumen_final, pc.resumen_desde
+      from retail.fn_tienda_precios(coalesce((select array_agg(distinct x.producto_id) from piezas x), '{}'::uuid[]), null, true) pc
+     order by pc.producto_id, pc.color_codigo
+  ),
   resumen as (
     select l.id,
            count(x.look_id) as guardadas,
            count(x.look_id) filter (where x.se_ve) as visibles,
-           sum((x.prenda ->> 'precio_final')::numeric) filter (where x.se_ve) as total,
-           coalesce(bool_or((x.prenda ->> 'desde')::boolean) filter (where x.se_ve), false) as desde
+           sum(pr.resumen_final) filter (where x.se_ve) as total,
+           coalesce(bool_or(pr.resumen_desde) filter (where x.se_ve), false) as desde
       from looks l
       left join piezas x on x.look_id = l.id
+      left join precio_del_color pr on pr.producto_id = x.producto_id and pr.color_codigo = x.color_codigo
      group by l.id
   )
   select coalesce(jsonb_agg(jsonb_build_object(

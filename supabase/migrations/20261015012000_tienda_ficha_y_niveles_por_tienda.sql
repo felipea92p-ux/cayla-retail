@@ -20,15 +20,31 @@
 --          1); «hay» si es más. El umbral es `configuracion_tienda_web.quedan_pocas_desde` (de 1 a 3, Configuración ▸ Tienda web),
 --          y aquí también se acota a 1–3: la cifra de 4 o más no sale ni con un umbral mal guardado.
 --        · `fn_tienda_umbral()`, `fn_tienda_sedes_web()` (las tiendas de la web, en el orden de `tienda_sedes`).
+--        · `fn_tienda_sede_elegida(tienda, tiendas)` — LA regla de la tienda elegida: una tienda de la web; cualquier otra (escondida,
+--          un id cualquiera o ninguna) se lee como «Todas» (para el precio y el stock) o «cualquier tienda» (para una espera de
+--          «Avísame»): la misma regla al anotar una espera y al leerla.
 --        · `fn_tienda_disponible(productos, tiendas)` — cuánto hay libre por talla y tienda: LA cifra de stock de ADR-0270
 --          (`fn_existencias_base.disponible`: piso + almacén + lo que no tiene lugar, sin Cuarentena y sin lo apartado; lo apartado
 --          incluye las reservas de los pedidos web, ADR-0408 DECIDÍ 4). Solo tallas activas y solo tiendas de la web: el Taller
 --          y una tienda escondida no cuentan.
 --        · `fn_tienda_libre(prenda, tiendas)` — la misma cifra para UNA prenda en esas tiendas (la suma de `fn_tienda_disponible`):
 --          no es otra regla, es la forma corta para quien pregunta por una sola talla («Separar», «Avísame»).
---        · `fn_tienda_precios(productos, tiendas)` — por talla: su precio en la(s) tienda(s) y la campaña de la caja (ADR-0403),
---          y el resumen del modelo que usa la tarjeta (el mismo cálculo de la actividad 3, ahora escrito una sola vez para el
---          catálogo y la ficha).
+--        · `fn_tienda_precio_talla(prendas, tienda)` — LA regla del precio de la tienda: por prenda (talla y color), su precio en
+--          la tienda elegida (`fn_precio_en_sede`) o, con «Todas», el MAYOR entre las tiendas de la web (sin ninguna, el de la
+--          grilla), con la campaña de la caja encima (ADR-0403: la de mayor %, y el precio baja al S/ 0.10 de abajo), y si se OFRECE
+--          (activa y con precio en esa tienda: una talla a S/ 0 es de empaque, ADR-0384, y no se ofrece en la web).
+--        · `fn_tienda_precios(productos, tienda, por_color)` — lo que se ofrece de esos modelos, cada talla con su precio (el de
+--          `fn_tienda_precio_talla`), y el resumen que dibuja la tarjeta: el del MODELO o, con `por_color`, el del modelo en un
+--          COLOR (una prenda de un look). La regla del resumen (la de la actividad 3) se escribe una sola vez para los dos.
+--
+-- UN SOLO PRECIO (integración de la tienda, 2026-10-15). Todo lo que en la tienda dice cuánto cuesta una prenda —la ficha y el
+-- catálogo (aquí), la bolsa y «Separar» (20261015021000), «Arma tu look» (20261015032000) y el total del look en el ERP
+-- (20261015031000)— lee `fn_tienda_precio_talla`. Antes la bolsa tenía su propia cuenta (`fn_bolsa_web_precios`: hoy solo un nombre
+-- viejo que le pasa la pregunta a esta) y el look tomaba el precio del MODELO aunque la prenda del look fuera de un solo color: con
+-- una campaña en el negro, la falda beige del look decía «Desde» el precio del negro, y la bolsa le cobraba el del beige. Ahora la
+-- prenda del look vale lo de su color, que es lo que se ofrece de ella. Lo vigila `pnpm pruebas:tienda-ficha` (sección 9: la ficha,
+-- el catálogo, la bolsa y el look dicen el mismo precio con y sin precio propio de la tienda, con campaña del modelo y de la categoría
+-- y con «Todas», y romper esta pieza a propósito los cambia a los cuatro juntos; sección 10: ofrecen las mismas tallas).
 --
 -- UNA SOLA REGLA DE «HAY» (integración de la tienda, 2026-10-15). Todo lo que en la tienda dice si una prenda HAY —la ficha y el
 -- catálogo (aquí), la bolsa y «Separar» (20261015021000), «Arma tu look» (20261015032000), «Avísame» (20261015024000), las
@@ -45,6 +61,8 @@
 --     en el mismo instante (la ficha se lee en cada visita).
 --   · Una tienda que no se ve en la web no aparece ni cuenta para «todas»; un id cualquiera se lee como «Todas» (como el precio).
 --   · La ficha de un modelo oculto, descontinuado o de prueba no se puede leer ni sabiendo su id.
+--   · Lo que se ofrece y a qué precio lo dice `fn_tienda_precio_talla`: la ficha, el catálogo, la bolsa, «Separar» y el look no
+--     pueden decir dos precios de la misma prenda en la misma tienda, ni ofrecer una talla que la ficha no ofrece.
 --
 -- DECIDÍ: el nivel como dato (`"hay"` o un número de 0 a 3), no como texto («Hay», «Última»): las palabras son de la pantalla y
 --   la base garantiza la regla. Los niveles de todas las tiendas en la misma respuesta (no una lectura por tienda): la ficha muestra
@@ -54,8 +72,11 @@
 --   que la tienda la esconda (la cifra viajaría igual).
 --
 -- PRODUCCIÓN. NO está aplicada (actividad 13, con el OK de Felipe, después de 20261014225000 y 20261014231000). Una sola parte,
--- re-ejecutable: solo `create or replace function`, `comment`, `revoke` y `grant`; sin tablas, sin políticas ni disparadores
--- (ADR-0195). Ningún `select … into` dentro de un texto entre comillas (ADR-0288). Prueba: `pnpm pruebas:tienda-ficha`.
+-- re-ejecutable: solo `create or replace function`, `comment`, `revoke` y `grant`, y un `drop function if exists` de la firma vieja
+-- de `fn_tienda_precios` (uuid[], uuid[]), que solo existe en las bases locales: la nueva recibe la tienda elegida y si el resumen va
+-- por color (con otros parámetros, `create or replace` dejaría las dos; borrar una función no toma las tablas de `auth` ni de
+-- `storage`). Sin tablas, sin políticas ni disparadores (ADR-0195). Ningún `select … into` dentro de un texto entre comillas
+-- (ADR-0288). Prueba: `pnpm pruebas:tienda-ficha`.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
@@ -132,6 +153,21 @@ $$;
 comment on function retail.fn_tienda_sedes_web() is
   'Tienda online (ADR-0408): los id de las tiendas que se ven en la web, en el orden de tienda_sedes. Interna.';
 
+-- La tienda elegida: una de la web (`p_sedes`, las de fn_tienda_sedes_web); cualquier otra —escondida, un id cualquiera o ninguna—
+-- es null: «Todas» para el precio y el stock, «cualquier tienda» para una espera de «Avísame». La misma regla al elegir, al anotar
+-- y al leer: una espera anotada en una tienda que después se esconde se lee como «cualquier tienda», que es como se anotaría hoy.
+create or replace function retail.fn_tienda_sede_elegida(p_sede uuid, p_sedes uuid[])
+returns uuid
+language sql
+immutable
+set search_path = retail, public
+as $$
+  select case when p_sede = any (coalesce(p_sedes, '{}'::uuid[])) then p_sede end
+$$;
+
+comment on function retail.fn_tienda_sede_elegida(uuid, uuid[]) is
+  'Tienda online (ADR-0408): LA regla de la tienda elegida. La tienda si es una de la web (p_sedes, de fn_tienda_sedes_web); si no (escondida, un id cualquiera o ninguna), null = «Todas» (precio y stock) o «cualquier tienda» (una espera de «Avísame», al anotarla y al leerla). Interna.';
+
 -- ---------- 2. Cuánto hay libre por talla y tienda (LA cifra de ADR-0270) ----------
 -- `disponible` de fn_existencias_base: físico − Cuarentena − apartado (Apartados y las reservas de los pedidos web). Solo tallas
 -- activas, solo las tiendas pedidas y solo lo que tiene algo (lo que no sale es 0).
@@ -166,49 +202,93 @@ $$;
 comment on function retail.fn_tienda_libre(uuid, uuid[]) is
   'Tienda online (ADR-0408): lo libre de una prenda (talla y color) en esas tiendas: la suma de fn_tienda_disponible, la regla única de «hay». La usan «Separar» y «Avísame». Interna.';
 
--- ---------- 3. El precio por talla y el de la tarjeta (una sola vez para el catálogo y la ficha) ----------
--- Por cada talla activa con precio de los modelos pedidos: su precio en `p_precio_de` (la tienda elegida, o el MAYOR entre las
--- tiendas de la web con «Todas»; sin ninguna tienda, el de la grilla) y la campaña de la caja (la de mayor % de esa talla, y el
--- precio que baja al S/ 0.10 de abajo, ADR-0403). Y, repetido en cada fila, el resumen del MODELO que dibuja la tarjeta (el de la
--- actividad 3): el precio es el de su talla más cara; con campaña en todas sus tallas y el mismo %, el precio de campaña sin
--- «Desde»; si no, lo menos que se paga por una talla con campaña y `desde`; la campaña que da ese precio.
-create or replace function retail.fn_tienda_precios(p_producto_ids uuid[], p_precio_de uuid[])
+-- ---------- 3. El precio: LA regla de toda la tienda ----------
+-- Por cada prenda pedida (talla y color): su precio de lista en la tienda elegida (`p_sede`, leída con fn_tienda_sede_elegida: el de
+-- esa tienda, fn_precio_en_sede) o, con «Todas», el MAYOR entre las tiendas de la web (Felipe, ADR-0408 act. 2026-10-14 (c): al elegir
+-- su tienda el precio baja o se queda, nunca sube); sin ninguna tienda en la web, el de la grilla. Encima, la campaña de la caja: la de
+-- mayor % de esa talla (empate: por nombre) y lo que descuenta (fn_descuento_campana: el precio baja al S/ 0.10 de abajo, ADR-0403).
+-- Una campaña que no llega a bajar nada no se nombra: el pedido web exige que un descuento traiga su campaña y que la campaña traiga
+-- descuento. `se_ofrece`: la talla está activa y tiene precio en esa tienda (una a S/ 0 es de empaque, ADR-0384: no se ofrece en la
+-- web). Si el modelo se ve en la web lo dice quien llama (la Vitrina): aquí solo el precio.
+create or replace function retail.fn_tienda_precio_talla(p_variantes uuid[], p_sede uuid)
 returns table (
-  variante_id uuid, producto_id uuid, color_codigo text, talla_id uuid,
-  precio numeric, precio_final numeric, campana jsonb,
-  modelo_precio numeric, modelo_final numeric, modelo_desde boolean, modelo_campana jsonb
+  variante_id uuid, producto_id uuid, color_codigo text, talla_id uuid, se_ofrece boolean,
+  precio_lista numeric, descuento numeric, precio numeric,
+  etiqueta_id uuid, campana text, pct numeric, hasta date
 )
 language sql
 stable
 set search_path = retail, public
 as $$
-  with tallas as (
-    select v.id, v.producto_id, v.color_codigo, v.talla_id,
-           case when coalesce(cardinality(p_precio_de), 0) = 0 then v.precio
-                else (select max(retail.fn_precio_en_sede(v.id, s.id)) from unnest(p_precio_de) as s (id)) end as precio
+  with web as (
+    select retail.fn_tienda_sedes_web() as sedes
+  ),
+  -- Las tiendas cuyo precio cuenta: la elegida o, con «Todas», todas las de la web.
+  precio_de as (
+    select case when retail.fn_tienda_sede_elegida(p_sede, w.sedes) is not null then array[p_sede] else w.sedes end as sedes
+      from web w
+  ),
+  base as (
+    select v.id, v.producto_id, v.color_codigo, v.talla_id, v.activo,
+           case when coalesce(cardinality(d.sedes), 0) = 0 then v.precio
+                else (select max(retail.fn_precio_en_sede(v.id, s.id)) from unnest(d.sedes) as s (id)) end as precio_lista
       from retail.variantes v
-     where v.producto_id = any (coalesce(p_producto_ids, '{}'::uuid[]))
-       and v.activo
+      cross join precio_de d
+     where v.id = any (coalesce(p_variantes, '{}'::uuid[]))
   ),
   -- `coalesce(…, '{}')`: con la lista vacía la regla no devuelve nada (con null devolvería las campañas de TODO el catálogo).
-  campana as (
+  la_campana as (
     select distinct on (x.variante_id) x.variante_id, x.etiqueta_id, x.etiqueta_nombre, x.descuento_pct
-      from retail.fn_campanas_por_variante(retail.fn_hoy_lima(), 0, coalesce((select array_agg(t.id) from tallas t), '{}'::uuid[])) x
+      from retail.fn_campanas_por_variante(retail.fn_hoy_lima(), 0, coalesce(p_variantes, '{}'::uuid[])) x
      order by x.variante_id, x.descuento_pct desc, x.etiqueta_nombre, x.etiqueta_id
   ),
-  -- Una talla a S/ 0 no se ofrece en la web (el precio 0 es solo de empaque, ADR-0384).
-  f as (
-    select t.id, t.producto_id, t.color_codigo, t.talla_id, t.precio,
-           t.precio - retail.fn_descuento_campana(t.precio, ca.descuento_pct) as final,
-           ca.descuento_pct as pct,
-           ca.etiqueta_nombre as nombre_campana,
-           case when ca.variante_id is null then null
-                else jsonb_build_object('id', ca.etiqueta_id, 'nombre', ca.etiqueta_nombre, 'pct', ca.descuento_pct,
-                                        'hasta', e.vigente_hasta) end as campana
-      from tallas t
-      left join campana ca on ca.variante_id = t.id
-      left join retail.etiquetas e on e.id = ca.etiqueta_id
-     where t.precio > 0
+  con_campana as (
+    select b.id, b.producto_id, b.color_codigo, b.talla_id, b.activo, b.precio_lista, c.etiqueta_id, c.etiqueta_nombre,
+           c.descuento_pct, coalesce(retail.fn_descuento_campana(b.precio_lista, c.descuento_pct), 0) as descuento
+      from base b
+      left join la_campana c on c.variante_id = b.id
+  )
+  select x.id, x.producto_id, x.color_codigo, x.talla_id, x.activo and coalesce(x.precio_lista, 0) > 0,
+         x.precio_lista, x.descuento, x.precio_lista - x.descuento,
+         case when x.descuento > 0 then x.etiqueta_id end,
+         case when x.descuento > 0 then x.etiqueta_nombre end,
+         case when x.descuento > 0 then x.descuento_pct end,
+         case when x.descuento > 0 then e.vigente_hasta end
+    from con_campana x
+    left join retail.etiquetas e on e.id = x.etiqueta_id
+$$;
+
+comment on function retail.fn_tienda_precio_talla(uuid[], uuid) is
+  'Tienda online (ADR-0408): LA regla del precio de la tienda. Por prenda (talla y color): su precio de lista en la tienda elegida (fn_precio_en_sede) o, con «Todas» (o una tienda que no es de la web), el mayor entre las tiendas de la web (sin ninguna, el de la grilla); la campaña de la caja encima (la de mayor %, fn_descuento_campana, ADR-0403; una que no baja nada no se nombra); y si se ofrece (activa y con precio > 0 en esa tienda, ADR-0384). La leen fn_tienda_precios (ficha, catálogo y looks), tienda_bolsa y tienda_separar. Interna.';
+
+-- Lo que se OFRECE de los modelos pedidos (cada talla activa con precio en la tienda elegida: `se_ofrece` de fn_tienda_precio_talla)
+-- con su precio y su campaña, y, repetido en cada fila, el resumen que dibuja la tarjeta: el del MODELO o, con `p_por_color`, el del
+-- modelo en ese COLOR (una prenda de un look: lo que se ofrece de ella es solo su color, y su precio es el de esas tallas). La regla del
+-- resumen (la de la actividad 3), escrita una sola vez para los dos: el precio es el de su talla más cara; con campaña en todas sus
+-- tallas y el mismo %, el precio de campaña sin «Desde»; si no, lo menos que se paga por una talla con campaña y `desde`; la campaña
+-- que da ese precio. La firma de antes (con la lista de tiendas en vez de la elegida) se borra: con otros parámetros quedarían dos.
+drop function if exists retail.fn_tienda_precios(uuid[], uuid[]);
+create or replace function retail.fn_tienda_precios(p_producto_ids uuid[], p_sede uuid, p_por_color boolean default false)
+returns table (
+  variante_id uuid, producto_id uuid, color_codigo text, talla_id uuid,
+  precio numeric, precio_final numeric, campana jsonb,
+  resumen_precio numeric, resumen_final numeric, resumen_desde boolean, resumen_campana jsonb
+)
+language sql
+stable
+set search_path = retail, public
+as $$
+  with f as (
+    select t.variante_id as id, t.producto_id, t.color_codigo, t.talla_id, t.precio_lista as precio, t.precio as final, t.pct,
+           t.campana as nombre_campana,
+           case when t.pct is null then null
+                else jsonb_build_object('id', t.etiqueta_id, 'nombre', t.campana, 'pct', t.pct, 'hasta', t.hasta) end as campana,
+           -- El grupo del resumen: el modelo, o el modelo en ese color.
+           case when p_por_color then t.color_codigo end as color_del_grupo
+      from retail.fn_tienda_precio_talla(array(select v.id from retail.variantes v
+                                                 where v.producto_id = any (coalesce(p_producto_ids, '{}'::uuid[])) and v.activo),
+                                         p_sede) t
+     where t.se_ofrece
   ),
   w as (
     select f.*,
@@ -220,10 +300,10 @@ as $$
            max(f.final) over m as m_final_mayor,
            min(f.final) filter (where f.pct is not null) over m as m_final_menor_con_campana,
            -- La campaña que da lo menos que se paga (las tallas sin campaña, al final).
-           first_value(f.campana) over (partition by f.producto_id
+           first_value(f.campana) over (partition by f.producto_id, f.color_del_grupo
                                         order by f.pct is null, f.final, f.pct desc, f.nombre_campana) as m_campana
       from f
-    window m as (partition by f.producto_id)
+    window m as (partition by f.producto_id, f.color_del_grupo)
   )
   select w.id, w.producto_id, w.color_codigo, w.talla_id, w.precio, w.final, w.campana,
          w.m_precio, x.final,
@@ -237,15 +317,17 @@ as $$
     ) x
 $$;
 
-comment on function retail.fn_tienda_precios(uuid[], uuid[]) is
-  'Tienda online (ADR-0408): por talla activa con precio, su precio en la tienda (o el mayor entre las de la web) con la campaña de la caja (ADR-0403), y el resumen del modelo que dibuja la tarjeta (precio, precio final, «Desde», campaña). Una sola vez para tienda_catalogo y tienda_ficha. Interna.';
+comment on function retail.fn_tienda_precios(uuid[], uuid, boolean) is
+  'Tienda online (ADR-0408): lo que se ofrece de esos modelos (fn_tienda_precio_talla, la regla única del precio), por talla con su precio y su campaña, y el resumen que dibuja la tarjeta (precio, precio final, «Desde», campaña): el del modelo o, con p_por_color, el del modelo en ese color (una prenda de un look). La leen tienda_catalogo, tienda_ficha, los looks de la tienda y el total del look en el ERP. Interna.';
 
 revoke all on function retail.fn_tienda_nivel(integer, integer) from public, anon, authenticated;
 revoke all on function retail.fn_tienda_umbral() from public, anon, authenticated;
 revoke all on function retail.fn_tienda_sedes_web() from public, anon, authenticated;
 revoke all on function retail.fn_tienda_disponible(uuid[], uuid[]) from public, anon, authenticated;
 revoke all on function retail.fn_tienda_libre(uuid, uuid[]) from public, anon, authenticated;
-revoke all on function retail.fn_tienda_precios(uuid[], uuid[]) from public, anon, authenticated;
+revoke all on function retail.fn_tienda_sede_elegida(uuid, uuid[]) from public, anon, authenticated;
+revoke all on function retail.fn_tienda_precio_talla(uuid[], uuid) from public, anon, authenticated;
+revoke all on function retail.fn_tienda_precios(uuid[], uuid, boolean) from public, anon, authenticated;
 
 -- ---------- 4. El catálogo de la tienda, ahora con cuánto hay en cada tienda ----------
 -- Lo mismo de la actividad 3 (lo publicado y vendible, al precio de la tienda elegida o, con «Todas», al mayor; la campaña de la
@@ -265,20 +347,18 @@ declare
   v_sede uuid;
   v_ids uuid[];
 begin
-  if p_sede = any (v_sedes) then
-    v_sede := p_sede;
-  end if;
+  v_sede := retail.fn_tienda_sede_elegida(p_sede, v_sedes);
   v_ids := array(select vp.producto_id from retail.vitrina_productos vp
                   where vp.publicado and retail.fn_vitrina_publicable(vp.producto_id));
 
   return (
     with pv as materialized (
-      select * from retail.fn_tienda_precios(v_ids, case when v_sede is not null then array[v_sede] else v_sedes end)
+      select * from retail.fn_tienda_precios(v_ids, v_sede)
     ),
     modelos as (
       select distinct on (pv.producto_id)
-             pv.producto_id as id, pv.modelo_precio as precio, pv.modelo_final as final, pv.modelo_desde as desde,
-             pv.modelo_campana as campana
+             pv.producto_id as id, pv.resumen_precio as precio, pv.resumen_final as final, pv.resumen_desde as desde,
+             pv.resumen_campana as campana
         from pv
        order by pv.producto_id
     ),
@@ -366,14 +446,12 @@ begin
   end if;
   v_sedes := retail.fn_tienda_sedes_web();
   v_umbral := retail.fn_tienda_umbral();
-  if p_sede = any (v_sedes) then
-    v_sede := p_sede;
-  end if;
+  v_sede := retail.fn_tienda_sede_elegida(p_sede, v_sedes);
   v_ids := array[p_producto];
 
   return (
     with pv as materialized (
-      select * from retail.fn_tienda_precios(v_ids, case when v_sede is not null then array[v_sede] else v_sedes end)
+      select * from retail.fn_tienda_precios(v_ids, v_sede)
     ),
     disponible as (
       select d.variante_id, d.ubicacion_id, d.disponible as n
@@ -406,10 +484,10 @@ begin
           'nombre', p.referencia,
           'descripcion', coalesce(vp.descripcion_web, nullif(btrim(p.descripcion), '')),
           'categoria', case when c.id is null then null else jsonb_build_object('nombre', c.nombre, 'prefijo', c.prefijo) end,
-          'precio', r.modelo_precio,
-          'precio_final', r.modelo_final,
-          'desde', r.modelo_desde,
-          'campana', r.modelo_campana,
+          'precio', r.resumen_precio,
+          'precio_final', r.resumen_final,
+          'desde', r.resumen_desde,
+          'campana', r.resumen_campana,
           'colores', coalesce((
             select jsonb_agg(jsonb_build_object(
                      'codigo', co.codigo, 'nombre', co.nombre, 'hex', co.hex,
@@ -449,7 +527,7 @@ begin
           from retail.productos p
           join retail.vitrina_productos vp on vp.producto_id = p.id
           left join retail.categorias c on c.id = p.categoria_id
-          cross join lateral (select pv.modelo_precio, pv.modelo_final, pv.modelo_desde, pv.modelo_campana from pv limit 1) r
+          cross join lateral (select pv.resumen_precio, pv.resumen_final, pv.resumen_desde, pv.resumen_campana from pv limit 1) r
          where p.id = p_producto)
     ) end
   );
@@ -475,7 +553,8 @@ begin
   end loop;
   foreach f in array array['retail.fn_tienda_nivel(integer, integer)', 'retail.fn_tienda_umbral()', 'retail.fn_tienda_sedes_web()',
                            'retail.fn_tienda_disponible(uuid[], uuid[])', 'retail.fn_tienda_libre(uuid, uuid[])',
-                           'retail.fn_tienda_precios(uuid[], uuid[])'] loop
+                           'retail.fn_tienda_sede_elegida(uuid, uuid[])', 'retail.fn_tienda_precio_talla(uuid[], uuid)',
+                           'retail.fn_tienda_precios(uuid[], uuid, boolean)'] loop
     if has_function_privilege('anon', f, 'EXECUTE') or has_function_privilege('authenticated', f, 'EXECUTE')
        or has_function_privilege('tienda_web', f, 'EXECUTE') then
       raise exception 'tienda ficha: % es interna y nadie de afuera la llama', f;
@@ -485,6 +564,10 @@ begin
   if retail.fn_tienda_nivel(4, 3) <> to_jsonb('hay'::text) or retail.fn_tienda_nivel(7, 9) <> to_jsonb('hay'::text)
      or retail.fn_tienda_nivel(3, 3) <> to_jsonb(3) or retail.fn_tienda_nivel(0, 3) <> to_jsonb(0) then
     raise exception 'tienda ficha: fn_tienda_nivel no cumple la regla del nivel';
+  end if;
+  -- Un solo precio: la firma vieja de fn_tienda_precios (con la lista de tiendas) no queda al lado de la nueva.
+  if (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'fn_tienda_precios') <> 1 then
+    raise exception 'tienda ficha: quedó más de una fn_tienda_precios (la de antes, con la lista de tiendas, se borra)';
   end if;
 end;
 $$;

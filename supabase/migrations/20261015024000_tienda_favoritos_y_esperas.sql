@@ -25,7 +25,7 @@
 --        escribir nada: a la clienta le toca separarla, no esperarla).
 --      · `tienda_quitar_avisame(usuario, espera)`: la quita (solo una suya).
 --      · `tienda_mis_favoritos_y_esperas(usuario)`: lo guardado, para dibujar los corazones y los «Te avisaremos» de la ficha y
---        las tarjetas.
+--        las tarjetas, y el globo del corazón de la cabecera: solo los favoritos que hoy se ven en la web.
 --
 -- QUÉ SE GARANTIZA Y DÓNDE
 --   · Una espera viva por cuenta, prenda y tienda: índice único parcial (con «cualquier tienda» como un valor más: NULLS NOT
@@ -55,7 +55,17 @@
 --   (`pedido_web_id`): una espera quitada a mano (sin pedido) es la demanda que la tienda no tuvo; una cerrada con un pedido, una
 --   que se atendió. No se reabre sola si después el pedido no se confirma: la persona vuelve a tocar «Avísame».
 -- DECIDÍ: una tienda que no se ve en la web (escondida, o un id cualquiera) se lee como «cualquier tienda», igual que el catálogo
---   (`tienda_catalogo`): la respuesta dice con qué tienda quedó (`sede`).
+--   (`tienda_catalogo`): la respuesta dice con qué tienda quedó (`sede`). Es `fn_tienda_sede_elegida` (20261015012000), y vale igual
+--   al LEER (integración de la tienda, 2026-10-15): una espera anotada en una tienda que después se esconde de la web se lee como
+--   «cualquier tienda» —en la ficha, en «Mi cuenta» (20261015025000), en el aviso al entrar (20261015045000) y en «Esperan una
+--   talla» del ERP (20261015030000)—; si no, nunca «llegaba» (lo libre solo se mira en las tiendas de la web). Lo guardado no cambia:
+--   si la tienda vuelve a la web, la espera vuelve a ser de ella.
+-- DECIDÍ (integración de la tienda, 2026-10-15): lo que «Avísame» acepta es lo que la ficha OFRECE en ese alcance (`se_ofrece` de
+--   `fn_tienda_precio_talla`: activa y con precio en esa tienda, o con «Todas» en alguna de la web), no otra regla del precio.
+-- DECIDÍ (integración de la tienda, 2026-10-15): los favoritos de un modelo que ya no se ve en la web (se ocultó en la Vitrina, se
+--   descontinuó) no cuentan en `tienda_mis_favoritos_y_esperas`: el globo del corazón de la cabecera y la lista «Tus favoritos» (que
+--   solo dibuja lo que está en el catálogo) dicen lo mismo. La fila no se toca: si el modelo vuelve, el favorito vuelve. «Mi cuenta»
+--   (`tienda_mi_club`) sí los recibe todos, para decir cuántos de sus favoritos ya no están en la tienda online.
 -- DECIDÍ: el aviso es en la cuenta, nunca por WhatsApp: el Club no manda mensajes personales (ADR-0288 G-5: ni «llegó tu talla»).
 -- DESCARTÉ: borrar al quitar (las esperas quitadas son la historia de lo que se pidió: la demanda que la tienda no tuvo); un
 --   «alternar» en la base (un doble clic dejaría el corazón al revés de lo que se ve); guardar si «llegó» (envejece apenas alguien
@@ -78,8 +88,9 @@ set lock_timeout = '3s';
 -- ---------- 0. Lo que esta migración da por hecho ----------
 do $$
 begin
-  if to_regprocedure('retail.fn_tienda_libre(uuid, uuid[])') is null or to_regprocedure('retail.fn_tienda_sedes_web()') is null then
-    raise exception 'Falta la regla de «hay» de la tienda: pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
+  if to_regprocedure('retail.fn_tienda_libre(uuid, uuid[])') is null or to_regprocedure('retail.fn_tienda_sedes_web()') is null
+     or to_regprocedure('retail.fn_tienda_sede_elegida(uuid, uuid[])') is null or to_regprocedure('retail.fn_tienda_precio_talla(uuid[], uuid)') is null then
+    raise exception 'Faltan las reglas de «hay», de la tienda elegida y del precio: pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
   end if;
   if to_regclass('retail.pedidos_web') is null then
     raise exception 'Falta el pedido web: pega antes 20261014235000_pedidos_web_modelo.sql.';
@@ -271,16 +282,16 @@ begin
     return jsonb_build_object('estado', 'cuenta_inactiva');
   end if;
 
-  -- La prenda: una talla activa con precio de un modelo que se ve en la web.
-  v_producto := (select v.producto_id from retail.variantes v where v.id = p_variante_id and v.activo and v.precio > 0);
+  -- La tienda: una de la web; cualquier otra se lee como «cualquier tienda» (fn_tienda_sede_elegida, como el catálogo, y como se lee
+  -- después en «Mi cuenta», en el aviso al entrar y en el ERP).
+  v_sedes := retail.fn_tienda_sedes_web();
+  v_sede := retail.fn_tienda_sede_elegida(p_ubicacion_id, v_sedes);
+
+  -- La prenda: una talla que la ficha ofrece en ese alcance (fn_tienda_precio_talla: activa y con precio en esa tienda, o en alguna de
+  -- la web con «cualquier tienda»), de un modelo que se ve en la web.
+  v_producto := (select t.producto_id from retail.fn_tienda_precio_talla(array[p_variante_id], v_sede) t where t.se_ofrece);
   if v_producto is null or not retail.fn_tienda_modelo_se_ve(v_producto) then
     return jsonb_build_object('estado', 'no_disponible');
-  end if;
-
-  -- La tienda: una de la web; cualquier otra se lee como «cualquier tienda» (como el catálogo).
-  v_sedes := retail.fn_tienda_sedes_web();
-  if p_ubicacion_id = any (v_sedes) then
-    v_sede := p_ubicacion_id;
   end if;
 
   -- Si hay, no se espera: se separa. «Hay» es la regla de la ficha (fn_tienda_libre), en esa tienda o en cualquiera de la web.
@@ -341,8 +352,10 @@ $fn$;
 comment on function retail.tienda_quitar_avisame(uuid, uuid) is
   'Tienda online (ADR-0408, act. 12): quita una espera de esa cuenta (marca quitada_en). {estado: quitada | no_esta | sin_cuenta | invalido}; una ajena responde no_esta, como una que no existe. Solo la llama tienda_web.';
 
--- ---------- 6. Lo guardado, para la ficha y las tarjetas ----------
--- {favoritos: [producto_id, …] (lo último primero), esperas: [{id, variante_id, sede}]}, o null si ese usuario no tiene cuenta.
+-- ---------- 6. Lo guardado, para la ficha, las tarjetas y el globo del corazón ----------
+-- {favoritos: [producto_id, …] (lo último primero; solo los modelos que hoy se ven en la web), esperas: [{id, variante_id, sede}]
+-- (`sede`: la tienda de la espera si se ve en la web; si no, null = «cualquier tienda», fn_tienda_sede_elegida)}, o null si ese
+-- usuario no tiene cuenta.
 create or replace function retail.tienda_mis_favoritos_y_esperas(p_usuario_web_id uuid)
 returns jsonb
 language sql
@@ -354,17 +367,20 @@ as $$
     'favoritos', coalesce((
       select jsonb_agg(f.producto_id order by f.guardado_en desc, f.producto_id)
         from retail.favoritos_web f
-       where f.cuenta_web_id = w.id and f.quitado_en is null), '[]'::jsonb),
+       where f.cuenta_web_id = w.id and f.quitado_en is null
+         and retail.fn_tienda_modelo_se_ve(f.producto_id)), '[]'::jsonb),
     'esperas', coalesce((
-      select jsonb_agg(jsonb_build_object('id', e.id, 'variante_id', e.variante_id, 'sede', e.ubicacion_id)
+      select jsonb_agg(jsonb_build_object('id', e.id, 'variante_id', e.variante_id,
+                                          'sede', retail.fn_tienda_sede_elegida(e.ubicacion_id, web.sedes))
                        order by e.creada_en desc, e.id)
         from retail.esperas_web e
        where e.cuenta_web_id = w.id and e.quitada_en is null), '[]'::jsonb))
   from retail.cuentas_web w
+  cross join (select retail.fn_tienda_sedes_web() as sedes) web
   where w.usuario_web_id = p_usuario_web_id;
 $$;
 comment on function retail.tienda_mis_favoritos_y_esperas(uuid) is
-  'Tienda online (ADR-0408, act. 12): los favoritos y las esperas vivas de esa cuenta, para dibujar la ficha y las tarjetas. {favoritos: [producto_id], esperas: [{id, variante_id, sede}]}, o null sin cuenta. Solo la llama tienda_web.';
+  'Tienda online (ADR-0408, act. 12): los favoritos y las esperas vivas de esa cuenta, para dibujar la ficha, las tarjetas y el globo del corazón. {favoritos: [producto_id] (solo los modelos que hoy se ven en la web: el globo y «Tus favoritos» dicen lo mismo), esperas: [{id, variante_id, sede}] (sede: la de la espera si se ve en la web; si no, null = «cualquier tienda», fn_tienda_sede_elegida)}, o null sin cuenta. Solo la llama tienda_web.';
 
 -- ---------- 7. La puerta: solo tienda_web ----------
 revoke all on function retail.tienda_favorito(uuid, uuid, boolean) from public, anon, authenticated;

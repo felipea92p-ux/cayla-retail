@@ -50,7 +50,8 @@ set lock_timeout = '3s';
 -- ---------- 0. Lo que esta migración da por hecho ----------
 do $$
 begin
-  if to_regprocedure('retail.fn_tienda_precios(uuid[], uuid[])') is null or to_regprocedure('retail.tienda_ficha(uuid, uuid)') is null then
+  if to_regprocedure('retail.fn_tienda_precios(uuid[], uuid, boolean)') is null or to_regprocedure('retail.tienda_ficha(uuid, uuid)') is null
+     or to_regprocedure('retail.fn_tienda_sede_elegida(uuid, uuid[])') is null then
     raise exception 'Falta la ficha de la tienda: pega antes 20261015012000_tienda_ficha_y_niveles_por_tienda.sql.';
   end if;
   if to_regprocedure('retail.fn_categoria_entra_a_motores(uuid)') is null then
@@ -143,7 +144,9 @@ revoke all on function retail.fn_tienda_mas_vendidos(uuid[]) from public, anon, 
 
 -- ---------- 3. El catálogo, con «Lo nuevo» y «Más vendidos» ----------
 -- Lo mismo de 20261015012000 (precio, campaña, colores, fotos y nivel por tienda) más `nuevo` ({dias} o null) y `vendidos` (el puesto o
--- null). {sede, prendas: [{id, codigo, nombre, categoria, precio, precio_final, desde, campana, colores, fotos, stock, nuevo, vendidos}]}.
+-- null). El precio es el de `fn_tienda_precios` (la regla única del precio, `fn_tienda_precio_talla`): el mismo de la ficha, la bolsa y
+-- el look; la tienda elegida, la de `fn_tienda_sede_elegida`.
+-- {sede, prendas: [{id, codigo, nombre, categoria, precio, precio_final, desde, campana, colores, fotos, stock, nuevo, vendidos}]}.
 create or replace function retail.tienda_catalogo(p_sede uuid default null)
 returns jsonb
 language plpgsql
@@ -157,20 +160,18 @@ declare
   v_sede uuid;
   v_ids uuid[];
 begin
-  if p_sede = any (v_sedes) then
-    v_sede := p_sede;
-  end if;
+  v_sede := retail.fn_tienda_sede_elegida(p_sede, v_sedes);
   v_ids := array(select vp.producto_id from retail.vitrina_productos vp
                   where vp.publicado and retail.fn_vitrina_publicable(vp.producto_id));
 
   return (
     with pv as materialized (
-      select * from retail.fn_tienda_precios(v_ids, case when v_sede is not null then array[v_sede] else v_sedes end)
+      select * from retail.fn_tienda_precios(v_ids, v_sede)
     ),
     modelos as (
       select distinct on (pv.producto_id)
-             pv.producto_id as id, pv.modelo_precio as precio, pv.modelo_final as final, pv.modelo_desde as desde,
-             pv.modelo_campana as campana
+             pv.producto_id as id, pv.resumen_precio as precio, pv.resumen_final as final, pv.resumen_desde as desde,
+             pv.resumen_campana as campana
         from pv
        order by pv.producto_id
     ),
