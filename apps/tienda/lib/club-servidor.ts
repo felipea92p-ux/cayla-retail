@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { leerConRespaldo } from "./base";
 import {
   leerGuardados,
@@ -34,20 +35,22 @@ export const leerMiClubEnBase = (usuarioWebId: string): Promise<LecturaClub> =>
   );
 
 /**
- * @public Sin uso hasta que la ficha y las tarjetas (actividades 4 y 5) dibujen el corazón y «Avísame» con lo ya guardado.
- * Los favoritos y las esperas de esa cuenta, para dibujar el corazón de cada tarjeta y el «Te avisaremos» de la ficha. null si la
- * base no contesta o no hay cuenta: los botones se dibujan como «no guardado» (guardar y avisar son idempotentes, así que tocar
- * uno que ya estaba no duplica nada).
+ * Los favoritos y las esperas de esa cuenta, para dibujar el corazón de cada tarjeta, el «Te avisaremos» de la ficha y el globo del
+ * corazón de la cabecera (`lib/cabecera-servidor.ts`). null si la base no contesta o no hay cuenta: los botones se dibujan como «no
+ * guardado» (guardar y avisar son idempotentes, así que tocar uno que ya estaba no duplica nada) y el corazón va sin globo. Una sola
+ * lectura por petición (`cache` de React): la cabecera y las tarjetas de la misma página la comparten.
  */
-export const leerGuardadosEnBase = (usuarioWebId: string): Promise<Guardados | null> =>
-  leerConRespaldo(
-    "tienda_mis_favoritos_y_esperas_fallo",
-    async (db) => {
-      const [fila] = await db`select retail.tienda_mis_favoritos_y_esperas(${usuarioWebId}::uuid) as r`;
-      return leerGuardados(fila?.r);
-    },
-    null,
-  );
+export const leerGuardadosEnBase = cache(
+  (usuarioWebId: string): Promise<Guardados | null> =>
+    leerConRespaldo(
+      "tienda_mis_favoritos_y_esperas_fallo",
+      async (db) => {
+        const [fila] = await db`select retail.tienda_mis_favoritos_y_esperas(${usuarioWebId}::uuid) as r`;
+        return leerGuardados(fila?.r);
+      },
+      null,
+    ),
+);
 
 /** Guarda (o quita) un modelo de sus favoritos. */
 export const guardarFavoritoEnBase = (usuarioWebId: string, productoId: string, guardar: boolean): Promise<EstadoFavorito> =>

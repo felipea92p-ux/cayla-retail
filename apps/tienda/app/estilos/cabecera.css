@@ -1,13 +1,17 @@
 /* =====================================================================================================
-   TIENDA ONLINE CAYLA (ADR-0408) · actividad 5: la cabecera de quien tiene cuenta, su menú «Ropa», el menú del celular y el buscador.
+   TIENDA ONLINE CAYLA (ADR-0408) · actividad 5: la cabecera de quien tiene cuenta, su menú «Ropa», el menú del celular y el buscador
+   (y, con la integración, «Arma tu look», el corazón de los favoritos y la bolsa).
    Sale de la maqueta aprobada (docs/maquetas/tienda-online-2026-10, `cabT`, `megaHTML`, hojas «menu» y «buscar»). En la maqueta las
    hojas viven dentro del marco del celular; aquí van fijas a la ventana. Solo tokens de app/globals.css.
    ===================================================================================================== */
 
-/* ---- Los íconos de la fila (menú, buscar, mi cuenta): 42 px, el dedo ---- */
+/* ---- Los íconos de la fila (menú, buscar, favoritos, mi cuenta, la bolsa): 42 px, el dedo ---- */
 .t-ico { position: relative; width: 42px; height: 42px; flex: none; border: 0; border-radius: 50%; background: transparent; display: grid; place-items: center; color: var(--tinta); cursor: pointer; transition: background-color .15s; }
 .t-ico:hover { background: var(--hueso); }
 .t-ico .ic { width: 22px; height: 22px; }
+/* El corazón de los favoritos va solo en la computadora (en el celular está en el menú). `.t-ico` se carga después de globals.css y
+   le ganaría a `.t-solo-grande`: por eso la regla lleva las dos clases. */
+.t-ico.t-solo-grande { display: none; }
 
 /* ---- La navegación de la computadora: un subrayado que se dibuja al pasar el mouse ---- */
 .t-nav { display: none; align-items: center; gap: 2px; margin-left: 14px; height: 100%; }
@@ -45,6 +49,8 @@
 .t-menu-grandes a { animation: t-subir .5s var(--ease) both; }
 .t-menu-grandes a:nth-child(2) { animation-delay: 50ms; }
 .t-menu-grandes a:nth-child(3) { animation-delay: 100ms; }
+.t-menu-grandes a:nth-child(4) { animation-delay: 150ms; }
+.t-menu-grandes a:nth-child(5) { animation-delay: 200ms; }
 .t-menu-cats { padding: 10px 20px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
 .t-menu-cats a { padding: 9px 0; font-size: 14px; color: var(--tinta); }
 .t-menu-pie { margin-top: auto; padding: 16px 20px 22px; border-top: 1px solid var(--sand); display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -78,6 +84,7 @@
 
 @container tienda (min-width: 960px) {
   .t-nav { display: flex; }
+  .t-ico.t-solo-grande { display: grid; }
   .t-buscador { left: 50%; right: auto; width: min(760px, 92%); transform: translateX(-50%); top: 12px; border-radius: 18px; animation-name: t-bajar-centro; }
 }
 

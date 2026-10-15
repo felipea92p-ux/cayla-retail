@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
-import { categoriasDelInicio, datosDeCabecera, heroDelInicio } from "./inicio";
+import { categoriasDelInicio, datosDeCabecera, heroDelInicio, hrefDelInicio } from "./inicio";
 
 const FOTO = "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/a.jpg";
 const ANIV = "8a6f1c1e-3b55-4c8e-9a55-222222222222";
@@ -121,6 +121,17 @@ describe("la cabecera con cuenta", () => {
     const todas = datosDeCabecera(prendas, null, undefined);
     expect(todas.inicio).toBe("/inicio");
     expect(todas.nuevo.href).toBe("/catalogo?lista=nuevo");
+  });
+
+  it("«Arma tu look» lleva la tienda elegida; los favoritos, no (son de la persona, no de una tienda)", () => {
+    const d = datosDeCabecera(prendas, "trujillo", undefined);
+    expect(d.looks).toBe("/looks?sede=trujillo");
+    expect(d.favoritos).toBe("/catalogo?lista=favoritos");
+    const todas = datosDeCabecera([], null, undefined);
+    expect(todas.looks).toBe("/looks");
+    expect(todas.favoritos).toBe("/catalogo?lista=favoritos");
+    expect(hrefDelInicio("san-isidro")).toBe("/inicio?sede=san-isidro");
+    expect(hrefDelInicio(null)).toBe("/inicio");
   });
 
   it("el menú «Ropa»: solo las columnas con algo, y una categoría que nadie ordenó cae en la tercera", () => {

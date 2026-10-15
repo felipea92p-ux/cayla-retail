@@ -15,6 +15,7 @@ import {
   type Forma,
   type Prenda,
 } from "./catalogo";
+import { hrefLooks } from "./looks";
 import type { Campana } from "./portada";
 
 // El Inicio con cuenta y la cabecera de la tienda (ADR-0408, actividad 5; maqueta v4, `vInicio`, `heroCampana`, `heroNuevo`,
@@ -99,12 +100,22 @@ const COLUMNAS: { titulo: string; prefijos: string[] | null }[] = [
 
 /* ---------------- La cabecera con cuenta ---------------- */
 
+/** La lista de favoritos (la del catálogo): el corazón de la cabecera y el menú del celular llevan aquí, sea cual sea la tienda elegida. */
+const HREF_FAVORITOS = "/catalogo?lista=favoritos";
+
+/** El Inicio con la tienda elegida (su clave, `lib/sede-elegida.ts`) o sin ella («Todas»). */
+export const hrefDelInicio = (sede: string | null): string => (sede ? `/inicio?sede=${encodeURIComponent(sede)}` : "/inicio");
+
 type Enlace = { href: string; cuantas: number };
 export type DatosCabecera = {
   inicio: string;
   nuevo: Enlace;
   vendidos: Enlace;
   ofertas: Enlace;
+  /** «Arma tu look», con la tienda elegida (maqueta, `cabT`: entre «Ropa» y «Más vendidos»). */
+  looks: string;
+  /** Los favoritos: el corazón de la computadora y el menú del celular. */
+  favoritos: string;
   /** El menú «Ropa» de la computadora: hasta tres columnas, solo las que tienen algo. */
   columnas: { titulo: string; categorias: { clave: string; nombre: string; cuantas: number; href: string }[] }[];
   /** El menú del celular: todas las categorías. */
@@ -126,10 +137,12 @@ export function datosDeCabecera(prendas: readonly Prenda[], sede: string | null,
   const nueva = prendas.filter((p) => p.nuevo).sort(porLlegada)[0] ?? null;
   const fotoNueva = nueva ? fotosDeTarjeta(nueva)[0] : null;
   return {
-    inicio: sede ? `/inicio?sede=${encodeURIComponent(sede)}` : "/inicio",
+    inicio: hrefDelInicio(sede),
     nuevo: { href: lista("nuevo"), cuantas: prendas.filter((p) => p.nuevo).length },
     vendidos: { href: lista("vendidos"), cuantas: prendas.filter((p) => p.vendidos !== null).length },
     ofertas: { href: lista("ofertas"), cuantas: prendas.filter(enOferta).length },
+    looks: hrefLooks(sede),
+    favoritos: HREF_FAVORITOS,
     columnas: COLUMNAS.map((c) => ({
       titulo: c.titulo,
       categorias: categorias
