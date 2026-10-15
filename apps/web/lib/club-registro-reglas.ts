@@ -209,11 +209,6 @@ export function enlaceLegal(cual: "privacidad" | "terminos", ubicacionId: string
   return ubicacionId && esUuid(ubicacionId) ? `/club/${cual}?t=${ubicacionId}` : `/club/${cual}`;
 }
 
-/* ------------------------------------------------------------------ Su nombre a medias */
-// El nombre del padrón a medias y partido en nombres y apellidos vive en `packages/shared` desde el 2026-10-14 (ADR-0408): lo
-// usa también la tienda online al crear la cuenta. Las reglas son las mismas (sus pruebas siguen en club-registro-reglas.test.ts).
-export { nombreAMedias, nombresYApellidos } from "@cayla-retail/shared";
-
 /* ------------------------------------------------------------------ Lo que ella escribe */
 
 export type CampoRegistro = "documento" | "nombre" | "celular" | "nacimiento" | "correo" | "mayor" | "terminos";

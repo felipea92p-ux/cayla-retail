@@ -1,4 +1,3 @@
-import { nombreAMedias, nombresYApellidos } from "@cayla-retail/shared";
 import { z } from "zod";
 import { codigoDelCorreoActual, type CodigoDelCorreo } from "./correo-confirmado";
 
@@ -214,22 +213,6 @@ export function estadoDni(dni: string, consulta: ConsultaDni): EstadoCampo {
     default:
       return "buscando";
   }
-}
-
-const nombreLimpio = (nombre: string) => nombre.replace(/\s+/g, " ").trim();
-
-/**
- * El nombre del padrón como se guarda y como se muestra (las mismas reglas del Club del ERP, `packages/shared`): para la ficha,
- * nombres y después apellidos, con mayúscula inicial («Maria Fernanda Perez Salas»: así el «Hola, Maria» toma el nombre y no el
- * apellido); para confirmar en pantalla, a medias («Maria P. S.»), que no revela el nombre completo de nadie (ADR-0288 G-3).
- * SUNAT público trae primero los apellidos; el proveedor de pago, primero los nombres. null si no se entiende.
- */
-export function nombreDelPadron(nombre: string, origen: "sunat_publico" | "proveedor"): { nombre: string; aMedias: string } | null {
-  const orden = origen === "sunat_publico" ? "apellidos_primero" : "nombres_primero";
-  const partes = nombresYApellidos(nombre, orden);
-  const aMedias = nombreAMedias(nombre, orden);
-  if (!partes || !aMedias) return null;
-  return { nombre: nombreLimpio(`${partes.nombres} ${partes.apellidos}`), aMedias };
 }
 
 /** Lo que dice el DNI cuando el padrón no dio el nombre: por qué, y que sin él no hay cuenta. Va con «Volver a intentar». */

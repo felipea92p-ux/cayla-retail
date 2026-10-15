@@ -34,6 +34,8 @@
 // Límite conocido del gratis: para RUC trae razón social y dirección, pero NO
 // estado ni condición (ACTIVO / HABIDO), que `advertenciasDe` necesita.
 
+import { nombreCompleto, nombreDePersona } from "./nombre-del-padron";
+
 export type TipoConsulta = "dni" | "ruc";
 
 /** De qué fuente salió una consulta al padrón. */
@@ -42,8 +44,15 @@ export type OrigenPadron = "sunat_publico" | "proveedor";
 export type DatosPadron = {
   numero: string;
   tipo: TipoConsulta;
-  /** Nombre completo (DNI) o razón social (RUC), tal como lo devuelve el padrón. */
+  /**
+   * DNI: el nombre con los nombres primero y con mayúsculas y minúsculas normales («María Pérez García», Felipe 2026-10-15; la regla
+   * vive en `./nombre-del-padron.ts`). Es el que se guarda en la ficha, se muestra y sale en la boleta. RUC: la razón social tal cual
+   * la tiene SUNAT, en mayúsculas (es un nombre legal: no se reordena).
+   */
   nombre: string;
+  /** Solo DNI: los nombres de pila y los apellidos por separado («María», «Pérez García»), como los trae la fuente. null en un RUC. */
+  nombres: string | null;
+  apellidos: string | null;
   /** Solo RUC: ACTIVO, BAJA DE OFICIO, SUSPENSION TEMPORAL… */
   estado: string | null;
   /** Solo RUC: HABIDO / NO HABIDO. */
@@ -152,30 +161,40 @@ const PROVEEDORES: Record<string, Proveedor> = {
  *  Exportada porque es la pieza que más se rompe cuando un proveedor cambia su
  *  formato — y es la única que se puede probar sin gastar consultas reales. */
 export function normalizarRespuestaPadron(tipo: TipoConsulta, numero: string, d: Record<string, unknown>): DatosPadron | null {
-  // El nombre de una persona llega de dos formas según el proveedor: ya armado,
-  // o en tres pedazos. Se acepta cualquiera de las dos.
-  const nombrePersona =
-    texto(d, "nombre_completo", "full_name", "nombreCompleto", "nombre") ??
-    [
-      texto(d, "nombres", "first_name"),
-      texto(d, "apellido_paterno", "apellidoPaterno", "first_last_name"),
-      texto(d, "apellido_materno", "apellidoMaterno", "second_last_name"),
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .trim();
-
-  const nombre =
-    tipo === "ruc" ? texto(d, "razon_social", "razonSocial", "nombre_o_razon_social", "nombre") : nombrePersona;
-
-  if (!nombre) return null;
-
+  if (tipo === "ruc") {
+    const razonSocial = texto(d, "razon_social", "razonSocial", "nombre_o_razon_social", "nombre");
+    if (!razonSocial) return null;
+    return {
+      numero,
+      tipo,
+      nombre: razonSocial.toUpperCase(),
+      nombres: null,
+      apellidos: null,
+      estado: texto(d, "estado", "estado_del_contribuyente")?.toUpperCase() ?? null,
+      condicion: texto(d, "condicion", "condicion_de_domicilio")?.toUpperCase() ?? null,
+      direccion: texto(d, "direccion_completa", "direccion", "address"),
+    };
+  }
+  // El nombre de una persona llega por partes (los proveedores de pago) o junto (SUNAT público, y los proveedores además): la
+  // regla de `./nombre-del-padron.ts` prefiere las partes y lo deja con los nombres primero.
+  const persona = nombreDePersona({
+    partes: {
+      nombres: texto(d, "nombres", "first_name"),
+      apellidoPaterno: texto(d, "apellido_paterno", "apellidoPaterno", "first_last_name"),
+      apellidoMaterno: texto(d, "apellido_materno", "apellidoMaterno", "second_last_name"),
+    },
+    junto: texto(d, "nombre_completo", "full_name", "nombreCompleto", "nombre"),
+  });
+  if (!persona) return null;
   return {
     numero,
     tipo,
-    nombre: nombre.toUpperCase(),
-    estado: tipo === "ruc" ? texto(d, "estado", "estado_del_contribuyente")?.toUpperCase() ?? null : null,
-    condicion: tipo === "ruc" ? texto(d, "condicion", "condicion_de_domicilio")?.toUpperCase() ?? null : null,
+    nombre: nombreCompleto(persona),
+    nombres: persona.nombres,
+    apellidos: persona.apellidos,
+    // Estado y condición son cosa de SUNAT: una persona no está «no habida».
+    estado: null,
+    condicion: null,
     direccion: texto(d, "direccion_completa", "direccion", "address"),
   };
 }
@@ -256,10 +275,11 @@ export function leerSunatPublico(tipo: TipoConsulta, numero: string, json: unkno
   if (!fila || typeof fila !== "object") return inesperado;
   const f = fila as Record<string, unknown>;
   // El nombre y la dirección vienen rellenados con espacios hasta un ancho fijo.
-  // RUC → `apenomdenunciado`. DNI → `nombresapellidos` con forma «APELLIDOS,NOMBRES»
-  // (verificado con un DNI real 2026-10-03: "ESPINOZA SANTIAGO,MARIA FERNANDA"); la coma
-  // se vuelve espacio para quedar igual que el nombre de los proveedores (apellidos primero).
-  const nombre = texto(f, "apenomdenunciado") ?? texto(f, "nombresapellidos")?.replace(/\s*,\s*/g, " ") ?? null;
+  // RUC → `apenomdenunciado` (verificado otra vez el 2026-10-15 con el RUC de la propia SUNAT). DNI → `nombresapellidos` con forma
+  // «APELLIDOS,NOMBRES» (verificado con un DNI real 2026-10-03: "ESPINOZA SANTIAGO,MARIA FERNANDA"; un DNI que no existe responde
+  // `{"error":"No existen datos…"}`, verificado el 2026-10-15 con 00000000). La coma se conserva: dice dónde terminan los apellidos
+  // (`./nombre-del-padron.ts`).
+  const nombre = texto(f, "apenomdenunciado") ?? texto(f, "nombresapellidos") ?? null;
   const direccion = texto(f, "direstablecimiento");
   const datos = normalizarRespuestaPadron(tipo, numero, {
     ...f,

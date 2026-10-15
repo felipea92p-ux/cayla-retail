@@ -1,7 +1,7 @@
 import "server-only";
+import { nombreAMedias } from "@cayla-retail/shared";
 import { consultarPadron } from "@cayla-retail/shared/padron";
 import { base } from "./base";
-import { nombreDelPadron } from "./cuentas";
 
 // El nombre por DNI al crear la cuenta (ADR-0008): primero el servicio público y gratis de SUNAT; si no responde o no lo
 // encuentra, el proveedor de pago, si la tienda tiene uno (`TIENDA_PADRON_PROVEEDOR` y `TIENDA_PADRON_TOKEN`; sin ellos, solo
@@ -19,8 +19,10 @@ export async function buscarNombre(dni: string): Promise<NombreDelPadron> {
       sunatPublico: process.env.TIENDA_PADRON_SUNAT_PUBLICO,
     });
     if (!r.ok) return { estado: r.motivo === "no_encontrado" ? "no_encontrado" : "sin_padron" };
-    const nombre = nombreDelPadron(r.datos.nombre, r.origen);
-    return nombre ? { estado: "encontrado", ...nombre } : { estado: "sin_padron" };
+    // El nombre ya viene con los nombres primero («María Pérez García», la regla de `packages/shared`): es el que se guarda, y el
+    // «Hola, María» de «Mi cuenta» toma su primera palabra. A medias («María P. G.») para confirmar sin revelarlo.
+    const aMedias = nombreAMedias(r.datos);
+    return aMedias ? { estado: "encontrado", nombre: r.datos.nombre, aMedias } : { estado: "sin_padron" };
   } catch (error) {
     // Sin el DNI ni el nombre en el registro: solo que falló.
     console.error(JSON.stringify({ evento: "tienda_padron_fallo", mensaje: error instanceof Error ? error.message : String(error) }));

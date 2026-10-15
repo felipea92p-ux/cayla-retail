@@ -22,7 +22,12 @@ export function consultarPadron(tipo: TipoConsulta, numero: string): Promise<Res
 export type RespuestaPadron = {
   tipo: TipoConsulta;
   numero: string;
+  /** DNI del padrón: con los nombres primero («María Pérez García», `packages/shared/src/nombre-del-padron.ts`). RUC: la razón social.
+   *  De un comprobante anterior (`historial`): como se escribió en esa boleta. */
   nombre: string | null;
+  /** Solo un DNI que contestó el padrón: los nombres y los apellidos por separado («María», «Pérez García»). null en lo demás. */
+  nombres: string | null;
+  apellidos: string | null;
   estado: string | null;
   condicion: string | null;
   direccion: string | null;

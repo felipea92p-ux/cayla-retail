@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { nombreAMedias } from "@cayla-retail/shared";
+import { normalizarRespuestaPadron } from "@cayla-retail/shared/padron";
 import {
   arregloCorreo,
   avisoAlCrear,
@@ -36,7 +38,6 @@ import {
   mensajeCodigoLimite,
   mensajeCodigoMalo,
   mensajeSinNombre,
-  nombreDelPadron,
   problemaRegistro,
   REGISTRO_VACIO,
   textoFaltan,
@@ -195,11 +196,12 @@ describe("el DNI y el nombre", () => {
     expect(MENSAJES.dniSinPadron).toMatch(/no podemos crear tu cuenta/);
   });
 
-  it("el nombre del padrón se guarda con los nombres primero y se muestra a medias (SUNAT trae primero los apellidos)", () => {
-    expect(nombreDelPadron("PEREZ SALAS MARIA FERNANDA", "sunat_publico")).toEqual({ nombre: "Maria Fernanda Perez Salas", aMedias: "Maria P. S." });
-    expect(nombreDelPadron("MARIA FERNANDA PEREZ SALAS", "proveedor")).toEqual({ nombre: "Maria Fernanda Perez Salas", aMedias: "Maria P. S." });
-    expect(nombreDelPadron("DE LA CRUZ PEREZ ÑUSTA", "sunat_publico")).toEqual({ nombre: "Ñusta de la Cruz Perez", aMedias: "Ñusta C. P." });
-    expect(nombreDelPadron("   ", "proveedor")).toBeNull();
+  it("el nombre del padrón se guarda con los nombres primero y se muestra a medias: la regla única de packages/shared", () => {
+    // La consulta al padrón ya devuelve el nombre así (`normalizarRespuestaPadron`); la tienda lo guarda tal cual y muestra
+    // `nombreAMedias`. Sus casos viven en apps/web/lib/nombre-de-persona.test.ts; aquí, que la tienda use la misma pieza.
+    const leido = normalizarRespuestaPadron("dni", "09950001", { nombre: "PAREDES SOTO,LUCÍA ANDREA" })!;
+    expect(leido.nombre).toBe("Lucía Andrea Paredes Soto");
+    expect(nombreAMedias(leido)).toBe("Lucía P. S.");
   });
 
   it("el nombre nunca se escribe: el registro no tiene caja de nombre y el servidor no lo lee (lo que llegue de más se descarta)", () => {

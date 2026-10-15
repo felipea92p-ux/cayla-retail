@@ -23,6 +23,9 @@ describe("normalizarRespuestaPadron — RUC", () => {
       numero: "20131312955",
       tipo: "ruc",
       nombre: "SUPERINTENDENCIA NACIONAL DE ADUANAS",
+      // Una razón social no se parte ni se reordena: es un nombre legal.
+      nombres: null,
+      apellidos: null,
       estado: "ACTIVO",
       condicion: "HABIDO",
       direccion: "AV. GARCILASO DE LA VEGA 1472",
@@ -47,23 +50,37 @@ describe("normalizarRespuestaPadron — RUC", () => {
   });
 });
 
-describe("normalizarRespuestaPadron — DNI", () => {
-  it("arma el nombre cuando viene en tres pedazos", () => {
+// Los nombres de estas pruebas son inventados (como sus DNI): ninguna consulta sale a internet.
+describe("normalizarRespuestaPadron — DNI (los nombres primero, Felipe 2026-10-15)", () => {
+  it("por partes (apis.net.pe v2, Factiliza): nombres primero, con mayúsculas y minúsculas normales y sus tildes", () => {
     const d = normalizarRespuestaPadron("dni", "46027897", {
-      nombres: "María Fernanda",
-      apellido_paterno: "Alvarez",
-      apellido_materno: "Quispe",
+      nombres: "MARÍA FERNANDA",
+      apellido_paterno: "ÁLVAREZ",
+      apellido_materno: "QUISPE",
     });
-    expect(d?.nombre).toBe("MARÍA FERNANDA ALVAREZ QUISPE");
+    expect(d).toMatchObject({ nombre: "María Fernanda Álvarez Quispe", nombres: "María Fernanda", apellidos: "Álvarez Quispe" });
     // Estado y condición son cosa de SUNAT: una persona no está "no habida".
     expect(d?.estado).toBeNull();
     expect(d?.condicion).toBeNull();
   });
 
-  it("usa el nombre completo cuando el proveedor ya lo arma", () => {
-    expect(normalizarRespuestaPadron("dni", "46027897", { full_name: "Ana Torres Ruiz" })?.nombre).toBe(
-      "ANA TORRES RUIZ"
-    );
+  it("con las partes Y el nombre junto (Decolecta, apis.net.pe v1), mandan las partes: no hay que adivinar el orden", () => {
+    const d = normalizarRespuestaPadron("dni", "46027897", {
+      first_name: "ANA LUCÍA",
+      first_last_name: "TORRES",
+      second_last_name: "RUIZ",
+      full_name: "TORRES RUIZ ANA LUCÍA",
+    });
+    expect(d).toMatchObject({ nombre: "Ana Lucía Torres Ruiz", nombres: "Ana Lucía", apellidos: "Torres Ruiz" });
+    // apis.net.pe v1: `nombre` junto, con camelCase en las partes.
+    expect(
+      normalizarRespuestaPadron("dni", "46027897", { nombre: "TORRES RUIZ ANA", nombres: "ANA", apellidoPaterno: "TORRES", apellidoMaterno: "RUIZ" })?.nombre
+    ).toBe("Ana Torres Ruiz");
+  });
+
+  it("solo junto: con coma la coma decide; sin coma, los apellidos primero (como lo escribe el padrón)", () => {
+    expect(normalizarRespuestaPadron("dni", "46027897", { nombre_completo: "TORRES RUIZ, ANA" })?.nombre).toBe("Ana Torres Ruiz");
+    expect(normalizarRespuestaPadron("dni", "46027897", { full_name: "TORRES RUIZ ANA" })?.nombre).toBe("Ana Torres Ruiz");
   });
 
   it("devuelve null si no vino ningún nombre", () => {
@@ -72,7 +89,7 @@ describe("normalizarRespuestaPadron — DNI", () => {
 });
 
 describe("advertenciasDe — lo que impide que la factura sea válida", () => {
-  const base = { numero: "20601030013", tipo: "ruc" as const, nombre: "X SAC", direccion: null };
+  const base = { numero: "20601030013", tipo: "ruc" as const, nombre: "X SAC", nombres: null, apellidos: null, direccion: null };
 
   it("no dice nada de un RUC activo y habido", () => {
     expect(advertenciasDe({ ...base, estado: "ACTIVO", condicion: "HABIDO" })).toEqual([]);
@@ -92,7 +109,7 @@ describe("advertenciasDe — lo que impide que la factura sea válida", () => {
 
   it("un DNI nunca genera advertencias de SUNAT", () => {
     expect(
-      advertenciasDe({ numero: "46027897", tipo: "dni", nombre: "ANA TORRES", estado: null, condicion: null, direccion: null })
+      advertenciasDe({ numero: "46027897", tipo: "dni", nombre: "Ana Torres", nombres: "Ana", apellidos: "Torres", estado: null, condicion: null, direccion: null })
     ).toEqual([]);
   });
 });
@@ -192,11 +209,11 @@ describe("consultarPadron — proveedor de pago", () => {
     process.env.PADRON_TOKEN = "sk_secreto";
     const llamadas = simular({
       status: 200,
-      json: { success: true, data: { nombre_completo: "Ana Torres Ruiz", numero: "87654321" } },
+      json: { success: true, data: { nombre_completo: "TORRES RUIZ, ANA", nombres: "ANA", apellido_paterno: "TORRES", apellido_materno: "RUIZ", numero: "87654321" } },
     });
     const r = await consultarPadron("dni", "87654321");
     expect(llamadas[0].url).toBe("https://api.factiliza.com/v1/dni/info/87654321");
-    expect(r.ok === true && r.datos.nombre).toBe("ANA TORRES RUIZ");
+    expect(r.ok === true && r.datos.nombre).toBe("Ana Torres Ruiz");
   });
 });
 
@@ -228,6 +245,8 @@ describe("leerSunatPublico", () => {
         numero: "20131312955",
         tipo: "ruc",
         nombre: "SUPERINTENDENCIA NACIONAL DE ADUANAS Y DE ADMINISTRACION TRIBUTARIA - SUNAT",
+        nombres: null,
+        apellidos: null,
         // SUNAT público no informa estado ni condición: null, nunca «ACTIVO» inventado.
         estado: null,
         condicion: null,
@@ -239,13 +258,13 @@ describe("leerSunatPublico", () => {
   it("un DNI con la misma estructura devuelve el nombre y nunca estado/condición", () => {
     // Forma SUPUESTA: el éxito del DNI no se verificó con un número real (solo el «no existe»).
     const r = leerSunatPublico("dni", "46027897", { message: "success", lista: [{ apenomdenunciado: "  torres ruiz ana   " }] });
-    expect(r.ok && r.datos.nombre).toBe("TORRES RUIZ ANA");
+    expect(r.ok && r.datos.nombre).toBe("Ana Torres Ruiz");
     expect(r.ok && r.datos.estado).toBeNull();
   });
 
-  it("un DNI real: SUNAT lo devuelve en `nombresapellidos` como «APELLIDOS,NOMBRES»", () => {
-    const r = leerSunatPublico("dni", "60816984", { message: "success", lista: [{ nombresapellidos: "ESPINOZA SANTIAGO,MARIA FERNANDA" }] });
-    expect(r.ok && r.datos.nombre).toBe("ESPINOZA SANTIAGO MARIA FERNANDA");
+  it("un DNI: SUNAT lo devuelve en `nombresapellidos` como «APELLIDOS,NOMBRES» (la forma real; el nombre aquí es inventado)", () => {
+    const r = leerSunatPublico("dni", "09950001", { message: "success", lista: [{ nombresapellidos: "PAREDES SOTO,LUCÍA ANDREA          " }] });
+    expect(r.ok && r.datos).toMatchObject({ nombre: "Lucía Andrea Paredes Soto", nombres: "Lucía Andrea", apellidos: "Paredes Soto" });
     expect(r.ok && r.origen).toBe("sunat_publico");
   });
 

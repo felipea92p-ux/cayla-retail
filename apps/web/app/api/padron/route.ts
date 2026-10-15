@@ -8,7 +8,8 @@ import { anotarLecturaPadron } from "@/lib/padron-lecturas";
 // `para=ficha` (Felipe 2026-10-15, 20261015133000): el nombre es para una FICHA de cliente (Vender, Clientes, «Editar» de la ficha),
 // donde con DNI no se escribe a mano. Entonces no se busca en comprobantes anteriores (un nombre de ahí pudo escribirse a mano) y,
 // si el padrón contestó, el servidor ANOTA la lectura en la base (`anotarLecturaPadron`): sin esa anotación la base no acepta el
-// nombre. `anotada` dice si quedó.
+// nombre. `anotada` dice si quedó. El nombre de un DNI llega con los nombres primero («María Pérez García», Felipe 2026-10-15): es
+// el que se anota y el que la pantalla guarda, así la lectura y la ficha dicen lo mismo.
 //
 // CONTRATO
 //   PROMETE: para un documento válido, devolver siempre 200 con la mejor
@@ -109,6 +110,8 @@ export async function GET(request: Request) {
       tipo,
       numero,
       nombre: datos.nombre,
+      nombres: datos.nombres,
+      apellidos: datos.apellidos,
       estado: datos.estado,
       condicion: datos.condicion,
       direccion: datos.direccion,
@@ -128,6 +131,8 @@ export async function GET(request: Request) {
       tipo,
       numero,
       nombre: previo.cliente_nombre,
+      nombres: null,
+      apellidos: null,
       estado: null,
       condicion: null,
       direccion: null,
@@ -145,6 +150,8 @@ export async function GET(request: Request) {
     tipo,
     numero,
     nombre: null,
+    nombres: null,
+    apellidos: null,
     estado: null,
     condicion: null,
     direccion: null,
