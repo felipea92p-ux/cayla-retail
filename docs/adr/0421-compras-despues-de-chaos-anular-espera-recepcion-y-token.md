@@ -1,7 +1,7 @@
 # ADR-0421 · Compras después de /chaos: anular espera a la recepción, el token sigue al contenido y la factura tiene reglas
 
 - **Fecha:** 2026-10-15 · **Estado:** construido y verificado en local (suite de base con controles, suites vecinas, vitest, la pantalla en un
-  Chrome sin cabeza). **Las dos migraciones NO están en producción:** esperan el OK de Felipe. Rama `claude/chaos-compras-5c56e1`.
+  Chrome sin cabeza). **Las dos migraciones están en producción desde el 2026-10-15** (con el OK de Felipe, PR #1108). Rama `claude/chaos-compras-5c56e1`.
 - **Pedido:** Felipe, 2026-10-15: «continúa con Compras actualizando main antes». La reconstrucción del módulo (#1040, #1088, #1056, #1032,
   #1099) ya está toda en main; esta corrida se hizo sobre ese código.
 - **Extiende:** ADR-0398 (el token sigue al contenido; montos finitos), ADR-0409 (IGV de 0 a 18 % en Producción), ADR-0405 y ADR-0412
@@ -41,3 +41,9 @@
 Dos partes, cada una en su llamada y en este orden: `20261015170000` (solo `alter table`) y `20261015171000` (cinco reemplazos anclados que
 se detienen sin tocar nada si un ancla cambió). Ninguna lleva políticas. Antes (verificado el 2026-10-15): todavía no hay facturas de compra en
 producción; `anular_compra` y `registrar_compra` idénticas a las de local, y los tres pagos iguales salvo comentarios (md5 normalizado igual).
+
+**Pegado el 2026-10-15** con el OK de Felipe, en dos llamadas y en orden. Antes: cada ancla una sola vez, ninguna fila violaba los
+candados y ninguno estaba puesto. Después: los 12 candados con `convalidated = true`; `anular_espera_recepcion` en `anular_compra`,
+`fn_intento_con_huella` una vez en cada una de las cuatro funciones y `serie_vacia` en `registrar_compra`. `anular_compra` y
+`registrar_compra` quedaron idénticas a las de local (md5 `f18aee50…` y `9fc5d535…`); los tres pagos, iguales salvo comentarios (md5
+normalizado `3ea6cac4…`, `588a6d8d…`, `c315a7c7…`).
