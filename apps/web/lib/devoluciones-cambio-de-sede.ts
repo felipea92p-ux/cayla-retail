@@ -23,6 +23,9 @@ export type DevolucionArmada = {
   elegidas: Record<string, ItemElegido>;
   motivo: MotivoDevolucion | null;
   detalle: string;
+  /** La marca de esta devolución (20261015162000): si se mandó y la respuesta no llegó, al volver se reenvía con la misma y la base
+   *  devuelve la que ya guardó, en vez de crear otra. */
+  token?: string;
 };
 
 /** Los avisos del guardián: al irse de la sede con la devolución armada y al volver a encontrarla. */

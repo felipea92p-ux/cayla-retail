@@ -255,6 +255,7 @@
     "pruebas:venta-contrato-ampliado": "node scripts/pruebas/venta_contrato_ampliado.mjs",
     "pruebas:colaboradores-alta-aprobacion": "node scripts/pruebas/colaboradores_alta_requiere_aprobacion.mjs",
     "pruebas:crear-devolucion-motivo": "node scripts/pruebas/crear_devolucion_motivo.mjs",
+    "pruebas:crear-devolucion-token": "node scripts/pruebas/crear_devolucion_token.mjs",
     "pruebas:pedidos-no-atendidos": "node scripts/pruebas/pedidos_no_atendidos.mjs",
     "pruebas:cotizaciones-maquila": "node scripts/pruebas/cotizaciones_maquila.mjs",
     "caja:verificar": "node scripts/caja/verificar.mjs",

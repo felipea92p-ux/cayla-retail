@@ -823,6 +823,11 @@ export const PRUEBAS = [
   // Cada caso termina en ROLLBACK.
   "pruebas:crear-devolucion-motivo",
 
+  // La devolución lleva marca (20261015162000): el mismo token (un reenvío del navegador o un doble clic) devuelve la misma
+  // devolución, con otro contenido se rechaza (token_reusado), sin token sigue igual, y un reenvío simultáneo espera al primero
+  // (dos sesiones de psql). Cada caso termina en ROLLBACK.
+  "pruebas:crear-devolucion-token",
+
   // Pedido no atendido en 1 toque (D-79, ADR-0152): se anota con un producto del catálogo o con descripción libre, uno sin
   // ninguno de los dos se rechaza (en la RPC y en el CHECK), el candado de ubicación es real y un pedido no se resuelve dos
   // veces. Cada caso termina en ROLLBACK.
