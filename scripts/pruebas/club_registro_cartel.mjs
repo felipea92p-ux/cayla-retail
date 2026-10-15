@@ -89,8 +89,22 @@ const NO_REPETIR = leer("supabase", "migrations", "20261003235000_club_no_repeti
 const NO_REPETIR_ANTES = /c_antes constant text := '([0-9a-f]{32})'/.exec(NO_REPETIR)?.[1];
 const NO_REPETIR_DESPUES = /c_despues constant text := '([0-9a-f]{32})'/.exec(NO_REPETIR)?.[1];
 const REGISTRARSE = "retail.registrarse_en_el_club(uuid,text,text,text,text,date,text,boolean,boolean,boolean,jsonb,boolean)";
-/** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18, registrarse_en_el_club) o el de la PARTE 8. */
-const despuesHoy = (v) => (v.firma === RV_HOY ? REDONDEO_DESPUES : v.firma === REGISTRARSE ? NO_REPETIR_DESPUES : v.despues) ?? "NO_EXISTE";
+// 20261015055000_tienda_cuentas_entrada_y_cierre.sql cambió fn_club_anonimizar_inactivas (Felipe 2026-10-14: entrar a la cuenta de la
+// tienda online también cuenta como actividad; un pedido web en curso la frena), partiendo del «después» de la PARTE 8. Su tabla de
+// versiones tiene el mismo formato; la cadena no se corta.
+const ENTRADA_WEB = leer("supabase", "migrations", "20261015055000_tienda_cuentas_entrada_y_cierre.sql");
+const CONSERVACION = "retail.fn_club_anonimizar_inactivas()";
+const CONSERVACION_WEB = [...ENTRADA_WEB.matchAll(/\('(retail\.[a-z_]+\([^']*\))',\s+(null|'([0-9a-f]{32})'),\s+(null|'([0-9a-f]{32})')\)/g)]
+  .map((m) => ({ firma: m[1], antes: m[3] ?? null, despues: m[5] ?? null }))
+  .find((v) => v.firma === CONSERVACION);
+if (!CONSERVACION_WEB || CONSERVACION_WEB.antes !== VERSIONES.find((v) => v.firma === CONSERVACION)?.despues) {
+  console.error("✗ La tabla de versiones de 20261015055000 debería cambiar fn_club_anonimizar_inactivas partiendo del «después» de la PARTE 8.");
+  process.exit(1);
+}
+/** El md5 que cada firma tiene que tener HOY: el de la migración que la superó (registrar_venta de 18, registrarse_en_el_club, la conservación) o el de la PARTE 8. */
+const despuesHoy = (v) =>
+  (v.firma === RV_HOY ? REDONDEO_DESPUES : v.firma === REGISTRARSE ? NO_REPETIR_DESPUES : v.firma === CONSERVACION ? CONSERVACION_WEB.despues : v.despues) ??
+  "NO_EXISTE";
 
 // Los textos vigentes (docs/club/texto-legal-registro-v2.md): la PARTE 4 sembró la v1 y 20261002160000 publicó la v2 sin género
 // (ADR-0288 act. k). El cuerpo de cada sección.
