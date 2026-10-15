@@ -14,6 +14,7 @@ import { CircleCheck } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
 import { BarraApilada, MuestraTramo } from "@/components/ui/BarraApilada";
 import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Por pagar de Producción (ADR-0133, F4c) y el consolidado de D-I. Arriba, lo que Producción le debe a sus proveedores, por urgencia. Abajo,
 // «Deuda total de CAYLA»: lo mismo de Compras y de Producción juntos, y el IGV del mes de los dos libros. Es una LECTURA que suma dos libros;
@@ -21,7 +22,7 @@ import { TituloGrupo, TituloSeccion } from "@/components/ui/TituloSeccion";
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { comprobantes: ComprobanteProduccion[]; deuda: DeudaFila[]; igv: IgvMes | null; hoy: string }) {
+export function PorPagarProduccionPanel({ sede, comprobantes, deuda, igv, hoy }: { sede: string; comprobantes: ComprobanteProduccion[]; deuda: DeudaFila[]; igv: IgvMes | null; hoy: string }) {
   const [pagando, setPagando] = useState<ComprobanteProduccion | null>(null);
   const tramos = tramosPorPagar(comprobantes, hoy);
   const totalPorPagar = tramos.reduce((s, t) => s + t.monto, 0);
@@ -32,11 +33,11 @@ export function PorPagarProduccionPanel({ comprobantes, deuda, igv, hoy }: { com
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" className="anim-entra">
-        <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Por pagar</h1>
-        <p className="mt-1 max-w-xl text-sm text-tinta/65">Lo que el Taller le debe a sus proveedores, del más urgente al menos. El saldo se calcula de los pagos: nunca se digita.</p>
-      </div>
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Por pagar"
+        subtitulo="Lo que el Taller le debe a sus proveedores, del más urgente al menos. El saldo se calcula de los pagos: nunca se digita."
+      />
 
       <div data-guia="prod-por-pagar.cifras" className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra

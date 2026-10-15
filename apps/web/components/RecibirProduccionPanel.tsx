@@ -12,6 +12,7 @@ import { cantidadTexto } from "@/lib/insumos-reglas";
 import { agruparPorComprobante, resumenRecepcion, type ComprobantePorRecibir, type LineaPorRecibir } from "@/lib/recibir-produccion-reglas";
 import { CircleCheck, PackageOpen } from "lucide-react";
 import { Vacio } from "@/components/ui/Vacio";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Recibir insumos (ADR-0133, F4d). Los comprobantes de los proveedores con lo que todavía no llegó, del que lleva más tiempo esperando al
 // más nuevo. Solo CANTIDADES: quien recibe en el Taller no ve dinero. Cada línea que llega abre un lote (con el costo de la línea, que la
@@ -19,7 +20,7 @@ import { Vacio } from "@/components/ui/Vacio";
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorRecibir[]; tallerId: string }) {
+export function RecibirProduccionPanel({ sede, lineas, tallerId }: { sede: string; lineas: LineaPorRecibir[]; tallerId: string }) {
   const [recibiendo, setRecibiendo] = useState<ComprobantePorRecibir | null>(null);
   const grupos = agruparPorComprobante(lineas);
   const abiertos = grupos.filter((g) => g.estado !== "completa");
@@ -28,13 +29,11 @@ export function RecibirProduccionPanel({ lineas, tallerId }: { lineas: LineaPorR
 
   return (
     <div className="space-y-6">
-      <div data-voz="cabecera" className="anim-entra">
-        <p className="label-cayla text-[11px] text-tinta/65">Producción</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Recibir</h1>
-        <p className="mt-1 max-w-xl text-sm text-tinta/65">
-          La tela y los avíos que llegan al Taller, contra el comprobante del proveedor. Cada línea que llega abre un lote; lo que no llegue se cierra con su motivo.
-        </p>
-      </div>
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Recibir"
+        subtitulo="La tela y los avíos que llegan al Taller, contra el comprobante del proveedor. Cada línea que llega abre un lote; lo que no llegue se cierra con su motivo."
+      />
 
       <div data-guia="prod-recibir.cifras" className="grid gap-3 sm:grid-cols-3">
         <TarjetaCifra

@@ -38,7 +38,7 @@ export default async function InsumosPage() {
 
   return (
     <div className="space-y-6">
-      <InsumosPanel datos={datos} tallerId={taller.id} esLider={esLider} />
+      <InsumosPanel sede={persona.ubicacionEtiqueta} datos={datos} tallerId={taller.id} esLider={esLider} />
     </div>
   );
 }

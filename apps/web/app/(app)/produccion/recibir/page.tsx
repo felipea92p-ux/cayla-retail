@@ -32,7 +32,7 @@ export default async function RecibirProduccionPage() {
   const lineas = await getLineasPorRecibir(taller.id);
   return (
     <div className="space-y-6">
-      <RecibirProduccionPanel lineas={lineas} tallerId={taller.id} />
+      <RecibirProduccionPanel sede={persona.ubicacionEtiqueta} lineas={lineas} tallerId={taller.id} />
     </div>
   );
 }

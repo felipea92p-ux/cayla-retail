@@ -39,7 +39,7 @@ export default async function EficienciaPage() {
 
   return (
     <div className="space-y-6">
-      <EficienciaTallerPanel periodos={periodos} estadoPlanilla={planilla.estado} hayGastos={gastos.length > 0} />
+      <EficienciaTallerPanel sede={persona.ubicacionEtiqueta} periodos={periodos} estadoPlanilla={planilla.estado} hayGastos={gastos.length > 0} />
     </div>
   );
 }

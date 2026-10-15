@@ -234,7 +234,7 @@ export function desgloseCosto(costoTela: number, costoAvios: number, costoMaquil
     partes: [
       { clave: "tela", etiqueta: "Tela", valor: costoTela, parte: parte(costoTela) },
       { clave: "avios", etiqueta: "Avíos", valor: costoAvios, parte: parte(costoAvios) },
-      { clave: "maquila", etiqueta: "Maquila", valor: costoMaquila, parte: parte(costoMaquila) },
+      { clave: "maquila", etiqueta: "Servicios de afuera", valor: costoMaquila, parte: parte(costoMaquila) },
     ],
   };
 }
