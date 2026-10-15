@@ -5,6 +5,7 @@
 // (`20261010195000_piezas_de_liquidacion.sql`): aquí solo se anticipan para no mandar algo que se va a rechazar.
 
 import { diaLima } from "./fechas-lima";
+import { montosSinCorte } from "./montos-sin-corte";
 
 export type EstadoPieza = "disponible" | "vendida" | "retirada";
 
@@ -122,7 +123,7 @@ export function problemaDePrecio(t: string, minimo: number, esLider: boolean): s
   if (t.trim() === "") return "Escribe el precio.";
   const n = precioDeTexto(t);
   if (n === null) return "Escribe un precio mayor que cero, con hasta dos decimales.";
-  if (n < minimo && !esLider) return `No baja de S/ ${soles(minimo)} sin un líder: pídele que la etiquete él.`;
+  if (n < minimo && !esLider) return `No baja de S/\u00a0${soles(minimo)} sin un líder: pídele que la etiquete él.`;
   return null;
 }
 
@@ -182,7 +183,7 @@ export function errorDeLiquidacion(mensaje: string): { titulo: string; detalle?:
   const pista = (m: RegExp) => m.test(mensaje);
   // El hint de la base trae el detalle con el precio y el código vigentes: se muestra tal cual.
   // En pantalla se dice «prenda» (/formidable, ley 4): los textos de la base, ya en producción, dicen «pieza».
-  const detalle = mensaje.replace(/^[\s\S]*?liquidacion_[a-z_]+\s*/, "").replace(/\bpieza\b/g, "prenda").trim() || undefined;
+  const detalle = montosSinCorte(mensaje.replace(/^[\s\S]*?liquidacion_[a-z_]+\s*/, "").replace(/\bpieza\b/g, "prenda").trim()) || undefined;
   if (pista(/liquidacion_bajo_minimo/)) return { titulo: "Ese precio necesita un líder", detalle };
   if (pista(/liquidacion_etiqueta_vieja/)) return { titulo: "Esa etiqueta ya no vale", detalle, releer: true };
   if (pista(/liquidacion_ya_vendida/)) return { titulo: "Esa prenda ya se vendió", detalle, releer: true };

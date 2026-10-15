@@ -6,7 +6,7 @@ import type { Mes } from "@/lib/facturacion-reglas";
 import { bloqueFecha, diasDelGrafico, estadoCierre, topeDelGrafico, type EstadoCierre } from "@/lib/historial-cierres-reglas";
 
 function money(n: number) {
-  return "S/ " + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return "S/\u00a0" + Math.abs(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 const RELLENO: Record<EstadoCierre, string> = { cuadro: "bg-verde", falto: "bg-rojo", sobro: "bg-ambar" };
@@ -62,7 +62,7 @@ export function GraficoCierresDelMes({
         {lineas.map((f) => (
           <div key={f} className="absolute inset-x-0 border-t border-dashed border-sand" style={{ bottom: `${f * 100}%` }} aria-hidden>
             {(f === 0.5 || f === 1) && (
-              <span className="absolute -top-3.5 right-0 text-[9.5px] text-tinta/45 tabular-nums">S/ {(tope * f).toLocaleString("es-PE")}</span>
+              <span className="absolute -top-3.5 right-0 text-[9.5px] text-tinta/45 tabular-nums">S/&nbsp;{(tope * f).toLocaleString("es-PE")}</span>
             )}
           </div>
         ))}

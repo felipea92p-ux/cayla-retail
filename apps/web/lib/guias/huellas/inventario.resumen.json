@@ -75,7 +75,7 @@
       "Link «Frescura del piso»"
     ],
     "components/analisis/TodaviaNo.tsx": [
-      "Link «Registrar»",
+      "Link «{registrar.texto}»",
       "Link «Cuadrar»",
       "Link «Contar»",
       "button «→() => abrirFicha(t.varianteId)»",

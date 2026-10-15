@@ -284,7 +284,7 @@ export function solesBalance(v: number): string {
     ? abs.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : Math.round(abs).toLocaleString("es-PE");
   const cero = conCentimos ? abs === 0 : Math.round(abs) === 0;
-  return `${v < 0 && !cero ? "−" : ""}S/ ${cuerpo}`;
+  return `${v < 0 && !cero ? "−" : ""}S/\u00a0${cuerpo}`;
 }
 
 /** «7,2 % al mes» (coma decimal, como el resto de Reportes). */

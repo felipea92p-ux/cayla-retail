@@ -122,9 +122,9 @@ describe("historial de cierres", () => {
 describe("página del historial de cierres", () => {
   it("textoResultado habla en palabras de tienda", () => {
     expect(textoResultado(0)).toBe("Sí, cuadró");
-    expect(textoResultado(-5.6)).toBe("Faltaron S/ 5.60");
-    expect(textoResultado(31.4)).toBe("Sobraron S/ 31.40");
-    expect(textoResultado(-1138.1)).toBe("Faltaron S/ 1,138.10");
+    expect(textoResultado(-5.6)).toBe("Faltaron S/\u00a05.60");
+    expect(textoResultado(31.4)).toBe("Sobraron S/\u00a031.40");
+    expect(textoResultado(-1138.1)).toBe("Faltaron S/\u00a01,138.10");
   });
 
   it("quienAtendio dice el nombre una vez si abrió y cerró la misma persona", () => {

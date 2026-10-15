@@ -79,7 +79,7 @@ export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtique
               precio no necesita su franja de «Precio válido hasta…» y la fila de etiquetas puede usar 2 líneas también con campaña
               (Felipe, 2026-09-29: si dos etiquetas no caben juntas, una debajo de la otra). */}
           <p className="etq-antes">
-            <s>S/ {precioEtiqueta(e.precio)}</s>
+            <s>S/&nbsp;{precioEtiqueta(e.precio)}</s>
             {e.campana.hasta && <span className="etq-vence">Válido hasta el {fechaVigencia(e.campana.hasta)}</span>}
           </p>
           <div className="etq-ahora">

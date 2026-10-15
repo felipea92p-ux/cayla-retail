@@ -138,7 +138,7 @@ export function ConfiguracionImpuestos({ parametros, anioActual }: { parametros:
         : nombre === "uit"
           ? solesRedondo(v.valor)
           : nombre === "tope_planilla_movilidad"
-            ? `S/ ${v.valor.toFixed(2)} por persona y día`
+            ? `S/\u00a0${v.valor.toFixed(2)} por persona y día`
             : `${v.valor} UIT`;
     return guardar(nombre, vigenteDesde, v.valor, null, `${que}: ${legible}.`);
   };
@@ -369,7 +369,7 @@ const HOJA: Record<VigenciaNueva, { titulo: string; subtitulo: string; etiqueta:
     ayuda: "SUNAT: el 4 % de la remuneración mínima vital. Confírmalo con el contador.",
     ejemplo: "45.20", // sugerir-fijo: el formato de un monto en soles, no depende de nada elegido en la hoja
     pendiente: "Escribe el tope en soles, por ejemplo 45.20.",
-    listo: (desde, t) => `Tope de la planilla desde el ${fechaCorta(desde, true)}: S/ ${Number(t.replace(",", ".")).toFixed(2)} por persona y día.`,
+    listo: (desde, t) => `Tope de la planilla desde el ${fechaCorta(desde, true)}: S/\u00a0${Number(t.replace(",", ".")).toFixed(2)} por persona y día.`,
   },
 };
 

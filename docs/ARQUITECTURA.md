@@ -580,12 +580,17 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `parametros_analisis`, `20261006216000`); `lib/analisis-rinde.ts:getRindePorCategoria` → RPC `fn_resumen_comparacion_json` con A = B = los
   últimos 90 días de mi tienda (lo que más rinde por tipo, sin migración; la cuenta es `rindePorCategoria`, `lib/analisis-pedir.ts`);
   `getConteosResumen` (`fn_conteos_resumen`: el último conteo cerrado) y `getPedidosNoAtendidos` («Te pidieron y no había»). Los días de
-  ventas de la tienda en el ERP (`diasDeVentas`, desde la primera venta de `fn_motor_demanda_preparacion`, hasta 30) van en `DatosAnalisis` y en
-  cada prenda: son el ritmo de todo Análisis. El cruce es puro: `lib/analisis-armado.ts` (`armarPrendas`: cada prenda de mi tienda con lo que tienen y venden las otras y lo
-  que viene en camino).
+  ventas de la tienda en el ERP (`diasDeVentas`, desde la primera venta de `fn_motor_demanda_preparacion`, hasta 30) van en `DatosAnalisis`; desde
+  el 2026-10-14 cada prenda mide su ritmo en los días que estuvo colgada, de 7 a los de la tienda (`ventanaDeRitmo`/`conVentanaDeRitmo`,
+  `lib/analisis-reglas.ts`). Desde el 2026-10-14 (ADR-0357, act.) también lee **lo vendido sin registrar** de mi tienda
+  (`lib/vendido-sin-registrar.ts`: `leerVendidoSinRegistrar` → tabla `prendas_por_regularizar`, 30 días, por tipo para «Qué pedir»;
+  `contarPendientes` para «Registrar N»; la misma lectura usa Frescura) y, si la cuenta ve `frescura`, **la lectura de Frescura de su tienda**
+  (`getLecturaFrescuraDeTienda`, `lib/frescura.ts`): `dudadas` por talla (el grupo «Aún no se sabe») y la vara de cada categoría
+  (`lib/analisis-vara.ts`: p75 y p90 de `varaQueJuzgo` como umbrales de «Vigílalas» y «Liquidar»). El cruce es puro:
+  `lib/analisis-armado.ts` (`armarPrendas`: cada prenda de mi tienda con lo que tienen y venden las otras y lo que viene en camino).
   · **Contrato y reglas:** `lib/analisis-tipos.ts` (`DatosAnalisis`; `PrendaAnalisis` es una talla de un color) y `lib/analisis-reglas.ts`
-  (puro: `grupoDe` decide comprar · enviar · liquidar · vigila, una prenda en un solo grupo; `diasQueQuedan` —al ritmo de los días de ventas,
-  `diasDeVentas`—, `seEstaAcabando`, `nuncaSalio`, `porLlegar`, `otraSedeQueLaTiene`, `sedeQueMasVende`, `edadDelInventario`,
+  (puro: `grupoDe` decide comprar · enviar · liquidar · vigila · duda, una prenda en un solo grupo, con los umbrales de su tipo o «Liquidar
+  desde» de respaldo; `diasQueQuedan` —al ritmo de su ventana, `diasDeVentas`—, `seEstaAcabando`, `nuncaSalio`, `porLlegar`, `otraSedeQueLaTiene`, `sedeQueMasVende`, `edadDelInventario`,
   `coincideBusqueda`; las cifras de la maqueta como constantes: 2 semanas para «se acaba», 30 días para vigilar, 90 en rojo, «Liquidar desde»
   de 1 a 999 con 60 de fábrica —sin tope desde el 2026-10-07, `20261007100000`—). «Nunca salió al piso»: `lib/analisis-piso.ts` (tipos, cifras,
   dónde está lo que tienes, eje); «¿Para cuánto te alcanza?» contra Navidad: `alcancePorTipo` en `lib/analisis-pedir.ts`. A dónde lleva cada
@@ -941,6 +946,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
 - `/produccion/recibir` (Taller: líder y colaborador del Taller, SIN montos) → `lib/recibir-produccion.ts` (RPC `fn_lineas_comprobantes_produccion`: solo cantidades) +
   `lib/recibir-produccion-reglas.ts` (puro: agrupar, estado, armar la recepción) → `RecibirProduccionPanel.tsx`, `RecibirComprobanteModal.tsx` (RPC `recibir_comprobante_produccion`: un lote por línea,
   cierres con motivo, idempotente). Tablas `comprobantes_produccion_recepciones`, `comprobantes_produccion_cierres`; `insumo_lotes.comprobante_item_id/recepcion_id`.
+  **Desde ADR-0362 fase 7 parte 2**, arriba va la sección «Órdenes de insumos»: `lib/recepcion-orden-insumo.ts:getOrdenesInsumoPorRecibir` (RPC
+  `fn_ordenes_insumo_por_recibir`, que exige el módulo Producción y operar el taller) + `lib/recepcion-orden-insumo-reglas.ts` (puro: lo que llega,
+  lo que queda, «el resto no va a llegar», argumentos) → `components/ordenes-insumo/RecibirOrdenInsumoModal.tsx` → `lib/ordenes-insumo-acciones.ts:recibirOrdenInsumo`
+  (RPC `recibir_orden_insumo`: un lote con su movimiento por línea, en la misma transacción; lo que no llega va a `orden_insumo_cierres`; quien hizo la
+  orden no la recibe; idempotente con `p_token` y `fn_intento_con_huella`). Tablas `orden_insumo_recepciones`, `orden_insumo_cierres`;
+  `insumo_lotes.orden_insumo_item_id/orden_insumo_recepcion_id`. Los papeles de orden no salen en «Facturas sin orden»: los recibe la orden.
 - `/produccion/por-pagar` (solo líder) → `lib/comprobantes-produccion.ts` + `lib/por-pagar-produccion-reglas.ts` (tramos de vencimiento, resumen) + `lib/deuda-consolidada.ts` (D-I: RPC
   `fn_deuda_consolidada`, `fn_igv_credito_fiscal`, que LEEN `compras`/`compra_notas_credito` sin modificarlas) → `PorPagarProduccionPanel.tsx`, `PagarComprobanteProduccionModal.tsx`
   (RPC `registrar_pago_comprobante_produccion`), `MediosDePago.tsx` + `lib/medios-pago-reglas.ts` (uno o varios medios, reusable).
@@ -982,6 +993,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     versión esperada al editar) + `lib/orden-insumo-alta.ts` (guía de foco con las reglas de `fn_orden_insumo_validar`, argumentos, la orden
     guardada de vuelta al formulario —con la cantidad vacía si la unidad del insumo cambió—, dónde se dice cada rechazo) +
     `lib/sugerencias-orden-insumo.ts` (los ejemplos siguen la unidad y el tipo del insumo elegido).
+  - `/ordenes-insumos/comprobante/[id]` (fase 7 parte 2) → `lib/ordenes-insumo.ts:getDatosComprobanteOrdenInsumo` (la orden con `facturacion`,
+    `comprobantes`, `recepcion` y `cierres` de `fn_orden_insumo`, y los insumos sin archivar) + `components/ordenes-insumo/RegistrarComprobanteOrdenInsumo.tsx`
+    + `lib/comprobante-orden-insumo-reglas.ts` (puro: lo pendiente ya puesto, renglones, totales con la tolerancia por línea, guía de foco,
+    argumentos) → `lib/ordenes-insumo-acciones.ts:registrarComprobanteOrdenInsumo` (RPC `registrar_comprobante_orden_insumo`, firma
+    `orden_insumo_comprobante`; al crédito con vencimiento, o al contado con su pago desde una cuenta o «Mi fondo»: `useCuentasParaElegir`
+    con `conMiFondo`). El papel vive en `comprobantes_produccion` (con `orden_insumo_id`): Por pagar del Taller lo lee sin cambios. La lista
+    suma el chip «Nos debe» con `fn_ordenes_insumo_nos_debe` (lo anotado como «no llegará» × su costo).
 
 **Ventas / caja**
 - `/vender` → `lib/catalogo-v2.ts:getCatalogo` + `lib/caja.ts:getCajaAbierta` +

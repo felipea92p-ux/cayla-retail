@@ -255,7 +255,7 @@ export function HojaDeCobro({
                   {/* Menos de la moneda más chica: no hay con qué entregarlo. Lo mismo que dice el botón apagado (`motivoBloqueoCobro`). */}
                   {redondeo > 0 && aCobrar <= 0 && (
                     <p className="hoja-cobro-nota rounded-lg bg-hueso text-ambar-profundo" data-redondeo-sin-moneda>
-                      No hay moneda para <b className="font-semibold tabular-nums">{money(cobroEfectivo?.deuda ?? 0)}</b>: la más chica es S/ 0.10. Cóbralo con otro medio.
+                      No hay moneda para <b className="font-semibold tabular-nums">{money(cobroEfectivo?.deuda ?? 0)}</b>: la más chica es S/&nbsp;0.10. Cóbralo con otro medio.
                     </p>
                   )}
                   {/* Sin nada que cobrar en monedas (menos de S/ 0.10) no hay billetes ni vuelto que anotar. */}

@@ -19,7 +19,7 @@ export function avanceParcial(parte: number, total: number): number | null {
   return p > 0 && p < 1 ? p : null;
 }
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** Estado de la mercadería del comprobante, con su apoyo («Atrasada 9 días» + «Esperada el 09/09»). */
 export function celdaRecepcion(c: CompraResumen, ahora: Date = new Date()): CeldaEstado {

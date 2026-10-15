@@ -15,7 +15,7 @@ import { Boton, CampoSelect } from "@/components/ui/campos";
 import { conPrecioDeLaSede } from "@/lib/precio-sede-reglas";
 import { Casilla } from "@/components/ui/Casilla";
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const textoDiferencia = (d: number) => (d === 0 ? "Se cobró el precio oficial" : d < 0 ? `Se cobró ${soles(-d)} menos` : `Se cobró ${soles(d)} más`);
 
 /** Lo último que respondió la base, con la clave (tienda + intento) a la que respondió: una respuesta de otra tienda no vale. */

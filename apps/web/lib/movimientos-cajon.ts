@@ -331,7 +331,7 @@ export function pasosDeOperacion(op: OperacionMovimiento): PasoCajon[] {
     }
     case "cambio": {
       const dif = primera.cambio?.diferencia ?? null;
-      return [hecho(`El cliente devolvió ${cuantasPrendas(r.entran)}`), hecho(`Se llevó ${cuantasPrendas(r.salen)}`), hecho(dif !== null && dif !== 0 ? `Diferencia: S/ ${dif.toFixed(2)}` : "Sin diferencia de precio")];
+      return [hecho(`El cliente devolvió ${cuantasPrendas(r.entran)}`), hecho(`Se llevó ${cuantasPrendas(r.salen)}`), hecho(dif !== null && dif !== 0 ? `Diferencia: S/\u00a0${dif.toFixed(2)}` : "Sin diferencia de precio")];
     }
     case "conteo": {
       const c = primera.conteo;

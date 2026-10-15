@@ -2,7 +2,7 @@
   "guia": "ordenes-insumos.ver.id",
   "ruta": "/ordenes-insumos/ver/[id]",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 10,
+  "total": 11,
   "controles": {
     "app/(app)/ordenes-insumos/ver/[id]/page.tsx": [
       "Volver «; if (falla || !detalle)»",
@@ -10,7 +10,8 @@
     ],
     "components/ordenes-insumo/AccionesOrdenInsumo.tsx": [
       "BotonImprimir «También sirve para guardar la orden en PDF»",
-      "BotonEditar «); const anular = puedeAnularOrdenInsumo(orden) && (»",
+      "BotonEditar «); const registrar = puedeRegistrarComprobanteInsumo(or»",
+      "BotonEnlace «oi.registrar-comprobante»",
       "Boton «oi.anular»",
       "CampoTexto «Por qué se anula»",
       "ComboResponsable «)»",

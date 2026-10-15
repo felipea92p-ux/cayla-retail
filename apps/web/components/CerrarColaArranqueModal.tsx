@@ -15,7 +15,7 @@ import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
 import { useGuiaCampos } from "@/components/guia-de-foco/useGuiaCampos";
 
-const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 /** «el 04/10» o «entre el 30/09 y el 04/10»: cuándo se vendió lo que se va a cerrar. */
 const cuandoSeVendio = (desde: string, hasta: string) => {
   const a = diaYHoraLima(desde).dia;

@@ -136,22 +136,22 @@ describe("lo que contesta fn_club_pagina", () => {
 
 describe("cifras y marcadores", () => {
   it("soles y porcentaje como se leen en la tienda", () => {
-    expect(formatoSoles(20)).toBe("S/ 20");
-    expect(formatoSoles(25.5)).toBe("S/ 25.50");
+    expect(formatoSoles(20)).toBe("S/\u00a020");
+    expect(formatoSoles(25.5)).toBe("S/\u00a025.50");
     expect(formatoPct(10)).toBe("10");
     expect(formatoPct(12.5)).toBe("12.5");
   });
 
   it("{escala}: «S/ 20 el primer año, S/ 30 el segundo…», en orden y con «y» al final", () => {
-    expect(escalaEnPalabras(pagina().escala)).toBe("S/ 20 el primer año, S/ 30 el segundo, S/ 40 el tercero, S/ 50 el cuarto y S/ 60 el quinto");
-    expect(escalaEnPalabras([{ anio: 1, monto: 20 }])).toBe("S/ 20 el primer año");
-    expect(escalaEnPalabras([{ anio: 2, monto: 30 }, { anio: 1, monto: 20 }])).toBe("S/ 20 el primer año y S/ 30 el segundo");
+    expect(escalaEnPalabras(pagina().escala)).toBe("S/\u00a020 el primer año, S/\u00a030 el segundo, S/\u00a040 el tercero, S/\u00a050 el cuarto y S/\u00a060 el quinto");
+    expect(escalaEnPalabras([{ anio: 1, monto: 20 }])).toBe("S/\u00a020 el primer año");
+    expect(escalaEnPalabras([{ anio: 2, monto: 30 }, { anio: 1, monto: 20 }])).toBe("S/\u00a020 el primer año y S/\u00a030 el segundo");
     expect(escalaEnPalabras([])).toBe("");
   });
 
   it("completa los marcadores conocidos, {código} con tilde también, y deja a la vista uno que no llegó", () => {
     expect(completarMarcadores("{pct} % · {escala} · {tienda}", marcadoresDePagina(pagina()))).toBe(
-      "10 % · S/ 20 el primer año, S/ 30 el segundo, S/ 40 el tercero, S/ 50 el cuarto y S/ 60 el quinto · Tienda TRU",
+      "10 % · S/\u00a020 el primer año, S/\u00a030 el segundo, S/\u00a040 el tercero, S/\u00a050 el cuarto y S/\u00a060 el quinto · Tienda TRU",
     );
     expect(completarMarcadores("({código}) ({codigo})", { codigo: "C-0142" })).toBe("(C-0142) (C-0142)");
     expect(completarMarcadores("Hola {nombre}", {})).toBe("Hola {nombre}");
@@ -161,7 +161,7 @@ describe("cifras y marcadores", () => {
     const t = textoLegal(pagina(), "terminos");
     expect(t.version).toBe(1);
     expect(t.texto).toContain("10 % de descuento");
-    expect(t.texto).toContain("S/ 60 el quinto");
+    expect(t.texto).toContain("S/\u00a060 el quinto");
     expect(t.texto).not.toMatch(/\{(pct|escala)\}/);
   });
 

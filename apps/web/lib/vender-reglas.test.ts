@@ -79,7 +79,7 @@ describe("motivoBloqueoCobro — qué falta para cobrar, en orden", () => {
 
   it("un ticket que no cobra nada (solo la bolsa de obsequio) no se cobra, y el motivo lo dice desde el armado (Bolsas de despacho)", () => {
     const solo = { ...listo, prendas: 1, total: 0, pagos: [] };
-    const motivo = "El ticket está en S/ 0.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
+    const motivo = "El ticket está en S/\u00a00.00: suma algo que se cobre (la bolsa de obsequio va junto con una compra).";
     expect(motivoBloqueoCobro(solo)).toBe(motivo);
     expect(motivoBloqueoCobro({ ...solo, momento: "armar" })).toBe(motivo);
     // La caja cerrada y el ticket vacío siguen mandando antes; con la bolsa de obsequio MÁS una compra, nada cambia.
@@ -1035,7 +1035,7 @@ describe("cobroEnEfectivo — lo que se le dice a la cajera", () => {
 describe("motivoBloqueoCobro con el redondeo del efectivo", () => {
   const mixto = (efectivo: number): PagoAplicado[] => [{ metodo: "yape", monto: Math.round((listo.total - efectivo) * 100) / 100 }, { metodo: "efectivo", monto: efectivo }];
   it("un efectivo de menos de S/ 0.10 (los 0.07 que sobran tras un Yape) no se puede entregar: se cobra con otro medio", () => {
-    expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.07), redondeoEfectivo: true })).toBe("El efectivo no puede ser menos de S/ 0.10: cóbralo con otro medio.");
+    expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.07), redondeoEfectivo: true })).toBe("El efectivo no puede ser menos de S/\u00a00.10: cóbralo con otro medio.");
   });
   it("sin el redondeo activo ese efectivo se cobra como siempre", () => {
     expect(motivoBloqueoCobro({ ...listo, pagos: mixto(0.07) })).toBeNull();
@@ -1097,7 +1097,7 @@ describe("el tope del vuelto (S/ 500)", () => {
   it("S/ 500 de vuelto justo se deja cobrar; un céntimo más, no", () => {
     expect(motivoBloqueoCobro({ ...listo, pagos: [{ metodo: "efectivo", monto: 143.82, recibido: 643.82 }] })).toBeNull();
     expect(motivoBloqueoCobro({ ...listo, pagos: [{ metodo: "efectivo", monto: 143.82, recibido: 643.83 }] })).toBe(
-      "El vuelto pasa de S/ 500: revisa con cuánto paga el cliente.",
+      "El vuelto pasa de S/\u00a0500: revisa con cuánto paga el cliente.",
     );
   });
   it("bajo los billetes, un vuelto de más se marca aparte («excede»)", () => {

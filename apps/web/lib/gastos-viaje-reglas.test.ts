@@ -152,8 +152,8 @@ describe("las órdenes del gasto: se ven las elegidas y las demás se agregan (F
 
   it("para agregar quedan las no elegidas, en el orden de la lista, con su total al lado y la sede como otra palabra que la encuentra", () => {
     expect(ordenesParaAgregar(ORDENES, ["a"])).toEqual([
-      { valor: "b", texto: "OC-002788 · Textiles Andina SAC", detalle: "S/ 80.00" },
-      { valor: "c", texto: "OC-002786 · Textiles Andina SAC", detalle: "S/ 378.00", claves: ["Tienda Lima"] },
+      { valor: "b", texto: "OC-002788 · Textiles Andina SAC", detalle: "S/\u00a080.00" },
+      { valor: "c", texto: "OC-002786 · Textiles Andina SAC", detalle: "S/\u00a0378.00", claves: ["Tienda Lima"] },
     ]);
     expect(ordenesParaAgregar(ORDENES, [])).toHaveLength(3);
     expect(ordenesParaAgregar(ORDENES, ["a", "b", "c"])).toEqual([]);
@@ -167,14 +167,14 @@ describe("las órdenes del gasto: se ven las elegidas y las demás se agregan (F
 
 describe("la línea del papel: el IGV de la factura (fase 6 · actividad 8)", () => {
   it("una factura con RUC dice cuánto IGV se descuenta (lo mismo que separa la base: total − total ÷ 1.18)", () => {
-    expect(pistaDelPapel({ papel: "factura", ruc: "20123456789" }, 118, false)).toBe("Su IGV (S/ 18.00) se descuenta de los impuestos.");
-    expect(pistaDelPapel({ papel: "factura", ruc: "20123456789" }, 100, false)).toBe("Su IGV (S/ 15.25) se descuenta de los impuestos.");
+    expect(pistaDelPapel({ papel: "factura", ruc: "20123456789" }, 118, false)).toBe("Su IGV (S/\u00a018.00) se descuenta de los impuestos.");
+    expect(pistaDelPapel({ papel: "factura", ruc: "20123456789" }, 100, false)).toBe("Su IGV (S/\u00a015.25) se descuenta de los impuestos.");
     expect(pistaDelPapel({ papel: "factura", ruc: "20123456789" }, null, false)).toBe("Su IGV se descuenta de los impuestos.");
   });
   it("sin RUC (o mal escrito) no hay crédito: lo dice; si no pasa por el banco, el IGV se pierde", () => {
     expect(pistaDelPapel({ papel: "factura", ruc: "" }, 118, false)).toBe("Con el RUC de quien te la dio, su IGV se descuenta de los impuestos.");
     expect(pistaDelPapel({ papel: "factura", ruc: "2012345" }, 118, false)).toBe("Con el RUC de quien te la dio, su IGV se descuenta de los impuestos.");
-    expect(pistaDelPapel({ papel: "factura", ruc: "20123456789" }, 2360, true)).toBe("Es de S/ 2,000 o más y no se paga por el banco: su IGV no se descuenta.");
+    expect(pistaDelPapel({ papel: "factura", ruc: "20123456789" }, 2360, true)).toBe("Es de S/\u00a02,000 o más y no se paga por el banco: su IGV no se descuenta.");
   });
   it("con otro papel, la regla de la planilla de siempre", () => {
     expect(pistaDelPapel({ papel: "boleta", ruc: "20123456789" }, 118, false)).toBe("Sin comprobante solo se acepta taxi o cargador (planilla de movilidad).");
@@ -211,7 +211,7 @@ describe("leer lo que manda la base", () => {
 
 describe("lo que dice el botón", () => {
   it("con monto, lo dice", () => {
-    expect(fraseRegistrarGasto(60)).toBe("Registrar gasto de S/ 60.00");
+    expect(fraseRegistrarGasto(60)).toBe("Registrar gasto de S/\u00a060.00");
     expect(fraseRegistrarGasto(null)).toBe("Registrar gasto");
   });
 });

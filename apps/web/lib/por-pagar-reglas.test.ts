@@ -77,12 +77,12 @@ describe("repartirPago", () => {
 
 describe("detalleSeleccion", () => {
   it("dice de qué está hecho el total", () => {
-    const f = (n: number) => `S/ ${n}`;
+    const f = (n: number) => `S/\u00a0${n}`;
     const filas = [
       { vencida: true, fechaVencimiento: "2026-09-04", saldo: 4720 },
       { vencida: false, fechaVencimiento: "2026-09-19", saldo: 3186 },
     ];
-    expect(detalleSeleccion(filas, f, AHORA)).toBe("Vencido S/ 4720 + vence esta semana S/ 3186");
+    expect(detalleSeleccion(filas, f, AHORA)).toBe("Vencido S/\u00a04720 + vence esta semana S/\u00a03186");
   });
 });
 
@@ -161,12 +161,12 @@ describe("cubrirCaja", () => {
 });
 
 describe("pasosDeComprobante", () => {
-  const ctx = { proveedor: "Tejidos Rímac SAC", saldoFavor: 0, notaPendiente: null, formato: (n: number) => `S/ ${n.toFixed(2)}` };
+  const ctx = { proveedor: "Tejidos Rímac SAC", saldoFavor: 0, notaPendiente: null, formato: (n: number) => `S/\u00a0${n.toFixed(2)}` };
   it("vencida: pagarla primero y, si hay más del proveedor, pagarlas juntas", () => {
     const [p] = pasosDeComprobante({ vencida: true, fechaVencimiento: "2026-09-04" }, [{ saldo: 3186 }, { saldo: 3923.6 }], ctx, AHORA);
     expect(p.tono).toBe("rojo");
     expect(p.resto).toContain("venció hace 14 días");
-    expect(p.resto).toContain("2 comprobantes más (S/ 7109.60)");
+    expect(p.resto).toContain("2 comprobantes más (S/\u00a07109.60)");
   });
   it("esta semana: ámbar, con el día", () => {
     const [p] = pasosDeComprobante({ vencida: false, fechaVencimiento: "2026-09-19" }, [], ctx, AHORA);
@@ -175,7 +175,7 @@ describe("pasosDeComprobante", () => {
   it("lejos: sin apuro; y suma avisos de nota pendiente y saldo a favor", () => {
     const pasos = pasosDeComprobante({ vencida: false, fechaVencimiento: "2026-10-27" }, [], { ...ctx, saldoFavor: 420, notaPendiente: 236 }, AHORA);
     expect(pasos.map((p) => p.tono)).toEqual(["neutro", "ambar", "verde"]);
-    expect(pasos[1].fuerte).toContain("S/ 236.00");
+    expect(pasos[1].fuerte).toContain("S/\u00a0236.00");
   });
 });
 

@@ -2,7 +2,7 @@
   "guia": "produccion.recibir",
   "ruta": "/produccion/recibir",
   "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
-  "total": 8,
+  "total": 19,
   "controles": {
     "components/RecibirComprobanteModal.tsx": [
       "input «{`Cantidad que llegó de ${l.insumo}»",
@@ -14,7 +14,20 @@
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/RecibirProduccionPanel.tsx": [
+      "Boton «{mia ? \"La hiciste tú: la recibe otra persona del Taller\" : undefined}»",
       "Boton «prod-recibir.recibir»"
+    ],
+    "components/ordenes-insumo/RecibirOrdenInsumoModal.tsx": [
+      "CampoTexto «Nota de la entrega»",
+      "ComboResponsable «{error && ( <Aviso ref={avisoError}»",
+      "Boton «Recargar»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "CampoTexto «{`Llegó de ${l.insumo}»",
+      "CampoTexto «{`Costo por ${porUnidad}»",
+      "CampoTexto «{`Código de lote de ${l.insumo}»",
+      "Casilla «{`El resto de ${l.insumo}»",
+      "Desplegable «)»"
     ]
   }
 }

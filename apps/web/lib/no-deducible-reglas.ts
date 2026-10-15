@@ -25,7 +25,7 @@ export type AvisoBancarizacion = { monto: number; titulo: string; texto: string 
 
 /** La frase del aviso al pagar (en lenguaje de tienda: sin «bancarización» ni «crédito fiscal»). */
 export const TEXTO_AVISO_BANCARIZACION =
-  "SUNAT pide que un comprobante de S/ 2,000 o más se pague por el banco. Lo que se paga en efectivo o desde un fondo no cuenta para " +
+  "SUNAT pide que un comprobante de S/\u00a02,000 o más se pague por el banco. Lo que se paga en efectivo o desde un fondo no cuenta para " +
   "impuestos y su IGV se pierde. Puedes pagar igual: queda marcado.";
 
 const montoDe = (v: string | number): number => {

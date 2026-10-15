@@ -1052,6 +1052,13 @@ export const PRUEBAS = [
   // anular con motivo; la firma de la decisión 39 (persona sola, terminal con combo). ROLLBACK, salvo los dos casos de dos sesiones
   // (editar a la vez y crear con el mismo id): commitean una orden de prueba y la borran al terminar.
   "pruebas:ordenes-insumo",
+  // El comprobante de la orden de insumos (ADR-0362, fase 7 parte 2 · actividad 1): solo con el módulo; los cuatro tipos (el SC- de la
+  // secuencia de la empresa), el IGV de la factura de 0 % a 18 %, 3 decimales de cantidad y 4 de costo; de más y fuera de la orden se
+  // aceptan y se avisan; el doble envío; el papel único entre los vigentes; la orden con papel no se edita (ni se anula con papel
+  // vigente); la recepción de siempre no recibe el papel de una orden. ROLLBACK.
+  "pruebas:comprobante-orden-insumo",
+  // ADR-0362 fase 7 parte 2, actividad 3: recibir en el Taller contra la orden de insumos (con un caso de dos sesiones que hace COMMIT).
+  "pruebas:recepcion-orden-insumo",
 
   // Fondos por rendir (ADR-0362, fase 6 · actividad 1): el módulo es la llave; la primera entrega crea el fondo de la persona (1413) y
   // las demás suman en el mismo; nadie se entrega plata a sí mismo, registra su propia devolución ni anula su propio fondo; lo del líder

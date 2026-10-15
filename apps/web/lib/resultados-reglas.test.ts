@@ -185,9 +185,9 @@ describe("las filas del cuadro", () => {
 
 describe("cómo se escribe", () => {
   it("soles redondos con el signo menos de verdad", () => {
-    expect(solesER(44100)).toBe("S/ 44,100");
-    expect(solesER(-19850.4)).toBe("−S/ 19,850");
-    expect(solesER(0.2)).toBe("S/ 0");
+    expect(solesER(44100)).toBe("S/\u00a044,100");
+    expect(solesER(-19850.4)).toBe("−S/\u00a019,850");
+    expect(solesER(0.2)).toBe("S/\u00a00");
   });
   it("porcentaje con coma decimal; sin base no hay porcentaje", () => {
     expect(porcentaje(23670, 44100)).toBe("53,7 %");
@@ -403,7 +403,7 @@ describe("las campañas que pasaron", () => {
   });
   it("la frase de las que no se pagaron (la del spike)", () => {
     expect(fraseCampanasMalas(pasadas)).toBe(
-      "Día del Gato y Día del Perro vendieron +3,8 % y +1,5 % contra un día normal y se descontaron S/ 4,500: dejaron S/ 3,942 menos que no hacerlas.",
+      "Día del Gato y Día del Perro vendieron +3,8 % y +1,5 % contra un día normal y se descontaron S/\u00a04,500: dejaron S/\u00a03,942 menos que no hacerlas.",
     );
     expect(fraseCampanasMalas([pasadas[0]!])).toBeNull();
     expect(nombreEje("Día Internacional del Gato")).toBe("Día del Gato");
