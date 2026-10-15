@@ -84,6 +84,9 @@ sms_sent = 30
 anonymous_users = 30
 token_refresh = 150
 sign_in_sign_ups = 30
+# Los códigos para crear la cuenta los verifica el SERVIDOR de la tienda, con una sola ip para todas las personas: en producción
+# este tope (por ip, cada 5 minutos) tiene que alcanzar para todas a la vez. El tope por persona lo lleva la base: 5 intentos por
+# código y 5 códigos por hora (tienda_intento_de_codigo, tienda_reservar_envio).
 token_verifications = 30
 
 [auth.email]
@@ -91,18 +94,24 @@ token_verifications = 30
 # de arriba).
 enable_signup = true
 double_confirm_changes = true
-# La maqueta crea la cuenta y entra, sin confirmar el correo con un enlace (el riesgo y la recomendación, en el informe de la
-# actividad 2).
+# El correo se confirma con un CÓDIGO de 6 cifras antes de crear la cuenta (actividad 2b, Felipe 2026-10-14): lo manda la
+# invitación de abajo, que solo usa el servidor de la tienda. Nadie entra sin haber confirmado: la invitación no tiene contraseña.
 enable_confirmations = false
 secure_password_change = false
 max_frequency = "10s"
 otp_length = 6
-# «Vence en 30 minutos» (maqueta, «Olvidé mi contraseña»).
+# «Vence en 30 minutos»: el enlace de «Olvidé mi contraseña» y el código para crear la cuenta.
 otp_expiry = 1800
 
 [auth.email.template.recovery]
 subject = "Crea tu contraseña nueva · CAYLA"
 content_path = "./supabase/plantillas/recuperar.html"
+
+# El código para crear la cuenta (actividad 2b). La invitación crea el usuario SIN contraseña; la cuenta (y la contraseña) se
+# guardan recién cuando la persona escribe el código en la tienda.
+[auth.email.template.invite]
+subject = "Tu código para crear tu cuenta · CAYLA"
+content_path = "./supabase/plantillas/codigo.html"
 
 [auth.sms]
 enable_signup = false

@@ -1,10 +1,23 @@
 import "server-only";
 import { base, leerConRespaldo } from "./base";
-import { leerBeneficios, leerMiCuenta, type Beneficios, type MiCuenta } from "./cuentas";
+import {
+  leerBeneficios,
+  leerCasillaWhatsapp,
+  leerIntentoDeCodigo,
+  leerMiCuenta,
+  leerReserva,
+  type AvisosAlCrear,
+  type Beneficios,
+  type CasillaWhatsapp,
+  type IntentoDeCodigo,
+  type MiCuenta,
+  type Reserva,
+} from "./cuentas";
 
-// Las cuentas de la tienda en la base del ERP (ADR-0408, actividad 2), solo por sus funciones `retail.tienda_*`
+// Las cuentas de la tienda en la base del ERP (ADR-0408, actividades 2 y 2b), solo por sus funciones `retail.tienda_*`
 // (20261014224000). Cada una valida por dentro lo que recibe y cuenta sus intentos; aquí solo se leen sus respuestas. Si la base
-// no contesta, cada lectura lo dice (`sin_respuesta`) y la pantalla se degrada: nunca se crea nada a medias.
+// no contesta, cada lectura lo dice (`sin_respuesta`) y la pantalla se degrada: nunca se crea nada a medias, ni se manda o se
+// prueba un código sin que la base lleve la cuenta.
 
 const ESTADO = (dato: unknown): string | null =>
   typeof dato === "object" && dato !== null && typeof (dato as { estado?: unknown }).estado === "string" ? (dato as { estado: string }).estado : null;
@@ -45,7 +58,7 @@ export type RespuestaRevision = {
   campo?: string;
 };
 
-/** Lo que se pregunta ANTES de crear el usuario de inicio de sesión. Cuenta un intento de registro. */
+/** Lo que se pregunta ANTES de mandar el código. Cuenta un intento de registro. */
 export const revisarRegistroEnBase = (correo: string, dni: string, celular: string, ipHash: string, documentoHash: string): Promise<RespuestaRevision> =>
   leerConRespaldo<RespuestaRevision>(
     "tienda_revisar_registro_fallo",
@@ -61,6 +74,57 @@ export const revisarRegistroEnBase = (correo: string, dni: string, celular: stri
     { estado: "sin_respuesta" },
   );
 
+/* ------------------------------------------------------------------ El código (actividad 2b) */
+
+/**
+ * ¿Se puede mandar un código a este correo ahora? Si sí, la base ya lo anotó (vence a los 30 minutos). `reenvio`: solo para un
+ * correo que ya pidió el suyo. Sin respuesta, no se manda nada.
+ */
+export const reservarEnvioEnBase = (correo: string, reenvio: boolean): Promise<Reserva> =>
+  leerConRespaldo<Reserva>(
+    "tienda_reservar_envio_fallo",
+    async (db) => {
+      const [fila] = await db`select retail.tienda_reservar_envio(${correo}::text, ${reenvio}::boolean) as r`;
+      return leerReserva(fila?.r);
+    },
+    { estado: "sin_respuesta", limpiar: [] },
+  );
+
+/** El usuario que el proyecto de clientes creó (o reusó) al invitar a ese correo. null si la base no contestó. */
+export const anotarInvitadoEnBase = (correo: string, usuarioWebId: string): Promise<boolean | null> =>
+  leerConRespaldo<boolean | null>(
+    "tienda_anotar_invitado_fallo",
+    async (db) => {
+      const [fila] = await db`select retail.tienda_anotar_invitado(${correo}::text, ${usuarioWebId}::uuid) as r`;
+      return fila?.r === true;
+    },
+    null,
+  );
+
+/** ¿Se puede probar un código de este correo ahora? Cuenta el intento ANTES de probarlo. */
+export const intentoDeCodigoEnBase = (correo: string): Promise<IntentoDeCodigo> =>
+  leerConRespaldo<IntentoDeCodigo>(
+    "tienda_intento_de_codigo_fallo",
+    async (db) => {
+      const [fila] = await db`select retail.tienda_intento_de_codigo(${correo}::text) as r`;
+      return leerIntentoDeCodigo(fila?.r);
+    },
+    { estado: "sin_respuesta" },
+  );
+
+/** El texto vigente de la casilla de los avisos por WhatsApp. null si no hay o la base no contesta: no se ofrecen. */
+export const leerCasillaDeAvisos = (): Promise<CasillaWhatsapp | null> =>
+  leerConRespaldo(
+    "tienda_casilla_whatsapp_fallo",
+    async (db) => {
+      const [fila] = await db`select retail.tienda_casilla_whatsapp() as r`;
+      return leerCasillaWhatsapp(fila?.r);
+    },
+    null,
+  );
+
+/* ------------------------------------------------------------------ Crear la cuenta */
+
 export type DatosCuenta = {
   usuarioWebId: string;
   correo: string;
@@ -71,13 +135,19 @@ export type DatosCuenta = {
   cumpleDia: number;
   cumpleMes: number;
   cumpleAnio: number | null;
+  mayorDeEdad: boolean;
+  avisosWhatsapp: boolean;
+  /** La versión de la casilla de los avisos que leyó (null si no los marcó). */
+  casillaVersion: number | null;
   textos: string;
 };
 
 export type ResultadoRegistro =
-  | { ok: true; seUnioASuFicha: boolean; eraDelClub: boolean }
+  | { ok: true; seUnioASuFicha: boolean; eraDelClub: boolean; avisos: AvisosAlCrear }
   /** La base dijo que no (`hint` y `detalle`, ver `errorDeRegistro`) o no contestó (`hint` null). Nada quedó escrito. */
   | { ok: false; hint: string | null; detalle: string | null };
+
+const AVISOS: readonly AvisosAlCrear[] = ["no", "activados", "ya_estaban", "celular_distinto"];
 
 /** Crea la cuenta y deja a la persona en el Club, todo o nada (`retail.tienda_registrar_cuenta`). */
 export async function registrarCuentaEnBase(d: DatosCuenta): Promise<ResultadoRegistro> {
@@ -85,10 +155,12 @@ export async function registrarCuentaEnBase(d: DatosCuenta): Promise<ResultadoRe
     const [fila] = await base()`
       select retail.tienda_registrar_cuenta(
         ${d.usuarioWebId}::uuid, ${d.correo}::text, ${d.dni}::text, ${d.nombre}::text, ${d.nombreDelPadron}::boolean,
-        ${d.celular}::text, ${d.cumpleDia}::integer, ${d.cumpleMes}::integer, ${d.cumpleAnio}::integer, true, ${d.textos}::text
+        ${d.celular}::text, ${d.cumpleDia}::integer, ${d.cumpleMes}::integer, ${d.cumpleAnio}::integer, true,
+        ${d.mayorDeEdad}::boolean, ${d.avisosWhatsapp}::boolean, ${d.casillaVersion}::integer, ${d.textos}::text
       ) as r`;
-    const r = (fila?.r ?? {}) as { se_unio_a_su_ficha?: unknown; era_del_club?: unknown };
-    return { ok: true, seUnioASuFicha: r.se_unio_a_su_ficha === true, eraDelClub: r.era_del_club === true };
+    const r = (fila?.r ?? {}) as { se_unio_a_su_ficha?: unknown; era_del_club?: unknown; avisos_whatsapp?: unknown };
+    const avisos = AVISOS.find((a) => a === r.avisos_whatsapp) ?? "no";
+    return { ok: true, seUnioASuFicha: r.se_unio_a_su_ficha === true, eraDelClub: r.era_del_club === true, avisos };
   } catch (error) {
     const e = error as { hint?: unknown; detail?: unknown; code?: unknown; message?: unknown };
     const hint = typeof e.hint === "string" ? e.hint : null;

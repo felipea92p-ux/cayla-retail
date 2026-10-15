@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { rehacerCuenta, salir } from "@/app/acciones/cuenta";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { TarjetaClub } from "@/components/TarjetaClub";
+import { MENSAJES } from "@/lib/cuentas";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { anioLima } from "@/lib/portada";
 import { leerSesion } from "@/lib/sesion-servidor";
@@ -15,7 +16,8 @@ export const metadata: Metadata = { title: "Mi cuenta · CAYLA", robots: { index
  * pedidos, los beneficios, las novedades y los datos llegan con sus actividades. Al entrar o crear la cuenta se llega aquí (el
  * Inicio con el catálogo lo arma otra actividad).
  */
-export default async function MiCuenta() {
+export default async function MiCuenta({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const { aviso } = await searchParams;
   const sesion = await leerSesion();
   if (sesion.estado === "sin_sesion") redirect("/entrar");
   if (sesion.estado === "sin_respuesta") {
@@ -64,6 +66,12 @@ export default async function MiCuenta() {
             <p className="w-texto-sec">
               Eres miembro del Club CAYLA.{cuenta.cumple ? ` Tu descuento de cumpleaños llega el ${cuenta.cumple}.` : ""}
             </p>
+            {aviso === "avisos-sin-activar" && (
+              // Recién creada la cuenta: marcó los avisos, pero su ficha del Club ya tenía otro celular (la web no lo cambia).
+              <p className="w-nota" role="status">
+                {MENSAJES.avisosSinActivar}
+              </p>
+            )}
             <form action={salir}>
               <button className="t-enlace" type="submit">
                 Salir de mi cuenta

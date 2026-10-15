@@ -6,7 +6,8 @@ import { COOKIE_SESION, configAuth, tieneCookieDeSesion } from "./sesion";
 
 // La sesión de los clientes, del lado del servidor (ADR-0408, decisión 2). Habla con el proyecto de inicio de sesión de los
 // CLIENTES, nunca con el del ERP. La llave secreta de ese proyecto (`TIENDA_AUTH_SERVICE_KEY`) se lee solo aquí y solo sirve
-// para dos cosas: crear el usuario de una cuenta nueva (después de que la base lo revisó) y borrar el que quedó sin cuenta.
+// para crear una cuenta (actividad 2b, `lib/usuarios-servidor.ts`): invitar el correo para mandarle el código (después de que la
+// base lo revisó), ponerle la contraseña cuando el código fue el bueno, y borrar el usuario que quedó sin cuenta.
 // Lo vigila lib/candados.test.ts.
 
 /** El cliente con las cookies de esta petición. En una página no puede escribirlas (las refresca el proxy); en una acción, sí. */
@@ -29,7 +30,7 @@ export async function clienteSesion(): Promise<SupabaseClient | null> {
   });
 }
 
-/** Con la llave secreta del proyecto de CLIENTES: solo crea y borra usuarios. null si la tienda no la tiene configurada. */
+/** Con la llave secreta del proyecto de CLIENTES: solo invita, confirma y borra usuarios. null si la tienda no la tiene configurada. */
 export function clienteAdmin(): SupabaseClient | null {
   const ajustes = configAuth();
   const llave = process.env.TIENDA_AUTH_SERVICE_KEY?.trim();
@@ -37,7 +38,7 @@ export function clienteAdmin(): SupabaseClient | null {
   return createClient(ajustes.url, llave, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
 }
 
-/** Sin cookies ni sesión guardada: para comprobar una contraseña sin dejar a nadie con la sesión abierta. */
+/** Sin cookies ni sesión guardada: para comprobar el código del correo sin dejar a nadie con la sesión abierta. */
 export function clienteSuelto(): SupabaseClient | null {
   const ajustes = configAuth();
   if (!ajustes) return null;

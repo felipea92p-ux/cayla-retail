@@ -1,32 +1,55 @@
 "use server";
 
-import { isAuthApiError, isAuthRetryableFetchError, type SupabaseClient } from "@supabase/supabase-js";
+import { isAuthApiError, isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import {
+  avisoAlCrear,
+  CODIGO_BLOQUEO_MIN,
+  CODIGO_ESPERA_S,
   celularNormalizado,
+  codigoCompleto,
+  codigoLimpio,
   correoValido,
   errorDeRegistro,
-  esquemaRegistro,
+  esquemaConfirmarCodigo,
+  esquemaPedirCodigo,
   estadoClave,
   hoyLima,
   MENSAJES,
+  mensajeCodigoBloqueado,
+  mensajeCodigoEsperar,
+  mensajeCodigoLimite,
+  mensajeCodigoMalo,
   nombreLimpio,
   normalizarCorreo,
   problemaRegistro,
   TEXTOS_VERSION,
-  type CampoRegistro,
+  type CampoProblema,
+  type CasillaWhatsapp,
   type ConsultaCorreo,
   type ConsultaDni,
+  type Registro,
 } from "@/lib/cuentas";
-import { consultarCorreoEnBase, consultarDocumentoEnBase, leerMiCuentaEnBase, registrarCuentaEnBase, revisarRegistroEnBase } from "@/lib/cuentas-servidor";
+import {
+  anotarInvitadoEnBase,
+  consultarCorreoEnBase,
+  consultarDocumentoEnBase,
+  intentoDeCodigoEnBase,
+  leerCasillaDeAvisos,
+  leerMiCuentaEnBase,
+  registrarCuentaEnBase,
+  reservarEnvioEnBase,
+  revisarRegistroEnBase,
+} from "@/lib/cuentas-servidor";
 import { huellas } from "@/lib/intentos-servidor";
 import { buscarNombre } from "@/lib/padron-servidor";
-import { borrarCookiesDeSesion, clienteAdmin, clienteSesion, clienteSuelto, leerSesion } from "@/lib/sesion-servidor";
+import { borrarCookiesDeSesion, clienteAdmin, clienteSesion, leerSesion } from "@/lib/sesion-servidor";
+import { borrarSiNoTieneCuenta, confirmarCorreo, invitarCorreo, limpiarInvitados } from "@/lib/usuarios-servidor";
 
-// Las acciones de la cuenta de la tienda online (ADR-0408, actividad 2). Las llama una persona sin sesión, como POST a la página
-// donde están: no confían en nada de lo que llega (lo vuelven a revisar con las reglas de `lib/cuentas.ts`) y la base decide
-// (`retail.tienda_*`, que cuenta los intentos y valida todo otra vez). Ninguna respuesta trae datos de otra persona: el nombre
-// del padrón sale a medias. En los registros del servidor nunca va un correo, un DNI, un celular ni un nombre.
+// Las acciones de la cuenta de la tienda online (ADR-0408, actividades 2 y 2b). Las llama una persona sin sesión, como POST a la
+// página donde están: no confían en nada de lo que llega (lo vuelven a revisar con las reglas de `lib/cuentas.ts`) y la base
+// decide (`retail.tienda_*`, que cuenta los intentos y valida todo otra vez). Ninguna respuesta trae datos de otra persona: el
+// nombre del padrón sale a medias. En los registros del servidor nunca va un correo, un DNI, un celular, un nombre ni un código.
 
 /* ------------------------------------------------------------------ Mientras se escribe */
 
@@ -56,76 +79,204 @@ export async function consultarDni(dni: unknown): Promise<ConsultaDni> {
   return { estado: "sin_nombre", motivo: padron.estado, delClub: enBase.delClub };
 }
 
-/* ------------------------------------------------------------------ Crear la cuenta */
-
-export type RespuestaRegistro = { campo: CampoRegistro | null; mensaje: string };
-
-const NO_DISPONIBLE: RespuestaRegistro = { campo: null, mensaje: MENSAJES.noDisponible };
+/* ------------------------------------------------------------------ Crear la cuenta: el código y la cuenta (actividad 2b) */
 
 /**
- * «Crear mi cuenta». El orden seguro (principio 9): (1) la base revisa el correo, el DNI y los topes ANTES de crear nada;
- * (2) el nombre: el del padrón, consultado aquí (el del navegador no cuenta); si no, el que escribió; (3) el usuario en el
- * proyecto de clientes; (4) la cuenta en la base, todo o nada. Si (4) dice que no, el usuario de (3) se borra para no dejarlo
- * suelto, salvo que la base diga que ya tiene cuenta (un doble envío la creó) o no conteste (no se borra a ciegas: al entrar,
- * la tienda ve que no tiene cuenta y deja crearla de nuevo). (5) Entra y va a «Mi cuenta».
+ * Lo que contesta cada paso. `datos`: la persona se queda (o vuelve) en sus datos, con el problema en su campo. `codigo`: está en
+ * el paso del código, con lo que dice bajo la caja (o nada), cuántos segundos faltan para poder pedir otro (null: los que ya
+ * corrían) y, si el código que probó no sirve, por qué (`malo`: se escribe otra vez; `vencido`: hace falta uno nuevo;
+ * `bloqueado`: hay que esperar y pedir uno nuevo). Crear la cuenta bien no contesta: lleva a «Mi cuenta».
  */
-export async function crearCuenta(entrada: unknown): Promise<RespuestaRegistro> {
-  const leido = esquemaRegistro.safeParse(entrada);
-  if (!leido.success) return NO_DISPONIBLE;
-  const r = leido.data;
+export type RespuestaCodigo =
+  | { paso: "datos"; campo: CampoProblema | null; mensaje: string; casilla?: CasillaWhatsapp | null }
+  | { paso: "codigo"; mensaje: string | null; tono: "error" | "aviso" | "ok"; espera: number | null; codigo?: "malo" | "vencido" | "bloqueado" };
+
+const enDatos = (campo: CampoProblema | null, mensaje: string): RespuestaCodigo => ({ paso: "datos", campo, mensaje });
+const enCodigo = (mensaje: string | null, tono: "error" | "aviso" | "ok", espera: number | null, codigo?: "malo" | "vencido" | "bloqueado"): RespuestaCodigo => ({
+  paso: "codigo",
+  mensaje,
+  tono,
+  espera,
+  ...(codigo ? { codigo } : {}),
+});
+
+/**
+ * «Mandarme el código». El orden seguro (principio 9): (1) la base revisa el correo, el DNI y los topes (y cuenta el intento,
+ * con sus topes por ip, documento y celular); (2) el nombre: el del padrón, o el que escribió si el padrón no lo da; (3) los
+ * avisos: el texto que leyó sigue siendo el vigente; (4) la base reserva el envío (60 s entre uno y otro, 5 por hora) y (5) el
+ * proyecto de clientes manda el código. Hasta el código bueno no existe ni la cuenta ni la ficha.
+ */
+export async function pedirCodigo(entrada: unknown): Promise<RespuestaCodigo> {
+  const leido = esquemaPedirCodigo.safeParse(entrada);
+  if (!leido.success) return enDatos(null, MENSAJES.noDisponible);
+  const { registro: r, casilla } = leido.data;
   const problema = problemaRegistro(r, hoyLima());
-  if (problema) return problema;
+  if (problema) return enDatos(problema.campo, problema.mensaje);
+
+  const admin = clienteAdmin();
+  const h = await huellas(r.dni);
+  if (!admin || !h?.documento) {
+    console.error(JSON.stringify({ evento: "tienda_cuentas_sin_configurar", admin: !!admin, huellas: !!h }));
+    return enDatos(null, MENSAJES.noDisponible);
+  }
+  const correo = normalizarCorreo(r.correo);
+
+  // 1. La base revisa antes de mandar nada (y cuenta el intento).
+  const revision = await revisarRegistroEnBase(correo, r.dni, celularNormalizado(r.celular), h.ip, h.documento);
+  if (revision.estado !== "ok") {
+    if (revision.estado === "limite") return enDatos(null, MENSAJES.limite);
+    if (revision.estado === "correo_repetido") return enDatos("correo", MENSAJES.correoRepetido);
+    if (revision.estado === "dni_repetido") return enDatos("dni", MENSAJES.dniRepetido);
+    if (revision.estado === "archivada") return enDatos("dni", MENSAJES.dniArchivada);
+    if (revision.estado === "invalido") {
+      const e = errorDeRegistro("cuenta_datos_invalidos", revision.campo);
+      return enDatos(e.campo, e.mensaje);
+    }
+    return enDatos(null, MENSAJES.noDisponible);
+  }
+
+  // 2. El nombre: que no falte después del código.
+  const nombre = await nombreParaLaCuenta(r);
+  if (!nombre) return enDatos("nombre", "Escribe tus nombres y apellidos, tal como están en tu DNI.");
+
+  // 3. Los avisos citan el texto que leyó: si cambió, que lo vuelva a leer antes de recibir el código.
+  if (r.avisos) {
+    const vigente = await leerCasillaDeAvisos();
+    if (!vigente || vigente.version !== casilla) return { paso: "datos", campo: "avisos", mensaje: MENSAJES.avisosCambio, casilla: vigente };
+  }
+
+  // 4 y 5. El código.
+  return mandarCodigo(correo, false);
+}
+
+/** «Pedir otro código», en el paso del código. Solo para un correo que ya pidió el suyo (la base lo exige). */
+export async function reenviarCodigo(correo: unknown): Promise<RespuestaCodigo> {
+  if (typeof correo !== "string" || !correoValido(correo)) return enDatos("correo", MENSAJES.correoMal);
+  return mandarCodigo(normalizarCorreo(correo), true);
+}
+
+async function mandarCodigo(correo: string, reenvio: boolean): Promise<RespuestaCodigo> {
+  const admin = clienteAdmin();
+  if (!admin) return reenvio ? enCodigo(MENSAJES.codigoNoEnviado, "error", null) : enDatos(null, MENSAJES.noDisponible);
+  const reserva = await reservarEnvioEnBase(correo, reenvio);
+  // Lo que nadie terminó (pendientes de otros correos que llevan un día quietos): sus usuarios invitados se van, sin esperar.
+  const limpieza = reserva.limpiar.length ? limpiarInvitados(admin, reserva.limpiar) : Promise.resolve();
+
+  let respuesta: RespuestaCodigo;
+  switch (reserva.estado) {
+    case "enviar": {
+      const invitacion = await invitarCorreo(admin, correo);
+      if (invitacion.estado === "tiene_cuenta") respuesta = enDatos("correo", MENSAJES.correoRepetido);
+      else if (invitacion.estado !== "invitado") respuesta = reenvio ? enCodigo(MENSAJES.codigoNoEnviado, "error", null) : enDatos(null, MENSAJES.codigoNoEnviado);
+      // Sin el usuario anotado, la base no dejaría crear la cuenta con ese código: mejor decirlo ahora.
+      else if ((await anotarInvitadoEnBase(correo, invitacion.usuarioWebId)) !== true)
+        respuesta = reenvio ? enCodigo(MENSAJES.codigoNoEnviado, "error", null) : enDatos(null, MENSAJES.codigoNoEnviado);
+      else respuesta = enCodigo(reenvio ? MENSAJES.codigoNuevo : null, "ok", CODIGO_ESPERA_S);
+      break;
+    }
+    case "esperar":
+      // El último código sigue sirviendo: se va (o se queda) en el paso del código.
+      respuesta = enCodigo(reenvio ? mensajeCodigoEsperar(reserva.segundos) : "Ya te mandamos un código hace poco: revisa tu correo.", "aviso", reserva.segundos);
+      break;
+    case "limite":
+      respuesta = enCodigo(mensajeCodigoLimite(reserva.minutos), "aviso", reserva.minutos * 60);
+      break;
+    case "bloqueado":
+      respuesta = reenvio
+        ? enCodigo(mensajeCodigoBloqueado(reserva.minutos), "error", reserva.minutos * 60, "bloqueado")
+        : enDatos(null, mensajeCodigoBloqueado(reserva.minutos));
+      break;
+    case "correo_repetido":
+      respuesta = enDatos("correo", MENSAJES.correoRepetido);
+      break;
+    case "invalido":
+      respuesta = enDatos("correo", MENSAJES.correoMal);
+      break;
+    case "sin_codigo":
+      respuesta = enDatos(null, MENSAJES.codigoSinPedir);
+      break;
+    default:
+      respuesta = reenvio ? enCodigo(MENSAJES.codigoNoEnviado, "error", null) : enDatos(null, MENSAJES.noDisponible);
+  }
+  await limpieza;
+  return respuesta;
+}
+
+/**
+ * «Crear mi cuenta», con el código. El orden seguro: (1) los datos y el nombre, otra vez; (2) la base cuenta el intento ANTES de
+ * probarlo (5 por código; con el quinto, 15 minutos de bloqueo); (3) el proyecto de clientes verifica el código y se le pone la
+ * contraseña; (4) la cuenta en la base, todo o nada (exige el correo pendiente de ESTE usuario). Si (4) dice que no, el usuario de
+ * (3) se borra para no dejarlo suelto, salvo que ya tenga cuenta (un doble envío) o la base no conteste. (5) Entra y va a «Mi
+ * cuenta».
+ */
+export async function confirmarCodigo(entrada: unknown): Promise<RespuestaCodigo> {
+  const leido = esquemaConfirmarCodigo.safeParse(entrada);
+  if (!leido.success) return enDatos(null, MENSAJES.noDisponible);
+  const { registro: r, casilla } = leido.data;
+  const problema = problemaRegistro(r, hoyLima());
+  if (problema) return enDatos(problema.campo, problema.mensaje);
+  const codigo = codigoLimpio(leido.data.codigo);
+  if (!codigoCompleto(codigo)) return enCodigo("Escribe los 6 números del código.", "error", null);
 
   const admin = clienteAdmin();
   const sesion = await clienteSesion();
-  const h = await huellas(r.dni);
-  if (!admin || !sesion || !h?.documento) {
-    console.error(JSON.stringify({ evento: "tienda_cuentas_sin_configurar", admin: !!admin, sesion: !!sesion, huellas: !!h }));
-    return NO_DISPONIBLE;
+  if (!admin || !sesion) {
+    console.error(JSON.stringify({ evento: "tienda_cuentas_sin_configurar", admin: !!admin, sesion: !!sesion }));
+    return enCodigo(MENSAJES.noDisponible, "error", null);
   }
   const correo = normalizarCorreo(r.correo);
-  const celular = celularNormalizado(r.celular);
 
-  // 1. La base revisa antes de crear el usuario (y cuenta el intento).
-  const revision = await revisarRegistroEnBase(correo, r.dni, celular, h.ip, h.documento);
-  if (revision.estado !== "ok") {
-    if (revision.estado === "limite") return { campo: null, mensaje: MENSAJES.limite };
-    if (revision.estado === "correo_repetido") return { campo: "correo", mensaje: MENSAJES.correoRepetido };
-    if (revision.estado === "dni_repetido") return { campo: "dni", mensaje: MENSAJES.dniRepetido };
-    if (revision.estado === "archivada") return { campo: "dni", mensaje: MENSAJES.dniArchivada };
-    if (revision.estado === "invalido") return errorDeRegistro("cuenta_datos_invalidos", revision.campo);
-    return NO_DISPONIBLE;
+  // 1. El nombre (antes de gastar un intento).
+  const nombre = await nombreParaLaCuenta(r);
+  if (!nombre) return enDatos("nombre", "Escribe tus nombres y apellidos, tal como están en tu DNI.");
+
+  // 2. ¿Se puede probar? (Cuenta el intento.)
+  const intento = await intentoDeCodigoEnBase(correo);
+  if (intento.estado === "bloqueado") return enCodigo(mensajeCodigoBloqueado(intento.minutos), "error", intento.minutos * 60, "bloqueado");
+  if (intento.estado === "vencido") return enCodigo(MENSAJES.codigoVencido, "error", 0, "vencido");
+  if (intento.estado === "sin_codigo") return enDatos(null, MENSAJES.codigoSinPedir);
+  if (intento.estado !== "puede") return enCodigo(MENSAJES.codigoNoProbado, "error", null);
+
+  // 3. El código, en el proyecto de clientes.
+  const confirmado = await confirmarCorreo(admin, correo, codigo, r.clave);
+  if (confirmado.estado === "codigo_malo") {
+    // Con el quinto equivocado la base ya dejó el bloqueo: «Pedir otro código» espera esos minutos.
+    return intento.quedan > 0
+      ? enCodigo(mensajeCodigoMalo(intento.quedan), "error", null, "malo")
+      : enCodigo(mensajeCodigoMalo(0), "error", CODIGO_BLOQUEO_MIN * 60, "bloqueado");
   }
-
-  // 2. El nombre.
-  const padron = await buscarNombre(r.dni);
-  const nombre = padron.estado === "encontrado" ? padron.nombre : nombreLimpio(r.nombre);
-  if (nombre.length < 3) return { campo: "nombre", mensaje: "Escribe tus nombres y apellidos, tal como están en tu DNI." };
-
-  // 3. El usuario de inicio de sesión.
-  const usuario = await crearUsuario(admin, correo, r.clave);
-  if ("problema" in usuario) return usuario.problema;
+  if (confirmado.estado !== "confirmado") return enCodigo(MENSAJES.codigoNoProbado, "error", null);
 
   // 4. La cuenta en la base.
   const [dia, mes] = [Number(r.cumple.d), Number(r.cumple.m)];
   const registro = await registrarCuentaEnBase({
-    usuarioWebId: usuario.id,
+    usuarioWebId: confirmado.usuarioWebId,
     correo,
     dni: r.dni,
-    nombre,
-    nombreDelPadron: padron.estado === "encontrado",
-    celular,
+    nombre: nombre.nombre,
+    nombreDelPadron: nombre.delPadron,
+    celular: celularNormalizado(r.celular),
     cumpleDia: dia,
     cumpleMes: mes,
     cumpleAnio: r.cumple.a ? Number(r.cumple.a) : null,
+    mayorDeEdad: r.mayor,
+    avisosWhatsapp: r.avisos,
+    casillaVersion: r.avisos ? casilla : null,
     textos: TEXTOS_VERSION,
   });
   let aviso = "bienvenida";
   if (registro.ok) {
-    aviso = registro.seUnioASuFicha ? "unida" : "bienvenida";
+    aviso = avisoAlCrear(registro.seUnioASuFicha, registro.avisos);
   } else {
-    const quedo = await deshacerUsuario(admin, usuario.id);
-    if (quedo !== "tiene_cuenta") return errorDeRegistro(registro.hint, registro.detalle);
+    const quedo = await borrarSiNoTieneCuenta(admin, confirmado.usuarioWebId, { respetarRecientes: false });
+    if (quedo !== "tiene_cuenta") {
+      if (quedo !== "borrado") console.error(JSON.stringify({ evento: "tienda_usuario_sin_cuenta", usuario_web_id: confirmado.usuarioWebId }));
+      const e = errorDeRegistro(registro.hint, registro.detalle);
+      // El código ya se usó: para cualquier arreglo hace falta otro, así que se vuelve a los datos (con el texto nuevo de los
+      // avisos, si fue eso lo que cambió).
+      if (e.campo === "avisos") return { paso: "datos", campo: "avisos", mensaje: e.mensaje, casilla: await leerCasillaDeAvisos() };
+      return enDatos(e.campo === "codigo" ? null : e.campo, e.mensaje);
+    }
   }
 
   // 5. Entrar. Si el proyecto de clientes no contesta justo ahora, la cuenta igual quedó: que entre con su correo.
@@ -134,37 +285,13 @@ export async function crearCuenta(entrada: unknown): Promise<RespuestaRegistro> 
   redirect(`/cuenta?aviso=${aviso}`);
 }
 
-/** El usuario del proyecto de clientes. Si el correo ya existe ahí pero sin cuenta en la base (un intento anterior que quedó a
- *  medias) y la contraseña es la misma, se usa ese. */
-async function crearUsuario(admin: SupabaseClient, correo: string, clave: string): Promise<{ id: string } | { problema: RespuestaRegistro }> {
-  const creado = await admin.auth.admin.createUser({ email: correo, password: clave, email_confirm: true });
-  if (creado.data.user) return { id: creado.data.user.id };
-  const error = creado.error;
-  if (error && isAuthApiError(error) && (error.code === "email_exists" || error.code === "user_already_exists")) {
-    const suelto = clienteSuelto();
-    const prueba = suelto ? await suelto.auth.signInWithPassword({ email: correo, password: clave }) : null;
-    const id = prueba?.data.user?.id;
-    // Esa sesión solo servía para saber de quién es el usuario: no se deja abierta.
-    if (id) await suelto?.auth.signOut({ scope: "local" }).catch(() => undefined);
-    if (id && (await leerMiCuentaEnBase(id)).estado === "sin_cuenta") return { id };
-    return { problema: { campo: "correo", mensaje: MENSAJES.correoRepetido } };
-  }
-  if (error && isAuthApiError(error) && error.code === "weak_password") return { problema: { campo: "clave", mensaje: MENSAJES.claveAyuda } };
-  console.error(JSON.stringify({ evento: "tienda_crear_usuario_fallo", codigo: error?.code ?? null, estado: error?.status ?? null }));
-  return { problema: NO_DISPONIBLE };
-}
-
-/** Borra el usuario recién creado si la base dice que NO tiene cuenta. Si la tiene, la creó un doble envío: se queda. Si la base
- *  no contesta, no se borra nada (queda anotado; al entrar, la tienda deja crear la cuenta de nuevo). */
-async function deshacerUsuario(admin: SupabaseClient, id: string): Promise<"borrado" | "tiene_cuenta" | "quedo_suelto"> {
-  const cuenta = await leerMiCuentaEnBase(id);
-  if (cuenta.estado === "cuenta") return "tiene_cuenta";
-  if (cuenta.estado === "sin_cuenta") {
-    const { error } = await admin.auth.admin.deleteUser(id);
-    if (!error || error.status === 404) return "borrado";
-  }
-  console.error(JSON.stringify({ evento: "tienda_usuario_sin_cuenta", usuario_web_id: id }));
-  return "quedo_suelto";
+/** El nombre que va a la cuenta: el del padrón (consultado aquí: el del navegador no cuenta) o, si no lo da, el que escribió.
+ *  null si no hay ninguno. */
+async function nombreParaLaCuenta(r: Registro): Promise<{ nombre: string; delPadron: boolean } | null> {
+  const padron = await buscarNombre(r.dni);
+  if (padron.estado === "encontrado") return { nombre: padron.nombre, delPadron: true };
+  const escrito = nombreLimpio(r.nombre);
+  return escrito.length >= 3 ? { nombre: escrito, delPadron: false } : null;
 }
 
 /* ------------------------------------------------------------------ Salir y rehacer */

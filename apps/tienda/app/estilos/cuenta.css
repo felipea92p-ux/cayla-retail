@@ -1,6 +1,6 @@
 /* =====================================================================================================
-   TIENDA ONLINE CAYLA (ADR-0408) · actividad 2: la cuenta (crear, entrar, olvidé mi contraseña, la contraseña nueva,
-   «Mi cuenta», la privacidad y los términos) y el aviso «Listo: …».
+   TIENDA ONLINE CAYLA (ADR-0408) · actividades 2 y 2b: la cuenta (crear, con sus casillas y el código del correo; entrar,
+   olvidé mi contraseña, la contraseña nueva, «Mi cuenta», la privacidad y los términos) y el aviso «Listo: …».
    Sale de la maqueta aprobada (docs/maquetas/tienda-online-2026-10: `.w-ficha`, `.w-campo`, `.w-caja`, `.w-res`…).
    Solo los tokens de app/globals.css: en oscuro se invierten solos.
    ===================================================================================================== */
@@ -19,8 +19,8 @@
 
 /* ---- Cada campo: su título, su marca (✓ Listo · Sigue aquí · Revisa) y lo que dice debajo ---- */
 .w-campo { display: flex; flex-direction: column; gap: 6px; }
-.w-campo > label { font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-.w-marca { font-size: 11.5px; font-weight: 600; color: var(--tinta-60); }
+.w-campo > label, .w-campo > .w-campo-t { font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.w-marca { font-size: 11.5px; font-weight: 600; color: var(--tinta-60); white-space: nowrap; }
 .w-campo[data-estado="hecho"] .w-marca { color: var(--verde); }
 .w-campo[data-estado="sigue"] .w-marca { color: var(--ambar); }
 .w-campo[data-estado="error"] .w-marca { color: var(--rojo-profundo); }
@@ -51,14 +51,28 @@
 .w-club { display: inline-flex; gap: 6px; align-items: center; width: fit-content; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--hueso); }
 .w-club img { width: 16px; height: auto; }
 .w-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.5; cursor: pointer; }
+/* Una casilla se lee en letra normal (maqueta: `.w-campo > label.w-check`); el título de un campo, en seminegrita. */
+.w-campo > label.w-check { font-weight: 400; justify-content: flex-start; align-items: flex-start; }
 .w-check input { width: 20px; height: 20px; accent-color: var(--tinta); margin: 1px 0 0; flex: none; }
 .w-check a { color: var(--tinta); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--taupe); }
 .w-check a:hover { color: var(--rojo-profundo); }
 .w-campo[data-estado="sigue"] .w-check input { outline: 3px solid color-mix(in srgb, var(--ambar) 30%, transparent); outline-offset: 2px; }
+/* Las casillas, juntas: «Soy mayor de 18 años», los términos y los avisos (opcional, con su título y su línea debajo, alineada
+   con el texto de la casilla). */
+.w-casillas { display: flex; flex-direction: column; gap: 14px; }
+.w-avisos { padding-top: 14px; border-top: 1px solid var(--sand); }
+.w-check-res { padding-left: 30px; }
+
+/* ---- El código del correo (actividad 2b) ---- */
+.w-caja.w-codigo { font-size: 24px; letter-spacing: .35em; text-align: center; }
+.w-caja.w-codigo::placeholder { font-size: 15px; letter-spacing: normal; }
+.w-caja.w-codigo::selection { background: color-mix(in srgb, var(--ambar) 28%, transparent); color: var(--tinta); }
+.w-codigo-acc .w-enlace { align-self: flex-start; padding: 2px 0; font-size: 13px; }
 
 /* ---- Enlaces y el pie del formulario ---- */
 .w-enlace { border: 0; background: none; padding: 6px 0; font: inherit; color: var(--rojo-profundo); text-decoration: underline; text-underline-offset: 2px; font-size: 13.5px; font-weight: 500; align-self: center; cursor: pointer; }
 .w-enlace:hover { color: var(--tinta); }
+.w-enlace:disabled { color: var(--tinta-60); text-decoration: none; cursor: default; }
 .w-res .w-enlace { align-self: flex-start; padding: 2px 0; }
 .w-enlace-izq { align-self: flex-start; }
 .w-texto-sec .w-enlace { padding: 0; }
@@ -78,6 +92,8 @@
 .t-cuenta-cab .t-tarjeta-club { justify-self: start; max-width: 340px; }
 .t-cuenta-cab .t-enlace { justify-self: start; }
 .t-cuenta-cab form { display: contents; }
+/* Una nota que se queda (los avisos que no se activaron al crear la cuenta): hueso, como las notas del ERP. */
+.w-nota { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--hueso); color: var(--tinta); font-size: 13px; line-height: 1.5; max-width: 52ch; }
 
 /* ---- La privacidad y los términos ---- */
 .w-borrador { display: inline-flex; align-items: center; gap: 6px; width: fit-content; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ambar); padding: 4px 10px; border-radius: 999px; border: 1px dashed var(--ambar); }

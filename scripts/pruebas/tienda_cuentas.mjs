@@ -1,32 +1,42 @@
 #!/usr/bin/env node
 /**
- * Las cuentas de la tienda online (ADR-0408, actividad 2) contra el Postgres local — CAYLA V2.
+ * Las cuentas de la tienda online (ADR-0408, actividades 2 y 2b) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. `20261014223000_tienda_cuentas_parte1_clientas.sql` y `20261014224000_tienda_cuentas_parte2_cuentas_web.sql`:
- *   1. Estructura: `cuentas_web` con RLS y sin políticas ni permisos para nadie (tampoco `tienda_web`); las seis funciones
- *      `tienda_*` de la cuenta son security definer, solo las ejecuta `tienda_web`; el ayudante del correo, nadie de la API.
+ *   1. Estructura: `cuentas_web` y `cuentas_web_pendientes` con RLS y sin políticas ni permisos para nadie (tampoco
+ *      `tienda_web`); las diez funciones `tienda_*` de la cuenta son security definer y solo las ejecuta `tienda_web`; el
+ *      ayudante del correo, nadie de la API. `club_permisos` conoce el medio `tienda_web` solo para que ELLA otorgue la
+ *      publicidad citando la casilla (ni el club, ni registrada por otro, ni con otro texto).
  *   2. Mientras se escribe: `tienda_consultar_correo` y `tienda_consultar_documento` dicen libre / repetido / archivada /
  *      del club, cuentan un intento de consulta (y uno inválido no lo cuenta) y frenan a los 20 por ip y hora.
- *   3. Antes de crear el usuario: `tienda_revisar_registro` cuenta un intento de registro, frena por ip (5), documento (3) y
+ *   3. Antes de mandar el código: `tienda_revisar_registro` cuenta un intento de registro, frena por ip (5), documento (3) y
  *      celular (3), y dice si el correo o el DNI ya tienen cuenta o si la ficha está archivada.
- *   4. `tienda_registrar_cuenta`: con un DNI nuevo crea la ficha (origen web, socia con código, celular normalizado,
- *      cumpleaños como el Club, sin persona) y la cuenta, y anota la actividad sin datos suyos; con una ficha que existe se une
- *      a ella sin pisar lo que tiene (solo el nombre del padrón reemplaza); y rechaza con su hint —sin escribir NADA— un correo
- *      o un DNI repetidos, el mismo usuario dos veces, una ficha archivada, un menor de 18, un cumpleaños imposible, un
- *      celular que no es, sin aceptar los términos o sin nombre.
- *   5. `tienda_mi_cuenta` y `tienda_club_beneficios` devuelven lo que la página muestra; como `tienda_web`, todo el camino
- *      funciona y las tablas se niegan.
- *   6. Las dos partes se pueden pegar dos veces.
+ *   4. El código (actividad 2b): `tienda_reservar_envio` deja mandar uno, después pide esperar 60 s, frena a los 5 por hora y
+ *      durante un bloqueo, solo reenvía a un correo que ya pidió el suyo, y limpia lo que lleva un día sin moverse;
+ *      `tienda_anotar_invitado` guarda el usuario invitado; `tienda_intento_de_codigo` deja probar 5 veces (el quinto deja el
+ *      bloqueo de 15 minutos, y después ese código ya no sirve), y dice cuándo venció.
+ *   5. `tienda_registrar_cuenta`: SIN el código confirmado de ese correo y ese usuario, no hay cuenta (`cuenta_sin_codigo`);
+ *      sin «Soy mayor de 18 años», tampoco. Con un DNI nuevo crea la ficha (origen web, socia con código, celular normalizado,
+ *      cumpleaños como el Club, sin persona) y la cuenta, se lleva el pendiente y anota la actividad sin datos suyos; con una
+ *      ficha que existe se une a ella sin pisar lo que tiene; con los avisos por WhatsApp anota el permiso de publicidad del
+ *      Club con origen web (y no si su ficha tiene otro celular, o si el texto de la casilla cambió); y rechaza con su hint
+ *      —sin escribir NADA— un correo o un DNI repetidos, el mismo usuario dos veces, una ficha archivada, un menor de 18, un
+ *      cumpleaños imposible, un celular que no es, sin aceptar los términos o sin nombre.
+ *   6. `tienda_mi_cuenta`, `tienda_club_beneficios` y `tienda_casilla_whatsapp` devuelven lo que la página muestra; como
+ *      `tienda_web`, todo el camino funciona (código incluido) y las tablas se niegan.
+ *   7. Las dos partes se pueden pegar dos veces.
  *
- * CÓMO. Cada escenario en su transacción con ROLLBACK: crea sus fichas (DNI 0999xxxx, que el seed no usa) y sus intentos
- * (huellas «zz-…» de esta corrida), y nada queda en el Postgres local que comparten los worktrees. Para actuar como
- * `tienda_web`, quien corre la prueba se da ese rol dentro de la transacción (se revierte).
+ * CÓMO. Cada escenario en su transacción con ROLLBACK: crea sus fichas (DNI 0999xxxx, que el seed no usa), sus pendientes y sus
+ * intentos (huellas «zz-…» de esta corrida), y nada queda en el Postgres local que comparten los worktrees. Para actuar como
+ * `tienda_web`, quien corre la prueba se da ese rol dentro de la transacción (se revierte). Para crear una cuenta, cada
+ * escenario deja antes el pendiente de su correo con un código ya probado (`pg_temp.con_codigo`), como lo dejaría el servidor
+ * después de que el proyecto de clientes verificó el código.
  *
  * PROBAR ANTES DE APLICAR. `APLICAR_ANTES=1` mete las dos partes dentro de cada transacción (que se revierte). Sin la variable,
- * prueba lo que la base ya tiene (lo que hace el CI).
+ * prueba lo que la base ya tiene (lo que hace el CI). `APLICAR_ANTES=<parte1>,<parte2>` prueba otras (una copia rota a propósito).
  *
- * DA POR SENTADO: el rol `tienda_web` (20261014220000), las funciones del club (`club_intento`, `fn_club_codigo_nuevo`,
- * `fn_club_textos_legales`, ADR-0288) y ninguna ficha con DNI 0999xxxx.
+ * DA POR SENTADO: el rol `tienda_web` (20261014220000), las funciones y los textos del club (`club_intento`,
+ * `fn_club_codigo_nuevo`, `fn_club_textos_legales`, `casilla_publicidad`; ADR-0288) y ninguna ficha con DNI 0999xxxx.
  *
  * USO
  *   pnpm pruebas:tienda-cuentas    → necesita el stack local (`npx supabase start`)
@@ -43,8 +53,6 @@ const MIGRACIONES = [
   "supabase/migrations/20261014223000_tienda_cuentas_parte1_clientas.sql",
   "supabase/migrations/20261014224000_tienda_cuentas_parte2_cuentas_web.sql",
 ];
-// `APLICAR_ANTES=1` aplica las dos partes del repo; `APLICAR_ANTES=<parte1>,<parte2>`, otras (p. ej. una copia rota a propósito,
-// para ver que la prueba muerde).
 const ANTES = process.env.APLICAR_ANTES ?? "";
 const APLICAR_ANTES = ANTES ? (ANTES === "1" ? MIGRACIONES : ANTES.split(",")).map((m) => readFileSync(m.trim(), "utf8")).join("\n") : "";
 
@@ -84,8 +92,11 @@ const CORRIDA = Date.now().toString(36);
 let n = 0;
 /** Una huella de ip (o de documento) de esta corrida: no choca con intentos reales de la última hora. */
 const huella = (que = "ip") => `zz-${que}-${CORRIDA}-${++n}`;
+const correoNuevo = (que = "c") => `zz.${que}.${CORRIDA}.${++n}@ejemplo.com`;
 const DNI = { nuevo: "09990001", caja: "09990002", socia: "09990003", archivada: "09990004", vacia: "09990005", otro: "09990006" };
 const TEXTOS = "borrador-2026-10-14";
+/** La versión vigente de la casilla de WhatsApp, como la manda la tienda (una expresión SQL). */
+const CASILLA = "(select max(t.version) from retail.club_textos t where t.tipo = 'casilla_publicidad')";
 
 // Cada escenario parte con sus fichas a mano: una de caja (sin club), una socia, una archivada y una sin celular ni cumpleaños.
 const PREPARAR = `
@@ -116,13 +127,30 @@ exception when others then
   get stacked diagnostics v_estado = returned_sqlstate, v_hint = pg_exception_hint, v_detalle = pg_exception_detail;
   return v_estado || '|' || coalesce(v_hint, '') || '|' || coalesce(v_detalle, '');
 end $f$;
+-- Lo que deja el servidor después de que el proyecto de clientes verificó el código: el pendiente de ese correo, con el usuario
+-- invitado y un intento hecho. Después, la llamada.
+create function pg_temp.con_codigo(p_correo text, p_usuario uuid, p_llamada text, p_intentos integer) returns jsonb language plpgsql as $f$
+declare v jsonb;
+begin
+  if retail.fn_cuenta_web_correo(p_correo) is not null then
+    insert into retail.cuentas_web_pendientes (correo, usuario_web_id, envios, primer_envio_en, ultimo_envio_en, vence_en, intentos)
+    values (retail.fn_cuenta_web_correo(p_correo), p_usuario, 1, now(), now(), now() + interval '30 minutes', p_intentos)
+    on conflict (correo) do update set usuario_web_id = excluded.usuario_web_id, intentos = excluded.intentos, vence_en = excluded.vence_en;
+  end if;
+  execute p_llamada into v;
+  return v;
+end $f$;
 `;
 
-/** La llamada a tienda_registrar_cuenta con lo de un registro bueno, cambiando lo que se pida. Literales: va dentro de $q$. */
+/**
+ * La llamada a tienda_registrar_cuenta con lo de un registro bueno, cambiando lo que se pida. `expr` es una expresión (para
+ * `select (…) as r`) y `sql` una sentencia (para `pg_temp.intento($q$…$q$)`). Por defecto, con su código confirmado; con
+ * `sinCodigo`, sin pendiente; con `codigoDe`, el pendiente es de OTRO usuario; con `intentosDelCodigo: 0`, nadie probó el código.
+ */
 function registrar(cambios = {}) {
   const d = {
     usuario: randomUUID(),
-    correo: `zz.${CORRIDA}.${++n}@ejemplo.com`,
+    correo: correoNuevo(),
     dni: DNI.nuevo,
     nombre: "Lucía Fernanda Pérez Salas",
     padron: true,
@@ -131,19 +159,31 @@ function registrar(cambios = {}) {
     mes: 10,
     anio: 1995,
     acepta: true,
+    mayor: true,
+    avisos: false,
+    casilla: "null",
     textos: TEXTOS,
+    sinCodigo: false,
+    codigoDe: null,
+    intentosDelCodigo: 1,
     ...cambios,
   };
   const t = (v) => (v === null ? "null" : `'${String(v).replace(/'/g, "''")}'`);
   const num = (v) => (v === null ? "null" : String(v));
-  return {
-    d,
-    sql: `select retail.tienda_registrar_cuenta(${d.usuario === null ? "null" : `'${d.usuario}'`}::uuid, ${t(d.correo)}, ${t(d.dni)}, ${t(d.nombre)}, ${d.padron}, ${t(d.celular)}, ${num(d.dia)}, ${num(d.mes)}, ${num(d.anio)}, ${d.acepta}, ${t(d.textos)})`,
-  };
+  const uuid = (v) => (v === null ? "null" : `'${v}'`);
+  const llamada = `select retail.tienda_registrar_cuenta(${uuid(d.usuario)}::uuid, ${t(d.correo)}, ${t(d.dni)}, ${t(d.nombre)}, ${d.padron}, ${t(d.celular)}, ${num(d.dia)}, ${num(d.mes)}, ${num(d.anio)}, ${d.acepta}, ${d.mayor}, ${d.avisos}, ${num(d.casilla)}, ${t(d.textos)})`;
+  const expr = d.sinCodigo
+    ? `(${llamada})`
+    : `pg_temp.con_codigo(${t(d.correo)}, ${uuid(d.codigoDe ?? d.usuario)}::uuid, $r$${llamada}$r$, ${d.intentosDelCodigo})`;
+  return { d, expr, sql: `select ${expr}` };
 }
-const RECUENTO = `(select count(*) from retail.clientas where documento_numero like '0999%') || ':' || (select count(*) from retail.cuentas_web) || ':' || (select count(*) from retail.actividad where accion = 'registro_web')`;
-/** Corre una llamada sin que su resultado salga en la salida (la guarda en una variable de psql que nadie lee). */
-const callado = (sql) => `select (${sql}) as _ignorar \\gset`;
+const RECUENTO = `(select count(*) from retail.clientas where documento_numero like '0999%') || ':' || (select count(*) from retail.cuentas_web) || ':' || (select count(*) from retail.actividad where accion = 'registro_web') || ':' || (select count(*) from retail.club_permisos where medio = 'tienda_web')`;
+/** Corre una expresión sin que su resultado salga en la salida (la guarda en una variable de psql que nadie lee). */
+const callado = (expr) => `select (${expr}) as _ignorar \\gset`;
+/** El pendiente de un correo, en una línea: envíos|intentos|bloqueado|vence en 30 min|usuario. */
+const PENDIENTE = (correo) => `(select p.envios || '|' || p.intentos || '|' || coalesce(p.bloqueado_hasta > now(), false)::text || '|' ||
+  (p.vence_en between now() + interval '29 minutes' and now() + interval '31 minutes')::text || '|' || coalesce(p.usuario_web_id::text, '-')
+  from retail.cuentas_web_pendientes p where p.correo = '${correo}')`;
 
 function main() {
   const base = correr("select 1;");
@@ -151,8 +191,8 @@ function main() {
     console.error(`No hay Postgres local en el contenedor ${CONTENEDOR_LOCAL}. Levántalo con: npx supabase start`);
     process.exit(2);
   }
-  if (!APLICAR_ANTES && correr("select to_regclass('retail.cuentas_web') is not null;").salida !== "t") {
-    console.error(`Falta retail.cuentas_web: aplica ${MIGRACIONES.join(" y ")} o corre con APLICAR_ANTES=1`);
+  if (!APLICAR_ANTES && correr("select to_regclass('retail.cuentas_web_pendientes') is not null;").salida !== "t") {
+    console.error(`Falta retail.cuentas_web_pendientes: aplica ${MIGRACIONES.join(" y ")} o corre con APLICAR_ANTES=1`);
     process.exit(2);
   }
   const preparado = correr(`${PREPARAR}select 'listo';\nrollback;`);
@@ -163,35 +203,40 @@ function main() {
 
   console.log("— Estructura —");
   esperarValor(
-    "cuentas_web tiene RLS, ninguna política y ningún permiso para public, anon, authenticated ni tienda_web",
+    "cuentas_web y cuentas_web_pendientes tienen RLS, ninguna política y ningún permiso para public, anon, authenticated ni tienda_web",
     correr(`${PREPARAR}
-      select c.relrowsecurity::text || '|' || (select count(*) from pg_policy p where p.polrelid = c.oid) || '|' ||
+      select string_agg(c.relname || ':' || c.relrowsecurity::text || ':' || (select count(*) from pg_policy p where p.polrelid = c.oid) || ':' ||
              (has_table_privilege('anon', c.oid, 'SELECT, INSERT, UPDATE, DELETE') or has_table_privilege('authenticated', c.oid, 'SELECT, INSERT, UPDATE, DELETE')
               or has_table_privilege('tienda_web', c.oid, 'SELECT, INSERT, UPDATE, DELETE')
-              or has_table_privilege('public', c.oid, 'SELECT, INSERT, UPDATE, DELETE'))::text
-        from pg_class c where c.oid = 'retail.cuentas_web'::regclass;
+              or has_table_privilege('public', c.oid, 'SELECT, INSERT, UPDATE, DELETE'))::text, ',' order by c.relname)
+        from pg_class c where c.oid in ('retail.cuentas_web'::regclass, 'retail.cuentas_web_pendientes'::regclass);
       rollback;`),
-    "true|0|false",
+    "cuentas_web:true:0:false,cuentas_web_pendientes:true:0:false",
   );
   const FUNCIONES = [
     "tienda_consultar_correo(text,text)",
     "tienda_consultar_documento(text,text,text)",
     "tienda_revisar_registro(text,text,text,text,text)",
-    "tienda_registrar_cuenta(uuid,text,text,text,boolean,text,integer,integer,integer,boolean,text)",
+    "tienda_reservar_envio(text,boolean)",
+    "tienda_anotar_invitado(text,uuid)",
+    "tienda_intento_de_codigo(text)",
+    "tienda_registrar_cuenta(uuid,text,text,text,boolean,text,integer,integer,integer,boolean,boolean,boolean,integer,text)",
     "tienda_mi_cuenta(uuid)",
     "tienda_club_beneficios()",
+    "tienda_casilla_whatsapp()",
   ];
   esperarValor(
-    "las seis funciones de la cuenta: security definer, con su search_path, solo para tienda_web",
+    "las diez funciones de la cuenta: security definer, con su search_path, solo para tienda_web (y no queda la firma vieja de tienda_registrar_cuenta)",
     correr(`${PREPARAR}
       select string_agg(f || ':' || (p.prosecdef and exists (select 1 from unnest(p.proconfig) x where x like 'search\\_path=%'))::text || ':' ||
              has_function_privilege('tienda_web', p.oid, 'EXECUTE')::text || ':' ||
              (has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE')
-              or has_function_privilege('public', p.oid, 'EXECUTE'))::text, ',' order by f)
+              or has_function_privilege('public', p.oid, 'EXECUTE'))::text, ',' order by f collate "C")
         from unnest(array[${FUNCIONES.map((f) => `'${f}'`).join(", ")}]) f
         join pg_proc p on p.oid = ('retail.' || f)::regprocedure;
+      select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'tienda_registrar_cuenta';
       rollback;`),
-    [...FUNCIONES].sort().map((f) => `${f}:true:true:false`).join(","),
+    `${[...FUNCIONES].sort().map((f) => `${f}:true:true:false`).join(",")}\n1`,
   );
   esperarValor(
     "el ayudante del correo no lo ejecuta nadie de la API (tampoco tienda_web)",
@@ -209,6 +254,22 @@ function main() {
              split_part(pg_temp.intento($q$update retail.clientas set registro_origen = 'tienda' where documento_numero = '${DNI.vacia}'$q$), '|', 1);
       rollback;`),
     "ok#23514",
+  );
+  // El medio de la tienda solo sirve para que ella otorgue la publicidad citando la casilla, sin quién la registró.
+  const permiso = (finalidad, texto, registradoPor) =>
+    `split_part(pg_temp.intento($q$insert into retail.club_permisos (clienta_id, finalidad, accion, medio, texto_tipo, texto_version, registrado_por)
+       select c.id, '${finalidad}', 'otorga', 'tienda_web', '${texto}', (select max(t.version) from retail.club_textos t where t.tipo = '${texto}'), ${registradoPor}
+         from retail.clientas c where c.documento_numero = '${DNI.caja}'$q$), '|', 1)`;
+  esperarValor(
+    "club_permisos con medio tienda_web: la publicidad que ella otorga con la casilla, sí; el club, otro texto o registrada por alguien, no",
+    correr(`${PREPARAR}
+      update retail.clientas set club_desde = now(), codigo_club = retail.fn_club_codigo_nuevo() where id = :'caja';
+      select ${permiso("publicidad_whatsapp", "casilla_publicidad", "null")} || ',' ||
+             ${permiso("club", "terminos", "null")} || ',' ||
+             ${permiso("publicidad_whatsapp", "terminos", "null")} || ',' ||
+             ${permiso("publicidad_whatsapp", "casilla_publicidad", "'22222222-2222-4222-8222-000000000001'::uuid")};
+      rollback;`),
+    "ok,23514,23514,23514",
   );
 
   console.log("— Mientras se escribe: el correo y el DNI —");
@@ -232,13 +293,12 @@ function main() {
       rollback;`),
     "invalido,invalido,invalido,invalido,invalido|0",
   );
-  const ip3 = huella();
   const r1 = registrar({ correo: "zz.ana.repetida@ejemplo.com" });
   esperarValor(
     "un correo que ya tiene cuenta: «repetido» (sin importar mayúsculas ni espacios)",
     correr(`${PREPARAR}
-      ${callado(r1.sql)}
-      select retail.tienda_consultar_correo('  ZZ.Ana.Repetida@Ejemplo.COM', '${ip3}') ->> 'estado';
+      ${callado(r1.expr)}
+      select retail.tienda_consultar_correo('  ZZ.Ana.Repetida@Ejemplo.COM', '${huella()}') ->> 'estado';
       rollback;`),
     "repetido",
   );
@@ -279,13 +339,13 @@ function main() {
       select (retail.tienda_consultar_documento('1234567', '${ip7}', 'zz-d') ->> 'estado') || '|' ||
              (retail.tienda_consultar_documento('ABCDEFGH', '${ip7}', 'zz-d') ->> 'estado') as estados \\gset
       select :'estados' || '|' || (select count(*) from retail.club_intentos_registro where ip_hash = '${ip7}');
-      ${callado(registrar({ dni: DNI.socia }).sql)}
+      ${callado(registrar({ dni: DNI.socia }).expr)}
       select retail.tienda_consultar_documento('${DNI.socia}', '${ip7}', 'zz-d') ->> 'estado';
       rollback;`),
     "invalido|invalido|0\nrepetido",
   );
 
-  console.log("— Antes de crear el usuario: tienda_revisar_registro —");
+  console.log("— Antes de mandar el código: tienda_revisar_registro —");
   const revisar = (correo, dni, celular, ip, doc) =>
     `retail.tienda_revisar_registro(${correo === null ? "null" : `'${correo}'`}, '${dni}', '${celular}', '${ip}', '${doc}')`;
   const ip8 = huella();
@@ -310,15 +370,14 @@ function main() {
       rollback;`),
     "correo,dni,celular|0",
   );
-  const ip10 = huella();
   const r10 = registrar({ correo: "zz.tomado@ejemplo.com", dni: DNI.socia });
   esperarValor(
     "correo con cuenta: «correo_repetido»; DNI con cuenta: «dni_repetido»; ficha archivada: «archivada»",
     correr(`${PREPARAR}
-      ${callado(r10.sql)}
+      ${callado(r10.expr)}
       select (${revisar("ZZ.Tomado@ejemplo.com", DNI.nuevo, "987654321", huella(), "zz-a")} ->> 'estado') || ',' ||
              (${revisar("libre@ejemplo.com", DNI.socia, "987654321", huella(), "zz-b")} ->> 'estado') || ',' ||
-             (${revisar("libre@ejemplo.com", DNI.archivada, "987654321", ip10, "zz-c")} ->> 'estado');
+             (${revisar("libre@ejemplo.com", DNI.archivada, "987654321", huella(), "zz-c")} ->> 'estado');
       rollback;`),
     "correo_repetido,dni_repetido,archivada",
   );
@@ -338,30 +397,164 @@ function main() {
     "limite,limite,limite,ok",
   );
 
+  console.log("— El código: mandarlo, reenviarlo y probarlo —");
+  const reservar = (correo) => `retail.tienda_reservar_envio('${correo}', false)`;
+  const reenviar = (correo) => `retail.tienda_reservar_envio('${correo}', true)`;
+  const c1 = correoNuevo("envio");
+  const u1 = randomUUID();
+  esperarValor(
+    "el primero se manda: anota 1 envío, vence en 30 minutos, 0 intentos; y guarda el usuario invitado",
+    correr(`${PREPARAR}
+      select ${reservar(c1)} ->> 'estado' as e1 \\gset
+      select retail.tienda_anotar_invitado('${c1.toUpperCase()}', '${u1}') as anotado \\gset
+      select :'e1' || '#' || :'anotado' || '#' || ${PENDIENTE(c1)};
+      select retail.tienda_anotar_invitado('${correoNuevo("nadie")}', '${u1}')::text;
+      rollback;`),
+    `enviar#t#1|0|false|true|${u1}\nfalse`,
+  );
+  esperarValor(
+    "reenviar enseguida: «esperar» (los segundos que faltan, hasta 60); pasado el minuto, sale y devuelve el usuario de antes",
+    correr(`${PREPARAR}
+      select ${reservar(c1)} ->> 'estado' as e1 \\gset
+      select retail.tienda_anotar_invitado('${c1}', '${u1}') as _a \\gset
+      select ${reenviar(c1)} as r2 \\gset
+      update retail.cuentas_web_pendientes set ultimo_envio_en = now() - interval '61 seconds' where correo = '${c1}';
+      select ${reenviar(c1)} as r3 \\gset
+      select (:'r2'::jsonb ->> 'estado') || '|' || ((:'r2'::jsonb ->> 'segundos')::int between 1 and 60)::text || '#' ||
+             (:'r3'::jsonb ->> 'estado') || '|' || (:'r3'::jsonb ->> 'usuario_web_id') || '#' || ${PENDIENTE(c1)};
+      rollback;`),
+    `esperar|true#enviar|${u1}#2|0|false|true|${u1}`,
+  );
+  const c4 = correoNuevo("ajeno");
+  esperarValor(
+    "reenviar solo sirve para un correo que ya pidió su código (nadie manda códigos a correos ajenos sin los topes del registro): sin pedirlo, o pedido hace más de un día, «sin_codigo» y no se anota nada",
+    correr(`${PREPARAR}
+      select ${reenviar(c4)} ->> 'estado' as e1 \\gset
+      select (select count(*) from retail.cuentas_web_pendientes where correo = '${c4}') as n1 \\gset
+      select ${reservar(c1)} as _r \\gset
+      update retail.cuentas_web_pendientes set ultimo_envio_en = now() - interval '25 hours', creado_en = now() - interval '25 hours' where correo = '${c1}';
+      select ${reenviar(c1)} ->> 'estado' as e2 \\gset
+      select :'e1' || '|' || :'n1' || '#' || :'e2' || '|' || coalesce((select envios from retail.cuentas_web_pendientes where correo = '${c1}'), -1);
+      rollback;`),
+    "sin_codigo|0#sin_codigo|1",
+  );
+  esperarValor(
+    "5 códigos en la hora: el sexto, «limite»; pasada la hora, se cuenta de nuevo desde 1",
+    correr(`${PREPARAR}
+      select ${reservar(c1)} as _r \\gset
+      update retail.cuentas_web_pendientes set envios = 5, primer_envio_en = now() - interval '20 minutes',
+             ultimo_envio_en = now() - interval '2 minutes' where correo = '${c1}';
+      select ${reservar(c1)} as r1 \\gset
+      update retail.cuentas_web_pendientes set primer_envio_en = now() - interval '61 minutes' where correo = '${c1}';
+      select ${reservar(c1)} ->> 'estado' as e2 \\gset
+      select (:'r1'::jsonb ->> 'estado') || '|' || ((:'r1'::jsonb ->> 'minutos')::int between 1 and 41)::text || '#' || :'e2' || '#' ||
+             (select envios from retail.cuentas_web_pendientes where correo = '${c1}');
+      rollback;`),
+    "limite|true#enviar#1",
+  );
+  esperarValor(
+    "a un correo que ya tiene cuenta no se le manda código; a uno mal escrito, tampoco (y no se anota nada)",
+    correr(`${PREPARAR}
+      ${callado(registrar({ correo: "zz.ya.tiene@ejemplo.com" }).expr)}
+      select (${reservar("ZZ.Ya.Tiene@ejemplo.com")} ->> 'estado') || '|' || (${reservar("ana@")} ->> 'estado') || '|' ||
+             (select count(*) from retail.cuentas_web_pendientes where correo in ('zz.ya.tiene@ejemplo.com', 'ana@'));
+      rollback;`),
+    "correo_repetido|invalido|0",
+  );
+  const c2 = correoNuevo("viejo");
+  const u2 = randomUUID();
+  const c3 = correoNuevo("mismo");
+  const u3 = randomUUID();
+  const c5 = correoNuevo("activo");
+  const u5 = randomUUID();
+  esperarValor(
+    "lo que lleva un día sin moverse se limpia solo: el pendiente viejo de otro correo se va y su usuario vuelve para borrarlo (no el de quien pidió un código hace poco, aunque empezó hace más de un día); el de este correo empieza de cero y conserva su usuario",
+    correr(`${PREPARAR}
+      insert into retail.cuentas_web_pendientes (correo, usuario_web_id, envios, primer_envio_en, ultimo_envio_en, vence_en, intentos, creado_en)
+      values ('${c2}', '${u2}', 3, now() - interval '2 days', now() - interval '2 days', now() - interval '2 days', 2, now() - interval '2 days'),
+             ('${c3}', '${u3}', 5, now() - interval '2 days', now() - interval '2 days', now() - interval '2 days', 5, now() - interval '2 days'),
+             ('${c5}', '${u5}', 1, now() - interval '5 minutes', now() - interval '5 minutes', now() + interval '25 minutes', 0, now() - interval '2 days');
+      select ${reservar(c3)} as r \\gset
+      select (:'r'::jsonb ->> 'estado') || '|' || (:'r'::jsonb ->> 'usuario_web_id') || '|' || (:'r'::jsonb -> 'limpiar' @> to_jsonb('${u2}'::text))::text || '|' ||
+             (jsonb_array_length(:'r'::jsonb -> 'limpiar') >= 1)::text || '|' || (not (:'r'::jsonb -> 'limpiar' @> to_jsonb('${u5}'::text)))::text || '|' ||
+             (select count(*) from retail.cuentas_web_pendientes where correo = '${c2}') || '|' ||
+             (select count(*) from retail.cuentas_web_pendientes where correo = '${c5}') || '#' || ${PENDIENTE(c3)};
+      rollback;`),
+    `enviar|${u3}|true|true|true|0|1#1|0|false|true|${u3}`,
+  );
+  const intento = (correo) => `retail.tienda_intento_de_codigo('${correo}')`;
+  esperarValor(
+    "sin código pedido: «sin_codigo»; con uno, 5 intentos (quedan 4, 3, 2, 1, 0), y el quinto deja 15 minutos de bloqueo: ni otro código ni otro intento; pasado el bloqueo, ese código ya no sirve («vencido») y uno nuevo sí",
+    correr(`${PREPARAR}
+      select (${intento(c1)} ->> 'estado') as e0 \\gset
+      select ${reservar(c1)} as _r \\gset
+      select (${intento(c1)} ->> 'quedan') as q1 \\gset
+      select (${intento(c1)} ->> 'quedan') as q2 \\gset
+      select (${intento(c1)} ->> 'quedan') as q3 \\gset
+      select (${intento(c1)} ->> 'quedan') as q4 \\gset
+      select (${intento(c1)} ->> 'quedan') as q5 \\gset
+      select ${reenviar(c1)} as r6 \\gset
+      select ${intento(c1)} as r7 \\gset
+      update retail.cuentas_web_pendientes set bloqueado_hasta = now() - interval '1 second', ultimo_envio_en = now() - interval '16 minutes' where correo = '${c1}';
+      select (${intento(c1)} ->> 'estado') as e8 \\gset
+      select (${reenviar(c1)} ->> 'estado') as e9 \\gset
+      select :'e0' || '#' || :'q1' || ',' || :'q2' || ',' || :'q3' || ',' || :'q4' || ',' || :'q5' || '#' ||
+             (:'r6'::jsonb ->> 'estado') || '|' || ((:'r6'::jsonb ->> 'minutos')::int between 14 and 15)::text || '#' ||
+             (:'r7'::jsonb ->> 'estado') || '|' || ((:'r7'::jsonb ->> 'minutos')::int between 14 and 15)::text || '#' ||
+             :'e8' || '#' || :'e9' || '|' || (${intento(c1)} ->> 'quedan');
+      rollback;`),
+    "sin_codigo#4,3,2,1,0#bloqueado|true#bloqueado|true#vencido#enviar|4",
+  );
+  esperarValor(
+    "el código vence: pasados los 30 minutos, «vencido» (y con uno nuevo se puede probar otra vez)",
+    correr(`${PREPARAR}
+      select ${reservar(c1)} as _r \\gset
+      update retail.cuentas_web_pendientes set vence_en = now() - interval '1 second' where correo = '${c1}';
+      select (${intento(c1)} ->> 'estado') as e1 \\gset
+      update retail.cuentas_web_pendientes set ultimo_envio_en = now() - interval '61 seconds' where correo = '${c1}';
+      select (${reservar(c1)} ->> 'estado') as e2 \\gset
+      select :'e1' || '|' || :'e2' || '|' || (${intento(c1)} ->> 'estado');
+      rollback;`),
+    "vencido|enviar|puede",
+  );
+
   console.log("— tienda_registrar_cuenta —");
+  const rCod = registrar({ sinCodigo: true });
+  const rOtro = registrar({ codigoDe: randomUUID() });
+  const rSinProbar = registrar({ intentosDelCodigo: 0 });
+  esperarValor(
+    "sin código no hay cuenta: sin pendiente, con el pendiente de OTRO usuario o sin haber probado el código → cuenta_sin_codigo, y nada se escribe",
+    correr(`${PREPARAR}
+      select ${RECUENTO} as antes \\gset
+      select pg_temp.intento($q$${rCod.sql}$q$) || '#' || pg_temp.intento($q$${rOtro.sql}$q$) || '#' || pg_temp.intento($q$${rSinProbar.sql}$q$)
+             || '#' || ((${RECUENTO}) = :'antes')::text;
+      rollback;`),
+    "P0001|cuenta_sin_codigo|codigo#P0001|cuenta_sin_codigo|codigo#P0001|cuenta_sin_codigo|codigo#true",
+  );
   const r20 = registrar({ correo: " Lucia.Perez@Ejemplo.com " });
   esperarValor(
-    "DNI nuevo: crea la ficha (origen web, socia con código, celular normalizado, cumpleaños, correo, sin persona ni tienda) y la cuenta",
+    "DNI nuevo: crea la ficha (origen web, socia con código, celular normalizado, cumpleaños, correo, sin persona ni tienda) y la cuenta, y se lleva el pendiente",
     correr(`${PREPARAR}
-      select (${r20.sql}) as r \\gset
+      select (${r20.expr}) as r \\gset
       select (:'r'::jsonb ->> 'era_del_club') || '|' || (:'r'::jsonb ->> 'se_unio_a_su_ficha') || '|' || (:'r'::jsonb ->> 'nombre_corto') || '|' ||
-             ((:'r'::jsonb ->> 'codigo_club') ~ '^C-[0-9]{4,}$')::text;
+             ((:'r'::jsonb ->> 'codigo_club') ~ '^C-[0-9]{4,}$')::text || '|' || (:'r'::jsonb ->> 'avisos_whatsapp');
       select c.nombre || '|' || c.telefono_whatsapp || '|' || c.cumple_dia || '/' || c.cumple_mes || '/' || c.cumple_anio || '|' ||
              c.correo || '|' || c.registro_origen || '|' || (c.created_por is null)::text || '|' || (c.club_ubicacion_id is null)::text || '|' ||
              (c.publicidad_desde is null)::text || '|' || (c.club_desde = now())::text || '|' || (c.codigo_club = :'r'::jsonb ->> 'codigo_club')::text
         from retail.clientas c where c.documento_numero = '${DNI.nuevo}';
       select w.correo || '|' || (w.usuario_web_id = '${r20.d.usuario}')::text || '|' || w.textos_aceptados || '|' ||
-             (w.clienta_id = (select id from retail.clientas where documento_numero = '${DNI.nuevo}'))::text
+             (w.clienta_id = (select id from retail.clientas where documento_numero = '${DNI.nuevo}'))::text || '|' ||
+             (select count(*) from retail.cuentas_web_pendientes where correo = 'lucia.perez@ejemplo.com')
         from retail.cuentas_web w where w.usuario_web_id = '${r20.d.usuario}';
       rollback;`),
-    "false|false|Lucía|true\n" +
+    "false|false|Lucía|true|no\n" +
       "Lucía Fernanda Pérez Salas|987654321|14/10/1995|lucia.perez@ejemplo.com|web|true|true|true|true|true\n" +
-      "lucia.perez@ejemplo.com|true|borrador-2026-10-14|true",
+      "lucia.perez@ejemplo.com|true|borrador-2026-10-14|true|0",
   );
   esperarValor(
     "…y la actividad «registro_web», sin persona y sin el DNI, el nombre, el celular ni el correo",
     correr(`${PREPARAR}
-      ${callado(registrar().sql)}
+      ${callado(registrar().expr)}
       select a.modulo || '|' || a.accion || '|' || (a.persona_id is null)::text || '|' || (a.registro_id = c.id::text)::text || '|' ||
              (a::text !~* '(${DNI.nuevo}|lucía|pérez|987654321|@ejemplo)')::text || '|' || (a.detalle ->> 'nueva') || '|' || (a.detalle ->> 'textos')
         from retail.actividad a join retail.clientas c on c.documento_numero = '${DNI.nuevo}'
@@ -372,7 +565,7 @@ function main() {
   esperarValor(
     "ficha de caja (sin club): se une a ella; el nombre del padrón reemplaza, el celular y el cumpleaños que tenía NO se pisan, el correo vacío se completa; queda socia y su origen sigue «caja»",
     correr(`${PREPARAR}
-      select (${registrar({ dni: DNI.caja, nombre: "Ana María Prueba Caja", celular: "912345678", dia: 20, mes: 1, anio: 1990 }).sql}) as r \\gset
+      select (${registrar({ dni: DNI.caja, nombre: "Ana María Prueba Caja", celular: "912345678", dia: 20, mes: 1, anio: 1990 }).expr}) as r \\gset
       select (:'r'::jsonb ->> 'se_unio_a_su_ficha') || '|' || (:'r'::jsonb ->> 'era_del_club') || '|' || (:'r'::jsonb ->> 'nombre_corto');
       select c.nombre || '|' || c.telefono_whatsapp || '|' || c.cumple_dia || '/' || c.cumple_mes || '/' || coalesce(c.cumple_anio::text, '-') || '|' ||
              (c.correo like 'zz.%')::text || '|' || c.registro_origen || '|' || (c.club_desde = now())::text || '|' || (c.codigo_club = :'r'::jsonb ->> 'codigo_club')::text
@@ -383,7 +576,7 @@ function main() {
   esperarValor(
     "socia que ya era del club, con el nombre escrito a mano: conserva su nombre, su fecha de socia y su código (era_del_club)",
     correr(`${PREPARAR}
-      select (${registrar({ dni: DNI.socia, nombre: "Otro Nombre Cualquiera", padron: false }).sql}) as r \\gset
+      select (${registrar({ dni: DNI.socia, nombre: "Otro Nombre Cualquiera", padron: false }).expr}) as r \\gset
       select (:'r'::jsonb ->> 'era_del_club') || '|' || (:'r'::jsonb ->> 'se_unio_a_su_ficha') || '|' || (:'r'::jsonb ->> 'codigo_club' = :'codigo_socia')::text;
       select c.nombre || '|' || (c.club_desde < now() - interval '399 days')::text || '|' || (c.codigo_club = :'codigo_socia')::text || '|' || c.cumple_anio
         from retail.clientas c where c.id = :'socia';
@@ -391,22 +584,73 @@ function main() {
     "true|true|true\nBea Socia Antigua|true|true|1990",
   );
   esperarValor(
-    "ficha sin celular ni cumpleaños: se completan con lo de la web (año incluido)",
+    "ficha sin celular ni cumpleaños: se completan con lo de la web",
     correr(`${PREPARAR}
-      ${callado(registrar({ dni: DNI.vacia, celular: "999888777", dia: 29, mes: 2, anio: null, nombre: "Dora", padron: false }).sql)}
+      ${callado(registrar({ dni: DNI.vacia, celular: "999888777", dia: 29, mes: 2, anio: null, nombre: "Dora", padron: false }).expr)}
       select c.nombre || '|' || c.telefono_whatsapp || '|' || c.cumple_dia || '/' || c.cumple_mes || '/' || coalesce(c.cumple_anio::text, '-')
         from retail.clientas c where c.id = :'vacia';
       rollback;`),
     "Dora Sin Datos|999888777|29/2/-",
   );
+
+  console.log("— Los avisos del Club por WhatsApp —");
+  const rAvisos = registrar({ avisos: true, casilla: CASILLA });
+  esperarValor(
+    "marcó los avisos: el permiso de publicidad con origen web (casilla vigente, sin quién lo registró ni tienda) y publicidad_desde, que es lo que pide la regla de los avisos del Club (club_desde y publicidad_desde)",
+    correr(`${PREPARAR}
+      select (${rAvisos.expr}) as r \\gset
+      select (:'r'::jsonb ->> 'avisos_whatsapp') || '|' ||
+             (select string_agg(p.finalidad || ':' || p.accion || ':' || p.medio || ':' || p.texto_tipo || ':' || (p.texto_version = ${CASILLA})::text || ':' ||
+                     (p.registrado_por is null)::text || ':' || (p.ubicacion_id is null)::text || ':' || (p.created_at = now())::text, ',')
+                from retail.club_permisos p join retail.clientas c on c.id = p.clienta_id where c.documento_numero = '${DNI.nuevo}') || '|' ||
+             (select (c.publicidad_desde = now() and c.club_desde is not null and c.publicidad_desde is not null)::text
+                from retail.clientas c where c.documento_numero = '${DNI.nuevo}');
+      rollback;`),
+    "activados|publicidad_whatsapp:otorga:tienda_web:casilla_publicidad:true:true:true:true|true",
+  );
+  esperarValor(
+    "sin marcar los avisos: ni permiso ni publicidad («no»)",
+    correr(`${PREPARAR}
+      select (${registrar({ avisos: false }).expr}) ->> 'avisos_whatsapp' as e \\gset
+      select :'e' || '|' || (select count(*) from retail.club_permisos p join retail.clientas c on c.id = p.clienta_id where c.documento_numero = '${DNI.nuevo}')
+             || '|' || (select (publicidad_desde is null)::text from retail.clientas where documento_numero = '${DNI.nuevo}');
+      rollback;`),
+    "no|0|true",
+  );
+  esperarValor(
+    "su ficha ya tenía OTRO celular (que no se pisa): los avisos quedan sin activar («celular_distinto»), sin permiso ni publicidad",
+    correr(`${PREPARAR}
+      select (${registrar({ dni: DNI.caja, celular: "912345678", avisos: true, casilla: CASILLA }).expr}) ->> 'avisos_whatsapp' as e \\gset
+      select :'e' || '|' || (select count(*) from retail.club_permisos where clienta_id = :'caja') || '|' ||
+             (select (publicidad_desde is null)::text || ':' || telefono_whatsapp from retail.clientas where id = :'caja');
+      rollback;`),
+    "celular_distinto|0|true:987000111",
+  );
+  esperarValor(
+    "una socia que ya tenía los avisos con la misma casilla: no se anota otra fila («ya_estaban») y conserva su fecha",
+    correr(`${PREPARAR}
+      update retail.clientas set publicidad_desde = now() - interval '30 days' where id = :'socia';
+      insert into retail.club_permisos (clienta_id, finalidad, accion, medio, texto_tipo, texto_version)
+      values (:'socia', 'publicidad_whatsapp', 'otorga', 'pagina_cartel', 'casilla_publicidad', ${CASILLA});
+      select (${registrar({ dni: DNI.socia, celular: "987000222", avisos: true, casilla: CASILLA }).expr}) ->> 'avisos_whatsapp' as e \\gset
+      select :'e' || '|' || (select count(*) from retail.club_permisos where clienta_id = :'socia') || '|' ||
+             (select (publicidad_desde < now() - interval '29 days')::text from retail.clientas where id = :'socia');
+      rollback;`),
+    "ya_estaban|1|true",
+  );
+
+  console.log("— Lo que la base rechaza, sin escribir nada —");
   const rCorreo = registrar({ correo: "zz.unico@ejemplo.com" });
   const rUsuario = registrar({ dni: DNI.caja });
   const casos = [
+    ["sin la casilla «Soy mayor de 18 años»", registrar({ dni: DNI.otro, mayor: false }).sql, "22023|cuenta_datos_invalidos|mayor"],
+    ["los avisos con un texto de casilla que ya no es el vigente", registrar({ dni: DNI.otro, avisos: true, casilla: `${CASILLA} - 1` }).sql, "P0001|cuenta_texto_cambio|avisos"],
+    ["los avisos sin decir qué casilla leyó", registrar({ dni: DNI.otro, avisos: true, casilla: "null" }).sql, "P0001|cuenta_texto_cambio|avisos"],
     ["el mismo correo (con otras mayúsculas)", registrar({ correo: "ZZ.Unico@Ejemplo.com", dni: DNI.otro }).sql, "P0001|cuenta_correo_repetido|correo"],
     ["el mismo DNI con otro correo", registrar({ dni: DNI.nuevo }).sql, "P0001|cuenta_dni_repetido|dni"],
     ["el mismo usuario dos veces", registrar({ usuario: rUsuario.d.usuario, dni: DNI.otro }).sql, "P0001|cuenta_ya_existe|"],
     ["una ficha archivada", registrar({ dni: DNI.archivada }).sql, "P0001|cuenta_archivada|dni"],
-    ["un menor de 18 (por el año)", registrar({ dni: DNI.otro, anio: new Date().getFullYear() - 17 }).sql, "P0001|cuenta_menor|cumple"],
+    ["un menor de 18 (por el año, aunque marque la casilla)", registrar({ dni: DNI.otro, anio: new Date().getFullYear() - 17 }).sql, "P0001|cuenta_menor|cumple"],
     ["el 29 de febrero de un año que no es bisiesto", registrar({ dni: DNI.otro, dia: 29, mes: 2, anio: 2001 }).sql, "22023|cuenta_datos_invalidos|cumple"],
     ["el 31 de abril", registrar({ dni: DNI.otro, dia: 31, mes: 4, anio: null }).sql, "22023|cuenta_datos_invalidos|cumple"],
     ["el mes 13", registrar({ dni: DNI.otro, mes: 13 }).sql, "22023|cuenta_datos_invalidos|cumple"],
@@ -423,10 +667,10 @@ function main() {
   ];
   for (const [caso, sql, esperado] of casos) {
     esperarValor(
-      `rechaza ${caso} (${esperado.split("|")[1]}) y no escribe nada`,
+      `rechaza ${caso} (${esperado.split("|")[1]})`,
       correr(`${PREPARAR}
-        ${callado(rCorreo.sql)}
-        ${callado(rUsuario.sql)}
+        ${callado(rCorreo.expr)}
+        ${callado(rUsuario.expr)}
         select ${RECUENTO} as antes \\gset
         select pg_temp.intento($q$${sql}$q$) || '#' || ((${RECUENTO}) = :'antes')::text;
         rollback;`),
@@ -444,12 +688,12 @@ function main() {
     "ok#P0001|cuenta_menor|cumple",
   );
 
-  console.log("— Mi cuenta y los beneficios —");
+  console.log("— Mi cuenta, los beneficios y la casilla —");
   const r30 = registrar({ correo: "zz.mi.cuenta@ejemplo.com", nombre: "María Pérez Salas" });
   esperarValor(
     "tienda_mi_cuenta: nombre, nombre de pila, correo, código, socia desde hoy (Lima), cumpleaños y activa; null para un usuario sin cuenta",
     correr(`${PREPARAR}
-      ${callado(r30.sql)}
+      ${callado(r30.expr)}
       select (m ->> 'nombre') || '|' || (m ->> 'nombre_corto') || '|' || (m ->> 'correo') || '|' || ((m ->> 'codigo_club') ~ '^C-')::text || '|' ||
              ((m ->> 'club_desde') = :'hoy')::text || '|' || (m ->> 'cumple_dia') || '/' || (m ->> 'cumple_mes') || '|' || (m ->> 'activa')
         from (select retail.tienda_mi_cuenta('${r30.d.usuario}') as m) x;
@@ -458,29 +702,37 @@ function main() {
     "María Pérez Salas|María|zz.mi.cuenta@ejemplo.com|true|true|14/10|true\nnull",
   );
   esperarValor(
-    "tienda_club_beneficios: el % del cumpleaños y la escala, sin los textos",
+    "tienda_club_beneficios: el % del cumpleaños y la escala, sin los textos; tienda_casilla_whatsapp: el texto vigente de la casilla con su versión",
     correr(`${PREPARAR}
       select ((b ->> 'pct')::numeric > 0)::text || '|' || (jsonb_array_length(b -> 'escala') > 0)::text || '|' || (b ? 'textos')::text
         from (select retail.tienda_club_beneficios() as b) x;
+      select ((c ->> 'version')::int = ${CASILLA})::text || '|' || (c ->> 'texto' = (select texto from retail.club_textos where tipo = 'casilla_publicidad' order by version desc limit 1))::text
+        from (select retail.tienda_casilla_whatsapp() as c) x;
       rollback;`),
-    "true|true|false",
+    "true|true|false\ntrue|true",
   );
 
   console.log("— Como tienda_web —");
   const COMO_TIENDA = `grant tienda_web to current_user with set true;\nset local role tienda_web;\n`;
-  const r40 = registrar({ correo: "zz.como.tienda@ejemplo.com" });
+  const correoTienda = correoNuevo("tienda");
+  const usuarioTienda = randomUUID();
   esperarValor(
-    "como tienda_web: consulta, revisa, crea la cuenta y la lee",
+    "como tienda_web, todo el camino: consulta, revisa, reserva el código, anota el invitado, prueba el código, crea la cuenta (con los avisos) y la lee",
     correr(`${PREPARAR}${COMO_TIENDA}
-      select (retail.tienda_consultar_correo('zz.como.tienda@ejemplo.com', '${huella()}') ->> 'estado') || '|' ||
+      select (retail.tienda_consultar_correo('${correoTienda}', '${huella()}') ->> 'estado') || '|' ||
              (retail.tienda_consultar_documento('${DNI.nuevo}', '${huella()}', 'zz-d') ->> 'estado') || '|' ||
-             (${revisar("zz.como.tienda@ejemplo.com", DNI.nuevo, "987654321", huella(), "zz-d")} ->> 'estado');
-      select (${r40.sql}) ->> 'era_del_club';
-      select retail.tienda_mi_cuenta('${r40.d.usuario}') ->> 'correo';
+             (${revisar(correoTienda, DNI.nuevo, "987654321", huella(), "zz-d")} ->> 'estado');
+      select (${reservar(correoTienda)} ->> 'estado');
+      select retail.tienda_anotar_invitado('${correoTienda}', '${usuarioTienda}')::text;
+      select (${intento(correoTienda)} ->> 'estado');
+      select (retail.tienda_casilla_whatsapp() ->> 'version') as casilla \\gset
+      select retail.tienda_registrar_cuenta('${usuarioTienda}', '${correoTienda}', '${DNI.nuevo}', 'Lucía Pérez', true, '987654321', 14, 10, null,
+             true, true, true, :'casilla'::int, '${TEXTOS}') ->> 'avisos_whatsapp';
+      select retail.tienda_mi_cuenta('${usuarioTienda}') ->> 'correo';
       rollback;`),
-    "libre|libre|ok\nfalse\nzz.como.tienda@ejemplo.com",
+    `libre|libre|ok\nenviar\ntrue\npuede\nactivados\n${correoTienda}`,
   );
-  for (const tabla of ["cuentas_web", "club_intentos_registro", "clientas"]) {
+  for (const tabla of ["cuentas_web", "cuentas_web_pendientes", "club_intentos_registro", "clientas", "club_permisos"]) {
     const r = correr(`${PREPARAR}${COMO_TIENDA}select count(*) from retail.${tabla};\nrollback;`);
     esperar(`como tienda_web, leer retail.${tabla} se niega`, !r.ok && /permission denied/.test(r.mensaje), r.ok ? `leyó: ${r.salida}` : r.mensaje);
   }
@@ -491,8 +743,8 @@ function main() {
   const sql = MIGRACIONES.map((m) => readFileSync(m, "utf8")).join("\n");
   esperarValor(
     "las dos partes se pueden volver a correr (dos veces seguidas, como un segundo pegado)",
-    correr(`begin;\n${sql}\n${sql}\nselect (retail.tienda_club_beneficios() ? 'pct')::text;\nrollback;`),
-    "true",
+    correr(`begin;\n${sql}\n${sql}\nselect (retail.tienda_club_beneficios() ? 'pct')::text || '|' || (retail.tienda_casilla_whatsapp() ? 'version')::text;\nrollback;`),
+    "true|true",
   );
 
   console.log(`\n${total - fallos}/${total} escenarios en verde.`);

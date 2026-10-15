@@ -1,11 +1,13 @@
 import { nombreAMedias, nombresYApellidos } from "@cayla-retail/shared";
 import { z } from "zod";
 
-// Las reglas de la cuenta de la tienda online (ADR-0408, actividad 2). Lo que la página de registro dice de cada campo (falta,
-// mal, repetido, listo), la sugerencia de «gmial.com», el cumpleaños como lo guarda el Club, lo que el servidor vuelve a
-// revisar antes de crear nada, y cómo se leen las respuestas de la base. Lógica pura, sin red: la usan el formulario
-// (navegador), las acciones (servidor) y sus pruebas. Sale de la maqueta aprobada (`docs/maquetas/tienda-online-2026-10`:
-// `estadoRegistro`, `ARREGLOS_CORREO`, `guiaRegistro`, `vEntrar`, `vOlvide`).
+// Las reglas de la cuenta de la tienda online (ADR-0408, actividades 2 y 2b). Lo que la página de registro dice de cada campo
+// (falta, mal, repetido, listo), la sugerencia de «gmial.com», el cumpleaños como lo guarda el Club, las dos casillas («Soy
+// mayor de 18 años» y los avisos por WhatsApp), el código que confirma el correo, lo que el servidor vuelve a revisar antes de
+// crear nada, y cómo se leen las respuestas de la base. Lógica pura, sin red: la usan el formulario (navegador), las acciones
+// (servidor) y sus pruebas. Sale de la maqueta aprobada (`docs/maquetas/tienda-online-2026-10`: `estadoRegistro`,
+// `ARREGLOS_CORREO`, `guiaRegistro`, `vEntrar`, `vOlvide`); el paso del código y las casillas, de lo que Felipe decidió el
+// 2026-10-14 (actividad 2b).
 //
 // Quien decide de verdad es la base (`retail.tienda_registrar_cuenta`): esto solo evita mandar lo que la base rechazaría y dice
 // por qué, con las mismas palabras en la pantalla y en el servidor.
@@ -90,10 +92,24 @@ export type Registro = {
   nombre: string;
   celular: string;
   cumple: Cumple;
+  /** «Soy mayor de 18 años»: obligatoria (la base también la exige). */
+  mayor: boolean;
   acepta: boolean;
+  /** «Avisos del Club por WhatsApp»: opcional; nace sin marcar (el permiso es el toque de ella). */
+  avisos: boolean;
 };
 
-export const REGISTRO_VACIO: Registro = { correo: "", clave: "", dni: "", nombre: "", celular: "", cumple: { d: "", m: "", a: "" }, acepta: false };
+export const REGISTRO_VACIO: Registro = {
+  correo: "",
+  clave: "",
+  dni: "",
+  nombre: "",
+  celular: "",
+  cumple: { d: "", m: "", a: "" },
+  mayor: false,
+  acepta: false,
+  avisos: false,
+};
 
 /** Lo que dijo la base del correo mientras se escribía. `sin_revisar`: todavía no se preguntó (o no contestó). */
 export type ConsultaCorreo = "sin_revisar" | "libre" | "repetido";
@@ -107,7 +123,10 @@ export type ConsultaDni =
   | { estado: "repetido" }
   | { estado: "archivada" };
 
-export type CampoRegistro = "correo" | "clave" | "dni" | "nombre" | "cel" | "cumple" | "acepta";
+/** Lo que la persona tiene que completar (los avisos por WhatsApp son opcionales: nunca «faltan»). */
+export type CampoRegistro = "correo" | "clave" | "dni" | "nombre" | "cel" | "cumple" | "mayor" | "acepta";
+/** A dónde lleva un problema: un campo, la casilla opcional de los avisos o la caja del código. */
+export type CampoProblema = CampoRegistro | "avisos" | "codigo";
 export type EstadoCampo = "falta" | "mal" | "repetido" | "buscando" | "ok";
 
 /** El orden de la página y cómo se nombra cada campo en «Falta: …». */
@@ -118,6 +137,7 @@ export const CAMPOS_REGISTRO: readonly (readonly [CampoRegistro, string])[] = [
   ["nombre", "tu nombre"],
   ["cel", "tu celular"],
   ["cumple", "tu cumpleaños"],
+  ["mayor", "confirmar que eres mayor de 18"],
   ["acepta", "aceptar los términos"],
 ];
 
@@ -219,6 +239,7 @@ export function estadoRegistro(r: Registro, consultas: { correo: ConsultaCorreo;
     cel: estadoCelular(r.celular),
     cumple: cumple.estado,
     motivoCumple: cumple.motivo,
+    mayor: r.mayor ? "ok" : "falta",
     acepta: r.acepta ? "ok" : "falta",
   };
 }
@@ -272,14 +293,26 @@ export const MENSAJES = {
   dniSinPadron: "No pudimos buscar tu nombre ahora. Escríbelo abajo, tal como está en tu DNI.",
   dniLimite: "Hiciste muchas búsquedas seguidas. Escribe tu nombre abajo, tal como está en tu DNI.",
   nombreAyuda: "Tal como está en tu DNI: así sale en tu boleta.",
-  celAyuda: "Por aquí te escribe la tienda por tus pedidos y te llegan los avisos del club. Sin publicidad.",
+  celAyuda: "Por aquí te escribe la tienda por tus pedidos.",
   celMal: "El celular empieza en 9.",
   cumpleAyuda: "Día y mes; el año es opcional. Es para tu descuento de cumpleaños.",
   cumpleMal: "Revisa el día, el mes (del 1 al 12) y el año.",
   cumpleMenor: "El Club CAYLA es para mayores de 18 años.",
+  mayor: "Soy mayor de 18 años.",
+  mayorFalta: "Para crear tu cuenta, confirma que eres mayor de 18 años.",
   aceptaFalta: "Para crear tu cuenta, acepta la política de privacidad y los términos del club.",
+  avisosTitulo: "Avisos del Club por WhatsApp",
+  avisosAyuda: "Te llegan al celular de arriba. Para dejarlos, escribe BAJA al WhatsApp de cualquier tienda CAYLA.",
+  avisosCambio: "El texto de los avisos cambió. Léelo y vuelve a marcarlo si quieres recibirlos.",
+  avisosSinActivar: "Tus avisos por WhatsApp quedaron sin activar: tu ficha del Club tiene otro celular. Para cambiarlo, acércate a una tienda CAYLA.",
   noDisponible: "No pudimos crear tu cuenta ahora. Intenta de nuevo en unos minutos.",
   limite: "Hiciste muchos intentos seguidos. Espera un rato y vuelve a intentarlo.",
+  codigoAyuda: "Son 6 números. Si no lo ves, revisa también tu carpeta de spam.",
+  codigoVencido: "Ese código ya no sirve. Pide uno nuevo.",
+  codigoSinPedir: "Pide un código nuevo para confirmar tu correo.",
+  codigoNuevo: "Te mandamos un código nuevo. Usa el último que te llegó.",
+  codigoNoEnviado: "No pudimos mandarte el código ahora. Intenta de nuevo en un minuto.",
+  codigoNoProbado: "No pudimos revisar tu código ahora. Intenta de nuevo en un minuto.",
   entrarMal: "El correo o la contraseña no coinciden. Revísalos o recupera tu contraseña.",
   entrarLimite: "Hiciste muchos intentos seguidos. Espera unos minutos y vuelve a intentarlo.",
   entrarNoDisponible: "No pudimos entrar ahora. Intenta de nuevo en unos minutos.",
@@ -296,9 +329,44 @@ export function faltanCaracteres(clave: string): string | null {
   return n === 1 ? "Te falta 1 carácter." : `Te faltan ${n} caracteres.`;
 }
 
+/* ------------------------------------------------------------------ El código que confirma el correo (actividad 2b) */
+// Los topes viven en la base (`tienda_reservar_envio`, `tienda_intento_de_codigo`); estos números solo los dicen en pantalla.
+
+/** Las cifras del código que llega al correo (`otp_length` del proyecto de clientes). */
+export const CODIGO_LARGO = 6;
+/** Cuánto vale un código, en minutos. */
+export const CODIGO_VENCE_MIN = 30;
+/** Cuánto se espera entre un código y otro, en segundos. */
+export const CODIGO_ESPERA_S = 60;
+/** Cuánto dura el bloqueo después del quinto intento equivocado, en minutos. */
+export const CODIGO_BLOQUEO_MIN = 15;
+
+/** Solo las cifras, hasta 6 (se puede pegar «123 456» o «Tu código: 123456»). */
+export const codigoLimpio = (valor: string) => soloDigitos(valor, CODIGO_LARGO);
+export const codigoCompleto = (codigo: string) => new RegExp(`^\\d{${CODIGO_LARGO}}$`).test(codigo);
+
+/** «0:45» / «1:00». */
+export function cuentaRegresiva(segundos: number): string {
+  const s = Math.max(0, Math.ceil(segundos));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/** «1 minuto» / «12 minutos». */
+export const enMinutos = (n: number) => (n === 1 ? "1 minuto" : `${n} minutos`);
+
+/** Después de un código equivocado: cuántos intentos le quedan, o que ya no quedan. */
+export function mensajeCodigoMalo(quedan: number): string {
+  if (quedan <= 0) return `Ese código no es. Ya no quedan intentos: espera ${enMinutos(CODIGO_BLOQUEO_MIN)} y pide otro.`;
+  return `Ese código no es. Te ${quedan === 1 ? "queda 1 intento" : `quedan ${quedan} intentos`}.`;
+}
+
+export const mensajeCodigoBloqueado = (minutos: number) => `Hiciste muchos intentos. Espera ${enMinutos(minutos)} y pide un código nuevo.`;
+export const mensajeCodigoLimite = (minutos: number) => `Ya te mandamos 5 códigos. Puedes pedir otro en ${enMinutos(minutos)}.`;
+export const mensajeCodigoEsperar = (segundos: number) => `Te mandamos uno hace poco. Puedes pedir otro en ${cuentaRegresiva(segundos)}.`;
+
 /* ------------------------------------------------------------------ Lo que el servidor vuelve a revisar */
 
-/** Lo que manda el formulario al crear la cuenta. El servidor no confía en nada de esto: lo vuelve a revisar todo. */
+/** Lo que manda el formulario al pedir el código y al crear la cuenta. El servidor no confía en nada de esto: lo revisa todo. */
 export const esquemaRegistro = z.object({
   correo: z.string().max(400),
   clave: z.string().max(400),
@@ -306,10 +374,17 @@ export const esquemaRegistro = z.object({
   nombre: z.string().max(400),
   celular: z.string().max(40),
   cumple: z.object({ d: z.string().max(4), m: z.string().max(4), a: z.string().max(8) }),
+  mayor: z.boolean(),
   acepta: z.boolean(),
+  avisos: z.boolean(),
 });
 
-export type ProblemaRegistro = { campo: CampoRegistro | null; mensaje: string };
+/** Con el registro, la versión de la casilla de los avisos que la persona leyó (null si no se le mostró). */
+export const esquemaPedirCodigo = z.object({ registro: esquemaRegistro, casilla: z.number().int().positive().nullable() });
+/** …y, para crear la cuenta, el código que le llegó. */
+export const esquemaConfirmarCodigo = esquemaPedirCodigo.extend({ codigo: z.string().max(40) });
+
+export type ProblemaRegistro = { campo: CampoProblema | null; mensaje: string };
 
 /** La misma regla de la pantalla, para el servidor: el primer problema, o null si se puede seguir. */
 export function problemaRegistro(r: Registro, hoy: Dia): ProblemaRegistro | null {
@@ -320,13 +395,22 @@ export function problemaRegistro(r: Registro, hoy: Dia): ProblemaRegistro | null
   if (estadoCelular(r.celular) !== "ok") return { campo: "cel", mensaje: "El celular tiene 9 dígitos y empieza en 9." };
   const cumple = estadoCumple(r.cumple, hoy);
   if (cumple.estado !== "ok") return { campo: "cumple", mensaje: cumple.motivo === "menor" ? MENSAJES.cumpleMenor : MENSAJES.cumpleMal };
+  if (!r.mayor) return { campo: "mayor", mensaje: MENSAJES.mayorFalta };
   if (!r.acepta) return { campo: "acepta", mensaje: MENSAJES.aceptaFalta };
   return null;
 }
 
 /* ------------------------------------------------------------------ Lo que contesta la base */
 
-const CAMPO_DE_LA_BASE: Record<string, CampoRegistro> = { correo: "correo", dni: "dni", nombre: "nombre", celular: "cel", cumple: "cumple", acepta: "acepta" };
+const CAMPO_DE_LA_BASE: Record<string, CampoRegistro> = {
+  correo: "correo",
+  dni: "dni",
+  nombre: "nombre",
+  celular: "cel",
+  cumple: "cumple",
+  mayor: "mayor",
+  acepta: "acepta",
+};
 
 /** El rechazo de `tienda_registrar_cuenta` (su hint y su detail) en palabras para la persona, con el campo al que lleva. */
 export function errorDeRegistro(hint: string | null | undefined, detalle: string | null | undefined): ProblemaRegistro {
@@ -339,6 +423,11 @@ export function errorDeRegistro(hint: string | null | undefined, detalle: string
       return { campo: "dni", mensaje: MENSAJES.dniArchivada };
     case "cuenta_menor":
       return { campo: "cumple", mensaje: MENSAJES.cumpleMenor };
+    case "cuenta_sin_codigo":
+      return { campo: "codigo", mensaje: MENSAJES.codigoSinPedir };
+    case "cuenta_texto_cambio":
+    case "cuenta_sin_texto":
+      return { campo: "avisos", mensaje: MENSAJES.avisosCambio };
     case "cuenta_datos_invalidos": {
       const campo = CAMPO_DE_LA_BASE[detalle ?? ""] ?? null;
       const mensajes: Partial<Record<CampoRegistro, string>> = {
@@ -347,6 +436,7 @@ export function errorDeRegistro(hint: string | null | undefined, detalle: string
         nombre: "Escribe tus nombres y apellidos, tal como están en tu DNI.",
         cel: "El celular tiene 9 dígitos y empieza en 9.",
         cumple: MENSAJES.cumpleMal,
+        mayor: MENSAJES.mayorFalta,
         acepta: MENSAJES.aceptaFalta,
       };
       return { campo, mensaje: (campo && mensajes[campo]) || MENSAJES.noDisponible };
@@ -354,6 +444,84 @@ export function errorDeRegistro(hint: string | null | undefined, detalle: string
     default:
       return { campo: null, mensaje: MENSAJES.noDisponible };
   }
+}
+
+/* ------------------------------------------------------------------ El código, en la base (actividad 2b) */
+
+const esquemaEstado = z.object({ estado: z.string() });
+const listaDeUsuarios = (dato: unknown): string[] =>
+  Array.isArray(dato) ? dato.filter((x): x is string => typeof x === "string" && /^[0-9a-f-]{36}$/i.test(x)) : [];
+
+/** `tienda_reservar_envio`: ¿se manda el código? Y los usuarios invitados que quedaron de pendientes viejos (`limpiar`). */
+export type Reserva = { limpiar: string[] } & (
+  | { estado: "enviar"; usuarioWebId: string | null }
+  | { estado: "esperar"; segundos: number }
+  | { estado: "limite" | "bloqueado"; minutos: number }
+  | { estado: "correo_repetido" | "invalido" | "sin_codigo" | "sin_respuesta" }
+);
+
+export function leerReserva(dato: unknown): Reserva {
+  const e = esquemaEstado.safeParse(dato);
+  if (!e.success) return { estado: "sin_respuesta", limpiar: [] };
+  const r = dato as Record<string, unknown>;
+  const limpiar = listaDeUsuarios(r.limpiar);
+  const entero = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v > 0 ? v : 1);
+  switch (e.data.estado) {
+    case "enviar":
+      return { estado: "enviar", usuarioWebId: typeof r.usuario_web_id === "string" ? r.usuario_web_id : null, limpiar };
+    case "esperar":
+      return { estado: "esperar", segundos: entero(r.segundos), limpiar };
+    case "limite":
+    case "bloqueado":
+      return { estado: e.data.estado, minutos: entero(r.minutos), limpiar };
+    case "correo_repetido":
+    case "invalido":
+    case "sin_codigo":
+      return { estado: e.data.estado, limpiar };
+    default:
+      return { estado: "sin_respuesta", limpiar };
+  }
+}
+
+/** `tienda_intento_de_codigo`: ¿se puede probar el código ahora? */
+export type IntentoDeCodigo =
+  | { estado: "puede"; quedan: number }
+  | { estado: "bloqueado"; minutos: number }
+  | { estado: "vencido" | "sin_codigo" | "sin_respuesta" };
+
+export function leerIntentoDeCodigo(dato: unknown): IntentoDeCodigo {
+  const e = esquemaEstado.safeParse(dato);
+  if (!e.success) return { estado: "sin_respuesta" };
+  const r = dato as Record<string, unknown>;
+  if (e.data.estado === "puede" && typeof r.quedan === "number" && Number.isInteger(r.quedan) && r.quedan >= 0) return { estado: "puede", quedan: r.quedan };
+  if (e.data.estado === "bloqueado") return { estado: "bloqueado", minutos: typeof r.minutos === "number" && r.minutos > 0 ? Math.ceil(r.minutos) : CODIGO_BLOQUEO_MIN };
+  if (e.data.estado === "vencido" || e.data.estado === "sin_codigo") return { estado: e.data.estado };
+  return { estado: "sin_respuesta" };
+}
+
+/** El texto aprobado de la casilla de los avisos (`casilla_publicidad`, el mismo del cartel del Club) y su versión. */
+export type CasillaWhatsapp = { version: number; texto: string };
+
+/**
+ * La respuesta de `tienda_casilla_whatsapp`. null si no hay texto, si la forma no se entiende o si el texto trae un marcador
+ * (`{tienda}`…) que la tienda no sabe completar: un permiso cita el texto que ella leyó, así que nunca se muestra a medias. Sin
+ * casilla, la página no ofrece los avisos.
+ */
+export function leerCasillaWhatsapp(dato: unknown): CasillaWhatsapp | null {
+  const r = z.object({ version: z.number().int().positive(), texto: z.string() }).safeParse(dato);
+  if (!r.success) return null;
+  const texto = r.data.texto.replace(/\s+/g, " ").trim();
+  if (!texto || /[{}]/.test(texto)) return null;
+  return { version: r.data.version, texto };
+}
+
+/** Cómo quedaron los avisos al crear la cuenta (`avisos_whatsapp` de `tienda_registrar_cuenta`). */
+export type AvisosAlCrear = "no" | "activados" | "ya_estaban" | "celular_distinto";
+
+/** El aviso con el que llega a «Mi cuenta» (`?aviso=`): unida a su ficha o nueva, y si los avisos quedaron sin activar. */
+export function avisoAlCrear(seUnioASuFicha: boolean, avisos: AvisosAlCrear): string {
+  if (avisos === "celular_distinto") return "avisos-sin-activar";
+  return seUnioASuFicha ? "unida" : "bienvenida";
 }
 
 const esquemaMiCuenta = z.object({
