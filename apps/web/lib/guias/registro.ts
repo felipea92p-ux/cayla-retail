@@ -50,6 +50,7 @@ import {
   GUIA_ROTULOS,
   GUIA_VITRINA,
   GUIA_VITRINA_ESPERAN,
+  GUIA_VITRINA_LOOKS,
 } from "./pantallas/catalogo";
 import {
   GUIA_COMPROBANTE_ORDEN,
@@ -167,6 +168,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_LIQUIDACION,
   GUIA_VITRINA,
   GUIA_VITRINA_ESPERAN,
+  GUIA_VITRINA_LOOKS,
   GUIA_FACTURAS,
   GUIA_FACTURA,
   GUIA_POR_PAGAR,
@@ -355,6 +357,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   "/productos/por-revisar": { estado: "aplicada", guia: GUIA_POR_REVISAR.id },
   "/productos/vitrina": { estado: "aplicada", guia: GUIA_VITRINA.id },
   "/productos/vitrina/esperan": { estado: "aplicada", guia: GUIA_VITRINA_ESPERAN.id },
+  "/productos/vitrina/looks": { estado: "aplicada", guia: GUIA_VITRINA_LOOKS.id },
   // ---- recibir ----
   "/recibir": { estado: "aplicada", guia: GUIA_RECIBIR.id },
   "/recibir/envio/[id]": { estado: "aplicada", guia: GUIA_RECIBIR_ENVIO.id },

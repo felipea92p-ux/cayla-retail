@@ -1404,6 +1404,44 @@ ESCENARIOS.push(
   },
 );
 
+// Vitrina web ▸ Looks (ADR-0408, actividad 11): la hoja de un look nuevo, la de uno que ya existe y la de mostrar u ocultar. Las dos
+// últimas necesitan un look en la base local (se elige el primero de la lista).
+ESCENARIOS.push(
+  {
+    id: "looks.nuevo",
+    ruta: "/productos/vitrina/looks",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Vitrina web ▸ Looks · la hoja de un look nuevo",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="looks.nuevo"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+  {
+    id: "looks.editar",
+    ruta: "/productos/vitrina/looks",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Vitrina web ▸ Looks · la hoja de un look (sus prendas, si se ve y su lugar)",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="looks.abrir"]').first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+  {
+    id: "looks.mostrar",
+    ruta: "/productos/vitrina/looks",
+    cuentas: ["admin"],
+    abre: "[role=dialog]",
+    nombre: "Vitrina web ▸ Looks · mostrar u ocultar un look",
+    async preparar(pagina) {
+      await pagina.locator('[data-guia="looks.interruptor"] button').first().click({ timeout: 8000 });
+      await esperar(pagina, 1200);
+    },
+  },
+);
+
 // Con la caja de la sede CERRADA: Vender cuelga la persiana (ADR-0301) y /caja pide abrirla. Solo por id (`--escenario`): necesitan que el
 // Postgres local tenga la caja de la sede cerrada, y quien audita la cierra y la restaura a mano (ver el ADR-0336, «Cómo se verificó»).
 ESCENARIOS.push(

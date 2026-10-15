@@ -317,9 +317,12 @@ select pg_temp.huella(:'va');`);
   // `vitrina_productos` (ADR-0408, actividad 3) es SUYA: si se ve en la tienda online y cómo entra a Lo nuevo son configuración de
   // la ficha, como sus fotos, y se van con ella por su `on delete cascade` (quién lo cambió y cuándo queda en `actividad`).
   // `favoritos_web` y `esperas_web` (ADR-0408, actividad 12) también: el corazón y el «Avísame» de un cliente de la tienda online
-  // sobre un modelo que nunca se vendió ni se movió no son historia de la prenda; se van con ella por su `on delete cascade`.
+  // sobre un modelo que nunca se vendió ni se movió no son historia de la prenda; se van con ella por su `on delete cascade`. Y
+  // `vitrina_look_piezas` (actividad 11): que una prenda salga en un look de la tienda online es configuración de la vitrina y se va
+  // con su ficha (`on delete cascade`); el look guarda cuántas prendas lleva, así que le falta una, no se muestra y el ERP lo dice
+  // (20261015031000).
   const SUYAS = ["variantes", "stock", "codigos_barras", "producto_fotos", "variante_etiquetas", "producto_color_temporadas", "producto_origen", "vitrina_productos",
-    "favoritos_web", "esperas_web"];
+    "favoritos_web", "esperas_web", "vitrina_look_piezas"];
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
