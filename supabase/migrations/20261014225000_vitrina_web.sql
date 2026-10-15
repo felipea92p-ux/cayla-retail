@@ -1,83 +1,98 @@
 -- ============================================================================
 -- 20261014225000_vitrina_web.sql — CAYLA V2 · Tienda online (ADR-0408), actividad 3: la Vitrina web y el catálogo publicado
 --
--- EL PROBLEMA PRIMERO. La tienda online necesita saber QUÉ modelos se ven en la web y A QUÉ PRECIO, y eso no puede vivir en
--- `productos` ni en `variantes` (principio 1: el núcleo del catálogo no se toca; ADR-0408, DECIDÍ 5). El precio de tienda sigue
--- en `variantes.precio` y en `precios_sede_prenda`; el de la web es otro, por MODELO, y nace al encenderlo (maqueta v4).
+-- EL PROBLEMA PRIMERO. La tienda online necesita saber QUÉ modelos se ven en la web, y eso no puede vivir en `productos` ni en
+-- `variantes` (principio 1: el núcleo del catálogo no se toca; ADR-0408, DECIDÍ 5). El PRECIO no es otro: no hay precio web
+-- (Felipe, 2026-10-14): «el modelo tiene el mismo precio que la sede seleccionada; si está el filtro de todas las sedes, que
+-- muestre el precio MAYOR de todas las sedes, porque no siempre manejan el mismo, y ver un precio alto que al seleccionar una sede
+-- baja es más favorable que verlo subir». El precio de una prenda en una tienda ya tiene su única regla: `fn_precio_en_sede`
+-- (ADR-0370, 20261011100000), con su candado de costo (20261011110000).
 --
 -- LO QUE HACE
 --   1. El módulo `vitrina_web` (Catálogo ▸ Vitrina web). Nace SIN rol (ADR-0161): solo lo ve el líder hasta que él lo da.
---   2. `retail.vitrina_productos`: una fila por modelo que alguna vez se encendió. Es el estado de HOY (si se ve, su precio web,
---      cómo entra a «Lo nuevo», su descripción para la web); apagar NO borra: marca `publicado = false` y conserva el precio
---      para cuando se vuelva a mostrar. Quién y cuándo de cada cambio queda en `retail.actividad` (módulo `vitrina_web`), que
---      es de solo agregar. RLS encendido y SIN políticas: solo la tocan las funciones de abajo (security definer).
+--   2. `retail.vitrina_productos`: una fila por modelo que alguna vez se mostró o se tocó. Es el estado de HOY (si se ve, cómo
+--      entra a «Lo nuevo», su descripción para la web); ocultar NO borra: marca `publicado = false`. Quién y cuándo de cada cambio
+--      queda en `retail.actividad` (módulo `vitrina_web`), que es de solo agregar. RLS encendido y SIN políticas: solo la tocan las
+--      funciones de abajo (security definer).
 --   3. Las funciones del ERP, todas con `fn_exigir_modulo('vitrina_web')` y firmadas con `fn_actor_persona_id(true)` (el combo
 --      «Responsable», ADR-0162):
---        · `vitrina_guardar_modelo` — la hoja de un modelo: mostrar u ocultar, precio web, «Lo nuevo» y descripción.
---        · `vitrina_mostrar` — el lote: mostrar u ocultar varios a la vez (el que nunca se mostró entra con su precio de tienda).
---        · `vitrina_cambiar_precios` — el lote: el precio web nuevo de varios modelos.
+--        · `vitrina_guardar_modelo` — la hoja de un modelo: mostrar u ocultar, «Lo nuevo» y descripción.
+--        · `vitrina_mostrar` — el lote: mostrar u ocultar uno o varios a la vez.
 --        · `fn_vitrina_modelos` — la lectura de la pantalla.
---   4. `retail.tienda_catalogo()`, para la tienda (rol `tienda_web`): lo publicado, con su precio web y, si una campaña vigente
---      toca el modelo, el precio con la MISMA regla de la caja (`fn_campanas_por_variante` + `fn_descuento_campana`, ADR-0403:
---      el precio final baja al múltiplo de S/ 0.10 de abajo). Sin stock (los niveles por tienda son la actividad 4).
+--   4. `retail.tienda_catalogo(p_sede)`, para la tienda (rol `tienda_web`): lo publicado, con el precio de la tienda elegida (o,
+--      con «Todas», el MAYOR entre las tiendas que se ven en la web) y, si una campaña vigente toca el modelo, el precio con la
+--      MISMA regla de la caja (`fn_campanas_por_variante` + `fn_descuento_campana`, ADR-0403). Sin stock (los niveles por tienda
+--      son la actividad 4).
 --
 -- REGLAS (Lamport: lo que la base no deja que pase)
---   · Precio web: mayor que cero, hasta S/ 99 999.99, con dos decimales como mucho, y NUNCA por debajo del costo de sus tallas
---     activas: la misma regla que Felipe puso al precio de tienda el 2026-10-11 (20261011110000: «la caja ya prohíbe vender bajo
---     el costo a todos»). Para vender más barato está la campaña. El mensaje no dice cuánto cuesta (el costo es dato con permiso).
---   · Solo se muestra un modelo que se puede vender: activo, no de prueba, no la «Prenda sin registrar» y con alguna talla activa.
---     Un modelo descontinuado después de mostrarse sigue en la vitrina del ERP, pero la tienda deja de verlo.
+--   · Solo se muestra un modelo que se puede vender: activo, no de prueba, no la «Prenda sin registrar» y con alguna talla activa
+--     con precio. Un modelo descontinuado después de mostrarse sigue en la vitrina del ERP, pero la tienda deja de verlo.
 --   · Dos personas con el mismo modelo abierto: gana la primera y la segunda recibe `vitrina_cambio_otro` (la fila lleva `version`).
 --   · Un lote es todo o nada: si un modelo no se puede mostrar, no se muestra ninguno y el mensaje dice cuáles.
+--   · La tienda solo ve el precio de una tienda que se muestra en la web: una tienda escondida (o un id cualquiera) se lee como
+--     «Todas».
 --
--- DECIDÍ: la historia de quién y cuándo en `retail.actividad` (ya inmutable y con su pantalla), no en una tabla nueva.
--- DESCARTÉ: borrar la fila al apagar (se perdería el precio web y el «desde cuándo») y un booleano `fijo_en_nuevo` (la maqueta
---   tiene TRES estados: automático, fijado a mano y quitado a mano).
+-- DECIDÍ: la historia de quién y cuándo en `retail.actividad` (ya inmutable y con su pantalla), no en una tabla nueva. Con
+--   «Todas», cada talla vale lo MÁS que vale entre las tiendas de la web y el modelo, lo más de sus tallas; la campaña se aplica
+--   encima, talla por talla, como en la caja. «Desde» solo cuando la campaña no toca a todas sus tallas por igual: un modelo con
+--   precios distintos entre tiendas NO dice «Desde» (dice el mayor, y baja al elegir la tienda).
+-- DESCARTÉ: un precio web propio (la primera versión de esta misma migración: Felipe lo sacó el 2026-10-14); borrar la fila al
+--   ocultar (se perdería el «desde cuándo» y lo de Lo nuevo); un booleano `fijo_en_nuevo` (la maqueta tiene TRES estados:
+--   automático, fijado a mano y quitado a mano).
 -- `vitrina_productos` se va con su producto (`on delete cascade`): solo se elimina un producto que no tiene historia (nunca se
 -- vendió ni se movió); su fila de la vitrina es configuración, como sus fotos (`eliminar_producto.mjs`, lista SUYAS).
 --
+-- LA VERSIÓN VIEJA. La primera versión de esta migración (con `precio_web`, `vitrina_cambiar_precios` y el piso de costo) vivió
+-- solo en bases locales y en la rama de integración, nunca en producción. Esta la limpia con `if exists` (la columna y las
+-- funciones que sobran): una base que ya la tenía queda igual a una que nunca la vio. Las filas que hubiera se conservan.
+--
+-- `tienda_catalogo` LEE `tienda_sedes()` (20261014231000, actividad 6), que nace DESPUÉS de esta migración: por eso es plpgsql
+-- (Postgres no revisa su cuerpo al crearla) y aquí no se la llama. En producción las dos se pegan juntas, en su orden (actividad 13).
+--
 -- PRODUCCIÓN. NO está aplicada (actividad 13, con el OK de Felipe). Una sola parte, re-ejecutable: tabla NUEVA sin políticas,
--- funciones y una fila en `modulos`; no hace `alter` de tablas en uso ni toca disparadores (ADR-0195). Dentro de los textos entre
--- comillas no hay ningún `select … into` (ADR-0288). Prueba: `pnpm pruebas:vitrina-web`.
+-- funciones y una fila en `modulos`; no hace `alter` de tablas en uso (el único `alter` es de su propia tabla, para limpiar la
+-- versión vieja) ni toca disparadores (ADR-0195). `drop function` no toma las tablas de `auth` ni de `storage`. Dentro de los
+-- textos entre comillas no hay ningún `select … into` (ADR-0288). Prueba: `pnpm pruebas:vitrina-web`.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
 set lock_timeout = '3s';
 
 -- ---------- 1. El módulo (nace sin rol: solo el líder) ----------
+-- `do update` solo del texto: la versión vieja decía «y a qué precio web».
 insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, delegable) values
   ('vitrina_web', 'Catálogo', 'Vitrina web',
-   'Elegir qué modelos se ven en la tienda online y a qué precio web, mostrar u ocultar varios a la vez y fijarlos o quitarlos de Lo nuevo',
+   'Elegir qué modelos se ven en la tienda online, mostrar u ocultar varios a la vez y fijarlos o quitarlos de Lo nuevo',
    125, false, true)
-on conflict (clave) do nothing;
+on conflict (clave) do update set incluye = excluded.incluye;
 
 -- ---------- 2. La tabla ----------
 create table if not exists retail.vitrina_productos (
   producto_id      uuid primary key references retail.productos (id) on delete cascade,
   publicado        boolean not null,
-  precio_web       numeric(12, 2) not null,
   -- 'automatico': sale en «Lo nuevo» si llegó a una tienda hace poco (la regla es de la actividad 5); 'fijo': sale aunque no;
   -- 'quitado': no sale aunque haya llegado ayer.
   en_lo_nuevo      text not null default 'automatico',
   -- Lo que ve el cliente en la ficha. Vacío: la descripción del catálogo (`productos.descripcion`).
   descripcion_web  text,
-  -- La última vez que se encendió: «lo último que entró a la web» y el orden del catálogo.
+  -- La última vez que se mostró: «lo último que entró a la web» y el orden del catálogo.
   publicado_en     timestamptz,
   version          integer not null default 1,
   creado_en        timestamptz not null default now(),
   creado_por       uuid references public.personas (id),
   actualizado_en   timestamptz not null default now(),
   actualizado_por  uuid references public.personas (id),
-  constraint vitrina_productos_precio_web check (precio_web > 0 and precio_web <= 99999.99),
   constraint vitrina_productos_en_lo_nuevo check (en_lo_nuevo in ('automatico', 'fijo', 'quitado')),
   constraint vitrina_productos_descripcion check (descripcion_web is null or char_length(descripcion_web) between 1 and 600),
   constraint vitrina_productos_publicado_en check (not publicado or publicado_en is not null),
   constraint vitrina_productos_version check (version >= 1)
 );
 
+-- La versión vieja tenía precio web propio: se va (su CHECK se va con ella). Sin efecto en una base nueva.
+alter table retail.vitrina_productos drop column if exists precio_web;
+
 comment on table retail.vitrina_productos is
-  'La vitrina de la tienda online (ADR-0408): qué modelos se ven en la web, su precio web propio y cómo entran a Lo nuevo. Apagar marca publicado = false (nunca se borra al ocultar). Se escribe solo con vitrina_guardar_modelo / vitrina_mostrar / vitrina_cambiar_precios; quién y cuándo, en retail.actividad (módulo vitrina_web).';
-comment on column retail.vitrina_productos.precio_web is 'El precio que ve el cliente en la web, para todas las tallas y colores. Nace al encenderlo. Nunca bajo el costo de sus tallas activas. Las campañas se aplican sobre él (ADR-0403).';
+  'La vitrina de la tienda online (ADR-0408): qué modelos se ven en la web y cómo entran a Lo nuevo. El precio es el de cada tienda (fn_precio_en_sede); no hay precio web. Ocultar marca publicado = false (nunca se borra al ocultar). Se escribe solo con vitrina_guardar_modelo / vitrina_mostrar; quién y cuándo, en retail.actividad (módulo vitrina_web).';
 comment on column retail.vitrina_productos.en_lo_nuevo is 'automatico | fijo | quitado: fijar o quitar a mano de Lo nuevo (maqueta v4).';
 
 create index if not exists vitrina_productos_publicados_idx on retail.vitrina_productos (publicado_en desc) where publicado;
@@ -85,10 +100,22 @@ create index if not exists vitrina_productos_publicados_idx on retail.vitrina_pr
 alter table retail.vitrina_productos enable row level security;
 revoke all on table retail.vitrina_productos from public, anon, authenticated;
 
--- ---------- 3. Piezas internas ----------
+-- ---------- 3. Lo que sobra de la versión vieja ----------
+-- Las firmas viejas se borran antes de crear las nuevas: `create or replace` con otros parámetros crearía una segunda función y
+-- `tienda_catalogo()` quedaría ambigua frente a `tienda_catalogo(p_sede default null)`.
+drop function if exists retail.vitrina_cambiar_precios(jsonb);
+drop function if exists retail.vitrina_guardar_modelo(uuid, boolean, numeric, text, text, integer);
+drop function if exists retail.fn_vitrina_precio_valido(uuid, numeric);
+drop function if exists retail.fn_vitrina_bajo_costo(uuid, numeric);
+drop function if exists retail.fn_vitrina_soles(numeric);
+drop function if exists retail.fn_vitrina_modelo_json(uuid, boolean);
+drop function if exists retail.tienda_catalogo();
 
--- ¿Se puede mostrar en la web? Activo, no de prueba, no la «Prenda sin registrar» y con alguna talla activa. Una prenda
--- pendiente de revisar se trata como cualquier otra (ADR-0371); una rechazada ya está descontinuada.
+-- ---------- 4. Piezas internas ----------
+
+-- ¿Se puede mostrar en la web? Activo, no de prueba, no la «Prenda sin registrar» y con alguna talla activa con precio (una prenda
+-- de precio cero —la bolsa de obsequio, ADR-0384— no se ofrece en la web). Una prenda pendiente de revisar se trata como cualquier
+-- otra (ADR-0371); una rechazada ya está descontinuada.
 create or replace function retail.fn_vitrina_publicable(p_producto_id uuid)
 returns boolean
 language sql
@@ -104,57 +131,10 @@ as $$
        and p.estado_alta <> 'rechazado'
        and not p.es_prueba
        and p.id <> '11111111-1111-4111-8111-111111111111'
-       and exists (select 1 from retail.variantes v where v.producto_id = p.id and v.activo)
+       and exists (select 1 from retail.variantes v where v.producto_id = p.id and v.activo and v.precio > 0)
   )
 $$;
 revoke all on function retail.fn_vitrina_publicable(uuid) from public, anon, authenticated;
-
--- ¿Ese precio web queda por debajo de lo que cuesta ALGUNA talla activa del modelo? La regla del precio de tienda (20261011110000):
--- el precio vale para todas las tallas; quedar justo en el costo sí se puede. Una sola definición para la hoja y los dos lotes.
-create or replace function retail.fn_vitrina_bajo_costo(p_producto_id uuid, p_precio numeric)
-returns boolean
-language sql
-stable
-security definer
-set search_path = retail, public
-as $$
-  select coalesce(p_precio < (select max(v.costo) from retail.variantes v where v.producto_id = p_producto_id and v.activo), false)
-$$;
-revoke all on function retail.fn_vitrina_bajo_costo(uuid, numeric) from public, anon, authenticated;
-
--- El precio web que se puede guardar: positivo, finito, con dos decimales y no bajo el costo. Devuelve el precio o lanza el código
--- que la pantalla traduce.
-create or replace function retail.fn_vitrina_precio_valido(p_producto_id uuid, p_precio numeric)
-returns numeric
-language plpgsql
-stable
-security definer
-set search_path = retail, public, extensions
-as $fn$
-begin
-  -- NaN e Infinity no pasan por «<= 99999.99»; el redondeo pide dos decimales como mucho.
-  if p_precio is null or p_precio <= 0 or not (p_precio <= 99999.99) or round(p_precio, 2) <> p_precio then
-    raise exception 'vitrina_precio_invalido' using hint = 'Escribe un precio web mayor que cero, con hasta dos decimales.';
-  end if;
-  if retail.fn_vitrina_bajo_costo(p_producto_id, p_precio) then
-    raise exception 'vitrina_precio_bajo_costo'
-      using hint = 'Ese precio web queda por debajo de lo que cuesta la prenda. Para venderla más barata, usa una campaña (Catálogo ▸ Atributos ▸ Etiquetas).';
-  end if;
-  return p_precio;
-end;
-$fn$;
-revoke all on function retail.fn_vitrina_precio_valido(uuid, numeric) from public, anon, authenticated;
-
--- «S/ 79.90», para lo que se anota en la actividad.
-create or replace function retail.fn_vitrina_soles(p_monto numeric)
-returns text
-language sql
-immutable
-set search_path = retail, public
-as $$
-  select 'S/ ' || to_char(p_monto, 'FM99990.00')
-$$;
-revoke all on function retail.fn_vitrina_soles(numeric) from public, anon, authenticated;
 
 -- «Blusa Emma, Falda Renata y Vestido Sofía»: en orden alfabético, hasta cinco nombres; después, «y N más».
 create or replace function retail.fn_vitrina_lista_nombres(p_nombres text[])
@@ -195,8 +175,8 @@ end;
 $fn$;
 revoke all on function retail.fn_vitrina_anotar(text, text, uuid, text, jsonb) from public, anon, authenticated;
 
--- Un modelo tal como lo lee la pantalla de la Vitrina. `p_ve_costo`: solo el líder ve el costo (y con él, el margen).
-create or replace function retail.fn_vitrina_modelo_json(p_producto_id uuid, p_ve_costo boolean)
+-- Un modelo tal como lo lee la pantalla de la Vitrina: sin precio ni costo (el precio es el de cada tienda y se cambia en la ficha).
+create or replace function retail.fn_vitrina_modelo_json(p_producto_id uuid)
 returns jsonb
 language sql
 stable
@@ -212,9 +192,6 @@ as $$
     'prefijo', c.prefijo,
     'familia', c.familia,
     'publicable', retail.fn_vitrina_publicable(p.id),
-    'precio_tienda', pr.maximo,
-    'precio_tienda_min', pr.minimo,
-    'costo', case when p_ve_costo then pr.costo end,
     'foto', (
       select pf.url from retail.producto_fotos pf
        where pf.producto_id = p.id
@@ -241,18 +218,8 @@ as $$
             join retail.variantes v on v.id = st.variante_id
            where v.producto_id = p.id and v.activo and st.ubicacion_id = u.id) s on true
        where u.tipo = 'tienda' and u.activo), '[]'::jsonb),
-    -- La campaña de mayor descuento que toca alguna talla activa hoy (la misma regla de la caja); `todas`: si las toca todas.
-    'campana', (
-      select jsonb_build_object('nombre', x.etiqueta_nombre, 'pct', x.descuento_pct,
-               'todas', (select count(distinct y.variante_id) from retail.fn_campanas_por_variante(retail.fn_hoy_lima(), 0, va.ids) y
-                          where y.etiqueta_id = x.etiqueta_id) = cardinality(va.ids))
-        from (select coalesce(array_agg(v.id), '{}'::uuid[]) as ids from retail.variantes v where v.producto_id = p.id and v.activo) va
-        cross join lateral retail.fn_campanas_por_variante(retail.fn_hoy_lima(), 0, va.ids) x
-       order by x.descuento_pct desc, x.etiqueta_nombre, x.etiqueta_id
-       limit 1),
     'vitrina', case when vp.producto_id is null then null else jsonb_build_object(
       'publicado', vp.publicado,
-      'precio_web', vp.precio_web,
       'en_lo_nuevo', vp.en_lo_nuevo,
       'descripcion_web', vp.descripcion_web,
       'version', vp.version,
@@ -264,14 +231,11 @@ as $$
   left join retail.categorias c on c.id = p.categoria_id
   left join retail.vitrina_productos vp on vp.producto_id = p.id
   left join public.personas pe on pe.id = vp.actualizado_por
-  cross join lateral (
-    select max(v.precio) as maximo, min(v.precio) as minimo, max(v.costo) as costo
-      from retail.variantes v where v.producto_id = p.id and v.activo) pr
   where p.id = p_producto_id
 $$;
-revoke all on function retail.fn_vitrina_modelo_json(uuid, boolean) from public, anon, authenticated;
+revoke all on function retail.fn_vitrina_modelo_json(uuid) from public, anon, authenticated;
 
--- ---------- 4. La lectura de la pantalla ----------
+-- ---------- 5. La lectura de la pantalla ----------
 create or replace function retail.fn_vitrina_modelos()
 returns jsonb
 language plpgsql
@@ -279,19 +243,15 @@ stable
 security definer
 set search_path = retail, public, extensions
 as $fn$
-declare
-  v_ve_costo boolean;
 begin
   perform retail.fn_exigir_modulo('vitrina_web');
-  v_ve_costo := coalesce(retail.fn_es_lider(), false);
   return jsonb_build_object(
-    've_costos', v_ve_costo,
     'tiendas', coalesce((
       select jsonb_agg(jsonb_build_object('id', u.id, 'nombre', u.nombre) order by u.nombre)
         from retail.ubicaciones u where u.tipo = 'tienda' and u.activo), '[]'::jsonb),
     -- Lo que se puede mostrar, más lo que ya estuvo en la vitrina aunque hoy no se pueda (descontinuado: la pantalla lo dice).
     'modelos', coalesce((
-      select jsonb_agg(retail.fn_vitrina_modelo_json(x.id, v_ve_costo) order by x.referencia, x.id)
+      select jsonb_agg(retail.fn_vitrina_modelo_json(x.id) order by x.referencia, x.id)
         from (
           select p.id, p.referencia from retail.productos p
            where retail.fn_vitrina_publicable(p.id)
@@ -303,13 +263,13 @@ $fn$;
 revoke all on function retail.fn_vitrina_modelos() from public, anon;
 grant execute on function retail.fn_vitrina_modelos() to authenticated;
 
--- ---------- 5. Guardar un modelo (la hoja) ----------
--- Crea la fila la primera vez (el precio web nace al encenderlo) o la cambia. `p_version`: la que leyó la pantalla (`null` si
--- el modelo nunca estuvo en la vitrina); si otra persona lo cambió entretanto, `vitrina_cambio_otro`. Sin cambios, no anota nada.
+-- ---------- 6. Guardar un modelo (la hoja) ----------
+-- Crea la fila la primera vez o la cambia. `p_version`: la que leyó la pantalla (`null` si el modelo nunca estuvo en la vitrina);
+-- si otra persona lo cambió entretanto, `vitrina_cambio_otro`. Sin cambios, no escribe ni anota nada (y un modelo que nunca estuvo
+-- y se deja oculto, automático y sin descripción no deja fila: no hay nada que guardar).
 create or replace function retail.vitrina_guardar_modelo(
   p_producto_id uuid,
   p_publicado boolean,
-  p_precio_web numeric,
   p_en_lo_nuevo text,
   p_descripcion_web text,
   p_version integer
@@ -322,12 +282,10 @@ as $fn$
 declare
   v_actor uuid;
   v_nombre text;
-  v_precio numeric(12, 2);
   v_desc text := nullif(btrim(regexp_replace(coalesce(p_descripcion_web, ''), '\s+', ' ', 'g')), '');
   v_fila retail.vitrina_productos%rowtype;
   v_existe boolean;
   v_partes text[] := '{}';
-  v_ve_costo boolean;
 begin
   perform retail.fn_exigir_modulo('vitrina_web');
   v_actor := retail.fn_actor_persona_id(true);
@@ -347,9 +305,8 @@ begin
   end if;
   if p_publicado and not retail.fn_vitrina_publicable(p_producto_id) then
     raise exception 'vitrina_no_publicable'
-      using hint = format('«%s» no se puede mostrar: está descontinuado, es de prueba o no tiene tallas activas.', v_nombre);
+      using hint = format('«%s» no se puede mostrar: está descontinuado, es de prueba o no tiene tallas activas con precio.', v_nombre);
   end if;
-  v_precio := retail.fn_vitrina_precio_valido(p_producto_id, p_precio_web);
 
   select * into v_fila from retail.vitrina_productos where producto_id = p_producto_id for update;
   v_existe := found;
@@ -358,28 +315,28 @@ begin
     if p_version is not null then
       raise exception 'vitrina_cambio_otro' using hint = 'Este modelo cambió mientras lo tenías abierto. Vuelve a abrirlo.';
     end if;
-    insert into retail.vitrina_productos
-      (producto_id, publicado, precio_web, en_lo_nuevo, descripcion_web, publicado_en, creado_por, actualizado_por)
-    values
-      (p_producto_id, p_publicado, v_precio, p_en_lo_nuevo, v_desc, case when p_publicado then now() end, v_actor, v_actor)
-    on conflict (producto_id) do nothing;
-    if not found then
-      -- Otra persona lo encendió en el mismo instante: que esta vuelva a abrirlo y vea lo que quedó.
-      raise exception 'vitrina_cambio_otro' using hint = 'Este modelo cambió mientras lo tenías abierto. Vuelve a abrirlo.';
-    end if;
-    v_partes := array[case when p_publicado then 'se ve en la web' else 'queda oculto' end, 'precio web ' || retail.fn_vitrina_soles(v_precio)];
+    if p_publicado then v_partes := v_partes || 'se ve en la web'::text; end if;
     if p_en_lo_nuevo = 'fijo' then v_partes := v_partes || 'fijado en Lo nuevo'::text; end if;
     if p_en_lo_nuevo = 'quitado' then v_partes := v_partes || 'fuera de Lo nuevo'::text; end if;
     if v_desc is not null then v_partes := v_partes || 'con descripción para la web'::text; end if;
+    if cardinality(v_partes) > 0 then
+      insert into retail.vitrina_productos
+        (producto_id, publicado, en_lo_nuevo, descripcion_web, publicado_en, creado_por, actualizado_por)
+      values
+        (p_producto_id, p_publicado, p_en_lo_nuevo, v_desc, case when p_publicado then now() end, v_actor, v_actor)
+      on conflict (producto_id) do nothing;
+      if not found then
+        -- Otra persona lo mostró en el mismo instante: que esta vuelva a abrirlo y vea lo que quedó.
+        raise exception 'vitrina_cambio_otro' using hint = 'Este modelo cambió mientras lo tenías abierto. Vuelve a abrirlo.';
+      end if;
+      if not p_publicado then v_partes := array['queda oculto'] || v_partes; end if;
+    end if;
   else
     if p_version is null or p_version <> v_fila.version then
       raise exception 'vitrina_cambio_otro' using hint = 'Este modelo cambió mientras lo tenías abierto. Vuelve a abrirlo.';
     end if;
     if p_publicado is distinct from v_fila.publicado then
       v_partes := v_partes || (case when p_publicado then 'se ve en la web' else 'ya no se ve en la web' end);
-    end if;
-    if v_precio <> v_fila.precio_web then
-      v_partes := v_partes || ('precio web ' || retail.fn_vitrina_soles(v_fila.precio_web) || ' → ' || retail.fn_vitrina_soles(v_precio));
     end if;
     if p_en_lo_nuevo <> v_fila.en_lo_nuevo then
       v_partes := v_partes || (case p_en_lo_nuevo when 'fijo' then 'fijado en Lo nuevo' when 'quitado' then 'fuera de Lo nuevo'
@@ -391,7 +348,6 @@ begin
     if cardinality(v_partes) > 0 then
       update retail.vitrina_productos
          set publicado = p_publicado,
-             precio_web = v_precio,
              en_lo_nuevo = p_en_lo_nuevo,
              descripcion_web = v_desc,
              publicado_en = case when p_publicado and not v_fila.publicado then now() else publicado_en end,
@@ -405,19 +361,18 @@ begin
   if cardinality(v_partes) > 0 then
     perform retail.fn_vitrina_anotar(
       'vitrina_guardada', '«' || v_nombre || '»: ' || array_to_string(v_partes, ' · '), v_actor, p_producto_id::text,
-      jsonb_build_object('producto_id', p_producto_id, 'publicado', p_publicado, 'precio_web', v_precio, 'en_lo_nuevo', p_en_lo_nuevo));
+      jsonb_build_object('producto_id', p_producto_id, 'publicado', p_publicado, 'en_lo_nuevo', p_en_lo_nuevo));
   end if;
 
-  v_ve_costo := coalesce(retail.fn_es_lider(), false);
-  return retail.fn_vitrina_modelo_json(p_producto_id, v_ve_costo);
+  return retail.fn_vitrina_modelo_json(p_producto_id);
 end;
 $fn$;
-revoke all on function retail.vitrina_guardar_modelo(uuid, boolean, numeric, text, text, integer) from public, anon;
-grant execute on function retail.vitrina_guardar_modelo(uuid, boolean, numeric, text, text, integer) to authenticated;
+revoke all on function retail.vitrina_guardar_modelo(uuid, boolean, text, text, integer) from public, anon;
+grant execute on function retail.vitrina_guardar_modelo(uuid, boolean, text, text, integer) to authenticated;
 
--- ---------- 6. Mostrar u ocultar varios (el lote) ----------
--- Mostrar: el que ya tiene precio web vuelve con él; el que nunca estuvo entra con su precio de tienda (el mayor de sus tallas
--- activas). Ocultar: marca `publicado = false` y guarda el precio. Todo o nada; devuelve cuántos cambiaron.
+-- ---------- 7. Mostrar u ocultar uno o varios (el lote) ----------
+-- Mostrar: el que nunca estuvo entra; el que estuvo, vuelve. Ocultar: marca `publicado = false`. Todo o nada; devuelve cuántos
+-- cambiaron (el que ya estaba como se pide no cuenta ni se anota).
 create or replace function retail.vitrina_mostrar(p_producto_ids uuid[], p_publicado boolean)
 returns jsonb
 language plpgsql
@@ -430,10 +385,7 @@ declare
   v_nombre text;
   v_fila retail.vitrina_productos%rowtype;
   v_existe boolean;
-  v_inicial numeric;
   v_no_publicables text[] := '{}';
-  v_sin_precio text[] := '{}';
-  v_bajo_costo text[] := '{}';
   v_nombres text[] := '{}';
   v_ids uuid[] := '{}';
 begin
@@ -463,25 +415,12 @@ begin
         continue;
       end if;
       if v_existe then
-        if retail.fn_vitrina_bajo_costo(v_id, v_fila.precio_web) then
-          v_bajo_costo := v_bajo_costo || v_nombre;
-          continue;
-        end if;
         update retail.vitrina_productos
            set publicado = true, publicado_en = now(), version = version + 1, actualizado_en = now(), actualizado_por = v_actor
          where producto_id = v_id;
       else
-        v_inicial := (select max(v.precio) from retail.variantes v where v.producto_id = v_id and v.activo);
-        if v_inicial is null or v_inicial <= 0 then
-          v_sin_precio := v_sin_precio || v_nombre;
-          continue;
-        end if;
-        if retail.fn_vitrina_bajo_costo(v_id, v_inicial) then
-          v_bajo_costo := v_bajo_costo || v_nombre;
-          continue;
-        end if;
-        insert into retail.vitrina_productos (producto_id, publicado, precio_web, publicado_en, creado_por, actualizado_por)
-        values (v_id, true, v_inicial, now(), v_actor, v_actor);
+        insert into retail.vitrina_productos (producto_id, publicado, publicado_en, creado_por, actualizado_por)
+        values (v_id, true, now(), v_actor, v_actor);
       end if;
     else
       if not v_existe or not v_fila.publicado then
@@ -497,16 +436,8 @@ begin
 
   if cardinality(v_no_publicables) > 0 then
     raise exception 'vitrina_no_publicable'
-      using hint = format('No se pueden mostrar: %s (descontinuados, de prueba o sin tallas activas). Quítalos de la selección.',
+      using hint = format('No se pueden mostrar: %s (descontinuados, de prueba o sin tallas activas con precio). Quítalos de la selección.',
                           retail.fn_vitrina_lista_nombres(v_no_publicables));
-  end if;
-  if cardinality(v_sin_precio) > 0 then
-    raise exception 'vitrina_sin_precio'
-      using hint = format('No tienen precio de tienda: %s. Ábrelos uno por uno y ponles su precio web.', retail.fn_vitrina_lista_nombres(v_sin_precio));
-  end if;
-  if cardinality(v_bajo_costo) > 0 then
-    raise exception 'vitrina_precio_bajo_costo'
-      using hint = format('Su precio web queda por debajo de lo que cuestan: %s. Ábrelos y súbeles el precio.', retail.fn_vitrina_lista_nombres(v_bajo_costo));
   end if;
 
   if cardinality(v_ids) > 0 then
@@ -529,201 +460,131 @@ $fn$;
 revoke all on function retail.vitrina_mostrar(uuid[], boolean) from public, anon;
 grant execute on function retail.vitrina_mostrar(uuid[], boolean) to authenticated;
 
--- ---------- 7. Cambiar el precio web de varios (el lote) ----------
--- `p_cambios`: [{producto_id, precio_web, version}]. La pantalla calcula cada precio nuevo (subir o bajar en soles o en %) y
--- manda la `version` que leyó (`null` si el modelo nunca estuvo en la vitrina: entra oculto, con ese precio). Todo o nada.
-create or replace function retail.vitrina_cambiar_precios(p_cambios jsonb)
+-- ---------- 8. El catálogo de la tienda (puerta angosta, ADR-0408) ----------
+-- Lo publicado y que se puede vender, al precio de la tienda elegida (`p_sede`) o, con «Todas» (`null`, o una tienda que no se ve en
+-- la web), al MAYOR entre las tiendas que se ven en la web: cada talla a lo más que vale entre ellas (`fn_precio_en_sede`) y el
+-- modelo a lo más de sus tallas. Sin ninguna tienda en la web, el precio de la prenda (`variantes.precio`, la grilla).
+-- Encima, la campaña con la MISMA regla de la caja: la de mayor descuento por talla y el precio que baja al múltiplo de S/ 0.10 de
+-- abajo (ADR-0403). Si la campaña toca todas las tallas con el mismo %, `precio_final` es el del modelo con ese descuento; si no,
+-- es lo menos que se paga por una talla con campaña y `desde` lo dice. Los colores de sus tallas activas con su foto propia, y hasta
+-- dos fotos del modelo, solo del almacén PÚBLICO de fotos de prendas. Sin stock, sin costo y sin nada del ERP.
+-- {sede: la tienda cuyo precio se usó, o null = «Todas»; prendas: [{id, codigo, nombre, categoria, precio, precio_final, desde,
+--  campana, colores, fotos}]}.
+create or replace function retail.tienda_catalogo(p_sede uuid default null)
 returns jsonb
 language plpgsql
-security definer
-set search_path = retail, public, extensions
-as $fn$
-declare
-  v_actor uuid;
-  v_item jsonb;
-  v_id uuid;
-  v_precio numeric;
-  v_version integer;
-  v_nombre text;
-  v_fila retail.vitrina_productos%rowtype;
-  v_existe boolean;
-  v_bajo_costo text[] := '{}';
-  v_otros text[] := '{}';
-  v_nombres text[] := '{}';
-  v_ids uuid[] := '{}';
-  v_detalle jsonb := '[]'::jsonb;
-begin
-  perform retail.fn_exigir_modulo('vitrina_web');
-  v_actor := retail.fn_actor_persona_id(true);
-
-  if p_cambios is null or jsonb_typeof(p_cambios) <> 'array' or jsonb_array_length(p_cambios) = 0 or jsonb_array_length(p_cambios) > 500 then
-    raise exception 'vitrina_datos_invalidos' using hint = 'Elige de 1 a 500 modelos.';
-  end if;
-  -- La forma de cada cambio, antes de tocar nada: un id de verdad, un precio numérico y una versión entera o nula, sin repetidos.
-  if exists (
-    select 1 from jsonb_array_elements(p_cambios) e
-     where jsonb_typeof(e) <> 'object'
-        or coalesce(e ->> 'producto_id', '') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-        or jsonb_typeof(e -> 'precio_web') is distinct from 'number'
-        or (e ? 'version' and jsonb_typeof(e -> 'version') <> 'null'
-            and (jsonb_typeof(e -> 'version') <> 'number' or (e ->> 'version') !~ '^[0-9]{1,9}$'))
-  ) or (select count(distinct lower(e ->> 'producto_id')) from jsonb_array_elements(p_cambios) e) <> jsonb_array_length(p_cambios) then
-    raise exception 'vitrina_datos_invalidos' using hint = 'Los precios nuevos no llegaron completos. Vuelve a intentarlo.';
-  end if;
-
-  for v_item in select e from jsonb_array_elements(p_cambios) e order by (e ->> 'producto_id')::uuid loop
-    v_id := (v_item ->> 'producto_id')::uuid;
-    v_version := case when jsonb_typeof(v_item -> 'version') = 'number' then (v_item ->> 'version')::integer end;
-    v_nombre := (select p.referencia from retail.productos p where p.id = v_id);
-    if v_nombre is null then
-      raise exception 'vitrina_no_existe' using hint = 'Uno de los modelos ya no existe. Recarga la pantalla.';
-    end if;
-    -- Positivo, finito y con dos decimales: si no, es un error de la pantalla y se dice tal cual.
-    v_precio := (v_item ->> 'precio_web')::numeric;
-    if v_precio <= 0 or not (v_precio <= 99999.99) or round(v_precio, 2) <> v_precio then
-      raise exception 'vitrina_precio_invalido'
-        using hint = format('El precio web de «%s» tiene que ser mayor que cero, con hasta dos decimales.', v_nombre);
-    end if;
-
-    select * into v_fila from retail.vitrina_productos where producto_id = v_id for update;
-    v_existe := found;
-    if (v_existe and (v_version is null or v_version <> v_fila.version)) or (not v_existe and v_version is not null) then
-      v_otros := v_otros || v_nombre;
-      continue;
-    end if;
-    if retail.fn_vitrina_bajo_costo(v_id, v_precio) then
-      v_bajo_costo := v_bajo_costo || v_nombre;
-      continue;
-    end if;
-    if v_existe and v_fila.precio_web = v_precio then
-      continue;
-    end if;
-
-    if v_existe then
-      update retail.vitrina_productos
-         set precio_web = v_precio, version = version + 1, actualizado_en = now(), actualizado_por = v_actor
-       where producto_id = v_id;
-    else
-      insert into retail.vitrina_productos (producto_id, publicado, precio_web, creado_por, actualizado_por)
-      values (v_id, false, v_precio, v_actor, v_actor);
-    end if;
-    v_nombres := v_nombres || v_nombre;
-    v_ids := v_ids || v_id;
-    v_detalle := v_detalle || jsonb_build_object('producto_id', v_id, 'antes', case when v_existe then v_fila.precio_web end, 'despues', v_precio);
-  end loop;
-
-  if cardinality(v_otros) > 0 then
-    raise exception 'vitrina_cambio_otro'
-      using hint = format('Cambiaron mientras los tenías elegidos: %s. Recarga la pantalla y vuelve a intentarlo.', retail.fn_vitrina_lista_nombres(v_otros));
-  end if;
-  if cardinality(v_bajo_costo) > 0 then
-    raise exception 'vitrina_precio_bajo_costo'
-      using hint = format('Ese precio web queda por debajo de lo que cuestan: %s. Para venderlos más baratos, usa una campaña.', retail.fn_vitrina_lista_nombres(v_bajo_costo));
-  end if;
-
-  if cardinality(v_ids) > 0 then
-    perform retail.fn_vitrina_anotar(
-      'vitrina_precios',
-      case when cardinality(v_nombres) = 1
-        then 'cambió el precio web de «' || v_nombres[1] || '» a ' || retail.fn_vitrina_soles((v_detalle -> 0 ->> 'despues')::numeric)
-        else 'cambió el precio web de ' || cardinality(v_nombres) || ' modelos: ' || retail.fn_vitrina_lista_nombres(v_nombres) end,
-      v_actor,
-      case when cardinality(v_ids) = 1 then v_ids[1]::text else gen_random_uuid()::text end,
-      jsonb_build_object('precios', v_detalle));
-  end if;
-
-  return jsonb_build_object('cambiados', cardinality(v_ids));
-end;
-$fn$;
-revoke all on function retail.vitrina_cambiar_precios(jsonb) from public, anon;
-grant execute on function retail.vitrina_cambiar_precios(jsonb) to authenticated;
-
--- ---------- 8. El catálogo de la tienda (puerta angosta, ADR-0408) ----------
--- Lo publicado y que se puede vender, con su precio web y, si una campaña vigente toca alguna talla, el precio que paga el cliente
--- con la MISMA regla de la caja (la de mayor descuento por talla; el precio baja al múltiplo de S/ 0.10 de abajo, ADR-0403).
--- `precio`: lo menos que paga el cliente por una talla del modelo; `precio_hasta`: lo más (son iguales si la campaña toca todas
--- las tallas o ninguna). Los colores de sus tallas activas con su foto propia, y hasta dos fotos del modelo. Solo URL del almacén
--- PÚBLICO de fotos de prendas: nunca el enlace de otro almacén. Sin stock, sin costo y sin nada del ERP.
-create or replace function retail.tienda_catalogo()
-returns jsonb
-language sql
 stable
 security definer
 set search_path = retail, public
-as $$
-  with modelos as (
-    select vp.producto_id as id, vp.precio_web, vp.publicado_en, p.referencia as nombre, p.codigo,
-           c.nombre as categoria, c.prefijo
-      from retail.vitrina_productos vp
-      join retail.productos p on p.id = vp.producto_id
-      left join retail.categorias c on c.id = p.categoria_id
-     where vp.publicado
-       and retail.fn_vitrina_publicable(vp.producto_id)
-  ),
-  tallas as (
-    select v.id, v.producto_id, v.color_codigo
-      from retail.variantes v
-      join modelos m on m.id = v.producto_id
-     where v.activo
-  ),
-  -- `coalesce(…, '{}')`: con la lista vacía la función no devuelve nada (con null devolvería las campañas de TODO el catálogo).
-  campana as (
-    select distinct on (x.variante_id) x.variante_id, x.etiqueta_nombre as nombre, x.descuento_pct as pct
-      from retail.fn_campanas_por_variante(retail.fn_hoy_lima(), 0, coalesce((select array_agg(t.id) from tallas t), '{}'::uuid[])) x
-     order by x.variante_id, x.descuento_pct desc, x.etiqueta_nombre, x.etiqueta_id
-  ),
-  precio as (
-    select t.producto_id, ca.nombre, ca.pct,
-           m.precio_web - retail.fn_descuento_campana(m.precio_web, ca.pct) as final
-      from tallas t
-      join modelos m on m.id = t.producto_id
-      left join campana ca on ca.variante_id = t.id
-  ),
-  foto_ok as (
-    select pf.producto_id, pf.color_codigo, pf.url, pf.es_principal, pf.orden, pf.created_at, pf.id
-      from retail.producto_fotos pf
-      join modelos m on m.id = pf.producto_id
-     where pf.url ~ '^https?://[^/?#]+/storage/v1/object/public/retail-productos-fotos/'
-  )
-  select jsonb_build_object('prendas', coalesce(jsonb_agg(jsonb_build_object(
-      'id', m.id,
-      'codigo', m.codigo,
-      'nombre', m.nombre,
-      'categoria', case when m.categoria is null then null else jsonb_build_object('nombre', m.categoria, 'prefijo', m.prefijo) end,
-      'precio_web', m.precio_web,
-      'precio', pm.minimo,
-      'precio_hasta', pm.maximo,
-      'campana', case when pm.minimo < m.precio_web then (
-        select jsonb_build_object('nombre', pr.nombre, 'pct', pr.pct)
-          from precio pr
-         where pr.producto_id = m.id and pr.pct is not null
-         order by pr.final, pr.pct desc, pr.nombre
-         limit 1) end,
-      'colores', coalesce((
-        select jsonb_agg(jsonb_build_object(
-                 'codigo', co.codigo, 'nombre', co.nombre, 'hex', co.hex,
-                 'foto', (select f.url from foto_ok f where f.producto_id = m.id and f.color_codigo = co.codigo
-                           order by f.es_principal desc, f.orden, f.created_at, f.id limit 1))
-               order by co.orden, co.nombre)
-          from retail.colores co
-         where co.codigo in (select t.color_codigo from tallas t where t.producto_id = m.id)), '[]'::jsonb),
-      'fotos', coalesce((
-        select jsonb_agg(f.url order by f.n)
-          from (select f.url, row_number() over (order by f.es_principal desc, f.orden, f.created_at, f.id) as n
-                  from foto_ok f where f.producto_id = m.id) f
-         where f.n <= 2), '[]'::jsonb)
-    ) order by m.publicado_en desc, m.nombre, m.id), '[]'::jsonb))
-  from modelos m
-  join lateral (
-    select min(pr.final) as minimo, max(pr.final) as maximo from precio pr where pr.producto_id = m.id
-  ) pm on pm.minimo is not null
-$$;
+as $fn$
+declare
+  v_sedes uuid[];
+  v_sede uuid;
+  v_precio_de uuid[];
+begin
+  -- Las tiendas que la web muestra (Configuración ▸ Tienda web): las mismas de las píldoras «Ver lo que hay en».
+  v_sedes := array(select (s ->> 'id')::uuid from jsonb_array_elements(coalesce(retail.tienda_sedes() -> 'sedes', '[]'::jsonb)) s);
+  if p_sede = any (v_sedes) then
+    v_sede := p_sede;
+  end if;
+  v_precio_de := case when v_sede is not null then array[v_sede] else v_sedes end;
 
-comment on function retail.tienda_catalogo() is
-  'Tienda online (ADR-0408, actividad 3): lo publicado en la Vitrina web con su precio web y el de la campaña vigente (misma regla de la caja, ADR-0403), sus colores y hasta dos fotos. {prendas: [...]}. Solo la llama tienda_web.';
+  return (
+    with modelos as (
+      select vp.producto_id as id, vp.publicado_en, p.referencia as nombre, p.codigo, c.nombre as categoria, c.prefijo
+        from retail.vitrina_productos vp
+        join retail.productos p on p.id = vp.producto_id
+        left join retail.categorias c on c.id = p.categoria_id
+       where vp.publicado
+         and retail.fn_vitrina_publicable(vp.producto_id)
+    ),
+    tallas as (
+      select v.id, v.producto_id, v.color_codigo,
+             case when cardinality(v_precio_de) = 0 then v.precio
+                  else (select max(retail.fn_precio_en_sede(v.id, s.id)) from unnest(v_precio_de) as s (id)) end as precio
+        from retail.variantes v
+        join modelos m on m.id = v.producto_id
+       where v.activo
+    ),
+    -- `coalesce(…, '{}')`: con la lista vacía la función no devuelve nada (con null devolvería las campañas de TODO el catálogo).
+    campana as (
+      select distinct on (x.variante_id) x.variante_id, x.etiqueta_nombre as nombre, x.descuento_pct as pct
+        from retail.fn_campanas_por_variante(retail.fn_hoy_lima(), 0, coalesce((select array_agg(t.id) from tallas t), '{}'::uuid[])) x
+       order by x.variante_id, x.descuento_pct desc, x.etiqueta_nombre, x.etiqueta_id
+    ),
+    por_talla as (
+      select t.producto_id, t.precio, ca.nombre, ca.pct,
+             t.precio - retail.fn_descuento_campana(t.precio, ca.pct) as final
+        from tallas t
+        left join campana ca on ca.variante_id = t.id
+    ),
+    resumen as (
+      select f.producto_id,
+             max(f.precio) as precio,
+             count(*) as n_tallas,
+             count(f.pct) as con_campana,
+             count(distinct f.pct) as porcentajes,
+             max(f.final) as final_mayor,
+             min(f.final) filter (where f.pct is not null) as final_menor_con_campana
+        from por_talla f
+       group by f.producto_id
+    ),
+    tarjeta as (
+      select r.producto_id, r.precio, x.final,
+             x.final < r.precio and not (r.con_campana = r.n_tallas and r.porcentajes = 1) as desde
+        from resumen r
+        cross join lateral (
+          select case when r.con_campana = 0 then r.precio
+                      when r.con_campana = r.n_tallas and r.porcentajes = 1 then r.final_mayor
+                      else r.final_menor_con_campana end as final
+        ) x
+       where r.precio > 0
+    ),
+    foto_ok as (
+      select pf.producto_id, pf.color_codigo, pf.url, pf.es_principal, pf.orden, pf.created_at, pf.id
+        from retail.producto_fotos pf
+        join modelos m on m.id = pf.producto_id
+       where pf.url ~ '^https?://[^/?#]+/storage/v1/object/public/retail-productos-fotos/'
+    )
+    select jsonb_build_object('sede', v_sede, 'prendas', coalesce(jsonb_agg(jsonb_build_object(
+        'id', m.id,
+        'codigo', m.codigo,
+        'nombre', m.nombre,
+        'categoria', case when m.categoria is null then null else jsonb_build_object('nombre', m.categoria, 'prefijo', m.prefijo) end,
+        'precio', t.precio,
+        'precio_final', t.final,
+        'desde', t.desde,
+        'campana', case when t.final < t.precio then (
+          select jsonb_build_object('nombre', f.nombre, 'pct', f.pct)
+            from por_talla f
+           where f.producto_id = m.id and f.pct is not null
+           order by f.final, f.pct desc, f.nombre
+           limit 1) end,
+        'colores', coalesce((
+          select jsonb_agg(jsonb_build_object(
+                   'codigo', co.codigo, 'nombre', co.nombre, 'hex', co.hex,
+                   'foto', (select fo.url from foto_ok fo where fo.producto_id = m.id and fo.color_codigo = co.codigo
+                             order by fo.es_principal desc, fo.orden, fo.created_at, fo.id limit 1))
+                 order by co.orden, co.nombre)
+            from retail.colores co
+           where co.codigo in (select ta.color_codigo from tallas ta where ta.producto_id = m.id)), '[]'::jsonb),
+        'fotos', coalesce((
+          select jsonb_agg(fo.url order by fo.n)
+            from (select fo.url, row_number() over (order by fo.es_principal desc, fo.orden, fo.created_at, fo.id) as n
+                    from foto_ok fo where fo.producto_id = m.id) fo
+           where fo.n <= 2), '[]'::jsonb)
+      ) order by m.publicado_en desc, m.nombre, m.id), '[]'::jsonb))
+    from modelos m
+    join tarjeta t on t.producto_id = m.id
+  );
+end;
+$fn$;
 
-revoke all on function retail.tienda_catalogo() from public, anon, authenticated;
-grant execute on function retail.tienda_catalogo() to tienda_web;
+comment on function retail.tienda_catalogo(uuid) is
+  'Tienda online (ADR-0408, actividad 3): lo publicado en la Vitrina web al precio de la tienda elegida (o, con «Todas», al mayor entre las tiendas de la web; fn_precio_en_sede) y el de la campaña vigente (misma regla de la caja, ADR-0403), sus colores y hasta dos fotos. {sede, prendas: [...]}. Solo la llama tienda_web.';
+
+revoke all on function retail.tienda_catalogo(uuid) from public, anon, authenticated;
+grant execute on function retail.tienda_catalogo(uuid) to tienda_web;
 
 -- ---------- 9. Validación final: si algo no quedó, se deshace todo ----------
 do $$
@@ -733,14 +594,22 @@ begin
   if not exists (select 1 from retail.modulos where clave = 'vitrina_web' and grupo = 'Catálogo' and delegable and not solo_lider) then
     raise exception 'vitrina web: falta el módulo vitrina_web';
   end if;
-  if has_function_privilege('anon', 'retail.tienda_catalogo()', 'EXECUTE')
-     or has_function_privilege('authenticated', 'retail.tienda_catalogo()', 'EXECUTE')
-     or not has_function_privilege('tienda_web', 'retail.tienda_catalogo()', 'EXECUTE') then
+  if has_function_privilege('anon', 'retail.tienda_catalogo(uuid)', 'EXECUTE')
+     or has_function_privilege('authenticated', 'retail.tienda_catalogo(uuid)', 'EXECUTE')
+     or not has_function_privilege('tienda_web', 'retail.tienda_catalogo(uuid)', 'EXECUTE') then
     raise exception 'vitrina web: tienda_catalogo tiene que ser solo de tienda_web';
   end if;
   if has_table_privilege('tienda_web', 'retail.vitrina_productos', 'SELECT')
      or has_table_privilege('authenticated', 'retail.vitrina_productos', 'SELECT') then
     raise exception 'vitrina web: vitrina_productos se lee solo por sus funciones';
+  end if;
+  -- Nada de la versión vieja: ni el precio web ni sus funciones.
+  if exists (select 1 from information_schema.columns
+              where table_schema = 'retail' and table_name = 'vitrina_productos' and column_name = 'precio_web')
+     or to_regprocedure('retail.vitrina_cambiar_precios(jsonb)') is not null
+     or to_regprocedure('retail.tienda_catalogo()') is not null
+     or to_regprocedure('retail.vitrina_guardar_modelo(uuid, boolean, numeric, text, text, integer)') is not null then
+    raise exception 'vitrina web: quedó algo del precio web de la versión vieja';
   end if;
 end;
 $$;

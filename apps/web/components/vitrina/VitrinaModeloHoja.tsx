@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Aviso } from "@/components/ui/Aviso";
-import { Boton, Campo, CampoMonto, Interruptor } from "@/components/ui/campos";
+import { Boton, Campo, Interruptor } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -20,19 +20,12 @@ import {
   coloresSinFoto,
   descripcionParaGuardar,
   errorDeVitrina,
-  frenteATienda,
-  margenSinIgv,
-  MARGEN_BAJO,
   MAX_DESCRIPCION_WEB,
   modeloDeJson,
-  precioConCampana,
-  precioWebDe,
-  precioWebDeTexto,
   textoLoNuevo,
   type EnLoNuevo,
   type ModeloVitrina,
 } from "@/lib/vitrina-reglas";
-import { soles } from "@/lib/precio-sede-reglas";
 
 const COLORES_A_LA_VISTA = 8;
 const OPCIONES_LO_NUEVO = [
@@ -42,58 +35,39 @@ const OPCIONES_LO_NUEVO = [
 ];
 
 /**
- * La hoja de un modelo en la Vitrina web (maqueta v4, «Publicar un modelo»): mostrarlo u ocultarlo, su precio web (con lo que queda
- * frente a la tienda, con la campaña y, para el líder, el margen), cómo entra a «Lo nuevo» y lo que ve el cliente (sus fotos por
- * color y la descripción para la web). Encenderlo por primera vez abre esta hoja con el precio de tienda escrito: el precio web nace
- * aquí. Guardar firma el «Responsable» (ADR-0162); si otra persona lo cambió mientras estaba abierta, la base lo dice y no pisa nada.
+ * La hoja de un modelo en la Vitrina web (maqueta v4, «Publicar un modelo»): mostrarlo u ocultarlo, cómo entra a «Lo nuevo» y lo que
+ * ve el cliente (sus fotos por color y la descripción para la web). No hay precio web: en la web vale lo que vale en cada tienda
+ * (se cambia en la ficha del producto). Guardar firma el «Responsable» (ADR-0162); si otra persona lo cambió mientras estaba abierta,
+ * la base lo dice y no pisa nada.
  */
 export function VitrinaModeloHoja({
   modelo,
-  veCostos,
-  encender,
   onClose,
   onGuardado,
 }: {
   modelo: ModeloVitrina;
-  veCostos: boolean;
-  /** Se abrió desde el interruptor apagado: la hoja llega con «Mostrar en la web» prendido. */
-  encender: boolean;
   onClose: () => void;
   onGuardado: (modelo: ModeloVitrina) => void;
 }) {
   const responsable = useResponsable();
   const v = modelo.vitrina;
-  const inicial = precioWebDe(modelo);
-  const [publicado, setPublicado] = useState((encender || Boolean(v?.publicado)) && modelo.publicable);
-  const [precio, setPrecio] = useState(inicial && inicial > 0 ? inicial.toFixed(2) : "");
+  const [publicado, setPublicado] = useState(Boolean(v?.publicado) && modelo.publicable);
   const [enLoNuevo, setEnLoNuevo] = useState<EnLoNuevo>(v?.enLoNuevo ?? "automatico");
   const [descripcion, setDescripcion] = useState(v?.descripcionWeb ?? modelo.descripcion ?? "");
   const [guardando, setGuardando] = useState(false);
   // Un doble clic no manda dos veces: el estado de React llega tarde dentro de un mismo clic.
   const enVuelo = useRef(false);
 
-  const costo = veCostos ? modelo.costo : null;
-  const campos = camposDeModelo({ precio, costo, descripcion, responsableListo: responsable.listo, responsableMotivo: responsable.motivo });
-  const guia = useGuiaCampos(campos);
-  const precioN = precioWebDeTexto(precio);
-  const conCampana = precioN !== null && modelo.campana ? precioConCampana(precioN, modelo.campana.pct) : null;
-  const margen = precioN !== null ? margenSinIgv(precioN, costo) : null;
-  const margenCampana = conCampana !== null ? margenSinIgv(conCampana, costo) : null;
-  const margenFinal = margenCampana ?? margen;
-  const bajoCostoConCampana = costo !== null && conCampana !== null && conCampana < costo;
-  const frente = precioN !== null ? frenteATienda(precioN, modelo.precioTienda) : null;
+  const guia = useGuiaCampos(camposDeModelo({ descripcion, responsableListo: responsable.listo, responsableMotivo: responsable.motivo }));
   const sinFotoPropia = coloresSinFoto(modelo);
   const descripcionFinal = descripcionParaGuardar(descripcion, modelo.descripcion);
+  // Lo que ya está guardado (o, si nunca estuvo, lo de fábrica: oculto, automático y con la descripción del catálogo).
   const sinCambios =
-    v !== null &&
-    publicado === v.publicado &&
-    precioN === v.precioWeb &&
-    enLoNuevo === v.enLoNuevo &&
-    descripcionFinal === (v.descripcionWeb ?? null);
+    publicado === Boolean(v?.publicado) && enLoNuevo === (v?.enLoNuevo ?? "automatico") && descripcionFinal === (v?.descripcionWeb ?? null);
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
-    if (enVuelo.current || !guia.puedeConfirmar || precioN === null) return;
+    if (enVuelo.current || !guia.puedeConfirmar) return;
     if (sinCambios) {
       onClose();
       return;
@@ -104,7 +78,6 @@ export function VitrinaModeloHoja({
       createClient().rpc("vitrina_guardar_modelo", {
         p_producto_id: modelo.id,
         p_publicado: publicado,
-        p_precio_web: precioN,
         p_en_lo_nuevo: enLoNuevo,
         p_descripcion_web: descripcionFinal,
         p_version: v?.version ?? null,
@@ -122,7 +95,7 @@ export function VitrinaModeloHoja({
     }
     const nuevo = modeloDeJson(data);
     if (nuevo) onGuardado(nuevo);
-    avisar.exito(publicado ? `${modelo.nombre} se ve en la web` : `${modelo.nombre} queda oculto`, { detalle: `Precio web ${soles(precioN)}.` });
+    avisar.exito(publicado ? `${modelo.nombre} se ve en la web` : `${modelo.nombre} queda oculto`);
     onClose();
   }
 
@@ -131,7 +104,6 @@ export function VitrinaModeloHoja({
     modelo.categoria,
     `${modelo.colores.length} ${modelo.colores.length === 1 ? "color" : "colores"}`,
     `${modelo.tallas} ${modelo.tallas === 1 ? "talla" : "tallas"}`,
-    veCostos && modelo.costo !== null ? `cuesta ${soles(modelo.costo)}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -166,77 +138,13 @@ export function VitrinaModeloHoja({
             onActivo={setPublicado}
             disabled={!modelo.publicable && !publicado}
             etiqueta="Mostrar en la web"
-            pie="Se ve con todos sus colores y tallas. El cliente lo separa y lo recoge en su tienda."
+            pie="Se ve con todos sus colores y tallas, al precio de cada tienda. El cliente lo separa y lo recoge en su tienda."
           />
           {!modelo.publicable && (
             <Aviso tono="atencion" chico>
-              No se puede mostrar: está descontinuado, es de prueba o no tiene tallas activas.
+              No se puede mostrar: está descontinuado, es de prueba o no tiene tallas activas con precio.
             </Aviso>
           )}
-        </div>
-
-        <div className="space-y-3 border-t border-sand pt-4" data-guia="vitrina-modelo.precio">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <p className="campo-etiqueta">Precio en tienda</p>
-              <p className="font-display mt-2 text-2xl leading-none tabular-nums text-tinta">
-                {modelo.precioTienda === null
-                  ? "—"
-                  : modelo.precioTiendaMin !== null && modelo.precioTiendaMin < modelo.precioTienda
-                    ? `${soles(modelo.precioTiendaMin)} a ${modelo.precioTienda.toFixed(2)}`
-                    : soles(modelo.precioTienda)}
-              </p>
-            </div>
-            <CampoGuiado id="precio" guia={guia} titulo="Precio web">
-              <CampoMonto etiqueta="Precio web" etiquetaOculta inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} />
-            </CampoGuiado>
-          </div>
-          {precioN !== null && (
-            <dl className="divide-y divide-sand rounded-xl border border-sand bg-papel text-[13px]">
-              {frente && (
-                <div className="flex items-baseline justify-between gap-3 px-3.5 py-2">
-                  <dt className="text-taupe">Frente a la tienda</dt>
-                  <dd className="tabular-nums text-tinta">{frente === "igual" ? "Igual" : frente}</dd>
-                </div>
-              )}
-              {margen !== null && (
-                <div className="flex items-baseline justify-between gap-3 px-3.5 py-2">
-                  <dt className="text-taupe">Margen web, sin IGV</dt>
-                  <dd className="tabular-nums text-tinta">{Math.round(margen * 100)} %</dd>
-                </div>
-              )}
-              {modelo.campana && conCampana !== null && (
-                <div className="flex items-baseline justify-between gap-3 px-3.5 py-2">
-                  <dt className="text-taupe">
-                    Con «{modelo.campana.nombre}» (−{modelo.campana.pct} %){modelo.campana.todas ? "" : ", en algunas tallas"}
-                  </dt>
-                  <dd className="whitespace-nowrap tabular-nums text-tinta">
-                    {soles(conCampana)}
-                    {margenCampana !== null ? ` · margen ${Math.round(margenCampana * 100)} %` : ""}
-                  </dd>
-                </div>
-              )}
-            </dl>
-          )}
-          {/* Solo el líder ve el costo: estos avisos no bloquean (la base ya no deja un precio web bajo el costo; la campaña sí puede
-              bajarlo, como en la tienda). Bajo el costo, el campo mismo ya dice qué falta. */}
-          {bajoCostoConCampana ? (
-            <Aviso tono="atencion" chico>
-              Con la campaña queda por debajo del costo. Sube el precio web o saca el modelo de la campaña.
-            </Aviso>
-          ) : margenFinal !== null && margenFinal < MARGEN_BAJO && costo !== null && precioN !== null && precioN >= costo ? (
-            <Aviso tono="atencion" chico>
-              El margen queda bajo el {Math.round(MARGEN_BAJO * 100)} %.
-            </Aviso>
-          ) : null}
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-            <p className="text-[12px] text-taupe">Vale para todas sus tallas y colores. El cliente ve solo este precio.</p>
-            {modelo.precioTienda !== null && precioN !== modelo.precioTienda && (
-              <button type="button" className="btn-enlace text-[13px]" onClick={() => setPrecio(modelo.precioTienda!.toFixed(2))}>
-                Igualar al precio de tienda
-              </button>
-            )}
-          </div>
         </div>
 
         <div className="space-y-2 border-t border-sand pt-4" data-guia="vitrina-modelo.lo-nuevo">

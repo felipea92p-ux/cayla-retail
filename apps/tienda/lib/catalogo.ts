@@ -2,8 +2,9 @@ import { z } from "zod";
 import { pctTexto } from "./portada";
 
 // El catálogo de la tienda (ADR-0408, actividad 3): lo que se publicó en Catálogo ▸ Vitrina web, tal como lo devuelve
-// `retail.tienda_catalogo()`. La base decide qué se ve y a qué precio (el web y el de la campaña, con la regla de la caja); aquí solo
-// se valida la forma y se prepara lo que dibuja la tarjeta. Sin stock: los niveles por tienda son la actividad 4.
+// `retail.tienda_catalogo(p_sede)`. La base decide qué se ve y a qué precio: el de la tienda elegida o, con «Todas», el mayor entre las
+// tiendas de la web (no hay precio web: Felipe, 2026-10-14), con la campaña encima según la regla de la caja. Aquí solo se valida la
+// forma y se prepara lo que dibuja la tarjeta. Sin stock: los niveles por tienda son la actividad 4.
 
 const esquemaColor = z.object({
   codigo: z.string().min(1),
@@ -12,19 +13,22 @@ const esquemaColor = z.object({
   foto: z.string().url().nullable(),
 });
 
-const esquemaPrenda = z.object({
-  id: z.string().uuid(),
-  codigo: z.string().nullable(),
-  nombre: z.string().min(1),
-  categoria: z.object({ nombre: z.string().min(1), prefijo: z.string().nullable() }).nullable(),
-  precio_web: z.number().positive(),
-  // Lo menos y lo más que paga el cliente por una talla del modelo (con la campaña, si toca alguna).
-  precio: z.number().positive(),
-  precio_hasta: z.number().positive(),
-  campana: z.object({ nombre: z.string().min(1), pct: z.number().positive() }).nullable(),
-  colores: z.array(esquemaColor),
-  fotos: z.array(z.string().url()).max(2),
-});
+const esquemaPrenda = z
+  .object({
+    id: z.string().uuid(),
+    codigo: z.string().nullable(),
+    nombre: z.string().min(1),
+    categoria: z.object({ nombre: z.string().min(1), prefijo: z.string().nullable() }).nullable(),
+    // El precio del modelo en la tienda elegida (con «Todas», el mayor entre las tiendas de la web).
+    precio: z.number().positive(),
+    // Lo que paga el cliente con la campaña (el mismo `precio` si no hay); `desde`: la campaña no toca a todas sus tallas por igual.
+    precio_final: z.number().nonnegative(),
+    desde: z.boolean(),
+    campana: z.object({ nombre: z.string().min(1), pct: z.number().positive() }).nullable(),
+    colores: z.array(esquemaColor),
+    fotos: z.array(z.string().url()).max(2),
+  })
+  .refine((p) => p.precio_final <= p.precio);
 
 export type Color = z.infer<typeof esquemaColor>;
 export type Prenda = {
@@ -32,38 +36,44 @@ export type Prenda = {
   codigo: string | null;
   nombre: string;
   categoria: { nombre: string; prefijo: string | null } | null;
-  precioWeb: number;
   precio: number;
-  precioHasta: number;
+  precioFinal: number;
+  desde: boolean;
   campana: { nombre: string; pct: number } | null;
   colores: Color[];
   fotos: string[];
 };
 
+/** El catálogo leído: sus prendas y la tienda cuyo precio usó la base (`null`: «Todas»). */
+export type Catalogo = { sede: string | null; prendas: Prenda[] };
+
 /**
  * Lo que devuelve la base. Una prenda con un dato raro se descarta sola (las demás se ven igual); si la respuesta entera no tiene
  * la forma de un catálogo, `null`: la página dice que no se pudo cargar, nunca se cae (principio 9).
  */
-export function interpretarCatalogo(dato: unknown): Prenda[] | null {
-  const lista = z.object({ prendas: z.array(z.unknown()) }).safeParse(dato);
+export function interpretarCatalogo(dato: unknown): Catalogo | null {
+  const lista = z.object({ sede: z.string().uuid().nullable().catch(null), prendas: z.array(z.unknown()) }).safeParse(dato);
   if (!lista.success) return null;
-  return lista.data.prendas.flatMap((p) => {
-    const r = esquemaPrenda.safeParse(p);
-    if (!r.success) return [];
-    const d = r.data;
-    return [{
-      id: d.id,
-      codigo: d.codigo,
-      nombre: d.nombre,
-      categoria: d.categoria,
-      precioWeb: d.precio_web,
-      precio: d.precio,
-      precioHasta: d.precio_hasta,
-      campana: d.campana,
-      colores: d.colores,
-      fotos: d.fotos,
-    }];
-  });
+  return {
+    sede: lista.data.sede,
+    prendas: lista.data.prendas.flatMap((p) => {
+      const r = esquemaPrenda.safeParse(p);
+      if (!r.success) return [];
+      const d = r.data;
+      return [{
+        id: d.id,
+        codigo: d.codigo,
+        nombre: d.nombre,
+        categoria: d.categoria,
+        precio: d.precio,
+        precioFinal: d.precio_final,
+        desde: d.desde,
+        campana: d.campana,
+        colores: d.colores,
+        fotos: d.fotos,
+      }];
+    }),
+  };
 }
 
 /* ---------------- La tarjeta ---------------- */
@@ -72,25 +82,25 @@ export function interpretarCatalogo(dato: unknown): Prenda[] | null {
 export const soles = (n: number) => `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export type PrecioTarjeta = {
-  /** Lo que paga el cliente: «S/ 65.90», o «Desde S/ 65.90» si la campaña toca solo algunas tallas o colores. */
+  /** Lo que paga el cliente: «S/ 65.90», o «Desde S/ 65.90» si la campaña toca solo algunas tallas o colores. Un modelo que cuesta
+   *  distinto en cada tienda NO dice «Desde»: con «Todas» dice el mayor, y baja al elegir la tienda (Felipe, 2026-10-14). */
   principal: string;
-  /** El precio web tachado, solo si hay descuento. */
+  /** El precio del modelo tachado, solo si hay descuento. */
   anterior: string | null;
   oferta: boolean;
 };
 
 export function precioTarjeta(p: Prenda): PrecioTarjeta {
-  const conDescuento = p.precio < p.precioWeb;
-  const desde = p.precio < p.precioHasta;
+  const conDescuento = p.precioFinal < p.precio;
   return {
-    principal: `${desde ? "Desde " : ""}${soles(p.precio)}`,
-    anterior: conDescuento ? soles(p.precioWeb) : null,
+    principal: `${conDescuento && p.desde ? "Desde " : ""}${soles(conDescuento ? p.precioFinal : p.precio)}`,
+    anterior: conDescuento ? soles(p.precio) : null,
     oferta: conDescuento,
   };
 }
 
 /** La insignia roja de la foto: «−12 %». */
-export const insigniaOferta = (p: Prenda): string | null => (p.campana && p.precio < p.precioWeb ? `−${pctTexto(p.campana.pct)} %` : null);
+export const insigniaOferta = (p: Prenda): string | null => (p.campana && p.precioFinal < p.precio ? `−${pctTexto(p.campana.pct)} %` : null);
 
 /** Las muestras de color de la tarjeta: hasta `max`, y cuántas más hay. */
 export function muestras(p: Prenda, max = 5): { visibles: Color[]; mas: number } {
@@ -121,8 +131,8 @@ const FORMA_POR_PREFIJO: Record<string, Forma> = {
 };
 export const formaDe = (prefijo: string | null | undefined): Forma => (prefijo ? FORMA_POR_PREFIJO[prefijo] ?? "percha" : "percha");
 
-/** A dónde lleva una tarjeta: la ficha de la prenda (la arma la actividad 4). */
-export const hrefDePrenda = (p: Pick<Prenda, "id">) => `/catalogo/${p.id}`;
+/** A dónde lleva una tarjeta: la ficha de la prenda (la arma la actividad 4), con la tienda elegida si hay una. */
+export const hrefDePrenda = (p: Pick<Prenda, "id">, sede: string | null = null) => `/catalogo/${p.id}${sede ? `?sede=${encodeURIComponent(sede)}` : ""}`;
 
 /** ¿El optimizador de imágenes de Next puede achicar esta foto? Solo si vive en el almacén PÚBLICO de fotos de prendas del origen
  *  que permite `next.config.ts` (`TIENDA_FOTOS_ORIGEN`). Cualquier otra se muestra tal cual: con un host no permitido, `next/image`
@@ -177,17 +187,20 @@ export function categoriasDe(prendas: readonly Prenda[]): CategoriaLista[] {
   return [...porClave.values()].sort((a, b) => b.cuantas - a.cuantas || a.nombre.localeCompare(b.nombre, "es"));
 }
 
-/** Lo que se ve con la categoría y el orden elegidos. «Destacado» es el orden de la base: lo último que entró a la web primero. */
+/** Lo que se ve con la categoría y el orden elegidos. «Destacado» es el orden de la base: lo último que entró a la web primero. Por
+ *  precio, lo que paga el cliente (con la campaña). */
 export function filtrarYOrdenar(prendas: readonly Prenda[], { categoria, orden }: { categoria: string | null; orden: Orden }): Prenda[] {
   const lista = categoria ? prendas.filter((p) => claveCategoria(p.categoria) === categoria) : [...prendas];
-  if (orden === "precio-asc") lista.sort((a, b) => a.precio - b.precio || a.nombre.localeCompare(b.nombre, "es"));
-  if (orden === "precio-desc") lista.sort((a, b) => b.precio - a.precio || a.nombre.localeCompare(b.nombre, "es"));
+  if (orden === "precio-asc") lista.sort((a, b) => a.precioFinal - b.precioFinal || a.nombre.localeCompare(b.nombre, "es"));
+  if (orden === "precio-desc") lista.sort((a, b) => b.precioFinal - a.precioFinal || a.nombre.localeCompare(b.nombre, "es"));
   return lista;
 }
 
-/** La dirección de la lista con lo elegido (sin repetir lo que ya es por defecto). */
-export function hrefLista({ categoria, orden }: { categoria: string | null; orden: Orden }): string {
+/** La dirección de la lista con lo elegido (sin repetir lo que ya es por defecto). `sede`: la clave de la tienda elegida
+ *  (`lib/sede-elegida.ts`), o `null` para «Todas». */
+export function hrefLista({ sede = null, categoria, orden }: { sede?: string | null; categoria: string | null; orden: Orden }): string {
   const q = new URLSearchParams();
+  if (sede) q.set("sede", sede);
   if (categoria) q.set("categoria", categoria);
   if (orden !== "destacado") q.set("orden", orden);
   const s = q.toString();

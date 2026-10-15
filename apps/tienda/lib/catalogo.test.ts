@@ -21,15 +21,16 @@ import {
 } from "./catalogo";
 
 const FOTO = "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/a.jpg";
-// Una prenda tal como la devuelve `retail.tienda_catalogo()` (20261014225000).
+// Una prenda tal como la devuelve `retail.tienda_catalogo(p_sede)` (20261014225000): el precio de la tienda elegida (o el mayor, con
+// «Todas»), lo que se paga con la campaña y si la campaña no toca a todas las tallas por igual.
 const EMMA = {
   id: "3f0e8a8e-2f1b-4c3e-9a55-111111111111",
   codigo: "CMS-0001",
   nombre: "Blusa Emma",
   categoria: { nombre: "Camisas y Blusas", prefijo: "CMS" },
-  precio_web: 74.9,
-  precio: 74.9,
-  precio_hasta: 74.9,
+  precio: 79.9,
+  precio_final: 79.9,
+  desde: false,
   campana: null,
   colores: [
     { codigo: "BEI", nombre: "Beige", hex: "#D5BA98", foto: null },
@@ -37,26 +38,32 @@ const EMMA = {
   ],
   fotos: [],
 };
-const leer = (d: unknown) => interpretarCatalogo({ prendas: [d] })?.[0] as Prenda;
+const TRUJILLO = "f775651f-62c8-4ff4-a414-b5614026d0cd";
+const leer = (d: unknown) => interpretarCatalogo({ sede: null, prendas: [d] })?.prendas[0] as Prenda;
 const emma = leer(EMMA);
 
 describe("interpretarCatalogo", () => {
-  it("lee lo que devuelve la base, en camelCase", () => {
-    expect(emma).toMatchObject({ nombre: "Blusa Emma", precioWeb: 74.9, precio: 74.9, precioHasta: 74.9, campana: null });
+  it("lee lo que devuelve la base, en camelCase, con la tienda cuyo precio usó", () => {
+    expect(emma).toMatchObject({ nombre: "Blusa Emma", precio: 79.9, precioFinal: 79.9, desde: false, campana: null });
     expect(emma.colores.map((c) => c.codigo)).toEqual(["BEI", "NEG"]);
-    expect(interpretarCatalogo({ prendas: [] })).toEqual([]);
+    expect(interpretarCatalogo({ sede: null, prendas: [] })).toEqual({ sede: null, prendas: [] });
+    expect(interpretarCatalogo({ sede: TRUJILLO, prendas: [EMMA] })?.sede).toBe(TRUJILLO);
+    // Una tienda que llega rara se lee como «Todas» (la lista se ve igual).
+    expect(interpretarCatalogo({ sede: "trujillo", prendas: [EMMA] })).toMatchObject({ sede: null, prendas: [{ nombre: "Blusa Emma" }] });
   });
 
   it("una prenda con un dato raro se descarta sola; las demás se ven", () => {
     const rara = [
       { ...EMMA, id: "no-es-un-uuid" },
       { ...EMMA, precio: 0 },
+      { ...EMMA, precio_final: 89.9 },
+      { ...EMMA, desde: "no" },
       { ...EMMA, colores: [{ codigo: "X", nombre: "X", hex: "rojo", foto: null }] },
       { ...EMMA, fotos: ["a", "b"] },
       { ...EMMA, fotos: [FOTO, FOTO, FOTO] },
       { ...EMMA, campana: { nombre: "", pct: 10 } },
     ];
-    expect(interpretarCatalogo({ prendas: [...rara, EMMA] })?.map((p) => p.nombre)).toEqual(["Blusa Emma"]);
+    expect(interpretarCatalogo({ sede: null, prendas: [...rara, EMMA] })?.prendas.map((p) => p.nombre)).toEqual(["Blusa Emma"]);
   });
 
   it("si la respuesta no es un catálogo, null (la página dice que no se pudo cargar)", () => {
@@ -65,21 +72,27 @@ describe("interpretarCatalogo", () => {
 });
 
 describe("la tarjeta", () => {
-  it("sin campaña: el precio web, sin tachado ni insignia", () => {
-    expect(precioTarjeta(emma)).toEqual({ principal: "S/ 74.90", anterior: null, oferta: false });
+  it("sin campaña: el precio de la tienda, sin tachado ni insignia", () => {
+    expect(precioTarjeta(emma)).toEqual({ principal: "S/ 79.90", anterior: null, oferta: false });
     expect(insigniaOferta(emma)).toBeNull();
   });
 
-  it("con campaña en todas sus tallas: el precio de campaña y el web tachado, con su %", () => {
-    const p = leer({ ...EMMA, precio: 65.9, precio_hasta: 65.9, campana: { nombre: "Aniversario", pct: 12 } });
-    expect(precioTarjeta(p)).toEqual({ principal: "S/ 65.90", anterior: "S/ 74.90", oferta: true });
-    expect(insigniaOferta(p)).toBe("−12 %");
+  it("con campaña en todas sus tallas: el precio de campaña y el del modelo tachado, con su %", () => {
+    const p = leer({ ...EMMA, precio_final: 63.9, campana: { nombre: "Aniversario", pct: 20 } });
+    expect(precioTarjeta(p)).toEqual({ principal: "S/ 63.90", anterior: "S/ 79.90", oferta: true });
+    expect(insigniaOferta(p)).toBe("−20 %");
   });
 
   it("con campaña en solo algunas tallas o colores: «Desde»", () => {
-    const p = leer({ ...EMMA, precio: 65.9, precio_hasta: 74.9, campana: { nombre: "Negro", pct: 12.5 } });
-    expect(precioTarjeta(p)).toEqual({ principal: "Desde S/ 65.90", anterior: "S/ 74.90", oferta: true });
+    const p = leer({ ...EMMA, precio_final: 69.9, desde: true, campana: { nombre: "Negro", pct: 12.5 } });
+    expect(precioTarjeta(p)).toEqual({ principal: "Desde S/ 69.90", anterior: "S/ 79.90", oferta: true });
     expect(insigniaOferta(p)).toBe("−12.5 %");
+  });
+
+  it("precios distintos entre tiendas no dicen «Desde»: con «Todas» llega el mayor, sin campaña no hay tachado", () => {
+    expect(precioTarjeta(leer({ ...EMMA, precio: 89.9, precio_final: 89.9 }))).toEqual({ principal: "S/ 89.90", anterior: null, oferta: false });
+    // Un «desde» sin descuento no se muestra (no hay oferta que anunciar).
+    expect(precioTarjeta(leer({ ...EMMA, desde: true }))).toEqual({ principal: "S/ 79.90", anterior: null, oferta: false });
   });
 
   it("los soles como la caja, con miles", () => {
@@ -111,8 +124,9 @@ describe("la tarjeta", () => {
     expect(colorDeDibujo(leer({ ...EMMA, colores: [] }))).toBeNull();
   });
 
-  it("la tarjeta lleva a la ficha de la prenda", () => {
+  it("la tarjeta lleva a la ficha de la prenda, con la tienda elegida", () => {
     expect(hrefDePrenda(emma)).toBe("/catalogo/3f0e8a8e-2f1b-4c3e-9a55-111111111111");
+    expect(hrefDePrenda(emma, "trujillo")).toBe("/catalogo/3f0e8a8e-2f1b-4c3e-9a55-111111111111?sede=trujillo");
   });
 
   it("solo se optimizan las fotos del almacén público de prendas del origen permitido", () => {
@@ -125,7 +139,7 @@ describe("la tarjeta", () => {
 });
 
 describe("la lista: categorías y orden", () => {
-  const prenda = (nombre: string, precio: number, prefijo: string, cat: string): Prenda => ({ ...emma, id: nombre, nombre, precio, precioHasta: precio, categoria: { nombre: cat, prefijo } });
+  const prenda = (nombre: string, precio: number, prefijo: string, cat: string): Prenda => ({ ...emma, id: nombre, nombre, precio, precioFinal: precio, categoria: { nombre: cat, prefijo } });
   const lista = [prenda("Falda Renata", 74.9, "FAL", "Faldas"), prenda("Blusa Emma", 79.9, "CMS", "Camisas y Blusas"), prenda("Blusa Valentina", 69.9, "CMS", "Camisas y Blusas")];
 
   it("las categorías con lo publicado, de la que más tiene a la que menos", () => {
@@ -141,6 +155,9 @@ describe("la lista: categorías y orden", () => {
     expect(filtrarYOrdenar(lista, { categoria: null, orden: "precio-asc" }).map((p) => p.precio)).toEqual([69.9, 74.9, 79.9]);
     expect(filtrarYOrdenar(lista, { categoria: null, orden: "precio-desc" }).map((p) => p.precio)).toEqual([79.9, 74.9, 69.9]);
     expect(filtrarYOrdenar(lista, { categoria: "XYZ", orden: "destacado" })).toEqual([]);
+    // Por precio manda lo que paga el cliente: con la campaña, la Falda pasa a ser la más barata.
+    const conCampana = lista.map((p) => (p.nombre === "Falda Renata" ? { ...p, precioFinal: 59.9 } : p));
+    expect(filtrarYOrdenar(conCampana, { categoria: null, orden: "precio-asc" }).map((p) => p.nombre)).toEqual(["Falda Renata", "Blusa Valentina", "Blusa Emma"]);
     // No toca la lista de entrada.
     expect(lista.map((p) => p.nombre)).toEqual(["Falda Renata", "Blusa Emma", "Blusa Valentina"]);
   });
@@ -161,8 +178,10 @@ describe("la lista: categorías y orden", () => {
     expect(siguienteOrden("precio-desc")).toBe("destacado");
   });
 
-  it("la dirección de la lista no repite lo de por defecto", () => {
+  it("la dirección de la lista no repite lo de por defecto, y lleva la tienda elegida", () => {
     expect(hrefLista({ categoria: null, orden: "destacado" })).toBe("/catalogo");
+    expect(hrefLista({ sede: "trujillo", categoria: null, orden: "destacado" })).toBe("/catalogo?sede=trujillo");
+    expect(hrefLista({ sede: "san-isidro", categoria: "CMS", orden: "precio-asc" })).toBe("/catalogo?sede=san-isidro&categoria=CMS&orden=precio-asc");
     expect(hrefLista({ categoria: "CMS", orden: "destacado" })).toBe("/catalogo?categoria=CMS");
     expect(hrefLista({ categoria: "CMS", orden: "precio-asc" })).toBe("/catalogo?categoria=CMS&orden=precio-asc");
     expect(hrefLista({ categoria: "Ropa & más", orden: "destacado" })).toBe("/catalogo?categoria=Ropa+%26+m%C3%A1s");

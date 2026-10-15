@@ -8,6 +8,17 @@
 .t-pagina-catalogo { flex: 1; }
 .t-pagina-catalogo > .t-ancho { flex: 1; }
 
+/* ---- «Ver lo que hay en»: la tienda elegida (maqueta v4, `filtroTienda`). Una franja bajo la cabecera; en el celular sin el texto y
+   corriendo de lado, desde 960 px centrada y con su texto. ---- */
+.t-ubic { flex: none; display: flex; align-items: center; gap: 10px; padding: 7px 16px; font-size: 12.5px; color: var(--tinta-60); background: var(--papel); border-bottom: 1px solid var(--sand); white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.t-ubic::-webkit-scrollbar { display: none; }
+.t-ubic .ic { width: 15px; height: 15px; color: var(--taupe); flex: none; }
+.t-filtro-txt { display: none; }
+.t-pildoras-tienda { display: flex; gap: 6px; }
+.t-pildora-mini { flex: none; border: 1px solid var(--sand); background: var(--crema); border-radius: 999px; padding: 5px 13px; font-size: 12.5px; font-weight: 600; color: var(--tinta); transition: background-color .2s, color .2s, border-color .2s; }
+.t-pildora-mini:hover { border-color: var(--tinta); }
+.t-pildora-mini[aria-current="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+
 /* ---- La ruta y la cabecera de la lista ---- */
 .t-ruta { display: flex; gap: 6px; align-items: center; padding-block: 14px 0; font-size: 12px; color: var(--tinta-60); flex-wrap: wrap; }
 .t-ruta a { color: var(--tinta-60); }
@@ -77,11 +88,14 @@
 
 /* El foco del teclado, visible sobre crema y sobre el oscuro. */
 .t-card-nom:focus-visible, .t-pildora:focus-visible, .t-orden a:focus-visible, .t-ruta a:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 4px; }
+.t-pildora-mini:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 
 @container tienda (min-width: 700px) {
   .t-grilla { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 34px 16px; }
 }
 @container tienda (min-width: 960px) {
+  .t-ubic { justify-content: center; }
+  .t-filtro-txt { display: inline; }
   .t-grilla { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px 18px; }
   .t-pildoras { flex-wrap: wrap; overflow: visible; }
 }

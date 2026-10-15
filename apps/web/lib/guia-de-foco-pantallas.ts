@@ -408,8 +408,8 @@ export const MODALES: Record<string, PantallaGuia> = {
   // ADR-0362 (fase 5a): «Llegó la reposición» en la ficha del proveedor. Falta lo que `resolver_deuda_proveedor` rechazaría: cuántas (de 1 a lo
   // que debe; viene puesto todo, «sugerido» hasta que se toca, y con una sola no se pregunta), cómo llegó (la nota, obligatoria) y quién lo anota.
   "components/nos-debe/HojaReposicion.tsx": { estado: "aplicada", evidencia: ["components/nos-debe/HojaReposicion.tsx"] },
-  // ADR-0408 (actividad 3): las hojas de la Vitrina web. «Falta» es lo que `vitrina_guardar_modelo` y `vitrina_cambiar_precios` rechazarían
-  // (el precio web; cuánto subir o bajar, sin dejar a ninguno en cero) y quién lo cambia; la descripción para la web es opcional.
+  // ADR-0408 (actividad 3): las hojas de la Vitrina web. «Falta» es lo que `vitrina_guardar_modelo` y `vitrina_mostrar` rechazarían: quién
+  // lo cambia. La descripción para la web es opcional, y no hay precio que llenar (es el de cada tienda, Felipe 2026-10-14).
   "components/vitrina/VitrinaModeloHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaModeloHoja.tsx"] },
   "components/vitrina/VitrinaLoteHoja.tsx": { estado: "aplicada", evidencia: ["components/vitrina/VitrinaLoteHoja.tsx"] },
 };

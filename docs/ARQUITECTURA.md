@@ -834,9 +834,10 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   `EtiquetaLiquidacion.tsx` y se imprime con `useImprimirLiquidacion` (la misma hoja de la Brother). Vender
   (`PuntoDeVenta.tsx:agregarPiezaLiquidacion`) manda la línea con `pieza_liquidacion_codigo` a `registrar_venta`.
 - `/productos/vitrina` (Catálogo ▸ Vitrina web, módulo `vitrina_web`, ADR-0408 act. 3) → `page.tsx` lee `fn_vitrina_modelos` →
-  `VitrinaPantalla.tsx` (cifras, buscador, lista con casilla e interruptor, barra fija del lote) + `VitrinaModeloHoja.tsx`
-  (`vitrina_guardar_modelo`: mostrar, precio web, Lo nuevo y descripción) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`,
-  `vitrina_cambiar_precios`); reglas en `lib/vitrina-reglas.ts`, guía de foco en `lib/vitrina-guia.ts`.
+  `VitrinaPantalla.tsx` (cifras, buscador, lista con casilla e interruptor, barra fija de los elegidos) + `VitrinaModeloHoja.tsx`
+  (`vitrina_guardar_modelo`: mostrar, Lo nuevo y descripción) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`: mostrar u ocultar uno o
+  varios); reglas en `lib/vitrina-reglas.ts`, guía de foco en `lib/vitrina-guia.ts`. Sin precio web (Felipe, 2026-10-14): en la web
+  vale el de cada tienda (`fn_precio_en_sede`).
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (ADR-0373, 2026-10-10: cabecera de Productos con «!», resumen colapsado `components/marcas/ResumenMarcas.tsx` +
@@ -1738,10 +1739,12 @@ Una app aparte del ERP, para los clientes, con su propio dominio y su propio ini
   minutos de bloqueo) y `cuentas_web_pendientes` (sin datos de la persona). El orden: código → contraseña → `tienda_registrar_cuenta`; si
   la base dice que no, el servidor borra el usuario (`lib/usuarios-servidor.ts`). La casilla «Soy mayor de 18 años» la exige la base; la de
   avisos del Club por WhatsApp (`tienda_casilla_whatsapp`, el texto vigente del cartel) queda en `club_permisos` con medio `tienda_web`.
-- `/catalogo` (grupo `(catalogo)`, todavía sin candado de cuenta) → `lib/catalogo-servidor.ts` `leerCatalogo()` →
-  `retail.tienda_catalogo()`: lo publicado en la Vitrina web con su precio web y el de la campaña (la regla de la caja,
-  ADR-0403), sus colores y hasta dos fotos del almacén público; `lib/catalogo.ts` filtra por categoría y ordena, y
-  `components/TarjetaPrenda.tsx` dibuja la tarjeta. Si la base no responde, la página dice que no se pudo cargar.
+- `/catalogo` (grupo `(catalogo)`, con cuenta: el proxy y el layout) → `lib/tiendas-servidor.ts` `leerSedes()` (las píldoras «Ver lo
+  que hay en», `?sede=` con el nombre web de la tienda: `lib/sede-elegida.ts`) y `lib/catalogo-servidor.ts` `leerCatalogo(sede)` →
+  `retail.tienda_catalogo(p_sede)`: lo publicado en la Vitrina web al precio de esa tienda (`fn_precio_en_sede`) o, con «Todas», al
+  mayor entre las tiendas de la web, con la campaña encima (la regla de la caja, ADR-0403), sus colores y hasta dos fotos del almacén
+  público; `lib/catalogo.ts` filtra por categoría y ordena, y `components/TarjetaPrenda.tsx` dibuja la tarjeta. Si la base no
+  responde, la página dice que no se pudo cargar.
 
 ---
 
