@@ -1181,8 +1181,8 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   (`lib/padron-lecturas.ts` → `retail.fn_anotar_lectura_padron`, con la llave de servicio). La base lo exige: los disparadores
   `clientas_nombre_del_padron_alta`/`_cambio` (`fn_nombre_de_ficha_del_padron`) rechazan (`nombre_sin_padron`) un nombre con DNI/RUC
   sin una lectura del padrón de la última hora (`padron_lecturas`, solo huellas) y uno con números en carné o pasaporte
-  (`nombre_con_numeros`); una sesión de dueño de la base (pruebas, SQL Editor) queda fuera. El cartel del Club anota su lectura igual
-  (`app/actions/club-registro.ts`) y la tienda, con `tienda_anotar_lectura_padron`. Prueba: `pnpm pruebas:nombre-del-padron`. **El nombre
+  (`nombre_con_numeros`); una sesión de dueño de la base (pruebas, SQL Editor) queda fuera. La tienda anota la suya con
+  `tienda_anotar_lectura_padron` (el cartel del Club también anotaba la suya hasta que su registro se retiró, 2026-10-16). Prueba: `pnpm pruebas:nombre-del-padron`. **El nombre
   de un DNI va con los nombres primero en todo el sistema** («María Pérez García», Felipe 2026-10-15): una sola regla en
   `packages/shared/src/nombre-del-padron.ts` (por partes si la fuente las trae; con coma, la coma decide; junto, los apellidos primero),
   que la consulta al padrón (`DatosPadron`: `nombre`, `nombres`, `apellidos`) aplica antes de devolverlo; `/api/padron` lo anota así, la
@@ -1217,15 +1217,14 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   vía `lib/club-ficha-acciones.ts`. Ayudantes internos: `fn_venta_devuelta_entera`,
   `fn_club_compras_netas`, `fn_club_resumen_compras`.
 - `/club/[tienda]`, `/club/privacidad`, `/club/terminos` (PÚBLICAS, sin sesión; `proxy.ts` deja pasar solo `/club/<uuid>` y
-  esos dos nombres, `lib/rutas-publicas.ts`; ADR-0288 act. g, reemplazan a `/club/[token]`) → la clienta se une sola desde
-  el QR del cartel o del ticket: `lib/club-pagina.ts` → `fn_club_pagina` (como `anon`) → `components/clientas/RegistroClub.tsx`
-  (guía de foco `lib/club-registro-guia.ts`) y `PaginaLegalClub.tsx`. Acciones de servidor `app/actions/club-registro.ts`
-  (`consultarNombre`, `registrarme`) con la llave de servicio → `club_intento` (ip y documento en huella con sal,
-  `lib/club-intentos.ts`), `consultarPadron` y `registrarse_en_el_club`. Reglas en `lib/club-registro-reglas.ts`. El correo que la base
-  no acepta (el de otra persona, `correo_repetido`) se dice bajo la caja del correo y no cuenta como listo mientras siga escrito
-  (`correoRechazado`/`rechazoDelCorreo`, la guía lo pide y «Unirme» espera), como en la tienda online; lo demás sigue bajo el botón.
-- QR del club (ADR-0288 act. g, G-1): uno por tienda, a `/club/<uuid>`, solo en el cartel `/clientas/cartel` (`CartelClub.tsx`),
-  que arma su enlace con `lib/club-qr-reglas.ts` (`cartelesDelClub`); el ticket impreso ya no lleva QR del club (act. j). El cartel es el
+  esos dos nombres, `lib/rutas-publicas.ts`; ADR-0288 act. g). **Desde el 2026-10-16 el Club empieza al crear la cuenta en la tienda
+  online** (Felipe; `20261016154000`, ADR-0288 act. p): `/club/<uuid>`, la dirección de los carteles ya impresos, solo redirige (307) a
+  `DIRECCION_TIENDA_ONLINE` (https://tienda.cayla.pe, `lib/club-qr-reglas.ts`); su registro, sus acciones de servidor y
+  `/api/club/nombre` se retiraron, y `registrarse_en_el_club` quedó sin llamador en la web (la usan las pruebas del Club). La política
+  y los términos siguen: `lib/club-pagina.ts` → `fn_club_pagina` (como `anon`) → `PaginaLegalClub.tsx`, con las reglas que quedan en
+  `lib/club-registro-reglas.ts` (lectura de la página, marcadores, fechas, bloques del texto legal).
+- QR del club (ADR-0288 act. g, G-1; act. p): uno por tienda, solo en el cartel `/clientas/cartel` (`CartelClub.tsx`), y desde el
+  2026-10-16 todos abren la tienda online (`cartelesDelClub`, `DIRECCION_TIENDA_ONLINE`); el ticket impreso ya no lleva QR del club (act. j). El cartel es el
   diseño C «Invitación» (2026-10-01, `app/estilos/cartel-club.css`): sus cifras (% del cumpleaños, vale menor y mayor de la
   escala, compras y monto del año) salen de `lib/clientas.ts:getTextosDelCartel` → RPC `fn_club_textos_legales` (una lectura
   para todas las tiendas) → `lib/club-cartel-reglas.ts`; sin ellas no se dibuja.
