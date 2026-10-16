@@ -161,22 +161,8 @@ select 'Vendemás', c.id, 20 from retail.cuentas_dinero c
  where lower(c.nombre) = 'por depositar vendemás' and c.archivada_en is null
    and not exists (select 1 from retail.pos_maquinas m where lower(m.nombre) = 'vendemás' and m.archivada_en is null);
 
-insert into retail.pos_maquinas_sedes (maquina_id, ubicacion_id, medio)
-select m.id, u.id, x.medio
-  from retail.pos_maquinas m
- cross join retail.ubicaciones u
- cross join (values ('tarjeta'), ('qr')) as x (medio)
- where lower(m.nombre) = 'izipay' and m.archivada_en is null and u.activo and u.tipo = 'tienda'
-on conflict do nothing;
--- Vendemás: Trujillo y Arequipa, por el código de la sede en Dynamic o, si no lo tiene, por el nombre de la tienda.
-insert into retail.pos_maquinas_sedes (maquina_id, ubicacion_id, medio)
-select m.id, u.id, 'tarjeta'
-  from retail.pos_maquinas m
- cross join retail.ubicaciones u
-  left join public.sedes s on s.id = u.sede_dynamic_id
- where lower(m.nombre) = 'vendemás' and m.archivada_en is null and u.activo and u.tipo = 'tienda'
-   and (s.codigo in ('TRU', 'AQP') or u.nombre ilike '%TRU%' or u.nombre ilike '%AQP%' or u.nombre ilike '%Trujillo%' or u.nombre ilike '%Arequipa%')
-on conflict do nothing;
+-- En qué tiendas opera cada una y a qué cuenta entra cada cobro desde el 30-sep: `fn_pos_sembrar_maquinas_en_tiendas()`, abajo
+-- (sección 4), porque en una base NUEVA las tiendas llegan con el seed, después de las migraciones.
 
 -- ---------- 3. Qué cuenta puente sirve en qué tienda ----------
 -- Una cuenta «por depositar» que no es de ninguna máquina (el POS genérico de F3) sirve en cualquier tienda, como siempre.
@@ -228,30 +214,61 @@ select pg_temp.reemplazar('retail.fn_medios_de_cobro()',
 $v$   cross join (values ('yape', 1), ('plin', 2), ('tarjeta', 3), ('transferencia', 4)) as m (medio, orden)$v$,
 $n$   cross join (values ('yape', 1), ('plin', 2), ('tarjeta', 3), ('qr', 4), ('transferencia', 5)) as m (medio, orden)$n$, 1);
 
--- Desde el primer cobro con tarjeta (2026-09-30): tarjeta → Vendemás donde opera, Izipay donde no; QR → Izipay. Las filas
--- anteriores (el BCP desde 1900) quedan como historia; lo ya sellado no se mueve aquí (eso es la actividad 5, aparte).
-insert into retail.medios_de_cobro (ubicacion_id, medio, cuenta_id, vigente_desde, registrado_por)
-select u.id, x.medio, m.cuenta_id, date '2026-09-30', null
-  from retail.ubicaciones u
- cross join (values ('tarjeta'), ('qr')) as x (medio)
-  join lateral (
-    select mq.cuenta_id
-      from retail.pos_maquinas mq
-      join retail.pos_maquinas_sedes ms on ms.maquina_id = mq.id and ms.ubicacion_id = u.id and ms.medio = x.medio
-     where mq.archivada_en is null
-     order by case when lower(mq.nombre) = 'vendemás' then 0 else 1 end, mq.orden
-     limit 1
-  ) m on true
- where u.activo and u.tipo = 'tienda'
-   and not exists (select 1 from retail.medios_de_cobro mc
-                    where mc.ubicacion_id = u.id and mc.medio = x.medio and mc.cuenta_id = m.cuenta_id and mc.vigente_desde = date '2026-09-30');
-insert into retail.configuracion_historial (que, detalle, hecho_por)
-select 'medio_de_cobro', jsonb_build_object('ubicacion_id', mc.ubicacion_id, 'medio', mc.medio, 'cuenta_id', mc.cuenta_id, 'vigente_desde', mc.vigente_desde, 'migracion', '20261016173000'), null
-  from retail.medios_de_cobro mc
- where mc.vigente_desde = date '2026-09-30' and mc.registrado_por is null and mc.medio in ('tarjeta', 'qr')
-   and not exists (select 1 from retail.configuracion_historial h
-                    where h.que = 'medio_de_cobro' and h.detalle ->> 'migracion' = '20261016173000'
-                      and h.detalle ->> 'ubicacion_id' = mc.ubicacion_id::text and h.detalle ->> 'medio' = mc.medio);
+-- ---------- 4b. Enganchar las máquinas a las tiendas (hoy, y en una base nueva cuando llegan las tiendas) ----------
+-- Izipay cobra tarjeta y QR en toda tienda activa; Vendemás, tarjeta en Trujillo y Arequipa (por el código de la sede en Dynamic o, si
+-- no lo tiene, por el nombre). Y desde el primer cobro con tarjeta (2026-09-30): tarjeta → Vendemás donde opera, Izipay donde no;
+-- QR → Izipay. Idempotente: solo agrega lo que falta. La llama esta migración (producción ya tiene sus tiendas) y `seed.sql` en el
+-- local y el CI (ahí las tiendas nacen DESPUÉS de las migraciones). Lo ya sellado no se mueve aquí (eso es la actividad 5).
+create or replace function retail.fn_pos_sembrar_maquinas_en_tiendas() returns jsonb
+language plpgsql security definer set search_path = retail, public, extensions as $$
+declare v_sedes integer; v_medios integer;
+begin
+  insert into retail.pos_maquinas_sedes (maquina_id, ubicacion_id, medio)
+  select m.id, u.id, x.medio
+    from retail.pos_maquinas m
+   cross join retail.ubicaciones u
+   cross join (values ('tarjeta'), ('qr')) as x (medio)
+   where lower(m.nombre) = 'izipay' and m.archivada_en is null and u.activo and u.tipo = 'tienda'
+  on conflict do nothing;
+  insert into retail.pos_maquinas_sedes (maquina_id, ubicacion_id, medio)
+  select m.id, u.id, 'tarjeta'
+    from retail.pos_maquinas m
+   cross join retail.ubicaciones u
+    left join public.sedes s on s.id = u.sede_dynamic_id
+   where lower(m.nombre) = 'vendemás' and m.archivada_en is null and u.activo and u.tipo = 'tienda'
+     and (s.codigo in ('TRU', 'AQP') or u.nombre ilike '%TRU%' or u.nombre ilike '%AQP%' or u.nombre ilike '%Trujillo%' or u.nombre ilike '%Arequipa%')
+  on conflict do nothing;
+  get diagnostics v_sedes = row_count;
+
+  insert into retail.medios_de_cobro (ubicacion_id, medio, cuenta_id, vigente_desde, registrado_por)
+  select u.id, x.medio, m.cuenta_id, date '2026-09-30', null
+    from retail.ubicaciones u
+   cross join (values ('tarjeta'), ('qr')) as x (medio)
+    join lateral (
+      select mq.cuenta_id
+        from retail.pos_maquinas mq
+        join retail.pos_maquinas_sedes ms on ms.maquina_id = mq.id and ms.ubicacion_id = u.id and ms.medio = x.medio
+       where mq.archivada_en is null
+       order by case when lower(mq.nombre) = 'vendemás' then 0 else 1 end, mq.orden
+       limit 1
+    ) m on true
+   where u.activo and u.tipo = 'tienda'
+     and not exists (select 1 from retail.medios_de_cobro mc
+                      where mc.ubicacion_id = u.id and mc.medio = x.medio and mc.cuenta_id = m.cuenta_id and mc.vigente_desde = date '2026-09-30');
+  get diagnostics v_medios = row_count;
+  insert into retail.configuracion_historial (que, detalle, hecho_por)
+  select 'medio_de_cobro', jsonb_build_object('ubicacion_id', mc.ubicacion_id, 'medio', mc.medio, 'cuenta_id', mc.cuenta_id, 'vigente_desde', mc.vigente_desde, 'migracion', '20261016173000'), null
+    from retail.medios_de_cobro mc
+   where mc.vigente_desde = date '2026-09-30' and mc.registrado_por is null and mc.medio in ('tarjeta', 'qr')
+     and not exists (select 1 from retail.configuracion_historial h
+                      where h.que = 'medio_de_cobro' and h.detalle ->> 'migracion' = '20261016173000'
+                        and h.detalle ->> 'ubicacion_id' = mc.ubicacion_id::text and h.detalle ->> 'medio' = mc.medio);
+  return jsonb_build_object('tiendas_maquina', v_sedes, 'medios', v_medios);
+end $$;
+comment on function retail.fn_pos_sembrar_maquinas_en_tiendas() is
+  'ADR-0429: engancha Izipay (tarjeta y QR) a toda tienda activa y Vendemás (tarjeta) a Trujillo y Arequipa, y pone esas puentes como destino de tarjeta y QR desde el 2026-09-30. Idempotente. La llaman la migración 20261016173000 y seed.sql.';
+revoke all on function retail.fn_pos_sembrar_maquinas_en_tiendas() from public, anon, authenticated;
+select retail.fn_pos_sembrar_maquinas_en_tiendas();
 
 -- ---------- 5. El sello del cobro ----------
 -- Un cobro con QR puede entrar a una cuenta «por depositar» (la de la máquina), igual que la tarjeta.

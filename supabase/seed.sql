@@ -650,4 +650,7 @@ alter table retail.etiquetas enable trigger etiquetas_estado_biut;
 -- después de crearla.
 update retail.etiquetas set estilo = 'urgencia' where nombre = 'Para liquidar';
 
+-- ADR-0429: las máquinas de cobro (Izipay, Vendemás) se enganchan a las tiendas recién creadas, como en producción. Idempotente.
+select retail.fn_pos_sembrar_maquinas_en_tiendas();
+
 commit;
