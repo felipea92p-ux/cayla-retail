@@ -454,6 +454,59 @@ select w.id, w.codigo, w.estado, 'anulacion'
     corrompe: `set local session_replication_role = replica;
 update retail.pedido_web_lineas set venta_item_id = null where ctid = (select ctid from retail.pedido_web_lineas where venta_item_id is not null limit 1);`,
   },
+  {
+    id: "INV-19",
+    nombre: "la_plata_de_nos_debe_cuadra",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "La plata de «Nos debe» (ADR-0362, fase 5b) cuadra entre tablas: el documento interno por lo que no llegó cierra sus prendas en el comprobante y el de lo devuelto por llegar dañado no cierra nada (sí llegaron), cada uno de la deuda que le corresponde; un «Depositó» devuelve exactamente lo que su documento dejó a favor (ni más ni menos: lo demás sería saldo a favor fantasma o un reembolso de más); y la nota de crédito del proveedor (07) dice lo mismo que los documentos internos que respalda, todos de su comprobante. Nació de /chaos 2026-10-15 (fase 5b).",
+    sql: `
+select n.id::text as fila_id, n.serie_numero, 'documento_y_cierre' as problema
+  from retail.compra_notas_credito n
+ where n.interna
+   and ((n.motivo = 'devolucion') <> (n.cierre_id is null)
+        or exists (select 1 from retail.proveedor_deuda_resoluciones r join retail.despacho_diferencias x on x.id = r.diferencia_id
+                    where r.nota_credito_id = n.id and (x.causa = 'devuelta') <> (n.motivo = 'devolucion')))
+union all
+select r.id::text, n.serie_numero, 'deposito'
+  from retail.proveedor_deuda_resoluciones r
+  join retail.compra_notas_credito n on n.id = r.nota_credito_id
+ where r.forma = 'deposito'
+   and coalesce((select sum(k.monto) from retail.proveedor_creditos k where k.nota_credito_id = n.id and k.tipo = 'reembolso'), 0)
+       <> coalesce((select sum(k.monto) from retail.proveedor_creditos k where k.nota_credito_id = n.id and k.tipo = 'nota_credito'), 0)
+union all
+select p.id::text, p.serie_numero, 'nota_proveedor'
+  from retail.compra_notas_proveedor p
+  left join lateral (select sum(n.monto) as monto, sum(n.igv) as igv
+                       from retail.compra_notas_proveedor_documentos d
+                       join retail.compra_notas_credito n on n.id = d.nota_credito_id
+                      where d.nota_proveedor_id = p.id) s on true
+ where p.monto is distinct from s.monto or p.igv is distinct from s.igv
+    or exists (select 1 from retail.compra_notas_proveedor_documentos d join retail.compra_notas_credito n on n.id = d.nota_credito_id
+                where d.nota_proveedor_id = p.id and (not n.interna or n.compra_id <> p.compra_id))`,
+    // Las notas no se editan (`compra_notas_credito_inmutables`): el disparador se apaga SOLO dentro de la transacción revertida.
+    corrompe: `set local session_replication_role = replica;
+update retail.compra_notas_credito set cierre_id = null where ctid = (select ctid from retail.compra_notas_credito where interna and motivo = 'faltante' limit 1);`,
+  },
+  {
+    id: "INV-20",
+    nombre: "lo_devuelto_cuadra_con_su_prenda",
+    gravedad: 1,
+    nivel: "cruzada",
+    dice: "Cada deuda «devuelta» (lo que se le devolvió al proveedor por llegar dañado, ADR-0362 fase 5b, actividad 6a) tiene su prenda de la cuarentena marcada «devuelta al proveedor» a ESE proveedor y por la misma cantidad, con su salida de la cuarentena sin `compra_item_id` (si lo llevara, el comprobante la contaría como recibida otra vez). Si no, la deuda cobra prendas que siguen en la cuarentena, o a otro proveedor. Nació de /chaos 2026-10-15 (fase 5b).",
+    sql: `
+select x.id::text as diferencia_id, coalesce(pd.estado, 'sin prenda') as estado, 'prenda' as problema
+  from retail.despacho_diferencias x
+  left join retail.prendas_danadas pd on pd.id = x.prenda_danada_id
+ where x.causa = 'devuelta'
+   and (pd.id is null or pd.estado <> 'devuelta_proveedor' or pd.proveedor_id is distinct from x.proveedor_id or pd.cantidad <> x.cantidad
+        or not exists (select 1 from retail.movimientos m
+                        where m.id = pd.movimiento_salida_id and m.tipo = 'salida' and m.motivo = 'cuarentena_devuelta_proveedor'
+                          and m.compra_item_id is null and m.cantidad = pd.cantidad))`,
+    // Lo recibido no se cambia (`despacho_diferencias_fija`): el disparador se apaga SOLO dentro de la transacción revertida.
+    corrompe: `set local session_replication_role = replica;
+update retail.despacho_diferencias set cantidad = cantidad + 1 where ctid = (select ctid from retail.despacho_diferencias where causa = 'devuelta' limit 1);`,
+  },
 ];
 
 // ── Instrumento (Docker + psql) ─────────────────────────────────────────────────────────────────────────────────────────────

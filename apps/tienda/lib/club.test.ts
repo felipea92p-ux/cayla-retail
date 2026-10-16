@@ -5,9 +5,9 @@ import {
   claveEspera,
   detalleEspera,
   etiquetaBotonAvisame,
+  etiquetaQuitarAviso,
   estadoEspera,
   fechaDicha,
-  fraseDeLaCabecera,
   leerGuardados,
   leerMiClub,
   leerRespuestaAviso,
@@ -20,6 +20,7 @@ import {
   ordenarEsperas,
   proximoCumple,
   textoAvisoAnotado,
+  textoAvisoQuitado,
   textoBotonAvisame,
   textoNovedades,
   tituloNovedades,
@@ -141,16 +142,6 @@ describe("las fechas, como se dicen", () => {
   });
 });
 
-describe("la cabecera de «Mi cuenta»", () => {
-  it("en su mes, el descuento está disponible; otro mes, cuándo llega; sin ficha activa, que vaya a una tienda", () => {
-    const base = club().club;
-    expect(fraseDeLaCabecera(base, HOY)).toBe("Eres miembro del Club CAYLA. Este mes es tu cumpleaños: tu descuento ya está disponible.");
-    expect(fraseDeLaCabecera({ ...base, cumple: cumple({}) }, HOY)).toBe("Eres miembro del Club CAYLA. Tu descuento de cumpleaños llega el 3 de mayo de 2027.");
-    expect(fraseDeLaCabecera({ ...base, cumple: cumple({ estado: "canjeado" }) }, HOY)).toBe("Eres miembro del Club CAYLA.");
-    expect(fraseDeLaCabecera({ ...base, activa: false }, HOY)).toMatch(/no está activa/);
-  });
-});
-
 describe("el descuento de cumpleaños (la regla de la caja, ADR-0288 D-5)", () => {
   it("disponible: el %, hasta cuándo y que se usa en caja con su DNI", () => {
     const b = beneficioCumple(cumple({ estado: "disponible", mes: 10, hasta: "2026-10-31" }), false, HOY);
@@ -185,7 +176,7 @@ describe("el vale por aniversario (la regla de la caja, ADR-0288 G-9 y G-13)", (
   it("con el vale: el monto y hasta cuándo se usa", () => {
     const b = beneficioAniversario(aniv({ estado: "vale", valeMonto: 20, valeVence: "2026-12-02" }), false, HOY);
     expect(b).toEqual({
-      titulo: "Tienes un vale de S/ 20",
+      titulo: "Tienes un vale de S/\u00a020",
       texto: "Por tu aniversario con CAYLA. Úsalo en una compra en cualquier tienda CAYLA hasta el 2 de diciembre. En caja, con tu DNI.",
       disponible: true,
       avance: null,
@@ -194,7 +185,8 @@ describe("el vale por aniversario (la regla de la caja, ADR-0288 G-9 y G-13)", (
 
   it("en camino: cuándo, cuánto, el umbral y lo que lleva, con su barra", () => {
     const b = beneficioAniversario(aniv({}), false, HOY);
-    expect(b.texto).toBe("El 3 de mayo de 2027 recibes un vale de S/ 20 si este año sumas 6 compras o S/ 600. Llevas 2 compras y S/ 150.50.");
+    // «S/» y la cifra con un espacio que no se parte (ADR-0413): en el celular, «S/» no queda sola al final de un renglón.
+    expect(b.texto).toBe("El 3 de mayo de 2027 recibes un vale de S/\u00a020 si este año sumas 6 compras o S/\u00a0600. Llevas 2 compras y S/\u00a0150.50.");
     // La barra es lo que más le acerca: 2 de 6 compras (33 %) gana a S/ 150.50 de S/ 600 (25 %).
     expect(b.avance).toBeCloseTo(2 / 6);
     expect(beneficioAniversario(aniv({ compras: 0, monto: 0 }), false, HOY).texto).toMatch(/Todavía no tienes compras este año\.$/);
@@ -203,14 +195,14 @@ describe("el vale por aniversario (la regla de la caja, ADR-0288 G-9 y G-13)", (
 
   it("el año ya cuenta: recibe su vale en su aniversario (y por WhatsApp solo si lo autorizó)", () => {
     const b = beneficioAniversario(aniv({ anioCuenta: true, compras: 6, monto: 300 }), true, HOY);
-    expect(b.titulo).toBe("Vale por tu aniversario: S/ 20");
+    expect(b.titulo).toBe("Vale por tu aniversario: S/\u00a020");
     expect(b.texto).toBe("Este año ya cuenta: el 3 de mayo de 2027 recibes tu vale y te avisamos por WhatsApp.");
     expect(b.avance).toBe(1);
   });
 
   it("canjeado: dice cuándo usó el de este aniversario y sigue con el próximo", () => {
     const b = beneficioAniversario(aniv({ estado: "canjeado", valeMonto: 30, valeCanjeadoEl: "2026-09-20", siguienteMonto: 40 }), false, HOY);
-    expect(b.texto).toMatch(/^Usaste tu vale de S\/ 30 el 20 de septiembre\. El 3 de mayo de 2027 recibes un vale de S\/ 40/);
+    expect(b.texto).toMatch(/^Usaste tu vale de S\/\u00a030 el 20 de septiembre\. El 3 de mayo de 2027 recibes un vale de S\/\u00a040/);
   });
 });
 
@@ -260,6 +252,13 @@ describe("los botones: corazón y «Avísame»", () => {
     expect(textoAvisoAnotado("Estándar", "Lima")).toBe("Te avisaremos en tu cuenta cuando llegue a Lima.");
   });
 
+  it("ya pedido, el mismo botón lo quita: el lector oye qué aviso se quita y el aviso de abajo dice que se puede volver a pedir", () => {
+    expect(etiquetaQuitarAviso("M", "Trujillo")).toBe("Quitar el aviso de la talla M a Trujillo");
+    expect(etiquetaQuitarAviso("Única", null)).toBe("Quitar el aviso");
+    expect(textoAvisoQuitado("M")).toBe("Quitamos el aviso de la talla M. Puedes volver a pedirlo cuando quieras.");
+    expect(textoAvisoQuitado("Estándar")).toBe("Quitamos el aviso. Puedes volver a pedirlo cuando quieras.");
+  });
+
   it("la clave de una espera: la prenda y la tienda, o «todas»", () => {
     expect(claveEspera(ID(6), ID(7))).toBe(`${ID(6)}|${ID(7)}`);
     expect(claveEspera(ID(6), null)).toBe(`${ID(6)}|todas`);
@@ -294,7 +293,7 @@ describe("los botones: corazón y «Avísame»", () => {
   });
 
   it("textos sin género: ni «clienta», ni «socia», ni «bienvenida»", () => {
-    const todo = JSON.stringify(MENSAJES_CLUB) + fraseDeLaCabecera(club().club, HOY) + beneficioCumple(cumple({}), true, HOY).texto;
+    const todo = JSON.stringify(MENSAJES_CLUB) + beneficioCumple(cumple({}), true, HOY).texto;
     expect(todo).not.toMatch(/clienta|socia|bienvenida|bienvenido/i);
   });
 });

@@ -300,6 +300,19 @@ describe("datos para pagar (ADR-0134)", () => {
     expect(enmascararCuenta("193-2145678-0-45")).toBe("193-•••••••-•-45");
   });
 
+  it("enmascarar el celular: solo lo que valida como celular (9 dígitos que empiezan con 9); un fijo no se disfraza de celular", () => {
+    expect(enmascararCelular("+51 987 654 321")).toBe("9•• ••• 321");
+    expect(enmascararCelular("044 123456")).toBe("•••"); // fijo de Trujillo: 9 dígitos con la clave, no empieza con 9
+    expect(enmascararCelular("014567890")).toBe("•••"); // fijo de Lima con el 0
+    expect(enmascararCelular("887654321")).toBe("•••"); // 9 dígitos que no empiezan con 9
+    expect(enmascararCelular("98765432")).toBe("•••"); // 8 dígitos
+    expect(enmascararCelular("")).toBe("•••");
+    // Lo que enmascara como celular es exactamente lo que `validarCelular` acepta.
+    for (const n of ["987654321", "+51987654321", "944 000 111", "044123456", "887654321", "98765432"]) {
+      expect(enmascararCelular(n) !== "•••").toBe(validarCelular(n) === null);
+    }
+  });
+
   it("valida el CCI: 20 dígitos exactos, vacío es válido (todo es opcional)", () => {
     expect(validarCci("")).toBeNull();
     expect(validarCci("   ")).toBeNull();

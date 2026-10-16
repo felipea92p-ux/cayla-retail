@@ -16,8 +16,10 @@ export function CuentaRegresiva({ hasta }: { hasta: string }) {
   }, []);
   const r = partesCuenta(fin - ahora);
   const partes: [number, string][] = [[r.d, "días"], [r.h, "horas"], [r.m, "min"], [r.s, "seg"]];
+  // Lo que oye el lector de pantalla: «en 6 días», «en 1 día» (no «1 días») y, el último día, «en menos de un día» (no «0 días»).
+  const cuanto = r.d > 1 ? `en ${r.d} días` : r.d === 1 ? "en 1 día" : "en menos de un día";
   return (
-    <div className="t-cuenta" role="timer" aria-label={`La campaña termina en ${r.d} días`} suppressHydrationWarning>
+    <div className="t-cuenta" role="timer" aria-label={`La campaña termina ${cuanto}`} suppressHydrationWarning>
       {partes.map(([valor, rotulo]) => (
         <span key={rotulo}>
           <b suppressHydrationWarning>{dos(valor)}</b>

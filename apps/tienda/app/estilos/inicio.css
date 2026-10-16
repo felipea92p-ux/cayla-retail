@@ -2,23 +2,12 @@
    TIENDA ONLINE CAYLA (ADR-0408) · actividad 5: el Inicio de quien tiene cuenta.
    Sale de la maqueta aprobada (docs/maquetas/tienda-online-2026-10, `vInicio`, `heroCampana`, `heroNuevo`, `circulosCats`). El héroe,
    la franja de la campaña, el Club y las tiendas ya vienen de la portada (globals.css, tiendas.css); aquí va lo que suma el Inicio: las
-   fotos del héroe como polaroids, las categorías como círculos, la banda oscura de las ofertas y el ranking de más vendidos. Solo
+   categorías como círculos, la banda oscura de las ofertas y el ranking de más vendidos (las polaroids del héroe, en collage.css). Solo
    tokens: el papel de una polaroid y el estudio de las fotos son fijos (son parte de la foto), igual en claro y en oscuro.
    ===================================================================================================== */
 
-/* ---- El héroe: las fotos como polaroids que caen (una vez) ---- */
+/* ---- El héroe: las fotos como polaroids viven en collage.css (también las usa la portada) ---- */
 .t-hero-inicio .t-colibri { top: 22px; }
-.t-collage { position: relative; height: 330px; z-index: 2; }
-.t-polaroid { position: absolute; width: 47%; padding: 8px 8px 34px; background: var(--t-papel-fijo); border-radius: 5px; box-shadow: 0 26px 40px -18px color-mix(in srgb, var(--t-tinta-fija) 55%, transparent); transform: rotate(var(--r)); transition: transform .45s var(--ease), box-shadow .45s; animation: t-caer 1s var(--ease) both; animation-delay: calc(var(--i) * 140ms + 260ms); color: var(--t-tinta-fija); }
-.t-polaroid .t-card-foto { border-radius: 0; }
-.t-polaroid-pie { position: absolute; left: 10px; right: 10px; bottom: 8px; display: flex; justify-content: space-between; gap: 6px; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; }
-.t-polaroid-pie > span:first-child { overflow: hidden; text-overflow: ellipsis; }
-.t-polaroid:hover { transform: rotate(0deg) translateY(-8px) scale(1.04); z-index: 6; box-shadow: 0 40px 50px -20px color-mix(in srgb, var(--t-tinta-fija) 60%, transparent); }
-.t-polaroid.p1 { left: 0; top: 7%; --r: -7deg; --i: 0; z-index: 2; }
-.t-polaroid.p2 { left: 27%; top: 0; --r: 3deg; --i: 1; z-index: 3; }
-.t-polaroid.p3 { right: 0; top: 16%; --r: 8deg; --i: 2; z-index: 2; }
-.t-polaroid:focus-visible { outline: 2px solid var(--t-hero-acento); outline-offset: 3px; }
-.t-hero-pct { position: absolute; right: -10px; bottom: -36px; z-index: 0; font-family: var(--serif); font-style: italic; font-weight: 500; font-size: clamp(150px, 46cqi, 300px); line-height: 1; letter-spacing: -.04em; color: transparent; -webkit-text-stroke: 1.4px var(--t-hero-filo); pointer-events: none; animation: t-aparecer 1.4s var(--ease) .5s both; }
 
 /* ---- Las categorías como historias: un círculo por categoría; con algo nuevo, su aro rojo ---- */
 /* `scroll-padding-inline`: sin él, el navegador ajusta el primer círculo al borde (pierde el margen de 16 px al cargar). */
@@ -34,6 +23,10 @@
 .t-circ:hover .t-circ-img { transform: scale(1.07); }
 .t-circ:focus-visible { outline: 2px solid var(--rojo); outline-offset: 4px; border-radius: 8px; }
 
+/* Las flechas de un carril (`CarrilConFlechas`) viven en catalogo.css: también las usa «Mi perfil». Aquí, su altura en el Inicio. */
+.t-circs-envol { --flecha-y: 53px; }
+.t-carril-inicio { --flecha-y: 42%; }
+
 /* ---- Las ofertas: la banda oscura, con una píldora por campaña ---- */
 .t-ofertas { margin-top: 36px; padding-block: 38px 36px; background: var(--t-oscuro); color: var(--t-oscuro-tinta); }
 .t-ofertas .t-ceja { color: var(--t-hero-acento); }
@@ -45,10 +38,14 @@
 .t-ofertas .t-precio.oferta b { color: var(--t-hero-acento); }
 .t-ofertas .t-precio s, .t-ofertas .t-muestras small, .t-ofertas .t-card-nota { color: var(--t-oscuro-suave); }
 .t-ofertas .t-muestras i { box-shadow: inset 0 0 0 1px var(--t-oscuro-filo); }
-.t-ofertas .t-pildoras { margin-bottom: 16px; }
+/* Las píldoras de las campañas se tocan en 44 px de alto (una capa invisible), sin cambiar de lugar. */
+.t-ofertas .t-pildoras { padding-block: 5px; margin-block: -5px 11px; }
+.t-ofertas .t-pildora { position: relative; }
+.t-ofertas .t-pildora::before { content: ""; position: absolute; inset: -5px -3px; }
 .t-ofertas .t-pildora { border-color: var(--t-oscuro-filo); color: var(--t-oscuro-tinta); }
 .t-ofertas .t-pildora:hover { border-color: var(--t-oscuro-tinta); }
-.t-ofertas .t-pildora[aria-current="true"] { background: var(--t-oscuro-tinta); border-color: var(--t-oscuro-tinta); color: var(--t-tinta-fija); }
+.t-ofertas .t-pildora[aria-current="true"], .t-ofertas .t-pildora:has(> .t-pendiente[data-pendiente]) { background: var(--t-oscuro-tinta); border-color: var(--t-oscuro-tinta); color: var(--t-tinta-fija); }
+.t-ofertas .t-pildoras:has(.t-pendiente[data-pendiente]) .t-pildora[aria-current="true"]:not(:has(> .t-pendiente[data-pendiente])) { background: transparent; border-color: var(--t-oscuro-filo); color: var(--t-oscuro-tinta); }
 .t-ofertas .t-card-nom:focus-visible, .t-ofertas .t-pildora:focus-visible, .t-ofertas .t-ver:focus-visible { outline-color: var(--t-hero-acento); }
 
 /* ---- Más vendidos: el puesto grande, en contorno, junto a cada tarjeta (sin cifras de ventas) ---- */
@@ -58,8 +55,8 @@
 .t-top-n { position: absolute; left: -2px; bottom: 58px; z-index: 4; font-family: var(--serif); font-weight: 500; font-size: 112px; line-height: .78; color: var(--crema); -webkit-text-stroke: 1.5px var(--tinta); pointer-events: none; }
 .t-top li .t-card { margin-left: 30px; }
 
-/* ---- Nuestras tiendas: «Ver solo lo que hay aquí» ---- */
-.t-tienda-ver { align-self: flex-start; padding: 8px 0 2px; }
+/* ---- El héroe: «Ver lo nuevo» se toca en 44 px de alto, como el botón de al lado ---- */
+.t-hero-inicio .t-hero-acciones .t-enlace { min-height: 44px; }
 
 /* ---- «Arma tu look» (maqueta, `vInicio`): la lámina de cada look; en el celular se desliza de lado, en la computadora, tres en fila.
    La tarjeta (`.t-look-card`) y la lámina son las de looks.css. ---- */
@@ -98,9 +95,13 @@
   .t-aviso-club { margin-block: 22px; padding: 18px 22px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 28px; }
   .t-aviso-club-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px 24px; }
   .t-aviso-club-acc { flex-direction: column; align-items: flex-end; justify-content: center; }
-  .t-collage { height: 480px; }
-  .t-polaroid { width: 44%; }
-  .t-circs { justify-content: center; gap: 26px; padding-top: 30px; }
+  /* Centrados si caben; si no, desde el primero (con `justify-content: center`, lo que no cabía se cortaba a la izquierda y no se
+     podía ver: las primeras ocho categorías). El margen de los lados deja lugar a las flechas. */
+  .t-circs { gap: 26px; padding: 30px 56px 4px; scroll-padding-inline: 56px; }
+  .t-circs > :first-child { margin-left: auto; }
+  .t-circs > :last-child { margin-right: auto; }
+  .t-circs-envol { --flecha-y: 76px; --flecha-borde: 8px; }
+  .t-carril-inicio { --flecha-borde: -20px; }
   .t-circ { width: 96px; }
   .t-circ-img { width: 92px; height: 92px; }
   .t-circ b { font-size: 12.5px; }
@@ -110,7 +111,6 @@
 }
 
 /* `t-aparecer` vive en cabecera.css (se carga en todas las páginas). */
-@keyframes t-caer { from { opacity: 0; transform: translateY(-70px) rotate(calc(var(--r) * -2.2)) scale(.92); } }
 @keyframes t-aviso-entra { from { opacity: 0; transform: translateY(-8px); } }
 @media (prefers-reduced-motion: reduce) {
   .t-aviso-club-envol { transition: none; }

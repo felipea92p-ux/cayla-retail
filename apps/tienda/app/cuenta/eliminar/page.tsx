@@ -6,6 +6,7 @@ import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { antesDeEliminarEnBase } from "@/lib/mi-cuenta-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
+import "../../estilos/entrada.css";
 import "../../estilos/mi-cuenta.css";
 
 export const metadata: Metadata = { title: "Eliminar mi cuenta · CAYLA", robots: { index: false, follow: false } };
@@ -22,7 +23,7 @@ export default async function EliminarMiCuenta() {
   if (lectura?.estado === "sin_cuenta") redirect("/cuenta");
   return (
     <MarcoCuenta conCuenta enPagina="cuenta">
-      <div className="t-ancho t-angosto w-pagina-form">
+      <div className="t-ancho t-angosto w-pagina-form en-form en-sola">
         {lectura?.estado === "cuenta" && frena?.estado === "ok" ? (
           <FormularioEliminarCuenta correo={lectura.cuenta.correo} frena={frena.frena} />
         ) : (

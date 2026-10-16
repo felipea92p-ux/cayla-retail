@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { INICIO_CON_CUENTA, redireccionDelProxy } from "./sesion";
+import { PARAMETRO_VOLVER, rutaParaVolver } from "./entrada";
+import { INICIO_CON_CUENTA, PARAMETRO_VOLVER_DEL_PROXY, redireccionDelProxy } from "./sesion";
 
 describe("a dónde lleva el proxy", () => {
   it("con sesión, la portada y las páginas de entrar llevan al Inicio", () => {
@@ -27,7 +28,8 @@ describe("a dónde lleva el proxy", () => {
       // Va siempre con su nombre (Felipe 2026-10-15): sin cuenta no se escribe.
       "/recomendaciones",
     ]) {
-      expect(redireccionDelProxy(ruta, "GET", "no"), ruta).toBe("/entrar");
+      // Al Inicio se llega de todos modos; las demás vuelven a su página después de entrar (`?volver=`).
+      expect(redireccionDelProxy(ruta, "GET", "no"), ruta).toBe(ruta === "/inicio" ? "/entrar" : `/entrar?volver=${encodeURIComponent(ruta)}`);
     }
     for (const ruta of ["/", "/tiendas", "/privacidad", "/terminos-del-club", "/como-separar", "/cambios-y-devoluciones", "/catalogos", "/inicios", "/bolsas", "/cuentas", "/lookbook", "/recomendacionesx"]) {
       expect(redireccionDelProxy(ruta, "GET", "no")).toBeNull();
@@ -43,5 +45,19 @@ describe("a dónde lleva el proxy", () => {
     expect(redireccionDelProxy("/looks/abc", "POST", "no")).toBeNull();
     // «Enviar recomendación» es una acción: viaja como POST a /recomendaciones y se valida sola (pregunta quién es).
     expect(redireccionDelProxy("/recomendaciones", "POST", "no")).toBeNull();
+  });
+});
+
+describe("volver a la página pedida después de entrar", () => {
+  it("«Entrar» lleva la página y su búsqueda, y «Entrar» la acepta tal cual (el mismo parámetro de los dos lados)", () => {
+    expect(PARAMETRO_VOLVER_DEL_PROXY).toBe(PARAMETRO_VOLVER);
+    const destino = redireccionDelProxy("/catalogo/abc", "GET", "no", "?sede=lima");
+    expect(destino).toBe("/entrar?volver=%2Fcatalogo%2Fabc%3Fsede%3Dlima");
+    const volver = new URL(destino!, "https://tienda.cayla.pe").searchParams.get(PARAMETRO_VOLVER);
+    expect(rutaParaVolver(volver)).toBe("/catalogo/abc?sede=lima");
+    expect(redireccionDelProxy("/cuenta/pedidos/W-0001", "GET", "no", "")).toBe("/entrar?volver=%2Fcuenta%2Fpedidos%2FW-0001");
+    // El Inicio, con o sin búsqueda, va a «Entrar» a secas; con sesión, nada cambia.
+    expect(redireccionDelProxy("/inicio", "GET", "no", "?sede=lima")).toBe("/entrar");
+    expect(redireccionDelProxy("/catalogo", "GET", "si", "?lista=nuevo")).toBeNull();
   });
 });

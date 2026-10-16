@@ -37,7 +37,10 @@ export const FILTROS_LISTA: readonly { valor: FiltroLista; texto: string }[] = [
 ];
 
 /** Cuántas fichas trae cada página. */
-export const POR_PAGINA = 50;
+export const POR_PAGINA = 20;
+/** La página más lejana que se acepta de la URL: `p_desde` de `fn_clientas_lista` es un `integer`, y una `?pagina=` de nueve
+ *  cifras lo desbordaba (la lista decía «No se pudo leer» en vez de llevarte a la última página). */
+export const MAX_PAGINA = 100_000;
 /** Lo que se busca, recortado: un nombre largo no le sirve a nadie y así la URL no crece sin fin. */
 export const MAX_TERMINO = 80;
 
@@ -45,7 +48,8 @@ export type ParamsLista = { termino: string; filtro: FiltroLista; pagina: number
 
 const ES_FILTRO = new Set<string>(FILTROS_LISTA.map((f) => f.valor));
 
-/** Lo que llega en la URL (`?q=&filtro=&pagina=`), ya saneado: un filtro desconocido es «todas» y una página rara, la 1. */
+/** Lo que llega en la URL (`?q=&filtro=&pagina=`), ya saneado: un filtro desconocido es «todas», una página rara, la 1 y una
+ *  absurdamente lejana, `MAX_PAGINA` (de ahí `getListaClientas` la baja a la última que existe). */
 export function leerParamsLista(p: { q?: string | string[]; filtro?: string | string[]; pagina?: string | string[] }): ParamsLista {
   const uno = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
   const filtro = uno(p.filtro);
@@ -53,7 +57,7 @@ export function leerParamsLista(p: { q?: string | string[]; filtro?: string | st
   return {
     termino: uno(p.q).trim().slice(0, MAX_TERMINO),
     filtro: ES_FILTRO.has(filtro) ? (filtro as FiltroLista) : "todas",
-    pagina: Number.isFinite(pagina) && pagina >= 1 ? pagina : 1,
+    pagina: Number.isFinite(pagina) && pagina >= 1 ? Math.min(pagina, MAX_PAGINA) : 1,
   };
 }
 
@@ -73,6 +77,28 @@ export function hrefLista(actual: ParamsLista, cambios: Partial<ParamsLista>): s
 /** Desde qué fila pide la base la página (`p_desde`). */
 export function desdeDePagina(pagina: number): number {
   return (Math.max(1, pagina) - 1) * POR_PAGINA;
+}
+
+/** La última página que existe para `total` fichas (nunca menos de 1: una lista vacía tiene su página 1). */
+export function ultimaPagina(total: number): number {
+  return Math.max(1, Math.ceil(total / POR_PAGINA));
+}
+
+/** Lo mínimo de una lectura de la lista para saber si la página pedida existe. */
+export type LecturaDeLista = { filas: readonly unknown[]; total: number; falla: string | null };
+
+/**
+ * Lee la página pedida y, si ya no existe (se archivaron fichas, o la URL quedó vieja), la última que sí. La base solo trae
+ * el total junto a una fila, así que una página vacía no dice cuántas hay: se lee la 1 para saberlo. Sin esto la tabla
+ * quedaba vacía con el aviso de «no hay clientes» estando llena. `leer` es la lectura real (inyectada para probarla sin base).
+ */
+export async function leerPaginaQueExiste<L extends LecturaDeLista>(pagina: number, leer: (pagina: number) => Promise<L>): Promise<L> {
+  const lista = await leer(pagina);
+  if (lista.falla || lista.filas.length > 0 || pagina === 1) return lista;
+  const primera = await leer(1);
+  const ultima = ultimaPagina(primera.total);
+  if (primera.falla || ultima === 1) return primera;
+  return leer(ultima);
 }
 
 /* ------------------------------------------------------------------

@@ -4,6 +4,10 @@
 
 /** La cookie de la sesión. Con nombre propio: el ERP en local también vive en «localhost» y su cookie no debe pisarse con esta. */
 export const COOKIE_SESION = "tienda-sesion";
+/** Las opciones de esa cookie en los tres lugares que la escriben (el proxy, el servidor y el navegador). En producción viaja solo por
+ *  https (`secure`): `@supabase/ssr` no la marca así por su cuenta. No es `httpOnly` porque el navegador la usa para entrar y
+ *  recuperar la contraseña (`lib/auth-navegador.ts`); la sesión de verdad la valida el proyecto de clientes en cada página. */
+export const OPCIONES_COOKIE_SESION = { name: COOKIE_SESION, secure: process.env.NODE_ENV === "production" };
 
 export type ConfigAuth = { url: string; llavePublica: string };
 
@@ -34,10 +38,19 @@ export const INICIO_CON_CUENTA = "/inicio";
 /**
  * A dónde manda el proxy, o null para seguir. Solo navegaciones (GET/HEAD): una acción del servidor viaja como POST a la misma
  * ruta y se valida sola. `no_se`: el proyecto de clientes no contestó; no se manda a nadie a ningún lado por eso.
+ * Sin sesión, «Entrar» lleva `?volver=` con la página que se pidió (y su búsqueda): quien abre el enlace de una prenda o de un pedido
+ * vuelve a ESA página al entrar o al crear su cuenta, no al Inicio (`rutaParaVolver`, lib/entrada.ts, lo revisa). El Inicio no lo
+ * lleva: es a donde se llega de todos modos.
  */
-export function redireccionDelProxy(ruta: string, metodo: string, usuario: "si" | "no" | "no_se"): string | null {
+export function redireccionDelProxy(ruta: string, metodo: string, usuario: "si" | "no" | "no_se", busqueda = ""): string | null {
   if (metodo !== "GET" && metodo !== "HEAD") return null;
   if (usuario === "si" && SOLO_SIN_CUENTA.has(ruta)) return INICIO_CON_CUENTA;
-  if (usuario === "no" && soloConCuenta(ruta)) return "/entrar";
+  if (usuario === "no" && soloConCuenta(ruta)) {
+    return ruta === INICIO_CON_CUENTA ? "/entrar" : `/entrar?${PARAMETRO_VOLVER_DEL_PROXY}=${encodeURIComponent(ruta + busqueda)}`;
+  }
   return null;
 }
+
+/** El parámetro de «Entrar» con la página a la que se vuelve: el mismo `PARAMETRO_VOLVER` de lib/entrada.ts (que importa este
+ *  archivo: importarlo de allá sería circular; `sesion.test.ts` exige que sean iguales). */
+export const PARAMETRO_VOLVER_DEL_PROXY = "volver";

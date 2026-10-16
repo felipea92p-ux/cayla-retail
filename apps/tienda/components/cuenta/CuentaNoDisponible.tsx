@@ -5,7 +5,7 @@ export function CuentaNoDisponible({ texto, volverA }: { texto: string; volverA:
   return (
     <div className="w-ficha">
       <div>
-        <span className="t-ceja">Mi cuenta</span>
+        <span className="t-ceja">Mi perfil</span>
         <h1 className="w-titulo">Un momento</h1>
         <p className="w-texto-sec">{texto}</p>
       </div>

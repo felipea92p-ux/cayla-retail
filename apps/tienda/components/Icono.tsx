@@ -26,6 +26,8 @@ const TRAZOS = {
   menu: <path d="M4 7h16M4 12h16M4 17h10" />,
   lupa: <><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2" /></>,
   cerrar: <path d="M6 6l12 12M18 6L6 18" />,
+  // Nuestras tiendas (revisión 2026-10-15): «Cómo llegar», el pin del mapa.
+  ubicacion: <><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" /><circle cx="12" cy="10" r="2.3" /></>,
 };
 
 export type NombreIcono = keyof typeof TRAZOS;

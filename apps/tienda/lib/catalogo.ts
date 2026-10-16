@@ -138,6 +138,12 @@ export function fotosDeTarjeta(p: Prenda): [string | null, string | null] {
   return [primera, p.fotos[1] ?? null];
 }
 
+/** ¿Su tarjeta se ve con una foto (la suya o la de un color)? Si no, se ve con su silueta. */
+const tieneFoto = (p: Prenda): boolean => fotosDeTarjeta(p)[0] !== null;
+
+/** Para ordenar con lo que tiene foto adelante. `sort` es estable: dentro de cada parte queda el orden que ya traía la lista. */
+export const conFotoPrimero = (a: Prenda, b: Prenda): number => Number(tieneFoto(b)) - Number(tieneFoto(a));
+
 /** El color con que se dibuja la prenda sin foto: el de su primer color (es un dato de la prenda, no del tema). */
 export const colorDeDibujo = (p: Prenda): string | null => p.colores[0]?.hex ?? null;
 
@@ -173,7 +179,7 @@ export function fotoOptimizable(url: string, origen: string | undefined): boolea
 
 /* ---------------- La lista: cuál, categorías y orden ---------------- */
 
-/** Las listas de la maqueta (`vLista`): toda la ropa, Lo nuevo, las ofertas, los más vendidos y «Tus favoritos» (lo que el cliente
+/** Las listas de la maqueta (`vLista`): toda la tienda, Lo nuevo, las ofertas, los más vendidos y «Tus favoritos» (lo que el cliente
  *  marcó con el corazón: el corazón de la cabecera lleva a `/catalogo?lista=favoritos`). */
 export type Lista = "todo" | "nuevo" | "ofertas" | "vendidos" | "favoritos";
 const LISTAS: readonly Lista[] = ["todo", "nuevo", "ofertas", "vendidos", "favoritos"];
@@ -183,7 +189,7 @@ export const ORDENES: readonly Orden[] = ["destacado", "precio-asc", "precio-des
 
 const unValor = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-/** La lista de la URL (`?lista=`); cualquier otra cosa, toda la ropa. */
+/** La lista de la URL (`?lista=`); cualquier otra cosa, toda la tienda. */
 export const leerLista = (v: string | string[] | undefined): Lista => {
   const l = unValor(v);
   return LISTAS.includes(l as Lista) ? (l as Lista) : "todo";
@@ -215,7 +221,7 @@ export type CabeceraLista = {
   ceja: string;
   titulo: [string, string];
   frase: string | null;
-  /** Lo que dice la lista cuando no tiene nada (qué aparecería aquí y qué hacer mientras tanto). Toda la ropa no lo necesita: sin
+  /** Lo que dice la lista cuando no tiene nada (qué aparecería aquí y qué hacer mientras tanto). Toda la tienda no lo necesita: sin
    *  nada publicado, la página dice «Pronto verás aquí nuestras prendas». */
   vacio: { titulo: string; texto: string } | null;
 };
@@ -228,21 +234,21 @@ export function cabeceraDeLista(lista: Lista): CabeceraLista {
         ceja: "Recién llegado",
         titulo: ["Lo", "nuevo"],
         frase: "Lo que llegó a nuestras tiendas en los últimos 30 días.",
-        vacio: { titulo: "Por ahora no hay nada nuevo", texto: "Lo que llega a nuestras tiendas aparece aquí durante 30 días. Mientras tanto, mira toda la ropa." },
+        vacio: { titulo: "Por ahora no hay nada nuevo", texto: "Lo que llega a nuestras tiendas aparece aquí durante 30 días. Mientras tanto, mira toda la tienda." },
       };
     case "ofertas":
       return {
         ceja: "Campañas vigentes",
         titulo: ["Las", "ofertas"],
         frase: "El descuento de cada campaña, sobre el precio de tu tienda, hasta su último día.",
-        vacio: { titulo: "Por ahora no hay ofertas", texto: "Cuando empiece una campaña, sus prendas aparecen aquí. Mientras tanto, mira toda la ropa." },
+        vacio: { titulo: "Por ahora no hay ofertas", texto: "Cuando empiece una campaña, sus prendas aparecen aquí. Mientras tanto, mira toda la tienda." },
       };
     case "vendidos":
       return {
         ceja: "Lo que más se llevan",
         titulo: ["Más", "vendidos"],
         frase: "Los modelos que más se vendieron en los últimos 30 días, en todas nuestras tiendas.",
-        vacio: { titulo: "Todavía no hay más vendidos", texto: "Aquí aparece lo que más se vende en nuestras tiendas en 30 días. Mientras tanto, mira toda la ropa." },
+        vacio: { titulo: "Todavía no hay más vendidos", texto: "Aquí aparece lo que más se vende en nuestras tiendas en 30 días. Mientras tanto, mira toda la tienda." },
       };
     case "favoritos":
       return {
@@ -252,7 +258,7 @@ export function cabeceraDeLista(lista: Lista): CabeceraLista {
         vacio: { titulo: "Aún no guardas nada", texto: "Toca el corazón de una prenda para guardarla." },
       };
     default:
-      return { ceja: "Toda la tienda", titulo: ["Toda la", "ropa"], frase: null, vacio: null };
+      return { ceja: "Catálogo", titulo: ["Toda la", "tienda"], frase: null, vacio: null };
   }
 }
 
@@ -325,9 +331,13 @@ export function categoriasDe(prendas: readonly Prenda[]): CategoriaLista[] {
   return [...porClave.values()].sort((a, b) => b.cuantas - a.cuantas || a.nombre.localeCompare(b.nombre, "es"));
 }
 
-/** Lo que se ve con la lista, la campaña, la categoría y el orden elegidos. «Destacado» es el orden propio de la lista: en toda la ropa
+/** Lo que se ve con la lista, la campaña, la categoría y el orden elegidos. «Destacado» es el orden propio de la lista: en toda la tienda
  *  y en las ofertas, el de la base (lo último que entró a la web primero); en Lo nuevo, lo más reciente; en Más vendidos, el ranking.
- *  Por precio, lo que paga el cliente (con la campaña). */
+ *  Por precio, lo que paga el cliente (con la campaña).
+ *
+ *  Con «Destacado», lo que tiene foto va adelante y, dentro de cada parte, ese mismo orden (2026-10-16): una lista que abre con siluetas
+ *  dibujadas (la percha) no se ve como una tienda, y la primera fila es lo que más se mira. Más vendidos y tus favoritos se quedan con su
+ *  orden porque dice algo: el puesto («N.º 1») y lo último que guardaste. Por precio tampoco se toca: la persona pidió ese orden. */
 export function filtrarYOrdenar(
   prendas: readonly Prenda[],
   { categoria, orden, lista = "todo", campana = null }: { categoria: string | null; orden: Orden; lista?: Lista; campana?: string | null },
@@ -337,6 +347,7 @@ export function filtrarYOrdenar(
   else if (orden === "precio-desc") salida.sort((a, b) => b.precioFinal - a.precioFinal || a.nombre.localeCompare(b.nombre, "es"));
   else if (lista === "nuevo") salida.sort(porLlegada);
   else if (lista === "vendidos") salida.sort(porPuesto);
+  if (orden === "destacado" && lista !== "vendidos" && lista !== "favoritos") salida.sort(conFotoPrimero);
   return salida;
 }
 
@@ -348,17 +359,21 @@ export function hrefLista({
   orden,
   lista = "todo",
   campana = null,
+  grupo = null,
 }: {
   sede?: string | null;
   categoria: string | null;
   orden: Orden;
   lista?: Lista;
   campana?: string | null;
+  /** Un grupo de categorías (`lib/grupos.ts`, «Arriba», «Bolsos y accesorios»…). Con una categoría elegida no va: ella ya dice el grupo. */
+  grupo?: string | null;
 }): string {
   const q = new URLSearchParams();
   if (lista !== "todo") q.set("lista", lista);
   if (sede) q.set("sede", sede);
   if (categoria) q.set("categoria", categoria);
+  else if (grupo) q.set("grupo", grupo);
   if (lista === "ofertas" && campana) q.set("campana", campana);
   if (orden !== "destacado") q.set("orden", orden);
   const s = q.toString();
