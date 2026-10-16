@@ -130,3 +130,20 @@ como un líder activo en Dynamic— y, después de pegar, las siete huellas `md5
 Resultado del relleno: 790 líneas con `costo_estimado`, ninguna en 0 (S/ 20,937 de costo estimado sobre S/ 36,367 vendidos en octubre al 16).
 El medidor de confianza de octubre sale bajo en producción, y es correcto: cero fijos, cero saldos de arranque, la tarjeta directo al banco,
 nueve lotes sin factura y el banco sin conciliar. Lo que lo sube es la Fase 0, que es de Felipe.
+
+## Actualización 2026-10-16 (b): la 183000 corrige dónde ancla la 002000
+
+Tras traer `main`, la suite `rendicion_fondo` (que repega 20261013181000 … 20261014222000 sobre la base ya migrada) salió 0/12: la
+002000 había puesto `when 'pago_planilla' then '41' when 'pago_sunat' then '4011'` al INICIO del `case` del debe del Diario, y la
+235000 ancla ese `case` entero (su `p_nuevo` dejó de ser un texto contiguo), así que al repegarla abortaba. Lo mismo, sin abortar,
+en el candado (mi bloque justo antes de «Qué va en cada punta», que es el final del texto de la 235000) y en los nombres (mis dos
+`when` entre «Entre cuentas» y «Entrega de fondo», que la 182000 deja juntos).
+
+DECIDÍ: una migración nueva, `20261016183000_pago_planilla_anclas_que_no_rompen_al_fondo.sql`, que MUEVE ese texto a donde nadie
+ancla: el mapeo 41/4011 al `c_d` del CTE `md` (de donde el `case` lee su `else`), el bloque del candado después de la línea «Qué va
+en cada punta», los nombres al final del `case` antes de `else p_tipo`. Idempotente por marcas; si alguien repega la 002000 encima,
+vuelve a sacar la copia que estorba. Pegada en producción el 2026-10-16 (`20261016183947`) con ensayo previo; las tres huellas
+iguales a la pila. DESCARTÉ editar la 002000 (ya corrió en producción: dos caminos distintos para llegar al mismo cuerpo son dos
+oportunidades de que no sea el mismo) y tocar la 235000 (está en `main` y en producción). SE ROMPE SI: un parche futuro vuelve a
+meter texto DENTRO del `p_nuevo` de otro; la regla, desde hoy, es sumar antes o después y mirar quién más ancla esa función
+(`grep -ln "reemplazar('retail.<función>"` en `supabase/migrations`). `pago_planilla_y_sunat.mjs` lo vigila (caso «anclas del fondo»).

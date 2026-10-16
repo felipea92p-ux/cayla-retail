@@ -29,7 +29,10 @@ const CONTENEDOR = arg("--contenedor", "supabase_db_cayla-retail");
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20261016002000_pago_planilla_y_sunat.sql"), "utf8");
+// La 002000 y su corrección 183000 (mueve el texto de la 002000 a donde no parte las anclas de las migraciones del fondo).
+const MIGRACION = ["20261016002000_pago_planilla_y_sunat.sql", "20261016183000_pago_planilla_anclas_que_no_rompen_al_fondo.sql"]
+  .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
+  .join("\n");
 
 function psql(sql) {
   return execFileSync(
@@ -150,6 +153,34 @@ select 'misma_huella|' || (md5(string_agg(pg_get_functiondef(p.oid), '' order by
  where n.nspname = 'retail' and p.proname in ('fn_movimientos_dinero_validar', 'registrar_movimiento_dinero', 'fn_texto_movimiento_dinero', 'fn_asientos_dinero_y_caja');
 `);
   verificar("idempotente", r, { misma_huella: "true" });
+}
+
+// ---------- Escena 4: las anclas de las migraciones del fondo siguen enteras (20261016183000) ----------
+// Las suites del fondo repegan la 182000 y la 235000 sobre la base ya migrada: su texto tiene que seguir entero, o abortan
+// («cambió desde que se escribió esta migración»). La 002000 sola lo partía; con la 183000 el mapeo vive en el CTE, el candado
+// va después de «Qué va en cada punta» y los nombres al final del case.
+{
+  const r = correr(`
+begin;
+${cambiaA(FELIPE)}
+${MIGRACION}
+select 'diario_235000|' || (position($x$(case md.tipo when 'retiro' then '591' when 'devolucion_prestamo' then '47'
+                 when 'faltante_fondo_asumido' then '6599' when 'faltante_fondo_deuda' then '1419' else md.c_d end)::text as cuenta,$x$
+  in pg_get_functiondef('retail.fn_asientos_dinero_y_caja(date, date, boolean, uuid[])'::regprocedure)) > 0);
+select 'diario_cte|' || (position($x$when 'pago_planilla' then '41' when 'pago_sunat' then '4011' else de.cuenta_contable end) as c_d$x$
+  in pg_get_functiondef('retail.fn_asientos_dinero_y_caja(date, date, boolean, uuid[])'::regprocedure)) > 0);
+select 'candado_235000|' || (position($x$    new.ubicacion_id := v_o.ubicacion_id;
+    return new;
+  end if;
+
+  -- Qué va en cada punta.$x$ in pg_get_functiondef('retail.fn_movimientos_dinero_validar()'::regprocedure)) > 0);
+select 'candado_una_vez|' || ((length(d) - length(replace(d, 'if new.tipo in (''pago_planilla'', ''pago_sunat'') then', ''))) / length('if new.tipo in (''pago_planilla'', ''pago_sunat'') then'))
+  from pg_get_functiondef('retail.fn_movimientos_dinero_validar()'::regprocedure) d;
+select 'textos_182000|' || (position($x$    when 'entre_cuentas' then 'Entre cuentas'
+    when 'entrega_fondo' then 'Entrega de fondo'
+    when 'devolucion_fondo' then 'Devolución de fondo'$x$ in pg_get_functiondef('retail.fn_texto_movimiento_dinero(text)'::regprocedure)) > 0);
+`);
+  verificar("anclas del fondo", r, { diario_235000: "true", diario_cte: "true", candado_235000: "true", candado_una_vez: "1", textos_182000: "true" });
 }
 
 console.log(`\n${casos - fallos} de ${casos} · contenedor: ${CONTENEDOR}`);
