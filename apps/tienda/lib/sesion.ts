@@ -34,10 +34,19 @@ export const INICIO_CON_CUENTA = "/inicio";
 /**
  * A dónde manda el proxy, o null para seguir. Solo navegaciones (GET/HEAD): una acción del servidor viaja como POST a la misma
  * ruta y se valida sola. `no_se`: el proyecto de clientes no contestó; no se manda a nadie a ningún lado por eso.
+ * Sin sesión, «Entrar» lleva `?volver=` con la página que se pidió (y su búsqueda): quien abre el enlace de una prenda o de un pedido
+ * vuelve a ESA página al entrar o al crear su cuenta, no al Inicio (`rutaParaVolver`, lib/entrada.ts, lo revisa). El Inicio no lo
+ * lleva: es a donde se llega de todos modos.
  */
-export function redireccionDelProxy(ruta: string, metodo: string, usuario: "si" | "no" | "no_se"): string | null {
+export function redireccionDelProxy(ruta: string, metodo: string, usuario: "si" | "no" | "no_se", busqueda = ""): string | null {
   if (metodo !== "GET" && metodo !== "HEAD") return null;
   if (usuario === "si" && SOLO_SIN_CUENTA.has(ruta)) return INICIO_CON_CUENTA;
-  if (usuario === "no" && soloConCuenta(ruta)) return "/entrar";
+  if (usuario === "no" && soloConCuenta(ruta)) {
+    return ruta === INICIO_CON_CUENTA ? "/entrar" : `/entrar?${PARAMETRO_VOLVER_DEL_PROXY}=${encodeURIComponent(ruta + busqueda)}`;
+  }
   return null;
 }
+
+/** El parámetro de «Entrar» con la página a la que se vuelve: el mismo `PARAMETRO_VOLVER` de lib/entrada.ts (que importa este
+ *  archivo: importarlo de allá sería circular; `sesion.test.ts` exige que sean iguales). */
+export const PARAMETRO_VOLVER_DEL_PROXY = "volver";
