@@ -7,7 +7,7 @@ hay dos (Vendemás marcada), lo marcado viaja como `cuenta_id` y `registrar_vent
 de la máquina» (antes «Abono de tarjeta») cruza el neto que llegó contra los días pendientes que la persona marca: la comisión real es la
 diferencia, queda como gasto 639, qué días cubrió queda escrito y un día no se liquida dos veces; la puente vuelve a 0 y Conciliación cuadra.
 (4) La tarifa por máquina y medio solo estima la comisión de lo pendiente y avisa «no depositó N días». (5) Una migración de datos, con
-ensayo, pasa los cobros con tarjeta y QR desde el 30-sep del banco a su puente, con rastro. (6) ADR-0429, este cierre y el PR.
+ensayo, pasa los cobros con tarjeta y QR desde el 30-sep del banco a su puente, con rastro. (6) ADR-0429, este cierre y el PR #1138 (borrador: SQL sin pegar).
 Por qué así: la máquina es una entidad chica aparte (no engorda `cuentas_dinero`), el destino por defecto sigue siendo `medios_de_cobro`
 (ya guardaba historia y el medidor de confianza del ADR-0417 lo lee), el cobro no gana columnas (la máquina se deduce 1 a 1 de la cuenta
 sellada) y la comisión nunca se teclea: sale del cruce, y el cruce deja rastro de qué día cubrió cada depósito para poder ver «cruzado
