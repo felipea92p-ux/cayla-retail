@@ -1166,6 +1166,19 @@ export const GUIA_FIN_IMPUESTOS: Guia = {
       texto: "Lo que cobraste de IGV al vender, menos lo que pagaste de IGV al comprar con factura. El contador presenta los libros a SUNAT con lo que sale de aquí. Es una demo: no se declara ni se paga nada.",
     },
     {
+      id: "pulso",
+      ancla: "fin-impuestos.pulso",
+      titulo: "¿Cuánto le debo a SUNAT?",
+      texto: "La respuesta grande: lo que le pagas a SUNAT por el mes que se declara, IGV más la renta a cuenta. «¿Por qué?» abre la cuenta: el IGV que cobraste al vender, menos el que descuentas por tus compras con factura. El día exacto depende del último dígito de tu RUC.",
+    },
+    {
+      id: "por-hacer",
+      ancla: "fin-impuestos.por-hacer",
+      opcional: true,
+      titulo: "Antes de declarar",
+      texto: "Lo que puede hacer que pagues de más o que SUNAT te observe: comprobantes rechazados o sin aceptar, ventas sin comprobante, compras con boleta (ese IGV no se descuenta) y facturas grandes pagadas en efectivo.",
+    },
+    {
       id: "registro-ventas",
       ancla: "fin-impuestos.registro-ventas",
       titulo: "Registro de ventas",

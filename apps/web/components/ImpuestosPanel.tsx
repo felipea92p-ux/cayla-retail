@@ -9,6 +9,8 @@ import { Chip } from "@/components/ui/Chip";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { CabeceraBloque, Herramientas, SelectFin, Superficie } from "@/components/finanzas/kit";
+import { ImpuestosPulso } from "@/components/finanzas/ImpuestosPulso";
+import { pulsoImpuestos } from "@/lib/impuestos-pulso-reglas";
 import { descargarBlob, descargarCsv, textoCsv } from "@/lib/exportar-csv";
 import { crearZip } from "@/lib/zip-simple";
 import { mesesRecientes, solesRedondo, textoMes } from "@/lib/gastos-reglas";
@@ -129,6 +131,9 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
       />
 
       {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
+
+      {/* Camino A (Felipe 2026-10-15): primero la respuesta, después las cifras. */}
+      <ImpuestosPulso pulso={pulsoImpuestos(panel)} />
 
       <section className="fin-cifras" data-guia="fin-impuestos.cifras">
         <TarjetaCifra etiqueta="IGV cobrado al vender" valor={foco ? solesRedondo(foco.debito) : null} {...entra(1)}>
