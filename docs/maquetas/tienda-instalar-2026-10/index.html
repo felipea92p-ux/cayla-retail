@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instalar CAYLA · plantillas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,500;1,500&display=swap" rel="stylesheet">
+<style>
+/* Paleta CAYLA Dynamic, la misma de apps/tienda/app/globals.css. */
+:root {
+  --crema:#f5f0e8; --papel:#fbf8f2; --hueso:#eae1d2; --sand:#e8e0d0; --tinta:#1a1a18; --taupe:#805c4c;
+  --rojo:#b8412d; --rojo-profundo:#8b2a1f; --verde:#48603f; --ambar:#74501a;
+  --lienzo:#e6ddcd; --marco:#1a1a18; --velo:rgba(26,26,24,.38); --sombra:rgba(26,26,24,.22);
+  --tinta-60:color-mix(in srgb,var(--tinta) 64%,transparent);
+  --tinta-40:color-mix(in srgb,var(--tinta) 42%,transparent);
+  --t-hero:#6a2118; --t-hero-2:#92301f; --t-hero-tinta:#f6efe6; --t-hero-acento:#f4c3b3;
+  --t-oscuro:#171614; --t-oscuro-tinta:#f5f0e8; --t-foto:#f2ede4;
+  --serif:"EB Garamond",Georgia,serif; --sans:"DM Sans",system-ui,sans-serif; --ease:cubic-bezier(.2,.7,.2,1);
+}
+:root[data-theme="dark"] {
+  --crema:#1a1a18; --papel:#242422; --hueso:#31302d; --sand:#3d3c38; --tinta:#f5f0e8; --taupe:#c4a898;
+  --rojo:#e8806a; --rojo-profundo:#f29a86; --verde:#9ccb8d; --ambar:#e4b968;
+  --lienzo:#121211; --marco:#000; --velo:rgba(0,0,0,.58); --sombra:rgba(0,0,0,.55);
+  --t-hero:#4a1712; --t-hero-2:#6b2318; --t-oscuro:#0d0d0c; --t-foto:#e8e2d8; color-scheme:dark;
+}
+* { box-sizing:border-box; }
+html { background:var(--lienzo); }
+body { margin:0; font-family:var(--sans); color:var(--tinta); background:var(--lienzo); -webkit-font-smoothing:antialiased; }
+button { font:inherit; color:inherit; cursor:pointer; }
+.pagina { max-width:1400px; margin:0 auto; padding:36px 28px 80px; }
+.barra { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:28px; }
+.barra h1 { margin:0; font-family:var(--serif); font-weight:500; font-size:44px; line-height:1; letter-spacing:-.01em; }
+.barra h1 em { color:var(--rojo); }
+.barra p { margin:10px 0 0; color:var(--tinta-60); max-width:62ch; font-size:15px; line-height:1.5; }
+.tema { display:inline-flex; gap:4px; padding:4px; border-radius:999px; background:var(--hueso); }
+.tema button { border:0; background:none; padding:8px 16px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--tinta-60); }
+.tema button[aria-pressed="true"] { background:var(--tinta); color:var(--crema); }
+
+/* ---------- la regla de oro ---------- */
+.reglas { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px; margin-bottom:44px; }
+.regla { background:var(--papel); border:1px solid var(--sand); border-radius:14px; padding:16px 18px; }
+.regla b { display:block; font-family:var(--serif); font-size:21px; font-weight:500; margin-bottom:4px; }
+.regla span { font-size:13.5px; color:var(--tinta-60); line-height:1.5; }
+.regla em { font-style:normal; font-size:10.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:var(--rojo); display:block; margin-bottom:6px; }
+
+/* ---------- galería ---------- */
+.galeria { display:grid; grid-template-columns:repeat(auto-fill,minmax(415px,1fr)); gap:54px 28px; justify-items:center; }
+.ficha { width:391px; }
+.ficha header { margin-bottom:14px; }
+.ficha .letra { font-size:10.5px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--rojo); }
+.ficha h2 { margin:4px 0 4px; font-family:var(--serif); font-weight:500; font-size:30px; line-height:1; }
+.ficha header p { margin:0; font-size:13.5px; color:var(--tinta-60); line-height:1.45; }
+.ficha footer { margin-top:14px; display:grid; gap:6px; font-size:12.5px; color:var(--tinta-60); line-height:1.45; }
+.ficha footer b { color:var(--tinta); font-weight:600; }
+.ficha .nivel { display:inline-flex; gap:5px; align-items:center; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--tinta); }
+.ficha .nivel i { width:22px; height:5px; border-radius:3px; background:var(--sand); }
+.ficha .nivel i.on { background:var(--tinta); }
+.repetir { margin-top:10px; justify-self:start; border:1px solid var(--sand); background:var(--papel); border-radius:999px; padding:7px 14px; font-size:11.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+
+/* ---------- el celular ---------- */
+.tel { width:375px; height:780px; border-radius:42px; position:relative; overflow:hidden; background:var(--crema); box-shadow:0 0 0 9px var(--marco), 0 30px 60px -20px var(--sombra); isolation:isolate; }
+.estado { height:44px; display:flex; align-items:center; justify-content:space-between; padding:6px 26px 0; font-size:14px; font-weight:700; background:var(--crema); position:relative; z-index:2; }
+.estado .isla { position:absolute; left:50%; top:9px; width:104px; height:28px; margin-left:-52px; border-radius:16px; background:#000; }
+.estado svg { width:17px; height:11px; fill:var(--tinta); }
+.scroll { position:absolute; inset:44px 0 0 0; overflow:hidden; }
+.anuncio { height:30px; display:grid; place-items:center; background:var(--t-oscuro); color:var(--t-oscuro-tinta); font-size:10.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
+.cab { height:56px; display:flex; align-items:center; gap:2px; padding-inline:6px 10px; background:var(--crema); border-bottom:1px solid var(--sand); }
+.cab .ib { width:40px; height:40px; display:grid; place-items:center; border:0; background:none; }
+.cab svg, .fila svg.ic { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.logo { display:flex; align-items:center; gap:8px; padding:4px 6px; }
+.logo img { width:27px; height:auto; }
+.logo span { font-family:var(--serif); font-size:21px; font-weight:500; letter-spacing:.22em; }
+.esp { flex:1; }
+.hero { position:relative; overflow:hidden; color:var(--t-hero-tinta); background:radial-gradient(120% 90% at 88% 6%,var(--t-hero-2),var(--t-hero) 58%); padding:24px 20px 26px; }
+.hero .ceja { display:flex; align-items:center; gap:10px; font-size:10.5px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--t-hero-acento); }
+.hero .ceja::before { content:""; width:26px; height:1px; background:currentColor; }
+.hero h3 { margin:12px 0 0; font-family:var(--serif); font-weight:500; font-size:58px; line-height:.86; letter-spacing:-.02em; }
+.hero h3 em { display:block; color:var(--t-hero-acento); }
+.hero p { margin:14px 0 0; font-size:14px; line-height:1.5; max-width:30ch; color:rgba(246,239,230,.86); }
+.hero img { position:absolute; top:18px; right:18px; width:40px; filter:brightness(0) invert(1); opacity:.9; }
+.cats { display:flex; gap:8px; padding:16px 16px 4px; overflow:hidden; }
+.cats span { flex:none; padding:8px 14px; border-radius:999px; border:1px solid var(--sand); font-size:13px; background:var(--papel); }
+.rej { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:14px 16px; }
+.pren i { display:block; aspect-ratio:3/4; border-radius:10px; background:var(--t-foto); }
+.pren b { display:block; margin-top:7px; font-size:13px; font-weight:600; }
+.pren small { color:var(--tinta-60); font-size:12px; }
+
+/* ---------- piezas comunes ---------- */
+.btn { border:0; border-radius:999px; background:var(--tinta); color:var(--crema); font-weight:600; font-size:14px; padding:0 20px; min-height:44px; transition:background .2s var(--ease), transform .2s var(--ease); }
+.btn:hover { background:var(--rojo-profundo); color:var(--t-hero-tinta); transform:translateY(-1px); }
+.btn.chico { min-height:36px; padding:0 16px; font-size:13px; }
+.btn.ancho { width:100%; }
+.enlace { border:0; background:none; padding:0 6px; min-height:44px; font-size:13.5px; color:var(--tinta-60); text-decoration:underline; text-decoration-color:var(--sand); text-underline-offset:4px; }
+.enlace:hover { color:var(--rojo-profundo); text-decoration-color:var(--rojo); }
+.x { width:36px; height:36px; display:grid; place-items:center; border:0; background:none; border-radius:50%; color:var(--tinta-60); }
+.x:hover { background:var(--hueso); }
+.x svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; }
+.icono-app { flex:none; display:grid; place-items:center; background:var(--papel); border:1px solid var(--sand); }
+.icono-app img { width:62%; height:auto; }
+.ceja { font-size:10.5px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; }
+.pliegue { display:grid; grid-template-rows:1fr; transition:grid-template-rows .32s var(--ease), opacity .22s var(--ease); }
+.pliegue[data-cerrado] { grid-template-rows:0fr; opacity:0; }
+.pliegue > div { min-height:0; overflow:hidden; }
+.velo { position:absolute; inset:0; background:var(--velo); z-index:5; animation:aparece .3s var(--ease) both; }
+.hoja { position:absolute; left:0; right:0; bottom:0; z-index:6; background:var(--papel); border-radius:24px 24px 0 0; padding:10px 22px 30px; box-shadow:0 -12px 40px -10px var(--sombra); animation:sube .5s var(--ease) .15s both; }
+.hoja .asa { width:38px; height:4px; border-radius:2px; background:var(--sand); margin:0 auto 16px; }
+.hoja h4, .tarj h4 { margin:0; font-family:var(--serif); font-weight:500; font-size:29px; line-height:1.02; letter-spacing:-.01em; }
+.hoja h4 em, .tarj h4 em { color:var(--rojo); }
+.hoja p { margin:10px 0 0; font-size:14.5px; line-height:1.5; color:var(--tinta-60); }
+.hoja .acc { display:grid; gap:2px; margin-top:20px; justify-items:center; }
+@keyframes aparece { from { opacity:0; } }
+@keyframes sube { from { transform:translateY(40px); opacity:0; } }
+@keyframes entra { from { opacity:0; transform:translateY(-8px); } }
+@media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
+
+/* A · franja */
+.franja { display:flex; align-items:center; gap:12px; padding:9px 8px 9px 14px; background:var(--papel); border-bottom:1px solid var(--sand); animation:entra .45s var(--ease) both; }
+.franja .icono-app { width:36px; height:36px; border-radius:9px; }
+.franja .txt { flex:1; min-width:0; line-height:1.25; }
+.franja .txt b { display:block; font-size:13.5px; font-weight:600; }
+.franja .txt small { font-size:12px; color:var(--tinta-60); }
+
+/* B · tarjeta */
+.tarj { margin:14px 16px 4px; padding:18px; border-radius:16px; background:var(--papel); border:1px solid var(--sand); animation:entra .45s var(--ease) both; }
+.tarj .cab-t { display:flex; gap:14px; align-items:center; }
+.tarj .icono-app { width:56px; height:56px; border-radius:14px; }
+.tarj .ceja { color:var(--verde); display:block; margin-bottom:4px; }
+.tarj ul { list-style:none; margin:16px 0 0; padding:0; display:grid; gap:10px; }
+.tarj li { display:grid; grid-template-columns:20px 1fr; gap:10px; font-size:13.5px; line-height:1.4; }
+.tarj li svg { width:18px; height:18px; fill:none; stroke:var(--verde); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; margin-top:1px; }
+.tarj .acc { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:16px; }
+
+/* C · hoja con vista previa */
+.pantalla-inicio { margin:18px 0 4px; padding:14px 16px; border-radius:16px; background:var(--hueso); display:flex; justify-content:space-around; }
+.pantalla-inicio .it { display:grid; justify-items:center; gap:6px; font-size:10.5px; color:var(--tinta-60); }
+.pantalla-inicio .it .icono-app { width:54px; height:54px; border-radius:13px; }
+.pantalla-inicio .it .vacio { width:54px; height:54px; border-radius:13px; background:color-mix(in srgb,var(--tinta) 12%,transparent); }
+.pantalla-inicio .it.cayla { color:var(--tinta); font-weight:700; }
+.pantalla-inicio .it.cayla .icono-app { box-shadow:0 0 0 3px var(--papel), 0 0 0 5px var(--rojo); animation:late 2.4s ease-in-out infinite; }
+@keyframes late { 50% { box-shadow:0 0 0 3px var(--papel), 0 0 0 8px color-mix(in srgb,var(--rojo) 35%,transparent); } }
+
+/* D · guía iPhone */
+.safari { position:absolute; left:0; right:0; bottom:0; z-index:7; height:86px; padding:8px 14px 0; background:color-mix(in srgb,var(--papel) 94%,transparent); backdrop-filter:blur(14px); border-top:1px solid var(--sand); }
+.safari .url { height:38px; border-radius:12px; background:var(--hueso); display:flex; align-items:center; justify-content:center; font-size:13px; gap:6px; }
+.safari .url svg { width:11px; height:11px; fill:var(--tinta-60); }
+.safari .fila { display:flex; justify-content:space-around; align-items:center; margin-top:6px; }
+.safari .fila span { width:44px; height:34px; display:grid; place-items:center; color:var(--tinta-60); position:relative; }
+.safari .fila span.compartir { color:var(--rojo); }
+.safari .fila span.compartir::after { content:""; position:absolute; inset:0; border-radius:50%; border:2px solid var(--rojo); animation:onda 1.8s var(--ease) infinite; }
+@keyframes onda { from { transform:scale(.7); opacity:.9; } to { transform:scale(1.5); opacity:0; } }
+.pasos { list-style:none; margin:18px 0 0; padding:0; display:grid; gap:12px; counter-reset:p; }
+.pasos li { display:grid; grid-template-columns:34px 1fr; gap:12px; align-items:center; font-size:14.5px; line-height:1.35; }
+.pasos li::before { counter-increment:p; content:counter(p); width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-family:var(--serif); font-size:19px; background:var(--hueso); }
+.pasos li b { font-weight:600; }
+.pasos li .mini { display:inline-flex; vertical-align:-5px; width:22px; height:22px; border-radius:6px; border:1px solid var(--sand); align-items:center; justify-content:center; margin-inline:2px; background:var(--crema); }
+.pasos li .mini svg { width:14px; height:14px; fill:none; stroke:var(--tinta); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.flecha-abajo { position:absolute; left:0; right:0; bottom:88px; z-index:8; display:flex; justify-content:center; padding-left:0; pointer-events:none; }
+.flecha-abajo svg { width:26px; height:26px; fill:none; stroke:var(--rojo); stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; animation:baja 1.4s var(--ease) infinite; }
+@keyframes baja { 50% { transform:translateY(5px); } }
+
+/* E · tras separar */
+.ok { padding:30px 22px 0; text-align:center; }
+.ok .sello { width:64px; height:64px; margin:0 auto 14px; border-radius:50%; background:color-mix(in srgb,var(--verde) 16%,var(--papel)); display:grid; place-items:center; }
+.ok .sello svg { width:30px; height:30px; fill:none; stroke:var(--verde); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:30; stroke-dashoffset:30; animation:dibuja .6s var(--ease) .2s forwards; }
+@keyframes dibuja { to { stroke-dashoffset:0; } }
+.ok h3 { margin:0; font-family:var(--serif); font-weight:500; font-size:34px; line-height:1; }
+.ok p { margin:10px auto 0; font-size:14.5px; color:var(--tinta-60); line-height:1.5; max-width:30ch; }
+.resumen { margin:20px 16px 0; border:1px solid var(--sand); border-radius:14px; background:var(--papel); padding:14px; display:grid; grid-template-columns:56px 1fr; gap:12px; align-items:center; text-align:left; }
+.resumen i { width:56px; height:72px; border-radius:8px; background:var(--t-foto); }
+.resumen b { display:block; font-size:14px; }
+.resumen small { color:var(--tinta-60); font-size:12.5px; line-height:1.4; display:block; margin-top:2px; }
+.tarj.suave { background:var(--hueso); border-color:transparent; margin-top:16px; animation-delay:.5s; }
+.tarj.suave h4 { font-size:23px; }
+.tarj.suave p { margin:4px 0 0; font-size:13.5px; color:var(--tinta-60); line-height:1.45; }
+
+/* F · Mi perfil */
+.perfil { padding:20px 16px 0; }
+.perfil h3 { margin:0 0 4px; font-family:var(--serif); font-weight:500; font-size:40px; line-height:1; }
+.perfil .quien { color:var(--tinta-60); font-size:14px; margin-bottom:18px; }
+.lista { border:1px solid var(--sand); border-radius:14px; background:var(--papel); overflow:hidden; }
+.lista .f { display:flex; align-items:center; gap:12px; padding:14px 16px; min-height:56px; font-size:14.5px; border-top:1px solid var(--sand); }
+.lista .f:first-child { border-top:0; }
+.lista .f svg.ic { width:20px; height:20px; color:var(--tinta-60); flex:none; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.lista .f .t { flex:1; min-width:0; line-height:1.25; }
+.lista .f small { display:block; color:var(--tinta-60); font-size:12.5px; }
+.lista .f.cayla { background:color-mix(in srgb,var(--verde) 7%,var(--papel)); }
+.lista .f .icono-app { width:36px; height:36px; border-radius:9px; }
+.pie { margin:30px auto 0; max-width:1100px; display:grid; gap:18px; }
+.pie h2 { margin:0; font-family:var(--serif); font-weight:500; font-size:34px; }
+.cuadro { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; }
+.regla ul b { display:inline; font-family:var(--sans); font-size:inherit; font-weight:600; color:var(--tinta); margin:0; }
+.cuadro .regla ul { margin:8px 0 0; padding-left:18px; font-size:13.5px; color:var(--tinta-60); line-height:1.6; }
+.recomiendo { background:var(--t-hero); color:var(--t-hero-tinta); border-radius:18px; padding:26px 28px; }
+.recomiendo .ceja { color:var(--t-hero-acento); }
+.recomiendo h2 { color:var(--t-hero-tinta); margin:6px 0 10px; }
+.recomiendo ol { margin:0; padding-left:20px; line-height:1.65; font-size:15px; color:rgba(246,239,230,.9); }
+.recomiendo ol b { color:var(--t-hero-tinta); }
+</style>
+</head>
+<body>
+<div class="pagina">
+
+<div class="barra">
+  <div>
+    <h1>Instalar <em>CAYLA</em> en el celular</h1>
+    <p>Seis plantillas de cómo puede salir el aviso para añadir la tienda a la pantalla de inicio, dibujadas sobre el Inicio real de la tienda (colibrí, paleta y letras de CAYLA). Es una maqueta: no existe todavía en la tienda ni cambia nada de ella. Las prendas y el nombre de la tienda son de ejemplo.</p>
+  </div>
+  <div class="tema" role="group" aria-label="Tema">
+    <button type="button" data-tema="light" aria-pressed="true">Claro</button>
+    <button type="button" data-tema="dark" aria-pressed="false">Oscuro</button>
+  </div>
+</div>
+
+<div class="reglas">
+  <div class="regla"><em>Regla 1</em><b>Nunca tapa lo que vino a hacer</b><span>La persona entra a mirar prendas y separar. El aviso se puede ignorar sin tocarlo y nunca queda sobre un botón de la tienda.</span></div>
+  <div class="regla"><em>Regla 2</em><b>Primero ve la tienda</b><span>No sale en el segundo cero del Inicio: espera unos segundos o a que haya hecho algo (mirar una prenda, separar).</span></div>
+  <div class="regla"><em>Regla 3</em><b>«Ahora no» se respeta</b><span>Si lo cierra, no vuelve por 30 días; si lo cierra dos veces, no vuelve. Siempre queda una fila fija en Mi perfil.</span></div>
+  <div class="regla"><em>Regla 4</em><b>Solo donde sirve</b><span>Solo en celular y solo si todavía no la tiene instalada. Android la añade con un toque; el iPhone no deja, así que se le enseña el camino.</span></div>
+</div>
+
+<div class="galeria">
+
+<!-- A -->
+<section class="ficha" id="a">
+  <header><span class="letra">Plantilla A</span><h2>La franja</h2><p>Una línea delgada bajo la cabecera, como el aviso de «Club CAYLA · Para ti». Lo menos invasivo.</p></header>
+  <div class="tel">
+    <div class="estado"><span>9:41</span><span class="isla"></span><span><svg viewBox="0 0 17 11"><rect x="0" y="7" width="3" height="4" rx=".7"/><rect x="4.7" y="5" width="3" height="6" rx=".7"/><rect x="9.4" y="2.5" width="3" height="8.5" rx=".7"/><rect x="14" y="0" width="3" height="11" rx=".7"/></svg></span></div>
+    <div class="scroll">
+      <div class="anuncio">Separa en la web · recoge en tienda</div>
+      <div class="cab"><button class="ib" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button><div class="logo"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></div><span class="esp"></span><button class="ib" aria-label="Buscar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></button><button class="ib" aria-label="Bolsa"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></button></div>
+      <div class="pliegue" data-slot><div><div class="franja">
+        <span class="icono-app"><img src="cayla-isotipo.png" alt=""></span>
+        <span class="txt"><b>CAYLA en tu celular</b><small>Entra con un toque</small></span>
+        <button class="btn chico" data-instalar>Añadir</button>
+        <button class="x" aria-label="Cerrar aviso" data-cerrar><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div></div></div>
+      <div class="hero"><img src="cayla-isotipo.png" alt=""><span class="ceja">Campaña vigente</span><h3>Lo <em>nuevo</em></h3><p>Prendas que acaban de llegar a tu tienda.</p></div>
+      <div class="cats"><span>Blusas</span><span>Vestidos</span><span>Casacas</span><span>Pantalones</span></div>
+      <div class="rej"><div class="pren"><i></i><b>Blusa Emma</b><small>S/ 89</small></div><div class="pren"><i></i><b>Casaca Lía</b><small>S/ 159</small></div></div>
+    </div>
+  </div>
+  <footer>
+    <span class="nivel">Intrusión <i class="on"></i><i></i><i></i></span>
+    <span><b>Ganas:</b> no estorba nada y se puede cerrar con un toque (el pliegue sube lo de abajo, sin saltos).</span>
+    <span><b>Pagas:</b> es fácil de ignorar, convierte menos que una hoja.</span>
+    <button class="repetir" data-repetir="a">Repetir</button>
+  </footer>
+</section>
+
+<!-- B -->
+<section class="ficha" id="b">
+  <header><span class="letra">Plantilla B</span><h2>La tarjeta en el Inicio</h2><p>Una tarjeta que ocupa el lugar del aviso del Club, arriba del héroe. Explica el porqué y se va con la página al bajar.</p></header>
+  <div class="tel">
+    <div class="estado"><span>9:41</span><span class="isla"></span><span><svg viewBox="0 0 17 11"><rect x="0" y="7" width="3" height="4" rx=".7"/><rect x="4.7" y="5" width="3" height="6" rx=".7"/><rect x="9.4" y="2.5" width="3" height="8.5" rx=".7"/><rect x="14" y="0" width="3" height="11" rx=".7"/></svg></span></div>
+    <div class="scroll">
+      <div class="anuncio">Separa en la web · recoge en tienda</div>
+      <div class="cab"><button class="ib" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button><div class="logo"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></div><span class="esp"></span><button class="ib" aria-label="Buscar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></button><button class="ib" aria-label="Bolsa"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></button></div>
+      <div class="pliegue" data-slot><div>
+        <section class="tarj">
+          <div class="cab-t"><span class="icono-app"><img src="cayla-isotipo.png" alt=""></span><div><span class="ceja">Para tu celular</span><h4>Ten CAYLA <em>a un toque</em></h4></div></div>
+          <ul>
+            <li><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Se abre sola desde tu pantalla de inicio</span></li>
+            <li><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>Tu pedido y tus beneficios del Club, a la mano</span></li>
+            <li><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>No descargas nada de la tienda de apps</span></li>
+          </ul>
+          <div class="acc"><button class="btn" data-instalar>Añadir a mi celular</button><button class="enlace" data-cerrar>Ahora no</button></div>
+        </section>
+      </div></div>
+      <div class="hero"><img src="cayla-isotipo.png" alt=""><span class="ceja">Campaña vigente</span><h3>Lo <em>nuevo</em></h3><p>Prendas que acaban de llegar a tu tienda.</p></div>
+      <div class="cats"><span>Blusas</span><span>Vestidos</span><span>Casacas</span></div>
+    </div>
+  </div>
+  <footer>
+    <span class="nivel">Intrusión <i class="on"></i><i class="on"></i><i></i></span>
+    <span><b>Ganas:</b> explica el beneficio y calza con el aviso del Club que ya existe (misma tarjeta, mismo «pliegue»).</span>
+    <span><b>Pagas:</b> empuja el héroe hacia abajo en un celular chico; si hay aviso del Club, uno espera al otro.</span>
+    <button class="repetir" data-repetir="b">Repetir</button>
+  </footer>
+</section>
+
+<!-- C -->
+<section class="ficha" id="c">
+  <header><span class="letra">Plantilla C</span><h2>La hoja de abajo</h2><p>Sube desde el borde, a la altura del pulgar, unos segundos después de entrar. Muestra cómo quedará el ícono.</p></header>
+  <div class="tel">
+    <div class="estado"><span>9:41</span><span class="isla"></span><span><svg viewBox="0 0 17 11"><rect x="0" y="7" width="3" height="4" rx=".7"/><rect x="4.7" y="5" width="3" height="6" rx=".7"/><rect x="9.4" y="2.5" width="3" height="8.5" rx=".7"/><rect x="14" y="0" width="3" height="11" rx=".7"/></svg></span></div>
+    <div class="scroll">
+      <div class="anuncio">Separa en la web · recoge en tienda</div>
+      <div class="cab"><button class="ib" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button><div class="logo"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></div><span class="esp"></span><button class="ib" aria-label="Buscar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></button><button class="ib" aria-label="Bolsa"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></button></div>
+      <div class="hero"><img src="cayla-isotipo.png" alt=""><span class="ceja">Campaña vigente</span><h3>Lo <em>nuevo</em></h3><p>Prendas que acaban de llegar a tu tienda.</p></div>
+      <div class="cats"><span>Blusas</span><span>Vestidos</span><span>Casacas</span></div>
+      <div class="rej"><div class="pren"><i></i><b>Blusa Emma</b><small>S/ 89</small></div><div class="pren"><i></i><b>Casaca Lía</b><small>S/ 159</small></div></div>
+    </div>
+    <div data-slot>
+      <div class="velo" data-cerrar></div>
+      <div class="hoja" role="dialog" aria-label="Añadir CAYLA a tu celular">
+        <div class="asa"></div>
+        <h4>Pon CAYLA en tu <em>pantalla de inicio</em></h4>
+        <p>Entra más rápido a separar tus prendas y a ver tu pedido. No ocupa espacio y no pasa por la tienda de apps.</p>
+        <div class="pantalla-inicio" aria-hidden="true">
+          <div class="it"><span class="vacio"></span>Mensajes</div>
+          <div class="it"><span class="vacio"></span>Fotos</div>
+          <div class="it cayla"><span class="icono-app"><img src="cayla-isotipo.png" alt=""></span>CAYLA</div>
+          <div class="it"><span class="vacio"></span>Mapas</div>
+        </div>
+        <div class="acc"><button class="btn ancho" data-instalar>Añadir a mi celular</button><button class="enlace" data-cerrar>Ahora no</button></div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <span class="nivel">Intrusión <i class="on"></i><i class="on"></i><i class="on"></i></span>
+    <span><b>Ganas:</b> la más clara y la que más se acepta; el botón queda al alcance del pulgar.</span>
+    <span><b>Pagas:</b> tapa la tienda mientras está abierta. Por eso: una sola vez, con retraso y velo que también cierra.</span>
+    <button class="repetir" data-repetir="c">Repetir</button>
+  </footer>
+</section>
+
+<!-- D -->
+<section class="ficha" id="d">
+  <header><span class="letra">Plantilla D</span><h2>La guía para iPhone</h2><p>El iPhone no deja instalar con un botón: hay que enseñar los tres toques. Señala el botón Compartir de Safari.</p></header>
+  <div class="tel">
+    <div class="estado"><span>9:41</span><span class="isla"></span><span><svg viewBox="0 0 17 11"><rect x="0" y="7" width="3" height="4" rx=".7"/><rect x="4.7" y="5" width="3" height="6" rx=".7"/><rect x="9.4" y="2.5" width="3" height="8.5" rx=".7"/><rect x="14" y="0" width="3" height="11" rx=".7"/></svg></span></div>
+    <div class="scroll">
+      <div class="anuncio">Separa en la web · recoge en tienda</div>
+      <div class="cab"><button class="ib" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button><div class="logo"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></div><span class="esp"></span><button class="ib" aria-label="Buscar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></button><button class="ib" aria-label="Bolsa"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></button></div>
+      <div class="hero"><img src="cayla-isotipo.png" alt=""><span class="ceja">Campaña vigente</span><h3>Lo <em>nuevo</em></h3><p>Prendas que acaban de llegar a tu tienda.</p></div>
+      <div class="cats"><span>Blusas</span><span>Vestidos</span><span>Casacas</span></div>
+    </div>
+    <div data-slot>
+      <div class="velo" data-cerrar style="bottom:86px"></div>
+      <div class="hoja" style="bottom:86px;padding-bottom:30px" role="dialog" aria-label="Cómo añadir CAYLA a tu iPhone">
+        <div class="asa"></div>
+        <h4>Añade CAYLA a tu <em>iPhone</em></h4>
+        <ol class="pasos">
+          <li><span>Toca <b>Compartir</b> <span class="mini"><svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></svg></span> abajo</span></li>
+          <li><span>Elige <b>«Añadir a pantalla de inicio»</b> <span class="mini"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg></span></span></li>
+          <li><span>Toca <b>«Añadir»</b>, arriba a la derecha</span></li>
+        </ol>
+        <div class="acc"><button class="btn ancho" data-cerrar>Entendido</button><button class="enlace" data-cerrar>Ahora no</button></div>
+      </div>
+      <div class="flecha-abajo"><svg viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg></div>
+    </div>
+    <div class="safari" aria-hidden="true">
+      <div class="url"><svg viewBox="0 0 12 12"><path d="M3 5V4a3 3 0 0 1 6 0v1h.5a1 1 0 0 1 1 1v4.5a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1H3Zm1.2 0h3.6V4a1.8 1.8 0 0 0-3.6 0v1Z"/></svg>tienda.cayla.pe</div>
+      <div class="fila">
+        <span><svg class="ic" viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M15 5l-7 7 7 7"/></svg></span>
+        <span><svg class="ic" viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M9 5l7 7-7 7"/></svg></span>
+        <span class="compartir"><svg class="ic" viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M12 15V3M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></svg></span>
+        <span><svg class="ic" viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M5 4h6a2 2 0 0 1 1 .3A2 2 0 0 1 13 4h6v15h-6a2 2 0 0 0-1 .3 2 2 0 0 0-1-.3H5V4Z"/></svg></span>
+        <span><svg class="ic" viewBox="0 0 24 24" style="width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><rect x="4" y="7" width="12" height="12" rx="2"/><path d="M8 7V5h12v12h-2"/></svg></span>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <span class="nivel">Intrusión <i class="on"></i><i class="on"></i><i></i></span>
+    <span><b>Ganas:</b> es la única forma de que un iPhone la instale; con la flecha, a nadie le toca adivinar.</span>
+    <span><b>Pagas:</b> solo se muestra en Safari de iPhone; en Chrome de iPhone el camino es distinto y se dice aparte.</span>
+    <button class="repetir" data-repetir="d">Repetir</button>
+  </footer>
+</section>
+
+<!-- E -->
+<section class="ficha" id="e">
+  <header><span class="letra">Plantilla E</span><h2>El momento justo</h2><p>Después de separar, cuando ya ganó algo y quiere seguir su pedido. Es el aviso que menos molesta porque llega con sentido.</p></header>
+  <div class="tel">
+    <div class="estado"><span>9:41</span><span class="isla"></span><span><svg viewBox="0 0 17 11"><rect x="0" y="7" width="3" height="4" rx=".7"/><rect x="4.7" y="5" width="3" height="6" rx=".7"/><rect x="9.4" y="2.5" width="3" height="8.5" rx=".7"/><rect x="14" y="0" width="3" height="11" rx=".7"/></svg></span></div>
+    <div class="scroll">
+      <div class="cab"><button class="ib" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button><div class="logo"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></div><span class="esp"></span><button class="ib" aria-label="Bolsa"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></button></div>
+      <div class="ok">
+        <div class="sello"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        <h3>Listo, separamos tu pedido</h3>
+        <p>Pásalo a recoger a tu tienda cuando te avisemos.</p>
+      </div>
+      <div class="resumen"><i></i><div><b>Blusa Emma · Talla M</b><small>Pedido de ejemplo · recojo en tienda</small></div></div>
+      <div class="pliegue" data-slot><div>
+        <section class="tarj suave">
+          <div class="cab-t"><span class="icono-app"><img src="cayla-isotipo.png" alt=""></span><div><h4>Sigue tu pedido a un toque</h4></div></div>
+          <p>Añade CAYLA a tu pantalla de inicio y mira ahí cuándo está listo.</p>
+          <div class="acc"><button class="btn chico" data-instalar>Añadir a mi celular</button><button class="enlace" data-cerrar>Ahora no</button></div>
+        </section>
+      </div></div>
+    </div>
+  </div>
+  <footer>
+    <span class="nivel">Intrusión <i class="on"></i><i></i><i></i></span>
+    <span><b>Ganas:</b> llega cuando el beneficio es obvio; la persona dice que sí más seguido.</span>
+    <span><b>Pagas:</b> no sale al iniciar sesión sino después de la primera acción; solo la ven quienes separan.</span>
+    <button class="repetir" data-repetir="e">Repetir</button>
+  </footer>
+</section>
+
+<!-- F -->
+<section class="ficha" id="f">
+  <header><span class="letra">Plantilla F</span><h2>Siempre a mano</h2><p>Una fila fija en Mi perfil. No insiste nunca: es adonde llega quien dijo «Ahora no» y cambió de idea.</p></header>
+  <div class="tel">
+    <div class="estado"><span>9:41</span><span class="isla"></span><span><svg viewBox="0 0 17 11"><rect x="0" y="7" width="3" height="4" rx=".7"/><rect x="4.7" y="5" width="3" height="6" rx=".7"/><rect x="9.4" y="2.5" width="3" height="8.5" rx=".7"/><rect x="14" y="0" width="3" height="11" rx=".7"/></svg></span></div>
+    <div class="scroll">
+      <div class="cab"><button class="ib" aria-label="Menú"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button><div class="logo"><img src="cayla-isotipo.png" alt=""><span>CAYLA</span></div><span class="esp"></span><button class="ib" aria-label="Bolsa"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></button></div>
+      <div class="perfil">
+        <h3>Mi perfil</h3>
+        <div class="quien">Hola, Ana (cuenta de ejemplo)</div>
+        <div class="lista">
+          <div class="f"><svg class="ic" viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z"/><path d="M9 9h6M9 13h6M9 17h3"/></svg><span class="t">Mis pedidos</span></div>
+          <div class="f"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M3 9h18V6H3zM12 6v14"/></svg><span class="t">Club CAYLA<small>Tus beneficios</small></span></div>
+          <div class="f"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/></svg><span class="t">Mis datos</span></div>
+          <div class="f cayla" data-fila><span class="icono-app"><img src="cayla-isotipo.png" alt=""></span><span class="t">Instalar CAYLA<small data-sub>Acceso directo en tu pantalla de inicio</small></span><button class="btn chico" data-instalar>Añadir</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <span class="nivel">Intrusión <i></i><i></i><i></i></span>
+    <span><b>Ganas:</b> cero presión, siempre encontrable, y cuando ya está instalada la fila dice «Ya la tienes».</span>
+    <span><b>Pagas:</b> casi nadie la descubre sola; por eso va junto a una de las otras, nunca sola.</span>
+    <button class="repetir" data-repetir="f">Repetir</button>
+  </footer>
+</section>
+
+</div>
+
+<div class="pie">
+  <div class="recomiendo">
+    <span class="ceja">Lo que yo haría</span>
+    <h2>Un camino de cuatro escalones</h2>
+    <ol>
+      <li><b>Al entrar:</b> nada, durante 8 segundos o hasta que mire una prenda. Después, la <b>hoja (C)</b> en Android o la <b>franja (A)</b> si hay aviso del Club esperando. Una sola vez.</li>
+      <li><b>En iPhone:</b> el mismo aviso, pero su botón abre la <b>guía de tres toques (D)</b> en lugar de instalar.</li>
+      <li><b>Si separa un pedido:</b> el <b>momento justo (E)</b>, que es el que mejor convence.</li>
+      <li><b>Si dice «Ahora no»:</b> silencio 30 días, y la fila de <b>Mi perfil (F)</b> queda para siempre.</li>
+    </ol>
+  </div>
+  <div class="cuadro">
+    <div class="regla"><b>Cuándo NO sale</b><ul><li>En computadora</li><li>Si ya abrió CAYLA desde la pantalla de inicio</li><li>En la portada, el login o crear cuenta</li><li>Con una hoja o un cajón abierto</li><li>Si cerró dos avisos</li></ul></div>
+    <div class="regla"><b>Qué hay que construir</b><ul><li>Un manifiesto de la app y los íconos (colibrí sobre crema)</li><li>Detectar si ya está instalada y si es iPhone</li><li>Una pieza de aviso con las plantillas elegidas</li><li>La marca «lo cerró» en el aparato (30 días)</li><li>La fila de Mi perfil</li></ul></div>
+    <div class="regla"><b>Lo que hay que decir claro</b><ul><li>Esto es la tienda web en la pantalla de inicio, <b>no una app de Play Store o App Store</b>.</li><li>Funciona con internet, como hoy; no se descarga el catálogo.</li><li>Hoy la tienda no tiene nada de esto: es trabajo nuevo.</li></ul></div>
+  </div>
+</div>
+
+</div>
+<script>
+(function () {
+  var raiz = document.documentElement;
+  document.querySelectorAll('[data-tema]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      raiz.setAttribute('data-theme', b.dataset.tema);
+      document.querySelectorAll('[data-tema]').forEach(function (o) { o.setAttribute('aria-pressed', String(o === b)); });
+    });
+  });
+  var guardados = {};
+  document.querySelectorAll('.ficha').forEach(function (f) {
+    var slot = f.querySelector('[data-slot]');
+    if (slot) guardados[f.id] = slot.cloneNode(true);
+    f.addEventListener('click', function (e) {
+      var s = f.querySelector('[data-slot]');
+      if (e.target.closest('[data-cerrar]') && s) {
+        if (s.classList.contains('pliegue')) s.setAttribute('data-cerrado', ''); else s.style.display = 'none';
+      }
+      var inst = e.target.closest('[data-instalar]');
+      if (inst) {
+        var fila = f.querySelector('[data-fila]');
+        if (fila) { fila.querySelector('[data-sub]').textContent = 'Ya la tienes en tu pantalla de inicio'; inst.textContent = 'Lista'; inst.disabled = true; inst.style.opacity = .55; return; }
+        if (s) { if (s.classList.contains('pliegue')) s.setAttribute('data-cerrado', ''); else s.style.display = 'none'; }
+      }
+      if (e.target.closest('[data-repetir]')) {
+        var viejo = f.querySelector('[data-slot]');
+        if (viejo && guardados[f.id]) viejo.replaceWith(guardados[f.id].cloneNode(true));
+        var fila2 = f.querySelector('[data-fila]');
+        if (fila2) { fila2.querySelector('[data-sub]').textContent = 'Acceso directo en tu pantalla de inicio'; var b = fila2.querySelector('[data-instalar]'); b.textContent = 'Añadir'; b.disabled = false; b.style.opacity = ''; }
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
