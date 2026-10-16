@@ -49,7 +49,7 @@ export default function ErrorDeSeccion({
             ya llegó, y esa trae el mismo error — la tarjeta reaparece aunque la causa (un corte de red)
             ya se haya ido, y la persona en el mostrador ve que «Reintentar» no hace nada.
             `router.refresh()` vuelve a pedir los datos al servidor; van juntos en `startTransition`
-            (lo mismo que hace `unstable_retry`, sin depender de una API inestable). Mismo patrón que
+            (lo mismo que hace el `retry` de Next, sin depender de él). Mismo patrón que
             `vender/comprobantes/error.tsx`. */}
         <button
           onClick={() =>
