@@ -28,6 +28,7 @@ import {
   estadoRegistro,
   faltanCaracteres,
   faltanRegistro,
+  faltanResumidos,
   hoyLima,
   ipDeLaPeticion,
   leerBeneficios,
@@ -44,13 +45,15 @@ import {
   mensajeSinNombre,
   problemaRegistro,
   REGISTRO_VACIO,
-  textoFaltan,
+  soles,
   type ConsultaDocumento,
   type Registro,
 } from "./cuentas";
 import type { CodigoDelCorreo } from "./correo-confirmado";
 
 const HOY = { anio: 2026, mes: 10, dia: 14 };
+/** Lo que la persona lee en «Falta: …», en orden. */
+const nombresDe = (faltan: readonly (readonly [unknown, string])[]) => faltan.map(([, nombre]) => nombre);
 const ENCONTRADO: ConsultaDocumento = { estado: "encontrado", aMedias: "María P. S.", delClub: false };
 /** El correo de LISTO, confirmado con su código (bajo el correo, Felipe 2026-10-15). */
 const CONFIRMADO: CodigoDelCorreo = { estado: "confirmado", correo: "maria.perez@gmail.com" };
@@ -251,7 +254,7 @@ describe("carné de extranjería y pasaporte (Felipe 2026-10-15: «como en las t
   it("la guía pide el documento y después los nombres y los apellidos; listo, no falta nada", () => {
     const vacio = estadoRegistro({ ...CARNE, nombres: "", apellidos: "" }, { correo: "libre", documento: LIBRE, codigo: CONFIRMADO }, HOY);
     expect(faltanRegistro(vacio).map(([campo]) => campo)).toEqual(["nombres", "apellidos"]);
-    expect(textoFaltan(faltanRegistro(vacio))).toBe("tus nombres y tus apellidos");
+    expect(nombresDe(faltanRegistro(vacio))).toEqual(["tus nombres", "tus apellidos"]);
     expect(faltanRegistro(estadoRegistro(CARNE, { correo: "libre", documento: LIBRE, codigo: CONFIRMADO }, HOY))).toEqual([]);
   });
 
@@ -277,9 +280,18 @@ describe("la guía del registro", () => {
   it("sin nada escrito falta todo menos los avisos (opcionales): el nombre no es un campo, sale del DNI", () => {
     const e = estadoRegistro(REGISTRO_VACIO, { correo: "sin_revisar", documento: { estado: "sin_revisar" }, codigo: SIN_PEDIR }, HOY);
     expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "codigo", "clave", "documento", "cel", "cumple", "mayor", "acepta"]);
-    expect(textoFaltan(faltanRegistro(e))).toBe(
-      "tu correo, confirmar tu correo, tu contraseña, tu documento, tu celular, tu cumpleaños, confirmar que eres mayor de 18 y aceptar los términos",
-    );
+    expect(nombresDe(faltanRegistro(e))).toEqual([
+      "tu correo",
+      "confirmar tu correo",
+      "tu contraseña",
+      "tu documento",
+      "tu celular",
+      "tu cumpleaños",
+      "confirmar que eres mayor de 18",
+      "aceptar los términos",
+    ]);
+    // En el pie fijo se nombran los tres primeros y el resto se cuenta: «tu correo, confirmar tu correo, tu contraseña y 5 más».
+    expect(faltanResumidos(faltanRegistro(e))).toEqual({ nombrados: faltanRegistro(e).slice(0, 3), mas: 5 });
     // Las dos casillas nuevas nacen sin marcar: el «sí» es un toque de la persona.
     expect(REGISTRO_VACIO).toMatchObject({ mayor: false, avisos: false });
   });
@@ -300,7 +312,7 @@ describe("la guía del registro", () => {
   it("todo listo: no falta nada (con el correo confirmado)", () => {
     const e = estadoRegistro(LISTO, { correo: "libre", documento: ENCONTRADO, codigo: CONFIRMADO }, HOY);
     expect(faltanRegistro(e)).toEqual([]);
-    expect(textoFaltan([])).toBe("");
+    expect(faltanResumidos(faltanRegistro(e))).toEqual({ nombrados: [], mas: 0 });
   });
 
   it("un correo repetido, un menor de 18 o un DNI sin el nombre del padrón aparecen en «Falta»", () => {
@@ -311,7 +323,19 @@ describe("la guía del registro", () => {
     );
     expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "documento", "cumple"]);
     expect(e.motivoCumple).toBe("menor");
-    expect(textoFaltan(faltanRegistro(e))).toBe("tu correo, tu documento y tu cumpleaños");
+    expect(nombresDe(faltanRegistro(e))).toEqual(["tu correo", "tu documento", "tu cumpleaños"]);
+  });
+
+  it("el pie nombra los tres primeros que faltan y cuenta el resto; nunca «y 1 más»", () => {
+    const letras = ["a", "b", "c", "d", "e", "f"];
+    expect(faltanResumidos(letras)).toEqual({ nombrados: ["a", "b", "c"], mas: 3 });
+    expect(faltanResumidos(letras.slice(0, 5))).toEqual({ nombrados: ["a", "b", "c"], mas: 2 });
+    // Con cuatro, nombrar el cuarto ocupa lo mismo que «y 1 más»: se nombra.
+    expect(faltanResumidos(letras.slice(0, 4))).toEqual({ nombrados: ["a", "b", "c", "d"], mas: 0 });
+    expect(faltanResumidos(["a"])).toEqual({ nombrados: ["a"], mas: 0 });
+    expect(faltanResumidos([])).toEqual({ nombrados: [], mas: 0 });
+    // El orden es el de la página: el primero nombrado es el que sigue.
+    expect(faltanResumidos(letras, 1)).toEqual({ nombrados: ["a"], mas: 5 });
   });
 
   it("se enciende el primero que falta; mientras se escribe en uno, la luz se queda ahí (y no salta si ya está listo)", () => {
@@ -336,7 +360,7 @@ describe("el código bajo el correo (Felipe 2026-10-15: «Obtener código» al l
   it("«Crear mi cuenta» se prende recién con el correo confirmado: pedido o escrito no basta", () => {
     expect(faltanRegistro(estadoCon(SIN_PEDIR)).map(([campo]) => campo)).toEqual(["codigo"]);
     expect(faltanRegistro(estadoCon(enviado(LISTO.correo))).map(([campo]) => campo)).toEqual(["codigo"]);
-    expect(textoFaltan(faltanRegistro(estadoCon(SIN_PEDIR)))).toBe("confirmar tu correo");
+    expect(nombresDe(faltanRegistro(estadoCon(SIN_PEDIR)))).toEqual(["confirmar tu correo"]);
     expect(faltanRegistro(estadoCon(CONFIRMADO))).toEqual([]);
   });
 
@@ -391,6 +415,7 @@ describe("lo que el servidor vuelve a revisar", () => {
     expect(errorDeRegistro("cuenta_correo_repetido", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.correoRepetido });
     expect(errorDeRegistro("cuenta_dni_repetido", "dni")).toEqual({ campo: "documento", mensaje: MENSAJES.dniRepetido });
     expect(errorDeRegistro("cuenta_archivada", "dni")).toEqual({ campo: "documento", mensaje: MENSAJES.dniArchivada });
+    expect(errorDeRegistro("cuenta_ficha_sin_tu_correo", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.fichaSinTuCorreo });
     expect(errorDeRegistro("cuenta_menor", "cumple")).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMenor });
     expect(errorDeRegistro("cuenta_datos_invalidos", "celular").campo).toBe("cel");
     expect(errorDeRegistro("cuenta_datos_invalidos", "mayor")).toEqual({ campo: "mayor", mensaje: MENSAJES.mayorFalta });
@@ -532,7 +557,10 @@ describe("lo que contesta la base", () => {
   it("lee los beneficios del club y los dice como los términos", () => {
     const b = leerBeneficios({ pct: "10.00", escala: [{ anio: 2, monto: 30 }, { anio: 1, monto: "20.00" }], compras: 6, monto_minimo: 600, dias: 60 });
     expect(b).toEqual({ pct: 10, escala: [{ anio: 1, monto: 20 }, { anio: 2, monto: 30 }], compras: 6, montoMinimo: 600, dias: 60 });
-    expect(escalaEnPalabras(b!.escala)).toBe("S/ 20 el primer año y S/ 30 el segundo");
+    expect(escalaEnPalabras(b!.escala)).toBe("S/\u00a020 el primer año y S/\u00a030 el segundo");
+    // «S/» y la cifra no se separan al final de un renglón (ADR-0413): el espacio es el que no se parte.
+    expect(soles(20)).toBe("S/\u00a020");
+    expect(soles(25.5)).toBe("S/\u00a025.50");
     expect(leerBeneficios({ pct: 10 })).toBeNull();
   });
 });

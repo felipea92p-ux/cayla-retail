@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Miniatura } from "@/components/bolsa/Miniatura";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
+import { FilaDePedido } from "@/components/cuenta/MisPedidosEnLaCuenta";
 import { Icono } from "@/components/Icono";
-import { formaDe, fotoOptimizable, soles } from "@/lib/catalogo";
-import { fechaCorta, INSIGNIA, nombreTienda, vivas } from "@/lib/pedidos";
 import { leerMisPedidos } from "@/lib/pedidos-servidor";
 import { leerSesion } from "@/lib/sesion-servidor";
 import "../../estilos/catalogo.css";
@@ -15,7 +13,8 @@ export const metadata: Metadata = { title: "Mis pedidos · CAYLA", robots: { ind
 
 /**
  * «Mis pedidos» (maqueta v4, `vCuenta` ▸ «Mis pedidos»): cada pedido con su número, su total, su tienda, cuándo se separó y en qué
- * está. Solo los de esta cuenta (lo decide la base: `retail.tienda_mis_pedidos`). Cada uno abre su estado.
+ * está. Solo los de esta cuenta (lo decide la base: `retail.tienda_mis_pedidos`). Cada uno abre su estado. La fila es la misma de
+ * «Mi cuenta» (`FilaDePedido`): antes esta página la copiaba a mano.
  */
 export default async function MisPedidos() {
   const sesion = await leerSesion();
@@ -29,12 +28,12 @@ export default async function MisPedidos() {
       <div className="t-ancho t-angosto">
         <div className="t-cuenta-pag">
           <nav className="t-ruta" aria-label="Estás en">
-            <Link href="/cuenta">Mi cuenta</Link>
+            <Link href="/cuenta">Mi perfil</Link>
             <span aria-hidden="true">/</span>
             <span>Mis pedidos</span>
           </nav>
           <div className="t-cuenta-cab">
-            <span className="t-ceja">Mi cuenta</span>
+            <span className="t-ceja">Mi perfil</span>
             <h1>
               Mis <em>pedidos</em>
             </h1>
@@ -49,44 +48,22 @@ export default async function MisPedidos() {
               </Link>
             </div>
           ) : lectura.pedidos.length === 0 ? (
-            <div className="w-bloque">
-              <p className="w-texto-sec">Todavía no separaste nada.</p>
-              <Link className="t-btn t-btn-sec" href="/catalogo">
-                Ver toda la ropa
+            // Sin pedidos: qué es esta lista y cómo se llena (antes, una línea suelta y un botón).
+            <div className="t-vacio">
+              <Icono nombre="pedido" />
+              <h3>Todavía no tienes pedidos</h3>
+              <p>Cuando separes una prenda, aquí ves en qué está: si la tienda ya lo confirmó, cuánto falta pagar y cuándo recogerlo.</p>
+              <Link className="t-btn" href="/catalogo">
+                Ver toda la tienda
               </Link>
             </div>
           ) : (
             <ul className="w-lista t-pedidos">
-              {lectura.pedidos.map((p) => {
-                const primera = vivas(p)[0] ?? p.lineas[0];
-                const insignia = INSIGNIA[p.estado];
-                return (
-                  <li key={p.codigo}>
-                    <Link className="w-ped" href={`/cuenta/pedidos/${p.codigo}`}>
-                      {primera && (
-                        <Miniatura
-                          foto={primera.foto}
-                          optimizar={primera.foto ? fotoOptimizable(primera.foto, origenFotos) : false}
-                          forma={formaDe(primera.categoria?.prefijo)}
-                          color={primera.color.hex}
-                        />
-                      )}
-                      <span>
-                        <b>
-                          <span className="t-codigo">{p.codigo}</span> · {soles(p.total)}
-                        </b>
-                        <small>
-                          {nombreTienda(p.tienda.nombre)} · {fechaCorta(p.creadoEn)}
-                        </small>
-                        <span className={`w-estado-chip t-${insignia.tono}`}>
-                          {p.estado === "pagado" && p.listoParaRecoger ? "Pagado · listo para recoger" : insignia.texto}
-                        </span>
-                      </span>
-                      <Icono nombre="flecha" />
-                    </Link>
-                  </li>
-                );
-              })}
+              {lectura.pedidos.map((p) => (
+                <li key={p.codigo}>
+                  <FilaDePedido pedido={p} origenFotos={origenFotos} />
+                </li>
+              ))}
             </ul>
           )}
         </div>

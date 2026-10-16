@@ -22,7 +22,7 @@ export default async function CatalogoLayout({ children }: { children: React.Rea
   ]);
   return (
     <div className="tienda">
-      <Anuncio frases={anuncios(campana)} />
+      <Anuncio frases={anuncios(campana, true)} />
       {sesion.estado === "sin_respuesta" ? (
         <MarcoCatalogo prendas={[]} sede={null}>
           <div className="t-ancho">

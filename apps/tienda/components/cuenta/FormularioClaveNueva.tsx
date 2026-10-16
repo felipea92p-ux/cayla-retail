@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { guardarClaveNueva, type RespuestaClave } from "@/app/acciones/cuenta";
 import { CLAVE_MAXIMA, estadoClave, faltanCaracteres, MENSAJES } from "@/lib/cuentas";
 import { CajaClave } from "./CajaClave";
+import { usePasoDelPanel } from "./EntradaViva";
 
 // «Crea tu contraseña nueva» (maqueta, `vOlvide` paso 3), desde el enlace del correo. El código del enlace se canjea recién al
 // tocar «Guardar y entrar» (`guardarClaveNueva`): abrir la página no lo gasta.
@@ -13,6 +14,8 @@ export function FormularioClaveNueva({ codigo }: { codigo: string }) {
   const [respuesta, setRespuesta] = useState<RespuestaClave | null>(null);
   const [enviando, iniciar] = useTransition();
   const lista = estadoClave(clave) === "ok";
+  // Si el enlace ya no sirve, el panel de al lado vuelve al primer paso: pedir otro.
+  usePasoDelPanel(respuesta?.vencido ? 0 : null);
 
   function guardar() {
     if (!lista || enviando) return;

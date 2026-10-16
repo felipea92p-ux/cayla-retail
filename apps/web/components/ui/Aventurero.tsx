@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { Anton } from "next/font/google";
 
 // Aventurero (Felipe, 2026-10-15): el gato naranja con las patas en el teclado, como meme, en las pantallas donde la persona NO
@@ -105,5 +105,22 @@ export function Aventurero({ motivo, className }: { motivo: MotivoAventurero; cl
         </text>
       </svg>
     </figure>
+  );
+}
+
+/** La pantalla entera de Aventurero: la tarjeta con la foto arriba y el mensaje (`children`) abajo, los dos del mismo ancho, que crece con
+ *  la ventana hasta llenar lo alto visible sin bajar del pliegue (`.aventurero-tarjeta`, `app/estilos/aventurero.css`). Pide el ancho
+ *  completo del <main> (el marcador que lee `AppShell`, declarado en `lib/ancho-completo.test.ts`): con el tope de 64rem de las
+ *  pantallas comunes, en un monitor grande sobraba espacio.
+ *  `enVista`: vive dentro de una vista con su propia cabecera y pestañas (Facturación), así que reserva más alto y no se estira. */
+export function PantallaAventurero({ motivo, enVista = false, children }: { motivo: MotivoAventurero; enVista?: boolean; children: ReactNode }) {
+  return (
+    <div className="aventurero-pantalla" data-en-vista={enVista || undefined}>
+      <span hidden data-ancho-completo />
+      <div className="card-cayla anim-entrada aventurero-tarjeta overflow-hidden text-center" data-motivo={motivo}>
+        <Aventurero motivo={motivo} />
+        <div className="aventurero-mensaje">{children}</div>
+      </div>
+    </div>
   );
 }

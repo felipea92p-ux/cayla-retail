@@ -1,5 +1,7 @@
 import "server-only";
 import type { TipoDocumentoClienta } from "@cayla-retail/shared";
+import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import { base, leerConRespaldo } from "./base";
 import {
   leerBeneficios,
@@ -186,8 +188,9 @@ export async function registrarCuentaEnBase(d: DatosCuenta): Promise<ResultadoRe
 
 export type LecturaCuenta = { estado: "cuenta"; cuenta: MiCuenta } | { estado: "sin_cuenta" } | { estado: "sin_respuesta" };
 
-/** La cuenta de ese usuario del proyecto de clientes. `sin_cuenta` SOLO si la base contestó que no tiene. */
-export async function leerMiCuentaEnBase(usuarioWebId: string): Promise<LecturaCuenta> {
+/** La cuenta de ese usuario del proyecto de clientes. `sin_cuenta` SOLO si la base contestó que no tiene. Una vez por petición: el
+ *  saludo del menú de la persona y la página (el Inicio, «Mi perfil») la comparten (antes, dos consultas iguales por visita). */
+export const leerMiCuentaEnBase = cache(async (usuarioWebId: string): Promise<LecturaCuenta> => {
   try {
     const [fila] = await base()`select retail.tienda_mi_cuenta(${usuarioWebId}::uuid) as r`;
     if (fila?.r === null || fila?.r === undefined) return { estado: "sin_cuenta" };
@@ -197,15 +200,26 @@ export async function leerMiCuentaEnBase(usuarioWebId: string): Promise<LecturaC
     console.error(JSON.stringify({ evento: "tienda_mi_cuenta_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
     return { estado: "sin_respuesta" };
   }
-}
+});
 
 /** El % del cumpleaños y la escala del vale, para los términos. null si la base no contesta: se dicen sin cifras. */
-export const leerBeneficiosDelClub = (): Promise<Beneficios | null> =>
-  leerConRespaldo(
-    "tienda_club_beneficios_fallo",
-    async (db) => {
-      const [fila] = await db`select retail.tienda_club_beneficios() as r`;
-      return leerBeneficios(fila?.r);
-    },
-    null,
-  );
+// Los beneficios del Club son los mismos para todos (los configura el ERP): desde que salen en la portada y en el Inicio (el sello del
+// descuento de cumpleaños, 2026-10-16), se comparten entre visitas unos minutos, como el catálogo, en vez de preguntarle a la base en
+// cada página. Se guarda el JSON crudo; un fallo NO se guarda (se lanza adentro y se responde `null` afuera, para reintentar).
+const beneficiosCompartidos = unstable_cache(
+  async (): Promise<unknown> => {
+    const [fila] = await base()`select retail.tienda_club_beneficios() as r`;
+    return fila?.r ?? null;
+  },
+  ["tienda-club-beneficios-v1"],
+  { revalidate: 300 },
+);
+
+export const leerBeneficiosDelClub = async (): Promise<Beneficios | null> => {
+  try {
+    return leerBeneficios(await beneficiosCompartidos());
+  } catch (error) {
+    console.error(JSON.stringify({ evento: "tienda_club_beneficios_fallo", mensaje: error instanceof Error ? error.message : String(error) }));
+    return null;
+  }
+};

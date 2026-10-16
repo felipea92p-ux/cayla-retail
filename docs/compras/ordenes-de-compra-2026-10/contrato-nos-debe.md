@@ -26,6 +26,7 @@ escrito como pregunta, sin construir.
   (`fn_bal_saldo_a_favor`, el 421 por dos caminos) y las lecturas de la web.
 - **Dañadas:** `resolver_prenda_danada(…, 'devuelta_proveedor', …, p_proveedor_id)` existe (solo líder) y baja el stock de la cuarentena,
   pero no crea deuda ni nota, y la pantalla (`ResolverDanadosModal`) no la ofrece.
+  Desde la fase 5b, la pantalla devuelve con `devolver_danada_al_proveedor`, que sí deja la deuda.
 
 ## Fase 5a — se construye esta noche (no mueve plata)
 
@@ -68,25 +69,94 @@ las causas de faltante `no_vino`/`se_perdio`/`otra_sede` y de sobrante `regalo`/
      faltó» SOLO si ese proveedor debe algo de esa categoría y marca (`fn_envio_detalle` suma `deudas_del_proveedor`).
    - Lista de proveedores: una columna o un chip «Te debe S/ 50» **[provisional]**.
 
-## Fase 5b — espera a Felipe y al contador (preguntas, sin construir)
+## Fase 5b — lo que decidió Felipe y lo construido (2026-10-15)
 
-1. **«Pasar a saldo a favor»** con factura: ¿hace falta la nota de crédito tipo 07 del proveedor para tomarlo (crédito fiscal), o se
-   registra un documento interno y el contador lo regulariza? Con boleta, nota de venta o «sin comprobante» no hay nota ante SUNAT:
-   ¿documento interno sin IGV? Hoy la regla de la nota por faltante («una por comprobante, cuando está resuelto al 100 %») traba los
-   comprobantes de orden repartidos entre varias guías.
-2. **«Depositó»**: nota (o documento interno) + reembolso en una transacción, como `registrar_nota_credito_compra(p_destino =
-   'reembolso')`. ¿Basta el módulo Proveedores (decisión 40) o pide Por pagar (hoy el reembolso lo pide)?
-3. **Devolver una dañada al proveedor** (decisión 27): ¿quién lo hace (hoy solo el líder) y queda como deuda «por reponer» igual que un
-   faltante (con sus mismas tres salidas)?
-4. **Mientras una deuda con factura siga abierta**, CAYLA tiene el IGV de prendas que no llegaron en su crédito fiscal (ADR-0362,
-   «Consecuencias ya vistas»): ¿un aviso que no se oculta en Inicio para quien ve la plata de Compras?
+Rama `claude/purchase-order-phase5b-9b0c82`. Dos migraciones, en este orden: `20261015145000_nos_debe_saldo_a_favor_esquema.sql` (el
+esquema) y `20261015150000_nos_debe_saldo_a_favor.sql` (las funciones). Las dos son de una parte, sin políticas ni `drop trigger`,
+re-ejecutables y con un bloque final que comprueba.
+
+**Las preguntas, respondidas:**
+
+1. **Saldo a favor con factura (58):** documento interno al toque, marcado «falta su nota de crédito» hasta que llegue la del proveedor.
+   Su IGV no baja el crédito fiscal mientras tanto: espera en la **cuenta puente 4019** «IGV por regularizar» (Felipe 2026-10-15)
+   **[provisional: código y nombre hasta el contador]**. Con boleta, nota de venta o sin comprobante: documento interno sin IGV.
+2. **«Depositó» (59):** con el módulo Proveedores, el documento interno y el reembolso en una transacción. **[provisional]** El depósito
+   tiene que ser exactamente lo que quedó a favor; si todavía se le debe el comprobante, no hay nada que depositar.
+3. **Devolver una dañada (60):** la hace quien tiene **Existencias** (Felipe 2026-10-15; este README decía Recibir), solo con **lo que
+   llegó dañado en una recepción** y con **el grupo entero**. Queda como deuda «por reponer» con las mismas tres salidas.
+4. **Aviso del IGV (61):** en Inicio, sin poder ocultarse, y en el Observatorio del Admin.
+
+**Esquema (145000):**
+- `compra_notas_credito.interna`: el documento interno es una nota más del comprobante. Su serie es siempre `DI-…`, numerada por
+  `compra_notas_internas_seq`, y la de una nota del proveedor nunca lo es.
+- `proveedor_deuda_resoluciones.nota_credito_id`: qué documento saldó con plata cada resolución.
+- La cuenta 4019 en `cuentas`.
+- `compra_notas_proveedor` y `compra_notas_proveedor_documentos`: la nota 07 que respalda documentos internos de una factura. Se escriben
+  solo por funciones y no se editan.
+- `despacho_diferencias` acepta la causa `devuelta`, con `prenda_danada_id`:
+  - una deuda por prenda;
+  - la vista de lo vigente se vuelve a crear para verla;
+  - el único «una diferencia vigente por línea» deja fuera lo devuelto.
+
+**Funciones (150000):**
+- **El papel y el valor.**
+  - `fn_deuda_papel` toma las líneas de comprobante con cupo, con la regla de la recepción. Lo devuelto toma la línea donde se recibió.
+  - `fn_deuda_valor_de` / `fn_deuda_valor` dicen cuánto vale, con su IGV si es una factura.
+  - `fn_nos_debe_deuda` (reescrita) da el monto pendiente desde el papel, más la causa y la prenda.
+- **Escritura.**
+  - `fn_pasar_deuda_a_saldo_a_favor` (interna): cierres «no llegó» y el documento interno. Lo devuelto no se cierra y su documento es
+    por devolución.
+  - `resolver_deuda_proveedor` (reescrita): las formas `saldo_a_favor` y `deposito`, con Proveedores. El depósito le llega en el ajuste
+    de la transacción `retail.deposito_de_deuda`, que pone `registrar_deposito_deuda`; así su firma de 5 argumentos no cambia.
+  - `adjuntar_nota_proveedor` adjunta la nota del proveedor, con el módulo Notas de crédito.
+  - `devolver_danada_al_proveedor` (Existencias, responsable, token): sale de la cuarentena sin `compra_item_id` y nace la deuda `devuelta`.
+- **Lecturas.**
+  - `fn_notas_proveedor_tablero`: el tablero de Notas de crédito.
+  - `fn_igv_en_espera`: el aviso del IGV.
+  - `fn_saldo_favor_visible`: el saldo a favor de la ficha, con el permiso de quien ve la plata de los proveedores.
+  - `fn_danadas_devolvibles`: qué se puede devolver de la cuarentena.
+- **Reemplazos anclados.**
+  - Impuestos (`fn_impuestos_compras`, `fn_impuestos_registro_compras`, `fn_igv_credito_fiscal`, `resumen_compras_extra`): no cuentan el
+    documento interno; sí la nota del proveedor, desde su fecha.
+  - El Diario (`fn_asientos`): el documento interno y su IGV a la 4019; la nota del proveedor saca el IGV de la 4019 y baja la 4011, en
+    `fn_asientos_nota_proveedor`.
+  - `fn_insertar_nota_credito_compra`: la serie `DI-` es de CAYLA.
+  - «Causa `devuelta` también es deuda», en:
+    - `fn_nos_debe_del_envio`, `fn_nos_debe_pendiente`, `fn_nos_debe_resumen` y `fn_proveedor_nos_debe`;
+    - `fn_plan_compra_pedido` y `fn_recepcion_cerrar`;
+    - `fn_proveedor_deuda_resoluciones_candado`.
+  - El candado de lo recibido (`fn_recepcion_despacho_fija`) deja nacer la deuda `devuelta` con el envío cerrado, solo desde su función.
+  - `reabrir_envio` no la apaga.
+
+**Pantallas:**
+- Ficha del proveedor: «Pasar a saldo a favor», «Depositó» y «Llegó la reposición» en cada deuda, y el saldo a favor visible.
+- Notas de crédito: «Llegó su nota de crédito» y el estado «Falta su nota de crédito».
+- Existencias ▸ Dañadas: «Devolver al proveedor».
+- Inicio y Observatorio: los dos avisos del IGV.
+
+**Cambios al construir la 5b, por defecto [provisional]:**
+- **La nota del proveedor (07):**
+  - El monto se escribe como dice el papel y tiene que coincidir con los documentos que respalda.
+  - Una nota puede respaldar varios documentos internos del mismo comprobante.
+  - La fecha viene con la de hoy, sugerida.
+- **Lo devuelto por llegar dañado:**
+  - Lo que llegó de más (fuera de la guía), lo que devolvió un cliente o lo que reportó la tienda no se devuelve con deuda.
+  - Lo recibido sin comprobante no tiene plata que pasar.
+- **«Depositó»:**
+  - La cuenta donde entró es opcional, como en la base y en el reembolso.
+  - Propone la de la sede donde faltaron las prendas.
 
 ## Pruebas
 
 `scripts/pruebas/nos_debe.mjs` (en `PRUEBAS` del CI): la deuda nace de un faltante `no_vino` (no de `se_perdio` ni `otra_sede`);
 resolver a mano con nota; no pasa de lo debido (dos sesiones a la vez); la reposición en la recepción cierra la más antigua primero y no
-pasa de lo debido; permisos (Proveedores o Recibir sí; sin módulos, 42501); 5b responde «todavía no»; la forma (security definer, anon
-no, RLS sin políticas).
+pasa de lo debido; permisos (Proveedores o Recibir sí; sin módulos, 42501); la forma (security definer, anon no, RLS sin políticas).
+Fase 5b (41 casos en total):
+- A: saldo a favor con boleta y con factura.
+- V: la nota del proveedor.
+- D: «Depositó».
+- I: el aviso del IGV.
+- E: devolver lo dañado y su plata.
 
 ## Cambios al construir la 5a (2026-10-12, noche)
 

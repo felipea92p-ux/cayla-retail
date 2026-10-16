@@ -78,7 +78,7 @@
 | 57 | Contabilidad del fondo, provisional | **Fondo en la 1413** (entregas a rendir) y **el Yape personal de la compradora no cuenta como pago bancarizado de CAYLA**, hasta que el contador diga otra cosa (Felipe 2026-10-13) |
 | 58 | Saldo a favor con factura | **Interno ya, su nota de crédito después:** se registra al toque con un documento interno que baja lo que se le debe al proveedor en el próximo pago, marcado «falta su nota de crédito» con el aviso del IGV (61) hasta que llegue; al llegar, se adjunta (Felipe 2026-10-13). Con boleta, nota de venta o sin comprobante: documento interno sin IGV |
 | 59 | «Depositó» | **Lo registra quien tiene Proveedores**, desde la ficha del proveedor (Felipe 2026-10-13; el módulo es la llave, 40) |
-| 60 | Devolver una dañada al proveedor | **Queda como deuda «por reponer»** con las mismas salidas que un faltante; **la devuelve quien recibe: todos los que tienen el módulo, no solo el líder** (Felipe 2026-10-13) |
+| 60 | Devolver una dañada al proveedor | **Queda como deuda «por reponer»** con las mismas salidas que un faltante; **la devuelve quien recibe: todos los que tienen el módulo, no solo el líder** (Felipe 2026-10-13). El módulo es **Existencias**, solo para lo que **llegó dañado en una recepción** y **el grupo entero** (Felipe 2026-10-15) |
 | 61 | Aviso del IGV | **Aviso en Inicio que no se puede ocultar**, para quien ve la plata de Compras, mientras un proveedor deba prendas de una factura (Felipe 2026-10-13) |
 | 62 | Lista de compras del Taller | **Después**: primero el comprobante y la recepción de la orden de insumos (Felipe 2026-10-13) |
 | 63 | Maquila y flete del Taller | **Siguen como gastos** en Finanzas (los del viaje, en el fondo de la fase 6); la orden de insumos solo lleva insumos (Felipe 2026-10-13) |
@@ -158,9 +158,25 @@ sola al crear la prenda; un costo de 0 pide confirmar; sin cola sin conexión en
 **Fase 5a (2026-10-12, rama `claude/purchase-order-phase5-9b0c82`).** Contrato: `docs/compras/ordenes-de-compra-2026-10/contrato-nos-debe.md`.
 Lo construido (no mueve plata): **la deuda** es el faltante «No vino» de una recepción (14); se ve en la ficha del proveedor («Prendas
 por reponer») y al crear o editar su próxima orden (14); se salda con **la prenda** —en la próxima recepción, «Es la reposición de lo que
-faltó», la más antigua primero, o a mano con «Llegó la reposición» y una nota (24)—, nunca más de lo debido. **Fase 5b, sin construir:**
-«Pasar a saldo a favor» y «Depositó» (24) y devolver una dañada al proveedor (27) mueven plata y tocan la contabilidad (nota de crédito
-tipo 07, IGV de lo que no llegó): esperan a Felipe y al contador; las preguntas están en el contrato.
+faltó», la más antigua primero, o a mano con «Llegó la reposición» y una nota (24)—, nunca más de lo debido.
+
+**Fase 5b (2026-10-15, rama `claude/purchase-order-phase5b-9b0c82`).** Contrato: el mismo, sección «Fase 5b». Lo construido (mueve plata):
+**«Pasar a saldo a favor»** (58) registra al toque un documento interno DI-… por lo que se pagó de lo que no llegó, al costo del papel:
+baja lo que se le debe a ese comprobante y, si ya se pagó, deja el resto a favor; con una factura lleva su IGV, que espera la nota del
+proveedor en la **cuenta puente 4019** («IGV por regularizar», Felipe 2026-10-15) y no baja el crédito fiscal hasta que llega. **«Llegó su
+nota de crédito»** adjunta la nota 07 del proveedor a esos documentos sin mover plata: desde su fecha, Impuestos la cuenta y el Diario saca
+el IGV de la 4019. **«Depositó»** (59), con Proveedores: el documento interno y el reembolso de lo que quedó a favor, en una sola
+operación; el depósito tiene que ser exactamente eso. **El aviso del IGV** (61), en Inicio sin poder ocultarse y en el Observatorio.
+**Devolver al proveedor lo que llegó dañado** (60): desde Dañadas, con Existencias; queda como deuda «por reponer» (causa `devuelta`) con
+las mismas tres salidas, y su documento interno es por devolución, sobre el comprobante donde esas prendas se recibieron. De paso, la
+ficha del proveedor muestra el saldo a favor a quien solo tiene Proveedores (salía S/ 0). Migraciones `20261015145000` (el esquema) y
+`20261015150000` (las funciones); prueba `pnpm pruebas:nos-debe` (41 casos). **En producción desde el 2026-10-15** (allá `20261015233508`
+y `20261015234146`), pegadas en ese orden con el OK de Felipe: las 16 funciones que crean o reescriben tienen la misma huella (md5 de su
+definición) que en el banco donde corrieron las pruebas, y los 22 reemplazos anclados quedaron aplicados.
+
+Por defecto *(provisional, revisar con Felipe y el contador)*: el código y el nombre de la 4019; el monto de la nota del proveedor se
+escribe y tiene que coincidir con los documentos que respalda, y una nota puede respaldar varios documentos internos del mismo
+comprobante; una dañada que llegó de más (fuera de la guía), que devolvió un cliente o que reportó la tienda no se devuelve con deuda.
 
 **Fase 7, parte 1 (2026-10-13, rama `claude/purchase-order-phase7-9b0c82`; construida de noche, provisional).** Contrato:
 `docs/compras/ordenes-de-compra-2026-10/contrato-ordenes-de-insumos.md` (con «Cambios al construir»). Lo construido: **la orden de

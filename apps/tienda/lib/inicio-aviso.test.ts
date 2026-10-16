@@ -59,7 +59,7 @@ describe("lo que está a favor de la persona", () => {
       HOY,
     );
     expect([vale.titulo, vale.texto]).toEqual([valeDeLaCuenta.titulo, valeDeLaCuenta.texto]);
-    expect(vale.titulo).toBe("Tienes un vale de S/ 20");
+    expect(vale.titulo).toBe("Tienes un vale de S/\u00a020");
   });
 
   it("lo que llegó: qué prenda, su color y talla, y dónde hay (la tienda que esperaba o, si le daba igual, todas las que tienen)", () => {
@@ -105,8 +105,8 @@ describe("cuándo sale el aviso", () => {
     expect(a.lineas).toHaveLength(3);
     expect(a.mas).toBe(2);
     expect(a.claves).toHaveLength(5);
-    expect(textoDeMas(2)).toBe("Y llegaron 2 tallas más que esperabas: míralas en Mi cuenta.");
-    expect(textoDeMas(1)).toBe("Y llegó 1 talla más que esperabas: mírala en Mi cuenta.");
+    expect(textoDeMas(2)).toBe("Y llegaron 2 tallas más que esperabas: míralas en Mi perfil.");
+    expect(textoDeMas(1)).toBe("Y llegó 1 talla más que esperabas: mírala en Mi perfil.");
   });
 });
 

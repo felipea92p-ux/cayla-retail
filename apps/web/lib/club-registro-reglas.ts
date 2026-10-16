@@ -262,6 +262,8 @@ export const MENSAJE = {
   menor: "El Club CAYLA es para mayores de 18 años.",
   sinPadron: "No pudimos consultar tu DNI ahora. Inténtalo en unos minutos o acércate a caja.",
   archivado: "Con ese documento no podemos registrarte desde aquí. Acércate a caja y te ayudamos.",
+  // 20261015232000 (Felipe 2026-10-15): con una ficha que ya existía, el cartel no escribe nada; se pide en caja.
+  yaTieneFicha: "Ya tienes una ficha con ese documento. Para unirte al Club o cambiar tus datos, pídelo en caja.",
   datos: "Revisa tus datos: algo no quedó bien escrito.",
   textosCambiaron: "Los textos del Club cambiaron mientras los leías. Léelos otra vez y vuelve a marcar las casillas.",
   noDisponible: "No pudimos completar tu registro ahora. Inténtalo de nuevo en un momento o acércate a caja.",
@@ -446,6 +448,8 @@ export function errorDeLaBase(hint: string | null | undefined): { mensaje: strin
       return { mensaje: MENSAJE.menor, campo: "nacimiento" };
     case "club_documento_archivado":
       return { mensaje: MENSAJE.archivado, campo: "documento" };
+    case "club_ya_tiene_ficha":
+      return { mensaje: MENSAJE.yaTieneFicha, campo: "documento" };
     case "celular_invalido":
       return { mensaje: "Tu celular tiene 9 dígitos y empieza con 9.", campo: "celular" };
     case "club_datos_invalidos":

@@ -3,24 +3,31 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   argumentosDeArreglo,
+  argumentosDeDevolucion,
   argumentosDeReporte,
   camposGuiaArreglo,
+  camposGuiaDevolucion,
   cantidadAjustada,
   desdeInicial,
   interpretarErrorDeDanada,
+  leerDevolvibles,
   leerRespuestaDanada,
   libreEn,
   MAX_TEXTO_DANADA,
   origenDeDanada,
   PARAMETROS_RPC_ARREGLAR,
+  PARAMETROS_RPC_DEVOLVER,
   PARAMETROS_RPC_REPORTAR,
   problemasReporte,
   puedeEnviarReporte,
   quePasaAlArreglar,
+  quePasaAlDevolver,
   quePasaAlReportar,
   recordatorioAlReportar,
   respuestaResuelveLaMarca,
   RPC_ARREGLAR_DANADA,
+  RPC_DANADAS_DEVOLVIBLES,
+  RPC_DEVOLVER_DANADA,
   RPC_REPORTAR_DANADA,
   tallasReportables,
   textoBotonReportar,
@@ -28,6 +35,7 @@ import {
   textoOrigenDanada,
   TEXTO_RED_DANADA,
   tituloExitoArreglo,
+  tituloExitoDevolucion,
   tituloExitoReporte,
   type DesdeDanada,
   type EstadoReporte,
@@ -315,5 +323,62 @@ describe("los textos", () => {
   it("en pantalla se dice «cliente», nunca «clienta» (ADR-0288 act. k)", () => {
     const fuente = readFileSync(join(__dirname, "danadas-reglas.ts"), "utf8").replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\//g, "");
     expect(fuente).not.toMatch(/clienta/i);
+  });
+});
+
+// «Devolver al proveedor» (ADR-0362, fase 5b, actividad 6a): lo que llegó dañado en una recepción vuelve a su proveedor y queda como deuda.
+describe("devolver al proveedor lo que llegó dañado", () => {
+  const MIGRACION_5B = readFileSync(
+    join(__dirname, "..", "..", "..", "supabase", "migrations", "20261015150000_nos_debe_saldo_a_favor.sql"),
+    "utf8",
+  ).replace(/--[^\n]*/g, "");
+
+  it("los nombres, los parámetros y los hints son los de la migración", () => {
+    const m = new RegExp(`create or replace function retail\\.${RPC_DEVOLVER_DANADA}\\(([^)]*)\\)`).exec(MIGRACION_5B);
+    expect(m).not.toBeNull();
+    expect(m![1].split(",").map((p) => p.trim().split(/\s+/)[0])).toEqual([...PARAMETROS_RPC_DEVOLVER]);
+    expect(MIGRACION_5B).toContain(`create or replace function retail.${RPC_DANADAS_DEVOLVIBLES}(p_ubicacion_id uuid)`);
+    for (const hint of ["danada_devolver_sin_modulo", "danada_devolver_ya_resuelta", "danada_devolver_no_es_de_recepcion", "responsable_requerido"]) {
+      expect(MIGRACION_5B, hint).toContain(`'${hint}'`);
+    }
+    // La nota, hasta 200 letras en la base y en la pantalla.
+    expect(MIGRACION_5B).toContain(`char_length(v_nota) > ${MAX_TEXTO_DANADA}`);
+  });
+
+  it("lee a quién vuelve cada una y descarta lo raro", () => {
+    const m = leerDevolvibles([
+      { id: "pd-1", proveedor_id: "prov-1", proveedor: "Textiles Andina", envio: "ENV-000302", arreglo: "Sin arreglo" },
+      { id: "pd-2", proveedor_id: "prov-1" },
+      "basura",
+    ]);
+    expect([...m.keys()]).toEqual(["pd-1"]);
+    expect(m.get("pd-1")).toEqual({ proveedorId: "prov-1", proveedor: "Textiles Andina", envio: "ENV-000302", arreglo: "Sin arreglo" });
+    expect(leerDevolvibles(null).size).toBe(0);
+  });
+
+  it("de dónde llegó: la recepción se reconoce por su motivo y dice el envío, el proveedor y el arreglo", () => {
+    expect(origenDeDanada({ motivoReporte: "Llegó dañada en ENV-000302", cambioId: null })).toBe("recepcion");
+    expect(origenDeDanada({ motivoReporte: "Llegó dañada en la caja", cambioId: null })).toBe("reporte");
+    const dev = { proveedorId: "prov-1", proveedor: "Textiles Andina", envio: "ENV-000302", arreglo: "Sin arreglo" };
+    expect(textoOrigenDanada("recepcion", "Llegó dañada en ENV-000302", dev)).toBe("Llegó dañada en ENV-000302 · Textiles Andina · sin arreglo");
+    // Sin a quién devolverla (llegó de más, fuera de la guía), dice lo que anotó la recepción.
+    expect(textoOrigenDanada("recepcion", "Llegó dañada en ENV-000302")).toBe("Llegó dañada en ENV-000302");
+  });
+
+  it("la guía: la nota es opcional y hasta 200 letras; quién lo hace, obligatorio", () => {
+    expect(sePuedeConfirmar(camposGuiaDevolucion("", true))).toBe(true);
+    expect(camposGuiaDevolucion("", true)[0]).toMatchObject({ id: "devolucion", requerido: false, hecho: false });
+    expect(camposGuiaDevolucion("Tela rota", true)[0]).toMatchObject({ requerido: false, hecho: true });
+    expect(sePuedeConfirmar(camposGuiaDevolucion("x".repeat(MAX_TEXTO_DANADA + 1), true))).toBe(false);
+    expect(sePuedeConfirmar(camposGuiaDevolucion("", false))).toBe(false);
+  });
+
+  it("los argumentos, lo que pasa y el aviso de éxito", () => {
+    const a = argumentosDeDevolucion("pd-1", "  Tela rota  ", "tok");
+    expect(a).toEqual({ p_id: "pd-1", p_nota: "Tela rota", p_token: "tok" });
+    expect(Object.keys(a).sort()).toEqual([...PARAMETROS_RPC_DEVOLVER].sort());
+    expect(quePasaAlDevolver("Textiles Andina")).toContain("queda como deuda de Textiles Andina");
+    expect(tituloExitoDevolucion(1, "Textiles Andina")).toBe("Devuelta a Textiles Andina");
+    expect(tituloExitoDevolucion(3, "Textiles Andina")).toBe("3 prendas devueltas a Textiles Andina");
   });
 });

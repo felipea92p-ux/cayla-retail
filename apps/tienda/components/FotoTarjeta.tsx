@@ -18,6 +18,7 @@ export function FotoTarjeta({
   forma,
   color,
   tamanos = TAMANOS,
+  pronto = false,
 }: {
   foto: string | null;
   segunda: string | null;
@@ -28,6 +29,9 @@ export function FotoTarjeta({
   color: string | null;
   /** El ancho con que se ve (el `sizes` de la imagen). */
   tamanos?: string;
+  /** Se ve sin bajar (la primera fila de una lista, las fotos del héroe): la foto se pide apenas llega la página y no cuando el
+   *  navegador la descubre al dibujar. En el celular era lo último en verse de la primera pantalla (Next lo avisaba en cada lista). */
+  pronto?: boolean;
 }) {
   // Una foto que no carga (borrada, sin red): queda la silueta, nunca una imagen rota.
   const [rota, setRota] = useState(false);
@@ -44,6 +48,8 @@ export function FotoTarjeta({
           fill
           sizes={tamanos}
           unoptimized={!optimizar[0]}
+          loading={pronto ? "eager" : undefined}
+          fetchPriority={pronto ? "high" : undefined}
           className={`f1${segunda ? " con-f2" : ""}`}
           onError={() => setRota(true)}
         />
