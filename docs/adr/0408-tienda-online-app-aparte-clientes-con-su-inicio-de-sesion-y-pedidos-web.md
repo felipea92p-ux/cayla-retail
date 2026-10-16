@@ -376,3 +376,17 @@ vez, con un brief común de estilo y reglas. Lo estructural:
   petición ni en cada precarga; lo que muestra datos de una cuenta sigue con `getUser()`. Estimación: 500–1.500 clientes navegando con
   cuenta a la vez (el límite es la base Micro, 60 conexiones, compartida con las cajas y Dynamic); sin cuenta, sin límite práctico.
   Felipe aprobó una prueba de carga en producción de noche, con las tiendas cerradas, después de publicar.
+
+## Actualización 2026-10-16 (i): una sola forma de registrarse, y el Club empieza con la cuenta
+
+Felipe (2026-10-16): «lo ideal sería que todos se registren en el sistema y toda creación para acceder a la página sea a través del mismo,
+así tenga ficha»; «todo aquel que no tenga registrada su contraseña aún no es parte del club». Quien compró en caja o se unió en el cartel
+antes de que existiera la página no sabe que tiene una ficha, y la página no tiene por qué decírselo.
+
+- `tienda_registrar_cuenta` ya no exige el correo de la ficha (D7 de ADR-0426, reemplazada; 20261016154000): una ficha sin cuenta se une
+  por el mismo registro y entra al Club al crear la cuenta.
+- «Crear cuenta» ya no dice «Ya eras del Club CAYLA…» al escribir el DNI (`consultarDocumento` deja de leer `del_club`), ni «Todo listo»
+  encima de un error. Al terminar, «¡Listo! Ya eras del Club CAYLA: tu código y tus beneficios ya están en tu cuenta» solo para quien ya
+  era miembro; la ficha de una boleta recibe la bienvenida de una persona nueva (`avisoAlCrear` recibe `era_del_club`). Sin la palabra
+  «ficha». «Ya hay una cuenta con este DNI» suma qué hacer si no la creó la persona («Restablecer acceso» en tienda).
+- El cartel del Club lleva a tienda.cayla.pe (ADR-0288, «Actualización 2026-10-16 (p)»).

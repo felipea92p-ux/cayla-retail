@@ -21,7 +21,7 @@
       "CampoTexto «Nueva subcategoría»",
       "CampoTexto «Prefijo»",
       "Boton «{responsable.motivo ?? undefined}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}» #2",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}» #3",
@@ -29,10 +29,10 @@
       "Link «categorias.vista-productos»",
       "button «{h.prefijo ?? \"—\"}» #2",
       "Link «{temporada.nombre ? \"Cambiarla\" : \"Elegirla\"}»",
-      "BotonEditar «)»"
+      "BotonEditar «→onEditar»"
     ],
     "components/ConfirmarConResponsable.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{control}»",
       "Boton «Cancelar»",
       "Boton «{control?.motivo ?? undefined}»"
     ],

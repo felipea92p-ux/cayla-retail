@@ -5,18 +5,18 @@
   "total": 14,
   "controles": {
     "app/(app)/compras/ordenes/envio/[id]/page.tsx": [
-      "Volver «; const subtitulo = \"Lo que sale de la orden hacia una sed»",
+      "Volver «/compras/ordenes»",
       "BotonEnlace «Ver las órdenes de compra»",
       "BotonEnlace «Ver la orden»"
     ],
     "components/ordenes-compra/EnviarOrdenASede.tsx": [
-      "Volver «(sin nombre)»",
+      "Volver «/compras/ordenes»",
       "CampoSelect «A qué sede va»",
       "CampoTexto «Número de guía»",
       "CampoTexto «Nota»",
       "Boton «Todo lo que queda»",
       "Boton «Dejar todas en 0»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "BotonEnlace «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",

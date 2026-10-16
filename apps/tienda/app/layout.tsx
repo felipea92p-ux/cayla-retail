@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { EB_Garamond, DM_Sans } from "next/font/google";
 import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
+import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
 import "./globals.css";
 // Las páginas de la cuenta (crear, entrar, recuperar, «Mi cuenta», privacidad y términos) y el aviso «Listo: …», que también
 // sale en la portada al salir de la cuenta.
@@ -10,6 +11,8 @@ import "./estilos/cuenta.css";
 // «Ropa», con las fotos de las prendas). Salen en el Inicio, el catálogo, la ficha, «Mi cuenta» y las páginas de ayuda.
 import "./estilos/catalogo.css";
 import "./estilos/cabecera.css";
+// Instalar CAYLA en el celular (ADR-0431): la hoja, la guía, la franja, la tarjeta tras separar y la fila de «Mi perfil».
+import "./estilos/instalar.css";
 
 // Las mismas dos letras del ERP y de la marca: EB Garamond para títulos, DM Sans para el texto.
 const serif = EB_Garamond({ subsets: ["latin"], variable: "--font-eb-garamond", display: "swap" });
@@ -18,6 +21,9 @@ const sans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: 
 export const metadata: Metadata = {
   title: "CAYLA · Tienda online",
   description: "Separa tus prendas de CAYLA y recógelas en tu tienda.",
+  // Instalada en el iPhone (ADR-0431): abre en pantalla completa, con su nombre y su ícono. El manifiesto (`app/manifest.ts`) es el de Android.
+  appleWebApp: { capable: true, title: "CAYLA", statusBarStyle: "default" },
+  icons: { apple: "/cayla-apple-180.png" },
 };
 
 // El color de la barra del navegador en el celular: el crema del tema claro y el fondo del oscuro (los de globals.css).
@@ -32,7 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="es" className={`${serif.variable} ${sans.variable}`}>
       <body>
-        {children}
+        <ProveedorInstalar>{children}</ProveedorInstalar>
         {/* Lee la dirección en el navegador: en una página guardada en caché (la portada) va dentro de su Suspense. */}
         <Suspense fallback={null}>
           <AvisoDeLaUrl />

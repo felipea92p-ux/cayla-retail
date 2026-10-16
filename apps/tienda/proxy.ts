@@ -48,6 +48,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Todo menos lo que arma Next y los archivos estáticos (el colibrí, los íconos).
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico|txt|xml)$).*)"],
+  // Todo menos lo que arma Next y los archivos estáticos (el colibrí, los íconos, el manifiesto y el service worker de «instalar CAYLA»: el
+  // navegador los pide sin cookies y no debe toparse con ninguna redirección).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico|txt|xml|js|webmanifest)$).*)"],
 };

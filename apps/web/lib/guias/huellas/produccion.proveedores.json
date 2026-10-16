@@ -21,14 +21,14 @@
       "CampoTexto «Celular Yape / Plin»",
       "button «{ETIQUETA_BILLETERA[b]}»",
       "CampoTexto «Titular de la cuenta»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «{responsable.motivo ?? undefined}» #2"
     ],
     "components/ProveedoresProduccionPanel.tsx": [
       "Boton «prod-proveedores.nueva-tarifa»",
       "Boton «prod-proveedores.nuevo»",
-      "Pestanas «(sin nombre)»",
+      "Pestanas «→(c) => setVista(c as VistaProveedores)»",
       "Boton «Agregar el primero»",
       "button «{r.etiqueta}»",
       "Casilla «Ver archivados»",
@@ -48,7 +48,7 @@
       "CampoTexto «{guia.etiqueta(\"minimo\", \"Mínimo de prendas\")}»",
       "CampoTexto «{guia.etiqueta(\"fijo\", \"Fijo por orden\")}»",
       "CampoTexto «Nota»",
-      "ComboResponsable «avisoSalida.pedir»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ]

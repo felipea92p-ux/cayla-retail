@@ -23,7 +23,7 @@
       "button «{NOMBRE_METODO[m]}»",
       "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
       "CampoTexto «Qué pasó»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],

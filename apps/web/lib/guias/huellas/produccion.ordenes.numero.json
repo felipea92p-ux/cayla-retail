@@ -5,7 +5,7 @@
   "total": 94,
   "controles": {
     "app/(app)/produccion/ordenes/[numero]/page.tsx": [
-      "Volver «; if (!puedeVerProduccion(persona)) return»",
+      "Volver «/produccion/ordenes»",
       "BotonVer «Ver las órdenes»"
     ],
     "components/AvisoCostoAtipico.tsx": [
@@ -18,13 +18,13 @@
     ],
     "components/alta-producto/ElegirColores.tsx": [
       "button «{`Quitar ${c.nombre}»",
-      "ComboBuscable «setCarta((v) => !v)»",
+      "ComboBuscable «(sin nombre)»",
       "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
       "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
       "button «{c.nombre}»"
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
-      "ComboResponsable «);»",
+      "ComboResponsable «{control}»",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/MatrizCantidades.tsx": [
@@ -37,7 +37,7 @@
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
       "CampoTexto «Nombre del color»",
-      "Desplegable «setCodigoEscrito(normaliz»",
+      "Desplegable «{familia}»",
       "CampoTexto «Código»",
       "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
@@ -55,14 +55,14 @@
     "components/orden-pagina/AnotarAvanceModal.tsx": [
       "CampoTexto «{`${t.nombre}»",
       "CampoTexto «Nota»",
-      "ComboResponsable «avisoSalida.pedirAccion(onCl»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? problemasDeTela[0] ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/AnotarSalidaModal.tsx": [
       "CampoTexto «N.º de guía»",
       "CampoTexto «Nota»",
-      "ComboResponsable «avisoSalida.pedirAccion(onCl»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
@@ -71,29 +71,29 @@
       "CampoTexto «Qué pasó con lo que no volvió bueno»",
       "CampoTexto «N.º de guía»",
       "CampoTexto «Nota»",
-      "ComboResponsable «avisoSalida.pedirAccion(onCl»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/AnularLaOrdenModal.tsx": [
       "CampoTexto «Por qué la anulas»",
-      "ComboResponsable «Volver»",
+      "ComboResponsable «{responsable}»",
       "Boton «Volver»",
       "Boton «{afuera ? textoPrendasAfuera(afuera) : (responsable.motivo ?? undefined)}»"
     ],
     "components/orden-pagina/AnularSalidaOVueltaModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"motivo\", \"Por qué la anulas\")}»",
-      "ComboResponsable «avisoSalida.pedirAccion(onCl»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/CambiarQuienModal.tsx": [
-      "ComboResponsable «avisoSalida.pedir»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
     "components/orden-pagina/DeshacerAvanceModal.tsx": [
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -103,7 +103,7 @@
     ],
     "components/orden-pagina/PasarAlStockModal.tsx": [
       "Boton «Anotarla ahora»",
-      "ComboResponsable «{!atipico && <PieGuia guia={guia}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],
@@ -111,7 +111,7 @@
       "button «{abierto ? \"Ocultar\" : \"¿Por qué?\"}»"
     ],
     "components/orden-pagina/RevertirLaOrdenModal.tsx": [
-      "ComboResponsable «Volver»",
+      "ComboResponsable «{responsable}»",
       "Boton «Volver»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -130,7 +130,7 @@
       "CampoSelect «Qué tela o avío»",
       "CampoTexto «{guia.etiqueta(\"cantidad\", devuelve ? `Cuántos ${unidad}»",
       "CampoTexto «Nota»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],

@@ -41,7 +41,6 @@ import { codigoDelCorreoActual, codigoParaProbar, type CodigoDelCorreo } from "@
 import { hrefConVolver, PARAMETRO_VOLVER, rutaParaVolver } from "@/lib/entrada";
 import { avanceDelRegistro, buzonDelCorreo, nombreParaLaTarjeta } from "@/lib/panel-entrada";
 import { Icono } from "../Icono";
-import { Isotipo } from "../Isotipo";
 import { CajaClave } from "./CajaClave";
 import { Campo, Resultado } from "./CampoGuiado";
 import { useNombreEnLaTarjeta } from "./EntradaViva";
@@ -125,16 +124,15 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
   const consultaDocumento: ConsultaDocumento =
     documentoRevisado.valor === claveDocumento ? documentoRevisado.estado : completo ? { estado: "buscando" } : { estado: "sin_revisar" };
 
-  // El documento, apenas está completo: ¿ya tiene cuenta?, ¿era del club? y, con DNI, su nombre del padrón. Con carné o pasaporte
-  // se espera un poco más (no tienen largo fijo: 6 caracteres pueden ser el comienzo de 9).
+  // El documento, apenas está completo: ¿ya tiene cuenta? y, con DNI, su nombre del padrón. Si ya tenía una ficha en la tienda no se
+  // dice: todos se registran igual (Felipe 2026-10-16). Con carné o pasaporte se espera un poco más (no tienen largo fijo: 6
+  // caracteres pueden ser el comienzo de 9).
   useEffect(() => {
     if (!completo || documentoRevisado.valor === claveDocumento) return;
     const [tipo, numero, clave] = [r.documentoTipo, r.documento, claveDocumento];
     let vigente = true;
     const reloj = setTimeout(async () => {
-      const estado = await consultarDocumento(tipo, numero).catch(
-        (): ConsultaDocumento => ({ estado: "sin_nombre", motivo: "sin_padron", delClub: false }),
-      );
+      const estado = await consultarDocumento(tipo, numero).catch((): ConsultaDocumento => ({ estado: "sin_nombre", motivo: "sin_padron" }));
       if (vigente) setDocumentoRevisado({ valor: clave, estado });
     }, tipo === "dni" ? ESPERA_DNI_MS : ESPERA_CORREO_MS);
     return () => {
@@ -276,11 +274,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
       // El padrón ya no dio el nombre al crear: el DNI lo dice, con «Volver a intentar» (el nombre no se escribe a mano).
       setDocumentoRevisado({
         valor: claveDocumento,
-        estado: {
-          estado: "sin_nombre",
-          motivo: e.mensaje === MENSAJES.dniNoEncontrado ? "no_encontrado" : "sin_padron",
-          delClub: delClub,
-        },
+        estado: { estado: "sin_nombre", motivo: e.mensaje === MENSAJES.dniNoEncontrado ? "no_encontrado" : "sin_padron" },
       });
     else if (e.campo === "nombres" || e.campo === "apellidos" || e.campo === "documento") setErrorGeneral(e.mensaje);
     else if (e.campo === "avisos") {
@@ -320,9 +314,6 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
     destino.focus({ preventScroll: true });
   }
 
-  const delClub =
-    (consultaDocumento.estado === "encontrado" || consultaDocumento.estado === "sin_nombre" || consultaDocumento.estado === "libre") &&
-    consultaDocumento.delClub;
   const enlacesDeCuenta = (
     <span className="w-res-acc">
       <Link className="w-enlace" href={hrefConVolver("/entrar", volver)}>
@@ -552,12 +543,6 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
           ) : (
             <p className="w-ayuda">{esDni ? MENSAJES.dniAyuda : MENSAJES.documentoAyuda}</p>
           )}
-          {delClub && (
-            <span className="w-club">
-              <Isotipo />
-              {MENSAJES.dniDelClub}
-            </span>
-          )}
         </Resultado>
       </Campo>
 
@@ -748,7 +733,8 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
               ))}
               {resumenFaltan.mas > 0 && <> y{"\u00a0"}{resumenFaltan.mas}{"\u00a0"}más</>}
             </>
-          ) : (
+          ) : errorGeneral ? null : (
+            // Con un error encima, «Todo listo» se contradice (Felipe lo vio el 2026-10-16): queda solo el error, que dice qué hacer.
             <>
               Todo listo. Tu cuenta se crea con <b className="w-correo">{correo}</b>
             </>

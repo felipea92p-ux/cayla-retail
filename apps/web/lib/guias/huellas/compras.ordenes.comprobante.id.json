@@ -5,7 +5,7 @@
   "total": 37,
   "controles": {
     "app/(app)/compras/ordenes/comprobante/[id]/page.tsx": [
-      "Volver «; const subtitulo = \"El papel que te dio el proveedor por»",
+      "Volver «/compras/ordenes»",
       "BotonEnlace «Ver las órdenes de compra»",
       "BotonEnlace «Ver la orden»",
       "BotonEnlace «Editar la orden»"
@@ -26,7 +26,7 @@
       "CampoSelect «{etiqueta}»"
     ],
     "components/ordenes-compra/RegistrarComprobanteOrden.tsx": [
-      "Volver «(sin nombre)»",
+      "Volver «/compras/ordenes»",
       "SegmentoDeslizante «Tipo de papel»",
       "CampoSelect «Tipo de papel»",
       "CampoTexto «Serie»",
@@ -39,13 +39,13 @@
       "Boton «comprobante.fuera»",
       "CampoTexto «Total que dice el papel, en soles»",
       "CampoTexto «Nota»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Recargar»",
       "BotonEnlace «Cancelar»",
       "Boton «{guia.frase ?? undefined}»",
       "button «{`Quitar el renglón ${numero}»",
-      "ComboBuscable «onCambio(»",
-      "ComboBuscable «onCambio(» #2",
+      "ComboBuscable «{l.categoriaId}»",
+      "ComboBuscable «{l.marcaId}»",
       "CampoTexto «{`Descripción del renglón ${numero}»",
       "CampoTexto «{`Cantidad del renglón ${numero}»",
       "CampoTexto «{`Costo por unidad del renglón ${numero}»",

@@ -40,6 +40,10 @@ export const PRUEBAS = [
   // en una vuelta, no uno por uno.
   "caja:verificar",
 
+  // Tener sesión no es ser del equipo: una cuenta de Dynamic que no trabaja en retail no lee el catálogo, las sedes ni
+  // los proveedores, ni da de alta vocabulario; el líder, una colaboradora y una terminal siguen igual. ROLLBACK.
+  "pruebas:sesion-no-es-equipo",
+
   // Meta del día y fondo de caja unidos a las campañas (ADR-0195 F1): si dos campañas se cruzan gana la mayor, la
   // meta del mes es la suma de los días, solo el líder guarda y el cierre anota el fondo que regía. ROLLBACK.
   "pruebas:configuracion-caja",
@@ -108,6 +112,18 @@ export const PRUEBAS = [
   // miran lo anterior, el Flujo deja de listar esa planilla y la PROYECCIÓN de caja la sigue contando; las reglas de
   // guardar_inicio_finanzas (día 1, no futuro, sin meses cerrados, permiso) y pegar la migración dos veces. ROLLBACK.
   "pruebas:finanzas-arranque",
+
+  // Costo estimado de la venta sin prenda (ADR-0417, dec. 1): nace con el promedio de su categoría, se rellena lo existente,
+  // al regularizar manda el real, el diario lo asienta solo, fn_costo_estimado_resumen cuenta lo estimado; permisos; pegar dos veces. ROLLBACK.
+  "pruebas:costo-estimado-venta-sin-prenda",
+
+  // El medidor de confianza de Finanzas (ADR-0417): los siete hechos salen y cada uno se mueve con su dato; por sede; permisos;
+  // pegar dos veces. ROLLBACK.
+  "pruebas:finanzas-confianza",
+
+  // Pago de la planilla y pago a SUNAT (ADR-0417, situaciones 15 y 16): salen de un banco, el Diario baja la 41 y la 4011,
+  // candados (destino, caja fuerte, comisión, sin ser líder), anular, pegar dos veces. ROLLBACK.
+  "pruebas:pago-planilla-y-sunat",
 
   "pruebas:registrar-cambio",
 

@@ -635,7 +635,7 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
       }`}
     >
       {esActivo && <span aria-hidden className="absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo" />}
-      <Icono d={IC[h.icono]} className={`h-[18px] w-[18px] shrink-0 transition-colors ${esActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"}`} />
+      <Icono d={IC[h.icono]} className={`h-5 w-5 shrink-0 transition-colors ${esActivo ? "text-tinta" : "text-tinta/60 group-hover:text-rojo"}`} />
       <span className="flex-1">{h.etiqueta}</span>
       <Insignia n={h.contador ?? 0} etiqueta="por atender" />
     </Link>
@@ -1032,7 +1032,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
             aria-controls="lateral"
             className="-ml-1.5 grid h-10 w-10 place-items-center rounded-lg text-tinta transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
           >
-            <Icono d={IC.menu} className="h-[22px] w-[22px]" />
+            <Icono d={IC.menu} className="h-5 w-5" />
           </button>
           {/* Plegar/expandir el lateral. Solo escritorio: en celular el lateral es un cajón (botón de arriba). */}
           <button
@@ -1097,7 +1097,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWeb
                 aria-label="Buscar"
                 className="grid h-9 w-9 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
               >
-                <Icono d={IC.buscar} className="h-[18px] w-[18px]" />
+                <Icono d={IC.buscar} className="h-4 w-4" />
               </Link>
             )}
           </div>

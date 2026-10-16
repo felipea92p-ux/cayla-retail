@@ -3,7 +3,6 @@ import {
   ajustarNumeroAlTipo,
   documentoLegible,
   documentoParaComprobante,
-  esTipoDocumentoClienta,
   largoMaximoDocumento,
   normalizarNumeroDocumento,
   problemaDocumento,
@@ -61,8 +60,6 @@ describe("documento de la clienta (ADR-0288 D-2): las mismas reglas que la base"
     expect(tipoDocumentoDe("carne_extranjeria")).toBe("carne_extranjeria");
     expect(tipoDocumentoDe("ruc")).toBe("dni");
     expect(tipoDocumentoDe(null)).toBe("dni");
-    expect(esTipoDocumentoClienta("pasaporte")).toBe(true);
-    expect(esTipoDocumentoClienta("ruc")).toBe(false);
   });
 
   it("en pantalla, el número a medias y con su tipo", () => {
@@ -104,5 +101,9 @@ describe("contactoVisible (Felipe 2026-10-13: el DNI y el celular a medias para 
   it("un celular con +51 o con espacios se enmascara igual; un número que no es celular no deja ver nada", () => {
     expect(contactoVisible({ ...ana, telefonoWhatsapp: "+51 987 654 321" }, false).celular).toBe("9•• ••• 321");
     expect(contactoVisible({ ...ana, telefonoWhatsapp: "412 3456" }, false).celular).toBe("•••");
+  });
+  it("un fijo con la clave de su ciudad no se muestra como «9•• ••• 456»: no es celular", () => {
+    expect(contactoVisible({ ...ana, telefonoWhatsapp: "044 123456" }, false).celular).toBe("•••");
+    expect(contactoVisible({ ...ana, telefonoWhatsapp: "044 123456" }, true).celular).toBe("044 123456");
   });
 });

@@ -6,7 +6,7 @@
   "controles": {
     "components/ConsultaDocumento.tsx": [
       "CampoTexto «{contador ? ( <> {}»",
-      "BotonBuscar «) : ( campoNumero )»",
+      "BotonBuscar «→buscar»",
       "CampoTexto «{etiqueta.nombre}»"
     ],
     "components/ProveedorModal.tsx": [

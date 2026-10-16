@@ -5,8 +5,8 @@
   "total": 123,
   "controles": {
     "app/(app)/productos/nuevo/page.tsx": [
-      "Volver «:»",
-      "Volver «(sin nombre)»",
+      "Volver «{RUTA_ORDENES}»",
+      "Volver «/productos»",
       "BotonEnlace «Ir a Categorías»"
     ],
     "components/ColaOfflineAviso.tsx": [
@@ -15,7 +15,7 @@
       "button «Descartar»"
     ],
     "components/NuevoProductoForm.tsx": [
-      "Volver «); const cierre = n»",
+      "Volver «→() => irAPaso((n - 1) as NumeroPaso)»",
       "button «Seguir →»",
       "button «{responsable.motivo ?? undefined}»",
       "CampoTexto «Nombre»",
@@ -59,7 +59,7 @@
     ],
     "components/alta-producto/ElegirColores.tsx": [
       "button «{`Quitar ${c.nombre}»",
-      "ComboBuscable «setCarta((v) => !v)»",
+      "ComboBuscable «(sin nombre)»",
       "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
       "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
       "button «{c.nombre}»"
@@ -73,9 +73,9 @@
     ],
     "components/alta-producto/ElegirMarcaProveedor.tsx": [
       "button «Quitar»",
-      "ComboBuscable «Proveedor»",
+      "ComboBuscable «buscar-marca»",
       "button «Quitar» #2",
-      "ComboBuscable «(sin nombre)»",
+      "ComboBuscable «buscar-proveedor»",
       "button «+ Registrar una marca o un proveedor nuevo»"
     ],
     "components/alta-producto/ElegirMuestra.tsx": [
@@ -98,7 +98,7 @@
     ],
     "components/alta-producto/FotosAlta.tsx": [
       "button «{etiqueta}»",
-      "input «input.current?.click()»",
+      "input «(sin nombre)»",
       "button «{etiqueta}» #2"
     ],
     "components/alta-producto/GrillaMuestras.tsx": [
@@ -110,7 +110,7 @@
       "button «{vista.pie.boton}»"
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
-      "ComboResponsable «);»",
+      "ComboResponsable «{control}»",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/MatrizCantidades.tsx": [
@@ -130,19 +130,19 @@
     ],
     "components/alta-producto/NuevaMarcaForm.tsx": [
       "button «Cambiar»",
-      "ComboBuscable «)»",
+      "ComboBuscable «nm-marca»",
       "button «+ Proveedor nuevo»",
       "button «Cambiar» #2",
       "CampoTexto «Razón social»",
       "CampoTexto «11 dígitos»",
       "button «Mejor elijo uno que ya existe»",
-      "ComboBuscable «)» #2",
+      "ComboBuscable «nm-prov»",
       "button «Cancelar»",
       "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
       "CampoTexto «Nombre del color»",
-      "Desplegable «setCodigoEscrito(normaliz»",
+      "Desplegable «{familia}»",
       "CampoTexto «Código»",
       "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",

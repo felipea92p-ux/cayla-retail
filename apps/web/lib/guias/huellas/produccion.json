@@ -10,7 +10,7 @@
     "components/ResumenProduccionPanel.tsx": [
       "BotonEnlace «Ver órdenes»",
       "BotonEnlace «+ Nueva orden»",
-      "Pestanas «0 ? \"ambar\" : \"verde\"»",
+      "Pestanas «(sin nombre)»",
       "Link «{d.accion.texto}»",
       "Link «{o.cantidad}»",
       "Link «Cárgalas en Insumos»",

@@ -39,19 +39,21 @@ export const consultarCorreoEnBase = (correo: string, ipHash: string): Promise<R
     "sin_respuesta",
   );
 
-export type RespuestaDocumento =
-  | { estado: "libre"; delClub: boolean }
-  | { estado: "repetido" | "archivada" | "limite" | "invalido" | "sin_respuesta" };
+export type RespuestaDocumento = { estado: "libre" | "repetido" | "archivada" | "limite" | "invalido" | "sin_respuesta" };
 
-/** ¿Este documento (DNI, carné o pasaporte, 20261015161000) ya tiene cuenta, o es de una ficha archivada? Cuenta un intento de consulta. */
+/**
+ * ¿Este documento (DNI, carné o pasaporte, 20261015161000) ya tiene cuenta, o es de una ficha archivada? Cuenta un intento de
+ * consulta. Lo que la base dice de más (`del_club`) no se lee: todos se registran igual (Felipe 2026-10-16).
+ */
 export const consultarDocumentoEnBase = (tipo: TipoDocumentoClienta, numero: string, ipHash: string, documentoHash: string): Promise<RespuestaDocumento> =>
   leerConRespaldo<RespuestaDocumento>(
     "tienda_consultar_documento_fallo",
     async (db) => {
       const [fila] = await db`select retail.tienda_consultar_documento(${numero}::text, ${ipHash}::text, ${documentoHash}::text, ${tipo}::text) as r`;
       const estado = ESTADO(fila?.r);
-      if (estado === "libre") return { estado, delClub: (fila?.r as { del_club?: unknown }).del_club === true };
-      return estado === "repetido" || estado === "archivada" || estado === "limite" || estado === "invalido" ? { estado } : { estado: "sin_respuesta" };
+      return estado === "libre" || estado === "repetido" || estado === "archivada" || estado === "limite" || estado === "invalido"
+        ? { estado }
+        : { estado: "sin_respuesta" };
     },
     { estado: "sin_respuesta" },
   );

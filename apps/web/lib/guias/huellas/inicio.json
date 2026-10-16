@@ -8,12 +8,12 @@
       "Link «inicio.vender»",
       "Link «inicio.fijo»",
       "Link «{a.titulo}»",
-      "input «Ver»",
+      "input «(sin nombre)»",
       "Link «{a.etiqueta}»"
     ],
     "components/fondos/FotoDelGasto.tsx": [
       "button «{abriendo ? \"Abriendo…\" : \"Ver foto\"}»",
-      "input «);»"
+      "input «(sin nombre)»"
     ],
     "components/fondos/RendirFondo.tsx": [
       "button «Volver a intentar»",
@@ -61,7 +61,7 @@
       "Link «{a.titulo}»"
     ],
     "components/inicio-almacen/VerMas.tsx": [
-      "BotonVerMas «);»"
+      "BotonVerMas «{`Ver ${cantidad}»"
     ],
     "components/inicio/AjustarInicio.tsx": [
       "button «→() => setAbierto(true)»",

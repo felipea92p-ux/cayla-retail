@@ -5,7 +5,7 @@
   "total": 36,
   "controles": {
     "app/(app)/inventario/bajar/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «/inventario»"
     ],
     "components/BajarAlPisoForm.tsx": [
       "button «Buscar por nombre»",
@@ -30,13 +30,13 @@
       "input «{`Cantidad de ${nombre}»",
       "button «{`Una más de ${nombre}»",
       "button «Quitar»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «→confirmar»"
     ],
     "components/BajarEnManoModal.tsx": [
       "CampoTexto «{guia.etiqueta(\"nota\", \"¿De dónde salió? (opcional)\")}»",
       "button «{texto}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],

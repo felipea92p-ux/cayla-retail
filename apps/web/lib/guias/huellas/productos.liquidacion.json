@@ -18,7 +18,7 @@
       "CampoSelect «Categoría»",
       "CampoTexto «Para reconocerla»",
       "CampoMonto «Precio»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -32,11 +32,11 @@
     ],
     "components/liquidacion/PiezaLiquidacionModal.tsx": [
       "CampoMonto «Precio nuevo»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «Cambiar precio»",
       "CampoTexto «Motivo»",
-      "ComboResponsable «(sin nombre)» #2",
+      "ComboResponsable «{responsable}» #2",
       "Boton «Cancelar» #2",
       "Boton «Retirar»",
       "Boton «Retirar» #2",

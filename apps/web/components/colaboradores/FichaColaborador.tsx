@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Chip } from "@/components/ui/Chip";
 import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowLeftRight, KeyRound, MapPin, PauseCircle, PlayCircle } from "lucide-react";
 import type { Ubicacion } from "@/lib/ubicaciones";
@@ -207,13 +208,13 @@ export function FichaColaborador({
                                 {(d.suma.length > 0 || d.quita.length > 0) && (
                                   <span className="mt-1 flex flex-wrap gap-1">
                                     {d.suma.slice(0, 3).map((m) => (
-                                      <span key={m} className="rounded-full bg-verde/15 px-2 py-px text-[11.5px] font-semibold text-verde-profundo">+ {nombreModulo(m)}</span>
+                                      <Chip key={m} tono="verde" versalitas={false}>+ {nombreModulo(m)}</Chip>
                                     ))}
-                                    {d.suma.length > 3 && <span className="rounded-full bg-verde/15 px-2 py-px text-[11.5px] font-semibold text-verde-profundo">+{d.suma.length - 3}</span>}
+                                    {d.suma.length > 3 && <Chip tono="verde" versalitas={false}>+{d.suma.length - 3}</Chip>}
                                     {d.quita.slice(0, 3).map((m) => (
-                                      <span key={m} className="rounded-full bg-rojo/10 px-2 py-px text-[11.5px] font-semibold text-rojo-profundo line-through">{nombreModulo(m)}</span>
+                                      <Chip key={m} tono="rojo" versalitas={false} className="line-through">{nombreModulo(m)}</Chip>
                                     ))}
-                                    {d.quita.length > 3 && <span className="rounded-full bg-rojo/10 px-2 py-px text-[11.5px] font-semibold text-rojo-profundo">−{d.quita.length - 3}</span>}
+                                    {d.quita.length > 3 && <Chip tono="rojo" versalitas={false}>−{d.quita.length - 3}</Chip>}
                                   </span>
                                 )}
                               </button>
