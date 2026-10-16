@@ -203,7 +203,7 @@ export const PANTALLAS: Record<string, PantallaGuia> = {
   "/sin-acceso": { estado: "no-aplica", motivo: "Solo muestra un mensaje y un enlace: no hay campos ni pasos." },
   // ---- tienda-web ----
   // ADR-0430 (2026-10-16): lo de la tienda online se juntó aquí; antes vivía en Clientas, Productos, Vender y una pestaña de Configuración.
-  "/tienda-web": { estado: "no-aplica", motivo: "Solo redirige: la puerta del grupo «Tienda web» (ADR-0430) manda a la primera de sus pantallas que la cuenta ve; no hay campos ni pasos." },
+  "/tienda-web": { estado: "no-aplica", motivo: "El Resumen de Tienda web (ADR-0430) solo mira: la ventana de la vitrina, las tiendas, lo que pide acción y el camino de los pedidos, cada cosa con un enlace a su pantalla. No hay campos ni pasos; sin su módulo, redirige." },
   // Era la pestaña «Tienda web» de Configuración (ADR-0408 act. 6). Cada casilla de cada tienda se guarda al salir de ella; la guía
   // enciende lo que le falta a una tienda para mostrarse en la web (la misma regla que la base: `faltaParaMostrar`).
   "/tienda-web/ajustes": { estado: "aplicada", evidencia: ["components/ConfiguracionTiendaWeb.tsx"] },

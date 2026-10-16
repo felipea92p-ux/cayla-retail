@@ -354,6 +354,10 @@ export const ARBOL: readonly Nodo[] = [
   {
     id: "tiendaWeb", etiqueta: "Tienda web", estado: "viva", icono: "tiendaWeb", raiz: "/tienda-web", pajaro: "07 Colibrí",
     hijos: [
+      // «¿Qué te pide hoy la tienda web?»: la ventana de la vitrina, cómo está cada tienda, lo que pide acción y el camino de los
+      // pedidos. Su módulo nace solo para el líder (20261016174000) y no trae funciones propias: lee con las de sus hermanas, cada una
+      // con el candado de su módulo. Es la `raiz` del grupo: el riel resuelve primero la ruta exacta y luego el prefijo más largo.
+      { id: "tiendaWeb.resumen", modulo: "tienda_web", etiqueta: "Resumen", estado: "viva", ruta: "/tienda-web", icono: "resumenWeb", pajaro: "07 Colibrí" },
       // Lo que los clientes separan en la tienda online para ESTA tienda (ADR-0408, actividad 8). El único con insignia del grupo.
       { id: "tiendaWeb.pedidos", modulo: "pedidos_web", etiqueta: "Pedidos", estado: "viva", ruta: "/tienda-web/pedidos", icono: "pedidosWeb", contador: "pedidosWebPorConfirmar", pajaro: "07 Colibrí" },
       // Qué modelos se ven en la web, sus looks y quién espera una talla (ADR-0408, actividades 3, 11 y 12). El dato es del Loro.

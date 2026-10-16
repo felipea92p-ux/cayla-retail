@@ -117,6 +117,7 @@ import {
   GUIA_PEDIDOS_WEB,
   GUIA_RECOMENDACIONES,
   GUIA_TIENDA_WEB_AJUSTES,
+  GUIA_TIENDA_WEB_RESUMEN,
   GUIA_VITRINA,
   GUIA_VITRINA_ESPERAN,
   GUIA_VITRINA_LOOKS,
@@ -229,6 +230,7 @@ export const GUIAS: readonly Guia[] = [
   GUIA_GLOBAL,
   GUIA_RENDIMIENTO,
   // Tienda web (ADR-0430).
+  GUIA_TIENDA_WEB_RESUMEN,
   GUIA_PEDIDOS_WEB,
   GUIA_VITRINA,
   GUIA_VITRINA_ESPERAN,
@@ -376,7 +378,7 @@ export const PANTALLAS: Record<string, PantallaConGuia> = {
   // ---- sin-acceso ----
   "/sin-acceso": { estado: "no-aplica", motivo: "Un mensaje de una línea («no tienes acceso a esta pantalla»): no hay nada que enseñar." },
   // ---- tienda-web ---- (ADR-0430: antes en Clientas, Productos, Vender y una pestaña de Configuración)
-  "/tienda-web": { estado: "no-aplica", motivo: "Solo redirige: la puerta del grupo «Tienda web» (ADR-0430) lleva a la primera de sus pantallas que la cuenta ve. La guía es la de la pantalla a la que llega." },
+  "/tienda-web": { estado: "aplicada", guia: GUIA_TIENDA_WEB_RESUMEN.id },
   "/tienda-web/ajustes": { estado: "aplicada", guia: GUIA_TIENDA_WEB_AJUSTES.id },
   "/tienda-web/pedidos": { estado: "aplicada", guia: GUIA_PEDIDOS_WEB.id },
   "/tienda-web/recomendaciones": { estado: "aplicada", guia: GUIA_RECOMENDACIONES.id },

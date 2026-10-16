@@ -842,6 +842,13 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   entrar a quien ve alguno de sus módulos (`pedidos_web`, `vitrina_web`, `recomendaciones`, `configuracion`) y cada pantalla repite la
   puerta del suyo. Las direcciones de antes (`/vender/pedidos-web`, `/productos/vitrina…`, `/clientas/recomendaciones`,
   `/configuracion?tab=tienda-web`) redirigen en `next.config.ts` con su query. Las pantallas se describen abajo, cada una en su ruta.
+- `/tienda-web` (Tienda web ▸ Resumen, módulo `tienda_web`, ADR-0430; sin él, redirige a la primera pantalla del grupo que se ve) →
+  `page.tsx` lee, en paralelo y SOLO las de los módulos que la cuenta ve, `fn_pedidos_web_tablero` (de la tienda donde está parada),
+  `fn_vitrina_modelos`, `fn_vitrina_looks`, `fn_vitrina_esperan`, `fn_recomendaciones` y `getConfiguracionTiendaWeb` → las cifras de
+  cada pantalla (`cifrasDe` de cada una, `cifrasEsperan`, `cifrasLooks`, `estadoSedeWeb`) → `lib/tienda-web-resumen.ts` (puro: lo que
+  pide acción, de lo urgente a lo que informa; las prendas de la ventana; lo que no se pudo leer) → `components/tienda-web/
+  ResumenTiendaWeb.tsx` (la ventana `MarcoWeb.tsx` con el mosaico, las tiendas, la bandeja y el `Camino.tsx` de los pedidos). Sin
+  funciones propias en la base. Estilos y movimiento: `app/estilos/tienda-web.css` (vigilado por `lib/tienda-web-movimiento.test.ts`).
 - `/tienda-web/vitrina` (Tienda web ▸ Vitrina, módulo `vitrina_web`, ADR-0408 act. 3) → `page.tsx` lee `fn_vitrina_modelos` →
   `VitrinaPantalla.tsx` (cifras, buscador, lista con casilla e interruptor, barra fija de los elegidos) + `VitrinaModeloHoja.tsx`
   (`vitrina_guardar_modelo`: mostrar, Lo nuevo y descripción) + `VitrinaLoteHoja.tsx` (`vitrina_mostrar`: mostrar u ocultar uno o

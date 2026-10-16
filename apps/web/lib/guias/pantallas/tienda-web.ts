@@ -6,6 +6,62 @@
 
 import type { Guia } from "../tipos";
 
+// Tienda web ▸ Resumen (ADR-0430): solo mira. Cada bloque sale si la cuenta ve el módulo de su pantalla, así que todos los pasos son
+// opcionales menos la bandeja. La demo no toca nada: cada cosa de la bandeja lleva a su pantalla, y eso se explica.
+export const GUIA_TIENDA_WEB_RESUMEN: Guia = {
+  id: "tienda-web",
+  ruta: "/tienda-web",
+  titulo: "Resumen",
+  resumen: "Lo que la tienda online te pide hoy, de un vistazo.",
+  pasos: [
+    {
+      id: "bienvenida",
+      ancla: null,
+      titulo: "La tienda web de un vistazo",
+      texto: "Aquí ves lo que la tienda online te pide hoy, sin entrar a cada pantalla: qué ve el cliente, qué espera respuesta y cómo van los pedidos. Solo mira; cada cosa se resuelve en su pantalla.",
+    },
+    {
+      id: "ventana",
+      ancla: "tienda-web.ventana",
+      opcional: true,
+      titulo: "La vitrina, como la ve el cliente",
+      texto: "Las prendas que se ven en la tienda online, con su foto, en la ventana de un navegador. «Abrir la tienda» abre la tienda de verdad en otra pestaña.",
+    },
+    {
+      id: "tiendas",
+      ancla: "tienda-web.tiendas",
+      opcional: true,
+      titulo: "Las tiendas en la web",
+      texto: "En verde, la tienda se ve y el cliente puede recoger ahí lo que separa. En ámbar, está encendida pero le falta un dato y no se ve. «Ajustes» te lleva a completarla.",
+    },
+    {
+      id: "pendientes",
+      ancla: "tienda-web.pendientes",
+      titulo: "Lo que te pide hoy",
+      texto: "De lo urgente a lo que solo informa: pedidos por confirmar, plata por devolver, recomendaciones sin leer, tallas que llegaron. Tocas una y te lleva a la pantalla donde se resuelve.",
+    },
+    {
+      id: "camino",
+      ancla: "tienda-web.camino",
+      opcional: true,
+      titulo: "El camino de los pedidos",
+      texto: "Un pedido web pasa por tres pasos: lo confirmas, el cliente paga y lo recoge. Entre cada paso va su plazo. Toca un paso para ver sus pedidos.",
+    },
+    {
+      id: "nota",
+      ancla: "tienda-web.nota",
+      titulo: "Lo que ves depende de tu rol",
+      texto: "Si una pantalla de Tienda web no te aparece en el menú, aquí tampoco. Los pedidos son los de tu tienda; lo demás es de toda CAYLA.",
+    },
+    {
+      id: "fin",
+      ancla: null,
+      titulo: "¡Listo!",
+      texto: "Ya sabes leer el resumen de la tienda web. Para repasarlo: Mi perfil ▸ Demo ▸ Tienda web ▸ Resumen.",
+    },
+  ],
+};
+
 // Tienda web ▸ Pedidos (ADR-0408, act. 8, 9 y 10). El piloto abre el primer pedido de la lista y, si hay algo para enviar a otra tienda, su
 // hoja; si el pedido ya está confirmado, abre «Registrar un pago», elige Yape y escribe un n.º de ejemplo; y si hay algo pagado, pasa a
 // «Por entregar», abre el primero, escribe un código de ejemplo y abre «Anular el pedido» (lo que pasaría con sus prendas, su plata y su
