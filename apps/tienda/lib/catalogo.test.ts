@@ -234,6 +234,11 @@ describe("la lista: categorías y orden", () => {
     expect(hrefLista({ sede: "trujillo", categoria: null, orden: "destacado", grupo: "arriba" })).toBe("/catalogo?sede=trujillo&grupo=arriba");
     expect(hrefLista({ categoria: "CMS", orden: "destacado", grupo: "arriba" })).toBe("/catalogo?categoria=CMS");
     expect(hrefLista({ categoria: "CMS", orden: "precio-asc" })).toBe("/catalogo?categoria=CMS&orden=precio-asc");
+    // Un menú de la cabecera («Ropa»): toda la ropa junta; se queda al elegir un grupo o una categoría de adentro.
+    expect(hrefLista({ categoria: null, orden: "destacado", menu: "ropa" })).toBe("/catalogo?menu=ropa");
+    expect(hrefLista({ sede: "trujillo", categoria: null, orden: "destacado", menu: "ropa" })).toBe("/catalogo?sede=trujillo&menu=ropa");
+    expect(hrefLista({ categoria: null, orden: "destacado", grupo: "arriba", menu: "ropa" })).toBe("/catalogo?menu=ropa&grupo=arriba");
+    expect(hrefLista({ categoria: "CMS", orden: "precio-asc", menu: "ropa" })).toBe("/catalogo?menu=ropa&categoria=CMS&orden=precio-asc");
     expect(hrefLista({ categoria: "Ropa & más", orden: "destacado" })).toBe("/catalogo?categoria=Ropa+%26+m%C3%A1s");
   });
 
