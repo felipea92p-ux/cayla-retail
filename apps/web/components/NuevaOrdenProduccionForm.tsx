@@ -342,6 +342,7 @@ export function NuevaOrdenProduccionForm({
     [insumos]
   );
   const comprometido = useMemo(() => new Map(Object.entries(opcionesDatos?.comprometido ?? {})), [opcionesDatos]);
+  const enCamino = useMemo(() => new Map(Object.entries(opcionesDatos?.enCamino ?? {})), [opcionesDatos]);
   const costoTelaEstimado = conCostos
     ? telas.reduce((suma, t) => {
         if (!t.insumoId) return suma;
@@ -796,6 +797,7 @@ export function NuevaOrdenProduccionForm({
               tejidoNombre={!esNuevo ? (modeloExistente?.tejidoNombre ?? null) : null}
               colores={coloresDeLaTela}
               comprometido={comprometido}
+              enCamino={enCamino}
               consumoDeclarado={consumoDeclarado}
               conCostos={conCostos}
               costoPorMetro={costoPorMetro}

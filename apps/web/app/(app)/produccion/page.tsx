@@ -79,7 +79,8 @@ export default async function ProduccionPage() {
   const datos = decision.datos;
   // UNA cuenta de lo que piden las órdenes abiertas: la tela que declararon (la misma de «Nueva orden» y de la página de la orden) y, donde no declaran ninguna, el rendimiento medido de su modelo.
   const demandaInsumos = demandaDelTaller(telaDelTaller, ordenesParaDecidir, datos?.rendimientoPorModelo ?? {}, consumoNeto);
-  const pedidosPorInsumo = new Map((telaDelTaller?.telas ?? []).map((t) => [t.insumoId, t.pedidos]));
+  // Lo que viene en camino a cada tela y avío (regla de Felipe, 2026-10-16): lo que FALTA RECIBIR de los pedidos, sin los atrasados, que se cuenta como tela que llega.
+  const enCaminoPorInsumo = new Map((telaDelTaller?.telas ?? []).map((t) => [t.insumoId, { cuenta: t.enCamino, atrasado: t.atrasado, pedidos: t.pedidos }]));
   const filasModelo = datos
     ? filasPorModelo(datos.demanda, modelos.map((m) => ({ productoId: m.productoId, referencia: m.referencia, variantesIds: m.variantes.map((v) => v.varianteId), variantes: m.variantes.map((v) => ({ varianteId: v.varianteId, talla: v.talla, color: v.color, colorHex: v.colorHex })) })), datos.enProduccion)
     : [];
@@ -102,9 +103,9 @@ export default async function ProduccionPage() {
     ]),
   );
 
-  const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo, tallerId: taller.id, pedidos: pedidosPorInsumo });
+  const resumen = resumenDeDecisiones({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo, tallerId: taller.id, enCamino: enCaminoPorInsumo });
   const cifras = cifrasResumen({ hoy, ordenes: ordenesParaDecidir, insumos, capitalInsumos: datosInsumos.capital, comprobantes });
-  const telas = filasDeTela(insumos, demandaInsumos, llegadas, pedidosPorInsumo);
+  const telas = filasDeTela(insumos, demandaInsumos, llegadas, enCaminoPorInsumo);
   const hoyEnElTaller = dondeEstan.lista ? { cifras: cifrasHoyEnElTaller(dondeEstan.lista.filas), dato: datoHoyEnElTaller(dondeEstan.lista.filas) } : null;
 
   return (

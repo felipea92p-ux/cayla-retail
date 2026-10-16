@@ -106,11 +106,16 @@ export type InsumoPagina = {
   saldo: number;
   /** Lo que las OTRAS órdenes abiertas del Taller ya reservan de este insumo (su plan menos lo descontado): no está libre para esta orden (`fn_tela_pendiente_de_la_orden`). */
   comprometidoOtras: number;
-  /** Las órdenes de insumos generadas de este insumo con destino el Taller (últimos 60 días): se muestran, no se suman a lo que hay. */
+  /** Lo que viene en camino a este insumo: lo que FALTA RECIBIR de las órdenes de insumos generadas con destino el Taller, sin los pedidos atrasados (`fn_tela_en_camino`, regla de Felipe del 2026-10-16). Cuenta para «alcanza». */
+  enCamino: number;
+  /** Lo que falta recibir de pedidos cuya fecha de entrega ya pasó: NO cuenta (nadie sabe si llegará) y se muestra aparte. */
+  atrasado: number;
+  /** Los pedidos de este insumo con lo que falta recibir de cada uno, los que cuentan primero y los atrasados al fondo. */
   pedidos: PedidoDeInsumo[];
 };
 
-export type PedidoDeInsumo = { numeroTexto: string; proveedor: string; cantidad: number; unidad: string; fechaEntrega: string | null };
+/** `cantidad` es lo que FALTA RECIBIR de ese pedido (no lo pedido en total); `atrasado`: su fecha estimada de entrega ya pasó. */
+export type PedidoDeInsumo = { numeroTexto: string; proveedor: string; cantidad: number; unidad: string; fechaEntrega: string | null; atrasado: boolean };
 
 /** Las órdenes de insumos de una tela como las manda la base (`fn_tela_pendiente_de_la_orden`, `fn_tela_del_taller`). Lo que no se entiende se descarta. */
 export function leerPedidosDeInsumo(crudo: unknown): PedidoDeInsumo[] {
@@ -120,13 +125,18 @@ export function leerPedidosDeInsumo(crudo: unknown): PedidoDeInsumo[] {
     const numeroTexto = texto(x.numero_texto);
     const cantidad = numero(x.cantidad);
     if (!numeroTexto || cantidad === null) return [];
-    return [{ numeroTexto, proveedor: texto(x.proveedor) ?? "un proveedor", cantidad, unidad: texto(x.unidad) ?? "unidad", fechaEntrega: texto(x.fecha_entrega) }];
+    return [{ numeroTexto, proveedor: texto(x.proveedor) ?? "un proveedor", cantidad, unidad: texto(x.unidad) ?? "unidad", fechaEntrega: texto(x.fecha_entrega), atrasado: x.atrasado === true }];
   });
 }
 
-/** «OI-000003 · 50 m a Textiles Andinos · llega el vie 23 oct»: un pedido en una línea. */
+/**
+ * «OI-000003 · 50 m a Textiles Andinos · llega el vie 23 oct»: un pedido en una línea, con la cantidad que FALTA RECIBIR. Uno atrasado lo dice y avisa que no se cuenta:
+ * «OI-000002 · 35 m a Textiles Andinos · debía llegar el sáb 10 oct (atrasado, no lo cuento)».
+ */
 export function textoDePedido(p: PedidoDeInsumo): string {
-  return `${p.numeroTexto} · ${cantidadConUnidad(p.cantidad, p.unidad)} a ${p.proveedor}${p.fechaEntrega ? ` · llega el ${diaCorto(p.fechaEntrega)}` : ""}`;
+  const base = `${p.numeroTexto} · ${cantidadConUnidad(p.cantidad, p.unidad)} a ${p.proveedor}`;
+  if (p.atrasado) return `${base}${p.fechaEntrega ? ` · debía llegar el ${diaCorto(p.fechaEntrega)}` : ""} (atrasado, no lo cuento)`;
+  return `${base}${p.fechaEntrega ? ` · llega el ${diaCorto(p.fechaEntrega)}` : ""}`;
 }
 
 export type CostosPagina = {
@@ -286,12 +296,17 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
   const costos = esObjeto(crudo.costos) ? crudo.costos : null;
   const lista = (x: unknown): unknown[] => (Array.isArray(x) ? x : []);
   // Lo que otras órdenes reservan de cada tela y lo pedido (`tela_pendiente`, ADR-0400 actividad 7): opcional. Sin ello, «alcanza» se mide contra todo el estante, como antes.
-  const pendientes = new Map<string, { comprometidoOtras: number; pedidos: PedidoDeInsumo[] }>();
+  const pendientes = new Map<string, { comprometidoOtras: number; enCamino: number; atrasado: number; pedidos: PedidoDeInsumo[] }>();
   for (const t of lista(crudo.tela_pendiente)) {
     if (!esObjeto(t)) continue;
     const insumoId = texto(t.insumo_id);
     if (!insumoId) continue;
-    pendientes.set(insumoId, { comprometidoOtras: Math.max(numero(t.comprometido_otras) ?? 0, 0), pedidos: leerPedidosDeInsumo(t.pedidos) });
+    pendientes.set(insumoId, {
+      comprometidoOtras: Math.max(numero(t.comprometido_otras) ?? 0, 0),
+      enCamino: Math.max(numero(t.en_camino) ?? 0, 0),
+      atrasado: Math.max(numero(t.atrasado) ?? 0, 0),
+      pedidos: leerPedidosDeInsumo(t.pedidos),
+    });
   }
   return {
     orden: {
@@ -334,7 +349,7 @@ export function leerOrdenPagina(crudo: unknown): OrdenPagina | null {
       const insumoId = texto(i.insumo_id);
       if (!idInsumo || !insumoId) return [];
       const pendiente = pendientes.get(insumoId);
-      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, pedidos: pendiente?.pedidos ?? [] }];
+      return [{ id: idInsumo, insumoId, nombre: texto(i.nombre) ?? "Insumo", tipo: i.tipo === "avio" ? "avio" : "tela", unidad: texto(i.unidad) ?? "unidad", colorCodigo: texto(i.color_codigo), colorNombre: texto(i.color_nombre), consumoPorPrenda: numero(i.consumo_por_prenda) ?? 0, cantidadPlan: numero(i.cantidad_plan) ?? 0, usado: numero(i.usado) ?? 0, saldo: numero(i.saldo) ?? 0, comprometidoOtras: pendiente?.comprometidoOtras ?? 0, enCamino: pendiente?.enCamino ?? 0, atrasado: pendiente?.atrasado ?? 0, pedidos: pendiente?.pedidos ?? [] }];
     }),
     costos: costos
       ? {
@@ -647,16 +662,29 @@ export type FilaDeTela = {
   faltanNumero: number | null;
   /** «Otras órdenes ya reservan 20 m», o `null` si ninguna reserva nada. */
   reservadoPorOtras: string | null;
-  /** Las órdenes de insumos generadas de esta tela: «OI-000003 · 50 m a Textiles Andinos · llega el vie 23 oct». */
+  /** «35 m»: lo que viene en camino y cuenta para «alcanza» (lo que falta recibir de los pedidos, sin los atrasados), o `null` si nada viene. */
+  enCamino: string | null;
+  /** «35 m»: lo que falta recibir de pedidos ATRASADOS (no cuenta), o `null`. */
+  atrasado: string | null;
+  /** Alcanza, pero solo gracias a lo que viene en camino (el estante solo no alcanza). */
+  conLoQueViene: boolean;
+  /** Es una tela y el corte ya terminó: lo que sobra de su plan ya no se va a usar, no falta nada por usar. */
+  yaCortada: boolean;
+  /** Los pedidos de esta tela con lo que falta recibir de cada uno: «OI-000003 · 50 m a Textiles Andinos · llega el vie 23 oct». */
   pedidos: string[];
 };
+
+/** El corte ya terminó (la fase que gasta la tela): desde ahí lo que sobra de la tela prevista no se va a usar. Los avíos (botones, hilo) se siguen usando en las fases de después. */
+export function corteTerminado(p: Pick<OrdenPagina, "fases">): boolean {
+  return p.fases.some((f) => f.clave === "corte" && f.estado === "hecha");
+}
 
 /**
  * La tela y los avíos de la orden, UNA fila por insumo: lo que pide el plan (la suma de sus colores), lo ya usado y si lo que queda en el estante alcanza para lo que falta usar. Es el
  * mismo veredicto de la hoja de Nueva orden (`veredictoTela`), contado sobre lo que aún falta usar: lo ya descontado del estante no se cuenta dos veces. Una misma tela en dos colores
  * sale de UN estante: se suman los dos planes contra un solo saldo, y como el libro de insumos no sabe de colores, lo usado es el mismo número en las dos filas de la base (no se suma).
  */
-export function filasDeTela(insumos: readonly InsumoPagina[]): FilaDeTela[] {
+export function filasDeTela(insumos: readonly InsumoPagina[], corteHecho = false): FilaDeTela[] {
   const porInsumo = new Map<string, InsumoPagina[]>();
   for (const i of insumos) porInsumo.set(i.insumoId, [...(porInsumo.get(i.insumoId) ?? []), i]);
   return [...porInsumo.values()].map((filas) => {
@@ -664,7 +692,11 @@ export function filasDeTela(insumos: readonly InsumoPagina[]): FilaDeTela[] {
     const plan = filas.reduce((s, f) => s + f.cantidadPlan, 0);
     const usado = Math.max(...filas.map((f) => f.usado));
     const comprometida = Math.max(...filas.map((f) => f.comprometidoOtras));
-    const v = veredictoTela(Math.max(plan - usado, 0), base.saldo, comprometida);
+    const enCamino = Math.max(...filas.map((f) => f.enCamino));
+    const atrasado = Math.max(...filas.map((f) => f.atrasado));
+    // Con el corte terminado, la tela que sobra de su plan ya no se va a usar: no falta nada por usar (los avíos sí siguen).
+    const yaCortada = corteHecho && base.tipo === "tela";
+    const v = veredictoTela(yaCortada ? 0 : Math.max(plan - usado, 0), base.saldo, comprometida, enCamino);
     const color = (f: InsumoPagina) => f.colorNombre?.toLocaleLowerCase("es") ?? null;
     const unColor = filas.length === 1 && color(base) !== null;
     const detalle =
@@ -684,6 +716,10 @@ export function filasDeTela(insumos: readonly InsumoPagina[]): FilaDeTela[] {
       faltan: v.alcanza ? null : cantidadConUnidad(v.faltan, base.unidad),
       faltanNumero: v.alcanza ? null : v.faltan,
       reservadoPorOtras: comprometida > 0 ? `Otras órdenes ya reservan ${cantidadConUnidad(comprometida, base.unidad)}` : null,
+      enCamino: enCamino > 0 ? cantidadConUnidad(enCamino, base.unidad) : null,
+      atrasado: atrasado > 0 ? cantidadConUnidad(atrasado, base.unidad) : null,
+      conLoQueViene: v.conLoQueViene,
+      yaCortada,
       pedidos: base.pedidos.map(textoDePedido),
     };
   });
@@ -770,10 +806,15 @@ export function rojoDeLaOrden(p: OrdenPagina, hoy: string): CausaRoja[] {
     const atraso = diasEntreFechas(entrega, hoy);
     causas.push({ clave: "entrega_pasada", titulo: "Entrega pasada", porque: `Era para el ${diaCorto(entrega)} y ya pasó ${atraso === 1 ? "1 día" : `hace ${dias(atraso)}`}.` });
   }
-  const faltan = filasDeTela(p.insumos).filter((f) => !f.alcanza);
+  const faltan = filasDeTela(p.insumos, corteTerminado(p)).filter((f) => !f.alcanza);
   if (faltan.length > 0) {
     const lista = faltan.map((f) => `${f.nombre.toLocaleLowerCase("es")} (faltan ${f.faltan})`);
-    causas.push({ clave: "tela_no_llega", titulo: "La tela no alcanza", porque: `Lo que queda en el estante no cubre lo que falta usar: ${lista.join(", ")}.` });
+    const atrasada = faltan.some((f) => f.atrasado !== null);
+    causas.push({
+      clave: "tela_no_llega",
+      titulo: "La tela no alcanza",
+      porque: `Lo que queda en el estante, y lo que viene en camino, no cubre lo que falta usar: ${lista.join(", ")}.${atrasada ? " Hay un pedido atrasado que no se cuenta." : ""}`,
+    });
   }
   const ultimo = ultimoMovimiento(p.lineaDeTiempo);
   if (ultimo) {

@@ -170,6 +170,8 @@ const orden = (parche: Record<string, unknown> = {}): OrdenPagina => {
   return leida;
 };
 const HOY = "2026-10-19";
+/** La misma orden con el corte todavía en curso: la tela que falta usar sigue haciendo falta (con el corte hecho ya no). */
+const sinTerminarElCorte = () => crudo().fases.map((f) => (f.clave === "corte" ? { ...f, estado: "en_curso" } : f));
 
 describe("leerOrdenPagina — lee lo que manda fn_orden_produccion", () => {
   it("lee la orden, sus tres fases en el orden de la ruta, la tela, los costos y la línea de tiempo", () => {
@@ -437,10 +439,20 @@ describe("rojoDeLaOrden — las tres causas, cada una con su porqué", () => {
     expect(rojoDeLaOrden(orden(), "2026-10-23").map((c) => c.clave)).not.toContain("entrega_pasada");
   });
   it("la tela que no llega", () => {
-    const p = orden({ insumos: [{ id: "pi-1", insumo_id: "i-1", nombre: "Lino", tipo: "tela", unidad: "metro", color_codigo: null, consumo_por_prenda: 1.5, cantidad_plan: 72, usado: 0, saldo: 40 }] });
+    // El corte todavía no terminó: la tela que falta usar sigue haciendo falta.
+    const p = orden({ fases: sinTerminarElCorte(), insumos: [{ id: "pi-1", insumo_id: "i-1", nombre: "Lino", tipo: "tela", unidad: "metro", color_codigo: null, consumo_por_prenda: 1.5, cantidad_plan: 72, usado: 0, saldo: 40 }] });
     const causa = rojoDeLaOrden(p, "2026-10-17").find((c) => c.clave === "tela_no_llega");
     expect(causa?.titulo).toBe("La tela no alcanza");
     expect(causa?.porque).toContain("lino (faltan 32 m)");
+  });
+  it("con el corte HECHO la tela ya no falta: lo que sobra del plan no pone la orden en rojo (OP-343: plan 75.6 m, usado 44 m, 0 m en el estante); los avíos sí pueden faltar después del corte", () => {
+    const lino = { id: "pi-1", insumo_id: "i-1", nombre: "Lino", tipo: "tela", unidad: "metro", color_codigo: null, consumo_por_prenda: 1.575, cantidad_plan: 75.6, usado: 44, saldo: 0 };
+    const botones = { id: "pi-2", insumo_id: "i-2", nombre: "Botón", tipo: "avio", unidad: "unidad", color_codigo: null, consumo_por_prenda: 2, cantidad_plan: 96, usado: 0, saldo: 0 };
+    expect(rojoDeLaOrden(orden({ insumos: [lino] }), "2026-10-17").map((c) => c.clave)).not.toContain("tela_no_llega");
+    expect(filasDeTela(orden({ insumos: [lino] }).insumos, true)[0]).toMatchObject({ alcanza: true, faltan: null, yaCortada: true });
+    const conAvio = rojoDeLaOrden(orden({ insumos: [lino, botones] }), "2026-10-17").find((c) => c.clave === "tela_no_llega");
+    expect(conAvio?.porque).toContain("botón (faltan 96 und)");
+    expect(conAvio?.porque).not.toContain("lino");
   });
   it(`${DIAS_SIN_MOVERSE} días sin que nadie anote nada; un servicio dentro de lo prometido no cuenta`, () => {
     const sinServicio = orden({
@@ -932,7 +944,8 @@ describe("pasar la orden al stock, anularla y revertirla", () => {
 
 describe("la tela: lo comprometido por otras órdenes y lo pedido", () => {
   const SQL_TELA = readFileSync(join(RAIZ, "supabase", "migrations", "20261015165000_produccion_tela_pendiente_de_la_orden.sql"), "utf8");
-  const pendiente = (cuerpo: Record<string, unknown>) => orden({ tela_pendiente: [{ insumo_id: "i-1", comprometido_otras: 0, pedidos: [], ...cuerpo }] } as never);
+  const pendiente = ({ fases, ...cuerpo }: Record<string, unknown>) =>
+    orden({ ...(fases ? { fases } : {}), tela_pendiente: [{ insumo_id: "i-1", comprometido_otras: 0, en_camino: 0, atrasado: 0, pedidos: [], ...cuerpo }] } as never);
 
   it("sin `tela_pendiente` (una base o una lista que no lo manda) cada insumo no tiene nada reservado ni pedido: «alcanza» se mide contra todo el estante, como antes", () => {
     const [gabardina] = orden().insumos;
@@ -942,7 +955,10 @@ describe("la tela: lo comprometido por otras órdenes y lo pedido", () => {
 
   it("lee lo que reservan las otras y lo pedido; lo que no se entiende se descarta o queda en cero", () => {
     const o = pendiente({ comprometido_otras: "12.5", pedidos: [{ numero_texto: "OI-000003", proveedor: "Textiles Andinos", cantidad: "50", unidad: "metro", fecha_entrega: "2026-10-23" }, { numero_texto: null, cantidad: 3 }, "basura"] });
-    expect(o.insumos[0]).toMatchObject({ comprometidoOtras: 12.5, pedidos: [{ numeroTexto: "OI-000003", proveedor: "Textiles Andinos", cantidad: 50, unidad: "metro", fechaEntrega: "2026-10-23" }] });
+    expect(o.insumos[0]).toMatchObject({ comprometidoOtras: 12.5, enCamino: 0, atrasado: 0, pedidos: [{ numeroTexto: "OI-000003", proveedor: "Textiles Andinos", cantidad: 50, unidad: "metro", fechaEntrega: "2026-10-23", atrasado: false }] });
+    // Lo que viene y lo atrasado se leen como números (nunca negativos); un pedido marcado atrasado se lee atrasado.
+    const v = pendiente({ en_camino: "35", atrasado: "-3", pedidos: [{ numero_texto: "OI-000009", proveedor: "X", cantidad: 5, unidad: "metro", fecha_entrega: "2026-10-10", atrasado: true }] });
+    expect(v.insumos[0]).toMatchObject({ enCamino: 35, atrasado: 0, pedidos: [{ atrasado: true }] });
     expect(pendiente({ comprometido_otras: -4 }).insumos[0].comprometidoOtras).toBe(0);
     expect(orden({ tela_pendiente: "no es una lista" } as never).insumos[0].comprometidoOtras).toBe(0);
   });
@@ -953,16 +969,38 @@ describe("la tela: lo comprometido por otras órdenes y lo pedido", () => {
     expect(filasDeTela(pendiente({ comprometido_otras: 19 }).insumos)[0]).toMatchObject({ alcanza: true });
   });
 
-  it("lo pedido se muestra con su número, cuánto, a quién y para cuándo, pero NO hace que «alcance» (una orden de insumos no sabe si ya llegó)", () => {
-    const o = pendiente({ comprometido_otras: 20, pedidos: [{ numero_texto: "OI-000003", proveedor: "Textiles Andinos", cantidad: 50, unidad: "metro", fecha_entrega: "2026-10-23" }, { numero_texto: "OI-000002", proveedor: "Textiles Andinos", cantidad: 35, unidad: "metro", fecha_entrega: null }] });
+  it("lo que viene en camino SÍ cuenta (regla de Felipe, 2026-10-16): con 1 m de falta y 35 m por recibir alcanza «gracias a lo que viene», y se ve de qué pedido", () => {
+    const o = pendiente({ comprometido_otras: 20, en_camino: 35, pedidos: [{ numero_texto: "OI-000003", proveedor: "Textiles Andinos", cantidad: 35, unidad: "metro", fecha_entrega: "2026-10-23", atrasado: false }] });
     const [f] = filasDeTela(o.insumos);
-    expect(f.pedidos).toEqual(["OI-000003 · 50 m a Textiles Andinos · llega el vie 23 oct", "OI-000002 · 35 m a Textiles Andinos"]);
-    expect(f.alcanza).toBe(false);
+    expect(f).toMatchObject({ alcanza: true, conLoQueViene: true, faltan: null, faltanNumero: null, enCamino: "35 m", atrasado: null });
+    expect(f.pedidos).toEqual(["OI-000003 · 35 m a Textiles Andinos · llega el vie 23 oct"]);
+  });
+
+  it("si lo que viene no cubre, sigue faltando lo que queda: con 1 m de falta y 0.4 m por recibir faltan 0.6 m", () => {
+    const [f] = filasDeTela(pendiente({ comprometido_otras: 20, en_camino: 0.4 }).insumos);
+    expect(f).toMatchObject({ alcanza: false, conLoQueViene: false, faltan: "0.6 m", faltanNumero: 0.6, enCamino: "0.4 m" });
+  });
+
+  it("un pedido ATRASADO no cuenta: la tela sigue faltando y el pedido sale con su aviso, aparte de lo que viene", () => {
+    const o = pendiente({
+      comprometido_otras: 20,
+      en_camino: 0,
+      atrasado: 35,
+      pedidos: [{ numero_texto: "OI-000002", proveedor: "Textiles Andinos", cantidad: 35, unidad: "metro", fecha_entrega: "2026-10-10", atrasado: true }],
+    });
+    const [f] = filasDeTela(o.insumos);
+    expect(f).toMatchObject({ alcanza: false, faltan: "1 m", enCamino: null, atrasado: "35 m" });
+    expect(f.pedidos).toEqual(["OI-000002 · 35 m a Textiles Andinos · debía llegar el sáb 10 oct (atrasado, no lo cuento)"]);
   });
 
   it("«la tela no alcanza» (la causa que pone la orden en rojo) cuenta lo reservado igual en la página y en la lista", () => {
     expect(rojoDeLaOrden(orden(), HOY).map((c) => c.clave)).not.toContain("tela_no_llega");
-    expect(rojoDeLaOrden(pendiente({ comprometido_otras: 20 }), HOY).map((c) => c.clave)).toContain("tela_no_llega");
+    expect(rojoDeLaOrden(pendiente({ comprometido_otras: 20, fases: sinTerminarElCorte() }), HOY).map((c) => c.clave)).toContain("tela_no_llega");
+  });
+
+  it("«la tela no alcanza» tampoco salta si lo que viene en camino la cubre; sí si el pedido está atrasado", () => {
+    expect(rojoDeLaOrden(pendiente({ comprometido_otras: 20, en_camino: 35, fases: sinTerminarElCorte() }), HOY).map((c) => c.clave)).not.toContain("tela_no_llega");
+    expect(rojoDeLaOrden(pendiente({ comprometido_otras: 20, en_camino: 0, atrasado: 35, fases: sinTerminarElCorte() }), HOY).map((c) => c.clave)).toContain("tela_no_llega");
   });
 
   describe("paridad con la migración 20261015165000", () => {
@@ -973,10 +1011,20 @@ describe("la tela: lo comprometido por otras órdenes y lo pedido", () => {
     it("manda las llaves que la web lee", () => {
       for (const k of ["insumo_id", "comprometido_otras", "pedidos", "numero_texto", "proveedor", "cantidad", "unidad", "fecha_entrega"]) expect(SQL_TELA, k).toContain(`'${k}'`);
     });
-    it("cuenta las OTRAS órdenes en proceso (nunca la propia) y solo las órdenes de insumos generadas de los últimos 60 días", () => {
+    it("manda lo que viene en camino y lo atrasado, tomados de la lectura única `fn_tela_en_camino`", () => {
+      for (const k of ["en_camino", "atrasado", "cuenta"]) expect(SQL_TELA, k).toContain(`'${k}'`);
+      expect(SQL_TELA).toContain("create or replace function retail.fn_tela_en_camino(p_ubicacion_id uuid)");
+      expect(SQL_TELA).toContain("v_camino := coalesce(retail.fn_tela_en_camino(v_ubicacion), '[]'::jsonb)");
+    });
+    it("cuenta las OTRAS órdenes en proceso (nunca la propia) y, de las órdenes de insumos generadas, solo lo que falta recibir (sin ventana de 60 días)", () => {
       expect(SQL_TELA).toContain("p3.estado = 'en_proceso' and p3.id <> p_produccion_id");
       expect(SQL_TELA).toContain("p2.estado = 'en_proceso' and p2.id <> p_produccion_id");
-      expect(SQL_TELA).toContain("oi.estado = 'generada' and oi.fecha_emision >= retail.fn_hoy_lima() - 60");
+      expect(SQL_TELA).toContain("oi.estado = 'generada' and r.queda > 0");
+      expect(SQL_TELA).toContain("retail.fn_orden_insumo_por_recibir_lineas(oi.id)");
+      expect(SQL_TELA).not.toContain("- 60");
+    });
+    it("un pedido está atrasado cuando su fecha estimada de entrega ya pasó (sin fecha, no se puede probar y cuenta)", () => {
+      expect(SQL_TELA).toContain("oi.fecha_entrega_estimada is not null and oi.fecha_entrega_estimada < retail.fn_hoy_lima()");
     });
     it("la lista de Órdenes lleva lo mismo que la página", () => {
       const SQL_LISTA = readFileSync(join(RAIZ, "supabase", "migrations", "20261015005000_produccion_lista_de_ordenes.sql"), "utf8");

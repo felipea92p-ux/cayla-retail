@@ -8,7 +8,7 @@ import { leerPedidosDeInsumo, type PedidoDeInsumo } from "./orden-pagina-reglas"
 //   PROMETE: una lectura que no se entiende es `null` (el Resumen cae al rendimiento medido de siempre y no dibuja una demanda inventada); lo que sí se entiende se normaliza (números como número,
 //            sin negativos) y una tela cuyo identificador falta se descarta.
 //   ASUME:   la unidad de los pedidos es la del insumo (una orden de insumos se hace en la unidad del insumo).
-//   NO HACE: no suma lo pedido a lo que hay (una orden de insumos no se liga a la recepción: lo ya recibido se contaría dos veces); lo pedido se MUESTRA.
+//   NO HACE: no decide qué cuenta como «en camino»: eso es de la base (`fn_tela_en_camino`: lo que FALTA RECIBIR de las órdenes de insumos generadas, sin los pedidos atrasados; regla de Felipe del 2026-10-16). Aquí solo se lee.
 
 export const RPC_TELA_DEL_TALLER = "fn_tela_del_taller";
 
@@ -18,7 +18,11 @@ export type TelaDelTaller = {
   comprometido: number;
   /** Los modelos de las órdenes que todavía la necesitan. */
   ordenes: string[];
-  /** Las órdenes de insumos generadas de esta tela con destino el Taller (últimos 60 días): se muestran, no se suman. */
+  /** Lo que viene en camino y cuenta: lo que falta recibir de las órdenes de insumos de esta tela con destino el Taller, sin los pedidos atrasados. */
+  enCamino: number;
+  /** Lo que falta recibir de pedidos cuya fecha de entrega ya pasó: no cuenta. */
+  atrasado: number;
+  /** Los pedidos de esta tela con lo que falta recibir de cada uno (los que cuentan primero, los atrasados al fondo). */
   pedidos: PedidoDeInsumo[];
 };
 
@@ -46,6 +50,8 @@ export function leerTelaDelTaller(crudo: unknown): TelaDelTallerLeida | null {
         insumoId,
         comprometido: Math.max(numero(t.comprometido) ?? 0, 0),
         ordenes: Array.isArray(t.ordenes) ? t.ordenes.flatMap((o) => (texto(o) ? [o as string] : [])) : [],
+        enCamino: Math.max(numero(t.en_camino) ?? 0, 0),
+        atrasado: Math.max(numero(t.atrasado) ?? 0, 0),
         pedidos: leerPedidosDeInsumo(t.pedidos),
       },
     ];
@@ -57,4 +63,27 @@ export function leerTelaDelTaller(crudo: unknown): TelaDelTallerLeida | null {
     return id && productoId ? [{ id, productoId, referencia: texto(o.referencia) ?? "Una orden" }] : [];
   });
   return { telas, sinDeclarar };
+}
+
+// ---------- Lo que viene en camino, solo ----------
+
+export const RPC_TELA_EN_CAMINO = "fn_tela_en_camino";
+
+/** Lo que viene a un insumo: `cuenta` (lo que falta recibir y no está atrasado), `atrasado` (de pedidos cuya fecha ya pasó: no cuenta) y los pedidos. */
+export type CaminoLeido = { cuenta: number; atrasado: number; pedidos: PedidoDeInsumo[] };
+
+/**
+ * La respuesta de `fn_tela_en_camino` (20261015165000): por insumo, lo que viene a ese Taller. `null` si no es una lista (la base responde NULL a quien no puede leer, o falló); una lista
+ * vacía es «no viene nada». Los números rotos o negativos valen cero: nunca suman a lo que «llega».
+ */
+export function leerTelaEnCamino(crudo: unknown): Map<string, CaminoLeido> | null {
+  if (!Array.isArray(crudo)) return null;
+  const salida = new Map<string, CaminoLeido>();
+  for (const fila of crudo) {
+    if (!esObjeto(fila)) continue;
+    const insumoId = texto(fila.insumo_id);
+    if (!insumoId) continue;
+    salida.set(insumoId, { cuenta: Math.max(numero(fila.cuenta) ?? 0, 0), atrasado: Math.max(numero(fila.atrasado) ?? 0, 0), pedidos: leerPedidosDeInsumo(fila.pedidos) });
+  }
+  return salida;
 }

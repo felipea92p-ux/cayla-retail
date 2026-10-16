@@ -13,6 +13,7 @@ import { armarVocabulario, type FilaCategoria, type VocabularioModeloNuevo } fro
 
 export type { EtapaClave, EstadoEtapa, EstadoOrden } from "@/lib/produccion-reglas";
 import { datosDeVariante, esProducible, type EtapaClave, type EstadoEtapa, type EstadoOrden, type PrecioMasBajo } from "@/lib/produccion-reglas";
+import { RPC_TELA_EN_CAMINO, leerTelaEnCamino } from "@/lib/tela-del-taller-reglas";
 
 export type LineaOrden = {
   varianteId: string;
@@ -251,6 +252,8 @@ export type OpcionesNuevaOrden = {
   consumos: Record<string, { telaPorPrenda: number; fuente: "declarado" | "medido" }>;
   /** Por tela: metros que las órdenes en proceso ya tienen comprometidos (plan − descontado). */
   comprometido: Record<string, number>;
+  /** Por tela: lo que viene en camino (lo que falta recibir de los pedidos, sin los atrasados; `fn_tela_en_camino`, regla de Felipe del 2026-10-16). Sin ello, nada viene. */
+  enCamino: Record<string, number>;
 };
 
 type OpcionesLeidas = {
@@ -273,6 +276,9 @@ export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<
       }>);
       if (error || !data) return null;
       const o = data;
+      // Lo que viene en camino es dato SECUNDARIO de lo secundario: si la lectura falla, la hoja sigue (sin contar nada en camino).
+      const camino = await (supabase.rpc(RPC_TELA_EN_CAMINO as never, { p_ubicacion_id: tallerId } as never) as unknown as PromiseLike<{ data: unknown; error: { message: string } | null }>);
+      const enCamino = camino.error ? null : leerTelaEnCamino(camino.data);
       return {
         proveedores: (o.proveedores ?? []).map((p) => ({
           id: p.id,
@@ -289,6 +295,7 @@ export async function getOpcionesNuevaOrden(tallerId: string): Promise<Tolerado<
         })),
         consumos: Object.fromEntries((o.consumos ?? []).map((c) => [c.producto_id, { telaPorPrenda: Number(c.tela_por_prenda), fuente: c.fuente }])),
         comprometido: Object.fromEntries((o.comprometido ?? []).map((c) => [c.insumo_id, Number(c.cantidad)])),
+        enCamino: Object.fromEntries([...(enCamino ?? [])].filter(([, c]) => c.cuenta > 0).map(([id, c]) => [id, c.cuenta])),
       } satisfies OpcionesNuevaOrden;
     })(),
     "los servicios y las telas de la orden",

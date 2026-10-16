@@ -118,11 +118,27 @@ export function metrosAPedir(consumo: string | number, prendas: number, mermaPct
   return aMilesimas(c * Math.max(prendas, 0) * (1 + merma));
 }
 
-/** «Alcanza» o «faltan N m»: el plan contra lo que queda libre en el estante (saldo − lo que otras órdenes abiertas ya comprometieron). */
-export function veredictoTela(plan: number, saldo: number, comprometido: number): { alcanza: boolean; faltan: number } {
+export type VeredictoTela = {
+  alcanza: boolean;
+  /** Lo que falta CONTANDO lo que viene en camino. */
+  faltan: number;
+  /** Lo que faltaría sin contar lo que viene (el estante solo). */
+  faltanSinLoQueViene: number;
+  /** Alcanza, pero solo gracias a lo que viene en camino (el estante solo no alcanza). */
+  conLoQueViene: boolean;
+};
+
+/**
+ * «Alcanza» o «faltan N m»: el plan contra lo que queda libre en el estante (saldo − lo que otras órdenes abiertas ya comprometieron) MÁS lo que viene en camino (`enCamino`: lo que
+ * falta recibir de los pedidos, sin los atrasados; regla de Felipe del 2026-10-16, la cuenta de `fn_tela_en_camino`). Sin `enCamino` es el veredicto de siempre. Un número roto o
+ * negativo no cuenta como tela que viene.
+ */
+export function veredictoTela(plan: number, saldo: number, comprometido: number, enCamino = 0): VeredictoTela {
   const libre = (Number.isFinite(saldo) ? saldo : 0) - (Number.isFinite(comprometido) ? comprometido : 0);
-  const faltan = aMilesimas(Math.max(plan - libre, 0));
-  return { alcanza: faltan === 0, faltan };
+  const viene = Number.isFinite(enCamino) && enCamino > 0 ? enCamino : 0;
+  const faltanSinLoQueViene = aMilesimas(Math.max(plan - libre, 0));
+  const faltan = aMilesimas(Math.max(plan - libre - viene, 0));
+  return { alcanza: faltan === 0, faltan, faltanSinLoQueViene, conLoQueViene: faltan === 0 && faltanSinLoQueViene > 0 };
 }
 
 // ---------- Lo que falta (solo lo que la base rechaza) ----------

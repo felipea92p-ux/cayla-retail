@@ -8,20 +8,20 @@ import { Chip } from "@/components/ui/Chip";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
-import { filasDeTela, type OrdenPagina } from "@/lib/orden-pagina-reglas";
+import { corteTerminado, filasDeTela, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import { telasDeLaOrden, type ModoDeTela } from "@/lib/orden-tela-usada-reglas";
 
 // La tela de la orden (ADR-0400, decisión 6; vista D): por tela y color, lo que pide el plan, lo que ya se usó y si lo que queda en el estante alcanza para lo que falta. «Alcanza» y
 // «Faltan N m» salen del mismo veredicto de la hoja de Nueva orden (`filasDeTela` → `veredictoTela`). Una orden sin tela declarada lo dice, no se dibuja vacía.
-// «Alcanza» cuenta también lo que otras órdenes abiertas ya reservan (`fn_tela_pendiente_de_la_orden`); lo pedido se muestra, no se suma (una orden de insumos no sabe si ya llegó). Si falta, «Pedir N m» lleva a
-// Órdenes de insumos (solo a quien ve ese módulo).
+// «Alcanza» cuenta también lo que otras órdenes abiertas ya reservan y lo que viene en camino (`fn_tela_pendiente_de_la_orden`: lo que falta recibir de los pedidos, sin los atrasados; regla de
+// Felipe del 2026-10-16). Con el corte terminado, la tela que sobra de su plan ya no se va a usar: no falta nada por usar. Si falta, «Pedir N m» lleva a Órdenes de insumos (solo a quien ve ese módulo).
 // Debajo, «Anotar lo que usaste» y «Devolver lo que sobró» (actividad 7): lo que se usa sale del estante y queda en la orden; el costo de la tela lo calcula la base. Solo se ofrecen a quien puede operar la orden.
 
 const PLANTILLA = "@min-[28rem]:grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_7rem]";
 const EN_COLUMNAS = "hidden @min-[28rem]:block";
 
 export function TelaDeLaOrdenVista({ datos, puedePedir = false }: { datos: OrdenPagina; /** La cuenta ve el módulo «Órdenes de insumos»: puede pedir lo que falta. */ puedePedir?: boolean }) {
-  const filas = filasDeTela(datos.insumos);
+  const filas = filasDeTela(datos.insumos, corteTerminado(datos));
   const [hoja, setHoja] = useState<ModoDeTela | null>(null);
   const telas = telasDeLaOrden(datos.insumos);
   const puedeAnotar = datos.permisos.puedeOperar && datos.orden.estado === "en_proceso" && telas.length > 0;
@@ -46,9 +46,13 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false }: { datos: Orden
                 <span className="block text-tinta">{f.nombre}</span>
                 {f.detalle && <span className="op-sub">{f.detalle}</span>}
                 <span className="mt-1.5 flex flex-wrap items-center gap-2">
-                  {f.alcanza ? (
+                  {f.alcanza && f.conLoQueViene ? (
+                    <Chip tono="ambar" versalitas={false}>
+                      Alcanza si llega lo pedido
+                    </Chip>
+                  ) : f.alcanza ? (
                     <Chip tono="verde" versalitas={false}>
-                      Alcanza
+                      {f.yaCortada ? "Ya se cortó" : "Alcanza"}
                     </Chip>
                   ) : (
                     <Chip tono="ambar" versalitas={false}>
@@ -64,7 +68,7 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false }: { datos: Orden
                 {f.reservadoPorOtras && <span className="op-sub">{f.reservadoPorOtras}</span>}
                 {f.pedidos.map((p) => (
                   <span key={p} className="op-sub">
-                    Pedido: {p}
+                    En camino: {p}
                   </span>
                 ))}
               </span>

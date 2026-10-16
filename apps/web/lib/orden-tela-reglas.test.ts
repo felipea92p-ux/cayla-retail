@@ -123,10 +123,26 @@ describe("consumo y metros", () => {
     expect(leerConsumo(0)).toBeNull();
   });
   it("veredictoTela: faltan = plan − (saldo − comprometido), nunca negativo; alcanza cuando no falta nada", () => {
-    expect(veredictoTela(37.8, 100, 0)).toEqual({ alcanza: true, faltan: 0 });
-    expect(veredictoTela(37.8, 100, 70)).toEqual({ alcanza: false, faltan: 7.8 });
-    expect(veredictoTela(37.8, 37.8, 0)).toEqual({ alcanza: true, faltan: 0 });
-    expect(veredictoTela(50, 0, 0)).toEqual({ alcanza: false, faltan: 50 });
+    expect(veredictoTela(37.8, 100, 0)).toMatchObject({ alcanza: true, faltan: 0 });
+    expect(veredictoTela(37.8, 100, 70)).toMatchObject({ alcanza: false, faltan: 7.8 });
+    expect(veredictoTela(37.8, 37.8, 0)).toMatchObject({ alcanza: true, faltan: 0 });
+    expect(veredictoTela(50, 0, 0)).toMatchObject({ alcanza: false, faltan: 50 });
+  });
+
+  it("veredictoTela con lo que viene en camino (regla de Felipe, 2026-10-16): la tela que llega baja lo que falta, y dice si alcanza GRACIAS a ella", () => {
+    // Sin nada que viniera, igual que antes.
+    expect(veredictoTela(50, 0, 0, 0)).toEqual({ alcanza: false, faltan: 50, faltanSinLoQueViene: 50, conLoQueViene: false });
+    // Faltan 50 y vienen 35: faltan 15, y no alcanza.
+    expect(veredictoTela(50, 0, 0, 35)).toEqual({ alcanza: false, faltan: 15, faltanSinLoQueViene: 50, conLoQueViene: false });
+    // Faltan 50 y vienen 120: alcanza, pero solo contando lo pedido.
+    expect(veredictoTela(50, 0, 0, 120)).toEqual({ alcanza: true, faltan: 0, faltanSinLoQueViene: 50, conLoQueViene: true });
+    // Si ya alcanza con el estante, lo que viene no cambia nada: no es «gracias a lo que viene».
+    expect(veredictoTela(37.8, 100, 0, 50)).toEqual({ alcanza: true, faltan: 0, faltanSinLoQueViene: 0, conLoQueViene: false });
+    // Las otras órdenes reservan primero: el estante libre es saldo − comprometido, y lo que viene se suma a eso.
+    expect(veredictoTela(37.8, 100, 70, 10)).toEqual({ alcanza: true, faltan: 0, faltanSinLoQueViene: 7.8, conLoQueViene: true });
+    // Un número roto (NaN, negativo) no cuenta como tela que viene.
+    expect(veredictoTela(50, 0, 0, Number.NaN)).toEqual({ alcanza: false, faltan: 50, faltanSinLoQueViene: 50, conLoQueViene: false });
+    expect(veredictoTela(50, 0, 0, -20)).toEqual({ alcanza: false, faltan: 50, faltanSinLoQueViene: 50, conLoQueViene: false });
   });
 });
 

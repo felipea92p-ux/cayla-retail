@@ -48,7 +48,14 @@ export const GUIA_PROD_RESUMEN: Guia = {
       ancla: "prod-resumen.asunto",
       opcional: true,
       titulo: "Cada asunto",
-      texto: "Arriba, qué pasa («tiene 67 días de stock: no produzcas más»); abajo, el porqué en números. El botón de la derecha te lleva a donde se resuelve. Nadie la borra: la tarjeta desaparece sola cuando el asunto queda resuelto. Si son muchos los modelos por producir, una sola tarjeta los junta.",
+      texto: "Arriba, qué pasa («tiene 67 días de stock: no produzcas más»); abajo, una línea con lo que hay que hacer. El botón de la derecha te lleva a donde se resuelve. Nadie la borra: la tarjeta desaparece sola cuando el asunto queda resuelto. Si son muchos los modelos por producir, una sola tarjeta los junta.",
+    },
+    {
+      id: "asunto-porque",
+      ancla: "prod-resumen.porque",
+      opcional: true,
+      titulo: "¿Por qué?",
+      texto: "En los asuntos de tela, «¿Por qué?» abre la cuenta: cuánto piden las órdenes, cuánto hay y qué viene en camino, pedido por pedido. Solo se abre si la quieres ver; la demo no la deja abierta.",
     },
     {
       id: "mas",
@@ -138,7 +145,14 @@ export const GUIA_PROD_RESUMEN: Guia = {
       ancla: "prod-resumen.tela",
       preparar: [{ tipo: "escape" }],
       titulo: "¿Alcanza la tela?",
-      texto: "Cada tela con lo que hay, lo facturado por recibir y lo que piden las órdenes abiertas. Si faltan metros, «Pedir» te lleva a Órdenes de insumos; si ya hay un pedido, aparece debajo y «Ver los pedidos» lo abre. Lo pedido no se suma a lo que hay: puede que ya haya llegado.",
+      texto: "Cada tela con lo que hay, lo que viene en camino (lo que falta recibir de cada pedido, como en Recibir) y lo que piden las órdenes. Lo que viene se suma: «Alcanza si llega» es que alcanza cuando llegue lo pedido. Un pedido atrasado no cuenta. Si faltan metros, «Pedir» te lleva a Órdenes de insumos.",
+    },
+    {
+      id: "tela-porque",
+      ancla: "prod-resumen.tela-porque",
+      opcional: true,
+      titulo: "La cuenta de la tela",
+      texto: "«¿Por qué?» explica de dónde sale cada número: qué es «piden», qué es «en camino» y por qué un pedido atrasado no cuenta.",
     },
     {
       id: "fin",

@@ -58,6 +58,8 @@ export type Decision = {
   productoIds?: string[];
   /** Cuántos asuntos junta la tarjeta (los modelos por producir, en la que los reúne). Ausente = 1. Si no cabe en pantalla, «y N más» cuenta estos, no la tarjeta. */
   asuntos?: number;
+  /** La cuenta de la que sale el asunto (cuánto piden las órdenes, cuánto hay, qué viene en camino): se ve bajo un «¿Por qué?» a un toque, no siempre abierta. Solo en los asuntos de tela. */
+  porque?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -345,9 +347,12 @@ export type ContextoDecisiones = {
   modelos: FilaModelo[];
   /** El Taller, de donde salen las prendas que «Trasladar al piso» lleva. Sin él no se dibuja esa tarjeta (la fila de la tabla sí dice el estado). */
   tallerId?: string | null;
-  /** Las órdenes de insumos generadas de cada tela (por insumo): se muestran en la tarjeta de «falta tela», no se suman a lo que hay. Sin ellas la tarjeta no las nombra. */
-  pedidos?: Map<string, PedidoDeInsumo[]>;
+  /** Lo que viene en camino de cada tela y avío (por insumo): lo que FALTA RECIBIR de las órdenes de insumos, sin los pedidos atrasados, que se cuenta como tela que llega (regla de Felipe del 2026-10-16). Sin ello nada viene. */
+  enCamino?: Map<string, CaminoDeInsumo>;
 };
+
+/** Lo que viene a un insumo: `cuenta` (lo que falta recibir y no está atrasado), `atrasado` (lo que falta recibir de pedidos cuya fecha ya pasó: no cuenta) y los `pedidos`, los que cuentan primero. */
+export type CaminoDeInsumo = { cuenta: number; atrasado: number; pedidos: PedidoDeInsumo[] };
 
 const MAX_TARJETAS = 7;
 /** Ninguna clase de asunto ocupa más de 3 tarjetas: con 9 entregas vencidas se ven 3 y el resto se cuenta en «y N más» (con el pago por vencer a la vista). */
@@ -494,21 +499,46 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
         severidad: 3,
         tipo: "recibir",
         titulo: `Faltan ${cantidadTexto(falta, i.unidad)} de ${i.nombre} para lo que hay que cortar — pero ya está facturado`,
-        detalle: `${pide}. Falta recibir ${cantidadTexto(porLlegar, i.unidad)}: ${docs}. Recibirlo destraba el corte.`,
+        detalle: `Falta recibir ${cantidadTexto(porLlegar, i.unidad)}: ${docs}. Recibirlo destraba el corte.`,
+        porque: `${pide}.`,
         accion: { texto: "Recibir mercadería", href: "/produccion/recibir" },
       });
+      continue;
+    }
+    // Lo que viene en camino (lo que falta recibir de los pedidos, sin los atrasados) se SUMA a lo que hay: una orden de insumos ya se liga a la recepción (ADR-0362), así que no se cuenta dos veces.
+    const camino = c.enCamino?.get(i.id) ?? { cuenta: 0, atrasado: 0, pedidos: [] };
+    const viaja = porLlegar + camino.cuenta;
+    const nombrados = camino.pedidos.slice(0, 2).map(textoDePedido).join("; ");
+    const mas = camino.pedidos.length > 2 ? ` y ${camino.pedidos.length - 2} más` : "";
+    const cuenta = [
+      `${pide}`,
+      porLlegar > 0 ? `facturado por recibir ${cantidadTexto(porLlegar, i.unidad)}` : null,
+      camino.pedidos.length > 0 ? `en camino${camino.cuenta > 0 ? ` ${cantidadTexto(camino.cuenta, i.unidad)}` : ""}: ${nombrados}${mas}` : null,
+    ]
+      .filter(Boolean)
+      .join("; ");
+    if (viaja + 1e-9 >= falta && camino.cuenta > 0) {
+      // Alcanza, pero solo cuando llegue lo pedido: se avisa (sale amarillo, no rojo) y se manda a mirar los pedidos.
+      out.push({
+        id: `insumo-${i.id}`,
+        severidad: 2,
+        tipo: "insumo",
+        titulo: `Faltan ${cantidadTexto(falta, i.unidad)} de ${i.nombre} hoy, pero ya vienen ${cantidadTexto(viaja, i.unidad)} en camino`,
+        detalle: "Alcanza cuando llegue lo pedido. Si ya llegó, anótalo en Recibir y este número baja.",
+        porque: `${cuenta}.`,
+        accion: { texto: "Ver los pedidos", href: "/ordenes-insumos" },
+      });
     } else {
-      // Lo pedido se MUESTRA, no se suma: una orden de insumos no se liga a la recepción, así que lo que ya llegó estaría contado dos veces. Con pedidos, la salida es mirarlos; sin ellos, pedir.
-      const pedidos = c.pedidos?.get(i.id) ?? [];
-      const nombrados = pedidos.slice(0, 2).map(textoDePedido).join("; ");
-      const yaPedido = pedidos.length > 0 ? ` Ya hay pedidos: ${nombrados}${pedidos.length > 2 ? ` y ${pedidos.length - 2} más` : ""}. Si ya llegaron, anótalos en Recibir.` : "";
+      const atrasados = camino.pedidos.filter((p) => p.atrasado);
       out.push({
         id: `insumo-${i.id}`,
         severidad: 3,
         tipo: "insumo",
-        titulo: `Faltan ${cantidadTexto(falta - porLlegar, i.unidad)} de ${i.nombre} para lo que hay que cortar`,
-        detalle: `${pide}${porLlegar > 0 ? `; ya viene ${cantidadTexto(porLlegar, i.unidad)} facturado` : ""}. No alcanza ni contando lo que viene.${yaPedido}`,
-        accion: pedidos.length > 0 ? { texto: "Ver los pedidos", href: "/ordenes-insumos" } : { texto: i.tipo === "tela" ? "Pedir la tela" : "Pedir los avíos", href: "/ordenes-insumos/nueva" },
+        titulo: `Faltan ${cantidadTexto(falta - viaja, i.unidad)} de ${i.nombre} para lo que hay que cortar${camino.cuenta > 0 ? ", aun contando lo que viene" : ""}`,
+        detalle: `No alcanza ni con lo que viene.${atrasados.length > 0 ? ` Hay ${atrasados.length === 1 ? "un pedido atrasado" : `${atrasados.length} pedidos atrasados`} que no cuento.` : ""}`,
+        porque: `${cuenta}.`,
+        // Con un pedido atrasado, lo útil es ir a verlo (llamar al proveedor); si no, pedir lo que falta.
+        accion: atrasados.length > 0 ? { texto: "Ver los pedidos", href: "/ordenes-insumos" } : { texto: i.tipo === "tela" ? "Pedir la tela" : "Pedir los avíos", href: "/ordenes-insumos/nueva" },
       });
     }
   }
@@ -553,7 +583,8 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
   }
 
   // 5 · insumos bajo el mínimo (los que ya tienen su tarjeta de falta no se repiten)
-  const bajos = c.insumos.filter((i) => (i.tono === "bajo" || i.tono === "sin_saldo") && !yaAvisados.has(i.id) && !(llegadasPorInsumo.get(i.id)?.length));
+  // «No hay pedido en camino»: ni facturado por recibir ni un pedido que cuente; un pedido atrasado no cuenta como en camino.
+  const bajos = c.insumos.filter((i) => (i.tono === "bajo" || i.tono === "sin_saldo") && !yaAvisados.has(i.id) && !(llegadasPorInsumo.get(i.id)?.length) && !((c.enCamino?.get(i.id)?.cuenta ?? 0) > 0));
   if (bajos.length > 0)
     out.push({
       id: "minimo",
@@ -628,23 +659,46 @@ export type FilaTela = {
   nombre: string;
   unidad: UnidadInsumo;
   saldo: number;
+  /** Lo que viene y cuenta: lo facturado sin orden por recibir más lo que viene en camino de los pedidos (sin los atrasados). */
   porLlegar: number;
+  /** De `porLlegar`, lo facturado por recibir que no es de una orden de insumos. */
+  facturado: number;
+  /** De `porLlegar`, lo que falta recibir de los pedidos generados (regla de Felipe del 2026-10-16). */
+  enCamino: number;
+  /** Lo que falta recibir de pedidos ATRASADOS (su fecha estimada de entrega ya pasó): no cuenta en `porLlegar`. */
+  atrasado: number;
   /** Lo que las órdenes abiertas todavía necesitan; 0 = ninguna orden la pide (o el modelo no tiene rendimiento medido). */
   piden: number;
   estado: "sin_demanda" | "alcanza" | "alcanza_si_llega" | "falta";
   faltan: number;
-  /** Las órdenes de insumos generadas de esta tela, la más nueva primero: se muestran, no se suman a lo que hay. */
+  /** Los pedidos de esta tela con lo que falta recibir de cada uno: los que cuentan primero, los atrasados al fondo. */
   pedidos: PedidoDeInsumo[];
 };
 
-export function filasDeTela(insumos: InsumoParaDecidir[], demanda: Map<string, DemandaInsumo>, llegadas: LlegadaPendiente[], pedidos: Map<string, PedidoDeInsumo[]> = new Map()): FilaTela[] {
+export function filasDeTela(insumos: InsumoParaDecidir[], demanda: Map<string, DemandaInsumo>, llegadas: LlegadaPendiente[], enCamino: Map<string, CaminoDeInsumo> = new Map()): FilaTela[] {
   return insumos
     .filter((i) => i.tipo === "tela")
     .map((i) => {
       const piden = demanda.get(i.id)?.necesita ?? 0;
-      const porLlegar = llegadas.filter((l) => l.insumoId === i.id).reduce((s, l) => s + Math.max(0, l.pendiente), 0);
+      const facturado = llegadas.filter((l) => l.insumoId === i.id).reduce((s, l) => s + Math.max(0, l.pendiente), 0);
+      const camino = enCamino.get(i.id);
+      const viene = Math.max(camino?.cuenta ?? 0, 0);
+      const porLlegar = facturado + viene;
       const estado: FilaTela["estado"] = piden <= 1e-9 ? "sin_demanda" : i.saldo + 1e-9 >= piden ? "alcanza" : i.saldo + porLlegar + 1e-9 >= piden ? "alcanza_si_llega" : "falta";
-      return { insumoId: i.id, nombre: i.nombre, unidad: i.unidad, saldo: i.saldo, porLlegar, piden, estado, faltan: estado === "falta" ? piden - i.saldo - porLlegar : 0, pedidos: pedidos.get(i.id) ?? [] };
+      return {
+        insumoId: i.id,
+        nombre: i.nombre,
+        unidad: i.unidad,
+        saldo: i.saldo,
+        porLlegar,
+        facturado,
+        enCamino: viene,
+        atrasado: Math.max(camino?.atrasado ?? 0, 0),
+        piden,
+        estado,
+        faltan: estado === "falta" ? piden - i.saldo - porLlegar : 0,
+        pedidos: camino?.pedidos ?? [],
+      };
     })
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }

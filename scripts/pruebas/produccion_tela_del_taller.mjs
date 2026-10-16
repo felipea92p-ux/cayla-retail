@@ -246,7 +246,14 @@ const OTRA = (nombre, insumos = LINO) => `
    select id as ${nombre} from pg_temp.ultima \\gset`;
 const PEDIDO = (nombre, cantidad) => `
    insert into retail.ordenes_insumo (proveedor_id, ubicacion_destino_id, creada_por) values (:'maquila', :'taller', :'felipe_p') returning id as ${nombre} \\gset
-   insert into retail.orden_insumo_items (orden_insumo_id, posicion, insumo_id, cantidad, unidad_medida, precio_unitario) values (:'${nombre}', 1, :'lino', ${cantidad}, 'metro', 12);`;
+   insert into retail.orden_insumo_items (orden_insumo_id, posicion, insumo_id, cantidad, unidad_medida, precio_unitario) values (:'${nombre}', 1, :'lino', ${cantidad}, 'metro', 12) returning id as ${nombre}_it \\gset`;
+// Lo que ya llegó de esa línea: lo que deja la recepción de main (ADR-0362) —una recepción de la orden y un lote ligado a su línea—, que es de lo que `queda` descuenta.
+const RECIBIDO = (nombre, cantidad) => `
+   insert into retail.orden_insumo_recepciones (orden_insumo_id, ubicacion_id, usuario_id) values (:'${nombre}', :'taller', :'felipe_p') returning id as ${nombre}_rec \\gset
+   insert into retail.insumo_lotes (insumo_id, ubicacion_id, cantidad_ingresada, costo_unitario, origen, orden_insumo_item_id, orden_insumo_recepcion_id) values (:'lino', :'taller', ${cantidad}, 12, 'compra', :'${nombre}_it', :'${nombre}_rec');`;
+// Cuándo debía llegar, en días desde hoy (negativo = ya pasó); una orden no puede prometer la entrega antes de emitirse (`ordenes_insumo_entrega`).
+const ENTREGA = (nombre, dias) => `
+   update retail.ordenes_insumo set fecha_emision = least(fecha_emision, retail.fn_hoy_lima() + (${dias}) - 5), fecha_entrega_estimada = retail.fn_hoy_lima() + (${dias}) where id = :'${nombre}';`;
 const LOTE_DE_LINO = `
    insert into retail.insumo_lotes (insumo_id, ubicacion_id, cantidad_ingresada, costo_unitario, origen) values (:'lino', :'taller', 100, 12.50, 'compra') returning id as lote \\gset
    insert into retail.movimientos_insumo (insumo_id, insumo_lote_id, ubicacion_id, tipo, cantidad, costo_unitario, usuario_id) values (:'lino', :'lote', :'taller', 'compra', 100, 12.50, :'felipe_p');`;
@@ -338,7 +345,7 @@ caso(
   "2,20.000,50.000,t,Confecciones Lista Prueba"
 );
 caso(
-  "P2 una orden de insumos anulada, de hace más de 60 días o con destino a otra sede no cuenta como pedido (las mismas reglas de la página de la orden)",
+  "P2 una orden de insumos anulada o con destino a otra sede no cuenta como pedido; una de hace más de 60 días que aún falta recibir SÍ (las mismas reglas de la página de la orden)",
   `${ORDEN(ESPINA, LINO)}
    ${PEDIDO("oi_anulada", 10)}
    ${PEDIDO("oi_vieja", 10)}
@@ -347,9 +354,43 @@ caso(
    update retail.ordenes_insumo set estado = 'anulada', anulada_por = :'felipe_p', anulada_en = now(), motivo_anulacion = 'x' where id = :'oi_anulada';
    update retail.ordenes_insumo set fecha_emision = retail.fn_hoy_lima() - 61 where id = :'oi_vieja';
    update retail.ordenes_insumo set ubicacion_destino_id = (select id from retail.ubicaciones where tipo = 'tienda' and activo order by nombre limit 1) where id = :'oi_ajena';
-   select concat_ws(',', jsonb_array_length(${LINO_DEL_TALLER} -> 'pedidos'), (${LINO_DEL_TALLER} -> 'pedidos' -> 0 ->> 'cantidad')::numeric,
+   select concat_ws(',', jsonb_array_length(${LINO_DEL_TALLER} -> 'pedidos'), (${LINO_DEL_TALLER} -> 'pedidos' -> 0 ->> 'cantidad')::numeric, (${LINO_DEL_TALLER} ->> 'en_camino')::numeric,
      (${LINO_DEL_TALLER} -> 'pedidos') = (select e -> 'pedidos' from jsonb_array_elements(retail.fn_tela_pendiente_de_la_orden(:'oid')) e where e ->> 'insumo_id' = :'lino'));`,
-  "1,7.000,t"
+  "2,7.000,17.000,t"
+);
+
+// E. LO QUE VIENE EN CAMINO (regla de Felipe, 2026-10-16): cuenta lo que FALTA RECIBIR de cada pedido, salvo los atrasados --------------------
+caso(
+  "E1 lo recibido baja lo que viene (de 50 llegaron 30 → faltan 20) y un pedido recibido por completo ya no viene",
+  `${ORDEN(ESPINA, LINO)}
+   ${PEDIDO("oi1", 50)}
+   ${PEDIDO("oi2", 8)}
+   ${RECIBIDO("oi1", 30)}
+   ${RECIBIDO("oi2", 8)}
+   select concat_ws(',', jsonb_array_length(${LINO_DEL_TALLER} -> 'pedidos'), (${LINO_DEL_TALLER} -> 'pedidos' -> 0 ->> 'cantidad')::numeric, (${LINO_DEL_TALLER} ->> 'en_camino')::numeric, (${LINO_DEL_TALLER} ->> 'atrasado')::numeric);`,
+  "1,20.000,20.000,0"
+);
+caso(
+  "E2 un pedido con la fecha vencida NO cuenta y sale aparte como atrasado; el que llega hoy, el que llega después y el que no tiene fecha SÍ cuentan",
+  `${ORDEN(ESPINA, LINO)}
+   ${PEDIDO("oi_tarde", 30)}
+   ${PEDIDO("oi_hoy", 5)}
+   ${PEDIDO("oi_luego", 20)}
+   ${PEDIDO("oi_sin_fecha", 1)}
+   ${ENTREGA("oi_tarde", -1)}
+   ${ENTREGA("oi_hoy", 0)}
+   ${ENTREGA("oi_luego", 5)}
+   select concat_ws(',', jsonb_array_length(${LINO_DEL_TALLER} -> 'pedidos'), (${LINO_DEL_TALLER} ->> 'en_camino')::numeric, (${LINO_DEL_TALLER} ->> 'atrasado')::numeric,
+     (${LINO_DEL_TALLER} -> 'pedidos' -> 3 ->> 'atrasado'), (${LINO_DEL_TALLER} -> 'pedidos' -> 0 ->> 'atrasado'));`,
+  "4,26.000,30.000,true,false"
+);
+caso(
+  "E3 un pedido sin ninguna orden que declare la tela también trae su en_camino y su atrasado (una orden sin tela declarada también la pide)",
+  `${PEDIDO("oi1", 40)}
+   ${PEDIDO("oi2", 10)}
+   ${ENTREGA("oi2", -2)}
+   select concat_ws(',', (${LINO_DEL_TALLER} ->> 'comprometido')::numeric, (${LINO_DEL_TALLER} ->> 'en_camino')::numeric, (${LINO_DEL_TALLER} ->> 'atrasado')::numeric);`,
+  "0,40.000,10.000"
 );
 
 // Q. PUERTAS Y FORMA ------------------------------------------------------------------------------------------------------------

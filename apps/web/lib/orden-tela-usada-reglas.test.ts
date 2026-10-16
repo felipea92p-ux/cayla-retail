@@ -12,7 +12,7 @@ import {
 import type { InsumoPagina } from "./orden-pagina-reglas";
 
 const insumo = (parche: Partial<InsumoPagina> = {}): InsumoPagina => ({
-  id: "pi-1", insumoId: "i-1", nombre: "Lino lavado", tipo: "tela", unidad: "metro", colorCodigo: "NEG", colorNombre: "Negro", consumoPorPrenda: 1.5, cantidadPlan: 36, usado: 10, saldo: 40, comprometidoOtras: 0, pedidos: [], ...parche,
+  id: "pi-1", insumoId: "i-1", nombre: "Lino lavado", tipo: "tela", unidad: "metro", colorCodigo: "NEG", colorNombre: "Negro", consumoPorPrenda: 1.5, cantidadPlan: 36, usado: 10, saldo: 40, comprometidoOtras: 0, enCamino: 0, atrasado: 0, pedidos: [], ...parche,
 });
 const tela = (parche: Partial<TelaDeLaOrden> = {}): TelaDeLaOrden => ({ insumoId: "i-1", nombre: "Lino lavado", tipo: "tela", unidad: "metro", plan: 72, usado: 10, falta: 62, saldo: 40, ...parche });
 

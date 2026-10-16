@@ -46,6 +46,8 @@ export type PropsTelaDeLaOrden = {
   colores: ColorDeLaTela[];
   /** Por tela: lo que otras órdenes abiertas ya tienen comprometido (plan − usado), en su unidad. */
   comprometido: Map<string, number>;
+  /** Por tela: lo que viene en camino (lo que falta recibir de los pedidos, sin los atrasados): se suma a lo que hay para decir «alcanza». */
+  enCamino?: Map<string, number>;
   /** Lo que el modelo dice que lleva cada prenda (`producto_consumos`), o null si todavía no lo sabe. */
   consumoDeclarado: { telaPorPrenda: number; fuente: "declarado" | "medido" } | null;
   /** Solo quien ve los costos del Taller: «≈ S/ 756» al lado de los metros. */
@@ -73,9 +75,10 @@ const unidadCorta = (unidad: string) => (unidad in UNIDADES_INSUMO ? UNIDADES_IN
 /** El consumo por prenda con sus tres decimales («1.35 m»): `cantidad` redondea los metros a uno y 1.35 saldría «1.4 m». */
 const porPrenda = (n: number, unidad: string) => `${n.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: 3 })} ${unidadCorta(unidad)}`;
 
+const SIN_CAMINO = new Map<string, number>();
 const FILA_VACIA = (colorCodigo: string | null): TelaBorrador => ({ insumoId: null, colorCodigo, consumoPorPrenda: "" });
 
-export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre, colores, comprometido, consumoDeclarado, conCostos, costoPorMetro, guia, problemas, ofertaConsumo, puedeCorregirConsumo, fijarConsumo, onFijarConsumo }: PropsTelaDeLaOrden) {
+export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre, colores, comprometido, enCamino = SIN_CAMINO, consumoDeclarado, conCostos, costoPorMetro, guia, problemas, ofertaConsumo, puedeCorregirConsumo, fijarConsumo, onFijarConsumo }: PropsTelaDeLaOrden) {
   const porId = new Map(insumos.map((i) => [i.id, i] as const));
   const esAvio = (t: TelaBorrador) => (t.insumoId ? porId.get(t.insumoId)?.tipo === "avio" : false);
 
@@ -182,7 +185,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
           {porColor.map((fila) => {
             const insumo = fila.tela.insumoId ? porId.get(fila.tela.insumoId) : undefined;
             const plan = fila.indice !== null ? (planPorIndice.get(fila.indice) ?? 0) : 0;
-            const veredicto = insumo && plan > 0 ? veredictoTela(plan, insumo.saldo, comprometidoDe(insumo.id, fila.indice)) : null;
+            const veredicto = insumo && plan > 0 ? veredictoTela(plan, insumo.saldo, comprometidoDe(insumo.id, fila.indice), enCamino.get(insumo.id) ?? 0) : null;
             const costo = conCostos && insumo && plan > 0 ? costoPorMetro.get(insumo.id) : undefined;
             const pies = piesDe(problemasDe(fila.indice), fila.tela);
             const opciones = opcionesTela(fila);
@@ -257,7 +260,7 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
               {avios.map(({ tela, indice }) => {
                 const insumo = tela.insumoId ? porId.get(tela.insumoId) : undefined;
                 const plan = planPorIndice.get(indice) ?? 0;
-                const veredicto = insumo && plan > 0 ? veredictoTela(plan, insumo.saldo, comprometidoDe(insumo.id, indice)) : null;
+                const veredicto = insumo && plan > 0 ? veredictoTela(plan, insumo.saldo, comprometidoDe(insumo.id, indice), enCamino.get(insumo.id) ?? 0) : null;
                 const costo = conCostos && insumo && plan > 0 ? costoPorMetro.get(insumo.id) : undefined;
                 const pies = piesDe(problemasDe(indice), tela);
                 const opciones = opcionesAvio(tela);
@@ -309,13 +312,15 @@ export function TelaDeLaOrden({ telas, onTelas, insumos, tejidoId, tejidoNombre,
 }
 
 /** «Pedir 37.8 m · Alcanza · ≈ S/ 756»: lo derivado de la fila. «Faltan» va en ámbar, nunca en rojo: la tela se pide, no es un error. */
-function Derivado({ plan, unidad, veredicto, costo }: { plan: number; unidad: string; veredicto: { alcanza: boolean; faltan: number }; costo: number | null }) {
+function Derivado({ plan, unidad, veredicto, costo }: { plan: number; unidad: string; veredicto: { alcanza: boolean; faltan: number; conLoQueViene: boolean }; costo: number | null }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] tabular-nums">
       <span className="text-tinta">
         Pedir <b className="font-semibold">{cantidad(plan, unidad)}</b>
       </span>
-      <Chip tono={veredicto.alcanza ? "verde" : "ambar"}>{veredicto.alcanza ? "Alcanza" : `Faltan ${cantidad(veredicto.faltan, unidad)}`}</Chip>
+      <Chip tono={veredicto.alcanza && !veredicto.conLoQueViene ? "verde" : "ambar"}>
+        {veredicto.alcanza ? (veredicto.conLoQueViene ? "Alcanza si llega lo pedido" : "Alcanza") : `Faltan ${cantidad(veredicto.faltan, unidad)}`}
+      </Chip>
       {costo !== null && <span className="text-taupe">≈ {soles(costo)}</span>}
     </div>
   );
