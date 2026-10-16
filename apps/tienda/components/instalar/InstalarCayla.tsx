@@ -6,8 +6,7 @@ import {
   avisoAlEntrar,
   INTENTOS_DE_QUIETUD,
   QUIETUD_MS,
-  RETRASO_FRANJA_MS,
-  RETRASO_HOJA_MS,
+  RETRASO_MS,
   textoDelBoton,
   type AvisoAlEntrar,
 } from "@/lib/instalar";
@@ -31,7 +30,7 @@ function hayAlgoQueNoSeDebeTapar() {
 /**
  * El aviso de instalar al entrar (ADR-0431; plantillas A y C de docs/maquetas/tienda-instalar-2026-10). Va en el marco del Inicio y el
  * catálogo. Reglas de buena vecindad, todas pensadas para no malograr lo que la persona vino a hacer:
- *  - Primero ve la tienda: la hoja espera 8 s y la franja 4 s.
+ *  - Sale ni bien entra (menos de un segundo: lo que tarda la página en pintarse), no después de un rato.
  *  - Nunca encima de un gesto: si acaba de tocar o de bajar la página, se espera a que se quede quieta (y si no se queda, se deja para
  *    otra visita); tampoco con un campo en uso ni con otra hoja abierta.
  *  - La franja empuja la página hacia abajo, así que solo sale con la página arriba del todo (si no, lo que se lee saltaría).
@@ -69,7 +68,7 @@ export function InstalarCayla() {
       ofrecido.current = true;
       setAviso(ahora);
     };
-    reloj = window.setTimeout(alVencer, inicial === "franja" ? RETRASO_FRANJA_MS : RETRASO_HOJA_MS);
+    reloj = window.setTimeout(alVencer, RETRASO_MS);
     return () => {
       window.clearTimeout(reloj);
       for (const e of EVENTOS_DE_ACTIVIDAD) window.removeEventListener(e, marcar);

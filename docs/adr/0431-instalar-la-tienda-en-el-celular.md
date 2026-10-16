@@ -15,8 +15,9 @@ cartel que tapa lo que la persona vino a hacer, o que vuelve cada vez, malogra l
 
 Un camino de cuatro escalones, del menos al más insistente, con reglas que protegen la compra (todas en `lib/instalar.ts`, con su prueba):
 
-1. **Al entrar (Inicio y catálogo), una sola vez por visita.** La **hoja de abajo** (plantilla C) a los 8 s; la **franja** bajo la cabecera
-   (plantilla A) a los 4 s **si el Inicio ya trae el aviso del Club** (uno espera al otro: no se apilan dos tarjetas). Nunca encima de un gesto:
+1. **Al entrar (Inicio y catálogo), una sola vez por visita.** La **hoja de abajo** (plantilla C), o la **franja** bajo la cabecera
+   (plantilla A) **si el Inicio ya trae el aviso del Club** (uno espera al otro: no se apilan dos tarjetas). Sale **ni bien entra** (0,8 s: lo que tarda la página en pintarse; con 8 s, Felipe la
+   probó y «demoraba un rato en aparecer», 2026-10-16). Nunca encima de un gesto:
    si la persona acaba de tocar o de bajar la página, se espera a que se quede quieta 1,2 s (hasta 5 intentos y se deja para otra visita);
    tampoco con un campo en uso ni con otra hoja abierta. La franja empuja la página, así que **solo sale con la página arriba del todo**
    (en Safari de iPhone no hay anclaje de scroll y lo que se lee saltaría).
@@ -39,6 +40,8 @@ guardar, vale hasta cerrar la página.
 - `public/sw.js`: un service worker **sin caché y sin tocar ninguna petición**. Existe para que Chrome de Android trate la tienda como
   instalable; la tienda muestra stock por tienda y cuentas con sesión, y una copia vieja sería un error. Solo se registra en Android.
   Funcionar sin conexión sería otra decisión.
+- Un script de dos líneas en el `<head>` (`SCRIPT_DEL_AVISO`, `app/layout.tsx`) guarda el aviso de Chrome si llega antes de que la página se arme:
+  llega una sola vez y, sin esto, en un celular lento (o apenas inicia sesión) se perdería y en Android no saldría nada.
 - `proxy.ts`: el `matcher` ahora también excluye `.js` y `.webmanifest`: el navegador pide el manifiesto sin cookies y no debe toparse con
   una redirección a «Entrar».
 - `components/instalar/`: `ProveedorInstalar` (en la raíz: el aviso de Chrome llega una vez y se pierde si nadie lo guarda), `InstalarCayla`
