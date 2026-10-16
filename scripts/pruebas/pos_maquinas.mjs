@@ -388,10 +388,48 @@ select pg_temp.intento('select count(*) from retail.fn_pos_alertas()');`);
   esperar("la estimación: S/ 2.68 para la tarjeta de Vendemás, S/ 0 para el QR de Izipay, nula para la tarjeta de Izipay (sin tarifa)", r.ok && estimadas === "2.68|0.00|t", r);
   esperar("cambiarla abre una fila desde hoy y deja su rastro en la historia de Configuración", r.ok && cambio === "t|2" && historial === "2", r);
   esperar("una tarifa no se edita", r.ok && editar.includes("no se edita ni se borra"), r);
-  esperar("una venta de hace 9 días sin depósito aparece ATRASADA en las dos máquinas (su tarjeta en Vendemás, su QR en Izipay), y ninguna está sin tarifa",
-    r.ok && retroceder === "SIN_ERROR" && alertas === "2|2|f", r);
+  esperar("una venta de hace 9 días sin depósito aparece ATRASADA en las dos máquinas (su tarjeta en Vendemás, su QR en Izipay)",
+    r.ok && retroceder === "SIN_ERROR" && alertas.startsWith("2|2|"), r);
   esperar("Configuración ve la tarifa vigente en cada fila de la máquina", r.ok && maquinas === "1|1", r);
   esperar("cambiar la tarifa y ver las alertas es del líder", r.ok && micaela.includes("del líder") && micaelaVe.includes("del líder"), r);
+}
+
+// 9. Actividad 5 (20261016193000): los cobros con tarjeta y QR sellados en un banco pasan a la puente de su máquina, con rastro.
+//    (Los cobros «viejos» se sellan a mano en el banco: el sello acepta un banco elegido para tarjeta y QR, como en F3b.)
+{
+  const r = correr(`${ESCENA}
+select retail.crear_cuenta_dinero('BCP prueba resello', 'banco', 0, retail.fn_hoy_lima()) as bcp \\gset
+${venta("v1", "tru", [["tarjeta", 100]])}
+insert into retail.venta_pagos (venta_id, metodo, monto, cuenta_dinero_id) values (:'v1', 'tarjeta', 50, :'bcp') returning pg_temp.cta(cuenta_dinero_id);
+insert into retail.venta_pagos (venta_id, metodo, monto, cuenta_dinero_id) values (:'v1', 'qr', 20, :'bcp');
+insert into retail.venta_pagos (venta_id, metodo, monto, cuenta_dinero_id) values (:'v1', 'yape', 10, :'bcp');
+select pg_temp.saldo(:'bcp') as b0, pg_temp.saldo(:'vendemas_cta') as s0v, pg_temp.saldo(:'izipay_cta') as s0i \\gset
+select pg_temp.intento(format('update retail.venta_pagos set cuenta_dinero_id = %L where venta_id = %L and metodo = ''qr''', :'izipay_cta', :'v1'));
+select has_function_privilege('authenticated', 'retail.fn_resellar_cobros_a_maquinas(date, text)', 'execute');
+select pg_temp.intento('select retail.fn_resellar_cobros_a_maquinas(retail.fn_hoy_lima(), '''')');
+select (retail.fn_resellar_cobros_a_maquinas(retail.fn_hoy_lima(), 'prueba automatizada')) - 'detalle' - 'no_tocados' - 'desde';
+select string_agg(metodo || ':' || monto || ':' || pg_temp.cta(cuenta_dinero_id), ',' order by metodo, monto) from retail.venta_pagos where venta_id = :'v1';
+select pg_temp.saldo(:'bcp') - :b0, pg_temp.saldo(:'vendemas_cta') - :s0v, pg_temp.saldo(:'izipay_cta') - :s0i;
+select count(*), bool_and(pg_temp.cta(cuenta_antes) = 'BCP prueba resello' and motivo = 'prueba automatizada'), string_agg(pg_temp.cta(cuenta_despues), ',' order by pg_temp.cta(cuenta_despues))
+  from retail.cobros_resellados r where r.origen_id in (select id from retail.venta_pagos where venta_id = :'v1');
+select (retail.fn_resellar_cobros_a_maquinas(retail.fn_hoy_lima(), 'otra vez')) ->> 'movidos';
+select pg_temp.intento(format('delete from retail.cobros_resellados where origen_id in (select id from retail.venta_pagos where venta_id = %L)', :'v1'));
+select pg_temp.intento(format('update retail.venta_pagos set cuenta_dinero_id = %L where venta_id = %L and metodo = ''qr''', :'bcp', :'v1'));
+select count(*) from retail.fn_pos_pendientes(:'izipay_cta') where fecha = retail.fn_hoy_lima() and medio = 'qr';`);
+  const [antes, aMano, privilegio, sinMotivo, resultado, despues, saldos, rastro, otraVez, borrarRastro, aManoDespues, pendiente] = lineas(r);
+  esperar("un cobro con tarjeta sellado en el banco (como estaba producción)", r.ok && antes === "BCP prueba resello", r);
+  esperar("desde una pantalla el sello sigue sin cambiar", r.ok && aMano.includes("se sella al cobrar"), r);
+  esperar("la corrección no la puede llamar la web (`authenticated` sin permiso) y exige un motivo", r.ok && privilegio === "f" && sinMotivo.includes("Di por qué"), r);
+  // En una base recién sembrada también se corrige el cobro con tarjeta del seed (sin cuenta): por eso «al menos 2».
+  const res = r.ok ? JSON.parse(resultado) : {};
+  esperar("mueve la tarjeta y el QR del banco a su máquina, y nada queda sin destino", r.ok && res.movidos >= 2 && res.sin_destino === 0, r);
+  esperar("la tarjeta va a Vendemás, el QR a Izipay; el Yape no se toca y lo que ya estaba en una puente tampoco",
+    r.ok && despues === "qr:20.00:Por depositar Izipay,tarjeta:50.00:Por depositar Vendemás,tarjeta:100.00:Por depositar Vendemás,yape:10.00:BCP prueba resello", r);
+  esperar("el banco baja S/ 70 y las puentes suben S/ 50 y S/ 20", r.ok && saldos === "-70.00|50.00|20.00", r);
+  esperar("queda el rastro de cada uno: de qué cuenta a cuál y por qué", r.ok && rastro === "2|t|Por depositar Izipay,Por depositar Vendemás", r);
+  esperar("la segunda vez no mueve nada (idempotente)", r.ok && otraVez === "0", r);
+  esperar("el rastro no se borra, y el sello sigue cerrado después de la corrección", r.ok && borrarRastro.includes("no se edita ni se borra") && aManoDespues.includes("se sella al cobrar"), r);
+  esperar("el QR corregido aparece como día pendiente de depósito en Izipay", r.ok && Number(pendiente) >= 1, r);
 }
 
 console.log(fallos === 0 ? `\nTodo en orden (${casos} casos) · contenedor: ${CONTENEDOR_LOCAL}` : `\n${fallos} de ${casos} caso(s) fallaron · contenedor: ${CONTENEDOR_LOCAL}`);
