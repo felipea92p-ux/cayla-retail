@@ -1,7 +1,7 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 662 llamadas `.rpc` de `apps/web` contra 1327 funciones del schema `retail` en producción: 472 con los parámetros leídos (se comparan uno por uno), 68 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 122 con el nombre en un ternario o una variable.
+> Comparadas 660 llamadas `.rpc` de `apps/web` contra 1327 funciones del schema `retail` en producción: 471 con los parámetros leídos (se comparan uno por uno), 67 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 122 con el nombre en un ternario o una variable.
 > **Foto de producción: 2026-10-16 17:10 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
@@ -72,9 +72,9 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `buscar_separaciones` · `apps/web/lib/separaciones.ts:70` — no manda `p_texto`, `p_estados`, `p_desde`, `p_hasta` (normal si tienen valor por defecto)
 - `fn_totales_historial_ventas` · `apps/web/lib/ventas-historial.ts:251` — no manda `p_ids` (normal si tienen valor por defecto)
 
-## No analizadas — 315
+## No analizadas — 314
 
-Estas 315 entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):
+Estas 314 entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):
 arman sus parámetros fuera de la propia llamada, o la pantalla nombra la función sin un `.rpc("…")` directo (un ternario, un
 ayudante, una constante), o usan `.rpc` como valor (`.bind`, `const { rpc } = x`). No se pueden revisar leyendo el texto.
 **No están aprobadas: están sin revisar.** Una llamada directa o de un ternario a una función que la foto no tiene también está arriba,
@@ -83,7 +83,6 @@ foto ni ninguna migración del repo conocen.
 
 - `fn_existencias` · `apps/web/app/(app)/buscar/page.tsx:103` — el objeto se arma con «...», no se puede leer entero
 - `(alias de rpc)` · `apps/web/app/(app)/productos/categorias/page.tsx:47` — `.rpc` se usa como valor (se llama con un cast: `(x.rpc as …)(…)`): la función que se llama por ahí no se ve
-- `registrarse_en_el_club` · `apps/web/app/actions/club-registro.ts:103` — los parámetros no van escritos ahí mismo
 - `fn_frescura_sede` · `apps/web/app/api/inventario/frescura-vara-cayla/route.ts:45` — los parámetros no van escritos ahí mismo
 - `(alias de rpc)` · `apps/web/app/api/lucode/anular/route.ts:54` — `.rpc` se usa como valor (.rpc.bind(…)): la función que se llama por ahí no se ve
 - `(alias de rpc)` · `apps/web/app/api/lucode/consultar-anulacion/route.ts:40` — `.rpc` se usa como valor (.rpc.bind(…)): la función que se llama por ahí no se ve
@@ -131,9 +130,9 @@ foto ni ninguna migración del repo conocen.
 - `(nombre calculado)` · `apps/web/components/analisis/HojaLiquidarDesde.tsx:59` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `separar_prendas` · `apps/web/components/apartados/ApartarVista.tsx:549` — el objeto se arma con «...», no se puede leer entero
 - `entregar_separacion` · `apps/web/components/apartados/EntregarVista.tsx:132` — el objeto se arma con «...», no se puede leer entero
-- `abonar_separacion` · `apps/web/components/apartados/ModalesApartado.tsx:645` — el objeto se arma con «...», no se puede leer entero
-- `editar_separacion` · `apps/web/components/apartados/ModalesApartado.tsx:821` — el objeto se arma con «...», no se puede leer entero
-- `enviar_pedido_para_apartar` · `apps/web/components/apartados/ModalesApartado.tsx:1068` — el objeto se arma con «...», no se puede leer entero
+- `abonar_separacion` · `apps/web/components/apartados/ModalesApartado.tsx:646` — el objeto se arma con «...», no se puede leer entero
+- `editar_separacion` · `apps/web/components/apartados/ModalesApartado.tsx:822` — el objeto se arma con «...», no se puede leer entero
+- `enviar_pedido_para_apartar` · `apps/web/components/apartados/ModalesApartado.tsx:1069` — el objeto se arma con «...», no se puede leer entero
 - `conteo_contar` · `apps/web/components/conteo/ContarConteo.tsx:155` — el objeto se arma con «...», no se puede leer entero
 - `conteo_recontar` · `apps/web/components/conteo/RevisarConteo.tsx:138` — los parámetros no van escritos ahí mismo
 - `conteo_confirmar_diferencia` · `apps/web/components/conteo/RevisarConteo.tsx:139` — los parámetros no van escritos ahí mismo
@@ -397,7 +396,7 @@ foto ni ninguna migración del repo conocen.
 - `retirar_del_piso` · `apps/web/lib/retiro-reglas.ts:21` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 - `crear_producto_con_variantes` · `apps/web/lib/useColaProductos.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 
-## Funciones sin llamada detectada desde `apps/web` — 105
+## Funciones sin llamada detectada desde `apps/web` — 107
 
 Existen en producción y ninguna pantalla de `apps/web` las nombra entre comillas (ni con un `.rpc("…")` directo ni de otra
 forma; los comentarios y las pruebas no cuentan; las `fn_*` se descartan a propósito). **Esto NO prueba que sobren.** Cada
@@ -434,6 +433,7 @@ select p.proname from pg_proc p
 - `cargar_activo_inicial`
 - `cargar_stock_inicial`
 - `catalogo_crear_producto`
+- `club_intento`
 - `confirmar_invitacion_club`
 - `convertir_proforma_a_comprobante`
 - `crear_invitacion_club`
@@ -456,6 +456,7 @@ select p.proname from pg_proc p
 - `registrar_mensaje_publicidad`
 - `registrar_movimiento`
 - `registrar_pago_compra`
+- `registrarse_en_el_club`
 - `resumen_sin_comprobante`
 - `tienda_anotar_entrada`
 - `tienda_anotar_invitado`
