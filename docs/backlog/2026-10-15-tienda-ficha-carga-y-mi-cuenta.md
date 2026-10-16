@@ -1,8 +1,8 @@
 ## 🛍️ Tienda online: la ficha avisa que viene y «Mi perfil» ordenado (2026-10-15)
 
 **Decisiones de Felipe:**
-- [ ] **El nombre «Mi perfil»:** la página, el menú del celular y los avisos dicen «Mi perfil», como el menú de la persona (antes la
-  página decía «Mi cuenta»). Si prefieres «Mi cuenta» en todos lados, es un cambio de textos.
+- [x] ~~**El nombre «Mi perfil»**~~ — Felipe 2026-10-15: se queda «Mi perfil» en la página, el menú del celular y los avisos, como el
+  menú de la persona.
 - [ ] **Textos legales que dicen «Mi cuenta»** (Privacidad: «Algunas las haces tú mismo en «Mi cuenta»»; Términos del Club: «eliminando
   tu cuenta en «Mi cuenta»»): cambiarlos a «Mi perfil» en su revisión legal, con su versión nueva (no se tocaron).
 
