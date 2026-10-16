@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { salir } from "@/app/acciones/cuenta";
+import { FilaInstalar } from "../instalar/FilaInstalar";
 import { BotonCerrarSesion } from "./BotonCerrarSesion";
 import { SeccionDelPerfil } from "./SeccionDelPerfil";
 
@@ -13,6 +14,8 @@ export function TuCuentaWeb({ correo }: { correo: string }) {
         <p className="pf-acceso-correo">
           <span>Entras con</span> <b className="w-correo">{correo}</b>
         </p>
+        {/* Instalar CAYLA en el celular (ADR-0431): la fila que no insiste nunca. Solo en el celular y si todavía no la tiene. */}
+        <FilaInstalar />
         <div className="pf-acceso-acc">
           <Link className="t-btn t-btn-sec t-btn-chico" href="/cuenta/correo">
             Cambiar mi correo

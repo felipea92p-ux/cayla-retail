@@ -109,6 +109,15 @@ seguridad «Email address changed» encendido con `correo-cambiado.html`, y `htt
 - **El proxy revisa la sesión con `getClaims()`** (la firma ES256, sin llamar al proyecto de clientes); las páginas que muestran datos de
   una cuenta la confirman con `getUser()` (`leerSesion`).
 
+## Instalar CAYLA en el celular (ADR-0431, 2026-10-16)
+
+La tienda se puede añadir a la pantalla de inicio (una app web, no una de Play Store ni App Store). Lo que sabe el navegador vive en
+`components/instalar/ProveedorInstalar.tsx` (en la raíz) y las reglas de cuándo ofrecerla y cuándo callarse, en `lib/instalar.ts` con su
+prueba: una sola vez por visita, nunca encima de un gesto, «Ahora no» calla 30 días y dos, para siempre; la fila de «Mi perfil» no
+insiste nunca. `app/manifest.ts` y `public/sw.js` (sin caché: no toca ninguna petición) son lo que el celular lee; `proxy.ts` los deja
+pasar sin redirigir. Un componente nuevo que ofrezca instalar usa `useInstalar()`, no escucha `beforeinstallprompt` por su cuenta (el
+aviso de Chrome llega una sola vez). Las plantillas: `docs/maquetas/tienda-instalar-2026-10/`.
+
 ## Levantarla en local
 
 1. La base local del repo arriba (`npx supabase start`) con las migraciones de la tienda (`20261014220000…`, `20261014223000…`,
