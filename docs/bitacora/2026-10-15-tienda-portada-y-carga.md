@@ -1,0 +1,4 @@
+## 2026-10-15 (Tienda online: la portada no anuncia una campaña vacía, y se ve que carga)
+Qué hice: el Inicio de la tienda anuncia la campaña vigente solo si tiene alguna prenda suya que baja de precio en lo que se ve; si no, muestra «Lo nuevo» (o la marca). Y las páginas con cuenta tienen su esqueleto de carga: la cabecera de siempre y la grilla con tarjetas vacías que brillan, apenas se toca una prenda o una categoría.
+Por qué así: el primer día en producción el Aniversario (−12 %) no tenía ninguna de las 298 prendas publicadas: el collage quedaba vacío y «Ver la campaña» llevaba a una lista sin nada (decidió Felipe: «mostrarla solo si tiene prendas»). Y tocar un enlace no hacía nada visible durante 1 o 2 s. El esqueleto solo usa piezas fijas, sin leer la sesión ni la base, para salir al instante.
+Felipe se lleva: la portada con fotos de Lo nuevo hasta que publique prendas del Aniversario, y la sensación de carga al navegar.

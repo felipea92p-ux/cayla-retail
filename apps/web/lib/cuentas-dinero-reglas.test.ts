@@ -300,3 +300,14 @@ describe("efectivo por tienda y fechas", () => {
     expect([c.saldo, c.soloDestino, c.orden]).toEqual([null, true, 10]);
   });
 });
+
+// /chaos de Finanzas 2026-10-14 (ADR-0412): un movimiento de dinero llega hasta S/ 1 000 000 (`movimientos_dinero_monto_con_tope`).
+describe("el monto de un movimiento tiene tope", () => {
+  const hoy = "2026-09-24";
+  const base: BorradorMovimiento = { que: "deposito", clase: "aporte", origen: "cTRU", destino: "bcp", monto: "1,500", referencia: "", comision: "", fecha: hoy, fuente: "caja", egresoId: "" };
+  const ctx = { cuentas: TODAS, egresos: [], deuda: 6000, hoy };
+  it("un millón entra; un sol más, no", () => {
+    expect(validarMovimiento({ ...base, monto: "1000000" }, ctx).ok).toBe(true);
+    expect(validarMovimiento({ ...base, monto: "1000001" }, ctx)).toEqual({ ok: false, error: "El monto pasa de S/\u00a01 000 000: revisa que no sobre un cero." });
+  });
+});

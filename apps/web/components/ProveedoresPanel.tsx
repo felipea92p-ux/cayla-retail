@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BarraApilada } from "@/components/ui/BarraApilada";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, FunnelX, SearchX, Truck } from "lucide-react";
@@ -561,12 +562,19 @@ function FilaLider({ p, indice, busqueda, marcas, serie, maxSaldo, cambiando, re
             >
               {soles(saldo)}
             </Link>
-            {/* La deuda a escala: el largo es la parte del mayor saldo de la lista y el rojo, lo ya vencido. */}
-            <span aria-hidden title={vencido ? `Vencido: ${soles(p.saldo_vencido ?? 0)}` : "Nada vencido"} className="mt-1 block h-[3px] overflow-hidden rounded-full bg-sand">
-              <span className="anim-crece-x flex h-full" style={{ width: `${Math.max(4, (saldo / maxSaldo) * 100)}%`, ["--i" as string]: 8 + Math.min(indice, 10) }}>
-                <span className="h-full bg-rojo" style={{ width: `${(Math.min(p.saldo_vencido ?? 0, saldo) / saldo) * 100}%` }} />
-                <span className="h-full flex-1 bg-tinta/45" />
-              </span>
+            {/* La deuda a escala del mayor saldo de la lista (ronda 14 de /unificar): la barra apilada del sistema, lo ya vencido en rojo y
+                lo que falta vencer en tinta, medida contra el mayor saldo (el hueco del final es la pista). */}
+            <span title={vencido ? `Vencido: ${soles(p.saldo_vencido ?? 0)}` : "Nada vencido"} className="mt-1 block">
+              <BarraApilada
+                alto={4}
+                decorativa
+                total={maxSaldo}
+                retraso={8 + Math.min(indice, 10)}
+                segmentos={[
+                  { clave: "vencido", nombre: "Vencido", valor: Math.min(p.saldo_vencido ?? 0, saldo), clase: "bg-rojo" },
+                  { clave: "por-vencer", nombre: "Por vencer", valor: saldo - Math.min(p.saldo_vencido ?? 0, saldo), clase: "bg-tinta" },
+                ]}
+              />
             </span>
           </>
         ) : (

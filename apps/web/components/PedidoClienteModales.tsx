@@ -148,7 +148,7 @@ export function AvisarAlClienteModal({
                 className="flex-1"
               >
                 <span className="flex items-center justify-center gap-2">
-                  <Check aria-hidden className="-my-1 h-4 w-4" strokeWidth={1.75} />
+                  <Check aria-hidden className="-my-1 h-4 w-4" />
                   Ya le avisé
                 </span>
               </Boton>
@@ -166,7 +166,7 @@ export function AvisarAlClienteModal({
                 }}
                 className={`${botonPrimario} inline-flex items-center justify-center gap-2 ${!responsable.listo || estado !== "listo" ? "pointer-events-none opacity-50" : ""}`}
               >
-                <MessageCircle aria-hidden className="h-4 w-4" strokeWidth={1.75} />
+                <MessageCircle aria-hidden className="h-4 w-4" />
                 {estado === "guardando" ? "Guardando…" : "Abrir WhatsApp" /* unificar-fijo: un enlace que abre WhatsApp en otra pestaña y anota a la vez; no es un botón */}
               </a>
             )}

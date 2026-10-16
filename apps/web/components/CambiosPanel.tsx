@@ -311,7 +311,7 @@ export function CambiosPanel({
           onClick={() => setCamara(true)}
           className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
         >
-          <ScanLine size={19} aria-hidden />
+          <ScanLine size={20} aria-hidden />
           Escanear prenda o boleta
         </button>
       </div>

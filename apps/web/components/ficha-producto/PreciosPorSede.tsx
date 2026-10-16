@@ -87,7 +87,6 @@ export function PreciosPorSede({
         <Store
           aria-hidden
           className="h-4 w-4 shrink-0 text-taupe"
-          strokeWidth={1.75}
         />
         <p className="text-[13px] font-semibold text-tinta">
           Precio por tienda

@@ -26,13 +26,16 @@ import {
   MENSAJE,
   casillaTerminos,
   completarMarcadores,
+  correoRechazado,
   enlaceLegal,
   letraChica,
   marcadoresDePagina,
   mensajeDeConsulta,
   problemasRegistro,
+  rechazoDelCorreo,
   versionesDe,
   type CampoRegistro,
+  type CorreoRechazado,
   type PaginaClub,
   type RegistroEscrito,
   type RespuestaRegistro,
@@ -100,6 +103,8 @@ export function RegistroClub({ ubicacionId, paginaInicial }: { ubicacionId: stri
   const [salio, setSalio] = useState<ReadonlySet<CampoRegistro>>(new Set());
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // El correo que el servidor no aceptó (el de otra persona): su mensaje va bajo la caja del correo mientras siga escrito ese.
+  const [correoNoAceptado, setCorreoNoAceptado] = useState<CorreoRechazado | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [listo, setListo] = useState<Listo | null>(null);
   // El DNI que está en la caja AHORA: una respuesta del padrón que llega tarde, de un número anterior, no se pinta.
@@ -121,7 +126,10 @@ export function RegistroClub({ ubicacionId, paginaInicial }: { ubicacionId: stri
   const esDni = r.documentoTipo === "dni";
   const pendienteDocumento =
     consulta.estado === "buscando" ? "Buscando tu DNI…" : consulta.estado === "encontrado" ? "Confirma si eres tú." : consulta.estado === "fallo" ? consulta.mensaje : null;
-  const campos = camposDelRegistro(r, hoy, esDni ? pendienteDocumento : null);
+  // Lo que el servidor dijo del correo que sigue escrito (el de otra persona, Felipe 2026-10-15): va bajo SU caja y el correo no
+  // cuenta como listo hasta que escriba otro o lo borre. Antes salía bajo el botón y la caja del correo quedaba con ✓.
+  const rechazoCorreo = rechazoDelCorreo(correoNoAceptado, r.correo);
+  const campos = camposDelRegistro(r, hoy, esDni ? pendienteDocumento : null, rechazoCorreo);
   const guia = useGuiaCampos(campos, { enModal: false });
   const avance = avanceDelRegistro(campos);
   const problemas = problemasRegistro(r, hoy);
@@ -214,7 +222,10 @@ export function RegistroClub({ ubicacionId, paginaInicial }: { ubicacionId: stri
         setAviso(MENSAJE.textosCambiaron);
         guia.ir("terminos");
       } else {
-        setError(res.mensaje);
+        // El correo que no se acepta va bajo su caja (y la guía la enciende); lo demás, bajo el botón, como siempre.
+        const rechazo = correoRechazado(res, r);
+        if (rechazo) setCorreoNoAceptado(rechazo);
+        else setError(res.mensaje);
         if (res.campo) guia.ir(res.campo);
       }
     } catch {
@@ -234,7 +245,7 @@ export function RegistroClub({ ubicacionId, paginaInicial }: { ubicacionId: stri
   const errorNombre = problemaVisible("nombre", r.nombre);
   const errorCelular = problemaVisible("celular", r.celular);
   const errorNacimiento = r.nacimiento.anio.length === 4 ? (problemas.nacimiento ?? null) : null;
-  const errorCorreo = problemaVisible("correo", r.correo);
+  const errorCorreo = rechazoCorreo ?? problemaVisible("correo", r.correo);
   // Las casillas obligatorias son UNA tarjeta: se enciende si lo que sigue es una de ellas.
   const estadoCasillas: EstadoCampo =
     guia.ahora === "mayor" || guia.ahora === "terminos" ? "ahora" : guia.estado("mayor") === "hecho" && guia.estado("terminos") === "hecho" ? "hecho" : "falta";
@@ -296,7 +307,16 @@ export function RegistroClub({ ubicacionId, paginaInicial }: { ubicacionId: stri
             <Pie id={`${ID.numero}-pie`} error={errorDocumento}>
               {AYUDA.documento}
             </Pie>
-            {esDni && <ConfirmarDni consulta={consulta} numero={r.documentoNumero} onSi={confirmarDni} onCorregir={corregirDni} />}
+            {esDni && (
+              <ConfirmarDni
+                consulta={consulta}
+                numero={r.documentoNumero}
+                onSi={confirmarDni}
+                onCorregir={corregirDni}
+                onReintentar={() => pedirNombre(r.documentoNumero)}
+                deshabilitado={enviando}
+              />
+            )}
           </TarjetaCampo>
 
           {!esDni && (
@@ -321,7 +341,10 @@ export function RegistroClub({ ubicacionId, paginaInicial }: { ubicacionId: stri
                 onChange={(e) => setR((x) => ({ ...x, nombre: e.target.value }))}
                 onBlur={() => marcarSalida("nombre")}
               />
-              <Pie id={`${ID.nombre}-pie`} error={errorNombre} />
+              {/* Tal cual está en el documento (Felipe 2026-10-15). Un número se dice apenas se escribe: ningún nombre lo lleva. */}
+              <Pie id={`${ID.nombre}-pie`} error={errorNombre ?? (/[0-9]/.test(r.nombre) ? (problemas.nombre ?? null) : null)}>
+                {AYUDA.nombre}
+              </Pie>
             </TarjetaCampo>
           )}
 
@@ -609,8 +632,25 @@ function FilaCasilla({
   );
 }
 
-/** «¿Eres Mariela Q. R.?» bajo el DNI: buscando, la pregunta con «Sí, soy yo» / «No, corregir», confirmado, o por qué no se pudo. */
-function ConfirmarDni({ consulta, numero, onSi, onCorregir }: { consulta: Consulta; numero: string; onSi: () => void; onCorregir: () => void }) {
+/**
+ * «¿Eres Mariela Q. R.?» bajo el DNI: buscando, la pregunta con «Sí, soy yo» / «No, corregir», confirmado, o por qué no se pudo. Sin
+ * el nombre del padrón no se une (Felipe 2026-10-15): el porqué va con «Volver a intentar», que vuelve a preguntar por el mismo DNI.
+ */
+function ConfirmarDni({
+  consulta,
+  numero,
+  onSi,
+  onCorregir,
+  onReintentar,
+  deshabilitado,
+}: {
+  consulta: Consulta;
+  numero: string;
+  onSi: () => void;
+  onCorregir: () => void;
+  onReintentar: () => void;
+  deshabilitado: boolean;
+}) {
   if (consulta.estado === "nada" || consulta.numero !== numero) return null;
   if (consulta.estado === "buscando") {
     return (
@@ -621,9 +661,14 @@ function ConfirmarDni({ consulta, numero, onSi, onCorregir }: { consulta: Consul
   }
   if (consulta.estado === "fallo") {
     return (
-      <p role="alert" className="club-error-texto anim-revelar">
-        {consulta.mensaje}
-      </p>
+      <div role="alert" className="anim-revelar">
+        <p className="club-error-texto">{consulta.mensaje}</p>
+        <div className="club-eres-botones">
+          <button type="button" onClick={onReintentar} disabled={deshabilitado} className="club-boton-chico club-boton-chico-secundario">
+            Volver a intentar
+          </button>
+        </div>
+      </div>
     );
   }
   if (consulta.estado === "confirmado") {

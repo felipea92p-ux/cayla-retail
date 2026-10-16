@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Anillo } from "@/components/ui/Anillo";
 import { useRouter } from "next/navigation";
 import { Camera, Clock, Info, ScanBarcode, UserRound, X, ScanLine, SearchX } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -763,28 +764,6 @@ function textoInicio(iso: string): string {
   return `${de("day")}/${de("month")}/${de("year")} · ${de("hour")}:${de("minute")}`;
 }
 
-/** El anillo del progreso: pista en sand y avance en terracota (el mismo que el hilo de CAYLA), sin animación de más. */
-function Anillo({ porcentaje }: { porcentaje: number }) {
-  const r = 16;
-  const c = 2 * Math.PI * r;
-  return (
-    <svg aria-hidden viewBox="0 0 40 40" className="h-10 w-10 shrink-0 -rotate-90">
-      <circle cx="20" cy="20" r={r} fill="none" strokeWidth="3.5" className="stroke-sand" />
-      <circle
-        cx="20"
-        cy="20"
-        r={r}
-        fill="none"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={c * (1 - porcentaje / 100)}
-        className="stroke-rojo transition-[stroke-dashoffset] duration-300 ease-cayla"
-      />
-    </svg>
-  );
-}
-
 /**
  * La barra de información bajo el buscador: quién cuenta, cómo va y desde cuándo. Solo tres bloques (los pendientes ya
  * están arriba a la derecha). El responsable se eligió al abrir el conteo: aquí solo se ve su nombre, sin «Cambiar». Solo si
@@ -800,7 +779,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
   return (
     <div className="grid grid-cols-1 divide-y divide-sand rounded-xl border border-sand bg-papel sm:grid-cols-3 sm:divide-x sm:divide-y-0">
       <div className={bloque}>
-        <UserRound aria-hidden strokeWidth={1.5} className="h-8 w-8 shrink-0 text-taupe" />
+        <UserRound aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
         <div className="min-w-0 flex-1">
           <p className="text-xs text-tinta/70">Responsable</p>
           {mostrarCombo ? (
@@ -811,7 +790,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
         </div>
       </div>
       <div className={bloque}>
-        <Anillo porcentaje={porcentaje} />
+        <Anillo pct={porcentaje} tamano="chico" decorativa />
         <div className="min-w-0">
           <p className="text-xs text-tinta/70">Progreso</p>
           <p className="flex items-baseline gap-3 text-base font-medium tabular-nums text-tinta">
@@ -823,7 +802,7 @@ function BarraInfo({ control, responsable, creadoEn }: { control: ControlConteo;
         </div>
       </div>
       <div className={bloque}>
-        <Clock aria-hidden strokeWidth={1.5} className="h-8 w-8 shrink-0 text-taupe" />
+        <Clock aria-hidden className="h-8 w-8 shrink-0 text-taupe" />
         <div className="min-w-0">
           <p className="text-xs text-tinta/70">Inicio del conteo</p>
           <p className="text-base font-medium tabular-nums text-tinta">{textoInicio(creadoEn)}</p>

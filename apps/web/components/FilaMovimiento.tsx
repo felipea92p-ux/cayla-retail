@@ -149,7 +149,7 @@ export function FilaMovimiento({ m, prenda, ctx }: { m: Movimiento; prenda?: Pre
           <span className="whitespace-nowrap text-[11px] text-taupe">{esApartado ? "" : (quedan ?? palabraPrendas(m.cantidad))}</span>
         </span>
         {/* Que se puede tocar, sin tener que descubrirlo: la misma flecha que las tarjetas clicables. */}
-        <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/30" />
+        <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/30" />
       </div>
     </li>
   );
@@ -224,7 +224,7 @@ export function FilaOperacion({ op, prendas, ctx }: { op: OperacionMovimiento; p
           <span className="mv-cant">{textoCantidadOperacionVisual(r, tipo)}</span>
           <span className="whitespace-nowrap text-[11px] text-taupe">{esApartado ? "" : palabraPrendas(unidades)}</span>
         </span>
-        <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/30" />
+        <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-tinta/30" />
       </div>
     </li>
   );
@@ -277,7 +277,7 @@ export function FilaBajadas({ operaciones, prendas, ctx }: { operaciones: Operac
             <span className="mv-cant">{r.unidades}</span>
             <span className="whitespace-nowrap text-[11px] text-taupe">{palabraPrendas(r.unidades)}</span>
           </span>
-          <ChevronRight aria-hidden strokeWidth={1.5} className={`h-4 w-4 shrink-0 text-tinta/30 transition-transform ${abierto ? "rotate-90" : ""}`} />
+          <ChevronRight aria-hidden className={`h-4 w-4 shrink-0 text-tinta/30 transition-transform ${abierto ? "rotate-90" : ""}`} />
         </div>
       </div>
       <span aria-hidden className="mv-capas">

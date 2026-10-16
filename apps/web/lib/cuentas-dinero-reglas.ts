@@ -1,4 +1,4 @@
-import { fechaCorta, parsearMonto, type Resultado } from "./gastos-reglas";
+import { fechaCorta, montoDentroDelTope, parsearMonto, type Resultado } from "./gastos-reglas";
 import { diaLima, diasEntreFechas } from "./fechas-lima";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3, 20260925110000): lógica pura, sin servidor ni navegador. La leen las páginas
@@ -486,7 +486,7 @@ export function validarMovimiento(
     egresoId = e.id;
     monto = e.monto;
   } else {
-    const m = parsearMonto(b.monto);
+    const m = montoDentroDelTope(parsearMonto(b.monto));
     if (!m.ok) return m;
     monto = m.valor;
     if (esCajon) {

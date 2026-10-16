@@ -636,36 +636,6 @@
     font-weight: 400;
     line-height: 1;
   }
-  .ia-ring {
-    flex: none;
-    width: 54px;
-    height: 54px;
-    transform: rotate(-90deg);
-  }
-  .ia-ring circle {
-    fill: none;
-    stroke-width: 4.5;
-    stroke-linecap: round;
-  }
-  .ia-ring .ia-bg {
-    stroke: var(--h-line);
-  }
-  .ia-ring .ia-fg {
-    stroke: var(--h-fg);
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-    transition: stroke-dashoffset 1300ms var(--ease-cayla) 300ms;
-  }
-  .ia-in .ia-ring .ia-fg {
-    stroke-dashoffset: var(--off);
-  }
-  .ia-ring.ia-l .ia-bg {
-    stroke: var(--ia-t12);
-  }
-  .ia-ring.ia-l .ia-fg {
-    stroke: var(--color-verde);
-  }
-
   /* ── «Te toca» ── */
   .ia-tt {
     overflow: hidden;
@@ -766,41 +736,6 @@
   .ia-ap:hover .ia-chev {
     transform: translateX(4px);
     color: var(--color-rojo);
-  }
-  .ia-mas {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition: grid-template-rows 550ms var(--ease-cayla);
-  }
-  .ia-mas.ia-on {
-    grid-template-rows: 1fr;
-  }
-  .ia-mas > div {
-    overflow: hidden;
-  }
-  .ia-vm {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 13px;
-    border-top: 1px solid var(--ia-t08);
-    color: var(--color-taupe);
-    font-size: 13.5px;
-    font-weight: 500;
-    transition: background 260ms var(--ease-cayla);
-  }
-  .ia-vm:hover {
-    background: var(--ia-t05);
-  }
-  .ia-vm svg.ia-ic {
-    width: 15px;
-    height: 15px;
-    transition: transform 400ms var(--ease-cayla);
-  }
-  .ia-vm.ia-on svg.ia-ic {
-    transform: rotate(180deg);
   }
   .ia-dial {
     display: flex;
@@ -1118,13 +1053,12 @@
     color: var(--ia-t65);
     font-size: 12.5px;
   }
-  .ia-k .ia-ring {
+  /* El anillo chico del sistema (<Anillo>, ronda 13 de /unificar), a la derecha de la cifra. */
+  .ia-k .ia-k-anillo {
     position: absolute;
     right: 12px;
     top: 50%;
-    width: 46px;
-    height: 46px;
-    margin-top: -23px;
+    margin-top: -20px;
   }
 
   /* ── «En camino» ── */

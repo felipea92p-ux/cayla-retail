@@ -299,7 +299,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                                   onClick={() => onCantidad(cel.clave, pasoCantidad(valorCelda, -1))}
                                   className={BOTON_PASO}
                                 >
-                                  <Minus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
+                                  <Minus aria-hidden className="h-3 w-3" />
                                 </button>
                               )}
                               <input
@@ -339,7 +339,7 @@ export function MatrizCantidades(props: ConPrecios | SoloCantidades) {
                                   onClick={() => onCantidad(cel.clave, pasoCantidad(valorCelda, 1))}
                                   className={BOTON_PASO}
                                 >
-                                  <Plus aria-hidden strokeWidth={2.25} className="h-3 w-3" />
+                                  <Plus aria-hidden className="h-3 w-3" />
                                 </button>
                               )}
                             </span>

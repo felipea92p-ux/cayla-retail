@@ -96,3 +96,11 @@ export function hoyLimaUTC(ahora: number = Date.now()): { desde: string; hasta: 
   const inicio = Date.UTC(lima.getUTCFullYear(), lima.getUTCMonth(), lima.getUTCDate()) + DESFASE_LIMA_MS;
   return { desde: new Date(inicio).toISOString(), hasta: new Date(inicio + MS_DIA).toISOString() };
 }
+
+/** ¿`v` es una fecha `aaaa-mm-dd` que existe? «2026-02-31» tiene la forma pero no existe, y Postgres la rechaza con la pantalla caída
+ *  (/chaos 2026-10-14 en Movimientos, 2026-10-15 en Compras). Se comprueba que el día vuelva igual después de pasar por el calendario. */
+export function esFechaQueExiste(v: string | null | undefined): v is string {
+  if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const t = Date.parse(`${v}T00:00:00Z`);
+  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === v;
+}

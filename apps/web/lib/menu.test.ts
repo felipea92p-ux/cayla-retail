@@ -297,7 +297,11 @@ const TOPE_HIJAS = 6;
 // «Pagos» (Por pagar + Fondos + Notas de crédito) como recomendación, y eligió no regrupar. «Órdenes de compra» entró como séptima hija
 // mientras «Recibir mercadería» vivía en Compras (decisión 38); Recibir se mudó a Inventario el 2026-10-14 (ADR-0393, 20261014210000) y
 // Compras bajó de 8 a 7: desde ese día la excepción es solo por Fondos por rendir, y no vuelve a subir.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7 };
+// VENTAS, 7 (ADR-0408, actividad 8, 2026-10-14): «Pedidos web» va DIRECTO en Ventas, junto a Apartados, como lo dibuja la maqueta
+// aprobada de la tienda online («Ventas ▸ Pedidos web»). Solo quien ve todos los módulos de Ventas (el líder) llega a 7; un rol de
+// tienda con Pedidos web y sin Comprobantes queda en 6. Si Felipe prefiere no subir el tope, el remedio es un subgrupo
+// («Separaciones»: Apartados y Pedidos web), como Posventa (D-84).
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { compras: 7, venta: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
 import { Info, NotebookPen } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
@@ -130,18 +131,11 @@ export type ContextoDecision = {
   vigenteId: string | null;
 };
 
-/** La barra «día 3 de 7»: se llena al abrir (200–500 ms, sin rebote; sin movimiento con `prefers-reduced-motion`). */
+/** La barra «día 3 de 7»: la barra de avance del sistema (ronda 13), que se llena al abrir. */
 function BarraDias({ dia, de }: { dia: number; de: number }) {
-  const [lleno, setLleno] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setLleno(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
   return (
     <div className="mt-2.5 flex items-center gap-2.5">
-      <div role="progressbar" aria-valuemin={1} aria-valuemax={de} aria-valuenow={dia} aria-label={`Día ${dia} de ${de}`} className="h-1.5 flex-1 overflow-hidden rounded-full bg-sand">
-        <div className="h-full rounded-full bg-tinta/55 transition-[width] duration-500 ease-cayla motion-reduce:transition-none" style={{ width: lleno ? `${(dia / de) * 100}%` : "0%" }} />
-      </div>
+      <BarraAvance pct={(dia / de) * 100} etiqueta={`Día ${dia} de ${de}`} className="min-w-0 flex-1" />
       <span className="text-[12px] tabular-nums text-taupe">
         día {dia} de {de}
       </span>
@@ -254,7 +248,7 @@ export function FrescuraDetalle({
             {detalle.regla && <Regla regla={detalle.regla} />}
             {detalle.sinContarla && (
               <div className="mt-2.5 flex items-start gap-2 rounded-xl bg-hueso/85 px-3 py-2.5 text-[13px] leading-normal text-taupe">
-                <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
+                <Info aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                   <b className="font-semibold text-tinta">{FRASE_SIN_ELLA}</b> <TextoConNegritas texto={detalle.sinContarla} />
                   {detalle.confianzaSinElla && (
@@ -384,7 +378,7 @@ export function FrescuraDetalle({
                     return (
                       <div key={a.clave} className="rounded-xl border border-sand bg-papel px-3.5 py-3">
                         <div className="flex items-start gap-2 text-sm font-semibold">
-                          <Icono aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
+                          <Icono aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
                           <span>{a.titulo}</span>
                         </div>
                         <p className="mt-1 text-[13px] leading-relaxed text-tinta/70">{a.texto}</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Globito } from "@/components/ui/Globito";
 import { Camera } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Punto } from "@/components/alta-producto/ElegirColores";
@@ -258,7 +259,7 @@ function FotosDeFila({
         etiqueta={`Agregar foto de ${nombre}`}
         className="grid h-[42px] w-[34px] shrink-0 place-items-center rounded-[5px] border border-dashed border-tinta/25 text-taupe transition-colors hover:border-tinta/45 hover:text-tinta disabled:opacity-40"
       >
-        <Camera aria-hidden className="h-[17px] w-[17px]" strokeWidth={1.7} />
+        <Camera aria-hidden className="h-4 w-4" />
       </BotonFoto>
     );
   }
@@ -272,9 +273,7 @@ function FotosDeFila({
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
         <img src={suyas[0].vista} alt="" className="h-full w-full rounded-[4px] object-cover" />
-        {suyas.length > 1 && (
-          <span className="absolute -right-[5px] -top-1.5 rounded-full bg-tinta px-[5px] text-[9.5px] font-bold leading-[15px] tabular-nums text-crema">{suyas.length}</span>
-        )}
+        {suyas.length > 1 && <Globito n={suyas.length} esquina etiqueta="fotos" className="absolute -right-1.5 -top-1.5" />}
       </BotonFoto>
       <BotonQuitarFoto
         onClick={onQuitar}

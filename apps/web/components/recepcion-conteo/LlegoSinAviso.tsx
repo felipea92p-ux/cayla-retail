@@ -129,7 +129,7 @@ export function LlegoSinAviso({
                     }`}
                   >
                     <span className="rc-cat-ic" data-tamano="chico" aria-hidden>
-                      <Store className="h-[18px] w-[18px]" />
+                      <Store className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <b className="block truncate text-[14.5px] text-tinta">{p.nombre}</b>
@@ -159,7 +159,7 @@ export function LlegoSinAviso({
                   }`}
                 >
                   <span className="rc-cat-ic" data-tamano="chico" aria-hidden>
-                    <CircleHelp className="h-[18px] w-[18px]" />
+                    <CircleHelp className="h-4 w-4" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <b className="block text-[14.5px] text-tinta">No sé de quién es</b>

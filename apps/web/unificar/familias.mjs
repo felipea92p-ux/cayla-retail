@@ -223,7 +223,7 @@ const BASE = [
     grupo: "Datos",
     nombre: "Gráficos",
     funcion: "Barras, líneas o donas que muestran una evolución o un reparto.",
-    pieza: "`Graficos`, `BarrasMensuales`, `Sparkline`, `DonaMetodos` (components/ui/)",
+    pieza: "repartida en familias propias: la barra apilada (`grafico.barra`), la de avance (`grafico.avance`), el anillo (`grafico.anillo`), la línea (`grafico.linea`), las barras por tiempo (`grafico.barras`) y la barra a escala (`grafico.escala`)",
     gobierna: ["ADR-0169"],
   },
   {
@@ -233,6 +233,46 @@ const BASE = [
     funcion: "Una barra que reparte un total en partes de un solo color (la deuda por vencimiento, las unidades del piso por estado, cómo se pagó). Se reconoce por su forma: una fila baja y ancha de tramos sin texto cuyos anchos suman el de la fila.",
     pieza: "`<BarraApilada>` (components/ui/BarraApilada.tsx), ADR-0358; las de Análisis (ADR-0357) y el aviso de cierre de Caja (ADR-0359) existen por una decisión y esperan la palabra de Felipe",
     gobierna: ["ADR-0169", "ADR-0128", "ADR-0357", "ADR-0359"],
+  },
+  {
+    id: "grafico.avance",
+    grupo: "Datos",
+    nombre: "Barra de avance",
+    funcion: "Una barra fina que se llena: cuánto va de algo contra su total o su meta (lo vendido contra la meta, lo contado, lo pagado de una factura).",
+    pieza: "`<BarraAvance>` (components/ui/BarraAvance.tsx), ADR-0358 (ronda 13); las del Observatorio (ADR-0322), Análisis (ADR-0357) y Finanzas (ADR-0195) tienen su diseño por decisión",
+    gobierna: ["ADR-0169", "ADR-0136", "ADR-0322", "ADR-0357", "ADR-0195"],
+  },
+  {
+    id: "grafico.linea",
+    grupo: "Datos",
+    nombre: "Línea",
+    funcion: "Una línea que muestra cómo va algo en el tiempo, casi siempre contra una referencia (ayer, la meta, el plan).",
+    pieza: "`<Linea>` (components/ui/Linea.tsx) y, en una fila, `<Sparkline>`, ADR-0358 (ronda 14); las del Observatorio (ADR-0322) y Análisis (ADR-0357) tienen su diseño por decisión",
+    gobierna: ["ADR-0169", "ADR-0136", "ADR-0319", "ADR-0325", "ADR-0372", "ADR-0128"],
+  },
+  {
+    id: "grafico.barras",
+    grupo: "Datos",
+    nombre: "Barras por tiempo",
+    funcion: "Una barra por hora, día, semana o mes: cuánto se vendió o cuánto vence en cada una.",
+    pieza: "`<BarrasTiempo>` (components/ui/BarrasTiempo.tsx), ADR-0358 (ronda 14); las de Análisis (ADR-0357), Finanzas (ADR-0195), las tarjetas de Facturación (ADR-0124) y «Cómo cerró cada día» (Felipe, 2026-10-12) tienen su diseño por decisión",
+    gobierna: ["ADR-0169", "ADR-0136", "ADR-0319", "ADR-0325", "ADR-0147", "ADR-0372", "ADR-0128"],
+  },
+  {
+    id: "grafico.escala",
+    grupo: "Datos",
+    nombre: "Barra a escala",
+    funcion: "Una fila por cosa (un proveedor, una talla, una tienda) con una barra a escala de la mayor.",
+    pieza: "la barra de avance en tinta (`<BarraAvance tono=\"tinta\">`), ADR-0358 (ronda 14); con dos partes (lo vencido y lo que no), la barra apilada medida contra el mayor (`total`)",
+    gobierna: ["ADR-0169", "ADR-0352", "ADR-0357", "ADR-0322"],
+  },
+  {
+    id: "grafico.anillo",
+    grupo: "Datos",
+    nombre: "Anillo",
+    funcion: "Un anillo que se cierra con la cifra adentro: cuánto va de algo (mi meta de hoy, lo contado de un envío, las semanas que alcanza una talla).",
+    pieza: "`<Anillo>` (components/ui/Anillo.tsx), ADR-0358 (ronda 13); los del Observatorio (ADR-0322), Análisis (ADR-0357) y los pases de Traslados (ADR-0355) tienen su diseño por decisión",
+    gobierna: ["ADR-0169", "ADR-0136", "ADR-0322", "ADR-0357", "ADR-0355"],
   },
   {
     id: "titulo-pagina",
@@ -1006,6 +1046,226 @@ export const DECISIONES = {
       "className=\"[^\"]*(?<![\\w-])(?:kpi-apilada|nc-conc|nc-barra)(?![\\w-])",
       // Una pieza homónima (la de Facturación y Proformas, con `partes` y leyenda propia): el mismo nombre que la del sistema.
       "^\\s*(?:export\\s+)?(?:default\\s+)?(?:function|const)\\s+BarraApilada\\b"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "grafico.avance": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.avance.md",
+    "elegida": "P1 · una barra con tres altos (fina 3 · normal 6 · gruesa 12): la pista en arena y el relleno en tinta que pasa a verde al completarse; el rojo o el ámbar los pone la pantalla cuando algo está mal; la rayita de «a esta hora tocaba» opcional; se llena desde cero una vez al verse y se desliza si la cifra cambia; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BarraAvance.tsx",
+    "tambien": ["app/estilos/avance-anillo-copiar.css"],
+    "firmas": [
+      // Una barra de avance que le habla al lector por su cuenta: es <BarraAvance etiqueta>.
+      "role=\"progressbar\"",
+      // Las barras con clase propia de antes (Nueva compra, Ventas sin registrar, Compras, Recibir contando).
+      "(?<![\\w-])(?:cr-progreso|vsr-f-bar|cmp-mini|rc-barra)(?![\\w-])",
+      // Una pieza homónima (la del detalle de un comprobante tenía el mismo nombre).
+      "^\\s*(?:export\\s+)?(?:default\\s+)?(?:function|const)\\s+BarraAvance\\b"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/clientas/RegistroClub.tsx", "motivo": "la página pública del club es para el cliente y tiene su propia cara (club-publico.css): su barra de avance del registro no se toca sin la palabra de Felipe" }
+    ]
+  },
+  "grafico.anillo": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.anillo.md",
+    "elegida": "P1 · tres tamaños con nombre (chico 40 · mediano 72 · grande 160): la pista en hueso y el arco de tinta con las puntas redondas que pasa a verde al cerrarse; el ámbar o el rojo, solo si la pantalla lo pide; la cifra adentro; se cierra desde arriba una vez al verse y se desliza si la cifra cambia; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/Anillo.tsx",
+    "tambien": ["app/estilos/avance-anillo-copiar.css"],
+    "ventana": 12,
+    "firmas": [
+      // Un arco dibujado a mano: un <circle> con su trazo partido (`strokeDasharray` o `strokeDashoffset`).
+      "<circle\\b(?:[^>]|=>)*?\\bstroke(?:Dasharray|Dashoffset)=",
+      // Una pieza homónima (Recibir y Conteo tenían su propio `Anillo`).
+      "^\\s*(?:export\\s+)?(?:default\\s+)?(?:function|const)\\s+Anillo(?!\\w)"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/observatorio/piezas.tsx", "motivo": "el Observatorio del Admin tiene su diseño y su movimiento por decisión (ADR-0322)" },
+      { "archivo": "components/observatorio/Mapa.tsx", "motivo": "el Observatorio del Admin tiene su diseño y su movimiento por decisión (ADR-0322)" },
+      { "archivo": "components/observatorio/Abajo.tsx", "motivo": "el Observatorio del Admin tiene su diseño y su movimiento por decisión (ADR-0322)" },
+      { "archivo": "components/analisis/piezas.tsx", "motivo": "los gráficos de Análisis tienen su movimiento por decisión (ADR-0357)" },
+      { "archivo": "components/ui/Espera.tsx", "motivo": "el loader del sistema (ADR-0149): su círculo gira, no mide nada" },
+      { "archivo": "components/traslados-pases/Billetera.tsx", "motivo": "el anillo de la billetera de pases de Traslados es parte del diseño de los pases, con su movimiento al verse (ADR-0355)" }
+    ]
+  },
+  "grafico.linea": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.linea.md",
+    "elegida": "P1 · lo de hoy en tinta (2,5 px) con un área suave, la referencia (ayer, la meta, el plan) en taupe punteado siempre igual, tres rayas de fondo con sus montos y las marcas de tiempo, el último punto con su cifra en serif; al pasar el mouse una guía salta al punto más cercano con un globito; en una fila, la mini (`Sparkline`); se dibuja una vez al verse; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/Linea.tsx",
+    "tambien": ["components/ui/Sparkline.tsx", "app/estilos/graficos-tiempo.css"],
+    "firmas": [
+      // Una línea de datos dibujada a mano: una <polyline> o un <path> armado con su propia función de trazo.
+      "<polyline\\b",
+      "\\bd=\\{(?:trazo|camino|linea)\\("
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "grafico.barras": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.barras.md",
+    "elegida": "P1 · todas en arena con las esquinas de arriba redondas y un ancho máximo de 28 px, la que importa (la hora de ahora, el mejor día, el mes en curso) en tinta con su cifra encima, la meta de cada barra una rayita taupe, la cifra sobre todas cuando se lee el monto de cada una, el rojo o el ámbar los pone la pantalla, un globito al pasar el mouse; crecen desde abajo en cascada una vez al verse; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BarrasTiempo.tsx",
+    "tambien": ["components/ui/BarrasMensuales.tsx", "app/estilos/graficos-tiempo.css"],
+    "firmas": [
+      // Una fila de barras dibujada a mano: una caja `flex` que las alinea abajo (`items-end`) con un alto fijo. Las clases, en cualquier orden.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])flex(?![\\w-]))(?=[^\"'`]*(?<![\\w-])items-end(?![\\w-]))(?=[^\"'`]*(?<![\\w-])h-(?:\\d+|\\[\\d+px\\])(?![\\w.\\[-]))"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "grafico.escala": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/grafico.escala.md",
+    "elegida": "P1 · la barra de avance de la ronda 13 en tinta y sin pasar a verde (la más larga no está «lista»): pista de arena, relleno en tinta a escala de la mayor, el nombre a la izquierda y la cifra a la derecha; lo vencido o lo que falta lo pinta la pantalla; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BarraAvance.tsx",
+    "tambien": ["components/ui/BarraApilada.tsx"],
+    "firmas": [
+      // Una pista con su relleno dibujada a mano: una fila baja (3 a 8 px) que recorta, redonda, sobre arena, hueso o tinta al 10 %.
+      "[\"'`](?=[^\"'`]*(?<![\\w-])h-(?:1|1\\.5|2|\\[3px\\]|\\[5px\\])(?![\\w.\\[-]))(?=[^\"'`]*(?<![\\w-])overflow-hidden(?![\\w-]))(?=[^\"'`]*(?<![\\w-])rounded-full(?![\\w-]))(?=[^\"'`]*(?<![\\w-])bg-(?:sand|hueso|tinta/10)(?![\\w-]))"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/ui/AvisoDestacado.tsx", "motivo": "la barra de un aviso destacado mide cuánto le queda al aviso a la vista: no es un dato que se compare" }
+    ]
+  },
+  "accion.copiar": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.copiar.md",
+    "elegida": "P1 · junto a un dato que ya se ve, el ícono solo de 32 px (como el lápiz de Editar); suelto, el secundario «Copiar …» (con el eslabón si es un enlace); los dos dicen «✓ Copiado» 1,8 s sin cambiar de ancho, y si el navegador no deja, avisan; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BotonCopiar.tsx",
+    "tambien": ["app/estilos/avance-anillo-copiar.css"],
+    "firmas": [
+      // Copiar al portapapeles por su cuenta: es <BotonCopiar>, que además dice «Copiado» y avisa si falla.
+      "\\bnavigator\\.clipboard\\b",
+      // El ícono de copiar dibujado fuera de la pieza.
+      "<Copy[\\s/>]"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.menu": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.menu.md",
+    "elegida": "P1 · donde cabe la palabra (la cabecera, una tarjeta, una barra), el secundario «Más ▾»; en una fila de una lista, el «⋯» solo de 32 px sin borde, como el lápiz de Editar, con «Más acciones de …» al pasar el mouse; los dos abren la misma lista, que entra como la de un combo; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/MenuAcciones.tsx",
+    "firmas": [
+      // Los tres puntos dibujados fuera de la pieza (`<MenuAcciones>` o `<BotonPuntos>`).
+      "<(?:MoreHorizontal|MoreVertical|Ellipsis|EllipsisVertical)[\\s/>]",
+      ">\\s*⋯\\s*<"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "icono": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/icono.md",
+    "elegida": "P1 en las dos preguntas · el grosor de fábrica de lucide (2) en todos, y cuatro tamaños según el lugar: 12 en una insignia, 14 junto a un texto, 16 en un botón o un campo, 20 junto a un título o en una tecla grande; la marca sobre un punto lleno lleva 3 (como la casilla) y el ícono grande (24 px o más) 1,5 (como el de un vacío); elegida mirando las fotos el 2026-10-15",
+    "pieza": "lib/iconos.ts",
+    "tambien": ["app/estilos/vacio-aviso-buscador.css"],
+    "ventana": 8,
+    "firmas": [
+      // Un ícono (un componente en mayúscula) con un grosor que no es el de fábrica.
+      "<[A-Z][\\w.]*\\b(?:[^>]|=>)*?\\bstrokeWidth=(?:\\{|\")(?!2(?:\\}|\"))[\\d.]+",
+      // Un ícono con un tamaño fuera de la escala (10, 11, 13, 15, 17, 18, 19 o 22 px), por `size` o por su clase.
+      "<[A-Z][\\w.]*\\b(?:[^>]|=>)*?\\bsize=\\{(?:10|11|13|15|17|18|19|22)\\}",
+      "<[A-Z][\\w.]*\\b(?:[^>]|=>)*?className=(?:\"|\\{`|\\{\")[^\"`]*\\b(?:size|h|w)-(?:2\\.5|4\\.5|\\[(?:10|11|13|15|17|18|19|22)px\\])",
+      // Lo mismo en un CSS: un svg con otro grosor o con un tamaño fuera de la escala.
+      "svg[^{,]*\\{[^}]*?stroke-width:\\s*(?!2\\s*;)[\\d.]+",
+      "svg[^{,]*\\{[^}]*?\\bwidth:\\s*(?:10|11|13|15|17|18|19|22)px"
+    ],
+    "deuda": [],
+    "excepciones": [
+      { "archivo": "components/AppShell.tsx", "motivo": "el marco (lateral y cabecera): fuera del censo desde la ronda 1; su trazo de 1,5 se decide aparte (docs/unificar/icono.md)" },
+      { "archivo": "components/guias/BotonDemo.tsx", "motivo": "el botón «Demo» de la cabecera: es del marco, como el lateral (docs/unificar/icono.md)" },
+      { "archivo": "components/colaboradores/IconoModulo.tsx", "motivo": "dibuja el ícono del menú de cada módulo, igual que el lateral (el marco)" },
+      { "archivo": "components/traslados-pases/PasePedido.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
+      { "archivo": "components/traslados-pases/PaseTraslado.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
+      { "archivo": "components/traslados-pases/ReversoPase.tsx", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
+      { "archivo": "app/estilos/traslados-pases.css", "motivo": "los pases de Traslados tienen su dibujo propio (ADR-0355)" },
+      { "archivo": "components/GastoRapidoModal.tsx", "motivo": "el gasto rápido de Caja: la ★ que se dibuja y el sello de «listo» (ADR-0368)" },
+      { "archivo": "components/MosaicoPrenda.tsx", "motivo": "la prenda sin foto: el ícono de su categoría es un dibujo sobre el color (ADR-0333)" },
+      { "archivo": "components/vista-rapida/MatrizUnidades.tsx", "motivo": "la vista rápida de producto, con su movimiento propio (ADR-0136 act. 2026-10-05)" },
+      { "archivo": "app/estilos/vista-rapida.css", "motivo": "la vista rápida de producto, con su movimiento propio (ADR-0136 act. 2026-10-05)" },
+      { "archivo": "app/estilos/historial-prenda.css", "motivo": "el historial de una prenda, con su hilo y sus nudos (ADR-0354)" },
+      { "archivo": "app/estilos/movimientos-sellos.css", "motivo": "los sellos de Movimientos (ADR-0353)" },
+      { "archivo": "app/estilos/observatorio.css", "motivo": "el Observatorio del Admin (ADR-0322)" },
+      { "archivo": "app/estilos/analisis.css", "motivo": "Análisis tiene su diseño propio (ADR-0357)" },
+      { "archivo": "app/estilos/analisis-hoy.css", "motivo": "Análisis tiene su diseño propio (ADR-0357)" },
+      { "archivo": "app/estilos/analisis-pedir.css", "motivo": "Análisis tiene su diseño propio (ADR-0357)" },
+      { "archivo": "app/estilos/ventas-sin-registrar.css", "motivo": "la mesa de Ventas sin registrar (ADR-0360)" },
+      { "archivo": "app/estilos/inicio-almacen.css", "motivo": "Inicio de Almacén dibuja su propio juego de íconos (ADR-0292)" },
+      { "archivo": "app/estilos/club-publico.css", "motivo": "la página pública del club: la ven los clientes, fuera del ERP" },
+      { "archivo": "app/estilos/recepcion-conteo.css", "motivo": "la balanza de Recibir es un dibujo de 120 px, no un ícono" }
+    ]
+  },
+  "contador": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/contador.md",
+    "elegida": "P1 · el globito de las pestañas en todas partes (20 px, gris suave); si te pide algo, ámbar suave; en la esquina de un ícono o un botón, lleno con su anillo (tinta, o ámbar si pide); dentro de un botón negro, crema suave; rojo solo si dice un error; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/Globito.tsx",
+    "tambien": ["components/ui/Insignia.tsx", "app/estilos/globito-vermas.css"],
+    "firmas": [
+      // Un globito con número a mano: redondo, chico (16 a 24 px), con letra de 9,5 a 11 px y un fondo lleno.
+      "className=(?:\"|\\{`)(?=[^\"`]*\\brounded-full\\b)(?=[^\"`]*\\b(?:min-w-(?:4|5|6|\\[1[5-9]px\\])|h-\\[1[5-8]px\\])(?![\\w-]))(?=[^\"`]*\\btext-\\[(?:9\\.5|10|10\\.5|11)px\\])(?=[^\"`]*\\bbg-(?:rojo|ambar|tinta|crema|papel)(?![\\w-]))",
+      // El «te pide algo» en ámbar suave a mano.
+      "className=(?:\"|\\{`)(?=[^\"`]*\\brounded-full\\b)(?=[^\"`]*\\bbg-ambar\\/\\[?0?\\.1)(?=[^\"`]*\\btabular-nums\\b)(?=[^\"`]*\\btext-\\[11px\\])"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.siguiente": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.siguiente.md",
+    "elegida": "P1 · «Ver más / Ver menos» es la franja al pie de la lista de Inicio de Almacén: «Ver 3 más» en taupe con la flecha que da media vuelta, y las filas bajan en su lugar; en una lista suelta, el enlace con la misma flecha. «Siguiente» y «Anterior» ya los resuelven la paginación (ronda 8) y los pasos a paso; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/VerMas.tsx",
+    "tambien": ["components/inicio-almacen/VerMas.tsx", "app/estilos/globito-vermas.css"],
+    "firmas": [
+      // Un «Ver más / Ver menos» a mano: el texto que dice al abrir.
+      "\\bVer menos\\b"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.deshacer": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.deshacer.md",
+    "elegida": "P1 · el enlace (la acción chica que corrige una sola cosa, ronda 9) con la flecha curva delante; el «Deshacer» de un aviso es del aviso; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BotonDeshacer.tsx",
+    "ventana": 3,
+    "firmas": [
+      // Un botón «Deshacer» escrito a mano.
+      ">\\s*Deshacer\\s*</"
+    ],
+    "deuda": [],
+    "excepciones": []
+  },
+  "accion.buscar": {
+    "fecha": "2026-10-15",
+    "adr": "docs/adr/0358-unificar-una-funcion-una-pieza.md",
+    "registro": "docs/unificar/accion.buscar.md",
+    "elegida": "P1 · lo que busca recién al apretar (el padrón de SUNAT, unir dos clientes) es el secundario con la lupa; el primario solo si buscar es el paso de esa hoja; elegida tocándola el 2026-10-15",
+    "pieza": "components/ui/BotonBuscar.tsx",
+    "ventana": 3,
+    "firmas": [
+      // Un botón «Buscar» escrito a mano.
+      ">\\s*Buscar\\s*</(?:Boton|button)>"
     ],
     "deuda": [],
     "excepciones": []

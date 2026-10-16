@@ -6,6 +6,7 @@ import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import type { CeldaAlta, ColorAlta } from "@/lib/alta-producto";
 import type { EstadoVariante, NombresFicha } from "@/lib/variantes-ficha-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
+import { CLASE_MONTO_ILEGIBLE, atributosMontoTexto } from "@/components/ui/CampoMonto";
 
 // Piezas de la sección «Variantes» de la ficha de una prenda (ADR-0263). Lo que comparten la sección y sus modales:
 // cómo se nombra y se pinta un color, cómo se elige UNO (corregir), cómo se muestra el código que va a tener cada
@@ -136,12 +137,12 @@ export function MontosNuevas({
     <div className="grid grid-cols-2 gap-3">
       <label className="block">
         <span className="text-[12.5px] font-semibold text-tinta">Precio de venta</span>
-        <input type="number" min={0} step="0.01" inputMode="decimal" placeholder="0.00" value={precio} onChange={(e) => onPrecio(e.target.value)} className={`mt-1 ${CAMPO_MONTO}`} />
+        <input {...atributosMontoTexto(precio)} placeholder="0.00" value={precio} onChange={(e) => onPrecio(e.target.value)} className={`mt-1 ${CLASE_MONTO_ILEGIBLE} ${CAMPO_MONTO}`} />
       </label>
       {veCosto && (
         <label className="block">
           <span className="text-[12.5px] font-semibold text-tinta">Costo (opcional)</span>
-          <input type="number" min={0} step="0.01" inputMode="decimal" placeholder="0.00" value={costo} onChange={(e) => onCosto(e.target.value)} className={`mt-1 ${CAMPO_MONTO}`} />
+          <input {...atributosMontoTexto(costo)} placeholder="0.00" value={costo} onChange={(e) => onCosto(e.target.value)} className={`mt-1 ${CLASE_MONTO_ILEGIBLE} ${CAMPO_MONTO}`} />
         </label>
       )}
     </div>

@@ -122,7 +122,7 @@ export function PreferenciasClienta({ clientaId, version, guardadas, soloLectura
       {cambiadas && !soloLectura && (
         <div className="anim-revelar flex flex-wrap items-center justify-end gap-3 border-t border-sand pt-3">
           {!responsable.listo && <ComboResponsable control={responsable} compacto className="mr-auto" />}
-          <Boton type="button" className="!py-2" onClick={() => setMarcadas(base)} disabled={guardando}>
+          <Boton /* unificar-fijo: es el «Cancelar» de la barra que guarda (vuelve todas las marcas a como estaban), no deshace una sola cosa */ type="button" className="!py-2" onClick={() => setMarcadas(base)} disabled={guardando}>
             Deshacer
           </Boton>
           <Boton type="button" peso="primario" className="!py-2" onClick={guardar} cargando={guardando}>

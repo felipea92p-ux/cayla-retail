@@ -68,7 +68,7 @@ export function ConfirmarAplicarTodos({
         <div className="space-y-4">
           {avisoArranque && (
             <p role="status" className="flex items-start gap-2 rounded-xl border border-ambar/35 bg-ambar/[0.07] px-3.5 py-3 text-sm text-ambar-profundo">
-              <Flag aria-hidden strokeWidth={1.5} className="mt-0.5 h-4 w-4 shrink-0" />
+              <Flag aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
               {avisoArranque}
             </p>
           )}

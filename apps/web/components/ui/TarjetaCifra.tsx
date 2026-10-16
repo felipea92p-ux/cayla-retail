@@ -212,7 +212,7 @@ export function TarjetaCifra(props: PropsTarjetaCifra) {
           <span className="font-display inline-flex items-baseline gap-1.5 whitespace-nowrap text-[17px] leading-tight text-taupe lining-nums tabular-nums @max-[148px]:text-[15px]">
             <span className="sr-only">Período A: </span>
             {antes}
-            <ArrowRight aria-hidden strokeWidth={2} className="h-[13px] w-[13px] self-center text-tinta/45" />
+            <ArrowRight aria-hidden className="h-3.5 w-3.5 self-center text-tinta/45" />
           </span>
         )}
         <span

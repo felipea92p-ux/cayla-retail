@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type CSSProperties } from "react";
+import { BotonPuntos } from "@/components/ui/MenuAcciones";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
 import { paginar } from "@/lib/paginacion";
 import { useRouter } from "next/navigation";
@@ -20,7 +21,7 @@ import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
 import { DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
-import { CircleCheck, FileText, Link2, MoreHorizontal, ReceiptText, Store } from "lucide-react";
+import { CircleCheck, FileText, Link2, ReceiptText, Store } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
@@ -97,7 +98,7 @@ function accionComprobante(
 function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | null }) {
   if (!c.pdfUrl && !c.xmlUrl && !c.cdrUrl) return null;
   return (
-    // En una tarjeta angosta (celular) no se dibujan: viven en «Opciones», con botones del tamaño de un dedo.
+    // En una tarjeta angosta (celular) no se dibujan: viven en el «⋯», con botones del tamaño de un dedo.
     <div className="mt-0.5 hidden flex-wrap gap-x-3 text-[12.5px] @min-[640px]:flex">
       {c.pdfUrl && (
         <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="btn-enlace font-medium">
@@ -379,13 +380,13 @@ export function ComprobantesPanel({
                     <p className="mt-0.5 truncate text-[13px] text-tinta/65 @min-[900px]:hidden">{cliente}</p>
                     {extras[c.id]?.notaDeCredito && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-[11.5px] text-pizarra">
-                        <Link2 aria-hidden size={12} strokeWidth={1.75} />
+                        <Link2 aria-hidden size={12} />
                         Tiene {extras[c.id]!.notaDeCredito!.numero}
                       </p>
                     )}
                     {extras[c.id]?.corrige && (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-[11.5px] text-pizarra">
-                        <Link2 aria-hidden size={12} strokeWidth={1.75} />
+                        <Link2 aria-hidden size={12} />
                         Corrige {extras[c.id]!.corrige!.numero}
                       </p>
                     )}
@@ -405,10 +406,8 @@ export function ComprobantesPanel({
                     </div>
                     <div data-guia="comprobantes.acciones" className="flex flex-wrap items-center gap-1.5">
                       {botones}
-                      <BotonCompacto variante="fila" data-guia="comprobantes.opciones" className="max-sm:min-h-11 max-sm:px-4" aria-label={`Opciones de ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`} onClick={() => setConOpciones(c)}>
-                        <MoreHorizontal aria-hidden size={15} strokeWidth={1.75} />
-                        <span>Opciones</span>
-                      </BotonCompacto>
+                      {/* El «⋯» de una fila de una lista (ronda 13): abre la hoja con lo que se hace con el comprobante. En el celular, 44 px. */}
+                      <BotonPuntos que={`${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`} guia="comprobantes.opciones" className="max-sm:h-11 max-sm:w-11" onClick={() => setConOpciones(c)} />
                     </div>
                   </div>
                 </div>

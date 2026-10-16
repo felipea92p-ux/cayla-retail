@@ -54,7 +54,7 @@
     ],
     "components/por-regularizar/PuenteUnion.tsx": [
       "button «Corregir lo anotado»",
-      "button «{f === \"ya_registrada\" ? <Tag aria-hidden strokeWidth={1.6}»",
+      "button «→() => onForma(f)»",
       "ComboResponsable «(sin nombre)»",
       "Boton «{guia.frase ?? responsable.motivo ?? undefined}»"
     ],

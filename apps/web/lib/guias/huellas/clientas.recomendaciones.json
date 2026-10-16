@@ -1,0 +1,23 @@
+{
+  "guia": "clientas.recomendaciones",
+  "ruta": "/clientas/recomendaciones",
+  "nota": "Huella de controles de la pantalla (ADR-0389). La escribe `pnpm --filter web guias:huella`; no se edita a mano.",
+  "total": 11,
+  "controles": {
+    "components/recomendaciones/RecomendacionHoja.tsx": [
+      "textarea «Escribe una respuesta corta y cálida…»",
+      "ComboResponsable «(sin nombre)»",
+      "Boton «{responsable.motivo ?? undefined}»",
+      "Boton «Cancelar»",
+      "Boton «{guia.frase ?? undefined}»",
+      "Boton «{guia.frase ?? undefined}» #2",
+      "Boton «{responsable.motivo ?? undefined}» #2"
+    ],
+    "components/recomendaciones/RecomendacionesPantalla.tsx": [
+      "DesplegablePildora «Estado»",
+      "DesplegablePildora «Sobre»",
+      "BotonLimpiar «Limpiar todo»",
+      "button «{deQuien(r)}»"
+    ]
+  }
+}

@@ -57,6 +57,16 @@ describe("historia del permiso (CL-26)", () => {
     expect(ev({ accion: "revoca", medio: "anonimizar", nota: "volvió a aceptar" }).titulo).toBe("Salió del club");
   });
 
+  it("la casilla de la tienda online (ADR-0408): pidió la publicidad ella misma, desde su cuenta, sin tienda", () => {
+    expect(
+      ev({ finalidad: "publicidad_whatsapp", medio: "tienda_web", sede: null, registrado_por: "ella misma", texto_tipo: "casilla_publicidad", texto_version: 2, nota: "desde su cuenta en la tienda online" }),
+    ).toMatchObject({
+      titulo: "Pidió la publicidad por WhatsApp",
+      detalle: "2026-09-30 · desde su cuenta en la tienda online · ella misma · texto v2",
+      punto: "verde",
+    });
+  });
+
   it("anonimizar y el legado; los eventos de otra ficha lo dicen", () => {
     expect(ev({ accion: "revoca", medio: "anonimizar", texto_tipo: null, texto_version: null }).titulo).toBe("Salió del club");
     expect(ev({ medio: "legado", registrado_por: null, sede: null, texto_tipo: null, texto_version: null }).detalle).toBe("2026-09-30 · marcado en caja antes del club");
@@ -64,7 +74,7 @@ describe("historia del permiso (CL-26)", () => {
   });
 
   it("todos los medios del esquema tienen palabras; uno desconocido se dice tal cual (nunca se esconde)", () => {
-    for (const m of ["caja_palabra", "ficha", "whatsapp_propio", "baja_whatsapp", "cambio_celular", "anonimizar", "legado", "qr_web", "pagina_cartel"]) {
+    for (const m of ["caja_palabra", "ficha", "whatsapp_propio", "baja_whatsapp", "cambio_celular", "anonimizar", "legado", "qr_web", "pagina_cartel", "tienda_web"]) {
       expect(MEDIO_LEGIBLE[m]).toBeTruthy();
     }
     expect(ev({ medio: "bot" }).detalle).toContain("bot");

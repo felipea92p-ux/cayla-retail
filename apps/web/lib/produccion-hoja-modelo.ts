@@ -324,3 +324,13 @@ export function hrefVerEnExistencias(d: DondeVerlo | null): string {
   if (!d) return "/inventario";
   return `/inventario?${d.ubicacionId ? `ubicacion=${encodeURIComponent(d.ubicacionId)}&` : ""}variante=${encodeURIComponent(d.varianteId)}`;
 }
+
+/**
+ * La línea «Marca X · Proveedor Y» que va bajo el nombre de cada modelo de «¿Qué producir?»: de quién es y a quién se le compra, a la vista sin abrir la hoja. Con la ficha leída, lo que
+ * falta se dice («Sin marca», «Sin proveedor»: es lo que se completa en «Editar» del catálogo). `null` si la ficha NO se pudo leer: decir «Sin marca» de lo que no se sabe afirmaría
+ * que está vacío (la hoja ya avisa de la lectura fallida), así que la fila no dice nada.
+ */
+export function lineaDeOrigen(ficha: Pick<FichaDeModelo, "marca" | "proveedor"> | null): string | null {
+  if (!ficha) return null;
+  return `${ficha.marca ? `Marca ${ficha.marca}` : "Sin marca"} · ${ficha.proveedor ? `Proveedor ${ficha.proveedor}` : "Sin proveedor"}`;
+}

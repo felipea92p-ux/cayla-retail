@@ -446,8 +446,8 @@ export function DesplegablePildora({
                     : "border-tinta/30"
             }`}
           >
-            {marcada && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
-            {parcial && <Minus className="h-2.5 w-2.5" strokeWidth={3} />}
+            {marcada && <Check /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-2.5 w-2.5" strokeWidth={3} />}
+            {parcial && <Minus /* unificar-fijo: la marca sobre un punto lleno lleva trazo 3, como la casilla (ronda 15) */ className="h-2.5 w-2.5" strokeWidth={3} />}
           </span>
         )}
         {o.icono && <span className="mr-2 inline-block align-middle">{o.icono}</span>}

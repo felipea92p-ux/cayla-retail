@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { BotonBuscar } from "@/components/ui/BotonBuscar";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { createClient } from "@/lib/supabase/server";
@@ -56,9 +57,7 @@ export default async function BuscarPage({ searchParams }: { searchParams: Promi
               autoFocus
             />
           </div>
-          <Boton type="submit" peso="primario" data-guia="buscar.boton">
-            Buscar
-          </Boton>
+          <BotonBuscar type="submit" peso="primario" data-guia="buscar.boton" />
         </form>
       </div>
 

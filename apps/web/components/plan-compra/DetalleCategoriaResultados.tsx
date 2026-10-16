@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Shirt } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { Modal } from "@/components/ui/Modal";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { Vacio } from "@/components/ui/Vacio";
@@ -29,7 +30,7 @@ import { TituloGrupo } from "@/components/ui/TituloSeccion";
 const pct = (d: number) => `${d >= 0 ? "+" : "−"}${Math.abs(Math.round(d * 100))} %`;
 const tonoDe = (d: number | null) => (d === null ? undefined : d >= 0.02 ? "text-verde" : d <= -0.05 ? "text-rojo-profundo" : undefined);
 
-const ancho = (v: number, max: number) => `${max > 0 ? Math.max(2, (v / max) * 100) : 0}%`;
+// Las barras a escala son la barra de avance del sistema en tinta (ronda 14 de /unificar): la más larga no está «lista».
 
 export function DetalleCategoriaResultados({
   r,
@@ -150,9 +151,7 @@ export function DetalleCategoriaResultados({
               {porTienda.map(({ t, unidades: u }) => (
                 <li key={t.id} className="grid grid-cols-[7rem_minmax(0,1fr)_3rem] items-center gap-3 text-sm">
                   <span className="truncate text-tinta/80">{t.nombre}</span>
-                  <span className="h-2 overflow-hidden rounded-full bg-sand">
-                    <span className="block h-full rounded-full bg-tinta/60" style={{ width: ancho(u, maxTienda) }} />
-                  </span>
+                  <BarraAvance pct={(u / maxTienda) * 100} tono="tinta" decorativa />
                   <span className="text-right tabular-nums text-tinta">{enteroES.format(u)}</span>
                 </li>
               ))}
@@ -179,9 +178,7 @@ export function DetalleCategoriaResultados({
                       {p.color && <span className="text-taupe"> · {p.color}</span>}
                     </span>
                   </span>
-                  <span className="h-2 overflow-hidden rounded-full bg-sand">
-                    <span className={`block h-full rounded-full ${i === 0 ? "bg-rojo" : "bg-tinta/60"}`} style={{ width: ancho(p.unidades, maxPrenda) }} />
-                  </span>
+                  <BarraAvance pct={(p.unidades / maxPrenda) * 100} tono="tinta" decorativa indice={i} />
                   <span className="text-right tabular-nums text-tinta">{enteroES.format(p.unidades)}</span>
                   <span className="text-right tabular-nums text-tinta/70">{solesES(p.soles)}</span>
                 </li>
@@ -200,9 +197,7 @@ export function DetalleCategoriaResultados({
                     <span data-color-dato aria-hidden className="h-3.5 w-3.5 flex-none rounded-full border border-sand" style={c.hex ? { backgroundColor: c.hex } : undefined} />
                     <span className="truncate text-tinta">{c.nombre}</span>
                   </span>
-                  <span className="h-2 overflow-hidden rounded-full bg-sand">
-                    <span className="block h-full rounded-full bg-tinta/60" style={{ width: ancho(c.unidades, maxColor) }} />
-                  </span>
+                  <BarraAvance pct={(c.unidades / maxColor) * 100} tono="tinta" decorativa />
                   <span className="text-right tabular-nums text-tinta">{enteroES.format(c.unidades)}</span>
                 </li>
               ))}

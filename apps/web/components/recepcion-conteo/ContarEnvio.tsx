@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { ArrowLeft, ArrowRight, Minus, Plus } from "lucide-react";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Aviso } from "@/components/ui/Aviso";
@@ -432,7 +433,7 @@ function ContadorDeLinea({
       <div className="space-y-3" data-guia="recepcion.numero">
         <div className="rc-numero">
           <button type="button" onClick={() => poner(contadas - 1)} disabled={contadas <= minimo} aria-label="Una menos" className="rc-paso-btn">
-            <Minus aria-hidden className="h-[22px] w-[22px]" />
+            <Minus aria-hidden className="h-5 w-5" />
           </button>
           <input // unificar-fijo: el número protagonista de la maqueta A (Felipe 2026-10-13), sin caja: se lee como una cifra
             type="text"
@@ -453,7 +454,7 @@ function ContadorDeLinea({
             }}
           />
           <button type="button" onClick={() => poner(contadas + 1)} aria-label="Una más" className="rc-paso-btn">
-            <Plus aria-hidden className="h-[22px] w-[22px]" />
+            <Plus aria-hidden className="h-5 w-5" />
           </button>
         </div>
         <div className="rc-rapidos">
@@ -482,9 +483,8 @@ function ContadorDeLinea({
           )}
         </div>
         <div className="flex flex-col items-center gap-2">
-          <div className="rc-barra" aria-hidden>
-            <i style={{ width: `${fraccion * 100}%`, background: `var(--color-${v.tono === "verde" ? "verde" : v.tono === "ambar" ? "ambar" : "taupe"})` }} />
-          </div>
+          {/* El color lo pone el veredicto de la línea (coincide o no con lo que dijeron), no el avance. */}
+          <BarraAvance pct={fraccion * 100} alto="gruesa" tono={v.tono === "verde" ? "verde" : v.tono === "ambar" ? "ambar" : "tinta"} decorativa className="max-w-[520px]" />
           <Chip tono={v.tono === "neutro" ? "neutro" : v.tono}>{v.texto}</Chip>
           {(linea.conteo?.enStock ?? 0) > 0 && (
             <p className="text-xs text-taupe">Ya entraron {textoPrendas(linea.conteo?.enStock ?? 0)} al stock: lo contado no baja de ahí.</p>

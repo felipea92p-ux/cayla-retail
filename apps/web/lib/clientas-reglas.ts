@@ -10,6 +10,7 @@
 import { tipoDocumentoDe, type TipoDocumentoClienta } from "./documento-clienta-reglas";
 import { leerPreferencias, type Preferencias } from "./preferencias-clienta-reglas";
 import type { ResumenCompras } from "./clientas-lista-reglas";
+import type { TiendaOnlineDeLaClienta } from "./clienta-tienda-online-reglas";
 
 export type Clienta = {
   id: string;
@@ -18,6 +19,9 @@ export type Clienta = {
   documentoNumero: string | null;
   nombre: string | null;
   telefonoWhatsapp: string | null;
+  /** El correo de CONTACTO (en minúsculas), opcional; es de una sola persona (20261015054000). «Editar» lo corrige desde
+   *  20261015123000. No es el correo con que entra a la tienda online (`cuentas_web.correo`), que no cambia desde el ERP. */
+  correo: string | null;
   /** true si la clienta tiene el permiso de PUBLICIDAD por WhatsApp (lo dio escribiendo ella primero, ADR-0288 D-4).
    *  Desde la tanda 1b sale de `publicidad_desde`, no de `whatsapp_consentimiento_en`. */
   tienePermisoWhatsapp: boolean;
@@ -52,6 +56,8 @@ export type FilaClienta = {
   documento_numero: string | null;
   nombre: string | null;
   telefono_whatsapp: string | null;
+  /** Opcional en la fila: una lectura que no lo pide (o una base vieja) llega sin él y se lee como «sin correo». */
+  correo?: string | null;
   whatsapp_consentimiento_en: string | null;
   club_desde: string | null;
   publicidad_desde: string | null;
@@ -74,7 +80,7 @@ export type FilaClienta = {
  *  del navegador (`clientas-acciones.ts`). Antes cada una escribía la suya, y la tanda 1b (ADR-0288) habría tenido que
  *  acordarse de sumar las del club en tres lugares. */
 export const COLUMNAS_CLIENTA =
-  "id, documento_tipo, documento_numero, nombre, telefono_whatsapp, whatsapp_consentimiento_en, club_desde, publicidad_desde, codigo_club, cumple_anio, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id, preferencias";
+  "id, documento_tipo, documento_numero, nombre, telefono_whatsapp, correo, whatsapp_consentimiento_en, club_desde, publicidad_desde, codigo_club, cumple_anio, cumple_dia, cumple_mes, tallas, created_at, version, archivada_en, motivo_archivo, anonimizada, fusionada_en_id, preferencias";
 
 function comoTallas(valor: unknown): Record<string, string> | null {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) return null;
@@ -88,6 +94,7 @@ export function aClienta(fila: FilaClienta): Clienta {
     documentoNumero: fila.documento_numero,
     nombre: fila.nombre,
     telefonoWhatsapp: fila.telefono_whatsapp,
+    correo: fila.correo ?? null,
     tienePermisoWhatsapp: fila.publicidad_desde !== null,
     clubDesde: fila.club_desde,
     publicidadDesde: fila.publicidad_desde,
@@ -195,4 +202,7 @@ export type FichaClienta = {
   /** Tanda 1f: su sede, compras y frecuente con compra neta (`fn_clienta_su_sede`), la misma regla que la lista. `null` si la
    *  base no lo pudo leer (la ficha sigue: «Frecuente» se calcula entonces sobre sus compras, principio 9). */
   resumenCompras?: ResumenCompras | null;
+  /** Lo que tiene en la tienda online (`fn_clienta_tienda_online`, 20261015123000): si tiene cuenta y sus pedidos web en curso.
+   *  `null` si la base no lo pudo leer: la hoja no avisa nada y la ficha sigue (principio 9). */
+  tiendaOnline?: TiendaOnlineDeLaClienta | null;
 };

@@ -824,6 +824,13 @@ export const GUIA_PROVEEDOR: Guia = {
       texto: "Su cuenta, CCI, Yape o Plin y el titular, cada uno con su «Copiar». Salen tapados a medias porque son datos de otra persona; «Ver completos» los muestra.",
     },
     {
+      id: "cambios-cuenta",
+      ancla: "proveedor-ficha.cambios-cuenta",
+      titulo: "Cambios de la cuenta",
+      texto: "Cada vez que alguien cambió la cuenta, el CCI, el Yape o el titular: qué cambió, cuándo y quién. Antes de pagar a una cuenta que cambió, confírmala con el proveedor por teléfono.",
+      opcional: true,
+    },
+    {
       id: "editar",
       ancla: "proveedor-ficha.editar",
       titulo: "Corregir sus datos",
@@ -1215,7 +1222,7 @@ export const GUIA_PLAN_CAMPANA: Guia = {
       ancla: "plan.reparto",
       opcional: true,
       titulo: "Cuánto le toca a cada tienda",
-      texto: "Lo que conviene tener se reparte según lo que vendió cada tienda en 90 días y se manda todo al inicio. A una tienda que vende poco (como Lima al empezar) un líder le fija un mínimo con el botón de al lado.",
+      texto: "Lo que conviene tener se reparte según lo que vendió cada tienda en 90 días y se manda todo al inicio. A una tienda que vende poco (como Lima al empezar) le fijas un mínimo con el botón de al lado.",
     },
     {
       id: "simulador",

@@ -1,0 +1,145 @@
+# =====================================================================================================================
+# El proyecto de inicio de sesión de los CLIENTES de la tienda online (ADR-0408, decisión 2), SOLO en local.
+#
+# Es otra pila de Supabase, aparte de la del ERP (`supabase/config.toml` de la raíz): aquí viven solo las identidades de los
+# clientes (correo y contraseña, recuperación por correo). Sus datos de cliente y su ficha del Club están en la base del ERP
+# (`retail.cuentas_web`, `retail.clientas`), y la tienda llega a ellos solo por las funciones `retail.tienda_*`. Un cliente
+# nunca tiene sesión en el proyecto del ERP: ahí 34 de las 137 políticas de `retail` solo piden una sesión.
+#
+# Se levanta solo con lo que hace falta (la base, la autenticación, su puerta y el buzón de correo de prueba):
+#   npx supabase start --workdir apps/tienda -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+#   npx supabase status --workdir apps/tienda -o env    → las llaves locales (de demo) para apps/tienda/.env.local
+#   npx supabase stop --workdir apps/tienda             → la apaga (los usuarios de prueba quedan en su volumen)
+# Puertos 58420–58429: los de la pila del ERP (54321…) y los de otras pilas locales ya están tomados.
+# El buzón de prueba (Mailpit) está en http://127.0.0.1:58424: ahí llega el correo de «Olvidé mi contraseña».
+#
+# En producción (actividad 13) este proyecto lo crea Felipe en Supabase, con los MISMOS ajustes de abajo puestos a mano en el
+# panel: nadie se registra por la puerta pública (solo el servidor de la tienda crea cuentas), contraseñas de 8 o más, el
+# enlace de recuperación vence en 30 minutos, la plantilla de correo de `plantillas/recuperar.html` y, en las direcciones
+# permitidas, solo las de la tienda (`https://<dominio>/nueva-contrasena`, y desde «Mi cuenta» del 2026-10-15 también
+# `https://<dominio>/cuenta/correo` y `https://<dominio>/restablecer-acceso`: el enlace del correo del código vuelve ahí; si no
+# está permitida, cae en `site_url`). Y un proveedor de correo propio: el que trae Supabase manda muy pocos correos por hora.
+# =====================================================================================================================
+project_id = "cayla-tienda-clientes"
+
+[api]
+enabled = true
+port = 58421
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 58422
+shadow_port = 58429
+major_version = 17
+
+[db.pooler]
+enabled = false
+port = 58428
+
+# Este proyecto no tiene tablas propias: solo el esquema `auth` que trae Supabase. Sin migraciones ni semilla.
+[db.migrations]
+enabled = false
+
+[db.seed]
+enabled = false
+
+[realtime]
+enabled = false
+
+[studio]
+enabled = false
+port = 58423
+
+[local_smtp]
+enabled = true
+port = 58424
+
+[storage]
+enabled = false
+
+[auth]
+enabled = true
+# Adonde lleva el enlace del correo si la tienda no manda el suyo: la página de la contraseña nueva.
+site_url = "http://localhost:3100/nueva-contrasena"
+# Las direcciones a las que el enlace del correo puede volver: la tienda en sus dos puertos locales (3100 por defecto, 3102 el
+# de las pruebas en paralelo).
+additional_redirect_urls = ["http://localhost:3100/**", "http://127.0.0.1:3100/**", "http://localhost:3102/**", "http://127.0.0.1:3102/**"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# Nadie crea su cuenta por la puerta pública de Supabase: la crea el servidor de la tienda (`crearCuenta`), después de que la
+# base del ERP revisó el correo, el DNI y los topes. Si no, cualquiera ocuparía correos sin pasar por esa revisión.
+enable_signup = false
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+# Como la maqueta: «8 caracteres o más».
+minimum_password_length = 8
+password_requirements = ""
+
+[auth.rate_limit]
+# En local, holgado para poder probar; en producción los pone el proveedor de correo.
+email_sent = 30
+sms_sent = 30
+anonymous_users = 30
+token_refresh = 150
+sign_in_sign_ups = 30
+# Los códigos para crear la cuenta los verifica el SERVIDOR de la tienda, con una sola ip para todas las personas: en producción
+# este tope (por ip, cada 5 minutos) tiene que alcanzar para todas a la vez. El tope por persona lo lleva la base: 5 intentos por
+# código y 5 códigos por hora (tienda_intento_de_codigo, tienda_reservar_envio).
+token_verifications = 30
+
+[auth.email]
+# El correo con contraseña está encendido (para entrar y recuperar); crear cuentas por la puerta pública, no (`enable_signup`
+# de arriba).
+enable_signup = true
+# «Cambiar mi correo» y «Restablecer acceso» (Felipe 2026-10-15): el código va SOLO al correo nuevo (plantilla de abajo) y al anterior
+# le llega un aviso (`[auth.email.notification.email_changed]`). Con esto encendido iría un código a cada correo, y el anterior es justo
+# el que quien restablece ya no tiene. En producción: «Secure email change» APAGADO.
+double_confirm_changes = false
+# El correo se confirma con un CÓDIGO de 6 cifras antes de crear la cuenta (actividad 2b, Felipe 2026-10-14): lo manda la
+# invitación de abajo, que solo usa el servidor de la tienda. Nadie entra sin haber confirmado: la invitación no tiene contraseña.
+# ENCENDIDO desde «Mi cuenta» (2026-10-15): apagado, el proyecto confirma solo cualquier cambio de correo y lo aplica SIN código (medido
+# en local con GoTrue v2.196: «updateUser» cambiaba el correo en el acto). Crear la cuenta no cambia: la invitación confirma el correo.
+# En producción: «Confirm email» ENCENDIDO.
+enable_confirmations = true
+secure_password_change = false
+max_frequency = "10s"
+otp_length = 6
+# «Vence en 30 minutos»: el enlace de «Olvidé mi contraseña» y el código para crear la cuenta.
+otp_expiry = 1800
+
+[auth.email.template.recovery]
+subject = "Crea tu contraseña nueva · CAYLA"
+content_path = "./supabase/plantillas/recuperar.html"
+
+# El código para crear la cuenta (actividad 2b). La invitación crea el usuario SIN contraseña; el código se escribe bajo el correo
+# (Felipe 2026-10-15) y la cuenta (y la contraseña) se guardan recién con «Crear mi cuenta», con el correo ya confirmado.
+[auth.email.template.invite]
+subject = "Tu código para crear tu cuenta · CAYLA"
+content_path = "./supabase/plantillas/codigo.html"
+
+# El código del correo NUEVO de una cuenta (Felipe 2026-10-15): «Cambiar mi correo» en Mi cuenta y «Restablecer acceso» que pidió en
+# una tienda. Solo el código y el enlace a la página donde se escribe; nunca el enlace de confirmación del proyecto.
+[auth.email.template.email_change]
+subject = "Tu código para confirmar tu correo · CAYLA"
+content_path = "./supabase/plantillas/correo-nuevo.html"
+
+# Y el aviso al correo ANTERIOR apenas se confirma el cambio (aviso de seguridad «Email address changed»).
+[auth.email.notification.email_changed]
+enabled = true
+subject = "Cambió el correo de tu cuenta · CAYLA"
+content_path = "./supabase/plantillas/correo-cambiado.html"
+
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+
+[edge_runtime]
+enabled = false
+inspector_port = 58425
+
+[analytics]
+enabled = false
+port = 58427

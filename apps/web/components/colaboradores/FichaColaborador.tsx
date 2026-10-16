@@ -76,7 +76,7 @@ function BotonAccion({ icono: Icono, texto, activo, onClick, disabled }: { icono
         activo ? "border-tinta bg-hueso" : "border-sand hover:border-taupe"
       }`}
     >
-      <Icono aria-hidden className="h-5 w-5 text-taupe" strokeWidth={1.6} />
+      <Icono aria-hidden className="h-5 w-5 text-taupe" />
       {texto}
     </button>
   );

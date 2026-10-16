@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { BotonBuscar } from "@/components/ui/BotonBuscar";
+import { BarraAvance } from "@/components/ui/BarraAvance";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, SearchX, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
@@ -24,7 +26,7 @@ import { descuentoDeCampana, totalDeLineas } from "@/lib/vender-reglas";
 import { conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import { buscarClienta } from "@/lib/clientas-acciones";
-import { nombresYApellidos } from "@/lib/club-registro-reglas";
+import { nombreDePersona } from "@cayla-retail/shared";
 import type { RespuestaPadron } from "@/lib/padron";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { MQ_TELEFONO, type EstadoEscaneo, type ResultadoEscaneo } from "@/lib/escaner-reglas";
@@ -61,7 +63,6 @@ import { useTrabajoPorSede } from "@/components/ui/TrabajoPorSede";
 import { apartadoArmado, avisosDelApartado } from "@/lib/apartados-cambio-de-sede";
 import { TituloSeccion } from "@/components/ui/TituloSeccion";
 import { Casilla } from "@/components/ui/Casilla";
-import { Boton } from "@/components/ui/campos";
 
 type Linea = { varianteId: string; cantidad: number };
 
@@ -507,8 +508,10 @@ export function ApartarVista({
       const r = await fetch(`/api/padron?tipo=dni&numero=${dni}`);
       if (!r.ok) return null;
       const datos = (await r.json()) as RespuestaPadron;
-      // SUNAT público trae «apellidos nombres»; el proveedor de pago, «nombres apellidos» (`lib/padron.ts`).
-      return nombresYApellidos(datos.nombre, datos.via === "proveedor" ? "nombres_primero" : "apellidos_primero");
+      // Del padrón, ya partido y con los nombres primero (`packages/shared/src/nombre-del-padron.ts`); de una boleta anterior, junto:
+      // se parte con la misma regla (los apellidos primero, como lo escribe el padrón).
+      if (datos.nombres) return { nombres: datos.nombres, apellidos: datos.apellidos ?? "" };
+      return nombreDePersona({ junto: datos.nombre });
     } catch {
       return null;
     }
@@ -908,9 +911,7 @@ export function ApartarVista({
                           etiqueta={conClienta ? "Buscar al cliente por DNI o celular" : "Buscar al cliente por DNI"}
                           className="min-w-0 flex-1"
                         />
-                        <Boton cargando={buscandoClienta} textoCargando="Buscando…" type="button" onClick={buscarFicha} disabled={buscandoClienta || !largosBuscables.includes(soloDigitos(clientaQ).length)} className="h-10 shrink-0">
-                          Buscar
-                        </Boton>
+                        <BotonBuscar cargando={buscandoClienta} onClick={buscarFicha} disabled={buscandoClienta || !largosBuscables.includes(soloDigitos(clientaQ).length)} className="h-10 shrink-0" />
                       </div>
                     )}
                     {sinFicha === "padron" && (
@@ -990,9 +991,7 @@ export function ApartarVista({
                       </button>
                     ))}
                   </div>
-                  <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-sand">
-                    <span className="block h-full rounded-full bg-tinta transition-[width] duration-500 ease-[var(--ease-cayla)]" style={{ width: `${total ? Math.min(100, (adelanto / total) * 100) : 0}%` }} />
-                  </div>
+                  <BarraAvance pct={total ? (adelanto / total) * 100 : 0} decorativa />
                   <p className="flex justify-between text-xs text-tinta/60 tabular-nums"><span>Deja {money(adelanto)}</span><span>Saldo al recoger {money(total - adelanto)}</span></p>
                   {ver("pago") && <Aviso tono="error" chico>{ver("pago")}</Aviso>}
                   {vuelto > 0 && (
