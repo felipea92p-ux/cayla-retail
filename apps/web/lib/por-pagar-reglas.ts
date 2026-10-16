@@ -1,4 +1,5 @@
 import { diasEntreFechas, diasHastaLima, hoyLima } from "./fechas-lima";
+import { numeroDeMonto } from "./monto-plata-reglas";
 
 // Reglas puras de Por pagar (ADR-0111): a qué tramo de urgencia pertenece una deuda, cómo se
 // rotula su vencimiento y cómo se reparte UN pago entre varios comprobantes. Sin I/O: se
@@ -44,11 +45,10 @@ export function etiquetaVence(iso: string, ahora: Date = new Date()): string {
 // Pago por lote (D3)
 // ---------------------------------------------------------------------------
 
-/** Texto de un input de monto → soles con 2 decimales; `NaN` si no es un número válido o es negativo. */
+/** Texto de un input de monto → soles con 2 decimales, con la regla única de `leerMontoPlata` («1,299» son mil doscientos noventa y nueve,
+ *  «150,5» son ciento cincuenta con cincuenta); vacío es 0, y `NaN` si no se entiende o es negativo. */
 export function parseMonto(texto: string): number {
-  const limpio = texto.trim().replace(",", ".");
-  if (limpio === "") return 0;
-  const n = Number(limpio);
+  const n = numeroDeMonto(texto);
   if (!Number.isFinite(n) || n < 0) return Number.NaN;
   return Math.round(n * 100) / 100;
 }

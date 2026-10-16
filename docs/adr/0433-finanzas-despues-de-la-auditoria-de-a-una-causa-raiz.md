@@ -75,3 +75,22 @@ se registraron como un traslado a la caja fuerte de Arequipa (en la caja real an
 siguiente; su fondo pasa de 300.00 a 118.90), no como faltante: la caja fuerte pasa de 2065.84 a 2246.94 y la suma de «sobró/faltó al abrir»
 de octubre pasa de −734.50 a −153.40 (Trujillo −700 desaparece; Arequipa +118.90 desaparece). **Pendiente, sin inventar cifras:** Felipe
 mencionó también «el depósito a cuenta»; falta el monto, la fecha y la cuenta para registrarlo.
+
+## Actividad 2 · Los lectores de monto de Finanzas entienden la coma decimal (G07)
+
+**El problema.** ADR-0419 (act. b) daba por hecho que los lectores de monto de Finanzas ya aceptaban la coma, y no era cierto: cuatro hacían
+`.replace(/,/g, "")` y «648,50» se guardaba como S/ 64 850 (Registrar gasto, depósitos entre cuentas, saldo inicial de cuenta, topes de
+presupuesto, fondos de tienda, saldos de arranque), y el de Por pagar leía «1,299» como 1.30 y aceptaba «1e3» y «0x10». Nada avisaba: solo
+frenaba el tope de S/ 1 000 000.
+
+DECIDÍ: los cuatro (`parsearMonto` de gastos y de configuración, `leerMontoArranque`, `parseMonto` de Por pagar) y el saldo del banco de
+Cuentas y dinero delegan en `leerMontoPlata` (`lib/monto-plata-reglas.ts`), conservando cada contrato (vacío = 0 o `null`, `NaN` en Por pagar,
+mensajes). Una sola regla en vez de cinco; «12.500» y «1e3» ya no se adivinan, se piden de nuevo.
+DESCARTÉ: dejar cada lector con su propia regla y parcharles la coma (cinco reglas que vuelven a divergir), y tocar `limpiarMonto` del gasto y el
+ingreso rápido, que normalizan mientras se teclea y tienen su contrato escrito (ADR-0368).
+SE ROMPE SI: un lector nuevo vuelve a borrar comas: `lib/monto-lectores.test.ts` (tabla de 19 casos × 4 lectores y un candado de archivo sobre
+los de Finanzas) lo nombra; una línea legítima se exime con `// coma-fija: <motivo>` (hoy dos: la tasa de impuestos y la clave de búsqueda de
+notas de crédito). **Fuera de esta actividad, anotado:** Compras (`orden-compra-alta.ts`, `plan-compra-reglas.ts`) tiene sus propios lectores;
+y el signo de un saldo inicial (G08) es otra decisión.
+**Verificado.** La prueba nueva falló con 42 casos antes del cambio y pasa 78/78 después; con una mutación (volver a borrar comas en gastos) cae con
+16. `tsc` limpio, eslint limpio, Knip limpio, vitest completo 532 archivos / 160 287 pruebas.
