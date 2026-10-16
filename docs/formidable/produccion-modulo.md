@@ -162,8 +162,102 @@ Cosas que tocó y no hicieron lo esperado: la fila de Proveedores abre la edici�
 
 Este informe es el «antes». El módulo entra a rediseño por decisión de Felipe del 2026-10-13 (ADR-0400, reservado; preguntas abiertas en la investigación). Cuando el rediseño tenga una pantalla, se mide contra esta línea base **al mismo ancho (1440 × 900 y 1024 × 768), con la misma semilla y las mismas dos tareas de los ciegos**, y se agrega una fila al historial; los 3 cambios de arriba son lo primero que el «después» tiene que mostrar distinto. Lo que no espera al rediseño porque es del sistema: el Deshacer desde un cajón (lista aparte, #1). Lo que es de Felipe porque es modelo de datos o dinero: la etapa como registro y el costo estimado que se vuelve real.
 
+## El «después» · 2026-10-15 · SHA `954e8c3c0` (rama `claude/production-module-redesign-136cca`, ADR-0400)
+
+- **Veredicto en una línea:** «Sube, pero no llega a lo prometido: Órdenes y La orden son otra cosa (7,4 contra 4,6 del cajón), la costura afuera por fin se marca con su proveedor y su tarifa, y el Resumen sigue diciendo "Faltan 146.5 m" junto a 155 m pedidos, tanto que la ciega 2 no se atrevió a guardar el pedido.» La ADR-0400 pedía el módulo por encima de 7,5 y las leyes 5 y 6 por encima de 7: **no se cumplió**.
+- **⚠ Corrección del 2026-10-16: esta medición es de una rama a 758 commits de `main`.** Al preparar los arreglos se vio que `main` ya cambió dos cosas de las que depende este informe: (1) **la recepción de las órdenes de insumos** (ADR-0362, ya en producción): H1 asumía que una orden de insumos no se liga a lo recibido, y ahora sí se liga, así que el cambio 1 ya no es «cambiar el texto» sino calcular lo que de verdad viene en camino; (2) **los candados `*_montos_finitos` de las tablas** (ADR-0409, ya en producción): el `NaN` del /chaos queda cubierto y no hace falta migración. Las notas de arriba valen para el SHA medido; el «después» definitivo se vuelve a medir sobre la rama ya fusionada con `main`.
+- **Escala (Felipe eligió «medio», 4 agentes):** ① medidor (Playwright, 13 vistas × 2 anchos, `medidas.json`) · ② **dos ciegos con Haiku** (Sonnet 5.5 cayó 3 veces por el filtro `reasoning_extraction`) · ③ revisor de leyes (código y capturas) · ④ escéptico (código, capturas y base local, solo lectura). **Salvedad de los ciegos:** su contexto traía CLAUDE.md y la memoria (se adjuntan solos a todo subagente) y entraron como líder y Admin, así que son **Observado de capacidad y de texto**, no una colaboradora real. **Ciega: pasa con salvedades · real: sin probar.**
+- **Datos:** la misma semilla «ZZ Prueba». Ojo: 5 de las 8 filas de Órdenes son **órdenes de antes de las fases** (OP-1, 3, 4, 5, 6) y los ciegos anteriores dejaron la OI-2 (35 m) y un pedido; eso infla el «155 m» y el «cortado a media palabra» de la lista. `producto_fotos` tiene 0 filas: ninguna pantalla puede mostrar una foto aquí.
+
+### Notas
+
+| Eje | Antes | Después | Evidencia |
+|---|---|---|---|
+| Leyes 2–9 (las mismas 10 pantallas) | 5,6 | **6,1** | [Medido, código y capturas] el salto lo dan dos pantallas nuevas (Órdenes 7,4 y La orden 7,4, contra 4,6 del cajón); de las otras ocho solo Insumos sube de verdad (+1,0). Cotizaciones no se repuntuó. |
+| 1 Sin manual | 5 | **5** (provisional; sin cambio) | [Observado] el ciego 1 terminó lo que antes no podía (costura afuera con proveedor y tarifa) en 14 clics y 0 retrocesos; el ciego 2 **no cerró** la tarea de pedir. Nadie llegó a cero dudas (cada uno anotó más de 12). Los clics 23→14 y 20→13 **no se comparan**: otro modelo, n = 1, otra base. |
+| 5 Contenido primero | 4,4 | **5,0** | [Medido] la prenda sigue sin foto en Órdenes y en La orden (`fotoUrl={null}`); la tela, sin cara fuera de Insumos. |
+| 6 Lo difícil, a un toque | 4,6 | **5,3** | [Medido] «¿Por qué?» ya es un toque en Órdenes y La orden; el Resumen sigue con su fórmula abierta. |
+| **Oficio visual** | 4,4 | **4,8** | [Medido] 10 × comprobaciones que pasan / 6, descontando el chrome global y 2 que ninguna pantalla puede pasar. **Todo el +0,4 viene de Órdenes y La orden; las otras nueve van de 4,82 a 4,82.** No es comparable con el 5,6 «(código)» del Historial (otra escala). El medidor da por falso el texto crema sobre su píldora de pestaña (1,05–1,10:1, en 6 de 13 vistas): está descontado y escrito aquí. |
+
+**Dos leyes bajaron:** Resumen ley 5 (6 → 5) y Nueva orden ley 8 (5 → 4). Los 3 cambios de la línea base quedaron **parciales los tres**: (1) la prenda tiene mosaico pero no foto y la tela sigue sin cara; (2) veredicto y «¿Por qué?» en Órdenes y La orden sí, en el Resumen no; (3) el vocabulario vigilado cubre solo 6 frases y «maquila», «ADR-0117», «Capital en insumos» siguen en pantalla.
+
+| Pantalla | Leyes antes → después | Oficio (fallan de 6 · nota) |
+|---|---|---|
+| A Resumen | 5,5 → 5,5 | 3 · 5,0 (igual) |
+| B1 Órdenes (lista) | 4,6 → **7,4** | 3 · 5,0 (antes, tablero: 5 · 1,7) |
+| B2 La orden (página) | 4,6 → **7,4** | OP-343: 5 · OP-364: 3 → 3,3 (antes, cajón: 6 · 0) |
+| C Nueva orden (hoja) | 6,0 → 6,1 | 5 · 1,7 (igual) |
+| D Insumos | 5,3 → **6,3** | 4 · 3,3 (antes 3 · 5,0) |
+| E Órdenes de insumos | 6,4 → 6,4 | 3 · 5,0 (igual) |
+| F Proveedores + Servicios y tarifas | 5,9 → 6,1 | 3 · 5,0 (igual) |
+| G Facturas | 5,5 → 5,6 | 3 · 5,0 (igual) |
+| H Recibir | 6,0 → 6,1 | 2 · 6,7 (igual) |
+| I Por pagar | 6,1 → 6,1 | 2 · 6,7 (antes 3 · 5,0) |
+| J Eficiencia | 5,1 → 5,4 | 3 · 5,0 (igual) |
+
+### Lo que cerró de verdad
+La etapa ya no es un bit (fases con su quién); la cabecera es una sola (`EncabezadoPagina`); el vacío de Órdenes dice la verdad en el primer uso; quien no ve Producción recibe una frase y no un redirect mudo; dos primarias menos (Insumos y Facturas); «Faltan N m» ya no lleva a registrar una factura sino a «Ver los pedidos»; Recibir no dice «Todo lo facturado ya llegó» sin haber facturado; sin scroll de lado a 1024 px en las pantallas nuevas.
+
+### Lo que dijo el escéptico (cada hallazgo, con prueba)
+
+| # | Hallazgo | Veredicto | Grav. | Lo que queda |
+|---|---|---|---|---|
+| H1 | «Faltan 146.5 m» contradice los 155 m pedidos | **MATIZADO** | 3 | No es una contradicción lógica: 146.5 = necesita − estante − facturado, y 155 son pedidos de 60 días sin vínculo con la recepción (no existe columna orden de insumos ↔ lote; sumarlos contaría doble: ADR-0400 (g)). **Es un defecto de texto**, y el ciego 2 lo sufrió: su única guía, «Si ya llegaron, anótalos en Recibir», choca con los datos (OI-1 dice «llega el 21 oct»; el último lote de lino entró el 13-oct, antes de ambos pedidos). |
+| H2 | Un lote entra al stock con costo sin tela | **CONFIRMADO, reproducido en la base** | 2 | OP-343 se cerró con la tela sin anotar: las 6 variantes entraron a **S/ 4.50 (solo la costura afuera)**, sin aviso de costo atípico. `revertir` devolvió el stock pero **`variantes.costo` se quedó en 4.50**, y el siguiente cierre honesto (S/ 22.38) saltará como atípico. Matices: «Terminé» precarga la tela (no es el camino por defecto), y el costo 0 sí lo frena `fn_costo_fuera_de_banda`; lo que no frena es el primer lote de cada modelo. Dinero, todas las sedes: **de Felipe**. |
+| H3 | «La tela no alcanza» en rojo con las 3 fases hechas | **CONFIRMADO (falso positivo)**, otra causa | 3 | No falta anotar: la tela sí estaba anotada (plan 75.6 m, usado 44 m, corte 48/48); sobra plan. `filasDeTela` usa `max(plan − usado, 0)` sin mirar las fases (`orden-pagina-reglas.ts:667`, `:773`). Se propaga a «Piden algo 1», «1 sin tela» y al «1 pide algo» del Resumen: **la única orden en rojo del Taller es falsa**. Regla correcta: tela cortada = nada por usar (los avíos sí pueden faltar). |
+| H4 | La tabla de Servicios y tarifas se rompe a 1024 px | **CONFIRMADO y peor** | 3 | El servicio recibe 80 px a 1280, 166 a 1366 y 240 a 1440. Causa: `sm:` en vez de `@min-[…]` (`ServiciosYTarifas.tsx:19-21`). |
+| H5 | Nueva orden pone el consejo de la red antes de Fases | **CONFIRMADO, alcance menor** | 4 | Solo líder (`page.tsx:87`), solo con modelo existente, y en la captura está vacío («Nada que fabricar») ocupando ~290 px. Reordenar no es la cura: la sugerencia alimenta «Cuántas» y los metros de la tela dependen del total. |
+| H6 | Sin foto de la prenda ni muestra de tela | **MATIZADO** | 3 (en producción) | Hueco real (`FilaDeOrden.tsx:39`, `FichaDeLaOrden.tsx:18`), no contradice ninguna decisión (ADR-0333 solo dice cómo se dibuja SIN foto) y **no es observable aquí**: 0 filas en `producto_fotos`. La ganancia «ley 5 a ~6,5» era una cifra inventada. |
+| H7 | «Hoy en el Taller» duplica Órdenes; el capital no pide decisión | **MATIZADO: decisión escrita** | 4 | Está en ADR-0400 §Pantallas 5 y act. (g), en la investigación y en la elección de Felipe («A · Lista con Hoy en el Taller»). No se corrige: se pregunta. |
+| H8 | El cajón viejo (~1 270 líneas) se puede retirar | **MATIZADO** | 4 | Solo `OrdenesLista.tsx:7,293` lo abre y únicamente para órdenes sin fases (5 en la base local). Sin él, esas órdenes quedan en un círculo sin salida (`RutaDeFases.tsx:49`). **Producción: `retail.producciones` tiene 0 filas (consulta de solo lectura del 2026-10-15)**, así que al desplegar no hay nadie que lo necesite; va en un PR aparte, después del despliegue y volviendo a contar. |
+| H9 | Las pruebas ciegas valen | **MATIZADO** | — | Valen para los 5 s, la costura afuera marcable y la parálisis del ciego 2. No valen para la nota de la ley 1, para comparar clics, ni para medir jerga (Haiku con CLAUDE.md sobre-reporta «IGV», «lote»). |
+| H10 | Oficio 4,4 → 4,8 | **MATIZADO** | — | Recalculado: 4,76 contra 4,40, consistente con `oficio-visual.md`; seis comprobaciones, cada falla vale 1,67 puntos. |
+| H11 | Blancos < 24 px y contrastes bajos | **MATIZADO** | 4 | Nuevos de esta rama: «¿Por qué?», «Deshacer», «Anular», «Cambiar quién», «Cambiar», «Ver el capital» y tres textos tenues («Sin color» 3,82:1, «Sin fijo» 2,85:1, «Sin ventas medidas…» 4,35:1). Heredados: `EnlaceVer`, `Ayuda`, «Salir» y los ocho «—» a 2,8:1. La raíz de los blancos es `.btn-enlace` con `padding: 0` (`globals.css:487`): una pieza compartida. |
+
+**Hallazgos nuevos del escéptico:** (1) el estimado de costo se hunde cuando se gasta la tela (`20261015160000…sql:476-492`: tela estimada = plan × costo del lote con saldo, y sin saldo vale 0), por eso OP-343 dice «S/ 1,074.00 de S/ 216.00»; (2) `revertir_produccion` deja contaminado `variantes.costo`; (3) «Pedir 31.6 m» promete una cantidad que el enlace no lleva; (4) «Anular» en la línea de tiempo es un enlace neutro mientras la tabla de piezas manda `btn-peligro` para anular; (5) `/ordenes-insumos` está fuera de `SIN_TOPE_DE_ANCHO` (`AppShell.tsx:663`); (6) la guía de «Nueva orden de insumos» lista «Faltan: … Entrega estimada» y luego dice «puedes seguir así» (rompe la regla 5 de ADR-0284).
+
+### Prueba ciega del «después»
+
+| | Ciego 1 · 50 blusas Marina, corte en casa, costura afuera; después, el paso del pantalón | Ciego 2 · ¿alcanza el lino?, pedirlo si falta, ¿a quién le debe el Taller? |
+|---|---|---|
+| 5 s | «Resumen del Taller; para hacer una orden toco NUEVA ORDEN» ✓ | «Resumen: Para decidir con 2 asuntos, cada uno con su botón» ✓ |
+| Resultado | **Terminó**: Corte en el Taller, **Costura Afuera con Confecciones del Norte a S/ 4.50 de su lista**, Acabado en el Taller. 14 clics, 0 retrocesos (antes 23 y 2). El pantalón lo contestó con OP-5, una orden **de antes de las fases** | **Alcanza: sí (no alcanza). Deudas: sí (S/ 4 160, comprobó la suma). Pedir: armó el pedido (146.5 m, S/ 2 930) y NO lo guardó**, por el «155 m» de al lado. 13 clics, 0 retrocesos (antes 20 y 3) |
+| Lo que no entendió | «Curva sugerida por la red», «motor de demanda», «Cubrir 30 días»; la tarifa que se llena sola en gris parece bloqueada; «Fijo por orden (ponchado, matriz)» | «Si ya llegaron, anótalos en Recibir» (qué es Recibir); «Faltan: … Entrega estimada» y luego «puedes seguir así»; escribió sin campo enfocado |
+
+Pendiente de la línea base **sin verificar**: que el Resumen cambie después de pedir (el ciego 2 no guardó).
+
+## Los 3 cambios de mayor impacto (versión final, con lo que corrigió el escéptico)
+
+El revisor propuso (1) foto y muestra, (2) el Resumen con su porqué, (3) Nueva orden con Fases antes del consejo. El escéptico dejó el 2 con la evidencia más fuerte, el 3 con evidencia media y el 1 con la más débil, y propuso cambiarlo. Esta es la lista que queda:
+
+1. **Resumen: la tela dice la verdad sobre lo pedido y su porqué cabe en un toque.** *Antes →* «Faltan 146.5 m» y debajo «Ya hay pedidos: OI-2 35 m · OI-1 120 m». *Después →* «Faltan 146.5 m. Ya pediste 155 m (OI-2 y OI-1, llegan el 21 oct): si siguen en camino alcanzan; si ya llegaron, anótalos en Recibir y este número baja», y el párrafo de fórmula de abajo pasa a un «¿Por qué?» (el patrón de `PideAtencion.tsx`). *Leyes:* 3, 4, 6. *Verifica:* la ciega 2 repetida guarda el pedido o dice con otras palabras por qué no. **Presentación.** No toca «Hoy en el Taller» ni el capital (decisiones de Felipe). Una regla mejor («pedido emitido después del último ingreso = en camino») es de stock: **Felipe**.
+2. **Tela y costo honestos** (sustituye al «foto y muestra»). (a) *Tela cortada = nada por usar:* `rojoDeLaOrden` y `filasDeTela` dejan de marcar «la tela no alcanza» cuando Corte ya terminó (H3: tres pantallas con un rojo falso). Es presentación, esfuerzo S. (b) *Un aviso antes de «Pasar al stock» si la tela usada es 0 y el plan pide metros:* «Todavía no anotaste la tela de este lote: el costo por prenda saldría sin tela», con «Anotarla ahora», sin bloquear (H2). **Toca costo: OK de Felipe.** *Leyes:* 3, 7. *Verifica:* OP-343 deja de salir en rojo; el cierre sin tela muestra el aviso.
+3. **Nueva orden: el consejo de la red se pliega a una línea cuando no sugiere nada.** *Antes →* ~290 px de «Nada que fabricar» y «Todavía no recomienda» antes de Fases. *Después →* una línea («La red no sugiere nada ahora · ¿Por qué?»), y con sugerencia, «La red sugiere 40 prendas · Usarla · ¿Por qué?» con la curva, «Cubrir» y el motor bajo ese toque. **Sin reordenar** (la sugerencia alimenta «Cuántas» y los metros de tela dependen del total). *Leyes:* 2, 6, 8. *Verifica:* «Fases» a la vista sin scroll a 1440 × 900. **Presentación.**
+
+## Lo que no pediste y importa más
+**El sistema grita donde no hace falta y calla donde importa.** Grita «la tela no alcanza» en una orden con el corte hecho (H3) y calla cuando un lote entra al stock a S/ 4.50 por prenda en vez de S/ 22.38 porque nadie anotó la tela (H2, reproducido). Ese costo alimenta el promedio ponderado de la prenda en todas las sedes, y revertir la orden no lo devuelve. Es dinero: **la decisión es de Felipe** (aviso, bloqueo, o que `revertir` restaure el costo).
+
+## Lo que sobra (ley 8)
+- Resumen: «Capital en insumos» y «Valor en proceso» arriba (decisión escrita: se pregunta); el párrafo de pie con la fórmula.
+- Órdenes: las píldoras «Afuera / Piden algo / Listas» (las tarjetas ya filtran) y la nota fija de las tres causas.
+- **El cajón viejo** (`OrdenPanel`, `OrdenInsumos`, `OrdenCierre`, `OrdenModales`, `MatrizOrden`, `OrdenTarjeta`, ~1 270 líneas) y `conEtapasDeAntes`: producción tiene 0 órdenes (2026-10-15). Va en un PR aparte, después del despliegue.
+- Servicios y tarifas: las 3 cifras sobre una sola fila. La orden: el costo dos veces. «Directorio / libro aparte del de Compras» en Proveedores y Facturas.
+
+## Lista aparte (no se ejecuta)
+Baratas (S), sin decisión de negocio: la tabla de Servicios y tarifas a `@container` (H4) · `/ordenes-insumos` en `SIN_TOPE_DE_ANCHO` (`AppShell.tsx:663`) · contrastes nuevos («Sin color», «Sin fijo», «Sin ventas medidas…») · «Pedir N m» que lleve la cantidad (`TelaDeLaOrdenVista.tsx:59`) · la guía de «Nueva orden de insumos» (regla 5 de ADR-0284) · autofoco al abrir esa hoja · «8 órdenes abiertas» contra «7 en curso» · ampliar `produccion-vocabulario.test.ts` a «maquila», «ADR-» y «Orden de antes de las fases».
+Pieza compartida, avisar a Felipe: `.btn-enlace` con `padding-block: .3125rem; margin-block: -.3125rem` y un `min-height` en `EnlaceVer` y `Ayuda` (sin cambio visual; arregla de una vez los 6 blancos < 24 px).
+**Del dinero, de Felipe:** el texto «pasó el estimado» en la cabecera de La orden **no se hace todavía** (el estimado se hunde al gastar la tela y rotularía un falso exceso); `variantes.costo` tras revertir.
+**Foto de la prenda y muestra de la tela:** vuelven a la lista; no se pueden probar con 0 fotos en la base local y nadie tropezó con ellas. Se retoman cuando haya fotos reales.
+Sin medir: 375 px, modo oscuro de las pantallas nuevas con la auditoría, teclado y foco.
+
+## Antes de decir «listo» (el «después»)
+- **Concurrencia:** `/chaos` del 2026-10-15 (182 casos en la base y 14 ataques en el navegador sobre lo que guarda dinero o stock): las hojas nuevas resisten el doble y el triple clic; los hallazgos abiertos están en `docs/chaos/README.md` y esperan el OK de Felipe. Dos cuentas a la vez desde el navegador: no cubierto (cubierto en la base).
+- **Caída externa:** sin red conserva lo escrito y no duplica (RS-01, RS-03); el mensaje «No se guardó nada» miente cuando la base sí guardó. Producción no habla con SUNAT ni con Lucode.
+- **Persona sin contexto:** dos ciegos ✓ con las salvedades de arriba · **colaboradora real del Taller: sin probar.**
+
 ## Historial
 
 | Fecha | SHA | Leyes | Oficio | Cambios cerrados |
 |---|---|---|---|---|
 | 2026-10-13/14 | `d4533724e` | **5,5** (aritmético 5,6; ley 1: 5 provisional; ley 5: 4,5; ley 6: 4,6; Órdenes ley 5 en 2) | **5,6** (código) · medido sin chrome: de 3 a 8 fallas de 8 según la vista (piso del script: 2) | línea base antes del rediseño ADR-0400; ninguno aplicado: los 3 cambios esperan el OK de Felipe |
+| 2026-10-15 | `954e8c3c0` | **6,1** en las mismas 10 pantallas (antes 5,6) · ley 1: 5 (provisional, sin cambio) · ley 5: 5,0 (antes 4,4) · ley 6: 5,3 (antes 4,6) · Órdenes y La orden 7,4 | **4,8** medido (antes 4,4 con la misma fórmula; no comparable con el 5,6 «código») | rediseño ADR-0400 medido: la etapa ya no es un bit, la costura afuera se marca con proveedor y tarifa, «¿Por qué?» a un toque en Órdenes y La orden; los 3 cambios de la línea base quedaron parciales; los 3 nuevos (tela dicha con verdad en el Resumen, tela y costo honestos, consejo plegado en Nueva orden) esperan el OK de Felipe |
