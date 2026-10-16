@@ -1,12 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
-import { UserX } from "lucide-react";
+import { Archive, UserX } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, Campo } from "@/components/ui/campos";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
-import { Chip } from "@/components/ui/Chip";
-import { EnlaceVer } from "@/components/ui/EnlaceVer";
 import { PieAcciones } from "@/components/ui/PieAcciones";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -19,12 +18,10 @@ import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { haceCuanto } from "@/lib/vender-hoy-reglas";
 import { camposRecomendacion } from "@/lib/recomendaciones-guia";
 import {
-  INSIGNIA,
   MAX_RESPUESTA,
   accionPrincipal,
   avisoDelError,
   cuando,
-  estadoDe,
   hrefFicha,
   letras,
   pideReleer,
@@ -42,6 +39,11 @@ type Hecho = "leida" | "respondida" | "archivada" | "en_bandeja";
  * lee en su cuenta de la tienda online; una sola vez), o solo marcarla como leída, o archivarla. Todo firmado con el combo
  * «Responsable» (ADR-0162). Un doble toque no manda dos veces: el botón se apaga mientras la base responde y la base no repite (la
  * misma respuesta otra vez es «ya estaba»; otra encima de una que ya está se rechaza y la lista se relee).
+ *
+ * Se lee como una conversación (Felipe 2026-10-16: «muy saturada y poco intuitiva»): quién y sobre qué una sola vez arriba; el mensaje
+ * del cliente y la respuesta de CAYLA en dos globos, cada uno con su hora; el estado no lleva insignia porque lo dice la conversación.
+ * Cuando ya no hay nada que escribir (respondida, archivada o sin nombre) la hoja solo se lee: se cierra con la ✕ y no lleva «Cancelar»
+ * ni el pie de la guía, y a un Admin no se le muestra el aviso del responsable (no tiene nada que elegir).
  */
 export function RecomendacionHoja({
   recomendacion: r,
@@ -64,7 +66,11 @@ export function RecomendacionHoja({
   const guia = useGuiaCampos(
     camposRecomendacion({ recomendacion: r, respuesta, responsableListo: responsable.listo, responsableMotivo: responsable.motivo }),
   );
-  const estado = estadoDe(r);
+  // Sin nada que escribir (respondida, archivada o con la ficha anonimizada), la hoja solo se lee: la ✕ la cierra y no lleva «Cancelar»
+  // (ADR-0358, familia `modal`: una salida a la vista, nunca las dos).
+  const soloSeLee = !sePuedeResponder(r);
+  // Un Admin no elige responsable (todo queda a su nombre): en una hoja que solo se lee, ese aviso no le dice nada que hacer.
+  const verResponsable = !(soloSeLee && responsable.estado === "admin");
   const accion = accionPrincipal(r, respuesta);
   const puedeResponder = sePuedeResponder(r);
   const n = letras(respuesta);
@@ -125,79 +131,81 @@ export function RecomendacionHoja({
   const nombre = r.cliente?.nombre ?? null;
   return (
     <Modal
-      titulo={nombre ? `Recomendación de ${nombre}` : "Recomendación sin nombre"}
-      subtitulo={`Sobre ${sobreQue(r)}`}
+      titulo={
+        nombre ? (
+          <span className="flex min-w-0 items-center gap-3" data-guia="recomendacion.cliente">
+            <AvatarPersona personaId={null} nombre={nombre} tamano={40} />
+            <span className="min-w-0 break-words">{nombre}</span>
+          </span>
+        ) : (
+          "Recomendación sin nombre"
+        )
+      }
+      subtitulo={
+        <>
+          Sobre {sobreQue(r)}
+          {nombre && veFichas && (
+            <>
+              {" · "}
+              <Link href={hrefFicha(nombre)} onClick={onClose} className="btn-enlace">
+                ver su ficha
+              </Link>
+            </>
+          )}
+        </>
+      }
       onClose={onClose}
       tamano="mediana"
+      conCerrar={soloSeLee}
       bloqueado={guardando !== null}
       // Primero se LEE lo que escribió el cliente: el foco va a la hoja (no a «Archivar» ni a la respuesta); Tab entra a los controles.
       focoEnLaHoja
     >
       {(cerrar) => (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Chip tono={INSIGNIA[estado].tono} tachado={false}>
-              {INSIGNIA[estado].texto}
-            </Chip>
-            <span className="text-[12.5px] text-taupe">
-              Llegó {haceCuanto(r.creadaEn, ahora)} · {cuando(r.creadaEn)}
-            </span>
-          </div>
-
-          {/* Lo que escribió, tal cual (es texto: lo que parezca código se lee como texto). */}
-          <blockquote
-            className="whitespace-pre-line break-words border-l-2 border-sand pl-4 font-serif text-[18px] leading-snug text-tinta"
-            data-guia="recomendacion.texto"
-          >
-            {r.texto}
-          </blockquote>
-
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2" data-guia="recomendacion.cliente">
-            {r.cliente ? (
-              <>
-                <span className="flex min-w-0 items-center gap-2">
-                  <AvatarPersona personaId={null} nombre={r.cliente.nombre} tamano={32} />
-                  <span className="truncate font-semibold text-tinta">{r.cliente.nombre}</span>
-                </span>
-                {veFichas && (
-                  <EnlaceVer href={hrefFicha(r.cliente.nombre)} alNavegar={onClose}>
-                    Ver su ficha
-                  </EnlaceVer>
-                )}
-              </>
-            ) : (
-              <span className="flex items-center gap-2 text-[13px] text-taupe">
-                <UserX aria-hidden className="h-5 w-5 shrink-0" />
-                Su ficha se anonimizó: la recomendación se queda, sin su nombre ni sus datos, y ya no se le responde.
-              </span>
-            )}
-          </div>
-
-          {(r.leidaEn || r.archivadaEn) && (
-            <ul className="space-y-0.5 text-[12.5px] text-taupe">
-              {r.leidaEn && (
-                <li>
-                  Leída {r.leidaPor ? `por ${r.leidaPor} ` : ""}el {cuando(r.leidaEn)}
-                </li>
-              )}
-              {r.archivadaEn && (
-                <li>
-                  Archivada {r.archivadaPor ? `por ${r.archivadaPor} ` : ""}el {cuando(r.archivadaEn)}
-                </li>
-              )}
-            </ul>
-          )}
-
-          {r.respuesta !== null && (
-            <div className="rounded-2xl border border-sand bg-hueso/60 px-4 py-3" data-guia="recomendacion.respuesta-dada">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-taupe">Respuesta de CAYLA</p>
-              <p className="mt-1 whitespace-pre-line break-words text-[14px] text-tinta">{r.respuesta}</p>
-              <p className="mt-1.5 text-[12px] text-taupe">
-                {r.respondidaPor ? `${r.respondidaPor} · ` : ""}
-                {r.respondidaEn ? cuando(r.respondidaEn) : ""} · la lee en su cuenta de la tienda online
+          {/* La conversación: el cliente a la izquierda, CAYLA a la derecha, cada mensaje con su hora. */}
+          <div className="space-y-3">
+            <div className="max-w-[88%]">
+              {/* Lo que escribió, tal cual (es texto: lo que parezca código se lee como texto). */}
+              <blockquote
+                className="whitespace-pre-line break-words rounded-2xl rounded-tl-md border border-sand bg-hueso/70 px-4 py-3 font-serif text-[18px] leading-snug text-tinta"
+                data-guia="recomendacion.texto"
+              >
+                {r.texto}
+              </blockquote>
+              <p className="mt-1.5 pl-1 text-[12px] text-taupe">
+                Llegó {haceCuanto(r.creadaEn, ahora)} · {cuando(r.creadaEn)}
+                {/* Respondida, se leyó: el «visto» solo dice algo mientras no hay respuesta. */}
+                {r.leidaEn && r.respuesta === null && <> · vista {r.leidaPor ? `por ${r.leidaPor}` : `el ${cuando(r.leidaEn)}`}</>}
               </p>
             </div>
-          )}
+
+            {r.respuesta !== null && (
+              <div className="ml-auto max-w-[88%]" data-guia="recomendacion.respuesta-dada">
+                <p className="whitespace-pre-line break-words rounded-2xl rounded-tr-md bg-tinta px-4 py-3 text-[14.5px] leading-snug text-crema">
+                  {r.respuesta}
+                </p>
+                <p className="mt-1.5 pr-1 text-right text-[12px] text-taupe">
+                  Respondió {r.respondidaPor ?? "CAYLA"}
+                  {r.respondidaEn ? ` · ${cuando(r.respondidaEn)}` : ""} · lo lee en su cuenta de la tienda online
+                </p>
+              </div>
+            )}
+
+            {!r.cliente && (
+              <p className="flex items-center gap-2 text-[13px] text-taupe">
+                <UserX aria-hidden className="h-5 w-5 shrink-0" />
+                Su ficha se anonimizó: la recomendación se queda, sin su nombre ni sus datos, y ya no se le responde.
+              </p>
+            )}
+
+            {r.archivadaEn && (
+              <p className="flex items-center gap-1.5 text-[12px] text-taupe">
+                <Archive aria-hidden className="h-3.5 w-3.5 shrink-0" />
+                Archivada {r.archivadaPor ? `por ${r.archivadaPor} ` : ""}el {cuando(r.archivadaEn)}
+              </p>
+            )}
+          </div>
 
           {puedeResponder && (
             <CampoGuiado id="respuesta" guia={guia}>
@@ -231,36 +239,44 @@ export function RecomendacionHoja({
             </CampoGuiado>
           )}
 
-          <CampoGuiado id="responsable" guia={guia}>
-            <div data-guia="recomendacion.responsable">
-              <ComboResponsable control={responsable} deshabilitado={guardando !== null} />
-            </div>
-          </CampoGuiado>
+          {verResponsable && (
+            <CampoGuiado id="responsable" guia={guia}>
+              <div data-guia="recomendacion.responsable">
+                <ComboResponsable control={responsable} deshabilitado={guardando !== null} compacto />
+              </div>
+            </CampoGuiado>
+          )}
 
-          <div className="space-y-2 pt-1">
-            <PieGuia guia={guia} listo={accion === "responder" ? "Lista para enviar." : "Todo listo."} />
+          <div className={`space-y-2 ${soloSeLee ? "border-t border-sand pt-4" : "pt-1"}`}>
+            {!soloSeLee && <PieGuia guia={guia} listo={accion === "responder" ? "Lista para enviar." : "Todo listo."} />}
             <PieAcciones
               guia="recomendacion.acciones"
               izquierda={
-                // Archivar saca de la bandeja (lo de «quitar» va a la izquierda, en rojo: ADR-0358); se deshace desde el aviso.
                 r.archivadaEn ? undefined : (
+                  // Archivar no borra: la saca de la bandeja y se deshace desde el aviso. Por eso va tranquilo, con su ícono, y no en el
+                  // rojo de «quitar» (Felipe 2026-10-16, excepción a `accion.eliminar` anotada en docs/unificar/boton.md).
                   <Boton
                     type="button"
-                    peso="peligro"
+                    peso="fantasma"
                     cargando={guardando === "archivada"}
                     textoCargando="Archivando…"
                     disabled={guardando !== null || !responsable.listo}
                     title={responsable.motivo ?? undefined}
                     onClick={() => guardar("archivada", cerrar)}
                   >
-                    Archivar
+                    <span className="flex items-center gap-2">
+                      <Archive aria-hidden className="-my-1 h-4 w-4 shrink-0" />
+                      Archivar
+                    </span>
                   </Boton>
                 )
               }
             >
-              <Boton type="button" onClick={cerrar} disabled={guardando !== null}>
-                Cancelar
-              </Boton>
+              {!soloSeLee && (
+                <Boton type="button" onClick={cerrar} disabled={guardando !== null}>
+                  Cancelar
+                </Boton>
+              )}
               {accion === "leer" && (
                 <Boton
                   type="button"
