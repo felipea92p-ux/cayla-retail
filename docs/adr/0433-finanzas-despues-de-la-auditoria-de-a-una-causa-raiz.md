@@ -110,6 +110,7 @@ lectores de la web, y una categoría desconocida quedaría fuera de entró, sali
 SE ROMPE SI: se agrega un medio de cobro y no se actualiza `fn_flujo_lado`: la guarda lo dice. **No incluye** `pago_planilla` y `pago_sunat` (siguen
 cayendo en «entre cuentas», hoy 0 filas): clasificarlos como «sale» sin tocar la proyección contaría dos veces la planilla (la proyección ya le suma
 la de Dynamic a la salida diaria); van con la proyección, en la actividad 4.
+**En producción (2026-10-16, con el OK de Felipe).** Versión `20261016215831`; md5 de `fn_flujo_lado` igual al de local; «Salió» del 1 al 16 de octubre pasó de 10 557 a 2 949 y «Entró» de 48 578 a 62 084, descuadre 0.
 **Verificado.** Suite `flujo_caja` 60/60 con la migración, y 4 de los 60 casos (los nuevos) fallan sin ella; las suites vecinas pasan igual que antes
 (`pedidos_web_entregar` y `redondeo_efectivo` fallan igual con y sin la migración, por el estado de la base local). vitest 160 288 pruebas, `tsc` y Knip limpios.
 
@@ -136,6 +137,7 @@ DESCARTÉ: ocultar las cifras hasta tener saldos (la pantalla quedaría vacía e
 proxy (septiembre es casi nada frente a octubre); dividir entre 8 con un aviso (sigue subestimando ~3.5 veces).
 SE ROMPE SI: se pega la web antes que la migración (los campos nuevos llegan vacíos y la web no inventa: no dice «provisional»); un IGV de otro vencimiento
 que no sea el día 15 (hoy es un punto medio); se vuelve a ver un mes cerrado… (no aplica: la proyección mira hacia adelante).
+**En producción (2026-10-16, con el OK de Felipe).** Versión `20261016215857`, tras sonda (md5 de las tres funciones iguales a las que se anclaron) y un ensayo en un lote que termina en excepción; md5 de las tres funciones iguales a los de local, `fn_flujo_lado` sin permiso para `authenticated`. Medido como líder: cobro de la primera semana proyectada 7 424 → 26 036, días de caja 90 → 53 (`confiable` = falso: 16 días de historia y ningún saldo declarado), IGV de octubre hasta hoy S/ 9 322 y renta S/ 518 el 15 de noviembre.
 **Verificado.** `flujo_caja` 75/75 (12 casos nuevos o corregidos fallaban sin la migración: 7b, 7c, 10b, 10c y 11); 13 suites vecinas (las que re-pegan sus
 migraciones sobre la proyección y el flujo incluidas) pasan; `lib/flujo-caja-reglas.test.ts` y `lib/dinero-pulso-reglas.test.ts` (los literales viejos son
 «base vieja»: no dicen nada); la guía de Cuentas y dinero y la del Flujo dicen «provisional» y sus huellas se aceptaron tras revisarlas. vitest 160 297, `tsc`
