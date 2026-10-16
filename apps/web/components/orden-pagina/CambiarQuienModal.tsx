@@ -109,7 +109,7 @@ export function CambiarQuienModal({ datos, fase, opciones, hoy, onClose }: { dat
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      avisar.error(traducirError(error, `cambiar quién hace ${nombreMinuscula}`));
+      avisar.error(traducirError(error, `cambiar quién hace ${nombreMinuscula}`, { confirmarAntesDeRepetir: true }));
       return;
     }
     const nuevoQuien: Quien = borrador.quien;

@@ -101,7 +101,7 @@ export function NuevoInsumoModal({ existentes, vocabulario, leyoVocabulario, onC
     responsable.despues(error);
     if (error) {
       // 23505 = código repetido: la base lo impide con su restricción única.
-      avisar.error(error.code === "23505" ? "Ya hay un insumo con ese código." : traducirError(error, "crear el insumo"));
+      avisar.error(error.code === "23505" ? "Ya hay un insumo con ese código." : traducirError(error, "crear el insumo", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(`${nombre.trim()} entró al catálogo`, { detalle: "Ahora puedes ingresar su primer lote." });
@@ -125,7 +125,7 @@ export function NuevoInsumoModal({ existentes, vocabulario, leyoVocabulario, onC
             <CampoTexto etiqueta={guia.etiqueta("codigo", "Código")} mono placeholder={ejemplo.codigo} value={codigo} onChange={(e) => setCodigo(e.target.value)} maxLength={20} />
           </CampoGuiado>
           <CampoGuiado id="nombre" guia={guia}>
-            <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")} placeholder={ejemplo.nombre} value={nombre} onChange={(e) => setNombre(e.target.value)} />
+            <CampoTexto etiqueta={guia.etiqueta("nombre", "Nombre")} placeholder={ejemplo.nombre} value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={120} />
           </CampoGuiado>
         </div>
 
@@ -147,7 +147,7 @@ export function NuevoInsumoModal({ existentes, vocabulario, leyoVocabulario, onC
           </CampoGuiado>
         </div>
         <div data-guia="prod-insumo-nuevo.nota">
-          <CampoTexto etiqueta="Nota" placeholder={ejemplo.nota} value={nota} onChange={(e) => setNota(e.target.value)} />
+          <CampoTexto etiqueta="Nota" placeholder={ejemplo.nota} value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
         </div>
         <div data-guia="prod-insumo-nuevo.cierre" className="space-y-3">
           <CampoGuiado id="quien" guia={guia}>

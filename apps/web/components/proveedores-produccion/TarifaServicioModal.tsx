@@ -97,7 +97,7 @@ export function TarifaServicioModal({
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      avisar.error(traducirError(error, "guardar la tarifa"));
+      avisar.error(traducirError(error, "guardar la tarifa", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(textoTarifaGuardada(nombreServicio, e.fase, argumentosDeTarifa(e).p_tarifa_prenda), { detalle: "Las órdenes nuevas la sugieren. Las que ya están abiertas conservan la suya." });

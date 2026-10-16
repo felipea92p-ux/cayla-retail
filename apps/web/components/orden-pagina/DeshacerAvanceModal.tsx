@@ -49,7 +49,7 @@ export function DeshacerAvanceModal({ datos, entrada, onClose }: { datos: OrdenP
     }
     setCargando(false);
     if (fallo) {
-      avisar.error(traducirError(fallo, "deshacer lo que se anotó"));
+      avisar.error(traducirError(fallo, "deshacer lo que se anotó", { confirmarAntesDeRepetir: true }));
       router.refresh();
       return;
     }

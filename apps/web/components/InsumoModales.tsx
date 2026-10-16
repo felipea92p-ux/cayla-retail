@@ -95,8 +95,8 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
           </CampoGuiado>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <CampoTexto etiqueta="Código de lote" mono placeholder="Opcional" value={codigoLote} onChange={(e) => setCodigoLote(e.target.value)} />
-          <CampoTexto etiqueta="Documento" mono placeholder="F001-0000" value={documento} onChange={(e) => setDocumento(e.target.value)} />
+          <CampoTexto etiqueta="Código de lote" mono placeholder="Opcional" value={codigoLote} onChange={(e) => setCodigoLote(e.target.value)} maxLength={40} />
+          <CampoTexto etiqueta="Documento" mono placeholder="F001-0000" value={documento} onChange={(e) => setDocumento(e.target.value)} maxLength={40} />
         </div>
         <CampoSelect
           etiqueta="Origen"
@@ -110,7 +110,7 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
             ] as const
           }
         />
-        <CampoTexto etiqueta="Nota" placeholder="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} />
+        <CampoTexto etiqueta="Nota" placeholder="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300} />
 
         <div className="flex items-baseline justify-between rounded-md bg-sand/60 px-3 py-2 text-sm">
           <span className="text-tinta/70">Valor del lote</span>

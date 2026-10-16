@@ -65,7 +65,7 @@ export function FichaDeLaTelaModal({ insumo, vocabulario, leyo, onClose }: { ins
     responsable.despues(error);
     setCargando(false);
     if (error) {
-      avisar.error(traducirError(error, "guardar la ficha"));
+      avisar.error(traducirError(error, "guardar la ficha", { confirmarAntesDeRepetir: true }));
       return;
     }
     avisar.exito(`Ficha de ${insumo.nombre} guardada`, { detalle: insumo.tipo === "tela" ? "«Nueva orden» ya puede proponerla para las prendas de ese color." : "Quedó anotado su color." });
