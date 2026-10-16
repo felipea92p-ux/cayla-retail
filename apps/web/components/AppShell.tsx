@@ -656,13 +656,15 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
 // panel de validaciones ya había de sobra qué poner a los lados.
 // Producción entró el 2026-09-22 (pedido de Felipe: «los módulos no ocupan todo el espacio»): el Resumen (cifras, tarjetas, tablas de modelos y telas), el tablero de Órdenes (cuatro
 // columnas desde 1240 px) y las tablas de Comprobantes, Por pagar y Eficiencia se apretaban en la columna de 64 rem, con ~300 px de margen vacío a cada lado en pantallas grandes.
+// «/ordenes-insumos» (Formidable de Producción, 2026-10-15): es de Producción pero su ruta no cuelga de «/produccion» (ADR-0362); fuera de la lista, al pasar de Proveedores a Órdenes de insumos
+// el título saltaba 32 px y la pantalla se estrechaba. Lo vigila `lib/ancho-completo.test.ts`.
 // Colaboradores entró el 2026-09-22 (pedido de Felipe): «Roles y accesos» pasa a tres columnas —roles, módulos del rol y el
 // efecto en el menú— y las tablas de Activos/Terminales tienen qué poner a lo ancho. Los párrafos siguen con su `max-w-*`.
 // «/etiquetas-de-precio» (Felipe 2026-10-03): la vista previa de las etiquetas va a la derecha de la tabla, a tamaño real; con el tope no
 // cabían lado a lado y quedaba al final, sin verse a la primera. «/rotulos» (ADR-0366): dos rótulos de 100 mm a tamaño real, lado a lado.
 // «/gestion» (ADR-0392, 2026-10-13): Análisis, Frescura del piso y Plan del piso vivían bajo «/inventario» y ya iban a ancho completo (sus
 // tableros por categoría y los dos rieles del plan); al mudarse al grupo «Gestión» conservan el ancho. «/rendimiento» no cuelga de ahí y sigue igual.
-const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/gestion", "/recibir", "/caja", "/cambios", "/devoluciones", "/produccion", "/colaboradores", "/etiquetas-de-precio", "/rotulos"];
+const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "/gestion", "/recibir", "/caja", "/cambios", "/devoluciones", "/produccion", "/ordenes-insumos", "/colaboradores", "/etiquetas-de-precio", "/rotulos"];
 
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, pedidosWebPorConfirmar, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();

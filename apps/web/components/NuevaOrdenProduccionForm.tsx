@@ -6,23 +6,20 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { CampoTexto, Desplegable, Boton } from "@/components/ui/campos";
+import { CampoTexto, Boton } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Aviso } from "@/components/ui/Aviso";
 import { Modal, campoEtiqueta } from "@/components/ui/Modal";
 import { useSalidaSinGuardar } from "@/components/ui/useSalidaSinGuardar";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
-import { Chip } from "@/components/ui/Chip";
 import type { ModeloProducible, OpcionesNuevaOrden } from "@/lib/produccion";
 import type { InsumoVista } from "@/lib/insumos";
 import type { DecisionProduccion } from "@/lib/decision-produccion";
 import type { Tolerado } from "@/lib/resultado";
-import { ETIQUETA_BANDA } from "@/lib/resumen-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
-import { MotorEnProduccion } from "@/components/motor-demanda/MotorEnProduccion";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { DIAS_OBJETIVO_PRODUCCION, OPCIONES_DIAS_OBJETIVO, cantidadesDeLaCurva, cantidadesInicialesDeNuevaOrden, sugerirCurva } from "@/lib/produccion-decision-reglas";
+import { DIAS_OBJETIVO_PRODUCCION, cantidadesDeLaCurva, cantidadesInicialesDeNuevaOrden, sugerirCurva } from "@/lib/produccion-decision-reglas";
 import { costoUnitario, precioParaMargen, problemaDeEntrega, semaforoMargen, TEXTO_SEMAFORO, type Semaforo } from "@/lib/produccion-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { CampoGuiado, PieGuia } from "@/components/guia-de-foco/CampoGuiado";
@@ -31,6 +28,7 @@ import { ModeloNuevoCampos } from "@/components/ModeloNuevoCampos";
 import { ElegirModelo, TarjetaModelo } from "@/components/orden-produccion/ElegirModelo";
 import { AgregarColor, QuitarColor } from "@/components/orden-produccion/AgregarColor";
 import { FichaOrden } from "@/components/orden-produccion/FichaOrden";
+import { ConsejoDeLaRed } from "@/components/orden-produccion/ConsejoDeLaRed";
 import { FasesDeLaOrden } from "@/components/orden-produccion/FasesDeLaOrden";
 import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion/TelaDeLaOrden";
 import { costoServiciosEstimado, faseDe, fasesEncendidas, fasesIniciales, fasesParaRpc, problemasFases, proveedoresQueSirven, textoQuien, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
@@ -68,6 +66,8 @@ import {
 // F5 (ADR-0133): para el líder, «Nueva orden» aconseja ANTES de abrir: la curva sugerida por talla y color (ritmo de venta y stock de TODA la red, con las
 // mismas reglas de Inventario), si alcanza la tela y los avíos (con el consumo real medido de las órdenes cerradas del modelo, D-D) y cuánto costará cada
 // prenda. Son consejos, no órdenes: las cantidades siguen siendo del líder. Sin datos, el formulario es el de siempre.
+// Formidable H5 (2026-10-16): el consejo de la red ya no ocupa ~290 px antes de «Fases»: es UNA línea («La red sugiere 40 prendas · Usarla · ¿Por qué?») y lo difícil vive bajo ese «¿Por qué?»
+// (`orden-produccion/ConsejoDeLaRed.tsx`, frases en `lib/nueva-orden-consejo-reglas.ts`). La cuenta, «Usarla» y el selector de días son los mismos de siempre; la hoja no se reordena.
 //
 // ADR-0361: el Taller crea modelos nuevos como parte normal de su trabajo (una Muestra desarrolla un modelo que todavía no existe), así que «Modelo nuevo» se
 // arma ACÁ: nombre, categoría, tallas y colores del vocabulario y precio, y `abrir_produccion_con_modelo_nuevo` crea el modelo y abre la orden en UNA
@@ -712,78 +712,18 @@ export function NuevaOrdenProduccionForm({
         {!esNuevo && decision?.fallo && <p className="rounded-md bg-sand/60 px-3 py-2 text-xs text-tinta/75">{decision.fallo}</p>}
 
         {datos && modelo && !esNuevo && (
-          <section data-guia="prod-orden-nueva.red" aria-label="Lo que dice la red" className="space-y-3 rounded-2xl border border-sand bg-crema p-3.5">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className={campoEtiqueta}>Curva sugerida por la red</p>
-                <p className="mt-0.5 text-xs text-tinta/65">
-                  Ritmo de venta y stock de todas las tiendas, con lo que ya hay en el Taller, viene en camino o se está fabricando.
-                </p>
-              </div>
-              <div data-guia="prod-orden-nueva.cubrir" className="flex items-center gap-2">
-                <label className="flex items-center gap-1.5 text-xs text-tinta/70">
-                  Cubrir
-                  <Desplegable
-                    valor={String(diasObjetivo)}
-                    onValor={(v) => setDiasObjetivo(Number(v))}
-                    opciones={OPCIONES_DIAS_OBJETIVO.map((d) => ({ valor: String(d), texto: `${d} días` }))}
-                    etiquetaAccesible="Días de venta a cubrir"
-                    forma="pastilla"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={usarCurva}
-                  disabled={curva.total === 0}
-                  className="h-8 rounded-md border border-tinta/25 px-3 text-[13px] text-tinta outline-none transition-colors hover:border-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo/60 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-tinta/25"
-                >
-                  {curva.total > 0 ? `Usar la sugerencia · ${curva.total} prendas` : "Nada que fabricar"}
-                </button>
-              </div>
-            </div>
-            {curva.porVariante.size === 0 ? (
-              <p className="text-xs text-tinta/65">La red todavía no tiene datos de venta de este modelo.</p>
-            ) : (
-              <details data-guia="prod-orden-nueva.por-que">
-                <summary data-guia="prod-orden-nueva.por-que-abrir" className="cursor-pointer text-xs text-tinta/75">Ver por qué, variante por variante</summary>
-                <ul className="mt-2 divide-y divide-tinta/10">
-                  {(modelo.variantes ?? [])
-                    .filter((v) => curva.porVariante.has(v.varianteId))
-                    .sort((a, b) => (curva.porVariante.get(b.varianteId)?.sugerido ?? 0) - (curva.porVariante.get(a.varianteId)?.sugerido ?? 0))
-                    .map((v) => {
-                      const d = demandaPorVariante.get(v.varianteId);
-                      const sug = curva.porVariante.get(v.varianteId);
-                      return (
-                        <li key={v.varianteId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 py-1.5 text-[13px]">
-                          <span className="min-w-0">
-                            <span className="text-tinta">
-                              {v.color ?? "Sin color"} · {v.talla ?? "Única"}
-                            </span>
-                            {d && (
-                              <span className="ml-2 align-middle">
-                                <Chip tono={d.banda === "agotado" || d.banda === "critica" || d.banda === "atencion" ? "ambar" : "neutro"}>{ETIQUETA_BANDA[d.banda]}</Chip>
-                              </span>
-                            )}
-                            <small className="block text-xs text-tinta/65">
-                              {d ? `Red ${d.stockRed} · Taller ${d.stockTaller}${d.enCamino > 0 ? ` · en camino ${d.enCamino}` : ""}${enProduccion.get(v.varianteId) ? ` · fabricando ${enProduccion.get(v.varianteId)}` : ""}` : ""}
-                            </small>
-                          </span>
-                          <span className="text-right tabular-nums">
-                            <b className="font-semibold text-tinta">{sug?.sugerido ?? 0}</b>
-                            <small className="block max-w-[15rem] text-xs text-tinta/60">{sug?.motivo}</small>
-                          </span>
-                        </li>
-                      );
-                    })}
-                </ul>
-              </details>
-            )}
-            {datos.motor && (
-              <div data-guia="prod-orden-nueva.motor">
-                <MotorEnProduccion motor={datos.motor} modelo={modelo} disponible={disponibleDeVariante} diasObjetivo={diasObjetivo} onUsar={setCantidades} />
-              </div>
-            )}
-          </section>
+          <ConsejoDeLaRed
+            curva={curva}
+            modelo={modelo}
+            demandaPorVariante={demandaPorVariante}
+            enProduccion={enProduccion}
+            diasObjetivo={diasObjetivo}
+            onDias={setDiasObjetivo}
+            onUsar={usarCurva}
+            motor={datos.motor}
+            disponible={disponibleDeVariante}
+            onUsarMotor={setCantidades}
+          />
         )}
 
         {modelo && (

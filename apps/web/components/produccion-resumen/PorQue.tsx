@@ -11,7 +11,7 @@ export function PorQue({ texto, guia }: { texto: string | undefined; guia?: stri
   if (!texto) return null;
   return (
     <div className="mt-1">
-      <button type="button" data-guia={guia} onClick={() => setAbierto((a) => !a)} aria-expanded={abierto} className="btn-cayla btn-enlace text-[12.5px]">
+      <button type="button" data-guia={guia} onClick={() => setAbierto((a) => !a)} aria-expanded={abierto} className="btn-cayla btn-enlace inline-flex min-h-6 items-center text-[12.5px] pointer-coarse:min-h-11">
         {abierto ? "Ocultar" : "¿Por qué?"}
       </button>
       {abierto && <p className="mt-1 text-[12.5px] text-tinta/70">{texto}</p>}

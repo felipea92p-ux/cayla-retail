@@ -90,7 +90,8 @@ describe("los anillos propios con transparencia (rojo o tinta) solo bajan", () =
   // <Casilla> e <Interruptor>, con el anillo del sistema.
   // 32 → 31 el 2026-10-14: Nueva orden perdió los dos botones a mano de «¿Alcanza la tela?» (ADR-0400, actividad 2). Las dos bajadas son de
   // archivos distintos y se suman al fusionar: 30.
-  const PENDIENTES_HOY = 30;
+  // 30 → 29 el 2026-10-16: el consejo de la red de Nueva orden dejó su botón «Usar la sugerencia» dibujado a mano y pasó a <Boton> (ADR-0400, Formidable).
+  const PENDIENTES_HOY = 29;
   it("la cuenta de afuera de components/ui es exacta y solo baja", () => {
     const total = porArchivo.reduce((s, a) => s + a.n, 0);
     expect(total).toBe(PENDIENTES_HOY);

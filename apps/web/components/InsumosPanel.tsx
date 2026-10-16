@@ -259,7 +259,7 @@ function FilaInsumo({
           {/* La ficha: de qué tejido y de qué color es. Sin ella «Nueva orden» no puede proponer la tela del color de la prenda. */}
           <p data-guia={indice === 0 ? "prod-insumos.ficha" : undefined} className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-tinta/75">
             {ficha.color && <span aria-hidden data-color-dato className="size-2.5 shrink-0 rounded-full border border-tinta/20" style={ficha.color.hex ? { backgroundColor: ficha.color.hex } : undefined} />}
-            <span className={`truncate ${ficha.tejido === null && ficha.color === null ? "text-tinta/55" : ""}`}>{textoDeLaFicha(ficha, i.tipo)}</span>
+            <span className={`truncate ${ficha.tejido === null && ficha.color === null ? "text-tinta/70" : ""}`}>{textoDeLaFicha(ficha, i.tipo)}</span>
           </p>
         </div>
         <div className="max-sm:order-3 max-sm:col-span-2">

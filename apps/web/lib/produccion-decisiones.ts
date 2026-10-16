@@ -12,6 +12,7 @@ import { DIAS_OBJETIVO_PRODUCCION, repartirFalta, type DemandaVariante, type Ren
 import { compararTallas } from "./tallas";
 import { tramosPorPagar } from "./por-pagar-produccion-reglas";
 import { textoDePedido, type PedidoDeInsumo } from "./orden-pagina-reglas";
+import { urlPedirInsumo } from "./pedir-insumo-reglas";
 import type { TelaDelTallerLeida } from "./tela-del-taller-reglas";
 
 const soles = (n: number) => `S/\u00a0${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -535,10 +536,16 @@ export function resumenDeDecisiones(c: ContextoDecisiones): ResumenDeDecisiones 
         severidad: 3,
         tipo: "insumo",
         titulo: `Faltan ${cantidadTexto(falta - viaja, i.unidad)} de ${i.nombre} para lo que hay que cortar${camino.cuenta > 0 ? ", aun contando lo que viene" : ""}`,
-        detalle: `No alcanza ni con lo que viene.${atrasados.length > 0 ? ` Hay ${atrasados.length === 1 ? "un pedido atrasado" : `${atrasados.length} pedidos atrasados`} que no cuento.` : ""}`,
+        // Lo que dice depende de lo que viene: si viene algo, «ni con lo que viene»; si solo hay pedidos atrasados, que no se cuentan; y si no hay nada pedido, que no hay nada pedido.
+        detalle:
+          viaja > 0
+            ? `No alcanza ni con lo que viene.${atrasados.length > 0 ? ` Hay ${atrasados.length === 1 ? "un pedido atrasado" : `${atrasados.length} pedidos atrasados`} que no cuento.` : ""}`
+            : atrasados.length > 0
+              ? "No alcanza: lo pedido está atrasado y no lo cuento."
+              : "No alcanza y no hay nada pedido.",
         porque: `${cuenta}.`,
         // Con un pedido atrasado, lo útil es ir a verlo (llamar al proveedor); si no, pedir lo que falta.
-        accion: atrasados.length > 0 ? { texto: "Ver los pedidos", href: "/ordenes-insumos" } : { texto: i.tipo === "tela" ? "Pedir la tela" : "Pedir los avíos", href: "/ordenes-insumos/nueva" },
+        accion: atrasados.length > 0 ? { texto: "Ver los pedidos", href: "/ordenes-insumos" } : { texto: i.tipo === "tela" ? "Pedir la tela" : "Pedir los avíos", href: urlPedirInsumo(i.id, falta - viaja) },
       });
     }
   }

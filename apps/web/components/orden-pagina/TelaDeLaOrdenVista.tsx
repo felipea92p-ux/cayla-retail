@@ -10,6 +10,7 @@ import { Encabezado, Tabla, celda, fila } from "@/components/ui/Tabla";
 import { Vacio } from "@/components/ui/Vacio";
 import { corteTerminado, filasDeTela, type OrdenPagina } from "@/lib/orden-pagina-reglas";
 import { telasDeLaOrden, type ModoDeTela } from "@/lib/orden-tela-usada-reglas";
+import { urlPedirInsumo } from "@/lib/pedir-insumo-reglas";
 
 // La tela de la orden (ADR-0400, decisión 6; vista D): por tela y color, lo que pide el plan, lo que ya se usó y si lo que queda en el estante alcanza para lo que falta. «Alcanza» y
 // «Faltan N m» salen del mismo veredicto de la hoja de Nueva orden (`filasDeTela` → `veredictoTela`). Una orden sin tela declarada lo dice, no se dibuja vacía.
@@ -60,7 +61,7 @@ export function TelaDeLaOrdenVista({ datos, puedePedir = false }: { datos: Orden
                     </Chip>
                   )}
                   {!f.alcanza && puedePedir && datos.orden.estado === "en_proceso" && (
-                    <BotonEnlace href="/ordenes-insumos/nueva" peso="discreto" data-guia={i === 0 ? "prod-orden.pedir-tela" : undefined}>
+                    <BotonEnlace href={urlPedirInsumo(f.id, f.faltanNumero)} peso="discreto" data-guia={i === 0 ? "prod-orden.pedir-tela" : undefined}>
                       Pedir {f.faltan}
                     </BotonEnlace>
                   )}

@@ -117,7 +117,8 @@ describe("decisionesDeProduccion", () => {
     );
     expect(d[0].tipo).toBe("insumo");
     expect(d[0].titulo).toContain("Faltan 110 m");
-    expect(d[0].accion).toEqual({ texto: "Pedir la tela", href: "/ordenes-insumos/nueva" });
+    // Lleva el insumo y los metros que faltan aun contando lo facturado (los mismos 110 m del título): la hoja de pedir los trae puestos.
+    expect(d[0].accion).toEqual({ texto: "Pedir la tela", href: "/ordenes-insumos/nueva?insumo=lino&cantidad=110" });
   });
 
   describe("la tela que viene en camino (regla de Felipe, 2026-10-16): cuenta lo que falta recibir de los pedidos, salvo los atrasados", () => {
@@ -139,7 +140,7 @@ describe("decisionesDeProduccion", () => {
 
     it("si lo que viene no cubre, siguen faltando los metros que quedan, aun contando lo que viene, y lleva a PEDIR lo que falta", () => {
       const [d] = decisionesDeProduccion(contexto({ ...base, enCamino: camino(100, [pedido()]) }));
-      expect(d).toMatchObject({ tipo: "insumo", severidad: 3, accion: { texto: "Pedir la tela", href: "/ordenes-insumos/nueva" } });
+      expect(d).toMatchObject({ tipo: "insumo", severidad: 3, accion: { texto: "Pedir la tela", href: "/ordenes-insumos/nueva?insumo=lino&cantidad=50" } });
       expect(d.titulo).toBe("Faltan 50 m de Insumo lino para lo que hay que cortar, aun contando lo que viene");
       expect(d.detalle).toContain("No alcanza ni con lo que viene");
       expect(d.porque).toContain("OI-000003 · 100 m a Textiles Andinos · llega el vie 23 oct");
@@ -148,17 +149,18 @@ describe("decisionesDeProduccion", () => {
     it("un pedido ATRASADO no se cuenta, se nombra aparte, y la tarjeta lleva a verlo (para llamar al proveedor), no a pedir de nuevo", () => {
       const [d] = decisionesDeProduccion(contexto({ ...base, enCamino: camino(0, [pedido({ atrasado: true, fechaEntrega: "2026-10-10" })], 100) }));
       expect(d.titulo).toBe("Faltan 150 m de Insumo lino para lo que hay que cortar");
-      expect(d.detalle).toContain("pedido atrasado");
+      expect(d.detalle).toBe("No alcanza: lo pedido está atrasado y no lo cuento.");
       expect(d.porque).toContain("debía llegar el sáb 10 oct (atrasado, no lo cuento)");
       expect(d.accion).toEqual({ texto: "Ver los pedidos", href: "/ordenes-insumos" });
     });
 
     it("sin nada en camino, pide; un avío dice «los avíos»; con tres pedidos nombra dos y cuenta el resto", () => {
       const [sin] = decisionesDeProduccion(contexto(base));
-      expect(sin.accion).toEqual({ texto: "Pedir la tela", href: "/ordenes-insumos/nueva" });
+      expect(sin.accion).toEqual({ texto: "Pedir la tela", href: "/ordenes-insumos/nueva?insumo=lino&cantidad=150" });
       expect(sin.porque).not.toContain("OI-");
+      expect(sin.detalle).toBe("No alcanza y no hay nada pedido.");
       const [avio] = decisionesDeProduccion(contexto({ insumos: [insumo("boton", { saldo: 5, tipo: "avio", unidad: "unidad" })], demanda: new Map([["boton", { insumoId: "boton", necesita: 80, ordenes: ["Blusa a"] }]]) }));
-      expect(avio.accion.texto).toBe("Pedir los avíos");
+      expect(avio.accion).toEqual({ texto: "Pedir los avíos", href: "/ordenes-insumos/nueva?insumo=boton&cantidad=75" });
       const [tres] = decisionesDeProduccion(contexto({ ...base, enCamino: camino(30, [pedido({ cantidad: 10 }), pedido({ numeroTexto: "OI-000002", cantidad: 10 }), pedido({ numeroTexto: "OI-000001", cantidad: 10 })]) }));
       expect(tres.porque).toContain("y 1 más");
     });

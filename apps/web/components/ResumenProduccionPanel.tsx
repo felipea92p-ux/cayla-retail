@@ -10,6 +10,7 @@ import { Pestanas } from "@/components/ui/Pestanas";
 import { BotonEnlace } from "@/components/ui/campos";
 import { agotadasQueSeVendian, baseDelRitmo, ETIQUETA_ESTADO_MODELO, textoAgotadas, textoDiasDeStock, type CifrasResumen, type Decision, type DecisionesOcultas, type FilaModelo, type FilaTela } from "@/lib/produccion-decisiones";
 import { textoDePedido } from "@/lib/orden-pagina-reglas";
+import { urlPedirInsumo } from "@/lib/pedir-insumo-reglas";
 import { PorQue } from "@/components/produccion-resumen/PorQue";
 import type { CifraDeFase } from "@/lib/ordenes-lista-reglas";
 import { Aviso } from "@/components/ui/Aviso";
@@ -404,7 +405,7 @@ export function ResumenProduccionPanel({
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:justify-end">
                       <Chip tono="ambar">Faltan {cantidadTexto(t.faltan, t.unidad)}</Chip>
                       {/* La salida de «faltan» es PEDIR lo que queda; con un pedido atrasado, lo útil es ir a verlo (llamar al proveedor). Nunca registrar una factura que todavía no existe. */}
-                      <BotonEnlace href={t.atrasado > 0 ? "/ordenes-insumos" : "/ordenes-insumos/nueva"} peso="discreto">
+                      <BotonEnlace href={t.atrasado > 0 ? "/ordenes-insumos" : urlPedirInsumo(t.insumoId, t.faltan)} peso="discreto">
                         {t.atrasado > 0 ? "Ver los pedidos" : "Pedir"}
                       </BotonEnlace>
                     </span>

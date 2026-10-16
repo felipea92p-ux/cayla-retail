@@ -24,7 +24,12 @@ const COLUMNAS: Columna[] = [
   { titulo: "Rige" },
   { titulo: "", alinear: "der" },
 ];
-const PLANTILLA = "sm:grid-cols-[minmax(0,1.6fr)_5rem_8.5rem_8rem_8.5rem_8rem_6.5rem]";
+// La forma de la tabla la decide el ancho de su TARJETA (`@container` en la `Tabla`), no el de la ventana (Formidable de Producción, H4): con el lateral abierto la tarjeta mide ventana − 352,
+// y las seis columnas fijas con sus huecos y su relleno suman 848 px. Desde 1056 px de tarjeta el nombre del servicio recibe 208 px o más y van las siete columnas; por debajo, cada fila se apila:
+// el nombre y su botón arriba, los datos debajo en una línea que baja sola. Lo vigila `lib/servicios-tarifas-ancho.test.ts` (si cambias una columna, cambia el corte).
+const PLANTILLA = "grid-cols-[minmax(0,1fr)_auto] @min-[1056px]:grid-cols-[minmax(0,1.6fr)_5rem_8.5rem_8rem_8.5rem_8rem_6.5rem]";
+// El botón de cada fila: angosto, sube junto al nombre aunque en el código vaya al final; ancho, vuelve a la última columna.
+const BOTON_DE_LA_FILA = "col-start-2 row-start-1 @min-[1056px]:col-start-auto @min-[1056px]:row-start-auto";
 
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
@@ -94,17 +99,17 @@ export function ServiciosYTarifas({
           </Vacio>
         </div>
       ) : (
-        <Tabla guia="prod-tarifas.lista">
-          <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} />
+        <Tabla guia="prod-tarifas.lista" className="@container">
+          <Encabezado columnas={COLUMNAS} plantilla={PLANTILLA} visible="hidden @min-[1056px]:grid" />
           {filas.flatMap((s) =>
             s.tarifas.length === 0
               ? [
                   <div key={s.proveedorId} role="row" className={fila(PLANTILLA, "text-[13px]")}>
                     <span className={celda("izq", "text-tinta")} title={s.nombre}>{s.nombre}</span>
-                    <span className="sm:col-span-5">
+                    <span className="col-span-full @min-[1056px]:col-span-5">
                       <Chip tono="ambar">Sin tarifa</Chip>
                     </span>
-                    <span className={celda("der")}>
+                    <span className={celda("der", BOTON_DE_LA_FILA)}>
                       <Boton peso="discreto" onClick={() => onNueva(s.proveedorId)}>
                         Cargar tarifa
                       </Boton>
@@ -113,18 +118,23 @@ export function ServiciosYTarifas({
                 ]
               : s.tarifas.map((t, i) => (
                   <div key={`${t.proveedorId}-${t.fase}`} role="row" className={fila(PLANTILLA, "text-[13px]")}>
-                    <span className={celda("izq", i === 0 ? "text-tinta" : "text-tinta/45")} title={s.nombre}>
-                      {i === 0 ? s.nombre : <span className="sr-only">{s.nombre}</span>}
-                      {i === 0 && !s.activo && <span className="ml-2 align-middle"><Chip tono="apagado">Archivado</Chip></span>}
+                    {/* Ancho: el nombre va solo en la primera fase del servicio (las demás lo traen para el lector). Apilada, cada fila lleva su nombre: ya no hay una columna que lo sostenga. */}
+                    <span className={celda("izq", "text-tinta")} title={s.nombre}>
+                      <span className={i === 0 ? undefined : "@min-[1056px]:sr-only"}>{s.nombre}</span>
+                      {!s.activo && <span className={`ml-2 align-middle ${i === 0 ? "" : "@min-[1056px]:hidden"}`}><Chip tono="apagado">Archivado</Chip></span>}
                     </span>
-                    <span className={celda("izq", "text-tinta")}>{nombreDeFase(t.fase)}</span>
-                    <span className={celda("der", "text-tinta")}>{textoTarifa(t)}</span>
-                    <span className={celda("izq", "text-tinta/75")}>{textoMinimo(t)}</span>
-                    <span className={celda("izq", "text-tinta/75")}>{textoFijo(t) ?? <span className="text-tinta/45">Sin fijo</span>}</span>
-                    <span className={celda("izq", "text-tinta/75")} title={t.versiones > 1 ? `${t.versiones - 1} ${t.versiones - 1 === 1 ? "tarifa anterior guardada" : "tarifas anteriores guardadas"}` : undefined}>
-                      {textoVigencia(t, hoy)}
-                    </span>
-                    <span className={celda("der")}>
+                    {/* Ancho: `contents`, y cada dato es una columna de la fila. Apilada: una línea de datos bajo el nombre, que baja sola si no cabe. */}
+                    <div className="col-span-full flex flex-wrap gap-x-5 gap-y-0.5 @min-[1056px]:contents">
+                      <span className={celda("izq", "text-tinta")}>{nombreDeFase(t.fase)}</span>
+                      <span className={celda("der", "text-tinta")}>{textoTarifa(t)}</span>
+                      <span className={celda("izq", "text-tinta/75")}>{textoMinimo(t)}</span>
+                      <span className={celda("izq", "text-tinta/75")}>{textoFijo(t) ?? <span className="text-tinta/70">Sin fijo</span>}</span>
+                      <span className={celda("izq", "text-tinta/75")} title={t.versiones > 1 ? `${t.versiones - 1} ${t.versiones - 1 === 1 ? "tarifa anterior guardada" : "tarifas anteriores guardadas"}` : undefined}>
+                        <span className="@min-[1056px]:hidden">Rige {textoVigencia(t, hoy).toLocaleLowerCase("es")}</span>
+                        <span className="hidden @min-[1056px]:inline">{textoVigencia(t, hoy)}</span>
+                      </span>
+                    </div>
+                    <span className={celda("der", BOTON_DE_LA_FILA)}>
                       <Boton peso="discreto" onClick={() => onCambiar(t)}>
                         Cambiar
                       </Boton>

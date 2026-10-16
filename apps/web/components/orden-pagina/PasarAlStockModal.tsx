@@ -27,6 +27,7 @@ import {
   type OrdenPagina,
 } from "@/lib/orden-pagina-reglas";
 import { tablaDeModeloExistente } from "@/lib/orden-tabla-reglas";
+import { avisoTelaSinAnotar } from "@/lib/orden-tela-sin-anotar-reglas";
 import { urlLlevarATiendas } from "@/lib/produccion-reglas";
 import { firmar } from "@/lib/responsable-reglas";
 import { fotoFormulario } from "@/lib/salida-sin-guardar";
@@ -38,8 +39,10 @@ import { useResponsable } from "@/lib/useResponsable";
 // las buenas. El costo de los servicios sale de lo devengado, ya no se teclea; quien ve los costos del Taller ve aquí cuánto sale cada prenda. Si la base dice que el costo por prenda sale
 // fuera de lo normal (`costo_atipico`), un líder lo confirma en línea, como siempre. Una muestra solo se da por terminada: no toca el stock. Un doble clic no cierra dos veces: una marca
 // síncrona corta la segunda llamada (y la base ya rechaza una orden cerrada).
+// Si la tela del lote todavía no se anotó (plan > 0 y nada usado), un aviso lo dice antes del botón: el costo por prenda saldría sin tela y alimenta el promedio de la prenda en todas las sedes
+// (ADR-0400, «Tela y costo honestos» b; OK de Felipe 2026-10-16). Es un aviso y nunca un candado: «Pasar al stock» sigue disponible, y «Anotarla ahora» deja esta hoja y abre «Anotar lo que usaste».
 
-export function PasarAlStockModal({ datos, onClose }: { datos: OrdenPagina; onClose: () => void }) {
+export function PasarAlStockModal({ datos, onClose, alAnotarTela }: { datos: OrdenPagina; onClose: () => void; /** Deja esta hoja y abre «Anotar lo que usaste» con esa tela. Sin esto, el aviso se muestra sin el botón. */ alAnotarTela?: (insumoId: string) => void }) {
   const router = useRouter();
   const { orden, fases, lineas: lineasOrden } = datos;
   const responsable = useResponsable({ ubicacionId: orden.ubicacionId, etiqueta: orden.ubicacionNombre });
@@ -60,6 +63,7 @@ export function PasarAlStockModal({ datos, onClose }: { datos: OrdenPagina; onCl
   const total = totalDeCierre(cantidades);
   const problemas = problemasDeCierre(fases, lineasOrden, cantidades, nombreDe);
   const resumen = resumenDeCierre(datos, total);
+  const telaSinAnotar = avisoTelaSinAnotar(datos.insumos, orden.esMuestra);
   const guia = useGuiaCampos(camposDeCierre({ total, problemas: problemas.map((p) => p.texto), responsableListo: responsable.listo }));
 
   // «¿Salir sin guardar?» (ADR-0136): la hoja nace precargada, así que solo cuenta lo que la persona cambió.
@@ -188,6 +192,21 @@ export function PasarAlStockModal({ datos, onClose }: { datos: OrdenPagina; onCl
             </p>
           )}
         </div>
+
+        {telaSinAnotar && (
+          <Aviso
+            tono="atencion"
+            accion={
+              alAnotarTela ? (
+                <Boton type="button" peso="fantasma" aria-haspopup="dialog" disabled={cargando} onClick={() => avisoSalida.pedirAccion(() => alAnotarTela(telaSinAnotar.insumoId))}>
+                  Anotarla ahora
+                </Boton>
+              ) : undefined
+            }
+          >
+            {telaSinAnotar.texto}
+          </Aviso>
+        )}
 
         <div data-guia="prod-orden-stock.cierre" className="space-y-3">
           <CampoGuiado id="quien" guia={guia}>

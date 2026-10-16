@@ -217,7 +217,7 @@ export function OrdenesLista({
                 {FILTROS.filter((f) => f.valor === "todas" || f.valor === filtro || porFiltro[f.valor] > 0 || f.valor === "afuera").map((f) => (
                   <button key={f.valor} type="button" className="pildora-cayla" aria-pressed={filtro === f.valor} onClick={() => setFiltro(f.valor)}>
                     {f.texto}
-                    <span className="ml-1.5 font-medium tracking-normal tabular-nums opacity-60 dark:opacity-85">{porFiltro[f.valor]}</span>
+                    <span className="ml-1.5 font-medium tracking-normal tabular-nums">{porFiltro[f.valor]}</span>
                   </button>
                 ))}
               </div>

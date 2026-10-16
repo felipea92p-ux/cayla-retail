@@ -145,7 +145,7 @@ export const GUIA_PROD_RESUMEN: Guia = {
       ancla: "prod-resumen.tela",
       preparar: [{ tipo: "escape" }],
       titulo: "¿Alcanza la tela?",
-      texto: "Cada tela con lo que hay, lo que viene en camino (lo que falta recibir de cada pedido, como en Recibir) y lo que piden las órdenes. Lo que viene se suma: «Alcanza si llega» es que alcanza cuando llegue lo pedido. Un pedido atrasado no cuenta. Si faltan metros, «Pedir» te lleva a Órdenes de insumos.",
+      texto: "Cada tela con lo que hay, lo que viene en camino (lo que falta recibir de cada pedido, como en Recibir) y lo que piden las órdenes. Lo que viene se suma: «Alcanza si llega» es que alcanza cuando llegue lo pedido. Un pedido atrasado no cuenta. Si faltan metros, «Pedir» abre un pedido con esos metros ya puestos.",
     },
     {
       id: "tela-porque",
@@ -246,14 +246,22 @@ export const GUIA_PROD_ORDENES: Guia = {
       ancla: "prod-orden-nueva.red",
       opcional: true,
       titulo: "Lo que sugiere la red",
-      texto: "Con lo que venden las tiendas y lo que ya hay en el Taller, en camino o fabricándose, el sistema propone cuántas hacer de cada talla y color.",
+      texto: "La red mira lo que venden las tiendas y lo que ya hay en el Taller, en camino o fabricándose, y dice cuántas prendas conviene hacer. «Usarla» las pone en la tabla de arriba y luego las corriges a mano. Si dice «La red no sugiere nada ahora», con lo que hay ya alcanza.",
+    },
+    {
+      id: "red-por-que",
+      ancla: "prod-orden-nueva.red-abrir",
+      opcional: true,
+      titulo: "¿Por qué sugiere eso?",
+      texto: "«¿Por qué?» abre las razones: para cuántos días de venta se calcula, el detalle por talla y color, y una segunda opinión para comparar. Te lo abrimos.",
+      demostrar: [{ tipo: "clic", ancla: "prod-orden-nueva.red-abrir" }],
     },
     {
       id: "cubrir",
       ancla: "prod-orden-nueva.cubrir",
       opcional: true,
-      titulo: "Cuántos días cubrir",
-      texto: "Elige para cuántos días de venta quieres fabricar: la sugerencia se recalcula al instante. «Usar la sugerencia» llena la tabla por ti, y luego la corriges a mano. Si dice «Nada que fabricar», con lo que hay ya alcanza.",
+      titulo: "Cuántos días de venta cubre",
+      texto: "Elige para cuántos días de venta quieres fabricar: la sugerencia se recalcula al instante y la línea de arriba cambia su cifra. «Usarla» llena la tabla por ti, y luego la corriges a mano.",
     },
     {
       id: "por-que",
@@ -471,7 +479,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden.pedir-tela",
       opcional: true,
       titulo: "Cuando falta tela",
-      texto: "«Alcanza» cuenta lo que hay en el estante menos lo que otras órdenes abiertas ya reservan. Si falta, «Pedir» te lleva a Órdenes de insumos; y si ya hay un pedido de esa tela, aparece debajo con su número, a quién y para cuándo (no se suma a lo que hay: puede que ya haya llegado).",
+      texto: "«Alcanza» cuenta lo que hay en el estante menos lo que otras órdenes reservan, más lo que viene en camino. Si falta, «Pedir» abre un pedido nuevo con esa tela y los metros que faltan ya puestos; y si ya hay un pedido, aparece debajo con su número, a quién y para cuándo.",
     },
     {
       id: "anotar-tela",
@@ -566,7 +574,7 @@ export const GUIA_PROD_ORDEN: Guia = {
       ancla: "prod-orden-stock.resumen",
       opcional: true,
       titulo: "Lo que entra y lo que cuesta",
-      texto: "Cuántas prendas entran al stock del Taller y, si ves los costos, cuánto sale cada una. Las segundas y las faltantes quedan anotadas pero no entran, y su costo lo reparten las buenas.",
+      texto: "Cuántas prendas entran al stock del Taller y, si ves los costos, cuánto sale cada una. Si falta anotar la tela, aquí te avisamos: sin ella el costo sale bajo; «Anotarla ahora» te lleva a hacerlo. Las segundas y faltantes no entran; su costo lo reparten las buenas.",
     },
     {
       id: "stock-cierre",
