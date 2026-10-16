@@ -40,7 +40,7 @@ layout raíz.
 
 ## Qué se midió
 
-Ver `docs/bitacora/2026-10-16-tienda-cache-components.md`. Resumen: `next build` pasa de 5 a 20 rutas armadas por adelantado (○/◐); en
+Ver `docs/bitacora/2026-10-16-tienda-cache-components.md`. Resumen: `next build` pasa de 4 a 19 páginas armadas por adelantado (4 ○ y 15 ◐; antes solo la portada, Entrar, Crear cuenta y Restablecer acceso); en
 local, sin red ni CDN, nada empeoró y las dos versiones se sienten igual; la ganancia real (primer byte de las páginas públicas desde el
 CDN de Vercel, ~0,12–0,4 s en vez de ~0,6 s) solo se puede medir publicando, y eso espera el OK de Felipe.
 
