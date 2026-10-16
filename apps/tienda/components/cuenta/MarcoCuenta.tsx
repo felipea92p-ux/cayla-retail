@@ -2,7 +2,8 @@ import { cuantosFavoritos, nombreDeLaCuenta } from "@/lib/cabecera-servidor";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
 import { datosDeCabecera } from "@/lib/inicio";
 import { leerPortada } from "@/lib/portada-servidor";
-import { anioLima, anuncios } from "@/lib/portada";
+import { anioActual } from "@/lib/hoy-servidor";
+import { anuncios } from "@/lib/portada";
 import { Anuncio } from "../Anuncio";
 import { BotonBolsa } from "../bolsa/BotonBolsa";
 import { Cabecera } from "../Cabecera";
@@ -51,7 +52,7 @@ export async function MarcoCuenta({
         <Cabecera enPagina={enPagina === "cuenta" ? undefined : enPagina} />
       )}
       <main className="t-pagina">{children}</main>
-      {conPie && <Pie anio={anioLima()} conCuenta={conCuenta} />}
+      {conPie && <Pie anio={await anioActual()} conCuenta={conCuenta} />}
     </div>
   );
 }
