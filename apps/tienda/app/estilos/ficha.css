@@ -47,14 +47,18 @@
 .t-swatch[aria-pressed="true"] { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tinta) 30%, transparent), 0 0 0 2px var(--crema), 0 0 0 3.5px var(--tinta); }
 .t-swatch-nota { font-size: 12px; color: var(--tinta-60); }
 
-/* Las tallas: botones de 48 px de alto (el dedo); una sin stock en la tienda elegida, punteada y con su nota. */
-.t-tallas { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; }
+/* Las tallas: botones de 48 px de alto (el dedo); una sin stock en la tienda elegida, punteada y con su nota. De 76 px de ancho como
+   mínimo: con 64, en la columna de la computadora «Otra tienda» se partía en dos renglones dentro del botón. */
+.t-tallas { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
 .t-talla { height: 48px; border: 1px solid var(--sand); border-radius: 6px; background: var(--papel); font: inherit; font-weight: 600; font-size: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--tinta); cursor: pointer; transition: border-color .15s, background-color .15s; }
-.t-talla small { font-size: 10px; font-weight: 600; color: var(--tinta-60); letter-spacing: .02em; }
+.t-talla small { font-size: 10px; font-weight: 600; color: var(--tinta-60); letter-spacing: .02em; white-space: nowrap; }
 .t-talla:hover { border-color: var(--tinta); }
 .t-talla[data-agotada] { background: transparent; border-style: dashed; color: var(--tinta-60); }
 .t-talla[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); border-style: solid; }
 .t-talla[aria-pressed="true"] small { color: color-mix(in srgb, var(--crema) 80%, transparent); }
+/* «Elige tu talla» trae hasta aquí: las tallas se resaltan (el mismo halo ámbar de «Sigue aquí» en la bolsa) hasta que elija una. */
+.t-bloque[data-pide] .t-tallas { border-radius: 10px; background: color-mix(in srgb, var(--ambar) 12%, transparent); box-shadow: 0 0 0 6px color-mix(in srgb, var(--ambar) 12%, transparent); }
+.t-etq-pide { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ambar); }
 
 /* ---- Cuánto hay por tienda: la tienda elegida y la talla elegida, resaltadas ---- */
 .t-stock-envol { overflow-x: auto; border: 1px solid var(--sand); border-radius: 10px; background: var(--papel); }
@@ -76,6 +80,10 @@
 /* ---- La propuesta k: otros ya separaron lo que queda en esa tienda. Un aviso suave (ámbar, como «por confirmar»), no un error. ---- */
 .t-aviso-suave { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--ambar) 10%, var(--papel)); font-size: 13px; line-height: 1.45; }
 .t-aviso-suave .ic { flex: none; width: 16px; height: 16px; color: var(--ambar); margin-top: 2px; }
+/* La talla elegida no está en la tienda elegida, sí en otra: no es una advertencia, es cómo funciona (pizarra, como «la tienda puede
+   traerla» en la bolsa). */
+.t-pdp-nota { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--pizarra) 10%, var(--papel)); font-size: 13px; line-height: 1.45; }
+.t-pdp-nota .ic { flex: none; width: 16px; height: 16px; color: var(--pizarra); margin-top: 2px; }
 
 /* ---- El botón principal y el corazón (maqueta, `.t-cta-linea`): el botón a lo ancho y el corazón de 52 px a su derecha. En la
    computadora, bajo la tabla; en el celular, en la barra de abajo, que queda pegada al borde mientras se ve la prenda y lo que va
@@ -85,7 +93,22 @@
 .t-pdp-barra { position: sticky; bottom: 0; z-index: 5; margin: 26px -16px 0; padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0px)); background: var(--crema); border-top: 1px solid var(--sand); }
 /* A 375 px, «Te avisaremos cuando llegue» cabe en una línea con menos aire a los lados. */
 .t-pdp-barra .t-btn { padding-inline: 14px; }
-.t-ver-bolsa { align-self: center; }
+
+/* Lo que pasó al agregar («✓ La talla M ya está en tu bolsa» o por qué no) y «Ver mi bolsa (N)». Bajo el botón en la computadora; en
+   el celular, arriba del botón en la barra de abajo (la línea de la columna solo lleva a la bolsa). Sin nada que decir, no ocupa
+   lugar: su región de voz queda dibujada, vacía, para que lo que diga después se lea en voz alta. */
+.t-pdp-bolsa { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px 14px; font-size: 13px; line-height: 1.4; }
+.t-pdp-bolsa [role="status"] { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.t-pdp-bolsa [role="status"].bien { color: var(--verde); }
+/* Si no entró («Ya tienes en tu bolsa todas las que quedan»), lo dice sin alarma: no es un error de quien compra. */
+.t-pdp-bolsa [role="status"].mal { color: var(--tinta); }
+.t-pdp-bolsa .ic { flex: none; width: 16px; height: 16px; }
+.t-pdp-bolsa .t-enlace { padding-block: 10px; }
+.t-pdp-bolsa-info:not([data-lleno]):not(:has(a)) { margin-top: -18px; }
+.t-pdp-bolsa-info [role="status"] { display: none; }
+.t-pdp-bolsa-barra { justify-content: space-between; }
+.t-pdp-bolsa-barra[data-lleno] { margin: -4px 2px 6px; }
+.t-pdp-bolsa-barra .t-enlace { padding-block: 8px; }
 
 /* ---- El acordeón ---- */
 .t-acordeon details { border-top: 1px solid var(--sand); }
@@ -107,4 +130,5 @@
   .t-pdp-info { position: sticky; top: 18px; padding-top: 0; }
   .t-pdp-cta { display: grid; }
   .t-pdp-barra { display: none; }
+  .t-pdp-bolsa-info [role="status"] { display: inline-flex; }
 }

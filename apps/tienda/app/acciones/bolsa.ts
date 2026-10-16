@@ -8,6 +8,7 @@ import {
   AGREGAR_AGOTADA,
   AGREGAR_LLENA,
   AGREGAR_LLENA_LOOK,
+  AGREGAR_NO_ALCANZA,
   AGREGAR_NO_ESTA,
   AGREGAR_SIN_RESPUESTA,
   agregarUna,
@@ -16,6 +17,7 @@ import {
   BOLSA_CAMBIO,
   elegirSede,
   esId,
+  quitarLinea,
   quitarUna,
   respuestaDeSeparar,
   revisarParaAgregar,
@@ -38,11 +40,12 @@ export type RespuestaAgregar =
   { estado: "agregada"; mensaje: string; cuantas: number } | { estado: "sin_sesion" } | { estado: "no"; mensaje: string };
 
 /**
- * «Agregar a la bolsa» de la ficha y «Agregar» con la talla de las tarjetas (`components/bolsa/AgregarALaBolsa.tsx`,
- * `components/RapidoDeTarjeta.tsx`). `sedeId`: la tienda que el cliente venía
- * mirando («Ver lo que hay en»); queda elegida para recoger si todavía no eligió otra (maqueta).
+ * «Agregar a la bolsa» de la ficha, «Agregar» con la talla de las tarjetas y el «+» de la cantidad en la bolsa
+ * (`components/bolsa/AgregarALaBolsa.tsx`, `components/RapidoDeTarjeta.tsx`, `components/bolsa/CantidadEnLaBolsa.tsx`). `sedeId`: la
+ * tienda que el cliente venía mirando («Ver lo que hay en»); queda elegida para recoger si todavía no eligió otra (maqueta).
  *
- * Como la maqueta, no deja agregar más de lo que hay en las tiendas de la web («Esa talla ya no está en ninguna tienda»).
+ * Como la maqueta, no deja agregar más de lo que hay en las tiendas de la web: «Esa talla ya no está en ninguna tienda» si no queda
+ * ninguna, y «Ya tienes en tu bolsa todas las que quedan» si las que quedan ya están en su bolsa.
  */
 export async function agregarALaBolsa(varianteId: unknown, sedeId: unknown): Promise<RespuestaAgregar> {
   if (!esId(varianteId)) return { estado: "no", mensaje: AGREGAR_NO_ESTA };
@@ -60,6 +63,7 @@ export async function agregarALaBolsa(varianteId: unknown, sedeId: unknown): Pro
   const revisada = revisarParaAgregar(enBase.lineas[0]);
   if (revisada.tipo === "no_esta") return { estado: "no", mensaje: AGREGAR_NO_ESTA };
   if (revisada.tipo === "agotada") return { estado: "no", mensaje: AGREGAR_AGOTADA };
+  if (revisada.tipo === "no_alcanza") return { estado: "no", mensaje: AGREGAR_NO_ALCANZA };
 
   const sedeQueMiraba = esId(sedeId) && enBase.sedes.some((s) => s.id === sedeId) ? sedeId : null;
   await guardarBolsa({ ...nueva, sedeId: bolsa.sedeId ?? sedeQueMiraba });
@@ -98,7 +102,8 @@ export async function agregarLookALaBolsa(varianteIds: unknown, sedeId: unknown)
   if (!enBase) return { estado: "no", mensaje: AGREGAR_SIN_RESPUESTA };
   const tipo = new Map(unicas.map((v) => [v, revisarParaAgregar(enBase.lineas.find((l) => l.varianteId === v)).tipo]));
   const agregadas = ids.filter((v) => tipo.get(v) === "entra");
-  const agotadas = unicas.filter((v) => tipo.get(v) === "agotada");
+  // Una que no alcanza (las que quedan ya están en la bolsa) queda fuera igual que una agotada: el look dice que no entró.
+  const agotadas = unicas.filter((v) => tipo.get(v) === "agotada" || tipo.get(v) === "no_alcanza");
   const noEstan = unicas.filter((v) => tipo.get(v) === "no_esta");
   if (agregadas.length === 0) return { estado: "listo", agregadas, agotadas, noEstan, cuantas: unidades(bolsa) };
 
@@ -110,13 +115,15 @@ export async function agregarLookALaBolsa(varianteIds: unknown, sedeId: unknown)
   return { estado: "listo", agregadas, agotadas, noEstan, cuantas: unidades(nueva) };
 }
 
-/** «Quitar» saca UNA, solo si el cliente veía esa cantidad (dos toques seguidos sacan una sola). */
+/** El «−» de la cantidad saca UNA; «Quitar» (`todas=1`) saca la prenda entera. Las dos, solo si el cliente veía esa cantidad (dos
+ *  toques seguidos sacan una sola vez). */
 export async function quitarDeLaBolsa(datos: FormData): Promise<void> {
   const variante = datos.get("variante");
   const vista = Number(datos.get("vista"));
   if (!esId(variante) || !Number.isInteger(vista)) return;
   const bolsa = await leerBolsaDeLaCookie();
-  const nueva = quitarUna(bolsa, variante, { vista, marca: randomUUID() });
+  const quitar = datos.get("todas") === "1" ? quitarLinea : quitarUna;
+  const nueva = quitar(bolsa, variante, { vista, marca: randomUUID() });
   if (nueva !== bolsa) await guardarBolsa(nueva);
 }
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
 import {
+  avisoOtraTienda,
   avisoOtrosSepararon,
   botonDeLaFicha,
   campanaDeLaFicha,
@@ -13,6 +14,7 @@ import {
   fotosDelColor,
   interpretarFicha,
   interpretarSeparadas,
+  lineaAlAgregar,
   notaDeTalla,
   precioDeLaFicha,
   tallaDelPrecio,
@@ -232,6 +234,27 @@ describe("lo que la ficha conecta: el botón, la propuesta k, «Agregar» de la 
     expect(avisoOtrosSepararon(beiM, TRUJILLO, separadas)).toBeNull();
     expect(avisoOtrosSepararon(beiS, null, separadas)).toBeNull();
     expect(avisoOtrosSepararon(null, TRUJILLO, separadas)).toBeNull();
+  });
+
+  it("una talla que no está en la tienda elegida pero sí en otra: se separa igual y la tienda la puede traer; si no, nada", () => {
+    const LIMA = { id: LIM, nombre: "Lima" };
+    // NEG S: Trujillo 3, Lima 0 → con Lima elegida, la trae de Trujillo.
+    expect(avisoOtraTienda(negS, LIMA, ficha.sedes)).toBe("No hay en Lima. Igual puedes separarla ahí: la tienda puede traerla de Trujillo.");
+    // BEI M: Trujillo 0, Lima 1 → con Trujillo elegida, la trae de Lima.
+    expect(avisoOtraTienda(beiM, TRUJILLO, ficha.sedes)).toBe("No hay en Trujillo. Igual puedes separarla ahí: la tienda puede traerla de Lima.");
+    // Hay en la elegida; sin tienda («Todas»); sin talla; en ninguna (eso es «Avísame»).
+    expect(avisoOtraTienda(negM, LIMA, ficha.sedes)).toBeNull();
+    expect(avisoOtraTienda(negS, null, ficha.sedes)).toBeNull();
+    expect(avisoOtraTienda(null, LIMA, ficha.sedes)).toBeNull();
+    expect(avisoOtraTienda(negL, LIMA, ficha.sedes)).toBeNull();
+  });
+
+  it("lo que dice la ficha junto al botón al agregar: corto y con la talla; si no entró, la frase del servidor", () => {
+    expect(lineaAlAgregar({ bien: true, texto: "Agregaste Blusa Emma · Negro · M a tu bolsa." }, "M", true)).toBe("La talla M ya está en tu bolsa.");
+    expect(lineaAlAgregar({ bien: true, texto: "Agregaste Collar a tu bolsa." }, "Única", false)).toBe("Ya está en tu bolsa.");
+    expect(lineaAlAgregar({ bien: false, texto: "Ya tienes en tu bolsa todas las que quedan de esa talla." }, "M", true)).toBe(
+      "Ya tienes en tu bolsa todas las que quedan de esa talla.",
+    );
   });
 
   it("lo que dice la base de la propuesta k: solo las tallas con sí; lo raro se lee como «nadie» (nunca frena)", () => {

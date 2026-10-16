@@ -89,8 +89,8 @@ export function agregarVarias(b: Bolsa, varianteIds: readonly string[], { marca 
 }
 
 /**
- * «Quitar» saca UNA (maqueta: `w-quitar`). `vista`: cuántas veía el cliente al tocar; si ya no son esas (un doble toque, otra
- * pestaña), no saca nada: así dos toques seguidos sacan una sola.
+ * «−» de la cantidad saca UNA. `vista`: cuántas veía el cliente al tocar; si ya no son esas (un doble toque, otra pestaña), no saca
+ * nada: así dos toques seguidos sacan una sola.
  */
 export function quitarUna(b: Bolsa, varianteId: string, { vista, marca }: { vista: number; marca: string }): Bolsa {
   const linea = b.lineas.find((l) => l.varianteId === varianteId);
@@ -98,6 +98,17 @@ export function quitarUna(b: Bolsa, varianteId: string, { vista, marca }: { vist
   const lineas =
     linea.cantidad > 1 ? b.lineas.map((l) => (l === linea ? { ...l, cantidad: l.cantidad - 1 } : l)) : b.lineas.filter((l) => l !== linea);
   return { ...b, lineas, marca };
+}
+
+/**
+ * «Quitar» saca la prenda ENTERA, con todas las que lleva. La maqueta sacaba una: con «Chaleco ×2», «Quitar» dejaba una y la
+ * prenda seguía ahí sin que se entendiera por qué; ahora la cantidad se baja con «−» y «Quitar» quita. Con la misma guarda de
+ * `vista`: si ya no son las que veía (un doble toque, otra pestaña), no saca nada.
+ */
+export function quitarLinea(b: Bolsa, varianteId: string, { vista, marca }: { vista: number; marca: string }): Bolsa {
+  const linea = b.lineas.find((l) => l.varianteId === varianteId);
+  if (!linea || linea.cantidad !== vista) return b;
+  return { ...b, lineas: b.lineas.filter((l) => l !== linea), marca };
 }
 
 /** La tienda donde se recoge todo. */
@@ -159,13 +170,15 @@ export type BolsaEnBase = { sedeId: string | null; sedes: Sede[]; lineas: LineaE
 export const yaNoEsta = (l: LineaEnBase): l is PrendaQueYaNoEsta => "noEsta" in l;
 
 /** Lo que dice la base de una prenda que se quiere agregar (preguntada con TODAS las que llevaría): si entra, si ya no está en la
- *  tienda online, o si se agotó (no alcanza en ninguna tienda de la web). La misma regla para una prenda (la ficha, la tarjeta) y para
- *  cada prenda de un look. */
+ *  tienda online, si se agotó (no queda ninguna en las tiendas de la web) o si quedan pero no tantas (`no_alcanza`: las que quedan ya
+ *  están en la bolsa; decirle «ya no está en ninguna tienda» a quien tiene las dos últimas en su bolsa era falso). La misma regla para
+ *  una prenda (la ficha, la tarjeta, el «+» de la bolsa) y para cada prenda de un look. */
 export function revisarParaAgregar(
   linea: LineaEnBase | undefined,
-): { tipo: "entra"; linea: PrendaEnLaBolsa } | { tipo: "no_esta" } | { tipo: "agotada" } {
+): { tipo: "entra"; linea: PrendaEnLaBolsa } | { tipo: "no_esta" } | { tipo: "agotada" } | { tipo: "no_alcanza" } {
   if (!linea || yaNoEsta(linea)) return { tipo: "no_esta" };
-  return linea.alcanzaEnTotal ? { tipo: "entra", linea } : { tipo: "agotada" };
+  if (linea.alcanzaEnTotal) return { tipo: "entra", linea };
+  return Object.values(linea.enSedes).some((s) => s.hay) ? { tipo: "no_alcanza" } : { tipo: "agotada" };
 }
 
 /** La respuesta de la base; `null` si no tiene forma de bolsa (la página dice que no pudo cargarla). */
@@ -212,12 +225,14 @@ export type MarcaDeLinea =
   | { tipo: "no_alcanza" }
   | { tipo: "no_se_vende"; sede: string }
   | { tipo: "hay"; sede: string }
-  | { tipo: "traslado"; sede: string; desde: string | null }
+  /** `parte`: en la tienda elegida hay alguna, pero no todas las que lleva; `varias`: lleva más de una (la frase va en plural). */
+  | { tipo: "traslado"; sede: string; desde: string | null; parte: boolean; varias: boolean }
   | { tipo: "nada" };
 
 /** Lo que se dice debajo de cada prenda (maqueta: «Se agotó…», «Hay en Trujillo», «No está en Trujillo: la tienda puede traerla de
  *  Lima»). Lo que no está en la maqueta —una prenda que ya no está, una que no se vende en esa tienda, o que no alcanza para todas
- *  las que lleva— dice qué hacer en una línea. */
+ *  las que lleva— dice qué hacer en una línea. Si en la tienda elegida hay alguna pero no todas, no dice «No está» (sería falso): dice
+ *  que no alcanzan y que la tienda trae las que faltan. */
 export function textoDeLaMarca(m: MarcaDeLinea): string | null {
   switch (m.tipo) {
     case "no_esta":
@@ -225,15 +240,16 @@ export function textoDeLaMarca(m: MarcaDeLinea): string | null {
     case "agotada":
       return "Se agotó en todas las tiendas. Quítala para separar.";
     case "no_alcanza":
-      return "No quedan tantas en las tiendas. Quita una para separar.";
+      return "No quedan tantas en las tiendas: baja la cantidad para separar.";
     case "no_se_vende":
       return `No se vende en ${m.sede}. Quítala o elige otra tienda.`;
     case "hay":
       return `Hay en ${m.sede}`;
-    case "traslado":
-      return m.desde
-        ? `No está en ${m.sede}: la tienda puede traerla de ${m.desde}`
-        : `No está en ${m.sede}: la tienda puede traerla de otra tienda`;
+    case "traslado": {
+      const de = m.desde ?? "otra tienda";
+      if (m.parte) return `No alcanzan en ${m.sede}: la tienda puede traer las que faltan de ${de}`;
+      return m.varias ? `No están en ${m.sede}: la tienda puede traerlas de ${de}` : `No está en ${m.sede}: la tienda puede traerla de ${de}`;
+    }
     case "nada":
       return null;
   }
@@ -242,18 +258,24 @@ export function textoDeLaMarca(m: MarcaDeLinea): string | null {
 export type OpcionDeTienda = { sede: Sede; elegida: boolean; texto: string | null };
 
 export type VistaBolsa = {
-  lineas: { linea: LineaEnBase; marca: MarcaDeLinea; importe: number | null }[];
+  /** `importe`: precio × cuántas; `antes`: lo mismo a precio de lista, solo si una campaña lo baja (se ve tachado al lado). */
+  lineas: { linea: LineaEnBase; marca: MarcaDeLinea; importe: number | null; antes: number | null }[];
   /** La tienda elegida para recoger (una de la web), o null. */
   sede: Sede | null;
   tiendas: OpcionDeTienda[];
   prendas: number;
-  /** Lo que se paga (con las campañas) y lo que las campañas ahorran. */
+  /** «Prendas (N)» del resumen: lo que costarían sin campañas. Menos `ahorro` (lo que las campañas bajan) da `total`, lo que se paga.
+   *  Antes el resumen ponía el total en las dos filas y la resta no cuadraba a la vista (S/ 209.10 − S/ 10.80 = S/ 209.10). */
+  subtotal: number;
   total: number;
   ahorro: number;
   /** Lo que se dice sobre el botón; `destacado` va en negrita (maqueta: «Falta: <b>elegir la tienda</b>»). */
   nota: { antes: string; destacado: string; despues: string };
   boton: string;
   listo: boolean;
+  /** Si lo ÚNICO que falta para separar es elegir la tienda: el botón lleva a «¿En qué tienda lo recoges?» en vez de quedar apagado
+   *  (en el celular, con varias prendas, esa pregunta queda abajo, fuera de la vista; un botón apagado ahí era un callejón). */
+  faltaTienda: boolean;
   /** Lo que viaja con «Separar»: lo que el cliente VE (la base lo vuelve a calcular y lo compara). */
   paraSeparar: { variante_id: string; cantidad: number; precio: number }[];
 };
@@ -264,7 +286,7 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
   const disponibles = b.lineas.filter((l): l is PrendaEnLaBolsa => !yaNoEsta(l));
 
   const lineas = b.lineas.map((linea) => {
-    if (yaNoEsta(linea)) return { linea, marca: { tipo: "no_esta" } as MarcaDeLinea, importe: null };
+    if (yaNoEsta(linea)) return { linea, marca: { tipo: "no_esta" } as MarcaDeLinea, importe: null, antes: null };
     let marca: MarcaDeLinea = { tipo: "nada" };
     if (!linea.alcanzaEnTotal) marca = Object.values(linea.enSedes).some((s) => s.hay) ? { tipo: "no_alcanza" } : { tipo: "agotada" };
     else if (sede) {
@@ -274,10 +296,11 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
       else {
         const otras = sedes.filter((s) => s.id !== sede.id);
         const desde = otras.find((s) => linea.enSedes[s.id]?.alcanza) ?? otras.find((s) => linea.enSedes[s.id]?.hay) ?? null;
-        marca = { tipo: "traslado", sede: sede.nombre, desde: desde?.nombre ?? null };
+        marca = { tipo: "traslado", sede: sede.nombre, desde: desde?.nombre ?? null, parte: Boolean(ahi?.hay), varias: linea.cantidad > 1 };
       }
     }
-    return { linea, marca, importe: redondear(linea.precio * linea.cantidad) };
+    const antes = linea.precioLista > linea.precio ? redondear(linea.precioLista * linea.cantidad) : null;
+    return { linea, marca, importe: redondear(linea.precio * linea.cantidad), antes };
   });
 
   // «Tiene todo lo que elegiste» o «Tiene 1 de 2; lo demás lo trae de otra tienda» (maqueta, `cobertura`: cuenta filas). Lo que esa
@@ -296,6 +319,7 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
   });
 
   const marcas = lineas.map((l) => l.marca.tipo);
+  const subtotal = redondear(disponibles.reduce((n, l) => n + l.precioLista * l.cantidad, 0));
   const total = redondear(disponibles.reduce((n, l) => n + l.precio * l.cantidad, 0));
   const ahorro = redondear(disponibles.reduce((n, l) => n + (l.precioLista - l.precio) * l.cantidad, 0));
   let nota: VistaBolsa["nota"];
@@ -303,8 +327,11 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
     nota = { antes: "", destacado: "Por ahora no recibimos pedidos de la web.", despues: " Vuelve a intentarlo en un rato." };
   else if (marcas.includes("no_esta"))
     nota = { antes: "", destacado: "Una prenda ya no está en la tienda online.", despues: " Quítala para separar." };
-  else if (marcas.includes("agotada") || marcas.includes("no_alcanza"))
+  else if (marcas.includes("agotada"))
     nota = { antes: "", destacado: "Hay una prenda agotada.", despues: " Quítala para separar." };
+  // Quedan algunas, pero no tantas como lleva: no está agotada, se arregla bajando la cantidad con «−».
+  else if (marcas.includes("no_alcanza"))
+    nota = { antes: "", destacado: "De una prenda no quedan tantas.", despues: " Baja la cantidad para separar." };
   else if (!sede) nota = { antes: "Falta: ", destacado: "elegir la tienda", despues: "" };
   else if (marcas.includes("no_se_vende"))
     nota = { antes: "", destacado: `Una prenda no se vende en ${sede.nombre}.`, despues: " Quítala o elige otra tienda." };
@@ -316,11 +343,13 @@ export function vistaBolsa(b: BolsaEnBase): VistaBolsa {
     sede,
     tiendas,
     prendas: unidades({ lineas: disponibles }),
+    subtotal,
     total,
     ahorro,
     nota,
     boton: sede ? `Separar en ${sede.nombre}` : "Separar",
     listo: Boolean(sede) && !bloqueada && disponibles.length > 0,
+    faltaTienda: sedes.length > 0 && !sede && !bloqueada && disponibles.length > 0,
     paraSeparar: disponibles.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidad, precio: l.precio })),
   };
 }
@@ -332,6 +361,14 @@ export const importe = (n: number | null) => (n === null ? "" : soles(n));
 
 /** «3 prendas», «1 prenda». */
 export const cuantas = (n: number) => `${n} ${n === 1 ? "prenda" : "prendas"}`;
+
+/** «Chaleco Zenit, Chocolate, talla S»: la prenda dicha entera, para el lector de pantalla de «Quitar» y de la cantidad (en una
+ *  bolsa con varias, «Quitar» a secas no dice cuál). */
+export const prendaParaLeer = (p: Pick<PrendaEnLaBolsa, "nombre" | "color" | "talla">) =>
+  [p.nombre, p.color.nombre, p.talla ? `talla ${p.talla}` : null].filter(Boolean).join(", ");
+
+/** ¿El «+» de la cantidad ofrece otra? No si ya se agotó o si ya no quedan tantas: la base diría que no, y el botón no lo promete. */
+export const ofreceOtra = (m: MarcaDeLinea) => m.tipo !== "agotada" && m.tipo !== "no_alcanza" && m.tipo !== "no_esta";
 
 /* ---------------- Lo que dice el servidor al agregar o al separar ---------------- */
 
@@ -380,6 +417,8 @@ export function respuestaDeSeparar(
 export const avisoAgregada = (p: Pick<PrendaEnLaBolsa, "nombre" | "color" | "talla">) =>
   `Agregaste ${[p.nombre, p.color.nombre, p.talla].filter(Boolean).join(" · ")} a tu bolsa.`;
 export const AGREGAR_AGOTADA = "Esa talla ya no está en ninguna tienda.";
+/** Quedan, pero todas las que quedan ya están en su bolsa (agregar otra más no se puede). */
+export const AGREGAR_NO_ALCANZA = "Ya tienes en tu bolsa todas las que quedan de esa talla.";
 export const AGREGAR_NO_ESTA = "Esa prenda ya no está en la tienda online.";
 export const AGREGAR_LLENA = `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas.`;
 /** Un look entra entero o no entra (no se parte por falta de lugar). */

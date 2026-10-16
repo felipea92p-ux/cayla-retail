@@ -200,6 +200,29 @@ export function avisoOtrosSepararon(
   return `${quien} en ${sede.nombre}. Igual puedes separarla: la tienda te confirma o te ofrece otra opción.`;
 }
 
+/**
+ * Con una tienda elegida y una talla que ahí no hay pero sí en otra tienda de la web: qué pasa si igual la separa en la elegida. La
+ * talla ya dice «Otra tienda», que se puede leer como «anda a la otra tienda»; esto aclara que no: se separa igual y la tienda la
+ * puede traer (la misma promesa que la bolsa, «No está en Lima: la tienda puede traerla de Trujillo»; maqueta y DECIDÍ «una tienda
+ * para todo, lo que falta se trae con un traslado»). Sin tienda elegida, con algo ahí o sin otra que tenga, nada.
+ */
+export function avisoOtraTienda(
+  v: Variante | null,
+  sede: { id: string; nombre: string } | null,
+  sedes: readonly { id: string; nombre: string }[],
+): string | null {
+  if (!v || !sede || hayAlgo(v.stock[sede.id])) return null;
+  const otra = sedes.find((s) => s.id !== sede.id && hayAlgo(v.stock[s.id]));
+  return otra ? `No hay en ${sede.nombre}. Igual puedes separarla ahí: la tienda puede traerla de ${otra.nombre}.` : null;
+}
+
+/** Lo que dice la ficha junto al botón después de «Agregar a la bolsa»: corto (la barra del celular es angosta) y con la talla, que
+ *  es lo que se acaba de elegir; si no entró, la frase de por qué (la del servidor). */
+export function lineaAlAgregar(r: { bien: boolean; texto: string }, talla: string, variasTallas: boolean): string {
+  if (!r.bien) return r.texto;
+  return variasTallas ? `La talla ${talla} ya está en tu bolsa.` : "Ya está en tu bolsa.";
+}
+
 /** Lo que responde la base a «¿otros ya separaron lo que queda?» (`{"<talla>": true|false}`): las tallas con sí. Lo que llega raro
  *  se lee como «nadie»: el aviso es una ayuda, nunca un candado. */
 export function interpretarSeparadas(dato: unknown): Set<string> {
