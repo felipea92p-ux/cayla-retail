@@ -1,4 +1,4 @@
-// Catálogo ▸ Vitrina web ▸ «Esperan una talla» (ADR-0408, actividad 12; maqueta docs/maquetas/tienda-online-2026-10, la cifra
+// Tienda web ▸ Vitrina ▸ «Esperan una talla» (ADR-0408, actividad 12; maqueta docs/maquetas/tienda-online-2026-10, la cifra
 // «Esperan una talla · Tocaron «Avísame»» de `vVitrina`): lo que los clientes de la tienda online esperan, por prenda (modelo, color
 // y talla) y tienda. Lógica pura: se importa desde el servidor y desde el cliente, y se prueba con `vitrina-esperan-reglas.test.ts`.
 //

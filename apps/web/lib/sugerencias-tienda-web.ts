@@ -1,4 +1,4 @@
-// Los ejemplos de Configuración ▸ Tienda web siguen a la tienda de su tarjeta (skill `/sugerir`, CLAUDE.md «Sugerencias
+// Los ejemplos de Tienda web ▸ Ajustes siguen a la tienda de su tarjeta (skill `/sugerir`, CLAUDE.md «Sugerencias
 // coherentes», ADR-0290). Cada tarjeta es una tienda, y lo que se escribe en ella es de ESA tienda: en la de Trujillo, el
 // nombre de ejemplo es «Trujillo» y la dirección de ejemplo, una de Trujillo; nunca «Ej. Av. Larco, Miraflores» en la tarjeta
 // de Arequipa.

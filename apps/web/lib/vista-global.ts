@@ -50,14 +50,15 @@ export const MODULOS_SOLO_DE_LA_VISTA_GLOBAL = ["cayla_global"] as const satisfi
 /** Las rutas que se pueden abrir estando en CAYLA Global (y todo lo que cuelga de ellas). Tienen que coincidir con las
  *  pantallas de los módulos de arriba —lo vigila la prueba contra el árbol del menú—, más dos que no son de un módulo:
  *  «Sin acceso» y el panel comercial (`/comercial`, que ya compara todas las tiendas y es solo del líder). «/» es solo el
- *  Inicio (nada «cuelga» de la raíz): la página manda a `/global` a quien no es Admin. */
-export const RUTAS_DE_LA_VISTA_GLOBAL = ["/", "/global", "/clientas", "/finanzas", "/configuracion", "/actividad", "/comercial", "/sin-acceso", "/gestion/frescura"] as const;
+ *  Inicio (nada «cuelga» de la raíz): la página manda a `/global` a quien no es Admin. Tienda web ▸ Ajustes (ADR-0430) es la
+ *  antigua pestaña «Tienda web» de Configuración: de CAYLA entera, con el mismo módulo, así que sigue abriéndose aquí. */
+export const RUTAS_DE_LA_VISTA_GLOBAL = ["/", "/global", "/clientas", "/finanzas", "/configuracion", "/actividad", "/comercial", "/sin-acceso", "/gestion/frescura", "/tienda-web/ajustes"] as const;
 
 /** Las pantallas que cuelgan de una ruta de la lista de arriba pero trabajan en UNA sede: no se abren en CAYLA Global (mandan a
  *  elegir sede). Clientas ▸ Avisos (ADR-0288 act. g) manda los mensajes desde el WhatsApp de una tienda: sin tienda no hay desde
- *  dónde enviar, aunque las fichas sí sean de toda la empresa. Clientas ▸ Recomendaciones (ADR-0408) lee las de todas las tiendas,
- *  pero marcar, responder y archivar firman con el responsable de la sede donde se está parado. */
-export const RUTAS_DE_SEDE_DENTRO_DE_LA_VISTA_GLOBAL = ["/clientas/avisos", "/clientas/recomendaciones"] as const;
+ *  dónde enviar, aunque las fichas sí sean de toda la empresa. Recomendaciones vivió aquí, bajo `/clientas`, hasta el 2026-10-16:
+ *  desde ADR-0430 es `/tienda-web/recomendaciones`, que no cuelga de ninguna ruta de la vista y por eso ya manda a elegir sede. */
+export const RUTAS_DE_SEDE_DENTRO_DE_LA_VISTA_GLOBAL = ["/clientas/avisos"] as const;
 
 /** Adónde se manda a quien abre, estando en CAYLA Global, una pantalla que trabaja en una sede. */
 export const RUTA_ELEGIR_SEDE = "/global/elige-sede";
