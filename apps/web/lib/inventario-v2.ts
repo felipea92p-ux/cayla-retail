@@ -6,7 +6,7 @@ import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { getPreciosPorSede } from "@/lib/precios-sede-datos";
 import { precioEnLaSede } from "@/lib/precio-sede-reglas";
-import { origenDeDanada, type OrigenDanada } from "@/lib/danadas-reglas";
+import { leerDevolvibles, origenDeDanada, RPC_DANADAS_DEVOLVIBLES, type DevolucionPosible, type OrigenDanada } from "@/lib/danadas-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
 import type { PisoDeTalla } from "@/lib/piso-plan";
 
@@ -412,6 +412,8 @@ export type PrendaDanada = {
   origen: OrigenDanada;
   /** Qué tiene, según quien la reportó desde Existencias. Null si llegó por una devolución o un cambio. */
   motivoReporte: string | null;
+  /** Si llegó dañada en una recepción, a qué proveedor se devuelve (ADR-0362, fase 5b, actividad 6a); si no, null (sin el botón). */
+  devolucion: DevolucionPosible | null;
 };
 
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
@@ -456,6 +458,9 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
       : exigir(conMotivo, "las prendas dañadas pendientes");
   // Los precios propios de ESTA tienda, solo si hay algo que pintar (si la lectura falla, el precio de la prenda, como antes).
   const propios = filas.length === 0 ? {} : ((await getPreciosPorSede([ubicacionId]))[ubicacionId] ?? {});
+  // «Devolver al proveedor» (ADR-0362, fase 5b, actividad 6a): cuáles llegaron dañadas en una recepción y a quién vuelven. Opcional: si la
+  // base no responde o todavía no tiene la función, la lista sale sin ese botón, como antes.
+  const devolvibles = filas.length === 0 ? new Map<string, DevolucionPosible>() : await leerDevolviblesDeSede(supabase, ubicacionId);
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",
@@ -468,5 +473,15 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
     precioReferencia: precioEnLaSede(propios, f.variante?.id, f.variante?.precio) ?? 0,
     origen: origenDeDanada({ motivoReporte: f.motivo_reporte, cambioId: f.cambio_id }),
     motivoReporte: f.motivo_reporte,
+    devolucion: devolvibles.get(f.id) ?? null,
   }));
+}
+
+async function leerDevolviblesDeSede(supabase: Awaited<ReturnType<typeof createClient>>, ubicacionId: string): Promise<Map<string, DevolucionPosible>> {
+  try {
+    const { data, error } = await supabase.rpc(RPC_DANADAS_DEVOLVIBLES as never, { p_ubicacion_id: ubicacionId } as never);
+    return error ? new Map() : leerDevolvibles(data);
+  } catch {
+    return new Map();
+  }
 }

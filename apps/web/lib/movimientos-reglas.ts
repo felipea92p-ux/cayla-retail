@@ -119,6 +119,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   cuarentena_liquidada: "Dañado · liquidada",
   cuarentena_se_boto: "Dañado · se botó",
   cuarentena_donada: "Dañado · donada",
+  // ADR-0362, fase 5b, actividad 6a: lo que llegó dañado en una recepción y se le devolvió al proveedor (queda como deuda «por reponer»).
+  cuarentena_devuelta_proveedor: "Dañado · devuelta al proveedor",
 };
 
 /** Qué procesos caben en cada tipo, para el filtro en dos pasos de Movimientos (2026-09-22,
@@ -129,7 +131,7 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
 export const PROCESOS_POR_CATEGORIA: Record<CategoriaFiltro, string[]> = {
   // Desde la tienda (ADR-0234): el traslado recibido es una entrada y el enviado, una salida — y los dos siguen en «Traslados».
   entrada: ["traslado_entrada", "traslado_anulado", "recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial", "ingreso_regularizado"],
-  salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada"],
+  salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada", "cuarentena_devuelta_proveedor"],
   interno: ["movimiento_interno", "activacion_piso_almacen"],
   transferencia: ["traslado_entrada", "traslado_salida", "traslado_anulado"],
   ajuste: ["conteo", "conteo_arranque", "conteo_fisico", "hallazgo_conteo", "merma", "reposicion", "otro"],
@@ -328,6 +330,8 @@ export function partesOrigenDestino(m: Movimiento): { origen: string; destino: s
     case "venta":
     case "cuarentena_liquidada":
       return { origen: aqui, destino: "Cliente" };
+    case "cuarentena_devuelta_proveedor":
+      return { origen: aqui, destino: "Proveedor" };
     case "anulacion_venta":
     case "devolucion":
       return { origen: "Cliente", destino: aqui };
@@ -825,6 +829,7 @@ export const FRASE_PROCESO: Record<string, string | readonly [string, string]> =
   cuarentena_liquidada: ["dañada, liquidada", "dañadas, liquidadas"],
   cuarentena_se_boto: ["dañada, botada", "dañadas, botadas"],
   cuarentena_donada: ["dañada, donada", "dañadas, donadas"],
+  cuarentena_devuelta_proveedor: ["dañada, devuelta al proveedor", "dañadas, devueltas al proveedor"],
   siembra_cargo_especial: "por cargo especial",
 };
 
