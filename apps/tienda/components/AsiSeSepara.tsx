@@ -8,8 +8,15 @@ const PASOS: [NombreIcono, string, string][] = [
   ["bolsa", "Paga y recógelo", "Coordinas el pago por WhatsApp y lo recoges en tu tienda."],
 ];
 
-/** «Así se separa» (maqueta, `seccionComo`): los cuatro pasos, en la portada y en el Inicio. */
-export function AsiSeSepara() {
+/** El primer paso para quien ya entró con su cuenta: pedirle «Crea tu cuenta» a quien ya la tiene confundía. */
+const YA_TIENES_CUENTA: [NombreIcono, string, string] = ["check", "Ya tienes tu cuenta", "Ya eres parte del Club CAYLA. Tus pedidos quedan en «Mi cuenta»."];
+
+/**
+ * «Así se separa» (maqueta, `seccionComo`): los cuatro pasos, en la portada y en el Inicio. En el Inicio (`conCuenta`) el primero ya está
+ * hecho y lo dice (con su visto); en la portada, sin cuenta, invita a crearla.
+ */
+export function AsiSeSepara({ conCuenta = false }: { conCuenta?: boolean }) {
+  const pasos = conCuenta ? [YA_TIENES_CUENTA, ...PASOS.slice(1)] : PASOS;
   return (
     <section className="t-sec t-ancho" aria-labelledby="asi-se-separa">
       <div className="t-sec-cab">
@@ -24,8 +31,8 @@ export function AsiSeSepara() {
         </Link>
       </div>
       <ol className="t-como">
-        {PASOS.map(([icono, titulo, texto]) => (
-          <li key={titulo}>
+        {pasos.map(([icono, titulo, texto], i) => (
+          <li key={titulo} data-hecho={conCuenta && i === 0 ? "" : undefined}>
             <span className="t-como-ic">
               <Icono nombre={icono} />
             </span>

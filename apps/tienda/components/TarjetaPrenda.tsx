@@ -31,6 +31,7 @@ export function TarjetaPrenda({
   puesto = null,
   sinNuevo = false,
   guardado,
+  arriba = false,
 }: {
   prenda: Prenda;
   sede: string | null;
@@ -42,6 +43,8 @@ export function TarjetaPrenda({
   sinNuevo?: boolean;
   /** Si el corazón ya está guardado; sin él, lo dice el marco del catálogo. */
   guardado?: boolean;
+  /** Va en la primera fila de la lista (se ve sin bajar): su foto se pide apenas llega la página. */
+  arriba?: boolean;
 }) {
   const [foto, segunda] = fotosDeTarjeta(prenda);
   const precio = precioTarjeta(prenda);
@@ -49,6 +52,8 @@ export function TarjetaPrenda({
   const nueva = Boolean(prenda.nuevo) && !sinNuevo;
   const { visibles, mas } = muestras(prenda);
   const href = hrefDePrenda(prenda, sede);
+  // Las insignias van dentro de la foto, que el lector salta: el nombre las dice también («Falda Luna, −12 %, nuevo»).
+  const insigniasDichas = [puesto ? `N.º ${puesto} en más vendidos` : null, oferta, nueva ? "nuevo" : null].filter(Boolean).join(", ");
   return (
     <article className="t-card">
       <div className="t-card-media">
@@ -61,6 +66,7 @@ export function TarjetaPrenda({
             nombre={prenda.nombre}
             forma={formaDe(prenda.categoria?.prefijo)}
             color={colorDeDibujo(prenda)}
+            pronto={arriba}
           />
           {(puesto || oferta || nueva) && (
             <span className="t-insignias">
@@ -76,6 +82,7 @@ export function TarjetaPrenda({
       <div className="t-card-info">
         <Link href={href} className="t-card-nom">
           {prenda.nombre}
+          {insigniasDichas && <span className="t-sr">, {insigniasDichas}</span>}
         </Link>
         <span className={`t-precio${precio.oferta ? " oferta" : ""}`}>
           <b className="num">{precio.principal}</b>
