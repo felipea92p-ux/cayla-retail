@@ -461,10 +461,14 @@ export function tipoDeMovimiento(b: Pick<BorradorMovimiento, "que" | "clase">): 
   return b.que;
 }
 
-/** Revisa el formulario antes de mandarlo (la base vuelve a revisar todo). `deuda` = lo que CAYLA le debe al dueño. */
+/** «2026-10-01» → «01/10/2026», para decirle a la persona desde cuándo cuenta Finanzas. */
+const fechaDMA = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+
+/** Revisa el formulario antes de mandarlo (la base vuelve a revisar todo). `deuda` = lo que CAYLA le debe al dueño;
+ *  `inicio` = desde cuándo cuenta Finanzas (piso de la fecha), o nada si la base no lo tiene. */
 export function validarMovimiento(
   b: BorradorMovimiento,
-  ctx: { cuentas: readonly CuentaDinero[]; egresos: readonly EgresoParaMovimiento[]; deuda: number; hoy: string },
+  ctx: { cuentas: readonly CuentaDinero[]; egresos: readonly EgresoParaMovimiento[]; deuda: number; hoy: string; inicio?: string | null },
 ): Resultado<PayloadMovimiento> {
   const op = opcionQuePaso(b.que);
   const tipo = tipoDeMovimiento(b);
@@ -508,6 +512,12 @@ export function validarMovimiento(
   if (!esCajon) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(b.fecha)) return { ok: false, error: "Elige la fecha." };
     if (b.fecha > ctx.hoy) return { ok: false, error: "La fecha no puede ser futura." };
+    // Finanzas cuenta desde su inicio (ADR-0332). La base ya frena un GASTO anterior (ADR-0412); un movimiento de dinero
+    // con fecha de 1900 entraba igual (/chaos 2026-10-16) y quedaba en un mes que ningún reporte mira: se frena aquí, antes
+    // de mandarlo. Sin fecha de inicio (la base no la tiene todavía) no hay piso.
+    if (ctx.inicio && b.fecha < ctx.inicio) {
+      return { ok: false, error: `Finanzas cuenta desde el ${fechaDMA(ctx.inicio)}: un movimiento anterior no entraría a ningún reporte. Si lo pagaste ahora, ponle la fecha del pago.` };
+    }
     fecha = b.fecha;
   }
   return {

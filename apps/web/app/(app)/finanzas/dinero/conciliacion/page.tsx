@@ -4,6 +4,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { cuentaParaConciliar } from "@/lib/cuentas-dinero-reglas";
 import { getConciliacion, getContextoDinero, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { ConciliacionPanel, PantallaDinero } from "@/components/finanzas/CuentasDinero";
+import { getParametrosFinanzas } from "@/lib/configuracion";
 
 // Finanzas ▸ Cuentas y dinero ▸ Conciliación (ADR-0195 F3, solo el líder): se anota el saldo que dice el banco en una fecha;
 // el sistema suma el suyo, dice la diferencia y muestra las líneas del período para marcarlas revisadas. Es de CAYLA entera
@@ -16,7 +17,7 @@ export default async function ConciliacionPage({ searchParams }: { searchParams:
   const ctx = await getContextoDinero(persona, "todas");
   const elegida = cuentaParaConciliar(ctx.conciliacion.datos, sp.cuenta);
   const hasta = sp.hasta && /^\d{4}-\d{2}-\d{2}$/.test(sp.hasta) && sp.hasta <= hoy ? sp.hasta : null;
-  const actual = elegida ? await getConciliacion(elegida.id, hasta) : { datos: null, falla: null };
+  const [actual, parametros] = await Promise.all([elegida ? getConciliacion(elegida.id, hasta) : Promise.resolve({ datos: null, falla: null }), getParametrosFinanzas()]);
 
   return (
     <PantallaDinero
@@ -29,6 +30,7 @@ export default async function ConciliacionPage({ searchParams }: { searchParams:
       cuentas={ctx.cuentas.datos}
       deuda={ctx.deuda}
       hoy={hoy}
+      inicio={parametros?.inicioFinanzas ?? null}
       fallas={[ctx.cuentas.falla, ctx.conciliacion.falla, actual.falla].filter((f): f is string => !!f)}
     >
       <ConciliacionPanel key={`${elegida?.id}-${hasta ?? ""}`} cuentas={ctx.conciliacion.datos} actual={actual.datos} hoy={hoy} />

@@ -82,6 +82,7 @@ export function PantallaDinero({
   cuentas,
   deuda,
   hoy,
+  inicio = null,
   fallas,
   children,
 }: {
@@ -97,6 +98,8 @@ export function PantallaDinero({
   /** Lo que CAYLA le debe al dueño (tope de una devolución). */
   deuda: number;
   hoy: string;
+  /** Desde cuándo cuenta Finanzas (ADR-0332): piso de la fecha de un movimiento; `null` si la base no lo tiene. */
+  inicio?: string | null;
   fallas: string[];
   children: ReactNode;
 }) {
@@ -159,6 +162,7 @@ export function PantallaDinero({
           ubicacionId={ver.ubicacionId}
           deuda={deuda}
           hoy={hoy}
+          inicio={inicio}
           onCerrar={() => setModal(null)}
         />
       )}
@@ -817,6 +821,7 @@ function RegistrarMovimientoModal({
   ubicacionId,
   deuda,
   hoy,
+  inicio,
   onCerrar,
 }: {
   inicial: QuePaso;
@@ -825,6 +830,7 @@ function RegistrarMovimientoModal({
   ubicacionId: string | null;
   deuda: number;
   hoy: string;
+  inicio: string | null;
   onCerrar: () => void;
 }) {
   const router = useRouter();
@@ -863,7 +869,7 @@ function RegistrarMovimientoModal({
   }
 
   async function guardar() {
-    const v = validarMovimiento(b, { cuentas, egresos, deuda, hoy });
+    const v = validarMovimiento(b, { cuentas, egresos, deuda, hoy, inicio });
     if (!v.ok) return avisar.error(v.error);
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
@@ -874,11 +880,22 @@ function RegistrarMovimientoModal({
     setGuardando(false);
     responsable.despues(error);
     if (error) return avisar.error(traducirError(error, "registrar el movimiento"));
+    // El pago de la planilla y el pago a SUNAT son de la empresa, sin tienda (ADR-0417), y la lista de una tienda no los
+    // muestra (`fn_movimientos_dinero` filtra por sede). Registrado mirando una tienda, la pantalla pasa a CAYLA entera,
+    // donde sí aparece: si no, el saldo del banco bajaba y el pago no estaba en ninguna lista (/chaos 2026-10-16).
+    const deLaEmpresa = (v.valor.p_tipo === "pago_planilla" || v.valor.p_tipo === "pago_sunat") && ubicacionId !== null;
     avisar.exito(`${TEXTO_MOVIMIENTO[v.valor.p_tipo]} registrado`, {
-      detalle: v.valor.p_caja_id ? "Su salida quedó en la caja, con el mismo monto." : v.valor.p_comision > 0 ? "La comisión quedó como gasto bancario de la empresa." : undefined,
+      detalle: v.valor.p_caja_id
+        ? "Su salida quedó en la caja, con el mismo monto."
+        : v.valor.p_comision > 0
+          ? "La comisión quedó como gasto bancario de la empresa."
+          : deLaEmpresa
+            ? "Es de la empresa: te mostramos CAYLA entera, donde aparece en la lista."
+            : undefined,
     });
     onCerrar();
-    router.refresh();
+    if (deLaEmpresa) router.push("/finanzas/dinero?ver=todas");
+    else router.refresh();
   }
 
   const conSaldo = (c: CuentaDinero) => (c.saldo === null ? c.nombre : `${c.nombre} · ${solesRedondo(c.saldo)}`);
@@ -997,7 +1014,7 @@ function RegistrarMovimientoModal({
       {!esCajon && (
         <div className="fin-dos-campos" data-sin-cascada data-guia="fin-dinero.mov-fecha">
           <CampoFin etiqueta="Fecha" htmlFor="mov-fecha">
-            <InputFin id="mov-fecha" type="date" max={hoy} value={b.fecha} onChange={(e) => cambiar({ fecha: e.target.value })} />
+            <InputFin id="mov-fecha" type="date" min={inicio ?? undefined} max={hoy} value={b.fecha} onChange={(e) => cambiar({ fecha: e.target.value })} />
           </CampoFin>
           {tipo === "abono_tarjeta" && (
             <CampoFin etiqueta="Comisión del POS" htmlFor="mov-comision" ayuda="Queda como gasto bancario (639) de la empresa.">

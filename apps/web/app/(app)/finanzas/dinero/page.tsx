@@ -7,6 +7,7 @@ import { alcanzaPulso, debesPulso, tienesPulso } from "@/lib/dinero-pulso-reglas
 import { getProyeccion } from "@/lib/flujo-caja";
 import { getPorPagarConsolidado } from "@/lib/por-pagar-consolidado";
 import { verDeLaVista } from "@/lib/vista-global";
+import { getParametrosFinanzas } from "@/lib/configuracion";
 
 // Finanzas ▸ Cuentas y dinero ▸ Cuentas (ADR-0195 F3). Lee en el servidor y deja a una pieza cliente operar. `?ver=` (solo el
 // líder) elige qué sede mirar: por defecto la sede donde trabaja, o «todas» (ahí aparecen la plata del dueño y a qué
@@ -17,12 +18,13 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
   const hoy = hoyLima();
   const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, sp.ver));
   // Camino A: arriba, «tienes», «¿me alcanza?» (el flujo de 6 semanas, solo el líder) y «¿qué debes?» (Por pagar de lo que se mira).
-  const [movimientos, medios, sinCuenta, proyeccion, porPagar] = await Promise.all([
+  const [movimientos, medios, sinCuenta, proyeccion, porPagar, parametros] = await Promise.all([
     getMovimientos(ctx.ver.ubicacionId),
     ctx.esLider ? getMediosDeCobro() : Promise.resolve({ datos: [], falla: null }),
     ctx.esLider && !ctx.ver.ubicacionId ? getSinCuenta() : Promise.resolve([]),
     ctx.esLider ? getProyeccion(6) : Promise.resolve({ datos: null, falla: null }),
     getPorPagarConsolidado(ctx.ver),
+    getParametrosFinanzas(),
   ]);
   const tienes = tienesPulso(ctx.cuentas.datos, ctx.ver.ubicacionId);
 
@@ -36,6 +38,7 @@ export default async function CuentasDineroPage({ searchParams }: { searchParams
       cuentas={ctx.cuentas.datos}
       deuda={ctx.deuda}
       hoy={hoy}
+      inicio={parametros?.inicioFinanzas ?? null}
       fallas={[ctx.cuentas.falla, movimientos.falla, medios.falla, porPagar.falla].filter((f): f is string => !!f)}
     >
       <DineroPulso

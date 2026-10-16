@@ -3,6 +3,7 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { getCierresConDiferencia, getContextoDinero, getEfectivo, pendientesDeConciliar } from "@/lib/cuentas-dinero";
 import { EfectivoPanel, PantallaDinero } from "@/components/finanzas/CuentasDinero";
 import { verDeLaVista } from "@/lib/vista-global";
+import { getParametrosFinanzas } from "@/lib/configuracion";
 
 // Finanzas ▸ Cuentas y dinero ▸ Efectivo por tienda (ADR-0195 F3, pieza 5): lo que debería haber en cada cajón ahora. La
 // cuenta es la MISMA del cierre de caja (`fn_calcular_esperado_caja`, ADR-0186) y con el mismo candado: el monto esperado
@@ -12,7 +13,7 @@ export default async function EfectivoPorTiendaPage({ searchParams }: { searchPa
   const sp = await searchParams;
   const hoy = hoyLima();
   const ctx = await getContextoDinero(persona, verDeLaVista(persona.vista, sp.ver));
-  const [efectivo, cierres] = await Promise.all([getEfectivo(ctx.ver.ubicacionId), getCierresConDiferencia(ctx.ver.ubicacionId)]);
+  const [efectivo, cierres, parametros] = await Promise.all([getEfectivo(ctx.ver.ubicacionId), getCierresConDiferencia(ctx.ver.ubicacionId), getParametrosFinanzas()]);
 
   return (
     <PantallaDinero
@@ -24,6 +25,7 @@ export default async function EfectivoPorTiendaPage({ searchParams }: { searchPa
       cuentas={ctx.cuentas.datos}
       deuda={ctx.deuda}
       hoy={hoy}
+      inicio={parametros?.inicioFinanzas ?? null}
       fallas={[ctx.cuentas.falla, efectivo.falla].filter((f): f is string => !!f)}
     >
       <EfectivoPanel filas={efectivo.datos} cierres={cierres} hoy={hoy} />

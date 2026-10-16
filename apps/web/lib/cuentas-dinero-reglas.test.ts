@@ -173,6 +173,19 @@ describe("el formulario «Registrar movimiento»", () => {
     expect(OPCIONES_QUE_PASO.filter((o) => o.valor === "pago_planilla" || o.valor === "pago_sunat").every((o) => o.soloLider && o.destino === null)).toBe(true);
   });
 
+  it("un movimiento anterior al inicio de Finanzas no entra (ADR-0332; /chaos 2026-10-16: un pago de planilla de 1900 se guardaba)", () => {
+    const planilla = { ...base, que: "pago_planilla" as const, origen: "bcp", destino: "", monto: "25,400", fecha: "2026-08-15" };
+    expect(validarMovimiento(planilla, { ...ctx, inicio: "2026-10-01" })).toEqual({
+      ok: false,
+      error: "Finanzas cuenta desde el 01/10/2026: un movimiento anterior no entraría a ningún reporte. Si lo pagaste ahora, ponle la fecha del pago.",
+    });
+    // El mismo día del inicio sí entra; y sin fecha de inicio (la base no la tiene todavía) no hay piso.
+    expect(validarMovimiento({ ...planilla, fecha: "2026-10-01" }, { ...ctx, hoy: "2026-10-16", inicio: "2026-10-01" })).toMatchObject({ ok: true, valor: { p_fecha: "2026-10-01" } });
+    expect(validarMovimiento(planilla, { ...ctx, inicio: null })).toMatchObject({ ok: true, valor: { p_fecha: "2026-08-15" } });
+    // Del cajón la fecha la pone la base (es hoy): el piso no mira la del formulario.
+    expect(validarMovimiento({ ...base, fecha: "1900-01-01" }, { ...ctx, inicio: "2026-10-01" })).toMatchObject({ ok: true, valor: { p_fecha: null } });
+  });
+
   it("depósito del cajón con la caja abierta: sale de esa caja (su egreso lo crea la base), sin fecha (es hoy)", () => {
     expect(validarMovimiento(base, ctx)).toEqual({
       ok: true,
