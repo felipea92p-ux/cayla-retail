@@ -14,14 +14,14 @@
       "Link «Completar»"
     ],
     "components/CambiarEstadoProductosHoja.tsx": [
-      "ComboResponsable «{textos.nota}»",
+      "ComboResponsable «{responsable}»",
       "button «Volver»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
     "components/EliminarProductoModal.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
-      "BotonEditar «)»",
+      "BotonEditar «{`/productos/${producto.productoId}»",
       "Boton «Desactivar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -69,7 +69,7 @@
       "LapizEditar «{referencia}»",
       "Link «{`Ver ${referencia}»",
       "Link «{`Historial de ${referencia}»",
-      "BotonEditar «)»",
+      "BotonEditar «{acciones.editar}»",
       "Link «Ver en Existencias»",
       "Link «Historial»",
       "button «Eliminar»",

@@ -17,8 +17,8 @@ import {
 
 const HOY = { anio: 2026, mes: 10, dia: 16 };
 const SIN_REVISAR: ConsultaDocumento = { estado: "sin_revisar" };
-const ENCONTRADO: ConsultaDocumento = { estado: "encontrado", aMedias: "María P. S.", delClub: false };
-const LIBRE: ConsultaDocumento = { estado: "libre", delClub: false };
+const ENCONTRADO: ConsultaDocumento = { estado: "encontrado", aMedias: "María P. S." };
+const LIBRE: ConsultaDocumento = { estado: "libre" };
 const SIN_PEDIR: CodigoDelCorreo = { estado: "sin_pedir" };
 /** Un DNI completo (el nombre todavía no se sabe: sale del padrón). */
 const CON_DNI: Registro = { ...REGISTRO_VACIO, documento: "45871236" };
@@ -35,8 +35,8 @@ describe("el nombre de la tarjeta del Club mientras se crea la cuenta", () => {
 
   it("con DNI, sin el padrón (no lo encontró, no respondió, repetido) no hay nombre", () => {
     for (const consulta of [
-      { estado: "sin_nombre", motivo: "no_encontrado", delClub: false },
-      { estado: "sin_nombre", motivo: "sin_padron", delClub: true },
+      { estado: "sin_nombre", motivo: "no_encontrado" },
+      { estado: "sin_nombre", motivo: "sin_padron" },
       { estado: "repetido" },
       { estado: "archivada" },
       LIBRE,

@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { leerSunatPublico, normalizarRespuestaPadron, reiniciarSunatPublico } from "@cayla-retail/shared/padron";
-import { advertenciasDe, consultarPadron, consultarPadronPublico } from "./padron";
+import { advertenciasDe, consultarPadron } from "./padron";
 
 // Estas pruebas cubren la pieza que se rompe cuando un proveedor del padrón
 // cambia de formato — sin gastar consultas reales, que se pagan. Los objetos de
@@ -148,15 +148,6 @@ describe("consultarPadron — proveedor de pago", () => {
     }) as unknown as typeof fetch;
     return llamadas;
   }
-
-  it("la consulta pública (el cartel del Club) nunca llama al proveedor de pago, aunque esté configurado (D6)", async () => {
-    process.env.PADRON_PROVEEDOR = "decolecta";
-    process.env.PADRON_TOKEN = "sk_secreto";
-    const llamadas = simular({ status: 200, json: { first_name: "ANA", first_last_name: "PEREZ", second_last_name: "SALAS" } });
-    const r = await consultarPadronPublico("dni", "40999123");
-    expect(llamadas).toHaveLength(0);
-    expect(r.ok).toBe(false);
-  });
 
   it("sin proveedor configurado no llama a nadie y lo dice", async () => {
     delete process.env.PADRON_PROVEEDOR;

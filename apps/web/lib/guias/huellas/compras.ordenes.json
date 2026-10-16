@@ -25,7 +25,7 @@
     ],
     "components/fondos/FotoDelGasto.tsx": [
       "button «{abriendo ? \"Abriendo…\" : \"Ver foto\"}»",
-      "input «);»"
+      "input «(sin nombre)»"
     ],
     "components/fondos/RendirFondo.tsx": [
       "button «Volver a intentar»",
@@ -50,12 +50,12 @@
       "CampoTexto «Serie y número»",
       "CampoTexto «RUC de quien te lo dio»",
       "button «{`Quitar ${o.numero}»",
-      "ComboBuscable «) : disponibles !== null && ordenes.length === 0 ? (»",
+      "ComboBuscable «{paraAgregar}»",
       "Boton «→() => setAgregando(true)»",
       "SegmentoDeslizante «Cómo pagaste»",
       "CampoSelect «Cómo pagaste»",
       "CampoTexto «{concepto === \"otro\" ? \"¿Qué se pagó?\" : \"Nota\"}»",
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ]

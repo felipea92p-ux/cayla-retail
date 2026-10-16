@@ -5,7 +5,7 @@
   "total": 9,
   "controles": {
     "app/(app)/productos/[id]/historial/page.tsx": [
-      "Volver «Historial»"
+      "Volver «{vueltaAProductos(desde)}»"
     ],
     "components/ficha-producto/RecordatorioEtiquetas.tsx": [
       "BotonImprimir «Imprimir etiquetas»",

@@ -78,24 +78,25 @@ export async function consultarCorreo(correo: unknown): Promise<ConsultaCorreo> 
 }
 
 /**
- * Con el documento completo: si ya tiene cuenta, si su ficha está archivada, si ya era del Club y, con DNI, su nombre del padrón A
- * MEDIAS («María P. G.»). Nunca el nombre completo. Con DNI, si el padrón no lo encuentra o no responde, no se puede crear la cuenta:
- * el nombre no se escribe a mano (Felipe 2026-10-15), y la página ofrece «Volver a intentar». Con carné de extranjería o pasaporte
- * (Felipe 2026-10-15, «como en las tiendas») no hay padrón: el nombre se escribe tal cual está en el documento.
+ * Con el documento completo: si ya tiene cuenta, si su ficha está archivada y, con DNI, su nombre del padrón A MEDIAS («María P. G.»).
+ * Nunca el nombre completo, ni si el documento ya es de alguien del Club (todos se registran igual, Felipe 2026-10-16). Con DNI, si el
+ * padrón no lo encuentra o no responde, no se puede crear la cuenta: el nombre no se escribe a mano (Felipe 2026-10-15), y la página
+ * ofrece «Volver a intentar». Con carné de extranjería o pasaporte (Felipe 2026-10-15, «como en las tiendas») no hay padrón: el nombre
+ * se escribe tal cual está en el documento.
  */
 export async function consultarDocumento(tipo: unknown, numero: unknown): Promise<ConsultaDocumento> {
   if (!esTipoDocumentoClienta(tipo) || typeof numero !== "string" || !documentoCompleto(tipo, numero)) return { estado: "sin_revisar" };
   const h = await huellas({ tipo, numero });
-  const sinRespuesta: ConsultaDocumento = { estado: "sin_nombre", motivo: "sin_padron", delClub: false };
+  const sinRespuesta: ConsultaDocumento = { estado: "sin_nombre", motivo: "sin_padron" };
   if (!h?.documento) return sinRespuesta;
   const enBase = await consultarDocumentoEnBase(tipo, numero, h.ip, h.documento);
   if (enBase.estado === "repetido" || enBase.estado === "archivada") return { estado: enBase.estado };
-  if (enBase.estado === "limite") return { estado: "sin_nombre", motivo: "limite", delClub: false };
+  if (enBase.estado === "limite") return { estado: "sin_nombre", motivo: "limite" };
   if (enBase.estado !== "libre") return sinRespuesta;
-  if (tipo !== "dni") return { estado: "libre", delClub: enBase.delClub };
+  if (tipo !== "dni") return { estado: "libre" };
   const padron = await buscarNombre(numero);
-  if (padron.estado === "encontrado") return { estado: "encontrado", aMedias: padron.aMedias, delClub: enBase.delClub };
-  return { estado: "sin_nombre", motivo: padron.estado, delClub: enBase.delClub };
+  if (padron.estado === "encontrado") return { estado: "encontrado", aMedias: padron.aMedias };
+  return { estado: "sin_nombre", motivo: padron.estado };
 }
 
 /* ------------------------------------------------------------------ El código, bajo el correo (Felipe 2026-10-15) */
@@ -367,7 +368,7 @@ export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
     if (e.campo === "avisos") return { ...e, casilla: await leerCasillaDeAvisos() };
     return e;
   }
-  const aviso = registro.ok ? avisoAlCrear(registro.seUnioASuFicha, registro.avisos) : "bienvenida";
+  const aviso = registro.ok ? avisoAlCrear(registro.seUnioASuFicha, registro.eraDelClub, registro.avisos) : "bienvenida";
   await borrarConfirmacion();
 
   // 8. Entrar. Si el proyecto de clientes no contesta justo ahora, la cuenta igual quedó: que entre con su correo.

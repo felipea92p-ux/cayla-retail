@@ -21,7 +21,8 @@
  *   5. `tienda_registrar_cuenta`: SIN el código confirmado de ese correo y ese usuario, no hay cuenta (`cuenta_sin_codigo`);
  *      sin «Soy mayor de 18 años», tampoco. Con un DNI nuevo crea la ficha (origen web, socia con código, celular normalizado,
  *      cumpleaños como el Club, sin persona) y la cuenta, se lleva el pendiente y anota la actividad sin datos suyos; con una
- *      ficha que existe se une a ella sin pisar lo que tiene; con los avisos por WhatsApp anota el permiso de publicidad del
+ *      ficha que existe y no tiene cuenta se une a ella sin pisar lo que tiene, tenga o no correo, y entra al Club ahí (el Club
+ *      empieza con la cuenta, 20261016154000); con los avisos por WhatsApp anota el permiso de publicidad del
  *      Club con origen web (y no si su ficha tiene otro celular, o si el texto de la casilla cambió); y rechaza con su hint
  *      —sin escribir NADA— un correo o un DNI repetidos, el mismo usuario dos veces, una ficha archivada, un menor de 18, un
  *      cumpleaños imposible, un celular que no es, sin aceptar los términos o sin nombre.
@@ -99,7 +100,8 @@ const correoNuevo = (que = "c") => `zz.${que}.${CORRIDA}.${++n}@ejemplo.com`;
 const DNI = { nuevo: "09990001", caja: "09990002", socia: "09990003", archivada: "09990004", vacia: "09990005", otro: "09990006", segundo: "09990007" };
 /**
  * Lo que la tienda anota en la ficha con la persona delante (Clientes ▸ ficha ▸ Editar): el correo con el que va a crear su cuenta.
- * Desde 20261015230000 (D7) una ficha que ya existía solo se une a una cuenta con ESE correo.
+ * Entre 20261015230000 (D7) y 20261016154000 una ficha que ya existía solo se unía a una cuenta con ESE correo; desde entonces se
+ * une igual sin él, y los casos que lo anotan prueban que la ficha conserva lo que ya tenía.
  */
 const correoEnLaFicha = (ficha, r) => `update retail.clientas set correo = '${r.d.correo}' where id = :'${ficha}';`;
 const TEXTOS = "borrador-2026-10-14";
@@ -651,20 +653,53 @@ function main() {
     "Dora Sin Datos|999888777|29/2/-",
   );
 
-  console.log("— Una ficha que ya existía: solo con el correo que ya tenía (20261015230000, D7) —");
-  for (const [caso, preparar] of [
-    ["sin correo en la ficha", ""],
-    ["con OTRO correo en la ficha", "update retail.clientas set correo = 'zz.la.duena@ejemplo.com' where id = :'caja';"],
-  ]) {
-    const rAjena = registrar({ dni: DNI.caja, nombre: "Ana María Prueba Caja", celular: "912345678" });
+  console.log("— Una ficha que ya existía y no tiene cuenta: por el mismo registro (20261016154000, el Club empieza con la cuenta) —");
+  {
+    const rSinCorreo = registrar({ dni: DNI.caja, nombre: "Ana María Prueba Caja", celular: "912345678", dia: 20, mes: 1, anio: 1990 });
     esperarValor(
-      `ficha de caja ${caso}: rechaza (cuenta_ficha_sin_tu_correo) y no escribe nada — ni cuenta, ni celular, ni correo, ni club`,
+      "ficha de caja SIN correo (la de una boleta, de antes de la página): se une sin pedirle nada más; anota su correo, no pisa su celular ni su cumpleaños, entra al Club ahora y su origen sigue «caja»",
       correr(`${PREPARAR}
-        ${preparar}
-        select ${RECUENTO} || '|' || (select coalesce(correo, '-') || ':' || telefono_whatsapp || ':' || (club_desde is null)::text from retail.clientas where id = :'caja') as antes \\gset
-        select pg_temp.intento($q$${rAjena.sql}$q$) || '#' || ((${RECUENTO} || '|' || (select coalesce(correo, '-') || ':' || telefono_whatsapp || ':' || (club_desde is null)::text from retail.clientas where id = :'caja')) = :'antes')::text;
+        select (${rSinCorreo.expr}) as r \\gset
+        select (:'r'::jsonb ->> 'se_unio_a_su_ficha') || '|' || (:'r'::jsonb ->> 'era_del_club');
+        select (c.correo = '${rSinCorreo.d.correo}')::text || '|' || c.telefono_whatsapp || '|' || c.cumple_dia || '/' || c.cumple_mes || '|' ||
+               (c.club_desde = now())::text || '|' || (c.codigo_club = :'r'::jsonb ->> 'codigo_club')::text || '|' || c.registro_origen || '|' ||
+               (select count(*) from retail.cuentas_web w where w.clienta_id = c.id)
+          from retail.clientas c where c.id = :'caja';
         rollback;`),
-      "P0001|cuenta_ficha_sin_tu_correo|correo#true",
+      "true|false\ntrue|987000111|3/4|true|true|caja|1",
+    );
+    const rOtroCorreo = registrar({ dni: DNI.caja, nombre: "Ana María Prueba Caja" });
+    esperarValor(
+      "ficha de caja con OTRO correo anotado: se une igual; la ficha conserva su correo de contacto y la cuenta entra con el que confirmó",
+      correr(`${PREPARAR}
+        update retail.clientas set correo = 'zz.la.duena@ejemplo.com' where id = :'caja';
+        select (${rOtroCorreo.expr}) ->> 'se_unio_a_su_ficha';
+        select c.correo || '|' || (select w.correo from retail.cuentas_web w where w.clienta_id = c.id) from retail.clientas c where c.id = :'caja';
+        rollback;`),
+      `true\nzz.la.duena@ejemplo.com|${rOtroCorreo.d.correo}`,
+    );
+    const rDelCartel = registrar({ dni: DNI.socia, nombre: "Bea Socia Antigua", padron: false, celular: "999111222", dia: 1, mes: 1 });
+    esperarValor(
+      "del Club por el cartel, sin cuenta ni correo: se une y no se le quita nada (su fecha del Club, su código y su celular)",
+      correr(`${PREPARAR}
+        select (${rDelCartel.expr}) as r \\gset
+        select (:'r'::jsonb ->> 'se_unio_a_su_ficha') || '|' || (:'r'::jsonb ->> 'era_del_club') || '|' || (:'r'::jsonb ->> 'codigo_club' = :'codigo_socia')::text;
+        select (c.club_desde < now() - interval '399 days')::text || '|' || (c.codigo_club = :'codigo_socia')::text || '|' || c.telefono_whatsapp || '|' ||
+               c.cumple_dia || '/' || c.cumple_mes
+          from retail.clientas c where c.id = :'socia';
+        rollback;`),
+      "true|true|true\ntrue|true|987000222|9/9",
+    );
+    const rPrimera = registrar({ dni: DNI.caja, nombre: "Ana María Prueba Caja" });
+    const rSegunda = registrar({ dni: DNI.caja, nombre: "Otra Persona" });
+    esperarValor(
+      "la ficha ya tiene cuenta: el mismo documento con otro correo sigue rechazándose (cuenta_dni_repetido) sin escribir nada",
+      correr(`${PREPARAR}
+        ${callado(rPrimera.expr)}
+        select ${RECUENTO} as antes \\gset
+        select pg_temp.intento($q$${rSegunda.sql}$q$) || '#' || (${RECUENTO} = :'antes')::text;
+        rollback;`),
+      "P0001|cuenta_dni_repetido|dni#true",
     );
   }
 

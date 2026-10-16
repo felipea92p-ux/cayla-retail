@@ -10,7 +10,7 @@
     "components/AbrirCajaFormV2.tsx": [
       "input «0.00»",
       "input «Ej.: se usó para vuelto antes de abrir»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»",
       "Boton «{responsable.motivo ?? undefined}» #2",
@@ -54,7 +54,7 @@
       "CampoTexto «{destinoElegido.referencia}»",
       "button «Volver y dejar»",
       "button «Cerrar igual»",
-      "ComboResponsable «setPaso(\"contar\")»",
+      "ComboResponsable «{responsable}»",
       "Volver «→() => setPaso(\"contar\")»",
       "Boton «{responsable.motivo ?? invalido ?? undefined}»"
     ],
@@ -65,7 +65,7 @@
       "button «{NOMBRE_METODO[m]}»",
       "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
       "CampoTexto «Qué pasó»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -91,7 +91,7 @@
       "CampoTexto «Serie y número»",
       "button «Usa el formulario completo»",
       "button «Retiro o depósito»",
-      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -99,7 +99,7 @@
       "button «{`${titulo}»"
     ],
     "components/HistorialCierresModal.tsx": [
-      "Volver «Historial de cierres»",
+      "Volver «→volver»",
       "button «Historial de cierres»",
       "button «Reintentar»",
       "button «{f.valor === \"falto\" ? \"caja.historial-falto\" : undefined}»",
@@ -115,17 +115,17 @@
       "Link «Apartados»",
       "Link «Vender»",
       "button «Retiro o depósito»",
-      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/MovimientoCajaModal.tsx": [
       "button «{TEXTO_TIPO[t]}»",
       "input «0.00»",
-      "Desplegable «(sin nombre)»",
+      "Desplegable «{motivoRapido}»",
       "input «Describe el motivo»",
       "input «N° de operación, voucher, u otra nota»",
-      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»"
     ],
@@ -133,7 +133,7 @@
       "button «¿No está? Súmalo»",
       "button «Cancelar»",
       "button «Sumar proveedor»",
-      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar» #2",
       "Boton «→guardar»"
     ],

@@ -9,13 +9,13 @@
       "button «{o.texto}»",
       "CampoTexto «{guia.etiqueta(\"nota\", ayudaNota.etiqueta)}»",
       "BotonDescargar «Descargar reporte del ajuste»",
-      "ComboResponsable «{error && ( <Aviso tono=\"error\">{error}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/ApartadosModal.tsx": [
       "CampoSelect «¿Por qué se libera?»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Volver»",
       "Boton «{responsable.motivo ?? undefined}»",
       "a «{a.contacto}»",
@@ -62,7 +62,7 @@
       "FiltroPuesto «{`Volver a las tarjetas (ahora: ${vistaDistinta}»",
       "BotonLimpiar «Limpiar todo»",
       "button «existencias.escanear»",
-      "BotonFiltros «{alLadoDeFiltros}»",
+      "BotonFiltros «→alTocarFiltros»",
       "BotonLimpiar «Limpiar filtros»",
       "BotonCopiar «el enlace de esta lista»",
       "button «Limpiar»",
@@ -89,7 +89,7 @@
       "button «existencias.escanear-celular»"
     ],
     "components/ResolverDanadosModal.tsx": [
-      "ComboResponsable «)»",
+      "ComboResponsable «{responsable}»",
       "CampoTexto «Nota (opcional)»",
       "Boton «{responsable.motivo ?? \"Vuelve al almacén de la tienda\"}»",
       "Boton «{responsable.motivo ?? `Vuelve a ${p.devolucion.proveedor}»",
@@ -147,12 +147,12 @@
       "input «Celular»",
       "button «Abrir Ajustar stock»",
       "button «Reportar dañada»",
-      "textarea «)»",
+      "textarea «flujo-nota»",
       "button «{x}»",
       "textarea «O escríbelo aquí»",
-      "ComboResponsable «);»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
-      "Volver «)»",
+      "Volver «→atras»",
       "Boton «{completo ? undefined : (guia.frase ?? responsable.motivo ?? undefined)}»"
     ],
     "components/existencias/PanelTalla.tsx": [
@@ -175,9 +175,9 @@
       "Link «{contenido}»",
       "button «{contenido}»",
       "button «Ver cuáles»",
-      "Boton «)»",
+      "Boton «(sin nombre)»",
       "button «→() => setAbiertoMovil((v) => !v)»",
-      "BotonVerMas «)»"
+      "BotonVerMas «{`Ver ${guardadas.length}»"
     ],
     "components/existencias/PieTarjeta.tsx": [
       "button «existencias.colgar»",

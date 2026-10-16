@@ -11,16 +11,16 @@
     "components/vitrina/LookHoja.tsx": [
       "CampoTexto «{guia.etiqueta(\"nombre\", \"Nombre del look\")}»",
       "textarea «Frase del look»",
-      "Desplegable «) : (»",
+      "Desplegable «{p.color}»",
       "button «{`Quitar ${nombrePrenda}»",
-      "ComboBuscable «)»",
+      "ComboBuscable «→agregar»",
       "CampoSelect «Lugar en «Arma tu look»»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/vitrina/LookMostrarHoja.tsx": [
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? impide ?? undefined}»"
     ],
@@ -30,7 +30,7 @@
       "button «{`Mostrar el look ${l.nombre}»"
     ],
     "components/vitrina/VitrinaPestanas.tsx": [
-      "Pestanas «);»"
+      "Pestanas «(sin nombre)»"
     ]
   }
 }

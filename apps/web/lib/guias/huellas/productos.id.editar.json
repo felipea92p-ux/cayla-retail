@@ -5,14 +5,14 @@
   "total": 142,
   "controles": {
     "app/(app)/productos/[id]/editar/page.tsx": [
-      "Volver «(sin nombre)»"
+      "Volver «{volverA}»"
     ],
     "components/AjustarInventarioModal.tsx": [
       "CampoSelect «{guia.etiqueta(\"motivo\", \"¿Por qué ajustas?\")}»",
       "button «{o.texto}»",
       "CampoTexto «{guia.etiqueta(\"nota\", ayudaNota.etiqueta)}»",
       "BotonDescargar «Descargar reporte del ajuste»",
-      "ComboResponsable «{error && ( <Aviso tono=\"error\">{error}»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»"
     ],
@@ -22,25 +22,25 @@
       "Boton «Revisar y guardar»"
     ],
     "components/ConfirmarCambios.tsx": [
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Volver «→cerrar»",
       "Boton «Confirmar y guardar»",
       "Casilla «{`Igualar ${t.sede}»"
     ],
     "components/ProductoForm.tsx": [
-      "BotonDeshacer «);»",
+      "BotonDeshacer «→() => deshacerCampo(campo)»",
       "CampoTexto «Referencia»",
-      "ComboBuscable «(sin nombre)»",
+      "ComboBuscable «{categoriaId}»",
       "CampoTexto «Descripción (opcional)»",
-      "ComboBuscable «(sin nombre)» #2",
-      "ComboBuscable «(sin nombre)» #3",
+      "ComboBuscable «{tejidoId}»",
+      "ComboBuscable «{patronId}»",
       "CampoTexto «Stock mínimo (opcional)»",
       "CampoSelect «Temporada (opcional)»",
       "button «Temporada por color»",
-      "CampoSelect «);»",
-      "BotonDeshacer «))»",
-      "BotonDeshacer «);» #2",
-      "BotonDeshacer «);» #3",
+      "CampoSelect «{temporadaColor[codigo] ?? SIN_PROPIA}»",
+      "BotonDeshacer «→() => deshacerCorreccion(c.claves, c.destino)»",
+      "BotonDeshacer «→() => setFilas((actual) => devolverColor(actual, c))»",
+      "BotonDeshacer «→() => setFilas((actual) => devolverTalla(actual, t))»",
       "button «editar.agregar-color»",
       "button «editar.agregar-talla»",
       "button «Ir a»"
@@ -70,21 +70,21 @@
     ],
     "components/alta-producto/ElegirColores.tsx": [
       "button «{`Quitar ${c.nombre}»",
-      "ComboBuscable «setCarta((v) => !v)»",
+      "ComboBuscable «(sin nombre)»",
       "button «{carta ? \"Ocultar la carta\" : `Ver los ${colores.length}»",
       "Boton «{enLinea ? undefined : \"Crear un color necesita internet\"}»",
       "button «{c.nombre}»"
     ],
     "components/alta-producto/ElegirMarcaProveedor.tsx": [
       "button «Quitar»",
-      "ComboBuscable «Proveedor»",
+      "ComboBuscable «buscar-marca»",
       "button «Quitar» #2",
-      "ComboBuscable «(sin nombre)»",
+      "ComboBuscable «buscar-proveedor»",
       "button «+ Registrar una marca o un proveedor nuevo»"
     ],
     "components/alta-producto/FotosAlta.tsx": [
       "button «{etiqueta}»",
-      "input «input.current?.click()»",
+      "input «(sin nombre)»",
       "button «{etiqueta}» #2"
     ],
     "components/alta-producto/GrillaMuestras.tsx": [
@@ -92,24 +92,24 @@
       "button «Ver todos»"
     ],
     "components/alta-producto/IdentidadAlta.tsx": [
-      "ComboResponsable «);»",
+      "ComboResponsable «{control}»",
       "button «Ir a elegir»"
     ],
     "components/alta-producto/NuevaMarcaForm.tsx": [
       "button «Cambiar»",
-      "ComboBuscable «)»",
+      "ComboBuscable «nm-marca»",
       "button «+ Proveedor nuevo»",
       "button «Cambiar» #2",
       "CampoTexto «Razón social»",
       "CampoTexto «11 dígitos»",
       "button «Mejor elijo uno que ya existe»",
-      "ComboBuscable «)» #2",
+      "ComboBuscable «nm-prov»",
       "button «Cancelar»",
       "Boton «{firma.motivo ?? guia.frase ?? undefined}»"
     ],
     "components/alta-producto/NuevoColorAlta.tsx": [
       "CampoTexto «Nombre del color»",
-      "Desplegable «setCodigoEscrito(normaliz»",
+      "Desplegable «{familia}»",
       "CampoTexto «Código»",
       "Boton «{(!enLinea || mismoNombre ? bloqueo : firma.motivo) ?? undefined}»",
       "button «Cancelar»",
@@ -124,7 +124,7 @@
     ],
     "components/ficha-producto/CambiarEnBloque.tsx": [
       "SegmentoDeslizante «Qué cambiar»",
-      "Desplegable «(sin nombre)»",
+      "Desplegable «{alcanceVigente}»",
       "input «{campo === \"precio\" ? \"Nuevo precio\" : \"Nuevo costo\"}»",
       "button «Aplicar»"
     ],
@@ -133,13 +133,13 @@
       "button «Quitar de todas»"
     ],
     "components/ficha-producto/FotosPorColor.tsx": [
-      "Desplegable «onFotos(sinLaFoto(fotos, f.clientKey))»",
+      "Desplegable «{opcionesPasar(f.colorCodigo)}»",
       "button «Quitar»",
       "button «{`Ver o cambiar las fotos de ${titulo}»",
       "button «Principal»",
       "button «Quitar» #2",
       "button «Ponerla primera»",
-      "Desplegable «)»",
+      "Desplegable «{opcionesPasar}»",
       "button «Listo»"
     ],
     "components/ficha-producto/ImprimirLoQueEntro.tsx": [
@@ -161,7 +161,7 @@
       "button «{`${nombreElegida}»",
       "input «{`${campo === \"precio\" ? \"Precio\" : \"Costo\"}»",
       "CampoTexto «{<ConMarca estado={notaSuficiente(stock.motivo, stock.nota) ? \"hecho\" : \"falta\"}»",
-      "ComboResponsable «(sin nombre)»"
+      "ComboResponsable «{stock.responsable}»"
     ],
     "components/ficha-producto/PanelDelTaller.tsx": [
       "button «{propia ? \"Cambiar foto\" : \"+ Agregar foto\"}»",
@@ -175,11 +175,11 @@
       "CampoSelect «Tienda»",
       "CampoTexto «Precio (S/)»",
       "CampoTexto «Por qué esta tienda tiene otro precio»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}»",
       "CampoTexto «Por qué (opcional)»",
-      "ComboResponsable «(sin nombre)» #2",
+      "ComboResponsable «{responsable}» #2",
       "Boton «Cancelar» #2",
       "Boton «{responsable.motivo ?? guia.frase ?? undefined}» #2"
     ],
@@ -197,7 +197,7 @@
       "button «{hecho ? \"✓\" : numero}»"
     ],
     "components/ficha-producto/piezas.tsx": [
-      "ComboBuscable «);»",
+      "ComboBuscable «{id}»",
       "input «0.00»",
       "input «0.00» #2",
       "button «Cancelar»",

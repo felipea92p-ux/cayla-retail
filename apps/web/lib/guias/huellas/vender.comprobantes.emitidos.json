@@ -18,16 +18,16 @@
       "DesplegablePildora «Estado»",
       "BotonPuntos «{`${ETIQUETA_TIPO[c.tipo]}»",
       "CampoTexto «Motivo»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{responsable.motivo ?? undefined}»",
       "CampoTexto «Motivo» #2",
-      "ComboResponsable «Cancelar» #2",
+      "ComboResponsable «{responsable}» #2",
       "Boton «Cancelar» #2",
       "Boton «{responsable.motivo ?? undefined}» #2"
     ],
     "components/ConfirmarTransmision.tsx": [
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "button «Cancelar»",
       "button «{responsable.motivo ?? undefined}»"
     ],
@@ -35,7 +35,7 @@
       "button «{NOMBRE_METODO[m]}»",
       "CampoTexto «{`Cuánto con ${NOMBRE_METODO[m]}»",
       "CampoTexto «Qué pasó»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -46,7 +46,7 @@
       "BotonImprimir «Imprimir»"
     ],
     "components/FacturacionPestanas.tsx": [
-      "Pestanas «);»"
+      "Pestanas «(sin nombre)»"
     ],
     "components/FacturacionShell.tsx": [
       "Link «comprobantes.aviso-sunat»"

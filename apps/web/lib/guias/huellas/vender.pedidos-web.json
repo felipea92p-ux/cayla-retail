@@ -7,7 +7,7 @@
     "components/pedidos-web/AnularPagoHoja.tsx": [
       "BotonVer «Ir a Caja»",
       "SegmentoDeslizante «Por qué se anula el pago»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
@@ -16,23 +16,23 @@
       "BotonVer «{irPorLaBoleta.texto}»",
       "Boton «Revisar de nuevo»",
       "SegmentoDeslizante «Por qué se anula el pedido»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/pedidos-web/EnviarPedidoWebHoja.tsx": [
       "CampoFecha «{guia.etiqueta(\"llega\", \"¿Cuándo llega?\")}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ],
     "components/pedidos-web/PedidoWebHoja.tsx": [
-      "ComboResponsable «Al confirmar, cada prenda queda reservada para el cliente (p»",
+      "ComboResponsable «{responsable}»",
       "Boton «No se puede confirmar»",
       "Boton «{guia.frase ?? undefined}»",
       "BotonAncla «Escribirle por WhatsApp»",
       "SegmentoDeslizante «Por qué no se confirma»",
-      "ComboResponsable «El stock no cambia: nada se había reservado. El cliente ve s»",
+      "ComboResponsable «{responsable}» #2",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}» #2",
       "BotonAncla «Escribirle por WhatsApp» #2",
@@ -41,23 +41,23 @@
       "BotonAncla «WhatsApp»",
       "Boton «pedido-web.pagar»",
       "button «(sin nombre)»",
-      "ComboResponsable «Llegó lo que faltaba: queda separada para el cliente y deja»",
+      "ComboResponsable «{responsable}» #3",
       "Boton «Cancelar» #2",
       "Boton «{guia.frase ?? undefined}» #3",
       "SegmentoDeslizante «Por qué se anula»",
-      "ComboResponsable «setModo(\"revisar\")»",
+      "ComboResponsable «{responsable}» #4",
       "Boton «Cancelar» #3",
       "Boton «{guia.frase ?? undefined}» #4",
       "BotonAncla «Escribirle por WhatsApp» #3",
       "BotonAncla «WhatsApp» #2",
       "CampoTexto «{guia.etiqueta(\"codigo\", \"Código para recoger\")}»",
-      "ComboResponsable «Al entregar, sus prendas salen del stock. La boleta ya salió»",
+      "ComboResponsable «{responsable}» #5",
       "BotonAncla «WhatsApp» #3",
       "Boton «{guia.frase ?? undefined}» #5",
       "BotonAncla «Escribirle por WhatsApp» #4",
       "BotonAncla «WhatsApp» #4",
       "Boton «pedido-web.anular-pagado»",
-      "BotonDeshacer «) : aqui ? (»",
+      "BotonDeshacer «→() => onDecision(decisionDeFabrica(l, tiendaId))»",
       "button «(sin nombre)» #2",
       "SegmentoDeslizante «{`Qué hacer con ${l.referencia}»",
       "button «{f.etiqueta}»",
@@ -67,7 +67,7 @@
       "Boton «{anulado ? \"Devolver\" : \"Anular pago\"}»"
     ],
     "components/pedidos-web/PedidosWebPantalla.tsx": [
-      "Pestanas «(sin nombre)»",
+      "Pestanas «→(c) => cambiarPestana(c as PestanaPedidos)»",
       "button «{primera ? \"pedidos-web.abrir\" : undefined}»",
       "Boton «{i === 0 ? \"pedidos-web.enviar\" : undefined}»"
     ],
@@ -77,7 +77,7 @@
       "BotonVer «Ir a Caja»",
       "BotonVer «Ir a Caja» #2",
       "CampoTexto «{guia.etiqueta(\"operacion\", \"N.º de operación\")}»",
-      "ComboResponsable «(sin nombre)»",
+      "ComboResponsable «{responsable}»",
       "Boton «Cancelar»",
       "Boton «{guia.frase ?? undefined}»"
     ]

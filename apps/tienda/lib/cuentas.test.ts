@@ -54,7 +54,7 @@ import type { CodigoDelCorreo } from "./correo-confirmado";
 const HOY = { anio: 2026, mes: 10, dia: 14 };
 /** Lo que la persona lee en «Falta: …», en orden. */
 const nombresDe = (faltan: readonly (readonly [unknown, string])[]) => faltan.map(([, nombre]) => nombre);
-const ENCONTRADO: ConsultaDocumento = { estado: "encontrado", aMedias: "María P. S.", delClub: false };
+const ENCONTRADO: ConsultaDocumento = { estado: "encontrado", aMedias: "María P. S." };
 /** El correo de LISTO, confirmado con su código (bajo el correo, Felipe 2026-10-15). */
 const CONFIRMADO: CodigoDelCorreo = { estado: "confirmado", correo: "maria.perez@gmail.com" };
 const SIN_PEDIR: CodigoDelCorreo = { estado: "sin_pedir" };
@@ -195,7 +195,7 @@ describe("el DNI y el nombre", () => {
 
   it("sin el nombre del padrón no hay cuenta: el DNI queda en «Revisa» y dice por qué (Felipe 2026-10-15: el nombre no se escribe)", () => {
     for (const motivo of ["no_encontrado", "sin_padron", "limite"] as const) {
-      expect(estadoDocumento("dni", "45871236", { estado: "sin_nombre", motivo, delClub: false })).toBe("mal");
+      expect(estadoDocumento("dni", "45871236", { estado: "sin_nombre", motivo })).toBe("mal");
     }
     expect(mensajeSinNombre("no_encontrado")).toBe(MENSAJES.dniNoEncontrado);
     expect(mensajeSinNombre("sin_padron")).toBe(MENSAJES.dniSinPadron);
@@ -225,7 +225,7 @@ describe("el DNI y el nombre", () => {
 
 describe("carné de extranjería y pasaporte (Felipe 2026-10-15: «como en las tiendas»)", () => {
   const CARNE: Registro = { ...LISTO, documentoTipo: "carne_extranjeria", documento: "001234567", nombres: "Ana Lucía", apellidos: "Torres Ruiz" };
-  const LIBRE: ConsultaDocumento = { estado: "libre", delClub: false };
+  const LIBRE: ConsultaDocumento = { estado: "libre" };
 
   it("el número sigue las MISMAS reglas que la caja: de 6 a 12 letras o números; la base dice si está libre", () => {
     expect(estadoDocumento("pasaporte", "AB123", { estado: "sin_revisar" })).toBe("falta");
@@ -233,8 +233,10 @@ describe("carné de extranjería y pasaporte (Felipe 2026-10-15: «como en las t
     expect(estadoDocumento("pasaporte", "AB1234", LIBRE)).toBe("ok");
     expect(estadoDocumento("carne_extranjeria", "001234567", { estado: "repetido" })).toBe("repetido");
     expect(estadoDocumento("carne_extranjeria", "001234567", { estado: "archivada" })).toBe("mal");
-    expect(documentoRepetido("pasaporte")).toBe("Ya hay una cuenta con este pasaporte.");
-    expect(documentoRepetido("carne_extranjeria")).toBe("Ya hay una cuenta con este carné de extranjería.");
+    // Y qué hacer si no la creó la persona (desde 20261016154000 quien escribe un documento sin cuenta la crea).
+    expect(documentoRepetido("pasaporte")).toBe(`Ya hay una cuenta con este pasaporte. ${MENSAJES.cuentaNoEsTuya}`);
+    expect(documentoRepetido("carne_extranjeria")).toBe(`Ya hay una cuenta con este carné de extranjería. ${MENSAJES.cuentaNoEsTuya}`);
+    expect(documentoRepetido("dni")).toBe(`${MENSAJES.dniRepetido} ${MENSAJES.cuentaNoEsTuya}`);
   });
 
   it("la sugerencia del número sigue al tipo elegido (y vuelve con él)", () => {
@@ -272,7 +274,10 @@ describe("carné de extranjería y pasaporte (Felipe 2026-10-15: «como en las t
 
   it("lo que rechaza la base del nombre escrito va a sus cajas; un documento repetido dice cuál", () => {
     expect(errorDeRegistro("nombre_con_numeros", "nombre", "pasaporte")).toEqual({ campo: "nombres", mensaje: MENSAJES.nombreConNumeros });
-    expect(errorDeRegistro("cuenta_dni_repetido", "dni", "pasaporte")).toEqual({ campo: "documento", mensaje: "Ya hay una cuenta con este pasaporte." });
+    expect(errorDeRegistro("cuenta_dni_repetido", "dni", "pasaporte")).toEqual({
+      campo: "documento",
+      mensaje: `Ya hay una cuenta con este pasaporte. ${MENSAJES.cuentaNoEsTuya}`,
+    });
   });
 });
 
@@ -318,7 +323,7 @@ describe("la guía del registro", () => {
   it("un correo repetido, un menor de 18 o un DNI sin el nombre del padrón aparecen en «Falta»", () => {
     const e = estadoRegistro(
       { ...LISTO, cumple: { d: "1", m: "1", a: "2015" } },
-      { correo: "repetido", documento: { estado: "sin_nombre", motivo: "no_encontrado", delClub: false }, codigo: CONFIRMADO },
+      { correo: "repetido", documento: { estado: "sin_nombre", motivo: "no_encontrado" }, codigo: CONFIRMADO },
       HOY,
     );
     expect(faltanRegistro(e).map(([campo]) => campo)).toEqual(["correo", "documento", "cumple"]);
@@ -413,9 +418,10 @@ describe("lo que el servidor vuelve a revisar", () => {
 
   it("lo que rechaza la base, en palabras y con su campo", () => {
     expect(errorDeRegistro("cuenta_correo_repetido", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.correoRepetido });
-    expect(errorDeRegistro("cuenta_dni_repetido", "dni")).toEqual({ campo: "documento", mensaje: MENSAJES.dniRepetido });
+    expect(errorDeRegistro("cuenta_dni_repetido", "dni")).toEqual({ campo: "documento", mensaje: documentoRepetido("dni") });
     expect(errorDeRegistro("cuenta_archivada", "dni")).toEqual({ campo: "documento", mensaje: MENSAJES.dniArchivada });
-    expect(errorDeRegistro("cuenta_ficha_sin_tu_correo", "correo")).toEqual({ campo: "correo", mensaje: MENSAJES.fichaSinTuCorreo });
+    // La regla D7 (el correo de la ficha) ya no existe desde 20261016154000: su rechazo, si llegara, es «no pudimos ahora».
+    expect(errorDeRegistro("cuenta_ficha_sin_tu_correo", "correo")).toEqual({ campo: null, mensaje: MENSAJES.noDisponible });
     expect(errorDeRegistro("cuenta_menor", "cumple")).toEqual({ campo: "cumple", mensaje: MENSAJES.cumpleMenor });
     expect(errorDeRegistro("cuenta_datos_invalidos", "celular").campo).toBe("cel");
     expect(errorDeRegistro("cuenta_datos_invalidos", "mayor")).toEqual({ campo: "mayor", mensaje: MENSAJES.mayorFalta });
@@ -517,11 +523,13 @@ describe("los avisos del Club por WhatsApp", () => {
     expect(leerCasillaWhatsapp({ version: 3, texto: "Acepto los avisos de la tienda {tienda}." })).toBeNull();
   });
 
-  it("después de crear la cuenta: bienvenida o unida, y si los avisos quedaron sin activar por otro celular, lo dice «Mi cuenta»", () => {
-    expect(avisoAlCrear(false, "no")).toBe("bienvenida");
-    expect(avisoAlCrear(false, "activados")).toBe("bienvenida");
-    expect(avisoAlCrear(true, "ya_estaban")).toBe("unida");
-    expect(avisoAlCrear(true, "celular_distinto")).toBe("avisos-sin-activar");
+  it("después de crear la cuenta: «ya eras del Club» solo para quien ya era miembro; la ficha de una boleta, la bienvenida de una persona nueva; y si los avisos quedaron sin activar por otro celular, lo dice «Mi cuenta»", () => {
+    expect(avisoAlCrear(false, false, "no")).toBe("bienvenida");
+    expect(avisoAlCrear(false, false, "activados")).toBe("bienvenida");
+    expect(avisoAlCrear(true, false, "no")).toBe("bienvenida");
+    expect(avisoAlCrear(true, true, "ya_estaban")).toBe("unida");
+    expect(avisoAlCrear(true, true, "celular_distinto")).toBe("avisos-sin-activar");
+    expect(avisoAlCrear(true, false, "celular_distinto")).toBe("avisos-sin-activar");
   });
 });
 
