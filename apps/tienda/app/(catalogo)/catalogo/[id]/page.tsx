@@ -113,6 +113,7 @@ export default async function FichaDePrenda(props: Props) {
             chips={chips}
             cambios={textoCambios(plazos)}
             esperas={guardados ? [...guardados.esperas.keys()] : []}
+            esperasIds={guardados ? Object.fromEntries(guardados.esperas) : {}}
             enLaBolsa={enLaBolsa}
             separadas={[...separadas]}
           >

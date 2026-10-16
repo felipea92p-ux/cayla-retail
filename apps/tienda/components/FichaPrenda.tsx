@@ -48,6 +48,7 @@ export function FichaPrenda({
   chips = [],
   cambios,
   esperas = [],
+  esperasIds = {},
   enLaBolsa = 0,
   separadas = [],
   children,
@@ -64,6 +65,9 @@ export function FichaPrenda({
   cambios: string;
   /** Lo que la cuenta ya pidió con «Avísame» (`claveEspera`: prenda y tienda). */
   esperas?: readonly string[];
+  /** El id de cada una de esas esperas (por su misma clave): con él, «Te avisaremos ×» la quita desde la ficha, aunque se haya pedido
+   *  en otra visita (sin el id, solo se podía quitar desde «Mi cuenta»). */
+  esperasIds?: Readonly<Record<string, string>>;
   /** Cuántas prendas lleva la bolsa (la cookie): «Ver mi bolsa (N)». */
   enLaBolsa?: number;
   /** Las tallas cuyo resto en la tienda elegida ya separaron otros clientes (propuesta k; solo con una tienda elegida). */
@@ -136,7 +140,16 @@ export function FichaPrenda({
             sedeId={sedeElegida}
             sedeNombre={tiendaElegida?.nombre ?? null}
             pedido={anotadas.has(clave) || (boton.tipo === "avisame" && anotadas.has(claveEspera(boton.varianteId, null)))}
+            esperaId={esperasIds[clave] ?? esperasIds[claveEspera(boton.varianteId, null)] ?? null}
             alAnotar={() => setAnotadas((antes) => new Set(antes).add(clave))}
+            alQuitar={() =>
+              setAnotadas((antes) => {
+                const quedan = new Set(antes);
+                quedan.delete(clave);
+                quedan.delete(claveEspera(boton.varianteId, null));
+                return quedan;
+              })
+            }
           />
         ) : (
           <AgregarALaBolsa
