@@ -1043,7 +1043,9 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   prenda, que viaja como `descuento_unitario` por línea; «cobrar» = desde ADR-0307 la
   `punto-de-venta/HojaDeCobro.tsx` entra sobre el catálogo (en el celular, dentro de la hoja del
   ticket): seis medios con QR solo si `page.tsx` lee `fn_acepta_pago_qr` = true, billetes sugeridos
-  (`montosSugeridos`), comprobante sin valor por defecto y el documento (`DocumentoDelComprobante`);
+  (`montosSugeridos`), «¿Con qué máquina?» para la tarjeta o el QR solo donde la tienda tiene dos (ADR-0429: `fn_pos_maquinas_de_sede`,
+  `maquinasPara`/`pagoNuevo` de `lib/vender-reglas.ts`; lo marcado viaja como `cuenta_id`), comprobante sin valor por defecto y el
+  documento (`DocumentoDelComprobante`);
   su botón envía el formulario del ticket (`form="ticket-pos"`) y vive FUERA del cuerpo que scrollea (la hoja se compacta sola por su
   alto, ADR-0307 act. 2026-10-05), Confirmar cobro → RPC `registrar_venta`,
   que emite el comprobante en la misma transacción y, desde ADR-0048, rechaza precios
@@ -1692,6 +1694,17 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
     `fn_por_pagar_consolidado`. Tablas `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, `conciliaciones`,
     `dinero_revisados`. La cuenta sellada (F3b): `cuenta_dinero_id` en los pagos de venta, separación, cambio,
     devolución, traslado de caja y compra, llenada por disparador (cobros) o elegida con la cuenta propuesta (pagos).
+  - **Las máquinas de cobro y la comisión real (ADR-0429, 2026-10-16; decisión 3 del ADR-0417):** tablas `pos_maquinas` (Izipay,
+    Vendemás, cada una con su cuenta «por depositar» 1 a 1), `pos_maquinas_sedes`, `pos_tarifas` (con vigencia), `pos_abonos_lotes`
+    (qué días cubrió cada depósito) y `cobros_resellados` (el rastro de la corrección del histórico). El destino por defecto sigue en
+    `medios_de_cobro` (ahora con `qr`); el sello (`fn_cuenta_sellada`) valida la máquina elegida con `fn_pos_cuenta_sirve_en_sede`.
+    Vender: `vender/page.tsx` lee `fn_pos_maquinas_de_sede` → `PuntoDeVenta` (`pagoNuevo`, `cuentaPorDefecto` de `lib/vender-reglas.ts`)
+    → `HojaDeCobro` pregunta «¿Con qué máquina?» donde hay dos → `p_pagos[].cuenta_id` → `registrar_venta`. Cuentas y dinero: el
+    «Depósito de la máquina» del modal de movimientos lee `fn_pos_pendientes` y llama `registrar_abono_pos` (`validarAbonoPos`,
+    `resumenAbono`); el aviso de atraso sale de `fn_pos_alertas` (`avisosDeMaquinas`). Configuración ▸ Cuentas y cobros: la tarjeta
+    «Máquinas de cobro» (`fn_pos_maquinas`) y `TarifaMaquinaModal.tsx` → `guardar_pos_tarifa`. Migraciones `20261016173000` (con
+    `fn_pos_sembrar_maquinas_en_tiendas`, que también llama `seed.sql`), `182000`, `190000`, `191000` y la de datos `193000`
+    (`fn_resellar_cobros_a_maquinas`, solo desde una migración).
   - Configuración ▸ Cuentas y cobros ▸ «Editar» (`components/finanzas/EditarCuentaModal.tsx`, `lib/cuenta-editar-reglas.ts`;
     migración `20260925210100`) → `fn_cuenta_dinero_detalle` (qué se puede cambiar y quién la usa, leído de las llaves
     foráneas con `fn_usos_cuenta_dinero`), `editar_cuenta_dinero`, `eliminar_cuenta_dinero` (borra solo una cuenta que
