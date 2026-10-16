@@ -11,7 +11,7 @@
       "button «Sacar plata»",
       "Link «Cambiar en Configuración»",
       "button «fin-dinero.decir-cuenta»",
-      "ComboResponsable «{actual.cuenta.nombre}»",
+      "ComboResponsable «{responsable}»",
       "button «(sin nombre)»",
       "button «revisada»",
       "button «Revisada»",
@@ -20,17 +20,17 @@
       "button «{fechaCorta(h.fecha, true)}»",
       "button «Conciliar»",
       "Casilla «{`${textoLote(l)}»",
-      "ComboResponsable «Cancelar»",
+      "ComboResponsable «{responsable}» #2",
       "button «Cancelar»",
       "Boton «Registrar»",
       "button «Anular…»",
-      "ComboResponsable «Volver»",
+      "ComboResponsable «{responsable}» #3",
       "button «Volver»",
       "Boton «{accion}»"
     ],
     "components/finanzas/PagosSinCuenta.tsx": [
       "Boton «Guardar»",
-      "ComboResponsable «);»"
+      "ComboResponsable «{responsable}»"
     ]
   }
 }

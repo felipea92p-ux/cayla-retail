@@ -1,7 +1,7 @@
 ## 🛡️ Antes de abrir la tienda online a cualquiera (2026-10-15, ADR-0426) — rama `claude/tienda-ficha-solo-con-prueba`, PR #1124
 
-- [x] B1 · Una cuenta web se une a una ficha existente solo con el correo que la ficha ya tenía (20261015230000, en producción).
-- [x] B2 · El cartel del Club no escribe en una ficha que ya existía: lo pide en caja (20261015232000, en producción).
+- [x] B1 · Una cuenta web se une a una ficha existente solo con el correo que la ficha ya tenía (20261015230000, en producción). **Reemplazada el 2026-10-16** (Felipe: el Club empieza al crear la cuenta; una ficha sin cuenta se une por el mismo registro, `20261016154000`, ADR-0426 «Actualización 2026-10-16»).
+- [x] B2 · El cartel del Club no escribe en una ficha que ya existía: lo pide en caja (20261015232000, en producción). **Sin objeto desde el 2026-10-16:** el cartel ya no inscribe, lleva a tienda.cayla.pe (ADR-0288 act. p).
 - [x] B3 · Freno común de las puertas públicas por conexión, documento y día; DNI solo por SUNAT gratis (20261016000000, en producción).
 - [x] B4 · Pedidos web: lo confirmado sin ningún pago se anula solo a las horas de «Si no paga»; 3 separaciones abiertas y 2 por prenda;
       la bolsa pregunta por 2 como máximo; pagos digitales solo el líder; «Cómo separar» dice el plazo para pagar (20261016001000, en producción).

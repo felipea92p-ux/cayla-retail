@@ -110,8 +110,6 @@
 .w-res-error::before { content: "!"; flex: none; width: 16px; height: 16px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; background: var(--rojo-profundo); color: var(--crema); font-size: 10.5px; font-weight: 800; line-height: 1; }
 .w-res-aviso { color: var(--ambar); font-weight: 600; font-size: 12.5px; }
 .w-res-acc { display: flex; gap: 16px; flex-wrap: wrap; }
-.w-club { display: inline-flex; gap: 6px; align-items: center; width: fit-content; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--hueso); }
-.w-club img { width: 16px; height: auto; }
 .w-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.5; cursor: pointer; }
 /* Una casilla se lee en letra normal (maqueta: `.w-campo > label.w-check`); el título de un campo, en seminegrita. */
 .w-campo > label.w-check { font-weight: 400; justify-content: flex-start; align-items: flex-start; }

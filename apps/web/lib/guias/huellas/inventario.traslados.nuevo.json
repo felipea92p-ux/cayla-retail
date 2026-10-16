@@ -9,13 +9,13 @@
     ],
     "components/MoverMercaderiaFormV2.tsx": [
       "CampoSelect «Hacia»",
-      "input «(sin nombre)»",
-      "input «Prendas que envías»",
-      "Desplegable «actualizarLinea(i,»",
+      "input «mover-eta»",
+      "input «mover-nota»",
+      "Desplegable «{idLinea(i)}»",
       "input «Cantidad»",
       "button «Quitar»",
       "Boton «+ Agregar otra prenda»",
-      "ComboResponsable «{intento.incierto && <AvisoIntentoIncierto onRevisar={revisar}»",
+      "ComboResponsable «{responsable}»",
       "Boton «nuevo-traslado.enviar»"
     ],
     "components/TrasladoEnviado.tsx": [

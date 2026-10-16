@@ -12,9 +12,11 @@ const AVISOS: Record<string, string> = {
   salir: "Saliste de tu cuenta.",
   // Cómo se confirma el Club al terminar de crear la cuenta (Felipe 2026-10-15), igual que al unirse en el cartel de la tienda.
   bienvenida: "¡Listo! Te damos la bienvenida al Club CAYLA.",
-  unida: "Listo: tu cuenta quedó unida a tu ficha del Club CAYLA.",
-  // Los avisos por WhatsApp no se activaron (su ficha tiene otro celular): «Mi cuenta» lo explica en una nota que se queda.
-  "avisos-sin-activar": "Listo: tu cuenta quedó unida a tu ficha del Club CAYLA.",
+  // Solo quien ya era miembro (se unió en el cartel antes de que existiera la página): sin la palabra «ficha», que nadie conoce
+  // (Felipe 2026-10-16). Quien solo tenía una ficha de caja recibe la bienvenida de arriba.
+  unida: "¡Listo! Ya eras del Club CAYLA: tu código y tus beneficios ya están en tu cuenta.",
+  // Los avisos por WhatsApp no se activaron (en la tienda tiene anotado otro celular): «Mi cuenta» lo explica en una nota que se queda.
+  "avisos-sin-activar": "¡Listo! Tu cuenta del Club CAYLA quedó creada.",
   clave: "Listo: cambiaste tu contraseña.",
   "clave-igual": MENSAJES.claveIgual,
   "cuenta-creada": "Tu cuenta quedó creada. Entra con tu correo y tu contraseña.",

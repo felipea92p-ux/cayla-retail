@@ -33,6 +33,7 @@ import {
   tipoDeMovimiento,
   tiposParaMedio,
   validarMovimiento,
+  OPCIONES_QUE_PASO,
   type BorradorMovimiento,
   type ConciliacionCuenta,
   type CuentaDinero,
@@ -202,6 +203,19 @@ describe("el formulario «Registrar movimiento»", () => {
   const egresos: EgresoParaMovimiento[] = [{ id: "e1", cajaId: "caja-tru", monto: 300, motivo: "Depósito bancario", nota: "Voucher 7788", creadoEn: "2026-09-23T15:00:00Z", marca: null }];
   const base: BorradorMovimiento = { que: "deposito", clase: "aporte", origen: "cTRU", destino: "bcp", monto: "1,500", referencia: " Voucher 1 ", comision: "", fecha: hoy, fuente: "caja", egresoId: "" };
   const ctx = { cuentas: TODAS, egresos, deuda: 6000, hoy };
+
+  it("pagar la planilla y pagar a SUNAT salen de un banco y no llegan a ninguna cuenta (ADR-0417, situaciones 15 y 16)", () => {
+    const r = validarMovimiento({ ...base, que: "pago_planilla", origen: "bcp", destino: "", monto: "25,400", referencia: "Planilla de octubre" }, ctx);
+    expect(r).toEqual({
+      ok: true,
+      valor: { p_tipo: "pago_planilla", p_monto: 25400, p_cuenta_origen_id: "bcp", p_cuenta_destino_id: null, p_fecha: hoy, p_referencia: "Planilla de octubre", p_comision: 0, p_caja_id: null, p_caja_movimiento_id: null },
+    });
+    expect(validarMovimiento({ ...base, que: "pago_sunat", origen: "bcp", destino: "", monto: "9,290" }, ctx)).toMatchObject({ ok: true, valor: { p_tipo: "pago_sunat", p_monto: 9290, p_cuenta_destino_id: null } });
+    // Desde el cajón o la caja fuerte no: solo un banco.
+    expect(validarMovimiento({ ...base, que: "pago_sunat", origen: "cTRU", destino: "" }, ctx)).toEqual({ ok: false, error: "Esa cuenta no sirve de origen para este movimiento." });
+    // Y son solo del líder.
+    expect(OPCIONES_QUE_PASO.filter((o) => o.valor === "pago_planilla" || o.valor === "pago_sunat").every((o) => o.soloLider && o.destino === null)).toBe(true);
+  });
 
   it("depósito del cajón con la caja abierta: sale de esa caja (su egreso lo crea la base), sin fecha (es hoy)", () => {
     expect(validarMovimiento(base, ctx)).toEqual({

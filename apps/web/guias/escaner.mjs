@@ -149,6 +149,19 @@ function nombreDe(abre, despues) {
     const expr = abre.match(new RegExp(`\\s${attr}=\\{([^}]{1,80})\\}`));
     if (expr) return `{${compacto(expr[1])}}`;
   }
+  // Una pieza que se cierra sola (`<BotonDeshacer onClick={…} />`) no tiene texto adentro: lo que sigue es otro código y no su nombre.
+  // Se nombra por lo que dice (`texto`), adónde lleva (`href`), qué dato muestra (`id`, `name`, `valor`, `control`…) o qué hace al
+  // tocarlo (`onClick`, `onValor`…) (ronda 16 de /unificar): un nombre que no depende del código de al lado.
+  if (/\/>$/.test(abre)) {
+    for (const attr of ["texto", "href", "id", "name", "valor", "value", "control", "items", "opciones"]) {
+      const lit = abre.match(new RegExp(`\\s${attr}="([^"]+)"`));
+      if (lit) return compacto(lit[1]);
+      const expr = abre.match(new RegExp(`\\s${attr}=\\{([^}]{1,80})\\}`));
+      if (expr) return `{${compacto(expr[1])}}`;
+    }
+    const alTocar = abre.match(/\s(?:onClick|onValor|onCambio|onCambiar|onChange|onElegir)=\{([^}]{1,60})\}/);
+    return alTocar ? `→${compacto(alTocar[1])}` : "(sin nombre)";
+  }
   // Texto literal de adentro (lo primero que no es una etiqueta ni una expresión).
   const texto = despues.match(/^\s*(?:<[^>]*>\s*)*([^<{}]{2,60})/);
   if (texto && compacto(texto[1])) return compacto(texto[1]);

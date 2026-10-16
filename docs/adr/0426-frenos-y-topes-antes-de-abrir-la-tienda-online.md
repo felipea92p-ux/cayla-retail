@@ -23,7 +23,7 @@ cambiados por quien solo conoce el documento. El principio 2 dice que eso se cor
 | D4 | Cada madrugada se libera solo lo vencido (con 2 días de gracia) en todas las tiendas, también los apartados simples de Existencias; no los pedidos entre tiendas ni los pedidos web | `fn_vencer_apartados_de_todas`, `/api/apartados/vencer` |
 | D5 | (reemplazada por la opción A de B2) | — |
 | D6 | La consulta de DNI de una página pública usa solo el servicio gratis de SUNAT, nunca el proveedor de pago; y tiene freno por día y por documento | `club_intento` (20261016000000), `consultarPadronPublico`, `lib/padron-servidor.ts` de la tienda |
-| D7 | Una cuenta web se une a una ficha que ya existía **solo** si el correo confirmado es el que la ficha ya tenía | `tienda_registrar_cuenta` (20261015230000) |
+| D7 | (reemplazada el 2026-10-16: una ficha sin cuenta se une por el mismo registro, sin pedir su correo; ver «Actualización 2026-10-16») | `tienda_registrar_cuenta` (20261016154000) |
 | D8 | Un pago por Yape, Plin o transferencia de un pedido web lo registra el líder hasta que exista una pasarela que lo confirme sola | `registrar_pago_pedido_web` (20261016001000) |
 | D9 | Un pedido web confirmado sin **ningún** pago se anula solo a las horas de «Si no paga» (de fábrica 48) y sus prendas vuelven; uno pagado y sin recoger solo avisa | `fn_anular_pedidos_web_sin_pagar`, el cierre de cada 15 min |
 | D10 | Captcha en las puertas públicas, apagado hasta que existan las llaves de Cloudflare Turnstile | **pendiente** (ver abajo) |
@@ -67,3 +67,26 @@ ya existía (ni datos, ni Club, ni permisos): lo pide en caja, donde ven a la pe
 `pnpm pruebas:tienda-bolsa` (32), `pnpm pruebas:pedidos-web-cobrar` (16), `pnpm pruebas:separaciones` (101), `pnpm pruebas:tienda-cuentas`,
 `pnpm pruebas:club-registro-cartel` (y `pnpm pruebas:sesion-no-es-equipo`, del PR #1122), y las suites que tocan esas funciones (todas en verde contra el
 Postgres local con las migraciones aplicadas). En producción, cada función quedó con el md5 de este repositorio.
+
+## Actualización 2026-10-16: el Club empieza al crear la cuenta (D7 reemplazada)
+
+Felipe intentó crear su cuenta y la tienda le dijo «Ya eres parte del Club con este documento. Para crear tu cuenta, pide en cualquier
+tienda CAYLA que anoten este correo en tu ficha»: su ficha del cartel tenía otro correo. En producción, ese día, 36 de las 42 fichas
+activas no tenían correo (35 de caja, abiertas con el DNI de una boleta, y 1 del cartel), porque se abrieron antes de que existiera la
+página. Felipe: «esas fichas son de antes de crear la página: los usuarios no saben que tienen cuenta»; «lo ideal sería que todos se
+registren en el sistema […] así tenga ficha»; «todo aquel que no tenga registrada su contraseña aún no es parte del club […] en ese
+momento que se crea la cuenta recién forma parte del club, no antes»; y «al escanear el cartel lleva al link tienda.cayla.pe».
+
+- **D7 se reemplaza:** una ficha que ya existía y no tiene cuenta se une a la cuenta de quien se registra con ese documento, por el mismo
+  registro que una persona nueva, completando solo lo vacío; entra al Club en ese momento si todavía no lo era (20261016154000). Lo demás
+  no cambia: una ficha con cuenta sigue en `cuenta_dni_repetido`, una archivada en `cuenta_archivada`, y el correo de OTRA ficha sigue sin
+  servir. La página no le dice a nadie si un documento ya es del Club.
+- **El riesgo, aceptado con la información a la vista:** quien sepa el documento de alguien sin cuenta puede crearla con su ficha (no ve
+  sus compras de antes: el año del Club se cuenta desde que entra). La red es «Restablecer acceso» en la ficha del ERP
+  (`restablecer_acceso_tienda_web`), y la tienda lo dice en «Ya hay una cuenta con este DNI. Si no la creaste tú, acércate a cualquier
+  tienda CAYLA y la recuperas».
+- **La opción A de B2 queda sin objeto:** el cartel ya no inscribe; su QR y la dirección de los carteles impresos llevan a la tienda
+  online (ADR-0288, «Actualización 2026-10-16 (p)»). Las 5 personas que el cartel inscribió (del 2 al 11 de octubre) siguen en el Club
+  como estaban.
+- Probado: `pnpm pruebas:tienda-cuentas` (los dos casos de D7 pasan a cuatro de la regla nueva) y el registro en el navegador contra un
+  banco propio (DNI nuevo, de boleta, del cartel y repetido; 375 px y computadora).
