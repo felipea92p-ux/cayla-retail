@@ -66,7 +66,6 @@
 .t-ancho { width: 100%; max-width: 1280px; margin-inline: auto; padding-inline: 16px; }
 .t-angosto { width: 100%; max-width: 620px; margin-inline: auto; }
 .t-anuncio { flex: none; height: 30px; display: grid; place-items: center; background: var(--t-oscuro); color: var(--t-oscuro-tinta); font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; overflow: hidden; padding-inline: 12px; text-align: center; white-space: nowrap; }
-.t-anuncio span { display: block; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .t-cab { flex: none; position: relative; z-index: 15; background: color-mix(in srgb, var(--crema) 95%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--sand); }
 .t-cab-fila { height: 56px; display: flex; align-items: center; gap: 2px; padding-inline: 10px 16px; max-width: 1360px; margin-inline: auto; }
 .t-logo { display: flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 6px; color: var(--tinta); }
@@ -141,7 +140,6 @@
 .t-tienda .ic { width: 18px; height: 18px; color: var(--taupe); }
 .t-pie { margin-top: 40px; background: var(--t-oscuro); color: var(--t-oscuro-tinta); padding-block: 36px 26px; }
 .t-pie-in { display: grid; gap: 26px; }
-.t-pie h4 { margin: 0 0 10px; font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--t-oscuro-suave); }
 .t-pie ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .t-pie li a { display: inline-block; border: 0; background: none; padding: 4px 0; font-size: 13.5px; color: var(--t-oscuro-tinta); text-align: left; }
 .t-pie li a:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -170,7 +168,6 @@
   .t-pie { margin-top: 64px; }
   .t-pie-in { grid-template-columns: 1.4fr repeat(3, 1fr); }
 }
-@keyframes anuncio { from { opacity: 0; transform: translateY(8px); } }
 @keyframes subirLinea { from { opacity: 0; transform: translateY(40%); } }
 @keyframes volar {
   0% { opacity: 0; transform: translate(-340px, 160px) rotate(-18deg) scale(.7); }
@@ -217,7 +214,6 @@ button, input, textarea { font: inherit; color: inherit; }
   .t-fecha-larga { display: inline; }
   .t-fecha-corta { display: none; }
 }
-.t-anuncio span.entra { animation: anuncio .6s var(--ease) both; }
 /* Revelar al bajar (si el navegador lo sabe hacer; si no, todo queda quieto y visible). */
 @supports (animation-timeline: view()) {
   .t-revela { animation: revela linear both; animation-timeline: view(); animation-range: entry 0% entry 55%; }
