@@ -165,6 +165,10 @@ export function FormularioEntrar() {
             <span className="w-res-error">{problema.mensaje}</span>
           </div>
         )}
+        {/* Bajo su caja y a la derecha, donde se busca (2026-10-16): antes iba debajo de «Entrar», en rojo, compitiendo con el botón. */}
+        <Link className="en-olvide" href="/olvide-mi-contrasena">
+          Olvidé mi contraseña
+        </Link>
       </div>
       {error && (
         <div className="w-res" id="entrar-error" role="alert">
@@ -184,12 +188,10 @@ export function FormularioEntrar() {
       <button className="t-btn t-btn-ancho" type="submit" disabled={enviando} aria-busy={enviando || undefined}>
         {enviando ? "Entrando…" : "Entrar"}
       </button>
-      <Link className="w-enlace" href="/olvide-mi-contrasena">
-        Olvidé mi contraseña
-      </Link>
-      {/* Quien llega sin cuenta (un enlace que le mandaron) ve el otro camino como un botón, no como un enlace perdido en una frase. */}
+      {/* Quien llega sin cuenta (un enlace que le mandaron) ve el otro camino como un botón, no como un enlace perdido en una frase. La
+          pregunta va en la raya que separa los dos caminos; lo que gana con el Club lo dice el panel de al lado (o de abajo). */}
       <div className="w-otro-camino">
-        <p className="w-texto-sec">¿Primera vez en CAYLA? Crea tu cuenta y forma parte del Club.</p>
+        <p className="w-texto-sec">¿Primera vez en CAYLA?</p>
         <Link className="t-btn t-btn-sec t-btn-ancho" href={hrefConVolver("/crear-cuenta", volver)}>
           Crear mi cuenta
         </Link>

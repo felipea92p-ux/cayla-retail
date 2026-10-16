@@ -42,3 +42,15 @@ export const enlaceWhatsapp = (numero: string) => `https://wa.me/51${numero}`;
  */
 export const enlaceMapa = (sede: Pick<Sede, "nombre" | "direccion">) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${sede.direccion}, ${sede.nombre}, Perú`)}`;
+
+/**
+ * Cuántas tarjetas van por fila en «Nuestras tiendas» desde la tablet, para que la sección quede pareja con cualquier cantidad de
+ * tiendas (revisión «a nivel mundial», 2026-10-16: con 2 tiendas en una grilla de 3 quedaba un tercio vacío): una sola ocupa todo el
+ * ancho (y su tarjeta se acomoda a lo ancho), dos y cuatro van de a dos, tres y desde cinco, de a tres. Solo presentación: qué tiendas
+ * salen lo decide la base (`tienda_sedes`).
+ */
+export function columnasDeTiendas(cuantas: number): 1 | 2 | 3 {
+  if (cuantas <= 1) return 1;
+  if (cuantas === 2 || cuantas === 4) return 2;
+  return 3;
+}

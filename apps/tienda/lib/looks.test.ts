@@ -11,6 +11,7 @@ import {
   interpretarLooks,
   lineasDelLook,
   looksDeATres,
+  otrosLooks,
   precioDelLook,
   precioDePieza,
   sinTallasPorAhora,
@@ -118,6 +119,13 @@ describe("lo que se dibuja", () => {
 
   it("la lista va de a tres solo si llena sus filas (sin un look solo al final con media pantalla vacía)", () => {
     expect([1, 2, 3, 4, 5, 6, 7, 8, 9].filter(looksDeATres)).toEqual([3, 6, 9]);
+  });
+
+  it("«Otros looks» bajo un look abierto: los demás en su orden, sin el que se ve, hasta tres", () => {
+    const de = (...ids: string[]) => ids.map((id) => ({ id }) as Look);
+    expect(otrosLooks(de("a", "b", "c"), "b").map((l) => l.id)).toEqual(["a", "c"]);
+    expect(otrosLooks(de("a", "b", "c", "d", "e"), "a").map((l) => l.id)).toEqual(["b", "c", "d"]);
+    expect(otrosLooks(de("a"), "a")).toEqual([]);
   });
 
   it("las direcciones llevan la tienda elegida, y la ficha de una prenda, su color", () => {

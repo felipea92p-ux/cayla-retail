@@ -342,3 +342,37 @@ más ordenado y entendible». Lo que quedó:
   cabecera ni la foto. `FormaDelEsqueleto` sube al aparecer, antes de pintar: solo sale al ir a otra página (cambiar la tienda o el
   color de una ficha no lo muestra, y «atrás» vuelve desde lo guardado, sin esqueleto, al mismo lugar de la lista). Medido a 375 y
   1280 px desde el Inicio, «Mi perfil» y la lista.
+
+## Actualización 2026-10-16 (h): la tienda a nivel de las grandes marcas, y rápida para cualquiera
+
+Felipe: «esta página debe ser competencia de grandes empresas mundiales y los clientes deben elegirla por encima de ellas» y, en la
+misma sesión, «necesito que el sistema sea rápido para cualquier usuario… ¿cuántos usuarios simultáneos podría soportar?». Se revisó
+cada pantalla desde antes de entrar (capturas a 375 y 1280, claro y oscuro, contra el banco de 64 prendas reales) en cuatro áreas a la
+vez, con un brief común de estilo y reglas. Lo estructural:
+
+- **La portada muestra fotos de prendas, sin precio** (Felipe 2026-10-16, cambia lo decidido el 2026-10-15): las de la campaña como
+  polaroids en el héroe (`CollageDePrendas`, la misma pieza del Inicio, con `conPrecio={false}`) y una vitrina «Mira lo que hay»
+  (`lib/vitrina-portada.ts`: solo con foto, sin repetir las del héroe, lo nuevo primero y la ropa antes que los accesorios). Nunca precio,
+  stock ni tienda: en su lugar «Ver precio», que lleva a crear la cuenta con `?volver=` a esa prenda. Bajo el héroe, una franja de lo que
+  la tienda ya cumple (separar sin pagar, recoger en tu tienda, WhatsApp, cambios en cualquier tienda); la tarjeta del Club, una sola vez,
+  con un sello del descuento de cumpleaños leído de `tienda_club_beneficios` (sin el dato, sin sello). La cabecera sin cuenta suma, en la
+  computadora, «Cómo separar», «Nuestras tiendas» y «Club CAYLA».
+- **Entrar, Crear cuenta, Olvidé, Nueva contraseña y Restablecer van en pantalla partida** desde 960 px (`PanelDeEntrada`, prefijo `en-`):
+  un panel de marca con los colores de la campaña, los beneficios y la tarjeta del Club, que en «Crear cuenta» lleva el nombre de la
+  persona apenas el formulario lo sabe (con DNI, el nombre a medias que ya muestra el formulario: el completo no llega al navegador porque
+  cualquiera puede escribir un DNI ajeno). En el celular, el formulario va primero.
+- **Comprar** (prefijo `cp-`): con «Destacado», las prendas con foto van primero (salvo Más vendidos, Tus favoritos y el orden por precio);
+  la ficha lleva sus tres promesas con los plazos reales de `tienda_ayuda` y zoom con el mouse; la bolsa vacía y las listas vacías ofrecen
+  favoritos y Lo nuevo; el sello «Nuevo» va claro (con casi todo el catálogo nuevo, el negro tapaba las fotos).
+- **Ayuda y confianza** (prefijo `ay-`): «Así se separa» es una sola pieza en la portada, el Inicio y «Cómo separar» (`LineaDePasos`); las
+  tiendas, con «WhatsApp» y «Cómo llegar» como botones y una grilla pareja con cualquier cantidad; los legales con índice fijo y SIN
+  cambiar una letra; páginas de error con salidas; el pie con una fila de ayuda.
+- **Rendimiento (medido en producción con `pg_stat_statements`).** (1) Lo que es igual para todos se comparte entre visitas
+  (`lib/compartido-servidor.ts`, `lecturaCompartida`): los looks y la ficha 30 s (`tienda_looks` tardaba 1,2–1,6 s porque arma el catálogo
+  por dentro, y se pedía en cada Inicio y en cada ficha), la campaña y las tiendas 60 s, los plazos y los beneficios del Club 300 s. Lo de
+  una persona nunca. (2) **El 404 raíz no lee la sesión:** al leer cookies hacía que Next armara TODAS las páginas en cada visita (todo
+  salía `ƒ`); ahora `/`, `/entrar`, `/crear-cuenta` y `/restablecer-acceso` salen estáticas (ISR) y Vercel las sirve desde su caché.
+  (3) El proxy revisa la sesión con `getClaims()` (la llave pública ES256 del proyecto de clientes), sin preguntarle al proyecto en cada
+  petición ni en cada precarga; lo que muestra datos de una cuenta sigue con `getUser()`. Estimación: 500–1.500 clientes navegando con
+  cuenta a la vez (el límite es la base Micro, 60 conexiones, compartida con las cajas y Dynamic); sin cuenta, sin límite práctico.
+  Felipe aprobó una prueba de carga en producción de noche, con las tiendas cerradas, después de publicar.

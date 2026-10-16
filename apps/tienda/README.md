@@ -98,6 +98,17 @@ seguridad «Email address changed» encendido con `correo-cambiado.html`, y `htt
 - Los estilos de la marca están en `app/globals.css` (tokens claro y oscuro, cabecera, pie). Los de cada tema van en su propia
   hoja, `app/estilos/<tema>.css`, importada desde su página o su layout.
 
+## Rápida para cualquiera (2026-10-16, ADR-0408 act. h)
+
+- **Lo que es igual para todos se comparte entre visitas** con `lecturaCompartida` (`lib/compartido-servidor.ts`): el catálogo, los looks
+  y la ficha 30 s; la campaña y las tiendas 60 s; los plazos y los beneficios del Club 300 s. Lo de una persona (su cuenta, sus favoritos,
+  su bolsa, sus pedidos) nunca: se lee en cada visita. Una lectura nueva de la base decide primero de cuál de los dos es.
+- **El 404 raíz (`app/not-found.tsx`) y el layout raíz nunca leen la sesión ni cookies:** en Next 16 son parte de toda ruta, y al leerlas
+  todas las páginas se armaban en cada visita. Así `/`, `/entrar` y `/crear-cuenta` salen estáticas (`○` en `next build`) y Vercel las
+  sirve desde su caché.
+- **El proxy revisa la sesión con `getClaims()`** (la firma ES256, sin llamar al proyecto de clientes); las páginas que muestran datos de
+  una cuenta la confirman con `getUser()` (`leerSesion`).
+
 ## Levantarla en local
 
 1. La base local del repo arriba (`npx supabase start`) con las migraciones de la tienda (`20261014220000…`, `20261014223000…`,

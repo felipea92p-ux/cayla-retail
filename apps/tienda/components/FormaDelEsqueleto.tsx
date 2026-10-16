@@ -96,7 +96,7 @@ function Ficha() {
           </div>
         </div>
         <div className="t-pdp-info">
-          <div>
+          <div className="cp-pdp-cab">
             <i className="t-esq-chip" />
             <i className="t-esq-titulo" />
             <i className="t-esq-titulo corto" />

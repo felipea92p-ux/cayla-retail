@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AsiSeSepara } from "@/components/AsiSeSepara";
 import { AvisoAlEntrar } from "@/components/AvisoAlEntrar";
 import { CarrilConFlechas } from "@/components/CarrilConFlechas";
+import { CollageDePrendas } from "@/components/CollageDePrendas";
 import { CuentaRegresiva } from "@/components/CuentaRegresiva";
 import { FotoTarjeta } from "@/components/FotoTarjeta";
 import { Icono } from "@/components/Icono";
@@ -24,10 +25,9 @@ import {
   hrefDePrenda,
   hrefLista,
   leerCampana,
-  precioTarjeta,
   type Prenda,
 } from "@/lib/catalogo";
-import { leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
+import { leerBeneficiosDelClub, leerMiCuentaEnBase } from "@/lib/cuentas-servidor";
 import { categoriasDelInicio, heroDelInicio, type Hero } from "@/lib/inicio";
 import { avisoAlEntrar } from "@/lib/inicio-aviso";
 import { avisosVistos, leerAvisosDelClub } from "@/lib/inicio-aviso-servidor";
@@ -66,11 +66,12 @@ export default async function Inicio({ searchParams }: Props) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
   const pedida = sedeDeLaUrl(sp.sede, sedes);
-  const [catalogo, { campana }, sesion, lecturaLooks] = await Promise.all([
+  const [catalogo, { campana }, sesion, lecturaLooks, beneficios] = await Promise.all([
     leerCatalogo(pedida?.id ?? null),
     leerPortada(),
     leerSesion(),
     leerLooks(pedida?.id ?? null),
+    leerBeneficiosDelClub(),
   ]);
   const [lectura, avisos, vistos] =
     sesion.estado === "con_sesion"
@@ -275,7 +276,7 @@ export default async function Inicio({ searchParams }: Props) {
       )}
 
       <AsiSeSepara conCuenta />
-      <SeccionClub nombre={cuenta?.nombre ?? null} desde={cuenta?.clubDesde ?? anioLima()} conCuenta />
+      <SeccionClub nombre={cuenta?.nombre ?? null} desde={cuenta?.clubDesde ?? anioLima()} conCuenta cumplePct={beneficios?.pct ?? null} />
       {sedes.length > 0 && (
         <NuestrasTiendas
           sedes={sedes}
@@ -363,36 +364,13 @@ function Heroe({
           </>
         )}
       </div>
-      {piezas.length > 0 && (
-        <div className="t-collage">
-          {piezas.map((p, i) => {
-            const foto = fotosDeTarjeta(p)[0];
-            return (
-              <Link key={p.id} className={`t-polaroid p${i + 1}`} href={hrefDePrenda(p, sede)} aria-label={`Ver ${p.nombre}`}>
-                <FotoTarjeta
-                  foto={foto}
-                  segunda={null}
-                  optimizar={[foto ? fotoOptimizable(foto, origenFotos) : false, false]}
-                  nombre={p.nombre}
-                  forma={formaDe(p.categoria?.prefijo)}
-                  color={colorDeDibujo(p)}
-                  tamanos="(min-width: 960px) 22vw, 45vw"
-                  pronto
-                />
-                <span className="t-polaroid-pie">
-                  <span>{p.nombre}</span>
-                  <span className="num">{precioTarjeta(p).principal}</span>
-                </span>
-              </Link>
-            );
-          })}
-          {hero.tipo === "campana" && (
-            <span className="t-hero-pct" aria-hidden="true">
-              −{pctTexto(hero.campana.pct)}%
-            </span>
-          )}
-        </div>
-      )}
+      <CollageDePrendas
+        piezas={piezas}
+        href={(p) => hrefDePrenda(p, sede)}
+        conPrecio
+        origenFotos={origenFotos}
+        marca={hero.tipo === "campana" ? `−${pctTexto(hero.campana.pct)}%` : null}
+      />
     </section>
   );
 }

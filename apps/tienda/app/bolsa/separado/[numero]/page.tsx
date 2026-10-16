@@ -70,8 +70,9 @@ export default async function Separado({ params }: { params: Promise<{ numero: s
               </span>
             </li>
             <li>
+              {/* «Coordinas … con la tienda» (como «Cómo separar»): «Coordinan el pago» no decía quién. */}
               <span>
-                Coordinan el pago y lo recoges<small>Por WhatsApp acuerdan cómo pagas, y lo recoges en {tienda}.</small>
+                Coordinas el pago y lo recoges<small>Por WhatsApp acuerdas con la tienda cómo pagas, y lo recoges en {tienda}.</small>
               </span>
             </li>
           </ol>

@@ -182,6 +182,9 @@ export const precioDelLook = (l: Pick<Look, "total" | "totalFinal" | "desde">): 
  *  como la maqueta. */
 export const looksDeATres = (cuantos: number): boolean => cuantos >= 3 && cuantos % 3 === 0;
 
+/** «Otros looks», bajo un look abierto (2026-10-16): los demás que se ven, en su orden, hasta `cuantos` (los de una fila de la computadora). */
+export const otrosLooks = (looks: readonly Look[], id: string, cuantos = 3): Look[] => looks.filter((l) => l.id !== id).slice(0, cuantos);
+
 /* ---------------- Direcciones ---------------- */
 
 const conSede = (ruta: string, sede: string | null) => (sede ? `${ruta}?sede=${encodeURIComponent(sede)}` : ruta);

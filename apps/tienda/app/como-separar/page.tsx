@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { EncabezadoAyuda } from "@/components/ayuda/EncabezadoAyuda";
+import { LineaDePasos } from "@/components/ayuda/LineaDePasos";
 import { NotaAyuda } from "@/components/ayuda/NotaAyuda";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
+import { Icono } from "@/components/Icono";
 import { avisosParaSeparar, pasosParaSeparar } from "@/lib/ayuda";
 import { leerAyuda } from "@/lib/ayuda-servidor";
 import { hrefLista } from "@/lib/catalogo";
@@ -15,64 +18,92 @@ export const metadata: Metadata = {
 };
 
 /**
- * «Cómo separar» (ADR-0408, actividad 5; maqueta v4, `vComoSeparar`): los cuatro pasos y los avisos, con y sin cuenta (el pie de
- * todas las páginas la enlaza). Las tiendas son las de la web y los plazos, los del ERP (`retail.tienda_ayuda()`): nada escrito a mano que
- * pueda quedar viejo. Sin base, los pasos salen sin nombres y los avisos sin número. Termina en lo que sigue (revisión 2026-10-15): sin
- * cuenta, crearla (o entrar); con cuenta, el primer paso ya sale hecho y el botón lleva a toda la tienda (como la bolsa vacía). Antes la
- * página acababa en las notas y no llevaba a ningún lado.
+ * «Cómo separar» (ADR-0408, actividad 5; maqueta v4, `vComoSeparar`), con y sin cuenta (el pie de todas las páginas la enlaza). Las
+ * tiendas son las de la web y los plazos, los del ERP (`retail.tienda_ayuda()`): nada escrito a mano que pueda quedar viejo. Sin base, los
+ * pasos salen sin nombres y los avisos sin número. Revisión «a nivel mundial» (2026-10-16): el título grande con lo que es la página,
+ * los cuatro pasos como la línea de tiempo de la portada y el Inicio (la misma pieza, `LineaDePasos`), los plazos de un pedido de a tres
+ * y el llamado del final: sin cuenta, crearla (o entrar); con cuenta, el primer paso ya sale hecho y el llamado lleva a la ropa.
  */
 export default async function ComoSeparar() {
   const [conCuenta, plazos, sedes] = await Promise.all([haySesion(), leerAyuda(), leerSedes()]);
   const { confirmar, pagar, recoger } = avisosParaSeparar(plazos);
   return (
     <MarcoCuenta conCuenta={conCuenta} conPie>
-      <div className="t-ancho t-angosto w-pagina-form">
-        <article className="w-ficha w-pagina-ayuda">
-          <div>
-            <span className="t-ceja">Ayuda</span>
-            <h1 className="w-titulo">
+      <div className="t-ancho ay-pagina">
+        <EncabezadoAyuda
+          ceja="Ayuda"
+          titulo={
+            <>
               Separa online, <em>recoge en tu tienda.</em>
-            </h1>
+            </>
+          }
+          bajada="En la web no pagas nada: separas tus prendas, la tienda te lo confirma por WhatsApp y lo recoges en la tienda que elijas."
+        />
+
+        <LineaDePasos
+          pasos={pasosParaSeparar(
+            sedes.map((s) => s.nombre),
+            conCuenta,
+          )}
+        />
+
+        <section className="ay-bloque" aria-labelledby="ay-saber">
+          <div className="ay-bloque-cab">
+            <span className="t-ceja">Los plazos de tu pedido</span>
+            <h2 id="ay-saber" className="ay-h2">
+              Lo que tienes que <em>saber</em>
+            </h2>
           </div>
-          <ol className="w-pasos">
-            {pasosParaSeparar(
-              sedes.map((s) => s.nombre),
-              conCuenta,
-            ).map((p) => (
-              <li key={p.titulo} data-hecho={p.hecho ? "" : undefined}>
-                <span>
-                  <b>{p.titulo}</b>
-                  <small>{p.texto}</small>
-                </span>
-              </li>
-            ))}
-          </ol>
-          <div className="w-ayuda-notas">
+          <div className="ay-puntos">
             <NotaAyuda icono="reloj" {...confirmar} />
             <NotaAyuda icono="ticket" {...pagar} />
             <NotaAyuda icono="tienda" {...recoger}>
-              <Link className="t-enlace w-ayuda-enlace" href="/tiendas">
-                Ver dónde están nuestras tiendas
+              <Link className="ay-enlace" href="/tiendas">
+                Ver dónde están nuestras tiendas <Icono nombre="flecha" />
               </Link>
             </NotaAyuda>
           </div>
-          <div className="w-ayuda-acciones">
-            {conCuenta ? (
-              <Link className="t-btn t-btn-ancho" href={hrefLista({ categoria: null, orden: "destacado" })}>
-                Ver toda la tienda
-              </Link>
-            ) : (
-              <>
-                <Link className="t-btn t-btn-ancho" href="/crear-cuenta">
+        </section>
+
+        <section className="ay-llamado" aria-labelledby="ay-llamado">
+          {conCuenta ? (
+            <>
+              <div className="ay-llamado-tx">
+                <span className="t-ceja">Tu cuenta está lista</span>
+                <h2 id="ay-llamado" className="ay-h2">
+                  Elige lo que te gusta y <em>sepáralo.</em>
+                </h2>
+                <p className="ay-llamado-x">En «Mis pedidos» ves cada separación, si ya la confirmaron y cuánto falta pagar.</p>
+              </div>
+              <div className="ay-llamado-acc">
+                <Link className="t-btn" href={hrefLista({ categoria: null, orden: "destacado" })}>
+                  Ver toda la tienda
+                </Link>
+                <Link className="ay-enlace" href="/cuenta/pedidos">
+                  Ver mis pedidos <Icono nombre="flecha" />
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="ay-llamado-tx">
+                <span className="t-ceja">Club CAYLA</span>
+                <h2 id="ay-llamado" className="ay-h2">
+                  Crea tu cuenta y forma parte del <em>Club CAYLA.</em>
+                </h2>
+                <p className="ay-llamado-x">Con tu cuenta ves el catálogo, cuánto hay en cada tienda y separas lo que te gusta.</p>
+              </div>
+              <div className="ay-llamado-acc">
+                <Link className="t-btn" href="/crear-cuenta">
                   Crear mi cuenta
                 </Link>
-                <Link className="t-enlace w-ayuda-enlace" href="/entrar">
-                  Ya tengo cuenta · Entrar
+                <Link className="ay-enlace" href="/entrar">
+                  Ya tengo cuenta · Entrar <Icono nombre="flecha" />
                 </Link>
-              </>
-            )}
-          </div>
-        </article>
+              </div>
+            </>
+          )}
+        </section>
       </div>
     </MarcoCuenta>
   );

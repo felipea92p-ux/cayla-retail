@@ -15,13 +15,35 @@
 .t-foto-g figcaption { position: absolute; left: 12px; bottom: 10px; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: color-mix(in srgb, var(--t-tinta-fija) 62%, transparent); }
 .t-foto-g.sin-foto .t-dibujo { display: grid; }
 .t-foto-g .pz { width: 62%; }
-.t-gal-puntos { display: flex; justify-content: center; gap: 6px; padding-top: 10px; }
-.t-gal-puntos i { width: 6px; height: 6px; border-radius: 50%; background: var(--sand); transition: width .3s var(--ease), background-color .3s; }
-.t-gal-puntos i[data-on] { width: 18px; border-radius: 3px; background: var(--tinta); }
+/* Los puntos van SOBRE la foto, abajo (2026-10-16): debajo empujaban el nombre y el precio fuera de la primera pantalla del celular. La
+   foto es clara en los dos temas (el «estudio», `--t-foto`), así que los puntos usan la tinta fija. */
+.cp-galeria { position: relative; }
+.t-gal-puntos { position: absolute; left: 0; right: 0; bottom: 12px; z-index: 2; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
+.t-gal-puntos i { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--t-tinta-fija) 24%, transparent); transition: width .3s var(--ease), background-color .3s; }
+.t-gal-puntos i[data-on] { width: 18px; border-radius: 3px; background: var(--t-tinta-fija); }
+
+/* ---- La lupa de la computadora (2026-10-16): con el mouse encima, la foto se acerca al doble donde está el mouse y lo sigue; la foto
+   grande (`.cp-lupa`) se pide al entrar y reemplaza a la que ya se ve apenas llega. Con el dedo, nada nuevo. ---- */
+.cp-lupa { opacity: 0; pointer-events: none; }
+@media (hover: hover) and (pointer: fine) {
+  @container tienda (min-width: 960px) {
+    .t-galeria .t-foto-g:not(.sin-foto) { cursor: zoom-in; }
+    .t-galeria .t-foto-g img { transform-origin: var(--cp-lupa-x, 50%) var(--cp-lupa-y, 50%); transition: transform .45s var(--ease), opacity .2s var(--ease); }
+    .t-galeria .t-foto-g[data-cp-lupa] img { transform: scale(2); }
+    .t-galeria .t-foto-g[data-cp-lupa="lista"] .cp-lupa { opacity: 1; }
+    .t-galeria .t-foto-g[data-cp-lupa="lista"] img:not(.cp-lupa) { opacity: 0; }
+    .t-galeria .t-foto-g[data-cp-lupa] figcaption { opacity: 0; transition: opacity .2s var(--ease); }
+  }
+}
 
 /* ---- Los datos ---- */
-.t-pdp-info { display: flex; flex-direction: column; gap: 18px; padding-top: 14px; min-width: 0; }
-.t-pdp-info h1 { margin: 6px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(32px, 7cqi, 48px); line-height: 1; letter-spacing: -.01em; text-wrap: balance; }
+.t-pdp-info { display: flex; flex-direction: column; gap: 18px; padding-top: 12px; min-width: 0; }
+.t-pdp-info h1 { margin: 6px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(30px, 7cqi, 48px); line-height: 1; letter-spacing: -.01em; text-wrap: balance; }
+/* En el celular la caja del nombre se deshace: el nombre y el precio quedan pegados a la foto (en la primera pantalla) y los chips
+   («Nuevo», la campaña) bajan bajo el precio. En la computadora, los chips van sobre el nombre. */
+.cp-pdp-cab { display: contents; }
+.cp-pdp-cab h1 { order: -2; margin-top: 2px; }
+.t-pdp-info > .t-bloque-precio { order: -1; margin-top: -8px; }
 .t-pdp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .t-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: var(--hueso); color: var(--tinta); }
 .t-chip.oferta { background: color-mix(in srgb, var(--rojo) 13%, transparent); color: var(--rojo-profundo); }
@@ -109,6 +131,11 @@
 .t-pdp-bolsa-barra { justify-content: space-between; }
 .t-pdp-bolsa-barra[data-lleno] { margin: -4px 2px 6px; }
 .t-pdp-bolsa-barra .t-enlace { padding-block: 8px; }
+/* En el celular, después de agregar, lo que pasó y «Ver mi bolsa» ya van en la barra de abajo: la línea de la columna no lo repite (salían
+   dos «Ver mi bolsa (1)» a la vez). */
+@container tienda (max-width: 959.98px) {
+  .t-pdp:has(~ .t-pdp-barra .t-pdp-bolsa-barra[data-lleno]) .t-pdp-bolsa-info { display: none; }
+}
 
 /* ---- El acordeón ---- */
 .t-acordeon details { border-top: 1px solid var(--sand); }
@@ -123,6 +150,9 @@
 .t-swatch:focus-visible, .t-talla:focus-visible, .t-acordeon summary:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; }
 
 @container tienda (min-width: 960px) {
+  .cp-pdp-cab { display: block; }
+  .cp-pdp-cab h1 { margin-top: 6px; }
+  .t-pdp-info > .t-bloque-precio { order: 0; margin-top: 0; }
   .t-pdp { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 54px; align-items: start; padding-top: 16px; }
   .t-galeria { grid-auto-flow: row; grid-template-columns: 1fr 1fr; grid-auto-columns: auto; overflow: visible; margin-inline: 0; gap: 8px; }
   .t-galeria .t-foto-g:first-child { grid-column: 1 / -1; }

@@ -27,6 +27,8 @@ a.t-pieza:hover { transform: rotate(0deg) scale(1.05); z-index: 4; }
 .t-look-item .t-precio { flex-direction: column; align-items: flex-end; gap: 0; text-align: right; }
 .t-look-total { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; }
 .t-look-total b { font-family: var(--serif); font-size: 26px; font-weight: 500; font-variant-numeric: tabular-nums lining-nums; }
+/* Debajo de «Agregar el look a mi bolsa», lo que la tienda ya cumple (`Promesas`, las mismas de la ficha), con un poco más de aire. */
+.t-look-info .cp-promesas { margin-top: 6px; }
 
 /* ---- La lista de looks ---- */
 .t-looks { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr); padding-bottom: 8px; }
@@ -41,6 +43,13 @@ a.t-pieza:hover { transform: rotate(0deg) scale(1.05); z-index: 4; }
 .t-look-card-todo { font-size: 12.5px; color: var(--tinta-60); }
 .t-look-card:hover h3 { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
 .t-look-card:focus-visible { outline: 2px solid var(--rojo); outline-offset: 4px; border-radius: 4px; }
+
+/* ---- «Otros looks», bajo un look abierto (2026-10-16): en el celular, un carril que se desliza (como «Arma tu look» del Inicio: de a
+   uno, las láminas grandes alargaban la página el doble); en la computadora, en una fila de dos o tres (`--cp-columnas`). ---- */
+.cp-otros-looks { padding-bottom: 8px; }
+.cp-looks-carril { display: grid; grid-auto-flow: column; grid-auto-columns: 78%; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px 8px; scroll-padding-inline: 16px; }
+.cp-looks-carril::-webkit-scrollbar { display: none; }
+.cp-looks-carril > * { scroll-snap-align: start; min-width: 0; }
 
 /* ---- La hoja de tallas (un <dialog>): abajo en el celular, al centro en la computadora ---- */
 .t-look-hoja { position: fixed; inset: auto 0 0 0; margin: 0; width: 100%; max-width: none; max-height: 88vh; padding: 0; border: 0; border-radius: 20px 20px 0 0; background: var(--papel); color: var(--tinta); box-shadow: 0 -24px 60px -24px var(--sombra); }
@@ -79,12 +88,14 @@ a.t-pieza:hover { transform: rotate(0deg) scale(1.05); z-index: 4; }
 
 @container tienda (min-width: 700px) {
   .t-looks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cp-looks-carril { grid-auto-columns: calc((100% - 32px) / 2.2); }
 }
 @container tienda (min-width: 960px) {
   .t-look { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 56px; align-items: center; }
   .t-looks { gap: 40px; }
   /* De a tres cuando llenan sus filas (`looksDeATres`): con tres looks de a dos, el tercero quedaba solo, con media pantalla vacía. */
   .t-looks[data-tres] { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px 32px; }
+  .cp-looks-carril { grid-auto-flow: row; grid-template-columns: repeat(var(--cp-columnas, 3), minmax(0, 1fr)); grid-auto-columns: auto; gap: 32px; margin: 0; padding: 0; overflow: visible; }
   .t-look-hoja { inset: 50% auto auto 50%; width: min(540px, 92vw); max-height: 86vh; border-radius: 20px; transform: translate(-50%, -50%); box-shadow: 0 30px 80px -30px var(--sombra); }
   .t-look-hoja[open] { animation: t-look-hoja-centro .35s var(--ease) both; }
   .t-look-hoja-in { max-height: 86vh; padding: 20px 24px 24px; }

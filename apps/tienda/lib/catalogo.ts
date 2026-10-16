@@ -138,6 +138,12 @@ export function fotosDeTarjeta(p: Prenda): [string | null, string | null] {
   return [primera, p.fotos[1] ?? null];
 }
 
+/** ¿Su tarjeta se ve con una foto (la suya o la de un color)? Si no, se ve con su silueta. */
+const tieneFoto = (p: Prenda): boolean => fotosDeTarjeta(p)[0] !== null;
+
+/** Para ordenar con lo que tiene foto adelante. `sort` es estable: dentro de cada parte queda el orden que ya traía la lista. */
+export const conFotoPrimero = (a: Prenda, b: Prenda): number => Number(tieneFoto(b)) - Number(tieneFoto(a));
+
 /** El color con que se dibuja la prenda sin foto: el de su primer color (es un dato de la prenda, no del tema). */
 export const colorDeDibujo = (p: Prenda): string | null => p.colores[0]?.hex ?? null;
 
@@ -327,7 +333,11 @@ export function categoriasDe(prendas: readonly Prenda[]): CategoriaLista[] {
 
 /** Lo que se ve con la lista, la campaña, la categoría y el orden elegidos. «Destacado» es el orden propio de la lista: en toda la tienda
  *  y en las ofertas, el de la base (lo último que entró a la web primero); en Lo nuevo, lo más reciente; en Más vendidos, el ranking.
- *  Por precio, lo que paga el cliente (con la campaña). */
+ *  Por precio, lo que paga el cliente (con la campaña).
+ *
+ *  Con «Destacado», lo que tiene foto va adelante y, dentro de cada parte, ese mismo orden (2026-10-16): una lista que abre con siluetas
+ *  dibujadas (la percha) no se ve como una tienda, y la primera fila es lo que más se mira. Más vendidos y tus favoritos se quedan con su
+ *  orden porque dice algo: el puesto («N.º 1») y lo último que guardaste. Por precio tampoco se toca: la persona pidió ese orden. */
 export function filtrarYOrdenar(
   prendas: readonly Prenda[],
   { categoria, orden, lista = "todo", campana = null }: { categoria: string | null; orden: Orden; lista?: Lista; campana?: string | null },
@@ -337,6 +347,7 @@ export function filtrarYOrdenar(
   else if (orden === "precio-desc") salida.sort((a, b) => b.precioFinal - a.precioFinal || a.nombre.localeCompare(b.nombre, "es"));
   else if (lista === "nuevo") salida.sort(porLlegada);
   else if (lista === "vendidos") salida.sort(porPuesto);
+  if (orden === "destacado" && lista !== "vendidos" && lista !== "favoritos") salida.sort(conFotoPrimero);
   return salida;
 }
 

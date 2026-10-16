@@ -16,6 +16,11 @@
 .t-mini.sin-foto .t-dibujo { display: grid; }
 .t-mini .pz { width: 76%; }
 
+/* ---- La bolsa vacía (2026-10-16): el vacío con sus dos caminos y, debajo, sus favoritos y Lo nuevo en carriles (`SigueMirando`). ---- */
+.cp-vacio-acciones { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 6px; }
+.cp-bolsa-vacia { padding-bottom: 12px; }
+.cp-bolsa-vacia > .t-vacio { padding-bottom: 8px; }
+
 /* ---- La bolsa ---- */
 .t-bolsa-cab { padding-top: 20px; }
 /* En el celular, una columna: las prendas, la tienda, el resumen y, pegado abajo mientras se baja, «Separar». Es flex (no grid) a
@@ -166,6 +171,18 @@
 .w-ped b { font-weight: 600; font-variant-numeric: tabular-nums; }
 .w-ped small { color: var(--tinta-60); font-size: 12px; }
 .w-ped > .ic { width: 18px; height: 18px; color: var(--taupe); }
+
+/* ---- Lo que la tienda ya cumple, junto al botón de comprar (`Promesas`, 2026-10-16): la ficha, el look y la bolsa. Tres líneas con
+   su ícono, sin caja (la confianza a la vista no le quita la vista a la prenda): lo que se promete, en tinta, y su detalle, tenue. ---- */
+.cp-promesas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.cp-promesas li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; align-items: start; }
+.cp-promesas .ic { width: 18px; height: 18px; color: var(--taupe); margin-top: 1px; }
+.cp-promesas p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--tinta-60); text-wrap: pretty; }
+.cp-promesas b { font-weight: 600; color: var(--tinta); }
+.cp-promesas-compacta { gap: 8px; }
+.cp-promesas-compacta p { font-size: 12.5px; }
+/* En el resumen de la bolsa, bajo el total y con su línea, como una fila más del resumen. */
+.t-resumen .cp-promesas { padding-top: 12px; border-top: 1px solid var(--sand); }
 
 /* ---- Lo que pone la integración: el ícono de la bolsa en la cabecera y «Agregar» con la talla en la tarjeta ---- */
 .t-ico { position: relative; width: 42px; height: 42px; flex: none; border: 0; border-radius: 50%; background: transparent; display: grid; place-items: center; color: var(--tinta); transition: background-color .15s; }

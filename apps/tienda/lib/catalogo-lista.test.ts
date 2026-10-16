@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Prenda } from "./catalogo";
-import { categoriasConLaElegida, dondeHay, gruposConLoElegido, queSeBusca, vacioEnTienda } from "./catalogo-lista";
+import { categoriasConLaElegida, dondeHay, gruposConLoElegido, paraSeguirMirando, queSeBusca, vacioEnTienda } from "./catalogo-lista";
 import { GRUPOS, gruposDe, leerGrupo } from "./grupos";
 import type { Nivel } from "./stock";
 
@@ -120,5 +120,29 @@ describe("lo elegido siempre a la vista en los filtros", () => {
     expect(categoriasConLaElegida(fila, cinturones)).toEqual([...fila, { clave: "CIN", nombre: "Cinturones", cuantas: 0 }]);
     expect(categoriasConLaElegida(fila, fila[0])).toEqual(fila);
     expect(categoriasConLaElegida(fila, null)).toEqual(fila);
+  });
+});
+
+describe("lo que ofrece una lista vacía (2026-10-16)", () => {
+  const FOTO = "https://x.supabase.co/storage/v1/object/public/retail-productos-fotos/fotos/x.jpg";
+  const p = (id: string, { nuevo = null, foto = true }: { nuevo?: number | null; foto?: boolean } = {}) =>
+    ({ id, nombre: id, categoria: null, colores: [], fotos: foto ? [FOTO] : [], nuevo: nuevo === null ? null : { dias: nuevo }, vendidos: null }) as unknown as Prenda;
+  const prendas = [p("a", { nuevo: 9 }), p("b", { nuevo: 2, foto: false }), p("c"), p("d", { nuevo: 1 })];
+  const ids = (r: ReturnType<typeof paraSeguirMirando>) => (r ? `${r.lista}: ${r.prendas.map((x) => x.id).join(",")}` : null);
+
+  it("Lo nuevo (con foto primero, lo más reciente primero) para cualquier lista vacía que no sea Lo nuevo", () => {
+    for (const lista of ["vendidos", "ofertas", "favoritos", "todo"] as const) expect(ids(paraSeguirMirando(prendas, lista))).toBe("nuevo: d,a,b");
+  });
+
+  it("si la vacía es Lo nuevo (o no hay nada nuevo), toda la tienda en su orden", () => {
+    expect(ids(paraSeguirMirando(prendas, "nuevo"))).toBe("todo: a,c,d,b");
+    expect(ids(paraSeguirMirando([p("c"), p("e", { foto: false })], "vendidos"))).toBe("todo: c,e");
+  });
+
+  it("sin lo que ya se muestra, hasta `cuantas`, y sin nada que ofrecer, null", () => {
+    expect(ids(paraSeguirMirando(prendas, "vendidos", { fuera: ["d"] }))).toBe("nuevo: a,b");
+    expect(ids(paraSeguirMirando(prendas, "vendidos", { cuantas: 1 }))).toBe("nuevo: d");
+    expect(paraSeguirMirando([], "vendidos")).toBeNull();
+    expect(paraSeguirMirando([p("a")], "nuevo", { fuera: ["a"] })).toBeNull();
   });
 });

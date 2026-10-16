@@ -39,10 +39,12 @@ import {
 } from "@/lib/cuentas";
 import { codigoDelCorreoActual, codigoParaProbar, type CodigoDelCorreo } from "@/lib/correo-confirmado";
 import { hrefConVolver, PARAMETRO_VOLVER, rutaParaVolver } from "@/lib/entrada";
+import { avanceDelRegistro, buzonDelCorreo, nombreParaLaTarjeta } from "@/lib/panel-entrada";
 import { Icono } from "../Icono";
 import { Isotipo } from "../Isotipo";
 import { CajaClave } from "./CajaClave";
 import { Campo, Resultado } from "./CampoGuiado";
+import { useNombreEnLaTarjeta } from "./EntradaViva";
 
 // «Crea tu cuenta» (maqueta v4, `vRegistro` y `guiaRegistro`). Cada campo dice su estado en su título (✓ Listo · Sigue aquí ·
 // Revisa) y debajo qué le falta o qué está mal; el de abajo dice lo primero que falta (cada cosa lleva a su campo) y cuánto más, y el
@@ -169,6 +171,10 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
   const resumenFaltan = faltanResumidos(faltan);
   const sigue = campoQueSigue(estado, enFoco);
   const marca = (campo: CampoRegistro) => marcaDe(estado[campo], sigue === campo);
+  // La tarjeta del Club del panel de al lado lleva su nombre apenas se sabe (con DNI, el del padrón a medias); y la línea del pie se
+  // llena con lo que ya está listo (2026-10-16).
+  useNombreEnLaTarjeta(nombreParaLaTarjeta(r, consultaDocumento));
+  const avance = avanceDelRegistro(estado, r.documentoTipo);
   const cambiar = (cambio: Partial<Registro>) => {
     setErrorGeneral(null);
     setR((actual) => ({ ...actual, ...cambio }));
@@ -334,6 +340,8 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
   // «Revisa» en el código: hace falta uno nuevo, o el escrito es el mismo que ya salió mal.
   const codigoMalo =
     codigoActual.estado === "enviado" && (codigoActual.necesitaNuevo || (codigoActual.malo !== null && codigoActual.malo === valorCodigo));
+  // Con el código en camino, un atajo a su buzón (se abre aparte: lo escrito aquí no se pierde).
+  const buzon = codigoActual.estado === "enviado" ? buzonDelCorreo(correo) : null;
 
   return (
     <form
@@ -456,6 +464,12 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
             <button type="button" className="w-enlace" onClick={() => pedirCodigo(true)} disabled={restan > 0 || pidiendo}>
               {pidiendo ? "Mandando otro código…" : restan > 0 ? `Reenviar en ${cuentaRegresiva(restan)}` : "Reenviar"}
             </button>
+            {buzon && (
+              <a className="w-enlace en-buzon" href={buzon.href} target="_blank" rel="noopener noreferrer">
+                Abrir {buzon.nombre}
+                <Icono nombre="flecha" />
+              </a>
+            )}
           </span>
         </Campo>
       )}
@@ -716,6 +730,9 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
       </p>
 
       <div className="w-pie-form">
+        <span className="en-avance" aria-hidden="true">
+          <span style={{ transform: `scaleX(${avance.total ? avance.listos / avance.total : 0})` }} />
+        </span>
         <p className="w-faltan" aria-live="polite">
           {faltan.length ? (
             // Los primeros que faltan, cada uno lleva a su campo, y cuántos más (antes, los ocho en cuatro renglones fijos).
@@ -729,7 +746,7 @@ export function FormularioRegistro({ hoy, casilla: casillaInicial }: { hoy: Dia;
                   </button>
                 </Fragment>
               ))}
-              {resumenFaltan.mas > 0 && <> y {resumenFaltan.mas} más</>}
+              {resumenFaltan.mas > 0 && <> y{"\u00a0"}{resumenFaltan.mas}{"\u00a0"}más</>}
             </>
           ) : (
             <>

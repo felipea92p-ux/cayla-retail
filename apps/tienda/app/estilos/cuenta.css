@@ -26,26 +26,76 @@
 .w-marca { font-size: 11.5px; font-weight: 600; color: var(--tinta-60); white-space: nowrap; }
 .w-campo[data-estado="hecho"] .w-marca { color: var(--verde); }
 .w-campo[data-estado="sigue"] .w-marca { color: var(--ambar); }
+/* «Sigue aquí» con su punto, como la luz de la guía de foco del ERP: se ve aunque la palabra sea chica. */
+.w-campo[data-estado="sigue"] .w-marca::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: currentColor; vertical-align: .08em; }
 .w-campo[data-estado="error"] .w-marca { color: var(--rojo-profundo); }
-.w-caja { height: 52px; border-radius: 12px; border: 1.5px solid var(--sand); background: var(--papel); color: var(--tinta); padding: 0 14px; font: inherit; font-size: 16px; width: 100%; transition: border-color .15s, box-shadow .15s; }
+/* La caja que se enciende (la del ERP, ADR-0358): con el cursor adentro, el borde pasa a tinta y un hilo rojo se dibuja desde el centro,
+   abajo (verde si el dato ya está bien). El hilo es un fondo de la caja: sirve igual a una caja suelta, con prefijo o con su botón. */
+.w-caja {
+  --en-hilo: var(--rojo);
+  height: 52px;
+  border-radius: 12px;
+  border: 1.5px solid var(--sand);
+  background: linear-gradient(var(--en-hilo), var(--en-hilo)) 50% 100% / 0 2px no-repeat, var(--papel);
+  color: var(--tinta);
+  caret-color: var(--rojo);
+  padding: 0 14px;
+  font: inherit;
+  font-size: 16px;
+  width: 100%;
+  /* Lo que no cabe (un correo largo, el ejemplo en un celular de 320 px) termina en «…», no en una letra cortada. */
+  text-overflow: ellipsis;
+  transition: border-color .2s var(--ease), box-shadow .2s var(--ease), background-size .35s var(--ease), background-color .2s var(--ease);
+}
 .w-caja::placeholder { color: var(--tinta-60); }
-.w-caja:focus { border-color: var(--tinta); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--tinta) 10%, transparent); }
+@media (hover: hover) {
+  .w-caja:hover:not(:focus):not(:read-only) { border-color: color-mix(in srgb, var(--taupe) 45%, var(--sand)); }
+}
+.w-caja:focus { border-color: var(--tinta); outline: none; box-shadow: 0 0 0 4px color-mix(in srgb, var(--tinta) 7%, transparent); background-size: calc(100% - 28px) 2px, auto; }
+.w-caja:read-only:focus { background-size: 0 2px, auto; }
+/* El autocompletar del navegador no pinta la caja de celeste ni de amarillo: se queda con el papel de la tienda (también en oscuro). */
+.w-caja:-webkit-autofill,
+.w-caja:-webkit-autofill:hover,
+.w-caja:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--tinta);
+  transition: background-color 600000s 0s, color 600000s 0s, border-color .2s var(--ease), box-shadow .2s var(--ease), background-size .35s var(--ease);
+}
 .w-caja.num { font-variant-numeric: tabular-nums; }
+.w-campo[data-estado="hecho"] .w-caja { --en-hilo: var(--verde); }
 .w-campo[data-estado="sigue"] .w-caja { border-color: color-mix(in srgb, var(--ambar) 55%, var(--sand)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ambar) 14%, transparent); }
 .w-campo[data-estado="sigue"] .w-caja:focus { border-color: var(--tinta); }
 .w-campo[data-estado="error"] .w-caja { border-color: color-mix(in srgb, var(--rojo) 55%, var(--sand)); }
+/* Fuera de la caja, el error también la tiñe apenas; mientras se escribe en ella, no (se está arreglando). */
+.w-campo[data-estado="error"] .w-caja:not(:focus) { background-color: color-mix(in srgb, var(--rojo) 5%, var(--papel)); }
 .w-caja-pref { display: flex; align-items: center; }
 .w-caja-pref span { height: 52px; display: grid; place-items: center; padding: 0 12px; border: 1.5px solid var(--sand); border-right: 0; border-radius: 12px 0 0 12px; background: var(--hueso); font-weight: 600; }
 .w-caja-pref .w-caja { border-radius: 0 12px 12px 0; }
+/* El «+51» y su caja se encienden juntos: el borde del prefijo sigue al de la caja y el anillo (el del foco o la luz de «Sigue aquí»)
+   rodea a los dos, no solo a la caja. */
+.w-caja-pref { border-radius: 12px; transition: box-shadow .2s var(--ease); }
+.w-caja-pref span { transition: border-color .2s var(--ease); }
+.w-campo .w-caja-pref .w-caja { box-shadow: none; }
+.w-caja-pref:focus-within { box-shadow: 0 0 0 4px color-mix(in srgb, var(--tinta) 7%, transparent); }
+.w-caja-pref:focus-within span { border-color: var(--tinta); }
+.w-campo[data-estado="sigue"] .w-caja-pref { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ambar) 14%, transparent); }
+.w-campo[data-estado="sigue"] .w-caja-pref:not(:focus-within) span { border-color: color-mix(in srgb, var(--ambar) 55%, var(--sand)); }
+.w-campo[data-estado="error"] .w-caja-pref:not(:focus-within) span { border-color: color-mix(in srgb, var(--rojo) 55%, var(--sand)); }
 .w-caja-clave { position: relative; }
-.w-caja-clave .w-caja { padding-right: 84px; }
-.w-ver { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: none; padding: 8px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--taupe); cursor: pointer; }
-/* El tipo de documento (Felipe 2026-10-15: DNI, carné de extranjería o pasaporte, «como en las tiendas»): tres píldoras de 44 px de
-   alto (se tocan con el dedo), la elegida en tinta. A 375 px bajan a dos filas si no caben. */
-.w-tipos { display: flex; flex-wrap: wrap; gap: 6px; }
-.w-tipo { flex: 1 1 auto; min-height: 44px; padding: 0 14px; border: 1.5px solid var(--sand); border-radius: 999px; background: var(--papel); color: var(--tinta); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: background-color .2s, border-color .2s, color .2s; }
-.w-tipo:hover { border-color: var(--taupe); }
-.w-tipo[aria-checked="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+.w-caja-clave .w-caja { padding-right: 112px; }
+/* «Ver» / «Ocultar»: el ojo y la palabra, en un botón del alto de un dedo dentro de la caja (antes, una palabra subrayada de 12 px). */
+.w-ver { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 11px; border: 0; border-radius: 9px; background: transparent; font: inherit; font-size: 13px; font-weight: 600; color: var(--tinta); cursor: pointer; transition: background-color .2s var(--ease), color .2s var(--ease); }
+.w-ver svg { width: 18px; height: 18px; flex: none; }
+.w-ver[aria-pressed="true"] { color: var(--rojo-profundo); }
+@media (hover: hover) { .w-ver:hover { background: var(--hueso); } }
+.w-ver:focus-visible { outline: 2px solid var(--rojo); outline-offset: 0; }
+@media (pointer: coarse) { .w-ver { min-height: 44px; } }
+/* El tipo de documento (Felipe 2026-10-15: DNI, carné de extranjería o pasaporte, «como en las tiendas»): un selector de tres partes en
+   una sola pista, del alto de las cajas (52 px), con partes de 44 px que se tocan con el dedo y la elegida en tinta. Antes eran tres
+   píldoras sueltas que a 375 px bajaban a dos filas; ahora caben en una (a 320 px, «Carné de extranjería» se parte en dos líneas). */
+.w-tipos { display: flex; gap: 4px; padding: 3px; border-radius: 999px; border: 1.5px solid var(--sand); background: var(--hueso); }
+.w-tipo { flex: 1 1 auto; min-width: 0; min-height: 43px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: var(--tinta); font: inherit; font-size: 13.5px; font-weight: 600; line-height: 1.15; white-space: normal; text-wrap: balance; cursor: pointer; transition: background-color .25s var(--ease), color .25s var(--ease), box-shadow .25s var(--ease); }
+@media (hover: hover) { .w-tipo:hover:not([aria-checked="true"]) { background: color-mix(in srgb, var(--papel) 75%, transparent); } }
+.w-tipo[aria-checked="true"] { background: var(--tinta); color: var(--crema); box-shadow: 0 6px 14px -10px var(--sombra); }
 .w-tipo:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 /* El año, más ancho: «Año (opcional)» tiene que caber entero a 375 px. */
 .w-cumple { display: grid; grid-template-columns: 1fr 1fr 2.1fr; gap: 8px; }
@@ -55,7 +105,9 @@
 .w-res:empty { display: none; }
 .w-res-ok { color: var(--verde); font-weight: 600; display: flex; gap: 6px; align-items: center; }
 .w-res-ok .ic { width: 16px; height: 16px; }
-.w-res-error { color: var(--rojo-profundo); font-weight: 600; font-size: 12.5px; }
+/* El error de un dato, con su «!» delante (como el ERP): se distingue de la ayuda aunque no se lea el color. */
+.w-res-error { display: flex; gap: 7px; align-items: flex-start; color: var(--rojo-profundo); font-weight: 600; font-size: 12.5px; line-height: 1.45; }
+.w-res-error::before { content: "!"; flex: none; width: 16px; height: 16px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; background: var(--rojo-profundo); color: var(--crema); font-size: 10.5px; font-weight: 800; line-height: 1; }
 .w-res-aviso { color: var(--ambar); font-weight: 600; font-size: 12.5px; }
 .w-res-acc { display: flex; gap: 16px; flex-wrap: wrap; }
 .w-club { display: inline-flex; gap: 6px; align-items: center; width: fit-content; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--hueso); }
@@ -63,7 +115,8 @@
 .w-check { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.5; cursor: pointer; }
 /* Una casilla se lee en letra normal (maqueta: `.w-campo > label.w-check`); el título de un campo, en seminegrita. */
 .w-campo > label.w-check { font-weight: 400; justify-content: flex-start; align-items: flex-start; }
-.w-check input { width: 20px; height: 20px; accent-color: var(--tinta); margin: 1px 0 0; flex: none; }
+.w-check input { width: 20px; height: 20px; accent-color: var(--tinta); margin: 1px 0 0; flex: none; cursor: pointer; }
+.w-check input:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 .w-check a { color: var(--tinta); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--taupe); }
 .w-check a:hover { color: var(--rojo-profundo); }
 .w-campo[data-estado="sigue"] .w-check input { outline: 3px solid color-mix(in srgb, var(--ambar) 30%, transparent); outline-offset: 2px; }
@@ -89,6 +142,9 @@
   .w-caja-con-boton { gap: 6px; }
   .t-btn.w-obtener { padding: 0 11px; font-size: 12.5px; }
 }
+@media (max-width: 359px) {
+  .t-btn.w-obtener { padding: 0 9px; font-size: 12px; }
+}
 .t-btn-sec.w-obtener-sigue { box-shadow: inset 0 0 0 1.5px var(--tinta), 0 0 0 3px color-mix(in srgb, var(--ambar) 30%, transparent); }
 .w-caja.w-codigo { font-size: 24px; letter-spacing: .35em; text-align: center; }
 .w-caja.w-codigo::placeholder { font-size: 15px; letter-spacing: normal; }
@@ -98,6 +154,7 @@
 /* ---- Enlaces y el pie del formulario ---- */
 .w-enlace { border: 0; background: none; padding: 6px 0; font: inherit; color: var(--rojo-profundo); text-decoration: underline; text-underline-offset: 2px; font-size: 13.5px; font-weight: 500; align-self: center; cursor: pointer; }
 .w-enlace:hover { color: var(--tinta); }
+.w-enlace:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; border-radius: 3px; }
 .w-enlace:disabled { color: var(--tinta-60); text-decoration: none; cursor: default; }
 .w-res .w-enlace { align-self: flex-start; padding: 2px 0; }
 .w-enlace-izq { align-self: flex-start; }
@@ -105,13 +162,37 @@
 .w-faltan { font-size: 12.5px; color: var(--tinta-60); text-align: center; margin: 0; }
 .w-faltan b { color: var(--ambar); font-weight: 600; }
 .w-error-general { margin: 0; font-size: 13px; font-weight: 600; color: var(--rojo-profundo); text-align: center; }
-/* En el celular, «Falta…» y el botón quedan a la vista abajo mientras se baja (la maqueta los pone fijos). */
-.w-pie-form { position: sticky; bottom: 0; z-index: 4; display: flex; flex-direction: column; gap: 10px; margin-inline: -20px; padding: 12px 20px 16px; background: var(--crema); border-top: 1px solid var(--sand); }
-.w-sobre { width: 64px; height: 64px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; }
+/* En el celular, «Falta…» y el botón quedan a la vista abajo mientras se baja (la maqueta los pone fijos), con una sombra suave que lo
+   despega de lo que pasa por detrás y el margen del borde de abajo del iPhone. */
+.w-pie-form { position: sticky; bottom: 0; z-index: 4; display: flex; flex-direction: column; gap: 10px; margin-inline: -20px; padding: 12px 20px calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--crema); border-top: 1px solid var(--sand); box-shadow: 0 -14px 24px -22px var(--sombra); }
+/* El botón de un formulario todavía apagado (falta algo): arena con la letra tenue, de la paleta de la tienda. Antes era el negro a
+   medias, un gris plano que parecía roto. El que se puede tocar no cambia. */
+.w-ficha .t-btn:disabled { opacity: 1; background: var(--sand); color: var(--tinta-60); box-shadow: none; }
+.w-ficha .t-btn.t-btn-sec:disabled { background: transparent; color: var(--tinta-40); box-shadow: inset 0 0 0 1.5px var(--sand); }
+/* Lo peligroso sigue siendo rojo desde el principio (como en el ERP), también apagado: un rojo lavado, no la arena de los demás. */
+.w-ficha .t-btn.t-btn-peligro:disabled { background: color-mix(in srgb, var(--rojo-profundo) 20%, var(--crema)); color: color-mix(in srgb, var(--rojo-profundo) 72%, var(--crema)); }
+/* Mientras guarda («Entrando…», «Mandando…»), el botón también está apagado, pero NO es que falte algo: conserva su color y dice que
+   trabaja (`aria-busy`). Así no parece que el toque no sirvió. */
+.w-ficha .t-btn[aria-busy="true"]:disabled { background: var(--tinta); color: var(--crema); cursor: progress; }
+.w-ficha .t-btn.t-btn-sec[aria-busy="true"]:disabled { background: transparent; color: var(--tinta); box-shadow: inset 0 0 0 1.5px var(--tinta); }
+.w-ficha .t-btn.t-btn-peligro[aria-busy="true"]:disabled { background: var(--rojo-profundo); color: var(--crema); }
+.w-ficha .t-btn:focus-visible { outline: 2px solid var(--rojo); outline-offset: 3px; }
+/* Con el dedo, el «pasar el mouse» se queda pegado después del toque: «Entrar» quedaba rojo, como si algo hubiera salido mal. En un
+   formulario, con el dedo, el botón vuelve a su color y responde con el apretón (`:active`). */
+@media (hover: none) {
+  .w-ficha .t-btn:hover:not(:disabled) { background: var(--tinta); }
+  .w-ficha .t-btn.t-btn-sec:hover:not(:disabled) { background: transparent; }
+  .w-ficha .t-btn.t-btn-peligro:hover:not(:disabled) { background: var(--rojo-profundo); }
+}
+.w-sobre { width: 64px; height: 64px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; animation: en-sobre-llega .45s var(--ease) both; }
 .w-sobre .ic { width: 30px; height: 30px; }
+@keyframes en-sobre-llega { from { opacity: 0; transform: scale(.86); } }
 /* El otro camino al pie de «Entrar»: quien todavía no tiene cuenta (llegó por un enlace que le mandaron) ve «Crear mi cuenta» como
-   botón, separado por una línea de lo que es entrar. */
-.w-otro-camino { display: flex; flex-direction: column; gap: 10px; padding-top: 18px; border-top: 1px solid var(--sand); text-align: center; }
+   botón, separado de lo que es entrar por una raya con la pregunta en el medio. */
+.w-otro-camino { display: flex; flex-direction: column; gap: 14px; padding-top: 4px; text-align: center; }
+.w-otro-camino > .w-texto-sec { display: flex; align-items: center; gap: 14px; }
+.w-otro-camino > .w-texto-sec::before,
+.w-otro-camino > .w-texto-sec::after { content: ""; flex: 1; height: 1px; background: var(--sand); }
 /* Cada «Falta: …» del pie lleva a su campo: un enlace del mismo ámbar, del alto de la línea (no empuja el pie). */
 .w-faltan .w-falta-ir { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--ambar); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--ambar) 45%, transparent); text-underline-offset: 2px; cursor: pointer; }
 .w-faltan .w-falta-ir:hover { color: var(--tinta); }
@@ -137,12 +218,6 @@
 
 /* ---- La privacidad y los términos ---- */
 .w-borrador { display: inline-flex; align-items: center; gap: 6px; width: fit-content; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ambar); padding: 4px 10px; border-radius: 999px; border: 1px dashed var(--ambar); }
-.w-legal { display: flex; flex-direction: column; gap: 18px; }
-.w-legal h2 { margin: 0; font-family: var(--serif); font-size: 22px; font-weight: 500; }
-.w-legal p, .w-legal li { margin: 0; font-size: 14px; line-height: 1.6; }
-.w-legal ul, .w-legal ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
-.w-legal section { display: flex; flex-direction: column; gap: 8px; }
-.w-legal .w-texto-sec { margin: 0; }
 
 /* ---- El aviso «Listo: …» (vive fuera de la tienda, en el layout: por eso con @media y no con @container) ---- */
 .w-aviso { position: fixed; left: 14px; right: 14px; bottom: 24px; z-index: 30; background: var(--tinta); color: var(--crema); border-radius: 14px; padding: 12px 14px; font-size: 13px; display: flex; gap: 10px; align-items: center; box-shadow: 0 16px 30px -16px var(--sombra); animation: aviso-breve 3.4s var(--ease) both; pointer-events: none; }
@@ -159,7 +234,7 @@
   .w-ficha { padding-inline: 0; }
   .w-pagina-form { padding-block: 24px 48px; }
   .w-titulo { font-size: 36px; }
-  .w-pie-form { position: static; margin-inline: 0; padding: 6px 0 0; border-top: 0; background: none; }
+  .w-pie-form { position: static; margin-inline: 0; padding: 6px 0 0; border-top: 0; background: none; box-shadow: none; }
   .t-cuenta-pag { padding-block: 32px 44px; }
 }
 @media (min-width: 960px) {

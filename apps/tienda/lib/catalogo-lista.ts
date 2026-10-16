@@ -1,4 +1,4 @@
-import { cuantasPrendas, type CategoriaLista, type Lista, type Prenda } from "./catalogo";
+import { cuantasPrendas, filtrarYOrdenar, type CategoriaLista, type Lista, type Prenda } from "./catalogo";
 import { grupoDe, GRUPOS, type Grupo, type GrupoConCategorias } from "./grupos";
 import { hayAlgo, type Tienda } from "./stock";
 
@@ -80,4 +80,22 @@ export function gruposConLoElegido(
 export function categoriasConLaElegida(categorias: readonly CategoriaLista[], elegida: CategoriaLista | null): CategoriaLista[] {
   if (!elegida || categorias.some((c) => c.clave === elegida.clave)) return [...categorias];
   return [...categorias, { clave: elegida.clave, nombre: elegida.nombre, cuantas: 0 }];
+}
+
+/**
+ * Lo que ofrece una lista vacía para seguir mirando, en un carril bajo su vacío (2026-10-16: «Todavía no hay más vendidos» era un
+ * callejón con un solo botón): Lo nuevo de lo que se ve (con foto primero, lo más reciente primero) o, si la vacía es Lo nuevo o no hay
+ * nada nuevo, toda la tienda en su orden. Sin lo que ya se muestra (`fuera`), hasta `cuantas`; sin nada que ofrecer, `null`.
+ */
+export function paraSeguirMirando(
+  prendas: readonly Prenda[],
+  lista: Lista,
+  { fuera = [], cuantas = 8 }: { fuera?: Iterable<string>; cuantas?: number } = {},
+): { lista: "nuevo" | "todo"; prendas: Prenda[] } | null {
+  const sacar = new Set(fuera);
+  const sin = (ps: Prenda[]) => ps.filter((p) => !sacar.has(p.id)).slice(0, cuantas);
+  const nuevas = lista === "nuevo" ? [] : sin(filtrarYOrdenar(prendas, { categoria: null, orden: "destacado", lista: "nuevo" }));
+  if (nuevas.length > 0) return { lista: "nuevo", prendas: nuevas };
+  const todas = sin(filtrarYOrdenar(prendas, { categoria: null, orden: "destacado" }));
+  return todas.length > 0 ? { lista: "todo", prendas: todas } : null;
 }

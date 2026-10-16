@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SigueMirando } from "@/components/bolsa/SigueMirando";
 import { ElegidoALaVista } from "@/components/ElegidoALaVista";
 import { FiltrosDeLista } from "@/components/FiltrosDeLista";
 import { Icono } from "@/components/Icono";
@@ -24,7 +25,7 @@ import {
   type CampanaVigente,
   type Lista,
 } from "@/lib/catalogo";
-import { categoriasConLaElegida, dondeHay, gruposConLoElegido, queSeBusca, vacioEnTienda } from "@/lib/catalogo-lista";
+import { categoriasConLaElegida, dondeHay, gruposConLoElegido, paraSeguirMirando, queSeBusca, vacioEnTienda } from "@/lib/catalogo-lista";
 import { leerGuardadosEnBase } from "@/lib/club-servidor";
 import { delGrupo, grupoDe, gruposDe, leerGrupo, MENUS, tituloPartido } from "@/lib/grupos";
 import { fechaLarga, pctTexto } from "@/lib/portada";
@@ -147,6 +148,26 @@ export default async function Catalogo({ searchParams }: Props) {
       : null;
   // El origen del almacén público de fotos (no es una llave): solo sus fotos pasan por el optimizador de Next.
   const origenFotos = process.env.TIENDA_FOTOS_ORIGEN;
+  // Lo que se ofrece para seguir mirando (de lo que hay en la tienda elegida): debajo del vacío de una lista vacía en todas las tiendas y
+  // al final de tus favoritos (la página terminaba en tus dos o tres prendas guardadas), sin repetirlas.
+  const seguir =
+    enTodas.length === 0 && cab.vacio
+      ? paraSeguirMirando(enLaTienda, lista)
+      : esFavoritos && vista.length > 0
+        ? paraSeguirMirando(enLaTienda, lista, { fuera: vista.map((p) => p.id) })
+        : null;
+  const carrilSeguir = seguir && (
+    <SigueMirando
+      id="seguir-mirando"
+      {...(seguir.lista === "nuevo"
+        ? { ceja: "Recién llegado", titulo: ["Lo", "nuevo"] as [string, string], href: hrefLista({ sede, lista: "nuevo", categoria: null, orden: "destacado" }) }
+        : { ceja: "Para empezar", titulo: ["Toda la", "tienda"] as [string, string], href: hrefLista({ sede, categoria: null, orden: "destacado" }) })}
+      prendas={seguir.prendas}
+      sede={sede}
+      origenFotos={origenFotos}
+      nota={(p) => notaDeStock(p.stock, elegida, sedes)}
+    />
+  );
 
   return (
     <MarcoCatalogo
@@ -199,15 +220,18 @@ export default async function Catalogo({ searchParams }: Props) {
           </div>
         ) : enTodas.length === 0 && cab.vacio ? (
           // La lista misma está vacía en todas las tiendas (no es la categoría ni la tienda elegida): dice qué aparecería aquí, sin
-          // filtros ni orden que no sirven.
-          <div className="t-vacio">
-            <Icono nombre={esFavoritos ? "corazon" : "tienda"} />
-            <h3>{cab.vacio.titulo}</h3>
-            <p>{cab.vacio.texto}</p>
-            <Link className="t-btn" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
-              Ver toda la tienda
-            </Link>
-          </div>
+          // filtros ni orden que no sirven, y debajo ofrece algo para seguir mirando (Lo nuevo o toda la tienda): no es un callejón.
+          <>
+            <div className="t-vacio">
+              <Icono nombre={esFavoritos ? "corazon" : "tienda"} />
+              <h3>{cab.vacio.titulo}</h3>
+              <p>{cab.vacio.texto}</p>
+              <Link className="t-btn" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
+                Ver toda la tienda
+              </Link>
+            </div>
+            {carrilSeguir}
+          </>
         ) : (
           <>
             {/* Una tarjeta por campaña, que la elige o la suelta. Con una sola, la tarjeta solo informa: elegirla no cambiaba nada. */}
@@ -338,20 +362,23 @@ export default async function Catalogo({ searchParams }: Props) {
               </p>
             )}
             {vista.length > 0 ? (
-              <div className={`t-grilla${esFavoritos ? " t-grilla-favoritos" : ""}`}>
-                {vista.map((p, i) => (
-                  <TarjetaPrenda
-                    key={p.id}
-                    prenda={p}
-                    sede={sede}
-                    origenFotos={origenFotos}
-                    nota={notaDeStock(p.stock, elegida, sedes)}
-                    puesto={lista === "vendidos" && orden === "destacado" ? i + 1 : null}
-                    sinNuevo={lista === "nuevo"}
-                    arriba={i < ARRIBA}
-                  />
-                ))}
-              </div>
+              <>
+                <div className={`t-grilla${esFavoritos ? " t-grilla-favoritos" : ""}`}>
+                  {vista.map((p, i) => (
+                    <TarjetaPrenda
+                      key={p.id}
+                      prenda={p}
+                      sede={sede}
+                      origenFotos={origenFotos}
+                      nota={notaDeStock(p.stock, elegida, sedes)}
+                      puesto={lista === "vendidos" && orden === "destacado" ? i + 1 : null}
+                      sinNuevo={lista === "nuevo"}
+                      arriba={i < ARRIBA}
+                    />
+                  ))}
+                </div>
+                {carrilSeguir}
+              </>
             ) : vacioAqui ? (
               <div className="t-vacio" role="status">
                 <Icono nombre="tienda" />
