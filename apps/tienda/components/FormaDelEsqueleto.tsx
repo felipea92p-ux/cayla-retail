@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useLayoutEffect } from "react";
+import { Suspense, useLayoutEffect } from "react";
 import { formaDeLaRuta, type FormaEsqueleto } from "@/lib/esqueleto";
 import { Icono } from "./Icono";
 
@@ -12,8 +12,22 @@ import { Icono } from "./Icono";
  * la foto, el título y los botones caen donde van a caer y nada salta al llegar.
  */
 export function FormaDelEsqueleto({ forma }: { forma?: FormaEsqueleto }) {
+  // Leer la dirección en una página que se arma por adelantado (una ficha cuyo id aún no se sabe) frena el armado: se lee en su propio
+  // <Suspense>, con la grilla mientras tanto (ADR-0432). Con la forma dicha de antemano no se lee nada.
+  if (forma) return <FormaDicha la={forma} />;
+  return (
+    <Suspense fallback={<FormaDicha la="grilla" />}>
+      <FormaSegunLaRuta />
+    </Suspense>
+  );
+}
+
+function FormaSegunLaRuta() {
   const ruta = usePathname();
-  const la = forma ?? formaDeLaRuta(ruta ?? "");
+  return <FormaDicha la={formaDeLaRuta(ruta ?? "")} />;
+}
+
+function FormaDicha({ la }: { la: FormaEsqueleto }) {
   // La página que viene empieza arriba. Next sube la página al llegar a otra, pero con el esqueleto propio de la ficha (un segmento
   // adentro del catálogo) dejaba de hacerlo: tocada una prenda de abajo del Inicio o de «Mi perfil», la ficha llegaba con la página
   // bajada, sin la cabecera ni la foto. El esqueleto solo sale al ir a otra página (cambiar la tienda o el color de una ficha no lo

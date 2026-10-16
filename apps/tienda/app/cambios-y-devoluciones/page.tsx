@@ -7,7 +7,6 @@ import { Icono } from "@/components/Icono";
 import { NuestrasTiendas } from "@/components/NuestrasTiendas";
 import { puntosDeCambios } from "@/lib/ayuda";
 import { leerAyuda } from "@/lib/ayuda-servidor";
-import { haySesion } from "@/lib/sesion-servidor";
 import { leerSedes } from "@/lib/tiendas-servidor";
 import "../estilos/ayuda.css";
 
@@ -25,11 +24,11 @@ export const metadata: Metadata = {
  * buscarlas). Sin tiendas (o sin base), el punto «dónde» lleva a /tiendas, como antes.
  */
 export default async function CambiosYDevoluciones() {
-  const [conCuenta, plazos, sedes] = await Promise.all([haySesion(), leerAyuda(), leerSedes()]);
+  const [plazos, sedes] = await Promise.all([leerAyuda(), leerSedes()]);
   const { plazo, donde, llevar } = puntosDeCambios(plazos);
   const conTiendas = sedes.length > 0;
   return (
-    <MarcoCuenta conCuenta={conCuenta} conPie>
+    <MarcoCuenta segunSesion conPie>
       <div className="t-ancho ay-pagina">
         <EncabezadoAyuda
           ceja="Ayuda"
@@ -43,14 +42,14 @@ export default async function CambiosYDevoluciones() {
         <div className="ay-puntos">
           <NotaAyuda icono="reloj" nivel="h2" {...plazo} />
           <NotaAyuda icono="tienda" nivel="h2" {...donde}>
-            <Link className="ay-enlace" href={conTiendas ? "#nuestras-tiendas" : "/tiendas"}>
+            <Link className="ay-enlace" href={conTiendas ? "#nuestras-tiendas-cambios" : "/tiendas"}>
               Ver nuestras tiendas y su WhatsApp <Icono nombre="flecha" />
             </Link>
           </NotaAyuda>
           <NotaAyuda icono="ticket" nivel="h2" {...llevar} />
         </div>
       </div>
-      {conTiendas && <NuestrasTiendas sedes={sedes} ceja="Cambia tu prenda en la que te quede cerca" reintentar="/cambios-y-devoluciones" />}
+      {conTiendas && <NuestrasTiendas sedes={sedes} ceja="Cambia tu prenda en la que te quede cerca" reintentar="/cambios-y-devoluciones" idTitulo="nuestras-tiendas-cambios" />}
     </MarcoCuenta>
   );
 }
