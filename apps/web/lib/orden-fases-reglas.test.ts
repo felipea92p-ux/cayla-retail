@@ -19,8 +19,8 @@ import {
   problemasFases,
   proveedoresQueSirven,
   secuenciaDe,
+  serviciosConCosto,
   tarifaSugerida,
-  textoQuien,
   type FaseBorrador,
   type FaseClave,
   type FaseRpc,
@@ -230,13 +230,6 @@ describe("avisos y textos", () => {
     // Sigue siendo un aviso: no es una falta.
     expect(hints(afuera("costura", { minimo: "150" }))).toEqual([]);
   });
-  it("textoQuien: «Taller», o «Afuera · quién · S/ 4.50 por prenda» (sin tarifa si aún no hay; «elige a quién» sin proveedor)", () => {
-    expect(textoQuien(fasesIniciales()[3], PROVEEDORES)).toBe("Taller");
-    expect(textoQuien(afuera("costura")[3], PROVEEDORES)).toBe("Afuera · Confecciones del Norte · S/\u00a04.50 por prenda");
-    expect(textoQuien(afuera("costura", { tarifa: "" })[3], PROVEEDORES, { lista: LISTA, hoy: HOY })).toBe("Afuera · Confecciones del Norte · S/\u00a05.00 por prenda");
-    expect(textoQuien(afuera("costura", { tarifa: "" })[3], PROVEEDORES)).toBe("Afuera · Confecciones del Norte");
-    expect(textoQuien(afuera("costura", { proveedorId: null, tarifa: "" })[3], PROVEEDORES)).toBe("Afuera · elige a quién");
-  });
   it("costoServiciosEstimado suma tarifa × prendas + fijo de lo que sale afuera; null si todo queda en el Taller", () => {
     expect(costoServiciosEstimado(fasesIniciales(), 50, LISTA, HOY)).toBeNull();
     expect(costoServiciosEstimado(afuera("costura", { fijo: "100" }), 50, LISTA, HOY)).toBe(325);
@@ -245,6 +238,32 @@ describe("avisos y textos", () => {
     // Una tarifa que aún no se lee suma 0 (es un estimado, no una cuenta).
     expect(costoServiciosEstimado(afuera("costura", { tarifa: "abc", fijo: "10" }), 50, LISTA, HOY)).toBe(10);
     expect(costoServiciosEstimado(afuera("costura", { tarifa: "0.1" }), 3, LISTA, HOY)).toBe(0.3);
+  });
+});
+
+describe("serviciosConCosto — la cuenta de los servicios, fase por fase", () => {
+  it("parte `costoServiciosEstimado` en una fila por fase de afuera, con su proveedor y en el orden de la ruta; lo que se queda en el Taller no entra", () => {
+    expect(serviciosConCosto(fasesIniciales(), 50, LISTA, HOY, PROVEEDORES)).toEqual([]);
+    const dos = afuera("bordado", { proveedorId: BORD.id, tarifa: "" }, afuera("costura", { tarifa: "" }));
+    const filas = serviciosConCosto(dos, 50, LISTA, HOY, PROVEEDORES);
+    // El bordado sobre pieza va antes que la costura en la ruta; cada uno toma la tarifa vigente de su lista (costura S/ 5.00, bordado S/ 1.20 + S/ 80 fijo).
+    expect(filas.map((s) => [s.clave, s.nombre, s.proveedor, s.costo])).toEqual([
+      ["bordado", "Bordado", "Bordados Lima", 140],
+      ["costura", "Costura", "Confecciones del Norte", 250],
+    ]);
+    expect(filas.reduce((suma, s) => suma + s.costo, 0)).toBe(costoServiciosEstimado(dos, 50, LISTA, HOY));
+  });
+  it("una tarifa que aún no se lee cuesta 0 (solo cuenta el fijo) y una fase sin proveedor no inventa uno", () => {
+    const [solo] = serviciosConCosto(afuera("costura", { tarifa: "abc", fijo: "10" }), 50, LISTA, HOY, PROVEEDORES);
+    expect(solo.costo).toBe(10);
+    const [sinQuien] = serviciosConCosto(afuera("costura", { proveedorId: null }), 50, LISTA, HOY, PROVEEDORES);
+    expect(sinQuien.proveedor).toBeNull();
+  });
+  it("sin prendas solo queda el fijo, nunca un costo negativo", () => {
+    const [f] = serviciosConCosto(afuera("costura", { fijo: "100" }), 0, LISTA, HOY, PROVEEDORES);
+    expect(f.costo).toBe(100);
+    const [g] = serviciosConCosto(afuera("costura"), -5, LISTA, HOY, PROVEEDORES);
+    expect(g.costo).toBe(0);
   });
 });
 

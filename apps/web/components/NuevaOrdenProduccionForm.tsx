@@ -31,14 +31,14 @@ import { FichaOrden } from "@/components/orden-produccion/FichaOrden";
 import { ConsejoDeLaRed } from "@/components/orden-produccion/ConsejoDeLaRed";
 import { FasesDeLaOrden } from "@/components/orden-produccion/FasesDeLaOrden";
 import { TelaDeLaOrden, type ColorDeLaTela } from "@/components/orden-produccion/TelaDeLaOrden";
-import { costoServiciosEstimado, faseDe, fasesEncendidas, fasesIniciales, fasesParaRpc, problemasFases, proveedoresQueSirven, textoQuien, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
+import { costoServiciosEstimado, fasesIniciales, fasesParaRpc, problemasFases, proveedoresQueSirven, serviciosConCosto, type FaseBorrador, type FaseClave, type TarifaDeLista } from "@/lib/orden-fases-reglas";
 import { coloresDeLaOrden, consumoSugerido, insumosParaRpc, metrosAPedir, ofertaDeConsumoDelModelo, problemasTela, telasSugeridas, type InsumoDelTaller, type TelaBorrador } from "@/lib/orden-tela-reglas";
 import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { tipoAlElegir, urgentesDeLaRed } from "@/lib/orden-modelo-reglas";
 import { cantidadesAlCambiarColores, lineasDeModeloExistente, tablaDeModeloExistente, tablaDeModeloNuevo } from "@/lib/orden-tabla-reglas";
 import { sugerirNotaDeOrden } from "@/lib/sugerencias-orden-produccion";
 import { categoriaDe } from "@/lib/categoria-de-prenda";
-import { contarQueSeFabrica, fechaCorta, nombreDeLaFicha, soles, textoColoresYTallas, textoSeVendeA } from "@/lib/orden-ficha-reglas";
+import { contarQueSeFabrica, fechaCorta, nombreDeLaFicha, partesDelCostoPorPrenda, soles, textoColoresYTallas, textoSeVendeA } from "@/lib/orden-ficha-reglas";
 import type { ColorAlta } from "@/lib/alta-producto";
 import {
   TEXTO_FUNCION_AUSENTE,
@@ -356,6 +356,15 @@ export function NuevaOrdenProduccionForm({
   const costoTotal = costoTelaEstimado + costoServicios;
   // Como lo calcula la base (`producciones.costo_unitario`): costos ÷ prendas, a 2 decimales. Una sola fórmula en `produccion-reglas.ts`.
   const unitario = costoUnitario(costoTelaEstimado, 0, costoServicios, total);
+  // El mismo costo por prenda, partido en lo que lo forma (la tela y cada servicio de afuera): suma EXACTAMENTE `unitario`. La ficha lo lista cuando hay dos partes o más;
+  // con una sola, lo que sale afuera sigue diciéndose en su línea «Afuera» (quién la hace).
+  const serviciosDeLaOrden = serviciosConCosto(fases, total, listaDePrecios, hoy, proveedoresServicio);
+  const partesDelCosto = partesDelCostoPorPrenda({
+    totalPrendas: total,
+    porPrenda: unitario,
+    partes: [{ clave: "tela", nombre: "Tela", detalle: null, costo: costoTelaEstimado }, ...serviciosDeLaOrden.map((s) => ({ clave: s.clave, nombre: s.nombre, detalle: s.proveedor, costo: s.costo }))],
+  });
+  const serviciosSinListar = partesDelCosto.length > 1 ? serviciosDeLaOrden.filter((s) => s.costo <= 0) : serviciosDeLaOrden;
   const precio = Math.max(0, ...(modelo?.variantes ?? []).map((v) => v.precio));
 
   // ----- La decisión (solo líder) -----
@@ -775,10 +784,16 @@ export function NuevaOrdenProduccionForm({
           coloresYTallas={textoColoresYTallas(contarQueSeFabrica(tabla.celdas, tabla.excluidas, cantidades))}
           seVendeA={textoSeVendeA({ precio, esNuevo, esMuestra: tipo === "muestra" })}
           precioMasBajo={verMargen && precioMasBajo ? `${soles(precioMasBajo.precio)} en ${precioMasBajo.sede}` : null}
-          costo={costoTotal > 0 ? { total: soles(costoTotal), porPrenda: total > 0 ? soles(unitario) : null } : null}
-          afuera={fasesEncendidas(fases)
-            .filter((f) => f.quien === "servicio")
-            .map((f) => `${faseDe(f.clave).nombre}: ${textoQuien(f, proveedoresServicio, { lista: listaDePrecios, hoy }).replace(/^Afuera · /, "")}`)}
+          costo={
+            costoTotal > 0
+              ? {
+                  total: soles(costoTotal),
+                  porPrenda: total > 0 ? soles(unitario) : null,
+                  partes: partesDelCosto.map((p) => ({ clave: p.clave, nombre: p.nombre, detalle: p.detalle, valor: soles(p.porPrenda) })),
+                }
+              : null
+          }
+          afuera={serviciosSinListar.map((s) => `${s.nombre}: ${s.proveedor ?? "elige a quién"}`)}
           margen={verMargen && semaforo ? { porcentaje: Math.round(semaforo.margen * 100), chip: CHIP_SEMAFORO[semaforo.tono] } : null}
           entrega={fechaCorta(fechaEntrega)}
           notaSinPrecio={

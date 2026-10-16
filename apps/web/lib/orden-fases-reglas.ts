@@ -1,5 +1,4 @@
 import { aCentimos, leerDinero, type LecturaDinero } from "./modelo-nuevo-reglas";
-import { soles } from "./orden-ficha-reglas";
 
 // «Fases y quién las hace», el bloque nuevo de la hoja «Nueva orden de producción» (ADR-0400, decisiones 2, 3 y 5; actividad 2): las reglas
 // puras. Sin React ni Supabase, para que las importen la página (servidor) y el formulario (cliente), y para que la pantalla DIGA qué falta con
@@ -306,15 +305,6 @@ export function avisoMinimo(
   return `${nombre} cobra desde ${s.cantidadMinima} prendas: esta orden lleva ${totalPrendas}`;
 }
 
-/** «Taller» o «Afuera · Confecciones del Norte · S/ 4.50 por prenda» (sin la tarifa si todavía no hay una; «elige a quién» sin proveedor). */
-export function textoQuien(fase: FaseBorrador, proveedores: readonly ProveedorServicio[], ctx?: { lista: readonly TarifaDeLista[]; hoy: string }): string {
-  if (fase.quien !== "servicio") return "Taller";
-  const nombre = proveedores.find((p) => p.id === fase.proveedorId)?.nombre ?? "elige a quién";
-  const s = leerServicio(fase, ctx?.lista ?? [], ctx?.hoy ?? "");
-  const tarifa = s.tarifaPrenda !== null && s.tarifaPrenda > 0 ? ` · ${soles(s.tarifaPrenda)} por prenda` : "";
-  return `Afuera · ${nombre}${tarifa}`;
-}
-
 /** Σ (tarifa × prendas + fijo) de las fases que salen afuera, en soles a dos decimales (`aCentimos` redondea, no cambia de unidad); null si ninguna sale. Una tarifa que aún no se puede leer suma 0: es un estimado. */
 export function costoServiciosEstimado(fases: readonly FaseBorrador[], totalPrendas: number, lista: readonly TarifaDeLista[], hoy: string): number | null {
   let hayServicio = false;
@@ -326,6 +316,34 @@ export function costoServiciosEstimado(fases: readonly FaseBorrador[], totalPren
     total += (s.tarifaPrenda ?? 0) * Math.max(totalPrendas, 0) + s.fijoOrden;
   }
   return hayServicio ? aCentimos(total) : null;
+}
+
+/** Una fase que sale afuera con lo que costaría en TODA la orden y a quién (para repartirlo por prenda en la ficha). */
+export type ServicioConCosto = { clave: FaseClave; nombre: string; proveedor: string | null; costo: number };
+
+/**
+ * Cada fase que sale afuera con su costo de toda la orden (tarifa × prendas + fijo, a dos decimales) y su proveedor, en el orden de la ruta. Es la MISMA cuenta
+ * que `costoServiciosEstimado`, partida fase por fase: la ficha la reparte por prenda para decir cuánto de cada prenda es costura, bordado o lavandería. Una
+ * tarifa que aún no se puede leer cuesta 0 (es un estimado); la ficha no la lista, y el «falta» de la hoja es quien lo dice.
+ */
+export function serviciosConCosto(
+  fases: readonly FaseBorrador[],
+  totalPrendas: number,
+  lista: readonly TarifaDeLista[],
+  hoy: string,
+  proveedores: readonly ProveedorServicio[]
+): ServicioConCosto[] {
+  return fasesEncendidas(fases)
+    .filter((f) => f.quien === "servicio")
+    .map((f) => {
+      const s = leerServicio(f, lista, hoy);
+      return {
+        clave: f.clave,
+        nombre: faseDe(f.clave).nombre,
+        proveedor: proveedores.find((p) => p.id === f.proveedorId)?.nombre ?? null,
+        costo: aCentimos((s.tarifaPrenda ?? 0) * Math.max(totalPrendas, 0) + s.fijoOrden),
+      };
+    });
 }
 
 // ---------- Lo que viaja a la base ----------
