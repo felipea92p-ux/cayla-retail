@@ -1,0 +1,1182 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Resumen · Finanzas · maquetas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="base.css"><style>
+/* Resumen · Finanzas — maqueta. Solo var(--…) de base.css. Prefijos: rs- (común), ra- (A), rb- (B), rc- (C). */
+
+/* ---------- Común ---------- */
+.rs-centro{width:100%;max-width:780px;margin-inline:auto;display:flex;flex-direction:column}
+.rs-sec{display:flex;flex-direction:column;gap:18px}
+.rs-sec-cab{display:flex;flex-direction:column;gap:6px}
+.rs-sec-cab h2{font-size:clamp(26px,3.2vw,32px);line-height:1.1}
+.rs-sec-cab p{font-size:15px;max-width:60ch}
+.rs-avisos{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.rs-aviso{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 18px;align-items:center;padding:16px 0;border-bottom:1px solid var(--sand)}
+.rs-aviso:first-child{border-top:1px solid var(--sand)}
+.rs-aviso h3{font-family:var(--sans);font-size:15px;font-weight:600;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rs-aviso p{font-size:13.5px}
+.rs-aviso .rs-aviso-monto{font-family:var(--serif);font-size:24px;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.rs-aviso .rs-aviso-pie{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.mas{color:var(--verde)}
+.menos{color:var(--ambar)}
+
+/* ---------- A · La respuesta ---------- */
+.ra{display:flex;flex-direction:column;gap:clamp(64px,9vw,112px);padding-bottom:24px}
+.ra-hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding-top:clamp(28px,6vw,72px)}
+.ra-pregunta{font-family:var(--serif);font-style:italic;font-size:clamp(24px,3.2vw,32px);color:var(--taupe)}
+.ra-si{font-size:16px}
+.ra-respuesta{display:flex;flex-direction:column;align-items:center;font-family:var(--serif);line-height:.9;margin:4px 0 6px}
+.ra-te{font-size:clamp(26px,3.4vw,36px)}
+.ra-monto{position:relative;display:inline-block;font-size:clamp(72px,15vw,156px);letter-spacing:-.03em;font-variant-numeric:tabular-nums lining-nums;padding-bottom:14px}
+.ra-subraya{position:absolute;left:2%;right:2%;bottom:0;width:96%;height:16px;overflow:visible}
+.ra-subraya path{fill:none;stroke:var(--verde);stroke-width:3;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.ra-explica{font-size:16.5px;max-width:50ch}
+.ra-cascada{width:100%;text-align:left;padding-top:22px}
+.ra-cae{display:grid;grid-template-columns:minmax(0,240px) minmax(0,1fr) 104px;gap:6px 18px;align-items:center;padding:12px 0;border-bottom:1px solid var(--sand)}
+.ra-cae:last-child{border-bottom:0}
+.ra-cae .ra-cae-n{font-size:14.5px;font-weight:500;line-height:1.3}
+.ra-cae .ra-cae-n small{display:block;font-size:12.5px;font-weight:400;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.ra-cae .ra-cae-v{font-family:var(--serif);font-size:21px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ra-barra{position:relative;height:12px;border-radius:999px;background:var(--hueso)}
+.ra-barra .fantasma{position:absolute;left:0;top:0;bottom:0;width:var(--antes);border-radius:999px;
+  background:repeating-linear-gradient(-45deg,color-mix(in srgb,var(--taupe) 38%,transparent) 0 3px,transparent 3px 7px)}
+.ra-barra .queda{position:absolute;left:0;top:0;bottom:0;width:var(--antes);border-radius:999px;background:var(--tinta);
+  transition:width .85s var(--ease-cayla);transition-delay:calc(var(--i,0) * 150ms + 250ms)}
+.desplegable.abierto .ra-barra .queda{width:var(--despues)}
+.ra-cae.final .queda{background:var(--verde)}
+.ra-cae.final .ra-cae-v{color:var(--verde);font-size:26px}
+.ra-cae .ra-cae-v,.ra-cae .ra-cae-n{opacity:.35;transition:opacity .5s var(--ease-cayla);transition-delay:calc(var(--i,0) * 150ms + 250ms)}
+.desplegable.abierto .ra-cae .ra-cae-v,.desplegable.abierto .ra-cae .ra-cae-n{opacity:1}
+
+.ra-ritmo-frase{font-family:var(--serif);font-size:clamp(24px,3.2vw,34px);line-height:1.2}
+.ra-ritmo-frase b{font-weight:500;font-variant-numeric:tabular-nums}
+.ra-regla-caja{padding:46px 0 34px;position:relative}
+.ra-regla{position:relative;height:14px;border-radius:999px;background:var(--hueso)}
+.ra-regla>i{position:absolute;top:0;bottom:0;display:block}
+.ra-regla>i.base{left:0;width:68.9%;background:var(--tinta);border-radius:999px 0 0 999px}
+.ra-regla>i.sobra{left:68.9%;width:13.1%;background:var(--verde);border-radius:0 999px 999px 0}
+.ra-marca{position:absolute;left:68.9%;top:-12px;bottom:-12px;width:2px;background:var(--taupe);transform:translateX(-1px)}
+.ra-marca span{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12.5px;color:var(--taupe);font-weight:600}
+.ra-tu{position:absolute;left:82%;top:calc(100% + 10px);transform:translateX(-50%);white-space:nowrap;font-size:12.5px;font-weight:600;color:var(--verde)}
+.ra-escala{display:flex;justify-content:space-between;font-size:11.5px;margin-top:40px}
+.ra-cierre{font-family:var(--serif);font-size:clamp(22px,2.6vw,28px);line-height:1.25}
+.ra-cierre b{font-weight:500;font-variant-numeric:tabular-nums}
+
+.ra-medidor{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:clamp(24px,5vw,56px);align-items:center}
+.ra-arco{position:relative}
+.ra-arco svg{width:100%;height:auto;display:block;overflow:visible}
+.ra-arco .pista-arco{fill:none;stroke:var(--hueso);stroke-width:16}
+.ra-arco .lleno{fill:none;stroke-width:16;transition:opacity .25s,stroke-width .25s var(--ease-cayla)}
+.ra-arco .lleno.ok{stroke:var(--verde)}
+.ra-arco .lleno.falta{stroke:var(--ambar)}
+.ra-arco-num{position:absolute;left:0;right:0;bottom:-4px;text-align:center;font-family:var(--serif);font-size:52px;line-height:1;font-variant-numeric:tabular-nums}
+.ra-piezas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.ra-pieza{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 6px;border-bottom:1px solid var(--sand);border-radius:8px;cursor:default;transition:opacity .25s var(--ease-cayla),background .25s}
+.ra-pieza .ico{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;
+  background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c)}
+.ra-pieza .estado{font-size:12.5px;color:var(--c);font-weight:500;text-align:right}
+.ra-pieza small{display:block;font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent);line-height:1.35}
+.apagada{opacity:.3}
+.ra-pieza.foco{background:var(--hueso)}
+
+.ra-lugares{display:flex;flex-direction:column}
+.ra-lugar{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(120px,1.6fr) 112px;gap:8px 20px;align-items:center;padding:16px 8px;border-bottom:1px solid var(--sand);border-radius:10px;transition:background .25s var(--ease-cayla)}
+.ra-lugar:hover{background:color-mix(in srgb,var(--hueso) 65%,transparent)}
+.ra-lugar b{font-weight:600;font-size:15px;display:block}
+.ra-lugar small{font-size:12.5px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.ra-lugar .v{font-family:var(--serif);font-size:23px;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ra-lugar.total{border-bottom:0;border-top:2px solid var(--tinta);border-radius:0;margin-top:-1px}
+.ra-lugar.total:hover{background:transparent}
+.ra-lugar.total .v{font-size:30px}
+.rs-div{position:relative;height:10px;border-radius:999px;background:var(--hueso)}
+.rs-div::before{content:"";position:absolute;left:50%;top:-6px;bottom:-6px;width:1px;background:var(--taupe);opacity:.6}
+.rs-div>i{position:absolute;top:0;bottom:0;display:block;border-radius:999px}
+.rs-div>i.mas{left:50%;background:var(--verde)}
+.rs-div>i.menos{right:50%;background:var(--ambar)}
+
+/* ---------- B · La mesa de trabajo ---------- */
+.rb-filtros{display:inline-flex;flex-wrap:wrap;gap:2px;padding:4px;border-radius:999px;background:var(--hueso);max-width:100%}
+.rb-filtros button{border:0;background:transparent;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;
+  color:color-mix(in srgb,var(--tinta) 72%,transparent);transition:background .28s var(--ease-cayla),color .28s var(--ease-cayla)}
+.rb-filtros button:hover{color:var(--tinta)}
+.rb-filtros button[aria-pressed="true"]{background:var(--tinta);color:var(--crema)}
+.rb-cifra-cab{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rb-cifra-cab .porque{font-size:10.5px}
+.cifra.verde .valor{color:var(--verde)}
+.cifra.ambar .valor{color:var(--ambar)}
+.rb-explica{font-size:12.5px;padding-top:8px}
+.rb-grid{display:grid;gap:14px;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr)}
+@media (max-width:980px){.rb-grid{grid-template-columns:minmax(0,1fr)}}
+.rb-tcab{display:flex;justify-content:space-between;align-items:flex-start;gap:10px 18px;flex-wrap:wrap;margin-bottom:12px}
+.rb-tcab h2{font-size:21px;line-height:1.2}
+.rb-tcab p{font-size:12.5px}
+.rb-leyenda{display:flex;gap:14px;flex-wrap:wrap;font-size:12px}
+.rb-leyenda span{display:inline-flex;align-items:center;gap:6px}
+.rb-leyenda i{display:inline-block;width:16px;height:0;border-top:2.5px solid var(--c)}
+.rb-leyenda i.punteada{border-top-style:dotted}
+.rb-grafico{position:relative;min-width:560px}
+.rb-grafico svg{width:100%;height:auto;display:block;overflow:visible}
+.g-rejilla{stroke:var(--sand);stroke-width:1}
+.g-eje{fill:color-mix(in srgb,var(--tinta) 64%,transparent);font-size:11px;font-family:var(--sans)}
+.g-aniv{fill:color-mix(in srgb,var(--hueso) 80%,transparent)}
+.g-aniv-t{fill:var(--taupe);font-size:10px;letter-spacing:.1em;font-weight:600;font-family:var(--sans)}
+.g-nec{fill:none;stroke:var(--taupe);stroke-width:1.6}
+.g-area{fill:color-mix(in srgb,var(--tinta) 7%,transparent)}
+.g-real{fill:none;stroke:var(--tinta);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.g-proy{fill:none;stroke:var(--verde);stroke-width:2.4;stroke-dasharray:1 6;stroke-linecap:round}
+.g-hoy{fill:var(--tinta);stroke:var(--papel);stroke-width:3}
+.g-cubre{fill:var(--papel);stroke:var(--verde);stroke-width:2}
+.g-txt{font-family:var(--sans);font-size:11.5px;fill:var(--tinta);font-weight:500}
+.g-txt.taupe{fill:var(--taupe)}
+.g-txt.verde{fill:var(--verde)}
+.g-guia{stroke:var(--tinta);stroke-width:1;opacity:0;transition:opacity .15s}
+.g-guia-p{fill:var(--tinta);opacity:0;transition:opacity .15s}
+.rb-grafico.guia .g-guia{opacity:.35}
+.rb-grafico.guia .g-guia-p{opacity:1}
+.rb-tip{position:absolute;top:0;left:0;pointer-events:none;background:var(--tinta);color:var(--crema);font-size:12px;line-height:1.4;padding:8px 11px;border-radius:10px;
+  transform:translate(-50%,calc(-100% - 12px));white-space:nowrap;opacity:0;transition:opacity .15s var(--ease-cayla)}
+.rb-tip b{font-weight:600}
+.rb-grafico.guia .rb-tip{opacity:1}
+.rb-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.rb-mini div{background:var(--hueso);border-radius:10px;padding:10px 12px;font-size:12.5px;min-width:0}
+.rb-mini b{display:block;font-family:var(--serif);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.15}
+@media (max-width:560px){.rb-mini{grid-template-columns:minmax(0,1fr)}}
+.rb-vacio{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:34px 16px 30px}
+.rb-vacio svg{width:72px;height:72px}
+.rb-vacio svg *{fill:none;stroke:var(--taupe);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.rb-vacio h3{font-size:22px}
+.rb-vacio p{font-size:14px;max-width:44ch}
+.rb-vacio.chico{padding:14px 0 6px}
+.rb-vacio.chico h3{font-size:17px}
+.rb-conf-num{display:flex;align-items:baseline;gap:10px}
+.rb-conf-num b{font-family:var(--serif);font-size:40px;font-weight:500;line-height:1;font-variant-numeric:tabular-nums}
+.rb-segs{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin:12px 0 6px}
+.rb-segs span{height:8px;border-radius:999px;background:var(--hueso);overflow:hidden;position:relative}
+.rb-segs span>i{position:absolute;left:0;top:0;bottom:0;display:block;border-radius:999px;background:var(--c)}
+.rb-conf{list-style:none;margin:0;padding:0}
+.rb-conf li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--sand);font-size:13.5px}
+.rb-conf li:last-child{border-bottom:0}
+.rb-tabla td,.rb-tabla th{white-space:nowrap}
+.rb-tabla .rb-fila{cursor:pointer}
+.rb-tabla .rb-fila td:first-child{position:relative}
+.rb-tabla .rb-fila td:first-child::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;border-radius:2px;background:var(--tinta);transform:scaleY(0);transition:transform .3s var(--ease-cayla)}
+.rb-tabla .rb-fila[aria-current="true"] td:first-child::before{transform:scaleY(1)}
+.rb-tabla .rb-fila .flecha{display:inline-block;margin-left:6px;transition:transform .3s var(--ease-cayla);color:var(--taupe)}
+.rb-tabla .rb-fila[aria-expanded="true"] .flecha{transform:rotate(90deg)}
+.rb-tabla .rb-fila[aria-current="true"]{background:color-mix(in srgb,var(--hueso) 55%,transparent)}
+.rb-tabla .rb-detalle td{padding:0;border-bottom:0}
+.rb-tabla .rb-detalle .desplegable.abierto{border-bottom:1px solid var(--sand)}
+.rb-det{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 18px;padding:4px 12px 16px 24px;white-space:normal}
+.rb-det div{font-size:12.5px;display:flex;justify-content:space-between;gap:10px;border-bottom:1px dotted var(--sand);padding:4px 0}
+.rb-det div b{font-weight:500;font-variant-numeric:tabular-nums}
+.rb-det p{grid-column:1/-1;font-size:13px;white-space:normal}
+.rb-tabla tfoot td{font-weight:600;border-bottom:0;border-top:2px solid var(--tinta)}
+.rb-tabla .rs-div{width:140px}
+.rb-tabla td.mas,.rb-tabla td.menos{font-weight:600}
+.rb-apilada{display:flex;height:16px;gap:3px;border-radius:999px;overflow:hidden;margin:6px 0 14px}
+.rb-apilada>i{display:block;height:100%;background:var(--c);transition:opacity .25s var(--ease-cayla)}
+.rb-apilada>i:first-child{border-radius:999px 0 0 999px}
+.rb-apilada>i:last-child{border-radius:0 999px 999px 0}
+.rb-medios li{cursor:default}
+.rb-medios .muestra{display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--c);margin-right:8px;vertical-align:-1px}
+.rb-ppto{display:flex;flex-direction:column;gap:6px;padding:10px 0}
+.rb-ppto-fila{display:flex;justify-content:space-between;gap:10px;font-size:13.5px}
+.rb-ppto .pista{height:10px;overflow:visible}
+.rb-ppto .pista>i{position:relative}
+.rb-tiempo{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--taupe);left:var(--t)}
+.rb-ppto small{font-size:12px}
+
+/* ---------- C · Las cosas de la tienda ---------- */
+.rc-escena{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(260px,1fr);gap:28px;align-items:center}
+@media (max-width:920px){.rc-escena{grid-template-columns:minmax(0,1fr)}}
+.rc-balanza svg{width:100%;height:auto;display:block}
+.b-mesa{stroke:var(--sand);stroke-width:2;fill:none}
+.b-metal{fill:var(--tinta)}
+.b-escala{fill:none;stroke:var(--taupe);stroke-width:1.2}
+.b-fiel{stroke:var(--rojo-p);stroke-width:3;stroke-linecap:round}
+.b-pivote{fill:var(--papel);stroke:var(--tinta);stroke-width:2.5}
+.b-gancho{fill:var(--papel);stroke:var(--tinta);stroke-width:2}
+.b-hilo{stroke:var(--taupe);stroke-width:1.3}
+.b-plato{fill:var(--hueso);stroke:var(--taupe);stroke-width:1.5}
+.b-bolsa{fill:color-mix(in srgb,var(--taupe) 38%,var(--papel));stroke:var(--taupe);stroke-width:1.6}
+.b-bolsa-nudo{fill:var(--taupe)}
+.b-bolsa-txt{fill:var(--tinta);font-family:var(--serif);text-anchor:middle}
+.b-pesa{fill:var(--tinta);transition:fill .25s var(--ease-cayla)}
+.b-pesa-g{cursor:default}
+.b-pesa-g:hover .b-pesa,.b-pesa-g.foco .b-pesa{fill:var(--taupe)}
+.b-pesa-raya{stroke:var(--crema);stroke-width:1;opacity:.28}
+.b-pesa-asa{fill:none;stroke:var(--tinta);stroke-width:3}
+.b-pesa-txt{fill:var(--crema);font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.06em;text-anchor:middle;text-transform:uppercase}
+.b-rotulo{fill:var(--taupe);font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.12em;text-anchor:middle}
+.rc-narra h2{font-size:24px;line-height:1.15}
+.rc-queda{font-size:14px;margin-top:6px}
+.rc-queda b{font-family:var(--serif);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.rc-pasos{list-style:none;margin:14px 0 0;padding:0}
+.rc-pasos li{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:9px 6px;border-bottom:1px solid var(--sand);border-radius:8px;
+  opacity:.3;transform:translateX(6px);transition:opacity .45s var(--ease-cayla),transform .45s var(--ease-cayla),background .25s}
+.rc-pasos li.hecho{opacity:1;transform:none}
+.rc-pasos li.foco{background:var(--hueso)}
+.rc-pasos li .s{font-weight:600;color:var(--taupe);text-align:center}
+.rc-pasos li span{font-size:14px;line-height:1.3}
+.rc-pasos li small{display:block;font-size:12px;color:color-mix(in srgb,var(--tinta) 66%,transparent)}
+.rc-pasos li b{font-weight:500;font-variant-numeric:tabular-nums;font-size:14px}
+.rc-resultado{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;opacity:0;transform:translateY(12px);transition:opacity .7s var(--ease-cayla),transform .7s var(--ease-cayla)}
+.rc-resultado.visible{opacity:1;transform:none}
+.rc-resultado .grande{font-family:var(--serif);font-size:clamp(44px,8vw,76px);line-height:1;color:var(--verde);font-variant-numeric:tabular-nums}
+.rc-resultado .te{font-family:var(--serif);font-size:24px}
+.rc-botones{display:flex;gap:16px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:12px}
+.rc-cinta-caja{min-width:600px;max-width:880px;margin-inline:auto}
+.rc-cinta svg{width:100%;height:auto;display:block;overflow:visible}
+.c-cinta{fill:color-mix(in srgb,var(--ambar) 16%,var(--papel));stroke:color-mix(in srgb,var(--ambar) 45%,transparent);stroke-width:1}
+.c-raya{stroke:color-mix(in srgb,var(--tinta) 55%,transparent);stroke-width:1}
+.c-num{fill:color-mix(in srgb,var(--tinta) 70%,transparent);font-family:var(--sans);font-size:10px;text-anchor:middle}
+.c-hilo{fill:none;stroke:var(--tinta);stroke-width:3;stroke-linecap:round}
+.c-hilo-sobra{fill:none;stroke:var(--verde);stroke-width:3;stroke-linecap:round}
+.c-alfiler-palo{stroke:var(--taupe);stroke-width:1.6}
+.c-alfiler{fill:var(--taupe)}
+.c-aguja{fill:none;stroke:var(--tinta);stroke-width:1.6}
+.c-txt{font-family:var(--sans);font-size:12px;font-weight:600;fill:var(--taupe)}
+.c-txt.verde{fill:var(--verde)}
+.rc-tiendas{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));gap:14px}
+.rc-tienda{background:var(--papel);border:1px solid var(--sand);border-radius:var(--radio);padding:14px 14px 16px;display:flex;flex-direction:column;gap:4px;
+  transition:transform .3s var(--ease-cayla),border-color .3s var(--ease-cayla)}
+.rc-tienda:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--taupe) 45%,var(--sand))}
+.rc-tienda svg{width:100%;height:auto;display:block;margin-bottom:6px;overflow:visible}
+.rc-tienda h3{font-size:20px}
+.rc-tienda .deja{font-family:var(--serif);font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+.rc-tienda p{font-size:12.5px;line-height:1.4}
+.t-suelo{stroke:var(--sand);stroke-width:2;fill:none}
+.t-cuerpo{fill:var(--papel);stroke:var(--tinta);stroke-width:1.5}
+.t-cornisa{fill:var(--tinta)}
+.t-nombre{fill:var(--crema);font-family:var(--sans);font-size:9px;font-weight:600;letter-spacing:.18em;text-anchor:middle}
+.t-raya1{fill:var(--taupe)}
+.t-raya2{fill:var(--papel);stroke:var(--taupe);stroke-width:.8}
+.t-vitrina{fill:var(--hueso);stroke:var(--tinta);stroke-width:1.2}
+.t-prenda{fill:var(--taupe)}
+.t-gancho{fill:none;stroke:var(--tinta);stroke-width:1}
+.t-puerta{fill:var(--sand);stroke:var(--tinta);stroke-width:1.2;transform-box:fill-box;transform-origin:left center;transition:transform .45s var(--ease-cayla)}
+.rc-tienda:hover .t-puerta{transform:scaleX(.35)}
+.t-papel{fill:var(--papel);stroke:var(--taupe);stroke-width:.8}
+.t-papel-txt{fill:var(--taupe);font-family:var(--serif);font-size:10px;text-anchor:middle;font-style:italic}
+.t-ventana{fill:var(--hueso);stroke:var(--tinta);stroke-width:1}
+.t-hilo{stroke:var(--taupe);stroke-width:1}
+.t-carrete{fill:var(--taupe)}
+.t-etiq-hilo{stroke:var(--tinta);stroke-width:1}
+.t-etiq.mas{fill:var(--verde)}
+.t-etiq.menos{fill:var(--ambar)}
+.t-etiq-hueco{fill:var(--papel)}
+.t-etiq-txt{fill:var(--crema);font-family:var(--sans);font-size:12px;font-weight:700;text-anchor:middle}
+.animar .t-cuelga{animation:rc-cuelga 1s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0) * 90ms + 600ms)}
+@keyframes rc-cuelga{from{opacity:0;transform:rotate(-24deg)}}
+.rc-total-tiendas{display:flex;justify-content:center;align-items:baseline;gap:12px;flex-wrap:wrap;font-size:15px;text-align:center}
+.rc-total-tiendas b{font-family:var(--serif);font-size:30px;font-weight:500;color:var(--verde);font-variant-numeric:tabular-nums}
+.rc-sellos{display:flex;flex-wrap:wrap;gap:18px;justify-content:center}
+.rc-sello{width:112px;height:112px;border-radius:50%;border:2px solid currentColor;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  gap:2px;padding:14px;position:relative;color:var(--verde);transform:rotate(var(--r,0deg))}
+.rc-sello::before{content:"";position:absolute;inset:5px;border-radius:50%;border:1px dashed currentColor;opacity:.55}
+.rc-sello.falta{color:var(--ambar)}
+.rc-sello b{font-family:var(--serif);font-size:26px;font-weight:500;line-height:1}
+.rc-sello span{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;line-height:1.2}
+.rc-sello small{font-size:10.5px;line-height:1.2}
+.rc-talones{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.rc-talon{position:relative;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:16px 16px 16px 30px;display:flex;flex-direction:column;gap:6px;
+  transition:transform .3s var(--ease-cayla)}
+.rc-talon:hover{transform:translateY(-2px) rotate(-.4deg)}
+.rc-talon::before{content:"";position:absolute;left:16px;top:12px;bottom:12px;border-left:2px dashed var(--sand)}
+.rc-talon .monto{font-family:var(--serif);font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
+.rc-talon h3{font-family:var(--sans);font-size:14.5px;font-weight:600}
+.rc-talon p{font-size:13px}
+
+/* ---------- Celular ---------- */
+@media (max-width:640px){
+  .ra-cae{grid-template-columns:minmax(0,1fr) auto}
+  .ra-cae .ra-barra{grid-column:1/-1;order:3}
+  .ra-medidor{grid-template-columns:minmax(0,1fr)}
+  .ra-arco{max-width:280px;margin-inline:auto;width:100%}
+  .ra-lugar{grid-template-columns:minmax(0,1fr) auto}
+  .ra-lugar .rs-div{grid-column:1/-1;order:3}
+  .rs-aviso .rs-aviso-monto{font-size:20px}
+  .ra-tu{left:auto;right:0;transform:none}
+}
+</style></head><body>
+<header class="mq-barra"><a class="mq-volver" href="index.html" aria-label="Volver a las maquetas"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 3 5 8l5 5"/></svg></a>
+<div class="mq-titulo"><span class="versalita">Finanzas · maquetas</span><b>Resumen</b></div><span class="mq-espacio"></span>
+<div class="mq-selector" role="group" aria-label="Camino"><button data-ver="a">A · La respuesta</button><button data-ver="b">B · La mesa</button><button data-ver="c">C · Las cosas</button></div>
+<span class="mq-ejemplo">Cifras de ejemplo</span><button class="mq-tema" type="button">Oscuro</button></header>
+<main class="pagina">
+
+<!-- =====================================================================
+     A · LA RESPUESTA
+     ===================================================================== -->
+<section class="variante" data-variante="a">
+  <div class="variante-cab"><span class="versalita">Camino A · La respuesta</span><p class="idea tenue">Una pregunta y una respuesta grande. Lo demás aparece en capas, cuando preguntas «¿por qué?».</p></div>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div>
+      <div class="linea-sede"><span class="versalita">Todas las sedes · jueves 15 de octubre</span></div>
+      <h1>Resumen</h1>
+      <p class="frase tenue">Cómo va el negocio este mes, en una sola respuesta.</p>
+    </div>
+  </div>
+
+  <div class="ra">
+    <!-- La respuesta -->
+    <div class="rs-centro ra-hero">
+      <p class="ra-pregunta" data-entra style="--i:1">¿Estoy ganando plata?</p>
+      <p class="ra-si" data-entra style="--i:2"><span class="chip c-verde">Sí</span>&nbsp; En lo que va de octubre,</p>
+      <p class="ra-respuesta" data-sube style="--i:3">
+        <span class="ra-te">te quedan</span>
+        <span class="ra-monto"><span data-cuenta="3850" data-pre="S/ " data-dur="1500">S/ 3,850</span>
+          <svg class="ra-subraya" viewBox="0 0 300 16" preserveAspectRatio="none" aria-hidden="true"><path data-dibuja pathLength="1" style="--i:8" d="M4 11 C 80 4, 200 3, 296 9"/></svg>
+        </span>
+      </p>
+      <p class="ra-explica tenue" data-entra style="--i:5">De los S/ 46,900 que vendiste, esto es lo que queda tuyo después de pagar la ropa, las máquinas de tarjeta, los sueldos, los locales y los servicios de estos 15 días.</p>
+      <div data-entra style="--i:6"><button class="porque" type="button" data-porque="ra-cascada" aria-expanded="false" aria-controls="ra-cascada">¿Por qué S/ 3,850?</button></div>
+      <div class="desplegable" id="ra-cascada" style="width:100%"><div><div class="ra-cascada" id="ra-cascada-filas"></div></div></div>
+    </div>
+
+    <!-- El ritmo -->
+    <section class="rs-centro rs-sec" aria-labelledby="ra-t-ritmo">
+      <div class="rs-sec-cab" data-entra style="--i:7">
+        <span class="versalita">Tu ritmo</span>
+        <h2 id="ra-t-ritmo" class="ra-ritmo-frase">Vas en <b>S/ 3,690</b> al día.<br><span class="tenue">Necesitas <b>S/ 3,100</b> para cubrir el mes.</span></h2>
+      </div>
+      <div class="ra-regla-caja" data-entra style="--i:8">
+        <div class="ra-regla" data-crece role="img" aria-label="Vas en 3,690 soles al día; necesitas 3,100. Te sobran 590 al día.">
+          <i class="base" style="--i:0"></i><i class="sobra" style="--i:5"></i>
+          <span class="ra-marca"><span>Necesitas 3,100</span></span>
+          <span class="ra-tu">Tú: 3,690 · sobran 590</span>
+        </div>
+        <div class="ra-escala tenue num"><span>S/ 0</span><span>S/ 1,500</span><span>S/ 3,000</span><span>S/ 4,500 al día</span></div>
+      </div>
+      <p class="ra-cierre" data-entra style="--i:9">Si sigues así, cierras octubre con <b class="mas">≈ <span data-cuenta="7950" data-pre="S/ " data-dur="1600">S/ 7,950</span></b>.</p>
+      <p class="tenue" data-entra style="--i:10">El martes 27 ya habrás cubierto todo lo de octubre; desde ahí, casi todo lo que vendes es tuyo. <span style="white-space:nowrap">(Con IGV, como entra a tu caja.)</span></p>
+    </section>
+
+    <!-- Qué tan seguro -->
+    <section class="rs-centro rs-sec" aria-labelledby="ra-t-seguro">
+      <div class="rs-sec-cab" data-entra style="--i:11">
+        <span class="versalita">Qué tan seguro es este número</span>
+        <h2 id="ra-t-seguro">Casi todo está confirmado.</h2>
+        <p class="tenue">Tres cosas todavía no llegan. Cuando lleguen, los S/ 3,850 pueden moverse un poco, no mucho.</p>
+      </div>
+      <div class="ra-medidor" id="ra-medidor" data-entra style="--i:12">
+        <div class="ra-arco">
+          <svg id="ra-arco" viewBox="0 0 240 132" role="img" aria-label="Seguro al 86 por ciento"></svg>
+          <div class="ra-arco-num"><span data-cuenta="86" data-suf=" %" data-dur="1400">86 %</span></div>
+        </div>
+        <ul class="ra-piezas" id="ra-piezas"></ul>
+      </div>
+    </section>
+
+    <!-- Qué deja cada lugar -->
+    <section class="rs-centro rs-sec" aria-labelledby="ra-t-lugares">
+      <div class="rs-sec-cab" data-entra style="--i:13">
+        <span class="versalita">Qué deja cada lugar</span>
+        <h2 id="ra-t-lugares">Trujillo y Arequipa cargan el mes.</h2>
+        <p class="tenue">Cada lugar, después de pagar lo que él mismo causa. Lima todavía no abre y el Taller tuvo horas sin usar.</p>
+      </div>
+      <div class="ra-lugares" id="ra-lugares"></div>
+    </section>
+
+    <!-- Antes de irte -->
+    <section class="rs-centro rs-sec" aria-labelledby="ra-t-hoy">
+      <div class="rs-sec-cab" data-entra style="--i:20">
+        <span class="versalita">Antes de irte</span>
+        <h2 id="ra-t-hoy">Tres cosas para decidir esta semana.</h2>
+      </div>
+      <ul class="rs-avisos" data-entra style="--i:21">
+        <li class="rs-aviso">
+          <div><h3>Textiles del Norte <span class="chip late c-rojo">vence el lunes 19</span></h3><p class="tenue">Su factura de tela. Si la pagas tarde, pierdes el precio que te dieron.</p></div>
+          <span class="rs-aviso-monto">S/ 6,800</span>
+        </li>
+        <li class="rs-aviso">
+          <div><h3>SUNAT <span class="chip c-ambar">vence el martes 20</span></h3><p class="tenue">De lo que vendiste en septiembre, S/ 9,290 no es tuyo: es el IGV y la renta del mes.</p></div>
+          <span class="rs-aviso-monto">S/ 9,290</span>
+        </li>
+        <li class="rs-aviso">
+          <div><h3>Tu caja baja el 31 <span class="chip c-ambar">en 16 días</span></h3><p class="tenue">Ese día pagas sueldos y alquileres, y quedas en S/ 11,200: debajo de tu mínimo de S/ 15,000. Depositar las cajas fuertes (S/ 10,100) lo evita.</p></div>
+          <span class="rs-aviso-monto">S/ 11,200</span>
+        </li>
+      </ul>
+    </section>
+  </div>
+</section>
+
+<!-- =====================================================================
+     B · LA MESA DE TRABAJO
+     ===================================================================== -->
+<section class="variante" data-variante="b" hidden>
+  <div class="variante-cab"><span class="versalita">Camino B · La mesa de trabajo</span><p class="idea tenue">Todo el mes a la vista: cifras, el ritmo día a día, cada lugar y cómo te pagan. Los filtros cambian todo a la vez.</p></div>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div>
+      <div class="linea-sede"><span class="versalita" id="rb-sede">Todas las sedes · jueves 15 de octubre</span></div>
+      <h1>Resumen</h1>
+      <p class="frase tenue">Octubre del 1 al 15: lo que vendiste, lo que costó y lo que te queda.</p>
+    </div>
+    <div class="rb-filtros" role="group" aria-label="Ver" id="rb-filtros">
+      <button type="button" data-k="todas" aria-pressed="true">Todas</button>
+      <button type="button" data-k="tru" aria-pressed="false">TRU</button>
+      <button type="button" data-k="aqp" aria-pressed="false">AQP</button>
+      <button type="button" data-k="lim" aria-pressed="false">LIM</button>
+      <button type="button" data-k="taller" aria-pressed="false">Taller</button>
+    </div>
+  </div>
+
+  <div class="rejilla r4" id="rb-cifras">
+    <div class="cifra" data-entra style="--i:1">
+      <span class="versalita">Vendido</span>
+      <span class="valor" id="rb-v-vendido" data-cuenta="46900" data-pre="S/ ">S/ 46,900</span>
+      <span class="pie" id="rb-p-vendido">636 ventas · sin IGV</span>
+    </div>
+    <div class="cifra" data-entra style="--i:2">
+      <div class="rb-cifra-cab"><span class="versalita">Margen</span><button class="porque" type="button" data-porque="rb-q-margen" aria-expanded="false">¿Qué es?</button></div>
+      <span class="valor" id="rb-v-margen" data-cuenta="52" data-suf=" %">52 %</span>
+      <span class="pie" id="rb-p-margen">S/ 24,400 después de pagar la ropa</span>
+      <div class="desplegable" id="rb-q-margen"><div><p class="rb-explica tenue">De cada S/ 100 que vendes, quedan S/ 52 después de pagar lo que te costaron esas prendas. Con eso se pagan los sueldos, los locales y lo demás.</p></div></div>
+    </div>
+    <div class="cifra" data-entra style="--i:3">
+      <span class="versalita">Gastos del mes</span>
+      <span class="valor" id="rb-v-gastos" data-cuenta="20030" data-pre="S/ ">S/ 20,030</span>
+      <span class="pie" id="rb-p-gastos">15 de 31 días · más S/ 520 de comisiones</span>
+    </div>
+    <div class="cifra verde" id="rb-c-deja" data-entra style="--i:4">
+      <span class="versalita" id="rb-l-deja">Te quedan</span>
+      <span class="valor" id="rb-v-deja" data-cuenta="3850" data-pre="S/ ">S/ 3,850</span>
+      <span class="pie" id="rb-p-deja">Al 31, si sigues así: ≈ S/ 7,950</span>
+    </div>
+  </div>
+
+  <div class="rb-grid">
+    <div class="tarjeta" data-entra style="--i:5">
+      <div class="rb-tcab">
+        <div><h2>Venta acumulada contra lo necesario</h2><p class="tenue">Con IGV, día por día. Pasa el mouse por la línea.</p></div>
+        <div class="rb-leyenda" aria-hidden="true">
+          <span><i style="--c:var(--tinta)"></i>Vendido</span>
+          <span><i style="--c:var(--taupe)"></i>Lo necesario</span>
+          <span><i class="punteada" style="--c:var(--verde)"></i>Si sigues así</span>
+        </div>
+      </div>
+      <div id="rb-zona-grafico"></div>
+      <div class="rb-mini" id="rb-mini"></div>
+    </div>
+
+    <div class="tarjeta" data-entra style="--i:6">
+      <div class="rb-tcab" style="margin-bottom:4px">
+        <div><h2>Qué tan seguro es</h2><p class="tenue">Las 6 piezas que arman el resultado.</p></div>
+      </div>
+      <div class="rb-conf-num"><b data-cuenta="86" data-suf=" %">86 %</b><span class="tenue" style="font-size:13px">confirmado</span></div>
+      <div class="rb-segs" id="rb-segs" aria-hidden="true"></div>
+      <ul class="rb-conf" id="rb-conf"></ul>
+    </div>
+  </div>
+
+  <div class="tarjeta" data-entra style="--i:7">
+    <div class="rb-tcab">
+      <div><h2>Qué deja cada lugar</h2><p class="tenue">Después de pagar lo que cada uno causa. Toca una fila para ver de dónde sale.</p></div>
+    </div>
+    <div class="desliza">
+      <table class="tabla rb-tabla" id="rb-tabla">
+        <thead><tr><th>Lugar</th><th class="m">Vendido</th><th class="m">Margen</th><th class="m">Gastos y comisiones</th><th class="m">Deja</th><th aria-label="Barra de lo que deja"></th></tr></thead>
+        <tbody id="rb-tbody"></tbody>
+        <tfoot><tr><td>Total</td><td class="m">46,900</td><td class="m">24,400 <span class="tenue">· 52 %</span></td><td class="m">20,550</td><td class="m mas">+3,850</td><td></td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="rejilla r2">
+    <div class="tarjeta" data-entra style="--i:8">
+      <div class="rb-tcab"><div><h2>Cómo te pagaron</h2><p class="tenue" id="rb-medios-sub">Con IGV · S/ 55,340 en 636 ventas · ticket promedio S/ 87</p></div></div>
+      <div id="rb-medios"></div>
+    </div>
+    <div class="tarjeta" data-entra style="--i:9">
+      <div class="rb-tcab"><div><h2>Para decidir hoy</h2><p class="tenue">De toda CAYLA. Primero lo que más cuesta si se deja pasar.</p></div></div>
+      <ul class="rs-avisos">
+        <li class="rs-aviso">
+          <div><h3>Textiles del Norte <span class="chip late c-rojo">vence en 4 días</span></h3><p class="tenue">Factura de tela, una de 3 por pagar (S/ 14,600 en total).</p></div>
+          <span class="rs-aviso-monto">S/ 6,800</span>
+        </li>
+        <li class="rs-aviso">
+          <div><h3>SUNAT de septiembre <span class="chip c-ambar">martes 20</span></h3><p class="tenue">IGV S/ 8,400 + pago a cuenta de renta S/ 890.</p></div>
+          <span class="rs-aviso-monto">S/ 9,290</span>
+        </li>
+        <li class="rs-aviso">
+          <div><h3>Caja bajo tu mínimo el 31 <span class="chip c-ambar">3 días</span></h3><p class="tenue">Bajas a S/ 11,200 (mínimo S/ 15,000). Deposita las cajas fuertes: S/ 10,100.</p></div>
+          <span class="rs-aviso-monto">S/ 11,200</span>
+        </li>
+      </ul>
+      <div style="margin-top:16px">
+        <span class="versalita">Presupuesto de octubre</span>
+        <div class="rb-ppto">
+          <div class="rb-ppto-fila"><span>Venta (con IGV)</span><span class="num">55,340 <span class="tenue">de 104,000</span></span></div>
+          <div class="pista" data-crece><i style="--w:53%;--c:var(--verde)"></i><span class="rb-tiempo" style="--t:48%" title="Pasó el 48 % del mes"></span></div>
+          <small class="tenue">53 % de la meta con el 48 % del mes: vas adelantado.</small>
+        </div>
+        <div class="rb-ppto">
+          <div class="rb-ppto-fila"><span>Gastos</span><span class="num">20,030 <span class="tenue">de 41,400</span></span></div>
+          <div class="pista" data-crece><i style="--w:48%;--c:var(--tinta);--i:2"></i><span class="rb-tiempo" style="--t:48%" title="Pasó el 48 % del mes"></span></div>
+          <small class="tenue">48 % del tope con el 48 % del mes: justo en su línea.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     C · LAS COSAS DE LA TIENDA
+     ===================================================================== -->
+<section class="variante" data-variante="c" hidden>
+  <div class="variante-cab"><span class="versalita">Camino C · Las cosas de la tienda</span><p class="idea tenue">Una balanza de mercado: en un platillo cae lo que vendiste; en el otro, una por una, las pesas de lo que costó.</p></div>
+
+  <div class="encabezado" data-entra style="--i:0">
+    <div>
+      <div class="linea-sede"><span class="versalita">Todas las sedes · jueves 15 de octubre</span></div>
+      <h1>Resumen</h1>
+      <p class="frase tenue">Lo que vendiste en un platillo; lo que costó, en el otro. Hacia donde se inclina, está la respuesta.</p>
+    </div>
+  </div>
+
+  <div class="tarjeta" data-entra style="--i:1">
+    <div class="rc-escena">
+      <div class="rc-balanza">
+        <svg id="rc-svg" viewBox="0 0 800 470" role="img" aria-label="Balanza: lo que vendiste, 46,900 soles, pesa más que lo que costó, 43,050. Te quedan 3,850.">
+          <line class="b-mesa" x1="40" y1="452" x2="760" y2="452"/>
+          <path class="b-escala" d="M 352 72 A 70 70 0 0 1 448 72"/>
+          <g class="b-escala"><line x1="400" y1="44" x2="400" y2="52"/><line x1="376" y1="49" x2="378" y2="56"/><line x1="424" y1="49" x2="422" y2="56"/></g>
+          <path class="b-metal" d="M 334 452 L 466 452 L 436 412 L 364 412 Z"/>
+          <rect class="b-metal" x="393" y="122" width="14" height="292" rx="3"/>
+          <g id="rc-izq">
+            <line class="b-hilo" x1="0" y1="0" x2="-90" y2="200"/><line class="b-hilo" x1="0" y1="0" x2="90" y2="200"/>
+            <g id="rc-bolsa"><g transform="translate(0 200) scale(1.32) translate(0 -200)">
+              <path class="b-bolsa" d="M -52 200 C -70 160 -64 128 -34 110 L -20 103 C -8 108 8 108 20 103 L 34 110 C 64 128 70 160 52 200 Z"/>
+              <ellipse class="b-bolsa-nudo" cx="0" cy="102" rx="19" ry="5"/>
+              <text class="b-bolsa-txt" x="0" y="160" font-size="30">S/</text>
+              <text class="b-bolsa-txt" x="0" y="184" font-size="17">46,900</text>
+            </g></g>
+            <path class="b-plato" d="M -96 200 L 96 200 Q 74 220 0 220 Q -74 220 -96 200 Z"/>
+            <text class="b-rotulo" x="0" y="244">LO QUE VENDISTE</text>
+          </g>
+          <g id="rc-der">
+            <line class="b-hilo" x1="0" y1="0" x2="-90" y2="200"/><line class="b-hilo" x1="0" y1="0" x2="90" y2="200"/>
+            <g id="rc-pesas"></g>
+            <path class="b-plato" d="M -96 200 L 96 200 Q 74 220 0 220 Q -74 220 -96 200 Z"/>
+            <text class="b-rotulo" x="0" y="244">LO QUE COSTÓ</text>
+          </g>
+          <g id="rc-cruz">
+            <line class="b-fiel" x1="400" y1="120" x2="400" y2="58"/>
+            <rect class="b-metal" x="148" y="114" width="504" height="12" rx="6"/>
+            <circle class="b-gancho" cx="160" cy="120" r="7"/><circle class="b-gancho" cx="640" cy="120" r="7"/>
+          </g>
+          <circle class="b-pivote" cx="400" cy="120" r="12"/>
+        </svg>
+      </div>
+      <div class="rc-narra">
+        <span class="versalita">Lo que pasa en la balanza</span>
+        <h2>Vendiste más de lo que costó.</h2>
+        <p class="rc-queda tenue">En la balanza te quedan <b id="rc-queda">S/ 46,900</b></p>
+        <ol class="rc-pasos" id="rc-pasos"></ol>
+      </div>
+    </div>
+    <div class="rc-resultado" id="rc-resultado" aria-live="polite">
+      <span class="te">Te quedan</span>
+      <span class="grande" id="rc-final">S/ 3,850</span>
+      <span class="tenue">en lo que va de octubre. La balanza se inclina hacia lo que vendiste.</span>
+    </div>
+    <div class="rc-botones">
+      <button class="btn sutil" type="button" id="rc-otra">Ver otra vez</button>
+      <button class="porque" type="button" data-porque="rc-porque" aria-expanded="false" aria-controls="rc-porque">¿Por qué?</button>
+    </div>
+    <div class="desplegable" id="rc-porque"><div>
+      <div class="nota" style="margin-top:16px">
+        <p><b>Cómo leer la balanza.</b> En el platillo de la izquierda está todo lo que vendiste del 1 al 15, sin el IGV (ese pedazo es de SUNAT, no tuyo). En el de la derecha cae una pesa por cada cosa que te costó vender: la ropa, lo que cobran las máquinas de tarjeta, los sueldos y los locales de estos 15 días, los servicios y el desgaste de tus máquinas y muebles. Mientras la izquierda pese más, estás ganando. La diferencia es lo que te queda: S/ 3,850.</p>
+        <p style="margin-top:8px" class="tenue">La pesa de la ropa todavía no está pesada del todo: S/ 2,700 de ella es un costo estimado, de prendas que se vendieron sin registrar.</p>
+      </div>
+    </div></div>
+  </div>
+
+  <section class="rs-sec" aria-labelledby="rc-t-ritmo">
+    <div class="rs-sec-cab" data-entra style="--i:2">
+      <span class="versalita">La cinta del día</span>
+      <h2 id="rc-t-ritmo">Cada día vendes S/ 3,690. Te basta con S/ 3,100.</h2>
+      <p class="tenue">El alfiler marca lo que necesitas al día para cubrir el mes; el hilo, lo que vas vendiendo. Cada día te sobran S/ 590: si sigues así, cierras octubre con ≈ S/ 7,950. (Con IGV, como entra a tu caja.)</p>
+    </div>
+    <div class="tarjeta rc-cinta" data-entra style="--i:3"><div class="desliza"><div class="rc-cinta-caja"><svg id="rc-cinta" viewBox="0 0 720 128" role="img" aria-label="Cinta de 0 a 4,500 soles al día: el alfiler en 3,100 y el hilo llega a 3,690."></svg></div></div></div>
+  </section>
+
+  <section class="rs-sec" aria-labelledby="rc-t-tiendas">
+    <div class="rs-sec-cab" data-entra style="--i:4">
+      <span class="versalita">Qué deja cada lugar</span>
+      <h2 id="rc-t-tiendas">Dos tiendas cargan el mes; tres esperan.</h2>
+      <p class="tenue">La etiqueta de cada una dice si dejó plata o si costó. Pasa el mouse: la puerta se abre.</p>
+    </div>
+    <div class="rc-tiendas" id="rc-tiendas"></div>
+    <p class="rc-total-tiendas" data-entra style="--i:10"><span>Todo junto:</span><b>+ S/ 3,850</b><span class="tenue">lo mismo que dice la balanza.</span></p>
+  </section>
+
+  <section class="rs-sec" aria-labelledby="rc-t-sellos">
+    <div class="rs-sec-cab" data-entra style="--i:11">
+      <span class="versalita">¿Está bien pesada?</span>
+      <h2 id="rc-t-sellos">Seguro al 86 %: tres sellos todavía esperan.</h2>
+      <p class="tenue">Cada sello es una pieza del resultado. Cuando lleguen los depósitos y revises las facturas, la balanza puede moverse un poco.</p>
+    </div>
+    <div class="rc-sellos" id="rc-sellos"></div>
+  </section>
+
+  <section class="rs-sec" aria-labelledby="rc-t-talones">
+    <div class="rs-sec-cab" data-entra style="--i:18">
+      <span class="versalita">Antes de irte</span>
+      <h2 id="rc-t-talones">Tres papelitos para esta semana.</h2>
+    </div>
+    <div class="rc-talones">
+      <article class="rc-talon" data-entra style="--i:19"><span class="chip late c-ambar" style="align-self:flex-start">vence el lunes 19</span><span class="monto">S/ 6,800</span><h3>Pagar a Textiles del Norte</h3><p class="tenue">La factura de la tela. A tiempo, conservas el precio que te dieron.</p></article>
+      <article class="rc-talon" data-entra style="--i:20"><span class="chip c-ambar" style="align-self:flex-start">vence el martes 20</span><span class="monto">S/ 9,290</span><h3>Pagar a SUNAT</h3><p class="tenue">De lo que vendiste en septiembre, esto no es tuyo: es el IGV y la renta.</p></article>
+      <article class="rc-talon" data-entra style="--i:21"><span class="chip c-ambar" style="align-self:flex-start">el 31 de octubre</span><span class="monto">S/ 11,200</span><h3>Tu caja baja de tu mínimo</h3><p class="tenue">Por 3 días. Depositar las cajas fuertes (S/ 10,100) lo evita.</p></article>
+    </div>
+  </section>
+</section>
+
+</main><script src="base.js"></script><script>
+/* Resumen · maqueta — lo propio de esta página. Cifras: la historia del README (octubre 2026, día 15). */
+(function () {
+  "use strict";
+  var reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var NS = "http://www.w3.org/2000/svg";
+  var mil = function (n) { return Math.round(Math.abs(n)).toLocaleString("es-PE"); };
+  var soles = function (n) { return (n < 0 ? "− " : "") + "S/ " + mil(n); };
+  var conSigno = function (n) { return (n < 0 ? "− " : "+ ") + "S/ " + mil(n); };
+  var $ = function (s) { return document.querySelector(s); };
+
+  /* ---------------- Datos de la historia ---------------- */
+  var VENTA = 46900;
+  var PASOS = [
+    { k: "venta", n: "Lo que vendiste", d: "Sin el IGV, que es de SUNAT", v: 46900 },
+    { k: "ropa", n: "La ropa que vendiste", d: "Lo que te costaron esas prendas (S/ 2,700 es estimado)", v: 22500, corto: "Ropa" },
+    { k: "comisiones", n: "Las máquinas de tarjeta", d: "Lo que cobran Izipay y Vendemás por cada pago", v: 520 },
+    { k: "sueldos", n: "Sueldos", d: "15 días de planilla (S/ 25,400 al mes)", v: 12290, corto: "Sueldos" },
+    { k: "alquileres", n: "Locales", d: "15 días de alquiler de los 4 locales", v: 6050, corto: "Locales" },
+    { k: "servicios", n: "Servicios y otros", d: "Luz, agua, internet, contador, publicidad", v: 1250 },
+    { k: "desgaste", n: "Desgaste de máquinas y muebles", d: "Lo que pierden de valor cada mes", v: 440 }
+  ];
+  var PIEZAS = [
+    { n: "Ventas", e: "Completas", f: 1, d: "Las 636 ventas tienen su comprobante." },
+    { n: "Costo de la ropa", e: "12 % estimado", f: 0.88, d: "S/ 2,700 se vendió sin prenda registrada: va con costo estimado." },
+    { n: "Sueldos", e: "De Dynamic", f: 1, d: "Leídos de la planilla." },
+    { n: "Alquileres", e: "4 de 4", f: 1, d: "Los cuatro locales, registrados." },
+    { n: "Comisiones", e: "Faltan 2 depósitos", f: 0.7, d: "Izipay y Vendemás aún no depositan lunes y martes." },
+    { n: "Facturas de proveedor", e: "3 por revisar", f: 0.58, d: "SUNAT trajo 3 facturas que todavía no confirmas." }
+  ];
+  var LUGARES = [
+    { k: "tru", n: "Trujillo", d: "Vende, paga su local y su equipo, y le sobra.", v: 6120 },
+    { k: "aqp", n: "Arequipa", d: "También deja: menos que Trujillo, pero deja.", v: 2480 },
+    { k: "lim", n: "Lima", d: "Abre el martes 20. Mientras, paga local y equipo.", v: -1450 },
+    { k: "taller", n: "Taller", d: "Cose para las tiendas. Tuvo horas de máquina sin usar.", v: -620 },
+    { k: "emp", n: "Lo de toda la empresa", d: "Contador, publicidad, oficina: no son de una sola sede.", v: -2680 }
+  ];
+  var MAXL = 6120;
+
+  /* =============================== A =============================== */
+  (function cascadaA() {
+    var caja = $("#ra-cascada-filas");
+    var queda = VENTA, html = "";
+    PASOS.forEach(function (p, i) {
+      var antes = queda / VENTA * 100;
+      if (i > 0) queda -= p.v;
+      var despues = queda / VENTA * 100;
+      html += '<div class="ra-cae" style="--i:' + i + '">' +
+        '<div class="ra-cae-n">' + (i === 0 ? "Vendiste" : p.n) + "<small>" + p.d + "</small></div>" +
+        '<div class="ra-barra" style="--antes:' + (i === 0 ? 100 : antes).toFixed(2) + "%;--despues:" + (i === 0 ? 100 : despues).toFixed(2) + '%"><span class="fantasma"></span><span class="queda"></span></div>' +
+        '<div class="ra-cae-v">' + (i === 0 ? "S/ " + mil(p.v) : "− " + mil(p.v)) + "</div></div>";
+    });
+    var fin = queda / VENTA * 100;
+    html += '<div class="ra-cae final" style="--i:' + PASOS.length + '"><div class="ra-cae-n">Te quedan<small>Es tuyo: lo que el negocio ganó en 15 días</small></div>' +
+      '<div class="ra-barra" style="--antes:' + fin.toFixed(2) + "%;--despues:" + fin.toFixed(2) + '%"><span class="queda"></span></div>' +
+      '<div class="ra-cae-v">S/ ' + mil(queda) + "</div></div>";
+    caja.innerHTML = html;
+  })();
+
+  (function medidorA() {
+    var svg = $("#ra-arco"), lista = $("#ra-piezas"), cont = $("#ra-medidor");
+    var cx = 120, cy = 120, r = 98;
+    var pt = function (a) { var rad = a * Math.PI / 180; return (cx + r * Math.cos(rad)).toFixed(2) + " " + (cy - r * Math.sin(rad)).toFixed(2); };
+    var arco = function (a0, a1) { return "M " + pt(a0) + " A " + r + " " + r + " 0 0 1 " + pt(a1); };
+    var s = "", l = "";
+    PIEZAS.forEach(function (p, k) {
+      var a0 = 180 - 30 * k - 1.8, span = 26.4;
+      var ok = p.f === 1;
+      s += '<path class="pista-arco" d="' + arco(a0, a0 - span) + '"/>';
+      s += '<path class="lleno ' + (ok ? "ok" : "falta") + '" data-pieza="' + k + '" data-dibuja pathLength="1" style="--i:' + k + '" d="' + arco(a0, a0 - span * p.f) + '"/>';
+      l += '<li class="ra-pieza" data-pieza="' + k + '" style="--c:var(' + (ok ? "--verde" : "--ambar") + ')"><span class="ico" aria-hidden="true">' + (ok ? "✓" : "!") + "</span>" +
+        "<span>" + p.n + "<small>" + p.d + '</small></span><span class="estado">' + p.e + "</span></li>";
+    });
+    svg.innerHTML = s;
+    lista.innerHTML = l;
+    function foco(k) {
+      cont.querySelectorAll("[data-pieza]").forEach(function (el) {
+        var es = el.dataset.pieza === String(k);
+        el.classList.toggle("apagada", k !== null && !es);
+        el.classList.toggle("foco", k !== null && es && el.tagName === "LI");
+      });
+    }
+    cont.addEventListener("mouseover", function (e) { var t = e.target.closest("[data-pieza]"); foco(t ? t.dataset.pieza : null); });
+    cont.addEventListener("mouseleave", function () { foco(null); });
+  })();
+
+  (function lugaresA() {
+    var caja = $("#ra-lugares"), h = "";
+    LUGARES.forEach(function (x, i) {
+      var w = Math.abs(x.v) / MAXL * 50;
+      h += '<div class="ra-lugar" data-entra style="--i:' + (14 + i) + '"><div><b>' + x.n + "</b><small>" + x.d + "</small></div>" +
+        '<div class="rs-div" data-crece aria-hidden="true"><i class="' + (x.v < 0 ? "menos" : "mas") + '" style="width:' + w.toFixed(2) + "%;--i:" + i + '"></i></div>' +
+        '<span class="v ' + (x.v < 0 ? "menos" : "mas") + '">' + conSigno(x.v) + "</span></div>";
+    });
+    h += '<div class="ra-lugar total" data-entra style="--i:19"><div><b>Todo junto</b><small>Lo mismo que te queda arriba</small></div><span></span>' +
+      '<span class="v mas">= S/ 3,850</span></div>';
+    caja.innerHTML = h;
+  })();
+
+  /* =============================== B =============================== */
+  var DIAS = [3500, 3400, 4300, 3600, 3000, 4900, 4700, 4800, 3600, 4200, 3500, 3000, 3300, 3400, 2140]; // con IGV, suman 55,340
+  var MEDIOS = [
+    { n: "Yape", v: 16170, c: "--m-yape" }, { n: "Efectivo", v: 15640, c: "--m-efectivo" }, { n: "Tarjeta", v: 12640, c: "--m-tarjeta" },
+    { n: "QR Izipay", v: 10790, c: "--m-qr" }, { n: "Plin", v: 100, c: "--m-plin" }
+  ];
+  var SEDES = {
+    todas: { nombre: "Todas las sedes", vendido: 46900, margen: 24400, gastos: 20030, com: 520, deja: 3850, cierre: 7950, ventas: 636, necesita: 3100, parte: 1 },
+    tru: { nombre: "Trujillo", vendido: 30900, margen: 16100, gastos: 9640, com: 340, deja: 6120, cierre: 12650, ventas: 419, necesita: 1600, parte: 30900 / 46900 },
+    aqp: { nombre: "Arequipa", vendido: 16000, margen: 8300, gastos: 5640, com: 180, deja: 2480, cierre: 5130, ventas: 217, necesita: 1150, parte: 16000 / 46900 },
+    lim: { nombre: "Lima", vendido: 0, margen: 0, gastos: 1450, com: 0, deja: -1450, cierre: -3000, ventas: 0, vacio: "lim" },
+    taller: { nombre: "Taller", vendido: null, margen: 0, gastos: 620, com: 0, deja: -620, cierre: -1280, ventas: 0, vacio: "taller" }
+  };
+  var TABLA = [
+    { k: "tru", n: "Trujillo", vendido: 30900, margen: 16100, gastos: 9980, deja: 6120,
+      det: [["Ropa vendida", 14800], ["Comisiones", 340], ["Sueldos", 6900], ["Local", 1935], ["Servicios", 560], ["Desgaste", 245]] },
+    { k: "aqp", n: "Arequipa", vendido: 16000, margen: 8300, gastos: 5820, deja: 2480,
+      det: [["Ropa vendida", 7700], ["Comisiones", 180], ["Sueldos", 3700], ["Local", 1550], ["Servicios", 290], ["Desgaste", 100]] },
+    { k: "lim", n: "Lima", vendido: 0, margen: null, gastos: 1450, deja: -1450,
+      det: [["Local", 1355], ["Desgaste", 95]], nota: "Abre el martes 20. Sus sueldos empiezan a contar ese día." },
+    { k: "taller", n: "Taller", vendido: null, margen: null, gastos: 620, deja: -620,
+      det: [], nota: "Lo que el Taller no alcanzó a convertir en ropa: horas de máquina y de costura sin usar. Lo demás ya va dentro del costo de cada prenda." },
+    { k: "emp", n: "Lo de toda la empresa", vendido: null, margen: null, gastos: 2680, deja: -2680,
+      det: [], nota: "Contador, publicidad en Instagram y la oficina: no son de una sola sede, así que no se le cargan a ninguna." }
+  ];
+  var DIAS_MES = 31, HOY = 15;
+
+  function grafico(s) {
+    var W = 720, H = 300, L = 58, R = 112, T = 22, B = 34;
+    var acum = [0], suma = 0;
+    DIAS.forEach(function (d) { suma += d * s.parte; acum.push(suma); });
+    var ritmo = suma / HOY; // se muestra redondeado a la decena, como en la historia (3,690)
+    var nec31 = s.necesita * DIAS_MES, proy31 = ritmo * DIAS_MES;
+    var techo = Math.ceil(Math.max(nec31, proy31) * 1.06 / 20000) * 20000;
+    var x = function (d) { return L + d / DIAS_MES * (W - L - R); };
+    var y = function (v) { return T + (1 - v / techo) * (H - T - B); };
+    var cubre = Math.ceil(nec31 / ritmo);
+    var g = "";
+    // aniversario (días 6 a 8)
+    g += '<rect class="g-aniv" x="' + x(5) + '" y="' + T + '" width="' + (x(8) - x(5)) + '" height="' + (H - T - B) + '"/>';
+    g += '<text class="g-aniv-t" x="' + ((x(5) + x(8)) / 2) + '" y="' + (T + 12) + '" text-anchor="middle">ANIVERSARIO</text>';
+    for (var k = 0; k <= 4; k++) {
+      var v = techo / 4 * k;
+      g += '<line class="g-rejilla" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>';
+      g += '<text class="g-eje" x="' + (L - 10) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + (k === 0 ? "0" : (v / 1000) + " mil") + "</text>";
+    }
+    [1, 8, 15, 22, 31].forEach(function (d) {
+      g += '<text class="g-eje" x="' + x(d) + '" y="' + (H - 10) + '" text-anchor="middle">' + d + " oct</text>";
+    });
+    // lo necesario
+    g += '<path class="g-nec" data-dibuja pathLength="1" style="--i:0" d="M ' + x(0) + " " + y(0) + " L " + x(DIAS_MES) + " " + y(nec31) + '"/>';
+    g += '<text class="g-txt taupe" x="' + (x(DIAS_MES) + 8) + '" y="' + (y(nec31) + 4) + '">Necesitas</text>';
+    g += '<text class="g-txt taupe" x="' + (x(DIAS_MES) + 8) + '" y="' + (y(nec31) + 18) + '">S/ ' + mil(nec31) + "</text>";
+    // lo vendido
+    var d = "M " + x(0) + " " + y(0);
+    for (var i = 1; i <= HOY; i++) d += " L " + x(i).toFixed(1) + " " + y(acum[i]).toFixed(1);
+    g += '<path class="g-area" data-aparece style="--i:6" d="' + d + " L " + x(HOY) + " " + y(0) + " Z" + '"/>';
+    g += '<path class="g-real" data-dibuja pathLength="1" style="--i:2" d="' + d + '"/>';
+    // si sigues así
+    g += '<path class="g-proy" data-aparece style="--i:17" d="M ' + x(HOY) + " " + y(suma) + " L " + x(DIAS_MES) + " " + y(proy31) + '"/>';
+    g += '<text class="g-txt verde" data-aparece style="--i:17" x="' + (x(DIAS_MES) + 8) + '" y="' + (y(proy31) + 4) + '">Si sigues así</text>';
+    g += '<text class="g-txt verde" data-aparece style="--i:17" x="' + (x(DIAS_MES) + 8) + '" y="' + (y(proy31) + 18) + '">≈ S/ ' + mil(Math.round(proy31 / 100) * 100) + "</text>";
+    if (cubre <= DIAS_MES) {
+      g += '<circle class="g-cubre" data-aparece style="--i:19" cx="' + x(cubre) + '" cy="' + y(ritmo * cubre) + '" r="5"/>';
+      g += '<text class="g-txt verde" data-aparece style="--i:19" x="' + (x(cubre) - 8) + '" y="' + (y(ritmo * cubre) - 10) + '" text-anchor="end">Día ' + cubre + ": cubres el mes</text>";
+    }
+    g += '<circle class="g-hoy" data-aparece style="--i:15" cx="' + x(HOY) + '" cy="' + y(suma) + '" r="6"/>';
+    g += '<text class="g-txt" data-aparece style="--i:15" x="' + (x(HOY) - 10) + '" y="' + (y(suma) - 12) + '" text-anchor="end">Hoy · S/ ' + mil(suma) + "</text>";
+    // guía al pasar el mouse
+    g += '<line class="g-guia" id="rb-guia" x1="0" x2="0" y1="' + T + '" y2="' + (H - B) + '"/><circle class="g-guia-p" id="rb-guia-p" r="4.5" cx="0" cy="0"/>';
+    g += '<rect id="rb-captura" x="' + L + '" y="' + T + '" width="' + (W - L - R) + '" height="' + (H - T - B) + '" fill="transparent"/>';
+    return { svg: '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Venta acumulada: llevas S/ ' + mil(suma) + " y necesitabas S/ " + mil(s.necesita * HOY) + ' a hoy.">' + g + "</svg>",
+      x: x, y: y, acum: acum, ritmo: ritmo, W: W, L: L, R: R, cubre: cubre, suma: suma, nec31: nec31 };
+  }
+
+  function vacioB(clave) {
+    if (clave === "lim") {
+      return '<div class="rb-vacio" data-entra><svg viewBox="0 0 72 72" aria-hidden="true"><path data-dibuja pathLength="1" d="M10 62 H62 M16 62 V30 H56 V62 M12 30 L18 16 H54 L60 30 M28 62 V44 H44 V62"/><path data-dibuja pathLength="1" style="--i:3" d="M24 36 L48 50 M48 36 L24 50"/></svg>' +
+        "<h3>Lima todavía no vende</h3><p class=\"tenue\">Abre el martes 20 de octubre. Desde ese día verás aquí su venta contra lo que necesita. Mientras, paga su local y su equipo: S/ 1,450 en estos 15 días.</p>" +
+        '<button class="btn sutil chico" type="button" data-ir="lim">Ver qué paga mientras</button></div>';
+    }
+    return '<div class="rb-vacio" data-entra><svg viewBox="0 0 72 72" aria-hidden="true"><path data-dibuja pathLength="1" d="M22 14 H50 M22 58 H50 M26 14 V58 M46 14 V58"/><path data-dibuja pathLength="1" style="--i:3" d="M26 24 L46 30 M26 32 L46 38 M26 40 L46 46 M26 48 L46 54 M46 30 C 58 34 62 46 54 60"/></svg>' +
+      "<h3>El Taller no vende: cose</h3><p class=\"tenue\">Su trabajo entra al costo de cada prenda que venden las tiendas. Lo que no alcanzó a convertir en ropa —horas de máquina sin usar— son S/ 620 este mes.</p>" +
+      '<button class="btn sutil chico" type="button" data-ir="taller">Ver de dónde sale</button></div>';
+  }
+
+  var estadoGrafico = null;
+  function pintarGrafico(clave) {
+    var s = SEDES[clave], zona = $("#rb-zona-grafico"), mini = $("#rb-mini");
+    if (s.vacio) {
+      zona.innerHTML = vacioB(s.vacio);
+      mini.innerHTML = (clave === "taller" ? '<div>Vende<b>—</b>no vende: cose</div>' : '<div>Vas en<b>—</b>sin ventas todavía</div>') + '<div>Gasta al día<b>S/ ' + mil(s.gastos / HOY) + "</b>en promedio</div><div>Al 31, si sigue así<b class=\"menos\">" + soles(s.cierre) + "</b>lo que costará</div>";
+      estadoGrafico = null;
+      return;
+    }
+    var gr = grafico(s);
+    zona.innerHTML = '<div class="desliza"><div class="rb-grafico" id="rb-grafico">' + gr.svg + '<div class="rb-tip" id="rb-tip"></div></div></div>';
+    mini.innerHTML = "<div>Vas en<b>S/ " + mil(Math.round(gr.ritmo / 10) * 10) + "</b>al día, con IGV</div><div>Necesitas<b>S/ " + mil(s.necesita) + "</b>al día para cubrir el mes</div>" +
+      '<div>Cubres el mes<b class="mas">el día ' + gr.cubre + "</b>si sigues así</div>";
+    estadoGrafico = gr;
+    var caja = $("#rb-grafico"), svg = caja.querySelector("svg"), tip = $("#rb-tip");
+    var captura = $("#rb-captura"), guia = $("#rb-guia"), punto = $("#rb-guia-p");
+    function mover(e) {
+      var p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+      var m = svg.getScreenCTM(); if (!m) return;
+      var q = p.matrixTransform(m.inverse());
+      var dia = Math.max(1, Math.min(DIAS_MES, Math.round((q.x - gr.L) / (gr.W - gr.L - gr.R) * DIAS_MES)));
+      var v, texto;
+      if (dia <= HOY) {
+        v = gr.acum[dia];
+        texto = "<b>" + dia + " de octubre" + (dia >= 6 && dia <= 8 ? " · aniversario" : "") + "</b><br>Ese día: S/ " + mil(DIAS[dia - 1] * s.parte) +
+          "<br>Llevabas S/ " + mil(v) + " · necesitabas S/ " + mil(s.necesita * dia);
+      } else {
+        v = gr.ritmo * dia;
+        texto = "<b>" + dia + " de octubre · si sigues así</b><br>Llevarías S/ " + mil(v) + "<br>Necesitas S/ " + mil(s.necesita * dia);
+      }
+      var gx = gr.x(dia), gy = gr.y(v);
+      guia.setAttribute("x1", gx); guia.setAttribute("x2", gx);
+      punto.setAttribute("cx", gx); punto.setAttribute("cy", gy);
+      tip.innerHTML = texto;
+      var ancho = caja.clientWidth, esc = ancho / gr.W;
+      var px = Math.max(90, Math.min(ancho - 90, gx * esc));
+      tip.style.left = px + "px"; tip.style.top = (gy * esc) + "px";
+      caja.classList.add("guia");
+    }
+    captura.addEventListener("pointermove", mover);
+    captura.addEventListener("pointerdown", mover);
+    captura.addEventListener("pointerleave", function () { caja.classList.remove("guia"); });
+  }
+
+  function pintarMedios(clave) {
+    var s = SEDES[clave], caja = $("#rb-medios"), sub = $("#rb-medios-sub");
+    if (s.vacio) {
+      sub.textContent = "Con IGV";
+      caja.innerHTML = '<div class="rb-vacio chico" data-entra><h3>' + (clave === "lim" ? "Sin cobros todavía" : "El Taller no cobra") + '</h3><p class="tenue">' +
+        (clave === "lim" ? "Lima abre el martes 20: aquí verás cómo le pagan desde ese día." : "Lo que cose lo venden las tiendas; sus cobros están allá.") + "</p></div>";
+      return;
+    }
+    var total = 0, filas = MEDIOS.map(function (m) { var v = m.v * s.parte; total += v; return { n: m.n, v: v, c: m.c }; });
+    sub.textContent = "Con IGV · S/ " + mil(total) + " en " + s.ventas + " ventas · ticket promedio S/ " + mil(total / s.ventas);
+    var barra = '<div class="rb-apilada" data-crece role="img" aria-label="Medios de pago">', lista = '<ul class="rb-conf rb-medios">';
+    filas.forEach(function (f, i) {
+      var pct = f.v / total * 100;
+      barra += '<i data-m="' + i + '" style="width:' + pct.toFixed(2) + "%;--c:var(" + f.c + ");--i:" + i + '" title="' + f.n + '"></i>';
+      lista += '<li data-m="' + i + '"><span><span class="muestra" style="--c:var(' + f.c + ')"></span>' + f.n + '</span><span class="num">S/ ' + mil(f.v) +
+        ' <span class="tenue">· ' + (pct < 1 ? pct.toFixed(1) : Math.round(pct)) + " %</span></span></li>";
+    });
+    caja.innerHTML = barra + "</div>" + lista + "</ul>" +
+      '<p class="tenue" style="font-size:12.5px;margin-top:10px">Por depositar: Izipay S/ 2,140 (lunes y martes) y Vendemás S/ 1,310 (llega mañana).</p>';
+    caja.querySelectorAll("li[data-m]").forEach(function (li) {
+      li.addEventListener("mouseenter", function () { caja.querySelectorAll(".rb-apilada i").forEach(function (i) { i.style.opacity = i.dataset.m === li.dataset.m ? "1" : ".25"; }); });
+      li.addEventListener("mouseleave", function () { caja.querySelectorAll(".rb-apilada i").forEach(function (i) { i.style.opacity = ""; }); });
+    });
+  }
+
+  function pintarCifras(clave) {
+    var s = SEDES[clave];
+    var poner = function (id, num, pre, suf) {
+      var el = document.getElementById(id);
+      if (num === null) { el.removeAttribute("data-cuenta"); el.textContent = "—"; return; }
+      el.dataset.cuenta = String(num); el.dataset.pre = pre || ""; el.dataset.suf = suf || "";
+      if (window.mqContar) window.mqContar(el); else el.textContent = (pre || "") + mil(num) + (suf || "");
+    };
+    $("#rb-sede").textContent = s.nombre + " · jueves 15 de octubre";
+    if (clave === "taller") { poner("rb-v-vendido", null); $("#rb-p-vendido").textContent = "El Taller no vende: cose"; }
+    else { poner("rb-v-vendido", s.vendido, "S/ "); $("#rb-p-vendido").textContent = clave === "lim" ? "Abre el martes 20" : s.ventas + " ventas · sin IGV"; }
+    if (s.vendido) { poner("rb-v-margen", Math.round(s.margen / s.vendido * 100), "", " %"); $("#rb-p-margen").textContent = "S/ " + mil(s.margen) + " después de pagar la ropa"; }
+    else { poner("rb-v-margen", null); $("#rb-p-margen").textContent = "Sin ventas, no hay margen"; }
+    poner("rb-v-gastos", s.gastos, "S/ ");
+    $("#rb-p-gastos").textContent = clave === "lim" ? "Su local y su equipo" : clave === "taller" ? "Horas de máquina sin usar" : "15 de 31 días · más S/ " + mil(s.com) + " de comisiones";
+    poner("rb-v-deja", Math.abs(s.deja), s.deja < 0 ? "− S/ " : "S/ ");
+    $("#rb-l-deja").textContent = clave === "todas" ? "Te quedan" : "Deja " + s.nombre;
+    var c = $("#rb-c-deja"); c.classList.toggle("verde", s.deja >= 0); c.classList.toggle("ambar", s.deja < 0);
+    $("#rb-p-deja").textContent = "Al 31, si " + (clave === "todas" ? "sigues" : "sigue") + " así: ≈ " + soles(s.cierre);
+  }
+
+  (function tablaB() {
+    var tb = $("#rb-tbody"), h = "";
+    TABLA.forEach(function (f, i) {
+      var w = Math.abs(f.deja) / MAXL * 50;
+      var det = f.det.map(function (d) { return "<div><span>" + d[0] + "</span><b>" + mil(d[1]) + "</b></div>"; }).join("");
+      h += '<tr class="rb-fila" data-k="' + f.k + '" tabindex="0" aria-expanded="false" aria-controls="rb-det-' + f.k + '" data-entra style="--i:' + (8 + i) + '">' +
+        "<td>" + f.n + '<span class="flecha" aria-hidden="true">›</span></td>' +
+        '<td class="m">' + (f.vendido === null ? '<span class="tenue">—</span>' : mil(f.vendido)) + "</td>" +
+        '<td class="m">' + (f.margen === null ? '<span class="tenue">—</span>' : mil(f.margen) + ' <span class="tenue">· ' + Math.round(f.margen / f.vendido * 100) + " %</span>") + "</td>" +
+        '<td class="m">' + mil(f.gastos) + "</td>" +
+        '<td class="m ' + (f.deja < 0 ? "menos" : "mas") + '">' + (f.deja < 0 ? "−" : "+") + mil(f.deja) + "</td>" +
+        '<td><div class="rs-div" data-crece aria-hidden="true"><i class="' + (f.deja < 0 ? "menos" : "mas") + '" style="width:' + w.toFixed(2) + "%;--i:" + i + '"></i></div></td></tr>' +
+        '<tr class="rb-detalle"><td colspan="6"><div class="desplegable" id="rb-det-' + f.k + '"><div><div class="rb-det">' + det +
+        (f.nota ? '<p class="tenue">' + f.nota + "</p>" : "") + "</div></div></div></td></tr>";
+    });
+    tb.innerHTML = h;
+    function alternar(tr, abrir) {
+      var caja = document.getElementById("rb-det-" + tr.dataset.k);
+      var a = typeof abrir === "boolean" ? abrir : !caja.classList.contains("abierto");
+      caja.classList.toggle("abierto", a);
+      tr.setAttribute("aria-expanded", String(a));
+    }
+    tb.addEventListener("click", function (e) { var tr = e.target.closest(".rb-fila"); if (tr) alternar(tr); });
+    tb.addEventListener("keydown", function (e) {
+      var tr = e.target.closest(".rb-fila");
+      if (tr && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); alternar(tr); }
+    });
+    window.rbMarcarFila = function (clave) {
+      tb.querySelectorAll(".rb-fila").forEach(function (tr) {
+        var es = tr.dataset.k === clave;
+        if (es) tr.setAttribute("aria-current", "true"); else tr.removeAttribute("aria-current");
+        if (clave !== "todas") alternar(tr, es);
+      });
+    };
+  })();
+
+  (function confianzaB() {
+    var segs = "", lista = "";
+    PIEZAS.forEach(function (p, k) {
+      var ok = p.f === 1, c = ok ? "--verde" : "--ambar";
+      segs += '<span data-crece style="--c:var(' + c + ')"><i style="width:' + (p.f * 100) + "%;--i:" + k + '"></i></span>';
+      lista += '<li><span>' + p.n + '</span><span class="chip ' + (ok ? "c-verde" : "c-ambar") + '">' + p.e + "</span></li>";
+    });
+    $("#rb-segs").innerHTML = segs;
+    $("#rb-conf").innerHTML = lista;
+  })();
+
+  function filtrarB(clave) {
+    document.querySelectorAll("#rb-filtros button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.k === clave)); });
+    pintarCifras(clave);
+    pintarGrafico(clave);
+    pintarMedios(clave);
+    window.rbMarcarFila(clave);
+  }
+  $("#rb-filtros").addEventListener("click", function (e) { var b = e.target.closest("button[data-k]"); if (b) filtrarB(b.dataset.k); });
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-ir]");
+    if (!b) return;
+    var tr = document.querySelector('.rb-fila[data-k="' + b.dataset.ir + '"]');
+    if (tr) tr.scrollIntoView({ behavior: reducido ? "auto" : "smooth", block: "center" });
+  });
+  pintarGrafico("todas");
+  pintarMedios("todas");
+
+  /* =============================== C =============================== */
+  // Pesas: [x en el platillo, base y] — se apilan en el orden en que caen.
+  var GEOM = { ropa: [-42, 200], comisiones: [-42, null, "ropa"], sueldos: [46, 200], alquileres: [46, null, "sueldos"], servicios: [46, null, "alquileres"], desgaste: [-42, null, "comisiones"] };
+  var pesas = PASOS.slice(1).map(function (p) {
+    var s = Math.sqrt(p.v / 22500);
+    return { k: p.k, n: p.n, corto: p.corto, v: p.v, w: 30 + 66 * s, h: 13 + 43 * s };
+  });
+  var porK = {};
+  pesas.forEach(function (p) { porK[p.k] = p; });
+  pesas.forEach(function (p) {
+    var g = GEOM[p.k]; p.x = g[0];
+    p.y = g[2] ? porK[g[2]].y - porK[g[2]].h : g[1];
+  });
+  var cimas = { servicios: true, desgaste: true };
+  (function dibujarPesas() {
+    var h = "";
+    pesas.forEach(function (p, i) {
+      var w = p.w, a = p.h, arr = w * 0.39;
+      h += '<g class="b-pesa-g" data-paso="' + (i + 1) + '" id="rc-p-' + p.k + '"><title>' + p.n + ": S/ " + mil(p.v) + "</title>" +
+        (cimas[p.k] ? '<path class="b-pesa-asa" d="M ' + (p.x - 7) + " " + (p.y - a) + " C " + (p.x - 7) + " " + (p.y - a - 11) + " " + (p.x + 7) + " " + (p.y - a - 11) + " " + (p.x + 7) + " " + (p.y - a) + '"/>' : "") +
+        '<path class="b-pesa" d="M ' + (p.x - w / 2) + " " + p.y + " L " + (p.x + w / 2) + " " + p.y + " L " + (p.x + arr) + " " + (p.y - a) + " L " + (p.x - arr) + " " + (p.y - a) + ' Z"/>' +
+        '<line class="b-pesa-raya" x1="' + (p.x - arr + 4) + '" x2="' + (p.x + arr - 4) + '" y1="' + (p.y - a + 4) + '" y2="' + (p.y - a + 4) + '"/>' +
+        (p.corto ? '<text class="b-pesa-txt" x="' + p.x + '" y="' + (p.y - a / 2 + 4) + '">' + p.corto + "</text>" : "") + "</g>";
+    });
+    $("#rc-pesas").innerHTML = h;
+  })();
+
+  (function narracion() {
+    var h = "";
+    PASOS.forEach(function (p, i) {
+      h += '<li data-paso="' + i + '"><span class="s">' + (i === 0 ? "+" : "−") + "</span><span>" + p.n + "<small>" + p.d + '</small></span><b>' + mil(p.v) + "</b></li>";
+    });
+    $("#rc-pasos").innerHTML = h;
+    // pasar el mouse por un paso enciende su pesa, y al revés
+    var narra = $("#rc-pasos"), svg = $("#rc-svg");
+    function foco(n) {
+      document.querySelectorAll("#rc-pasos li, .b-pesa-g").forEach(function (el) { el.classList.toggle("foco", n !== null && el.dataset.paso === n); });
+    }
+    narra.addEventListener("mouseover", function (e) { var li = e.target.closest("li"); foco(li ? li.dataset.paso : null); });
+    narra.addEventListener("mouseleave", function () { foco(null); });
+    svg.addEventListener("mouseover", function (e) { var g = e.target.closest(".b-pesa-g"); foco(g ? g.dataset.paso : null); });
+    svg.addEventListener("mouseleave", function () { foco(null); });
+  })();
+
+  // La balanza: un solo reloj para todo, así los platillos siguen a la cruz sin perderse.
+  var MAXA = 12;
+  var angulo = function (dif) { return (dif < 0 ? -1 : 1) * MAXA * Math.sqrt(Math.abs(dif) / VENTA); };
+  var salida = function (t) { return 1 - Math.pow(1 - t, 3); };
+  var caida = function (t) { return t * t; };
+  var CAE = 560, INCLINA = 650, ENTRE = 720, T_BOLSA = 0, T_PRIMERA = 1500;
+  var tramos = [{ t0: CAE, t1: CAE + INCLINA, de: 0, a: angulo(VENTA) }];
+  var difs = [VENTA], d = VENTA;
+  pesas.forEach(function (p, i) {
+    var t = T_PRIMERA + i * ENTRE;
+    p.t = t;
+    var antes = d; d -= p.v; difs.push(d);
+    tramos.push({ t0: t + CAE, t1: t + CAE + INCLINA, de: angulo(antes), a: angulo(d) });
+  });
+  var FIN = T_PRIMERA + (pesas.length - 1) * ENTRE + CAE + INCLINA;
+  var izq = $("#rc-izq"), der = $("#rc-der"), cruz = $("#rc-cruz"), bolsa = $("#rc-bolsa");
+  var res = $("#rc-resultado"), quedaEl = $("#rc-queda"), lis = function () { return document.querySelectorAll("#rc-pasos li"); };
+  var rafC = null, ultimoPaso = -1;
+
+  function caer(el, t, t0) {
+    if (t < t0) { el.setAttribute("transform", "translate(0 -320)"); el.style.opacity = "0"; return false; }
+    var p = Math.min(1, (t - t0) / CAE);
+    el.setAttribute("transform", "translate(0 " + (-320 * (1 - caida(p))).toFixed(1) + ")");
+    el.style.opacity = String(Math.min(1, p * 3));
+    return p >= 1;
+  }
+  function pintar(t) {
+    var a = 0;
+    tramos.forEach(function (s) {
+      if (t >= s.t0) a = s.de + (s.a - s.de) * salida(Math.min(1, (t - s.t0) / (s.t1 - s.t0)));
+    });
+    var rad = a * Math.PI / 180, c = Math.cos(rad), s = Math.sin(rad);
+    cruz.setAttribute("transform", "rotate(" + (-a).toFixed(3) + " 400 120)");
+    izq.setAttribute("transform", "translate(" + (400 - 240 * c).toFixed(2) + " " + (120 + 240 * s).toFixed(2) + ")");
+    der.setAttribute("transform", "translate(" + (400 + 240 * c).toFixed(2) + " " + (120 - 240 * s).toFixed(2) + ")");
+    var paso = caer(bolsa, t, T_BOLSA) ? 0 : -1;
+    pesas.forEach(function (p, i) { if (caer(document.getElementById("rc-p-" + p.k), t, p.t)) paso = i + 1; });
+    if (paso !== ultimoPaso) {
+      ultimoPaso = paso;
+      lis().forEach(function (li, i) { li.classList.toggle("hecho", i <= paso); });
+      quedaEl.textContent = "S/ " + mil(paso < 0 ? 0 : difs[paso]);
+    }
+    res.classList.toggle("visible", t >= FIN);
+  }
+  var tC = null, contado = false;
+  function contarFinal() {
+    if (contado) return;
+    contado = true;
+    var f = $("#rc-final"); f.dataset.cuenta = "3850"; f.dataset.pre = "S/ "; f.dataset.dur = "900";
+    if (window.mqContar) window.mqContar(f);
+  }
+  function correrC() {
+    if (rafC) cancelAnimationFrame(rafC);
+    clearTimeout(tC);
+    ultimoPaso = -2; contado = false;
+    res.classList.remove("visible");
+    if (reducido) { pintar(FIN + 1); return; }
+    var t0 = performance.now();
+    (function cuadro(ahora) {
+      var t = ahora - t0;
+      pintar(t);
+      if (t >= FIN) contarFinal();
+      rafC = t < FIN + 50 ? requestAnimationFrame(cuadro) : null;
+    })(t0);
+    // Si el navegador frena los cuadros (pestaña oculta), la balanza igual termina en su estado final.
+    tC = setTimeout(function () { if (rafC) { cancelAnimationFrame(rafC); rafC = null; } pintar(FIN + 1); contarFinal(); }, FIN + 600);
+  }
+  pintar(FIN + 1); // en reposo se ve el final, por si el motor no corre
+  $("#rc-otra").addEventListener("click", correrC);
+
+  (function cinta() {
+    var W = 720, L = 24, R = 24, MAXV = 4500;
+    var x = function (v) { return L + v / MAXV * (W - L - R); };
+    var g = '<rect class="c-cinta" x="' + (L - 12) + '" y="46" width="' + (W - L - R + 24) + '" height="44" rx="4"/>';
+    for (var v = 0; v <= MAXV; v += 100) {
+      var largo = v % 500 === 0 ? 14 : (v % 250 === 0 ? 9 : 5);
+      g += '<line class="c-raya" x1="' + x(v) + '" x2="' + x(v) + '" y1="46" y2="' + (46 + largo) + '"/>';
+      if (v % 500 === 0) g += '<text class="c-num" x="' + x(v) + '" y="74">' + (v === 0 ? "0" : mil(v)) + "</text>";
+    }
+    g += '<text class="c-num" x="' + (x(MAXV) + 12) + '" y="108" text-anchor="end">soles al día</text>';
+    g += '<path class="c-hilo" data-dibuja pathLength="1" style="--i:2" d="M ' + x(0) + " 84 L " + x(3100) + ' 84"/>';
+    g += '<path class="c-hilo-sobra" data-dibuja pathLength="1" style="--i:12" d="M ' + x(3100) + " 84 L " + x(3690) + ' 84"/>';
+    g += '<g data-aparece style="--i:14"><path class="c-aguja" d="M ' + x(3690) + " 84 L " + (x(3690) + 26) + " 84 M " + (x(3690) + 26) + " 84 m 6 0 a 6 3 0 1 0 -12 0 a 6 3 0 1 0 12 0" + '"/>' +
+      '<text class="c-txt verde" x="' + x(3690) + '" y="116" text-anchor="middle">Tú: 3,690 · sobran 590</text></g>';
+    g += '<g data-aparece style="--i:6"><line class="c-alfiler-palo" x1="' + x(3100) + '" x2="' + x(3100) + '" y1="22" y2="96"/><circle class="c-alfiler" cx="' + x(3100) + '" cy="20" r="7"/>' +
+      '<text class="c-txt" x="' + (x(3100) - 14) + '" y="24" text-anchor="end">Necesitas 3,100</text></g>';
+    $("#rc-cinta").innerHTML = g;
+  })();
+
+  (function tiendas() {
+    function toldo(x0, ancho, y) {
+      var n = 6, w = ancho / n, h = "";
+      for (var i = 0; i < n; i++) {
+        var c = i % 2 ? "t-raya2" : "t-raya1", xx = x0 + i * w;
+        h += '<path class="' + c + '" d="M ' + xx + " " + y + " h " + w + " v 9 a " + (w / 2) + " 5 0 0 1 " + (-w) + ' 0 Z"/>';
+      }
+      return h;
+    }
+    function etiqueta(v, x, y) {
+      var c = v < 0 ? "menos" : "mas";
+      return '<g transform="translate(' + x + " " + y + ')"><g class="t-cuelga"><line class="t-etiq-hilo" x1="0" y1="0" x2="0" y2="12"/>' +
+        '<path class="t-etiq ' + c + '" d="M -15 12 h 30 v 22 a 3 3 0 0 1 -3 3 h -24 a 3 3 0 0 1 -3 -3 Z"/><circle class="t-etiq-hueco" cx="0" cy="17" r="2"/>' +
+        '<text class="t-etiq-txt" x="0" y="31">' + (v < 0 ? "−" : "+") + "</text></g></g>";
+    }
+    function dibujo(tipo, nombre, v) {
+      var s = '<line class="t-suelo" data-dibuja pathLength="1" x1="4" x2="156" y1="128" y2="128"/>';
+      if (tipo === "tienda" || tipo === "lima") {
+        s += '<rect class="t-cuerpo" x="24" y="52" width="112" height="76"/><rect class="t-cornisa" x="18" y="38" width="124" height="16" rx="2"/>' +
+          '<text class="t-nombre" x="80" y="49">' + nombre + "</text>" + toldo(22, 116, 54) +
+          '<rect class="t-vitrina" x="34" y="76" width="58" height="44"/>' +
+          '<rect class="t-puerta" x="102" y="78" width="24" height="50"/>';
+        if (tipo === "lima") {
+          s += '<g transform="rotate(-6 63 98)"><rect class="t-papel" x="40" y="88" width="46" height="22"/><text class="t-papel-txt" x="63" y="103">Abre el 20</text></g>';
+        } else {
+          s += '<path class="t-gancho" d="M 63 82 v 3 M 55 89 L 63 85 L 71 89"/><path class="t-prenda" d="M 56 89 L 70 89 L 74 116 L 52 116 Z"/>' +
+            '<path class="t-gancho" d="M 80 84 v 3 M 76 91 L 80 87 L 84 91"/><path class="t-prenda" style="opacity:.55" d="M 76 91 L 84 91 L 86 114 L 74 114 Z"/>';
+        }
+        s += etiqueta(v, 132, 64);
+      } else if (tipo === "taller") {
+        s += '<path class="t-cornisa" d="M 18 56 L 18 34 L 50 50 L 50 34 L 82 50 L 82 34 L 114 50 L 114 34 L 142 48 L 142 56 Z"/>' +
+          '<rect class="t-cuerpo" x="22" y="56" width="116" height="72"/>' +
+          '<rect class="t-ventana" x="32" y="66" width="22" height="16"/><rect class="t-ventana" x="62" y="66" width="22" height="16"/><rect class="t-ventana" x="92" y="66" width="22" height="16"/>' +
+          '<rect class="t-carrete" x="36" y="94" width="26" height="4" rx="1"/><rect class="t-carrete" x="36" y="120" width="26" height="4" rx="1"/>' +
+          '<rect class="t-vitrina" x="40" y="98" width="18" height="22"/><line class="t-hilo" x1="40" x2="58" y1="102" y2="104"/><line class="t-hilo" x1="40" x2="58" y1="107" y2="109"/><line class="t-hilo" x1="40" x2="58" y1="112" y2="114"/>' +
+          '<rect class="t-puerta" x="96" y="92" width="26" height="36"/>' + etiqueta(v, 132, 56);
+      } else {
+        s += '<rect class="t-cuerpo" x="42" y="30" width="76" height="98"/><rect class="t-cornisa" x="38" y="22" width="84" height="12" rx="2"/>' +
+          '<text class="t-nombre" x="80" y="31" style="font-size:7.5px">OFICINA</text>';
+        for (var f = 0; f < 3; f++) for (var c = 0; c < 3; c++) s += '<rect class="t-ventana" x="' + (50 + c * 22) + '" y="' + (42 + f * 20) + '" width="14" height="12"/>';
+        s += '<rect class="t-puerta" x="68" y="104" width="24" height="24"/>' + etiqueta(v, 116, 36);
+      }
+      return '<svg viewBox="0 0 160 136" aria-hidden="true">' + s + "</svg>";
+    }
+    var tipos = { tru: ["tienda", "TRUJILLO"], aqp: ["tienda", "AREQUIPA"], lim: ["lima", "LIMA"], taller: ["taller", "TALLER"], emp: ["oficina", "OFICINA"] };
+    var h = "";
+    LUGARES.forEach(function (x, i) {
+      var t = tipos[x.k];
+      h += '<article class="rc-tienda" data-sube style="--i:' + (5 + i) + '">' + dibujo(t[0], t[1], x.v) + "<h3>" + (x.k === "emp" ? "Toda la empresa" : x.n) + "</h3>" +
+        '<span class="deja ' + (x.v < 0 ? "menos" : "mas") + '">' + conSigno(x.v) + '</span><p class="tenue">' + x.d + "</p></article>";
+    });
+    $("#rc-tiendas").innerHTML = h;
+  })();
+
+  (function sellos() {
+    var giros = [-5, 3, -2, 6, -4, 2], h = "";
+    PIEZAS.forEach(function (p, k) {
+      var ok = p.f === 1;
+      h += '<div class="rc-sello' + (ok ? "" : " falta") + '" data-sello style="--i:' + (12 + k) + ";--r:" + giros[k] + 'deg" title="' + p.d + '">' +
+        "<b>" + (ok ? "✓" : Math.round(p.f * 100) + "%") + "</b><span>" + p.n + "</span><small>" + p.e + "</small></div>";
+    });
+    $("#rc-sellos").innerHTML = h;
+  })();
+
+  /* ---------------- Al cambiar de camino ---------------- */
+  document.addEventListener("variante", function (e) {
+    if (e.detail === "c") { pintar(0); correrC(); }
+    else if (rafC) { cancelAnimationFrame(rafC); clearTimeout(tC); rafC = null; pintar(FIN + 1); }
+  });
+})();
+</script></body></html>

@@ -113,6 +113,18 @@ export const PRUEBAS = [
   // guardar_inicio_finanzas (día 1, no futuro, sin meses cerrados, permiso) y pegar la migración dos veces. ROLLBACK.
   "pruebas:finanzas-arranque",
 
+  // Costo estimado de la venta sin prenda (ADR-0417, dec. 1): nace con el promedio de su categoría, se rellena lo existente,
+  // al regularizar manda el real, el diario lo asienta solo, fn_costo_estimado_resumen cuenta lo estimado; permisos; pegar dos veces. ROLLBACK.
+  "pruebas:costo-estimado-venta-sin-prenda",
+
+  // El medidor de confianza de Finanzas (ADR-0417): los siete hechos salen y cada uno se mueve con su dato; por sede; permisos;
+  // pegar dos veces. ROLLBACK.
+  "pruebas:finanzas-confianza",
+
+  // Pago de la planilla y pago a SUNAT (ADR-0417, situaciones 15 y 16): salen de un banco, el Diario baja la 41 y la 4011,
+  // candados (destino, caja fuerte, comisión, sin ser líder), anular, pegar dos veces. ROLLBACK.
+  "pruebas:pago-planilla-y-sunat",
+
   "pruebas:registrar-cambio",
 
   // No se cambia por una prenda sin precio (ADR-0385): un cambio por una prenda en S/ 0 (ni la bolsa de obsequio) se rechaza sin
