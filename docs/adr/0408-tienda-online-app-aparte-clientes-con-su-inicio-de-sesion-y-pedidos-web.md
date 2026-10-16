@@ -290,3 +290,89 @@ Felipe decidió cómo salir sin costos nuevos y sin dominio por ahora; el primer
 - **Las fotos no dependen de una variable en producción:** `TIENDA_FOTOS_ORIGEN` llegaba a la tienda al funcionar pero no al compilar, y
   el optimizador rechazaba todas las fotos (400). En toda compilación de producción, `next.config.ts` acepta el almacén de CAYLA
   aunque la variable falte (con `NODE_ENV`: la tienda solo lee sus variables y las de Next, `lib/candados.test.ts`).
+
+## Actualización 2026-10-15 (f): la revisión completa de la tienda, con un banco de prendas reales
+
+Felipe pidió, con la tienda ya en producción, «revisar cada pantalla y hacerle mejoras visuales, amigables e intuitivas, y probar que
+todo funcione». Se hizo contra un **banco de pruebas propio** (una base `supabase` aparte con las 720 migraciones, 64 prendas reales
+de producción con sus fotos públicas, tallas y stock en dos tiendas, una campaña y tres looks; nada de eso va al repo), en cuatro áreas
+a la vez y probando cada flujo como un cliente, a 375 y 1280 px, en claro y oscuro. Lo estructural que quedó:
+
+- **Las categorías van en grupos, y los grupos en dos menús** (`lib/grupos.ts`, por prefijo como el resto de la tienda): «Ropa»
+  (Arriba, Vestidos y conjuntos, Abajo, Encima y más) y «Accesorios» (Bolsos y accesorios, Bisutería y belleza, Calzado, Más). El menú
+  «Ropa» de la maqueta mezclaba aretes y maquillaje con la ropa en una tercera columna de 17 filas; con 28 categorías reales, el
+  catálogo era una pared de píldoras en tres filas. Los mismos grupos arman el menú de la computadora (con la foto de una prenda por
+  categoría y lo último que llegó), el del celular y los filtros del catálogo en dos niveles (grupos → categorías del grupo, `?grupo=`).
+  Un prefijo que nadie ordenó cae en «Encima y más»: se ve, aunque no en su mejor lugar. **Pendiente:** que la base mande la familia
+  de la categoría (`categorias.familia`) en `tienda_catalogo`, para que una categoría nueva de accesorios no caiga en «Ropa».
+- **Sin migas en las listas de arriba del todo** (catálogo, Arma tu look): solo repetían el título y el logo ya lleva al Inicio. Las
+  fichas y los pedidos sí las llevan: ahí dicen de dónde se vino. El título del catálogo dice la categoría o el grupo elegido.
+- **Volver a la página pedida:** sin sesión, una página que pide cuenta lleva a «Entrar» con `?volver=` (la página y su búsqueda), y
+  al entrar o al crear la cuenta se vuelve a ella (`redireccionDelProxy` + `rutaParaVolver`, el mismo parámetro de los dos lados).
+- **El pie va después de `<main>`** en los tres marcos (un lector de pantalla lo reconoce como el pie) y llega solo al borde de abajo
+  en las páginas cortas.
+- **Las hojas de estilo de la tienda son globales:** dos clases nuevas chocaron con otras el mismo día (`.t-cuenta` con la cuenta
+  regresiva, `.t-mini` con la bolsa) y movieron íconos y miniaturas. Toda clase nueva lleva el prefijo de su pieza y se busca antes.
+- **«Reducir movimiento» no puede esconder nada:** con esa opción del celular, la animación de los avisos terminaba transparente y
+  ningún «Listo: …» de la tienda se veía. Una animación de entrada nunca deja su último cuadro invisible.
+
+## Actualización 2026-10-15 (g): «Mi perfil» ordenado, y la ficha que avisa que viene
+
+Felipe: «cuando presiono en una prenda para ver el detalle no da la sensación de carga, y "Mi perfil" podría estar mejor distribuido,
+más ordenado y entendible». Lo que quedó:
+
+- **La página se llama «Mi perfil»**, como el menú de la persona que lleva a ella: la ceja, el título de la pestaña, las migas de «Mis
+  pedidos», el menú del celular y los avisos que mandan ahí («Ver en Mi perfil», «Tus beneficios del Club CAYLA están en Mi perfil»).
+  «Crear mi cuenta», «Cambiar mi correo» y «Eliminar mi cuenta» siguen hablando de la cuenta: son la cuenta, no la página. Los textos
+  legales (Privacidad, Términos del Club) todavía dicen «Mi cuenta»: se cambian en su revisión, con su versión nueva.
+- **El orden es el de lo que se busca:** el saludo con desde cuándo es del Club; cuatro cuadros que dicen de un vistazo cómo están sus
+  pedidos, su Club, sus favoritos y sus avisos (verde: algo listo para ti; ámbar: algo pendiente) y llevan a su sección
+  (`lib/perfil.ts`: sale de las mismas reglas de cada bloque, nunca de un estado propio); y una sección por tema, todas con la misma
+  cabeza (título, cuántos hay, «Ver todos»): Mis pedidos, Mi Club CAYLA (la tarjeta va dentro de su sección), Favoritos, Te avisamos
+  cuando llegue, Novedades para ti y, al final, Tu cuenta (el correo, «Cerrar sesión» y, aparte, «Eliminar mi cuenta»). Antes la
+  tarjeta del Club y «Salir de mi cuenta» llenaban la primera pantalla del celular, la columna izquierda de la computadora quedaba vacía
+  y las novedades eran ocho tarjetas grandes en medio del perfil; ahora las prendas van en el carril con flechas del Inicio (una fila).
+- **«Cerrar sesión» es un solo botón** (`BotonCerrarSesion`) en el menú de la persona y en «Tu cuenta», con las mismas palabras.
+- **Un esqueleto por segmento que cambia:** Next muestra el `loading.tsx` de un segmento NUEVO. De la lista a una ficha el segmento
+  `catalogo` no cambia (cambia su hijo) y, sin `catalogo/[id]/loading.tsx`, la lista se quedaba quieta, sin ninguna señal, hasta que
+  llegaba la ficha. **La forma sale de la dirección** (`lib/esqueleto.ts`): un mismo `loading.tsx` cubre varias páginas, y del Inicio a
+  una ficha se veía la grilla. Cada forma usa las clases de su página (`.t-pdp`, `.t-galeria`, `.pf-perfil`), así nada salta al llegar.
+- **El esqueleto sube la página.** Con el `loading.tsx` dentro del catálogo, Next dejó de subir la página al llegar a la ficha: tocada
+  una prenda de abajo del Inicio o de «Mi perfil», la ficha llegaba bajada (lo que el navegador recorta al achicarse la página), sin la
+  cabecera ni la foto. `FormaDelEsqueleto` sube al aparecer, antes de pintar: solo sale al ir a otra página (cambiar la tienda o el
+  color de una ficha no lo muestra, y «atrás» vuelve desde lo guardado, sin esqueleto, al mismo lugar de la lista). Medido a 375 y
+  1280 px desde el Inicio, «Mi perfil» y la lista.
+
+## Actualización 2026-10-16 (h): la tienda a nivel de las grandes marcas, y rápida para cualquiera
+
+Felipe: «esta página debe ser competencia de grandes empresas mundiales y los clientes deben elegirla por encima de ellas» y, en la
+misma sesión, «necesito que el sistema sea rápido para cualquier usuario… ¿cuántos usuarios simultáneos podría soportar?». Se revisó
+cada pantalla desde antes de entrar (capturas a 375 y 1280, claro y oscuro, contra el banco de 64 prendas reales) en cuatro áreas a la
+vez, con un brief común de estilo y reglas. Lo estructural:
+
+- **La portada muestra fotos de prendas, sin precio** (Felipe 2026-10-16, cambia lo decidido el 2026-10-15): las de la campaña como
+  polaroids en el héroe (`CollageDePrendas`, la misma pieza del Inicio, con `conPrecio={false}`) y una vitrina «Mira lo que hay»
+  (`lib/vitrina-portada.ts`: solo con foto, sin repetir las del héroe, lo nuevo primero y la ropa antes que los accesorios). Nunca precio,
+  stock ni tienda: en su lugar «Ver precio», que lleva a crear la cuenta con `?volver=` a esa prenda. Bajo el héroe, una franja de lo que
+  la tienda ya cumple (separar sin pagar, recoger en tu tienda, WhatsApp, cambios en cualquier tienda); la tarjeta del Club, una sola vez,
+  con un sello del descuento de cumpleaños leído de `tienda_club_beneficios` (sin el dato, sin sello). La cabecera sin cuenta suma, en la
+  computadora, «Cómo separar», «Nuestras tiendas» y «Club CAYLA».
+- **Entrar, Crear cuenta, Olvidé, Nueva contraseña y Restablecer van en pantalla partida** desde 960 px (`PanelDeEntrada`, prefijo `en-`):
+  un panel de marca con los colores de la campaña, los beneficios y la tarjeta del Club, que en «Crear cuenta» lleva el nombre de la
+  persona apenas el formulario lo sabe (con DNI, el nombre a medias que ya muestra el formulario: el completo no llega al navegador porque
+  cualquiera puede escribir un DNI ajeno). En el celular, el formulario va primero.
+- **Comprar** (prefijo `cp-`): con «Destacado», las prendas con foto van primero (salvo Más vendidos, Tus favoritos y el orden por precio);
+  la ficha lleva sus tres promesas con los plazos reales de `tienda_ayuda` y zoom con el mouse; la bolsa vacía y las listas vacías ofrecen
+  favoritos y Lo nuevo; el sello «Nuevo» va claro (con casi todo el catálogo nuevo, el negro tapaba las fotos).
+- **Ayuda y confianza** (prefijo `ay-`): «Así se separa» es una sola pieza en la portada, el Inicio y «Cómo separar» (`LineaDePasos`); las
+  tiendas, con «WhatsApp» y «Cómo llegar» como botones y una grilla pareja con cualquier cantidad; los legales con índice fijo y SIN
+  cambiar una letra; páginas de error con salidas; el pie con una fila de ayuda.
+- **Rendimiento (medido en producción con `pg_stat_statements`).** (1) Lo que es igual para todos se comparte entre visitas
+  (`lib/compartido-servidor.ts`, `lecturaCompartida`): los looks y la ficha 30 s (`tienda_looks` tardaba 1,2–1,6 s porque arma el catálogo
+  por dentro, y se pedía en cada Inicio y en cada ficha), la campaña y las tiendas 60 s, los plazos y los beneficios del Club 300 s. Lo de
+  una persona nunca. (2) **El 404 raíz no lee la sesión:** al leer cookies hacía que Next armara TODAS las páginas en cada visita (todo
+  salía `ƒ`); ahora `/`, `/entrar`, `/crear-cuenta` y `/restablecer-acceso` salen estáticas (ISR) y Vercel las sirve desde su caché.
+  (3) El proxy revisa la sesión con `getClaims()` (la llave pública ES256 del proyecto de clientes), sin preguntarle al proyecto en cada
+  petición ni en cada precarga; lo que muestra datos de una cuenta sigue con `getUser()`. Estimación: 500–1.500 clientes navegando con
+  cuenta a la vez (el límite es la base Micro, 60 conexiones, compartida con las cajas y Dynamic); sin cuenta, sin límite práctico.
+  Felipe aprobó una prueba de carga en producción de noche, con las tiendas cerradas, después de publicar.

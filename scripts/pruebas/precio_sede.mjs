@@ -356,7 +356,7 @@ select retail.poner_precio_sede(:'vp', :'tru', :vv_general + 10, 'Apartado de pr
 select retail.separar_prendas(
   p_ubicacion_id => :'tru',
   p_items => jsonb_build_array(jsonb_build_object('variante_id', :'vv', 'cantidad', 1, 'precio_unitario', :vv_general + 10)),
-  p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', 20)),
+  p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', 30)),  -- al menos el 30 % (20261016003000)
   p_clienta_nombres => 'Ana', p_clienta_apellidos => 'Lozano Vera', p_clienta_celular => '987 111 222',
   p_devolucion_medio => 'yape') as sep \\gset
 select concat_ws('|',

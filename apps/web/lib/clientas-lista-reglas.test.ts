@@ -4,6 +4,7 @@ import { COMPRAS_PARA_FRECUENTE, MESES_PARA_FRECUENTE, estadoFrecuente } from ".
 import {
   COLUMNAS_EXPORTAR,
   FILTROS_LISTA,
+  MAX_PAGINA,
   POR_PAGINA,
   aClientaDeLista,
   aCifrasClientas,
@@ -15,12 +16,14 @@ import {
   filaParaExportar,
   frecuenteDeLaFicha,
   hrefLista,
+  leerPaginaQueExiste,
   leerParamsLista,
   pieLista,
   publicidadDeLaFila,
   suSedeDeLaFicha,
   suSedeLegible,
   ultimaCompraLegible,
+  ultimaPagina,
   type ClientaDeLista,
   type FilaListaClienta,
   type ResumenCompras,
@@ -60,11 +63,80 @@ describe("leerParamsLista / hrefLista", () => {
     expect(hrefLista(actual, { termino: "María José" })).toBe("/clientas?q=Mar%C3%ADa+Jos%C3%A9&filtro=socias");
   });
 
-  it("desdeDePagina: 50 por página", () => {
-    expect(POR_PAGINA).toBe(50);
+  it("desdeDePagina: 20 por página", () => {
+    expect(POR_PAGINA).toBe(20);
     expect(desdeDePagina(1)).toBe(0);
-    expect(desdeDePagina(3)).toBe(100);
+    expect(desdeDePagina(3)).toBe(40);
     expect(desdeDePagina(0)).toBe(0);
+  });
+
+  it("ultimaPagina: la lista vacía tiene su página 1, y una ficha de más abre otra página", () => {
+    expect(ultimaPagina(0)).toBe(1);
+    expect(ultimaPagina(1)).toBe(1);
+    expect(ultimaPagina(POR_PAGINA)).toBe(1);
+    expect(ultimaPagina(POR_PAGINA + 1)).toBe(2);
+    expect(ultimaPagina(POR_PAGINA * 5)).toBe(5);
+  });
+
+  describe("leerPaginaQueExiste: una `?pagina=` que ya no existe baja a la última, no deja la tabla vacía", () => {
+    // Una base de juguete con `fichas` filas: como `fn_clientas_lista`, el total solo viaja con una fila (una página vacía dice 0).
+    function baseDe(fichas: number, falla: string | null = null) {
+      const pedidas: number[] = [];
+      const leer = async (pagina: number) => {
+        pedidas.push(pagina);
+        const desde = desdeDePagina(pagina);
+        const filas = Array.from({ length: Math.max(0, Math.min(POR_PAGINA, fichas - desde)) }, (_, i) => desde + i);
+        return { filas, total: filas.length ? fichas : 0, falla, pagina };
+      };
+      return { leer, pedidas };
+    }
+
+    it("la página que existe se lee una sola vez", async () => {
+      const { leer, pedidas } = baseDe(45);
+      const lista = await leerPaginaQueExiste(2, leer);
+      expect(lista.pagina).toBe(2);
+      expect(lista.filas).toHaveLength(POR_PAGINA);
+      expect(pedidas).toEqual([2]);
+    });
+
+    it("la página 7 de 3 se baja a la 3: lee la pedida, la 1 (para el total) y la última", async () => {
+      const { leer, pedidas } = baseDe(45);
+      const lista = await leerPaginaQueExiste(7, leer);
+      expect(lista.pagina).toBe(3);
+      expect(lista.filas).toHaveLength(5);
+      expect(pedidas).toEqual([7, 1, 3]);
+    });
+
+    it("se archivó la ficha que estaba sola en la última página: queda en la anterior", async () => {
+      const { leer } = baseDe(POR_PAGINA); // 20 fichas = 1 página; el usuario estaba en la 2 con la ficha 21
+      const lista = await leerPaginaQueExiste(2, leer);
+      expect(lista.pagina).toBe(1);
+      expect(lista.filas).toHaveLength(POR_PAGINA);
+    });
+
+    it("sin ninguna ficha (o sin las del filtro) la página 1 vacía es la verdad: no insiste", async () => {
+      const { leer, pedidas } = baseDe(0);
+      const lista = await leerPaginaQueExiste(5, leer);
+      expect(lista.pagina).toBe(1);
+      expect(lista.filas).toHaveLength(0);
+      expect(pedidas).toEqual([5, 1]);
+    });
+
+    it("la página 1 vacía no se relee, y una falla de la base se devuelve tal cual, sin reintentar", async () => {
+      const vacia = baseDe(0);
+      await leerPaginaQueExiste(1, vacia.leer);
+      expect(vacia.pedidas).toEqual([1]);
+      const rota = baseDe(45, "No se pudo leer la lista de clientes: boom");
+      const lista = await leerPaginaQueExiste(9, rota.leer);
+      expect(lista.falla).toContain("boom");
+      expect(rota.pedidas).toEqual([9]);
+    });
+  });
+
+  it("una página absurdamente lejana se baja a MAX_PAGINA: `p_desde` es un integer de la base y no se desborda", () => {
+    expect(leerParamsLista({ pagina: "999999999999" }).pagina).toBe(MAX_PAGINA);
+    expect(leerParamsLista({ pagina: String(MAX_PAGINA) }).pagina).toBe(MAX_PAGINA);
+    expect(desdeDePagina(MAX_PAGINA)).toBeLessThan(2 ** 31);
   });
 });
 

@@ -138,22 +138,48 @@ describe("la cabecera con cuenta", () => {
     expect(hrefDelInicio(null)).toBe("/inicio");
   });
 
-  it("el menú «Ropa»: solo las columnas con algo, y una categoría que nadie ordenó cae en la tercera", () => {
+  it("los menús «Ropa» y «Accesorios»: solo los grupos con algo, cada categoría en el suyo, y un menú vacío no sale", () => {
     const d = datosDeCabecera(prendas, null, undefined);
-    expect(d.columnas.map((c) => [c.titulo, c.categorias.map((x) => x.clave)])).toEqual([
-      ["Arriba", ["CMS"]],
-      ["Completo y abajo", ["VES", "FAL"]],
-      ["Encima y más", ["ZAP"]],
+    expect(d.menus.map((m) => [m.nombre, m.grupos.map((g) => [g.nombre, g.categorias.map((c) => c.clave)])])).toEqual([
+      ["Ropa", [["Arriba", ["CMS"]], ["Vestidos y conjuntos", ["VES"]], ["Abajo", ["FAL"]]]],
+      ["Accesorios", [["Calzado", ["ZAP"]]]],
     ]);
-    expect(d.columnas[0].categorias[0]).toEqual({ clave: "CMS", nombre: "Camisas y Blusas", cuantas: 2, href: "/catalogo?categoria=CMS" });
-    expect(datosDeCabecera([prenda("Blusa")], null, undefined).columnas.map((c) => c.titulo)).toEqual(["Arriba"]);
-    expect(d.categorias.map((c) => c.href)).toEqual(["/catalogo?categoria=CMS", "/catalogo?categoria=VES", "/catalogo?categoria=FAL", "/catalogo?categoria=ZAP"]);
+    // El título del grupo lleva a todo el grupo; la categoría, a la suya (las dos con la tienda elegida).
+    expect(d.menus[0].grupos[0].href).toBe("/catalogo?grupo=arriba");
+    expect(d.menus[0].grupos[0].categorias[0]).toMatchObject({ clave: "CMS", nombre: "Camisas y Blusas", cuantas: 2, href: "/catalogo?categoria=CMS" });
+    expect(datosDeCabecera(prendas, "trujillo", undefined).menus[0].grupos[0].href).toBe("/catalogo?sede=trujillo&grupo=arriba");
+    // Solo ropa: no hay menú «Accesorios»; sin nada, ningún menú.
+    expect(datosDeCabecera([prenda("Blusa")], null, undefined).menus.map((m) => m.nombre)).toEqual(["Ropa"]);
+    expect(datosDeCabecera([], null, undefined).menus).toEqual([]);
   });
 
-  it("la tarjeta de Lo nuevo del menú es la que llegó hace menos; sin nada nuevo, ninguna", () => {
+  it("la foto de cada categoría: la que llegó hace menos ENTRE las que tienen foto; sin ninguna, la silueta de la que llegó hace menos", () => {
+    const d = datosDeCabecera(prendas, null, "https://x.supabase.co");
+    // Blusa Ruth llegó después, pero no tiene foto: la cara de «Camisas y Blusas» es Blusa Emma.
+    expect(d.menus[0].grupos[0].categorias[0].foto).toEqual({ foto: FOTO, optimizar: true, forma: "blusa", color: "#D5BA98", nombre: "Blusa Emma" });
+    // Sin fotos en la categoría, su silueta en su color.
+    expect(d.menus[0].grupos[2].categorias[0].foto).toMatchObject({ foto: null, forma: "falda", nombre: "Falda Renata" });
+  });
+
+  it("la vitrina de cada menú: lo último que llegó con foto, hasta 5, lo más reciente primero; lo que no es nuevo no va", () => {
     const d = datosDeCabecera(prendas, "trujillo", "https://x.supabase.co");
-    expect(d.destacada).toMatchObject({ nombre: "Blusa Ruth", href: "/catalogo/Blusa Ruth?sede=trujillo", foto: null, forma: "blusa" });
-    expect(datosDeCabecera([prenda("Vieja")], null, undefined).destacada).toBeNull();
+    expect(d.menus[0].recien).toEqual([
+      {
+        id: "Blusa Emma",
+        href: "/catalogo/Blusa Emma?sede=trujillo",
+        nombre: "Blusa Emma",
+        precio: "S/ 79.90",
+        oferta: false,
+        foto: { foto: FOTO, optimizar: true, forma: "blusa", color: "#D5BA98", nombre: "Blusa Emma" },
+      },
+    ]);
+    expect(d.menus[1].recien).toEqual([]);
+    const muchas = Array.from({ length: 7 }, (_, i) => prenda(`Nueva ${i}`, { nuevo: { dias: 7 - i }, fotos: [FOTO] }));
+    const vitrina = datosDeCabecera([...muchas, prenda("Vieja con foto", { fotos: [FOTO] })], null, undefined).menus[0].recien;
+    expect(vitrina.map((p) => p.nombre)).toEqual(["Nueva 6", "Nueva 5", "Nueva 4", "Nueva 3", "Nueva 2"]);
+    // Una en oferta lo dice (el precio sale en rojo).
+    const enOferta = datosDeCabecera([enCampana("Rebajada", { nuevo: { dias: 1 }, fotos: [FOTO] })], null, undefined).menus[0].recien[0];
+    expect(enOferta).toMatchObject({ precio: "S/ 63.90", oferta: true });
   });
 
   it("el índice del buscador: lo que dice cada tarjeta (precio, oferta, foto) y nada más", () => {

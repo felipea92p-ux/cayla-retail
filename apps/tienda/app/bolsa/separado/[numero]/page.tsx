@@ -70,8 +70,9 @@ export default async function Separado({ params }: { params: Promise<{ numero: s
               </span>
             </li>
             <li>
+              {/* «Coordinas … con la tienda» (como «Cómo separar»): «Coordinan el pago» no decía quién. */}
               <span>
-                Coordinan el pago y lo recoges<small>Por WhatsApp acuerdan cómo pagas, y lo recoges en {tienda}.</small>
+                Coordinas el pago y lo recoges<small>Por WhatsApp acuerdas con la tienda cómo pagas, y lo recoges en {tienda}.</small>
               </span>
             </li>
           </ol>
@@ -82,8 +83,14 @@ export default async function Separado({ params }: { params: Promise<{ numero: s
                 Enviar por WhatsApp
               </a>
             ) : (
+              // Si la tienda no tiene su WhatsApp en la web, «escríbele» sin decir dónde era un callejón: «Nuestras tiendas» tiene
+              // cómo llegar a cada una.
               <p className="w-texto-sec">
-                Escríbele a {tienda} con tu número de pedido, <span className="t-codigo">{p.codigo}</span>.
+                Escríbele a {tienda} con tu número de pedido, <span className="t-codigo">{p.codigo}</span>. Sus datos están en{" "}
+                <Link className="w-enlace" href="/tiendas">
+                  Nuestras tiendas
+                </Link>
+                .
               </p>
             )}
           </div>

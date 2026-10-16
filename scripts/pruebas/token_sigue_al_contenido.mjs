@@ -95,8 +95,9 @@ const items = (cantidad = 1) =>
 const yape = (monto) => `jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', ${monto}))`;
 const vender = (como, { cantidad = 1, token = ":'tok'", tipo = "null" } = {}) =>
   `select retail.registrar_venta(:'ubic', ${items(cantidad)}, ${yape(`:'precio'::numeric * ${cantidad}`)}, null, ${token}, ${tipo}) as ${como} \\gset\n`;
-const separar = (como, { celular = "987111222", token = "null" } = {}) =>
-  `select retail.separar_prendas(p_ubicacion_id => :'ubic', p_items => ${items(1)}, p_pagos => ${yape(30)},
+// `adelanto`: al menos el 30 % del total (20261016003000); para sumar una prenda después, el 30 % de las dos.
+const separar = (como, { celular = "987111222", token = "null", adelanto = 30 } = {}) =>
+  `select retail.separar_prendas(p_ubicacion_id => :'ubic', p_items => ${items(1)}, p_pagos => ${yape(adelanto)},
     p_clienta_nombres => 'Ana', p_clienta_apellidos => 'Lozano Vera', p_clienta_celular => '${celular}',
     p_devolucion_medio => 'yape', p_token => ${token}) as ${como} \\gset\n`;
 const pedir = (como) =>
@@ -174,7 +175,7 @@ operacion("abonar_separacion", {
 });
 
 operacion("editar_separacion", {
-  prep: separar("s1"),
+  prep: separar("s1", { adelanto: 60 }),
   llamar: (como, v) => `select (retail.editar_separacion(:'s1', '{}'::uuid[], ${items(v === "a" ? 1 : 2)}, :'tok') ->> 'edicion_id') as ${como} \\gset\n`,
 });
 

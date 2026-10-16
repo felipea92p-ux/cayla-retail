@@ -96,7 +96,12 @@ let n = 0;
 /** Una huella de ip (o de documento) de esta corrida: no choca con intentos reales de la última hora. */
 const huella = (que = "ip") => `zz-${que}-${CORRIDA}-${++n}`;
 const correoNuevo = (que = "c") => `zz.${que}.${CORRIDA}.${++n}@ejemplo.com`;
-const DNI = { nuevo: "09990001", caja: "09990002", socia: "09990003", archivada: "09990004", vacia: "09990005", otro: "09990006" };
+const DNI = { nuevo: "09990001", caja: "09990002", socia: "09990003", archivada: "09990004", vacia: "09990005", otro: "09990006", segundo: "09990007" };
+/**
+ * Lo que la tienda anota en la ficha con la persona delante (Clientes ▸ ficha ▸ Editar): el correo con el que va a crear su cuenta.
+ * Desde 20261015230000 (D7) una ficha que ya existía solo se une a una cuenta con ESE correo.
+ */
+const correoEnLaFicha = (ficha, r) => `update retail.clientas set correo = '${r.d.correo}' where id = :'${ficha}';`;
 const TEXTOS = "borrador-2026-10-14";
 /** La versión vigente de la casilla de WhatsApp, como la manda la tienda (una expresión SQL). */
 const CASILLA = "(select max(t.version) from retail.club_textos t where t.tipo = 'casilla_publicidad')";
@@ -338,13 +343,15 @@ function main() {
     "true|false|archivada",
   );
   const ip7 = huella();
+  const rSociaConCuenta = registrar({ dni: DNI.socia });
   esperarValor(
     "un DNI mal escrito: «invalido» y no cuenta; uno que ya tiene cuenta: «repetido»",
     correr(`${PREPARAR}
       select (retail.tienda_consultar_documento('1234567', '${ip7}', 'zz-d') ->> 'estado') || '|' ||
              (retail.tienda_consultar_documento('ABCDEFGH', '${ip7}', 'zz-d') ->> 'estado') as estados \\gset
       select :'estados' || '|' || (select count(*) from retail.club_intentos_registro where ip_hash = '${ip7}');
-      ${callado(registrar({ dni: DNI.socia }).expr)}
+      ${correoEnLaFicha("socia", rSociaConCuenta)}
+      ${callado(rSociaConCuenta.expr)}
       select retail.tienda_consultar_documento('${DNI.socia}', '${ip7}', 'zz-d') ->> 'estado';
       rollback;`),
     "invalido|invalido|0\nrepetido",
@@ -379,6 +386,7 @@ function main() {
   esperarValor(
     "correo con cuenta: «correo_repetido»; DNI con cuenta: «dni_repetido»; ficha archivada: «archivada»",
     correr(`${PREPARAR}
+      ${correoEnLaFicha("socia", r10)}
       ${callado(r10.expr)}
       select (${revisar("ZZ.Tomado@ejemplo.com", DNI.nuevo, "987654321", huella(), "zz-a")} ->> 'estado') || ',' ||
              (${revisar("libre@ejemplo.com", DNI.socia, "987654321", huella(), "zz-b")} ->> 'estado') || ',' ||
@@ -606,10 +614,12 @@ function main() {
       rollback;`),
     "clientas|registro_web|true|true|true|true|borrador-2026-10-14",
   );
+  const rCaja = registrar({ dni: DNI.caja, nombre: "Ana María Prueba Caja", celular: "912345678", dia: 20, mes: 1, anio: 1990 });
   esperarValor(
-    "ficha de caja (sin club): se une a ella; el nombre del padrón reemplaza, el celular y el cumpleaños que tenía NO se pisan, el correo vacío se completa; queda socia y su origen sigue «caja»",
+    "ficha de caja (sin club) con ESE correo anotado: se une a ella; el nombre del padrón reemplaza, el celular y el cumpleaños que tenía NO se pisan; queda socia y su origen sigue «caja»",
     correr(`${PREPARAR}
-      select (${registrar({ dni: DNI.caja, nombre: "Ana María Prueba Caja", celular: "912345678", dia: 20, mes: 1, anio: 1990 }).expr}) as r \\gset
+      ${correoEnLaFicha("caja", rCaja)}
+      select (${rCaja.expr}) as r \\gset
       select (:'r'::jsonb ->> 'se_unio_a_su_ficha') || '|' || (:'r'::jsonb ->> 'era_del_club') || '|' || (:'r'::jsonb ->> 'nombre_corto');
       select c.nombre || '|' || c.telefono_whatsapp || '|' || c.cumple_dia || '/' || c.cumple_mes || '/' || coalesce(c.cumple_anio::text, '-') || '|' ||
              (c.correo like 'zz.%')::text || '|' || c.registro_origen || '|' || (c.club_desde = now())::text || '|' || (c.codigo_club = :'r'::jsonb ->> 'codigo_club')::text
@@ -617,25 +627,46 @@ function main() {
       rollback;`),
     "true|false|Ana\nAna María Prueba Caja|987000111|3/4/-|true|caja|true|true",
   );
+  const rSocia = registrar({ dni: DNI.socia, nombre: "Otro Nombre Cualquiera", padron: false });
   esperarValor(
     "socia que ya era del club, con el nombre escrito a mano: conserva su nombre, su fecha de socia y su código (era_del_club)",
     correr(`${PREPARAR}
-      select (${registrar({ dni: DNI.socia, nombre: "Otro Nombre Cualquiera", padron: false }).expr}) as r \\gset
+      ${correoEnLaFicha("socia", rSocia)}
+      select (${rSocia.expr}) as r \\gset
       select (:'r'::jsonb ->> 'era_del_club') || '|' || (:'r'::jsonb ->> 'se_unio_a_su_ficha') || '|' || (:'r'::jsonb ->> 'codigo_club' = :'codigo_socia')::text;
       select c.nombre || '|' || (c.club_desde < now() - interval '399 days')::text || '|' || (c.codigo_club = :'codigo_socia')::text || '|' || c.cumple_anio
         from retail.clientas c where c.id = :'socia';
       rollback;`),
     "true|true|true\nBea Socia Antigua|true|true|1990",
   );
+  const rVacia = registrar({ dni: DNI.vacia, celular: "999888777", dia: 29, mes: 2, anio: null, nombre: "Dora", padron: false });
   esperarValor(
     "ficha sin celular ni cumpleaños: se completan con lo de la web",
     correr(`${PREPARAR}
-      ${callado(registrar({ dni: DNI.vacia, celular: "999888777", dia: 29, mes: 2, anio: null, nombre: "Dora", padron: false }).expr)}
+      ${correoEnLaFicha("vacia", rVacia)}
+      ${callado(rVacia.expr)}
       select c.nombre || '|' || c.telefono_whatsapp || '|' || c.cumple_dia || '/' || c.cumple_mes || '/' || coalesce(c.cumple_anio::text, '-')
         from retail.clientas c where c.id = :'vacia';
       rollback;`),
     "Dora Sin Datos|999888777|29/2/-",
   );
+
+  console.log("— Una ficha que ya existía: solo con el correo que ya tenía (20261015230000, D7) —");
+  for (const [caso, preparar] of [
+    ["sin correo en la ficha", ""],
+    ["con OTRO correo en la ficha", "update retail.clientas set correo = 'zz.la.duena@ejemplo.com' where id = :'caja';"],
+  ]) {
+    const rAjena = registrar({ dni: DNI.caja, nombre: "Ana María Prueba Caja", celular: "912345678" });
+    esperarValor(
+      `ficha de caja ${caso}: rechaza (cuenta_ficha_sin_tu_correo) y no escribe nada — ni cuenta, ni celular, ni correo, ni club`,
+      correr(`${PREPARAR}
+        ${preparar}
+        select ${RECUENTO} || '|' || (select coalesce(correo, '-') || ':' || telefono_whatsapp || ':' || (club_desde is null)::text from retail.clientas where id = :'caja') as antes \\gset
+        select pg_temp.intento($q$${rAjena.sql}$q$) || '#' || ((${RECUENTO} || '|' || (select coalesce(correo, '-') || ':' || telefono_whatsapp || ':' || (club_desde is null)::text from retail.clientas where id = :'caja')) = :'antes')::text;
+        rollback;`),
+      "P0001|cuenta_ficha_sin_tu_correo|correo#true",
+    );
+  }
 
   console.log("— Los avisos del Club por WhatsApp —");
   const rAvisos = registrar({ avisos: true, casilla: CASILLA });
@@ -661,22 +692,26 @@ function main() {
       rollback;`),
     "no|0|true",
   );
+  const rCelularDistinto = registrar({ dni: DNI.caja, celular: "912345678", avisos: true, casilla: CASILLA });
   esperarValor(
     "su ficha ya tenía OTRO celular (que no se pisa): los avisos quedan sin activar («celular_distinto»), sin permiso ni publicidad",
     correr(`${PREPARAR}
-      select (${registrar({ dni: DNI.caja, celular: "912345678", avisos: true, casilla: CASILLA }).expr}) ->> 'avisos_whatsapp' as e \\gset
+      ${correoEnLaFicha("caja", rCelularDistinto)}
+      select (${rCelularDistinto.expr}) ->> 'avisos_whatsapp' as e \\gset
       select :'e' || '|' || (select count(*) from retail.club_permisos where clienta_id = :'caja') || '|' ||
              (select (publicidad_desde is null)::text || ':' || telefono_whatsapp from retail.clientas where id = :'caja');
       rollback;`),
     "celular_distinto|0|true:987000111",
   );
+  const rYaEstaban = registrar({ dni: DNI.socia, celular: "987000222", avisos: true, casilla: CASILLA });
   esperarValor(
     "una socia que ya tenía los avisos con la misma casilla: no se anota otra fila («ya_estaban») y conserva su fecha",
     correr(`${PREPARAR}
       update retail.clientas set publicidad_desde = now() - interval '30 days' where id = :'socia';
       insert into retail.club_permisos (clienta_id, finalidad, accion, medio, texto_tipo, texto_version)
       values (:'socia', 'publicidad_whatsapp', 'otorga', 'pagina_cartel', 'casilla_publicidad', ${CASILLA});
-      select (${registrar({ dni: DNI.socia, celular: "987000222", avisos: true, casilla: CASILLA }).expr}) ->> 'avisos_whatsapp' as e \\gset
+      ${correoEnLaFicha("socia", rYaEstaban)}
+      select (${rYaEstaban.expr}) ->> 'avisos_whatsapp' as e \\gset
       select :'e' || '|' || (select count(*) from retail.club_permisos where clienta_id = :'socia') || '|' ||
              (select (publicidad_desde < now() - interval '29 days')::text from retail.clientas where id = :'socia');
       rollback;`),
@@ -685,7 +720,7 @@ function main() {
 
   console.log("— Lo que la base rechaza, sin escribir nada —");
   const rCorreo = registrar({ correo: "zz.unico@ejemplo.com" });
-  const rUsuario = registrar({ dni: DNI.caja });
+  const rUsuario = registrar({ dni: DNI.segundo });
   const casos = [
     ["sin la casilla «Soy mayor de 18 años»", registrar({ dni: DNI.otro, mayor: false }).sql, "22023|cuenta_datos_invalidos|mayor"],
     ["los avisos con un texto de casilla que ya no es el vigente", registrar({ dni: DNI.otro, avisos: true, casilla: `${CASILLA} - 1` }).sql, "P0001|cuenta_texto_cambio|avisos"],
@@ -806,6 +841,7 @@ function main() {
         select c.documento_tipo || '|' || c.documento_numero || '|' || c.nombre || '|' || c.registro_origen || '|' || (c.club_desde is not null)::text
           from retail.clientas c where c.documento_numero = 'ZZ0999004';
         select pg_temp.intento($q$${repetido.sql}$q$);
+        update retail.clientas set correo = '${unida.d.correo}' where documento_tipo = 'pasaporte' and documento_numero = 'ZZ0999001';
         select (${unida.expr}) ->> 'se_unio_a_su_ficha';
         select c.nombre || '|' || (select count(*) from retail.cuentas_web w where w.clienta_id = c.id)
           from retail.clientas c where c.documento_tipo = 'pasaporte' and c.documento_numero = 'ZZ0999001';

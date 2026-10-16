@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { agregarALaBolsa } from "@/app/acciones/bolsa";
+import { useAvisoBreve } from "../club/useAvisoBreve";
 import { Icono } from "../Icono";
 import "@/app/estilos/bolsa.css";
 
@@ -12,43 +13,49 @@ import "@/app/estilos/bolsa.css";
 //
 // DÓNDE VA (lo pone la integración de la tienda, actividades 4 y 5): `AgregarALaBolsa` en la ficha, con la talla y el color elegidos
 // (sin talla, `varianteId={null}`: «Elige tu talla»); `AgregarRapido` en la tarjeta, una por talla del color que tiene stock.
+//
+// Lo que pasó se dice donde se mira: en la ficha, junto al botón (`alResponder`: la línea con «Ver mi bolsa», que no se va sola ni
+// depende de una animación); en la tarjeta, con el aviso corto de abajo de toda la tienda (`useAvisoBreve`, uno a la vez).
 
-/** El aviso corto de abajo (el `.w-aviso` de la cuenta): se va solo. */
-function useAviso() {
-  const [aviso, setAviso] = useState<{ texto: string; id: number } | null>(null);
-  useEffect(() => {
-    if (!aviso) return;
-    const reloj = setTimeout(() => setAviso(null), 3600);
-    return () => clearTimeout(reloj);
-  }, [aviso]);
-  const vista = aviso ? (
-    <div key={aviso.id} className="w-aviso" role="status">
-      <Icono nombre="bolsa" />
-      <span>{aviso.texto}</span>
-    </div>
-  ) : null;
-  return { decir: (texto: string) => setAviso({ texto, id: Date.now() }), vista };
-}
+type ResultadoAgregar = { bien: boolean; texto: string };
 
-function useAgregar(sedeId: string | null) {
+function useAgregar(sedeId: string | null, alResponder?: (r: ResultadoAgregar) => void) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
-  const { decir, vista } = useAviso();
+  const { aviso, mostrar } = useAvisoBreve();
   const agregar = (varianteId: string) =>
     iniciar(async () => {
       const r = await agregarALaBolsa(varianteId, sedeId);
-      if (r.estado === "sin_sesion") router.push("/entrar");
-      else decir(r.mensaje);
+      if (r.estado === "sin_sesion") {
+        router.push("/entrar");
+        return;
+      }
+      const resultado = { bien: r.estado === "agregada", texto: r.mensaje };
+      if (alResponder) alResponder(resultado);
+      else mostrar(resultado.texto, resultado.bien);
     });
-  return { agregar, pendiente, vista };
+  return { agregar, pendiente, aviso };
 }
 
-/** El botón de la ficha. Sin talla elegida, «Elige tu talla» (como la maqueta). */
-export function AgregarALaBolsa({ varianteId, sedeId = null }: { varianteId: string | null; sedeId?: string | null }) {
-  const { agregar, pendiente, vista } = useAgregar(sedeId);
+/**
+ * El botón de la ficha. Sin talla elegida dice «Elige tu talla» (como la maqueta) y, si la ficha le da `alElegirTalla`, lleva a las
+ * tallas: en el celular el botón vive en la barra de abajo y las tallas quedan lejos, arriba; un botón apagado ahí era un callejón.
+ */
+export function AgregarALaBolsa({
+  varianteId,
+  sedeId = null,
+  alElegirTalla,
+  alResponder,
+}: {
+  varianteId: string | null;
+  sedeId?: string | null;
+  alElegirTalla?: () => void;
+  alResponder?: (r: ResultadoAgregar) => void;
+}) {
+  const { agregar, pendiente, aviso } = useAgregar(sedeId, alResponder);
   if (!varianteId) {
     return (
-      <button type="button" className="t-btn t-btn-ancho" disabled>
+      <button type="button" className="t-btn t-btn-ancho t-btn-sec" disabled={!alElegirTalla} onClick={alElegirTalla}>
         Elige tu talla
       </button>
     );
@@ -59,7 +66,7 @@ export function AgregarALaBolsa({ varianteId, sedeId = null }: { varianteId: str
         <Icono nombre="bolsa" />
         {pendiente ? "Agregando…" : "Agregar a la bolsa"}
       </button>
-      {vista}
+      {aviso}
     </>
   );
 }
@@ -72,7 +79,7 @@ export function AgregarRapido({
   tallas: { talla: string; varianteId: string | null }[];
   sedeId?: string | null;
 }) {
-  const { agregar, pendiente, vista } = useAgregar(sedeId);
+  const { agregar, pendiente, aviso } = useAgregar(sedeId);
   if (tallas.length === 0) return null;
   return (
     <>
@@ -90,7 +97,7 @@ export function AgregarRapido({
           </button>
         ))}
       </div>
-      {vista}
+      {aviso}
     </>
   );
 }

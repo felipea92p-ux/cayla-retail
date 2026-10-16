@@ -17,16 +17,22 @@ import { firmar } from "@/lib/responsable-reglas";
 import type { CampoDeGuia } from "@/lib/guia-campos";
 import {
   argumentosDeArreglo,
+  argumentosDeDevolucion,
   camposGuiaArreglo,
+  camposGuiaDevolucion,
   interpretarErrorDeDanada,
   leerRespuestaDanada,
   MAX_TEXTO_DANADA,
   quePasaAlArreglar,
+  quePasaAlDevolver,
   RPC_ARREGLAR_DANADA,
+  RPC_DEVOLVER_DANADA,
   TEXTO_ARREGLO_YA_ESTABA,
+  TEXTO_DEVOLUCION_YA_ESTABA,
   textoErrorDeResolucion,
   textoOrigenDanada,
   tituloExitoArreglo,
+  tituloExitoDevolucion,
 } from "@/lib/danadas-reglas";
 import { Aviso } from "@/components/ui/Aviso";
 import { Check } from "lucide-react";
@@ -49,8 +55,14 @@ import { Vacio } from "@/components/ui/Vacio";
 // "Liquidada" ES una venta real (corrección de Felipe, mismo día: "se tiene
 // que tomar en cuenta liquidación como una venta, totalmente") — pide precio
 // y forma de pago, y usa `liquidar_prenda_danada`, no `resolver_prenda_danada`
-// (esa función ahora solo acepta Se botó/Donada). "Se botó"/"Donada" siguen
+// (aquí solo se usa para Se botó/Donada). "Se botó"/"Donada" siguen
 // siendo solo una etiqueta + nota, sin dinero de por medio.
+//
+// "Devolver al proveedor" (ADR-0362, fase 5b, actividad 6a; decisión 60, Felipe
+// 2026-10-15): lo que llegó dañado en una recepción vuelve a SU proveedor y
+// queda como deuda «por reponer» en su ficha, con las mismas salidas que un
+// faltante. Lo hace quien ve Existencias, como «Se arregló»: el grupo entero,
+// con una nota opcional y marca de reintento (`devolver_danada_al_proveedor`).
 const ESTADOS_SIMPLES = [
   { valor: "se_boto", texto: "Se botó" },
   { valor: "donada", texto: "Donada" },
@@ -98,6 +110,12 @@ export function ResolverDanadosModal({
   const [errorArreglo, setErrorArreglo] = useState<string | null>(null);
   const [arregloEnDuda, setArregloEnDuda] = useState(false);
   const tokenArreglo = useRef<string>("");
+  // «Devolver al proveedor»: la prenda abierta, la nota, su marca de reintento y si quedó en duda tras un corte de red.
+  const [devolviendo, setDevolviendo] = useState<string | null>(null);
+  const [notaDevolucion, setNotaDevolucion] = useState("");
+  const [errorDevolucion, setErrorDevolucion] = useState<string | null>(null);
+  const [devolucionEnDuda, setDevolucionEnDuda] = useState(false);
+  const tokenDevolucion = useRef<string>("");
   // Resolver o liquidar una prenda dañada es operación de tienda (sale del stock en cuarentena; liquidar es una
   // venta con caja): pide Responsable, también al líder (ADR-0161, A8/A9). Uno solo para todo el modal.
   const responsable = useResponsable();
@@ -105,7 +123,9 @@ export function ResolverDanadosModal({
   // La guía de foco (ADR-0284) de lo que está abierto: «Se arregló» (qué se le hizo), «Liquidada» (precio y forma de pago) o, sin
   // ninguno abierto, solo quién lo hace. Sale de lo mismo que apaga cada botón: no agrega reglas.
   const precioLiquidando = liquidando ? Number(precios[liquidando]) : Number.NaN;
-  const camposAbiertos: CampoDeGuia[] = arreglando
+  const camposAbiertos: CampoDeGuia[] = devolviendo
+    ? camposGuiaDevolucion(notaDevolucion, responsable.listo)
+    : arreglando
     ? camposGuiaArreglo(notaArreglo, responsable.listo)
     : liquidando
       ? [
@@ -180,6 +200,7 @@ export function ResolverDanadosModal({
 
   function abrirArreglo(id: string) {
     setLiquidando(null);
+    setDevolviendo(null);
     setArreglando(id);
     // Lo escrito en «Nota (opcional)» antes de tocar «Se arregló» no se pierde: suele ser justo lo que se le hizo.
     setNotaArreglo(notas[id] ?? "");
@@ -217,6 +238,50 @@ export function ResolverDanadosModal({
     router.refresh();
   }
 
+  function abrirDevolucion(id: string) {
+    setLiquidando(null);
+    setArreglando(null);
+    setDevolviendo(id);
+    // Lo escrito en «Nota (opcional)» antes de tocar el botón no se pierde.
+    setNotaDevolucion(notas[id] ?? "");
+    setErrorDevolucion(null);
+    setDevolucionEnDuda(false);
+    tokenDevolucion.current = crypto.randomUUID();
+  }
+
+  async function confirmarDevolucion(p: PrendaDanada) {
+    if (!guia.puedeConfirmar || resolviendo !== null || !p.devolucion) return;
+    const proveedor = p.devolucion.proveedor;
+    setResolviendo(p.id);
+    setErrorDevolucion(null);
+    let data: unknown = null;
+    let error: ErrorEscritura = null;
+    try {
+      const r = await firmar(
+        createClient().rpc(RPC_DEVOLVER_DANADA as never, argumentosDeDevolucion(p.id, notaDevolucion, tokenDevolucion.current) as never),
+        responsable.firma(),
+      );
+      data = r.data;
+      error = r.error;
+    } catch (excepcion) {
+      error = { message: excepcion instanceof Error ? excepcion.message : String(excepcion) };
+    }
+    setResolviendo(null);
+    responsable.despues(error);
+    if (error) {
+      const fallo = interpretarErrorDeDanada(error, "devolver la prenda al proveedor");
+      // Tras un corte de red no se sabe si se devolvió: la nota queda fija y se reenvía igual, con la misma marca.
+      if (fallo.tipo === "red") setDevolucionEnDuda(true);
+      setErrorDevolucion(fallo.mensaje);
+      return;
+    }
+    const r = leerRespuestaDanada(data) ?? { ya_registrada: false, id: p.id, unidades: p.cantidad };
+    if (r.ya_registrada) avisar.aviso(TEXTO_DEVOLUCION_YA_ESTABA, { detalle: p.referencia });
+    else avisar.exito(tituloExitoDevolucion(r.unidades, proveedor), { detalle: `${p.referencia} · queda en «Nos debe», en la ficha del proveedor` });
+    setDevolviendo(null);
+    router.refresh();
+  }
+
   return (
     <Modal conCerrar
       titulo="Prendas dañadas"
@@ -228,7 +293,8 @@ export function ResolverDanadosModal({
         <div className="space-y-4">
           {!esLider && puedeArreglar && pendientes.length > 0 && (
             <p className="nota-cayla">
-              Si una prenda ya se compuso, márcala «Se arregló» y vuelve al almacén. Liquidarla, botarla o donarla lo decide un líder.
+              Si una prenda ya se compuso, márcala «Se arregló» y vuelve al almacén. Si llegó dañada en una recepción, puedes devolverla al
+              proveedor. Liquidarla, botarla o donarla lo decide un líder.
             </p>
           )}
           {/* Los botones van por prenda: el combo queda arriba de la lista, antes de cualquiera de ellos. */}
@@ -252,9 +318,9 @@ export function ResolverDanadosModal({
                       {new Date(p.creadoEn).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" })}
                     </p>
                     {/* De dónde llegó y, si la reportaron en la tienda, qué tiene: es lo que el líder necesita para decidir. */}
-                    <p className="mt-0.5 text-xs text-taupe">{textoOrigenDanada(p.origen, p.motivoReporte)}</p>
+                    <p className="mt-0.5 text-xs text-taupe">{textoOrigenDanada(p.origen, p.motivoReporte, p.devolucion)}</p>
                   </div>
-                  {puedeArreglar && liquidando !== p.id && arreglando !== p.id && (
+                  {puedeArreglar && liquidando !== p.id && arreglando !== p.id && devolviendo !== p.id && (
                     <>
                       {puedeResolver && (
                         <CampoTexto
@@ -276,12 +342,25 @@ export function ResolverDanadosModal({
                         >
                           Se arregló
                         </Boton>
+                        {/* Lo que llegó dañado en una recepción vuelve a su proveedor y queda como deuda «por reponer» (actividad 6a). */}
+                        {p.devolucion && (
+                          <Boton
+                            type="button"
+                            onClick={() => abrirDevolucion(p.id)}
+                            disabled={resolviendo !== null || !responsable.listo}
+                            title={responsable.motivo ?? `Vuelve a ${p.devolucion.proveedor} y queda como deuda en su ficha`}
+                            className="flex-1"
+                          >
+                            Devolver al proveedor
+                          </Boton>
+                        )}
                         {puedeResolver && (
                           <>
                             <Boton
                               type="button"
                               onClick={() => {
                                 setArreglando(null);
+                                setDevolviendo(null);
                                 setLiquidando(p.id);
                                 setPrecios((prev) => ({ ...prev, [p.id]: prev[p.id] ?? (p.precioReferencia || "").toString() }));
                               }}
@@ -343,6 +422,43 @@ export function ResolverDanadosModal({
                           className={`flex-1 ${guia.claseConfirmar}`}
                         >
                           {arregloEnDuda ? "Confirmar de nuevo" : "Volver al almacén"}
+                        </Boton>
+                      </div>
+                    </div>
+                  )}
+                  {puedeArreglar && devolviendo === p.id && p.devolucion && (
+                    <div className="space-y-3 rounded-md bg-sand/30 p-3">
+                      <p className="text-xs text-tinta/65">{quePasaAlDevolver(p.devolucion.proveedor)}</p>
+                      <CampoGuiado id="devolucion" guia={guia}>
+                        <CampoTexto
+                          etiqueta={guia.etiqueta("devolucion", "Nota")}
+                          placeholder="Escribe qué tiene o con quién se la mandaste (opcional)"
+                          maxLength={MAX_TEXTO_DANADA}
+                          value={notaDevolucion}
+                          onChange={(e) => {
+                            setNotaDevolucion(e.target.value);
+                            setErrorDevolucion(null);
+                          }}
+                          disabled={resolviendo !== null || devolucionEnDuda}
+                        />
+                      </CampoGuiado>
+                      {errorDevolucion && <Aviso tono="error">{errorDevolucion}</Aviso>}
+                      <PieGuia guia={guia} listo={`Todo listo: vuelve a ${p.devolucion.proveedor}.`} />
+                      <div className="pie-acciones">
+                        <Boton type="button" onClick={() => setDevolviendo(null)} disabled={resolviendo !== null}>
+                          Cancelar
+                        </Boton>
+                        <Boton
+                          type="button"
+                          peso="primario"
+                          onClick={() => confirmarDevolucion(p)}
+                          cargando={resolviendo === p.id}
+                          textoCargando="Devolviendo…"
+                          disabled={resolviendo !== null || !guia.puedeConfirmar}
+                          title={responsable.motivo ?? guia.frase ?? undefined}
+                          className={`flex-1 ${guia.claseConfirmar}`}
+                        >
+                          {devolucionEnDuda ? "Confirmar de nuevo" : "Devolver al proveedor"}
                         </Boton>
                       </div>
                     </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { pctTexto } from "@/lib/portada";
 import { Icono, type NombreIcono } from "./Icono";
 import { TarjetaClub } from "./TarjetaClub";
 
@@ -11,9 +12,20 @@ const BENEFICIOS: [NombreIcono, string, string][] = [
 
 /**
  * El Club CAYLA (maqueta, `seccionClub`): los beneficios y la tarjeta. Sin cuenta, invita a crearla con «Tu nombre aquí»; con cuenta,
- * la tarjeta lleva su nombre y el botón lleva a «Mi cuenta».
+ * la tarjeta lleva su nombre y el botón lleva a «Mi perfil». `cumplePct`: el descuento de cumpleaños que cobra la caja
+ * (`tienda_club_beneficios`), en un sello sobre la tarjeta; sin el dato, sin sello (nunca un número inventado).
  */
-export function SeccionClub({ nombre, desde, conCuenta }: { nombre: string | null; desde: number; conCuenta: boolean }) {
+export function SeccionClub({
+  nombre,
+  desde,
+  conCuenta,
+  cumplePct = null,
+}: {
+  nombre: string | null;
+  desde: number;
+  conCuenta: boolean;
+  cumplePct?: number | null;
+}) {
   return (
     <section className="t-club" aria-labelledby="club-cayla">
       <div className="t-ancho t-club-in">
@@ -45,7 +57,7 @@ export function SeccionClub({ nombre, desde, conCuenta }: { nombre: string | nul
           </ul>
           {conCuenta ? (
             <Link className="t-btn" href="/cuenta">
-              Ver mi cuenta
+              Ver mi perfil
             </Link>
           ) : (
             <Link className="t-btn" href="/crear-cuenta">
@@ -53,7 +65,15 @@ export function SeccionClub({ nombre, desde, conCuenta }: { nombre: string | nul
             </Link>
           )}
         </div>
-        <TarjetaClub nombre={nombre ?? "Tu nombre aquí"} desde={desde} />
+        <div className="t-club-tarjeta">
+          <TarjetaClub nombre={nombre ?? "Tu nombre aquí"} desde={desde} />
+          {cumplePct !== null && (
+            <span className="t-club-sello">
+              <b>−{pctTexto(cumplePct)} %</b>
+              <small>en tu cumpleaños</small>
+            </span>
+          )}
+        </div>
       </div>
     </section>
   );

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Icono } from "@/components/Icono";
-import { Lamina } from "@/components/looks/Lamina";
+import { TarjetaLook } from "@/components/looks/TarjetaLook";
 import { MarcoCatalogo } from "@/components/MarcoCatalogo";
+import { hrefLista } from "@/lib/catalogo";
 import { leerCatalogo } from "@/lib/catalogo-servidor";
-import { hrefDelInicio } from "@/lib/inicio";
-import { cejaDeLook, hrefLook, hrefLooks, lineaDeLook } from "@/lib/looks";
+import { hrefLooks, looksDeATres } from "@/lib/looks";
 import { leerLooks } from "@/lib/looks-servidor";
 import { claveDeSede, sedeDeLaUrl, sedesEnOrden } from "@/lib/sede-elegida";
 import { hayEnTienda } from "@/lib/stock";
@@ -17,7 +17,8 @@ export const metadata: Metadata = { title: "Arma tu look · CAYLA" };
 // «Arma tu look» (maqueta v4, `vLooks`): las combinaciones que el ERP arma en Vitrina web ▸ Looks, en su orden, cada una con su lámina, su
 // frase y lo que cuesta completa en la tienda elegida («Ver lo que hay en»; con «Todas», al mayor entre las tiendas de la web). Se lee en
 // cada visita: lo que se enciende o se apaga en el ERP se ve al recargar. Pide cuenta como el catálogo (el layout del grupo y el proxy), y
-// lleva su marco: la cabecera (con «Arma tu look» marcado), la franja de la tienda y el pie.
+// lleva su marco: la cabecera (con «Arma tu look» marcado), la franja de la tienda y el pie. Sin migas, como las listas del catálogo: es
+// una página de arriba del todo (está en la cabecera) y «Inicio / Arma tu look» solo repetía el título (Felipe 2026-10-15).
 export default async function Looks({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const sedes = sedesEnOrden(await leerSedes());
@@ -41,11 +42,6 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
       ]}
     >
       <div className="t-ancho">
-        <nav className="t-ruta" aria-label="Estás en">
-          <Link href={hrefDelInicio(sede)}>Inicio</Link>
-          <span aria-hidden="true">/</span>
-          <span>Arma tu look</span>
-        </nav>
         <header className="t-lista-cab">
           <span className="t-ceja">Combinaciones listas</span>
           <h1>
@@ -67,20 +63,15 @@ export default async function Looks({ searchParams }: { searchParams: Promise<Re
           <div className="t-vacio">
             <Icono nombre="chispa" />
             <h3>Pronto verás aquí nuestros looks</h3>
-            <p>Estamos armando combinaciones de prendas que se ven bien juntas. Mientras tanto, mira toda la ropa.</p>
-            <Link className="t-btn" href="/catalogo">
-              Ver toda la ropa
+            <p>Estamos armando combinaciones de prendas que se ven bien juntas. Mientras tanto, mira toda la tienda.</p>
+            <Link className="t-btn" href={hrefLista({ sede, categoria: null, orden: "destacado" })}>
+              Ver toda la tienda
             </Link>
           </div>
         ) : (
-          <div className="t-looks">
-            {lectura.looks.map((l) => (
-              <Link key={l.id} className="t-look-card" href={hrefLook(l.id, sede)}>
-                <Lamina look={l} sede={sede} origenFotos={origenFotos} enlaces={false} />
-                <span className="t-ceja">{cejaDeLook(l)}</span>
-                <h3>{l.nombre}</h3>
-                <small>{lineaDeLook(l)}</small>
-              </Link>
+          <div className="t-looks" data-tres={looksDeATres(lectura.looks.length) ? "" : undefined}>
+            {lectura.looks.map((l, i) => (
+              <TarjetaLook key={l.id} look={l} sede={sede} origenFotos={origenFotos} pronto={i === 0} />
             ))}
           </div>
         )}

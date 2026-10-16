@@ -11,7 +11,7 @@ import {
   hayLlaveDeConfirmacion,
   usuarioConfirmadoDeEsteAparato,
 } from "@/lib/correo-confirmado-servidor";
-import { COOKIE_ENTRADA, ENTRADA_DURA_S, marcaDeEntrada } from "@/lib/entrada";
+import { conAviso, COOKIE_ENTRADA, ENTRADA_DURA_S, hrefConVolver, marcaDeEntrada, rutaParaVolver } from "@/lib/entrada";
 import { anotarEntradaEnBase, usuarioBorradoEnBase } from "@/lib/entrada-servidor";
 import {
   avisoAlCrear,
@@ -149,17 +149,15 @@ export async function obtenerCodigo(correoEscrito: unknown, reenvio: unknown): P
   if (propia && (await estaConfirmado(admin, propia.usuarioWebId)) === "si") return { estado: "confirmado" };
   if (!propia) await soltarCorreoAnterior(admin);
 
-  // 2. La primera vez, la consulta: cuenta el intento por ip (así nadie manda códigos a correos ajenos sin tope) y dice si ya hay
-  //    una cuenta con ese correo. «Reenviar» no la repite: la base solo reenvía a un correo que ya pidió su código.
-  if (reenvio !== true) {
-    const h = await huellas();
-    if (!h) return enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
-    const consulta = await consultarCorreoEnBase(correo, h.ip);
-    if (consulta === "repetido") return enCorreo(MENSAJES.correoRepetido, true);
-    if (consulta === "limite") return enCorreo(MENSAJES.limite);
-    if (consulta === "invalido") return enCorreo(MENSAJES.correoMal);
-    if (consulta !== "libre") return enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
-  }
+  // 2. La consulta: cuenta el intento por ip (así nadie manda códigos a correos ajenos sin tope) y dice si ya hay una cuenta con ese
+  //    correo. «Reenviar» también la cuenta (Felipe 2026-10-15, D6): si no, una ip mandaba hasta 5 códigos por cada correo consultado.
+  const h = await huellas();
+  if (!h) return enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
+  const consulta = await consultarCorreoEnBase(correo, h.ip);
+  if (consulta === "repetido") return enCorreo(MENSAJES.correoRepetido, true);
+  if (consulta === "limite") return enCorreo(MENSAJES.limite);
+  if (consulta === "invalido") return enCorreo(MENSAJES.correoMal);
+  if (consulta !== "libre") return enCodigo(false, MENSAJES.codigoNoEnviado, "error", null);
 
   // 3 y 4. El código.
   return mandarCodigo(admin, correo, reenvio === true);
@@ -280,6 +278,8 @@ export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
   const leido = esquemaCrearCuenta.safeParse(entrada);
   if (!leido.success) return sinCrear(null, MENSAJES.noDisponible);
   const { registro: r, casilla } = leido.data;
+  // La página con cuenta que quería ver (la prenda que le mandaron): al terminar va ahí, no a «Mi cuenta». Solo una de esta tienda.
+  const volver = rutaParaVolver(leido.data.volver);
   const problema = problemaRegistro(r, hoyLima());
   if (problema) return problema;
 
@@ -372,11 +372,12 @@ export async function crearCuenta(entrada: unknown): Promise<RespuestaCrear> {
 
   // 8. Entrar. Si el proyecto de clientes no contesta justo ahora, la cuenta igual quedó: que entre con su correo.
   const { error } = await sesion.auth.signInWithPassword({ email: correo, password: r.clave });
-  if (error) redirect("/entrar?aviso=cuenta-creada");
+  if (error) redirect(conAviso(hrefConVolver("/entrar", volver), "cuenta-creada"));
   // Crear la cuenta también es entrar (la conservación del Club ya la cuenta por `creada_en`): se anota y se deja la marca del día,
   // así el marco de «Mi cuenta» no vuelve a preguntar hoy.
   if ((await anotarEntradaEnBase(usuarioWebId)) === "anotada") await marcarEntradaDeHoy(usuarioWebId);
-  redirect(`/cuenta?aviso=${aviso}`);
+  // A la prenda que quería ver, con la bienvenida al Club abajo. Salvo los avisos que no se activaron: esa nota vive en «Mi cuenta».
+  redirect(volver && aviso !== "avisos-sin-activar" ? conAviso(volver, aviso) : `/cuenta?aviso=${aviso}`);
 }
 
 /** La marca de «hoy ya se anotó la entrada» de este aparato (la misma que deja `anotarEntrada`). */

@@ -23,7 +23,30 @@ function origenDeFotos(): URL | null {
 }
 const origen = origenDeFotos();
 
+// Las cabeceras de seguridad de TODA respuesta (2026-10-15, antes de abrir la tienda a cualquiera que cree una cuenta):
+// - `frame-ancestors 'none'` + `X-Frame-Options`: ninguna otra página puede meter la tienda en un marco invisible y hacer que el
+//   cliente toque «Separar» o «Eliminar mi cuenta» sin verlo.
+// - `nosniff`: el navegador no adivina el tipo de un archivo (un texto no se ejecuta como script).
+// - `Referrer-Policy`: a otro sitio (WhatsApp, Instagram) solo viaja el dominio, nunca la dirección completa (que puede llevar el
+//   número de un pedido).
+// - `Permissions-Policy`: la tienda no usa cámara, micrófono, ubicación ni pagos del navegador; nadie que se cuele en ella tampoco.
+// - `base-uri` y `object-src`: sin `<base>` ajeno ni plugins.
+// No hay una lista de orígenes para scripts (`script-src`): Next mete scripts en línea y una lista mal hecha deja la tienda en blanco;
+// queda para cuando se pruebe en el navegador con la cuenta de clientes. HSTS lo pone Vercel en todo dominio con https.
+const CABECERAS_DE_SEGURIDAD = [
+  { key: "Content-Security-Policy", value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+];
+
 const nextConfig: NextConfig = {
+  // Sin «X-Powered-By: Next.js»: no se anuncia con qué está hecha la tienda.
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: "/:path*", headers: CABECERAS_DE_SEGURIDAD }];
+  },
   // La raíz del monorepo, como en apps/web: sin esto Next la adivina buscando lockfiles hacia arriba y, en un worktree
   // dentro del checkout principal, toma la carpeta equivocada.
   turbopack: { root: path.join(__dirname, "..", "..") },

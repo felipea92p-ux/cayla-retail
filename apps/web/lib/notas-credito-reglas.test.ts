@@ -11,6 +11,7 @@ import {
   destinoTexto,
   diaDelCierre,
   edadEnDias,
+  faltaNotaDelProveedor,
   filtrarFacturas,
   filtrarTablero,
   hace,
@@ -67,6 +68,7 @@ function fila(p: Partial<FilaTablero> & Pick<FilaTablero, "clase" | "id">): Fila
     creadoEn: "2026-09-10T12:00:00Z",
     resuelto: true,
     ...p,
+    notaProveedor: p.notaProveedor ?? null,
     monto,
   };
 }
@@ -306,6 +308,67 @@ describe("armarFilas: el estado que se ve", () => {
     expect(m).toContain("F002-000087");
     expect(m).toContain("10 unidades");
     expect(m).toContain("S/\u00a0330.40");
+  });
+});
+
+describe("el documento interno (ADR-0362 fase 5b): de una factura, falta la nota del proveedor", () => {
+  const MES_DI = HOY.slice(0, 7);
+  const filas: FilaTablero[] = [
+    // De una factura: la plata volvió (bajó la deuda) y su IGV espera la nota del proveedor.
+    fila({ clase: "nota", id: "di-f", serieNumero: "DI-000002", documento: "F001-901", monto: 23.6, igv: 3.6, aplicado: 23.6, aFavor: 0, motivo: "faltante", unidadesCerradas: 1 }),
+    // De una boleta: sin IGV, el documento interno basta.
+    fila({ clase: "nota", id: "di-b", serieNumero: "DI-000001", documento: "B001-902", monto: 40, igv: 0, aplicado: 40, aFavor: 0, motivo: "faltante", unidadesCerradas: 2 }),
+    // Una nota del proveedor con IGV: no le falta nada.
+    fila({ clase: "nota", id: "nc", serieNumero: "FC01-000029", documento: "F001-000377", monto: 354, igv: 54, aplicado: 354, aFavor: 0, motivo: "faltante" }),
+  ];
+  const armadas = armarFilas(filas, { hoy: HOY, saldoPorProveedor: { [RIMAC]: 0 }, movimientos: [] });
+  const por = (id: string) => armadas.find((f) => f.id === id)!;
+
+  it("solo al documento interno de una factura le falta la nota del proveedor", () => {
+    expect(faltaNotaDelProveedor(por("di-f"))).toBe(true);
+    expect(faltaNotaDelProveedor(por("di-b"))).toBe(false);
+    expect(faltaNotaDelProveedor(por("nc"))).toBe(false);
+    expect(faltaNotaDelProveedor(fila({ clase: "pendiente", id: "p", serieNumero: null, igv: 0 }))).toBe(false);
+  });
+
+  it("el recorrido no dice «recibida»: lo registró CAYLA, y el de una factura termina en «Falta su nota de crédito»", () => {
+    expect(pasosDeNota(por("di-f")).map((x) => x.clave)).toEqual(["Origen", "Documento interno", "Baja deuda", "Falta su nota"]);
+    expect(pasosDeNota(por("di-f"))[1]).toMatchObject({ titulo: "Documento interno DI-000002", detalle: "Lo que no llegó de F001-901, pasado a saldo a favor" });
+    expect(pasosDeNota(por("di-f"))[3]).toMatchObject({ titulo: "Falta su nota de crédito", estado: "ahora" });
+    expect(pasosDeNota(por("di-b")).map((x) => x.clave)).toEqual(["Origen", "Documento interno", "Baja deuda"]);
+    expect(pasosDeNota(por("nc"))[1].titulo).toBe("Nota FC01-000029 recibida");
+  });
+
+  it("qué hacer ahora: pedir la nota, no «nada pendiente»", () => {
+    expect(siguientePaso(por("di-f"))).toEqual({
+      tono: "aviso",
+      texto: "La plata ya volvió. Falta la nota de crédito de Tejidos Rímac SAC por S/\u00a023.60 contra F001-901: pídesela y, cuando llegue, adjúntala con «Llegó su nota de crédito». Hasta entonces, sus S/\u00a03.60 de IGV quedan en espera.",
+    });
+    expect(siguientePaso(por("di-b")).texto).toContain("Nada pendiente");
+  });
+
+  it("el mensaje para el proveedor, con una sola unidad, en singular", () => {
+    expect(mensajeParaProveedor(por("di-f"))).toContain("En la recepción de F001-901 quedó 1 unidad sin llegar.");
+    expect(mensajeParaProveedor(por("di-f"))).toContain("por S/\u00a023.60 (base S/\u00a020.00 + IGV S/\u00a03.60)");
+  });
+  it("se reclama (actividad 3): está en «Por reclamar» con su chip, pero su plata no se suma como si faltara cobrarla", () => {
+    expect(por("di-f").estado).toBe("por_reclamar");
+    expect(chipEstado(por("di-f"))).toEqual({ tono: "ambar", texto: "Falta su nota de crédito" });
+    expect(destinoTexto(por("di-f"))).toBe("la plata ya volvió");
+    expect(por("di-b").estado).toBe("aplicada");
+    const c = cifrasTablero(armadas, { mes: MES_DI, saldoPorProveedor: { [RIMAC]: 0 }, movimientos: [] });
+    expect(c.porReclamar).toMatchObject({ monto: 0, cantidad: 1, porPedir: { cantidad: 1, igv: 3.6 } });
+    const [grupo] = agruparTablero(armadas.filter((f) => f.estado === "por_reclamar"), "proveedor");
+    expect(grupo!.total).toBe("1 nota");
+  });
+
+  it("cuando llega su nota, ya no falta nada: se aplica, el recorrido la nombra y se encuentra por su serie", () => {
+    const conNota = armarFilas([fila({ ...filas[0]!, notaProveedor: { id: "np-1", serie: "FC01-000777", fecha: "2026-10-20" } })], { hoy: HOY, saldoPorProveedor: { [RIMAC]: 0 }, movimientos: [] })[0]!;
+    expect(faltaNotaDelProveedor(conNota)).toBe(false);
+    expect(conNota.estado).toBe("aplicada");
+    expect(chipEstado(conNota)).toEqual({ tono: "neutro", texto: "Aplicada" });
+    expect(pasosDeNota(conNota).at(-1)).toMatchObject({ clave: "Su nota", titulo: "Nota FC01-000777 del proveedor", detalle: "Su IGV bajó el crédito fiscal de octubre", fecha: "20/10", estado: "hecho" });
+    expect(filtrarTablero([conNota], { pestana: "todas", banda: null, busqueda: "fc01-000777" })).toHaveLength(1);
   });
 });
 

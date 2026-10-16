@@ -34,7 +34,7 @@ export default function ErrorDeVista({ error, reset }: { error: Error & { digest
         {/* `reset` a secas no basta: en Next 16 solo vuelve a pintar esta barrera con la respuesta que
             ya llegó, y esa trae el mismo error — la tarjeta reaparecería sola y el botón parecería no
             hacer nada. `router.refresh()` vuelve a pedir los datos al servidor; van juntos en
-            `startTransition` (lo mismo que hace `unstable_retry`, sin depender de una API inestable). */}
+            `startTransition` (lo mismo que hace el `retry` de Next, sin depender de él). */}
         <BotonCompacto
           variante="primario"
           onClick={() =>

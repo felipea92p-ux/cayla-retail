@@ -32,15 +32,25 @@ function Recomendacion({ r }: { r: MiRecomendacion }) {
 
 /**
  * «Lo que nos escribiste»: sus recomendaciones, la más nueva primero, con la respuesta de CAYLA cuando la hay. Solo las de esta cuenta
- * (lo decide la base, `retail.tienda_mis_recomendaciones`). Sin ninguna, lo dice; si la base no contestó, lo dice y se puede volver a
- * intentar.
+ * (lo decide la base, `retail.tienda_mis_recomendaciones`). Sin ninguna, lo dice y cuenta qué pasa con lo que escriba (con su nombre, lo
+ * lee el equipo y, si hace falta, le responde aquí: lo mismo que dice el «¡Gracias!»); si la base no contestó, lo dice y se puede volver
+ * a intentar. Revisión «a nivel mundial» (2026-10-16): un panel en hueso al lado del formulario, con cuántas lleva junto al título.
  */
 export function MisRecomendaciones({ lectura }: { lectura: LecturaMisRecomendaciones }) {
+  const cuantas = lectura.estado === "ok" ? lectura.mias.recomendaciones.length : 0;
   return (
-    <section className="c-bloque r-mias" aria-labelledby="recomendaciones-mias">
-      <h2 className="c-bloque-t" id="recomendaciones-mias">
-        Lo que nos escribiste
-      </h2>
+    <section className="c-bloque r-mias ay-reco-panel" aria-labelledby="recomendaciones-mias">
+      <div className="ay-reco-cab">
+        <h2 className="c-bloque-t" id="recomendaciones-mias">
+          Lo que nos escribiste
+        </h2>
+        {cuantas > 0 && (
+          <span className="ay-reco-cuantas">
+            {cuantas}
+            <span className="t-sr">{cuantas === 1 ? " recomendación" : " recomendaciones"}</span>
+          </span>
+        )}
+      </div>
       {lectura.estado !== "ok" ? (
         <div role="status">
           <p className="w-texto-sec">No pudimos cargar tus recomendaciones ahora. Vuelve a intentarlo en unos minutos.</p>
@@ -48,8 +58,28 @@ export function MisRecomendaciones({ lectura }: { lectura: LecturaMisRecomendaci
             Volver a intentar
           </Link>
         </div>
-      ) : lectura.mias.recomendaciones.length === 0 ? (
-        <p className="w-texto-sec">Todavía no nos escribiste. Lo que nos cuentes aparece aquí, con nuestra respuesta.</p>
+      ) : cuantas === 0 ? (
+        <div className="ay-reco-vacio">
+          <span className="ay-reco-vacio-ic" aria-hidden="true">
+            <Icono nombre="chat" />
+          </span>
+          <p className="ay-reco-vacio-t">Todavía no nos escribiste</p>
+          <p className="w-texto-sec">Lo que nos cuentes aparece aquí, con nuestra respuesta.</p>
+          <ol className="ay-reco-pasos" aria-label="Qué pasa con lo que nos escribes">
+            <li>
+              <b>Nos escribes</b>
+              <span>Con tu nombre, sobre una tienda o sobre CAYLA en general.</span>
+            </li>
+            <li>
+              <b>Lo lee el equipo de CAYLA</b>
+              <span>Aquí ves si ya la recibimos y si ya la leímos.</span>
+            </li>
+            <li>
+              <b>Si hace falta, te respondemos aquí</b>
+              <span>La respuesta queda debajo de lo que escribiste.</span>
+            </li>
+          </ol>
+        </div>
       ) : (
         <ul className="r-lista">
           {lectura.mias.recomendaciones.map((r) => (

@@ -230,6 +230,9 @@ describe("la lista: categorías y orden", () => {
     expect(hrefLista({ sede: "trujillo", categoria: null, orden: "destacado" })).toBe("/catalogo?sede=trujillo");
     expect(hrefLista({ sede: "san-isidro", categoria: "CMS", orden: "precio-asc" })).toBe("/catalogo?sede=san-isidro&categoria=CMS&orden=precio-asc");
     expect(hrefLista({ categoria: "CMS", orden: "destacado" })).toBe("/catalogo?categoria=CMS");
+    // Un grupo de categorías (lib/grupos.ts); con una categoría elegida no va: ella ya dice el grupo.
+    expect(hrefLista({ sede: "trujillo", categoria: null, orden: "destacado", grupo: "arriba" })).toBe("/catalogo?sede=trujillo&grupo=arriba");
+    expect(hrefLista({ categoria: "CMS", orden: "destacado", grupo: "arriba" })).toBe("/catalogo?categoria=CMS");
     expect(hrefLista({ categoria: "CMS", orden: "precio-asc" })).toBe("/catalogo?categoria=CMS&orden=precio-asc");
     expect(hrefLista({ categoria: "Ropa & más", orden: "destacado" })).toBe("/catalogo?categoria=Ropa+%26+m%C3%A1s");
   });
@@ -265,7 +268,7 @@ describe("las listas: Lo nuevo, las ofertas y Más vendidos (actividad 5)", () =
   ];
   const nombres = (ps: Prenda[]) => ps.map((p) => p.nombre);
 
-  it("lee la lista y la campaña de la URL; lo raro vuelve a toda la ropa y a todas las campañas", () => {
+  it("lee la lista y la campaña de la URL; lo raro vuelve a toda la tienda y a todas las campañas", () => {
     expect(leerLista("nuevo")).toBe("nuevo");
     expect(leerLista(["vendidos", "x"])).toBe("vendidos");
     expect(leerLista("ofertas")).toBe("ofertas");
@@ -309,7 +312,7 @@ describe("las listas: Lo nuevo, las ofertas y Más vendidos (actividad 5)", () =
     expect(cabeceraDeLista("nuevo").titulo).toEqual(["Lo", "nuevo"]);
     expect(cabeceraDeLista("ofertas").titulo).toEqual(["Las", "ofertas"]);
     expect(cabeceraDeLista("vendidos")).toMatchObject({ titulo: ["Más", "vendidos"], ceja: "Lo que más se llevan" });
-    expect(cabeceraDeLista("todo")).toEqual({ ceja: "Toda la tienda", titulo: ["Toda la", "ropa"], frase: null, vacio: null });
+    expect(cabeceraDeLista("todo")).toEqual({ ceja: "Catálogo", titulo: ["Toda la", "tienda"], frase: null, vacio: null });
     // Vacía, cada lista dice qué aparecería ahí (no «no hay prendas» a secas).
     expect(cabeceraDeLista("ofertas").vacio?.titulo).toBe("Por ahora no hay ofertas");
     expect(cabeceraDeLista("nuevo").vacio?.titulo).toBe("Por ahora no hay nada nuevo");
@@ -341,6 +344,37 @@ describe("las listas: Lo nuevo, las ofertas y Más vendidos (actividad 5)", () =
       vacio: { titulo: "Aún no guardas nada", texto: "Toca el corazón de una prenda para guardarla." },
     });
     expect(nombreOrden("destacado", "favoritos")).toBe("Destacado");
+  });
+
+  it("«Destacado» abre con lo que tiene foto; dentro de cada parte, el orden propio de la lista (2026-10-16)", () => {
+    const silueta = { colores: [{ codigo: "BEI", nombre: "Beige", hex: "#D5BA98", foto: null }], fotos: [] };
+    const conFoto = { fotos: [FOTO] };
+    const todas = [
+      prenda("Aretes", { ...silueta, nuevo: { dias: 1 }, vendidos: 1 }),
+      prenda("Blusa", { ...conFoto, nuevo: { dias: 9 }, vendidos: 3, ...oferta(ANIV, "Aniversario", 20, "2026-10-21") }),
+      prenda("Collar", { ...silueta, nuevo: { dias: 4 }, ...oferta(ANIV, "Aniversario", 20, "2026-10-21") }),
+      prenda("Falda", { ...conFoto, nuevo: { dias: 2 }, vendidos: 2 }),
+      // Sin fotos del modelo, pero con la de un color: su tarjeta se ve con foto.
+      prenda("Vestido", { nuevo: { dias: 6 } }),
+    ];
+    const ver = (l: Parameters<typeof filtrarYOrdenar>[1]) => nombres(filtrarYOrdenar(todas, l));
+    // Toda la tienda: con foto primero, en el orden de la base; después las siluetas, en el mismo orden.
+    expect(ver({ categoria: null, orden: "destacado" })).toEqual(["Blusa", "Falda", "Vestido", "Aretes", "Collar"]);
+    // Lo nuevo: con foto primero y, en cada parte, lo más reciente primero.
+    expect(ver({ categoria: null, orden: "destacado", lista: "nuevo" })).toEqual(["Falda", "Vestido", "Blusa", "Aretes", "Collar"]);
+    expect(ver({ categoria: null, orden: "destacado", lista: "ofertas" })).toEqual(["Blusa", "Collar"]);
+    // Más vendidos se queda en su puesto (la tarjeta dice «N.º 1»), aunque el primero no tenga foto.
+    expect(ver({ categoria: null, orden: "destacado", lista: "vendidos" })).toEqual(["Aretes", "Falda", "Blusa"]);
+    // Tus favoritos, en lo que guardaste (lo último primero).
+    expect(nombres(filtrarYOrdenar(deFavoritos(todas, ["Collar", "Blusa"]), { categoria: null, orden: "destacado", lista: "favoritos" }))).toEqual([
+      "Collar",
+      "Blusa",
+    ]);
+    // Por precio manda el precio: la persona pidió ese orden.
+    const precios = todas.map((p, i) => ({ ...p, precioFinal: [10, 50, 20, 40, 30][i] }));
+    expect(nombres(filtrarYOrdenar(precios, { categoria: null, orden: "precio-asc" }))).toEqual(["Aretes", "Collar", "Vestido", "Falda", "Blusa"]);
+    // No toca la lista de entrada.
+    expect(nombres(todas)).toEqual(["Aretes", "Blusa", "Collar", "Falda", "Vestido"]);
   });
 
   it("los favoritos: lo guardado en su orden (lo último primero), sin lo que ya no está en la tienda online, y todos van en su lista", () => {

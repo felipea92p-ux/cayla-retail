@@ -672,8 +672,17 @@ escenario(
   "en_curso|false",
 );
 escenario(
+  "una ficha que abrió una tienda (no nació en la web): en_tienda, y no toca NADA (ni la ficha, ni la cuenta, ni el Club) — 20261015230000",
+  `select version as v0 from retail.clientas where id = :'ana' \\gset
+   select ${est(eliminar(":'u_ana'"))};
+   select (version = :v0) || '|' || anonimizada || '|' || (club_desde is not null) from retail.clientas where id = :'ana';
+   select (cerrada_en is null)::text from retail.cuentas_web where id = :'cuenta_ana';`,
+  "en_tienda\ntrue|false|true\ntrue",
+);
+escenario(
   "sin nada en curso: eliminada — ficha anonimizada a pedido suyo, cuenta cerrada (usuario por borrar, favoritos y esperas quitados), su cambio y sus intentos borrados",
-  `insert into retail.favoritos_web (cuenta_web_id, producto_id) select :'cuenta_ana', p.id from retail.productos p order by p.id limit 2;
+  `update retail.clientas set registro_origen = 'web' where id = :'ana';
+   insert into retail.favoritos_web (cuenta_web_id, producto_id) select :'cuenta_ana', p.id from retail.productos p order by p.id limit 2;
    insert into retail.esperas_web (cuenta_web_id, variante_id) select :'cuenta_ana', v.id from retail.variantes v order by v.id limit 1;
    select ${est(pedir(":'u_ana'", "'zz.ana.nuevo@ejemplo.com'"))} as _p \\gset
    select ${est(clave(":'u_ana'"))} as _c \\gset
@@ -692,7 +701,8 @@ escenario(
 );
 escenario(
   "una ficha archivada (sin anonimizar) con cuenta también se puede eliminar; y sin usuario: sin_cuenta",
-  `select ${est(eliminar(":'u_fio'"))} || '|' || ${est(eliminar("null"))};
+  `update retail.clientas set registro_origen = 'web' where id = :'fio';
+   select ${est(eliminar(":'u_fio'"))} || '|' || ${est(eliminar("null"))};
    select anonimizada from retail.clientas where id = :'fio';`,
   "eliminada|sin_cuenta\nt",
 );
@@ -729,7 +739,8 @@ escenario(
 seccion("— PARTE 2 · K. Como tienda_web —");
 escenario(
   "todo el camino de la tienda funciona como tienda_web, y las dos tablas se le niegan",
-  `${COMO_CUENTA}select ${restablecer(":'ana'", "'zz.ana.nueva@ejemplo.com'")} as r \\gset
+  `update retail.clientas set registro_origen = 'web' where id = :'bea';
+   ${COMO_CUENTA}select ${restablecer(":'ana'", "'zz.ana.nueva@ejemplo.com'")} as r \\gset
    ${DE_POSTGRES}${COMO_TIENDA}select concat_ws(',',
      ${est(enviarCon(":'r'::jsonb ->> 'token'"))},
      ${est(restIntento("'zz.ana.nueva@ejemplo.com'", "'zz-ip-tw'"))},
@@ -836,7 +847,14 @@ function main() {
 
   console.log("— L. El pegado —");
   const [parte1, parte2] = TEXTOS_MIGRACIONES;
-  const dosVeces = correr(`begin;\n${parte1}\n${parte2}\n${parte1}\n${parte2}\nset local search_path = retail, public, extensions;
+  // 20261015230000 parchó después tienda_eliminar_mi_cuenta (reemplazo anclado: una ficha que abrió una tienda no se borra desde la
+  // web). Para volver a pegar ESTAS partes sobre su propia versión, se deshace ese parche dentro de la transacción (se revierte con todo).
+  const DESHACER_POSTERIORES = `do $d$ declare v text := pg_get_functiondef('retail.tienda_eliminar_mi_cuenta(uuid)'::regprocedure); begin
+  if position('20261015230000' in v) > 0 then
+    execute regexp_replace(v, '  -- 20261015230000:.*?\\n  end if;\\n', '');
+  end if;
+end $d$;\n`;
+  const dosVeces = correr(`begin;\n${DESHACER_POSTERIORES}${parte1}\n${parte2}\n${parte1}\n${parte2}\nset local search_path = retail, public, extensions;
 select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('fn_clienta_anonimizar', ${[...TIENDA, ...ERP, ...NADIE].map((f) => `'${f.slice(0, f.indexOf("("))}'`).join(", ")});
 rollback;\n`);
   total++;

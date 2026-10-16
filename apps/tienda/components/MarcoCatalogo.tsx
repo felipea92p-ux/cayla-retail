@@ -39,10 +39,8 @@ export async function MarcoCatalogo({
       <CabeceraConCuenta datos={datos} actual={actual} favoritos={favoritos} nombre={nombre} bolsa={<BotonBolsa />} />
       {/* Con una sola tienda en la web no hay nada que elegir. */}
       {filtro && filtro.length > 2 && <FiltroTienda opciones={filtro} />}
-      <main className="t-pagina t-pagina-catalogo">
-        {children}
-        <Pie anio={anioLima()} conCuenta sede={sede} />
-      </main>
+      <main className="t-pagina t-pagina-catalogo">{children}</main>
+      <Pie anio={anioLima()} conCuenta sede={sede} />
     </>
   );
 }

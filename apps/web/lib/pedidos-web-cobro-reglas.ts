@@ -281,6 +281,8 @@ export function errorDelPago(
     pedido_web_sin_caja: "medio",
     pedido_web_operacion: "operacion",
     pedido_web_operacion_repetida: "operacion",
+    // 20261016001000 (D8): Yape, Plin y transferencia los anota el líder; el mensaje de la base dice qué hacer (elegir efectivo).
+    pedido_web_pago_digital_solo_lider: "medio",
   };
   if (hint in campos) return { campo: campos[hint]!, titulo: "Revisa este dato", detalle, releer: false };
   if (hint === "efectivo_insuficiente") return { campo: null, titulo: "No hay tanto efectivo en la caja", detalle, releer: false };

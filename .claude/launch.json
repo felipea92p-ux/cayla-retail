@@ -102,6 +102,16 @@
       ],
       "port": 3100,
       "autoPort": true
+    },
+    {
+      "name": "tienda-dev-local-bin",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "PATH=\"$HOME/.local/bin:$HOME/.local/lib/node/bin:$PATH\" pnpm --filter tienda exec next dev --port ${PORT:-3100}"
+      ],
+      "port": 3100,
+      "autoPort": true
     }
   ]
 }

@@ -3,6 +3,7 @@ import {
   codigoDeLaUrl,
   detalleDeLaPrenda,
   enlaceDelPedido,
+  enlaceParaHablarDelPedido,
   hhmmss,
   hitos,
   interpretarMisPedidos,
@@ -10,6 +11,7 @@ import {
   mensajeWhatsapp,
   nombreTienda,
   porQueSeCerro,
+  solesEnFrase,
   textoCambiarlo,
   textoDeDevolucion,
   vivas,
@@ -82,6 +84,17 @@ describe("el mensaje de WhatsApp (el de la maqueta, palabra por palabra)", () =>
     expect(enlace.startsWith("https://wa.me/51900000101?text=")).toBe(true);
     expect(decodeURIComponent(enlace.split("?text=")[1])).toBe(mensajeWhatsapp(p));
     expect(enlaceDelPedido(unoDe(pedidoBase({ tienda_web: { nombre: "Trujillo", whatsapp: null } })))).toBeNull();
+  });
+
+  it("después de separar, el chat con la tienda lleva el número del pedido escrito; sin WhatsApp, no hay enlace", () => {
+    const enlace = enlaceParaHablarDelPedido(unoDe(pedidoBase({ estado: "confirmado" })))!;
+    expect(enlace.startsWith("https://wa.me/51900000101?text=")).toBe(true);
+    expect(decodeURIComponent(enlace.split("?text=")[1])).toBe("Hola CAYLA Trujillo, te escribo por mi pedido web W-0141.");
+    expect(enlaceParaHablarDelPedido(unoDe(pedidoBase({ tienda_web: { nombre: "Trujillo", whatsapp: null } })))).toBeNull();
+  });
+
+  it("un monto en una frase no se parte entre «S/» y la cifra (ADR-0413)", () => {
+    expect(solesEnFrase(57.2)).toBe("S/\u00a057.20");
   });
 
   it("«CAYLA Trujillo»: a la tienda se le antepone la marca, sin repetirla", () => {
