@@ -3,6 +3,7 @@ import { EB_Garamond, DM_Sans } from "next/font/google";
 import { Suspense } from "react";
 import { AvisoDeLaUrl } from "@/components/cuenta/AvisoDeLaUrl";
 import { ProveedorInstalar } from "@/components/instalar/ProveedorInstalar";
+import { SCRIPT_DEL_AVISO } from "@/lib/instalar";
 import "./globals.css";
 // Las páginas de la cuenta (crear, entrar, recuperar, «Mi cuenta», privacidad y términos) y el aviso «Listo: …», que también
 // sale en la portada al salir de la cuenta.
@@ -37,6 +38,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={`${serif.variable} ${sans.variable}`}>
+      <head>
+        {/* Guarda el aviso de instalar de Chrome si llega antes de que la página se arme (ADR-0431): llega una sola vez. */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_DEL_AVISO }} />
+      </head>
       <body>
         <ProveedorInstalar>{children}</ProveedorInstalar>
         {/* Lee la dirección en el navegador: en una página guardada en caché (la portada) va dentro de su Suspense. */}
