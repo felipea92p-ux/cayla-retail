@@ -1,6 +1,6 @@
 import Link from "next/link";
-import type { CSSProperties } from "react";
-import { colorDeDibujo, formaDe, fotoOptimizable, fotosDeTarjeta, hrefDePrenda, type Prenda } from "@/lib/catalogo";
+import type { CSSProperties, ReactNode } from "react";
+import { colorDeDibujo, formaDe, fotoOptimizable, fotosDeTarjeta, hrefDePrenda, hrefLista, type Prenda } from "@/lib/catalogo";
 import {
   beneficioAniversario,
   beneficioCumple,
@@ -16,28 +16,40 @@ import {
 } from "@/lib/club";
 import type { Dia } from "@/lib/cuentas";
 import { claveDeSede } from "@/lib/sede-elegida";
+import { CarrilConFlechas } from "../CarrilConFlechas";
+import { SeccionDelPerfil } from "../cuenta/SeccionDelPerfil";
 import { FotoTarjeta } from "../FotoTarjeta";
 import { Icono, type NombreIcono } from "../Icono";
 import { TarjetaPrenda } from "../TarjetaPrenda";
 import { QuitarEspera } from "./QuitarEspera";
 
-// Los bloques del Club en «Mi cuenta» (ADR-0408, actividad 12; maqueta v4, `vCuenta`), en el orden de la maqueta: Mis beneficios
-// del club · Novedades para ti · Favoritos · Te avisamos cuando llegue. («Mis pedidos», que va antes, es de la actividad 7.) Lo que
-// dicen sale de lib/club.ts; las prendas, del catálogo de la tienda (el mismo precio y las mismas fotos que la lista), con la misma
-// tarjeta y el mismo corazón de la tienda. «Mi cuenta» no vive en el marco del catálogo: a cada tarjeta se le dice si está guardada.
+// Los bloques del Club en «Mi perfil» (ADR-0408, actividad 12; ordenados el 2026-10-15): Mi Club CAYLA (la tarjeta y los beneficios) ·
+// Favoritos · Te avisamos cuando llegue · Novedades para ti. («Mis pedidos», que va antes, es de la actividad 7.) Lo que dicen sale de
+// lib/club.ts; las prendas, del catálogo de la tienda (el mismo precio y las mismas fotos que la lista), con la misma tarjeta, el mismo
+// corazón y el mismo carril con flechas del Inicio. «Mi perfil» no vive en el marco del catálogo: a cada tarjeta se le dice si está guardada.
 
-function Bloque({ titulo, guia, children }: { titulo: string; guia: string; children: React.ReactNode }) {
+/** Cuántos favoritos se ven en «Mi perfil»; todos, en la lista de favoritos del catálogo («Ver todos»). */
+const FAVORITOS_EN_EL_PERFIL = 12;
+
+/** «Ver todos», «Cómo funciona»: el enlace de la derecha del título de una sección, con su flecha. */
+function VerMas({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <section className="c-bloque" aria-labelledby={`club-${guia}`} data-club={guia}>
-      <h2 className="c-bloque-t" id={`club-${guia}`}>
-        {titulo}
-      </h2>
-      {children}
-    </section>
+    <Link className="t-ver" href={href}>
+      {children} <Icono nombre="flecha" />
+    </Link>
   );
 }
 
-function Fila({ icono, b, children }: { icono: NombreIcono; b: Beneficio; children?: React.ReactNode }) {
+/** Las prendas de una sección en un carril: se desliza con el dedo; con el mouse, sus flechas. */
+function Carril({ children }: { children: ReactNode }) {
+  return (
+    <CarrilConFlechas className="pf-carril">
+      <div className="t-carril">{children}</div>
+    </CarrilConFlechas>
+  );
+}
+
+function Fila({ icono, b, children }: { icono: NombreIcono; b: Beneficio; children?: ReactNode }) {
   return (
     <div className="c-novedad" data-disponible={b.disponible || undefined}>
       <Icono nombre={icono} />
@@ -63,27 +75,33 @@ function Fila({ icono, b, children }: { icono: NombreIcono; b: Beneficio; childr
   );
 }
 
-/** Mis beneficios del club: el cumpleaños y el vale, con las reglas que cobra la caja. Sin ficha activa, una nota. */
-export function BeneficiosDelClub({ club, hoy }: { club: MiClub["club"]; hoy: Dia }) {
+/**
+ * Mi Club CAYLA: su tarjeta y sus dos beneficios (el cumpleaños y el vale), con las reglas que cobra la caja. Sin ficha activa, la
+ * tarjeta y una nota. `tarjeta` la dibuja la página (es del navegador: se inclina con el mouse).
+ */
+export function BeneficiosDelClub({ club, hoy, tarjeta }: { club: MiClub["club"]; hoy: Dia; tarjeta: ReactNode }) {
   return (
-    <Bloque titulo="Mis beneficios del club" guia="beneficios">
-      {club.activa ? (
-        <>
-          <Fila icono="regalo" b={beneficioCumple(club.cumple, club.conPublicidad, hoy)} />
-          <Fila icono="ticket" b={beneficioAniversario(club.aniversario, club.conPublicidad, hoy)} />
-          <p className="w-texto-sec">
-            Se usan en caja, con tu DNI, uno por compra.{" "}
-            <Link className="t-enlace" href="/terminos-del-club">
-              Cómo funciona el Club
-            </Link>
-          </p>
-        </>
-      ) : (
-        <p className="w-nota">
-          Tu ficha del Club CAYLA no está activa, así que aquí no vemos tus beneficios. Acércate a cualquier tienda CAYLA y la revisan contigo.
-        </p>
-      )}
-    </Bloque>
+    <SeccionDelPerfil id="pf-club" titulo="Mi Club CAYLA" accion={<VerMas href="/terminos-del-club">Cómo funciona</VerMas>} mitad>
+      <div className="pf-club">
+        <div className="pf-club-fila">
+          {tarjeta}
+          <div className="pf-beneficios">
+            {club.activa ? (
+              <>
+                <Fila icono="regalo" b={beneficioCumple(club.cumple, club.conPublicidad, hoy)} />
+                <Fila icono="ticket" b={beneficioAniversario(club.aniversario, club.conPublicidad, hoy)} />
+                <p className="w-texto-sec">Se usan en caja, con tu DNI, uno por compra.</p>
+              </>
+            ) : (
+              <p className="w-nota">
+                Tu ficha del Club CAYLA no está activa, así que aquí no vemos tus beneficios. Acércate a cualquier tienda CAYLA y la revisan
+                contigo.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </SeccionDelPerfil>
   );
 }
 
@@ -101,50 +119,58 @@ export function NovedadesParaTi({
   origenFotos: string | undefined;
 }) {
   const enCarril = prendas.slice(0, NOVEDADES_EN_EL_CARRIL);
+  const verMas =
+    novedades.total > 0 ? (
+      <VerMas href={hrefLista({ categoria: null, orden: "destacado", lista: "nuevo" })}>Ver lo nuevo</VerMas>
+    ) : (
+      <VerMas href="/catalogo">Ver la tienda</VerMas>
+    );
   return (
-    <Bloque titulo="Novedades para ti" guia="novedades">
-      <div className="c-novedad">
+    <SeccionDelPerfil id="pf-novedades" titulo="Novedades para ti" accion={verMas}>
+      <p className="pf-sec-sub">
         <Icono nombre="chispa" />
         <span>
-          <b>{tituloNovedades(novedades)}</b>
-          <small>{textoNovedades(novedades)}</small>
+          <b>{tituloNovedades(novedades)}</b> {textoNovedades(novedades)}
         </span>
-      </div>
+      </p>
       {enCarril.length > 0 && (
-        <div className="c-carril">
+        <Carril>
           {enCarril.map((p) => (
             <TarjetaPrenda key={p.id} prenda={p} sede={null} origenFotos={origenFotos} guardado={favoritos.has(p.id)} />
           ))}
-        </div>
+        </Carril>
       )}
-      {novedades.total > enCarril.length && (
-        <Link className="t-enlace c-ver" href="/catalogo">
-          Ver toda la tienda
-        </Link>
-      )}
-    </Bloque>
+    </SeccionDelPerfil>
   );
 }
 
-/** Favoritos: lo que guardó con el corazón, lo último primero. */
+/** Favoritos: lo que guardó con el corazón, lo último primero. Los que no caben en el carril, en la lista de favoritos del catálogo. */
 export function TusFavoritos({
   prendas,
+  cuantos,
   sinMostrar,
   origenFotos,
 }: {
   prendas: Prenda[];
+  /** Cuántos guardó (los mismos que cuenta el corazón de la cabecera). */
+  cuantos: number;
   /** Cuántos de sus favoritos ya no se ven en la tienda online. */
   sinMostrar: number;
   origenFotos: string | undefined;
 }) {
   return (
-    <Bloque titulo="Favoritos" guia="favoritos">
+    <SeccionDelPerfil
+      id="pf-favoritos"
+      titulo="Favoritos"
+      cuenta={cuantos}
+      accion={prendas.length > 0 ? <VerMas href={hrefLista({ categoria: null, orden: "destacado", lista: "favoritos" })}>Ver todos</VerMas> : null}
+    >
       {prendas.length > 0 ? (
-        <div className="c-carril">
-          {prendas.map((p) => (
+        <Carril>
+          {prendas.slice(0, FAVORITOS_EN_EL_PERFIL).map((p) => (
             <TarjetaPrenda key={p.id} prenda={p} sede={null} origenFotos={origenFotos} guardado />
           ))}
-        </div>
+        </Carril>
       ) : (
         <p className="w-texto-sec">
           Toca el corazón de una prenda para guardarla aquí.{" "}
@@ -156,7 +182,7 @@ export function TusFavoritos({
       {sinMostrar > 0 && (
         <p className="w-texto-sec">{sinMostrar === 1 ? "Uno de tus favoritos ya no está en la tienda online." : `${sinMostrar} de tus favoritos ya no están en la tienda online.`}</p>
       )}
-    </Bloque>
+    </SeccionDelPerfil>
   );
 }
 
@@ -181,7 +207,7 @@ function FotoDeEspera({ espera, prenda, origenFotos }: { espera: Espera; prenda:
 /** Te avisamos cuando llegue: lo que pidió con «Avísame», si ya llegó y dónde hay. */
 export function TeAvisamos({ esperas, prendas, origenFotos }: { esperas: Espera[]; prendas: ReadonlyMap<string, Prenda>; origenFotos: string | undefined }) {
   return (
-    <Bloque titulo="Te avisamos cuando llegue" guia="avisos">
+    <SeccionDelPerfil id="pf-avisos" titulo="Te avisamos cuando llegue" cuenta={esperas.length}>
       {esperas.length > 0 ? (
         <div className="c-esperas">
           {ordenarEsperas(esperas).map((e) => {
@@ -212,6 +238,6 @@ export function TeAvisamos({ esperas, prendas, origenFotos }: { esperas: Espera[
       ) : (
         <p className="w-texto-sec">Cuando una talla no esté en la tienda que eliges, toca «Avísame» y aparece aquí.</p>
       )}
-    </Bloque>
+    </SeccionDelPerfil>
   );
 }

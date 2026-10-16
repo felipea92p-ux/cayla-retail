@@ -105,8 +105,8 @@ describe("cuándo sale el aviso", () => {
     expect(a.lineas).toHaveLength(3);
     expect(a.mas).toBe(2);
     expect(a.claves).toHaveLength(5);
-    expect(textoDeMas(2)).toBe("Y llegaron 2 tallas más que esperabas: míralas en Mi cuenta.");
-    expect(textoDeMas(1)).toBe("Y llegó 1 talla más que esperabas: mírala en Mi cuenta.");
+    expect(textoDeMas(2)).toBe("Y llegaron 2 tallas más que esperabas: míralas en Mi perfil.");
+    expect(textoDeMas(1)).toBe("Y llegó 1 talla más que esperabas: mírala en Mi perfil.");
   });
 });
 

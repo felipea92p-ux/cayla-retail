@@ -156,6 +156,21 @@ a.t-campana:hover { border-color: var(--taupe); }
 .t-carril { display: grid; grid-auto-flow: column; grid-auto-columns: 47%; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; padding: 0 16px 10px; scroll-padding-inline: 16px; }
 .t-carril::-webkit-scrollbar { display: none; }
 .t-carril > * { scroll-snap-align: start; }
+/* ---- Las flechas de un carril (`CarrilConFlechas`): solo con mouse (con el dedo, el carril se desliza). Cada una sale si hay algo más
+   hacia su lado. Cada carril las lleva a la altura de sus fotos (`--flecha-y`: el Inicio en inicio.css, «Mi perfil» en perfil.css). ---- */
+.t-carril-envol { position: relative; }
+.t-carril-flecha { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .t-carril-flecha { position: absolute; z-index: 7; top: var(--flecha-y, 50%); width: 40px; height: 40px; margin-top: -20px; padding: 0; display: grid; place-items: center; border: 1px solid var(--sand); border-radius: 50%; background: var(--papel); color: var(--tinta); cursor: pointer; box-shadow: 0 10px 24px -14px var(--sombra); transition: border-color .2s, transform .2s var(--ease); animation: t-flecha-asoma .25s var(--ease) both; }
+  .t-carril-flecha[hidden] { display: none; }
+  .t-carril-flecha:hover { border-color: var(--tinta); transform: scale(1.06); }
+  .t-carril-flecha:active { transform: scale(.96); }
+  .t-carril-flecha .ic { width: 18px; height: 18px; }
+  .t-carril-flecha.antes { left: var(--flecha-borde, 6px); }
+  .t-carril-flecha.antes .ic { transform: scaleX(-1); }
+  .t-carril-flecha.despues { right: var(--flecha-borde, 6px); }
+}
+@keyframes t-flecha-asoma { from { opacity: 0; } }
 
 /* Solo para el lector de pantalla («Antes S/ 74.90»). */
 .t-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
@@ -186,7 +201,7 @@ a.t-campana:hover { border-color: var(--taupe); }
    «estudio» de la foto es claro en los dos temas (`--t-foto`), así que su brillo también (`--t-papel-fijo`): con `--papel`, en oscuro
    cruzaba una franja oscura. Quieto (prefers-reduced-motion), la foto es lisa: el degradado detenido dejaba una esquina manchada. */
 .t-esqueleto { padding-block: 28px 64px; }
-.t-esqueleto .t-card-foto {
+.t-esqueleto .t-card-foto, .t-esqueleto .t-foto-g {
   background: linear-gradient(110deg, var(--t-foto) 38%, color-mix(in srgb, var(--t-foto) 55%, var(--t-papel-fijo)) 50%, var(--t-foto) 62%);
   background-size: 260% 100%;
   animation: brillo 1.4s linear infinite;
@@ -195,12 +210,35 @@ a.t-campana:hover { border-color: var(--taupe); }
 .t-esqueleto-linea + .t-esqueleto-linea { width: 55%; margin-top: 7px; }
 .t-solo-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
-  .t-esqueleto .t-card-foto { animation: none; background: var(--t-foto); }
+  .t-esqueleto .t-card-foto, .t-esqueleto .t-foto-g { animation: none; background: var(--t-foto); }
 }
-/* La lista que brilla de «Mi cuenta» y de la bolsa: un título y filas con su miniatura. */
+/* La lista que brilla de las páginas de «Mi perfil» y de la bolsa: un título y filas con su miniatura. */
 .t-esqueleto-lista { display: grid; gap: 18px; max-width: 760px; }
 .t-esqueleto-titulo { width: 40%; height: 30px; border-radius: 4px; background: var(--hueso); margin-bottom: 8px; }
 .t-esqueleto-fila { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 16px; align-items: center; }
 .t-esqueleto-fila .t-card-foto { width: 72px; }
 .t-esqueleto-fila .t-esqueleto-linea { margin-top: 0; }
 .t-esqueleto-fila .t-esqueleto-linea + .t-esqueleto-linea { margin-top: 9px; }
+/* Las piezas de las formas que brillan son <i> (no dicen nada): en bloque. */
+.t-esqueleto i { display: block; }
+/* La franja «Ver lo que hay en» mientras llega (FormaDelEsqueleto): su alto y sus píldoras, vacías. */
+.t-esqueleto-ubic .t-pildora-mini { display: block; height: 30px; padding: 0; border-color: transparent; background: var(--hueso); }
+/* La ficha que brilla (forma «ficha»): las mismas cajas de la ficha (`.t-pdp`, `.t-galeria`, `.t-foto-g`, ficha.css), con su ruta
+   arriba. Ni ella ni «Mi perfil» llevan el margen de arriba de la grilla: el de su página ya está en sus cajas. */
+.t-esqueleto[data-forma="ficha"], .t-esqueleto[data-forma="perfil"] { padding-top: 0; }
+.t-esqueleto .t-ruta .t-esq-ruta { width: min(220px, 60%); height: 10px; margin: 4px 0 3px; }
+.t-esq-chip { width: 96px; height: 24px; border-radius: 999px; background: var(--hueso); }
+.t-esq-titulo { height: clamp(28px, 6cqi, 42px); margin-top: 12px; border-radius: 4px; background: var(--hueso); }
+.t-esq-titulo.corto { width: 58%; margin-top: 8px; }
+.t-esq-precio { width: 120px; height: 24px; border-radius: 4px; background: var(--hueso); }
+.t-esqueleto .t-esq-etq { width: 130px; margin-top: 0; }
+.t-esq-swatch { width: 32px; height: 32px; border-radius: 50%; background: var(--hueso); }
+.t-esq-talla { height: 48px; border-radius: 6px; border: 1px solid var(--sand); background: var(--papel); }
+/* El botón de la ficha vive en la barra de abajo en el celular y en la columna en la computadora: el que brilla, igual. */
+.t-esqueleto .t-esq-boton { display: none; height: 52px; border-radius: 999px; background: var(--hueso); }
+.t-esq-barra { display: flex; gap: 10px; }
+.t-esq-barra i:first-child { flex: 1; height: 52px; border-radius: 999px; background: var(--hueso); }
+.t-esq-barra i:last-child { width: 52px; height: 52px; border-radius: 50%; background: var(--hueso); }
+@container tienda (min-width: 960px) {
+  .t-esqueleto .t-esq-boton { display: block; }
+}

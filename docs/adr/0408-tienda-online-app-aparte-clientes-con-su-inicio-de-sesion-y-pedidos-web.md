@@ -315,3 +315,30 @@ a la vez y probando cada flujo como un cliente, a 375 y 1280 px, en claro y oscu
   regresiva, `.t-mini` con la bolsa) y movieron íconos y miniaturas. Toda clase nueva lleva el prefijo de su pieza y se busca antes.
 - **«Reducir movimiento» no puede esconder nada:** con esa opción del celular, la animación de los avisos terminaba transparente y
   ningún «Listo: …» de la tienda se veía. Una animación de entrada nunca deja su último cuadro invisible.
+
+## Actualización 2026-10-15 (g): «Mi perfil» ordenado, y la ficha que avisa que viene
+
+Felipe: «cuando presiono en una prenda para ver el detalle no da la sensación de carga, y "Mi perfil" podría estar mejor distribuido,
+más ordenado y entendible». Lo que quedó:
+
+- **La página se llama «Mi perfil»**, como el menú de la persona que lleva a ella: la ceja, el título de la pestaña, las migas de «Mis
+  pedidos», el menú del celular y los avisos que mandan ahí («Ver en Mi perfil», «Tus beneficios del Club CAYLA están en Mi perfil»).
+  «Crear mi cuenta», «Cambiar mi correo» y «Eliminar mi cuenta» siguen hablando de la cuenta: son la cuenta, no la página. Los textos
+  legales (Privacidad, Términos del Club) todavía dicen «Mi cuenta»: se cambian en su revisión, con su versión nueva.
+- **El orden es el de lo que se busca:** el saludo con desde cuándo es del Club; cuatro cuadros que dicen de un vistazo cómo están sus
+  pedidos, su Club, sus favoritos y sus avisos (verde: algo listo para ti; ámbar: algo pendiente) y llevan a su sección
+  (`lib/perfil.ts`: sale de las mismas reglas de cada bloque, nunca de un estado propio); y una sección por tema, todas con la misma
+  cabeza (título, cuántos hay, «Ver todos»): Mis pedidos, Mi Club CAYLA (la tarjeta va dentro de su sección), Favoritos, Te avisamos
+  cuando llegue, Novedades para ti y, al final, Tu cuenta (el correo, «Cerrar sesión» y, aparte, «Eliminar mi cuenta»). Antes la
+  tarjeta del Club y «Salir de mi cuenta» llenaban la primera pantalla del celular, la columna izquierda de la computadora quedaba vacía
+  y las novedades eran ocho tarjetas grandes en medio del perfil; ahora las prendas van en el carril con flechas del Inicio (una fila).
+- **«Cerrar sesión» es un solo botón** (`BotonCerrarSesion`) en el menú de la persona y en «Tu cuenta», con las mismas palabras.
+- **Un esqueleto por segmento que cambia:** Next muestra el `loading.tsx` de un segmento NUEVO. De la lista a una ficha el segmento
+  `catalogo` no cambia (cambia su hijo) y, sin `catalogo/[id]/loading.tsx`, la lista se quedaba quieta, sin ninguna señal, hasta que
+  llegaba la ficha. **La forma sale de la dirección** (`lib/esqueleto.ts`): un mismo `loading.tsx` cubre varias páginas, y del Inicio a
+  una ficha se veía la grilla. Cada forma usa las clases de su página (`.t-pdp`, `.t-galeria`, `.pf-perfil`), así nada salta al llegar.
+- **El esqueleto sube la página.** Con el `loading.tsx` dentro del catálogo, Next dejó de subir la página al llegar a la ficha: tocada
+  una prenda de abajo del Inicio o de «Mi perfil», la ficha llegaba bajada (lo que el navegador recorta al achicarse la página), sin la
+  cabecera ni la foto. `FormaDelEsqueleto` sube al aparecer, antes de pintar: solo sale al ir a otra página (cambiar la tienda o el
+  color de una ficha no lo muestra, y «atrás» vuelve desde lo guardado, sin esqueleto, al mismo lugar de la lista). Medido a 375 y
+  1280 px desde el Inicio, «Mi perfil» y la lista.

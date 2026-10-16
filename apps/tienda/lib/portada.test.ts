@@ -57,7 +57,7 @@ describe("textos de la campaña", () => {
   });
 
   it("con cuenta, la franja no invita a crear la cuenta: recuerda dónde están los beneficios del Club", () => {
-    expect(anuncios(null, true)).toEqual(["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", "Tus beneficios del Club CAYLA están en Mi cuenta"]);
+    expect(anuncios(null, true)).toEqual(["Separa online y recoge en tu tienda", "Mira cuánto hay en cada tienda", "Tus beneficios del Club CAYLA están en Mi perfil"]);
     expect(anuncios(ANIVERSARIO, true)).not.toContain("Crea tu cuenta y forma parte del Club CAYLA");
   });
 });

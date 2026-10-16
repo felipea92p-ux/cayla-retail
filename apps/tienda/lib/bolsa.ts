@@ -397,7 +397,7 @@ const MENSAJES_SEPARAR: Record<string, string> = {
   tienda_separar_tope: "Ya tienes el máximo de separaciones abiertas. Cuando recojas alguna (o se cierre), puedes separar otra.",
   tienda_separar_tope_prenda: `Puedes separar hasta ${TOPE_POR_PRENDA} de la misma prenda y talla, contando las que ya separaste. Quita una para separar.`,
   pedido_web_muchas_prendas: `Tu bolsa lleva hasta ${TOPE_PRENDAS} prendas. Quita alguna para separar.`,
-  tienda_sin_cuenta: "Tu cuenta no terminó de crearse. Entra a «Mi cuenta» para terminarla.",
+  tienda_sin_cuenta: "Tu cuenta no terminó de crearse. Entra a «Mi perfil» para terminarla.",
   // Lo que llegó no se pudo leer (una bolsa vieja, una pestaña a medias): se vuelve a mirar la bolsa de ahora.
   pedido_web_linea_invalida: "Revisa tu bolsa y vuelve a tocar «Separar».",
   pedido_web_bolsa_vacia: "Revisa tu bolsa y vuelve a tocar «Separar».",

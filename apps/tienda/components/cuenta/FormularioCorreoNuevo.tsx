@@ -175,7 +175,7 @@ export function FormularioCorreoNuevo({ correoActual }: { correoActual: string }
     return (
       <div className="w-ficha">
         <div>
-          <span className="t-ceja">Mi cuenta</span>
+          <span className="t-ceja">Mi perfil</span>
           <h1 className="w-titulo">
             {/* La cursiva roja va en lo último, como en todos los títulos: toda la frase en rojo pesaba demasiado. */}
             Listo: ahora entras con <em>tu correo nuevo.</em>
@@ -189,7 +189,7 @@ export function FormularioCorreoNuevo({ correoActual }: { correoActual: string }
         </Campo>
         <div className="w-pie-form">
           <Link className="t-btn t-btn-ancho" href="/cuenta?aviso=correo">
-            Volver a mi cuenta
+            Volver a mi perfil
           </Link>
         </div>
       </div>
@@ -207,7 +207,7 @@ export function FormularioCorreoNuevo({ correoActual }: { correoActual: string }
       }}
     >
       <div>
-        <span className="t-ceja">Mi cuenta</span>
+        <span className="t-ceja">Mi perfil</span>
         <h1 className="w-titulo">
           Cambia tu <em>correo.</em>
         </h1>
@@ -310,7 +310,7 @@ export function FormularioCorreoNuevo({ correoActual }: { correoActual: string }
           {confirmando ? "Confirmando…" : "Confirmar mi correo nuevo"}
         </button>
         <Link className="w-enlace" href="/cuenta">
-          Volver a mi cuenta
+          Volver a mi perfil
         </Link>
       </div>
     </form>

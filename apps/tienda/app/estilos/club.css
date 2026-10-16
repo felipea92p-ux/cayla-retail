@@ -1,6 +1,6 @@
 /* =====================================================================================================
    TIENDA ONLINE CAYLA (ADR-0408) · actividad 12: el Club en la cuenta.
-   «Mi cuenta» a dos columnas, sus bloques (Mis beneficios del club, Novedades para ti, Favoritos, Te avisamos cuando llegue), el
+   Los bloques del Club en «Mi perfil» (los beneficios, Favoritos, Te avisamos cuando llegue; el orden y la página, en perfil.css), el
    corazón de favoritos y lo que necesita «Avísame cuando llegue». Sale de la maqueta aprobada (docs/maquetas/tienda-online-2026-10:
    `.t-cuenta-pag` grande, `.w-bloque`, `.w-seccion-t`, `.t-novedad`, `.t-carril`, `.t-corazon`, `.t-fav-grande`, `.t-bolsa-item`,
    `.w-quitar`), con su propio prefijo `c-` para no pisar las piezas que otras actividades dibujan con el nombre de la maqueta (el
@@ -8,8 +8,7 @@
    (el estudio claro, igual en los dos temas): por eso usa el papel y la tinta fijos, como las insignias de la tarjeta.
    ===================================================================================================== */
 
-/* ---- «Mi cuenta»: la cabecera a la izquierda (fija al bajar) y los bloques a la derecha, desde 960 px ---- */
-.c-bloques { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+/* ---- Un bloque con su título (lo usa «Lo que nos escribiste», en Recomendaciones) ---- */
 .c-bloque { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .c-bloque-t { margin: 0; font-family: var(--serif); font-size: 22px; font-weight: 500; line-height: 1.15; }
 .c-reintentar { align-self: flex-start; margin-left: 0; }
@@ -27,11 +26,6 @@
 .c-barra { display: block; height: 6px; margin-top: 10px; border-radius: 999px; background: var(--hueso); overflow: hidden; }
 .c-barra > i { display: block; height: 100%; width: var(--avance, 0%); border-radius: inherit; background: var(--verde); transform-origin: left center; animation: c-llenar .9s var(--ease) .2s both; }
 .c-ver { align-self: flex-start; }
-
-/* ---- El carril de tarjetas (maqueta: `.t-carril`): se desliza de lado en el celular ---- */
-.c-carril { display: grid; grid-auto-flow: column; grid-auto-columns: 47%; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px 10px; scroll-padding-inline: 16px; }
-.c-carril::-webkit-scrollbar { display: none; }
-.c-carril > * { scroll-snap-align: start; }
 
 /* ---- El corazón (maqueta: `.t-corazon` en la tarjeta, `.t-fav-grande` en la ficha). En la tarjeta vive en la foto
    (`.t-card-media`, catalogo.css), arriba a la derecha y por encima de «Agregar». ---- */
@@ -63,11 +57,10 @@
   .c-avisame-largo { display: none; }
 }
 
-/* ---- Te avisamos cuando llegue (maqueta: `.t-bolsa-item` y `.w-quitar`) ---- */
-.c-esperas { display: flex; flex-direction: column; }
-.c-espera { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 14px 0; border-bottom: 1px solid var(--sand); }
-.c-espera:first-child { padding-top: 4px; }
-.c-espera:last-child { border-bottom: 0; }
+/* ---- Te avisamos cuando llegue (maqueta: `.t-bolsa-item` y `.w-quitar`): cada talla en su tarjeta, como los pedidos; dos por fila en
+   la computadora ---- */
+.c-esperas { display: grid; gap: 10px; }
+.c-espera { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 12px; border-radius: 14px; border: 1px solid var(--sand); background: var(--papel); }
 .c-espera-foto { display: block; }
 .c-espera-foto .pz { width: 80%; }
 .c-espera-txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 13.5px; }
@@ -92,16 +85,9 @@
 }
 
 @container tienda (min-width: 700px) {
-  .c-carril { grid-auto-columns: calc((100% - 32px) / 3.2); }
   .c-novedad { grid-template-columns: auto minmax(0, 1fr) auto; }
   .c-chip { grid-column: auto; margin-top: 0; }
 }
 @container tienda (min-width: 960px) {
-  .t-cuenta-pag.c-con-club { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 40px; align-items: start; }
-  .c-con-club .t-cuenta-cab { position: sticky; top: 18px; }
-  /* Con mouse no se desliza de lado: todo a la vista, en filas. */
-  .c-carril { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-columns: auto; gap: 28px 16px; overflow: visible; margin-inline: 0; padding-inline: 0; }
-}
-@container tienda (min-width: 1200px) {
-  .c-carril { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .c-esperas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

@@ -9,7 +9,7 @@ const PASOS: [NombreIcono, string, string][] = [
 ];
 
 /** El primer paso para quien ya entró con su cuenta: pedirle «Crea tu cuenta» a quien ya la tiene confundía. */
-const YA_TIENES_CUENTA: [NombreIcono, string, string] = ["check", "Ya tienes tu cuenta", "Ya eres parte del Club CAYLA. Tus pedidos quedan en «Mi cuenta»."];
+const YA_TIENES_CUENTA: [NombreIcono, string, string] = ["check", "Ya tienes tu cuenta", "Ya eres parte del Club CAYLA. Tus pedidos quedan en «Mi perfil»."];
 
 /**
  * «Así se separa» (maqueta, `seccionComo`): los cuatro pasos, en la portada y en el Inicio. En el Inicio (`conCuenta`) el primero ya está

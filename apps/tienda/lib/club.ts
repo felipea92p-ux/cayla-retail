@@ -185,19 +185,7 @@ export const montoDicho = (n: number) => soles(Math.round(n * 100) / 100);
 const pctDicho = (pct: number) => `${Number.isInteger(pct) ? pct : pct.toFixed(1)} %`;
 const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
-/* ------------------------------------------------------------------ Lo que dice «Mi cuenta» */
-
-/** La línea bajo la tarjeta del Club (maqueta: «Eres miembro del Club CAYLA. Tu descuento de cumpleaños llega el …»). */
-export function fraseDeLaCabecera(club: MiClub["club"], hoy: Dia): string {
-  // Lo que hacer lo dice el bloque de los beneficios: aquí, solo que no está activa.
-  if (!club.activa) return "Tu ficha del Club CAYLA no está activa.";
-  const c = club.cumple;
-  if (c.estado === "disponible") return "Eres miembro del Club CAYLA. Este mes es tu cumpleaños: tu descuento ya está disponible.";
-  if (c.estado === "proximo" && c.dia && c.mes) {
-    return `Eres miembro del Club CAYLA. Tu descuento de cumpleaños llega el ${proximoCumple(c.dia, c.mes, hoy)}.`;
-  }
-  return "Eres miembro del Club CAYLA.";
-}
+/* ------------------------------------------------------------------ Lo que dice «Mi perfil» de sus beneficios */
 
 /** El próximo cumpleaños: «14 de octubre» este año o, si ya pasó, «14 de octubre de 2027». */
 export function proximoCumple(dia: number, mes: number, hoy: Dia): string {
@@ -383,8 +371,8 @@ export type EstadoQuitar = "quitada" | "no_esta" | "sin_sesion" | "sin_respuesta
 
 export const MENSAJES_CLUB = {
   favoritoGuardado: "Guardado en tus favoritos.",
-  favoritoTope: "Ya tienes 100 favoritos. Quita alguno en Mi cuenta para guardar otro.",
-  avisoTope: "Ya pediste 30 avisos. Quita alguno en Mi cuenta para pedir otro.",
+  favoritoTope: "Ya tienes 100 favoritos. Quita alguno en Mi perfil para guardar otro.",
+  avisoTope: "Ya pediste 30 avisos. Quita alguno en Mi perfil para pedir otro.",
   noDisponible: "Esta prenda ya no está en la tienda online.",
   cuentaInactiva: "Tu ficha del Club no está activa. Acércate a cualquier tienda CAYLA y la revisan contigo.",
   sinSesion: "Entra a tu cuenta para guardarlo.",

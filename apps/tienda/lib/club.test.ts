@@ -8,7 +8,6 @@ import {
   etiquetaQuitarAviso,
   estadoEspera,
   fechaDicha,
-  fraseDeLaCabecera,
   leerGuardados,
   leerMiClub,
   leerRespuestaAviso,
@@ -140,16 +139,6 @@ describe("las fechas, como se dicen", () => {
     expect(listaDicha(["Lima"])).toBe("Lima");
     expect(listaDicha(["Lima", "Trujillo"])).toBe("Lima y Trujillo");
     expect(listaDicha(["Arequipa", "Lima", "Trujillo"])).toBe("Arequipa, Lima y Trujillo");
-  });
-});
-
-describe("la cabecera de «Mi cuenta»", () => {
-  it("en su mes, el descuento está disponible; otro mes, cuándo llega; sin ficha activa, que vaya a una tienda", () => {
-    const base = club().club;
-    expect(fraseDeLaCabecera(base, HOY)).toBe("Eres miembro del Club CAYLA. Este mes es tu cumpleaños: tu descuento ya está disponible.");
-    expect(fraseDeLaCabecera({ ...base, cumple: cumple({}) }, HOY)).toBe("Eres miembro del Club CAYLA. Tu descuento de cumpleaños llega el 3 de mayo de 2027.");
-    expect(fraseDeLaCabecera({ ...base, cumple: cumple({ estado: "canjeado" }) }, HOY)).toBe("Eres miembro del Club CAYLA.");
-    expect(fraseDeLaCabecera({ ...base, activa: false }, HOY)).toMatch(/no está activa/);
   });
 });
 
@@ -304,7 +293,7 @@ describe("los botones: corazón y «Avísame»", () => {
   });
 
   it("textos sin género: ni «clienta», ni «socia», ni «bienvenida»", () => {
-    const todo = JSON.stringify(MENSAJES_CLUB) + fraseDeLaCabecera(club().club, HOY) + beneficioCumple(cumple({}), true, HOY).texto;
+    const todo = JSON.stringify(MENSAJES_CLUB) + beneficioCumple(cumple({}), true, HOY).texto;
     expect(todo).not.toMatch(/clienta|socia|bienvenida|bienvenido/i);
   });
 });

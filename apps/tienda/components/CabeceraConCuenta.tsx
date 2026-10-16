@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { salir } from "@/app/acciones/cuenta";
 import { buscarEn, resaltar } from "@/lib/buscador";
 import type { DatosCabecera, FotoChica, MenuCabecera } from "@/lib/inicio";
 import { useGuardados } from "./club/Guardados";
+import { BotonCerrarSesion } from "./cuenta/BotonCerrarSesion";
 import { FotoTarjeta } from "./FotoTarjeta";
 import { Icono } from "./Icono";
 import { Isotipo } from "./Isotipo";
@@ -206,9 +206,10 @@ function FotoChicaDe({ foto, tamanos }: { foto: FotoChica; tamanos: string }) {
 
 /**
  * El menú de la persona (Felipe 2026-10-15: «al dar click en la persona debería desplegar algo con el nombre, "Mi perfil" y cerrar
- * sesión»). Baja del ícono, en el celular y en la computadora; se cierra con Escape, al tocar fuera o al elegir. «Cerrar sesión» es la
- * misma acción de «Mi cuenta» (`salir`) y dice «Cerrando sesión…» mientras la espera. Es un desplegable (el botón dice si está abierto y
- * qué abre; se recorre con Tab), no un `role="menu"`: ese rol promete moverse con las flechas, y con dos opciones no hace falta.
+ * sesión»). Baja del ícono, en el celular y en la computadora; se cierra con Escape, al tocar fuera o al elegir. «Cerrar sesión» es el
+ * mismo botón de «Tu cuenta» en «Mi perfil» (`salir`, `BotonCerrarSesion`) y dice «Cerrando sesión…» mientras la espera. Es un
+ * desplegable (el botón dice si está abierto y qué abre; se recorre con Tab), no un `role="menu"`: ese rol promete moverse con las
+ * flechas, y con dos opciones no hace falta.
  */
 function MenuDeLaCuenta({ nombre, enCuenta }: { nombre: string | null; enCuenta: boolean }) {
   const [abierto, setAbierto] = useState(false);
@@ -260,21 +261,11 @@ function MenuDeLaCuenta({ nombre, enCuenta }: { nombre: string | null; enCuenta:
             Mi perfil
           </Link>
           <form action={salir}>
-            <BotonSalir />
+            <BotonCerrarSesion className="t-persona-op" conIcono />
           </form>
         </div>
       )}
     </div>
-  );
-}
-
-function BotonSalir() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className="t-persona-op" disabled={pending}>
-      <Icono nombre="flecha" />
-      {pending ? "Cerrando sesión…" : "Cerrar sesión"}
-    </button>
   );
 }
 
@@ -321,7 +312,7 @@ function HojaMenu({ datos, favoritos, cerrar }: { datos: DatosCabecera; favorito
       ))}
       <div className="t-menu-pie">
         <Link className="t-enlace" href="/cuenta" onClick={cerrar}>
-          Mi cuenta y mis pedidos
+          Mi perfil y mis pedidos
         </Link>
         <Link className="t-enlace" href="/como-separar" onClick={cerrar}>
           Cómo separar
