@@ -118,6 +118,13 @@ con editar tu línea de arriba: la alarma no mira la columna «Lo lleva».
   Shopify (ADR-0030).
 - **`activos_fijos` es de Urraca, no de Garza.** Finanzas operativas es la plata del día
   (gasto, depósito, cuadre de efectivo); un activo fijo es una posición de balance.
+- **La tienda online (ADR-0408) no tiene pájaro propio: sus tablas van con el pájaro de la pantalla
+  que las maneja.** Los pedidos web, la cuenta web de cada cliente (con sus favoritos, sus «Avísame
+  cuando llegue» y sus recomendaciones) y los plazos y datos web de cada tienda son de Colibrí: es la
+  venta y el cliente que entran por otra puerta (Ventas ▸ Pedidos web, Clientes). La vitrina y sus
+  looks son de Loro, porque se eligen desde Catálogo ▸ Vitrina web. Si la tienda online llega a pedir
+  un dueño propio, es un pájaro nuevo en la tabla de arriba, y eso lo decide Felipe (refresco del
+  volcado del 2026-10-16).
 
 **Tres pájaros no tienen hoy ninguna tabla, y eso es información, no un error.**
 Tucán y Golondrina, porque sus tablas (`taxonomia_*`, `importaciones`) no existen en

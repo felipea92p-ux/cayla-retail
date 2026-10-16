@@ -4,21 +4,21 @@
 > Para darle pájaro a una tabla se edita `scripts/datos/aviario.mjs`. Para apuntarte a un
 > pájaro, `docs/datos/07-GOBIERNO.md` §1: el pájaro es el puesto, quién lo lleva se dice allá.
 >
-> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 206 · **Sin pájaro:** 0
+> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 227 · **Sin pájaro:** 0
 
 ## Por pájaro
 
 | # | Pájaro | Módulo | Tablas |
 |---|---|---|---|
 | 01 | **Ganso** | Identidad y acceso | `acciones_sin_responsable` · `colaboradores` · `colaboradores_historial` · `colaboradores_suspendidos` · `guias_vistas` · `lider_modulos_ocultos` · `modulos` · `rol_modulos` · `roles` · `roles_historial` · `terminales` · `ubicaciones` |
-| 02 | **Loro** | Catálogo y vocabulario | `catalogo_version` · `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `etiqueta_categorias` · `etiquetas` · `familias` · `historial_producto_cambios` · `marca_proveedores` · `marcas` · `patrones` · `precios_sede` · `precios_sede_prenda` · `producto_color_temporadas` · `producto_fotos` · `producto_origen` · `productos` · `tallas` · `tejidos` · `temporada_fechas` · `temporadas` · `variante_etiquetas` · `variantes` |
+| 02 | **Loro** | Catálogo y vocabulario | `catalogo_version` · `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `etiqueta_categorias` · `etiquetas` · `familias` · `historial_producto_cambios` · `marca_proveedores` · `marcas` · `patrones` · `precios_sede` · `precios_sede_prenda` · `producto_color_temporadas` · `producto_fotos` · `producto_origen` · `productos` · `tallas` · `tejidos` · `temporada_fechas` · `temporadas` · `variante_etiquetas` · `variantes` · `vitrina_look_piezas` · `vitrina_looks` · `vitrina_productos` |
 | 03 | **Tucán** | Taxonomía universal | *sin tablas hoy* |
 | 04 | **Golondrina** | Importación de catálogo | *sin tablas hoy* |
 | 05 | **Halcón** | Inventario y movimientos | `ajustes_inventario_intentos` · `bajada_piso_items` · `bajadas_en_mano` · `bajadas_piso` · `capacidad_piso` · `categoria_grupo_mix` · `costo_historial` · `cuadre_piso_items` · `cuadres_piso` · `despacho_cierres` · `despacho_conteos` · `despacho_items` · `despacho_pendientes` · `despacho_recibidos` · `despacho_separaciones` · `despachos` · `despachos_sin_aviso` · `envio_extras` · `envio_traslados` · `envios` · `espacio_piso` · `frescura_decisiones` · `frescura_vara_cayla` · `grupos_mix` · `lotes` · `movimientos` · `movimientos_internos_intentos` · `parametros_analisis` · `prendas_danadas` · `prendas_para_enviar` · `prendas_para_enviar_salidas` · `stock` · `sububicaciones` · `transferencia_items` · `transferencia_recepciones` · `transferencias` · `traslado_sobrantes` |
 | 06 | **Lechuza** | Conteo y censo físico | `conteo_items` · `conteos` |
-| 07 | **Colibrí** | Ventas y caja | `apartados` · `apartados_opciones` · `caja_movimientos` · `caja_traslados` · `cajas` · `cambios` · `campana_efecto_caja` · `cierres_cola_arranque` · `clientas` · `clientas_fusiones` · `club_aniversario_escala` · `club_avisos_enviados` · `club_canjes` · `club_etiquetas` · `club_intentos_registro` · `club_invitaciones` · `club_permisos` · `club_textos` · `codigos_descuento` · `cola_arranque_plazo` · `configuracion_historial` · `devolucion_items` · `devoluciones` · `intentos_con_token` · `metas_persona_ajustes` · `parametros_liquidacion` · `pedidos_no_atendidos` · `piezas_liquidacion` · `piezas_liquidacion_etiquetas` · `prendas_por_regularizar` · `prendas_por_regularizar_correcciones` · `separacion_abonos` · `separacion_avisos` · `separacion_correlativos` · `separacion_ediciones` · `separacion_items` · `separacion_items_retirados` · `separacion_pagos` · `separacion_pedidos` · `separaciones` · `ubicacion_metas_dia` · `venta_anulacion_items` · `venta_items` · `venta_pagos` · `venta_pagos_correcciones` · `ventas` |
+| 07 | **Colibrí** | Ventas y caja | `apartados` · `apartados_opciones` · `caja_movimientos` · `caja_traslados` · `cajas` · `cambios` · `campana_efecto_caja` · `cierres_cola_arranque` · `clientas` · `clientas_fusiones` · `club_aniversario_escala` · `club_avisos_enviados` · `club_canjes` · `club_etiquetas` · `club_intentos_registro` · `club_invitaciones` · `club_permisos` · `club_textos` · `codigos_descuento` · `cola_arranque_plazo` · `configuracion_historial` · `configuracion_tienda_web` · `cuentas_web` · `cuentas_web_cambios_correo` · `cuentas_web_intentos_clave` · `cuentas_web_pendientes` · `cuentas_web_visitas` · `devolucion_items` · `devoluciones` · `esperas_web` · `favoritos_web` · `intentos_con_token` · `metas_persona_ajustes` · `padron_lecturas` · `parametros_liquidacion` · `pedido_web_lineas` · `pedido_web_pagos` · `pedidos_no_atendidos` · `pedidos_web` · `piezas_liquidacion` · `piezas_liquidacion_etiquetas` · `prendas_por_regularizar` · `prendas_por_regularizar_correcciones` · `recomendaciones_web` · `separacion_abonos` · `separacion_aplazamientos` · `separacion_avisos` · `separacion_correlativos` · `separacion_ediciones` · `separacion_items` · `separacion_items_retirados` · `separacion_pagos` · `separacion_pedidos` · `separaciones` · `ubicacion_datos_web` · `ubicacion_metas_dia` · `venta_anulacion_items` · `venta_items` · `venta_pagos` · `venta_pagos_correcciones` · `ventas` |
 | 08 | **Cuervo** | Facturación SUNAT | `comprobante_anticipos` · `comprobantes` · `configuracion_empresa` · `proformas` · `respaldo_b001_f001_renumeradas_20261007` · `respaldo_b002_renumeradas_20261002` · `series_comprobantes` · `ubicacion_datos_fiscales` |
-| 09 | **Pelícano** | Compras y proveedores | `compra_adjuntos` · `compra_item_cierres` · `compra_item_destinos` · `compra_item_reparto_resumen` · `compra_items` · `compra_items_resumen` · `compra_notas_credito` · `compra_pagos` · `compra_parte_por_tienda` · `compra_reasignaciones` · `compradores_de_tienda` · `compras` · `compras_resumen` · `despacho_diferencias` · `despacho_diferencias_vigentes` · `orden_compra_items` · `orden_compra_versiones` · `ordenes_compra` · `planes_compra` · `planes_compra_lineas` · `planes_compra_reparto` · `proveedor_creditos` · `proveedor_deuda_resoluciones` · `proveedores` · `ventas_historicas` |
+| 09 | **Pelícano** | Compras y proveedores | `compra_adjuntos` · `compra_item_cierres` · `compra_item_destinos` · `compra_item_reparto_resumen` · `compra_items` · `compra_items_resumen` · `compra_notas_credito` · `compra_notas_proveedor` · `compra_notas_proveedor_documentos` · `compra_pagos` · `compra_parte_por_tienda` · `compra_reasignaciones` · `compradores_de_tienda` · `compras` · `compras_resumen` · `despacho_diferencias` · `despacho_diferencias_vigentes` · `orden_compra_items` · `orden_compra_versiones` · `ordenes_compra` · `planes_compra` · `planes_compra_lineas` · `planes_compra_reparto` · `proveedor_creditos` · `proveedor_deuda_resoluciones` · `proveedores` · `proveedores_cambios_bancarios` · `ventas_historicas` |
 | 10 | **Gallito** | Producción del Taller | `comprobantes_produccion` · `comprobantes_produccion_cierres` · `comprobantes_produccion_items` · `comprobantes_produccion_pagos` · `comprobantes_produccion_recepciones` · `cotizaciones_maquila` · `insumo_lotes` · `insumos` · `movimientos_insumo` · `orden_insumo_cierres` · `orden_insumo_items` · `orden_insumo_recepciones` · `orden_insumo_versiones` · `ordenes_insumo` · `produccion_etapas_historial` · `produccion_lineas` · `producciones` · `proveedores_produccion` · `v_insumo_saldos` |
 | 11 | **Garza** | Finanzas operativas | `categorias_gasto` · `conciliaciones` · `cuentas_asignadas` · `cuentas_dinero` · `dinero_revisados` · `egresos_no_gasto` · `gasto_viaje_fotos` · `gastos` · `gastos_fijos` · `gastos_fijos_descartados` · `gastos_legado_2026_09` · `gastos_viaje` · `gastos_viaje_ordenes` · `medios_de_cobro` · `movimientos_dinero` · `parametros_finanzas` · `planilla_por_sede` · `presupuestos` · `rendicion_fondo_items` · `rendiciones_fondo` |
 | 12 | **Urraca** | Contabilidad | `activos_fijos` · `cuentas` · `diario_cerrado` · `parametros_tributarios` · `periodo_cierres` · `periodos` · `saldos_iniciales` · `tipos_activo` |
@@ -79,6 +79,8 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `compra_items` | 09 · Pelícano |
 | `compra_items_resumen` | 09 · Pelícano |
 | `compra_notas_credito` | 09 · Pelícano |
+| `compra_notas_proveedor` | 09 · Pelícano |
+| `compra_notas_proveedor_documentos` | 09 · Pelícano |
 | `compra_pagos` | 09 · Pelícano |
 | `compra_parte_por_tienda` | 09 · Pelícano |
 | `compra_reasignaciones` | 09 · Pelícano |
@@ -95,6 +97,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `conciliaciones` | 11 · Garza |
 | `configuracion_empresa` | 08 · Cuervo |
 | `configuracion_historial` | 07 · Colibrí |
+| `configuracion_tienda_web` | 07 · Colibrí |
 | `conteo_items` | 06 · Lechuza |
 | `conteos` | 06 · Lechuza |
 | `costo_historial` | 05 · Halcón |
@@ -104,6 +107,11 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `cuentas` | 12 · Urraca |
 | `cuentas_asignadas` | 11 · Garza |
 | `cuentas_dinero` | 11 · Garza |
+| `cuentas_web` | 07 · Colibrí |
+| `cuentas_web_cambios_correo` | 07 · Colibrí |
+| `cuentas_web_intentos_clave` | 07 · Colibrí |
+| `cuentas_web_pendientes` | 07 · Colibrí |
+| `cuentas_web_visitas` | 07 · Colibrí |
 | `despacho_cierres` | 05 · Halcón |
 | `despacho_conteos` | 05 · Halcón |
 | `despacho_diferencias` | 09 · Pelícano |
@@ -123,9 +131,11 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `envio_traslados` | 05 · Halcón |
 | `envios` | 05 · Halcón |
 | `espacio_piso` | 05 · Halcón |
+| `esperas_web` | 07 · Colibrí |
 | `etiqueta_categorias` | 02 · Loro |
 | `etiquetas` | 02 · Loro |
 | `familias` | 02 · Loro |
+| `favoritos_web` | 07 · Colibrí |
 | `frescura_decisiones` | 05 · Halcón |
 | `frescura_vara_cayla` | 05 · Halcón |
 | `gasto_viaje_fotos` | 11 · Garza |
@@ -161,12 +171,16 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `orden_insumo_versiones` | 10 · Gallito |
 | `ordenes_compra` | 09 · Pelícano |
 | `ordenes_insumo` | 10 · Gallito |
+| `padron_lecturas` | 07 · Colibrí |
 | `parametros_analisis` | 05 · Halcón |
 | `parametros_finanzas` | 11 · Garza |
 | `parametros_liquidacion` | 07 · Colibrí |
 | `parametros_tributarios` | 12 · Urraca |
 | `patrones` | 02 · Loro |
+| `pedido_web_lineas` | 07 · Colibrí |
+| `pedido_web_pagos` | 07 · Colibrí |
 | `pedidos_no_atendidos` | 07 · Colibrí |
+| `pedidos_web` | 07 · Colibrí |
 | `periodo_cierres` | 12 · Urraca |
 | `periodos` | 12 · Urraca |
 | `piezas_liquidacion` | 07 · Colibrí |
@@ -194,7 +208,9 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `proveedor_creditos` | 09 · Pelícano |
 | `proveedor_deuda_resoluciones` | 09 · Pelícano |
 | `proveedores` | 09 · Pelícano |
+| `proveedores_cambios_bancarios` | 09 · Pelícano |
 | `proveedores_produccion` | 10 · Gallito |
+| `recomendaciones_web` | 07 · Colibrí |
 | `rendicion_fondo_items` | 11 · Garza |
 | `rendiciones_fondo` | 11 · Garza |
 | `respaldo_b001_f001_renumeradas_20261007` | 08 · Cuervo |
@@ -204,6 +220,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `roles_historial` | 01 · Ganso |
 | `saldos_iniciales` | 12 · Urraca |
 | `separacion_abonos` | 07 · Colibrí |
+| `separacion_aplazamientos` | 07 · Colibrí |
 | `separacion_avisos` | 07 · Colibrí |
 | `separacion_correlativos` | 07 · Colibrí |
 | `separacion_ediciones` | 07 · Colibrí |
@@ -226,6 +243,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `transferencias` | 05 · Halcón |
 | `traslado_sobrantes` | 05 · Halcón |
 | `ubicacion_datos_fiscales` | 08 · Cuervo |
+| `ubicacion_datos_web` | 07 · Colibrí |
 | `ubicacion_metas_dia` | 07 · Colibrí |
 | `ubicaciones` | 01 · Ganso |
 | `v_insumo_saldos` | 10 · Gallito |
@@ -237,3 +255,6 @@ Tienes un nombre de tabla, quieres el pájaro.
 | `venta_pagos_correcciones` | 07 · Colibrí |
 | `ventas` | 07 · Colibrí |
 | `ventas_historicas` | 09 · Pelícano |
+| `vitrina_look_piezas` | 02 · Loro |
+| `vitrina_looks` | 02 · Loro |
+| `vitrina_productos` | 02 · Loro |
