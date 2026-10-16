@@ -10,18 +10,22 @@
 
 /* ---- «Ver lo que hay en»: la tienda elegida (maqueta v4, `filtroTienda`). Una franja bajo la cabecera; en el celular sin el texto y
    corriendo de lado, desde 960 px centrada y con su texto. ---- */
-.t-ubic { flex: none; display: flex; align-items: center; gap: 10px; padding: 7px 16px; font-size: 12.5px; color: var(--tinta-60); background: var(--papel); border-bottom: 1px solid var(--sand); white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.t-ubic { flex: none; display: flex; align-items: center; gap: 10px; padding: 8px 16px; font-size: 12.5px; color: var(--tinta-60); background: var(--papel); border-bottom: 1px solid var(--sand); white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
 .t-ubic::-webkit-scrollbar { display: none; }
 .t-ubic .ic { width: 15px; height: 15px; color: var(--taupe); flex: none; }
 .t-filtro-txt { display: none; }
 .t-pildoras-tienda { display: flex; gap: 6px; }
 .t-pildora-mini { flex: none; border: 1px solid var(--sand); background: var(--crema); border-radius: 999px; padding: 5px 13px; font-size: 12.5px; font-weight: 600; color: var(--tinta); transition: background-color .2s, color .2s, border-color .2s; }
 .t-pildora-mini:hover { border-color: var(--tinta); }
+/* La tienda se elige con el dedo en 44 px de alto (una capa invisible sobre la píldora de 29; la franja la deja entera a la vista). */
+.t-pildora-mini { position: relative; }
+.t-pildora-mini::before { content: ""; position: absolute; inset: -8px -3px; }
 .t-pildora-mini[aria-current="true"] { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
 
 /* ---- La ruta y la cabecera de la lista ---- */
 .t-ruta { display: flex; gap: 6px; align-items: center; padding-block: 14px 0; font-size: 12px; color: var(--tinta-60); flex-wrap: wrap; }
-.t-ruta a { color: var(--tinta-60); }
+/* El enlace mide 16 px de alto: su zona de toque crece a 44 sin mover nada (el relleno y el margen negativo se anulan). */
+.t-ruta a { color: var(--tinta-60); padding-block: 14px; margin-block: -14px; }
 .t-ruta a:hover { color: var(--tinta); text-decoration: underline; text-underline-offset: 3px; }
 .t-lista-cab { padding-block: 10px 18px; display: flex; flex-direction: column; gap: 6px; }
 .t-lista-cab h1 { margin: 6px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 8cqi, 60px); line-height: .94; letter-spacing: -.015em; }
@@ -40,7 +44,45 @@
 .t-orden a { border: 1px solid var(--sand); background: var(--papel); border-radius: 999px; padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--tinta); white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; transition: border-color .2s; }
 .t-orden a:hover { border-color: var(--taupe); }
 .t-orden .ic { width: 14px; height: 14px; }
+/* «Orden:» delante de cuál, donde cabe (en el celular el botón dice solo cuál, con sus flechas). */
+.t-orden-rot { display: none; font-weight: 500; color: var(--tinta-60); margin-right: -2px; }
 .t-conteo { font-size: 12.5px; color: var(--tinta-60); margin: -4px 0 14px; }
+/* Dónde empieza la barra cuando no está pegada (`FiltrosDeLista`): al tocar un filtro con la barra pegada, la vista vuelve aquí. */
+.t-filtros-marca { display: block; height: 0; }
+/* Con el dedo, cada filtro se toca en 44 px de alto aunque se vea más bajo (36, 30): una capa invisible lo agranda. Las filas que se
+   deslizan recortan lo que asoma, así que llevan el mismo margen por dentro y por fuera (no cambia nada de lugar). */
+.t-filtros .t-pildoras { padding-block: 5px; margin-block: -5px; }
+.t-filtros .t-pildora, .t-orden a, .t-subcat { position: relative; }
+.t-filtros .t-pildora::before { content: ""; position: absolute; inset: -5px -3px; }
+.t-orden a::before { content: ""; position: absolute; inset: -6px -3px; }
+.t-subcat::before { content: ""; position: absolute; inset: -8px -10px; }
+/* Los filtros en dos niveles (Felipe 2026-10-15): los grupos como píldoras y, debajo, las categorías del grupo encendido, como pestañas
+   con su raya roja. En el celular, cada fila se desliza sola. */
+.t-filtros-niveles { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.t-filtros:has(.t-filtros-niveles) { align-items: flex-start; }
+.t-subcats { display: flex; gap: 2px 20px; overflow-x: auto; scrollbar-width: none; padding: 8px 2px 6px; margin-block: -4px; animation: t-subcats .35s var(--ease) both; }
+.t-subcats::-webkit-scrollbar { display: none; }
+.t-subcat { flex: none; position: relative; padding: 5px 0 7px; font-size: 13px; color: var(--tinta-60); white-space: nowrap; transition: color .2s; }
+.t-subcat small { margin-left: 3px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.t-subcat::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px; background: var(--rojo); transform: scaleX(0); transform-origin: left; transition: transform .3s var(--ease); }
+.t-subcat:hover { color: var(--tinta); }
+.t-subcat[aria-current="true"] { color: var(--tinta); font-weight: 600; }
+.t-subcat[aria-current="true"]::after { transform: scaleX(1); }
+.t-subcat:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 4px; }
+@keyframes t-subcats { from { opacity: 0; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .t-subcats { animation: none; } .t-subcat::after { transition: none; } }
+
+/* ---- Mientras llega la lista nueva (`PendienteDelEnlace`): lo tocado ya se ve elegido y la lista se apaga un poco, con un pequeño
+   retraso (si llega al instante, nada parpadea). Antes, durante ese medio segundo, nada decía que el toque había llegado. ---- */
+.t-pendiente { display: none; }
+.t-pildora:has(> .t-pendiente[data-pendiente]), .t-pildora-mini:has(> .t-pendiente[data-pendiente]) { background: var(--tinta); border-color: var(--tinta); color: var(--crema); }
+.t-subcat:has(> .t-pendiente[data-pendiente]) { color: var(--tinta); }
+.t-subcat:has(> .t-pendiente[data-pendiente])::after { transform: scaleX(1); }
+.t-orden a:has(> .t-pendiente[data-pendiente]), .t-campana:has(> .t-pendiente[data-pendiente]) { border-color: var(--tinta); }
+.tienda:has(.t-pendiente[data-pendiente]) :is(.t-grilla, .t-conteo) { opacity: .45; transition: opacity .25s var(--ease) .12s; }
+/* Mientras tanto, la que estaba elegida deja de verse elegida: nunca dos píldoras encendidas a la vez. */
+:is(.t-pildoras, .t-pildoras-tienda):has(.t-pendiente[data-pendiente]) :is(.t-pildora, .t-pildora-mini)[aria-current="true"]:not(:has(> .t-pendiente[data-pendiente])) { background: transparent; border-color: var(--sand); color: var(--tinta); }
+.t-subcats:has(.t-pendiente[data-pendiente]) .t-subcat[aria-current="true"]:not(:has(> .t-pendiente[data-pendiente]))::after { transform: scaleX(0); }
 
 /* ---- La grilla ---- */
 .t-grilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 10px; }
@@ -95,12 +137,15 @@
 .t-card-nota { font-size: 11px; font-weight: 600; color: var(--ambar); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .t-card-nota.ok { color: var(--verde); }
 .t-card-nota.no { color: var(--tinta-60); font-weight: 500; }
+/* «Tus favoritos»: la prenda que se acaba de quitar queda apagada hasta recargar (no desaparece bajo el dedo, y el corazón la vuelve a
+   guardar). */
+.t-grilla-favoritos .t-card:has(.c-corazon[aria-pressed="false"]) :is(.t-card-enlace, .t-card-info) { opacity: .45; transition: opacity .3s var(--ease); }
 
 /* Las campañas de las ofertas (actividad 5, maqueta `t-campanas`): una tarjeta por campaña, que la elige o la suelta. */
 .t-campanas { display: grid; grid-auto-flow: column; grid-auto-columns: 78%; gap: 10px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 4px; padding: 0 16px 14px; }
 .t-campanas::-webkit-scrollbar { display: none; }
 .t-campana { border: 1px solid var(--sand); border-radius: 10px; padding: 14px; background: var(--papel); display: flex; flex-direction: column; gap: 4px; color: var(--tinta); transition: border-color .2s, box-shadow .2s; }
-.t-campana:hover { border-color: var(--taupe); }
+a.t-campana:hover { border-color: var(--taupe); }
 .t-campana[aria-current="true"] { border-color: var(--tinta); box-shadow: inset 0 0 0 1px var(--tinta); }
 .t-campana b { font-family: var(--serif); font-size: 24px; font-weight: 500; line-height: 1; }
 .t-campana .pct { font-family: var(--serif); font-style: italic; font-size: 36px; line-height: 1; color: var(--rojo); }
@@ -127,9 +172,12 @@
 @container tienda (min-width: 960px) {
   .t-ubic { justify-content: center; }
   .t-filtro-txt { display: inline; }
+  .t-orden-rot { display: inline; }
   .t-grilla { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px 18px; }
   .t-pildoras { flex-wrap: wrap; overflow: visible; }
-  .t-carril { grid-auto-columns: calc((100% - 3 * 18px) / 4); gap: 18px; margin-inline: 0; padding-inline: 0; }
+  /* Sin el relleno del celular, tampoco su margen de encaje: con él, al deslizar, la primera tarjeta quedaba corrida 16 px y la cuarta
+     cortada. */
+  .t-carril { grid-auto-columns: calc((100% - 3 * 18px) / 4); gap: 18px; margin-inline: 0; padding-inline: 0; scroll-padding-inline: 0; }
   .t-campanas { grid-auto-flow: row; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-columns: auto; margin: 0 0 4px; padding: 0 0 18px; overflow: visible; }
 }
 

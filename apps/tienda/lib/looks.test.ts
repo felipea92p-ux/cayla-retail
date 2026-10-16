@@ -3,13 +3,15 @@ import {
   alternarTalla,
   avisoDelLook,
   cejaDeLook,
+  faltaTalla,
   hrefDePieza,
   hrefLook,
   hrefLooks,
   interpretarLook,
   interpretarLooks,
-  lineaDeLook,
   lineasDelLook,
+  looksDeATres,
+  precioDelLook,
   precioDePieza,
   sinTallasPorAhora,
   tallasIniciales,
@@ -102,12 +104,20 @@ describe("lo que se dibuja", () => {
     expect(precioDePieza(look.piezas[2])).toEqual({ principal: "S/ 134.90", anterior: "S/ 149.90", oferta: true });
   });
 
-  it("el total del look, la ceja y la línea de la tarjeta («desde» si una campaña no toca todas las tallas)", () => {
+  it("el total del look y la ceja de la tarjeta («desde» si una campaña no toca todas las tallas)", () => {
     expect(totalDelLook(look)).toBe("S/ 289.70");
     expect(totalDelLook({ ...look, desde: true })).toBe("Desde S/ 289.70");
     expect(cejaDeLook(look)).toBe("Look 2 · 3 prendas");
-    expect(lineaDeLook(look)).toBe("Denim liviano y un básico blanco · S/ 289.70");
-    expect(lineaDeLook({ ...look, frase: null, desde: true })).toBe("desde S/ 289.70");
+  });
+
+  it("el precio de la tarjeta, en su línea: lo que se paga y, si alguna prenda tiene campaña, el total sin ella tachado", () => {
+    expect(precioDelLook(look)).toEqual({ principal: "S/ 289.70", anterior: "S/ 304.70", oferta: true });
+    expect(precioDelLook({ ...look, desde: true })).toEqual({ principal: "Desde S/ 289.70", anterior: "S/ 304.70", oferta: true });
+    expect(precioDelLook({ total: 165.8, totalFinal: 165.8, desde: false })).toEqual({ principal: "S/ 165.80", anterior: null, oferta: false });
+  });
+
+  it("la lista va de a tres solo si llena sus filas (sin un look solo al final con media pantalla vacía)", () => {
+    expect([1, 2, 3, 4, 5, 6, 7, 8, 9].filter(looksDeATres)).toEqual([3, 6, 9]);
   });
 
   it("las direcciones llevan la tienda elegida, y la ficha de una prenda, su color", () => {
@@ -142,10 +152,24 @@ describe("elegir las tallas (propuesta h)", () => {
     expect(lineasDelLook(look, { 3: ID(5) })).toEqual([]);
   });
 
-  it("la prenda sin ninguna talla se ve pero no se agrega; el botón dice cuántas van", () => {
+  it("la prenda sin ninguna talla se ve pero no se agrega; el botón dice cuántas van de cuántas", () => {
     expect(look.piezas.map(sinTallasPorAhora)).toEqual([false, false, true]);
-    expect(textoAgregar(1)).toBe("Agregar 1 prenda a mi bolsa");
-    expect(textoAgregar(3)).toBe("Agregar 3 prendas a mi bolsa");
+    // Faltan tallas: cuántas van DE cuántas (nadie se lleva el look sin una prenda sin darse cuenta).
+    expect(textoAgregar(1, 3)).toBe("Agregar 1 de 3 prendas a mi bolsa");
+    expect(textoAgregar(2, 3)).toBe("Agregar 2 de 3 prendas a mi bolsa");
+    // Todas: el look completo.
+    expect(textoAgregar(3, 3)).toBe("Agregar las 3 prendas a mi bolsa");
+    expect(textoAgregar(1, 1)).toBe("Agregar la prenda a mi bolsa");
+    // Ninguna: qué hacer (el botón está apagado).
+    expect(textoAgregar(0, 3)).toBe("Elige las tallas para agregar");
+  });
+
+  it("las que esperan su talla: tienen alguna disponible y no se eligió; la que no tiene ninguna no espera nada", () => {
+    const elegidas = tallasIniciales(look);
+    expect(faltaTalla(look, elegidas).map((p) => p.prenda.nombre)).toEqual(["Blusa Emma"]);
+    expect(faltaTalla(look, alternarTalla(elegidas, look, 1, ID(5)))).toEqual([]);
+    // Una elección vieja de una talla que dejó de haber vuelve a esperar.
+    expect(faltaTalla(look, { 1: ID(6), 2: ID(5) }).map((p) => p.prenda.nombre)).toEqual(["Blusa Emma"]);
   });
 });
 

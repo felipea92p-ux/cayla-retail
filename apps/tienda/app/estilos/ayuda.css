@@ -1,8 +1,10 @@
 /* =====================================================================================================
-   TIENDA ONLINE CAYLA (ADR-0408) · actividad 5: las páginas de ayuda («Cómo separar» y «Cambios y devoluciones»).
+   TIENDA ONLINE CAYLA (ADR-0408) · actividad 5: las páginas de ayuda («Cómo separar» y «Cambios y devoluciones») y, de las legales
+   (Privacidad y Términos del Club), sus enlaces.
    Sale de la maqueta aprobada (docs/maquetas/tienda-online-2026-10: `vInfo`, `.w-pasos`, `.w-info`). La ficha, el título y el
    texto son los de la cuenta (cuenta.css). Todo va dentro de `.w-pagina-ayuda`: la bolsa y el pedido (actividad 7) usan piezas con
    el mismo nombre en la maqueta, y así ninguna pisa a la otra. Solo los tokens de app/globals.css: en oscuro se invierten solos.
+   Revisión 2026-10-15: el paso ya hecho, las notas con a dónde seguir y la acción del final.
    ===================================================================================================== */
 
 /* En la maqueta, la parte en cursiva del título va en rojo (`.w-titulo em`); aquí, solo en la ayuda: las páginas de la cuenta
@@ -25,11 +27,30 @@
 }
 .w-pagina-ayuda .w-pasos b { font-weight: 600; }
 .w-pagina-ayuda .w-pasos small { display: block; margin-top: 2px; color: var(--tinta-60); font-size: 13px; line-height: 1.45; }
+/* El paso que ya está hecho (con cuenta, «Ya tienes tu cuenta»): su círculo se llena de verde con ✓ (un lector oye «Hecho») y su
+   título se apaga un poco, para que los ojos vayan al que sigue. */
+.w-pagina-ayuda .w-pasos li[data-hecho]::before { content: "✓"; content: "✓" / "Hecho:"; border-color: var(--verde); background: var(--verde); color: var(--papel); }
+.w-pagina-ayuda .w-pasos li[data-hecho] b { color: var(--tinta-60); }
 
-/* ---- Una nota con su ícono ---- */
+/* ---- Las notas, cada una con su ícono ---- */
+.w-pagina-ayuda .w-ayuda-notas { display: flex; flex-direction: column; gap: 12px; }
 .w-pagina-ayuda .w-info { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--papel); border: 1px solid var(--sand); font-size: 14px; }
 .w-pagina-ayuda .w-info > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .w-pagina-ayuda .w-info b { font-weight: 600; }
 .w-pagina-ayuda .w-info small { color: var(--tinta-60); font-size: 13px; line-height: 1.45; }
 .w-pagina-ayuda .w-info .ic { width: 20px; height: 20px; flex: none; color: var(--taupe); margin-top: 1px; }
-.w-pagina-ayuda .w-info + .w-info { margin-top: -8px; }
+
+/* ---- A dónde seguir: un enlace del alto de un dedo (dentro de una nota, sin agrandarla: el área de toque baja sobre su margen) ---- */
+.w-pagina-ayuda .w-ayuda-enlace { align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; padding: 0; }
+.w-pagina-ayuda .w-info .w-ayuda-enlace { margin-bottom: -10px; }
+
+/* ---- La acción del final: crear la cuenta (o entrar) o, con cuenta, ver la ropa ---- */
+.w-pagina-ayuda .w-ayuda-acciones { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 4px; }
+.w-pagina-ayuda .w-ayuda-acciones .w-ayuda-enlace { align-self: center; }
+
+/* ---- Los enlaces dentro del texto legal (Privacidad y Términos del Club, cuya cara vive en cuenta.css, `.w-legal`): el correo de CAYLA
+   y el punto de la otra página. Subrayados, como los de las casillas de «Crear cuenta». El punto al que lleva un enlace queda con aire
+   arriba, no pegado al borde. ---- */
+.w-legal a { color: var(--tinta); text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--taupe); overflow-wrap: anywhere; }
+.w-legal a:hover { color: var(--rojo-profundo); }
+.w-legal section { scroll-margin-top: 16px; }

@@ -8,19 +8,26 @@ import {
   AGREGAR_AGOTADA,
   AGREGAR_LLENA,
   AGREGAR_LLENA_LOOK,
+  AGREGAR_NO_ALCANZA,
   AGREGAR_NO_ESTA,
   AGREGAR_SIN_RESPUESTA,
+  AGREGAR_TOPE_PRENDA,
+  AGREGAR_TOPE_PRENDA_LOOK,
   agregarUna,
   agregarVarias,
   avisoAgregada,
   BOLSA_CAMBIO,
+  cuantasDe,
   elegirSede,
   esId,
+  pasaElTopePorPrenda,
+  quitarLinea,
   quitarUna,
   respuestaDeSeparar,
   revisarParaAgregar,
   SEPARAR_SIN_RESPUESTA,
   sinPrendas,
+  TOPE_POR_PRENDA,
   TOPE_PRENDAS,
   unidades,
 } from "@/lib/bolsa";
@@ -38,11 +45,12 @@ export type RespuestaAgregar =
   { estado: "agregada"; mensaje: string; cuantas: number } | { estado: "sin_sesion" } | { estado: "no"; mensaje: string };
 
 /**
- * «Agregar a la bolsa» de la ficha y «Agregar» con la talla de las tarjetas (`components/bolsa/AgregarALaBolsa.tsx`,
- * `components/RapidoDeTarjeta.tsx`). `sedeId`: la tienda que el cliente venía
- * mirando («Ver lo que hay en»); queda elegida para recoger si todavía no eligió otra (maqueta).
+ * «Agregar a la bolsa» de la ficha, «Agregar» con la talla de las tarjetas y el «+» de la cantidad en la bolsa
+ * (`components/bolsa/AgregarALaBolsa.tsx`, `components/RapidoDeTarjeta.tsx`, `components/bolsa/CantidadEnLaBolsa.tsx`). `sedeId`: la
+ * tienda que el cliente venía mirando («Ver lo que hay en»); queda elegida para recoger si todavía no eligió otra (maqueta).
  *
- * Como la maqueta, no deja agregar más de lo que hay en las tiendas de la web («Esa talla ya no está en ninguna tienda»).
+ * Como la maqueta, no deja agregar más de lo que hay en las tiendas de la web: «Esa talla ya no está en ninguna tienda» si no queda
+ * ninguna, y «Ya tienes en tu bolsa todas las que quedan» si las que quedan ya están en su bolsa.
  */
 export async function agregarALaBolsa(varianteId: unknown, sedeId: unknown): Promise<RespuestaAgregar> {
   if (!esId(varianteId)) return { estado: "no", mensaje: AGREGAR_NO_ESTA };
@@ -51,6 +59,7 @@ export async function agregarALaBolsa(varianteId: unknown, sedeId: unknown): Pro
   if (sesion.estado === "sin_respuesta") return { estado: "no", mensaje: AGREGAR_SIN_RESPUESTA };
 
   const bolsa = await leerBolsaDeLaCookie();
+  if (cuantasDe(bolsa, varianteId) >= TOPE_POR_PRENDA) return { estado: "no", mensaje: AGREGAR_TOPE_PRENDA };
   const nueva = agregarUna(bolsa, varianteId, { marca: randomUUID() });
   if (!nueva) return { estado: "no", mensaje: AGREGAR_LLENA };
   // La base dice si se puede: en la Vitrina, con precio, y con todas las que llevaría de esta prenda en alguna tienda de la web.
@@ -60,6 +69,7 @@ export async function agregarALaBolsa(varianteId: unknown, sedeId: unknown): Pro
   const revisada = revisarParaAgregar(enBase.lineas[0]);
   if (revisada.tipo === "no_esta") return { estado: "no", mensaje: AGREGAR_NO_ESTA };
   if (revisada.tipo === "agotada") return { estado: "no", mensaje: AGREGAR_AGOTADA };
+  if (revisada.tipo === "no_alcanza") return { estado: "no", mensaje: AGREGAR_NO_ALCANZA };
 
   const sedeQueMiraba = esId(sedeId) && enBase.sedes.some((s) => s.id === sedeId) ? sedeId : null;
   await guardarBolsa({ ...nueva, sedeId: bolsa.sedeId ?? sedeQueMiraba });
@@ -87,6 +97,7 @@ export async function agregarLookALaBolsa(varianteIds: unknown, sedeId: unknown)
   if (sesion.estado === "sin_respuesta") return { estado: "no", mensaje: AGREGAR_SIN_RESPUESTA };
 
   const bolsa = await leerBolsaDeLaCookie();
+  if (pasaElTopePorPrenda(bolsa, ids)) return { estado: "no", mensaje: AGREGAR_TOPE_PRENDA_LOOK };
   const conTodas = agregarVarias(bolsa, ids, { marca: randomUUID() });
   if (!conTodas) return { estado: "no", mensaje: AGREGAR_LLENA_LOOK };
   // Cada prenda se pregunta con todas las que llevaría la bolsa (las que ya estaban más las del look), como al agregar una sola.
@@ -98,7 +109,8 @@ export async function agregarLookALaBolsa(varianteIds: unknown, sedeId: unknown)
   if (!enBase) return { estado: "no", mensaje: AGREGAR_SIN_RESPUESTA };
   const tipo = new Map(unicas.map((v) => [v, revisarParaAgregar(enBase.lineas.find((l) => l.varianteId === v)).tipo]));
   const agregadas = ids.filter((v) => tipo.get(v) === "entra");
-  const agotadas = unicas.filter((v) => tipo.get(v) === "agotada");
+  // Una que no alcanza (las que quedan ya están en la bolsa) queda fuera igual que una agotada: el look dice que no entró.
+  const agotadas = unicas.filter((v) => tipo.get(v) === "agotada" || tipo.get(v) === "no_alcanza");
   const noEstan = unicas.filter((v) => tipo.get(v) === "no_esta");
   if (agregadas.length === 0) return { estado: "listo", agregadas, agotadas, noEstan, cuantas: unidades(bolsa) };
 
@@ -110,13 +122,15 @@ export async function agregarLookALaBolsa(varianteIds: unknown, sedeId: unknown)
   return { estado: "listo", agregadas, agotadas, noEstan, cuantas: unidades(nueva) };
 }
 
-/** «Quitar» saca UNA, solo si el cliente veía esa cantidad (dos toques seguidos sacan una sola). */
+/** El «−» de la cantidad saca UNA; «Quitar» (`todas=1`) saca la prenda entera. Las dos, solo si el cliente veía esa cantidad (dos
+ *  toques seguidos sacan una sola vez). */
 export async function quitarDeLaBolsa(datos: FormData): Promise<void> {
   const variante = datos.get("variante");
   const vista = Number(datos.get("vista"));
   if (!esId(variante) || !Number.isInteger(vista)) return;
   const bolsa = await leerBolsaDeLaCookie();
-  const nueva = quitarUna(bolsa, variante, { vista, marca: randomUUID() });
+  const quitar = datos.get("todas") === "1" ? quitarLinea : quitarUna;
+  const nueva = quitar(bolsa, variante, { vista, marca: randomUUID() });
   if (nueva !== bolsa) await guardarBolsa(nueva);
 }
 

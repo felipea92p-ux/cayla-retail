@@ -91,7 +91,7 @@ export default async function LookAbierto({ params, searchParams }: Props) {
           </div>
         ) : (
           <div className="t-look t-look-abierto">
-            <Lamina look={look} sede={sede} origenFotos={origenFotos} enlaces />
+            <Lamina look={look} sede={sede} origenFotos={origenFotos} enlaces pronto />
             <div className="t-look-info">
               <span className="t-ceja">{`Look ${look.numero} de ${look.de}`}</span>
               <h1>{look.nombre}</h1>

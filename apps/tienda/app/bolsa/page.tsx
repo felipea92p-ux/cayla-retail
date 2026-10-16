@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { elegirTiendaDeRecojo, quitarDeLaBolsa } from "@/app/acciones/bolsa";
+import { CantidadEnLaBolsa } from "@/components/bolsa/CantidadEnLaBolsa";
 import { FormularioSeparar } from "@/components/bolsa/FormularioSeparar";
 import { Miniatura } from "@/components/bolsa/Miniatura";
 import { MarcoCuenta } from "@/components/cuenta/MarcoCuenta";
 import { Icono } from "@/components/Icono";
-import { cuantas, importe, textoDeLaMarca, vistaBolsa, yaNoEsta } from "@/lib/bolsa";
+import { cuantas, importe, ofreceOtra, prendaParaLeer, textoDeLaMarca, TOPE_POR_PRENDA, vistaBolsa, yaNoEsta } from "@/lib/bolsa";
 import { leerBolsaDeLaCookie, leerBolsaEnBase } from "@/lib/bolsa-servidor";
 import { formaDe, fotoOptimizable, hrefDePrenda, soles } from "@/lib/catalogo";
 import { detalleDeLaPrenda, nombreTienda } from "@/lib/pedidos";
@@ -39,7 +40,7 @@ export default async function Bolsa() {
             <h3>Tu bolsa está vacía</h3>
             <p>Elige una prenda y su talla, o agrega un look completo.</p>
             <Link className="t-btn" href="/catalogo">
-              Ver toda la ropa
+              Ver toda la tienda
             </Link>
           </div>
         </div>
@@ -73,13 +74,17 @@ export default async function Bolsa() {
         <div className="t-bolsa">
           <div className="t-bolsa-principal">
             <div className="t-bolsa-items">
-              {v.lineas.map(({ linea, marca, importe: monto }) => {
+              {v.lineas.map(({ linea, marca, importe: monto, antes }) => {
                 const texto = textoDeLaMarca(marca);
-                const quitar = (
-                  <form action={quitarDeLaBolsa}>
+                // «Quitar» saca la prenda entera (la cantidad se baja con «−»), y dice cuál para quien usa lector de pantalla. Si la
+                // prenda ya no se puede separar (agotada o fuera de la tienda online), quitarla es lo que toca: va como botón, no enlace.
+                const urgente = marca.tipo === "agotada" || marca.tipo === "no_esta";
+                const quitar = (leer: string) => (
+                  <form action={quitarDeLaBolsa} className="t-bolsa-quitar">
                     <input type="hidden" name="variante" value={linea.varianteId} />
                     <input type="hidden" name="vista" value={linea.cantidad} />
-                    <button className="w-quitar" type="submit">
+                    <input type="hidden" name="todas" value="1" />
+                    <button className={`w-quitar${urgente ? " urgente" : ""}`} type="submit" aria-label={`Quitar de tu bolsa: ${leer}`}>
                       Quitar
                     </button>
                   </form>
@@ -87,16 +92,19 @@ export default async function Bolsa() {
                 if (yaNoEsta(linea)) {
                   return (
                     <div key={linea.varianteId} className="t-bolsa-item" data-marca="no_esta">
-                      <Miniatura foto={null} optimizar={false} forma="percha" color={null} />
+                      <div className="t-bolsa-foto">
+                        <Miniatura foto={null} optimizar={false} forma="percha" color={null} />
+                      </div>
                       <span>
                         <b>Una prenda que ya no está</b>
                         <em>{texto}</em>
                       </span>
-                      <span className="t-bolsa-der">{quitar}</span>
+                      <div className="t-bolsa-acc">{quitar("una prenda que ya no está")}</div>
                     </div>
                   );
                 }
                 const href = hrefDePrenda({ id: linea.productoId }, sedeDeLaFicha);
+                const leer = prendaParaLeer(linea);
                 return (
                   <div key={linea.varianteId} className="t-bolsa-item" data-marca={marca.tipo}>
                     <Link href={href} tabIndex={-1} aria-hidden="true" className="t-bolsa-foto">
@@ -110,7 +118,6 @@ export default async function Bolsa() {
                     <span>
                       <Link className="t-card-nom" href={href}>
                         {linea.nombre}
-                        {linea.cantidad > 1 ? ` ×${linea.cantidad}` : ""}
                       </Link>
                       <small>{detalleDeLaPrenda(linea)}</small>
                       {texto &&
@@ -130,15 +137,28 @@ export default async function Bolsa() {
                     </span>
                     <span className="t-bolsa-der">
                       <b className="num">{importe(monto)}</b>
-                      {quitar}
+                      {/* Con campaña, lo que costaría sin ella, tachado (como en la ficha y la tarjeta). */}
+                      {antes !== null && (
+                        <s className="num">
+                          <span className="t-sr">Antes </span>
+                          {importe(antes)}
+                        </s>
+                      )}
                     </span>
+                    <div className="t-bolsa-acc">
+                      {/* Agotada: la cantidad no se puede cambiar (ni hay de dónde), solo quitarla. */}
+                      {!urgente && (
+                        <CantidadEnLaBolsa varianteId={linea.varianteId} cantidad={linea.cantidad} prenda={leer} puedeSumar={ofreceOtra(marca) && linea.cantidad < TOPE_POR_PRENDA} />
+                      )}
+                      {quitar(leer)}
+                    </div>
                   </div>
                 );
               })}
             </div>
 
             {v.tiendas.length > 0 && (
-              <div className="w-bloque t-bolsa-tiendas" data-campo="tienda" data-estado={v.sede ? "hecho" : "sigue"}>
+              <div id="bloque-tienda" className="w-bloque t-bolsa-tiendas" data-campo="tienda" data-estado={v.sede ? "hecho" : "sigue"}>
                 <span className="w-lbl" id="tienda-de-recojo">
                   ¿En qué tienda lo recoges? <span className="w-marca">{v.sede ? "✓ Listo" : "Sigue aquí"}</span>
                 </span>
@@ -173,9 +193,10 @@ export default async function Bolsa() {
             <aside className="t-resumen" aria-label="Resumen">
               <h3>Resumen</h3>
               <div className="w-resumen">
+                {/* Sin campañas el subtotal es el total; con ellas, «Prendas − Ahorras = Total» cuadra a la vista. */}
                 <div>
                   <span>Prendas ({v.prendas})</span>
-                  <span className="num">{soles(v.total)}</span>
+                  <span className="num">{soles(v.subtotal)}</span>
                 </div>
                 {v.ahorro > 0 && (
                   <div>
@@ -198,6 +219,7 @@ export default async function Bolsa() {
               marca={bolsa.marca}
               sedeId={v.sede?.id ?? null}
               listo={v.listo}
+              faltaTienda={v.faltaTienda}
               boton={v.boton}
               nota={
                 <>

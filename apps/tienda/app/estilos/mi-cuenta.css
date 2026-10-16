@@ -4,15 +4,7 @@
    lo que suma esta tanda. Solo los tokens de app/globals.css: en oscuro se invierten solos.
    ===================================================================================================== */
 
-/* ---- El correo con «Obtener código» al lado (la forma de «Crear cuenta») ---- */
-.w-caja-con-boton { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
-.w-caja-con-boton .w-caja { min-width: 0; }
-.t-btn.w-obtener { min-height: 52px; height: 52px; padding: 0 16px; font-size: 13.5px; white-space: nowrap; border-radius: 12px; }
-/* En el celular el botón se aprieta para que el correo tenga dónde leerse (a 375 px, la caja queda de ~200 px). */
-@media (max-width: 420px) {
-  .w-caja-con-boton { gap: 6px; }
-  .t-btn.w-obtener { padding: 0 11px; font-size: 12.5px; }
-}
+/* El correo con «Obtener código» al lado (`.w-caja-con-boton`, `.w-obtener`) vive en cuenta.css: es la misma fila de «Crear cuenta». */
 
 /* ---- Lo peligroso: «Eliminar mi cuenta» (rojo desde el principio, como en el ERP) ---- */
 .t-btn.t-btn-peligro { background: var(--rojo-profundo); color: var(--crema); }

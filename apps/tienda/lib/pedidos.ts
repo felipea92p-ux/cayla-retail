@@ -231,6 +231,20 @@ export function mensajeWhatsapp(p: Pick<Pedido, "codigo" | "total" | "tienda" | 
 export const enlaceDelPedido = (p: Pick<Pedido, "codigo" | "total" | "tienda" | "lineas">) =>
   p.tienda.whatsapp ? `${enlaceWhatsapp(p.tienda.whatsapp)}?text=${encodeURIComponent(mensajeWhatsapp(p))}` : null;
 
+/**
+ * El chat con la tienda para lo que sigue después de separar (coordinar el pago, el recojo, una duda), con el número del pedido ya
+ * escrito: «Hola CAYLA Trujillo, te escribo por mi pedido web W-0141.». Antes «Coordina el pago por WhatsApp» y «Si tienes dudas,
+ * escríbele» no tenían a dónde tocar: el número de la tienda era texto suelto. El de «por confirmar» es el otro (`enlaceDelPedido`, el
+ * mensaje de Felipe). null si la tienda no tiene WhatsApp.
+ */
+export const enlaceParaHablarDelPedido = (p: Pick<Pedido, "codigo" | "tienda">) =>
+  p.tienda.whatsapp
+    ? `${enlaceWhatsapp(p.tienda.whatsapp)}?text=${encodeURIComponent(`Hola ${nombreTienda(p.tienda.nombre)}, te escribo por mi pedido web ${p.codigo}.`)}`
+    : null;
+
+/** «S/ 57.20» con un espacio que no se parte (ADR-0413): en una frase, «S/» no queda sola al final de un renglón del celular. */
+export const solesEnFrase = (monto: number) => soles(monto).replace(" ", "\u00a0");
+
 /** La insignia de cada estado en «Mis pedidos» (maqueta, `ESTADO_T`). */
 export const INSIGNIA: Record<EstadoPedido, { texto: string; tono: "ambar" | "verde" | "neutro" | "rojo" }> = {
   por_confirmar: { texto: "Por confirmar", tono: "ambar" },
@@ -273,7 +287,7 @@ export function textoDeDevolucion(p: Pick<Pedido, "estado" | "devuelto" | "pagad
   if (p.estado !== "anulado") return null;
   const monto = Math.round((p.devuelto + p.pagado) * 100) / 100;
   // «S/» y la cifra con un espacio que no se parte: en el celular «S/» no queda sola al final de un renglón (ADR-0413).
-  return monto > 0 ? `Se te devuelve lo que pagaste, ${soles(monto).replace(" ", "\u00a0")}, por el mismo medio con el que pagaste.` : null;
+  return monto > 0 ? `Se te devuelve lo que pagaste, ${solesEnFrase(monto)}, por el mismo medio con el que pagaste.` : null;
 }
 
 /** «¿Necesitas cambiarlo?» de un pedido entregado, con el MISMO plazo que imprime su boleta (`tienda_ayuda`, el de la caja): la web y la

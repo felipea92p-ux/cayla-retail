@@ -274,8 +274,9 @@ select ${VE("tru")};`,
 seccion("— 3. Lo que sale —");
 escenario(
   "nunca una cifra ni quién: las llaves son las tallas activas del modelo y cada valor es un sí o un no",
-  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 3);
-${SEPARAR("usr_b", "tru", "v", 3)}
+  // Dos (el tope por prenda de «Separar», 20261016001000) que cubren las dos libres.
+  `select pg_temp.dejar(:'v', :'tru', :'tru_piso', 2);
+${SEPARAR("usr_b", "tru", "v", 2)}
 select retail.tienda_separadas_por_otros(:'usr_a', :'prod', :'tru') as r \\gset
 select concat_ws(',',
   (select array_agg(k order by k) from jsonb_object_keys((:'r')::jsonb) k)

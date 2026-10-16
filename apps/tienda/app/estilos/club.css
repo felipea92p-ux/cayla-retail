@@ -37,6 +37,8 @@
    (`.t-card-media`, catalogo.css), arriba a la derecha y por encima de «Agregar». ---- */
 .c-corazon { position: absolute; top: 6px; right: 6px; z-index: 3; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--t-papel-fijo) 82%, transparent); color: var(--t-tinta-fija); display: grid; place-items: center; cursor: pointer; transition: transform .2s var(--ease), background-color .2s; }
 .c-corazon:hover { transform: scale(1.08); background: var(--t-papel-fijo); }
+/* Se ve de 36 px y se toca en 44 (un dedo, en la esquina de la foto). */
+.c-corazon::before { content: ""; position: absolute; inset: -4px; border-radius: 50%; }
 .c-corazon .ic { width: 18px; height: 18px; }
 .c-corazon[aria-pressed="true"] { color: var(--t-oferta); }
 .c-corazon-grande { flex: none; width: 52px; height: 52px; padding: 0; border-radius: 50%; border: 1.5px solid var(--sand); background: var(--papel); color: var(--tinta); display: grid; place-items: center; cursor: pointer; transition: border-color .2s, color .2s; }
@@ -50,6 +52,16 @@
 /* ---- «Avísame cuando llegue»: el botón ancho de la ficha (`t-btn t-btn-ancho t-btn-sec`). Un <button> no hereda la letra solo
    (`.t-btn` no la pide): sin esto sale en la del sistema y no en DM Sans. ---- */
 .c-avisame { font-family: inherit; }
+/* Ya pedido y con su espera conocida: el mismo botón lo quita (el ✓ en verde dice que está anotado; la × al final, que se quita). */
+.c-avisame-pedido > .ic:first-child { color: var(--verde); }
+.c-avisame-x { display: grid; place-items: center; margin-left: 2px; color: var(--taupe); }
+.c-avisame-x .ic { width: 16px; height: 16px; }
+.c-avisame-pedido:hover:not(:disabled) .c-avisame-x { color: var(--rojo-profundo); }
+.c-avisame-pedido:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+/* Con la × al lado, «Te avisaremos cuando llegue» pasaba a dos renglones en el celular: ahí dice «Te avisaremos». */
+@container tienda (max-width: 479px) {
+  .c-avisame-largo { display: none; }
+}
 
 /* ---- Te avisamos cuando llegue (maqueta: `.t-bolsa-item` y `.w-quitar`) ---- */
 .c-esperas { display: flex; flex-direction: column; }
@@ -71,7 +83,8 @@
 .c-quitar:disabled { cursor: default; opacity: .6; }
 .c-quitar:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 4px; }
 
-@keyframes c-corazon { 0% { transform: scale(1); } 35% { transform: scale(1.35); } 70% { transform: scale(.92); } 100% { transform: scale(1); } }
+/* Late una vez al guardarse: crece y vuelve, sin pasarse de largo hacia adentro (antes bajaba a .92: un rebote). */
+@keyframes c-corazon { 0% { transform: scale(1); } 40% { transform: scale(1.3); } 100% { transform: scale(1); } }
 @keyframes c-llenar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @media (prefers-reduced-motion: reduce) {
   .c-late, .c-barra > i { animation: none; }

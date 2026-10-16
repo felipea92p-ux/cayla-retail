@@ -1262,6 +1262,12 @@ espaciado; la puerta `/gestion/page.tsx` redirige a la primera que la cuenta ve)
   pegar en producción**) → `crearClienteAdmin()` → `fn_cerrar_pedidos_web_sin_confirmar()` (solo `service_role`): lee el plazo de
   Configuración ▸ Tienda web y cierra con él lo que nadie confirmó (`fn_cerrar_pedidos_web_vencidos` del motor). Devuelve
   `{cerrados, horas_para_confirmar}`; sin `CRON_SECRET` o con otra clave, 401. Si no corre, nada se rompe: lo vencido ya se LEE vencido.
+  Desde `20261016001000` (ADR-0426, en producción) también anula lo CONFIRMADO sin ningún pago pasadas las horas de «Si no paga»
+  (`fn_anular_pedidos_web_sin_pagar`, sus prendas vuelven) y devuelve además `{anulados_sin_pagar, horas_sin_pagar}`.
+- `GET /api/apartados/vencer` (cron diario 08:40 UTC = 03:40 Lima, `vercel.json`; ADR-0426 D4, `20261016003000`, en producción) →
+  `crearClienteAdmin()` → `fn_vencer_apartados_de_todas()` (solo `service_role`): libera en todas las tiendas los apartados vencidos hace
+  más de 2 días (`fn_vencer_separaciones_de`, la misma pieza que llama `fn_vencer_separaciones` al abrir la pantalla) y los apartados
+  simples de Existencias con su fecha pasada; no los pedidos entre tiendas ni los web. Devuelve `{apartados_con_adelanto, apartados_simples}`.
 - `/club/[token]` (PÚBLICA, sin sesión; `proxy.ts` deja pasar solo el prefijo `/club/`; ADR-0288 act. c) → la clienta
   confirma su publicidad desde su celular: `fn_invitacion_club` (lectura) y `confirmar_invitacion_club` (EXECUTE para
   `anon`, token de un uso que vence a los 7 días). Reglas en `lib/club-pagina-reglas.ts`.

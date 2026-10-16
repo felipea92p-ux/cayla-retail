@@ -32,10 +32,37 @@
 .t-bolsa-item .t-traslado { color: var(--pizarra); }
 .t-ok .ic, .t-traslado .ic { flex: none; width: 14px; height: 14px; }
 .t-bolsa-item .t-bolsa-der { align-items: flex-end; text-align: right; }
+.t-bolsa-item .t-bolsa-der s { font-size: 12px; color: var(--tinta-60); }
 .t-bolsa-item .num { font-variant-numeric: tabular-nums lining-nums; }
 .t-bolsa-foto { display: block; }
 .w-quitar { border: 0; background: none; font: inherit; font-size: 12.5px; color: var(--tinta-60); text-decoration: underline; text-underline-offset: 2px; padding: 6px 0; cursor: pointer; }
 .w-quitar:hover { color: var(--rojo-profundo); }
+
+/* En la bolsa, cada prenda lleva debajo de su texto la cantidad («−», cuántas, «+») y «Quitar»: la foto ocupa las dos filas, y la
+   fila de la cantidad va de lado a lado bajo el nombre y el precio. Todo lo que se toca mide 44 px de alto (el dedo). Solo en la bolsa:
+   las prendas de un pedido (`.w-tarjeta`) usan la misma fila sin cantidad. */
+.t-bolsa-items .t-bolsa-item { grid-template-rows: auto auto; row-gap: 8px; }
+.t-bolsa-items .t-bolsa-foto { grid-row: 1 / span 2; }
+.t-bolsa-acc { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+.t-bolsa-quitar { order: 2; margin-left: auto; }
+.t-bolsa-quitar .w-quitar { min-height: 44px; padding: 0 2px; display: inline-flex; align-items: center; }
+/* La prenda que ya no se puede separar: «Quitar» es el paso que falta, como un botón chico con su borde. */
+.t-bolsa-quitar .w-quitar.urgente { padding: 0 18px; border-radius: 999px; box-shadow: inset 0 0 0 1.5px var(--tinta); color: var(--tinta); font-weight: 700; text-decoration: none; }
+.t-bolsa-quitar .w-quitar.urgente:hover { background: var(--hueso); color: var(--tinta); }
+/* Lo que ya no se puede separar (agotada, ya no está): la foto se apaga y su frase en rojo dice qué hacer. */
+.t-bolsa-item[data-marca="agotada"] .t-mini, .t-bolsa-item[data-marca="no_esta"] .t-mini { opacity: .5; }
+
+/* La cantidad y «Quitar» en una fila; la frase de un «+» que no pudo, debajo y a todo lo ancho (sin empujar «Quitar» a otra fila). Esa
+   frase no es una alarma (no se equivocó nadie): va en el gris de las notas. */
+.t-cantidad-caja { display: contents; }
+.t-cantidad-aviso { order: 3; flex-basis: 100%; color: var(--tinta-60); font-size: 12px; font-weight: 600; line-height: 1.35; }
+.t-cantidad { display: inline-flex; align-items: center; width: fit-content; height: 44px; border: 1px solid var(--sand); border-radius: 999px; background: var(--papel); }
+.t-cantidad form { display: contents; }
+.t-cantidad button { width: 44px; height: 42px; flex: none; border: 0; border-radius: 999px; background: none; color: var(--tinta); font-size: 20px; font-weight: 500; line-height: 1; display: grid; place-items: center; cursor: pointer; transition: background-color .15s; }
+.t-cantidad button:hover:not(:disabled) { background: var(--hueso); }
+.t-cantidad button:disabled { color: var(--tinta-40); cursor: not-allowed; }
+.t-cantidad button[aria-busy="true"] { cursor: progress; }
+.t-cantidad output { min-width: 22px; text-align: center; font-size: 14px; font-weight: 700; }
 
 /* ¿En qué tienda lo recoges? (una para todo) */
 .w-bloque { display: flex; flex-direction: column; gap: 10px; }
@@ -74,6 +101,9 @@
 .t-separado { padding-top: 22px; }
 .t-separado-cab { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding-top: 6px; }
 .t-separado-cab .w-texto-sec { max-width: 36ch; }
+/* Como la maqueta (`.w-titulo em`) y los títulos de la tienda: la última palabra en cursiva ROJA (en la cuenta, `.w-titulo em` solo
+   es cursiva). */
+.t-separado-cab .w-titulo em { color: var(--rojo); }
 .t-sello { width: 64px; height: 64px; border-radius: 50%; background: var(--verde); color: var(--papel); display: grid; place-items: center; animation: sello .45s var(--ease) both; }
 .t-sello .ic { width: 32px; height: 32px; stroke-width: 2.2; }
 .t-sello .ic path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: trazo .4s .25s var(--ease) forwards; }
@@ -148,7 +178,7 @@
 .t-rapido { display: none; }
 
 /* El foco del teclado, visible sobre crema y sobre el oscuro. */
-.w-opcion:focus-visible, .w-quitar:focus-visible, .w-ped:focus-visible, .t-ico:focus-visible, .t-rapido button:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+.w-opcion:focus-visible, .w-quitar:focus-visible, .w-ped:focus-visible, .t-ico:focus-visible, .t-rapido button:focus-visible, .t-cantidad button:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
 
 @container tienda (min-width: 960px) {
   .t-bolsa { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 40px; align-items: start; padding-block: 6px 40px; }

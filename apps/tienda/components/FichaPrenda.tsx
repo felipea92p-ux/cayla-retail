@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { formaDe, fotoOptimizable } from "@/lib/catalogo";
 import { claveEspera } from "@/lib/club";
 import {
+  avisoOtraTienda,
   avisoOtrosSepararon,
   botonDeLaFicha,
   campanaDeLaFicha,
@@ -13,6 +14,7 @@ import {
   colorInicial,
   faltaParaTerminar,
   fotosDelColor,
+  lineaAlAgregar,
   notaDeTalla,
   precioDeLaFicha,
   tallaDelPrecio,
@@ -31,10 +33,12 @@ import { Icono } from "./Icono";
  * la primera grande y las demás de a dos), el nombre, el precio en la tienda elegida con su campaña, los colores, las tallas y CUÁNTO
  * HAY EN CADA TIENDA del color elegido, como nivel («Hay», 3, 2, «Última», «—»), con la tienda elegida y la talla resaltadas.
  *
- * Debajo de la tabla, el botón principal (`botonDeLaFicha`): «Elige tu talla» apagado, «Agregar a la bolsa» si esa talla hay en alguna
- * tienda de la web o «Avísame cuando llegue» si no hay en ninguna; a su derecha, el corazón. Antes, si otros ya separaron lo que queda
- * en la tienda elegida, la propuesta k; después, «Ver mi bolsa (N)». En el celular el botón y el corazón van en la barra de abajo, que
- * queda pegada mientras se ve la prenda y lo que va debajo (`children`: «Combínalo con», «También te puede gustar»).
+ * Debajo de la tabla, el botón principal (`botonDeLaFicha`): «Elige tu talla» (lleva a las tallas y las resalta), «Agregar a la bolsa»
+ * si esa talla hay en alguna tienda de la web o «Avísame cuando llegue» si no hay en ninguna; a su derecha, el corazón. Antes, si otros
+ * ya separaron lo que queda en la tienda elegida, la propuesta k, o, si esa talla no está en la tienda elegida, que igual se separa y la
+ * tienda la trae. Después, lo que pasó al agregar («La talla M ya está en tu bolsa») y «Ver mi bolsa (N)». En el celular el botón y el
+ * corazón van en la barra de abajo, que queda pegada mientras se ve la prenda y lo que va debajo (`children`: «Combínalo con»,
+ * «También te puede gustar»), y lo que pasó al agregar va en la misma barra: la cabecera con la bolsa ya no se ve.
  */
 export function FichaPrenda({
   ficha,
@@ -44,6 +48,7 @@ export function FichaPrenda({
   chips = [],
   cambios,
   esperas = [],
+  esperasIds = {},
   enLaBolsa = 0,
   separadas = [],
   children,
@@ -60,6 +65,9 @@ export function FichaPrenda({
   cambios: string;
   /** Lo que la cuenta ya pidió con «Avísame» (`claveEspera`: prenda y tienda). */
   esperas?: readonly string[];
+  /** El id de cada una de esas esperas (por su misma clave): con él, «Te avisaremos ×» la quita desde la ficha, aunque se haya pedido
+   *  en otra visita (sin el id, solo se podía quitar desde «Mi cuenta»). */
+  esperasIds?: Readonly<Record<string, string>>;
   /** Cuántas prendas lleva la bolsa (la cookie): «Ver mi bolsa (N)». */
   enLaBolsa?: number;
   /** Las tallas cuyo resto en la tienda elegida ya separaron otros clientes (propuesta k; solo con una tienda elegida). */
@@ -84,6 +92,24 @@ export function FichaPrenda({
   const tallaElegida = tallas.find((t) => t.variante === elegida)?.talla.nombre ?? "";
   const yaSeparadas = useMemo(() => new Set(separadas), [separadas]);
   const otrosSepararon = avisoOtrosSepararon(elegida, tiendaElegida, yaSeparadas);
+  const otraTienda = avisoOtraTienda(elegida, tiendaElegida, ficha.sedes);
+
+  // Lo que pasó al agregar, atado al color y la talla de ese momento: al elegir otra, ya no corresponde y se va.
+  const seleccion = `${color}|${tallaId ?? ""}`;
+  const [resultado, setResultado] = useState<{ seleccion: string; bien: boolean; texto: string } | null>(null);
+  const alAgregar = resultado?.seleccion === seleccion ? resultado : null;
+
+  // «Elige tu talla» lleva a las tallas (en el celular quedan lejos, arriba de la barra) y las resalta hasta que elija una.
+  const bloqueTallas = useRef<HTMLDivElement>(null);
+  const [pideTalla, setPideTalla] = useState(false);
+  function pedirTalla() {
+    setPideTalla(true);
+    const bloque = bloqueTallas.current;
+    if (!bloque) return;
+    const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    bloque.scrollIntoView({ behavior: quieto ? "auto" : "smooth", block: "center" });
+    bloque.querySelector<HTMLButtonElement>(".t-talla")?.focus({ preventScroll: true });
+  }
 
   // «Avísame» ya pedido: lo que trae el servidor, más lo que se anota aquí (el botón está dos veces: en la fila y en la barra).
   const huellaEsperas = esperas.join(",");
@@ -114,12 +140,50 @@ export function FichaPrenda({
             sedeId={sedeElegida}
             sedeNombre={tiendaElegida?.nombre ?? null}
             pedido={anotadas.has(clave) || (boton.tipo === "avisame" && anotadas.has(claveEspera(boton.varianteId, null)))}
+            esperaId={esperasIds[clave] ?? esperasIds[claveEspera(boton.varianteId, null)] ?? null}
             alAnotar={() => setAnotadas((antes) => new Set(antes).add(clave))}
+            alQuitar={() =>
+              setAnotadas((antes) => {
+                const quedan = new Set(antes);
+                quedan.delete(clave);
+                quedan.delete(claveEspera(boton.varianteId, null));
+                return quedan;
+              })
+            }
           />
         ) : (
-          <AgregarALaBolsa varianteId={boton.tipo === "agregar" ? boton.varianteId : null} sedeId={sedeElegida} />
+          <AgregarALaBolsa
+            varianteId={boton.tipo === "agregar" ? boton.varianteId : null}
+            sedeId={sedeElegida}
+            alElegirTalla={pedirTalla}
+            alResponder={(r) => setResultado({ seleccion, bien: r.bien, texto: lineaAlAgregar(r, tallaElegida, tallas.length > 1) })}
+          />
         )}
         <BotonFavorito productoId={ficha.id} nombre={ficha.nombre} forma="ficha" />
+      </div>
+    );
+  }
+
+  /**
+   * Lo que pasó al agregar (✓ o por qué no) y el camino a la bolsa, junto al botón. Su frase vive en una región que se lee en voz alta
+   * al cambiar (siempre dibujada, aunque vacía: una que aparece de golpe no siempre se anuncia). `enlace`: si va «Ver mi bolsa (N)».
+   */
+  function lineaDeLaBolsa(clase: string, enlace: boolean) {
+    return (
+      <div className={clase} data-lleno={alAgregar ? "" : undefined}>
+        <span role="status" className={alAgregar ? (alAgregar.bien ? "bien" : "mal") : undefined}>
+          {alAgregar && (
+            <>
+              {alAgregar.bien && <Icono nombre="check" />}
+              {alAgregar.texto}
+            </>
+          )}
+        </span>
+        {enlace && enLaBolsa > 0 && (
+          <Link className="t-enlace" href="/bolsa">
+            Ver mi bolsa ({enLaBolsa})
+          </Link>
+        )}
       </div>
     );
   }
@@ -184,11 +248,16 @@ export function FichaPrenda({
             {!colorElegido.foto && ficha.fotos.length > 0 && <span className="t-swatch-nota">Este color aún no tiene foto: la ves en otro color.</span>}
           </div>
 
-          <div className="t-bloque">
+          <div className="t-bloque" ref={bloqueTallas} data-pide={pideTalla && !tallaId ? "" : undefined}>
             <span className="t-etq">
               <span>
                 Talla{elegida && tallas.length > 1 && <b> {tallaElegida}</b>}
               </span>
+              {pideTalla && !tallaId && (
+                <span className="t-etq-pide" role="status">
+                  Elige una para seguir
+                </span>
+              )}
             </span>
             <div className="t-tallas" role="group" aria-label="Talla">
               {tallas.map(({ talla, variante }) => {
@@ -200,7 +269,10 @@ export function FichaPrenda({
                     className="t-talla"
                     aria-pressed={talla.id === tallaId}
                     data-agotada={nota ? "" : undefined}
-                    onClick={() => setTallaId(talla.id === tallaId && tallas.length > 1 ? null : talla.id)}
+                    onClick={() => {
+                      setPideTalla(false);
+                      setTallaId(talla.id === tallaId && tallas.length > 1 ? null : talla.id);
+                    }}
                   >
                     {talla.nombre}
                     {nota && <small>{nota}</small>}
@@ -218,13 +290,16 @@ export function FichaPrenda({
               <span>{otrosSepararon}</span>
             </p>
           )}
+          {otraTienda && (
+            <p className="t-pdp-nota" role="status">
+              <Icono nombre="traslado" />
+              <span>{otraTienda}</span>
+            </p>
+          )}
 
           {botones("t-cta-linea t-pdp-cta")}
-          {enLaBolsa > 0 && (
-            <Link className="t-enlace t-ver-bolsa" href="/bolsa">
-              Ver mi bolsa ({enLaBolsa})
-            </Link>
-          )}
+          {/* En el celular esta línea solo lleva a la bolsa: lo que pasó al agregar se dice en la barra de abajo. */}
+          {lineaDeLaBolsa("t-pdp-bolsa t-pdp-bolsa-info", true)}
 
           <div className="t-acordeon">
             <details open>
@@ -254,8 +329,12 @@ export function FichaPrenda({
         </div>
       </div>
       {children}
-      {/* En el celular, la barra de abajo (maqueta, `pie` de `vProducto`): pegada al borde mientras se ve la prenda y lo de abajo. */}
-      <div className="t-pdp-barra">{botones("t-cta-linea")}</div>
+      {/* En el celular, la barra de abajo (maqueta, `pie` de `vProducto`): pegada al borde mientras se ve la prenda y lo de abajo. Al
+          agregar, arriba del botón, lo que pasó y el camino a la bolsa (la cabecera, con su globo, ya quedó lejos). */}
+      <div className="t-pdp-barra">
+        {lineaDeLaBolsa("t-pdp-bolsa t-pdp-bolsa-barra", Boolean(alAgregar))}
+        {botones("t-cta-linea")}
+      </div>
     </>
   );
 }

@@ -41,6 +41,12 @@
 .r-gracias-ic .ic { width: 26px; height: 26px; stroke-dasharray: 24; stroke-dashoffset: 24; animation: r-visto .5s var(--ease) .25s forwards; }
 @keyframes r-entra { from { opacity: 0; transform: translateY(10px); } }
 @keyframes r-visto { to { stroke-dashoffset: 0; } }
+/* El título del «¡Gracias!» recibe el foco al enviarla (quien usa el teclado o un lector sigue desde ahí): no es un control, sin anillo. */
+.r-gracias .w-titulo:focus { outline: none; }
+
+/* ---- «Por hoy ya está»: sin cupo hoy y sin nada escrito, en lugar de una caja que no se podría enviar. El reloj, en hueso. ---- */
+.r-sin-cupo-ic { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; color: var(--taupe); background: var(--hueso); }
+.r-sin-cupo-ic .ic { width: 26px; height: 26px; }
 
 /* ---- «Lo que nos escribiste» ---- */
 .r-mias { align-content: start; }

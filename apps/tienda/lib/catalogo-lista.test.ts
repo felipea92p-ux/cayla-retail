@@ -1,0 +1,124 @@
+import { describe, expect, it } from "vitest";
+import type { Prenda } from "./catalogo";
+import { categoriasConLaElegida, dondeHay, gruposConLoElegido, queSeBusca, vacioEnTienda } from "./catalogo-lista";
+import { GRUPOS, gruposDe, leerGrupo } from "./grupos";
+import type { Nivel } from "./stock";
+
+const LIMA = { id: "272c2b96-1d3e-4801-b92f-9271696ee415", nombre: "Lima" };
+const TRUJILLO = { id: "0b522f0b-2739-42b8-98bf-b6bbc4cff5fb", nombre: "Trujillo" };
+const AREQUIPA = { id: "5d1c2b96-1d3e-4801-b92f-9271696ee999", nombre: "Arequipa" };
+const TIENDAS = [AREQUIPA, LIMA, TRUJILLO];
+
+const prenda = (nombre: string, prefijo: string, sedes: Record<string, Nivel> | null): Prenda => ({
+  id: nombre,
+  codigo: null,
+  nombre,
+  categoria: { nombre: `Cat ${prefijo}`, prefijo },
+  precio: 25,
+  precioFinal: 25,
+  desde: false,
+  campana: null,
+  colores: [],
+  fotos: [],
+  stock: sedes ? { total: "hay", sedes } : null,
+  nuevo: null,
+  vendidos: null,
+});
+
+describe("dónde hay lo que se pidió", () => {
+  // Los cinturones del banco: hay en Trujillo, en Lima ninguno.
+  const cinturones = [
+    prenda("Cinturón dorado", "CIN", { [TRUJILLO.id]: "hay", [LIMA.id]: 0 }),
+    prenda("Cinturón plateado", "CIN", { [TRUJILLO.id]: 2, [LIMA.id]: 0 }),
+    prenda("Cinturón hebilla", "CIN", { [TRUJILLO.id]: 1 }),
+  ];
+
+  it("cuenta los modelos de cada tienda que tiene algo, la que más primero; las que no tienen no salen", () => {
+    expect(dondeHay(cinturones, TIENDAS)).toEqual([{ ...TRUJILLO, cuantas: 3 }]);
+    const mezcla = [...cinturones, prenda("Aretes", "ARE", { [AREQUIPA.id]: "hay", [LIMA.id]: 3 }), prenda("Collar", "COL", { [AREQUIPA.id]: 1 })];
+    expect(dondeHay(mezcla, TIENDAS).map((t) => `${t.nombre}:${t.cuantas}`)).toEqual(["Trujillo:3", "Arequipa:2", "Lima:1"]);
+  });
+
+  it("empate: por nombre; una prenda sin dato de stock no cuenta en ninguna (no se afirma lo que no se sabe)", () => {
+    const parejas = [prenda("A", "CIN", { [TRUJILLO.id]: 1 }), prenda("B", "CIN", { [AREQUIPA.id]: 2 }), prenda("Sin dato", "CIN", null)];
+    expect(dondeHay(parejas, TIENDAS).map((t) => `${t.nombre}:${t.cuantas}`)).toEqual(["Arequipa:1", "Trujillo:1"]);
+    expect(dondeHay([], TIENDAS)).toEqual([]);
+  });
+
+  it("lleva lo de cada tienda tal cual (el nombre que la página usa para su dirección)", () => {
+    const conMas = [{ ...TRUJILLO, whatsapp: "987654321" }];
+    expect(dondeHay(cinturones, conMas)[0]).toMatchObject({ whatsapp: "987654321", cuantas: 3 });
+  });
+});
+
+describe("lo que dice la lista vacía en la tienda elegida", () => {
+  it("lo pedido en minúsculas: la categoría o el grupo; sin ellos, lo propio de cada lista", () => {
+    expect(queSeBusca("todo", "Cinturones")).toBe("cinturones");
+    expect(queSeBusca("nuevo", "Bolsos y Carteras")).toBe("bolsos y carteras");
+    expect(queSeBusca("todo", "Bisutería y belleza")).toBe("bisutería y belleza");
+    expect(queSeBusca("todo", null)).toBe("prendas");
+    expect(queSeBusca("nuevo", null)).toBe("nada nuevo");
+    expect(queSeBusca("ofertas", null)).toBe("ofertas");
+    expect(queSeBusca("vendidos", null)).toBe("más vendidos");
+  });
+
+  it("si otra tienda tiene, dice cuántas y dónde, y el botón lleva allá (nunca «Ver todas las tiendas», que sonaba a la página de las tiendas)", () => {
+    expect(vacioEnTienda("cinturones", "Lima", [{ ...TRUJILLO, cuantas: 3 }])).toEqual({
+      titulo: "No hay cinturones en Lima",
+      texto: "Pero hay 3 prendas en Trujillo.",
+      boton: { texto: "Ver en Trujillo", tienda: { ...TRUJILLO, cuantas: 3 } },
+    });
+    expect(vacioEnTienda("nada nuevo", "Lima", [{ ...TRUJILLO, cuantas: 1 }])?.texto).toBe("Pero hay 1 prenda en Trujillo.");
+  });
+
+  it("con varias tiendas que tienen, las nombra con cuántas y el botón muestra todas", () => {
+    expect(vacioEnTienda("cinturones", "Lima", [{ ...TRUJILLO, cuantas: 3 }, { ...AREQUIPA, cuantas: 2 }])).toEqual({
+      titulo: "No hay cinturones en Lima",
+      texto: "Pero hay en Trujillo (3) y Arequipa (2).",
+      boton: { texto: "Ver en todas las tiendas", tienda: null },
+    });
+    const tres = [{ ...TRUJILLO, cuantas: 3 }, { ...AREQUIPA, cuantas: 2 }, { id: "x", nombre: "Cusco", cuantas: 1 }];
+    expect(vacioEnTienda("ofertas", "Lima", tres)?.texto).toBe("Pero hay en Trujillo (3), Arequipa (2) y Cusco (1).");
+  });
+
+  it("si ninguna otra tiene, null: lo que falta no es la tienda y la lista dice su propio vacío", () => {
+    expect(vacioEnTienda("más vendidos", "Lima", [])).toBeNull();
+  });
+});
+
+describe("lo elegido siempre a la vista en los filtros", () => {
+  const enLima = [prenda("Bolso", "CAR", { [LIMA.id]: 2 }), prenda("Gorro", "GOR", { [LIMA.id]: 1 }), prenda("Top", "TOP", { [LIMA.id]: 1 })];
+  const accesorios = leerGrupo("accesorios")!;
+  const cinturones = { clave: "CIN", nombre: "Cinturones", cuantas: 3 };
+
+  it("la categoría elegida que aquí no tiene nada sale con 0, en su lugar dentro de su grupo", () => {
+    const grupos = gruposConLoElegido(gruposDe(enLima), accesorios, cinturones);
+    const suyo = grupos.find((g) => g.clave === "accesorios")!;
+    // El orden del grupo: CAR, MOC, RIN, ACC, CIN, BUF, PAS, GOR…
+    expect(suyo.categorias.map((c) => `${c.clave}:${c.cuantas}`)).toEqual(["CAR:1", "CIN:0", "GOR:1"]);
+    expect(suyo.cuantas).toBe(2);
+    // Los demás grupos, tal cual y en su orden.
+    expect(grupos.map((g) => g.clave)).toEqual(["arriba", "accesorios"]);
+  });
+
+  it("el grupo elegido que aquí no tiene nada también sale, con 0, en su lugar entre los grupos", () => {
+    const grupos = gruposConLoElegido(gruposDe(enLima), leerGrupo("abajo"), null);
+    expect(grupos.map((g) => `${g.clave}:${g.cuantas}`)).toEqual(["arriba:1", "abajo:0", "accesorios:2"]);
+    expect(GRUPOS.findIndex((g) => g.clave === "abajo")).toBeGreaterThan(GRUPOS.findIndex((g) => g.clave === "arriba"));
+  });
+
+  it("sin nada elegido, o con lo elegido ya a la vista, los grupos quedan iguales", () => {
+    const base = gruposDe(enLima);
+    expect(gruposConLoElegido(base, null, null)).toEqual(base);
+    expect(gruposConLoElegido(base, accesorios, { clave: "CAR", nombre: "Cat CAR", cuantas: 1 })).toEqual(base);
+    // Una categoría de OTRO grupo no se cuela en el grupo elegido.
+    expect(gruposConLoElegido(base, accesorios, { clave: "VES", nombre: "Vestidos", cuantas: 2 })).toEqual(base);
+  });
+
+  it("en una sola fila, la categoría elegida que aquí no tiene nada sale al final, con 0", () => {
+    const fila = [{ clave: "CAR", nombre: "Bolsos", cuantas: 2 }];
+    expect(categoriasConLaElegida(fila, cinturones)).toEqual([...fila, { clave: "CIN", nombre: "Cinturones", cuantas: 0 }]);
+    expect(categoriasConLaElegida(fila, fila[0])).toEqual(fila);
+    expect(categoriasConLaElegida(fila, null)).toEqual(fila);
+  });
+});

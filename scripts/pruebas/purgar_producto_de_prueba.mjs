@@ -845,7 +845,7 @@ select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto()) || ']';`,
     "docs · rechazo: una separación que también aparta otra prenda",
     `select retail.separar_prendas(p_ubicacion_id => :'ubic', p_items => jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 1, 'precio_unitario', 50),
         jsonb_build_object('variante_id', :'o1', 'cantidad', 1, 'precio_unitario', :'p1')),
-      p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 10)), p_clienta_nombres => 'Cira', p_clienta_apellidos => 'Prueba',
+      p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 40)), p_clienta_nombres => 'Cira', p_clienta_apellidos => 'Prueba',
       p_clienta_celular => '987111444', p_devolucion_medio => 'yape') as s3 \\gset`,
     /apartan 2 prenda\(s\) de otros productos/,
     { separaciones: `:'s1' || ',' || :'s2' || ',' || :'s3'` }
@@ -853,7 +853,7 @@ select '[' || pg_temp.distintas(:'foto_antes', pg_temp.foto()) || ']';`,
   rechazoDocs(
     "docs · rechazo: una separación pagada en efectivo (ese dinero entró a la caja con su movimiento)",
     `select retail.separar_prendas(p_ubicacion_id => :'ubic', p_items => jsonb_build_array(jsonb_build_object('variante_id', :'va', 'cantidad', 1, 'precio_unitario', 50)),
-      p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 10, 'recibido', 10)), p_clienta_nombres => 'Dora', p_clienta_apellidos => 'Prueba',
+      p_pagos => jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', 15, 'recibido', 15)), p_clienta_nombres => 'Dora', p_clienta_apellidos => 'Prueba',
       p_clienta_celular => '987111555', p_devolucion_medio => 'yape') as s3 \\gset`,
     /entraron en efectivo a una caja[\s\S]*caja_movimientos citan a separaciones/,
     { separaciones: `:'s1' || ',' || :'s2' || ',' || :'s3'` }

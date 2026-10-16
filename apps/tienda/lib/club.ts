@@ -362,6 +362,21 @@ export function textoAvisoAnotado(talla: string, sedeNombre: string | null): str
   return `Te avisaremos en tu cuenta ${que}${sedeNombre ? ` a ${sedeNombre}` : ""}.`;
 }
 
+/**
+ * «Te avisaremos cuando llegue» ya pedido se puede quitar desde la misma ficha (antes, solo desde «Mi cuenta»). Lo que oye el lector de
+ * pantalla en ese botón: «Quitar el aviso de la talla M a Trujillo».
+ */
+export function etiquetaQuitarAviso(talla: string, sedeNombre: string | null): string {
+  const de = sinNombre(talla) ? "" : ` de la talla ${talla.trim()}`;
+  return `Quitar el aviso${de}${sedeNombre ? ` a ${sedeNombre}` : ""}`;
+}
+
+/** El aviso de abajo después de quitarlo: qué pasó y que se puede volver a pedir. */
+export function textoAvisoQuitado(talla: string): string {
+  const de = sinNombre(talla) ? "" : ` de la talla ${talla.trim()}`;
+  return `Quitamos el aviso${de}. Puedes volver a pedirlo cuando quieras.`;
+}
+
 export type EstadoFavorito = "guardado" | "quitado" | "tope" | "no_disponible" | "cuenta_inactiva" | "sin_sesion" | "sin_respuesta";
 export type EstadoAviso = "anotada" | "hay" | "tope" | "no_disponible" | "cuenta_inactiva" | "sin_sesion" | "sin_respuesta";
 export type EstadoQuitar = "quitada" | "no_esta" | "sin_sesion" | "sin_respuesta";

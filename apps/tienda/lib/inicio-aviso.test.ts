@@ -59,7 +59,7 @@ describe("lo que está a favor de la persona", () => {
       HOY,
     );
     expect([vale.titulo, vale.texto]).toEqual([valeDeLaCuenta.titulo, valeDeLaCuenta.texto]);
-    expect(vale.titulo).toBe("Tienes un vale de S/ 20");
+    expect(vale.titulo).toBe("Tienes un vale de S/\u00a020");
   });
 
   it("lo que llegó: qué prenda, su color y talla, y dónde hay (la tienda que esperaba o, si le daba igual, todas las que tienen)", () => {

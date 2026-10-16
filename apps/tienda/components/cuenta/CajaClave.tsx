@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 
-/** La caja de la contraseña con «Ver» / «Ocultar» (maqueta, `cajaClave`). */
+/**
+ * La caja de la contraseña con «Ver» / «Ocultar» (maqueta, `cajaClave`). `name`: el formulario la lee al enviarse («Entrar» toma lo
+ * que dejó el autocompletar aunque la página no lo haya visto escribir).
+ */
 export function CajaClave({
   id,
+  name,
   valor,
   onCambio,
   autoComplete,
@@ -12,6 +16,7 @@ export function CajaClave({
   invalida = false,
 }: {
   id: string;
+  name?: string;
   valor: string;
   onCambio: (valor: string) => void;
   autoComplete: "new-password" | "current-password";
@@ -23,6 +28,7 @@ export function CajaClave({
     <div className="w-caja-clave">
       <input
         id={id}
+        name={name}
         className="w-caja"
         type={ver ? "text" : "password"}
         autoComplete={autoComplete}

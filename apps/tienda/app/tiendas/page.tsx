@@ -12,11 +12,12 @@ import "../estilos/inicio.css";
 // Nuestras tiendas (ADR-0408, actividad 6): la página del pie «Nuestras tiendas», con y sin cuenta. Sin cuenta, la cabecera de la portada;
 // con cuenta, la de la tienda (el menú, los favoritos, «Mi cuenta» y la bolsa) y, en cada tienda, «Ver solo lo que hay aquí», que lleva al
 // Inicio con esa tienda elegida (maqueta v4, `seccionTiendas` con cuenta). Se arma en cada visita porque la cabecera depende de la sesión
-// (antes se guardaba 5 minutos): lo que el ERP cambia en Configuración ▸ Tienda web se ve al recargar; sin base, lo dice en una línea.
+// (antes se guardaba 5 minutos): lo que el ERP cambia en Configuración ▸ Tienda web se ve al recargar; sin base, lo dice y deja volver a
+// intentar. Es una página corta: el pie se queda al borde de abajo de la ventana solo (pie.css), sin pedírselo al marco.
 
 export const metadata: Metadata = {
   title: "Nuestras tiendas · CAYLA",
-  description: "Dónde recoger lo que separas en la web: la dirección, el horario y el WhatsApp de cada tienda CAYLA.",
+  description: "Dónde recoger lo que separas en la web: la dirección, el horario, el WhatsApp y cómo llegar a cada tienda CAYLA.",
 };
 
 export default async function Tiendas() {
@@ -25,7 +26,7 @@ export default async function Tiendas() {
     ? Object.fromEntries(sedes.map((s) => [s.id, { href: hrefDelInicio(claveDeSede(s.nombre)), actual: false }]))
     : undefined;
   return (
-    <MarcoCuenta conCuenta={conCuenta} conPie corta>
+    <MarcoCuenta conCuenta={conCuenta} conPie>
       <NuestrasTiendas sedes={sedes} enPagina ver={ver} />
     </MarcoCuenta>
   );

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { hrefLista } from "@/lib/catalogo";
 import { hrefLooks } from "@/lib/looks";
 import { Isotipo } from "./Isotipo";
+import "@/app/estilos/pie.css";
 
 type Columna = { titulo: string; enlaces: [string, string][] };
 
@@ -20,7 +21,7 @@ const comprar = (sede: string | null): Columna => {
       ["Ofertas", lista("ofertas")],
       ["Más vendidos", lista("vendidos")],
       ["Arma tu look", hrefLooks(sede)],
-      ["Toda la ropa", hrefLista({ sede, categoria: null, orden: "destacado" })],
+      ["Toda la tienda", hrefLista({ sede, categoria: null, orden: "destacado" })],
     ],
   };
 };
@@ -38,42 +39,50 @@ const columnas = (conCuenta: boolean, sede: string | null): Columna[] => [
       ["Club CAYLA", conCuenta ? "/cuenta" : "/crear-cuenta"],
       ...(conCuenta ? [["Recomendaciones", "/recomendaciones"] as [string, string]] : []),
       ["Privacidad", "/privacidad"],
-      ["Términos del club", "/terminos-del-club"],
+      // «Club» con mayúscula, como en el título de la página («Términos del Club CAYLA») y en «Club CAYLA».
+      ["Términos del Club", "/terminos-del-club"],
     ],
   },
 ];
 
-/** El pie: la marca, la cuenta, la ayuda y lo legal. `sede`: la clave de la tienda elegida (o null con «Todas»), solo con cuenta. */
+/**
+ * El pie: la marca, la cuenta, la ayuda y lo legal. `sede`: la clave de la tienda elegida (o null con «Todas»), solo con cuenta. Antes
+ * del pie va su aire (`.t-pie-aire`, pie.css): en una página corta crece y deja el pie al borde de abajo de la ventana. Los títulos de
+ * columna son h2 (con la cara chica de la maqueta): en la página vienen después del h1 y sus h2, sin saltar a h4.
+ */
 export function Pie({ anio, conCuenta = false, sede = null }: { anio: number; conCuenta?: boolean; sede?: string | null }) {
   return (
-    <footer className="t-pie">
-      <div className="t-ancho">
-        <div className="t-pie-in">
-          <div className="t-pie-marca">
-            <Link className="t-logo" href={conCuenta ? "/inicio" : "/"} aria-label={conCuenta ? "CAYLA, ir al inicio" : "CAYLA, ir a la portada"}>
-              <Isotipo />
-              <span>CAYLA</span>
-            </Link>
-            <p>Separa online, confirma por WhatsApp y recoge en tu tienda.</p>
-          </div>
-          {columnas(conCuenta, sede).map((c) => (
-            <div key={c.titulo}>
-              <h4>{c.titulo}</h4>
-              <ul>
-                {c.enlaces.map(([texto, href]) => (
-                  <li key={texto}>
-                    <Link href={href}>{texto}</Link>
-                  </li>
-                ))}
-              </ul>
+    <>
+      <div className="t-pie-aire" aria-hidden="true" />
+      <footer className="t-pie">
+        <div className="t-ancho">
+          <div className="t-pie-in">
+            <div className="t-pie-marca">
+              <Link className="t-logo" href={conCuenta ? "/inicio" : "/"} aria-label={conCuenta ? "CAYLA, ir al inicio" : "CAYLA, ir a la portada"}>
+                <Isotipo />
+                <span>CAYLA</span>
+              </Link>
+              <p>Separa online, confirma por WhatsApp y recoge en tu tienda.</p>
             </div>
-          ))}
+            {columnas(conCuenta, sede).map((c) => (
+              <div key={c.titulo}>
+                <h2 className="t-pie-tit">{c.titulo}</h2>
+                <ul>
+                  {c.enlaces.map(([texto, href]) => (
+                    <li key={texto}>
+                      <Link href={href}>{texto}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <p className="t-pie-legal">
+            <span>© {anio} CAYLA</span>
+            <span>Sin publicidad por WhatsApp: las novedades están aquí</span>
+          </p>
         </div>
-        <p className="t-pie-legal">
-          <span>© {anio} CAYLA</span>
-          <span>Sin publicidad por WhatsApp: las novedades están aquí</span>
-        </p>
-      </div>
-    </footer>
+      </footer>
+    </>
   );
 }

@@ -10,11 +10,14 @@
 .w-ficha { padding: 18px 20px 26px; display: flex; flex-direction: column; gap: 20px; }
 .w-ficha-centro { align-items: center; text-align: center; padding-top: 34px; }
 .w-titulo { font-family: var(--serif); font-size: 30px; font-weight: 500; line-height: 1.04; margin: 6px 0 0; text-wrap: balance; }
-.w-titulo em { font-style: italic; }
+/* La última palabra en cursiva ROJA, como el resto de la tienda («Hola, Valeria.») y como la maqueta aprobada (que la pinta así en
+   todos sus títulos de ficha: «Entra para ver el catálogo.», «¡Listo, lo separaste!»). Antes iba en tinta y la cursiva se perdía. */
+.w-titulo em { font-style: italic; color: var(--rojo); }
 .w-texto { margin: 0; font-size: 14px; color: var(--tinta); line-height: 1.5; }
 .w-texto-sec { margin: 0; font-size: 13px; color: var(--tinta-60); line-height: 1.5; }
 .w-ficha > div > .w-texto-sec { margin-top: 8px; }
-.w-ficha-centro .w-texto-sec { max-width: 38ch; }
+.w-ficha-centro .w-texto-sec, .w-ficha-centro .w-ayuda { max-width: 38ch; }
+.w-acc-centro { justify-content: center; }
 .w-correo { overflow-wrap: anywhere; }
 
 /* ---- Cada campo: su título, su marca (✓ Listo · Sigue aquí · Revisa) y lo que dice debajo ---- */
@@ -71,11 +74,21 @@
 .w-check-res { padding-left: 30px; }
 
 /* ---- El código del correo (actividad 2b) ---- */
-/* «Obtener código» al lado del correo (Felipe 2026-10-15): la caja se estira y el botón queda a su medida, del mismo alto. Cuando
-   lo que sigue es pedir el código, el botón lleva la luz ámbar de «Sigue aquí», como una caja. */
-.w-correo-fila { display: flex; gap: 8px; align-items: stretch; }
-.w-correo-fila .w-caja { flex: 1; min-width: 0; }
-.t-btn.w-obtener { flex: none; padding-inline: 16px; font-size: 13px; }
+/* «Obtener código» al lado del correo (Felipe 2026-10-15): la caja se estira y el botón queda a su medida, del mismo alto y con las
+   mismas esquinas que la caja. La misma fila en «Crear cuenta», «Cambiar mi correo» y «Restablecer mi acceso» (antes, el registro la
+   dibujaba como píldora y las otras dos como caja). Cuando lo que sigue es pedir el código, el botón lleva la luz ámbar de «Sigue
+   aquí», como una caja. */
+.w-caja-con-boton { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
+.w-caja-con-boton .w-caja { min-width: 0; }
+/* Con el correo confirmado, el registro quita el botón: la caja ocupa toda la fila, alineada con las demás. */
+.w-caja-con-boton > .w-caja:only-child { grid-column: 1 / -1; }
+.t-btn.w-obtener { min-height: 52px; height: 52px; padding: 0 16px; font-size: 13.5px; white-space: nowrap; border-radius: 12px; }
+/* En el celular el botón se aprieta para que el correo tenga dónde leerse (a 375 px la caja queda de ~185 px, no de ~160). Vivía en
+   mi-cuenta.css, que «Crear cuenta» no carga: ahí el correo quedaba más angosto. */
+@media (max-width: 420px) {
+  .w-caja-con-boton { gap: 6px; }
+  .t-btn.w-obtener { padding: 0 11px; font-size: 12.5px; }
+}
 .t-btn-sec.w-obtener-sigue { box-shadow: inset 0 0 0 1.5px var(--tinta), 0 0 0 3px color-mix(in srgb, var(--ambar) 30%, transparent); }
 .w-caja.w-codigo { font-size: 24px; letter-spacing: .35em; text-align: center; }
 .w-caja.w-codigo::placeholder { font-size: 15px; letter-spacing: normal; }
@@ -96,6 +109,13 @@
 .w-pie-form { position: sticky; bottom: 0; z-index: 4; display: flex; flex-direction: column; gap: 10px; margin-inline: -20px; padding: 12px 20px 16px; background: var(--crema); border-top: 1px solid var(--sand); }
 .w-sobre { width: 64px; height: 64px; border-radius: 50%; background: var(--hueso); display: grid; place-items: center; }
 .w-sobre .ic { width: 30px; height: 30px; }
+/* El otro camino al pie de «Entrar»: quien todavía no tiene cuenta (llegó por un enlace que le mandaron) ve «Crear mi cuenta» como
+   botón, separado por una línea de lo que es entrar. */
+.w-otro-camino { display: flex; flex-direction: column; gap: 10px; padding-top: 18px; border-top: 1px solid var(--sand); text-align: center; }
+/* Cada «Falta: …» del pie lleva a su campo: un enlace del mismo ámbar, del alto de la línea (no empuja el pie). */
+.w-faltan .w-falta-ir { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--ambar); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--ambar) 45%, transparent); text-underline-offset: 2px; cursor: pointer; }
+.w-faltan .w-falta-ir:hover { color: var(--tinta); }
+.w-faltan .w-falta-ir:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 3px; }
 
 /* ---- «Mi cuenta» ---- */
 .t-cuenta-pag { display: grid; gap: 22px; padding-block: 20px 28px; }
@@ -105,6 +125,16 @@
 .t-cuenta-cab .t-tarjeta-club { justify-self: start; max-width: 340px; }
 .t-cuenta-cab .t-enlace { justify-self: start; }
 .t-cuenta-cab form { display: contents; }
+/* El estado de un pedido: «Escríbele a CAYLA Trujillo» al pie es un enlace al chat (la caja `.w-info` de bolsa.css, que se toca). */
+.w-info.w-info-enlace { color: var(--tinta); align-items: center; transition: border-color .2s; }
+.w-info.w-info-enlace > span { flex: 1; }
+.w-info.w-info-enlace > .ic:last-child { width: 18px; height: 18px; color: var(--taupe); transition: transform .25s var(--ease); }
+.w-info.w-info-enlace:hover { border-color: var(--taupe); }
+.w-info.w-info-enlace:hover > .ic:last-child { transform: translateX(3px); }
+.w-info.w-info-enlace:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+/* El vacío de una página de la cuenta que es TODA un vacío («No encontramos ese pedido»): su título es el de la página (h1), con la
+   misma letra que el título de los vacíos de la tienda (`.t-vacio h3`, globals.css). */
+.t-vacio > h1 { margin: 0; font-family: var(--serif); font-size: 28px; font-weight: 500; }
 /* Una nota que se queda (los avisos que no se activaron al crear la cuenta): hueso, como las notas del ERP. */
 .w-nota { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--hueso); color: var(--tinta); font-size: 13px; line-height: 1.5; max-width: 52ch; }
 
@@ -121,6 +151,12 @@
 .w-aviso { position: fixed; left: 14px; right: 14px; bottom: 24px; z-index: 30; background: var(--tinta); color: var(--crema); border-radius: 14px; padding: 12px 14px; font-size: 13px; display: flex; gap: 10px; align-items: center; box-shadow: 0 16px 30px -16px var(--sombra); animation: aviso-breve 3.4s var(--ease) both; pointer-events: none; }
 .w-aviso .ic { width: 18px; height: 18px; flex: none; }
 @keyframes aviso-breve { 0% { opacity: 0; transform: translateY(10px); } 8%, 86% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-4px); } }
+/* Con «reducir movimiento» el aviso NO se anima: se ve quieto y se va cuando su dueño lo quita (3,6 s). Sin esto, la regla general de
+   globals.css acortaba la animación a nada y el aviso quedaba en su último cuadro, transparente: quien tiene «reducir movimiento» en el
+   celular nunca veía «Listo: …» (ni la bienvenida al Club, ni «Saliste de tu cuenta», ni «Guardado en tus favoritos»). */
+@media (prefers-reduced-motion: reduce) {
+  .w-aviso { animation: none; }
+}
 
 @container tienda (min-width: 960px) {
   .w-ficha { padding-inline: 0; }

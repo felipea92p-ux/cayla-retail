@@ -177,7 +177,8 @@ export function FormularioCorreoNuevo({ correoActual }: { correoActual: string }
         <div>
           <span className="t-ceja">Mi cuenta</span>
           <h1 className="w-titulo">
-            Listo: <em>ahora entras con tu correo nuevo.</em>
+            {/* La cursiva roja va en lo último, como en todos los títulos: toda la frase en rojo pesaba demasiado. */}
+            Listo: ahora entras con <em>tu correo nuevo.</em>
           </h1>
         </div>
         <Campo campo="codigo" idCaja={ID.codigo} etiqueta="Correo con que entras" marca="hecho" textoMarca="✓ Correo confirmado" alEntrar={() => undefined} alSalir={() => undefined}>

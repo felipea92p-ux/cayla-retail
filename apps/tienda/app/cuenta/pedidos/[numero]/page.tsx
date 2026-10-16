@@ -11,12 +11,14 @@ import {
   codigoDeLaUrl,
   diaCorto,
   enlaceDelPedido,
+  enlaceParaHablarDelPedido,
   fechaCorta,
   fechaLarga,
   hitos,
   hora,
   nombreTienda,
   porQueSeCerro,
+  solesEnFrase,
   textoCambiarlo,
   textoDeDevolucion,
   vivas,
@@ -157,16 +159,7 @@ export default async function MiPedido({ params }: { params: Promise<{ numero: s
             </div>
           </div>
 
-          <div className="w-info">
-            <Icono nombre="chat" />
-            <span>
-              <b>Todo se coordina por WhatsApp</b>
-              <small>
-                {tienda}
-                {p.tienda.whatsapp ? ` · ${whatsappLegible(p.tienda.whatsapp)}` : ""}
-              </small>
-            </span>
-          </div>
+          <ConLaTienda p={p} tienda={tienda} />
         </div>
       </div>
     </MarcoCuenta>
@@ -206,7 +199,7 @@ function Cabeza({ p, tienda, plazos }: { p: Pedido; tienda: string; plazos: Plaz
           </h1>
           <p className="w-texto-sec">
             {tienda} lo guardó para ti. {llegan.length > 0 && `Una prenda llega el ${diaCorto(llegan[llegan.length - 1])} y te avisan. `}
-            {p.pagado > 0 ? `Ya pagaste una parte: falta ${soles(p.falta)}.` : "Coordina el pago por WhatsApp."}
+            {p.pagado > 0 ? `Ya pagaste una parte: falta ${solesEnFrase(p.falta)}.` : "Coordina el pago por WhatsApp."}
           </p>
         </>
       );
@@ -266,6 +259,35 @@ function Cabeza({ p, tienda, plazos }: { p: Pedido; tienda: string; plazos: Plaz
         </>
       );
   }
+}
+
+/**
+ * «Todo se coordina por WhatsApp», al pie. Por confirmar, el botón grande de arriba ya manda el mensaje del pedido: aquí solo se dice con
+ * quién. En los demás estados es el camino a la tienda, con el número del pedido escrito («Coordina el pago por WhatsApp», «Si tienes
+ * dudas, escríbele»): antes el número de la tienda era texto suelto y en el celular había que copiarlo a mano.
+ */
+function ConLaTienda({ p, tienda }: { p: Pedido; tienda: string }) {
+  const enlace = p.estado === "por_confirmar" ? null : enlaceParaHablarDelPedido(p);
+  const contenido = (
+    <>
+      <Icono nombre="chat" />
+      <span>
+        <b>{enlace ? `Escríbele a ${tienda}` : "Todo se coordina por WhatsApp"}</b>
+        <small>
+          {enlace ? "Por WhatsApp" : tienda}
+          {p.tienda.whatsapp ? ` · ${whatsappLegible(p.tienda.whatsapp)}` : ""}
+        </small>
+      </span>
+    </>
+  );
+  return enlace ? (
+    <a className="w-info w-info-enlace" href={enlace} target="_blank" rel="noopener noreferrer">
+      {contenido}
+      <Icono nombre="flecha" />
+    </a>
+  ) : (
+    <div className="w-info">{contenido}</div>
+  );
 }
 
 /** El botón o la caja de cada estado: WhatsApp por confirmar, el código para recoger, «Volver a separar». */

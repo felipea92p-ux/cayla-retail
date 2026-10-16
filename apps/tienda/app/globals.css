@@ -66,7 +66,6 @@
 .t-ancho { width: 100%; max-width: 1280px; margin-inline: auto; padding-inline: 16px; }
 .t-angosto { width: 100%; max-width: 620px; margin-inline: auto; }
 .t-anuncio { flex: none; height: 30px; display: grid; place-items: center; background: var(--t-oscuro); color: var(--t-oscuro-tinta); font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; overflow: hidden; padding-inline: 12px; text-align: center; white-space: nowrap; }
-.t-anuncio span { display: block; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .t-cab { flex: none; position: relative; z-index: 15; background: color-mix(in srgb, var(--crema) 95%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--sand); }
 .t-cab-fila { height: 56px; display: flex; align-items: center; gap: 2px; padding-inline: 10px 16px; max-width: 1360px; margin-inline: auto; }
 .t-logo { display: flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 6px; color: var(--tinta); }
@@ -112,7 +111,7 @@
 .t-sec-cab h2 { margin: 6px 0 0; font-family: var(--serif); font-weight: 500; font-size: clamp(34px, 8cqi, 60px); line-height: .94; letter-spacing: -.015em; }
 .t-sec-cab h2 em { font-style: italic; color: var(--rojo); }
 .t-sec-cab p { margin: 8px 0 0; color: var(--tinta-60); font-size: 14px; max-width: 48ch; }
-.t-ver { flex: none; border: 0; background: none; display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 8px 0; color: var(--tinta); white-space: nowrap; }
+.t-ver { flex: none; border: 0; background: none; display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 8px 0; min-height: 44px; color: var(--tinta); white-space: nowrap; }
 .t-ver b { min-width: 20px; height: 20px; border-radius: 10px; background: var(--sand); font-size: 10.5px; display: grid; place-items: center; padding: 0 5px; letter-spacing: 0; }
 .t-ver .ic { width: 16px; height: 16px; transition: transform .25s var(--ease); }
 .t-ver:hover .ic { transform: translateX(4px); }
@@ -141,7 +140,6 @@
 .t-tienda .ic { width: 18px; height: 18px; color: var(--taupe); }
 .t-pie { margin-top: 40px; background: var(--t-oscuro); color: var(--t-oscuro-tinta); padding-block: 36px 26px; }
 .t-pie-in { display: grid; gap: 26px; }
-.t-pie h4 { margin: 0 0 10px; font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--t-oscuro-suave); }
 .t-pie ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .t-pie li a { display: inline-block; border: 0; background: none; padding: 4px 0; font-size: 13.5px; color: var(--t-oscuro-tinta); text-align: left; }
 .t-pie li a:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -170,7 +168,6 @@
   .t-pie { margin-top: 64px; }
   .t-pie-in { grid-template-columns: 1.4fr repeat(3, 1fr); }
 }
-@keyframes anuncio { from { opacity: 0; transform: translateY(8px); } }
 @keyframes subirLinea { from { opacity: 0; transform: translateY(40%); } }
 @keyframes volar {
   0% { opacity: 0; transform: translate(-340px, 160px) rotate(-18deg) scale(.7); }
@@ -192,6 +189,9 @@
   .t-como { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 }
 .t-btn.t-btn-chico { min-height: 38px; height: 38px; padding: 0 16px; font-size: 13px; margin-left: 6px; }
+/* Con el dedo, el botón chico también mide 44 px: en el celular medía 38 («Entrar» de la cabecera, «Entendido», «Ver toda la tienda»),
+   menos de lo que pide un dedo. Con mouse sigue en 38. */
+@media (pointer: coarse) { .t-btn.t-btn-chico { min-height: 44px; height: 44px; } }
 .t-portada-club { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 16px; padding-top: 8px; }
 .t-portada-club .t-tarjeta-club { max-width: 360px; transform: rotate(-4deg); box-shadow: 0 30px 60px -30px color-mix(in srgb, var(--t-oscuro) 80%, transparent); }
 .t-portada-club p { margin: 0; font-size: 13px; color: var(--t-hero-tinta); opacity: .85; text-align: center; }
@@ -214,7 +214,6 @@ button, input, textarea { font: inherit; color: inherit; }
   .t-fecha-larga { display: inline; }
   .t-fecha-corta { display: none; }
 }
-.t-anuncio span.entra { animation: anuncio .6s var(--ease) both; }
 /* Revelar al bajar (si el navegador lo sabe hacer; si no, todo queda quieto y visible). */
 @supports (animation-timeline: view()) {
   .t-revela { animation: revela linear both; animation-timeline: view(); animation-range: entry 0% entry 55%; }

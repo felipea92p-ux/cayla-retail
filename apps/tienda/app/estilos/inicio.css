@@ -34,6 +34,24 @@
 .t-circ:hover .t-circ-img { transform: scale(1.07); }
 .t-circ:focus-visible { outline: 2px solid var(--rojo); outline-offset: 4px; border-radius: 8px; }
 
+/* ---- Las flechas de un carril (`CarrilConFlechas`): solo con mouse (con el dedo, el carril se desliza). Cada una sale si hay algo más
+   hacia su lado. Los círculos las llevan a la altura de las fotos; el carril de Lo nuevo, a la de las fotos de sus tarjetas. ---- */
+.t-carril-envol { position: relative; }
+.t-carril-flecha { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .t-carril-flecha { position: absolute; z-index: 7; top: var(--flecha-y, 50%); width: 40px; height: 40px; margin-top: -20px; padding: 0; display: grid; place-items: center; border: 1px solid var(--sand); border-radius: 50%; background: var(--papel); color: var(--tinta); cursor: pointer; box-shadow: 0 10px 24px -14px var(--sombra); transition: border-color .2s, transform .2s var(--ease); animation: t-flecha-asoma .25s var(--ease) both; }
+  .t-carril-flecha[hidden] { display: none; }
+  .t-carril-flecha:hover { border-color: var(--tinta); transform: scale(1.06); }
+  .t-carril-flecha:active { transform: scale(.96); }
+  .t-carril-flecha .ic { width: 18px; height: 18px; }
+  .t-carril-flecha.antes { left: var(--flecha-borde, 6px); }
+  .t-carril-flecha.antes .ic { transform: scaleX(-1); }
+  .t-carril-flecha.despues { right: var(--flecha-borde, 6px); }
+}
+.t-circs-envol { --flecha-y: 53px; }
+.t-carril-inicio { --flecha-y: 42%; }
+@keyframes t-flecha-asoma { from { opacity: 0; } }
+
 /* ---- Las ofertas: la banda oscura, con una píldora por campaña ---- */
 .t-ofertas { margin-top: 36px; padding-block: 38px 36px; background: var(--t-oscuro); color: var(--t-oscuro-tinta); }
 .t-ofertas .t-ceja { color: var(--t-hero-acento); }
@@ -45,10 +63,14 @@
 .t-ofertas .t-precio.oferta b { color: var(--t-hero-acento); }
 .t-ofertas .t-precio s, .t-ofertas .t-muestras small, .t-ofertas .t-card-nota { color: var(--t-oscuro-suave); }
 .t-ofertas .t-muestras i { box-shadow: inset 0 0 0 1px var(--t-oscuro-filo); }
-.t-ofertas .t-pildoras { margin-bottom: 16px; }
+/* Las píldoras de las campañas se tocan en 44 px de alto (una capa invisible), sin cambiar de lugar. */
+.t-ofertas .t-pildoras { padding-block: 5px; margin-block: -5px 11px; }
+.t-ofertas .t-pildora { position: relative; }
+.t-ofertas .t-pildora::before { content: ""; position: absolute; inset: -5px -3px; }
 .t-ofertas .t-pildora { border-color: var(--t-oscuro-filo); color: var(--t-oscuro-tinta); }
 .t-ofertas .t-pildora:hover { border-color: var(--t-oscuro-tinta); }
-.t-ofertas .t-pildora[aria-current="true"] { background: var(--t-oscuro-tinta); border-color: var(--t-oscuro-tinta); color: var(--t-tinta-fija); }
+.t-ofertas .t-pildora[aria-current="true"], .t-ofertas .t-pildora:has(> .t-pendiente[data-pendiente]) { background: var(--t-oscuro-tinta); border-color: var(--t-oscuro-tinta); color: var(--t-tinta-fija); }
+.t-ofertas .t-pildoras:has(.t-pendiente[data-pendiente]) .t-pildora[aria-current="true"]:not(:has(> .t-pendiente[data-pendiente])) { background: transparent; border-color: var(--t-oscuro-filo); color: var(--t-oscuro-tinta); }
 .t-ofertas .t-card-nom:focus-visible, .t-ofertas .t-pildora:focus-visible, .t-ofertas .t-ver:focus-visible { outline-color: var(--t-hero-acento); }
 
 /* ---- Más vendidos: el puesto grande, en contorno, junto a cada tarjeta (sin cifras de ventas) ---- */
@@ -60,6 +82,13 @@
 
 /* ---- Nuestras tiendas: «Ver solo lo que hay aquí» ---- */
 .t-tienda-ver { align-self: flex-start; padding: 8px 0 2px; }
+
+/* ---- «Así se separa» con cuenta: el primer paso ya está hecho (su visto en verde) ---- */
+.t-como li[data-hecho] .t-como-ic { background: color-mix(in srgb, var(--verde) 14%, var(--papel)); }
+.t-como li[data-hecho] .t-como-ic .ic { color: var(--verde); }
+
+/* ---- El héroe: «Ver lo nuevo» se toca en 44 px de alto, como el botón de al lado ---- */
+.t-hero-inicio .t-hero-acciones .t-enlace { min-height: 44px; }
 
 /* ---- «Arma tu look» (maqueta, `vInicio`): la lámina de cada look; en el celular se desliza de lado, en la computadora, tres en fila.
    La tarjeta (`.t-look-card`) y la lámina son las de looks.css. ---- */
@@ -100,7 +129,13 @@
   .t-aviso-club-acc { flex-direction: column; align-items: flex-end; justify-content: center; }
   .t-collage { height: 480px; }
   .t-polaroid { width: 44%; }
-  .t-circs { justify-content: center; gap: 26px; padding-top: 30px; }
+  /* Centrados si caben; si no, desde el primero (con `justify-content: center`, lo que no cabía se cortaba a la izquierda y no se
+     podía ver: las primeras ocho categorías). El margen de los lados deja lugar a las flechas. */
+  .t-circs { gap: 26px; padding: 30px 56px 4px; scroll-padding-inline: 56px; }
+  .t-circs > :first-child { margin-left: auto; }
+  .t-circs > :last-child { margin-right: auto; }
+  .t-circs-envol { --flecha-y: 76px; --flecha-borde: 8px; }
+  .t-carril-inicio { --flecha-borde: -20px; }
   .t-circ { width: 96px; }
   .t-circ-img { width: 92px; height: 92px; }
   .t-circ b { font-size: 12.5px; }

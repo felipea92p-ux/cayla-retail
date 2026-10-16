@@ -82,8 +82,14 @@ export default async function Separado({ params }: { params: Promise<{ numero: s
                 Enviar por WhatsApp
               </a>
             ) : (
+              // Si la tienda no tiene su WhatsApp en la web, «escríbele» sin decir dónde era un callejón: «Nuestras tiendas» tiene
+              // cómo llegar a cada una.
               <p className="w-texto-sec">
-                Escríbele a {tienda} con tu número de pedido, <span className="t-codigo">{p.codigo}</span>.
+                Escríbele a {tienda} con tu número de pedido, <span className="t-codigo">{p.codigo}</span>. Sus datos están en{" "}
+                <Link className="w-enlace" href="/tiendas">
+                  Nuestras tiendas
+                </Link>
+                .
               </p>
             )}
           </div>
