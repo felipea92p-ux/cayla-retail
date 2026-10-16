@@ -92,3 +92,30 @@ SE ROMPE SI:
   sale una sola cifra, no 36 % o 46 %.
 - **Cobros:** una venta con tarjeta en Trujillo queda en «Por depositar Vendemás». Al registrar el depósito neto, la diferencia aparece
   como comisión y la cuenta puente vuelve a 0.
+
+## Actualización 2026-10-15 (construcción, misma sesión)
+
+Felipe eligió el **camino A («La respuesta»)** para los seis submódulos de Finanzas entre las 18 maquetas de
+`docs/maquetas/finanzas-v2-2026-10/`, y pidió construir sin esperar. Se construyó en nueve actividades con un commit cada una
+(`/construir`); todo el SQL está en migraciones **sin pegar en producción**:
+
+| # | Qué | Dónde | Estado |
+|---|---|---|---|
+| 1 | Decisión 1: la venta sin prenda nace con el costo promedio de su categoría, sellado y marcado `venta_items.costo_estimado`; lo existente se rellena al pegar; al regularizar manda el costo real | `20261015233000_costo_estimado_venta_sin_prenda.sql`, `scripts/pruebas/costo_estimado_venta_sin_prenda.mjs` (20 casos) | construido, probado en una pila local al día con `main` |
+| 2 | El medidor de confianza: `fn_finanzas_confianza` (hechos) + `lib/finanzas-confianza.ts` (pesos que suman 100) + `<Confianza>` | `20261015235000_finanzas_confianza.sql`, `scripts/pruebas/finanzas_confianza.mjs` (20), `lib/finanzas-confianza.test.ts` (11) | ídem |
+| 3 | Resumen A, «El Pulso»: ¿estoy ganando plata?, ¿por qué? (cascada que siempre cuadra), el ritmo, qué deja cada lugar sin repartir lo de la empresa | `lib/pulso-reglas.ts` (19), `components/finanzas/ResumenFinanzas.tsx`, `CascadaPulso.tsx` | ídem |
+| 4 | Situaciones 15 y 16: `pago_planilla` (41 \| 104) y `pago_sunat` (4011 \| 104) como movimientos de dinero, por reemplazos anclados al texto original | `20261016002000_pago_planilla_y_sunat.sql`, `scripts/pruebas/pago_planilla_y_sunat.mjs` (14) | ídem |
+| 5–9 | Cuentas y dinero, Impuestos, Gastos, Reportes y Cierre en camino A: la pregunta y la respuesta grande arriba de lo que ya existía | `lib/{dinero,impuestos,gastos,cierre}-pulso-reglas.ts` y sus `*Pulso.tsx` | ídem |
+
+**Decisiones de detalle tomadas al construir** (Felipe puede objetarlas):
+- El estimado se sella con el promedio SIMPLE del costo de las variantes de la categoría (sin pesar por stock) y no se recalcula al corregir
+  lo anotado (`corregir_prenda_sin_registrar`).
+- «Lo fijo del mes» del ritmo se estima con lo registrado a la fecha llevado al mes entero, más la planilla (asentada o proyectada por el Flujo).
+- La cascada lleva un tramo «Otros ajustes» cuando lo nombrado no suma el resultado (un gasto devuelto, una nota de crédito): una cuenta que
+  no cuadra es peor que una línea de más.
+- El pago a SUNAT es el del IGV; el 1 % de renta a cuenta sigue siendo un gasto de «Tributos».
+- Los pesos del medidor (costo 30 · fijos 20 · facturas 15 · saldos 10 · tarjeta 10 · planilla 10 · conciliación 5) viven en la web, no en la base.
+
+**Lo que NO se construyó, a propósito** (ver el backlog del día): la corrección masiva de costos a «sin IGV» (decisión 2: hay que medir y
+ensayar en producción), Interbank y las cuentas «por depositar» (decisión 3: toca la hoja de cobro de Vender), la planilla con sede,
+`/formidable`, `/chaos` y `guias:recorrer` sobre las seis pantallas, y pegar las tres migraciones.
