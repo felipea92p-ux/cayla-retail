@@ -1,0 +1,6 @@
+## Clientes: pendientes chicos (2026-10-16) — solo web, sin migración; rama `claude/clientes-pendientes-chicos`
+- [x] **`enmascararCelular` toma cualquier número de 9 dígitos por celular** (pieza de Proveedores, avisos del club y Clientes): ahora exige que empiece con 9, como `validarCelular`.
+- [x] **Fichas a 20 por página** (de la rama `claude/clientas-pagination-bbf082`, del 10-oct, que no estaba en `main`).
+- [x] **Una `?pagina=` que ya no existe** baja a la última (`leerPaginaQueExiste`), y una de nueve cifras se recorta a `MAX_PAGINA` en vez de desbordar `p_desde`.
+- [ ] **Ver la pantalla con datos:** no se hizo en el navegador (sin Docker ni base local en la máquina de hoy). En `/clientas` con más de 20 fichas: `?pagina=99` cae en la última; archivar la única ficha de la última página deja en la anterior; en 375 px el pie no se parte.
+- [ ] **Decide Felipe: el pie de Fichas a `<Paginas>`.** La paginación única es `<Paginas>` (la píldora que se desliza, ADR-0358 ronda 8, 2026-10-13), pero el pie de Fichas sigue con «‹ Anterior · Página X de Y · Siguiente ›» dibujado a mano y se escapó de la prueba: la firma de la familia `paginacion` en `unificar/familias.mjs` busca `aria-label="Paginación"`, y este lleva `"Páginas"`. Migrarlo cambia cómo se ve (lleva tu OK, módulo por módulo); si se migra, la firma también debe aprender a verlo.
